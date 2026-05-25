@@ -46,7 +46,8 @@ export const Stack = forwardRef<HTMLDivElement, IStackProps>(function Stack(
         justifyClass(justify),
         className,
       )}
-      {...rest}
+      {...(rest as Record<string, unknown>)}
+
     />
   );
 });
