@@ -20,6 +20,15 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# Vercel
+.vercel/
+
+# Large source assets (kept out of git; use Git LFS if you need to version them)
+docs/images/*.pdf
+docs/images/*.mp4
+docs/images/*.zip
+docs/images/favicon_io/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
