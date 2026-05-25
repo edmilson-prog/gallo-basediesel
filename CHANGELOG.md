@@ -4,6 +4,54 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.2.0] — Genesis · 2026-05-25
+
+Esqueleto navegável da plataforma. PRD-003 implementado.
+
+### Added
+- **Roteamento end-to-end**: 3 árvores de rota (`/app/*` interno, `/loja/*`
+  vitrine, `/auth/*` login) + rotas de erro (`/sem-permissao`, `/erro`).
+  Todas as 30+ rotas funcionais com placeholders referenciando os PRDs futuros
+- **Auth mockada** com 3 perfis (Owner "João Gallo", Vendedor "Carlos Santos",
+  Cliente "Transportadora Aurora") em `/auth/login`, persistência em
+  `localStorage` chave `gallo-mock-user`
+- **AuthProvider + useAuth** hook com `signIn`, `signOut`, `hasRole`
+- **Guards de role** via `beforeLoad` em rotas TanStack — `/app/*` exige
+  Owner ou Vendedor; rotas de Gestão e Carteira exigem Owner
+- **8 layouts reutilizáveis**: AppLayout, AuthLayout, EmptyLayout, LojaLayout,
+  ConversationLayout (3 colunas), DetailLayout (2 colunas), DashboardLayout,
+  SettingsLayout (sub-sidebar)
+- **Sidebar** contextualizada por papel (Owner vê todos os agrupamentos;
+  Vendedor vê subconjunto), expandida/colapsada com persistência em
+  `localStorage` (`gallo-sidebar-collapsed`)
+- **TopBar** com logo, seletor de loja (mock "GALLO Matriz"), busca global
+  placeholder, notificações com badge + dropdown mockado, ThemeSwitcher,
+  avatar com dropdown (Perfil, Configurações, Trocar perfil, Sair)
+- **BottomNav** mobile (`<768px`) com 4 itens prioritários + Sheet "Mais"
+- **LojaHeader** e **LojaFooter** para vitrine pública
+- **PlaceholderPage / EmptyState** componentes reutilizáveis
+- **RouteSkeleton** para `<Suspense>` fallback (lazy loading já ativo via
+  `tanstackRouter({ autoCodeSplitting: true })`)
+- Rota raiz `/` redireciona inteligentemente baseado em auth e papel
+- Página `/app/configuracoes/aparencia` minimamente funcional (ThemeSwitcher
+  integrado)
+
+### Changed
+- `__root.tsx` agora envolve a árvore em `<AuthProvider>`
+- Home (`/`) deixou de ser página estática — agora é redirect via
+  `beforeLoad`
+- README implícito: estrutura `src/features/shell/` e `src/features/auth/`
+  introduzidas
+
+### Notes
+- **Adaptação ao stack**: PRD-003 especifica React Router v6; mantivemos
+  TanStack Router (já configurado e funcional). Conceitos equivalentes
+  (rotas aninhadas, lazy loading, guards via `beforeLoad`, layout routes).
+- Auth mockada é **UX, não segurança** — qualquer um pode editar
+  localStorage. Proteção real virá na Fase 2 (Supabase Auth + RLS).
+- Conteúdo funcional das 30+ telas internas será preenchido pelos PRDs
+  específicos dos Blocos 1-6.
+
 ## [0.1.1] — Genesis · 2026-05-25
 
 Modelo conceitual de domínio completo. PRD-002 implementado.

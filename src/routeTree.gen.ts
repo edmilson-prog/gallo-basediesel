@@ -9,12 +9,85 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SemPermissaoRouteImport } from './routes/sem-permissao'
+import { Route as PortalRouteImport } from './routes/portal'
+import { Route as LojaRouteImport } from './routes/loja'
+import { Route as ErroRouteImport } from './routes/erro'
 import { Route as DesignSystemRouteImport } from './routes/design-system'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LojaIndexRouteImport } from './routes/loja.index'
+import { Route as LojaContaRouteImport } from './routes/loja.conta'
+import { Route as LojaCheckoutRouteImport } from './routes/loja.checkout'
+import { Route as LojaCarrinhoRouteImport } from './routes/loja.carrinho'
+import { Route as LojaBuscaRouteImport } from './routes/loja.busca'
+import { Route as AuthLogoutRouteImport } from './routes/auth.logout'
+import { Route as AuthLoginRouteImport } from './routes/auth.login'
+import { Route as AppVeiculosRouteImport } from './routes/app.veiculos'
+import { Route as AppSdrRouteImport } from './routes/app.sdr'
+import { Route as AppPedidosRouteImport } from './routes/app.pedidos'
+import { Route as AppOrcamentosRouteImport } from './routes/app.orcamentos'
+import { Route as AppLeadsRouteImport } from './routes/app.leads'
+import { Route as AppInicioRouteImport } from './routes/app.inicio'
+import { Route as AppClientesRouteImport } from './routes/app.clientes'
+import { Route as AppCatalogoRouteImport } from './routes/app.catalogo'
+import { Route as AppCarteiraRouteImport } from './routes/app.carteira'
+import { Route as AppAtendimentoRouteImport } from './routes/app.atendimento'
+import { Route as AppGestaoIndexRouteImport } from './routes/app.gestao.index'
+import { Route as AppConfiguracoesIndexRouteImport } from './routes/app.configuracoes.index'
+import { Route as LojaProdutoSlugRouteImport } from './routes/loja.produto.$slug'
+import { Route as LojaContaPedidosRouteImport } from './routes/loja.conta.pedidos'
+import { Route as LojaCategoriaSlugRouteImport } from './routes/loja.categoria.$slug'
+import { Route as AppGestaoVendasRouteImport } from './routes/app.gestao.vendas'
+import { Route as AppGestaoRentabilidadeRouteImport } from './routes/app.gestao.rentabilidade'
+import { Route as AppGestaoRankingRouteImport } from './routes/app.gestao.ranking'
+import { Route as AppGestaoPositivacaoRouteImport } from './routes/app.gestao.positivacao'
+import { Route as AppGestaoMetasRouteImport } from './routes/app.gestao.metas'
+import { Route as AppGestaoEstoqueRouteImport } from './routes/app.gestao.estoque'
+import { Route as AppGestaoDreRouteImport } from './routes/app.gestao.dre'
+import { Route as AppGestaoDespesasRouteImport } from './routes/app.gestao.despesas'
+import { Route as AppGestaoComissoesRouteImport } from './routes/app.gestao.comissoes'
+import { Route as AppGestaoCaixaRouteImport } from './routes/app.gestao.caixa'
+import { Route as AppGestaoAbcRouteImport } from './routes/app.gestao.abc'
+import { Route as AppConfiguracoesPerfilRouteImport } from './routes/app.configuracoes.perfil'
+import { Route as AppConfiguracoesAparenciaRouteImport } from './routes/app.configuracoes.aparencia'
+import { Route as AppClientesIdRouteImport } from './routes/app.clientes.$id'
+import { Route as AppAtendimentoIdRouteImport } from './routes/app.atendimento.$id'
 
+const SemPermissaoRoute = SemPermissaoRouteImport.update({
+  id: '/sem-permissao',
+  path: '/sem-permissao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalRoute = PortalRouteImport.update({
+  id: '/portal',
+  path: '/portal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LojaRoute = LojaRouteImport.update({
+  id: '/loja',
+  path: '/loja',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ErroRoute = ErroRouteImport.update({
+  id: '/erro',
+  path: '/erro',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DesignSystemRoute = DesignSystemRouteImport.update({
   id: '/design-system',
   path: '/design-system',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -22,40 +95,537 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LojaIndexRoute = LojaIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LojaRoute,
+} as any)
+const LojaContaRoute = LojaContaRouteImport.update({
+  id: '/conta',
+  path: '/conta',
+  getParentRoute: () => LojaRoute,
+} as any)
+const LojaCheckoutRoute = LojaCheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => LojaRoute,
+} as any)
+const LojaCarrinhoRoute = LojaCarrinhoRouteImport.update({
+  id: '/carrinho',
+  path: '/carrinho',
+  getParentRoute: () => LojaRoute,
+} as any)
+const LojaBuscaRoute = LojaBuscaRouteImport.update({
+  id: '/busca',
+  path: '/busca',
+  getParentRoute: () => LojaRoute,
+} as any)
+const AuthLogoutRoute = AuthLogoutRouteImport.update({
+  id: '/logout',
+  path: '/logout',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthLoginRoute = AuthLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AppVeiculosRoute = AppVeiculosRouteImport.update({
+  id: '/veiculos',
+  path: '/veiculos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSdrRoute = AppSdrRouteImport.update({
+  id: '/sdr',
+  path: '/sdr',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPedidosRoute = AppPedidosRouteImport.update({
+  id: '/pedidos',
+  path: '/pedidos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppOrcamentosRoute = AppOrcamentosRouteImport.update({
+  id: '/orcamentos',
+  path: '/orcamentos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLeadsRoute = AppLeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInicioRoute = AppInicioRouteImport.update({
+  id: '/inicio',
+  path: '/inicio',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppClientesRoute = AppClientesRouteImport.update({
+  id: '/clientes',
+  path: '/clientes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCatalogoRoute = AppCatalogoRouteImport.update({
+  id: '/catalogo',
+  path: '/catalogo',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCarteiraRoute = AppCarteiraRouteImport.update({
+  id: '/carteira',
+  path: '/carteira',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAtendimentoRoute = AppAtendimentoRouteImport.update({
+  id: '/atendimento',
+  path: '/atendimento',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGestaoIndexRoute = AppGestaoIndexRouteImport.update({
+  id: '/gestao/',
+  path: '/gestao/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppConfiguracoesIndexRoute = AppConfiguracoesIndexRouteImport.update({
+  id: '/configuracoes/',
+  path: '/configuracoes/',
+  getParentRoute: () => AppRoute,
+} as any)
+const LojaProdutoSlugRoute = LojaProdutoSlugRouteImport.update({
+  id: '/produto/$slug',
+  path: '/produto/$slug',
+  getParentRoute: () => LojaRoute,
+} as any)
+const LojaContaPedidosRoute = LojaContaPedidosRouteImport.update({
+  id: '/pedidos',
+  path: '/pedidos',
+  getParentRoute: () => LojaContaRoute,
+} as any)
+const LojaCategoriaSlugRoute = LojaCategoriaSlugRouteImport.update({
+  id: '/categoria/$slug',
+  path: '/categoria/$slug',
+  getParentRoute: () => LojaRoute,
+} as any)
+const AppGestaoVendasRoute = AppGestaoVendasRouteImport.update({
+  id: '/gestao/vendas',
+  path: '/gestao/vendas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGestaoRentabilidadeRoute = AppGestaoRentabilidadeRouteImport.update({
+  id: '/gestao/rentabilidade',
+  path: '/gestao/rentabilidade',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGestaoRankingRoute = AppGestaoRankingRouteImport.update({
+  id: '/gestao/ranking',
+  path: '/gestao/ranking',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGestaoPositivacaoRoute = AppGestaoPositivacaoRouteImport.update({
+  id: '/gestao/positivacao',
+  path: '/gestao/positivacao',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGestaoMetasRoute = AppGestaoMetasRouteImport.update({
+  id: '/gestao/metas',
+  path: '/gestao/metas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGestaoEstoqueRoute = AppGestaoEstoqueRouteImport.update({
+  id: '/gestao/estoque',
+  path: '/gestao/estoque',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGestaoDreRoute = AppGestaoDreRouteImport.update({
+  id: '/gestao/dre',
+  path: '/gestao/dre',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGestaoDespesasRoute = AppGestaoDespesasRouteImport.update({
+  id: '/gestao/despesas',
+  path: '/gestao/despesas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGestaoComissoesRoute = AppGestaoComissoesRouteImport.update({
+  id: '/gestao/comissoes',
+  path: '/gestao/comissoes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGestaoCaixaRoute = AppGestaoCaixaRouteImport.update({
+  id: '/gestao/caixa',
+  path: '/gestao/caixa',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGestaoAbcRoute = AppGestaoAbcRouteImport.update({
+  id: '/gestao/abc',
+  path: '/gestao/abc',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppConfiguracoesPerfilRoute = AppConfiguracoesPerfilRouteImport.update({
+  id: '/configuracoes/perfil',
+  path: '/configuracoes/perfil',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppConfiguracoesAparenciaRoute =
+  AppConfiguracoesAparenciaRouteImport.update({
+    id: '/configuracoes/aparencia',
+    path: '/configuracoes/aparencia',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppClientesIdRoute = AppClientesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppClientesRoute,
+} as any)
+const AppAtendimentoIdRoute = AppAtendimentoIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppAtendimentoRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/app': typeof AppRouteWithChildren
+  '/auth': typeof AuthRouteWithChildren
   '/design-system': typeof DesignSystemRoute
+  '/erro': typeof ErroRoute
+  '/loja': typeof LojaRouteWithChildren
+  '/portal': typeof PortalRoute
+  '/sem-permissao': typeof SemPermissaoRoute
+  '/app/atendimento': typeof AppAtendimentoRouteWithChildren
+  '/app/carteira': typeof AppCarteiraRoute
+  '/app/catalogo': typeof AppCatalogoRoute
+  '/app/clientes': typeof AppClientesRouteWithChildren
+  '/app/inicio': typeof AppInicioRoute
+  '/app/leads': typeof AppLeadsRoute
+  '/app/orcamentos': typeof AppOrcamentosRoute
+  '/app/pedidos': typeof AppPedidosRoute
+  '/app/sdr': typeof AppSdrRoute
+  '/app/veiculos': typeof AppVeiculosRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/logout': typeof AuthLogoutRoute
+  '/loja/busca': typeof LojaBuscaRoute
+  '/loja/carrinho': typeof LojaCarrinhoRoute
+  '/loja/checkout': typeof LojaCheckoutRoute
+  '/loja/conta': typeof LojaContaRouteWithChildren
+  '/loja/': typeof LojaIndexRoute
+  '/app/atendimento/$id': typeof AppAtendimentoIdRoute
+  '/app/clientes/$id': typeof AppClientesIdRoute
+  '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
+  '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
+  '/app/gestao/abc': typeof AppGestaoAbcRoute
+  '/app/gestao/caixa': typeof AppGestaoCaixaRoute
+  '/app/gestao/comissoes': typeof AppGestaoComissoesRoute
+  '/app/gestao/despesas': typeof AppGestaoDespesasRoute
+  '/app/gestao/dre': typeof AppGestaoDreRoute
+  '/app/gestao/estoque': typeof AppGestaoEstoqueRoute
+  '/app/gestao/metas': typeof AppGestaoMetasRoute
+  '/app/gestao/positivacao': typeof AppGestaoPositivacaoRoute
+  '/app/gestao/ranking': typeof AppGestaoRankingRoute
+  '/app/gestao/rentabilidade': typeof AppGestaoRentabilidadeRoute
+  '/app/gestao/vendas': typeof AppGestaoVendasRoute
+  '/loja/categoria/$slug': typeof LojaCategoriaSlugRoute
+  '/loja/conta/pedidos': typeof LojaContaPedidosRoute
+  '/loja/produto/$slug': typeof LojaProdutoSlugRoute
+  '/app/configuracoes/': typeof AppConfiguracoesIndexRoute
+  '/app/gestao/': typeof AppGestaoIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/app': typeof AppRouteWithChildren
+  '/auth': typeof AuthRouteWithChildren
   '/design-system': typeof DesignSystemRoute
+  '/erro': typeof ErroRoute
+  '/portal': typeof PortalRoute
+  '/sem-permissao': typeof SemPermissaoRoute
+  '/app/atendimento': typeof AppAtendimentoRouteWithChildren
+  '/app/carteira': typeof AppCarteiraRoute
+  '/app/catalogo': typeof AppCatalogoRoute
+  '/app/clientes': typeof AppClientesRouteWithChildren
+  '/app/inicio': typeof AppInicioRoute
+  '/app/leads': typeof AppLeadsRoute
+  '/app/orcamentos': typeof AppOrcamentosRoute
+  '/app/pedidos': typeof AppPedidosRoute
+  '/app/sdr': typeof AppSdrRoute
+  '/app/veiculos': typeof AppVeiculosRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/logout': typeof AuthLogoutRoute
+  '/loja/busca': typeof LojaBuscaRoute
+  '/loja/carrinho': typeof LojaCarrinhoRoute
+  '/loja/checkout': typeof LojaCheckoutRoute
+  '/loja/conta': typeof LojaContaRouteWithChildren
+  '/loja': typeof LojaIndexRoute
+  '/app/atendimento/$id': typeof AppAtendimentoIdRoute
+  '/app/clientes/$id': typeof AppClientesIdRoute
+  '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
+  '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
+  '/app/gestao/abc': typeof AppGestaoAbcRoute
+  '/app/gestao/caixa': typeof AppGestaoCaixaRoute
+  '/app/gestao/comissoes': typeof AppGestaoComissoesRoute
+  '/app/gestao/despesas': typeof AppGestaoDespesasRoute
+  '/app/gestao/dre': typeof AppGestaoDreRoute
+  '/app/gestao/estoque': typeof AppGestaoEstoqueRoute
+  '/app/gestao/metas': typeof AppGestaoMetasRoute
+  '/app/gestao/positivacao': typeof AppGestaoPositivacaoRoute
+  '/app/gestao/ranking': typeof AppGestaoRankingRoute
+  '/app/gestao/rentabilidade': typeof AppGestaoRentabilidadeRoute
+  '/app/gestao/vendas': typeof AppGestaoVendasRoute
+  '/loja/categoria/$slug': typeof LojaCategoriaSlugRoute
+  '/loja/conta/pedidos': typeof LojaContaPedidosRoute
+  '/loja/produto/$slug': typeof LojaProdutoSlugRoute
+  '/app/configuracoes': typeof AppConfiguracoesIndexRoute
+  '/app/gestao': typeof AppGestaoIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/app': typeof AppRouteWithChildren
+  '/auth': typeof AuthRouteWithChildren
   '/design-system': typeof DesignSystemRoute
+  '/erro': typeof ErroRoute
+  '/loja': typeof LojaRouteWithChildren
+  '/portal': typeof PortalRoute
+  '/sem-permissao': typeof SemPermissaoRoute
+  '/app/atendimento': typeof AppAtendimentoRouteWithChildren
+  '/app/carteira': typeof AppCarteiraRoute
+  '/app/catalogo': typeof AppCatalogoRoute
+  '/app/clientes': typeof AppClientesRouteWithChildren
+  '/app/inicio': typeof AppInicioRoute
+  '/app/leads': typeof AppLeadsRoute
+  '/app/orcamentos': typeof AppOrcamentosRoute
+  '/app/pedidos': typeof AppPedidosRoute
+  '/app/sdr': typeof AppSdrRoute
+  '/app/veiculos': typeof AppVeiculosRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/logout': typeof AuthLogoutRoute
+  '/loja/busca': typeof LojaBuscaRoute
+  '/loja/carrinho': typeof LojaCarrinhoRoute
+  '/loja/checkout': typeof LojaCheckoutRoute
+  '/loja/conta': typeof LojaContaRouteWithChildren
+  '/loja/': typeof LojaIndexRoute
+  '/app/atendimento/$id': typeof AppAtendimentoIdRoute
+  '/app/clientes/$id': typeof AppClientesIdRoute
+  '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
+  '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
+  '/app/gestao/abc': typeof AppGestaoAbcRoute
+  '/app/gestao/caixa': typeof AppGestaoCaixaRoute
+  '/app/gestao/comissoes': typeof AppGestaoComissoesRoute
+  '/app/gestao/despesas': typeof AppGestaoDespesasRoute
+  '/app/gestao/dre': typeof AppGestaoDreRoute
+  '/app/gestao/estoque': typeof AppGestaoEstoqueRoute
+  '/app/gestao/metas': typeof AppGestaoMetasRoute
+  '/app/gestao/positivacao': typeof AppGestaoPositivacaoRoute
+  '/app/gestao/ranking': typeof AppGestaoRankingRoute
+  '/app/gestao/rentabilidade': typeof AppGestaoRentabilidadeRoute
+  '/app/gestao/vendas': typeof AppGestaoVendasRoute
+  '/loja/categoria/$slug': typeof LojaCategoriaSlugRoute
+  '/loja/conta/pedidos': typeof LojaContaPedidosRoute
+  '/loja/produto/$slug': typeof LojaProdutoSlugRoute
+  '/app/configuracoes/': typeof AppConfiguracoesIndexRoute
+  '/app/gestao/': typeof AppGestaoIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/design-system'
+  fullPaths:
+    | '/'
+    | '/app'
+    | '/auth'
+    | '/design-system'
+    | '/erro'
+    | '/loja'
+    | '/portal'
+    | '/sem-permissao'
+    | '/app/atendimento'
+    | '/app/carteira'
+    | '/app/catalogo'
+    | '/app/clientes'
+    | '/app/inicio'
+    | '/app/leads'
+    | '/app/orcamentos'
+    | '/app/pedidos'
+    | '/app/sdr'
+    | '/app/veiculos'
+    | '/auth/login'
+    | '/auth/logout'
+    | '/loja/busca'
+    | '/loja/carrinho'
+    | '/loja/checkout'
+    | '/loja/conta'
+    | '/loja/'
+    | '/app/atendimento/$id'
+    | '/app/clientes/$id'
+    | '/app/configuracoes/aparencia'
+    | '/app/configuracoes/perfil'
+    | '/app/gestao/abc'
+    | '/app/gestao/caixa'
+    | '/app/gestao/comissoes'
+    | '/app/gestao/despesas'
+    | '/app/gestao/dre'
+    | '/app/gestao/estoque'
+    | '/app/gestao/metas'
+    | '/app/gestao/positivacao'
+    | '/app/gestao/ranking'
+    | '/app/gestao/rentabilidade'
+    | '/app/gestao/vendas'
+    | '/loja/categoria/$slug'
+    | '/loja/conta/pedidos'
+    | '/loja/produto/$slug'
+    | '/app/configuracoes/'
+    | '/app/gestao/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/design-system'
-  id: '__root__' | '/' | '/design-system'
+  to:
+    | '/'
+    | '/app'
+    | '/auth'
+    | '/design-system'
+    | '/erro'
+    | '/portal'
+    | '/sem-permissao'
+    | '/app/atendimento'
+    | '/app/carteira'
+    | '/app/catalogo'
+    | '/app/clientes'
+    | '/app/inicio'
+    | '/app/leads'
+    | '/app/orcamentos'
+    | '/app/pedidos'
+    | '/app/sdr'
+    | '/app/veiculos'
+    | '/auth/login'
+    | '/auth/logout'
+    | '/loja/busca'
+    | '/loja/carrinho'
+    | '/loja/checkout'
+    | '/loja/conta'
+    | '/loja'
+    | '/app/atendimento/$id'
+    | '/app/clientes/$id'
+    | '/app/configuracoes/aparencia'
+    | '/app/configuracoes/perfil'
+    | '/app/gestao/abc'
+    | '/app/gestao/caixa'
+    | '/app/gestao/comissoes'
+    | '/app/gestao/despesas'
+    | '/app/gestao/dre'
+    | '/app/gestao/estoque'
+    | '/app/gestao/metas'
+    | '/app/gestao/positivacao'
+    | '/app/gestao/ranking'
+    | '/app/gestao/rentabilidade'
+    | '/app/gestao/vendas'
+    | '/loja/categoria/$slug'
+    | '/loja/conta/pedidos'
+    | '/loja/produto/$slug'
+    | '/app/configuracoes'
+    | '/app/gestao'
+  id:
+    | '__root__'
+    | '/'
+    | '/app'
+    | '/auth'
+    | '/design-system'
+    | '/erro'
+    | '/loja'
+    | '/portal'
+    | '/sem-permissao'
+    | '/app/atendimento'
+    | '/app/carteira'
+    | '/app/catalogo'
+    | '/app/clientes'
+    | '/app/inicio'
+    | '/app/leads'
+    | '/app/orcamentos'
+    | '/app/pedidos'
+    | '/app/sdr'
+    | '/app/veiculos'
+    | '/auth/login'
+    | '/auth/logout'
+    | '/loja/busca'
+    | '/loja/carrinho'
+    | '/loja/checkout'
+    | '/loja/conta'
+    | '/loja/'
+    | '/app/atendimento/$id'
+    | '/app/clientes/$id'
+    | '/app/configuracoes/aparencia'
+    | '/app/configuracoes/perfil'
+    | '/app/gestao/abc'
+    | '/app/gestao/caixa'
+    | '/app/gestao/comissoes'
+    | '/app/gestao/despesas'
+    | '/app/gestao/dre'
+    | '/app/gestao/estoque'
+    | '/app/gestao/metas'
+    | '/app/gestao/positivacao'
+    | '/app/gestao/ranking'
+    | '/app/gestao/rentabilidade'
+    | '/app/gestao/vendas'
+    | '/loja/categoria/$slug'
+    | '/loja/conta/pedidos'
+    | '/loja/produto/$slug'
+    | '/app/configuracoes/'
+    | '/app/gestao/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  AuthRoute: typeof AuthRouteWithChildren
   DesignSystemRoute: typeof DesignSystemRoute
+  ErroRoute: typeof ErroRoute
+  LojaRoute: typeof LojaRouteWithChildren
+  PortalRoute: typeof PortalRoute
+  SemPermissaoRoute: typeof SemPermissaoRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sem-permissao': {
+      id: '/sem-permissao'
+      path: '/sem-permissao'
+      fullPath: '/sem-permissao'
+      preLoaderRoute: typeof SemPermissaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal': {
+      id: '/portal'
+      path: '/portal'
+      fullPath: '/portal'
+      preLoaderRoute: typeof PortalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/loja': {
+      id: '/loja'
+      path: '/loja'
+      fullPath: '/loja'
+      preLoaderRoute: typeof LojaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/erro': {
+      id: '/erro'
+      path: '/erro'
+      fullPath: '/erro'
+      preLoaderRoute: typeof ErroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/design-system': {
       id: '/design-system'
       path: '/design-system'
       fullPath: '/design-system'
       preLoaderRoute: typeof DesignSystemRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -65,12 +635,405 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/loja/': {
+      id: '/loja/'
+      path: '/'
+      fullPath: '/loja/'
+      preLoaderRoute: typeof LojaIndexRouteImport
+      parentRoute: typeof LojaRoute
+    }
+    '/loja/conta': {
+      id: '/loja/conta'
+      path: '/conta'
+      fullPath: '/loja/conta'
+      preLoaderRoute: typeof LojaContaRouteImport
+      parentRoute: typeof LojaRoute
+    }
+    '/loja/checkout': {
+      id: '/loja/checkout'
+      path: '/checkout'
+      fullPath: '/loja/checkout'
+      preLoaderRoute: typeof LojaCheckoutRouteImport
+      parentRoute: typeof LojaRoute
+    }
+    '/loja/carrinho': {
+      id: '/loja/carrinho'
+      path: '/carrinho'
+      fullPath: '/loja/carrinho'
+      preLoaderRoute: typeof LojaCarrinhoRouteImport
+      parentRoute: typeof LojaRoute
+    }
+    '/loja/busca': {
+      id: '/loja/busca'
+      path: '/busca'
+      fullPath: '/loja/busca'
+      preLoaderRoute: typeof LojaBuscaRouteImport
+      parentRoute: typeof LojaRoute
+    }
+    '/auth/logout': {
+      id: '/auth/logout'
+      path: '/logout'
+      fullPath: '/auth/logout'
+      preLoaderRoute: typeof AuthLogoutRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/auth/login': {
+      id: '/auth/login'
+      path: '/login'
+      fullPath: '/auth/login'
+      preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/app/veiculos': {
+      id: '/app/veiculos'
+      path: '/veiculos'
+      fullPath: '/app/veiculos'
+      preLoaderRoute: typeof AppVeiculosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/sdr': {
+      id: '/app/sdr'
+      path: '/sdr'
+      fullPath: '/app/sdr'
+      preLoaderRoute: typeof AppSdrRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/pedidos': {
+      id: '/app/pedidos'
+      path: '/pedidos'
+      fullPath: '/app/pedidos'
+      preLoaderRoute: typeof AppPedidosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/orcamentos': {
+      id: '/app/orcamentos'
+      path: '/orcamentos'
+      fullPath: '/app/orcamentos'
+      preLoaderRoute: typeof AppOrcamentosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/leads': {
+      id: '/app/leads'
+      path: '/leads'
+      fullPath: '/app/leads'
+      preLoaderRoute: typeof AppLeadsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/inicio': {
+      id: '/app/inicio'
+      path: '/inicio'
+      fullPath: '/app/inicio'
+      preLoaderRoute: typeof AppInicioRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/clientes': {
+      id: '/app/clientes'
+      path: '/clientes'
+      fullPath: '/app/clientes'
+      preLoaderRoute: typeof AppClientesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/catalogo': {
+      id: '/app/catalogo'
+      path: '/catalogo'
+      fullPath: '/app/catalogo'
+      preLoaderRoute: typeof AppCatalogoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/carteira': {
+      id: '/app/carteira'
+      path: '/carteira'
+      fullPath: '/app/carteira'
+      preLoaderRoute: typeof AppCarteiraRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/atendimento': {
+      id: '/app/atendimento'
+      path: '/atendimento'
+      fullPath: '/app/atendimento'
+      preLoaderRoute: typeof AppAtendimentoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/gestao/': {
+      id: '/app/gestao/'
+      path: '/gestao'
+      fullPath: '/app/gestao/'
+      preLoaderRoute: typeof AppGestaoIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/configuracoes/': {
+      id: '/app/configuracoes/'
+      path: '/configuracoes'
+      fullPath: '/app/configuracoes/'
+      preLoaderRoute: typeof AppConfiguracoesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/loja/produto/$slug': {
+      id: '/loja/produto/$slug'
+      path: '/produto/$slug'
+      fullPath: '/loja/produto/$slug'
+      preLoaderRoute: typeof LojaProdutoSlugRouteImport
+      parentRoute: typeof LojaRoute
+    }
+    '/loja/conta/pedidos': {
+      id: '/loja/conta/pedidos'
+      path: '/pedidos'
+      fullPath: '/loja/conta/pedidos'
+      preLoaderRoute: typeof LojaContaPedidosRouteImport
+      parentRoute: typeof LojaContaRoute
+    }
+    '/loja/categoria/$slug': {
+      id: '/loja/categoria/$slug'
+      path: '/categoria/$slug'
+      fullPath: '/loja/categoria/$slug'
+      preLoaderRoute: typeof LojaCategoriaSlugRouteImport
+      parentRoute: typeof LojaRoute
+    }
+    '/app/gestao/vendas': {
+      id: '/app/gestao/vendas'
+      path: '/gestao/vendas'
+      fullPath: '/app/gestao/vendas'
+      preLoaderRoute: typeof AppGestaoVendasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/gestao/rentabilidade': {
+      id: '/app/gestao/rentabilidade'
+      path: '/gestao/rentabilidade'
+      fullPath: '/app/gestao/rentabilidade'
+      preLoaderRoute: typeof AppGestaoRentabilidadeRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/gestao/ranking': {
+      id: '/app/gestao/ranking'
+      path: '/gestao/ranking'
+      fullPath: '/app/gestao/ranking'
+      preLoaderRoute: typeof AppGestaoRankingRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/gestao/positivacao': {
+      id: '/app/gestao/positivacao'
+      path: '/gestao/positivacao'
+      fullPath: '/app/gestao/positivacao'
+      preLoaderRoute: typeof AppGestaoPositivacaoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/gestao/metas': {
+      id: '/app/gestao/metas'
+      path: '/gestao/metas'
+      fullPath: '/app/gestao/metas'
+      preLoaderRoute: typeof AppGestaoMetasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/gestao/estoque': {
+      id: '/app/gestao/estoque'
+      path: '/gestao/estoque'
+      fullPath: '/app/gestao/estoque'
+      preLoaderRoute: typeof AppGestaoEstoqueRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/gestao/dre': {
+      id: '/app/gestao/dre'
+      path: '/gestao/dre'
+      fullPath: '/app/gestao/dre'
+      preLoaderRoute: typeof AppGestaoDreRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/gestao/despesas': {
+      id: '/app/gestao/despesas'
+      path: '/gestao/despesas'
+      fullPath: '/app/gestao/despesas'
+      preLoaderRoute: typeof AppGestaoDespesasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/gestao/comissoes': {
+      id: '/app/gestao/comissoes'
+      path: '/gestao/comissoes'
+      fullPath: '/app/gestao/comissoes'
+      preLoaderRoute: typeof AppGestaoComissoesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/gestao/caixa': {
+      id: '/app/gestao/caixa'
+      path: '/gestao/caixa'
+      fullPath: '/app/gestao/caixa'
+      preLoaderRoute: typeof AppGestaoCaixaRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/gestao/abc': {
+      id: '/app/gestao/abc'
+      path: '/gestao/abc'
+      fullPath: '/app/gestao/abc'
+      preLoaderRoute: typeof AppGestaoAbcRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/configuracoes/perfil': {
+      id: '/app/configuracoes/perfil'
+      path: '/configuracoes/perfil'
+      fullPath: '/app/configuracoes/perfil'
+      preLoaderRoute: typeof AppConfiguracoesPerfilRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/configuracoes/aparencia': {
+      id: '/app/configuracoes/aparencia'
+      path: '/configuracoes/aparencia'
+      fullPath: '/app/configuracoes/aparencia'
+      preLoaderRoute: typeof AppConfiguracoesAparenciaRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/clientes/$id': {
+      id: '/app/clientes/$id'
+      path: '/$id'
+      fullPath: '/app/clientes/$id'
+      preLoaderRoute: typeof AppClientesIdRouteImport
+      parentRoute: typeof AppClientesRoute
+    }
+    '/app/atendimento/$id': {
+      id: '/app/atendimento/$id'
+      path: '/$id'
+      fullPath: '/app/atendimento/$id'
+      preLoaderRoute: typeof AppAtendimentoIdRouteImport
+      parentRoute: typeof AppAtendimentoRoute
+    }
   }
 }
 
+interface AppAtendimentoRouteChildren {
+  AppAtendimentoIdRoute: typeof AppAtendimentoIdRoute
+}
+
+const AppAtendimentoRouteChildren: AppAtendimentoRouteChildren = {
+  AppAtendimentoIdRoute: AppAtendimentoIdRoute,
+}
+
+const AppAtendimentoRouteWithChildren = AppAtendimentoRoute._addFileChildren(
+  AppAtendimentoRouteChildren,
+)
+
+interface AppClientesRouteChildren {
+  AppClientesIdRoute: typeof AppClientesIdRoute
+}
+
+const AppClientesRouteChildren: AppClientesRouteChildren = {
+  AppClientesIdRoute: AppClientesIdRoute,
+}
+
+const AppClientesRouteWithChildren = AppClientesRoute._addFileChildren(
+  AppClientesRouteChildren,
+)
+
+interface AppRouteChildren {
+  AppAtendimentoRoute: typeof AppAtendimentoRouteWithChildren
+  AppCarteiraRoute: typeof AppCarteiraRoute
+  AppCatalogoRoute: typeof AppCatalogoRoute
+  AppClientesRoute: typeof AppClientesRouteWithChildren
+  AppInicioRoute: typeof AppInicioRoute
+  AppLeadsRoute: typeof AppLeadsRoute
+  AppOrcamentosRoute: typeof AppOrcamentosRoute
+  AppPedidosRoute: typeof AppPedidosRoute
+  AppSdrRoute: typeof AppSdrRoute
+  AppVeiculosRoute: typeof AppVeiculosRoute
+  AppConfiguracoesAparenciaRoute: typeof AppConfiguracoesAparenciaRoute
+  AppConfiguracoesPerfilRoute: typeof AppConfiguracoesPerfilRoute
+  AppGestaoAbcRoute: typeof AppGestaoAbcRoute
+  AppGestaoCaixaRoute: typeof AppGestaoCaixaRoute
+  AppGestaoComissoesRoute: typeof AppGestaoComissoesRoute
+  AppGestaoDespesasRoute: typeof AppGestaoDespesasRoute
+  AppGestaoDreRoute: typeof AppGestaoDreRoute
+  AppGestaoEstoqueRoute: typeof AppGestaoEstoqueRoute
+  AppGestaoMetasRoute: typeof AppGestaoMetasRoute
+  AppGestaoPositivacaoRoute: typeof AppGestaoPositivacaoRoute
+  AppGestaoRankingRoute: typeof AppGestaoRankingRoute
+  AppGestaoRentabilidadeRoute: typeof AppGestaoRentabilidadeRoute
+  AppGestaoVendasRoute: typeof AppGestaoVendasRoute
+  AppConfiguracoesIndexRoute: typeof AppConfiguracoesIndexRoute
+  AppGestaoIndexRoute: typeof AppGestaoIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAtendimentoRoute: AppAtendimentoRouteWithChildren,
+  AppCarteiraRoute: AppCarteiraRoute,
+  AppCatalogoRoute: AppCatalogoRoute,
+  AppClientesRoute: AppClientesRouteWithChildren,
+  AppInicioRoute: AppInicioRoute,
+  AppLeadsRoute: AppLeadsRoute,
+  AppOrcamentosRoute: AppOrcamentosRoute,
+  AppPedidosRoute: AppPedidosRoute,
+  AppSdrRoute: AppSdrRoute,
+  AppVeiculosRoute: AppVeiculosRoute,
+  AppConfiguracoesAparenciaRoute: AppConfiguracoesAparenciaRoute,
+  AppConfiguracoesPerfilRoute: AppConfiguracoesPerfilRoute,
+  AppGestaoAbcRoute: AppGestaoAbcRoute,
+  AppGestaoCaixaRoute: AppGestaoCaixaRoute,
+  AppGestaoComissoesRoute: AppGestaoComissoesRoute,
+  AppGestaoDespesasRoute: AppGestaoDespesasRoute,
+  AppGestaoDreRoute: AppGestaoDreRoute,
+  AppGestaoEstoqueRoute: AppGestaoEstoqueRoute,
+  AppGestaoMetasRoute: AppGestaoMetasRoute,
+  AppGestaoPositivacaoRoute: AppGestaoPositivacaoRoute,
+  AppGestaoRankingRoute: AppGestaoRankingRoute,
+  AppGestaoRentabilidadeRoute: AppGestaoRentabilidadeRoute,
+  AppGestaoVendasRoute: AppGestaoVendasRoute,
+  AppConfiguracoesIndexRoute: AppConfiguracoesIndexRoute,
+  AppGestaoIndexRoute: AppGestaoIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
+interface AuthRouteChildren {
+  AuthLoginRoute: typeof AuthLoginRoute
+  AuthLogoutRoute: typeof AuthLogoutRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthLoginRoute: AuthLoginRoute,
+  AuthLogoutRoute: AuthLogoutRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
+interface LojaContaRouteChildren {
+  LojaContaPedidosRoute: typeof LojaContaPedidosRoute
+}
+
+const LojaContaRouteChildren: LojaContaRouteChildren = {
+  LojaContaPedidosRoute: LojaContaPedidosRoute,
+}
+
+const LojaContaRouteWithChildren = LojaContaRoute._addFileChildren(
+  LojaContaRouteChildren,
+)
+
+interface LojaRouteChildren {
+  LojaBuscaRoute: typeof LojaBuscaRoute
+  LojaCarrinhoRoute: typeof LojaCarrinhoRoute
+  LojaCheckoutRoute: typeof LojaCheckoutRoute
+  LojaContaRoute: typeof LojaContaRouteWithChildren
+  LojaIndexRoute: typeof LojaIndexRoute
+  LojaCategoriaSlugRoute: typeof LojaCategoriaSlugRoute
+  LojaProdutoSlugRoute: typeof LojaProdutoSlugRoute
+}
+
+const LojaRouteChildren: LojaRouteChildren = {
+  LojaBuscaRoute: LojaBuscaRoute,
+  LojaCarrinhoRoute: LojaCarrinhoRoute,
+  LojaCheckoutRoute: LojaCheckoutRoute,
+  LojaContaRoute: LojaContaRouteWithChildren,
+  LojaIndexRoute: LojaIndexRoute,
+  LojaCategoriaSlugRoute: LojaCategoriaSlugRoute,
+  LojaProdutoSlugRoute: LojaProdutoSlugRoute,
+}
+
+const LojaRouteWithChildren = LojaRoute._addFileChildren(LojaRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
+  AuthRoute: AuthRouteWithChildren,
   DesignSystemRoute: DesignSystemRoute,
+  ErroRoute: ErroRoute,
+  LojaRoute: LojaRouteWithChildren,
+  PortalRoute: PortalRoute,
+  SemPermissaoRoute: SemPermissaoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

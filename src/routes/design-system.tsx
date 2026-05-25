@@ -262,7 +262,7 @@ function DesignSystemPage() {
                   Design System
                 </span>
                 <Badge variant="outline" className="font-mono">
-                  v0.1.1 · Genesis
+                  v0.2.0 · Genesis
                 </Badge>
               </Inline>
               <ThemeSwitcher />
@@ -670,7 +670,7 @@ function DesignSystemPage() {
             </Section>
 
             <p className="py-6 text-center text-xs text-muted-foreground">
-              GALLO BASE DIESEL — Design System v0.1.1 · Genesis
+              GALLO BASE DIESEL — Design System v0.2.0 · Genesis
             </p>
           </Stack>
         </Container>

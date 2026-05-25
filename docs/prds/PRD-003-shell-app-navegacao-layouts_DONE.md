@@ -800,12 +800,12 @@ Este PRD não manipula nem armazena dados sensíveis. O `localStorage` guarda ap
 
 | Campo                     | Valor       |
 | ------------------------- | ----------- |
-| **Status**                | ⏳ PENDENTE |
-| **Data de Implementação** | -           |
-| **Versão do App**         | -           |
-| **Codinome**              | -           |
-| **Implementado por**      | -           |
-| **Observações**           | -           |
+| **Status**                | ✅ IMPLEMENTADO |
+| **Data de Implementação** | 25/05/2026      |
+| **Versão do App**         | v0.2.0          |
+| **Codinome**              | Genesis         |
+| **Implementado por**      | Claude Opus 4.7 (Claude Code CLI) |
+| **Observações**           | Adaptado para TanStack Router file-based (em vez de React Router v6 do PRD original) — projeto já tinha TanStack configurado como decisão arquitetural. Conceitos equivalentes: layouts via `auth.tsx`/`app.tsx`/`loja.tsx`; lazy loading via `autoCodeSplitting`; guards via `beforeLoad`. Estrutura híbrida: rotas em `src/routes/` (TanStack obriga), layouts e components em `src/features/shell/`, auth em `src/features/auth/`. 30+ rotas placeholder. Auth mockada com 3 perfis. Bump MINOR v0.2.0 mantendo codinome Genesis (Hub reservado para após Bloco 0 completo). |
 
 ---
 

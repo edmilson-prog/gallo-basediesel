@@ -21,7 +21,7 @@
 | **Versão alvo MVP**                  | v1.0.0 — codinome **Heavy**                                                                                |
 | **Total de PRDs planejados (MVP)**   | 50                                                                                                         |
 | **PRDs redigidos**                   | 4                                                                                                          |
-| **PRDs implementados**               | 2 (PRD-001, PRD-002)                                                                                       |
+| **PRDs implementados**               | 3 (PRD-001, PRD-002, PRD-003)                                                                              |
 | **PRDs futuros (Fase 2, PRDs 100+)** | 8 (roadmap futuro)                                                                                         |
 
 ---
@@ -66,9 +66,9 @@
 
 | Status          | Quantidade | Percentual |
 | --------------- | ---------- | ---------- |
-| ✅ Implementado | 2          | 4%         |
+| ✅ Implementado | 3          | 6%         |
 | 🔄 Em Andamento | 0          | 0%         |
-| ⏳ Pendente     | 48         | 96%        |
+| ⏳ Pendente     | 47         | 94%        |
 | ❌ Cancelado    | 0          | 0%         |
 | **Total**       | **50**     | **100%**   |
 
@@ -93,7 +93,7 @@ Estabelece os pilares técnicos e visuais sobre os quais todo o resto se constr�
 | --- | -------------------------------------------------------------------------------------------------- | ------- | ----- | ----- | --------- | ------ | ---------- |
 | 001 | [Identidade Visual GALLO e Design System Base](./PRD-001-identidade-visual-gallo-design-system.md) | Feature | D     | 🟢    | 📝        | ✅     | —          |
 | 002 | [Modelo Conceitual de Domínio e Glossário](./PRD-002-modelo-conceitual-glossario_DONE.md)          | Feature | D     | 🔵    | 📝        | ✅     | —          |
-| 003 | [Shell do App, Navegação e Layouts Base](./PRD-003-shell-app-navegacao-layouts.md)                 | Feature | D     | 🟢    | 📝        | ⏳     | 001, 002   |
+| 003 | [Shell do App, Navegação e Layouts Base](./PRD-003-shell-app-navegacao-layouts_DONE.md)             | Feature | D     | 🔵    | 📝        | ✅     | 001, 002   |
 | 004 | [Geradores de Dados Fictícios e Camada de Mocks](./PRD-004-mocks-geradores-dados.md)               | Feature | D     | 🔵    | 📝        | ⏳     | 002        |
 | 005 | Arquitetura de Provedores de Dados (Mock/Supabase)                                                 | Feature | D     | 🔵    | ⏸         | ⏳     | 004        |
 | 006 | Sistema de Roles, Permissões e Auditoria (visual)                                                  | Feature | D     | 🔵    | ⏸         | ⏳     | 002, 003   |
@@ -370,9 +370,10 @@ A plataforma usa Semantic Versioning com codinomes em inglês para releases MINO
 
 | Versão     | Codinome       | Data prevista | PRDs incluídos                                        | Marco                                                   |
 | ---------- | -------------- | ------------- | ----------------------------------------------------- | ------------------------------------------------------- |
-| v0.1.0     | **Genesis**    | Mês 1         | PRD-001                                               | Scaffold Lovable inicial                                |
-| v0.1.1     | **Genesis**    | 25/05/2026    | PRD-002                                               | Modelo conceitual de domínio + glossário (implementado) |
-| v0.2.0     | **Hub**        | Mês 2         | PRDs 004, 005, 006, 007 + 010–019 + 020–024 + 030–033 | Onda 1 entregue                                         |
+| v0.1.0     | **Genesis**    | Mês 1         | PRD-001                                               | Scaffold inicial                                        |
+| v0.1.1     | **Genesis**    | 25/05/2026    | PRD-002                                               | Modelo conceitual de domínio + glossário                |
+| v0.2.0     | **Genesis**    | 25/05/2026    | PRD-003                                               | Shell navegável, auth mockada, 8 layouts, 30+ rotas     |
+| v0.3.0     | **Hub**        | Mês 2         | PRDs 004, 005, 006, 007 + 010–019 + 020–024 + 030–033 | Onda 1 entregue                                         |
 | v0.3.0     | **Pilot**      | Mês 3         | Refinamentos pós-validação Onda 1                     | Validação Cliente Onda 1                                |
 | v0.4.0     | **Compass**    | Mês 6         | PRDs 040–053 (Bloco 4)                                | Onda 2 entregue                                         |
 | v0.5.0     | **Storefront** | Mês 9         | PRDs 060–067 (Bloco 5)                                | Onda 3 quase completa                                   |
@@ -387,7 +388,7 @@ A plataforma usa Semantic Versioning com codinomes em inglês para releases MINO
 
 | Período    | PRDs Redigidos | PRDs Implementados | Lead Time Médio                                      |
 | ---------- | -------------- | ------------------ | ---------------------------------------------------- |
-| Maio/2026  | 7              | 2                  | — (PRD-001 via Lovable; PRD-002 via Claude Code CLI) |
+| Maio/2026  | 7              | 3                  | — (PRD-001 via Lovable; PRD-002 e PRD-003 via Claude Code CLI) |
 | Junho/2026 | _a registrar_  | _a registrar_      | _a registrar_                                        |
 
 ### Distribuição por Complexidade (estimada)
@@ -417,13 +418,12 @@ A plataforma usa Semantic Versioning com codinomes em inglês para releases MINO
 
 Em ordem de prioridade conforme estratégia de escrita por lotes do briefing v1.1:
 
-### Lote 1 — Fundação (7/7 redigidos; 2/7 implementados — PRD-001 ✅, PRD-002 ✅)
+### Lote 1 — Fundação (7/7 redigidos; 3/7 implementados — PRD-001 ✅, PRD-002 ✅, PRD-003 ✅)
 
 Próximas implementações no Bloco 0:
 
 | Próximos | Título                                             |
 | -------- | -------------------------------------------------- |
-| PRD-003  | Shell do App, Navegação e Layouts Base             |
 | PRD-004  | Geradores de Dados Fictícios e Camada de Mocks     |
 | PRD-005  | Arquitetura de Provedores de Dados (Mock/Supabase) |
 | PRD-006  | Sistema de Roles, Permissões e Auditoria           |
@@ -531,7 +531,7 @@ PRDs 040–053, 060–067, 070–071 — ~11 turnos no total
 | -------------------- | ------------------------------------------------------------------------------------ |
 | **Data**             | 25/05/2026                                                                           |
 | **Atualizado por**   | Claude Opus 4.7 (Claude Code CLI)                                                    |
-| **Motivo**           | Implementação do PRD-002 (Modelo Conceitual de Domínio + Glossário) — v0.1.1 Genesis |
+| **Motivo**           | Implementação do PRD-003 (Shell, navegação e layouts) — v0.2.0 Genesis              |
 | **Versão do índice** | 1.1                                                                                  |
 
 ---
