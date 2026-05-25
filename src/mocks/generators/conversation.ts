@@ -34,12 +34,16 @@ export function generateConversation(
   ]);
   const status = pickWeighted(ctx, STATUS_WEIGHTS);
   const isSdrActive = ctx.bool(0.25) && status !== "resolvida" && status !== "arquivada";
-  const lastMessageAt = randomISO(ctx, daysAgo(30, now), now);
-  const createdAt = randomISO(
-    ctx,
-    new Date(input.participant.entity.createdAt),
-    new Date(lastMessageAt),
-  );
+  // Anchor the conversation start at the most recent of the entity's birth and
+  // the 30-day window. Clamp to `now` defensively so a participant with a
+  // future-dated `createdAt` (shouldn't happen but possible in seeds) doesn't
+  // make `start > end`.
+  const windowStart = daysAgo(30, now);
+  const entityCreatedAt = new Date(input.participant.entity.createdAt);
+  const lowerBound = entityCreatedAt > windowStart ? entityCreatedAt : windowStart;
+  const safeLowerBound = lowerBound > now ? now : lowerBound;
+  const createdAt = randomISO(ctx, safeLowerBound, now);
+  const lastMessageAt = randomISO(ctx, new Date(createdAt), now);
 
   return {
     id,
