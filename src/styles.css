@@ -1,0 +1,330 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================================
+ * GALLO BASE DIESEL — Design System
+ * Arquitetura em 3 camadas:
+ *   1. Primitivos  (paleta GALLO bruta — :root)
+ *   2. Semânticos  (mapeados via @theme inline para Tailwind/shadcn)
+ *   3. Tema        ([data-theme="…"] + .dark/light reescrevem semânticos)
+ * Componentes consomem APENAS tokens semânticos.
+ * ============================================================ */
+
+/* -------- Camada 1: tokens primitivos (paleta GALLO) -------- */
+:root {
+  /* Institucional */
+  --gallo-black-pure: #000000;
+  --gallo-black-tech: #0e0e0e;
+  --gallo-gray-structural: #1a1a1a;
+
+  /* Cromia óleo diesel */
+  --gallo-diesel-light: #e8c66b;
+  --gallo-diesel-medium: #c9a24a;
+  --gallo-diesel-dark: #8c6e25;
+
+  /* Submarca PARTS — verde RS */
+  --gallo-parts-light: #3aa564;
+  --gallo-parts-medium: #1e7a3c;
+  --gallo-parts-dark: #14552a;
+
+  /* Submarca SERVICE — vermelho RS */
+  --gallo-service-light: #e0444a;
+  --gallo-service-medium: #c8262c;
+  --gallo-service-dark: #8a1418;
+
+  /* Submarca INDUSTRIAL — amarelo RS */
+  --gallo-industrial-light: #e6bc4a;
+  --gallo-industrial-medium: #c79c2c;
+  --gallo-industrial-dark: #8a6b18;
+
+  /* Escala neutra */
+  --gallo-neutral-50: #fafafa;
+  --gallo-neutral-100: #f4f4f5;
+  --gallo-neutral-200: #e4e4e7;
+  --gallo-neutral-300: #d4d4d8;
+  --gallo-neutral-400: #a1a1aa;
+  --gallo-neutral-500: #71717a;
+  --gallo-neutral-600: #52525b;
+  --gallo-neutral-700: #3f3f46;
+  --gallo-neutral-800: #27272a;
+  --gallo-neutral-900: #18181b;
+  --gallo-neutral-950: #09090b;
+
+  /* Semânticas funcionais (distintas das submarcas) */
+  --gallo-success-light: #34d399;
+  --gallo-success-medium: #10b981;
+  --gallo-success-dark: #047857;
+
+  --gallo-warning-light: #fbbf24;
+  --gallo-warning-medium: #f59e0b;
+  --gallo-warning-dark: #b45309;
+
+  --gallo-danger-light: #f87171;
+  --gallo-danger-medium: #ef4444;
+  --gallo-danger-dark: #b91c1c;
+
+  --gallo-info-light: #60a5fa;
+  --gallo-info-medium: #3b82f6;
+  --gallo-info-dark: #1d4ed8;
+
+  /* Tipografia */
+  --font-display:
+    "Saira Condensed", "Inter", system-ui, -apple-system, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono:
+    "JetBrains Mono", ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo,
+    monospace;
+}
+
+/* -------- Camada 2: mapeamento semântico para Tailwind/shadcn -------- */
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* GALLO — tokens semânticos extras expostos ao Tailwind */
+  --color-brand-diesel: var(--brand-diesel);
+  --color-brand-parts: var(--brand-parts);
+  --color-brand-service: var(--brand-service);
+  --color-brand-industrial: var(--brand-industrial);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
+}
+
+/* -------- Camada 3: temas × modos ------------------------------------ */
+/* Base comum (light por padrão) — tema diesel é o default ----------- */
+:root {
+  --radius: 0.5rem;
+
+  /* tokens de marca sempre disponíveis (mesmos para todos os temas) */
+  --brand-diesel: var(--gallo-diesel-medium);
+  --brand-parts: var(--gallo-parts-medium);
+  --brand-service: var(--gallo-service-medium);
+  --brand-industrial: var(--gallo-industrial-medium);
+  --success: var(--gallo-success-medium);
+  --warning: var(--gallo-warning-medium);
+  --info: var(--gallo-info-medium);
+
+  /* === LIGHT base (overridden por tema mais abaixo) === */
+  --background: #fafafa;
+  --foreground: var(--gallo-neutral-900);
+  --card: #ffffff;
+  --card-foreground: var(--gallo-neutral-900);
+  --popover: #ffffff;
+  --popover-foreground: var(--gallo-neutral-900);
+  --primary: var(--gallo-diesel-dark);
+  --primary-foreground: #ffffff;
+  --secondary: var(--gallo-neutral-100);
+  --secondary-foreground: var(--gallo-neutral-900);
+  --muted: var(--gallo-neutral-100);
+  --muted-foreground: var(--gallo-neutral-500);
+  --accent: var(--gallo-diesel-dark);
+  --accent-foreground: #ffffff;
+  --destructive: var(--gallo-danger-medium);
+  --destructive-foreground: #ffffff;
+  --border: var(--gallo-neutral-200);
+  --input: var(--gallo-neutral-200);
+  --ring: var(--gallo-diesel-medium);
+  --chart-1: var(--gallo-diesel-medium);
+  --chart-2: var(--gallo-parts-medium);
+  --chart-3: var(--gallo-service-medium);
+  --chart-4: var(--gallo-industrial-medium);
+  --chart-5: var(--gallo-info-medium);
+  --sidebar: var(--gallo-neutral-50);
+  --sidebar-foreground: var(--gallo-neutral-900);
+  --sidebar-primary: var(--gallo-diesel-dark);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--gallo-neutral-100);
+  --sidebar-accent-foreground: var(--gallo-neutral-900);
+  --sidebar-border: var(--gallo-neutral-200);
+  --sidebar-ring: var(--gallo-diesel-medium);
+}
+
+/* DARK base — comum a todos os temas, accents trocam abaixo */
+.dark {
+  --background: var(--gallo-black-tech);
+  --foreground: var(--gallo-neutral-50);
+  --card: var(--gallo-gray-structural);
+  --card-foreground: var(--gallo-neutral-50);
+  --popover: var(--gallo-gray-structural);
+  --popover-foreground: var(--gallo-neutral-50);
+  --primary: var(--gallo-diesel-medium);
+  --primary-foreground: var(--gallo-black-tech);
+  --secondary: var(--gallo-neutral-800);
+  --secondary-foreground: var(--gallo-neutral-50);
+  --muted: var(--gallo-neutral-800);
+  --muted-foreground: var(--gallo-neutral-400);
+  --accent: var(--gallo-diesel-medium);
+  --accent-foreground: var(--gallo-black-tech);
+  --destructive: var(--gallo-danger-light);
+  --destructive-foreground: var(--gallo-black-tech);
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.12);
+  --ring: var(--gallo-diesel-light);
+  --sidebar: var(--gallo-neutral-950);
+  --sidebar-foreground: var(--gallo-neutral-50);
+  --sidebar-primary: var(--gallo-diesel-medium);
+  --sidebar-primary-foreground: var(--gallo-black-tech);
+  --sidebar-accent: var(--gallo-neutral-800);
+  --sidebar-accent-foreground: var(--gallo-neutral-50);
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: var(--gallo-diesel-light);
+}
+
+/* ===== Tema PARTS (verde) ===== */
+:root[data-theme="parts"] {
+  --primary: var(--gallo-parts-dark);
+  --accent: var(--gallo-parts-dark);
+  --ring: var(--gallo-parts-medium);
+  --sidebar-primary: var(--gallo-parts-dark);
+  --sidebar-ring: var(--gallo-parts-medium);
+}
+.dark[data-theme="parts"],
+:root[data-theme="parts"].dark {
+  --primary: var(--gallo-parts-medium);
+  --primary-foreground: #ffffff;
+  --accent: var(--gallo-parts-medium);
+  --accent-foreground: #ffffff;
+  --ring: var(--gallo-parts-light);
+  --sidebar-primary: var(--gallo-parts-medium);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-ring: var(--gallo-parts-light);
+}
+
+/* ===== Tema SERVICE (vermelho) ===== */
+:root[data-theme="service"] {
+  --primary: var(--gallo-service-dark);
+  --accent: var(--gallo-service-dark);
+  --ring: var(--gallo-service-medium);
+  --sidebar-primary: var(--gallo-service-dark);
+  --sidebar-ring: var(--gallo-service-medium);
+}
+.dark[data-theme="service"],
+:root[data-theme="service"].dark {
+  --primary: var(--gallo-service-medium);
+  --primary-foreground: #ffffff;
+  --accent: var(--gallo-service-medium);
+  --accent-foreground: #ffffff;
+  --ring: var(--gallo-service-light);
+  --sidebar-primary: var(--gallo-service-medium);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-ring: var(--gallo-service-light);
+}
+
+/* ===== Tema INDUSTRIAL (amarelo) ===== */
+:root[data-theme="industrial"] {
+  --primary: var(--gallo-industrial-dark);
+  --accent: var(--gallo-industrial-dark);
+  --ring: var(--gallo-industrial-medium);
+  --sidebar-primary: var(--gallo-industrial-dark);
+  --sidebar-ring: var(--gallo-industrial-medium);
+}
+.dark[data-theme="industrial"],
+:root[data-theme="industrial"].dark {
+  --primary: var(--gallo-industrial-medium);
+  --primary-foreground: var(--gallo-black-tech);
+  --accent: var(--gallo-industrial-medium);
+  --accent-foreground: var(--gallo-black-tech);
+  --ring: var(--gallo-industrial-light);
+  --sidebar-primary: var(--gallo-industrial-medium);
+  --sidebar-primary-foreground: var(--gallo-black-tech);
+  --sidebar-ring: var(--gallo-industrial-light);
+}
+
+/* -------- Base styles ------------------------------------------------ */
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    font-family: var(--font-body);
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+
+  code, pre, kbd, samp {
+    font-family: var(--font-mono);
+  }
+
+  /* Suaves transições ao trocar tema/modo */
+  html {
+    transition:
+      background-color 120ms ease,
+      color 120ms ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html, * {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+
+  /* Focus ring visível usando accent do tema ativo */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}

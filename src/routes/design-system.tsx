@@ -1,0 +1,668 @@
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { THEMES } from "@/config/themes";
+import { useTheme } from "@/hooks/useTheme";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
+import { Logo } from "@/components/Logo";
+import { Icon } from "@/components/Icon";
+import { Container, Grid, Inline, Stack } from "@/components/layout";
+import { contrastRatio, resolveCssVar, wcagLevel } from "@/lib/contrast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+export const Route = createFileRoute("/design-system")({
+  beforeLoad: () => {
+    if (!import.meta.env.DEV) {
+      throw redirect({ to: "/" });
+    }
+  },
+  component: DesignSystemPage,
+});
+
+const PRIMITIVES: { group: string; tokens: { name: string; var: string }[] }[] = [
+  {
+    group: "Institucional",
+    tokens: [
+      { name: "Preto absoluto", var: "--gallo-black-pure" },
+      { name: "Preto técnico", var: "--gallo-black-tech" },
+      { name: "Cinza estrutural", var: "--gallo-gray-structural" },
+    ],
+  },
+  {
+    group: "Cromia óleo diesel",
+    tokens: [
+      { name: "Light", var: "--gallo-diesel-light" },
+      { name: "Medium", var: "--gallo-diesel-medium" },
+      { name: "Dark", var: "--gallo-diesel-dark" },
+    ],
+  },
+  {
+    group: "PARTS (verde RS)",
+    tokens: [
+      { name: "Light", var: "--gallo-parts-light" },
+      { name: "Medium", var: "--gallo-parts-medium" },
+      { name: "Dark", var: "--gallo-parts-dark" },
+    ],
+  },
+  {
+    group: "SERVICE (vermelho RS)",
+    tokens: [
+      { name: "Light", var: "--gallo-service-light" },
+      { name: "Medium", var: "--gallo-service-medium" },
+      { name: "Dark", var: "--gallo-service-dark" },
+    ],
+  },
+  {
+    group: "INDUSTRIAL (amarelo RS)",
+    tokens: [
+      { name: "Light", var: "--gallo-industrial-light" },
+      { name: "Medium", var: "--gallo-industrial-medium" },
+      { name: "Dark", var: "--gallo-industrial-dark" },
+    ],
+  },
+  {
+    group: "Escala neutra",
+    tokens: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950].map((n) => ({
+      name: `Neutral ${n}`,
+      var: `--gallo-neutral-${n}`,
+    })),
+  },
+  {
+    group: "Semânticas funcionais",
+    tokens: [
+      { name: "Success", var: "--gallo-success-medium" },
+      { name: "Warning", var: "--gallo-warning-medium" },
+      { name: "Danger", var: "--gallo-danger-medium" },
+      { name: "Info", var: "--gallo-info-medium" },
+    ],
+  },
+];
+
+const SEMANTICS: { name: string; var: string; description: string }[] = [
+  { name: "background", var: "--background", description: "Fundo da página" },
+  { name: "foreground", var: "--foreground", description: "Texto principal" },
+  { name: "card", var: "--card", description: "Fundo de card" },
+  { name: "card-foreground", var: "--card-foreground", description: "Texto em card" },
+  { name: "popover", var: "--popover", description: "Fundo de popover/dropdown" },
+  { name: "popover-foreground", var: "--popover-foreground", description: "Texto em popover" },
+  { name: "primary", var: "--primary", description: "Ação primária (accent do tema)" },
+  { name: "primary-foreground", var: "--primary-foreground", description: "Texto sobre primary" },
+  { name: "secondary", var: "--secondary", description: "Botão/ação secundária" },
+  { name: "secondary-foreground", var: "--secondary-foreground", description: "Texto sobre secondary" },
+  { name: "muted", var: "--muted", description: "Fundo muted" },
+  { name: "muted-foreground", var: "--muted-foreground", description: "Texto auxiliar" },
+  { name: "accent", var: "--accent", description: "Hover/destaque" },
+  { name: "accent-foreground", var: "--accent-foreground", description: "Texto sobre accent" },
+  { name: "destructive", var: "--destructive", description: "Ação destrutiva" },
+  { name: "border", var: "--border", description: "Borda padrão" },
+  { name: "input", var: "--input", description: "Borda de input" },
+  { name: "ring", var: "--ring", description: "Focus ring" },
+  { name: "brand-diesel", var: "--brand-diesel", description: "Marca diesel (chips/badges)" },
+  { name: "brand-parts", var: "--brand-parts", description: "Marca parts (chips/badges)" },
+  { name: "brand-service", var: "--brand-service", description: "Marca service (chips/badges)" },
+  { name: "brand-industrial", var: "--brand-industrial", description: "Marca industrial (chips/badges)" },
+];
+
+const SPACING = [1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24];
+const RADII = [
+  { name: "none", cls: "rounded-none" },
+  { name: "sm", cls: "rounded-sm" },
+  { name: "md", cls: "rounded-md" },
+  { name: "lg", cls: "rounded-lg" },
+  { name: "xl", cls: "rounded-xl" },
+  { name: "2xl", cls: "rounded-2xl" },
+  { name: "full", cls: "rounded-full" },
+];
+const SHADOWS = [
+  { name: "sm", cls: "shadow-sm" },
+  { name: "md", cls: "shadow-md" },
+  { name: "lg", cls: "shadow-lg" },
+  { name: "xl", cls: "shadow-xl" },
+  { name: "2xl", cls: "shadow-2xl" },
+];
+const RECOMMENDED_ICONS = [
+  { ctx: "Cliente", icon: "mdi:account" },
+  { ctx: "Vendedor", icon: "mdi:account-tie" },
+  { ctx: "Peça", icon: "mdi:cog" },
+  { ctx: "Pedido", icon: "mdi:clipboard-list" },
+  { ctx: "Conversa", icon: "mdi:message-text" },
+  { ctx: "Veículo", icon: "mdi:truck" },
+  { ctx: "Alerta", icon: "mdi:alert" },
+  { ctx: "Loja", icon: "mdi:store" },
+  { ctx: "Pagamento", icon: "mdi:credit-card" },
+  { ctx: "Configuração", icon: "mdi:cog-outline" },
+  { ctx: "Busca", icon: "mdi:magnify" },
+  { ctx: "Dashboard", icon: "mdi:view-dashboard" },
+];
+
+const CONTRAST_PAIRS: { fg: string; bg: string; label: string }[] = [
+  { fg: "--foreground", bg: "--background", label: "Texto principal sobre fundo" },
+  { fg: "--card-foreground", bg: "--card", label: "Texto em card" },
+  { fg: "--primary-foreground", bg: "--primary", label: "Texto sobre primary" },
+  { fg: "--secondary-foreground", bg: "--secondary", label: "Texto sobre secondary" },
+  { fg: "--muted-foreground", bg: "--muted", label: "Texto muted" },
+  { fg: "--accent-foreground", bg: "--accent", label: "Texto sobre accent" },
+  { fg: "--destructive-foreground", bg: "--destructive", label: "Texto sobre destructive" },
+];
+
+function useResolvedVar(varName: string): string {
+  const { theme, resolvedMode } = useTheme();
+  const [value, setValue] = useState("");
+  useEffect(() => {
+    // tick após o paint para garantir CSS atualizado
+    const id = requestAnimationFrame(() => setValue(resolveCssVar(varName)));
+    return () => cancelAnimationFrame(id);
+  }, [varName, theme, resolvedMode]);
+  return value;
+}
+
+function Swatch({ varName }: { varName: string }) {
+  const value = useResolvedVar(varName);
+  return (
+    <div className="flex items-center gap-3">
+      <div
+        className="size-10 rounded-md border border-border shadow-sm"
+        style={{ backgroundColor: `var(${varName})` }}
+        aria-hidden
+      />
+      <div className="min-w-0 flex-1">
+        <code className="block truncate font-mono text-xs">{varName}</code>
+        <code className="block truncate font-mono text-[10px] text-muted-foreground">
+          {value || "—"}
+        </code>
+      </div>
+    </div>
+  );
+}
+
+function ContrastRow({ fg, bg, label }: { fg: string; bg: string; label: string }) {
+  const fgVal = useResolvedVar(fg);
+  const bgVal = useResolvedVar(bg);
+  const ratio = fgVal && bgVal ? contrastRatio(fgVal, bgVal) : null;
+  const level = ratio ? wcagLevel(ratio) : "FAIL";
+  const pass = level !== "FAIL";
+
+  return (
+    <div
+      className="flex items-center justify-between gap-3 rounded-md border border-border p-3"
+      style={{ backgroundColor: `var(${bg})`, color: `var(${fg})` }}
+    >
+      <div className="flex flex-col">
+        <span className="font-medium">{label}</span>
+        <span className="font-mono text-xs opacity-80">
+          {fg} on {bg}
+        </span>
+      </div>
+      <Badge
+        variant={pass ? "default" : "destructive"}
+        className="font-mono"
+        style={{
+          backgroundColor: pass ? "var(--gallo-success-medium)" : undefined,
+          color: pass ? "#fff" : undefined,
+        }}
+      >
+        {ratio ? ratio.toFixed(2) + "× · " + level : "—"}
+      </Badge>
+    </div>
+  );
+}
+
+function DesignSystemPage() {
+  const { theme } = useTheme();
+  const meta = THEMES[theme];
+
+  return (
+    <TooltipProvider>
+      <div className="min-h-screen bg-background text-foreground">
+        {/* Header */}
+        <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
+          <Container size="xl">
+            <Inline justify="between" className="h-16">
+              <Inline gap={3}>
+                <Logo variant="horizontal" className="h-7 w-auto" />
+                <Separator orientation="vertical" className="h-6" />
+                <span className="font-display text-lg font-semibold tracking-wide">
+                  Design System
+                </span>
+                <Badge variant="outline" className="font-mono">
+                  v0.1.0 · Genesis
+                </Badge>
+              </Inline>
+              <ThemeSwitcher />
+            </Inline>
+          </Container>
+        </header>
+
+        <Container size="xl" className="py-10">
+          <Stack gap={10}>
+            {/* Intro */}
+            <section>
+              <h1 className="font-display text-4xl font-bold tracking-tight">
+                GALLO BASE DIESEL
+              </h1>
+              <p className="mt-2 max-w-2xl text-muted-foreground">
+                Identidade visual e design system base. Tema ativo:{" "}
+                <strong className="text-foreground">{meta.uiLabel}</strong>. Use o
+                seletor no canto superior direito para alternar entre as 8
+                combinações tema × modo.
+              </p>
+            </section>
+
+            {/* Tokens primitivos */}
+            <Section
+              title="Tokens primitivos"
+              description="Paleta GALLO bruta. Nunca consumir diretamente em componentes."
+            >
+              <Stack gap={6}>
+                {PRIMITIVES.map((g) => (
+                  <div key={g.group}>
+                    <h3 className="mb-3 font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                      {g.group}
+                    </h3>
+                    <Grid cols={4} gap={3}>
+                      {g.tokens.map((t) => (
+                        <Swatch key={t.var} varName={t.var} />
+                      ))}
+                    </Grid>
+                  </div>
+                ))}
+              </Stack>
+            </Section>
+
+            {/* Tokens semânticos */}
+            <Section
+              title="Tokens semânticos"
+              description="Camada consumida pelos componentes. Valores resolvidos para o tema/modo ativo."
+            >
+              <Grid cols={3} gap={3}>
+                {SEMANTICS.map((s) => (
+                  <Card key={s.var}>
+                    <CardContent className="pt-4">
+                      <Swatch varName={s.var} />
+                      <p className="mt-2 text-xs text-muted-foreground">{s.description}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </Grid>
+            </Section>
+
+            {/* Tipografia */}
+            <Section
+              title="Tipografia"
+              description="Saira Condensed (display) · Inter (UI) · JetBrains Mono (códigos)"
+            >
+              <Stack gap={4}>
+                <div>
+                  <p className="text-xs uppercase text-muted-foreground">Display · Saira Condensed</p>
+                  <p className="font-display text-5xl font-bold">A força do diesel.</p>
+                  <p className="font-display text-3xl font-semibold">Robustez técnica.</p>
+                  <p className="font-display text-xl">Presença industrial.</p>
+                </div>
+                <Separator />
+                <div>
+                  <p className="text-xs uppercase text-muted-foreground">Body · Inter</p>
+                  <p className="text-base">
+                    A GALLO BASE DIESEL atende as principais marcas do mercado pesado,
+                    com peças genuínas e equipe técnica especializada.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Texto auxiliar — densidade legível em uso intenso.
+                  </p>
+                </div>
+                <Separator />
+                <div>
+                  <p className="text-xs uppercase text-muted-foreground">Mono · JetBrains Mono</p>
+                  <code className="block font-mono text-sm">OEM 4N9618 · SKU 24V-DEN-001 · pedido #2847</code>
+                </div>
+              </Stack>
+            </Section>
+
+            {/* Espaçamento */}
+            <Section title="Espaçamento" description="Sistema 4pt (base Tailwind)">
+              <Stack gap={2}>
+                {SPACING.map((n) => (
+                  <Inline key={n} gap={3}>
+                    <code className="w-12 font-mono text-xs text-muted-foreground">{n} · {n * 4}px</code>
+                    <div className="h-3 rounded-sm bg-primary" style={{ width: `${n * 4}px` }} />
+                  </Inline>
+                ))}
+              </Stack>
+            </Section>
+
+            {/* Raios e sombras */}
+            <Grid cols={2} gap={6}>
+              <Section title="Raios de borda">
+                <Grid cols={4} gap={3}>
+                  {RADII.map((r) => (
+                    <div key={r.name} className="flex flex-col items-center gap-2">
+                      <div className={`size-16 border border-border bg-primary ${r.cls}`} />
+                      <code className="font-mono text-xs">{r.name}</code>
+                    </div>
+                  ))}
+                </Grid>
+              </Section>
+              <Section title="Sombras">
+                <Grid cols={3} gap={3}>
+                  {SHADOWS.map((s) => (
+                    <div key={s.name} className="flex flex-col items-center gap-2">
+                      <div className={`size-16 rounded-md bg-card ${s.cls} border border-border`} />
+                      <code className="font-mono text-xs">{s.name}</code>
+                    </div>
+                  ))}
+                </Grid>
+              </Section>
+            </Grid>
+
+            {/* Logo */}
+            <Section title="Logo" description="Variantes — placeholders tipográficas (substituir pelos oficiais)">
+              <Grid cols={3} gap={4}>
+                <Card>
+                  <CardContent className="flex items-center justify-center p-8">
+                    <Logo variant="horizontal" className="h-10" />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="flex items-center justify-center p-8">
+                    <Logo variant="vertical" className="h-32" />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="flex items-center justify-center p-8">
+                    <Logo variant="mark" className="size-20" />
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Section>
+
+            {/* Ícones */}
+            <Section title="Ícones (Iconify)" description="Carregados sob demanda. Sets: mdi, lucide, phosphor.">
+              <Grid cols={6} gap={3}>
+                {RECOMMENDED_ICONS.map((i) => (
+                  <Card key={i.ctx} className="text-center">
+                    <CardContent className="flex flex-col items-center gap-2 p-4">
+                      <Icon icon={i.icon} size={32} ariaLabel={i.ctx} />
+                      <span className="text-xs">{i.ctx}</span>
+                      <code className="font-mono text-[10px] text-muted-foreground">{i.icon}</code>
+                    </CardContent>
+                  </Card>
+                ))}
+              </Grid>
+            </Section>
+
+            {/* Componentes */}
+            <Section title="Componentes" description="Galeria de componentes base nos tokens semânticos do tema ativo.">
+              <Stack gap={6}>
+                {/* Buttons */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Buttons</CardTitle>
+                    <CardDescription>Variants × states</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Inline gap={2} wrap>
+                      <Button>Default</Button>
+                      <Button variant="secondary">Secondary</Button>
+                      <Button variant="outline">Outline</Button>
+                      <Button variant="ghost">Ghost</Button>
+                      <Button variant="link">Link</Button>
+                      <Button variant="destructive">Destructive</Button>
+                      <Button disabled>Disabled</Button>
+                      <Button size="sm">Small</Button>
+                      <Button size="lg">Large</Button>
+                      <Button size="icon" aria-label="settings">
+                        <Icon icon="mdi:cog" size={18} />
+                      </Button>
+                    </Inline>
+                  </CardContent>
+                </Card>
+
+                {/* Form */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Formulários</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Grid cols={2} gap={4}>
+                      <Stack gap={3}>
+                        <div>
+                          <Label htmlFor="ds-input">Nome do cliente</Label>
+                          <Input id="ds-input" placeholder="ex.: Transportadora RS" />
+                        </div>
+                        <div>
+                          <Label htmlFor="ds-input-err">Com erro</Label>
+                          <Input id="ds-input-err" aria-invalid placeholder="OEM inválido" />
+                        </div>
+                        <div>
+                          <Label htmlFor="ds-textarea">Observações</Label>
+                          <Textarea id="ds-textarea" placeholder="Notas técnicas…" />
+                        </div>
+                        <div>
+                          <Label>Submarca</Label>
+                          <Select>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione…" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="parts">Parts</SelectItem>
+                              <SelectItem value="service">Service</SelectItem>
+                              <SelectItem value="industrial">Industrial</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </Stack>
+                      <Stack gap={3}>
+                        <Inline gap={2}>
+                          <Checkbox id="ds-cb" defaultChecked />
+                          <Label htmlFor="ds-cb">Aceitar termos</Label>
+                        </Inline>
+                        <Inline gap={2}>
+                          <Switch id="ds-sw" defaultChecked />
+                          <Label htmlFor="ds-sw">Notificações</Label>
+                        </Inline>
+                        <RadioGroup defaultValue="a">
+                          <Inline gap={2}>
+                            <RadioGroupItem value="a" id="ds-r-a" />
+                            <Label htmlFor="ds-r-a">Opção A</Label>
+                          </Inline>
+                          <Inline gap={2}>
+                            <RadioGroupItem value="b" id="ds-r-b" />
+                            <Label htmlFor="ds-r-b">Opção B</Label>
+                          </Inline>
+                        </RadioGroup>
+                        <Progress value={62} />
+                      </Stack>
+                    </Grid>
+                  </CardContent>
+                </Card>
+
+                {/* Badges / brand chips */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Badges &amp; brand chips</CardTitle>
+                    <CardDescription>
+                      As submarcas viram badges semânticos — distintos das cores funcionais.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Inline gap={2} wrap>
+                      <Badge>Default</Badge>
+                      <Badge variant="secondary">Secondary</Badge>
+                      <Badge variant="outline">Outline</Badge>
+                      <Badge variant="destructive">Destructive</Badge>
+                      <Badge style={{ backgroundColor: "var(--brand-diesel)", color: "#000" }}>
+                        Diesel
+                      </Badge>
+                      <Badge style={{ backgroundColor: "var(--brand-parts)", color: "#fff" }}>
+                        Parts
+                      </Badge>
+                      <Badge style={{ backgroundColor: "var(--brand-service)", color: "#fff" }}>
+                        Service
+                      </Badge>
+                      <Badge style={{ backgroundColor: "var(--brand-industrial)", color: "#000" }}>
+                        Industrial
+                      </Badge>
+                    </Inline>
+                  </CardContent>
+                </Card>
+
+                {/* Alert / Skeleton */}
+                <Grid cols={2} gap={4}>
+                  <Alert>
+                    <AlertTitle>Atenção</AlertTitle>
+                    <AlertDescription>
+                      OEM informado pertence a duas peças distintas. Confirme antes de prosseguir.
+                    </AlertDescription>
+                  </Alert>
+                  <Card>
+                    <CardContent className="space-y-3 pt-6">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-1/2" />
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                {/* Tabs */}
+                <Card>
+                  <CardContent className="pt-6">
+                    <Tabs defaultValue="resumo">
+                      <TabsList>
+                        <TabsTrigger value="resumo">Resumo</TabsTrigger>
+                        <TabsTrigger value="historico">Histórico</TabsTrigger>
+                        <TabsTrigger value="notas">Notas</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="resumo" className="pt-3 text-sm">
+                        Cliente fiel, 14 pedidos nos últimos 6 meses.
+                      </TabsContent>
+                      <TabsContent value="historico" className="pt-3 text-sm">
+                        Histórico de compras…
+                      </TabsContent>
+                      <TabsContent value="notas" className="pt-3 text-sm">
+                        Sem notas.
+                      </TabsContent>
+                    </Tabs>
+                  </CardContent>
+                </Card>
+
+                {/* Table */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Tabela</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>OEM</TableHead>
+                          <TableHead>Descrição</TableHead>
+                          <TableHead>Submarca</TableHead>
+                          <TableHead className="text-right">Estoque</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <TableRow>
+                          <TableCell className="font-mono">4N9618</TableCell>
+                          <TableCell>Bico injetor</TableCell>
+                          <TableCell><Badge>Parts</Badge></TableCell>
+                          <TableCell className="text-right font-mono">23</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-mono">24V-DEN-001</TableCell>
+                          <TableCell>Alternador 24V</TableCell>
+                          <TableCell><Badge variant="secondary">Service</Badge></TableCell>
+                          <TableCell className="text-right font-mono">4</TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+
+                {/* Avatar / Tooltip */}
+                <Card>
+                  <CardContent className="pt-6">
+                    <Inline gap={3}>
+                      <Avatar><AvatarFallback>GA</AvatarFallback></Avatar>
+                      <Avatar><AvatarFallback>RB</AvatarFallback></Avatar>
+                      <Avatar><AvatarFallback>MS</AvatarFallback></Avatar>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="outline" size="sm">Hover me</Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Tooltip no tema {meta.codename}</TooltipContent>
+                      </Tooltip>
+                    </Inline>
+                  </CardContent>
+                </Card>
+              </Stack>
+            </Section>
+
+            {/* WCAG */}
+            <Section
+              title="Validador de contraste WCAG 2.1"
+              description="Pares texto/fundo no tema/modo ativo. AA = 4.5× (texto normal), AA-large = 3×, AAA = 7×."
+            >
+              <Stack gap={2}>
+                {CONTRAST_PAIRS.map((p) => (
+                  <ContrastRow key={p.fg + p.bg} {...p} />
+                ))}
+              </Stack>
+            </Section>
+
+            <p className="py-6 text-center text-xs text-muted-foreground">
+              GALLO BASE DIESEL — Design System v0.1.0 · Genesis
+            </p>
+          </Stack>
+        </Container>
+      </div>
+    </TooltipProvider>
+  );
+}
+
+function Section({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      <div className="mb-4">
+        <h2 className="font-display text-2xl font-semibold tracking-tight">{title}</h2>
+        {description && <p className="text-sm text-muted-foreground">{description}</p>}
+      </div>
+      {children}
+    </section>
+  );
+}
