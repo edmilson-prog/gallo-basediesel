@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **GALLO BASE DIESEL** — Plataforma SaaS de inteligência comercial para distribuidora de peças pesadas (Volvo, Scania, Mercedes-Benz, Ford Cargo, Iveco) em Frederico Westphalen/RS. A plataforma se posiciona **acima do ERP DINTEC** como cérebro comercial e relacional. Marca guarda-chuva com 3 submarcas: PARTS (verde), SERVICE (vermelho), INDUSTRIAL (amarelo).
 
-Estado atual: **Fase 1 (Frontend First)** — mockup navegável com dados fictícios. PRD-001 (Design System) implementado, codinome `Genesis` (v0.1.0). Demais PRDs (002–071) a serem executados via Claude Code CLI sobre o scaffold criado no Lovable.
+Estado atual: **Fase 1 (Frontend First)** — mockup navegável com dados fictícios. PRD-001 (Design System) implementado, codinome `Genesis` (v0.1.0). Demais PRDs (002–071) a serem executados via Claude Code CLI sobre o scaffold inicial. Projeto mantido pela AILA Sistemas Inteligentes.
 
 ## Comandos
 
@@ -24,14 +24,15 @@ Não há suite de testes configurada. Type-check é coberto pelo `noEmit` do `ts
 
 ## Stack e arquitetura
 
-- **Runtime web:** TanStack Start (SSR) sobre Cloudflare Workers — `wrangler.jsonc` aponta para `src/server.ts`, que é um wrapper de erro em volta de `@tanstack/react-start/server-entry`. `vite.config.ts` injeta isso via `tanstackStart.server.entry`.
-- **Vite config:** estendida de `@lovable.dev/vite-tanstack-config`, que **já inclui** tanstackStart, viteReact, tailwindcss, tsConfigPaths, cloudflare, componentTagger, dedupe e injeção de `VITE_*`. **Nunca duplicar esses plugins** — o app quebra. Adicionar config extra via `defineConfig({ vite: { ... } })`.
-- **Router:** TanStack Router file-based. Rotas em `src/routes/`; `routeTree.gen.ts` é **gerado** (não editar). Root route em `src/routes/__root.tsx` contém HTML shell, metadados, Google Fonts e o script anti-FOUC inline. `src/router.tsx` cria o `QueryClient` e a instância do router.
+- **Modelo de deploy:** SPA estática hospedada na Vercel. `index.html` na raiz é o template Vite; `vercel.json` faz rewrite de todas as rotas para `/index.html` (padrão SPA).
+- **Entry:** `src/main.tsx` faz `createRoot` em `#root` e renderiza `<RouterProvider>`. Não há SSR.
+- **Vite config:** plugins explícitos em `vite.config.ts` — `tanstackRouter` (com `autoCodeSplitting`), `react`, `tailwindcss`, `tsconfigPaths`. Sem framework wrapper opinionado por trás.
+- **Router:** TanStack Router file-based (sem TanStack Start). Rotas em `src/routes/`; `routeTree.gen.ts` é **gerado** pelo plugin (não editar). Root route em `src/routes/__root.tsx` define `<RootComponent>` com `QueryClientProvider` + `ThemeProvider` + `<Outlet>`. Meta tags, Google Fonts, favicons e script anti-FOUC vivem no `index.html`.
 - **UI:** Tailwind CSS **v4** + shadcn/ui (style `new-york`, baseColor `slate`) em `src/components/ui/`. Iconify (`@iconify/react`) é o ícone padrão; wrapper em `src/components/Icon.tsx`.
-- **Estado servidor:** TanStack Query (provider no `RootComponent`).
+- **Estado servidor:** TanStack Query — `QueryClient` criado em `src/router.tsx` e injetado via router context.
 - **Formulários:** react-hook-form + zod + `@hookform/resolvers`.
 - **Toasts:** sonner.
-- **Path alias:** `@/*` → `src/*` (definido em `tsconfig.json` e components.json).
+- **Path alias:** `@/*` → `src/*` (definido em `tsconfig.json` e `components.json`).
 
 ## Sistema de temas (PRD-001)
 
@@ -44,7 +45,7 @@ Modelagem em **duas dimensões CSS independentes** no `<html>`:
 Mais a classe `.dark` (variante Tailwind via `@custom-variant dark (&:is(.dark *))`).
 
 - **Persistência:** `localStorage` chaves `gallo-theme` e `gallo-mode` — constantes em `src/config/themes.ts` (`LOCALSTORAGE_KEYS`). `mode` aceita `auto` (observa `prefers-color-scheme`).
-- **Anti-FOUC:** script inline em `src/routes/__root.tsx` (constante `ANTI_FOUC`) aplica atributos antes do primeiro paint. Se mudar as chaves do localStorage ou os nomes de tema, **atualizar esse script também**.
+- **Anti-FOUC:** script inline no `<head>` do `index.html` aplica atributos antes do primeiro paint. Se mudar as chaves do localStorage ou os nomes de tema, **atualizar esse script também**.
 - **Provider/hook:** `ThemeProvider` em `src/components/ThemeProvider.tsx`, hook em `src/hooks/useTheme.ts`. Acesso de leitura sempre via `useTheme()`.
 - **Tokens em 3 camadas** (`src/styles.css`):
   1. **Primitivos** (`:root` — `--gallo-*`): paleta GALLO bruta. Não usar direto em componentes.
@@ -59,7 +60,6 @@ Mais a classe `.dark` (variante Tailwind via `@custom-variant dark (&:is(.dark *
 - **Comentários:** inglês. **UI/conteúdo de usuário:** português do Brasil com acentos corretos (UTF-8 — nunca `nao`/`avaliacao`/`conclusao`).
 - **Commits:** Conventional Commits em inglês (`feat:`, `fix:`, `refactor:`, etc.), atômicos.
 - **TypeScript:** `strict: true`. Evitar `any`. Prefixar interfaces de domínio com `I` (ver modelo conceitual no briefing — `IStore`, `ISeller`, `ICustomer`, etc.).
-- ESLint bloqueia `import 'server-only'` (pacote Next.js) — TanStack Start não usa; use sufixo `*.server.ts` ou `@tanstack/react-start/server-only`.
 - `bunfig.toml` impõe **24h supply-chain guard** (`minimumReleaseAge = 86400`). Antes de adicionar pacote à `minimumReleaseAgeExcludes`, **confirmar com o usuário**.
 
 ## Fluxo de desenvolvimento dirigido por PRD
