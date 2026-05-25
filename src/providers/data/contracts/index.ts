@@ -1,0 +1,66 @@
+/**
+ * Barrel for every data provider contract.
+ *
+ * Internal — features must consume providers via the hooks exported from
+ * `src/providers/data/index.ts`, never from this file directly.
+ */
+
+import type { ICustomersProvider } from "./customers";
+import type { IVehiclesProvider } from "./vehicles";
+import type { ILeadsProvider } from "./leads";
+import type { IConversationsProvider } from "./conversations";
+import type { IMessagesProvider } from "./messages";
+import type { IPartsProvider } from "./parts";
+import type { IQuotesProvider } from "./quotes";
+import type { IOrdersProvider } from "./orders";
+import type { ICommissionsProvider } from "./commissions";
+import type { IGoalsProvider } from "./goals";
+import type { IRecommendationsProvider } from "./recommendations";
+import type { ITransfersProvider } from "./transfers";
+import type { ISegmentsProvider } from "./segments";
+import type { ISellersProvider } from "./sellers";
+import type { IStoresProvider } from "./stores";
+import type { ISettingsProvider } from "./settings";
+
+export type { IPaginatedResult, IPaginationParams } from "./_shared";
+
+export type { ICustomersProvider, IListCustomersParams } from "./customers";
+export type { IVehiclesProvider, IListVehiclesParams } from "./vehicles";
+export type { ILeadsProvider, IListLeadsParams } from "./leads";
+export type { IConversationsProvider, IListConversationsParams } from "./conversations";
+export type { IMessagesProvider, IListMessagesParams } from "./messages";
+export type { IPartsProvider, IListPartsParams } from "./parts";
+export type { IQuotesProvider, IListQuotesParams } from "./quotes";
+export type { IOrdersProvider, IListOrdersParams } from "./orders";
+export type { ICommissionsProvider, IListCommissionsParams } from "./commissions";
+export type { IGoalsProvider, IListGoalsParams } from "./goals";
+export type { IRecommendationsProvider, IListRecommendationsParams } from "./recommendations";
+export type { ITransfersProvider, IListTransfersParams } from "./transfers";
+export type { ISegmentsProvider, IListSegmentsParams } from "./segments";
+export type { ISellersProvider, IListSellersParams } from "./sellers";
+export type { IStoresProvider } from "./stores";
+export type { ISettingsProvider } from "./settings";
+
+/**
+ * Aggregate of every data provider returned by `getDataProviders()`. The factory
+ * guarantees the same set of keys regardless of the chosen implementation
+ * (mock vs supabase) so consumers stay implementation-agnostic.
+ */
+export interface IDataProviders {
+  customers: ICustomersProvider;
+  vehicles: IVehiclesProvider;
+  leads: ILeadsProvider;
+  conversations: IConversationsProvider;
+  messages: IMessagesProvider;
+  parts: IPartsProvider;
+  quotes: IQuotesProvider;
+  orders: IOrdersProvider;
+  commissions: ICommissionsProvider;
+  goals: IGoalsProvider;
+  recommendations: IRecommendationsProvider;
+  transfers: ITransfersProvider;
+  segments: ISegmentsProvider;
+  sellers: ISellersProvider;
+  stores: IStoresProvider;
+  settings: ISettingsProvider;
+}

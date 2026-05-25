@@ -4,6 +4,58 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.4.0] — Hub · 2026-05-25
+
+Provider Pattern (PRD-005) — a "fundação invisível" que protege todo o app
+de retrabalho na Fase 2. Features passam a consumir dados exclusivamente
+através de hooks tipados; a escolha entre mock e Supabase vira uma variável
+de ambiente.
+
+### Added
+
+- **`src/providers/data/` em 4 subpastas** (`contracts`, `impl/mock`,
+  `impl/supabase`, `hooks`) + `factory.ts`, `context.tsx`, `errors.ts` e
+  barrel `@/providers/data` como única superfície pública
+- **16 contratos TypeScript** (`ICustomersProvider`, `IVehiclesProvider`,
+  `ILeadsProvider`, `IConversationsProvider`, `IMessagesProvider`,
+  `IPartsProvider`, `IQuotesProvider`, `IOrdersProvider`,
+  `ICommissionsProvider`, `IGoalsProvider`, `IRecommendationsProvider`,
+  `ITransfersProvider`, `ISegmentsProvider`, `ISellersProvider`,
+  `IStoresProvider`, `ISettingsProvider`) espelhando 1:1 as APIs do
+  PRD-004, com tipo agregador `IDataProviders`
+- **16 implementações `mockXxxProvider`** delegando para `@/mocks` — pura
+  delegação, sem lógica adicional
+- **16 esqueletos `supabaseXxxProvider`** lançando `NotImplementedError`
+  tipado com referência ao PRD futuro de implementação
+- **`getDataProviders()`** lê `import.meta.env.VITE_DATA_SOURCE`
+  (`mock` default | `supabase`) com fallback `mock` + `console.warn` em
+  dev quando valor é inválido; instâncias são singletons para referência
+  estável no React Context
+- **`<DataProvidersProvider>`** inserido entre `<ThemeProvider>` e
+  `<AuthProvider>` no `__root.tsx`; expõe os providers via Context
+- **16 hooks** (`useCustomersProvider`, `useOrdersProvider`, etc.) com
+  helper interno `useDataProviderSlice` que lança erro claro quando usado
+  fora do Provider
+- **`NotImplementedError`** com `instanceof Error` e mensagem completa
+  (provider + método + PRD futuro)
+- **`.env.example`** documentando `VITE_DATA_SOURCE`
+- **`src/vite-env.d.ts`** tipando `import.meta.env.VITE_DATA_SOURCE` como
+  `'mock' | 'supabase' | undefined`
+- **Regras ESLint `no-restricted-imports`** bloqueando: features
+  importarem `@/mocks` ou `@/mocks/api/*` (apenas `impl/mock/**` pode);
+  qualquer arquivo fora de `src/providers/data/` importar `impl/*`,
+  `contracts/*` ou `factory`; com exceção dev-only para
+  `src/routes/design-system.tsx` (acessa `useResetMocks`)
+- **`docs/provider-pattern.md`** com filosofia, diagrama de camadas,
+  passo a passo de adição de novo agregado, regras de isolamento e
+  aplicação futura em outras integrações (WhatsApp, pagamento, frete)
+
+### Changed
+
+- **`src/routes/__root.tsx`** — árvore de providers passa a ser
+  `QueryClientProvider > ThemeProvider > DataProvidersProvider >
+AuthProvider > <Outlet/>`
+
 ## [0.3.0] — Genesis · 2026-05-25
 
 Camada de mocks completa (PRD-004) — a "fundação invisível" sobre a qual todo

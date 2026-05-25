@@ -3,6 +3,7 @@ import { Outlet, Link, createRootRouteWithContext, useRouter } from "@tanstack/r
 
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/features/auth/AuthProvider";
+import { DataProvidersProvider } from "@/providers/data";
 
 function NotFoundComponent() {
   return (
@@ -71,9 +72,11 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <AuthProvider>
-          <Outlet />
-        </AuthProvider>
+        <DataProvidersProvider>
+          <AuthProvider>
+            <Outlet />
+          </AuthProvider>
+        </DataProvidersProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
