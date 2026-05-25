@@ -1,5 +1,6 @@
 import type { IBootstrappedDataset } from "../generators/bootstrap";
 import type {
+  IAuditLog,
   ICommission,
   IConversation,
   ICustomer,
@@ -27,7 +28,8 @@ type CollectionKey =
   | "parts"
   | "commissions"
   | "goals"
-  | "recommendations";
+  | "recommendations"
+  | "audits";
 
 type CollectionMap = {
   customers: ICustomer;
@@ -41,6 +43,7 @@ type CollectionMap = {
   commissions: ICommission;
   goals: IGoal;
   recommendations: IRecommendation;
+  audits: IAuditLog;
 };
 
 /**

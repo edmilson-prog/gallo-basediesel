@@ -51,6 +51,8 @@ import { Route as AppGestaoComissoesRouteImport } from './routes/app.gestao.comi
 import { Route as AppGestaoCaixaRouteImport } from './routes/app.gestao.caixa'
 import { Route as AppGestaoAbcRouteImport } from './routes/app.gestao.abc'
 import { Route as AppConfiguracoesPerfilRouteImport } from './routes/app.configuracoes.perfil'
+import { Route as AppConfiguracoesPapeisRouteImport } from './routes/app.configuracoes.papeis'
+import { Route as AppConfiguracoesAuditoriaRouteImport } from './routes/app.configuracoes.auditoria'
 import { Route as AppConfiguracoesAparenciaRouteImport } from './routes/app.configuracoes.aparencia'
 import { Route as AppClientesIdRouteImport } from './routes/app.clientes.$id'
 import { Route as AppAtendimentoIdRouteImport } from './routes/app.atendimento.$id'
@@ -265,6 +267,17 @@ const AppConfiguracoesPerfilRoute = AppConfiguracoesPerfilRouteImport.update({
   path: '/configuracoes/perfil',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConfiguracoesPapeisRoute = AppConfiguracoesPapeisRouteImport.update({
+  id: '/configuracoes/papeis',
+  path: '/configuracoes/papeis',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppConfiguracoesAuditoriaRoute =
+  AppConfiguracoesAuditoriaRouteImport.update({
+    id: '/configuracoes/auditoria',
+    path: '/configuracoes/auditoria',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppConfiguracoesAparenciaRoute =
   AppConfiguracoesAparenciaRouteImport.update({
     id: '/configuracoes/aparencia',
@@ -311,6 +324,8 @@ export interface FileRoutesByFullPath {
   '/app/atendimento/$id': typeof AppAtendimentoIdRoute
   '/app/clientes/$id': typeof AppClientesIdRoute
   '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
+  '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
+  '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
   '/app/gestao/abc': typeof AppGestaoAbcRoute
   '/app/gestao/caixa': typeof AppGestaoCaixaRoute
@@ -357,6 +372,8 @@ export interface FileRoutesByTo {
   '/app/atendimento/$id': typeof AppAtendimentoIdRoute
   '/app/clientes/$id': typeof AppClientesIdRoute
   '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
+  '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
+  '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
   '/app/gestao/abc': typeof AppGestaoAbcRoute
   '/app/gestao/caixa': typeof AppGestaoCaixaRoute
@@ -405,6 +422,8 @@ export interface FileRoutesById {
   '/app/atendimento/$id': typeof AppAtendimentoIdRoute
   '/app/clientes/$id': typeof AppClientesIdRoute
   '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
+  '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
+  '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
   '/app/gestao/abc': typeof AppGestaoAbcRoute
   '/app/gestao/caixa': typeof AppGestaoCaixaRoute
@@ -454,6 +473,8 @@ export interface FileRouteTypes {
     | '/app/atendimento/$id'
     | '/app/clientes/$id'
     | '/app/configuracoes/aparencia'
+    | '/app/configuracoes/auditoria'
+    | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
     | '/app/gestao/abc'
     | '/app/gestao/caixa'
@@ -500,6 +521,8 @@ export interface FileRouteTypes {
     | '/app/atendimento/$id'
     | '/app/clientes/$id'
     | '/app/configuracoes/aparencia'
+    | '/app/configuracoes/auditoria'
+    | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
     | '/app/gestao/abc'
     | '/app/gestao/caixa'
@@ -547,6 +570,8 @@ export interface FileRouteTypes {
     | '/app/atendimento/$id'
     | '/app/clientes/$id'
     | '/app/configuracoes/aparencia'
+    | '/app/configuracoes/auditoria'
+    | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
     | '/app/gestao/abc'
     | '/app/gestao/caixa'
@@ -873,6 +898,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesPerfilRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/configuracoes/papeis': {
+      id: '/app/configuracoes/papeis'
+      path: '/configuracoes/papeis'
+      fullPath: '/app/configuracoes/papeis'
+      preLoaderRoute: typeof AppConfiguracoesPapeisRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/configuracoes/auditoria': {
+      id: '/app/configuracoes/auditoria'
+      path: '/configuracoes/auditoria'
+      fullPath: '/app/configuracoes/auditoria'
+      preLoaderRoute: typeof AppConfiguracoesAuditoriaRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/configuracoes/aparencia': {
       id: '/app/configuracoes/aparencia'
       path: '/configuracoes/aparencia'
@@ -933,6 +972,8 @@ interface AppRouteChildren {
   AppSdrRoute: typeof AppSdrRoute
   AppVeiculosRoute: typeof AppVeiculosRoute
   AppConfiguracoesAparenciaRoute: typeof AppConfiguracoesAparenciaRoute
+  AppConfiguracoesAuditoriaRoute: typeof AppConfiguracoesAuditoriaRoute
+  AppConfiguracoesPapeisRoute: typeof AppConfiguracoesPapeisRoute
   AppConfiguracoesPerfilRoute: typeof AppConfiguracoesPerfilRoute
   AppGestaoAbcRoute: typeof AppGestaoAbcRoute
   AppGestaoCaixaRoute: typeof AppGestaoCaixaRoute
@@ -961,6 +1002,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppSdrRoute: AppSdrRoute,
   AppVeiculosRoute: AppVeiculosRoute,
   AppConfiguracoesAparenciaRoute: AppConfiguracoesAparenciaRoute,
+  AppConfiguracoesAuditoriaRoute: AppConfiguracoesAuditoriaRoute,
+  AppConfiguracoesPapeisRoute: AppConfiguracoesPapeisRoute,
   AppConfiguracoesPerfilRoute: AppConfiguracoesPerfilRoute,
   AppGestaoAbcRoute: AppGestaoAbcRoute,
   AppGestaoCaixaRoute: AppGestaoCaixaRoute,

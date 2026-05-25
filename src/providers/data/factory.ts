@@ -16,6 +16,7 @@ import { mockSegmentsProvider } from "./impl/mock/segments";
 import { mockSellersProvider } from "./impl/mock/sellers";
 import { mockStoresProvider } from "./impl/mock/stores";
 import { mockSettingsProvider } from "./impl/mock/settings";
+import { mockAuditsProvider } from "./impl/mock/audits";
 
 import { supabaseCustomersProvider } from "./impl/supabase/customers";
 import { supabaseVehiclesProvider } from "./impl/supabase/vehicles";
@@ -33,6 +34,7 @@ import { supabaseSegmentsProvider } from "./impl/supabase/segments";
 import { supabaseSellersProvider } from "./impl/supabase/sellers";
 import { supabaseStoresProvider } from "./impl/supabase/stores";
 import { supabaseSettingsProvider } from "./impl/supabase/settings";
+import { supabaseAuditsProvider } from "./impl/supabase/audits";
 
 type DataSource = "mock" | "supabase";
 
@@ -75,6 +77,7 @@ const mockProviders: IDataProviders = {
   sellers: mockSellersProvider,
   stores: mockStoresProvider,
   settings: mockSettingsProvider,
+  audits: mockAuditsProvider,
 };
 
 const supabaseProviders: IDataProviders = {
@@ -94,6 +97,7 @@ const supabaseProviders: IDataProviders = {
   sellers: supabaseSellersProvider,
   stores: supabaseStoresProvider,
   settings: supabaseSettingsProvider,
+  audits: supabaseAuditsProvider,
 };
 
 /**

@@ -12,6 +12,7 @@
 
 export { DataProvidersProvider } from "./context";
 export { NotImplementedError } from "./errors";
+export { recordAuditLog, recordAuditLogSync, type ICreateAuditInput } from "./auditLogger";
 
 export type {
   IDataProviders,
@@ -47,6 +48,8 @@ export type {
   IListSellersParams,
   IStoresProvider,
   ISettingsProvider,
+  IAuditsProvider,
+  IListAuditsParams,
 } from "./contracts";
 
 export { useCustomersProvider } from "./hooks/useCustomersProvider";
@@ -65,3 +68,4 @@ export { useSegmentsProvider } from "./hooks/useSegmentsProvider";
 export { useSellersProvider } from "./hooks/useSellersProvider";
 export { useStoresProvider } from "./hooks/useStoresProvider";
 export { useSettingsProvider } from "./hooks/useSettingsProvider";
+export { useAuditsProvider } from "./hooks/useAuditsProvider";

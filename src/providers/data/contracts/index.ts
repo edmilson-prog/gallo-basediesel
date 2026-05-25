@@ -21,6 +21,7 @@ import type { ISegmentsProvider } from "./segments";
 import type { ISellersProvider } from "./sellers";
 import type { IStoresProvider } from "./stores";
 import type { ISettingsProvider } from "./settings";
+import type { IAuditsProvider } from "./audits";
 
 export type { IPaginatedResult, IPaginationParams } from "./_shared";
 
@@ -40,6 +41,7 @@ export type { ISegmentsProvider, IListSegmentsParams } from "./segments";
 export type { ISellersProvider, IListSellersParams } from "./sellers";
 export type { IStoresProvider } from "./stores";
 export type { ISettingsProvider } from "./settings";
+export type { IAuditsProvider, IListAuditsParams, ICreateAuditInput } from "./audits";
 
 /**
  * Aggregate of every data provider returned by `getDataProviders()`. The factory
@@ -63,4 +65,5 @@ export interface IDataProviders {
   sellers: ISellersProvider;
   stores: IStoresProvider;
   settings: ISettingsProvider;
+  audits: IAuditsProvider;
 }

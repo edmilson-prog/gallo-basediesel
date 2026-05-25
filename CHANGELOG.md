@@ -4,6 +4,65 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.5.0] — Pilot · 2026-05-25
+
+RBAC visual (PRD-006) — matriz canônica de permissões para os 7 papéis, com
+helpers/hooks/componentes reativos, integração com o route guard do PRD-003,
+auditoria visual e logging de runtime acoplado aos providers. Tudo é
+disciplina de UX/UI; a segurança real entra na Fase 2 com Supabase RLS.
+
+### Added
+
+- **`src/features/rbac/` em 5 subpastas** (`permissions`, `utils`, `hooks`,
+  `components`, `pages`) + barrel `@/features/rbac` como única superfície
+  pública
+- **Matriz de permissões** para 7 papéis (`Owner`, `Gestor`, `Vendedor`,
+  `SDR`, `Cliente`, `VendedorExterno`, `Financeiro`) × 18 recursos × 5
+  ações × 4 scopes em `permissions/matrix.ts`, com índice pré-computado
+  `EFFECTIVE_PERMISSIONS_INDEX` para lookup O(1)
+- **Constantes tipadas** `RESOURCES`, `ACTIONS`, `SCOPE_ORDER` com union
+  literal — `ResourceName` e `PermissionAction` ganham checagem em compile-time
+- **Helpers síncronos** `hasPermission()`, `compareScopes()`,
+  `scopeSatisfies()`, `getEffectivePermissions()`, `getCurrentUserScope()`
+- **Hooks reativos** `usePermission(resource, action, scope?)` e
+  `useCurrentRole()` que consomem o `AuthProvider` do PRD-003 e
+  re-renderizam ao trocar perfil
+- **Componentes declarativos** `<Can resource action scope? fallback?>` e
+  `<Forbidden message?>` (reusa o `EmptyState` do PRD-001)
+- **Extensão de `requireAuth(pathname, roles?, permission?)`** mantendo
+  retrocompatibilidade — todas as rotas existentes continuam funcionando
+- **Tela `/app/configuracoes/papeis`** (read-only) com tabs para os 7
+  papéis e tabela de recursos × ações × scope; badge "Edição na Fase 2"
+- **Tela `/app/configuracoes/auditoria`** com lista paginada, filtros
+  laterais (ator, ação, recurso, faixa de data) sincronizados com a URL,
+  expansão de cada item mostrando `before`/`after` em JSON
+- **Botão "Exportar CSV"** placeholder com tooltip "Disponível na Fase 2"
+- **Audit log runtime**: novo `IAuditsProvider` no barrel
+  `@/providers/data` com `mock` + `supabase` stub; `recordAuditLog()`
+  fire-and-forget exposto publicamente; helper `auditLog()` em
+  `@/features/rbac` para uso por features
+- **Mock providers de `customer`, `order`, `quote`, `commission`** passam
+  a registrar audit log automaticamente em `create`/`update`/`delete`
+  (e `approve` em commission)
+- **`AuthProvider`** registra `auth.signin` e `auth.signout` em todo
+  evento de troca de perfil
+- **`SettingsLayout`** ganha filtragem por permissão fina (não só por
+  papel) e exibe entradas "Papéis" e "Auditoria" para quem tem `view` em
+  `role` / `audit_log`
+- **`docs/rbac.md`** com matriz completa, exemplos de uso e esqueleto das
+  policies Supabase RLS previstas para a Fase 2
+
+### Changed
+
+- `requireAuth(pathname, roles?, permission?)` agora aceita um terceiro
+  parâmetro opcional `permission` que aciona a checagem RBAC fina; a
+  assinatura antiga `requireAuth(path, [...roles])` continua válida
+- `auditsApi` (mocks/api/audits.ts) ganha `create`, suporte a filtros
+  multi-valor (`actorIds`, `actions`, `resources`) e por faixa de data
+  (`since`, `until`); `mutations.ts` expõe `audits` como collection
+  mutável
+- `package.json` → `0.5.0`
+
 ## [0.4.0] — Hub · 2026-05-25
 
 Provider Pattern (PRD-005) — a "fundação invisível" que protege todo o app

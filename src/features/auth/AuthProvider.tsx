@@ -1,5 +1,6 @@
 import { createContext, useCallback, useEffect, useMemo, useState } from "react";
 import type { RoleName } from "@/shared/types";
+import { auditLog } from "@/features/rbac/utils/auditLog";
 import { LOCALSTORAGE_USER_KEY, MOCK_USER_BY_ID, type IMockUserProfile } from "./mock-users";
 
 export interface IAuthContextValue {
@@ -52,14 +53,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (profile) {
       persistUserId(profile.id);
       setCurrentUser(profile);
+      auditLog({
+        actorId: profile.id,
+        action: "auth.signin",
+        resource: "seller",
+        resourceId: profile.id,
+        after: { role: profile.role, displayName: profile.displayName },
+      });
     }
     return profile;
   }, []);
 
   const signOut = useCallback(() => {
+    const previous = currentUser;
     persistUserId(null);
     setCurrentUser(null);
-  }, []);
+    if (previous) {
+      auditLog({
+        actorId: previous.id,
+        action: "auth.signout",
+        resource: "seller",
+        resourceId: previous.id,
+        before: { role: previous.role, displayName: previous.displayName },
+      });
+    }
+  }, [currentUser]);
 
   const hasRole = useCallback(
     (role: RoleName | RoleName[]): boolean => {

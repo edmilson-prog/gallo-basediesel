@@ -726,14 +726,14 @@ Os campos `before` e `after` do `IAuditLog` podem conter PII (CPF, CNPJ, email).
 
 ## Status de Implementação
 
-| Campo                     | Valor       |
-| ------------------------- | ----------- |
-| **Status**                | ⏳ PENDENTE |
-| **Data de Implementação** | -           |
-| **Versão do App**         | -           |
-| **Codinome**              | -           |
-| **Implementado por**      | -           |
-| **Observações**           | -           |
+| Campo                     | Valor                                                                                                                                                                                                                                                                                                                                                |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**                | ✅ CONCLUÍDO                                                                                                                                                                                                                                                                                                                                         |
+| **Data de Implementação** | 2026-05-25                                                                                                                                                                                                                                                                                                                                           |
+| **Versão do App**         | 0.5.0                                                                                                                                                                                                                                                                                                                                                |
+| **Codinome**              | Pilot                                                                                                                                                                                                                                                                                                                                                |
+| **Implementado por**      | Claude Opus 4.7 (Claude Code CLI) via AILA Sistemas Inteligentes                                                                                                                                                                                                                                                                                     |
+| **Observações**           | Audit log runtime ligado aos providers via novo `IAuditsProvider` (mock + supabase stub) e helper público `recordAuditLog`. `requireAuth` ganhou parâmetro opcional `permission` mantendo retrocompatibilidade. `storeId` hardcoded como `store-matriz` no MVP — vira lookup dinâmico no PRD-007 (multi-loja). Documentação completa em `docs/rbac.md`. |
 
 ---
 

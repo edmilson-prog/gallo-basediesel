@@ -1,14 +1,19 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import type { PermissionAction } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/useAuth";
+import { hasPermission } from "@/features/rbac/utils/hasPermission";
+import type { ResourceName } from "@/features/rbac/permissions/resources";
 
 interface ISettingsSection {
   label: string;
   icon: string;
   to: string;
-  roles: ("Owner" | "Vendedor")[];
+  /** Optional fine-grained gate — falls back to role list when omitted. */
+  permission?: { resource: ResourceName; action: PermissionAction };
+  roles?: ("Owner" | "Vendedor")[];
 }
 
 const SETTINGS_SECTIONS: ISettingsSection[] = [
@@ -25,6 +30,18 @@ const SETTINGS_SECTIONS: ISettingsSection[] = [
     to: "/app/configuracoes/aparencia",
     roles: ["Owner", "Vendedor"],
   },
+  {
+    label: "Papéis",
+    icon: "mdi:shield-account",
+    to: "/app/configuracoes/papeis",
+    permission: { resource: "role", action: "view" },
+  },
+  {
+    label: "Auditoria",
+    icon: "mdi:history",
+    to: "/app/configuracoes/auditoria",
+    permission: { resource: "audit_log", action: "view" },
+  },
 ];
 
 /**
@@ -32,11 +49,17 @@ const SETTINGS_SECTIONS: ISettingsSection[] = [
  * Assumes Sidebar + TopBar come from the parent route (`app.tsx`).
  */
 export function SettingsLayout({ children }: { children?: ReactNode }) {
-  const { userRole } = useAuth();
+  const { currentUser, userRole } = useAuth();
   const location = useLocation();
-  const sections = SETTINGS_SECTIONS.filter((s) =>
-    s.roles.includes(userRole as "Owner" | "Vendedor"),
-  );
+  const sections = SETTINGS_SECTIONS.filter((s) => {
+    if (s.permission) {
+      return hasPermission(currentUser, s.permission.resource, s.permission.action);
+    }
+    if (s.roles) {
+      return s.roles.includes(userRole as "Owner" | "Vendedor");
+    }
+    return true;
+  });
 
   return (
     <div className="flex h-[calc(100vh-4rem)]">
