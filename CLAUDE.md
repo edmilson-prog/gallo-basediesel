@@ -39,7 +39,7 @@ Não há suite de testes configurada. Type-check é coberto pelo `noEmit` do `ts
 Modelagem em **duas dimensões CSS independentes** no `<html>`:
 
 ```html
-<html data-theme="diesel|parts|service|industrial" data-mode="light|dark">
+<html data-theme="diesel|parts|service|industrial" data-mode="light|dark"></html>
 ```
 
 Mais a classe `.dark` (variante Tailwind via `@custom-variant dark (&:is(.dark *))`).

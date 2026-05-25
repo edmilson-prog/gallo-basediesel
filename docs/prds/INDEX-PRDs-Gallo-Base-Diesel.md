@@ -93,7 +93,7 @@ Estabelece os pilares técnicos e visuais sobre os quais todo o resto se constr�
 | --- | -------------------------------------------------------------------------------------------------- | ------- | ----- | ----- | --------- | ------ | ---------- |
 | 001 | [Identidade Visual GALLO e Design System Base](./PRD-001-identidade-visual-gallo-design-system.md) | Feature | D     | 🟢    | 📝        | ✅     | —          |
 | 002 | [Modelo Conceitual de Domínio e Glossário](./PRD-002-modelo-conceitual-glossario_DONE.md)          | Feature | D     | 🔵    | 📝        | ✅     | —          |
-| 003 | [Shell do App, Navegação e Layouts Base](./PRD-003-shell-app-navegacao-layouts_DONE.md)             | Feature | D     | 🔵    | 📝        | ✅     | 001, 002   |
+| 003 | [Shell do App, Navegação e Layouts Base](./PRD-003-shell-app-navegacao-layouts_DONE.md)            | Feature | D     | 🔵    | 📝        | ✅     | 001, 002   |
 | 004 | [Geradores de Dados Fictícios e Camada de Mocks](./PRD-004-mocks-geradores-dados.md)               | Feature | D     | 🔵    | 📝        | ⏳     | 002        |
 | 005 | Arquitetura de Provedores de Dados (Mock/Supabase)                                                 | Feature | D     | 🔵    | ⏸         | ⏳     | 004        |
 | 006 | Sistema de Roles, Permissões e Auditoria (visual)                                                  | Feature | D     | 🔵    | ⏸         | ⏳     | 002, 003   |
@@ -368,17 +368,17 @@ Mês 11+   ── Operação contínua + manutenção
 
 A plataforma usa Semantic Versioning com codinomes em inglês para releases MINOR e MAJOR.
 
-| Versão     | Codinome       | Data prevista | PRDs incluídos                                        | Marco                                                   |
-| ---------- | -------------- | ------------- | ----------------------------------------------------- | ------------------------------------------------------- |
-| v0.1.0     | **Genesis**    | Mês 1         | PRD-001                                               | Scaffold inicial                                        |
-| v0.1.1     | **Genesis**    | 25/05/2026    | PRD-002                                               | Modelo conceitual de domínio + glossário                |
-| v0.2.0     | **Genesis**    | 25/05/2026    | PRD-003                                               | Shell navegável, auth mockada, 8 layouts, 30+ rotas     |
-| v0.3.0     | **Hub**        | Mês 2         | PRDs 004, 005, 006, 007 + 010–019 + 020–024 + 030–033 | Onda 1 entregue                                         |
-| v0.3.0     | **Pilot**      | Mês 3         | Refinamentos pós-validação Onda 1                     | Validação Cliente Onda 1                                |
-| v0.4.0     | **Compass**    | Mês 6         | PRDs 040–053 (Bloco 4)                                | Onda 2 entregue                                         |
-| v0.5.0     | **Storefront** | Mês 9         | PRDs 060–067 (Bloco 5)                                | Onda 3 quase completa                                   |
-| **v1.0.0** | **Heavy**      | Mês 10        | PRDs 070, 071 + polish final                          | **MVP completo — release oficial**                      |
-| v1.1.0+    | _A definir_    | Mês 11+       | PRDs 100+ (Fase 2)                                    | Integrações reais                                       |
+| Versão     | Codinome       | Data prevista | PRDs incluídos                                        | Marco                                               |
+| ---------- | -------------- | ------------- | ----------------------------------------------------- | --------------------------------------------------- |
+| v0.1.0     | **Genesis**    | Mês 1         | PRD-001                                               | Scaffold inicial                                    |
+| v0.1.1     | **Genesis**    | 25/05/2026    | PRD-002                                               | Modelo conceitual de domínio + glossário            |
+| v0.2.0     | **Genesis**    | 25/05/2026    | PRD-003                                               | Shell navegável, auth mockada, 8 layouts, 30+ rotas |
+| v0.3.0     | **Hub**        | Mês 2         | PRDs 004, 005, 006, 007 + 010–019 + 020–024 + 030–033 | Onda 1 entregue                                     |
+| v0.3.0     | **Pilot**      | Mês 3         | Refinamentos pós-validação Onda 1                     | Validação Cliente Onda 1                            |
+| v0.4.0     | **Compass**    | Mês 6         | PRDs 040–053 (Bloco 4)                                | Onda 2 entregue                                     |
+| v0.5.0     | **Storefront** | Mês 9         | PRDs 060–067 (Bloco 5)                                | Onda 3 quase completa                               |
+| **v1.0.0** | **Heavy**      | Mês 10        | PRDs 070, 071 + polish final                          | **MVP completo — release oficial**                  |
+| v1.1.0+    | _A definir_    | Mês 11+       | PRDs 100+ (Fase 2)                                    | Integrações reais                                   |
 
 ---
 
@@ -386,10 +386,10 @@ A plataforma usa Semantic Versioning com codinomes em inglês para releases MINO
 
 ### Velocidade de Implementação
 
-| Período    | PRDs Redigidos | PRDs Implementados | Lead Time Médio                                      |
-| ---------- | -------------- | ------------------ | ---------------------------------------------------- |
+| Período    | PRDs Redigidos | PRDs Implementados | Lead Time Médio                                                |
+| ---------- | -------------- | ------------------ | -------------------------------------------------------------- |
 | Maio/2026  | 7              | 3                  | — (PRD-001 via Lovable; PRD-002 e PRD-003 via Claude Code CLI) |
-| Junho/2026 | _a registrar_  | _a registrar_      | _a registrar_                                        |
+| Junho/2026 | _a registrar_  | _a registrar_      | _a registrar_                                                  |
 
 ### Distribuição por Complexidade (estimada)
 
@@ -527,12 +527,12 @@ PRDs 040–053, 060–067, 070–071 — ~11 turnos no total
 
 ## Última Atualização
 
-| Campo                | Valor                                                                                |
-| -------------------- | ------------------------------------------------------------------------------------ |
-| **Data**             | 25/05/2026                                                                           |
-| **Atualizado por**   | Claude Opus 4.7 (Claude Code CLI)                                                    |
-| **Motivo**           | Implementação do PRD-003 (Shell, navegação e layouts) — v0.2.0 Genesis              |
-| **Versão do índice** | 1.1                                                                                  |
+| Campo                | Valor                                                                  |
+| -------------------- | ---------------------------------------------------------------------- |
+| **Data**             | 25/05/2026                                                             |
+| **Atualizado por**   | Claude Opus 4.7 (Claude Code CLI)                                      |
+| **Motivo**           | Implementação do PRD-003 (Shell, navegação e layouts) — v0.2.0 Genesis |
+| **Versão do índice** | 1.1                                                                    |
 
 ---
 

@@ -757,14 +757,14 @@ A página `/design-system` (e portanto o reset de mocks) é **dev-only** (PRD-00
 
 ## Status de Implementação
 
-| Campo                     | Valor       |
-| ------------------------- | ----------- |
-| **Status**                | ⏳ PENDENTE |
-| **Data de Implementação** | -           |
-| **Versão do App**         | -           |
-| **Codinome**              | -           |
-| **Implementado por**      | -           |
-| **Observações**           | -           |
+| Campo                     | Valor                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Status**                | ✅ IMPLEMENTADO                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| **Data de Implementação** | 25/05/2026                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| **Versão do App**         | v0.3.0                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| **Codinome**              | Genesis (mantido — Hub abre quando a Onda 1 fechar)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| **Implementado por**      | Claude Opus 4.7 (Claude Code CLI)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| **Observações**           | Camada de mocks completa entregue: 5 subpastas (`config`, `data`, `generators`, `store`, `api`, `hooks`), ~32 geradores determinísticos, store Zustand com bootstrap automático, 22 APIs públicas com contrato drop-in, paginação genérica, simulação de latência (80–180ms) e erros tipados (`MockError` + 4 subclasses). Reset administrativo em `/design-system`. Lint rule `no-restricted-imports` bloqueia importações internas. Build limpo: 0 erros de lint, type-check passa, dataset gerado em < 500ms em dev. PRD-005 pronto para iniciar. |
 
 ---
 
@@ -773,6 +773,7 @@ A página `/design-system` (e portanto o reset de mocks) é **dev-only** (PRD-00
 | Data       | Versão | Alteração                                                                                                                     |
 | ---------- | ------ | ----------------------------------------------------------------------------------------------------------------------------- |
 | 25/05/2026 | v1     | Criação inicial — camada de mocks completa, geradores determinísticos, store Zustand, APIs com contrato drop-in para Supabase |
+| 25/05/2026 | v1.1   | Implementação concluída em v0.3.0 Genesis. Renomeado para `_DONE.md`.                                                         |
 
 ---
 

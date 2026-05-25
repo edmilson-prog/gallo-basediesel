@@ -4,11 +4,63 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.3.0] — Genesis · 2026-05-25
+
+Camada de mocks completa (PRD-004) — a "fundação invisível" sobre a qual todo
+o app vai operar até a Fase 2 (Supabase).
+
+### Added
+
+- **`src/mocks/` em 5 subpastas** (`config`, `data`, `generators`, `store`,
+  `api`, `hooks`) com barrel raiz `@/mocks` como única superfície pública
+- **Geradores determinísticos** para ~32 entidades do modelo conceitual
+  (PRD-002): clientes B2B/B2C, veículos, leads, conversas, mensagens, peças,
+  orçamentos, pedidos, comissões, metas, recomendações, transferências de
+  carteira, segmentos, papéis, auditoria, contas WhatsApp, badges, ranking,
+  positivação e curva ABC
+- **Determinismo via `seedrandom`** + `@faker-js/faker` (locale `pt_BR`),
+  reseedados por contexto: a mesma seed produz exatamente o mesmo dataset em
+  qualquer máquina
+- **Volumes realistas**: ~2200 itens no dataset default (70 clientes,
+  200 peças, 80 conversas, ~600 mensagens, 120 pedidos espalhados em
+  12 meses, 80 leads, 30 orçamentos, 8 metas, 25 recomendações)
+- **Integridade referencial**: validador em dev percorre todas as FKs no fim
+  do bootstrap e loga inconsistências sem quebrar a UI
+- **Store Zustand interno** (`mockStore`) com `selectors` e `mutations`
+  tipados — bootstrap automático no primeiro acesso à store
+- **APIs públicas** seguindo contrato CRUD + queries específicas por agregado
+  (`customersApi`, `vehiclesApi`, `leadsApi`, `conversationsApi`,
+  `messagesApi`, `partsApi`, `quotesApi`, `ordersApi`, `commissionsApi`,
+  `goalsApi`, `recommendationsApi`, `transfersApi`, `segmentsApi`,
+  `sellersApi`, `storesApi`, `settingsApi`, `auditsApi`, `badgesApi`,
+  `rankingsApi`, `positivationsApi`, `abcsApi`, `whatsappAccountsApi`,
+  `rolesApi`) — assinatura idêntica à do `SupabaseProvider` da Fase 2
+- **Paginação genérica** (`IPaginatedResult<T>` + `paginate()` helper)
+  uniforme em todas as operações `list`
+- **Simulação de latência** (80–180ms default) e **erro tipado** (`ERROR_RATE`
+  default 0,5% em dev) em toda chamada de API via wrapper `runApi`
+- **Erros tipados**: `MockError` base + `MockNotFoundError`,
+  `MockValidationError`, `MockNetworkError`, `MockUnauthorizedError` —
+  consumidores narrowing via `instanceof`
+- **Logs compactos** no console em dev (`MOCK_LOGS_ENABLED`) para debug, com
+  cor por status
+- **Hook `useResetMocks`** + seção **"Mocks (dev only)"** em `/design-system`
+  permitindo reset com seed customizada ou nova seed automática
+- **Regra ESLint** `no-restricted-imports` bloqueando imports de
+  `@/mocks/store/*`, `@/mocks/generators/*` e `@/mocks/data/*` fora da pasta
+  `src/mocks/` — força uso do barrel público
+
+### Changed
+
+- `package.json` adiciona `zustand`, `@faker-js/faker`, `seedrandom` e
+  `@types/seedrandom` como dependências
+
 ## [0.2.0] — Genesis · 2026-05-25
 
 Esqueleto navegável da plataforma. PRD-003 implementado.
 
 ### Added
+
 - **Roteamento end-to-end**: 3 árvores de rota (`/app/*` interno, `/loja/*`
   vitrine, `/auth/*` login) + rotas de erro (`/sem-permissao`, `/erro`).
   Todas as 30+ rotas funcionais com placeholders referenciando os PRDs futuros
@@ -37,6 +89,7 @@ Esqueleto navegável da plataforma. PRD-003 implementado.
   integrado)
 
 ### Changed
+
 - `__root.tsx` agora envolve a árvore em `<AuthProvider>`
 - Home (`/`) deixou de ser página estática — agora é redirect via
   `beforeLoad`
@@ -44,6 +97,7 @@ Esqueleto navegável da plataforma. PRD-003 implementado.
   introduzidas
 
 ### Notes
+
 - **Adaptação ao stack**: PRD-003 especifica React Router v6; mantivemos
   TanStack Router (já configurado e funcional). Conceitos equivalentes
   (rotas aninhadas, lazy loading, guards via `beforeLoad`, layout routes).

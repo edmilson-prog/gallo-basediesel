@@ -1,0 +1,417 @@
+import type {
+  IABCClassification,
+  IAuditLog,
+  ICarteiraTransfer,
+  ICommission,
+  IConversation,
+  ICustomer,
+  ICustomerNote,
+  ICustomerSegment,
+  IGamificationBadge,
+  IGoal,
+  ILead,
+  IMessage,
+  IOrder,
+  IPart,
+  IPositivation,
+  IQuote,
+  IRanking,
+  IRecommendation,
+  IRole,
+  ISeller,
+  IStore,
+  IVehicle,
+  IVehicleServiceEntry,
+  IWhatsAppAccount,
+} from "@/shared/types";
+
+import { DEFAULT_SEED, VOLUMES } from "../config";
+import { SEED_OWNER_ID, SEED_ROLES, SEED_STORE, SEED_VENDEDOR_SELLER_IDS } from "../data";
+import { createSeededContext } from "./utils";
+import { generateSellers } from "./seller";
+import { generateAudit } from "./audit";
+import { generatePart, linkEquivalentParts } from "./part";
+import { generateCustomerB2B, generateCustomerB2C, generateCustomerNotes } from "./customer";
+import { generateVehicle, generateVehicleServiceEntry } from "./vehicle";
+import { generateLead } from "./lead";
+import { generateConversation } from "./conversation";
+import { generateMessagesForConversation } from "./message";
+import { generateQuote } from "./quote";
+import { generateOrder } from "./order";
+import { generateCommission } from "./commission";
+import { generateGoals } from "./goal";
+import { generateRecommendation } from "./recommendation";
+import { generateTransfer } from "./transfer";
+import { generateSegments } from "./segment";
+import { generatePositivation } from "./positivation";
+import { generateABC } from "./abc";
+import { generateRanking } from "./ranking";
+import { generateBadges } from "./badge";
+import { generateWhatsAppAccounts } from "./whatsappAccount";
+
+/**
+ * Full GALLO mock dataset, ready to populate the Zustand store. Generated
+ * deterministically from a single integer seed.
+ */
+export interface IBootstrappedDataset {
+  seed: number;
+  generatedAt: string;
+  stores: IStore[];
+  roles: IRole[];
+  sellers: ISeller[];
+  audits: IAuditLog[];
+  customers: ICustomer[];
+  customerNotes: ICustomerNote[];
+  vehicles: IVehicle[];
+  vehicleServiceEntries: IVehicleServiceEntry[];
+  leads: ILead[];
+  segments: ICustomerSegment[];
+  transfers: ICarteiraTransfer[];
+  recommendations: IRecommendation[];
+  conversations: IConversation[];
+  messages: IMessage[];
+  whatsappAccounts: IWhatsAppAccount[];
+  parts: IPart[];
+  quotes: IQuote[];
+  orders: IOrder[];
+  commissions: ICommission[];
+  goals: IGoal[];
+  badges: IGamificationBadge[];
+  rankings: IRanking[];
+  positivations: IPositivation[];
+  abcClassifications: IABCClassification[];
+}
+
+/**
+ * Build the full dataset. Order matters: every block downstream uses outputs
+ * from the blocks above. A final integrity check walks every foreign key to
+ * surface inconsistencies early in dev.
+ */
+export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
+  const ctx = createSeededContext(seed);
+  const now = new Date();
+
+  // 1. Foundational entities (no cross-deps).
+  const stores: IStore[] = [{ ...SEED_STORE }];
+  const roles: IRole[] = SEED_ROLES.map((r) => ({
+    ...r,
+    permissions: r.permissions.map((p) => ({ ...p })),
+  }));
+  const sellers = generateSellers();
+  const whatsappAccounts = generateWhatsAppAccounts();
+
+  // 2. Catalog — purely independent.
+  const parts: IPart[] = [];
+  for (let i = 0; i < VOLUMES.parts; i += 1) {
+    parts.push(generatePart(ctx, { sequence: i, now }));
+  }
+  linkEquivalentParts(ctx, parts);
+
+  // 3. Customers (B2B + B2C). Vendedor ids only — owner does not hold carteira.
+  const customers: ICustomer[] = [];
+  for (let i = 0; i < VOLUMES.customersB2B; i += 1) {
+    customers.push(
+      generateCustomerB2B(ctx, { sequence: i, sellerIds: SEED_VENDEDOR_SELLER_IDS, now }),
+    );
+  }
+  for (let i = 0; i < VOLUMES.customersB2C; i += 1) {
+    customers.push(
+      generateCustomerB2C(ctx, { sequence: i, sellerIds: SEED_VENDEDOR_SELLER_IDS, now }),
+    );
+  }
+
+  // 4. Customer notes (1–3 per customer in average — capped by VOLUMES.customerNotes).
+  const customerNotes: ICustomerNote[] = [];
+  let remainingNotes = VOLUMES.customerNotes;
+  const customerCursor = [...customers];
+  while (remainingNotes > 0 && customerCursor.length > 0) {
+    const c = customerCursor[remainingNotes % customerCursor.length];
+    const take = Math.min(remainingNotes, ctx.int(1, 3));
+    const notes = generateCustomerNotes(ctx, c, take);
+    customerNotes.push(...notes);
+    c.notes.push(...notes);
+    remainingNotes -= take;
+  }
+
+  // 5. Vehicles — ≥80% belong to B2B customers.
+  const b2b = customers.filter((c) => c.type === "B2B");
+  const b2c = customers.filter((c) => c.type === "B2C");
+  const vehicles: IVehicle[] = [];
+  for (let i = 0; i < VOLUMES.vehicles; i += 1) {
+    const owner = ctx.bool(0.85) ? ctx.pick(b2b) : ctx.pick(b2c);
+    vehicles.push(generateVehicle(ctx, { sequence: i, owner, now }));
+  }
+
+  // 6. Vehicle service history.
+  const partNames = parts.map((p) => p.name);
+  const vehicleServiceEntries: IVehicleServiceEntry[] = [];
+  for (let i = 0; i < VOLUMES.vehicleServiceEntries; i += 1) {
+    const vehicle = ctx.pick(vehicles);
+    const entry = generateVehicleServiceEntry(ctx, { sequence: i, vehicle, partNames });
+    vehicleServiceEntries.push(entry);
+    vehicle.serviceHistory.push(entry);
+  }
+
+  // 7. Leads. Some leads convert to a B2C customer that already exists.
+  const leads: ILead[] = [];
+  for (let i = 0; i < VOLUMES.leads; i += 1) {
+    leads.push(
+      generateLead(ctx, {
+        sequence: i,
+        sellerIds: SEED_VENDEDOR_SELLER_IDS,
+        customerIdForConversion: ctx.pick(b2c).id,
+        now,
+      }),
+    );
+  }
+
+  // 8. Segments.
+  const segments = generateSegments(ctx);
+
+  // 9. Wallet transfers.
+  const transfers: ICarteiraTransfer[] = [];
+  const transferableSellers = sellers.filter((s) => SEED_VENDEDOR_SELLER_IDS.includes(s.id));
+  for (let i = 0; i < VOLUMES.transfers; i += 1) {
+    transfers.push(
+      generateTransfer(ctx, { sequence: i, sellers: transferableSellers, customers, now }),
+    );
+  }
+
+  // 10. Conversations — split between customers and leads (~80/20 with some bias).
+  const whatsappAccountIds = whatsappAccounts.map((w) => w.id);
+  const conversations: IConversation[] = [];
+  const conversationParticipants: (
+    | { kind: "customer"; entity: ICustomer }
+    | { kind: "lead"; entity: ILead }
+  )[] = [];
+  for (let i = 0; i < VOLUMES.conversations; i += 1) {
+    const participant = ctx.bool(0.7)
+      ? ({ kind: "customer", entity: ctx.pick(customers) } as const)
+      : ({ kind: "lead", entity: ctx.pick(leads) } as const);
+    conversationParticipants.push(participant);
+    conversations.push(
+      generateConversation(ctx, {
+        sequence: i,
+        participant,
+        sellerIds: SEED_VENDEDOR_SELLER_IDS,
+        whatsappAccountIds,
+        now,
+      }),
+    );
+  }
+  for (let i = 0; i < conversations.length; i += 1) {
+    const conv = conversations[i];
+    if (conv.leadId) {
+      const lead = leads.find((l) => l.id === conv.leadId);
+      if (lead && !lead.conversations.includes(conv.id)) lead.conversations.push(conv.id);
+    }
+  }
+
+  // 11. Messages — split the global VOLUMES.messages quota proportionally across conversations.
+  const messages: IMessage[] = [];
+  let msgSeq = 0;
+  while (messages.length < VOLUMES.messages) {
+    const remaining = VOLUMES.messages - messages.length;
+    const conv = conversations[messages.length % conversations.length];
+    const generated = generateMessagesForConversation(ctx, conv, msgSeq);
+    const take = generated.slice(0, remaining);
+    messages.push(...take);
+    msgSeq += take.length;
+    if (take.length === 0) break;
+  }
+
+  // 12. Quotes — bound to customers or leads, items pulled from the part catalog.
+  const quotes: IQuote[] = [];
+  for (let i = 0; i < VOLUMES.quotes; i += 1) {
+    const participant: { kind: "customer"; entity: ICustomer } | { kind: "lead"; entity: ILead } =
+      ctx.bool(0.8)
+        ? { kind: "customer", entity: ctx.pick(customers) }
+        : { kind: "lead", entity: ctx.pick(leads) };
+    quotes.push(
+      generateQuote(ctx, {
+        sequence: i,
+        participant,
+        sellerIds: SEED_VENDEDOR_SELLER_IDS,
+        parts,
+        now,
+      }),
+    );
+  }
+
+  // 13. Orders — spread over the last 12 months for BI. Some inherit from a quote.
+  const orders: IOrder[] = [];
+  for (let i = 0; i < VOLUMES.orders; i += 1) {
+    const sourceQuote = ctx.bool(0.2) ? ctx.pick(quotes) : undefined;
+    let customer: ICustomer | undefined;
+    if (sourceQuote && sourceQuote.customerId) {
+      customer = customers.find((c) => c.id === sourceQuote.customerId);
+    }
+    if (!customer) customer = ctx.pick(customers);
+    orders.push(
+      generateOrder(ctx, {
+        sequence: i,
+        customer,
+        parts,
+        sourceQuote,
+        now,
+      }),
+    );
+    if (sourceQuote) {
+      sourceQuote.status = "convertido";
+      sourceQuote.convertedToOrderId = orders[orders.length - 1].id;
+    }
+  }
+
+  // 14. Commissions for paid orders only (RF-012). Cap at VOLUMES.commissions.
+  const paidOrders = orders.filter((o) => o.paymentStatus === "pago");
+  const commissions: ICommission[] = [];
+  for (let i = 0; i < Math.min(VOLUMES.commissions, paidOrders.length); i += 1) {
+    commissions.push(generateCommission(ctx, { sequence: i, order: paidOrders[i] }));
+  }
+
+  // 15. Goals (store + individual).
+  const goals = generateGoals(ctx, { sellers, now });
+
+  // 16. Recommendations — point to customers in dormente / recuperacao.
+  const recommendationTargets = customers.filter(
+    (c) => c.status === "dormente" || c.status === "recuperacao",
+  );
+  const recommendations: IRecommendation[] = [];
+  for (let i = 0; i < VOLUMES.recommendations; i += 1) {
+    const customer =
+      recommendationTargets.length > 0 ? ctx.pick(recommendationTargets) : ctx.pick(customers);
+    recommendations.push(generateRecommendation(ctx, { sequence: i, customer }));
+  }
+
+  // 17. Derived analytics — positivation, ABC, ranking, badges.
+  const positivation = generatePositivation(customers, orders, now);
+  const abcClassifications = generateABC(customers, orders, now);
+  const ranking = generateRanking(sellers, orders, goals, now);
+  const badges = generateBadges(ctx, { count: VOLUMES.badges, sellers, now });
+
+  // 18. Audit log. ResourceIds drawn from the live ids generated above.
+  const actorIds = sellers.map((s) => s.id);
+  const resourceIds = [
+    ...customers.map((c) => c.id),
+    ...orders.map((o) => o.id),
+    ...quotes.map((q) => q.id),
+    ...transfers.map((t) => t.id),
+    ...leads.map((l) => l.id),
+  ];
+  const audits: IAuditLog[] = [];
+  for (let i = 0; i < VOLUMES.audits; i += 1) {
+    audits.push(generateAudit(ctx, { sequence: i, actorIds, resourceIds }));
+  }
+
+  const dataset: IBootstrappedDataset = {
+    seed,
+    generatedAt: now.toISOString(),
+    stores,
+    roles,
+    sellers,
+    audits,
+    customers,
+    customerNotes,
+    vehicles,
+    vehicleServiceEntries,
+    leads,
+    segments,
+    transfers,
+    recommendations,
+    conversations,
+    messages,
+    whatsappAccounts,
+    parts,
+    quotes,
+    orders,
+    commissions,
+    goals,
+    badges,
+    rankings: [ranking],
+    positivations: [positivation],
+    abcClassifications,
+  };
+
+  if (import.meta.env.DEV) {
+    validateReferentialIntegrity(dataset);
+  }
+
+  return dataset;
+}
+
+/**
+ * Walk every foreign key and surface inconsistencies as console errors. We
+ * deliberately don't throw — a broken seed should not white-screen the app in
+ * dev, but it must be loud.
+ */
+function validateReferentialIntegrity(d: IBootstrappedDataset): void {
+  const customerIds = new Set(d.customers.map((c) => c.id));
+  const sellerIds = new Set(d.sellers.map((s) => s.id));
+  const partIds = new Set(d.parts.map((p) => p.id));
+  const leadIds = new Set(d.leads.map((l) => l.id));
+  const orderIds = new Set(d.orders.map((o) => o.id));
+  const errors: string[] = [];
+
+  for (const o of d.orders) {
+    if (!customerIds.has(o.customerId))
+      errors.push(`order ${o.id} → customer ${o.customerId} missing`);
+    if (!sellerIds.has(o.sellerId)) errors.push(`order ${o.id} → seller ${o.sellerId} missing`);
+    for (const item of o.items) {
+      if (!partIds.has(item.partId))
+        errors.push(`order ${o.id} item → part ${item.partId} missing`);
+    }
+  }
+
+  for (const v of d.vehicles) {
+    if (!customerIds.has(v.customerId))
+      errors.push(`vehicle ${v.id} → customer ${v.customerId} missing`);
+  }
+
+  for (const conv of d.conversations) {
+    if (conv.customerId && !customerIds.has(conv.customerId))
+      errors.push(`conversation ${conv.id} → customer ${conv.customerId} missing`);
+    if (conv.leadId && !leadIds.has(conv.leadId))
+      errors.push(`conversation ${conv.id} → lead ${conv.leadId} missing`);
+    if (conv.customerId && conv.leadId)
+      errors.push(`conversation ${conv.id} has both customerId and leadId`);
+  }
+
+  for (const q of d.quotes) {
+    if (q.customerId && !customerIds.has(q.customerId))
+      errors.push(`quote ${q.id} → customer ${q.customerId} missing`);
+    if (q.leadId && !leadIds.has(q.leadId)) errors.push(`quote ${q.id} → lead ${q.leadId} missing`);
+    if (q.convertedToOrderId && !orderIds.has(q.convertedToOrderId))
+      errors.push(`quote ${q.id} → order ${q.convertedToOrderId} missing`);
+  }
+
+  for (const c of d.commissions) {
+    if (!orderIds.has(c.orderId)) errors.push(`commission ${c.id} → order ${c.orderId} missing`);
+    if (!sellerIds.has(c.sellerId))
+      errors.push(`commission ${c.id} → seller ${c.sellerId} missing`);
+  }
+
+  for (const r of d.recommendations) {
+    if (!sellerIds.has(r.sellerId))
+      errors.push(`recommendation ${r.id} → seller ${r.sellerId} missing`);
+    if (!customerIds.has(r.subjectId))
+      errors.push(`recommendation ${r.id} → customer ${r.subjectId} missing`);
+  }
+
+  for (const t of d.transfers) {
+    if (!sellerIds.has(t.fromSellerId))
+      errors.push(`transfer ${t.id} → from ${t.fromSellerId} missing`);
+    if (!sellerIds.has(t.toSellerId)) errors.push(`transfer ${t.id} → to ${t.toSellerId} missing`);
+    for (const cid of t.customerIds) {
+      if (!customerIds.has(cid)) errors.push(`transfer ${t.id} → customer ${cid} missing`);
+    }
+  }
+
+  // Owner should never hold customers per business rule (carteira goes to vendedores).
+  for (const c of d.customers) {
+    if (c.sellerId === SEED_OWNER_ID) errors.push(`customer ${c.id} assigned to owner`);
+  }
+
+  if (errors.length > 0) {
+    console.error(`[mock-bootstrap] ${errors.length} integrity errors:`, errors.slice(0, 20));
+  }
+}

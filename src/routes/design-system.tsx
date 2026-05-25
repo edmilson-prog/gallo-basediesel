@@ -7,6 +7,7 @@ import { Logo } from "@/components/Logo";
 import { Icon } from "@/components/Icon";
 import { Container, Grid, Inline, Stack } from "@/components/layout";
 import { contrastRatio, resolveCssVar, wcagLevel } from "@/lib/contrast";
+import { useResetMocks } from "@/mocks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -657,6 +658,14 @@ function DesignSystemPage() {
               </Stack>
             </Section>
 
+            {/* Mocks — PRD-004 */}
+            <Section
+              title="Mocks (dev only)"
+              description="Camada de dados fictícios determinísticos. Resetar reconstrói todo o dataset com a seed informada."
+            >
+              <MocksPanel />
+            </Section>
+
             {/* WCAG */}
             <Section
               title="Validador de contraste WCAG 2.1"
@@ -670,7 +679,7 @@ function DesignSystemPage() {
             </Section>
 
             <p className="py-6 text-center text-xs text-muted-foreground">
-              GALLO BASE DIESEL — Design System v0.2.0 · Genesis
+              GALLO BASE DIESEL — Design System v0.3.0 · Genesis
             </p>
           </Stack>
         </Container>
@@ -696,5 +705,66 @@ function Section({
       </div>
       {children}
     </section>
+  );
+}
+
+function MocksPanel() {
+  const { reset, loading, lastResult } = useResetMocks();
+  const [seedInput, setSeedInput] = useState("");
+
+  const handleReset = (useCustomSeed: boolean) => {
+    const parsed = useCustomSeed ? Number(seedInput) : undefined;
+    const seed = useCustomSeed && Number.isFinite(parsed) ? parsed : undefined;
+    reset(seed);
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Gerador de dados fictícios</CardTitle>
+        <CardDescription>
+          Refaz todo o dataset em memória. Dados existentes na sessão são perdidos.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Stack gap={4}>
+          <Inline gap={2} className="items-end">
+            <div className="grow">
+              <Label htmlFor="mock-seed" className="mb-1 block text-xs uppercase tracking-wide">
+                Seed customizada (opcional)
+              </Label>
+              <Input
+                id="mock-seed"
+                inputMode="numeric"
+                placeholder="ex.: 1337"
+                value={seedInput}
+                onChange={(e) => setSeedInput(e.target.value)}
+              />
+            </div>
+            <Button
+              variant="outline"
+              disabled={loading || seedInput.trim() === ""}
+              onClick={() => handleReset(true)}
+            >
+              Reset com seed
+            </Button>
+            <Button disabled={loading} onClick={() => handleReset(false)}>
+              Reset com nova seed
+            </Button>
+          </Inline>
+          {lastResult && (
+            <div className="rounded-md border border-border bg-muted/40 p-3 text-sm">
+              <p className="font-mono">
+                seed: <strong>{lastResult.seed}</strong>
+              </p>
+              <p className="text-muted-foreground">
+                {lastResult.totalItems} itens regerados em{" "}
+                {new Date(lastResult.generatedAt).toLocaleString("pt-BR")}.
+              </p>
+            </div>
+          )}
+        </Stack>
+      </CardContent>
+    </Card>
   );
 }

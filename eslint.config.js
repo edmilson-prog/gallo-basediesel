@@ -24,5 +24,37 @@ export default tseslint.config(
       "@typescript-eslint/no-unused-vars": "off",
     },
   },
+  // PRD-004: lock the mock layer behind its public barrel.
+  // Code outside `src/mocks/` must import from `@/mocks` (or `@/mocks/...`
+  // sub-paths re-exported by the barrel), never from the internal store,
+  // generators or data seeds.
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/mocks/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "@/mocks/store/*",
+                "@/mocks/generators/*",
+                "@/mocks/data/*",
+                "@/mocks/config",
+              ],
+              message:
+                "Import the mock layer only from '@/mocks' — internal modules are not part of the public contract.",
+            },
+            {
+              group: ["**/mocks/store/*", "**/mocks/generators/*", "**/mocks/data/*"],
+              message:
+                "Import the mock layer only from '@/mocks' — internal modules are not part of the public contract.",
+            },
+          ],
+        },
+      ],
+    },
+  },
   eslintPluginPrettier,
 );
