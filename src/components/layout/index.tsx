@@ -68,7 +68,8 @@ export const Inline = forwardRef<HTMLDivElement, IStackProps & { wrap?: boolean 
           justifyClass(justify),
           className,
         )}
-        {...rest}
+        {...(rest as Record<string, unknown>)}
+
       />
     );
   },
