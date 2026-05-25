@@ -24,6 +24,7 @@ export function generateCommission(
 
   return {
     id,
+    storeId: options.order.storeId,
     sellerId: options.order.sellerId,
     orderId: options.order.id,
     baseValue,

@@ -1,6 +1,13 @@
 import type { ICustomer, ID, ISeller, RoleName } from "@/shared/types";
 
 /**
+ * Stable id of the seeded matriz (PRD-004). Hardcoded here so the mock auth
+ * layer doesn't have to reach into the private mock seed module — kept in
+ * lockstep with `SEED_STORE_ID` in `src/mocks/data/seedStore.ts`.
+ */
+const MATRIZ_STORE_ID: ID = "store-matriz";
+
+/**
  * Mock user profile available on the /auth/login screen.
  *
  * On the MVP there are exactly three profiles. Selecting one writes its `id`
@@ -18,6 +25,23 @@ export interface IMockUserProfile {
   description: string;
   /** Route to send the user to right after sign-in. */
   defaultRedirect: string;
+  /**
+   * Primary store of the user (PRD-007).
+   *
+   * Drives the initial value of `useCurrentStore()` when localStorage has no
+   * persisted choice. Customers (B2C/B2B browsing the public storefront) do
+   * not have an active store and may keep this empty — the StoreSwitcher is
+   * hidden on the public Loja layout anyway.
+   */
+  storeId: ID;
+  /**
+   * Stores the user can switch into via the StoreSwitcher (PRD-007).
+   *
+   * On the MVP every staff profile has only the matriz; future filials and
+   * parceiras will extend this list. Owner-like profiles may carry the full
+   * roster so `useAccessibleStores` returns every store.
+   */
+  accessibleStoreIds?: ID[];
   /** Optional underlying domain entity (seller for staff, customer for B2B). */
   entity?: Partial<ISeller> | Partial<ICustomer>;
 }
@@ -31,6 +55,8 @@ export const MOCK_USERS: IMockUserProfile[] = [
     avatarInitials: "JG",
     description: "Fundador e dono — vê e faz tudo na plataforma.",
     defaultRedirect: "/app/inicio",
+    storeId: MATRIZ_STORE_ID,
+    accessibleStoreIds: [MATRIZ_STORE_ID],
   },
   {
     id: "mock-vendedor",
@@ -40,6 +66,8 @@ export const MOCK_USERS: IMockUserProfile[] = [
     avatarInitials: "CS",
     description: "Vendedor interno — Central de Atendimento e carteira.",
     defaultRedirect: "/app/atendimento",
+    storeId: MATRIZ_STORE_ID,
+    accessibleStoreIds: [MATRIZ_STORE_ID],
   },
   {
     id: "mock-cliente",
@@ -49,6 +77,7 @@ export const MOCK_USERS: IMockUserProfile[] = [
     avatarInitials: "TA",
     description: "Cliente B2B — vitrine pública e portal.",
     defaultRedirect: "/loja",
+    storeId: MATRIZ_STORE_ID,
   },
 ];
 

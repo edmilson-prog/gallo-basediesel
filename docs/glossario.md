@@ -259,6 +259,22 @@ Modelado em `IAuditLog`. Campos `before`/`after` são `unknown` para não acopla
 
 Entidade `ITeam` modelada no domínio mas não ativada no MVP. Hierarquia de metas (`IGoal.level`) suporta `'team'` mas nenhum mock/UI o usa na Fase 1. Ativação acontece pós-MVP sem mudança de modelo.
 
+### Loja ativa (current store)
+
+Loja na qual o usuário está operando no momento da sessão (PRD-007). Persistida em `localStorage` (`gallo-current-store-id`), exposta via `useCurrentStore()`. Toda listagem de provider é filtrada implicitamente por esta loja via `withStoreScope`, exceto para Owner com `scope: 'all'` que pode ver cross-store. No MVP só existe a matriz; o seletor está visível mas é informativo.
+
+### Matriz
+
+Loja-mãe da rede (`IStore.type === 'matriz'`). Sede administrativa, consolida BI cross-store na Onda 2 (Visão Executiva). No MVP é a única loja existente: "GALLO BASE DIESEL — Matriz" em Frederico Westphalen/RS.
+
+### Filial
+
+Loja própria da rede (`IStore.type === 'filial'`), mesma razão social ou grupo da matriz. Dormente no MVP; ativação na Fase 2 implica inserir um `IStore` adicional e ajustar `accessibleStoreIds` dos vendedores autorizados.
+
+### Parceira
+
+Revendedor autorizado (`IStore.type === 'parceira'`) com razão social separada e contrato comercial próprio. Modelada na Fase 1 mas dormente; ativação na Fase 2 traz considerações de LGPD por ser controlador de dados distinto.
+
 ---
 
 ## Termos de versionamento

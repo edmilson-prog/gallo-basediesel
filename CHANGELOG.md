@@ -4,6 +4,88 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.6.0] — Compass · 2026-05-25
+
+Multi-loja (PRD-007) — fundação completa de operação cross-store. Toda
+entidade comercial passa a carregar `storeId` de forma obrigatória, as
+listagens dos providers ganham filtro implícito por loja ativa via
+`withStoreScope`, o `<StoreSwitcher>` substitui o placeholder do TopBar e
+uma página read-only em `/app/configuracoes/lojas` consolida a visão. No
+MVP só existe a matriz; a infraestrutura está pronta para receber filiais
+e parceiras na Fase 2 sem refatoração arquitetural. **Marco: Bloco 0
+(Fundação) está completo.**
+
+### Added
+
+- **`src/features/multistore/` em 5 subpastas** (`hooks`, `utils`,
+  `components`, `pages`, `store`) + barrel `@/features/multistore` como
+  única superfície pública da camada multi-loja
+- **`MultistoreProvider`** entre `<AuthProvider>` e a árvore de rotas;
+  carrega o roster de lojas via `useStoresProvider()`, resolve a loja
+  ativa em quatro etapas (localStorage → loja primária → primeira
+  acessível → null), e persiste a escolha na chave `gallo-current-store-id`
+- **Hooks reativos** `useCurrentStore()`, `useAccessibleStores()` e
+  `useStoreById()` consumindo o context
+- **Helper `withStoreScope(params, ctx)`** com tipagem genérica
+  preservando o tipo de entrada — três comportamentos: usuário anônimo →
+  `storeId='__no_user__'`; scope `all` → cross-store; demais →
+  `storeId=currentStoreId`
+- **Helpers `getCurrentContext()`** (acesso síncrono fora de React),
+  **`getStoreForUser()`** e **`isStoreAccessible()`**
+- **Holder externo `multistoreStore`** com pub/sub pequeno para o
+  contexto sincronizar com chamadas fora de React (mock providers em
+  selectors)
+- **Helpers internos do mock layer** (`_storeScope.ts`):
+  `scopedListParams`, `withCreateStoreId`, `assertImmutableStoreId`
+- **`<StoreSwitcher>`** integrado ao `<TopBar>` substituindo o placeholder
+  estático — sempre visível, abre dropdown mesmo com 1 loja com nota
+  "Filiais e parceiras serão habilitadas na Fase 2"; `setCurrentStore`
+  com fallback de toast em erro
+- **`<StoreBadge store>`** pill compacta por tipo (matriz/filial/parceira)
+  pronta para listas cross-store na Fase 2
+- **`StoresPage`** em `/app/configuracoes/lojas` (read-only), com card
+  por loja acessível mostrando CNPJ, endereço, divisões ativas, número
+  de vendedores e clientes vinculados; entrada no `SettingsLayout`
+  gated por `permission: { resource: 'store', action: 'view' }`
+- **Auditoria de troca de loja** via `auditLog({ action: 'switch_store' })`
+  reusando o pipeline do PRD-006 — visível em `/app/configuracoes/auditoria`
+  quando exercitada na Fase 2
+- **Campo `accessibleStoreIds?: ID[]`** em `ISeller` (extensão pontual do
+  PRD-002) habilitando a Fase 2 a atribuir vendedores a múltiplas lojas
+- **Campo `storeId: ID`** em `IMockUserProfile` + `accessibleStoreIds?`
+  como input para o provider resolver a loja ativa por perfil mockado
+- **Campo `storeId: ID`** em `ICommission` (era a única entidade
+  transacional faltando o campo); generator e `commissionsApi` atualizados
+- **Filtros `storeId` adicionados** em `commissionsApi`, `recommendationsApi`,
+  `auditsApi` e suas contratuais correspondentes
+- **`docs/multistore.md`** com filosofia, helpers, fluxos de erro,
+  esqueleto de policies Supabase RLS e roteiro passo a passo para
+  ativar uma filial na Fase 2
+- **Glossário** ganha entradas para "Loja ativa (current store)",
+  "Matriz", "Filial" e "Parceira"
+
+### Changed
+
+- **Todos os 11 mock providers com entidades scoped por loja** passam a
+  consumir `scopedListParams(params, resource)` em `list()` —
+  `customers`, `orders`, `quotes`, `leads`, `conversations`,
+  `commissions`, `goals`, `transfers`, `recommendations`, `sellers`,
+  `audits`
+- **Mutations `create`** de `customers`, `orders`, `quotes` e `leads`
+  preenchem `storeId` automaticamente quando o caller omite — via
+  `withCreateStoreId`
+- **Mutations `update`** das mesmas entidades bloqueiam alteração de
+  `storeId` (`MockValidationError` com mensagem clara — imutabilidade
+  no MVP, transferência fica para Fase 2)
+- `auditLog()` e `logMockMutation()` resolvem `storeId` via
+  `getCurrentContext()` (com fallback ao seed `store-matriz`), abandonando
+  o hardcode anterior
+- `<TopBar>` substitui o placeholder "GALLO Matriz" pelo `<StoreSwitcher>`
+  reativo
+- `SettingsLayout` ganha entrada "Lojas" gated por permissão
+- `IListAuditsParams`, `IListCommissionsParams`, `IListRecommendationsParams`
+  passam a aceitar `storeId?`
+
 ## [0.5.0] — Pilot · 2026-05-25
 
 RBAC visual (PRD-006) — matriz canônica de permissões para os 7 papéis, com

@@ -1,6 +1,7 @@
 import type { ID } from "@/shared/types";
 import { recordAuditLog } from "@/providers/data";
 import { readCurrentUserSync } from "@/features/auth/guards";
+import { getCurrentContext } from "@/features/multistore/utils/getCurrentContext";
 
 export interface IAuditLogParams {
   action: string;
@@ -10,12 +11,16 @@ export interface IAuditLogParams {
   after?: unknown;
   /** Override the actor — defaults to the currently signed-in user. */
   actorId?: ID;
-  /** Override the store — defaults to the seed store id (single-store MVP). */
+  /** Override the store — defaults to the active store of the session. */
   storeId?: ID;
 }
 
-/** Default store id for the MVP — single-store. Replaced in PRD-007. */
-const DEFAULT_STORE_ID = "store-matriz";
+/**
+ * Fallback store id used when no current store is resolved (e.g. an audit
+ * fired before `<MultistoreProvider>` finishes hydrating). Matches the seed
+ * matriz so MVP entries stay consistent.
+ */
+const FALLBACK_STORE_ID = "store-matriz";
 
 /** Used when no user is authenticated (anonymous events shouldn't normally log). */
 const SYSTEM_ACTOR_ID = "system";
@@ -27,6 +32,7 @@ const SYSTEM_ACTOR_ID = "system";
  * Designed to be called from:
  *  - mock provider implementations (after a successful mutation)
  *  - auth flows (sign-in / sign-out)
+ *  - the multi-store layer (PRD-007 — `switch_store` events)
  *  - any business component that performs a sensitive action
  *
  * ⚠️ Always pass a `resourceId`. For events not tied to a resource (sign-in),
@@ -35,12 +41,13 @@ const SYSTEM_ACTOR_ID = "system";
 export function auditLog(params: IAuditLogParams): void {
   const user = readCurrentUserSync();
   const actorId = params.actorId ?? user?.id ?? SYSTEM_ACTOR_ID;
+  const { currentStoreId } = getCurrentContext();
   void recordAuditLog({
     actorId,
     action: params.action,
     resource: params.resource,
     resourceId: params.resourceId,
-    storeId: params.storeId ?? DEFAULT_STORE_ID,
+    storeId: params.storeId ?? currentStoreId ?? FALLBACK_STORE_ID,
     before: params.before,
     after: params.after,
   });

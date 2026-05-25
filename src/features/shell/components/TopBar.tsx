@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/features/auth/useAuth";
+import { StoreSwitcher } from "@/features/multistore";
 
 const MOCK_NOTIFICATIONS = [
   {
@@ -54,11 +55,9 @@ export function TopBar() {
         <Logo variant="mark" className="h-7 w-7" />
       </div>
 
-      {/* Store selector (mock — only one store on MVP) */}
-      <div className="hidden md:flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground">
-        <Icon icon="mdi:store" size={16} />
-        <span className="font-medium text-foreground">GALLO Matriz</span>
-      </div>
+      {/* Active store selector (PRD-007). Reactive — drives every list query
+          via withStoreScope and persists the choice in localStorage. */}
+      <StoreSwitcher />
 
       {/* Global search placeholder */}
       <div className="hidden flex-1 max-w-xl md:block">

@@ -10,6 +10,7 @@ import {
 } from "./utils";
 
 export interface IListCommissionsParams extends IPaginationParams {
+  storeId?: ID;
   sellerId?: ID;
   status?: ICommission["status"];
   period?: string;
@@ -22,6 +23,7 @@ export const commissionsApi = {
       "list",
       () => {
         let all = selectAllCommissions();
+        if (params.storeId) all = all.filter((c) => c.storeId === params.storeId);
         if (params.sellerId) all = all.filter((c) => c.sellerId === params.sellerId);
         if (params.status) all = all.filter((c) => c.status === params.status);
         if (params.period) all = all.filter((c) => c.period === params.period);

@@ -2,6 +2,7 @@ import type { ICommission, ID } from "@/shared/types";
 import type { IPaginatedResult, IPaginationParams } from "./_shared";
 
 export interface IListCommissionsParams extends IPaginationParams {
+  storeId?: ID;
   sellerId?: ID;
   status?: ICommission["status"];
   period?: string;

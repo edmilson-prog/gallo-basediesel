@@ -4,6 +4,7 @@ import { upsert } from "../store/mutations";
 import { paginate, runApi, type IPaginatedResult, type IPaginationParams } from "./utils";
 
 export interface IListAuditsParams extends IPaginationParams {
+  storeId?: ID;
   actorId?: ID;
   actorIds?: ID[];
   resource?: string;
@@ -34,6 +35,7 @@ export const auditsApi = {
       "list",
       () => {
         let all = selectAllAudits();
+        if (params.storeId) all = all.filter((a) => a.storeId === params.storeId);
         if (params.actorId) all = all.filter((a) => a.actorId === params.actorId);
         if (params.actorIds?.length) all = all.filter((a) => params.actorIds!.includes(a.actorId));
         if (params.resource) all = all.filter((a) => a.resource === params.resource);

@@ -37,6 +37,12 @@ const SETTINGS_SECTIONS: ISettingsSection[] = [
     permission: { resource: "role", action: "view" },
   },
   {
+    label: "Lojas",
+    icon: "mdi:store",
+    to: "/app/configuracoes/lojas",
+    permission: { resource: "store", action: "view" },
+  },
+  {
     label: "Auditoria",
     icon: "mdi:history",
     to: "/app/configuracoes/auditoria",

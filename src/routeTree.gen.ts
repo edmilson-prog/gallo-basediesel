@@ -52,6 +52,7 @@ import { Route as AppGestaoCaixaRouteImport } from './routes/app.gestao.caixa'
 import { Route as AppGestaoAbcRouteImport } from './routes/app.gestao.abc'
 import { Route as AppConfiguracoesPerfilRouteImport } from './routes/app.configuracoes.perfil'
 import { Route as AppConfiguracoesPapeisRouteImport } from './routes/app.configuracoes.papeis'
+import { Route as AppConfiguracoesLojasRouteImport } from './routes/app.configuracoes.lojas'
 import { Route as AppConfiguracoesAuditoriaRouteImport } from './routes/app.configuracoes.auditoria'
 import { Route as AppConfiguracoesAparenciaRouteImport } from './routes/app.configuracoes.aparencia'
 import { Route as AppClientesIdRouteImport } from './routes/app.clientes.$id'
@@ -272,6 +273,11 @@ const AppConfiguracoesPapeisRoute = AppConfiguracoesPapeisRouteImport.update({
   path: '/configuracoes/papeis',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConfiguracoesLojasRoute = AppConfiguracoesLojasRouteImport.update({
+  id: '/configuracoes/lojas',
+  path: '/configuracoes/lojas',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppConfiguracoesAuditoriaRoute =
   AppConfiguracoesAuditoriaRouteImport.update({
     id: '/configuracoes/auditoria',
@@ -325,6 +331,7 @@ export interface FileRoutesByFullPath {
   '/app/clientes/$id': typeof AppClientesIdRoute
   '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
   '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
+  '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
   '/app/gestao/abc': typeof AppGestaoAbcRoute
@@ -373,6 +380,7 @@ export interface FileRoutesByTo {
   '/app/clientes/$id': typeof AppClientesIdRoute
   '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
   '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
+  '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
   '/app/gestao/abc': typeof AppGestaoAbcRoute
@@ -423,6 +431,7 @@ export interface FileRoutesById {
   '/app/clientes/$id': typeof AppClientesIdRoute
   '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
   '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
+  '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
   '/app/gestao/abc': typeof AppGestaoAbcRoute
@@ -474,6 +483,7 @@ export interface FileRouteTypes {
     | '/app/clientes/$id'
     | '/app/configuracoes/aparencia'
     | '/app/configuracoes/auditoria'
+    | '/app/configuracoes/lojas'
     | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
     | '/app/gestao/abc'
@@ -522,6 +532,7 @@ export interface FileRouteTypes {
     | '/app/clientes/$id'
     | '/app/configuracoes/aparencia'
     | '/app/configuracoes/auditoria'
+    | '/app/configuracoes/lojas'
     | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
     | '/app/gestao/abc'
@@ -571,6 +582,7 @@ export interface FileRouteTypes {
     | '/app/clientes/$id'
     | '/app/configuracoes/aparencia'
     | '/app/configuracoes/auditoria'
+    | '/app/configuracoes/lojas'
     | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
     | '/app/gestao/abc'
@@ -905,6 +917,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesPapeisRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/configuracoes/lojas': {
+      id: '/app/configuracoes/lojas'
+      path: '/configuracoes/lojas'
+      fullPath: '/app/configuracoes/lojas'
+      preLoaderRoute: typeof AppConfiguracoesLojasRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/configuracoes/auditoria': {
       id: '/app/configuracoes/auditoria'
       path: '/configuracoes/auditoria'
@@ -973,6 +992,7 @@ interface AppRouteChildren {
   AppVeiculosRoute: typeof AppVeiculosRoute
   AppConfiguracoesAparenciaRoute: typeof AppConfiguracoesAparenciaRoute
   AppConfiguracoesAuditoriaRoute: typeof AppConfiguracoesAuditoriaRoute
+  AppConfiguracoesLojasRoute: typeof AppConfiguracoesLojasRoute
   AppConfiguracoesPapeisRoute: typeof AppConfiguracoesPapeisRoute
   AppConfiguracoesPerfilRoute: typeof AppConfiguracoesPerfilRoute
   AppGestaoAbcRoute: typeof AppGestaoAbcRoute
@@ -1003,6 +1023,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppVeiculosRoute: AppVeiculosRoute,
   AppConfiguracoesAparenciaRoute: AppConfiguracoesAparenciaRoute,
   AppConfiguracoesAuditoriaRoute: AppConfiguracoesAuditoriaRoute,
+  AppConfiguracoesLojasRoute: AppConfiguracoesLojasRoute,
   AppConfiguracoesPapeisRoute: AppConfiguracoesPapeisRoute,
   AppConfiguracoesPerfilRoute: AppConfiguracoesPerfilRoute,
   AppGestaoAbcRoute: AppGestaoAbcRoute,

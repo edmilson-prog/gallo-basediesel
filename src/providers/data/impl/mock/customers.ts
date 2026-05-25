@@ -1,12 +1,13 @@
 import { customersApi } from "@/mocks";
 import type { ICustomersProvider } from "../../contracts/customers";
 import { logMockMutation } from "./_audit";
+import { assertImmutableStoreId, scopedListParams, withCreateStoreId } from "./_storeScope";
 
 export const mockCustomersProvider: ICustomersProvider = {
-  list: (params) => customersApi.list(params),
+  list: (params) => customersApi.list(scopedListParams(params, "customer")),
   get: (id) => customersApi.get(id),
   create: async (input) => {
-    const created = await customersApi.create(input);
+    const created = await customersApi.create(withCreateStoreId(input));
     logMockMutation({
       action: "create",
       resource: "customer",
@@ -18,6 +19,7 @@ export const mockCustomersProvider: ICustomersProvider = {
   },
   update: async (id, patch) => {
     const before = await customersApi.get(id).catch(() => null);
+    assertImmutableStoreId(before, patch);
     const updated = await customersApi.update(id, patch);
     logMockMutation({
       action: "update",

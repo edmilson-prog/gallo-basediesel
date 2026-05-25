@@ -21,7 +21,7 @@
 | **Versão alvo MVP**                  | v1.0.0 — codinome **Heavy**                                                                                |
 | **Total de PRDs planejados (MVP)**   | 50                                                                                                         |
 | **PRDs redigidos**                   | 4                                                                                                          |
-| **PRDs implementados**               | 3 (PRD-001, PRD-002, PRD-003)                                                                              |
+| **PRDs implementados**               | 7 (PRD-001, PRD-002, PRD-003, PRD-004, PRD-005, PRD-006, PRD-007 — **Bloco 0 completo**)                  |
 | **PRDs futuros (Fase 2, PRDs 100+)** | 8 (roadmap futuro)                                                                                         |
 
 ---
@@ -94,10 +94,10 @@ Estabelece os pilares técnicos e visuais sobre os quais todo o resto se constr�
 | 001 | [Identidade Visual GALLO e Design System Base](./PRD-001-identidade-visual-gallo-design-system.md) | Feature | D     | 🟢    | 📝        | ✅     | —          |
 | 002 | [Modelo Conceitual de Domínio e Glossário](./PRD-002-modelo-conceitual-glossario_DONE.md)          | Feature | D     | 🔵    | 📝        | ✅     | —          |
 | 003 | [Shell do App, Navegação e Layouts Base](./PRD-003-shell-app-navegacao-layouts_DONE.md)            | Feature | D     | 🔵    | 📝        | ✅     | 001, 002   |
-| 004 | [Geradores de Dados Fictícios e Camada de Mocks](./PRD-004-mocks-geradores-dados.md)               | Feature | D     | 🔵    | 📝        | ⏳     | 002        |
-| 005 | Arquitetura de Provedores de Dados (Mock/Supabase)                                                 | Feature | D     | 🔵    | ⏸         | ⏳     | 004        |
-| 006 | Sistema de Roles, Permissões e Auditoria (visual)                                                  | Feature | D     | 🔵    | ⏸         | ⏳     | 002, 003   |
-| 007 | Multi-Loja: Modelagem e Operação Cross-Store                                                       | Feature | D     | 🔵    | ⏸         | ⏳     | 002, 003   |
+| 004 | [Geradores de Dados Fictícios e Camada de Mocks](./PRD-004-mocks-geradores-dados_DONE.md)          | Feature | D     | 🔵    | 📝        | ✅     | 002        |
+| 005 | [Arquitetura de Provedores de Dados (Mock/Supabase)](./PRD-005-provider-pattern-mock-supabase_DONE.md) | Feature | D     | 🔵    | 📝        | ✅     | 004        |
+| 006 | [Sistema de Roles, Permissões e Auditoria (visual)](./PRD-006-rbac-permissoes-auditoria_DONE.md)   | Feature | D     | 🔵    | 📝        | ✅     | 002, 003   |
+| 007 | [Multi-Loja: Modelagem e Operação Cross-Store](./PRD-007-multistore_DONE.md)                       | Feature | D     | 🔵    | 📝        | ✅     | 002–006    |
 
 ### Bloco 1 — Central de Atendimento e CRM (PRDs 010–019)
 
@@ -373,9 +373,11 @@ A plataforma usa Semantic Versioning com codinomes em inglês para releases MINO
 | v0.1.0     | **Genesis**    | Mês 1         | PRD-001                                               | Scaffold inicial                                    |
 | v0.1.1     | **Genesis**    | 25/05/2026    | PRD-002                                               | Modelo conceitual de domínio + glossário            |
 | v0.2.0     | **Genesis**    | 25/05/2026    | PRD-003                                               | Shell navegável, auth mockada, 8 layouts, 30+ rotas |
-| v0.3.0     | **Hub**        | Mês 2         | PRDs 004, 005, 006, 007 + 010–019 + 020–024 + 030–033 | Onda 1 entregue                                     |
-| v0.3.0     | **Pilot**      | Mês 3         | Refinamentos pós-validação Onda 1                     | Validação Cliente Onda 1                            |
-| v0.4.0     | **Compass**    | Mês 6         | PRDs 040–053 (Bloco 4)                                | Onda 2 entregue                                     |
+| v0.3.0     | **Genesis**    | 25/05/2026    | PRD-004 (mocks)                                       | Camada de mocks com geradores determinísticos       |
+| v0.4.0     | **Hub**        | 25/05/2026    | PRD-005 (provider pattern)                            | Provider pattern Mock + Supabase                    |
+| v0.5.0     | **Pilot**      | 25/05/2026    | PRD-006 (RBAC + auditoria)                            | RBAC visual + matriz de permissões + audit log      |
+| v0.6.0     | **Compass**    | 25/05/2026    | PRD-007 (multi-loja)                                  | **Bloco 0 (Fundação) completo** — multi-loja modelado |
+| v0.7.0+    | _A definir_    | Mês 2         | PRDs 010–019 + 020–024 + 030–033                      | Onda 1 entregue                                     |
 | v0.5.0     | **Storefront** | Mês 9         | PRDs 060–067 (Bloco 5)                                | Onda 3 quase completa                               |
 | **v1.0.0** | **Heavy**      | Mês 10        | PRDs 070, 071 + polish final                          | **MVP completo — release oficial**                  |
 | v1.1.0+    | _A definir_    | Mês 11+       | PRDs 100+ (Fase 2)                                    | Integrações reais                                   |

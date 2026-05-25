@@ -10,6 +10,7 @@ import {
 } from "./utils";
 
 export interface IListRecommendationsParams extends IPaginationParams {
+  storeId?: ID;
   sellerId?: ID;
   resolved?: boolean;
   type?: IRecommendation["type"];
@@ -22,6 +23,7 @@ export const recommendationsApi = {
       "list",
       () => {
         let all = selectAllRecommendations();
+        if (params.storeId) all = all.filter((r) => r.storeId === params.storeId);
         if (params.sellerId) all = all.filter((r) => r.sellerId === params.sellerId);
         if (typeof params.resolved === "boolean")
           all = all.filter((r) => r.resolved === params.resolved);

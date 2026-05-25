@@ -2,6 +2,7 @@ import type { ID, IRecommendation } from "@/shared/types";
 import type { IPaginatedResult, IPaginationParams } from "./_shared";
 
 export interface IListRecommendationsParams extends IPaginationParams {
+  storeId?: ID;
   sellerId?: ID;
   resolved?: boolean;
   type?: IRecommendation["type"];

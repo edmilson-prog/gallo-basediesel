@@ -137,6 +137,7 @@ export type CommissionStatus = "pendente" | "aprovado" | "pago" | "contestado";
  */
 export interface ICommission {
   id: ID;
+  storeId: ID;
   sellerId: ID;
   orderId: ID;
   /** Base value over which the rate is applied (revenue or margin, see ICommissionRule). */

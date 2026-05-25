@@ -2,6 +2,7 @@ import type { IAuditLog, ID } from "@/shared/types";
 import type { IPaginatedResult, IPaginationParams } from "./_shared";
 
 export interface IListAuditsParams extends IPaginationParams {
+  storeId?: ID;
   actorId?: ID;
   actorIds?: ID[];
   resource?: string;

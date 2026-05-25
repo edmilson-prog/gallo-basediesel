@@ -31,6 +31,12 @@ export interface ICommissionRule {
 export interface ISeller {
   id: ID;
   storeId: ID;
+  /**
+   * Stores this seller can switch into via the StoreSwitcher (PRD-007).
+   * Omit or include only the primary `storeId` for single-store users.
+   * Owner-equivalents typically include the full list of active stores.
+   */
+  accessibleStoreIds?: ID[];
   fullName: string;
   email: string;
   phone?: string;

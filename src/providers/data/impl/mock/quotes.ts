@@ -1,12 +1,13 @@
 import { quotesApi } from "@/mocks";
 import type { IQuotesProvider } from "../../contracts/quotes";
 import { logMockMutation } from "./_audit";
+import { assertImmutableStoreId, scopedListParams, withCreateStoreId } from "./_storeScope";
 
 export const mockQuotesProvider: IQuotesProvider = {
-  list: (params) => quotesApi.list(params),
+  list: (params) => quotesApi.list(scopedListParams(params, "quote")),
   get: (id) => quotesApi.get(id),
   create: async (input) => {
-    const created = await quotesApi.create(input);
+    const created = await quotesApi.create(withCreateStoreId(input));
     logMockMutation({
       action: "create",
       resource: "quote",
@@ -18,6 +19,7 @@ export const mockQuotesProvider: IQuotesProvider = {
   },
   update: async (id, patch) => {
     const before = await quotesApi.get(id).catch(() => null);
+    assertImmutableStoreId(before, patch);
     const updated = await quotesApi.update(id, patch);
     logMockMutation({
       action: "update",
