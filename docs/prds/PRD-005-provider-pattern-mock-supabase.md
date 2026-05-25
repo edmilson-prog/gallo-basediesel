@@ -2,27 +2,27 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _A definir após criação no Lovable_ |
-| **Objetivo** | Formalizar o Provider Pattern como filosofia transversal da plataforma, criando a camada de abstração que permite alternar entre mock e backend real via switch parametrizado, sem qualquer alteração no código consumidor |
-| **Tipo** | Feature |
-| **Complexidade** | Alta |
-| **Total de Fases** | 4 |
-| **Prioridade** | Alta |
-| **Épico** | Bloco 0 — Fundação |
-| **PRDs Relacionados** | PRD-002 (Modelo Conceitual), PRD-004 (Mocks), PRD-006 (RBAC), PRD-007 (Multi-Loja) |
-| **Implementação** | 🔵 Claude Code CLI (sobre o scaffold do Lovable) |
-| **Padrão de código** | Interfaces em `src/providers/data/contracts/`; implementações em `src/providers/data/impl/`; hooks em `src/providers/data/hooks/`; factory em `src/providers/data/factory.ts` |
+| Campo                 | Valor                                                                                                                                                                                                                      |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                                                   |
+| **Repositório**       | _A definir após criação no Lovable_                                                                                                                                                                                        |
+| **Objetivo**          | Formalizar o Provider Pattern como filosofia transversal da plataforma, criando a camada de abstração que permite alternar entre mock e backend real via switch parametrizado, sem qualquer alteração no código consumidor |
+| **Tipo**              | Feature                                                                                                                                                                                                                    |
+| **Complexidade**      | Alta                                                                                                                                                                                                                       |
+| **Total de Fases**    | 4                                                                                                                                                                                                                          |
+| **Prioridade**        | Alta                                                                                                                                                                                                                       |
+| **Épico**             | Bloco 0 — Fundação                                                                                                                                                                                                         |
+| **PRDs Relacionados** | PRD-002 (Modelo Conceitual), PRD-004 (Mocks), PRD-006 (RBAC), PRD-007 (Multi-Loja)                                                                                                                                         |
+| **Implementação**     | 🔵 Claude Code CLI (sobre o scaffold do Lovable)                                                                                                                                                                           |
+| **Padrão de código**  | Interfaces em `src/providers/data/contracts/`; implementações em `src/providers/data/impl/`; hooks em `src/providers/data/hooks/`; factory em `src/providers/data/factory.ts`                                              |
 
 ### Critérios de Complexidade Utilizados
 
-| Complexidade | Critérios |
-|--------------|-----------|
-| **Baixa** | 1 arquivo, sem dependências externas, < 100 linhas |
-| **Média** | 2-5 arquivos, banco OU integração, funcionalidade isolada |
-| **Alta** | 5+ arquivos, múltiplas integrações, regras de negócio complexas |
+| Complexidade | Critérios                                                       |
+| ------------ | --------------------------------------------------------------- |
+| **Baixa**    | 1 arquivo, sem dependências externas, < 100 linhas              |
+| **Média**    | 2-5 arquivos, banco OU integração, funcionalidade isolada       |
+| **Alta**     | 5+ arquivos, múltiplas integrações, regras de negócio complexas |
 
 > **Justificativa de Alta:** define a abstração que serve para todos os agregados (~15 contratos), com duas implementações coexistindo (`MockDataProvider` ativo + `SupabaseDataProvider` esqueleto), factory parametrizada por env, hooks de consumo, context e regras de coerência. É a "fundação invisível" que protege todo o projeto de retrabalho na Fase 2 — escolher errado aqui custa semanas de refatoração depois.
 
@@ -83,14 +83,14 @@ A factory escolhe a implementação em build time via `VITE_DATA_SOURCE`. Featur
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que foi descartada |
-|-------------|------------------------|
-| Sem abstração — features importam direto de `@/mocks` | Acoplamento total; Fase 2 vira retrabalho massivo varrendo dezenas de arquivos |
-| React Query como abstração principal | React Query é cache/state management, não orquestração de providers. Pode coexistir, mas não substitui Provider Pattern |
-| Service Locator global (objeto singleton) | Difícil de testar, esconde dependências, viola princípios de DI moderna |
-| Switch via runtime (toggle no UI) | Provider Pattern é configuração de ambiente, não de UX. Trocar em runtime exigiria reset de estado e cache — complexidade desnecessária |
-| Implementar Supabase já na Fase 1 mesmo sem usar | Adiciona dependência pesada (supabase-js ~150KB), credenciais, configuração — sem benefício no MVP |
-| Class-based providers com herança | Composition over inheritance: usar objetos plain + interfaces TypeScript é mais simples e tree-shakable |
+| Alternativa                                           | Por que foi descartada                                                                                                                  |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Sem abstração — features importam direto de `@/mocks` | Acoplamento total; Fase 2 vira retrabalho massivo varrendo dezenas de arquivos                                                          |
+| React Query como abstração principal                  | React Query é cache/state management, não orquestração de providers. Pode coexistir, mas não substitui Provider Pattern                 |
+| Service Locator global (objeto singleton)             | Difícil de testar, esconde dependências, viola princípios de DI moderna                                                                 |
+| Switch via runtime (toggle no UI)                     | Provider Pattern é configuração de ambiente, não de UX. Trocar em runtime exigiria reset de estado e cache — complexidade desnecessária |
+| Implementar Supabase já na Fase 1 mesmo sem usar      | Adiciona dependência pesada (supabase-js ~150KB), credenciais, configuração — sem benefício no MVP                                      |
+| Class-based providers com herança                     | Composition over inheritance: usar objetos plain + interfaces TypeScript é mais simples e tree-shakable                                 |
 
 **Decisão consolidada:** **Provider Pattern com interfaces TypeScript, factory de build-time via env var, hooks de consumo via Context, e `SupabaseProvider` como esqueleto tipado na Fase 1.**
 
@@ -100,24 +100,24 @@ A factory escolhe a implementação em build time via `VITE_DATA_SOURCE`. Featur
 
 Cada agregado do PRD-004 vira um contrato no PRD-005. A regra é simples: para cada arquivo em `src/mocks/api/`, há um contrato em `src/providers/data/contracts/` com a mesma forma.
 
-| # | Contrato | Agregado | APIs principais |
-|---|----------|----------|-----------------|
-| 1 | `ICustomersProvider` | Clientes | list, get, create, update, delete, addNote, listNotes |
-| 2 | `IVehiclesProvider` | Veículos | list, get, create, update, addServiceEntry |
-| 3 | `ILeadsProvider` | Leads | list, get, create, update, convertToCustomer, markAsLost |
-| 4 | `IConversationsProvider` | Conversas | list, get, listByCustomer, listByLead, assign, archive |
-| 5 | `IMessagesProvider` | Mensagens | listByConversation, send, markAsRead |
-| 6 | `IPartsProvider` | Catálogo | list, get, search, findByOem, findEquivalents |
-| 7 | `IQuotesProvider` | Orçamentos | list, get, create, update, convertToOrder, expire |
-| 8 | `IOrdersProvider` | Pedidos | list, get, create, update, updateStatus, listByCustomer |
-| 9 | `ICommissionsProvider` | Comissões | list, get, listBySeller, listByPeriod, approve, pay |
-| 10 | `IGoalsProvider` | Metas | list, get, create, update, calculateProgress |
-| 11 | `IRecommendationsProvider` | Recomendações | listForCustomer, listForStore, dismiss |
-| 12 | `ITransfersProvider` | Transferências carteira | list, create, revert, expire |
-| 13 | `ISegmentsProvider` | Segmentos salvos | list, get, create, update, delete |
-| 14 | `ISellersProvider` | Vendedores | list, get, update, listByStore |
-| 15 | `IStoresProvider` | Lojas | list, get |
-| 16 | `ISettingsProvider` | Configurações de loja | get, update |
+| #   | Contrato                   | Agregado                | APIs principais                                          |
+| --- | -------------------------- | ----------------------- | -------------------------------------------------------- |
+| 1   | `ICustomersProvider`       | Clientes                | list, get, create, update, delete, addNote, listNotes    |
+| 2   | `IVehiclesProvider`        | Veículos                | list, get, create, update, addServiceEntry               |
+| 3   | `ILeadsProvider`           | Leads                   | list, get, create, update, convertToCustomer, markAsLost |
+| 4   | `IConversationsProvider`   | Conversas               | list, get, listByCustomer, listByLead, assign, archive   |
+| 5   | `IMessagesProvider`        | Mensagens               | listByConversation, send, markAsRead                     |
+| 6   | `IPartsProvider`           | Catálogo                | list, get, search, findByOem, findEquivalents            |
+| 7   | `IQuotesProvider`          | Orçamentos              | list, get, create, update, convertToOrder, expire        |
+| 8   | `IOrdersProvider`          | Pedidos                 | list, get, create, update, updateStatus, listByCustomer  |
+| 9   | `ICommissionsProvider`     | Comissões               | list, get, listBySeller, listByPeriod, approve, pay      |
+| 10  | `IGoalsProvider`           | Metas                   | list, get, create, update, calculateProgress             |
+| 11  | `IRecommendationsProvider` | Recomendações           | listForCustomer, listForStore, dismiss                   |
+| 12  | `ITransfersProvider`       | Transferências carteira | list, create, revert, expire                             |
+| 13  | `ISegmentsProvider`        | Segmentos salvos        | list, get, create, update, delete                        |
+| 14  | `ISellersProvider`         | Vendedores              | list, get, update, listByStore                           |
+| 15  | `IStoresProvider`          | Lojas                   | list, get                                                |
+| 16  | `ISettingsProvider`        | Configurações de loja   | get, update                                              |
 
 Total: **16 contratos**. Cada um tipado de ponta a ponta usando os tipos do PRD-002.
 
@@ -165,24 +165,19 @@ Exemplo do `ICustomersProvider` para ilustrar o padrão que se replica nos outro
 ```typescript
 // src/providers/data/contracts/customers.ts
 
-import type {
-  ICustomer,
-  ICustomerNote,
-  ID,
-  IPaginatedResult,
-} from '@/shared/types';
+import type { ICustomer, ICustomerNote, ID, IPaginatedResult } from "@/shared/types";
 
 export interface IListCustomersParams {
   storeId?: ID;
-  status?: ICustomer['status'];
+  status?: ICustomer["status"];
   sellerId?: ID;
   search?: string;
   tags?: string[];
   segmentId?: ID;
   page?: number;
   pageSize?: number;
-  orderBy?: 'name' | 'lastPurchaseAt' | 'ticketMedio';
-  orderDir?: 'asc' | 'desc';
+  orderBy?: "name" | "lastPurchaseAt" | "ticketMedio";
+  orderDir?: "asc" | "desc";
 }
 
 /**
@@ -195,7 +190,7 @@ export interface IListCustomersParams {
 export interface ICustomersProvider {
   list(params?: IListCustomersParams): Promise<IPaginatedResult<ICustomer>>;
   get(id: ID): Promise<ICustomer | null>;
-  create(input: Omit<ICustomer, 'id' | 'createdAt'>): Promise<ICustomer>;
+  create(input: Omit<ICustomer, "id" | "createdAt">): Promise<ICustomer>;
   update(id: ID, patch: Partial<ICustomer>): Promise<ICustomer>;
   delete(id: ID): Promise<void>;
   addNote(customerId: ID, content: string, authorId: ID): Promise<ICustomerNote>;
@@ -208,8 +203,8 @@ A implementação **mock** delega:
 ```typescript
 // src/providers/data/impl/mock/customers.ts
 
-import { customersApi } from '@/mocks/api';  // ÚNICO local autorizado a importar @/mocks
-import type { ICustomersProvider } from '../../contracts/customers';
+import { customersApi } from "@/mocks/api"; // ÚNICO local autorizado a importar @/mocks
+import type { ICustomersProvider } from "../../contracts/customers";
 
 export const mockCustomersProvider: ICustomersProvider = {
   list: customersApi.list,
@@ -227,17 +222,31 @@ A implementação **Supabase** é um esqueleto:
 ```typescript
 // src/providers/data/impl/supabase/customers.ts
 
-import { NotImplementedError } from '../../errors';
-import type { ICustomersProvider } from '../../contracts/customers';
+import { NotImplementedError } from "../../errors";
+import type { ICustomersProvider } from "../../contracts/customers";
 
 export const supabaseCustomersProvider: ICustomersProvider = {
-  list: async () => { throw new NotImplementedError('SupabaseCustomersProvider.list — implementar no PRD-110+'); },
-  get: async () => { throw new NotImplementedError('SupabaseCustomersProvider.get — implementar no PRD-110+'); },
-  create: async () => { throw new NotImplementedError('SupabaseCustomersProvider.create — implementar no PRD-110+'); },
-  update: async () => { throw new NotImplementedError('SupabaseCustomersProvider.update — implementar no PRD-110+'); },
-  delete: async () => { throw new NotImplementedError('SupabaseCustomersProvider.delete — implementar no PRD-110+'); },
-  addNote: async () => { throw new NotImplementedError('SupabaseCustomersProvider.addNote — implementar no PRD-110+'); },
-  listNotes: async () => { throw new NotImplementedError('SupabaseCustomersProvider.listNotes — implementar no PRD-110+'); },
+  list: async () => {
+    throw new NotImplementedError("SupabaseCustomersProvider.list — implementar no PRD-110+");
+  },
+  get: async () => {
+    throw new NotImplementedError("SupabaseCustomersProvider.get — implementar no PRD-110+");
+  },
+  create: async () => {
+    throw new NotImplementedError("SupabaseCustomersProvider.create — implementar no PRD-110+");
+  },
+  update: async () => {
+    throw new NotImplementedError("SupabaseCustomersProvider.update — implementar no PRD-110+");
+  },
+  delete: async () => {
+    throw new NotImplementedError("SupabaseCustomersProvider.delete — implementar no PRD-110+");
+  },
+  addNote: async () => {
+    throw new NotImplementedError("SupabaseCustomersProvider.addNote — implementar no PRD-110+");
+  },
+  listNotes: async () => {
+    throw new NotImplementedError("SupabaseCustomersProvider.listNotes — implementar no PRD-110+");
+  },
 };
 ```
 
@@ -246,16 +255,16 @@ A factory escolhe:
 ```typescript
 // src/providers/data/factory.ts
 
-import { mockCustomersProvider } from './impl/mock/customers';
-import { supabaseCustomersProvider } from './impl/supabase/customers';
+import { mockCustomersProvider } from "./impl/mock/customers";
+import { supabaseCustomersProvider } from "./impl/supabase/customers";
 // ... outros 15
 
-type DataSource = 'mock' | 'supabase';
+type DataSource = "mock" | "supabase";
 
-const DATA_SOURCE: DataSource = (import.meta.env.VITE_DATA_SOURCE as DataSource) ?? 'mock';
+const DATA_SOURCE: DataSource = (import.meta.env.VITE_DATA_SOURCE as DataSource) ?? "mock";
 
 export function getDataProviders() {
-  if (DATA_SOURCE === 'supabase') {
+  if (DATA_SOURCE === "supabase") {
     return {
       customers: supabaseCustomersProvider,
       // ... outros 15
@@ -273,7 +282,7 @@ E o consumo em uma feature é trivial:
 ```typescript
 // src/features/customers/components/CustomersList.tsx
 
-import { useCustomersProvider } from '@/providers/data';
+import { useCustomersProvider } from "@/providers/data";
 
 export function CustomersList() {
   const customers = useCustomersProvider();
@@ -448,12 +457,12 @@ ENTÃO deve lançar NotImplementedError com mensagem incluindo "SupabaseQuotesPr
 
 ## Fases de Implementação
 
-| Fase | Objetivo | Arquivos Estimados |
-|------|----------|-------------------|
-| 1 | Estrutura, erros e barrel inicial | 4-5 |
-| 2 | Contratos (16 interfaces) + Context + Factory | 18-20 |
-| 3 | Implementações Mock (16 arquivos delegando) + hooks (16 arquivos) | 32-34 |
-| 4 | Esqueletos Supabase (16 arquivos) + lint rules + documentação | 18-20 |
+| Fase | Objetivo                                                          | Arquivos Estimados |
+| ---- | ----------------------------------------------------------------- | ------------------ |
+| 1    | Estrutura, erros e barrel inicial                                 | 4-5                |
+| 2    | Contratos (16 interfaces) + Context + Factory                     | 18-20              |
+| 3    | Implementações Mock (16 arquivos delegando) + hooks (16 arquivos) | 32-34              |
+| 4    | Esqueletos Supabase (16 arquivos) + lint rules + documentação     | 18-20              |
 
 ### Detalhamento das Fases
 
@@ -462,6 +471,7 @@ ENTÃO deve lançar NotImplementedError com mensagem incluindo "SupabaseQuotesPr
 **Objetivo:** preparar a infraestrutura compartilhada
 
 **Ações:**
+
 - [ ] Criar estrutura de pastas `src/providers/data/{contracts,impl/mock,impl/supabase,hooks}/`
 - [ ] Criar `src/providers/data/errors.ts` com classe `NotImplementedError`
 - [ ] Criar `.env.example` com `VITE_DATA_SOURCE=mock` e comentário explicativo
@@ -475,6 +485,7 @@ ENTÃO deve lançar NotImplementedError com mensagem incluindo "SupabaseQuotesPr
 **Objetivo:** definir o contrato canônico e a orquestração
 
 **Ações:**
+
 - [ ] Criar os 16 arquivos em `src/providers/data/contracts/` (uma interface por agregado)
 - [ ] Criar `src/providers/data/contracts/index.ts` com barrel e tipo `IDataProviders` agregando todos os 16
 - [ ] Criar `src/providers/data/factory.ts` com `getDataProviders()` (inicialmente referenciando implementações que ainda nem existem — placeholder com `as IDataProviders`)
@@ -487,6 +498,7 @@ ENTÃO deve lançar NotImplementedError com mensagem incluindo "SupabaseQuotesPr
 **Objetivo:** conectar provider às APIs do PRD-004 e expor hooks
 
 **Ações:**
+
 - [ ] Criar 16 arquivos em `src/providers/data/impl/mock/`, cada um delegando para `src/mocks/api/`
 - [ ] Atualizar `factory.ts` para retornar os mocks quando `DATA_SOURCE === 'mock'`
 - [ ] Criar 16 hooks em `src/providers/data/hooks/` (um por agregado)
@@ -500,6 +512,7 @@ ENTÃO deve lançar NotImplementedError com mensagem incluindo "SupabaseQuotesPr
 **Objetivo:** preparar o terreno para Fase 2 e proteger o isolamento
 
 **Ações:**
+
 - [ ] Criar 16 arquivos em `src/providers/data/impl/supabase/` com `NotImplementedError` em cada método
 - [ ] Atualizar `factory.ts` para retornar Supabase quando `DATA_SOURCE === 'supabase'`
 - [ ] Configurar ESLint `no-restricted-imports` para bloquear:
@@ -517,16 +530,16 @@ ENTÃO deve lançar NotImplementedError com mensagem incluindo "SupabaseQuotesPr
 
 ### PRDs Anteriores
 
-| PRD | Descrição | Status |
-|-----|-----------|--------|
-| PRD-002 | Modelo Conceitual de Domínio e Glossário | ⏳ Pendente (tipos consumidos) |
+| PRD     | Descrição                                      | Status                                          |
+| ------- | ---------------------------------------------- | ----------------------------------------------- |
+| PRD-002 | Modelo Conceitual de Domínio e Glossário       | ⏳ Pendente (tipos consumidos)                  |
 | PRD-004 | Geradores de Dados Fictícios e Camada de Mocks | ⏳ Pendente (APIs consumidas pelo MockProvider) |
 
 ### Serviços Externos
 
-| Serviço | Tipo | Status |
-|---------|------|--------|
-| ESLint com plugin `no-restricted-imports` | Lib | Provavelmente já instalado pelo Lovable |
+| Serviço                                   | Tipo | Status                                  |
+| ----------------------------------------- | ---- | --------------------------------------- |
+| ESLint com plugin `no-restricted-imports` | Lib  | Provavelmente já instalado pelo Lovable |
 
 ### Decisões Pendentes
 
@@ -538,15 +551,15 @@ Nenhuma.
 
 Este PRD faz parte do épico **"Bloco 0 — Fundação"**.
 
-| Ordem | PRD | Título | Status | Relação |
-|-------|-----|--------|--------|---------|
-| 1 | PRD-001 | Identidade Visual GALLO e Design System Base | ⏳ | — |
-| 2 | PRD-002 | Modelo Conceitual de Domínio e Glossário | ⏳ | Pré-requisito (tipos consumidos pelos contratos) |
-| 3 | PRD-003 | Shell do App, Navegação e Layouts Base | ⏳ | Paralelo |
-| 4 | PRD-004 | Geradores de Dados Fictícios e Camada de Mocks | ⏳ | Pré-requisito (APIs consumidas pelo MockProvider) |
-| **5** | **PRD-005** | **Arquitetura de Provedores de Dados** | **🔄 ATUAL** | Depende de PRD-002 e PRD-004 |
-| 6 | PRD-006 | Sistema de Roles, Permissões e Auditoria | ⏳ | Consome providers |
-| 7 | PRD-007 | Multi-Loja | ⏳ | Consome providers |
+| Ordem | PRD         | Título                                         | Status       | Relação                                           |
+| ----- | ----------- | ---------------------------------------------- | ------------ | ------------------------------------------------- |
+| 1     | PRD-001     | Identidade Visual GALLO e Design System Base   | ⏳           | —                                                 |
+| 2     | PRD-002     | Modelo Conceitual de Domínio e Glossário       | ⏳           | Pré-requisito (tipos consumidos pelos contratos)  |
+| 3     | PRD-003     | Shell do App, Navegação e Layouts Base         | ⏳           | Paralelo                                          |
+| 4     | PRD-004     | Geradores de Dados Fictícios e Camada de Mocks | ⏳           | Pré-requisito (APIs consumidas pelo MockProvider) |
+| **5** | **PRD-005** | **Arquitetura de Provedores de Dados**         | **🔄 ATUAL** | Depende de PRD-002 e PRD-004                      |
+| 6     | PRD-006     | Sistema de Roles, Permissões e Auditoria       | ⏳           | Consome providers                                 |
+| 7     | PRD-007     | Multi-Loja                                     | ⏳           | Consome providers                                 |
 
 > **Nota:** PRD-005 é a peça que protege todos os PRDs subsequentes do retrabalho na Fase 2. Fazer este PRD bem é o que torna o "drop-in replacement" prometido no briefing efetivo.
 
@@ -617,19 +630,19 @@ A regra de lint `no-restricted-imports` é **disciplina de código**, não segur
 
 > **Consulte a Seção 5 do `guia-prd.md` para a versão completa.**
 
-| Elemento | Convenção | Exemplo |
-|----------|-----------|---------|
-| **Contratos** | PascalCase + `I` + sufixo `Provider` | `ICustomersProvider`, `IOrdersProvider` |
-| **Implementações mock** | camelCase + prefixo `mock` + sufixo `Provider` | `mockCustomersProvider`, `mockOrdersProvider` |
-| **Implementações supabase** | camelCase + prefixo `supabase` + sufixo `Provider` | `supabaseCustomersProvider`, `supabaseOrdersProvider` |
-| **Hooks** | camelCase + prefixo `use` + sufixo `Provider` | `useCustomersProvider()`, `useOrdersProvider()` |
-| **Tipo agregador** | PascalCase + `I` + `DataProviders` | `IDataProviders` |
-| **Componente do Context** | PascalCase + sufixo `Provider` | `<DataProvidersProvider>` |
-| **Erros** | PascalCase + sufixo `Error` | `NotImplementedError` |
-| **Pastas** | kebab-case | `data/`, `contracts/`, `impl/mock/` |
-| **Arquivos** | kebab-case | `customers.ts`, `factory.ts` |
-| **Env vars** | `VITE_` prefix | `VITE_DATA_SOURCE` |
-| **Git commits** | Conventional Commits | `feat: add provider pattern with mock and supabase scaffolding` |
+| Elemento                    | Convenção                                          | Exemplo                                                         |
+| --------------------------- | -------------------------------------------------- | --------------------------------------------------------------- |
+| **Contratos**               | PascalCase + `I` + sufixo `Provider`               | `ICustomersProvider`, `IOrdersProvider`                         |
+| **Implementações mock**     | camelCase + prefixo `mock` + sufixo `Provider`     | `mockCustomersProvider`, `mockOrdersProvider`                   |
+| **Implementações supabase** | camelCase + prefixo `supabase` + sufixo `Provider` | `supabaseCustomersProvider`, `supabaseOrdersProvider`           |
+| **Hooks**                   | camelCase + prefixo `use` + sufixo `Provider`      | `useCustomersProvider()`, `useOrdersProvider()`                 |
+| **Tipo agregador**          | PascalCase + `I` + `DataProviders`                 | `IDataProviders`                                                |
+| **Componente do Context**   | PascalCase + sufixo `Provider`                     | `<DataProvidersProvider>`                                       |
+| **Erros**                   | PascalCase + sufixo `Error`                        | `NotImplementedError`                                           |
+| **Pastas**                  | kebab-case                                         | `data/`, `contracts/`, `impl/mock/`                             |
+| **Arquivos**                | kebab-case                                         | `customers.ts`, `factory.ts`                                    |
+| **Env vars**                | `VITE_` prefix                                     | `VITE_DATA_SOURCE`                                              |
+| **Git commits**             | Conventional Commits                               | `feat: add provider pattern with mock and supabase scaffolding` |
 
 ---
 
@@ -647,6 +660,7 @@ A regra de lint `no-restricted-imports` é **disciplina de código**, não segur
 > "Lembre-se: explore a estrutura dos dados, planeje primeiro cada passo, analise, investigue a fundo, pense e revise tudo antes de realizar qualquer atualização ou implementação."
 
 > **⚠️ 2. APÓS IMPLEMENTAR:**
+>
 > - Incrementar a versão do app seguindo [SemVer](https://semver.org/)
 > - Atualizar o `CHANGELOG.md` seguindo [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 > - Renomear este arquivo adicionando `_DONE` ao final
@@ -655,59 +669,59 @@ A regra de lint `no-restricted-imports` é **disciplina de código**, não segur
 
 ### Princípios de Implementação
 
-| Princípio | Descrição |
-|-----------|-----------|
-| **Contrato é lei** | Mock e Supabase devem ter assinatura **idêntica**. TypeScript valida; se quebrar, é erro de design — não relaxar o tipo, ajustar a implementação |
-| **Mock delega, não inventa** | `mockXxxProvider` apenas repassa para `customersApi.list` etc. Nunca faz transformação ou lógica adicional |
-| **Supabase falha alto** | `NotImplementedError` deve ter mensagem útil incluindo PRD futuro. Falha cedo é melhor que falha confusa |
-| **Hooks são finos** | Cada hook é 3-5 linhas: usa Context, retorna o slice, valida que está dentro do Provider |
-| **Isolamento via lint** | Confiar em disciplina de dev é otimismo. Lint é a rede de segurança |
-| **Padrão para tudo** | Este mesmo padrão se aplica a WhatsApp (PRDs 100-102), pagamento (PRD-140), frete (PRD-130). Quando criar esses contratos futuros, espelhar a estrutura de `src/providers/data/` em `src/providers/whatsapp/`, etc. |
+| Princípio                    | Descrição                                                                                                                                                                                                           |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Contrato é lei**           | Mock e Supabase devem ter assinatura **idêntica**. TypeScript valida; se quebrar, é erro de design — não relaxar o tipo, ajustar a implementação                                                                    |
+| **Mock delega, não inventa** | `mockXxxProvider` apenas repassa para `customersApi.list` etc. Nunca faz transformação ou lógica adicional                                                                                                          |
+| **Supabase falha alto**      | `NotImplementedError` deve ter mensagem útil incluindo PRD futuro. Falha cedo é melhor que falha confusa                                                                                                            |
+| **Hooks são finos**          | Cada hook é 3-5 linhas: usa Context, retorna o slice, valida que está dentro do Provider                                                                                                                            |
+| **Isolamento via lint**      | Confiar em disciplina de dev é otimismo. Lint é a rede de segurança                                                                                                                                                 |
+| **Padrão para tudo**         | Este mesmo padrão se aplica a WhatsApp (PRDs 100-102), pagamento (PRD-140), frete (PRD-130). Quando criar esses contratos futuros, espelhar a estrutura de `src/providers/data/` em `src/providers/whatsapp/`, etc. |
 
 ### Orientações Gerais
 
-| Aspecto | Orientação |
-|---------|------------|
-| **Mensagens de erro** | `NotImplementedError` deve dizer claramente qual provider, qual método, e em qual PRD futuro. Ex: `"SupabaseOrdersProvider.create — implementar no PRD-110 (DINTEC) ou PRD-120 (ERP de terceiros)"` |
-| **Tipagem do `import.meta.env`** | Adicionar interface em `src/vite-env.d.ts` para que `import.meta.env.VITE_DATA_SOURCE` seja tipado como `'mock' \| 'supabase' \| undefined` |
-| **Estabilidade da instância dos providers** | A factory retorna a mesma instância sempre (não cria nova a cada chamada) — assim os hooks têm referência estável |
-| **Context fora do AuthProvider** | A ordem no `App.tsx` deve ser: `<ThemeProvider>` > `<DataProvidersProvider>` > `<AuthProvider>` > rotas. AuthProvider eventualmente vai consumir providers (para verificar credenciais na Fase 2) |
-| **Validação de env** | Logar em console qual `VITE_DATA_SOURCE` está ativo, mas só em dev mode |
+| Aspecto                                     | Orientação                                                                                                                                                                                          |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Mensagens de erro**                       | `NotImplementedError` deve dizer claramente qual provider, qual método, e em qual PRD futuro. Ex: `"SupabaseOrdersProvider.create — implementar no PRD-110 (DINTEC) ou PRD-120 (ERP de terceiros)"` |
+| **Tipagem do `import.meta.env`**            | Adicionar interface em `src/vite-env.d.ts` para que `import.meta.env.VITE_DATA_SOURCE` seja tipado como `'mock' \| 'supabase' \| undefined`                                                         |
+| **Estabilidade da instância dos providers** | A factory retorna a mesma instância sempre (não cria nova a cada chamada) — assim os hooks têm referência estável                                                                                   |
+| **Context fora do AuthProvider**            | A ordem no `App.tsx` deve ser: `<ThemeProvider>` > `<DataProvidersProvider>` > `<AuthProvider>` > rotas. AuthProvider eventualmente vai consumir providers (para verificar credenciais na Fase 2)   |
+| **Validação de env**                        | Logar em console qual `VITE_DATA_SOURCE` está ativo, mas só em dev mode                                                                                                                             |
 
 ### O que NÃO Fazer
 
-| ❌ Evitar |
-|----------|
-| Adicionar lógica de negócio nos `mockXxxProvider` — eles delegam, ponto |
-| Importar `@/mocks/api` em qualquer arquivo fora de `src/providers/data/impl/mock/` |
+| ❌ Evitar                                                                                                  |
+| ---------------------------------------------------------------------------------------------------------- |
+| Adicionar lógica de negócio nos `mockXxxProvider` — eles delegam, ponto                                    |
+| Importar `@/mocks/api` em qualquer arquivo fora de `src/providers/data/impl/mock/`                         |
 | Importar `@/providers/data/contracts/customers` direto numa feature — sempre via barrel `@/providers/data` |
-| Fazer `<DataProvidersProvider>` envolver dentro do `<BrowserRouter>` (deve envolver por fora) |
-| Esquecer de configurar `no-restricted-imports` no ESLint |
-| Tornar a factory async — ela é síncrona; providers são instâncias prontas, não promises |
-| Implementar Supabase de verdade neste PRD — é esqueleto |
-| Esquecer de documentar `VITE_DATA_SOURCE` no `.env.example` |
-| Misturar contratos em um único arquivo — um arquivo por agregado |
+| Fazer `<DataProvidersProvider>` envolver dentro do `<BrowserRouter>` (deve envolver por fora)              |
+| Esquecer de configurar `no-restricted-imports` no ESLint                                                   |
+| Tornar a factory async — ela é síncrona; providers são instâncias prontas, não promises                    |
+| Implementar Supabase de verdade neste PRD — é esqueleto                                                    |
+| Esquecer de documentar `VITE_DATA_SOURCE` no `.env.example`                                                |
+| Misturar contratos em um único arquivo — um arquivo por agregado                                           |
 
 ---
 
 ## Status de Implementação
 
-| Campo | Valor |
-|-------|-------|
-| **Status** | ⏳ PENDENTE |
-| **Data de Implementação** | - |
-| **Versão do App** | - |
-| **Codinome** | - |
-| **Implementado por** | - |
-| **Observações** | - |
+| Campo                     | Valor       |
+| ------------------------- | ----------- |
+| **Status**                | ⏳ PENDENTE |
+| **Data de Implementação** | -           |
+| **Versão do App**         | -           |
+| **Codinome**              | -           |
+| **Implementado por**      | -           |
+| **Observações**           | -           |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 25/05/2026 | v1 | Criação inicial — Provider Pattern para 16 agregados com factory parametrizada via VITE_DATA_SOURCE |
+| Data       | Versão | Alteração                                                                                           |
+| ---------- | ------ | --------------------------------------------------------------------------------------------------- |
+| 25/05/2026 | v1     | Criação inicial — Provider Pattern para 16 agregados com factory parametrizada via VITE_DATA_SOURCE |
 
 ---
 

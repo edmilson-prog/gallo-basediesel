@@ -2,27 +2,27 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _A definir após criação no Lovable_ |
-| **Objetivo** | Estabelecer a identidade visual GALLO BASE DIESEL e o design system que sustenta todos os módulos da plataforma (Central, SDR, Gestão, E-commerce), incluindo o sistema de 4 temas × 2 modos com codinomes na UI |
-| **Tipo** | Feature |
-| **Complexidade** | Alta |
-| **Total de Fases** | 5 |
-| **Prioridade** | Alta |
-| **Épico** | Bloco 0 — Fundação |
-| **PRDs Relacionados** | PRD-002 (Modelo Conceitual), PRD-003 (Shell e Navegação), PRD-004 (Mocks) |
-| **Implementação** | 🟢 Lovable (scaffold visual inicial) |
-| **Padrão de código** | camelCase para tokens em JS/TS; kebab-case para CSS variables; UPPER_SNAKE_CASE para constantes globais |
+| Campo                 | Valor                                                                                                                                                                                                            |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                                         |
+| **Repositório**       | _A definir após criação no Lovable_                                                                                                                                                                              |
+| **Objetivo**          | Estabelecer a identidade visual GALLO BASE DIESEL e o design system que sustenta todos os módulos da plataforma (Central, SDR, Gestão, E-commerce), incluindo o sistema de 4 temas × 2 modos com codinomes na UI |
+| **Tipo**              | Feature                                                                                                                                                                                                          |
+| **Complexidade**      | Alta                                                                                                                                                                                                             |
+| **Total de Fases**    | 5                                                                                                                                                                                                                |
+| **Prioridade**        | Alta                                                                                                                                                                                                             |
+| **Épico**             | Bloco 0 — Fundação                                                                                                                                                                                               |
+| **PRDs Relacionados** | PRD-002 (Modelo Conceitual), PRD-003 (Shell e Navegação), PRD-004 (Mocks)                                                                                                                                        |
+| **Implementação**     | 🟢 Lovable (scaffold visual inicial)                                                                                                                                                                             |
+| **Padrão de código**  | camelCase para tokens em JS/TS; kebab-case para CSS variables; UPPER_SNAKE_CASE para constantes globais                                                                                                          |
 
 ### Critérios de Complexidade Utilizados
 
-| Complexidade | Critérios |
-|--------------|-----------|
-| **Baixa** | 1 arquivo, sem dependências externas, < 100 linhas |
-| **Média** | 2-5 arquivos, banco OU integração, funcionalidade isolada |
-| **Alta** | 5+ arquivos, múltiplas integrações, regras de negócio complexas |
+| Complexidade | Critérios                                                       |
+| ------------ | --------------------------------------------------------------- |
+| **Baixa**    | 1 arquivo, sem dependências externas, < 100 linhas              |
+| **Média**    | 2-5 arquivos, banco OU integração, funcionalidade isolada       |
+| **Alta**     | 5+ arquivos, múltiplas integrações, regras de negócio complexas |
 
 > **Justificativa de Alta:** múltiplos arquivos de tokens em três camadas (primitivos, semânticos, tema), configuração de Tailwind + shadcn/ui + Iconify, ~28 componentes base customizados, suporte a **4 temas × 2 modos (8 combinações)** todos validados em WCAG 2.1 AA, página `/design-system` de documentação navegável, e impacto transversal em todos os outros 49 PRDs do projeto.
 
@@ -67,12 +67,12 @@ Um design system completo, baseado em **tokens semânticos em três camadas**, i
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que foi descartada |
-|-------------|------------------------|
-| Adotar Material Design puro | Visual genérico de SaaS, não comunica a robustez/industrialidade da GALLO |
-| Usar shadcn/ui sem customização | Funciona como base, mas precisa de tema próprio para ter a identidade GALLO |
-| Implementar 1 tema apenas e adicionar temas depois | Custo de "tematizar" depois é alto demais; nascer multi-tema garante arquitetura correta |
-| Usar GALLO BD (fonte da logo) em toda a UI | GALLO BD é proprietária, não tem suporte completo de caracteres, e não é desenhada para uso intenso em corpo de texto |
+| Alternativa                                                                      | Por que foi descartada                                                                                                                            |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Adotar Material Design puro                                                      | Visual genérico de SaaS, não comunica a robustez/industrialidade da GALLO                                                                         |
+| Usar shadcn/ui sem customização                                                  | Funciona como base, mas precisa de tema próprio para ter a identidade GALLO                                                                       |
+| Implementar 1 tema apenas e adicionar temas depois                               | Custo de "tematizar" depois é alto demais; nascer multi-tema garante arquitetura correta                                                          |
+| Usar GALLO BD (fonte da logo) em toda a UI                                       | GALLO BD é proprietária, não tem suporte completo de caracteres, e não é desenhada para uso intenso em corpo de texto                             |
 | Usar as cores das submarcas (vermelho/verde/amarelo) como cores principais da UI | Confunde com cores semânticas (sucesso/erro/atenção); o caminho correto é marca-mãe (preto+dourado) como base e submarcas como temas alternativos |
 
 **Decisão:** usar **shadcn/ui como ponto de partida** (componentes acessíveis, baseados em Radix UI) e **substituir o tema completo** por tokens próprios da GALLO em três camadas; sistema de 4 temas paralelos derivados da arquitetura de marca.
@@ -85,23 +85,23 @@ Um design system completo, baseado em **tokens semânticos em três camadas**, i
 
 A identidade GALLO no manual de marca privilegia preto absoluto + cromia óleo diesel em fundo escuro. A UI da plataforma respeita isso mas faz adaptações necessárias:
 
-| Princípio do manual | Tradução na UI |
-|---------------------|----------------|
-| **Marca-mãe monocromática (preto técnico)** | Base institucional de toda a UI, em ambos os modos |
-| **Cromia óleo diesel (dourado)** | Cor de ação no tema padrão Diesel — CTAs, links, focus, destaques |
+| Princípio do manual                                          | Tradução na UI                                                                                                                                  |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Marca-mãe monocromática (preto técnico)**                  | Base institucional de toda a UI, em ambos os modos                                                                                              |
+| **Cromia óleo diesel (dourado)**                             | Cor de ação no tema padrão Diesel — CTAs, links, focus, destaques                                                                               |
 | **Cores das submarcas em chips/badges + temas alternativos** | Verde PARTS / Vermelho SERVICE / Amarelo INDUSTRIAL como cores de acento opcionais por preferência de usuário e como categorizadores semânticos |
-| **Força, robustez, presença, profissionalismo técnico** | Tipografia condensada em headers (Saira), corpos densos legíveis (Inter), códigos em mono (JetBrains Mono) |
-| **Logo em variações** | Horizontal no header desktop, vertical em splash/empty states, signo isolado em favicon, social 3D em hero/marketing |
+| **Força, robustez, presença, profissionalismo técnico**      | Tipografia condensada em headers (Saira), corpos densos legíveis (Inter), códigos em mono (JetBrains Mono)                                      |
+| **Logo em variações**                                        | Horizontal no header desktop, vertical em splash/empty states, signo isolado em favicon, social 3D em hero/marketing                            |
 
 ### Tom visual
 
-| Atributo | Tradução visual na plataforma |
-|----------|------------------------------|
-| **Força** | Tipografia condensada em títulos, contraste alto, sem ornamentos |
-| **Confiabilidade** | Espaçamento generoso entre seções, hierarquia clara, sem ruído visual |
-| **Robustez** | Bordas sutis (1px) e sombras curtas (não etéreas) |
-| **Presença** | Cor de ação saturada (dourado/verde/vermelho/amarelo conforme tema), nunca pastel |
-| **Profissionalismo técnico** | Mono em códigos OEM, tabelas densas legíveis, ícones lineares |
+| Atributo                     | Tradução visual na plataforma                                                     |
+| ---------------------------- | --------------------------------------------------------------------------------- |
+| **Força**                    | Tipografia condensada em títulos, contraste alto, sem ornamentos                  |
+| **Confiabilidade**           | Espaçamento generoso entre seções, hierarquia clara, sem ruído visual             |
+| **Robustez**                 | Bordas sutis (1px) e sombras curtas (não etéreas)                                 |
+| **Presença**                 | Cor de ação saturada (dourado/verde/vermelho/amarelo conforme tema), nunca pastel |
+| **Profissionalismo técnico** | Mono em códigos OEM, tabelas densas legíveis, ícones lineares                     |
 
 ---
 
@@ -191,15 +191,15 @@ A identidade GALLO no manual de marca privilegia preto absoluto + cromia óleo d
 
 - **RF-027:** O sistema deve instalar e customizar os seguintes componentes shadcn/ui, todos consumindo apenas tokens semânticos:
 
-| Categoria | Componentes |
-|-----------|-------------|
+| Categoria      | Componentes                                                                     |
+| -------------- | ------------------------------------------------------------------------------- |
 | **Formulário** | Button, Input, Textarea, Select, Combobox, Checkbox, Radio, Switch, Label, Form |
-| **Feedback** | Toast, Alert, Skeleton, Progress |
-| **Overlay** | Dialog, Sheet, Tooltip, Popover, DropdownMenu, Command |
-| **Navegação** | Tabs, Breadcrumb, Pagination |
-| **Dados** | Table, Badge, Avatar, Card, Separator, ScrollArea |
-| **Date/Time** | DatePicker |
-| **Layout** | Stack, Inline, Grid, Container |
+| **Feedback**   | Toast, Alert, Skeleton, Progress                                                |
+| **Overlay**    | Dialog, Sheet, Tooltip, Popover, DropdownMenu, Command                          |
+| **Navegação**  | Tabs, Breadcrumb, Pagination                                                    |
+| **Dados**      | Table, Badge, Avatar, Card, Separator, ScrollArea                               |
+| **Date/Time**  | DatePicker                                                                      |
+| **Layout**     | Stack, Inline, Grid, Container                                                  |
 
 > ~28 componentes ao todo. Cada um deve renderizar corretamente em todas as 8 combinações tema × modo.
 
@@ -344,13 +344,13 @@ ENTÃO deve mostrar um placeholder discreto (quadrado vazio com borda) sem quebr
 
 ## Fases de Implementação
 
-| Fase | Objetivo | Arquivos Estimados |
-|------|----------|-------------------|
-| 1 | Setup base, projeto Lovable e dependências | 4-6 |
-| 2 | Tokens primitivos e camada semântica de 8 combinações tema × modo | 3-4 |
-| 3 | Tipografia, ícones e logo | 4-5 |
-| 4 | Componentes shadcn/ui customizados (~28 componentes) | 28-30 |
-| 5 | Página `/design-system` e validação WCAG | 3-4 |
+| Fase | Objetivo                                                          | Arquivos Estimados |
+| ---- | ----------------------------------------------------------------- | ------------------ |
+| 1    | Setup base, projeto Lovable e dependências                        | 4-6                |
+| 2    | Tokens primitivos e camada semântica de 8 combinações tema × modo | 3-4                |
+| 3    | Tipografia, ícones e logo                                         | 4-5                |
+| 4    | Componentes shadcn/ui customizados (~28 componentes)              | 28-30              |
+| 5    | Página `/design-system` e validação WCAG                          | 3-4                |
 
 ### Detalhamento das Fases
 
@@ -359,6 +359,7 @@ ENTÃO deve mostrar um placeholder discreto (quadrado vazio com borda) sem quebr
 **Objetivo:** preparar o terreno técnico e iniciar o projeto no Lovable
 
 **Ações:**
+
 - [ ] Criar projeto no Lovable com React + Vite + TypeScript + Tailwind CSS
 - [ ] Instalar dependências: `shadcn/ui` (CLI), `@iconify/react`, `class-variance-authority`, `clsx`, `tailwind-merge`
 - [ ] Configurar fontes via Google Fonts (Saira Condensed, Inter, JetBrains Mono) com preconnect
@@ -373,6 +374,7 @@ ENTÃO deve mostrar um placeholder discreto (quadrado vazio com borda) sem quebr
 **Objetivo:** estabelecer a fundação visual em três camadas
 
 **Ações:**
+
 - [ ] Criar `src/styles/tokens.css` com **tokens primitivos**: paleta GALLO institucional, cromia diesel, submarcas, escala neutra, cores semânticas funcionais
 - [ ] Criar `src/styles/themes.css` com **tokens semânticos** para as 8 combinações tema × modo, usando seletores `[data-mode="..."][data-theme="..."]`
 - [ ] Configurar `tailwind.config.ts` para consumir CSS Variables (cores via `colors.*`, tipografia via `fontFamily.*`, espaçamento aplicando o sistema 4pt)
@@ -388,6 +390,7 @@ ENTÃO deve mostrar um placeholder discreto (quadrado vazio com borda) sem quebr
 **Objetivo:** identidade gráfica funcional
 
 **Ações:**
+
 - [ ] Confirmar carregamento das fontes em todos os pesos especificados
 - [ ] Configurar Iconify com cache de ícones e validar carregamento sob demanda
 - [ ] Adicionar arquivos SVG da logo GALLO em `public/logo/`: horizontal, vertical, alternativa, monocromática (branca e preta), signo isolado
@@ -402,6 +405,7 @@ ENTÃO deve mostrar um placeholder discreto (quadrado vazio com borda) sem quebr
 **Objetivo:** ter biblioteca pronta para os outros módulos consumirem
 
 **Ações:**
+
 - [ ] Instalar via shadcn CLI e customizar todos os ~28 componentes listados em RF-027
 - [ ] Para cada componente: garantir que consome apenas tokens semânticos, que renderiza corretamente em todos os 8 temas × modos, e que todos os estados (default, hover, focus, disabled, error quando aplicável) estão coerentes
 - [ ] Criar layout primitives (Stack, Inline, Grid, Container) em `src/shared/components/layout/`
@@ -415,6 +419,7 @@ ENTÃO deve mostrar um placeholder discreto (quadrado vazio com borda) sem quebr
 **Objetivo:** referência viva do design system e garantia de qualidade
 
 **Ações:**
+
 - [ ] Criar rota `/design-system` em `src/features/design-system/` (visível apenas em `import.meta.env.DEV`)
 - [ ] Implementar seções: tokens primitivos, tokens semânticos, tipografia, espaçamento, raios, sombras, ícones, componentes
 - [ ] Implementar validador de contraste embutido (componente que calcula razão e marca em verde/vermelho)
@@ -433,11 +438,11 @@ Nenhum. Este é o PRD-001, fundação do projeto.
 
 ### Serviços Externos
 
-| Serviço | Tipo | Status |
-|---------|------|--------|
-| Google Fonts | CDN de fontes (Saira Condensed, Inter, JetBrains Mono) | Disponível |
-| Iconify API/CDN | CDN de ícones sob demanda | Disponível |
-| Lovable | Plataforma de scaffold visual | Conta a criar no kickoff |
+| Serviço         | Tipo                                                   | Status                   |
+| --------------- | ------------------------------------------------------ | ------------------------ |
+| Google Fonts    | CDN de fontes (Saira Condensed, Inter, JetBrains Mono) | Disponível               |
+| Iconify API/CDN | CDN de ícones sob demanda                              | Disponível               |
+| Lovable         | Plataforma de scaffold visual                          | Conta a criar no kickoff |
 
 ### Decisões Pendentes
 
@@ -449,15 +454,15 @@ Nenhuma — todas as decisões críticas estão tomadas no briefing v1.1 e neste
 
 Este PRD faz parte do épico **"Bloco 0 — Fundação"**.
 
-| Ordem | PRD | Título | Status | Relação |
-|-------|-----|--------|--------|---------|
-| **1** | **PRD-001** | **Identidade Visual GALLO e Design System Base** | **🔄 ATUAL** | Base — não depende de nada |
-| 2 | PRD-002 | Modelo Conceitual de Domínio e Glossário | ⏳ | Independente do PRD-001 |
-| 3 | PRD-003 | Shell do App, Navegação e Layouts Base | ⏳ | Depende de PRD-001 e PRD-002 |
-| 4 | PRD-004 | Geradores de Dados Fictícios e Camada de Mocks | ⏳ | Depende de PRD-002 |
-| 5 | PRD-005 | Arquitetura de Provedores de Dados (Mock/Supabase) | ⏳ | Depende de PRD-004 |
-| 6 | PRD-006 | Sistema de Roles, Permissões e Auditoria (visual) | ⏳ | Depende de PRD-002 |
-| 7 | PRD-007 | Multi-Loja: Modelagem e Operação Cross-Store | ⏳ | Depende de PRD-002 e PRD-003 |
+| Ordem | PRD         | Título                                             | Status       | Relação                      |
+| ----- | ----------- | -------------------------------------------------- | ------------ | ---------------------------- |
+| **1** | **PRD-001** | **Identidade Visual GALLO e Design System Base**   | **🔄 ATUAL** | Base — não depende de nada   |
+| 2     | PRD-002     | Modelo Conceitual de Domínio e Glossário           | ⏳           | Independente do PRD-001      |
+| 3     | PRD-003     | Shell do App, Navegação e Layouts Base             | ⏳           | Depende de PRD-001 e PRD-002 |
+| 4     | PRD-004     | Geradores de Dados Fictícios e Camada de Mocks     | ⏳           | Depende de PRD-002           |
+| 5     | PRD-005     | Arquitetura de Provedores de Dados (Mock/Supabase) | ⏳           | Depende de PRD-004           |
+| 6     | PRD-006     | Sistema de Roles, Permissões e Auditoria (visual)  | ⏳           | Depende de PRD-002           |
+| 7     | PRD-007     | Multi-Loja: Modelagem e Operação Cross-Store       | ⏳           | Depende de PRD-002 e PRD-003 |
 
 > **Nota:** PRD-001 e PRD-003 serão consumidos pelo Lovable no scaffold inicial. PRDs 002, 004, 005, 006 e 007 ficam para o Claude Code CLI implementar no clone local após o scaffold.
 
@@ -473,10 +478,10 @@ Nenhum dado sensível é manipulado neste PRD. Tokens, temas e componentes são 
 
 ### Acesso à Rota `/design-system`
 
-| Ambiente | Comportamento |
-|----------|---------------|
-| Desenvolvimento (`import.meta.env.DEV === true`) | Rota acessível, totalmente funcional |
-| Produção (`import.meta.env.DEV === false`) | Rota retorna 404 (não renderiza componente, não vaza referências a tokens internos) |
+| Ambiente                                         | Comportamento                                                                       |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| Desenvolvimento (`import.meta.env.DEV === true`) | Rota acessível, totalmente funcional                                                |
+| Produção (`import.meta.env.DEV === false`)       | Rota retorna 404 (não renderiza componente, não vaza referências a tokens internos) |
 
 ---
 
@@ -491,6 +496,7 @@ Nenhum dado sensível é manipulado neste PRD. Tokens, temas e componentes são 
 ```
 
 **Passo a passo:**
+
 1. Usuário clica no avatar ou ícone de configurações no header
 2. Aparece dropdown com seletor de tema (4 opções com codinomes) e toggle de modo (light/dark/auto)
 3. Usuário escolhe uma combinação
@@ -518,24 +524,24 @@ Nenhum dado sensível é manipulado neste PRD. Tokens, temas e componentes são 
 
 > **Consulte a Seção 5 do `guia-prd.md` para a versão completa.**
 
-| Elemento | Convenção | Exemplo |
-|----------|-----------|---------|
-| **Componentes React** | PascalCase | `ThemeSwitcher.tsx`, `Logo.tsx` |
-| **Hooks** | camelCase + `use` | `useTheme.ts` |
-| **Services** | camelCase + `Service` | _N/A neste PRD_ |
-| **Pastas** | kebab-case | `design-system/`, `theme-switcher/` |
-| **Variáveis/Funções** | camelCase | `currentTheme`, `setTheme()` |
-| **Constantes** | UPPER_SNAKE_CASE | `DEFAULT_THEME`, `LOCALSTORAGE_KEYS` |
-| **Interfaces** | PascalCase + `I` | `IThemeContext`, `IThemeConfig` |
-| **Tipos union** | PascalCase | `ThemeName`, `ThemeMode` |
-| **CSS Variables** | kebab-case | `--accent`, `--surface-base`, `--brand-parts` |
-| **Tailwind config** | kebab-case nos custom names | `colors.accent`, `colors.surface-base` |
-| **Env vars (frontend)** | `VITE_` prefix | _N/A neste PRD_ |
-| **Git commits** | Conventional Commits | `feat: add gallo design system tokens` |
-| **Estrutura de pastas** | Feature-based | `src/features/design-system/`, `src/shared/components/` |
-| **Imports** | Ordem: React → libs → components → hooks → utils → types | — |
-| **Ícones** | Iconify (`@iconify/react`) | `<Icon icon="mdi:cog" />` |
-| **Tema** | 4 temas × 2 modos obrigatórios | CSS Variables + atributos `data-*` |
+| Elemento                | Convenção                                                | Exemplo                                                 |
+| ----------------------- | -------------------------------------------------------- | ------------------------------------------------------- |
+| **Componentes React**   | PascalCase                                               | `ThemeSwitcher.tsx`, `Logo.tsx`                         |
+| **Hooks**               | camelCase + `use`                                        | `useTheme.ts`                                           |
+| **Services**            | camelCase + `Service`                                    | _N/A neste PRD_                                         |
+| **Pastas**              | kebab-case                                               | `design-system/`, `theme-switcher/`                     |
+| **Variáveis/Funções**   | camelCase                                                | `currentTheme`, `setTheme()`                            |
+| **Constantes**          | UPPER_SNAKE_CASE                                         | `DEFAULT_THEME`, `LOCALSTORAGE_KEYS`                    |
+| **Interfaces**          | PascalCase + `I`                                         | `IThemeContext`, `IThemeConfig`                         |
+| **Tipos union**         | PascalCase                                               | `ThemeName`, `ThemeMode`                                |
+| **CSS Variables**       | kebab-case                                               | `--accent`, `--surface-base`, `--brand-parts`           |
+| **Tailwind config**     | kebab-case nos custom names                              | `colors.accent`, `colors.surface-base`                  |
+| **Env vars (frontend)** | `VITE_` prefix                                           | _N/A neste PRD_                                         |
+| **Git commits**         | Conventional Commits                                     | `feat: add gallo design system tokens`                  |
+| **Estrutura de pastas** | Feature-based                                            | `src/features/design-system/`, `src/shared/components/` |
+| **Imports**             | Ordem: React → libs → components → hooks → utils → types | —                                                       |
+| **Ícones**              | Iconify (`@iconify/react`)                               | `<Icon icon="mdi:cog" />`                               |
+| **Tema**                | 4 temas × 2 modos obrigatórios                           | CSS Variables + atributos `data-*`                      |
 
 ---
 
@@ -553,6 +559,7 @@ Nenhum dado sensível é manipulado neste PRD. Tokens, temas e componentes são 
 > "Lembre-se: explore a estrutura dos dados, planeje primeiro cada passo, analise, investigue a fundo, pense e revise tudo antes de realizar qualquer atualização ou implementação."
 
 > **⚠️ 2. APÓS IMPLEMENTAR:**
+>
 > - Incrementar a versão do app seguindo [SemVer](https://semver.org/) — este PRD entrega a v0.1.0 inicial (codinome **Genesis**)
 > - Criar o `CHANGELOG.md` seguindo [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) com a entrada inicial v0.1.0 Genesis
 > - Renomear este arquivo adicionando `_DONE` ao final
@@ -565,28 +572,29 @@ Nenhum dado sensível é manipulado neste PRD. Tokens, temas e componentes são 
 
 ### Guia de Versionamento (SemVer)
 
-| Tipo de Mudança | Ação | Exemplo |
-|-----------------|------|---------|
-| Correção de bug | PATCH +1 | 0.1.0 → 0.1.1 |
-| Nova funcionalidade | MINOR +1, PATCH = 0 | 0.1.0 → 0.2.0 |
+| Tipo de Mudança      | Ação                 | Exemplo       |
+| -------------------- | -------------------- | ------------- |
+| Correção de bug      | PATCH +1             | 0.1.0 → 0.1.1 |
+| Nova funcionalidade  | MINOR +1, PATCH = 0  | 0.1.0 → 0.2.0 |
 | Mudança incompatível | MAJOR +1, outros = 0 | 0.x.x → 1.0.0 |
 
 **Codinomes da plataforma GALLO BASE DIESEL (sequência sugerida):**
 
-| Versão | Codinome | Contexto |
-|--------|----------|----------|
-| **v0.1.0** | **Genesis** | **Este PRD-001 — fundação visual** |
-| v0.2.0 | Hub | Após PRD-003 (Shell) — primeiro app navegável |
-| v0.3.0 | Pilot | Após Bloco 1 (CRM) |
-| v0.4.0 | Compass | Após Bloco 4 (Gestão) |
-| v0.5.0 | Storefront | Após Bloco 5 (E-commerce) |
-| v1.0.0 | Heavy | Release MVP completo |
+| Versão     | Codinome    | Contexto                                      |
+| ---------- | ----------- | --------------------------------------------- |
+| **v0.1.0** | **Genesis** | **Este PRD-001 — fundação visual**            |
+| v0.2.0     | Hub         | Após PRD-003 (Shell) — primeiro app navegável |
+| v0.3.0     | Pilot       | Após Bloco 1 (CRM)                            |
+| v0.4.0     | Compass     | Após Bloco 4 (Gestão)                         |
+| v0.5.0     | Storefront  | Após Bloco 5 (E-commerce)                     |
+| v1.0.0     | Heavy       | Release MVP completo                          |
 
 🔗 Referência: https://semver.org/
 
 ### Guia de Changelog (Keep a Changelog)
 
 Tipos de mudança a documentar:
+
 - **Added** — novas funcionalidades
 - **Changed** — mudanças em funcionalidades existentes
 - **Deprecated** — funcionalidades que serão removidas
@@ -598,61 +606,61 @@ Tipos de mudança a documentar:
 
 ### Princípios de Implementação
 
-| Princípio | Descrição |
-|-----------|-----------|
-| **Tokens primeiro, componentes depois** | Nunca implementar um componente sem que os tokens semânticos consumidos por ele já existam |
-| **Três camadas, sempre** | Componente → token semântico → token primitivo. Nunca pular direto para primitivo no componente |
-| **8 combinações são primeira-classe** | Cada componente nasce sendo testado em todos os 4 temas × 2 modos. Nada de "ajusto o tema parts depois" |
-| **Fail gracefully em tema** | Se um token semântico não existir no tema/modo ativo, cair para o tema diesel sem quebrar |
+| Princípio                                       | Descrição                                                                                                                 |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **Tokens primeiro, componentes depois**         | Nunca implementar um componente sem que os tokens semânticos consumidos por ele já existam                                |
+| **Três camadas, sempre**                        | Componente → token semântico → token primitivo. Nunca pular direto para primitivo no componente                           |
+| **8 combinações são primeira-classe**           | Cada componente nasce sendo testado em todos os 4 temas × 2 modos. Nada de "ajusto o tema parts depois"                   |
+| **Fail gracefully em tema**                     | Se um token semântico não existir no tema/modo ativo, cair para o tema diesel sem quebrar                                 |
 | **Documentar decisões finas no /design-system** | Página `/design-system` é a memória viva do PRD — qualquer decisão fina (por que esse exato tom de dourado?) vira nota lá |
 
 ### Orientações Gerais
 
-| Aspecto | Orientação |
-|---------|------------|
-| **Fontes** | Carregar via Google Fonts com `font-display: swap` e `<link rel="preconnect">`. Não auto-hospedar no MVP |
-| **Bundle de ícones** | Iconify carrega sob demanda — evitar import estático de sets inteiros como `@iconify-json/mdi` (incha bundle) |
-| **Tailwind config** | Mapear cores para CSS Variables em vez de valores hex direto. Ex: `accent: 'var(--accent)'` |
-| **shadcn/ui** | Customizar via CSS Variables nos `*-foreground` e `*-background`. Não editar componentes raiz do shadcn para evitar conflito em upgrades |
-| **Densidade** | Default `comfortable`. Reservar token `--density` para futuro modo `compact` (Central de Atendimento) — mas não implementar agora |
+| Aspecto                           | Orientação                                                                                                                                                       |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Fontes**                        | Carregar via Google Fonts com `font-display: swap` e `<link rel="preconnect">`. Não auto-hospedar no MVP                                                         |
+| **Bundle de ícones**              | Iconify carrega sob demanda — evitar import estático de sets inteiros como `@iconify-json/mdi` (incha bundle)                                                    |
+| **Tailwind config**               | Mapear cores para CSS Variables em vez de valores hex direto. Ex: `accent: 'var(--accent)'`                                                                      |
+| **shadcn/ui**                     | Customizar via CSS Variables nos `*-foreground` e `*-background`. Não editar componentes raiz do shadcn para evitar conflito em upgrades                         |
+| **Densidade**                     | Default `comfortable`. Reservar token `--density` para futuro modo `compact` (Central de Atendimento) — mas não implementar agora                                |
 | **Cores semânticas vs submarcas** | Manter `--color-danger` distinto de `--brand-service` (ambos vermelhos, tons diferentes). Vermelho de erro nunca deve confundir com vermelho da submarca SERVICE |
-| **Logo no header** | Variante horizontal monocromática que adapta cor ao modo (preta no light, branca no dark) |
+| **Logo no header**                | Variante horizontal monocromática que adapta cor ao modo (preta no light, branca no dark)                                                                        |
 
 ### O que NÃO Fazer
 
-| ❌ Evitar |
-|----------|
-| Hardcodar cores em componentes (`bg-red-500`, `color: #C41E3A`) — sempre via tokens semânticos |
-| Pular a camada semântica (componente referenciando token primitivo diretamente) |
-| Usar `--brand-service` (vermelho da submarca) como cor de erro/danger — usar `--color-danger` |
-| Implementar componente sem antes garantir paridade nas 8 combinações tema × modo |
-| Importar set completo do Iconify (`@iconify-json/mdi` ou similar) — quebra bundle |
-| Auto-hospedar fontes no MVP (custa tempo e não traz benefício até produção real) |
-| Esquecer o script anti-FOUC inline no `<head>` |
-| Deixar `/design-system` acessível em produção |
-| Confundir codinome do tema (UI: "Black Gold") com nome técnico (`diesel`) — usar cada um em seu contexto |
+| ❌ Evitar                                                                                                  |
+| ---------------------------------------------------------------------------------------------------------- |
+| Hardcodar cores em componentes (`bg-red-500`, `color: #C41E3A`) — sempre via tokens semânticos             |
+| Pular a camada semântica (componente referenciando token primitivo diretamente)                            |
+| Usar `--brand-service` (vermelho da submarca) como cor de erro/danger — usar `--color-danger`              |
+| Implementar componente sem antes garantir paridade nas 8 combinações tema × modo                           |
+| Importar set completo do Iconify (`@iconify-json/mdi` ou similar) — quebra bundle                          |
+| Auto-hospedar fontes no MVP (custa tempo e não traz benefício até produção real)                           |
+| Esquecer o script anti-FOUC inline no `<head>`                                                             |
+| Deixar `/design-system` acessível em produção                                                              |
+| Confundir codinome do tema (UI: "Black Gold") com nome técnico (`diesel`) — usar cada um em seu contexto   |
 | Customizar componentes shadcn raiz (editar o gerado pelo CLI) em vez de via CSS Variables — quebra upgrade |
 
 ---
 
 ## Status de Implementação
 
-| Campo | Valor |
-|-------|-------|
-| **Status** | ⏳ PENDENTE |
-| **Data de Implementação** | - |
-| **Versão do App** | - |
-| **Codinome** | - |
-| **Implementado por** | - |
-| **Observações** | - |
+| Campo                     | Valor       |
+| ------------------------- | ----------- |
+| **Status**                | ⏳ PENDENTE |
+| **Data de Implementação** | -           |
+| **Versão do App**         | -           |
+| **Codinome**              | -           |
+| **Implementado por**      | -           |
+| **Observações**           | -           |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 25/05/2026 | v1 | Criação inicial — fundação visual GALLO BASE DIESEL com sistema de 4 temas × 2 modos |
+| Data       | Versão | Alteração                                                                            |
+| ---------- | ------ | ------------------------------------------------------------------------------------ |
+| 25/05/2026 | v1     | Criação inicial — fundação visual GALLO BASE DIESEL com sistema de 4 temas × 2 modos |
 
 ---
 

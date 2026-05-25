@@ -71,12 +71,9 @@
   --gallo-info-dark: #1d4ed8;
 
   /* Tipografia */
-  --font-display:
-    "Saira Condensed", "Inter", system-ui, -apple-system, sans-serif;
+  --font-display: "Saira Condensed", "Inter", system-ui, -apple-system, sans-serif;
   --font-body: "Inter", system-ui, -apple-system, sans-serif;
-  --font-mono:
-    "JetBrains Mono", ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo,
-    monospace;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, monospace;
 }
 
 /* -------- Camada 2: mapeamento semântico para Tailwind/shadcn -------- */
@@ -299,12 +296,20 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-display);
     letter-spacing: -0.01em;
   }
 
-  code, pre, kbd, samp {
+  code,
+  pre,
+  kbd,
+  samp {
     font-family: var(--font-mono);
   }
 
@@ -316,7 +321,8 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    html, * {
+    html,
+    * {
       transition: none !important;
       animation: none !important;
     }

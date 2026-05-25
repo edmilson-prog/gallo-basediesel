@@ -28,8 +28,7 @@ interface IStackProps extends HTMLAttributes<HTMLDivElement> {
   as?: "div" | "section" | "ul" | "ol" | "nav";
 }
 
-const alignClass = (v?: Align) =>
-  v ? `items-${v === "stretch" ? "stretch" : v}` : "";
+const alignClass = (v?: Align) => (v ? `items-${v === "stretch" ? "stretch" : v}` : "");
 const justifyClass = (v?: Justify) => (v ? `justify-${v}` : "");
 
 export const Stack = forwardRef<HTMLDivElement, IStackProps>(function Stack(
@@ -39,41 +38,31 @@ export const Stack = forwardRef<HTMLDivElement, IStackProps>(function Stack(
   return (
     <Tag
       ref={ref as never}
+      className={cn("flex flex-col", GAP[gap], alignClass(align), justifyClass(justify), className)}
+      {...(rest as Record<string, unknown>)}
+    />
+  );
+});
+
+export const Inline = forwardRef<HTMLDivElement, IStackProps & { wrap?: boolean }>(function Inline(
+  { className, gap = 2, align = "center", justify, wrap, as: Tag = "div", ...rest },
+  ref,
+) {
+  return (
+    <Tag
+      ref={ref as never}
       className={cn(
-        "flex flex-col",
+        "flex flex-row",
+        wrap && "flex-wrap",
         GAP[gap],
         alignClass(align),
         justifyClass(justify),
         className,
       )}
       {...(rest as Record<string, unknown>)}
-
     />
   );
 });
-
-export const Inline = forwardRef<HTMLDivElement, IStackProps & { wrap?: boolean }>(
-  function Inline(
-    { className, gap = 2, align = "center", justify, wrap, as: Tag = "div", ...rest },
-    ref,
-  ) {
-    return (
-      <Tag
-        ref={ref as never}
-        className={cn(
-          "flex flex-row",
-          wrap && "flex-wrap",
-          GAP[gap],
-          alignClass(align),
-          justifyClass(justify),
-          className,
-        )}
-        {...(rest as Record<string, unknown>)}
-
-      />
-    );
-  },
-);
 
 interface IGridProps extends HTMLAttributes<HTMLDivElement> {
   cols?: 1 | 2 | 3 | 4 | 5 | 6 | 8 | 12;
@@ -94,13 +83,7 @@ export const Grid = forwardRef<HTMLDivElement, IGridProps>(function Grid(
   { className, cols = 3, gap = 4, ...rest },
   ref,
 ) {
-  return (
-    <div
-      ref={ref}
-      className={cn("grid", COLS[cols], GAP[gap], className)}
-      {...rest}
-    />
-  );
+  return <div ref={ref} className={cn("grid", COLS[cols], GAP[gap], className)} {...rest} />;
 });
 
 interface IContainerProps extends HTMLAttributes<HTMLDivElement> {
@@ -113,14 +96,15 @@ const SIZE: Record<NonNullable<IContainerProps["size"]>, string> = {
   xl: "max-w-7xl",
   full: "max-w-none",
 };
-export const Container = forwardRef<HTMLDivElement, IContainerProps>(
-  function Container({ className, size = "lg", ...rest }, ref) {
-    return (
-      <div
-        ref={ref}
-        className={cn("mx-auto w-full px-4 sm:px-6 lg:px-8", SIZE[size], className)}
-        {...rest}
-      />
-    );
-  },
-);
+export const Container = forwardRef<HTMLDivElement, IContainerProps>(function Container(
+  { className, size = "lg", ...rest },
+  ref,
+) {
+  return (
+    <div
+      ref={ref}
+      className={cn("mx-auto w-full px-4 sm:px-6 lg:px-8", SIZE[size], className)}
+      {...rest}
+    />
+  );
+});

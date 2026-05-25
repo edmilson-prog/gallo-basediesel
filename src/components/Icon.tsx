@@ -21,10 +21,7 @@ export function Icon({ icon, className, size, ariaLabel }: IIconProps) {
     return (
       <span
         aria-label={ariaLabel}
-        className={cn(
-          "inline-block border border-border bg-muted",
-          className,
-        )}
+        className={cn("inline-block border border-border bg-muted", className)}
         style={{
           width: size ?? "1em",
           height: size ?? "1em",

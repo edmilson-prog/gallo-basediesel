@@ -2,27 +2,27 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _A definir após criação no Lovable_ |
-| **Objetivo** | Estabelecer a arquitetura de roteamento, autenticação mockada, layouts reutilizáveis e navegação contextualizada por papel, formando o "esqueleto navegável" que todos os módulos da plataforma vão consumir |
-| **Tipo** | Feature |
-| **Complexidade** | Alta |
-| **Total de Fases** | 5 |
-| **Prioridade** | Alta |
-| **Épico** | Bloco 0 — Fundação |
-| **PRDs Relacionados** | PRD-001 (Design System), PRD-002 (Modelo Conceitual), PRD-004 (Mocks), PRD-006 (RBAC), PRD-007 (Multi-Loja) |
-| **Implementação** | 🟢 Lovable (segundo do par scaffold, junto com PRD-001) |
-| **Padrão de código** | Feature-based; rotas em `src/features/shell/routes/`; layouts em `src/features/shell/layouts/`; auth em `src/features/auth/` |
+| Campo                 | Valor                                                                                                                                                                                                        |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                                     |
+| **Repositório**       | _A definir após criação no Lovable_                                                                                                                                                                          |
+| **Objetivo**          | Estabelecer a arquitetura de roteamento, autenticação mockada, layouts reutilizáveis e navegação contextualizada por papel, formando o "esqueleto navegável" que todos os módulos da plataforma vão consumir |
+| **Tipo**              | Feature                                                                                                                                                                                                      |
+| **Complexidade**      | Alta                                                                                                                                                                                                         |
+| **Total de Fases**    | 5                                                                                                                                                                                                            |
+| **Prioridade**        | Alta                                                                                                                                                                                                         |
+| **Épico**             | Bloco 0 — Fundação                                                                                                                                                                                           |
+| **PRDs Relacionados** | PRD-001 (Design System), PRD-002 (Modelo Conceitual), PRD-004 (Mocks), PRD-006 (RBAC), PRD-007 (Multi-Loja)                                                                                                  |
+| **Implementação**     | 🟢 Lovable (segundo do par scaffold, junto com PRD-001)                                                                                                                                                      |
+| **Padrão de código**  | Feature-based; rotas em `src/features/shell/routes/`; layouts em `src/features/shell/layouts/`; auth em `src/features/auth/`                                                                                 |
 
 ### Critérios de Complexidade Utilizados
 
-| Complexidade | Critérios |
-|--------------|-----------|
-| **Baixa** | 1 arquivo, sem dependências externas, < 100 linhas |
-| **Média** | 2-5 arquivos, banco OU integração, funcionalidade isolada |
-| **Alta** | 5+ arquivos, múltiplas integrações, regras de negócio complexas |
+| Complexidade | Critérios                                                       |
+| ------------ | --------------------------------------------------------------- |
+| **Baixa**    | 1 arquivo, sem dependências externas, < 100 linhas              |
+| **Média**    | 2-5 arquivos, banco OU integração, funcionalidade isolada       |
+| **Alta**     | 5+ arquivos, múltiplas integrações, regras de negócio complexas |
 
 > **Justificativa de Alta:** dois sub-apps coexistindo em um único projeto (`/app/*` interno + `/loja/*` e-commerce), auth mockada com 3 perfis e role guards, 8 layouts reutilizáveis incluindo um layout de 3 colunas (Conversation), sidebar contextualizada por papel, bottom nav adaptativo mobile, top bar com seletor de loja + busca global + notificações + theme switcher, e placeholders de navegação end-to-end para 30+ rotas que serão preenchidas pelos PRDs posteriores.
 
@@ -62,14 +62,14 @@ Um app navegável de ponta a ponta com:
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que foi descartada |
-|-------------|------------------------|
+| Alternativa                                                       | Por que foi descartada                                                                                                                       |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | Dois projetos Vite separados (um para `/app`, outro para `/loja`) | Quebra a estratégia de "uma plataforma única"; duplica config, dependências, design system, tipos, mocks. Sobrecarga de manutenção altíssima |
-| Auth real com Supabase desde a Fase 1 | Contraria a estratégia Frontend First; backend só entra na Fase 2 após validação do cliente |
-| Single layout que se adapta a tudo via props | Cresce monoliticamente; cada nova necessidade vira mais um caso especial. 8 layouts especializados são mais simples de manter |
-| Sidebar fixa para todos os papéis (sem contextualização) | UX confusa: Vendedor veria itens que não consegue usar. Filtrar por papel desde o shell é essencial |
-| Bottom nav igual à sidebar (mesmos itens) | Mobile não comporta 10+ itens. Top 4-5 itens prioritários + "Mais..." que abre drawer com o resto |
-| Sem auth mockada (tudo aberto) | Impede testar o role guard, impede demonstrar diferenças entre perfis para o cliente, e prepara mal para Fase 2 |
+| Auth real com Supabase desde a Fase 1                             | Contraria a estratégia Frontend First; backend só entra na Fase 2 após validação do cliente                                                  |
+| Single layout que se adapta a tudo via props                      | Cresce monoliticamente; cada nova necessidade vira mais um caso especial. 8 layouts especializados são mais simples de manter                |
+| Sidebar fixa para todos os papéis (sem contextualização)          | UX confusa: Vendedor veria itens que não consegue usar. Filtrar por papel desde o shell é essencial                                          |
+| Bottom nav igual à sidebar (mesmos itens)                         | Mobile não comporta 10+ itens. Top 4-5 itens prioritários + "Mais..." que abre drawer com o resto                                            |
+| Sem auth mockada (tudo aberto)                                    | Impede testar o role guard, impede demonstrar diferenças entre perfis para o cliente, e prepara mal para Fase 2                              |
 
 **Decisão:** **um projeto Vite, duas árvores de rotas, design system compartilhado, auth mockada com 3 perfis e 8 layouts especializados.**
 
@@ -79,78 +79,79 @@ Um app navegável de ponta a ponta com:
 
 A plataforma é um único projeto React + Vite com **três grandes áreas de rota**:
 
-| Prefixo | Público | Layout | Conteúdo |
-|---------|---------|--------|----------|
-| `/app/*` | Owner, Vendedor (autenticados) | `<AppLayout>` com sidebar + topbar | CRM, Gestão, Atendimento, Configurações |
+| Prefixo   | Público                               | Layout                                          | Conteúdo                                          |
+| --------- | ------------------------------------- | ----------------------------------------------- | ------------------------------------------------- |
+| `/app/*`  | Owner, Vendedor (autenticados)        | `<AppLayout>` com sidebar + topbar              | CRM, Gestão, Atendimento, Configurações           |
 | `/loja/*` | Público anônimo + Cliente autenticado | `<LojaLayout>` com header navegacional + footer | Vitrine, busca, ficha de produto, carrinho, conta |
-| `/auth/*` | Anônimo | `<AuthLayout>` | Login mockado (seleção de perfil) |
+| `/auth/*` | Anônimo                               | `<AuthLayout>`                                  | Login mockado (seleção de perfil)                 |
 
 A rota raiz `/` redireciona:
+
 - Se não autenticado → `/auth/login`
 - Se Owner ou Vendedor autenticado → `/app/inicio`
 - Se Cliente autenticado → `/loja`
 
 ### Mapa de rotas do app interno (`/app/*`)
 
-| Rota | Página | Layout | Papéis permitidos | PRD futuro |
-|------|--------|--------|-------------------|------------|
-| `/app/inicio` | Dashboard inicial | `AppLayout` | Owner, Vendedor | PRD-014 |
-| `/app/atendimento` | Inbox de conversas | `ConversationLayout` | Owner, Vendedor | PRD-010 |
-| `/app/atendimento/:id` | Conversa específica | `ConversationLayout` | Owner, Vendedor | PRD-011 |
-| `/app/clientes` | Lista de clientes | `DetailLayout` | Owner, Vendedor | PRD-015 |
-| `/app/clientes/:id` | Ficha do cliente | `DetailLayout` | Owner, Vendedor | PRD-012 |
-| `/app/leads` | Pipeline de leads (Kanban) | `AppLayout` | Owner, Vendedor | PRD-017 |
-| `/app/veiculos` | Veículos | `AppLayout` | Owner, Vendedor | PRD-016 |
-| `/app/carteira` | Gestão de carteira e transferências | `AppLayout` | Owner | PRD-018 |
-| `/app/catalogo` | Catálogo interno de peças | `AppLayout` | Owner, Vendedor | PRD-030 |
-| `/app/orcamentos` | Orçamentos | `AppLayout` | Owner, Vendedor | PRD-031 |
-| `/app/pedidos` | Pedidos | `AppLayout` | Owner, Vendedor | PRD-032 |
-| `/app/sdr` | Painel do agente SDR | `AppLayout` | Owner | PRD-024 |
-| `/app/gestao` | Visão executiva | `DashboardLayout` | Owner | PRD-040 |
-| `/app/gestao/vendas` | Vendas | `DashboardLayout` | Owner | PRD-041 |
-| `/app/gestao/metas` | Metas | `DashboardLayout` | Owner | PRD-042 |
-| `/app/gestao/ranking` | Ranking | `DashboardLayout` | Owner, Vendedor | PRD-043 |
-| `/app/gestao/positivacao` | Positivação | `DashboardLayout` | Owner | PRD-044 |
-| `/app/gestao/abc` | Curva ABC | `DashboardLayout` | Owner | PRD-045 |
-| `/app/gestao/comissoes` | Comissões | `DashboardLayout` | Owner | PRD-047 |
-| `/app/gestao/dre` | DRE Gerencial | `DashboardLayout` | Owner | PRD-048 |
-| `/app/gestao/rentabilidade` | Rentabilidade | `DashboardLayout` | Owner | PRD-049 |
-| `/app/gestao/despesas` | Despesas | `DashboardLayout` | Owner | PRD-050 |
-| `/app/gestao/caixa` | Fluxo de Caixa | `DashboardLayout` | Owner | PRD-051 |
-| `/app/gestao/estoque` | Estoque com curadoria | `DashboardLayout` | Owner | PRD-052 |
-| `/app/configuracoes` | Configurações admin | `SettingsLayout` | Owner | PRD-019 |
-| `/app/configuracoes/perfil` | Perfil do usuário | `SettingsLayout` | Owner, Vendedor | — |
-| `/app/configuracoes/aparencia` | Tema/Modo | `SettingsLayout` | Owner, Vendedor | — |
-| `/design-system` | Documentação visual viva | `EmptyLayout` | Dev-only | PRD-001 |
+| Rota                           | Página                              | Layout               | Papéis permitidos | PRD futuro |
+| ------------------------------ | ----------------------------------- | -------------------- | ----------------- | ---------- |
+| `/app/inicio`                  | Dashboard inicial                   | `AppLayout`          | Owner, Vendedor   | PRD-014    |
+| `/app/atendimento`             | Inbox de conversas                  | `ConversationLayout` | Owner, Vendedor   | PRD-010    |
+| `/app/atendimento/:id`         | Conversa específica                 | `ConversationLayout` | Owner, Vendedor   | PRD-011    |
+| `/app/clientes`                | Lista de clientes                   | `DetailLayout`       | Owner, Vendedor   | PRD-015    |
+| `/app/clientes/:id`            | Ficha do cliente                    | `DetailLayout`       | Owner, Vendedor   | PRD-012    |
+| `/app/leads`                   | Pipeline de leads (Kanban)          | `AppLayout`          | Owner, Vendedor   | PRD-017    |
+| `/app/veiculos`                | Veículos                            | `AppLayout`          | Owner, Vendedor   | PRD-016    |
+| `/app/carteira`                | Gestão de carteira e transferências | `AppLayout`          | Owner             | PRD-018    |
+| `/app/catalogo`                | Catálogo interno de peças           | `AppLayout`          | Owner, Vendedor   | PRD-030    |
+| `/app/orcamentos`              | Orçamentos                          | `AppLayout`          | Owner, Vendedor   | PRD-031    |
+| `/app/pedidos`                 | Pedidos                             | `AppLayout`          | Owner, Vendedor   | PRD-032    |
+| `/app/sdr`                     | Painel do agente SDR                | `AppLayout`          | Owner             | PRD-024    |
+| `/app/gestao`                  | Visão executiva                     | `DashboardLayout`    | Owner             | PRD-040    |
+| `/app/gestao/vendas`           | Vendas                              | `DashboardLayout`    | Owner             | PRD-041    |
+| `/app/gestao/metas`            | Metas                               | `DashboardLayout`    | Owner             | PRD-042    |
+| `/app/gestao/ranking`          | Ranking                             | `DashboardLayout`    | Owner, Vendedor   | PRD-043    |
+| `/app/gestao/positivacao`      | Positivação                         | `DashboardLayout`    | Owner             | PRD-044    |
+| `/app/gestao/abc`              | Curva ABC                           | `DashboardLayout`    | Owner             | PRD-045    |
+| `/app/gestao/comissoes`        | Comissões                           | `DashboardLayout`    | Owner             | PRD-047    |
+| `/app/gestao/dre`              | DRE Gerencial                       | `DashboardLayout`    | Owner             | PRD-048    |
+| `/app/gestao/rentabilidade`    | Rentabilidade                       | `DashboardLayout`    | Owner             | PRD-049    |
+| `/app/gestao/despesas`         | Despesas                            | `DashboardLayout`    | Owner             | PRD-050    |
+| `/app/gestao/caixa`            | Fluxo de Caixa                      | `DashboardLayout`    | Owner             | PRD-051    |
+| `/app/gestao/estoque`          | Estoque com curadoria               | `DashboardLayout`    | Owner             | PRD-052    |
+| `/app/configuracoes`           | Configurações admin                 | `SettingsLayout`     | Owner             | PRD-019    |
+| `/app/configuracoes/perfil`    | Perfil do usuário                   | `SettingsLayout`     | Owner, Vendedor   | —          |
+| `/app/configuracoes/aparencia` | Tema/Modo                           | `SettingsLayout`     | Owner, Vendedor   | —          |
+| `/design-system`               | Documentação visual viva            | `EmptyLayout`        | Dev-only          | PRD-001    |
 
 ### Mapa de rotas da vitrine (`/loja/*`)
 
-| Rota | Página | Layout | Papéis | PRD futuro |
-|------|--------|--------|--------|------------|
-| `/loja` | Home da vitrine | `LojaLayout` | Público | PRD-060 |
-| `/loja/busca` | Busca avançada (OEM, aplicação) | `LojaLayout` | Público | PRD-061 |
-| `/loja/categoria/:slug` | Listagem de categoria | `LojaLayout` | Público | PRD-062 |
-| `/loja/produto/:slug` | Ficha de produto | `LojaLayout` | Público | PRD-063 |
-| `/loja/carrinho` | Carrinho | `LojaLayout` | Público | PRD-064 |
-| `/loja/checkout` | Checkout | `LojaLayout` | Autenticado | PRD-064 |
-| `/loja/conta` | Conta do cliente | `LojaLayout` | Cliente | PRD-065 |
-| `/loja/conta/pedidos` | Pedidos do cliente | `LojaLayout` | Cliente | PRD-065 |
-| `/portal` | Portal do cliente B2B | `AppLayout` (reduzido) | Cliente B2B | PRD-071 |
+| Rota                    | Página                          | Layout                 | Papéis      | PRD futuro |
+| ----------------------- | ------------------------------- | ---------------------- | ----------- | ---------- |
+| `/loja`                 | Home da vitrine                 | `LojaLayout`           | Público     | PRD-060    |
+| `/loja/busca`           | Busca avançada (OEM, aplicação) | `LojaLayout`           | Público     | PRD-061    |
+| `/loja/categoria/:slug` | Listagem de categoria           | `LojaLayout`           | Público     | PRD-062    |
+| `/loja/produto/:slug`   | Ficha de produto                | `LojaLayout`           | Público     | PRD-063    |
+| `/loja/carrinho`        | Carrinho                        | `LojaLayout`           | Público     | PRD-064    |
+| `/loja/checkout`        | Checkout                        | `LojaLayout`           | Autenticado | PRD-064    |
+| `/loja/conta`           | Conta do cliente                | `LojaLayout`           | Cliente     | PRD-065    |
+| `/loja/conta/pedidos`   | Pedidos do cliente              | `LojaLayout`           | Cliente     | PRD-065    |
+| `/portal`               | Portal do cliente B2B           | `AppLayout` (reduzido) | Cliente B2B | PRD-071    |
 
 ### Rotas de autenticação (`/auth/*`)
 
-| Rota | Página | Layout |
-|------|--------|--------|
-| `/auth/login` | Tela de seleção de perfil mockado | `AuthLayout` |
-| `/auth/logout` | Encerra sessão e redireciona para `/auth/login` | — |
+| Rota           | Página                                          | Layout       |
+| -------------- | ----------------------------------------------- | ------------ |
+| `/auth/login`  | Tela de seleção de perfil mockado               | `AuthLayout` |
+| `/auth/logout` | Encerra sessão e redireciona para `/auth/login` | —            |
 
 ### Rotas de erro
 
-| Rota | Página | Layout |
-|------|--------|--------|
-| `/404` | Não encontrado | `EmptyLayout` |
-| `/sem-permissao` | Acesso negado | `EmptyLayout` |
-| `/erro` | Erro genérico (boundary) | `EmptyLayout` |
+| Rota             | Página                   | Layout        |
+| ---------------- | ------------------------ | ------------- |
+| `/404`           | Não encontrado           | `EmptyLayout` |
+| `/sem-permissao` | Acesso negado            | `EmptyLayout` |
+| `/erro`          | Erro genérico (boundary) | `EmptyLayout` |
 
 ---
 
@@ -158,11 +159,11 @@ A rota raiz `/` redireciona:
 
 Não há senha, não há banco. A tela `/auth/login` lista os três perfis disponíveis com cards clicáveis. Selecionar um perfil grava em `localStorage` (chave `gallo-mock-user`) e direciona para a área correspondente.
 
-| Perfil mock | Nome | Papel | Loja | Direcionamento pós-login |
-|-------------|------|-------|------|--------------------------|
-| **Owner** | "João Gallo" (fundador, apelido Gallo) | `Owner` | Matriz | `/app/inicio` |
-| **Vendedor** | "Carlos Santos" | `Vendedor` | Matriz | `/app/atendimento` |
-| **Cliente** | "Transportadora Aurora Ltda" (B2B) | `Cliente` | — | `/loja` |
+| Perfil mock  | Nome                                   | Papel      | Loja   | Direcionamento pós-login |
+| ------------ | -------------------------------------- | ---------- | ------ | ------------------------ |
+| **Owner**    | "João Gallo" (fundador, apelido Gallo) | `Owner`    | Matriz | `/app/inicio`            |
+| **Vendedor** | "Carlos Santos"                        | `Vendedor` | Matriz | `/app/atendimento`       |
+| **Cliente**  | "Transportadora Aurora Ltda" (B2B)     | `Cliente`  | —      | `/loja`                  |
 
 Perfis são gerados pelos mocks (PRD-004). A tela de login apenas escolhe qual deles "está logado". Em qualquer momento o usuário pode clicar em "Trocar perfil" no menu do avatar e retornar à tela de login.
 
@@ -210,16 +211,16 @@ Perfis são gerados pelos mocks (PRD-004). A tela de login apenas escolhe qual d
 
 ### Inventário
 
-| # | Layout | Onde se aplica | Anatomia |
-|---|--------|---------------|----------|
-| 1 | `AppLayout` | Padrão do app interno | Sidebar + TopBar + Content (rolável) |
-| 2 | `ConversationLayout` | Atendimento (PRDs 010, 011) | Sidebar + TopBar + 3 colunas (Lista conversas \| Conversa \| Ficha cliente) |
-| 3 | `DetailLayout` | Listas com detalhe (Clientes, Catálogo) | Sidebar + TopBar + 2 colunas (Lista \| Detalhe) |
-| 4 | `DashboardLayout` | Gestão e BI | Sidebar + TopBar + Grid de widgets/cards |
-| 5 | `SettingsLayout` | Configurações | Sidebar + TopBar + Sub-sidebar de seções + Content |
-| 6 | `LojaLayout` | E-commerce público | LojaHeader + Content + LojaFooter (sem sidebar) |
-| 7 | `AuthLayout` | Login mockado | Centralizado, sem chrome, com logo grande |
-| 8 | `EmptyLayout` | 404, erro, splash, design-system | Centralizado, mínimo |
+| #   | Layout               | Onde se aplica                          | Anatomia                                                                    |
+| --- | -------------------- | --------------------------------------- | --------------------------------------------------------------------------- |
+| 1   | `AppLayout`          | Padrão do app interno                   | Sidebar + TopBar + Content (rolável)                                        |
+| 2   | `ConversationLayout` | Atendimento (PRDs 010, 011)             | Sidebar + TopBar + 3 colunas (Lista conversas \| Conversa \| Ficha cliente) |
+| 3   | `DetailLayout`       | Listas com detalhe (Clientes, Catálogo) | Sidebar + TopBar + 2 colunas (Lista \| Detalhe)                             |
+| 4   | `DashboardLayout`    | Gestão e BI                             | Sidebar + TopBar + Grid de widgets/cards                                    |
+| 5   | `SettingsLayout`     | Configurações                           | Sidebar + TopBar + Sub-sidebar de seções + Content                          |
+| 6   | `LojaLayout`         | E-commerce público                      | LojaHeader + Content + LojaFooter (sem sidebar)                             |
+| 7   | `AuthLayout`         | Login mockado                           | Centralizado, sem chrome, com logo grande                                   |
+| 8   | `EmptyLayout`        | 404, erro, splash, design-system        | Centralizado, mínimo                                                        |
 
 ### Anatomia detalhada do `ConversationLayout` (mais complexo)
 
@@ -250,6 +251,7 @@ Por ser o mais elaborado e o mais consumido pelo MVP (atendimento é o core), re
 ```
 
 Comportamento responsivo:
+
 - ≥ 1280px: três colunas todas visíveis
 - 768-1279px: lista de conversas + conversa; ficha do cliente como drawer
 - < 768px: navegação por níveis (lista → conversa → ficha), com botão "voltar"
@@ -329,6 +331,7 @@ Visual público, sem chrome de SaaS. Tem propósito comercial.
 - **RF-022:** Itens da sidebar devem ser filtrados por papel do usuário corrente:
 
 **Owner** vê todos os agrupamentos:
+
 - **Atendimento** — Início, Atendimento, Clientes, Leads, Veículos, Carteira
 - **Comercial** — Catálogo, Orçamentos, Pedidos
 - **SDR** — Painel SDR
@@ -336,6 +339,7 @@ Visual público, sem chrome de SaaS. Tem propósito comercial.
 - **Configurações** — Admin, Perfil, Aparência
 
 **Vendedor** vê apenas:
+
 - Início, Atendimento, Clientes, Leads, Veículos
 - Catálogo, Orçamentos, Pedidos
 - Ranking (parcial, só sua posição)
@@ -509,13 +513,13 @@ ENTÃO o login deve funcionar na sessão atual
 
 ## Fases de Implementação
 
-| Fase | Objetivo | Arquivos Estimados |
-|------|----------|-------------------|
-| 1 | Setup do roteamento e auth mockada | 6-8 |
-| 2 | Layouts base (AppLayout, AuthLayout, EmptyLayout, LojaLayout) | 4 |
-| 3 | Layouts especializados (ConversationLayout, DetailLayout, DashboardLayout, SettingsLayout) | 4 |
-| 4 | Sidebar, TopBar, BottomNav, LojaHeader/Footer | 6-8 |
-| 5 | Páginas placeholder, rotas de erro e error boundary | 30+ (arquivos pequenos) |
+| Fase | Objetivo                                                                                   | Arquivos Estimados      |
+| ---- | ------------------------------------------------------------------------------------------ | ----------------------- |
+| 1    | Setup do roteamento e auth mockada                                                         | 6-8                     |
+| 2    | Layouts base (AppLayout, AuthLayout, EmptyLayout, LojaLayout)                              | 4                       |
+| 3    | Layouts especializados (ConversationLayout, DetailLayout, DashboardLayout, SettingsLayout) | 4                       |
+| 4    | Sidebar, TopBar, BottomNav, LojaHeader/Footer                                              | 6-8                     |
+| 5    | Páginas placeholder, rotas de erro e error boundary                                        | 30+ (arquivos pequenos) |
 
 ### Detalhamento das Fases
 
@@ -524,6 +528,7 @@ ENTÃO o login deve funcionar na sessão atual
 **Objetivo:** ter o esqueleto de rotas funcionando com auth básica
 
 **Ações:**
+
 - [ ] Instalar `react-router-dom@6`
 - [ ] Criar `src/routes.tsx` como ponto central de declaração das rotas (lazy loaded)
 - [ ] Criar `src/features/auth/AuthProvider.tsx`, `useAuth.ts`, `<GuardedRoute>` em `src/features/auth/`
@@ -538,6 +543,7 @@ ENTÃO o login deve funcionar na sessão atual
 **Objetivo:** ter os 4 layouts mais simples prontos
 
 **Ações:**
+
 - [ ] Criar `src/features/shell/layouts/AppLayout.tsx` (sidebar placeholder + topbar placeholder + outlet)
 - [ ] Criar `src/features/shell/layouts/AuthLayout.tsx` (centralizado, logo grande)
 - [ ] Criar `src/features/shell/layouts/EmptyLayout.tsx` (mínimo, para 404 e splash)
@@ -550,6 +556,7 @@ ENTÃO o login deve funcionar na sessão atual
 **Objetivo:** layouts mais complexos prontos para os módulos consumirem
 
 **Ações:**
+
 - [ ] Criar `src/features/shell/layouts/ConversationLayout.tsx` com 3 áreas (Lista, Conversa, Ficha drawer) e comportamento responsivo
 - [ ] Criar `src/features/shell/layouts/DetailLayout.tsx` (lista + detalhe)
 - [ ] Criar `src/features/shell/layouts/DashboardLayout.tsx` (grid)
@@ -563,6 +570,7 @@ ENTÃO o login deve funcionar na sessão atual
 **Objetivo:** chrome navegacional completo, contextualizado por papel
 
 **Ações:**
+
 - [ ] Criar `<Sidebar>` com itens organizados por agrupamento e filtragem por papel
 - [ ] Implementar toggle expandido/colapsado com persistência em `localStorage`
 - [ ] Criar `<TopBar>` com logo, seletor de loja (mock), busca placeholder, notificações placeholder, theme switcher, avatar com dropdown
@@ -577,6 +585,7 @@ ENTÃO o login deve funcionar na sessão atual
 **Objetivo:** fechar o esqueleto end-to-end
 
 **Ações:**
+
 - [ ] Criar arquivos de página placeholder para todas as ~35 rotas (cada um exporta um componente que renderiza `<EmptyState>` com referência ao PRD futuro)
 - [ ] Criar `/404`, `/sem-permissao`, `/erro` com mensagens amigáveis
 - [ ] Configurar lazy loading + `<Suspense>` + `<RouteSkeleton>` em todas as rotas
@@ -590,16 +599,16 @@ ENTÃO o login deve funcionar na sessão atual
 
 ### PRDs Anteriores
 
-| PRD | Descrição | Status |
-|-----|-----------|--------|
+| PRD     | Descrição                                    | Status                                |
+| ------- | -------------------------------------------- | ------------------------------------- |
 | PRD-001 | Identidade Visual GALLO e Design System Base | ⏳ Pendente (deve estar pronto antes) |
-| PRD-002 | Modelo Conceitual de Domínio e Glossário | ⏳ Pendente (deve estar pronto antes) |
+| PRD-002 | Modelo Conceitual de Domínio e Glossário     | ⏳ Pendente (deve estar pronto antes) |
 
 ### Serviços Externos
 
-| Serviço | Tipo | Status |
-|---------|------|--------|
-| React Router v6 | Lib | A instalar |
+| Serviço         | Tipo | Status     |
+| --------------- | ---- | ---------- |
+| React Router v6 | Lib  | A instalar |
 
 ### Decisões Pendentes
 
@@ -611,15 +620,15 @@ Nenhuma — todas as decisões críticas estão tomadas.
 
 Este PRD faz parte do épico **"Bloco 0 — Fundação"**.
 
-| Ordem | PRD | Título | Status | Relação |
-|-------|-----|--------|--------|---------|
-| 1 | PRD-001 | Identidade Visual GALLO e Design System Base | ⏳ | Pré-requisito |
-| 2 | PRD-002 | Modelo Conceitual de Domínio e Glossário | ⏳ | Pré-requisito |
-| **3** | **PRD-003** | **Shell do App, Navegação e Layouts Base** | **🔄 ATUAL** | Depende de PRD-001 e PRD-002 |
-| 4 | PRD-004 | Geradores de Dados Fictícios e Camada de Mocks | ⏳ | Depende de PRD-002 |
-| 5 | PRD-005 | Arquitetura de Provedores de Dados | ⏳ | Depende de PRD-004 |
-| 6 | PRD-006 | Sistema de Roles, Permissões e Auditoria | ⏳ | Depende de PRD-002 e PRD-003 |
-| 7 | PRD-007 | Multi-Loja | ⏳ | Depende de PRD-002 e PRD-003 |
+| Ordem | PRD         | Título                                         | Status       | Relação                      |
+| ----- | ----------- | ---------------------------------------------- | ------------ | ---------------------------- |
+| 1     | PRD-001     | Identidade Visual GALLO e Design System Base   | ⏳           | Pré-requisito                |
+| 2     | PRD-002     | Modelo Conceitual de Domínio e Glossário       | ⏳           | Pré-requisito                |
+| **3** | **PRD-003** | **Shell do App, Navegação e Layouts Base**     | **🔄 ATUAL** | Depende de PRD-001 e PRD-002 |
+| 4     | PRD-004     | Geradores de Dados Fictícios e Camada de Mocks | ⏳           | Depende de PRD-002           |
+| 5     | PRD-005     | Arquitetura de Provedores de Dados             | ⏳           | Depende de PRD-004           |
+| 6     | PRD-006     | Sistema de Roles, Permissões e Auditoria       | ⏳           | Depende de PRD-002 e PRD-003 |
+| 7     | PRD-007     | Multi-Loja                                     | ⏳           | Depende de PRD-002 e PRD-003 |
 
 > **Nota:** PRD-003 é o segundo PRD consumido pelo Lovable. Após sua escrita (junto com PRD-001), o scaffold visual completo será gerado. PRDs 002, 004-007 ficam para o Claude Code CLI no clone local.
 
@@ -689,18 +698,18 @@ Este PRD não manipula nem armazena dados sensíveis. O `localStorage` guarda ap
 
 > **Consulte a Seção 5 do `guia-prd.md` para a versão completa.**
 
-| Elemento | Convenção | Exemplo |
-|----------|-----------|---------|
-| **Componentes React** | PascalCase | `AppLayout.tsx`, `Sidebar.tsx` |
-| **Hooks** | camelCase + `use` | `useAuth.ts`, `useRouteSkeleton.ts` |
-| **Páginas** | PascalCase + sufixo `Page` | `LoginPage.tsx`, `InicioPage.tsx` |
-| **Pastas** | kebab-case | `auth/`, `shell/`, `loja/` |
-| **Layout primitives** | PascalCase + sufixo `Layout` | `AppLayout`, `ConversationLayout` |
-| **Constantes de rota** | UPPER_SNAKE_CASE | `ROUTES.APP_INICIO`, `ROUTES.LOJA_HOME` |
-| **Interfaces** | PascalCase + `I` | `IRouteConfig`, `IGuardedRouteProps` |
-| **Estrutura de pastas** | Feature-based | `src/features/auth/`, `src/features/shell/` |
-| **Lazy loading** | `React.lazy(() => import('@/features/.../Page'))` | — |
-| **Git commits** | Conventional Commits | `feat: add shell layouts and routing` |
+| Elemento                | Convenção                                         | Exemplo                                     |
+| ----------------------- | ------------------------------------------------- | ------------------------------------------- |
+| **Componentes React**   | PascalCase                                        | `AppLayout.tsx`, `Sidebar.tsx`              |
+| **Hooks**               | camelCase + `use`                                 | `useAuth.ts`, `useRouteSkeleton.ts`         |
+| **Páginas**             | PascalCase + sufixo `Page`                        | `LoginPage.tsx`, `InicioPage.tsx`           |
+| **Pastas**              | kebab-case                                        | `auth/`, `shell/`, `loja/`                  |
+| **Layout primitives**   | PascalCase + sufixo `Layout`                      | `AppLayout`, `ConversationLayout`           |
+| **Constantes de rota**  | UPPER_SNAKE_CASE                                  | `ROUTES.APP_INICIO`, `ROUTES.LOJA_HOME`     |
+| **Interfaces**          | PascalCase + `I`                                  | `IRouteConfig`, `IGuardedRouteProps`        |
+| **Estrutura de pastas** | Feature-based                                     | `src/features/auth/`, `src/features/shell/` |
+| **Lazy loading**        | `React.lazy(() => import('@/features/.../Page'))` | —                                           |
+| **Git commits**         | Conventional Commits                              | `feat: add shell layouts and routing`       |
 
 ---
 
@@ -718,6 +727,7 @@ Este PRD não manipula nem armazena dados sensíveis. O `localStorage` guarda ap
 > "Lembre-se: explore a estrutura dos dados, planeje primeiro cada passo, analise, investigue a fundo, pense e revise tudo antes de realizar qualquer atualização ou implementação."
 
 > **⚠️ 2. APÓS IMPLEMENTAR:**
+>
 > - Incrementar a versão do app seguindo [SemVer](https://semver.org/)
 > - Atualizar o `CHANGELOG.md` seguindo [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 > - Renomear este arquivo adicionando `_DONE` ao final
@@ -726,84 +736,84 @@ Este PRD não manipula nem armazena dados sensíveis. O `localStorage` guarda ap
 
 ### Guia de Versionamento (SemVer)
 
-| Tipo de Mudança | Ação | Exemplo |
-|-----------------|------|---------|
-| Correção de bug | PATCH +1 | 0.1.0 → 0.1.1 |
-| Nova funcionalidade | MINOR +1, PATCH = 0 | 0.1.0 → 0.2.0 |
+| Tipo de Mudança      | Ação                 | Exemplo       |
+| -------------------- | -------------------- | ------------- |
+| Correção de bug      | PATCH +1             | 0.1.0 → 0.1.1 |
+| Nova funcionalidade  | MINOR +1, PATCH = 0  | 0.1.0 → 0.2.0 |
 | Mudança incompatível | MAJOR +1, outros = 0 | 0.x.x → 1.0.0 |
 
 **Codinomes da plataforma GALLO BASE DIESEL:**
 
-| Versão | Codinome | Contexto |
-|--------|----------|----------|
-| v0.1.0 | Genesis | PRD-001 + PRD-002 + PRD-003 (fundação completa do Lovable scaffold) |
-| v0.2.0 | Hub | Após Bloco 0 completo (mocks + providers + RBAC + multi-loja) |
-| v0.3.0 | Pilot | Após Bloco 1 (CRM) |
-| v0.4.0 | Compass | Após Bloco 4 (Gestão) |
-| v0.5.0 | Storefront | Após Bloco 5 (E-commerce) |
-| v1.0.0 | Heavy | Release MVP completo |
+| Versão | Codinome   | Contexto                                                            |
+| ------ | ---------- | ------------------------------------------------------------------- |
+| v0.1.0 | Genesis    | PRD-001 + PRD-002 + PRD-003 (fundação completa do Lovable scaffold) |
+| v0.2.0 | Hub        | Após Bloco 0 completo (mocks + providers + RBAC + multi-loja)       |
+| v0.3.0 | Pilot      | Após Bloco 1 (CRM)                                                  |
+| v0.4.0 | Compass    | Após Bloco 4 (Gestão)                                               |
+| v0.5.0 | Storefront | Após Bloco 5 (E-commerce)                                           |
+| v1.0.0 | Heavy      | Release MVP completo                                                |
 
 🔗 Referência: https://semver.org/
 
 ### Princípios de Implementação
 
-| Princípio | Descrição |
-|-----------|-----------|
-| **Esqueleto antes de conteúdo** | Toda rota tem placeholder antes de ter conteúdo real. Navegação funcional vence funcionalidade incompleta |
-| **Layouts são contratos** | Quando criar `ConversationLayout`, ele se torna contrato visual: nenhum PRD do Bloco 1 pode mudar a anatomia geral, apenas preencher as áreas |
-| **Auth mock = não-segurança** | Tudo aqui é UX, não segurança. Não trate como tal. Toda proteção real virá com Supabase Auth + RLS na Fase 2 |
-| **Mobile não é versão pobre** | BottomNav e navegação por níveis em mobile precisam estar tão polidos quanto o desktop |
-| **Lazy load tudo** | Cada rota é code-split. Bundle inicial só carrega o que é estritamente necessário para a primeira tela |
-| **Placeholder informativo** | `<EmptyState>` em rotas internas referencia o PRD futuro (para o time saber); em rotas públicas (`/loja`) é tom comercial neutro |
+| Princípio                       | Descrição                                                                                                                                     |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Esqueleto antes de conteúdo** | Toda rota tem placeholder antes de ter conteúdo real. Navegação funcional vence funcionalidade incompleta                                     |
+| **Layouts são contratos**       | Quando criar `ConversationLayout`, ele se torna contrato visual: nenhum PRD do Bloco 1 pode mudar a anatomia geral, apenas preencher as áreas |
+| **Auth mock = não-segurança**   | Tudo aqui é UX, não segurança. Não trate como tal. Toda proteção real virá com Supabase Auth + RLS na Fase 2                                  |
+| **Mobile não é versão pobre**   | BottomNav e navegação por níveis em mobile precisam estar tão polidos quanto o desktop                                                        |
+| **Lazy load tudo**              | Cada rota é code-split. Bundle inicial só carrega o que é estritamente necessário para a primeira tela                                        |
+| **Placeholder informativo**     | `<EmptyState>` em rotas internas referencia o PRD futuro (para o time saber); em rotas públicas (`/loja`) é tom comercial neutro              |
 
 ### Orientações Gerais
 
-| Aspecto | Orientação |
-|---------|------------|
-| **React Router v6** | Usar `<Outlet>` dentro dos layouts para renderizar children; usar `useLocation()` para destacar item ativo da sidebar |
-| **Lazy loading** | `const InicioPage = lazy(() => import('@/features/home/InicioPage'))` — separar por rota, não por componente |
+| Aspecto                            | Orientação                                                                                                                |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **React Router v6**                | Usar `<Outlet>` dentro dos layouts para renderizar children; usar `useLocation()` para destacar item ativo da sidebar     |
+| **Lazy loading**                   | `const InicioPage = lazy(() => import('@/features/home/InicioPage'))` — separar por rota, não por componente              |
 | **Filtragem por papel na sidebar** | Filtrar no momento do render (não no momento de construir o array de rotas) para garantir reatividade ao trocar de perfil |
-| **Mocked store selector** | No MVP, sempre mostra "GALLO Matriz" como item único; PRD-007 (Multi-Loja) introduz a lógica real |
-| **Search global placeholder** | Visualmente completo (input, ícone, placeholder text "Buscar clientes, peças, pedidos…"), funcionalidade zero |
-| **Notificações placeholder** | Badge sempre mostra 3 itens estáticos; sem ação real ao clicar |
-| **Avatar dropdown** | Inclui foto, nome, papel ("Owner / GALLO Matriz"), divider, e os itens (Perfil, Configurações, Trocar perfil, Sair) |
-| **Persistência sidebar** | Estado expandido/colapsado em `localStorage` chave `gallo-sidebar-collapsed` (boolean) |
+| **Mocked store selector**          | No MVP, sempre mostra "GALLO Matriz" como item único; PRD-007 (Multi-Loja) introduz a lógica real                         |
+| **Search global placeholder**      | Visualmente completo (input, ícone, placeholder text "Buscar clientes, peças, pedidos…"), funcionalidade zero             |
+| **Notificações placeholder**       | Badge sempre mostra 3 itens estáticos; sem ação real ao clicar                                                            |
+| **Avatar dropdown**                | Inclui foto, nome, papel ("Owner / GALLO Matriz"), divider, e os itens (Perfil, Configurações, Trocar perfil, Sair)       |
+| **Persistência sidebar**           | Estado expandido/colapsado em `localStorage` chave `gallo-sidebar-collapsed` (boolean)                                    |
 
 ### O que NÃO Fazer
 
-| ❌ Evitar |
-|----------|
-| Tentar implementar conteúdo funcional de qualquer tela (ex: Inbox real) neste PRD — só placeholders |
-| Misturar lógica do app interno (`/app`) com lógica do e-commerce (`/loja`) — pastas e providers separados |
+| ❌ Evitar                                                                                                            |
+| -------------------------------------------------------------------------------------------------------------------- |
+| Tentar implementar conteúdo funcional de qualquer tela (ex: Inbox real) neste PRD — só placeholders                  |
+| Misturar lógica do app interno (`/app`) com lógica do e-commerce (`/loja`) — pastas e providers separados            |
 | Hardcodar lista de itens da sidebar nos componentes — definir como dado em `src/features/shell/config/navigation.ts` |
-| Ignorar `<ThemeSwitcher>` ou reimplementá-lo — usar o componente do PRD-001 |
-| Implementar auth real com senha — fica explícito que é mockada |
-| Fazer animações elaboradas de transição de rota — fade discreto e ponto |
-| Criar novos layouts ao consumir nos PRDs seguintes — sempre usar um dos 8 deste PRD |
-| Esquecer `prefers-reduced-motion` nas transições |
-| Esquecer de proteger `/app/*` com `<GuardedRoute>` (acidentalmente expondo rotas) |
-| Tornar `/design-system` acessível em produção (já decidido no PRD-001, reforçar aqui) |
+| Ignorar `<ThemeSwitcher>` ou reimplementá-lo — usar o componente do PRD-001                                          |
+| Implementar auth real com senha — fica explícito que é mockada                                                       |
+| Fazer animações elaboradas de transição de rota — fade discreto e ponto                                              |
+| Criar novos layouts ao consumir nos PRDs seguintes — sempre usar um dos 8 deste PRD                                  |
+| Esquecer `prefers-reduced-motion` nas transições                                                                     |
+| Esquecer de proteger `/app/*` com `<GuardedRoute>` (acidentalmente expondo rotas)                                    |
+| Tornar `/design-system` acessível em produção (já decidido no PRD-001, reforçar aqui)                                |
 
 ---
 
 ## Status de Implementação
 
-| Campo | Valor |
-|-------|-------|
-| **Status** | ⏳ PENDENTE |
-| **Data de Implementação** | - |
-| **Versão do App** | - |
-| **Codinome** | - |
-| **Implementado por** | - |
-| **Observações** | - |
+| Campo                     | Valor       |
+| ------------------------- | ----------- |
+| **Status**                | ⏳ PENDENTE |
+| **Data de Implementação** | -           |
+| **Versão do App**         | -           |
+| **Codinome**              | -           |
+| **Implementado por**      | -           |
+| **Observações**           | -           |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 25/05/2026 | v1 | Criação inicial — shell, navegação, 8 layouts, auth mockada com 3 perfis, role guards, placeholders end-to-end |
+| Data       | Versão | Alteração                                                                                                      |
+| ---------- | ------ | -------------------------------------------------------------------------------------------------------------- |
+| 25/05/2026 | v1     | Criação inicial — shell, navegação, 8 layouts, auth mockada com 3 perfis, role guards, placeholders end-to-end |
 
 ---
 

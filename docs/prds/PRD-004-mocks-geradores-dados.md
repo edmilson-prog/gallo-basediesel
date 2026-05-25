@@ -2,27 +2,27 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _A definir após criação no Lovable_ |
-| **Objetivo** | Construir camada completa de mocks (`src/mocks/`) com geradores determinísticos, store em memória e API assíncrona — estabelecendo o contrato exato que o `SupabaseProvider` da Fase 2 vai cumprir |
-| **Tipo** | Feature |
-| **Complexidade** | Alta |
-| **Total de Fases** | 5 |
-| **Prioridade** | Alta |
-| **Épico** | Bloco 0 — Fundação |
-| **PRDs Relacionados** | PRD-002 (Modelo Conceitual), PRD-005 (Provider Pattern), PRD-006 (RBAC), PRD-007 (Multi-Loja) |
-| **Implementação** | 🔵 Claude Code CLI (sobre o scaffold do Lovable) |
-| **Padrão de código** | Tudo em `src/mocks/`; geradores e store internos; apenas APIs em `src/mocks/api/` são consumidas externamente |
+| Campo                 | Valor                                                                                                                                                                                              |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                           |
+| **Repositório**       | _A definir após criação no Lovable_                                                                                                                                                                |
+| **Objetivo**          | Construir camada completa de mocks (`src/mocks/`) com geradores determinísticos, store em memória e API assíncrona — estabelecendo o contrato exato que o `SupabaseProvider` da Fase 2 vai cumprir |
+| **Tipo**              | Feature                                                                                                                                                                                            |
+| **Complexidade**      | Alta                                                                                                                                                                                               |
+| **Total de Fases**    | 5                                                                                                                                                                                                  |
+| **Prioridade**        | Alta                                                                                                                                                                                               |
+| **Épico**             | Bloco 0 — Fundação                                                                                                                                                                                 |
+| **PRDs Relacionados** | PRD-002 (Modelo Conceitual), PRD-005 (Provider Pattern), PRD-006 (RBAC), PRD-007 (Multi-Loja)                                                                                                      |
+| **Implementação**     | 🔵 Claude Code CLI (sobre o scaffold do Lovable)                                                                                                                                                   |
+| **Padrão de código**  | Tudo em `src/mocks/`; geradores e store internos; apenas APIs em `src/mocks/api/` são consumidas externamente                                                                                      |
 
 ### Critérios de Complexidade Utilizados
 
-| Complexidade | Critérios |
-|--------------|-----------|
-| **Baixa** | 1 arquivo, sem dependências externas, < 100 linhas |
-| **Média** | 2-5 arquivos, banco OU integração, funcionalidade isolada |
-| **Alta** | 5+ arquivos, múltiplas integrações, regras de negócio complexas |
+| Complexidade | Critérios                                                       |
+| ------------ | --------------------------------------------------------------- |
+| **Baixa**    | 1 arquivo, sem dependências externas, < 100 linhas              |
+| **Média**    | 2-5 arquivos, banco OU integração, funcionalidade isolada       |
+| **Alta**     | 5+ arquivos, múltiplas integrações, regras de negócio complexas |
 
 > **Justificativa de Alta:** geração determinística de ~32 entidades respeitando relações cruzadas (uma `IOrder` referencia `ICustomer`, `ISeller`, `IPart`); volumes realistas e coerentes (50 clientes B2B + 20 B2C, 200 peças, 120 pedidos, 80 conversas, ~500 mensagens, 30 orçamentos, 80 leads); store em memória com mutações simulando CRUD; API assíncrona com latência e cenários de erro; contrato idêntico ao futuro `SupabaseProvider` para drop-in replacement; é a "fundação invisível" que todos os PRDs do Bloco 1 em diante consomem para funcionar.
 
@@ -34,7 +34,7 @@ A estratégia Frontend First exige que toda a plataforma seja desenvolvida e val
 
 Três tipos de problema emergem se essa camada não for bem projetada:
 
-**Dados inconsistentes ou irreais.** Se cada componente gerar seus próprios dados ad-hoc, o cliente João Gallo da tela de Atendimento não é o mesmo João Gallo da tela de Pedidos. O sistema parece desconectado, e validar fluxos cruzados (lead vira customer, customer cria pedido, pedido aparece na ficha) fica impossível. **Mocks sem contrato com o backend futuro.** Se a função `listCustomers()` no mock retornar diferente do que o Supabase vai retornar, na Fase 2 cada serviço precisa ser refatorado, cada componente ajustado. O drop-in replacement vira retrabalho de meses. **Apresentação visual sem profundidade de dado.** Uma plataforma comercial com 5 clientes mockados parece brinquedo. Para validar BI, gestão, positivação, é preciso volume mínimo realista (dezenas de clientes, centenas de pedidos) e *padrões* nesses dados (alguns clientes ativos, alguns dormentes, alguns A na curva ABC).
+**Dados inconsistentes ou irreais.** Se cada componente gerar seus próprios dados ad-hoc, o cliente João Gallo da tela de Atendimento não é o mesmo João Gallo da tela de Pedidos. O sistema parece desconectado, e validar fluxos cruzados (lead vira customer, customer cria pedido, pedido aparece na ficha) fica impossível. **Mocks sem contrato com o backend futuro.** Se a função `listCustomers()` no mock retornar diferente do que o Supabase vai retornar, na Fase 2 cada serviço precisa ser refatorado, cada componente ajustado. O drop-in replacement vira retrabalho de meses. **Apresentação visual sem profundidade de dado.** Uma plataforma comercial com 5 clientes mockados parece brinquedo. Para validar BI, gestão, positivação, é preciso volume mínimo realista (dezenas de clientes, centenas de pedidos) e _padrões_ nesses dados (alguns clientes ativos, alguns dormentes, alguns A na curva ABC).
 
 Este PRD resolve os três: estabelece uma camada de mocks com **geração determinística** (mesmo seed = mesmos dados), **integridade referencial** (relações entre entidades sempre coerentes), **volumes realistas e padronizados**, **API com assinatura idêntica ao Supabase futuro** e **store em memória** que permite CRUD durante a sessão.
 
@@ -72,13 +72,13 @@ src/mocks/
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que foi descartada |
-|-------------|------------------------|
-| MSW (Mock Service Worker) interceptando fetch | Excessivo para Fase 1; melhor para mocks de testes ou apps já com APIs reais. Aqui não há fetch nenhum ainda |
-| JSON Server local | Subir processo separado; complicação operacional desnecessária; não é "drop-in" para Supabase |
-| Hard-coded arrays espalhados pelas features | Duplicação inevitável; sem integridade referencial; impossível garantir consistência |
-| Faker.js direto em cada feature | Cada feature gera "seus dados", quebrando integridade; impossível reproduzir bugs |
-| JSON estático carregado uma vez (sem CRUD em memória) | UI não consegue criar/editar/deletar, quebra fluxos de validação |
+| Alternativa                                           | Por que foi descartada                                                                                       |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| MSW (Mock Service Worker) interceptando fetch         | Excessivo para Fase 1; melhor para mocks de testes ou apps já com APIs reais. Aqui não há fetch nenhum ainda |
+| JSON Server local                                     | Subir processo separado; complicação operacional desnecessária; não é "drop-in" para Supabase                |
+| Hard-coded arrays espalhados pelas features           | Duplicação inevitável; sem integridade referencial; impossível garantir consistência                         |
+| Faker.js direto em cada feature                       | Cada feature gera "seus dados", quebrando integridade; impossível reproduzir bugs                            |
+| JSON estático carregado uma vez (sem CRUD em memória) | UI não consegue criar/editar/deletar, quebra fluxos de validação                                             |
 
 **Decisões consolidadas:**
 
@@ -94,36 +94,36 @@ src/mocks/
 
 Volumes pensados para serem **realistas o suficiente** para validar todas as features sem inflar o bundle/store em memória além do necessário.
 
-| Entidade | Quantidade | Distribuição/Notas |
-|----------|------------|--------------------|
-| **IStore** | 1 | "GALLO BASE DIESEL — Matriz" (Frederico Westphalen/RS); multi-loja real entra no PRD-007 |
-| **ITeam** | 0 | Dormente no MVP |
-| **ISeller** | 4 | 1 Owner ("João Gallo") + 3 Vendedores internos ("Carlos Santos", "Marina Cardoso", "Rafael Lima") |
-| **IRole** | 7 | Owner, Gestor, Vendedor, SDR, Cliente, VendedorExterno, Financeiro (cadastros completos com permissões coerentes) |
-| **IAuditLog** | 40 | Variados, distribuídos nos últimos 30 dias, cobrindo todas as `actions` principais |
-| **ICustomer (B2B)** | 50 | Transportadoras, frotas, oficinas; 30 ativos / 10 dormentes / 5 recuperação / 5 perdidos; variados em curva ABC |
-| **ICustomer (B2C)** | 20 | Pessoa física; mistura de ticket alto e baixo |
-| **ICustomerNote** | ~120 | 1-3 notas por cliente em média |
-| **IVehicle** | 60 | Veículos pertencentes a 25 clientes B2B (frotas: 2-5 veículos); marcas distribuídas (Volvo, Scania, Mercedes, Ford, Iveco) |
-| **IVehicleServiceEntry** | ~80 | Histórico de manutenção por veículo |
-| **ILead** | 80 | Distribuídos pelos 5 estágios; 30 novos, 20 em qualificação, 15 com orçamento enviado, 10 em negociação, 5 convertidos/perdidos |
-| **ICustomerSegment** | 6 | Filtros salvos exemplificando uso (ex: "Clientes Volvo recência > 60 dias") |
-| **ICarteiraTransfer** | 8 | 3 temporary (1 ativa, 2 revertidas), 4 permanent_individual, 1 permanent_batch |
-| **IRecommendation** | 25 | Apenas dos 3 tipos do MVP (dormant, predictable_maintenance, expected_purchase_missing) |
-| **IConversation** | 80 | 15 aguardando, 30 em_andamento, 10 aguardando_cliente, 20 resolvida, 5 arquivada |
-| **IMessage** | ~600 | Média de 7-8 mensagens por conversa (algumas com 1-2, outras com 30+) |
-| **IWhatsAppAccount** | 2 | 1 Meta Cloud (oficial) + 1 Evolution (campanhas) |
-| **IPart** | 200 | Distribuídas por categoria: motor, freios, transmissão, suspensão, elétrica, filtros, etc. Todas com `division: 'parts'` |
-| **IApplication** | ~600 | 2-4 aplicações por peça em média |
-| **IQuote** | 30 | Variados em status; 10 rascunho, 10 enviado, 5 aceito, 3 recusado, 1 expirado, 1 convertido |
-| **IOrder** | 120 | Espalhados nos últimos 12 meses para alimentar BI; variados em status de pagamento e fulfillment |
-| **IOrderItem** | ~400 | Média de 3-4 itens por pedido |
-| **ICommission** | 40 | Comissões do mês corrente + 2 meses anteriores |
-| **IGoal** | 8 | 2 metas de loja (revenue + positivacao) + 6 metas individuais (2 por vendedor: revenue + tickets) |
-| **IGamificationBadge** | 20 | Diversos badges por vendedor |
-| **IRanking** | 1 | Período mês corrente |
-| **IPositivation** | 1 | Período mês corrente, com todos os clientes categorizados |
-| **IABCClassification** | 70 | Uma por cliente (B2B + B2C), distribuídas ~20 A, ~20 B, ~30 C |
+| Entidade                 | Quantidade | Distribuição/Notas                                                                                                              |
+| ------------------------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **IStore**               | 1          | "GALLO BASE DIESEL — Matriz" (Frederico Westphalen/RS); multi-loja real entra no PRD-007                                        |
+| **ITeam**                | 0          | Dormente no MVP                                                                                                                 |
+| **ISeller**              | 4          | 1 Owner ("João Gallo") + 3 Vendedores internos ("Carlos Santos", "Marina Cardoso", "Rafael Lima")                               |
+| **IRole**                | 7          | Owner, Gestor, Vendedor, SDR, Cliente, VendedorExterno, Financeiro (cadastros completos com permissões coerentes)               |
+| **IAuditLog**            | 40         | Variados, distribuídos nos últimos 30 dias, cobrindo todas as `actions` principais                                              |
+| **ICustomer (B2B)**      | 50         | Transportadoras, frotas, oficinas; 30 ativos / 10 dormentes / 5 recuperação / 5 perdidos; variados em curva ABC                 |
+| **ICustomer (B2C)**      | 20         | Pessoa física; mistura de ticket alto e baixo                                                                                   |
+| **ICustomerNote**        | ~120       | 1-3 notas por cliente em média                                                                                                  |
+| **IVehicle**             | 60         | Veículos pertencentes a 25 clientes B2B (frotas: 2-5 veículos); marcas distribuídas (Volvo, Scania, Mercedes, Ford, Iveco)      |
+| **IVehicleServiceEntry** | ~80        | Histórico de manutenção por veículo                                                                                             |
+| **ILead**                | 80         | Distribuídos pelos 5 estágios; 30 novos, 20 em qualificação, 15 com orçamento enviado, 10 em negociação, 5 convertidos/perdidos |
+| **ICustomerSegment**     | 6          | Filtros salvos exemplificando uso (ex: "Clientes Volvo recência > 60 dias")                                                     |
+| **ICarteiraTransfer**    | 8          | 3 temporary (1 ativa, 2 revertidas), 4 permanent_individual, 1 permanent_batch                                                  |
+| **IRecommendation**      | 25         | Apenas dos 3 tipos do MVP (dormant, predictable_maintenance, expected_purchase_missing)                                         |
+| **IConversation**        | 80         | 15 aguardando, 30 em_andamento, 10 aguardando_cliente, 20 resolvida, 5 arquivada                                                |
+| **IMessage**             | ~600       | Média de 7-8 mensagens por conversa (algumas com 1-2, outras com 30+)                                                           |
+| **IWhatsAppAccount**     | 2          | 1 Meta Cloud (oficial) + 1 Evolution (campanhas)                                                                                |
+| **IPart**                | 200        | Distribuídas por categoria: motor, freios, transmissão, suspensão, elétrica, filtros, etc. Todas com `division: 'parts'`        |
+| **IApplication**         | ~600       | 2-4 aplicações por peça em média                                                                                                |
+| **IQuote**               | 30         | Variados em status; 10 rascunho, 10 enviado, 5 aceito, 3 recusado, 1 expirado, 1 convertido                                     |
+| **IOrder**               | 120        | Espalhados nos últimos 12 meses para alimentar BI; variados em status de pagamento e fulfillment                                |
+| **IOrderItem**           | ~400       | Média de 3-4 itens por pedido                                                                                                   |
+| **ICommission**          | 40         | Comissões do mês corrente + 2 meses anteriores                                                                                  |
+| **IGoal**                | 8          | 2 metas de loja (revenue + positivacao) + 6 metas individuais (2 por vendedor: revenue + tickets)                               |
+| **IGamificationBadge**   | 20         | Diversos badges por vendedor                                                                                                    |
+| **IRanking**             | 1          | Período mês corrente                                                                                                            |
+| **IPositivation**        | 1          | Período mês corrente, com todos os clientes categorizados                                                                       |
+| **IABCClassification**   | 70         | Uma por cliente (B2B + B2C), distribuídas ~20 A, ~20 B, ~30 C                                                                   |
 
 > **Total**: ~2200 itens em memória. Volume confortável para Zustand store e nada pesado para o navegador.
 
@@ -236,15 +236,15 @@ Cada API por agregado expõe um conjunto consistente de operações CRUD + queri
 
 interface IListCustomersParams {
   storeId?: ID;
-  status?: ICustomer['status'];
+  status?: ICustomer["status"];
   sellerId?: ID;
-  search?: string;       // busca em nome/cnpj/cpf
+  search?: string; // busca em nome/cnpj/cpf
   tags?: string[];
   segmentId?: ID;
   page?: number;
   pageSize?: number;
-  orderBy?: 'name' | 'lastPurchaseAt' | 'ticketMedio';
-  orderDir?: 'asc' | 'desc';
+  orderBy?: "name" | "lastPurchaseAt" | "ticketMedio";
+  orderDir?: "asc" | "desc";
 }
 
 interface IPaginatedResult<T> {
@@ -255,14 +255,28 @@ interface IPaginatedResult<T> {
 }
 
 export const customersApi = {
-  list: (params?: IListCustomersParams): Promise<IPaginatedResult<ICustomer>> => { /* ... */ },
-  get: (id: ID): Promise<ICustomer | null> => { /* ... */ },
-  create: (input: Omit<ICustomer, 'id' | 'createdAt'>): Promise<ICustomer> => { /* ... */ },
-  update: (id: ID, patch: Partial<ICustomer>): Promise<ICustomer> => { /* ... */ },
-  delete: (id: ID): Promise<void> => { /* ... */ },
+  list: (params?: IListCustomersParams): Promise<IPaginatedResult<ICustomer>> => {
+    /* ... */
+  },
+  get: (id: ID): Promise<ICustomer | null> => {
+    /* ... */
+  },
+  create: (input: Omit<ICustomer, "id" | "createdAt">): Promise<ICustomer> => {
+    /* ... */
+  },
+  update: (id: ID, patch: Partial<ICustomer>): Promise<ICustomer> => {
+    /* ... */
+  },
+  delete: (id: ID): Promise<void> => {
+    /* ... */
+  },
   // específicas do domínio
-  addNote: (customerId: ID, content: string, authorId: ID): Promise<ICustomerNote> => { /* ... */ },
-  listNotes: (customerId: ID): Promise<ICustomerNote[]> => { /* ... */ },
+  addNote: (customerId: ID, content: string, authorId: ID): Promise<ICustomerNote> => {
+    /* ... */
+  },
+  listNotes: (customerId: ID): Promise<ICustomerNote[]> => {
+    /* ... */
+  },
 };
 ```
 
@@ -457,13 +471,13 @@ ENTÃO deve rejeitar com MockValidationError
 
 ## Fases de Implementação
 
-| Fase | Objetivo | Arquivos Estimados |
-|------|----------|-------------------|
-| 1 | Configuração base, seeds estáticos e utils | 8-10 |
-| 2 | Geradores das entidades principais (sem dependências) | 6-8 |
-| 3 | Geradores das entidades dependentes + bootstrap orquestrador | 8-10 |
-| 4 | Store Zustand + APIs públicas (CRUD básico) | 15-18 |
-| 5 | Reset, logs, integração com /design-system, validação final | 3-4 |
+| Fase | Objetivo                                                     | Arquivos Estimados |
+| ---- | ------------------------------------------------------------ | ------------------ |
+| 1    | Configuração base, seeds estáticos e utils                   | 8-10               |
+| 2    | Geradores das entidades principais (sem dependências)        | 6-8                |
+| 3    | Geradores das entidades dependentes + bootstrap orquestrador | 8-10               |
+| 4    | Store Zustand + APIs públicas (CRUD básico)                  | 15-18              |
+| 5    | Reset, logs, integração com /design-system, validação final  | 3-4                |
 
 ### Detalhamento das Fases
 
@@ -472,6 +486,7 @@ ENTÃO deve rejeitar com MockValidationError
 **Objetivo:** ter a infraestrutura compartilhada de mocks pronta
 
 **Ações:**
+
 - [ ] Instalar dependências: `@faker-js/faker`, `seedrandom`, `zustand` (se não instalado pelo PRD-003)
 - [ ] Criar `src/mocks/config.ts` com volumes, latência, taxa de erro
 - [ ] Criar `src/mocks/data/` com 7 arquivos de seeds estáticos (store matriz, vendedores, papéis, estágios, motivos de perda, tags, modelos de veículos)
@@ -485,6 +500,7 @@ ENTÃO deve rejeitar com MockValidationError
 **Objetivo:** gerar entidades que não dependem de outras (catálogo, peças, papéis ampliados)
 
 **Ações:**
+
 - [ ] Implementar `generators/part.ts` (gera IPart com applications, oemCodes, etc.)
 - [ ] Implementar `generators/customer.ts` (gera ICustomer B2B e B2C distinguidos por seed)
 - [ ] Implementar `generators/seller.ts` (estende seeds fixos com campos calculados — availability, etc.)
@@ -497,6 +513,7 @@ ENTÃO deve rejeitar com MockValidationError
 **Objetivo:** gerar tudo que depende de outras entidades + orquestrar
 
 **Ações:**
+
 - [ ] Implementar `generators/vehicle.ts` (vincula a clientes B2B)
 - [ ] Implementar `generators/lead.ts`, `generators/conversation.ts`, `generators/message.ts`
 - [ ] Implementar `generators/quote.ts`, `generators/order.ts` (com items, snapshots de preço)
@@ -511,6 +528,7 @@ ENTÃO deve rejeitar com MockValidationError
 **Objetivo:** expor o contrato drop-in para o resto do app consumir
 
 **Ações:**
+
 - [ ] Criar `store/mockStore.ts` com Zustand contendo todas as entidades
 - [ ] Implementar seletores em `store/selectors.ts` e mutations em `store/mutations.ts`
 - [ ] Implementar bootstrap automático no primeiro acesso ao store
@@ -526,6 +544,7 @@ ENTÃO deve rejeitar com MockValidationError
 **Objetivo:** ferramentas de administração + integração com /design-system
 
 **Ações:**
+
 - [ ] Implementar hook `useResetMocks()` em `src/mocks/hooks/`
 - [ ] Adicionar seção "Mocks" na página `/design-system` (PRD-001) com botão de reset e input de seed
 - [ ] Documentar contrato das APIs em comments JSDoc
@@ -540,19 +559,19 @@ ENTÃO deve rejeitar com MockValidationError
 
 ### PRDs Anteriores
 
-| PRD | Descrição | Status |
-|-----|-----------|--------|
+| PRD     | Descrição                                | Status                                |
+| ------- | ---------------------------------------- | ------------------------------------- |
 | PRD-002 | Modelo Conceitual de Domínio e Glossário | ⏳ Pendente (deve estar pronto antes) |
 
 ### Serviços Externos
 
-| Serviço | Tipo | Status |
-|---------|------|--------|
-| Faker.js (`@faker-js/faker`) | Lib | A instalar |
-| Zustand | Lib | A instalar (pode já ter vindo do PRD-003) |
-| seedrandom | Lib | A instalar |
-| pravatar.cc | CDN externo (avatares) | Disponível |
-| picsum.photos | CDN externo (imagens) | Disponível |
+| Serviço                      | Tipo                   | Status                                    |
+| ---------------------------- | ---------------------- | ----------------------------------------- |
+| Faker.js (`@faker-js/faker`) | Lib                    | A instalar                                |
+| Zustand                      | Lib                    | A instalar (pode já ter vindo do PRD-003) |
+| seedrandom                   | Lib                    | A instalar                                |
+| pravatar.cc                  | CDN externo (avatares) | Disponível                                |
+| picsum.photos                | CDN externo (imagens)  | Disponível                                |
 
 ### Decisões Pendentes
 
@@ -564,15 +583,15 @@ Nenhuma — todas as decisões críticas estão tomadas neste PRD e no briefing 
 
 Este PRD faz parte do épico **"Bloco 0 — Fundação"**.
 
-| Ordem | PRD | Título | Status | Relação |
-|-------|-----|--------|--------|---------|
-| 1 | PRD-001 | Identidade Visual GALLO e Design System Base | ⏳ | — |
-| 2 | PRD-002 | Modelo Conceitual de Domínio e Glossário | ⏳ | Pré-requisito (tipos consumidos) |
-| 3 | PRD-003 | Shell do App, Navegação e Layouts Base | ⏳ | Paralelo (Zustand compartilhado) |
-| **4** | **PRD-004** | **Geradores de Dados Fictícios e Camada de Mocks** | **🔄 ATUAL** | Depende de PRD-002 |
-| 5 | PRD-005 | Arquitetura de Provedores de Dados | ⏳ | Depende de PRD-004 (abstrai mocks vs supabase) |
-| 6 | PRD-006 | Sistema de Roles, Permissões e Auditoria | ⏳ | Consome mocks |
-| 7 | PRD-007 | Multi-Loja | ⏳ | Consome mocks |
+| Ordem | PRD         | Título                                             | Status       | Relação                                        |
+| ----- | ----------- | -------------------------------------------------- | ------------ | ---------------------------------------------- |
+| 1     | PRD-001     | Identidade Visual GALLO e Design System Base       | ⏳           | —                                              |
+| 2     | PRD-002     | Modelo Conceitual de Domínio e Glossário           | ⏳           | Pré-requisito (tipos consumidos)               |
+| 3     | PRD-003     | Shell do App, Navegação e Layouts Base             | ⏳           | Paralelo (Zustand compartilhado)               |
+| **4** | **PRD-004** | **Geradores de Dados Fictícios e Camada de Mocks** | **🔄 ATUAL** | Depende de PRD-002                             |
+| 5     | PRD-005     | Arquitetura de Provedores de Dados                 | ⏳           | Depende de PRD-004 (abstrai mocks vs supabase) |
+| 6     | PRD-006     | Sistema de Roles, Permissões e Auditoria           | ⏳           | Consome mocks                                  |
+| 7     | PRD-007     | Multi-Loja                                         | ⏳           | Consome mocks                                  |
 
 > **Nota:** PRD-004 é pré-requisito de todos os PRDs do Bloco 1 em diante. Sem mocks funcionando, nenhuma feature do app interno consegue ser implementada de forma demonstrável.
 
@@ -647,17 +666,17 @@ A página `/design-system` (e portanto o reset de mocks) é **dev-only** (PRD-00
 
 > **Consulte a Seção 5 do `guia-prd.md` para a versão completa.**
 
-| Elemento | Convenção | Exemplo |
-|----------|-----------|---------|
-| **Geradores** | camelCase, prefixo `generate` | `generateCustomer()`, `generateOrder()` |
-| **APIs** | camelCase, sufixo `Api` | `customersApi`, `ordersApi` |
-| **Seletores do store** | camelCase, prefixo `select` ou `get` | `selectCustomersByStore()`, `getOrderById()` |
-| **Mutations do store** | camelCase, verbo + entidade | `upsertCustomer()`, `removeOrder()` |
-| **Constantes de configuração** | UPPER_SNAKE_CASE | `DEFAULT_SEED`, `LATENCY_MIN_MS` |
-| **Classes de erro** | PascalCase, sufixo `Error` | `MockNotFoundError`, `MockValidationError` |
-| **Arquivos** | kebab-case dentro de `src/mocks/` | `bootstrap.ts`, `customers.ts` |
-| **Imports do faker** | Específicos | `import { faker } from '@faker-js/faker/locale/pt_BR'` |
-| **Git commits** | Conventional Commits | `feat: add gallo mock data generators` |
+| Elemento                       | Convenção                            | Exemplo                                                |
+| ------------------------------ | ------------------------------------ | ------------------------------------------------------ |
+| **Geradores**                  | camelCase, prefixo `generate`        | `generateCustomer()`, `generateOrder()`                |
+| **APIs**                       | camelCase, sufixo `Api`              | `customersApi`, `ordersApi`                            |
+| **Seletores do store**         | camelCase, prefixo `select` ou `get` | `selectCustomersByStore()`, `getOrderById()`           |
+| **Mutations do store**         | camelCase, verbo + entidade          | `upsertCustomer()`, `removeOrder()`                    |
+| **Constantes de configuração** | UPPER_SNAKE_CASE                     | `DEFAULT_SEED`, `LATENCY_MIN_MS`                       |
+| **Classes de erro**            | PascalCase, sufixo `Error`           | `MockNotFoundError`, `MockValidationError`             |
+| **Arquivos**                   | kebab-case dentro de `src/mocks/`    | `bootstrap.ts`, `customers.ts`                         |
+| **Imports do faker**           | Específicos                          | `import { faker } from '@faker-js/faker/locale/pt_BR'` |
+| **Git commits**                | Conventional Commits                 | `feat: add gallo mock data generators`                 |
 
 ---
 
@@ -675,6 +694,7 @@ A página `/design-system` (e portanto o reset de mocks) é **dev-only** (PRD-00
 > "Lembre-se: explore a estrutura dos dados, planeje primeiro cada passo, analise, investigue a fundo, pense e revise tudo antes de realizar qualquer atualização ou implementação."
 
 > **⚠️ 2. APÓS IMPLEMENTAR:**
+>
 > - Incrementar a versão do app seguindo [SemVer](https://semver.org/)
 > - Atualizar o `CHANGELOG.md` seguindo [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 > - Renomear este arquivo adicionando `_DONE` ao final
@@ -683,76 +703,76 @@ A página `/design-system` (e portanto o reset de mocks) é **dev-only** (PRD-00
 
 ### Guia de Versionamento (SemVer)
 
-| Tipo de Mudança | Ação | Exemplo |
-|-----------------|------|---------|
-| Correção de bug | PATCH +1 | 0.1.0 → 0.1.1 |
-| Nova funcionalidade | MINOR +1, PATCH = 0 | 0.1.0 → 0.2.0 |
+| Tipo de Mudança      | Ação                 | Exemplo       |
+| -------------------- | -------------------- | ------------- |
+| Correção de bug      | PATCH +1             | 0.1.0 → 0.1.1 |
+| Nova funcionalidade  | MINOR +1, PATCH = 0  | 0.1.0 → 0.2.0 |
 | Mudança incompatível | MAJOR +1, outros = 0 | 0.x.x → 1.0.0 |
 
 🔗 Referência: https://semver.org/
 
 ### Princípios de Implementação
 
-| Princípio | Descrição |
-|-----------|-----------|
-| **Determinismo é sagrado** | Mesma seed = mesmo dataset sempre. Nunca usar `Math.random()` direto; sempre via RNG instanciada |
-| **Integridade referencial é regra** | Nenhuma entidade referencia ID inexistente. Validar em bootstrap |
-| **API é o contrato com Supabase** | Cada operação em `api/` precisa ter assinatura que Supabase consiga implementar igual. Adicionar `@todo` quando previsível que mudará |
-| **Isolamento do store** | Store é interna ao módulo de mocks. Nenhuma feature deve importar `mockStore`, apenas APIs |
-| **Latência simula real** | Sem latência simulada, devs esquecem de tratar loading states; UI nasce frágil |
-| **Erros são tipados** | Nunca rejeitar `Promise.reject('algo')`. Sempre uma classe de erro com instanceof funcional |
-| **Volumes realistas** | Volumes baixos demais escondem problemas; volumes altos demais inflam o store. Os valores especificados são intencionais |
+| Princípio                           | Descrição                                                                                                                             |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **Determinismo é sagrado**          | Mesma seed = mesmo dataset sempre. Nunca usar `Math.random()` direto; sempre via RNG instanciada                                      |
+| **Integridade referencial é regra** | Nenhuma entidade referencia ID inexistente. Validar em bootstrap                                                                      |
+| **API é o contrato com Supabase**   | Cada operação em `api/` precisa ter assinatura que Supabase consiga implementar igual. Adicionar `@todo` quando previsível que mudará |
+| **Isolamento do store**             | Store é interna ao módulo de mocks. Nenhuma feature deve importar `mockStore`, apenas APIs                                            |
+| **Latência simula real**            | Sem latência simulada, devs esquecem de tratar loading states; UI nasce frágil                                                        |
+| **Erros são tipados**               | Nunca rejeitar `Promise.reject('algo')`. Sempre uma classe de erro com instanceof funcional                                           |
+| **Volumes realistas**               | Volumes baixos demais escondem problemas; volumes altos demais inflam o store. Os valores especificados são intencionais              |
 
 ### Orientações Gerais
 
-| Aspecto | Orientação |
-|---------|------------|
-| **Faker locale** | Sempre `pt_BR`. Import específico: `import { faker } from '@faker-js/faker/locale/pt_BR'` |
-| **Seeded random** | Usar `seedrandom(seed)` para criar instância única passada como contexto aos geradores |
-| **Pesos em distribuições** | Usar `pickWeighted` para garantir proporções (ex: 60% pedidos pagos, 30% pendentes, 10% cancelados) |
-| **Datas históricas** | Usar `faker.date.between` ou helper `randomDate(start, end)` para distribuir em janelas adequadas |
-| **CNPJ e CPF válidos** | Implementar dígito verificador matematicamente válido (a maioria de validadores brasileiros checa) |
-| **Mensagens de chat realistas** | Templates de mensagens curtas (5-15 palavras) com ocasional anexo simulado (mediaType: 'image') |
-| **Avatares determinísticos** | URL contendo o `id` do registro para consistência entre renders |
-| **Lint para isolamento** | Configurar ESLint com `import/no-restricted-paths` para barrar `mockStore` fora de `src/mocks/` |
+| Aspecto                         | Orientação                                                                                          |
+| ------------------------------- | --------------------------------------------------------------------------------------------------- |
+| **Faker locale**                | Sempre `pt_BR`. Import específico: `import { faker } from '@faker-js/faker/locale/pt_BR'`           |
+| **Seeded random**               | Usar `seedrandom(seed)` para criar instância única passada como contexto aos geradores              |
+| **Pesos em distribuições**      | Usar `pickWeighted` para garantir proporções (ex: 60% pedidos pagos, 30% pendentes, 10% cancelados) |
+| **Datas históricas**            | Usar `faker.date.between` ou helper `randomDate(start, end)` para distribuir em janelas adequadas   |
+| **CNPJ e CPF válidos**          | Implementar dígito verificador matematicamente válido (a maioria de validadores brasileiros checa)  |
+| **Mensagens de chat realistas** | Templates de mensagens curtas (5-15 palavras) com ocasional anexo simulado (mediaType: 'image')     |
+| **Avatares determinísticos**    | URL contendo o `id` do registro para consistência entre renders                                     |
+| **Lint para isolamento**        | Configurar ESLint com `import/no-restricted-paths` para barrar `mockStore` fora de `src/mocks/`     |
 
 ### O que NÃO Fazer
 
-| ❌ Evitar |
-|----------|
-| Usar `Math.random()` direto em qualquer gerador |
-| Importar `mockStore` em features (`src/features/*/`) — apenas APIs |
-| Hardcodar IDs (`'customer-1'`) — sempre `crypto.randomUUID()` |
-| Misturar `snake_case` no modelo de mocks — modelo é `camelCase` (PRD-002) |
+| ❌ Evitar                                                                                          |
+| -------------------------------------------------------------------------------------------------- |
+| Usar `Math.random()` direto em qualquer gerador                                                    |
+| Importar `mockStore` em features (`src/features/*/`) — apenas APIs                                 |
+| Hardcodar IDs (`'customer-1'`) — sempre `crypto.randomUUID()`                                      |
+| Misturar `snake_case` no modelo de mocks — modelo é `camelCase` (PRD-002)                          |
 | Persistir o dataset completo em `localStorage` (refresh deve limpar; apenas auth e tema persistem) |
-| Usar Faker sem locale `pt_BR` |
-| Esquecer `simulateLatency` ou `simulateError` em uma API |
-| Criar entidade não prevista no PRD-002 sem aprovação do Arquiteto |
-| Importar Faker inteiro (`import * as faker`) — quebra tree-shaking |
-| Logs verbosos em produção ou demo ao cliente (`MOCK_LOGS_ENABLED` em false) |
-| Acoplar APIs a componentes via tipos custom — usar sempre tipos do PRD-002 |
-| Ignorar erros simulados (não tratar `MockNetworkError` na UI) |
+| Usar Faker sem locale `pt_BR`                                                                      |
+| Esquecer `simulateLatency` ou `simulateError` em uma API                                           |
+| Criar entidade não prevista no PRD-002 sem aprovação do Arquiteto                                  |
+| Importar Faker inteiro (`import * as faker`) — quebra tree-shaking                                 |
+| Logs verbosos em produção ou demo ao cliente (`MOCK_LOGS_ENABLED` em false)                        |
+| Acoplar APIs a componentes via tipos custom — usar sempre tipos do PRD-002                         |
+| Ignorar erros simulados (não tratar `MockNetworkError` na UI)                                      |
 
 ---
 
 ## Status de Implementação
 
-| Campo | Valor |
-|-------|-------|
-| **Status** | ⏳ PENDENTE |
-| **Data de Implementação** | - |
-| **Versão do App** | - |
-| **Codinome** | - |
-| **Implementado por** | - |
-| **Observações** | - |
+| Campo                     | Valor       |
+| ------------------------- | ----------- |
+| **Status**                | ⏳ PENDENTE |
+| **Data de Implementação** | -           |
+| **Versão do App**         | -           |
+| **Codinome**              | -           |
+| **Implementado por**      | -           |
+| **Observações**           | -           |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 25/05/2026 | v1 | Criação inicial — camada de mocks completa, geradores determinísticos, store Zustand, APIs com contrato drop-in para Supabase |
+| Data       | Versão | Alteração                                                                                                                     |
+| ---------- | ------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| 25/05/2026 | v1     | Criação inicial — camada de mocks completa, geradores determinísticos, store Zustand, APIs com contrato drop-in para Supabase |
 
 ---
 

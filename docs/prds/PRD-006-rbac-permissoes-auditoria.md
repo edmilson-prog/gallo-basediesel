@@ -2,27 +2,27 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _A definir após criação no Lovable_ |
-| **Objetivo** | Implementar o modelo de RBAC com matriz completa de permissões para os 7 papéis, helpers e componentes de verificação fina (resource × action × scope), telas read-only de visualização de papéis e auditoria — preparando o terreno para a implementação real na Fase 2 com Supabase RLS |
-| **Tipo** | Feature |
-| **Complexidade** | Alta |
-| **Total de Fases** | 5 |
-| **Prioridade** | Alta |
-| **Épico** | Bloco 0 — Fundação |
-| **PRDs Relacionados** | PRD-002 (Modelo Conceitual), PRD-003 (Shell), PRD-004 (Mocks), PRD-005 (Provider Pattern) |
-| **Implementação** | 🔵 Claude Code CLI (sobre o scaffold do Lovable) |
-| **Padrão de código** | RBAC em `src/features/rbac/`; matriz de permissões em `src/features/rbac/permissions/`; helpers em `src/features/rbac/utils/`; componentes em `src/features/rbac/components/` |
+| Campo                 | Valor                                                                                                                                                                                                                                                                                     |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                                                                                                                  |
+| **Repositório**       | _A definir após criação no Lovable_                                                                                                                                                                                                                                                       |
+| **Objetivo**          | Implementar o modelo de RBAC com matriz completa de permissões para os 7 papéis, helpers e componentes de verificação fina (resource × action × scope), telas read-only de visualização de papéis e auditoria — preparando o terreno para a implementação real na Fase 2 com Supabase RLS |
+| **Tipo**              | Feature                                                                                                                                                                                                                                                                                   |
+| **Complexidade**      | Alta                                                                                                                                                                                                                                                                                      |
+| **Total de Fases**    | 5                                                                                                                                                                                                                                                                                         |
+| **Prioridade**        | Alta                                                                                                                                                                                                                                                                                      |
+| **Épico**             | Bloco 0 — Fundação                                                                                                                                                                                                                                                                        |
+| **PRDs Relacionados** | PRD-002 (Modelo Conceitual), PRD-003 (Shell), PRD-004 (Mocks), PRD-005 (Provider Pattern)                                                                                                                                                                                                 |
+| **Implementação**     | 🔵 Claude Code CLI (sobre o scaffold do Lovable)                                                                                                                                                                                                                                          |
+| **Padrão de código**  | RBAC em `src/features/rbac/`; matriz de permissões em `src/features/rbac/permissions/`; helpers em `src/features/rbac/utils/`; componentes em `src/features/rbac/components/`                                                                                                             |
 
 ### Critérios de Complexidade Utilizados
 
-| Complexidade | Critérios |
-|--------------|-----------|
-| **Baixa** | 1 arquivo, sem dependências externas, < 100 linhas |
-| **Média** | 2-5 arquivos, banco OU integração, funcionalidade isolada |
-| **Alta** | 5+ arquivos, múltiplas integrações, regras de negócio complexas |
+| Complexidade | Critérios                                                       |
+| ------------ | --------------------------------------------------------------- |
+| **Baixa**    | 1 arquivo, sem dependências externas, < 100 linhas              |
+| **Média**    | 2-5 arquivos, banco OU integração, funcionalidade isolada       |
+| **Alta**     | 5+ arquivos, múltiplas integrações, regras de negócio complexas |
 
 > **Justificativa de Alta:** matriz de permissões para 7 papéis × 16+ recursos × 5 ações × 4 scopes (centenas de células), helpers de verificação com lógica de hierarquia de scope, hook reativo a troca de papel, componentes de renderização condicional (`<Can>`, `<Forbidden>`), 2 telas de configuração (papéis read-only + auditoria com filtros), integração com `<GuardedRoute>` do PRD-003, geração de logs mockados, e exigência de ser semanticamente compatível com Supabase RLS futuro.
 
@@ -72,12 +72,12 @@ Os 7 papéis recebem permissões hardcoded **neste PRD**, em `src/features/rbac/
 
 Scope tem ordem: `own < team < store < all`. Quando alguém tem permissão com scope `store`, ele tem implicitamente `team` e `own` também. O helper de verificação respeita essa hierarquia.
 
-| Scope | Significado | Quem tipicamente tem |
-|-------|-------------|----------------------|
-| `own` | Apenas registros vinculados diretamente ao próprio usuário (sua carteira, suas conversas) | Vendedor, VendedorExterno, SDR |
-| `team` | Registros da própria equipe (equipe dormente no MVP — equivalente a `own` por enquanto) | _Reservado para Fase 2_ |
-| `store` | Todos os registros da própria loja | Gestor, Financeiro |
-| `all` | Tudo, em todas as lojas | Owner |
+| Scope   | Significado                                                                               | Quem tipicamente tem           |
+| ------- | ----------------------------------------------------------------------------------------- | ------------------------------ |
+| `own`   | Apenas registros vinculados diretamente ao próprio usuário (sua carteira, suas conversas) | Vendedor, VendedorExterno, SDR |
+| `team`  | Registros da própria equipe (equipe dormente no MVP — equivalente a `own` por enquanto)   | _Reservado para Fase 2_        |
+| `store` | Todos os registros da própria loja                                                        | Gestor, Financeiro             |
+| `all`   | Tudo, em todas as lojas                                                                   | Owner                          |
 
 ### Recursos cobertos
 
@@ -102,24 +102,26 @@ Três interfaces para os componentes verificarem permissão:
 ### Auditoria visual
 
 A tela `/app/configuracoes/auditoria` (Owner-only) mostra:
+
 - Lista paginada de `IAuditLog` ordenada por timestamp desc
 - Filtros: ator (vendedor), ação, recurso, faixa de data
 - Detalhe expandível mostrando `before` e `after` (JSON formatado)
 - Botão de export (CSV — placeholder no MVP, real na Fase 2)
 
 Logs são gerados de duas formas:
+
 1. **Histórico**: ~40 logs mockados pelo PRD-004 distribuídos nos últimos 30 dias
 2. **Runtime**: a partir deste PRD, mutações em providers (create/update/delete) registram log via helper `auditLog(action, resource, resourceId, before, after)`
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que foi descartada |
-|-------------|------------------------|
-| RBAC apenas no servidor (Supabase RLS) — sem nada no frontend | Componentes de UI precisariam saber permissões via API ou tentar ações e ver se falham — UX ruim |
-| ACLs por registro (cada cliente tem lista de quem pode ver) | Complexidade desnecessária no MVP; modelo de role + scope é suficiente |
-| Editor de papéis no MVP | Fora do escopo do MVP; tela read-only mostra o conceito, edição entra na Fase 2 |
-| Logar tudo (cada view de cliente vira um audit) | Inflaria o log com ruído; logar apenas **mutations** (create/update/delete) e ações sensíveis (login, troca de papel) |
-| Permissões como bitmasks ou flags numéricas | Mais compacto mas ilegível; preferir strings literais por clareza no debugging |
+| Alternativa                                                   | Por que foi descartada                                                                                                |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| RBAC apenas no servidor (Supabase RLS) — sem nada no frontend | Componentes de UI precisariam saber permissões via API ou tentar ações e ver se falham — UX ruim                      |
+| ACLs por registro (cada cliente tem lista de quem pode ver)   | Complexidade desnecessária no MVP; modelo de role + scope é suficiente                                                |
+| Editor de papéis no MVP                                       | Fora do escopo do MVP; tela read-only mostra o conceito, edição entra na Fase 2                                       |
+| Logar tudo (cada view de cliente vira um audit)               | Inflaria o log com ruído; logar apenas **mutations** (create/update/delete) e ações sensíveis (login, troca de papel) |
+| Permissões como bitmasks ou flags numéricas                   | Mais compacto mas ilegível; preferir strings literais por clareza no debugging                                        |
 
 **Decisão consolidada:** **RBAC frontend com matriz hardcoded para 7 papéis, scope hierárquico, helpers + hook + componente declarativo, e auditoria visual com log retroativo (mockado) + log de runtime (mutações via providers).**
 
@@ -159,26 +161,26 @@ Espelha Vendedor mas com região atribuída — no MVP, equivalente a Vendedor (
 
 ### Resumo em tabela
 
-| Recurso | Owner | Gestor | Vendedor | SDR | Cliente | VendExt | Financeiro |
-|---------|-------|--------|----------|-----|---------|---------|------------|
-| customer | CRUD:all | CRUD:store | VE:own | V:store | — | VE:own | V:store |
-| vehicle | CRUD:all | CRUD:store | VE:own | V:store | V:own | VE:own | — |
-| lead | CRUD:all | CRUD:store | VE:own | VC:own | — | VE:own | — |
-| conversation | CRUD:all | CRUD:store | VE:own | VC:own | VC:own | VE:own | — |
-| message | CRUD:all | C:store | VC:own | VC:own | VC:own | VC:own | — |
-| part | CRUD:all | V:store | V:store | V:store | V:store | V:store | V:store |
-| quote | CRUD:all | CRUD+A:store | VE:own | VC:own | V:own | VE:own | V:store |
-| order | CRUD:all | CRUD:store | V:own | — | V:own | V:own | V:store |
-| commission | CRUD:all | A:store | V:own | — | — | V:own | VA:store |
-| goal | CRUD:all | CRUD:store | V:own | — | — | V:own | V:store |
-| recommendation | CRUD:all | V:store | V:own | V:own | — | V:own | — |
-| transfer | CRUD:all | CRUD:store | — | — | — | — | — |
-| segment | CRUD:all | CRUD:store | VCE:own | — | — | VE:own | — |
-| seller | CRUD:all | V:store | V:own | V:store | — | V:own | V:store |
-| store | CRUD:all | V:own | — | — | — | — | V:own |
-| settings | CRUD:all | V:store | V:own | — | — | — | — |
-| audit_log | V:all | V:store | — | — | — | — | V:store |
-| role | CRUD:all | V:store | — | — | — | — | — |
+| Recurso        | Owner    | Gestor       | Vendedor | SDR     | Cliente | VendExt | Financeiro |
+| -------------- | -------- | ------------ | -------- | ------- | ------- | ------- | ---------- |
+| customer       | CRUD:all | CRUD:store   | VE:own   | V:store | —       | VE:own  | V:store    |
+| vehicle        | CRUD:all | CRUD:store   | VE:own   | V:store | V:own   | VE:own  | —          |
+| lead           | CRUD:all | CRUD:store   | VE:own   | VC:own  | —       | VE:own  | —          |
+| conversation   | CRUD:all | CRUD:store   | VE:own   | VC:own  | VC:own  | VE:own  | —          |
+| message        | CRUD:all | C:store      | VC:own   | VC:own  | VC:own  | VC:own  | —          |
+| part           | CRUD:all | V:store      | V:store  | V:store | V:store | V:store | V:store    |
+| quote          | CRUD:all | CRUD+A:store | VE:own   | VC:own  | V:own   | VE:own  | V:store    |
+| order          | CRUD:all | CRUD:store   | V:own    | —       | V:own   | V:own   | V:store    |
+| commission     | CRUD:all | A:store      | V:own    | —       | —       | V:own   | VA:store   |
+| goal           | CRUD:all | CRUD:store   | V:own    | —       | —       | V:own   | V:store    |
+| recommendation | CRUD:all | V:store      | V:own    | V:own   | —       | V:own   | —          |
+| transfer       | CRUD:all | CRUD:store   | —        | —       | —       | —       | —          |
+| segment        | CRUD:all | CRUD:store   | VCE:own  | —       | —       | VE:own  | —          |
+| seller         | CRUD:all | V:store      | V:own    | V:store | —       | V:own   | V:store    |
+| store          | CRUD:all | V:own        | —        | —       | —       | —       | V:own      |
+| settings       | CRUD:all | V:store      | V:own    | —       | —       | —       | —          |
+| audit_log      | V:all    | V:store      | —        | —       | —       | —       | V:store    |
+| role           | CRUD:all | V:store      | —        | —       | —       | —       | —          |
 
 > **Legenda:** C=create V=view E=edit D=delete A=approve / `:scope`
 
@@ -430,13 +432,13 @@ ENTÃO deve falhar com erro de tipo (resource deve ser union literal)
 
 ## Fases de Implementação
 
-| Fase | Objetivo | Arquivos Estimados |
-|------|----------|-------------------|
-| 1 | Constantes, matriz e helpers | 5-6 |
-| 2 | Hooks e componentes declarativos | 5-6 |
-| 3 | Integração com GuardedRoute e auditLog runtime | 3-4 |
-| 4 | Tela de papéis (read-only) | 3-4 |
-| 5 | Tela de auditoria com filtros + documentação | 5-6 |
+| Fase | Objetivo                                       | Arquivos Estimados |
+| ---- | ---------------------------------------------- | ------------------ |
+| 1    | Constantes, matriz e helpers                   | 5-6                |
+| 2    | Hooks e componentes declarativos               | 5-6                |
+| 3    | Integração com GuardedRoute e auditLog runtime | 3-4                |
+| 4    | Tela de papéis (read-only)                     | 3-4                |
+| 5    | Tela de auditoria com filtros + documentação   | 5-6                |
 
 ### Detalhamento das Fases
 
@@ -445,6 +447,7 @@ ENTÃO deve falhar com erro de tipo (resource deve ser union literal)
 **Objetivo:** ter a fonte da verdade do RBAC pronta
 
 **Ações:**
+
 - [ ] Criar `src/features/rbac/permissions/resources.ts`, `actions.ts`, `scopes.ts` com union types literais
 - [ ] Criar `src/features/rbac/permissions/matrix.ts` com permissões dos 7 papéis (~150 entradas)
 - [ ] Criar `src/features/rbac/utils/compareScopes.ts`
@@ -459,6 +462,7 @@ ENTÃO deve falhar com erro de tipo (resource deve ser union literal)
 **Objetivo:** API React-friendly para componentes consumirem
 
 **Ações:**
+
 - [ ] Criar `src/features/rbac/hooks/usePermission.ts` (consome `useAuth()`)
 - [ ] Criar `src/features/rbac/hooks/useCurrentRole.ts`
 - [ ] Criar `src/features/rbac/components/Can.tsx`
@@ -472,6 +476,7 @@ ENTÃO deve falhar com erro de tipo (resource deve ser union literal)
 **Objetivo:** plugar RBAC no shell e nos providers
 
 **Ações:**
+
 - [ ] Atualizar `<GuardedRoute>` do PRD-003 adicionando prop `permission?: { ... }`
 - [ ] Criar `src/features/rbac/utils/auditLog.ts` com função `auditLog(params)` que persiste no mock store
 - [ ] Adicionar hook `useAuditLog()` para ser chamado por providers/serviços
@@ -485,6 +490,7 @@ ENTÃO deve falhar com erro de tipo (resource deve ser union literal)
 **Objetivo:** UI demonstrativa do modelo de permissões
 
 **Ações:**
+
 - [ ] Criar `RolesPage` em `src/features/rbac/pages/RolesPage.tsx`
 - [ ] Layout: tabs ou accordion para os 7 papéis, cada um com tabela de permissões
 - [ ] Indicador visual sutil "Edição disponível na Fase 2"
@@ -497,6 +503,7 @@ ENTÃO deve falhar com erro de tipo (resource deve ser union literal)
 **Objetivo:** completude do RBAC visual
 
 **Ações:**
+
 - [ ] Criar `AuditLogPage` com lista paginada usando `IAuditLog` do mock store
 - [ ] Painel de filtros lateral (ator, ação, recurso, data)
 - [ ] Sincronização de filtros com URL via query params
@@ -513,17 +520,17 @@ ENTÃO deve falhar com erro de tipo (resource deve ser union literal)
 
 ### PRDs Anteriores
 
-| PRD | Descrição | Status |
-|-----|-----------|--------|
-| PRD-002 | Modelo Conceitual de Domínio e Glossário | ⏳ Pendente (tipos IRole, IPermission, IAuditLog consumidos) |
-| PRD-003 | Shell do App, Navegação e Layouts Base | ⏳ Pendente (`<GuardedRoute>` estendido, `<AuthProvider>` consumido) |
+| PRD     | Descrição                                      | Status                                                                     |
+| ------- | ---------------------------------------------- | -------------------------------------------------------------------------- |
+| PRD-002 | Modelo Conceitual de Domínio e Glossário       | ⏳ Pendente (tipos IRole, IPermission, IAuditLog consumidos)               |
+| PRD-003 | Shell do App, Navegação e Layouts Base         | ⏳ Pendente (`<GuardedRoute>` estendido, `<AuthProvider>` consumido)       |
 | PRD-004 | Geradores de Dados Fictícios e Camada de Mocks | ⏳ Pendente (mock de IAuditLog histórico, store mutável para runtime logs) |
-| PRD-005 | Arquitetura de Provedores de Dados | ⏳ Pendente (providers acoplam `auditLog()` nas mutações) |
+| PRD-005 | Arquitetura de Provedores de Dados             | ⏳ Pendente (providers acoplam `auditLog()` nas mutações)                  |
 
 ### Serviços Externos
 
-| Serviço | Tipo | Status |
-|---------|------|--------|
+| Serviço                                             | Tipo         | Status     |
+| --------------------------------------------------- | ------------ | ---------- |
 | Prism.js ou highlight.js (syntax highlighting JSON) | Lib opcional | A instalar |
 
 ### Decisões Pendentes
@@ -536,15 +543,15 @@ Nenhuma.
 
 Este PRD faz parte do épico **"Bloco 0 — Fundação"**.
 
-| Ordem | PRD | Título | Status | Relação |
-|-------|-----|--------|--------|---------|
-| 1 | PRD-001 | Identidade Visual GALLO e Design System Base | ⏳ | — |
-| 2 | PRD-002 | Modelo Conceitual de Domínio e Glossário | ⏳ | Pré-requisito |
-| 3 | PRD-003 | Shell do App, Navegação e Layouts Base | ⏳ | Pré-requisito (`<GuardedRoute>` estendido) |
-| 4 | PRD-004 | Geradores de Dados Fictícios e Camada de Mocks | ⏳ | Pré-requisito |
-| 5 | PRD-005 | Arquitetura de Provedores de Dados | ⏳ | Pré-requisito (`auditLog()` acoplado às mutations) |
-| **6** | **PRD-006** | **Sistema de Roles, Permissões e Auditoria (visual)** | **🔄 ATUAL** | Depende de PRD-002, 003, 004, 005 |
-| 7 | PRD-007 | Multi-Loja | ⏳ | Consome scope='store' |
+| Ordem | PRD         | Título                                                | Status       | Relação                                            |
+| ----- | ----------- | ----------------------------------------------------- | ------------ | -------------------------------------------------- |
+| 1     | PRD-001     | Identidade Visual GALLO e Design System Base          | ⏳           | —                                                  |
+| 2     | PRD-002     | Modelo Conceitual de Domínio e Glossário              | ⏳           | Pré-requisito                                      |
+| 3     | PRD-003     | Shell do App, Navegação e Layouts Base                | ⏳           | Pré-requisito (`<GuardedRoute>` estendido)         |
+| 4     | PRD-004     | Geradores de Dados Fictícios e Camada de Mocks        | ⏳           | Pré-requisito                                      |
+| 5     | PRD-005     | Arquitetura de Provedores de Dados                    | ⏳           | Pré-requisito (`auditLog()` acoplado às mutations) |
+| **6** | **PRD-006** | **Sistema de Roles, Permissões e Auditoria (visual)** | **🔄 ATUAL** | Depende de PRD-002, 003, 004, 005                  |
+| 7     | PRD-007     | Multi-Loja                                            | ⏳           | Consome scope='store'                              |
 
 **Legenda:** ✅ Implementado | 🔄 Atual | ⏳ Pendente
 
@@ -555,11 +562,13 @@ Este PRD faz parte do épico **"Bloco 0 — Fundação"**.
 ### O RBAC frontend não é segurança real
 
 **Reforço crítico:** tudo aqui é UX e disciplina arquitetural — não proteção real. Qualquer dev/atacante consegue:
+
 - Editar o `localStorage` para se passar por Owner
 - Modificar o `currentUser` em runtime via DevTools
 - Bypassar `<Can>` editando o React component tree
 
 A verdadeira proteção entra na **Fase 2** quando:
+
 - Supabase Auth emite JWT verificável
 - Supabase RLS aplica policies no banco que **espelham** a matriz deste PRD
 - O frontend continua usando esta matriz para UX, mas o banco rejeita queries sem permissão
@@ -589,6 +598,7 @@ Como toda a camada de mocks (PRD-004), o audit log é em memória — refresh li
 ### Dados sensíveis em `before` e `after`
 
 Os campos `before` e `after` do `IAuditLog` podem conter PII (CPF, CNPJ, email). No MVP isso não é problema (dados sintéticos do Faker). Na Fase 2, considerar:
+
 - Mascarar PII nos logs
 - Política de retenção (apagar logs > N meses)
 - Compliance LGPD (direito de esquecimento aplica a logs?)
@@ -638,17 +648,17 @@ Os campos `before` e `after` do `IAuditLog` podem conter PII (CPF, CNPJ, email).
 
 > **Consulte a Seção 5 do `guia-prd.md` para a versão completa.**
 
-| Elemento | Convenção | Exemplo |
-|----------|-----------|---------|
-| **Matriz** | UPPER_SNAKE_CASE para a constante exportada | `PERMISSIONS_MATRIX` |
-| **Helpers** | camelCase com verbo | `hasPermission()`, `compareScopes()` |
-| **Hooks** | camelCase + `use` | `usePermission()`, `useCurrentRole()` |
-| **Componentes** | PascalCase, declarativos | `<Can>`, `<Forbidden>` |
-| **Páginas** | PascalCase + sufixo `Page` | `RolesPage`, `AuditLogPage` |
-| **Resources/actions/scopes** | lowercase, snake_case quando composto | `'customer'`, `'audit_log'`, `'view'` |
-| **Roles** | PascalCase (espelham o tipo) | `'Owner'`, `'VendedorExterno'` |
-| **Pastas** | kebab-case | `rbac/`, `permissions/` |
-| **Git commits** | Conventional Commits | `feat: add rbac matrix and visual audit log` |
+| Elemento                     | Convenção                                   | Exemplo                                      |
+| ---------------------------- | ------------------------------------------- | -------------------------------------------- |
+| **Matriz**                   | UPPER_SNAKE_CASE para a constante exportada | `PERMISSIONS_MATRIX`                         |
+| **Helpers**                  | camelCase com verbo                         | `hasPermission()`, `compareScopes()`         |
+| **Hooks**                    | camelCase + `use`                           | `usePermission()`, `useCurrentRole()`        |
+| **Componentes**              | PascalCase, declarativos                    | `<Can>`, `<Forbidden>`                       |
+| **Páginas**                  | PascalCase + sufixo `Page`                  | `RolesPage`, `AuditLogPage`                  |
+| **Resources/actions/scopes** | lowercase, snake_case quando composto       | `'customer'`, `'audit_log'`, `'view'`        |
+| **Roles**                    | PascalCase (espelham o tipo)                | `'Owner'`, `'VendedorExterno'`               |
+| **Pastas**                   | kebab-case                                  | `rbac/`, `permissions/`                      |
+| **Git commits**              | Conventional Commits                        | `feat: add rbac matrix and visual audit log` |
 
 ---
 
@@ -666,6 +676,7 @@ Os campos `before` e `after` do `IAuditLog` podem conter PII (CPF, CNPJ, email).
 > "Lembre-se: explore a estrutura dos dados, planeje primeiro cada passo, analise, investigue a fundo, pense e revise tudo antes de realizar qualquer atualização ou implementação."
 
 > **⚠️ 2. APÓS IMPLEMENTAR:**
+>
 > - Incrementar a versão do app seguindo [SemVer](https://semver.org/)
 > - Atualizar o `CHANGELOG.md` seguindo [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 > - Renomear este arquivo adicionando `_DONE` ao final
@@ -674,63 +685,63 @@ Os campos `before` e `after` do `IAuditLog` podem conter PII (CPF, CNPJ, email).
 
 ### Princípios de Implementação
 
-| Princípio | Descrição |
-|-----------|-----------|
-| **Matriz é a única fonte da verdade** | Mudou permissão? Mudou só em matrix.ts. Nada mais |
-| **`hasPermission` é síncrono e barato** | Lookup em objeto. Nunca async. Nunca consulta banco (na Fase 2, JWT já trazem claims) |
-| **Frontend RBAC ≠ segurança** | Reforçar no JSDoc dos helpers que isso é UX, e segurança real virá com RLS na Fase 2 |
-| **Scope tem hierarquia clara** | `own ≤ team ≤ store ≤ all`. Quem tem store implicitamente tem own/team |
-| **Audit log é append-only conceitual** | Mesmo no mock, jamais oferecer UI para editar/deletar logs |
-| **Logs registram mutações, não views** | Ver um cliente não gera log; editar gera. Isso evita ruído |
-| **Mensagens "Edição na Fase 2"** | Sempre que o MVP mostrar algo read-only que será editável depois, sinalizar para o cliente entender |
+| Princípio                               | Descrição                                                                                           |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| **Matriz é a única fonte da verdade**   | Mudou permissão? Mudou só em matrix.ts. Nada mais                                                   |
+| **`hasPermission` é síncrono e barato** | Lookup em objeto. Nunca async. Nunca consulta banco (na Fase 2, JWT já trazem claims)               |
+| **Frontend RBAC ≠ segurança**           | Reforçar no JSDoc dos helpers que isso é UX, e segurança real virá com RLS na Fase 2                |
+| **Scope tem hierarquia clara**          | `own ≤ team ≤ store ≤ all`. Quem tem store implicitamente tem own/team                              |
+| **Audit log é append-only conceitual**  | Mesmo no mock, jamais oferecer UI para editar/deletar logs                                          |
+| **Logs registram mutações, não views**  | Ver um cliente não gera log; editar gera. Isso evita ruído                                          |
+| **Mensagens "Edição na Fase 2"**        | Sempre que o MVP mostrar algo read-only que será editável depois, sinalizar para o cliente entender |
 
 ### Orientações Gerais
 
-| Aspecto | Orientação |
-|---------|------------|
-| **Tipagem da matriz** | `Record<RoleName, IPermission[]>` com cada IPermission tendo `resource: ResourceName` (union literal) e `actions: ActionName[]` (union literal) |
-| **Performance da matriz** | Construir um índice em tempo de import (objeto aninhado `roleName -> resource -> actions+scope`) para lookup O(1) |
-| **`<GuardedRoute>` estendido** | Manter retrocompatibilidade — `roles={[...]}` continua funcionando; `permission={{ ... }}` é adicional, não substitui |
-| **Filtros da auditoria** | Usar `URLSearchParams` para sincronizar; manter URL legível (não codificar tudo em base64) |
-| **JSON formatado** | Usar `JSON.stringify(obj, null, 2)` para indentação; syntax highlighting via Prism é opcional, pode ser CSS simples |
-| **Audit logs históricos** | PRD-004 já gera 40 logs históricos via `generators/audit.ts`; este PRD apenas garante que **runtime** também produz logs novos |
+| Aspecto                          | Orientação                                                                                                                                              |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Tipagem da matriz**            | `Record<RoleName, IPermission[]>` com cada IPermission tendo `resource: ResourceName` (union literal) e `actions: ActionName[]` (union literal)         |
+| **Performance da matriz**        | Construir um índice em tempo de import (objeto aninhado `roleName -> resource -> actions+scope`) para lookup O(1)                                       |
+| **`<GuardedRoute>` estendido**   | Manter retrocompatibilidade — `roles={[...]}` continua funcionando; `permission={{ ... }}` é adicional, não substitui                                   |
+| **Filtros da auditoria**         | Usar `URLSearchParams` para sincronizar; manter URL legível (não codificar tudo em base64)                                                              |
+| **JSON formatado**               | Usar `JSON.stringify(obj, null, 2)` para indentação; syntax highlighting via Prism é opcional, pode ser CSS simples                                     |
+| **Audit logs históricos**        | PRD-004 já gera 40 logs históricos via `generators/audit.ts`; este PRD apenas garante que **runtime** também produz logs novos                          |
 | **Acoplamento provider ↔ audit** | Implementar via wrapper/middleware no `MockProvider` — não espalhar `auditLog()` em cada método; usar HOF (higher-order function) que envolve mutations |
 
 ### O que NÃO Fazer
 
-| ❌ Evitar |
-|----------|
-| Permitir edição da matriz no MVP (essa é a tela da Fase 2) |
-| Logar views/leituras — só mutations |
-| Bypass de role guard com flag global "skipPermissions=true" — proibido até em dev mode |
+| ❌ Evitar                                                                                          |
+| -------------------------------------------------------------------------------------------------- |
+| Permitir edição da matriz no MVP (essa é a tela da Fase 2)                                         |
+| Logar views/leituras — só mutations                                                                |
+| Bypass de role guard com flag global "skipPermissions=true" — proibido até em dev mode             |
 | Esquecer hierarquia de scope (Vendedor com `own` não pode acessar coisa com requiredScope `store`) |
-| Usar string solta para resource (`'CustomerView'`) — sempre union literal |
-| Acoplar `auditLog()` ao SupabaseProvider neste PRD — fica para Fase 2 com RLS triggers |
-| Hardcodar permissões fora de matrix.ts (ex: dentro de um componente) |
-| Esquecer de mostrar "Edição disponível na Fase 2" em RolesPage para evitar confusão do cliente |
-| Tornar tela de papéis acessível a Vendedor/SDR/Cliente |
-| Permitir bypass do GuardedRoute via deeplink |
+| Usar string solta para resource (`'CustomerView'`) — sempre union literal                          |
+| Acoplar `auditLog()` ao SupabaseProvider neste PRD — fica para Fase 2 com RLS triggers             |
+| Hardcodar permissões fora de matrix.ts (ex: dentro de um componente)                               |
+| Esquecer de mostrar "Edição disponível na Fase 2" em RolesPage para evitar confusão do cliente     |
+| Tornar tela de papéis acessível a Vendedor/SDR/Cliente                                             |
+| Permitir bypass do GuardedRoute via deeplink                                                       |
 
 ---
 
 ## Status de Implementação
 
-| Campo | Valor |
-|-------|-------|
-| **Status** | ⏳ PENDENTE |
-| **Data de Implementação** | - |
-| **Versão do App** | - |
-| **Codinome** | - |
-| **Implementado por** | - |
-| **Observações** | - |
+| Campo                     | Valor       |
+| ------------------------- | ----------- |
+| **Status**                | ⏳ PENDENTE |
+| **Data de Implementação** | -           |
+| **Versão do App**         | -           |
+| **Codinome**              | -           |
+| **Implementado por**      | -           |
+| **Observações**           | -           |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 25/05/2026 | v1 | Criação inicial — matriz RBAC para 7 papéis, helpers/hooks/componentes, telas de papéis e auditoria, integração com providers |
+| Data       | Versão | Alteração                                                                                                                     |
+| ---------- | ------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| 25/05/2026 | v1     | Criação inicial — matriz RBAC para 7 papéis, helpers/hooks/componentes, telas de papéis e auditoria, integração com providers |
 
 ---
 

@@ -15,17 +15,17 @@
 
 Esta revisão consolida o rebranding **Turbo Diesel → GALLO BASE DIESEL** e amarra decisões adicionais tomadas em sessão posterior ao briefing v1.0:
 
-| Área | Mudança |
-|------|---------|
-| **Nome do projeto e da plataforma** | "Turbo Diesel" → **"GALLO BASE DIESEL"** em toda a documentação e interface |
-| **Arquitetura de marca** | Marca guarda-chuva com 3 submarcas: PARTS (verde), SERVICE (vermelho), INDUSTRIAL (amarelo) |
-| **Paleta principal** | Vermelho `#C41E3A` + carbono `#1A1A1A` (descartados) → **preto técnico `#404041` + dourado `#D2A809`** da "cromia óleo diesel" |
-| **Sistema de temas** | Nova decisão: **4 temas** (Diesel/Parts/Service/Industrial) × 2 modos (light/dark) = 8 combinações |
-| **Tema padrão** | **Dark + Diesel** (Black Gold) |
-| **Tipografia** | Saira Condensed (display) + Inter (UI) + JetBrains Mono (códigos OEM) — confirmadas |
-| **Modelo conceitual** | Novo campo `division: 'parts' \| 'service' \| 'industrial'` em entidades comerciais; default `parts` no MVP |
-| **Submarcas SERVICE e INDUSTRIAL** | Modeladas mas dormentes no MVP — reservadas para evolução futura sem retrabalho |
-| **Scaffold Lovable** | Formalizada estratégia: apenas PRD-001 e PRD-003 vão ao Lovable; demais (002, 004, 005, 006, 007) ficam para Claude Code CLI |
+| Área                                | Mudança                                                                                                                        |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Nome do projeto e da plataforma** | "Turbo Diesel" → **"GALLO BASE DIESEL"** em toda a documentação e interface                                                    |
+| **Arquitetura de marca**            | Marca guarda-chuva com 3 submarcas: PARTS (verde), SERVICE (vermelho), INDUSTRIAL (amarelo)                                    |
+| **Paleta principal**                | Vermelho `#C41E3A` + carbono `#1A1A1A` (descartados) → **preto técnico `#404041` + dourado `#D2A809`** da "cromia óleo diesel" |
+| **Sistema de temas**                | Nova decisão: **4 temas** (Diesel/Parts/Service/Industrial) × 2 modos (light/dark) = 8 combinações                             |
+| **Tema padrão**                     | **Dark + Diesel** (Black Gold)                                                                                                 |
+| **Tipografia**                      | Saira Condensed (display) + Inter (UI) + JetBrains Mono (códigos OEM) — confirmadas                                            |
+| **Modelo conceitual**               | Novo campo `division: 'parts' \| 'service' \| 'industrial'` em entidades comerciais; default `parts` no MVP                    |
+| **Submarcas SERVICE e INDUSTRIAL**  | Modeladas mas dormentes no MVP — reservadas para evolução futura sem retrabalho                                                |
+| **Scaffold Lovable**                | Formalizada estratégia: apenas PRD-001 e PRD-003 vão ao Lovable; demais (002, 004, 005, 006, 007) ficam para Claude Code CLI   |
 
 Todas as decisões estruturais anteriores (Provider Pattern, multi-loja, RBAC, equipes dormentes, WhatsApp dual provider, etc.) **permanecem inalteradas**.
 
@@ -87,17 +87,17 @@ A plataforma SaaS construída nesta fase atende o **núcleo PARTS** — o MVP é
 
 ### 3.1 Fundamentos transversais
 
-| Decisão | Implicação |
-|---------|------------|
-| **Frontend First com mocks isolados** | Camada `src/mocks/` espelha exatamente a interface futura do Supabase |
-| **Provider Pattern parametrizável** | Padrão arquitetural recorrente: Mock/Supabase, Meta/Evolution, etc. — todos via switch de configuração |
-| **Drop-in replacement Mock → Supabase** | Switch via env var `VITE_DATA_SOURCE=mock\|supabase` — sem refatoração no codebase |
-| **Multi-loja modelada desde já** | `IStore` é entidade de primeira classe; toda outra entidade carrega `storeId`; nos mocks da Fase 1 apenas a matriz é gerada |
-| **Equipes modeladas mas dormentes** | `ITeam` existe no modelo; hierarquia de metas opera só nos níveis `loja` e `individual` até equipes serem ativadas |
-| **Vendedor externo modelado, não implementado** | `ISeller.type: 'internal' \| 'external' \| 'representative'` + campos opcionais reservados; Bloco 6 traz apenas esqueleto de UI |
-| **RBAC com auditoria visual no MVP** | Modelo conceitual completo; tela "Log de Auditoria" com dados mockados estáticos; persistência real só na Fase 2 |
-| **Carteira 1:1 estrita** | Cliente tem um vendedor responsável, mas com **sistema completo de transferências** (temporária, permanente individual, permanente em lote, com reversão automática) |
-| **Divisões modeladas, MVP foca PARTS** | Campo `division` em entidades comerciais; default `parts` no MVP; SERVICE e INDUSTRIAL ficam dormentes mas sem retrabalho futuro |
+| Decisão                                         | Implicação                                                                                                                                                           |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Frontend First com mocks isolados**           | Camada `src/mocks/` espelha exatamente a interface futura do Supabase                                                                                                |
+| **Provider Pattern parametrizável**             | Padrão arquitetural recorrente: Mock/Supabase, Meta/Evolution, etc. — todos via switch de configuração                                                               |
+| **Drop-in replacement Mock → Supabase**         | Switch via env var `VITE_DATA_SOURCE=mock\|supabase` — sem refatoração no codebase                                                                                   |
+| **Multi-loja modelada desde já**                | `IStore` é entidade de primeira classe; toda outra entidade carrega `storeId`; nos mocks da Fase 1 apenas a matriz é gerada                                          |
+| **Equipes modeladas mas dormentes**             | `ITeam` existe no modelo; hierarquia de metas opera só nos níveis `loja` e `individual` até equipes serem ativadas                                                   |
+| **Vendedor externo modelado, não implementado** | `ISeller.type: 'internal' \| 'external' \| 'representative'` + campos opcionais reservados; Bloco 6 traz apenas esqueleto de UI                                      |
+| **RBAC com auditoria visual no MVP**            | Modelo conceitual completo; tela "Log de Auditoria" com dados mockados estáticos; persistência real só na Fase 2                                                     |
+| **Carteira 1:1 estrita**                        | Cliente tem um vendedor responsável, mas com **sistema completo de transferências** (temporária, permanente individual, permanente em lote, com reversão automática) |
+| **Divisões modeladas, MVP foca PARTS**          | Campo `division` em entidades comerciais; default `parts` no MVP; SERVICE e INDUSTRIAL ficam dormentes mas sem retrabalho futuro                                     |
 
 ### 3.2 WhatsApp dual provider
 
@@ -146,6 +146,7 @@ A plataforma SaaS construída nesta fase atende o **núcleo PARTS** — o MVP é
 ### 3.7 Identidade visual GALLO e sistema de temas
 
 **Marca-mãe (institucional):**
+
 - Logo principal em duas orientações (vertical e horizontal) + variante alternativa estilizada
 - Marca social: versão dourada (cromia óleo diesel) sobre fundo escuro — referência visual da paleta de ação
 - Marca social 3D: aplicação rica de destaque
@@ -153,40 +154,41 @@ A plataforma SaaS construída nesta fase atende o **núcleo PARTS** — o MVP é
 
 **Paleta institucional da marca-mãe (monocromática):**
 
-| Token | Valor | Uso |
-|-------|-------|-----|
-| `--brand-black-100` | `#231F20` | Preto absoluto |
-| `--brand-black-90` | `#404041` | **Preto técnico — cor principal da marca** |
-| `--brand-gray-30` | `#BBBDC0` | Cinza estrutural |
+| Token               | Valor     | Uso                                        |
+| ------------------- | --------- | ------------------------------------------ |
+| `--brand-black-100` | `#231F20` | Preto absoluto                             |
+| `--brand-black-90`  | `#404041` | **Preto técnico — cor principal da marca** |
+| `--brand-gray-30`   | `#BBBDC0` | Cinza estrutural                           |
 
 **Paleta "cromia óleo diesel" (cores de ação e destaque):**
 
-| Token | Valor | Uso |
-|-------|-------|-----|
-| `--diesel-light` | `#E7D26E` | Dourado claro — gradientes, brilhos |
+| Token             | Valor     | Uso                                            |
+| ----------------- | --------- | ---------------------------------------------- |
+| `--diesel-light`  | `#E7D26E` | Dourado claro — gradientes, brilhos            |
 | `--diesel-medium` | `#D2A809` | **Dourado médio — cor de ação do tema Diesel** |
-| `--diesel-dark` | `#513110` | Marrom escuro — gradientes profundos |
+| `--diesel-dark`   | `#513110` | Marrom escuro — gradientes profundos           |
 
 **Paleta das submarcas (cores de tema + chips/badges):**
 
-| Submarca | Token | Valor | Inspiração |
-|----------|-------|-------|------------|
-| **GALLO PARTS** | `--brand-parts` | `#337648` | Verde da bandeira do RS |
-| **GALLO SERVICE** | `--brand-service` | `#C4151C` | Vermelho da bandeira do RS |
-| **GALLO INDUSTRIAL** | `--brand-industrial` | `#C79C2C` | Amarelo da bandeira do RS |
+| Submarca             | Token                | Valor     | Inspiração                 |
+| -------------------- | -------------------- | --------- | -------------------------- |
+| **GALLO PARTS**      | `--brand-parts`      | `#337648` | Verde da bandeira do RS    |
+| **GALLO SERVICE**    | `--brand-service`    | `#C4151C` | Vermelho da bandeira do RS |
+| **GALLO INDUSTRIAL** | `--brand-industrial` | `#C79C2C` | Amarelo da bandeira do RS  |
 
 **Sistema de 4 temas × 2 modos = 8 combinações:**
 
 Modelagem em **duas dimensões CSS independentes** (`data-theme` e `data-mode`). Todos os temas mantêm a base monocromática da marca-mãe; apenas a **cor de acento** (CTAs, links, focus, badges destacados) muda entre temas.
 
-| Tema | Codinome (UI) | Cor de acento | Hex |
-|------|---------------|---------------|-----|
+| Tema                 | Codinome (UI)               | Cor de acento            | Hex       |
+| -------------------- | --------------------------- | ------------------------ | --------- |
 | **Diesel** (default) | `GALLO Diesel · Black Gold` | Dourado da cromia diesel | `#D2A809` |
-| **Parts** | `GALLO Parts · Forest` | Verde PARTS | `#337648` |
-| **Service** | `GALLO Service · Crimson` | Vermelho SERVICE | `#C4151C` |
-| **Industrial** | `GALLO Industrial · Amber` | Amarelo INDUSTRIAL | `#C79C2C` |
+| **Parts**            | `GALLO Parts · Forest`      | Verde PARTS              | `#337648` |
+| **Service**          | `GALLO Service · Crimson`   | Vermelho SERVICE         | `#C4151C` |
+| **Industrial**       | `GALLO Industrial · Amber`  | Amarelo INDUSTRIAL       | `#C79C2C` |
 
 **Modos:**
+
 - `dark` (padrão para novo usuário)
 - `light`
 - Paridade visual completa em ambos — sem favoritismo
@@ -199,20 +201,20 @@ Modelagem em **duas dimensões CSS independentes** (`data-theme` e `data-mode`).
 
 Para evitar ambiguidade entre "vermelho de erro" e "vermelho SERVICE", as cores semânticas funcionais são definidas independentemente das submarcas — detalhamento no PRD-001.
 
-| Token | Uso |
-|-------|-----|
-| `--color-success` | Sucesso, confirmação |
-| `--color-warning` | Atenção, ações reversíveis |
-| `--color-danger` | Erro, ações destrutivas (tom distinto do SERVICE) |
-| `--color-info` | Informação neutra |
+| Token             | Uso                                               |
+| ----------------- | ------------------------------------------------- |
+| `--color-success` | Sucesso, confirmação                              |
+| `--color-warning` | Atenção, ações reversíveis                        |
+| `--color-danger`  | Erro, ações destrutivas (tom distinto do SERVICE) |
+| `--color-info`    | Informação neutra                                 |
 
 **Tipografia GALLO (para a plataforma):**
 
-| Token | Fonte | Uso |
-|-------|-------|-----|
+| Token            | Fonte               | Uso                                                                    |
+| ---------------- | ------------------- | ---------------------------------------------------------------------- |
 | `--font-display` | **Saira Condensed** | Títulos, headers, identidade industrial (próxima do espírito GALLO BD) |
-| `--font-body` | **Inter** | Body, UI, formulários, tabelas — legibilidade em uso intenso |
-| `--font-mono` | **JetBrains Mono** | Códigos OEM, SKUs, dados técnicos |
+| `--font-body`    | **Inter**           | Body, UI, formulários, tabelas — legibilidade em uso intenso           |
+| `--font-mono`    | **JetBrains Mono**  | Códigos OEM, SKUs, dados técnicos                                      |
 
 > **Nota:** A fonte proprietária **GALLO BD** (criada pela Etc Creative Brand) é exclusiva da identidade da marca e aparece apenas na logo institucional (SVG). Não é usada na UI da plataforma.
 
@@ -222,17 +224,18 @@ A estrutura inicial do projeto é criada no **Lovable** (plataforma de prototipa
 
 **Distribuição dos PRDs do Bloco 0:**
 
-| PRD | Onde implementar | Justificativa |
-|-----|------------------|---------------|
-| **PRD-001** — Design System | 🟢 **Lovable** | Visual puro: tokens, temas, componentes shadcn, Iconify, página `/design-system` |
-| **PRD-003** — Shell e Navegação | 🟢 **Lovable** | Rotas, sidebar, top bar, layouts, auth mockada, separação `/app` × `/loja` |
-| PRD-002 — Modelo Conceitual | 🔵 Claude Code CLI | TypeScript puro: interfaces, glossário |
-| PRD-004 — Mocks e Geradores | 🔵 Claude Code CLI | Lógica de geração determinística |
-| PRD-005 — Provider Pattern | 🔵 Claude Code CLI | Arquitetura de abstração |
-| PRD-006 — RBAC Visual | 🔵 Claude Code CLI | Modelo + tela de auditoria estática |
-| PRD-007 — Multi-Loja | 🔵 Claude Code CLI | Modelagem + adaptação de seletores |
+| PRD                             | Onde implementar   | Justificativa                                                                    |
+| ------------------------------- | ------------------ | -------------------------------------------------------------------------------- |
+| **PRD-001** — Design System     | 🟢 **Lovable**     | Visual puro: tokens, temas, componentes shadcn, Iconify, página `/design-system` |
+| **PRD-003** — Shell e Navegação | 🟢 **Lovable**     | Rotas, sidebar, top bar, layouts, auth mockada, separação `/app` × `/loja`       |
+| PRD-002 — Modelo Conceitual     | 🔵 Claude Code CLI | TypeScript puro: interfaces, glossário                                           |
+| PRD-004 — Mocks e Geradores     | 🔵 Claude Code CLI | Lógica de geração determinística                                                 |
+| PRD-005 — Provider Pattern      | 🔵 Claude Code CLI | Arquitetura de abstração                                                         |
+| PRD-006 — RBAC Visual           | 🔵 Claude Code CLI | Modelo + tela de auditoria estática                                              |
+| PRD-007 — Multi-Loja            | 🔵 Claude Code CLI | Modelagem + adaptação de seletores                                               |
 
 **Fluxo de execução:**
+
 1. PRDs 001 e 003 escritos primeiro
 2. Lovable consome esses dois PRDs (possivelmente sintetizados num prompt único) e gera scaffold visual navegável
 3. Repositório clonado localmente
@@ -545,88 +548,88 @@ Legenda de profundidade: **D** = detalhado | **E** = esqueleto enxuto (estrutura
 
 ### Bloco 0 — Fundação (PRDs 001–007) — 7 PRDs
 
-| # | Título | Profundidade | Depende de | Implementação |
-|---|--------|--------------|------------|---------------|
-| 001 | Identidade Visual GALLO e Design System Base | D | — | 🟢 Lovable |
-| 002 | Modelo Conceitual de Domínio e Glossário | D | — | 🔵 Claude Code |
-| 003 | Shell do App, Navegação e Layouts Base | D | 001, 002 | 🟢 Lovable |
-| 004 | Geradores de Dados Fictícios e Camada de Mocks | D | 002 | 🔵 Claude Code |
-| 005 | Arquitetura de Provedores de Dados (Mock/Supabase) | D | 004 | 🔵 Claude Code |
-| 006 | Sistema de Roles, Permissões e Auditoria (visual) | D | 002 | 🔵 Claude Code |
-| 007 | Multi-Loja: Modelagem e Operação Cross-Store | D | 002, 003 | 🔵 Claude Code |
+| #   | Título                                             | Profundidade | Depende de | Implementação  |
+| --- | -------------------------------------------------- | ------------ | ---------- | -------------- |
+| 001 | Identidade Visual GALLO e Design System Base       | D            | —          | 🟢 Lovable     |
+| 002 | Modelo Conceitual de Domínio e Glossário           | D            | —          | 🔵 Claude Code |
+| 003 | Shell do App, Navegação e Layouts Base             | D            | 001, 002   | 🟢 Lovable     |
+| 004 | Geradores de Dados Fictícios e Camada de Mocks     | D            | 002        | 🔵 Claude Code |
+| 005 | Arquitetura de Provedores de Dados (Mock/Supabase) | D            | 004        | 🔵 Claude Code |
+| 006 | Sistema de Roles, Permissões e Auditoria (visual)  | D            | 002        | 🔵 Claude Code |
+| 007 | Multi-Loja: Modelagem e Operação Cross-Store       | D            | 002, 003   | 🔵 Claude Code |
 
 ### Bloco 1 — Central de Atendimento e CRM (PRDs 010–019) — 10 PRDs
 
-| # | Título | Profundidade | Depende de |
-|---|--------|--------------|------------|
-| 010 | Inbox Unificado e Lista de Conversas | D | Bloco 0 |
-| 011 | Conversa com Histórico Multicanal | D | 010 |
-| 012 | Ficha Unificada do Cliente (com recomendações + veículos + portal params) | D | 011, 016 |
-| 013 | Regras de Distribuição e Roteamento | D | 010 |
-| 014 | Painel do Gestor — Métricas e Saúde da Carteira | D | 010, 011, 013 |
-| 015 | Lista Geral de Clientes (segmentações salvas, ações em lote) | D | 012 |
-| 016 | Veículos do Cliente (entidade, ficha, cadastro configurável) | D | 012 |
-| 017 | Pipeline de Leads (Kanban + Lista, temperatura, motivos) | D | 010, 012 |
-| 018 | Gestão de Carteira e Transferências (temp/perm/lote) | D | 012, 015 |
-| 019 | Configurações Administrativas (esqueleto navegável) | E | 006, 007 |
+| #   | Título                                                                    | Profundidade | Depende de    |
+| --- | ------------------------------------------------------------------------- | ------------ | ------------- |
+| 010 | Inbox Unificado e Lista de Conversas                                      | D            | Bloco 0       |
+| 011 | Conversa com Histórico Multicanal                                         | D            | 010           |
+| 012 | Ficha Unificada do Cliente (com recomendações + veículos + portal params) | D            | 011, 016      |
+| 013 | Regras de Distribuição e Roteamento                                       | D            | 010           |
+| 014 | Painel do Gestor — Métricas e Saúde da Carteira                           | D            | 010, 011, 013 |
+| 015 | Lista Geral de Clientes (segmentações salvas, ações em lote)              | D            | 012           |
+| 016 | Veículos do Cliente (entidade, ficha, cadastro configurável)              | D            | 012           |
+| 017 | Pipeline de Leads (Kanban + Lista, temperatura, motivos)                  | D            | 010, 012      |
+| 018 | Gestão de Carteira e Transferências (temp/perm/lote)                      | D            | 012, 015      |
+| 019 | Configurações Administrativas (esqueleto navegável)                       | E            | 006, 007      |
 
 ### Bloco 2 — Agente SDR (PRDs 020–024) — 5 PRDs
 
-| # | Título | Profundidade | Depende de |
-|---|--------|--------------|------------|
-| 020 | Simulação de Conversa SDR ↔ Cliente | D | 011 |
-| 021 | Identificação de Peça (OEM, descrição, equivalência) | D | 020, catálogo |
-| 022 | Geração de Orçamento via SDR | D | 021, 031 |
-| 023 | Escalonamento para Vendedor com Resumo de Contexto | D | 020, 011 |
-| 024 | Painel de Configuração e Métricas do Agente | D | 020 |
+| #   | Título                                               | Profundidade | Depende de    |
+| --- | ---------------------------------------------------- | ------------ | ------------- |
+| 020 | Simulação de Conversa SDR ↔ Cliente                  | D            | 011           |
+| 021 | Identificação de Peça (OEM, descrição, equivalência) | D            | 020, catálogo |
+| 022 | Geração de Orçamento via SDR                         | D            | 021, 031      |
+| 023 | Escalonamento para Vendedor com Resumo de Contexto   | D            | 020, 011      |
+| 024 | Painel de Configuração e Métricas do Agente          | D            | 020           |
 
 ### Bloco 3 — Comercial Operacional (PRDs 030–033) — 4 PRDs
 
-| # | Título | Profundidade | Depende de |
-|---|--------|--------------|------------|
-| 030 | Catálogo de Produtos (visão comercial interna) | D | Bloco 0 |
-| 031 | Orçamento (criação, edição, validade, conversão) | D | 030, 012 |
-| 032 | Pedido (gestão, status, ciclo de vida) | D | 031 |
-| 033 | Cálculo de Frete e Esqueleto Transportadoras | E | 032 |
+| #   | Título                                           | Profundidade | Depende de |
+| --- | ------------------------------------------------ | ------------ | ---------- |
+| 030 | Catálogo de Produtos (visão comercial interna)   | D            | Bloco 0    |
+| 031 | Orçamento (criação, edição, validade, conversão) | D            | 030, 012   |
+| 032 | Pedido (gestão, status, ciclo de vida)           | D            | 031        |
+| 033 | Cálculo de Frete e Esqueleto Transportadoras     | E            | 032        |
 
 ### Bloco 4 — Plataforma de Gestão e BI (PRDs 040–053) — 14 PRDs
 
-| # | Título | Profundidade | Depende de |
-|---|--------|--------------|------------|
-| 040 | Visão Executiva (Home do Gestor) | D | 041–049 |
-| 041 | Vendas (pipeline, vendedor, canal, categoria) | D | 032 |
-| 042 | Sistema de Metas (loja + individual; equipe dormente) | D | 041 |
-| 043 | Ranking de Vendedores e Gamificação | D | 042 |
-| 044 | Positivação de Clientes (ativos/inativos/novos/etc.) | D | 012, 041 |
-| 045 | Curva ABC de Clientes | D | 041 |
-| 046 | Carteira Analítica com Drill-down | D | 044, 045 |
-| 047 | Comissões (cálculo, fechamento) | D | 041, 042 |
-| 048 | DRE Gerencial | E | 041 |
-| 049 | Rentabilidade por SKU / Cliente / Canal | E | 041 |
-| 050 | Despesas (esqueleto navegável) | E | — |
-| 051 | Fluxo de Caixa (esqueleto navegável) | E | — |
-| 052 | Estoque com Curadoria Comercial (esqueleto) | E | 030 |
-| 053 | IA Analítica e Insights Proativos | D | 040–049 |
+| #   | Título                                                | Profundidade | Depende de |
+| --- | ----------------------------------------------------- | ------------ | ---------- |
+| 040 | Visão Executiva (Home do Gestor)                      | D            | 041–049    |
+| 041 | Vendas (pipeline, vendedor, canal, categoria)         | D            | 032        |
+| 042 | Sistema de Metas (loja + individual; equipe dormente) | D            | 041        |
+| 043 | Ranking de Vendedores e Gamificação                   | D            | 042        |
+| 044 | Positivação de Clientes (ativos/inativos/novos/etc.)  | D            | 012, 041   |
+| 045 | Curva ABC de Clientes                                 | D            | 041        |
+| 046 | Carteira Analítica com Drill-down                     | D            | 044, 045   |
+| 047 | Comissões (cálculo, fechamento)                       | D            | 041, 042   |
+| 048 | DRE Gerencial                                         | E            | 041        |
+| 049 | Rentabilidade por SKU / Cliente / Canal               | E            | 041        |
+| 050 | Despesas (esqueleto navegável)                        | E            | —          |
+| 051 | Fluxo de Caixa (esqueleto navegável)                  | E            | —          |
+| 052 | Estoque com Curadoria Comercial (esqueleto)           | E            | 030        |
+| 053 | IA Analítica e Insights Proativos                     | D            | 040–049    |
 
 ### Bloco 5 — E-commerce (PRDs 060–067) — 8 PRDs
 
-| # | Título | Profundidade | Depende de |
-|---|--------|--------------|------------|
-| 060 | Home e Vitrine | D | 001 |
-| 061 | Busca Avançada (OEM, aplicação, equivalência) | D | 030 |
-| 062 | Listagem de Categoria com Filtros | D | 060 |
-| 063 | Ficha de Produto | D | 030 |
-| 064 | Carrinho e Checkout | D | 063 |
-| 065 | Conta do Cliente (histórico, pedidos) | D | 064, 012 |
-| 066 | Painel Administrativo (esqueleto) | E | 060–065 |
-| 067 | Integração E-commerce ↔ Central (lead, ficha, pedido) | D | 064, 012, 017 |
+| #   | Título                                                | Profundidade | Depende de    |
+| --- | ----------------------------------------------------- | ------------ | ------------- |
+| 060 | Home e Vitrine                                        | D            | 001           |
+| 061 | Busca Avançada (OEM, aplicação, equivalência)         | D            | 030           |
+| 062 | Listagem de Categoria com Filtros                     | D            | 060           |
+| 063 | Ficha de Produto                                      | D            | 030           |
+| 064 | Carrinho e Checkout                                   | D            | 063           |
+| 065 | Conta do Cliente (histórico, pedidos)                 | D            | 064, 012      |
+| 066 | Painel Administrativo (esqueleto)                     | E            | 060–065       |
+| 067 | Integração E-commerce ↔ Central (lead, ficha, pedido) | D            | 064, 012, 017 |
 
 ### Bloco 6 — Plataformas Auxiliares (esqueletos fora do MVP) (PRDs 070–071) — 2 PRDs
 
-| # | Título | Profundidade | Depende de |
-|---|--------|--------------|------------|
-| 070 | PWA Vendedor Externo / Representante (esqueleto) | E | Bloco 0 |
-| 071 | Portal do Cliente (esqueleto + parâmetros na ficha) | E | 012 |
+| #   | Título                                              | Profundidade | Depende de |
+| --- | --------------------------------------------------- | ------------ | ---------- |
+| 070 | PWA Vendedor Externo / Representante (esqueleto)    | E            | Bloco 0    |
+| 071 | Portal do Cliente (esqueleto + parâmetros na ficha) | E            | 012        |
 
 ### Bloco 7 — Integrações Fase 2 (PRDs 100+) — não escrever agora
 
@@ -667,15 +670,15 @@ Seguir o **GuiaPRD v1.4** (arquivo `guia-prd.md` no projeto). Cada PRD deve cont
 
 **Diferenças por profundidade:**
 
-| Aspecto | Detalhado (D) | Esqueleto (E) |
-|---------|---------------|---------------|
-| Contexto do problema | 2-3 parágrafos | 1 parágrafo |
-| Requisitos funcionais | Todos detalhados | Apenas os principais |
-| Critérios de aceitação | Múltiplos cenários | 1-2 cenários-chave |
-| Fluxos de usuário | Happy path + exceções + erro | Apenas happy path |
-| Fases de implementação | 3-5 fases detalhadas | 1-2 fases |
-| Modelo conceitual referenciado | Sempre, completo | Sempre, completo |
-| Notas para o agente | Completas + específicas | Completas (mantém obrigatórias) |
+| Aspecto                        | Detalhado (D)                | Esqueleto (E)                   |
+| ------------------------------ | ---------------------------- | ------------------------------- |
+| Contexto do problema           | 2-3 parágrafos               | 1 parágrafo                     |
+| Requisitos funcionais          | Todos detalhados             | Apenas os principais            |
+| Critérios de aceitação         | Múltiplos cenários           | 1-2 cenários-chave              |
+| Fluxos de usuário              | Happy path + exceções + erro | Apenas happy path               |
+| Fases de implementação         | 3-5 fases detalhadas         | 1-2 fases                       |
+| Modelo conceitual referenciado | Sempre, completo             | Sempre, completo                |
+| Notas para o agente            | Completas + específicas      | Completas (mantém obrigatórias) |
 
 **Identidade visual a aplicar (atualizada GALLO):**
 
@@ -698,16 +701,16 @@ Seguir o **GuiaPRD v1.4** (arquivo `guia-prd.md` no projeto). Cada PRD deve cont
 
 Escrever em **8 lotes** seguindo a ordem abaixo. Cada lote pode ser dividido em sub-lotes de 3-5 PRDs por turno de mensagem para preservar qualidade.
 
-| Lote | Bloco | PRDs | Quant. | Estimativa de turnos |
-|------|-------|------|--------|---------------------|
-| 1 | Fundação | 001–007 | 7 | 2-3 turnos |
-| 2 | CRM | 010–019 | 10 | 3 turnos |
-| 3 | SDR | 020–024 | 5 | 2 turnos |
-| 4 | Comercial Operacional | 030–033 | 4 | 1-2 turnos |
-| 5 | Gestão A (Metas/Ranking/Positivação/ABC/Carteira) | 042–046 | 5 | 2 turnos |
-| 6 | Gestão B (Executiva/Vendas/Comissões/Financeiros) | 040, 041, 047–053 | 9 | 3 turnos |
-| 7 | E-commerce | 060–067 | 8 | 2-3 turnos |
-| 8 | Auxiliares | 070, 071 | 2 | 1 turno |
+| Lote | Bloco                                             | PRDs              | Quant. | Estimativa de turnos |
+| ---- | ------------------------------------------------- | ----------------- | ------ | -------------------- |
+| 1    | Fundação                                          | 001–007           | 7      | 2-3 turnos           |
+| 2    | CRM                                               | 010–019           | 10     | 3 turnos             |
+| 3    | SDR                                               | 020–024           | 5      | 2 turnos             |
+| 4    | Comercial Operacional                             | 030–033           | 4      | 1-2 turnos           |
+| 5    | Gestão A (Metas/Ranking/Positivação/ABC/Carteira) | 042–046           | 5      | 2 turnos             |
+| 6    | Gestão B (Executiva/Vendas/Comissões/Financeiros) | 040, 041, 047–053 | 9      | 3 turnos             |
+| 7    | E-commerce                                        | 060–067           | 8      | 2-3 turnos           |
+| 8    | Auxiliares                                        | 070, 071          | 2      | 1 turno              |
 
 **Total estimado:** ~16-20 turnos de mensagem. Recomendado distribuir em 2-3 sessões diferentes para manter qualidade.
 
@@ -764,27 +767,27 @@ Desenvolvedor (Claude Code CLI / Lovable) implementar depois.
 
 ### 8.1 Glossário rápido do domínio (referência durante escrita)
 
-| Termo | Significado curto |
-|-------|-------------------|
-| OEM | Código original do fabricante (Volvo, Scania, etc.) |
-| SKU | Código interno da GALLO BASE DIESEL |
-| Aplicação | Compatibilidade peça ↔ veículo (marca/modelo/ano/motor) |
-| Equivalência | Peças intercambiáveis de marcas diferentes |
-| Carteira | Conjunto de clientes de um vendedor |
-| Positivação | Clientes únicos atendidos no período (conceito B2B) |
-| Curva ABC | Classificação de clientes por participação no faturamento |
-| Ficha | Visão consolidada de um cliente |
-| Inbox | Lista de conversas ativas |
-| SDR | Sales Development Representative — aqui o **agente de IA** |
-| Provider | Implementação concreta de um padrão (Mock, Supabase, Meta, Evolution) |
-| Cliente dormente | Sem compra há mais de 90 dias (parametrizável) |
-| Cliente perdido | Sem compra há mais tempo + sinal explícito |
-| Pipeline leve | Funil de leads (Novo → Qualificação → Orçamento → Negociação → Convertido/Perdido) |
-| **Division** | Submarca/divisão de atuação (parts / service / industrial); no MVP sempre `parts` |
-| **Submarca** | Marca-filha da arquitetura GALLO: PARTS, SERVICE ou INDUSTRIAL |
-| **Tema** | Variação cromática da UI: Diesel (default), Parts, Service, Industrial |
-| **Modo** | Light ou Dark — dimensão independente do tema |
-| **Codinome de tema** | Nome amigável exibido na UI (ex: "Black Gold", "Forest", "Crimson", "Amber") |
+| Termo                | Significado curto                                                                  |
+| -------------------- | ---------------------------------------------------------------------------------- |
+| OEM                  | Código original do fabricante (Volvo, Scania, etc.)                                |
+| SKU                  | Código interno da GALLO BASE DIESEL                                                |
+| Aplicação            | Compatibilidade peça ↔ veículo (marca/modelo/ano/motor)                            |
+| Equivalência         | Peças intercambiáveis de marcas diferentes                                         |
+| Carteira             | Conjunto de clientes de um vendedor                                                |
+| Positivação          | Clientes únicos atendidos no período (conceito B2B)                                |
+| Curva ABC            | Classificação de clientes por participação no faturamento                          |
+| Ficha                | Visão consolidada de um cliente                                                    |
+| Inbox                | Lista de conversas ativas                                                          |
+| SDR                  | Sales Development Representative — aqui o **agente de IA**                         |
+| Provider             | Implementação concreta de um padrão (Mock, Supabase, Meta, Evolution)              |
+| Cliente dormente     | Sem compra há mais de 90 dias (parametrizável)                                     |
+| Cliente perdido      | Sem compra há mais tempo + sinal explícito                                         |
+| Pipeline leve        | Funil de leads (Novo → Qualificação → Orçamento → Negociação → Convertido/Perdido) |
+| **Division**         | Submarca/divisão de atuação (parts / service / industrial); no MVP sempre `parts`  |
+| **Submarca**         | Marca-filha da arquitetura GALLO: PARTS, SERVICE ou INDUSTRIAL                     |
+| **Tema**             | Variação cromática da UI: Diesel (default), Parts, Service, Industrial             |
+| **Modo**             | Light ou Dark — dimensão independente do tema                                      |
+| **Codinome de tema** | Nome amigável exibido na UI (ex: "Black Gold", "Forest", "Crimson", "Amber")       |
 
 ### 8.2 Mapa de dependências entre blocos
 
@@ -809,35 +812,35 @@ BLOCO 6 (Auxiliares) — esqueletos fora do MVP
 
 **Paleta institucional (marca-mãe):**
 
-| Token | Hex | RGB | Uso |
-|-------|-----|-----|-----|
-| `--brand-black-100` | `#231F20` | 35, 31, 32 | Preto absoluto |
-| `--brand-black-90` | `#404041` | 64, 64, 65 | **Preto técnico — cor principal** |
-| `--brand-gray-30` | `#BBBDC0` | 187, 189, 192 | Cinza estrutural |
+| Token               | Hex       | RGB           | Uso                               |
+| ------------------- | --------- | ------------- | --------------------------------- |
+| `--brand-black-100` | `#231F20` | 35, 31, 32    | Preto absoluto                    |
+| `--brand-black-90`  | `#404041` | 64, 64, 65    | **Preto técnico — cor principal** |
+| `--brand-gray-30`   | `#BBBDC0` | 187, 189, 192 | Cinza estrutural                  |
 
 **Paleta "cromia óleo diesel":**
 
-| Token | Hex | Uso |
-|-------|-----|-----|
-| `--diesel-light` | `#E7D26E` | Dourado claro |
+| Token             | Hex       | Uso                                         |
+| ----------------- | --------- | ------------------------------------------- |
+| `--diesel-light`  | `#E7D26E` | Dourado claro                               |
 | `--diesel-medium` | `#D2A809` | **Dourado médio — cor de ação tema Diesel** |
-| `--diesel-dark` | `#513110` | Marrom escuro |
+| `--diesel-dark`   | `#513110` | Marrom escuro                               |
 
 **Paleta das submarcas (temas + chips):**
 
-| Submarca | Token | Hex | Uso |
-|----------|-------|-----|-----|
-| GALLO PARTS | `--brand-parts` | `#337648` | Cor de ação tema Parts; chip categoria peças |
-| GALLO SERVICE | `--brand-service` | `#C4151C` | Cor de ação tema Service; chip categoria serviço |
+| Submarca         | Token                | Hex       | Uso                                                    |
+| ---------------- | -------------------- | --------- | ------------------------------------------------------ |
+| GALLO PARTS      | `--brand-parts`      | `#337648` | Cor de ação tema Parts; chip categoria peças           |
+| GALLO SERVICE    | `--brand-service`    | `#C4151C` | Cor de ação tema Service; chip categoria serviço       |
 | GALLO INDUSTRIAL | `--brand-industrial` | `#C79C2C` | Cor de ação tema Industrial; chip categoria industrial |
 
 **Tipografia:**
 
-| Token | Fonte | Provedor | Uso |
-|-------|-------|----------|-----|
-| `--font-display` | Saira Condensed | Google Fonts | Títulos, hierarquia |
-| `--font-body` | Inter | Google Fonts | UI, body, formulários |
-| `--font-mono` | JetBrains Mono | Google Fonts | Códigos OEM, SKUs |
+| Token            | Fonte           | Provedor     | Uso                   |
+| ---------------- | --------------- | ------------ | --------------------- |
+| `--font-display` | Saira Condensed | Google Fonts | Títulos, hierarquia   |
+| `--font-body`    | Inter           | Google Fonts | UI, body, formulários |
+| `--font-mono`    | JetBrains Mono  | Google Fonts | Códigos OEM, SKUs     |
 
 > **GALLO BD** — fonte proprietária; uso restrito à logo (não entra na UI).
 
@@ -848,24 +851,24 @@ BLOCO 6 (Auxiliares) — esqueletos fora do MVP
 **Modelagem em duas dimensões CSS independentes:**
 
 ```html
-<html data-mode="dark" data-theme="diesel">
+<html data-mode="dark" data-theme="diesel"></html>
 ```
 
 **Modos:**
 
-| Valor | Default | Descrição |
-|-------|---------|-----------|
-| `dark` | ✅ | Modo padrão para novos usuários |
-| `light` | — | Modo claro alternativo |
+| Valor   | Default | Descrição                       |
+| ------- | ------- | ------------------------------- |
+| `dark`  | ✅      | Modo padrão para novos usuários |
+| `light` | —       | Modo claro alternativo          |
 
 **Temas (cada um com codinome UI):**
 
-| Valor | Codinome UI | Cor de acento |
-|-------|-------------|---------------|
-| `diesel` (default) | GALLO Diesel · Black Gold | `#D2A809` |
-| `parts` | GALLO Parts · Forest | `#337648` |
-| `service` | GALLO Service · Crimson | `#C4151C` |
-| `industrial` | GALLO Industrial · Amber | `#C79C2C` |
+| Valor              | Codinome UI               | Cor de acento |
+| ------------------ | ------------------------- | ------------- |
+| `diesel` (default) | GALLO Diesel · Black Gold | `#D2A809`     |
+| `parts`            | GALLO Parts · Forest      | `#337648`     |
+| `service`          | GALLO Service · Crimson   | `#C4151C`     |
+| `industrial`       | GALLO Industrial · Amber  | `#C79C2C`     |
 
 **Combinações totais:** 8 (4 temas × 2 modos).
 **Default novo usuário:** `dark + diesel` (GALLO Diesel · Black Gold no modo escuro).
@@ -892,6 +895,7 @@ Após a escrita destes dois, será gerado um **prompt sintético consolidado** c
 - Demais PRDs (010+) — todos via Claude Code CLI
 
 **Fluxo:**
+
 ```
 [PRD-001 + PRD-003] → Lovable → scaffold visual navegável
                                         ↓
@@ -967,12 +971,12 @@ Bom trabalho. 🛠️
 
 ## Histórico de versões
 
-| Versão | Data | Mudanças |
-|--------|------|----------|
-| 1.0 | Maio/2026 | Versão inicial consolidando o desenho da plataforma |
+| Versão  | Data          | Mudanças                                                                                                                                                                                                                     |
+| ------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.0     | Maio/2026     | Versão inicial consolidando o desenho da plataforma                                                                                                                                                                          |
 | **1.1** | **Maio/2026** | **Rebranding Turbo Diesel → GALLO BASE DIESEL. Nova identidade visual (paleta + tipografia). Sistema de 4 temas × 2 modos. Dark padrão. Campo `division` no modelo conceitual. Estratégia de scaffold Lovable formalizada.** |
 
 ---
 
 **AILA — Sistemas Inteligentes**
-*Frederico Westphalen / RS — Brasil*
+_Frederico Westphalen / RS — Brasil_
