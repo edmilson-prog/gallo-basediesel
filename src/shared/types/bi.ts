@@ -1,0 +1,159 @@
+import type { Division, ID, ISO8601 } from "./common";
+
+/** Hierarchical level a goal is set against. `team` is dormant on the MVP. */
+export type GoalLevel = "store" | "team" | "individual";
+
+/** Time granularity of a goal. */
+export type GoalPeriodType = "daily" | "monthly" | "quarterly";
+
+/** Business metric tracked by a goal. */
+export type GoalMetric =
+  | "revenue"
+  | "margin"
+  | "tickets"
+  | "positivacao"
+  | "recovery"
+  | "conversion";
+
+/** Time-bounded period of a goal. */
+export interface IGoalPeriod {
+  type: GoalPeriodType;
+  start: ISO8601;
+  end: ISO8601;
+}
+
+/**
+ * Goal (meta) — target value for a metric, scoped by level and period.
+ *
+ * @see ../../../docs/glossario.md#meta
+ */
+export interface IGoal {
+  id: ID;
+  storeId: ID;
+  level: GoalLevel;
+  /** ID of the target entity (store, team or seller depending on `level`). */
+  targetId: ID;
+  period: IGoalPeriod;
+  metric: GoalMetric;
+  targetValue: number;
+  currentValue: number;
+  /** Computed progress (0..1+). */
+  progressPercent: number;
+  /** Restricts the goal to a specific division when set. */
+  division?: Division;
+  createdAt: ISO8601;
+  updatedAt: ISO8601;
+}
+
+/**
+ * Gamification badge awarded to a seller.
+ * `badgeType` is open-ended (e.g. "top_revenue_month", "first_sale", "recovery_hero").
+ */
+export interface IGamificationBadge {
+  id: ID;
+  sellerId: ID;
+  badgeType: string;
+  earnedAt: ISO8601;
+  /** Reference period the badge relates to (e.g. "2026-05"). */
+  periodRef: string;
+}
+
+/** Single ranking entry. */
+export interface IRankingEntry {
+  sellerId: ID;
+  score: number;
+  position: number;
+}
+
+/** Ranking snapshot for a period and level. */
+export interface IRanking {
+  id: ID;
+  storeId: ID;
+  /** Reference period (e.g. "2026-05" for monthly). */
+  period: string;
+  level: GoalLevel;
+  entries: IRankingEntry[];
+  generatedAt: ISO8601;
+}
+
+/**
+ * Positivation snapshot — customer counts bucketed by activity.
+ *
+ * @see ../../../docs/glossario.md#positivacao
+ */
+export interface IPositivation {
+  id: ID;
+  storeId: ID;
+  /** Reference period (e.g. "2026-05" for monthly). */
+  period: string;
+  categories: {
+    ativos: ID[];
+    inativos: ID[];
+    novos: ID[];
+    inativos_recentes: ID[];
+    inativos_antigos: ID[];
+  };
+  generatedAt: ISO8601;
+}
+
+/** ABC class — A (top), B (middle), C (long tail). */
+export type ABCClass = "A" | "B" | "C";
+
+/**
+ * ABC classification of a customer for a given period.
+ *
+ * @see ../../../docs/glossario.md#curva-abc
+ */
+export interface IABCClassification {
+  id: ID;
+  customerId: ID;
+  storeId: ID;
+  /** Reference period (e.g. "2026-05" for monthly). */
+  period: string;
+  class: ABCClass;
+  /** Share of total revenue contributed by the customer (0..1). */
+  revenueShare: number;
+  /** Cumulative share up to and including the customer (0..1). */
+  cumulativeShare: number;
+  generatedAt: ISO8601;
+}
+
+/** Priority level of a recommendation surfaced to the seller. */
+export type RecommendationPriority = "low" | "medium" | "high" | "critical";
+
+/** Recommendation kind — drives icon, color and copy in the UI. */
+export type RecommendationType =
+  | "follow_up"
+  | "recovery"
+  | "cross_sell"
+  | "up_sell"
+  | "equivalence"
+  | "stock_alert"
+  | "birthday"
+  | "vehicle_maintenance"
+  | "wallet_imbalance"
+  | "positivacao_gap";
+
+/**
+ * Recommendation — proactive insight produced by analytics / IA layer (PRD-053).
+ *
+ * @see ../../../docs/glossario.md#recomendacao
+ */
+export interface IRecommendation {
+  id: ID;
+  storeId: ID;
+  /** Seller this recommendation is addressed to. */
+  sellerId: ID;
+  /** Subject of the recommendation (usually a customerId). */
+  subjectId: ID;
+  type: RecommendationType;
+  priority: RecommendationPriority;
+  title: string;
+  description: string;
+  /** Optional deep link or action target. */
+  actionHref?: string;
+  /** Whether the seller has dismissed or acted on it. */
+  resolved: boolean;
+  createdAt: ISO8601;
+  resolvedAt?: ISO8601;
+}

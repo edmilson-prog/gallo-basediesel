@@ -4,11 +4,56 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.1.1] — Genesis · 2026-05-25
+
+Modelo conceitual de domínio completo. PRD-002 implementado.
+
+### Added
+
+- Modelo conceitual GALLO consolidado em `src/shared/types/` (10 arquivos)
+  cobrindo ~40 entidades: plataforma, pessoas, cliente, lead, conversa,
+  catálogo, comercial e BI
+- Tipos utilitários comuns: `ID`, `ISO8601`, `Money`, `Division`,
+  `ThemeName`, `ThemeMode` em `common.ts`
+- Barrel export em `src/shared/types/index.ts` — import único via
+  `@/shared/types`
+- `docs/glossario.md` — definições operacionais oficiais do domínio
+  (termos técnicos do mercado de peças pesadas, comerciais, operacionais
+  e arquiteturais)
+- JSDoc com `@see` glossário nas interfaces principais
+  (`ICustomer`, `IPart`, `IConversation`, `ICarteiraTransfer`,
+  `IPositivation`, `IRecommendation` etc.)
+- Discriminated union B2B/B2C em `ICustomer` (CNPJ vs CPF)
+- Suporte modelado de 4 tipos de transferência de carteira
+  (`CarteiraTransferType`)
+- Capability matrix de WhatsApp (`IWhatsAppCapabilities`) preparando UI
+  adaptativa por provider
+
+### Changed
+
+- `tsconfig.json` reforçado com `noImplicitAny`, `strictNullChecks` e
+  `noUncheckedIndexedAccess`
+- `src/config/themes.ts` agora re-exporta `ThemeName` e `ThemeMode` de
+  `@/shared/types` (fonte única)
+- `src/lib/contrast.ts` ajustado para o novo `noUncheckedIndexedAccess`
+- `src/components/ui/input-otp.tsx` ajustado para acesso seguro a slots
+
+### Notes
+
+- `exactOptionalPropertyTypes` permanece **desativado** — incompatível
+  com boilerplate atual do shadcn/ui em vários componentes
+  (`context-menu`, `dropdown-menu`, `menubar`, `Icon`). Registrado como
+  tech-debt; reavaliar em PRD futuro de hardening.
+- Equipes (`ITeam`) modeladas mas **dormentes** no MVP.
+- SERVICE e INDUSTRIAL modeladas via `Division` mas dormentes no MVP
+  (todas as entidades comerciais nascem com `division: 'parts'`).
+
 ## [0.1.0] — Genesis · 2026-05-25
 
 Fundação visual da plataforma. PRD-001 implementado.
 
 ### Added
+
 - Identidade visual GALLO BASE DIESEL aplicada à UI
 - Arquitetura de tokens em 3 camadas: primitivos → semânticos → tema
 - Sistema de **4 temas × 2 modos** (8 combinações):
@@ -34,6 +79,7 @@ Fundação visual da plataforma. PRD-001 implementado.
 - Respeito a `prefers-reduced-motion`
 
 ### Notes
+
 - Logos atuais são **placeholders tipográficas**; substituir pelos SVGs
   oficiais em `public/` quando disponíveis.
 - Cores funcionais (`success`/`warning`/`danger`/`info`) são propositalmente

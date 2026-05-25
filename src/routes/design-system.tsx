@@ -117,7 +117,11 @@ const SEMANTICS: { name: string; var: string; description: string }[] = [
   { name: "primary", var: "--primary", description: "Ação primária (accent do tema)" },
   { name: "primary-foreground", var: "--primary-foreground", description: "Texto sobre primary" },
   { name: "secondary", var: "--secondary", description: "Botão/ação secundária" },
-  { name: "secondary-foreground", var: "--secondary-foreground", description: "Texto sobre secondary" },
+  {
+    name: "secondary-foreground",
+    var: "--secondary-foreground",
+    description: "Texto sobre secondary",
+  },
   { name: "muted", var: "--muted", description: "Fundo muted" },
   { name: "muted-foreground", var: "--muted-foreground", description: "Texto auxiliar" },
   { name: "accent", var: "--accent", description: "Hover/destaque" },
@@ -129,7 +133,11 @@ const SEMANTICS: { name: string; var: string; description: string }[] = [
   { name: "brand-diesel", var: "--brand-diesel", description: "Marca diesel (chips/badges)" },
   { name: "brand-parts", var: "--brand-parts", description: "Marca parts (chips/badges)" },
   { name: "brand-service", var: "--brand-service", description: "Marca service (chips/badges)" },
-  { name: "brand-industrial", var: "--brand-industrial", description: "Marca industrial (chips/badges)" },
+  {
+    name: "brand-industrial",
+    var: "--brand-industrial",
+    description: "Marca industrial (chips/badges)",
+  },
 ];
 
 const SPACING = [1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24];
@@ -254,7 +262,7 @@ function DesignSystemPage() {
                   Design System
                 </span>
                 <Badge variant="outline" className="font-mono">
-                  v0.1.0 · Genesis
+                  v0.1.1 · Genesis
                 </Badge>
               </Inline>
               <ThemeSwitcher />
@@ -266,14 +274,11 @@ function DesignSystemPage() {
           <Stack gap={10}>
             {/* Intro */}
             <section>
-              <h1 className="font-display text-4xl font-bold tracking-tight">
-                GALLO BASE DIESEL
-              </h1>
+              <h1 className="font-display text-4xl font-bold tracking-tight">GALLO BASE DIESEL</h1>
               <p className="mt-2 max-w-2xl text-muted-foreground">
                 Identidade visual e design system base. Tema ativo:{" "}
-                <strong className="text-foreground">{meta.uiLabel}</strong>. Use o
-                seletor no canto superior direito para alternar entre as 8
-                combinações tema × modo.
+                <strong className="text-foreground">{meta.uiLabel}</strong>. Use o seletor no canto
+                superior direito para alternar entre as 8 combinações tema × modo.
               </p>
             </section>
 
@@ -322,7 +327,9 @@ function DesignSystemPage() {
             >
               <Stack gap={4}>
                 <div>
-                  <p className="text-xs uppercase text-muted-foreground">Display · Saira Condensed</p>
+                  <p className="text-xs uppercase text-muted-foreground">
+                    Display · Saira Condensed
+                  </p>
                   <p className="font-display text-5xl font-bold">A força do diesel.</p>
                   <p className="font-display text-3xl font-semibold">Robustez técnica.</p>
                   <p className="font-display text-xl">Presença industrial.</p>
@@ -331,8 +338,8 @@ function DesignSystemPage() {
                 <div>
                   <p className="text-xs uppercase text-muted-foreground">Body · Inter</p>
                   <p className="text-base">
-                    A GALLO BASE DIESEL atende as principais marcas do mercado pesado,
-                    com peças genuínas e equipe técnica especializada.
+                    A GALLO BASE DIESEL atende as principais marcas do mercado pesado, com peças
+                    genuínas e equipe técnica especializada.
                   </p>
                   <p className="text-sm text-muted-foreground">
                     Texto auxiliar — densidade legível em uso intenso.
@@ -341,7 +348,9 @@ function DesignSystemPage() {
                 <Separator />
                 <div>
                   <p className="text-xs uppercase text-muted-foreground">Mono · JetBrains Mono</p>
-                  <code className="block font-mono text-sm">OEM 4N9618 · SKU 24V-DEN-001 · pedido #2847</code>
+                  <code className="block font-mono text-sm">
+                    OEM 4N9618 · SKU 24V-DEN-001 · pedido #2847
+                  </code>
                 </div>
               </Stack>
             </Section>
@@ -351,7 +360,9 @@ function DesignSystemPage() {
               <Stack gap={2}>
                 {SPACING.map((n) => (
                   <Inline key={n} gap={3}>
-                    <code className="w-12 font-mono text-xs text-muted-foreground">{n} · {n * 4}px</code>
+                    <code className="w-12 font-mono text-xs text-muted-foreground">
+                      {n} · {n * 4}px
+                    </code>
                     <div className="h-3 rounded-sm bg-primary" style={{ width: `${n * 4}px` }} />
                   </Inline>
                 ))}
@@ -383,7 +394,10 @@ function DesignSystemPage() {
             </Grid>
 
             {/* Logo */}
-            <Section title="Logo" description="Variantes — placeholders tipográficas (substituir pelos oficiais)">
+            <Section
+              title="Logo"
+              description="Variantes — placeholders tipográficas (substituir pelos oficiais)"
+            >
               <Grid cols={3} gap={4}>
                 <Card>
                   <CardContent className="flex items-center justify-center p-8">
@@ -404,7 +418,10 @@ function DesignSystemPage() {
             </Section>
 
             {/* Ícones */}
-            <Section title="Ícones (Iconify)" description="Carregados sob demanda. Sets: mdi, lucide, phosphor.">
+            <Section
+              title="Ícones (Iconify)"
+              description="Carregados sob demanda. Sets: mdi, lucide, phosphor."
+            >
               <Grid cols={6} gap={3}>
                 {RECOMMENDED_ICONS.map((i) => (
                   <Card key={i.ctx} className="text-center">
@@ -419,7 +436,10 @@ function DesignSystemPage() {
             </Section>
 
             {/* Componentes */}
-            <Section title="Componentes" description="Galeria de componentes base nos tokens semânticos do tema ativo.">
+            <Section
+              title="Componentes"
+              description="Galeria de componentes base nos tokens semânticos do tema ativo."
+            >
               <Stack gap={6}>
                 {/* Buttons */}
                 <Card>
@@ -592,13 +612,17 @@ function DesignSystemPage() {
                         <TableRow>
                           <TableCell className="font-mono">4N9618</TableCell>
                           <TableCell>Bico injetor</TableCell>
-                          <TableCell><Badge>Parts</Badge></TableCell>
+                          <TableCell>
+                            <Badge>Parts</Badge>
+                          </TableCell>
                           <TableCell className="text-right font-mono">23</TableCell>
                         </TableRow>
                         <TableRow>
                           <TableCell className="font-mono">24V-DEN-001</TableCell>
                           <TableCell>Alternador 24V</TableCell>
-                          <TableCell><Badge variant="secondary">Service</Badge></TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">Service</Badge>
+                          </TableCell>
                           <TableCell className="text-right font-mono">4</TableCell>
                         </TableRow>
                       </TableBody>
@@ -610,12 +634,20 @@ function DesignSystemPage() {
                 <Card>
                   <CardContent className="pt-6">
                     <Inline gap={3}>
-                      <Avatar><AvatarFallback>GA</AvatarFallback></Avatar>
-                      <Avatar><AvatarFallback>RB</AvatarFallback></Avatar>
-                      <Avatar><AvatarFallback>MS</AvatarFallback></Avatar>
+                      <Avatar>
+                        <AvatarFallback>GA</AvatarFallback>
+                      </Avatar>
+                      <Avatar>
+                        <AvatarFallback>RB</AvatarFallback>
+                      </Avatar>
+                      <Avatar>
+                        <AvatarFallback>MS</AvatarFallback>
+                      </Avatar>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="outline" size="sm">Hover me</Button>
+                          <Button variant="outline" size="sm">
+                            Hover me
+                          </Button>
                         </TooltipTrigger>
                         <TooltipContent>Tooltip no tema {meta.codename}</TooltipContent>
                       </Tooltip>
@@ -638,7 +670,7 @@ function DesignSystemPage() {
             </Section>
 
             <p className="py-6 text-center text-xs text-muted-foreground">
-              GALLO BASE DIESEL — Design System v0.1.0 · Genesis
+              GALLO BASE DIESEL — Design System v0.1.1 · Genesis
             </p>
           </Stack>
         </Container>

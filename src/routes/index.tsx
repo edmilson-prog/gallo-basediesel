@@ -24,7 +24,9 @@ function Index() {
           <Inline justify="between" className="h-16">
             <Logo variant="horizontal" className="h-7" />
             <Inline gap={3}>
-              <Badge variant="outline" className="font-mono">v0.1.0 · Genesis</Badge>
+              <Badge variant="outline" className="font-mono">
+                v0.1.1 · Genesis
+              </Badge>
               <ThemeSwitcher />
             </Inline>
           </Inline>
@@ -41,9 +43,9 @@ function Index() {
               GALLO BASE DIESEL
             </h1>
             <p className="max-w-2xl text-lg text-muted-foreground">
-              Plataforma proprietária de operação e inteligência comercial. Esta entrega
-              estabelece a fundação visual: identidade GALLO, sistema de 4 temas × 2 modos
-              e biblioteca de componentes base.
+              Plataforma proprietária de operação e inteligência comercial. Esta entrega estabelece
+              a fundação visual: identidade GALLO, sistema de 4 temas × 2 modos e biblioteca de
+              componentes base.
             </p>
             <Inline gap={3}>
               {import.meta.env.DEV && (
@@ -107,7 +109,7 @@ function Index() {
       <footer className="border-t border-border">
         <Container size="xl" className="py-6">
           <p className="text-center text-xs text-muted-foreground">
-            © {new Date().getFullYear()} GALLO BASE DIESEL — Design System v0.1.0 · Genesis
+            © {new Date().getFullYear()} GALLO BASE DIESEL — Design System v0.1.1 · Genesis
           </p>
         </Container>
       </footer>

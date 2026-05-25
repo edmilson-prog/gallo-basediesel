@@ -2,10 +2,15 @@
  * GALLO Theme configuration.
  * Codinomes UI são amigáveis (mostrados na interface).
  * Nomes técnicos (`diesel`, `parts`, etc.) são usados em CSS / código.
+ *
+ * The canonical `ThemeName` and `ThemeMode` definitions live in the shared
+ * domain model (`@/shared/types/common`). This file re-exports them as a
+ * convenience so existing imports from `@/config/themes` keep working.
  */
 
-export type ThemeName = "diesel" | "parts" | "service" | "industrial";
-export type ThemeMode = "light" | "dark" | "auto";
+import type { ThemeMode, ThemeName } from "@/shared/types";
+
+export type { ThemeMode, ThemeName };
 export type ResolvedMode = "light" | "dark";
 
 export const THEME_NAMES: ThemeName[] = ["diesel", "parts", "service", "industrial"];
