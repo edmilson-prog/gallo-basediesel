@@ -1,8 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { PlaceholderPage } from "@/features/shell/components/EmptyState";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/app/orcamentos")({
-  component: () => (
-    <PlaceholderPage prd="031" icon="mdi:file-document-outline" title="Orçamentos" />
-  ),
+  component: () => <Outlet />,
 });

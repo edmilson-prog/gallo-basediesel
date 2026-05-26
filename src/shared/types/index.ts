@@ -101,6 +101,7 @@ export type {
   ICommission,
   QuoteStatus,
   QuoteOrigin,
+  QuotePaymentMethod,
   OrderPaymentStatus,
   OrderFulfillmentStatus,
   OrderOrigin,

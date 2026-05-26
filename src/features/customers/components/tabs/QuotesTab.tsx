@@ -84,7 +84,7 @@ export function QuotesTab({ customer }: IQuotesTabProps) {
                 >
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="font-mono text-xs font-semibold text-foreground">
-                      #{quote.id.replace(/^quote-/, "OR-")}
+                      #{quote.number}
                     </span>
                     <span className="text-xs font-semibold text-foreground">
                       {formatBRL(quote.total)}

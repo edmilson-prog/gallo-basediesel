@@ -76,9 +76,12 @@ export function generateSdrQuote(input: IGenerateSdrQuoteInput): IGenerateSdrQuo
     total: round2(quantity * safePrice - discount),
   };
 
+  const year = new Date(now).getUTCFullYear();
+  const sdrSeq = Date.now().toString().slice(-4);
   const quote: IQuote = {
     id: `quote-sdr-${input.identification.id}-${Date.now()}`,
     storeId: input.storeId,
+    number: `OR-${year}-S${sdrSeq}`,
     customerId: input.customer.id,
     sellerId: input.sellerId,
     items: [item],

@@ -4,6 +4,174 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.23.0] — Quote · 2026-05-26
+
+Orçamento (PRD-031) — coração do ciclo comercial. Rota `/app/orcamentos`
+substitui o placeholder e entrega listagem paginada (50/pg) com 8
+filtros (status, origem, vendedor, cliente, período de criação,
+faixa de valor, validade, loja) + busca textual em número/cliente/OEM
++ URL sync completo, distinção visual de quatro origens (SDR/Manual/
+Portal/E-commerce) e indicador de validade tricolor. Criação manual
+em `/app/orcamentos/novo` com 5 seções estruturadas: cliente
+(autocomplete restrito à carteira para Vendedor), items (modal de
+busca no catálogo com pré-filtro por veículo do cliente + edição
+inline de quantidade/preço/desconto), desconto e frete (com
+justificativa obrigatória quando passa o limite), condições de
+pagamento (método estruturado + prazo + validade) e notas internas.
+Ficha `/app/orcamentos/:id` em 6 seções com header rico (badges,
+ações contextuais por status, banner SDR e banner de aprovação),
+cliente com link para a ficha, items com snapshots imutáveis,
+valores com % de desconto explícito, condições e histórico
+cronológico via audit log filtrado.
+
+Lifecycle completo de 6 estados (rascunho → enviado → aceito/recusado
+→ convertido; expirado em qualquer ponto) com transições controladas,
+aprovação de desconto >5% por Gestor/Owner (gating do envio até
+aprovação, com workflow aprovar/rejeitar + motivo), expiração
+automática horária via hook montado no `AppLayout`, conversão em
+pedido (`IOrder` real criado preservando referência via `quoteId`),
+duplicação que zera aprovação/conversão e renova validade, e envio
+WhatsApp placeholder via copy-to-clipboard com texto formatado.
+Componente `<CustomerQuotesList>` exportado para futuro consumo, com
+a tab "Orçamentos" da ficha do cliente (PRD-012) já atualizada para
+usar `quote.number` em vez do id-derivado. Geradores produzem 80
+orçamentos com distribuição realista (30% sdr, 50% vendedor,
+6% portal, 6% e-commerce) e mix de status calibrado.
+
+### Added
+
+- **Feature `quotes`** (`src/features/quotes/`): páginas
+  `QuotesListPage`, `NewQuotePage`, `QuoteDetailPage` + 3 rotas
+  (`/app/orcamentos`, `/novo`, `/:id`).
+- **Listagem**: `QuotesHeader`, `QuotesFiltersBar` (8 filtros
+  multi-select + faixa de valor + período custom), `QuotesTable` com
+  ordenação por total/criado/validade, `QuotesPagination`.
+- **Criação manual**: `AddItemModal` reusando
+  `searchPartsByText`/`searchPartsByApplication` do PRD-030 +
+  pré-filtro pelo veículo do cliente, `CustomerAutocomplete`
+  restrito à carteira do Vendedor, 5 seções renderizadas com
+  numerador visual.
+- **Detalhe**: 6 seções (header, cliente, items, valores, condições,
+  histórico) com botões contextuais por status (enviar, aceitar,
+  recusar, cancelar, converter, duplicar, WhatsApp) e diálogos de
+  confirmação via `<AlertDialog>`.
+- **Componentes compartilhados**: `QuoteStatusBadge`,
+  `QuoteOriginBadge` (4 variantes coloridas com ícones MDI),
+  `ValidityIndicator` tricolor (verde/laranja/vermelho conforme
+  proximidade da expiração) e `CustomerQuotesList` para a ficha do
+  cliente.
+- **Hooks**: `useQuotesUrlState` (URL sync de filtros/sort/page),
+  `useQuotesList` (filtragem provider-side + client-side composta),
+  `useQuote` (drill-down), `useQuoteExpirationTimer` (timer 1h
+  global montado no `AppLayout`).
+- **Utils**: `recalculateQuote`, `requiresDiscountApproval`,
+  `daysUntil`, `validityBucket`, `generateQuoteNumber`
+  (sequencial `OR-YYYY-NNNN` por loja/ano), `composePaymentCondition`.
+
+### Changed
+
+- **Modelo `IQuote`** (`src/shared/types/commercial.ts`) recebe
+  campos `number`, `conversationId`, `paymentMethod`, `paymentTerms`,
+  `deliveryAddress`, `discountReason`, `requiresApproval`,
+  `approvedBy`, `approvedAt`, `rejectedReason`, `convertedAt`.
+  Tipo `QuotePaymentMethod` exportado no barrel.
+- **`IPlatformSettings`** ganha `discountApprovalThresholdPct`
+  (default 5%) e `quoteDefaultValidityDays` (default 7).
+- **Contrato `IQuotesProvider`** e `quotesApi` aceitam multi-select
+  de status/origin, intervalo de criação, faixa de total,
+  `conversationId`, busca textual e ordenação configurável.
+- **Geradores de quote** (`src/mocks/generators/quote.ts`) reescritos
+  para produzir 80 orçamentos com nova distribuição
+  (status 10/30/25/15/10/10, origin 30/40/5/5), aprovação
+  pré-resolvida quando aplicável e número sequencial.
+- **`generateSdrQuote`** (PRD-022) preenche o novo campo `number`
+  com prefixo `OR-{YYYY}-S{...}` para distinguir do manual.
+- **`QuotesTab`** (PRD-012) usa `quote.number` em vez do id-derivado.
+- **`AppLayout`** monta `useQuoteExpirationTimer` para Owner/Gestor.
+
+## [0.22.0] — Catalog · 2026-05-26
+
+Catálogo interno de peças (PRD-030) — núcleo do negócio agora
+materializado. Rota `/app/catalogo` substitui o placeholder e entrega
+listagem paginada (50/pg) com 8 filtros combinados (categoria,
+subcategoria dependente, fabricante, original/equivalente, veículo
+compatível marca+modelo+ano, faixa de preço, estoque, status, loja),
+busca textual com debounce 300ms e URL sync completo. Ficha
+`/app/catalogo/:id` em 5 seções: header com badges (categoria,
+original/equivalente), aplicações agrupadas por marca com mini-filtro
+de compatibilidade ao vivo, equivalências com % de economia e
+navegação cruzada, comercial com histórico de preço expansível
+(audit log filtrado) e estoque com indicador visual (verde/amarelo/
+vermelho). Criação/edição com editor multi-row de aplicações,
+autocomplete de equivalências com **bidirecionalidade automática**
+(adicionar B em A.equivalents propaga A em B.equivalents e vice-versa),
+validação de OEM duplicado e audit log especial em mudança de preço.
+Funções de busca exportadas em `@/features/catalog/api/search`
+(`searchPartsByApplication`, `findByOemCode`, `findByAlternativeCode`,
+`getEquivalents`, `searchPartsByText`) prontas para serem consumidas
+pelos PRD-021 (identificação SDR), PRD-016 (peças compatíveis com
+veículo), PRD-031 (orçamento) e Bloco 5 (e-commerce).
+
+### Added
+
+- **Feature `catalog`** (`src/features/catalog/`): páginas
+  `CatalogListPage`, `PartDetailPage`, `PartNewPage`, `PartEditPage`.
+- **Listagem com filtros**: `CatalogHeader`, `CatalogFiltersBar`
+  (8 filtros multi-select via Popover/Select + chip "N filtros ativos"),
+  `CatalogTable` com ordenação por nome/preço/estoque, `CatalogPagination`
+  com PAGE_SIZES configurável (25/50/100).
+- **Ficha de produto**: `PartDetailHeader`, `ApplicationsSection`
+  (grouped by brand + mini-filtro inline para verificar compatibilidade),
+  `EquivalentsSection` (cards com % economia e navegação cruzada),
+  `CommercialSection` (expansível com histórico de preço via audit),
+  `StockSection` com `StockBadge` colorido.
+- **Criação/edição**: `PartForm` reutilizado por `PartNewPage` e
+  `PartEditPage`, `ApplicationsEditor` multi-row e `EquivalentsEditor`
+  com autocomplete; preço gated por permissão de Owner (Gestor vê
+  read-only com tooltip).
+- **API de busca** (`api/search.ts`): funções puras consumidas
+  cross-feature — `searchPartsByApplication`, `findByOemCode`,
+  `findByAlternativeCode`, `getEquivalents`, `searchPartsByText`.
+- **Hooks**: `useCatalogList` com filtragem client-side para critérios
+  não suportados pelo provider (categorias, aplicações, origem, faixa
+  de preço, buckets de estoque, multi-store); `useCatalogUrlState`
+  com 17 search params validados; `useEquivalentsBidirectional` para
+  reconciliação atômica de equivalências.
+- **Componentes reutilizáveis**: `<PartImage>` (placeholder por
+  categoria com cor temática, fallback automático quando `imageUrl`
+  ausente), `<StockBadge>` (variant default/compact, 3 cores).
+- **Utilitários**: `PART_CATEGORY_DESCRIPTORS` com 10 categorias
+  + ícones Iconify + tons + subcategorias; `activeFilterCount`,
+  `toListParams`, `EMPTY_FILTERS`.
+- **i18n**: `pt-BR.ts` cobrindo lista, filtros, ficha, form e toasts
+  com português correto e acentos UTF-8.
+
+### Changed
+
+- **Tipo `IPart`** (`src/shared/types/catalog.ts`): novos campos
+  opcionais `category`, `subcategory`, `isOriginal`, `imageUrl`,
+  `storeId` — compatíveis com schema futuro do DINTEC.
+- **Gerador `generatePart`** (`src/mocks/generators/part.ts`):
+  popula `category` (mapeado para canonical via
+  `CATALOG_CATEGORY_TO_CANONICAL`), `subcategory` (do pool por
+  família), `isOriginal` (heurística por brand/supplier "OEM"),
+  `storeId` (matriz no MVP); distribuição de estoque ajustada para
+  70% normal / 20% baixo / 10% zerado conforme RF-005.
+- **Permissões** (`src/features/rbac/permissions/matrix.ts`):
+  Gestor ganhou `create` + `edit` em `part` (mantém `delete` apenas
+  para Owner — desativação Owner-only).
+- **Rota `/app/catalogo`** virou layout (Outlet) e ramifica em
+  `/`, `/:id`, `/novo`, `/:id/editar` com `beforeLoad` guards via
+  `hasPermission`.
+
+### Audit log
+
+Adicionadas 6 actions: `part_create`, `part_update`, `part_price_change`
+(disparada apenas quando `unitPrice` mudou — destaque em CommercialSection),
+`part_application_update` (pendente; coberto por part_update), `part_equivalent_update`
+(disparada em ambos os lados pela reconciliação bidirecional),
+`part_activate` / `part_deactivate`.
+
 ## [0.21.0] — Cockpit · 2026-05-26
 
 Painel completo do agente SDR (PRD-024) — hub centralizado em

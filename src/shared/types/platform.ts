@@ -129,6 +129,14 @@ export interface IPlatformSettings {
   escalationQueueTimeoutMinutesNormal: number;
   escalationCustomerHandoffTemplate: string;
   escalationUrgentBroadcastDelaySeconds: number;
+  /**
+   * Discount approval threshold for manual quotes (PRD-031 RF-028). Quotes whose
+   * `discount / subtotal` exceeds this fraction require Gestor/Owner approval
+   * before they can be sent. Expressed as decimal (0.05 = 5%).
+   */
+  discountApprovalThresholdPct: number;
+  /** Default validity window (days) for manually-created quotes. PRD-031 RF-016. */
+  quoteDefaultValidityDays: number;
 }
 
 /**

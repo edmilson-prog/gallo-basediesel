@@ -1,24 +1,35 @@
-import type { ICustomer, ILead, IPart, IQuote, IQuoteItem, ID } from "@/shared/types";
+import type {
+  ICustomer,
+  ILead,
+  IPart,
+  IQuote,
+  IQuoteItem,
+  QuoteOrigin,
+  QuoteStatus,
+  ID,
+} from "@/shared/types";
 import { SEED_STORE_ID } from "../data";
-import { daysAgo, pickWeighted, randomDate, randomISO, type ISeededContext } from "./utils";
+import { daysAgo, pickWeighted, randomISO, type ISeededContext } from "./utils";
 
-const STATUS_WEIGHTS = [
-  { value: "rascunho" as const, weight: 10 },
-  { value: "enviado" as const, weight: 10 },
-  { value: "aceito" as const, weight: 5 },
-  { value: "recusado" as const, weight: 3 },
-  { value: "expirado" as const, weight: 1 },
-  { value: "convertido" as const, weight: 1 },
+const STATUS_WEIGHTS: { value: QuoteStatus; weight: number }[] = [
+  { value: "rascunho", weight: 10 },
+  { value: "enviado", weight: 30 },
+  { value: "aceito", weight: 25 },
+  { value: "recusado", weight: 15 },
+  { value: "expirado", weight: 10 },
+  { value: "convertido", weight: 10 },
 ];
 
-const ORIGIN_WEIGHTS = [
-  { value: "sdr" as const, weight: 2 },
-  { value: "vendedor" as const, weight: 6 },
-  { value: "cliente_portal" as const, weight: 1 },
-  { value: "ecommerce" as const, weight: 1 },
+const ORIGIN_WEIGHTS: { value: QuoteOrigin; weight: number }[] = [
+  { value: "sdr", weight: 30 },
+  { value: "vendedor", weight: 40 },
+  { value: "cliente_portal", weight: 5 },
+  { value: "ecommerce", weight: 5 },
 ];
 
 const PAYMENT_CONDITIONS = ["À vista", "30 dias", "28/56 dias", "30/60/90 dias", "Boleto faturado"];
+const PAYMENT_METHODS = ["pix", "boleto", "cartao", "prazo"] as const;
+const SDR_SELLER_ID: ID = "sdr-agent";
 
 interface IGenerateQuoteInput {
   sequence: number;
@@ -39,31 +50,52 @@ export function generateQuote(ctx: ISeededContext, input: IGenerateQuoteInput): 
   const createdAt = randomISO(ctx, daysAgo(60, now), now);
   const validUntil = new Date(new Date(createdAt).getTime() + 14 * 86400_000).toISOString();
   const status = pickWeighted(ctx, STATUS_WEIGHTS);
+  const origin = pickWeighted(ctx, ORIGIN_WEIGHTS);
+  const year = new Date(createdAt).getUTCFullYear();
+  const number = `OR-${year}-${String(input.sequence + 1).padStart(4, "0")}`;
+  const paymentMethod = ctx.pick(PAYMENT_METHODS);
+  const paymentTerms = ctx.pick(PAYMENT_CONDITIONS);
+
+  const discountPct = subtotal > 0 ? extraDiscount / subtotal : 0;
+  const requiresApproval = discountPct > 0.05;
 
   return {
     id,
     storeId: SEED_STORE_ID,
+    number,
     customerId: input.participant.kind === "customer" ? input.participant.entity.id : undefined,
     leadId: input.participant.kind === "lead" ? input.participant.entity.id : undefined,
     sellerId:
-      input.participant.kind === "customer"
-        ? input.participant.entity.sellerId
-        : ctx.pick(input.sellerIds),
+      origin === "sdr"
+        ? SDR_SELLER_ID
+        : input.participant.kind === "customer"
+          ? input.participant.entity.sellerId
+          : ctx.pick(input.sellerIds),
     items,
     subtotal,
     discount: extraDiscount,
+    discountReason: requiresApproval
+      ? "Cliente recorrente — fidelização há mais de 3 anos."
+      : undefined,
     shipping,
     total,
-    paymentCondition: ctx.pick(PAYMENT_CONDITIONS),
+    paymentCondition: paymentTerms,
+    paymentMethod,
+    paymentTerms,
+    deliveryAddress:
+      input.participant.kind === "customer" ? input.participant.entity.address : undefined,
     validUntil,
     status,
-    origin: pickWeighted(ctx, ORIGIN_WEIGHTS),
+    origin,
     division: "parts",
+    requiresApproval: requiresApproval && status === "rascunho",
+    approvedBy: requiresApproval && status !== "rascunho" ? ctx.pick(input.sellerIds) : undefined,
+    approvedAt: requiresApproval && status !== "rascunho" ? createdAt : undefined,
     notes: ctx.bool(0.3)
       ? "Orçamento gerado automaticamente — confirmar disponibilidade em estoque."
       : undefined,
     createdAt,
-    updatedAt: randomDate(ctx, new Date(createdAt), now).toISOString(),
+    updatedAt: randomISO(ctx, new Date(createdAt), now),
   };
 }
 

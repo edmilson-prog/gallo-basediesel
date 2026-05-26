@@ -893,9 +893,9 @@ No MVP, copy to clipboard. Vendedor é responsável por colar e enviar — mas a
 
 ## Status de Implementação
 
-| Campo      | Valor       |
-| ---------- | ----------- |
-| **Status** | ⏳ PENDENTE |
+| Campo      | Valor                  |
+| ---------- | ---------------------- |
+| **Status** | ✅ CONCLUÍDO — v0.23.0 |
 
 ---
 

@@ -67,7 +67,7 @@ export const VOLUMES: Record<MockEntityName, number> = {
   whatsappAccounts: 2,
   parts: 200,
   applications: 600,
-  quotes: 30,
+  quotes: 80,
   orders: 120,
   orderItems: 400,
   commissions: 40,

@@ -9,6 +9,7 @@ import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
 import { useEscalationToasts, UrgentBroadcastClaim } from "@/features/sdr-escalation";
 import { useEscalationQueueTimeoutMonitor } from "@/features/sdr-escalation/hooks/useEscalationQueueTimeoutMonitor";
 import { useUrgentBroadcastTimer } from "@/features/sdr-escalation/hooks/useUrgentBroadcastTimer";
+import { useQuoteExpirationTimer } from "@/features/quotes/hooks/useQuoteExpirationTimer";
 
 /**
  * Default layout of the internal app (`/app/*`).
@@ -25,6 +26,8 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
   // PRD-023 — Owner/Gestor monitora timeouts de fila e dispara broadcast urgent.
   useEscalationQueueTimeoutMonitor(canRunAutoRevert);
   useUrgentBroadcastTimer(canRunAutoRevert);
+  // PRD-031 — quote expiration timer (1h) for Owner/Gestor sessions.
+  useQuoteExpirationTimer(canRunAutoRevert);
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex min-h-screen bg-background text-foreground">
