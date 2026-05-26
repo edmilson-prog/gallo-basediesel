@@ -6,4 +6,5 @@ export const mockSellersProvider: ISellersProvider = {
   list: (params) => sellersApi.list(scopedListParams(params, "seller")),
   get: (id) => sellersApi.get(id),
   setAvailability: (id, availability) => sellersApi.setAvailability(id, availability),
+  update: (id, patch) => sellersApi.update(id, patch),
 };

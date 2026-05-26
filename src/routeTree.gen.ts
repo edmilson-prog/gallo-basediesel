@@ -56,14 +56,25 @@ import { Route as AppGestaoDespesasRouteImport } from './routes/app.gestao.despe
 import { Route as AppGestaoComissoesRouteImport } from './routes/app.gestao.comissoes'
 import { Route as AppGestaoCaixaRouteImport } from './routes/app.gestao.caixa'
 import { Route as AppGestaoAbcRouteImport } from './routes/app.gestao.abc'
+import { Route as AppConfiguracoesWhatsappRouteImport } from './routes/app.configuracoes.whatsapp'
+import { Route as AppConfiguracoesUsuariosRouteImport } from './routes/app.configuracoes.usuarios'
+import { Route as AppConfiguracoesPortalClienteRouteImport } from './routes/app.configuracoes.portal-cliente'
 import { Route as AppConfiguracoesPerfilRouteImport } from './routes/app.configuracoes.perfil'
 import { Route as AppConfiguracoesPapeisRouteImport } from './routes/app.configuracoes.papeis'
 import { Route as AppConfiguracoesLojasRouteImport } from './routes/app.configuracoes.lojas'
+import { Route as AppConfiguracoesGamificacaoRouteImport } from './routes/app.configuracoes.gamificacao'
+import { Route as AppConfiguracoesDivisoesRouteImport } from './routes/app.configuracoes.divisoes'
 import { Route as AppConfiguracoesDistribuicaoRouteImport } from './routes/app.configuracoes.distribuicao'
 import { Route as AppConfiguracoesAuditoriaRouteImport } from './routes/app.configuracoes.auditoria'
 import { Route as AppConfiguracoesAparenciaRouteImport } from './routes/app.configuracoes.aparencia'
 import { Route as AppClientesIdRouteImport } from './routes/app.clientes.$id'
 import { Route as AppAtendimentoIdRouteImport } from './routes/app.atendimento.$id'
+import { Route as AppConfiguracoesVeiculosCadastroModeRouteImport } from './routes/app.configuracoes.veiculos.cadastro-mode'
+import { Route as AppConfiguracoesAtendimentoTagsRouteImport } from './routes/app.configuracoes.atendimento.tags'
+import { Route as AppConfiguracoesAtendimentoPipelineRouteImport } from './routes/app.configuracoes.atendimento.pipeline'
+import { Route as AppConfiguracoesAtendimentoMotivosPerdaRouteImport } from './routes/app.configuracoes.atendimento.motivos-perda'
+import { Route as AppConfiguracoesAtendimentoLifecycleRouteImport } from './routes/app.configuracoes.atendimento.lifecycle'
+import { Route as AppConfiguracoesAtendimentoHorarioComercialRouteImport } from './routes/app.configuracoes.atendimento.horario-comercial'
 
 const SemPermissaoRoute = SemPermissaoRouteImport.update({
   id: '/sem-permissao',
@@ -300,6 +311,24 @@ const AppGestaoAbcRoute = AppGestaoAbcRouteImport.update({
   path: '/gestao/abc',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConfiguracoesWhatsappRoute =
+  AppConfiguracoesWhatsappRouteImport.update({
+    id: '/configuracoes/whatsapp',
+    path: '/configuracoes/whatsapp',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppConfiguracoesUsuariosRoute =
+  AppConfiguracoesUsuariosRouteImport.update({
+    id: '/configuracoes/usuarios',
+    path: '/configuracoes/usuarios',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppConfiguracoesPortalClienteRoute =
+  AppConfiguracoesPortalClienteRouteImport.update({
+    id: '/configuracoes/portal-cliente',
+    path: '/configuracoes/portal-cliente',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppConfiguracoesPerfilRoute = AppConfiguracoesPerfilRouteImport.update({
   id: '/configuracoes/perfil',
   path: '/configuracoes/perfil',
@@ -315,6 +344,18 @@ const AppConfiguracoesLojasRoute = AppConfiguracoesLojasRouteImport.update({
   path: '/configuracoes/lojas',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConfiguracoesGamificacaoRoute =
+  AppConfiguracoesGamificacaoRouteImport.update({
+    id: '/configuracoes/gamificacao',
+    path: '/configuracoes/gamificacao',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppConfiguracoesDivisoesRoute =
+  AppConfiguracoesDivisoesRouteImport.update({
+    id: '/configuracoes/divisoes',
+    path: '/configuracoes/divisoes',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppConfiguracoesDistribuicaoRoute =
   AppConfiguracoesDistribuicaoRouteImport.update({
     id: '/configuracoes/distribuicao',
@@ -343,6 +384,42 @@ const AppAtendimentoIdRoute = AppAtendimentoIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AppAtendimentoRoute,
 } as any)
+const AppConfiguracoesVeiculosCadastroModeRoute =
+  AppConfiguracoesVeiculosCadastroModeRouteImport.update({
+    id: '/configuracoes/veiculos/cadastro-mode',
+    path: '/configuracoes/veiculos/cadastro-mode',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppConfiguracoesAtendimentoTagsRoute =
+  AppConfiguracoesAtendimentoTagsRouteImport.update({
+    id: '/configuracoes/atendimento/tags',
+    path: '/configuracoes/atendimento/tags',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppConfiguracoesAtendimentoPipelineRoute =
+  AppConfiguracoesAtendimentoPipelineRouteImport.update({
+    id: '/configuracoes/atendimento/pipeline',
+    path: '/configuracoes/atendimento/pipeline',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppConfiguracoesAtendimentoMotivosPerdaRoute =
+  AppConfiguracoesAtendimentoMotivosPerdaRouteImport.update({
+    id: '/configuracoes/atendimento/motivos-perda',
+    path: '/configuracoes/atendimento/motivos-perda',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppConfiguracoesAtendimentoLifecycleRoute =
+  AppConfiguracoesAtendimentoLifecycleRouteImport.update({
+    id: '/configuracoes/atendimento/lifecycle',
+    path: '/configuracoes/atendimento/lifecycle',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppConfiguracoesAtendimentoHorarioComercialRoute =
+  AppConfiguracoesAtendimentoHorarioComercialRouteImport.update({
+    id: '/configuracoes/atendimento/horario-comercial',
+    path: '/configuracoes/atendimento/horario-comercial',
+    getParentRoute: () => AppRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -375,9 +452,14 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
   '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
   '/app/configuracoes/distribuicao': typeof AppConfiguracoesDistribuicaoRoute
+  '/app/configuracoes/divisoes': typeof AppConfiguracoesDivisoesRoute
+  '/app/configuracoes/gamificacao': typeof AppConfiguracoesGamificacaoRoute
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
+  '/app/configuracoes/portal-cliente': typeof AppConfiguracoesPortalClienteRoute
+  '/app/configuracoes/usuarios': typeof AppConfiguracoesUsuariosRoute
+  '/app/configuracoes/whatsapp': typeof AppConfiguracoesWhatsappRoute
   '/app/gestao/abc': typeof AppGestaoAbcRoute
   '/app/gestao/caixa': typeof AppGestaoCaixaRoute
   '/app/gestao/comissoes': typeof AppGestaoComissoesRoute
@@ -400,6 +482,12 @@ export interface FileRoutesByFullPath {
   '/app/gestao/': typeof AppGestaoIndexRoute
   '/app/leads/': typeof AppLeadsIndexRoute
   '/app/veiculos/': typeof AppVeiculosIndexRoute
+  '/app/configuracoes/atendimento/horario-comercial': typeof AppConfiguracoesAtendimentoHorarioComercialRoute
+  '/app/configuracoes/atendimento/lifecycle': typeof AppConfiguracoesAtendimentoLifecycleRoute
+  '/app/configuracoes/atendimento/motivos-perda': typeof AppConfiguracoesAtendimentoMotivosPerdaRoute
+  '/app/configuracoes/atendimento/pipeline': typeof AppConfiguracoesAtendimentoPipelineRoute
+  '/app/configuracoes/atendimento/tags': typeof AppConfiguracoesAtendimentoTagsRoute
+  '/app/configuracoes/veiculos/cadastro-mode': typeof AppConfiguracoesVeiculosCadastroModeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -427,9 +515,14 @@ export interface FileRoutesByTo {
   '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
   '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
   '/app/configuracoes/distribuicao': typeof AppConfiguracoesDistribuicaoRoute
+  '/app/configuracoes/divisoes': typeof AppConfiguracoesDivisoesRoute
+  '/app/configuracoes/gamificacao': typeof AppConfiguracoesGamificacaoRoute
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
+  '/app/configuracoes/portal-cliente': typeof AppConfiguracoesPortalClienteRoute
+  '/app/configuracoes/usuarios': typeof AppConfiguracoesUsuariosRoute
+  '/app/configuracoes/whatsapp': typeof AppConfiguracoesWhatsappRoute
   '/app/gestao/abc': typeof AppGestaoAbcRoute
   '/app/gestao/caixa': typeof AppGestaoCaixaRoute
   '/app/gestao/comissoes': typeof AppGestaoComissoesRoute
@@ -452,6 +545,12 @@ export interface FileRoutesByTo {
   '/app/gestao': typeof AppGestaoIndexRoute
   '/app/leads': typeof AppLeadsIndexRoute
   '/app/veiculos': typeof AppVeiculosIndexRoute
+  '/app/configuracoes/atendimento/horario-comercial': typeof AppConfiguracoesAtendimentoHorarioComercialRoute
+  '/app/configuracoes/atendimento/lifecycle': typeof AppConfiguracoesAtendimentoLifecycleRoute
+  '/app/configuracoes/atendimento/motivos-perda': typeof AppConfiguracoesAtendimentoMotivosPerdaRoute
+  '/app/configuracoes/atendimento/pipeline': typeof AppConfiguracoesAtendimentoPipelineRoute
+  '/app/configuracoes/atendimento/tags': typeof AppConfiguracoesAtendimentoTagsRoute
+  '/app/configuracoes/veiculos/cadastro-mode': typeof AppConfiguracoesVeiculosCadastroModeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -485,9 +584,14 @@ export interface FileRoutesById {
   '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
   '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
   '/app/configuracoes/distribuicao': typeof AppConfiguracoesDistribuicaoRoute
+  '/app/configuracoes/divisoes': typeof AppConfiguracoesDivisoesRoute
+  '/app/configuracoes/gamificacao': typeof AppConfiguracoesGamificacaoRoute
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
+  '/app/configuracoes/portal-cliente': typeof AppConfiguracoesPortalClienteRoute
+  '/app/configuracoes/usuarios': typeof AppConfiguracoesUsuariosRoute
+  '/app/configuracoes/whatsapp': typeof AppConfiguracoesWhatsappRoute
   '/app/gestao/abc': typeof AppGestaoAbcRoute
   '/app/gestao/caixa': typeof AppGestaoCaixaRoute
   '/app/gestao/comissoes': typeof AppGestaoComissoesRoute
@@ -510,6 +614,12 @@ export interface FileRoutesById {
   '/app/gestao/': typeof AppGestaoIndexRoute
   '/app/leads/': typeof AppLeadsIndexRoute
   '/app/veiculos/': typeof AppVeiculosIndexRoute
+  '/app/configuracoes/atendimento/horario-comercial': typeof AppConfiguracoesAtendimentoHorarioComercialRoute
+  '/app/configuracoes/atendimento/lifecycle': typeof AppConfiguracoesAtendimentoLifecycleRoute
+  '/app/configuracoes/atendimento/motivos-perda': typeof AppConfiguracoesAtendimentoMotivosPerdaRoute
+  '/app/configuracoes/atendimento/pipeline': typeof AppConfiguracoesAtendimentoPipelineRoute
+  '/app/configuracoes/atendimento/tags': typeof AppConfiguracoesAtendimentoTagsRoute
+  '/app/configuracoes/veiculos/cadastro-mode': typeof AppConfiguracoesVeiculosCadastroModeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -544,9 +654,14 @@ export interface FileRouteTypes {
     | '/app/configuracoes/aparencia'
     | '/app/configuracoes/auditoria'
     | '/app/configuracoes/distribuicao'
+    | '/app/configuracoes/divisoes'
+    | '/app/configuracoes/gamificacao'
     | '/app/configuracoes/lojas'
     | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
+    | '/app/configuracoes/portal-cliente'
+    | '/app/configuracoes/usuarios'
+    | '/app/configuracoes/whatsapp'
     | '/app/gestao/abc'
     | '/app/gestao/caixa'
     | '/app/gestao/comissoes'
@@ -569,6 +684,12 @@ export interface FileRouteTypes {
     | '/app/gestao/'
     | '/app/leads/'
     | '/app/veiculos/'
+    | '/app/configuracoes/atendimento/horario-comercial'
+    | '/app/configuracoes/atendimento/lifecycle'
+    | '/app/configuracoes/atendimento/motivos-perda'
+    | '/app/configuracoes/atendimento/pipeline'
+    | '/app/configuracoes/atendimento/tags'
+    | '/app/configuracoes/veiculos/cadastro-mode'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -596,9 +717,14 @@ export interface FileRouteTypes {
     | '/app/configuracoes/aparencia'
     | '/app/configuracoes/auditoria'
     | '/app/configuracoes/distribuicao'
+    | '/app/configuracoes/divisoes'
+    | '/app/configuracoes/gamificacao'
     | '/app/configuracoes/lojas'
     | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
+    | '/app/configuracoes/portal-cliente'
+    | '/app/configuracoes/usuarios'
+    | '/app/configuracoes/whatsapp'
     | '/app/gestao/abc'
     | '/app/gestao/caixa'
     | '/app/gestao/comissoes'
@@ -621,6 +747,12 @@ export interface FileRouteTypes {
     | '/app/gestao'
     | '/app/leads'
     | '/app/veiculos'
+    | '/app/configuracoes/atendimento/horario-comercial'
+    | '/app/configuracoes/atendimento/lifecycle'
+    | '/app/configuracoes/atendimento/motivos-perda'
+    | '/app/configuracoes/atendimento/pipeline'
+    | '/app/configuracoes/atendimento/tags'
+    | '/app/configuracoes/veiculos/cadastro-mode'
   id:
     | '__root__'
     | '/'
@@ -653,9 +785,14 @@ export interface FileRouteTypes {
     | '/app/configuracoes/aparencia'
     | '/app/configuracoes/auditoria'
     | '/app/configuracoes/distribuicao'
+    | '/app/configuracoes/divisoes'
+    | '/app/configuracoes/gamificacao'
     | '/app/configuracoes/lojas'
     | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
+    | '/app/configuracoes/portal-cliente'
+    | '/app/configuracoes/usuarios'
+    | '/app/configuracoes/whatsapp'
     | '/app/gestao/abc'
     | '/app/gestao/caixa'
     | '/app/gestao/comissoes'
@@ -678,6 +815,12 @@ export interface FileRouteTypes {
     | '/app/gestao/'
     | '/app/leads/'
     | '/app/veiculos/'
+    | '/app/configuracoes/atendimento/horario-comercial'
+    | '/app/configuracoes/atendimento/lifecycle'
+    | '/app/configuracoes/atendimento/motivos-perda'
+    | '/app/configuracoes/atendimento/pipeline'
+    | '/app/configuracoes/atendimento/tags'
+    | '/app/configuracoes/veiculos/cadastro-mode'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1022,6 +1165,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppGestaoAbcRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/configuracoes/whatsapp': {
+      id: '/app/configuracoes/whatsapp'
+      path: '/configuracoes/whatsapp'
+      fullPath: '/app/configuracoes/whatsapp'
+      preLoaderRoute: typeof AppConfiguracoesWhatsappRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/configuracoes/usuarios': {
+      id: '/app/configuracoes/usuarios'
+      path: '/configuracoes/usuarios'
+      fullPath: '/app/configuracoes/usuarios'
+      preLoaderRoute: typeof AppConfiguracoesUsuariosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/configuracoes/portal-cliente': {
+      id: '/app/configuracoes/portal-cliente'
+      path: '/configuracoes/portal-cliente'
+      fullPath: '/app/configuracoes/portal-cliente'
+      preLoaderRoute: typeof AppConfiguracoesPortalClienteRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/configuracoes/perfil': {
       id: '/app/configuracoes/perfil'
       path: '/configuracoes/perfil'
@@ -1041,6 +1205,20 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes/lojas'
       fullPath: '/app/configuracoes/lojas'
       preLoaderRoute: typeof AppConfiguracoesLojasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/configuracoes/gamificacao': {
+      id: '/app/configuracoes/gamificacao'
+      path: '/configuracoes/gamificacao'
+      fullPath: '/app/configuracoes/gamificacao'
+      preLoaderRoute: typeof AppConfiguracoesGamificacaoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/configuracoes/divisoes': {
+      id: '/app/configuracoes/divisoes'
+      path: '/configuracoes/divisoes'
+      fullPath: '/app/configuracoes/divisoes'
+      preLoaderRoute: typeof AppConfiguracoesDivisoesRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/configuracoes/distribuicao': {
@@ -1077,6 +1255,48 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/atendimento/$id'
       preLoaderRoute: typeof AppAtendimentoIdRouteImport
       parentRoute: typeof AppAtendimentoRoute
+    }
+    '/app/configuracoes/veiculos/cadastro-mode': {
+      id: '/app/configuracoes/veiculos/cadastro-mode'
+      path: '/configuracoes/veiculos/cadastro-mode'
+      fullPath: '/app/configuracoes/veiculos/cadastro-mode'
+      preLoaderRoute: typeof AppConfiguracoesVeiculosCadastroModeRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/configuracoes/atendimento/tags': {
+      id: '/app/configuracoes/atendimento/tags'
+      path: '/configuracoes/atendimento/tags'
+      fullPath: '/app/configuracoes/atendimento/tags'
+      preLoaderRoute: typeof AppConfiguracoesAtendimentoTagsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/configuracoes/atendimento/pipeline': {
+      id: '/app/configuracoes/atendimento/pipeline'
+      path: '/configuracoes/atendimento/pipeline'
+      fullPath: '/app/configuracoes/atendimento/pipeline'
+      preLoaderRoute: typeof AppConfiguracoesAtendimentoPipelineRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/configuracoes/atendimento/motivos-perda': {
+      id: '/app/configuracoes/atendimento/motivos-perda'
+      path: '/configuracoes/atendimento/motivos-perda'
+      fullPath: '/app/configuracoes/atendimento/motivos-perda'
+      preLoaderRoute: typeof AppConfiguracoesAtendimentoMotivosPerdaRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/configuracoes/atendimento/lifecycle': {
+      id: '/app/configuracoes/atendimento/lifecycle'
+      path: '/configuracoes/atendimento/lifecycle'
+      fullPath: '/app/configuracoes/atendimento/lifecycle'
+      preLoaderRoute: typeof AppConfiguracoesAtendimentoLifecycleRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/configuracoes/atendimento/horario-comercial': {
+      id: '/app/configuracoes/atendimento/horario-comercial'
+      path: '/configuracoes/atendimento/horario-comercial'
+      fullPath: '/app/configuracoes/atendimento/horario-comercial'
+      preLoaderRoute: typeof AppConfiguracoesAtendimentoHorarioComercialRouteImport
+      parentRoute: typeof AppRoute
     }
   }
 }
@@ -1151,9 +1371,14 @@ interface AppRouteChildren {
   AppConfiguracoesAparenciaRoute: typeof AppConfiguracoesAparenciaRoute
   AppConfiguracoesAuditoriaRoute: typeof AppConfiguracoesAuditoriaRoute
   AppConfiguracoesDistribuicaoRoute: typeof AppConfiguracoesDistribuicaoRoute
+  AppConfiguracoesDivisoesRoute: typeof AppConfiguracoesDivisoesRoute
+  AppConfiguracoesGamificacaoRoute: typeof AppConfiguracoesGamificacaoRoute
   AppConfiguracoesLojasRoute: typeof AppConfiguracoesLojasRoute
   AppConfiguracoesPapeisRoute: typeof AppConfiguracoesPapeisRoute
   AppConfiguracoesPerfilRoute: typeof AppConfiguracoesPerfilRoute
+  AppConfiguracoesPortalClienteRoute: typeof AppConfiguracoesPortalClienteRoute
+  AppConfiguracoesUsuariosRoute: typeof AppConfiguracoesUsuariosRoute
+  AppConfiguracoesWhatsappRoute: typeof AppConfiguracoesWhatsappRoute
   AppGestaoAbcRoute: typeof AppGestaoAbcRoute
   AppGestaoCaixaRoute: typeof AppGestaoCaixaRoute
   AppGestaoComissoesRoute: typeof AppGestaoComissoesRoute
@@ -1167,6 +1392,12 @@ interface AppRouteChildren {
   AppGestaoVendasRoute: typeof AppGestaoVendasRoute
   AppConfiguracoesIndexRoute: typeof AppConfiguracoesIndexRoute
   AppGestaoIndexRoute: typeof AppGestaoIndexRoute
+  AppConfiguracoesAtendimentoHorarioComercialRoute: typeof AppConfiguracoesAtendimentoHorarioComercialRoute
+  AppConfiguracoesAtendimentoLifecycleRoute: typeof AppConfiguracoesAtendimentoLifecycleRoute
+  AppConfiguracoesAtendimentoMotivosPerdaRoute: typeof AppConfiguracoesAtendimentoMotivosPerdaRoute
+  AppConfiguracoesAtendimentoPipelineRoute: typeof AppConfiguracoesAtendimentoPipelineRoute
+  AppConfiguracoesAtendimentoTagsRoute: typeof AppConfiguracoesAtendimentoTagsRoute
+  AppConfiguracoesVeiculosCadastroModeRoute: typeof AppConfiguracoesVeiculosCadastroModeRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -1183,9 +1414,14 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesAparenciaRoute: AppConfiguracoesAparenciaRoute,
   AppConfiguracoesAuditoriaRoute: AppConfiguracoesAuditoriaRoute,
   AppConfiguracoesDistribuicaoRoute: AppConfiguracoesDistribuicaoRoute,
+  AppConfiguracoesDivisoesRoute: AppConfiguracoesDivisoesRoute,
+  AppConfiguracoesGamificacaoRoute: AppConfiguracoesGamificacaoRoute,
   AppConfiguracoesLojasRoute: AppConfiguracoesLojasRoute,
   AppConfiguracoesPapeisRoute: AppConfiguracoesPapeisRoute,
   AppConfiguracoesPerfilRoute: AppConfiguracoesPerfilRoute,
+  AppConfiguracoesPortalClienteRoute: AppConfiguracoesPortalClienteRoute,
+  AppConfiguracoesUsuariosRoute: AppConfiguracoesUsuariosRoute,
+  AppConfiguracoesWhatsappRoute: AppConfiguracoesWhatsappRoute,
   AppGestaoAbcRoute: AppGestaoAbcRoute,
   AppGestaoCaixaRoute: AppGestaoCaixaRoute,
   AppGestaoComissoesRoute: AppGestaoComissoesRoute,
@@ -1199,6 +1435,17 @@ const AppRouteChildren: AppRouteChildren = {
   AppGestaoVendasRoute: AppGestaoVendasRoute,
   AppConfiguracoesIndexRoute: AppConfiguracoesIndexRoute,
   AppGestaoIndexRoute: AppGestaoIndexRoute,
+  AppConfiguracoesAtendimentoHorarioComercialRoute:
+    AppConfiguracoesAtendimentoHorarioComercialRoute,
+  AppConfiguracoesAtendimentoLifecycleRoute:
+    AppConfiguracoesAtendimentoLifecycleRoute,
+  AppConfiguracoesAtendimentoMotivosPerdaRoute:
+    AppConfiguracoesAtendimentoMotivosPerdaRoute,
+  AppConfiguracoesAtendimentoPipelineRoute:
+    AppConfiguracoesAtendimentoPipelineRoute,
+  AppConfiguracoesAtendimentoTagsRoute: AppConfiguracoesAtendimentoTagsRoute,
+  AppConfiguracoesVeiculosCadastroModeRoute:
+    AppConfiguracoesVeiculosCadastroModeRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

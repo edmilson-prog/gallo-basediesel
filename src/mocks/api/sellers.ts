@@ -51,4 +51,25 @@ export const sellersApi = {
       { payload: { id, availability } },
     );
   },
+
+  async update(id: ID, patch: Partial<ISeller>): Promise<ISeller> {
+    return runApi(
+      "sellersApi",
+      "update",
+      () => {
+        let updated: ISeller | null = null;
+        useMockStore.setState((state) => {
+          const sellers = state.sellers.map((s) => {
+            if (s.id !== id) return s;
+            updated = { ...s, ...patch, id: s.id, storeId: s.storeId } as ISeller;
+            return updated;
+          });
+          return { sellers };
+        });
+        if (!updated) throw new MockNotFoundError("seller", id);
+        return updated;
+      },
+      { payload: { id, patch } },
+    );
+  },
 };

@@ -1,0 +1,12 @@
+export { ProfileSettingsPage } from "./pages/ProfileSettingsPage";
+export { LossReasonsSettingsPage } from "./pages/LossReasonsSettingsPage";
+export { LifecycleSettingsPage } from "./pages/LifecycleSettingsPage";
+export { VehicleCadastroModeSettingsPage } from "./pages/VehicleCadastroModeSettingsPage";
+export { BusinessHoursSettingsPage } from "./pages/BusinessHoursSettingsPage";
+export { PipelineSettingsPage } from "./pages/PipelineSettingsPage";
+export { TagsSettingsPage } from "./pages/TagsSettingsPage";
+export { UsersPlaceholderPage } from "./pages/UsersPlaceholderPage";
+export { WhatsAppPlaceholderPage } from "./pages/WhatsAppPlaceholderPage";
+export { PortalPlaceholderPage } from "./pages/PortalPlaceholderPage";
+export { GamificationPlaceholderPage } from "./pages/GamificationPlaceholderPage";
+export { DivisionsPlaceholderPage } from "./pages/DivisionsPlaceholderPage";

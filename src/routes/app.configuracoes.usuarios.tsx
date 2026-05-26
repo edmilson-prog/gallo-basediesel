@@ -1,13 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SettingsLayout } from "@/features/shell/layouts";
 import { requireAuth } from "@/features/auth/guards";
-import { ProfileSettingsPage } from "@/features/admin-settings";
+import { UsersPlaceholderPage } from "@/features/admin-settings";
 
-export const Route = createFileRoute("/app/configuracoes/perfil")({
-  beforeLoad: ({ location }) => requireAuth(location.pathname),
+export const Route = createFileRoute("/app/configuracoes/usuarios")({
+  beforeLoad: ({ location }) => requireAuth(location.pathname, ["Owner"]),
   component: () => (
     <SettingsLayout>
-      <ProfileSettingsPage />
+      <UsersPlaceholderPage />
     </SettingsLayout>
   ),
 });

@@ -4,6 +4,98 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.16.0] — Cockpit · 2026-05-26
+
+Configurações Administrativas (PRD-019) — o hub `/app/configuracoes`
+deixa de ser placeholder e ganha **cinco categorias** (Pessoal,
+Administração, Operação, Integrações, Avançado) com 16 sub-rotas,
+edição funcional para o subconjunto especificado no MVP e placeholders
+informativos coerentes para as áreas que serão expandidas na Fase 2.
+A sidebar filtra itens por papel e permissão RBAC, garantindo que
+Vendedores só vejam Perfil/Aparência, Gestores vejam o operacional e
+Owners vejam o hub completo.
+
+### Added
+
+- **Hub renovado em `/app/configuracoes`** — substitui o
+  `PlaceholderPage` por um `SettingsLayout` agrupado em 5 categorias
+  (Pessoal / Administração / Operação / Integrações / Avançado).
+  Filtra itens visíveis por papel/permissão (PRD-019 RF-003), suporta
+  navegação por teclado e tem versão mobile via `Sheet` drawer.
+  `GET /app/configuracoes` redireciona para `/app/configuracoes/perfil`
+  (PRD-019 RF-004).
+- **`/app/configuracoes/perfil`** — qualquer usuário autenticado pode
+  editar nome, email, telefone e (para vendedores externos) região do
+  próprio cadastro. Valida email, exibe iniciais como avatar e dispara
+  audit log via `useSellersProvider().update()`. Modal de
+  confirmação avisa antes de descartar mudanças não salvas.
+- **`/app/configuracoes/atendimento/motivos-perda`** — CRUD simples
+  da `IPlatformSettings.lossReasons` usada pelo modal "Marcar como
+  perdido" (PRD-017). Suporta adicionar, remover e ativar/desativar
+  motivos com toast de confirmação e audit log automático.
+- **`/app/configuracoes/atendimento/lifecycle`** — dois sliders
+  configuram `dormantDays` (30–180) e `lostDays` (180–720). Pré-visualiza
+  o impacto em tempo real: mostra quantos clientes seriam considerados
+  dormentes/perdidos com o novo limiar e a variação vs. atual. Valida
+  que `lostDays > dormantDays`.
+- **`/app/configuracoes/atendimento/horario-comercial`** — embed do
+  `BusinessHoursSection` do PRD-013, mas servido fora do painel de
+  distribuição para deixar a configuração descobrível.
+- **`/app/configuracoes/atendimento/pipeline`** — visualização
+  read-only dos estágios atuais com cor, ordem e badge "Edição
+  disponível na Fase 2". Botão "Sugerir mudança" desabilitado com
+  tooltip explicativo.
+- **`/app/configuracoes/atendimento/tags`** — listagem em duas seções:
+  catálogo oficial (`IPlatformSettings.tagSuggestions`) e tags livres
+  detectadas em uso por clientes mas fora do catálogo. Owner e Gestor
+  podem promover uma tag livre ao catálogo, criar tags oficiais novas e
+  remover tags do catálogo (com alerta quando há clientes ainda usando).
+- **`/app/configuracoes/veiculos/cadastro-mode`** — radio cards com 3
+  opções (`auto_aprovado` / `aprovacao_obrigatoria` / `manual_apenas_gestor`),
+  descrição inline de cada modo e aviso sobre override por vendedor que
+  virá na Fase 2.
+- **Placeholders coerentes** em `/usuarios`, `/whatsapp`,
+  `/portal-cliente`, `/gamificacao` e `/divisoes` — cada um lista o
+  que será configurável na Fase 2, traz contexto real (equipe seedada,
+  contas WhatsApp do mock, regras de gamificação vigentes) e cita os
+  PRDs que vão entregar a feature. `/divisoes` mostra cards das três
+  submarcas (PARTS em verde habilitada, SERVICE em vermelho e INDUSTRIAL
+  em amarelo desabilitadas).
+- **Hook `useUnsavedChanges`** — usa `useBlocker` do TanStack Router
+  para interceptar navegação enquanto há mudanças não salvas, exibindo
+  `UnsavedChangesDialog` com opções "Cancelar" e "Descartar e sair".
+  Também guarda `beforeunload` do navegador para reloads/fechamento de
+  aba (PRD-019 RF-038).
+- **Hook `usePlatformSettings`** — wrapper compartilhado de leitura e
+  escrita do `IPlatformSettings` completo, capturando before/after por
+  campo patched e gerando audit log via `auditLog()` em cada save.
+- **Componentes compartilhados** `SectionHeader`, `PlaceholderSection`,
+  `UnsavedChangesDialog` em `src/features/admin-settings/components/`.
+
+### Changed
+
+- **`ISellersProvider`** ganha método `update(id, patch)` para suportar
+  edição de perfil. Implementado em `mockSellersProvider`/`sellersApi`;
+  `supabaseSellersProvider` segue como stub até PRD-105+.
+- **`SettingsLayout`** reescrito para suportar agrupamento por
+  categoria, drawer mobile via `Sheet` e badge "Em breve" para
+  placeholders. Mantém a API anterior (recebe `children`) — todas as
+  rotas existentes continuam funcionando sem alteração.
+
+### Notas
+
+- O escopo MVP do PRD-019 inclui: hub navegável + edição funcional do
+  subconjunto especificado + placeholders informativos. CRUD de
+  usuários e lojas, conexão real com WhatsApp, gateway de pagamento,
+  configuração de IA do SDR, editor visual do pipeline e edição da
+  matriz RBAC ficam para Fase 2.
+- Toda edição dispara audit log (PRD-006) e exibe toast "Configuração
+  salva" com ícone de check.
+- **Marco** — com este PRD, o **Bloco 1 (Central de Atendimento e
+  CRM)** está completo.
+
+---
+
 ## [0.15.0] — Wallet · 2026-05-26
 
 Gestão de Carteira e Transferências (PRD-018) — `/app/carteira` deixa

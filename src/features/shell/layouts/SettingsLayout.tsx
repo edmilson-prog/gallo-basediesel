@@ -1,107 +1,280 @@
 import { Link, useLocation } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import type { PermissionAction } from "@/shared/types";
+import type { PermissionAction, RoleName } from "@/shared/types";
 import { Icon } from "@/components/Icon";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/useAuth";
 import { hasPermission } from "@/features/rbac/utils/hasPermission";
 import type { ResourceName } from "@/features/rbac/permissions/resources";
 
-interface ISettingsSection {
+interface ISettingsItem {
   label: string;
   icon: string;
   to: string;
-  /** Optional fine-grained gate — falls back to role list when omitted. */
   permission?: { resource: ResourceName; action: PermissionAction };
-  roles?: ("Owner" | "Vendedor")[];
+  roles?: RoleName[];
+  /** Marker used to display a small "Em breve" pill in the sidebar. */
+  upcoming?: boolean;
 }
 
-const SETTINGS_SECTIONS: ISettingsSection[] = [
-  { label: "Admin", icon: "mdi:cog-outline", to: "/app/configuracoes", roles: ["Owner"] },
+interface ISettingsGroup {
+  label: string;
+  items: ISettingsItem[];
+}
+
+const SETTINGS_GROUPS: ISettingsGroup[] = [
   {
-    label: "Perfil",
-    icon: "mdi:account",
-    to: "/app/configuracoes/perfil",
-    roles: ["Owner", "Vendedor"],
+    label: "Pessoal",
+    items: [
+      {
+        label: "Perfil",
+        icon: "mdi:account-circle-outline",
+        to: "/app/configuracoes/perfil",
+        roles: ["Owner", "Gestor", "Vendedor", "SDR", "VendedorExterno", "Financeiro"],
+      },
+      {
+        label: "Aparência",
+        icon: "mdi:palette-outline",
+        to: "/app/configuracoes/aparencia",
+        roles: ["Owner", "Gestor", "Vendedor", "SDR", "VendedorExterno", "Financeiro"],
+      },
+    ],
   },
   {
-    label: "Aparência",
-    icon: "mdi:palette",
-    to: "/app/configuracoes/aparencia",
-    roles: ["Owner", "Vendedor"],
+    label: "Administração",
+    items: [
+      {
+        label: "Usuários",
+        icon: "mdi:account-group-outline",
+        to: "/app/configuracoes/usuarios",
+        roles: ["Owner"],
+        upcoming: true,
+      },
+      {
+        label: "Papéis",
+        icon: "mdi:shield-account-outline",
+        to: "/app/configuracoes/papeis",
+        permission: { resource: "role", action: "view" },
+      },
+      {
+        label: "Lojas",
+        icon: "mdi:store-outline",
+        to: "/app/configuracoes/lojas",
+        permission: { resource: "store", action: "view" },
+      },
+    ],
   },
   {
-    label: "Papéis",
-    icon: "mdi:shield-account",
-    to: "/app/configuracoes/papeis",
-    permission: { resource: "role", action: "view" },
+    label: "Operação",
+    items: [
+      {
+        label: "Distribuição",
+        icon: "mdi:call-split",
+        to: "/app/configuracoes/distribuicao",
+        permission: { resource: "settings", action: "edit" },
+      },
+      {
+        label: "Pipeline de leads",
+        icon: "mdi:view-column-outline",
+        to: "/app/configuracoes/atendimento/pipeline",
+        permission: { resource: "settings", action: "view" },
+      },
+      {
+        label: "Motivos de perda",
+        icon: "mdi:close-circle-outline",
+        to: "/app/configuracoes/atendimento/motivos-perda",
+        permission: { resource: "settings", action: "view" },
+      },
+      {
+        label: "Tags do catálogo",
+        icon: "mdi:tag-multiple-outline",
+        to: "/app/configuracoes/atendimento/tags",
+        permission: { resource: "settings", action: "view" },
+      },
+      {
+        label: "Ciclo de vida",
+        icon: "mdi:account-clock-outline",
+        to: "/app/configuracoes/atendimento/lifecycle",
+        permission: { resource: "settings", action: "edit" },
+      },
+      {
+        label: "Horário comercial",
+        icon: "mdi:calendar-clock-outline",
+        to: "/app/configuracoes/atendimento/horario-comercial",
+        permission: { resource: "settings", action: "edit" },
+      },
+      {
+        label: "Cadastro de veículos",
+        icon: "mdi:truck-outline",
+        to: "/app/configuracoes/veiculos/cadastro-mode",
+        permission: { resource: "settings", action: "edit" },
+      },
+    ],
   },
   {
-    label: "Lojas",
-    icon: "mdi:store",
-    to: "/app/configuracoes/lojas",
-    permission: { resource: "store", action: "view" },
+    label: "Integrações",
+    items: [
+      {
+        label: "WhatsApp",
+        icon: "mdi:whatsapp",
+        to: "/app/configuracoes/whatsapp",
+        roles: ["Owner"],
+        upcoming: true,
+      },
+      {
+        label: "Portal do cliente",
+        icon: "mdi:web",
+        to: "/app/configuracoes/portal-cliente",
+        roles: ["Owner"],
+        upcoming: true,
+      },
+    ],
   },
   {
-    label: "Distribuição",
-    icon: "mdi:call-split",
-    to: "/app/configuracoes/distribuicao",
-    permission: { resource: "settings", action: "edit" },
-  },
-  {
-    label: "Auditoria",
-    icon: "mdi:history",
-    to: "/app/configuracoes/auditoria",
-    permission: { resource: "audit_log", action: "view" },
+    label: "Avançado",
+    items: [
+      {
+        label: "Gamificação",
+        icon: "mdi:trophy-outline",
+        to: "/app/configuracoes/gamificacao",
+        roles: ["Owner"],
+        upcoming: true,
+      },
+      {
+        label: "Divisões",
+        icon: "mdi:shape-outline",
+        to: "/app/configuracoes/divisoes",
+        roles: ["Owner"],
+        upcoming: true,
+      },
+      {
+        label: "Auditoria",
+        icon: "mdi:history",
+        to: "/app/configuracoes/auditoria",
+        permission: { resource: "audit_log", action: "view" },
+      },
+    ],
   },
 ];
 
+function useVisibleGroups() {
+  const { currentUser, userRole } = useAuth();
+  return useMemo(() => {
+    return SETTINGS_GROUPS.map((group) => ({
+      ...group,
+      items: group.items.filter((item) => {
+        if (item.permission) {
+          return hasPermission(currentUser, item.permission.resource, item.permission.action);
+        }
+        if (item.roles && userRole) return item.roles.includes(userRole);
+        return false;
+      }),
+    })).filter((group) => group.items.length > 0);
+  }, [currentUser, userRole]);
+}
+
+interface ISidebarContentProps {
+  groups: ReturnType<typeof useVisibleGroups>;
+  activePath: string;
+  onNavigate?: () => void;
+}
+
+function SidebarContent({ groups, activePath, onNavigate }: ISidebarContentProps) {
+  return (
+    <nav aria-label="Configurações" className="space-y-6 px-2 py-2">
+      {groups.map((group) => (
+        <div key={group.label}>
+          <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            {group.label}
+          </p>
+          <ul className="space-y-0.5">
+            {group.items.map((item) => {
+              const active = activePath === item.to;
+              return (
+                <li key={item.to}>
+                  <Link
+                    to={item.to}
+                    onClick={onNavigate}
+                    className={cn(
+                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                      active
+                        ? "bg-accent text-accent-foreground font-medium"
+                        : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                    )}
+                  >
+                    <Icon icon={item.icon} size={16} />
+                    <span className="flex-1 truncate">{item.label}</span>
+                    {item.upcoming && (
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                        Em breve
+                      </span>
+                    )}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+    </nav>
+  );
+}
+
 /**
  * Inner sub-sidebar + content layout for /app/configuracoes/*.
- * Assumes Sidebar + TopBar come from the parent route (`app.tsx`).
+ * Sidebar is grouped in 5 categories (Pessoal / Administração / Operação /
+ * Integrações / Avançado). Items filter themselves out when the current user
+ * lacks the required role or permission (PRD-019 RF-003).
  */
 export function SettingsLayout({ children }: { children?: ReactNode }) {
-  const { currentUser, userRole } = useAuth();
   const location = useLocation();
-  const sections = SETTINGS_SECTIONS.filter((s) => {
-    if (s.permission) {
-      return hasPermission(currentUser, s.permission.resource, s.permission.action);
+  const groups = useVisibleGroups();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const activeItemLabel = useMemo(() => {
+    for (const g of groups) {
+      const found = g.items.find((it) => it.to === location.pathname);
+      if (found) return found.label;
     }
-    if (s.roles) {
-      return s.roles.includes(userRole as "Owner" | "Vendedor");
-    }
-    return true;
-  });
+    return "Configurações";
+  }, [groups, location.pathname]);
 
   return (
     <div className="flex h-[calc(100vh-4rem)]">
-      <aside className="hidden w-56 shrink-0 border-r border-border bg-card lg:block">
+      <aside className="hidden w-64 shrink-0 overflow-y-auto border-r border-border bg-card lg:block">
         <div className="px-4 py-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Configurações
         </div>
-        <ul className="space-y-0.5 px-2">
-          {sections.map((s) => {
-            const active = location.pathname === s.to;
-            return (
-              <li key={s.to}>
-                <Link
-                  to={s.to}
-                  className={cn(
-                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm",
-                    active
-                      ? "bg-accent text-accent-foreground font-medium"
-                      : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-                  )}
-                >
-                  <Icon icon={s.icon} size={16} />
-                  {s.label}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <SidebarContent groups={groups} activePath={location.pathname} />
       </aside>
       <main className="flex-1 overflow-y-auto">
+        <div className="sticky top-0 z-10 border-b border-border bg-background/95 px-4 py-3 backdrop-blur lg:hidden">
+          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+            <div className="flex items-center justify-between gap-3">
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Icon icon="mdi:menu" size={16} />
+                  Menu de configurações
+                </Button>
+              </SheetTrigger>
+              <p className="truncate text-sm font-medium text-foreground">{activeItemLabel}</p>
+            </div>
+            <SheetContent side="left" className="w-72 p-0">
+              <SheetTitle className="sr-only">Configurações</SheetTitle>
+              <div className="border-b border-border px-4 py-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                Configurações
+              </div>
+              <SidebarContent
+                groups={groups}
+                activePath={location.pathname}
+                onNavigate={() => setMobileOpen(false)}
+              />
+            </SheetContent>
+          </Sheet>
+        </div>
         <div className="mx-auto w-full max-w-4xl px-4 py-6 md:px-8">{children}</div>
       </main>
     </div>

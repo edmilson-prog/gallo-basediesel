@@ -11,4 +11,5 @@ export const supabaseSellersProvider: ISellersProvider = {
   list: stub("list"),
   get: stub("get"),
   setAvailability: stub("setAvailability"),
+  update: stub("update"),
 };
