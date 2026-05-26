@@ -4,6 +4,85 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.13.0] — Fleet · 2026-05-26
+
+Veículos do Cliente (PRD-016) — veículo passa a ser **entidade de primeira
+classe** com listagem geral, página de detalhe, histórico de manutenção
+estruturado, recomendações proativas baseadas em km e cadastro
+configurável em 3 modos (auto / aprovação / apenas gestor). **Marco: o
+vendedor para de perguntar "qual o caminhão?" toda vez — toda peça vendida
+pode ser amarrada a um veículo e o sistema avisa quando a próxima
+manutenção está chegando.**
+
+### Added
+
+- **Rota `/app/veiculos`** substitui o placeholder por `VehiclesListPage`
+  em `src/features/vehicles/pages/`. Tabela paginada com 9 colunas (marca,
+  ano, motor, placa, cliente, vendedor, km, última manutenção, status),
+  ordenação por 5 colunas e paginação configurável (25/50/100/200).
+- **Rota `/app/veiculos/:id`** — `VehicleDetailPage` com 6 seções:
+  cabeçalho com badge de cadastroStatus, dados técnicos, proprietário,
+  histórico de manutenção (timeline reversa), recomendações de manutenção
+  e peças compatíveis (placeholder até PRD-030).
+- **Filtros combináveis com URL sync** — marca (multi-select), modelo
+  (texto livre), faixa de ano, motor (texto livre), status de cadastro,
+  vendedor (Gestor/Owner) e loja (Owner). Atalho "Pendentes" filtra
+  cadastros pendentes em um clique.
+- **Busca textual** — placa, VIN, modelo ou nome do cliente.
+- **`<NewVehicleModal>`** — autocomplete de cliente proprietário escopado
+  à carteira do vendedor, dropdown de marca (5 fabricantes + "Outro"),
+  validação de ano (1990 a ano atual + 1), placa brasileira
+  (7 caracteres), VIN (17 caracteres) e anti-duplicata de placa por
+  cliente.
+- **3 modos de cadastro** (`IPlatformSettings.vehicleCadastroMode`):
+  `auto_aprovado` cria como aprovado; `aprovacao_obrigatoria` deixa
+  pendente até revisão do gestor; `manual_apenas_gestor` esconde o botão
+  "+ Veículo" do vendedor.
+- **Override por vendedor** — `ISeller.vehicleCadastroMode` permite
+  exceções por usuário (resolvido em `useCadastroMode`).
+- **Edição inline de km** com confirmação obrigatória para mudanças
+  acima de 50.000 km — proteção contra erros de digitação que invalidam
+  o histórico.
+- **Histórico de manutenção estruturado** — `IVehicleServiceEntry` em
+  timeline cronológica reversa com data, km, peças trocadas (badges) e
+  referência ao pedido derivado quando aplicável.
+- **`<AddServiceEntryModal>`** — registro manual com date picker, km,
+  tags de peças (adicionar com Enter), observações e toggle para
+  associar a um pedido do mesmo cliente.
+- **Recomendações proativas** — heurística de 4 regras (filtros, correia,
+  freios, revisão) com intervalos fixos: card amarelo a 5.000 km da
+  próxima troca (10.000 km na revisão completa) e card vermelho quando
+  atrasado. CTA "Criar orçamento" reservado para PRD-031.
+- **Aprovação/rejeição** — individual via página de detalhe e em lote via
+  multi-select na listagem. Rejeição abre AlertDialog pedindo motivo
+  (opcional) e gera audit log.
+- **`<CustomerVehiclesList>`** consumido pela tab Veículos da ficha do
+  cliente (PRD-012) — substitui o componente embutido anterior por uma
+  visão unificada com até 5 cards e link "Ver todos os N veículos".
+
+### Changed
+
+- **`VehicleCadastroMode` ganha terceiro modo** — `manual_apenas_gestor`
+  somado aos dois existentes (`auto_aprovado`, `aprovacao_obrigatoria`).
+  Tipo exportado via `@/shared/types`.
+- **`IVehiclesProvider.list`** estendido com `customerIds`, `brands`,
+  `model`, `engine`, `yearMin`, `yearMax`, `cadastroStatuses`, `storeIds`,
+  `sellerIds`, `search`, `orderBy` e `orderDir`. Mock cruza com customers
+  para resolver filtros por loja e vendedor.
+- **`IVehiclesProvider.addServiceEntry`** — novo método para registrar
+  manutenções; atualiza `currentKm` quando o entry tem km maior que o
+  atual.
+- **`VehiclesTab`** da ficha do cliente reduzido a wrapper de
+  `<CustomerVehiclesList>` (DRY com a listagem geral).
+
+### Tech notes
+
+- 60 veículos seeded vinculados a 25 clientes B2B suportam o PRD; mocks
+  ganharam helpers para resolver customer-name e seller-id no cruzamento
+  de filtros.
+- Stub Supabase atualizado para o novo método `addServiceEntry`
+  (`NotImplementedError` até PRD-110+).
+
 ## [0.12.0] — Ledger · 2026-05-26
 
 Lista Geral de Clientes (PRD-015) — visão macro da base que complementa a
@@ -45,18 +124,18 @@ cliques agora vira filtro + 3 cliques + um toast "23 clientes atualizados".**
   searchable), Vendedor (multi searchable — locked em si para Vendedor),
   Recência (multi com 4 faixas), Ticket médio (presets + custom min/max),
   LTV (presets + custom), Veículo marca (Volvo/Scania/Mercedes/Ford/Iveco
-  + "Qualquer"), Loja (Owner only quando há ≥ 2 lojas acessíveis). Combina
-  via AND, indicador "N filtros ativos" + botão "Limpar tudo".
+  - "Qualquer"), Loja (Owner only quando há ≥ 2 lojas acessíveis). Combina
+    via AND, indicador "N filtros ativos" + botão "Limpar tudo".
 - **Busca textual** com URL sync, pesquisa em nome (razão social / nome
   fantasia / fullName), CNPJ / CPF (digits-only normalizado), telefone
   normalizado, email e conteúdo de notas. Highlight visual onde encontrado.
 - **Segmentações salvas** — `<SegmentsDropdown>` lista private (do user)
-  + shared (da loja) com badge "ativa". `<SaveSegmentModal>` cria
-  segmentação a partir dos filtros atuais (nome ≤ 50 chars + escopo
-  Privada/Compartilhada — Vendedor não pode criar shared).
-  `<ManageSegmentsModal>` permite renomear, mudar escopo e excluir.
-  Comportamento "Modificado" quando filtros divergem da segmentação ativa
-  — Owner/Gestor pode "Salvar alterações" ou "Salvar como nova".
+  - shared (da loja) com badge "ativa". `<SaveSegmentModal>` cria
+    segmentação a partir dos filtros atuais (nome ≤ 50 chars + escopo
+    Privada/Compartilhada — Vendedor não pode criar shared).
+    `<ManageSegmentsModal>` permite renomear, mudar escopo e excluir.
+    Comportamento "Modificado" quando filtros divergem da segmentação ativa
+    — Owner/Gestor pode "Salvar alterações" ou "Salvar como nova".
 - **Multi-select + ações em lote** — checkbox por linha + "Selecionar
   todos da página" (com tri-state indeterminate). Quando há seleção parcial
   e existem mais itens filtrados, botão "Selecionar todos os N filtrados"

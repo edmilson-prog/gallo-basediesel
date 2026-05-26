@@ -25,6 +25,7 @@ export type {
   IWhatsAppAccountRef,
   IManagerDashboardSettings,
   StoreType,
+  VehicleCadastroMode,
 } from "./platform";
 
 // People & permissions

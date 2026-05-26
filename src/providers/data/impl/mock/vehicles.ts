@@ -8,4 +8,5 @@ export const mockVehiclesProvider: IVehiclesProvider = {
   create: (input) => vehiclesApi.create(input),
   update: (id, patch) => vehiclesApi.update(id, patch),
   delete: (id) => vehiclesApi.delete(id),
+  addServiceEntry: (vehicleId, entry) => vehiclesApi.addServiceEntry(vehicleId, entry),
 };

@@ -14,4 +14,5 @@ export const supabaseVehiclesProvider: IVehiclesProvider = {
   create: stub("create"),
   update: stub("update"),
   delete: stub("delete"),
+  addServiceEntry: stub("addServiceEntry"),
 };

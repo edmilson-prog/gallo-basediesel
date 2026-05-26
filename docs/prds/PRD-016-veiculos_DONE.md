@@ -685,9 +685,12 @@ Modo `approval` garante que duplicatas e dados duvidosos passem pelo crivo do ge
 
 ## Status de Implementação
 
-| Campo      | Valor       |
-| ---------- | ----------- |
-| **Status** | ⏳ PENDENTE |
+| Campo             | Valor           |
+| ----------------- | --------------- |
+| **Status**        | ✅ IMPLEMENTADO |
+| **Versão**        | v0.13.0 — Fleet |
+| **Data**          | 26/05/2026      |
+| **Implementador** | Claude Code CLI |
 
 ---
 

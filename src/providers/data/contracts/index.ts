@@ -29,7 +29,13 @@ import type { IManagerDashboardProvider } from "./managerDashboard";
 export type { IPaginatedResult, IPaginationParams } from "./_shared";
 
 export type { ICustomersProvider, IListCustomersParams } from "./customers";
-export type { IVehiclesProvider, IListVehiclesParams } from "./vehicles";
+export type {
+  IVehiclesProvider,
+  IListVehiclesParams,
+  IAddServiceEntryInput,
+  VehiclesOrderBy,
+  VehiclesOrderDir,
+} from "./vehicles";
 export type { ILeadsProvider, IListLeadsParams } from "./leads";
 export type {
   IConversationsProvider,

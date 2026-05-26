@@ -1,11 +1,44 @@
-import type { ID, IVehicle } from "@/shared/types";
+import type { ID, IVehicle, IVehicleServiceEntry } from "@/shared/types";
 import type { IPaginatedResult, IPaginationParams } from "./_shared";
+
+export type VehiclesOrderBy =
+  | "brand"
+  | "createdAt"
+  | "lastServiceAt"
+  | "currentKm"
+  | "year"
+  | "customerName";
+
+export type VehiclesOrderDir = "asc" | "desc";
 
 export interface IListVehiclesParams extends IPaginationParams {
   customerId?: ID;
+  customerIds?: ID[];
+  /** Single brand legacy filter. */
   brand?: string;
+  brands?: string[];
+  /** Substring match on model. */
+  model?: string;
+  /** Substring match on engine. */
+  engine?: string;
+  yearMin?: number;
+  yearMax?: number;
   cadastroStatus?: IVehicle["cadastroStatus"];
+  cadastroStatuses?: IVehicle["cadastroStatus"][];
+  storeId?: ID;
+  storeIds?: ID[];
+  sellerIds?: ID[];
+  /** Free-text query on plate, VIN, model, customer name. */
+  search?: string;
+  orderBy?: VehiclesOrderBy;
+  orderDir?: VehiclesOrderDir;
 }
+
+/**
+ * Input payload to register a service entry (PRD-016).
+ * `id` and the timeline reverse-chronological ordering are derived by the provider.
+ */
+export type IAddServiceEntryInput = Omit<IVehicleServiceEntry, "id">;
 
 /**
  * Contract for vehicle catalog access (Volvo, Scania, Mercedes-Benz, etc.).
@@ -20,4 +53,6 @@ export interface IVehiclesProvider {
   create(input: Omit<IVehicle, "id" | "createdAt" | "serviceHistory">): Promise<IVehicle>;
   update(id: ID, patch: Partial<IVehicle>): Promise<IVehicle>;
   delete(id: ID): Promise<void>;
+  /** Append a service entry to the vehicle's `serviceHistory` (PRD-016 fase 4). */
+  addServiceEntry(vehicleId: ID, entry: IAddServiceEntryInput): Promise<IVehicle>;
 }

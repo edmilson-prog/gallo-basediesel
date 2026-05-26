@@ -19,6 +19,17 @@ export interface ILossReason {
   active: boolean;
 }
 
+/**
+ * Vehicle registration cadastro mode (PRD-016).
+ * - `auto_aprovado`: sellers can register vehicles directly (status approved immediately).
+ * - `aprovacao_obrigatoria`: sellers register but vehicle stays `pendente` until a manager approves.
+ * - `manual_apenas_gestor`: only managers/owners can register vehicles (sellers have no "+ Vehicle" button).
+ */
+export type VehicleCadastroMode =
+  | "auto_aprovado"
+  | "aprovacao_obrigatoria"
+  | "manual_apenas_gestor";
+
 /** Tag that can be applied to customers, leads or conversations. */
 export interface ITagSuggestion {
   id: ID;
@@ -79,8 +90,8 @@ export interface IWhatsAppAccountRef {
 export interface IPlatformSettings {
   storeId: ID;
   lifecycleThresholds: ILifecycleThresholds;
-  /** Default vehicle registration mode for the store. */
-  vehicleCadastroMode: "aprovacao_obrigatoria" | "auto_aprovado";
+  /** Default vehicle registration mode for the store (PRD-016). */
+  vehicleCadastroMode: VehicleCadastroMode;
   tagSuggestions: ITagSuggestion[];
   pipelineStages: IPipelineStage[];
   lossReasons: ILossReason[];

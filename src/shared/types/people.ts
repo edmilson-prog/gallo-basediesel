@@ -1,4 +1,5 @@
 import type { Division, ID, ISO8601, ThemeMode, ThemeName } from "./common";
+import type { VehicleCadastroMode } from "./platform";
 
 /** Internal sellers are employees; external are field reps with no salary; representative is a contractor brand rep. */
 export type SellerType = "internal" | "external" | "representative";
@@ -53,6 +54,12 @@ export interface ISeller {
   parentSellerId?: ID;
   /** Reserved for external/representative — commission rule. */
   commissionRule?: ICommissionRule;
+  /**
+   * Optional override of the store-level vehicle cadastro mode (PRD-016).
+   * When defined, this takes precedence over `IPlatformSettings.vehicleCadastroMode`
+   * for actions performed by this seller.
+   */
+  vehicleCadastroMode?: VehicleCadastroMode;
   active: boolean;
   createdAt: ISO8601;
 }

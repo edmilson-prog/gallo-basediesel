@@ -34,6 +34,7 @@ import { Route as AppClientesRouteImport } from './routes/app.clientes'
 import { Route as AppCatalogoRouteImport } from './routes/app.catalogo'
 import { Route as AppCarteiraRouteImport } from './routes/app.carteira'
 import { Route as AppAtendimentoRouteImport } from './routes/app.atendimento'
+import { Route as AppVeiculosIndexRouteImport } from './routes/app.veiculos.index'
 import { Route as AppGestaoIndexRouteImport } from './routes/app.gestao.index'
 import { Route as AppConfiguracoesIndexRouteImport } from './routes/app.configuracoes.index'
 import { Route as AppClientesIndexRouteImport } from './routes/app.clientes.index'
@@ -41,6 +42,7 @@ import { Route as AppAtendimentoIndexRouteImport } from './routes/app.atendiment
 import { Route as LojaProdutoSlugRouteImport } from './routes/loja.produto.$slug'
 import { Route as LojaContaPedidosRouteImport } from './routes/loja.conta.pedidos'
 import { Route as LojaCategoriaSlugRouteImport } from './routes/loja.categoria.$slug'
+import { Route as AppVeiculosIdRouteImport } from './routes/app.veiculos.$id'
 import { Route as AppGestaoVendasRouteImport } from './routes/app.gestao.vendas'
 import { Route as AppGestaoRentabilidadeRouteImport } from './routes/app.gestao.rentabilidade'
 import { Route as AppGestaoRankingRouteImport } from './routes/app.gestao.ranking'
@@ -186,6 +188,11 @@ const AppAtendimentoRoute = AppAtendimentoRouteImport.update({
   path: '/atendimento',
   getParentRoute: () => AppRoute,
 } as any)
+const AppVeiculosIndexRoute = AppVeiculosIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppVeiculosRoute,
+} as any)
 const AppGestaoIndexRoute = AppGestaoIndexRouteImport.update({
   id: '/gestao/',
   path: '/gestao/',
@@ -220,6 +227,11 @@ const LojaCategoriaSlugRoute = LojaCategoriaSlugRouteImport.update({
   id: '/categoria/$slug',
   path: '/categoria/$slug',
   getParentRoute: () => LojaRoute,
+} as any)
+const AppVeiculosIdRoute = AppVeiculosIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppVeiculosRoute,
 } as any)
 const AppGestaoVendasRoute = AppGestaoVendasRouteImport.update({
   id: '/gestao/vendas',
@@ -338,7 +350,7 @@ export interface FileRoutesByFullPath {
   '/app/orcamentos': typeof AppOrcamentosRoute
   '/app/pedidos': typeof AppPedidosRoute
   '/app/sdr': typeof AppSdrRoute
-  '/app/veiculos': typeof AppVeiculosRoute
+  '/app/veiculos': typeof AppVeiculosRouteWithChildren
   '/auth/login': typeof AuthLoginRoute
   '/auth/logout': typeof AuthLogoutRoute
   '/loja/busca': typeof LojaBuscaRoute
@@ -365,6 +377,7 @@ export interface FileRoutesByFullPath {
   '/app/gestao/ranking': typeof AppGestaoRankingRoute
   '/app/gestao/rentabilidade': typeof AppGestaoRentabilidadeRoute
   '/app/gestao/vendas': typeof AppGestaoVendasRoute
+  '/app/veiculos/$id': typeof AppVeiculosIdRoute
   '/loja/categoria/$slug': typeof LojaCategoriaSlugRoute
   '/loja/conta/pedidos': typeof LojaContaPedidosRoute
   '/loja/produto/$slug': typeof LojaProdutoSlugRoute
@@ -372,6 +385,7 @@ export interface FileRoutesByFullPath {
   '/app/clientes/': typeof AppClientesIndexRoute
   '/app/configuracoes/': typeof AppConfiguracoesIndexRoute
   '/app/gestao/': typeof AppGestaoIndexRoute
+  '/app/veiculos/': typeof AppVeiculosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -388,7 +402,6 @@ export interface FileRoutesByTo {
   '/app/orcamentos': typeof AppOrcamentosRoute
   '/app/pedidos': typeof AppPedidosRoute
   '/app/sdr': typeof AppSdrRoute
-  '/app/veiculos': typeof AppVeiculosRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/logout': typeof AuthLogoutRoute
   '/loja/busca': typeof LojaBuscaRoute
@@ -415,6 +428,7 @@ export interface FileRoutesByTo {
   '/app/gestao/ranking': typeof AppGestaoRankingRoute
   '/app/gestao/rentabilidade': typeof AppGestaoRentabilidadeRoute
   '/app/gestao/vendas': typeof AppGestaoVendasRoute
+  '/app/veiculos/$id': typeof AppVeiculosIdRoute
   '/loja/categoria/$slug': typeof LojaCategoriaSlugRoute
   '/loja/conta/pedidos': typeof LojaContaPedidosRoute
   '/loja/produto/$slug': typeof LojaProdutoSlugRoute
@@ -422,6 +436,7 @@ export interface FileRoutesByTo {
   '/app/clientes': typeof AppClientesIndexRoute
   '/app/configuracoes': typeof AppConfiguracoesIndexRoute
   '/app/gestao': typeof AppGestaoIndexRoute
+  '/app/veiculos': typeof AppVeiculosIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -442,7 +457,7 @@ export interface FileRoutesById {
   '/app/orcamentos': typeof AppOrcamentosRoute
   '/app/pedidos': typeof AppPedidosRoute
   '/app/sdr': typeof AppSdrRoute
-  '/app/veiculos': typeof AppVeiculosRoute
+  '/app/veiculos': typeof AppVeiculosRouteWithChildren
   '/auth/login': typeof AuthLoginRoute
   '/auth/logout': typeof AuthLogoutRoute
   '/loja/busca': typeof LojaBuscaRoute
@@ -469,6 +484,7 @@ export interface FileRoutesById {
   '/app/gestao/ranking': typeof AppGestaoRankingRoute
   '/app/gestao/rentabilidade': typeof AppGestaoRentabilidadeRoute
   '/app/gestao/vendas': typeof AppGestaoVendasRoute
+  '/app/veiculos/$id': typeof AppVeiculosIdRoute
   '/loja/categoria/$slug': typeof LojaCategoriaSlugRoute
   '/loja/conta/pedidos': typeof LojaContaPedidosRoute
   '/loja/produto/$slug': typeof LojaProdutoSlugRoute
@@ -476,6 +492,7 @@ export interface FileRoutesById {
   '/app/clientes/': typeof AppClientesIndexRoute
   '/app/configuracoes/': typeof AppConfiguracoesIndexRoute
   '/app/gestao/': typeof AppGestaoIndexRoute
+  '/app/veiculos/': typeof AppVeiculosIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -524,6 +541,7 @@ export interface FileRouteTypes {
     | '/app/gestao/ranking'
     | '/app/gestao/rentabilidade'
     | '/app/gestao/vendas'
+    | '/app/veiculos/$id'
     | '/loja/categoria/$slug'
     | '/loja/conta/pedidos'
     | '/loja/produto/$slug'
@@ -531,6 +549,7 @@ export interface FileRouteTypes {
     | '/app/clientes/'
     | '/app/configuracoes/'
     | '/app/gestao/'
+    | '/app/veiculos/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -547,7 +566,6 @@ export interface FileRouteTypes {
     | '/app/orcamentos'
     | '/app/pedidos'
     | '/app/sdr'
-    | '/app/veiculos'
     | '/auth/login'
     | '/auth/logout'
     | '/loja/busca'
@@ -574,6 +592,7 @@ export interface FileRouteTypes {
     | '/app/gestao/ranking'
     | '/app/gestao/rentabilidade'
     | '/app/gestao/vendas'
+    | '/app/veiculos/$id'
     | '/loja/categoria/$slug'
     | '/loja/conta/pedidos'
     | '/loja/produto/$slug'
@@ -581,6 +600,7 @@ export interface FileRouteTypes {
     | '/app/clientes'
     | '/app/configuracoes'
     | '/app/gestao'
+    | '/app/veiculos'
   id:
     | '__root__'
     | '/'
@@ -627,6 +647,7 @@ export interface FileRouteTypes {
     | '/app/gestao/ranking'
     | '/app/gestao/rentabilidade'
     | '/app/gestao/vendas'
+    | '/app/veiculos/$id'
     | '/loja/categoria/$slug'
     | '/loja/conta/pedidos'
     | '/loja/produto/$slug'
@@ -634,6 +655,7 @@ export interface FileRouteTypes {
     | '/app/clientes/'
     | '/app/configuracoes/'
     | '/app/gestao/'
+    | '/app/veiculos/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -824,6 +846,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAtendimentoRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/veiculos/': {
+      id: '/app/veiculos/'
+      path: '/'
+      fullPath: '/app/veiculos/'
+      preLoaderRoute: typeof AppVeiculosIndexRouteImport
+      parentRoute: typeof AppVeiculosRoute
+    }
     '/app/gestao/': {
       id: '/app/gestao/'
       path: '/gestao'
@@ -872,6 +901,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/loja/categoria/$slug'
       preLoaderRoute: typeof LojaCategoriaSlugRouteImport
       parentRoute: typeof LojaRoute
+    }
+    '/app/veiculos/$id': {
+      id: '/app/veiculos/$id'
+      path: '/$id'
+      fullPath: '/app/veiculos/$id'
+      preLoaderRoute: typeof AppVeiculosIdRouteImport
+      parentRoute: typeof AppVeiculosRoute
     }
     '/app/gestao/vendas': {
       id: '/app/gestao/vendas'
@@ -1037,6 +1073,20 @@ const AppClientesRouteWithChildren = AppClientesRoute._addFileChildren(
   AppClientesRouteChildren,
 )
 
+interface AppVeiculosRouteChildren {
+  AppVeiculosIdRoute: typeof AppVeiculosIdRoute
+  AppVeiculosIndexRoute: typeof AppVeiculosIndexRoute
+}
+
+const AppVeiculosRouteChildren: AppVeiculosRouteChildren = {
+  AppVeiculosIdRoute: AppVeiculosIdRoute,
+  AppVeiculosIndexRoute: AppVeiculosIndexRoute,
+}
+
+const AppVeiculosRouteWithChildren = AppVeiculosRoute._addFileChildren(
+  AppVeiculosRouteChildren,
+)
+
 interface AppRouteChildren {
   AppAtendimentoRoute: typeof AppAtendimentoRouteWithChildren
   AppCarteiraRoute: typeof AppCarteiraRoute
@@ -1047,7 +1097,7 @@ interface AppRouteChildren {
   AppOrcamentosRoute: typeof AppOrcamentosRoute
   AppPedidosRoute: typeof AppPedidosRoute
   AppSdrRoute: typeof AppSdrRoute
-  AppVeiculosRoute: typeof AppVeiculosRoute
+  AppVeiculosRoute: typeof AppVeiculosRouteWithChildren
   AppConfiguracoesAparenciaRoute: typeof AppConfiguracoesAparenciaRoute
   AppConfiguracoesAuditoriaRoute: typeof AppConfiguracoesAuditoriaRoute
   AppConfiguracoesDistribuicaoRoute: typeof AppConfiguracoesDistribuicaoRoute
@@ -1079,7 +1129,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppOrcamentosRoute: AppOrcamentosRoute,
   AppPedidosRoute: AppPedidosRoute,
   AppSdrRoute: AppSdrRoute,
-  AppVeiculosRoute: AppVeiculosRoute,
+  AppVeiculosRoute: AppVeiculosRouteWithChildren,
   AppConfiguracoesAparenciaRoute: AppConfiguracoesAparenciaRoute,
   AppConfiguracoesAuditoriaRoute: AppConfiguracoesAuditoriaRoute,
   AppConfiguracoesDistribuicaoRoute: AppConfiguracoesDistribuicaoRoute,
