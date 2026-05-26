@@ -106,9 +106,10 @@ export function InboxFilters({
   const assignmentLabel = useMemo(() => {
     if (state.assignment === "me") return INBOX_STRINGS.assignmentOptions.me;
     if (state.assignment === "unassigned") return INBOX_STRINGS.assignmentOptions.unassigned;
+    if (state.assignment === "queue") return INBOX_STRINGS.assignmentOptions.queue;
     if (state.assignment === "all") return INBOX_STRINGS.assignmentOptions.all;
     const seller = sellers.find((s) => s.id === state.assignment);
-    return seller?.displayName ?? INBOX_STRINGS.assignmentOptions.seller;
+    return seller?.fullName ?? INBOX_STRINGS.assignmentOptions.seller;
   }, [state.assignment, sellers]);
 
   return (
@@ -212,6 +213,9 @@ export function InboxFilters({
                 </DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="unassigned">
                   {INBOX_STRINGS.assignmentOptions.unassigned}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="queue">
+                  {INBOX_STRINGS.assignmentOptions.queue}
                 </DropdownMenuRadioItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-xs">

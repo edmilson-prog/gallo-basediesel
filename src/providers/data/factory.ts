@@ -18,6 +18,7 @@ import { mockStoresProvider } from "./impl/mock/stores";
 import { mockSettingsProvider } from "./impl/mock/settings";
 import { mockAuditsProvider } from "./impl/mock/audits";
 import { mockWhatsAppAccountsProvider } from "./impl/mock/whatsappAccounts";
+import { mockDistributionTracesProvider } from "./impl/mock/distributionTraces";
 
 import { supabaseCustomersProvider } from "./impl/supabase/customers";
 import { supabaseVehiclesProvider } from "./impl/supabase/vehicles";
@@ -37,6 +38,7 @@ import { supabaseStoresProvider } from "./impl/supabase/stores";
 import { supabaseSettingsProvider } from "./impl/supabase/settings";
 import { supabaseAuditsProvider } from "./impl/supabase/audits";
 import { supabaseWhatsAppAccountsProvider } from "./impl/supabase/whatsappAccounts";
+import { supabaseDistributionTracesProvider } from "./impl/supabase/distributionTraces";
 
 type DataSource = "mock" | "supabase";
 
@@ -81,6 +83,7 @@ const mockProviders: IDataProviders = {
   settings: mockSettingsProvider,
   audits: mockAuditsProvider,
   whatsappAccounts: mockWhatsAppAccountsProvider,
+  distributionTraces: mockDistributionTracesProvider,
 };
 
 const supabaseProviders: IDataProviders = {
@@ -102,6 +105,7 @@ const supabaseProviders: IDataProviders = {
   settings: supabaseSettingsProvider,
   audits: supabaseAuditsProvider,
   whatsappAccounts: supabaseWhatsAppAccountsProvider,
+  distributionTraces: supabaseDistributionTracesProvider,
 };
 
 /**

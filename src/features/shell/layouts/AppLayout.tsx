@@ -2,12 +2,14 @@ import { Outlet } from "@tanstack/react-router";
 import { Sidebar } from "@/features/shell/components/Sidebar";
 import { TopBar } from "@/features/shell/components/TopBar";
 import { BottomNav } from "@/features/shell/components/BottomNav";
+import { useDistributionToasts } from "@/features/distribution/hooks/useDistributionToasts";
 
 /**
  * Default layout of the internal app (`/app/*`).
  * Sidebar (md+) + TopBar + scrollable content. BottomNav on mobile.
  */
 export function AppLayout({ children }: { children?: React.ReactNode }) {
+  useDistributionToasts();
   return (
     <div className="flex min-h-screen bg-background text-foreground">
       <Sidebar />

@@ -43,6 +43,12 @@ const SETTINGS_SECTIONS: ISettingsSection[] = [
     permission: { resource: "store", action: "view" },
   },
   {
+    label: "Distribuição",
+    icon: "mdi:call-split",
+    to: "/app/configuracoes/distribuicao",
+    permission: { resource: "settings", action: "edit" },
+  },
+  {
     label: "Auditoria",
     icon: "mdi:history",
     to: "/app/configuracoes/auditoria",

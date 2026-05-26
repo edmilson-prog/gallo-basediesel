@@ -5,6 +5,7 @@ import type {
   IConversation,
   ICustomer,
   ICustomerNote,
+  IDistributionTrace,
   IGoal,
   ILead,
   IMessage,
@@ -29,7 +30,8 @@ type CollectionKey =
   | "commissions"
   | "goals"
   | "recommendations"
-  | "audits";
+  | "audits"
+  | "distributionTraces";
 
 type CollectionMap = {
   customers: ICustomer;
@@ -44,6 +46,7 @@ type CollectionMap = {
   goals: IGoal;
   recommendations: IRecommendation;
   audits: IAuditLog;
+  distributionTraces: IDistributionTrace;
 };
 
 /**

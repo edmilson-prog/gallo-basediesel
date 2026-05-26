@@ -4,6 +4,120 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.10.0] — Switchboard · 2026-05-26
+
+Regras de distribuição e roteamento (PRD-013) — toda conversa nova passa por
+um engine puro de 5 critérios em cascata, configurável pelo Owner, com
+auditoria completa. A loteria do "quem viu primeiro responde" acaba aqui:
+carteira é sagrada, especialista atende quem é da sua marca, restante via
+round-robin balanceado, fallback inteligente para SDR ou fila quando ninguém
+disponível. **Marco: gestor passa a controlar a operação de atendimento com
+regras explícitas e simulador para testar cenários antes de aplicar.**
+
+### Added
+
+- **Engine puro** em `src/features/distribution/engine/` — função
+  `distributeConversation(input, context): IDistributionResult` sem side
+  effects, determinística (round-robin via cursor persistente, não aleatório).
+  Cinco critérios encapsulados em `tryCarteira`, `tryEspecialidade`,
+  `tryRoundRobin`, `tryCarga`, `tryFallback` mais utilitários
+  `isWithinBusinessHours`, `getOnlineSellers`, `selectByLoad`,
+  `selectByRoundRobin`, `findSpecialtyMatches`. Função pronta para ser invocada
+  tanto pelo mock provider quanto, na Fase 2, por uma Edge Function do Supabase
+- **Modelos novos** em `src/shared/types/distribution.ts`:
+  - `IDistributionSettings` aninhado em `IPlatformSettings.distribution` com
+    `mode`, `criteriaEnabled`, `criteriaOrder`, `businessHours`,
+    `offHoursMessage`, `queueTimeoutMinutes`, `lastAssignedSellerId`,
+    `specialtyKeywords`
+  - `IDistributionTrace` com `selectedSellerId`, `criterionMatched` (carteira /
+    especialidade / round_robin / carga / fallback_sdr / fallback_fila),
+    `candidatesEvaluated[]` (todos os vendedores avaliados, mesmo descartados,
+    com motivo), `mode` na hora da decisão — base do histórico auditado
+  - `IBusinessHoursWindow` para janelas semanais
+- **Defaults da matriz** em `src/mocks/data/seedDistribution.ts` — modo
+  `hybrid`, todos os critérios ativos, horário seg-sex 8h-18h + sáb 8h-12h,
+  fila com timeout de 30 min, 11 keywords de especialidade (volvo, scania,
+  mercedes, ford, iveco, freio, motor, embreagem, filtro, turbo, injetor)
+- **Integração com o mock provider** — `IConversationsProvider.create(input)`
+  novo no contrato; `mockConversationsProvider.create` chama o engine, persiste
+  a conversa + primeira mensagem (do cliente) + bubble `system` quando há
+  mensagem fora do expediente, registra o `IDistributionTrace` e emite
+  `auditLog` (`conversation.create`). Round-robin avança o cursor
+  `lastAssignedSellerId` em settings após cada vitória
+- **`distributionTracesApi` + provider novo** — `list/get/create` com filtros
+  por `storeId`, `selectedSellerId`, `criterionMatched`, janela temporal.
+  `mockDistributionTracesProvider` na Fase 1; stub Supabase em
+  `supabaseDistributionTracesProvider` lançando `NotImplementedError` até
+  Fase 2. Hook `useDistributionTracesProvider()` exposto pelo barrel
+- **Gerador de traces históricos** — `generateDistributionTrace` no bootstrap
+  produz ~40 traces sintéticos cobrindo todos os critérios para popular o
+  histórico no primeiro carregamento
+- **Página `/app/configuracoes/distribuicao`** (Owner only via
+  `requireAuth(..., ["Owner"], { resource: "settings", action: "edit" })`) com
+  7 seções:
+  - **`ModeSection`** — 4 cards radio (Automático / Híbrido recomendado /
+    SDR-first / Manual) com modal de confirmação antes de salvar
+  - **`CriteriaSection`** — reordenação via ↑↓, toggle on/off por critério,
+    fallback bloqueado para sempre ficar ativo, aviso visual quando só o
+    fallback restar habilitado, draft + botão "Salvar critérios"
+  - **`BusinessHoursSection`** — grade semanal com switch por dia + inputs
+    `time` para abertura/fechamento
+  - **`OffHoursMessageSection`** — textarea com 600 caracteres + preview da
+    bolha do SDR ao lado
+  - **`QueuePolicySection`** — input numérico de minutos de timeout da fila
+  - **`DistributionSimulator`** — escolhe cliente/lead, canal e mensagem;
+    roda engine puro localmente (sem persistir) e renderiza trace visual com
+    candidatos avaliados e vencedor destacado
+  - **`TriggerInboundSection`** — dispara `conversationsProvider.create()`
+    de verdade, exercitando engine + trace + audit log + toast em tempo real
+  - **`DistributionHistory`** — tabela paginada (10/pg) com filtros por
+    critério e vendedor, cada linha expandível mostra trace completo
+- **`AvailabilityToggle`** embutido no avatar dropdown do `TopBar` — 4 opções
+  (Online verde, Ausente amarelo, Ocupado laranja, Offline cinza) consumindo
+  `sellersProvider.setAvailability` com audit log e toast
+- **Badge "Em fila"** no `ConversationListItem` para conversas órfãs
+  (`assignedSellerId: null && status === "aguardando" && !isSdrActive`)
+- **Filtro "Em fila"** no `AssignmentFilter` da inbox — adiciona
+  `unassigned + isSdrActive=false + status=aguardando` aos params
+- **`useDistributionToasts`** montado em `AppLayout` — polla traces filtrados
+  por `selectedSellerId === currentUser.sellerId` a cada ~9s; cada trace novo
+  dispara toast "Nova conversa atribuída a você" com botão "Ver" navegando
+  para `/app/atendimento/$id`. Bootstrap inicial só seeda o set de
+  já-vistos sem disparar alertas
+- **`useDistributionSettings(storeId)`** — hook de leitura/escrita aninhado
+  em `IPlatformSettings.distribution`, com audit log automático em cada save
+- **Mapeamento `IMockUserProfile.sellerId`** opcional (mock-owner →
+  seller-joao-gallo, mock-vendedor → seller-carlos-santos) para que o
+  AvailabilityToggle consiga consultar/atualizar o seller real
+- **Doc `docs/distribuicao.md`** com arquitetura do engine, semântica dos
+  critérios, traces, contratos para Fase 2, matriz de permissões e defaults
+
+### Changed
+
+- **`IPlatformSettings`** ganha campo obrigatório `distribution:
+  IDistributionSettings`; seed da matriz preenche com defaults
+- **`IConversationsProvider`** ganha método `create(input)` retornando
+  `{ conversation, messages, trace }`; supabase stub lança `NotImplementedError`
+- **`IBootstrappedDataset`** ganha coleção `distributionTraces`
+- **`mutations.ts`** e **`selectors.ts`** estendidos para `distributionTraces`
+- **`SettingsLayout`** ganha entrada "Distribuição" gated por permissão de
+  edição de settings — visível só para Owner
+- **`InboxFilters` / `useInboxFilters`** — novo valor `queue` no
+  `AssignmentFilter` + tradução em `INBOX_STRINGS.assignmentOptions.queue`;
+  conserta uso de `s.displayName` (que não existe em `ISeller`) para `s.fullName`
+
+### Notes
+
+- **Engine pronto para Fase 2** — função pura sem dependência de provider;
+  a Edge Function do Supabase consumirá o mesmo `distributeConversation`
+  passando o contexto via parâmetros
+- **Watchdog da fila** (alerta quando `queueTimeoutMinutes` for excedido)
+  fica para quando a inbox passar a operar com WhatsApp real em Fase 2 —
+  no MVP a métrica é configurável mas o efeito é descritivo
+- **Transferência manual** (Owner/Gestor mover conversa entre vendedores)
+  já existia via `conversationsProvider.assignSeller`; este PRD não altera
+  esse fluxo
+
 ## [0.9.0] — Compass · 2026-05-25
 
 Ficha unificada do cliente (PRD-012) — o "cérebro do CRM" entra em órbita.
@@ -93,7 +207,7 @@ sistema" acaba aqui.**
   `app.clientes.index.tsx` segurando o placeholder PRD-015 e
   `app.clientes.$id.tsx` rendering a ficha de página inteira
 - **`useConversationsProvider.list`** ganha ordenação por `orderBy:
-  "lastMessageAt" | "abcClass"` (não era exposto antes)
+"lastMessageAt" | "abcClass"` (não era exposto antes)
 
 ### Fixed
 

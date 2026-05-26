@@ -3,7 +3,7 @@ import { useNavigate, useSearch } from "@tanstack/react-router";
 import type { ConversationChannel, ConversationStatus, ID } from "@/shared/types";
 
 export type PeriodFilter = "all" | "24h" | "7d" | "30d";
-export type AssignmentFilter = "me" | "unassigned" | "all" | string;
+export type AssignmentFilter = "me" | "unassigned" | "queue" | "all" | string;
 export type SortMode = "lastMessage" | "waiting" | "abc";
 
 export interface IInboxFiltersState {
@@ -203,6 +203,11 @@ export function filtersToListParams(
     params.assignedSellerId = ctx.currentUserId;
   } else if (filters.assignment === "unassigned") {
     params.unassigned = true;
+  } else if (filters.assignment === "queue") {
+    // Em fila: sem vendedor atribuído E SDR inativo E status "aguardando".
+    params.unassigned = true;
+    params.isSdrActive = false;
+    params.status = "aguardando";
   } else if (filters.assignment !== "all" && filters.assignment !== "me") {
     // A specific seller id (Owner/Gestor picked someone from the dropdown).
     params.assignedSellerId = filters.assignment;

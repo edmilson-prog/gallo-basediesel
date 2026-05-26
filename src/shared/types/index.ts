@@ -105,6 +105,18 @@ export type {
   CommissionStatus,
 } from "./commercial";
 
+// Distribution / routing (PRD-013)
+export type {
+  IDistributionSettings,
+  IDistributionTrace,
+  IDistributionCandidate,
+  IDistributionCriteriaEnabled,
+  IBusinessHoursWindow,
+  DistributionMode,
+  DistributionCriterion,
+  DistributionMatchedCriterion,
+} from "./distribution";
+
 // BI
 export type {
   IGoal,

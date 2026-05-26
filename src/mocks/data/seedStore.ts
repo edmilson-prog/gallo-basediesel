@@ -2,6 +2,7 @@ import type { IStore } from "@/shared/types";
 import { SEED_PIPELINE_STAGES } from "./seedPipelineStages";
 import { SEED_LOSS_REASONS } from "./seedLossReasons";
 import { SEED_TAGS } from "./seedTags";
+import { DEFAULT_DISTRIBUTION_SETTINGS } from "./seedDistribution";
 
 export const SEED_STORE_ID = "store-matriz";
 
@@ -37,5 +38,6 @@ export const SEED_STORE: IStore = {
       { id: "wa-evo-campanhas", label: "GALLO Campanhas" },
     ],
     defaultDivision: "parts",
+    distribution: DEFAULT_DISTRIBUTION_SETTINGS,
   },
 };

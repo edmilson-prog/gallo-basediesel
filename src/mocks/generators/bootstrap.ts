@@ -7,6 +7,7 @@ import type {
   ICustomer,
   ICustomerNote,
   ICustomerSegment,
+  IDistributionTrace,
   IGamificationBadge,
   IGoal,
   ILead,
@@ -48,6 +49,7 @@ import { generateABC } from "./abc";
 import { generateRanking } from "./ranking";
 import { generateBadges } from "./badge";
 import { generateWhatsAppAccounts } from "./whatsappAccount";
+import { generateDistributionTrace } from "./distributionTrace";
 
 /**
  * Full GALLO mock dataset, ready to populate the Zustand store. Generated
@@ -80,6 +82,7 @@ export interface IBootstrappedDataset {
   rankings: IRanking[];
   positivations: IPositivation[];
   abcClassifications: IABCClassification[];
+  distributionTraces: IDistributionTrace[];
 }
 
 /**
@@ -309,6 +312,25 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
     audits.push(generateAudit(ctx, { sequence: i, actorIds, resourceIds }));
   }
 
+  // 19. Distribution traces (PRD-013) — one per conversation up to ~40 so the
+  // history panel renders a believable backlog. Mode is the store default.
+  const distributionTraces: IDistributionTrace[] = [];
+  const distMode = stores[0].settings.distribution.mode;
+  const traceCount = Math.min(40, conversations.length);
+  for (let i = 0; i < traceCount; i += 1) {
+    distributionTraces.push(
+      generateDistributionTrace(ctx, {
+        sequence: i,
+        conversation: conversations[i],
+        customers,
+        leads,
+        sellers,
+        mode: distMode,
+        now,
+      }),
+    );
+  }
+
   const dataset: IBootstrappedDataset = {
     seed,
     generatedAt: now.toISOString(),
@@ -336,6 +358,7 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
     rankings: [ranking],
     positivations: [positivation],
     abcClassifications,
+    distributionTraces,
   };
 
   if (import.meta.env.DEV) {

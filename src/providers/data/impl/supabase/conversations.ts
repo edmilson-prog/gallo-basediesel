@@ -14,4 +14,5 @@ export const supabaseConversationsProvider: IConversationsProvider = {
   markRead: stub("markRead"),
   assignSeller: stub("assignSeller"),
   archive: stub("archive"),
+  create: stub("create"),
 };

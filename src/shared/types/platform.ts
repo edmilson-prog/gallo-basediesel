@@ -1,4 +1,5 @@
 import type { Division, ID, ISO8601 } from "./common";
+import type { IDistributionSettings } from "./distribution";
 
 /** Store type. Matriz is the headquarters, filial is a branch, parceira is a partner store. */
 export type StoreType = "matriz" | "filial" | "parceira";
@@ -66,6 +67,8 @@ export interface IPlatformSettings {
   gamificationRules: IGamificationRules;
   whatsappAccounts: IWhatsAppAccountRef[];
   defaultDivision: Division;
+  /** Conversation distribution / routing rules (PRD-013). */
+  distribution: IDistributionSettings;
 }
 
 /**

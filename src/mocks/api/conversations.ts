@@ -1,13 +1,25 @@
-import type { IConversation, ICustomer, ILead, ID } from "@/shared/types";
+import type {
+  IConversation,
+  ICustomer,
+  IDistributionTrace,
+  ILead,
+  IMessage,
+  ID,
+} from "@/shared/types";
 import {
   selectAllConversations,
+  selectAllSellers,
+  selectAllStores,
   selectConversationById,
   selectCustomerById,
   selectLeadById,
   selectMessagesByConversation,
 } from "../store/selectors";
 import { getMockState } from "../store/mockStore";
-import { patchById } from "../store/mutations";
+import { patchById, upsert } from "../store/mutations";
+import { distributeConversation, type IDistributionInput } from "@/features/distribution/engine";
+import { distributionTracesApi } from "./distributionTraces";
+import { settingsApi } from "./settings";
 import {
   MockNotFoundError,
   paginate,
@@ -173,4 +185,151 @@ export const conversationsApi = {
       patchById("conversations", id, { status: "arquivada" });
     });
   },
+
+  async create(input: ICreateInbound): Promise<ICreateInboundResult> {
+    return runApi(
+      "conversationsApi",
+      "create",
+      async () => {
+        const occurredAt = input.occurredAt ?? new Date().toISOString();
+        const store = selectAllStores().find((s) => s.id === input.storeId);
+        if (!store) throw new MockNotFoundError("store", input.storeId);
+        const settings = store.settings.distribution;
+        const sellers = selectAllSellers().filter((s) => s.storeId === input.storeId);
+
+        // Build loadBySeller from currently-open conversations.
+        const openStatuses = new Set<IConversation["status"]>([
+          "aguardando",
+          "em_andamento",
+          "aguardando_cliente",
+        ]);
+        const loadBySeller: Record<ID, number> = {};
+        for (const conv of selectAllConversations()) {
+          if (!conv.assignedSellerId) continue;
+          if (!openStatuses.has(conv.status)) continue;
+          loadBySeller[conv.assignedSellerId] = (loadBySeller[conv.assignedSellerId] ?? 0) + 1;
+        }
+
+        let participant: IDistributionInput["participant"];
+        if (input.customerId) {
+          const customer = selectCustomerById(input.customerId);
+          if (!customer) throw new MockNotFoundError("customer", input.customerId);
+          participant = { kind: "customer", customer };
+        } else if (input.leadId) {
+          const lead = selectLeadById(input.leadId);
+          if (!lead) throw new MockNotFoundError("lead", input.leadId);
+          participant = { kind: "lead", lead };
+        } else {
+          throw new MockNotFoundError("conversation_participant", "missing");
+        }
+
+        const conversationId = `conv-new-${crypto.randomUUID().slice(0, 8)}`;
+        const decision = distributeConversation(
+          {
+            conversationId,
+            storeId: input.storeId,
+            channel: input.channel,
+            participant,
+            firstMessageText: input.firstMessageText,
+            occurredAt,
+          },
+          { settings, sellers, loadBySeller },
+        );
+
+        const conversation: IConversation = {
+          id: conversationId,
+          storeId: input.storeId,
+          customerId: input.customerId,
+          leadId: input.leadId,
+          assignedSellerId: decision.selectedSellerId ?? undefined,
+          channel: input.channel,
+          whatsappAccountId: input.whatsappAccountId,
+          status: decision.status,
+          isSdrActive: decision.isSdrActive,
+          tags: [],
+          lastMessageAt: occurredAt,
+          unreadCount: 1,
+          createdAt: occurredAt,
+        };
+        upsert("conversations", conversation);
+
+        const messages: IMessage[] = [];
+        const incomingId = `msg-${crypto.randomUUID()}`;
+        const incoming: IMessage = {
+          id: incomingId,
+          conversationId,
+          direction: "in",
+          authorType: "customer",
+          authorId: input.customerId ?? input.leadId,
+          provider: input.channel === "whatsapp" ? "meta" : "mock",
+          text: input.firstMessageText,
+          status: "delivered",
+          sentAt: occurredAt,
+          deliveredAt: occurredAt,
+        };
+        upsert("messages", incoming);
+        messages.push(incoming);
+
+        if (decision.systemMessage) {
+          const systemId = `msg-${crypto.randomUUID()}`;
+          const system: IMessage = {
+            id: systemId,
+            conversationId,
+            direction: "out",
+            authorType: "system",
+            authorId: "sdr-agent",
+            provider: input.channel === "whatsapp" ? "meta" : "mock",
+            text: decision.systemMessage,
+            status: "sent",
+            sentAt: new Date(new Date(occurredAt).getTime() + 1000).toISOString(),
+          };
+          upsert("messages", system);
+          messages.push(system);
+        }
+
+        const trace: IDistributionTrace = {
+          id: `dist-new-${crypto.randomUUID().slice(0, 8)}`,
+          conversationId,
+          customerId: input.customerId,
+          leadId: input.leadId,
+          storeId: input.storeId,
+          timestamp: occurredAt,
+          selectedSellerId: decision.selectedSellerId,
+          criterionMatched: decision.criterionMatched,
+          candidatesEvaluated: decision.candidatesEvaluated,
+          mode: decision.mode,
+        };
+        await distributionTracesApi.create(trace);
+
+        // Advance the round-robin cursor when applicable.
+        if (decision.criterionMatched === "round_robin" && decision.selectedSellerId) {
+          await settingsApi.update(input.storeId, {
+            distribution: {
+              ...settings,
+              lastAssignedSellerId: decision.selectedSellerId,
+            },
+          });
+        }
+
+        return { conversation, messages, trace };
+      },
+      { payload: { storeId: input.storeId, channel: input.channel } },
+    );
+  },
 };
+
+interface ICreateInbound {
+  storeId: ID;
+  channel: IConversation["channel"];
+  whatsappAccountId?: ID;
+  customerId?: ID;
+  leadId?: ID;
+  firstMessageText: string;
+  occurredAt?: string;
+}
+
+interface ICreateInboundResult {
+  conversation: IConversation;
+  messages: IMessage[];
+  trace: IDistributionTrace;
+}

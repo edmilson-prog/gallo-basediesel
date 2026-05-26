@@ -17,6 +17,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/features/auth/useAuth";
 import { StoreSwitcher } from "@/features/multistore";
+import { AvailabilityToggle } from "@/features/distribution/components/AvailabilityToggle";
 
 const MOCK_NOTIFICATIONS = [
   {
@@ -138,6 +139,12 @@ export function TopBar() {
                 </span>
               </div>
             </DropdownMenuLabel>
+            {currentUser?.sellerId && (
+              <>
+                <DropdownMenuSeparator />
+                <AvailabilityToggle sellerId={currentUser.sellerId} />
+              </>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => void navigate({ to: "/app/configuracoes/perfil" })}>
               <Icon icon="mdi:account" size={16} className="mr-2" />

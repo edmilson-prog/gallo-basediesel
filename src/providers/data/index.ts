@@ -26,6 +26,8 @@ export type {
   IListLeadsParams,
   IConversationsProvider,
   IListConversationsParams,
+  ICreateConversationInput,
+  ICreateConversationResult,
   IMessagesProvider,
   IListMessagesParams,
   IPartsProvider,
@@ -52,6 +54,8 @@ export type {
   IListAuditsParams,
   IWhatsAppAccountsProvider,
   IListWhatsAppAccountsParams,
+  IDistributionTracesProvider,
+  IListDistributionTracesParams,
 } from "./contracts";
 
 export { useCustomersProvider } from "./hooks/useCustomersProvider";
@@ -72,3 +76,4 @@ export { useStoresProvider } from "./hooks/useStoresProvider";
 export { useSettingsProvider } from "./hooks/useSettingsProvider";
 export { useAuditsProvider } from "./hooks/useAuditsProvider";
 export { useWhatsAppAccountsProvider } from "./hooks/useWhatsAppAccountsProvider";
+export { useDistributionTracesProvider } from "./hooks/useDistributionTracesProvider";

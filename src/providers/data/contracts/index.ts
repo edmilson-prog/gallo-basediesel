@@ -23,13 +23,19 @@ import type { IStoresProvider } from "./stores";
 import type { ISettingsProvider } from "./settings";
 import type { IAuditsProvider } from "./audits";
 import type { IWhatsAppAccountsProvider } from "./whatsappAccounts";
+import type { IDistributionTracesProvider } from "./distributionTraces";
 
 export type { IPaginatedResult, IPaginationParams } from "./_shared";
 
 export type { ICustomersProvider, IListCustomersParams } from "./customers";
 export type { IVehiclesProvider, IListVehiclesParams } from "./vehicles";
 export type { ILeadsProvider, IListLeadsParams } from "./leads";
-export type { IConversationsProvider, IListConversationsParams } from "./conversations";
+export type {
+  IConversationsProvider,
+  IListConversationsParams,
+  ICreateConversationInput,
+  ICreateConversationResult,
+} from "./conversations";
 export type { IMessagesProvider, IListMessagesParams } from "./messages";
 export type { IPartsProvider, IListPartsParams } from "./parts";
 export type { IQuotesProvider, IListQuotesParams } from "./quotes";
@@ -44,6 +50,10 @@ export type { IStoresProvider } from "./stores";
 export type { ISettingsProvider } from "./settings";
 export type { IAuditsProvider, IListAuditsParams, ICreateAuditInput } from "./audits";
 export type { IWhatsAppAccountsProvider, IListWhatsAppAccountsParams } from "./whatsappAccounts";
+export type {
+  IDistributionTracesProvider,
+  IListDistributionTracesParams,
+} from "./distributionTraces";
 
 /**
  * Aggregate of every data provider returned by `getDataProviders()`. The factory
@@ -69,4 +79,5 @@ export interface IDataProviders {
   settings: ISettingsProvider;
   audits: IAuditsProvider;
   whatsappAccounts: IWhatsAppAccountsProvider;
+  distributionTraces: IDistributionTracesProvider;
 }

@@ -21,7 +21,7 @@
 | **Versão alvo MVP**                  | v1.0.0 — codinome **Heavy**                                                                                |
 | **Total de PRDs planejados (MVP)**   | 50                                                                                                         |
 | **PRDs redigidos**                   | 4                                                                                                          |
-| **PRDs implementados**               | 9 (PRD-001…007 — **Bloco 0 completo** — + PRD-010, PRD-011 no Bloco 1)                                     |
+| **PRDs implementados**               | 11 (PRD-001…007 — **Bloco 0 completo** — + PRD-010, PRD-011, PRD-012, PRD-013 no Bloco 1)                  |
 | **PRDs futuros (Fase 2, PRDs 100+)** | 8 (roadmap futuro)                                                                                         |
 
 ---
@@ -108,7 +108,7 @@ O coração operacional do MVP. Inbox unificado, ficha do cliente, leads, veícu
 | 010 | [Inbox Unificado e Lista de Conversas](./PRD-010-inbox-conversas_DONE.md)  | Feature | D     | 🔵    | 📝        | ✅     | Bloco 0       |
 | 011 | [Conversa com Histórico Multicanal](./PRD-011-conversa-multicanal_DONE.md) | Feature | D     | 🔵    | 📝        | ✅     | 010           |
 | 012 | [Ficha Unificada do Cliente](./PRD-012-ficha-cliente_DONE.md)              | Feature | D     | 🔵    | 📝        | ✅     | 011, 016      |
-| 013 | Regras de Distribuição e Roteamento                                        | Feature | D     | 🔵    | ⏸         | ⏳     | 010           |
+| 013 | [Regras de Distribuição e Roteamento](./PRD-013-distribuicao-roteamento_DONE.md) | Feature | D     | 🔵    | 📝        | ✅     | 010           |
 | 014 | Painel do Gestor — Métricas e Saúde da Carteira                            | Feature | D     | 🔵    | ⏸         | ⏳     | 010, 011, 013 |
 | 015 | Lista Geral de Clientes (segmentações e ações em lote)                     | Feature | D     | 🔵    | ⏸         | ⏳     | 012           |
 | 016 | Veículos do Cliente                                                        | Feature | D     | 🔵    | ⏸         | ⏳     | 012           |

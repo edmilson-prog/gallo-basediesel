@@ -1,4 +1,4 @@
-import type { IConversation, ID } from "@/shared/types";
+import type { IConversation, IDistributionTrace, IMessage, ID, ISO8601 } from "@/shared/types";
 import type { IPaginatedResult, IPaginationParams } from "./_shared";
 
 /** Ordering modes supported by `IConversationsProvider.list`. */
@@ -28,6 +28,30 @@ export interface IListConversationsParams extends IPaginationParams {
 }
 
 /**
+ * Input for a new inbound conversation. The engine (PRD-013) runs against
+ * these fields to pick a seller / SDR / fila.
+ */
+export interface ICreateConversationInput {
+  storeId: ID;
+  channel: IConversation["channel"];
+  whatsappAccountId?: ID;
+  customerId?: ID;
+  leadId?: ID;
+  /** First customer message — used by the engine for keyword matching. */
+  firstMessageText: string;
+  /** When the message arrived. Defaults to `now` if omitted. */
+  occurredAt?: ISO8601;
+}
+
+/** Result of creating a conversation — exposes the engine decision too. */
+export interface ICreateConversationResult {
+  conversation: IConversation;
+  /** First-message bubble (always created) plus the optional system bubble. */
+  messages: IMessage[];
+  trace: IDistributionTrace;
+}
+
+/**
  * Contract for WhatsApp / multichannel conversation access.
  *
  * @see ../../../mocks/api/conversations.ts
@@ -40,4 +64,10 @@ export interface IConversationsProvider {
   markRead(id: ID): Promise<IConversation>;
   assignSeller(id: ID, sellerId: ID): Promise<IConversation>;
   archive(id: ID): Promise<void>;
+  /**
+   * Create a new inbound conversation. Runs the distribution engine (PRD-013)
+   * to assign a seller / SDR / queue and emits the corresponding audit trace
+   * + system messages.
+   */
+  create(input: ICreateConversationInput): Promise<ICreateConversationResult>;
 }

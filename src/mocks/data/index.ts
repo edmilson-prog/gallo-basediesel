@@ -9,6 +9,7 @@ export { SEED_ROLES, SEED_ROLE_BY_NAME } from "./seedRoles";
 export { SEED_PIPELINE_STAGES } from "./seedPipelineStages";
 export { SEED_LOSS_REASONS } from "./seedLossReasons";
 export { SEED_TAGS } from "./seedTags";
+export { DEFAULT_DISTRIBUTION_SETTINGS } from "./seedDistribution";
 export { SEED_VEHICLE_MODELS, type IVehicleModelEntry } from "./seedVehicleModels";
 export {
   PART_CATEGORIES,

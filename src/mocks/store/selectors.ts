@@ -138,3 +138,11 @@ export function selectAllWhatsAppAccounts() {
 export function selectAllRoles() {
   return getMockState().roles;
 }
+
+export function selectAllDistributionTraces() {
+  return getMockState().distributionTraces;
+}
+
+export function selectDistributionTraceById(id: ID) {
+  return getMockState().distributionTraces.find((t) => t.id === id) ?? null;
+}

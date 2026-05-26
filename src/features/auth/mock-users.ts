@@ -44,6 +44,14 @@ export interface IMockUserProfile {
   accessibleStoreIds?: ID[];
   /** Optional underlying domain entity (seller for staff, customer for B2B). */
   entity?: Partial<ISeller> | Partial<ICustomer>;
+  /**
+   * For staff profiles, the underlying ISeller.id (PRD-013).
+   *
+   * The mock auth layer keeps the profile id distinct from the seller id so
+   * the user-switcher UX stays decoupled from the seeded roster. Features
+   * that need the actual seller (e.g. availability toggle) use this field.
+   */
+  sellerId?: ID;
 }
 
 export const MOCK_USERS: IMockUserProfile[] = [
@@ -57,6 +65,7 @@ export const MOCK_USERS: IMockUserProfile[] = [
     defaultRedirect: "/app/inicio",
     storeId: MATRIZ_STORE_ID,
     accessibleStoreIds: [MATRIZ_STORE_ID],
+    sellerId: "seller-joao-gallo",
   },
   {
     id: "mock-vendedor",
@@ -68,6 +77,7 @@ export const MOCK_USERS: IMockUserProfile[] = [
     defaultRedirect: "/app/atendimento",
     storeId: MATRIZ_STORE_ID,
     accessibleStoreIds: [MATRIZ_STORE_ID],
+    sellerId: "seller-carlos-santos",
   },
   {
     id: "mock-cliente",
