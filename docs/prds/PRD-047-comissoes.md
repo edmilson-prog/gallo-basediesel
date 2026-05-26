@@ -2,19 +2,19 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _A definir após criação no Lovable_ |
-| **Obje­tivo** | Construir sistema completo de cálculo de comissões — regras configuráveis (taxa base + bônus por meta + multiplicadores), cálculo automático sobre pedidos pagos, painel individual e consolidado, splits em transferências temporárias, e fechamento mensal auditável |
-| **Tipo** | Feature |
-| **Complexidade** | Alta |
-| **Total de Fases** | 5 |
-| **Prioridade** | Alta |
-| **Épico** | Bloco 4b — Gestão B (Onda 2) |
-| **PRDs Relacionados** | PRD-018 (Carteira/Transferências), PRD-032 (Pedido — fonte), PRD-042 (Metas — bônus), PRD-040 (Cockpit), PRD-014 (Painel Gestor) |
-| **Implementação** | 🔵 Claude Code CLI |
-| **Padrão de código** | Feature-based; código em `src/features/commissions/` |
+| Campo                 | Valor                                                                                                                                                                                                                                                                  |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                                                                                               |
+| **Repositório**       | _A definir após criação no Lovable_                                                                                                                                                                                                                                    |
+| **Obje­tivo**         | Construir sistema completo de cálculo de comissões — regras configuráveis (taxa base + bônus por meta + multiplicadores), cálculo automático sobre pedidos pagos, painel individual e consolidado, splits em transferências temporárias, e fechamento mensal auditável |
+| **Tipo**              | Feature                                                                                                                                                                                                                                                                |
+| **Complexidade**      | Alta                                                                                                                                                                                                                                                                   |
+| **Total de Fases**    | 5                                                                                                                                                                                                                                                                      |
+| **Prioridade**        | Alta                                                                                                                                                                                                                                                                   |
+| **Épico**             | Bloco 4b — Gestão B (Onda 2)                                                                                                                                                                                                                                           |
+| **PRDs Relacionados** | PRD-018 (Carteira/Transferências), PRD-032 (Pedido — fonte), PRD-042 (Metas — bônus), PRD-040 (Cockpit), PRD-014 (Painel Gestor)                                                                                                                                       |
+| **Implementação**     | 🔵 Claude Code CLI                                                                                                                                                                                                                                                     |
+| **Padrão de código**  | Feature-based; código em `src/features/commissions/`                                                                                                                                                                                                                   |
 
 ### Critérios de Complexidade
 
@@ -97,6 +97,7 @@ ICommission {
 ### Trigger de cálculo
 
 Quando `IOrder.paymentStatus` muda para `paid`:
+
 - Hook `useCommissionTrigger()` detecta
 - Chama `calculateCommission(order)`
 - Cria `ICommission` automaticamente
@@ -111,15 +112,12 @@ function determineCommissionBeneficiary(order: IOrder): {
   splitDetails?: ICommissionSplitDetails;
 } {
   // Verifica se havia transferência temporária ativa em order.paidAt
-  const activeTransfer = findActiveTemporaryTransfer(
-    order.customerId, 
-    order.paidAt
-  );
-  
+  const activeTransfer = findActiveTemporaryTransfer(order.customerId, order.paidAt);
+
   if (activeTransfer) {
     // Política configurável: cobertor recebe 100%, ou split 50/50
     const splitPolicy = settings.commissionSplitPolicy; // 'coverage_full' | 'split_50_50'
-    if (splitPolicy === 'coverage_full') {
+    if (splitPolicy === "coverage_full") {
       return { sellerId: activeTransfer.toSellerId, isSplit: false };
     } else {
       // Cria 2 ICommission ou usa splitDetails
@@ -131,11 +129,11 @@ function determineCommissionBeneficiary(order: IOrder): {
           titularSellerId: activeTransfer.fromSellerId,
           coveragePct: 0.5,
           titularPct: 0.5,
-        }
+        },
       };
     }
   }
-  
+
   return { sellerId: order.sellerId, isSplit: false };
 }
 ```
@@ -143,20 +141,22 @@ function determineCommissionBeneficiary(order: IOrder): {
 ### Bônus por meta
 
 No cálculo, verificar se vendedor atingiu meta no período:
+
 ```typescript
 const sellerGoals = useSellerGoals(sellerId, period); // PRD-042
-const eligibleGoal = sellerGoals.find(g => 
-  g.type === rule.goalBonus.goalType && 
-  g.status === 'concluida' &&
-  calculateGoalProgress(g).percentage >= rule.goalBonus.threshold
+const eligibleGoal = sellerGoals.find(
+  (g) =>
+    g.type === rule.goalBonus.goalType &&
+    g.status === "concluida" &&
+    calculateGoalProgress(g).percentage >= rule.goalBonus.threshold,
 );
 
 if (eligibleGoal) {
-  if (rule.goalBonus.bonusType === 'fixed') {
+  if (rule.goalBonus.bonusType === "fixed") {
     goalBonus = rule.goalBonus.bonusValue;
   } else {
     // percentage_points: aumenta a taxa
-    effectiveRate = baseRate + (rule.goalBonus.bonusValue / 100);
+    effectiveRate = baseRate + rule.goalBonus.bonusValue / 100;
     baseCommission = baseValue * effectiveRate;
   }
   goalSnapshot = eligibleGoal; // imutável
@@ -170,6 +170,7 @@ if (eligibleGoal) {
 **Para Vendedor — Visão individual:**
 
 KPIs:
+
 - Comissão do mês (acumulado)
 - Pedidos contabilizados
 - Bônus por meta (se aplicável)
@@ -180,11 +181,13 @@ Tabela: pedidos do período com comissão calculada (orderId, total, taxa aplica
 **Para Gestor/Owner — Visão consolidada:**
 
 KPIs:
+
 - Total a pagar no período
 - Por vendedor (tabela)
 - Comparativo com mês anterior
 
 Tabela "Por vendedor":
+
 - Avatar + nome
 - Pedidos contabilizados
 - Comissão base
@@ -197,6 +200,7 @@ Click em vendedor leva a `/app/comissoes/:sellerId` (drill-down).
 ### Drill-down `/app/comissoes/:sellerId`
 
 Lista completa de todas comissões do vendedor no período:
+
 - Pedido (link PRD-032)
 - Cliente
 - Data pagamento
@@ -208,6 +212,7 @@ Lista completa de todas comissões do vendedor no período:
 ### Configuração `/app/configuracoes/comissoes`
 
 Sub-rota PRD-019 (Owner only):
+
 - Taxa default da loja
 - Regras específicas por vendedor (CRUD)
 - Configuração de bônus por meta (tipo, threshold, valor)
@@ -216,6 +221,7 @@ Sub-rota PRD-019 (Owner only):
 ### Fechamento mensal
 
 Botão "Fechar período" no painel consolidado (Gestor/Owner):
+
 - Aparece após o dia 1 do mês seguinte
 - Modal de confirmação resumindo total a pagar
 - Ao confirmar:
@@ -228,6 +234,7 @@ Botão "Fechar período" no painel consolidado (Gestor/Owner):
 ### Disputas
 
 Vendedor pode "Contestar comissão" no drill-down:
+
 - Modal pede justificativa
 - Status vira `disputed`
 - Gestor recebe notificação para revisar
@@ -242,14 +249,14 @@ Vendedor pode "Contestar comissão" no drill-down:
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que descartada |
-|-------------|---------------------|
-| Cálculo via planilha externa | Defeat the purpose; precisa estar integrado |
-| Sem snapshots | Mudança retroativa de regra/meta gera disputas |
-| Split sempre 50/50 obrigatório | Política deve ser configurável |
-| Sem disputa formal | Conflitos viram conversa de corredor sem resolução |
-| Cálculo no fechamento (não em tempo real) | Vendedor não vê acumulado durante o mês |
-| Edição livre de comissões | Audit log impossível com mutações arbitrárias |
+| Alternativa                               | Por que descartada                                 |
+| ----------------------------------------- | -------------------------------------------------- |
+| Cálculo via planilha externa              | Defeat the purpose; precisa estar integrado        |
+| Sem snapshots                             | Mudança retroativa de regra/meta gera disputas     |
+| Split sempre 50/50 obrigatório            | Política deve ser configurável                     |
+| Sem disputa formal                        | Conflitos viram conversa de corredor sem resolução |
+| Cálculo no fechamento (não em tempo real) | Vendedor não vê acumulado durante o mês            |
+| Edição livre de comissões                 | Audit log impossível com mutações arbitrárias      |
 
 ---
 
@@ -301,7 +308,7 @@ Vendedor pode "Contestar comissão" no drill-down:
 - **RF-005:** `calculateCommission(order, context)`:
   - Identifica beneficiário (split ou direto)
   - Encontra regra aplicável (específica do vendedor > default da loja)
-  - Calcula baseCommission = (subtotal - discount) * baseRate
+  - Calcula baseCommission = (subtotal - discount) \* baseRate
   - Verifica bônus por meta (consume PRD-042)
   - Cria snapshots de rule e goal
   - Retorna ICommission
@@ -450,34 +457,34 @@ ENTÃO mantêm baseRate=3% (snapshot imutável)
 
 ## Fases de Implementação
 
-| Fase | Objetivo |
-|------|----------|
-| 1 | Modelo + engine de cálculo + trigger + substituir preview PRD-032 |
-| 2 | Splits e bônus por meta (integrações PRD-018 e PRD-042) |
-| 3 | Páginas individual e consolidado + drill-down |
-| 4 | Configuração + fechamento mensal |
-| 5 | Disputas + audit completo + integrações finais |
+| Fase | Objetivo                                                          |
+| ---- | ----------------------------------------------------------------- |
+| 1    | Modelo + engine de cálculo + trigger + substituir preview PRD-032 |
+| 2    | Splits e bônus por meta (integrações PRD-018 e PRD-042)           |
+| 3    | Páginas individual e consolidado + drill-down                     |
+| 4    | Configuração + fechamento mensal                                  |
+| 5    | Disputas + audit completo + integrações finais                    |
 
 ---
 
 ## Dependências
 
-| PRD | Status |
-|-----|--------|
-| PRD-018 (transferências) | 📝 |
-| PRD-032 (substitui preview) | 📝 |
-| PRD-042 (bônus por meta) | 📝 |
-| PRD-040 (consome hook) | 📝 (criado neste lote) |
+| PRD                         | Status                 |
+| --------------------------- | ---------------------- |
+| PRD-018 (transferências)    | 📝                     |
+| PRD-032 (substitui preview) | 📝                     |
+| PRD-042 (bônus por meta)    | 📝                     |
+| PRD-040 (consome hook)      | 📝 (criado neste lote) |
 
 ---
 
 ## Cadeia
 
-| Ordem | PRD |
-|-------|-----|
-| 1-26 | 010-041 |
+| Ordem  | PRD               |
+| ------ | ----------------- |
+| 1-26   | 010-041           |
 | **27** | **PRD-047 ATUAL** |
-| 28+ | 048-053 |
+| 28+    | 048-053           |
 
 ---
 
@@ -505,12 +512,12 @@ Comissão é dado salarial — visibilidade restrita. Vendedor vê só a sua. Ge
 
 ## Convenções
 
-| Elemento | Convenção |
-|----------|-----------|
-| Página | `CommissionsPage`, `SellerCommissionsPage`, `CommissionsConfigPage` |
-| Engine | `calculateCommission`, `determineCommissionBeneficiary` |
-| Pasta | `commissions/` |
-| Git | `feat(commissions): add commission calculation with goal bonus and splits` |
+| Elemento | Convenção                                                                  |
+| -------- | -------------------------------------------------------------------------- |
+| Página   | `CommissionsPage`, `SellerCommissionsPage`, `CommissionsConfigPage`        |
+| Engine   | `calculateCommission`, `determineCommissionBeneficiary`                    |
+| Pasta    | `commissions/`                                                             |
+| Git      | `feat(commissions): add commission calculation with goal bonus and splits` |
 
 ---
 
@@ -537,17 +544,17 @@ Comissão é dado salarial — visibilidade restrita. Vendedor vê só a sua. Ge
 
 ## Status
 
-| Campo | Valor |
-|-------|-------|
+| Campo  | Valor       |
+| ------ | ----------- |
 | Status | ⏳ PENDENTE |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 25/05/2026 | v1 | Criação inicial — comissões com regras configuráveis, splits, bônus por meta, fechamento auditável |
+| Data       | Versão | Alteração                                                                                          |
+| ---------- | ------ | -------------------------------------------------------------------------------------------------- |
+| 25/05/2026 | v1     | Criação inicial — comissões com regras configuráveis, splits, bônus por meta, fechamento auditável |
 
 ---
 

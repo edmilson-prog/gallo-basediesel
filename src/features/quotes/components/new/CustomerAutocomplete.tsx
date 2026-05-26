@@ -25,8 +25,7 @@ export function CustomerAutocomplete({
 
   const customersQuery = useQuery({
     queryKey: ["customers-autocomplete", sellerIdFilter] as const,
-    queryFn: () =>
-      provider.list({ pageSize: 500, sellerId: sellerIdFilter ?? undefined }),
+    queryFn: () => provider.list({ pageSize: 500, sellerId: sellerIdFilter ?? undefined }),
     staleTime: 60_000,
   });
 

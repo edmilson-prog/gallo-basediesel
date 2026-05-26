@@ -14,10 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { ID, IStore } from "@/shared/types";
 import { useStoresProvider } from "@/providers/data";
-import type {
-  ISdrDashboardFiltersState,
-  SdrPeriodPreset,
-} from "../hooks/useSdrDashboardFilters";
+import type { ISdrDashboardFiltersState, SdrPeriodPreset } from "../hooks/useSdrDashboardFilters";
 import { PERIOD_LABEL } from "../config/labels";
 
 export interface ISdrDashboardHeaderProps {
@@ -74,10 +71,7 @@ export function SdrDashboardHeader({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Badge
-          variant={sdrEnabled ? "default" : "secondary"}
-          className="gap-1 px-2 py-1 text-xs"
-        >
+        <Badge variant={sdrEnabled ? "default" : "secondary"} className="gap-1 px-2 py-1 text-xs">
           <span
             className={`h-2 w-2 rounded-full ${sdrEnabled ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/50"}`}
             aria-hidden="true"

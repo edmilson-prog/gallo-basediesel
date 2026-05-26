@@ -2,19 +2,19 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _A definir após criação no Lovable_ |
-| **Objetivo** | Construir DRE simplificado — receita bruta (pedidos pagos), custos estimados (custo unitário por produto), despesas mockadas, resultado líquido — com comparativo cross-período e drill-down nos componentes |
-| **Tipo** | Feature |
-| **Complexidade** | Alta |
-| **Total de Fases** | 5 |
-| **Prioridade** | Alta |
-| **Épico** | Bloco 4b — Gestão B (Onda 2) |
-| **PRDs Relacionados** | PRD-030 (Catálogo — custo unitário), PRD-032 (Pedido — receita), PRD-040 (Cockpit), PRD-047 (Comissões — despesa), PRD-049 (Rentabilidade) |
-| **Implementação** | 🔵 Claude Code CLI |
-| **Padrão de código** | Feature-based; código em `src/features/dre/` |
+| Campo                 | Valor                                                                                                                                                                                                        |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                                     |
+| **Repositório**       | _A definir após criação no Lovable_                                                                                                                                                                          |
+| **Objetivo**          | Construir DRE simplificado — receita bruta (pedidos pagos), custos estimados (custo unitário por produto), despesas mockadas, resultado líquido — com comparativo cross-período e drill-down nos componentes |
+| **Tipo**              | Feature                                                                                                                                                                                                      |
+| **Complexidade**      | Alta                                                                                                                                                                                                         |
+| **Total de Fases**    | 5                                                                                                                                                                                                            |
+| **Prioridade**        | Alta                                                                                                                                                                                                         |
+| **Épico**             | Bloco 4b — Gestão B (Onda 2)                                                                                                                                                                                 |
+| **PRDs Relacionados** | PRD-030 (Catálogo — custo unitário), PRD-032 (Pedido — receita), PRD-040 (Cockpit), PRD-047 (Comissões — despesa), PRD-049 (Rentabilidade)                                                                   |
+| **Implementação**     | 🔵 Claude Code CLI                                                                                                                                                                                           |
+| **Padrão de código**  | Feature-based; código em `src/features/dre/`                                                                                                                                                                 |
 
 ### Critérios de Complexidade
 
@@ -74,6 +74,7 @@ No MVP: 70% das peças mockadas têm `unitCost` (ratio realista; ratio ~0.6 do `
 ### Configurações financeiras
 
 Settings:
+
 ```typescript
 IPlatformSettings.financialSettings {
   taxOnSalesPct: number;          // ex: 0.16 (16%)
@@ -136,6 +137,7 @@ IDREComparison {
 **Coluna principal: tabela do DRE**
 
 Linhas em hierarquia:
+
 - Receita Bruta (destaque visual)
 - (-) Impostos (recuo)
 - (-) Devoluções (recuo)
@@ -154,6 +156,7 @@ Linhas em hierarquia:
 **Coluna lateral: comparativos**
 
 3 colunas comparativas:
+
 1. Período atual
 2. Período anterior (com Δ%)
 3. Mesmo período ano anterior (com Δ%)
@@ -161,17 +164,20 @@ Linhas em hierarquia:
 ### Gráficos
 
 **Gráfico 1 — Evolução do Resultado** (12 meses):
+
 - Linha de receita
 - Linha de custos
 - Linha de resultado líquido
 - Eixo Y duplo se necessário
 
 **Gráfico 2 — Composição de despesas** (donut):
+
 - Comissões, Folha, Aluguel+Infra, Outros
 
 ### Alertas no DRE
 
 Banner no topo se:
+
 - CMV coverage < 90% (muitas peças sem custo cadastrado)
 - Margem bruta < 30% (alerta amarelo)
 - Resultado operacional negativo (alerta vermelho)
@@ -187,6 +193,7 @@ Banner no topo se:
 ### Configuração `/app/configuracoes/financeiro`
 
 Sub-rota PRD-019 (Owner/Financeiro):
+
 - Taxa de impostos sobre vendas (slider 0-25%, default 16%)
 - Taxa de impostos sobre lucro (slider 0-30%, default 20%)
 - Despesas fixas mensais (3 inputs: folha, aluguel+infra, outros)
@@ -201,14 +208,14 @@ Sub-rota PRD-019 (Owner/Financeiro):
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que descartada |
-|-------------|---------------------|
-| DRE complexo com sub-contas detalhadas | MVP precisa de visão simples; complexidade vira ruído |
-| Sem comparativo cross-período | Tendência é central |
-| Sem alertas | Owner não percebe degradação |
-| Custos hardcoded (sem unitCost no PRD-030) | Impede análise de margem por produto (PRD-049) |
-| Despesas fixas obrigatórias por categoria detalhada | Complexidade desnecessária no MVP |
-| Sem coverage de CMV | Owner não saberia se está confiando em dados parciais |
+| Alternativa                                         | Por que descartada                                    |
+| --------------------------------------------------- | ----------------------------------------------------- |
+| DRE complexo com sub-contas detalhadas              | MVP precisa de visão simples; complexidade vira ruído |
+| Sem comparativo cross-período                       | Tendência é central                                   |
+| Sem alertas                                         | Owner não percebe degradação                          |
+| Custos hardcoded (sem unitCost no PRD-030)          | Impede análise de margem por produto (PRD-049)        |
+| Despesas fixas obrigatórias por categoria detalhada | Complexidade desnecessária no MVP                     |
+| Sem coverage de CMV                                 | Owner não saberia se está confiando em dados parciais |
 
 ---
 
@@ -258,17 +265,17 @@ Sub-rota PRD-019 (Owner/Financeiro):
 
 - **RF-006:** `calculateDRE(period, context)` função pura:
   - Soma pedidos pagos no período = grossRevenue
-  - Calcula taxOnSales = grossRevenue * settings.taxOnSalesPct
+  - Calcula taxOnSales = grossRevenue \* settings.taxOnSalesPct
   - Soma pedidos `returned` no período = returns
   - netRevenue = grossRevenue - taxOnSales - returns
-  - CMV = sum(orderItems where order.paid && period).map(item => item.quantity * (item.partUnitCost || 0))
+  - CMV = sum(orderItems where order.paid && period).map(item => item.quantity \* (item.partUnitCost || 0))
   - cmvCoverage = % de items que tinham unitCost
   - grossMargin = netRevenue - cmv
   - commissions = sum(ICommission do período) via PRD-047
   - payroll, rentInfra, otherExpenses = settings
   - totalOperatingExpenses = soma
   - operatingResult = grossMargin - totalOperatingExpenses
-  - taxOnProfit = max(0, operatingResult) * settings.taxOnProfitPct
+  - taxOnProfit = max(0, operatingResult) \* settings.taxOnProfitPct
   - netResult = operatingResult - taxOnProfit
 - **RF-007:** Calcula comparativos (vsPreviousPeriod, vsYearAgo) executando função para outros períodos.
 
@@ -358,34 +365,34 @@ ENTÃO banner vermelho: "Resultado operacional negativo no período"
 
 ## Fases de Implementação
 
-| Fase | Objetivo |
-|------|----------|
-| 1 | Modelo + settings + atualizar IPart com unitCost |
-| 2 | Engine calculateDRE com comparativos |
-| 3 | Página DRE com tabela hierárquica |
-| 4 | Gráficos + drill-downs + configuração |
-| 5 | Alertas + CMV coverage + polish + mobile |
+| Fase | Objetivo                                         |
+| ---- | ------------------------------------------------ |
+| 1    | Modelo + settings + atualizar IPart com unitCost |
+| 2    | Engine calculateDRE com comparativos             |
+| 3    | Página DRE com tabela hierárquica                |
+| 4    | Gráficos + drill-downs + configuração            |
+| 5    | Alertas + CMV coverage + polish + mobile         |
 
 ---
 
 ## Dependências
 
-| PRD | Status |
-|-----|--------|
-| PRD-030 (precisa unitCost) | 📝 (atualizar) |
-| PRD-032 (receita) | 📝 |
-| PRD-040 (consome hook) | 📝 |
+| PRD                           | Status          |
+| ----------------------------- | --------------- |
+| PRD-030 (precisa unitCost)    | 📝 (atualizar)  |
+| PRD-032 (receita)             | 📝              |
+| PRD-040 (consome hook)        | 📝              |
 | PRD-047 (comissões = despesa) | 📝 (lote atual) |
 
 ---
 
 ## Cadeia
 
-| Ordem | PRD |
-|-------|-----|
-| 1-27 | 010-047 |
+| Ordem  | PRD               |
+| ------ | ----------------- |
+| 1-27   | 010-047           |
 | **28** | **PRD-048 ATUAL** |
-| 29+ | 049-053 |
+| 29+    | 049-053           |
 
 ---
 
@@ -400,11 +407,11 @@ ENTÃO banner vermelho: "Resultado operacional negativo no período"
 
 ## Convenções
 
-| Elemento | Convenção |
-|----------|-----------|
-| Página | `DREPage`, `FinancialConfigPage` |
-| Engine | `calculateDRE` |
-| Pasta | `dre/`, `financial-config/` |
+| Elemento | Convenção                        |
+| -------- | -------------------------------- |
+| Página   | `DREPage`, `FinancialConfigPage` |
+| Engine   | `calculateDRE`                   |
+| Pasta    | `dre/`, `financial-config/`      |
 
 ---
 
@@ -420,17 +427,17 @@ ENTÃO banner vermelho: "Resultado operacional negativo no período"
 
 ## Status
 
-| Campo | Valor |
-|-------|-------|
+| Campo  | Valor       |
+| ------ | ----------- |
 | Status | ⏳ PENDENTE |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 25/05/2026 | v1 | Criação inicial — DRE simplificado com receita real, CMV estimado, despesas mockadas, comparativos cross-período |
+| Data       | Versão | Alteração                                                                                                        |
+| ---------- | ------ | ---------------------------------------------------------------------------------------------------------------- |
+| 25/05/2026 | v1     | Criação inicial — DRE simplificado com receita real, CMV estimado, despesas mockadas, comparativos cross-período |
 
 ---
 

@@ -2,20 +2,20 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _A definir após criação no Lovable_ |
-| **Objetivo** | Construir histórico de movimentações de estoque — no MVP derivado de saídas (pedidos pagos), com placeholder coerente para entradas/ajustes/transferências (Fase 2 com integração DINTEC) |
-| **Tipo** | Feature |
-| **Complexidade** | Média |
-| **Total de Fases** | 3 |
-| **Prioridade** | Média |
-| **Épico** | Bloco 4b — Gestão B (Onda 2) |
-| **Profundidade** | **Esqueleto enxuto (E)** |
-| **PRDs Relacionados** | PRD-030 (Catálogo), PRD-032 (Pedido), PRD-050 (Estoque Análise) |
-| **Implementação** | 🔵 Claude Code CLI |
-| **Padrão de código** | Feature-based; código em `src/features/inventory-movement/` |
+| Campo                 | Valor                                                                                                                                                                                     |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                  |
+| **Repositório**       | _A definir após criação no Lovable_                                                                                                                                                       |
+| **Objetivo**          | Construir histórico de movimentações de estoque — no MVP derivado de saídas (pedidos pagos), com placeholder coerente para entradas/ajustes/transferências (Fase 2 com integração DINTEC) |
+| **Tipo**              | Feature                                                                                                                                                                                   |
+| **Complexidade**      | Média                                                                                                                                                                                     |
+| **Total de Fases**    | 3                                                                                                                                                                                         |
+| **Prioridade**        | Média                                                                                                                                                                                     |
+| **Épico**             | Bloco 4b — Gestão B (Onda 2)                                                                                                                                                              |
+| **Profundidade**      | **Esqueleto enxuto (E)**                                                                                                                                                                  |
+| **PRDs Relacionados** | PRD-030 (Catálogo), PRD-032 (Pedido), PRD-050 (Estoque Análise)                                                                                                                           |
+| **Implementação**     | 🔵 Claude Code CLI                                                                                                                                                                        |
+| **Padrão de código**  | Feature-based; código em `src/features/inventory-movement/`                                                                                                                               |
 
 ### Critérios de Complexidade
 
@@ -37,13 +37,13 @@ No MVP, apenas saídas (derivado de pedidos pagos) são reais. Entradas, ajustes
 
 ### Tipos de movimentação
 
-| Tipo | MVP | Fase 2 |
-|------|-----|--------|
-| `saida_venda` | ✅ Derivado de pedido pago | Real |
-| `entrada_compra` | ⏸ Placeholder | DINTEC integration |
-| `ajuste_inventario` | ⏸ Placeholder | DINTEC integration |
-| `transferencia_loja` | ⏸ Placeholder | Multi-loja Fase 2 |
-| `devolucao` | ✅ Derivado de pedido devolvido | Real |
+| Tipo                 | MVP                             | Fase 2             |
+| -------------------- | ------------------------------- | ------------------ |
+| `saida_venda`        | ✅ Derivado de pedido pago      | Real               |
+| `entrada_compra`     | ⏸ Placeholder                   | DINTEC integration |
+| `ajuste_inventario`  | ⏸ Placeholder                   | DINTEC integration |
+| `transferencia_loja` | ⏸ Placeholder                   | Multi-loja Fase 2  |
+| `devolucao`          | ✅ Derivado de pedido devolvido | Real               |
 
 ### Modelo
 
@@ -74,6 +74,7 @@ type MovementType = 'saida_venda' | 'entrada_compra' | 'ajuste_inventario' | 'tr
 Header: filtros (tipo, produto, período, vendedor responsável, loja Owner).
 
 **Tabela cronológica** (reversa, mais recente primeiro):
+
 - Data/hora
 - Tipo (badge colorido)
 - Produto + OEM
@@ -83,6 +84,7 @@ Header: filtros (tipo, produto, período, vendedor responsável, loja Owner).
 - Notas
 
 **KPIs no topo:**
+
 - Total movimentações no período
 - Saídas (R$ valor)
 - Entradas (placeholder)
@@ -104,11 +106,11 @@ Header: filtros (tipo, produto, período, vendedor responsável, loja Owner).
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que descartada |
-|-------------|---------------------|
-| Implementar entradas/ajustes manuais no MVP | Sem integração DINTEC, duplicação manual gera inconsistências |
-| Sem placeholder das outras movimentações | Owner não vê estrutura completa do que virá |
-| Mutar estoque via essas movimentações | PRD-030 define stockQuantity; mutar criaria 2 fontes de verdade |
+| Alternativa                                 | Por que descartada                                              |
+| ------------------------------------------- | --------------------------------------------------------------- |
+| Implementar entradas/ajustes manuais no MVP | Sem integração DINTEC, duplicação manual gera inconsistências   |
+| Sem placeholder das outras movimentações    | Owner não vê estrutura completa do que virá                     |
+| Mutar estoque via essas movimentações       | PRD-030 define stockQuantity; mutar criaria 2 fontes de verdade |
 
 ---
 
@@ -190,31 +192,31 @@ ENTÃO sou levado ao pedido correspondente (PRD-032)
 
 ## Fases de Implementação
 
-| Fase | Objetivo |
-|------|----------|
-| 1 | Modelo + hook derivado + página com tabela |
-| 2 | Filtros + KPIs + drill-downs |
-| 3 | Placeholders + permissões + polish |
+| Fase | Objetivo                                   |
+| ---- | ------------------------------------------ |
+| 1    | Modelo + hook derivado + página com tabela |
+| 2    | Filtros + KPIs + drill-downs               |
+| 3    | Placeholders + permissões + polish         |
 
 ---
 
 ## Dependências
 
-| PRD | Status |
-|-----|--------|
-| PRD-030 | 📝 |
-| PRD-032 | 📝 |
-| PRD-050 (complementar) | 📝 |
+| PRD                    | Status |
+| ---------------------- | ------ |
+| PRD-030                | 📝     |
+| PRD-032                | 📝     |
+| PRD-050 (complementar) | 📝     |
 
 ---
 
 ## Cadeia
 
-| Ordem | PRD |
-|-------|-----|
-| 1-31 | 010-051 |
+| Ordem  | PRD               |
+| ------ | ----------------- |
+| 1-31   | 010-051           |
 | **32** | **PRD-052 ATUAL** |
-| 33 | PRD-053 |
+| 33     | PRD-053           |
 
 ---
 
@@ -227,10 +229,10 @@ ENTÃO sou levado ao pedido correspondente (PRD-032)
 
 ## Convenções
 
-| Elemento | Convenção |
-|----------|-----------|
-| Página | `InventoryMovementPage` |
-| Pasta | `inventory-movement/` |
+| Elemento | Convenção               |
+| -------- | ----------------------- |
+| Página   | `InventoryMovementPage` |
+| Pasta    | `inventory-movement/`   |
 
 ---
 
@@ -245,17 +247,17 @@ ENTÃO sou levado ao pedido correspondente (PRD-032)
 
 ## Status
 
-| Campo | Valor |
-|-------|-------|
+| Campo  | Valor       |
+| ------ | ----------- |
 | Status | ⏳ PENDENTE |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 25/05/2026 | v1 | Criação inicial — movimentações derivadas de pedidos com placeholder para entradas/ajustes Fase 2 |
+| Data       | Versão | Alteração                                                                                         |
+| ---------- | ------ | ------------------------------------------------------------------------------------------------- |
+| 25/05/2026 | v1     | Criação inicial — movimentações derivadas de pedidos com placeholder para entradas/ajustes Fase 2 |
 
 ---
 

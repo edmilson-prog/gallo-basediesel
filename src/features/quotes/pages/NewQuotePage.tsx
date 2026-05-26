@@ -30,6 +30,7 @@ import { useQuotesProvider } from "@/providers/data/hooks/useQuotesProvider";
 import { useVehiclesProvider } from "@/providers/data/hooks/useVehiclesProvider";
 import { useSettingsProvider } from "@/providers/data/hooks/useSettingsProvider";
 import { auditLog } from "@/features/rbac/utils/auditLog";
+import { calculateShipping } from "@/features/shipping/api/calculate";
 import { AddItemModal } from "../components/new/AddItemModal";
 import { CustomerAutocomplete } from "../components/new/CustomerAutocomplete";
 import { recalculateQuote, requiresDiscountApproval, round2 } from "../utils/quoteTotals";
@@ -80,7 +81,9 @@ export function NewQuotePage() {
   const [shipping, setShipping] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<QuotePaymentMethod>("pix");
   const [paymentTerms, setPaymentTerms] = useState("à vista");
-  const [validUntil, setValidUntil] = useState(() => isoDate(addDays(new Date(), validityDaysDefault)));
+  const [validUntil, setValidUntil] = useState(() =>
+    isoDate(addDays(new Date(), validityDaysDefault)),
+  );
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -98,7 +101,11 @@ export function NewQuotePage() {
     [items, discountValue, shipping],
   );
   const discountPct = totals.subtotal > 0 ? totals.discount / totals.subtotal : 0;
-  const needsJustification = requiresDiscountApproval(totals.subtotal, totals.discount, thresholdPct);
+  const needsJustification = requiresDiscountApproval(
+    totals.subtotal,
+    totals.discount,
+    thresholdPct,
+  );
   const justificationMissing = needsJustification && discountReason.trim().length === 0;
 
   // --- Vehicle hint for item search ---
@@ -209,7 +216,7 @@ export function NewQuotePage() {
         <CustomerAutocomplete
           value={customer?.id ?? null}
           onChange={setCustomer}
-          sellerIdFilter={isManagerOrOwner ? null : currentUser?.sellerId ?? null}
+          sellerIdFilter={isManagerOrOwner ? null : (currentUser?.sellerId ?? null)}
         />
         {customer?.address && (
           <p className="mt-2 text-xs text-muted-foreground">
@@ -305,7 +312,10 @@ export function NewQuotePage() {
               </tbody>
               <tfoot className="bg-muted/30 text-xs">
                 <tr>
-                  <td colSpan={4} className="px-3 py-2 text-right font-medium text-muted-foreground">
+                  <td
+                    colSpan={4}
+                    className="px-3 py-2 text-right font-medium text-muted-foreground"
+                  >
                     Subtotal
                   </td>
                   <td className="px-3 py-2 text-right text-sm font-semibold tabular-nums">
@@ -345,16 +355,57 @@ export function NewQuotePage() {
           </div>
           <div>
             <Label htmlFor="shipping">Frete (R$)</Label>
-            <Input
-              id="shipping"
-              type="number"
-              min={0}
-              step={0.01}
-              value={shipping}
-              onChange={(e) => setShipping(Math.max(0, Number(e.target.value) || 0))}
-            />
+            <div className="flex gap-2">
+              <Input
+                id="shipping"
+                type="number"
+                min={0}
+                step={0.01}
+                value={shipping}
+                onChange={(e) => setShipping(Math.max(0, Number(e.target.value) || 0))}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (!customer?.address) {
+                    toast.error("Selecione um cliente com endereço para calcular o frete.");
+                    return;
+                  }
+                  if (!settings) {
+                    toast.error("Configurações de frete ainda não carregaram.");
+                    return;
+                  }
+                  const result = calculateShipping({
+                    address: customer.address,
+                    config: settings.shipping,
+                  });
+                  if (result.isToNegotiate) {
+                    setShipping(0);
+                    toast.info(result.notes ?? "Frete a combinar com o cliente.");
+                    return;
+                  }
+                  const value = result.value ?? 0;
+                  setShipping(value);
+                  toast.success(
+                    result.appliedRate
+                      ? `Frete R$ ${value.toFixed(2)} — regra "${result.appliedRate.name}".`
+                      : `Frete R$ ${value.toFixed(2)} aplicado.`,
+                  );
+                }}
+                className="shrink-0 gap-1"
+              >
+                <Icon icon="mdi:truck-fast-outline" size={14} />
+                Calcular
+              </Button>
+            </div>
             <p className="mt-1 text-xs text-muted-foreground">
-              Cálculo automático será integrado pelo PRD-033.
+              Regras configuradas em{" "}
+              <a className="underline" href="/app/configuracoes/frete">
+                Configurações &gt; Frete
+              </a>
+              .
             </p>
           </div>
         </div>
@@ -379,7 +430,10 @@ export function NewQuotePage() {
         <div className="grid gap-4 md:grid-cols-3">
           <div>
             <Label>Forma de pagamento</Label>
-            <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as QuotePaymentMethod)}>
+            <Select
+              value={paymentMethod}
+              onValueChange={(v) => setPaymentMethod(v as QuotePaymentMethod)}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>

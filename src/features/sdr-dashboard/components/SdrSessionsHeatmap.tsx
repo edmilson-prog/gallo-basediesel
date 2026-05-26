@@ -104,9 +104,7 @@ export function SdrSessionsHeatmap({ data, onCellClick }: ISdrSessionsHeatmapPro
                       setHover({ day: cell.day, hour: cell.hour, count: cell.count })
                     }
                     onMouseLeave={() => setHover(null)}
-                    onFocus={() =>
-                      setHover({ day: cell.day, hour: cell.hour, count: cell.count })
-                    }
+                    onFocus={() => setHover({ day: cell.day, hour: cell.hour, count: cell.count })}
                     onBlur={() => setHover(null)}
                     onClick={() => onCellClick?.()}
                     tabIndex={onCellClick ? 0 : -1}

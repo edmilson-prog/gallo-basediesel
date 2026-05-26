@@ -2,10 +2,7 @@ import type { QuoteStatus } from "@/shared/types";
 import { cn } from "@/lib/utils";
 import { Icon } from "@/components/Icon";
 
-const STATUS_META: Record<
-  QuoteStatus,
-  { label: string; icon: string; className: string }
-> = {
+const STATUS_META: Record<QuoteStatus, { label: string; icon: string; className: string }> = {
   rascunho: {
     label: "Rascunho",
     icon: "mdi:file-document-edit-outline",

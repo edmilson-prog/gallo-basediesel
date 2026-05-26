@@ -56,11 +56,7 @@ function HighlightedPreview({ text }: { text: string }) {
     <pre className="whitespace-pre-wrap break-words rounded-md bg-muted/30 p-3 font-mono text-xs leading-relaxed">
       {parts.map((part, idx) =>
         part.type === "var" ? (
-          <span
-            key={idx}
-            className="rounded bg-primary/10 px-1 text-primary"
-            title="Variável"
-          >
+          <span key={idx} className="rounded bg-primary/10 px-1 text-primary" title="Variável">
             {part.value}
           </span>
         ) : (

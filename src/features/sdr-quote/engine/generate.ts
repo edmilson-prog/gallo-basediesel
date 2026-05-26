@@ -6,9 +6,9 @@ import type {
   IPlatformSettings,
   IQuote,
   IQuoteItem,
-  ISdrShippingResult,
+  IShippingResult,
 } from "@/shared/types";
-import { calculateShippingPlaceholder } from "./shipping";
+import { calculateShipping } from "@/features/shipping/api/calculate";
 
 export interface IGenerateSdrQuoteInput {
   identification: IPartIdentification;
@@ -24,7 +24,7 @@ export interface IGenerateSdrQuoteInput {
 
 export interface IGenerateSdrQuoteResult {
   quote: IQuote;
-  shipping: ISdrShippingResult;
+  shipping: IShippingResult;
   /** True when the catalog had no real match — caller decides what to do. */
   pricingUnavailable: boolean;
 }
@@ -34,7 +34,7 @@ export interface IGenerateSdrQuoteResult {
  * caller persists it via the provider and dispatches the message.
  *
  * Honours `settings.sdrAutoDiscountPct`, `settings.sdrQuoteValidityDays` and
- * `settings.sdrShippingPlaceholder` (PRD-022 RF-005/006).
+ * `settings.shipping` (PRD-022 RF-005/006 + PRD-033 RF-006).
  */
 export function generateSdrQuote(input: IGenerateSdrQuoteInput): IGenerateSdrQuoteResult {
   const now = input.now ?? new Date().toISOString();
@@ -55,10 +55,10 @@ export function generateSdrQuote(input: IGenerateSdrQuoteInput): IGenerateSdrQuo
   const subtotal = round2(quantity * safePrice);
   const discountPct = Math.max(0, Math.min(1, input.settings.sdrAutoDiscountPct ?? 0));
   const discount = round2(subtotal * discountPct);
-  const shipping = calculateShippingPlaceholder(
-    input.customer.address,
-    input.settings.sdrShippingPlaceholder,
-  );
+  const shipping = calculateShipping({
+    address: input.customer.address,
+    config: input.settings.shipping,
+  });
   const shippingValue = shipping.isToNegotiate ? 0 : (shipping.value ?? 0);
   const total = round2(subtotal - discount + shippingValue);
 

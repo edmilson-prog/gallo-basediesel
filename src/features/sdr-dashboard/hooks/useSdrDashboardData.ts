@@ -295,9 +295,7 @@ export function useSdrDashboardData(filters: ISdrDashboardDataFilters): ISdrDash
     const totalPrevious = previousSessions.length;
 
     const escalatedCurrent = sessions.filter((s) => s.finishReason === "escalated").length;
-    const escalatedPrevious = previousSessions.filter(
-      (s) => s.finishReason === "escalated",
-    ).length;
+    const escalatedPrevious = previousSessions.filter((s) => s.finishReason === "escalated").length;
     const escalationRateCurrent =
       totalCurrent > 0 ? Math.round((escalatedCurrent / totalCurrent) * 100) : 0;
     const escalationRatePrevious =

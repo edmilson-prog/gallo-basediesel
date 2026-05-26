@@ -1,4 +1,4 @@
-import type { ICustomer, IQuote, ISdrQuoteTemplates, ISdrShippingResult } from "@/shared/types";
+import type { ICustomer, IQuote, ISdrQuoteTemplates, IShippingResult } from "@/shared/types";
 
 /**
  * Variables exposed to the SDR-quote templates. Optional values render as
@@ -50,7 +50,7 @@ function firstName(customer: ICustomer | undefined): string | undefined {
 export function buildQuoteVariables(
   quote: IQuote,
   customer: ICustomer | undefined,
-  shipping: ISdrShippingResult,
+  shipping: IShippingResult,
   options: { partTypeLabel?: string } = {},
 ): IQuoteTemplateVariables {
   const item = quote.items[0];
@@ -99,7 +99,7 @@ export function renderTemplate(
 export function renderQuoteMessage(
   quote: IQuote,
   customer: ICustomer | undefined,
-  shipping: ISdrShippingResult,
+  shipping: IShippingResult,
   templates: ISdrQuoteTemplates,
   options?: { partTypeLabel?: string },
 ): string {

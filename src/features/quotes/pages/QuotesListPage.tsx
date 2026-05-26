@@ -30,8 +30,7 @@ export function QuotesListPage() {
   const { filters, sort, page, pageSize } = url;
 
   // Vendedor — restrição: vê apenas seus orçamentos via sellerIdLock.
-  const sellerIdLock =
-    !isManagerOrOwner && currentUser?.sellerId ? currentUser.sellerId : null;
+  const sellerIdLock = !isManagerOrOwner && currentUser?.sellerId ? currentUser.sellerId : null;
 
   const list = useQuotesList(filters, sort, page, pageSize, { sellerIdLock });
 
@@ -119,11 +118,7 @@ export function QuotesListPage() {
           {list.isError ? (
             <ErrorState onRetry={list.refetch} />
           ) : showEmpty ? (
-            <EmptyState
-              canCreate={canCreate}
-              onCreate={handleCreate}
-              onClear={url.clearAll}
-            />
+            <EmptyState canCreate={canCreate} onCreate={handleCreate} onClear={url.clearAll} />
           ) : (
             <QuotesTable
               quotes={list.data}

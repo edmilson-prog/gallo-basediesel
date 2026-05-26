@@ -59,7 +59,8 @@ export function generatePart(
   const subcategoryPool = SUBCATEGORIES_BY_CATEGORY[category.id];
   const subcategory =
     subcategoryPool && subcategoryPool.length > 0 ? ctx.pick(subcategoryPool) : undefined;
-  const isOriginal = ORIGINAL_BRAND_HINTS.includes(brand) || ORIGINAL_BRAND_HINTS.includes(supplier);
+  const isOriginal =
+    ORIGINAL_BRAND_HINTS.includes(brand) || ORIGINAL_BRAND_HINTS.includes(supplier);
 
   return {
     id,

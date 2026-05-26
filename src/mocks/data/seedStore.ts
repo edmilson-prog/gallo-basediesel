@@ -6,6 +6,7 @@ import { DEFAULT_DISTRIBUTION_SETTINGS } from "./seedDistribution";
 import { DEFAULT_MANAGER_DASHBOARD_SETTINGS } from "./seedManagerDashboard";
 import { DEFAULT_SDR_TEMPLATES } from "@/features/sdr/templates/defaults";
 import { DEFAULT_SDR_QUOTE_TEMPLATES } from "@/features/sdr-quote";
+import { DEFAULT_SHIPPING_CONFIG } from "@/features/shipping/config/defaults";
 
 export const SEED_STORE_ID = "store-matriz";
 
@@ -48,13 +49,7 @@ export const SEED_STORE: IStore = {
     sdrQuoteValidityDays: 7,
     sdrAutoDiscountPct: 0,
     sdrQuoteTemplates: DEFAULT_SDR_QUOTE_TEMPLATES,
-    sdrShippingPlaceholder: {
-      sameCityValue: 50,
-      sameStateValue: 80,
-      otherStatesAction: "to_negotiate",
-      homeCity: "Frederico Westphalen",
-      homeState: "RS",
-    },
+    shipping: DEFAULT_SHIPPING_CONFIG,
     escalationQueueTimeoutMinutesUrgent: 5,
     escalationQueueTimeoutMinutesNormal: 30,
     escalationCustomerHandoffTemplate:

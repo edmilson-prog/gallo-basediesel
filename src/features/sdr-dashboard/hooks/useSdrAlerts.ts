@@ -14,10 +14,7 @@ export interface ISdrAlert {
 }
 
 interface IUseSdrAlertsInput {
-  data: Pick<
-    ISdrDashboardData,
-    "sessions" | "previousSessions" | "escalationRate"
-  >;
+  data: Pick<ISdrDashboardData, "sessions" | "previousSessions" | "escalationRate">;
   settings: IPlatformSettings | null;
   allSessions?: ISdrSession[];
 }
@@ -52,7 +49,9 @@ export function useSdrAlerts({ data, settings, allSessions }: IUseSdrAlertsInput
     // 2) Templates never customised — informative.
     if (settings) {
       const allDefault = settings.sdrTemplates.every((t) => {
-        const original = DEFAULT_SDR_TEMPLATES.find((d) => d.id === t.id || d.trigger === t.trigger);
+        const original = DEFAULT_SDR_TEMPLATES.find(
+          (d) => d.id === t.id || d.trigger === t.trigger,
+        );
         return original ? original.text === t.text : false;
       });
       if (allDefault) {
@@ -60,8 +59,7 @@ export function useSdrAlerts({ data, settings, allSessions }: IUseSdrAlertsInput
           id: "templates-not-personalised",
           severity: "info",
           title: "Templates ainda no padrão",
-          description:
-            "Personalize as mensagens do SDR para refletir a voz da GALLO BASE DIESEL.",
+          description: "Personalize as mensagens do SDR para refletir a voz da GALLO BASE DIESEL.",
           icon: "mdi:pencil-outline",
         });
       }
@@ -70,9 +68,7 @@ export function useSdrAlerts({ data, settings, allSessions }: IUseSdrAlertsInput
     // 3) Unknown intent volume — warning when 5+ in the last hour.
     if (allSessions && allSessions.length > 0) {
       const cutoff = Date.now() - UNKNOWN_INTENT_WINDOW_MS;
-      const recent = allSessions.filter(
-        (s) => new Date(s.lastActivityAt).getTime() >= cutoff,
-      );
+      const recent = allSessions.filter((s) => new Date(s.lastActivityAt).getTime() >= cutoff);
       const unknownCount = recent.filter((s) => {
         if (!s.collectedData.needs) return true;
         if (s.finishReason === "abandoned" || s.finishReason === "escalated") return false;

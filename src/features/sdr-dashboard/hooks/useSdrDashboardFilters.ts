@@ -76,10 +76,7 @@ interface ISearch {
   loja?: string;
 }
 
-function readState(
-  search: ISearch,
-  ctx: { gestorLockedStoreId?: ID },
-): ISdrDashboardFiltersState {
+function readState(search: ISearch, ctx: { gestorLockedStoreId?: ID }): ISdrDashboardFiltersState {
   const period =
     typeof search.periodo === "string" && VALID_PERIOD.has(search.periodo as SdrPeriodPreset)
       ? (search.periodo as SdrPeriodPreset)
@@ -106,9 +103,7 @@ export interface IUseSdrDashboardFilters {
  * pattern used by the manager dashboard but only the period + store are
  * surfaced — vendor and channel don't apply to SDR sessions on the MVP.
  */
-export function useSdrDashboardFilters(ctx: {
-  gestorLockedStoreId?: ID;
-}): IUseSdrDashboardFilters {
+export function useSdrDashboardFilters(ctx: { gestorLockedStoreId?: ID }): IUseSdrDashboardFilters {
   const search = useSearch({ from: "/app/sdr" }) as ISearch;
   const navigate = useNavigate({ from: "/app/sdr" });
 

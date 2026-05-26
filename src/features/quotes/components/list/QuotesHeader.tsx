@@ -20,8 +20,8 @@ export function QuotesHeader({
       <div>
         <h1 className="text-lg font-semibold text-foreground">Orçamentos</h1>
         <p className="text-xs text-muted-foreground">
-          {total.toLocaleString("pt-BR")}{" "}
-          {total === 1 ? "orçamento" : "orçamentos"} encontrado{total === 1 ? "" : "s"}
+          {total.toLocaleString("pt-BR")} {total === 1 ? "orçamento" : "orçamentos"} encontrado
+          {total === 1 ? "" : "s"}
         </p>
       </div>
       <div className="flex items-center gap-2">

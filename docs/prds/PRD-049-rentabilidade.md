@@ -2,19 +2,19 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _A definir após criação no Lovable_ |
-| **Objetivo** | Construir análise de rentabilidade multidimensional — margem por produto, categoria, cliente, vendedor — identificar pontos críticos (margem negativa) e oportunidades (top margens), com drill-down cruzado |
-| **Tipo** | Feature |
-| **Complexidade** | Alta |
-| **Total de Fases** | 4 |
-| **Prioridade** | Alta |
-| **Épico** | Bloco 4b — Gestão B (Onda 2) |
-| **PRDs Relacionados** | PRD-030 (Catálogo — unitCost), PRD-032 (Pedido), PRD-040 (Cockpit), PRD-041 (Vendas), PRD-045 (ABC), PRD-048 (DRE) |
-| **Implementação** | 🔵 Claude Code CLI |
-| **Padrão de código** | Feature-based; código em `src/features/profitability/` |
+| Campo                 | Valor                                                                                                                                                                                                        |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                                     |
+| **Repositório**       | _A definir após criação no Lovable_                                                                                                                                                                          |
+| **Objetivo**          | Construir análise de rentabilidade multidimensional — margem por produto, categoria, cliente, vendedor — identificar pontos críticos (margem negativa) e oportunidades (top margens), com drill-down cruzado |
+| **Tipo**              | Feature                                                                                                                                                                                                      |
+| **Complexidade**      | Alta                                                                                                                                                                                                         |
+| **Total de Fases**    | 4                                                                                                                                                                                                            |
+| **Prioridade**        | Alta                                                                                                                                                                                                         |
+| **Épico**             | Bloco 4b — Gestão B (Onda 2)                                                                                                                                                                                 |
+| **PRDs Relacionados** | PRD-030 (Catálogo — unitCost), PRD-032 (Pedido), PRD-040 (Cockpit), PRD-041 (Vendas), PRD-045 (ABC), PRD-048 (DRE)                                                                                           |
+| **Implementação**     | 🔵 Claude Code CLI                                                                                                                                                                                           |
+| **Padrão de código**  | Feature-based; código em `src/features/profitability/`                                                                                                                                                       |
 
 ### Critérios de Complexidade
 
@@ -61,12 +61,14 @@ Header: filtros (período, loja, vendedor, categoria, marca).
 ### Aba 1 — Por Produto
 
 KPIs no topo:
+
 - Margem média (%)
 - Cobertura de custo (% de produtos com unitCost)
 - Produtos com margem negativa (contagem)
 - Top produto (maior margem absoluta)
 
 Tabela top 30:
+
 - Produto + OEM
 - Receita, custo, margem (R$ e %)
 - Indicador visual:
@@ -79,6 +81,7 @@ Filtro extra: "Apenas margens negativas" / "Sem custo cadastrado".
 ### Aba 2 — Por Categoria
 
 Bar chart de margem média por categoria + tabela com:
+
 - Categoria
 - Receita
 - Custo
@@ -89,6 +92,7 @@ Bar chart de margem média por categoria + tabela com:
 ### Aba 3 — Por Cliente
 
 Tabela top clientes por margem:
+
 - Cliente (link PRD-012) + classe ABC (PRD-045)
 - Receita
 - Custo dos itens
@@ -101,6 +105,7 @@ Inclui filtro especial "Clientes com margem negativa" — útil para identificar
 ### Aba 4 — Por Vendedor
 
 Tabela comparativa:
+
 - Vendedor
 - Receita gerada
 - Margem total (R$)
@@ -113,6 +118,7 @@ Identifica vendedores com tendência a vender com margem baixa (excesso de desco
 ### Alertas
 
 Banner no topo:
+
 - "X produtos com margem negativa" (vermelho)
 - "Cobertura de custo é Y% — atualize unitCost no catálogo" (amarelo se < 80%)
 - "Top vendedor com menor margem: [nome] — Z% (média loja: W%)"
@@ -133,13 +139,13 @@ Banner no topo:
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que descartada |
-|-------------|---------------------|
-| Análise apenas no DRE (PRD-048) | DRE é agregado; drill-down é o valor |
-| Apenas por produto (sem cliente/vendedor) | Cliente e vendedor são dimensões críticas |
-| Sem alertas | Owner descobre tarde |
-| Vendedor vê suas margens | Sensível demais; conflito com gestão de descontos |
-| Sem cobertura de custo | Owner toma decisão sobre dados parciais sem saber |
+| Alternativa                               | Por que descartada                                |
+| ----------------------------------------- | ------------------------------------------------- |
+| Análise apenas no DRE (PRD-048)           | DRE é agregado; drill-down é o valor              |
+| Apenas por produto (sem cliente/vendedor) | Cliente e vendedor são dimensões críticas         |
+| Sem alertas                               | Owner descobre tarde                              |
+| Vendedor vê suas margens                  | Sensível demais; conflito com gestão de descontos |
+| Sem cobertura de custo                    | Owner toma decisão sobre dados parciais sem saber |
 
 ---
 
@@ -275,34 +281,34 @@ ENTÃO bloqueado (redirecionado)
 
 ## Fases de Implementação
 
-| Fase | Objetivo |
-|------|----------|
-| 1 | Engine + hooks por dimensão |
-| 2 | Aba Produto + Aba Categoria |
-| 3 | Aba Cliente + Aba Vendedor |
-| 4 | Alertas + drill-downs + polish |
+| Fase | Objetivo                       |
+| ---- | ------------------------------ |
+| 1    | Engine + hooks por dimensão    |
+| 2    | Aba Produto + Aba Categoria    |
+| 3    | Aba Cliente + Aba Vendedor     |
+| 4    | Alertas + drill-downs + polish |
 
 ---
 
 ## Dependências
 
-| PRD | Status |
-|-----|--------|
-| PRD-030 (unitCost) | 📝 (atualizado em PRD-048) |
-| PRD-032 (orderItems) | 📝 |
-| PRD-040 (consome hook) | 📝 |
-| PRD-045 (classe ABC) | 📝 |
-| PRD-048 (consome também) | 📝 (lote atual) |
+| PRD                      | Status                     |
+| ------------------------ | -------------------------- |
+| PRD-030 (unitCost)       | 📝 (atualizado em PRD-048) |
+| PRD-032 (orderItems)     | 📝                         |
+| PRD-040 (consome hook)   | 📝                         |
+| PRD-045 (classe ABC)     | 📝                         |
+| PRD-048 (consome também) | 📝 (lote atual)            |
 
 ---
 
 ## Cadeia
 
-| Ordem | PRD |
-|-------|-----|
-| 1-28 | 010-048 |
+| Ordem  | PRD               |
+| ------ | ----------------- |
+| 1-28   | 010-048           |
 | **29** | **PRD-049 ATUAL** |
-| 30+ | 050-053 |
+| 30+    | 050-053           |
 
 ---
 
@@ -316,12 +322,12 @@ ENTÃO bloqueado (redirecionado)
 
 ## Convenções
 
-| Elemento | Convenção |
-|----------|-----------|
-| Página | `ProfitabilityPage` |
-| Engine | `calculateProfitability` |
-| Hook | `useProductProfitability`, etc. |
-| Pasta | `profitability/` |
+| Elemento | Convenção                       |
+| -------- | ------------------------------- |
+| Página   | `ProfitabilityPage`             |
+| Engine   | `calculateProfitability`        |
+| Hook     | `useProductProfitability`, etc. |
+| Pasta    | `profitability/`                |
 
 ---
 
@@ -337,17 +343,17 @@ ENTÃO bloqueado (redirecionado)
 
 ## Status
 
-| Campo | Valor |
-|-------|-------|
+| Campo  | Valor       |
+| ------ | ----------- |
 | Status | ⏳ PENDENTE |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 25/05/2026 | v1 | Criação inicial — rentabilidade multidimensional por produto/categoria/cliente/vendedor |
+| Data       | Versão | Alteração                                                                               |
+| ---------- | ------ | --------------------------------------------------------------------------------------- |
+| 25/05/2026 | v1     | Criação inicial — rentabilidade multidimensional por produto/categoria/cliente/vendedor |
 
 ---
 

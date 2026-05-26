@@ -2,7 +2,14 @@ import type { ICustomer, ID, IQuote, ISeller } from "@/shared/types";
 import { cn } from "@/lib/utils";
 import { Icon } from "@/components/Icon";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { QuoteStatusBadge } from "../QuoteStatusBadge";
 import { QuoteOriginBadge } from "../QuoteOriginBadge";
 import { ValidityIndicator } from "../ValidityIndicator";
@@ -62,10 +69,7 @@ export function QuotesTable({
       >
         {children}
         {active && (
-          <Icon
-            icon={sort.orderDir === "asc" ? "mdi:arrow-up" : "mdi:arrow-down"}
-            size={12}
-          />
+          <Icon icon={sort.orderDir === "asc" ? "mdi:arrow-up" : "mdi:arrow-down"} size={12} />
         )}
       </button>
     );
@@ -105,8 +109,7 @@ export function QuotesTable({
         {quotes.map((q) => {
           const customer = q.customerId ? customers.get(q.customerId) : undefined;
           const seller = sellers.get(q.sellerId);
-          const sellerName =
-            seller?.fullName ?? (q.sellerId === "sdr-agent" ? "Agente SDR" : "—");
+          const sellerName = seller?.fullName ?? (q.sellerId === "sdr-agent" ? "Agente SDR" : "—");
           return (
             <TableRow
               key={q.id}

@@ -26,12 +26,7 @@ export function ValidityIndicator({
     );
   }
 
-  const label =
-    days === 0
-      ? "hoje"
-      : days === 1
-        ? "1 dia"
-        : `${days} dias`;
+  const label = days === 0 ? "hoje" : days === 1 ? "1 dia" : `${days} dias`;
 
   const colorClass =
     bucket === "critical"
@@ -41,7 +36,9 @@ export function ValidityIndicator({
         : "text-emerald-600 dark:text-emerald-300";
 
   return (
-    <span className={cn("inline-flex items-center gap-1 text-xs font-medium", colorClass, className)}>
+    <span
+      className={cn("inline-flex items-center gap-1 text-xs font-medium", colorClass, className)}
+    >
       <Icon icon="mdi:clock-outline" size={14} />
       {label}
     </span>

@@ -153,13 +153,21 @@ export type {
 // SDR Quote (PRD-022)
 export type {
   ISdrQuoteTemplates,
-  ISdrShippingPlaceholderSettings,
-  ISdrShippingResult,
   ISdrPendingQuote,
   IQuoteResponseMatch,
   QuoteResponseIntent,
-  SdrOtherStatesAction,
 } from "./sdr-quote";
+
+// Shipping (PRD-033)
+export type {
+  IShippingConfig,
+  IShippingRate,
+  IShippingResult,
+  ShippingStrategy,
+  ShippingScope,
+  ShippingDefaultAction,
+  ShippingResultReason,
+} from "./shipping";
 
 // SDR Escalation (PRD-023)
 export type {

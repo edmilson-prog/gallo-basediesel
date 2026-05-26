@@ -13,10 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { ID, ISeller, SdrEscalationReason, SdrFinishReason } from "@/shared/types";
 import { useSellersProvider } from "@/providers/data";
-import {
-  ESCALATION_REASON_LABEL,
-  FINISH_REASON_LABEL,
-} from "../config/labels";
+import { ESCALATION_REASON_LABEL, FINISH_REASON_LABEL } from "../config/labels";
 import type { ISdrHistoryFiltersState } from "../hooks/useSdrHistoryFilters";
 
 export interface ISdrHistoryFiltersProps {

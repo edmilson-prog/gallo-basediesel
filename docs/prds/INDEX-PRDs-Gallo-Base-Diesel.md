@@ -120,13 +120,13 @@ O coração operacional do MVP. Inbox unificado, ficha do cliente, leads, veícu
 
 Agente de IA que atende 24/7, identifica peças, qualifica leads e escala para humano. Onda 1 também (compõe o "Central + SDR" da Proposta v2).
 
-| #   | Título                                               | Tipo    | Prof. | Impl. | Documento | Status | Depende de |
-| --- | ---------------------------------------------------- | ------- | ----- | ----- | --------- | ------ | ---------- |
-| 020 | Simulação de Conversa SDR ↔ Cliente                  | Feature | D     | 🔵    | ⏸         | ⏳     | 011        |
-| 021 | Identificação de Peça (OEM, descrição, equivalência) | Feature | D     | 🔵    | ⏸         | ⏳     | 020, 030   |
-| 022 | Geração de Orçamento via SDR                         | Feature | D     | 🔵    | ⏸         | ⏳     | 021, 031   |
-| 023 | Escalonamento para Vendedor com Resumo de Contexto   | Feature | D     | 🔵    | ⏸         | ⏳     | 020, 011   |
-| 024 | [Painel de Configuração e Métricas do Agente](./PRD-024-painel-sdr_DONE.md)          | Feature | D     | 🔵    | 📝         | ✅     | 020        |
+| #   | Título                                                                      | Tipo    | Prof. | Impl. | Documento | Status | Depende de |
+| --- | --------------------------------------------------------------------------- | ------- | ----- | ----- | --------- | ------ | ---------- |
+| 020 | Simulação de Conversa SDR ↔ Cliente                                         | Feature | D     | 🔵    | ⏸         | ⏳     | 011        |
+| 021 | Identificação de Peça (OEM, descrição, equivalência)                        | Feature | D     | 🔵    | ⏸         | ⏳     | 020, 030   |
+| 022 | Geração de Orçamento via SDR                                                | Feature | D     | 🔵    | ⏸         | ⏳     | 021, 031   |
+| 023 | Escalonamento para Vendedor com Resumo de Contexto                          | Feature | D     | 🔵    | ⏸         | ⏳     | 020, 011   |
+| 024 | [Painel de Configuração e Métricas do Agente](./PRD-024-painel-sdr_DONE.md) | Feature | D     | 🔵    | 📝        | ✅     | 020        |
 
 ### Bloco 3 — Comercial Operacional (PRDs 030–033)
 

@@ -2,19 +2,19 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _A definir após criação no Lovable_ |
-| **Objetivo** | Construir o dashboard executivo (cockpit) para o Owner — visão estratégica da empresa em uma tela, com KPIs macro, gráficos de tendência, comparativos cross-período e drill-down para análises detalhadas |
-| **Tipo** | Feature |
-| **Complexidade** | Alta |
-| **Total de Fases** | 5 |
-| **Prioridade** | Alta |
-| **Épico** | Bloco 4b — Gestão B (Onda 2) |
-| **PRDs Relacionados** | PRD-014 (Painel Gestor — operacional), PRD-024 (Painel SDR), PRD-041 (Vendas), PRD-042 (Metas), PRD-044 (Positivação), PRD-045 (ABC), PRD-046 (Carteira), PRD-049 (Rentabilidade), PRD-052 (Estoque) |
-| **Implementação** | 🔵 Claude Code CLI |
-| **Padrão de código** | Feature-based; código em `src/features/executive-cockpit/` |
+| Campo                 | Valor                                                                                                                                                                                                      |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                                   |
+| **Repositório**       | _A definir após criação no Lovable_                                                                                                                                                                        |
+| **Objetivo**          | Construir o dashboard executivo (cockpit) para o Owner — visão estratégica da empresa em uma tela, com KPIs macro, gráficos de tendência, comparativos cross-período e drill-down para análises detalhadas |
+| **Tipo**              | Feature                                                                                                                                                                                                    |
+| **Complexidade**      | Alta                                                                                                                                                                                                       |
+| **Total de Fases**    | 5                                                                                                                                                                                                          |
+| **Prioridade**        | Alta                                                                                                                                                                                                       |
+| **Épico**             | Bloco 4b — Gestão B (Onda 2)                                                                                                                                                                               |
+| **PRDs Relacionados** | PRD-014 (Painel Gestor — operacional), PRD-024 (Painel SDR), PRD-041 (Vendas), PRD-042 (Metas), PRD-044 (Positivação), PRD-045 (ABC), PRD-046 (Carteira), PRD-049 (Rentabilidade), PRD-052 (Estoque)       |
+| **Implementação**     | 🔵 Claude Code CLI                                                                                                                                                                                         |
+| **Padrão de código**  | Feature-based; código em `src/features/executive-cockpit/`                                                                                                                                                 |
 
 ### Critérios de Complexidade
 
@@ -34,11 +34,11 @@ Este PRD entrega: painel único agregador que consume hooks dos PRDs analíticos
 
 ## Diferenciação entre painéis
 
-| Painel | Pergunta | Audiência | Atualização |
-|--------|----------|-----------|-------------|
-| **PRD-014** (Painel Gestor) | Como vai o atendimento agora? | Owner + Gestor | Tempo real, operação diária |
-| **PRD-024** (Painel SDR) | Como vai o agente SDR? | Owner + Gestor | Tempo real, foco SDR |
-| **PRD-040** (Cockpit) — este | **Como vai a empresa?** | Owner principalmente | Diário/semanal/mensal estratégico |
+| Painel                       | Pergunta                      | Audiência            | Atualização                       |
+| ---------------------------- | ----------------------------- | -------------------- | --------------------------------- |
+| **PRD-014** (Painel Gestor)  | Como vai o atendimento agora? | Owner + Gestor       | Tempo real, operação diária       |
+| **PRD-024** (Painel SDR)     | Como vai o agente SDR?        | Owner + Gestor       | Tempo real, foco SDR              |
+| **PRD-040** (Cockpit) — este | **Como vai a empresa?**       | Owner principalmente | Diário/semanal/mensal estratégico |
 
 ---
 
@@ -53,49 +53,55 @@ Rota `/app/cockpit` ou `/app/visao-executiva` substituindo placeholder do PRD-00
 ### 10+ KPIs estratégicos no topo
 
 Grid 4×3 de cards (`<ExecutiveKpiCard>`), cada um com:
+
 - Métrica + valor formatado
 - Tendência (vs período anterior): % com seta
 - Mini sparkline (linha pequena de evolução)
 - Click leva à página de drill-down
 
-| # | KPI | Fonte | Drill-down |
-|---|-----|-------|-----------|
-| 1 | **Faturamento** (mês) | Pedidos pagos | PRD-041 (Vendas) |
-| 2 | **Ticket Médio** | PRD-042 ticket_medio | PRD-041 |
-| 3 | **Total Pedidos** | Pedidos pagos count | PRD-041 |
-| 4 | **Margem estimada** | PRD-049 (placeholder no MVP — % fixo sobre fatura) | PRD-049 |
-| 5 | **Clientes Ativos** | PRD-046 byStatus.ativo | PRD-046 |
-| 6 | **Positivação** | PRD-044 positivationRate | PRD-044 |
-| 7 | **Churn do período** | PRD-046 churnRate | PRD-046 |
-| 8 | **Novos Clientes** | PRD-042 novos_clientes tipo de meta | PRD-015 |
-| 9 | **Pipeline Aberto** | Soma de orçamentos `enviado` + `aceito` não convertidos | PRD-031 |
-| 10 | **Taxa Conversão Quote→Pedido** | Quotes convertidos / Quotes enviados | PRD-041 |
-| 11 | **Comissões a pagar** | PRD-047 placeholder | PRD-047 |
-| 12 | **NPS** (placeholder Fase 2) | Card "Em breve" | — |
+| #   | KPI                             | Fonte                                                   | Drill-down       |
+| --- | ------------------------------- | ------------------------------------------------------- | ---------------- |
+| 1   | **Faturamento** (mês)           | Pedidos pagos                                           | PRD-041 (Vendas) |
+| 2   | **Ticket Médio**                | PRD-042 ticket_medio                                    | PRD-041          |
+| 3   | **Total Pedidos**               | Pedidos pagos count                                     | PRD-041          |
+| 4   | **Margem estimada**             | PRD-049 (placeholder no MVP — % fixo sobre fatura)      | PRD-049          |
+| 5   | **Clientes Ativos**             | PRD-046 byStatus.ativo                                  | PRD-046          |
+| 6   | **Positivação**                 | PRD-044 positivationRate                                | PRD-044          |
+| 7   | **Churn do período**            | PRD-046 churnRate                                       | PRD-046          |
+| 8   | **Novos Clientes**              | PRD-042 novos_clientes tipo de meta                     | PRD-015          |
+| 9   | **Pipeline Aberto**             | Soma de orçamentos `enviado` + `aceito` não convertidos | PRD-031          |
+| 10  | **Taxa Conversão Quote→Pedido** | Quotes convertidos / Quotes enviados                    | PRD-041          |
+| 11  | **Comissões a pagar**           | PRD-047 placeholder                                     | PRD-047          |
+| 12  | **NPS** (placeholder Fase 2)    | Card "Em breve"                                         | —                |
 
 ### Gráficos macro
 
 **Gráfico 1 — Evolução de faturamento e pedidos (12 meses)**:
+
 - Recharts ComposedChart
 - Eixo Y esquerdo: faturamento (área)
 - Eixo Y direito: número de pedidos (linha)
 - Drill-down para PRD-041
 
 **Gráfico 2 — Distribuição da carteira (donut)**:
+
 - Mesmo do PRD-046; aqui em versão compacta
 - Click leva à carteira analítica
 
 **Gráfico 3 — Performance por vendedor (bar)**:
+
 - Top 5 vendedores por faturamento no período
 - Drill-down para PRD-041 ou PRD-043
 
 **Gráfico 4 — Curva ABC mini**:
+
 - Pareto compacto com distribuição A/B/C
 - Drill-down PRD-045
 
 ### Comparativo lado a lado
 
 Card "Mês atual vs Mês anterior" com 3 linhas:
+
 - Faturamento: R$ X (Δ +Y%)
 - Pedidos: N (Δ +Y%)
 - Ticket médio: R$ X (Δ +Y%)
@@ -105,6 +111,7 @@ Indicador visual: verde se cresceu, vermelho se caiu, cinza se manteve.
 ### Alertas executivos
 
 Banner no topo (se houver):
+
 - "Churn subiu 30% nos últimos 30 dias" (vermelho)
 - "5 metas críticas para fechar este mês" (amarelo)
 - "Faturamento abaixo de 70% da meta da loja" (vermelho)
@@ -124,13 +131,13 @@ Botão "Personalizar widgets" no header com tooltip "Disponível na Fase 2".
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que descartada |
-|-------------|---------------------|
-| Misturar com PRD-014 | Confunde operacional vs estratégico |
-| Apenas KPIs sem gráficos | Sem tendência, vira fotografia estática |
-| Sem comparativo cross-período | Direção (subindo/caindo) é central |
-| 30+ KPIs | Sobrecarga cognitiva; 10-12 é o ponto |
-| Customização total no MVP | Complexidade alta; defaults inteligentes suficientes |
+| Alternativa                   | Por que descartada                                   |
+| ----------------------------- | ---------------------------------------------------- |
+| Misturar com PRD-014          | Confunde operacional vs estratégico                  |
+| Apenas KPIs sem gráficos      | Sem tendência, vira fotografia estática              |
+| Sem comparativo cross-período | Direção (subindo/caindo) é central                   |
+| 30+ KPIs                      | Sobrecarga cognitiva; 10-12 é o ponto                |
+| Customização total no MVP     | Complexidade alta; defaults inteligentes suficientes |
 
 ---
 
@@ -253,34 +260,34 @@ ENTÃO banner aparece no topo: "Churn subiu 25% nos últimos 30 dias"
 
 ## Fases de Implementação
 
-| Fase | Objetivo |
-|------|----------|
-| 1 | Hook agregador + KPI cards (10 cards básicos) |
-| 2 | 4 gráficos macro |
-| 3 | Comparativo lado a lado + alertas |
-| 4 | Drill-downs + permissões |
-| 5 | Mobile + polish + integrações com PRDs ainda não implementados (stubs) |
+| Fase | Objetivo                                                               |
+| ---- | ---------------------------------------------------------------------- |
+| 1    | Hook agregador + KPI cards (10 cards básicos)                          |
+| 2    | 4 gráficos macro                                                       |
+| 3    | Comparativo lado a lado + alertas                                      |
+| 4    | Drill-downs + permissões                                               |
+| 5    | Mobile + polish + integrações com PRDs ainda não implementados (stubs) |
 
 ---
 
 ## Dependências
 
-| PRD | Status |
-|-----|--------|
-| PRD-042/044/045/046 | 📝 |
-| PRD-041 (Vendas) | ⏳ (stub aceito) |
-| PRD-047 (Comissões) | ⏳ (stub aceito) |
+| PRD                     | Status                |
+| ----------------------- | --------------------- |
+| PRD-042/044/045/046     | 📝                    |
+| PRD-041 (Vendas)        | ⏳ (stub aceito)      |
+| PRD-047 (Comissões)     | ⏳ (stub aceito)      |
 | PRD-049 (Rentabilidade) | ⏳ (placeholder fixo) |
 
 ---
 
 ## Cadeia
 
-| Ordem | PRD |
-|-------|-----|
-| 1-24 | 010-046 |
+| Ordem  | PRD               |
+| ------ | ----------------- |
+| 1-24   | 010-046           |
 | **25** | **PRD-040 ATUAL** |
-| 26+ | 041, 047-053 |
+| 26+    | 041, 047-053      |
 
 ---
 
@@ -294,12 +301,12 @@ ENTÃO banner aparece no topo: "Churn subiu 25% nos últimos 30 dias"
 
 ## Convenções
 
-| Elemento | Convenção |
-|----------|-----------|
-| Página | `ExecutiveCockpitPage` |
-| Componentes | `<ExecutiveKpiCard>` |
-| Hook | `useExecutiveMetrics`, `useExecutiveAlerts` |
-| Pasta | `executive-cockpit/` |
+| Elemento    | Convenção                                   |
+| ----------- | ------------------------------------------- |
+| Página      | `ExecutiveCockpitPage`                      |
+| Componentes | `<ExecutiveKpiCard>`                        |
+| Hook        | `useExecutiveMetrics`, `useExecutiveAlerts` |
+| Pasta       | `executive-cockpit/`                        |
 
 ---
 
@@ -315,17 +322,17 @@ ENTÃO banner aparece no topo: "Churn subiu 25% nos últimos 30 dias"
 
 ## Status
 
-| Campo | Valor |
-|-------|-------|
+| Campo  | Valor       |
+| ------ | ----------- |
 | Status | ⏳ PENDENTE |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 25/05/2026 | v1 | Criação inicial — cockpit executivo agregador de 8+ PRDs analíticos |
+| Data       | Versão | Alteração                                                           |
+| ---------- | ------ | ------------------------------------------------------------------- |
+| 25/05/2026 | v1     | Criação inicial — cockpit executivo agregador de 8+ PRDs analíticos |
 
 ---
 

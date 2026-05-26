@@ -103,8 +103,7 @@ export function SdrTemplatesTab({
     );
   }
 
-  const getCoreText = (template: ISdrTemplate) =>
-    coreDrafts[template.id] ?? template.text;
+  const getCoreText = (template: ISdrTemplate) => coreDrafts[template.id] ?? template.text;
 
   const saveCoreTemplate = async (template: ISdrTemplate) => {
     const nextText = getCoreText(template);
@@ -132,9 +131,7 @@ export function SdrTemplatesTab({
     );
     if (!original) return;
     const next = settings.sdrTemplates.map((t) =>
-      t.id === template.id
-        ? { ...t, text: original.text, variables: original.variables }
-        : t,
+      t.id === template.id ? { ...t, text: original.text, variables: original.variables } : t,
     );
     try {
       await update({ sdrTemplates: next }, "sdr.templates.reset");
@@ -227,18 +224,12 @@ export function SdrTemplatesTab({
 
       <Accordion type="multiple" defaultValue={["greeting"]} className="space-y-3">
         {SDR_TEMPLATE_GROUPS.map((group) => (
-          <AccordionItem
-            key={group.id}
-            value={group.id}
-            className="rounded-md border bg-card"
-          >
+          <AccordionItem key={group.id} value={group.id} className="rounded-md border bg-card">
             <AccordionTrigger className="px-4 py-3 hover:no-underline">
               <span className="flex items-center gap-2 text-sm font-medium">
                 <Icon icon={group.icon} size={16} className="text-primary" />
                 {group.label}
-                <span className="text-xs text-muted-foreground">
-                  · {group.description}
-                </span>
+                <span className="text-xs text-muted-foreground">· {group.description}</span>
               </span>
             </AccordionTrigger>
             <AccordionContent className="space-y-3 px-4 pb-4">
@@ -260,9 +251,7 @@ export function SdrTemplatesTab({
                     saving={saving}
                     readOnly={!canEdit}
                     previewVariables={PREVIEW_VARS_CORE}
-                    onChange={(text) =>
-                      setCoreDrafts((prev) => ({ ...prev, [template.id]: text }))
-                    }
+                    onChange={(text) => setCoreDrafts((prev) => ({ ...prev, [template.id]: text }))}
                     onSave={() => void saveCoreTemplate(template)}
                     onReset={() => void resetCoreTemplate(template)}
                   />
@@ -296,9 +285,7 @@ export function SdrTemplatesTab({
                   saving={saving}
                   readOnly={!canEdit}
                   previewVariables={PREVIEW_VARS_QUOTE}
-                  onChange={(next) =>
-                    setQuoteDrafts((prev) => ({ ...prev, [slot]: next }))
-                  }
+                  onChange={(next) => setQuoteDrafts((prev) => ({ ...prev, [slot]: next }))}
                   onSave={() => void saveQuoteTemplate(slot)}
                   onReset={() => void resetQuoteTemplate(slot)}
                 />

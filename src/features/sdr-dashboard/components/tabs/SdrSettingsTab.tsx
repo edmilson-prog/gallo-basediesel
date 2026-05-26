@@ -66,23 +66,18 @@ function diffSummary(before: IDraftSettings, after: IDraftSettings): string[] {
       `Desconto autorizado: ${before.sdrAutoDiscountPct}% → ${after.sdrAutoDiscountPct}%`,
     );
   }
-  if (
-    before.escalationQueueTimeoutMinutesUrgent !== after.escalationQueueTimeoutMinutesUrgent
-  ) {
+  if (before.escalationQueueTimeoutMinutesUrgent !== after.escalationQueueTimeoutMinutesUrgent) {
     changes.push(
       `Timeout urgent: ${before.escalationQueueTimeoutMinutesUrgent}min → ${after.escalationQueueTimeoutMinutesUrgent}min`,
     );
   }
-  if (
-    before.escalationQueueTimeoutMinutesNormal !== after.escalationQueueTimeoutMinutesNormal
-  ) {
+  if (before.escalationQueueTimeoutMinutesNormal !== after.escalationQueueTimeoutMinutesNormal) {
     changes.push(
       `Timeout normal: ${before.escalationQueueTimeoutMinutesNormal}min → ${after.escalationQueueTimeoutMinutesNormal}min`,
     );
   }
   if (
-    before.escalationUrgentBroadcastDelaySeconds !==
-    after.escalationUrgentBroadcastDelaySeconds
+    before.escalationUrgentBroadcastDelaySeconds !== after.escalationUrgentBroadcastDelaySeconds
   ) {
     changes.push(
       `Broadcast urgent após: ${before.escalationUrgentBroadcastDelaySeconds}s → ${after.escalationUrgentBroadcastDelaySeconds}s`,
@@ -242,11 +237,7 @@ export function SdrSettingsTab({
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
-            <Icon
-              icon="mdi:account-arrow-right-outline"
-              size={18}
-              className="text-primary"
-            />
+            <Icon icon="mdi:account-arrow-right-outline" size={18} className="text-primary" />
             Escalonamento (PRD-023)
           </CardTitle>
         </CardHeader>
@@ -354,7 +345,9 @@ export function SdrSettingsTab({
             className="gap-2 shadow-lg"
           >
             <Icon icon="mdi:content-save-outline" size={16} />
-            {dirty ? `Salvar (${changes.length}) alteraç${changes.length === 1 ? "ão" : "ões"}` : "Salvo"}
+            {dirty
+              ? `Salvar (${changes.length}) alteraç${changes.length === 1 ? "ão" : "ões"}`
+              : "Salvo"}
           </Button>
         </div>
       )}
@@ -370,9 +363,7 @@ export function SdrSettingsTab({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void persist()}>
-              Desligar SDR
-            </AlertDialogAction>
+            <AlertDialogAction onClick={() => void persist()}>Desligar SDR</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

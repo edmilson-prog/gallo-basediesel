@@ -2,19 +2,19 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _A definir após criação no Lovable_ |
-| **Objetivo** | Hub de insights automáticos detectando padrões cross-PRDs (queda de margem, churn, vendedor em risco, produto em queda, oportunidades) via heurísticas no MVP — preparado para LLM real na Fase 2 — com priorização, drill-down e dismiss |
-| **Tipo** | Feature |
-| **Complexidade** | Alta |
-| **Total de Fases** | 5 |
-| **Prioridade** | Alta |
-| **Épico** | Bloco 4b — Gestão B (Onda 2) |
-| **PRDs Relacionados** | PRD-014 (Painel), PRD-040 (Cockpit), PRD-041 (Vendas), PRD-042 (Metas), PRD-044 (Positivação), PRD-045 (ABC), PRD-046 (Carteira), PRD-049 (Rentabilidade), PRD-050 (Estoque) |
-| **Implementação** | 🔵 Claude Code CLI |
-| **Padrão de código** | Feature-based; código em `src/features/insights/` |
+| Campo                 | Valor                                                                                                                                                                                                                                     |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                                                                  |
+| **Repositório**       | _A definir após criação no Lovable_                                                                                                                                                                                                       |
+| **Objetivo**          | Hub de insights automáticos detectando padrões cross-PRDs (queda de margem, churn, vendedor em risco, produto em queda, oportunidades) via heurísticas no MVP — preparado para LLM real na Fase 2 — com priorização, drill-down e dismiss |
+| **Tipo**              | Feature                                                                                                                                                                                                                                   |
+| **Complexidade**      | Alta                                                                                                                                                                                                                                      |
+| **Total de Fases**    | 5                                                                                                                                                                                                                                         |
+| **Prioridade**        | Alta                                                                                                                                                                                                                                      |
+| **Épico**             | Bloco 4b — Gestão B (Onda 2)                                                                                                                                                                                                              |
+| **PRDs Relacionados** | PRD-014 (Painel), PRD-040 (Cockpit), PRD-041 (Vendas), PRD-042 (Metas), PRD-044 (Positivação), PRD-045 (ABC), PRD-046 (Carteira), PRD-049 (Rentabilidade), PRD-050 (Estoque)                                                              |
+| **Implementação**     | 🔵 Claude Code CLI                                                                                                                                                                                                                        |
+| **Padrão de código**  | Feature-based; código em `src/features/insights/`                                                                                                                                                                                         |
 
 ### Critérios de Complexidade
 
@@ -39,6 +39,7 @@ Este PRD entrega: hub de insights automáticos com heurísticas que detectam pad
 Padrão detectado automaticamente que merece atenção. Não é apenas KPI — é **inferência** com contexto e ação sugerida.
 
 Exemplos:
+
 - "**Margem de Filtros caiu 12% no último trimestre** — investigue precificação ou custos de fornecedor"
 - "**Carlos teve queda de 30% em positivação** — pode estar precisando de apoio"
 - "**Cliente 'Frota Express' não compra há 45 dias** — considere ação proativa"
@@ -92,7 +93,7 @@ Função `detectInsights(context)` em `src/features/insights/engine/` roda diari
 ```typescript
 function detectInsights(context: IInsightsContext): IInsight[] {
   const insights: IInsight[] = [];
-  
+
   // Heurística 1: queda de margem
   for (const category of categories) {
     const margemAtual = getCategoryMargin(category, 'thisMonth');
@@ -109,7 +110,7 @@ function detectInsights(context: IInsightsContext): IInsight[] {
       });
     }
   }
-  
+
   // Heurística 2: churn spike
   // Heurística 3: vendedor em risco (queda em múltiplas métricas)
   // ...
@@ -118,20 +119,20 @@ function detectInsights(context: IInsightsContext): IInsight[] {
 
 ### 10+ Heurísticas MVP
 
-| # | Tipo | Critério | Prioridade |
-|---|------|----------|-----------|
-| 1 | margin_drop | Margem de categoria caiu > 15% vs mês anterior | crítico |
-| 2 | churn_spike | Churn subiu > 25% vs período anterior | crítico |
-| 3 | seller_at_risk | Vendedor com queda em 3+ métricas simultâneas | médio |
-| 4 | customer_at_risk | Cliente A/B sem compra há > 75% do dormantDays | médio |
-| 5 | product_decline | Produto X com queda > 30% em vendas | médio |
-| 6 | product_excess | Produto Z com cobertura > 180 dias E capital > R$ 5k | médio |
-| 7 | sdr_conversion_drop | Taxa de aceite SDR caiu > 20% | crítico |
-| 8 | meta_at_risk | Meta com < 50% e < 7 dias restantes | crítico |
-| 9 | top_seller_overload | Top vendedor com TMR subindo (sobrecarga) | médio |
-| 10 | opportunity_segment | Categoria/segmento crescendo > 30% — oportunidade | oportunidade |
-| 11 | new_customer_winning | Cliente novo entrou direto na classe A (PRD-045) | oportunidade |
-| 12 | recovery_success | Vendedor recuperou múltiplos dormentes | oportunidade |
+| #   | Tipo                 | Critério                                             | Prioridade   |
+| --- | -------------------- | ---------------------------------------------------- | ------------ |
+| 1   | margin_drop          | Margem de categoria caiu > 15% vs mês anterior       | crítico      |
+| 2   | churn_spike          | Churn subiu > 25% vs período anterior                | crítico      |
+| 3   | seller_at_risk       | Vendedor com queda em 3+ métricas simultâneas        | médio        |
+| 4   | customer_at_risk     | Cliente A/B sem compra há > 75% do dormantDays       | médio        |
+| 5   | product_decline      | Produto X com queda > 30% em vendas                  | médio        |
+| 6   | product_excess       | Produto Z com cobertura > 180 dias E capital > R$ 5k | médio        |
+| 7   | sdr_conversion_drop  | Taxa de aceite SDR caiu > 20%                        | crítico      |
+| 8   | meta_at_risk         | Meta com < 50% e < 7 dias restantes                  | crítico      |
+| 9   | top_seller_overload  | Top vendedor com TMR subindo (sobrecarga)            | médio        |
+| 10  | opportunity_segment  | Categoria/segmento crescendo > 30% — oportunidade    | oportunidade |
+| 11  | new_customer_winning | Cliente novo entrou direto na classe A (PRD-045)     | oportunidade |
+| 12  | recovery_success     | Vendedor recuperou múltiplos dormentes               | oportunidade |
 
 Threshold de cada uma configurável em settings.
 
@@ -140,12 +141,14 @@ Threshold de cada uma configurável em settings.
 **Header**: filtros (categoria, prioridade, período de detecção, status).
 
 **KPIs no topo:**
+
 - Total de insights ativos
 - Críticos (vermelho)
 - Médios (amarelo)
 - Oportunidades (verde)
 
 **Lista priorizada** de cards de insight:
+
 - Título + descrição
 - Badge de prioridade (cor)
 - Badge de categoria
@@ -167,6 +170,7 @@ Banner no topo do cockpit com contagem de críticos. Click leva ao hub.
 ### Dismiss e persistência
 
 Owner/Gestor pode dispensar insights que não são acionáveis:
+
 - Modal pede motivo opcional
 - `dismissedBy`, `dismissedAt`, `dismissReason` preenchidos
 - Insight some da lista ativa mas fica em "Dispensados"
@@ -175,6 +179,7 @@ Owner/Gestor pode dispensar insights que não são acionáveis:
 ### Geração diária
 
 Hook `useInsightsDailyDetection()` (mock no MVP):
+
 - Roda 1x ao dia (timer no front simulado)
 - Executa `detectInsights(context)` com dados atuais
 - Cria novos `IInsight` para padrões detectados
@@ -192,20 +197,21 @@ Na Fase 2: Edge Function Supabase com cron real + LLM substitui heurísticas.
 ### Configuração `/app/configuracoes/insights`
 
 Sub-rota PRD-019 (Owner):
+
 - Toggle ativo (`IPlatformSettings.insightsEnabled`)
 - Thresholds das heurísticas (sliders)
 - Banner: "Detecção via IA real (LLM) disponível na Fase 2 — atualmente baseada em heurísticas configuráveis"
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que descartada |
-|-------------|---------------------|
-| LLM real no MVP | Custo + complexidade; heurísticas cobrem casos óbvios |
-| Sem dismiss | Owner perde controle; lista vira ruído |
-| Sem priorização | Tudo igual visualmente — não ajuda |
-| Insights espalhados (sem hub) | Owner não consolida |
-| Notificações automáticas a cada novo insight | Spam; lista no hub é suficiente |
-| Sem contexto expansível | Insight sem dados que sustentam = falta confiança |
+| Alternativa                                  | Por que descartada                                    |
+| -------------------------------------------- | ----------------------------------------------------- |
+| LLM real no MVP                              | Custo + complexidade; heurísticas cobrem casos óbvios |
+| Sem dismiss                                  | Owner perde controle; lista vira ruído                |
+| Sem priorização                              | Tudo igual visualmente — não ajuda                    |
+| Insights espalhados (sem hub)                | Owner não consolida                                   |
+| Notificações automáticas a cada novo insight | Spam; lista no hub é suficiente                       |
+| Sem contexto expansível                      | Insight sem dados que sustentam = falta confiança     |
 
 ---
 
@@ -349,31 +355,31 @@ ENTÃO banner topo: "3 insights críticos requerem atenção"
 
 ## Fases de Implementação
 
-| Fase | Objetivo |
-|------|----------|
-| 1 | Modelo + engine com 5 heurísticas básicas |
-| 2 | Hub com lista + dismiss + filtros |
-| 3 | Demais heurísticas (até 10+) + contexto expansível |
-| 4 | Integrações PRD-014 + PRD-040 + configuração |
-| 5 | Polish + mobile + audit + documentação |
+| Fase | Objetivo                                           |
+| ---- | -------------------------------------------------- |
+| 1    | Modelo + engine com 5 heurísticas básicas          |
+| 2    | Hub com lista + dismiss + filtros                  |
+| 3    | Demais heurísticas (até 10+) + contexto expansível |
+| 4    | Integrações PRD-014 + PRD-040 + configuração       |
+| 5    | Polish + mobile + audit + documentação             |
 
 ---
 
 ## Dependências
 
-| PRD | Status |
-|-----|--------|
-| Múltiplos PRDs analíticos (consome) | 📝 |
-| PRD-040 (banner) | 📝 |
-| PRD-014 (widget) | 📝 |
+| PRD                                 | Status |
+| ----------------------------------- | ------ |
+| Múltiplos PRDs analíticos (consome) | 📝     |
+| PRD-040 (banner)                    | 📝     |
+| PRD-014 (widget)                    | 📝     |
 
 ---
 
 ## Cadeia
 
-| Ordem | PRD |
-|-------|-----|
-| 1-32 | 010-052 |
+| Ordem  | PRD               |
+| ------ | ----------------- |
+| 1-32   | 010-052           |
 | **33** | **PRD-053 ATUAL** |
 
 > **Marco:** Bloco 4 (Gestão A + B) completo — **Onda 2 do MVP fecha aqui**.
@@ -390,12 +396,12 @@ ENTÃO banner topo: "3 insights críticos requerem atenção"
 
 ## Convenções
 
-| Elemento | Convenção |
-|----------|-----------|
-| Página | `InsightsHubPage`, `InsightsConfigPage` |
-| Engine | `detectInsights` |
+| Elemento    | Convenção                                   |
+| ----------- | ------------------------------------------- |
+| Página      | `InsightsHubPage`, `InsightsConfigPage`     |
+| Engine      | `detectInsights`                            |
 | Componentes | `<InsightCard>`, `<CriticalInsightsWidget>` |
-| Pasta | `insights/` |
+| Pasta       | `insights/`                                 |
 
 ---
 
@@ -423,17 +429,17 @@ ENTÃO banner topo: "3 insights críticos requerem atenção"
 
 ## Status
 
-| Campo | Valor |
-|-------|-------|
+| Campo  | Valor       |
+| ------ | ----------- |
 | Status | ⏳ PENDENTE |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 25/05/2026 | v1 | Criação inicial — hub de insights com 10+ heurísticas, priorização, dismiss, integrações cross-painel |
+| Data       | Versão | Alteração                                                                                             |
+| ---------- | ------ | ----------------------------------------------------------------------------------------------------- |
+| 25/05/2026 | v1     | Criação inicial — hub de insights com 10+ heurísticas, priorização, dismiss, integrações cross-painel |
 
 ---
 

@@ -19,13 +19,7 @@ function defaultFormat(value: number): string {
   return value.toLocaleString("pt-BR");
 }
 
-function TrendBadge({
-  changePct,
-  lowerIsBetter,
-}: {
-  changePct: number;
-  lowerIsBetter: boolean;
-}) {
+function TrendBadge({ changePct, lowerIsBetter }: { changePct: number; lowerIsBetter: boolean }) {
   if (changePct === 0) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-muted/60 px-2 py-0.5 text-xs text-muted-foreground">

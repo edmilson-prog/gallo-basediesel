@@ -2,19 +2,19 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _A definir após criação no Lovable_ |
-| **Objetivo** | Construir análise histórica do atendimento — métricas evolutivas de TMA/TMR, volume por canal, taxa de resolução, motivos de escalação, conversão pós-atendimento — diferenciado do PRD-014 (operacional tempo real) |
-| **Tipo** | Feature |
-| **Complexidade** | Alta |
-| **Total de Fases** | 5 |
-| **Prioridade** | Alta |
-| **Épico** | Bloco 4b — Gestão B (Onda 2) |
-| **PRDs Relacionados** | PRD-010 (Inbox), PRD-011 (Conversa), PRD-014 (Painel Gestor — operacional), PRD-023 (Escalonamento SDR), PRD-024 (Painel SDR), PRD-040 (Cockpit) |
-| **Implementação** | 🔵 Claude Code CLI |
-| **Padrão de código** | Feature-based; código em `src/features/customer-service-analytics/` |
+| Campo                 | Valor                                                                                                                                                                                                                |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                                             |
+| **Repositório**       | _A definir após criação no Lovable_                                                                                                                                                                                  |
+| **Objetivo**          | Construir análise histórica do atendimento — métricas evolutivas de TMA/TMR, volume por canal, taxa de resolução, motivos de escalação, conversão pós-atendimento — diferenciado do PRD-014 (operacional tempo real) |
+| **Tipo**              | Feature                                                                                                                                                                                                              |
+| **Complexidade**      | Alta                                                                                                                                                                                                                 |
+| **Total de Fases**    | 5                                                                                                                                                                                                                    |
+| **Prioridade**        | Alta                                                                                                                                                                                                                 |
+| **Épico**             | Bloco 4b — Gestão B (Onda 2)                                                                                                                                                                                         |
+| **PRDs Relacionados** | PRD-010 (Inbox), PRD-011 (Conversa), PRD-014 (Painel Gestor — operacional), PRD-023 (Escalonamento SDR), PRD-024 (Painel SDR), PRD-040 (Cockpit)                                                                     |
+| **Implementação**     | 🔵 Claude Code CLI                                                                                                                                                                                                   |
+| **Padrão de código**  | Feature-based; código em `src/features/customer-service-analytics/`                                                                                                                                                  |
 
 ### Critérios de Complexidade
 
@@ -34,11 +34,11 @@ Este PRD entrega: dashboard histórico com gráficos evolutivos, drill-down comp
 
 ## Diferenciação clara
 
-| Painel | Pergunta | Tempo |
-|--------|----------|-------|
-| **PRD-014** (Painel Gestor) | Como vai o atendimento **agora**? | Tempo real |
-| **PRD-024** (Painel SDR) | Como vai o SDR especificamente? | Histórico + tempo real |
-| **PRD-051** (este) — Atendimento Histórico | Como vai o atendimento ao longo do tempo? | Histórico estratégico |
+| Painel                                     | Pergunta                                  | Tempo                  |
+| ------------------------------------------ | ----------------------------------------- | ---------------------- |
+| **PRD-014** (Painel Gestor)                | Como vai o atendimento **agora**?         | Tempo real             |
+| **PRD-024** (Painel SDR)                   | Como vai o SDR especificamente?           | Histórico + tempo real |
+| **PRD-051** (este) — Atendimento Histórico | Como vai o atendimento ao longo do tempo? | Histórico estratégico  |
 
 ---
 
@@ -60,6 +60,7 @@ Header: filtros (período mês/trim/ano/personalizado, loja Owner, vendedor).
 ### Aba 1 — Visão Geral
 
 KPIs:
+
 - TMA médio (Tempo Médio de Atendimento — desde abertura até resolução)
 - TMR médio (Tempo Médio de Resposta — primeira resposta humana)
 - Conversas totais no período
@@ -80,6 +81,7 @@ Card "Comparativo": atual vs período anterior com Δ% (positivos = melhoria par
 Bar chart: volume de conversas por canal (WhatsApp / Telefone / SDR / Outros).
 
 Tabela com colunas:
+
 - Canal
 - Volume
 - TMA médio
@@ -94,6 +96,7 @@ Identifica canais de alta performance vs problemáticos.
 ### Aba 3 — Por Vendedor
 
 Tabela comparativa:
+
 - Avatar + nome
 - Conversas atendidas
 - TMA / TMR médios
@@ -104,6 +107,7 @@ Tabela comparativa:
 Indicador visual de quem está acima/abaixo da média da equipe.
 
 Drill-down individual `/app/atendimento-analise/:sellerId`:
+
 - KPIs do vendedor
 - Evolução de TMA/TMR no tempo
 - Comparativo com média da loja
@@ -115,6 +119,7 @@ Drill-down individual `/app/atendimento-analise/:sellerId`:
 Consome PRD-023 (escalonamentos).
 
 KPIs:
+
 - Total escalações no período
 - Por motivo (customer_requested / negotiation_detected / sdr_failed / complexity / out_of_scope)
 
@@ -154,12 +159,12 @@ ICustomerServiceMetrics {
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que descartada |
-|-------------|---------------------|
-| Misturar com PRD-014 | Tempo real ≠ análise histórica |
-| Sem aba escalações | Motivos SDR são insight crítico para melhoria |
-| Apenas KPIs sem evolução | Tendência é o core |
-| Vendedor vê dados de colegas | Compare-and-shame não é construtivo aqui |
+| Alternativa                  | Por que descartada                            |
+| ---------------------------- | --------------------------------------------- |
+| Misturar com PRD-014         | Tempo real ≠ análise histórica                |
+| Sem aba escalações           | Motivos SDR são insight crítico para melhoria |
+| Apenas KPIs sem evolução     | Tendência é o core                            |
+| Vendedor vê dados de colegas | Compare-and-shame não é construtivo aqui      |
 
 ---
 
@@ -275,35 +280,35 @@ ENTÃO bloqueado
 
 ## Fases de Implementação
 
-| Fase | Objetivo |
-|------|----------|
-| 1 | Engine + hook |
-| 2 | Aba Visão Geral + Por Canal |
-| 3 | Aba Por Vendedor + drill-down |
-| 4 | Aba Escalações + integração PRD-024 |
-| 5 | Polish + mobile |
+| Fase | Objetivo                            |
+| ---- | ----------------------------------- |
+| 1    | Engine + hook                       |
+| 2    | Aba Visão Geral + Por Canal         |
+| 3    | Aba Por Vendedor + drill-down       |
+| 4    | Aba Escalações + integração PRD-024 |
+| 5    | Polish + mobile                     |
 
 ---
 
 ## Dependências
 
-| PRD | Status |
-|-----|--------|
-| PRD-010/011 (conversas) | 📝 |
-| PRD-023 (escalonamentos) | 📝 |
-| PRD-024 (drill-down) | 📝 |
-| PRD-032 (conversão) | 📝 |
-| PRD-040 (consome) | 📝 |
+| PRD                      | Status |
+| ------------------------ | ------ |
+| PRD-010/011 (conversas)  | 📝     |
+| PRD-023 (escalonamentos) | 📝     |
+| PRD-024 (drill-down)     | 📝     |
+| PRD-032 (conversão)      | 📝     |
+| PRD-040 (consome)        | 📝     |
 
 ---
 
 ## Cadeia
 
-| Ordem | PRD |
-|-------|-----|
-| 1-30 | 010-050 |
+| Ordem  | PRD               |
+| ------ | ----------------- |
+| 1-30   | 010-050           |
 | **31** | **PRD-051 ATUAL** |
-| 32+ | 052, 053 |
+| 32+    | 052, 053          |
 
 ---
 
@@ -316,11 +321,11 @@ ENTÃO bloqueado
 
 ## Convenções
 
-| Elemento | Convenção |
-|----------|-----------|
-| Página | `CustomerServiceAnalyticsPage` |
-| Hook | `useCustomerServiceMetrics` |
-| Pasta | `customer-service-analytics/` |
+| Elemento | Convenção                      |
+| -------- | ------------------------------ |
+| Página   | `CustomerServiceAnalyticsPage` |
+| Hook     | `useCustomerServiceMetrics`    |
+| Pasta    | `customer-service-analytics/`  |
 
 ---
 
@@ -336,17 +341,17 @@ ENTÃO bloqueado
 
 ## Status
 
-| Campo | Valor |
-|-------|-------|
+| Campo  | Valor       |
+| ------ | ----------- |
 | Status | ⏳ PENDENTE |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 25/05/2026 | v1 | Criação inicial — análise histórica do atendimento com 4 abas |
+| Data       | Versão | Alteração                                                     |
+| ---------- | ------ | ------------------------------------------------------------- |
+| 25/05/2026 | v1     | Criação inicial — análise histórica do atendimento com 4 abas |
 
 ---
 

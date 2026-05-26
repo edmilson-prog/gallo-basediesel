@@ -69,6 +69,7 @@ import { Route as AppConfiguracoesPerfilRouteImport } from './routes/app.configu
 import { Route as AppConfiguracoesPapeisRouteImport } from './routes/app.configuracoes.papeis'
 import { Route as AppConfiguracoesLojasRouteImport } from './routes/app.configuracoes.lojas'
 import { Route as AppConfiguracoesGamificacaoRouteImport } from './routes/app.configuracoes.gamificacao'
+import { Route as AppConfiguracoesFreteRouteImport } from './routes/app.configuracoes.frete'
 import { Route as AppConfiguracoesDivisoesRouteImport } from './routes/app.configuracoes.divisoes'
 import { Route as AppConfiguracoesDistribuicaoRouteImport } from './routes/app.configuracoes.distribuicao'
 import { Route as AppConfiguracoesAuditoriaRouteImport } from './routes/app.configuracoes.auditoria'
@@ -392,6 +393,11 @@ const AppConfiguracoesGamificacaoRoute =
     path: '/configuracoes/gamificacao',
     getParentRoute: () => AppRoute,
   } as any)
+const AppConfiguracoesFreteRoute = AppConfiguracoesFreteRouteImport.update({
+  id: '/configuracoes/frete',
+  path: '/configuracoes/frete',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppConfiguracoesDivisoesRoute =
   AppConfiguracoesDivisoesRouteImport.update({
     id: '/configuracoes/divisoes',
@@ -530,6 +536,7 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
   '/app/configuracoes/distribuicao': typeof AppConfiguracoesDistribuicaoRoute
   '/app/configuracoes/divisoes': typeof AppConfiguracoesDivisoesRoute
+  '/app/configuracoes/frete': typeof AppConfiguracoesFreteRoute
   '/app/configuracoes/gamificacao': typeof AppConfiguracoesGamificacaoRoute
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
@@ -602,6 +609,7 @@ export interface FileRoutesByTo {
   '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
   '/app/configuracoes/distribuicao': typeof AppConfiguracoesDistribuicaoRoute
   '/app/configuracoes/divisoes': typeof AppConfiguracoesDivisoesRoute
+  '/app/configuracoes/frete': typeof AppConfiguracoesFreteRoute
   '/app/configuracoes/gamificacao': typeof AppConfiguracoesGamificacaoRoute
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
@@ -683,6 +691,7 @@ export interface FileRoutesById {
   '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
   '/app/configuracoes/distribuicao': typeof AppConfiguracoesDistribuicaoRoute
   '/app/configuracoes/divisoes': typeof AppConfiguracoesDivisoesRoute
+  '/app/configuracoes/frete': typeof AppConfiguracoesFreteRoute
   '/app/configuracoes/gamificacao': typeof AppConfiguracoesGamificacaoRoute
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
@@ -765,6 +774,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/auditoria'
     | '/app/configuracoes/distribuicao'
     | '/app/configuracoes/divisoes'
+    | '/app/configuracoes/frete'
     | '/app/configuracoes/gamificacao'
     | '/app/configuracoes/lojas'
     | '/app/configuracoes/papeis'
@@ -837,6 +847,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/auditoria'
     | '/app/configuracoes/distribuicao'
     | '/app/configuracoes/divisoes'
+    | '/app/configuracoes/frete'
     | '/app/configuracoes/gamificacao'
     | '/app/configuracoes/lojas'
     | '/app/configuracoes/papeis'
@@ -917,6 +928,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/auditoria'
     | '/app/configuracoes/distribuicao'
     | '/app/configuracoes/divisoes'
+    | '/app/configuracoes/frete'
     | '/app/configuracoes/gamificacao'
     | '/app/configuracoes/lojas'
     | '/app/configuracoes/papeis'
@@ -1397,6 +1409,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesGamificacaoRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/configuracoes/frete': {
+      id: '/app/configuracoes/frete'
+      path: '/configuracoes/frete'
+      fullPath: '/app/configuracoes/frete'
+      preLoaderRoute: typeof AppConfiguracoesFreteRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/configuracoes/divisoes': {
       id: '/app/configuracoes/divisoes'
       path: '/configuracoes/divisoes'
@@ -1655,6 +1674,7 @@ interface AppRouteChildren {
   AppConfiguracoesAuditoriaRoute: typeof AppConfiguracoesAuditoriaRoute
   AppConfiguracoesDistribuicaoRoute: typeof AppConfiguracoesDistribuicaoRoute
   AppConfiguracoesDivisoesRoute: typeof AppConfiguracoesDivisoesRoute
+  AppConfiguracoesFreteRoute: typeof AppConfiguracoesFreteRoute
   AppConfiguracoesGamificacaoRoute: typeof AppConfiguracoesGamificacaoRoute
   AppConfiguracoesLojasRoute: typeof AppConfiguracoesLojasRoute
   AppConfiguracoesPapeisRoute: typeof AppConfiguracoesPapeisRoute
@@ -1701,6 +1721,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesAuditoriaRoute: AppConfiguracoesAuditoriaRoute,
   AppConfiguracoesDistribuicaoRoute: AppConfiguracoesDistribuicaoRoute,
   AppConfiguracoesDivisoesRoute: AppConfiguracoesDivisoesRoute,
+  AppConfiguracoesFreteRoute: AppConfiguracoesFreteRoute,
   AppConfiguracoesGamificacaoRoute: AppConfiguracoesGamificacaoRoute,
   AppConfiguracoesLojasRoute: AppConfiguracoesLojasRoute,
   AppConfiguracoesPapeisRoute: AppConfiguracoesPapeisRoute,

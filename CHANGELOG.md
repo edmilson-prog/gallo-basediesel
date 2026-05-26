@@ -4,25 +4,122 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.24.0] — Logistics · 2026-05-26
+
+Fechamento do Bloco 3 (Comercial Operacional) com duas entregas
+encadeadas: Pedido (PRD-032) materializa o ciclo pós-orçamento e
+Frete (PRD-033) centraliza o cálculo de envio que vinha duplicado
+em três features.
+
+**Pedido (PRD-032).** Lista paginada em `/app/pedidos` com filtros
+de status (pagamento e fulfillment), origem, vendedor, cliente,
+período e faixa de valor, mais URL sync e indicadores visuais
+contextuais. Ficha em `/app/pedidos/:id` com seções de cliente,
+items (snapshots imutáveis), pagamento, entrega, histórico e
+referência cruzada ao orçamento de origem. Conversão automática
+quando um orçamento `aceito` vira `IOrder`, preservando `quoteId`
+para auditoria. Integração com `IVehicle`: items aplicados em
+veículos registram o serviço no histórico (PRD-016) e atualizam
+quilometragem. Geradores produzem pedidos com mix realista de
+status de pagamento e fulfillment.
+
+**Frete (PRD-033).** Função pura `calculateShipping()` em
+`src/features/shipping/api/` substitui `calculateShippingPlaceholder`
+do PRD-022 e os stubs implícitos nos PRDs 031 e 032. Três estratégias
+configuráveis (`fixed_by_region` default, `to_negotiate_default`,
+`preliminary_by_weight`) com match por especificidade
+(cidade → estado → múltiplos estados → nacional) e fallback
+configurável quando nenhuma regra casa. Painel admin
+`/app/configuracoes/frete` (Owner edita, Gestor visualiza) com
+quatro seções: seleção de estratégia, CRUD de regras em tabela
+editável com modal, simulador interativo para validar antes de
+salvar e card placeholder informando sobre a integração com
+transportadoras na Fase 2. Configurações centralizadas em
+`IPlatformSettings.shipping` substituem `sdrShippingPlaceholder`,
+o card "Frete placeholder" da página de SDR foi trocado por um
+link para a nova rota e o `NewQuotePage` ganhou o botão "Calcular"
+que usa o endereço do cliente para pré-preencher o campo de frete.
+
+### Added
+
+- **Feature `shipping`** (`src/features/shipping/`):
+  - `api/calculate.ts`: função pura `calculateShipping(input)` com
+    match por especificidade, sobretaxa por peso opcional e três
+    razões de fallback (`missing_address`, `no_active_rules`,
+    `no_match_negotiate`/`fixed`).
+  - `config/defaults.ts`: `DEFAULT_SHIPPING_CONFIG` com 3 regras
+    iniciais (Frederico Westphalen R$ 50 / RS R$ 80 / SC + PR R$ 120)
+    e fallback "a combinar".
+  - `pages/ShippingConfigPage.tsx`: painel admin completo com 4
+    seções (estratégia, regras, simulador, placeholder Fase 2),
+    modal de edição/criação de regra, validações no save (nome
+    único, valor não-negativo, escopo coerente) e audit log
+    `settings.shipping.update`.
+- **Tipos shipping** (`src/shared/types/shipping.ts`):
+  `IShippingConfig`, `IShippingRate`, `IShippingResult`,
+  `ShippingStrategy`, `ShippingScope`, `ShippingDefaultAction`,
+  `ShippingResultReason`.
+- **Rota** `/app/configuracoes/frete` protegida por
+  `requireAuth(["Owner","Gestor"], settings:view)` — Vendedor/SDR
+  caem no `Forbidden`.
+- **Item "Frete"** no grupo Operação do `SettingsLayout` com ícone
+  `mdi:truck-fast-outline`.
+- **Botão "Calcular"** no campo de frete do `NewQuotePage` que chama
+  `calculateShipping` com endereço do cliente e exibe toast com a
+  regra aplicada (ou "a combinar" quando não há match).
+- **Feature `orders`** (`src/features/orders/` — PRD-032): páginas
+  `OrdersListPage`, `OrderDetailPage`, rotas dedicadas, transições
+  de status controladas, conversão a partir de orçamento aceito,
+  integração com veículos (histórico de serviço + atualização de
+  quilometragem) e gerador de pedidos com mix realista.
+
+### Changed
+
+- `IPlatformSettings.sdrShippingPlaceholder` foi substituído por
+  `IPlatformSettings.shipping: IShippingConfig`. A nova estrutura
+  é mais rica (estratégia + regras + fallback) e única para todos
+  os consumidores.
+- `generateSdrQuote` (PRD-022) agora chama `calculateShipping` em
+  vez do antigo `calculateShippingPlaceholder`, mantendo a mesma
+  semântica de "a combinar" no template.
+- `SdrQuoteSettingsPage`: card "Frete placeholder" substituído por
+  link "Abrir configurações de frete" apontando para o painel
+  centralizado.
+- Templates do SDR (`render.ts`) passam a consumir `IShippingResult`
+  diretamente — `value` e `isToNegotiate` são os campos usados.
+- `seedStore` carrega `shipping: DEFAULT_SHIPPING_CONFIG` no lugar
+  do antigo `sdrShippingPlaceholder` hardcoded.
+
+### Removed
+
+- Tipos descontinuados: `ISdrShippingPlaceholderSettings`,
+  `ISdrShippingResult`, `SdrOtherStatesAction` (substituídos pelos
+  tipos `IShippingConfig` / `IShippingRate` / `IShippingResult`).
+- `src/features/sdr-quote/engine/shipping.ts` (placeholder que tinha
+  a função `calculateShippingPlaceholder`).
+- Exports removidos do barrel `@/features/sdr-quote`:
+  `calculateShippingPlaceholder`, `calculateShippingPlaceholderFor`.
+
 ## [0.23.0] — Quote · 2026-05-26
 
 Orçamento (PRD-031) — coração do ciclo comercial. Rota `/app/orcamentos`
 substitui o placeholder e entrega listagem paginada (50/pg) com 8
 filtros (status, origem, vendedor, cliente, período de criação,
 faixa de valor, validade, loja) + busca textual em número/cliente/OEM
-+ URL sync completo, distinção visual de quatro origens (SDR/Manual/
-Portal/E-commerce) e indicador de validade tricolor. Criação manual
-em `/app/orcamentos/novo` com 5 seções estruturadas: cliente
-(autocomplete restrito à carteira para Vendedor), items (modal de
-busca no catálogo com pré-filtro por veículo do cliente + edição
-inline de quantidade/preço/desconto), desconto e frete (com
-justificativa obrigatória quando passa o limite), condições de
-pagamento (método estruturado + prazo + validade) e notas internas.
-Ficha `/app/orcamentos/:id` em 6 seções com header rico (badges,
-ações contextuais por status, banner SDR e banner de aprovação),
-cliente com link para a ficha, items com snapshots imutáveis,
-valores com % de desconto explícito, condições e histórico
-cronológico via audit log filtrado.
+
+- URL sync completo, distinção visual de quatro origens (SDR/Manual/
+  Portal/E-commerce) e indicador de validade tricolor. Criação manual
+  em `/app/orcamentos/novo` com 5 seções estruturadas: cliente
+  (autocomplete restrito à carteira para Vendedor), items (modal de
+  busca no catálogo com pré-filtro por veículo do cliente + edição
+  inline de quantidade/preço/desconto), desconto e frete (com
+  justificativa obrigatória quando passa o limite), condições de
+  pagamento (método estruturado + prazo + validade) e notas internas.
+  Ficha `/app/orcamentos/:id` em 6 seções com header rico (badges,
+  ações contextuais por status, banner SDR e banner de aprovação),
+  cliente com link para a ficha, items com snapshots imutáveis,
+  valores com % de desconto explícito, condições e histórico
+  cronológico via audit log filtrado.
 
 Lifecycle completo de 6 estados (rascunho → enviado → aceito/recusado
 → convertido; expirado em qualquer ponto) com transições controladas,
@@ -141,8 +238,8 @@ veículo), PRD-031 (orçamento) e Bloco 5 (e-commerce).
   categoria com cor temática, fallback automático quando `imageUrl`
   ausente), `<StockBadge>` (variant default/compact, 3 cores).
 - **Utilitários**: `PART_CATEGORY_DESCRIPTORS` com 10 categorias
-  + ícones Iconify + tons + subcategorias; `activeFilterCount`,
-  `toListParams`, `EMPTY_FILTERS`.
+  - ícones Iconify + tons + subcategorias; `activeFilterCount`,
+    `toListParams`, `EMPTY_FILTERS`.
 - **i18n**: `pt-BR.ts` cobrindo lista, filtros, ficha, form e toasts
   com português correto e acentos UTF-8.
 
@@ -279,7 +376,7 @@ o painel SDR (PRD-024).
 - **Engine `escalateToHuman()`** (`features/sdr-escalation/engine/escalate.ts`)
   — função pura que detecta modo (`urgent`/`normal`/`standard`) a
   partir do motivo, chama `chooseHumanSeller()` e devolve o registro
-  + seleção sem side effects.
+  - seleção sem side effects.
 - **Engine `chooseHumanSeller()`** — reusa a lógica do PRD-013 com
   3 adaptações: carteira sempre vence (mesmo offline em modo
   normal/standard), especialidade casa contra a marca identificada

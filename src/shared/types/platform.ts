@@ -1,7 +1,8 @@
 import type { Division, ID, ISO8601 } from "./common";
 import type { IDistributionSettings } from "./distribution";
 import type { ISdrTemplate } from "./sdr";
-import type { ISdrQuoteTemplates, ISdrShippingPlaceholderSettings } from "./sdr-quote";
+import type { ISdrQuoteTemplates } from "./sdr-quote";
+import type { IShippingConfig } from "./shipping";
 
 /** Store type. Matriz is the headquarters, filial is a branch, parceira is a partner store. */
 export type StoreType = "matriz" | "filial" | "parceira";
@@ -118,8 +119,12 @@ export interface IPlatformSettings {
   sdrAutoDiscountPct: number;
   /** Editable SDR-quote message templates (4 slots — PRD-022 RF-003). */
   sdrQuoteTemplates: ISdrQuoteTemplates;
-  /** Placeholder shipping configuration consumed by the SDR-quote engine. */
-  sdrShippingPlaceholder: ISdrShippingPlaceholderSettings;
+  /**
+   * Centralised shipping configuration (PRD-033). Consumed by SDR quote
+   * generation, manual quotes and any other surface that needs to compute
+   * shipping. Edited via `/app/configuracoes/frete`.
+   */
+  shipping: IShippingConfig;
   /**
    * SDR → human escalation tuning (PRD-023). Controls queue timeouts per mode,
    * the customer-facing handoff template and the broadcast delay for urgent

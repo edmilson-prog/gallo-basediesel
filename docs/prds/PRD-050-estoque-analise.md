@@ -2,19 +2,19 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _A definir após criação no Lovable_ |
-| **Objetivo** | Construir análise de estoque baseada nos dados simples do PRD-030 — cobertura em dias, curva XYZ (giro), stockouts críticos, sugestões de reposição, identificação de excesso (capital parado) |
-| **Tipo** | Feature |
-| **Complexidade** | Alta |
-| **Total de Fases** | 4 |
-| **Prioridade** | Alta |
-| **Épico** | Bloco 4b — Gestão B (Onda 2) |
-| **PRDs Relacionados** | PRD-030 (Catálogo), PRD-032 (Pedido — consumo histórico), PRD-040 (Cockpit), PRD-049 (Rentabilidade — produtos parados) |
-| **Implementação** | 🔵 Claude Code CLI |
-| **Padrão de código** | Feature-based; código em `src/features/inventory-analytics/` |
+| Campo                 | Valor                                                                                                                                                                                          |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                       |
+| **Repositório**       | _A definir após criação no Lovable_                                                                                                                                                            |
+| **Objetivo**          | Construir análise de estoque baseada nos dados simples do PRD-030 — cobertura em dias, curva XYZ (giro), stockouts críticos, sugestões de reposição, identificação de excesso (capital parado) |
+| **Tipo**              | Feature                                                                                                                                                                                        |
+| **Complexidade**      | Alta                                                                                                                                                                                           |
+| **Total de Fases**    | 4                                                                                                                                                                                              |
+| **Prioridade**        | Alta                                                                                                                                                                                           |
+| **Épico**             | Bloco 4b — Gestão B (Onda 2)                                                                                                                                                                   |
+| **PRDs Relacionados** | PRD-030 (Catálogo), PRD-032 (Pedido — consumo histórico), PRD-040 (Cockpit), PRD-049 (Rentabilidade — produtos parados)                                                                        |
+| **Implementação**     | 🔵 Claude Code CLI                                                                                                                                                                             |
+| **Padrão de código**  | Feature-based; código em `src/features/inventory-analytics/`                                                                                                                                   |
 
 ### Critérios de Complexidade
 
@@ -37,7 +37,7 @@ Este PRD entrega: cobertura em dias por produto, classificação XYZ, lista de s
 ### Cobertura em dias
 
 ```typescript
-coverageInDays = stockQuantity / (consumoMedioDiario)
+coverageInDays = stockQuantity / consumoMedioDiario;
 ```
 
 `consumoMedioDiario` = soma das quantidades vendidas (em pedidos pagos) nos últimos 90 dias / 90.
@@ -46,20 +46,20 @@ coverageInDays = stockQuantity / (consumoMedioDiario)
 
 Classifica produtos pelo giro:
 
-| Classe | Critério |
-|--------|----------|
-| **X (alto giro)** | Vendas constantes, coverage < 30 dias |
-| **Y (médio giro)** | Vendas irregulares, coverage 30-90 dias |
+| Classe             | Critério                                                 |
+| ------------------ | -------------------------------------------------------- |
+| **X (alto giro)**  | Vendas constantes, coverage < 30 dias                    |
+| **Y (médio giro)** | Vendas irregulares, coverage 30-90 dias                  |
 | **Z (baixo giro)** | Pouca venda, coverage > 90 dias OU sem vendas em 60 dias |
 
 ### Status do estoque por produto
 
-| Status | Critério | Cor |
-|--------|----------|-----|
-| 🟢 OK | stockQuantity ≥ stockMinThreshold AND coverage ≥ 15 dias | Verde |
-| 🟡 Baixo | stockQuantity < stockMinThreshold OR coverage < 15 dias | Amarelo |
-| 🔴 Crítico | stockQuantity = 0 OR coverage < 5 dias | Vermelho |
-| 🟣 Excesso | coverage > 180 dias E classe Z | Roxo |
+| Status     | Critério                                                 | Cor      |
+| ---------- | -------------------------------------------------------- | -------- |
+| 🟢 OK      | stockQuantity ≥ stockMinThreshold AND coverage ≥ 15 dias | Verde    |
+| 🟡 Baixo   | stockQuantity < stockMinThreshold OR coverage < 15 dias  | Amarelo  |
+| 🔴 Crítico | stockQuantity = 0 OR coverage < 5 dias                   | Vermelho |
+| 🟣 Excesso | coverage > 180 dias E classe Z                           | Roxo     |
 
 ### Modelo
 
@@ -109,8 +109,8 @@ Para produtos críticos ou baixos:
 ```typescript
 suggestedQuantity = max(
   stockMinThreshold,
-  averageDailyConsumption * targetCoverageDays  // default 30 dias
-)
+  averageDailyConsumption * targetCoverageDays, // default 30 dias
+);
 ```
 
 Estimativa de custo = `suggestedQuantity * partUnitCost`.
@@ -131,6 +131,7 @@ Header: filtros (categoria, marca compatível, status estoque, classe XYZ, loja)
 ### Aba 1 — Visão Geral
 
 KPIs:
+
 - Total produtos
 - Em estoque OK / Baixo / Crítico
 - Capital total imobilizado
@@ -143,11 +144,13 @@ Tabela compacta com top 20 produtos por status crítico ordenados por urgência.
 ### Aba 2 — Críticos & Reposição
 
 Lista priorizada por urgência:
+
 - 🔴 Críticos primeiro
 - 🟡 Baixos depois
 - Ordenados por consumptionLast90Days (mais vendidos primeiro)
 
 Cada item:
+
 - Nome + OEM
 - Estoque atual
 - Cobertura em dias
@@ -160,6 +163,7 @@ Botão "Gerar lista de compras" — exporta CSV simples (placeholder no MVP — 
 ### Aba 3 — Análise XYZ
 
 Tabela com 3 colunas (X / Y / Z):
+
 - Cada coluna lista produtos da classe
 - Contagem total no header
 - % do estoque por classe
@@ -169,6 +173,7 @@ Bar chart: faturamento vs estoque por classe (Pareto-style).
 ### Aba 4 — Excesso & Capital Parado
 
 Lista de produtos com `status='excesso'`:
+
 - Cobertura excessiva
 - Capital amarrado (R$)
 - Tempo sem venda (dias)
@@ -184,6 +189,7 @@ Total de capital em excesso destacado no topo.
 ### Configuração `/app/configuracoes/estoque-analise`
 
 Sub-rota PRD-019 (Owner):
+
 - Janela de análise de consumo (padrão 90 dias)
 - Cobertura alvo para sugestão de reposição (padrão 30 dias)
 - Threshold de "excesso" em dias (padrão 180)
@@ -198,13 +204,13 @@ Sub-rota PRD-019 (Owner):
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que descartada |
-|-------------|---------------------|
-| Análise sem cobertura em dias | Quantidade absoluta engana sem contexto de consumo |
-| Sem curva XYZ | Decisões viram tudo igual; XYZ guia priorização |
-| Sem sugestão de reposição | Owner faz cálculo manual |
-| Sem excesso | Capital morto fica invisível |
-| Análise em tempo real (cada venda) | Diário é suficiente; memoização funciona |
+| Alternativa                        | Por que descartada                                 |
+| ---------------------------------- | -------------------------------------------------- |
+| Análise sem cobertura em dias      | Quantidade absoluta engana sem contexto de consumo |
+| Sem curva XYZ                      | Decisões viram tudo igual; XYZ guia priorização    |
+| Sem sugestão de reposição          | Owner faz cálculo manual                           |
+| Sem excesso                        | Capital morto fica invisível                       |
+| Análise em tempo real (cada venda) | Diário é suficiente; memoização funciona           |
 
 ---
 
@@ -250,7 +256,7 @@ Sub-rota PRD-019 (Owner):
   - Classifica curva XYZ baseada em coverage e regularidade
   - Determina status (ok/baixo/critico/excesso)
   - Calcula recommendedReorder se status crítico/baixo
-  - Calcula capitalTied = stockQuantity * (partUnitCost || 0)
+  - Calcula capitalTied = stockQuantity \* (partUnitCost || 0)
 - **RF-002:** `calculateInventoryMetrics(analyses)` agrega para KPIs.
 - **RF-003:** Hooks `useInventoryAnalysis(filters)`, `useInventoryMetrics(filters)`.
 
@@ -340,32 +346,32 @@ ENTÃO toast: "Funcionalidade completa disponível na Fase 2"
 
 ## Fases de Implementação
 
-| Fase | Objetivo |
-|------|----------|
-| 1 | Engine + hooks |
-| 2 | Aba Visão Geral + Aba Críticos |
-| 3 | Aba XYZ + Aba Excesso |
-| 4 | Configuração + drill-downs + polish |
+| Fase | Objetivo                            |
+| ---- | ----------------------------------- |
+| 1    | Engine + hooks                      |
+| 2    | Aba Visão Geral + Aba Críticos      |
+| 3    | Aba XYZ + Aba Excesso               |
+| 4    | Configuração + drill-downs + polish |
 
 ---
 
 ## Dependências
 
-| PRD | Status |
-|-----|--------|
-| PRD-030 (stockQuantity, unitCost) | 📝 |
-| PRD-032 (consumo) | 📝 |
-| PRD-040 (consome hook) | 📝 |
+| PRD                               | Status |
+| --------------------------------- | ------ |
+| PRD-030 (stockQuantity, unitCost) | 📝     |
+| PRD-032 (consumo)                 | 📝     |
+| PRD-040 (consome hook)            | 📝     |
 
 ---
 
 ## Cadeia
 
-| Ordem | PRD |
-|-------|-----|
-| 1-29 | 010-049 |
+| Ordem  | PRD               |
+| ------ | ----------------- |
+| 1-29   | 010-049           |
 | **30** | **PRD-050 ATUAL** |
-| 31+ | 051-053 |
+| 31+    | 051-053           |
 
 ---
 
@@ -378,11 +384,11 @@ ENTÃO toast: "Funcionalidade completa disponível na Fase 2"
 
 ## Convenções
 
-| Elemento | Convenção |
-|----------|-----------|
-| Página | `InventoryAnalyticsPage` |
-| Engine | `calculateInventoryAnalysis` |
-| Pasta | `inventory-analytics/` |
+| Elemento | Convenção                    |
+| -------- | ---------------------------- |
+| Página   | `InventoryAnalyticsPage`     |
+| Engine   | `calculateInventoryAnalysis` |
+| Pasta    | `inventory-analytics/`       |
 
 ---
 
@@ -399,17 +405,17 @@ ENTÃO toast: "Funcionalidade completa disponível na Fase 2"
 
 ## Status
 
-| Campo | Valor |
-|-------|-------|
+| Campo  | Valor       |
+| ------ | ----------- |
 | Status | ⏳ PENDENTE |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 25/05/2026 | v1 | Criação inicial — análise de estoque com cobertura, XYZ, sugestões de reposição, excesso |
+| Data       | Versão | Alteração                                                                                |
+| ---------- | ------ | ---------------------------------------------------------------------------------------- |
+| 25/05/2026 | v1     | Criação inicial — análise de estoque com cobertura, XYZ, sugestões de reposição, excesso |
 
 ---
 

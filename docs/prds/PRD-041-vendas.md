@@ -2,19 +2,19 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _A definir após criação no Lovable_ |
-| **Objetivo** | Construir análise detalhada de vendas com drill-down multidimensional — por categoria, marca, região, canal, vendedor — gráficos temporais, top produtos/clientes, sazonalidade, e funil de conversão |
-| **Tipo** | Feature |
-| **Complexidade** | Alta |
-| **Total de Fases** | 5 |
-| **Prioridade** | Alta |
-| **Épico** | Bloco 4b — Gestão B (Onda 2) |
-| **PRDs Relacionados** | PRD-017 (Pipeline Leads), PRD-030 (Catálogo), PRD-031 (Orçamento), PRD-032 (Pedido), PRD-040 (Cockpit), PRD-042 (Metas), PRD-049 (Rentabilidade) |
-| **Implementação** | 🔵 Claude Code CLI |
-| **Padrão de código** | Feature-based; código em `src/features/sales-analytics/` |
+| Campo                 | Valor                                                                                                                                                                                                 |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                              |
+| **Repositório**       | _A definir após criação no Lovable_                                                                                                                                                                   |
+| **Objetivo**          | Construir análise detalhada de vendas com drill-down multidimensional — por categoria, marca, região, canal, vendedor — gráficos temporais, top produtos/clientes, sazonalidade, e funil de conversão |
+| **Tipo**              | Feature                                                                                                                                                                                               |
+| **Complexidade**      | Alta                                                                                                                                                                                                  |
+| **Total de Fases**    | 5                                                                                                                                                                                                     |
+| **Prioridade**        | Alta                                                                                                                                                                                                  |
+| **Épico**             | Bloco 4b — Gestão B (Onda 2)                                                                                                                                                                          |
+| **PRDs Relacionados** | PRD-017 (Pipeline Leads), PRD-030 (Catálogo), PRD-031 (Orçamento), PRD-032 (Pedido), PRD-040 (Cockpit), PRD-042 (Metas), PRD-049 (Rentabilidade)                                                      |
+| **Implementação**     | 🔵 Claude Code CLI                                                                                                                                                                                    |
+| **Padrão de código**  | Feature-based; código em `src/features/sales-analytics/`                                                                                                                                              |
 
 ### Critérios de Complexidade
 
@@ -50,28 +50,34 @@ Header: filtros (período, loja Owner, vendedor, categoria, marca veículo, cana
 ### Aba 1 — Visão Geral
 
 **KPIs no topo:**
+
 - Faturamento total
 - Pedidos pagos
 - Ticket médio
 - Margem média (placeholder PRD-049)
 
 **Gráfico 1 — Faturamento ao longo do tempo:**
+
 - Linha 12 meses
 - Possível overlay de meta (PRD-042)
 
 **Gráfico 2 — Distribuição por categoria (treemap ou bar)**:
+
 - Filtros / freios / correias / etc.
 - % da receita por categoria
 
 **Gráfico 3 — Vendas por marca de veículo (bar)**:
+
 - Volvo / Scania / Mercedes / Ford / Iveco
 - Faturamento + número de pedidos
 
 **Gráfico 4 — Vendas por canal/origem (pizza)**:
+
 - SDR / Manual / Portal / E-com
 - Identifica força de cada canal
 
 **Detecção de sazonalidade**:
+
 - Compara mês atual com mesmo mês ano anterior
 - Card "Pico do período: [mês]" se variação > 25%
 
@@ -80,6 +86,7 @@ Header: filtros (período, loja Owner, vendedor, categoria, marca veículo, cana
 ### Aba 2 — Produtos
 
 **Top 20 produtos mais vendidos** (tabela):
+
 - Nome + OEM + categoria
 - Qtd vendida no período
 - Receita gerada
@@ -87,10 +94,12 @@ Header: filtros (período, loja Owner, vendedor, categoria, marca veículo, cana
 - Tendência (vs período anterior)
 
 **Performance por categoria** (gráfico):
+
 - Bar chart: receita por categoria
 - Tendência (cresceu/caiu)
 
 **Produtos em queda** (alerta):
+
 - Lista de produtos com vendas em queda > 30%
 - Útil para decisões de estoque
 
@@ -99,6 +108,7 @@ Header: filtros (período, loja Owner, vendedor, categoria, marca veículo, cana
 ### Aba 3 — Clientes
 
 **Top 20 clientes compradores** (tabela):
+
 - Nome + classe ABC (PRD-045)
 - Pedidos no período
 - Receita total
@@ -106,9 +116,11 @@ Header: filtros (período, loja Owner, vendedor, categoria, marca veículo, cana
 - Vendedor responsável
 
 **Distribuição** (gráfico):
+
 - % concentração receita (correlato com PRD-045)
 
 **Novos vs recorrentes**:
+
 - Card com % de receita vinda de clientes novos vs recorrentes
 
 ---
@@ -136,6 +148,7 @@ Identificação de gargalo: etapa com queda > X% destacada.
 ### Drill-downs
 
 Cada linha de tabela ou seção de gráfico permite navegação:
+
 - Click no produto → ficha de produto (PRD-030)
 - Click no cliente → ficha do cliente (PRD-012)
 - Click em categoria → filtra outras abas
@@ -150,13 +163,13 @@ Cada linha de tabela ou seção de gráfico permite navegação:
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que descartada |
-|-------------|---------------------|
-| Tabela única sem abas | Quantidade de dados sobrecarrega |
-| Sem funil | Conversão sem visualização = caixa-preta |
-| Sem sazonalidade | Ignora padrões importantes |
-| Apenas absolutos sem comparativos | Tendência é central |
-| Treemap obrigatório (vs bar) | Treemap pode confundir; preferir bar simples |
+| Alternativa                       | Por que descartada                           |
+| --------------------------------- | -------------------------------------------- |
+| Tabela única sem abas             | Quantidade de dados sobrecarrega             |
+| Sem funil                         | Conversão sem visualização = caixa-preta     |
+| Sem sazonalidade                  | Ignora padrões importantes                   |
+| Apenas absolutos sem comparativos | Tendência é central                          |
+| Treemap obrigatório (vs bar)      | Treemap pode confundir; preferir bar simples |
 
 ---
 
@@ -286,35 +299,35 @@ ENTÃO card "Sazonalidade: +39% vs ano anterior" aparece
 
 ## Fases de Implementação
 
-| Fase | Objetivo |
-|------|----------|
-| 1 | Hook agregador + Aba Visão Geral |
-| 2 | Aba Produtos |
-| 3 | Aba Clientes |
-| 4 | Aba Funil |
-| 5 | Drill-downs + sazonalidade + mobile + polish |
+| Fase | Objetivo                                     |
+| ---- | -------------------------------------------- |
+| 1    | Hook agregador + Aba Visão Geral             |
+| 2    | Aba Produtos                                 |
+| 3    | Aba Clientes                                 |
+| 4    | Aba Funil                                    |
+| 5    | Drill-downs + sazonalidade + mobile + polish |
 
 ---
 
 ## Dependências
 
-| PRD | Status |
-|-----|--------|
-| PRD-017 (leads) | 📝 |
-| PRD-030 (catálogo) | 📝 |
-| PRD-031 (orçamentos) | 📝 |
-| PRD-032 (pedidos) | 📝 |
-| PRD-045 (classe ABC nos clientes) | 📝 |
+| PRD                               | Status |
+| --------------------------------- | ------ |
+| PRD-017 (leads)                   | 📝     |
+| PRD-030 (catálogo)                | 📝     |
+| PRD-031 (orçamentos)              | 📝     |
+| PRD-032 (pedidos)                 | 📝     |
+| PRD-045 (classe ABC nos clientes) | 📝     |
 
 ---
 
 ## Cadeia
 
-| Ordem | PRD |
-|-------|-----|
-| 1-25 | 010-040 |
+| Ordem  | PRD               |
+| ------ | ----------------- |
+| 1-25   | 010-040           |
 | **26** | **PRD-041 ATUAL** |
-| 27+ | 047-053 |
+| 27+    | 047-053           |
 
 ---
 
@@ -327,11 +340,11 @@ ENTÃO card "Sazonalidade: +39% vs ano anterior" aparece
 
 ## Convenções
 
-| Elemento | Convenção |
-|----------|-----------|
-| Página | `SalesAnalyticsPage` |
-| Hook | `useSalesAnalytics`, `useFunnelMetrics` |
-| Pasta | `sales-analytics/` |
+| Elemento | Convenção                               |
+| -------- | --------------------------------------- |
+| Página   | `SalesAnalyticsPage`                    |
+| Hook     | `useSalesAnalytics`, `useFunnelMetrics` |
+| Pasta    | `sales-analytics/`                      |
 
 ---
 
@@ -346,17 +359,17 @@ ENTÃO card "Sazonalidade: +39% vs ano anterior" aparece
 
 ## Status
 
-| Campo | Valor |
-|-------|-------|
+| Campo  | Valor       |
+| ------ | ----------- |
 | Status | ⏳ PENDENTE |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 25/05/2026 | v1 | Criação inicial — análise multidimensional com 4 abas, funil, top rankings, sazonalidade |
+| Data       | Versão | Alteração                                                                                |
+| ---------- | ------ | ---------------------------------------------------------------------------------------- |
+| 25/05/2026 | v1     | Criação inicial — análise multidimensional com 4 abas, funil, top rankings, sazonalidade |
 
 ---
 

@@ -68,7 +68,11 @@ export function CustomerQuotesList({ customerId }: { customerId: ID }) {
         <p className="text-xs text-muted-foreground">
           Crie um orçamento manual a partir da listagem principal.
         </p>
-        <Button size="sm" variant="outline" onClick={() => void navigate({ to: "/app/orcamentos/novo" })}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => void navigate({ to: "/app/orcamentos/novo" })}
+        >
           <Icon icon="mdi:plus" size={14} /> Novo orçamento
         </Button>
       </div>

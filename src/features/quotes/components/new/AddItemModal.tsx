@@ -49,7 +49,14 @@ export function AddItemModal({
   }, [open, vehicleBrand]);
 
   const partsQuery = useQuery({
-    queryKey: ["parts-for-quote", searchQuery, useVehicleFilter, vehicleBrand, vehicleModel, vehicleYear] as const,
+    queryKey: [
+      "parts-for-quote",
+      searchQuery,
+      useVehicleFilter,
+      vehicleBrand,
+      vehicleModel,
+      vehicleYear,
+    ] as const,
     queryFn: async () => {
       const all = await partsProvider.list({ pageSize: 1000, active: true });
       return all.data;
@@ -161,9 +168,7 @@ export function AddItemModal({
                     <p className="text-sm font-semibold tabular-nums">
                       {moneyFormatter.format(p.unitPrice)}
                     </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      Estoque: {p.stockAvailable}
-                    </p>
+                    <p className="text-[10px] text-muted-foreground">Estoque: {p.stockAvailable}</p>
                   </div>
                 </button>
               ))

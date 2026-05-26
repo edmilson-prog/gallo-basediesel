@@ -49,7 +49,12 @@ export function QuotesPagination({
         </Select>
       </div>
       <div className="flex items-center gap-1">
-        <Button variant="ghost" size="sm" onClick={() => onPageChange(page - 1)} disabled={page <= 1}>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onPageChange(page - 1)}
+          disabled={page <= 1}
+        >
           <Icon icon="mdi:chevron-left" size={16} />
         </Button>
         <span className="px-2 text-muted-foreground">

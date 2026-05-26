@@ -68,7 +68,13 @@ export function SdrFaqBarChart({ data }: ISdrFaqBarChartProps) {
                 }}
               />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar dataKey="resolved" name="Resolvido" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]} />
+              <Bar
+                dataKey="resolved"
+                name="Resolvido"
+                stackId="a"
+                fill="#10b981"
+                radius={[4, 4, 0, 0]}
+              />
               <Bar
                 dataKey="escalated"
                 name="Escalado"

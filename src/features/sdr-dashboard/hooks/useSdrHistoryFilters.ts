@@ -103,8 +103,7 @@ export function useSdrHistoryFilters(): IUseSdrHistoryFilters {
     toggleFinishReason,
     setEscalationReason: (reason) =>
       apply({ motivo: reason === "all" ? undefined : reason, pagina: undefined }),
-    setSellerId: (id) =>
-      apply({ vendedor: id === "all" ? undefined : id, pagina: undefined }),
+    setSellerId: (id) => apply({ vendedor: id === "all" ? undefined : id, pagina: undefined }),
     setHasQuote: (value) =>
       apply({ quote: value === "all" ? undefined : value, pagina: undefined }),
     setPage: (page) => apply({ pagina: page === 1 ? undefined : String(page) }),

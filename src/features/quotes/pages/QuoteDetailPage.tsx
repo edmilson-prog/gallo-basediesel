@@ -126,7 +126,9 @@ export function QuoteDetailPage() {
     staleTime: 30_000,
   });
 
-  const [confirmOpen, setConfirmOpen] = useState<null | "send" | "accept" | "reject" | "convert" | "cancel">(null);
+  const [confirmOpen, setConfirmOpen] = useState<
+    null | "send" | "accept" | "reject" | "convert" | "cancel"
+  >(null);
   const [rejectReason, setRejectReason] = useState("");
 
   const refresh = async () => {
@@ -285,9 +287,7 @@ export function QuoteDetailPage() {
       void navigate({ to: "/app/pedidos/$id", params: { id: order.id } });
     } catch (err) {
       console.error(err);
-      toast.error(
-        err instanceof Error ? err.message : "Falha ao converter orçamento em pedido.",
-      );
+      toast.error(err instanceof Error ? err.message : "Falha ao converter orçamento em pedido.");
     }
   };
 
@@ -380,7 +380,11 @@ export function QuoteDetailPage() {
         {/* Origin banner — SDR */}
         {quote.origin === "sdr" && (
           <div className="mt-4 flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3 text-sm">
-            <Icon icon="mdi:robot-outline" size={18} className="text-emerald-600 dark:text-emerald-300" />
+            <Icon
+              icon="mdi:robot-outline"
+              size={18}
+              className="text-emerald-600 dark:text-emerald-300"
+            />
             <span className="flex-1 text-emerald-700 dark:text-emerald-200">
               Criado pelo agente SDR durante a conversa do cliente.
             </span>
@@ -401,7 +405,11 @@ export function QuoteDetailPage() {
         {quote.requiresApproval && (
           <div className="mt-4 flex flex-col gap-3 rounded-md border border-orange-500/30 bg-orange-500/5 p-3 md:flex-row md:items-center md:justify-between">
             <div className="flex items-start gap-2 text-sm">
-              <Icon icon="mdi:shield-alert-outline" size={18} className="text-orange-600 dark:text-orange-300" />
+              <Icon
+                icon="mdi:shield-alert-outline"
+                size={18}
+                className="text-orange-600 dark:text-orange-300"
+              />
               <div>
                 <p className="font-medium text-orange-700 dark:text-orange-200">
                   Aguardando aprovação do gestor
@@ -434,7 +442,11 @@ export function QuoteDetailPage() {
         {/* Actions contextual */}
         <div className="mt-4 flex flex-wrap gap-2">
           {isRascunho && canEdit && (
-            <Button size="sm" onClick={() => setConfirmOpen("send")} disabled={quote.requiresApproval}>
+            <Button
+              size="sm"
+              onClick={() => setConfirmOpen("send")}
+              disabled={quote.requiresApproval}
+            >
               <Icon icon="mdi:send-outline" size={14} /> Enviar
             </Button>
           )}
@@ -457,7 +469,11 @@ export function QuoteDetailPage() {
             </Button>
           )}
           {isConvertido && (
-            <Button size="sm" variant="outline" onClick={() => void navigate({ to: "/app/pedidos" })}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void navigate({ to: "/app/pedidos" })}
+            >
               <Icon icon="mdi:open-in-new" size={14} /> Ver pedido
             </Button>
           )}
@@ -593,7 +609,9 @@ export function QuoteDetailPage() {
           </div>
           <div>
             <dt className="text-xs text-muted-foreground">Prazo</dt>
-            <dd className="font-medium text-foreground">{quote.paymentTerms ?? quote.paymentCondition}</dd>
+            <dd className="font-medium text-foreground">
+              {quote.paymentTerms ?? quote.paymentCondition}
+            </dd>
           </div>
           <div>
             <dt className="text-xs text-muted-foreground">Validade</dt>
@@ -745,7 +763,10 @@ export function QuoteDetailPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={confirmOpen === "convert"} onOpenChange={(o) => !o && setConfirmOpen(null)}>
+      <AlertDialog
+        open={confirmOpen === "convert"}
+        onOpenChange={(o) => !o && setConfirmOpen(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Converter em pedido?</AlertDialogTitle>

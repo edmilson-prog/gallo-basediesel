@@ -1,25 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import type {
-  ISdrQuoteTemplates,
-  ISdrShippingPlaceholderSettings,
-  SdrOtherStatesAction,
-} from "@/shared/types";
+import type { ISdrQuoteTemplates } from "@/shared/types";
 import { useCurrentStore } from "@/features/multistore";
 import { SectionHeader } from "@/features/admin-settings/components/SectionHeader";
 import { usePlatformSettings } from "@/features/admin-settings/hooks/usePlatformSettings";
@@ -67,30 +56,27 @@ export function SdrQuoteSettingsPage() {
 
   const [validityDays, setValidityDays] = useState(7);
   const [autoDiscountPct, setAutoDiscountPct] = useState(0);
-  const [shipping, setShipping] = useState<ISdrShippingPlaceholderSettings | null>(null);
   const [templates, setTemplates] = useState<ISdrQuoteTemplates | null>(null);
 
   useEffect(() => {
     if (!settings) return;
     setValidityDays(settings.sdrQuoteValidityDays);
     setAutoDiscountPct(settings.sdrAutoDiscountPct);
-    setShipping(settings.sdrShippingPlaceholder);
     setTemplates(settings.sdrQuoteTemplates);
   }, [settings]);
 
   const dirty = useMemo(() => {
-    if (!settings || !shipping || !templates) return false;
+    if (!settings || !templates) return false;
     if (validityDays !== settings.sdrQuoteValidityDays) return true;
     if (autoDiscountPct !== settings.sdrAutoDiscountPct) return true;
-    if (JSON.stringify(shipping) !== JSON.stringify(settings.sdrShippingPlaceholder)) return true;
     if (JSON.stringify(templates) !== JSON.stringify(settings.sdrQuoteTemplates)) return true;
     return false;
-  }, [settings, validityDays, autoDiscountPct, shipping, templates]);
+  }, [settings, validityDays, autoDiscountPct, templates]);
 
   const unsaved = useUnsavedChanges(dirty);
 
   const handleSave = async () => {
-    if (!settings || !shipping || !templates) return;
+    if (!settings || !templates) return;
     if (validityDays < 1 || validityDays > 60) {
       toast.error("A validade precisa ficar entre 1 e 60 dias.");
       return;
@@ -104,7 +90,6 @@ export function SdrQuoteSettingsPage() {
         {
           sdrQuoteValidityDays: validityDays,
           sdrAutoDiscountPct: autoDiscountPct,
-          sdrShippingPlaceholder: shipping,
           sdrQuoteTemplates: templates,
         },
         "settings.sdr-quote.update",
@@ -119,7 +104,6 @@ export function SdrQuoteSettingsPage() {
     if (!settings) return;
     setValidityDays(settings.sdrQuoteValidityDays);
     setAutoDiscountPct(settings.sdrAutoDiscountPct);
-    setShipping(settings.sdrShippingPlaceholder);
     setTemplates(settings.sdrQuoteTemplates);
   };
 
@@ -129,12 +113,12 @@ export function SdrQuoteSettingsPage() {
     toast.info("Template restaurado para o padrão.");
   };
 
-  if (loading || !settings || !shipping || !templates) {
+  if (loading || !settings || !templates) {
     return (
       <div className="space-y-6">
         <SectionHeader
           title="Orçamento do SDR"
-          description="Regras de desconto, validade, frete placeholder e templates da mensagem enviada quando o SDR gera um orçamento automático."
+          description="Regras de desconto, validade e templates da mensagem enviada quando o SDR gera um orçamento automático."
         />
         <Skeleton className="h-96 w-full" />
       </div>
@@ -145,7 +129,7 @@ export function SdrQuoteSettingsPage() {
     <div className="space-y-6">
       <SectionHeader
         title="Orçamento do SDR"
-        description="Regras de desconto, validade, frete placeholder e templates da mensagem enviada quando o SDR gera um orçamento automático. Refletem em todos os orçamentos com origin='sdr'."
+        description="Regras de desconto, validade e templates da mensagem enviada quando o SDR gera um orçamento automático. Refletem em todos os orçamentos com origin='sdr'."
       />
 
       <div className="grid gap-3 sm:grid-cols-4">
@@ -225,75 +209,21 @@ export function SdrQuoteSettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <Icon icon="mdi:truck-fast-outline" className="size-5 text-primary" />
-            Frete placeholder
+            Frete
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <FieldNumber
-              label={`Mesma cidade (${shipping.homeCity})`}
-              value={shipping.sameCityValue}
-              onChange={(v) => setShipping({ ...shipping, sameCityValue: v })}
-              suffix="R$"
-            />
-            <FieldNumber
-              label={`Mesmo estado (${shipping.homeState})`}
-              value={shipping.sameStateValue}
-              onChange={(v) => setShipping({ ...shipping, sameStateValue: v })}
-              suffix="R$"
-            />
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label className="text-sm">Cidade da loja</Label>
-              <Input
-                value={shipping.homeCity}
-                onChange={(e) => setShipping({ ...shipping, homeCity: e.target.value })}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm">UF da loja</Label>
-              <Input
-                value={shipping.homeState}
-                maxLength={2}
-                onChange={(e) =>
-                  setShipping({ ...shipping, homeState: e.target.value.toUpperCase() })
-                }
-              />
-            </div>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label className="text-sm">Outros estados</Label>
-              <Select
-                value={shipping.otherStatesAction}
-                onValueChange={(v) =>
-                  setShipping({ ...shipping, otherStatesAction: v as SdrOtherStatesAction })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="to_negotiate">A combinar (recomendado)</SelectItem>
-                  <SelectItem value="fixed_value">Valor fixo</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {shipping.otherStatesAction === "fixed_value" && (
-              <FieldNumber
-                label="Valor fixo para outros estados"
-                value={shipping.otherStatesValue ?? 0}
-                onChange={(v) => setShipping({ ...shipping, otherStatesValue: v })}
-                suffix="R$"
-              />
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Cálculo placeholder até PRD-033 entregar o cálculo real via integração com a
-            transportadora. Quando "a combinar" estiver ativo, a mensagem ao cliente substitui o
-            valor por "a combinar".
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            O cálculo de frete agora é centralizado (PRD-033) e usado pelo SDR, pelos orçamentos
+            manuais e pelos pedidos. Edite estratégia, regras por região e simule cotações em uma
+            página dedicada.
           </p>
+          <Button asChild variant="outline" size="sm" className="gap-2">
+            <Link to="/app/configuracoes/frete">
+              <Icon icon="mdi:open-in-new" className="size-4" />
+              Abrir configurações de frete
+            </Link>
+          </Button>
         </CardContent>
       </Card>
 
@@ -359,36 +289,6 @@ function MetricCard({ icon, label, value }: { icon: string; label: string; value
         {label}
       </div>
       <p className="mt-1 text-xl font-semibold tabular-nums">{value}</p>
-    </div>
-  );
-}
-
-interface IFieldNumberProps {
-  label: string;
-  value: number;
-  onChange: (next: number) => void;
-  suffix?: string;
-}
-
-function FieldNumber({ label, value, onChange, suffix }: IFieldNumberProps) {
-  return (
-    <div className="space-y-1.5">
-      <Label className="text-sm">{label}</Label>
-      <div className="relative">
-        <Input
-          type="number"
-          min={0}
-          step={1}
-          value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
-          className={suffix ? "pr-12" : undefined}
-        />
-        {suffix && (
-          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-            {suffix}
-          </span>
-        )}
-      </div>
     </div>
   );
 }

@@ -112,6 +112,12 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         to: "/app/configuracoes/veiculos/cadastro-mode",
         permission: { resource: "settings", action: "edit" },
       },
+      {
+        label: "Frete",
+        icon: "mdi:truck-fast-outline",
+        to: "/app/configuracoes/frete",
+        permission: { resource: "settings", action: "view" },
+      },
     ],
   },
   {

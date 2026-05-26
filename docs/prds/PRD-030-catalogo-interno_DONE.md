@@ -773,9 +773,9 @@ Estrutura compatível para receber dados do ERP. Conflitos (mock vs DINTEC) prec
 
 ## Status de Implementação
 
-| Campo      | Valor                                            |
-| ---------- | ------------------------------------------------ |
-| **Status** | ✅ CONCLUÍDO — v0.22.0 (Catalog) · 2026-05-26    |
+| Campo      | Valor                                         |
+| ---------- | --------------------------------------------- |
+| **Status** | ✅ CONCLUÍDO — v0.22.0 (Catalog) · 2026-05-26 |
 
 ---
 

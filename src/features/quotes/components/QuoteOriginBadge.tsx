@@ -2,10 +2,7 @@ import type { QuoteOrigin } from "@/shared/types";
 import { cn } from "@/lib/utils";
 import { Icon } from "@/components/Icon";
 
-const ORIGIN_META: Record<
-  QuoteOrigin,
-  { label: string; icon: string; className: string }
-> = {
+const ORIGIN_META: Record<QuoteOrigin, { label: string; icon: string; className: string }> = {
   sdr: {
     label: "SDR",
     icon: "mdi:robot-outline",
