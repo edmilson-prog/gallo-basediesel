@@ -652,9 +652,9 @@ Mensagem deve deixar claro que é valor estimado, sujeito a confirmação. Clien
 
 ## Status de Implementação
 
-| Campo      | Valor       |
-| ---------- | ----------- |
-| **Status** | ⏳ PENDENTE |
+| Campo      | Valor                                  |
+| ---------- | -------------------------------------- |
+| **Status** | ✅ IMPLEMENTADO (v0.19.0 — Quotemaster) |
 
 ---
 

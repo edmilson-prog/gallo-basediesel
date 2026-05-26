@@ -683,9 +683,9 @@ Cliente pode enviar foto de plaqueta com dados pessoais (placa do caminhão vis�
 
 ## Status de Implementação
 
-| Campo      | Valor       |
-| ---------- | ----------- |
-| **Status** | ⏳ PENDENTE |
+| Campo      | Valor                             |
+| ---------- | --------------------------------- |
+| **Status** | ✅ IMPLEMENTADO (v0.18.0 — Scout) |
 
 ---
 

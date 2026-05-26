@@ -1,6 +1,7 @@
 import type { Division, ID, ISO8601 } from "./common";
 import type { IDistributionSettings } from "./distribution";
 import type { ISdrTemplate } from "./sdr";
+import type { ISdrQuoteTemplates, ISdrShippingPlaceholderSettings } from "./sdr-quote";
 
 /** Store type. Matriz is the headquarters, filial is a branch, parceira is a partner store. */
 export type StoreType = "matriz" | "filial" | "parceira";
@@ -107,6 +108,18 @@ export interface IPlatformSettings {
   sdrEnabled: boolean;
   /** Editable SDR message templates with variable substitution (PRD-020). */
   sdrTemplates: ISdrTemplate[];
+  /** Quote validity window in days for SDR-generated quotes (PRD-022). */
+  sdrQuoteValidityDays: number;
+  /**
+   * Automatic discount the SDR is authorised to apply, expressed as a
+   * decimal (0.05 = 5%). 0 (default) means the SDR never discounts on its
+   * own (PRD-022 RF-002).
+   */
+  sdrAutoDiscountPct: number;
+  /** Editable SDR-quote message templates (4 slots — PRD-022 RF-003). */
+  sdrQuoteTemplates: ISdrQuoteTemplates;
+  /** Placeholder shipping configuration consumed by the SDR-quote engine. */
+  sdrShippingPlaceholder: ISdrShippingPlaceholderSettings;
 }
 
 /**

@@ -134,6 +134,29 @@ export type {
   SdrIntent,
 } from "./sdr";
 
+// Part identification (PRD-021)
+export type {
+  IPartIdentification,
+  IPartCandidate,
+  IPartIdentificationDecision,
+  IExtractedAttributes,
+  AttributeConfidence,
+  PartIdentificationStatus,
+  PartIdentificationActionKind,
+  PartCategory,
+} from "./part-identification";
+
+// SDR Quote (PRD-022)
+export type {
+  ISdrQuoteTemplates,
+  ISdrShippingPlaceholderSettings,
+  ISdrShippingResult,
+  ISdrPendingQuote,
+  IQuoteResponseMatch,
+  QuoteResponseIntent,
+  SdrOtherStatesAction,
+} from "./sdr-quote";
+
 // BI
 export type {
   IGoal,

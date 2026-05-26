@@ -72,6 +72,7 @@ import { Route as AppAtendimentoIdRouteImport } from './routes/app.atendimento.$
 import { Route as AppConfiguracoesVeiculosCadastroModeRouteImport } from './routes/app.configuracoes.veiculos.cadastro-mode'
 import { Route as AppConfiguracoesSdrTemplatesRouteImport } from './routes/app.configuracoes.sdr.templates'
 import { Route as AppConfiguracoesSdrSimuladorRouteImport } from './routes/app.configuracoes.sdr.simulador'
+import { Route as AppConfiguracoesSdrOrcamentoRouteImport } from './routes/app.configuracoes.sdr.orcamento'
 import { Route as AppConfiguracoesAtendimentoTagsRouteImport } from './routes/app.configuracoes.atendimento.tags'
 import { Route as AppConfiguracoesAtendimentoPipelineRouteImport } from './routes/app.configuracoes.atendimento.pipeline'
 import { Route as AppConfiguracoesAtendimentoMotivosPerdaRouteImport } from './routes/app.configuracoes.atendimento.motivos-perda'
@@ -404,6 +405,12 @@ const AppConfiguracoesSdrSimuladorRoute =
     path: '/configuracoes/sdr/simulador',
     getParentRoute: () => AppRoute,
   } as any)
+const AppConfiguracoesSdrOrcamentoRoute =
+  AppConfiguracoesSdrOrcamentoRouteImport.update({
+    id: '/configuracoes/sdr/orcamento',
+    path: '/configuracoes/sdr/orcamento',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppConfiguracoesAtendimentoTagsRoute =
   AppConfiguracoesAtendimentoTagsRouteImport.update({
     id: '/configuracoes/atendimento/tags',
@@ -501,6 +508,7 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/atendimento/motivos-perda': typeof AppConfiguracoesAtendimentoMotivosPerdaRoute
   '/app/configuracoes/atendimento/pipeline': typeof AppConfiguracoesAtendimentoPipelineRoute
   '/app/configuracoes/atendimento/tags': typeof AppConfiguracoesAtendimentoTagsRoute
+  '/app/configuracoes/sdr/orcamento': typeof AppConfiguracoesSdrOrcamentoRoute
   '/app/configuracoes/sdr/simulador': typeof AppConfiguracoesSdrSimuladorRoute
   '/app/configuracoes/sdr/templates': typeof AppConfiguracoesSdrTemplatesRoute
   '/app/configuracoes/veiculos/cadastro-mode': typeof AppConfiguracoesVeiculosCadastroModeRoute
@@ -566,6 +574,7 @@ export interface FileRoutesByTo {
   '/app/configuracoes/atendimento/motivos-perda': typeof AppConfiguracoesAtendimentoMotivosPerdaRoute
   '/app/configuracoes/atendimento/pipeline': typeof AppConfiguracoesAtendimentoPipelineRoute
   '/app/configuracoes/atendimento/tags': typeof AppConfiguracoesAtendimentoTagsRoute
+  '/app/configuracoes/sdr/orcamento': typeof AppConfiguracoesSdrOrcamentoRoute
   '/app/configuracoes/sdr/simulador': typeof AppConfiguracoesSdrSimuladorRoute
   '/app/configuracoes/sdr/templates': typeof AppConfiguracoesSdrTemplatesRoute
   '/app/configuracoes/veiculos/cadastro-mode': typeof AppConfiguracoesVeiculosCadastroModeRoute
@@ -637,6 +646,7 @@ export interface FileRoutesById {
   '/app/configuracoes/atendimento/motivos-perda': typeof AppConfiguracoesAtendimentoMotivosPerdaRoute
   '/app/configuracoes/atendimento/pipeline': typeof AppConfiguracoesAtendimentoPipelineRoute
   '/app/configuracoes/atendimento/tags': typeof AppConfiguracoesAtendimentoTagsRoute
+  '/app/configuracoes/sdr/orcamento': typeof AppConfiguracoesSdrOrcamentoRoute
   '/app/configuracoes/sdr/simulador': typeof AppConfiguracoesSdrSimuladorRoute
   '/app/configuracoes/sdr/templates': typeof AppConfiguracoesSdrTemplatesRoute
   '/app/configuracoes/veiculos/cadastro-mode': typeof AppConfiguracoesVeiculosCadastroModeRoute
@@ -709,6 +719,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/atendimento/motivos-perda'
     | '/app/configuracoes/atendimento/pipeline'
     | '/app/configuracoes/atendimento/tags'
+    | '/app/configuracoes/sdr/orcamento'
     | '/app/configuracoes/sdr/simulador'
     | '/app/configuracoes/sdr/templates'
     | '/app/configuracoes/veiculos/cadastro-mode'
@@ -774,6 +785,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/atendimento/motivos-perda'
     | '/app/configuracoes/atendimento/pipeline'
     | '/app/configuracoes/atendimento/tags'
+    | '/app/configuracoes/sdr/orcamento'
     | '/app/configuracoes/sdr/simulador'
     | '/app/configuracoes/sdr/templates'
     | '/app/configuracoes/veiculos/cadastro-mode'
@@ -844,6 +856,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/atendimento/motivos-perda'
     | '/app/configuracoes/atendimento/pipeline'
     | '/app/configuracoes/atendimento/tags'
+    | '/app/configuracoes/sdr/orcamento'
     | '/app/configuracoes/sdr/simulador'
     | '/app/configuracoes/sdr/templates'
     | '/app/configuracoes/veiculos/cadastro-mode'
@@ -1303,6 +1316,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesSdrSimuladorRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/configuracoes/sdr/orcamento': {
+      id: '/app/configuracoes/sdr/orcamento'
+      path: '/configuracoes/sdr/orcamento'
+      fullPath: '/app/configuracoes/sdr/orcamento'
+      preLoaderRoute: typeof AppConfiguracoesSdrOrcamentoRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/configuracoes/atendimento/tags': {
       id: '/app/configuracoes/atendimento/tags'
       path: '/configuracoes/atendimento/tags'
@@ -1437,6 +1457,7 @@ interface AppRouteChildren {
   AppConfiguracoesAtendimentoMotivosPerdaRoute: typeof AppConfiguracoesAtendimentoMotivosPerdaRoute
   AppConfiguracoesAtendimentoPipelineRoute: typeof AppConfiguracoesAtendimentoPipelineRoute
   AppConfiguracoesAtendimentoTagsRoute: typeof AppConfiguracoesAtendimentoTagsRoute
+  AppConfiguracoesSdrOrcamentoRoute: typeof AppConfiguracoesSdrOrcamentoRoute
   AppConfiguracoesSdrSimuladorRoute: typeof AppConfiguracoesSdrSimuladorRoute
   AppConfiguracoesSdrTemplatesRoute: typeof AppConfiguracoesSdrTemplatesRoute
   AppConfiguracoesVeiculosCadastroModeRoute: typeof AppConfiguracoesVeiculosCadastroModeRoute
@@ -1486,6 +1507,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesAtendimentoPipelineRoute:
     AppConfiguracoesAtendimentoPipelineRoute,
   AppConfiguracoesAtendimentoTagsRoute: AppConfiguracoesAtendimentoTagsRoute,
+  AppConfiguracoesSdrOrcamentoRoute: AppConfiguracoesSdrOrcamentoRoute,
   AppConfiguracoesSdrSimuladorRoute: AppConfiguracoesSdrSimuladorRoute,
   AppConfiguracoesSdrTemplatesRoute: AppConfiguracoesSdrTemplatesRoute,
   AppConfiguracoesVeiculosCadastroModeRoute:

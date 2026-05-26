@@ -129,6 +129,12 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         to: "/app/configuracoes/sdr/templates",
         roles: ["Owner"],
       },
+      {
+        label: "Orçamento automático",
+        icon: "mdi:file-document-edit-outline",
+        to: "/app/configuracoes/sdr/orcamento",
+        roles: ["Owner"],
+      },
     ],
   },
   {

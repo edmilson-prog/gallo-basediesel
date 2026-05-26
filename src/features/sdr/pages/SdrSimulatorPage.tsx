@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
@@ -9,8 +9,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import type {
+  ICustomer,
   IConversation,
   IMessage,
+  IPart,
+  IPartIdentification,
   IPlatformSettings,
   ISdrResponse,
   ISdrSession,
@@ -18,6 +21,8 @@ import type {
 import { useCurrentStore } from "@/features/multistore";
 import { SectionHeader } from "@/features/admin-settings/components/SectionHeader";
 import { usePlatformSettings } from "@/features/admin-settings/hooks/usePlatformSettings";
+import { usePartsProvider } from "@/providers/data";
+import { SCORE_WEIGHTS } from "@/features/part-identification";
 import { applyResponseToSession, createSdrSession, sdrRespond } from "../engine/respond";
 
 interface ISimMessage {
@@ -25,11 +30,41 @@ interface ISimMessage {
   author: "customer" | "sdr" | "system";
   text: string;
   ts: string;
+  mediaType?: "image";
   trace?: ISdrResponse["trace"];
 }
 
 const SIM_CONVERSATION_ID = "sim-conv";
 const SIM_STORE_ID = "store-matriz";
+
+/**
+ * Stub customer wired into the simulator so the PRD-022 quote path runs
+ * end-to-end without an actual ICustomer being attached to the dummy
+ * conversation. Address is in Frederico Westphalen so the placeholder
+ * shipping rule returns `sameCityValue`.
+ */
+const SIM_CUSTOMER: ICustomer = {
+  id: "sim-customer",
+  storeId: SIM_STORE_ID,
+  type: "B2C",
+  cpf: "000.000.000-00",
+  fullName: "Cliente Simulação",
+  phone: "+55 55 90000-0000",
+  email: "simulacao@gallo-basediesel.test",
+  address: {
+    street: "Av. Brasil",
+    number: "1500",
+    district: "Centro",
+    city: "Frederico Westphalen",
+    state: "RS",
+    zipCode: "98400-000",
+  },
+  sellerId: "sim-seller",
+  status: "ativo",
+  tags: [],
+  notes: [],
+  createdAt: new Date().toISOString(),
+};
 
 function buildSimConversation(storeId: string): IConversation {
   return {
@@ -45,7 +80,7 @@ function buildSimConversation(storeId: string): IConversation {
   };
 }
 
-function buildIncoming(text: string): IMessage {
+function buildIncoming(text: string, mediaType?: "image"): IMessage {
   const now = new Date().toISOString();
   return {
     id: `sim-msg-${crypto.randomUUID()}`,
@@ -54,6 +89,7 @@ function buildIncoming(text: string): IMessage {
     authorType: "customer",
     provider: "mock",
     text,
+    mediaType,
     status: "delivered",
     sentAt: now,
     deliveredAt: now,
@@ -70,10 +106,23 @@ const STATE_BADGE_TONE: Record<ISdrSession["state"], string> = {
   finalizado: "bg-slate-500/10 text-slate-700 dark:text-slate-300",
 };
 
+function confidenceTone(conf: number): string {
+  if (conf >= 0.85) return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
+  if (conf >= 0.6) return "bg-amber-500/10 text-amber-700 dark:text-amber-300";
+  if (conf > 0) return "bg-rose-500/10 text-rose-700 dark:text-rose-300";
+  return "bg-muted text-muted-foreground";
+}
+
+function formatConfidence(conf: number | undefined): string {
+  if (conf === undefined || conf === 0) return "—";
+  return `${Math.round(conf * 100)}%`;
+}
+
 export function SdrSimulatorPage() {
   const { currentStoreId } = useCurrentStore();
   const storeId = currentStoreId ?? SIM_STORE_ID;
   const { settings, loading } = usePlatformSettings(storeId);
+  const partsProvider = usePartsProvider();
 
   const [session, setSession] = useState<ISdrSession>(() =>
     createSdrSession(SIM_CONVERSATION_ID, new Date().toISOString()),
@@ -82,20 +131,48 @@ export function SdrSimulatorPage() {
   const [lastResponse, setLastResponse] = useState<ISdrResponse | null>(null);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [parts, setParts] = useState<IPart[]>([]);
+  const [partsLoading, setPartsLoading] = useState(true);
 
   const conversation = useMemo(() => buildSimConversation(storeId), [storeId]);
 
+  useEffect(() => {
+    let cancelled = false;
+    setPartsLoading(true);
+    partsProvider
+      .list({ pageSize: 60 })
+      .then((page) => {
+        if (cancelled) return;
+        setParts(page.items);
+      })
+      .catch((err) => {
+        if (import.meta.env.DEV) console.warn("[sdr-sim] parts load failed", err);
+      })
+      .finally(() => {
+        if (!cancelled) setPartsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [partsProvider]);
+
   const runTurn = useCallback(
-    async (text: string) => {
+    async (text: string, mediaType?: "image") => {
       if (!settings) return;
       setBusy(true);
-      const incoming = buildIncoming(text);
+      const incoming = buildIncoming(text, mediaType);
+      const displayText = mediaType === "image" ? `📷 [imagem]${text ? ` ${text}` : ""}` : text;
       setMessages((prev) => [
         ...prev,
-        { id: incoming.id, author: "customer", text, ts: incoming.sentAt },
+        { id: incoming.id, author: "customer", text: displayText, ts: incoming.sentAt, mediaType },
       ]);
       await new Promise((r) => window.setTimeout(r, 250));
-      const response = sdrRespond(incoming, session, settings);
+      const response = sdrRespond(incoming, session, settings, {
+        parts,
+        customer: SIM_CUSTOMER,
+        storeId,
+        sellerId: "sim-seller",
+      });
       const next = applyResponseToSession(session, response, new Date().toISOString());
       setSession(next);
       setLastResponse(response);
@@ -124,6 +201,27 @@ export function SdrSimulatorPage() {
             text: `🤖 Sessão finalizada (${action.reason})`,
             ts: new Date().toISOString(),
           });
+        } else if (action.kind === "create_quote") {
+          newMessages.push({
+            id: `sim-msg-${crypto.randomUUID()}`,
+            author: "system",
+            text: `🤖 Orçamento solicitado${action.partId ? ` (peça ${action.partId})` : ""}`,
+            ts: new Date().toISOString(),
+          });
+        } else if (action.kind === "quote_generated") {
+          newMessages.push({
+            id: `sim-msg-${crypto.randomUUID()}`,
+            author: "system",
+            text: `🧾 Orçamento gerado (${action.pending.partName}) — total R$ ${action.pending.total.toFixed(2).replace(".", ",")}`,
+            ts: new Date().toISOString(),
+          });
+        } else if (action.kind === "quote_response") {
+          newMessages.push({
+            id: `sim-msg-${crypto.randomUUID()}`,
+            author: "system",
+            text: `🤖 Resposta detectada: ${action.intent}${action.matchedKeywords.length > 0 ? ` (${action.matchedKeywords.join(", ")})` : ""}`,
+            ts: new Date().toISOString(),
+          });
         }
       }
       if (newMessages.length > 0) {
@@ -131,7 +229,7 @@ export function SdrSimulatorPage() {
       }
       setBusy(false);
     },
-    [session, settings],
+    [parts, session, settings, storeId],
   );
 
   const handleSend = useCallback(() => {
@@ -139,6 +237,12 @@ export function SdrSimulatorPage() {
     if (!text || busy) return;
     setInput("");
     void runTurn(text);
+  }, [busy, input, runTurn]);
+
+  const handleSendPhoto = useCallback(() => {
+    if (busy) return;
+    void runTurn(input.trim(), "image");
+    setInput("");
   }, [busy, input, runTurn]);
 
   const handleReset = useCallback(() => {
@@ -204,8 +308,10 @@ export function SdrSimulatorPage() {
           input={input}
           onInputChange={setInput}
           onSend={handleSend}
+          onSendPhoto={handleSendPhoto}
           busy={busy}
           sdrEnabled={settings.sdrEnabled}
+          partsLoading={partsLoading}
         />
         <InspectorColumn session={session} response={lastResponse} settings={settings} />
       </div>
@@ -218,8 +324,10 @@ interface IConversationColumnProps {
   input: string;
   onInputChange: (next: string) => void;
   onSend: () => void;
+  onSendPhoto: () => void;
   busy: boolean;
   sdrEnabled: boolean;
+  partsLoading: boolean;
 }
 
 function ConversationColumn({
@@ -227,8 +335,10 @@ function ConversationColumn({
   input,
   onInputChange,
   onSend,
+  onSendPhoto,
   busy,
   sdrEnabled,
+  partsLoading,
 }: IConversationColumnProps) {
   return (
     <Card className="flex h-[600px] flex-col">
@@ -241,6 +351,11 @@ function ConversationColumn({
               SDR desabilitado
             </Badge>
           )}
+          {partsLoading && (
+            <Badge variant="secondary" className="ml-2 text-xs">
+              Carregando catálogo…
+            </Badge>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col p-0">
@@ -250,7 +365,7 @@ function ConversationColumn({
               <Icon icon="mdi:message-text-outline" className="size-10" />
               <p>Envie uma mensagem como cliente para iniciar a simulação.</p>
               <p className="text-xs">
-                Ex.: "oi", "preciso de filtro Volvo", "quero falar com vendedor"
+                Ex.: "oi", "preciso de filtro de óleo Volvo FH 460 2020", "quero falar com vendedor"
               </p>
             </div>
           ) : (
@@ -289,6 +404,16 @@ function ConversationColumn({
               disabled={busy}
               aria-label="Mensagem do cliente"
             />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onSendPhoto}
+              disabled={busy}
+              title="Simular envio de foto (placeholder OCR)"
+              aria-label="Enviar foto simulada"
+            >
+              <Icon icon="mdi:image-outline" className="size-4" />
+            </Button>
             <Button onClick={onSend} disabled={busy || input.trim().length === 0}>
               <Icon icon="mdi:send" className="size-4" />
               Enviar
@@ -336,6 +461,11 @@ interface IInspectorColumnProps {
 }
 
 function InspectorColumn({ session, response, settings }: IInspectorColumnProps) {
+  const identification =
+    response?.trace.partIdentification ?? session.collectedData.pendingPartIdentification ?? null;
+  const usedFallback = response?.trace.partIdentificationUsedFallback ?? false;
+  const history = session.collectedData.partIdentificationHistory ?? [];
+
   return (
     <Card className="h-[600px]">
       <CardHeader className="border-b">
@@ -381,6 +511,10 @@ function InspectorColumn({ session, response, settings }: IInspectorColumnProps)
 
         <Separator />
 
+        <PartIdentificationSection identification={identification} usedFallback={usedFallback} />
+
+        <Separator />
+
         <section>
           <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Último turno
@@ -414,6 +548,47 @@ function InspectorColumn({ session, response, settings }: IInspectorColumnProps)
           )}
         </section>
 
+        {history.length > 0 && (
+          <>
+            <Separator />
+            <section>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Histórico de identificações ({history.length})
+              </h3>
+              <ul className="mt-2 max-h-40 space-y-2 overflow-y-auto text-xs">
+                {history.map((entry) => (
+                  <li
+                    key={entry.id}
+                    className="rounded-md border border-border/60 bg-muted/40 px-2 py-1.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-foreground">
+                        {entry.candidates[0]?.partName ?? "—"}
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] ${
+                          entry.status === "confirmed"
+                            ? "border-emerald-500/40 text-emerald-700 dark:text-emerald-300"
+                            : entry.status === "failed"
+                              ? "border-rose-500/40 text-rose-700 dark:text-rose-300"
+                              : "border-muted-foreground/40"
+                        }`}
+                      >
+                        {entry.status}
+                      </Badge>
+                    </div>
+                    <div className="mt-0.5 truncate text-muted-foreground">
+                      “{entry.rawInput.slice(0, 60)}
+                      {entry.rawInput.length > 60 ? "…" : ""}”
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </>
+        )}
+
         <Separator />
 
         <section>
@@ -434,6 +609,169 @@ function InspectorColumn({ session, response, settings }: IInspectorColumnProps)
         </section>
       </CardContent>
     </Card>
+  );
+}
+
+interface IPartIdSectionProps {
+  identification: IPartIdentification | null;
+  usedFallback: boolean;
+}
+
+function PartIdentificationSection({ identification, usedFallback }: IPartIdSectionProps) {
+  if (!identification) {
+    return (
+      <section>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Identificação de peça (PRD-021)
+        </h3>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Envie uma mensagem com intent de peça (ex.:{" "}
+          <em>"preciso de filtro de óleo Volvo FH 460 2020"</em>) para acionar o engine.
+        </p>
+      </section>
+    );
+  }
+
+  const aggregateTone = confidenceTone(identification.confidence);
+  return (
+    <section>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Identificação de peça (PRD-021)
+        </h3>
+        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${aggregateTone}`}>
+          {formatConfidence(identification.confidence)}
+        </span>
+      </div>
+      {usedFallback && (
+        <p className="mt-2 text-[11px] text-amber-700 dark:text-amber-300">
+          Catálogo em construção — exibindo candidatos de exemplo.
+        </p>
+      )}
+
+      <div className="mt-2">
+        <p className="text-[11px] font-semibold text-foreground/80">Atributos extraídos</p>
+        <ul className="mt-1 grid grid-cols-2 gap-1 text-[11px]">
+          <AttributeChip
+            label="Marca"
+            value={identification.extractedAttributes.brand}
+            confidence={identification.attributeConfidence.brand}
+          />
+          <AttributeChip
+            label="Modelo"
+            value={identification.extractedAttributes.model}
+            confidence={identification.attributeConfidence.model}
+          />
+          <AttributeChip
+            label="Ano"
+            value={identification.extractedAttributes.year?.toString()}
+            confidence={identification.attributeConfidence.year}
+          />
+          <AttributeChip
+            label="Motor"
+            value={identification.extractedAttributes.engine}
+            confidence={identification.attributeConfidence.engine}
+          />
+          <AttributeChip
+            label="Categoria"
+            value={identification.extractedAttributes.partCategory}
+            confidence={identification.attributeConfidence.partCategory}
+          />
+          <AttributeChip
+            label="Subtipo"
+            value={identification.extractedAttributes.partSubtype}
+            confidence={identification.attributeConfidence.partSubtype}
+          />
+          {identification.extractedAttributes.oemCode && (
+            <AttributeChip
+              label="OEM"
+              value={identification.extractedAttributes.oemCode}
+              confidence={identification.attributeConfidence.oemCode}
+            />
+          )}
+        </ul>
+      </div>
+
+      <div className="mt-3">
+        <p className="text-[11px] font-semibold text-foreground/80">Decisão</p>
+        <div className="mt-1 flex items-center gap-2">
+          <Badge variant="secondary" className="text-[10px]">
+            {identification.decision.kind}
+          </Badge>
+          <span className="text-[11px] text-muted-foreground">
+            {identification.decision.reason}
+          </span>
+        </div>
+      </div>
+
+      <div className="mt-3">
+        <p className="text-[11px] font-semibold text-foreground/80">
+          Candidatos ({identification.candidates.length})
+        </p>
+        {identification.candidates.length === 0 ? (
+          <p className="mt-1 text-[11px] text-muted-foreground">Nenhum candidato encontrado.</p>
+        ) : (
+          <ul className="mt-1 space-y-1">
+            {identification.candidates.slice(0, 5).map((c) => (
+              <li
+                key={c.partId}
+                className="rounded-md border border-border/60 bg-muted/40 px-2 py-1.5 text-[11px]"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate font-medium text-foreground">{c.partName}</span>
+                  <span
+                    className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] ${confidenceTone(c.score)}`}
+                  >
+                    {formatConfidence(c.score)}
+                  </span>
+                </div>
+                <div className="mt-0.5 flex items-center justify-between text-muted-foreground">
+                  <span>
+                    {c.partBrand ?? "—"}
+                    {c.isEquivalent ? " · equiv." : ""}
+                  </span>
+                  <span>
+                    {c.estimatedPrice != null
+                      ? `R$ ${c.estimatedPrice.toFixed(2).replace(".", ",")}`
+                      : ""}
+                  </span>
+                </div>
+                {c.matchedAttributes.length > 0 && (
+                  <div className="mt-0.5 text-[10px] text-muted-foreground">
+                    match: {c.matchedAttributes.join(", ")}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <p className="mt-2 text-[10px] text-muted-foreground">
+        Pesos: marca {SCORE_WEIGHTS.brand} · modelo {SCORE_WEIGHTS.model} · ano{" "}
+        {SCORE_WEIGHTS.yearInRange} · motor {SCORE_WEIGHTS.engine} · categoria{" "}
+        {SCORE_WEIGHTS.partCategory} · equiv. {SCORE_WEIGHTS.equivalentPenalty}
+      </p>
+    </section>
+  );
+}
+
+interface IAttributeChipProps {
+  label: string;
+  value?: string;
+  confidence?: number;
+}
+
+function AttributeChip({ label, value, confidence }: IAttributeChipProps) {
+  const conf = confidence ?? 0;
+  return (
+    <li className={`rounded-md px-1.5 py-1 ${confidenceTone(conf)}`}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[9px] uppercase tracking-wide opacity-70">{label}</span>
+        <span className="text-[9px] font-semibold opacity-70">{formatConfidence(conf)}</span>
+      </div>
+      <div className="truncate text-[11px] font-medium">{value || "—"}</div>
+    </li>
   );
 }
 

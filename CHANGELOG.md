@@ -4,6 +4,245 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.19.0] — Quotemaster · 2026-05-26
+
+Geração automática de orçamento via SDR (PRD-022) — quando o cliente
+confirma a peça identificada (PRD-021), o SDR compõe um `IQuote`
+estruturado (origin='sdr') com precificação base, frete preliminar
+por região, validade configurável e envia mensagem rica formatada
+para o WhatsApp com 3 opções (aceitar/recusar/falar com vendedor).
+Pipeline puro (`generateSdrQuote` → `renderQuoteMessage` →
+`parseQuoteResponse`) preparado para troca por serviço backend na
+Fase 2 sem refatorar consumidores.
+
+### Added
+
+- **Tipos novos** em `src/shared/types/sdr-quote.ts`:
+  `ISdrQuoteTemplates` (4 slots), `ISdrShippingPlaceholderSettings`,
+  `ISdrShippingResult`, `ISdrPendingQuote`, `IQuoteResponseMatch`,
+  `QuoteResponseIntent` e `SdrOtherStatesAction`.
+- **`IPlatformSettings`** ganha 4 campos novos (PRD-022 RF-002):
+  `sdrQuoteValidityDays` (default 7), `sdrAutoDiscountPct`
+  (default 0), `sdrQuoteTemplates` (4 templates editáveis) e
+  `sdrShippingPlaceholder` (mesma cidade R$ 50, mesmo estado R$ 80,
+  outros estados "a combinar").
+- **`SdrSessionState`** ganha `aguardando_resposta_orcamento` e
+  `aguardando_dados_pedido` — `ISdrCollectedData` ganha
+  `pendingQuote`, `paymentMethod`, `deliveryPreference` e
+  `pendingOrderId`.
+- **Engine `generateSdrQuote()`** (`features/sdr-quote/engine/generate.ts`)
+  — função pura que recebe `IPartIdentification` confirmada, busca
+  preço em `IPart`, aplica desconto (se autorizado), calcula frete
+  via placeholder, monta `IQuote` com `origin='sdr'`,
+  `status='enviado'`, `validUntil = now + sdrQuoteValidityDays`.
+- **Engine `calculateShippingPlaceholder()`** (RF-008) — decisão por
+  região: mesma cidade / mesmo estado / outros estados (com modo
+  `to_negotiate` ou `fixed_value`). Trace de motivo (`same_city`,
+  `other_state_negotiate`, `missing_address`) consumido pelo
+  inspetor.
+- **`renderQuoteMessage()`** + 3 renderizadores específicos
+  (`renderAcceptMessage`, `renderRejectMessage`,
+  `renderEscalateMessage`) com substituição de variáveis
+  (`{{peca_nome}}`, `{{valor_unitario}}`, `{{total}}`,
+  `{{frete_formatado}}`, `{{validade}}`, `{{cliente_nome}}`, etc.).
+  Auxiliar `{{cliente_nome_separador}}` colapsa vírgula quando não
+  há nome.
+- **`parseQuoteResponse()`** classifica resposta do cliente em 5
+  intents (`accept`, `reject`, `escalate`, `negotiate`, `unknown`)
+  via regex priorizado. "tá caro" / "tem por menos" / "desconto"
+  caem em `negotiate` e escalam automaticamente para humano.
+- **4 templates default** (`DEFAULT_SDR_QUOTE_TEMPLATES`):
+  generation (mensagem rica com emoji), accept (pergunta pagamento +
+  prazo), reject (oferece alternativas), escalate (passa pra
+  vendedor).
+- **Integração com SDR (PRD-020)** —
+  `sdrRespond()` agora detecta sequência completa em 3 níveis:
+  - Quando `pendingPartIdentification` resolve confirmada e há
+    `context.parts + context.customer`, gera quote inline,
+    transiciona para `aguardando_resposta_orcamento` e emite
+    `quote_generated`.
+  - Quando `pendingQuote` existe, roteia a resposta via
+    `parseQuoteResponse`: aceite vai para `aguardando_dados_pedido`,
+    recusa volta para `roteamento`, escalate/negotiate finalizam
+    com `escalate_to_human`, unknown re-pergunta.
+  - Quando state é `aguardando_dados_pedido`, captura método de
+    pagamento (PIX/Boleto/Cartão/Dinheiro detectados por regex) e
+    prazo de entrega, salva em `collectedData` e finaliza.
+  - Suporta orçamento expirado (RF-025): detecta `now > validUntil`
+    e responde "Esse orçamento já passou da validade. Vou gerar um
+    novo."
+- **`useSdrResponder()`** persiste quote via
+  `useQuotesProvider().create()` em resposta a `quote_generated`;
+  no aceite, atualiza status para `aceito` e cria `IOrder`
+  placeholder via `useOrdersProvider().create()` (stub PRD-032 com
+  margin estimada 30%) — retorna `persistedQuote` e `orderStubId` no
+  resultado do turno. 7 novos audit actions: `sdr_quote_create`,
+  `sdr_quote_accepted`, `sdr_quote_rejected`,
+  `sdr_quote_negotiate_detected`, `sdr_quote_escalate`,
+  `sdr_quote_unknown_reply` e `sdr_order_stub_created`.
+- **Hook `useSdrQuoteMetrics()`** calcula totalQuotes, acceptedRate,
+  rejectedRate, pendingCount, movedRevenue e averageTicket sobre
+  quotes com `origin='sdr'` — alimenta painel SDR (PRD-024) e a
+  página admin de configurações.
+- **Página `/app/configuracoes/sdr/orcamento`** (Owner-only) — 4
+  blocos: 4 cards de métrica no topo (total/aceite/recusa/valor
+  movido), card de regras gerais (slider de validade 1-30 dias,
+  slider de desconto 0-10%), card de frete placeholder (4 campos
+  numéricos + select `to_negotiate | fixed_value` + cidade/UF da
+  loja), card de templates com `Textarea` por slot e botão
+  "Restaurar padrão". Sticky footer com salvar/descartar e
+  `UnsavedChangesDialog` no exit.
+- **Item de menu "Orçamento automático"** adicionado em "Agente
+  SDR" do `SettingsLayout`.
+- **Simulador SDR** passa stub `SIM_CUSTOMER` (Frederico Westphalen,
+  para que o cálculo de frete caia em `sameCityValue`) e exibe
+  mensagens `system` quando `quote_generated` ou `quote_response`
+  são emitidos pela engine, mostrando intent detectada e keywords.
+
+### Changed
+
+- `ISdrAction` ganha 4 variantes novas: `quote_generated`,
+  `quote_response`, `order_stub_created`, e `create_quote` agora
+  carrega `identificationId?: ID`.
+- `ISdrTrace` ganha `pendingQuote` e `quoteResponseIntent`;
+  `templateUsed` aceita 7 triggers novos (`quote_generation`,
+  `quote_accept`, `quote_reject`, `quote_escalate`, `quote_unknown`,
+  `quote_expired`, `order_captured`).
+- `seedStore.ts` injeta as 4 configurações novas com defaults
+  conservadores (frete same-city R$ 50, sem desconto automático,
+  validade 7 dias).
+
+### Notes (Fase 2)
+
+- Cálculo de frete real via integração transportadora substitui
+  `calculateShippingPlaceholder` quando PRD-033 entregar.
+- Persistência do quote via `useQuotesProvider` é stub mock —
+  `useOrdersProvider().create()` para pedido aceito também é
+  placeholder até PRD-032 (checkout completo com pagamento).
+- Geração de PDF do orçamento, expiração automática com lembrete
+  e múltiplos itens por quote ficam para Fase 2.
+- Edição de templates pelo Owner é texto livre — Fase 2 ganha
+  preview lado-a-lado e validação de placeholders.
+
+## [0.18.0] — Scout · 2026-05-26
+
+Engine de identificação de peças (PRD-021) — o SDR passa a entender
+"preciso de filtro de óleo Volvo FH 460 2020 motor D13K460" extraindo
+marca, modelo, ano, motor, categoria e subtipo da peça em uma única
+mensagem, busca no catálogo via pesos por aplicação, classifica a
+confiança em verde/amarelo/vermelho e propõe top 3 candidatos
+(originais + equivalentes) com mensagem pronta para o WhatsApp. A
+arquitetura é toda função pura (`extractAttributes`, `searchCatalog`,
+`scoreCandidate`, `decideAction`, `formatConfirmationMessage`,
+`identifyPart`), preparada para troca por LLM na Fase 2 sem refatorar
+consumidores.
+
+### Added
+
+- **Tipos novos** em `src/shared/types/part-identification.ts`:
+  `IPartIdentification`, `IPartCandidate`,
+  `IPartIdentificationDecision`, `IExtractedAttributes`,
+  `AttributeConfidence`, `PartIdentificationStatus`,
+  `PartIdentificationActionKind` e `PartCategory` (10 famílias —
+  filtro, freio, correia, motor, embreagem, elétrica, transmissão,
+  suspensão, arrefecimento, lubrificante).
+- **Lookup tables** em `src/features/part-identification/data/`:
+  - `brands.ts` — 5 marcas (Volvo, Scania, Mercedes-Benz, Ford Cargo,
+    Iveco) com aliases ("mercedes-benz", "mb", "cargo"…).
+  - `models.ts` — 18 modelos por marca, cada um com aliases sem espaço
+    ("R450" ≡ "r 450").
+  - `engines.ts` — 18 motores por marca (D13K460, DC13, OM 457 LA,
+    Cursor 13…).
+  - `partCategories.ts` — 10 categorias + 40+ subtipos (óleo, ar,
+    combustível, cabine; pastilha, lona, tambor; etc.).
+- **Engine de extração** (`engine/extract.ts`) — parsers individuais
+  com confidence por atributo (`extractBrand`, `extractModel`,
+  `extractYear`, `extractEngine`, `extractPartCategory`,
+  `extractPartSubtype`, `extractOemCode`); orquestrador
+  `extractAttributes(text, context)` que reaproveita
+  `context.vehicles[0]` quando o cliente tem 1 veículo cadastrado e
+  marca/modelo não vieram na mensagem; flag
+  `multipleVehiclesAmbiguous` quando a frota tem 2+ caminhões.
+- **Engine de busca** (`engine/search.ts`) — `searchCatalog(attrs,
+parts)` recebe um snapshot de `IPart[]` (sem acoplamento com
+  provider); short-circuit por código OEM exato; `scoreCandidate()`
+  com pesos `SCORE_WEIGHTS` mandatórios pelo PRD (marca 0.35, modelo
+  0.30, ano 0.15, motor 0.10, categoria 0.10, equivalente -0.05);
+  inclui equivalentes (`IPart.equivalentPartIds`) do top candidato;
+  `searchCatalogWithFallback()` emite 3 candidatos estilizados quando
+  o catálogo está vazio.
+- **Engine de decisão** (`engine/decide.ts`) — `decideAction()` com 3
+  estratégias: `confirm_auto` (1 candidato score > 0.9), `ask_user`
+  (2+ com score >= 0.6), `request_more_info` (top score < 0.6 ou
+  poucos candidatos); calcula lista de atributos faltantes para
+  perguntas específicas.
+- **Engine de formatação** (`engine/format.ts`) —
+  `formatConfirmationMessage()` com 3 templates por kind de decisão;
+  destaca economia em equivalentes (>= 5% vs original);
+  `parseCustomerChoice()` aceita "1", "2", "3", "primeiro", "segundo",
+  "terceiro"; constantes `PHOTO_PLACEHOLDER_MESSAGE` (RF-020) e
+  `OEM_NOT_FOUND_MESSAGE` (RF-019).
+- **Orquestrador `identifyPart()`** (`engine/identify.ts`) — função
+  pura que encadeia extract → search → decide e devolve
+  `IPartIdentification` completa; `applyCustomerChoice()` para
+  resolver para `confirmed` / `rejected` / `failed`.
+- **Integração com SDR (PRD-020)** —
+  - `sdrRespond()` ganha 4º argumento opcional
+    `context: { parts?, customer?, vehicles? }`; quando presente, na
+    intent `identificar_peca` chama `identifyPart()` inline e usa o
+    texto formatado como `send_message` (em vez de uma pergunta
+    genérica).
+  - Curto-circuito de foto: qualquer `IMessage` com
+    `mediaType="image"` recebe `PHOTO_PLACEHOLDER_MESSAGE` antes do
+    pipeline normal.
+  - Resolução automática de identificação pendente: quando a sessão
+    tem `pendingPartIdentification` e a próxima mensagem casa com
+    "1/2/3/primeiro/segundo/terceiro", o engine resolve para
+    `confirmed`, marca `collectedData.identifiedPart` e emite
+    `create_quote` (stub do PRD-022).
+  - `ISdrCollectedData` ganha `pendingPartIdentification` e
+    `partIdentificationHistory`; `ISdrAction` ganha
+    `part_identification_resolved`; `ISdrTrace` ganha
+    `partIdentification`, `partIdentificationUsedFallback` e
+    `partIdentificationResolved`.
+- **`useSdrResponder()`** repassa `parts/customer/vehicles` para a
+  engine; novos audit logs `sdr_identify_part_requested` (com decisão
+  - confidence + nº de candidatos), `sdr_identify_part_resolved` e
+    `sdr_photo_received` (OCR pendente Fase 2).
+- **Simulador `/app/configuracoes/sdr/simulador`** carrega catálogo
+  via `usePartsProvider().list({ pageSize: 60 })` e injeta na engine.
+  Inspetor à direita ganha 3 seções novas:
+  - **Identificação de peça** — atributos extraídos em chips
+    coloridos (verde >= 85%, amarelo 60-84%, vermelho < 60%),
+    decisão, lista de candidatos com score, marca, preço, tag
+    "equiv." e atributos casados, mais legenda dos pesos.
+  - **Histórico de identificações** — últimas 20 com status colorido,
+    nome do top candidato e trecho do raw input.
+  - **Botão de foto** ao lado do input — envia `IMessage` com
+    `mediaType='image'` para testar o placeholder OCR.
+
+### Changed
+
+- `ISdrCollectedData` adiciona `pendingPartIdentification?` e
+  `partIdentificationHistory?` — `applyResponseToSession()` mantém o
+  histórico (últimos 20) e limpa o slot pending quando o engine
+  retorna `undefined` explicitamente.
+- `sdrRespond()` mantém assinatura backward compatible — o 4º
+  argumento é opcional e default `{}`; chamadas existentes continuam
+  funcionando com o template `pergunta_necessidade` como fallback.
+
+### Notes (Fase 2)
+
+- OCR real (Tesseract.js ou Google Vision) substitui o placeholder
+  quando o cliente envia foto da peça.
+- Substituir parsers por LLM mantém `extractAttributes()` /
+  `searchCatalog()` / `decideAction()` com a mesma assinatura — os
+  consumidores não mudam.
+- Edição de lookup tables (marcas, modelos, motores) ganha
+  sub-rota `/app/configuracoes/sdr/dicionarios` (placeholder no MVP).
+- Histórico de identificações ganha aba dedicada no painel do SDR
+  (PRD-024) com filtros por status e período.
+
 ## [0.17.0] — Concierge · 2026-05-26
 
 Agente SDR simulado (PRD-020) — o assistente IA do GALLO BASE DIESEL
