@@ -19,6 +19,7 @@ import type {
   IRanking,
   IRecommendation,
   IRole,
+  ISdrEscalation,
   ISdrSession,
   ISeller,
   IStore,
@@ -52,6 +53,7 @@ import { generateBadges } from "./badge";
 import { generateWhatsAppAccounts } from "./whatsappAccount";
 import { generateDistributionTrace } from "./distributionTrace";
 import { generateSdrSession } from "./sdrSession";
+import { generateSdrEscalation } from "./sdrEscalation";
 
 /**
  * Full GALLO mock dataset, ready to populate the Zustand store. Generated
@@ -86,6 +88,7 @@ export interface IBootstrappedDataset {
   abcClassifications: IABCClassification[];
   distributionTraces: IDistributionTrace[];
   sdrSessions: ISdrSession[];
+  sdrEscalations: ISdrEscalation[];
 }
 
 /**
@@ -347,6 +350,34 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
     );
   }
 
+  // 21. SDR escalations (PRD-023) — synthesize 30 historical handoffs from
+  // sessions that finished with `escalated`. When fewer escalated sessions
+  // exist than the target count, fill the rest with random sessions to give
+  // the painel a believable backlog.
+  const sdrEscalations: ISdrEscalation[] = [];
+  const escalatedSessions = sdrSessions.filter((s) => s.finishReason === "escalated");
+  const escalationPool = escalatedSessions.length > 0 ? escalatedSessions : sdrSessions;
+  const escalationCount = Math.min(30, escalationPool.length);
+  const escalationSellerIds = sellers
+    .filter((s) => SEED_VENDEDOR_SELLER_IDS.includes(s.id))
+    .map((s) => s.id);
+  for (let i = 0; i < escalationCount; i += 1) {
+    const session = escalationPool[i % escalationPool.length];
+    const conv = conversations.find((c) => c.id === session.conversationId);
+    if (!conv) continue;
+    const customer = conv.customerId ? customers.find((c) => c.id === conv.customerId) : undefined;
+    sdrEscalations.push(
+      generateSdrEscalation(ctx, {
+        sequence: i,
+        session,
+        conversation: conv,
+        customer,
+        sellerIds: escalationSellerIds,
+        now,
+      }),
+    );
+  }
+
   const dataset: IBootstrappedDataset = {
     seed,
     generatedAt: now.toISOString(),
@@ -376,6 +407,7 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
     abcClassifications,
     distributionTraces,
     sdrSessions,
+    sdrEscalations,
   };
 
   if (import.meta.env.DEV) {

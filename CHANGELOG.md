@@ -4,6 +4,119 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.20.0] — Handoff · 2026-05-26
+
+Handoff estruturado SDR → vendedor humano (PRD-023) — quando o SDR
+detecta que precisa transferir (cliente pediu humano, negociação,
+falha repetida), o sistema compõe um resumo de contexto rico,
+escolhe o melhor vendedor disponível (carteira → especialidade →
+disponibilidade), envia uma mensagem de despedida ao cliente,
+persiste um bubble system com todo o histórico relevante e atribui
+a conversa. Modo `urgent` faz broadcast aos vendedores online se
+o titular não responder em 30s; modo `normal` segue cascata padrão;
+modo `standard` aguarda a fila com timeout configurável (5min
+urgent / 30min normal). Métricas TTFR/abandono/conversão alimentam
+o painel SDR (PRD-024).
+
+### Added
+
+- **Tipos novos** em `src/shared/types/sdr-escalation.ts`:
+  `ISdrEscalation` (registro persistente), `ISdrContextSummary`
+  (snapshot estruturado), `ISdrEscalationVehicle`,
+  `ISdrEscalationPart`, `ISdrEscalationQuote`,
+  `ISdrEscalationTraceStep`, `SdrEscalationReason`,
+  `SdrEscalationMode` e `SdrEscalationStatus`.
+- **`IPlatformSettings`** ganha 4 campos (PRD-023 RF-002):
+  `escalationQueueTimeoutMinutesUrgent` (5min),
+  `escalationQueueTimeoutMinutesNormal` (30min),
+  `escalationCustomerHandoffTemplate` (template editável) e
+  `escalationUrgentBroadcastDelaySeconds` (30s).
+- **Engine `escalateToHuman()`** (`features/sdr-escalation/engine/escalate.ts`)
+  — função pura que detecta modo (`urgent`/`normal`/`standard`) a
+  partir do motivo, chama `chooseHumanSeller()` e devolve o registro
+  + seleção sem side effects.
+- **Engine `chooseHumanSeller()`** — reusa a lógica do PRD-013 com
+  3 adaptações: carteira sempre vence (mesmo offline em modo
+  normal/standard), especialidade casa contra a marca identificada
+  pelo PRD-021, modo `urgent` força preferência por `online`
+  (substitui titular offline).
+- **`buildContextSummary()`** — compõe `ISdrContextSummary` agregando
+  sessão SDR + cliente + veículo + peça (PRD-021) + orçamento
+  (PRD-022) com tempo no SDR, número de mensagens e trace de estados.
+- **`renderEscalationBubble()` + `renderCustomerHandoff()`** —
+  templates de renderização. O bubble system carrega cabeçalho
+  destacado "🤖 ESCALADO PELO SDR — \<modo\>", seções condicionais
+  (cliente, veículo, peça, orçamento) e separadores visuais. A
+  mensagem ao cliente usa placeholders `{{saudacao_nome}}` e
+  `{{resumo_curto}}`.
+- **Hook `useSdrEscalation()`** — orquestra o handoff: monta
+  contextSummary, roda o engine, envia handoff message + bubble,
+  patcha conversation (`assignedSellerId`, `isSdrActive=false`),
+  finaliza session (`finishReason='escalated'`), persiste registro
+  e grava audit log atômico.
+- **Hook `useEscalationToasts()`** — escuta novas escalações e dispara
+  toast prominente para o vendedor recém-atribuído com botão
+  "Atender agora". Modo urgent usa `toast.error` com cor + duração
+  reforçadas.
+- **Hook `useUrgentBroadcastTimer()`** — Owner/Gestor mantém o timer
+  rodando; após 30s sem resposta do escolhido, marca
+  `urgentBroadcastAt`, emite `sdr_escalate_broadcast`, dispara o
+  evento de fila e gera toast de alerta.
+- **Hook `useEscalationQueueTimeoutMonitor()`** — monitora
+  escalações `pending` cujo tempo em fila ultrapassou
+  `escalationQueueTimeoutMinutes*` e notifica o Owner; também
+  marca como `abandoned` após 1h sem resposta humana (RF-020).
+- **Hook `useEscalationMetrics()`** — devolve TTFR médio, taxa de
+  abandono, taxa de resposta, acerto de especialidade e contagem
+  por modo (PRD-023 RF-021). Recalcula via `window` event.
+- **Hook `useUrgentBroadcastQueue()`** — gerencia a fila de
+  broadcasts urgentes ativos, expõe `claim()` para o primeiro
+  vendedor assumir.
+- **Hook `useEscalationsByConversation()` + `useConversationEscalation()`** —
+  lookups reativos consumidos pela inbox e pela conversa.
+- **Componentes** `EscalationBadge` (compact + banner) e
+  `UrgentBroadcastClaim` (painel flutuante de claim para urgentes).
+- **Inbox (PRD-010)** — item de conversa escalada ganha badge
+  "🤖 Escalado · \<modo\>"; borda esquerda em `--brand-parts`
+  durante os 60s após a escalação (RF-016); filtro "Escaladas pelo
+  SDR" no chip bar.
+- **Conversa (PRD-011)** — header ganha banner prominente
+  "🤖 Esta conversa foi escalada pelo SDR — \<modo\>" abaixo do
+  título (RF-017). Modo urgente pulsa.
+- **`UrgentBroadcastClaim`** fixo no `AppLayout` (canto inferior
+  direito) — primeiro a clicar "Atender agora" assume.
+- **Página `/app/sdr`** ganha `EscalationMetricsCard` para Owner
+  visualizar TTFR, abandono, taxa de resposta, acerto de
+  especialidade e volume por modo. PRD-024 vai expandir.
+- **Provider novo** `sdrEscalations` (`ISdrEscalationsProvider`)
+  com mock + stub Supabase. Hook `useSdrEscalationsProvider()`.
+- **Mocks** — 30 escalações históricas (`generateSdrEscalation`)
+  com mix de status (answered 55% / assigned 25% / pending 10% /
+  abandoned 10%) e modos ponderados pela razão.
+- **Audit log** — eventos `sdr_escalate`, `sdr_escalate_assign`,
+  `sdr_escalate_broadcast`, `sdr_escalate_broadcast_claim`,
+  `sdr_escalate_queue_timeout` e `sdr_escalate_abandoned`.
+
+### Changed
+
+- **`useSdrResponder()`** aceita `onEscalate?: (info) => void`
+  opcional — quando o engine emite `escalate_to_human`, o callback
+  recebe a sessão atualizada + motivo. Permite ligar o handoff
+  estruturado a partir do simulador / inbox sem quebrar consumidores
+  existentes.
+- **`ConversationHeader`** e **`ConversationListItem`** aceitam a
+  prop opcional `escalation` para renderizar os badges/banner.
+- **`InboxFilters`** ganha toggle "Escaladas pelo SDR" e
+  `useInboxFilters` persiste `escalated` no URL search.
+
+### Notes
+
+- **`PRD-023`** marcado como `_DONE` após esta release.
+- **Provider Supabase** segue stub; tabela `sdr_escalations` chega
+  na Fase 2 junto com `sdr_sessions`.
+- Toast prominente reaproveita `sonner` — modo urgent usa
+  `toast.error` para diferencial visual sem mudar a infra.
+
 ## [0.19.0] — Quotemaster · 2026-05-26
 
 Geração automática de orçamento via SDR (PRD-022) — quando o cliente

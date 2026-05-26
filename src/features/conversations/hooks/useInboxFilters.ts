@@ -14,6 +14,8 @@ export interface IInboxFiltersState {
   period: PeriodFilter;
   search: string;
   sort: SortMode;
+  /** Restrict to conversations that were escalated by the SDR (PRD-023). */
+  escalated: boolean;
 }
 
 export interface IInboxFiltersSearch {
@@ -24,6 +26,7 @@ export interface IInboxFiltersSearch {
   period?: string;
   q?: string;
   sort?: string;
+  escalated?: string;
 }
 
 const VALID_STATUS = new Set<ConversationStatus | "all">([
@@ -54,6 +57,7 @@ const DEFAULT_FILTERS: IInboxFiltersState = {
   period: "all",
   search: "",
   sort: "lastMessage",
+  escalated: false,
 };
 
 /**
@@ -77,6 +81,7 @@ export function validateInboxSearch(raw: Record<string, unknown>): IInboxFilters
     out.period = raw.period;
   if (typeof raw.q === "string" && raw.q.length > 0) out.q = raw.q;
   if (typeof raw.sort === "string" && VALID_SORT.has(raw.sort as SortMode)) out.sort = raw.sort;
+  if (raw.escalated === "1" || raw.escalated === "true") out.escalated = "1";
   return out;
 }
 
@@ -98,6 +103,7 @@ function readState(search: IInboxFiltersSearch, currentUserId: ID | null): IInbo
     period: (search.period as IInboxFiltersState["period"] | undefined) ?? DEFAULT_FILTERS.period,
     search: search.q ?? DEFAULT_FILTERS.search,
     sort: (search.sort as IInboxFiltersState["sort"] | undefined) ?? DEFAULT_FILTERS.sort,
+    escalated: search.escalated === "1" || search.escalated === "true",
   };
 }
 
@@ -118,6 +124,7 @@ export function useInboxFilters(currentUserId: ID | null): {
   setPeriod: (period: PeriodFilter) => void;
   setSearch: (q: string) => void;
   setSort: (sort: SortMode) => void;
+  setEscalated: (escalated: boolean) => void;
   reset: () => void;
   activeCount: number;
 } {
@@ -154,6 +161,7 @@ export function useInboxFilters(currentUserId: ID | null): {
     setPeriod: (v) => apply({ period: v === "all" ? undefined : v }),
     setSearch: (q) => apply({ q: q.length === 0 ? undefined : q }),
     setSort: (v) => apply({ sort: v === "lastMessage" ? undefined : v }),
+    setEscalated: (v) => apply({ escalated: v ? "1" : undefined }),
     reset: () =>
       void navigate({
         search: () => ({}),
@@ -170,6 +178,7 @@ function countActive(filters: IInboxFiltersState): number {
   if (filters.tags.length > 0) n += 1;
   if (filters.period !== DEFAULT_FILTERS.period) n += 1;
   if (filters.search.length > 0) n += 1;
+  if (filters.escalated) n += 1;
   return n;
 }
 

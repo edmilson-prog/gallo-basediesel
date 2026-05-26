@@ -160,3 +160,18 @@ export function selectActiveSdrSessions() {
     (s) => s.state !== "finalizado" && s.state !== "pausado",
   );
 }
+
+export function selectAllSdrEscalations() {
+  return getMockState().sdrEscalations;
+}
+
+export function selectSdrEscalationById(id: ID) {
+  return getMockState().sdrEscalations.find((e) => e.id === id) ?? null;
+}
+
+export function selectSdrEscalationByConversation(conversationId: ID) {
+  // Most recent first — escalations are appended sequentially.
+  const all = getMockState().sdrEscalations.filter((e) => e.conversationId === conversationId);
+  if (all.length === 0) return null;
+  return [...all].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+}

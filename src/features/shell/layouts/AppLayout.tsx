@@ -6,6 +6,9 @@ import { BottomNav } from "@/features/shell/components/BottomNav";
 import { useDistributionToasts } from "@/features/distribution/hooks/useDistributionToasts";
 import { useAutoRevertTimer } from "@/features/carteira/hooks/useAutoRevertTimer";
 import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
+import { useEscalationToasts, UrgentBroadcastClaim } from "@/features/sdr-escalation";
+import { useEscalationQueueTimeoutMonitor } from "@/features/sdr-escalation/hooks/useEscalationQueueTimeoutMonitor";
+import { useUrgentBroadcastTimer } from "@/features/sdr-escalation/hooks/useUrgentBroadcastTimer";
 
 /**
  * Default layout of the internal app (`/app/*`).
@@ -13,11 +16,15 @@ import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
  */
 export function AppLayout({ children }: { children?: React.ReactNode }) {
   useDistributionToasts();
+  useEscalationToasts();
   // Auto-revert global: Owner/Gestor com app aberto disparam expiração
   // automática de transferências temporárias vencidas. PRD-018 RF-030.
   const role = useCurrentRole();
   const canRunAutoRevert = role === "Owner" || role === "Gestor";
   useAutoRevertTimer(canRunAutoRevert);
+  // PRD-023 — Owner/Gestor monitora timeouts de fila e dispara broadcast urgent.
+  useEscalationQueueTimeoutMonitor(canRunAutoRevert);
+  useUrgentBroadcastTimer(canRunAutoRevert);
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex min-h-screen bg-background text-foreground">
@@ -27,6 +34,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
           <main className="flex-1 overflow-y-auto pb-16 md:pb-0">{children ?? <Outlet />}</main>
         </div>
         <BottomNav />
+        <UrgentBroadcastClaim />
       </div>
     </TooltipProvider>
   );

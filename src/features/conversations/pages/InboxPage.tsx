@@ -6,6 +6,7 @@ import { useCustomersProvider, useLeadsProvider, useMessagesProvider } from "@/p
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useEscalationsByConversation } from "@/features/sdr-escalation";
 import { useConversationsList } from "../hooks/useConversationsList";
 import { useInboxFilters, filtersToListParams } from "../hooks/useInboxFilters";
 import { useRealtimeConversations } from "../hooks/useRealtimeConversations";
@@ -134,6 +135,7 @@ export function InboxPage() {
     setPeriod,
     setSearch,
     setSort,
+    setEscalated,
     reset,
     activeCount,
   } = useInboxFilters(userId);
@@ -145,9 +147,22 @@ export function InboxPage() {
     () => filtersToListParams(filters, { currentUserId: userId }),
     [filters, userId],
   );
-  const { items, total, isLoading, isLoadingMore, hasMore, error, loadMore, refetch } =
-    useConversationsList(listParams, { refreshKey: realtime.tick });
+  const {
+    items: rawItems,
+    total,
+    isLoading,
+    isLoadingMore,
+    hasMore,
+    error,
+    loadMore,
+    refetch,
+  } = useConversationsList(listParams, { refreshKey: realtime.tick });
 
+  const escalationsByConversation = useEscalationsByConversation();
+  const items = useMemo(() => {
+    if (!filters.escalated) return rawItems;
+    return rawItems.filter((c) => escalationsByConversation.has(c.id));
+  }, [rawItems, escalationsByConversation, filters.escalated]);
   const related = useRelatedEntities(items);
   const { isUnread, markViewed } = useUnreadTracking(userId);
   const { lastId, setLastId } = useLastSelectedConversation();
@@ -263,6 +278,7 @@ export function InboxPage() {
           onTags={setTags}
           onPeriod={setPeriod}
           onSort={setSort}
+          onEscalated={setEscalated}
           onClear={reset}
           activeCount={activeCount}
         />
@@ -317,6 +333,7 @@ export function InboxPage() {
                 highlightTerm={filters.search}
                 onSelect={() => handleSelect(conversation.id)}
                 trailing={<QuickActions conversation={conversation} onMutated={refetch} />}
+                escalation={escalationsByConversation.get(conversation.id) ?? null}
               />
             ))}
 

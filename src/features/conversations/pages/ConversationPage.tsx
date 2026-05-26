@@ -6,6 +6,7 @@ import { EmptyState } from "@/features/shell/components/EmptyState";
 import { CustomerProfileFiche } from "@/features/customers/components/CustomerProfileFiche";
 import { useFicheButtonHandler } from "@/features/customers/hooks/useFicheLayout";
 import { useConversationDetail } from "../hooks/useConversationDetail";
+import { useConversationEscalation } from "@/features/sdr-escalation/hooks/useConversationEscalation";
 import { ConversationHeader } from "../components/ConversationHeader";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
 import { MessageList } from "../components/MessageList";
@@ -22,6 +23,7 @@ export function ConversationPage() {
   const detail = useConversationDetail(conversationId);
   const fiche = useConversationFiche();
   const messages = useMessages(conversationId);
+  const escalation = useConversationEscalation(conversationId);
   const ficheButtonClick = useFicheButtonHandler({
     customerId: detail.conversation?.customerId ?? null,
     toggle: fiche.toggle,
@@ -73,6 +75,7 @@ export function ConversationPage() {
                   onMutated={detail.refresh}
                 />
               }
+              escalation={escalation}
             />
 
             <div className="min-h-0 flex-1">

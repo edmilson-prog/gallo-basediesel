@@ -157,6 +157,19 @@ export type {
   SdrOtherStatesAction,
 } from "./sdr-quote";
 
+// SDR Escalation (PRD-023)
+export type {
+  ISdrEscalation,
+  ISdrContextSummary,
+  ISdrEscalationVehicle,
+  ISdrEscalationPart,
+  ISdrEscalationQuote,
+  ISdrEscalationTraceStep,
+  SdrEscalationReason,
+  SdrEscalationMode,
+  SdrEscalationStatus,
+} from "./sdr-escalation";
+
 // BI
 export type {
   IGoal,

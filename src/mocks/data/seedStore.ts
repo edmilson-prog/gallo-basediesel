@@ -55,5 +55,10 @@ export const SEED_STORE: IStore = {
       homeCity: "Frederico Westphalen",
       homeState: "RS",
     },
+    escalationQueueTimeoutMinutesUrgent: 5,
+    escalationQueueTimeoutMinutesNormal: 30,
+    escalationCustomerHandoffTemplate:
+      "🤖 Beleza{{saudacao_nome}}! Vou conectar você com nosso vendedor especialista.\n\n📋 Resumo do que conversamos:\n{{resumo_curto}}\n\nAguarda só um instante, ele vai assumir a conversa agora.",
+    escalationUrgentBroadcastDelaySeconds: 30,
   },
 };

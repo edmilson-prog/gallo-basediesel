@@ -120,6 +120,15 @@ export interface IPlatformSettings {
   sdrQuoteTemplates: ISdrQuoteTemplates;
   /** Placeholder shipping configuration consumed by the SDR-quote engine. */
   sdrShippingPlaceholder: ISdrShippingPlaceholderSettings;
+  /**
+   * SDR → human escalation tuning (PRD-023). Controls queue timeouts per mode,
+   * the customer-facing handoff template and the broadcast delay for urgent
+   * escalations.
+   */
+  escalationQueueTimeoutMinutesUrgent: number;
+  escalationQueueTimeoutMinutesNormal: number;
+  escalationCustomerHandoffTemplate: string;
+  escalationUrgentBroadcastDelaySeconds: number;
 }
 
 /**

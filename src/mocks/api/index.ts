@@ -24,6 +24,7 @@ export { rolesApi } from "./roles";
 export { distributionTracesApi, type IListDistributionTracesParams } from "./distributionTraces";
 export { managerDashboardApi } from "./managerDashboard";
 export { sdrSessionsApi, type IListSdrSessionsParams } from "./sdrSessions";
+export { sdrEscalationsApi } from "./sdrEscalations";
 
 export {
   MockError,

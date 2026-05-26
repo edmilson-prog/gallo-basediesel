@@ -34,6 +34,7 @@ export interface IInboxFiltersProps {
   onTags: (tags: string[]) => void;
   onPeriod: (period: PeriodFilter) => void;
   onSort: (sort: SortMode) => void;
+  onEscalated: (escalated: boolean) => void;
   onClear: () => void;
   activeCount: number;
 }
@@ -91,6 +92,7 @@ export function InboxFilters({
   onTags,
   onPeriod,
   onSort,
+  onEscalated,
   onClear,
   activeCount,
 }: IInboxFiltersProps) {
@@ -323,6 +325,19 @@ export function InboxFilters({
           </DropdownMenuRadioGroup>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Escalated (PRD-023) */}
+      <Button
+        type="button"
+        variant={state.escalated ? "secondary" : "outline"}
+        size="sm"
+        className="h-8 gap-1 text-xs"
+        onClick={() => onEscalated(!state.escalated)}
+        aria-pressed={state.escalated}
+      >
+        <Icon icon="mdi:robot" size={12} />
+        Escaladas pelo SDR
+      </Button>
 
       <div className="ml-auto flex items-center gap-2">
         {activeCount > 0 && (

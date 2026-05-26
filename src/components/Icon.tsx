@@ -39,7 +39,6 @@ export function Icon({ icon, className, size, ariaLabel }: IIconProps) {
       aria-label={ariaLabel}
       aria-hidden={ariaLabel ? undefined : true}
       onError={() => {
-        // eslint-disable-next-line no-console
         console.warn(`[Icon] failed to load: ${icon}`);
         setErrored(true);
       }}

@@ -43,6 +43,13 @@ interface IRunTurnArgs {
   customer?: ICustomer;
   /** Fleet of the customer — see RF-008. */
   vehicles?: IVehicle[];
+  /**
+   * Hook fired when the engine emits an `escalate_to_human` action. The SDR
+   * escalation engine (PRD-023) runs separately so the responder stays
+   * decoupled from provider lookups it doesn't otherwise need (sellers, load).
+   * Called once per turn at most.
+   */
+  onEscalate?: (info: { reason: string; session: ISdrSession }) => void | Promise<void>;
 }
 
 const SDR_AUTHOR_ID = "sdr-agent";
@@ -75,6 +82,7 @@ export function useSdrResponder() {
       parts,
       customer,
       vehicles,
+      onEscalate,
     }: IRunTurnArgs): Promise<ISdrTurnResult> => {
       const now = new Date().toISOString();
       const session: ISdrSession = existingSession ?? createSdrSession(conversation.id, now);
@@ -130,6 +138,15 @@ export function useSdrResponder() {
             resourceId: conversation.id,
             after: { reason: action.reason },
           });
+          if (onEscalate) {
+            try {
+              await onEscalate({ reason: action.reason, session: updatedSession });
+            } catch (err) {
+              if (typeof console !== "undefined") {
+                console.warn("[sdr] onEscalate callback failed", err);
+              }
+            }
+          }
         } else if (action.kind === "identify_part") {
           recordAuditLogSync({
             storeId: conversation.storeId,

@@ -21,6 +21,7 @@ import { mockWhatsAppAccountsProvider } from "./impl/mock/whatsappAccounts";
 import { mockDistributionTracesProvider } from "./impl/mock/distributionTraces";
 import { mockManagerDashboardProvider } from "./impl/mock/managerDashboard";
 import { mockSdrSessionsProvider } from "./impl/mock/sdrSessions";
+import { mockSdrEscalationsProvider } from "./impl/mock/sdrEscalations";
 
 import { supabaseCustomersProvider } from "./impl/supabase/customers";
 import { supabaseVehiclesProvider } from "./impl/supabase/vehicles";
@@ -43,6 +44,7 @@ import { supabaseWhatsAppAccountsProvider } from "./impl/supabase/whatsappAccoun
 import { supabaseDistributionTracesProvider } from "./impl/supabase/distributionTraces";
 import { supabaseManagerDashboardProvider } from "./impl/supabase/managerDashboard";
 import { supabaseSdrSessionsProvider } from "./impl/supabase/sdrSessions";
+import { supabaseSdrEscalationsProvider } from "./impl/supabase/sdrEscalations";
 
 type DataSource = "mock" | "supabase";
 
@@ -90,6 +92,7 @@ const mockProviders: IDataProviders = {
   distributionTraces: mockDistributionTracesProvider,
   managerDashboard: mockManagerDashboardProvider,
   sdrSessions: mockSdrSessionsProvider,
+  sdrEscalations: mockSdrEscalationsProvider,
 };
 
 const supabaseProviders: IDataProviders = {
@@ -114,6 +117,7 @@ const supabaseProviders: IDataProviders = {
   distributionTraces: supabaseDistributionTracesProvider,
   managerDashboard: supabaseManagerDashboardProvider,
   sdrSessions: supabaseSdrSessionsProvider,
+  sdrEscalations: supabaseSdrEscalationsProvider,
 };
 
 /**

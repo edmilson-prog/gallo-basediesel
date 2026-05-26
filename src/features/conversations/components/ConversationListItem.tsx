@@ -1,6 +1,7 @@
 import { memo, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import type { IConversation, IMessage } from "@/shared/types";
+import type { IConversation, IMessage, ISdrEscalation } from "@/shared/types";
+import { EscalationBadge } from "@/features/sdr-escalation/components/EscalationBadge";
 import { Icon } from "@/components/Icon";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -28,6 +29,8 @@ export interface IConversationListItemProps {
   highlightTerm?: string;
   /** Render extra trailing actions inside the item (hover/focus). */
   trailing?: React.ReactNode;
+  /** SDR escalation record bound to this conversation, when present. */
+  escalation?: ISdrEscalation | null;
   onSelect?: () => void;
 }
 
@@ -74,6 +77,7 @@ function ConversationListItemInner({
   isUnread,
   highlightTerm,
   trailing,
+  escalation,
   onSelect,
 }: IConversationListItemProps) {
   // Bump every minute so relative times stay fresh without per-item state.
@@ -92,6 +96,11 @@ function ConversationListItemInner({
   const temperature = display.temperature ? TEMPERATURE_META[display.temperature] : null;
   const statusBar = STATUS_BORDER[conversation.status];
   const unread = conversation.unreadCount;
+  const isFreshEscalation = useMemo(() => {
+    if (!escalation) return false;
+    const created = new Date(escalation.createdAt).getTime();
+    return now - created < 60_000;
+  }, [escalation, now]);
 
   return (
     <Link
@@ -116,7 +125,13 @@ function ConversationListItemInner({
         isSelected && "bg-accent/60 hover:bg-accent/60",
       )}
     >
-      <span className={cn("absolute left-0 top-0 h-full w-[3px]", statusBar)} aria-hidden />
+      <span
+        className={cn(
+          "absolute left-0 top-0 h-full w-[3px]",
+          isFreshEscalation ? "bg-[var(--brand-parts,theme(colors.emerald.500))]" : statusBar,
+        )}
+        aria-hidden
+      />
       <Avatar64 display={display} />
 
       <div className="min-w-0 flex-1">
@@ -172,6 +187,10 @@ function ConversationListItemInner({
               </TooltipTrigger>
               <TooltipContent side="top">{INBOX_STRINGS.sdrBadgeTooltip}</TooltipContent>
             </Tooltip>
+          )}
+
+          {escalation && !conversation.isSdrActive && (
+            <EscalationBadge mode={escalation.mode} compact />
           )}
 
           {temperature && (
