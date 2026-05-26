@@ -65,4 +65,36 @@ export const messagesApi = {
       return updated;
     });
   },
+
+  async simulateIncoming(conversationId: ID, text?: string): Promise<IMessage> {
+    return runApi("messagesApi", "simulateIncoming", () => {
+      const conversation = getMockState().conversations.find((c) => c.id === conversationId);
+      if (!conversation) throw new MockNotFoundError("conversation", conversationId);
+      const now = new Date().toISOString();
+      const message: IMessage = {
+        id: `msg-${crypto.randomUUID()}`,
+        conversationId,
+        direction: "in",
+        authorType: conversation.customerId ? "customer" : "customer",
+        authorId: conversation.customerId ?? conversation.leadId,
+        provider: conversation.channel === "whatsapp" ? "meta" : "mock",
+        text: text ?? "Você ainda tem essa peça em estoque?",
+        status: "delivered",
+        sentAt: now,
+        deliveredAt: now,
+        readAt: undefined,
+      };
+      upsert("messages", message);
+      const nextStatus =
+        conversation.status === "arquivada" || conversation.status === "resolvida"
+          ? conversation.status
+          : "aguardando";
+      patchById("conversations", conversationId, {
+        lastMessageAt: now,
+        status: nextStatus,
+        unreadCount: conversation.unreadCount + 1,
+      });
+      return message;
+    });
+  },
 };

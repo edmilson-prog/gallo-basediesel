@@ -13,6 +13,17 @@ export interface IConversationLayoutProps {
   ficheSlot?: ReactNode;
   /** Default open state of the fiche drawer (md viewport). */
   ficheDefaultOpen?: boolean;
+  /**
+   * Which slot owns the screen on mobile (< md).
+   *
+   * - `"list"`   — full-width list, conversation column hidden
+   * - `"conversation"` — full-width conversation, list hidden
+   *
+   * Defaults to `"conversation"` to preserve the original behavior of this
+   * layout. The inbox page (PRD-010) sets `"list"` at the index route so the
+   * vendor can browse the queue on a phone.
+   */
+  mobileShow?: "list" | "conversation";
 }
 
 /**
@@ -21,7 +32,7 @@ export interface IConversationLayoutProps {
  * Anatomia:
  *   ≥ 1280px:  List (320px) | Conversation (1fr) | Fiche (sticky 360px)
  *   768-1279:  List (320px) | Conversation (1fr); Fiche becomes a Sheet
- *   < 768px:   level-based navigation (consuming route uses URL params)
+ *   < 768px:   `mobileShow` decides which single column is visible
  *
  * Assumes Sidebar + TopBar are provided by the parent route (`app.tsx`).
  */
@@ -30,17 +41,24 @@ export function ConversationLayout({
   conversationSlot,
   ficheSlot,
   ficheDefaultOpen = false,
+  mobileShow = "conversation",
 }: IConversationLayoutProps) {
   const [ficheOpen, setFicheOpen] = useState(ficheDefaultOpen);
+  const showListOnMobile = mobileShow === "list";
 
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
       {/* List column */}
-      <div className="hidden w-80 shrink-0 border-r border-border md:flex md:flex-col">
+      <div
+        className={cn(
+          "w-full shrink-0 border-r border-border md:flex md:w-80 md:flex-col",
+          showListOnMobile ? "flex flex-col" : "hidden",
+        )}
+      >
         {listSlot}
       </div>
       {/* Conversation column */}
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className={cn("min-w-0 flex-1 flex-col md:flex", showListOnMobile ? "hidden" : "flex")}>
         <div className="flex items-center justify-end border-b border-border px-3 py-1">
           <Button
             variant="ghost"

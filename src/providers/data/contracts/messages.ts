@@ -19,4 +19,11 @@ export interface IMessagesProvider {
     input: Omit<IMessage, "id" | "conversationId" | "sentAt" | "status" | "direction" | "provider">,
   ): Promise<IMessage>;
   markStatus(messageId: ID, status: IMessage["status"]): Promise<IMessage>;
+  /**
+   * Synthesize an inbound message from the customer/lead side. Used by the
+   * mock layer to drive the real-time demo (`useRealtimeConversations`) and
+   * to simulate the inbox receiving traffic. The Supabase implementation
+   * remains a no-op until Fase 2 (PRD-100+) wires real WhatsApp inbound.
+   */
+  simulateIncoming(conversationId: ID, text?: string): Promise<IMessage>;
 }

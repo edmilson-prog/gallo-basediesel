@@ -21,7 +21,7 @@
 | **Versão alvo MVP**                  | v1.0.0 — codinome **Heavy**                                                                                |
 | **Total de PRDs planejados (MVP)**   | 50                                                                                                         |
 | **PRDs redigidos**                   | 4                                                                                                          |
-| **PRDs implementados**               | 7 (PRD-001, PRD-002, PRD-003, PRD-004, PRD-005, PRD-006, PRD-007 — **Bloco 0 completo**)                  |
+| **PRDs implementados**               | 8 (PRD-001…007 — **Bloco 0 completo** — + PRD-010 abre o Bloco 1)                                          |
 | **PRDs futuros (Fase 2, PRDs 100+)** | 8 (roadmap futuro)                                                                                         |
 
 ---
@@ -66,9 +66,9 @@
 
 | Status          | Quantidade | Percentual |
 | --------------- | ---------- | ---------- |
-| ✅ Implementado | 3          | 6%         |
+| ✅ Implementado | 8          | 16%        |
 | 🔄 Em Andamento | 0          | 0%         |
-| ⏳ Pendente     | 47         | 94%        |
+| ⏳ Pendente     | 42         | 84%        |
 | ❌ Cancelado    | 0          | 0%         |
 | **Total**       | **50**     | **100%**   |
 
@@ -89,32 +89,32 @@
 
 Estabelece os pilares técnicos e visuais sobre os quais todo o resto se constrói. **Pré-requisito obrigatório** para qualquer outro bloco. Os PRDs 001 e 003 vão para o Lovable; demais para o Claude Code CLI.
 
-| #   | Título                                                                                             | Tipo    | Prof. | Impl. | Documento | Status | Depende de |
-| --- | -------------------------------------------------------------------------------------------------- | ------- | ----- | ----- | --------- | ------ | ---------- |
-| 001 | [Identidade Visual GALLO e Design System Base](./PRD-001-identidade-visual-gallo-design-system.md) | Feature | D     | 🟢    | 📝        | ✅     | —          |
-| 002 | [Modelo Conceitual de Domínio e Glossário](./PRD-002-modelo-conceitual-glossario_DONE.md)          | Feature | D     | 🔵    | 📝        | ✅     | —          |
-| 003 | [Shell do App, Navegação e Layouts Base](./PRD-003-shell-app-navegacao-layouts_DONE.md)            | Feature | D     | 🔵    | 📝        | ✅     | 001, 002   |
-| 004 | [Geradores de Dados Fictícios e Camada de Mocks](./PRD-004-mocks-geradores-dados_DONE.md)          | Feature | D     | 🔵    | 📝        | ✅     | 002        |
+| #   | Título                                                                                                 | Tipo    | Prof. | Impl. | Documento | Status | Depende de |
+| --- | ------------------------------------------------------------------------------------------------------ | ------- | ----- | ----- | --------- | ------ | ---------- |
+| 001 | [Identidade Visual GALLO e Design System Base](./PRD-001-identidade-visual-gallo-design-system.md)     | Feature | D     | 🟢    | 📝        | ✅     | —          |
+| 002 | [Modelo Conceitual de Domínio e Glossário](./PRD-002-modelo-conceitual-glossario_DONE.md)              | Feature | D     | 🔵    | 📝        | ✅     | —          |
+| 003 | [Shell do App, Navegação e Layouts Base](./PRD-003-shell-app-navegacao-layouts_DONE.md)                | Feature | D     | 🔵    | 📝        | ✅     | 001, 002   |
+| 004 | [Geradores de Dados Fictícios e Camada de Mocks](./PRD-004-mocks-geradores-dados_DONE.md)              | Feature | D     | 🔵    | 📝        | ✅     | 002        |
 | 005 | [Arquitetura de Provedores de Dados (Mock/Supabase)](./PRD-005-provider-pattern-mock-supabase_DONE.md) | Feature | D     | 🔵    | 📝        | ✅     | 004        |
-| 006 | [Sistema de Roles, Permissões e Auditoria (visual)](./PRD-006-rbac-permissoes-auditoria_DONE.md)   | Feature | D     | 🔵    | 📝        | ✅     | 002, 003   |
-| 007 | [Multi-Loja: Modelagem e Operação Cross-Store](./PRD-007-multistore_DONE.md)                       | Feature | D     | 🔵    | 📝        | ✅     | 002–006    |
+| 006 | [Sistema de Roles, Permissões e Auditoria (visual)](./PRD-006-rbac-permissoes-auditoria_DONE.md)       | Feature | D     | 🔵    | 📝        | ✅     | 002, 003   |
+| 007 | [Multi-Loja: Modelagem e Operação Cross-Store](./PRD-007-multistore_DONE.md)                           | Feature | D     | 🔵    | 📝        | ✅     | 002–006    |
 
 ### Bloco 1 — Central de Atendimento e CRM (PRDs 010–019)
 
 O coração operacional do MVP. Inbox unificado, ficha do cliente, leads, veículos, carteira. Vai para o Claude Code CLI sobre o scaffold do Bloco 0. Corresponde à **Onda 1** da Proposta Comercial v2.
 
-| #   | Título                                                 | Tipo    | Prof. | Impl. | Documento | Status | Depende de    |
-| --- | ------------------------------------------------------ | ------- | ----- | ----- | --------- | ------ | ------------- |
-| 010 | Inbox Unificado e Lista de Conversas                   | Feature | D     | 🔵    | ⏸         | ⏳     | Bloco 0       |
-| 011 | Conversa com Histórico Multicanal                      | Feature | D     | 🔵    | ⏸         | ⏳     | 010           |
-| 012 | Ficha Unificada do Cliente                             | Feature | D     | 🔵    | ⏸         | ⏳     | 011, 016      |
-| 013 | Regras de Distribuição e Roteamento                    | Feature | D     | 🔵    | ⏸         | ⏳     | 010           |
-| 014 | Painel do Gestor — Métricas e Saúde da Carteira        | Feature | D     | 🔵    | ⏸         | ⏳     | 010, 011, 013 |
-| 015 | Lista Geral de Clientes (segmentações e ações em lote) | Feature | D     | 🔵    | ⏸         | ⏳     | 012           |
-| 016 | Veículos do Cliente                                    | Feature | D     | 🔵    | ⏸         | ⏳     | 012           |
-| 017 | Pipeline de Leads (Kanban + Lista)                     | Feature | D     | 🔵    | ⏸         | ⏳     | 010, 012      |
-| 018 | Gestão de Carteira e Transferências                    | Feature | D     | 🔵    | ⏸         | ⏳     | 012, 015      |
-| 019 | Configurações Administrativas (esqueleto navegável)    | Feature | E     | 🔵    | ⏸         | ⏳     | 006, 007      |
+| #   | Título                                                                    | Tipo    | Prof. | Impl. | Documento | Status | Depende de    |
+| --- | ------------------------------------------------------------------------- | ------- | ----- | ----- | --------- | ------ | ------------- |
+| 010 | [Inbox Unificado e Lista de Conversas](./PRD-010-inbox-conversas_DONE.md) | Feature | D     | 🔵    | 📝        | ✅     | Bloco 0       |
+| 011 | Conversa com Histórico Multicanal                                         | Feature | D     | 🔵    | ⏸         | ⏳     | 010           |
+| 012 | Ficha Unificada do Cliente                                                | Feature | D     | 🔵    | ⏸         | ⏳     | 011, 016      |
+| 013 | Regras de Distribuição e Roteamento                                       | Feature | D     | 🔵    | ⏸         | ⏳     | 010           |
+| 014 | Painel do Gestor — Métricas e Saúde da Carteira                           | Feature | D     | 🔵    | ⏸         | ⏳     | 010, 011, 013 |
+| 015 | Lista Geral de Clientes (segmentações e ações em lote)                    | Feature | D     | 🔵    | ⏸         | ⏳     | 012           |
+| 016 | Veículos do Cliente                                                       | Feature | D     | 🔵    | ⏸         | ⏳     | 012           |
+| 017 | Pipeline de Leads (Kanban + Lista)                                        | Feature | D     | 🔵    | ⏸         | ⏳     | 010, 012      |
+| 018 | Gestão de Carteira e Transferências                                       | Feature | D     | 🔵    | ⏸         | ⏳     | 012, 015      |
+| 019 | Configurações Administrativas (esqueleto navegável)                       | Feature | E     | 🔵    | ⏸         | ⏳     | 006, 007      |
 
 ### Bloco 2 — Agente SDR (PRDs 020–024)
 
@@ -368,19 +368,20 @@ Mês 11+   ── Operação contínua + manutenção
 
 A plataforma usa Semantic Versioning com codinomes em inglês para releases MINOR e MAJOR.
 
-| Versão     | Codinome       | Data prevista | PRDs incluídos                                        | Marco                                               |
-| ---------- | -------------- | ------------- | ----------------------------------------------------- | --------------------------------------------------- |
-| v0.1.0     | **Genesis**    | Mês 1         | PRD-001                                               | Scaffold inicial                                    |
-| v0.1.1     | **Genesis**    | 25/05/2026    | PRD-002                                               | Modelo conceitual de domínio + glossário            |
-| v0.2.0     | **Genesis**    | 25/05/2026    | PRD-003                                               | Shell navegável, auth mockada, 8 layouts, 30+ rotas |
-| v0.3.0     | **Genesis**    | 25/05/2026    | PRD-004 (mocks)                                       | Camada de mocks com geradores determinísticos       |
-| v0.4.0     | **Hub**        | 25/05/2026    | PRD-005 (provider pattern)                            | Provider pattern Mock + Supabase                    |
-| v0.5.0     | **Pilot**      | 25/05/2026    | PRD-006 (RBAC + auditoria)                            | RBAC visual + matriz de permissões + audit log      |
-| v0.6.0     | **Compass**    | 25/05/2026    | PRD-007 (multi-loja)                                  | **Bloco 0 (Fundação) completo** — multi-loja modelado |
-| v0.7.0+    | _A definir_    | Mês 2         | PRDs 010–019 + 020–024 + 030–033                      | Onda 1 entregue                                     |
-| v0.5.0     | **Storefront** | Mês 9         | PRDs 060–067 (Bloco 5)                                | Onda 3 quase completa                               |
-| **v1.0.0** | **Heavy**      | Mês 10        | PRDs 070, 071 + polish final                          | **MVP completo — release oficial**                  |
-| v1.1.0+    | _A definir_    | Mês 11+       | PRDs 100+ (Fase 2)                                    | Integrações reais                                   |
+| Versão     | Codinome       | Data prevista | PRDs incluídos                   | Marco                                                 |
+| ---------- | -------------- | ------------- | -------------------------------- | ----------------------------------------------------- |
+| v0.1.0     | **Genesis**    | Mês 1         | PRD-001                          | Scaffold inicial                                      |
+| v0.1.1     | **Genesis**    | 25/05/2026    | PRD-002                          | Modelo conceitual de domínio + glossário              |
+| v0.2.0     | **Genesis**    | 25/05/2026    | PRD-003                          | Shell navegável, auth mockada, 8 layouts, 30+ rotas   |
+| v0.3.0     | **Genesis**    | 25/05/2026    | PRD-004 (mocks)                  | Camada de mocks com geradores determinísticos         |
+| v0.4.0     | **Hub**        | 25/05/2026    | PRD-005 (provider pattern)       | Provider pattern Mock + Supabase                      |
+| v0.5.0     | **Pilot**      | 25/05/2026    | PRD-006 (RBAC + auditoria)       | RBAC visual + matriz de permissões + audit log        |
+| v0.6.0     | **Compass**    | 25/05/2026    | PRD-007 (multi-loja)             | **Bloco 0 (Fundação) completo** — multi-loja modelado |
+| v0.7.0     | **Hub**        | 25/05/2026    | PRD-010 (Inbox unificado)        | Bloco 1 aberto — central de atendimento navegável     |
+| v0.8.0+    | _A definir_    | Mês 2         | PRDs 011–019 + 020–024 + 030–033 | Onda 1 entregue                                       |
+| v0.5.0     | **Storefront** | Mês 9         | PRDs 060–067 (Bloco 5)           | Onda 3 quase completa                                 |
+| **v1.0.0** | **Heavy**      | Mês 10        | PRDs 070, 071 + polish final     | **MVP completo — release oficial**                    |
+| v1.1.0+    | _A definir_    | Mês 11+       | PRDs 100+ (Fase 2)               | Integrações reais                                     |
 
 ---
 
@@ -529,12 +530,12 @@ PRDs 040–053, 060–067, 070–071 — ~11 turnos no total
 
 ## Última Atualização
 
-| Campo                | Valor                                                                  |
-| -------------------- | ---------------------------------------------------------------------- |
-| **Data**             | 25/05/2026                                                             |
-| **Atualizado por**   | Claude Opus 4.7 (Claude Code CLI)                                      |
-| **Motivo**           | Implementação do PRD-003 (Shell, navegação e layouts) — v0.2.0 Genesis |
-| **Versão do índice** | 1.1                                                                    |
+| Campo                | Valor                                                   |
+| -------------------- | ------------------------------------------------------- |
+| **Data**             | 25/05/2026                                              |
+| **Atualizado por**   | Claude Opus 4.7 (Claude Code CLI)                       |
+| **Motivo**           | Implementação do PRD-010 (Inbox unificado) — v0.7.0 Hub |
+| **Versão do índice** | 1.2                                                     |
 
 ---
 

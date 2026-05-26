@@ -1,5 +1,6 @@
 import type { ID } from "@/shared/types";
 import type { ResourceName } from "@/features/rbac/permissions/resources";
+import { hasPermission } from "@/features/rbac/utils/hasPermission";
 import { getCurrentContext } from "@/features/multistore/utils/getCurrentContext";
 import { withStoreScope } from "@/features/multistore/utils/withStoreScope";
 import { MockValidationError } from "@/mocks";
@@ -21,6 +22,35 @@ export function scopedListParams<T extends Record<string, unknown>>(
     currentStoreId: ctx.currentStoreId,
     resource,
   });
+}
+
+/**
+ * Narrow a list query to records "owned" by the current user when their RBAC
+ * scope on the resource is exactly `own` — i.e. they cannot view the wider
+ * `team` / `store` / `all` set.
+ *
+ * Pattern: `assignedSellerId` (or any caller-chosen field) gets filled with
+ * the user's id so the mock layer returns only their own slice. Callers
+ * always win — if the field is already set in `params`, the override is
+ * preserved (used by Gestor passing a specific seller filter).
+ *
+ * Used by resources that combine a store-wide query with an implicit
+ * ownership boundary (conversations, leads, customers when consulted by a
+ * Vendedor).
+ *
+ * @see docs/multistore.md#own-scope
+ */
+export function withOwnSellerScope<T extends Record<string, unknown>>(
+  params: T,
+  resource: ResourceName,
+  field: keyof T = "assignedSellerId" as keyof T,
+): T {
+  const { user } = getCurrentContext();
+  if (!user) return params;
+  if (hasPermission(user, resource, "view", "store")) return params;
+  if (!hasPermission(user, resource, "view", "own")) return params;
+  if (params[field] !== undefined) return params;
+  return { ...params, [field]: user.id } as T;
 }
 
 /**

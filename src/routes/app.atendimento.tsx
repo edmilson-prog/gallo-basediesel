@@ -1,6 +1,21 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { PlaceholderPage } from "@/features/shell/components/EmptyState";
+import { createFileRoute, Outlet, useParams } from "@tanstack/react-router";
+import { ConversationLayout } from "@/features/shell/layouts/ConversationLayout";
+import { InboxPage, validateInboxSearch } from "@/features/conversations";
 
 export const Route = createFileRoute("/app/atendimento")({
-  component: () => <PlaceholderPage prd="010" icon="mdi:message-text" title="Inbox unificado" />,
+  validateSearch: validateInboxSearch,
+  component: AtendimentoLayout,
 });
+
+function AtendimentoLayout() {
+  const params = useParams({ strict: false }) as { id?: string };
+  const hasSelection = Boolean(params.id);
+  return (
+    <ConversationLayout
+      listSlot={<InboxPage />}
+      conversationSlot={<Outlet />}
+      ficheSlot={null}
+      mobileShow={hasSelection ? "conversation" : "list"}
+    />
+  );
+}

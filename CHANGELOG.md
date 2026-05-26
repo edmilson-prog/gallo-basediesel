@@ -4,6 +4,111 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.7.0] — Hub · 2026-05-25
+
+Inbox unificado (PRD-010) — primeira tela do Bloco 1 (CRM e Central de
+Atendimento). A coluna esquerda do `ConversationLayout` ganha vida: lista
+paginada de 80+ conversas mockadas, 6 filtros combinados sincronizados na
+URL, 3 modos de ordenação (recência, tempo de espera, prioridade ABC),
+busca textual com destaque, atualização em tempo real simulada,
+ações rápidas no hover (atribuir-me, transferir, arquivar), e estados
+contextuais para vazio/erro. **Marco: porta de entrada do CRM ativa —
+PRD-011 (Conversa) e PRD-012 (Ficha) podem ser implementados agora.**
+
+### Added
+
+- **`src/features/conversations/`** em 5 subpastas (`pages`, `components`,
+  `hooks`, `utils`, `i18n`) + barrel `@/features/conversations` como
+  superfície pública
+- **`InboxPage`** em `/app/atendimento` consumindo `<ConversationLayout>`
+  via slot esquerdo, com `app.atendimento.tsx` convertido para layout
+  route que orquestra lista + `<Outlet>` para a coluna central
+- **`app.atendimento.index.tsx`** com `<InboxCenterPlaceholder>` para o
+  estado "selecione uma conversa"
+- **`<ConversationListItem>`** densamente informativo: avatar com
+  iniciais coloridas por hash, nome, timestamp relativo auto-atualizado a
+  cada minuto, preview da última mensagem (com handling de mídia),
+  contador de não-lidas (limite 9+), badges de canal/SDR/temperatura/Novo,
+  borda esquerda colorida por status, destaque de busca via `<mark>`
+- **6 filtros combinados** via dropdowns shadcn: Status, Canal, Atribuição
+  (contextual ao papel — Vendedor só vê "Atribuídas a mim"; Owner/Gestor
+  ganha "Todas", "Sem atribuição" e sub-lista por vendedor), Tags
+  multi-select, Período (24h/7d/30d), busca textual debounced 300ms
+- **3 modos de ordenação**: Mais recentes (default), Tempo de espera
+  (filtra `aguardando` + ordena asc), Prioridade ABC (join com
+  `IABCClassification` + tiebreak por recência)
+- **`useInboxFilters`** sincroniza filtros com query params da URL via
+  TanStack Router `useSearch`/`useNavigate`; defaults são omitidos do
+  URL para mantê-lo enxuto; `validateSearch` rejeita valores inválidos
+  silenciosamente
+- **`useConversationsList`** com paginação cursor-style (30/página) e
+  scroll infinito via `IntersectionObserver`; suporta `refreshKey` para
+  refetch em camadas (real-time refaz páginas 1..N preservando posição)
+- **`useRealtimeConversations`** dispara mensagens simuladas a cada
+  8-15s (jittered) chamando `messagesProvider.simulateIncoming`; bumpa
+  `tick` para o `useConversationsList` refrescar; toggle persistido em
+  `localStorage` chave `gallo-realtime-enabled`
+- **`<RealtimeToggle>`** no header da lista (ícone `mdi:radio-tower` /
+  `mdi:radio-tower-off`) com tooltip e estado "Atualização pausada"
+- **`<QuickActions>`** no hover/foco do item: Atribuir-me (qualquer user
+  quando conversa está sem dono), Transferir (Owner/Gestor — dropdown
+  de vendedores via `useSellersProvider`), Arquivar (Owner/Gestor) —
+  cada ação grava `recordAuditLog` com `before`/`after` e mostra toast
+  via sonner com botão "Desfazer" (rollback de 5s)
+- **`<InboxEmptyState>`** contextual: copy varia entre "sem conversas",
+  "filtros vazios" e "busca sem resultados"; botão "Limpar tudo" inline
+- **`useUnreadTracking`** persiste timestamp de última visualização por
+  usuário+conversa (`gallo-conversation-last-view-{userId}-{convId}`)
+  para bold/unbold após mark read; sync cross-tab via `storage` event
+- **`useLastSelectedConversation`** lembra a última conversa aberta
+  (`gallo-last-conversation-id`) e reabre automaticamente ao voltar à
+  inbox sem id na URL
+- **Atalhos de teclado**: `↑↓` navega entre conversas, `/` foca a busca,
+  `Enter` abre (intrínseco ao Link)
+- **Mobile**: `<ConversationLayout>` ganha prop `mobileShow: 'list' |
+'conversation'` para alternar entre lista cheia (sem seleção) e
+  conversa cheia (com seleção) em viewports < 768px
+- **Real-time + SDR**: badge prominente "🤖 SDR" com tooltip explicativo
+  quando `isSdrActive: true`; badge "Novo!" verde por 60s após
+  `lastMessageAt`
+
+### Changed
+
+- **`IConversationsProvider.list`** aceita novos params: `tags?: string[]`,
+  `search?: string`, `fromDate?/toDate?: string`, `unassigned?: boolean`,
+  `orderBy?: 'lastMessageAt' | 'abcClass'`, `orderDir?: 'asc' | 'desc'`;
+  e `status` agora aceita array (`ConversationStatus[]`)
+- **`IMessagesProvider`** ganha método `simulateIncoming(conversationId,
+text?)` que cria mensagem `direction: 'in'` no mock (no-op no
+  Supabase stub até PRD-100+)
+- **Mock `conversationsApi.list`** implementa busca textual em
+  `customer.name`/`phone`/últimas 20 mensagens, filtro de tags
+  (intersecta com `customer.tags`/`lead.tags`), ordenação ABC com
+  tiebreak por recência
+- **Mock `conversationsApi.archive`** agora seta `status: 'arquivada'`
+  em vez de remover do dataset (alinhado com o status enumerado)
+- **`_storeScope.ts`** ganha helper `withOwnSellerScope` que injeta
+  `assignedSellerId = currentUser.id` quando o usuário tem scope `own`
+  (não `store`/`all`) — Vendedor agora vê apenas conversas próprias
+  sem precisar de filtragem manual no componente
+- **`<ConversationLayout>`** ganha prop `mobileShow` (default
+  `'conversation'`, retrocompatível) para suportar lista em tela cheia
+  no mobile
+
+### Notes
+
+- **Sem novas dependências de runtime** — `date-fns` (timestamps),
+  `sonner` (toasts) e `@tanstack/react-router` já presentes; supply-chain
+  guard preservado (`bunfig.toml` intocado)
+- **Virtual scroll** ficou de fora do MVP — 80 conversas mockadas
+  renderizam fluidamente com scroll comum + `IntersectionObserver`;
+  pode-se adicionar `@tanstack/react-virtual` em iteração futura quando
+  o dataset crescer (Fase 2)
+- **Codinome Hub** marca a abertura do CRM como hub central do operador:
+  inbox unificada que concentra toda a comunicação multicanal num só
+  lugar antes da expansão pela conversa (PRD-011), ficha (PRD-012),
+  distribuição (PRD-013) e métricas gerenciais (PRD-014)
+
 ## [0.6.0] — Compass · 2026-05-25
 
 Multi-loja (PRD-007) — fundação completa de operação cross-store. Toda

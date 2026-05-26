@@ -36,6 +36,7 @@ import { Route as AppCarteiraRouteImport } from './routes/app.carteira'
 import { Route as AppAtendimentoRouteImport } from './routes/app.atendimento'
 import { Route as AppGestaoIndexRouteImport } from './routes/app.gestao.index'
 import { Route as AppConfiguracoesIndexRouteImport } from './routes/app.configuracoes.index'
+import { Route as AppAtendimentoIndexRouteImport } from './routes/app.atendimento.index'
 import { Route as LojaProdutoSlugRouteImport } from './routes/loja.produto.$slug'
 import { Route as LojaContaPedidosRouteImport } from './routes/loja.conta.pedidos'
 import { Route as LojaCategoriaSlugRouteImport } from './routes/loja.categoria.$slug'
@@ -193,6 +194,11 @@ const AppConfiguracoesIndexRoute = AppConfiguracoesIndexRouteImport.update({
   path: '/configuracoes/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAtendimentoIndexRoute = AppAtendimentoIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppAtendimentoRoute,
+} as any)
 const LojaProdutoSlugRoute = LojaProdutoSlugRouteImport.update({
   id: '/produto/$slug',
   path: '/produto/$slug',
@@ -348,6 +354,7 @@ export interface FileRoutesByFullPath {
   '/loja/categoria/$slug': typeof LojaCategoriaSlugRoute
   '/loja/conta/pedidos': typeof LojaContaPedidosRoute
   '/loja/produto/$slug': typeof LojaProdutoSlugRoute
+  '/app/atendimento/': typeof AppAtendimentoIndexRoute
   '/app/configuracoes/': typeof AppConfiguracoesIndexRoute
   '/app/gestao/': typeof AppGestaoIndexRoute
 }
@@ -359,7 +366,6 @@ export interface FileRoutesByTo {
   '/erro': typeof ErroRoute
   '/portal': typeof PortalRoute
   '/sem-permissao': typeof SemPermissaoRoute
-  '/app/atendimento': typeof AppAtendimentoRouteWithChildren
   '/app/carteira': typeof AppCarteiraRoute
   '/app/catalogo': typeof AppCatalogoRoute
   '/app/clientes': typeof AppClientesRouteWithChildren
@@ -397,6 +403,7 @@ export interface FileRoutesByTo {
   '/loja/categoria/$slug': typeof LojaCategoriaSlugRoute
   '/loja/conta/pedidos': typeof LojaContaPedidosRoute
   '/loja/produto/$slug': typeof LojaProdutoSlugRoute
+  '/app/atendimento': typeof AppAtendimentoIndexRoute
   '/app/configuracoes': typeof AppConfiguracoesIndexRoute
   '/app/gestao': typeof AppGestaoIndexRoute
 }
@@ -448,6 +455,7 @@ export interface FileRoutesById {
   '/loja/categoria/$slug': typeof LojaCategoriaSlugRoute
   '/loja/conta/pedidos': typeof LojaContaPedidosRoute
   '/loja/produto/$slug': typeof LojaProdutoSlugRoute
+  '/app/atendimento/': typeof AppAtendimentoIndexRoute
   '/app/configuracoes/': typeof AppConfiguracoesIndexRoute
   '/app/gestao/': typeof AppGestaoIndexRoute
 }
@@ -500,6 +508,7 @@ export interface FileRouteTypes {
     | '/loja/categoria/$slug'
     | '/loja/conta/pedidos'
     | '/loja/produto/$slug'
+    | '/app/atendimento/'
     | '/app/configuracoes/'
     | '/app/gestao/'
   fileRoutesByTo: FileRoutesByTo
@@ -511,7 +520,6 @@ export interface FileRouteTypes {
     | '/erro'
     | '/portal'
     | '/sem-permissao'
-    | '/app/atendimento'
     | '/app/carteira'
     | '/app/catalogo'
     | '/app/clientes'
@@ -549,6 +557,7 @@ export interface FileRouteTypes {
     | '/loja/categoria/$slug'
     | '/loja/conta/pedidos'
     | '/loja/produto/$slug'
+    | '/app/atendimento'
     | '/app/configuracoes'
     | '/app/gestao'
   id:
@@ -599,6 +608,7 @@ export interface FileRouteTypes {
     | '/loja/categoria/$slug'
     | '/loja/conta/pedidos'
     | '/loja/produto/$slug'
+    | '/app/atendimento/'
     | '/app/configuracoes/'
     | '/app/gestao/'
   fileRoutesById: FileRoutesById
@@ -805,6 +815,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/atendimento/': {
+      id: '/app/atendimento/'
+      path: '/'
+      fullPath: '/app/atendimento/'
+      preLoaderRoute: typeof AppAtendimentoIndexRouteImport
+      parentRoute: typeof AppAtendimentoRoute
+    }
     '/loja/produto/$slug': {
       id: '/loja/produto/$slug'
       path: '/produto/$slug'
@@ -957,10 +974,12 @@ declare module '@tanstack/react-router' {
 
 interface AppAtendimentoRouteChildren {
   AppAtendimentoIdRoute: typeof AppAtendimentoIdRoute
+  AppAtendimentoIndexRoute: typeof AppAtendimentoIndexRoute
 }
 
 const AppAtendimentoRouteChildren: AppAtendimentoRouteChildren = {
   AppAtendimentoIdRoute: AppAtendimentoIdRoute,
+  AppAtendimentoIndexRoute: AppAtendimentoIndexRoute,
 }
 
 const AppAtendimentoRouteWithChildren = AppAtendimentoRoute._addFileChildren(
