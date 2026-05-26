@@ -1,4 +1,4 @@
-import type { ICarteiraTransfer, ID } from "@/shared/types";
+import type { CarteiraTransferType, ICarteiraTransfer, ID } from "@/shared/types";
 import type { IPaginatedResult, IPaginationParams } from "./_shared";
 
 export interface IListTransfersParams extends IPaginationParams {
@@ -6,6 +6,18 @@ export interface IListTransfersParams extends IPaginationParams {
   fromSellerId?: ID;
   toSellerId?: ID;
   status?: ICarteiraTransfer["status"];
+}
+
+export interface ICreateTransferInput {
+  storeId: ID;
+  type: CarteiraTransferType;
+  fromSellerId: ID;
+  toSellerId: ID;
+  customerIds: ID[];
+  reason: string;
+  startDate?: string;
+  endDate?: string;
+  createdBy: ID;
 }
 
 /**
@@ -16,4 +28,5 @@ export interface IListTransfersParams extends IPaginationParams {
  */
 export interface ITransfersProvider {
   list(params?: IListTransfersParams): Promise<IPaginatedResult<ICarteiraTransfer>>;
+  create(input: ICreateTransferInput): Promise<ICarteiraTransfer>;
 }

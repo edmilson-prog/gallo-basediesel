@@ -4,6 +4,108 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.12.0] — Ledger · 2026-05-26
+
+Lista Geral de Clientes (PRD-015) — visão macro da base que complementa a
+ficha individual (PRD-012). Tabela paginada com 4 colunas obrigatórias + 9
+opcionais configuráveis, 10 filtros combináveis com URL sync, busca textual
+em nome/CNPJ/CPF/telefone/email/notas, segmentações salvas private/shared
+com CRUD próprio, multi-select com 5 ações em lote e drill-down via layout
+3:2 para a ficha existente. **Marco: gestor e vendedor passam a operar a
+base como um conjunto — uma campanha de recuperação que antes exigia 30
+cliques agora vira filtro + 3 cliques + um toast "23 clientes atualizados".**
+
+### Added
+
+- **Rota `/app/clientes`** substitui o placeholder por `CustomersListPage`
+  em `src/features/customers/pages/`. Layout 3:2 em desktop (≥ 1024px) com
+  tabela à esquerda e `<CustomerProfile>` (PRD-012) à direita; mobile
+  navega para `/app/clientes/:id` em tela cheia.
+- **Provider estendido** — `IListCustomersParams` ganha `statuses[]`,
+  `abcClasses[]`, `tags[]`, `sellerIds[]`, `recencyBuckets[]`,
+  `recencyCustom`, `ticketRange`, `ltvRange`, `vehicleBrands[]`,
+  `storeIds[]` e novas chaves de `orderBy` (`ticketMedio`, `ltv`,
+  `recency`, `abcClass`, `status`). Filtros anteriores (`status`, `tag`,
+  `sellerId`) preservados para back-compat. Mock implementa cruzamento com
+  vehicles para o filtro de marca.
+- **Segmentações CRUD** — `ISegmentsProvider` ganha `create`, `update`,
+  `delete` (mock + audit). `useSegments()` agrupa em `privateOnes` /
+  `shared`, com mutations tipadas e invalidação automática do cache.
+- **Transferências em lote** — `ITransfersProvider` ganha `create`. Mock
+  agora aceita `permanent_batch` com re-atribuição imediata do `sellerId`
+  nos clientes afetados e registro do `ICarteiraTransfer` correspondente.
+- **`<CustomersTable>`** com colunas obrigatórias (checkbox, nome+avatar,
+  tipo, ABC, status) + opcionais (CNPJ/CPF, vendedor com avatar, ticket
+  médio, recência colorida, LTV, tags com truncate, cidade, última conversa,
+  cadastro). Ordenação clicável (5 colunas sortáveis), navegação por
+  setas ↑↓ entre linhas mantendo a ficha aberta, highlight amarelo do
+  termo de busca.
+- **`<CustomersFiltersBar>`** com 10 controles: Status (multi), Tipo
+  (toggle Ambos/B2B/B2C), ABC (multi com "Sem classificação"), Tags (multi
+  searchable), Vendedor (multi searchable — locked em si para Vendedor),
+  Recência (multi com 4 faixas), Ticket médio (presets + custom min/max),
+  LTV (presets + custom), Veículo marca (Volvo/Scania/Mercedes/Ford/Iveco
+  + "Qualquer"), Loja (Owner only quando há ≥ 2 lojas acessíveis). Combina
+  via AND, indicador "N filtros ativos" + botão "Limpar tudo".
+- **Busca textual** com URL sync, pesquisa em nome (razão social / nome
+  fantasia / fullName), CNPJ / CPF (digits-only normalizado), telefone
+  normalizado, email e conteúdo de notas. Highlight visual onde encontrado.
+- **Segmentações salvas** — `<SegmentsDropdown>` lista private (do user)
+  + shared (da loja) com badge "ativa". `<SaveSegmentModal>` cria
+  segmentação a partir dos filtros atuais (nome ≤ 50 chars + escopo
+  Privada/Compartilhada — Vendedor não pode criar shared).
+  `<ManageSegmentsModal>` permite renomear, mudar escopo e excluir.
+  Comportamento "Modificado" quando filtros divergem da segmentação ativa
+  — Owner/Gestor pode "Salvar alterações" ou "Salvar como nova".
+- **Multi-select + ações em lote** — checkbox por linha + "Selecionar
+  todos da página" (com tri-state indeterminate). Quando há seleção parcial
+  e existem mais itens filtrados, botão "Selecionar todos os N filtrados"
+  recarrega o conjunto inteiro (até 500). Barra `<BulkActionsBar>` oferece:
+  Adicionar tag (autocomplete + tags livres), Remover tag (lista apenas as
+  tags presentes nos selecionados), Transferir vendedor (Owner/Gestor, gera
+  `ICarteiraTransfer` `permanent_batch` agrupando por vendedor de origem),
+  Marcar dormente (com confirm), Exportar CSV / LGPD (placeholders com
+  tooltip "Disponível na Fase 2"). Cada ação registra audit log com
+  `action: "bulk_*"` + sumário.
+- **`<ColumnsConfigModal>`** persiste em localStorage
+  (`gallo-customers-columns`) o conjunto de colunas opcionais visíveis.
+  Botão "Restaurar padrão" disponível.
+- **`<NewCustomerModal>`** — criação rápida B2B/B2C com validação de
+  CNPJ/CPF (length + dígitos repetidos), telefone (10–11 digits), email
+  opcional, vendedor responsável locked em si para Vendedor / livre para
+  Owner/Gestor. Após criar, abre a ficha do novo cliente automaticamente.
+- **URL sync completa** — `validateCustomersSearch` valida e normaliza
+  filtros, ordenação, paginação, busca, segmentação ativa e cliente
+  selecionado em query params. URLs ficam compartilháveis e refresh
+  preserva todo o estado.
+- **Empty states contextuais** — sem filtros (CTA "+ Cliente"), com
+  filtros ("Limpar filtros"), busca sem resultados (mostra o termo) e
+  estado de erro com "Tentar novamente". Skeleton de tabela durante fetch
+  inicial.
+- **Permissões aplicadas** — Vendedor só vê sua carteira (filtro
+  `sellerIds` é forçado em si mesmo, dropdown de Vendedor não aparece);
+  Gestor vê toda a loja com ações em lote completas; Owner vê cross-store
+  com filtro de Loja habilitado.
+
+### Changed
+
+- `IListCustomersParams` (contrato) recebe os novos campos opcionais sem
+  remover os antigos — código existente que usa `status`, `tag` ou
+  `sellerId` continua válido.
+- `ISegmentsProvider` deixa de ser read-only no MVP — `create`, `update`
+  e `delete` agora fazem parte do contrato.
+- `ITransfersProvider` ganha `create`, habilitando o fluxo de
+  transferência em lote a partir desta página.
+
+### Notes
+
+- Export CSV e LGPD por cliente individual seguem como placeholders Fase 2,
+  conforme escopo do PRD-015.
+- Edição inline na tabela fora do MVP — clientes são editados via ficha
+  (PRD-012) acessada por drill-down.
+- Versão bump 0.11.0 → 0.12.0 (MINOR) — nova feature substantiva.
+- `package.json` → `0.12.0`.
+
 ## [0.11.0] — Cockpit · 2026-05-26
 
 Painel do Gestor (PRD-014) — visão operacional em tempo real para Owner e

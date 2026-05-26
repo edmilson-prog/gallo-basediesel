@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PlaceholderPage } from "@/features/shell/components/EmptyState";
+import { CustomersListPage } from "@/features/customers/pages/CustomersListPage";
+import { validateCustomersSearch } from "@/features/customers/hooks/useCustomersUrlState";
 
 export const Route = createFileRoute("/app/clientes/")({
-  component: () => <PlaceholderPage prd="015" icon="mdi:account-multiple" title="Clientes" />,
+  validateSearch: validateCustomersSearch,
+  component: CustomersListPage,
 });
