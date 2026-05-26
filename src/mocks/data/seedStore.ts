@@ -3,6 +3,7 @@ import { SEED_PIPELINE_STAGES } from "./seedPipelineStages";
 import { SEED_LOSS_REASONS } from "./seedLossReasons";
 import { SEED_TAGS } from "./seedTags";
 import { DEFAULT_DISTRIBUTION_SETTINGS } from "./seedDistribution";
+import { DEFAULT_MANAGER_DASHBOARD_SETTINGS } from "./seedManagerDashboard";
 
 export const SEED_STORE_ID = "store-matriz";
 
@@ -39,5 +40,6 @@ export const SEED_STORE: IStore = {
     ],
     defaultDivision: "parts",
     distribution: DEFAULT_DISTRIBUTION_SETTINGS,
+    managerDashboard: DEFAULT_MANAGER_DASHBOARD_SETTINGS,
   },
 };

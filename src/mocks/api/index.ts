@@ -22,6 +22,7 @@ export { abcsApi } from "./abcs";
 export { whatsappAccountsApi } from "./whatsappAccounts";
 export { rolesApi } from "./roles";
 export { distributionTracesApi, type IListDistributionTracesParams } from "./distributionTraces";
+export { managerDashboardApi } from "./managerDashboard";
 
 export {
   MockError,

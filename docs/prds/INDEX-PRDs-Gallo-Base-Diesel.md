@@ -103,18 +103,18 @@ Estabelece os pilares técnicos e visuais sobre os quais todo o resto se constr�
 
 O coração operacional do MVP. Inbox unificado, ficha do cliente, leads, veículos, carteira. Vai para o Claude Code CLI sobre o scaffold do Bloco 0. Corresponde à **Onda 1** da Proposta Comercial v2.
 
-| #   | Título                                                                     | Tipo    | Prof. | Impl. | Documento | Status | Depende de    |
-| --- | -------------------------------------------------------------------------- | ------- | ----- | ----- | --------- | ------ | ------------- |
-| 010 | [Inbox Unificado e Lista de Conversas](./PRD-010-inbox-conversas_DONE.md)  | Feature | D     | 🔵    | 📝        | ✅     | Bloco 0       |
-| 011 | [Conversa com Histórico Multicanal](./PRD-011-conversa-multicanal_DONE.md) | Feature | D     | 🔵    | 📝        | ✅     | 010           |
-| 012 | [Ficha Unificada do Cliente](./PRD-012-ficha-cliente_DONE.md)              | Feature | D     | 🔵    | 📝        | ✅     | 011, 016      |
+| #   | Título                                                                           | Tipo    | Prof. | Impl. | Documento | Status | Depende de    |
+| --- | -------------------------------------------------------------------------------- | ------- | ----- | ----- | --------- | ------ | ------------- |
+| 010 | [Inbox Unificado e Lista de Conversas](./PRD-010-inbox-conversas_DONE.md)        | Feature | D     | 🔵    | 📝        | ✅     | Bloco 0       |
+| 011 | [Conversa com Histórico Multicanal](./PRD-011-conversa-multicanal_DONE.md)       | Feature | D     | 🔵    | 📝        | ✅     | 010           |
+| 012 | [Ficha Unificada do Cliente](./PRD-012-ficha-cliente_DONE.md)                    | Feature | D     | 🔵    | 📝        | ✅     | 011, 016      |
 | 013 | [Regras de Distribuição e Roteamento](./PRD-013-distribuicao-roteamento_DONE.md) | Feature | D     | 🔵    | 📝        | ✅     | 010           |
-| 014 | Painel do Gestor — Métricas e Saúde da Carteira                            | Feature | D     | 🔵    | ⏸         | ⏳     | 010, 011, 013 |
-| 015 | Lista Geral de Clientes (segmentações e ações em lote)                     | Feature | D     | 🔵    | ⏸         | ⏳     | 012           |
-| 016 | Veículos do Cliente                                                        | Feature | D     | 🔵    | ⏸         | ⏳     | 012           |
-| 017 | Pipeline de Leads (Kanban + Lista)                                         | Feature | D     | 🔵    | ⏸         | ⏳     | 010, 012      |
-| 018 | Gestão de Carteira e Transferências                                        | Feature | D     | 🔵    | ⏸         | ⏳     | 012, 015      |
-| 019 | Configurações Administrativas (esqueleto navegável)                        | Feature | E     | 🔵    | ⏸         | ⏳     | 006, 007      |
+| 014 | [Painel do Gestor — Métricas e Saúde da Carteira](./PRD-014-painel-gestor_DONE.md) | Feature | D     | 🔵    | 📝        | ✅     | 010, 011, 013 |
+| 015 | Lista Geral de Clientes (segmentações e ações em lote)                           | Feature | D     | 🔵    | ⏸         | ⏳     | 012           |
+| 016 | Veículos do Cliente                                                              | Feature | D     | 🔵    | ⏸         | ⏳     | 012           |
+| 017 | Pipeline de Leads (Kanban + Lista)                                               | Feature | D     | 🔵    | ⏸         | ⏳     | 010, 012      |
+| 018 | Gestão de Carteira e Transferências                                              | Feature | D     | 🔵    | ⏸         | ⏳     | 012, 015      |
+| 019 | Configurações Administrativas (esqueleto navegável)                              | Feature | E     | 🔵    | ⏸         | ⏳     | 006, 007      |
 
 ### Bloco 2 — Agente SDR (PRDs 020–024)
 

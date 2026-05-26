@@ -68,6 +68,18 @@ export const MOCK_USERS: IMockUserProfile[] = [
     sellerId: "seller-joao-gallo",
   },
   {
+    id: "mock-gestor",
+    role: "Gestor",
+    displayName: "Marina Cardoso",
+    storeLabel: "GALLO Matriz",
+    avatarInitials: "MC",
+    description: "Gestora da loja — operação diária, equipe e carteira.",
+    defaultRedirect: "/app/inicio",
+    storeId: MATRIZ_STORE_ID,
+    accessibleStoreIds: [MATRIZ_STORE_ID],
+    sellerId: "seller-marina-cardoso",
+  },
+  {
     id: "mock-vendedor",
     role: "Vendedor",
     displayName: "Carlos Santos",

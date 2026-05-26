@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PlaceholderPage } from "@/features/shell/components/EmptyState";
+import { ManagerDashboardPage } from "@/features/manager-dashboard/pages/ManagerDashboardPage";
+import { validateDashboardSearch } from "@/features/manager-dashboard/hooks/useDashboardFilters";
 
 export const Route = createFileRoute("/app/inicio")({
-  component: () => (
-    <PlaceholderPage prd="014" icon="mdi:home-variant" title="Início — dashboard do operador" />
-  ),
+  validateSearch: validateDashboardSearch,
+  component: ManagerDashboardPage,
 });

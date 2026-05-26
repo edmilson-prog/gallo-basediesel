@@ -56,6 +56,9 @@ export type {
   IListWhatsAppAccountsParams,
   IDistributionTracesProvider,
   IListDistributionTracesParams,
+  IManagerDashboardProvider,
+  IManagerDashboardSnapshotParams,
+  IManagerDashboardSnapshot,
 } from "./contracts";
 
 export { useCustomersProvider } from "./hooks/useCustomersProvider";
@@ -77,3 +80,4 @@ export { useSettingsProvider } from "./hooks/useSettingsProvider";
 export { useAuditsProvider } from "./hooks/useAuditsProvider";
 export { useWhatsAppAccountsProvider } from "./hooks/useWhatsAppAccountsProvider";
 export { useDistributionTracesProvider } from "./hooks/useDistributionTracesProvider";
+export { useManagerDashboardProvider } from "./hooks/useManagerDashboardProvider";

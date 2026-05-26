@@ -4,7 +4,7 @@ import { requireAuth } from "@/features/auth/guards";
 
 export const Route = createFileRoute("/app")({
   beforeLoad: ({ location }) => {
-    requireAuth(location.pathname, ["Owner", "Vendedor"]);
+    requireAuth(location.pathname, ["Owner", "Gestor", "Vendedor"]);
   },
   component: AppLayoutRoute,
 });

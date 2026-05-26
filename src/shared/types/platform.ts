@@ -46,6 +46,26 @@ export interface IGamificationRules {
   pointsPerPositivation: number;
 }
 
+/**
+ * Manager dashboard alert configuration (PRD-014).
+ * Owners can tune the thresholds that drive the alerts list and the seller-load
+ * coloring on the operational dashboard.
+ */
+export interface IManagerDashboardSettings {
+  /** Hours a conversation may sit in `aguardando` before it surfaces an alert. */
+  conversationWaitingHoursThreshold: number;
+  /** Active conversations above which a seller is flagged as overloaded. */
+  sellerOverloadThreshold: number;
+  /** Toggle the "Cliente A dormente" alert family. */
+  alertClienteADormenteEnabled: boolean;
+  /** Toggle the "Vendedor sobrecarregado" alert family. */
+  alertVendedorSobrecarregadoEnabled: boolean;
+  /** Toggle the "Conversa sem resposta há > Xh" alert family. */
+  alertConversaSemRespostaEnabled: boolean;
+  /** Polling interval (seconds) used by the alerts list. */
+  alertPollingSeconds: number;
+}
+
 /** Reference (not the credential itself) to a WhatsApp account. */
 export interface IWhatsAppAccountRef {
   id: ID;
@@ -69,6 +89,8 @@ export interface IPlatformSettings {
   defaultDivision: Division;
   /** Conversation distribution / routing rules (PRD-013). */
   distribution: IDistributionSettings;
+  /** Manager-dashboard alert configuration (PRD-014). */
+  managerDashboard: IManagerDashboardSettings;
 }
 
 /**

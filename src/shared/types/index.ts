@@ -23,6 +23,7 @@ export type {
   ILossReason,
   ITagSuggestion,
   IWhatsAppAccountRef,
+  IManagerDashboardSettings,
   StoreType,
 } from "./platform";
 

@@ -689,11 +689,11 @@ Em modo manual, vendedores **não recebem** distribuição automática. Conversa
 
 ## Status de Implementação
 
-| Campo      | Valor                       |
-| ---------- | --------------------------- |
-| **Status** | ✅ IMPLEMENTADO             |
-| **Data**   | 2026-05-26                  |
-| **Versão** | v0.10.0 — Switchboard       |
+| Campo      | Valor                 |
+| ---------- | --------------------- |
+| **Status** | ✅ IMPLEMENTADO       |
+| **Data**   | 2026-05-26            |
+| **Versão** | v0.10.0 — Switchboard |
 
 ---
 

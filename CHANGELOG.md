@@ -4,6 +4,113 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.11.0] — Cockpit · 2026-05-26
+
+Painel do Gestor (PRD-014) — visão operacional em tempo real para Owner e
+Gestor. Sete widgets que respondem "como vai o atendimento agora?" em três
+linhas: KPIs (TMA, TMR, Taxa de Resolução, Backlog) com indicador de tendência
+versus período anterior; carga por vendedor com barras coloridas por saúde;
+heatmap de volume 7×24 em SVG nativo; saúde da carteira como donut clicável;
+e lista de alertas ativos com dispensa por 24h. Drill-down em todo widget,
+filtros sincronizados na URL e configuração de limiares (Owner) com audit log.
+**Marco: gestor passa a operar com visão proativa — alertas e tendências em
+vez de feeling, com modal de configuração dos limites por loja.**
+
+### Added
+
+- **Rota `/app/inicio`** substitui o placeholder por `ManagerDashboardPage`
+  para Owner / Gestor. Vendedor enxerga EmptyState explicativo com CTA para
+  a Central de Atendimento — sem dado vazando.
+- **Aggregate provider** `IManagerDashboardProvider.snapshot(params)` em
+  `src/providers/data/contracts/managerDashboard.ts` — payload único com
+  `openConversations`, `sellers`, `customers`, `conversationsInPeriod`,
+  `messagesInPeriod` e os equivalentes do período anterior para tendência.
+  Implementação mock em `src/mocks/api/managerDashboard.ts` + stub Supabase
+  para Fase 2 (materialized view / RPC).
+- **Header com filtros globais** sincronizados na URL via `useDashboardFilters`
+  (`?periodo=…&vendedor=…&loja=…&canal=…`) — Período (Hoje default, Ontem,
+  7d, 30d), Vendedor, Loja (locked em Gestor), Canal. Limites do período
+  resolvidos como janelas atual + anterior na mesma chamada.
+- **KPIs (linha 1)** — `<KpiCard>` reutilizável com badge de tendência
+  adaptativa (verde quando melhora, vermelho quando piora; lógica invertida
+  entre "menor é melhor" — TMA/TMR/Backlog — e "maior é melhor" — Taxa de
+  Resolução). Cálculos em `src/features/manager-dashboard/utils/kpiMath.ts`:
+  - **TMA**: média do span entre primeira mensagem do cliente e `lastMessageAt`
+    em conversas resolvidas no período.
+  - **TMR**: média entre cada `direction: "in"` do cliente e o primeiro
+    `direction: "out"` `authorType: "seller"` que responder.
+  - **Taxa de Resolução**: resolvidas / abertas × 100 sobre o período.
+  - **Backlog**: contagem absoluta de `status === "aguardando"` agora.
+- **Carga e Heatmap (linha 2)**:
+  - `<SellerLoadList>` ordena vendedores por carga atual decrescente, com
+    avatar + iniciais, dot de availability, barra colorida em 3 bandas
+    (normal ≤ 67% do limite, warning, critical acima do `sellerOverloadThreshold`).
+  - `<VolumeHeatmap>` em SVG nativo 7×24 com 6 níveis de intensidade
+    derivados da cor de acento do tema. Hover mostra tooltip "Seg 14h: 23
+    mensagens" com `aria-live` para leitores de tela.
+- **Carteira e Alertas (linha 3)**:
+  - `<CarteiraHealthDonut>` em Recharts mostra distribuição dos clientes por
+    `CustomerStatus`. Centro do donut traz o total absoluto; legenda lateral
+    é clicável e leva a `/app/clientes?status=…`.
+  - `<ActiveAlertsList>` agrega três tipos com `useActiveAlerts`:
+    - **Cliente A dormente**: clientes com `abcClass === "A"` e
+      `status === "dormente"`, mensagem traz o número de dias sem compra.
+    - **Vendedor sobrecarregado**: carga acima do limiar configurado.
+    - **Conversa sem resposta**: agregação de conversas `aguardando` há mais
+      do que `conversationWaitingHoursThreshold` horas.
+  - Severidade dita ícone, cor e ordenação (critical → high → medium).
+    Botão "Dispensar" persiste hash + timestamp em `localStorage` por 24h
+    (chave `gallo-alert-dismissed-{hash}`). Recálculo automático a cada
+    `alertPollingSeconds`.
+- **Drill-down em todo widget**: KPIs e Backlog navegam à inbox filtrada;
+  carga leva ao filtro `assignment=<sellerId>`; donut leva à lista de clientes
+  por status; alerta de cliente abre a ficha (`/app/clientes/$id`); alerta de
+  vendedor leva à inbox filtrada por aquele vendedor.
+- **Configuração de alertas** — `<AlertSettingsModal>` Owner-only abre via
+  botão ⚙ no header. Sliders + inputs numéricos sincronizados para limite
+  de conversa sem resposta (1-24h) e sobrecarga (5-50 conversas), toggles
+  individuais por tipo de alerta, select de frequência (15s / 30s / 60s / 5min).
+  Save chama `settingsProvider.update({ managerDashboard })` e emite
+  `auditLog({ action: "manager_dashboard_settings.update" })`.
+- **Modelos novos**:
+  - `IManagerDashboardSettings` em `src/shared/types/platform.ts` com
+    thresholds, toggles e polling, integrado a `IPlatformSettings`.
+  - `IManagerDashboardSnapshotParams` / `IManagerDashboardSnapshot` em
+    `src/providers/data/contracts/managerDashboard.ts`.
+- **Defaults da matriz** em `src/mocks/data/seedManagerDashboard.ts` — limites
+  4h de espera, 15 conversas de sobrecarga, todos os alertas habilitados,
+  polling de 30s. Reexportados pelo barrel `src/mocks/data/index.ts`.
+- **Mock user Gestor** — perfil `mock-gestor` (Marina Cardoso) adicionado a
+  `MOCK_USERS`. Vincula ao seller existente `seller-marina-cardoso` para que
+  os filtros e o lock de loja exercitem o caminho não-Owner.
+- **Real-time** — o painel reaproveita `useRealtimeConversations` (PRD-010)
+  como heartbeat: cada nova mensagem simulada bumpa o `refreshKey` do snapshot
+  hook (`useDashboardSnapshot`), que refaz a chamada em background sem
+  esqueletos. Toggle no header acende/apaga o pulse e pausa as atualizações.
+
+### Changed
+
+- **Role guard de `/app`** agora aceita `Gestor` (era `["Owner", "Vendedor"]`)
+  para permitir que o novo perfil veja o painel sem ficar preso em
+  `/sem-permissao`.
+- **`IPlatformSettings`** carrega o novo campo obrigatório `managerDashboard`.
+  Mock seed da matriz traz os defaults; código que cria settings precisa
+  preencher (não há migração porque ainda estamos em Fase 1 com mocks).
+- **`IDataProviders`** ganha a chave `managerDashboard`. Factory mock e stub
+  Supabase devolvem ambas as implementações.
+
+### Notes
+
+- Cálculos derivam timestamps das mensagens — na Fase 2 a TMA real virá do
+  audit log de mudança de status (`conversation.resolve`), encerrando a
+  aproximação atual baseada em `lastMessageAt`.
+- O drill-down de célula do heatmap leva à inbox dos últimos 30 dias com uma
+  pista textual no campo de busca; a filtragem por janela horária exata fica
+  para um refinamento futuro da inbox.
+- Alertas de "Vendedor sobrecarregado" usam o mesmo `sellerOverloadThreshold`
+  do banding visual da carga, garantindo coerência entre o visual e a
+  geração do alerta — mudou o limite, recolore E reemite alertas.
+
 ## [0.10.0] — Switchboard · 2026-05-26
 
 Regras de distribuição e roteamento (PRD-013) — toda conversa nova passa por
@@ -95,7 +202,7 @@ regras explícitas e simulador para testar cenários antes de aplicar.**
 ### Changed
 
 - **`IPlatformSettings`** ganha campo obrigatório `distribution:
-  IDistributionSettings`; seed da matriz preenche com defaults
+IDistributionSettings`; seed da matriz preenche com defaults
 - **`IConversationsProvider`** ganha método `create(input)` retornando
   `{ conversation, messages, trace }`; supabase stub lança `NotImplementedError`
 - **`IBootstrappedDataset`** ganha coleção `distributionTraces`
