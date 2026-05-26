@@ -22,6 +22,7 @@ import type { ISellersProvider } from "./sellers";
 import type { IStoresProvider } from "./stores";
 import type { ISettingsProvider } from "./settings";
 import type { IAuditsProvider } from "./audits";
+import type { IWhatsAppAccountsProvider } from "./whatsappAccounts";
 
 export type { IPaginatedResult, IPaginationParams } from "./_shared";
 
@@ -42,6 +43,7 @@ export type { ISellersProvider, IListSellersParams } from "./sellers";
 export type { IStoresProvider } from "./stores";
 export type { ISettingsProvider } from "./settings";
 export type { IAuditsProvider, IListAuditsParams, ICreateAuditInput } from "./audits";
+export type { IWhatsAppAccountsProvider, IListWhatsAppAccountsParams } from "./whatsappAccounts";
 
 /**
  * Aggregate of every data provider returned by `getDataProviders()`. The factory
@@ -66,4 +68,5 @@ export interface IDataProviders {
   stores: IStoresProvider;
   settings: ISettingsProvider;
   audits: IAuditsProvider;
+  whatsappAccounts: IWhatsAppAccountsProvider;
 }

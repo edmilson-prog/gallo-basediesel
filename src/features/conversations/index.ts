@@ -11,4 +11,5 @@
  */
 
 export { InboxPage, InboxCenterPlaceholder } from "./pages/InboxPage";
+export { ConversationPage } from "./pages/ConversationPage";
 export { validateInboxSearch } from "./hooks/useInboxFilters";

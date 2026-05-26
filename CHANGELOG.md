@@ -4,6 +4,166 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.8.0] — Pilot · 2026-05-25
+
+Conversa multicanal (PRD-011) — a coluna central do `ConversationLayout`
+ganha vida. O vendedor agora atende dentro da plataforma com histórico
+rico, envio com optimistic UI, indicador da janela de 24h do WhatsApp Meta
+e ações contextuais auditadas. **Marco: a inbox (PRD-010) deixa de ser
+um placeholder no centro — todas as conversas ficam realmente operáveis,
+sem necessidade de fugir para WhatsApp Web.**
+
+### Added
+
+- **`ConversationPage`** em `/app/atendimento/:id` substitui o
+  placeholder do PRD-001; consome `<ConversationLayout>` via `<Outlet>`
+  com header, histórico, indicador de janela 24h e input de mensagem
+- **`<ConversationHeader>`** com avatar (iniciais coloridas por hash do
+  participante), nome, canal + número (subtítulo), pill de status com cor
+  semântica (4 estados: aguardando / em_andamento / aguardando_cliente /
+  resolvida / arquivada), badge "SDR ativo" quando aplicável, botões
+  **Criar orçamento** (navega para `/app/orcamentos?customerId=...`),
+  **Ficha** (toggle persistido em `localStorage`) e menu **⋮**
+- **6 tipos de bubble tipados** em `components/bubbles/`:
+  `<TextBubble>` (whitespace preservado), `<ImageBubble>` (thumbnail
+  clicável que abre modal + skeleton de loading + caption opcional),
+  `<AudioBubble>` (player com play/pause real, waveform SVG determinística
+  por id, duração formatada `mm:ss`, placeholder de transcrição),
+  `<DocumentBubble>` (ícone por extensão — PDF/XLSX/DOCX/ZIP — nome,
+  tamanho determinístico, botão download), `<SystemBubble>`
+  (centralizado, itálico, sem balão), `<TemplateBubble>` (selo "Template"
+  + parser de variáveis + linha de quick-replies)
+- **`<MessageBubble>`** discriminador polimórfico — escolhe o bubble certo
+  via `mediaType` / `authorType` / prefixo `[template]`
+- **Direção e autoria visual**: bubbles `in` à esquerda em surface neutra;
+  `out` do vendedor à direita em `--primary/10`; **bubbles do SDR à
+  direita em `--brand-parts/10` com borda esquerda sólida + badge "🤖 SDR"
+  no canto + tooltip "Mensagem enviada pelo agente SDR"**
+- **Status visual de envio (out only)** com tooltip explicativo:
+  - `sent` ✓ cinza
+  - `delivered` ✓✓ cinza
+  - `read` ✓✓ azul
+  - `failed` ⚠ vermelho com botão "Tentar novamente"
+- **`<MessageList>`** com paginação por scroll-up (`IntersectionObserver`
+  + sentinela no topo carrega mais antigas preservando posição via
+  delta de `scrollHeight`), auto-scroll inteligente (somente quando o
+  usuário já estava no fim — não interrompe leitura), `role="log"` +
+  `aria-live="polite"` para acessibilidade
+- **Marcadores temporais automáticos** entre grupos de mensagens via
+  `groupMessagesWithDaySeparators`: "Hoje", "Ontem", dia da semana por
+  extenso (últimos 7 dias) ou "12 de maio" (mais antigas; inclui ano
+  quando diferente do atual)
+- **`<MessageInput>`** com textarea de auto-resize (1-5 linhas, scroll
+  interno após excesso), botões de **anexo** (dropdown imagem/documento/
+  áudio — placeholders com toast "em breve"), **emoji** (popover com
+  16 emojis e inserção na posição do cursor), **templates** (apenas
+  visível como habilitado quando provider é Meta), **enviar** (Enter
+  envia, Shift+Enter quebra), e linha de **sugestões IA** estáticas
+  baseadas em palavras-chave da última mensagem do cliente ("preço",
+  "estoque", "prazo", "boleto") com botões clicáveis que preenchem o
+  textarea
+- **Optimistic UI no envio** via `useMessageSend`:
+  1. mensagem aparece imediatamente como `sent` (✓ cinza)
+  2. após 200-500ms transita para `delivered` (✓✓ cinza)
+  3. após 1-3s extras, com 80% de probabilidade vira `read` (✓✓ azul)
+  4. em 5% das tentativas vira `failed` com retry inline
+  Taxas configuráveis em `utils/sendSimulation.ts`
+- **`<MetaWindowIndicator>`** com 4 estados visuais:
+  - 🟢 Verde (> 12h): "Janela aberta — Xh restantes"
+  - 🟡 Amarelo (1-12h): mesma copy + sugestão "Considere usar template"
+  - 🔴 Vermelho (< 1h): "Janela fechando — X min restantes"
+  - ⚪ Cinza (= 0): "Janela fechada — apenas templates HSM"
+  Re-cálculo a cada 30s via `setInterval`; aparece **apenas** para Meta
+  provider com `whatsappAccount.provider === "meta"` e conversa não-
+  arquivada
+- **`useMetaWindow`** computa tempo restante a partir do
+  `lastInboundMessageAt` derivado das mensagens no contexto, expondo
+  `canSendFreeText` que o input consome para desabilitar texto quando
+  a janela fecha
+- **`<TemplateDialog>`** modal com seletor de templates HSM mockados
+  (4 templates: follow-up de orçamento, cobrança gentil, confirmação de
+  entrega, saudação inicial), inputs para variáveis (`{{nome}}`,
+  `{{produto}}`, etc.), pré-visualização com substituição em tempo real
+  e botão "Enviar template" — habilita apenas quando todas as variáveis
+  estão preenchidas
+- **`<ConversationMenu>`** (kebab no header) com permissões dinâmicas via
+  `usePermission`:
+  - Marcar resolvida / Reabrir (qualquer com `edit` em `own`)
+  - Marcar não-lida (reseta `gallo-conversation-last-view-...` para
+    forçar badge na inbox)
+  - Transferir (Owner/Gestor — abre `<TransferDialog>` com dropdown de
+    vendedores da loja)
+  - Escalar para gestor (Vendedor, quando SDR ativo — encontra primeiro
+    gestor disponível via `accessibleStoreIds.length > 1`)
+  - Pausar/Retomar SDR (Owner/Gestor, quando aplicável)
+  - Arquivar/Desarquivar (Owner/Gestor)
+  - Adicionar nota (qualquer com `edit` em customer — abre
+    `<NoteDialog>` que chama `customersProvider.addNote`)
+- **Toast com botão "Desfazer" (5s)** para ações reversíveis: resolver,
+  arquivar, retomar, e cada uma grava `recordAuditLog` em ambas as
+  direções (a ação original e o desfazer)
+- **Auditoria via PRD-006** em toda mutation sensível
+  (`conversation.resolve`, `conversation.transfer`,
+  `conversation.archive`, `conversation.toggle_sdr`) com `before`/`after`
+- **`<TypingIndicator>`** "Cliente está digitando…" com 3 pontos
+  animados; aparece probabilisticamente (30% a cada 20-40s) em
+  conversas `em_andamento` / `aguardando_cliente`, dura 3-8s
+- **`useConversationDetail`** carrega conversa + customer/lead +
+  whatsappAccount de uma vez, expondo `notFound` para o empty state e
+  `refresh` para invalidação manual após mutações
+- **`useMessages`** com paginação descendente (50/página) traduzida para
+  ordem ascendente de display; cache local com `appendOptimistic`,
+  `commit`, `fail`, `update` e `retry` para o ciclo de envio
+- **`ConversationContext`** compartilha o estado de mensagens entre
+  `<MessageList>` e `<MessageInput>` para que a janela 24h e as sugestões
+  IA consigam ler a última mensagem inbound sem prop drilling
+- **`IWhatsAppAccountsProvider`** novo contrato + impl mock + stub
+  Supabase + hook `useWhatsAppAccountsProvider`, expondo `list` e `get`
+  para alimentar capabilities e número do header
+- **Catálogo de templates HSM mockados** em `utils/hsmTemplates.ts` com
+  4 templates representativos, `renderTemplate` para substituição de
+  variáveis e `templateReady` para validação inline
+- **`CONVERSATION_STRINGS`** namespace em `i18n/pt-BR.ts` cobrindo
+  header, empty states, separadores temporais, bubbles, status,
+  indicador 24h, input, menu e diálogos
+- **Empty states** para conversa não encontrada (com botão "Voltar à
+  inbox") e conversa nova sem mensagens
+- **Read-only mode** no input quando vendedor não é o atribuído ou a
+  conversa está arquivada — copy explícita no rodapé
+
+### Changed
+
+- **`/app/atendimento/:id`** — rota deixa de ser `PlaceholderPage` e
+  passa a renderizar `<ConversationPage>` real
+- **Barrel `@/features/conversations`** expõe `ConversationPage` ao lado
+  do `InboxPage` e `InboxCenterPlaceholder`
+- **`IDataProviders`** ganha campo `whatsappAccounts` na agregação
+  retornada pela factory; ambas as implementações (mock + Supabase stub)
+  registradas no `getDataProviders()`
+
+### Notes
+
+- **`@tanstack/react-virtual` ficou de fora** — o gerador de mocks produz
+  no máximo 25 mensagens por conversa e o histórico renderiza
+  fluidamente sem virtualização. Quando o dataset crescer na Fase 2,
+  basta envolver o `.map` do `<MessageList>` no `useVirtualizer` sem
+  tocar nos bubbles. Comentário de planejamento mantido no componente.
+- **Emoji picker dedicado ficou de fora** — usamos um popover do
+  `shadcn` com 16 emojis representativos do dia-a-dia comercial
+  (caminhão, peças, dinheiro, etc.) para evitar nova dependência sob o
+  supply-chain guard de 24h do `bunfig.toml`
+- **Anexos reais ficaram de fora** — os botões abrem dropdown com 3
+  opções (imagem/documento/áudio) e disparam `toast.info("em breve")`
+  porque o MVP não tem storage; o fluxo de mídia já está modelado nos
+  bubbles e nos tipos para a entrada de Fase 2
+- **IA real ficou de fora** — sugestões são heurísticas estáticas
+  baseadas em palavras-chave (palavra "preço" sugere "Vou te passar o
+  valor…"). LangChain/OpenAI virá no PRD-101+
+- **Codinome Pilot** marca o momento em que o vendedor pilota a
+  plataforma de ponta a ponta: lê histórico, envia mensagem, recebe
+  template HSM dentro da janela de 24h e executa ações contextuais sem
+  precisar abrir outra ferramenta. O CRM deixa de ser passivo
+
 ## [0.7.0] — Hub · 2026-05-25
 
 Inbox unificado (PRD-010) — primeira tela do Bloco 1 (CRM e Central de

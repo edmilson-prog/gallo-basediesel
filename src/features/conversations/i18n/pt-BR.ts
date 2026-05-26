@@ -146,3 +146,162 @@ export const INBOX_STRINGS = {
   loadingMore: "Carregando mais…",
   endOfList: "Você chegou ao fim da lista.",
 } as const;
+
+/**
+ * UI strings of the Conversation viewer (PRD-011).
+ *
+ * Kept in the same module as INBOX_STRINGS for cohesion, but exported as its
+ * own namespace so the conversation feature can import only what it needs.
+ */
+export const CONVERSATION_STRINGS = {
+  // Header
+  backToInbox: "Voltar à inbox",
+  channelLabel: {
+    whatsapp: "WhatsApp",
+    ecommerce: "E-commerce",
+    phone: "Telefone",
+    site: "Site",
+  } as const,
+  statusLabel: {
+    aguardando: "Aguardando",
+    em_andamento: "Em andamento",
+    aguardando_cliente: "Aguardando cliente",
+    resolvida: "Resolvida",
+    arquivada: "Arquivada",
+  } as const,
+  createQuote: "Criar orçamento",
+  toggleFiche: "Ficha",
+  moreActions: "Mais ações",
+  sdrActiveTag: "SDR ativo",
+  sdrActiveTooltip: "Esta conversa está sendo atendida pelo agente SDR",
+  loading: "Carregando conversa…",
+
+  // Empty states
+  notFound: {
+    title: "Conversa não encontrada",
+    description: "Esta conversa não existe ou foi removida.",
+  },
+  newConversation: {
+    title: "Inicie a conversa",
+    description: "Envie a primeira mensagem para abrir o atendimento.",
+  },
+  readOnlyAssign: "Esta conversa não está atribuída a você.",
+
+  // Day separators
+  today: "Hoje",
+  yesterday: "Ontem",
+  weekdays: [
+    "domingo",
+    "segunda-feira",
+    "terça-feira",
+    "quarta-feira",
+    "quinta-feira",
+    "sexta-feira",
+    "sábado",
+  ] as const,
+
+  // Bubbles
+  systemEvents: {
+    sdrActivated: "🤖 Agente SDR foi ativado nesta conversa",
+    sdrPaused: "🤖 Agente SDR foi pausado",
+    transferred: (name: string) => `Conversa transferida para ${name}`,
+    assumed: (name: string) => `${name} assumiu o atendimento`,
+    resolved: "Conversa marcada como resolvida",
+    reopened: "Conversa reaberta",
+  },
+  sdrBadge: "🤖 SDR",
+  sdrBubbleTooltip: "Mensagem enviada pelo agente SDR",
+  templateBadge: "Template",
+  retry: "Tentar novamente",
+  download: "Baixar",
+  audioTranscription: "Transcrição em breve",
+  imageCaption: (caption: string) => caption || "Foto",
+  documentMeta: (size: string) => size,
+
+  // Status tooltips
+  statusTooltip: {
+    sent: (time: string) => `Enviada às ${time}`,
+    delivered: (time: string) => `Entregue às ${time}`,
+    read: (time: string) => `Lida às ${time}`,
+    failed: "Falha no envio",
+  },
+
+  // 24h window
+  windowOpen: (h: number) => `Janela aberta — ${h}h restantes`,
+  windowClosing: (m: number) => `Janela fechando — ${m} min restantes`,
+  windowClosed: "Janela de 24h fechada — apenas templates HSM disponíveis",
+  windowSuggestTemplate: "Considere usar um template HSM",
+  windowOpenedByInbound: (when: string) => `Cliente respondeu há ${when}`,
+  windowDisabledHint: "Use um template HSM para reabrir a conversa",
+
+  // Message input
+  inputPlaceholder: "Digite uma mensagem…",
+  inputPlaceholderClosed: "Janela fechada — selecione um template",
+  send: "Enviar",
+  attach: "Anexar",
+  attachImage: "Imagem",
+  attachDocument: "Documento",
+  attachAudio: "Áudio (gravação em breve)",
+  attachComingSoon: "Anexos serão liberados na próxima fase. Por enquanto, descreva no texto.",
+  emoji: "Inserir emoji",
+  templatesButton: "Templates",
+  templatesUnavailable: "Disponível no provider Meta",
+  aiSuggestionsLabel: "Sugestões IA",
+
+  // Typing indicator
+  typing: "Cliente está digitando…",
+
+  // Menu actions
+  menu: {
+    markResolved: "Marcar como resolvida",
+    markUnread: "Marcar como não lida",
+    transfer: "Transferir",
+    escalate: "Escalar para gestor",
+    archive: "Arquivar",
+    unarchive: "Desarquivar",
+    addNote: "Adicionar nota",
+    pauseSdr: "Pausar SDR",
+    resumeSdr: "Retomar SDR",
+  },
+  resolved: "Conversa marcada como resolvida",
+  reopened: "Conversa reaberta",
+  archived: "Conversa arquivada",
+  unarchived: "Conversa desarquivada",
+  markedUnread: "Conversa marcada como não lida",
+  noteSaved: "Nota adicionada à ficha",
+  noteEmpty: "Escreva alguma coisa antes de salvar.",
+  sdrPaused: "Agente SDR pausado",
+  sdrResumed: "Agente SDR retomado",
+  escalatedTo: (name: string) => `Conversa escalada para ${name}`,
+  noManagerAvailable: "Nenhum gestor disponível para escalonamento.",
+  undo: "Desfazer",
+  undone: "Ação desfeita",
+  actionFailed: "Não foi possível concluir a ação",
+
+  // Dialogs
+  transferDialog: {
+    title: "Transferir conversa",
+    description: "Selecione o vendedor que receberá esta conversa.",
+    placeholder: "Vendedor…",
+    confirm: "Transferir",
+    cancel: "Cancelar",
+  },
+  templateDialog: {
+    title: "Enviar template HSM",
+    description: "Templates pré-aprovados pelo Meta. Preencha as variáveis antes de enviar.",
+    selectTemplate: "Escolher template",
+    preview: "Pré-visualização",
+    variablesTitle: "Variáveis",
+    variablePlaceholder: (key: string) => `Valor para ${key}`,
+    confirm: "Enviar template",
+    cancel: "Cancelar",
+    emptyVariables: "Preencha todas as variáveis para enviar.",
+  },
+  noteDialog: {
+    title: "Adicionar nota à ficha",
+    description: "A nota fica visível para vendedores e gestores com acesso a este cliente.",
+    placeholder: "Escreva sua nota…",
+    confirm: "Salvar nota",
+    cancel: "Cancelar",
+  },
+} as const;

@@ -50,6 +50,8 @@ export type {
   ISettingsProvider,
   IAuditsProvider,
   IListAuditsParams,
+  IWhatsAppAccountsProvider,
+  IListWhatsAppAccountsParams,
 } from "./contracts";
 
 export { useCustomersProvider } from "./hooks/useCustomersProvider";
@@ -69,3 +71,4 @@ export { useSellersProvider } from "./hooks/useSellersProvider";
 export { useStoresProvider } from "./hooks/useStoresProvider";
 export { useSettingsProvider } from "./hooks/useSettingsProvider";
 export { useAuditsProvider } from "./hooks/useAuditsProvider";
+export { useWhatsAppAccountsProvider } from "./hooks/useWhatsAppAccountsProvider";
