@@ -4,6 +4,91 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.14.0] — Pipeline · 2026-05-26
+
+Pipeline de Leads (PRD-017) — `/app/leads` deixa de ser placeholder e passa
+a entregar um **funil leve com 5 estágios, Kanban e Lista alternáveis,
+conversão preservando memória organizacional e métricas integradas**. O
+vendedor enxerga onde cada lead trava, o gestor encontra gargalos no
+Kanban e a ficha do cliente convertido mantém o histórico pré-conversão
+acessível.
+
+### Added
+
+- **Rota `/app/leads`** substitui o placeholder por `LeadsPage` em
+  `src/features/leads/`. Toggle Kanban/Lista persistido em URL
+  (`?view=kanban|list`); Kanban é o default.
+- **Kanban com 5 colunas** vindas de `IPlatformSettings.pipelineStages`
+  (defaults via `SEED_PIPELINE_STAGES`). Cada coluna mostra contagem,
+  tempo médio no estágio (proxy via `updatedAt`) e empty state.
+- **Drag-and-drop nativo (HTML5)** entre estágios com audit log
+  `lead.stage_changed` e toast de confirmação. Drop na coluna final
+  abre `<CloseDecisionModal>` perguntando "Convertido ou Perdido?".
+- **`<LeadCard>`** com avatar/iniciais, nome, telefone, badge de
+  temperatura (🔵/🟡/🔴), valor estimado compacto, próxima ação
+  colorida por urgência (verde/amarelo/vermelho), origem (WhatsApp /
+  E-commerce / Indicação / Google / Outro) e mini-avatar do vendedor.
+- **Lista alternativa** (`<LeadsList>`) com 10 colunas e ordenação por
+  nome, temperatura, valor estimado, próxima ação, dias no estágio e
+  data de criação. Clique em linha navega para o detalhe.
+- **Filtros completos com URL sync** — estágio (lista), temperatura,
+  origem, vendedor (multi-select), próxima ação (atrasadas / hoje /
+  esta semana / futuras), período de criação (24h / 7d / 30d), faixa
+  de valor estimado, loja (Owner only), busca textual em nome/telefone,
+  toggles "Incluir perdidos" e "Incluir convertidos".
+- **Métricas no header do Kanban** — taxa de conversão (30d), tempo
+  médio total (ciclo `createdAt → updatedAt` dos convertidos) e valor
+  médio convertido, calculados em `computeGlobalMetrics()` e
+  memoizados.
+- **`/app/leads/:id`** — `LeadDetailPage` com header (avatar, badges,
+  ações), card "Dados do lead" com edição inline de valor estimado,
+  próxima ação e temperatura, e três tabs: **Conversas** (consome
+  `conversationsProvider.list({ leadId })`), **Notas** (placeholder) e
+  **Histórico** (consome `auditsProvider.list` filtrando por
+  `resource: "lead"` e renderiza linha do tempo com timestamps).
+- **`<NewLeadModal>`** — criação manual com nome, telefone (validação
+  10–11 dígitos), e-mail opcional, origem, valor estimado,
+  temperatura, estágio inicial (default "Novo"), vendedor responsável
+  (locked para Vendedor, dropdown para Gestor/Owner) e próxima ação.
+  Audit log `lead.created` e navegação automática para o detalhe.
+- **`<ConvertLeadModal>`** — discriminated B2B/B2C, pré-preenche
+  dados do lead, valida CNPJ (14 dígitos) / CPF (11 dígitos), cria
+  `ICustomer` com `convertedFromLeadId`, `convertedFromLeadAt` e
+  `convertedBySellerId`, atualiza `lead.convertedToCustomerId` e
+  `lead.stage = "Convertido"`, emite dois audit logs (`lead.converted`
+  - `customer.created`) e navega para a ficha do cliente.
+- **`<MarkAsLostModal>`** — dropdown obrigatório de motivo da perda
+  alimentado por `IPlatformSettings.lossReasons` (defaults via
+  `SEED_LOSS_REASONS`), notas opcionais, audit log `lead.lost`.
+- **Próxima ação visual** — badge colorido no card e na lista (verde
+  para futura/amanhã, amarelo para hoje, vermelho para atrasada com
+  contagem de dias) calculado em `getNextActionInfo()`.
+- **Permissões respeitadas** — Vendedor vê apenas leads atribuídos
+  (`sellerScopeIds` aplicado em `useLeadsList`); Gestor/Owner veem
+  loja/cross-store conforme RBAC já vigente.
+
+### Changed
+
+- **Rotas de leads** reestruturadas — `app.leads.tsx` vira layout
+  (`<Outlet>`), `app.leads.index.tsx` carrega `LeadsPage` com
+  `validateLeadsSearch`, e `app.leads.$id.tsx` carrega
+  `LeadDetailPage`.
+
+### Tech notes
+
+- **Drag-and-drop sem dependência adicional** — implementação via
+  HTML5 Drag-and-Drop API nativo (`onDragStart` / `onDrop`) para
+  evitar a 24h supply-chain guard do `@dnd-kit/sortable`. Mobile
+  (< 768px) deve preferir a Lista; a alternativa de teclado fica
+  garantida pelo `onKeyDown` do card que abre o detalhe.
+- **Stage configurável via Settings** — `usePipelineSettings(storeId)`
+  lê `IPlatformSettings.pipelineStages` e `lossReasons`; fallback
+  estável para os seeds quando o store ainda não materializou
+  settings.
+- **Métricas memoizadas** — `computeStageMetrics` e
+  `computeGlobalMetrics` são chamadas em `useMemo` no Kanban e na
+  barra superior para satisfazer RNF-005.
+
 ## [0.13.0] — Fleet · 2026-05-26
 
 Veículos do Cliente (PRD-016) — veículo passa a ser **entidade de primeira
