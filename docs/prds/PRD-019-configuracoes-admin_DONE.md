@@ -549,11 +549,11 @@ Placeholders mostram intenção de produto, não estrutura interna. Texto vago o
 
 ## Status de Implementação
 
-| Campo       | Valor                  |
-| ----------- | ---------------------- |
-| **Status**  | ✅ CONCLUÍDO           |
-| **Versão**  | v0.16.0 — Cockpit      |
-| **Data**    | 26/05/2026             |
+| Campo      | Valor             |
+| ---------- | ----------------- |
+| **Status** | ✅ CONCLUÍDO      |
+| **Versão** | v0.16.0 — Cockpit |
+| **Data**   | 26/05/2026        |
 
 ---
 

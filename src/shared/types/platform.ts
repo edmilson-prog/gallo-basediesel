@@ -1,5 +1,6 @@
 import type { Division, ID, ISO8601 } from "./common";
 import type { IDistributionSettings } from "./distribution";
+import type { ISdrTemplate } from "./sdr";
 
 /** Store type. Matriz is the headquarters, filial is a branch, parceira is a partner store. */
 export type StoreType = "matriz" | "filial" | "parceira";
@@ -102,6 +103,10 @@ export interface IPlatformSettings {
   distribution: IDistributionSettings;
   /** Manager-dashboard alert configuration (PRD-014). */
   managerDashboard: IManagerDashboardSettings;
+  /** Whether the SDR agent is enabled for this store (PRD-020). */
+  sdrEnabled: boolean;
+  /** Editable SDR message templates with variable substitution (PRD-020). */
+  sdrTemplates: ISdrTemplate[];
 }
 
 /**

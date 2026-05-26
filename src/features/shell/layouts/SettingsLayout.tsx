@@ -115,6 +115,23 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
     ],
   },
   {
+    label: "Agente SDR",
+    items: [
+      {
+        label: "Simulador",
+        icon: "mdi:robot-happy-outline",
+        to: "/app/configuracoes/sdr/simulador",
+        roles: ["Owner", "Gestor"],
+      },
+      {
+        label: "Templates de mensagem",
+        icon: "mdi:message-text-outline",
+        to: "/app/configuracoes/sdr/templates",
+        roles: ["Owner"],
+      },
+    ],
+  },
+  {
     label: "Integrações",
     items: [
       {

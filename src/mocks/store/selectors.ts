@@ -146,3 +146,17 @@ export function selectAllDistributionTraces() {
 export function selectDistributionTraceById(id: ID) {
   return getMockState().distributionTraces.find((t) => t.id === id) ?? null;
 }
+
+export function selectAllSdrSessions() {
+  return getMockState().sdrSessions;
+}
+
+export function selectSdrSessionByConversation(conversationId: ID) {
+  return getMockState().sdrSessions.find((s) => s.conversationId === conversationId) ?? null;
+}
+
+export function selectActiveSdrSessions() {
+  return getMockState().sdrSessions.filter(
+    (s) => s.state !== "finalizado" && s.state !== "pausado",
+  );
+}

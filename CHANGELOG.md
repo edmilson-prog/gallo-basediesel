@@ -4,6 +4,75 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.17.0] — Concierge · 2026-05-26
+
+Agente SDR simulado (PRD-020) — o assistente IA do GALLO BASE DIESEL
+ganha um engine puro, máquina de estados de 7 transições, 8 templates
+editáveis com substituição de variáveis (`{{nome}}`, `{{empresa}}`),
+classificador de intenção por keywords em 6 categorias e um painel de
+simulação interativo. A arquitetura está preparada para troca por
+LangChain/OpenAI na Fase 2 sem refatorar consumidores.
+
+### Added
+
+- **Engine puro `sdrRespond()`** (`src/features/sdr/engine/respond.ts`)
+  — função determinística que recebe `IMessage` + `ISdrSession` +
+  `IPlatformSettings` e devolve `ISdrResponse` com `nextState`,
+  `actions[]`, `updatedCollectedData`, `trace` e `finishReason`. Sem
+  side effects: hooks externos é que mutam o mock store.
+- **Classificador de intenção `detectIntent()`** com 6 categorias
+  (`escalar_humano`, `gerar_orcamento`, `identificar_peca`,
+  `faq_horario`, `faq_entrega`, `texto_livre`). Pattern matching simples
+  por keyword, lowercase + includes, com prioridade declarativa.
+- **Sistema de templates** — `renderTemplate()` faz substituição de
+  variáveis `{{nome}}`, `{{empresa}}` com fallback (`"amigo"`) quando
+  ausente. 8 templates default seedados no `IPlatformSettings.sdrTemplates`.
+- **Tipos novos** em `src/shared/types/sdr.ts`: `ISdrSession`,
+  `ISdrTemplate`, `ISdrCollectedData`, `ISdrIntentMatch`, `ISdrAction`,
+  `ISdrTrace`, `ISdrResponse`, `SdrSessionState`, `SdrFinishReason`,
+  `SdrTemplateTrigger`, `SdrIntent`. `IPlatformSettings` ganha
+  `sdrEnabled: boolean` e `sdrTemplates: ISdrTemplate[]`.
+- **20 sessões SDR mockadas** geradas no bootstrap com mix de
+  `finishReason` (escalated 30%, completed 35%, abandoned 20%,
+  paused_by_human 15%) — alimentam métricas e simulador.
+- **API mock `sdrSessionsApi`** + contract `ISdrSessionsProvider` +
+  hook `useSdrSessionsProvider()`. Stub Supabase preparado para Fase 2.
+- **Hooks** — `useSdrResponder()` orquestra um turno (carrega/cria
+  sessão, chama engine, persiste mensagens `out` com `authorType='sdr'`,
+  audit log de transições); `useSdrPauseOnHumanIntervention()` pausa
+  sessão quando vendedor envia mensagem `out` em conversa com SDR ativo;
+  `useSdrReactivate()` reativa via menu ⋮; `useSdrMetrics()` calcula 7
+  métricas (total, taxa de escalação/completion/abandono, duração média,
+  resolução de FAQ, volume fora do horário) — alimentam PRD-024.
+- **Página `/app/configuracoes/sdr/simulador`** — interface 2 colunas:
+  conversa simulada à esquerda (bubbles cliente/SDR/system, input para
+  enviar como cliente, indicador "digitando") e inspetor à direita
+  (estado da sessão, dados coletados, último turno com intent/template/
+  variáveis, lista de templates ativos). Botões Reiniciar e Salvar caso
+  (persiste no localStorage). Acesso restrito a Owner/Gestor.
+- **Página `/app/configuracoes/sdr/templates`** — editor visual dos 8
+  templates default. Detecta variáveis usadas no texto, valida contra
+  vocabulário conhecido (`nome`, `empresa`), permite restaurar para o
+  padrão. Toggle global "Agente SDR ativo" no topo controla
+  `sdrEnabled`. Acesso restrito a Owner.
+- **Nova categoria "Agente SDR" na sidebar de Configurações** com 2
+  itens (Simulador + Templates de mensagem), filtrados por papel.
+- **Sincronia automática SDR session ↔ flag `isSdrActive`** no menu ⋮
+  da conversa — quando Owner/Gestor pausa o SDR pelo menu, a sessão
+  associada também transita para `state='pausado'` com
+  `finishReason='paused_by_human'`. Reativação restaura o estado anterior
+  via `pausedFromState`.
+- **Audit log padronizado** para todas as ações SDR: `sdr_session_start`,
+  `sdr_state_transition`, `sdr_escalate`, `sdr_identify_part_requested`,
+  `sdr_quote_requested`, `sdr_paused_by_human`, `sdr_reactivated`.
+
+### Changed
+
+- `IBootstrappedDataset` ganha `sdrSessions: ISdrSession[]`; mutations
+  e seletores aceitam a nova coleção.
+- `SEED_STORE.settings` agora seedaa `sdrEnabled: true` e os 8 templates
+  default — bootstrap atualiza automaticamente.
+
 ## [0.16.0] — Cockpit · 2026-05-26
 
 Configurações Administrativas (PRD-019) — o hub `/app/configuracoes`

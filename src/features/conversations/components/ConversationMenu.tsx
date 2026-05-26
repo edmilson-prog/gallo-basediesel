@@ -17,6 +17,7 @@ import {
   recordAuditLog,
   useConversationsProvider,
   useCustomersProvider,
+  useSdrSessionsProvider,
   useSellersProvider,
 } from "@/providers/data";
 import { TransferDialog } from "./dialogs/TransferDialog";
@@ -50,6 +51,7 @@ export function ConversationMenu({ conversation, customer, onMutated }: IConvers
   const conversationsProvider = useConversationsProvider();
   const customersProvider = useCustomersProvider();
   const sellersProvider = useSellersProvider();
+  const sdrSessionsProvider = useSdrSessionsProvider();
 
   const canEditStore = usePermission("conversation", "edit", "store");
   const canEditOwn = usePermission("conversation", "edit", "own");
@@ -151,11 +153,24 @@ export function ConversationMenu({ conversation, customer, onMutated }: IConvers
       await updateAndAudit(
         { isSdrActive: next },
         {
-          action: "conversation.toggle_sdr",
+          action: next ? "sdr_reactivated" : "sdr_paused_by_human",
           before: { isSdrActive: before },
           after: { isSdrActive: next },
         },
       );
+      // Keep the SDR session state in sync with the conversation flag (PRD-020).
+      try {
+        const session = await sdrSessionsProvider.getByConversation(conversation.id);
+        if (session) {
+          if (next && session.state === "pausado") {
+            await sdrSessionsProvider.resume(session.id);
+          } else if (!next && session.state !== "pausado") {
+            await sdrSessionsProvider.pause(session.id);
+          }
+        }
+      } catch {
+        /* session sync is best-effort */
+      }
       toast.success(next ? CONVERSATION_STRINGS.sdrResumed : CONVERSATION_STRINGS.sdrPaused);
     } catch {
       /* toast raised */

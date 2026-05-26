@@ -119,6 +119,21 @@ export type {
   DistributionMatchedCriterion,
 } from "./distribution";
 
+// SDR (PRD-020)
+export type {
+  ISdrSession,
+  ISdrTemplate,
+  ISdrCollectedData,
+  ISdrIntentMatch,
+  ISdrAction,
+  ISdrTrace,
+  ISdrResponse,
+  SdrSessionState,
+  SdrFinishReason,
+  SdrTemplateTrigger,
+  SdrIntent,
+} from "./sdr";
+
 // BI
 export type {
   IGoal,

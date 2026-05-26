@@ -19,6 +19,7 @@ import type {
   IRanking,
   IRecommendation,
   IRole,
+  ISdrSession,
   ISeller,
   IStore,
   IVehicle,
@@ -50,6 +51,7 @@ import { generateRanking } from "./ranking";
 import { generateBadges } from "./badge";
 import { generateWhatsAppAccounts } from "./whatsappAccount";
 import { generateDistributionTrace } from "./distributionTrace";
+import { generateSdrSession } from "./sdrSession";
 
 /**
  * Full GALLO mock dataset, ready to populate the Zustand store. Generated
@@ -83,6 +85,7 @@ export interface IBootstrappedDataset {
   positivations: IPositivation[];
   abcClassifications: IABCClassification[];
   distributionTraces: IDistributionTrace[];
+  sdrSessions: ISdrSession[];
 }
 
 /**
@@ -331,6 +334,19 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
     );
   }
 
+  // 20. SDR sessions (PRD-020) — 20 historical sessions across mixed finish reasons.
+  const sdrSessions: ISdrSession[] = [];
+  const sdrSessionCount = Math.min(20, conversations.length);
+  for (let i = 0; i < sdrSessionCount; i += 1) {
+    sdrSessions.push(
+      generateSdrSession(ctx, {
+        sequence: i,
+        conversation: conversations[i],
+        now,
+      }),
+    );
+  }
+
   const dataset: IBootstrappedDataset = {
     seed,
     generatedAt: now.toISOString(),
@@ -359,6 +375,7 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
     positivations: [positivation],
     abcClassifications,
     distributionTraces,
+    sdrSessions,
   };
 
   if (import.meta.env.DEV) {

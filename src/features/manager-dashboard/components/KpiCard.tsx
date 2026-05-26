@@ -78,7 +78,7 @@ function CardShell({
 
   if (isInteractive && onClick && !hasError) {
     return (
-      <Card asChild={false} className="overflow-hidden">
+      <Card className="overflow-hidden">
         <button
           type="button"
           onClick={onClick}

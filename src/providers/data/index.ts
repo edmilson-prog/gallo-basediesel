@@ -63,6 +63,8 @@ export type {
   IManagerDashboardProvider,
   IManagerDashboardSnapshotParams,
   IManagerDashboardSnapshot,
+  ISdrSessionsProvider,
+  IListSdrSessionsParams,
 } from "./contracts";
 
 export { useCustomersProvider } from "./hooks/useCustomersProvider";
@@ -85,3 +87,4 @@ export { useAuditsProvider } from "./hooks/useAuditsProvider";
 export { useWhatsAppAccountsProvider } from "./hooks/useWhatsAppAccountsProvider";
 export { useDistributionTracesProvider } from "./hooks/useDistributionTracesProvider";
 export { useManagerDashboardProvider } from "./hooks/useManagerDashboardProvider";
+export { useSdrSessionsProvider } from "./hooks/useSdrSessionsProvider";

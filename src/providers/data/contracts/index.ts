@@ -25,6 +25,7 @@ import type { IAuditsProvider } from "./audits";
 import type { IWhatsAppAccountsProvider } from "./whatsappAccounts";
 import type { IDistributionTracesProvider } from "./distributionTraces";
 import type { IManagerDashboardProvider } from "./managerDashboard";
+import type { ISdrSessionsProvider } from "./sdrSessions";
 
 export type { IPaginatedResult, IPaginationParams } from "./_shared";
 
@@ -66,6 +67,7 @@ export type {
   IManagerDashboardSnapshotParams,
   IManagerDashboardSnapshot,
 } from "./managerDashboard";
+export type { ISdrSessionsProvider, IListSdrSessionsParams } from "./sdrSessions";
 
 /**
  * Aggregate of every data provider returned by `getDataProviders()`. The factory
@@ -93,4 +95,5 @@ export interface IDataProviders {
   whatsappAccounts: IWhatsAppAccountsProvider;
   distributionTraces: IDistributionTracesProvider;
   managerDashboard: IManagerDashboardProvider;
+  sdrSessions: ISdrSessionsProvider;
 }

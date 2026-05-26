@@ -13,6 +13,7 @@ import type {
   IPart,
   IQuote,
   IRecommendation,
+  ISdrSession,
   IVehicle,
   ID,
 } from "@/shared/types";
@@ -31,7 +32,8 @@ type CollectionKey =
   | "goals"
   | "recommendations"
   | "audits"
-  | "distributionTraces";
+  | "distributionTraces"
+  | "sdrSessions";
 
 type CollectionMap = {
   customers: ICustomer;
@@ -47,6 +49,7 @@ type CollectionMap = {
   recommendations: IRecommendation;
   audits: IAuditLog;
   distributionTraces: IDistributionTrace;
+  sdrSessions: ISdrSession;
 };
 
 /**
