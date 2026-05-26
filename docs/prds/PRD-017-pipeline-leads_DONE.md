@@ -779,8 +779,8 @@ Para análise estatística futura (Fase 2 BI), motivos podem ser agregados sem P
 
 ## Status de Implementação
 
-| Campo      | Valor                            |
-| ---------- | -------------------------------- |
+| Campo      | Valor                             |
+| ---------- | --------------------------------- |
 | **Status** | ✅ CONCLUÍDO (v0.14.0 — Pipeline) |
 
 ---

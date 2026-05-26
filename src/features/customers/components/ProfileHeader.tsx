@@ -11,6 +11,7 @@ import { getCustomerDisplay } from "../utils/customerDisplay";
 import { ProfileBadges } from "./ProfileBadges";
 import { PreConversionBadge } from "./PreConversionBadge";
 import { ProfileMenu } from "./ProfileMenu";
+import { CoverageBanner } from "@/features/carteira/components/CoverageBanner";
 
 export interface IProfileHeaderProps {
   customer: ICustomer;
@@ -68,6 +69,8 @@ export function ProfileHeader({ customer, conversation, variant }: IProfileHeade
       </div>
 
       <ProfileContactRow customer={customer} />
+
+      <CoverageBanner customer={customer} />
 
       <div className="flex items-center gap-1.5">
         <Button

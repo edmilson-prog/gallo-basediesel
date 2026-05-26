@@ -6,6 +6,10 @@ export interface IListTransfersParams extends IPaginationParams {
   fromSellerId?: ID;
   toSellerId?: ID;
   status?: ICarteiraTransfer["status"];
+  statuses?: ICarteiraTransfer["status"][];
+  types?: CarteiraTransferType[];
+  since?: string;
+  until?: string;
 }
 
 export interface ICreateTransferInput {
@@ -29,4 +33,6 @@ export interface ICreateTransferInput {
 export interface ITransfersProvider {
   list(params?: IListTransfersParams): Promise<IPaginatedResult<ICarteiraTransfer>>;
   create(input: ICreateTransferInput): Promise<ICarteiraTransfer>;
+  revert(transferId: ID): Promise<ICarteiraTransfer>;
+  expire(transferId: ID): Promise<ICarteiraTransfer>;
 }

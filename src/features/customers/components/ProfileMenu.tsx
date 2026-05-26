@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { ICustomer } from "@/shared/types";
+import { NewPermanentIndividualTransferModal } from "@/features/carteira/components/NewPermanentIndividualTransferModal";
+import { useSellersProvider } from "@/providers/data/hooks/useSellersProvider";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -45,7 +48,16 @@ export function ProfileMenu({ customer, onMutated }: IProfileMenuProps) {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const provider = useCustomersProvider();
+  const sellersProvider = useSellersProvider();
   const [blockOpen, setBlockOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
+
+  const sellersQuery = useQuery({
+    queryKey: ["customer-profile-sellers", customer.storeId],
+    queryFn: () => sellersProvider.list({ storeId: customer.storeId }),
+    staleTime: 60_000,
+    enabled: transferOpen,
+  });
 
   const canEdit = usePermission("customer", "edit");
   const canEditStore = usePermission("customer", "edit", "store");
@@ -120,13 +132,7 @@ export function ProfileMenu({ customer, onMutated }: IProfileMenuProps) {
             </DropdownMenuItem>
           )}
           {canTransfer && (
-            <DropdownMenuItem
-              onSelect={() =>
-                void navigate({
-                  to: `/app/carteiras?customerId=${customer.id}` as never,
-                })
-              }
-            >
+            <DropdownMenuItem onSelect={() => setTransferOpen(true)}>
               <Icon icon="mdi:swap-horizontal" size={14} />
               {CUSTOMER_STRINGS.menu.transferWallet}
             </DropdownMenuItem>
@@ -182,6 +188,18 @@ export function ProfileMenu({ customer, onMutated }: IProfileMenuProps) {
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <NewPermanentIndividualTransferModal
+        open={transferOpen}
+        customer={transferOpen ? customer : null}
+        sellers={sellersQuery.data ?? []}
+        currentUserId={currentUser?.id ?? "system"}
+        onClose={() => setTransferOpen(false)}
+        onCreated={() => {
+          setTransferOpen(false);
+          onMutated?.();
+        }}
+      />
 
       <AlertDialog open={blockOpen} onOpenChange={setBlockOpen}>
         <AlertDialogContent>

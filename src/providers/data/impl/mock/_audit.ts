@@ -19,7 +19,7 @@ const SYSTEM_ACTOR_ID = "system";
  * Failures are swallowed inside `recordAuditLog`. Never throws.
  */
 export function logMockMutation(args: {
-  action: "create" | "update" | "delete" | "approve";
+  action: "create" | "update" | "delete" | "approve" | (string & {});
   resource: string;
   resourceId: ID;
   before?: unknown;

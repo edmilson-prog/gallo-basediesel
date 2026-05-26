@@ -12,7 +12,6 @@ import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { useCustomersProvider } from "@/providers/data/hooks/useCustomersProvider";
 import { useSellersProvider } from "@/providers/data/hooks/useSellersProvider";
-import { useTransfersProvider } from "@/providers/data/hooks/useTransfersProvider";
 import { recordAuditLogSync } from "@/providers/data/auditLogger";
 import { hashHue, initialsFrom, avatarColors } from "@/shared/utils/avatar";
 import { CustomerProfile } from "../components/CustomerProfile";
@@ -27,7 +26,7 @@ import { ManageSegmentsModal } from "../components/list/ManageSegmentsModal";
 import { NewCustomerModal } from "../components/list/NewCustomerModal";
 import { AddTagModal } from "../components/list/bulk-actions/AddTagModal";
 import { RemoveTagModal } from "../components/list/bulk-actions/RemoveTagModal";
-import { TransferSellerModal } from "../components/list/bulk-actions/TransferSellerModal";
+import { NewPermanentBatchTransferModal } from "@/features/carteira/components/NewPermanentBatchTransferModal";
 import { useCustomersUrlState } from "../hooks/useCustomersUrlState";
 import { useCustomersList } from "../hooks/useCustomersList";
 import { useSegments } from "../hooks/useSegments";
@@ -63,7 +62,6 @@ export function CustomersListPage() {
   const segments = useSegments();
   const sellersProvider = useSellersProvider();
   const customersProvider = useCustomersProvider();
-  const transfersProvider = useTransfersProvider();
 
   // Carrega lista de vendedores aplicáveis (scoped à loja atual).
   const sellersQuery = useQueries({
@@ -258,6 +256,12 @@ export function CustomersListPage() {
     return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
   }, [list.data, selectedIds]);
 
+  // Clientes selecionados (objeto completo) — usado pelo modal de transferência em lote.
+  const selectedCustomers = useMemo(
+    () => list.data.filter((c) => selectedIds.has(c.id)),
+    [list.data, selectedIds],
+  );
+
   // --- Ações ---
   const handleApplySegment = useCallback(
     (segment: ICustomerSegment) => {
@@ -367,42 +371,6 @@ export function CustomersListPage() {
       toast.success(`${updated} clientes atualizados.`);
     },
     [selectedIds, list, customersProvider, currentUser?.id],
-  );
-
-  const handleTransferSeller = useCallback(
-    async (args: { toSellerId: ID; reason: string }) => {
-      const ids = Array.from(selectedIds);
-      // Agrupa por vendedor de origem (todos podem vir de diferentes).
-      const byFrom = new Map<ID, ID[]>();
-      ids.forEach((id) => {
-        const c = list.data.find((x) => x.id === id);
-        if (!c) return;
-        const arr = byFrom.get(c.sellerId) ?? [];
-        arr.push(id);
-        byFrom.set(c.sellerId, arr);
-      });
-      for (const [fromSellerId, customerIds] of byFrom.entries()) {
-        await transfersProvider.create({
-          storeId: currentStoreId ?? "store-matriz",
-          type: "permanent_batch",
-          fromSellerId,
-          toSellerId: args.toSellerId,
-          customerIds,
-          reason: args.reason,
-          createdBy: currentUser?.id ?? "system",
-        });
-      }
-      recordAuditLogSync({
-        actorId: currentUser?.id ?? "system",
-        action: "bulk_transfer_seller",
-        resource: "customer",
-        resourceId: ids.join(","),
-        after: { toSellerId: args.toSellerId, affected: ids.length, summary: true },
-      });
-      await list.invalidate();
-      toast.success(`Transferência em lote: ${ids.length} clientes movidos.`);
-    },
-    [selectedIds, list, transfersProvider, currentStoreId, currentUser?.id],
   );
 
   const handleMarkDormant = useCallback(async () => {
@@ -610,12 +578,17 @@ export function CustomersListPage() {
       )}
 
       {canCreateTransfer && isManagerOrOwner && (
-        <TransferSellerModal
+        <NewPermanentBatchTransferModal
           open={transferOpen}
+          customers={selectedCustomers}
           sellers={sellers}
-          affectedCount={selectedIds.size}
+          storeId={currentStoreId ?? "store-matriz"}
+          currentUserId={currentUser?.id ?? "system"}
           onClose={() => setTransferOpen(false)}
-          onSubmit={handleTransferSeller}
+          onCreated={async () => {
+            await list.invalidate();
+            setSelectedIds(new Set());
+          }}
         />
       )}
     </div>

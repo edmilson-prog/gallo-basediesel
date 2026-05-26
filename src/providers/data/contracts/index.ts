@@ -50,7 +50,7 @@ export type { IOrdersProvider, IListOrdersParams } from "./orders";
 export type { ICommissionsProvider, IListCommissionsParams } from "./commissions";
 export type { IGoalsProvider, IListGoalsParams } from "./goals";
 export type { IRecommendationsProvider, IListRecommendationsParams } from "./recommendations";
-export type { ITransfersProvider, IListTransfersParams } from "./transfers";
+export type { ITransfersProvider, IListTransfersParams, ICreateTransferInput } from "./transfers";
 export type { ISegmentsProvider, IListSegmentsParams } from "./segments";
 export type { ISellersProvider, IListSellersParams } from "./sellers";
 export type { IStoresProvider } from "./stores";

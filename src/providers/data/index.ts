@@ -47,6 +47,7 @@ export type {
   IListRecommendationsParams,
   ITransfersProvider,
   IListTransfersParams,
+  ICreateTransferInput,
   ISegmentsProvider,
   IListSegmentsParams,
   ISellersProvider,

@@ -4,6 +4,121 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.15.0] — Wallet · 2026-05-26
+
+Gestão de Carteira e Transferências (PRD-018) — `/app/carteira` deixa
+de ser placeholder e passa a entregar o **sistema completo de
+transferências entre vendedores**, com três sabores (temporária com
+reversão automática, permanente individual e permanente em lote),
+painel administrativo em 3 abas (Ativas, Histórico, Auditoria),
+notificações por toast, audit log imutável e integração com a ficha
+do cliente (PRD-012) e a lista de clientes (PRD-015).
+
+### Added
+
+- **Rota `/app/carteira`** substitui o placeholder por `CarteiraPage`
+  em `src/features/carteira/`. Protegida por `requireAuth` com
+  `transfer:view` — apenas Owner e Gestor têm acesso; Vendedor é
+  redirecionado para `/sem-permissao`.
+- **Painel em 3 abas:** **Ativas** (cards detalhados com tipo, rota
+  vendedor → vendedor, contador de clientes, período de cobertura,
+  tempo restante até a reversão automática e ação "Reverter agora"),
+  **Histórico** (tabela paginada com filtros por tipo, vendedor de
+  origem/destino, status final e período) e **Auditoria** (lista de
+  eventos `transfer.create`, `transfer.revert` e `transfer.expire`
+  com detalhes expansíveis before/after).
+- **Header com contadores em tempo real** — "X ativas · Y temporárias
+  em vigência" — e dropdown "+ Nova transferência" com 3 atalhos
+  (Temporária, Permanente individual, Permanente em lote). Os dois
+  últimos abrem orientação direcionando ao fluxo correto (ficha do
+  cliente para individual, lista com multi-select para batch).
+- **`<NewTemporaryTransferModal>`** — workflow completo: dropdowns De
+  / Para com sellers da loja, range de datas (start ≥ hoje, end >
+  start), motivo categórico (Férias, Licença médica, Treinamento,
+  Outro) + detalhes opcionais, cobertura "Todos os clientes do
+  titular" (default) ou "Selecionar específicos" via multi-select com
+  checkboxes. Inclui detecção de **conflito de cobertura** (alerta
+  amarelo quando já existe temporária ativa para o mesmo titular) e
+  **preview** antes de confirmar.
+- **`<NewPermanentIndividualTransferModal>`** — chamado pela ficha do
+  cliente (PRD-012 → menu ⋮ → "Transferir carteira"). Substitui o
+  redirect anterior para `/app/carteiras`. Cliente e vendedor atual
+  ficam lockados; motivo obrigatório como textarea; confirmação
+  destacada antes de submeter.
+- **`<NewPermanentBatchTransferModal>`** — chamado pela ação em lote
+  da Lista de Clientes (PRD-015). Substitui o `TransferSellerModal`
+  anterior por uma versão polida: lista expansível dos clientes
+  selecionados, validação de motivo obrigatório, agrupamento
+  automático por `fromSellerId` quando a seleção atravessa
+  vendedores diferentes (cria 1 `ICarteiraTransfer` `permanent_batch`
+  por grupo, não N individuais), e confirmação enfatizando o caráter
+  permanente da ação.
+- **`<RevertTransferModal>`** — confirmação contextual (texto
+  diferente para temporary vs permanent) ao clicar "Reverter agora";
+  toast de sucesso/erro e invalidação de queries.
+- **Reversão automática (`useAutoRevertTimer`)** — hook montado uma
+  vez no `AppLayout`, ativo para Owner/Gestor enquanto o app está
+  aberto. A cada 60 segundos varre transferências temporárias com
+  `autoRevertAt <= now` e `status='active'`, chama
+  `transfersProvider.expire(id)` em cada uma, atualiza
+  `customer.sellerId` para o titular original, grava audit log
+  `transfer.expire` e dispara toast "Transferência temporária
+  revertida automaticamente". Caminho Fase 2 (Edge Function com
+  `pg_cron`) documentado em `docs/carteira.md`.
+- **Banner discreto na ficha (`<CoverageBanner>`)** — exibido no
+  `ProfileHeader` (PRD-012) quando há cobertura temporária ativa
+  cobrindo o cliente. Lê transferências `temporary`/`active` que
+  contêm `customer.id` e mostra o titular original e a data de
+  retorno: _"Este cliente está sob cobertura temporária. Volta para
+  [titular] em [data]."_
+- **Tipos de filtros novos no provider de transferências** —
+  `IListTransfersParams` agora aceita `statuses`, `types`, `since` e
+  `until`, permitindo o histórico filtrado e a varredura otimizada do
+  timer de auto-revert.
+- **Métodos `revert(id)` e `expire(id)` no provider** —
+  `ITransfersProvider` ganha duas mutações. Ambas validam que a
+  transferência está em `active`, reescrevem `customer.sellerId`
+  para o titular original e gravam audit log com `before` (status
+  anterior) e `after` (snapshot com sellers e contagem de clientes).
+- **`docs/carteira.md`** documenta tipos, modelo, reversão
+  automática (MVP e Fase 2), audit log, permissões e a árvore de
+  arquivos.
+
+### Changed
+
+- **Provider `transfersProvider.create`** agora reescreve
+  `customer.sellerId` para o titular destino também em transferências
+  `temporary` (antes era exclusivo de `permanent_*`). Necessário para
+  refletir corretamente quem atende o cliente durante a vigência da
+  cobertura; a reversão automática restaura o `sellerId` original.
+- **Audit log de transferências** padronizado em `resource='transfer'`
+  com ações `transfer.create`, `transfer.revert`, `transfer.expire`.
+  A aba Auditoria do painel embebe uma view filtrada por essas três
+  ações. O tipo `action` do `logMockMutation` foi alargado para
+  aceitar strings semânticas (`transfer.*`) além dos verbos CRUD.
+- **Ficha do cliente (PRD-012):** o item "Transferir carteira" no
+  menu ⋮ deixa de redirecionar para `/app/carteiras?customerId=…` e
+  passa a abrir o novo modal `<NewPermanentIndividualTransferModal>`
+  inline.
+- **Lista de Clientes (PRD-015):** a ação em lote "Transferir
+  vendedor" troca o `TransferSellerModal` antigo pelo
+  `<NewPermanentBatchTransferModal>` da feature de carteira, ficando
+  alinhada ao audit log central e ao novo design system.
+- **Barrel `@/providers/data`** exporta agora `ICreateTransferInput`
+  para consumo pelos hooks de mutação (`useCreateTransfer`,
+  `useRevertTransfer`, `useExpireTransfer`).
+
+### Security
+
+- **Audit log imutável de transferências** — toda criação, reversão
+  manual ou expiração automática registra ator, alvo, snapshot
+  before/after e storeId. Base de evidências para o módulo de
+  Comissões (PRD-047, Onda 2) resolver disputas do tipo "esse
+  cliente fechou comigo".
+- **Validação cross-store no front** — modais filtram a lista de
+  sellers pelo storeId do cliente; transferência entre lojas exige
+  permissão de Owner (preparado para validação no backend na Fase 2).
+
 ## [0.14.0] — Pipeline · 2026-05-26
 
 Pipeline de Leads (PRD-017) — `/app/leads` deixa de ser placeholder e passa

@@ -9,4 +9,7 @@ const stub = (method: string) => () => {
 
 export const supabaseTransfersProvider: ITransfersProvider = {
   list: stub("list"),
+  create: stub("create"),
+  revert: stub("revert"),
+  expire: stub("expire"),
 };
