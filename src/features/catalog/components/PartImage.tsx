@@ -1,0 +1,46 @@
+import type { IPart } from "@/shared/types";
+import { Icon } from "@/components/Icon";
+import { cn } from "@/lib/utils";
+import { getCategoryDescriptor } from "../utils/categories";
+
+export interface IPartImageProps {
+  part: Pick<IPart, "category" | "imageUrl" | "name">;
+  size?: "sm" | "md" | "lg";
+  className?: string;
+}
+
+const SIZE_MAP = {
+  sm: { box: "h-10 w-10 rounded-md", icon: 22 },
+  md: { box: "h-14 w-14 rounded-lg", icon: 28 },
+  lg: { box: "h-32 w-32 rounded-xl", icon: 64 },
+} as const;
+
+export function PartImage({ part, size = "sm", className }: IPartImageProps) {
+  const descriptor = getCategoryDescriptor(part.category);
+  const dims = SIZE_MAP[size];
+
+  if (part.imageUrl) {
+    return (
+      <img
+        src={part.imageUrl}
+        alt={part.name}
+        className={cn(dims.box, "object-cover", className)}
+      />
+    );
+  }
+
+  return (
+    <div
+      role="img"
+      aria-label={part.name}
+      className={cn(
+        dims.box,
+        "grid place-items-center",
+        descriptor?.tone ?? "bg-muted text-muted-foreground",
+        className,
+      )}
+    >
+      <Icon icon={descriptor?.icon ?? "mdi:cube-outline"} size={dims.icon} />
+    </div>
+  );
+}

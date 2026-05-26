@@ -1,6 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { PlaceholderPage } from "@/features/shell/components/EmptyState";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/app/catalogo")({
-  component: () => <PlaceholderPage prd="030" icon="mdi:cog" title="Catálogo interno" />,
+  component: () => <Outlet />,
 });

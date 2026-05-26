@@ -1,4 +1,5 @@
-import type { IApplication, IPart, ID } from "@/shared/types";
+import type { IApplication, IPart, ID, PartCategory } from "@/shared/types";
+import { CATALOG_CATEGORY_TO_CANONICAL } from "@/features/part-identification/data/partCategories";
 import {
   OEM_PREFIXES,
   PART_BRAND_NAMES,
@@ -8,6 +9,20 @@ import {
   type IPartCategory,
 } from "../data";
 import { pickWeighted, randomISO, type ISeededContext } from "./utils";
+
+const SUBCATEGORIES_BY_CATEGORY: Record<string, string[]> = {
+  filtros: ["óleo", "ar", "combustível", "cabine", "separador"],
+  freios: ["pastilha", "disco", "lona", "tambor", "câmara", "regulador"],
+  transmissao: ["embreagem", "cardan", "sincronizador", "rolamento"],
+  suspensao: ["amortecedor", "mola", "bucha", "direção"],
+  eletrica: ["alternador", "bateria", "partida", "sensor", "chicote"],
+  motor: ["pistão", "biela", "junta", "turbo", "bomba"],
+  arrefecimento: ["radiador", "intercooler", "ventoinha", "termostato"],
+  lubrificantes: ["motor", "câmbio", "hidráulico", "graxa", "arla"],
+};
+
+/** Mark some suppliers/brands as OEM originals based on naming. */
+const ORIGINAL_BRAND_HINTS = ["Volvo Genuine", "Scania Original", "Iveco Parts", "Cummins OEM"];
 
 /** Deterministically generate a single `IPart` plus its applications. */
 export function generatePart(
@@ -27,12 +42,24 @@ export function generatePart(
   );
   const margin = clamp(category.marginMean + (ctx.rng() - 0.5) * 0.18, 0.1, 0.7);
   const unitPrice = roundMoney(unitCost * (1 + margin));
-  const stockAvailable = ctx.int(0, 80);
+  // Stock distribution: ~70% normal, 20% low, 10% zero (PRD-030 RF-005).
+  const stockRoll = ctx.rng();
   const stockMinimum = ctx.int(2, 10);
+  const stockAvailable =
+    stockRoll < 0.1
+      ? 0
+      : stockRoll < 0.3
+        ? ctx.int(1, Math.max(1, stockMinimum - 1))
+        : ctx.int(stockMinimum + 1, 80);
   const sku = formatSku(category.id, options.sequence);
   const id: ID = `part-${sku.toLowerCase()}`;
   const now = options.now ?? new Date();
   const createdAt = randomISO(ctx, new Date(now.getFullYear() - 2, 0, 1), now);
+  const canonicalCategory: PartCategory | undefined = CATALOG_CATEGORY_TO_CANONICAL[category.id];
+  const subcategoryPool = SUBCATEGORIES_BY_CATEGORY[category.id];
+  const subcategory =
+    subcategoryPool && subcategoryPool.length > 0 ? ctx.pick(subcategoryPool) : undefined;
+  const isOriginal = ORIGINAL_BRAND_HINTS.includes(brand) || ORIGINAL_BRAND_HINTS.includes(supplier);
 
   return {
     id,
@@ -44,6 +71,9 @@ export function generatePart(
     applications: generateApplications(ctx, id, category),
     brand,
     supplier,
+    category: canonicalCategory,
+    subcategory,
+    isOriginal,
     unitCost,
     unitPrice,
     marginPercent: Number(margin.toFixed(4)),
@@ -51,6 +81,7 @@ export function generatePart(
     stockMinimum,
     division: "parts",
     active: ctx.bool(0.95),
+    storeId: "store-matriz",
     createdAt,
     updatedAt: randomISO(ctx, new Date(createdAt), now),
   };
@@ -129,7 +160,7 @@ function formatSku(categoryId: string, sequence: number): string {
 
 function inferCategoryFromSku(sku: string): string | null {
   const match = sku.match(/^GAL-([A-Z]{3})-/);
-  if (!match) return null;
+  if (!match || !match[1]) return null;
   const code = match[1].toLowerCase();
   const category = PART_CATEGORIES.find((c) => c.id.slice(0, 3) === code);
   return category?.id ?? null;

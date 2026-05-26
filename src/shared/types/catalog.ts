@@ -1,4 +1,5 @@
 import type { Division, ID, ISO8601, Money } from "./common";
+import type { PartCategory } from "./part-identification";
 
 /**
  * Vehicle application of a part — combination of vehicle attributes the part fits.
@@ -34,6 +35,14 @@ export interface IPart {
   applications: IApplication[];
   brand: string;
   supplier: string;
+  /** Canonical part family — PRD-030. Mirrors the taxonomy used by PRD-021. */
+  category?: PartCategory;
+  /** Sub-category within the family (e.g. `oleo` for `filtro`). */
+  subcategory?: string;
+  /** True when this part is the OEM original (Volvo Genuine, Scania Original…). */
+  isOriginal?: boolean;
+  /** Optional artwork. MVP falls back to a category icon when absent. */
+  imageUrl?: string;
   unitCost: Money;
   unitPrice: Money;
   /** Margin as decimal (0.30 = 30%). */
@@ -43,6 +52,8 @@ export interface IPart {
   /** Division this part belongs to. On the MVP always `'parts'`. */
   division: Division;
   active: boolean;
+  /** Multi-store (PRD-007). Optional on legacy mock data. */
+  storeId?: ID;
   createdAt: ISO8601;
   updatedAt: ISO8601;
 }

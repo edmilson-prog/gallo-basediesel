@@ -6,5 +6,5 @@ import type { ReactNode } from "react";
  * the parent route (`app.tsx`).
  */
 export function DashboardLayout({ children }: { children?: ReactNode }) {
-  return <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-8">{children}</div>;
+  return <div className="mx-auto w-full max-w-[1600px] px-4 py-6 md:px-8">{children}</div>;
 }

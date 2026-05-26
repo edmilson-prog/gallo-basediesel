@@ -62,7 +62,7 @@ const GESTOR_ENTRIES: ScopedActions[] = [
   p("lead", CRUD, "store"),
   p("conversation", CRUD, "store"),
   p("message", ["create"], "store"),
-  p("part", ["view"], "store"),
+  p("part", ["view", "create", "edit"], "store"),
   p("quote", CRUDA, "store"),
   p("order", CRUD, "store"),
   p("commission", ["approve"], "store"),
