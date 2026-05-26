@@ -30,7 +30,7 @@ import type {
 
 import { DEFAULT_SEED, VOLUMES } from "../config";
 import { SEED_OWNER_ID, SEED_ROLES, SEED_STORE, SEED_VENDEDOR_SELLER_IDS } from "../data";
-import { createSeededContext } from "./utils";
+import { createSeededContext, pickWeighted } from "./utils";
 import { generateSellers } from "./seller";
 import { generateAudit } from "./audit";
 import { generatePart, linkEquivalentParts } from "./part";
@@ -247,10 +247,20 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
     );
   }
 
-  // 13. Orders — spread over the last 12 months for BI. Some inherit from a quote.
+  // 13. Orders — spread over the last 12 months for BI. PRD-032 RF-006:
+  // ~40% inherit from a quote, ~25% from an SDR conversation, ~35% manual.
   const orders: IOrder[] = [];
   for (let i = 0; i < VOLUMES.orders; i += 1) {
-    const sourceQuote = ctx.bool(0.2) ? ctx.pick(quotes) : undefined;
+    const origin = pickWeighted(ctx, [
+      { value: "fromQuote" as const, weight: 40 },
+      { value: "fromConversation" as const, weight: 25 },
+      { value: "manual" as const, weight: 35 },
+    ]);
+    const sourceQuote = origin === "fromQuote" ? ctx.pick(quotes) : undefined;
+    const conversationId =
+      origin === "fromConversation" && conversations.length > 0
+        ? ctx.pick(conversations).id
+        : undefined;
     let customer: ICustomer | undefined;
     if (sourceQuote && sourceQuote.customerId) {
       customer = customers.find((c) => c.id === sourceQuote.customerId);
@@ -262,6 +272,7 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
         customer,
         parts,
         sourceQuote,
+        conversationId,
         now,
       }),
     );

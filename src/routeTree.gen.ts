@@ -35,6 +35,7 @@ import { Route as AppCatalogoRouteImport } from './routes/app.catalogo'
 import { Route as AppCarteiraRouteImport } from './routes/app.carteira'
 import { Route as AppAtendimentoRouteImport } from './routes/app.atendimento'
 import { Route as AppVeiculosIndexRouteImport } from './routes/app.veiculos.index'
+import { Route as AppPedidosIndexRouteImport } from './routes/app.pedidos.index'
 import { Route as AppOrcamentosIndexRouteImport } from './routes/app.orcamentos.index'
 import { Route as AppLeadsIndexRouteImport } from './routes/app.leads.index'
 import { Route as AppGestaoIndexRouteImport } from './routes/app.gestao.index'
@@ -46,6 +47,7 @@ import { Route as LojaProdutoSlugRouteImport } from './routes/loja.produto.$slug
 import { Route as LojaContaPedidosRouteImport } from './routes/loja.conta.pedidos'
 import { Route as LojaCategoriaSlugRouteImport } from './routes/loja.categoria.$slug'
 import { Route as AppVeiculosIdRouteImport } from './routes/app.veiculos.$id'
+import { Route as AppPedidosIdRouteImport } from './routes/app.pedidos.$id'
 import { Route as AppOrcamentosNovoRouteImport } from './routes/app.orcamentos.novo'
 import { Route as AppOrcamentosIdRouteImport } from './routes/app.orcamentos.$id'
 import { Route as AppLeadsIdRouteImport } from './routes/app.leads.$id'
@@ -216,6 +218,11 @@ const AppVeiculosIndexRoute = AppVeiculosIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppVeiculosRoute,
 } as any)
+const AppPedidosIndexRoute = AppPedidosIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppPedidosRoute,
+} as any)
 const AppOrcamentosIndexRoute = AppOrcamentosIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -270,6 +277,11 @@ const AppVeiculosIdRoute = AppVeiculosIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => AppVeiculosRoute,
+} as any)
+const AppPedidosIdRoute = AppPedidosIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppPedidosRoute,
 } as any)
 const AppOrcamentosNovoRoute = AppOrcamentosNovoRouteImport.update({
   id: '/novo',
@@ -500,7 +512,7 @@ export interface FileRoutesByFullPath {
   '/app/inicio': typeof AppInicioRoute
   '/app/leads': typeof AppLeadsRouteWithChildren
   '/app/orcamentos': typeof AppOrcamentosRouteWithChildren
-  '/app/pedidos': typeof AppPedidosRoute
+  '/app/pedidos': typeof AppPedidosRouteWithChildren
   '/app/sdr': typeof AppSdrRoute
   '/app/veiculos': typeof AppVeiculosRouteWithChildren
   '/auth/login': typeof AuthLoginRoute
@@ -539,6 +551,7 @@ export interface FileRoutesByFullPath {
   '/app/leads/$id': typeof AppLeadsIdRoute
   '/app/orcamentos/$id': typeof AppOrcamentosIdRoute
   '/app/orcamentos/novo': typeof AppOrcamentosNovoRoute
+  '/app/pedidos/$id': typeof AppPedidosIdRoute
   '/app/veiculos/$id': typeof AppVeiculosIdRoute
   '/loja/categoria/$slug': typeof LojaCategoriaSlugRoute
   '/loja/conta/pedidos': typeof LojaContaPedidosRoute
@@ -550,6 +563,7 @@ export interface FileRoutesByFullPath {
   '/app/gestao/': typeof AppGestaoIndexRoute
   '/app/leads/': typeof AppLeadsIndexRoute
   '/app/orcamentos/': typeof AppOrcamentosIndexRoute
+  '/app/pedidos/': typeof AppPedidosIndexRoute
   '/app/veiculos/': typeof AppVeiculosIndexRoute
   '/app/catalogo/$id/editar': typeof AppCatalogoIdEditarRoute
   '/app/configuracoes/atendimento/horario-comercial': typeof AppConfiguracoesAtendimentoHorarioComercialRoute
@@ -572,7 +586,6 @@ export interface FileRoutesByTo {
   '/sem-permissao': typeof SemPermissaoRoute
   '/app/carteira': typeof AppCarteiraRoute
   '/app/inicio': typeof AppInicioRoute
-  '/app/pedidos': typeof AppPedidosRoute
   '/app/sdr': typeof AppSdrRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/logout': typeof AuthLogoutRoute
@@ -610,6 +623,7 @@ export interface FileRoutesByTo {
   '/app/leads/$id': typeof AppLeadsIdRoute
   '/app/orcamentos/$id': typeof AppOrcamentosIdRoute
   '/app/orcamentos/novo': typeof AppOrcamentosNovoRoute
+  '/app/pedidos/$id': typeof AppPedidosIdRoute
   '/app/veiculos/$id': typeof AppVeiculosIdRoute
   '/loja/categoria/$slug': typeof LojaCategoriaSlugRoute
   '/loja/conta/pedidos': typeof LojaContaPedidosRoute
@@ -621,6 +635,7 @@ export interface FileRoutesByTo {
   '/app/gestao': typeof AppGestaoIndexRoute
   '/app/leads': typeof AppLeadsIndexRoute
   '/app/orcamentos': typeof AppOrcamentosIndexRoute
+  '/app/pedidos': typeof AppPedidosIndexRoute
   '/app/veiculos': typeof AppVeiculosIndexRoute
   '/app/catalogo/$id/editar': typeof AppCatalogoIdEditarRoute
   '/app/configuracoes/atendimento/horario-comercial': typeof AppConfiguracoesAtendimentoHorarioComercialRoute
@@ -650,7 +665,7 @@ export interface FileRoutesById {
   '/app/inicio': typeof AppInicioRoute
   '/app/leads': typeof AppLeadsRouteWithChildren
   '/app/orcamentos': typeof AppOrcamentosRouteWithChildren
-  '/app/pedidos': typeof AppPedidosRoute
+  '/app/pedidos': typeof AppPedidosRouteWithChildren
   '/app/sdr': typeof AppSdrRoute
   '/app/veiculos': typeof AppVeiculosRouteWithChildren
   '/auth/login': typeof AuthLoginRoute
@@ -689,6 +704,7 @@ export interface FileRoutesById {
   '/app/leads/$id': typeof AppLeadsIdRoute
   '/app/orcamentos/$id': typeof AppOrcamentosIdRoute
   '/app/orcamentos/novo': typeof AppOrcamentosNovoRoute
+  '/app/pedidos/$id': typeof AppPedidosIdRoute
   '/app/veiculos/$id': typeof AppVeiculosIdRoute
   '/loja/categoria/$slug': typeof LojaCategoriaSlugRoute
   '/loja/conta/pedidos': typeof LojaContaPedidosRoute
@@ -700,6 +716,7 @@ export interface FileRoutesById {
   '/app/gestao/': typeof AppGestaoIndexRoute
   '/app/leads/': typeof AppLeadsIndexRoute
   '/app/orcamentos/': typeof AppOrcamentosIndexRoute
+  '/app/pedidos/': typeof AppPedidosIndexRoute
   '/app/veiculos/': typeof AppVeiculosIndexRoute
   '/app/catalogo/$id/editar': typeof AppCatalogoIdEditarRoute
   '/app/configuracoes/atendimento/horario-comercial': typeof AppConfiguracoesAtendimentoHorarioComercialRoute
@@ -769,6 +786,7 @@ export interface FileRouteTypes {
     | '/app/leads/$id'
     | '/app/orcamentos/$id'
     | '/app/orcamentos/novo'
+    | '/app/pedidos/$id'
     | '/app/veiculos/$id'
     | '/loja/categoria/$slug'
     | '/loja/conta/pedidos'
@@ -780,6 +798,7 @@ export interface FileRouteTypes {
     | '/app/gestao/'
     | '/app/leads/'
     | '/app/orcamentos/'
+    | '/app/pedidos/'
     | '/app/veiculos/'
     | '/app/catalogo/$id/editar'
     | '/app/configuracoes/atendimento/horario-comercial'
@@ -802,7 +821,6 @@ export interface FileRouteTypes {
     | '/sem-permissao'
     | '/app/carteira'
     | '/app/inicio'
-    | '/app/pedidos'
     | '/app/sdr'
     | '/auth/login'
     | '/auth/logout'
@@ -840,6 +858,7 @@ export interface FileRouteTypes {
     | '/app/leads/$id'
     | '/app/orcamentos/$id'
     | '/app/orcamentos/novo'
+    | '/app/pedidos/$id'
     | '/app/veiculos/$id'
     | '/loja/categoria/$slug'
     | '/loja/conta/pedidos'
@@ -851,6 +870,7 @@ export interface FileRouteTypes {
     | '/app/gestao'
     | '/app/leads'
     | '/app/orcamentos'
+    | '/app/pedidos'
     | '/app/veiculos'
     | '/app/catalogo/$id/editar'
     | '/app/configuracoes/atendimento/horario-comercial'
@@ -918,6 +938,7 @@ export interface FileRouteTypes {
     | '/app/leads/$id'
     | '/app/orcamentos/$id'
     | '/app/orcamentos/novo'
+    | '/app/pedidos/$id'
     | '/app/veiculos/$id'
     | '/loja/categoria/$slug'
     | '/loja/conta/pedidos'
@@ -929,6 +950,7 @@ export interface FileRouteTypes {
     | '/app/gestao/'
     | '/app/leads/'
     | '/app/orcamentos/'
+    | '/app/pedidos/'
     | '/app/veiculos/'
     | '/app/catalogo/$id/editar'
     | '/app/configuracoes/atendimento/horario-comercial'
@@ -1137,6 +1159,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppVeiculosIndexRouteImport
       parentRoute: typeof AppVeiculosRoute
     }
+    '/app/pedidos/': {
+      id: '/app/pedidos/'
+      path: '/'
+      fullPath: '/app/pedidos/'
+      preLoaderRoute: typeof AppPedidosIndexRouteImport
+      parentRoute: typeof AppPedidosRoute
+    }
     '/app/orcamentos/': {
       id: '/app/orcamentos/'
       path: '/'
@@ -1213,6 +1242,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/veiculos/$id'
       preLoaderRoute: typeof AppVeiculosIdRouteImport
       parentRoute: typeof AppVeiculosRoute
+    }
+    '/app/pedidos/$id': {
+      id: '/app/pedidos/$id'
+      path: '/$id'
+      fullPath: '/app/pedidos/$id'
+      preLoaderRoute: typeof AppPedidosIdRouteImport
+      parentRoute: typeof AppPedidosRoute
     }
     '/app/orcamentos/novo': {
       id: '/app/orcamentos/novo'
@@ -1576,6 +1612,20 @@ const AppOrcamentosRouteWithChildren = AppOrcamentosRoute._addFileChildren(
   AppOrcamentosRouteChildren,
 )
 
+interface AppPedidosRouteChildren {
+  AppPedidosIdRoute: typeof AppPedidosIdRoute
+  AppPedidosIndexRoute: typeof AppPedidosIndexRoute
+}
+
+const AppPedidosRouteChildren: AppPedidosRouteChildren = {
+  AppPedidosIdRoute: AppPedidosIdRoute,
+  AppPedidosIndexRoute: AppPedidosIndexRoute,
+}
+
+const AppPedidosRouteWithChildren = AppPedidosRoute._addFileChildren(
+  AppPedidosRouteChildren,
+)
+
 interface AppVeiculosRouteChildren {
   AppVeiculosIdRoute: typeof AppVeiculosIdRoute
   AppVeiculosIndexRoute: typeof AppVeiculosIndexRoute
@@ -1598,7 +1648,7 @@ interface AppRouteChildren {
   AppInicioRoute: typeof AppInicioRoute
   AppLeadsRoute: typeof AppLeadsRouteWithChildren
   AppOrcamentosRoute: typeof AppOrcamentosRouteWithChildren
-  AppPedidosRoute: typeof AppPedidosRoute
+  AppPedidosRoute: typeof AppPedidosRouteWithChildren
   AppSdrRoute: typeof AppSdrRoute
   AppVeiculosRoute: typeof AppVeiculosRouteWithChildren
   AppConfiguracoesAparenciaRoute: typeof AppConfiguracoesAparenciaRoute
@@ -1644,7 +1694,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppInicioRoute: AppInicioRoute,
   AppLeadsRoute: AppLeadsRouteWithChildren,
   AppOrcamentosRoute: AppOrcamentosRouteWithChildren,
-  AppPedidosRoute: AppPedidosRoute,
+  AppPedidosRoute: AppPedidosRouteWithChildren,
   AppSdrRoute: AppSdrRoute,
   AppVeiculosRoute: AppVeiculosRouteWithChildren,
   AppConfiguracoesAparenciaRoute: AppConfiguracoesAparenciaRoute,

@@ -4,7 +4,6 @@ import type {
   IConversation,
   ICustomer,
   IMessage,
-  IOrderItem,
   IPart,
   IPlatformSettings,
   IQuote,
@@ -20,6 +19,7 @@ import {
   recordAuditLogSync,
 } from "@/providers/data";
 import { applyResponseToSession, createSdrSession, sdrRespond } from "../engine/respond";
+import { createOrderFromQuote } from "@/features/orders/api/createOrderFromQuote";
 
 export interface ISdrTurnResult {
   session: ISdrSession;
@@ -276,34 +276,19 @@ export function useSdrResponder() {
               if (quote) {
                 await quotesProvider.update(quote.id, { status: "aceito" });
                 if (customer) {
-                  const stubItems: IOrderItem[] = quote.items.map((item, idx) => ({
-                    id: `${quote.id}-orderitem-${idx + 1}`,
-                    partId: item.partId,
-                    partSku: item.partSku,
-                    partName: item.partName,
-                    quantity: item.quantity,
-                    unitPrice: item.unitPrice,
-                    unitCost: item.unitPrice * 0.7,
-                    discount: item.discount,
-                    total: item.total,
-                    marginValue: item.unitPrice * 0.3 * item.quantity,
-                  }));
-                  const order = await ordersProvider.create({
-                    storeId: conversation.storeId,
-                    customerId: customer.id,
-                    sellerId: conversation.assignedSellerId ?? SDR_AUTHOR_ID,
-                    quoteId: quote.id,
-                    items: stubItems,
-                    subtotal: quote.subtotal,
-                    discount: quote.discount,
-                    shipping: quote.shipping,
-                    total: quote.total,
-                    paymentCondition: quote.paymentCondition,
-                    paymentStatus: "pendente",
-                    fulfillmentStatus: "pendente",
-                    origin: "whatsapp",
-                    division: quote.division,
-                    notes: "Pedido placeholder gerado pelo SDR — aguardando confirmação manual.",
+                  // PRD-032 RF-019/RF-021: real order via createOrderFromQuote,
+                  // replacing the prior inline stub. Quote is also flipped to
+                  // `convertido` inside the helper.
+                  const order = await createOrderFromQuote(quote.id, {
+                    ordersProvider,
+                    quotesProvider,
+                    extras: {
+                      origin: "whatsapp",
+                      conversationId: conversation.id,
+                      internalNotes:
+                        "Pedido gerado pelo SDR a partir do aceite do cliente (PRD-032).",
+                    },
+                    actorId: SDR_AUTHOR_ID,
                   });
                   orderStubId = order.id;
                   updatedSession = {
@@ -316,10 +301,10 @@ export function useSdrResponder() {
                   recordAuditLogSync({
                     storeId: conversation.storeId,
                     actorId: SDR_AUTHOR_ID,
-                    action: "sdr_order_stub_created",
+                    action: "sdr_order_created",
                     resource: "order",
                     resourceId: order.id,
-                    after: { quoteId: quote.id, total: order.total },
+                    after: { quoteId: quote.id, total: order.total, number: order.number },
                   });
                 }
               }

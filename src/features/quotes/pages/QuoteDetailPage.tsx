@@ -32,6 +32,7 @@ import { QuoteStatusBadge } from "../components/QuoteStatusBadge";
 import { QuoteOriginBadge } from "../components/QuoteOriginBadge";
 import { ValidityIndicator } from "../components/ValidityIndicator";
 import { generateQuoteNumber } from "../utils/quoteNumber";
+import { createOrderFromQuote } from "@/features/orders/api/createOrderFromQuote";
 
 const moneyFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -270,49 +271,24 @@ export function QuoteDetailPage() {
 
   const handleConvertToOrder = async () => {
     if (!quote) return;
-    const orderItems = quote.items.map((it) => ({
-      id: `oi-${crypto.randomUUID()}`,
-      partId: it.partId,
-      partSku: it.partSku,
-      partName: it.partName,
-      quantity: it.quantity,
-      unitPrice: it.unitPrice,
-      unitCost: it.unitPrice * 0.7,
-      discount: it.discount,
-      total: it.total,
-      marginValue: it.total - it.quantity * it.unitPrice * 0.7,
-    }));
-    const order = await ordersProvider.create({
-      storeId: quote.storeId,
-      customerId: quote.customerId ?? "",
-      sellerId: quote.sellerId,
-      quoteId: quote.id,
-      items: orderItems,
-      subtotal: quote.subtotal,
-      discount: quote.discount,
-      shipping: quote.shipping,
-      total: quote.total,
-      paymentCondition: quote.paymentCondition,
-      paymentStatus: "pendente",
-      fulfillmentStatus: "pendente",
-      origin: "manual",
-      division: quote.division,
-    });
-    const now = new Date().toISOString();
-    await provider.update(quote.id, {
-      status: "convertido",
-      convertedToOrderId: order.id,
-      convertedAt: now,
-    });
-    auditLog({
-      action: "quote_convert_to_order",
-      resource: "quote",
-      resourceId: quote.id,
-      after: { orderId: order.id },
-    });
-    toast.success(`Pedido criado a partir do orçamento.`);
-    await refresh();
-    void navigate({ to: "/app/pedidos" });
+    if (!quote.customerId) {
+      toast.error("Cliente não vinculado ao orçamento — converta o lead primeiro.");
+      return;
+    }
+    try {
+      const order = await createOrderFromQuote(quote.id, {
+        ordersProvider,
+        quotesProvider: provider,
+      });
+      toast.success(`Pedido #${order.number ?? order.id} criado.`);
+      await refresh();
+      void navigate({ to: "/app/pedidos/$id", params: { id: order.id } });
+    } catch (err) {
+      console.error(err);
+      toast.error(
+        err instanceof Error ? err.message : "Falha ao converter orçamento em pedido.",
+      );
+    }
   };
 
   const handleWhatsappShare = () => {

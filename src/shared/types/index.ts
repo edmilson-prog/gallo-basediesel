@@ -99,12 +99,15 @@ export type {
   IOrder,
   IOrderItem,
   ICommission,
+  ICommissionPreview,
   QuoteStatus,
   QuoteOrigin,
   QuotePaymentMethod,
   OrderPaymentStatus,
   OrderFulfillmentStatus,
   OrderOrigin,
+  OrderStatus,
+  OrderPaymentMethod,
   CommissionStatus,
 } from "./commercial";
 
