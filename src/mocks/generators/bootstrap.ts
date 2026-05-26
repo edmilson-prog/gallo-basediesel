@@ -337,14 +337,16 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
     );
   }
 
-  // 20. SDR sessions (PRD-020) — 20 historical sessions across mixed finish reasons.
+  // 20. SDR sessions (PRD-020 + PRD-024) — 100 historical sessions across mixed
+  // finish reasons. Conversations are reused cyclically so the painel SDR has a
+  // believable backlog (~30/page over 4 pages) without inflating other tables.
   const sdrSessions: ISdrSession[] = [];
-  const sdrSessionCount = Math.min(20, conversations.length);
+  const sdrSessionCount = Math.min(100, conversations.length * 2);
   for (let i = 0; i < sdrSessionCount; i += 1) {
     sdrSessions.push(
       generateSdrSession(ctx, {
         sequence: i,
-        conversation: conversations[i],
+        conversation: conversations[i % conversations.length],
         now,
       }),
     );

@@ -1,23 +1,37 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { requireAuth } from "@/features/auth/guards";
-import { EscalationMetricsCard } from "@/features/sdr-escalation";
+import { SdrDashboardPage } from "@/features/sdr-dashboard";
 
-function PainelSdrPage() {
-  return (
-    <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-xl font-semibold text-foreground">Painel do agente SDR</h1>
-        <p className="text-sm text-muted-foreground">
-          Visibilidade dos atendimentos automáticos e dos handoffs para vendedores humanos
-          (PRD-023). Painel completo do SDR chega no PRD-024.
-        </p>
-      </div>
-      <EscalationMetricsCard />
-    </div>
-  );
+interface ISdrSearch {
+  periodo?: string;
+  de?: string;
+  ate?: string;
+  loja?: string;
+  estado?: string;
+  motivo?: string;
+  vendedor?: string;
+  quote?: string;
+  pagina?: string;
+}
+
+function isString(v: unknown): v is string {
+  return typeof v === "string" && v.length > 0;
 }
 
 export const Route = createFileRoute("/app/sdr")({
-  beforeLoad: ({ location }) => requireAuth(location.pathname, ["Owner"]),
-  component: PainelSdrPage,
+  beforeLoad: ({ location }) => requireAuth(location.pathname, ["Owner", "Gestor"]),
+  validateSearch: (raw: Record<string, unknown>): ISdrSearch => {
+    const out: ISdrSearch = {};
+    if (isString(raw.periodo)) out.periodo = raw.periodo;
+    if (isString(raw.de)) out.de = raw.de;
+    if (isString(raw.ate)) out.ate = raw.ate;
+    if (isString(raw.loja)) out.loja = raw.loja;
+    if (isString(raw.estado)) out.estado = raw.estado;
+    if (isString(raw.motivo)) out.motivo = raw.motivo;
+    if (isString(raw.vendedor)) out.vendedor = raw.vendedor;
+    if (isString(raw.quote)) out.quote = raw.quote;
+    if (isString(raw.pagina)) out.pagina = raw.pagina;
+    return out;
+  },
+  component: SdrDashboardPage,
 });

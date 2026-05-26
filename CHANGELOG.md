@@ -4,6 +4,83 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.21.0] — Cockpit · 2026-05-26
+
+Painel completo do agente SDR (PRD-024) — hub centralizado em
+`/app/sdr` com 5 abas (Visão Geral, Histórico, Métricas, Templates,
+Configurações) que reúne todo o ciclo de vida do SDR num só lugar.
+Owners ganham KPIs comparativos com período anterior, drill-down em
+sessões individuais com timeline reconstituída (saudação → coleta →
+identificação → orçamento → escalação → finalização), gráficos
+detalhados (heatmap volume 7×24, FAQ resolvido vs escalado, pie de
+motivos de escalação, TTFR por modo), editor centralizado de todos
+os templates (core PRD-020 + orçamento PRD-022 + handoff PRD-023)
+com syntax highlight de variáveis e preview ao vivo, e configurações
+consolidadas com confirmação ao desligar o SDR globalmente. Banner
+de alertas proativos no topo (taxa subindo, intent unknown, templates
+default) sinaliza quando Owner precisa agir.
+
+### Added
+
+- **Feature `sdr-dashboard`** (`src/features/sdr-dashboard/`):
+  página principal `SdrDashboardPage`, 5 tabs em components/tabs/,
+  hooks `useSdrDashboardFilters`, `useSdrDashboardData` (agregador
+  reativo a `ESCALATION_QUEUE_EVENT`), `useSdrAlerts`,
+  `useSdrSessionContext`, `useSdrHistoryFilters`.
+- **Visão Geral**: 4 KPIs (sessões, taxa de escalação, taxa de
+  aceite de orçamento, TTFR médio) com tendência vs período anterior,
+  gráfico de linha Recharts para volume diário, pizza para
+  distribuição de `finishReason`, banner de alertas no topo.
+- **Histórico**: tabela paginada (30/página) com 4 filtros
+  (estado final multi-select, motivo da escalação, vendedor
+  escalado, com/sem orçamento), URL sync, modal
+  `SdrSessionDetailModal` com timeline cronológica de eventos
+  (saudação, qualificação, identificação PRD-021, orçamento
+  PRD-022, escalação PRD-023, finalização), trace JSON expansível
+  e navegação direta para a conversa.
+- **Métricas detalhadas**: heatmap SVG nativo 7×24 com click
+  direcionando para a aba Histórico, BarChart FAQ resolvido vs
+  escalado por categoria (horário/entrega/pagamento/garantia),
+  pie chart distribuição de motivos de escalação, BarChart TTFR
+  por modo (urgent/normal/standard).
+- **Editor de templates centralizado**: accordions agrupando os
+  20+ templates do SDR (saudação, qualificação, FAQ, escalação
+  core do PRD-020 + 4 slots de orçamento do PRD-022 + handoff
+  do PRD-023). Cada editor com syntax highlight para `{{var}}`,
+  preview ao vivo com variáveis exemplo preenchidas, glossário
+  contextual de variáveis, validação de variáveis desconhecidas
+  e botão restaurar padrão. Audit log em cada save.
+- **Configurações consolidadas**: toggle SDR ativo (com
+  confirmação forte ao desligar via AlertDialog), sliders para
+  validade do orçamento (1-30 dias), desconto autorizado (0-10%),
+  timeout urgent/normal e delay de broadcast. Salvar atômico
+  agrupa todas as mudanças num único audit log com sumário das
+  alterações.
+- **Hook `useSdrAlerts`** calcula 3 tipos de alerta proativos:
+  taxa de escalação subindo > 20%, 5+ sessões com intenção
+  indefinida na última hora, templates ainda em valores padrão.
+- **Volume de mocks**: dataset cresceu de 20 para 100 sessões
+  SDR históricas para que o painel renderize ~4 páginas de
+  backlog crível.
+
+### Changed
+
+- **Rota `/app/sdr`** substitui o placeholder que mostrava apenas
+  o card de métricas de escalação — agora carrega
+  `SdrDashboardPage` completo com 5 abas. Guard aceita
+  `Owner` e `Gestor`; Gestor vê tudo em modo leitura
+  (banner explícito + inputs disabled).
+- **`validateSearch`** da rota foi tipado para aceitar os
+  parâmetros de filtro de período, loja, estado final, motivo,
+  vendedor, quote e página.
+
+### Marco
+
+Com PRD-024, **Bloco 2 (SDR) está completo**. Os 5 PRDs do
+agente IA (020 simulação, 021 identificação, 022 orçamento,
+023 escalação, 024 painel) entregam um SDR funcional 24/7,
+auditável e configurável fim a fim.
+
 ## [0.20.0] — Handoff · 2026-05-26
 
 Handoff estruturado SDR → vendedor humano (PRD-023) — quando o SDR

@@ -126,7 +126,7 @@ Agente de IA que atende 24/7, identifica peças, qualifica leads e escala para h
 | 021 | Identificação de Peça (OEM, descrição, equivalência) | Feature | D     | 🔵    | ⏸         | ⏳     | 020, 030   |
 | 022 | Geração de Orçamento via SDR                         | Feature | D     | 🔵    | ⏸         | ⏳     | 021, 031   |
 | 023 | Escalonamento para Vendedor com Resumo de Contexto   | Feature | D     | 🔵    | ⏸         | ⏳     | 020, 011   |
-| 024 | Painel de Configuração e Métricas do Agente          | Feature | D     | 🔵    | ⏸         | ⏳     | 020        |
+| 024 | [Painel de Configuração e Métricas do Agente](./PRD-024-painel-sdr_DONE.md)          | Feature | D     | 🔵    | 📝         | ✅     | 020        |
 
 ### Bloco 3 — Comercial Operacional (PRDs 030–033)
 
