@@ -1,5 +1,6 @@
 import type {
   ICustomer,
+  ICustomerAddress,
   ICustomerB2B,
   ICustomerB2C,
   ICustomerNote,
@@ -19,6 +20,19 @@ import {
 } from "./utils";
 
 const TAG_LABELS = SEED_TAGS.map((t) => t.label);
+
+const RS_CITIES = [
+  "Frederico Westphalen",
+  "Iraí",
+  "Palmeira das Missões",
+  "Erechim",
+  "Passo Fundo",
+  "Santa Maria",
+  "Porto Alegre",
+  "Caxias do Sul",
+];
+
+const RS_DISTRICTS = ["Centro", "Industrial", "São Cristóvão", "Vila Operária", "Bela Vista"];
 
 interface IGenerateCustomerInput {
   sequence: number;
@@ -49,6 +63,7 @@ export function generateCustomerB2B(
     contactName: ctx.faker.person.fullName(),
     email: ctx.bool(0.85) ? ctx.faker.internet.email() : undefined,
     phone: randomPhone(ctx),
+    address: randomAddress(ctx),
     sellerId,
     status,
     tags: pickTags(ctx),
@@ -78,6 +93,7 @@ export function generateCustomerB2C(
     fullName: ctx.faker.person.fullName(),
     email: ctx.bool(0.7) ? ctx.faker.internet.email() : undefined,
     phone: randomPhone(ctx),
+    address: ctx.bool(0.8) ? randomAddress(ctx) : undefined,
     sellerId,
     status,
     tags: pickTags(ctx),
@@ -157,6 +173,23 @@ function pickCompanySuffix(ctx: ISeededContext): string {
     "Frota Ltda",
     "ME",
   ]);
+}
+
+function randomAddress(ctx: ISeededContext): ICustomerAddress {
+  const number = String(ctx.int(10, 9999));
+  const cep = `${String(ctx.int(98000, 99999))}-${String(ctx.int(0, 999)).padStart(3, "0")}`;
+  // `faker.location.street()` already returns a fully-prefixed name (e.g.
+  // "Rua das Acácias") in pt-BR, so we don't add another prefix to avoid
+  // doubles like "Rua Rua das Acácias".
+  return {
+    street: ctx.faker.location.street(),
+    number,
+    complement: ctx.bool(0.2) ? `Sala ${ctx.int(1, 200)}` : undefined,
+    district: ctx.pick(RS_DISTRICTS),
+    city: ctx.pick(RS_CITIES),
+    state: "RS",
+    zipCode: cep,
+  };
 }
 
 function pickNoteText(ctx: ISeededContext): string {

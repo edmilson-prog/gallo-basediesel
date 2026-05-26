@@ -4,8 +4,11 @@ import type { IPaginatedResult, IPaginationParams } from "./_shared";
 export interface IListRecommendationsParams extends IPaginationParams {
   storeId?: ID;
   sellerId?: ID;
+  /** Subject (typically a customerId) the recommendation is about. */
+  subjectId?: ID;
   resolved?: boolean;
-  type?: IRecommendation["type"];
+  /** Single type or set of allowed types. */
+  type?: IRecommendation["type"] | IRecommendation["type"][];
 }
 
 /**

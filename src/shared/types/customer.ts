@@ -1,3 +1,4 @@
+import type { ABCClass } from "./bi";
 import type { ID, ISO8601, Money } from "./common";
 
 /** Lifecycle status of a customer. */
@@ -6,12 +7,37 @@ export type CustomerStatus = "ativo" | "dormente" | "recuperacao" | "perdido";
 /** Vehicle registration approval state. */
 export type VehicleCadastroStatus = "aprovado" | "pendente" | "rejeitado";
 
+/** Postal address — used by both B2B and B2C customers. */
+export interface ICustomerAddress {
+  street: string;
+  number: string;
+  complement?: string;
+  district: string;
+  city: string;
+  state: string;
+  zipCode: string;
+}
+
+/**
+ * Pre-computed purchase statistics displayed on the customer profile (PRD-012).
+ * Populated by the analytics layer (mock generator on Fase 1; materialized view on Fase 2).
+ */
+export interface ICustomerPurchaseStats {
+  /** Average ticket in BRL across the last 12 months. */
+  ticketMedio: Money;
+  /** Lifetime value — sum of every paid order, all-time. */
+  ltv: Money;
+  /** Number of orders in the last 12 months. */
+  orderCount12m: number;
+}
+
 /** Shared base fields between B2B and B2C customers. */
 interface ICustomerBase {
   id: ID;
   storeId: ID;
   email?: string;
   phone: string;
+  address?: ICustomerAddress;
   /** Primary seller responsible for this customer (1:1 wallet rule). */
   sellerId: ID;
   status: CustomerStatus;
@@ -19,6 +45,24 @@ interface ICustomerBase {
   notes: ICustomerNote[];
   firstPurchaseAt?: ISO8601;
   lastPurchaseAt?: ISO8601;
+  /**
+   * When the customer originated from a lead that was later converted, this points
+   * back to the source lead. Drives the "Histórico pré-conversão" badge on the
+   * profile (PRD-012 — preserves organizational memory across the lead→customer transition).
+   */
+  convertedFromLeadId?: ID;
+  /** ISO8601 of the conversion event — used to compute "N dias até conversão". */
+  convertedFromLeadAt?: ISO8601;
+  /** Seller / SDR that closed the conversion. */
+  convertedBySellerId?: ID;
+  /** Pre-computed BI snapshot — see {@link ICustomerPurchaseStats}. */
+  purchaseStats?: ICustomerPurchaseStats;
+  /** ABC class snapshot (`A`, `B`, `C`) — convenience copy of latest IABCClassification. */
+  abcClass?: ABCClass;
+  /** Share of total store revenue (0..1) — convenience copy of latest IABCClassification. */
+  abcShare?: number;
+  /** Customer Portal granular permissions — read-only on the profile (edit lives in PRD-019). */
+  portal?: IPortalSettings;
   createdAt: ISO8601;
 }
 
@@ -112,6 +156,9 @@ export interface ICustomerSegment {
 /**
  * Granular permissions of a customer over the Customer Portal (PRD-071).
  * All flags default to `false`; portal is opt-in per customer.
+ *
+ * Embedded on the customer when the portal has been provisioned. Edited via
+ * the admin surface (PRD-019); the profile (PRD-012) renders it read-only.
  */
 export interface IPortalSettings {
   customerId: ID;

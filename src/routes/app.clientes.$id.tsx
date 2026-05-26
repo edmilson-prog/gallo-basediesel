@@ -1,14 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { PlaceholderPage } from "@/features/shell/components/EmptyState";
+import { createFileRoute, useParams } from "@tanstack/react-router";
+import { CustomerProfile } from "@/features/customers/components/CustomerProfile";
 
 export const Route = createFileRoute("/app/clientes/$id")({
-  component: () => (
-    <PlaceholderPage
-      prd="012"
-      icon="mdi:account-details"
-      title="Ficha do cliente"
-      backTo="/app/clientes"
-      backLabel="Voltar para a lista"
-    />
-  ),
+  component: CustomerProfileRoute,
 });
+
+function CustomerProfileRoute() {
+  const { id } = useParams({ from: "/app/clientes/$id" });
+  return (
+    <div className="flex h-full min-h-0 flex-col bg-background">
+      <CustomerProfile customerId={id} variant="page" className="mx-auto w-full max-w-3xl" />
+    </div>
+  );
+}

@@ -289,6 +289,12 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
   const ranking = generateRanking(sellers, orders, goals, now);
   const badges = generateBadges(ctx, { count: VOLUMES.badges, sellers, now });
 
+  // 17b. Enrich each customer with the snapshots the profile (PRD-012) needs at
+  // a glance: purchase stats, ABC, portal settings, and the back-pointer to the
+  // originating lead (when applicable). Done after orders + ABC are computed so
+  // figures match the rest of the dataset.
+  enrichCustomersForProfile(ctx, { customers, orders, leads, abcClassifications, now });
+
   // 18. Audit log. ResourceIds drawn from the live ids generated above.
   const actorIds = sellers.map((s) => s.id);
   const resourceIds = [
@@ -414,4 +420,104 @@ function validateReferentialIntegrity(d: IBootstrappedDataset): void {
   if (errors.length > 0) {
     console.error(`[mock-bootstrap] ${errors.length} integrity errors:`, errors.slice(0, 20));
   }
+}
+
+/**
+ * Post-process customers to attach the snapshot fields surfaced by the profile
+ * (PRD-012): ticketMedio / LTV / orderCount12m, ABC class + share, portal
+ * settings, and the back-pointer to the originating lead.
+ *
+ * Mutates each customer in place — keeps the array reference stable so the
+ * mock store doesn't see an identity change. Pure with respect to orders and
+ * leads (read-only on those collections).
+ */
+function enrichCustomersForProfile(
+  ctx: ReturnType<typeof createSeededContext>,
+  input: {
+    customers: ICustomer[];
+    orders: IOrder[];
+    leads: ILead[];
+    abcClassifications: IABCClassification[];
+    now: Date;
+  },
+): void {
+  const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+  const yearAgo = new Date(input.now.getTime() - ONE_YEAR_MS).toISOString();
+
+  // Build a single pass index over orders by customer for O(N) enrichment.
+  const ordersByCustomer = new Map<string, IOrder[]>();
+  for (const o of input.orders) {
+    const bucket = ordersByCustomer.get(o.customerId) ?? [];
+    bucket.push(o);
+    ordersByCustomer.set(o.customerId, bucket);
+  }
+
+  // ABC lookup — latest entry per customer (mock generator emits one period).
+  const abcByCustomer = new Map(input.abcClassifications.map((a) => [a.customerId, a]));
+
+  // Lead → customer back-pointer (only set when the lead actually converted).
+  const leadByCustomer = new Map<string, ILead>();
+  for (const l of input.leads) {
+    if (l.convertedToCustomerId) leadByCustomer.set(l.convertedToCustomerId, l);
+  }
+
+  for (const c of input.customers) {
+    const all = ordersByCustomer.get(c.id) ?? [];
+    const paid = all.filter((o) => o.paymentStatus === "pago" || o.paymentStatus === "parcial");
+    const last12m = paid.filter((o) => o.createdAt >= yearAgo);
+
+    const ltv = round(paid.reduce((acc, o) => acc + o.total, 0));
+    const ticketMedio =
+      last12m.length > 0 ? round(last12m.reduce((acc, o) => acc + o.total, 0) / last12m.length) : 0;
+
+    c.purchaseStats = {
+      ticketMedio,
+      ltv,
+      orderCount12m: last12m.length,
+    };
+
+    const abc = abcByCustomer.get(c.id);
+    if (abc) {
+      c.abcClass = abc.class;
+      c.abcShare = abc.revenueShare;
+    }
+
+    const lead = leadByCustomer.get(c.id);
+    if (lead) {
+      c.convertedFromLeadId = lead.id;
+      // The lead was "created at" a known date and "converted" some time after — we
+      // approximate the conversion timestamp midway between the lead's creation and
+      // the customer's first purchase, falling back to the customer's createdAt.
+      const anchorLater = c.firstPurchaseAt ?? c.createdAt;
+      const earlier = new Date(lead.createdAt).getTime();
+      const later = new Date(anchorLater).getTime();
+      if (Number.isFinite(earlier) && Number.isFinite(later) && later > earlier) {
+        c.convertedFromLeadAt = new Date(earlier + (later - earlier) / 2).toISOString();
+      } else {
+        c.convertedFromLeadAt = c.createdAt;
+      }
+      c.convertedBySellerId = lead.sellerId;
+    }
+
+    // Portal — ~55% of B2B and ~30% of B2C are provisioned; toggles vary realistically.
+    const portalChance = c.type === "B2B" ? 0.55 : 0.3;
+    if (ctx.bool(portalChance)) {
+      const enabled = ctx.bool(0.85);
+      c.portal = {
+        customerId: c.id,
+        enabled,
+        canViewOrderHistory: enabled && ctx.bool(0.95),
+        canCreateQuote: enabled && ctx.bool(0.75),
+        canApproveQuote: enabled && ctx.bool(0.4),
+        canSeePriceTable: enabled && ctx.bool(0.55),
+        canDownloadNF: enabled && ctx.bool(0.85),
+        canSeeCreditLimit: enabled && ctx.bool(0.35),
+        creditLimit: enabled && c.type === "B2B" ? round(ctx.int(5_000, 80_000)) : undefined,
+      };
+    }
+  }
+}
+
+function round(value: number): number {
+  return Math.round(value * 100) / 100;
 }

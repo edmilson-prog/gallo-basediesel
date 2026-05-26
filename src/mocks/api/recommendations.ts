@@ -12,8 +12,9 @@ import {
 export interface IListRecommendationsParams extends IPaginationParams {
   storeId?: ID;
   sellerId?: ID;
+  subjectId?: ID;
   resolved?: boolean;
-  type?: IRecommendation["type"];
+  type?: IRecommendation["type"] | IRecommendation["type"][];
 }
 
 export const recommendationsApi = {
@@ -25,9 +26,15 @@ export const recommendationsApi = {
         let all = selectAllRecommendations();
         if (params.storeId) all = all.filter((r) => r.storeId === params.storeId);
         if (params.sellerId) all = all.filter((r) => r.sellerId === params.sellerId);
+        if (params.subjectId) all = all.filter((r) => r.subjectId === params.subjectId);
         if (typeof params.resolved === "boolean")
           all = all.filter((r) => r.resolved === params.resolved);
-        if (params.type) all = all.filter((r) => r.type === params.type);
+        if (params.type) {
+          const allowed = Array.isArray(params.type)
+            ? new Set(params.type)
+            : new Set([params.type]);
+          all = all.filter((r) => allowed.has(r.type));
+        }
         const sorted = [...all].sort((a, b) => priorityScore(b) - priorityScore(a));
         return paginate(sorted, params);
       },

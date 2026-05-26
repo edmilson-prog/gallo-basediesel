@@ -4,6 +4,124 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.9.0] — Compass · 2026-05-25
+
+Ficha unificada do cliente (PRD-012) — o "cérebro do CRM" entra em órbita.
+O vendedor agora vê todo o contexto comercial e relacional do cliente sem
+sair da conversa: métricas, dados cadastrais, carteira, frota, histórico
+de pedidos e orçamentos, conversas anteriores, notas internas e
+recomendações ativas — tudo em uma coluna lateral de 360px à direita do
+`ConversationLayout`. **Marco: cada resposta do vendedor passa a ter
+contexto completo na ponta dos dedos; o "espera aí, deixa eu buscar no
+sistema" acaba aqui.**
+
+### Added
+
+- **`<CustomerProfile>`** em `src/features/customers/components/` consumido
+  em duas superfícies — coluna lateral do `ConversationLayout` (drawer no
+  tablet, navegação para tela cheia no mobile) e página dedicada
+  `/app/clientes/:id` (substitui o placeholder do PRD-003) — com a mesma
+  experiência adaptada via prop `variant: "column" | "page"`
+- **`<ProfileHeader>`** com avatar (hash de cor por id reutilizando o
+  helper compartilhado), nome, badges de tipo (B2B/B2C), classe ABC
+  (ouro/prata/neutro), ciclo de vida (4 cores semânticas) e o badge
+  **"Histórico pré-conversão"** com Popover que mostra origem do cliente
+  (data de criação como lead, dias até conversão, vendedor/SDR que
+  converteu) — preservando memória organizacional na transição lead→cliente
+- **7 tabs** com lazy load (cada tab busca dados apenas quando ativada):
+  - **Visão geral** com 5 cards: `<MetricsCard>` (ticket médio, LTV,
+    recência, frequência, classe ABC + share), `<CadastraisCard>`
+    (discriminated union B2B/B2C — CNPJ/razão social/contato vs CPF/nome,
+    endereço completo), `<StatusWalletCard>` (ciclo de vida, vendedor com
+    avatar, `<StoreBadge>` do PRD-007, primeira/última compra),
+    `<TagsCard>` (mecânica completa com autocomplete do catálogo
+    promovido + tags livres em cinza com flag "rascunho" + botão
+    **"Sugerir promoção"** que registra intenção pendente),
+    `<PortalCard>` (7 toggles read-only do `IPortalSettings` — edição
+    sinalizada como PRD-019)
+  - **Pedidos** — lista paginada (10/pg) com filtros de período
+    (30d/90d/12m/tudo), badges combinados de `paymentStatus` +
+    `fulfillmentStatus`, item-síntese e click navega para detalhe
+  - **Orçamentos** — lista paginada com badge de status + origin
+    (SDR/vendedor/portal/e-commerce) + desconto aplicado
+  - **Veículos** — cards da frota (marca/modelo/ano/motor/placa/km) com
+    histórico de manutenção (últimos 3 serviços) + dialog **"Adicionar
+    veículo"** que respeita `IPlatformSettings.vehicleCadastroMode`
+    (auto-aprovado salva direto, aprovação obrigatória marca como pendente)
+  - **Conversas** — histórico de todas as conversas com o cliente,
+    conversa atual destacada com badge "Atual" no topo, vendedor de cada
+    atendimento com avatar mini
+  - **Notas** — timeline imutável (sem editar/deletar — audit trail) com
+    autor + tempo relativo, textarea com atalho **Cmd/Ctrl + Enter**
+  - **Recomendações** — só os 3 tipos do MVP (`recovery`,
+    `vehicle_maintenance`, `follow_up`) com prioridade colorida e botão
+    **"Dispensar"** que resolve via provider + audit log
+- **`<ProfileMenu>`** (kebab) com 7 ações contextuais filtradas por RBAC
+  (PRD-006): Editar dados, Marcar como dormente, Transferir carteira,
+  Bloquear cliente (gated por `<AlertDialog>` que muda status para
+  "perdido"), Adicionar veículo, **Ver no Pipeline** (condicional —
+  aparece quando `convertedFromLeadId` existe e navega para o lead),
+  Exportar dados LGPD (placeholder Fase 2, Owner only)
+- **`<CustomerProfileFiche>`** + `useFicheLayout()` — wrapper responsivo
+  que escolhe entre 3 modos:
+  - `column` (≥ 1280px) — sidebar fixo de 360px que colapsa para 0
+    quando `fiche.open` é false, mantendo o cache React Query quente
+  - `drawer` (768–1279) — `<Sheet>` que desliza pela direita
+  - `route` (< 768) — botão "Ficha" navega para `/app/clientes/:id` em
+    tela cheia em vez de toggle
+- **`useFicheButtonHandler`** decide entre toggle e navegação conforme
+  breakpoint, integrado ao botão "Ficha" do `<ConversationHeader>`
+- **Cache de 2 minutos** via React Query `staleTime` em
+  `useCustomerProfile` (RNF-003) — reabrir a mesma ficha em < 50ms
+- **Audit log** em todas as mutações sensíveis: mudança de status
+  (markedDormant, blocked), tag adicionada/removida/promovida, nota
+  adicionada, recomendação dispensada, veículo criado
+
+### Changed
+
+- **`ICustomer` estendido** com snapshot de campos surfados pela ficha:
+  `purchaseStats` (ticketMedio / LTV / orderCount12m), `abcClass` +
+  `abcShare`, `convertedFromLeadId` + `convertedFromLeadAt` +
+  `convertedBySellerId` (back-pointer da conversão lead→cliente),
+  `portal` (embed de `IPortalSettings`), `address` (`ICustomerAddress` —
+  novo type). Mock generator popula todos esses campos durante o
+  bootstrap em um passo de enriquecimento pós-orders/ABC
+- **`IRecommendationsProvider.list`** ganha `subjectId?` e aceita array
+  de `type` — necessário para filtrar recomendações de um cliente
+  específico nos 3 tipos do MVP
+- **`/app/clientes`** virou rota de layout (passthrough `<Outlet>`) com
+  `app.clientes.index.tsx` segurando o placeholder PRD-015 e
+  `app.clientes.$id.tsx` rendering a ficha de página inteira
+- **`useConversationsProvider.list`** ganha ordenação por `orderBy:
+  "lastMessageAt" | "abcClass"` (não era exposto antes)
+
+### Fixed
+
+- **`InboxFilters`** — `setSellers(res.data)` quebrava quando o usuário
+  era Owner/Gestor (provider de sellers retorna array, não paginado);
+  trocado para `setSellers(res)`. `s.displayName` corrigido para
+  `s.fullName` (ISeller não tem displayName)
+- **`<Tooltip>` sem provider** quebrava o `ConversationHeader` quando a
+  página era acessada por deep link (Owner indo direto para
+  `/app/atendimento/:id`); `TooltipProvider` agora envolve a página
+- Generator de endereço duplicava o prefixo (`Rua Rua Nogueira`) porque
+  `faker.location.street()` já retorna nome completo em pt-BR
+- `conversationDisplay` agora reusa `hashHue` + `initialsFrom` extraídos
+  para `@/shared/utils/avatar` (eliminando duplicação com a ficha)
+
+### Notes
+
+- Helpers de formatação compartilhados em `@/shared/utils/format.ts`:
+  `formatBRL`, `formatBRLCompact`, `formatCPF`, `formatCNPJ`,
+  `formatPhone`, `formatPercent`, `formatDateBR`, `formatDateTimeBR`,
+  `formatRelativeTimeBR`, `daysSince`
+- Lazy load por tab + skeletons individuais por tab atende RNF-001
+  (< 400ms para a Visão Geral default) e RNF-002 (tab inativa não busca)
+- Navegação por teclado entre tabs (←/→) nativa via Radix Tabs satisfaz
+  RNF-005 (WCAG AA)
+
+---
+
 ## [0.8.0] — Pilot · 2026-05-25
 
 Conversa multicanal (PRD-011) — a coluna central do `ConversationLayout`
@@ -32,7 +150,7 @@ sem necessidade de fugir para WhatsApp Web.**
   `<DocumentBubble>` (ícone por extensão — PDF/XLSX/DOCX/ZIP — nome,
   tamanho determinístico, botão download), `<SystemBubble>`
   (centralizado, itálico, sem balão), `<TemplateBubble>` (selo "Template"
-  + parser de variáveis + linha de quick-replies)
+  - parser de variáveis + linha de quick-replies)
 - **`<MessageBubble>`** discriminador polimórfico — escolhe o bubble certo
   via `mediaType` / `authorType` / prefixo `[template]`
 - **Direção e autoria visual**: bubbles `in` à esquerda em surface neutra;
@@ -45,10 +163,10 @@ sem necessidade de fugir para WhatsApp Web.**
   - `read` ✓✓ azul
   - `failed` ⚠ vermelho com botão "Tentar novamente"
 - **`<MessageList>`** com paginação por scroll-up (`IntersectionObserver`
-  + sentinela no topo carrega mais antigas preservando posição via
-  delta de `scrollHeight`), auto-scroll inteligente (somente quando o
-  usuário já estava no fim — não interrompe leitura), `role="log"` +
-  `aria-live="polite"` para acessibilidade
+  - sentinela no topo carrega mais antigas preservando posição via
+    delta de `scrollHeight`), auto-scroll inteligente (somente quando o
+    usuário já estava no fim — não interrompe leitura), `role="log"` +
+    `aria-live="polite"` para acessibilidade
 - **Marcadores temporais automáticos** entre grupos de mensagens via
   `groupMessagesWithDaySeparators`: "Hoje", "Ontem", dia da semana por
   extenso (últimos 7 dias) ou "12 de maio" (mais antigas; inclui ano
@@ -67,15 +185,15 @@ sem necessidade de fugir para WhatsApp Web.**
   2. após 200-500ms transita para `delivered` (✓✓ cinza)
   3. após 1-3s extras, com 80% de probabilidade vira `read` (✓✓ azul)
   4. em 5% das tentativas vira `failed` com retry inline
-  Taxas configuráveis em `utils/sendSimulation.ts`
+     Taxas configuráveis em `utils/sendSimulation.ts`
 - **`<MetaWindowIndicator>`** com 4 estados visuais:
   - 🟢 Verde (> 12h): "Janela aberta — Xh restantes"
   - 🟡 Amarelo (1-12h): mesma copy + sugestão "Considere usar template"
   - 🔴 Vermelho (< 1h): "Janela fechando — X min restantes"
   - ⚪ Cinza (= 0): "Janela fechada — apenas templates HSM"
-  Re-cálculo a cada 30s via `setInterval`; aparece **apenas** para Meta
-  provider com `whatsappAccount.provider === "meta"` e conversa não-
-  arquivada
+    Re-cálculo a cada 30s via `setInterval`; aparece **apenas** para Meta
+    provider com `whatsappAccount.provider === "meta"` e conversa não-
+    arquivada
 - **`useMetaWindow`** computa tempo restante a partir do
   `lastInboundMessageAt` derivado das mensagens no contexto, expondo
   `canSendFreeText` que o input consome para desabilitar texto quando

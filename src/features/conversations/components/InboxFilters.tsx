@@ -68,9 +68,9 @@ function useSellersForAssignment(canSeeAllAssignments: boolean): ISeller[] {
     if (!canSeeAllAssignments) return;
     let cancelled = false;
     void sellersProvider
-      .list({ pageSize: 200 })
+      .list({ active: true })
       .then((res) => {
-        if (!cancelled) setSellers(res.data);
+        if (!cancelled) setSellers(res);
       })
       .catch(() => {
         if (!cancelled) setSellers([]);
@@ -219,7 +219,7 @@ export function InboxFilters({
                 </DropdownMenuLabel>
                 {sellers.map((s) => (
                   <DropdownMenuRadioItem key={s.id} value={s.id}>
-                    {s.displayName}
+                    {s.fullName}
                   </DropdownMenuRadioItem>
                 ))}
               </>

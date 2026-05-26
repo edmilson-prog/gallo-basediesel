@@ -7,6 +7,7 @@ import type {
   IMessage,
   LeadTemperature,
 } from "@/shared/types";
+import { hashHue, initialsFrom } from "@/shared/utils/avatar";
 import { INBOX_STRINGS } from "../i18n/pt-BR";
 
 export interface IConversationDisplay {
@@ -17,24 +18,6 @@ export interface IConversationDisplay {
   phone: string;
   isLead: boolean;
   temperature: LeadTemperature | null;
-}
-
-function hashHue(seed: string): number {
-  let h = 0;
-  for (let i = 0; i < seed.length; i += 1) {
-    h = (h * 31 + seed.charCodeAt(i)) | 0;
-  }
-  return Math.abs(h) % 360;
-}
-
-function initialsFrom(name: string): string {
-  const parts = name
-    .trim()
-    .split(/\s+/)
-    .filter((p) => p.length > 0);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
 export function getConversationDisplay(

@@ -749,11 +749,11 @@ Templates do Meta são pré-aprovados pela Meta — não há liberdade arbitrár
 
 ## Status de Implementação
 
-| Campo      | Valor                      |
-| ---------- | -------------------------- |
-| **Status** | ✅ CONCLUÍDO               |
-| **Data**   | 2026-05-25                 |
-| **Versão** | 0.8.0 — Pilot              |
+| Campo      | Valor         |
+| ---------- | ------------- |
+| **Status** | ✅ CONCLUÍDO  |
+| **Data**   | 2026-05-25    |
+| **Versão** | 0.8.0 — Pilot |
 
 ---
 

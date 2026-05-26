@@ -48,6 +48,8 @@ export type {
   ICustomerB2B,
   ICustomerB2C,
   ICustomerNote,
+  ICustomerAddress,
+  ICustomerPurchaseStats,
   IVehicle,
   IVehicleServiceEntry,
   ICustomerSegment,

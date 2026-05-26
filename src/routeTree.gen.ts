@@ -36,6 +36,7 @@ import { Route as AppCarteiraRouteImport } from './routes/app.carteira'
 import { Route as AppAtendimentoRouteImport } from './routes/app.atendimento'
 import { Route as AppGestaoIndexRouteImport } from './routes/app.gestao.index'
 import { Route as AppConfiguracoesIndexRouteImport } from './routes/app.configuracoes.index'
+import { Route as AppClientesIndexRouteImport } from './routes/app.clientes.index'
 import { Route as AppAtendimentoIndexRouteImport } from './routes/app.atendimento.index'
 import { Route as LojaProdutoSlugRouteImport } from './routes/loja.produto.$slug'
 import { Route as LojaContaPedidosRouteImport } from './routes/loja.conta.pedidos'
@@ -193,6 +194,11 @@ const AppConfiguracoesIndexRoute = AppConfiguracoesIndexRouteImport.update({
   id: '/configuracoes/',
   path: '/configuracoes/',
   getParentRoute: () => AppRoute,
+} as any)
+const AppClientesIndexRoute = AppClientesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppClientesRoute,
 } as any)
 const AppAtendimentoIndexRoute = AppAtendimentoIndexRouteImport.update({
   id: '/',
@@ -355,6 +361,7 @@ export interface FileRoutesByFullPath {
   '/loja/conta/pedidos': typeof LojaContaPedidosRoute
   '/loja/produto/$slug': typeof LojaProdutoSlugRoute
   '/app/atendimento/': typeof AppAtendimentoIndexRoute
+  '/app/clientes/': typeof AppClientesIndexRoute
   '/app/configuracoes/': typeof AppConfiguracoesIndexRoute
   '/app/gestao/': typeof AppGestaoIndexRoute
 }
@@ -368,7 +375,6 @@ export interface FileRoutesByTo {
   '/sem-permissao': typeof SemPermissaoRoute
   '/app/carteira': typeof AppCarteiraRoute
   '/app/catalogo': typeof AppCatalogoRoute
-  '/app/clientes': typeof AppClientesRouteWithChildren
   '/app/inicio': typeof AppInicioRoute
   '/app/leads': typeof AppLeadsRoute
   '/app/orcamentos': typeof AppOrcamentosRoute
@@ -404,6 +410,7 @@ export interface FileRoutesByTo {
   '/loja/conta/pedidos': typeof LojaContaPedidosRoute
   '/loja/produto/$slug': typeof LojaProdutoSlugRoute
   '/app/atendimento': typeof AppAtendimentoIndexRoute
+  '/app/clientes': typeof AppClientesIndexRoute
   '/app/configuracoes': typeof AppConfiguracoesIndexRoute
   '/app/gestao': typeof AppGestaoIndexRoute
 }
@@ -456,6 +463,7 @@ export interface FileRoutesById {
   '/loja/conta/pedidos': typeof LojaContaPedidosRoute
   '/loja/produto/$slug': typeof LojaProdutoSlugRoute
   '/app/atendimento/': typeof AppAtendimentoIndexRoute
+  '/app/clientes/': typeof AppClientesIndexRoute
   '/app/configuracoes/': typeof AppConfiguracoesIndexRoute
   '/app/gestao/': typeof AppGestaoIndexRoute
 }
@@ -509,6 +517,7 @@ export interface FileRouteTypes {
     | '/loja/conta/pedidos'
     | '/loja/produto/$slug'
     | '/app/atendimento/'
+    | '/app/clientes/'
     | '/app/configuracoes/'
     | '/app/gestao/'
   fileRoutesByTo: FileRoutesByTo
@@ -522,7 +531,6 @@ export interface FileRouteTypes {
     | '/sem-permissao'
     | '/app/carteira'
     | '/app/catalogo'
-    | '/app/clientes'
     | '/app/inicio'
     | '/app/leads'
     | '/app/orcamentos'
@@ -558,6 +566,7 @@ export interface FileRouteTypes {
     | '/loja/conta/pedidos'
     | '/loja/produto/$slug'
     | '/app/atendimento'
+    | '/app/clientes'
     | '/app/configuracoes'
     | '/app/gestao'
   id:
@@ -609,6 +618,7 @@ export interface FileRouteTypes {
     | '/loja/conta/pedidos'
     | '/loja/produto/$slug'
     | '/app/atendimento/'
+    | '/app/clientes/'
     | '/app/configuracoes/'
     | '/app/gestao/'
   fileRoutesById: FileRoutesById
@@ -815,6 +825,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/clientes/': {
+      id: '/app/clientes/'
+      path: '/'
+      fullPath: '/app/clientes/'
+      preLoaderRoute: typeof AppClientesIndexRouteImport
+      parentRoute: typeof AppClientesRoute
+    }
     '/app/atendimento/': {
       id: '/app/atendimento/'
       path: '/'
@@ -988,10 +1005,12 @@ const AppAtendimentoRouteWithChildren = AppAtendimentoRoute._addFileChildren(
 
 interface AppClientesRouteChildren {
   AppClientesIdRoute: typeof AppClientesIdRoute
+  AppClientesIndexRoute: typeof AppClientesIndexRoute
 }
 
 const AppClientesRouteChildren: AppClientesRouteChildren = {
   AppClientesIdRoute: AppClientesIdRoute,
+  AppClientesIndexRoute: AppClientesIndexRoute,
 }
 
 const AppClientesRouteWithChildren = AppClientesRoute._addFileChildren(

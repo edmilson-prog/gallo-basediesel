@@ -1,0 +1,131 @@
+import type { ID, IConversation } from "@/shared/types";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/Icon";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { useCustomerProfile } from "../hooks/useCustomerProfile";
+import { CUSTOMER_STRINGS } from "../i18n/pt-BR";
+import { ProfileHeader } from "./ProfileHeader";
+import { ProfileTabs } from "./ProfileTabs";
+import { ProfileSkeleton } from "./ProfileSkeleton";
+
+export interface ICustomerProfileProps {
+  customerId: ID;
+  /**
+   * When the fiche is rendered inside a conversation viewer, this is the
+   * conversation currently being read. Used to mark the "Conversa atual"
+   * badge in the Conversations tab and to deep-link "Criar orçamento" with
+   * `conversationId` query param.
+   */
+  conversation?: IConversation | null;
+  /** Layout density — `column` is the lateral 360px panel; `page` is the full route. */
+  variant?: "column" | "page";
+  className?: string;
+}
+
+/**
+ * Root component of the unified customer profile (PRD-012).
+ *
+ * Used in two places:
+ *  - the right column of `ConversationLayout` (≥ 1280px) and the conversation
+ *    drawer (768–1279px) — both pass `variant="column"`.
+ *  - the dedicated route `/app/clientes/:id` (< 768px and direct access) —
+ *    passes `variant="page"`.
+ *
+ * Same component, same data hook, same tabs — only spacing & headings adapt.
+ */
+export function CustomerProfile({
+  customerId,
+  conversation = null,
+  variant = "column",
+  className,
+}: ICustomerProfileProps) {
+  const { customer, isLoading, isError, notFound, refetch } = useCustomerProfile(customerId);
+
+  if (isLoading) {
+    return <ProfileSkeleton variant={variant} className={className} />;
+  }
+
+  if (notFound) {
+    return (
+      <ProfileStateMessage
+        variant={variant}
+        className={className}
+        icon="mdi:account-question-outline"
+        title={CUSTOMER_STRINGS.notFound.title}
+        description={CUSTOMER_STRINGS.notFound.description}
+      />
+    );
+  }
+
+  if (isError || !customer) {
+    return (
+      <ProfileStateMessage
+        variant={variant}
+        className={className}
+        icon="mdi:alert-circle-outline"
+        title={CUSTOMER_STRINGS.loadError.title}
+        description={CUSTOMER_STRINGS.loadError.description}
+        action={
+          <Button variant="secondary" size="sm" onClick={refetch}>
+            {CUSTOMER_STRINGS.loadError.retry}
+          </Button>
+        }
+      />
+    );
+  }
+
+  return (
+    <TooltipProvider delayDuration={200}>
+      <div
+        className={cn(
+          "flex h-full min-h-0 flex-col bg-card text-card-foreground",
+          variant === "column" && "border-l border-border",
+          className,
+        )}
+        aria-label={`Ficha de ${customer.type === "B2B" ? customer.nomeFantasia : customer.fullName}`}
+      >
+        <ProfileHeader customer={customer} conversation={conversation} variant={variant} />
+        <ProfileTabs customer={customer} conversation={conversation} />
+      </div>
+    </TooltipProvider>
+  );
+}
+
+interface IProfileStateMessageProps {
+  icon: string;
+  title: string;
+  description: string;
+  action?: React.ReactNode;
+  variant: "column" | "page";
+  className?: string;
+}
+
+function ProfileStateMessage({
+  icon,
+  title,
+  description,
+  action,
+  variant,
+  className,
+}: IProfileStateMessageProps) {
+  return (
+    <div
+      className={cn(
+        "flex h-full flex-col items-center justify-center gap-3 bg-card px-6 py-12 text-center",
+        variant === "column" && "border-l border-border",
+        className,
+      )}
+      role="status"
+    >
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+        <Icon icon={icon} size={24} />
+      </div>
+      <div className="space-y-1">
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
+      {action}
+    </div>
+  );
+}

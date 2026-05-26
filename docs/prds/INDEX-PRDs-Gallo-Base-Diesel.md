@@ -103,18 +103,18 @@ Estabelece os pilares técnicos e visuais sobre os quais todo o resto se constr�
 
 O coração operacional do MVP. Inbox unificado, ficha do cliente, leads, veículos, carteira. Vai para o Claude Code CLI sobre o scaffold do Bloco 0. Corresponde à **Onda 1** da Proposta Comercial v2.
 
-| #   | Título                                                                    | Tipo    | Prof. | Impl. | Documento | Status | Depende de    |
-| --- | ------------------------------------------------------------------------- | ------- | ----- | ----- | --------- | ------ | ------------- |
-| 010 | [Inbox Unificado e Lista de Conversas](./PRD-010-inbox-conversas_DONE.md) | Feature | D     | 🔵    | 📝        | ✅     | Bloco 0       |
+| #   | Título                                                                     | Tipo    | Prof. | Impl. | Documento | Status | Depende de    |
+| --- | -------------------------------------------------------------------------- | ------- | ----- | ----- | --------- | ------ | ------------- |
+| 010 | [Inbox Unificado e Lista de Conversas](./PRD-010-inbox-conversas_DONE.md)  | Feature | D     | 🔵    | 📝        | ✅     | Bloco 0       |
 | 011 | [Conversa com Histórico Multicanal](./PRD-011-conversa-multicanal_DONE.md) | Feature | D     | 🔵    | 📝        | ✅     | 010           |
-| 012 | Ficha Unificada do Cliente                                                | Feature | D     | 🔵    | ⏸         | ⏳     | 011, 016      |
-| 013 | Regras de Distribuição e Roteamento                                       | Feature | D     | 🔵    | ⏸         | ⏳     | 010           |
-| 014 | Painel do Gestor — Métricas e Saúde da Carteira                           | Feature | D     | 🔵    | ⏸         | ⏳     | 010, 011, 013 |
-| 015 | Lista Geral de Clientes (segmentações e ações em lote)                    | Feature | D     | 🔵    | ⏸         | ⏳     | 012           |
-| 016 | Veículos do Cliente                                                       | Feature | D     | 🔵    | ⏸         | ⏳     | 012           |
-| 017 | Pipeline de Leads (Kanban + Lista)                                        | Feature | D     | 🔵    | ⏸         | ⏳     | 010, 012      |
-| 018 | Gestão de Carteira e Transferências                                       | Feature | D     | 🔵    | ⏸         | ⏳     | 012, 015      |
-| 019 | Configurações Administrativas (esqueleto navegável)                       | Feature | E     | 🔵    | ⏸         | ⏳     | 006, 007      |
+| 012 | [Ficha Unificada do Cliente](./PRD-012-ficha-cliente_DONE.md)              | Feature | D     | 🔵    | 📝        | ✅     | 011, 016      |
+| 013 | Regras de Distribuição e Roteamento                                        | Feature | D     | 🔵    | ⏸         | ⏳     | 010           |
+| 014 | Painel do Gestor — Métricas e Saúde da Carteira                            | Feature | D     | 🔵    | ⏸         | ⏳     | 010, 011, 013 |
+| 015 | Lista Geral de Clientes (segmentações e ações em lote)                     | Feature | D     | 🔵    | ⏸         | ⏳     | 012           |
+| 016 | Veículos do Cliente                                                        | Feature | D     | 🔵    | ⏸         | ⏳     | 012           |
+| 017 | Pipeline de Leads (Kanban + Lista)                                         | Feature | D     | 🔵    | ⏸         | ⏳     | 010, 012      |
+| 018 | Gestão de Carteira e Transferências                                        | Feature | D     | 🔵    | ⏸         | ⏳     | 012, 015      |
+| 019 | Configurações Administrativas (esqueleto navegável)                        | Feature | E     | 🔵    | ⏸         | ⏳     | 006, 007      |
 
 ### Bloco 2 — Agente SDR (PRDs 020–024)
 
@@ -378,7 +378,7 @@ A plataforma usa Semantic Versioning com codinomes em inglês para releases MINO
 | v0.5.0     | **Pilot**      | 25/05/2026    | PRD-006 (RBAC + auditoria)       | RBAC visual + matriz de permissões + audit log        |
 | v0.6.0     | **Compass**    | 25/05/2026    | PRD-007 (multi-loja)             | **Bloco 0 (Fundação) completo** — multi-loja modelado |
 | v0.7.0     | **Hub**        | 25/05/2026    | PRD-010 (Inbox unificado)        | Bloco 1 aberto — central de atendimento navegável     |
-| v0.8.0     | **Pilot**      | 25/05/2026    | PRD-011 (Conversa multicanal)    | Vendedor opera conversas dentro da plataforma          |
+| v0.8.0     | **Pilot**      | 25/05/2026    | PRD-011 (Conversa multicanal)    | Vendedor opera conversas dentro da plataforma         |
 | v0.8.0+    | _A definir_    | Mês 2         | PRDs 011–019 + 020–024 + 030–033 | Onda 1 entregue                                       |
 | v0.5.0     | **Storefront** | Mês 9         | PRDs 060–067 (Bloco 5)           | Onda 3 quase completa                                 |
 | **v1.0.0** | **Heavy**      | Mês 10        | PRDs 070, 071 + polish final     | **MVP completo — release oficial**                    |
