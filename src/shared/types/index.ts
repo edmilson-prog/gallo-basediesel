@@ -246,3 +246,11 @@ export type {
   ICustomerServiceDailyPoint,
   IEscalationBreakdown,
 } from "./customer-service-analytics";
+
+// About / release history
+export type {
+  ReleaseKind,
+  ReleaseCategory,
+  IReleaseCategoryBlock,
+  IRelease,
+} from "./about";
