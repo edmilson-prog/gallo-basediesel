@@ -23,6 +23,9 @@ dist-ssr
 # Vercel
 .vercel/
 
+# Superpowers brainstorming companion (visual mockups, transient sessions)
+.superpowers/
+
 # Large source assets (kept out of git; use Git LFS if you need to version them)
 docs/images/*.pdf
 docs/images/*.mp4
