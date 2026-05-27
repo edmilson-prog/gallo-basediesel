@@ -176,6 +176,12 @@ export const APP_NAV_GROUPS: INavGroup[] = [
         to: ROUTES.GESTAO_ESTOQUE,
         roles: ["Owner"],
       },
+      {
+        label: "Movimentação",
+        icon: "mdi:swap-vertical-variant",
+        to: ROUTES.GESTAO_ESTOQUE_MOVIMENTACAO,
+        roles: ["Owner", "Gestor", "Financeiro"],
+      },
     ],
   },
   {

@@ -62,6 +62,9 @@ export const INVENTORY_STRINGS = {
   blockedDescription:
     "A análise de estoque é estratégica e visível apenas para Owner, Gestor e Financeiro.",
 
+  viewMovementsCta: "Ver movimentações",
+  viewMovementsHint: "Histórico cronológico de saídas e devoluções",
+
   // Config page
   configTitle: "Configurações de Estoque (Análise)",
   configSubtitle:

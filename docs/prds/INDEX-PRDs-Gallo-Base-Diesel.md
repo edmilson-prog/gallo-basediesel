@@ -21,7 +21,7 @@
 | **Versão alvo MVP**                  | v1.0.0 — codinome **Heavy**                                                                                |
 | **Total de PRDs planejados (MVP)**   | 50                                                                                                         |
 | **PRDs redigidos**                   | 50 (todos os PRDs do MVP redigidos)                                                                        |
-| **PRDs implementados**               | 32 (Bloco 0 completo · Bloco 1 completo · Bloco 2 completo · Bloco 3 completo · Bloco 4 ½ — 7/14)          |
+| **PRDs implementados**               | 33 (Bloco 0 completo · Bloco 1 completo · Bloco 2 completo · Bloco 3 completo · Bloco 4 ½ — 8/14)          |
 | **PRDs futuros (Fase 2, PRDs 100+)** | 8 (roadmap futuro)                                                                                         |
 
 ---
@@ -66,9 +66,9 @@
 
 | Status          | Quantidade | Percentual |
 | --------------- | ---------- | ---------- |
-| ✅ Implementado | 32         | 64%        |
+| ✅ Implementado | 33         | 66%        |
 | 🔄 Em Andamento | 0          | 0%         |
-| ⏳ Pendente     | 18         | 36%        |
+| ⏳ Pendente     | 17         | 34%        |
 | ❌ Cancelado    | 0          | 0%         |
 | **Total**       | **50**     | **100%**   |
 
@@ -157,7 +157,7 @@ Visão executiva, metas, gamificação, positivação, curva ABC, comissões, DR
 | 049 | [Rentabilidade por SKU / Cliente / Canal](./PRD-049-rentabilidade.md)            | Feature | E     | 🔵    | 📝        | ⏳     | 041        |
 | 050 | [Estoque — Análise (esqueleto navegável)](./PRD-050-estoque-analise.md)          | Feature | E     | 🔵    | 📝        | ⏳     | 030        |
 | 051 | [Atendimento — Análise (esqueleto navegável)](./PRD-051-atendimento-analise.md)  | Feature | E     | 🔵    | 📝        | ⏳     | 010, 011   |
-| 052 | [Estoque — Movimentação (esqueleto)](./PRD-052-estoque-movimentacao.md)          | Feature | E     | 🔵    | 📝        | ⏳     | 030, 032   |
+| 052 | [Estoque — Movimentação (esqueleto)](./PRD-052-estoque-movimentacao_DONE.md)     | Feature | E     | 🔵    | 📝        | ✅     | 030, 032   |
 | 053 | [IA Analítica e Insights Proativos](./PRD-053-ia-analitica-insights.md)          | Feature | D     | 🔵    | 📝        | ⏳     | 040–049    |
 
 ### Bloco 5 — E-commerce (PRDs 060–067)

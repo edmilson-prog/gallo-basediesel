@@ -56,6 +56,7 @@ import { Route as AppGestaoRentabilidadeRouteImport } from './routes/app.gestao.
 import { Route as AppGestaoRankingRouteImport } from './routes/app.gestao.ranking'
 import { Route as AppGestaoPositivacaoRouteImport } from './routes/app.gestao.positivacao'
 import { Route as AppGestaoMetasRouteImport } from './routes/app.gestao.metas'
+import { Route as AppGestaoEstoqueMovimentacaoRouteImport } from './routes/app.gestao.estoque-movimentacao'
 import { Route as AppGestaoEstoqueRouteImport } from './routes/app.gestao.estoque'
 import { Route as AppGestaoDreRouteImport } from './routes/app.gestao.dre'
 import { Route as AppGestaoDespesasRouteImport } from './routes/app.gestao.despesas'
@@ -342,6 +343,12 @@ const AppGestaoMetasRoute = AppGestaoMetasRouteImport.update({
   path: '/gestao/metas',
   getParentRoute: () => AppRoute,
 } as any)
+const AppGestaoEstoqueMovimentacaoRoute =
+  AppGestaoEstoqueMovimentacaoRouteImport.update({
+    id: '/gestao/estoque-movimentacao',
+    path: '/gestao/estoque-movimentacao',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppGestaoEstoqueRoute = AppGestaoEstoqueRouteImport.update({
   id: '/gestao/estoque',
   path: '/gestao/estoque',
@@ -677,6 +684,7 @@ export interface FileRoutesByFullPath {
   '/app/gestao/despesas': typeof AppGestaoDespesasRoute
   '/app/gestao/dre': typeof AppGestaoDreRoute
   '/app/gestao/estoque': typeof AppGestaoEstoqueRoute
+  '/app/gestao/estoque-movimentacao': typeof AppGestaoEstoqueMovimentacaoRoute
   '/app/gestao/metas': typeof AppGestaoMetasRouteWithChildren
   '/app/gestao/positivacao': typeof AppGestaoPositivacaoRouteWithChildren
   '/app/gestao/ranking': typeof AppGestaoRankingRouteWithChildren
@@ -766,6 +774,7 @@ export interface FileRoutesByTo {
   '/app/gestao/despesas': typeof AppGestaoDespesasRoute
   '/app/gestao/dre': typeof AppGestaoDreRoute
   '/app/gestao/estoque': typeof AppGestaoEstoqueRoute
+  '/app/gestao/estoque-movimentacao': typeof AppGestaoEstoqueMovimentacaoRoute
   '/app/gestao/metas': typeof AppGestaoMetasRouteWithChildren
   '/app/gestao/positivacao': typeof AppGestaoPositivacaoRouteWithChildren
   '/app/gestao/rentabilidade': typeof AppGestaoRentabilidadeRoute
@@ -865,6 +874,7 @@ export interface FileRoutesById {
   '/app/gestao/despesas': typeof AppGestaoDespesasRoute
   '/app/gestao/dre': typeof AppGestaoDreRoute
   '/app/gestao/estoque': typeof AppGestaoEstoqueRoute
+  '/app/gestao/estoque-movimentacao': typeof AppGestaoEstoqueMovimentacaoRoute
   '/app/gestao/metas': typeof AppGestaoMetasRouteWithChildren
   '/app/gestao/positivacao': typeof AppGestaoPositivacaoRouteWithChildren
   '/app/gestao/ranking': typeof AppGestaoRankingRouteWithChildren
@@ -966,6 +976,7 @@ export interface FileRouteTypes {
     | '/app/gestao/despesas'
     | '/app/gestao/dre'
     | '/app/gestao/estoque'
+    | '/app/gestao/estoque-movimentacao'
     | '/app/gestao/metas'
     | '/app/gestao/positivacao'
     | '/app/gestao/ranking'
@@ -1055,6 +1066,7 @@ export interface FileRouteTypes {
     | '/app/gestao/despesas'
     | '/app/gestao/dre'
     | '/app/gestao/estoque'
+    | '/app/gestao/estoque-movimentacao'
     | '/app/gestao/metas'
     | '/app/gestao/positivacao'
     | '/app/gestao/rentabilidade'
@@ -1153,6 +1165,7 @@ export interface FileRouteTypes {
     | '/app/gestao/despesas'
     | '/app/gestao/dre'
     | '/app/gestao/estoque'
+    | '/app/gestao/estoque-movimentacao'
     | '/app/gestao/metas'
     | '/app/gestao/positivacao'
     | '/app/gestao/ranking'
@@ -1538,6 +1551,13 @@ declare module '@tanstack/react-router' {
       path: '/gestao/metas'
       fullPath: '/app/gestao/metas'
       preLoaderRoute: typeof AppGestaoMetasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/gestao/estoque-movimentacao': {
+      id: '/app/gestao/estoque-movimentacao'
+      path: '/gestao/estoque-movimentacao'
+      fullPath: '/app/gestao/estoque-movimentacao'
+      preLoaderRoute: typeof AppGestaoEstoqueMovimentacaoRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/gestao/estoque': {
@@ -2139,6 +2159,7 @@ interface AppRouteChildren {
   AppGestaoDespesasRoute: typeof AppGestaoDespesasRoute
   AppGestaoDreRoute: typeof AppGestaoDreRoute
   AppGestaoEstoqueRoute: typeof AppGestaoEstoqueRoute
+  AppGestaoEstoqueMovimentacaoRoute: typeof AppGestaoEstoqueMovimentacaoRoute
   AppGestaoMetasRoute: typeof AppGestaoMetasRouteWithChildren
   AppGestaoPositivacaoRoute: typeof AppGestaoPositivacaoRouteWithChildren
   AppGestaoRankingRoute: typeof AppGestaoRankingRouteWithChildren
@@ -2194,6 +2215,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppGestaoDespesasRoute: AppGestaoDespesasRoute,
   AppGestaoDreRoute: AppGestaoDreRoute,
   AppGestaoEstoqueRoute: AppGestaoEstoqueRoute,
+  AppGestaoEstoqueMovimentacaoRoute: AppGestaoEstoqueMovimentacaoRoute,
   AppGestaoMetasRoute: AppGestaoMetasRouteWithChildren,
   AppGestaoPositivacaoRoute: AppGestaoPositivacaoRouteWithChildren,
   AppGestaoRankingRoute: AppGestaoRankingRouteWithChildren,

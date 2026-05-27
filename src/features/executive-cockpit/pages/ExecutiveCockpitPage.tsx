@@ -16,6 +16,7 @@ import { TopSellersBar } from "../components/charts/TopSellersBar";
 import { ABCMiniChart } from "../components/charts/ABCMiniChart";
 import { RankingHighlightWidget } from "@/features/gamification";
 import { CommissionsWidget } from "@/features/commissions";
+import { RecentMovementsWidget } from "@/features/inventory-movement";
 import { useCockpitFilters } from "../hooks/useCockpitFilters";
 import { useCockpitMetrics } from "../hooks/useCockpitMetrics";
 import { useCockpitAlerts, type ICockpitAlert } from "../hooks/useCockpitAlerts";
@@ -43,7 +44,7 @@ function formatNumber(value: number): string {
 export function ExecutiveCockpitPage() {
   const navigate = useNavigate();
   const { userRole } = useAuth();
-  const { currentStore } = useCurrentStore();
+  const { currentStore, accessibleStores } = useCurrentStore();
 
   const storeLocked = userRole === "Gestor";
   const filtersCtx = useMemo(
@@ -288,8 +289,18 @@ export function ExecutiveCockpitPage() {
           isLoading={metrics.isLoading}
           onClick={() => void navigate({ to: "/app/gestao/abc" })}
         />
+      </section>
+
+      <section
+        className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3"
+        aria-label={S.sectionCharts}
+      >
         <RankingHighlightWidget storeId={currentStore?.id ?? undefined} />
         <CommissionsWidget storeId={currentStore?.id ?? "store-matriz"} />
+        <RecentMovementsWidget
+          storeId={scope.storeId}
+          accessibleStoreIds={accessibleStores.map((s) => s.id)}
+        />
       </section>
 
       <section className="mt-6" aria-label={S.sectionComparison}>

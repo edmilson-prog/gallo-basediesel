@@ -4,6 +4,100 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.37.0] — Trail · 2026-05-27
+
+Conclusão do **Bloco 4b** com a tela de **Movimentação de Estoque
+(PRD-052)** — histórico cronológico de saídas e devoluções derivado
+dos pedidos pagos, com placeholders coerentes para entradas, ajustes
+e transferências (ativação na Fase 2 via integração DINTEC). Esqueleto
+enxuto: ledger somente leitura, sem mutação de `stockQuantity`.
+
+### Added
+
+- **Tipos PRD-052** (`src/shared/types/inventory-movement.ts`):
+  - `IInventoryMovement` — registro imutável de movimentação com
+    snapshot de produto (`partName`, `partOemCode`), referência ao
+    pedido de origem quando aplicável (`orderId`, `orderNumber`), loja,
+    executante e timestamp.
+  - `MovementType` — 5 tipos modelados: `saida_venda`, `devolucao`
+    (reais no MVP), `entrada_compra`, `ajuste_inventario`,
+    `transferencia_loja` (placeholders preparados para Fase 2).
+
+- **Engine puro PRD-052**
+  (`src/features/inventory-movement/engine/deriveInventoryMovements.ts`):
+  - Para cada pedido com `paymentStatus` `pago`/`parcial`, gera uma
+    `IInventoryMovement` `saida_venda` por item (quantidade negativa).
+  - Para cada pedido com `fulfillmentStatus = devolvido`, gera uma
+    `devolucao` por item (quantidade positiva, devolvendo estoque).
+  - Não muta `IPart.stockAvailable` — o histórico é derivado e nunca
+    persistido como fonte de verdade.
+  - Ordenação cronológica reversa (mais recente primeiro).
+
+- **Hook PRD-052**
+  (`src/features/inventory-movement/hooks/useInventoryMovements.ts`):
+  - Fan-out de `ordersProvider.list` por loja acessível quando o
+    usuário tem visão multi-loja; carrega `parts` para enriquecer
+    códigos OEM.
+  - Filtragem in-memory por tipo, produto (SKU/OEM/nome/número de
+    pedido), período (24h / 7d / 30d / 90d), responsável e loja.
+  - KPIs: total de movimentações no recorte + soma do valor bruto
+    das saídas reais.
+
+- **Filtros URL-sync PRD-052**
+  (`useInventoryMovementFilters` + `validateInventoryMovementSearch`):
+  - 5 filtros refletidos em search params (`tipo`, `produto`,
+    `periodo`, `responsavel`, `loja`) com validação por whitelist.
+  - Reset de página automático ao trocar qualquer filtro; paginação
+    persistida via `pagina`.
+
+- **Página `/app/gestao/estoque-movimentacao`**
+  (`src/features/inventory-movement/pages/InventoryMovementPage.tsx`):
+  - Header com 5 filtros + botão "Nova movimentação manual"
+    desabilitado com tooltip de Fase 2.
+  - 4 KPIs no topo (2 reais — total e saídas R$ — + 2 placeholders
+    com badge "Fase 2" para entradas e ajustes).
+  - Tabela cronológica reversa (50 linhas/página) com 7 colunas:
+    data/hora, tipo (badge colorido), produto + OEM, quantidade
+    (vermelha em saída, verde em entrada), origem (link para pedido),
+    executado por, notas.
+  - Drill-downs: click no produto leva a `/app/catalogo/$id`; click
+    em pedido leva a `/app/pedidos/$id`.
+  - Permissões via `requireAuth({ resource: "inventory", action: "view" })`
+    e fallback `EmptyState` para roles fora da matriz
+    (Owner / Gestor / Financeiro). Vendedor, SDR e Cliente sem acesso.
+  - Mobile responsivo com scroll horizontal na tabela.
+
+- **i18n PRD-052**
+  (`src/features/inventory-movement/i18n/pt-BR.ts`) — todos os
+  textos em português brasileiro com acentuação UTF-8 correta.
+
+- **Sidebar (`Gestão` → `Movimentação`)** — novo item com ícone
+  `mdi:swap-vertical-variant` visível para Owner, Gestor e Financeiro.
+
+- **Atalho "Ver movimentações"** no header da Análise de Estoque
+  (`/app/gestao/estoque`) — drill-down direto da página de análise
+  para o ledger cronológico.
+
+- **Widget `RecentMovementsWidget`** na Visão Executiva
+  (`/app/gestao`) — card com as 5 movimentações mais recentes (badge
+  por tipo, nome do produto, responsável e tempo relativo), respeita
+  o scope de loja do cockpit, link "Ver todas" no canto + click na
+  quantidade leva ao pedido de origem.
+
+### Changed
+
+- `src/features/shell/config/routes.ts`: adicionada constante
+  `GESTAO_ESTOQUE_MOVIMENTACAO`.
+- `src/shared/types/index.ts`: re-exporta `IInventoryMovement` e
+  `MovementType` no barrel público.
+- `src/features/inventory-analytics/components/InventoryHeader.tsx`:
+  header agora exibe link "Ver movimentações" antes do ícone
+  `mdi:warehouse`.
+- `src/features/executive-cockpit/pages/ExecutiveCockpitPage.tsx`:
+  novo widget adicionado à grade de widgets do cockpit.
+
+---
+
 ## [0.36.0] — Pulse · 2026-05-27
 
 Continuação do **Bloco 4b** com a **Análise Histórica de Atendimento

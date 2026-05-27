@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import type { InventoryCurve, InventoryStatus } from "@/shared/types";
 import type { PartCategory } from "@/shared/types/part-identification";
 import { Icon } from "@/components/Icon";
@@ -41,12 +42,22 @@ export interface IInventoryHeaderProps {
 export function InventoryHeader(props: IInventoryHeaderProps) {
   return (
     <header className="flex flex-col gap-4 border-b border-border pb-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
+      <div className="flex flex-col items-start justify-between gap-3 sm:flex-row">
+        <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">{S.pageTitle}</h1>
           <p className="mt-1 max-w-3xl text-sm text-muted-foreground">{S.pageSubtitle}</p>
         </div>
-        <Icon icon="mdi:warehouse" size={24} className="text-muted-foreground" />
+        <div className="flex shrink-0 items-center gap-3">
+          <Link
+            to="/app/gestao/estoque-movimentacao"
+            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
+            title={S.viewMovementsHint}
+          >
+            <Icon icon="mdi:swap-vertical-variant" size={14} />
+            {S.viewMovementsCta}
+          </Link>
+          <Icon icon="mdi:warehouse" size={24} className="text-muted-foreground" />
+        </div>
       </div>
       <div className="flex flex-wrap gap-3">
         <Field label={S.filtersCategory}>

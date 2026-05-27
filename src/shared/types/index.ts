@@ -236,6 +236,9 @@ export type {
   InventoryStatus,
 } from "./inventory";
 
+// Inventory movement (PRD-052)
+export type { IInventoryMovement, MovementType } from "./inventory-movement";
+
 // Customer service analytics (PRD-051)
 export type {
   ICustomerServiceMetrics,
