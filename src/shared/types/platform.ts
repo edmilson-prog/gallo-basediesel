@@ -50,6 +50,20 @@ export interface ILifecycleThresholds {
   lostDays: number;
 }
 
+/**
+ * ABC curve (Pareto classification) configuration — PRD-045.
+ * Owner can tune the rolling window and the class cutoffs from
+ * `/app/configuracoes/curva-abc`.
+ */
+export interface IABCCurveSettings {
+  /** Rolling window in months used to aggregate customer revenue. */
+  periodMonths: number;
+  /** Cumulative revenue share cutoff for class A (0.7 = 70%, 0.9 = 90%). */
+  classAThreshold: number;
+  /** Cumulative revenue share cutoff for class B. Must be > classAThreshold. */
+  classBThreshold: number;
+}
+
 /** Gamification configuration for ranking and badges. */
 export interface IGamificationRules {
   /** Points awarded per closed order. */
@@ -142,6 +156,8 @@ export interface IPlatformSettings {
   discountApprovalThresholdPct: number;
   /** Default validity window (days) for manually-created quotes. PRD-031 RF-016. */
   quoteDefaultValidityDays: number;
+  /** Customer ABC curve classification settings (PRD-045). */
+  abcCurveSettings: IABCCurveSettings;
 }
 
 /**

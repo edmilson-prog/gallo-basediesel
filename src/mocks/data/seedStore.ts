@@ -57,5 +57,10 @@ export const SEED_STORE: IStore = {
     escalationUrgentBroadcastDelaySeconds: 30,
     discountApprovalThresholdPct: 0.05,
     quoteDefaultValidityDays: 7,
+    abcCurveSettings: {
+      periodMonths: 12,
+      classAThreshold: 0.8,
+      classBThreshold: 0.95,
+    },
   },
 };

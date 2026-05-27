@@ -18,6 +18,7 @@ export type {
   ITeam,
   IPlatformSettings,
   ILifecycleThresholds,
+  IABCCurveSettings,
   IGamificationRules,
   IPipelineStage,
   ILossReason,

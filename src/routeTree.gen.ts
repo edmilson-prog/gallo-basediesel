@@ -72,6 +72,7 @@ import { Route as AppConfiguracoesGamificacaoRouteImport } from './routes/app.co
 import { Route as AppConfiguracoesFreteRouteImport } from './routes/app.configuracoes.frete'
 import { Route as AppConfiguracoesDivisoesRouteImport } from './routes/app.configuracoes.divisoes'
 import { Route as AppConfiguracoesDistribuicaoRouteImport } from './routes/app.configuracoes.distribuicao'
+import { Route as AppConfiguracoesCurvaAbcRouteImport } from './routes/app.configuracoes.curva-abc'
 import { Route as AppConfiguracoesAuditoriaRouteImport } from './routes/app.configuracoes.auditoria'
 import { Route as AppConfiguracoesAparenciaRouteImport } from './routes/app.configuracoes.aparencia'
 import { Route as AppClientesIdRouteImport } from './routes/app.clientes.$id'
@@ -81,6 +82,7 @@ import { Route as AppAtendimentoIdRouteImport } from './routes/app.atendimento.$
 import { Route as AppGestaoPositivacaoSellerIdRouteImport } from './routes/app.gestao.positivacao.$sellerId'
 import { Route as AppGestaoMetasNovaRouteImport } from './routes/app.gestao.metas.nova'
 import { Route as AppGestaoMetasIdRouteImport } from './routes/app.gestao.metas.$id'
+import { Route as AppGestaoAbcClassRouteImport } from './routes/app.gestao.abc.$class'
 import { Route as AppConfiguracoesVeiculosCadastroModeRouteImport } from './routes/app.configuracoes.veiculos.cadastro-mode'
 import { Route as AppConfiguracoesSdrTemplatesRouteImport } from './routes/app.configuracoes.sdr.templates'
 import { Route as AppConfiguracoesSdrSimuladorRouteImport } from './routes/app.configuracoes.sdr.simulador'
@@ -413,6 +415,12 @@ const AppConfiguracoesDistribuicaoRoute =
     path: '/configuracoes/distribuicao',
     getParentRoute: () => AppRoute,
   } as any)
+const AppConfiguracoesCurvaAbcRoute =
+  AppConfiguracoesCurvaAbcRouteImport.update({
+    id: '/configuracoes/curva-abc',
+    path: '/configuracoes/curva-abc',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppConfiguracoesAuditoriaRoute =
   AppConfiguracoesAuditoriaRouteImport.update({
     id: '/configuracoes/auditoria',
@@ -460,6 +468,11 @@ const AppGestaoMetasIdRoute = AppGestaoMetasIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => AppGestaoMetasRoute,
+} as any)
+const AppGestaoAbcClassRoute = AppGestaoAbcClassRouteImport.update({
+  id: '/$class',
+  path: '/$class',
+  getParentRoute: () => AppGestaoAbcRoute,
 } as any)
 const AppConfiguracoesVeiculosCadastroModeRoute =
   AppConfiguracoesVeiculosCadastroModeRouteImport.update({
@@ -553,6 +566,7 @@ export interface FileRoutesByFullPath {
   '/app/clientes/$id': typeof AppClientesIdRoute
   '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
   '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
+  '/app/configuracoes/curva-abc': typeof AppConfiguracoesCurvaAbcRoute
   '/app/configuracoes/distribuicao': typeof AppConfiguracoesDistribuicaoRoute
   '/app/configuracoes/divisoes': typeof AppConfiguracoesDivisoesRoute
   '/app/configuracoes/frete': typeof AppConfiguracoesFreteRoute
@@ -563,7 +577,7 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/portal-cliente': typeof AppConfiguracoesPortalClienteRoute
   '/app/configuracoes/usuarios': typeof AppConfiguracoesUsuariosRoute
   '/app/configuracoes/whatsapp': typeof AppConfiguracoesWhatsappRoute
-  '/app/gestao/abc': typeof AppGestaoAbcRoute
+  '/app/gestao/abc': typeof AppGestaoAbcRouteWithChildren
   '/app/gestao/caixa': typeof AppGestaoCaixaRoute
   '/app/gestao/comissoes': typeof AppGestaoComissoesRoute
   '/app/gestao/despesas': typeof AppGestaoDespesasRoute
@@ -601,6 +615,7 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/sdr/simulador': typeof AppConfiguracoesSdrSimuladorRoute
   '/app/configuracoes/sdr/templates': typeof AppConfiguracoesSdrTemplatesRoute
   '/app/configuracoes/veiculos/cadastro-mode': typeof AppConfiguracoesVeiculosCadastroModeRoute
+  '/app/gestao/abc/$class': typeof AppGestaoAbcClassRoute
   '/app/gestao/metas/$id': typeof AppGestaoMetasIdRoute
   '/app/gestao/metas/nova': typeof AppGestaoMetasNovaRoute
   '/app/gestao/positivacao/$sellerId': typeof AppGestaoPositivacaoSellerIdRoute
@@ -629,6 +644,7 @@ export interface FileRoutesByTo {
   '/app/clientes/$id': typeof AppClientesIdRoute
   '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
   '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
+  '/app/configuracoes/curva-abc': typeof AppConfiguracoesCurvaAbcRoute
   '/app/configuracoes/distribuicao': typeof AppConfiguracoesDistribuicaoRoute
   '/app/configuracoes/divisoes': typeof AppConfiguracoesDivisoesRoute
   '/app/configuracoes/frete': typeof AppConfiguracoesFreteRoute
@@ -639,7 +655,7 @@ export interface FileRoutesByTo {
   '/app/configuracoes/portal-cliente': typeof AppConfiguracoesPortalClienteRoute
   '/app/configuracoes/usuarios': typeof AppConfiguracoesUsuariosRoute
   '/app/configuracoes/whatsapp': typeof AppConfiguracoesWhatsappRoute
-  '/app/gestao/abc': typeof AppGestaoAbcRoute
+  '/app/gestao/abc': typeof AppGestaoAbcRouteWithChildren
   '/app/gestao/caixa': typeof AppGestaoCaixaRoute
   '/app/gestao/comissoes': typeof AppGestaoComissoesRoute
   '/app/gestao/despesas': typeof AppGestaoDespesasRoute
@@ -677,6 +693,7 @@ export interface FileRoutesByTo {
   '/app/configuracoes/sdr/simulador': typeof AppConfiguracoesSdrSimuladorRoute
   '/app/configuracoes/sdr/templates': typeof AppConfiguracoesSdrTemplatesRoute
   '/app/configuracoes/veiculos/cadastro-mode': typeof AppConfiguracoesVeiculosCadastroModeRoute
+  '/app/gestao/abc/$class': typeof AppGestaoAbcClassRoute
   '/app/gestao/metas/$id': typeof AppGestaoMetasIdRoute
   '/app/gestao/metas/nova': typeof AppGestaoMetasNovaRoute
   '/app/gestao/positivacao/$sellerId': typeof AppGestaoPositivacaoSellerIdRoute
@@ -714,6 +731,7 @@ export interface FileRoutesById {
   '/app/clientes/$id': typeof AppClientesIdRoute
   '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
   '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
+  '/app/configuracoes/curva-abc': typeof AppConfiguracoesCurvaAbcRoute
   '/app/configuracoes/distribuicao': typeof AppConfiguracoesDistribuicaoRoute
   '/app/configuracoes/divisoes': typeof AppConfiguracoesDivisoesRoute
   '/app/configuracoes/frete': typeof AppConfiguracoesFreteRoute
@@ -724,7 +742,7 @@ export interface FileRoutesById {
   '/app/configuracoes/portal-cliente': typeof AppConfiguracoesPortalClienteRoute
   '/app/configuracoes/usuarios': typeof AppConfiguracoesUsuariosRoute
   '/app/configuracoes/whatsapp': typeof AppConfiguracoesWhatsappRoute
-  '/app/gestao/abc': typeof AppGestaoAbcRoute
+  '/app/gestao/abc': typeof AppGestaoAbcRouteWithChildren
   '/app/gestao/caixa': typeof AppGestaoCaixaRoute
   '/app/gestao/comissoes': typeof AppGestaoComissoesRoute
   '/app/gestao/despesas': typeof AppGestaoDespesasRoute
@@ -762,6 +780,7 @@ export interface FileRoutesById {
   '/app/configuracoes/sdr/simulador': typeof AppConfiguracoesSdrSimuladorRoute
   '/app/configuracoes/sdr/templates': typeof AppConfiguracoesSdrTemplatesRoute
   '/app/configuracoes/veiculos/cadastro-mode': typeof AppConfiguracoesVeiculosCadastroModeRoute
+  '/app/gestao/abc/$class': typeof AppGestaoAbcClassRoute
   '/app/gestao/metas/$id': typeof AppGestaoMetasIdRoute
   '/app/gestao/metas/nova': typeof AppGestaoMetasNovaRoute
   '/app/gestao/positivacao/$sellerId': typeof AppGestaoPositivacaoSellerIdRoute
@@ -800,6 +819,7 @@ export interface FileRouteTypes {
     | '/app/clientes/$id'
     | '/app/configuracoes/aparencia'
     | '/app/configuracoes/auditoria'
+    | '/app/configuracoes/curva-abc'
     | '/app/configuracoes/distribuicao'
     | '/app/configuracoes/divisoes'
     | '/app/configuracoes/frete'
@@ -848,6 +868,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/sdr/simulador'
     | '/app/configuracoes/sdr/templates'
     | '/app/configuracoes/veiculos/cadastro-mode'
+    | '/app/gestao/abc/$class'
     | '/app/gestao/metas/$id'
     | '/app/gestao/metas/nova'
     | '/app/gestao/positivacao/$sellerId'
@@ -876,6 +897,7 @@ export interface FileRouteTypes {
     | '/app/clientes/$id'
     | '/app/configuracoes/aparencia'
     | '/app/configuracoes/auditoria'
+    | '/app/configuracoes/curva-abc'
     | '/app/configuracoes/distribuicao'
     | '/app/configuracoes/divisoes'
     | '/app/configuracoes/frete'
@@ -924,6 +946,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/sdr/simulador'
     | '/app/configuracoes/sdr/templates'
     | '/app/configuracoes/veiculos/cadastro-mode'
+    | '/app/gestao/abc/$class'
     | '/app/gestao/metas/$id'
     | '/app/gestao/metas/nova'
     | '/app/gestao/positivacao/$sellerId'
@@ -960,6 +983,7 @@ export interface FileRouteTypes {
     | '/app/clientes/$id'
     | '/app/configuracoes/aparencia'
     | '/app/configuracoes/auditoria'
+    | '/app/configuracoes/curva-abc'
     | '/app/configuracoes/distribuicao'
     | '/app/configuracoes/divisoes'
     | '/app/configuracoes/frete'
@@ -1008,6 +1032,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/sdr/simulador'
     | '/app/configuracoes/sdr/templates'
     | '/app/configuracoes/veiculos/cadastro-mode'
+    | '/app/gestao/abc/$class'
     | '/app/gestao/metas/$id'
     | '/app/gestao/metas/nova'
     | '/app/gestao/positivacao/$sellerId'
@@ -1467,6 +1492,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesDistribuicaoRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/configuracoes/curva-abc': {
+      id: '/app/configuracoes/curva-abc'
+      path: '/configuracoes/curva-abc'
+      fullPath: '/app/configuracoes/curva-abc'
+      preLoaderRoute: typeof AppConfiguracoesCurvaAbcRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/configuracoes/auditoria': {
       id: '/app/configuracoes/auditoria'
       path: '/configuracoes/auditoria'
@@ -1529,6 +1561,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/gestao/metas/$id'
       preLoaderRoute: typeof AppGestaoMetasIdRouteImport
       parentRoute: typeof AppGestaoMetasRoute
+    }
+    '/app/gestao/abc/$class': {
+      id: '/app/gestao/abc/$class'
+      path: '/$class'
+      fullPath: '/app/gestao/abc/$class'
+      preLoaderRoute: typeof AppGestaoAbcClassRouteImport
+      parentRoute: typeof AppGestaoAbcRoute
     }
     '/app/configuracoes/veiculos/cadastro-mode': {
       id: '/app/configuracoes/veiculos/cadastro-mode'
@@ -1717,6 +1756,18 @@ const AppVeiculosRouteWithChildren = AppVeiculosRoute._addFileChildren(
   AppVeiculosRouteChildren,
 )
 
+interface AppGestaoAbcRouteChildren {
+  AppGestaoAbcClassRoute: typeof AppGestaoAbcClassRoute
+}
+
+const AppGestaoAbcRouteChildren: AppGestaoAbcRouteChildren = {
+  AppGestaoAbcClassRoute: AppGestaoAbcClassRoute,
+}
+
+const AppGestaoAbcRouteWithChildren = AppGestaoAbcRoute._addFileChildren(
+  AppGestaoAbcRouteChildren,
+)
+
 interface AppGestaoMetasRouteChildren {
   AppGestaoMetasIdRoute: typeof AppGestaoMetasIdRoute
   AppGestaoMetasNovaRoute: typeof AppGestaoMetasNovaRoute
@@ -1755,6 +1806,7 @@ interface AppRouteChildren {
   AppVeiculosRoute: typeof AppVeiculosRouteWithChildren
   AppConfiguracoesAparenciaRoute: typeof AppConfiguracoesAparenciaRoute
   AppConfiguracoesAuditoriaRoute: typeof AppConfiguracoesAuditoriaRoute
+  AppConfiguracoesCurvaAbcRoute: typeof AppConfiguracoesCurvaAbcRoute
   AppConfiguracoesDistribuicaoRoute: typeof AppConfiguracoesDistribuicaoRoute
   AppConfiguracoesDivisoesRoute: typeof AppConfiguracoesDivisoesRoute
   AppConfiguracoesFreteRoute: typeof AppConfiguracoesFreteRoute
@@ -1765,7 +1817,7 @@ interface AppRouteChildren {
   AppConfiguracoesPortalClienteRoute: typeof AppConfiguracoesPortalClienteRoute
   AppConfiguracoesUsuariosRoute: typeof AppConfiguracoesUsuariosRoute
   AppConfiguracoesWhatsappRoute: typeof AppConfiguracoesWhatsappRoute
-  AppGestaoAbcRoute: typeof AppGestaoAbcRoute
+  AppGestaoAbcRoute: typeof AppGestaoAbcRouteWithChildren
   AppGestaoCaixaRoute: typeof AppGestaoCaixaRoute
   AppGestaoComissoesRoute: typeof AppGestaoComissoesRoute
   AppGestaoDespesasRoute: typeof AppGestaoDespesasRoute
@@ -1802,6 +1854,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppVeiculosRoute: AppVeiculosRouteWithChildren,
   AppConfiguracoesAparenciaRoute: AppConfiguracoesAparenciaRoute,
   AppConfiguracoesAuditoriaRoute: AppConfiguracoesAuditoriaRoute,
+  AppConfiguracoesCurvaAbcRoute: AppConfiguracoesCurvaAbcRoute,
   AppConfiguracoesDistribuicaoRoute: AppConfiguracoesDistribuicaoRoute,
   AppConfiguracoesDivisoesRoute: AppConfiguracoesDivisoesRoute,
   AppConfiguracoesFreteRoute: AppConfiguracoesFreteRoute,
@@ -1812,7 +1865,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesPortalClienteRoute: AppConfiguracoesPortalClienteRoute,
   AppConfiguracoesUsuariosRoute: AppConfiguracoesUsuariosRoute,
   AppConfiguracoesWhatsappRoute: AppConfiguracoesWhatsappRoute,
-  AppGestaoAbcRoute: AppGestaoAbcRoute,
+  AppGestaoAbcRoute: AppGestaoAbcRouteWithChildren,
   AppGestaoCaixaRoute: AppGestaoCaixaRoute,
   AppGestaoComissoesRoute: AppGestaoComissoesRoute,
   AppGestaoDespesasRoute: AppGestaoDespesasRoute,

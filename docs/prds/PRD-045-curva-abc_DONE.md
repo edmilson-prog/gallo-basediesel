@@ -356,17 +356,18 @@ ENTÃO próxima execução de classifyABC usa 70%
 
 ## Status
 
-| Campo  | Valor       |
-| ------ | ----------- |
-| Status | ⏳ PENDENTE |
+| Campo  | Valor                                |
+| ------ | ------------------------------------ |
+| Status | ✅ IMPLEMENTADO (v0.29.0 — `Pareto`) |
 
 ---
 
 ## Histórico
 
-| Data       | Versão | Alteração                                                                                                        |
-| ---------- | ------ | ---------------------------------------------------------------------------------------------------------------- |
-| 25/05/2026 | v1     | Criação inicial — classificação ABC com gráfico Pareto, drill-down, migrações, integração com ficha/lista/painel |
+| Data       | Versão | Alteração                                                                                                                                       |
+| ---------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 25/05/2026 | v1     | Criação inicial — classificação ABC com gráfico Pareto, drill-down, migrações, integração com ficha/lista/painel                                |
+| 26/05/2026 | v1.1   | Implementação Fase 1 — `abc-curve/` em v0.29.0 (`Pareto`); inclui fix de runtime `.items`→`.data` em hooks de Cockpit/Positivação shippados |
 
 ---
 

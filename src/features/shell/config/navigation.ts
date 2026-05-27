@@ -132,7 +132,7 @@ export const APP_NAV_GROUPS: INavGroup[] = [
         label: "Curva ABC",
         icon: "mdi:chart-arc",
         to: ROUTES.GESTAO_ABC,
-        roles: ["Owner"],
+        roles: ["Owner", "Gestor", "Vendedor", "Financeiro"],
       },
       {
         label: "Comissões",

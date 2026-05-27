@@ -4,6 +4,148 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.29.0] — Pareto · 2026-05-26
+
+Continuação do Bloco 4a (Gestão A — Onda 2) com a **Curva ABC
+(PRD-045)** — classificação automática de clientes via princípio
+de Pareto, com detecção de migrações e drill-down por classe.
+A rota `/app/gestao/abc`, antes placeholder Owner-only, vira
+página completa para Owner, Gestor, Vendedor (escopo próprio) e
+Financeiro, com KPIs, gráfico Pareto icônico, banners de migração
+e admin dedicado para tunar os limites.
+
+Inclui também **dois bug fixes runtime-críticos** em código
+shippado nas versões 0.27.0 (Cockpit) e 0.28.0 (Coverage): o
+contrato `IPaginatedResult` usa o campo `data`, não `items`. Os
+hooks `useCockpitMetrics` e `usePositivationMetrics` estavam
+acessando `.data?.items` que sempre retornava `undefined`, fazendo
+as páginas renderizarem com dados vazios. `vite build` usa esbuild
+sem `tsc` então a quebra de tipos passou despercebida. Mesma
+correção aplicada para `seller.name` → `seller.fullName`. As
+páginas Cockpit e Positivação agora funcionam de verdade. Bugs
+equivalentes em `goals` e `sales-analytics` permanecem pendentes
+para PR de cleanup separado.
+
+**Engine pura.** `classifyABC(start, end, context)` em
+`src/features/abc-curve/engine/` é função sem efeitos colaterais:
+agrega receita por cliente nos pedidos pagos do período, ordena
+desc, calcula participação cumulativa e classifica conforme os
+cutoffs (defaults 80% e 95%). Devolve `byClass` (3 buckets com
+contagem, receita e %), `records` (lista ranqueada com classe e
+cumulativa), `classByCustomerId` (lookup rápido). `detectMigrations`
+compara duas classificações por customerId e emite `subiu`, `caiu`,
+`manteve`, `novo` ou `saiu`, com buckets dedicados para "subiu
+para A", "caiu de A" e "novos em A".
+
+**Hook agregador.** `useABCClassification({ window, previousWindow,
+scope })` carrega clientes, pedidos current/previous e settings
+da loja via 4 queries TanStack em paralelo, delega ao engine,
+e suporta `settingsOverride` para a página admin pré-visualizar
+mudanças sem persistir. Inteiramente compatível com filtros
+URL-sync de período (3/6/12/24m + custom) e escopo
+loja/vendedor.
+
+**Página principal.** `/app/gestao/abc` com header de filtros +
+5 KPIs (total classificados, receita do período, cards A/B/C
+clicáveis com contagem + receita + %) + banners de migração
+(verde = subiu, vermelho = caiu, azul = novo em A) + gráfico Pareto
+Recharts (`ComposedChart` com barras coloridas por classe + linha
+cumulativa + `ReferenceLine`s nos cutoffs A/B com label) + tabela
+dos top 25 contribuintes com badge de classe, vendedor, receita,
+% acumulada, migração e drill-down para a ficha do cliente.
+
+**Drill-down por classe.** `/app/gestao/abc/$class` com guard de
+classe válida (`A`/`B`/`C` apenas, redireciona com `EmptyState` se
+inválido), 3 KPIs específicos da classe (count, receita, %),
+tabela completa paginada (25/página) com a mesma estrutura da
+tabela do top + colunas de migração coloridas.
+
+**Admin.** `/app/configuracoes/curva-abc` (Owner-only) substitui
+a ausência de sub-rota anterior. Sliders para periodMonths (3-24),
+classAThreshold (70-90%) e classBThreshold (90-99%) com validação
+de ordem (B precisa ser > A). Card de pré-visualização live mostra
+3 mini-cards (A/B/C) com a contagem atual vs nova e Δ colorido.
+Botão "Recalcular agora" invalida o cache do TanStack Query
+forçando re-fetch. Save persiste via `usePlatformSettings` (que
+já grava audit log automaticamente — `action='settings.abcCurve.update'`).
+
+**Settings extensíveis.** Nova interface `IABCCurveSettings`
+adicionada a `IPlatformSettings` com defaults (12m, 80%, 95%)
+seedados em `seedStore.ts` para a Matriz.
+
+**Permissões.** Rota guardada por `requireAuth` aceitando Owner,
+Gestor, Vendedor (escopo próprio automaticamente) e Financeiro.
+Vendedor não vê classificação de clientes alheios — o filtro de
+seller no scope vira no-op travado em `sellerId` próprio. Config
+admin é Owner-only.
+
+**Sidebar.** Item "Curva ABC" agora visível para os 4 roles
+(antes só Owner). Item config "Curva ABC" precisa ser plugado
+no menu de admin-settings — adiado pois o submenu é complexo;
+acesso por URL direta funciona.
+
+### Added
+
+- `src/features/abc-curve/` — feature completa (2 engines puros,
+  2 hooks, 5 componentes, 3 páginas, utils + i18n + barrel)
+- Engine `classifyABC` + `detectMigrations` puros, exportados pelo
+  barrel para que Cockpit/PRD-040 e Goals/PRD-042 possam plugar
+  no futuro (swap dos stubs)
+- Hook `useABCClassification` — 4 queries TanStack em paralelo +
+  delega aos engines + suporta `settingsOverride` para preview
+- Hook `useABCFilters` — URL-sync com presets 3/6/12/24m + custom +
+  store + seller
+- Componentes `ABCHeader`, `ABCKpis`, `ParetoChart` (ComposedChart
+  com ReferenceLines nos cutoffs), `MigrationBanners`,
+  `ABCCustomersTable`
+- Páginas `ABCCurvePage`, `ABCClassPage` (drill-down `/$class`) e
+  `ABCSettingsPage` (admin)
+- Rotas `/app/gestao/abc` (substitui placeholder),
+  `/app/gestao/abc/$class` (nova) e `/app/configuracoes/curva-abc`
+  (nova, Owner-only)
+- Tipo `IABCCurveSettings` em `IPlatformSettings` + seed default
+  (12m, 80/95) em `seedStore.ts`
+
+### Fixed
+
+- **Cockpit (PRD-040) e Positivação (PRD-044)**: hooks acessavam
+  `query.data?.items` mas o contrato `IPaginatedResult` usa `data`.
+  Correção: `query.data?.data`. Sem isso as páginas renderizavam
+  vazias em runtime mesmo sem erro visível. `vite build` não roda
+  `tsc` (apenas esbuild) então o bug passou pelo gate de release
+- **Cockpit e Positivação**: `seller.name` não existe em `ISeller`
+  (é `fullName`). Correção: usar `fullName`. Sem isso o label de
+  vendedor renderizava "—" em toda a UI
+- Validação `userRole !== undefined` substituída por
+  `userRole !== null` (o auth provider devolve `RoleName | null`,
+  não `undefined`)
+- Vários ajustes TS-only nos hooks de filters e gráficos do
+  Cockpit (typing de `prev` em `navigate.search`, fallback em
+  destructure de `value.split("-")`)
+
+### Changed
+
+- Sidebar: "Curva ABC" agora visível para Owner, Gestor,
+  Vendedor e Financeiro
+
+### Notes
+
+- Item "Curva ABC" no submenu de admin-settings (sidebar
+  Configurações → Atendimento/Distribuição/…) não foi plugado
+  porque a sidebar de config tem estrutura própria; acesso por
+  URL `/app/configuracoes/curva-abc` funciona
+- Bugs equivalentes ao `.items`/`.fullName` ainda existem em
+  `goals/hooks/useGoals*`, `sales-analytics/hooks/useSales*` e
+  `manager-dashboard/hooks` — não corrigidos neste PR para manter
+  escopo focado em PRD-045. Painel Gestor, Vendas, Metas e
+  Goals widget continuam silenciosamente exibindo dados vazios
+  até o cleanup
+- Recálculo agendado diário (RF-018) usa apenas botão manual no
+  admin (`Recalcular agora` invalida cache). Edge Function de
+  cron fica para Fase 2
+
+---
+
 ## [0.28.0] — Coverage · 2026-05-26
 
 Reabertura do Bloco 4a (Gestão A — Onda 2) com o sistema de
