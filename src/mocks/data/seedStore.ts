@@ -7,6 +7,7 @@ import { DEFAULT_MANAGER_DASHBOARD_SETTINGS } from "./seedManagerDashboard";
 import { DEFAULT_SDR_TEMPLATES } from "@/features/sdr/templates/defaults";
 import { DEFAULT_SDR_QUOTE_TEMPLATES } from "@/features/sdr-quote";
 import { DEFAULT_SHIPPING_CONFIG } from "@/features/shipping/config/defaults";
+import { DEFAULT_BADGE_CATALOG } from "@/features/gamification/catalog/badgeCatalog";
 
 export const SEED_STORE_ID = "store-matriz";
 
@@ -33,9 +34,18 @@ export const SEED_STORE: IStore = {
     pipelineStages: SEED_PIPELINE_STAGES,
     lossReasons: SEED_LOSS_REASONS,
     gamificationRules: {
+      active: true,
       pointsPerOrder: 10,
       pointsPerRecovery: 25,
-      pointsPerPositivation: 15,
+      pointsPerPositivation: 5,
+      pointsPerGoalCompleted: 100,
+      pointsPerGoalExceeded: 50,
+      pointsPerNewCustomer: 10,
+      pointsPerHighTicketOrder: 15,
+      thresholdHighTicket: 1500,
+      thresholdBigTicket: 5000,
+      notifyOnBadgeEarned: false,
+      badges: DEFAULT_BADGE_CATALOG,
     },
     whatsappAccounts: [
       { id: "wa-meta-matriz", label: "GALLO Matriz (Oficial)" },

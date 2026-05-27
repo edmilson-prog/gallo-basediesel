@@ -4,6 +4,151 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.31.0] — Podium · 2026-05-27
+
+Abertura do **Bloco 4b** com o **Ranking de Vendedores e Gamificação
+(PRD-043)** — camada motivacional sobre as metas (PRD-042), positivação
+(PRD-044), curva ABC (PRD-045) e carteira analítica (PRD-046). Sistema
+de pontos derivado em 4 dimensões (metas batidas/superadas, novos
+clientes/positivação/recovery, pedidos high-ticket, bônus de badges),
+catálogo seed de **10 badges automáticos** distribuídos em 5 categorias
+× 4 raridades, e ranking periódico com tie-breaking determinístico e
+delta vs. período anterior.
+
+**Engine puro.** `calculateSellerScore(sellerId, period, context)` e
+`evaluateBadgesForSeller({sellerId, period, context, rankingForPeriod})`
+em `src/features/gamification/engine/` são funções sem efeitos
+colaterais sobre dados já carregados. `calculateRanking` ordena
+entradas por score desc com fallback em `breakdown.fromGoals` →
+`positionPrevious` e popula `positionDelta`. O badge `estrela-ascensao`
+(legendary) é o único que consome o ranking já calculado, ativando-se
+quando `positionDelta ≥ 3`. Idempotência garantida via verificação de
+`(sellerId, badgeType, periodRef)` antes de emitir um novo
+`IGamificationBadge` — re-executar o evaluator nunca duplica.
+
+**Catálogo de badges em settings.** `IGamificationRules` ganhou 7
+campos editáveis (`pointsPerGoalCompleted`, `pointsPerGoalExceeded`,
+`pointsPerNewCustomer`, `pointsPerHighTicketOrder`, `thresholdHighTicket`,
+`thresholdBigTicket`, `notifyOnBadgeEarned`) e um array `badges` com
+as 10 definições. Tipos novos: `IBadgeDefinition`, `BadgeCategory`,
+`BadgeRarity`. `IRankingEntry` agora carrega `breakdown` por fonte,
+`positionPrevious`, `positionDelta` e `badgeSlugs[]`.
+
+**Hook agregador.** `useRanking({period, scope, rulesOverride})`
+dispara 7 queries TanStack em paralelo (sellers, settings, orders
+period, orders previous, orders historical, customers, goals) +
+hook `useBadges` consumindo o mock `badgesApi`. Calcula primeiro
+o ranking do período anterior (para popular `positionPrevious`),
+depois o atual, e finalmente roda o evaluator de badges sobre o
+ranking calculado. `useSellerHistory({sellerId, months: 6})` é o
+complemento drill-down: reconstrói scores mensais nos últimos 6
+âncoras para o gráfico temporal.
+
+**Página principal.** `/app/gestao/ranking` substitui placeholder.
+Header com filtros (período mensal/trim./anual + loja com URL-sync).
+**Pódio top-3** com ouro/prata/bronze (ring colorido, troféu/medalha
+sobreposto, breakdown em pílulas semânticas), ordenado 2-1-3 em
+desktop com gold scale-up. **Tabela do ranking** para 4º em diante,
+com sticky highlight da linha do próprio vendedor quando role=Vendedor.
+**Card "Conquistas em destaque"** lateral elencando as 5 badges mais
+raras do período. Reestruturação de rotas TanStack: parent agora é
+layout-only com `<Outlet />` e a página mora em
+`app.gestao.ranking.index.tsx` — destrava o drill-down.
+
+**Drill-down do vendedor.** `/app/gestao/ranking/$sellerId` com guard
+de acesso (Vendedor só pode abrir o próprio). Header com avatar +
+posição (#N de M) + qualitativo (Top 10/25/50%). 3 KPI cards
+(score, posição com delta, conquistas no período). **Donut Recharts**
+de breakdown por fonte (Metas/Clientes/Pedidos/Bônus). **Gráfico de
+linha** com últimos 6 períodos mensais. **Grid de conquistas** com
+nome, raridade e data — usa `<SellerBadgesGrid />`, componente
+exportado para futuro reuso na ficha do vendedor.
+
+**Página de configuração.** `/app/configuracoes/gamificacao`
+(Owner only) substitui o `GamificationPlaceholderPage`. Banner
+"Modo demonstração", toggle global `active`, formulário de 8 campos
+numéricos para tunar os points/thresholds, tabela editável com as
+10 badges (toggle active + edit bonusPoints), e botão "Recalcular
+agora" que invalida o cache do TanStack. Save persiste via
+`usePlatformSettings.update` com action `settings.gamification.update`
+no audit log.
+
+**Widget no Painel Gestor (PRD-014).** `<TopPerformersWidget />`
+adicionado à seção de widgets — grade agora `lg:grid-cols-4`
+acomodando Metas / Positivação / Saúde da carteira / Top performers.
+Mini-pódio horizontal com 3 medalhas + avatar + score + até 3 ícones
+de badges + link "Ver ranking completo".
+
+**Widget no Cockpit Executivo (PRD-040).** `<RankingHighlightWidget />`
+adicionado ao grid de charts (após o `ABCMiniChart`). Pódio top-3
+cross-store quando Owner, da loja quando Gestor (via `storeId`
+prop). Mostra breakdown abreviado por fonte e score destacado.
+
+**Permissões.** Página principal e drill-down guardados por
+`requireAuth` aceitando Owner/Gestor/Vendedor/Financeiro. Vendedor
+preso no próprio drill-down e na própria loja (escopo automático).
+Configuração restrita a Owner. Widget oculto quando
+`gamificationRules.active=false`.
+
+### Added
+
+- `src/features/gamification/` — feature completa (catálogo seed,
+  engine puro, 4 hooks de dados, 9 componentes, 3 páginas, i18n + barrel)
+- Tipos `IBadgeDefinition`, `BadgeCategory`, `BadgeRarity` em
+  `src/shared/types/bi.ts` + campos snapshot em `IGamificationBadge`
+- 8 campos novos em `IGamificationRules` (active, points-rules e
+  thresholds) + array `badges[]`
+- Campos `breakdown`, `positionPrevious`, `positionDelta`,
+  `badgeSlugs[]` em `IRankingEntry`
+- Engine `calculateSellerScore`, `calculateRanking`,
+  `evaluateBadgesForSeller`, `sumBreakdown`, `findBadgeDefinition`
+- Catálogo seed `DEFAULT_BADGE_CATALOG` com 10 badges
+  (meta-batida, hat-trick, veterano, recordista-tri, maratona,
+  cobertura, resgatador, conquistador, big-ticket, estrela-ascensao)
+- Hooks `useRanking`, `useBadges`, `useRankingFilters` (URL-sync),
+  `useSellerHistory`
+- Componentes `BadgeChip`, `RarityBadge`, `SellerAvatar`,
+  `RankingHeader`, `RankingPodium`, `RankingTable`, `RecentBadgesCard`,
+  `BreakdownDonut`, `ScoreHistoryChart`, `SellerBadgesGrid`,
+  `TopPerformersWidget` (PRD-014), `RankingHighlightWidget` (PRD-040)
+- Rotas `/app/gestao/ranking` (layout `<Outlet />`),
+  `/app/gestao/ranking/` (index — RankingPage),
+  `/app/gestao/ranking/$sellerId` (drill-down),
+  `/app/configuracoes/gamificacao` (config — substitui placeholder)
+- Generator de badges atualizado para usar catálogo canônico
+  com snapshots de category/rarity/bonusPoints
+
+### Changed
+
+- Painel Gestor (PRD-014): grade da seção de widgets passa de
+  `lg:grid-cols-3` para `lg:grid-cols-4` acomodando o
+  `<TopPerformersWidget />`
+- Cockpit Executivo (PRD-040): adiciona `<RankingHighlightWidget />`
+  ao grid de charts
+- Mock `seedStore.ts` adota o `DEFAULT_BADGE_CATALOG` + valores
+  default das novas 8 chaves de `gamificationRules`
+- `IGamificationRules`, `IGamificationBadge`, `IRankingEntry`
+  estendidos com campos opcionais (retro-compatíveis)
+
+### Fixed
+
+- Padrão de rotas TanStack para drill-down — parent agora é layout
+  com `<Outlet />` + `index.tsx` filho. Bug latente similar existe
+  em `app.gestao.abc.tsx` (drill `/abc/$class`) e
+  `app.gestao.carteira-analitica.tsx` (drill `/carteira-analitica/$sellerId`)
+  — não corrigidos neste release, ficam catalogados como dívida
+
+### Notas
+
+- `<SellerBadgesGrid sellerId />` é exportado do barrel e fica
+  pronto para a futura ficha do vendedor (não existe no MVP)
+- Recálculo agendado mock — TanStack Query invalidation no botão
+  "Recalcular agora"; Fase 2 Edge Function diária
+- Notificação toast de conquista é opcional via
+  `gamificationRules.notifyOnBadgeEarned` (default `false`)
+- 50 PRDs do MVP redigidos + 32 implementados; 18 a fazer
+  (047–053 do Bloco 4b + 060–067 Bloco 5 + 070–071 Bloco 6)
+
 ## [0.30.0] — Vitals · 2026-05-26
 
 Sequência do Bloco 4a (Gestão A — Onda 2) com a **Carteira Analítica

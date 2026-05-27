@@ -2,19 +2,19 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _A definir após criação no Lovable_ |
-| **Objetivo** | Construir a home / vitrine pública do e-commerce em `/loja` com identidade visual da submarca PARTS, hero impactante, produtos em destaque, categorias e marcas, header funcional e footer institucional |
-| **Tipo** | Feature |
-| **Complexidade** | Alta |
-| **Total de Fases** | 5 |
-| **Prioridade** | Alta |
-| **Épico** | Bloco 5 — E-commerce (Onda 3) |
-| **PRDs Relacionados** | PRD-001 (Design System), PRD-003 (Shell — sub-app /loja), PRD-030 (Catálogo), PRD-061 (Busca), PRD-062 (Categoria), PRD-063 (Ficha Produto), PRD-064 (Carrinho), PRD-065 (Conta Cliente) |
-| **Implementação** | 🔵 Claude Code CLI (sobre scaffold do Lovable) |
-| **Padrão de código** | Feature-based; código em `src/features/storefront/`; rota `/loja` (sub-app definido em PRDs 003 e 007) |
+| Campo                 | Valor                                                                                                                                                                                                    |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                                 |
+| **Repositório**       | _A definir após criação no Lovable_                                                                                                                                                                      |
+| **Objetivo**          | Construir a home / vitrine pública do e-commerce em `/loja` com identidade visual da submarca PARTS, hero impactante, produtos em destaque, categorias e marcas, header funcional e footer institucional |
+| **Tipo**              | Feature                                                                                                                                                                                                  |
+| **Complexidade**      | Alta                                                                                                                                                                                                     |
+| **Total de Fases**    | 5                                                                                                                                                                                                        |
+| **Prioridade**        | Alta                                                                                                                                                                                                     |
+| **Épico**             | Bloco 5 — E-commerce (Onda 3)                                                                                                                                                                            |
+| **PRDs Relacionados** | PRD-001 (Design System), PRD-003 (Shell — sub-app /loja), PRD-030 (Catálogo), PRD-061 (Busca), PRD-062 (Categoria), PRD-063 (Ficha Produto), PRD-064 (Carrinho), PRD-065 (Conta Cliente)                 |
+| **Implementação**     | 🔵 Claude Code CLI (sobre scaffold do Lovable)                                                                                                                                                           |
+| **Padrão de código**  | Feature-based; código em `src/features/storefront/`; rota `/loja` (sub-app definido em PRDs 003 e 007)                                                                                                   |
 
 ### Critérios de Complexidade
 
@@ -37,6 +37,7 @@ Este PRD entrega: home pública impactante, primeira impressão profissional, in
 ### Identidade visual
 
 Conforme PRD-001:
+
 - Tema **PARTS** ativo por default no `/loja`
 - Cor primária: verde `#337648`
 - Carbono institucional `#1A1A1A` como base
@@ -77,6 +78,7 @@ Conforme PRD-001:
 ### Header
 
 Sticky no scroll, com:
+
 - **Logo GALLO PARTS** (link para home)
 - **Busca destacada** (placeholder: "Busque por código OEM, nome ou marca")
 - **Categorias** dropdown (lista categorias do catálogo PRD-030)
@@ -102,12 +104,14 @@ Click leva ao filtro de busca por marca compatível.
 ### Categorias em destaque
 
 Grid de 6 categorias (PRD-030):
+
 - Cada card: ícone (Iconify do design system), nome, contagem de produtos
 - Click leva à listagem da categoria (PRD-062)
 
 ### Produtos em destaque
 
 Grid de 8 produtos (responsive: 1 mobile, 2 tablet, 4 desktop):
+
 - Imagem placeholder (ícone categoria com tema PARTS)
 - Nome
 - Código OEM
@@ -120,6 +124,7 @@ No MVP: produtos selecionados manualmente em settings ou via lógica simples (to
 ### Por que comprar (institucional)
 
 3 ou 4 cards com benefícios:
+
 - ✓ Entrega expressa em FW e região
 - ✓ Catálogo com 5.000+ peças
 - ✓ Atendimento 24/7 via WhatsApp
@@ -128,6 +133,7 @@ No MVP: produtos selecionados manualmente em settings ou via lógica simples (to
 ### Sobre nós
 
 Bloco curto com:
+
 - Texto institucional (placeholder editável)
 - Foto da empresa (placeholder)
 - CTA "Conheça mais" (link para página estática /loja/sobre — opcional MVP)
@@ -144,6 +150,7 @@ Bloco curto com:
 ### Mobile
 
 Layout adaptativo:
+
 - Hero ocupa viewport completo
 - Cards em coluna única
 - Header com menu hambúrguer
@@ -153,6 +160,7 @@ Layout adaptativo:
 ### Configuração
 
 Sub-rota `/app/configuracoes/storefront` (Owner):
+
 - Texto do hero (headline + subheadline)
 - Produtos em destaque (selecionar manualmente ou auto via mais vendidos)
 - Categorias em destaque (selecionar quais)
@@ -174,14 +182,14 @@ Sub-rota `/app/configuracoes/storefront` (Owner):
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que descartada |
-|-------------|---------------------|
-| Vitrine separada (outro projeto) | Briefing define sub-app no mesmo repo (PRDs 003/007) |
-| Sem identidade PARTS (usar tema institucional) | E-commerce é submarca específica |
-| Hero genérico sem CTAs específicos | Conversão precisa de direção clara |
-| Sem destaques (apenas categorias) | Vitrine sem produtos vira diretório |
-| Estrutura customizável full no MVP | Complexidade alta; defaults suficientes |
-| Renderização SSR no MVP | SPA é OK; SEO básico via meta tags |
+| Alternativa                                    | Por que descartada                                   |
+| ---------------------------------------------- | ---------------------------------------------------- |
+| Vitrine separada (outro projeto)               | Briefing define sub-app no mesmo repo (PRDs 003/007) |
+| Sem identidade PARTS (usar tema institucional) | E-commerce é submarca específica                     |
+| Hero genérico sem CTAs específicos             | Conversão precisa de direção clara                   |
+| Sem destaques (apenas categorias)              | Vitrine sem produtos vira diretório                  |
+| Estrutura customizável full no MVP             | Complexidade alta; defaults suficientes              |
+| Renderização SSR no MVP                        | SPA é OK; SEO básico via meta tags                   |
 
 ---
 
@@ -365,44 +373,44 @@ ENTÃO header tem hambúrguer
 
 ## Fases de Implementação
 
-| Fase | Objetivo |
-|------|----------|
-| 1 | Layout /loja + header + hero |
-| 2 | Seções marcas + categorias + produtos em destaque |
-| 3 | Seções benefícios + sobre + footer |
-| 4 | Configuração admin + SEO meta tags |
-| 5 | Mobile + acessibilidade + polish |
+| Fase | Objetivo                                          |
+| ---- | ------------------------------------------------- |
+| 1    | Layout /loja + header + hero                      |
+| 2    | Seções marcas + categorias + produtos em destaque |
+| 3    | Seções benefícios + sobre + footer                |
+| 4    | Configuração admin + SEO meta tags                |
+| 5    | Mobile + acessibilidade + polish                  |
 
 ---
 
 ## Dependências
 
-| PRD | Status |
-|-----|--------|
-| PRD-001 (tema PARTS) | 📝 |
-| PRD-003 (sub-app /loja) | 📝 |
-| PRD-007 (multi-loja) | 📝 |
-| PRD-030 (catálogo) | 📝 |
+| PRD                     | Status |
+| ----------------------- | ------ |
+| PRD-001 (tema PARTS)    | 📝     |
+| PRD-003 (sub-app /loja) | 📝     |
+| PRD-007 (multi-loja)    | 📝     |
+| PRD-030 (catálogo)      | 📝     |
 
 ### Dependências Futuras
 
-| PRD | Como Lidar |
-|-----|-----------|
-| PRD-061 (Busca) | Header tem busca; submit leva à rota |
-| PRD-062 (Categoria) | Categorias linkam para rota |
-| PRD-063 (Ficha) | Produtos linkam para ficha |
-| PRD-064 (Carrinho) | Header mostra contador |
-| PRD-065 (Login) | Header tem botão login |
+| PRD                 | Como Lidar                           |
+| ------------------- | ------------------------------------ |
+| PRD-061 (Busca)     | Header tem busca; submit leva à rota |
+| PRD-062 (Categoria) | Categorias linkam para rota          |
+| PRD-063 (Ficha)     | Produtos linkam para ficha           |
+| PRD-064 (Carrinho)  | Header mostra contador               |
+| PRD-065 (Login)     | Header tem botão login               |
 
 ---
 
 ## Cadeia
 
-| Ordem | PRD |
-|-------|-----|
-| 1-33 | 010-053 |
+| Ordem  | PRD               |
+| ------ | ----------------- |
+| 1-33   | 010-053           |
 | **34** | **PRD-060 ATUAL** |
-| 35+ | 061-067, 070-071 |
+| 35+    | 061-067, 070-071  |
 
 ---
 
@@ -416,12 +424,12 @@ ENTÃO header tem hambúrguer
 
 ## Convenções
 
-| Elemento | Convenção |
-|----------|-----------|
-| Página | `StorefrontHomePage` |
-| Componentes | `<StorefrontHeader>`, `<StorefrontHero>`, etc. |
-| Pasta | `storefront/` |
-| Git | `feat(storefront): add public home with PARTS identity` |
+| Elemento    | Convenção                                               |
+| ----------- | ------------------------------------------------------- |
+| Página      | `StorefrontHomePage`                                    |
+| Componentes | `<StorefrontHeader>`, `<StorefrontHero>`, etc.          |
+| Pasta       | `storefront/`                                           |
+| Git         | `feat(storefront): add public home with PARTS identity` |
 
 ---
 
@@ -439,17 +447,17 @@ ENTÃO header tem hambúrguer
 
 ## Status
 
-| Campo | Valor |
-|-------|-------|
+| Campo  | Valor       |
+| ------ | ----------- |
 | Status | ⏳ PENDENTE |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 25/05/2026 | v1 | Criação inicial — home pública com identidade PARTS, 7 seções, configuração admin |
+| Data       | Versão | Alteração                                                                         |
+| ---------- | ------ | --------------------------------------------------------------------------------- |
+| 25/05/2026 | v1     | Criação inicial — home pública com identidade PARTS, 7 seções, configuração admin |
 
 ---
 

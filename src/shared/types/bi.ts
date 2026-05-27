@@ -67,24 +67,76 @@ export interface IGoal {
   updatedAt: ISO8601;
 }
 
+/** Badge category — drives icon family and filter tabs on the ranking screen (PRD-043). */
+export type BadgeCategory = "metas" | "volume" | "carteira" | "crescimento" | "ranking";
+
+/** Badge rarity — drives accent color and bonus-point ranges (PRD-043). */
+export type BadgeRarity = "common" | "rare" | "epic" | "legendary";
+
+/**
+ * Badge definition (catalog template). Lives on
+ * `IPlatformSettings.gamificationRules.badges` and is editable by Owner.
+ *
+ * @see ../../../docs/prds/PRD-043-ranking-gamificacao.md
+ */
+export interface IBadgeDefinition {
+  slug: string;
+  name: string;
+  description: string;
+  category: BadgeCategory;
+  rarity: BadgeRarity;
+  /** Iconify name (e.g. "mdi:trophy"). */
+  icon: string;
+  /** Bonus points granted when seller earns this badge in a period. */
+  bonusPoints: number;
+  /** Owner can disable a badge without deleting it. */
+  active: boolean;
+}
+
 /**
  * Gamification badge awarded to a seller.
- * `badgeType` is open-ended (e.g. "top_revenue_month", "first_sale", "recovery_hero").
+ * Generators populate `badgeType` with one of the catalog slugs; `category`,
+ * `rarity` and `bonusPoints` are denormalised onto the badge instance so the
+ * UI can render without re-joining the catalog.
  */
 export interface IGamificationBadge {
   id: ID;
   sellerId: ID;
+  /** Slug matching `IBadgeDefinition.slug` (e.g. "meta-batida", "hat-trick"). */
   badgeType: string;
   earnedAt: ISO8601;
   /** Reference period the badge relates to (e.g. "2026-05"). */
   periodRef: string;
+  /** Category snapshot from the definition at the moment the badge was earned (PRD-043). */
+  category?: BadgeCategory;
+  /** Rarity snapshot (PRD-043). */
+  rarity?: BadgeRarity;
+  /** Bonus points snapshot (PRD-043). */
+  bonusPoints?: number;
 }
 
-/** Single ranking entry. */
+/**
+ * Single ranking entry with optional score breakdown and delta tracking (PRD-043).
+ * Generators may populate only `sellerId`, `score` and `position` for legacy mocks;
+ * the engine populates the full shape.
+ */
 export interface IRankingEntry {
   sellerId: ID;
   score: number;
   position: number;
+  /** Position in the previous period of the same type (PRD-043). */
+  positionPrevious?: number;
+  /** position - positionPrevious; positive = climbed (e.g. 5 → 2 = +3). */
+  positionDelta?: number;
+  /** Score breakdown by source — sums to `score`. */
+  breakdown?: {
+    fromGoals: number;
+    fromCustomers: number;
+    fromOrders: number;
+    fromBadges: number;
+  };
+  /** Badge slugs earned by the seller in this period (denormalised for fast lookup). */
+  badgeSlugs?: string[];
 }
 
 /** Ranking snapshot for a period and level. */

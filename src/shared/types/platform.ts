@@ -64,14 +64,41 @@ export interface IABCCurveSettings {
   classBThreshold: number;
 }
 
-/** Gamification configuration for ranking and badges. */
+/**
+ * Gamification configuration for ranking and badges (PRD-043).
+ *
+ * Owner edits these rules at `/app/configuracoes/gamificacao`. Any change
+ * triggers an audit-log entry and a recalculation of the current period.
+ *
+ * The original three fields (`pointsPerOrder`, `pointsPerRecovery`,
+ * `pointsPerPositivation`) are kept for backward compatibility with the
+ * scaffold from PRD-004; the engine now reads the richer set of rules below.
+ */
 export interface IGamificationRules {
-  /** Points awarded per closed order. */
+  /** Global toggle — disables ranking, widgets and config when false. */
+  active: boolean;
+  /** Legacy — points per closed paid order (kept for back-compat with seeds). */
   pointsPerOrder: number;
-  /** Points awarded per recovered dormant customer. */
+  /** Points awarded per recovered dormant customer (dormente → ativo). */
   pointsPerRecovery: number;
   /** Points awarded per newly positivated customer in the period. */
   pointsPerPositivation: number;
+  /** Points awarded when a goal moves to status `concluida`. */
+  pointsPerGoalCompleted: number;
+  /** Extra points when a goal `currentValue` reaches `1.2 * targetValue` (≥ 120%). */
+  pointsPerGoalExceeded: number;
+  /** Points awarded per new customer assigned to the seller in the period. */
+  pointsPerNewCustomer: number;
+  /** Points awarded per paid order whose `total` exceeds `thresholdHighTicket`. */
+  pointsPerHighTicketOrder: number;
+  /** Order total (R$) above which `pointsPerHighTicketOrder` is granted. */
+  thresholdHighTicket: number;
+  /** Ticket-médio threshold (R$) for the `big-ticket` badge. */
+  thresholdBigTicket: number;
+  /** Toggle in-app toast notification when a badge is earned. */
+  notifyOnBadgeEarned: boolean;
+  /** Catalog of badge definitions available to this store. */
+  badges: import("./bi").IBadgeDefinition[];
 }
 
 /**

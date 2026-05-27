@@ -80,6 +80,8 @@ import { Route as AppClientesIdRouteImport } from './routes/app.clientes.$id'
 import { Route as AppCatalogoNovoRouteImport } from './routes/app.catalogo.novo'
 import { Route as AppCatalogoIdRouteImport } from './routes/app.catalogo.$id'
 import { Route as AppAtendimentoIdRouteImport } from './routes/app.atendimento.$id'
+import { Route as AppGestaoRankingIndexRouteImport } from './routes/app.gestao.ranking.index'
+import { Route as AppGestaoRankingSellerIdRouteImport } from './routes/app.gestao.ranking.$sellerId'
 import { Route as AppGestaoPositivacaoSellerIdRouteImport } from './routes/app.gestao.positivacao.$sellerId'
 import { Route as AppGestaoMetasNovaRouteImport } from './routes/app.gestao.metas.nova'
 import { Route as AppGestaoMetasIdRouteImport } from './routes/app.gestao.metas.$id'
@@ -461,6 +463,17 @@ const AppAtendimentoIdRoute = AppAtendimentoIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AppAtendimentoRoute,
 } as any)
+const AppGestaoRankingIndexRoute = AppGestaoRankingIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppGestaoRankingRoute,
+} as any)
+const AppGestaoRankingSellerIdRoute =
+  AppGestaoRankingSellerIdRouteImport.update({
+    id: '/$sellerId',
+    path: '/$sellerId',
+    getParentRoute: () => AppGestaoRankingRoute,
+  } as any)
 const AppGestaoPositivacaoSellerIdRoute =
   AppGestaoPositivacaoSellerIdRouteImport.update({
     id: '/$sellerId',
@@ -600,7 +613,7 @@ export interface FileRoutesByFullPath {
   '/app/gestao/estoque': typeof AppGestaoEstoqueRoute
   '/app/gestao/metas': typeof AppGestaoMetasRouteWithChildren
   '/app/gestao/positivacao': typeof AppGestaoPositivacaoRouteWithChildren
-  '/app/gestao/ranking': typeof AppGestaoRankingRoute
+  '/app/gestao/ranking': typeof AppGestaoRankingRouteWithChildren
   '/app/gestao/rentabilidade': typeof AppGestaoRentabilidadeRoute
   '/app/gestao/vendas': typeof AppGestaoVendasRoute
   '/app/leads/$id': typeof AppLeadsIdRoute
@@ -635,6 +648,8 @@ export interface FileRoutesByFullPath {
   '/app/gestao/metas/$id': typeof AppGestaoMetasIdRoute
   '/app/gestao/metas/nova': typeof AppGestaoMetasNovaRoute
   '/app/gestao/positivacao/$sellerId': typeof AppGestaoPositivacaoSellerIdRoute
+  '/app/gestao/ranking/$sellerId': typeof AppGestaoRankingSellerIdRoute
+  '/app/gestao/ranking/': typeof AppGestaoRankingIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -680,7 +695,6 @@ export interface FileRoutesByTo {
   '/app/gestao/estoque': typeof AppGestaoEstoqueRoute
   '/app/gestao/metas': typeof AppGestaoMetasRouteWithChildren
   '/app/gestao/positivacao': typeof AppGestaoPositivacaoRouteWithChildren
-  '/app/gestao/ranking': typeof AppGestaoRankingRoute
   '/app/gestao/rentabilidade': typeof AppGestaoRentabilidadeRoute
   '/app/gestao/vendas': typeof AppGestaoVendasRoute
   '/app/leads/$id': typeof AppLeadsIdRoute
@@ -715,6 +729,8 @@ export interface FileRoutesByTo {
   '/app/gestao/metas/$id': typeof AppGestaoMetasIdRoute
   '/app/gestao/metas/nova': typeof AppGestaoMetasNovaRoute
   '/app/gestao/positivacao/$sellerId': typeof AppGestaoPositivacaoSellerIdRoute
+  '/app/gestao/ranking/$sellerId': typeof AppGestaoRankingSellerIdRoute
+  '/app/gestao/ranking': typeof AppGestaoRankingIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -769,7 +785,7 @@ export interface FileRoutesById {
   '/app/gestao/estoque': typeof AppGestaoEstoqueRoute
   '/app/gestao/metas': typeof AppGestaoMetasRouteWithChildren
   '/app/gestao/positivacao': typeof AppGestaoPositivacaoRouteWithChildren
-  '/app/gestao/ranking': typeof AppGestaoRankingRoute
+  '/app/gestao/ranking': typeof AppGestaoRankingRouteWithChildren
   '/app/gestao/rentabilidade': typeof AppGestaoRentabilidadeRoute
   '/app/gestao/vendas': typeof AppGestaoVendasRoute
   '/app/leads/$id': typeof AppLeadsIdRoute
@@ -804,6 +820,8 @@ export interface FileRoutesById {
   '/app/gestao/metas/$id': typeof AppGestaoMetasIdRoute
   '/app/gestao/metas/nova': typeof AppGestaoMetasNovaRoute
   '/app/gestao/positivacao/$sellerId': typeof AppGestaoPositivacaoSellerIdRoute
+  '/app/gestao/ranking/$sellerId': typeof AppGestaoRankingSellerIdRoute
+  '/app/gestao/ranking/': typeof AppGestaoRankingIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -894,6 +912,8 @@ export interface FileRouteTypes {
     | '/app/gestao/metas/$id'
     | '/app/gestao/metas/nova'
     | '/app/gestao/positivacao/$sellerId'
+    | '/app/gestao/ranking/$sellerId'
+    | '/app/gestao/ranking/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -939,7 +959,6 @@ export interface FileRouteTypes {
     | '/app/gestao/estoque'
     | '/app/gestao/metas'
     | '/app/gestao/positivacao'
-    | '/app/gestao/ranking'
     | '/app/gestao/rentabilidade'
     | '/app/gestao/vendas'
     | '/app/leads/$id'
@@ -974,6 +993,8 @@ export interface FileRouteTypes {
     | '/app/gestao/metas/$id'
     | '/app/gestao/metas/nova'
     | '/app/gestao/positivacao/$sellerId'
+    | '/app/gestao/ranking/$sellerId'
+    | '/app/gestao/ranking'
   id:
     | '__root__'
     | '/'
@@ -1062,6 +1083,8 @@ export interface FileRouteTypes {
     | '/app/gestao/metas/$id'
     | '/app/gestao/metas/nova'
     | '/app/gestao/positivacao/$sellerId'
+    | '/app/gestao/ranking/$sellerId'
+    | '/app/gestao/ranking/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1574,6 +1597,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAtendimentoIdRouteImport
       parentRoute: typeof AppAtendimentoRoute
     }
+    '/app/gestao/ranking/': {
+      id: '/app/gestao/ranking/'
+      path: '/'
+      fullPath: '/app/gestao/ranking/'
+      preLoaderRoute: typeof AppGestaoRankingIndexRouteImport
+      parentRoute: typeof AppGestaoRankingRoute
+    }
+    '/app/gestao/ranking/$sellerId': {
+      id: '/app/gestao/ranking/$sellerId'
+      path: '/$sellerId'
+      fullPath: '/app/gestao/ranking/$sellerId'
+      preLoaderRoute: typeof AppGestaoRankingSellerIdRouteImport
+      parentRoute: typeof AppGestaoRankingRoute
+    }
     '/app/gestao/positivacao/$sellerId': {
       id: '/app/gestao/positivacao/$sellerId'
       path: '/$sellerId'
@@ -1848,6 +1885,19 @@ const AppGestaoPositivacaoRouteChildren: AppGestaoPositivacaoRouteChildren = {
 const AppGestaoPositivacaoRouteWithChildren =
   AppGestaoPositivacaoRoute._addFileChildren(AppGestaoPositivacaoRouteChildren)
 
+interface AppGestaoRankingRouteChildren {
+  AppGestaoRankingSellerIdRoute: typeof AppGestaoRankingSellerIdRoute
+  AppGestaoRankingIndexRoute: typeof AppGestaoRankingIndexRoute
+}
+
+const AppGestaoRankingRouteChildren: AppGestaoRankingRouteChildren = {
+  AppGestaoRankingSellerIdRoute: AppGestaoRankingSellerIdRoute,
+  AppGestaoRankingIndexRoute: AppGestaoRankingIndexRoute,
+}
+
+const AppGestaoRankingRouteWithChildren =
+  AppGestaoRankingRoute._addFileChildren(AppGestaoRankingRouteChildren)
+
 interface AppRouteChildren {
   AppAtendimentoRoute: typeof AppAtendimentoRouteWithChildren
   AppCarteiraRoute: typeof AppCarteiraRoute
@@ -1881,7 +1931,7 @@ interface AppRouteChildren {
   AppGestaoEstoqueRoute: typeof AppGestaoEstoqueRoute
   AppGestaoMetasRoute: typeof AppGestaoMetasRouteWithChildren
   AppGestaoPositivacaoRoute: typeof AppGestaoPositivacaoRouteWithChildren
-  AppGestaoRankingRoute: typeof AppGestaoRankingRoute
+  AppGestaoRankingRoute: typeof AppGestaoRankingRouteWithChildren
   AppGestaoRentabilidadeRoute: typeof AppGestaoRentabilidadeRoute
   AppGestaoVendasRoute: typeof AppGestaoVendasRoute
   AppConfiguracoesIndexRoute: typeof AppConfiguracoesIndexRoute
@@ -1930,7 +1980,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppGestaoEstoqueRoute: AppGestaoEstoqueRoute,
   AppGestaoMetasRoute: AppGestaoMetasRouteWithChildren,
   AppGestaoPositivacaoRoute: AppGestaoPositivacaoRouteWithChildren,
-  AppGestaoRankingRoute: AppGestaoRankingRoute,
+  AppGestaoRankingRoute: AppGestaoRankingRouteWithChildren,
   AppGestaoRentabilidadeRoute: AppGestaoRentabilidadeRoute,
   AppGestaoVendasRoute: AppGestaoVendasRoute,
   AppConfiguracoesIndexRoute: AppConfiguracoesIndexRoute,

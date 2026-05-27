@@ -14,6 +14,7 @@ import { RevenueOrdersComposedChart } from "../components/charts/RevenueOrdersCo
 import { PortfolioMiniDonut } from "../components/charts/PortfolioMiniDonut";
 import { TopSellersBar } from "../components/charts/TopSellersBar";
 import { ABCMiniChart } from "../components/charts/ABCMiniChart";
+import { RankingHighlightWidget } from "@/features/gamification";
 import { useCockpitFilters } from "../hooks/useCockpitFilters";
 import { useCockpitMetrics } from "../hooks/useCockpitMetrics";
 import { useCockpitAlerts, type ICockpitAlert } from "../hooks/useCockpitAlerts";
@@ -286,6 +287,7 @@ export function ExecutiveCockpitPage() {
           isLoading={metrics.isLoading}
           onClick={() => void navigate({ to: "/app/gestao/abc" })}
         />
+        <RankingHighlightWidget storeId={currentStore?.id ?? undefined} />
       </section>
 
       <section className="mt-6" aria-label={S.sectionComparison}>

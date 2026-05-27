@@ -2,19 +2,19 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _A definir após criação no Lovable_ |
-| **Objetivo** | Construir páginas de listagem por categoria (`/loja/categoria/:slug`) com header rico, filtros secundários, grid de produtos, ordenações, breadcrumbs e SEO otimizado |
-| **Tipo** | Feature |
-| **Complexidade** | Média |
-| **Total de Fases** | 4 |
-| **Prioridade** | Alta |
-| **Épico** | Bloco 5 — E-commerce (Onda 3) |
-| **PRDs Relacionados** | PRD-030 (Catálogo), PRD-060 (Home — categorias em destaque), PRD-061 (Busca — compartilha componentes), PRD-063 (Ficha) |
-| **Implementação** | 🔵 Claude Code CLI |
-| **Padrão de código** | Feature-based; código em `src/features/storefront-category/`; rotas `/loja/categoria/:slug` |
+| Campo                 | Valor                                                                                                                                                                 |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                              |
+| **Repositório**       | _A definir após criação no Lovable_                                                                                                                                   |
+| **Objetivo**          | Construir páginas de listagem por categoria (`/loja/categoria/:slug`) com header rico, filtros secundários, grid de produtos, ordenações, breadcrumbs e SEO otimizado |
+| **Tipo**              | Feature                                                                                                                                                               |
+| **Complexidade**      | Média                                                                                                                                                                 |
+| **Total de Fases**    | 4                                                                                                                                                                     |
+| **Prioridade**        | Alta                                                                                                                                                                  |
+| **Épico**             | Bloco 5 — E-commerce (Onda 3)                                                                                                                                         |
+| **PRDs Relacionados** | PRD-030 (Catálogo), PRD-060 (Home — categorias em destaque), PRD-061 (Busca — compartilha componentes), PRD-063 (Ficha)                                               |
+| **Implementação**     | 🔵 Claude Code CLI                                                                                                                                                    |
+| **Padrão de código**  | Feature-based; código em `src/features/storefront-category/`; rotas `/loja/categoria/:slug`                                                                           |
 
 ### Critérios de Complexidade
 
@@ -43,6 +43,7 @@ Este PRD entrega: páginas dinâmicas por categoria + páginas especiais curadas
 ```
 
 Exemplos:
+
 - `/loja/categoria/filtros`
 - `/loja/categoria/freios`
 - `/loja/categoria/correias`
@@ -54,17 +55,17 @@ Exemplos:
 
 ```typescript
 const categorySlugMap = {
-  'filtros': { category: 'filtro', name: 'Filtros' },
-  'freios': { category: 'freio', name: 'Freios' },
-  'correias': { category: 'correia', name: 'Correias' },
-  'motor': { category: 'motor', name: 'Motor' },
-  'embreagem': { category: 'embreagem', name: 'Embreagem' },
-  'eletrica': { category: 'eletrica', name: 'Elétrica' },
+  filtros: { category: "filtro", name: "Filtros" },
+  freios: { category: "freio", name: "Freios" },
+  correias: { category: "correia", name: "Correias" },
+  motor: { category: "motor", name: "Motor" },
+  embreagem: { category: "embreagem", name: "Embreagem" },
+  eletrica: { category: "eletrica", name: "Elétrica" },
   // ...
   // Especiais
-  'mais-vendidas': { special: 'top_sellers' },
-  'novidades': { special: 'newest' },
-  'promocoes': { special: 'promotions' },
+  "mais-vendidas": { special: "top_sellers" },
+  novidades: { special: "newest" },
+  promocoes: { special: "promotions" },
 };
 ```
 
@@ -98,6 +99,7 @@ const categorySlugMap = {
 ### Filtros secundários (laterais)
 
 Mais simples que PRD-061 (não duplicar):
+
 - **Subcategoria** (se aplicável — ex: para filtros: óleo/ar/combustível/cabine)
 - **Marca compatível** (radio: Volvo / Scania / Mercedes / Ford / Iveco / todos)
 - **Fabricante** (multi-select)
@@ -116,16 +118,19 @@ Mesmas do PRD-061 (relevância / preço / mais vendidos / lançamentos).
 ### Páginas especiais
 
 **Mais vendidas** (`/loja/categoria/mais-vendidas`):
+
 - Sem filtro de categoria
 - Ordenação default: vendas
 - Filtros: marca compatível, faixa preço
 - Header: "Produtos mais vendidos"
 
 **Novidades** (`/loja/categoria/novidades`):
+
 - Filtra produtos com createdAt nos últimos 90 dias
 - Header: "Novidades no catálogo"
 
 **Promoções** (`/loja/categoria/promocoes`):
+
 - MVP: placeholder com produtos selecionados manualmente
 - Banner: "Promoções limitadas — sistema completo na Fase 2"
 
@@ -144,6 +149,7 @@ Mesmas do PRD-061 (relevância / preço / mais vendidos / lançamentos).
 ### Configuração `/app/configuracoes/storefront/categorias`
 
 Sub-rota do storefront config (PRD-060):
+
 - Cada categoria: descrição (textarea), banner placeholder
 - Seleção de produtos para "Promoções" (manual no MVP)
 
@@ -154,12 +160,12 @@ Sub-rota do storefront config (PRD-060):
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que descartada |
-|-------------|---------------------|
-| Categoria como subset da busca (sem rota dedicada) | SEO perde força |
-| Filtros idênticos ao PRD-061 | Categoria já filtra; filtros secundários focados |
-| Sem páginas especiais | Mais vendidos/novidades são destaque institucional importante |
-| Banner via imagem real no MVP | Placeholder com gradient suficiente |
+| Alternativa                                        | Por que descartada                                            |
+| -------------------------------------------------- | ------------------------------------------------------------- |
+| Categoria como subset da busca (sem rota dedicada) | SEO perde força                                               |
+| Filtros idênticos ao PRD-061                       | Categoria já filtra; filtros secundários focados              |
+| Sem páginas especiais                              | Mais vendidos/novidades são destaque institucional importante |
+| Banner via imagem real no MVP                      | Placeholder com gradient suficiente                           |
 
 ---
 
@@ -322,40 +328,40 @@ ENTÃO mudança reflete em /loja/categoria/filtros
 
 ## Fases de Implementação
 
-| Fase | Objetivo |
-|------|----------|
-| 1 | Página dinâmica + slug mapping + header da categoria |
-| 2 | Filtros laterais + grid de resultados (reuso PRD-061) |
-| 3 | Páginas especiais (mais-vendidas, novidades, promoções) |
-| 4 | Configuração admin + mobile + SEO + polish |
+| Fase | Objetivo                                                |
+| ---- | ------------------------------------------------------- |
+| 1    | Página dinâmica + slug mapping + header da categoria    |
+| 2    | Filtros laterais + grid de resultados (reuso PRD-061)   |
+| 3    | Páginas especiais (mais-vendidas, novidades, promoções) |
+| 4    | Configuração admin + mobile + SEO + polish              |
 
 ---
 
 ## Dependências
 
-| PRD | Status |
-|-----|--------|
-| PRD-030 (catálogo) | 📝 |
-| PRD-041 (top vendidos para "mais-vendidas") | 📝 |
-| PRD-060 (header/footer) | 📝 (lote atual) |
-| PRD-061 (ProductCard) | 📝 (lote atual) |
+| PRD                                         | Status          |
+| ------------------------------------------- | --------------- |
+| PRD-030 (catálogo)                          | 📝              |
+| PRD-041 (top vendidos para "mais-vendidas") | 📝              |
+| PRD-060 (header/footer)                     | 📝 (lote atual) |
+| PRD-061 (ProductCard)                       | 📝 (lote atual) |
 
 ### Futuras
 
-| PRD | Como Lidar |
-|-----|-----------|
-| PRD-063 (Ficha) | Click no card |
+| PRD                | Como Lidar            |
+| ------------------ | --------------------- |
+| PRD-063 (Ficha)    | Click no card         |
 | PRD-064 (Carrinho) | Adicionar ao carrinho |
 
 ---
 
 ## Cadeia
 
-| Ordem | PRD |
-|-------|-----|
-| 1-35 | 010-061 |
+| Ordem  | PRD               |
+| ------ | ----------------- |
+| 1-35   | 010-061           |
 | **36** | **PRD-062 ATUAL** |
-| 37+ | 063-067, 070-071 |
+| 37+    | 063-067, 070-071  |
 
 ---
 
@@ -369,10 +375,10 @@ ENTÃO mudança reflete em /loja/categoria/filtros
 
 ## Convenções
 
-| Elemento | Convenção |
-|----------|-----------|
-| Página | `CategoryListingPage` |
-| Pasta | `storefront-category/` |
+| Elemento | Convenção              |
+| -------- | ---------------------- |
+| Página   | `CategoryListingPage`  |
+| Pasta    | `storefront-category/` |
 
 ---
 
@@ -388,17 +394,17 @@ ENTÃO mudança reflete em /loja/categoria/filtros
 
 ## Status
 
-| Campo | Valor |
-|-------|-------|
+| Campo  | Valor       |
+| ------ | ----------- |
 | Status | ⏳ PENDENTE |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 25/05/2026 | v1 | Criação inicial — listagem por categoria com filtros secundários, páginas especiais, SEO |
+| Data       | Versão | Alteração                                                                                |
+| ---------- | ------ | ---------------------------------------------------------------------------------------- |
+| 25/05/2026 | v1     | Criação inicial — listagem por categoria com filtros secundários, páginas especiais, SEO |
 
 ---
 

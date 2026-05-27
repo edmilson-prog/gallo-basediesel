@@ -2,19 +2,19 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _A definir após criação no Lovable_ |
-| **Objetivo** | Construir busca avançada do e-commerce com busca textual robusta, filtros laterais, identificação por veículo (caminhão), auto-complete inteligente, ordenações e paginação |
-| **Tipo** | Feature |
-| **Complexidade** | Alta |
-| **Total de Fases** | 5 |
-| **Prioridade** | Alta |
-| **Épico** | Bloco 5 — E-commerce (Onda 3) |
-| **PRDs Relacionados** | PRD-021 (Identificação Peça SDR — reusa lógica), PRD-030 (Catálogo), PRD-060 (Home), PRD-062 (Categoria), PRD-063 (Ficha), PRD-064 (Carrinho) |
-| **Implementação** | 🔵 Claude Code CLI |
-| **Padrão de código** | Feature-based; código em `src/features/storefront-search/`; rota `/loja/busca` |
+| Campo                 | Valor                                                                                                                                                                       |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                    |
+| **Repositório**       | _A definir após criação no Lovable_                                                                                                                                         |
+| **Objetivo**          | Construir busca avançada do e-commerce com busca textual robusta, filtros laterais, identificação por veículo (caminhão), auto-complete inteligente, ordenações e paginação |
+| **Tipo**              | Feature                                                                                                                                                                     |
+| **Complexidade**      | Alta                                                                                                                                                                        |
+| **Total de Fases**    | 5                                                                                                                                                                           |
+| **Prioridade**        | Alta                                                                                                                                                                        |
+| **Épico**             | Bloco 5 — E-commerce (Onda 3)                                                                                                                                               |
+| **PRDs Relacionados** | PRD-021 (Identificação Peça SDR — reusa lógica), PRD-030 (Catálogo), PRD-060 (Home), PRD-062 (Categoria), PRD-063 (Ficha), PRD-064 (Carrinho)                               |
+| **Implementação**     | 🔵 Claude Code CLI                                                                                                                                                          |
+| **Padrão de código**  | Feature-based; código em `src/features/storefront-search/`; rota `/loja/busca`                                                                                              |
 
 ### Critérios de Complexidade
 
@@ -37,6 +37,7 @@ Este PRD entrega: busca poderosa com texto + filtros laterais + identificação 
 ### Página `/loja/busca`
 
 Layout em 2 colunas (desktop):
+
 - **Esquerda (sidebar)**: filtros
 - **Direita (main)**: resultados
 
@@ -51,12 +52,14 @@ Mobile: filtros em drawer/sheet.
 ### Filtros laterais
 
 **Identificação por veículo** (destaque no topo):
+
 - "Qual seu caminhão?"
 - 3 campos: Marca + Modelo + Ano
 - Botão "Aplicar"
 - Quando aplicado, badge "🚛 Filtrado para Volvo R450 2020" com X para limpar
 
 **Filtros tradicionais:**
+
 - **Categoria** (multi-select)
 - **Marca compatível** (radio: Volvo / Scania / Mercedes / Ford / Iveco)
 - **Fabricante da peça** (multi-select: Volvo / Mann / Mahle / etc.)
@@ -67,6 +70,7 @@ Mobile: filtros em drawer/sheet.
 ### Resultados
 
 Grid de produtos (3 colunas desktop, 2 tablet, 1 mobile):
+
 - Imagem placeholder (ícone categoria)
 - Nome
 - Código OEM
@@ -78,6 +82,7 @@ Grid de produtos (3 colunas desktop, 2 tablet, 1 mobile):
 ### Auto-complete
 
 Quando digita no input:
+
 - Debounce 300ms
 - Mostra dropdown com até 8 sugestões:
   - Produtos que casam (nome + OEM)
@@ -96,12 +101,14 @@ Quando digita no input:
 ### URL Sync
 
 Filtros, busca, ordenação, página → query params:
+
 - `?q=filtro+oleo&categoria=filtro&veiculo=volvo-r450-2020&page=1&sort=preco-asc`
 - Permite compartilhar link e SEO básico
 
 ### Estado vazio
 
 Quando nenhum resultado:
+
 - Ícone amigável
 - "Não encontramos peças para sua busca"
 - Sugestões: "Tente buscar pelo código OEM" / "Limpe filtros"
@@ -118,14 +125,14 @@ Engine `searchPartsByApplication(attributes)` do PRD-030 (criada para consumo do
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que descartada |
-|-------------|---------------------|
-| Apenas busca textual sem filtros | Catálogo grande exige refinamento |
-| Sem filtro por veículo | Diferencial GALLO; foco em diesel pesado |
-| Auto-complete básico (sem categorias/marcas) | UX inferior |
-| Sem URL sync | Compartilhamento e SEO sofrem |
-| Carrossel infinito sem paginação | UX ruim em catálogos grandes |
-| Filtros em modal único | Drawer/sidebar é padrão de e-commerce |
+| Alternativa                                  | Por que descartada                       |
+| -------------------------------------------- | ---------------------------------------- |
+| Apenas busca textual sem filtros             | Catálogo grande exige refinamento        |
+| Sem filtro por veículo                       | Diferencial GALLO; foco em diesel pesado |
+| Auto-complete básico (sem categorias/marcas) | UX inferior                              |
+| Sem URL sync                                 | Compartilhamento e SEO sofrem            |
+| Carrossel infinito sem paginação             | UX ruim em catálogos grandes             |
+| Filtros em modal único                       | Drawer/sidebar é padrão de e-commerce    |
 
 ---
 
@@ -301,40 +308,40 @@ ENTÃO drawer abre com filtros
 
 ## Fases de Implementação
 
-| Fase | Objetivo |
-|------|----------|
-| 1 | Página + busca textual + grid de resultados |
-| 2 | Filtros laterais (todos os 6) + URL sync |
-| 3 | Auto-complete + ordenações + paginação |
-| 4 | Adicionar ao carrinho + integração PRD-064 |
-| 5 | Mobile drawer + estado vazio + polish |
+| Fase | Objetivo                                    |
+| ---- | ------------------------------------------- |
+| 1    | Página + busca textual + grid de resultados |
+| 2    | Filtros laterais (todos os 6) + URL sync    |
+| 3    | Auto-complete + ordenações + paginação      |
+| 4    | Adicionar ao carrinho + integração PRD-064  |
+| 5    | Mobile drawer + estado vazio + polish       |
 
 ---
 
 ## Dependências
 
-| PRD | Status |
-|-----|--------|
-| PRD-030 (engines de busca) | 📝 |
-| PRD-060 (header) | 📝 (lote atual) |
+| PRD                        | Status          |
+| -------------------------- | --------------- |
+| PRD-030 (engines de busca) | 📝              |
+| PRD-060 (header)           | 📝 (lote atual) |
 
 ### Futuras
 
-| PRD | Como Lidar |
-|-----|-----------|
+| PRD                 | Como Lidar                       |
+| ------------------- | -------------------------------- |
 | PRD-062 (Categoria) | Compartilha componentes de cards |
-| PRD-063 (Ficha) | Link de drill-down |
-| PRD-064 (Carrinho) | Adicionar ao carrinho |
+| PRD-063 (Ficha)     | Link de drill-down               |
+| PRD-064 (Carrinho)  | Adicionar ao carrinho            |
 
 ---
 
 ## Cadeia
 
-| Ordem | PRD |
-|-------|-----|
-| 1-34 | 010-060 |
+| Ordem  | PRD               |
+| ------ | ----------------- |
+| 1-34   | 010-060           |
 | **35** | **PRD-061 ATUAL** |
-| 36+ | 062-067, 070-071 |
+| 36+    | 062-067, 070-071  |
 
 ---
 
@@ -348,11 +355,11 @@ ENTÃO drawer abre com filtros
 
 ## Convenções
 
-| Elemento | Convenção |
-|----------|-----------|
-| Página | `SearchResultsPage` |
+| Elemento    | Convenção                                            |
+| ----------- | ---------------------------------------------------- |
+| Página      | `SearchResultsPage`                                  |
 | Componentes | `<SearchFilters>`, `<ProductCard>`, `<AutoComplete>` |
-| Pasta | `storefront-search/` |
+| Pasta       | `storefront-search/`                                 |
 
 ---
 
@@ -369,17 +376,17 @@ ENTÃO drawer abre com filtros
 
 ## Status
 
-| Campo | Valor |
-|-------|-------|
+| Campo  | Valor       |
+| ------ | ----------- |
 | Status | ⏳ PENDENTE |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 25/05/2026 | v1 | Criação inicial — busca avançada com filtro por veículo, auto-complete, URL sync |
+| Data       | Versão | Alteração                                                                        |
+| ---------- | ------ | -------------------------------------------------------------------------------- |
+| 25/05/2026 | v1     | Criação inicial — busca avançada com filtro por veículo, auto-complete, URL sync |
 
 ---
 
