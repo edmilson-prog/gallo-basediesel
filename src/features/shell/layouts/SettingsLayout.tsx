@@ -205,6 +205,17 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
       },
     ],
   },
+  {
+    label: "Plataforma",
+    items: [
+      {
+        label: "Sobre",
+        icon: "mdi:information-outline",
+        to: "/app/configuracoes/sobre",
+        roles: ["Owner", "Gestor", "Vendedor", "SDR", "VendedorExterno", "Financeiro"],
+      },
+    ],
+  },
 ];
 
 function useVisibleGroups() {
