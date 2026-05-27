@@ -142,17 +142,23 @@ function mapCategoryLabel(label: string): ReleaseCategory | null {
     case "notas de migracao":
       return "migration";
     default:
+      // Project-specific H3 sections without a ReleaseCategory mapping
+      // (e.g. "Tech notes", "Notes (Fase 2)", "Audit log", "Marco") are
+      // intentionally dropped here. Map them above if their bullets ever
+      // need to surface in the Sobre UI.
       return null;
   }
 }
 
 /**
- * Extracts top-level bullets, concatenating continuation lines (indented
- * sub-bullets, wrapped text) into the same item separated by "\n".
+ * Extracts top-level bullets, concatenating continuation lines into the same
+ * item separated by "\n".
  *
  * A "top-level bullet" starts at column 0 with `- ` or `* `.
- * Anything else following until the next top-level bullet (or blank line)
- * is appended to the current item.
+ * A continuation line is either (a) an indented sub-bullet / indented text,
+ * OR (b) wrapped bullet text that reflowed to column 0 without indentation
+ * — both branches are handled by `isContinuation` below.
+ * A blank line closes the current item.
  */
 function extractBullets(blockLines: string[]): string[] {
   const out: string[] = [];
