@@ -378,9 +378,11 @@ ENTÃO sou levado à inbox/conversa filtrada por customer
 
 ## Status
 
-| Campo  | Valor       |
-| ------ | ----------- |
-| Status | ⏳ PENDENTE |
+| Campo         | Valor                                |
+| ------------- | ------------------------------------ |
+| Status        | ✅ IMPLEMENTADO                      |
+| Versão        | v0.30.0 — Vitals (26/05/2026)        |
+| Implementação | `src/features/portfolio-analytics/`  |
 
 ---
 
@@ -389,6 +391,7 @@ ENTÃO sou levado à inbox/conversa filtrada por customer
 | Data       | Versão | Alteração                                                                                                   |
 | ---------- | ------ | ----------------------------------------------------------------------------------------------------------- |
 | 25/05/2026 | v1     | Criação inicial — visão analítica de saúde da carteira com churn, recovery, health score, gráfico evolutivo |
+| 26/05/2026 | v1.1   | Implementação concluída — engine pura, 5 queries TanStack, página principal + drill-down + widget PRD-014   |
 
 ---
 

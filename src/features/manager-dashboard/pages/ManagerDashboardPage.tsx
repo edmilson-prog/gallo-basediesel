@@ -23,6 +23,7 @@ import { ActiveAlertsList } from "../components/ActiveAlertsList";
 import { AlertSettingsModal } from "../components/AlertSettingsModal";
 import { GoalsWidget } from "@/features/goals";
 import { PositivationWidget } from "@/features/positivation";
+import { PortfolioHealthWidget } from "@/features/portfolio-analytics";
 import { MANAGER_DASHBOARD_STRINGS } from "../i18n/pt-BR";
 
 function formatMinutes(value: number): string {
@@ -237,11 +238,12 @@ export function ManagerDashboardPage() {
       </section>
 
       <section
-        className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2"
-        aria-label="Metas do mês e positivação"
+        className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3"
+        aria-label="Metas do mês, positivação e saúde da carteira"
       >
         <GoalsWidget storeId={currentStore?.id ?? "store-matriz"} />
         <PositivationWidget storeId={currentStore?.id ?? "store-matriz"} />
+        <PortfolioHealthWidget storeId={currentStore?.id ?? "store-matriz"} />
       </section>
 
       <section

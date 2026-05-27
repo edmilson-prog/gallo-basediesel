@@ -135,6 +135,12 @@ export const APP_NAV_GROUPS: INavGroup[] = [
         roles: ["Owner", "Gestor", "Vendedor", "Financeiro"],
       },
       {
+        label: "Carteira Analítica",
+        icon: "mdi:heart-pulse",
+        to: ROUTES.GESTAO_CARTEIRA_ANALITICA,
+        roles: ["Owner", "Gestor", "Vendedor", "Financeiro"],
+      },
+      {
         label: "Comissões",
         icon: "mdi:cash-multiple",
         to: ROUTES.GESTAO_COMISSOES,

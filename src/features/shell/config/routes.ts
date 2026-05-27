@@ -31,6 +31,7 @@ export const ROUTES = {
   GESTAO_RANKING: "/app/gestao/ranking",
   GESTAO_POSITIVACAO: "/app/gestao/positivacao",
   GESTAO_ABC: "/app/gestao/abc",
+  GESTAO_CARTEIRA_ANALITICA: "/app/gestao/carteira-analitica",
   GESTAO_COMISSOES: "/app/gestao/comissoes",
   GESTAO_DRE: "/app/gestao/dre",
   GESTAO_RENTABILIDADE: "/app/gestao/rentabilidade",

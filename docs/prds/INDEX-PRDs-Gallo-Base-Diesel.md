@@ -21,7 +21,7 @@
 | **Versão alvo MVP**                  | v1.0.0 — codinome **Heavy**                                                                                |
 | **Total de PRDs planejados (MVP)**   | 50                                                                                                         |
 | **PRDs redigidos**                   | 4                                                                                                          |
-| **PRDs implementados**               | 25 (Bloco 0 completo · Bloco 1 completo · Bloco 2 completo · Bloco 3 completo · PRDs 041, 042 no Bloco 4)  |
+| **PRDs implementados**               | 26 (Bloco 0 completo · Bloco 1 completo · Bloco 2 completo · Bloco 3 completo · Bloco 4a completo)         |
 | **PRDs futuros (Fase 2, PRDs 100+)** | 8 (roadmap futuro)                                                                                         |
 
 ---
@@ -66,9 +66,9 @@
 
 | Status          | Quantidade | Percentual |
 | --------------- | ---------- | ---------- |
-| ✅ Implementado | 25         | 50%        |
+| ✅ Implementado | 26         | 52%        |
 | 🔄 Em Andamento | 0          | 0%         |
-| ⏳ Pendente     | 25         | 50%        |
+| ⏳ Pendente     | 24         | 48%        |
 | ❌ Cancelado    | 0          | 0%         |
 | **Total**       | **50**     | **100%**   |
 
@@ -151,7 +151,7 @@ Visão executiva, metas, gamificação, positivação, curva ABC, comissões, DR
 | 043 | Ranking de Vendedores e Gamificação                                              | Feature | D     | 🔵    | ⏸         | ⏳     | 042        |
 | 044 | Positivação de Clientes                                                          | Feature | D     | 🔵    | ⏸         | ⏳     | 012, 041   |
 | 045 | Curva ABC de Clientes                                                            | Feature | D     | 🔵    | ⏸         | ⏳     | 041        |
-| 046 | Carteira Analítica com Drill-down                                                | Feature | D     | 🔵    | ⏸         | ⏳     | 044, 045   |
+| 046 | [Carteira Analítica com Drill-down](./PRD-046-carteira-analitica_DONE.md)        | Feature | D     | 🔵    | 📝        | ✅     | 044, 045   |
 | 047 | Comissões (cálculo, fechamento)                                                  | Feature | D     | 🔵    | ⏸         | ⏳     | 041, 042   |
 | 048 | DRE Gerencial                                                                    | Feature | E     | 🔵    | ⏸         | ⏳     | 041        |
 | 049 | Rentabilidade por SKU / Cliente / Canal                                          | Feature | E     | 🔵    | ⏸         | ⏳     | 041        |
@@ -383,6 +383,10 @@ A plataforma usa Semantic Versioning com codinomes em inglês para releases MINO
 | v0.24.0    | **Logistics**  | 26/05/2026    | PRD-032 + PRD-033                | Bloco 3 fechado — Pedido + Frete centralizado                         |
 | v0.25.0    | **Insight**    | 26/05/2026    | PRD-041 (Vendas — Análise)       | Abertura do Bloco 4 — dashboard analítico multidimensional            |
 | v0.26.0    | **Pulse**      | 26/05/2026    | PRD-042 (Metas)                  | Sistema de metas com tracking em tempo real + widget no painel gestor |
+| v0.27.0    | **Cockpit**    | 26/05/2026    | PRD-040 (Visão Executiva)        | Home do Gestor com 12 KPIs cross-feature                              |
+| v0.28.0    | **Coverage**   | 26/05/2026    | PRD-044 (Positivação)            | Cobertura mensal da base + at-risk + widget                           |
+| v0.29.0    | **Pareto**     | 26/05/2026    | PRD-045 (Curva ABC)              | Classificação ABC com migrações + gráfico Pareto                      |
+| v0.30.0    | **Vitals**     | 26/05/2026    | PRD-046 (Carteira Analítica)     | Saúde da carteira — churn, recovery, health score, evolução temporal  |
 | v0.13.0+   | _A definir_    | Mês 2         | PRDs 017–019 + 020–024 + 030–033 | Onda 1 entregue                                                       |
 | v0.5.0     | **Storefront** | Mês 9         | PRDs 060–067 (Bloco 5)           | Onda 3 quase completa                                                 |
 | **v1.0.0** | **Heavy**      | Mês 10        | PRDs 070, 071 + polish final     | **MVP completo — release oficial**                                    |
@@ -537,10 +541,10 @@ PRDs 040–053, 060–067, 070–071 — ~11 turnos no total
 
 | Campo                | Valor                                                                    |
 | -------------------- | ------------------------------------------------------------------------ |
-| **Data**             | 26/05/2026                                                               |
-| **Atualizado por**   | Claude Opus 4.7 (Claude Code CLI)                                        |
-| **Motivo**           | Implementação do PRD-042 (Metas) — v0.26.0 Pulse, segundo PRD do Bloco 4 |
-| **Versão do índice** | 1.5                                                                      |
+| **Data**             | 26/05/2026                                                                       |
+| **Atualizado por**   | Claude Opus 4.7 (Claude Code CLI)                                                |
+| **Motivo**           | Implementação do PRD-046 (Carteira Analítica) — v0.30.0 Vitals, Bloco 4a fechado |
+| **Versão do índice** | 1.6                                                                              |
 
 ---
 

@@ -4,6 +4,124 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.30.0] — Vitals · 2026-05-26
+
+Sequência do Bloco 4a (Gestão A — Onda 2) com a **Carteira Analítica
+(PRD-046)** — visão temporal e por estado da saúde da carteira,
+distinta da Positivação (PRD-044, foco binário "comprou no mês?")
+e da Curva ABC (PRD-045, foco ranking de receita). Aqui o ângulo é
+*contínuo + comparativo temporal*: como a base está distribuída
+entre ativo/dormente/recuperação/perdido, quantos clientes saíram
+no período (churn), quantos voltaram (recovery) e quem está a
+poucos dias de cair de status (em risco).
+
+**Engine pura.** `calculatePortfolioMetrics(start, end, context)`
+em `src/features/portfolio-analytics/engine/` é função sem efeitos
+colaterais: agrupa clientes por `customer.status`, compara o
+status reconstruído na borda inicial vs. final da janela (via
+`lastPurchaseAt` + `lifecycleThresholds`) para tally de transições
+(`activeToDormant`, `activeToLost`, `dormantToLost`, `dormantToActive`,
+`lostToActive`), conta novos clientes criados na janela, identifica
+listas `atRisk` lookahead 15 dias (ativos prestes a virar dormentes
+e dormentes prestes a virar perdidos). Retorna ainda `bySeller` com
+a mesma matemática restrita ao portfólio de cada vendedor, incluindo
+um **Health Score composite 0-100** ponderando 50% ativos + 25%
+recovery + 25% inverso de churn — exposto com qualitativo (Excelente
+> 80, Bom 60-80, Atenção 40-60, Crítico < 40) via `describeHealthScore`.
+
+**Hook agregador.** `usePortfolioMetrics({ window, scope })` carrega
+clientes, pedidos pagos na janela, **histórico completo de pedidos
+até a borda final** (necessário para reconstruir o status em cada
+bucket mensal do gráfico evolutivo), vendedores e settings da loja
+via 5 queries TanStack em paralelo. Delega ao engine e constrói
+adicionalmente a série `evolution` — bucket mensal com contagem
+de ativos/dormentes/perdidos no fim de cada mês entre `fromIso` e
+`toIso`. `useSellerPortfolio` é o complemento drill-down: combina
+um `usePortfolioMetrics` escopado num único vendedor com o registro
+do próprio seller.
+
+**Página principal.** `/app/gestao/carteira-analitica` substitui
+ausência de rota anterior. Header de filtros (período: mês atual /
+trimestre / semestre / YTD / **últimos 12 meses default** /
+personalizado + loja + vendedor, com URL-sync). 7 KPIs no topo:
+total da carteira, %ativos (verde), %dormentes (âmbar), %perdidos
+(vermelho), churn no período, recovery, crescimento líquido. **Donut
+chart Recharts** com 4 fatias (cores semânticas verde/azul/âmbar/
+vermelho) + legenda lateral com contagem e %. **Gráfico evolutivo
+temporal** multi-linha mostrando ativo/dormente/perdido ao longo
+dos meses do período. **Card "Transições no período"** com 6 setas
+coloridas (active→dormant, active→lost, dormant→lost, dormant→active,
+lost→active, novos). **Tabela "Saúde por vendedor"** com 9 colunas
+(avatar com iniciais, nome, tamanho da carteira, %ativos/%dormentes/
+%perdidos coloridos, churn + taxa, recovery + taxa, **Health Score
+badge** colorido por qualitativo, ação drill-down). **Duas listas
+de risco** lado a lado: "Em risco iminente" (ativos próximos do
+limite dormente) e "Em risco crítico" (dormentes próximos do limite
+perdido), com colunas cliente/vendedor/última compra/dias restantes
+coloridos por urgência + botões Contatar e Abrir ficha.
+
+**Drill-down por vendedor.** `/app/gestao/carteira-analitica/$sellerId`
+com guard de acesso (Vendedor só pode abrir o próprio drill;
+acessos cruzados redirecionam para EmptyState). Header com nome do
+vendedor + **Health Score badge** + card resumo de %ativos/churn/
+recovery. Mesmas visualizações (KPIs, donut, evolução, transições)
+filtradas. Lista de carteira completa com 5 tabs por status
+(Todos / Ativos / Dormentes / Perdidos / Em recuperação — esta
+última apenas quando count > 0), tabela paginada 20/página com
+nome do cliente, status colorido, última compra, LTV e ações.
+
+**Widget no Painel Gestor (PRD-014).** `<PortfolioHealthWidget />`
+adicionado na seção lateral junto a Metas e Positivação (grade
+agora `lg:grid-cols-3` em vez de 2). Mini-donut PieChart + KPI
+%ativos + contadores de churn/recovery + link "Abrir análise".
+
+**Permissões.** Página guardada por `requireAuth` aceitando Owner,
+Gestor, Vendedor (auto-redirect para próprio drill-down) e
+Financeiro. Gestor preso na loja atual via `gestorLockedStoreId`.
+Tabela "Saúde por vendedor" oculta para Vendedor. Listas de risco
+contêm PII — escopo respeita carteira.
+
+### Added
+
+- `src/features/portfolio-analytics/` — feature completa (engine
+  puro, 2 hooks de dados, hook de filtros URL-sync, 9 componentes,
+  2 páginas, i18n + barrel)
+- Engine `calculatePortfolioMetrics` puro com tally de transições,
+  health score composite e at-risk lookahead — exportado pelo barrel
+- Helpers `calculateHealthScore` e `describeHealthScore` para
+  qualitativo (excelente/bom/atenção/crítico)
+- Hook `usePortfolioMetrics` — 5 queries TanStack + engine + série
+  temporal mensal reconstruída do histórico de pedidos
+- Hook `useSellerPortfolio` — drill-down escopado em um vendedor
+- Hook `usePortfolioFilters` — URL-sync com presets mês/trim/sem/
+  YTD/12m + custom + loja + vendedor
+- Componentes `PortfolioHeader`, `PortfolioKpis` (7 KPIs com accents
+  semânticos), `PortfolioDistributionChart` (donut), `PortfolioEvolutionChart`
+  (linhas multi-status), `PortfolioTransitionsCard`, `PortfolioBySellerTable`
+  (9 colunas), `PortfolioRiskList`, `PortfolioHealthBadge`, `CustomerPortfolioList`
+  (paginada por status), `PortfolioHealthWidget` (PRD-014)
+- Rotas `/app/gestao/carteira-analitica` e
+  `/app/gestao/carteira-analitica/$sellerId`
+- Item de navegação "Carteira Analítica" (mdi:heart-pulse) no menu
+  Gestão para os 4 roles
+- Constante `ROUTES.GESTAO_CARTEIRA_ANALITICA`
+
+### Changed
+
+- Painel Gestor (PRD-014): grade da seção "Metas / Positivação /
+  Saúde da carteira" passa de `lg:grid-cols-2` para `lg:grid-cols-3`
+  acomodando o `<PortfolioHealthWidget />`
+
+### Notas
+
+- Drill-down do vendedor reusa o `usePortfolioMetrics` com escopo
+  `sellerId`, mantendo a matemática centralizada
+- Série evolutiva reconstrói status em cada bucket mensal a partir
+  do `lastPurchaseAt` projetado — `recuperacao` é projetado apenas
+  no último bucket por não haver audit trail histórico no mock
+- Marco: Bloco 4a (Gestão A) fechado com Vendas + Metas + Cockpit +
+  Positivação + ABC + Carteira Analítica
+
 ## [0.29.0] — Pareto · 2026-05-26
 
 Continuação do Bloco 4a (Gestão A — Onda 2) com a **Curva ABC
