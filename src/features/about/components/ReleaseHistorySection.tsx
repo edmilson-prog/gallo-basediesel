@@ -18,8 +18,7 @@ interface IProps {
  * auto-expanded so the matched content is visible.
  */
 export function ReleaseHistorySection({ releases }: IProps) {
-  const { filters, setSearch, setKind, setPeriod, reset, isFiltered } =
-    useReleaseFilters();
+  const { filters, setSearch, setKind, setPeriod, reset, isFiltered } = useReleaseFilters();
 
   const filtered = useMemo(() => applyFilters(releases, filters), [releases, filters]);
 
@@ -50,9 +49,7 @@ export function ReleaseHistorySection({ releases }: IProps) {
   return (
     <section>
       <header className="mb-3 mt-8 flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold tracking-tight">
-          {ABOUT_I18N.history.title}
-        </h2>
+        <h2 className="text-lg font-semibold tracking-tight">{ABOUT_I18N.history.title}</h2>
         <span className="rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-semibold text-success">
           {releases.length} {ABOUT_I18N.history.countSuffix}
         </span>
@@ -69,9 +66,7 @@ export function ReleaseHistorySection({ releases }: IProps) {
 
       {filtered.length === 0 ? (
         <div className="rounded-lg border border-dashed border-border bg-muted/20 px-4 py-10 text-center">
-          <p className="text-sm font-medium text-foreground">
-            {ABOUT_I18N.history.emptyTitle}
-          </p>
+          <p className="text-sm font-medium text-foreground">{ABOUT_I18N.history.emptyTitle}</p>
           <p className="mt-1 text-xs text-muted-foreground">
             {ABOUT_I18N.history.emptyDescription}
           </p>

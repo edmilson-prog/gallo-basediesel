@@ -23,9 +23,9 @@ const ORDER: ReleaseCategory[] = [
 ];
 
 export function ReleaseBody({ release }: IProps) {
-  const ordered = ORDER
-    .map((cat) => release.categories.find((c) => c.category === cat))
-    .filter((c): c is NonNullable<typeof c> => c !== undefined);
+  const ordered = ORDER.map((cat) => release.categories.find((c) => c.category === cat)).filter(
+    (c): c is NonNullable<typeof c> => c !== undefined,
+  );
 
   // Fallback when parser found no recognised sections — render raw markdown
   // so the user still sees something.
@@ -37,9 +37,7 @@ export function ReleaseBody({ release }: IProps) {
             {renderInlineMarkdown(release.summary)}
           </p>
         )}
-        <p className="text-xs italic text-muted-foreground">
-          {ABOUT_I18N.history.rawFallbackNote}
-        </p>
+        <p className="text-xs italic text-muted-foreground">{ABOUT_I18N.history.rawFallbackNote}</p>
         <pre className="max-h-96 overflow-auto rounded-md border border-border bg-muted/30 p-3 text-xs leading-relaxed text-muted-foreground">
           {release.raw}
         </pre>

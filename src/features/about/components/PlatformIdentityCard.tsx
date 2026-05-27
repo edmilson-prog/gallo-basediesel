@@ -21,7 +21,11 @@ export function PlatformIdentityCard() {
         .
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
-        <SubmarkPill label={i.submarks.parts} className="bg-success/10 text-success" dot="bg-success" />
+        <SubmarkPill
+          label={i.submarks.parts}
+          className="bg-success/10 text-success"
+          dot="bg-success"
+        />
         <SubmarkPill
           label={i.submarks.service}
           className="bg-destructive/10 text-destructive"

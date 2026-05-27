@@ -44,10 +44,7 @@ export function CurrentVersionCard({ release }: IProps) {
 
       <dl className="mt-4 grid grid-cols-2 gap-4 border-t border-border pt-4 sm:grid-cols-4">
         <Meta label={ABOUT_I18N.currentVersion.metaDate} value={dateLabel} strong />
-        <Meta
-          label={ABOUT_I18N.currentVersion.metaKind}
-          value={RELEASE_KIND_LABEL[release.kind]}
-        />
+        <Meta label={ABOUT_I18N.currentVersion.metaKind} value={RELEASE_KIND_LABEL[release.kind]} />
         {release.block && (
           <Meta label={ABOUT_I18N.currentVersion.metaBlock} value={release.block} />
         )}
@@ -86,9 +83,7 @@ function Meta({ label, value, strong }: IMetaProps) {
       <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </dt>
-      <dd className={cn("mt-1 text-sm text-foreground", strong && "font-semibold")}>
-        {value}
-      </dd>
+      <dd className={cn("mt-1 text-sm text-foreground", strong && "font-semibold")}>{value}</dd>
     </div>
   );
 }

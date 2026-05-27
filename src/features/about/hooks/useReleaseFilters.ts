@@ -15,14 +15,8 @@ const INITIAL: IReleaseFilters = { search: "", kind: "all", period: "all" };
 export function useReleaseFilters() {
   const [filters, setFilters] = useState<IReleaseFilters>(INITIAL);
 
-  const setSearch = useCallback(
-    (search: string) => setFilters((f) => ({ ...f, search })),
-    [],
-  );
-  const setKind = useCallback(
-    (kind: ReleaseKindFilter) => setFilters((f) => ({ ...f, kind })),
-    [],
-  );
+  const setSearch = useCallback((search: string) => setFilters((f) => ({ ...f, search })), []);
+  const setKind = useCallback((kind: ReleaseKindFilter) => setFilters((f) => ({ ...f, kind })), []);
   const setPeriod = useCallback(
     (period: ReleasePeriod) => setFilters((f) => ({ ...f, period })),
     [],
@@ -30,10 +24,7 @@ export function useReleaseFilters() {
   const reset = useCallback(() => setFilters(INITIAL), []);
 
   const isFiltered = useMemo(
-    () =>
-      filters.search.trim().length > 0 ||
-      filters.kind !== "all" ||
-      filters.period !== "all",
+    () => filters.search.trim().length > 0 || filters.kind !== "all" || filters.period !== "all",
     [filters],
   );
 
@@ -93,9 +84,5 @@ function matchesPeriod(releaseDateIso: string, period: ReleasePeriod, now: Date)
 }
 
 function normalize(s: string): string {
-  return s
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .trim();
+  return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
 }

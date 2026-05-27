@@ -53,10 +53,7 @@ export function ReleaseItem({ release, open, onToggle }: IProps) {
         <Icon
           icon="mdi:chevron-down"
           size={18}
-          className={cn(
-            "text-muted-foreground transition-transform",
-            open && "rotate-180",
-          )}
+          className={cn("text-muted-foreground transition-transform", open && "rotate-180")}
         />
       </button>
 

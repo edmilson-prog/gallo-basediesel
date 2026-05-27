@@ -16,13 +16,7 @@ export function ReleaseCategoryBlock({ block }: IProps) {
   const label = RELEASE_CATEGORY_LABEL[block.category];
 
   return (
-    <div
-      className={cn(
-        "mb-3 rounded-r-md border-l-[3px] pl-3 last:mb-0",
-        color.border,
-        color.bg,
-      )}
-    >
+    <div className={cn("mb-3 rounded-r-md border-l-[3px] pl-3 last:mb-0", color.border, color.bg)}>
       <div
         className={cn(
           "flex items-center gap-2 py-1.5 text-xs font-semibold uppercase tracking-wider",
@@ -45,10 +39,7 @@ export function ReleaseCategoryBlock({ block }: IProps) {
   );
 }
 
-const CATEGORY_COLOR: Record<
-  ReleaseCategory,
-  { border: string; bg: string; text: string }
-> = {
+const CATEGORY_COLOR: Record<ReleaseCategory, { border: string; bg: string; text: string }> = {
   added: {
     border: "border-l-success",
     bg: "bg-gradient-to-r from-success/10 to-transparent",

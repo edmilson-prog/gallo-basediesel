@@ -1,8 +1,4 @@
-import type {
-  IRelease,
-  IReleaseCategoryBlock,
-  ReleaseCategory,
-} from "@/shared/types/about";
+import type { IRelease, IReleaseCategoryBlock, ReleaseCategory } from "@/shared/types/about";
 import { classifyVersion } from "./classifyVersion";
 
 /**
@@ -31,7 +27,7 @@ export function parseChangelog(raw: string): IRelease[] {
   }> = [];
 
   const headingRe =
-    /^##\s+\[(\d+\.\d+\.\d+)\](?:\s*[—\-]\s*([^·•\-|][^·•|]*?))?\s*[·•\-|]\s*(\d{4}-\d{2}-\d{2})\s*$/;
+    /^##\s+\[(\d+\.\d+\.\d+)\](?:\s*[—-]\s*([^·•\-|][^·•|]*?))?\s*[·•\-|]\s*(\d{4}-\d{2}-\d{2})\s*$/;
 
   for (let i = 0; i < lines.length; i++) {
     const m = headingRe.exec(lines[i]);

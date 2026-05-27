@@ -7,11 +7,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Icon } from "@/components/Icon";
-import type {
-  IReleaseFilters,
-  ReleaseKindFilter,
-  ReleasePeriod,
-} from "../hooks/useReleaseFilters";
+import type { IReleaseFilters, ReleaseKindFilter, ReleasePeriod } from "../hooks/useReleaseFilters";
 import { ABOUT_I18N, RELEASE_KIND_LABEL } from "../i18n/pt-BR";
 
 interface IProps {
@@ -69,9 +65,7 @@ export function ReleaseToolbar({
         <SelectContent>
           <SelectItem value="all">{ABOUT_I18N.history.filterPeriodAll}</SelectItem>
           <SelectItem value="thisMonth">{ABOUT_I18N.history.filterPeriodThisMonth}</SelectItem>
-          <SelectItem value="last3Months">
-            {ABOUT_I18N.history.filterPeriodLast3Months}
-          </SelectItem>
+          <SelectItem value="last3Months">{ABOUT_I18N.history.filterPeriodLast3Months}</SelectItem>
           <SelectItem value="thisYear">{ABOUT_I18N.history.filterPeriodThisYear}</SelectItem>
         </SelectContent>
       </Select>

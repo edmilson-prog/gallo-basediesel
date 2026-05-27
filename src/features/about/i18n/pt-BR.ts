@@ -43,23 +43,20 @@ export const ABOUT_I18N = {
     emptyTitle: "Nenhuma release encontrada",
     emptyDescription: "Ajuste os filtros ou limpe a busca para ver mais.",
     clearFilters: "Limpar filtros",
-    rawFallbackNote:
-      "Conteúdo cru exibido por limitação de formatação.",
+    rawFallbackNote: "Conteúdo cru exibido por limitação de formatação.",
   },
 
   loading: "Carregando histórico…",
   error: {
     title: "Não foi possível carregar o histórico",
-    description:
-      "O arquivo CHANGELOG.md não pôde ser baixado. Tente novamente em instantes.",
+    description: "O arquivo CHANGELOG.md não pôde ser baixado. Tente novamente em instantes.",
     retry: "Tentar novamente",
   },
 
   footer: {
     stack: {
       title: "Stack técnica",
-      description:
-        "React 19 · TanStack Router · Tailwind v4 · shadcn/ui · TanStack Query · Vercel",
+      description: "React 19 · TanStack Router · Tailwind v4 · shadcn/ui · TanStack Query · Vercel",
     },
     support: {
       title: "Suporte",
