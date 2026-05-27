@@ -21,6 +21,7 @@ import { VolumeHeatmap } from "../components/VolumeHeatmap";
 import { CarteiraHealthDonut } from "../components/CarteiraHealthDonut";
 import { ActiveAlertsList } from "../components/ActiveAlertsList";
 import { AlertSettingsModal } from "../components/AlertSettingsModal";
+import { GoalsWidget } from "@/features/goals";
 import { MANAGER_DASHBOARD_STRINGS } from "../i18n/pt-BR";
 
 function formatMinutes(value: number): string {
@@ -232,6 +233,10 @@ export function ManagerDashboardPage() {
             void end;
           }}
         />
+      </section>
+
+      <section className="mt-6" aria-label="Metas do mês">
+        <GoalsWidget storeId={currentStore?.id ?? "store-matriz"} />
       </section>
 
       <section

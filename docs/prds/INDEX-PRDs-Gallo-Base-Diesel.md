@@ -21,7 +21,7 @@
 | **Versão alvo MVP**                  | v1.0.0 — codinome **Heavy**                                                                                |
 | **Total de PRDs planejados (MVP)**   | 50                                                                                                         |
 | **PRDs redigidos**                   | 4                                                                                                          |
-| **PRDs implementados**               | 24 (Bloco 0 completo · Bloco 1 completo · Bloco 2 completo · Bloco 3 completo · PRD-041 abre Bloco 4)       |
+| **PRDs implementados**               | 25 (Bloco 0 completo · Bloco 1 completo · Bloco 2 completo · Bloco 3 completo · PRDs 041, 042 no Bloco 4)  |
 | **PRDs futuros (Fase 2, PRDs 100+)** | 8 (roadmap futuro)                                                                                         |
 
 ---
@@ -66,9 +66,9 @@
 
 | Status          | Quantidade | Percentual |
 | --------------- | ---------- | ---------- |
-| ✅ Implementado | 24         | 48%        |
+| ✅ Implementado | 25         | 50%        |
 | 🔄 Em Andamento | 0          | 0%         |
-| ⏳ Pendente     | 26         | 52%        |
+| ⏳ Pendente     | 25         | 50%        |
 | ❌ Cancelado    | 0          | 0%         |
 | **Total**       | **50**     | **100%**   |
 
@@ -143,22 +143,22 @@ Catálogo interno, orçamento, pedido e ciclo de vida comercial. Parte da Onda 1
 
 Visão executiva, metas, gamificação, positivação, curva ABC, comissões, DRE, rentabilidade. **Onda 2** da Proposta Comercial v2.
 
-| #   | Título                                                | Tipo    | Prof. | Impl. | Documento | Status | Depende de |
-| --- | ----------------------------------------------------- | ------- | ----- | ----- | --------- | ------ | ---------- |
-| 040 | Visão Executiva (Home do Gestor)                      | Feature | D     | 🔵    | ⏸         | ⏳     | 041–049    |
-| 041 | [Vendas (pipeline, vendedor, canal, categoria)](./PRD-041-vendas_DONE.md) | Feature | D | 🔵 | 📝 | ✅ | 032 |
-| 042 | Sistema de Metas (loja + individual; equipe dormente) | Feature | D     | 🔵    | ⏸         | ⏳     | 041        |
-| 043 | Ranking de Vendedores e Gamificação                   | Feature | D     | 🔵    | ⏸         | ⏳     | 042        |
-| 044 | Positivação de Clientes                               | Feature | D     | 🔵    | ⏸         | ⏳     | 012, 041   |
-| 045 | Curva ABC de Clientes                                 | Feature | D     | 🔵    | ⏸         | ⏳     | 041        |
-| 046 | Carteira Analítica com Drill-down                     | Feature | D     | 🔵    | ⏸         | ⏳     | 044, 045   |
-| 047 | Comissões (cálculo, fechamento)                       | Feature | D     | 🔵    | ⏸         | ⏳     | 041, 042   |
-| 048 | DRE Gerencial                                         | Feature | E     | 🔵    | ⏸         | ⏳     | 041        |
-| 049 | Rentabilidade por SKU / Cliente / Canal               | Feature | E     | 🔵    | ⏸         | ⏳     | 041        |
-| 050 | Despesas (esqueleto navegável)                        | Feature | E     | 🔵    | ⏸         | ⏳     | —          |
-| 051 | Fluxo de Caixa (esqueleto navegável)                  | Feature | E     | 🔵    | ⏸         | ⏳     | —          |
-| 052 | Estoque com Curadoria Comercial (esqueleto)           | Feature | E     | 🔵    | ⏸         | ⏳     | 030        |
-| 053 | IA Analítica e Insights Proativos                     | Feature | D     | 🔵    | ⏸         | ⏳     | 040–049    |
+| #   | Título                                                                           | Tipo    | Prof. | Impl. | Documento | Status | Depende de |
+| --- | -------------------------------------------------------------------------------- | ------- | ----- | ----- | --------- | ------ | ---------- |
+| 040 | Visão Executiva (Home do Gestor)                                                 | Feature | D     | 🔵    | ⏸         | ⏳     | 041–049    |
+| 041 | [Vendas (pipeline, vendedor, canal, categoria)](./PRD-041-vendas_DONE.md)        | Feature | D     | 🔵    | 📝        | ✅     | 032        |
+| 042 | [Sistema de Metas (loja + individual; equipe dormente)](./PRD-042-metas_DONE.md) | Feature | D     | 🔵    | 📝        | ✅     | 041        |
+| 043 | Ranking de Vendedores e Gamificação                                              | Feature | D     | 🔵    | ⏸         | ⏳     | 042        |
+| 044 | Positivação de Clientes                                                          | Feature | D     | 🔵    | ⏸         | ⏳     | 012, 041   |
+| 045 | Curva ABC de Clientes                                                            | Feature | D     | 🔵    | ⏸         | ⏳     | 041        |
+| 046 | Carteira Analítica com Drill-down                                                | Feature | D     | 🔵    | ⏸         | ⏳     | 044, 045   |
+| 047 | Comissões (cálculo, fechamento)                                                  | Feature | D     | 🔵    | ⏸         | ⏳     | 041, 042   |
+| 048 | DRE Gerencial                                                                    | Feature | E     | 🔵    | ⏸         | ⏳     | 041        |
+| 049 | Rentabilidade por SKU / Cliente / Canal                                          | Feature | E     | 🔵    | ⏸         | ⏳     | 041        |
+| 050 | Despesas (esqueleto navegável)                                                   | Feature | E     | 🔵    | ⏸         | ⏳     | —          |
+| 051 | Fluxo de Caixa (esqueleto navegável)                                             | Feature | E     | 🔵    | ⏸         | ⏳     | —          |
+| 052 | Estoque com Curadoria Comercial (esqueleto)                                      | Feature | E     | 🔵    | ⏸         | ⏳     | 030        |
+| 053 | IA Analítica e Insights Proativos                                                | Feature | D     | 🔵    | ⏸         | ⏳     | 040–049    |
 
 ### Bloco 5 — E-commerce (PRDs 060–067)
 
@@ -368,24 +368,25 @@ Mês 11+   ── Operação contínua + manutenção
 
 A plataforma usa Semantic Versioning com codinomes em inglês para releases MINOR e MAJOR.
 
-| Versão     | Codinome       | Data prevista | PRDs incluídos                   | Marco                                                 |
-| ---------- | -------------- | ------------- | -------------------------------- | ----------------------------------------------------- |
-| v0.1.0     | **Genesis**    | Mês 1         | PRD-001                          | Scaffold inicial                                      |
-| v0.1.1     | **Genesis**    | 25/05/2026    | PRD-002                          | Modelo conceitual de domínio + glossário              |
-| v0.2.0     | **Genesis**    | 25/05/2026    | PRD-003                          | Shell navegável, auth mockada, 8 layouts, 30+ rotas   |
-| v0.3.0     | **Genesis**    | 25/05/2026    | PRD-004 (mocks)                  | Camada de mocks com geradores determinísticos         |
-| v0.4.0     | **Hub**        | 25/05/2026    | PRD-005 (provider pattern)       | Provider pattern Mock + Supabase                      |
-| v0.5.0     | **Pilot**      | 25/05/2026    | PRD-006 (RBAC + auditoria)       | RBAC visual + matriz de permissões + audit log        |
-| v0.6.0     | **Compass**    | 25/05/2026    | PRD-007 (multi-loja)             | **Bloco 0 (Fundação) completo** — multi-loja modelado |
-| v0.7.0     | **Hub**        | 25/05/2026    | PRD-010 (Inbox unificado)        | Bloco 1 aberto — central de atendimento navegável     |
-| v0.8.0     | **Pilot**      | 25/05/2026    | PRD-011 (Conversa multicanal)    | Vendedor opera conversas dentro da plataforma         |
-| v0.13.0    | **Fleet**      | 26/05/2026    | PRD-016 (Veículos do Cliente)    | Veículo como entidade primária + recomendações por km |
-| v0.24.0    | **Logistics**  | 26/05/2026    | PRD-032 + PRD-033                | Bloco 3 fechado — Pedido + Frete centralizado          |
-| v0.25.0    | **Insight**    | 26/05/2026    | PRD-041 (Vendas — Análise)       | Abertura do Bloco 4 — dashboard analítico multidimensional |
-| v0.13.0+   | _A definir_    | Mês 2         | PRDs 017–019 + 020–024 + 030–033 | Onda 1 entregue                                       |
-| v0.5.0     | **Storefront** | Mês 9         | PRDs 060–067 (Bloco 5)           | Onda 3 quase completa                                 |
-| **v1.0.0** | **Heavy**      | Mês 10        | PRDs 070, 071 + polish final     | **MVP completo — release oficial**                    |
-| v1.1.0+    | _A definir_    | Mês 11+       | PRDs 100+ (Fase 2)               | Integrações reais                                     |
+| Versão     | Codinome       | Data prevista | PRDs incluídos                   | Marco                                                                 |
+| ---------- | -------------- | ------------- | -------------------------------- | --------------------------------------------------------------------- |
+| v0.1.0     | **Genesis**    | Mês 1         | PRD-001                          | Scaffold inicial                                                      |
+| v0.1.1     | **Genesis**    | 25/05/2026    | PRD-002                          | Modelo conceitual de domínio + glossário                              |
+| v0.2.0     | **Genesis**    | 25/05/2026    | PRD-003                          | Shell navegável, auth mockada, 8 layouts, 30+ rotas                   |
+| v0.3.0     | **Genesis**    | 25/05/2026    | PRD-004 (mocks)                  | Camada de mocks com geradores determinísticos                         |
+| v0.4.0     | **Hub**        | 25/05/2026    | PRD-005 (provider pattern)       | Provider pattern Mock + Supabase                                      |
+| v0.5.0     | **Pilot**      | 25/05/2026    | PRD-006 (RBAC + auditoria)       | RBAC visual + matriz de permissões + audit log                        |
+| v0.6.0     | **Compass**    | 25/05/2026    | PRD-007 (multi-loja)             | **Bloco 0 (Fundação) completo** — multi-loja modelado                 |
+| v0.7.0     | **Hub**        | 25/05/2026    | PRD-010 (Inbox unificado)        | Bloco 1 aberto — central de atendimento navegável                     |
+| v0.8.0     | **Pilot**      | 25/05/2026    | PRD-011 (Conversa multicanal)    | Vendedor opera conversas dentro da plataforma                         |
+| v0.13.0    | **Fleet**      | 26/05/2026    | PRD-016 (Veículos do Cliente)    | Veículo como entidade primária + recomendações por km                 |
+| v0.24.0    | **Logistics**  | 26/05/2026    | PRD-032 + PRD-033                | Bloco 3 fechado — Pedido + Frete centralizado                         |
+| v0.25.0    | **Insight**    | 26/05/2026    | PRD-041 (Vendas — Análise)       | Abertura do Bloco 4 — dashboard analítico multidimensional            |
+| v0.26.0    | **Pulse**      | 26/05/2026    | PRD-042 (Metas)                  | Sistema de metas com tracking em tempo real + widget no painel gestor |
+| v0.13.0+   | _A definir_    | Mês 2         | PRDs 017–019 + 020–024 + 030–033 | Onda 1 entregue                                                       |
+| v0.5.0     | **Storefront** | Mês 9         | PRDs 060–067 (Bloco 5)           | Onda 3 quase completa                                                 |
+| **v1.0.0** | **Heavy**      | Mês 10        | PRDs 070, 071 + polish final     | **MVP completo — release oficial**                                    |
+| v1.1.0+    | _A definir_    | Mês 11+       | PRDs 100+ (Fase 2)               | Integrações reais                                                     |
 
 ---
 
@@ -534,12 +535,12 @@ PRDs 040–053, 060–067, 070–071 — ~11 turnos no total
 
 ## Última Atualização
 
-| Campo                | Valor                                                          |
-| -------------------- | -------------------------------------------------------------- |
-| **Data**             | 26/05/2026                                                     |
-| **Atualizado por**   | Claude Opus 4.7 (Claude Code CLI)                              |
-| **Motivo**           | Implementação do PRD-041 (Vendas — Análise Detalhada) — v0.25.0 Insight, abre Bloco 4 |
-| **Versão do índice** | 1.4                                                            |
+| Campo                | Valor                                                                    |
+| -------------------- | ------------------------------------------------------------------------ |
+| **Data**             | 26/05/2026                                                               |
+| **Atualizado por**   | Claude Opus 4.7 (Claude Code CLI)                                        |
+| **Motivo**           | Implementação do PRD-042 (Metas) — v0.26.0 Pulse, segundo PRD do Bloco 4 |
+| **Versão do índice** | 1.5                                                                      |
 
 ---
 

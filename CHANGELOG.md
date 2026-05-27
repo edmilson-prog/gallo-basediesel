@@ -4,6 +4,139 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.26.0] — Pulse · 2026-05-26
+
+Continuação do Bloco 4 (Gestão e BI — Onda 2). Após a análise de
+vendas (PRD-041), a plataforma ganha o sistema de gestão de metas
+comerciais (PRD-042) — o cérebro que conecta o que está vendendo
+à expectativa do mês, individual e da loja, com tracking em tempo
+real. Resolve três dores: vendedor não sabia onde estava no meio
+do mês, gestor descobria atrasos só no dia 28, e PRDs futuros
+(comissões, gamificação) não tinham base mensurável.
+
+**Metas (PRD-042).** A rota `/app/gestao/metas`, antes placeholder
+Owner-only, vira uma página dual-mode: Vendedor vê apenas os cards
+das próprias metas com barra de progresso e dias restantes;
+Gestor/Owner/Financeiro vêm o dashboard agregado com 4 KPIs (metas
+ativas, % média, heroes ≥ 100%, atenção < 70%), filtros URL-
+sincronizados (tipo, escopo, status, vendedor, loja, período),
+tabela completa com barra inline, gráfico de barras por vendedor
+e abas Ativas / Histórico. Suporta 5 métricas no MVP (revenue,
+ticket_medio, tickets, positivacao, novos_clientes) + 3 dormentes
+(margin, recovery, conversion).
+
+A página `/app/gestao/metas/nova` traz formulário de 4 seções
+(configuração, escopo, valor, recompensa) com sugestão inteligente
+de target baseada no histórico ("período anterior R$ X, alcançou
+Y% → sugestão R$ X×1.05"). A página `/app/gestao/metas/:id`
+oferece header com ações (editar/cancelar restritos a Owner/Gestor),
+resumo de progresso com projeção linear, gráfico evolutivo com
+linha realizada vs esperada (proporcional ao período), composição
+clicável (pedidos contribuintes para metas de revenue/tickets;
+clientes positivados para positivacao; clientes novos para
+novos_clientes; estatísticas min/median/max/std para ticket_medio)
+e histórico de mudanças via audit log.
+
+Mudança de target em meta ativa exige checkbox de confirmação
+explícito sobre impacto em comissões (PRD-047). Cancelamento exige
+motivo. Hook `useGoalAutoStatusUpdate` roda uma vez por sessão
+(throttled a 24h via localStorage) transicionando metas vencidas
+para `concluida` ou `arquivada` conforme atingimento. Hook
+`useGoalMilestoneToast` dispara toast quando o vendedor cruza
+50/80/100% (guardado em localStorage para não repetir). Widget
+"Metas do mês" injetado no Painel Gestor (PRD-014) lista as 5
+metas com menor progresso primeiro — as que mais precisam de
+atenção.
+
+O tipo `IGoal` em `src/shared/types/bi.ts` foi estendido com os
+campos do PRD-042 (`name?`, `status?`, `sellerId?`,
+`rewardDescription?`, `createdBy?`, `cancelReason?`) mantendo
+back-compat. `GoalMetric` foi ampliado com `ticket_medio` e
+`novos_clientes`. Gerador de mocks reescrito para popular os novos
+campos e gerar ~25 metas (5 meses de histórico + período corrente
+
+- 1 cancelada).
+
+### Added
+
+- **Feature `goals`** (`src/features/goals/`):
+  - `pages/GoalsPage.tsx`: entry com renderização condicional por
+    role.
+  - `pages/NewGoalPage.tsx`: 4 seções de formulário com sugestão
+    inteligente e validações.
+  - `pages/GoalDetailPage.tsx`: header + resumo + chart + composição
+    - histórico.
+  - `engine/calculate.ts`: função pura `calculateGoalProgress` para
+    5 métricas + fallback ao snapshot para `recovery`/`conversion`.
+  - `engine/projection.ts`: `describePeriodWindow` e
+    `computeProjection` (linear, cap 200%).
+  - `engine/suggestion.ts`: `suggestTarget` (mês anterior × 1.05
+    com fallback metric-default).
+  - `hooks/useGoalsWithProgress.ts`: agregador `useQueries` único
+    que evita N+1.
+  - `hooks/useGoalProgress.ts`: progress de uma meta única.
+  - `hooks/useSellerGoals.ts`, `useStoreGoals.ts`,
+    `useGoalsStatistics.ts`: wrappers para consumo externo (PRDs
+    043/047 futuros).
+  - `hooks/useGoalsFilters.ts`: URL sync com 7 filtros
+    (tab + 6 dimensões) + `validateGoalsSearch`.
+  - `hooks/useGoalAutoStatusUpdate.ts`: transição automática
+    throttled a 24h por sessão.
+  - `hooks/useGoalMilestoneToast.ts`: toasts em 50/80/100%
+    guardados em `localStorage`.
+  - `components/`: `GoalCard`, `GoalProgressBar`,
+    `GoalStatusBadge` (modes progress|lifecycle), `GoalTypeBadge`,
+    `IndividualGoalsDashboard`, `AggregatedGoalsDashboard`,
+    `GoalKpiRow`, `GoalsFiltersBar`, `GoalsTable`,
+    `SellerProgressBarChart` (Recharts com cores semáforo),
+    `EditGoalModal` (com checkbox de confirmação em mudança de
+    target), `CancelGoalDialog` (motivo obrigatório).
+  - `components/detail/`: `GoalDetailHeader`,
+    `GoalProgressSummary`, `GoalEvolutionChart` (LineChart
+    realizado vs esperado), `GoalCompositionSection`
+    (renderização condicional por métrica),
+    `GoalHistorySection`.
+  - `components/widget/GoalsWidget.tsx`: card compacto para o
+    Painel Gestor.
+  - `utils/`: `labels.ts` (metric/level/status icons + labels),
+    `formatGoalValue.ts` (currency/count/percent), `validation.ts`
+    (form rules + `defaultPeriodRange`), `composition.ts`
+    (`buildEvolutionSeries`, `getContributingOrders`,
+    `getPositivatedCustomers`, `getAcquiredCustomers`,
+    `getTicketStats`).
+  - `i18n/pt-BR.ts`: strings UI completas.
+
+- **Tipos goals** (`src/shared/types/goals.ts`): `IGoalProgress`,
+  `GoalProgressStatus` (no_caminho|atencao|atrasada|concluida),
+  `GoalProgressTrend` (subindo|estavel|caindo).
+
+- **Rotas**:
+  - `src/routes/app.gestao.metas.nova.tsx` (Owner/Gestor only).
+  - `src/routes/app.gestao.metas.$id.tsx` (Owner/Gestor/Vendedor/
+    Financeiro com guard por scope).
+
+### Changed
+
+- **Tipo `IGoal`** (`src/shared/types/bi.ts`): novos campos
+  opcionais (`name`, `status`, `sellerId`, `rewardDescription`,
+  `createdBy`, `cancelReason`) — back-compat com mocks existentes.
+  Novo tipo de status `GoalStatus` exportado.
+- **Tipo `GoalMetric`**: amplia com `ticket_medio` e
+  `novos_clientes`.
+- **Gerador `src/mocks/generators/goal.ts`**: gera ~25 metas com
+  mix de status (ativa/concluida/arquivada/cancelada) + 5 meses
+  de histórico + cancelada com motivo.
+- **Rota `/app/gestao/metas`** (`src/routes/app.gestao.metas.tsx`):
+  troca `PlaceholderPage` por `<GoalsPage />`, amplia roles para
+  Owner/Gestor/Vendedor/Financeiro, instala
+  `validateSearch: validateGoalsSearch`.
+- **Painel Gestor** (`src/features/manager-dashboard/pages/
+ManagerDashboardPage.tsx`): injeta `<GoalsWidget />` entre o
+  heatmap e a saúde da carteira.
+- **Navigation** (`src/features/shell/config/navigation.ts`):
+  amplia roles dos itens "Vendas" e "Metas" para os 4 perfis com
+  acesso a indicadores.
+
 ## [0.25.0] — Insight · 2026-05-26
 
 Abertura do Bloco 4 (Plataforma de Gestão e BI — Onda 2) com a

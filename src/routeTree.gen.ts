@@ -78,6 +78,8 @@ import { Route as AppClientesIdRouteImport } from './routes/app.clientes.$id'
 import { Route as AppCatalogoNovoRouteImport } from './routes/app.catalogo.novo'
 import { Route as AppCatalogoIdRouteImport } from './routes/app.catalogo.$id'
 import { Route as AppAtendimentoIdRouteImport } from './routes/app.atendimento.$id'
+import { Route as AppGestaoMetasNovaRouteImport } from './routes/app.gestao.metas.nova'
+import { Route as AppGestaoMetasIdRouteImport } from './routes/app.gestao.metas.$id'
 import { Route as AppConfiguracoesVeiculosCadastroModeRouteImport } from './routes/app.configuracoes.veiculos.cadastro-mode'
 import { Route as AppConfiguracoesSdrTemplatesRouteImport } from './routes/app.configuracoes.sdr.templates'
 import { Route as AppConfiguracoesSdrSimuladorRouteImport } from './routes/app.configuracoes.sdr.simulador'
@@ -442,6 +444,16 @@ const AppAtendimentoIdRoute = AppAtendimentoIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AppAtendimentoRoute,
 } as any)
+const AppGestaoMetasNovaRoute = AppGestaoMetasNovaRouteImport.update({
+  id: '/nova',
+  path: '/nova',
+  getParentRoute: () => AppGestaoMetasRoute,
+} as any)
+const AppGestaoMetasIdRoute = AppGestaoMetasIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppGestaoMetasRoute,
+} as any)
 const AppConfiguracoesVeiculosCadastroModeRoute =
   AppConfiguracoesVeiculosCadastroModeRouteImport.update({
     id: '/configuracoes/veiculos/cadastro-mode',
@@ -550,7 +562,7 @@ export interface FileRoutesByFullPath {
   '/app/gestao/despesas': typeof AppGestaoDespesasRoute
   '/app/gestao/dre': typeof AppGestaoDreRoute
   '/app/gestao/estoque': typeof AppGestaoEstoqueRoute
-  '/app/gestao/metas': typeof AppGestaoMetasRoute
+  '/app/gestao/metas': typeof AppGestaoMetasRouteWithChildren
   '/app/gestao/positivacao': typeof AppGestaoPositivacaoRoute
   '/app/gestao/ranking': typeof AppGestaoRankingRoute
   '/app/gestao/rentabilidade': typeof AppGestaoRentabilidadeRoute
@@ -582,6 +594,8 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/sdr/simulador': typeof AppConfiguracoesSdrSimuladorRoute
   '/app/configuracoes/sdr/templates': typeof AppConfiguracoesSdrTemplatesRoute
   '/app/configuracoes/veiculos/cadastro-mode': typeof AppConfiguracoesVeiculosCadastroModeRoute
+  '/app/gestao/metas/$id': typeof AppGestaoMetasIdRoute
+  '/app/gestao/metas/nova': typeof AppGestaoMetasNovaRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -623,7 +637,7 @@ export interface FileRoutesByTo {
   '/app/gestao/despesas': typeof AppGestaoDespesasRoute
   '/app/gestao/dre': typeof AppGestaoDreRoute
   '/app/gestao/estoque': typeof AppGestaoEstoqueRoute
-  '/app/gestao/metas': typeof AppGestaoMetasRoute
+  '/app/gestao/metas': typeof AppGestaoMetasRouteWithChildren
   '/app/gestao/positivacao': typeof AppGestaoPositivacaoRoute
   '/app/gestao/ranking': typeof AppGestaoRankingRoute
   '/app/gestao/rentabilidade': typeof AppGestaoRentabilidadeRoute
@@ -655,6 +669,8 @@ export interface FileRoutesByTo {
   '/app/configuracoes/sdr/simulador': typeof AppConfiguracoesSdrSimuladorRoute
   '/app/configuracoes/sdr/templates': typeof AppConfiguracoesSdrTemplatesRoute
   '/app/configuracoes/veiculos/cadastro-mode': typeof AppConfiguracoesVeiculosCadastroModeRoute
+  '/app/gestao/metas/$id': typeof AppGestaoMetasIdRoute
+  '/app/gestao/metas/nova': typeof AppGestaoMetasNovaRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -705,7 +721,7 @@ export interface FileRoutesById {
   '/app/gestao/despesas': typeof AppGestaoDespesasRoute
   '/app/gestao/dre': typeof AppGestaoDreRoute
   '/app/gestao/estoque': typeof AppGestaoEstoqueRoute
-  '/app/gestao/metas': typeof AppGestaoMetasRoute
+  '/app/gestao/metas': typeof AppGestaoMetasRouteWithChildren
   '/app/gestao/positivacao': typeof AppGestaoPositivacaoRoute
   '/app/gestao/ranking': typeof AppGestaoRankingRoute
   '/app/gestao/rentabilidade': typeof AppGestaoRentabilidadeRoute
@@ -737,6 +753,8 @@ export interface FileRoutesById {
   '/app/configuracoes/sdr/simulador': typeof AppConfiguracoesSdrSimuladorRoute
   '/app/configuracoes/sdr/templates': typeof AppConfiguracoesSdrTemplatesRoute
   '/app/configuracoes/veiculos/cadastro-mode': typeof AppConfiguracoesVeiculosCadastroModeRoute
+  '/app/gestao/metas/$id': typeof AppGestaoMetasIdRoute
+  '/app/gestao/metas/nova': typeof AppGestaoMetasNovaRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -820,6 +838,8 @@ export interface FileRouteTypes {
     | '/app/configuracoes/sdr/simulador'
     | '/app/configuracoes/sdr/templates'
     | '/app/configuracoes/veiculos/cadastro-mode'
+    | '/app/gestao/metas/$id'
+    | '/app/gestao/metas/nova'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -893,6 +913,8 @@ export interface FileRouteTypes {
     | '/app/configuracoes/sdr/simulador'
     | '/app/configuracoes/sdr/templates'
     | '/app/configuracoes/veiculos/cadastro-mode'
+    | '/app/gestao/metas/$id'
+    | '/app/gestao/metas/nova'
   id:
     | '__root__'
     | '/'
@@ -974,6 +996,8 @@ export interface FileRouteTypes {
     | '/app/configuracoes/sdr/simulador'
     | '/app/configuracoes/sdr/templates'
     | '/app/configuracoes/veiculos/cadastro-mode'
+    | '/app/gestao/metas/$id'
+    | '/app/gestao/metas/nova'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1472,6 +1496,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAtendimentoIdRouteImport
       parentRoute: typeof AppAtendimentoRoute
     }
+    '/app/gestao/metas/nova': {
+      id: '/app/gestao/metas/nova'
+      path: '/nova'
+      fullPath: '/app/gestao/metas/nova'
+      preLoaderRoute: typeof AppGestaoMetasNovaRouteImport
+      parentRoute: typeof AppGestaoMetasRoute
+    }
+    '/app/gestao/metas/$id': {
+      id: '/app/gestao/metas/$id'
+      path: '/$id'
+      fullPath: '/app/gestao/metas/$id'
+      preLoaderRoute: typeof AppGestaoMetasIdRouteImport
+      parentRoute: typeof AppGestaoMetasRoute
+    }
     '/app/configuracoes/veiculos/cadastro-mode': {
       id: '/app/configuracoes/veiculos/cadastro-mode'
       path: '/configuracoes/veiculos/cadastro-mode'
@@ -1659,6 +1697,20 @@ const AppVeiculosRouteWithChildren = AppVeiculosRoute._addFileChildren(
   AppVeiculosRouteChildren,
 )
 
+interface AppGestaoMetasRouteChildren {
+  AppGestaoMetasIdRoute: typeof AppGestaoMetasIdRoute
+  AppGestaoMetasNovaRoute: typeof AppGestaoMetasNovaRoute
+}
+
+const AppGestaoMetasRouteChildren: AppGestaoMetasRouteChildren = {
+  AppGestaoMetasIdRoute: AppGestaoMetasIdRoute,
+  AppGestaoMetasNovaRoute: AppGestaoMetasNovaRoute,
+}
+
+const AppGestaoMetasRouteWithChildren = AppGestaoMetasRoute._addFileChildren(
+  AppGestaoMetasRouteChildren,
+)
+
 interface AppRouteChildren {
   AppAtendimentoRoute: typeof AppAtendimentoRouteWithChildren
   AppCarteiraRoute: typeof AppCarteiraRoute
@@ -1688,7 +1740,7 @@ interface AppRouteChildren {
   AppGestaoDespesasRoute: typeof AppGestaoDespesasRoute
   AppGestaoDreRoute: typeof AppGestaoDreRoute
   AppGestaoEstoqueRoute: typeof AppGestaoEstoqueRoute
-  AppGestaoMetasRoute: typeof AppGestaoMetasRoute
+  AppGestaoMetasRoute: typeof AppGestaoMetasRouteWithChildren
   AppGestaoPositivacaoRoute: typeof AppGestaoPositivacaoRoute
   AppGestaoRankingRoute: typeof AppGestaoRankingRoute
   AppGestaoRentabilidadeRoute: typeof AppGestaoRentabilidadeRoute
@@ -1735,7 +1787,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppGestaoDespesasRoute: AppGestaoDespesasRoute,
   AppGestaoDreRoute: AppGestaoDreRoute,
   AppGestaoEstoqueRoute: AppGestaoEstoqueRoute,
-  AppGestaoMetasRoute: AppGestaoMetasRoute,
+  AppGestaoMetasRoute: AppGestaoMetasRouteWithChildren,
   AppGestaoPositivacaoRoute: AppGestaoPositivacaoRoute,
   AppGestaoRankingRoute: AppGestaoRankingRoute,
   AppGestaoRentabilidadeRoute: AppGestaoRentabilidadeRoute,

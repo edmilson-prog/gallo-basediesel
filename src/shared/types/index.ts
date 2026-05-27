@@ -195,7 +195,11 @@ export type {
   GoalLevel,
   GoalPeriodType,
   GoalMetric,
+  GoalStatus,
   ABCClass,
   RecommendationPriority,
   RecommendationType,
 } from "./bi";
+
+// Goals (PRD-042 — runtime progress)
+export type { IGoalProgress, GoalProgressStatus, GoalProgressTrend } from "./goals";

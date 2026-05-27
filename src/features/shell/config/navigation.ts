@@ -104,12 +104,17 @@ export const APP_NAV_GROUPS: INavGroup[] = [
         to: ROUTES.GESTAO_INICIO,
         roles: ["Owner"],
       },
-      { label: "Vendas", icon: "mdi:chart-line", to: ROUTES.GESTAO_VENDAS, roles: ["Owner"] },
+      {
+        label: "Vendas",
+        icon: "mdi:chart-line",
+        to: ROUTES.GESTAO_VENDAS,
+        roles: ["Owner", "Gestor", "Vendedor", "Financeiro"],
+      },
       {
         label: "Metas",
         icon: "mdi:target",
         to: ROUTES.GESTAO_METAS,
-        roles: ["Owner"],
+        roles: ["Owner", "Gestor", "Vendedor", "Financeiro"],
       },
       {
         label: "Ranking",

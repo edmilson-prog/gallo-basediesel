@@ -1,0 +1,75 @@
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import type { ID, IGoal, IGoalProgress } from "@/shared/types";
+import { useCustomersProvider, useGoalsProvider, useOrdersProvider } from "@/providers/data";
+import { calculateGoalProgress } from "../engine/calculate";
+
+export interface IUseGoalProgressResult {
+  goal: IGoal | undefined;
+  progress: IGoalProgress | undefined;
+  isLoading: boolean;
+  hasError: boolean;
+  refetch: () => void;
+}
+
+const STALE_MS = 30_000;
+
+/**
+ * Hook for a single goal (detail page). Loads the goal first, then orders +
+ * customers scoped to its store/seller — minimum data needed for an accurate
+ * runtime progress recalc.
+ */
+export function useGoalProgress(goalId: ID | undefined): IUseGoalProgressResult {
+  const goalsProvider = useGoalsProvider();
+  const ordersProvider = useOrdersProvider();
+  const customersProvider = useCustomersProvider();
+
+  const goalsQuery = useQuery({
+    queryKey: ["goals", "list", "all"],
+    queryFn: () => goalsProvider.list({ pageSize: 500 }),
+    staleTime: STALE_MS,
+    enabled: Boolean(goalId),
+  });
+
+  const goal = goalsQuery.data?.items.find((g) => g.id === goalId);
+
+  const ordersQuery = useQuery({
+    queryKey: ["goals", "progress-orders", goal?.storeId, goal?.targetId, goal?.level],
+    queryFn: () =>
+      ordersProvider.list({
+        storeId: goal?.storeId,
+        sellerId: goal?.level === "individual" ? goal.targetId : undefined,
+        paymentStatus: "pago",
+        pageSize: 2000,
+      }),
+    staleTime: STALE_MS,
+    enabled: Boolean(goal),
+  });
+
+  const customersQuery = useQuery({
+    queryKey: ["goals", "progress-customers", goal?.storeId],
+    queryFn: () => customersProvider.list({ storeId: goal?.storeId, pageSize: 2000 }),
+    staleTime: STALE_MS,
+    enabled: Boolean(goal),
+  });
+
+  const progress = useMemo(() => {
+    if (!goal) return undefined;
+    return calculateGoalProgress(goal, {
+      orders: ordersQuery.data?.items ?? [],
+      customers: customersQuery.data?.items ?? [],
+    });
+  }, [goal, ordersQuery.data, customersQuery.data]);
+
+  return {
+    goal,
+    progress,
+    isLoading: goalsQuery.isLoading || ordersQuery.isLoading || customersQuery.isLoading,
+    hasError: goalsQuery.isError || ordersQuery.isError || customersQuery.isError,
+    refetch: () => {
+      void goalsQuery.refetch();
+      void ordersQuery.refetch();
+      void customersQuery.refetch();
+    },
+  };
+}
