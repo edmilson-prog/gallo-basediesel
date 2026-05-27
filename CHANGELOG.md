@@ -4,6 +4,469 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.36.0] — Pulse · 2026-05-27
+
+Continuação do **Bloco 4b** com a **Análise Histórica de Atendimento
+(PRD-051)** — visão estratégica de longo prazo, complementar ao PRD-014
+(operacional tempo real). Evolução de TMA, TMR, taxa de resolução,
+conversão pós-atendimento, distribuição por canal e análise de
+motivos de escalação SDR. Inclui drill-down individual por vendedor
+com comparativo contra a média da equipe.
+
+### Added
+
+- **Tipos PRD-051** (`src/shared/types/customer-service-analytics.ts`):
+  - `ICustomerServiceMetrics` consolidado: totals, previous, byChannel,
+    bySeller, trendMonthly (12m), trendDaily, escalations.
+  - `ICustomerServiceKpis` reutilizável em diferentes recortes.
+  - `IChannelServiceMetrics`, `ISellerServiceMetrics` (com
+    `healthScore` 0..100 composto), `ICustomerServiceMonthlyPoint`,
+    `ICustomerServiceDailyPoint`, `IEscalationBreakdown`.
+
+- **Engine pura PRD-051**
+  (`src/features/customer-service-analytics/engine/calculateCustomerServiceMetrics.ts`):
+  - TMA = `lastMessageAt − createdAt` em conversas
+    `resolvida`/`arquivada`.
+  - TMR = primeira out-human (`seller` ou `sdr`) menos primeira
+    inbound (`customer`).
+  - resolutionRate = (resolvidas − escaladas) / total.
+  - conversionRate = % de conversas cujo cliente teve pedido pago
+    após `createdAt`.
+  - Tendência mensal (12 meses) e diária (período corrente) +
+    comparativo com mês imediatamente anterior.
+  - Aggregations por canal (`whatsapp/phone/site/ecommerce/sdr`) e
+    por vendedor com `healthScore` composto (50% resolução, 30%
+    conversão, 20% TMR — onde TMR ≤5min vale 100 e ≥120min vale 0).
+  - Breakdown de escalações por motivo (5 categorias do PRD-023) e
+    por vendedor receptor.
+
+- **Hook PRD-051**
+  (`src/features/customer-service-analytics/hooks/useCustomerServiceMetrics.ts`):
+  - Orquestra conversations + paid orders + escalations + sellers +
+    messages (bulk via novo `IMessagesProvider.listForAnalytics`)
+    sobre uma janela de 12 meses.
+  - Aplica scope de vendedor antes de chamar o engine.
+  - `useCsaFilters` URL-sincronizado (mês / vendedor / aba).
+
+- **Página `/app/gestao/atendimento-analise`**
+  (`src/features/customer-service-analytics/pages/CustomerServiceAnalyticsPage.tsx`):
+  - Header com 2 filtros (mês de referência + vendedor).
+  - 4 abas:
+    - **Visão Geral** — 5 KPIs com Δ% vs período anterior + card NPS
+      placeholder (Fase 2), LineChart TMA/TMR 12m, LineChart de
+      volume diário.
+    - **Por Canal** — BarChart de volume por canal + tabela com 6
+      colunas (canal, volume, TMA, TMR, resolução, conversão).
+    - **Por Vendedor** — tabela comparativa com `healthScore` em
+      pill colorida (verde ≥80, amarelo ≥60, vermelho <60),
+      vendedores abaixo da média destacados em `bg-warning/5`.
+      Click leva ao drill-down individual.
+    - **Escalações SDR** — total destacado + PieChart por motivo
+      (consome `byReason` da engine) + lista lateral com clicks que
+      levam ao Painel SDR (PRD-024) + ranking dos vendedores que
+      mais receberam transferências.
+  - Os 5 motivos do PRD-023 (`customer_requested`,
+    `negotiation_detected`, `sdr_failed`, `complexity`,
+    `out_of_scope`) recebem labels em PT-BR e cores semânticas.
+
+- **Drill-down `/app/gestao/atendimento-analise/$sellerId`**
+  (`SellerServicePage`) — 4 KPIs individuais, LineChart TMA/TMR
+  12m do vendedor, comparativo com média de health score da equipe.
+
+- **`IMessagesProvider.listForAnalytics`** — endpoint bulk introduzido
+  para alimentar TMR sem N×fetch. Implementação mock acessa o store
+  diretamente filtrando por `since`/`until`/`conversationIds`. Stub
+  Supabase delega ao Fase 2 (PRD-100+).
+
+- **RBAC PRD-051**
+  (`src/features/rbac/permissions/resources.ts`, `matrix.ts`): novo
+  resource `customer_service_analytics`. Owner — `view` global;
+  Gestor — `view` da loja; Financeiro — `view` da loja; Vendedor /
+  SDR / Cliente — sem acesso.
+
+### Changed
+
+- **Rota `/app/gestao/atendimento-analise`** — criada com layout
+  pai (`Outlet`) + index page e route `$sellerId`. Guard por
+  permissão `customer_service_analytics:view`.
+
+- **`src/features/shell/config/routes.ts`** — adicionada constante
+  `GESTAO_ATENDIMENTO_ANALISE`.
+
+### Notes
+
+- Diferenciação clara contra PRD-014 (operacional) e PRD-024 (SDR
+  específico): este é estratégico/longitudinal.
+- TMA só é computado em conversas resolvidas — métricas em aberto
+  enviesariam a média para baixo.
+- Quando o dataset mock não tem mensagens suficientes para uma
+  conversa, TMR é tratado como ausente (não contribui para a
+  média) — evita "0 min" enganoso.
+- O bulk endpoint `listForAnalytics` é o vetor que viabilizará
+  análise sobre milhares de conversas na Fase 2 (Postgres com
+  índice composto sobre `conversation_id, sent_at`).
+
+---
+
+## [0.35.0] — Warehouse · 2026-05-27
+
+Continuação do **Bloco 4b** com a **Análise de Estoque (PRD-050)** —
+cobertura em dias, classificação XYZ por giro, status semântico
+(`ok` / `baixo` / `critico` / `excesso`), sugestões de reposição com
+quantidade ideal + custo estimado + rationale textual e identificação
+de capital parado. Página com 4 abas (visão geral, críticos &
+reposição com export CSV, análise XYZ Pareto-style, excesso &
+capital). Estrutura preparada para integração com o ERP DINTEC na
+Fase 2.
+
+### Added
+
+- **Tipos PRD-050** (`src/shared/types/inventory.ts`):
+  - `IInventoryAnalysis` — snapshot por peça com estoque atual,
+    consumo no período, cobertura em dias, curva (X/Y/Z), status,
+    sugestão de reposição, capital amarrado.
+  - `IInventoryReorderSuggestion` — quantidade sugerida, custo
+    estimado e justificativa textual.
+  - `IInventoryMetrics` — KPIs agregados (totalProducts, byStatus,
+    byCurve, totalCapitalTied, capitalInExcess, costCoverage, listas
+    de críticos / sugestões / excessos).
+  - `IInventoryAnalysisSettings` (em
+    `IPlatformSettings.inventoryAnalysisSettings`) — janela de
+    consumo (default 90d), cobertura alvo (30d), limite de excesso
+    (180d).
+
+- **Engine pura PRD-050**
+  (`src/features/inventory-analytics/engine/calculateInventoryAnalysis.ts`):
+  - `calculateInventoryAnalysis(ctx)` — itera sobre peças ativas,
+    indexa consumo via pedidos pagos no `paidAt`, calcula
+    `coverageInDays = stock / avgDailyConsumption`, classifica curva
+    XYZ via heurística (Z se sem venda há > 60d ou consumo zero,
+    X se cobertura < 30d e consumo significativo, senão Y/Z) e
+    determina status (`critico` se estoque 0 ou cobertura < 5d,
+    `baixo` se abaixo do mínimo ou cobertura < 15d, `excesso` se
+    curva Z com cobertura > `excessCoverageDays`).
+  - `suggestReorder()` — calcula
+    `max(stockMin, ceil(avgDaily × targetDays), 1)` com rationale em
+    português para o tooltip.
+  - `calculateInventoryMetrics(analyses)` — KPIs + listas ordenadas
+    por urgência (críticos por consumo) ou por capital amarrado
+    (excessos).
+
+- **Hooks PRD-050**:
+  - `useInventoryAnalysis(filters)` — orquestra parts + paid orders
+    (janela calculada a partir das settings) + settings, executa o
+    engine e devolve `analyses`, `filtered`, `metrics`,
+    `filteredMetrics`, lista de marcas e parts brutos.
+  - `useInventoryFilters()` — estado URL-sincronizado
+    (aba / categoria / marca / status / curva) + `validateInventorySearch`.
+
+- **Página `/app/gestao/estoque`**
+  (`src/features/inventory-analytics/pages/InventoryAnalyticsPage.tsx`):
+  - Header com 4 filtros (categoria / marca / status / curva).
+  - 4 abas via `Tabs` (shadcn):
+    - **Visão Geral** — 5 KPIs (total, OK, baixo/crítico, capital
+      amarrado, capital em excesso), donut chart de distribuição
+      por status, tabela top 20 ordenada por urgência.
+    - **Críticos & Reposição** — tabela priorizada (críticos →
+      baixos → consumo) com sugestão de quantidade + custo + curva
+      + status, botão "Gerar lista de compras (CSV)" que baixa CSV
+      básico + toast informando que a integração completa virá na
+      Fase 2.
+    - **Análise XYZ** — bar chart Pareto-style (% faturamento vs %
+      estoque por classe) + 3 cards lado a lado listando os
+      produtos top 10 de cada classe com cobertura e capital.
+    - **Excesso & Capital** — destaque do capital em excesso +
+      tabela com cobertura, dias sem venda, capital amarrado;
+      sugestão textual de promoção/descontinuação.
+  - `InventoryStatusBadge` + `InventoryCurveBadge` reutilizáveis.
+  - Click em qualquer linha leva à ficha PRD-030 do produto.
+
+- **Sub-rota `/app/configuracoes/estoque-analise`**
+  (`src/features/inventory-analytics/pages/InventoryAnalysisConfigPage.tsx`):
+  - Sliders + inputs para 3 valores configuráveis (janela de
+    consumo, cobertura alvo, limite de excesso).
+  - Banner explícito: "Integração com ERP DINTEC disponível na Fase
+    2".
+  - Save grava via
+    `usePlatformSettings.update(..., "settings.inventory.update")`
+    — audit log automático + invalidação `["inventory"]`.
+
+- **RBAC PRD-050** (`src/features/rbac/permissions/resources.ts`,
+  `matrix.ts`): novo resource `inventory`. Owner — `view + edit`
+  global; Gestor — `view` da loja; Financeiro — `view` da loja;
+  Vendedor / SDR / Cliente — sem acesso.
+
+- **Menu de configurações** atualizado com item "Estoque (análise)"
+  visível apenas para Owner.
+
+### Changed
+
+- **`IPlatformSettings.inventoryAnalysisSettings`** — novo bloco
+  obrigatório com defaults `consumptionWindowDays=90`,
+  `targetCoverageDays=30`, `excessCoverageDays=180`. SEED_STORE
+  atualizado.
+
+- **Rota `/app/gestao/estoque`** — placeholder do PRD-052
+  substituído pela `InventoryAnalyticsPage` real, com
+  `validateSearch` e guard por permissão `inventory:view`.
+
+- **`src/features/shell/config/routes.ts`** — adicionada constante
+  `CONFIG_ESTOQUE_ANALISE`.
+
+### Notes
+
+- Engine puro: processar ~120 peças sobre ~90 dias de pedidos pagos
+  consome bem abaixo do orçamento RNF-001 (< 50ms na fixture mock).
+- Cobertura é tratada com `Number.POSITIVE_INFINITY` quando não há
+  consumo no período mas estoque > 0; UI renderiza como "∞".
+- O detector de excesso exige **curva Z + cobertura acima do limite
+  configurado** — evita marcar como excesso peças de alto giro com
+  estoque alto temporariamente.
+- O CSV exportado é UTF-8 com BOM e segue 10 colunas — funciona
+  diretamente no Excel/Sheets sem ajuste.
+- A rota PRD-052 (movimentação de estoque) ficará em endpoint
+  separado quando for implementada — esta rota cobre apenas a
+  análise.
+
+---
+
+## [0.34.0] — Compass · 2026-05-27
+
+Continuação do **Bloco 4b** com a **Análise de Rentabilidade (PRD-049)** —
+visão multidimensional de margem por produto, categoria, cliente e
+vendedor. Engine puro com 4 reducers, página com 4 abas, KPIs por
+dimensão, alertas inteligentes (margem negativa, cobertura, vendedor
+fora da média), drill-downs cruzados para o catálogo (PRD-030) e ficha
+de cliente (PRD-012). Reaproveita o `DREAlertsBanner` do PRD-048 para
+consistência visual. Dados estratégicos — Vendedor / SDR / Cliente
+bloqueados.
+
+### Added
+
+- **Engine pura PRD-049**
+  (`src/features/profitability/engine/calculateProfitability.ts`):
+  - `calculateProfitability(dimension, ctx)` dispatcher para as quatro
+    dimensões (`product` / `category` / `customer` / `seller`).
+  - Reducers dedicados (`profitabilityByProduct`,
+    `profitabilityByCategory`, `profitabilityByCustomer`,
+    `profitabilityBySeller`) — cada um agrega receita, custo, margem,
+    cobertura, número de pedidos e classificação de saúde
+    (`good` / `neutral` / `warning` / `critical`) sobre cada grupo.
+  - `calculateCoverage(orders)` — % de itens com `unitCost > 0` +
+    contagem absoluta de itens e peças sem custo.
+  - `profitabilitySummary(ctx)` — KPIs consolidados (receita, custo,
+    margem, % margem, cobertura, contagem de produtos negativos e
+    "underperforming").
+  - `classifyMargin(pct)` + thresholds configuráveis
+    (`PROFITABILITY_THRESHOLDS = { good: 0.35, neutral: 0.25 }`).
+  - Trata `unitCost = 0` como "sem custo": item não soma ao CMV e
+    abate cobertura, o flag `costMissing` propaga até a UI.
+
+- **Hooks PRD-049**:
+  - `useProfitabilityData(filters)` — orquestra orders + parts +
+    customers + sellers, aplica scope filters (vendedor + categoria +
+    marca + período mensal), executa o engine para as 4 dimensões em
+    um único pass, e também devolve `categoryRowsPrevious` para o
+    delta vs mês anterior.
+  - `useProfitabilityAlerts({ productRows, sellerRows, coverage })`
+    — gera `IDREAlert[]` com 3 famílias: produtos negativos
+    (critical), cobertura < 80% (warning, <60% critical), vendedor
+    com margem abaixo de média - 1σ (warning).
+  - `useProfitabilityFilters()` — estado de filtros URL-sincronizado
+    (mes / vendedor / categoria / marca / aba / subfiltro de produto),
+    com `validateProfitabilitySearch` para o `validateSearch` da rota.
+
+- **Página `/app/gestao/rentabilidade`**
+  (`src/features/profitability/pages/ProfitabilityPage.tsx`):
+  - `ProfitabilityHeader` com 4 selects (período mensal anchor,
+    vendedor, categoria, marca) e indicador de cobertura no banner
+    `info`.
+  - Banner de alertas (`DREAlertsBanner` reusado).
+  - 4 abas via `Tabs` (shadcn):
+    - **Por Produto** — 4 KPIs (margem média, cobertura, produtos
+      negativos, top produto), pílulas de subfiltro
+      (todos / margem negativa / sem custo) e tabela top 30 com
+      `HealthBadge`. Click leva à ficha PRD-030.
+    - **Por Categoria** — BarChart de margem média por categoria com
+      cor por saúde + tabela com Δ vs mês anterior.
+    - **Por Cliente** — tabela com badge ABC (A/B/C) + nome do
+      vendedor + indicador de saúde + filtro "Apenas clientes com
+      margem negativa". Click leva à ficha PRD-012.
+    - **Por Vendedor** — tabela ordenada por margem com destaque
+      `bg-warning/5` para vendedores abaixo da média + desconto
+      médio aplicado.
+  - Estado vazio (`pageEmptyTitle` / `pageEmptyDescription`) quando
+    não há pedidos pagos no período.
+
+- **`HealthBadge` reutilizável**
+  (`src/features/profitability/components/HealthBadge.tsx`): badge ou
+  dot compacto com classes coloridas por severidade — consumido por
+  todas as quatro abas.
+
+- **RBAC PRD-049**
+  (`src/features/rbac/permissions/resources.ts`, `matrix.ts`): novo
+  resource `profitability`. Owner — `view` global; Gestor — `view`
+  da loja; Financeiro — `view` da loja; Vendedor / SDR / Cliente —
+  sem acesso (redirecionados para `/sem-permissao`).
+
+### Changed
+
+- **Rota `/app/gestao/rentabilidade`** — placeholder do PRD-003
+  substituído pela `ProfitabilityPage` real, com `validateSearch` e
+  guard por permissão `profitability:view`.
+
+### Notes
+
+- Engine puro: rodar 4 reducers + cobertura + summary sobre ~120
+  pedidos consome < 20ms na fixture mock.
+- Cobertura de custo é declarada em banner permanente no header — Owner
+  sabe explicitamente sobre que % dos itens a análise se baseia.
+- O detector de vendedor fora da média usa média − 1σ: estatística
+  estável mesmo com pequena equipe (≥ 2 vendedores).
+- `DREAlertsBanner` reaproveitado de PRD-048 — mesmo tipo `IDREAlert`,
+  mesma classe de severidade, consistência visual entre as duas telas
+  do Bloco 4b.
+
+---
+
+## [0.33.0] — Ledger · 2026-05-27
+
+Continuação do **Bloco 4b** com o **DRE Gerencial (PRD-048)** — projeção
+financeira completa derivada dos pedidos pagos, comissões reais
+(PRD-047), CMV estimado a partir do custo unitário do catálogo, despesas
+fixas configuráveis e impostos. Tabela hierárquica com comparativos cross-
+período (vs período anterior, vs mesmo período ano anterior), tendência
+12 meses, composição de despesas, alertas inteligentes e drill-downs em
+cada componente. Banner explícito reforça que a integração contábil
+completa virá na Fase 2 — os valores fixos no MVP são estimativas.
+
+### Added
+
+- **Tipos PRD-048** (`src/shared/types/dre.ts`,
+  `src/shared/types/platform.ts`):
+  - `IDREPeriod` — estrutura clássica do DRE com 18 linhas (receita
+    bruta, impostos, devoluções, receita líquida, CMV, margem bruta,
+    despesas operacionais expansíveis em comissões + folha + aluguel +
+    outros, resultado operacional, impostos sobre lucro, resultado
+    líquido), todas com percentuais sobre receita líquida.
+  - `IDREComparativeBlock` — bloco comparativo vinculado a um período
+    base, carregando valores brutos + deltas (`IDREComparison`) por
+    campo para alimentar as colunas comparativas.
+  - `IDRETrendPoint` — ponto do gráfico de 12 meses (receita líquida,
+    custos totais, resultado líquido).
+  - `IDREAlert` + `DREAlertSeverity` — banners contextuais
+    (`info` / `warning` / `critical`).
+  - `IFinancialSettings` (em `IPlatformSettings.financialSettings`) —
+    impostos sobre vendas / lucro (decimal) + despesas fixas mensais
+    (folha, aluguel + infra, outros).
+
+- **Engine pura PRD-048** (`src/features/dre/engine/calculateDRE.ts`):
+  - `calculateDRE(start, end, ctx)` — projeta o DRE do período somando
+    pedidos pagos (`paidAt` ∈ window), aplicando impostos sobre vendas,
+    devoluções (`returnedAt` ∈ window), CMV via
+    `sum(item.quantity * item.unitCost)`, comissões do PRD-047 (filtra
+    por `period` em `YYYY-MM`, descarta `canceled` / `disputed`),
+    despesas fixas, impostos sobre lucro (`max(0, op) * taxOnProfitPct`)
+    e resultado líquido — com percentuais em todos os subtotais.
+  - Comparativos `vsPreviousPeriod` (mesmo comprimento imediatamente
+    antes) e `vsYearAgo` (12 meses atrás, math UTC) calculados sobre o
+    mesmo contexto — sem fetch adicional.
+  - Coverage de CMV: `cmvCoverage`, `cmvMissingItemsCount`,
+    `cmvMissingPartsCount` — proteção contra interpretação errada de
+    margem quando peças não têm custo cadastrado.
+  - `calculateDRETrend(endIso, ctx)` — série de 12 meses (uma execução
+    por mês calendário) usada pelo `DRETrendChart`.
+
+- **Hook PRD-048** (`src/features/dre/hooks/useDREData.ts`):
+  - Janela de 24 meses no provider de orders + comissões + settings,
+    `staleTime` 60s, executando engine + tendência client-side.
+  - `resolvePeriodBounds(monthKey, kind)` resolve `monthly`,
+    `quarterly`, `yearly`.
+  - `buildMonthOptions(monthCount)` gera dropdown estável dos últimos N
+    meses.
+
+- **Hook de alertas** (`src/features/dre/hooks/useDREAlerts.ts`):
+  - CMV coverage < 90% → warning (< 60% → critical).
+  - Resultado operacional negativo → critical.
+  - Margem bruta < 30% (com `netRevenue > 0`) → warning.
+  - Queda ≥ 20% no resultado líquido vs período anterior → warning.
+
+- **Página `/app/gestao/dre`** (`src/features/dre/pages/DREPage.tsx`):
+  - Filtros: período (mensal / trimestral / anual) + mês de referência.
+  - Banner de alertas no topo (`DREAlertsBanner`).
+  - Tabela hierárquica (`DRETable`) com 18 linhas, 3 colunas
+    comparativas (atual / anterior / ano anterior), deltas em pílulas
+    (ícones de seta + cor success/destructive), drill-downs clicáveis:
+    Receita Bruta → `/app/gestao/vendas`, CMV →
+    `/app/gestao/rentabilidade`, Comissões → `/app/gestao/comissoes`,
+    Devoluções → `/app/pedidos?status=devolvido`. Linha "Despesas
+    Operacionais" expansível.
+  - Card de destaque com Resultado Líquido + % da receita líquida.
+  - `DRECoverageCard` — barra de progresso colorida (verde ≥90%,
+    amarelo 70-89%, vermelho <70%) + atalho para o catálogo.
+  - `DRETrendChart` — LineChart 12 meses (recharts) com receita
+    líquida, custos totais e resultado líquido + legenda.
+  - `DREExpensesChart` — PieChart de composição (donut) com legenda
+    lateral e percentuais.
+
+- **Sub-rota `/app/configuracoes/financeiro`**
+  (`src/features/dre/pages/FinancialConfigPage.tsx`):
+  - Sliders para `taxOnSalesPct` (0-25%) e `taxOnProfitPct` (0-30%).
+  - Inputs para despesas fixas mensais (folha / aluguel + infra /
+    outros) com total mensal calculado.
+  - Banner explícito sobre limitação MVP ("integração contábil real
+    disponível na Fase 2 — esses valores são estimativas").
+  - Save grava via `usePlatformSettings.update(...,
+    "settings.financial.update")` — audit log automático e
+    invalidação da query key `["dre"]` para refletir no relatório
+    imediatamente.
+
+- **RBAC PRD-048**
+  (`src/features/rbac/permissions/resources.ts`,
+  `matrix.ts`): novo resource `dre`. Owner — `view + edit` global;
+  Gestor — `view` da loja; Financeiro — `view + edit` da loja;
+  Vendedor / SDR / Cliente — sem acesso (redirecionados para
+  `/sem-permissao`).
+
+- **Menu de configurações** atualizado com item "Financeiro / DRE"
+  visível para Owner e Financeiro.
+
+### Changed
+
+- **`IPlatformSettings.financialSettings`** — novo bloco obrigatório no
+  shape de settings, com defaults `taxOnSalesPct=0.16`,
+  `taxOnProfitPct=0.20`, `payroll=R$ 35k`, `rentInfra=R$ 12k`,
+  `other=R$ 8k`. SEED_STORE atualizado.
+
+- **Gerador de peças** (`src/mocks/generators/part.ts`) —
+  aproximadamente 30% das peças mockadas passam a ter `unitCost = 0`
+  para simular peças sem custo cadastrado e exercitar a cobertura de
+  CMV no DRE. `unitPrice` continua derivado do custo base original
+  (mantém volume comercial realista).
+
+- **Rota `/app/gestao/dre`** — placeholder do PRD-003 substituído pela
+  `DREPage` real. Guard troca `requireAuth([Owner])` por
+  `requireAuth(permission: { resource: 'dre', action: 'view' })` para
+  liberar Gestor / Financeiro.
+
+- **`src/features/shell/config/routes.ts`** — adicionada constante
+  `CONFIG_FINANCEIRO`.
+
+### Notes
+
+- DRE é estrutura clássica — não inventamos componentes; seguimos o
+  padrão receita → CMV → margem bruta → despesas → resultado.
+- Comparativos cross-período são pure functions sobre o mesmo `ctx` —
+  trocar a janela é instantâneo, sem refetch.
+- Cobertura de CMV é explicita: % + número absoluto de itens + número
+  distinto de peças sem custo. Owner sabe se está olhando dado parcial.
+- Drill-downs essenciais: cada linha relevante leva a um relatório de
+  origem que detalha a composição.
+- Banner sobre Fase 2 deixa claro que é estimativa, não contabilidade
+  real.
+
+---
+
 ## [0.32.0] — Payout · 2026-05-27
 
 Continuação do **Bloco 4b** com o **Sistema de Comissões (PRD-047)** —

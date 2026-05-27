@@ -33,6 +33,7 @@ export type {
   ICreateConversationResult,
   IMessagesProvider,
   IListMessagesParams,
+  IListMessagesForAnalyticsParams,
   IPartsProvider,
   IListPartsParams,
   IQuotesProvider,

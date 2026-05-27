@@ -1,13 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PlaceholderPage } from "@/features/shell/components/EmptyState";
 import { DashboardLayout } from "@/features/shell/layouts";
 import { requireAuth } from "@/features/auth/guards";
+import { ProfitabilityPage, validateProfitabilitySearch } from "@/features/profitability";
 
 export const Route = createFileRoute("/app/gestao/rentabilidade")({
-  beforeLoad: ({ location }) => requireAuth(location.pathname, ["Owner"]),
+  validateSearch: validateProfitabilitySearch,
+  beforeLoad: ({ location }) =>
+    requireAuth(location.pathname, undefined, {
+      resource: "profitability",
+      action: "view",
+    }),
   component: () => (
     <DashboardLayout>
-      <PlaceholderPage prd="049" icon="mdi:scale-balance" title="Rentabilidade" />
+      <ProfitabilityPage />
     </DashboardLayout>
   ),
 });

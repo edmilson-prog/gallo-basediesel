@@ -80,5 +80,19 @@ export const SEED_STORE: IStore = {
       rules: [],
       closedPeriods: [],
     },
+    financialSettings: {
+      taxOnSalesPct: 0.16,
+      taxOnProfitPct: 0.2,
+      fixedExpenses: {
+        payroll: 35_000,
+        rentInfra: 12_000,
+        other: 8_000,
+      },
+    },
+    inventoryAnalysisSettings: {
+      consumptionWindowDays: 90,
+      targetCoverageDays: 30,
+      excessCoverageDays: 180,
+    },
   },
 };

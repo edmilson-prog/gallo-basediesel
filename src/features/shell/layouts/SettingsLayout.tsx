@@ -179,6 +179,18 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         roles: ["Owner"],
       },
       {
+        label: "Financeiro / DRE",
+        icon: "mdi:file-chart-outline",
+        to: "/app/configuracoes/financeiro",
+        roles: ["Owner", "Financeiro"],
+      },
+      {
+        label: "Estoque (análise)",
+        icon: "mdi:warehouse",
+        to: "/app/configuracoes/estoque-analise",
+        roles: ["Owner"],
+      },
+      {
         label: "Divisões",
         icon: "mdi:shape-outline",
         to: "/app/configuracoes/divisoes",

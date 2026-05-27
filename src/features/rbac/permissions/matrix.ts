@@ -54,6 +54,10 @@ const OWNER_ENTRIES: ScopedActions[] = [
   // the DB level via revoke + trigger).
   p("audit_log", ["view"], "all"),
   p("role", CRUD, "all"),
+  p("dre", ["view", "edit"], "all"),
+  p("profitability", ["view"], "all"),
+  p("inventory", ["view", "edit"], "all"),
+  p("customer_service_analytics", ["view"], "all"),
 ];
 
 const GESTOR_ENTRIES: ScopedActions[] = [
@@ -75,6 +79,10 @@ const GESTOR_ENTRIES: ScopedActions[] = [
   p("settings", ["view"], "store"),
   p("audit_log", ["view"], "store"),
   p("role", ["view"], "store"),
+  p("dre", ["view"], "store"),
+  p("profitability", ["view"], "store"),
+  p("inventory", ["view"], "store"),
+  p("customer_service_analytics", ["view"], "store"),
 ];
 
 const VENDEDOR_ENTRIES: ScopedActions[] = [
@@ -141,6 +149,10 @@ const FINANCEIRO_ENTRIES: ScopedActions[] = [
   p("store", ["view"], "own"),
   p("part", ["view"], "store"),
   p("audit_log", ["view"], "store"),
+  p("dre", ["view", "edit"], "store"),
+  p("profitability", ["view"], "store"),
+  p("inventory", ["view"], "store"),
+  p("customer_service_analytics", ["view"], "store"),
 ];
 
 function toPermissions(entries: ScopedActions[]): IPermission[] {

@@ -36,6 +36,7 @@ export const ROUTES = {
   GESTAO_DRE: "/app/gestao/dre",
   GESTAO_RENTABILIDADE: "/app/gestao/rentabilidade",
   GESTAO_DESPESAS: "/app/gestao/despesas",
+  GESTAO_ATENDIMENTO_ANALISE: "/app/gestao/atendimento-analise",
   GESTAO_CAIXA: "/app/gestao/caixa",
   GESTAO_ESTOQUE: "/app/gestao/estoque",
 
@@ -44,6 +45,8 @@ export const ROUTES = {
   CONFIG_PERFIL: "/app/configuracoes/perfil",
   CONFIG_APARENCIA: "/app/configuracoes/aparencia",
   CONFIG_COMISSOES: "/app/configuracoes/comissoes",
+  CONFIG_FINANCEIRO: "/app/configuracoes/financeiro",
+  CONFIG_ESTOQUE_ANALISE: "/app/configuracoes/estoque-analise",
 
   // Loja (vitrine)
   LOJA_HOME: "/loja",

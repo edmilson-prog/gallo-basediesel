@@ -4,6 +4,8 @@ import type { ISdrTemplate } from "./sdr";
 import type { ISdrQuoteTemplates } from "./sdr-quote";
 import type { IShippingConfig } from "./shipping";
 import type { ICommissionRuleConfig } from "./commercial";
+import type { IFinancialSettings } from "./dre";
+import type { IInventoryAnalysisSettings } from "./inventory";
 
 /** Store type. Matriz is the headquarters, filial is a branch, parceira is a partner store. */
 export type StoreType = "matriz" | "filial" | "parceira";
@@ -188,6 +190,10 @@ export interface IPlatformSettings {
   abcCurveSettings: IABCCurveSettings;
   /** Commission engine settings (PRD-047). */
   commissionSettings: ICommissionSettings;
+  /** Financial / DRE settings (PRD-048). */
+  financialSettings: IFinancialSettings;
+  /** Inventory analytics settings (PRD-050). */
+  inventoryAnalysisSettings: IInventoryAnalysisSettings;
 }
 
 /**

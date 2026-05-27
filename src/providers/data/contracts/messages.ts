@@ -7,6 +7,17 @@ export interface IListMessagesParams extends IPaginationParams {
 }
 
 /**
+ * Bulk read used by analytics surfaces (PRD-051). Implementations may return
+ * an empty array when the underlying transport doesn't support bulk reads
+ * (in which case the engine degrades gracefully and skips TMR).
+ */
+export interface IListMessagesForAnalyticsParams {
+  since?: string;
+  until?: string;
+  conversationIds?: ID[];
+}
+
+/**
  * Contract for individual conversation messages.
  *
  * @see ../../../mocks/api/messages.ts
@@ -26,4 +37,9 @@ export interface IMessagesProvider {
    * remains a no-op until Fase 2 (PRD-100+) wires real WhatsApp inbound.
    */
   simulateIncoming(conversationId: ID, text?: string): Promise<IMessage>;
+  /**
+   * Analytics-only bulk read. Returns every message matching the filters.
+   * Implementations without bulk support may return an empty array.
+   */
+  listForAnalytics(params?: IListMessagesForAnalyticsParams): Promise<IMessage[]>;
 }

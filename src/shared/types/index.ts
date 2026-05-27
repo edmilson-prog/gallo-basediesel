@@ -214,3 +214,35 @@ export type {
 
 // Goals (PRD-042 — runtime progress)
 export type { IGoalProgress, GoalProgressStatus, GoalProgressTrend } from "./goals";
+
+// DRE (PRD-048)
+export type {
+  IDREPeriod,
+  IDREComparison,
+  IDREComparativeBlock,
+  IDRETrendPoint,
+  IDREAlert,
+  IFinancialSettings,
+  DREAlertSeverity,
+} from "./dre";
+
+// Inventory analytics (PRD-050)
+export type {
+  IInventoryAnalysis,
+  IInventoryMetrics,
+  IInventoryReorderSuggestion,
+  IInventoryAnalysisSettings,
+  InventoryCurve,
+  InventoryStatus,
+} from "./inventory";
+
+// Customer service analytics (PRD-051)
+export type {
+  ICustomerServiceMetrics,
+  ICustomerServiceKpis,
+  IChannelServiceMetrics,
+  ISellerServiceMetrics,
+  ICustomerServiceMonthlyPoint,
+  ICustomerServiceDailyPoint,
+  IEscalationBreakdown,
+} from "./customer-service-analytics";

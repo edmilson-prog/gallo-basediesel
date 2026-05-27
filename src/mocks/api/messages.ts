@@ -15,7 +15,45 @@ export interface IListMessagesParams extends IPaginationParams {
   orderDir?: "asc" | "desc";
 }
 
+export interface IListMessagesForAnalyticsParams {
+  /** ISO8601 lower bound on `sentAt` (inclusive). */
+  since?: string;
+  /** ISO8601 upper bound on `sentAt` (inclusive). */
+  until?: string;
+  /** Restrict to messages belonging to these conversations. */
+  conversationIds?: ID[];
+}
+
 export const messagesApi = {
+  /**
+   * Analytics-only bulk read of messages (PRD-051). Returns every message
+   * whose conversation is in scope and whose `sentAt` falls inside the
+   * requested window. Mock-only — Supabase implementation in Fase 2 should
+   * expose an equivalent RPC backed by an indexed query.
+   */
+  listForAnalytics(params: IListMessagesForAnalyticsParams = {}): Promise<IMessage[]> {
+    return runApi(
+      "messagesApi",
+      "listForAnalytics",
+      () => {
+        const all = getMockState().messages;
+        const allowed = params.conversationIds ? new Set(params.conversationIds) : null;
+        let out = all;
+        if (allowed) out = out.filter((m) => allowed.has(m.conversationId));
+        if (params.since) {
+          const s = params.since;
+          out = out.filter((m) => m.sentAt >= s);
+        }
+        if (params.until) {
+          const u = params.until;
+          out = out.filter((m) => m.sentAt <= u);
+        }
+        return out;
+      },
+      { payload: params },
+    );
+  },
+
   list(params: IListMessagesParams): Promise<IPaginatedResult<IMessage>> {
     return runApi(
       "messagesApi",

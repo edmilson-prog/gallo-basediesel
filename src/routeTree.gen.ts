@@ -62,6 +62,7 @@ import { Route as AppGestaoDespesasRouteImport } from './routes/app.gestao.despe
 import { Route as AppGestaoComissoesRouteImport } from './routes/app.gestao.comissoes'
 import { Route as AppGestaoCarteiraAnaliticaRouteImport } from './routes/app.gestao.carteira-analitica'
 import { Route as AppGestaoCaixaRouteImport } from './routes/app.gestao.caixa'
+import { Route as AppGestaoAtendimentoAnaliseRouteImport } from './routes/app.gestao.atendimento-analise'
 import { Route as AppGestaoAbcRouteImport } from './routes/app.gestao.abc'
 import { Route as AppConfiguracoesWhatsappRouteImport } from './routes/app.configuracoes.whatsapp'
 import { Route as AppConfiguracoesUsuariosRouteImport } from './routes/app.configuracoes.usuarios'
@@ -71,6 +72,8 @@ import { Route as AppConfiguracoesPapeisRouteImport } from './routes/app.configu
 import { Route as AppConfiguracoesLojasRouteImport } from './routes/app.configuracoes.lojas'
 import { Route as AppConfiguracoesGamificacaoRouteImport } from './routes/app.configuracoes.gamificacao'
 import { Route as AppConfiguracoesFreteRouteImport } from './routes/app.configuracoes.frete'
+import { Route as AppConfiguracoesFinanceiroRouteImport } from './routes/app.configuracoes.financeiro'
+import { Route as AppConfiguracoesEstoqueAnaliseRouteImport } from './routes/app.configuracoes.estoque-analise'
 import { Route as AppConfiguracoesDivisoesRouteImport } from './routes/app.configuracoes.divisoes'
 import { Route as AppConfiguracoesDistribuicaoRouteImport } from './routes/app.configuracoes.distribuicao'
 import { Route as AppConfiguracoesCurvaAbcRouteImport } from './routes/app.configuracoes.curva-abc'
@@ -83,12 +86,14 @@ import { Route as AppCatalogoIdRouteImport } from './routes/app.catalogo.$id'
 import { Route as AppAtendimentoIdRouteImport } from './routes/app.atendimento.$id'
 import { Route as AppGestaoRankingIndexRouteImport } from './routes/app.gestao.ranking.index'
 import { Route as AppGestaoComissoesIndexRouteImport } from './routes/app.gestao.comissoes.index'
+import { Route as AppGestaoAtendimentoAnaliseIndexRouteImport } from './routes/app.gestao.atendimento-analise.index'
 import { Route as AppGestaoRankingSellerIdRouteImport } from './routes/app.gestao.ranking.$sellerId'
 import { Route as AppGestaoPositivacaoSellerIdRouteImport } from './routes/app.gestao.positivacao.$sellerId'
 import { Route as AppGestaoMetasNovaRouteImport } from './routes/app.gestao.metas.nova'
 import { Route as AppGestaoMetasIdRouteImport } from './routes/app.gestao.metas.$id'
 import { Route as AppGestaoComissoesSellerIdRouteImport } from './routes/app.gestao.comissoes.$sellerId'
 import { Route as AppGestaoCarteiraAnaliticaSellerIdRouteImport } from './routes/app.gestao.carteira-analitica.$sellerId'
+import { Route as AppGestaoAtendimentoAnaliseSellerIdRouteImport } from './routes/app.gestao.atendimento-analise.$sellerId'
 import { Route as AppGestaoAbcClassRouteImport } from './routes/app.gestao.abc.$class'
 import { Route as AppConfiguracoesVeiculosCadastroModeRouteImport } from './routes/app.configuracoes.veiculos.cadastro-mode'
 import { Route as AppConfiguracoesSdrTemplatesRouteImport } from './routes/app.configuracoes.sdr.templates'
@@ -367,6 +372,12 @@ const AppGestaoCaixaRoute = AppGestaoCaixaRouteImport.update({
   path: '/gestao/caixa',
   getParentRoute: () => AppRoute,
 } as any)
+const AppGestaoAtendimentoAnaliseRoute =
+  AppGestaoAtendimentoAnaliseRouteImport.update({
+    id: '/gestao/atendimento-analise',
+    path: '/gestao/atendimento-analise',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppGestaoAbcRoute = AppGestaoAbcRouteImport.update({
   id: '/gestao/abc',
   path: '/gestao/abc',
@@ -416,6 +427,18 @@ const AppConfiguracoesFreteRoute = AppConfiguracoesFreteRouteImport.update({
   path: '/configuracoes/frete',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConfiguracoesFinanceiroRoute =
+  AppConfiguracoesFinanceiroRouteImport.update({
+    id: '/configuracoes/financeiro',
+    path: '/configuracoes/financeiro',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppConfiguracoesEstoqueAnaliseRoute =
+  AppConfiguracoesEstoqueAnaliseRouteImport.update({
+    id: '/configuracoes/estoque-analise',
+    path: '/configuracoes/estoque-analise',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppConfiguracoesDivisoesRoute =
   AppConfiguracoesDivisoesRouteImport.update({
     id: '/configuracoes/divisoes',
@@ -482,6 +505,12 @@ const AppGestaoComissoesIndexRoute = AppGestaoComissoesIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppGestaoComissoesRoute,
 } as any)
+const AppGestaoAtendimentoAnaliseIndexRoute =
+  AppGestaoAtendimentoAnaliseIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AppGestaoAtendimentoAnaliseRoute,
+  } as any)
 const AppGestaoRankingSellerIdRoute =
   AppGestaoRankingSellerIdRouteImport.update({
     id: '/$sellerId',
@@ -515,6 +544,12 @@ const AppGestaoCarteiraAnaliticaSellerIdRoute =
     id: '/$sellerId',
     path: '/$sellerId',
     getParentRoute: () => AppGestaoCarteiraAnaliticaRoute,
+  } as any)
+const AppGestaoAtendimentoAnaliseSellerIdRoute =
+  AppGestaoAtendimentoAnaliseSellerIdRouteImport.update({
+    id: '/$sellerId',
+    path: '/$sellerId',
+    getParentRoute: () => AppGestaoAtendimentoAnaliseRoute,
   } as any)
 const AppGestaoAbcClassRoute = AppGestaoAbcClassRouteImport.update({
   id: '/$class',
@@ -617,6 +652,8 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/curva-abc': typeof AppConfiguracoesCurvaAbcRoute
   '/app/configuracoes/distribuicao': typeof AppConfiguracoesDistribuicaoRoute
   '/app/configuracoes/divisoes': typeof AppConfiguracoesDivisoesRoute
+  '/app/configuracoes/estoque-analise': typeof AppConfiguracoesEstoqueAnaliseRoute
+  '/app/configuracoes/financeiro': typeof AppConfiguracoesFinanceiroRoute
   '/app/configuracoes/frete': typeof AppConfiguracoesFreteRoute
   '/app/configuracoes/gamificacao': typeof AppConfiguracoesGamificacaoRoute
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
@@ -626,6 +663,7 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/usuarios': typeof AppConfiguracoesUsuariosRoute
   '/app/configuracoes/whatsapp': typeof AppConfiguracoesWhatsappRoute
   '/app/gestao/abc': typeof AppGestaoAbcRouteWithChildren
+  '/app/gestao/atendimento-analise': typeof AppGestaoAtendimentoAnaliseRouteWithChildren
   '/app/gestao/caixa': typeof AppGestaoCaixaRoute
   '/app/gestao/carteira-analitica': typeof AppGestaoCarteiraAnaliticaRouteWithChildren
   '/app/gestao/comissoes': typeof AppGestaoComissoesRouteWithChildren
@@ -665,12 +703,14 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/sdr/templates': typeof AppConfiguracoesSdrTemplatesRoute
   '/app/configuracoes/veiculos/cadastro-mode': typeof AppConfiguracoesVeiculosCadastroModeRoute
   '/app/gestao/abc/$class': typeof AppGestaoAbcClassRoute
+  '/app/gestao/atendimento-analise/$sellerId': typeof AppGestaoAtendimentoAnaliseSellerIdRoute
   '/app/gestao/carteira-analitica/$sellerId': typeof AppGestaoCarteiraAnaliticaSellerIdRoute
   '/app/gestao/comissoes/$sellerId': typeof AppGestaoComissoesSellerIdRoute
   '/app/gestao/metas/$id': typeof AppGestaoMetasIdRoute
   '/app/gestao/metas/nova': typeof AppGestaoMetasNovaRoute
   '/app/gestao/positivacao/$sellerId': typeof AppGestaoPositivacaoSellerIdRoute
   '/app/gestao/ranking/$sellerId': typeof AppGestaoRankingSellerIdRoute
+  '/app/gestao/atendimento-analise/': typeof AppGestaoAtendimentoAnaliseIndexRoute
   '/app/gestao/comissoes/': typeof AppGestaoComissoesIndexRoute
   '/app/gestao/ranking/': typeof AppGestaoRankingIndexRoute
 }
@@ -702,6 +742,8 @@ export interface FileRoutesByTo {
   '/app/configuracoes/curva-abc': typeof AppConfiguracoesCurvaAbcRoute
   '/app/configuracoes/distribuicao': typeof AppConfiguracoesDistribuicaoRoute
   '/app/configuracoes/divisoes': typeof AppConfiguracoesDivisoesRoute
+  '/app/configuracoes/estoque-analise': typeof AppConfiguracoesEstoqueAnaliseRoute
+  '/app/configuracoes/financeiro': typeof AppConfiguracoesFinanceiroRoute
   '/app/configuracoes/frete': typeof AppConfiguracoesFreteRoute
   '/app/configuracoes/gamificacao': typeof AppConfiguracoesGamificacaoRoute
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
@@ -748,12 +790,14 @@ export interface FileRoutesByTo {
   '/app/configuracoes/sdr/templates': typeof AppConfiguracoesSdrTemplatesRoute
   '/app/configuracoes/veiculos/cadastro-mode': typeof AppConfiguracoesVeiculosCadastroModeRoute
   '/app/gestao/abc/$class': typeof AppGestaoAbcClassRoute
+  '/app/gestao/atendimento-analise/$sellerId': typeof AppGestaoAtendimentoAnaliseSellerIdRoute
   '/app/gestao/carteira-analitica/$sellerId': typeof AppGestaoCarteiraAnaliticaSellerIdRoute
   '/app/gestao/comissoes/$sellerId': typeof AppGestaoComissoesSellerIdRoute
   '/app/gestao/metas/$id': typeof AppGestaoMetasIdRoute
   '/app/gestao/metas/nova': typeof AppGestaoMetasNovaRoute
   '/app/gestao/positivacao/$sellerId': typeof AppGestaoPositivacaoSellerIdRoute
   '/app/gestao/ranking/$sellerId': typeof AppGestaoRankingSellerIdRoute
+  '/app/gestao/atendimento-analise': typeof AppGestaoAtendimentoAnaliseIndexRoute
   '/app/gestao/comissoes': typeof AppGestaoComissoesIndexRoute
   '/app/gestao/ranking': typeof AppGestaoRankingIndexRoute
 }
@@ -794,6 +838,8 @@ export interface FileRoutesById {
   '/app/configuracoes/curva-abc': typeof AppConfiguracoesCurvaAbcRoute
   '/app/configuracoes/distribuicao': typeof AppConfiguracoesDistribuicaoRoute
   '/app/configuracoes/divisoes': typeof AppConfiguracoesDivisoesRoute
+  '/app/configuracoes/estoque-analise': typeof AppConfiguracoesEstoqueAnaliseRoute
+  '/app/configuracoes/financeiro': typeof AppConfiguracoesFinanceiroRoute
   '/app/configuracoes/frete': typeof AppConfiguracoesFreteRoute
   '/app/configuracoes/gamificacao': typeof AppConfiguracoesGamificacaoRoute
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
@@ -803,6 +849,7 @@ export interface FileRoutesById {
   '/app/configuracoes/usuarios': typeof AppConfiguracoesUsuariosRoute
   '/app/configuracoes/whatsapp': typeof AppConfiguracoesWhatsappRoute
   '/app/gestao/abc': typeof AppGestaoAbcRouteWithChildren
+  '/app/gestao/atendimento-analise': typeof AppGestaoAtendimentoAnaliseRouteWithChildren
   '/app/gestao/caixa': typeof AppGestaoCaixaRoute
   '/app/gestao/carteira-analitica': typeof AppGestaoCarteiraAnaliticaRouteWithChildren
   '/app/gestao/comissoes': typeof AppGestaoComissoesRouteWithChildren
@@ -842,12 +889,14 @@ export interface FileRoutesById {
   '/app/configuracoes/sdr/templates': typeof AppConfiguracoesSdrTemplatesRoute
   '/app/configuracoes/veiculos/cadastro-mode': typeof AppConfiguracoesVeiculosCadastroModeRoute
   '/app/gestao/abc/$class': typeof AppGestaoAbcClassRoute
+  '/app/gestao/atendimento-analise/$sellerId': typeof AppGestaoAtendimentoAnaliseSellerIdRoute
   '/app/gestao/carteira-analitica/$sellerId': typeof AppGestaoCarteiraAnaliticaSellerIdRoute
   '/app/gestao/comissoes/$sellerId': typeof AppGestaoComissoesSellerIdRoute
   '/app/gestao/metas/$id': typeof AppGestaoMetasIdRoute
   '/app/gestao/metas/nova': typeof AppGestaoMetasNovaRoute
   '/app/gestao/positivacao/$sellerId': typeof AppGestaoPositivacaoSellerIdRoute
   '/app/gestao/ranking/$sellerId': typeof AppGestaoRankingSellerIdRoute
+  '/app/gestao/atendimento-analise/': typeof AppGestaoAtendimentoAnaliseIndexRoute
   '/app/gestao/comissoes/': typeof AppGestaoComissoesIndexRoute
   '/app/gestao/ranking/': typeof AppGestaoRankingIndexRoute
 }
@@ -889,6 +938,8 @@ export interface FileRouteTypes {
     | '/app/configuracoes/curva-abc'
     | '/app/configuracoes/distribuicao'
     | '/app/configuracoes/divisoes'
+    | '/app/configuracoes/estoque-analise'
+    | '/app/configuracoes/financeiro'
     | '/app/configuracoes/frete'
     | '/app/configuracoes/gamificacao'
     | '/app/configuracoes/lojas'
@@ -898,6 +949,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/usuarios'
     | '/app/configuracoes/whatsapp'
     | '/app/gestao/abc'
+    | '/app/gestao/atendimento-analise'
     | '/app/gestao/caixa'
     | '/app/gestao/carteira-analitica'
     | '/app/gestao/comissoes'
@@ -937,12 +989,14 @@ export interface FileRouteTypes {
     | '/app/configuracoes/sdr/templates'
     | '/app/configuracoes/veiculos/cadastro-mode'
     | '/app/gestao/abc/$class'
+    | '/app/gestao/atendimento-analise/$sellerId'
     | '/app/gestao/carteira-analitica/$sellerId'
     | '/app/gestao/comissoes/$sellerId'
     | '/app/gestao/metas/$id'
     | '/app/gestao/metas/nova'
     | '/app/gestao/positivacao/$sellerId'
     | '/app/gestao/ranking/$sellerId'
+    | '/app/gestao/atendimento-analise/'
     | '/app/gestao/comissoes/'
     | '/app/gestao/ranking/'
   fileRoutesByTo: FileRoutesByTo
@@ -974,6 +1028,8 @@ export interface FileRouteTypes {
     | '/app/configuracoes/curva-abc'
     | '/app/configuracoes/distribuicao'
     | '/app/configuracoes/divisoes'
+    | '/app/configuracoes/estoque-analise'
+    | '/app/configuracoes/financeiro'
     | '/app/configuracoes/frete'
     | '/app/configuracoes/gamificacao'
     | '/app/configuracoes/lojas'
@@ -1020,12 +1076,14 @@ export interface FileRouteTypes {
     | '/app/configuracoes/sdr/templates'
     | '/app/configuracoes/veiculos/cadastro-mode'
     | '/app/gestao/abc/$class'
+    | '/app/gestao/atendimento-analise/$sellerId'
     | '/app/gestao/carteira-analitica/$sellerId'
     | '/app/gestao/comissoes/$sellerId'
     | '/app/gestao/metas/$id'
     | '/app/gestao/metas/nova'
     | '/app/gestao/positivacao/$sellerId'
     | '/app/gestao/ranking/$sellerId'
+    | '/app/gestao/atendimento-analise'
     | '/app/gestao/comissoes'
     | '/app/gestao/ranking'
   id:
@@ -1065,6 +1123,8 @@ export interface FileRouteTypes {
     | '/app/configuracoes/curva-abc'
     | '/app/configuracoes/distribuicao'
     | '/app/configuracoes/divisoes'
+    | '/app/configuracoes/estoque-analise'
+    | '/app/configuracoes/financeiro'
     | '/app/configuracoes/frete'
     | '/app/configuracoes/gamificacao'
     | '/app/configuracoes/lojas'
@@ -1074,6 +1134,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/usuarios'
     | '/app/configuracoes/whatsapp'
     | '/app/gestao/abc'
+    | '/app/gestao/atendimento-analise'
     | '/app/gestao/caixa'
     | '/app/gestao/carteira-analitica'
     | '/app/gestao/comissoes'
@@ -1113,12 +1174,14 @@ export interface FileRouteTypes {
     | '/app/configuracoes/sdr/templates'
     | '/app/configuracoes/veiculos/cadastro-mode'
     | '/app/gestao/abc/$class'
+    | '/app/gestao/atendimento-analise/$sellerId'
     | '/app/gestao/carteira-analitica/$sellerId'
     | '/app/gestao/comissoes/$sellerId'
     | '/app/gestao/metas/$id'
     | '/app/gestao/metas/nova'
     | '/app/gestao/positivacao/$sellerId'
     | '/app/gestao/ranking/$sellerId'
+    | '/app/gestao/atendimento-analise/'
     | '/app/gestao/comissoes/'
     | '/app/gestao/ranking/'
   fileRoutesById: FileRoutesById
@@ -1507,6 +1570,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppGestaoCaixaRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/gestao/atendimento-analise': {
+      id: '/app/gestao/atendimento-analise'
+      path: '/gestao/atendimento-analise'
+      fullPath: '/app/gestao/atendimento-analise'
+      preLoaderRoute: typeof AppGestaoAtendimentoAnaliseRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/gestao/abc': {
       id: '/app/gestao/abc'
       path: '/gestao/abc'
@@ -1568,6 +1638,20 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes/frete'
       fullPath: '/app/configuracoes/frete'
       preLoaderRoute: typeof AppConfiguracoesFreteRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/configuracoes/financeiro': {
+      id: '/app/configuracoes/financeiro'
+      path: '/configuracoes/financeiro'
+      fullPath: '/app/configuracoes/financeiro'
+      preLoaderRoute: typeof AppConfiguracoesFinanceiroRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/configuracoes/estoque-analise': {
+      id: '/app/configuracoes/estoque-analise'
+      path: '/configuracoes/estoque-analise'
+      fullPath: '/app/configuracoes/estoque-analise'
+      preLoaderRoute: typeof AppConfiguracoesEstoqueAnaliseRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/configuracoes/divisoes': {
@@ -1654,6 +1738,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppGestaoComissoesIndexRouteImport
       parentRoute: typeof AppGestaoComissoesRoute
     }
+    '/app/gestao/atendimento-analise/': {
+      id: '/app/gestao/atendimento-analise/'
+      path: '/'
+      fullPath: '/app/gestao/atendimento-analise/'
+      preLoaderRoute: typeof AppGestaoAtendimentoAnaliseIndexRouteImport
+      parentRoute: typeof AppGestaoAtendimentoAnaliseRoute
+    }
     '/app/gestao/ranking/$sellerId': {
       id: '/app/gestao/ranking/$sellerId'
       path: '/$sellerId'
@@ -1695,6 +1786,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/gestao/carteira-analitica/$sellerId'
       preLoaderRoute: typeof AppGestaoCarteiraAnaliticaSellerIdRouteImport
       parentRoute: typeof AppGestaoCarteiraAnaliticaRoute
+    }
+    '/app/gestao/atendimento-analise/$sellerId': {
+      id: '/app/gestao/atendimento-analise/$sellerId'
+      path: '/$sellerId'
+      fullPath: '/app/gestao/atendimento-analise/$sellerId'
+      preLoaderRoute: typeof AppGestaoAtendimentoAnaliseSellerIdRouteImport
+      parentRoute: typeof AppGestaoAtendimentoAnaliseRoute
     }
     '/app/gestao/abc/$class': {
       id: '/app/gestao/abc/$class'
@@ -1902,6 +2000,24 @@ const AppGestaoAbcRouteWithChildren = AppGestaoAbcRoute._addFileChildren(
   AppGestaoAbcRouteChildren,
 )
 
+interface AppGestaoAtendimentoAnaliseRouteChildren {
+  AppGestaoAtendimentoAnaliseSellerIdRoute: typeof AppGestaoAtendimentoAnaliseSellerIdRoute
+  AppGestaoAtendimentoAnaliseIndexRoute: typeof AppGestaoAtendimentoAnaliseIndexRoute
+}
+
+const AppGestaoAtendimentoAnaliseRouteChildren: AppGestaoAtendimentoAnaliseRouteChildren =
+  {
+    AppGestaoAtendimentoAnaliseSellerIdRoute:
+      AppGestaoAtendimentoAnaliseSellerIdRoute,
+    AppGestaoAtendimentoAnaliseIndexRoute:
+      AppGestaoAtendimentoAnaliseIndexRoute,
+  }
+
+const AppGestaoAtendimentoAnaliseRouteWithChildren =
+  AppGestaoAtendimentoAnaliseRoute._addFileChildren(
+    AppGestaoAtendimentoAnaliseRouteChildren,
+  )
+
 interface AppGestaoCarteiraAnaliticaRouteChildren {
   AppGestaoCarteiraAnaliticaSellerIdRoute: typeof AppGestaoCarteiraAnaliticaSellerIdRoute
 }
@@ -1985,6 +2101,8 @@ interface AppRouteChildren {
   AppConfiguracoesCurvaAbcRoute: typeof AppConfiguracoesCurvaAbcRoute
   AppConfiguracoesDistribuicaoRoute: typeof AppConfiguracoesDistribuicaoRoute
   AppConfiguracoesDivisoesRoute: typeof AppConfiguracoesDivisoesRoute
+  AppConfiguracoesEstoqueAnaliseRoute: typeof AppConfiguracoesEstoqueAnaliseRoute
+  AppConfiguracoesFinanceiroRoute: typeof AppConfiguracoesFinanceiroRoute
   AppConfiguracoesFreteRoute: typeof AppConfiguracoesFreteRoute
   AppConfiguracoesGamificacaoRoute: typeof AppConfiguracoesGamificacaoRoute
   AppConfiguracoesLojasRoute: typeof AppConfiguracoesLojasRoute
@@ -1994,6 +2112,7 @@ interface AppRouteChildren {
   AppConfiguracoesUsuariosRoute: typeof AppConfiguracoesUsuariosRoute
   AppConfiguracoesWhatsappRoute: typeof AppConfiguracoesWhatsappRoute
   AppGestaoAbcRoute: typeof AppGestaoAbcRouteWithChildren
+  AppGestaoAtendimentoAnaliseRoute: typeof AppGestaoAtendimentoAnaliseRouteWithChildren
   AppGestaoCaixaRoute: typeof AppGestaoCaixaRoute
   AppGestaoCarteiraAnaliticaRoute: typeof AppGestaoCarteiraAnaliticaRouteWithChildren
   AppGestaoComissoesRoute: typeof AppGestaoComissoesRouteWithChildren
@@ -2035,6 +2154,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesCurvaAbcRoute: AppConfiguracoesCurvaAbcRoute,
   AppConfiguracoesDistribuicaoRoute: AppConfiguracoesDistribuicaoRoute,
   AppConfiguracoesDivisoesRoute: AppConfiguracoesDivisoesRoute,
+  AppConfiguracoesEstoqueAnaliseRoute: AppConfiguracoesEstoqueAnaliseRoute,
+  AppConfiguracoesFinanceiroRoute: AppConfiguracoesFinanceiroRoute,
   AppConfiguracoesFreteRoute: AppConfiguracoesFreteRoute,
   AppConfiguracoesGamificacaoRoute: AppConfiguracoesGamificacaoRoute,
   AppConfiguracoesLojasRoute: AppConfiguracoesLojasRoute,
@@ -2044,6 +2165,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesUsuariosRoute: AppConfiguracoesUsuariosRoute,
   AppConfiguracoesWhatsappRoute: AppConfiguracoesWhatsappRoute,
   AppGestaoAbcRoute: AppGestaoAbcRouteWithChildren,
+  AppGestaoAtendimentoAnaliseRoute:
+    AppGestaoAtendimentoAnaliseRouteWithChildren,
   AppGestaoCaixaRoute: AppGestaoCaixaRoute,
   AppGestaoCarteiraAnaliticaRoute: AppGestaoCarteiraAnaliticaRouteWithChildren,
   AppGestaoComissoesRoute: AppGestaoComissoesRouteWithChildren,

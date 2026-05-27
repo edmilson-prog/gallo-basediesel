@@ -1,13 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PlaceholderPage } from "@/features/shell/components/EmptyState";
 import { DashboardLayout } from "@/features/shell/layouts";
 import { requireAuth } from "@/features/auth/guards";
+import { InventoryAnalyticsPage, validateInventorySearch } from "@/features/inventory-analytics";
 
 export const Route = createFileRoute("/app/gestao/estoque")({
-  beforeLoad: ({ location }) => requireAuth(location.pathname, ["Owner"]),
+  validateSearch: validateInventorySearch,
+  beforeLoad: ({ location }) =>
+    requireAuth(location.pathname, undefined, {
+      resource: "inventory",
+      action: "view",
+    }),
   component: () => (
     <DashboardLayout>
-      <PlaceholderPage prd="052" icon="mdi:warehouse" title="Estoque com curadoria" />
+      <InventoryAnalyticsPage />
     </DashboardLayout>
   ),
 });

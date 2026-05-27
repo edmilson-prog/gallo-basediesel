@@ -1,13 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PlaceholderPage } from "@/features/shell/components/EmptyState";
 import { DashboardLayout } from "@/features/shell/layouts";
 import { requireAuth } from "@/features/auth/guards";
+import { DREPage } from "@/features/dre";
 
 export const Route = createFileRoute("/app/gestao/dre")({
-  beforeLoad: ({ location }) => requireAuth(location.pathname, ["Owner"]),
+  beforeLoad: ({ location }) =>
+    requireAuth(location.pathname, undefined, { resource: "dre", action: "view" }),
   component: () => (
     <DashboardLayout>
-      <PlaceholderPage prd="048" icon="mdi:file-chart" title="DRE Gerencial" />
+      <DREPage />
     </DashboardLayout>
   ),
 });

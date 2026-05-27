@@ -12,4 +12,5 @@ export const supabaseMessagesProvider: IMessagesProvider = {
   send: stub("send"),
   markStatus: stub("markStatus"),
   simulateIncoming: stub("simulateIncoming"),
+  listForAnalytics: stub("listForAnalytics"),
 };

@@ -37,11 +37,16 @@ export function generatePart(
   const adjective = ctx.bool(0.7) ? ` ${ctx.pick(category.adjectives)}` : "";
   const brand = ctx.pick(PART_BRAND_NAMES);
   const supplier = ctx.pick(SUPPLIER_NAMES);
-  const unitCost = roundMoney(
+  const baseCost = roundMoney(
     ctx.int(category.costRange[0] * 100, category.costRange[1] * 100) / 100,
   );
   const margin = clamp(category.marginMean + (ctx.rng() - 0.5) * 0.18, 0.1, 0.7);
-  const unitPrice = roundMoney(unitCost * (1 + margin));
+  const unitPrice = roundMoney(baseCost * (1 + margin));
+  // PRD-048 RF-005 — ~30% of the catalog stays without `unitCost` so the DRE
+  // engine can surface the "CMV coverage" warning. We model "missing cost" as
+  // `unitCost = 0`; the engine treats positive values as covered.
+  const costKnown = ctx.bool(0.7);
+  const unitCost = costKnown ? baseCost : 0;
   // Stock distribution: ~70% normal, 20% low, 10% zero (PRD-030 RF-005).
   const stockRoll = ctx.rng();
   const stockMinimum = ctx.int(2, 10);

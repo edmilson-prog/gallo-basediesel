@@ -28,6 +28,10 @@ export const RESOURCES = [
   "settings",
   "audit_log",
   "role",
+  "dre",
+  "profitability",
+  "inventory",
+  "customer_service_analytics",
 ] as const;
 
 export type ResourceName = (typeof RESOURCES)[number];
