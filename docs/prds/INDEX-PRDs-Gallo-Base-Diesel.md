@@ -152,7 +152,7 @@ Visão executiva, metas, gamificação, positivação, curva ABC, comissões, DR
 | 044 | [Positivação de Clientes](./PRD-044-positivacao_DONE.md)                          | Feature | D     | 🔵    | 📝        | ✅     | 012, 041   |
 | 045 | [Curva ABC de Clientes](./PRD-045-curva-abc_DONE.md)                              | Feature | D     | 🔵    | 📝        | ✅     | 041        |
 | 046 | [Carteira Analítica com Drill-down](./PRD-046-carteira-analitica_DONE.md)        | Feature | D     | 🔵    | 📝        | ✅     | 044, 045   |
-| 047 | [Comissões (cálculo, fechamento)](./PRD-047-comissoes.md)                         | Feature | D     | 🔵    | 📝        | ⏳     | 041, 042   |
+| 047 | [Comissões (cálculo, fechamento)](./PRD-047-comissoes_DONE.md)                    | Feature | D     | 🔵    | 📝        | ✅     | 041, 042   |
 | 048 | [DRE Gerencial](./PRD-048-dre.md)                                                 | Feature | E     | 🔵    | 📝        | ⏳     | 041        |
 | 049 | [Rentabilidade por SKU / Cliente / Canal](./PRD-049-rentabilidade.md)             | Feature | E     | 🔵    | 📝        | ⏳     | 041        |
 | 050 | [Estoque — Análise (esqueleto navegável)](./PRD-050-estoque-analise.md)           | Feature | E     | 🔵    | 📝        | ⏳     | 030        |

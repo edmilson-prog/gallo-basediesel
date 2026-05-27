@@ -4,6 +4,155 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.32.0] — Payout · 2026-05-27
+
+Continuação do **Bloco 4b** com o **Sistema de Comissões (PRD-047)** —
+engine completa de cálculo, splits em transferências temporárias, bônus
+por meta atingida, fechamento mensal auditável e disputas com workflow
+formal. Substitui o `commissionPreview` simples do PRD-032 por
+`ICommission` real com snapshots imutáveis de regra e meta. Hook
+consumível pelo Cockpit Executivo (PRD-040) via `<CommissionsWidget />`.
+
+### Added
+
+- **Tipos PRD-047** (`src/shared/types/commercial.ts`,
+  `src/shared/types/platform.ts`):
+  - `ICommission` reescrito com snapshots imutáveis (`ruleSnapshot`,
+    `goalSnapshot`), campos completos (`baseValue`, `baseRate`,
+    `baseCommission`, `goalBonus`, `totalCommission`), estados de
+    aprovação (`approvedAt`, `approvedBy`), pagamento (`paidAt`,
+    `paidBy`, `paidBy`), disputa (`disputeReason`, `disputeResolution`,
+    etc.) e fechamento (`closedInPeriod`).
+  - `CommissionStatus` migrado para os 6 estados do PRD: `calculated`,
+    `pending_approval`, `approved`, `paid`, `disputed`, `canceled`.
+  - `ICommissionRuleConfig` — regra configurável (taxa base + bônus por
+    meta opcional) específica do vendedor ou padrão da loja.
+  - `ICommissionGoalBonus` com tipo `fixed` (R$) ou
+    `percentage_points` (pp na taxa).
+  - `ICommissionSplitDetails` referenciando a `ICarteiraTransfer` que
+    disparou o split (PRD-018).
+  - `ICommissionSettings` no `IPlatformSettings`: `active`,
+    `defaultRate`, `splitPolicy` (`coverage_full` |
+    `split_50_50`), `goalBonusEnabled`, `rules[]`, `closedPeriods[]`.
+
+- **Engine puro** (`src/features/commissions/engine/`):
+  - `calculateCommission(order, ctx)` — função pura que resolve regra
+    aplicável, calcula base, aplica bônus por meta, snapshota tudo e
+    retorna `{ primary, secondary? }` (secondary apenas em split 50/50).
+  - `determineCommissionBeneficiary(order, transfers, policy)` —
+    detecta `ICarteiraTransfer` temporária ativa em `order.paidAt` e
+    aplica a política configurada.
+  - `findApplicableRule({ sellerId, storeId, paidAt, settings })` —
+    resolução em 3 níveis: específica do vendedor → padrão da loja →
+    fallback sintético com `defaultRate`.
+
+- **Hooks**:
+  - `useCommissionTrigger({ storeId })` — varredura idempotente que
+    detecta pedidos pagos sem comissão e emite via provider; respeita
+    `settings.commissionSettings.active`.
+  - `useCommissionsList(filters)` — lista paginada com cache TanStack.
+  - `useCommissionMetrics({ storeId, period, sellerId? })` —
+    agregação por vendedor + totais + delta vs período anterior.
+  - `useCommissionForOrder(orderId)` — usado pelo OrderDetailPage para
+    substituir o preview pelo cálculo real quando existe.
+  - `useCommissionsFilters({ sellerLockedId? })` — URL-sync com
+    `validateCommissionsSearch` para período (`YYYY-MM`) e vendedor.
+
+- **Páginas**:
+  - `CommissionsPage` (`/app/gestao/comissoes/`) — renderização
+    condicional por papel: **Vendedor** vê visão individual (KPIs +
+    tabela do período); **Gestor/Owner/Financeiro** veem visão
+    consolidada (KPIs + tabela por vendedor com drill).
+  - `SellerCommissionsPage` (`/app/gestao/comissoes/$sellerId`) —
+    drill-down com KPIs do vendedor, tabela completa, cards de
+    disputas a resolver (Owner/Gestor) e de pagamentos pendentes
+    (Owner/Financeiro).
+  - `CommissionsConfigPage` (`/app/configuracoes/comissoes`) — Owner
+    only, edita taxa padrão, política de split, toggle de bônus e CRUD
+    de regras (incluindo `goalBonus`).
+
+- **Componentes**:
+  - `<CommissionsHeader />` com filtro de período (`<Input type="month">`)
+    e seletor de vendedor.
+  - `<CommissionsKpiGrid />` — 4 KPIs (total a pagar, pedidos, bônus,
+    status agregado).
+  - `<CommissionsBySellerTable />` — tabela consolidada com drill,
+    chips de status por valor.
+  - `<CommissionsMyOrdersTable />` — tabela individual com botão
+    "Contestar" e link para pedido.
+  - `<DisputeDialog />` — vendedor abre contestação com justificativa.
+  - `<ResolveDisputeDialog />` — gestor resolve (manter / cancelar).
+  - `<ClosePeriodDialog />` — modal de confirmação para fechamento
+    mensal com resumo de impacto.
+  - `<CommissionsWidget />` — widget compacto para Cockpit (PRD-040) e
+    futuro Painel Gestor.
+
+- **Integração no Cockpit Executivo (PRD-040)** —
+  `<CommissionsWidget />` adicionado ao grid de comparativos.
+
+- **Integração no OrderDetailPage (PRD-032)** — bloco "Comissão Preview"
+  agora renderiza o `ICommission` real quando existe (com base/taxa/bônus
+  e indicador de split), e mantém o preview informativo quando o pedido
+  ainda não está pago.
+
+- **Mock seed**:
+  - `seedCommissionRules()` gera 1 regra padrão da loja + 2 overrides
+    por vendedor (Marina @ 4% com bônus `fixed` R$ 500 a 100% revenue;
+    Carlos @ 3.5% com bônus `percentage_points` +0.5pp a 100% revenue).
+  - `generateCommission()` reescrito para usar `findApplicableRule` e
+    emitir registros com snapshots, novos status (`calculated`,
+    `approved`, `paid`, `disputed`) e campos completos.
+
+- **Mock API** (`src/mocks/api/commissions.ts`) ganhou `create`,
+  `closeMonthlyPeriod`, `openDispute`, `resolveDispute` e
+  `registerPayment` com validação ("comissão em período fechado é
+  imutável", "pagamento exige aprovado").
+
+- **Provider** (`ICommissionsProvider`) expandido nos contracts; mock
+  implementa com audit log via `logMockMutation` (`create`,
+  `approve`, `pay`, `dispute_open`, `dispute_resolve`, `close_period`,
+  `update`); supabase mantido como stub.
+
+- **Rotas**:
+  - `/app/gestao/comissoes` reestruturada — agora é layout-only com
+    `<Outlet />`.
+  - `/app/gestao/comissoes/` (index) — `CommissionsPage`.
+  - `/app/gestao/comissoes/$sellerId` — `SellerCommissionsPage`.
+  - `/app/configuracoes/comissoes` — `CommissionsConfigPage`
+    (Owner only).
+  - `SettingsLayout` ganha item de menu "Comissões" no grupo Avançado.
+
+- **i18n pt-BR** em `src/features/commissions/i18n/pt-BR.ts` com
+  rótulos completos, status, headers de tabela e copy de diálogos.
+
+- **Audit log** em todas mutações: `commission.create`,
+  `commission.approve`, `commission.pay`, `commission.dispute_open`,
+  `commission.dispute_resolve`, `commission.close_period`,
+  `settings.commissions.update`.
+
+### Changed
+
+- `IPlatformSettings` ganha `commissionSettings` obrigatório (default
+  no `seedStore.ts` com taxa 3%, split `coverage_full`, bônus ligado).
+- `ICommission.status` migrado dos rótulos antigos pt-BR
+  (`pendente`/`aprovado`/`pago`/`contestado`) para os 6 estados do PRD-047
+  em inglês. `OrderPaymentStatus` e `VehicleCadastroStatus` não foram
+  afetados (campos distintos).
+
+### Fixed
+
+- `OrderDetailPage` deixa de exibir "preview" quando há comissão real,
+  evitando confusão para vendedores que abrem pedidos já pagos.
+
+### Migration notes
+
+- Comissões anteriormente persistidas continuam sendo lidas, mas com os
+  novos campos opcionais ausentes — em produção (Fase 2) será preciso
+  uma migração de dados ou recálculo idempotente via
+  `useCommissionTrigger`.
+
+---
+
 ## [0.31.0] — Podium · 2026-05-27
 
 Abertura do **Bloco 4b** com o **Ranking de Vendedores e Gamificação

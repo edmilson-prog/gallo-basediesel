@@ -15,6 +15,7 @@ import { PortfolioMiniDonut } from "../components/charts/PortfolioMiniDonut";
 import { TopSellersBar } from "../components/charts/TopSellersBar";
 import { ABCMiniChart } from "../components/charts/ABCMiniChart";
 import { RankingHighlightWidget } from "@/features/gamification";
+import { CommissionsWidget } from "@/features/commissions";
 import { useCockpitFilters } from "../hooks/useCockpitFilters";
 import { useCockpitMetrics } from "../hooks/useCockpitMetrics";
 import { useCockpitAlerts, type ICockpitAlert } from "../hooks/useCockpitAlerts";
@@ -288,6 +289,7 @@ export function ExecutiveCockpitPage() {
           onClick={() => void navigate({ to: "/app/gestao/abc" })}
         />
         <RankingHighlightWidget storeId={currentStore?.id ?? undefined} />
+        <CommissionsWidget storeId={currentStore?.id ?? "store-matriz"} />
       </section>
 
       <section className="mt-6" aria-label={S.sectionComparison}>

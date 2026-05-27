@@ -173,6 +173,12 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         upcoming: true,
       },
       {
+        label: "Comissões",
+        icon: "mdi:cash-multiple",
+        to: "/app/configuracoes/comissoes",
+        roles: ["Owner"],
+      },
+      {
         label: "Divisões",
         icon: "mdi:shape-outline",
         to: "/app/configuracoes/divisoes",

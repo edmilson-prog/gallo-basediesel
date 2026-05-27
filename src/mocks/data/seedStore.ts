@@ -72,5 +72,13 @@ export const SEED_STORE: IStore = {
       classAThreshold: 0.8,
       classBThreshold: 0.95,
     },
+    commissionSettings: {
+      active: true,
+      defaultRate: 0.03,
+      splitPolicy: "coverage_full",
+      goalBonusEnabled: true,
+      rules: [],
+      closedPeriods: [],
+    },
   },
 };

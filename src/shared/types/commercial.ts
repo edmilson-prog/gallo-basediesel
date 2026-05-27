@@ -247,11 +247,109 @@ export interface IOrder {
   updatedAt: ISO8601;
 }
 
-/** Status of a commission record. */
-export type CommissionStatus = "pendente" | "aprovado" | "pago" | "contestado";
+/**
+ * Status of a commission record (PRD-047).
+ *
+ * Lifecycle:
+ *  - `calculated`: emitted automatically when an order is paid.
+ *  - `pending_approval`: optionally used when policy requires explicit review.
+ *  - `approved`: locked in during monthly close (`closedInPeriod` set).
+ *  - `paid`: payment registered by the Financeiro role.
+ *  - `disputed`: seller filed a dispute; awaits manager resolution.
+ *  - `canceled`: voided (e.g. order canceled / returned).
+ */
+export type CommissionStatus =
+  | "calculated"
+  | "pending_approval"
+  | "approved"
+  | "paid"
+  | "disputed"
+  | "canceled";
 
 /**
- * Commission — payout owed to a seller for a closed order.
+ * How a commission is split between titular and coverage sellers when a
+ * temporary `ICarteiraTransfer` is active at the moment the order is paid
+ * (PRD-018 + PRD-047).
+ */
+export interface ICommissionSplitDetails {
+  /** Seller that received the customer during the coverage window. */
+  coverageSellerId: ID;
+  /** Original (titular) seller of the customer. */
+  titularSellerId: ID;
+  /** Share that goes to the coverage seller (0..1). */
+  coveragePct: number;
+  /** Share that goes to the titular seller (0..1). */
+  titularPct: number;
+  /** Reference to the transfer that triggered the split. */
+  transferId: ID;
+}
+
+/** Type of goal bonus payout. */
+export type CommissionGoalBonusType = "fixed" | "percentage_points";
+
+/**
+ * Optional goal-based bonus inside a commission rule (PRD-047).
+ *
+ * - `fixed`: adds a flat R$ amount once the goal threshold is met.
+ * - `percentage_points`: adds N percentage points to the base rate
+ *   (e.g. `bonusValue: 1` raises a 3% rate to 4%).
+ */
+export interface ICommissionGoalBonus {
+  /** Goal type that triggers the bonus (matches `IGoal.type`). */
+  goalType: string;
+  /** Percentage of goal achievement that triggers the bonus (e.g. 100). */
+  threshold: number;
+  bonusType: CommissionGoalBonusType;
+  /** R$ amount (fixed) or percentage points (percentage_points). */
+  bonusValue: number;
+}
+
+/**
+ * Configurable commission rule (PRD-047).
+ *
+ * Either store-wide (when `sellerId` is undefined) or specific to a seller.
+ * When resolving the rule for an order: seller-specific > store-wide default.
+ * Snapshotted into `ICommission.ruleSnapshot` so retroactive edits never
+ * mutate already-emitted commissions.
+ *
+ * Note: not to be confused with the legacy `ICommissionRule` in `people.ts`,
+ * which lives on `ISeller.commissionRule` and is a lightweight
+ * `{ base, rate }` preference for external sellers — kept for back-compat.
+ */
+export interface ICommissionRuleConfig {
+  id: ID;
+  storeId: ID;
+  /** Human-readable name shown on the admin panel. */
+  name: string;
+  /** Seller this rule applies to. Undefined = store default. */
+  sellerId?: ID;
+  /** Decimal base rate (0.03 = 3%). */
+  baseRate: number;
+  /** Optional goal-based bonus. */
+  goalBonus?: ICommissionGoalBonus;
+  /** Validity window — rules outside the window are ignored. */
+  validFrom: ISO8601;
+  validUntil?: ISO8601;
+  isActive: boolean;
+  createdBy: ID;
+  createdAt: ISO8601;
+}
+
+/**
+ * Snapshot of a goal at the moment a commission was calculated — used to
+ * preserve evidence of the threshold met when bonus was awarded.
+ */
+export interface ICommissionGoalSnapshot {
+  id: ID;
+  type: string;
+  targetValue: Money;
+  currentValue: Money;
+  achievementPct: number;
+  period: string;
+}
+
+/**
+ * Commission — payout owed to a seller for a paid order (PRD-047).
  *
  * @see ../../../docs/glossario.md#comissao
  */
@@ -260,15 +358,54 @@ export interface ICommission {
   storeId: ID;
   sellerId: ID;
   orderId: ID;
-  /** Base value over which the rate is applied (revenue or margin, see ICommissionRule). */
+  /** Base value over which the rate is applied (subtotal - discount). */
   baseValue: Money;
-  /** Decimal rate (0.05 = 5%). */
+  /** Decimal rate effectively applied (already includes goal bonus when
+   *  bonus type is `percentage_points`). */
   rate: number;
-  /** Resolved value = baseValue * rate. */
+  /** Decimal base rate from the rule (without goal bonus). */
+  baseRate: number;
+  /** Base commission = baseValue * baseRate (without goal bonus). */
+  baseCommission: Money;
+  /** Goal bonus added on top of `baseCommission` (R$). */
+  goalBonus: Money;
+  /** Total commission = baseCommission + goalBonus (after split, when applicable). */
+  totalCommission: Money;
+  /** Backward-compatible alias of `totalCommission`. */
   value: Money;
-  /** Reference period in `YYYY-MM` format. */
+  /** Whether this record is part of a split (titular vs coverage). */
+  isSplit: boolean;
+  /** Populated when `isSplit` is true (PRD-018). */
+  splitDetails?: ICommissionSplitDetails;
+  /** Immutable snapshot of the rule applied at calculation time. */
+  ruleSnapshot?: ICommissionRuleConfig;
+  /** Immutable snapshot of the goal when a goal bonus was awarded. */
+  goalSnapshot?: ICommissionGoalSnapshot;
+  /** Reference period in `YYYY-MM` format (derived from `order.paidAt`). */
   period: string;
+  /** Closing period in `YYYY-MM` format — set on monthly close. */
+  closedInPeriod?: string;
+  /** Timestamp the commission was approved (monthly close). */
+  approvedAt?: ISO8601;
+  /** Actor that closed the period. */
+  approvedBy?: ID;
+  /** Timestamp payment was registered (Financeiro). */
+  paidAt?: ISO8601;
+  /** Actor that registered payment. */
+  paidBy?: ID;
+  /** Dispute justification provided by the seller. */
+  disputeReason?: string;
+  /** Timestamp the dispute was opened. */
+  disputedAt?: ISO8601;
+  /** Resolution note when a dispute is resolved. */
+  disputeResolution?: string;
+  /** Actor that resolved the dispute. */
+  disputeResolvedBy?: ID;
+  /** Timestamp the dispute was resolved. */
+  disputeResolvedAt?: ISO8601;
   status: CommissionStatus;
   notes?: string;
+  /** Timestamp the commission was first calculated. */
+  calculatedAt: ISO8601;
   createdAt: ISO8601;
 }

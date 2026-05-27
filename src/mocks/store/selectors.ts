@@ -83,6 +83,10 @@ export function selectAllStores() {
   return getMockState().stores;
 }
 
+export function selectStoreById(id: ID) {
+  return getMockState().stores.find((s) => s.id === id) ?? null;
+}
+
 export function selectAllQuotes() {
   return getMockState().quotes;
 }

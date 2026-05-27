@@ -544,9 +544,9 @@ Comissão é dado salarial — visibilidade restrita. Vendedor vê só a sua. Ge
 
 ## Status
 
-| Campo  | Valor       |
-| ------ | ----------- |
-| Status | ⏳ PENDENTE |
+| Campo  | Valor                                                    |
+| ------ | -------------------------------------------------------- |
+| Status | ✅ IMPLEMENTADO (v0.32.0 Payout · 2026-05-27)             |
 
 ---
 
@@ -555,6 +555,7 @@ Comissão é dado salarial — visibilidade restrita. Vendedor vê só a sua. Ge
 | Data       | Versão | Alteração                                                                                          |
 | ---------- | ------ | -------------------------------------------------------------------------------------------------- |
 | 25/05/2026 | v1     | Criação inicial — comissões com regras configuráveis, splits, bônus por meta, fechamento auditável |
+| 27/05/2026 | v1.1   | Implementação completa em v0.32.0 Payout — engine puro, trigger idempotente, páginas, config admin, fechamento mensal, disputas com workflow e widget para PRD-040 |
 
 ---
 

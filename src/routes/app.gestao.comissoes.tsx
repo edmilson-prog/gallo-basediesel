@@ -1,13 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { PlaceholderPage } from "@/features/shell/components/EmptyState";
-import { DashboardLayout } from "@/features/shell/layouts";
-import { requireAuth } from "@/features/auth/guards";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
+/**
+ * Commissions section layout (PRD-047). Outlet-only wrapper so child routes
+ * (`/`, `/$sellerId`) render under the same path namespace. The page-level
+ * auth guard lives on the index and drill-down routes.
+ */
 export const Route = createFileRoute("/app/gestao/comissoes")({
-  beforeLoad: ({ location }) => requireAuth(location.pathname, ["Owner"]),
-  component: () => (
-    <DashboardLayout>
-      <PlaceholderPage prd="047" icon="mdi:cash-multiple" title="Comissões" />
-    </DashboardLayout>
-  ),
+  component: () => <Outlet />,
 });

@@ -25,6 +25,8 @@ export type {
   ITagSuggestion,
   IWhatsAppAccountRef,
   IManagerDashboardSettings,
+  ICommissionSettings,
+  CommissionSplitPolicy,
   StoreType,
   VehicleCadastroMode,
 } from "./platform";
@@ -101,6 +103,10 @@ export type {
   IOrderItem,
   ICommission,
   ICommissionPreview,
+  ICommissionRuleConfig,
+  ICommissionGoalBonus,
+  ICommissionGoalSnapshot,
+  ICommissionSplitDetails,
   QuoteStatus,
   QuoteOrigin,
   QuotePaymentMethod,
@@ -110,6 +116,7 @@ export type {
   OrderStatus,
   OrderPaymentMethod,
   CommissionStatus,
+  CommissionGoalBonusType,
 } from "./commercial";
 
 // Distribution / routing (PRD-013)

@@ -39,9 +39,11 @@ import { generateVehicle, generateVehicleServiceEntry } from "./vehicle";
 import { generateLead } from "./lead";
 import { generateConversation } from "./conversation";
 import { generateMessagesForConversation } from "./message";
+import { generateScriptedConversations } from "./scriptedConversations";
 import { generateQuote } from "./quote";
 import { generateOrder } from "./order";
 import { generateCommission } from "./commission";
+import { seedCommissionRules } from "./commissionRules";
 import { generateGoals } from "./goal";
 import { generateRecommendation } from "./recommendation";
 import { generateTransfer } from "./transfer";
@@ -229,6 +231,19 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
     if (take.length === 0) break;
   }
 
+  // 11.5. Scripted conversations — 12 narrative scenarios layered on top of
+  // the random thread above. They reuse existing customers/leads/sellers so
+  // referential integrity stays intact and the random VOLUMES are unaffected.
+  const scripted = generateScriptedConversations({
+    customers,
+    leads,
+    sellers,
+    whatsappAccountIds,
+    now,
+  });
+  conversations.push(...scripted.conversations);
+  messages.push(...scripted.messages);
+
   // 12. Quotes — bound to customers or leads, items pulled from the part catalog.
   const quotes: IQuote[] = [];
   for (let i = 0; i < VOLUMES.quotes; i += 1) {
@@ -282,11 +297,30 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
     }
   }
 
-  // 14. Commissions for paid orders only (RF-012). Cap at VOLUMES.commissions.
+  // 14. Commission rules (PRD-047) — seeded onto the store settings so every
+  // commission generated below has a snapshotted rule. Default store-wide rule
+  // + per-seller overrides for sellers with a `commissionRule` preference.
+  const commissionRules = seedCommissionRules({
+    storeId: stores[0].id,
+    sellers,
+    createdBy: SEED_OWNER_ID,
+  });
+  stores[0].settings.commissionSettings = {
+    ...stores[0].settings.commissionSettings,
+    rules: commissionRules,
+  };
+
+  // 15. Commissions for paid orders only (RF-012). Cap at VOLUMES.commissions.
   const paidOrders = orders.filter((o) => o.paymentStatus === "pago");
   const commissions: ICommission[] = [];
   for (let i = 0; i < Math.min(VOLUMES.commissions, paidOrders.length); i += 1) {
-    commissions.push(generateCommission(ctx, { sequence: i, order: paidOrders[i] }));
+    commissions.push(
+      generateCommission(ctx, {
+        sequence: i,
+        order: paidOrders[i],
+        settings: stores[0].settings.commissionSettings,
+      }),
+    );
   }
 
   // 15. Goals (store + individual).

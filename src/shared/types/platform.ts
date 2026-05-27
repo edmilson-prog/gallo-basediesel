@@ -3,6 +3,7 @@ import type { IDistributionSettings } from "./distribution";
 import type { ISdrTemplate } from "./sdr";
 import type { ISdrQuoteTemplates } from "./sdr-quote";
 import type { IShippingConfig } from "./shipping";
+import type { ICommissionRuleConfig } from "./commercial";
 
 /** Store type. Matriz is the headquarters, filial is a branch, parceira is a partner store. */
 export type StoreType = "matriz" | "filial" | "parceira";
@@ -185,6 +186,38 @@ export interface IPlatformSettings {
   quoteDefaultValidityDays: number;
   /** Customer ABC curve classification settings (PRD-045). */
   abcCurveSettings: IABCCurveSettings;
+  /** Commission engine settings (PRD-047). */
+  commissionSettings: ICommissionSettings;
+}
+
+/**
+ * Policy that decides who receives the commission when a temporary carteira
+ * transfer is active at the moment the order is paid (PRD-018 + PRD-047):
+ *  - `coverage_full`: coverage seller takes 100%.
+ *  - `split_50_50`: split 50/50 between titular and coverage.
+ */
+export type CommissionSplitPolicy = "coverage_full" | "split_50_50";
+
+/**
+ * Commission engine configuration (PRD-047).
+ *
+ * Owner edits this at `/app/configuracoes/comissoes`. Any change triggers an
+ * audit-log entry. Rules are evaluated by the engine: seller-specific rules
+ * take precedence over the store-wide default rate.
+ */
+export interface ICommissionSettings {
+  /** Whether the commission engine is active (calculations + UI). */
+  active: boolean;
+  /** Decimal default rate (0.03 = 3%) applied when no seller-specific rule exists. */
+  defaultRate: number;
+  /** Split policy applied when a temporary carteira transfer is active. */
+  splitPolicy: CommissionSplitPolicy;
+  /** Whether goal-based bonuses are applied during calculation. */
+  goalBonusEnabled: boolean;
+  /** Configured rules (store-wide default + per-seller overrides). */
+  rules: ICommissionRuleConfig[];
+  /** Periods (`YYYY-MM`) that are closed and immutable. */
+  closedPeriods: string[];
 }
 
 /**

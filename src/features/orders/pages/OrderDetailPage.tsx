@@ -42,6 +42,7 @@ import {
   startOrderFulfillment,
 } from "../api/orderTransitions";
 import { applyOrderItemToVehicle } from "../api/applyItemToVehicle";
+import { useCommissionForOrder } from "@/features/commissions/hooks/useCommissionForOrder";
 
 const moneyFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -110,6 +111,11 @@ export function OrderDetailPage() {
       }),
     enabled: Boolean(order),
     staleTime: 30_000,
+  });
+
+  const commissionsForOrder = useCommissionForOrder(id, {
+    storeId: order?.storeId,
+    enabled: Boolean(order),
   });
 
   const [dialog, setDialog] = useState<OrderDialogKind>(null);
@@ -493,10 +499,74 @@ export function OrderDetailPage() {
         )}
       </Card>
 
-      {/* 6 — Comissão Preview */}
+      {/* 6 — Comissão (PRD-047 — cálculo real quando disponível; preview caso contrário) */}
       <Card className="p-5">
-        <SectionHeader icon="mdi:percent-outline" title="Comissão (Preview)" />
-        {order.commissionPreview ? (
+        <SectionHeader
+          icon="mdi:percent-outline"
+          title={commissionsForOrder.hasCommission ? "Comissão calculada" : "Comissão (Preview)"}
+        />
+        {commissionsForOrder.hasCommission ? (
+          <div className="space-y-3">
+            {commissionsForOrder.commissions.map((c) => (
+              <div
+                key={c.id}
+                className="rounded-md border border-border bg-muted/40 p-3 text-sm"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-foreground">
+                      {moneyFormatter.format(c.totalCommission)}
+                    </span>
+                    {c.isSplit && (
+                      <span className="rounded bg-warning/15 px-1.5 py-0.5 text-xs text-warning-foreground">
+                        Split
+                      </span>
+                    )}
+                    {c.goalBonus > 0 && (
+                      <span className="rounded bg-success/15 px-1.5 py-0.5 text-xs text-success-foreground">
+                        +Bônus meta
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    Status: <span className="font-medium text-foreground">{c.status}</span>
+                  </span>
+                </div>
+                <dl className="mt-2 grid gap-2 text-xs md:grid-cols-4">
+                  <div>
+                    <dt className="text-muted-foreground">Base</dt>
+                    <dd className="font-medium text-foreground">
+                      {moneyFormatter.format(c.baseValue)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Taxa</dt>
+                    <dd className="font-medium text-foreground">
+                      {(c.rate * 100).toFixed(2)}%
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Base × Taxa</dt>
+                    <dd className="font-medium text-foreground">
+                      {moneyFormatter.format(c.baseCommission)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Bônus meta</dt>
+                    <dd className="font-medium text-foreground">
+                      {moneyFormatter.format(c.goalBonus)}
+                    </dd>
+                  </div>
+                </dl>
+                {c.ruleSnapshot && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Regra: <span className="text-foreground">{c.ruleSnapshot.name}</span>
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : order.commissionPreview ? (
           <>
             <dl className="grid gap-3 text-sm md:grid-cols-3">
               <div>
@@ -533,8 +603,8 @@ export function OrderDetailPage() {
             <div className="mt-3 flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-700 dark:text-amber-200">
               <Icon icon="mdi:alert-outline" size={14} className="mt-0.5" />
               <p>
-                Preview informativo — cálculo definitivo, com regras complexas (metas, splits,
-                bônus), chega no PRD-047 (Onda 2).
+                Pedido ainda não confirmado como pago — após pagamento, a comissão definitiva
+                (PRD-047) é gerada automaticamente.
               </p>
             </div>
           </>

@@ -9,5 +9,10 @@ const stub = (method: string) => () => {
 
 export const supabaseCommissionsProvider: ICommissionsProvider = {
   list: stub("list"),
+  create: stub("create"),
   update: stub("update"),
+  closeMonthlyPeriod: stub("closeMonthlyPeriod"),
+  openDispute: stub("openDispute"),
+  resolveDispute: stub("resolveDispute"),
+  registerPayment: stub("registerPayment"),
 };

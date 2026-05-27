@@ -43,6 +43,7 @@ export const ROUTES = {
   CONFIG_INICIO: "/app/configuracoes",
   CONFIG_PERFIL: "/app/configuracoes/perfil",
   CONFIG_APARENCIA: "/app/configuracoes/aparencia",
+  CONFIG_COMISSOES: "/app/configuracoes/comissoes",
 
   // Loja (vitrine)
   LOJA_HOME: "/loja",
