@@ -172,7 +172,7 @@ export function calculatePositivation(
 
   // Seller breakdown — group customers by sellerId, intersect with positivated set.
   const sellerNameById = new Map<ID, string>();
-  for (const s of context.sellers) sellerNameById.set(s.id, s.name);
+  for (const s of context.sellers) sellerNameById.set(s.id, s.fullName);
 
   const grouped = new Map<ID, ICustomer[]>();
   for (const customer of eligible) {

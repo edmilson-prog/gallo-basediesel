@@ -170,7 +170,7 @@ export function useCockpitFilters(ctx: { gestorLockedStoreId?: ID }): IUseCockpi
   const apply = useCallback(
     (patch: Partial<ICockpitFiltersSearch>) => {
       void navigate({
-        search: (prev) => {
+        search: (prev: Record<string, unknown>) => {
           const next: ICockpitFiltersSearch = {
             ...(prev as ICockpitFiltersSearch),
             ...patch,

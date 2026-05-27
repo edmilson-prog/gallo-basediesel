@@ -179,7 +179,7 @@ export function usePositivationMetrics(
             until: previousWindow.toIso,
             pageSize: 5000,
           })
-        : Promise.resolve({ items: [], total: 0, page: 1, pageSize: 0 }),
+        : Promise.resolve({ data: [], total: 0, page: 1, pageSize: 0 }),
     staleTime: STALE_MS,
     enabled: enabled && Boolean(previousWindow),
   });
@@ -220,13 +220,13 @@ export function usePositivationMetrics(
     void settingsQuery.refetch();
   };
 
-  const customers = useMemo(() => customersQuery.data?.items ?? [], [customersQuery.data]);
+  const customers = useMemo(() => customersQuery.data?.data ?? [], [customersQuery.data]);
   const ordersCurrent = useMemo(
-    () => ordersCurrentQuery.data?.items ?? [],
+    () => ordersCurrentQuery.data?.data ?? [],
     [ordersCurrentQuery.data],
   );
   const ordersPrevious = useMemo(
-    () => ordersPreviousQuery.data?.items ?? [],
+    () => ordersPreviousQuery.data?.data ?? [],
     [ordersPreviousQuery.data],
   );
   const sellers = useMemo(() => sellersQuery.data ?? [], [sellersQuery.data]);

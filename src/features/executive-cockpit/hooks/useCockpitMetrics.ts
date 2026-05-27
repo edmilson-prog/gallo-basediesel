@@ -275,23 +275,23 @@ export function useCockpitMetrics(params: IUseCockpitMetricsParams): IUseCockpit
 
   // ─── Source slices ─────────────────────────────────────────────────────────
   const ordersCurrent = useMemo(
-    () => ordersCurrentQuery.data?.items ?? [],
+    () => ordersCurrentQuery.data?.data ?? [],
     [ordersCurrentQuery.data],
   );
   const ordersPrevious = useMemo(
-    () => ordersPreviousQuery.data?.items ?? [],
+    () => ordersPreviousQuery.data?.data ?? [],
     [ordersPreviousQuery.data],
   );
-  const ordersYear = useMemo(() => ordersYearQuery.data?.items ?? [], [ordersYearQuery.data]);
+  const ordersYear = useMemo(() => ordersYearQuery.data?.data ?? [], [ordersYearQuery.data]);
   const quotesCurrent = useMemo(
-    () => quotesCurrentQuery.data?.items ?? [],
+    () => quotesCurrentQuery.data?.data ?? [],
     [quotesCurrentQuery.data],
   );
   const quotesPrevious = useMemo(
-    () => quotesPreviousQuery.data?.items ?? [],
+    () => quotesPreviousQuery.data?.data ?? [],
     [quotesPreviousQuery.data],
   );
-  const customers = useMemo(() => customersQuery.data?.items ?? [], [customersQuery.data]);
+  const customers = useMemo(() => customersQuery.data?.data ?? [], [customersQuery.data]);
   const sellers = useMemo(() => sellersQuery.data ?? [], [sellersQuery.data]);
 
   // ─── 12-month buckets (revenue + orders) ───────────────────────────────────
@@ -448,7 +448,7 @@ export function useCockpitMetrics(params: IUseCockpitMetricsParams): IUseCockpit
       totals.set(order.sellerId, bucket);
     }
     const sellerNameById = new Map<ID, string>();
-    for (const s of sellers) sellerNameById.set(s.id, s.name);
+    for (const s of sellers) sellerNameById.set(s.id, s.fullName);
     const rows: ITopSellerRow[] = [];
     for (const [sellerId, { revenue, orderCount }] of totals) {
       rows.push({

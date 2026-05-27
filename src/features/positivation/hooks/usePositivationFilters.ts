@@ -202,7 +202,7 @@ export function usePositivationFilters(ctx: {
   const apply = useCallback(
     (patch: Partial<IPositivationFiltersSearch>) => {
       void navigate({
-        search: (prev) => {
+        search: (prev: Record<string, unknown>) => {
           const next: IPositivationFiltersSearch = {
             ...(prev as IPositivationFiltersSearch),
             ...patch,

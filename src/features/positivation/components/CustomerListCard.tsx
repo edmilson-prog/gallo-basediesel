@@ -132,7 +132,7 @@ export function CustomerListCard({
                       {S.customerLastPurchase}: {formatRecency(customer.lastPurchaseAt)}
                       {seller && (
                         <span className="ml-2">
-                          · {S.customerSeller}: {seller.name}
+                          · {S.customerSeller}: {seller.fullName}
                         </span>
                       )}
                     </span>

@@ -132,13 +132,19 @@ export function SellerPositivationPage() {
   if (hasError) {
     return (
       <DashboardLayout>
-        <EmptyState
-          icon="mdi:alert-circle-outline"
-          title="Falha ao carregar drill-down"
-          description="Tente novamente."
-          actionLabel="Tentar novamente"
-          onAction={refetch}
-        />
+        <div className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
+          <h2 className="mt-6 text-2xl font-semibold text-foreground">
+            Falha ao carregar drill-down
+          </h2>
+          <p className="mt-2 max-w-md text-sm text-muted-foreground">Tente novamente.</p>
+          <button
+            type="button"
+            onClick={refetch}
+            className="mt-6 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+          >
+            Tentar novamente
+          </button>
+        </div>
       </DashboardLayout>
     );
   }
@@ -167,7 +173,7 @@ export function SellerPositivationPage() {
     void navigate({ to: "/app/clientes/$id", params: { id: customer.id } });
   };
 
-  const sellerName = seller?.name ?? "—";
+  const sellerName = seller?.fullName ?? "—";
   const totalPortfolio = metrics?.totalCustomers ?? 0;
   const positivatedCount = metrics?.positivatedCount ?? 0;
   const rate = metrics?.positivationRate ?? 0;

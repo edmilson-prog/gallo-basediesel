@@ -64,7 +64,7 @@ export function ExecutiveCockpitPage() {
     window: filtersCtl.window,
     previousWindow: filtersCtl.previousWindow,
     scope,
-    enabled: userRole !== undefined && ALLOWED_ROLES.has(userRole),
+    enabled: userRole !== null && ALLOWED_ROLES.has(userRole),
   });
 
   const goals = useGoalsWithProgress({ storeId: scope.storeId, statuses: ["ativa"] });

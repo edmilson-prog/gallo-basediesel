@@ -38,15 +38,15 @@ const MONTH_LABELS = [
 ];
 
 function tickFormatter(value: string): string {
-  const [year, month] = value.split("-");
+  const [year = "", month = "1"] = value.split("-");
   const idx = Math.max(0, Math.min(11, Number(month) - 1));
-  return `${MONTH_LABELS[idx]}/${year.slice(2)}`;
+  return `${MONTH_LABELS[idx] ?? ""}/${year.slice(2)}`;
 }
 
 function fullMonth(value: string): string {
-  const [year, month] = value.split("-");
+  const [year = "", month = "1"] = value.split("-");
   const idx = Math.max(0, Math.min(11, Number(month) - 1));
-  return `${MONTH_LABELS[idx].toUpperCase()} ${year}`;
+  return `${(MONTH_LABELS[idx] ?? "").toUpperCase()} ${year}`;
 }
 
 export function RevenueOrdersComposedChart({
