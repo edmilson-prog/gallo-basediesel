@@ -376,14 +376,14 @@ export function useSalesAnalytics(params: IUseSalesAnalyticsParams): IUseSalesAn
   // ─── Lookups ────────────────────────────────────────────────────────────────
   const partsById = useMemo(() => {
     const map = new Map<ID, IPart>();
-    const items = partsQuery.data?.items ?? [];
+    const items = partsQuery.data?.data ?? [];
     for (const p of items) map.set(p.id, p);
     return map;
   }, [partsQuery.data]);
 
   const customersById = useMemo(() => {
     const map = new Map<ID, ICustomer>();
-    const items = customersQuery.data?.items ?? [];
+    const items = customersQuery.data?.data ?? [];
     for (const c of items) map.set(c.id, c);
     return map;
   }, [customersQuery.data]);
@@ -397,17 +397,17 @@ export function useSalesAnalytics(params: IUseSalesAnalyticsParams): IUseSalesAn
 
   // ─── Apply UI filters (category, brand, channel) ──────────────────────────
   const ordersCurrent = useMemo(() => {
-    const raw = ordersCurrentQuery.data?.items ?? [];
+    const raw = ordersCurrentQuery.data?.data ?? [];
     return applyOrderFilters(raw, partsById, filters);
   }, [ordersCurrentQuery.data, partsById, filters]);
 
   const ordersPrevious = useMemo(() => {
-    const raw = ordersPreviousQuery.data?.items ?? [];
+    const raw = ordersPreviousQuery.data?.data ?? [];
     return applyOrderFilters(raw, partsById, filters);
   }, [ordersPreviousQuery.data, partsById, filters]);
 
   const ordersYear = useMemo(() => {
-    const raw = ordersYearQuery.data?.items ?? [];
+    const raw = ordersYearQuery.data?.data ?? [];
     return applyOrderFilters(raw, partsById, filters);
   }, [ordersYearQuery.data, partsById, filters]);
 
@@ -677,8 +677,8 @@ export function useSalesAnalytics(params: IUseSalesAnalyticsParams): IUseSalesAn
     refetch,
     ordersCurrent,
     ordersPrevious,
-    customers: customersQuery.data?.items ?? [],
-    parts: partsQuery.data?.items ?? [],
+    customers: customersQuery.data?.data ?? [],
+    parts: partsQuery.data?.data ?? [],
     partsById,
     customersById,
     kpis,

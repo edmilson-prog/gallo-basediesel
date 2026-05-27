@@ -112,9 +112,9 @@ export function useFunnelMetrics(params: IUseFunnelMetricsParams): IUseFunnelMet
   const hasError = leadsQuery.isError || quotesQuery.isError || ordersQuery.isError;
 
   const stages = useMemo<IFunnelStage[]>(() => {
-    const leads = leadsQuery.data?.items ?? [];
-    const quotes = quotesQuery.data?.items ?? [];
-    const orders = ordersQuery.data?.items ?? [];
+    const leads = leadsQuery.data?.data ?? [];
+    const quotes = quotesQuery.data?.data ?? [];
+    const orders = ordersQuery.data?.data ?? [];
 
     const leadsInWindow = leads.filter((l) => withinWindow(l.createdAt, window));
     const qualified = leadsInWindow.filter((l) => QUALIFICATION_STAGES.has(l.stage.id));
@@ -189,9 +189,9 @@ export function useFunnelMetrics(params: IUseFunnelMetricsParams): IUseFunnelMet
     hasError,
     bottleneckIndex,
     sources: {
-      leads: leadsQuery.data?.items ?? [],
-      quotes: quotesQuery.data?.items ?? [],
-      orders: ordersQuery.data?.items ?? [],
+      leads: leadsQuery.data?.data ?? [],
+      quotes: quotesQuery.data?.data ?? [],
+      orders: ordersQuery.data?.data ?? [],
     },
   };
 }
