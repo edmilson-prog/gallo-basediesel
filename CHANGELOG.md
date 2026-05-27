@@ -4,6 +4,98 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.39.0] — Showcase · 2026-05-27
+
+Início do **Bloco 5 (E-commerce / Onda 3)** com a entrega do **PRD-060 — Home /
+Vitrine Pública**. A rota `/loja` ganha identidade visual própria da submarca
+**PARTS** (verde dominante), hero impactante, header funcional (busca,
+categorias, marcas, login, carrinho), seções de marcas atendidas, categorias
+em destaque com contagem real do catálogo, 8 produtos em destaque (top vendidos
+do PRD-041 ou seleção manual), bloco institucional e footer completo. Tudo
+configurável em `/app/configuracoes/storefront` pelo Owner.
+
+### Added
+
+- **Tipos PRD-060** (`src/shared/types/storefront.ts`):
+  - `IStorefrontConfig` agrupa hero, marcas, categorias em destaque,
+    produtos em destaque, benefícios, sobre, footer e SEO.
+  - `IStorefrontBrand`, `IStorefrontBenefit`.
+  - `DEFAULT_STOREFRONT_CONFIG`, `DEFAULT_STOREFRONT_BRANDS`,
+    `DEFAULT_STOREFRONT_BENEFITS` (sensitive defaults para a matriz).
+  - Extensão de `IPlatformSettings` com `storefront`.
+
+- **Cart store** (`src/features/storefront/store/cartStore.ts`):
+  - Zustand `persist` em `localStorage` (`gallo-storefront-cart`).
+  - `addItem` deduplica por `partId`; `setQuantity`, `removeItem`, `clear`.
+  - Seletores `selectCartCount` e `selectCartSubtotal` consumidos pelo
+    badge do header.
+
+- **Hooks**
+  - `useStorefrontSettings` — react-query sobre `IPlatformSettings.storefront`.
+  - `useStorefrontTheme` — força `data-theme="parts"` no `<html>` enquanto
+    o sub-app `/loja` está montado; reverte ao desmontar.
+  - `useSeoMeta` — sincroniza `document.title`, `meta[name=description]`,
+    Open Graph tags; restaura valores no unmount.
+  - `useFeaturedProducts` — modo `manual` ou `top-selling` (janela 90d),
+    sempre devolve 8 cards (top-up com catálogo ativo quando faltar).
+
+- **Componentes da vitrine** (`src/features/storefront/components/`)
+  - `StorefrontHeader` sticky com busca, dropdown de categorias
+    (PRD-030), dropdown de marcas, sessão (login/avatar) e carrinho com
+    badge. Mobile: hambúrguer + barra de busca inferior fixa. Foco
+    programático via `STOREFRONT_FOCUS_SEARCH_EVENT` (`dispatchFocusSearch()`).
+  - `StorefrontHero` com headline, sub-headline configurável, 2 CTAs
+    (busca + catálogo) e 3 indicadores de confiança; placeholder de
+    iconografia quando não há imagem de fundo.
+  - `StorefrontBrands` — 5 cards de marcas, click leva a
+    `/loja/busca?marca=<slug>`.
+  - `StorefrontCategories` — grid 6 categorias com contagem real
+    extraída via `partsProvider`.
+  - `StorefrontFeaturedProducts` — 8 cards responsivos (1/2/4 colunas)
+    com badge contextual (Mais vendido / Novidade / Promoção).
+  - `StorefrontWhyBuy`, `StorefrontAboutTeaser`, `StorefrontFooter`
+    (contato, redes sociais, links institucionais, copyright).
+
+- **Página `/loja`** (`StorefrontHomePage`):
+  - Composição vertical das 6 seções + meta SEO via `useSeoMeta`.
+  - `LojaLayout` agora consome a configuração via `useStorefrontSettings`
+    e aplica tema PARTS automaticamente.
+
+- **Configuração `/app/configuracoes/storefront`**
+  (`StorefrontConfigPage`):
+  - Editor por seção (hero, categorias em destaque, modo de produtos,
+    benefícios, sobre, footer, SEO).
+  - Save dispara audit `storefront_config_update` capturando before/after
+    via `usePlatformSettings`.
+  - Banner "E-commerce em modo demonstração — checkout real Fase 2".
+  - Restrito ao Owner via `requireAuth` + verificação local.
+
+- **Navegação**
+  - `ROUTES.CONFIG_STOREFRONT` registrado.
+  - Item "Vitrine pública" no grupo Administração do
+    `SettingsLayout` (Owner).
+  - Search-param validator em `/loja/busca` aceitando `q` e `marca`.
+
+### Changed
+
+- `LojaLayout` reescrito para usar os novos componentes
+  `StorefrontHeader` / `StorefrontFooter` que consomem
+  `IPlatformSettings.storefront`; tema PARTS aplicado on mount.
+- `seedStore.ts` agora inclui `storefront: DEFAULT_STOREFRONT_CONFIG`.
+
+### Removed
+
+- `src/features/shell/components/LojaHeader.tsx` e
+  `LojaFooter.tsx` (placeholders sem settings; substituídos pelos
+  componentes definitivos em `src/features/storefront/`).
+
+### Compatibilidade Fase 2
+
+- Carrinho persistido em `localStorage` na Fase 1; Fase 2 sincronizará
+  com o cliente autenticado no Supabase (mesma interface `useCartStore`).
+- SEO é client-side; SSR/SSG na Fase 2 substituirá `useSeoMeta` por um
+  head manager sem mudar a chamada nas páginas.
+
 ## [0.38.0] — Compass · 2026-05-27
 
 Encerramento da **Onda 2** do MVP com a entrega do **PRD-053 — IA Analítica / Insights

@@ -197,6 +197,12 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         roles: ["Owner"],
       },
       {
+        label: "Vitrine pública",
+        icon: "mdi:storefront-outline",
+        to: "/app/configuracoes/storefront",
+        roles: ["Owner"],
+      },
+      {
         label: "Divisões",
         icon: "mdi:shape-outline",
         to: "/app/configuracoes/divisoes",

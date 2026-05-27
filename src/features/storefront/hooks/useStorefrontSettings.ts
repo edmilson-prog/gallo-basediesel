@@ -1,0 +1,35 @@
+import { useQuery } from "@tanstack/react-query";
+import type { IStorefrontConfig } from "@/shared/types";
+import { DEFAULT_STOREFRONT_CONFIG } from "@/shared/types";
+import { useSettingsProvider } from "@/providers/data";
+
+const STOREFRONT_STORE_ID = "store-matriz";
+const STALE_MS = 5 * 60 * 1000;
+
+export interface IUseStorefrontSettingsResult {
+  config: IStorefrontConfig;
+  isLoading: boolean;
+  isError: boolean;
+  refetch: () => void;
+}
+
+/**
+ * Read-only access to `IPlatformSettings.storefront` of the headquarters
+ * store. The storefront is single-store on the MVP — multi-store support
+ * (per-domain settings) is a Fase 2 concern.
+ */
+export function useStorefrontSettings(): IUseStorefrontSettingsResult {
+  const settingsProvider = useSettingsProvider();
+  const query = useQuery({
+    queryKey: ["storefront", "settings", STOREFRONT_STORE_ID] as const,
+    queryFn: () => settingsProvider.get(STOREFRONT_STORE_ID),
+    staleTime: STALE_MS,
+  });
+
+  return {
+    config: query.data?.storefront ?? DEFAULT_STOREFRONT_CONFIG,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    refetch: () => void query.refetch(),
+  };
+}

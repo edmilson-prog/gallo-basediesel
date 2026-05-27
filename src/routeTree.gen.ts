@@ -68,6 +68,7 @@ import { Route as AppGestaoAtendimentoAnaliseRouteImport } from './routes/app.ge
 import { Route as AppGestaoAbcRouteImport } from './routes/app.gestao.abc'
 import { Route as AppConfiguracoesWhatsappRouteImport } from './routes/app.configuracoes.whatsapp'
 import { Route as AppConfiguracoesUsuariosRouteImport } from './routes/app.configuracoes.usuarios'
+import { Route as AppConfiguracoesStorefrontRouteImport } from './routes/app.configuracoes.storefront'
 import { Route as AppConfiguracoesSobreRouteImport } from './routes/app.configuracoes.sobre'
 import { Route as AppConfiguracoesPortalClienteRouteImport } from './routes/app.configuracoes.portal-cliente'
 import { Route as AppConfiguracoesPerfilRouteImport } from './routes/app.configuracoes.perfil'
@@ -410,6 +411,12 @@ const AppConfiguracoesUsuariosRoute =
     path: '/configuracoes/usuarios',
     getParentRoute: () => AppRoute,
   } as any)
+const AppConfiguracoesStorefrontRoute =
+  AppConfiguracoesStorefrontRouteImport.update({
+    id: '/configuracoes/storefront',
+    path: '/configuracoes/storefront',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppConfiguracoesSobreRoute = AppConfiguracoesSobreRouteImport.update({
   id: '/configuracoes/sobre',
   path: '/configuracoes/sobre',
@@ -689,6 +696,7 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
   '/app/configuracoes/portal-cliente': typeof AppConfiguracoesPortalClienteRoute
   '/app/configuracoes/sobre': typeof AppConfiguracoesSobreRoute
+  '/app/configuracoes/storefront': typeof AppConfiguracoesStorefrontRoute
   '/app/configuracoes/usuarios': typeof AppConfiguracoesUsuariosRoute
   '/app/configuracoes/whatsapp': typeof AppConfiguracoesWhatsappRoute
   '/app/gestao/abc': typeof AppGestaoAbcRouteWithChildren
@@ -783,6 +791,7 @@ export interface FileRoutesByTo {
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
   '/app/configuracoes/portal-cliente': typeof AppConfiguracoesPortalClienteRoute
   '/app/configuracoes/sobre': typeof AppConfiguracoesSobreRoute
+  '/app/configuracoes/storefront': typeof AppConfiguracoesStorefrontRoute
   '/app/configuracoes/usuarios': typeof AppConfiguracoesUsuariosRoute
   '/app/configuracoes/whatsapp': typeof AppConfiguracoesWhatsappRoute
   '/app/gestao/abc': typeof AppGestaoAbcRouteWithChildren
@@ -883,6 +892,7 @@ export interface FileRoutesById {
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
   '/app/configuracoes/portal-cliente': typeof AppConfiguracoesPortalClienteRoute
   '/app/configuracoes/sobre': typeof AppConfiguracoesSobreRoute
+  '/app/configuracoes/storefront': typeof AppConfiguracoesStorefrontRoute
   '/app/configuracoes/usuarios': typeof AppConfiguracoesUsuariosRoute
   '/app/configuracoes/whatsapp': typeof AppConfiguracoesWhatsappRoute
   '/app/gestao/abc': typeof AppGestaoAbcRouteWithChildren
@@ -987,6 +997,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/perfil'
     | '/app/configuracoes/portal-cliente'
     | '/app/configuracoes/sobre'
+    | '/app/configuracoes/storefront'
     | '/app/configuracoes/usuarios'
     | '/app/configuracoes/whatsapp'
     | '/app/gestao/abc'
@@ -1081,6 +1092,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/perfil'
     | '/app/configuracoes/portal-cliente'
     | '/app/configuracoes/sobre'
+    | '/app/configuracoes/storefront'
     | '/app/configuracoes/usuarios'
     | '/app/configuracoes/whatsapp'
     | '/app/gestao/abc'
@@ -1180,6 +1192,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/perfil'
     | '/app/configuracoes/portal-cliente'
     | '/app/configuracoes/sobre'
+    | '/app/configuracoes/storefront'
     | '/app/configuracoes/usuarios'
     | '/app/configuracoes/whatsapp'
     | '/app/gestao/abc'
@@ -1660,6 +1673,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes/usuarios'
       fullPath: '/app/configuracoes/usuarios'
       preLoaderRoute: typeof AppConfiguracoesUsuariosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/configuracoes/storefront': {
+      id: '/app/configuracoes/storefront'
+      path: '/configuracoes/storefront'
+      fullPath: '/app/configuracoes/storefront'
+      preLoaderRoute: typeof AppConfiguracoesStorefrontRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/configuracoes/sobre': {
@@ -2190,6 +2210,7 @@ interface AppRouteChildren {
   AppConfiguracoesPerfilRoute: typeof AppConfiguracoesPerfilRoute
   AppConfiguracoesPortalClienteRoute: typeof AppConfiguracoesPortalClienteRoute
   AppConfiguracoesSobreRoute: typeof AppConfiguracoesSobreRoute
+  AppConfiguracoesStorefrontRoute: typeof AppConfiguracoesStorefrontRoute
   AppConfiguracoesUsuariosRoute: typeof AppConfiguracoesUsuariosRoute
   AppConfiguracoesWhatsappRoute: typeof AppConfiguracoesWhatsappRoute
   AppGestaoAbcRoute: typeof AppGestaoAbcRouteWithChildren
@@ -2247,6 +2268,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesPerfilRoute: AppConfiguracoesPerfilRoute,
   AppConfiguracoesPortalClienteRoute: AppConfiguracoesPortalClienteRoute,
   AppConfiguracoesSobreRoute: AppConfiguracoesSobreRoute,
+  AppConfiguracoesStorefrontRoute: AppConfiguracoesStorefrontRoute,
   AppConfiguracoesUsuariosRoute: AppConfiguracoesUsuariosRoute,
   AppConfiguracoesWhatsappRoute: AppConfiguracoesWhatsappRoute,
   AppGestaoAbcRoute: AppGestaoAbcRouteWithChildren,

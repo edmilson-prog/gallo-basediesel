@@ -262,3 +262,11 @@ export type {
   InsightCategory,
 } from "./insights";
 export { DEFAULT_INSIGHT_THRESHOLDS } from "./insights";
+
+// Storefront (PRD-060)
+export type { IStorefrontConfig, IStorefrontBrand, IStorefrontBenefit } from "./storefront";
+export {
+  DEFAULT_STOREFRONT_CONFIG,
+  DEFAULT_STOREFRONT_BRANDS,
+  DEFAULT_STOREFRONT_BENEFITS,
+} from "./storefront";

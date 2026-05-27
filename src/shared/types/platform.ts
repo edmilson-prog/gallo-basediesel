@@ -7,6 +7,7 @@ import type { ICommissionRuleConfig } from "./commercial";
 import type { IFinancialSettings } from "./dre";
 import type { IInventoryAnalysisSettings } from "./inventory";
 import type { IInsightThresholds } from "./insights";
+import type { IStorefrontConfig } from "./storefront";
 
 /** Store type. Matriz is the headquarters, filial is a branch, parceira is a partner store. */
 export type StoreType = "matriz" | "filial" | "parceira";
@@ -199,6 +200,8 @@ export interface IPlatformSettings {
   insightsEnabled: boolean;
   /** Configurable thresholds for the insight detection heuristics (PRD-053). */
   insightThresholds: IInsightThresholds;
+  /** Public storefront (/loja) configuration — hero, brands, footer, SEO (PRD-060). */
+  storefront: IStorefrontConfig;
 }
 
 /**

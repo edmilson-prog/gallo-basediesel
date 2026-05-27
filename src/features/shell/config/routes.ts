@@ -51,6 +51,7 @@ export const ROUTES = {
   CONFIG_ESTOQUE_ANALISE: "/app/configuracoes/estoque-analise",
   CONFIG_SOBRE: "/app/configuracoes/sobre",
   CONFIG_INSIGHTS: "/app/configuracoes/insights",
+  CONFIG_STOREFRONT: "/app/configuracoes/storefront",
 
   // Loja (vitrine)
   LOJA_HOME: "/loja",
