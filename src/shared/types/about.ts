@@ -6,6 +6,8 @@
  * **bold** and *italic* are rendered by renderInlineMarkdown at display time).
  */
 
+import type { ISO8601 } from "./common";
+
 export type ReleaseKind = "major" | "minor" | "patch";
 
 export type ReleaseCategory =
@@ -28,8 +30,8 @@ export interface IRelease {
   version: string;
   /** Codename if present in the heading. Null for releases without one. */
   codename: string | null;
-  /** ISO date "YYYY-MM-DD" extracted from the heading. */
-  date: string;
+  /** ISO 8601 date "YYYY-MM-DD" extracted from the heading. */
+  date: ISO8601;
   /** Derived by classifyVersion comparing with the previous release. */
   kind: ReleaseKind;
   /** Text between the H2 heading and the first H3 section. May be empty. */
