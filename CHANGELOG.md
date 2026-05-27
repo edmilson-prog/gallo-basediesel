@@ -4,6 +4,104 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.38.0] — Compass · 2026-05-27
+
+Encerramento da **Onda 2** do MVP com a entrega do **PRD-053 — IA Analítica / Insights
+Automáticos**. Hub `/app/insights` consolida padrões cross-PRD detectados por 12
+heurísticas configuráveis (queda de margem, churn, vendedor/cliente em risco, produto em
+declínio ou excesso, conversão SDR caindo, meta em risco, sobrecarga, oportunidades de
+segmento, novos clientes A e recuperações). Interface preparada para drop-in de LLM real
+na Fase 2 sem refatorar consumidores: o `detectInsights()` é função pura, basta substituir
+sua implementação.
+
+### Added
+
+- **Tipos PRD-053** (`src/shared/types/insights.ts`):
+  - `IInsight`, `InsightType`, `InsightPriority`, `InsightCategory` —
+    insight com `context` expansível, `suggestedAction` para drill-down,
+    `validUntil` para janela anti-recriação e metadata de dispensa
+    (`dismissedBy`, `dismissedAt`, `dismissReason`).
+  - `IInsightThresholds` + `DEFAULT_INSIGHT_THRESHOLDS` — 12 thresholds
+    configuráveis por loja (frações decimais, dias, capital em R$).
+  - Extensão de `IPlatformSettings` com `insightsEnabled` (toggle global) e
+    `insightThresholds` (sliders editáveis em `/app/configuracoes/insights`).
+
+- **Engine puro PRD-053**
+  (`src/features/insights/engine/detectInsights.ts`):
+  - 12 heurísticas independentes, cada uma com lógica e ID estável
+    (`ins-<type>-<key>`) para que dispensas sobrevivam à recomputação:
+    `margin_drop`, `churn_spike`, `seller_at_risk`, `customer_at_risk`,
+    `product_decline`, `product_excess`, `sdr_conversion_drop`,
+    `meta_at_risk`, `top_seller_overload`, `opportunity_segment`,
+    `new_customer_winning`, `recovery_success`.
+  - Compara janelas móveis de 30 dias contra o período anterior; usa
+    `IOrderItem.marginValue` e `IPart.unitCost` para inferências
+    financeiras sem reabrir bases.
+  - Snapshot de `context` em cada insight (atual vs anterior, capital
+    parado, dias sem compra…) — base para o accordion "Ver contexto" do
+    card e para futuras explicações narrativas via LLM.
+
+- **Hub `/app/insights`**
+  (`src/features/insights/pages/InsightsHubPage.tsx`):
+  - 4 KPIs (total, críticos, médios, oportunidades).
+  - Filtros (categoria, prioridade, período de detecção, status) com
+    URL sync via TanStack Router.
+  - Lista priorizada (crítico > médio > oportunidade > info, depois
+    detecção descendente) com cards que expõem badge de prioridade
+    colorida, badge de categoria, timestamp relativo, contexto
+    expansível e drill-down para o PRD relevante (rentabilidade, ABC,
+    metas, catálogo, etc.).
+  - Toggle Ativos / Dispensados — histórico de dispensa preserva
+    snapshot do insight original.
+
+- **Dismiss persistente**
+  (`src/features/insights/store/dismissalsStore.ts`):
+  - Zustand `persist` em `localStorage` (`gallo-insight-dismissals`).
+  - Modal pede motivo opcional; dispensas registram audit log
+    `insight_dismiss` com `reason` e `validUntil`.
+  - Engine ignora insights dispensados enquanto `validUntil` está aberto
+    — evita ruído sem perder controle do usuário (`isStillDismissed`).
+
+- **Integrações cross-PRD**
+  - `CriticalInsightsWidget` no PRD-014 (Painel Gestor) com top 5
+    críticos e CTA "Ver todos".
+  - `InsightsBanner` no PRD-040 (Cockpit Executivo) — banner topo
+    contabilizando críticos ativos.
+  - Hook `useInsightsDailyDetection(storeId)` exposto via barrel para
+    qualquer surface consumir.
+
+- **Configuração `/app/configuracoes/insights`**
+  (`src/features/insights/pages/InsightsConfigPage.tsx`):
+  - Toggle global `insightsEnabled` (Owner-only).
+  - 12 sliders para thresholds de cada heurística com formatação
+    contextual (percentual, dias, R$, número).
+  - Banner informativo sobre LLM real na Fase 2.
+  - Save dispara audit `insight_config_update` capturando before/after.
+
+- **Permissões e navegação**
+  - Novo resource RBAC `insight` (view/edit/delete) com matrix:
+    Owner cross-store, Gestor por loja, Financeiro view por loja
+    (mas o hub filtra para `category === "financeiro"`).
+  - Vendedor / SDR / Cliente bloqueados via GuardedRoute.
+  - Item "Insights" no grupo Gestão da sidebar (Owner/Gestor/Financeiro)
+    e link em Configurações ▸ Administração.
+
+### Changed
+
+- `IPlatformSettings` agora carrega `insightsEnabled` e
+  `insightThresholds` — seed da loja matriz inicializa com
+  `DEFAULT_INSIGHT_THRESHOLDS` (sensibilidade média).
+- Cockpit Executivo (PRD-040) reposiciona o banner de alertas
+  pré-existente abaixo do novo banner de Insights.
+
+### Compatibilidade Fase 2
+
+- `detectInsights()` é função pura — substituir por chamada a Edge
+  Function + LLM mantém a interface dos consumers (hook + widgets +
+  hub) idêntica.
+- IDs de insight estáveis (`ins-<type>-<key>`) garantem dedupe contra
+  dispensas mesmo se o LLM reformular o título/descrição.
+
 ## [0.37.0] — Trail · 2026-05-27
 
 Conclusão do **Bloco 4b** com a tela de **Movimentação de Estoque

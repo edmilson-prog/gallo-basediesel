@@ -1,4 +1,5 @@
 import type { IStore } from "@/shared/types";
+import { DEFAULT_INSIGHT_THRESHOLDS } from "@/shared/types";
 import { SEED_PIPELINE_STAGES } from "./seedPipelineStages";
 import { SEED_LOSS_REASONS } from "./seedLossReasons";
 import { SEED_TAGS } from "./seedTags";
@@ -94,5 +95,7 @@ export const SEED_STORE: IStore = {
       targetCoverageDays: 30,
       excessCoverageDays: 180,
     },
+    insightsEnabled: true,
+    insightThresholds: DEFAULT_INSIGHT_THRESHOLDS,
   },
 };

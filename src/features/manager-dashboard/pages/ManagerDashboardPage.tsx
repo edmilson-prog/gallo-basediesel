@@ -25,6 +25,7 @@ import { GoalsWidget } from "@/features/goals";
 import { PositivationWidget } from "@/features/positivation";
 import { PortfolioHealthWidget } from "@/features/portfolio-analytics";
 import { TopPerformersWidget } from "@/features/gamification";
+import { CriticalInsightsWidget } from "@/features/insights";
 import { MANAGER_DASHBOARD_STRINGS } from "../i18n/pt-BR";
 
 function formatMinutes(value: number): string {
@@ -246,6 +247,10 @@ export function ManagerDashboardPage() {
         <PositivationWidget storeId={currentStore?.id ?? "store-matriz"} />
         <PortfolioHealthWidget storeId={currentStore?.id ?? "store-matriz"} />
         <TopPerformersWidget storeId={currentStore?.id ?? "store-matriz"} />
+      </section>
+
+      <section className="mt-6" aria-label="Insights críticos">
+        <CriticalInsightsWidget storeId={currentStore?.id ?? "store-matriz"} />
       </section>
 
       <section

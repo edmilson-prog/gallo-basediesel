@@ -58,6 +58,7 @@ const OWNER_ENTRIES: ScopedActions[] = [
   p("profitability", ["view"], "all"),
   p("inventory", ["view", "edit"], "all"),
   p("customer_service_analytics", ["view"], "all"),
+  p("insight", ["view", "edit", "delete"], "all"),
 ];
 
 const GESTOR_ENTRIES: ScopedActions[] = [
@@ -83,6 +84,7 @@ const GESTOR_ENTRIES: ScopedActions[] = [
   p("profitability", ["view"], "store"),
   p("inventory", ["view"], "store"),
   p("customer_service_analytics", ["view"], "store"),
+  p("insight", ["view", "edit"], "store"),
 ];
 
 const VENDEDOR_ENTRIES: ScopedActions[] = [
@@ -153,6 +155,7 @@ const FINANCEIRO_ENTRIES: ScopedActions[] = [
   p("profitability", ["view"], "store"),
   p("inventory", ["view"], "store"),
   p("customer_service_analytics", ["view"], "store"),
+  p("insight", ["view"], "store"),
 ];
 
 function toPermissions(entries: ScopedActions[]): IPermission[] {

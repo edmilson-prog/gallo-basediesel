@@ -17,6 +17,7 @@ import { ABCMiniChart } from "../components/charts/ABCMiniChart";
 import { RankingHighlightWidget } from "@/features/gamification";
 import { CommissionsWidget } from "@/features/commissions";
 import { RecentMovementsWidget } from "@/features/inventory-movement";
+import { InsightsBanner } from "@/features/insights";
 import { useCockpitFilters } from "../hooks/useCockpitFilters";
 import { useCockpitMetrics } from "../hooks/useCockpitMetrics";
 import { useCockpitAlerts, type ICockpitAlert } from "../hooks/useCockpitAlerts";
@@ -116,6 +117,13 @@ export function ExecutiveCockpitPage() {
         onCompare={filtersCtl.setCompare}
         onReset={filtersCtl.reset}
       />
+
+      <div className="mb-6">
+        <InsightsBanner
+          storeId={scope.storeId ?? currentStore?.id ?? "store-matriz"}
+          accessibleStoreIds={accessibleStores.map((s) => s.id)}
+        />
+      </div>
 
       {alertsCtl.alerts.length > 0 && (
         <div className="mb-6">
@@ -291,10 +299,7 @@ export function ExecutiveCockpitPage() {
         />
       </section>
 
-      <section
-        className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3"
-        aria-label={S.sectionCharts}
-      >
+      <section className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3" aria-label={S.sectionCharts}>
         <RankingHighlightWidget storeId={currentStore?.id ?? undefined} />
         <CommissionsWidget storeId={currentStore?.id ?? "store-matriz"} />
         <RecentMovementsWidget

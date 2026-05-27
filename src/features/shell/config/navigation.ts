@@ -182,6 +182,12 @@ export const APP_NAV_GROUPS: INavGroup[] = [
         to: ROUTES.GESTAO_ESTOQUE_MOVIMENTACAO,
         roles: ["Owner", "Gestor", "Financeiro"],
       },
+      {
+        label: "Insights",
+        icon: "mdi:brain",
+        to: ROUTES.APP_INSIGHTS,
+        roles: ["Owner", "Gestor", "Financeiro"],
+      },
     ],
   },
   {

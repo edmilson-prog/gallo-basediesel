@@ -29,6 +29,7 @@ import { Route as AppSdrRouteImport } from './routes/app.sdr'
 import { Route as AppPedidosRouteImport } from './routes/app.pedidos'
 import { Route as AppOrcamentosRouteImport } from './routes/app.orcamentos'
 import { Route as AppLeadsRouteImport } from './routes/app.leads'
+import { Route as AppInsightsRouteImport } from './routes/app.insights'
 import { Route as AppInicioRouteImport } from './routes/app.inicio'
 import { Route as AppClientesRouteImport } from './routes/app.clientes'
 import { Route as AppCatalogoRouteImport } from './routes/app.catalogo'
@@ -72,6 +73,7 @@ import { Route as AppConfiguracoesPortalClienteRouteImport } from './routes/app.
 import { Route as AppConfiguracoesPerfilRouteImport } from './routes/app.configuracoes.perfil'
 import { Route as AppConfiguracoesPapeisRouteImport } from './routes/app.configuracoes.papeis'
 import { Route as AppConfiguracoesLojasRouteImport } from './routes/app.configuracoes.lojas'
+import { Route as AppConfiguracoesInsightsRouteImport } from './routes/app.configuracoes.insights'
 import { Route as AppConfiguracoesGamificacaoRouteImport } from './routes/app.configuracoes.gamificacao'
 import { Route as AppConfiguracoesFreteRouteImport } from './routes/app.configuracoes.frete'
 import { Route as AppConfiguracoesFinanceiroRouteImport } from './routes/app.configuracoes.financeiro'
@@ -206,6 +208,11 @@ const AppOrcamentosRoute = AppOrcamentosRouteImport.update({
 const AppLeadsRoute = AppLeadsRouteImport.update({
   id: '/leads',
   path: '/leads',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInsightsRoute = AppInsightsRouteImport.update({
+  id: '/insights',
+  path: '/insights',
   getParentRoute: () => AppRoute,
 } as any)
 const AppInicioRoute = AppInicioRouteImport.update({
@@ -429,6 +436,12 @@ const AppConfiguracoesLojasRoute = AppConfiguracoesLojasRouteImport.update({
   path: '/configuracoes/lojas',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConfiguracoesInsightsRoute =
+  AppConfiguracoesInsightsRouteImport.update({
+    id: '/configuracoes/insights',
+    path: '/configuracoes/insights',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppConfiguracoesGamificacaoRoute =
   AppConfiguracoesGamificacaoRouteImport.update({
     id: '/configuracoes/gamificacao',
@@ -643,6 +656,7 @@ export interface FileRoutesByFullPath {
   '/app/catalogo': typeof AppCatalogoRouteWithChildren
   '/app/clientes': typeof AppClientesRouteWithChildren
   '/app/inicio': typeof AppInicioRoute
+  '/app/insights': typeof AppInsightsRoute
   '/app/leads': typeof AppLeadsRouteWithChildren
   '/app/orcamentos': typeof AppOrcamentosRouteWithChildren
   '/app/pedidos': typeof AppPedidosRouteWithChildren
@@ -669,6 +683,7 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/financeiro': typeof AppConfiguracoesFinanceiroRoute
   '/app/configuracoes/frete': typeof AppConfiguracoesFreteRoute
   '/app/configuracoes/gamificacao': typeof AppConfiguracoesGamificacaoRoute
+  '/app/configuracoes/insights': typeof AppConfiguracoesInsightsRoute
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
@@ -739,6 +754,7 @@ export interface FileRoutesByTo {
   '/sem-permissao': typeof SemPermissaoRoute
   '/app/carteira': typeof AppCarteiraRoute
   '/app/inicio': typeof AppInicioRoute
+  '/app/insights': typeof AppInsightsRoute
   '/app/sdr': typeof AppSdrRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/logout': typeof AuthLogoutRoute
@@ -761,6 +777,7 @@ export interface FileRoutesByTo {
   '/app/configuracoes/financeiro': typeof AppConfiguracoesFinanceiroRoute
   '/app/configuracoes/frete': typeof AppConfiguracoesFreteRoute
   '/app/configuracoes/gamificacao': typeof AppConfiguracoesGamificacaoRoute
+  '/app/configuracoes/insights': typeof AppConfiguracoesInsightsRoute
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
@@ -833,6 +850,7 @@ export interface FileRoutesById {
   '/app/catalogo': typeof AppCatalogoRouteWithChildren
   '/app/clientes': typeof AppClientesRouteWithChildren
   '/app/inicio': typeof AppInicioRoute
+  '/app/insights': typeof AppInsightsRoute
   '/app/leads': typeof AppLeadsRouteWithChildren
   '/app/orcamentos': typeof AppOrcamentosRouteWithChildren
   '/app/pedidos': typeof AppPedidosRouteWithChildren
@@ -859,6 +877,7 @@ export interface FileRoutesById {
   '/app/configuracoes/financeiro': typeof AppConfiguracoesFinanceiroRoute
   '/app/configuracoes/frete': typeof AppConfiguracoesFreteRoute
   '/app/configuracoes/gamificacao': typeof AppConfiguracoesGamificacaoRoute
+  '/app/configuracoes/insights': typeof AppConfiguracoesInsightsRoute
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
@@ -935,6 +954,7 @@ export interface FileRouteTypes {
     | '/app/catalogo'
     | '/app/clientes'
     | '/app/inicio'
+    | '/app/insights'
     | '/app/leads'
     | '/app/orcamentos'
     | '/app/pedidos'
@@ -961,6 +981,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/financeiro'
     | '/app/configuracoes/frete'
     | '/app/configuracoes/gamificacao'
+    | '/app/configuracoes/insights'
     | '/app/configuracoes/lojas'
     | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
@@ -1031,6 +1052,7 @@ export interface FileRouteTypes {
     | '/sem-permissao'
     | '/app/carteira'
     | '/app/inicio'
+    | '/app/insights'
     | '/app/sdr'
     | '/auth/login'
     | '/auth/logout'
@@ -1053,6 +1075,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/financeiro'
     | '/app/configuracoes/frete'
     | '/app/configuracoes/gamificacao'
+    | '/app/configuracoes/insights'
     | '/app/configuracoes/lojas'
     | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
@@ -1124,6 +1147,7 @@ export interface FileRouteTypes {
     | '/app/catalogo'
     | '/app/clientes'
     | '/app/inicio'
+    | '/app/insights'
     | '/app/leads'
     | '/app/orcamentos'
     | '/app/pedidos'
@@ -1150,6 +1174,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/financeiro'
     | '/app/configuracoes/frete'
     | '/app/configuracoes/gamificacao'
+    | '/app/configuracoes/insights'
     | '/app/configuracoes/lojas'
     | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
@@ -1362,6 +1387,13 @@ declare module '@tanstack/react-router' {
       path: '/leads'
       fullPath: '/app/leads'
       preLoaderRoute: typeof AppLeadsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/insights': {
+      id: '/app/insights'
+      path: '/insights'
+      fullPath: '/app/insights'
+      preLoaderRoute: typeof AppInsightsRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/inicio': {
@@ -1663,6 +1695,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes/lojas'
       fullPath: '/app/configuracoes/lojas'
       preLoaderRoute: typeof AppConfiguracoesLojasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/configuracoes/insights': {
+      id: '/app/configuracoes/insights'
+      path: '/configuracoes/insights'
+      fullPath: '/app/configuracoes/insights'
+      preLoaderRoute: typeof AppConfiguracoesInsightsRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/configuracoes/gamificacao': {
@@ -2129,6 +2168,7 @@ interface AppRouteChildren {
   AppCatalogoRoute: typeof AppCatalogoRouteWithChildren
   AppClientesRoute: typeof AppClientesRouteWithChildren
   AppInicioRoute: typeof AppInicioRoute
+  AppInsightsRoute: typeof AppInsightsRoute
   AppLeadsRoute: typeof AppLeadsRouteWithChildren
   AppOrcamentosRoute: typeof AppOrcamentosRouteWithChildren
   AppPedidosRoute: typeof AppPedidosRouteWithChildren
@@ -2144,6 +2184,7 @@ interface AppRouteChildren {
   AppConfiguracoesFinanceiroRoute: typeof AppConfiguracoesFinanceiroRoute
   AppConfiguracoesFreteRoute: typeof AppConfiguracoesFreteRoute
   AppConfiguracoesGamificacaoRoute: typeof AppConfiguracoesGamificacaoRoute
+  AppConfiguracoesInsightsRoute: typeof AppConfiguracoesInsightsRoute
   AppConfiguracoesLojasRoute: typeof AppConfiguracoesLojasRoute
   AppConfiguracoesPapeisRoute: typeof AppConfiguracoesPapeisRoute
   AppConfiguracoesPerfilRoute: typeof AppConfiguracoesPerfilRoute
@@ -2184,6 +2225,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCatalogoRoute: AppCatalogoRouteWithChildren,
   AppClientesRoute: AppClientesRouteWithChildren,
   AppInicioRoute: AppInicioRoute,
+  AppInsightsRoute: AppInsightsRoute,
   AppLeadsRoute: AppLeadsRouteWithChildren,
   AppOrcamentosRoute: AppOrcamentosRouteWithChildren,
   AppPedidosRoute: AppPedidosRouteWithChildren,
@@ -2199,6 +2241,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesFinanceiroRoute: AppConfiguracoesFinanceiroRoute,
   AppConfiguracoesFreteRoute: AppConfiguracoesFreteRoute,
   AppConfiguracoesGamificacaoRoute: AppConfiguracoesGamificacaoRoute,
+  AppConfiguracoesInsightsRoute: AppConfiguracoesInsightsRoute,
   AppConfiguracoesLojasRoute: AppConfiguracoesLojasRoute,
   AppConfiguracoesPapeisRoute: AppConfiguracoesPapeisRoute,
   AppConfiguracoesPerfilRoute: AppConfiguracoesPerfilRoute,

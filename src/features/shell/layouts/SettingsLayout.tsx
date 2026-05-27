@@ -191,6 +191,12 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         roles: ["Owner"],
       },
       {
+        label: "Insights",
+        icon: "mdi:brain",
+        to: "/app/configuracoes/insights",
+        roles: ["Owner"],
+      },
+      {
         label: "Divisões",
         icon: "mdi:shape-outline",
         to: "/app/configuracoes/divisoes",

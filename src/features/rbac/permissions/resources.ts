@@ -32,6 +32,7 @@ export const RESOURCES = [
   "profitability",
   "inventory",
   "customer_service_analytics",
+  "insight",
 ] as const;
 
 export type ResourceName = (typeof RESOURCES)[number];

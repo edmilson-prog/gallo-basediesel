@@ -252,3 +252,13 @@ export type {
 
 // About / release history
 export type { ReleaseKind, ReleaseCategory, IReleaseCategoryBlock, IRelease } from "./about";
+
+// Insights / IA Analítica (PRD-053)
+export type {
+  IInsight,
+  IInsightThresholds,
+  InsightType,
+  InsightPriority,
+  InsightCategory,
+} from "./insights";
+export { DEFAULT_INSIGHT_THRESHOLDS } from "./insights";

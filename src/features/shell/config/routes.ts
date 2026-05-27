@@ -23,6 +23,7 @@ export const ROUTES = {
   APP_ORCAMENTOS: "/app/orcamentos",
   APP_PEDIDOS: "/app/pedidos",
   APP_SDR: "/app/sdr",
+  APP_INSIGHTS: "/app/insights",
 
   // Gestão
   GESTAO_INICIO: "/app/gestao",
@@ -49,6 +50,7 @@ export const ROUTES = {
   CONFIG_FINANCEIRO: "/app/configuracoes/financeiro",
   CONFIG_ESTOQUE_ANALISE: "/app/configuracoes/estoque-analise",
   CONFIG_SOBRE: "/app/configuracoes/sobre",
+  CONFIG_INSIGHTS: "/app/configuracoes/insights",
 
   // Loja (vitrine)
   LOJA_HOME: "/loja",

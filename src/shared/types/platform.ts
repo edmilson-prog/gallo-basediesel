@@ -6,6 +6,7 @@ import type { IShippingConfig } from "./shipping";
 import type { ICommissionRuleConfig } from "./commercial";
 import type { IFinancialSettings } from "./dre";
 import type { IInventoryAnalysisSettings } from "./inventory";
+import type { IInsightThresholds } from "./insights";
 
 /** Store type. Matriz is the headquarters, filial is a branch, parceira is a partner store. */
 export type StoreType = "matriz" | "filial" | "parceira";
@@ -194,6 +195,10 @@ export interface IPlatformSettings {
   financialSettings: IFinancialSettings;
   /** Inventory analytics settings (PRD-050). */
   inventoryAnalysisSettings: IInventoryAnalysisSettings;
+  /** IA analítica / Insights global toggle (PRD-053). */
+  insightsEnabled: boolean;
+  /** Configurable thresholds for the insight detection heuristics (PRD-053). */
+  insightThresholds: IInsightThresholds;
 }
 
 /**
