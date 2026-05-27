@@ -23,6 +23,9 @@ dist-ssr
 # Vercel
 .vercel/
 
+# Generated asset — copied from CHANGELOG.md at dev/build time (see scripts/copy-changelog.mjs)
+public/CHANGELOG.md
+
 # Superpowers brainstorming companion (visual mockups, transient sessions)
 .superpowers/
 

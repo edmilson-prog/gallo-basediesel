@@ -5,6 +5,10 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
+    "predev": "node scripts/copy-changelog.mjs",
+    "prebuild": "node scripts/copy-changelog.mjs",
+    "prebuild:dev": "node scripts/copy-changelog.mjs",
+    "prepreview": "node scripts/copy-changelog.mjs",
     "dev": "vite dev",
     "build": "vite build",
     "build:dev": "vite build --mode development",
