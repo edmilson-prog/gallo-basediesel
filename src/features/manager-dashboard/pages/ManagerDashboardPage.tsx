@@ -22,6 +22,7 @@ import { CarteiraHealthDonut } from "../components/CarteiraHealthDonut";
 import { ActiveAlertsList } from "../components/ActiveAlertsList";
 import { AlertSettingsModal } from "../components/AlertSettingsModal";
 import { GoalsWidget } from "@/features/goals";
+import { PositivationWidget } from "@/features/positivation";
 import { MANAGER_DASHBOARD_STRINGS } from "../i18n/pt-BR";
 
 function formatMinutes(value: number): string {
@@ -235,8 +236,12 @@ export function ManagerDashboardPage() {
         />
       </section>
 
-      <section className="mt-6" aria-label="Metas do mês">
+      <section
+        className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2"
+        aria-label="Metas do mês e positivação"
+      >
         <GoalsWidget storeId={currentStore?.id ?? "store-matriz"} />
+        <PositivationWidget storeId={currentStore?.id ?? "store-matriz"} />
       </section>
 
       <section

@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { requireAuth } from "@/features/auth/guards";
-import { PositivationPage, validatePositivationSearch } from "@/features/positivation";
+import { SellerPositivationPage, validatePositivationSearch } from "@/features/positivation";
 
-export const Route = createFileRoute("/app/gestao/positivacao")({
+export const Route = createFileRoute("/app/gestao/positivacao/$sellerId")({
   beforeLoad: ({ location }) =>
     requireAuth(location.pathname, ["Owner", "Gestor", "Vendedor", "Financeiro"]),
   validateSearch: validatePositivationSearch,
-  component: PositivationPage,
+  component: SellerPositivationPage,
 });

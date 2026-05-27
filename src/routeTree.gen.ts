@@ -78,6 +78,7 @@ import { Route as AppClientesIdRouteImport } from './routes/app.clientes.$id'
 import { Route as AppCatalogoNovoRouteImport } from './routes/app.catalogo.novo'
 import { Route as AppCatalogoIdRouteImport } from './routes/app.catalogo.$id'
 import { Route as AppAtendimentoIdRouteImport } from './routes/app.atendimento.$id'
+import { Route as AppGestaoPositivacaoSellerIdRouteImport } from './routes/app.gestao.positivacao.$sellerId'
 import { Route as AppGestaoMetasNovaRouteImport } from './routes/app.gestao.metas.nova'
 import { Route as AppGestaoMetasIdRouteImport } from './routes/app.gestao.metas.$id'
 import { Route as AppConfiguracoesVeiculosCadastroModeRouteImport } from './routes/app.configuracoes.veiculos.cadastro-mode'
@@ -444,6 +445,12 @@ const AppAtendimentoIdRoute = AppAtendimentoIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AppAtendimentoRoute,
 } as any)
+const AppGestaoPositivacaoSellerIdRoute =
+  AppGestaoPositivacaoSellerIdRouteImport.update({
+    id: '/$sellerId',
+    path: '/$sellerId',
+    getParentRoute: () => AppGestaoPositivacaoRoute,
+  } as any)
 const AppGestaoMetasNovaRoute = AppGestaoMetasNovaRouteImport.update({
   id: '/nova',
   path: '/nova',
@@ -563,7 +570,7 @@ export interface FileRoutesByFullPath {
   '/app/gestao/dre': typeof AppGestaoDreRoute
   '/app/gestao/estoque': typeof AppGestaoEstoqueRoute
   '/app/gestao/metas': typeof AppGestaoMetasRouteWithChildren
-  '/app/gestao/positivacao': typeof AppGestaoPositivacaoRoute
+  '/app/gestao/positivacao': typeof AppGestaoPositivacaoRouteWithChildren
   '/app/gestao/ranking': typeof AppGestaoRankingRoute
   '/app/gestao/rentabilidade': typeof AppGestaoRentabilidadeRoute
   '/app/gestao/vendas': typeof AppGestaoVendasRoute
@@ -596,6 +603,7 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/veiculos/cadastro-mode': typeof AppConfiguracoesVeiculosCadastroModeRoute
   '/app/gestao/metas/$id': typeof AppGestaoMetasIdRoute
   '/app/gestao/metas/nova': typeof AppGestaoMetasNovaRoute
+  '/app/gestao/positivacao/$sellerId': typeof AppGestaoPositivacaoSellerIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -638,7 +646,7 @@ export interface FileRoutesByTo {
   '/app/gestao/dre': typeof AppGestaoDreRoute
   '/app/gestao/estoque': typeof AppGestaoEstoqueRoute
   '/app/gestao/metas': typeof AppGestaoMetasRouteWithChildren
-  '/app/gestao/positivacao': typeof AppGestaoPositivacaoRoute
+  '/app/gestao/positivacao': typeof AppGestaoPositivacaoRouteWithChildren
   '/app/gestao/ranking': typeof AppGestaoRankingRoute
   '/app/gestao/rentabilidade': typeof AppGestaoRentabilidadeRoute
   '/app/gestao/vendas': typeof AppGestaoVendasRoute
@@ -671,6 +679,7 @@ export interface FileRoutesByTo {
   '/app/configuracoes/veiculos/cadastro-mode': typeof AppConfiguracoesVeiculosCadastroModeRoute
   '/app/gestao/metas/$id': typeof AppGestaoMetasIdRoute
   '/app/gestao/metas/nova': typeof AppGestaoMetasNovaRoute
+  '/app/gestao/positivacao/$sellerId': typeof AppGestaoPositivacaoSellerIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -722,7 +731,7 @@ export interface FileRoutesById {
   '/app/gestao/dre': typeof AppGestaoDreRoute
   '/app/gestao/estoque': typeof AppGestaoEstoqueRoute
   '/app/gestao/metas': typeof AppGestaoMetasRouteWithChildren
-  '/app/gestao/positivacao': typeof AppGestaoPositivacaoRoute
+  '/app/gestao/positivacao': typeof AppGestaoPositivacaoRouteWithChildren
   '/app/gestao/ranking': typeof AppGestaoRankingRoute
   '/app/gestao/rentabilidade': typeof AppGestaoRentabilidadeRoute
   '/app/gestao/vendas': typeof AppGestaoVendasRoute
@@ -755,6 +764,7 @@ export interface FileRoutesById {
   '/app/configuracoes/veiculos/cadastro-mode': typeof AppConfiguracoesVeiculosCadastroModeRoute
   '/app/gestao/metas/$id': typeof AppGestaoMetasIdRoute
   '/app/gestao/metas/nova': typeof AppGestaoMetasNovaRoute
+  '/app/gestao/positivacao/$sellerId': typeof AppGestaoPositivacaoSellerIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -840,6 +850,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/veiculos/cadastro-mode'
     | '/app/gestao/metas/$id'
     | '/app/gestao/metas/nova'
+    | '/app/gestao/positivacao/$sellerId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -915,6 +926,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/veiculos/cadastro-mode'
     | '/app/gestao/metas/$id'
     | '/app/gestao/metas/nova'
+    | '/app/gestao/positivacao/$sellerId'
   id:
     | '__root__'
     | '/'
@@ -998,6 +1010,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/veiculos/cadastro-mode'
     | '/app/gestao/metas/$id'
     | '/app/gestao/metas/nova'
+    | '/app/gestao/positivacao/$sellerId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1496,6 +1509,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAtendimentoIdRouteImport
       parentRoute: typeof AppAtendimentoRoute
     }
+    '/app/gestao/positivacao/$sellerId': {
+      id: '/app/gestao/positivacao/$sellerId'
+      path: '/$sellerId'
+      fullPath: '/app/gestao/positivacao/$sellerId'
+      preLoaderRoute: typeof AppGestaoPositivacaoSellerIdRouteImport
+      parentRoute: typeof AppGestaoPositivacaoRoute
+    }
     '/app/gestao/metas/nova': {
       id: '/app/gestao/metas/nova'
       path: '/nova'
@@ -1711,6 +1731,17 @@ const AppGestaoMetasRouteWithChildren = AppGestaoMetasRoute._addFileChildren(
   AppGestaoMetasRouteChildren,
 )
 
+interface AppGestaoPositivacaoRouteChildren {
+  AppGestaoPositivacaoSellerIdRoute: typeof AppGestaoPositivacaoSellerIdRoute
+}
+
+const AppGestaoPositivacaoRouteChildren: AppGestaoPositivacaoRouteChildren = {
+  AppGestaoPositivacaoSellerIdRoute: AppGestaoPositivacaoSellerIdRoute,
+}
+
+const AppGestaoPositivacaoRouteWithChildren =
+  AppGestaoPositivacaoRoute._addFileChildren(AppGestaoPositivacaoRouteChildren)
+
 interface AppRouteChildren {
   AppAtendimentoRoute: typeof AppAtendimentoRouteWithChildren
   AppCarteiraRoute: typeof AppCarteiraRoute
@@ -1741,7 +1772,7 @@ interface AppRouteChildren {
   AppGestaoDreRoute: typeof AppGestaoDreRoute
   AppGestaoEstoqueRoute: typeof AppGestaoEstoqueRoute
   AppGestaoMetasRoute: typeof AppGestaoMetasRouteWithChildren
-  AppGestaoPositivacaoRoute: typeof AppGestaoPositivacaoRoute
+  AppGestaoPositivacaoRoute: typeof AppGestaoPositivacaoRouteWithChildren
   AppGestaoRankingRoute: typeof AppGestaoRankingRoute
   AppGestaoRentabilidadeRoute: typeof AppGestaoRentabilidadeRoute
   AppGestaoVendasRoute: typeof AppGestaoVendasRoute
@@ -1788,7 +1819,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppGestaoDreRoute: AppGestaoDreRoute,
   AppGestaoEstoqueRoute: AppGestaoEstoqueRoute,
   AppGestaoMetasRoute: AppGestaoMetasRouteWithChildren,
-  AppGestaoPositivacaoRoute: AppGestaoPositivacaoRoute,
+  AppGestaoPositivacaoRoute: AppGestaoPositivacaoRouteWithChildren,
   AppGestaoRankingRoute: AppGestaoRankingRoute,
   AppGestaoRentabilidadeRoute: AppGestaoRentabilidadeRoute,
   AppGestaoVendasRoute: AppGestaoVendasRoute,

@@ -303,17 +303,18 @@ Dados sensíveis (lista de clientes não-positivados é estratégia comercial). 
 
 ## Status
 
-| Campo  | Valor       |
-| ------ | ----------- |
-| Status | ⏳ PENDENTE |
+| Campo  | Valor                                   |
+| ------ | --------------------------------------- |
+| Status | ✅ IMPLEMENTADO (v0.28.0 — `Coverage`) |
 
 ---
 
 ## Histórico
 
-| Data       | Versão | Alteração                                                                              |
-| ---------- | ------ | -------------------------------------------------------------------------------------- |
-| 25/05/2026 | v1     | Criação inicial — positivação com drill-down, projeção, em risco, integração com metas |
+| Data       | Versão | Alteração                                                                                          |
+| ---------- | ------ | -------------------------------------------------------------------------------------------------- |
+| 25/05/2026 | v1     | Criação inicial — positivação com drill-down, projeção, em risco, integração com metas             |
+| 26/05/2026 | v1.1   | Implementação Fase 1 — `positivation/` em v0.28.0 (`Coverage`); filtro em PRD-015 adiado para Fase 2 |
 
 ---
 

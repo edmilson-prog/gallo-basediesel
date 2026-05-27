@@ -126,7 +126,7 @@ export const APP_NAV_GROUPS: INavGroup[] = [
         label: "Positivação",
         icon: "mdi:account-check",
         to: ROUTES.GESTAO_POSITIVACAO,
-        roles: ["Owner"],
+        roles: ["Owner", "Gestor", "Vendedor", "Financeiro"],
       },
       {
         label: "Curva ABC",

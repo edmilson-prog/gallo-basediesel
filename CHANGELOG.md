@@ -4,6 +4,104 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.28.0] — Coverage · 2026-05-26
+
+Reabertura do Bloco 4a (Gestão A — Onda 2) com o sistema de
+**Positivação (PRD-044)** — o painel que finalmente responde a
+pergunta "quem da minha carteira ainda não comprou este mês?".
+A rota `/app/gestao/positivacao`, antes placeholder Owner-only,
+vira página completa para Owner, Gestor, Financeiro e Vendedor
+(escopo próprio), com KPIs, gráfico evolutivo, drill-down por
+vendedor, lista de não-positivados, lista de clientes em risco
+de virarem dormentes, e widget compacto no Painel Gestor.
+
+**Engine pura.** `calculatePositivation(start, end, context)` em
+`src/features/positivation/engine/` é função sem efeitos
+colaterais: recebe clientes, pedidos pagos no período, vendedores
+e o `dormantDays` configurável (PRD-019 lifecycle thresholds),
+devolve a base elegível (clientes ativos), o conjunto de
+positivados (clientes com ao menos 1 `IOrder` `pago` com `paidAt`
+no período), a taxa de positivação, a projeção linear capeada na
+base, o breakdown por vendedor com taxa individual e a lista de
+clientes em risco (cujo `lastPurchaseAt + dormantDays - now ≤ 15
+dias`). Determinística com `now` injetável para testes.
+
+**Hook agregador.** `usePositivationMetrics({ window, previousWindow,
+scope })` carrega clientes, pedidos current/previous, vendedores
+e configurações do store via 5 queries TanStack em paralelo,
+delega ao engine, e devolve métricas + previousMetrics + tendências
+calculadas via `computeTrend` (positivado/taxa = maior é melhor;
+churn/em risco = menor é melhor) + série diária para o gráfico
+de evolução. Reativo a mudanças no provider de pedidos.
+
+**Página principal.** `/app/gestao/positivacao` com header de
+filtros (período: mês atual/mês anterior/trimestre/YTD/custom,
+loja, vendedor — todos URL-sync) + 5 KPIs no topo (base, positivados,
+taxa, projeção, em risco) + gráfico Recharts de linha cumulativa
+vs proporcional + tabela "Por vendedor" (oculta para Vendedor) com
+drill-down clicável + duas listas paginadas (30/página) de clientes:
+não-positivados e em risco. Cada cliente tem botão "Contatar"
+(placeholder — abre `/app/atendimento` com nome pré-filtrado via
+`?q=`) e "Abrir ficha" (vai para `/app/clientes/$id`).
+
+**Drill-down.** `/app/gestao/positivacao/$sellerId` mostra a
+carteira completa do vendedor com 4 abas (Todos / Positivados /
+Não positivados / Em risco) + KPIs específicos. Vendedor só
+consegue abrir o próprio drill-down (Gestor e Owner veem qualquer
+um); tentativa de URL direta cai em `EmptyState` de acesso negado.
+
+**Widget no Painel Gestor.** `<PositivationWidget />` plugado no
+`/app/inicio` ao lado do `<GoalsWidget />` — KPI compacto da taxa
+do mês com barra de progresso inline + projeção fim de mês + link
+"Abrir" para a página completa.
+
+**Permissões.** Rota guardada por `requireAuth` aceitando Owner,
+Gestor, Vendedor e Financeiro. Vendedor é automaticamente travado
+no próprio `sellerId` (filtro de vendedor vira no-op) e na própria
+loja. Gestor é travado na própria loja. Owner livre cross-store.
+Sidebar atualizada para refletir o novo escopo de roles.
+
+### Added
+
+- `src/features/positivation/` — feature completa (engine puro,
+  3 hooks, 5 componentes, 2 páginas, i18n PT-BR e barrel)
+- Engine `calculatePositivation` em `src/features/positivation/engine/`
+  com `IPositivationMetrics`, `ISellerPositivation`, `IAtRiskCustomer`
+- Hook `usePositivationMetrics` — agregador via 5 queries TanStack +
+  delega ao engine + tendências vs período anterior + série diária
+- Hook `usePositivationFilters` — URL-sync com 4 presets (mês atual,
+  anterior, trimestre, YTD) + custom, loja, vendedor
+- Componentes `PositivationHeader`, `PositivationKpis`,
+  `PositivationEvolutionChart` (Recharts), `PositivationBySellerTable`,
+  `CustomerListCard` (paginação client-side), `PositivationWidget`
+- Páginas `PositivationPage` e `SellerPositivationPage`
+- Rotas `/app/gestao/positivacao` (substitui placeholder) e
+  `/app/gestao/positivacao/$sellerId`
+- Widget `<PositivationWidget />` plugado em `ManagerDashboardPage`
+  (PRD-014) ao lado do `GoalsWidget`
+
+### Changed
+
+- Sidebar: item "Positivação" agora visível para Owner, Gestor,
+  Vendedor e Financeiro (antes só Owner)
+- `app.gestao.positivacao.tsx` substitui o `PlaceholderPage` pela
+  página real, com guard de roles ampliado
+
+### Notes
+
+- Botão "Contatar" é placeholder do MVP — navega para `/app/atendimento`
+  com nome do cliente pré-filtrado via search params. Criação de
+  nova conversa direta com cliente fica para PRD-100 / Fase 2
+- Filtro "Positivado este mês" / "Não positivado este mês" em
+  `/app/clientes` (PRD-015 RF-021) fica para próxima iteração —
+  exige refactor da paginação server-side para suportar
+  post-filtering consistente
+- Engine `usePositivationMetrics` está pronto para ser plugado no
+  Cockpit (PRD-040) e na engine de metas (PRD-042) para substituir
+  os stubs atuais — feito em PR posterior para isolar risco
+
+---
+
 ## [0.27.0] — Cockpit · 2026-05-26
 
 Encerramento provisório do Bloco 4 (Gestão e BI — Onda 2) com a
