@@ -168,12 +168,17 @@ export function InboxPage() {
   const { lastId, setLastId } = useLastSelectedConversation();
 
   // Reopen last conversation when the user lands on /app/atendimento with no
-  // id and a previous selection exists.
+  // id and a previous selection exists. Preserve current search params so the
+  // active filters survive the auto-navigation.
   useEffect(() => {
     if (selectedId !== null) return;
     if (!lastId) return;
     if (!items.find((c) => c.id === lastId)) return;
-    void navigate({ to: "/app/atendimento/$id", params: { id: lastId } });
+    void navigate({
+      to: "/app/atendimento/$id",
+      params: { id: lastId },
+      search: (prev) => prev,
+    });
   }, [selectedId, lastId, items, navigate]);
 
   // Track the selected one for next session.
@@ -221,7 +226,11 @@ export function InboxPage() {
         const idx = items.findIndex((c) => c.id === selectedId);
         if (idx === -1 && items[0]) {
           e.preventDefault();
-          void navigate({ to: "/app/atendimento/$id", params: { id: items[0].id } });
+          void navigate({
+            to: "/app/atendimento/$id",
+            params: { id: items[0].id },
+            search: (prev) => prev,
+          });
           return;
         }
         const next =
@@ -229,7 +238,11 @@ export function InboxPage() {
         const target = items[next];
         if (target && target.id !== selectedId) {
           e.preventDefault();
-          void navigate({ to: "/app/atendimento/$id", params: { id: target.id } });
+          void navigate({
+            to: "/app/atendimento/$id",
+            params: { id: target.id },
+            search: (prev) => prev,
+          });
         }
       }
     }

@@ -199,7 +199,9 @@ export function SellerRankingDetailPage() {
           fromOrders={breakdown.fromOrders}
           fromBadges={breakdown.fromBadges}
         />
-        <ScoreHistoryChart data={history.history.map((h) => ({ label: h.label, score: h.score }))} />
+        <ScoreHistoryChart
+          data={history.history.map((h) => ({ label: h.label, score: h.score }))}
+        />
       </section>
 
       <section className="mt-6">

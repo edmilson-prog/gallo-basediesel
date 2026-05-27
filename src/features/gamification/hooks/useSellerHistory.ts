@@ -37,7 +37,20 @@ function buildMonthlyAnchors(months: number, base: Date = new Date()): Date[] {
   return out;
 }
 
-const MONTH_LABELS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const MONTH_LABELS = [
+  "jan",
+  "fev",
+  "mar",
+  "abr",
+  "mai",
+  "jun",
+  "jul",
+  "ago",
+  "set",
+  "out",
+  "nov",
+  "dez",
+];
 
 function labelForDate(d: Date): string {
   return `${MONTH_LABELS[d.getUTCMonth()]}/${String(d.getUTCFullYear()).slice(2)}`;
@@ -89,7 +102,15 @@ export function useSellerHistory(params: IUseSellerHistoryParams): IUseSellerHis
   });
 
   const ordersQuery = useQuery({
-    queryKey: ["gamification", "seller-history", "orders", storeId, sellerId, earliestIso, latestEnd],
+    queryKey: [
+      "gamification",
+      "seller-history",
+      "orders",
+      storeId,
+      sellerId,
+      earliestIso,
+      latestEnd,
+    ],
     queryFn: () =>
       ordersProvider.list({
         storeId,

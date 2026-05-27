@@ -2,20 +2,20 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _A definir após criação no Lovable_ |
-| **Objetivo** | Construir esqueleto completo do Portal B2B — sub-app dedicado para clientes corporativos com gestão de frota avançada, solicitações de orçamento estruturadas, aprovações internas, multi-usuário, faturamento corporativo, análise de gastos e suporte priorizado |
-| **Tipo** | Feature |
-| **Complexidade** | Alta |
-| **Total de Fases** | 5 |
-| **Prioridade** | Média |
-| **Épico** | Bloco 6 — Auxiliares |
-| **Profundidade** | **Esqueleto completo (E+)** — estrutura mais profunda preparada para Fase 2 |
-| **PRDs Relacionados** | PRD-012 (Cliente), PRD-016 (Veículos), PRD-031 (Orçamentos), PRD-032 (Pedidos), PRD-060 (Storefront público), PRD-065 (Conta — versão essencial e-com), PRD-067 (Integração Central) |
-| **Implementação** | 🔵 Claude Code CLI |
-| **Padrão de código** | Feature-based; código em `src/features/b2b-portal/`; rotas `/portal/*` (separado de `/loja/*`) |
+| Campo                 | Valor                                                                                                                                                                                                                                                              |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                                                                                           |
+| **Repositório**       | _A definir após criação no Lovable_                                                                                                                                                                                                                                |
+| **Objetivo**          | Construir esqueleto completo do Portal B2B — sub-app dedicado para clientes corporativos com gestão de frota avançada, solicitações de orçamento estruturadas, aprovações internas, multi-usuário, faturamento corporativo, análise de gastos e suporte priorizado |
+| **Tipo**              | Feature                                                                                                                                                                                                                                                            |
+| **Complexidade**      | Alta                                                                                                                                                                                                                                                               |
+| **Total de Fases**    | 5                                                                                                                                                                                                                                                                  |
+| **Prioridade**        | Média                                                                                                                                                                                                                                                              |
+| **Épico**             | Bloco 6 — Auxiliares                                                                                                                                                                                                                                               |
+| **Profundidade**      | **Esqueleto completo (E+)** — estrutura mais profunda preparada para Fase 2                                                                                                                                                                                        |
+| **PRDs Relacionados** | PRD-012 (Cliente), PRD-016 (Veículos), PRD-031 (Orçamentos), PRD-032 (Pedidos), PRD-060 (Storefront público), PRD-065 (Conta — versão essencial e-com), PRD-067 (Integração Central)                                                                               |
+| **Implementação**     | 🔵 Claude Code CLI                                                                                                                                                                                                                                                 |
+| **Padrão de código**  | Feature-based; código em `src/features/b2b-portal/`; rotas `/portal/*` (separado de `/loja/*`)                                                                                                                                                                     |
 
 ### Critérios de Complexidade
 
@@ -44,10 +44,10 @@ Este PRD entrega: **estrutura completa** do portal preparada para implementaçã
 
 ### Diferenciação clara
 
-| Sub-app | Audiência | Características |
-|---------|-----------|----------------|
-| **/loja** (PRD-060) | B2C principal + B2B simples | Vitrine pública + checkout self-service |
-| **/loja/conta** (PRD-065) | Cliente logado básico | Histórico, perfil, endereços, veículos B2B básico |
+| Sub-app                    | Audiência                    | Características                                             |
+| -------------------------- | ---------------------------- | ----------------------------------------------------------- |
+| **/loja** (PRD-060)        | B2C principal + B2B simples  | Vitrine pública + checkout self-service                     |
+| **/loja/conta** (PRD-065)  | Cliente logado básico        | Histórico, perfil, endereços, veículos B2B básico           |
 | **/portal** (este PRD-071) | **B2B corporativo avançado** | **Gestão de frota, aprovações, faturamento, multi-usuário** |
 
 Cliente B2B simples (frota pequena, sem complexidade) usa /loja/conta. Cliente B2B avançado (empresa de transportes com 50+ caminhões) usa /portal.
@@ -114,6 +114,7 @@ IPortalUser {
 ```
 
 **Roles:**
+
 - **admin**: tudo (gerente da frota geralmente)
 - **comprador**: cria solicitações, vê pedidos próprios
 - **visualizador**: read-only
@@ -121,6 +122,7 @@ IPortalUser {
 ### Dashboard `/portal/inicio`
 
 KPIs corporativos:
+
 - Pedidos em andamento
 - Gastos do mês
 - Frota: total veículos / em manutenção / parados
@@ -128,6 +130,7 @@ KPIs corporativos:
 - Limite de crédito disponível (placeholder)
 
 Atalhos:
+
 - Nova solicitação
 - Adicionar veículo
 - Falar com consultor
@@ -135,6 +138,7 @@ Atalhos:
 ### Gestão de Frota `/portal/frota`
 
 Versão **avançada** do PRD-016:
+
 - Lista de veículos com filtros (em uso / parado / em manutenção / vendido)
 - Cada veículo: placa, marca/modelo/ano, motor, km atual, próxima manutenção sugerida (placeholder), histórico de peças aplicadas (PRD-016)
 - Bulk operations (selecionar múltiplos para ação)
@@ -164,6 +168,7 @@ Diferente de /loja/checkout (compra direta), solicitações são **processo estr
 ### Wizard de nova solicitação `/portal/solicitacoes/nova`
 
 4 telas:
+
 1. Items: busca em catálogo personalizado + qty + opcionalmente veículo de destino
 2. Urgência: padrão / urgente / programada (data futura)
 3. Observações: textarea + anexar fotos placeholder
@@ -174,12 +179,14 @@ Cria entrada `IPortalRequest` (modelo novo).
 ### Lista de pedidos `/portal/pedidos`
 
 Filtros avançados (mais que PRD-065):
+
 - Status, período, valor, veículo de destino, comprador interno
 - Export CSV placeholder
 
 ### Detalhe do pedido `/portal/pedidos/:id`
 
 Versão B2B do PRD-032:
+
 - Header com status + número + total + comprador
 - Items com veículos de destino
 - Endereço de entrega + data prevista
@@ -190,6 +197,7 @@ Versão B2B do PRD-032:
 ### Faturamento `/portal/faturamento`
 
 Esqueleto profundo:
+
 - Conta corrente: limite, utilizado, disponível (placeholders)
 - Parcelas em aberto (placeholder)
 - Histórico de pagamentos (placeholder)
@@ -199,6 +207,7 @@ Esqueleto profundo:
 ### Análise de gastos `/portal/analise`
 
 Gráficos:
+
 - Gastos por mês (real — soma de IOrder pagos)
 - Gastos por categoria de peça (real, drill-down)
 - Gastos por veículo (real)
@@ -210,6 +219,7 @@ Reuso de hooks do PRD-041 filtrados por customerId.
 ### Gestão de usuários `/portal/usuarios`
 
 Admin do cliente gerencia:
+
 - Lista de usuários (`IPortalUser`)
 - CRUD com modal
 - Definir role e approvalLimit
@@ -232,6 +242,7 @@ Admin do cliente gerencia:
 ### Catálogo personalizado (placeholder)
 
 Setting `IPortalContract`:
+
 - `discountPct`: desconto fixo por contrato
 - `categoryDiscounts`: por categoria
 - `paymentTermsExtended`: condições especiais
@@ -241,6 +252,7 @@ Aplicado na exibição de preços nas solicitações (mock no MVP).
 ### Auth e sessão
 
 Auth próprio do portal (independente de /loja/conta no MVP):
+
 - Hierarquia: customer (empresa) → portalUsers (funcionários)
 - Login com email + senha
 - Sessão própria
@@ -250,6 +262,7 @@ Fase 2: integração Supabase Auth com customs claims para role.
 ### Permissões granulares
 
 Cada rota verifica `IPortalUser.role` e flags:
+
 - /portal/usuarios: apenas admin
 - /portal/faturamento: apenas roles com canViewFinancial
 - /portal/frota edição: apenas canManageFleet
@@ -262,15 +275,15 @@ Tema institucional GALLO (preto técnico + dourado diesel) — não submarca PAR
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que descartada |
-|-------------|---------------------|
-| Misturar /loja/conta com /portal | Audiências e fluxos diferentes; sub-app dedicado é melhor UX |
-| Sem multi-usuário no MVP | Diferencial B2B; estrutura preparada é importante |
-| Implementar tudo no MVP | Impossível sem real customer demo; esqueleto navegável faz sentido |
-| Workflow de aprovação sem placeholders | Modelo correto mas implementação Fase 2 |
-| Faturamento real com integração contábil | Fase 2; placeholders coerentes |
-| Sem catálogo personalizado modelado | Diferencial central B2B; modelar desde já |
-| Sem identidade visual distinta | Profissionalismo corporativo requer |
+| Alternativa                              | Por que descartada                                                 |
+| ---------------------------------------- | ------------------------------------------------------------------ |
+| Misturar /loja/conta com /portal         | Audiências e fluxos diferentes; sub-app dedicado é melhor UX       |
+| Sem multi-usuário no MVP                 | Diferencial B2B; estrutura preparada é importante                  |
+| Implementar tudo no MVP                  | Impossível sem real customer demo; esqueleto navegável faz sentido |
+| Workflow de aprovação sem placeholders   | Modelo correto mas implementação Fase 2                            |
+| Faturamento real com integração contábil | Fase 2; placeholders coerentes                                     |
+| Sem catálogo personalizado modelado      | Diferencial central B2B; modelar desde já                          |
+| Sem identidade visual distinta           | Profissionalismo corporativo requer                                |
 
 ---
 
@@ -522,34 +535,34 @@ ENTÃO sidebar vira drawer
 
 ## Fases de Implementação
 
-| Fase | Objetivo |
-|------|----------|
-| 1 | Estrutura /portal + auth + layout + dashboard + perfil |
-| 2 | Frota avançada + detalhe + integração PRD-016 |
-| 3 | Solicitações wizard + lista + detalhe + workflow básico |
-| 4 | Pedidos B2B + análise (reuso PRD-041) + faturamento esqueleto |
-| 5 | Usuários + permissões granulares + suporte + polish + audit |
+| Fase | Objetivo                                                      |
+| ---- | ------------------------------------------------------------- |
+| 1    | Estrutura /portal + auth + layout + dashboard + perfil        |
+| 2    | Frota avançada + detalhe + integração PRD-016                 |
+| 3    | Solicitações wizard + lista + detalhe + workflow básico       |
+| 4    | Pedidos B2B + análise (reuso PRD-041) + faturamento esqueleto |
+| 5    | Usuários + permissões granulares + suporte + polish + audit   |
 
 ---
 
 ## Dependências
 
-| PRD | Status |
-|-----|--------|
+| PRD                                      | Status         |
+| ---------------------------------------- | -------------- |
 | PRD-012 (Customer com flag hasB2BPortal) | 📝 (atualizar) |
-| PRD-016 (Veículos — reuso) | 📝 |
-| PRD-031 (Quote vinculação) | 📝 |
-| PRD-032 (Order vinculação) | 📝 |
-| PRD-041 (Análise hooks) | 📝 |
-| PRD-067 (Notificação GALLO) | 📝 |
+| PRD-016 (Veículos — reuso)               | 📝             |
+| PRD-031 (Quote vinculação)               | 📝             |
+| PRD-032 (Order vinculação)               | 📝             |
+| PRD-041 (Análise hooks)                  | 📝             |
+| PRD-067 (Notificação GALLO)              | 📝             |
 
 ---
 
 ## Cadeia
 
-| Ordem | PRD |
-|-------|-----|
-| 1-42 | 010-070 |
+| Ordem  | PRD               |
+| ------ | ----------------- |
+| 1-42   | 010-070           |
 | **43** | **PRD-071 ATUAL** |
 
 > **Marco:** **Bloco 6 completo. Toda documentação dos 50 PRDs do MVP concluída.** 🎯
@@ -569,13 +582,13 @@ ENTÃO sidebar vira drawer
 
 ## Convenções
 
-| Elemento | Convenção |
-|----------|-----------|
-| Páginas | `Portal*Page` (ex: `PortalHomePage`, `PortalFleetPage`) |
-| Layout | `PortalLayout` |
-| Store | `usePortalAuthStore` |
-| Pasta | `b2b-portal/` |
-| Git | `feat(b2b-portal): add B2B corporate portal skeleton` |
+| Elemento | Convenção                                               |
+| -------- | ------------------------------------------------------- |
+| Páginas  | `Portal*Page` (ex: `PortalHomePage`, `PortalFleetPage`) |
+| Layout   | `PortalLayout`                                          |
+| Store    | `usePortalAuthStore`                                    |
+| Pasta    | `b2b-portal/`                                           |
+| Git      | `feat(b2b-portal): add B2B corporate portal skeleton`   |
 
 ---
 
@@ -605,17 +618,17 @@ ENTÃO sidebar vira drawer
 
 ## Status
 
-| Campo | Valor |
-|-------|-------|
+| Campo  | Valor       |
+| ------ | ----------- |
 | Status | ⏳ PENDENTE |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 25/05/2026 | v1 | Criação inicial — Portal B2B com 9 módulos, multi-usuário, workflow de aprovação, esqueleto profundo para Fase 2 |
+| Data       | Versão | Alteração                                                                                                        |
+| ---------- | ------ | ---------------------------------------------------------------------------------------------------------------- |
+| 25/05/2026 | v1     | Criação inicial — Portal B2B com 9 módulos, multi-usuário, workflow de aprovação, esqueleto profundo para Fase 2 |
 
 ---
 

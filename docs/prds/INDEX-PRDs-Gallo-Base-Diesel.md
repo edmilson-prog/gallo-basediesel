@@ -103,41 +103,41 @@ Estabelece os pilares técnicos e visuais sobre os quais todo o resto se constr�
 
 O coração operacional do MVP. Inbox unificado, ficha do cliente, leads, veículos, carteira. Vai para o Claude Code CLI sobre o scaffold do Bloco 0. Corresponde à **Onda 1** da Proposta Comercial v2.
 
-| #   | Título                                                                                     | Tipo    | Prof. | Impl. | Documento | Status | Depende de    |
-| --- | ------------------------------------------------------------------------------------------ | ------- | ----- | ----- | --------- | ------ | ------------- |
-| 010 | [Inbox Unificado e Lista de Conversas](./PRD-010-inbox-conversas_DONE.md)                  | Feature | D     | 🔵    | 📝        | ✅     | Bloco 0       |
-| 011 | [Conversa com Histórico Multicanal](./PRD-011-conversa-multicanal_DONE.md)                 | Feature | D     | 🔵    | 📝        | ✅     | 010           |
-| 012 | [Ficha Unificada do Cliente](./PRD-012-ficha-cliente_DONE.md)                              | Feature | D     | 🔵    | 📝        | ✅     | 011, 016      |
-| 013 | [Regras de Distribuição e Roteamento](./PRD-013-distribuicao-roteamento_DONE.md)           | Feature | D     | 🔵    | 📝        | ✅     | 010           |
-| 014 | [Painel do Gestor — Métricas e Saúde da Carteira](./PRD-014-painel-gestor_DONE.md)         | Feature | D     | 🔵    | 📝        | ✅     | 010, 011, 013 |
-| 015 | [Lista Geral de Clientes (segmentações e ações em lote)](./PRD-015-lista-clientes_DONE.md) | Feature | D     | 🔵    | 📝        | ✅     | 012           |
-| 016 | [Veículos do Cliente](./PRD-016-veiculos_DONE.md)                                          | Feature | D     | 🔵    | 📝        | ✅     | 012           |
-| 017 | [Pipeline de Leads (Kanban + Lista)](./PRD-017-pipeline-leads_DONE.md)                     | Feature | D     | 🔵    | 📝        | ✅     | 010, 012      |
-| 018 | [Gestão de Carteira e Transferências](./PRD-018-carteira-transferencias_DONE.md)           | Feature | D     | 🔵    | 📝        | ✅     | 012, 015      |
-| 019 | [Configurações Administrativas (esqueleto navegável)](./PRD-019-configuracoes-admin_DONE.md) | Feature | E   | 🔵    | 📝        | ✅     | 006, 007      |
+| #   | Título                                                                                       | Tipo    | Prof. | Impl. | Documento | Status | Depende de    |
+| --- | -------------------------------------------------------------------------------------------- | ------- | ----- | ----- | --------- | ------ | ------------- |
+| 010 | [Inbox Unificado e Lista de Conversas](./PRD-010-inbox-conversas_DONE.md)                    | Feature | D     | 🔵    | 📝        | ✅     | Bloco 0       |
+| 011 | [Conversa com Histórico Multicanal](./PRD-011-conversa-multicanal_DONE.md)                   | Feature | D     | 🔵    | 📝        | ✅     | 010           |
+| 012 | [Ficha Unificada do Cliente](./PRD-012-ficha-cliente_DONE.md)                                | Feature | D     | 🔵    | 📝        | ✅     | 011, 016      |
+| 013 | [Regras de Distribuição e Roteamento](./PRD-013-distribuicao-roteamento_DONE.md)             | Feature | D     | 🔵    | 📝        | ✅     | 010           |
+| 014 | [Painel do Gestor — Métricas e Saúde da Carteira](./PRD-014-painel-gestor_DONE.md)           | Feature | D     | 🔵    | 📝        | ✅     | 010, 011, 013 |
+| 015 | [Lista Geral de Clientes (segmentações e ações em lote)](./PRD-015-lista-clientes_DONE.md)   | Feature | D     | 🔵    | 📝        | ✅     | 012           |
+| 016 | [Veículos do Cliente](./PRD-016-veiculos_DONE.md)                                            | Feature | D     | 🔵    | 📝        | ✅     | 012           |
+| 017 | [Pipeline de Leads (Kanban + Lista)](./PRD-017-pipeline-leads_DONE.md)                       | Feature | D     | 🔵    | 📝        | ✅     | 010, 012      |
+| 018 | [Gestão de Carteira e Transferências](./PRD-018-carteira-transferencias_DONE.md)             | Feature | D     | 🔵    | 📝        | ✅     | 012, 015      |
+| 019 | [Configurações Administrativas (esqueleto navegável)](./PRD-019-configuracoes-admin_DONE.md) | Feature | E     | 🔵    | 📝        | ✅     | 006, 007      |
 
 ### Bloco 2 — Agente SDR (PRDs 020–024)
 
 Agente de IA que atende 24/7, identifica peças, qualifica leads e escala para humano. Onda 1 também (compõe o "Central + SDR" da Proposta v2).
 
-| #   | Título                                                                      | Tipo    | Prof. | Impl. | Documento | Status | Depende de |
-| --- | --------------------------------------------------------------------------- | ------- | ----- | ----- | --------- | ------ | ---------- |
-| 020 | [Simulação de Conversa SDR ↔ Cliente](./PRD-020-simulacao-sdr_DONE.md)       | Feature | D     | 🔵    | 📝        | ✅     | 011        |
-| 021 | [Identificação de Peça (OEM, descrição, equivalência)](./PRD-021-identificacao-peca_DONE.md) | Feature | D | 🔵 | 📝     | ✅     | 020, 030   |
-| 022 | [Geração de Orçamento via SDR](./PRD-022-orcamento-sdr_DONE.md)              | Feature | D     | 🔵    | 📝        | ✅     | 021, 031   |
-| 023 | [Escalonamento para Vendedor com Resumo de Contexto](./PRD-023-escalonamento-sdr_DONE.md) | Feature | D | 🔵 | 📝       | ✅     | 020, 011   |
-| 024 | [Painel de Configuração e Métricas do Agente](./PRD-024-painel-sdr_DONE.md) | Feature | D     | 🔵    | 📝        | ✅     | 020        |
+| #   | Título                                                                                       | Tipo    | Prof. | Impl. | Documento | Status | Depende de |
+| --- | -------------------------------------------------------------------------------------------- | ------- | ----- | ----- | --------- | ------ | ---------- |
+| 020 | [Simulação de Conversa SDR ↔ Cliente](./PRD-020-simulacao-sdr_DONE.md)                       | Feature | D     | 🔵    | 📝        | ✅     | 011        |
+| 021 | [Identificação de Peça (OEM, descrição, equivalência)](./PRD-021-identificacao-peca_DONE.md) | Feature | D     | 🔵    | 📝        | ✅     | 020, 030   |
+| 022 | [Geração de Orçamento via SDR](./PRD-022-orcamento-sdr_DONE.md)                              | Feature | D     | 🔵    | 📝        | ✅     | 021, 031   |
+| 023 | [Escalonamento para Vendedor com Resumo de Contexto](./PRD-023-escalonamento-sdr_DONE.md)    | Feature | D     | 🔵    | 📝        | ✅     | 020, 011   |
+| 024 | [Painel de Configuração e Métricas do Agente](./PRD-024-painel-sdr_DONE.md)                  | Feature | D     | 🔵    | 📝        | ✅     | 020        |
 
 ### Bloco 3 — Comercial Operacional (PRDs 030–033)
 
 Catálogo interno, orçamento, pedido e ciclo de vida comercial. Parte da Onda 1 (suporta SDR e CRM) e fundação para Onda 3 (e-commerce).
 
-| #   | Título                                           | Tipo    | Prof. | Impl. | Documento | Status | Depende de |
-| --- | ------------------------------------------------ | ------- | ----- | ----- | --------- | ------ | ---------- |
-| 030 | [Catálogo de Produtos (visão comercial interna)](./PRD-030-catalogo-interno_DONE.md) | Feature | D | 🔵 | 📝     | ✅     | Bloco 0    |
-| 031 | [Orçamento (criação, edição, validade, conversão)](./PRD-031-orcamento_DONE.md) | Feature | D | 🔵 | 📝         | ✅     | 030, 012   |
-| 032 | [Pedido (gestão, status, ciclo de vida)](./PRD-032-pedido_DONE.md) | Feature | D | 🔵 | 📝                       | ✅     | 031        |
-| 033 | [Cálculo de Frete e Esqueleto Transportadoras](./PRD-033-frete_DONE.md) | Feature | E | 🔵 | 📝                  | ✅     | 032        |
+| #   | Título                                                                               | Tipo    | Prof. | Impl. | Documento | Status | Depende de |
+| --- | ------------------------------------------------------------------------------------ | ------- | ----- | ----- | --------- | ------ | ---------- |
+| 030 | [Catálogo de Produtos (visão comercial interna)](./PRD-030-catalogo-interno_DONE.md) | Feature | D     | 🔵    | 📝        | ✅     | Bloco 0    |
+| 031 | [Orçamento (criação, edição, validade, conversão)](./PRD-031-orcamento_DONE.md)      | Feature | D     | 🔵    | 📝        | ✅     | 030, 012   |
+| 032 | [Pedido (gestão, status, ciclo de vida)](./PRD-032-pedido_DONE.md)                   | Feature | D     | 🔵    | 📝        | ✅     | 031        |
+| 033 | [Cálculo de Frete e Esqueleto Transportadoras](./PRD-033-frete_DONE.md)              | Feature | E     | 🔵    | 📝        | ✅     | 032        |
 
 ### Bloco 4 — Plataforma de Gestão e BI (PRDs 040–053)
 
@@ -145,44 +145,44 @@ Visão executiva, metas, gamificação, positivação, curva ABC, comissões, DR
 
 | #   | Título                                                                           | Tipo    | Prof. | Impl. | Documento | Status | Depende de |
 | --- | -------------------------------------------------------------------------------- | ------- | ----- | ----- | --------- | ------ | ---------- |
-| 040 | [Visão Executiva (Home do Gestor)](./PRD-040-visao-executiva_DONE.md)             | Feature | D     | 🔵    | 📝        | ✅     | 041–049    |
+| 040 | [Visão Executiva (Home do Gestor)](./PRD-040-visao-executiva_DONE.md)            | Feature | D     | 🔵    | 📝        | ✅     | 041–049    |
 | 041 | [Vendas (pipeline, vendedor, canal, categoria)](./PRD-041-vendas_DONE.md)        | Feature | D     | 🔵    | 📝        | ✅     | 032        |
 | 042 | [Sistema de Metas (loja + individual; equipe dormente)](./PRD-042-metas_DONE.md) | Feature | D     | 🔵    | 📝        | ✅     | 041        |
-| 043 | [Ranking de Vendedores e Gamificação](./PRD-043-ranking-gamificacao_DONE.md)      | Feature | D     | 🔵    | 📝        | ✅     | 042        |
-| 044 | [Positivação de Clientes](./PRD-044-positivacao_DONE.md)                          | Feature | D     | 🔵    | 📝        | ✅     | 012, 041   |
-| 045 | [Curva ABC de Clientes](./PRD-045-curva-abc_DONE.md)                              | Feature | D     | 🔵    | 📝        | ✅     | 041        |
+| 043 | [Ranking de Vendedores e Gamificação](./PRD-043-ranking-gamificacao_DONE.md)     | Feature | D     | 🔵    | 📝        | ✅     | 042        |
+| 044 | [Positivação de Clientes](./PRD-044-positivacao_DONE.md)                         | Feature | D     | 🔵    | 📝        | ✅     | 012, 041   |
+| 045 | [Curva ABC de Clientes](./PRD-045-curva-abc_DONE.md)                             | Feature | D     | 🔵    | 📝        | ✅     | 041        |
 | 046 | [Carteira Analítica com Drill-down](./PRD-046-carteira-analitica_DONE.md)        | Feature | D     | 🔵    | 📝        | ✅     | 044, 045   |
-| 047 | [Comissões (cálculo, fechamento)](./PRD-047-comissoes_DONE.md)                    | Feature | D     | 🔵    | 📝        | ✅     | 041, 042   |
-| 048 | [DRE Gerencial](./PRD-048-dre.md)                                                 | Feature | E     | 🔵    | 📝        | ⏳     | 041        |
-| 049 | [Rentabilidade por SKU / Cliente / Canal](./PRD-049-rentabilidade.md)             | Feature | E     | 🔵    | 📝        | ⏳     | 041        |
-| 050 | [Estoque — Análise (esqueleto navegável)](./PRD-050-estoque-analise.md)           | Feature | E     | 🔵    | 📝        | ⏳     | 030        |
-| 051 | [Atendimento — Análise (esqueleto navegável)](./PRD-051-atendimento-analise.md)   | Feature | E     | 🔵    | 📝        | ⏳     | 010, 011   |
-| 052 | [Estoque — Movimentação (esqueleto)](./PRD-052-estoque-movimentacao.md)           | Feature | E     | 🔵    | 📝        | ⏳     | 030, 032   |
-| 053 | [IA Analítica e Insights Proativos](./PRD-053-ia-analitica-insights.md)           | Feature | D     | 🔵    | 📝        | ⏳     | 040–049    |
+| 047 | [Comissões (cálculo, fechamento)](./PRD-047-comissoes_DONE.md)                   | Feature | D     | 🔵    | 📝        | ✅     | 041, 042   |
+| 048 | [DRE Gerencial](./PRD-048-dre.md)                                                | Feature | E     | 🔵    | 📝        | ⏳     | 041        |
+| 049 | [Rentabilidade por SKU / Cliente / Canal](./PRD-049-rentabilidade.md)            | Feature | E     | 🔵    | 📝        | ⏳     | 041        |
+| 050 | [Estoque — Análise (esqueleto navegável)](./PRD-050-estoque-analise.md)          | Feature | E     | 🔵    | 📝        | ⏳     | 030        |
+| 051 | [Atendimento — Análise (esqueleto navegável)](./PRD-051-atendimento-analise.md)  | Feature | E     | 🔵    | 📝        | ⏳     | 010, 011   |
+| 052 | [Estoque — Movimentação (esqueleto)](./PRD-052-estoque-movimentacao.md)          | Feature | E     | 🔵    | 📝        | ⏳     | 030, 032   |
+| 053 | [IA Analítica e Insights Proativos](./PRD-053-ia-analitica-insights.md)          | Feature | D     | 🔵    | 📝        | ⏳     | 040–049    |
 
 ### Bloco 5 — E-commerce (PRDs 060–067)
 
 Vitrine pública GALLO PARTS, busca avançada por OEM/aplicação, carrinho, checkout, conta do cliente, integração com Central. **Onda 3** da Proposta Comercial v2.
 
-| #   | Título                                                | Tipo    | Prof. | Impl. | Documento | Status | Depende de    |
-| --- | ----------------------------------------------------- | ------- | ----- | ----- | --------- | ------ | ------------- |
-| 060 | [Home e Vitrine](./PRD-060-home-vitrine.md)            | Feature | D     | 🔵    | 📝        | ⏳     | 001           |
-| 061 | [Busca Avançada (OEM, aplicação, equivalência)](./PRD-061-busca-avancada.md) | Feature | D | 🔵 | 📝 | ⏳     | 030           |
-| 062 | [Listagem de Categoria com Filtros](./PRD-062-listagem-categoria.md) | Feature | D | 🔵    | 📝        | ⏳     | 060           |
-| 063 | [Ficha de Produto](./PRD-063-ficha-produto.md)          | Feature | D     | 🔵    | 📝        | ⏳     | 030           |
-| 064 | [Carrinho e Checkout](./PRD-064-carrinho-checkout.md)   | Feature | D     | 🔵    | 📝        | ⏳     | 063           |
-| 065 | [Conta do Cliente (histórico, pedidos)](./PRD-065-conta-cliente.md) | Feature | D | 🔵    | 📝        | ⏳     | 064, 012      |
-| 066 | [Painel Administrativo da Vitrine (esqueleto)](./PRD-066-admin-storefront.md) | Feature | E | 🔵 | 📝     | ⏳     | 060–065       |
-| 067 | [Integração E-commerce ↔ Central (lead, ficha, pedido)](./PRD-067-integracao-central.md) | Feature | D | 🔵 | 📝 | ⏳ | 064, 012, 017 |
+| #   | Título                                                                                   | Tipo    | Prof. | Impl. | Documento | Status | Depende de    |
+| --- | ---------------------------------------------------------------------------------------- | ------- | ----- | ----- | --------- | ------ | ------------- |
+| 060 | [Home e Vitrine](./PRD-060-home-vitrine.md)                                              | Feature | D     | 🔵    | 📝        | ⏳     | 001           |
+| 061 | [Busca Avançada (OEM, aplicação, equivalência)](./PRD-061-busca-avancada.md)             | Feature | D     | 🔵    | 📝        | ⏳     | 030           |
+| 062 | [Listagem de Categoria com Filtros](./PRD-062-listagem-categoria.md)                     | Feature | D     | 🔵    | 📝        | ⏳     | 060           |
+| 063 | [Ficha de Produto](./PRD-063-ficha-produto.md)                                           | Feature | D     | 🔵    | 📝        | ⏳     | 030           |
+| 064 | [Carrinho e Checkout](./PRD-064-carrinho-checkout.md)                                    | Feature | D     | 🔵    | 📝        | ⏳     | 063           |
+| 065 | [Conta do Cliente (histórico, pedidos)](./PRD-065-conta-cliente.md)                      | Feature | D     | 🔵    | 📝        | ⏳     | 064, 012      |
+| 066 | [Painel Administrativo da Vitrine (esqueleto)](./PRD-066-admin-storefront.md)            | Feature | E     | 🔵    | 📝        | ⏳     | 060–065       |
+| 067 | [Integração E-commerce ↔ Central (lead, ficha, pedido)](./PRD-067-integracao-central.md) | Feature | D     | 🔵    | 📝        | ⏳     | 064, 012, 017 |
 
 ### Bloco 6 — Plataformas Auxiliares (PRDs 070–071)
 
 Esqueletos navegáveis fora do MVP funcional. Mostram o caminho de evolução sem implementar features completas.
 
-| #   | Título                                              | Tipo    | Prof. | Impl. | Documento | Status | Depende de |
-| --- | --------------------------------------------------- | ------- | ----- | ----- | --------- | ------ | ---------- |
-| 070 | [PWA Vendedor Externo / Representante (esqueleto)](./PRD-070-pwa-vendedor-externo.md) | Feature | E | 🔵 | 📝   | ⏳     | Bloco 0    |
-| 071 | [Portal do Cliente (esqueleto + parâmetros na ficha)](./PRD-071-portal-cliente-b2b.md) | Feature | E | 🔵 | 📝 | ⏳     | 012        |
+| #   | Título                                                                                 | Tipo    | Prof. | Impl. | Documento | Status | Depende de |
+| --- | -------------------------------------------------------------------------------------- | ------- | ----- | ----- | --------- | ------ | ---------- |
+| 070 | [PWA Vendedor Externo / Representante (esqueleto)](./PRD-070-pwa-vendedor-externo.md)  | Feature | E     | 🔵    | 📝        | ⏳     | Bloco 0    |
+| 071 | [Portal do Cliente (esqueleto + parâmetros na ficha)](./PRD-071-portal-cliente-b2b.md) | Feature | E     | 🔵    | 📝        | ⏳     | 012        |
 
 ### Bloco 7 — Integrações Fase 2 (PRDs 100+) — Backlog
 
@@ -430,9 +430,9 @@ A plataforma usa Semantic Versioning com codinomes em inglês para releases MINO
 
 ### Documentação pendente
 
-| PRD     | Título                                | Bloco | Status     | Notas                                              |
-| ------- | ------------------------------------- | ----- | ---------- | -------------------------------------------------- |
-| PRD-043 | Ranking de Vendedores e Gamificação   | 4     | ⏸ A redigir | Único PRD do MVP ainda não redigido; depende de 042 e destrava widget no PRD-014 |
+| PRD     | Título                              | Bloco | Status      | Notas                                                                            |
+| ------- | ----------------------------------- | ----- | ----------- | -------------------------------------------------------------------------------- |
+| PRD-043 | Ranking de Vendedores e Gamificação | 4     | ⏸ A redigir | Único PRD do MVP ainda não redigido; depende de 042 e destrava widget no PRD-014 |
 
 ### Implementação pendente (19 PRDs)
 
@@ -440,23 +440,23 @@ Em ordem sugerida, respeitando dependências e os deltas retroativos do `DELTAS-
 
 **Onda 2 — Bloco 4b (fechamento de Gestão e BI):**
 
-| Próximo | PRD     | Título                                  |
-| ------- | ------- | --------------------------------------- |
-| 1       | PRD-043 | Ranking/Gamificação (redigir + implementar) |
+| Próximo | PRD     | Título                                       |
+| ------- | ------- | -------------------------------------------- |
+| 1       | PRD-043 | Ranking/Gamificação (redigir + implementar)  |
 | 2       | PRD-047 | Comissões (substitui stub commissionPreview) |
-| 3       | PRD-048 | DRE Gerencial (adiciona unitCost ao IPart) |
-| 4       | PRD-049 | Rentabilidade por SKU/Cliente/Canal     |
-| 5       | PRD-050 | Estoque — Análise (esqueleto)           |
-| 6       | PRD-051 | Atendimento — Análise (esqueleto)       |
+| 3       | PRD-048 | DRE Gerencial (adiciona unitCost ao IPart)   |
+| 4       | PRD-049 | Rentabilidade por SKU/Cliente/Canal          |
+| 5       | PRD-050 | Estoque — Análise (esqueleto)                |
+| 6       | PRD-051 | Atendimento — Análise (esqueleto)            |
 | 7       | PRD-052 | Estoque — Movimentação (derivado de pedidos) |
-| 8       | PRD-053 | IA Analítica e Insights (fecha Onda 2)  |
+| 8       | PRD-053 | IA Analítica e Insights (fecha Onda 2)       |
 
 **Onda 3 — Bloco 5 (E-commerce) e Bloco 6 (Auxiliares):**
 
-| Próximo | PRD     | Título                                |
-| ------- | ------- | ------------------------------------- |
+| Próximo | PRD     | Título                                   |
+| ------- | ------- | ---------------------------------------- |
 | 9–16    | 060–067 | Storefront completo + integração central |
-| 17–18   | 070–071 | PWA externo + Portal B2B (esqueletos) |
+| 17–18   | 070–071 | PWA externo + Portal B2B (esqueletos)    |
 
 **Estimativa:** ~8 entregas para fechar Onda 2 + ~10 entregas para Onda 3 = MVP v1.0.0 Heavy.
 
@@ -540,12 +540,12 @@ Em ordem sugerida, respeitando dependências e os deltas retroativos do `DELTAS-
 
 ## Última Atualização
 
-| Campo                | Valor                                                                                                                                                                       |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Data**             | 27/05/2026                                                                                                                                                                  |
-| **Atualizado por**   | Claude Opus 4.7 (Claude Code CLI)                                                                                                                                           |
-| **Motivo**           | Implementação do PRD-043 (Ranking/Gamificação) — v0.31.0 `Podium`, abertura do Bloco 4b                                                                                     |
-| **Versão do índice** | 1.8                                                                                                                                                                         |
+| Campo                | Valor                                                                                   |
+| -------------------- | --------------------------------------------------------------------------------------- |
+| **Data**             | 27/05/2026                                                                              |
+| **Atualizado por**   | Claude Opus 4.7 (Claude Code CLI)                                                       |
+| **Motivo**           | Implementação do PRD-043 (Ranking/Gamificação) — v0.31.0 `Podium`, abertura do Bloco 4b |
+| **Versão do índice** | 1.8                                                                                     |
 
 ---
 

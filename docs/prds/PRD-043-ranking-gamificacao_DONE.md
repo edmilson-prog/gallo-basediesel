@@ -2,19 +2,19 @@
 
 ## Informações Gerais
 
-| Campo                 | Valor                                                                                                                                                                                              |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                           |
-| **Repositório**       | gallo-basediesel                                                                                                                                                                                   |
+| Campo                 | Valor                                                                                                                                                                                                                                                          |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                                                                                       |
+| **Repositório**       | gallo-basediesel                                                                                                                                                                                                                                               |
 | **Objetivo**          | Adicionar camada de gamificação sobre as metas (PRD-042) e métricas comerciais — sistema de pontos, badges automáticos, ranking periódico e widgets de "top performers" — para engajar a equipe de vendas e tornar a performance comercial visível e celebrada |
-| **Tipo**              | Feature                                                                                                                                                                                            |
-| **Complexidade**      | Média                                                                                                                                                                                              |
-| **Total de Fases**    | 4                                                                                                                                                                                                  |
-| **Prioridade**        | Média                                                                                                                                                                                              |
-| **Épico**             | Bloco 4b — Gestão B (Onda 2)                                                                                                                                                                       |
-| **PRDs Relacionados** | PRD-014 (Painel Gestor — widget), PRD-019 (sub-rota config), PRD-032 (Pedido — alimenta score), PRD-040 (Cockpit — widget), PRD-042 (Metas — fonte primária), PRD-044 (Positivação), PRD-047 (Comissões) |
-| **Implementação**     | 🔵 Claude Code CLI                                                                                                                                                                                 |
-| **Padrão de código**  | Feature-based; código em `src/features/gamification/`                                                                                                                                              |
+| **Tipo**              | Feature                                                                                                                                                                                                                                                        |
+| **Complexidade**      | Média                                                                                                                                                                                                                                                          |
+| **Total de Fases**    | 4                                                                                                                                                                                                                                                              |
+| **Prioridade**        | Média                                                                                                                                                                                                                                                          |
+| **Épico**             | Bloco 4b — Gestão B (Onda 2)                                                                                                                                                                                                                                   |
+| **PRDs Relacionados** | PRD-014 (Painel Gestor — widget), PRD-019 (sub-rota config), PRD-032 (Pedido — alimenta score), PRD-040 (Cockpit — widget), PRD-042 (Metas — fonte primária), PRD-044 (Positivação), PRD-047 (Comissões)                                                       |
+| **Implementação**     | 🔵 Claude Code CLI                                                                                                                                                                                                                                             |
+| **Padrão de código**  | Feature-based; código em `src/features/gamification/`                                                                                                                                                                                                          |
 
 ### Critérios de Complexidade
 
@@ -42,15 +42,15 @@ Este PRD entrega: sistema de pontos derivado, catálogo inicial de badges, pági
 
 Score é número agregado calculado em runtime para cada vendedor num período. Regras default:
 
-| Evento                                              | Pontos | Origem                          |
-| --------------------------------------------------- | ------ | ------------------------------- |
-| Meta mensal atingida (`IGoal.status='concluida'`)   | +100   | PRD-042                         |
-| Meta superada em >120% do target                    | +50    | PRD-042 (bônus sobre +100)      |
-| Novo cliente atribuído ao vendedor                  | +10    | PRD-015/PRD-032 (sellerId)      |
-| Cliente positivado no mês                           | +5     | PRD-044                         |
-| Cliente recuperado (dormente → ativo)               | +25    | PRD-046                         |
-| Pedido pago de valor ≥ thresholdHighTicket          | +15    | PRD-032                         |
-| Badge conquistado (one-shot, ver rarity)            | +50–500 | catálogo abaixo                 |
+| Evento                                            | Pontos  | Origem                     |
+| ------------------------------------------------- | ------- | -------------------------- |
+| Meta mensal atingida (`IGoal.status='concluida'`) | +100    | PRD-042                    |
+| Meta superada em >120% do target                  | +50     | PRD-042 (bônus sobre +100) |
+| Novo cliente atribuído ao vendedor                | +10     | PRD-015/PRD-032 (sellerId) |
+| Cliente positivado no mês                         | +5      | PRD-044                    |
+| Cliente recuperado (dormente → ativo)             | +25     | PRD-046                    |
+| Pedido pago de valor ≥ thresholdHighTicket        | +15     | PRD-032                    |
+| Badge conquistado (one-shot, ver rarity)          | +50–500 | catálogo abaixo            |
 
 Todas as constantes ficam em `IPlatformSettings.gamificationSettings` e podem ser ajustadas pelo Owner.
 
@@ -58,18 +58,18 @@ Todas as constantes ficam em `IPlatformSettings.gamificationSettings` e podem se
 
 10 badges no MVP, organizados por categoria e raridade. Atribuição **automática** (não há outorga manual no MVP).
 
-| Slug                | Nome                     | Categoria     | Rarity   | Critério                                                              | Bônus pts |
-| ------------------- | ------------------------ | ------------- | -------- | --------------------------------------------------------------------- | --------- |
-| `meta-batida`       | Bate-meta                | metas         | common   | Bateu pelo menos 1 meta no mês                                        | 50        |
-| `hat-trick`         | Hat-trick                | metas         | rare     | 3 metas atingidas no mesmo mês                                        | 150       |
-| `veterano`          | Veterano                 | metas         | epic     | 12 metas consecutivas (uma por mês)                                   | 300       |
-| `recordista-tri`    | Recordista do Trimestre  | volume        | rare     | Maior pedido pago do trimestre na loja                                | 200       |
-| `maratona`          | Maratona                 | volume        | rare     | 10+ pedidos pagos em 24h                                              | 150       |
-| `cobertura`         | Cobertura                | carteira      | common   | Positivou ≥80% da carteira no mês                                     | 100       |
-| `resgatador`        | Resgatador               | carteira      | rare     | Recuperou ≥3 clientes dormentes (>90d sem comprar) no mês             | 150       |
-| `conquistador`      | Conquistador             | crescimento   | common   | 10 novos clientes atribuídos no mês                                   | 100       |
-| `big-ticket`        | Big Ticket               | volume        | epic     | Ticket médio do mês > `thresholdBigTicket` (default R$ 5.000)         | 300       |
-| `estrela-ascensao`  | Estrela em Ascensão      | ranking       | legendary | Subiu ≥3 posições no ranking mensal de um mês para o seguinte         | 500       |
+| Slug               | Nome                    | Categoria   | Rarity    | Critério                                                      | Bônus pts |
+| ------------------ | ----------------------- | ----------- | --------- | ------------------------------------------------------------- | --------- |
+| `meta-batida`      | Bate-meta               | metas       | common    | Bateu pelo menos 1 meta no mês                                | 50        |
+| `hat-trick`        | Hat-trick               | metas       | rare      | 3 metas atingidas no mesmo mês                                | 150       |
+| `veterano`         | Veterano                | metas       | epic      | 12 metas consecutivas (uma por mês)                           | 300       |
+| `recordista-tri`   | Recordista do Trimestre | volume      | rare      | Maior pedido pago do trimestre na loja                        | 200       |
+| `maratona`         | Maratona                | volume      | rare      | 10+ pedidos pagos em 24h                                      | 150       |
+| `cobertura`        | Cobertura               | carteira    | common    | Positivou ≥80% da carteira no mês                             | 100       |
+| `resgatador`       | Resgatador              | carteira    | rare      | Recuperou ≥3 clientes dormentes (>90d sem comprar) no mês     | 150       |
+| `conquistador`     | Conquistador            | crescimento | common    | 10 novos clientes atribuídos no mês                           | 100       |
+| `big-ticket`       | Big Ticket              | volume      | epic      | Ticket médio do mês > `thresholdBigTicket` (default R$ 5.000) | 300       |
+| `estrela-ascensao` | Estrela em Ascensão     | ranking     | legendary | Subiu ≥3 posições no ranking mensal de um mês para o seguinte | 500       |
 
 Categorias e raridades são tipadas — Owner pode adicionar bônus customizado em Fase 2; no MVP só edita pontuação e ativa/desativa.
 
@@ -172,10 +172,10 @@ Substitui placeholder existente em `src/routes/app.configuracoes.gamificacao.tsx
 
 ### Permissões (delta sobre PRD-006)
 
-| Permissão               | Roles                                  | Notas                                                 |
-| ----------------------- | -------------------------------------- | ----------------------------------------------------- |
-| `gamification.view`     | Owner, Gestor, Vendedor                | Vendedor vê ranking da própria loja apenas            |
-| `gamification.config`   | Owner only                             | Edição de regras                                      |
+| Permissão             | Roles                   | Notas                                      |
+| --------------------- | ----------------------- | ------------------------------------------ |
+| `gamification.view`   | Owner, Gestor, Vendedor | Vendedor vê ranking da própria loja apenas |
+| `gamification.config` | Owner only              | Edição de regras                           |
 
 **Vendedor BLOQUEADO** de ver ranking cross-store; sempre escopo da própria loja.
 
@@ -189,14 +189,14 @@ Substitui placeholder existente em `src/routes/app.configuracoes.gamificacao.tsx
 
 ### Alternativas Consideradas
 
-| Alternativa                                            | Por que descartada                                                       |
-| ------------------------------------------------------ | ------------------------------------------------------------------------ |
-| Sem badges, só ranking por score                       | Perde a celebração de marcos não-monetários (recovery, novos clientes)   |
-| Badges outorgados manualmente pelo Gestor              | MVP precisa funcionar sem intervenção; Fase 2 pode ter outorga custom    |
-| Score em tempo real a cada evento                      | Custo computacional desproporcional para dados mockados; diário é OK     |
-| Apenas top 3 visível (sem ranking completo)            | Vendedor 5º precisa ver onde está pra brigar pelo pódio                  |
-| Pontuação não-configurável                             | Owner precisa calibrar com a realidade da loja                           |
-| Ranking visível ao Cliente (público)                   | Estratégico interno; nunca exposto fora da equipe                        |
+| Alternativa                                 | Por que descartada                                                     |
+| ------------------------------------------- | ---------------------------------------------------------------------- |
+| Sem badges, só ranking por score            | Perde a celebração de marcos não-monetários (recovery, novos clientes) |
+| Badges outorgados manualmente pelo Gestor   | MVP precisa funcionar sem intervenção; Fase 2 pode ter outorga custom  |
+| Score em tempo real a cada evento           | Custo computacional desproporcional para dados mockados; diário é OK   |
+| Apenas top 3 visível (sem ranking completo) | Vendedor 5º precisa ver onde está pra brigar pelo pódio                |
+| Pontuação não-configurável                  | Owner precisa calibrar com a realidade da loja                         |
+| Ranking visível ao Cliente (público)        | Estratégico interno; nunca exposto fora da equipe                      |
 
 ---
 
@@ -356,39 +356,39 @@ ENTÃO ranking exibido reflete novos pontos
 
 ## Fases de Implementação
 
-| Fase | Objetivo                                                                                   |
-| ---- | ------------------------------------------------------------------------------------------ |
-| 1    | Tipos + settings + catálogo seed de 10 badges + engine puro (score, badges, ranking)       |
-| 2    | Página principal de ranking com pódio + tabela + drill-down + drill-down do vendedor       |
-| 3    | Widgets no Painel Gestor e Cockpit + substituição do stub `useGamificationStatistics`      |
-| 4    | Configuração + audit log + recálculo agendado + polish (qualitativos, sticky, mobile)      |
+| Fase | Objetivo                                                                              |
+| ---- | ------------------------------------------------------------------------------------- |
+| 1    | Tipos + settings + catálogo seed de 10 badges + engine puro (score, badges, ranking)  |
+| 2    | Página principal de ranking com pódio + tabela + drill-down + drill-down do vendedor  |
+| 3    | Widgets no Painel Gestor e Cockpit + substituição do stub `useGamificationStatistics` |
+| 4    | Configuração + audit log + recálculo agendado + polish (qualitativos, sticky, mobile) |
 
 ---
 
 ## Dependências
 
-| PRD                                  | Status  |
-| ------------------------------------ | ------- |
-| PRD-002 (tipos via delta)            | ✅ DONE |
-| PRD-004 (seed de badges + scores)    | ✅ DONE |
-| PRD-005 (providers)                  | ✅ DONE |
-| PRD-006 (permissões via delta)       | ✅ DONE |
-| PRD-014 (Painel — widget consumer)   | ✅ DONE |
-| PRD-019 (sub-rota configuração)      | ✅ DONE |
-| PRD-040 (Cockpit — widget consumer)  | ✅ DONE |
-| PRD-042 (Metas — fonte primária)     | ✅ DONE |
-| PRD-044 (Positivação — fonte)        | ✅ DONE |
-| PRD-046 (Carteira — recovery flag)   | ✅ DONE |
+| PRD                                 | Status  |
+| ----------------------------------- | ------- |
+| PRD-002 (tipos via delta)           | ✅ DONE |
+| PRD-004 (seed de badges + scores)   | ✅ DONE |
+| PRD-005 (providers)                 | ✅ DONE |
+| PRD-006 (permissões via delta)      | ✅ DONE |
+| PRD-014 (Painel — widget consumer)  | ✅ DONE |
+| PRD-019 (sub-rota configuração)     | ✅ DONE |
+| PRD-040 (Cockpit — widget consumer) | ✅ DONE |
+| PRD-042 (Metas — fonte primária)    | ✅ DONE |
+| PRD-044 (Positivação — fonte)       | ✅ DONE |
+| PRD-046 (Carteira — recovery flag)  | ✅ DONE |
 
 ---
 
 ## Cadeia
 
-| Ordem  | PRD                |
-| ------ | ------------------ |
-| 1–31   | 001–046            |
-| **32** | **PRD-043 ATUAL**  |
-| 33+    | 047, 048, 049…     |
+| Ordem  | PRD               |
+| ------ | ----------------- |
+| 1–31   | 001–046           |
+| **32** | **PRD-043 ATUAL** |
+| 33+    | 047, 048, 049…    |
 
 ---
 
@@ -403,13 +403,13 @@ ENTÃO ranking exibido reflete novos pontos
 
 ## Convenções
 
-| Elemento       | Convenção                                                  |
-| -------------- | ---------------------------------------------------------- |
-| Página         | `RankingPage`, `SellerRankingDetailPage`, `GamificationConfigPage` |
-| Engine         | `calculateSellerScore`, `evaluateBadgesForSeller`, `calculateRanking` |
-| Pasta          | `gamification/`                                            |
-| Componente     | `<TopPerformersWidget>`, `<RankingHighlightWidget>`, `<SellerBadgesGrid>` |
-| Tipos          | `IBadge`, `ISellerBadge`, `ISellerScore`, `BadgeCategory`, `BadgeRarity` |
+| Elemento   | Convenção                                                                 |
+| ---------- | ------------------------------------------------------------------------- |
+| Página     | `RankingPage`, `SellerRankingDetailPage`, `GamificationConfigPage`        |
+| Engine     | `calculateSellerScore`, `evaluateBadgesForSeller`, `calculateRanking`     |
+| Pasta      | `gamification/`                                                           |
+| Componente | `<TopPerformersWidget>`, `<RankingHighlightWidget>`, `<SellerBadgesGrid>` |
+| Tipos      | `IBadge`, `ISellerBadge`, `ISellerScore`, `BadgeCategory`, `BadgeRarity`  |
 
 ---
 
@@ -427,17 +427,17 @@ ENTÃO ranking exibido reflete novos pontos
 
 ## Status
 
-| Campo  | Valor                                                          |
-| ------ | -------------------------------------------------------------- |
-| Status | ✅ IMPLEMENTADO (v0.31.0 — `Podium`)                            |
+| Campo  | Valor                                |
+| ------ | ------------------------------------ |
+| Status | ✅ IMPLEMENTADO (v0.31.0 — `Podium`) |
 
 ---
 
 ## Histórico
 
-| Data       | Versão | Alteração                                                                                                                |
-| ---------- | ------ | ------------------------------------------------------------------------------------------------------------------------ |
-| 27/05/2026 | v1     | Criação inicial — sistema de pontos, catálogo de 10 badges, ranking, drill-down, widgets para Painel Gestor e Cockpit    |
+| Data       | Versão | Alteração                                                                                                                                                                         |
+| ---------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 27/05/2026 | v1     | Criação inicial — sistema de pontos, catálogo de 10 badges, ranking, drill-down, widgets para Painel Gestor e Cockpit                                                             |
 | 27/05/2026 | v1.1   | Implementação — `src/features/gamification/` em v0.31.0 (`Podium`); inclui fix arquitetural de rota TanStack (parent `<Outlet />` + child `.index.tsx`) para destravar drill-down |
 
 ---

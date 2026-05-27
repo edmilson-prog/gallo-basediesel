@@ -1,8 +1,4 @@
-import type {
-  CommissionStatus,
-  ICommission,
-  ID,
-} from "@/shared/types";
+import type { CommissionStatus, ICommission, ID } from "@/shared/types";
 import type { IPaginatedResult, IPaginationParams } from "./_shared";
 
 export interface IListCommissionsParams extends IPaginationParams {

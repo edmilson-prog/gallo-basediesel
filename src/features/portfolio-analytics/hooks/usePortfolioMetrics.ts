@@ -207,14 +207,7 @@ export function usePortfolioMetrics(
   // the window, but we need every paid order up to `window.toIso` to know each
   // customer's last purchase at every bucket boundary.
   const ordersHistoryQuery = useQuery({
-    queryKey: [
-      "portfolio",
-      "orders",
-      "history",
-      scope.storeId,
-      scope.sellerId,
-      window.toIso,
-    ],
+    queryKey: ["portfolio", "orders", "history", scope.storeId, scope.sellerId, window.toIso],
     queryFn: () =>
       ordersProvider.list({
         storeId: scope.storeId,
@@ -264,18 +257,14 @@ export function usePortfolioMetrics(
   };
 
   const customers = useMemo(() => customersQuery.data?.data ?? [], [customersQuery.data]);
-  const ordersWindow = useMemo(
-    () => ordersWindowQuery.data?.data ?? [],
-    [ordersWindowQuery.data],
-  );
+  const ordersWindow = useMemo(() => ordersWindowQuery.data?.data ?? [], [ordersWindowQuery.data]);
   const ordersHistory = useMemo(
     () => ordersHistoryQuery.data?.data ?? [],
     [ordersHistoryQuery.data],
   );
   const sellers = useMemo(() => sellersQuery.data ?? [], [sellersQuery.data]);
 
-  const dormantDays =
-    settingsQuery.data?.lifecycleThresholds.dormantDays ?? FALLBACK_DORMANT_DAYS;
+  const dormantDays = settingsQuery.data?.lifecycleThresholds.dormantDays ?? FALLBACK_DORMANT_DAYS;
   const lostDays = settingsQuery.data?.lifecycleThresholds.lostDays ?? FALLBACK_LOST_DAYS;
 
   const metrics = useMemo<IPortfolioMetrics | null>(() => {

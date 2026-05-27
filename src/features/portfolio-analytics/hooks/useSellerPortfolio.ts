@@ -2,10 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { ID, ISeller } from "@/shared/types";
 import { useSellersProvider } from "@/providers/data";
-import {
-  usePortfolioMetrics,
-  type IUsePortfolioMetricsResult,
-} from "./usePortfolioMetrics";
+import { usePortfolioMetrics, type IUsePortfolioMetricsResult } from "./usePortfolioMetrics";
 import type { IPortfolioWindow } from "./usePortfolioFilters";
 import type { ISellerPortfolio } from "../engine/calculatePortfolioMetrics";
 

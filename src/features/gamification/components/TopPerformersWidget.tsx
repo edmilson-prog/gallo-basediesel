@@ -71,11 +71,7 @@ export function TopPerformersWidget({ storeId }: ITopPerformersWidgetProps) {
                 key={entry.sellerId}
                 className="flex items-center gap-3 py-2 first:pt-0 last:pb-0"
               >
-                <Icon
-                  icon={MEDAL_ICONS[idx]}
-                  size={20}
-                  className={MEDAL_TINTS[idx]}
-                />
+                <Icon icon={MEDAL_ICONS[idx]} size={20} className={MEDAL_TINTS[idx]} />
                 <SellerAvatar fullName={seller?.fullName ?? "—"} size="sm" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-foreground">

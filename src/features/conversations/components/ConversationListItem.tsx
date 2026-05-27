@@ -106,6 +106,8 @@ function ConversationListItemInner({
     <Link
       to="/app/atendimento/$id"
       params={{ id: conversation.id }}
+      // Preserve current search so inbox filters survive the navigation.
+      search={(prev) => prev}
       onClick={() => onSelect?.()}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}

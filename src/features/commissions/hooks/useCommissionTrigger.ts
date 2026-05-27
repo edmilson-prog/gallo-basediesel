@@ -41,8 +41,7 @@ export function useCommissionTrigger(params: IUseCommissionTriggerParams): {
 
   const ordersQuery = useQuery({
     queryKey: ["commissions", "trigger", "orders", storeId],
-    queryFn: () =>
-      ordersProvider.list({ storeId, paymentStatus: "pago", pageSize: 5000 }),
+    queryFn: () => ordersProvider.list({ storeId, paymentStatus: "pago", pageSize: 5000 }),
     enabled,
     staleTime: 30_000,
   });

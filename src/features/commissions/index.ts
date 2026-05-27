@@ -14,11 +14,7 @@
  *    swap the PRD-032 preview for the real calculated commission.
  */
 
-export {
-  calculateCommission,
-  determineCommissionBeneficiary,
-  findApplicableRule,
-} from "./engine";
+export { calculateCommission, determineCommissionBeneficiary, findApplicableRule } from "./engine";
 export type {
   ICalculatedCommission,
   ICommissionBeneficiary,
@@ -38,21 +34,13 @@ export type {
 export { useCommissionsList } from "./hooks/useCommissionsList";
 export { useCommissionForOrder } from "./hooks/useCommissionForOrder";
 export { useCommissionTrigger } from "./hooks/useCommissionTrigger";
-export {
-  useCommissionsFilters,
-  validateCommissionsSearch,
-} from "./hooks/useCommissionsFilters";
+export { useCommissionsFilters, validateCommissionsSearch } from "./hooks/useCommissionsFilters";
 export type {
   ICommissionsFiltersSearch,
   ICommissionsFiltersState,
   IUseCommissionsFiltersResult,
 } from "./hooks/useCommissionsFilters";
 
-export {
-  currentPeriod,
-  previousPeriod,
-  labelForPeriod,
-  canClosePeriod,
-} from "./utils/periods";
+export { currentPeriod, previousPeriod, labelForPeriod, canClosePeriod } from "./utils/periods";
 
 export { CommissionsWidget } from "./components/CommissionsWidget";

@@ -43,9 +43,7 @@ export function BreakdownDonut({
         <h2 className="text-base font-semibold text-foreground">{S.detailBreakdownTitle}</h2>
       </div>
       {total === 0 ? (
-        <p className="py-12 text-center text-sm text-muted-foreground">
-          {S.emptyDescription}
-        </p>
+        <p className="py-12 text-center text-sm text-muted-foreground">{S.emptyDescription}</p>
       ) : (
         <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-[200px_1fr]">
           <div className="h-44">

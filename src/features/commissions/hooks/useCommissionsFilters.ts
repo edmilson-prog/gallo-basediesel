@@ -44,9 +44,7 @@ export const DEFAULT_COMMISSIONS_FILTERS = (): ICommissionsFiltersState => ({
  * consolidated list and the drill-down — `strict: false` keeps the hook
  * functional under nested routes.
  */
-export function useCommissionsFilters(opts: {
-  sellerLockedId?: ID;
-}): IUseCommissionsFiltersResult {
+export function useCommissionsFilters(opts: { sellerLockedId?: ID }): IUseCommissionsFiltersResult {
   const search = useSearch({ strict: false }) as ICommissionsFiltersSearch;
   const navigate = useNavigate();
 

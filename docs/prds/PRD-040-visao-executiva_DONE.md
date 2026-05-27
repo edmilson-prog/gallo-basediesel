@@ -322,18 +322,18 @@ ENTÃO banner aparece no topo: "Churn subiu 25% nos últimos 30 dias"
 
 ## Status
 
-| Campo  | Valor                                  |
-| ------ | -------------------------------------- |
+| Campo  | Valor                                 |
+| ------ | ------------------------------------- |
 | Status | ✅ IMPLEMENTADO (v0.27.0 — `Cockpit`) |
 
 ---
 
 ## Histórico
 
-| Data       | Versão | Alteração                                                                   |
-| ---------- | ------ | --------------------------------------------------------------------------- |
-| 25/05/2026 | v1     | Criação inicial — cockpit executivo agregador de 8+ PRDs analíticos         |
-| 26/05/2026 | v1.1   | Implementação Fase 1 — `executive-cockpit/` em v0.27.0 (`Cockpit`)          |
+| Data       | Versão | Alteração                                                           |
+| ---------- | ------ | ------------------------------------------------------------------- |
+| 25/05/2026 | v1     | Criação inicial — cockpit executivo agregador de 8+ PRDs analíticos |
+| 26/05/2026 | v1.1   | Implementação Fase 1 — `executive-cockpit/` em v0.27.0 (`Cockpit`)  |
 
 ---
 

@@ -36,13 +36,16 @@ export function PortfolioHealthWidget({ storeId, sellerId }: IPortfolioHealthWid
   const total = metrics?.totalCustomers ?? 0;
   const empty = !isLoading && total === 0;
   const churn = (metrics?.churn.activeToDormant ?? 0) + (metrics?.churn.activeToLost ?? 0);
-  const recovery =
-    (metrics?.recovery.dormantToActive ?? 0) + (metrics?.recovery.lostToActive ?? 0);
+  const recovery = (metrics?.recovery.dormantToActive ?? 0) + (metrics?.recovery.lostToActive ?? 0);
   const activePct = total > 0 ? (metrics?.byStatus.ativo ?? 0) / total : 0;
   const data = metrics
     ? [
         { key: "ativo", value: metrics.byStatus.ativo, color: STATUS_COLORS.ativo },
-        { key: "recuperacao", value: metrics.byStatus.recuperacao, color: STATUS_COLORS.recuperacao },
+        {
+          key: "recuperacao",
+          value: metrics.byStatus.recuperacao,
+          color: STATUS_COLORS.recuperacao,
+        },
         { key: "dormente", value: metrics.byStatus.dormente, color: STATUS_COLORS.dormente },
         { key: "perdido", value: metrics.byStatus.perdido, color: STATUS_COLORS.perdido },
       ].filter((d) => d.value > 0)
@@ -92,7 +95,9 @@ export function PortfolioHealthWidget({ storeId, sellerId }: IPortfolioHealthWid
               <span className="text-xl font-semibold tracking-tight text-foreground">
                 {formatPercent(activePct)}
               </span>
-              <span className="text-muted-foreground">{S.widgetSubtitle(metrics?.byStatus.ativo ?? 0, total)}</span>
+              <span className="text-muted-foreground">
+                {S.widgetSubtitle(metrics?.byStatus.ativo ?? 0, total)}
+              </span>
             </div>
             <div className="flex items-center gap-3 text-[11px]">
               <span className="inline-flex items-center gap-1 text-red-600 dark:text-red-400">

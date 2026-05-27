@@ -95,9 +95,7 @@ export function RankingTable({
                     <div className="flex items-center gap-2">
                       <span
                         className={`inline-flex h-6 w-6 items-center justify-center rounded-md text-xs font-semibold ${
-                          isYou
-                            ? "bg-accent text-accent-foreground"
-                            : "bg-muted text-foreground"
+                          isYou ? "bg-accent text-accent-foreground" : "bg-muted text-foreground"
                         }`}
                       >
                         {entry.position}

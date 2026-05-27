@@ -2,20 +2,20 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _A definir após criação no Lovable_ |
-| **Objetivo** | Criar PWA (Progressive Web App) para vendedor externo — esqueleto navegável otimizado mobile com minha carteira, novo orçamento rápido, agenda de visitas e captura offline preparado para implementação completa Fase 2 |
-| **Tipo** | Feature |
-| **Complexidade** | Média |
-| **Total de Fases** | 3 |
-| **Prioridade** | Média |
-| **Épico** | Bloco 6 — Auxiliares |
-| **Profundidade** | **Esqueleto enxuto (E)** |
-| **PRDs Relacionados** | PRD-002 (ISeller — campo type externo), PRD-012 (Cliente), PRD-015 (Carteira), PRD-031 (Orçamento) |
-| **Implementação** | 🔵 Claude Code CLI |
-| **Padrão de código** | Feature-based; código em `src/features/external-seller-pwa/`; rota `/pwa/*` |
+| Campo                 | Valor                                                                                                                                                                                                                    |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                                                 |
+| **Repositório**       | _A definir após criação no Lovable_                                                                                                                                                                                      |
+| **Objetivo**          | Criar PWA (Progressive Web App) para vendedor externo — esqueleto navegável otimizado mobile com minha carteira, novo orçamento rápido, agenda de visitas e captura offline preparado para implementação completa Fase 2 |
+| **Tipo**              | Feature                                                                                                                                                                                                                  |
+| **Complexidade**      | Média                                                                                                                                                                                                                    |
+| **Total de Fases**    | 3                                                                                                                                                                                                                        |
+| **Prioridade**        | Média                                                                                                                                                                                                                    |
+| **Épico**             | Bloco 6 — Auxiliares                                                                                                                                                                                                     |
+| **Profundidade**      | **Esqueleto enxuto (E)**                                                                                                                                                                                                 |
+| **PRDs Relacionados** | PRD-002 (ISeller — campo type externo), PRD-012 (Cliente), PRD-015 (Carteira), PRD-031 (Orçamento)                                                                                                                       |
+| **Implementação**     | 🔵 Claude Code CLI                                                                                                                                                                                                       |
+| **Padrão de código**  | Feature-based; código em `src/features/external-seller-pwa/`; rota `/pwa/*`                                                                                                                                              |
 
 ### Critérios de Complexidade
 
@@ -56,6 +56,7 @@ Rota base `/pwa` separada de `/app` (interno) e `/loja` (e-commerce).
 ### Layout mobile-first
 
 Bottom navigation (5 ícones):
+
 - 🏠 Início
 - 📇 Carteira
 - 📋 Novo Orçamento
@@ -71,11 +72,13 @@ Bottom navigation (5 ícones):
 ### Dashboard `/pwa/inicio`
 
 KPIs grandes (touch-friendly):
+
 - "5 visitas hoje"
 - "2 orçamentos enviados"
 - "R$ 12k em pipeline"
 
 Listas:
+
 - Próximas visitas (hoje + amanhã)
 - Orçamentos pendentes
 - Atalhos: Novo orçamento / Agendar visita
@@ -83,6 +86,7 @@ Listas:
 ### Carteira `/pwa/carteira`
 
 Lista compacta de clientes (mesma origem do PRD-015 mas com layout mobile):
+
 - Busca no topo
 - Cada item: foto + nome + último contato + status badge
 - Click → /pwa/carteira/:id (versão compacta da ficha PRD-012)
@@ -90,6 +94,7 @@ Lista compacta de clientes (mesma origem do PRD-015 mas com layout mobile):
 ### Novo Orçamento Rápido `/pwa/orcamento-rapido`
 
 Wizard de 3 telas (touch-otimizado):
+
 1. **Cliente**: select da carteira (autocomplete) ou "+ Novo"
 2. **Itens**: busca de produto (PRD-030) com seletor de quantidade grande; lista crescente; total atualizado
 3. **Confirmar**: revisar + enviar
@@ -99,6 +104,7 @@ Cria IQuote (PRD-031) com origin='vendedor' e captura de localização opcional 
 ### Agenda `/pwa/agenda`
 
 Calendário simplificado:
+
 - Visualização semana atual
 - Lista de visitas agendadas
 - Botão "+ Nova visita"
@@ -106,6 +112,7 @@ Calendário simplificado:
 ### Agendamento `/pwa/agenda/nova`
 
 Form simples:
+
 - Cliente (select)
 - Data + hora
 - Endereço (autopreenchido pelo cliente)
@@ -118,6 +125,7 @@ Cria entrada `IVisit` (modelo novo, simples).
 No MVP: app funciona apenas online. Banner: "Modo offline disponível na Fase 2".
 
 Fase 2:
+
 - Service worker
 - IndexedDB para cache de carteira/produtos
 - Queue de mutations offline
@@ -126,6 +134,7 @@ Fase 2:
 ### Manifest PWA
 
 `manifest.json` configurado para "instalável":
+
 - Nome: "GALLO Vendedor"
 - Theme color: cor da marca
 - Icons placeholder
@@ -139,12 +148,12 @@ Fase 2:
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que descartada |
-|-------------|---------------------|
+| Alternativa                               | Por que descartada                                      |
+| ----------------------------------------- | ------------------------------------------------------- |
 | Implementar offline-first completo no MVP | Complexidade alta sem ROI até ter vendedor externo real |
-| Usar /app responsive (não app separado) | UX em campo precisa otimização mobile-first dedicada |
-| Native app (Flutter, React Native) | PWA é suficiente; sem custo de manutenção dupla |
-| Sem login (auth via SSO) | Fase 2 — manter MVP simples |
+| Usar /app responsive (não app separado)   | UX em campo precisa otimização mobile-first dedicada    |
+| Native app (Flutter, React Native)        | PWA é suficiente; sem custo de manutenção dupla         |
+| Sem login (auth via SSO)                  | Fase 2 — manter MVP simples                             |
 
 ---
 
@@ -286,31 +295,31 @@ ENTÃO app abre em modo standalone (sem barra do browser)
 
 ## Fases de Implementação
 
-| Fase | Objetivo |
-|------|----------|
-| 1 | Estrutura /pwa + layout + bottom nav + login + dashboard |
-| 2 | Carteira + cliente detalhe + novo orçamento wizard |
-| 3 | Agenda + manifest PWA + polish + banners Fase 2 |
+| Fase | Objetivo                                                 |
+| ---- | -------------------------------------------------------- |
+| 1    | Estrutura /pwa + layout + bottom nav + login + dashboard |
+| 2    | Carteira + cliente detalhe + novo orçamento wizard       |
+| 3    | Agenda + manifest PWA + polish + banners Fase 2          |
 
 ---
 
 ## Dependências
 
-| PRD | Status |
-|-----|--------|
-| PRD-012 (ficha — versão compacta) | 📝 |
-| PRD-015 (carteira — reuso) | 📝 |
-| PRD-031 (criação orçamento) | 📝 |
+| PRD                               | Status |
+| --------------------------------- | ------ |
+| PRD-012 (ficha — versão compacta) | 📝     |
+| PRD-015 (carteira — reuso)        | 📝     |
+| PRD-031 (criação orçamento)       | 📝     |
 
 ---
 
 ## Cadeia
 
-| Ordem | PRD |
-|-------|-----|
-| 1-41 | 010-067 |
+| Ordem  | PRD               |
+| ------ | ----------------- |
+| 1-41   | 010-067           |
 | **42** | **PRD-070 ATUAL** |
-| 43 | PRD-071 |
+| 43     | PRD-071           |
 
 ---
 
@@ -324,11 +333,11 @@ ENTÃO app abre em modo standalone (sem barra do browser)
 
 ## Convenções
 
-| Elemento | Convenção |
-|----------|-----------|
-| Página | `PWAHomePage`, `PWAPortfolioPage`, etc. |
-| Layout | `PWALayout` |
-| Pasta | `external-seller-pwa/` |
+| Elemento | Convenção                               |
+| -------- | --------------------------------------- |
+| Página   | `PWAHomePage`, `PWAPortfolioPage`, etc. |
+| Layout   | `PWALayout`                             |
+| Pasta    | `external-seller-pwa/`                  |
 
 ---
 
@@ -345,17 +354,17 @@ ENTÃO app abre em modo standalone (sem barra do browser)
 
 ## Status
 
-| Campo | Valor |
-|-------|-------|
+| Campo  | Valor       |
+| ------ | ----------- |
 | Status | ⏳ PENDENTE |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 25/05/2026 | v1 | Criação inicial — PWA esqueleto navegável para vendedor externo, preparado para Fase 2 |
+| Data       | Versão | Alteração                                                                              |
+| ---------- | ------ | -------------------------------------------------------------------------------------- |
+| 25/05/2026 | v1     | Criação inicial — PWA esqueleto navegável para vendedor externo, preparado para Fase 2 |
 
 ---
 

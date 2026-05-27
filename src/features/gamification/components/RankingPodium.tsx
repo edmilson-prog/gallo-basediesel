@@ -13,9 +13,30 @@ interface IRankingPodiumProps {
 }
 
 const SLOT_META = [
-  { rank: 1, ring: "gold", label: S.podiumGold, icon: "mdi:trophy", iconClass: "text-amber-500", order: "lg:order-2 lg:scale-110" },
-  { rank: 2, ring: "silver", label: S.podiumSilver, icon: "mdi:medal", iconClass: "text-slate-400", order: "lg:order-1" },
-  { rank: 3, ring: "bronze", label: S.podiumBronze, icon: "mdi:medal-outline", iconClass: "text-orange-500", order: "lg:order-3" },
+  {
+    rank: 1,
+    ring: "gold",
+    label: S.podiumGold,
+    icon: "mdi:trophy",
+    iconClass: "text-amber-500",
+    order: "lg:order-2 lg:scale-110",
+  },
+  {
+    rank: 2,
+    ring: "silver",
+    label: S.podiumSilver,
+    icon: "mdi:medal",
+    iconClass: "text-slate-400",
+    order: "lg:order-1",
+  },
+  {
+    rank: 3,
+    ring: "bronze",
+    label: S.podiumBronze,
+    icon: "mdi:medal-outline",
+    iconClass: "text-orange-500",
+    order: "lg:order-3",
+  },
 ] as const;
 
 /**

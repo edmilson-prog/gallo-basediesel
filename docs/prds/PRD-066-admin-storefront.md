@@ -2,19 +2,19 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _A definir após criação no Lovable_ |
-| **Objetivo** | Construir painel centralizado para Owner gerenciar o e-commerce — produtos em destaque, banners, categorias em destaque, cupons placeholder, métricas de tráfego/conversão placeholder, e customização visual mínima |
-| **Tipo** | Feature |
-| **Complexidade** | Média |
-| **Total de Fases** | 4 |
-| **Prioridade** | Média |
-| **Épico** | Bloco 5 — E-commerce (Onda 3) |
-| **PRDs Relacionados** | PRD-060 (Home — config), PRD-062 (Categoria — config), PRD-063 (Produto), PRD-064 (Carrinho — métricas), PRD-067 (Integração Central) |
-| **Implementação** | 🔵 Claude Code CLI |
-| **Padrão de código** | Feature-based; código em `src/features/storefront-admin/`; rota `/app/storefront-admin` |
+| Campo                 | Valor                                                                                                                                                                                                                |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                                             |
+| **Repositório**       | _A definir após criação no Lovable_                                                                                                                                                                                  |
+| **Objetivo**          | Construir painel centralizado para Owner gerenciar o e-commerce — produtos em destaque, banners, categorias em destaque, cupons placeholder, métricas de tráfego/conversão placeholder, e customização visual mínima |
+| **Tipo**              | Feature                                                                                                                                                                                                              |
+| **Complexidade**      | Média                                                                                                                                                                                                                |
+| **Total de Fases**    | 4                                                                                                                                                                                                                    |
+| **Prioridade**        | Média                                                                                                                                                                                                                |
+| **Épico**             | Bloco 5 — E-commerce (Onda 3)                                                                                                                                                                                        |
+| **PRDs Relacionados** | PRD-060 (Home — config), PRD-062 (Categoria — config), PRD-063 (Produto), PRD-064 (Carrinho — métricas), PRD-067 (Integração Central)                                                                                |
+| **Implementação**     | 🔵 Claude Code CLI                                                                                                                                                                                                   |
+| **Padrão de código**  | Feature-based; código em `src/features/storefront-admin/`; rota `/app/storefront-admin`                                                                                                                              |
 
 ### Critérios de Complexidade
 
@@ -49,6 +49,7 @@ Layout com tabs no header:
 ### Aba 1 — Dashboard
 
 KPIs no topo (placeholders no MVP):
+
 - Visitas no período (mock)
 - Pedidos via e-commerce (real — IOrder com origin='ecommerce')
 - Conversão (placeholder)
@@ -57,6 +58,7 @@ KPIs no topo (placeholders no MVP):
 - Top produtos clicados (placeholder Fase 2)
 
 Gráficos:
+
 - Evolução de pedidos via e-commerce nos últimos 30 dias (real)
 - Demais placeholders com banner "Métricas completas na Fase 2"
 
@@ -65,6 +67,7 @@ Gráficos:
 Aglutina configs dos PRDs 060 e 062 em sub-tabs:
 
 **Sub-tab Home:**
+
 - Hero (headline, subheadline, indicadores)
 - Marcas em destaque (toggle/ordem)
 - Categorias em destaque (multi-select)
@@ -75,9 +78,11 @@ Aglutina configs dos PRDs 060 e 062 em sub-tabs:
 - Meta SEO (title, description)
 
 **Sub-tab Categorias:**
+
 - Por categoria: descrição, banner placeholder, produtos promo
 
 **Sub-tab Identidade:**
+
 - Logo placeholder (upload Fase 2)
 - Cores principais (preview do tema PARTS)
 - Banner: "Customização avançada na Fase 2"
@@ -85,6 +90,7 @@ Aglutina configs dos PRDs 060 e 062 em sub-tabs:
 ### Aba 3 — Cupons (placeholder)
 
 Card central:
+
 - "Gestão de cupons disponível na Fase 2"
 - Lista mockada de cupons fictícios para demonstração visual
 - Botão "Criar cupom" desabilitado com tooltip
@@ -92,6 +98,7 @@ Card central:
 ### Aba 4 — Campanhas (placeholder)
 
 Card central:
+
 - "Campanhas promocionais disponíveis na Fase 2"
 - Visualização mockada (banner Black Friday, etc.)
 - Botão desabilitado
@@ -99,6 +106,7 @@ Card central:
 ### Aba 5 — Análise
 
 Versão mais detalhada do Dashboard:
+
 - Funil de conversão e-commerce (visitas → carrinho → checkout → pagamento) — placeholder no MVP
 - Páginas mais visitadas (placeholder)
 - Origens de tráfego (placeholder Fase 2 com integração Analytics)
@@ -112,12 +120,12 @@ Versão mais detalhada do Dashboard:
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que descartada |
-|-------------|---------------------|
-| Manter sub-configs espalhadas em /app/configuracoes/storefront | Owner perde tempo navegando |
-| Sem aba Cupons/Campanhas | Estrutura preparada para Fase 2 é importante |
-| Métricas reais via Google Analytics no MVP | Complexidade; placeholders coerentes |
-| Sem aba Análise (apenas Dashboard) | Drill-down justifica aba dedicada |
+| Alternativa                                                    | Por que descartada                           |
+| -------------------------------------------------------------- | -------------------------------------------- |
+| Manter sub-configs espalhadas em /app/configuracoes/storefront | Owner perde tempo navegando                  |
+| Sem aba Cupons/Campanhas                                       | Estrutura preparada para Fase 2 é importante |
+| Métricas reais via Google Analytics no MVP                     | Complexidade; placeholders coerentes         |
+| Sem aba Análise (apenas Dashboard)                             | Drill-down justifica aba dedicada            |
 
 ---
 
@@ -248,32 +256,32 @@ ENTÃO vê apenas Dashboard e Análise (ou abas Conteúdo bloqueadas read-only)
 
 ## Fases de Implementação
 
-| Fase | Objetivo |
-|------|----------|
-| 1 | Estrutura de tabs + Dashboard com KPIs e gráfico real |
-| 2 | Aba Conteúdo unificando sub-tabs Home + Categorias + Identidade |
-| 3 | Abas Cupons + Campanhas placeholders + Análise placeholder |
-| 4 | Migração rotas + permissões + mobile + polish |
+| Fase | Objetivo                                                        |
+| ---- | --------------------------------------------------------------- |
+| 1    | Estrutura de tabs + Dashboard com KPIs e gráfico real           |
+| 2    | Aba Conteúdo unificando sub-tabs Home + Categorias + Identidade |
+| 3    | Abas Cupons + Campanhas placeholders + Análise placeholder      |
+| 4    | Migração rotas + permissões + mobile + polish                   |
 
 ---
 
 ## Dependências
 
-| PRD | Status |
-|-----|--------|
-| PRD-032 (pedidos com origin='ecommerce') | 📝 |
-| PRD-060 (configs do home) | 📝 |
-| PRD-062 (configs categoria) | 📝 |
+| PRD                                      | Status |
+| ---------------------------------------- | ------ |
+| PRD-032 (pedidos com origin='ecommerce') | 📝     |
+| PRD-060 (configs do home)                | 📝     |
+| PRD-062 (configs categoria)              | 📝     |
 
 ---
 
 ## Cadeia
 
-| Ordem | PRD |
-|-------|-----|
-| 1-39 | 010-065 |
+| Ordem  | PRD               |
+| ------ | ----------------- |
+| 1-39   | 010-065           |
 | **40** | **PRD-066 ATUAL** |
-| 41+ | 067, 070, 071 |
+| 41+    | 067, 070, 071     |
 
 ---
 
@@ -287,10 +295,10 @@ ENTÃO vê apenas Dashboard e Análise (ou abas Conteúdo bloqueadas read-only)
 
 ## Convenções
 
-| Elemento | Convenção |
-|----------|-----------|
-| Página | `StorefrontAdminPage` |
-| Pasta | `storefront-admin/` |
+| Elemento | Convenção             |
+| -------- | --------------------- |
+| Página   | `StorefrontAdminPage` |
+| Pasta    | `storefront-admin/`   |
 
 ---
 
@@ -306,17 +314,17 @@ ENTÃO vê apenas Dashboard e Análise (ou abas Conteúdo bloqueadas read-only)
 
 ## Status
 
-| Campo | Valor |
-|-------|-------|
+| Campo  | Valor       |
+| ------ | ----------- |
 | Status | ⏳ PENDENTE |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 25/05/2026 | v1 | Criação inicial — painel admin consolidado do e-commerce com 5 tabs |
+| Data       | Versão | Alteração                                                           |
+| ---------- | ------ | ------------------------------------------------------------------- |
+| 25/05/2026 | v1     | Criação inicial — painel admin consolidado do e-commerce com 5 tabs |
 
 ---
 

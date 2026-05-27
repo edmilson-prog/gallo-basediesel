@@ -5,8 +5,7 @@ export const COMMISSIONS_STRINGS = {
   title: "Comissões",
   subtitleManager:
     "Acompanhe o quanto a equipe acumulou no mês, feche o período e gerencie disputas.",
-  subtitleSeller:
-    "Acompanhe suas comissões do período, status de cada pedido e contestações.",
+  subtitleSeller: "Acompanhe suas comissões do período, status de cada pedido e contestações.",
   filterPeriod: "Período",
   filterSeller: "Vendedor",
   filterAllSellers: "Todos",

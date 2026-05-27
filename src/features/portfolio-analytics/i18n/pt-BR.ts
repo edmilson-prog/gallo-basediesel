@@ -123,8 +123,7 @@ export const PORTFOLIO_STRINGS = {
 
   // Widget (PRD-014)
   widgetTitle: "Saúde da carteira",
-  widgetSubtitle: (active: number, total: number) =>
-    `${active} ativos de ${total} clientes`,
+  widgetSubtitle: (active: number, total: number) => `${active} ativos de ${total} clientes`,
   widgetOpen: "Abrir análise",
   widgetEmpty: "Sem dados de carteira no momento.",
 

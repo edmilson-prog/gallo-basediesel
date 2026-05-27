@@ -148,9 +148,7 @@ export function PortfolioAnalyticsPage() {
       to: "/app/gestao/carteira-analitica/$sellerId",
       params: { sellerId },
       search:
-        filtersCtl.filters.period === "rolling_12m"
-          ? {}
-          : { periodo: filtersCtl.filters.period },
+        filtersCtl.filters.period === "rolling_12m" ? {} : { periodo: filtersCtl.filters.period },
     });
   };
 

@@ -196,7 +196,10 @@ export function useRanking(params: IUseRankingParams): IUseRankingResult {
     return { ...base, ...(rulesOverride ?? {}) };
   }, [settingsQuery.data, rulesOverride]);
 
-  const result = useMemo<{ ranking: IRankingEntry[]; newBadges: ReturnType<typeof evaluateBadgesForSeller> }>(() => {
+  const result = useMemo<{
+    ranking: IRankingEntry[];
+    newBadges: ReturnType<typeof evaluateBadgesForSeller>;
+  }>(() => {
     if (isLoading || hasError || !rules) {
       return { ranking: [], newBadges: [] };
     }
@@ -227,7 +230,10 @@ export function useRanking(params: IUseRankingParams): IUseRankingResult {
         rules,
         sellers,
         goals,
-        paidOrders: [...ordersCurrent, ...ordersHistorical.filter((o) => o.createdAt < period.startIso)],
+        paidOrders: [
+          ...ordersCurrent,
+          ...ordersHistorical.filter((o) => o.createdAt < period.startIso),
+        ],
         customers,
         badges,
         previousPeriodEntries: prevMap,

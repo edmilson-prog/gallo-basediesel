@@ -160,6 +160,7 @@ Conforme sequência do INDEX (seção "Próximos passos"). Fechar Onda 2 antes d
 Tudo do **Bloco 0** (fundação, PRDs 001-007), **Bloco 1** (CRM completo), **Bloco 2** (SDR completo), **Bloco 3** (Comercial completo) e **Bloco 4a** (Visão Executiva/Vendas/Metas/Positivação/Curva ABC/Carteira Analítica).
 
 Pontos críticos:
+
 - Login mockado com 4 perfis (Owner, Gestor, Vendedor, Cliente) — `localStorage` chave `gallo-current-user`
 - Sistema de temas (4 temas × 2 modes) com anti-FOUC no `index.html`
 - Multi-loja com `IStore` em entidades comerciais
@@ -191,6 +192,7 @@ Pontos críticos:
 Não há memórias persistentes em `C:\Users\Edmilson Souza\.claude\projects\D--claude-gallo-basediesel\memory\` ainda — o índice `MEMORY.md` está vazio.
 
 Candidatas a memorizar nesta sessão (mas não foram criadas):
+
 - **feedback:** "Vou pelo padrão do projeto (commit em main) ao invés de PR para cada feature — confirma explicitamente toda vez que faço checkpoint"
 - **project:** "Bloco 4a fechado v0.30.0 Vitals; Bloco 4b aberto em v0.31.0 Podium; restam 8 PRDs (043 done, 047-053 a implementar) para fechar Onda 2"
 - **reference:** "Padrão de feature de BI/Analytics: `src/features/<feature>/` com `engine/` puro + `hooks/` agregadores TanStack + `pages/` + `components/` + `i18n/pt-BR.ts` + `index.ts` barrel"

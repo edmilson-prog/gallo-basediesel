@@ -1,10 +1,6 @@
 import { useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type {
-  CommissionStatus,
-  ICommission,
-  ID,
-} from "@/shared/types";
+import type { CommissionStatus, ICommission, ID } from "@/shared/types";
 import { useCommissionsProvider } from "@/providers/data";
 
 const STALE_MS = 30_000;
@@ -30,9 +26,7 @@ export interface IUseCommissionsListResult {
  * Lists commissions for the given store/period/seller. Wrapped in TanStack
  * Query for caching and shared invalidation across the feature.
  */
-export function useCommissionsList(
-  params: IUseCommissionsListParams,
-): IUseCommissionsListResult {
+export function useCommissionsList(params: IUseCommissionsListParams): IUseCommissionsListResult {
   const { storeId, period, sellerId, sellerIds, statuses, enabled = true } = params;
   const provider = useCommissionsProvider();
   const queryClient = useQueryClient();

@@ -2,19 +2,19 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _A definir após criação no Lovable_ |
-| **Objetivo** | Integrar pedidos do e-commerce com a Central de Atendimento — atribuição automática de vendedor, notificações, conversa vinculada, status bidirecional, visão consolidada para gestão |
-| **Tipo** | Feature |
-| **Complexidade** | Alta |
-| **Total de Fases** | 5 |
-| **Prioridade** | Alta |
-| **Épico** | Bloco 5 — E-commerce (Onda 3) |
-| **PRDs Relacionados** | PRD-010 (Inbox), PRD-011 (Conversa), PRD-013 (Distribuição), PRD-032 (Pedido), PRD-064 (Carrinho/Checkout), PRD-014 (Painel Gestor) |
-| **Implementação** | 🔵 Claude Code CLI |
-| **Padrão de código** | Feature-based; código em `src/features/ecommerce-integration/` |
+| Campo                 | Valor                                                                                                                                                                                 |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                              |
+| **Repositório**       | _A definir após criação no Lovable_                                                                                                                                                   |
+| **Objetivo**          | Integrar pedidos do e-commerce com a Central de Atendimento — atribuição automática de vendedor, notificações, conversa vinculada, status bidirecional, visão consolidada para gestão |
+| **Tipo**              | Feature                                                                                                                                                                               |
+| **Complexidade**      | Alta                                                                                                                                                                                  |
+| **Total de Fases**    | 5                                                                                                                                                                                     |
+| **Prioridade**        | Alta                                                                                                                                                                                  |
+| **Épico**             | Bloco 5 — E-commerce (Onda 3)                                                                                                                                                         |
+| **PRDs Relacionados** | PRD-010 (Inbox), PRD-011 (Conversa), PRD-013 (Distribuição), PRD-032 (Pedido), PRD-064 (Carrinho/Checkout), PRD-014 (Painel Gestor)                                                   |
+| **Implementação**     | 🔵 Claude Code CLI                                                                                                                                                                    |
+| **Padrão de código**  | Feature-based; código em `src/features/ecommerce-integration/`                                                                                                                        |
 
 ### Critérios de Complexidade
 
@@ -60,11 +60,13 @@ Este PRD entrega: orquestração completa do "depois do checkout" — vendedor a
 ### Round-robin específico para e-commerce
 
 Setting `IPlatformSettings.ecommerceAssignmentMode`:
+
 - `round_robin` (default): distribui sequencialmente entre vendedores ativos
 - `manager_distributes`: cria sem sellerId, Gestor distribui manualmente
 - `specific_seller`: setting `ecommerceSpecificSellerId` recebe todos
 
 Distribuição respeita:
+
 - Vendedores ativos da loja
 - Carga atual (próximo na fila com menor número de e-com aberto)
 
@@ -77,21 +79,21 @@ const conversation: IConversation = {
   id: generateId(),
   customerId: order.customerId,
   assignedSellerId: order.sellerId,
-  status: 'aberta',
-  origin: 'ecommerce',
+  status: "aberta",
+  origin: "ecommerce",
   topic: `Pedido #${order.number} via E-commerce`,
-  channel: 'system',  // Origem do contato
+  channel: "system", // Origem do contato
   startedAt: now,
   storeId: order.storeId,
   // Mensagem inicial automática
   initialMessage: {
     text: `Novo pedido via e-commerce — ${order.items.length} itens — R$ ${order.total}`,
-    direction: 'system',
+    direction: "system",
     timestamp: now,
   },
   // Vínculos
   linkedOrderId: order.id,
-}
+};
 ```
 
 Aparece na inbox do vendedor com badge "🛒 E-commerce" distinto.
@@ -99,6 +101,7 @@ Aparece na inbox do vendedor com badge "🛒 E-commerce" distinto.
 ### Notificação para vendedor
 
 Toast prominente quando vendedor logado:
+
 - "🛒 Novo pedido via e-commerce — [Cliente] — R$ X"
 - Botão "Ver pedido" → /app/pedidos/:id
 - Botão "Abrir conversa" → /app/atendimento/:conversationId
@@ -110,15 +113,18 @@ Se vendedor offline: notificação fica em "Central de notificações" placehold
 ### Notificação para cliente (placeholder)
 
 Template mock no MVP, sem disparar real:
+
 - WhatsApp:
+
   ```
-  Olá [nome]! Seu pedido #PD-2026-0042 foi recebido. 
+  Olá [nome]! Seu pedido #PD-2026-0042 foi recebido.
   Valor: R$ 430,00
   Forma de pagamento: PIX
   Em breve enviaremos as instruções de pagamento.
-  
+
   GALLO BASE DIESEL
   ```
+
 - Email placeholder (sem envio real no MVP)
 
 Audit log registra envio placeholder. Fase 2: integração Meta API + email service.
@@ -128,12 +134,14 @@ Audit log registra envio placeholder. Fase 2: integração Meta API + email serv
 Mudanças no `IOrder` refletem em `/loja/conta/pedidos/:id` automaticamente (mesmo backend mock).
 
 Quando vendedor atualiza status (PRD-032: marcar pago, marcar enviado, etc.):
+
 - Cliente em /loja/conta vê atualizado
 - Notificação placeholder ao cliente (mockada) para cada transição relevante
 
 ### Visão consolidada
 
 PRD-014 (Painel Gestor) ganha widget "Pedidos via E-commerce":
+
 - Contador de pedidos e-com no período
 - Pendentes de processamento
 - Click leva à inbox filtrada por origin='ecommerce'
@@ -143,6 +151,7 @@ PRD-040 (Cockpit) ganha KPI no card "Total Pedidos": breakdown por origem (SDR /
 ### Badge visual e-commerce
 
 Em todas as listagens:
+
 - Inbox (PRD-010): conversa com origin='ecommerce' tem badge "🛒"
 - Lista de pedidos (PRD-032): pedido com origin='ecommerce' tem badge
 - Lista de clientes (PRD-015): customer com pedido recente e-com tem indicador opcional
@@ -150,6 +159,7 @@ Em todas as listagens:
 ### Configuração `/app/configuracoes/ecommerce-integracao`
 
 Sub-rota PRD-019 (Owner):
+
 - Modo de atribuição (3 opções)
 - Vendedor específico (se aplicável)
 - Templates de notificação placeholder (editável textarea)
@@ -159,6 +169,7 @@ Sub-rota PRD-019 (Owner):
 ### Pedido de visitante (sem customer existente)
 
 PRD-064 permite guest checkout — cria customer placeholder. Aqui:
+
 - Customer placeholder marcado com flag `isGuestCheckout=true`
 - Vendedor recebe conversa normalmente
 - Customer pode posteriormente fazer cadastro (PRD-065) e ser "promovido" para customer normal vinculando histórico
@@ -171,13 +182,13 @@ PRD-064 permite guest checkout — cria customer placeholder. Aqui:
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que descartada |
-|-------------|---------------------|
-| Sem conversa automática | Vendedor perde canal pré-aberto |
-| Atribuição manual obrigatória | Atrito; round-robin automatiza bem |
-| Sem notificação ao cliente | Cliente fica órfão pós-checkout (apenas página de confirmação) |
-| Sem distinção visual e-com | Owner perde tracking de origem |
-| Notificações reais no MVP | Complexidade WhatsApp/email; placeholders coerentes |
+| Alternativa                   | Por que descartada                                             |
+| ----------------------------- | -------------------------------------------------------------- |
+| Sem conversa automática       | Vendedor perde canal pré-aberto                                |
+| Atribuição manual obrigatória | Atrito; round-robin automatiza bem                             |
+| Sem notificação ao cliente    | Cliente fica órfão pós-checkout (apenas página de confirmação) |
+| Sem distinção visual e-com    | Owner perde tracking de origem                                 |
+| Notificações reais no MVP     | Complexidade WhatsApp/email; placeholders coerentes            |
 
 ---
 
@@ -377,36 +388,36 @@ ENTÃO próximas notificações usam novo template
 
 ## Fases de Implementação
 
-| Fase | Objetivo |
-|------|----------|
-| 1 | Hook trigger + atribuição automática + criação de conversa |
-| 2 | Notificações vendedor (toast + badge) + integração inbox |
-| 3 | Notificações cliente placeholders + templates editáveis |
-| 4 | Status bidirecional + badges visuais + widgets de gestão |
-| 5 | Guest checkout merge + audit + configuração + polish |
+| Fase | Objetivo                                                   |
+| ---- | ---------------------------------------------------------- |
+| 1    | Hook trigger + atribuição automática + criação de conversa |
+| 2    | Notificações vendedor (toast + badge) + integração inbox   |
+| 3    | Notificações cliente placeholders + templates editáveis    |
+| 4    | Status bidirecional + badges visuais + widgets de gestão   |
+| 5    | Guest checkout merge + audit + configuração + polish       |
 
 ---
 
 ## Dependências
 
-| PRD | Status |
-|-----|--------|
-| PRD-010 (inbox — badge novo) | 📝 |
-| PRD-011 (conversa — banner novo) | 📝 |
-| PRD-013 (distribuição) | 📝 |
-| PRD-014 (widget novo) | 📝 |
-| PRD-032 (pedidos com origin) | 📝 |
-| PRD-040 (KPI breakdown) | 📝 |
-| PRD-064 (cria IOrder) | 📝 |
-| PRD-065 (guest checkout) | 📝 |
+| PRD                              | Status |
+| -------------------------------- | ------ |
+| PRD-010 (inbox — badge novo)     | 📝     |
+| PRD-011 (conversa — banner novo) | 📝     |
+| PRD-013 (distribuição)           | 📝     |
+| PRD-014 (widget novo)            | 📝     |
+| PRD-032 (pedidos com origin)     | 📝     |
+| PRD-040 (KPI breakdown)          | 📝     |
+| PRD-064 (cria IOrder)            | 📝     |
+| PRD-065 (guest checkout)         | 📝     |
 
 ---
 
 ## Cadeia
 
-| Ordem | PRD |
-|-------|-----|
-| 1-40 | 010-066 |
+| Ordem  | PRD               |
+| ------ | ----------------- |
+| 1-40   | 010-066           |
 | **41** | **PRD-067 ATUAL** |
 
 > **Marco:** Bloco 5 (E-commerce) completo — **Onda 3 do MVP fecha aqui**.
@@ -424,11 +435,11 @@ ENTÃO próximas notificações usam novo template
 
 ## Convenções
 
-| Elemento | Convenção |
-|----------|-----------|
-| Página | `EcommerceIntegrationConfigPage` |
-| Hook | `useEcommerceOrderTrigger` |
-| Pasta | `ecommerce-integration/` |
+| Elemento | Convenção                        |
+| -------- | -------------------------------- |
+| Página   | `EcommerceIntegrationConfigPage` |
+| Hook     | `useEcommerceOrderTrigger`       |
+| Pasta    | `ecommerce-integration/`         |
 
 ---
 
@@ -445,17 +456,17 @@ ENTÃO próximas notificações usam novo template
 
 ## Status
 
-| Campo | Valor |
-|-------|-------|
+| Campo  | Valor       |
+| ------ | ----------- |
 | Status | ⏳ PENDENTE |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 25/05/2026 | v1 | Criação inicial — integração e-commerce com Central via atribuição automática, conversa vinculada, notificações |
+| Data       | Versão | Alteração                                                                                                       |
+| ---------- | ------ | --------------------------------------------------------------------------------------------------------------- |
+| 25/05/2026 | v1     | Criação inicial — integração e-commerce com Central via atribuição automática, conversa vinculada, notificações |
 
 ---
 

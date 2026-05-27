@@ -10,8 +10,5 @@ export {
   sumBreakdown,
   findBadgeDefinition,
 } from "./calculateSellerScore";
-export type {
-  IGamificationContext,
-  IGamificationPeriod,
-} from "./calculateSellerScore";
+export type { IGamificationContext, IGamificationPeriod } from "./calculateSellerScore";
 export { evaluateBadgesForSeller } from "./evaluateBadges";

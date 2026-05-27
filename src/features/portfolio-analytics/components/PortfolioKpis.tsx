@@ -3,10 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Icon } from "@/components/Icon";
 import { formatPercent } from "@/shared/utils/format";
 import { PORTFOLIO_STRINGS as S } from "../i18n/pt-BR";
-import type {
-  IPortfolioByStatus,
-  IPortfolioMetrics,
-} from "../engine/calculatePortfolioMetrics";
+import type { IPortfolioByStatus, IPortfolioMetrics } from "../engine/calculatePortfolioMetrics";
 
 export interface IPortfolioKpisProps {
   total: number;
@@ -72,8 +69,7 @@ export function PortfolioKpis({ total, byStatus, metrics, isLoading }: IPortfoli
   const lostPct = safePct(byStatus.perdido, total);
   const churn = metrics?.churn.activeToDormant ?? 0;
   const churnLost = metrics?.churn.activeToLost ?? 0;
-  const recovery =
-    (metrics?.recovery.dormantToActive ?? 0) + (metrics?.recovery.lostToActive ?? 0);
+  const recovery = (metrics?.recovery.dormantToActive ?? 0) + (metrics?.recovery.lostToActive ?? 0);
   const growth = metrics?.growth.netGrowth ?? 0;
 
   return (

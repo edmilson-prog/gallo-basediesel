@@ -169,9 +169,9 @@ Fase 2.
       por status, tabela top 20 ordenada por urgência.
     - **Críticos & Reposição** — tabela priorizada (críticos →
       baixos → consumo) com sugestão de quantidade + custo + curva
-      + status, botão "Gerar lista de compras (CSV)" que baixa CSV
-      básico + toast informando que a integração completa virá na
-      Fase 2.
+      - status, botão "Gerar lista de compras (CSV)" que baixa CSV
+        básico + toast informando que a integração completa virá na
+        Fase 2.
     - **Análise XYZ** — bar chart Pareto-style (% faturamento vs %
       estoque por classe) + 3 cards lado a lado listando os
       produtos top 10 de cada classe com cobertura e capital.
@@ -417,7 +417,7 @@ completa virá na Fase 2 — os valores fixos no MVP são estimativas.
   - Banner explícito sobre limitação MVP ("integração contábil real
     disponível na Fase 2 — esses valores são estimativas").
   - Save grava via `usePlatformSettings.update(...,
-    "settings.financial.update")` — audit log automático e
+"settings.financial.update")` — audit log automático e
     invalidação da query key `["dre"]` para refletir no relatório
     imediatamente.
 
@@ -767,7 +767,7 @@ Sequência do Bloco 4a (Gestão A — Onda 2) com a **Carteira Analítica
 (PRD-046)** — visão temporal e por estado da saúde da carteira,
 distinta da Positivação (PRD-044, foco binário "comprou no mês?")
 e da Curva ABC (PRD-045, foco ranking de receita). Aqui o ângulo é
-*contínuo + comparativo temporal*: como a base está distribuída
+_contínuo + comparativo temporal_: como a base está distribuída
 entre ativo/dormente/recuperação/perdido, quantos clientes saíram
 no período (churn), quantos voltaram (recovery) e quem está a
 poucos dias de cair de status (em risco).
@@ -784,6 +784,7 @@ e dormentes prestes a virar perdidos). Retorna ainda `bySeller` com
 a mesma matemática restrita ao portfólio de cada vendedor, incluindo
 um **Health Score composite 0-100** ponderando 50% ativos + 25%
 recovery + 25% inverso de churn — exposto com qualitativo (Excelente
+
 > 80, Bom 60-80, Atenção 40-60, Crítico < 40) via `describeHealthScore`.
 
 **Hook agregador.** `usePortfolioMetrics({ window, scope })` carrega

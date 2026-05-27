@@ -48,10 +48,7 @@ function Row({ icon, label, value, tone }: IRowProps) {
   );
 }
 
-export function PortfolioTransitionsCard({
-  metrics,
-  isLoading,
-}: IPortfolioTransitionsCardProps) {
+export function PortfolioTransitionsCard({ metrics, isLoading }: IPortfolioTransitionsCardProps) {
   return (
     <Card className="flex h-full flex-col gap-3 p-5">
       <header className="flex items-baseline justify-between">

@@ -50,7 +50,11 @@ export function CommissionsPage() {
   const metrics = useCommissionMetrics({
     storeId,
     period: filtersCtl.filters.period,
-    sellerId: isSellerView ? lockedSellerId : filtersCtl.filters.sellerId === "all" ? undefined : (filtersCtl.filters.sellerId as ID),
+    sellerId: isSellerView
+      ? lockedSellerId
+      : filtersCtl.filters.sellerId === "all"
+        ? undefined
+        : (filtersCtl.filters.sellerId as ID),
     enabled: ALLOWED_ROLES.has(userRole ?? ""),
   });
 
@@ -153,11 +157,7 @@ export function CommissionsPage() {
           </Card>
         ) : metrics.commissions.length === 0 ? (
           <Card className="p-12 text-center">
-            <Icon
-              icon="mdi:cash-clock"
-              size={36}
-              className="mx-auto mb-3 text-muted-foreground"
-            />
+            <Icon icon="mdi:cash-clock" size={36} className="mx-auto mb-3 text-muted-foreground" />
             <p className="text-sm font-semibold text-foreground">
               {isSellerView ? S.drillEmpty : S.bySellerEmpty}
             </p>

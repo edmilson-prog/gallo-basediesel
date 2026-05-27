@@ -49,8 +49,7 @@ export function PortfolioDistributionChart({
     [byStatus],
   );
 
-  const total =
-    byStatus.ativo + byStatus.dormente + byStatus.perdido + byStatus.recuperacao;
+  const total = byStatus.ativo + byStatus.dormente + byStatus.perdido + byStatus.recuperacao;
   const empty = !isLoading && total === 0;
 
   return (
@@ -115,7 +114,9 @@ export function PortfolioDistributionChart({
                 <span className="font-semibold text-foreground">
                   {entry.value.toLocaleString("pt-BR")}
                 </span>
-                <span className="text-muted-foreground">({formatPercent(entry.value / total)})</span>
+                <span className="text-muted-foreground">
+                  ({formatPercent(entry.value / total)})
+                </span>
               </div>
             ))}
           </div>

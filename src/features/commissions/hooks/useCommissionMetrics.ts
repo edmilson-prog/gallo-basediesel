@@ -50,7 +50,9 @@ export interface IUseCommissionMetricsResult {
   previousDeltaPct: number;
 }
 
-const empty = (): ISellerCommissionAggregate["orderCount"] extends number ? IUseCommissionMetricsResult["totals"] : never => ({
+const empty = (): ISellerCommissionAggregate["orderCount"] extends number
+  ? IUseCommissionMetricsResult["totals"]
+  : never => ({
   orderCount: 0,
   baseCommission: 0,
   goalBonus: 0,
@@ -131,8 +133,7 @@ export function useCommissionMetrics(
     [previousList.data],
   );
 
-  const previousDeltaPct =
-    previousTotal === 0 ? 0 : (totals.total - previousTotal) / previousTotal;
+  const previousDeltaPct = previousTotal === 0 ? 0 : (totals.total - previousTotal) / previousTotal;
 
   return {
     isLoading: current.isLoading || previousList.isLoading,

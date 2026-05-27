@@ -193,7 +193,10 @@ export interface ICalculatedCommission {
  *
  * Returns one or two commissions (two when `splitPolicy === 'split_50_50'`).
  */
-export function calculateCommission(order: IOrder, ctx: ICommissionEngineContext): ICalculatedCommission {
+export function calculateCommission(
+  order: IOrder,
+  ctx: ICommissionEngineContext,
+): ICalculatedCommission {
   const baseValue = round2(Math.max(0, order.subtotal - order.discount));
   const paidAt = order.paidAt ?? order.updatedAt;
   const period = monthRef(paidAt);
@@ -204,7 +207,11 @@ export function calculateCommission(order: IOrder, ctx: ICommissionEngineContext
     splitPolicy: ctx.settings.splitPolicy,
   });
 
-  const buildFor = (sellerId: ID, share: number, splitDetails?: ICommissionSplitDetails): Omit<ICommission, "id" | "createdAt"> => {
+  const buildFor = (
+    sellerId: ID,
+    share: number,
+    splitDetails?: ICommissionSplitDetails,
+  ): Omit<ICommission, "id" | "createdAt"> => {
     const rule = findApplicableRule({
       sellerId,
       storeId: order.storeId,

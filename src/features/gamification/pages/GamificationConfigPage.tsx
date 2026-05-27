@@ -149,9 +149,7 @@ export function GamificationConfigPage() {
   };
 
   const toggleBadge = (slug: string) => {
-    setBadgesDraft((curr) =>
-      curr.map((b) => (b.slug === slug ? { ...b, active: !b.active } : b)),
-    );
+    setBadgesDraft((curr) => curr.map((b) => (b.slug === slug ? { ...b, active: !b.active } : b)));
   };
 
   const editBadgePoints = (slug: string, points: number) => {
@@ -175,10 +173,7 @@ export function GamificationConfigPage() {
           <p className="text-sm font-semibold text-foreground">{S.configToggleActive}</p>
           <p className="mt-1 text-xs text-muted-foreground">{S.configToggleDescription}</p>
         </div>
-        <Switch
-          checked={draft.active}
-          onCheckedChange={(v) => setDraft({ ...draft, active: v })}
-        />
+        <Switch checked={draft.active} onCheckedChange={(v) => setDraft({ ...draft, active: v })} />
       </Card>
 
       {/* Rules block */}
@@ -252,7 +247,10 @@ export function GamificationConfigPage() {
           <table className="w-full text-sm">
             <tbody>
               {badgesDraft.map((badge) => (
-                <tr key={makeBadgeKey(badge.slug)} className="border-b border-border/50 last:border-0">
+                <tr
+                  key={makeBadgeKey(badge.slug)}
+                  className="border-b border-border/50 last:border-0"
+                >
                   <td className="py-3 pr-3">
                     <BadgeChip definition={badge} size={20} outlined withTooltip={false} />
                   </td>

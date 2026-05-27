@@ -14,10 +14,7 @@ import { Icon } from "@/components/Icon";
 import type { ID, ISeller, IStore } from "@/shared/types";
 import { useSellersProvider, useStoresProvider } from "@/providers/data";
 import { PORTFOLIO_STRINGS as S } from "../i18n/pt-BR";
-import type {
-  IPortfolioFiltersState,
-  PortfolioPeriodPreset,
-} from "../hooks/usePortfolioFilters";
+import type { IPortfolioFiltersState, PortfolioPeriodPreset } from "../hooks/usePortfolioFilters";
 
 export interface IPortfolioHeaderProps {
   filters: IPortfolioFiltersState;

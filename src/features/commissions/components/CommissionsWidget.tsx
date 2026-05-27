@@ -57,9 +57,7 @@ export function CommissionsWidget({ storeId, period }: IProps) {
         </p>
         {metrics.previousTotal > 0 && (
           <p
-            className={`text-xs ${
-              deltaPositive ? "text-success-foreground" : "text-destructive"
-            }`}
+            className={`text-xs ${deltaPositive ? "text-success-foreground" : "text-destructive"}`}
           >
             <Icon
               icon={deltaPositive ? "mdi:trending-up" : "mdi:trending-down"}
@@ -67,7 +65,8 @@ export function CommissionsWidget({ storeId, period }: IProps) {
               className="mr-1 inline align-text-bottom"
             />
             {deltaPositive ? "+" : ""}
-            {pctFmt.format(metrics.previousDeltaPct)} vs {labelForPeriod(previousPeriod(metrics.period))}
+            {pctFmt.format(metrics.previousDeltaPct)} vs{" "}
+            {labelForPeriod(previousPeriod(metrics.period))}
           </p>
         )}
       </div>

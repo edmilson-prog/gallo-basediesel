@@ -22,7 +22,11 @@ export {
 } from "./engine";
 export type { IGamificationContext, IGamificationPeriod } from "./engine";
 
-export { DEFAULT_BADGE_CATALOG, BADGE_CATALOG_BY_SLUG, getBadgeDefinition } from "./catalog/badgeCatalog";
+export {
+  DEFAULT_BADGE_CATALOG,
+  BADGE_CATALOG_BY_SLUG,
+  getBadgeDefinition,
+} from "./catalog/badgeCatalog";
 
 export { resolvePeriod, previousPeriod, labelForPeriod } from "./utils/periods";
 export type { RankingPeriodType } from "./utils/periods";
@@ -40,11 +44,7 @@ export {
   validateRankingSearch,
   DEFAULT_RANKING_FILTERS,
 } from "./hooks/useRankingFilters";
-export type {
-  IRankingScope,
-  IUseRankingParams,
-  IUseRankingResult,
-} from "./hooks/useRanking";
+export type { IRankingScope, IUseRankingParams, IUseRankingResult } from "./hooks/useRanking";
 export type {
   IRankingFiltersSearch,
   IRankingFiltersState,

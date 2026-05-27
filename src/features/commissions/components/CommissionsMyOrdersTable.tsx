@@ -84,7 +84,10 @@ export function CommissionsMyOrdersTable({ commissions, canContest, onContestDon
             </thead>
             <tbody>
               {commissions.map((c) => (
-                <tr key={c.id} className="border-b border-border/40 last:border-0 hover:bg-muted/30">
+                <tr
+                  key={c.id}
+                  className="border-b border-border/40 last:border-0 hover:bg-muted/30"
+                >
                   <td className="px-5 py-3 text-foreground">
                     <Link
                       to="/app/pedidos/$id"

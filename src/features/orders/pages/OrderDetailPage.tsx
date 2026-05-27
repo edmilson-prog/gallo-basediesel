@@ -508,10 +508,7 @@ export function OrderDetailPage() {
         {commissionsForOrder.hasCommission ? (
           <div className="space-y-3">
             {commissionsForOrder.commissions.map((c) => (
-              <div
-                key={c.id}
-                className="rounded-md border border-border bg-muted/40 p-3 text-sm"
-              >
+              <div key={c.id} className="rounded-md border border-border bg-muted/40 p-3 text-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-foreground">
@@ -541,9 +538,7 @@ export function OrderDetailPage() {
                   </div>
                   <div>
                     <dt className="text-muted-foreground">Taxa</dt>
-                    <dd className="font-medium text-foreground">
-                      {(c.rate * 100).toFixed(2)}%
-                    </dd>
+                    <dd className="font-medium text-foreground">{(c.rate * 100).toFixed(2)}%</dd>
                   </div>
                   <div>
                     <dt className="text-muted-foreground">Base × Taxa</dt>

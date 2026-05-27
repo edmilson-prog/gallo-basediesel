@@ -129,12 +129,21 @@ export function useInboxFilters(currentUserId: ID | null): {
   activeCount: number;
 } {
   const search = useSearch({ from: "/app/atendimento" }) as IInboxFiltersSearch;
-  const navigate = useNavigate({ from: "/app/atendimento" });
+  // IMPORTANT: do NOT pass `from` here. With `from` set and no `to`, TanStack
+  // Router resolves the navigation relative to the parent (`/app/atendimento`)
+  // and drops the `$id` segment when the user is viewing a conversation —
+  // which then triggers a re-navigation that strips the search params we just
+  // wrote, making filter changes silently revert.
+  const navigate = useNavigate();
   const filters = useMemo(() => readState(search, currentUserId), [search, currentUserId]);
 
   const apply = useCallback(
     (patch: Partial<IInboxFiltersSearch>) => {
       void navigate({
+        // `to: "."` keeps whatever pathname the user is on (the inbox list at
+        // `/app/atendimento` or a conversation at `/app/atendimento/$id`) and
+        // only updates the search params.
+        to: ".",
         search: (prev) => {
           const next: IInboxFiltersSearch = { ...(prev as IInboxFiltersSearch), ...patch };
           // Drop empty / default values so the URL stays minimal.
@@ -164,6 +173,7 @@ export function useInboxFilters(currentUserId: ID | null): {
     setEscalated: (v) => apply({ escalated: v ? "1" : undefined }),
     reset: () =>
       void navigate({
+        to: ".",
         search: () => ({}),
       }),
     activeCount: countActive(filters),

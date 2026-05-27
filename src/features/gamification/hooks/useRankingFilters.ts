@@ -39,9 +39,7 @@ export function validateRankingSearch(raw: Record<string, unknown>): IRankingFil
   return out;
 }
 
-export function useRankingFilters(ctx: {
-  gestorLockedStoreId?: ID;
-}): IUseRankingFiltersResult {
+export function useRankingFilters(ctx: { gestorLockedStoreId?: ID }): IUseRankingFiltersResult {
   // `strict: false` so the hook works under both the index route and the
   // drill-down — the drill page reuses the period filter but does not own it.
   const search = useSearch({ strict: false }) as IRankingFiltersSearch;
@@ -84,8 +82,7 @@ export function useRankingFilters(ctx: {
   return {
     filters,
     period,
-    setPeriod: (p) =>
-      apply({ periodo: p === DEFAULT_RANKING_FILTERS.period ? undefined : p }),
+    setPeriod: (p) => apply({ periodo: p === DEFAULT_RANKING_FILTERS.period ? undefined : p }),
     setStore: (v) => {
       if (ctx.gestorLockedStoreId) return;
       apply({ loja: v === "all" ? undefined : v });

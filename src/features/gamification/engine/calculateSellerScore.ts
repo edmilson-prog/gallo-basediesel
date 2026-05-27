@@ -149,9 +149,7 @@ export function calculateSellerScore(
  * Tie-breaking: higher `breakdown.fromGoals`, then better `positionPrevious`.
  * Populates `position` and `positionDelta` in-place via a new array.
  */
-export function calculateRanking(
-  entries: IRankingEntry[],
-): IRankingEntry[] {
+export function calculateRanking(entries: IRankingEntry[]): IRankingEntry[] {
   const sorted = [...entries].sort((a, b) => {
     if (b.score !== a.score) return b.score - a.score;
     const ga = a.breakdown?.fromGoals ?? 0;

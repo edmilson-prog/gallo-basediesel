@@ -102,8 +102,7 @@ export function SellerCommissionsPage() {
     () => prev.data.reduce((sum, c) => sum + c.totalCommission, 0),
     [prev.data],
   );
-  const previousDeltaPct =
-    previousTotal === 0 ? 0 : (totals.total - previousTotal) / previousTotal;
+  const previousDeltaPct = previousTotal === 0 ? 0 : (totals.total - previousTotal) / previousTotal;
 
   if (!userRole || !ALLOWED_ROLES.has(userRole)) {
     return (
@@ -196,7 +195,9 @@ export function SellerCommissionsPage() {
           <Icon icon="mdi:arrow-left" size={14} />
           <span className="ml-1.5">Voltar</span>
         </Button>
-        <span className="text-xs text-muted-foreground">/ {labelForPeriod(filtersCtl.filters.period)}</span>
+        <span className="text-xs text-muted-foreground">
+          / {labelForPeriod(filtersCtl.filters.period)}
+        </span>
       </div>
 
       <CommissionsHeader
@@ -249,12 +250,14 @@ export function SellerCommissionsPage() {
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-foreground">
-                        <Icon icon="mdi:flag" size={14} className="mr-1 inline align-text-bottom text-warning" />
+                        <Icon
+                          icon="mdi:flag"
+                          size={14}
+                          className="mr-1 inline align-text-bottom text-warning"
+                        />
                         Disputa aberta no pedido #{c.orderId.replace(/^order-/, "PD-")}
                       </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {c.disputeReason}
-                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">{c.disputeReason}</p>
                     </div>
                     <Button size="sm" onClick={() => setResolving(c)}>
                       {S.disputeResolveCta}
@@ -277,7 +280,11 @@ export function SellerCommissionsPage() {
                         {c.approvedAt ? new Date(c.approvedAt).toLocaleDateString("pt-BR") : "—"}
                       </p>
                     </div>
-                    <Button size="sm" variant="outline" onClick={() => void handleRegisterPayment(c)}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void handleRegisterPayment(c)}
+                    >
                       <Icon icon="mdi:cash-check" size={14} />
                       <span className="ml-1.5">{S.registerPaymentCta}</span>
                     </Button>

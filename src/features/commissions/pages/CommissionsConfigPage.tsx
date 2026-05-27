@@ -149,10 +149,7 @@ export function CommissionsConfigPage() {
           <p className="text-sm font-semibold text-foreground">{S.configActiveLabel}</p>
           <p className="mt-1 text-xs text-muted-foreground">{S.configActiveDescription}</p>
         </div>
-        <Switch
-          checked={draft.active}
-          onCheckedChange={(v) => setDraft({ ...draft, active: v })}
-        />
+        <Switch checked={draft.active} onCheckedChange={(v) => setDraft({ ...draft, active: v })} />
       </Card>
 
       <Card className="p-5">
@@ -193,7 +190,9 @@ export function CommissionsConfigPage() {
             </Select>
           </div>
           <div className="flex flex-col">
-            <label className="text-sm font-medium text-foreground">{S.configGoalBonusEnabled}</label>
+            <label className="text-sm font-medium text-foreground">
+              {S.configGoalBonusEnabled}
+            </label>
             <p className="mt-1 text-xs text-muted-foreground">{S.configGoalBonusDescription}</p>
             <div className="mt-2">
               <Switch
@@ -289,9 +288,7 @@ function RuleRow({ rule, sellersById, onChange, onRemove }: IRuleRowProps) {
               step={0.1}
               min={0}
               value={(rule.baseRate * 100).toFixed(2)}
-              onChange={(e) =>
-                onChange({ baseRate: Math.max(0, Number(e.target.value) / 100) })
-              }
+              onChange={(e) => onChange({ baseRate: Math.max(0, Number(e.target.value) / 100) })}
               className="h-9 w-24 text-right tabular-nums"
             />
             <span className="text-xs text-muted-foreground">%</span>
@@ -300,10 +297,7 @@ function RuleRow({ rule, sellersById, onChange, onRemove }: IRuleRowProps) {
         <div className="flex items-end gap-2">
           <div className="flex flex-col items-center">
             <label className="text-xs font-medium text-muted-foreground">Ativa</label>
-            <Switch
-              checked={rule.isActive}
-              onCheckedChange={(v) => onChange({ isActive: v })}
-            />
+            <Switch checked={rule.isActive} onCheckedChange={(v) => onChange({ isActive: v })} />
           </div>
           <Button
             size="sm"

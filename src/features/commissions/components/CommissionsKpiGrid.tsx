@@ -62,9 +62,7 @@ export function CommissionsKpiGrid({
         label={S.kpiGoalBonus}
         value={money.format(totals.goalBonus)}
         hint={
-          totals.goalBonus > 0
-            ? "Pelo menos uma meta atingida"
-            : "Sem bônus por meta neste período"
+          totals.goalBonus > 0 ? "Pelo menos uma meta atingida" : "Sem bônus por meta neste período"
         }
       />
       <Kpi
@@ -102,9 +100,7 @@ function Kpi({ icon, label, value, hint, accent }: IKpiProps) {
   return (
     <Card className="p-4">
       <div className="flex items-start gap-3">
-        <span
-          className={`flex h-10 w-10 items-center justify-center rounded-md ${accentClass}`}
-        >
+        <span className={`flex h-10 w-10 items-center justify-center rounded-md ${accentClass}`}>
           <Icon icon={icon} size={18} />
         </span>
         <div className="min-w-0 flex-1">

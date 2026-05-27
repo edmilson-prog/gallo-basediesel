@@ -88,10 +88,7 @@ export interface IPortfolioFiltersSearch {
 
 export function validatePortfolioSearch(raw: Record<string, unknown>): IPortfolioFiltersSearch {
   const out: IPortfolioFiltersSearch = {};
-  if (
-    typeof raw.periodo === "string" &&
-    VALID_PERIOD.has(raw.periodo as PortfolioPeriodPreset)
-  ) {
+  if (typeof raw.periodo === "string" && VALID_PERIOD.has(raw.periodo as PortfolioPeriodPreset)) {
     out.periodo = raw.periodo;
   }
   if (typeof raw.de === "string" && raw.de.length > 0) out.de = raw.de;

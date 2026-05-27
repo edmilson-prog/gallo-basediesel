@@ -129,7 +129,8 @@ export function evaluateBadgesForSeller(input: IEvaluateBadgesInput): IGamificat
       .sort();
     if (earlier.length === 0) continue;
     const lastPriorIso = earlier[earlier.length - 1];
-    const gapDays = (new Date(period.startIso).getTime() - new Date(lastPriorIso).getTime()) / 86400_000;
+    const gapDays =
+      (new Date(period.startIso).getTime() - new Date(lastPriorIso).getTime()) / 86400_000;
     if (gapDays >= 90) recoveryCount += 1;
   }
   if (recoveryCount >= 3) candidates.push("resgatador");
@@ -155,11 +156,7 @@ export function evaluateBadgesForSeller(input: IEvaluateBadgesInput): IGamificat
   // --- estrela-ascensao: climbed ≥3 positions in the ranking ----------------
   if (rankingForPeriod) {
     const sellerEntry = rankingForPeriod.find((e) => e.sellerId === sellerId);
-    if (
-      sellerEntry &&
-      sellerEntry.positionDelta !== undefined &&
-      sellerEntry.positionDelta >= 3
-    ) {
+    if (sellerEntry && sellerEntry.positionDelta !== undefined && sellerEntry.positionDelta >= 3) {
       candidates.push("estrela-ascensao");
     }
   }

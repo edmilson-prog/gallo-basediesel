@@ -94,33 +94,33 @@ src/features/about/
 Tipos em `src/shared/types/about.ts`:
 
 ```ts
-export type ReleaseKind = 'major' | 'minor' | 'patch';
+export type ReleaseKind = "major" | "minor" | "patch";
 
 export type ReleaseCategory =
-  | 'added'
-  | 'changed'
-  | 'fixed'
-  | 'removed'
-  | 'deprecated'
-  | 'security'
-  | 'notes'           // "Notes" / "Notas"
-  | 'migration';      // "Migration notes"
+  | "added"
+  | "changed"
+  | "fixed"
+  | "removed"
+  | "deprecated"
+  | "security"
+  | "notes" // "Notes" / "Notas"
+  | "migration"; // "Migration notes"
 
 export interface IReleaseCategoryBlock {
   category: ReleaseCategory;
-  items: string[];   // bullets em texto markdown bruto (preservar `code`)
+  items: string[]; // bullets em texto markdown bruto (preservar `code`)
 }
 
 export interface IRelease {
-  version: string;             // "0.36.0"
-  codename: string | null;     // "Pulse" — null para PATCH sem codinome
-  date: string;                // ISO "2026-05-27"
-  kind: ReleaseKind;           // derivado de classifyVersion
-  summary: string;             // primeiro parágrafo após o cabeçalho
-  block: string | null;        // "Bloco 4b" se mencionado no summary, senão null
+  version: string; // "0.36.0"
+  codename: string | null; // "Pulse" — null para PATCH sem codinome
+  date: string; // ISO "2026-05-27"
+  kind: ReleaseKind; // derivado de classifyVersion
+  summary: string; // primeiro parágrafo após o cabeçalho
+  block: string | null; // "Bloco 4b" se mencionado no summary, senão null
   categories: IReleaseCategoryBlock[];
-  totalItems: number;          // soma de items em todas as categorias
-  raw: string;                 // markdown bruto da release (fallback se parsing falhar)
+  totalItems: number; // soma de items em todas as categorias
+  raw: string; // markdown bruto da release (fallback se parsing falhar)
 }
 ```
 
@@ -184,10 +184,10 @@ Adicionar item no menu lateral de Configurações em `src/features/shell/config/
 // useChangelog.ts
 export function useChangelog() {
   return useQuery({
-    queryKey: ['changelog'],
+    queryKey: ["changelog"],
     queryFn: async (): Promise<IRelease[]> => {
-      const res = await fetch('/CHANGELOG.md');
-      if (!res.ok) throw new Error('Failed to fetch changelog');
+      const res = await fetch("/CHANGELOG.md");
+      if (!res.ok) throw new Error("Failed to fetch changelog");
       const raw = await res.text();
       return parseChangelog(raw);
     },
@@ -210,8 +210,8 @@ Adicionar `public/CHANGELOG.md` ao `.gitignore`.
 // useReleaseFilters.ts
 type Filters = {
   search: string;
-  kind: 'all' | ReleaseKind;
-  period: 'all' | 'thisMonth' | 'last3Months' | 'thisYear';
+  kind: "all" | ReleaseKind;
+  period: "all" | "thisMonth" | "last3Months" | "thisYear";
 };
 ```
 
@@ -277,16 +277,16 @@ Segue o design system existente — **somente tokens semânticos** (`bg-card`, `
 
 ## 6. Decisões e trade-offs
 
-| Decisão | Alternativa rejeitada | Por quê |
-|---|---|---|
-| Parsing em runtime do CHANGELOG.md | Array TypeScript curado | Confirmado pelo usuário. Fonte única de verdade, zero manutenção dupla. |
-| Parser próprio (sem lib markdown) | `marked` / `remark` | Estrutura controlada (Keep a Changelog), bundle menor (zero deps extras), regex simples cobrem 100% dos casos atuais. |
-| Estado de filtros em useState | URL-sync via TanStack Router | Página é leitura institucional, raramente linkada. Adicionar URL-sync depois é trivial. |
-| TanStack Query com `staleTime: Infinity` | Sem cache (refetch a cada mount) | Changelog não muda durante a sessão. Cache global evita re-parse. |
-| Asset estático via `public/CHANGELOG.md` + script de cópia | Importar com `?raw` do Vite | `?raw` funcionaria mas o arquivo vira parte do bundle JS (~85KB), inflando o initial load. Asset estático é cacheável separadamente pela CDN da Vercel. |
-| Todos os papéis internos podem ver | Apenas Owner | É conteúdo institucional, não sensível. Vendedor saber a versão atual ajuda em chamados de suporte. |
-| Sem item no menu principal (sidebar topo) | Item dedicado fora de Configurações | Confirmado pelo usuário — vive em Configurações. |
-| Sem versão pública na vitrine | Página `/loja/sobre` ou similar | Out of scope explícito. Pode ser feito depois reutilizando os componentes. |
+| Decisão                                                    | Alternativa rejeitada               | Por quê                                                                                                                                                 |
+| ---------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Parsing em runtime do CHANGELOG.md                         | Array TypeScript curado             | Confirmado pelo usuário. Fonte única de verdade, zero manutenção dupla.                                                                                 |
+| Parser próprio (sem lib markdown)                          | `marked` / `remark`                 | Estrutura controlada (Keep a Changelog), bundle menor (zero deps extras), regex simples cobrem 100% dos casos atuais.                                   |
+| Estado de filtros em useState                              | URL-sync via TanStack Router        | Página é leitura institucional, raramente linkada. Adicionar URL-sync depois é trivial.                                                                 |
+| TanStack Query com `staleTime: Infinity`                   | Sem cache (refetch a cada mount)    | Changelog não muda durante a sessão. Cache global evita re-parse.                                                                                       |
+| Asset estático via `public/CHANGELOG.md` + script de cópia | Importar com `?raw` do Vite         | `?raw` funcionaria mas o arquivo vira parte do bundle JS (~85KB), inflando o initial load. Asset estático é cacheável separadamente pela CDN da Vercel. |
+| Todos os papéis internos podem ver                         | Apenas Owner                        | É conteúdo institucional, não sensível. Vendedor saber a versão atual ajuda em chamados de suporte.                                                     |
+| Sem item no menu principal (sidebar topo)                  | Item dedicado fora de Configurações | Confirmado pelo usuário — vive em Configurações.                                                                                                        |
+| Sem versão pública na vitrine                              | Página `/loja/sobre` ou similar     | Out of scope explícito. Pode ser feito depois reutilizando os componentes.                                                                              |
 
 ## 7. Plano de validação manual
 

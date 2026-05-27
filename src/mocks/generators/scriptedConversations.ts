@@ -85,18 +85,54 @@ const SCENARIOS: IScriptedScenario[] = [
     tags: ["Volvo", "Frota pesada"],
     daysAgo: 1,
     turns: [
-      { author: "customer", offsetMin: 0, text: "Oi, boa tarde! Vocês têm pastilha de freio para Volvo FH 460 ano 2019?" },
-      { author: "sdr", offsetMin: 1, text: "Olá! Sou o assistente da GALLO Base Diesel — em que posso ajudar?" },
-      { author: "sdr", offsetMin: 2, text: "Para qual veículo é a peça? Marca, modelo e ano por favor." },
+      {
+        author: "customer",
+        offsetMin: 0,
+        text: "Oi, boa tarde! Vocês têm pastilha de freio para Volvo FH 460 ano 2019?",
+      },
+      {
+        author: "sdr",
+        offsetMin: 1,
+        text: "Olá! Sou o assistente da GALLO Base Diesel — em que posso ajudar?",
+      },
+      {
+        author: "sdr",
+        offsetMin: 2,
+        text: "Para qual veículo é a peça? Marca, modelo e ano por favor.",
+      },
       { author: "customer", offsetMin: 4, text: "Volvo FH 460, 2019, eixo dianteiro" },
       { author: "sdr", offsetMin: 5, text: "Vou consultar nosso estoque, um momento…" },
-      { author: "sdr", offsetMin: 6, text: "Encontrei 2 opções compatíveis: pastilha original Bosch (cód. OE 21568045) em pronta entrega e a equivalente Fras-le. Posso enviar a cotação?" },
-      { author: "customer", offsetMin: 8, text: "Pode mandar, mas preferia falar com alguém pra negociar valor" },
-      { author: "sdr", offsetMin: 9, text: "Vou transferir para um vendedor humano finalizar com você. Um instante." },
-      { author: "system", offsetMin: 10, text: "🔁 Conversa transferida do SDR para Marina Cardoso" },
-      { author: "seller", offsetMin: 18, text: "Oi! Aqui é a Marina. Recebi o histórico do SDR — pastilha FH 460 dianteira, confere?" },
+      {
+        author: "sdr",
+        offsetMin: 6,
+        text: "Encontrei 2 opções compatíveis: pastilha original Bosch (cód. OE 21568045) em pronta entrega e a equivalente Fras-le. Posso enviar a cotação?",
+      },
+      {
+        author: "customer",
+        offsetMin: 8,
+        text: "Pode mandar, mas preferia falar com alguém pra negociar valor",
+      },
+      {
+        author: "sdr",
+        offsetMin: 9,
+        text: "Vou transferir para um vendedor humano finalizar com você. Um instante.",
+      },
+      {
+        author: "system",
+        offsetMin: 10,
+        text: "🔁 Conversa transferida do SDR para Marina Cardoso",
+      },
+      {
+        author: "seller",
+        offsetMin: 18,
+        text: "Oi! Aqui é a Marina. Recebi o histórico do SDR — pastilha FH 460 dianteira, confere?",
+      },
       { author: "customer", offsetMin: 25, text: "Confere. Quantos jogos vocês têm em estoque?" },
-      { author: "seller", offsetMin: 27, text: "Temos 8 jogos do original e 14 do Fras-le. Original sai por R$ 890 o jogo, Fras-le R$ 620. À vista 5% off em ambos." },
+      {
+        author: "seller",
+        offsetMin: 27,
+        text: "Temos 8 jogos do original e 14 do Fras-le. Original sai por R$ 890 o jogo, Fras-le R$ 620. À vista 5% off em ambos.",
+      },
     ],
   },
 
@@ -112,12 +148,28 @@ const SCENARIOS: IScriptedScenario[] = [
     tags: ["Cliente recorrente", "VIP", "Pagador em dia"],
     daysAgo: 3,
     turns: [
-      { author: "customer", offsetMin: 0, text: "Carlos, bom dia! Manda igual ao pedido do mês passado, mesmas quantidades" },
-      { author: "seller", offsetMin: 8, text: "Bom dia! Confirmando: 12 filtros de óleo, 6 correias dentadas e 4 jogos de pastilha. Mesmo endereço de entrega?" },
+      {
+        author: "customer",
+        offsetMin: 0,
+        text: "Carlos, bom dia! Manda igual ao pedido do mês passado, mesmas quantidades",
+      },
+      {
+        author: "seller",
+        offsetMin: 8,
+        text: "Bom dia! Confirmando: 12 filtros de óleo, 6 correias dentadas e 4 jogos de pastilha. Mesmo endereço de entrega?",
+      },
       { author: "customer", offsetMin: 10, text: "Isso mesmo. Pode faturar." },
-      { author: "seller", offsetMin: 12, text: "Fechado. Vou montar a NF agora e te mando o boleto 28 dias como sempre." },
+      {
+        author: "seller",
+        offsetMin: 12,
+        text: "Fechado. Vou montar a NF agora e te mando o boleto 28 dias como sempre.",
+      },
       { author: "customer", offsetMin: 13, text: "👍" },
-      { author: "seller", offsetMin: 45, text: "NF emitida e boleto no e-mail. Entrega quinta de manhã." },
+      {
+        author: "seller",
+        offsetMin: 45,
+        text: "NF emitida e boleto no e-mail. Entrega quinta de manhã.",
+      },
       { author: "customer", offsetMin: 60, text: "Recebido, valeu!" },
     ],
   },
@@ -134,14 +186,46 @@ const SCENARIOS: IScriptedScenario[] = [
     tags: ["Frota pesada", "Scania", "VIP"],
     daysAgo: 2,
     turns: [
-      { author: "customer", offsetMin: 0, text: "Marina, preciso de cotação para 50 turbocompressores Scania R450 — vamos renovar a frota toda" },
-      { author: "seller", offsetMin: 6, text: "Olá! Volume desse porte eu monto uma proposta especial. Pode me passar o número do chassi de pelo menos 3 caminhões pra confirmar a aplicação correta?" },
-      { author: "customer", offsetMin: 30, text: "Mando hoje à tarde. Mas a princípio é Scania R450 ano 2017-2019, motor DC13. Qual a faixa de preço?" },
-      { author: "seller", offsetMin: 35, text: "Linha Holset original gira em torno de R$ 12.500/un no varejo. Pra esse volume consigo trabalhar em R$ 10.800 com prazo 45 dias, ou R$ 10.200 à vista." },
-      { author: "customer", offsetMin: 38, text: "À vista 50 unidades é R$ 510 mil. Quero R$ 9.800/un, fechamos esta semana." },
-      { author: "seller", offsetMin: 42, text: "Vou subir essa proposta com a diretoria. Em 1h te respondo." },
-      { author: "system", offsetMin: 60, text: "⚠️ Pedido de aprovação de desconto > 5% — aguardando Owner" },
-      { author: "seller", offsetMin: 110, text: "Boa! Aprovado em R$ 9.950 à vista, 50 unidades, entrega 15 dias dividida em 2 lotes. Fechamos?" },
+      {
+        author: "customer",
+        offsetMin: 0,
+        text: "Marina, preciso de cotação para 50 turbocompressores Scania R450 — vamos renovar a frota toda",
+      },
+      {
+        author: "seller",
+        offsetMin: 6,
+        text: "Olá! Volume desse porte eu monto uma proposta especial. Pode me passar o número do chassi de pelo menos 3 caminhões pra confirmar a aplicação correta?",
+      },
+      {
+        author: "customer",
+        offsetMin: 30,
+        text: "Mando hoje à tarde. Mas a princípio é Scania R450 ano 2017-2019, motor DC13. Qual a faixa de preço?",
+      },
+      {
+        author: "seller",
+        offsetMin: 35,
+        text: "Linha Holset original gira em torno de R$ 12.500/un no varejo. Pra esse volume consigo trabalhar em R$ 10.800 com prazo 45 dias, ou R$ 10.200 à vista.",
+      },
+      {
+        author: "customer",
+        offsetMin: 38,
+        text: "À vista 50 unidades é R$ 510 mil. Quero R$ 9.800/un, fechamos esta semana.",
+      },
+      {
+        author: "seller",
+        offsetMin: 42,
+        text: "Vou subir essa proposta com a diretoria. Em 1h te respondo.",
+      },
+      {
+        author: "system",
+        offsetMin: 60,
+        text: "⚠️ Pedido de aprovação de desconto > 5% — aguardando Owner",
+      },
+      {
+        author: "seller",
+        offsetMin: 110,
+        text: "Boa! Aprovado em R$ 9.950 à vista, 50 unidades, entrega 15 dias dividida em 2 lotes. Fechamos?",
+      },
     ],
   },
 
@@ -157,8 +241,16 @@ const SCENARIOS: IScriptedScenario[] = [
     tags: ["Frota pesada", "Mercedes-Benz"],
     daysAgo: 0,
     turns: [
-      { author: "customer", offsetMin: 0, text: "URGENTE! Carreta Mercedes Actros parou na BR-386 km 137, motorista diz que é bomba injetora" },
-      { author: "customer", offsetMin: 2, text: "Vocês têm bomba injetora pra Actros 2546 ano 2020? Preciso despachar HOJE" },
+      {
+        author: "customer",
+        offsetMin: 0,
+        text: "URGENTE! Carreta Mercedes Actros parou na BR-386 km 137, motorista diz que é bomba injetora",
+      },
+      {
+        author: "customer",
+        offsetMin: 2,
+        text: "Vocês têm bomba injetora pra Actros 2546 ano 2020? Preciso despachar HOJE",
+      },
       { author: "customer", offsetMin: 6, text: "Alguém atende?" },
     ],
   },
@@ -175,12 +267,32 @@ const SCENARIOS: IScriptedScenario[] = [
     tags: ["Iveco"],
     daysAgo: 1,
     turns: [
-      { author: "customer", offsetMin: 0, text: "Rafael, recebi proposta da Diesel Sul por R$ 4.200 no mesmo kit de embreagem Iveco. Vocês cobrem?" },
-      { author: "seller", offsetMin: 12, text: "Oi! Nosso valor é R$ 4.580. Posso trabalhar R$ 4.290 mantendo a garantia de 12 meses e frete CIF — eles entregam onde?" },
-      { author: "customer", offsetMin: 30, text: "Eles cobram frete à parte e a garantia é 6 meses só" },
-      { author: "seller", offsetMin: 35, text: "Então tecnicamente o nosso fica até melhor. CIF + 12 meses de garantia + assistência técnica. Posso emitir a NF?" },
+      {
+        author: "customer",
+        offsetMin: 0,
+        text: "Rafael, recebi proposta da Diesel Sul por R$ 4.200 no mesmo kit de embreagem Iveco. Vocês cobrem?",
+      },
+      {
+        author: "seller",
+        offsetMin: 12,
+        text: "Oi! Nosso valor é R$ 4.580. Posso trabalhar R$ 4.290 mantendo a garantia de 12 meses e frete CIF — eles entregam onde?",
+      },
+      {
+        author: "customer",
+        offsetMin: 30,
+        text: "Eles cobram frete à parte e a garantia é 6 meses só",
+      },
+      {
+        author: "seller",
+        offsetMin: 35,
+        text: "Então tecnicamente o nosso fica até melhor. CIF + 12 meses de garantia + assistência técnica. Posso emitir a NF?",
+      },
       { author: "customer", offsetMin: 90, text: "Deixa eu pensar e te respondo amanhã" },
-      { author: "seller", offsetMin: 95, text: "Tranquilo. Se quiser eu seguro esse preço por 48h." },
+      {
+        author: "seller",
+        offsetMin: 95,
+        text: "Tranquilo. Se quiser eu seguro esse preço por 48h.",
+      },
     ],
   },
 
@@ -196,14 +308,39 @@ const SCENARIOS: IScriptedScenario[] = [
     tags: ["Ford Cargo", "Oficina parceira"],
     daysAgo: 4,
     turns: [
-      { author: "customer", offsetMin: 0, text: "Carlos, problemão. O kit de juntas que veio na NF 8842 não encaixou no Cargo 2429" },
-      { author: "customer", offsetMin: 1, text: "Mecânico diz que é para o motor MWM 6.12 e o nosso é Cummins ISBe" },
-      { author: "customer", offsetMin: 1, text: "Estou com o caminhão aberto na oficina, preciso de solução", media: "image" },
-      { author: "seller", offsetMin: 14, text: "Calma, vou resolver agora. Me confirma o chassi do caminhão?" },
+      {
+        author: "customer",
+        offsetMin: 0,
+        text: "Carlos, problemão. O kit de juntas que veio na NF 8842 não encaixou no Cargo 2429",
+      },
+      {
+        author: "customer",
+        offsetMin: 1,
+        text: "Mecânico diz que é para o motor MWM 6.12 e o nosso é Cummins ISBe",
+      },
+      {
+        author: "customer",
+        offsetMin: 1,
+        text: "Estou com o caminhão aberto na oficina, preciso de solução",
+        media: "image",
+      },
+      {
+        author: "seller",
+        offsetMin: 14,
+        text: "Calma, vou resolver agora. Me confirma o chassi do caminhão?",
+      },
       { author: "customer", offsetMin: 18, text: "9BFXXXKXXXXX12345" },
-      { author: "seller", offsetMin: 25, text: "Conferi aqui — você tem razão, motor Cummins. Erro nosso na separação. Vou despachar hoje o kit correto e mando motoboy buscar o errado." },
+      {
+        author: "seller",
+        offsetMin: 25,
+        text: "Conferi aqui — você tem razão, motor Cummins. Erro nosso na separação. Vou despachar hoje o kit correto e mando motoboy buscar o errado.",
+      },
       { author: "customer", offsetMin: 28, text: "Hoje mesmo? Não tem outra opção mais rápida?" },
-      { author: "seller", offsetMin: 32, text: "Já está saindo de Frederico Westphalen, chega em Passo Fundo em 2h30. Sem custo de frete e estendo a garantia para 18 meses pela inconveniência." },
+      {
+        author: "seller",
+        offsetMin: 32,
+        text: "Já está saindo de Frederico Westphalen, chega em Passo Fundo em 2h30. Sem custo de frete e estendo a garantia para 18 meses pela inconveniência.",
+      },
       { author: "customer", offsetMin: 35, text: "Ok, fico no aguardo. Valeu pela rapidez" },
     ],
   },
@@ -220,7 +357,11 @@ const SCENARIOS: IScriptedScenario[] = [
     tags: ["Volvo"],
     daysAgo: 7,
     turns: [
-      { author: "seller", offsetMin: 0, text: "Bom dia! Aqui é o Rafael da GALLO. Lembrei que aquele orçamento de bomba d'água Volvo FH que te mandei está vencendo amanhã. Quer que eu renove com algum ajuste?" },
+      {
+        author: "seller",
+        offsetMin: 0,
+        text: "Bom dia! Aqui é o Rafael da GALLO. Lembrei que aquele orçamento de bomba d'água Volvo FH que te mandei está vencendo amanhã. Quer que eu renove com algum ajuste?",
+      },
       { author: "seller", offsetMin: 1, text: "Posso baixar R$ 80 se fechar essa semana." },
     ],
   },
@@ -237,13 +378,33 @@ const SCENARIOS: IScriptedScenario[] = [
     tags: ["Mercedes-Benz", "Cliente recorrente", "Pagador em dia"],
     daysAgo: 5,
     turns: [
-      { author: "customer", offsetMin: 0, text: "Marina, pode mandar 4 kits de embreagem para os Atego e 2 turbos Mercedes 1726" },
-      { author: "seller", offsetMin: 15, text: "Anotado! Embreagens linha LUK e turbos Holset originais. Total R$ 38.400 com 28d, NF em nome da Transportadora Aurora, ok?" },
+      {
+        author: "customer",
+        offsetMin: 0,
+        text: "Marina, pode mandar 4 kits de embreagem para os Atego e 2 turbos Mercedes 1726",
+      },
+      {
+        author: "seller",
+        offsetMin: 15,
+        text: "Anotado! Embreagens linha LUK e turbos Holset originais. Total R$ 38.400 com 28d, NF em nome da Transportadora Aurora, ok?",
+      },
       { author: "customer", offsetMin: 18, text: "Perfeito, pode emitir" },
-      { author: "seller", offsetMin: 45, text: "NF 8923 emitida, boleto no e-mail. Entrega prevista terça-feira." },
+      {
+        author: "seller",
+        offsetMin: 45,
+        text: "NF 8923 emitida, boleto no e-mail. Entrega prevista terça-feira.",
+      },
       { author: "customer", offsetMin: 65, text: "Recebido, obrigado!" },
-      { author: "seller", offsetMin: 4320, text: "Oi! Chegou tudo certo? Algum problema na conferência?" },
-      { author: "customer", offsetMin: 4380, text: "Chegou redondinho, mecânico já montou o primeiro Atego. Sucesso!" },
+      {
+        author: "seller",
+        offsetMin: 4320,
+        text: "Oi! Chegou tudo certo? Algum problema na conferência?",
+      },
+      {
+        author: "customer",
+        offsetMin: 4380,
+        text: "Chegou redondinho, mecânico já montou o primeiro Atego. Sucesso!",
+      },
       { author: "seller", offsetMin: 4385, text: "Massa! Qualquer coisa estou à disposição." },
     ],
   },
@@ -260,11 +421,27 @@ const SCENARIOS: IScriptedScenario[] = [
     tags: ["Scania"],
     daysAgo: 1,
     turns: [
-      { author: "customer", offsetMin: 0, text: "Coloquei 2 filtros e 1 correia no carrinho mas o frete não aparece pra Erechim/RS" },
+      {
+        author: "customer",
+        offsetMin: 0,
+        text: "Coloquei 2 filtros e 1 correia no carrinho mas o frete não aparece pra Erechim/RS",
+      },
       { author: "system", offsetMin: 1, text: "🛒 Carrinho #CART-1042 vinculado — Scania R450" },
-      { author: "seller", offsetMin: 22, text: "Oi! Erechim entrega em 24h por transportadora própria. Valor é R$ 45 — vou liberar manualmente no seu pedido. Pode finalizar?" },
-      { author: "customer", offsetMin: 50, text: "Finalizei, pagamento PIX, número do pedido #4471" },
-      { author: "seller", offsetMin: 55, text: "Pagamento confirmado, separação inicia hoje à tarde. Te aviso quando despachar." },
+      {
+        author: "seller",
+        offsetMin: 22,
+        text: "Oi! Erechim entrega em 24h por transportadora própria. Valor é R$ 45 — vou liberar manualmente no seu pedido. Pode finalizar?",
+      },
+      {
+        author: "customer",
+        offsetMin: 50,
+        text: "Finalizei, pagamento PIX, número do pedido #4471",
+      },
+      {
+        author: "seller",
+        offsetMin: 55,
+        text: "Pagamento confirmado, separação inicia hoje à tarde. Te aviso quando despachar.",
+      },
     ],
   },
 
@@ -280,11 +457,31 @@ const SCENARIOS: IScriptedScenario[] = [
     tags: ["Em recuperação", "Volvo"],
     daysAgo: 0,
     turns: [
-      { author: "seller", offsetMin: 0, text: "Bom dia! Aqui é o Carlos da GALLO. Notei que faz uns 3 meses que não fazemos pedido, está tudo bem por aí?" },
-      { author: "customer", offsetMin: 35, text: "Oi Carlos! Tudo certo. Estávamos com a frota parada por sazonalidade, mas semana que vem retomamos." },
-      { author: "seller", offsetMin: 40, text: "Que bom! Lançamos uma condição para retomada: nos próximos 30 dias damos 8% de desconto no primeiro pedido acima de R$ 5 mil. Te mando o catálogo?" },
-      { author: "customer", offsetMin: 50, text: "Pode mandar. Preciso conferir o estoque da oficina e te volto." },
-      { author: "seller", offsetMin: 55, text: "Catálogo enviado por e-mail. Estou aqui pra qualquer ajuste." },
+      {
+        author: "seller",
+        offsetMin: 0,
+        text: "Bom dia! Aqui é o Carlos da GALLO. Notei que faz uns 3 meses que não fazemos pedido, está tudo bem por aí?",
+      },
+      {
+        author: "customer",
+        offsetMin: 35,
+        text: "Oi Carlos! Tudo certo. Estávamos com a frota parada por sazonalidade, mas semana que vem retomamos.",
+      },
+      {
+        author: "seller",
+        offsetMin: 40,
+        text: "Que bom! Lançamos uma condição para retomada: nos próximos 30 dias damos 8% de desconto no primeiro pedido acima de R$ 5 mil. Te mando o catálogo?",
+      },
+      {
+        author: "customer",
+        offsetMin: 50,
+        text: "Pode mandar. Preciso conferir o estoque da oficina e te volto.",
+      },
+      {
+        author: "seller",
+        offsetMin: 55,
+        text: "Catálogo enviado por e-mail. Estou aqui pra qualquer ajuste.",
+      },
     ],
   },
 
@@ -300,13 +497,33 @@ const SCENARIOS: IScriptedScenario[] = [
     tags: ["Iveco"],
     daysAgo: 0,
     turns: [
-      { author: "customer", offsetMin: 0, text: "Boa noite, vocês têm bico injetor pra Iveco Tector 240E25?" },
-      { author: "sdr", offsetMin: 1, text: "Olá! Sou o assistente da GALLO Base Diesel — em que posso ajudar?" },
-      { author: "sdr", offsetMin: 2, text: "Posso te adiantar: temos Bosch CRIN 2 e Delphi como opções compatíveis. Estoque atual em Frederico Westphalen." },
+      {
+        author: "customer",
+        offsetMin: 0,
+        text: "Boa noite, vocês têm bico injetor pra Iveco Tector 240E25?",
+      },
+      {
+        author: "sdr",
+        offsetMin: 1,
+        text: "Olá! Sou o assistente da GALLO Base Diesel — em que posso ajudar?",
+      },
+      {
+        author: "sdr",
+        offsetMin: 2,
+        text: "Posso te adiantar: temos Bosch CRIN 2 e Delphi como opções compatíveis. Estoque atual em Frederico Westphalen.",
+      },
       { author: "customer", offsetMin: 4, text: "Quanto sai cada um?" },
-      { author: "sdr", offsetMin: 5, text: "Faixa de R$ 1.200 (Delphi) a R$ 1.480 (Bosch). Como nosso atendimento humano está fora do expediente, posso agendar um vendedor para te ligar amanhã 8h e fechar a cotação?" },
+      {
+        author: "sdr",
+        offsetMin: 5,
+        text: "Faixa de R$ 1.200 (Delphi) a R$ 1.480 (Bosch). Como nosso atendimento humano está fora do expediente, posso agendar um vendedor para te ligar amanhã 8h e fechar a cotação?",
+      },
       { author: "customer", offsetMin: 7, text: "Pode agendar sim" },
-      { author: "sdr", offsetMin: 8, text: "Combinado! Marina vai te ligar amanhã às 8h. Tenha uma boa noite." },
+      {
+        author: "sdr",
+        offsetMin: 8,
+        text: "Combinado! Marina vai te ligar amanhã às 8h. Tenha uma boa noite.",
+      },
     ],
   },
 
@@ -322,12 +539,28 @@ const SCENARIOS: IScriptedScenario[] = [
     tags: ["Ford Cargo"],
     daysAgo: 6,
     turns: [
-      { author: "customer", offsetMin: 0, text: "Oi! Preciso de um kit de embreagem Ford Cargo 1119, dá pra parcelar?" },
-      { author: "seller", offsetMin: 12, text: "Boa tarde! Sim, dá pra parcelar em 3x sem juros no cartão. Valor à vista R$ 2.180, parcelado R$ 2.290." },
+      {
+        author: "customer",
+        offsetMin: 0,
+        text: "Oi! Preciso de um kit de embreagem Ford Cargo 1119, dá pra parcelar?",
+      },
+      {
+        author: "seller",
+        offsetMin: 12,
+        text: "Boa tarde! Sim, dá pra parcelar em 3x sem juros no cartão. Valor à vista R$ 2.180, parcelado R$ 2.290.",
+      },
       { author: "customer", offsetMin: 15, text: "Posso retirar na loja amanhã?" },
-      { author: "seller", offsetMin: 16, text: "Pode sim, estoque ok. Loja em Frederico Westphalen, horário 8h-18h. Quer que eu já separe?" },
+      {
+        author: "seller",
+        offsetMin: 16,
+        text: "Pode sim, estoque ok. Loja em Frederico Westphalen, horário 8h-18h. Quer que eu já separe?",
+      },
       { author: "customer", offsetMin: 18, text: "Separa por favor, vou aí 14h" },
-      { author: "seller", offsetMin: 20, text: "Separado! Pedido #4478. Pode passar direto no balcão amanhã 14h." },
+      {
+        author: "seller",
+        offsetMin: 20,
+        text: "Separado! Pedido #4478. Pode passar direto no balcão amanhã 14h.",
+      },
       { author: "customer", offsetMin: 1500, text: "Retirei agora, peça beleza. Valeu Rafael!" },
     ],
   },
@@ -411,7 +644,9 @@ export function generateScriptedConversations(input: IGenerateScriptedInput): IS
 
   SCENARIOS.forEach((scenario, idx) => {
     const customer =
-      scenario.participant.kind === "customerByTier" ? pickCustomerFor(scenario.participant) : undefined;
+      scenario.participant.kind === "customerByTier"
+        ? pickCustomerFor(scenario.participant)
+        : undefined;
     const lead =
       scenario.participant.kind === "leadByStage" ? pickLeadFor(scenario.participant) : undefined;
     if (!customer && !lead) return; // skip scenario if dataset is too small
@@ -476,10 +711,7 @@ export function generateScriptedConversations(input: IGenerateScriptedInput): IS
       // Conversations awaiting human reply surface unread badge in the inbox.
       unreadCount:
         scenario.status === "aguardando"
-          ? Math.max(
-              1,
-              scenario.turns.filter((t) => t.author === "customer").length - 1,
-            )
+          ? Math.max(1, scenario.turns.filter((t) => t.author === "customer").length - 1)
           : 0,
       createdAt: startedAt.toISOString(),
     };

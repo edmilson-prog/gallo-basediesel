@@ -212,7 +212,8 @@ function tallyTransitions(
   for (const customer of customers) {
     const createdAt = customer.createdAt;
     const isNewInWindow =
-      createdAt && new Date(createdAt).getTime() >= startDate.getTime() &&
+      createdAt &&
+      new Date(createdAt).getTime() >= startDate.getTime() &&
       new Date(createdAt).getTime() <= endDate.getTime();
     if (isNewInWindow) tally.newCustomers += 1;
 
@@ -378,10 +379,8 @@ export function calculatePortfolioMetrics(
       sellerTally.activeAtStart > 0 ? sellerChurnOut / sellerTally.activeAtStart : 0;
     const sellerRecovered = sellerTally.dormantToActive + sellerTally.lostToActive;
     const sellerInactiveStart = sellerTally.dormantAtStart + sellerTally.lostAtStart;
-    const sellerRecoveryRate =
-      sellerInactiveStart > 0 ? sellerRecovered / sellerInactiveStart : 0;
-    const activePct =
-      customersOfSeller.length > 0 ? status.ativo / customersOfSeller.length : 0;
+    const sellerRecoveryRate = sellerInactiveStart > 0 ? sellerRecovered / sellerInactiveStart : 0;
+    const activePct = customersOfSeller.length > 0 ? status.ativo / customersOfSeller.length : 0;
     const healthScore = calculateHealthScore({
       activePct,
       recoveryRate: sellerRecoveryRate,

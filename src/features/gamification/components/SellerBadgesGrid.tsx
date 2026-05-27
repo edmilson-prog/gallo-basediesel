@@ -43,7 +43,10 @@ export function SellerBadgesGrid({
         {sorted.map((badge) => {
           const def = catalogBySlug.get(badge.badgeType);
           return (
-            <li key={badge.id} className="flex items-start gap-3 rounded-md border border-border p-3">
+            <li
+              key={badge.id}
+              className="flex items-start gap-3 rounded-md border border-border p-3"
+            >
               <BadgeChip definition={def} size={20} outlined />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
@@ -52,12 +55,9 @@ export function SellerBadgesGrid({
                   </span>
                   {badge.rarity && <RarityBadge rarity={badge.rarity} />}
                 </div>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {def?.description ?? "—"}
-                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{def?.description ?? "—"}</p>
                 <p className="mt-1 text-[11px] text-muted-foreground">
-                  Período {badge.periodRef} ·{" "}
-                  {new Date(badge.earnedAt).toLocaleDateString("pt-BR")}
+                  Período {badge.periodRef} · {new Date(badge.earnedAt).toLocaleDateString("pt-BR")}
                 </p>
               </div>
             </li>

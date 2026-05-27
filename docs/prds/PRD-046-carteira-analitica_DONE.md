@@ -378,11 +378,11 @@ ENTÃO sou levado à inbox/conversa filtrada por customer
 
 ## Status
 
-| Campo         | Valor                                |
-| ------------- | ------------------------------------ |
-| Status        | ✅ IMPLEMENTADO                      |
-| Versão        | v0.30.0 — Vitals (26/05/2026)        |
-| Implementação | `src/features/portfolio-analytics/`  |
+| Campo         | Valor                               |
+| ------------- | ----------------------------------- |
+| Status        | ✅ IMPLEMENTADO                     |
+| Versão        | v0.30.0 — Vitals (26/05/2026)       |
+| Implementação | `src/features/portfolio-analytics/` |
 
 ---
 

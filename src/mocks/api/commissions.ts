@@ -1,8 +1,4 @@
-import type {
-  CommissionStatus,
-  ICommission,
-  ID,
-} from "@/shared/types";
+import type { CommissionStatus, ICommission, ID } from "@/shared/types";
 import { selectAllCommissions, selectStoreById } from "../store/selectors";
 import { patchById, upsert } from "../store/mutations";
 import { useMockStore } from "../store/mockStore";
@@ -71,8 +67,7 @@ export const commissionsApi = {
     return runApi("commissionsApi", "update", () => {
       const current = selectAllCommissions().find((c) => c.id === id);
       if (current && current.closedInPeriod && patch.status && patch.status !== current.status) {
-        const transitioningOutOfClosed =
-          current.status === "approved" && patch.status === "paid";
+        const transitioningOutOfClosed = current.status === "approved" && patch.status === "paid";
         if (!transitioningOutOfClosed && patch.status !== "disputed") {
           throw new MockValidationError(
             `commission ${id} is in closed period ${current.closedInPeriod} and cannot be mutated`,
@@ -92,7 +87,8 @@ export const commissionsApi = {
   }): Promise<ICommission[]> {
     return runApi("commissionsApi", "closeMonthlyPeriod", () => {
       const all = selectAllCommissions().filter(
-        (c) => c.storeId === input.storeId && c.period === input.period && c.status === "calculated",
+        (c) =>
+          c.storeId === input.storeId && c.period === input.period && c.status === "calculated",
       );
       const now = new Date().toISOString();
       const updated: ICommission[] = [];
