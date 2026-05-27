@@ -14,10 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CATALOG_STRINGS } from "../../i18n/pt-BR";
-import {
-  PART_CATEGORY_DESCRIPTORS,
-  getSubcategoriesFor,
-} from "../../utils/categories";
+import { PART_CATEGORY_DESCRIPTORS, getSubcategoriesFor } from "../../utils/categories";
 import {
   ApplicationsEditor,
   applicationsToDrafts,
@@ -171,9 +168,7 @@ export function PartForm({
           <Field label={CATALOG_STRINGS.form.fields.category} required error={errors.category}>
             <Select
               value={values.category ?? ""}
-              onValueChange={(v) =>
-                set("category", v === "" ? undefined : (v as PartCategory))
-              }
+              onValueChange={(v) => set("category", v === "" ? undefined : (v as PartCategory))}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione…" />

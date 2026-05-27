@@ -14,8 +14,7 @@ export function generateOrderNumber(
 ): string {
   const year = now.getUTCFullYear();
   const tag = `-${year}-`;
-  const seq =
-    existing.filter((o) => o.storeId === storeId && o.number?.includes(tag)).length + 1;
+  const seq = existing.filter((o) => o.storeId === storeId && o.number?.includes(tag)).length + 1;
   return `PD-${year}-${String(seq).padStart(4, "0")}`;
 }
 

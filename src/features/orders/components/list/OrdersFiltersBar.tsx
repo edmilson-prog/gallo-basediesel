@@ -8,11 +8,7 @@ import type {
 } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
@@ -60,13 +56,7 @@ const FULFILL_OPTIONS: OrderFulfillmentStatus[] = [
   "cancelado",
 ];
 
-const ORIGIN_OPTIONS: OrderOriginFilterKind[] = [
-  "sdr",
-  "quote",
-  "manual",
-  "ecommerce",
-  "portal",
-];
+const ORIGIN_OPTIONS: OrderOriginFilterKind[] = ["sdr", "quote", "manual", "ecommerce", "portal"];
 
 const DATE_LABELS: Record<OrderDateRangeBucket, string> = {
   any: "Qualquer período",
@@ -262,9 +252,7 @@ export function OrdersFiltersBar({
               >
                 <Checkbox
                   checked={filters.sellerIds.includes(s.id)}
-                  onCheckedChange={() =>
-                    patch({ sellerIds: toggleArray(filters.sellerIds, s.id) })
-                  }
+                  onCheckedChange={() => patch({ sellerIds: toggleArray(filters.sellerIds, s.id) })}
                 />
                 <span className="truncate">{s.fullName}</span>
               </label>

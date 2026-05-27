@@ -44,16 +44,17 @@ export function CommercialSection({ part }: ICommercialSectionProps) {
   return (
     <Section title={CATALOG_STRINGS.detail.sections.commercial} icon="mdi:cash-multiple">
       <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
-        <Stat label={CATALOG_STRINGS.detail.commercial.price} value={formatPrice(part.unitPrice)} highlight />
+        <Stat
+          label={CATALOG_STRINGS.detail.commercial.price}
+          value={formatPrice(part.unitPrice)}
+          highlight
+        />
         <Stat label={CATALOG_STRINGS.detail.commercial.cost} value={formatPrice(part.unitCost)} />
         <Stat
           label={CATALOG_STRINGS.detail.commercial.margin}
           value={`${(part.marginPercent * 100).toFixed(1)}%`}
         />
-        <Stat
-          label="Fornecedor"
-          value={part.supplier}
-        />
+        <Stat label="Fornecedor" value={part.supplier} />
       </div>
 
       <button
@@ -76,7 +77,7 @@ export function CommercialSection({ part }: ICommercialSectionProps) {
           ) : (
             <ul className="space-y-1.5 text-xs">
               {priceChanges.map((entry) => {
-                const ba = (entry as IAuditLog & IPriceChangeBeforeAfter);
+                const ba = entry as IAuditLog & IPriceChangeBeforeAfter;
                 const before = ba.before?.unitPrice;
                 const after = ba.after?.unitPrice;
                 const diff =
@@ -113,19 +114,13 @@ export function CommercialSection({ part }: ICommercialSectionProps) {
   );
 }
 
-function Stat({
-  label,
-  value,
-  highlight,
-}: {
-  label: string;
-  value: string;
-  highlight?: boolean;
-}) {
+function Stat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
     <div className="rounded-md border border-border bg-card p-3">
       <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className={highlight ? "text-lg font-semibold text-foreground" : "text-sm text-foreground"}>
+      <p
+        className={highlight ? "text-lg font-semibold text-foreground" : "text-sm text-foreground"}
+      >
         {value}
       </p>
     </div>

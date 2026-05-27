@@ -55,10 +55,7 @@ export function isOrderEditable(order: IOrder): boolean {
 /** Whether `cancelOrder()` is allowed for this order. */
 export function canCancelOrder(order: IOrder): boolean {
   if (order.canceledAt) return false;
-  return (
-    order.fulfillmentStatus === "pendente" ||
-    order.fulfillmentStatus === "separacao"
-  );
+  return order.fulfillmentStatus === "pendente" || order.fulfillmentStatus === "separacao";
 }
 
 /** Helper to flag overdue pending payments (used for badge / filter). */

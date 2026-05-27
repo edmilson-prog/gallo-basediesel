@@ -43,7 +43,9 @@ export function CatalogListPage() {
 
   const vehicleBrandOptions = useMemo(() => {
     const set = new Set<string>();
-    (allParts.data?.data ?? []).forEach((p) => p.applications.forEach((a) => set.add(a.vehicleBrand)));
+    (allParts.data?.data ?? []).forEach((p) =>
+      p.applications.forEach((a) => set.add(a.vehicleBrand)),
+    );
     return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
   }, [allParts.data]);
 
@@ -107,11 +109,7 @@ export function CatalogListPage() {
           {list.isError ? (
             <ErrorState onRetry={list.refetch} />
           ) : showEmpty ? (
-            <EmptyState
-              canCreate={canCreate}
-              onCreate={handleCreate}
-              onClear={url.clearAll}
-            />
+            <EmptyState canCreate={canCreate} onCreate={handleCreate} onClear={url.clearAll} />
           ) : (
             <CatalogTable
               parts={list.data}

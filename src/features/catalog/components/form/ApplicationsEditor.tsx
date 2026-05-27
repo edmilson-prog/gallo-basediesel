@@ -47,7 +47,9 @@ export function ApplicationsEditor({ applications, onChange }: IApplicationsEdit
 
   return (
     <div className="space-y-2">
-      <p className="text-xs text-muted-foreground">{CATALOG_STRINGS.form.fields.applicationsHint}</p>
+      <p className="text-xs text-muted-foreground">
+        {CATALOG_STRINGS.form.fields.applicationsHint}
+      </p>
 
       {applications.length === 0 && (
         <p className="rounded-md border border-dashed border-amber-500/40 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
@@ -139,10 +141,7 @@ export function applicationsToDrafts(applications: IApplication[]): IApplication
   }));
 }
 
-export function draftsToApplications(
-  drafts: IApplicationDraft[],
-  partId: string,
-): IApplication[] {
+export function draftsToApplications(drafts: IApplicationDraft[], partId: string): IApplication[] {
   return drafts
     .filter((d) => d.vehicleBrand && d.vehicleModel)
     .map((d, i) => ({

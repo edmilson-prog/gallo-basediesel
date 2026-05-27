@@ -73,9 +73,7 @@ export function CustomerOrdersList({ customerId }: { customerId: ID }) {
         <Icon icon="mdi:clipboard-list-outline" size={16} className="text-muted-foreground" />
         <h3 className="text-sm font-semibold text-foreground">Pedidos do cliente</h3>
         <span className="ml-auto text-xs text-muted-foreground">
-          {filtered.length > 0
-            ? `${visible.length} de ${filtered.length}`
-            : null}
+          {filtered.length > 0 ? `${visible.length} de ${filtered.length}` : null}
         </span>
       </header>
 
@@ -139,9 +137,8 @@ export function CustomerOrdersList({ customerId }: { customerId: ID }) {
                         <OrderOriginBadge order={order} size="sm" />
                       </div>
                       <p className="mt-1 text-[11px] text-muted-foreground">
-                        {order.items.length}{" "}
-                        {order.items.length === 1 ? "item" : "itens"} · criado em{" "}
-                        {dateFormatter.format(new Date(order.createdAt))}
+                        {order.items.length} {order.items.length === 1 ? "item" : "itens"} · criado
+                        em {dateFormatter.format(new Date(order.createdAt))}
                       </p>
                     </div>
                     <div className="text-right">

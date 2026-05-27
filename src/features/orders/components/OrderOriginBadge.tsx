@@ -4,10 +4,7 @@ import { Icon } from "@/components/Icon";
 
 type OrderOriginKind = "sdr" | "quote" | "manual" | "ecommerce" | "portal";
 
-const META: Record<
-  OrderOriginKind,
-  { label: string; icon: string; className: string }
-> = {
+const META: Record<OrderOriginKind, { label: string; icon: string; className: string }> = {
   sdr: {
     label: "SDR",
     icon: "mdi:robot-outline",

@@ -18,7 +18,8 @@ export function StockSection({ part }: IStockSectionProps) {
             <span className="text-xs text-muted-foreground">unidades</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            {CATALOG_STRINGS.detail.stock.minimum}: <span className="font-medium text-foreground">{part.stockMinimum}</span>
+            {CATALOG_STRINGS.detail.stock.minimum}:{" "}
+            <span className="font-medium text-foreground">{part.stockMinimum}</span>
           </p>
         </div>
         <StockBadge part={part} />

@@ -45,14 +45,14 @@ export function ApplicationsSection({ part }: IApplicationsSectionProps) {
     model: check.model || undefined,
     year: check.year ? Number(check.year) : undefined,
   };
-  const isCheckActive = Boolean(matchCheck.brand || matchCheck.model || matchCheck.year !== undefined);
+  const isCheckActive = Boolean(
+    matchCheck.brand || matchCheck.model || matchCheck.year !== undefined,
+  );
 
   if (part.applications.length === 0) {
     return (
       <Section title={CATALOG_STRINGS.detail.sections.applications} icon="mdi:truck-outline">
-        <p className="text-sm text-muted-foreground">
-          {CATALOG_STRINGS.detail.applications.empty}
-        </p>
+        <p className="text-sm text-muted-foreground">{CATALOG_STRINGS.detail.applications.empty}</p>
       </Section>
     );
   }

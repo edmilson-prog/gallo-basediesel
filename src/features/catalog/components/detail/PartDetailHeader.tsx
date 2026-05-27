@@ -55,7 +55,10 @@ export function PartDetailHeader({
               )}
               {canToggle && (
                 <Button variant="outline" size="sm" onClick={onToggleActive}>
-                  <Icon icon={part.active ? "mdi:archive-outline" : "mdi:archive-arrow-up-outline"} size={14} />
+                  <Icon
+                    icon={part.active ? "mdi:archive-outline" : "mdi:archive-arrow-up-outline"}
+                    size={14}
+                  />
                   {part.active
                     ? CATALOG_STRINGS.detail.actions.deactivate
                     : CATALOG_STRINGS.detail.actions.activate}

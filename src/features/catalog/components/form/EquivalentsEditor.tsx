@@ -101,9 +101,7 @@ export function EquivalentsEditor({ selectedIds, excludeId, onChange }: IEquival
               className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-2 py-1 text-xs"
             >
               <span className="font-medium">{p.name}</span>
-              <span className="font-mono text-[10px] text-muted-foreground">
-                {p.oemCodes[0]}
-              </span>
+              <span className="font-mono text-[10px] text-muted-foreground">{p.oemCodes[0]}</span>
               <button
                 type="button"
                 onClick={() => remove(p.id)}

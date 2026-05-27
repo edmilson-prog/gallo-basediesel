@@ -30,11 +30,7 @@ import {
   StartFulfillmentDialog,
   type OrderDialogKind,
 } from "../components/OrderActionDialogs";
-import {
-  canCancelOrder,
-  computeOrderStatus,
-  isOrderEditable,
-} from "../utils/orderStatus";
+import { canCancelOrder, computeOrderStatus, isOrderEditable } from "../utils/orderStatus";
 import {
   cancelOrder,
   deliverOrder,
@@ -234,9 +230,7 @@ export function OrderDetailPage() {
             <Icon icon="mdi:close-circle-outline" size={18} className="mt-0.5 text-rose-600" />
             <div className="flex-1 text-rose-700 dark:text-rose-200">
               <p className="font-medium">Pedido cancelado</p>
-              {order.cancelReason && (
-                <p className="text-xs">Motivo: {order.cancelReason}</p>
-              )}
+              {order.cancelReason && <p className="text-xs">Motivo: {order.cancelReason}</p>}
               <p className="text-[11px] opacity-80">
                 {dateTimeFormatter.format(new Date(order.canceledAt))}
               </p>
@@ -294,8 +288,7 @@ export function OrderDetailPage() {
           {!cancellable &&
             canActOnOrder &&
             !order.canceledAt &&
-            (order.fulfillmentStatus === "expedido" ||
-              order.fulfillmentStatus === "entregue") && (
+            (order.fulfillmentStatus === "expedido" || order.fulfillmentStatus === "entregue") && (
               <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
                 <Icon icon="mdi:lock-outline" size={12} />
                 Pedido já enviado — use "Registrar devolução".
@@ -367,9 +360,7 @@ export function OrderDetailPage() {
               await refresh();
             } catch (err) {
               console.error(err);
-              toast.error(
-                err instanceof Error ? err.message : "Falha ao aplicar item ao veículo.",
-              );
+              toast.error(err instanceof Error ? err.message : "Falha ao aplicar item ao veículo.");
             }
           }}
         />
@@ -476,13 +467,16 @@ export function OrderDetailPage() {
             </div>
           )}
         </dl>
-        {canActOnOrder && editable && order.fulfillmentStatus === "pendente" && order.paymentStatus === "pago" && (
-          <div className="mt-3">
-            <Button size="sm" variant="outline" onClick={() => setDialog("startFulfillment")}>
-              <Icon icon="mdi:package-variant" size={14} /> Iniciar separação
-            </Button>
-          </div>
-        )}
+        {canActOnOrder &&
+          editable &&
+          order.fulfillmentStatus === "pendente" &&
+          order.paymentStatus === "pago" && (
+            <div className="mt-3">
+              <Button size="sm" variant="outline" onClick={() => setDialog("startFulfillment")}>
+                <Icon icon="mdi:package-variant" size={14} /> Iniciar separação
+              </Button>
+            </div>
+          )}
         {canActOnOrder && order.fulfillmentStatus === "separacao" && (
           <div className="mt-3">
             <Button size="sm" variant="outline" onClick={() => setDialog("ship")}>
@@ -597,10 +591,7 @@ export function OrderDetailPage() {
         open={dialog === "startFulfillment"}
         onCancel={() => setDialog(null)}
         onConfirm={() =>
-          void wrap(
-            startOrderFulfillment({ ordersProvider, order }),
-            "Separação iniciada.",
-          )
+          void wrap(startOrderFulfillment({ ordersProvider, order }), "Separação iniciada.")
         }
       />
       <ShipDialog
@@ -609,18 +600,13 @@ export function OrderDetailPage() {
         initialTracking={order.trackingCode}
         onCancel={() => setDialog(null)}
         onConfirm={(payload) =>
-          void wrap(
-            shipOrder({ ordersProvider, order, input: payload }),
-            "Pedido enviado.",
-          )
+          void wrap(shipOrder({ ordersProvider, order, input: payload }), "Pedido enviado.")
         }
       />
       <DeliverDialog
         open={dialog === "deliver"}
         onCancel={() => setDialog(null)}
-        onConfirm={() =>
-          void wrap(deliverOrder({ ordersProvider, order }), "Entrega confirmada.")
-        }
+        onConfirm={() => void wrap(deliverOrder({ ordersProvider, order }), "Entrega confirmada.")}
       />
       <ReturnDialog
         open={dialog === "return"}
@@ -650,9 +636,7 @@ export function OrderDetailPage() {
       <RefundDialog
         open={dialog === "refund"}
         onCancel={() => setDialog(null)}
-        onConfirm={() =>
-          void wrap(refundOrder({ ordersProvider, order }), "Estorno registrado.")
-        }
+        onConfirm={() => void wrap(refundOrder({ ordersProvider, order }), "Estorno registrado.")}
       />
       <InvoiceDialog
         open={dialog === "invoice"}

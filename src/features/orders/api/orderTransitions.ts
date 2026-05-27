@@ -18,7 +18,12 @@ function nowISO(): string {
   return new Date().toISOString();
 }
 
-function logTransition(order: IOrder, before: IOrder, action: string, extra?: Record<string, unknown>) {
+function logTransition(
+  order: IOrder,
+  before: IOrder,
+  action: string,
+  extra?: Record<string, unknown>,
+) {
   const beforeStatus = computeOrderStatus(before);
   const afterStatus = computeOrderStatus(order);
   auditLog({
@@ -77,9 +82,7 @@ export interface IShipOrderInput {
   trackingCode?: string;
 }
 
-export async function shipOrder(
-  args: IBaseArgs & { input: IShipOrderInput },
-): Promise<IOrder> {
+export async function shipOrder(args: IBaseArgs & { input: IShipOrderInput }): Promise<IOrder> {
   const { ordersProvider, order, input } = args;
   const shippedAt = nowISO();
   const updated = await ordersProvider.update(order.id, {
@@ -115,9 +118,7 @@ export interface IReturnOrderInput {
   reason: string;
 }
 
-export async function returnOrder(
-  args: IBaseArgs & { input: IReturnOrderInput },
-): Promise<IOrder> {
+export async function returnOrder(args: IBaseArgs & { input: IReturnOrderInput }): Promise<IOrder> {
   const { ordersProvider, order, input } = args;
   if (!input.reason.trim()) throw new Error("Motivo é obrigatório para registrar devolução.");
   const returnedAt = nowISO();
@@ -139,15 +140,11 @@ export interface ICancelOrderInput {
   actorId?: ID;
 }
 
-export async function cancelOrder(
-  args: IBaseArgs & { input: ICancelOrderInput },
-): Promise<IOrder> {
+export async function cancelOrder(args: IBaseArgs & { input: ICancelOrderInput }): Promise<IOrder> {
   const { ordersProvider, order, input } = args;
   if (!input.reason.trim()) throw new Error("Motivo é obrigatório para cancelar o pedido.");
   if (order.fulfillmentStatus === "expedido" || order.fulfillmentStatus === "entregue") {
-    throw new Error(
-      "Pedido já enviado/entregue — use a opção Devolver em vez de cancelar.",
-    );
+    throw new Error("Pedido já enviado/entregue — use a opção Devolver em vez de cancelar.");
   }
   const canceledAt = nowISO();
   const updated = await ordersProvider.update(order.id, {

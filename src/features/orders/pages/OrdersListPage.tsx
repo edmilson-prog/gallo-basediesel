@@ -27,8 +27,7 @@ export function OrdersListPage() {
   const url = useOrdersUrlState();
   const { filters, sort, page, pageSize } = url;
 
-  const sellerIdLock =
-    !isManagerOrOwner && currentUser?.sellerId ? currentUser.sellerId : null;
+  const sellerIdLock = !isManagerOrOwner && currentUser?.sellerId ? currentUser.sellerId : null;
 
   const list = useOrdersList(filters, sort, page, pageSize, { sellerIdLock });
 

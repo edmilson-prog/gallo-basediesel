@@ -14,20 +14,30 @@ function applyClientSideFilters(parts: IPart[], filters: ICatalogListFilters): I
   const brand = filters.vehicleBrand?.toLowerCase();
   const model = filters.vehicleModel?.toLowerCase();
   return parts.filter((part) => {
-    if (filters.categories.length > 0 && (!part.category || !filters.categories.includes(part.category))) {
+    if (
+      filters.categories.length > 0 &&
+      (!part.category || !filters.categories.includes(part.category))
+    ) {
       return false;
     }
     if (filters.subcategory && part.subcategory !== filters.subcategory) return false;
-    if (filters.manufacturers.length > 0 && !filters.manufacturers.includes(part.brand)) return false;
+    if (filters.manufacturers.length > 0 && !filters.manufacturers.includes(part.brand))
+      return false;
     if (filters.origin === "original" && !part.isOriginal) return false;
     if (filters.origin === "equivalent" && part.isOriginal) return false;
     if (filters.priceMin !== undefined && part.unitPrice < filters.priceMin) return false;
     if (filters.priceMax !== undefined && part.unitPrice > filters.priceMax) return false;
-    if (filters.stock === "low" && (part.stockAvailable === 0 || part.stockAvailable > part.stockMinimum)) {
+    if (
+      filters.stock === "low" &&
+      (part.stockAvailable === 0 || part.stockAvailable > part.stockMinimum)
+    ) {
       return false;
     }
     if (filters.stock === "zero" && part.stockAvailable !== 0) return false;
-    if (filters.storeIds.length > 0 && (!part.storeId || !filters.storeIds.includes(part.storeId))) {
+    if (
+      filters.storeIds.length > 0 &&
+      (!part.storeId || !filters.storeIds.includes(part.storeId))
+    ) {
       return false;
     }
     if (brand || model || filters.vehicleYear !== undefined) {
@@ -35,7 +45,8 @@ function applyClientSideFilters(parts: IPart[], filters: ICatalogListFilters): I
         if (brand && app.vehicleBrand.toLowerCase() !== brand) return false;
         if (model && app.vehicleModel.toLowerCase() !== model) return false;
         if (filters.vehicleYear !== undefined) {
-          if (filters.vehicleYear < app.yearStart || filters.vehicleYear > app.yearEnd) return false;
+          if (filters.vehicleYear < app.yearStart || filters.vehicleYear > app.yearEnd)
+            return false;
         }
         return true;
       });

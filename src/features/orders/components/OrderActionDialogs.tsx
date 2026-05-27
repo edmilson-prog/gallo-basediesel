@@ -45,8 +45,8 @@ export function MarkPaidDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Marcar como pago?</AlertDialogTitle>
           <AlertDialogDescription>
-            Esta ação confirma que o cliente efetuou o pagamento. Em seguida você poderá iniciar
-            a separação. Na Fase 2, a confirmação virá automaticamente do gateway de pagamento.
+            Esta ação confirma que o cliente efetuou o pagamento. Em seguida você poderá iniciar a
+            separação. Na Fase 2, a confirmação virá automaticamente do gateway de pagamento.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -167,8 +167,8 @@ export function DeliverDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Marcar como entregue?</AlertDialogTitle>
           <AlertDialogDescription>
-            Confirme que o cliente recebeu o pedido. Se o pagamento já está confirmado, o ciclo
-            será encerrado como "Concluído".
+            Confirme que o cliente recebeu o pedido. Se o pagamento já está confirmado, o ciclo será
+            encerrado como "Concluído".
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -327,8 +327,8 @@ export function InvoiceDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Gerar NF (placeholder)?</AlertDialogTitle>
           <AlertDialogDescription>
-            Um número fiscal fake será gerado e gravado no pedido para uso interno. A emissão
-            real via SEFAZ é uma integração planejada para a Fase 2.
+            Um número fiscal fake será gerado e gravado no pedido para uso interno. A emissão real
+            via SEFAZ é uma integração planejada para a Fase 2.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

@@ -1,9 +1,4 @@
-import type {
-  ID,
-  OrderFulfillmentStatus,
-  OrderPaymentStatus,
-  OrderStatus,
-} from "@/shared/types";
+import type { ID, OrderFulfillmentStatus, OrderPaymentStatus, OrderStatus } from "@/shared/types";
 
 export type OrderDateRangeBucket = "any" | "24h" | "7d" | "30d" | "90d" | "custom";
 export type OrderOriginFilterKind = "sdr" | "quote" | "manual" | "ecommerce" | "portal";

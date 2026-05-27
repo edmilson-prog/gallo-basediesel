@@ -9,9 +9,7 @@ import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
 import { auditLog } from "@/features/rbac/utils/auditLog";
 import { usePartsProvider } from "@/providers/data/hooks/usePartsProvider";
 import { PartForm, type IPartFormErrors, type IPartFormValues } from "../components/form/PartForm";
-import {
-  draftsToApplications,
-} from "../components/form/ApplicationsEditor";
+import { draftsToApplications } from "../components/form/ApplicationsEditor";
 import { usePart } from "../hooks/useCatalogList";
 import { useEquivalentsBidirectional } from "../hooks/useEquivalentsBidirectional";
 import { CATALOG_STRINGS } from "../i18n/pt-BR";
@@ -30,7 +28,8 @@ function validate(values: IPartFormValues): IPartFormErrors {
   if (!values.oemPrimary.trim()) errors.oemPrimary = CATALOG_STRINGS.form.requiredField;
   if (!values.brand.trim()) errors.brand = CATALOG_STRINGS.form.requiredField;
   if (!values.category) errors.category = CATALOG_STRINGS.form.requiredField;
-  if (!values.unitPrice || values.unitPrice <= 0) errors.unitPrice = CATALOG_STRINGS.form.invalidPrice;
+  if (!values.unitPrice || values.unitPrice <= 0)
+    errors.unitPrice = CATALOG_STRINGS.form.invalidPrice;
   return errors;
 }
 

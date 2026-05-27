@@ -59,13 +59,7 @@ export function OrdersTable({
     }
   };
 
-  const SortHeader = ({
-    field,
-    children,
-  }: {
-    field: OrderOrderBy;
-    children: React.ReactNode;
-  }) => {
+  const SortHeader = ({ field, children }: { field: OrderOrderBy; children: React.ReactNode }) => {
     const active = sort.orderBy === field;
     return (
       <button
@@ -75,10 +69,7 @@ export function OrdersTable({
       >
         {children}
         {active && (
-          <Icon
-            icon={sort.orderDir === "asc" ? "mdi:arrow-up" : "mdi:arrow-down"}
-            size={12}
-          />
+          <Icon icon={sort.orderDir === "asc" ? "mdi:arrow-up" : "mdi:arrow-down"} size={12} />
         )}
       </button>
     );
@@ -115,8 +106,7 @@ export function OrdersTable({
         {orders.map((o) => {
           const customer = customers.get(o.customerId);
           const seller = sellers.get(o.sellerId);
-          const sellerName =
-            seller?.fullName ?? (o.sellerId === "sdr-agent" ? "Agente SDR" : "—");
+          const sellerName = seller?.fullName ?? (o.sellerId === "sdr-agent" ? "Agente SDR" : "—");
           const aggregate = computeOrderStatus(o);
           return (
             <TableRow

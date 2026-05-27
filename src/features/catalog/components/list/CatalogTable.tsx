@@ -5,10 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { CATALOG_STRINGS } from "../../i18n/pt-BR";
 import { getCategoryLabel } from "../../utils/categories";
-import {
-  type CatalogOrderBy,
-  type ICatalogListSort,
-} from "../../utils/listFilters";
+import { type CatalogOrderBy, type ICatalogListSort } from "../../utils/listFilters";
 import { PartImage } from "../PartImage";
 import { StockBadge } from "../StockBadge";
 
@@ -28,7 +25,13 @@ interface ISortableHeaderProps {
   align?: "left" | "right";
 }
 
-function SortableHeader({ label, field, sort, onSortChange, align = "left" }: ISortableHeaderProps) {
+function SortableHeader({
+  label,
+  field,
+  sort,
+  onSortChange,
+  align = "left",
+}: ISortableHeaderProps) {
   const active = sort.orderBy === field;
   const dir = active ? sort.orderDir : undefined;
   const icon = active
@@ -190,7 +193,9 @@ export function CatalogTable({
                       <span
                         className={cn(
                           "inline-flex items-center gap-1 text-xs",
-                          part.active ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
+                          part.active
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-muted-foreground",
                         )}
                       >
                         <span
@@ -200,7 +205,9 @@ export function CatalogTable({
                           )}
                           aria-hidden="true"
                         />
-                        {part.active ? CATALOG_STRINGS.status.active : CATALOG_STRINGS.status.inactive}
+                        {part.active
+                          ? CATALOG_STRINGS.status.active
+                          : CATALOG_STRINGS.status.inactive}
                       </span>
                     </td>
                   </tr>

@@ -33,9 +33,7 @@ export function findByOemCode(parts: IPart[], code: string): IPart | undefined {
 export function findByAlternativeCode(parts: IPart[], code: string): IPart[] {
   if (!code) return [];
   const needle = normalize(code);
-  return parts.filter((p) =>
-    p.oemCodes.slice(1).some((c) => normalize(c).includes(needle)),
-  );
+  return parts.filter((p) => p.oemCodes.slice(1).some((c) => normalize(c).includes(needle)));
 }
 
 /** Resolve every part listed in `equivalentPartIds` of the given part. */
@@ -43,9 +41,7 @@ export function getEquivalents(parts: IPart[], partId: ID): IPart[] {
   const source = parts.find((p) => p.id === partId);
   if (!source) return [];
   const byId = new Map(parts.map((p) => [p.id, p] as const));
-  return source.equivalentPartIds
-    .map((id) => byId.get(id))
-    .filter((p): p is IPart => Boolean(p));
+  return source.equivalentPartIds.map((id) => byId.get(id)).filter((p): p is IPart => Boolean(p));
 }
 
 /**
@@ -57,10 +53,7 @@ export function getEquivalents(parts: IPart[], partId: ID): IPart[] {
  *    entry matching the brand/model/year/engine combination.
  *  - Category/subcategory tighten the filter, never broaden it.
  */
-export function searchPartsByApplication(
-  parts: IPart[],
-  input: IApplicationSearchInput,
-): IPart[] {
+export function searchPartsByApplication(parts: IPart[], input: IApplicationSearchInput): IPart[] {
   if (input.oemCode) {
     const direct = findByOemCode(parts, input.oemCode);
     return direct ? [direct] : [];

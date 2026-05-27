@@ -1,10 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import type {
-  OrderFulfillmentStatus,
-  OrderPaymentStatus,
-  OrderStatus,
-} from "@/shared/types";
+import type { OrderFulfillmentStatus, OrderPaymentStatus, OrderStatus } from "@/shared/types";
 import {
   EMPTY_ORDER_FILTERS,
   ORDER_DEFAULT_PAGE_SIZE,
@@ -51,14 +47,7 @@ const VALID_ORIGIN = new Set<OrderOriginFilterKind>([
   "ecommerce",
   "portal",
 ]);
-const VALID_DATE = new Set<OrderDateRangeBucket>([
-  "any",
-  "24h",
-  "7d",
-  "30d",
-  "90d",
-  "custom",
-]);
+const VALID_DATE = new Set<OrderDateRangeBucket>(["any", "24h", "7d", "30d", "90d", "custom"]);
 const VALID_ORDER_BY = new Set<OrderOrderBy>(["createdAt", "updatedAt", "total"]);
 const VALID_ORDER_DIR = new Set<OrderOrderDir>(["asc", "desc"]);
 

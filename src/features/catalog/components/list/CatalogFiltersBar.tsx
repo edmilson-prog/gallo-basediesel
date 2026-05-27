@@ -15,10 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { CATALOG_STRINGS } from "../../i18n/pt-BR";
-import {
-  PART_CATEGORY_DESCRIPTORS,
-  getSubcategoriesFor,
-} from "../../utils/categories";
+import { PART_CATEGORY_DESCRIPTORS, getSubcategoriesFor } from "../../utils/categories";
 import {
   activeFilterCount,
   type ICatalogListFilters,
@@ -169,10 +166,7 @@ export function CatalogFiltersBar({
       </Popover>
 
       {/* Origem (Original/Equivalente) */}
-      <Select
-        value={filters.origin}
-        onValueChange={(v) => patch({ origin: v as OriginBucket })}
-      >
+      <Select value={filters.origin} onValueChange={(v) => patch({ origin: v as OriginBucket })}>
         <SelectTrigger className="h-8 w-36 text-xs">
           <SelectValue placeholder={CATALOG_STRINGS.filters.origin} />
         </SelectTrigger>
@@ -247,9 +241,7 @@ export function CatalogFiltersBar({
             <Label className="text-xs">{CATALOG_STRINGS.filters.vehicleYear}</Label>
             <Select
               value={filters.vehicleYear !== undefined ? String(filters.vehicleYear) : "__all__"}
-              onValueChange={(v) =>
-                patch({ vehicleYear: v === "__all__" ? undefined : Number(v) })
-              }
+              onValueChange={(v) => patch({ vehicleYear: v === "__all__" ? undefined : Number(v) })}
             >
               <SelectTrigger className="h-8 text-xs">
                 <SelectValue />
@@ -381,7 +373,9 @@ export function CatalogFiltersBar({
           <Icon icon="mdi:close-circle-outline" size={14} />
           {CATALOG_STRINGS.filters.clear}
           <span className="ml-1 text-muted-foreground">·</span>
-          <span className="text-muted-foreground">{CATALOG_STRINGS.filters.activeCount(count)}</span>
+          <span className="text-muted-foreground">
+            {CATALOG_STRINGS.filters.activeCount(count)}
+          </span>
         </Button>
       )}
     </div>

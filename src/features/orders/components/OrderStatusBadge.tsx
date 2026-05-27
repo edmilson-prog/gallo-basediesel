@@ -2,10 +2,7 @@ import type { OrderStatus } from "@/shared/types";
 import { cn } from "@/lib/utils";
 import { Icon } from "@/components/Icon";
 
-const STATUS_META: Record<
-  OrderStatus,
-  { label: string; icon: string; className: string }
-> = {
+const STATUS_META: Record<OrderStatus, { label: string; icon: string; className: string }> = {
   aguardando_pagamento: {
     label: "Aguardando pagamento",
     icon: "mdi:clock-outline",

@@ -21,10 +21,7 @@ export interface IOrdersListQuery {
   invalidate: () => Promise<void>;
 }
 
-function applyClientFilters(
-  orders: IOrder[],
-  filters: IOrdersListFilters,
-): IOrder[] {
+function applyClientFilters(orders: IOrder[], filters: IOrdersListFilters): IOrder[] {
   return orders.filter((o) => {
     if (filters.totalMin !== undefined && o.total < filters.totalMin) return false;
     if (filters.totalMax !== undefined && o.total > filters.totalMax) return false;
@@ -45,7 +42,9 @@ function applyClientFilters(
     }
     if (filters.search?.trim()) {
       const needle = filters.search.trim().toLowerCase();
-      const haystack = [o.number ?? o.id, o.nfNumber ?? "", o.trackingCode ?? ""].join(" ").toLowerCase();
+      const haystack = [o.number ?? o.id, o.nfNumber ?? "", o.trackingCode ?? ""]
+        .join(" ")
+        .toLowerCase();
       if (!haystack.includes(needle)) return false;
     }
     return true;
