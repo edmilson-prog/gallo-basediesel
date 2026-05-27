@@ -4,6 +4,92 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.25.0] — Insight · 2026-05-26
+
+Abertura do Bloco 4 (Plataforma de Gestão e BI — Onda 2) com a
+análise detalhada de vendas (PRD-041). A rota `/app/gestao/vendas`,
+que era placeholder restrita ao Owner, vira um dashboard analítico
+multidimensional liberado para Owner, Gestor, Vendedor e Financeiro
+— cada perfil enxerga o escopo permitido sem precisar mudar a UI.
+A página entrega o cérebro analítico que o João Gallo pedia: o que
+está vendendo, qual categoria cresce, qual marca de veículo puxa
+receita, quais clientes geram valor e onde o funil leak.
+
+**Vendas — Análise Detalhada (PRD-041).** Página única em
+`/app/gestao/vendas` com header de filtros globais (período preset
+ou custom, loja, vendedor, categoria de peça, marca de veículo e
+canal) sincronizados com a URL e 4 abas: Visão Geral, Produtos,
+Clientes e Funil. KPIs (faturamento, pedidos pagos, ticket médio,
+margem média) reaproveitam o `KpiCard` do painel-gestor com trend
+badge versus período anterior. Quatro gráficos macro na Visão Geral
+(linha temporal 12 meses, distribuição por categoria, barras por
+marca de veículo, pizza por canal) com tooltips ricos e click-to-
+filter quando aplicável. Card de sazonalidade dispara quando a
+variação year-over-year do mês corrente passa de 25%. Aba Produtos
+traz top 20 vendidos com tendência vs período anterior e seção
+dedicada para produtos em queda > 30%. Aba Clientes top 20 com
+classe ABC heurística (placeholder até PRD-045), ticket médio e
+indicador novos vs recorrentes em barras paralelas. Aba Funil é um
+funil custom (Recharts limita) com 5 etapas (leads → qualificados
+→ orçamentos enviados → aceitos → pedidos pagos), conversão por
+etapa e destaque automático do gargalo (queda < 70%). Drill-downs
+universais: produto navega para a ficha do catálogo, cliente para
+a ficha do cliente, etapas do funil para as listas correspondentes.
+Permissões resolvidas no escopo das queries: Owner vê cross-store,
+Gestor trava no `currentStore`, Vendedor enxerga apenas pedidos do
+próprio `sellerId` (campos travados no header).
+
+### Added
+
+- **Feature `sales-analytics`** (`src/features/sales-analytics/`):
+  - `pages/SalesAnalyticsPage.tsx`: entry com guardas de role,
+    resolução de escopo (storeId / sellerId) e composição das 4
+    abas.
+  - `hooks/useSalesFilters.ts`: filtros URL-sincronizados, com
+    `resolveSalesWindow()` (current vs previous) cobrindo 7 presets
+    (today / yesterday / 7d / 30d / 90d / ytd / custom) e travas
+    para Gestor (store) e Vendedor (seller).
+  - `hooks/useSalesAnalytics.ts`: agregador principal — carrega
+    orders (current + previous + 12 meses), customers, parts e
+    sellers em paralelo via `useQuery`, calcula KPIs com tendência,
+    série mensal, breakdowns (categoria, marca de veículo, canal),
+    top 20 produtos com trend, top 20 clientes com ABC heurístico,
+    produtos em queda, novos vs recorrentes e snapshot de
+    sazonalidade YoY.
+  - `hooks/useFunnelMetrics.ts`: funil lead → qualificado →
+    orçamento enviado → aceito → pedido pago com taxa de conversão
+    por etapa e detecção automática de gargalo.
+  - `components/SalesHeader.tsx`: header com 6 dropdowns de filtros
+    (período, loja, vendedor, categoria, marca, canal) + badge de
+    contagem ativa e botão de reset.
+  - `components/SalesKpiRow.tsx`: 4 KPIs reaproveitando `KpiCard`
+    do painel-gestor.
+  - `components/SeasonalityCard.tsx`: card destaque ano-versus-ano.
+  - `components/ProductsInDeclineCard.tsx`: lista de produtos com
+    queda > 30%.
+  - `components/NewVsRecurringCard.tsx`: barras paralelas de share.
+  - `components/charts/`: `RevenueOverTimeChart` (linha 12 meses),
+    `CategoryBarChart` (barras horizontais com filter onClick),
+    `VehicleBrandBarChart`, `ChannelPieChart` (donut + legenda),
+    `FunnelChart` (custom 5 etapas com bottleneck).
+  - `components/tables/`: `TopProductsTable` e `TopCustomersTable`
+    com navegação para fichas existentes.
+  - `components/tabs/`: `SalesOverviewTab`, `SalesProductsTab`,
+    `SalesCustomersTab`, `SalesFunnelTab`.
+  - `utils/aggregations.ts`: `groupBy`, `sumBy`, `trendPct`,
+    `percentOfTotal`, `topN`, `bucketByMonth`, `last12MonthKeys`.
+  - `utils/seasonality.ts`: `computeSeasonalitySignal` (YoY
+    threshold 25%) + `formatMonthKey`.
+  - `i18n/pt-BR.ts`: strings UI.
+
+### Changed
+
+- **Rota `/app/gestao/vendas`** (`src/routes/app.gestao.vendas.tsx`):
+  substitui o `PlaceholderPage` por `<SalesAnalyticsPage />`,
+  amplia `requireAuth` para Owner / Gestor / Vendedor / Financeiro
+  e instala `validateSearch: validateSalesSearch` para preservar
+  filtros copiados/colados.
+
 ## [0.24.0] — Logistics · 2026-05-26
 
 Fechamento do Bloco 3 (Comercial Operacional) com duas entregas

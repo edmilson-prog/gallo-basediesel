@@ -1,13 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PlaceholderPage } from "@/features/shell/components/EmptyState";
-import { DashboardLayout } from "@/features/shell/layouts";
 import { requireAuth } from "@/features/auth/guards";
+import { SalesAnalyticsPage, validateSalesSearch } from "@/features/sales-analytics";
 
 export const Route = createFileRoute("/app/gestao/vendas")({
-  beforeLoad: ({ location }) => requireAuth(location.pathname, ["Owner"]),
-  component: () => (
-    <DashboardLayout>
-      <PlaceholderPage prd="041" icon="mdi:chart-line" title="Vendas" />
-    </DashboardLayout>
-  ),
+  beforeLoad: ({ location }) =>
+    requireAuth(location.pathname, ["Owner", "Gestor", "Vendedor", "Financeiro"]),
+  validateSearch: validateSalesSearch,
+  component: SalesAnalyticsPage,
 });

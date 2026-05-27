@@ -21,7 +21,7 @@
 | **Versão alvo MVP**                  | v1.0.0 — codinome **Heavy**                                                                                |
 | **Total de PRDs planejados (MVP)**   | 50                                                                                                         |
 | **PRDs redigidos**                   | 4                                                                                                          |
-| **PRDs implementados**               | 13 (PRD-001…007 — **Bloco 0 completo** — + PRD-010…012, PRD-013, PRD-014, PRD-015, PRD-016 no Bloco 1)     |
+| **PRDs implementados**               | 24 (Bloco 0 completo · Bloco 1 completo · Bloco 2 completo · Bloco 3 completo · PRD-041 abre Bloco 4)       |
 | **PRDs futuros (Fase 2, PRDs 100+)** | 8 (roadmap futuro)                                                                                         |
 
 ---
@@ -66,9 +66,9 @@
 
 | Status          | Quantidade | Percentual |
 | --------------- | ---------- | ---------- |
-| ✅ Implementado | 8          | 16%        |
+| ✅ Implementado | 24         | 48%        |
 | 🔄 Em Andamento | 0          | 0%         |
-| ⏳ Pendente     | 42         | 84%        |
+| ⏳ Pendente     | 26         | 52%        |
 | ❌ Cancelado    | 0          | 0%         |
 | **Total**       | **50**     | **100%**   |
 
@@ -146,7 +146,7 @@ Visão executiva, metas, gamificação, positivação, curva ABC, comissões, DR
 | #   | Título                                                | Tipo    | Prof. | Impl. | Documento | Status | Depende de |
 | --- | ----------------------------------------------------- | ------- | ----- | ----- | --------- | ------ | ---------- |
 | 040 | Visão Executiva (Home do Gestor)                      | Feature | D     | 🔵    | ⏸         | ⏳     | 041–049    |
-| 041 | Vendas (pipeline, vendedor, canal, categoria)         | Feature | D     | 🔵    | ⏸         | ⏳     | 032        |
+| 041 | [Vendas (pipeline, vendedor, canal, categoria)](./PRD-041-vendas_DONE.md) | Feature | D | 🔵 | 📝 | ✅ | 032 |
 | 042 | Sistema de Metas (loja + individual; equipe dormente) | Feature | D     | 🔵    | ⏸         | ⏳     | 041        |
 | 043 | Ranking de Vendedores e Gamificação                   | Feature | D     | 🔵    | ⏸         | ⏳     | 042        |
 | 044 | Positivação de Clientes                               | Feature | D     | 🔵    | ⏸         | ⏳     | 012, 041   |
@@ -380,6 +380,8 @@ A plataforma usa Semantic Versioning com codinomes em inglês para releases MINO
 | v0.7.0     | **Hub**        | 25/05/2026    | PRD-010 (Inbox unificado)        | Bloco 1 aberto — central de atendimento navegável     |
 | v0.8.0     | **Pilot**      | 25/05/2026    | PRD-011 (Conversa multicanal)    | Vendedor opera conversas dentro da plataforma         |
 | v0.13.0    | **Fleet**      | 26/05/2026    | PRD-016 (Veículos do Cliente)    | Veículo como entidade primária + recomendações por km |
+| v0.24.0    | **Logistics**  | 26/05/2026    | PRD-032 + PRD-033                | Bloco 3 fechado — Pedido + Frete centralizado          |
+| v0.25.0    | **Insight**    | 26/05/2026    | PRD-041 (Vendas — Análise)       | Abertura do Bloco 4 — dashboard analítico multidimensional |
 | v0.13.0+   | _A definir_    | Mês 2         | PRDs 017–019 + 020–024 + 030–033 | Onda 1 entregue                                       |
 | v0.5.0     | **Storefront** | Mês 9         | PRDs 060–067 (Bloco 5)           | Onda 3 quase completa                                 |
 | **v1.0.0** | **Heavy**      | Mês 10        | PRDs 070, 071 + polish final     | **MVP completo — release oficial**                    |
@@ -534,10 +536,10 @@ PRDs 040–053, 060–067, 070–071 — ~11 turnos no total
 
 | Campo                | Valor                                                          |
 | -------------------- | -------------------------------------------------------------- |
-| **Data**             | 25/05/2026                                                     |
+| **Data**             | 26/05/2026                                                     |
 | **Atualizado por**   | Claude Opus 4.7 (Claude Code CLI)                              |
-| **Motivo**           | Implementação do PRD-016 (Veículos do Cliente) — v0.13.0 Fleet |
-| **Versão do índice** | 1.3                                                            |
+| **Motivo**           | Implementação do PRD-041 (Vendas — Análise Detalhada) — v0.25.0 Insight, abre Bloco 4 |
+| **Versão do índice** | 1.4                                                            |
 
 ---
 
