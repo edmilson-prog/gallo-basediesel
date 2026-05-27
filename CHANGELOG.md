@@ -4,6 +4,122 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.27.0] — Cockpit · 2026-05-26
+
+Encerramento provisório do Bloco 4 (Gestão e BI — Onda 2) com a
+**Visão Executiva (PRD-040)** — o cockpit estratégico do Owner.
+A rota `/app/gestao`, antes placeholder, vira o "mapa em uma
+tela" da empresa: 12 KPIs de alto nível com sparklines e tendência
+vs período anterior (ou ano anterior), 4 gráficos macro,
+comparativo lado a lado e banner de alertas executivos calculados
+em runtime.
+
+**Cockpit (PRD-040).** A página `ExecutiveCockpitPage` agrega
+métricas de PRDs 041 (vendas), 042 (metas), 032 (pedidos), 031
+(orçamentos) e 015 (clientes) através do hook `useCockpitMetrics`.
+PRDs 044 (positivação), 045 (ABC), 046 (carteira), 047 (comissões)
+e 049 (rentabilidade) entram como stubs computados a partir dos
+dados já disponíveis — positivação derivada de pedidos/clientes
+ativos, ABC reconstruída em runtime via Pareto 80/95, comissões
+estimadas em 3,5% do faturamento, margem média via `marginValue`
+real dos pedidos com fallback para 32%. Quando os PRDs analíticos
+forem implementados, basta plugar os hooks reais — o contrato do
+agregador não muda.
+
+Os 12 KPIs cobrem: faturamento, ticket médio, total de pedidos,
+margem estimada, clientes ativos, positivação, churn do período,
+novos clientes, pipeline aberto (orçamentos enviados+aceitos
+não convertidos), conversão orçamento→pedido, comissões a pagar
+e NPS (card "em breve"). Cada card renderiza tendência colorida
+(verde = melhorou, vermelho = piorou), sparkline de 12 meses
+quando relevante, badge `Estimativa` para os que dependem de PRDs
+pendentes, e drill-down clicável para a página detalhada
+correspondente.
+
+**Gráficos macro.** ComposedChart de 12 meses combina área de
+faturamento (eixo esquerdo, em BRL) e linha de pedidos (eixo
+direito, contagem). Donut compacto da saúde da carteira (ativo /
+dormente / recuperação / perdido) com cores semânticas das
+submarcas GALLO. Bar horizontal dos top 5 vendedores por
+faturamento. Mini gráfico de barras da curva ABC mostrando
+participação de receita por classe + contagem de clientes. Todos
+clicáveis para a página detalhada correspondente quando ela
+existe (vendas, clientes, ABC) ou navegação para placeholder.
+
+**Comparativo lado a lado.** Card no fim da página com 3 linhas
+(faturamento, pedidos, ticket médio) mostrando valor atual,
+anterior e Δ% colorido por direção e por melhora/piora. Funciona
+para ambos os modos de comparação — período anterior ou mesmo
+mês no ano anterior — controlado pelo dropdown no header.
+
+**Alertas executivos.** Hook `useCockpitAlerts` calcula 4 tipos
+de alerta a partir das métricas + metas ativas: churn subiu
+≥ 20% vs período anterior (vermelho), 3+ metas críticas com
+< 50% atingido e ≤ 7 dias restantes (amarelo), faturamento médio
+< 70% da meta agregada (vermelho), conversão de orçamentos < 15%
+(amarelo). Cada alerta é dispensável (estado em memória, perdido
+no reload) e tem CTA para a página correspondente.
+
+**Filtros URL-sincronizados.** Período (mês/trimestre/YTD/
+personalizado), loja (Owner livre, Gestor travado na própria loja)
+e base de comparação (período anterior ou ano anterior). O escopo
+da loja viaja para todos os 7 queries TanStack via chave de cache,
+garantindo invalidação correta ao trocar.
+
+**Permissões.** Rota guardada por `requireAuth` aceitando Owner,
+Gestor e Financeiro. Vendedor é bloqueado e redirecionado para
+`/sem-permissao` no nível da rota; mesmo se acessar via URL
+direta, o `EmptyState` interno na página oferece fallback gracioso.
+Navegação atualizada: "Visão executiva" no menu lateral agora
+aparece para Owner, Gestor e Financeiro.
+
+**Performance.** 7 queries em paralelo (orders current/previous/
+12m, quotes current/previous, customers, sellers) com `staleTime`
+de 30s. Cards memoizados; séries derivadas via `useMemo` com
+dependências granulares. Tooltips dos KPIs explicam a base
+comparativa.
+
+### Added
+
+- `src/features/executive-cockpit/` — feature completa (page,
+  3 hooks, 4 charts, 4 componentes auxiliares, i18n PT-BR e
+  barrel `index.ts`)
+- Rota `/app/gestao` agora renderiza `ExecutiveCockpitPage` com
+  `validateCockpitSearch` para filtros via URL
+- Hook `useCockpitMetrics` — agregador de 11 KPIs + séries de
+  12 meses + saúde da carteira + top vendedores + ABC compacta,
+  com stubs para PRDs 044/045/046/047/049 ainda pendentes
+- Hook `useCockpitFilters` — período (mês/trim/YTD/custom),
+  loja e base de comparação (período anterior ou YoY), tudo
+  URL-sincronizado
+- Hook `useCockpitAlerts` — 4 categorias de alerta executivo
+  com dispensa em memória
+- Componente `<ExecutiveKpiCard>` — variante do KpiCard com
+  sparkline Recharts, tag opcional ("Estimativa"/"Em breve") e
+  drill-down clicável
+- Componentes `<RevenueOrdersComposedChart>`,
+  `<PortfolioMiniDonut>`, `<TopSellersBar>`, `<ABCMiniChart>` —
+  4 gráficos macro do cockpit
+
+### Changed
+
+- Sidebar: item "Visão executiva" agora visível para Owner,
+  Gestor e Financeiro (antes só Owner)
+- `app.gestao.index.tsx` substitui o `PlaceholderPage` pela página
+  real do cockpit, com guard de roles ampliado
+
+### Notes
+
+- PRDs 044/045/046/047/049 ainda não implementados. Os valores
+  exibidos no cockpit para esses domínios são derivados em runtime
+  pelo próprio hook — quando os PRDs reais entrarem, basta trocar
+  o cálculo interno pelo hook canônico sem mudar a API do agregador
+- NPS exibido como card "Em breve" (placeholder de Fase 2)
+- Personalização de widgets via botão no header é placeholder
+  com tooltip "Disponível na Fase 2"
+
+---
+
 ## [0.26.0] — Pulse · 2026-05-26
 
 Continuação do Bloco 4 (Gestão e BI — Onda 2). Após a análise de

@@ -102,7 +102,7 @@ export const APP_NAV_GROUPS: INavGroup[] = [
         label: "Visão executiva",
         icon: "mdi:view-dashboard",
         to: ROUTES.GESTAO_INICIO,
-        roles: ["Owner"],
+        roles: ["Owner", "Gestor", "Financeiro"],
       },
       {
         label: "Vendas",
