@@ -316,7 +316,7 @@ ENTÃO vê apenas Dashboard e Análise (ou abas Conteúdo bloqueadas read-only)
 
 | Campo  | Valor       |
 | ------ | ----------- |
-| Status | ⏳ PENDENTE |
+| Status | ✅ IMPLEMENTADO (v0.45.1 — Gateway) |
 
 ---
 

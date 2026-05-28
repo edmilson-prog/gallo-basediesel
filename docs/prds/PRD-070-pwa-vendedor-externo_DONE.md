@@ -356,7 +356,7 @@ ENTÃO app abre em modo standalone (sem barra do browser)
 
 | Campo  | Valor       |
 | ------ | ----------- |
-| Status | ⏳ PENDENTE |
+| Status | ✅ IMPLEMENTADO (v0.45.1 — Gateway) |
 
 ---
 

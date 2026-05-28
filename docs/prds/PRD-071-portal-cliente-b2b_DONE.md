@@ -620,7 +620,7 @@ ENTÃO sidebar vira drawer
 
 | Campo  | Valor       |
 | ------ | ----------- |
-| Status | ⏳ PENDENTE |
+| Status | ✅ IMPLEMENTADO (v0.45.1 — Gateway) |
 
 ---
 
