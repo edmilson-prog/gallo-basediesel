@@ -93,6 +93,7 @@ export function SellerProgressBarChart({
                 width={48}
               />
               <Tooltip
+                cursor={false}
                 contentStyle={{
                   borderRadius: 8,
                   border: "1px solid var(--border)",

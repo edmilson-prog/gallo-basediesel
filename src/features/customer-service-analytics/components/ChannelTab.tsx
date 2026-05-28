@@ -82,6 +82,7 @@ export function ChannelTab({ metrics }: IChannelTabProps) {
                 allowDecimals={false}
               />
               <Tooltip
+                cursor={false}
                 contentStyle={{
                   borderRadius: 8,
                   border: "1px solid var(--border)",

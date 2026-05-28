@@ -205,7 +205,7 @@ export function PortalAnalyticsPage() {
                     stroke="var(--border)"
                     tickLine={false}
                   />
-                  <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [formatBRL(v), "Gasto"]} />
+                  <Tooltip cursor={false} contentStyle={tooltipStyle} formatter={(v: number) => [formatBRL(v), "Gasto"]} />
                   <Bar dataKey="value" fill="var(--primary)" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -241,7 +241,7 @@ export function PortalAnalyticsPage() {
                       stroke="var(--border)"
                       tickLine={false}
                     />
-                    <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [formatBRL(v), "Gasto"]} />
+                    <Tooltip cursor={false} contentStyle={tooltipStyle} formatter={(v: number) => [formatBRL(v), "Gasto"]} />
                     <Bar
                       dataKey="value"
                       fill="var(--primary)"
@@ -287,7 +287,7 @@ export function PortalAnalyticsPage() {
                   stroke="var(--border)"
                   tickLine={false}
                 />
-                <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [formatBRL(v), "Total"]} />
+                <Tooltip cursor={false} contentStyle={tooltipStyle} formatter={(v: number) => [formatBRL(v), "Total"]} />
                 <Bar dataKey="value" fill="var(--primary)" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>

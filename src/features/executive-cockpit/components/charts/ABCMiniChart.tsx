@@ -92,6 +92,7 @@ export function ABCMiniChart({ rows, isLoading, onClick }: IABCMiniChartProps) {
                   domain={[0, 1]}
                 />
                 <Tooltip
+                  cursor={false}
                   contentStyle={{
                     borderRadius: 8,
                     border: "1px solid var(--border)",

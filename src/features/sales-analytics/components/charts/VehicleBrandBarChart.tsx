@@ -53,6 +53,7 @@ export function VehicleBrandBarChart({
                 width={64}
               />
               <Tooltip
+                cursor={false}
                 contentStyle={{
                   borderRadius: 8,
                   border: "1px solid var(--border)",
