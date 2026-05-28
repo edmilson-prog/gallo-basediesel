@@ -334,3 +334,13 @@
     outline-offset: 2px;
   }
 }
+
+/* Hides the scrollbar visually while keeping scroll (wheel/touch) functional. */
+@utility scrollbar-hide {
+  -ms-overflow-style: none; /* IE / legacy Edge */
+  scrollbar-width: none; /* Firefox */
+
+  &::-webkit-scrollbar {
+    display: none; /* Chrome / Safari / Opera */
+  }
+}
