@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import { formatBRL, formatBRLCompact } from "@/shared/utils/format";
 import { SALES_ANALYTICS_STRINGS as S } from "../../i18n/pt-BR";
 import { useSalesEvolution } from "../../hooks/useSalesEvolution";
-import type { IDailyEvolutionPoint } from "../../utils/evolution";
+import type { IDailyEvolutionPoint, IEvolutionKpis } from "../../utils/evolution";
 
 export interface ISalesEvolutionChartProps {
   scope: { storeId?: ID; sellerId?: ID };
@@ -285,7 +285,7 @@ function EvolutionTooltip({ active, payload, label, bySeller }: IEvolutionToolti
 // ── EvolutionKpis ─────────────────────────────────────────────────────────────
 
 interface IEvolutionKpisProps {
-  kpis: { realized: number; expectedToday: number; target: number; projection: number; gap: number };
+  kpis: IEvolutionKpis;
   hasGoal: boolean;
   isLoading: boolean;
 }
@@ -321,6 +321,22 @@ function EvolutionKpis({ kpis, hasGoal, isLoading }: IEvolutionKpisProps) {
           sub={below ? S.evolutionKpiBelow : S.evolutionKpiAbove}
         />
       )}
+      {hasGoal && (
+        <KpiCell
+          label={S.evolutionKpiRequired}
+          value={
+            kpis.gapToTarget <= 0
+              ? S.evolutionKpiTargetReached
+              : formatBRL(kpis.requiredPerBusinessDay)
+          }
+          unit={kpis.gapToTarget > 0 ? S.evolutionKpiPerBusinessDay : undefined}
+          sub={
+            kpis.gapToTarget > 0
+              ? `${S.evolutionKpiEquivalent} ${formatBRL(kpis.gapToTarget)}`
+              : undefined
+          }
+        />
+      )}
     </div>
   );
 }
@@ -328,12 +344,14 @@ function EvolutionKpis({ kpis, hasGoal, isLoading }: IEvolutionKpisProps) {
 function KpiCell({
   label,
   value,
+  unit,
   sub,
   valueClass,
   subClass,
 }: {
   label: string;
   value: string;
+  unit?: string;
   sub?: string;
   valueClass?: string;
   subClass?: string;
@@ -341,7 +359,10 @@ function KpiCell({
   return (
     <div className="min-w-[150px] flex-1 rounded-xl border border-border bg-card px-3 py-2.5">
       <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className={cn("mt-0.5 text-lg font-bold text-foreground", valueClass)}>{value}</p>
+      <p className={cn("mt-0.5 text-lg font-bold text-foreground", valueClass)}>
+        {value}
+        {unit && <span className="ml-1 text-xs font-medium text-muted-foreground">{unit}</span>}
+      </p>
       {sub && <p className={cn("mt-0.5 text-[11px] text-muted-foreground", subClass)}>{sub}</p>}
     </div>
   );

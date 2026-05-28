@@ -89,6 +89,10 @@ export const SALES_ANALYTICS_STRINGS = {
   evolutionKpiOfTarget: "da meta",
   evolutionKpiExpectedToday: "esperado hoje",
   evolutionKpiRealizedPct: "realizado",
+  evolutionKpiRequired: "Necessário vender",
+  evolutionKpiPerBusinessDay: "por dia útil",
+  evolutionKpiEquivalent: "Equivalente a",
+  evolutionKpiTargetReached: "Meta atingida",
   evolutionKpiBelow: "abaixo da meta",
   evolutionKpiAbove: "acima da meta",
 

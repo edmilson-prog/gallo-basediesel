@@ -41,6 +41,22 @@ export interface IEvolutionKpis {
   projection: number;
   /** target - projection (positive = below target). */
   gap: number;
+  /** Total still needed to hit target (objective − realized excluding today); 0 if met/no goal. */
+  gapToTarget: number;
+  /** gapToTarget divided by remaining business days (today inclusive). */
+  requiredPerBusinessDay: number;
+  /** Remaining business days (Mon–Fri) from today (inclusive) to month end. */
+  remainingBusinessDays: number;
+}
+
+/** Count Mon–Fri days in [fromDay, toDay] of the given month. */
+function countBusinessDays(year: number, month: number, fromDay: number, toDay: number): number {
+  let n = 0;
+  for (let d = fromDay; d <= toDay; d += 1) {
+    const wd = new Date(year, month, d).getDay();
+    if (wd !== 0 && wd !== 6) n += 1;
+  }
+  return n;
 }
 
 export interface IBuildEvolutionInput {
@@ -121,6 +137,8 @@ export function computeEvolutionKpis(
   targetValue: number | null,
 ): IEvolutionKpis {
   const daysInMonth = points.length;
+  const year = referenceDate.getFullYear();
+  const month = referenceDate.getMonth();
   const today = Math.min(Math.max(referenceDate.getDate(), 1), daysInMonth);
   const todayPoint = points[today - 1];
   const lastPoint = points[daysInMonth - 1];
@@ -128,7 +146,26 @@ export function computeEvolutionKpis(
   const target = targetValue ?? 0;
   const expectedToday = todayPoint?.objetivo ?? 0;
   const projection = lastPoint?.previsao ?? realized;
-  return { realized, expectedToday, target, projection, gap: target - projection };
+
+  // Gap still needed to hit target, measured against realized BEFORE today's sales —
+  // mirrors the reference dashboard's "necessário vender" snapshot.
+  const todaySales = todayPoint?.vendasDia ?? 0;
+  const realizedExcludingToday = realized - todaySales;
+  const gapToTarget = targetValue == null ? 0 : Math.max(0, target - realizedExcludingToday);
+  const remainingBusinessDays = countBusinessDays(year, month, today, daysInMonth);
+  const requiredPerBusinessDay =
+    remainingBusinessDays > 0 ? gapToTarget / remainingBusinessDays : gapToTarget;
+
+  return {
+    realized,
+    expectedToday,
+    target,
+    projection,
+    gap: target - projection,
+    gapToTarget,
+    requiredPerBusinessDay,
+    remainingBusinessDays,
+  };
 }
 
 const SELLER_TOP_N = 6;
