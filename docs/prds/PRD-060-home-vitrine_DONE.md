@@ -455,9 +455,9 @@ ENTÃO header tem hambúrguer
 
 ## Histórico
 
-| Data       | Versão | Alteração                                                                         |
-| ---------- | ------ | --------------------------------------------------------------------------------- |
-| 25/05/2026 | v1     | Criação inicial — home pública com identidade PARTS, 7 seções, configuração admin |
+| Data       | Versão | Alteração                                                                                                                                                                                                                                   |
+| ---------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 25/05/2026 | v1     | Criação inicial — home pública com identidade PARTS, 7 seções, configuração admin                                                                                                                                                           |
 | 27/05/2026 | v1.1   | Implementação concluída — vitrine completa em `/loja`, header funcional com busca/dropdowns/cart, hero, 5 seções, footer institucional, cart store Zustand, config admin em `/app/configuracoes/storefront`, version bump 0.39.0 (Showcase) |
 
 ---

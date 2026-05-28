@@ -1,14 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PlaceholderPage } from "@/features/shell/components/EmptyState";
+import { CartPage } from "@/features/storefront-cart";
 
 export const Route = createFileRoute("/loja/carrinho")({
-  component: () => (
-    <PlaceholderPage
-      publicTone
-      icon="mdi:cart-outline"
-      title="Carrinho"
-      backTo="/loja"
-      backLabel="Continuar comprando"
-    />
-  ),
+  component: CartPage,
 });

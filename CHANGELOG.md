@@ -4,6 +4,282 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.43.0] — Checkout · 2026-05-27
+
+Quinta entrega do **Bloco 5 (E-commerce / Onda 3)** com o **PRD-064 —
+Carrinho e Checkout**. Fecha o ciclo de compra do storefront: a página
+`/loja/carrinho` deixa de ser placeholder e ganha edição inline + cálculo de
+frete via ViaCEP/PRD-033; o `/loja/checkout` ganha wizard de 3 passos
+(identificação → endereço → pagamento + revisão) com guest checkout, máscaras
+de CPF/CNPJ/telefone e validação por etapa; o pedido é materializado por
+`createOrderFromCart` (origin `ecommerce`, snapshots de preço, distribuição
+round-robin), o carrinho é limpo e o cliente cai em
+`/loja/pedido-confirmado/:orderId` com resumo completo. O header passa a
+expor mini-preview do carrinho via popover.
+
+### Added
+
+- **Feature `storefront-cart`** com páginas, hooks e i18n próprios:
+  - `pages/CartPage.tsx` — layout 2 colunas com resumo sticky no desktop,
+    sticky-bottom CTA no mobile, lista editável (qty stepper + remover) e
+    botão "Continuar comprando".
+  - `pages/CheckoutPage.tsx` — wizard 3 passos com `CheckoutStepper`,
+    navegação validada por etapa e submissão final via `createOrderFromCart`.
+  - `pages/OrderConfirmedPage.tsx` — sucesso com número do pedido, resumo
+    completo, CTAs para `/loja/conta` + `/loja` e banner de modo
+    demonstração.
+
+- **Componentes** (`src/features/storefront-cart/components/`):
+  - `CartItemRow` — hidrata thumbnail/categoria contra o catálogo vivo,
+    clampa quantidade pelo estoque, badge "Sem estoque" quando aplicável,
+    link para a ficha em PRD-063.
+  - `CartSummary` — subtotal/frete/total, calculadora de CEP integrada,
+    placeholder de cupom desabilitado com tooltip.
+  - `CartEmpty` — estado vazio com CTA para a vitrine.
+  - `CartMiniPreview` — popover do header listando até 3 itens (sort por
+    `addedAt` desc), subtotal e CTA "Ver carrinho completo".
+  - `checkout/CheckoutStepper` — indicador 1·2·3 com tick verde nos passos
+    concluídos.
+  - `checkout/IdentificationStep` — auto-confirma para usuários logados;
+    para visitantes: escolha entre login (PRD-065) e formulário guest com
+    máscaras de CPF/CNPJ, validação de email e telefone (10/11 dígitos).
+  - `checkout/AddressStep` — busca ViaCEP com fallback manual, "salvar
+    endereço" disabled para guests com tooltip.
+  - `checkout/PaymentStep` — radio com 3 métodos placeholder (PIX, Boleto,
+    Cartão) + bloco de revisão final consolidando identidade, endereço,
+    forma de pagamento, itens e totais.
+
+- **Hooks** (`src/features/storefront-cart/hooks/`):
+  - `useCheckoutState` — máquina de 3 passos com `canAdvance` por etapa.
+  - `useCartShipping` — combina `useViaCep` + `calculateShipping` (PRD-033)
+    + `IPlatformSettings.shipping` para retornar valor numérico ou
+    "a combinar".
+  - `useCartValidation` — fingerprint-based: ao mutar o carrinho ou
+    chegar com itens persistidos, valida cada linha contra o catálogo,
+    remove peças inativas/zeradas e clampa quantidades acima do estoque,
+    com toasts informativos.
+  - `useViaCep` — wrapper sobre o endpoint público da ViaCEP com máscara
+    `00000-000` e validação de formato.
+
+- **Engine de pedido** (`src/features/orders/api/createOrderFromCart.ts`):
+  - Snapshots de preço/SKU/nome no momento da venda + cálculo de margem
+    estimada (custo presumido 70% do preço quando não houver `unitCost`).
+  - `origin = "ecommerce"`, `paymentStatus = "pendente"`,
+    `fulfillmentStatus = "pendente"`.
+  - Cria placeholder `ICustomerB2C`/`B2B` para guests (com `tags: ['ecommerce', 'visitante']`).
+  - Distribuição round-robin entre vendedores ativos (placeholder PRD-013).
+  - `composeOrderPaymentCondition` reaproveitado do PRD-032.
+  - Audit log de `order_create` e `customer_create` (para guests).
+
+- **Mini-preview no `StorefrontHeader`**: o botão de carrinho vira `Popover`
+  exibindo os 3 últimos itens + subtotal + CTA "Ver carrinho completo".
+
+- **Persistência cross-session**: `useCartStore.addItem` carimba `addedAt`
+  na primeira inserção do item; mini-preview ordena por esse timestamp
+  para mostrar os adicionados mais recentemente no topo.
+
+### Changed
+
+- `src/routes/loja.carrinho.tsx`, `loja.checkout.tsx` e
+  `loja.pedido-confirmado.$orderId.tsx` deixam de ser placeholders / com
+  `requireAuth` e passam a montar as páginas reais. O guard de
+  autenticação foi removido do checkout porque o PRD prevê guest checkout.
+- `ICartItem` ganha o campo opcional `addedAt: ISO8601` (não-quebra de
+  retro-compatibilidade — default no insert).
+- `StorefrontHeader` substituiu o `Button asChild → Link` do carrinho por
+  um `Popover` envolvendo o mesmo `Link` no item primário, mantendo o badge
+  numérico e o `aria-label`.
+
+### Notes
+
+- Toda a infraestrutura de pagamento é declaradamente placeholder no MVP:
+  banners "Modo demonstração" no passo 3 e na confirmação tornam isso
+  explícito ao cliente.
+- O cálculo de frete usa o `IShippingConfig` salvo em
+  `IPlatformSettings.shipping`; quando não há configuração ou regra
+  aplicável, exibe "a combinar" sem bloquear o checkout.
+- O round-robin de vendedores é simplificado (sort por id ascendente);
+  trocar pelo motor real do PRD-013 é uma substituição de uma função no
+  arquivo `createOrderFromCart.ts`.
+- A página de carrinho redireciona automaticamente o `/loja/checkout` para
+  o carrinho se o usuário entrar sem itens.
+
+## [0.42.0] — Showcase · 2026-05-27
+
+Quarta entrega do **Bloco 5 (E-commerce / Onda 3)** com o **PRD-063 — Ficha
+do Produto**. A rota `/loja/produto/:slug` deixa de ser placeholder e ganha
+ficha completa otimizada para conversão B2B: galeria com lightbox, header
+comercial (badges, OEM, preço, indicador de estoque, seletor de quantidade,
+CTA de carrinho com transição "Ver carrinho" por 3,5s, share WhatsApp e copy
+link), três abas (Aplicações com filtro inline de compatibilidade, Equivalências
+com cálculo de % de economia, Especificações com ficha técnica + garantia +
+FAQ placeholder), grade de produtos relacionados (4 itens com algoritmo
+categoria + sobreposição de aplicações), barra sticky de adicionar ao carrinho
+no mobile, 404 amigável e SEO rico com microdata schema.org/Product
+(`name`, `brand`, `mpn`, `sku`, `offers`, `priceCurrency`, `availability`).
+
+### Added
+
+- **`ProductDetailPage`** (`/loja/produto/:slug`):
+  - Layout 2 colunas (galeria + info) → stack em mobile.
+  - Esqueleto enquanto carrega; `ProductNotFound` em ID inválido (próprio SEO).
+  - `useSeoMeta` dinâmico: título com OEM + descrição com categoria, marcas
+    compatíveis e estoque.
+
+- **Componentes** (`src/features/storefront-product/components/`):
+  - `ProductGallery` — imagem placeholder única + thumbnail + lightbox via
+    `Dialog` (estrutura preparada para múltiplas imagens na Fase 2).
+  - `ProductInfo` — badges (Original/Equivalente + categoria + subcategoria),
+    preço, indicador de estoque tricolor, qty stepper clampado pelo estoque,
+    CTAs de carrinho/WhatsApp/copy link, microdata schema.org/Product +
+    schema.org/Offer embutido no JSX (`itemScope` / `itemProp`).
+  - `ProductTabs` — três abas com defaultValue `applications`.
+  - `ApplicationsTab` — `IApplication[]` agrupado por marca; filtro inline
+    Marca → Modelo → Ano cascateado a partir das próprias aplicações da peça;
+    aplica destaque verde + badge `✓ Compatível` na linha matching e aviso
+    âmbar quando o veículo informado não tem aplicação.
+  - `EquivalentsTab` — consulta `partsProvider.listEquivalents(partId)`;
+    cada item exibe imagem, badge Original/Equivalente, OEM, preço, badge de
+    `Economia de X%` / `X% mais caro` / `Mesmo preço`, e link para a ficha
+    da equivalente.
+  - `SpecificationsTab` — tabela de specs (categoria, subcategoria, marca,
+    fornecedor, SKU, divisão), códigos OEM alternativos em chips, descrição
+    completa, texto institucional de garantia + FAQ placeholder.
+  - `RelatedProducts` — 4 cards reusando `<ProductCard>` do PRD-061.
+  - `ProductBreadcrumbs` — `Home > [Categoria] > [Produto]` (compactado em
+    mobile como back link para a categoria).
+  - `StickyMobileBar` — barra inferior mobile-only com preço + CTA de
+    carrinho espelhando o fluxo do `ProductInfo`.
+  - `ProductNotFound` — 404 amigável com CTAs para loja e busca.
+
+- **Hook `useRelatedProducts`** — ranking em 3 tiers (mesma categoria +
+  sobreposição de marca de veículo → mesma categoria → mesmo prefixo OEM),
+  limitando a 4 itens e excluindo a própria peça.
+
+- **i18n PT-BR completa** (`src/features/storefront-product/i18n/pt-BR.ts`)
+  com 50+ strings cobrindo breadcrumbs, info, estoque, qty, CTAs, toasts,
+  abas, filtro de compatibilidade, equivalências, specs, FAQ, 404 e galeria.
+
+### Changed
+
+- `loja.produto.$slug.tsx` deixa de renderizar `PlaceholderPage` e passa a
+  montar `ProductDetailPage`. O nome do parâmetro permanece `slug` por
+  compatibilidade com o `ProductCard` do PRD-061, mas carrega o `IPart.id`
+  diretamente — o slug "humano" é um trabalho de Fase 2 alongside SSR.
+
+### Notes
+
+- Schema.org foi implementado via microdata HTML (em vez de JSON-LD) para
+  não exigir um head manager — a estrutura fica no JSX, validável via
+  Rich Results.
+- O CTA "Ver carrinho" volta para "Adicionar" após 3,5s; o mini-preview
+  flutuante é coberto pelo próprio toast (sonner) e pela atualização
+  imediata do badge de quantidade no `StorefrontHeader`.
+- O fluxo de estoque zerado bloqueia o botão principal, expõe um
+  placeholder "Avise-me quando voltar" (desabilitado com tooltip) e um
+  link de WhatsApp pré-preenchido para checar previsão.
+- Para evitar ciclos entre os barrels de `storefront`, `storefront-search`
+  e `storefront-category`, os hooks do `storefront` são importados via
+  caminho direto (`@/features/storefront/hooks/...` e
+  `@/features/storefront/store/cartStore`).
+
+## [0.41.0] — Aisle · 2026-05-27
+
+Terceira entrega do **Bloco 5 (E-commerce / Onda 3)** com o **PRD-062 —
+Listagem por Categoria**. A rota `/loja/categoria/:slug` evolui do placeholder
+para uma página rica: header com banner gradient + ícone, breadcrumbs, 6
+filtros laterais focados, ordenações, paginação, drawer mobile, SEO dinâmico
+por categoria e 404 amigável com sugestões. Além das categorias regulares, três
+listas curadas entram em produção: `/loja/categoria/mais-vendidas` (ranking
+por pedidos pagos dos últimos 90 dias), `/loja/categoria/novidades` (peças
+recém-cadastradas) e `/loja/categoria/promocoes` (curadoria manual via
+configuração da vitrine).
+
+### Added
+
+- **Slug mapping** (`storefront-category/data/slugs.ts`):
+  - 10 categorias regulares com slugs amigáveis em português (`filtros`,
+    `freios`, `correias`, `motor`, `embreagem`, `eletrica`, `transmissao`,
+    `suspensao`, `arrefecimento`, `lubrificantes`).
+  - 3 listas especiais: `mais-vendidas`, `novidades`, `promocoes`.
+  - Fallback para o enum bruto do catálogo (ex.: `/loja/categoria/filtro`).
+  - `resolveCategorySlug`, `iconForSlug`, `nameForSlug` expostos pelo barrel
+    para reuso (config admin + cards da home já apontam para esses helpers).
+
+- **Engine de listagem** (`useCategoryResults`):
+  - Stage 1 — escopo por mapping (categoria, top-selling, newest,
+    promoções com `manualPartIds`).
+  - Stage 2 — filtros secundários aditivos (subcategoria, marca compatível,
+    fabricante, tipo, faixa de preço, em estoque).
+  - Stage 3 — ordenação + paginação de 24 itens/página.
+  - `top-selling` busca pedidos pagos/parciais dos últimos 90 dias para
+    rankear e só carrega quando o sort precisa.
+
+- **URL sync** (`useCategoryFilters`):
+  - 8 query params validados (`subcategoria`, `marca`, `fabricante`,
+    `tipo`, `preco_min`, `preco_max`, `estoque`, `sort`, `page`).
+  - `validateCategorySearch` é o `validateSearch` da rota — params inválidos
+    são descartados em silêncio.
+
+- **`CategoryListingPage`** (`/loja/categoria/:slug`):
+  - Slug inválido → `InvalidCategoryFallback` com lista de categorias e
+    listas especiais disponíveis (acessível via teclado + SEO próprio).
+  - Header com gradient da submarca PARTS (azul para `novidades`, âmbar para
+    `promocoes`), ícone Iconify e contador de produtos.
+  - Breadcrumbs "Home > [Categoria]" (compactado em mobile).
+  - Filtros laterais em desktop; drawer dedicado em mobile com badge de
+    filtros ativos no botão de abertura.
+  - Empty state contextual: sugere limpar filtros quando há filtros ativos,
+    ou volta para a vitrine quando o escopo está vazio.
+  - Banner amarelo de placeholder em `/loja/categoria/promocoes` quando o
+    Owner ainda não selecionou itens.
+
+- **Componentes**:
+  - `CategoryHeader` — banner com gradient + descrição + contador.
+  - `CategoryFilters` — sidebar com subcategoria (taxonomia do PRD-030 +
+    união de subcategorias presentes no escopo para listas especiais),
+    marca compatível, fabricante (multi-select), original/equivalente/ambos,
+    faixa de preço e disponibilidade.
+  - `CategoryMobileFiltersSheet` — drawer reutilizando o componente lateral.
+  - `CategoryBreadcrumbs`, `CategoryPagination`, `CategoryEmptyState`.
+
+- **SEO** dinâmico via `useSeoMeta`:
+  - Title `"<Categoria> para Caminhão — Volvo, Scania, Mercedes e mais ·
+GALLO PARTS"` para categorias regulares.
+  - Title `"<Lista> · GALLO PARTS"` para listas especiais.
+  - Description tomada do override do Owner ou da descrição padrão da
+    categoria.
+
+- **Configuração admin** (`/app/configuracoes/storefront`):
+  - Nova seção "Páginas de categoria" com textarea de descrição por categoria
+    e por lista especial.
+  - Campo CSV para `promotionPartIds` que abastece
+    `/loja/categoria/promocoes`.
+  - Persistência via `IStorefrontConfig.categories` (novo campo opcional
+    no tipo, default `[]`).
+
+### Changed
+
+- `IStorefrontConfig` ganha o campo opcional
+  `categories: IStorefrontCategoryConfig[]` (slug + descrição opcional + IDs
+  de promoção). Default seedado com array vazio para retro-compatibilidade.
+- `loja.categoria.$slug.tsx` deixa de renderizar `PlaceholderPage` e passa
+  a montar `CategoryListingPage` com `validateCategorySearch` no
+  `validateSearch` da rota.
+
+### Notes
+
+- `ProductCard` e `useSeoMeta` foram reaproveitados sem duplicação (PRD-061
+  e PRD-060 respectivamente). Para evitar ciclos de import entre os barrels
+  de `storefront` e `storefront-category`, os hooks de leitura do storefront
+  são importados via caminho direto (`@/features/storefront/hooks/...`).
+- Filtro de subcategoria respeita a taxonomia declarada em
+  `PART_CATEGORY_DESCRIPTORS` para categorias regulares; para listas
+  especiais, deriva a união real das subcategorias presentes no escopo
+  (oferece apenas opções com produtos).
+- Engine de ordenação compartilha a lógica de `top-selling` com PRD-061
+  (janela de 90 dias sobre pedidos pagos/parciais).
+
 ## [0.40.0] — Lighthouse · 2026-05-27
 
 Segunda entrega do **Bloco 5 (E-commerce / Onda 3)** com o **PRD-061 — Busca

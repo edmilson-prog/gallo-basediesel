@@ -394,9 +394,9 @@ ENTÃO mudança reflete em /loja/categoria/filtros
 
 ## Status
 
-| Campo  | Valor       |
-| ------ | ----------- |
-| Status | ⏳ PENDENTE |
+| Campo  | Valor                          |
+| ------ | ------------------------------ |
+| Status | ✅ CONCLUÍDO (v0.41.0 — Aisle) |
 
 ---
 

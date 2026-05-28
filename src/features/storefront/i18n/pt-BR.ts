@@ -69,4 +69,14 @@ export const STOREFRONT_STRINGS = {
   configSaveFailed: "Não foi possível salvar a vitrine.",
   configDemoBanner:
     "E-commerce em modo demonstração — checkout real disponível na Fase 2. Edições já refletem em /loja.",
+
+  // Category overrides (PRD-062)
+  configSectionCategoryPages: "Páginas de categoria",
+  configCategoryPagesHint:
+    "Personalize a descrição de cada categoria em /loja/categoria/<slug>. Vazio usa o texto padrão da GALLO.",
+  configCategoryDescriptionPlaceholder: "Descrição customizada (opcional)",
+  configPromotionsTitle: "Promoções (curadoria manual)",
+  configPromotionsHint:
+    "IDs de peças selecionadas para /loja/categoria/promocoes — separe por vírgula. O sistema completo de promoções chega na Fase 2.",
+  configPromotionsPlaceholder: "part-001, part-042, part-128",
 } as const;

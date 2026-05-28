@@ -45,6 +45,7 @@ import { Route as AppClientesIndexRouteImport } from './routes/app.clientes.inde
 import { Route as AppCatalogoIndexRouteImport } from './routes/app.catalogo.index'
 import { Route as AppAtendimentoIndexRouteImport } from './routes/app.atendimento.index'
 import { Route as LojaProdutoSlugRouteImport } from './routes/loja.produto.$slug'
+import { Route as LojaPedidoConfirmadoOrderIdRouteImport } from './routes/loja.pedido-confirmado.$orderId'
 import { Route as LojaContaPedidosRouteImport } from './routes/loja.conta.pedidos'
 import { Route as LojaCategoriaSlugRouteImport } from './routes/loja.categoria.$slug'
 import { Route as AppVeiculosIdRouteImport } from './routes/app.veiculos.$id'
@@ -291,6 +292,12 @@ const LojaProdutoSlugRoute = LojaProdutoSlugRouteImport.update({
   path: '/produto/$slug',
   getParentRoute: () => LojaRoute,
 } as any)
+const LojaPedidoConfirmadoOrderIdRoute =
+  LojaPedidoConfirmadoOrderIdRouteImport.update({
+    id: '/pedido-confirmado/$orderId',
+    path: '/pedido-confirmado/$orderId',
+    getParentRoute: () => LojaRoute,
+  } as any)
 const LojaContaPedidosRoute = LojaContaPedidosRouteImport.update({
   id: '/pedidos',
   path: '/pedidos',
@@ -720,6 +727,7 @@ export interface FileRoutesByFullPath {
   '/app/veiculos/$id': typeof AppVeiculosIdRoute
   '/loja/categoria/$slug': typeof LojaCategoriaSlugRoute
   '/loja/conta/pedidos': typeof LojaContaPedidosRoute
+  '/loja/pedido-confirmado/$orderId': typeof LojaPedidoConfirmadoOrderIdRoute
   '/loja/produto/$slug': typeof LojaProdutoSlugRoute
   '/app/atendimento/': typeof AppAtendimentoIndexRoute
   '/app/catalogo/': typeof AppCatalogoIndexRoute
@@ -812,6 +820,7 @@ export interface FileRoutesByTo {
   '/app/veiculos/$id': typeof AppVeiculosIdRoute
   '/loja/categoria/$slug': typeof LojaCategoriaSlugRoute
   '/loja/conta/pedidos': typeof LojaContaPedidosRoute
+  '/loja/pedido-confirmado/$orderId': typeof LojaPedidoConfirmadoOrderIdRoute
   '/loja/produto/$slug': typeof LojaProdutoSlugRoute
   '/app/atendimento': typeof AppAtendimentoIndexRoute
   '/app/catalogo': typeof AppCatalogoIndexRoute
@@ -916,6 +925,7 @@ export interface FileRoutesById {
   '/app/veiculos/$id': typeof AppVeiculosIdRoute
   '/loja/categoria/$slug': typeof LojaCategoriaSlugRoute
   '/loja/conta/pedidos': typeof LojaContaPedidosRoute
+  '/loja/pedido-confirmado/$orderId': typeof LojaPedidoConfirmadoOrderIdRoute
   '/loja/produto/$slug': typeof LojaProdutoSlugRoute
   '/app/atendimento/': typeof AppAtendimentoIndexRoute
   '/app/catalogo/': typeof AppCatalogoIndexRoute
@@ -1021,6 +1031,7 @@ export interface FileRouteTypes {
     | '/app/veiculos/$id'
     | '/loja/categoria/$slug'
     | '/loja/conta/pedidos'
+    | '/loja/pedido-confirmado/$orderId'
     | '/loja/produto/$slug'
     | '/app/atendimento/'
     | '/app/catalogo/'
@@ -1113,6 +1124,7 @@ export interface FileRouteTypes {
     | '/app/veiculos/$id'
     | '/loja/categoria/$slug'
     | '/loja/conta/pedidos'
+    | '/loja/pedido-confirmado/$orderId'
     | '/loja/produto/$slug'
     | '/app/atendimento'
     | '/app/catalogo'
@@ -1216,6 +1228,7 @@ export interface FileRouteTypes {
     | '/app/veiculos/$id'
     | '/loja/categoria/$slug'
     | '/loja/conta/pedidos'
+    | '/loja/pedido-confirmado/$orderId'
     | '/loja/produto/$slug'
     | '/app/atendimento/'
     | '/app/catalogo/'
@@ -1512,6 +1525,13 @@ declare module '@tanstack/react-router' {
       path: '/produto/$slug'
       fullPath: '/loja/produto/$slug'
       preLoaderRoute: typeof LojaProdutoSlugRouteImport
+      parentRoute: typeof LojaRoute
+    }
+    '/loja/pedido-confirmado/$orderId': {
+      id: '/loja/pedido-confirmado/$orderId'
+      path: '/pedido-confirmado/$orderId'
+      fullPath: '/loja/pedido-confirmado/$orderId'
+      preLoaderRoute: typeof LojaPedidoConfirmadoOrderIdRouteImport
       parentRoute: typeof LojaRoute
     }
     '/loja/conta/pedidos': {
@@ -2337,6 +2357,7 @@ interface LojaRouteChildren {
   LojaContaRoute: typeof LojaContaRouteWithChildren
   LojaIndexRoute: typeof LojaIndexRoute
   LojaCategoriaSlugRoute: typeof LojaCategoriaSlugRoute
+  LojaPedidoConfirmadoOrderIdRoute: typeof LojaPedidoConfirmadoOrderIdRoute
   LojaProdutoSlugRoute: typeof LojaProdutoSlugRoute
 }
 
@@ -2347,6 +2368,7 @@ const LojaRouteChildren: LojaRouteChildren = {
   LojaContaRoute: LojaContaRouteWithChildren,
   LojaIndexRoute: LojaIndexRoute,
   LojaCategoriaSlugRoute: LojaCategoriaSlugRoute,
+  LojaPedidoConfirmadoOrderIdRoute: LojaPedidoConfirmadoOrderIdRoute,
   LojaProdutoSlugRoute: LojaProdutoSlugRoute,
 }
 

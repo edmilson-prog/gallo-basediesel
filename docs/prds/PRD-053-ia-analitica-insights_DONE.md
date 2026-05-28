@@ -437,9 +437,9 @@ ENTÃO banner topo: "3 insights críticos requerem atenção"
 
 ## Histórico
 
-| Data       | Versão | Alteração                                                                                             |
-| ---------- | ------ | ----------------------------------------------------------------------------------------------------- |
-| 25/05/2026 | v1     | Criação inicial — hub de insights com 10+ heurísticas, priorização, dismiss, integrações cross-painel |
+| Data       | Versão | Alteração                                                                                                                                                                                                        |
+| ---------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 25/05/2026 | v1     | Criação inicial — hub de insights com 10+ heurísticas, priorização, dismiss, integrações cross-painel                                                                                                            |
 | 27/05/2026 | v1.1   | Implementação concluída — engine puro com 12 heurísticas, hub `/app/insights`, dismiss persistente, widget no PRD-014, banner no PRD-040, config em `/app/configuracoes/insights`, version bump 0.38.0 (Compass) |
 
 ---

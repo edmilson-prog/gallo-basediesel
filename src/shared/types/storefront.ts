@@ -61,6 +61,27 @@ export interface IStorefrontConfig {
     /** Optional Open Graph image URL. */
     ogImageUrl?: string;
   };
+  /**
+   * Per-category overrides for `/loja/categoria/:slug` (PRD-062 RF-027/028/029).
+   *
+   * Each entry is keyed by the URL slug (e.g. `filtros`, `promocoes`). Missing
+   * slugs fall back to defaults from `data/slugs.ts`. The list is intentionally
+   * sparse — only slugs the Owner has edited or that need `promotionPartIds`
+   * are stored here.
+   */
+  categories?: IStorefrontCategoryConfig[];
+}
+
+export interface IStorefrontCategoryConfig {
+  /** URL slug (matches `resolveCategorySlug`). */
+  slug: string;
+  /** Override for the description rendered on the category banner. */
+  description?: string;
+  /**
+   * Manually-picked part ids for `/loja/categoria/promocoes` (MVP only —
+   * a full promotion engine is a Fase 2 concern).
+   */
+  promotionPartIds?: ID[];
 }
 
 export interface IStorefrontBrand {
@@ -153,4 +174,5 @@ export const DEFAULT_STOREFRONT_CONFIG: IStorefrontConfig = {
     description:
       "Distribuidora de peças pesadas em Frederico Westphalen/RS. Volvo, Scania, Mercedes-Benz, Ford Cargo, Iveco. Entrega rápida e atendimento 24/7.",
   },
+  categories: [],
 };

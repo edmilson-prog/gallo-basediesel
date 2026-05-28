@@ -15,8 +15,10 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/features/auth/useAuth";
 import { PART_CATEGORY_DESCRIPTORS } from "@/features/catalog";
+import { CartMiniPreview } from "@/features/storefront-cart/components/CartMiniPreview";
 import { selectCartCount, useCartStore } from "../store/cartStore";
 import { STOREFRONT_STRINGS as S } from "../i18n/pt-BR";
 
@@ -178,25 +180,7 @@ export function StorefrontHeader({ brands }: IStorefrontHeaderProps) {
               </Button>
             )}
 
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={`${S.headerCart} (${cartCount})`}
-              className="relative"
-              asChild
-            >
-              <Link to="/loja/carrinho">
-                <Icon icon="mdi:cart-outline" size={22} />
-                {cartCount > 0 && (
-                  <Badge
-                    variant="default"
-                    className="absolute -right-0.5 -top-0.5 h-4 min-w-4 px-1 text-[10px]"
-                  >
-                    {cartCount > 99 ? "99+" : cartCount}
-                  </Badge>
-                )}
-              </Link>
-            </Button>
+            <CartHeaderButton cartCount={cartCount} />
           </div>
         </div>
       </header>
@@ -230,6 +214,36 @@ export function StorefrontHeader({ brands }: IStorefrontHeaderProps) {
         </form>
       </div>
     </>
+  );
+}
+
+function CartHeaderButton({ cartCount }: { cartCount: number }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={`${S.headerCart} (${cartCount})`}
+          className="relative"
+        >
+          <Icon icon="mdi:cart-outline" size={22} />
+          {cartCount > 0 && (
+            <Badge
+              variant="default"
+              className="absolute -right-0.5 -top-0.5 h-4 min-w-4 px-1 text-[10px]"
+            >
+              {cartCount > 99 ? "99+" : cartCount}
+            </Badge>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-80 p-0">
+        <CartMiniPreview onClose={() => setOpen(false)} />
+      </PopoverContent>
+    </Popover>
   );
 }
 

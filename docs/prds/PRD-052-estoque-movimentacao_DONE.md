@@ -255,9 +255,9 @@ ENTÃO sou levado ao pedido correspondente (PRD-032)
 
 ## Histórico
 
-| Data       | Versão | Alteração                                                                                         |
-| ---------- | ------ | ------------------------------------------------------------------------------------------------- |
-| 25/05/2026 | v1     | Criação inicial — movimentações derivadas de pedidos com placeholder para entradas/ajustes Fase 2 |
+| Data       | Versão | Alteração                                                                                                           |
+| ---------- | ------ | ------------------------------------------------------------------------------------------------------------------- |
+| 25/05/2026 | v1     | Criação inicial — movimentações derivadas de pedidos com placeholder para entradas/ajustes Fase 2                   |
 | 27/05/2026 | v1     | Implementado em v0.37.0 (Trail) — feature `inventory-movement/` + rota `/app/gestao/estoque-movimentacao` + sidebar |
 
 ---

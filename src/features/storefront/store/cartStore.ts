@@ -13,6 +13,8 @@ export interface ICartItem {
   quantity: number;
   /** Optional image url (snapshotted from the catalog). */
   imageUrl?: string;
+  /** ISO timestamp the item was first added — set on the first insertion only. */
+  addedAt?: string;
 }
 
 interface ICartState {
@@ -38,7 +40,14 @@ export const useCartStore = create<ICartState>()(
       addItem: (item) =>
         set((state) => {
           const idx = state.items.findIndex((i) => i.partId === item.partId);
-          if (idx === -1) return { items: [...state.items, item] };
+          if (idx === -1) {
+            return {
+              items: [
+                ...state.items,
+                { ...item, addedAt: item.addedAt ?? new Date().toISOString() },
+              ],
+            };
+          }
           const next = [...state.items];
           next[idx] = { ...next[idx], quantity: next[idx].quantity + item.quantity };
           return { items: next };

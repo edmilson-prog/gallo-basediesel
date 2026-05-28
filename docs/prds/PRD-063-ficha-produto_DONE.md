@@ -445,9 +445,9 @@ ENTÃO botão "Adicionar" sticky-bottom permanece visível
 
 ## Status
 
-| Campo  | Valor       |
-| ------ | ----------- |
-| Status | ⏳ PENDENTE |
+| Campo  | Valor                             |
+| ------ | --------------------------------- |
+| Status | ✅ CONCLUÍDO (v0.42.0 — Showcase) |
 
 ---
 

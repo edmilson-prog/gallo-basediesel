@@ -1,14 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PlaceholderPage } from "@/features/shell/components/EmptyState";
+import { CategoryListingPage, validateCategorySearch } from "@/features/storefront-category";
 
 export const Route = createFileRoute("/loja/categoria/$slug")({
-  component: () => (
-    <PlaceholderPage
-      publicTone
-      icon="mdi:format-list-bulleted"
-      title="Categoria"
-      backTo="/loja"
-      backLabel="Voltar à vitrine"
-    />
-  ),
+  validateSearch: validateCategorySearch,
+  component: CategoryListingPage,
 });

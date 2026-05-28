@@ -23,6 +23,12 @@ import { EmptyState } from "@/features/shell/components/EmptyState";
 import { SectionHeader } from "@/features/admin-settings/components/SectionHeader";
 import { usePlatformSettings } from "@/features/admin-settings/hooks/usePlatformSettings";
 import { PART_CATEGORY_DESCRIPTORS } from "@/features/catalog";
+import {
+  KNOWN_CATEGORY_SLUGS,
+  KNOWN_SPECIAL_SLUGS,
+  iconForSlug,
+  nameForSlug,
+} from "@/features/storefront-category/data/slugs";
 import { STOREFRONT_STRINGS as S } from "../i18n/pt-BR";
 
 /**
@@ -88,6 +94,61 @@ export function StorefrontConfigPage() {
         ? prev.featuredCategories.filter((c) => c !== cat)
         : [...prev.featuredCategories, cat].slice(0, 6);
       return { ...prev, featuredCategories: next };
+    });
+  };
+
+  const getCategoryOverride = (slug: string): string => {
+    const entry = draft.categories?.find((c) => c.slug === slug);
+    return entry?.description ?? "";
+  };
+
+  const updateCategoryDescription = (slug: string, value: string) => {
+    setDraft((prev) => {
+      const list = prev.categories ?? [];
+      const idx = list.findIndex((c) => c.slug === slug);
+      const trimmed = value.trim();
+      if (idx === -1) {
+        if (trimmed.length === 0) return prev;
+        return { ...prev, categories: [...list, { slug, description: value }] };
+      }
+      const next = [...list];
+      const current = next[idx];
+      // Drop the entry entirely when both fields are empty to keep config tidy.
+      if (trimmed.length === 0 && (current.promotionPartIds ?? []).length === 0) {
+        next.splice(idx, 1);
+      } else {
+        next[idx] = { ...current, description: value };
+      }
+      return { ...prev, categories: next };
+    });
+  };
+
+  const getPromotionIdsCsv = (): string => {
+    const entry = draft.categories?.find((c) => c.slug === "promocoes");
+    return (entry?.promotionPartIds ?? []).join(", ");
+  };
+
+  const updatePromotionIds = (raw: string) => {
+    const ids = raw
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean);
+    setDraft((prev) => {
+      const list = prev.categories ?? [];
+      const idx = list.findIndex((c) => c.slug === "promocoes");
+      if (idx === -1) {
+        if (ids.length === 0) return prev;
+        return { ...prev, categories: [...list, { slug: "promocoes", promotionPartIds: ids }] };
+      }
+      const next = [...list];
+      const current = next[idx];
+      const hasDescription = (current.description ?? "").trim().length > 0;
+      if (ids.length === 0 && !hasDescription) {
+        next.splice(idx, 1);
+      } else {
+        next[idx] = { ...current, promotionPartIds: ids };
+      }
+      return { ...prev, categories: next };
     });
   };
 
@@ -207,6 +268,69 @@ export function StorefrontConfigPage() {
               (curadoria manual será exposta via UI na Fase 2).
             </p>
           )}
+        </div>
+      </Card>
+
+      {/* Category pages (PRD-062) */}
+      <Card className="space-y-4 p-6">
+        <div>
+          <h2 className="text-base font-semibold text-foreground">
+            {S.configSectionCategoryPages}
+          </h2>
+          <p className="mt-1 text-xs text-muted-foreground">{S.configCategoryPagesHint}</p>
+        </div>
+        <div className="space-y-3">
+          {KNOWN_CATEGORY_SLUGS.map((slug) => (
+            <div
+              key={slug}
+              className="grid gap-2 rounded-md border border-border p-3 sm:grid-cols-[10rem_1fr] sm:items-start"
+            >
+              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Icon icon={iconForSlug(slug)} size={16} className="text-primary" aria-hidden />
+                {nameForSlug(slug)}
+              </div>
+              <Textarea
+                rows={2}
+                placeholder={S.configCategoryDescriptionPlaceholder}
+                value={getCategoryOverride(slug)}
+                onChange={(e) => updateCategoryDescription(slug, e.target.value)}
+              />
+            </div>
+          ))}
+        </div>
+
+        <div className="space-y-3 border-t border-border pt-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Listas especiais
+          </p>
+          {KNOWN_SPECIAL_SLUGS.map((slug) => (
+            <div
+              key={slug}
+              className="grid gap-2 rounded-md border border-border p-3 sm:grid-cols-[10rem_1fr] sm:items-start"
+            >
+              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Icon icon={iconForSlug(slug)} size={16} className="text-primary" aria-hidden />
+                {nameForSlug(slug)}
+              </div>
+              <Textarea
+                rows={2}
+                placeholder={S.configCategoryDescriptionPlaceholder}
+                value={getCategoryOverride(slug)}
+                onChange={(e) => updateCategoryDescription(slug, e.target.value)}
+              />
+            </div>
+          ))}
+        </div>
+
+        <div className="space-y-2 border-t border-border pt-4">
+          <Label htmlFor="promotion-ids">{S.configPromotionsTitle}</Label>
+          <p className="text-xs text-muted-foreground">{S.configPromotionsHint}</p>
+          <Input
+            id="promotion-ids"
+            placeholder={S.configPromotionsPlaceholder}
+            value={getPromotionIdsCsv()}
+            onChange={(e) => updatePromotionIds(e.target.value)}
+          />
         </div>
       </Card>
 
