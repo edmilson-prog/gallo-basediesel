@@ -9,6 +9,7 @@ import { useSalesFilters } from "../hooks/useSalesFilters";
 import { useSalesAnalytics } from "../hooks/useSalesAnalytics";
 import { useFunnelMetrics } from "../hooks/useFunnelMetrics";
 import { SalesHeader } from "../components/SalesHeader";
+import { SalesEvolutionChart } from "../components/charts/SalesEvolutionChart";
 import { SalesOverviewTab } from "../components/tabs/SalesOverviewTab";
 import { SalesProductsTab } from "../components/tabs/SalesProductsTab";
 import { SalesCustomersTab } from "../components/tabs/SalesCustomersTab";
@@ -99,6 +100,7 @@ export function SalesAnalyticsPage() {
   }
 
   const tab = (filtersCtl.activeTab as TabId) ?? "overview";
+  const canDrillDown = userRole === "Owner" || userRole === "Gestor";
 
   return (
     <DashboardLayout>
@@ -132,6 +134,9 @@ export function SalesAnalyticsPage() {
         </TabsList>
 
         <TabsContent value="overview" className="focus-visible:outline-none">
+          <div className="mb-4">
+            <SalesEvolutionChart scope={scope} canDrillDown={canDrillDown} />
+          </div>
           <SalesOverviewTab
             analytics={analytics}
             onCategoryFilter={filtersCtl.setCategory}
