@@ -55,9 +55,9 @@ export function QuickActions({ conversation, onMutated }: IQuickActionsProps) {
     if (!transferOpen || !canTransferOrArchive) return;
     let cancelled = false;
     void sellersProvider
-      .list({ pageSize: 200 })
+      .list({ storeId: conversation.storeId })
       .then((res) => {
-        if (!cancelled) setSellers(res.data);
+        if (!cancelled) setSellers(res);
       })
       .catch(() => {
         if (!cancelled) setSellers([]);
@@ -65,7 +65,7 @@ export function QuickActions({ conversation, onMutated }: IQuickActionsProps) {
     return () => {
       cancelled = true;
     };
-  }, [transferOpen, canTransferOrArchive, sellersProvider]);
+  }, [transferOpen, canTransferOrArchive, sellersProvider, conversation.storeId]);
 
   const handleAssignToMe = async () => {
     if (!currentUser) return;
@@ -201,10 +201,10 @@ export function QuickActions({ conversation, onMutated }: IQuickActionsProps) {
                 key={s.id}
                 onSelect={() => {
                   setTransferOpen(false);
-                  void handleTransferTo(s.id, s.displayName);
+                  void handleTransferTo(s.id, s.fullName);
                 }}
               >
-                {s.displayName}
+                {s.fullName}
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>

@@ -35,6 +35,8 @@ export interface IListCustomersParams extends IPaginationParams {
   ltvRange?: INumericRange;
   vehicleBrands?: string[];
   hasAnyVehicle?: boolean;
+  positivation?: "positivado" | "nao_positivado";
+  hasB2BPortal?: boolean;
   orderBy?:
     | "name"
     | "lastPurchaseAt"
@@ -91,6 +93,21 @@ function customerAbcKey(customer: ICustomer): ABCClass | "none" {
   return customer.abcClass ?? "none";
 }
 
+/**
+ * A customer is "positivated" this month when their most recent paid purchase
+ * (`lastPurchaseAt`) lands in the current calendar month. Since `lastPurchaseAt`
+ * is the latest paid order, this is equivalent to "has at least one purchase this
+ * month" — the same definition used by the positivation engine (PRD-044).
+ */
+function isPositivatedThisMonth(customer: ICustomer, nowMs: number): boolean {
+  if (!customer.lastPurchaseAt) return false;
+  const t = Date.parse(customer.lastPurchaseAt);
+  if (!Number.isFinite(t)) return false;
+  const last = new Date(t);
+  const now = new Date(nowMs);
+  return last.getFullYear() === now.getFullYear() && last.getMonth() === now.getMonth();
+}
+
 function matches(
   customer: ICustomer,
   params: IListCustomersParams,
@@ -140,6 +157,14 @@ function matches(
 
   if (!rangeMatches(params.ticketRange, customer.purchaseStats?.ticketMedio)) return false;
   if (!rangeMatches(params.ltvRange, customer.purchaseStats?.ltv)) return false;
+
+  if (params.positivation) {
+    const positivated = isPositivatedThisMonth(customer, nowMs);
+    if (params.positivation === "positivado" && !positivated) return false;
+    if (params.positivation === "nao_positivado" && positivated) return false;
+  }
+
+  if (params.hasB2BPortal && customer.hasB2BPortal !== true) return false;
 
   if (params.vehicleBrands && params.vehicleBrands.length > 0) {
     const owned = vehiclesByCustomer.get(customer.id) ?? new Set<string>();

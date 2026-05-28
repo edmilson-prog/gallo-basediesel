@@ -36,8 +36,15 @@ export interface ICustomersListFilters {
   ltvRange?: INumericRange;
   vehicleBrands: (VehicleBrandName | "any")[];
   storeIds: ID[];
+  /** Positivation status this month (PRD-044). "all" = no filter. */
+  positivation: PositivationFilter;
+  /** Restrict to customers with the B2B corporate portal provisioned (PRD-071). */
+  hasB2BPortal: boolean;
   search: string;
 }
+
+/** Tri-state positivation filter. */
+export type PositivationFilter = "all" | "positivado" | "nao_positivado";
 
 export const EMPTY_FILTERS: ICustomersListFilters = {
   statuses: [],
@@ -48,6 +55,8 @@ export const EMPTY_FILTERS: ICustomersListFilters = {
   recencyBuckets: [],
   vehicleBrands: [],
   storeIds: [],
+  positivation: "all",
+  hasB2BPortal: false,
   search: "",
 };
 
@@ -82,6 +91,8 @@ export function toListParams(
     ltvRange: filters.ltvRange,
     vehicleBrands: filters.vehicleBrands.length > 0 ? filters.vehicleBrands : undefined,
     storeIds: filters.storeIds.length > 0 ? filters.storeIds : undefined,
+    positivation: filters.positivation === "all" ? undefined : filters.positivation,
+    hasB2BPortal: filters.hasB2BPortal ? true : undefined,
     search: filters.search?.trim() ? filters.search.trim() : undefined,
     orderBy: sort.orderBy,
     orderDir: sort.orderDir,
@@ -101,6 +112,8 @@ export function countActiveFilters(filters: ICustomersListFilters): number {
   if (filters.ltvRange && (filters.ltvRange.min || filters.ltvRange.max)) n += 1;
   if (filters.vehicleBrands.length > 0) n += 1;
   if (filters.storeIds.length > 0) n += 1;
+  if (filters.positivation !== "all") n += 1;
+  if (filters.hasB2BPortal) n += 1;
   return n;
 }
 

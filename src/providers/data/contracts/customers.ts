@@ -36,6 +36,14 @@ export interface IListCustomersParams extends IPaginationParams {
   vehicleBrands?: string[];
   /** Restrict to customers that have at least one vehicle of any of these brands. */
   hasAnyVehicle?: boolean;
+  /**
+   * Positivation filter (PRD-044). "positivado" = the most recent paid purchase
+   * (`lastPurchaseAt`) falls within the current calendar month; "nao_positivado"
+   * is the complement (includes customers with no purchase at all).
+   */
+  positivation?: "positivado" | "nao_positivado";
+  /** Restrict to customers that have the B2B corporate portal provisioned (PRD-071). */
+  hasB2BPortal?: boolean;
   orderBy?:
     | "name"
     | "lastPurchaseAt"

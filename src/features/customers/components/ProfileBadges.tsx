@@ -15,6 +15,18 @@ export interface IProfileBadgesProps {
 }
 
 /**
+ * Positivated this month = the most recent paid purchase falls in the current
+ * calendar month — same definition as the positivation engine (PRD-044).
+ */
+function isPositivatedThisMonth(customer: ICustomer, now: Date = new Date()): boolean {
+  if (!customer.lastPurchaseAt) return false;
+  const t = Date.parse(customer.lastPurchaseAt);
+  if (!Number.isFinite(t)) return false;
+  const last = new Date(t);
+  return last.getFullYear() === now.getFullYear() && last.getMonth() === now.getMonth();
+}
+
+/**
  * Inline strip of status badges on the profile header:
  * - customer type (B2B/B2C)
  * - ABC class when available
@@ -23,6 +35,7 @@ export interface IProfileBadgesProps {
  *   in the parent (which owns the lead data fetch).
  */
 export function ProfileBadges({ customer, preConversionSlot, className }: IProfileBadgesProps) {
+  const positivated = isPositivatedThisMonth(customer);
   return (
     <div className={cn("flex flex-wrap items-center gap-1.5", className)} role="group">
       <span
@@ -54,6 +67,23 @@ export function ProfileBadges({ customer, preConversionSlot, className }: IProfi
         )}
       >
         {CUSTOMER_STRINGS.lifecycle[customer.status]}
+      </span>
+
+      <span
+        className={cn(
+          "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
+          positivated
+            ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"
+            : "bg-muted text-muted-foreground border border-border",
+        )}
+        title={
+          positivated
+            ? "Cliente positivado: comprou neste mês"
+            : "Cliente não positivado neste mês"
+        }
+      >
+        <span aria-hidden>{positivated ? "●" : "○"}</span>
+        {positivated ? "Positivado" : "Não positivado"}
       </span>
 
       {preConversionSlot}

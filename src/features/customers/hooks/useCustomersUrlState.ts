@@ -35,6 +35,8 @@ export interface ICustomersListSearch {
   ltvMax?: number;
   brands?: string;
   stores?: string;
+  pos?: string;
+  b2b?: boolean;
   q?: string;
   orderBy?: string;
   orderDir?: string;
@@ -80,6 +82,8 @@ export function validateCustomersSearch(raw: Record<string, unknown>): ICustomer
   if (numberOrNull(raw.ltvMax) !== null) out.ltvMax = Number(raw.ltvMax);
   if (typeof raw.brands === "string" && raw.brands.length > 0) out.brands = raw.brands;
   if (typeof raw.stores === "string" && raw.stores.length > 0) out.stores = raw.stores;
+  if (raw.pos === "positivado" || raw.pos === "nao_positivado") out.pos = raw.pos;
+  if (raw.b2b === true || raw.b2b === "true") out.b2b = true;
   if (typeof raw.q === "string" && raw.q.length > 0) out.q = raw.q;
   if (typeof raw.orderBy === "string") out.orderBy = raw.orderBy;
   if (typeof raw.orderDir === "string") out.orderDir = raw.orderDir;
@@ -140,6 +144,8 @@ function readFilters(search: ICustomersListSearch): ICustomersListFilters {
       : undefined;
   const type: ICustomersListFilters["type"] =
     search.type === "B2B" || search.type === "B2C" ? search.type : "all";
+  const positivation: ICustomersListFilters["positivation"] =
+    search.pos === "positivado" || search.pos === "nao_positivado" ? search.pos : "all";
   return {
     statuses: parseStatuses(search.status),
     type,
@@ -152,6 +158,8 @@ function readFilters(search: ICustomersListSearch): ICustomersListFilters {
     ltvRange,
     vehicleBrands: parseBrands(search.brands),
     storeIds: splitCsv(search.stores),
+    positivation,
+    hasB2BPortal: search.b2b === true,
     search: search.q ?? "",
   };
 }
@@ -235,6 +243,8 @@ export function useCustomersUrlState(): ICustomersUrlState {
         ltvMax: f.ltvRange?.max,
         brands: joinCsv(f.vehicleBrands),
         stores: joinCsv(f.storeIds),
+        pos: f.positivation === "all" ? undefined : f.positivation,
+        b2b: f.hasB2BPortal ? true : undefined,
         q: f.search?.trim() ? f.search.trim() : undefined,
         page: undefined,
       });
@@ -278,6 +288,8 @@ export function useCustomersUrlState(): ICustomersUrlState {
         ltvMax: undefined,
         brands: undefined,
         stores: undefined,
+        pos: undefined,
+        b2b: undefined,
         segment: undefined,
         page: undefined,
       }),

@@ -15,6 +15,7 @@ import {
   VEHICLE_BRANDS,
   type AbcKey,
   type ICustomersListFilters,
+  type PositivationFilter,
   type VehicleBrandName,
 } from "../../utils/listFilters";
 import type { INumericRange, RecencyBucket } from "@/providers/data";
@@ -120,6 +121,19 @@ export function CustomersFiltersBar({
         onChange={(next) => patch({ recencyBuckets: next as RecencyBucket[] })}
       />
 
+      <SingleSelectPopover
+        label="Positivação"
+        icon="mdi:account-check-outline"
+        value={filters.positivation}
+        options={[
+          { value: "all", label: "Todos" },
+          { value: "positivado", label: "Positivados este mês" },
+          { value: "nao_positivado", label: "Não positivados" },
+        ]}
+        onChange={(next) => patch({ positivation: next })}
+        isActive={filters.positivation !== "all"}
+      />
+
       <RangePopover
         label="Ticket médio"
         icon="mdi:cash-multiple"
@@ -155,6 +169,21 @@ export function CustomersFiltersBar({
         ]}
         onChange={(next) => patch({ vehicleBrands: next as (VehicleBrandName | "any")[] })}
       />
+
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        aria-pressed={filters.hasB2BPortal}
+        onClick={() => patch({ hasB2BPortal: !filters.hasB2BPortal })}
+        className={cn(
+          "h-8 gap-1.5 text-xs",
+          filters.hasB2BPortal && "border-primary/40 bg-primary/5 text-primary",
+        )}
+      >
+        <Icon icon="mdi:account-tie-outline" size={14} />
+        Portal B2B
+      </Button>
 
       {canFilterStore && stores.length > 1 && (
         <MultiSelectPopover
@@ -200,6 +229,8 @@ function countActive(f: ICustomersListFilters): number {
   if (f.ltvRange && (f.ltvRange.min || f.ltvRange.max)) n += 1;
   if (f.vehicleBrands.length > 0) n += 1;
   if (f.storeIds.length > 0) n += 1;
+  if (f.positivation !== "all") n += 1;
+  if (f.hasB2BPortal) n += 1;
   return n;
 }
 
@@ -293,6 +324,73 @@ function MultiSelectPopover<T extends string>({
             </Button>
           </div>
         )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+interface ISingleSelectOption {
+  value: PositivationFilter;
+  label: string;
+}
+
+interface ISingleSelectPopoverProps {
+  label: string;
+  icon: string;
+  value: PositivationFilter;
+  options: ISingleSelectOption[];
+  onChange: (next: PositivationFilter) => void;
+  isActive: boolean;
+}
+
+function SingleSelectPopover({
+  label,
+  icon,
+  value,
+  options,
+  onChange,
+  isActive,
+}: ISingleSelectPopoverProps) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className={cn(
+            "h-8 gap-1.5 text-xs",
+            isActive && "border-primary/40 bg-primary/5 text-primary",
+          )}
+        >
+          <Icon icon={icon} size={14} />
+          {label}
+          {isActive && <span className="text-[10px]">✓</span>}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-[220px] p-2">
+        <div className="space-y-1">
+          {options.map((opt) => {
+            const selected = value === opt.value;
+            return (
+              <button
+                type="button"
+                key={opt.value}
+                onClick={() => onChange(opt.value)}
+                className={cn(
+                  "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-accent hover:text-accent-foreground",
+                  selected && "bg-accent text-accent-foreground",
+                )}
+              >
+                <Icon
+                  icon={selected ? "mdi:radiobox-marked" : "mdi:radiobox-blank"}
+                  size={14}
+                  className={selected ? "text-primary" : "text-muted-foreground"}
+                />
+                <span className="truncate">{opt.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </PopoverContent>
     </Popover>
   );

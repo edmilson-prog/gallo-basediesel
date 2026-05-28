@@ -217,6 +217,11 @@ export function CustomersListPage() {
       recencyBuckets: Array.isArray(raw.recencyBuckets) ? raw.recencyBuckets : [],
       vehicleBrands: Array.isArray(raw.vehicleBrands) ? raw.vehicleBrands : [],
       storeIds: Array.isArray(raw.storeIds) ? raw.storeIds : [],
+      positivation:
+        raw.positivation === "positivado" || raw.positivation === "nao_positivado"
+          ? raw.positivation
+          : "all",
+      hasB2BPortal: raw.hasB2BPortal === true,
       search: typeof raw.search === "string" ? raw.search : "",
     };
   }, [activeSegment]);
@@ -276,6 +281,11 @@ export function CustomersListPage() {
         recencyBuckets: Array.isArray(raw.recencyBuckets) ? raw.recencyBuckets : [],
         vehicleBrands: Array.isArray(raw.vehicleBrands) ? raw.vehicleBrands : [],
         storeIds: Array.isArray(raw.storeIds) ? raw.storeIds : [],
+        positivation:
+          raw.positivation === "positivado" || raw.positivation === "nao_positivado"
+            ? raw.positivation
+            : ("all" as const),
+        hasB2BPortal: raw.hasB2BPortal === true,
         search: typeof raw.search === "string" ? raw.search : "",
       };
       url.setFilters(next);
