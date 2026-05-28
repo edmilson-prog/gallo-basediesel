@@ -88,6 +88,7 @@ export const SALES_ANALYTICS_STRINGS = {
   evolutionKpiGap: "Gap projetado",
   evolutionKpiOfTarget: "da meta",
   evolutionKpiExpectedToday: "esperado hoje",
+  evolutionKpiRealizedPct: "realizado",
   evolutionKpiBelow: "abaixo da meta",
   evolutionKpiAbove: "acima da meta",
 

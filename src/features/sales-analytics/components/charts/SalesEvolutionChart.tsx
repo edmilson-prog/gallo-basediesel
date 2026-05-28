@@ -293,6 +293,7 @@ interface IEvolutionKpisProps {
 function EvolutionKpis({ kpis, hasGoal, isLoading }: IEvolutionKpisProps) {
   if (isLoading) return <Skeleton className="h-20 w-full" />;
   const pctTarget = hasGoal && kpis.target > 0 ? Math.round((kpis.projection / kpis.target) * 100) : null;
+  const pctRealized = hasGoal && kpis.target > 0 ? Math.round((kpis.realized / kpis.target) * 100) : null;
   const below = kpis.gap > 0;
   return (
     <div className="flex flex-wrap gap-2">
@@ -301,7 +302,11 @@ function EvolutionKpis({ kpis, hasGoal, isLoading }: IEvolutionKpisProps) {
         value={formatBRL(kpis.realized)}
         sub={hasGoal ? `${formatBRL(kpis.expectedToday)} ${S.evolutionKpiExpectedToday}` : undefined}
       />
-      <KpiCell label={S.evolutionKpiTarget} value={hasGoal ? formatBRL(kpis.target) : S.evolutionNoGoal} />
+      <KpiCell
+        label={S.evolutionKpiTarget}
+        value={hasGoal ? formatBRL(kpis.target) : S.evolutionNoGoal}
+        sub={pctRealized != null ? `${pctRealized}% ${S.evolutionKpiRealizedPct}` : undefined}
+      />
       <KpiCell
         label={S.evolutionKpiProjection}
         value={formatBRL(kpis.projection)}
