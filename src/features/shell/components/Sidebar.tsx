@@ -96,16 +96,29 @@ export function Sidebar() {
     >
       <div
         className={cn(
-          "flex h-16 items-center border-b border-border px-3",
+          "flex h-16 items-center gap-2 border-b border-border px-3",
           collapsed ? "justify-center" : "justify-between",
         )}
       >
-        {!collapsed && <Logo variant="horizontal" className="h-6" />}
+        {!collapsed && (
+          <div className="flex min-w-0 flex-1 items-center">
+            <img
+              src="/logos/logo-horizontal-black.png"
+              alt="GALLO BASE DIESEL"
+              className="h-auto w-full max-h-12 object-contain object-left dark:hidden"
+            />
+            <img
+              src="/logos/logo-horizontal-white.png"
+              alt="GALLO BASE DIESEL"
+              className="hidden h-auto w-full max-h-12 object-contain object-left dark:block"
+            />
+          </div>
+        )}
         {collapsed && <Logo variant="mark" className="h-6 w-6" />}
         <button
           type="button"
           onClick={() => setCollapsed((c) => !c)}
-          className="ml-auto inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
           aria-label={collapsed ? "Expandir sidebar" : "Recolher sidebar"}
         >
           <Icon icon={collapsed ? "mdi:chevron-right" : "mdi:chevron-left"} size={18} />
