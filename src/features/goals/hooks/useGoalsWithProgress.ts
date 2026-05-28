@@ -74,9 +74,9 @@ export function useGoalsWithProgress(
   const hasError = queries.some((q) => q.isError);
 
   const items = useMemo<IGoalWithProgress[]>(() => {
-    const goals = goalsQuery.data?.items ?? [];
-    const orders = ordersQuery.data?.items ?? [];
-    const customers = customersQuery.data?.items ?? [];
+    const goals = goalsQuery.data?.data ?? [];
+    const orders = ordersQuery.data?.data ?? [];
+    const customers = customersQuery.data?.data ?? [];
 
     const filtered = goals.filter((goal) => {
       if (params.sellerId) {

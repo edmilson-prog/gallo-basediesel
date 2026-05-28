@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 import { Card } from "@/components/ui/card";
@@ -27,7 +28,10 @@ const STATUS_COLORS = {
  * (`/app/gestao/carteira-analitica`).
  */
 export function PortfolioHealthWidget({ storeId, sellerId }: IPortfolioHealthWidgetProps) {
-  const window = resolvePortfolioWindow(DEFAULT_PORTFOLIO_FILTERS);
+  // Compute the rolling window once. Without memoization the `fromIso`
+  // (now - 365d, millisecond precision) changes on every render, churning the
+  // query keys in usePortfolioMetrics and leaving the widget stuck loading.
+  const window = useMemo(() => resolvePortfolioWindow(DEFAULT_PORTFOLIO_FILTERS), []);
   const { metrics, isLoading } = usePortfolioMetrics({
     window,
     scope: { storeId, sellerId },

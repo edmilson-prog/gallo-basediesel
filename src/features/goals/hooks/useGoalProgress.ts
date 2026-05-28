@@ -31,7 +31,7 @@ export function useGoalProgress(goalId: ID | undefined): IUseGoalProgressResult 
     enabled: Boolean(goalId),
   });
 
-  const goal = goalsQuery.data?.items.find((g) => g.id === goalId);
+  const goal = goalsQuery.data?.data.find((g) => g.id === goalId);
 
   const ordersQuery = useQuery({
     queryKey: ["goals", "progress-orders", goal?.storeId, goal?.targetId, goal?.level],
@@ -56,8 +56,8 @@ export function useGoalProgress(goalId: ID | undefined): IUseGoalProgressResult 
   const progress = useMemo(() => {
     if (!goal) return undefined;
     return calculateGoalProgress(goal, {
-      orders: ordersQuery.data?.items ?? [],
-      customers: customersQuery.data?.items ?? [],
+      orders: ordersQuery.data?.data ?? [],
+      customers: customersQuery.data?.data ?? [],
     });
   }, [goal, ordersQuery.data, customersQuery.data]);
 
