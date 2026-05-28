@@ -111,7 +111,7 @@ export function MovementTable({ rows, sellersById, page, onPageChange }: IMoveme
                     )}
                   </td>
                   <td className="px-4 py-3 text-xs text-foreground">
-                    {seller?.name ?? S.rowSystemActor}
+                    {seller?.fullName ?? S.rowSystemActor}
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">
                     <span className="line-clamp-2">{mov.notes ?? ""}</span>

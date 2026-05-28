@@ -101,7 +101,7 @@ export function MovementHeader(props: IMovementHeaderProps) {
           value={props.sellerId}
           onChange={(v) => props.onSellerChange(v)}
           allLabel={S.filtersSellerAll}
-          options={props.sellers.map((s) => ({ value: s.id, label: s.name }))}
+          options={props.sellers.map((s) => ({ value: s.id, label: s.fullName }))}
         />
 
         {props.canFilterStore && (

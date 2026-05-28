@@ -47,7 +47,7 @@ export function AggregatedGoalsDashboard({
 
   const sellerNames = useMemo(() => {
     const map = new Map<string, string>();
-    for (const s of sellers) map.set(s.id, s.name);
+    for (const s of sellers) map.set(s.id, s.fullName);
     return map;
   }, [sellers]);
 

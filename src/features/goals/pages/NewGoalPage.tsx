@@ -119,7 +119,7 @@ export function NewGoalPage() {
 
   const sellersById = useMemo(() => {
     const map = new Map<ID, string>();
-    for (const s of sellers) map.set(s.id, s.name);
+    for (const s of sellers) map.set(s.id, s.fullName);
     return map;
   }, [sellers]);
 
@@ -375,7 +375,7 @@ export function NewGoalPage() {
                   <SelectContent>
                     {sellers.map((s) => (
                       <SelectItem key={s.id} value={s.id}>
-                        {s.name}
+                        {s.fullName}
                       </SelectItem>
                     ))}
                   </SelectContent>

@@ -391,7 +391,7 @@ export function useSalesAnalytics(params: IUseSalesAnalyticsParams): IUseSalesAn
   const sellerNameById = useMemo(() => {
     const map = new Map<ID, string>();
     const items = sellersQuery.data ?? [];
-    for (const s of items) map.set(s.id, s.name);
+    for (const s of items) map.set(s.id, s.fullName);
     return map;
   }, [sellersQuery.data]);
 
