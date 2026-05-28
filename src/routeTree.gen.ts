@@ -132,6 +132,7 @@ import { Route as AppAtendimentoIdRouteImport } from './routes/app.atendimento.$
 import { Route as LojaContaPedidosIndexRouteImport } from './routes/loja.conta.pedidos.index'
 import { Route as LojaContaOrcamentosIndexRouteImport } from './routes/loja.conta.orcamentos.index'
 import { Route as AppGestaoRankingIndexRouteImport } from './routes/app.gestao.ranking.index'
+import { Route as AppGestaoMetasIndexRouteImport } from './routes/app.gestao.metas.index'
 import { Route as AppGestaoComissoesIndexRouteImport } from './routes/app.gestao.comissoes.index'
 import { Route as AppGestaoAtendimentoAnaliseIndexRouteImport } from './routes/app.gestao.atendimento-analise.index'
 import { Route as AppConfiguracoesStorefrontIndexRouteImport } from './routes/app.configuracoes.storefront.index'
@@ -791,6 +792,11 @@ const AppGestaoRankingIndexRoute = AppGestaoRankingIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppGestaoRankingRoute,
 } as any)
+const AppGestaoMetasIndexRoute = AppGestaoMetasIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppGestaoMetasRoute,
+} as any)
 const AppGestaoComissoesIndexRoute = AppGestaoComissoesIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -1074,6 +1080,7 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/storefront/': typeof AppConfiguracoesStorefrontIndexRoute
   '/app/gestao/atendimento-analise/': typeof AppGestaoAtendimentoAnaliseIndexRoute
   '/app/gestao/comissoes/': typeof AppGestaoComissoesIndexRoute
+  '/app/gestao/metas/': typeof AppGestaoMetasIndexRoute
   '/app/gestao/ranking/': typeof AppGestaoRankingIndexRoute
   '/loja/conta/orcamentos/': typeof LojaContaOrcamentosIndexRoute
   '/loja/conta/pedidos/': typeof LojaContaPedidosIndexRoute
@@ -1142,7 +1149,6 @@ export interface FileRoutesByTo {
   '/app/gestao/dre': typeof AppGestaoDreRoute
   '/app/gestao/estoque': typeof AppGestaoEstoqueRoute
   '/app/gestao/estoque-movimentacao': typeof AppGestaoEstoqueMovimentacaoRoute
-  '/app/gestao/metas': typeof AppGestaoMetasRouteWithChildren
   '/app/gestao/positivacao': typeof AppGestaoPositivacaoRouteWithChildren
   '/app/gestao/rentabilidade': typeof AppGestaoRentabilidadeRoute
   '/app/gestao/vendas': typeof AppGestaoVendasRoute
@@ -1202,6 +1208,7 @@ export interface FileRoutesByTo {
   '/app/configuracoes/storefront': typeof AppConfiguracoesStorefrontIndexRoute
   '/app/gestao/atendimento-analise': typeof AppGestaoAtendimentoAnaliseIndexRoute
   '/app/gestao/comissoes': typeof AppGestaoComissoesIndexRoute
+  '/app/gestao/metas': typeof AppGestaoMetasIndexRoute
   '/app/gestao/ranking': typeof AppGestaoRankingIndexRoute
   '/loja/conta/orcamentos': typeof LojaContaOrcamentosIndexRoute
   '/loja/conta/pedidos': typeof LojaContaPedidosIndexRoute
@@ -1352,6 +1359,7 @@ export interface FileRoutesById {
   '/app/configuracoes/storefront/': typeof AppConfiguracoesStorefrontIndexRoute
   '/app/gestao/atendimento-analise/': typeof AppGestaoAtendimentoAnaliseIndexRoute
   '/app/gestao/comissoes/': typeof AppGestaoComissoesIndexRoute
+  '/app/gestao/metas/': typeof AppGestaoMetasIndexRoute
   '/app/gestao/ranking/': typeof AppGestaoRankingIndexRoute
   '/loja/conta/orcamentos/': typeof LojaContaOrcamentosIndexRoute
   '/loja/conta/pedidos/': typeof LojaContaPedidosIndexRoute
@@ -1503,6 +1511,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/storefront/'
     | '/app/gestao/atendimento-analise/'
     | '/app/gestao/comissoes/'
+    | '/app/gestao/metas/'
     | '/app/gestao/ranking/'
     | '/loja/conta/orcamentos/'
     | '/loja/conta/pedidos/'
@@ -1571,7 +1580,6 @@ export interface FileRouteTypes {
     | '/app/gestao/dre'
     | '/app/gestao/estoque'
     | '/app/gestao/estoque-movimentacao'
-    | '/app/gestao/metas'
     | '/app/gestao/positivacao'
     | '/app/gestao/rentabilidade'
     | '/app/gestao/vendas'
@@ -1631,6 +1639,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/storefront'
     | '/app/gestao/atendimento-analise'
     | '/app/gestao/comissoes'
+    | '/app/gestao/metas'
     | '/app/gestao/ranking'
     | '/loja/conta/orcamentos'
     | '/loja/conta/pedidos'
@@ -1780,6 +1789,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/storefront/'
     | '/app/gestao/atendimento-analise/'
     | '/app/gestao/comissoes/'
+    | '/app/gestao/metas/'
     | '/app/gestao/ranking/'
     | '/loja/conta/orcamentos/'
     | '/loja/conta/pedidos/'
@@ -2660,6 +2670,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppGestaoRankingIndexRouteImport
       parentRoute: typeof AppGestaoRankingRoute
     }
+    '/app/gestao/metas/': {
+      id: '/app/gestao/metas/'
+      path: '/'
+      fullPath: '/app/gestao/metas/'
+      preLoaderRoute: typeof AppGestaoMetasIndexRouteImport
+      parentRoute: typeof AppGestaoMetasRoute
+    }
     '/app/gestao/comissoes/': {
       id: '/app/gestao/comissoes/'
       path: '/'
@@ -3006,11 +3023,13 @@ const AppGestaoComissoesRouteWithChildren =
 interface AppGestaoMetasRouteChildren {
   AppGestaoMetasIdRoute: typeof AppGestaoMetasIdRoute
   AppGestaoMetasNovaRoute: typeof AppGestaoMetasNovaRoute
+  AppGestaoMetasIndexRoute: typeof AppGestaoMetasIndexRoute
 }
 
 const AppGestaoMetasRouteChildren: AppGestaoMetasRouteChildren = {
   AppGestaoMetasIdRoute: AppGestaoMetasIdRoute,
   AppGestaoMetasNovaRoute: AppGestaoMetasNovaRoute,
+  AppGestaoMetasIndexRoute: AppGestaoMetasIndexRoute,
 }
 
 const AppGestaoMetasRouteWithChildren = AppGestaoMetasRoute._addFileChildren(
