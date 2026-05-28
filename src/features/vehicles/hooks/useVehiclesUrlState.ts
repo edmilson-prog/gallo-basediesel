@@ -2,6 +2,7 @@ import { useCallback, useMemo } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import type { ID, VehicleCadastroStatus } from "@/shared/types";
 import type { VehiclesOrderBy, VehiclesOrderDir } from "@/providers/data";
+import { usePersistedListSearch } from "@/shared/hooks/usePersistedListSearch";
 import {
   CADASTRO_STATUS_KEYS,
   DEFAULT_PAGE_SIZE,
@@ -34,6 +35,10 @@ export interface IVehiclesListSearch {
 
 const VALID_ORDER_BY = new Set<VehiclesOrderBy>([
   "brand",
+  "engine",
+  "plate",
+  "seller",
+  "cadastroStatus",
   "createdAt",
   "lastServiceAt",
   "currentKm",
@@ -41,6 +46,8 @@ const VALID_ORDER_BY = new Set<VehiclesOrderBy>([
   "customerName",
 ]);
 const VALID_ORDER_DIR = new Set<VehiclesOrderDir>(["asc", "desc"]);
+
+const LIST_SEARCH_STORAGE_KEY = "gallo-vehicles-list-search";
 const VALID_STATUS = new Set<VehicleCadastroStatus>(CADASTRO_STATUS_KEYS);
 const VALID_BRANDS = new Set<string>(VEHICLE_BRANDS);
 
@@ -155,6 +162,10 @@ export function useVehiclesUrlState(): IVehiclesUrlState {
   const filters = useMemo(() => readFilters(search), [search]);
   const sort = useMemo(() => readSort(search), [search]);
   const { page, pageSize } = useMemo(() => readPage(search), [search]);
+
+  usePersistedListSearch(LIST_SEARCH_STORAGE_KEY, search as Record<string, unknown>, (saved) => {
+    void navigate({ search: () => saved as unknown as IVehiclesListSearch, replace: true });
+  });
 
   const apply = useCallback(
     (patch: Partial<IVehiclesListSearch>) => {

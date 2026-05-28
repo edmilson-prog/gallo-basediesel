@@ -1,6 +1,7 @@
 import type { ID, IVehicle, IVehicleServiceEntry } from "@/shared/types";
 import {
   selectAllCustomers,
+  selectAllSellers,
   selectAllVehicles,
   selectVehicleById,
   selectVehiclesByCustomer,
@@ -16,6 +17,10 @@ import {
 
 export type VehiclesOrderBy =
   | "brand"
+  | "engine"
+  | "plate"
+  | "seller"
+  | "cadastroStatus"
   | "createdAt"
   | "lastServiceAt"
   | "currentKm"
@@ -52,6 +57,12 @@ function getCustomerSellerId(customerId: ID): ID | null {
   return customer?.sellerId ?? null;
 }
 
+function getCustomerSellerName(customerId: ID): string {
+  const sellerId = getCustomerSellerId(customerId);
+  if (!sellerId) return "";
+  return selectAllSellers().find((s) => s.id === sellerId)?.fullName ?? "";
+}
+
 function getCustomerStoreId(customerId: ID): ID | null {
   const customer = selectAllCustomers().find((c) => c.id === customerId);
   return customer?.storeId ?? null;
@@ -77,6 +88,15 @@ function compareVehicles(
       const cmp = a.brand.localeCompare(b.brand) || a.model.localeCompare(b.model);
       return cmp * mult;
     }
+    case "engine":
+      return a.engine.localeCompare(b.engine) * mult;
+    case "plate":
+      return (a.plate ?? "").localeCompare(b.plate ?? "") * mult;
+    case "seller":
+      return getCustomerSellerName(a.customerId).localeCompare(getCustomerSellerName(b.customerId)) *
+        mult;
+    case "cadastroStatus":
+      return a.cadastroStatus.localeCompare(b.cadastroStatus) * mult;
     case "createdAt":
       return a.createdAt.localeCompare(b.createdAt) * mult;
     case "lastServiceAt":
