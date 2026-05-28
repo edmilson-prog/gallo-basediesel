@@ -16,9 +16,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useAuth } from "@/features/auth/useAuth";
 import { PART_CATEGORY_DESCRIPTORS } from "@/features/catalog";
 import { CartMiniPreview } from "@/features/storefront-cart/components/CartMiniPreview";
+import { CustomerAccountMenu } from "@/features/storefront-account/components/CustomerAccountMenu";
 import { selectCartCount, useCartStore } from "../store/cartStore";
 import { STOREFRONT_STRINGS as S } from "../i18n/pt-BR";
 
@@ -49,7 +49,6 @@ export function dispatchFocusSearch(): void {
  */
 export function StorefrontHeader({ brands }: IStorefrontHeaderProps) {
   const navigate = useNavigate();
-  const { isAuthenticated, currentUser } = useAuth();
   const cartCount = useCartStore(selectCartCount);
 
   const searchInputRef = useRef<HTMLInputElement | null>(null);
@@ -152,34 +151,7 @@ export function StorefrontHeader({ brands }: IStorefrontHeaderProps) {
           </form>
 
           <div className="ml-auto flex items-center gap-1">
-            {isAuthenticated ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                asChild
-                className="hidden gap-2 text-sm sm:inline-flex"
-              >
-                <Link to="/loja/conta">
-                  <Icon icon="mdi:account-circle-outline" size={20} />
-                  <span className="hidden md:inline">
-                    {currentUser?.displayName ?? S.headerAccount}
-                  </span>
-                </Link>
-              </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                asChild
-                className="hidden gap-2 text-sm sm:inline-flex"
-              >
-                <Link to="/loja/conta">
-                  <Icon icon="mdi:login" size={18} />
-                  {S.headerLogin}
-                </Link>
-              </Button>
-            )}
-
+            <CustomerAccountMenu />
             <CartHeaderButton cartCount={cartCount} />
           </div>
         </div>

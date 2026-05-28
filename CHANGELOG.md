@@ -4,6 +4,73 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.44.0] — Passport · 2026-05-27
+
+Sexta entrega do **Bloco 5 (E-commerce / Onda 3)** com o **PRD-065 — Conta do
+Cliente**. Cria a área logada do storefront em `/loja/conta/*` com sistema de
+autenticação mock **independente** do auth interno (PRD-006): login, cadastro
+B2B/B2C, dashboard, histórico de pedidos e orçamentos, perfil, endereços
+salvos e veículos da frota (B2B). A sessão persiste em Zustand + localStorage
+(expiração de 30 dias) e a estrutura foi desenhada para troca drop-in por
+Supabase Auth na Fase 2. O header da loja passa a exibir avatar + dropdown
+quando logado, e o checkout (PRD-064) reconhece o cliente autenticado —
+pré-popula a identificação e oferece endereços salvos para seleção.
+
+### Added
+
+- **Feature `storefront-account`** com páginas, hooks, store e i18n próprios:
+  - `store/customerAuthStore.ts` — Zustand persistido (`gallo-storefront-
+    customer-auth`) com sessão, snapshot do `ICustomer` e endereços salvos
+    multi-registro por cliente; seletor `selectIsCustomerAuthenticated` e
+    `readCustomerSessionSync` para guards de rota.
+  - `hooks/useCustomerAuth.ts` — `login` (busca `ICustomer` por e-mail no
+    provider, aceita qualquer senha), `register` (cria `ICustomer` B2B/B2C +
+    login automático, bloqueia e-mail duplicado), `logout` e `updateProfile`,
+    todos com audit log (`customer_signin`/`register`/`signout`/`update`).
+  - `pages/LoginPage.tsx` — formulário e-mail/senha, link recuperar senha,
+    "continuar como visitante" e banner de modo demonstração.
+  - `pages/RegisterPage.tsx` — toggle B2B/B2C com campos condicionais,
+    validação de CPF/CNPJ/e-mail/telefone/senha e checkbox LGPD obrigatório.
+  - `pages/PasswordRecoveryPage.tsx` — placeholder com banner de demonstração
+    e toast de instruções enviadas.
+  - `pages/AccountDashboardPage.tsx` — saudação + cards de pedidos,
+    orçamentos, perfil, endereços e veículos (B2B) com contagens.
+  - `pages/AccountOrdersPage.tsx` — lista de pedidos do cliente com filtros
+    (todos/em andamento/concluídos/cancelados) e `OrderStatusBadge`.
+  - `pages/AccountOrderDetailPage.tsx` — detalhe simplificado com itens,
+    endereço, pagamento, totais, **"Repetir pedido"** (adiciona itens ao
+    carrinho) e **"Falar sobre este pedido"** (link WhatsApp).
+  - `pages/AccountQuotesPage.tsx` + `AccountQuoteDetailPage.tsx` — histórico
+    de orçamentos e detalhe com **aceite** (status `aceito` → cria pedido via
+    `createOrderFromQuote`, origin `ecommerce`).
+  - `pages/AccountProfilePage.tsx` — edição de dados (condicional B2B/B2C),
+    troca de senha mock e preferência de newsletter (placeholder).
+  - `pages/AccountAddressesPage.tsx` + `AddressFormModal.tsx` — CRUD de
+    endereços salvos com busca ViaCEP, marcar como padrão e remoção.
+  - `pages/AccountVehiclesPage.tsx` — frota do cliente B2B reutilizando
+    `NewVehicleModal`/`EditVehicleModal` do PRD-016 (B2C é redirecionado).
+  - `components/AccountLayout.tsx` + `AccountSidebar.tsx` — shell sidebar +
+    main responsivo (drawer no mobile) com navegação e logout.
+  - `components/CustomerAccountMenu.tsx` — controle de sessão no header
+    (avatar + dropdown logado; "Entrar" anônimo).
+  - `guards.ts` — `requireCustomerSession` redireciona visitantes para
+    `/loja/login?return=…`.
+- **Rotas** `/loja/login`, `/loja/cadastro`, `/loja/recuperar-senha` e
+  `/loja/conta/*` (dashboard, pedidos + detalhe, orçamentos + detalhe, perfil,
+  endereços, veículos), com guard de sessão no layout `/loja/conta`.
+
+### Changed
+
+- **`StorefrontHeader`** (PRD-060) passa a consumir `CustomerAccountMenu`
+  (sessão do cliente) no lugar do auth interno de staff.
+- **Checkout (PRD-064)** integra a sessão do cliente:
+  - `IdentificationStep` reconhece o cliente logado via `useCustomerAuth`,
+    pré-popula identificação e vincula `customerId` ao pedido.
+  - `AddressStep` lista endereços salvos do cliente para seleção rápida e
+    persiste novos endereços quando "salvar para depois" está marcado.
+  - `IRegisteredIdentity` ganha `customerId`; `createOrderFromCart` passa a
+    anexar o pedido ao `ICustomer` existente em vez de criar visitante.
+
 ## [0.43.0] — Checkout · 2026-05-27
 
 Quinta entrega do **Bloco 5 (E-commerce / Onda 3)** com o **PRD-064 —
@@ -52,8 +119,8 @@ expor mini-preview do carrinho via popover.
 - **Hooks** (`src/features/storefront-cart/hooks/`):
   - `useCheckoutState` — máquina de 3 passos com `canAdvance` por etapa.
   - `useCartShipping` — combina `useViaCep` + `calculateShipping` (PRD-033)
-    + `IPlatformSettings.shipping` para retornar valor numérico ou
-    "a combinar".
+    - `IPlatformSettings.shipping` para retornar valor numérico ou
+      "a combinar".
   - `useCartValidation` — fingerprint-based: ao mutar o carrinho ou
     chegar com itens persistidos, valida cada linha contra o catálogo,
     remove peças inativas/zeradas e clampa quantidades acima do estoque,

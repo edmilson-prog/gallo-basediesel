@@ -497,9 +497,9 @@ ENTÃO resumo abaixo dos items
 
 ## Status
 
-| Campo  | Valor                                  |
-| ------ | -------------------------------------- |
-| Status | ✅ CONCLUÍDO (v0.43.0 — Checkout)      |
+| Campo  | Valor                             |
+| ------ | --------------------------------- |
+| Status | ✅ CONCLUÍDO (v0.43.0 — Checkout) |
 
 ---
 

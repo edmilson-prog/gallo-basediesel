@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Icon } from "@/components/Icon";
-import { useAuth } from "@/features/auth/useAuth";
+import { useCustomerAuth } from "@/features/storefront-account/hooks/useCustomerAuth";
+import { getCustomerName } from "@/features/customers/utils/customerDisplay";
 import type { CheckoutIdentity } from "../../hooks/useCheckoutState";
 import { STOREFRONT_CART_STRINGS as S } from "../../i18n/pt-BR";
 
@@ -69,7 +70,7 @@ function maskPhone(raw: string): string {
  * validation for CPF/CNPJ/email/phone.
  */
 export function IdentificationStep({ value, onChange }: IIdentificationStepProps) {
-  const { isAuthenticated, currentUser } = useAuth();
+  const { isAuthenticated, customer } = useCustomerAuth();
   const [mode, setMode] = useState<"choose" | "guest">(
     value?.kind === "guest" ? "guest" : "choose",
   );
@@ -87,18 +88,21 @@ export function IdentificationStep({ value, onChange }: IIdentificationStepProps
   });
   const [errors, setErrors] = useState<Partial<Record<keyof IGuestFormState, string>>>({});
 
-  // Logged-in users skip the form entirely.
-  if (isAuthenticated && currentUser) {
-    if (value?.kind !== "registered" || value.userId !== currentUser.id) {
+  // Logged-in customers skip the form entirely.
+  if (isAuthenticated && customer) {
+    const customerName = getCustomerName(customer);
+    if (value?.kind !== "registered" || value.customerId !== customer.id) {
       onChange({
         kind: "registered",
-        userId: currentUser.id,
-        displayName: currentUser.displayName,
+        userId: customer.id,
+        customerId: customer.id,
+        displayName: customerName,
+        email: customer.email,
       });
     }
     return (
       <Card className="space-y-2 border-primary/30 bg-primary/5 p-5">
-        <p className="text-sm text-foreground">{S.idLoggedAs(currentUser.displayName)}</p>
+        <p className="text-sm text-foreground">{S.idLoggedAs(customerName)}</p>
         <p className="text-xs text-muted-foreground">{S.idLoggedHint}</p>
       </Card>
     );

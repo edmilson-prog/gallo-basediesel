@@ -8,7 +8,7 @@ import { useCartStore, selectCartSubtotal } from "@/features/storefront/store/ca
 import { useSeoMeta } from "@/features/storefront/hooks/useSeoMeta";
 import { useCustomersProvider, useOrdersProvider, useSellersProvider } from "@/providers/data";
 import { createOrderFromCart } from "@/features/orders/api/createOrderFromCart";
-import { useAuth } from "@/features/auth/useAuth";
+import { useCustomerAuth } from "@/features/storefront-account/hooks/useCustomerAuth";
 import { useState } from "react";
 import { CheckoutStepper } from "../components/checkout/CheckoutStepper";
 import { IdentificationStep } from "../components/checkout/IdentificationStep";
@@ -36,7 +36,7 @@ export function CheckoutPage() {
   const clear = useCartStore((s) => s.clear);
   const checkout = useCheckoutState();
   const shipping = useCartShipping();
-  const auth = useAuth();
+  const auth = useCustomerAuth();
   const ordersProvider = useOrdersProvider();
   const customersProvider = useCustomersProvider();
   const sellersProvider = useSellersProvider();
@@ -89,11 +89,16 @@ export function CheckoutPage() {
           identity: {
             kind: checkout.identity.kind,
             userId: checkout.identity.kind === "registered" ? checkout.identity.userId : undefined,
+            customerId:
+              checkout.identity.kind === "registered" ? checkout.identity.customerId : undefined,
             fullName:
               checkout.identity.kind === "guest"
                 ? checkout.identity.fullName
                 : checkout.identity.displayName,
-            email: checkout.identity.kind === "guest" ? checkout.identity.email : "",
+            email:
+              checkout.identity.kind === "guest"
+                ? checkout.identity.email
+                : (checkout.identity.email ?? ""),
             phone: checkout.identity.kind === "guest" ? checkout.identity.phone : "",
             docType: checkout.identity.kind === "guest" ? checkout.identity.docType : undefined,
             doc: checkout.identity.kind === "guest" ? checkout.identity.doc : undefined,
@@ -105,7 +110,7 @@ export function CheckoutPage() {
           ordersProvider,
           customersProvider,
           sellersProvider,
-          actorId: auth.currentUser?.id,
+          actorId: auth.customer?.id,
         },
       );
       clear();

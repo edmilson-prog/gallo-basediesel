@@ -16,6 +16,8 @@ export interface IRegisteredIdentity {
   kind: "registered";
   /** Reference to the authenticated session — populated when `useAuth().currentUser` is present. */
   userId: string;
+  /** Customer record id, when the session maps to an `ICustomer` (storefront login). */
+  customerId?: string;
   displayName: string;
   email?: string;
 }

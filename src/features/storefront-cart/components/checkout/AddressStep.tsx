@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Icon } from "@/components/Icon";
-import { useAuth } from "@/features/auth/useAuth";
+import { useCustomerAuth } from "@/features/storefront-account/hooks/useCustomerAuth";
+import { useCustomerAuthStore } from "@/features/storefront-account/store/customerAuthStore";
 import type { ICheckoutAddress } from "../../hooks/useCheckoutState";
 import { formatZip, isValidZip, useViaCep } from "../../hooks/useViaCep";
 import { STOREFRONT_CART_STRINGS as S } from "../../i18n/pt-BR";
@@ -35,7 +36,11 @@ const EMPTY_ADDRESS: ICheckoutAddress = {
  * toggle is disabled for guests with a tooltip.
  */
 export function AddressStep({ value, onChange }: IAddressStepProps) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, customer } = useCustomerAuth();
+  const savedAddresses = useCustomerAuthStore((s) =>
+    customer ? (s.savedAddresses[customer.id] ?? []) : [],
+  );
+  const addSavedAddress = useCustomerAuthStore((s) => s.addSavedAddress);
   const viaCep = useViaCep();
   const [form, setForm] = useState<ICheckoutAddress>(value ?? EMPTY_ADDRESS);
   const [errors, setErrors] = useState<Partial<Record<keyof ICustomerAddress, string>>>({});
@@ -70,6 +75,11 @@ export function AddressStep({ value, onChange }: IAddressStepProps) {
     if (!form.state.trim()) next.state = S.errRequired;
     setErrors(next);
     if (Object.keys(next).length > 0) return;
+    if (form.saveForLater && isAuthenticated && customer) {
+      const { saveForLater, ...address } = form;
+      void saveForLater;
+      addSavedAddress(customer.id, address);
+    }
     onChange(form);
   };
 
@@ -81,6 +91,42 @@ export function AddressStep({ value, onChange }: IAddressStepProps) {
           Informe o endereço completo para emitir a nota e calcular o frete.
         </p>
       </div>
+
+      {savedAddresses.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            {S.addressSavedHeading}
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {savedAddresses.map((saved) => (
+              <button
+                key={saved.id}
+                type="button"
+                onClick={() =>
+                  setForm({
+                    zipCode: saved.zipCode,
+                    street: saved.street,
+                    number: saved.number,
+                    complement: saved.complement,
+                    district: saved.district,
+                    city: saved.city,
+                    state: saved.state,
+                    saveForLater: false,
+                  })
+                }
+                className="rounded-md border border-border p-3 text-left text-xs transition-colors hover:border-primary/40 hover:bg-muted/40"
+              >
+                <span className="block font-medium text-foreground">
+                  {saved.label ?? `${saved.city}/${saved.state}`}
+                </span>
+                <span className="block text-muted-foreground">
+                  {saved.street}, {saved.number} · {saved.district}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-[12rem_1fr]">
         <Field label={S.addressZipLabel} error={errors.zipCode}>
