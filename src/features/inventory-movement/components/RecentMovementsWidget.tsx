@@ -104,7 +104,7 @@ export function RecentMovementsWidget({
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-foreground">{mov.partName}</p>
                   <p className="truncate text-[11px] text-muted-foreground">
-                    {seller?.name ?? S.rowSystemActor} ·{" "}
+                    {seller?.fullName ?? S.rowSystemActor} ·{" "}
                     {formatRelativeTimeBR(mov.performedAt) ?? mov.performedAt}
                   </p>
                 </div>

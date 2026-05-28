@@ -108,7 +108,7 @@ export function GoalsFiltersBar({
   const sellerLabel =
     filters.seller === "all"
       ? S.filterAllSellers
-      : (sellers.find((s) => s.id === filters.seller)?.name ?? filters.seller);
+      : (sellers.find((s) => s.id === filters.seller)?.fullName ?? filters.seller);
   const storeLabel =
     filters.store === "all"
       ? S.filterAllStores
@@ -219,7 +219,7 @@ export function GoalsFiltersBar({
             <DropdownMenuRadioItem value="all">{S.filterAllSellers}</DropdownMenuRadioItem>
             {sellers.map((seller) => (
               <DropdownMenuRadioItem key={seller.id} value={seller.id}>
-                {seller.name}
+                {seller.fullName}
               </DropdownMenuRadioItem>
             ))}
           </DropdownMenuRadioGroup>

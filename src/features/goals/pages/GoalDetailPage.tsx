@@ -30,7 +30,7 @@ export function GoalDetailPage() {
     let cancelled = false;
     void sellersProvider.get(goal.targetId).then(
       (seller) => {
-        if (!cancelled) setSellerName(seller.name);
+        if (!cancelled) setSellerName(seller.fullName);
       },
       () => {
         if (!cancelled) setSellerName(undefined);
