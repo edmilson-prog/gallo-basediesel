@@ -376,9 +376,9 @@ ENTÃO drawer abre com filtros
 
 ## Status
 
-| Campo  | Valor       |
-| ------ | ----------- |
-| Status | ⏳ PENDENTE |
+| Campo  | Valor                               |
+| ------ | ----------------------------------- |
+| Status | ✅ CONCLUÍDO — v0.40.0 (Lighthouse) |
 
 ---
 
@@ -387,6 +387,7 @@ ENTÃO drawer abre com filtros
 | Data       | Versão | Alteração                                                                        |
 | ---------- | ------ | -------------------------------------------------------------------------------- |
 | 25/05/2026 | v1     | Criação inicial — busca avançada com filtro por veículo, auto-complete, URL sync |
+| 27/05/2026 | v1.1   | Implementação concluída — SearchResultsPage com 6 filtros laterais, VehicleFilter cascateado das aplicações reais, auto-complete debounced (produtos+categorias+marcas), 5 ordenações, paginação 24/pg, URL sync, mobile drawer, empty state com CTA WhatsApp, ProductCard reutilizável, version bump 0.40.0 (Lighthouse) |
 
 ---
 

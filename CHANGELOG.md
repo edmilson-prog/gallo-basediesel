@@ -4,6 +4,74 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.40.0] — Lighthouse · 2026-05-27
+
+Segunda entrega do **Bloco 5 (E-commerce / Onda 3)** com o **PRD-061 — Busca
+Avançada**. A rota `/loja/busca` evolui do placeholder para uma página completa
+de catálogo público: input com auto-complete debounced, 6 filtros laterais
+(incluindo identificação por veículo cascateada Marca → Modelo → Ano derivada
+das aplicações reais do catálogo), 5 ordenações, paginação de 24 itens por
+página, URL sync total, drawer de filtros no mobile e estado vazio com CTA
+WhatsApp consumindo o telefone configurado em `IPlatformSettings.storefront`.
+
+### Added
+
+- **Engine de busca** (`useSearchResults`):
+  - Reutiliza `findByOemCode`, `searchPartsByText` e
+    `searchPartsByApplication` do PRD-030 (sem duplicação).
+  - Combina veículo + texto + filtros sidebar de forma aditiva (AND).
+  - Ordenação `top-selling` busca pedidos pagos dos últimos 90 dias para
+    rankear; demais ordens são puras sobre o array filtrado.
+
+- **URL sync completo** (`useSearchFilters`):
+  - 12 query params validados (`q`, `marca`, `categoria`, `fabricante`,
+    `tipo`, `preco_min`, `preco_max`, `estoque`, `veiculo_marca`,
+    `veiculo_modelo`, `veiculo_ano`, `sort`, `page`).
+  - Multi-select via CSV; reset clear all; setters dedicados por filtro.
+
+- **Componentes** (`src/features/storefront-search/components/`):
+  - `ProductCard` reutilizável (será consumido também pelo PRD-062 e a
+    home PRD-060 quando precisar) com badge Original/Equivalente, OEM,
+    StockBadge compacto, preço destacado e botão "Adicionar ao carrinho"
+    integrado ao `useCartStore`.
+  - `SearchHeader` com input grande, auto-complete dropdown (até 5
+    produtos + 2 categorias + 1 marca) com debounce de 300ms via
+    `useAutoComplete`.
+  - `SearchFilters` (sidebar) com VehicleFilter destacado, radio de
+    marca compatível, multi-select de categorias e fabricantes, radio
+    de tipo (Original/Equivalente), range de preço, switch de estoque.
+  - `VehicleFilter` cascateado derivado das aplicações reais (não usa
+    catálogo de veículos hard-coded — sempre alinhado com peças que
+    existem).
+  - `MobileFiltersSheet` envolvendo os mesmos filtros num Sheet
+    slide-from-left + botão "Ver resultados" com contagem.
+  - `SearchPagination` com Anterior/Próxima e label "Página X de Y".
+  - `EmptySearchState` com CTA WhatsApp dinâmico extraído da config da
+    vitrine + sugestões inline (limpar filtros, buscar OEM).
+
+- **Página `/loja/busca`** (`SearchResultsPage`) — orquestra tudo,
+  injeta `useSeoMeta` com title dinâmico (`<query> — Busca · GALLO PARTS`)
+  e renderiza grid responsivo 1/2/3 colunas.
+
+- **Auto-complete** (`useAutoComplete`):
+  - Debounce 300ms; ignora queries < 2 caracteres.
+  - Mix: produtos (match em nome/SKU/OEM), categorias (PartCategory),
+    marcas de veículo presentes no catálogo.
+  - Click em produto navega para `/loja/produto/:slug`; em categoria
+    aplica filtro; em marca seta `marca`.
+
+### Changed
+
+- `/loja/busca` deixa de ser placeholder — passa a usar
+  `SearchResultsPage` com `validateSearch` do feature barrel.
+
+### Compatibilidade Fase 2
+
+- Engine puro (todas as funções de busca) — substituível por chamada a
+  Postgres + RPC sem refatorar consumidores.
+- `manualPartIds` da home (PRD-060) e o ProductCard compartilhado abrem
+  caminho para PRD-062 (Listagem por categoria) reaproveitar 80% do código.
+
 ## [0.39.0] — Showcase · 2026-05-27
 
 Início do **Bloco 5 (E-commerce / Onda 3)** com a entrega do **PRD-060 — Home /
