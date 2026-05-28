@@ -164,42 +164,38 @@ export function SalesEvolutionChart({ scope, canDrillDown }: ISalesEvolutionChar
                 label={{ value: S.evolutionToday, position: "insideTopRight", fontSize: 11, fill: "var(--muted-foreground)" }}
               />
 
-              {!bySeller ? (
-                <>
-                  {visible.anoPassado && (
-                    <Line type="monotone" dataKey="anoPassado" stroke={SERIES_META.anoPassado.color} strokeWidth={1.5} strokeDasharray="2 3" dot={false} connectNulls />
-                  )}
-                  {visible.mesPassado && (
-                    <Line type="monotone" dataKey="mesPassado" stroke={SERIES_META.mesPassado.color} strokeWidth={1.5} strokeDasharray="5 4" dot={false} connectNulls />
-                  )}
-                  {visible.objetivo && (
-                    <Line type="linear" dataKey="objetivo" stroke={SERIES_META.objetivo.color} strokeWidth={2.5} dot={false} connectNulls />
-                  )}
-                  {visible.previsao && (
-                    <Line type="monotone" dataKey="previsao" stroke={SERIES_META.previsao.color} strokeWidth={2.5} strokeDasharray="6 4" dot={false} />
-                  )}
-                  {visible.vendas && (
-                    <Area type="monotone" dataKey="vendas" stroke={SERIES_META.vendas.color} strokeWidth={3} fill="url(#evolutionVendas)" dot={{ r: 3, fill: SERIES_META.vendas.color }} activeDot={{ r: 5 }} />
-                  )}
-                </>
-              ) : (
-                <>
-                  {visible.objetivo && (
-                    <Line type="linear" dataKey="objetivo" stroke={SERIES_META.objetivo.color} strokeWidth={2} strokeDasharray="5 4" dot={false} connectNulls />
-                  )}
-                  {sellerSeries.map((s, i) => (
-                    <Line
-                      key={s.sellerId}
-                      type="monotone"
-                      dataKey={s.sellerName}
-                      name={s.sellerName}
-                      stroke={SELLER_COLORS[i % SELLER_COLORS.length] ?? SELLER_COLORS[0]}
-                      strokeWidth={2.5}
-                      dot={false}
-                    />
-                  ))}
-                </>
+              {/* Series are rendered as DIRECT children of ComposedChart — Recharts
+                  does not recurse into React Fragments to discover data series. */}
+              {!bySeller && visible.anoPassado && (
+                <Line type="monotone" dataKey="anoPassado" stroke={SERIES_META.anoPassado.color} strokeWidth={1.5} strokeDasharray="2 3" dot={false} connectNulls />
               )}
+              {!bySeller && visible.mesPassado && (
+                <Line type="monotone" dataKey="mesPassado" stroke={SERIES_META.mesPassado.color} strokeWidth={1.5} strokeDasharray="5 4" dot={false} connectNulls />
+              )}
+              {!bySeller && visible.objetivo && (
+                <Line type="linear" dataKey="objetivo" stroke={SERIES_META.objetivo.color} strokeWidth={2.5} dot={false} connectNulls />
+              )}
+              {!bySeller && visible.previsao && (
+                <Line type="monotone" dataKey="previsao" stroke={SERIES_META.previsao.color} strokeWidth={2.5} strokeDasharray="6 4" dot={false} />
+              )}
+              {!bySeller && visible.vendas && (
+                <Area type="monotone" dataKey="vendas" stroke={SERIES_META.vendas.color} strokeWidth={3} fill="url(#evolutionVendas)" dot={{ r: 3, fill: SERIES_META.vendas.color }} activeDot={{ r: 5 }} />
+              )}
+              {bySeller && visible.objetivo && (
+                <Line type="linear" dataKey="objetivo" stroke={SERIES_META.objetivo.color} strokeWidth={2} strokeDasharray="5 4" dot={false} connectNulls />
+              )}
+              {bySeller &&
+                sellerSeries.map((s, i) => (
+                  <Line
+                    key={s.sellerId}
+                    type="monotone"
+                    dataKey={s.sellerName}
+                    name={s.sellerName}
+                    stroke={SELLER_COLORS[i % SELLER_COLORS.length] ?? SELLER_COLORS[0]}
+                    strokeWidth={2.5}
+                    dot={false}
+                  />
+                ))}
             </ComposedChart>
           </ResponsiveContainer>
         </div>
