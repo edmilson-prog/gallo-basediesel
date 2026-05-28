@@ -35,6 +35,12 @@ export interface IConversation {
   /** Whether the SDR agent is currently driving this conversation. */
   isSdrActive: boolean;
   tags: string[];
+  /**
+   * Order this conversation was opened to follow up (PRD-067 RF-006). Set when
+   * the conversation is auto-created from an e-commerce order; drives the
+   * "Conversa criada via E-commerce" banner and the order deep-link.
+   */
+  linkedOrderId?: ID;
   lastMessageAt: ISO8601;
   unreadCount: number;
   createdAt: ISO8601;

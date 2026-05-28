@@ -33,6 +33,37 @@ const DEFAULT_STORE_ID: ID = "store-matriz";
 const DEFAULT_SELLER_ID: ID = "seller-carlos-santos";
 
 /**
+ * Promote a guest-checkout customer to a registered account, merging the new
+ * registration details onto the existing record (PRD-067 RF-023). Keeps the
+ * order history attached and clears the `isGuestCheckout` flag.
+ */
+async function promoteGuestCustomer(
+  provider: ReturnType<typeof useCustomersProvider>,
+  customerId: ID,
+  input: CustomerRegisterInput,
+): Promise<ICustomer> {
+  const trimmedEmail = input.email.trim().toLowerCase();
+  const base: Partial<ICustomer> = {
+    email: trimmedEmail,
+    phone: input.phone,
+    isGuestCheckout: false,
+    address: input.address,
+  };
+  const patch: Partial<ICustomer> =
+    input.type === "B2C"
+      ? { ...base, type: "B2C", cpf: input.cpf, fullName: input.fullName.trim() }
+      : {
+          ...base,
+          type: "B2B",
+          cnpj: input.cnpj,
+          razaoSocial: input.razaoSocial.trim(),
+          nomeFantasia: input.nomeFantasia.trim(),
+          contactName: input.contactName.trim(),
+        };
+  return provider.update(customerId, patch);
+}
+
+/**
  * Hook that exposes the customer-side session and mutations (PRD-065).
  *
  * Auth is mock — `login` looks up an `ICustomer` by e-mail in the data
@@ -106,6 +137,22 @@ export function useCustomerAuth() {
       const existing = await provider.list({ search: trimmedEmail, pageSize: 20 });
       const dup = existing.data.find((c) => (c.email ?? "").toLowerCase() === trimmedEmail);
       if (dup) {
+        // PRD-067 RF-023 — a prior guest checkout under this e-mail is "promoted"
+        // to a full account (records merged) instead of blocking the sign-up.
+        if (dup.isGuestCheckout) {
+          const merged = await promoteGuestCustomer(provider, dup.id, input);
+          setSession(merged);
+          auditLog({
+            actorId: merged.id,
+            action: "ecommerce_guest_merge",
+            resource: "customer",
+            resourceId: merged.id,
+            storeId: merged.storeId,
+            before: { isGuestCheckout: true },
+            after: { isGuestCheckout: false, source: "storefront_register_merge" },
+          });
+          return merged;
+        }
         const err = new Error("EMAIL_TAKEN");
         err.name = "EmailTakenError";
         throw err;

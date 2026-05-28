@@ -26,7 +26,10 @@ export type {
   IWhatsAppAccountRef,
   IManagerDashboardSettings,
   ICommissionSettings,
+  IEcommerceIntegrationSettings,
+  IEcommerceNotificationTemplates,
   CommissionSplitPolicy,
+  EcommerceAssignmentMode,
   StoreType,
   VehicleCadastroMode,
 } from "./platform";

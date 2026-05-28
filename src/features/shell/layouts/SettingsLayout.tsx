@@ -199,7 +199,13 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
       {
         label: "Vitrine pública",
         icon: "mdi:storefront-outline",
-        to: "/app/configuracoes/storefront",
+        to: "/app/storefront-admin",
+        roles: ["Owner"],
+      },
+      {
+        label: "Integração E-commerce",
+        icon: "mdi:cart-arrow-down",
+        to: "/app/configuracoes/ecommerce-integracao",
         roles: ["Owner"],
       },
       {

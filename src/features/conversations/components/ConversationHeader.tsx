@@ -149,6 +149,24 @@ export function ConversationHeader({
           <EscalationBadge mode={escalation.mode} banner />
         </div>
       )}
+      {conversation.linkedOrderId && (
+        <div className="flex items-center gap-2 border-t border-primary/20 bg-primary/5 px-4 py-1.5 text-xs text-muted-foreground">
+          <Icon icon="mdi:cart" size={14} className="text-primary" aria-hidden />
+          <span>Conversa criada via E-commerce</span>
+          <button
+            type="button"
+            className="font-medium text-primary hover:underline"
+            onClick={() =>
+              void navigate({
+                to: "/app/pedidos/$id",
+                params: { id: conversation.linkedOrderId! },
+              })
+            }
+          >
+            Ver pedido
+          </button>
+        </div>
+      )}
     </header>
   );
 }

@@ -18,6 +18,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useAuth } from "@/features/auth/useAuth";
 import { StoreSwitcher } from "@/features/multistore";
 import { AvailabilityToggle } from "@/features/distribution/components/AvailabilityToggle";
+import { useEcommerceNotificationStore } from "@/features/ecommerce-integration";
+import { formatBRL } from "@/shared/utils/format";
 
 const MOCK_NOTIFICATIONS = [
   {
@@ -43,6 +45,17 @@ const MOCK_NOTIFICATIONS = [
 export function TopBar() {
   const { currentUser, signOut } = useAuth();
   const navigate = useNavigate();
+
+  // PRD-067 — surface e-commerce order notifications routed to this user.
+  const ecomNotifications = useEcommerceNotificationStore((s) => s.notifications);
+  const sellerId = currentUser?.sellerId ?? null;
+  const canDistribute = currentUser?.role === "Owner" || currentUser?.role === "Gestor";
+  const relevantEcom = ecomNotifications
+    .filter((n) =>
+      n.kind === "pending_distribution" ? canDistribute : n.sellerId !== null && n.sellerId === sellerId,
+    )
+    .slice(0, 8);
+  const notificationCount = MOCK_NOTIFICATIONS.length + relevantEcom.length;
 
   const handleSwitchProfile = () => {
     signOut();
@@ -91,7 +104,7 @@ export function TopBar() {
                 variant="default"
                 className="absolute -right-0.5 -top-0.5 h-4 min-w-4 px-1 text-[10px]"
               >
-                {MOCK_NOTIFICATIONS.length}
+                {notificationCount}
               </Badge>
             </Button>
           </PopoverTrigger>
@@ -100,6 +113,23 @@ export function TopBar() {
               Notificações
             </div>
             <ul className="max-h-80 overflow-y-auto">
+              {relevantEcom.map((n) => (
+                <li
+                  key={n.id}
+                  className="cursor-pointer border-b border-border px-4 py-3 last:border-b-0 hover:bg-muted/50"
+                  onClick={() => void navigate({ to: "/app/pedidos/$id", params: { id: n.orderId } })}
+                >
+                  <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                    <Icon icon="mdi:cart" size={14} className="text-primary" aria-hidden />
+                    {n.kind === "pending_distribution"
+                      ? "Pedido e-commerce a distribuir"
+                      : "Novo pedido via e-commerce"}
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {n.customerName} — {formatBRL(n.total)} — {n.orderNumber}
+                  </p>
+                </li>
+              ))}
               {MOCK_NOTIFICATIONS.map((n) => (
                 <li
                   key={n.id}

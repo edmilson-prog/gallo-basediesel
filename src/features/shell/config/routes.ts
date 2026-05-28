@@ -53,6 +53,7 @@ export const ROUTES = {
   CONFIG_SOBRE: "/app/configuracoes/sobre",
   CONFIG_INSIGHTS: "/app/configuracoes/insights",
   CONFIG_STOREFRONT: "/app/configuracoes/storefront",
+  CONFIG_ECOMMERCE_INTEGRACAO: "/app/configuracoes/ecommerce-integracao",
 
   // Loja (vitrine)
   LOJA_HOME: "/loja",

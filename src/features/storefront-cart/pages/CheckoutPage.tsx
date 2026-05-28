@@ -6,8 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import { useCartStore, selectCartSubtotal } from "@/features/storefront/store/cartStore";
 import { useSeoMeta } from "@/features/storefront/hooks/useSeoMeta";
-import { useCustomersProvider, useOrdersProvider, useSellersProvider } from "@/providers/data";
+import {
+  useConversationsProvider,
+  useCustomersProvider,
+  useOrdersProvider,
+  useSellersProvider,
+  useSettingsProvider,
+} from "@/providers/data";
 import { createOrderFromCart } from "@/features/orders/api/createOrderFromCart";
+import { triggerEcommerceOrder } from "@/features/ecommerce-integration";
 import { useCustomerAuth } from "@/features/storefront-account/hooks/useCustomerAuth";
 import { useState } from "react";
 import { CheckoutStepper } from "../components/checkout/CheckoutStepper";
@@ -40,6 +47,8 @@ export function CheckoutPage() {
   const ordersProvider = useOrdersProvider();
   const customersProvider = useCustomersProvider();
   const sellersProvider = useSellersProvider();
+  const conversationsProvider = useConversationsProvider();
+  const settingsProvider = useSettingsProvider();
   const [submitting, setSubmitting] = useState(false);
 
   useCartValidation();
@@ -113,6 +122,19 @@ export function CheckoutPage() {
           actorId: auth.customer?.id,
         },
       );
+      // PRD-067 — orchestrate assignment, conversation and notifications.
+      try {
+        const settings = await settingsProvider.get(STORE_ID);
+        await triggerEcommerceOrder(order, {
+          ordersProvider,
+          sellersProvider,
+          customersProvider,
+          conversationsProvider,
+          settings: settings.ecommerceIntegration,
+        });
+      } catch (triggerErr) {
+        console.error("[CheckoutPage] e-commerce integration trigger failed", triggerErr);
+      }
       clear();
       void navigate({
         to: "/loja/pedido-confirmado/$orderId",

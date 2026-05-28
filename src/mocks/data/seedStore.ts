@@ -9,6 +9,7 @@ import { DEFAULT_SDR_TEMPLATES } from "@/features/sdr/templates/defaults";
 import { DEFAULT_SDR_QUOTE_TEMPLATES } from "@/features/sdr-quote";
 import { DEFAULT_SHIPPING_CONFIG } from "@/features/shipping/config/defaults";
 import { DEFAULT_BADGE_CATALOG } from "@/features/gamification/catalog/badgeCatalog";
+import { DEFAULT_ECOMMERCE_INTEGRATION_SETTINGS } from "@/features/ecommerce-integration/config/defaults";
 
 export const SEED_STORE_ID = "store-matriz";
 
@@ -98,5 +99,6 @@ export const SEED_STORE: IStore = {
     insightsEnabled: true,
     insightThresholds: DEFAULT_INSIGHT_THRESHOLDS,
     storefront: DEFAULT_STOREFRONT_CONFIG,
+    ecommerceIntegration: DEFAULT_ECOMMERCE_INTEGRATION_SETTINGS,
   },
 };

@@ -43,6 +43,9 @@ import {
 } from "../api/orderTransitions";
 import { applyOrderItemToVehicle } from "../api/applyItemToVehicle";
 import { useCommissionForOrder } from "@/features/commissions/hooks/useCommissionForOrder";
+import { useSettingsProvider } from "@/providers/data/hooks/useSettingsProvider";
+import { notifyCustomerOfStatusChange } from "@/features/ecommerce-integration";
+import { getCustomerName } from "@/features/customers/utils/customerDisplay";
 
 const moneyFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -79,6 +82,7 @@ export function OrderDetailPage() {
   const sellersProvider = useSellersProvider();
   const auditsProvider = useAuditsProvider();
   const vehiclesProvider = useVehiclesProvider();
+  const settingsProvider = useSettingsProvider();
 
   const orderQuery = useOrder(id);
   const order = orderQuery.data;
@@ -143,6 +147,28 @@ export function OrderDetailPage() {
       return null;
     } finally {
       setDialog(null);
+    }
+  };
+
+  // PRD-067 RF-014 — placeholder customer notification on e-commerce status changes.
+  const notifyStatus = async (
+    status: "paid" | "shipped" | "delivered" | "canceled",
+    reason?: string,
+  ): Promise<void> => {
+    if (!order || order.origin !== "ecommerce") return;
+    try {
+      const settings = await settingsProvider.get(order.storeId);
+      if (!settings.ecommerceIntegration.notifyCustomer) return;
+      const customer = await customersProvider.get(order.customerId).catch(() => null);
+      notifyCustomerOfStatusChange(
+        order,
+        status,
+        settings.ecommerceIntegration,
+        customer ? getCustomerName(customer) : "Cliente",
+        reason,
+      );
+    } catch (err) {
+      console.error("[OrderDetailPage] status notification failed", err);
     }
   };
 
@@ -649,7 +675,9 @@ export function OrderDetailPage() {
         open={dialog === "markPaid"}
         onCancel={() => setDialog(null)}
         onConfirm={() =>
-          void wrap(markOrderPaid({ ordersProvider, order }), "Pagamento confirmado.")
+          void wrap(markOrderPaid({ ordersProvider, order }), "Pagamento confirmado.").then((r) => {
+            if (r) void notifyStatus("paid");
+          })
         }
       />
       <StartFulfillmentDialog
@@ -665,13 +693,22 @@ export function OrderDetailPage() {
         initialTracking={order.trackingCode}
         onCancel={() => setDialog(null)}
         onConfirm={(payload) =>
-          void wrap(shipOrder({ ordersProvider, order, input: payload }), "Pedido enviado.")
+          void wrap(
+            shipOrder({ ordersProvider, order, input: payload }),
+            "Pedido enviado.",
+          ).then((r) => {
+            if (r) void notifyStatus("shipped");
+          })
         }
       />
       <DeliverDialog
         open={dialog === "deliver"}
         onCancel={() => setDialog(null)}
-        onConfirm={() => void wrap(deliverOrder({ ordersProvider, order }), "Entrega confirmada.")}
+        onConfirm={() =>
+          void wrap(deliverOrder({ ordersProvider, order }), "Entrega confirmada.").then((r) => {
+            if (r) void notifyStatus("delivered");
+          })
+        }
       />
       <ReturnDialog
         open={dialog === "return"}
@@ -695,7 +732,9 @@ export function OrderDetailPage() {
               input: { reason, actorId: currentUser?.id },
             }),
             "Pedido cancelado.",
-          )
+          ).then((r) => {
+            if (r) void notifyStatus("canceled", reason);
+          })
         }
       />
       <RefundDialog

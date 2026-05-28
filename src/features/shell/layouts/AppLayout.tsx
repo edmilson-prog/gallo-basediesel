@@ -10,6 +10,7 @@ import { useEscalationToasts, UrgentBroadcastClaim } from "@/features/sdr-escala
 import { useEscalationQueueTimeoutMonitor } from "@/features/sdr-escalation/hooks/useEscalationQueueTimeoutMonitor";
 import { useUrgentBroadcastTimer } from "@/features/sdr-escalation/hooks/useUrgentBroadcastTimer";
 import { useQuoteExpirationTimer } from "@/features/quotes/hooks/useQuoteExpirationTimer";
+import { useEcommerceSellerNotifier } from "@/features/ecommerce-integration";
 
 /**
  * Default layout of the internal app (`/app/*`).
@@ -28,6 +29,8 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
   useUrgentBroadcastTimer(canRunAutoRevert);
   // PRD-031 — quote expiration timer (1h) for Owner/Gestor sessions.
   useQuoteExpirationTimer(canRunAutoRevert);
+  // PRD-067 — toast the signed-in seller when a new e-commerce order arrives.
+  useEcommerceSellerNotifier();
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex min-h-screen bg-background text-foreground">

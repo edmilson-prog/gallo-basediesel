@@ -177,6 +177,7 @@ async function ensureGuestCustomer(
     sellerId,
     status: "ativo" as const,
     tags: ["ecommerce", "visitante"],
+    isGuestCheckout: true,
   };
 
   if (isB2B) {

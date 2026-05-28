@@ -2,6 +2,7 @@ import { memo, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import type { IConversation, IMessage, ISdrEscalation } from "@/shared/types";
 import { EscalationBadge } from "@/features/sdr-escalation/components/EscalationBadge";
+import { EcommerceBadge } from "@/features/ecommerce-integration/components/EcommerceBadge";
 import { Icon } from "@/components/Icon";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -178,6 +179,8 @@ function ConversationListItemInner({
             <Icon icon={channel.icon} size={11} />
             <span className="hidden sm:inline">{channel.label}</span>
           </span>
+
+          {conversation.linkedOrderId && <EcommerceBadge compact />}
 
           {conversation.isSdrActive && (
             <Tooltip>

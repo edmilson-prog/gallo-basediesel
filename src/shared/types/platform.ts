@@ -133,6 +133,41 @@ export interface IWhatsAppAccountRef {
 }
 
 /**
+ * How e-commerce orders are routed to sellers (PRD-067 RF-004).
+ * - `round_robin`: spread fairly across active sellers (smallest open e-com load first).
+ * - `manager_distributes`: leave the conversation unassigned for a Gestor to distribute.
+ * - `specific_seller`: all e-com orders go to `specificSellerId`.
+ */
+export type EcommerceAssignmentMode = "round_robin" | "manager_distributes" | "specific_seller";
+
+/**
+ * Editable notification templates for the e-commerce → central integration
+ * (PRD-067 RF-011/012). Variables: {customerName}, {orderNumber}, {total},
+ * {paymentMethod}, {reason}. Rendered as placeholders on the MVP — no real
+ * WhatsApp/email is dispatched (Fase 2).
+ */
+export interface IEcommerceNotificationTemplates {
+  whatsappConfirmation: string;
+  emailConfirmation: string;
+  statusPaid: string;
+  statusShipped: string;
+  statusDelivered: string;
+  statusCanceled: string;
+}
+
+/** E-commerce ↔ Central integration settings (PRD-067). */
+export interface IEcommerceIntegrationSettings {
+  assignmentMode: EcommerceAssignmentMode;
+  /** Seller that receives every e-com order when `assignmentMode === 'specific_seller'`. */
+  specificSellerId?: ID;
+  /** Whether a linked IConversation is auto-created for each e-com order (RF-006). */
+  createConversationAuto: boolean;
+  /** Whether placeholder customer notifications are rendered + audited (RF-011). */
+  notifyCustomer: boolean;
+  templates: IEcommerceNotificationTemplates;
+}
+
+/**
  * Aggregated administrative settings of a store.
  * Each field has its own management screen (PRD-019).
  */
@@ -202,6 +237,8 @@ export interface IPlatformSettings {
   insightThresholds: IInsightThresholds;
   /** Public storefront (/loja) configuration — hero, brands, footer, SEO (PRD-060). */
   storefront: IStorefrontConfig;
+  /** E-commerce ↔ Central integration settings (PRD-067). */
+  ecommerceIntegration: IEcommerceIntegrationSettings;
 }
 
 /**

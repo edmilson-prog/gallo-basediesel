@@ -63,6 +63,12 @@ interface ICustomerBase {
   abcShare?: number;
   /** Customer Portal granular permissions — read-only on the profile (edit lives in PRD-019). */
   portal?: IPortalSettings;
+  /**
+   * True when this record was minted by an e-commerce guest checkout (PRD-067
+   * RF-022). Cleared when the visitor later registers and the records are
+   * merged (RF-023).
+   */
+  isGuestCheckout?: boolean;
   createdAt: ISO8601;
 }
 

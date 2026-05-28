@@ -2,6 +2,7 @@ import { useNavigate, useSearch } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
 import { useCurrentStore } from "@/features/multistore";
+import { DashboardLayout } from "@/features/shell/layouts";
 import { EmptyState } from "@/features/shell/components/EmptyState";
 import { SectionHeader } from "@/features/admin-settings/components/SectionHeader";
 import { DashboardTab } from "../components/tabs/DashboardTab";
@@ -64,40 +65,42 @@ export function StorefrontAdminPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <SectionHeader title={S.pageTitle} description={S.pageDescription} />
+    <DashboardLayout>
+      <div className="space-y-6">
+        <SectionHeader title={S.pageTitle} description={S.pageDescription} />
 
-      <Tabs value={effectiveTab} onValueChange={handleTabChange} className="space-y-4">
-        <TabsList className="flex h-auto w-full justify-start gap-1 overflow-x-auto">
-          <TabsTrigger value="dashboard">{S.tabDashboard}</TabsTrigger>
-          {isOwner && <TabsTrigger value="conteudo">{S.tabContent}</TabsTrigger>}
-          {isOwner && <TabsTrigger value="cupons">{S.tabCoupons}</TabsTrigger>}
-          {isOwner && <TabsTrigger value="campanhas">{S.tabCampaigns}</TabsTrigger>}
-          <TabsTrigger value="analise">{S.tabAnalysis}</TabsTrigger>
-        </TabsList>
+        <Tabs value={effectiveTab} onValueChange={handleTabChange} className="space-y-4">
+          <TabsList className="flex h-auto w-full justify-start gap-1 overflow-x-auto">
+            <TabsTrigger value="dashboard">{S.tabDashboard}</TabsTrigger>
+            {isOwner && <TabsTrigger value="conteudo">{S.tabContent}</TabsTrigger>}
+            {isOwner && <TabsTrigger value="cupons">{S.tabCoupons}</TabsTrigger>}
+            {isOwner && <TabsTrigger value="campanhas">{S.tabCampaigns}</TabsTrigger>}
+            <TabsTrigger value="analise">{S.tabAnalysis}</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="dashboard">
-          <DashboardTab storeId={storeId} />
-        </TabsContent>
-        {isOwner && (
-          <TabsContent value="conteudo">
-            <ContentTab defaultSubtab={search.subtab} />
+          <TabsContent value="dashboard">
+            <DashboardTab storeId={storeId} />
           </TabsContent>
-        )}
-        {isOwner && (
-          <TabsContent value="cupons">
-            <CouponsTab />
+          {isOwner && (
+            <TabsContent value="conteudo">
+              <ContentTab defaultSubtab={search.subtab} />
+            </TabsContent>
+          )}
+          {isOwner && (
+            <TabsContent value="cupons">
+              <CouponsTab />
+            </TabsContent>
+          )}
+          {isOwner && (
+            <TabsContent value="campanhas">
+              <CampaignsTab />
+            </TabsContent>
+          )}
+          <TabsContent value="analise">
+            <AnalyticsTab storeId={storeId} />
           </TabsContent>
-        )}
-        {isOwner && (
-          <TabsContent value="campanhas">
-            <CampaignsTab />
-          </TabsContent>
-        )}
-        <TabsContent value="analise">
-          <AnalyticsTab storeId={storeId} />
-        </TabsContent>
-      </Tabs>
-    </div>
+        </Tabs>
+      </div>
+    </DashboardLayout>
   );
 }
