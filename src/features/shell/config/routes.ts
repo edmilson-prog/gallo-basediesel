@@ -24,6 +24,7 @@ export const ROUTES = {
   APP_PEDIDOS: "/app/pedidos",
   APP_SDR: "/app/sdr",
   APP_INSIGHTS: "/app/insights",
+  APP_STOREFRONT_ADMIN: "/app/storefront-admin",
 
   // Gestão
   GESTAO_INICIO: "/app/gestao",

@@ -82,6 +82,12 @@ export const APP_NAV_GROUPS: INavGroup[] = [
         to: ROUTES.APP_PEDIDOS,
         roles: ["Owner", "Vendedor"],
       },
+      {
+        label: "Admin da Loja",
+        icon: "mdi:storefront",
+        to: ROUTES.APP_STOREFRONT_ADMIN,
+        roles: ["Owner", "Gestor"],
+      },
     ],
   },
   {

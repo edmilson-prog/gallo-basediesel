@@ -28,6 +28,7 @@ import { Route as LojaBuscaRouteImport } from './routes/loja.busca'
 import { Route as AuthLogoutRouteImport } from './routes/auth.logout'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AppVeiculosRouteImport } from './routes/app.veiculos'
+import { Route as AppStorefrontAdminRouteImport } from './routes/app.storefront-admin'
 import { Route as AppSdrRouteImport } from './routes/app.sdr'
 import { Route as AppPedidosRouteImport } from './routes/app.pedidos'
 import { Route as AppOrcamentosRouteImport } from './routes/app.orcamentos'
@@ -217,6 +218,11 @@ const AuthLoginRoute = AuthLoginRouteImport.update({
 const AppVeiculosRoute = AppVeiculosRouteImport.update({
   id: '/veiculos',
   path: '/veiculos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppStorefrontAdminRoute = AppStorefrontAdminRouteImport.update({
+  id: '/storefront-admin',
+  path: '/storefront-admin',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSdrRoute = AppSdrRouteImport.update({
@@ -748,6 +754,7 @@ export interface FileRoutesByFullPath {
   '/app/orcamentos': typeof AppOrcamentosRouteWithChildren
   '/app/pedidos': typeof AppPedidosRouteWithChildren
   '/app/sdr': typeof AppSdrRoute
+  '/app/storefront-admin': typeof AppStorefrontAdminRoute
   '/app/veiculos': typeof AppVeiculosRouteWithChildren
   '/auth/login': typeof AuthLoginRoute
   '/auth/logout': typeof AuthLogoutRoute
@@ -857,6 +864,7 @@ export interface FileRoutesByTo {
   '/app/inicio': typeof AppInicioRoute
   '/app/insights': typeof AppInsightsRoute
   '/app/sdr': typeof AppSdrRoute
+  '/app/storefront-admin': typeof AppStorefrontAdminRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/logout': typeof AuthLogoutRoute
   '/loja/busca': typeof LojaBuscaRoute
@@ -967,6 +975,7 @@ export interface FileRoutesById {
   '/app/orcamentos': typeof AppOrcamentosRouteWithChildren
   '/app/pedidos': typeof AppPedidosRouteWithChildren
   '/app/sdr': typeof AppSdrRoute
+  '/app/storefront-admin': typeof AppStorefrontAdminRoute
   '/app/veiculos': typeof AppVeiculosRouteWithChildren
   '/auth/login': typeof AuthLoginRoute
   '/auth/logout': typeof AuthLogoutRoute
@@ -1085,6 +1094,7 @@ export interface FileRouteTypes {
     | '/app/orcamentos'
     | '/app/pedidos'
     | '/app/sdr'
+    | '/app/storefront-admin'
     | '/app/veiculos'
     | '/auth/login'
     | '/auth/logout'
@@ -1194,6 +1204,7 @@ export interface FileRouteTypes {
     | '/app/inicio'
     | '/app/insights'
     | '/app/sdr'
+    | '/app/storefront-admin'
     | '/auth/login'
     | '/auth/logout'
     | '/loja/busca'
@@ -1303,6 +1314,7 @@ export interface FileRouteTypes {
     | '/app/orcamentos'
     | '/app/pedidos'
     | '/app/sdr'
+    | '/app/storefront-admin'
     | '/app/veiculos'
     | '/auth/login'
     | '/auth/logout'
@@ -1545,6 +1557,13 @@ declare module '@tanstack/react-router' {
       path: '/veiculos'
       fullPath: '/app/veiculos'
       preLoaderRoute: typeof AppVeiculosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/storefront-admin': {
+      id: '/app/storefront-admin'
+      path: '/storefront-admin'
+      fullPath: '/app/storefront-admin'
+      preLoaderRoute: typeof AppStorefrontAdminRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/sdr': {
@@ -2436,6 +2455,7 @@ interface AppRouteChildren {
   AppOrcamentosRoute: typeof AppOrcamentosRouteWithChildren
   AppPedidosRoute: typeof AppPedidosRouteWithChildren
   AppSdrRoute: typeof AppSdrRoute
+  AppStorefrontAdminRoute: typeof AppStorefrontAdminRoute
   AppVeiculosRoute: typeof AppVeiculosRouteWithChildren
   AppConfiguracoesAparenciaRoute: typeof AppConfiguracoesAparenciaRoute
   AppConfiguracoesAuditoriaRoute: typeof AppConfiguracoesAuditoriaRoute
@@ -2494,6 +2514,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppOrcamentosRoute: AppOrcamentosRouteWithChildren,
   AppPedidosRoute: AppPedidosRouteWithChildren,
   AppSdrRoute: AppSdrRoute,
+  AppStorefrontAdminRoute: AppStorefrontAdminRoute,
   AppVeiculosRoute: AppVeiculosRouteWithChildren,
   AppConfiguracoesAparenciaRoute: AppConfiguracoesAparenciaRoute,
   AppConfiguracoesAuditoriaRoute: AppConfiguracoesAuditoriaRoute,
