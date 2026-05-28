@@ -61,6 +61,24 @@ function filterGroupsByRole(groups: INavGroup[], role: string | null): INavGroup
     .filter((group) => group.items.length > 0);
 }
 
+/**
+ * Selects the single nav item that should be highlighted for the current path.
+ * Uses longest-prefix matching: an index route (e.g. "/app/gestao") must not
+ * stay active on its child routes ("/app/gestao/vendas") — the more specific
+ * item wins. The trailing-slash boundary prevents "/app/gestao" from matching
+ * "/app/gestao-x". Returns the matching `to`, or null when nothing matches.
+ */
+function pickActiveTo(pathname: string, tos: string[]): string | null {
+  let best: string | null = null;
+  for (const to of tos) {
+    const matches = pathname === to || pathname.startsWith(`${to}/`);
+    if (matches && (best === null || to.length > best.length)) {
+      best = to;
+    }
+  }
+  return best;
+}
+
 export function Sidebar() {
   const { userRole } = useAuth();
   const location = useLocation();
@@ -85,6 +103,10 @@ export function Sidebar() {
   };
 
   const groups = filterGroupsByRole(APP_NAV_GROUPS, userRole);
+  const activeTo = pickActiveTo(
+    location.pathname,
+    groups.flatMap((group) => group.items.map((item) => item.to)),
+  );
 
   return (
     <aside
@@ -151,9 +173,7 @@ export function Sidebar() {
               {groupOpen && (
                 <ul className="space-y-0.5 px-2">
                   {group.items.map((item) => {
-                    const active =
-                      location.pathname === item.to ||
-                      (item.to !== "/app/inicio" && location.pathname.startsWith(item.to));
+                    const active = item.to === activeTo;
                     return (
                       <li key={item.to}>
                         <Link
