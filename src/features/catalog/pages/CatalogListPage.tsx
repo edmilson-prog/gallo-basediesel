@@ -105,7 +105,7 @@ export function CatalogListPage() {
       />
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1">
           {list.isError ? (
             <ErrorState onRetry={list.refetch} />
           ) : showEmpty ? (

@@ -1,5 +1,10 @@
 import type { ABCClass, ICustomer, ICustomerNote, ID } from "@/shared/types";
-import { selectAllVehicles, selectCustomerById, selectAllCustomers } from "../store/selectors";
+import {
+  selectAllVehicles,
+  selectCustomerById,
+  selectAllCustomers,
+  selectAllSellers,
+} from "../store/selectors";
 import { appendCustomerNote, patchById, removeById, upsert } from "../store/mutations";
 import {
   MockNotFoundError,
@@ -39,6 +44,11 @@ export interface IListCustomersParams extends IPaginationParams {
   hasB2BPortal?: boolean;
   orderBy?:
     | "name"
+    | "type"
+    | "document"
+    | "seller"
+    | "tags"
+    | "city"
     | "lastPurchaseAt"
     | "createdAt"
     | "ticketMedio"
@@ -202,12 +212,32 @@ function matches(
   return true;
 }
 
-function compareCustomers(a: ICustomer, b: ICustomer, params: IListCustomersParams): number {
+function documentDigits(customer: ICustomer): string {
+  return normalize(customer.type === "B2B" ? customer.cnpj : customer.cpf);
+}
+
+function compareCustomers(
+  a: ICustomer,
+  b: ICustomer,
+  params: IListCustomersParams,
+  sellerNames: Map<ID, string>,
+): number {
   const dir = params.orderDir === "desc" ? -1 : 1;
   const key = params.orderBy ?? "name";
+  const compareStr = (x: string, y: string) => x.localeCompare(y, "pt-BR") * dir;
   switch (key) {
     case "name":
       return displayName(a).localeCompare(displayName(b), "pt-BR") * dir;
+    case "type":
+      return compareStr(a.type, b.type);
+    case "document":
+      return compareStr(documentDigits(a), documentDigits(b));
+    case "seller":
+      return compareStr(sellerNames.get(a.sellerId) ?? "", sellerNames.get(b.sellerId) ?? "");
+    case "tags":
+      return compareStr(a.tags[0] ?? "", b.tags[0] ?? "");
+    case "city":
+      return compareStr(a.address?.city ?? "", b.address?.city ?? "");
     case "lastPurchaseAt":
       return (a.lastPurchaseAt ?? "").localeCompare(b.lastPurchaseAt ?? "") * dir;
     case "createdAt":
@@ -231,6 +261,12 @@ function compareCustomers(a: ICustomer, b: ICustomer, params: IListCustomersPara
   }
 }
 
+function buildSellerNames(): Map<ID, string> {
+  const out = new Map<ID, string>();
+  for (const s of selectAllSellers()) out.set(s.id, s.fullName);
+  return out;
+}
+
 function buildVehiclesByCustomer(): Map<ID, Set<string>> {
   const out = new Map<ID, Set<string>>();
   for (const v of selectAllVehicles()) {
@@ -252,7 +288,8 @@ export const customersApi = {
         const all = selectAllCustomers().filter((c) =>
           matches(c, params, vehiclesByCustomer, nowMs),
         );
-        const sorted = [...all].sort((a, b) => compareCustomers(a, b, params));
+        const sellerNames = buildSellerNames();
+        const sorted = [...all].sort((a, b) => compareCustomers(a, b, params, sellerNames));
         return paginate(sorted, params);
       },
       { payload: params },

@@ -37,8 +37,19 @@ export const EMPTY_FILTERS: ICatalogListFilters = {
   search: "",
 };
 
-export type CatalogOrderBy = "name" | "unitPrice" | "stockAvailable";
+export type CatalogOrderBy =
+  | "name"
+  | "oem"
+  | "category"
+  | "manufacturer"
+  | "applications"
+  | "unitPrice"
+  | "stockAvailable"
+  | "status";
 export type CatalogOrderDir = "asc" | "desc";
+
+/** Order fields the parts provider can sort natively; others are sorted client-side. */
+const PROVIDER_ORDER_BY = new Set<CatalogOrderBy>(["name", "unitPrice", "stockAvailable"]);
 
 export interface ICatalogListSort {
   orderBy: CatalogOrderBy;
@@ -60,11 +71,13 @@ export function toListParams(
 ): IListPartsParams {
   const params: IListPartsParams = {
     search: filters.search?.trim() ? filters.search.trim() : undefined,
-    orderBy: sort.orderBy,
-    orderDir: sort.orderDir,
     page,
     pageSize,
   };
+  if (PROVIDER_ORDER_BY.has(sort.orderBy)) {
+    params.orderBy = sort.orderBy as IListPartsParams["orderBy"];
+    params.orderDir = sort.orderDir;
+  }
   if (filters.status === "active") params.active = true;
   else if (filters.status === "inactive") params.active = false;
   if (filters.stock === "in_stock") params.inStock = true;

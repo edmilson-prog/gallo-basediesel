@@ -51,12 +51,16 @@ const TYPE_LABELS: Record<ICustomer["type"], string> = {
 /** Mapping from column id → sortable orderBy value (undefined = not sortable). */
 const COLUMN_SORT_KEY: Partial<Record<ColumnId, CustomersOrderBy>> = {
   name: "name",
-  type: "name",
+  type: "type",
   abc: "abcClass",
   status: "status",
+  document: "document",
+  seller: "seller",
   ticketMedio: "ticketMedio",
   recency: "recency",
   ltv: "ltv",
+  tags: "tags",
+  city: "city",
   createdAt: "createdAt",
   lastConversation: "lastPurchaseAt",
 };
@@ -148,10 +152,10 @@ export function CustomersTable({
   }
 
   return (
-    <div ref={tableRef} className="w-full">
-      <Table>
-        <TableHeader>
-          <TableRow>
+    <div ref={tableRef} className="h-full w-full">
+      <Table containerClassName="h-full">
+        <TableHeader className="sticky top-0 z-10 bg-background">
+          <TableRow className="hover:bg-transparent">
             <TableHead className="w-10 px-3">
               <Checkbox
                 aria-label="Selecionar todos da página"
@@ -173,10 +177,17 @@ export function CustomersTable({
                 >
                   <span className="inline-flex items-center gap-1">
                     {COLUMN_LABELS[col]}
-                    {isSorted && (
+                    {sortKey && (
                       <Icon
-                        icon={sort.orderDir === "asc" ? "mdi:chevron-up" : "mdi:chevron-down"}
+                        icon={
+                          isSorted
+                            ? sort.orderDir === "asc"
+                              ? "mdi:chevron-up"
+                              : "mdi:chevron-down"
+                            : "mdi:unfold-more-horizontal"
+                        }
                         size={14}
+                        className={cn(!isSorted && "opacity-40")}
                       />
                     )}
                   </span>
@@ -282,7 +293,7 @@ function renderCell(col: ColumnId, ctx: ICellContext) {
             {display.initials}
           </span>
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-foreground">
+            <p className="truncate text-sm font-medium uppercase text-foreground">
               {highlightSearchTerm(name, searchTerm)}
             </p>
             <p className="truncate text-xs text-muted-foreground">

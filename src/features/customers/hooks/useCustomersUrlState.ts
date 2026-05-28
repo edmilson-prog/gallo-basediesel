@@ -48,6 +48,11 @@ export interface ICustomersListSearch {
 
 const VALID_ORDER_BY = new Set<CustomersOrderBy>([
   "name",
+  "type",
+  "document",
+  "seller",
+  "tags",
+  "city",
   "lastPurchaseAt",
   "createdAt",
   "ticketMedio",

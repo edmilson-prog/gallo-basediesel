@@ -467,7 +467,7 @@ export function CustomersListPage() {
 
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[3fr_2fr]">
         <div className="flex min-h-0 flex-col overflow-hidden border-r border-border">
-          <div className="flex-1 overflow-y-auto">
+          <div className="min-h-0 flex-1">
             {showEmptyState ? (
               <EmptyState
                 hasFilters={hasAnyFilter || filters.search.trim().length > 0}

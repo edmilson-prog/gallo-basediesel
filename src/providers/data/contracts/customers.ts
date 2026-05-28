@@ -46,6 +46,11 @@ export interface IListCustomersParams extends IPaginationParams {
   hasB2BPortal?: boolean;
   orderBy?:
     | "name"
+    | "type"
+    | "document"
+    | "seller"
+    | "tags"
+    | "city"
     | "lastPurchaseAt"
     | "createdAt"
     | "ticketMedio"

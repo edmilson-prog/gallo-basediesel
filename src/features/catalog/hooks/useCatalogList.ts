@@ -8,6 +8,7 @@ import {
   type ICatalogListFilters,
   type ICatalogListSort,
 } from "../utils/listFilters";
+import { getCategoryLabel } from "../utils/categories";
 
 /** Apply post-provider filters that the parts provider cannot express natively. */
 function applyClientSideFilters(parts: IPart[], filters: ICatalogListFilters): IPart[] {
@@ -56,6 +57,38 @@ function applyClientSideFilters(parts: IPart[], filters: ICatalogListFilters): I
   });
 }
 
+function applicationSortKey(part: IPart): string {
+  const first = part.applications[0];
+  return first ? `${first.vehicleBrand} ${first.vehicleModel}` : "";
+}
+
+/** Sort parts by any catalog column — covers fields the provider cannot sort natively. */
+function sortParts(parts: IPart[], sort: ICatalogListSort): IPart[] {
+  const dir = sort.orderDir === "desc" ? -1 : 1;
+  const compareStr = (a: string, b: string) => a.localeCompare(b, "pt-BR") * dir;
+  return [...parts].sort((a, b) => {
+    switch (sort.orderBy) {
+      case "oem":
+        return compareStr(a.oemCodes[0] ?? "", b.oemCodes[0] ?? "");
+      case "category":
+        return compareStr(getCategoryLabel(a.category), getCategoryLabel(b.category));
+      case "manufacturer":
+        return compareStr(a.brand, b.brand);
+      case "applications":
+        return compareStr(applicationSortKey(a), applicationSortKey(b));
+      case "unitPrice":
+        return (a.unitPrice - b.unitPrice) * dir;
+      case "stockAvailable":
+        return (a.stockAvailable - b.stockAvailable) * dir;
+      case "status":
+        return (Number(a.active) - Number(b.active)) * dir;
+      case "name":
+      default:
+        return compareStr(a.name, b.name);
+    }
+  });
+}
+
 export interface ICatalogListQuery {
   data: IPart[];
   total: number;
@@ -96,12 +129,13 @@ export function useCatalogList(
   const result = useMemo(() => {
     const fetched = query.data?.data ?? [];
     const filtered = applyClientSideFilters(fetched, filters);
+    const sorted = sortParts(filtered, sort);
     const start = (page - 1) * pageSize;
     return {
-      paged: filtered.slice(start, start + pageSize),
-      total: filtered.length,
+      paged: sorted.slice(start, start + pageSize),
+      total: sorted.length,
     };
-  }, [query.data, filters, page, pageSize]);
+  }, [query.data, filters, sort, page, pageSize]);
 
   return {
     data: result.paged,

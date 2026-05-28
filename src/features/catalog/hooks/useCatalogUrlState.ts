@@ -32,7 +32,16 @@ const VALID_CATEGORIES = new Set<PartCategory>([
 const VALID_STOCK = new Set<StockBucket>(["any", "in_stock", "low", "zero"]);
 const VALID_STATUS = new Set<StatusBucket>(["any", "active", "inactive"]);
 const VALID_ORIGIN = new Set<OriginBucket>(["any", "original", "equivalent"]);
-const VALID_ORDER_BY = new Set<CatalogOrderBy>(["name", "unitPrice", "stockAvailable"]);
+const VALID_ORDER_BY = new Set<CatalogOrderBy>([
+  "name",
+  "oem",
+  "category",
+  "manufacturer",
+  "applications",
+  "unitPrice",
+  "stockAvailable",
+  "status",
+]);
 const VALID_ORDER_DIR = new Set<CatalogOrderDir>(["asc", "desc"]);
 
 export interface ICatalogListSearch {

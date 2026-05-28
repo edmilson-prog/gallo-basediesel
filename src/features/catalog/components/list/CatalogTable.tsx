@@ -79,7 +79,7 @@ export function CatalogTable({
   onRowClick,
 }: ICatalogTableProps) {
   return (
-    <div className="overflow-x-auto">
+    <div className="h-full overflow-auto">
       <table className="w-full border-collapse text-sm">
         <thead className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur">
           <tr className="text-left">
@@ -92,17 +92,37 @@ export function CatalogTable({
                 onSortChange={onSortChange}
               />
             </th>
-            <th className="px-2 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {CATALOG_STRINGS.columns.oem}
+            <th className="px-2 py-2">
+              <SortableHeader
+                label={CATALOG_STRINGS.columns.oem}
+                field="oem"
+                sort={sort}
+                onSortChange={onSortChange}
+              />
             </th>
-            <th className="px-2 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {CATALOG_STRINGS.columns.category}
+            <th className="px-2 py-2">
+              <SortableHeader
+                label={CATALOG_STRINGS.columns.category}
+                field="category"
+                sort={sort}
+                onSortChange={onSortChange}
+              />
             </th>
-            <th className="px-2 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {CATALOG_STRINGS.columns.manufacturer}
+            <th className="px-2 py-2">
+              <SortableHeader
+                label={CATALOG_STRINGS.columns.manufacturer}
+                field="manufacturer"
+                sort={sort}
+                onSortChange={onSortChange}
+              />
             </th>
-            <th className="px-2 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {CATALOG_STRINGS.columns.applications}
+            <th className="px-2 py-2">
+              <SortableHeader
+                label={CATALOG_STRINGS.columns.applications}
+                field="applications"
+                sort={sort}
+                onSortChange={onSortChange}
+              />
             </th>
             <th className="px-2 py-2 text-right">
               <SortableHeader
@@ -122,8 +142,13 @@ export function CatalogTable({
                 align="right"
               />
             </th>
-            <th className="px-2 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {CATALOG_STRINGS.columns.status}
+            <th className="px-2 py-2">
+              <SortableHeader
+                label={CATALOG_STRINGS.columns.status}
+                field="status"
+                sort={sort}
+                onSortChange={onSortChange}
+              />
             </th>
           </tr>
         </thead>
@@ -153,7 +178,7 @@ export function CatalogTable({
                     </td>
                     <td className="px-2 py-3">
                       <div className="flex flex-col">
-                        <span className="font-medium text-foreground">{part.name}</span>
+                        <span className="font-medium uppercase text-foreground">{part.name}</span>
                         <span className="text-xs text-muted-foreground">{part.sku}</span>
                       </div>
                     </td>
