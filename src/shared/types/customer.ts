@@ -1,5 +1,6 @@
 import type { ABCClass } from "./bi";
 import type { ID, ISO8601, Money } from "./common";
+import type { IPortalContract } from "./portal-b2b";
 
 /** Lifecycle status of a customer. */
 export type CustomerStatus = "ativo" | "dormente" | "recuperacao" | "perdido";
@@ -69,6 +70,10 @@ interface ICustomerBase {
    * merged (RF-023).
    */
   isGuestCheckout?: boolean;
+  /** Whether the advanced B2B corporate portal is provisioned (PRD-071 RF-005). */
+  hasB2BPortal?: boolean;
+  /** Negotiated commercial contract applied in the B2B portal (PRD-071). */
+  portalContract?: IPortalContract;
   createdAt: ISO8601;
 }
 

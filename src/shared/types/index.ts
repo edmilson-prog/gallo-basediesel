@@ -269,6 +269,17 @@ export { DEFAULT_INSIGHT_THRESHOLDS } from "./insights";
 // Field visits (PRD-070 — external seller PWA)
 export type { IVisit, VisitStatus } from "./visit";
 
+// B2B corporate portal (PRD-071)
+export type {
+  IPortalUser,
+  IPortalRequest,
+  IPortalRequestItem,
+  IPortalContract,
+  PortalUserRole,
+  PortalRequestUrgency,
+  PortalRequestStatus,
+} from "./portal-b2b";
+
 // Storefront (PRD-060)
 export type {
   IStorefrontConfig,

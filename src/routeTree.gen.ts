@@ -19,6 +19,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PwaIndexRouteImport } from './routes/pwa.index'
+import { Route as PortalIndexRouteImport } from './routes/portal.index'
 import { Route as LojaIndexRouteImport } from './routes/loja.index'
 import { Route as PwaOrcamentoRapidoRouteImport } from './routes/pwa.orcamento-rapido'
 import { Route as PwaLoginRouteImport } from './routes/pwa.login'
@@ -26,6 +27,16 @@ import { Route as PwaInicioRouteImport } from './routes/pwa.inicio'
 import { Route as PwaEuRouteImport } from './routes/pwa.eu'
 import { Route as PwaCarteiraRouteImport } from './routes/pwa.carteira'
 import { Route as PwaAgendaRouteImport } from './routes/pwa.agenda'
+import { Route as PortalUsuariosRouteImport } from './routes/portal.usuarios'
+import { Route as PortalSuporteRouteImport } from './routes/portal.suporte'
+import { Route as PortalSolicitacoesRouteImport } from './routes/portal.solicitacoes'
+import { Route as PortalPerfilRouteImport } from './routes/portal.perfil'
+import { Route as PortalPedidosRouteImport } from './routes/portal.pedidos'
+import { Route as PortalLoginRouteImport } from './routes/portal.login'
+import { Route as PortalInicioRouteImport } from './routes/portal.inicio'
+import { Route as PortalFrotaRouteImport } from './routes/portal.frota'
+import { Route as PortalFaturamentoRouteImport } from './routes/portal.faturamento'
+import { Route as PortalAnaliseRouteImport } from './routes/portal.analise'
 import { Route as LojaRecuperarSenhaRouteImport } from './routes/loja.recuperar-senha'
 import { Route as LojaLoginRouteImport } from './routes/loja.login'
 import { Route as LojaContaRouteImport } from './routes/loja.conta'
@@ -49,6 +60,9 @@ import { Route as AppCarteiraRouteImport } from './routes/app.carteira'
 import { Route as AppAtendimentoRouteImport } from './routes/app.atendimento'
 import { Route as PwaCarteiraIndexRouteImport } from './routes/pwa.carteira.index'
 import { Route as PwaAgendaIndexRouteImport } from './routes/pwa.agenda.index'
+import { Route as PortalSolicitacoesIndexRouteImport } from './routes/portal.solicitacoes.index'
+import { Route as PortalPedidosIndexRouteImport } from './routes/portal.pedidos.index'
+import { Route as PortalFrotaIndexRouteImport } from './routes/portal.frota.index'
 import { Route as LojaContaIndexRouteImport } from './routes/loja.conta.index'
 import { Route as AppVeiculosIndexRouteImport } from './routes/app.veiculos.index'
 import { Route as AppPedidosIndexRouteImport } from './routes/app.pedidos.index'
@@ -61,6 +75,10 @@ import { Route as AppCatalogoIndexRouteImport } from './routes/app.catalogo.inde
 import { Route as AppAtendimentoIndexRouteImport } from './routes/app.atendimento.index'
 import { Route as PwaCarteiraIdRouteImport } from './routes/pwa.carteira.$id'
 import { Route as PwaAgendaNovaRouteImport } from './routes/pwa.agenda.nova'
+import { Route as PortalSolicitacoesNovaRouteImport } from './routes/portal.solicitacoes.nova'
+import { Route as PortalSolicitacoesIdRouteImport } from './routes/portal.solicitacoes.$id'
+import { Route as PortalPedidosIdRouteImport } from './routes/portal.pedidos.$id'
+import { Route as PortalFrotaIdRouteImport } from './routes/portal.frota.$id'
 import { Route as LojaProdutoSlugRouteImport } from './routes/loja.produto.$slug'
 import { Route as LojaPedidoConfirmadoOrderIdRouteImport } from './routes/loja.pedido-confirmado.$orderId'
 import { Route as LojaContaVeiculosRouteImport } from './routes/loja.conta.veiculos'
@@ -188,6 +206,11 @@ const PwaIndexRoute = PwaIndexRouteImport.update({
   path: '/',
   getParentRoute: () => PwaRoute,
 } as any)
+const PortalIndexRoute = PortalIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PortalRoute,
+} as any)
 const LojaIndexRoute = LojaIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -222,6 +245,56 @@ const PwaAgendaRoute = PwaAgendaRouteImport.update({
   id: '/agenda',
   path: '/agenda',
   getParentRoute: () => PwaRoute,
+} as any)
+const PortalUsuariosRoute = PortalUsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalSuporteRoute = PortalSuporteRouteImport.update({
+  id: '/suporte',
+  path: '/suporte',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalSolicitacoesRoute = PortalSolicitacoesRouteImport.update({
+  id: '/solicitacoes',
+  path: '/solicitacoes',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalPerfilRoute = PortalPerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalPedidosRoute = PortalPedidosRouteImport.update({
+  id: '/pedidos',
+  path: '/pedidos',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalLoginRoute = PortalLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalInicioRoute = PortalInicioRouteImport.update({
+  id: '/inicio',
+  path: '/inicio',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalFrotaRoute = PortalFrotaRouteImport.update({
+  id: '/frota',
+  path: '/frota',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalFaturamentoRoute = PortalFaturamentoRouteImport.update({
+  id: '/faturamento',
+  path: '/faturamento',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalAnaliseRoute = PortalAnaliseRouteImport.update({
+  id: '/analise',
+  path: '/analise',
+  getParentRoute: () => PortalRoute,
 } as any)
 const LojaRecuperarSenhaRoute = LojaRecuperarSenhaRouteImport.update({
   id: '/recuperar-senha',
@@ -338,6 +411,21 @@ const PwaAgendaIndexRoute = PwaAgendaIndexRouteImport.update({
   path: '/',
   getParentRoute: () => PwaAgendaRoute,
 } as any)
+const PortalSolicitacoesIndexRoute = PortalSolicitacoesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PortalSolicitacoesRoute,
+} as any)
+const PortalPedidosIndexRoute = PortalPedidosIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PortalPedidosRoute,
+} as any)
+const PortalFrotaIndexRoute = PortalFrotaIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PortalFrotaRoute,
+} as any)
 const LojaContaIndexRoute = LojaContaIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -397,6 +485,26 @@ const PwaAgendaNovaRoute = PwaAgendaNovaRouteImport.update({
   id: '/nova',
   path: '/nova',
   getParentRoute: () => PwaAgendaRoute,
+} as any)
+const PortalSolicitacoesNovaRoute = PortalSolicitacoesNovaRouteImport.update({
+  id: '/nova',
+  path: '/nova',
+  getParentRoute: () => PortalSolicitacoesRoute,
+} as any)
+const PortalSolicitacoesIdRoute = PortalSolicitacoesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => PortalSolicitacoesRoute,
+} as any)
+const PortalPedidosIdRoute = PortalPedidosIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => PortalPedidosRoute,
+} as any)
+const PortalFrotaIdRoute = PortalFrotaIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => PortalFrotaRoute,
 } as any)
 const LojaProdutoSlugRoute = LojaProdutoSlugRouteImport.update({
   id: '/produto/$slug',
@@ -821,7 +929,7 @@ export interface FileRoutesByFullPath {
   '/design-system': typeof DesignSystemRoute
   '/erro': typeof ErroRoute
   '/loja': typeof LojaRouteWithChildren
-  '/portal': typeof PortalRoute
+  '/portal': typeof PortalRouteWithChildren
   '/pwa': typeof PwaRouteWithChildren
   '/sem-permissao': typeof SemPermissaoRoute
   '/app/atendimento': typeof AppAtendimentoRouteWithChildren
@@ -845,6 +953,16 @@ export interface FileRoutesByFullPath {
   '/loja/conta': typeof LojaContaRouteWithChildren
   '/loja/login': typeof LojaLoginRoute
   '/loja/recuperar-senha': typeof LojaRecuperarSenhaRoute
+  '/portal/analise': typeof PortalAnaliseRoute
+  '/portal/faturamento': typeof PortalFaturamentoRoute
+  '/portal/frota': typeof PortalFrotaRouteWithChildren
+  '/portal/inicio': typeof PortalInicioRoute
+  '/portal/login': typeof PortalLoginRoute
+  '/portal/pedidos': typeof PortalPedidosRouteWithChildren
+  '/portal/perfil': typeof PortalPerfilRoute
+  '/portal/solicitacoes': typeof PortalSolicitacoesRouteWithChildren
+  '/portal/suporte': typeof PortalSuporteRoute
+  '/portal/usuarios': typeof PortalUsuariosRoute
   '/pwa/agenda': typeof PwaAgendaRouteWithChildren
   '/pwa/carteira': typeof PwaCarteiraRouteWithChildren
   '/pwa/eu': typeof PwaEuRoute
@@ -852,6 +970,7 @@ export interface FileRoutesByFullPath {
   '/pwa/login': typeof PwaLoginRoute
   '/pwa/orcamento-rapido': typeof PwaOrcamentoRapidoRoute
   '/loja/': typeof LojaIndexRoute
+  '/portal/': typeof PortalIndexRoute
   '/pwa/': typeof PwaIndexRoute
   '/app/atendimento/$id': typeof AppAtendimentoIdRoute
   '/app/catalogo/$id': typeof AppCatalogoIdRouteWithChildren
@@ -904,6 +1023,10 @@ export interface FileRoutesByFullPath {
   '/loja/conta/veiculos': typeof LojaContaVeiculosRoute
   '/loja/pedido-confirmado/$orderId': typeof LojaPedidoConfirmadoOrderIdRoute
   '/loja/produto/$slug': typeof LojaProdutoSlugRoute
+  '/portal/frota/$id': typeof PortalFrotaIdRoute
+  '/portal/pedidos/$id': typeof PortalPedidosIdRoute
+  '/portal/solicitacoes/$id': typeof PortalSolicitacoesIdRoute
+  '/portal/solicitacoes/nova': typeof PortalSolicitacoesNovaRoute
   '/pwa/agenda/nova': typeof PwaAgendaNovaRoute
   '/pwa/carteira/$id': typeof PwaCarteiraIdRoute
   '/app/atendimento/': typeof AppAtendimentoIndexRoute
@@ -916,6 +1039,9 @@ export interface FileRoutesByFullPath {
   '/app/pedidos/': typeof AppPedidosIndexRoute
   '/app/veiculos/': typeof AppVeiculosIndexRoute
   '/loja/conta/': typeof LojaContaIndexRoute
+  '/portal/frota/': typeof PortalFrotaIndexRoute
+  '/portal/pedidos/': typeof PortalPedidosIndexRoute
+  '/portal/solicitacoes/': typeof PortalSolicitacoesIndexRoute
   '/pwa/agenda/': typeof PwaAgendaIndexRoute
   '/pwa/carteira/': typeof PwaCarteiraIndexRoute
   '/app/catalogo/$id/editar': typeof AppCatalogoIdEditarRoute
@@ -950,7 +1076,6 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
   '/design-system': typeof DesignSystemRoute
   '/erro': typeof ErroRoute
-  '/portal': typeof PortalRoute
   '/sem-permissao': typeof SemPermissaoRoute
   '/app/carteira': typeof AppCarteiraRoute
   '/app/inicio': typeof AppInicioRoute
@@ -965,11 +1090,19 @@ export interface FileRoutesByTo {
   '/loja/checkout': typeof LojaCheckoutRoute
   '/loja/login': typeof LojaLoginRoute
   '/loja/recuperar-senha': typeof LojaRecuperarSenhaRoute
+  '/portal/analise': typeof PortalAnaliseRoute
+  '/portal/faturamento': typeof PortalFaturamentoRoute
+  '/portal/inicio': typeof PortalInicioRoute
+  '/portal/login': typeof PortalLoginRoute
+  '/portal/perfil': typeof PortalPerfilRoute
+  '/portal/suporte': typeof PortalSuporteRoute
+  '/portal/usuarios': typeof PortalUsuariosRoute
   '/pwa/eu': typeof PwaEuRoute
   '/pwa/inicio': typeof PwaInicioRoute
   '/pwa/login': typeof PwaLoginRoute
   '/pwa/orcamento-rapido': typeof PwaOrcamentoRapidoRoute
   '/loja': typeof LojaIndexRoute
+  '/portal': typeof PortalIndexRoute
   '/pwa': typeof PwaIndexRoute
   '/app/atendimento/$id': typeof AppAtendimentoIdRoute
   '/app/catalogo/$id': typeof AppCatalogoIdRouteWithChildren
@@ -1017,6 +1150,10 @@ export interface FileRoutesByTo {
   '/loja/conta/veiculos': typeof LojaContaVeiculosRoute
   '/loja/pedido-confirmado/$orderId': typeof LojaPedidoConfirmadoOrderIdRoute
   '/loja/produto/$slug': typeof LojaProdutoSlugRoute
+  '/portal/frota/$id': typeof PortalFrotaIdRoute
+  '/portal/pedidos/$id': typeof PortalPedidosIdRoute
+  '/portal/solicitacoes/$id': typeof PortalSolicitacoesIdRoute
+  '/portal/solicitacoes/nova': typeof PortalSolicitacoesNovaRoute
   '/pwa/agenda/nova': typeof PwaAgendaNovaRoute
   '/pwa/carteira/$id': typeof PwaCarteiraIdRoute
   '/app/atendimento': typeof AppAtendimentoIndexRoute
@@ -1029,6 +1166,9 @@ export interface FileRoutesByTo {
   '/app/pedidos': typeof AppPedidosIndexRoute
   '/app/veiculos': typeof AppVeiculosIndexRoute
   '/loja/conta': typeof LojaContaIndexRoute
+  '/portal/frota': typeof PortalFrotaIndexRoute
+  '/portal/pedidos': typeof PortalPedidosIndexRoute
+  '/portal/solicitacoes': typeof PortalSolicitacoesIndexRoute
   '/pwa/agenda': typeof PwaAgendaIndexRoute
   '/pwa/carteira': typeof PwaCarteiraIndexRoute
   '/app/catalogo/$id/editar': typeof AppCatalogoIdEditarRoute
@@ -1065,7 +1205,7 @@ export interface FileRoutesById {
   '/design-system': typeof DesignSystemRoute
   '/erro': typeof ErroRoute
   '/loja': typeof LojaRouteWithChildren
-  '/portal': typeof PortalRoute
+  '/portal': typeof PortalRouteWithChildren
   '/pwa': typeof PwaRouteWithChildren
   '/sem-permissao': typeof SemPermissaoRoute
   '/app/atendimento': typeof AppAtendimentoRouteWithChildren
@@ -1089,6 +1229,16 @@ export interface FileRoutesById {
   '/loja/conta': typeof LojaContaRouteWithChildren
   '/loja/login': typeof LojaLoginRoute
   '/loja/recuperar-senha': typeof LojaRecuperarSenhaRoute
+  '/portal/analise': typeof PortalAnaliseRoute
+  '/portal/faturamento': typeof PortalFaturamentoRoute
+  '/portal/frota': typeof PortalFrotaRouteWithChildren
+  '/portal/inicio': typeof PortalInicioRoute
+  '/portal/login': typeof PortalLoginRoute
+  '/portal/pedidos': typeof PortalPedidosRouteWithChildren
+  '/portal/perfil': typeof PortalPerfilRoute
+  '/portal/solicitacoes': typeof PortalSolicitacoesRouteWithChildren
+  '/portal/suporte': typeof PortalSuporteRoute
+  '/portal/usuarios': typeof PortalUsuariosRoute
   '/pwa/agenda': typeof PwaAgendaRouteWithChildren
   '/pwa/carteira': typeof PwaCarteiraRouteWithChildren
   '/pwa/eu': typeof PwaEuRoute
@@ -1096,6 +1246,7 @@ export interface FileRoutesById {
   '/pwa/login': typeof PwaLoginRoute
   '/pwa/orcamento-rapido': typeof PwaOrcamentoRapidoRoute
   '/loja/': typeof LojaIndexRoute
+  '/portal/': typeof PortalIndexRoute
   '/pwa/': typeof PwaIndexRoute
   '/app/atendimento/$id': typeof AppAtendimentoIdRoute
   '/app/catalogo/$id': typeof AppCatalogoIdRouteWithChildren
@@ -1148,6 +1299,10 @@ export interface FileRoutesById {
   '/loja/conta/veiculos': typeof LojaContaVeiculosRoute
   '/loja/pedido-confirmado/$orderId': typeof LojaPedidoConfirmadoOrderIdRoute
   '/loja/produto/$slug': typeof LojaProdutoSlugRoute
+  '/portal/frota/$id': typeof PortalFrotaIdRoute
+  '/portal/pedidos/$id': typeof PortalPedidosIdRoute
+  '/portal/solicitacoes/$id': typeof PortalSolicitacoesIdRoute
+  '/portal/solicitacoes/nova': typeof PortalSolicitacoesNovaRoute
   '/pwa/agenda/nova': typeof PwaAgendaNovaRoute
   '/pwa/carteira/$id': typeof PwaCarteiraIdRoute
   '/app/atendimento/': typeof AppAtendimentoIndexRoute
@@ -1160,6 +1315,9 @@ export interface FileRoutesById {
   '/app/pedidos/': typeof AppPedidosIndexRoute
   '/app/veiculos/': typeof AppVeiculosIndexRoute
   '/loja/conta/': typeof LojaContaIndexRoute
+  '/portal/frota/': typeof PortalFrotaIndexRoute
+  '/portal/pedidos/': typeof PortalPedidosIndexRoute
+  '/portal/solicitacoes/': typeof PortalSolicitacoesIndexRoute
   '/pwa/agenda/': typeof PwaAgendaIndexRoute
   '/pwa/carteira/': typeof PwaCarteiraIndexRoute
   '/app/catalogo/$id/editar': typeof AppCatalogoIdEditarRoute
@@ -1221,6 +1379,16 @@ export interface FileRouteTypes {
     | '/loja/conta'
     | '/loja/login'
     | '/loja/recuperar-senha'
+    | '/portal/analise'
+    | '/portal/faturamento'
+    | '/portal/frota'
+    | '/portal/inicio'
+    | '/portal/login'
+    | '/portal/pedidos'
+    | '/portal/perfil'
+    | '/portal/solicitacoes'
+    | '/portal/suporte'
+    | '/portal/usuarios'
     | '/pwa/agenda'
     | '/pwa/carteira'
     | '/pwa/eu'
@@ -1228,6 +1396,7 @@ export interface FileRouteTypes {
     | '/pwa/login'
     | '/pwa/orcamento-rapido'
     | '/loja/'
+    | '/portal/'
     | '/pwa/'
     | '/app/atendimento/$id'
     | '/app/catalogo/$id'
@@ -1280,6 +1449,10 @@ export interface FileRouteTypes {
     | '/loja/conta/veiculos'
     | '/loja/pedido-confirmado/$orderId'
     | '/loja/produto/$slug'
+    | '/portal/frota/$id'
+    | '/portal/pedidos/$id'
+    | '/portal/solicitacoes/$id'
+    | '/portal/solicitacoes/nova'
     | '/pwa/agenda/nova'
     | '/pwa/carteira/$id'
     | '/app/atendimento/'
@@ -1292,6 +1465,9 @@ export interface FileRouteTypes {
     | '/app/pedidos/'
     | '/app/veiculos/'
     | '/loja/conta/'
+    | '/portal/frota/'
+    | '/portal/pedidos/'
+    | '/portal/solicitacoes/'
     | '/pwa/agenda/'
     | '/pwa/carteira/'
     | '/app/catalogo/$id/editar'
@@ -1326,7 +1502,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/design-system'
     | '/erro'
-    | '/portal'
     | '/sem-permissao'
     | '/app/carteira'
     | '/app/inicio'
@@ -1341,11 +1516,19 @@ export interface FileRouteTypes {
     | '/loja/checkout'
     | '/loja/login'
     | '/loja/recuperar-senha'
+    | '/portal/analise'
+    | '/portal/faturamento'
+    | '/portal/inicio'
+    | '/portal/login'
+    | '/portal/perfil'
+    | '/portal/suporte'
+    | '/portal/usuarios'
     | '/pwa/eu'
     | '/pwa/inicio'
     | '/pwa/login'
     | '/pwa/orcamento-rapido'
     | '/loja'
+    | '/portal'
     | '/pwa'
     | '/app/atendimento/$id'
     | '/app/catalogo/$id'
@@ -1393,6 +1576,10 @@ export interface FileRouteTypes {
     | '/loja/conta/veiculos'
     | '/loja/pedido-confirmado/$orderId'
     | '/loja/produto/$slug'
+    | '/portal/frota/$id'
+    | '/portal/pedidos/$id'
+    | '/portal/solicitacoes/$id'
+    | '/portal/solicitacoes/nova'
     | '/pwa/agenda/nova'
     | '/pwa/carteira/$id'
     | '/app/atendimento'
@@ -1405,6 +1592,9 @@ export interface FileRouteTypes {
     | '/app/pedidos'
     | '/app/veiculos'
     | '/loja/conta'
+    | '/portal/frota'
+    | '/portal/pedidos'
+    | '/portal/solicitacoes'
     | '/pwa/agenda'
     | '/pwa/carteira'
     | '/app/catalogo/$id/editar'
@@ -1464,6 +1654,16 @@ export interface FileRouteTypes {
     | '/loja/conta'
     | '/loja/login'
     | '/loja/recuperar-senha'
+    | '/portal/analise'
+    | '/portal/faturamento'
+    | '/portal/frota'
+    | '/portal/inicio'
+    | '/portal/login'
+    | '/portal/pedidos'
+    | '/portal/perfil'
+    | '/portal/solicitacoes'
+    | '/portal/suporte'
+    | '/portal/usuarios'
     | '/pwa/agenda'
     | '/pwa/carteira'
     | '/pwa/eu'
@@ -1471,6 +1671,7 @@ export interface FileRouteTypes {
     | '/pwa/login'
     | '/pwa/orcamento-rapido'
     | '/loja/'
+    | '/portal/'
     | '/pwa/'
     | '/app/atendimento/$id'
     | '/app/catalogo/$id'
@@ -1523,6 +1724,10 @@ export interface FileRouteTypes {
     | '/loja/conta/veiculos'
     | '/loja/pedido-confirmado/$orderId'
     | '/loja/produto/$slug'
+    | '/portal/frota/$id'
+    | '/portal/pedidos/$id'
+    | '/portal/solicitacoes/$id'
+    | '/portal/solicitacoes/nova'
     | '/pwa/agenda/nova'
     | '/pwa/carteira/$id'
     | '/app/atendimento/'
@@ -1535,6 +1740,9 @@ export interface FileRouteTypes {
     | '/app/pedidos/'
     | '/app/veiculos/'
     | '/loja/conta/'
+    | '/portal/frota/'
+    | '/portal/pedidos/'
+    | '/portal/solicitacoes/'
     | '/pwa/agenda/'
     | '/pwa/carteira/'
     | '/app/catalogo/$id/editar'
@@ -1571,7 +1779,7 @@ export interface RootRouteChildren {
   DesignSystemRoute: typeof DesignSystemRoute
   ErroRoute: typeof ErroRoute
   LojaRoute: typeof LojaRouteWithChildren
-  PortalRoute: typeof PortalRoute
+  PortalRoute: typeof PortalRouteWithChildren
   PwaRoute: typeof PwaRouteWithChildren
   SemPermissaoRoute: typeof SemPermissaoRoute
 }
@@ -1648,6 +1856,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PwaIndexRouteImport
       parentRoute: typeof PwaRoute
     }
+    '/portal/': {
+      id: '/portal/'
+      path: '/'
+      fullPath: '/portal/'
+      preLoaderRoute: typeof PortalIndexRouteImport
+      parentRoute: typeof PortalRoute
+    }
     '/loja/': {
       id: '/loja/'
       path: '/'
@@ -1696,6 +1911,76 @@ declare module '@tanstack/react-router' {
       fullPath: '/pwa/agenda'
       preLoaderRoute: typeof PwaAgendaRouteImport
       parentRoute: typeof PwaRoute
+    }
+    '/portal/usuarios': {
+      id: '/portal/usuarios'
+      path: '/usuarios'
+      fullPath: '/portal/usuarios'
+      preLoaderRoute: typeof PortalUsuariosRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/suporte': {
+      id: '/portal/suporte'
+      path: '/suporte'
+      fullPath: '/portal/suporte'
+      preLoaderRoute: typeof PortalSuporteRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/solicitacoes': {
+      id: '/portal/solicitacoes'
+      path: '/solicitacoes'
+      fullPath: '/portal/solicitacoes'
+      preLoaderRoute: typeof PortalSolicitacoesRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/perfil': {
+      id: '/portal/perfil'
+      path: '/perfil'
+      fullPath: '/portal/perfil'
+      preLoaderRoute: typeof PortalPerfilRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/pedidos': {
+      id: '/portal/pedidos'
+      path: '/pedidos'
+      fullPath: '/portal/pedidos'
+      preLoaderRoute: typeof PortalPedidosRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/login': {
+      id: '/portal/login'
+      path: '/login'
+      fullPath: '/portal/login'
+      preLoaderRoute: typeof PortalLoginRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/inicio': {
+      id: '/portal/inicio'
+      path: '/inicio'
+      fullPath: '/portal/inicio'
+      preLoaderRoute: typeof PortalInicioRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/frota': {
+      id: '/portal/frota'
+      path: '/frota'
+      fullPath: '/portal/frota'
+      preLoaderRoute: typeof PortalFrotaRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/faturamento': {
+      id: '/portal/faturamento'
+      path: '/faturamento'
+      fullPath: '/portal/faturamento'
+      preLoaderRoute: typeof PortalFaturamentoRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/analise': {
+      id: '/portal/analise'
+      path: '/analise'
+      fullPath: '/portal/analise'
+      preLoaderRoute: typeof PortalAnaliseRouteImport
+      parentRoute: typeof PortalRoute
     }
     '/loja/recuperar-senha': {
       id: '/loja/recuperar-senha'
@@ -1858,6 +2143,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PwaAgendaIndexRouteImport
       parentRoute: typeof PwaAgendaRoute
     }
+    '/portal/solicitacoes/': {
+      id: '/portal/solicitacoes/'
+      path: '/'
+      fullPath: '/portal/solicitacoes/'
+      preLoaderRoute: typeof PortalSolicitacoesIndexRouteImport
+      parentRoute: typeof PortalSolicitacoesRoute
+    }
+    '/portal/pedidos/': {
+      id: '/portal/pedidos/'
+      path: '/'
+      fullPath: '/portal/pedidos/'
+      preLoaderRoute: typeof PortalPedidosIndexRouteImport
+      parentRoute: typeof PortalPedidosRoute
+    }
+    '/portal/frota/': {
+      id: '/portal/frota/'
+      path: '/'
+      fullPath: '/portal/frota/'
+      preLoaderRoute: typeof PortalFrotaIndexRouteImport
+      parentRoute: typeof PortalFrotaRoute
+    }
     '/loja/conta/': {
       id: '/loja/conta/'
       path: '/'
@@ -1941,6 +2247,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/pwa/agenda/nova'
       preLoaderRoute: typeof PwaAgendaNovaRouteImport
       parentRoute: typeof PwaAgendaRoute
+    }
+    '/portal/solicitacoes/nova': {
+      id: '/portal/solicitacoes/nova'
+      path: '/nova'
+      fullPath: '/portal/solicitacoes/nova'
+      preLoaderRoute: typeof PortalSolicitacoesNovaRouteImport
+      parentRoute: typeof PortalSolicitacoesRoute
+    }
+    '/portal/solicitacoes/$id': {
+      id: '/portal/solicitacoes/$id'
+      path: '/$id'
+      fullPath: '/portal/solicitacoes/$id'
+      preLoaderRoute: typeof PortalSolicitacoesIdRouteImport
+      parentRoute: typeof PortalSolicitacoesRoute
+    }
+    '/portal/pedidos/$id': {
+      id: '/portal/pedidos/$id'
+      path: '/$id'
+      fullPath: '/portal/pedidos/$id'
+      preLoaderRoute: typeof PortalPedidosIdRouteImport
+      parentRoute: typeof PortalPedidosRoute
+    }
+    '/portal/frota/$id': {
+      id: '/portal/frota/$id'
+      path: '/$id'
+      fullPath: '/portal/frota/$id'
+      preLoaderRoute: typeof PortalFrotaIdRouteImport
+      parentRoute: typeof PortalFrotaRoute
     }
     '/loja/produto/$slug': {
       id: '/loja/produto/$slug'
@@ -2906,6 +3240,80 @@ const LojaRouteChildren: LojaRouteChildren = {
 
 const LojaRouteWithChildren = LojaRoute._addFileChildren(LojaRouteChildren)
 
+interface PortalFrotaRouteChildren {
+  PortalFrotaIdRoute: typeof PortalFrotaIdRoute
+  PortalFrotaIndexRoute: typeof PortalFrotaIndexRoute
+}
+
+const PortalFrotaRouteChildren: PortalFrotaRouteChildren = {
+  PortalFrotaIdRoute: PortalFrotaIdRoute,
+  PortalFrotaIndexRoute: PortalFrotaIndexRoute,
+}
+
+const PortalFrotaRouteWithChildren = PortalFrotaRoute._addFileChildren(
+  PortalFrotaRouteChildren,
+)
+
+interface PortalPedidosRouteChildren {
+  PortalPedidosIdRoute: typeof PortalPedidosIdRoute
+  PortalPedidosIndexRoute: typeof PortalPedidosIndexRoute
+}
+
+const PortalPedidosRouteChildren: PortalPedidosRouteChildren = {
+  PortalPedidosIdRoute: PortalPedidosIdRoute,
+  PortalPedidosIndexRoute: PortalPedidosIndexRoute,
+}
+
+const PortalPedidosRouteWithChildren = PortalPedidosRoute._addFileChildren(
+  PortalPedidosRouteChildren,
+)
+
+interface PortalSolicitacoesRouteChildren {
+  PortalSolicitacoesIdRoute: typeof PortalSolicitacoesIdRoute
+  PortalSolicitacoesNovaRoute: typeof PortalSolicitacoesNovaRoute
+  PortalSolicitacoesIndexRoute: typeof PortalSolicitacoesIndexRoute
+}
+
+const PortalSolicitacoesRouteChildren: PortalSolicitacoesRouteChildren = {
+  PortalSolicitacoesIdRoute: PortalSolicitacoesIdRoute,
+  PortalSolicitacoesNovaRoute: PortalSolicitacoesNovaRoute,
+  PortalSolicitacoesIndexRoute: PortalSolicitacoesIndexRoute,
+}
+
+const PortalSolicitacoesRouteWithChildren =
+  PortalSolicitacoesRoute._addFileChildren(PortalSolicitacoesRouteChildren)
+
+interface PortalRouteChildren {
+  PortalAnaliseRoute: typeof PortalAnaliseRoute
+  PortalFaturamentoRoute: typeof PortalFaturamentoRoute
+  PortalFrotaRoute: typeof PortalFrotaRouteWithChildren
+  PortalInicioRoute: typeof PortalInicioRoute
+  PortalLoginRoute: typeof PortalLoginRoute
+  PortalPedidosRoute: typeof PortalPedidosRouteWithChildren
+  PortalPerfilRoute: typeof PortalPerfilRoute
+  PortalSolicitacoesRoute: typeof PortalSolicitacoesRouteWithChildren
+  PortalSuporteRoute: typeof PortalSuporteRoute
+  PortalUsuariosRoute: typeof PortalUsuariosRoute
+  PortalIndexRoute: typeof PortalIndexRoute
+}
+
+const PortalRouteChildren: PortalRouteChildren = {
+  PortalAnaliseRoute: PortalAnaliseRoute,
+  PortalFaturamentoRoute: PortalFaturamentoRoute,
+  PortalFrotaRoute: PortalFrotaRouteWithChildren,
+  PortalInicioRoute: PortalInicioRoute,
+  PortalLoginRoute: PortalLoginRoute,
+  PortalPedidosRoute: PortalPedidosRouteWithChildren,
+  PortalPerfilRoute: PortalPerfilRoute,
+  PortalSolicitacoesRoute: PortalSolicitacoesRouteWithChildren,
+  PortalSuporteRoute: PortalSuporteRoute,
+  PortalUsuariosRoute: PortalUsuariosRoute,
+  PortalIndexRoute: PortalIndexRoute,
+}
+
+const PortalRouteWithChildren =
+  PortalRoute._addFileChildren(PortalRouteChildren)
+
 interface PwaAgendaRouteChildren {
   PwaAgendaNovaRoute: typeof PwaAgendaNovaRoute
   PwaAgendaIndexRoute: typeof PwaAgendaIndexRoute
@@ -2963,7 +3371,7 @@ const rootRouteChildren: RootRouteChildren = {
   DesignSystemRoute: DesignSystemRoute,
   ErroRoute: ErroRoute,
   LojaRoute: LojaRouteWithChildren,
-  PortalRoute: PortalRoute,
+  PortalRoute: PortalRouteWithChildren,
   PwaRoute: PwaRouteWithChildren,
   SemPermissaoRoute: SemPermissaoRoute,
 }
