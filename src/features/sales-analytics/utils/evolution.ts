@@ -11,6 +11,8 @@ export interface IDailyEvolutionPoint {
   isWeekend: boolean;
   /** Cumulative realized revenue up to this day; null after today. */
   vendas: number | null;
+  /** Revenue realized on this specific day (daily delta); null after today. */
+  vendasDia: number | null;
   /** Cumulative linear target; null when there is no goal. */
   objetivo: number | null;
   /** Run-rate forecast; null before today (connects at today). */
@@ -86,7 +88,8 @@ export function buildDailyEvolution(input: IBuildEvolutionInput): IDailyEvolutio
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const today = Math.min(Math.max(referenceDate.getDate(), 1), daysInMonth);
 
-  const curCum = cumulative(revenueByDay(currentMonthOrders), daysInMonth);
+  const curByDay = revenueByDay(currentMonthOrders);
+  const curCum = cumulative(curByDay, daysInMonth);
   const prevCum = cumulative(revenueByDay(previousMonthOrders), daysInMonth);
   const lastYearCum = cumulative(revenueByDay(lastYearMonthOrders), daysInMonth);
 
@@ -102,6 +105,7 @@ export function buildDailyEvolution(input: IBuildEvolutionInput): IDailyEvolutio
       weekdayLabel: WEEKDAY_LABELS[weekday]!,
       isWeekend,
       vendas: d <= today ? (curCum[d - 1] ?? 0) : null,
+      vendasDia: d <= today ? (curByDay.get(d) ?? 0) : null,
       objetivo: targetValue == null ? null : Math.round((targetValue * d) / daysInMonth),
       previsao: d < today ? null : Math.round(runRate * d),
       mesPassado: prevCum[d - 1] ?? 0,

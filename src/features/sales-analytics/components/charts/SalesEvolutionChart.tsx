@@ -132,21 +132,7 @@ export function SalesEvolutionChart({ scope, canDrillDown }: ISalesEvolutionChar
                 tickLine={false}
                 width={64}
               />
-              <Tooltip
-                contentStyle={{
-                  borderRadius: 8,
-                  border: "1px solid var(--border)",
-                  background: "var(--popover)",
-                  color: "var(--popover-foreground)",
-                  fontSize: 12,
-                }}
-                labelFormatter={(d: number) => `Dia ${d}`}
-                formatter={(value: number, key: string) => {
-                  if (bySeller) return [formatBRL(value), key];
-                  const meta = SERIES_META[key as SeriesKey];
-                  return [formatBRL(value), meta ? meta.label : key];
-                }}
-              />
+              <Tooltip content={<EvolutionTooltip bySeller={bySeller} />} />
 
               {points.filter((p) => p.isWeekend).map((p) => (
                 <ReferenceArea
@@ -248,6 +234,51 @@ function DayTick({ x = 0, y = 0, payload, points = [] }: IDayTickProps) {
         {p.weekdayLabel}
       </text>
     </g>
+  );
+}
+
+// ── EvolutionTooltip ──────────────────────────────────────────────────────────
+
+interface ITooltipEntry {
+  dataKey?: string | number;
+  value?: number | null;
+  color?: string;
+  name?: string;
+  payload?: ChartPoint;
+}
+
+interface IEvolutionTooltipProps {
+  active?: boolean;
+  payload?: ITooltipEntry[];
+  label?: number;
+  bySeller: boolean;
+}
+
+function EvolutionTooltip({ active, payload, label, bySeller }: IEvolutionTooltipProps) {
+  if (!active || !payload || payload.length === 0) return null;
+  const point = payload[0]?.payload;
+  return (
+    <div className="rounded-lg border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md">
+      <p className="mb-1 font-semibold">{`Dia ${label}`}</p>
+      {payload.map((entry) => {
+        if (entry.value == null) return null;
+        const key = String(entry.dataKey);
+        const meta = bySeller ? undefined : SERIES_META[key as SeriesKey];
+        const lbl = meta ? meta.label : (entry.name ?? key);
+        const color = meta ? meta.color : entry.color;
+        return (
+          <p key={key} style={{ color }}>
+            {lbl}: <b>{formatBRL(entry.value)}</b>
+          </p>
+        );
+      })}
+      {point?.vendasDia != null && (
+        <p className="mt-1 border-t border-border pt-1 text-muted-foreground">
+          {S.evolutionTooltipSoldToday}:{" "}
+          <b className="text-foreground">{formatBRL(point.vendasDia)}</b>
+        </p>
+      )}
+    </div>
   );
 }
 

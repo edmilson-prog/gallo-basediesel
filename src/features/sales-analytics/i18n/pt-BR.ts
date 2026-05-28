@@ -77,6 +77,7 @@ export const SALES_ANALYTICS_STRINGS = {
   evolutionSeriesMesPassado: "Mês passado",
   evolutionSeriesAnoPassado: "Ano passado",
   evolutionToday: "Hoje",
+  evolutionTooltipSoldToday: "Vendido no dia",
   evolutionOutros: "Outros",
   evolutionDrillDown: "Detalhar por vendedor",
   evolutionDrillDownBack: "Voltar ao consolidado",
