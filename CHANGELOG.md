@@ -4,6 +4,21 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.45.0] — Gateway · 2026-05-28
+
+Sétima entrega do **Bloco 5 (E-commerce / Onda 3)** com quatro novas features de integração e dois cards do painel corrigidos: portal B2B corporativo, PWA para vendedores externos, painel unificado de e-commerce, integração e-commerce → central e correção dos widgets "Metas do mês" e "Saúde da carteira".
+
+### Added
+
+- **Portal B2B corporativo (PRD-071)** — rotas `/portal/*` com autenticação mock para clientes CNPJ: painel, pedidos, nova solicitação, analytics e faturamento; guard de sessão e i18n completos.
+- **PWA para vendedor externo (PRD-070)** — progressive web app em `/pwa/*` para representantes em campo: início, agenda, clientes e perfil; service worker registrado e manifesto configurado.
+- **Integração e-commerce → central (PRD-067)** — hooks de sincronização de pedidos e notificação aos vendedores responsáveis; widget de pedidos e-commerce no painel do gestor.
+- **Painel unificado de e-commerce (PRD-066)** — área administrativa do storefront com abas de análise e conteúdo; estrutura de rota de configuração do storefront reestruturada.
+
+### Fixed
+
+- Cards **"Metas do mês"** e **"Saúde da carteira"** sem dados na tela inicial do gestor: o hook de metas lia o campo inexistente `.items` da resposta paginada (campo correto é `.data`), resultando em lista sempre vazia; o widget de carteira recriava a janela temporal a cada renderização com precisão de milissegundos, invalidando continuamente o cache de consultas e travando o indicador de carregamento.
+
 ## [0.44.0] — Passport · 2026-05-27
 
 Sexta entrega do **Bloco 5 (E-commerce / Onda 3)** com o **PRD-065 — Conta do
