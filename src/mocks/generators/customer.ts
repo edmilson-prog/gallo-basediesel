@@ -5,6 +5,7 @@ import type {
   ICustomerB2C,
   ICustomerNote,
   ID,
+  IPortalContract,
   ISO8601,
 } from "@/shared/types";
 import { SEED_STORE_ID, SEED_TAGS } from "../data";
@@ -40,6 +41,30 @@ interface IGenerateCustomerInput {
   now?: Date;
 }
 
+/**
+ * Negotiated contracts for the first B2B companies (PRD-071 RF-005/006/041).
+ * Indexed by B2B sequence — only the first {@link PORTAL_ENABLED_B2B_COUNT}
+ * companies are provisioned with the advanced corporate portal, matching the
+ * roster seeded by `usePortalStore.seedFromCustomers`.
+ */
+const PORTAL_CONTRACTS: IPortalContract[] = [
+  {
+    discountPct: 10,
+    categoryDiscounts: { filtro: 15, lubrificante: 12, freio: 8 },
+    paymentTermsExtended: "30/60/90 dias",
+    creditLimit: 250_000,
+  },
+  {
+    discountPct: 7,
+    categoryDiscounts: { motor: 10, embreagem: 8 },
+    paymentTermsExtended: "28/56 dias",
+    creditLimit: 120_000,
+  },
+];
+
+/** How many of the first B2B companies are portal-enabled in the MVP seed. */
+export const PORTAL_ENABLED_B2B_COUNT = PORTAL_CONTRACTS.length;
+
 /** Generate a B2B customer (CNPJ-based) with a coherent lifecycle. */
 export function generateCustomerB2B(
   ctx: ISeededContext,
@@ -50,7 +75,10 @@ export function generateCustomerB2B(
   const razaoSocial = `${ctx.faker.company.name()} ${pickCompanySuffix(ctx)}`.trim();
   const nomeFantasia = razaoSocial.split(" ").slice(0, 2).join(" ");
   const sellerId = ctx.pick(input.sellerIds);
-  const status = pickCustomerStatus(ctx);
+  const portalContract = PORTAL_CONTRACTS[input.sequence];
+  // Portal-enabled companies are always active so their spend history (orders,
+  // vehicles) is populated for the dashboard/analytics demo.
+  const status = portalContract ? "ativo" : pickCustomerStatus(ctx);
   const purchase = pickPurchaseTimeline(ctx, status, now);
 
   return {
@@ -70,6 +98,8 @@ export function generateCustomerB2B(
     notes: [],
     firstPurchaseAt: purchase.firstPurchaseAt,
     lastPurchaseAt: purchase.lastPurchaseAt,
+    hasB2BPortal: portalContract !== undefined,
+    portalContract,
     createdAt: randomISO(ctx, new Date(now.getFullYear() - 3, 0, 1), now),
   };
 }

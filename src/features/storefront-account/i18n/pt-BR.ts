@@ -57,6 +57,14 @@ export const STOREFRONT_ACCOUNT_STRINGS = {
   registerLoginCta: "Entrar",
   registerEmailTaken: "Este e-mail já está cadastrado. Tente entrar na sua conta.",
   registerSuccess: "Cadastro criado com sucesso!",
+  guestMergeTitle: "Encontramos um pedido em seu nome",
+  guestMergeByEmail:
+    "Identificamos uma compra anterior feita como visitante com este e-mail. Deseja vincular esse histórico à sua nova conta?",
+  guestMergeByDocument:
+    "Identificamos uma compra anterior feita como visitante com este CPF/CNPJ. Deseja vincular esse histórico à sua nova conta?",
+  guestMergeConfirm: "Sim, vincular",
+  guestMergeCancel: "Agora não",
+  guestMergeSuccess: "Pedido anterior vinculado à sua conta!",
 
   // Password recovery (placeholder)
   recoverPageTitle: "Recuperar senha · GALLO PARTS",

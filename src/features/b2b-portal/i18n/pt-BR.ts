@@ -59,8 +59,21 @@ export const PORTAL_STRINGS = {
   // Orders
   ordersTitle: "Pedidos",
   ordersEmpty: "Nenhum pedido encontrado.",
+  ordersNoMatch: "Nenhum pedido corresponde aos filtros.",
   orderApprovalInfo: "Aprovação interna",
   orderRepeat: "Repetir pedido",
+  ordersFilterStatus: "Status de pagamento",
+  ordersFilterPeriod: "Período",
+  ordersFilterMinValue: "Valor mínimo (R$)",
+  ordersFilterVehicle: "Veículo de destino",
+  ordersFilterBuyer: "Comprador interno",
+  ordersFilterAll: "Todos",
+  ordersPeriod30: "Últimos 30 dias",
+  ordersPeriod90: "Últimos 90 dias",
+  ordersPeriod365: "Último ano",
+  ordersClearFilters: "Limpar filtros",
+  ordersExportCsv: "Exportar CSV",
+  ordersExportPlaceholder: "Exportação CSV disponível na Fase 2.",
 
   // Billing
   billingTitle: "Faturamento corporativo",

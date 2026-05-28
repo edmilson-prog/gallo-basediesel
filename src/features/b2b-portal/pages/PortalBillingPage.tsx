@@ -1,14 +1,30 @@
+import { useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Icon } from "@/components/Icon";
 import { formatBRL } from "@/shared/utils/format";
+import { auditLog } from "@/features/rbac/utils/auditLog";
 import { usePortalSession } from "../hooks/usePortalSession";
 import { usePortalOrders } from "../hooks/usePortalResources";
 import { PortalBanner } from "../components/PortalBanner";
 import { PORTAL_STRINGS as S } from "../i18n/pt-BR";
 
 export function PortalBillingPage() {
-  const { customer } = usePortalSession();
+  const { user, customer } = usePortalSession();
   const { data: orders = [] } = usePortalOrders(customer?.id);
+
+  // RF-044: financial access is sensitive — audit each visit (once per mount).
+  const audited = useRef(false);
+  useEffect(() => {
+    if (audited.current || !customer) return;
+    audited.current = true;
+    auditLog({
+      actorId: user?.id,
+      action: "portal_billing_access",
+      resource: "customer",
+      resourceId: customer.id,
+      storeId: "store-matriz",
+    });
+  }, [user?.id, customer]);
 
   const limit = customer?.portalContract?.creditLimit ?? 80_000;
   const used = orders

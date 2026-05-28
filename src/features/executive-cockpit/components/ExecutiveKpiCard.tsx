@@ -21,6 +21,8 @@ export interface IExecutiveKpiCardProps {
   hasError?: boolean;
   /** Optional "Em breve" / "Estimativa" tag rendered next to the title. */
   tag?: string;
+  /** Optional breakdown shown in an info tooltip (e.g. orders by origin — PRD-067 RF-019). */
+  breakdown?: { label: string; value: number }[];
   /** When set, the card becomes clickable and navigates to the drill-down target. */
   onClick?: () => void;
   onRetry?: () => void;
@@ -139,6 +141,7 @@ export function ExecutiveKpiCard({
   isLoading = false,
   hasError = false,
   tag,
+  breakdown,
   onClick,
   onRetry,
 }: IExecutiveKpiCardProps) {
@@ -157,11 +160,38 @@ export function ExecutiveKpiCard({
             )}
           </div>
         </div>
-        {tag && (
-          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-            {tag}
-          </span>
-        )}
+        <div className="flex items-center gap-1.5">
+          {breakdown && breakdown.length > 0 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  tabIndex={0}
+                  role="img"
+                  aria-label="Distribuição por origem"
+                  className="text-muted-foreground transition-colors hover:text-foreground"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Icon icon="mdi:information-outline" size={16} />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <div className="space-y-0.5 text-xs">
+                  {breakdown.map((b) => (
+                    <div key={b.label} className="flex justify-between gap-4">
+                      <span>{b.label}</span>
+                      <span className="font-semibold tabular-nums">{b.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          )}
+          {tag && (
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+              {tag}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-1 items-end justify-between gap-3">

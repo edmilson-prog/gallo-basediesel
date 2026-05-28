@@ -18,6 +18,7 @@ import { RankingHighlightWidget } from "@/features/gamification";
 import { CommissionsWidget } from "@/features/commissions";
 import { RecentMovementsWidget } from "@/features/inventory-movement";
 import { InsightsBanner } from "@/features/insights";
+import { useEcommerceOrdersSummary } from "@/features/ecommerce-integration";
 import { useCockpitFilters } from "../hooks/useCockpitFilters";
 import { useCockpitMetrics } from "../hooks/useCockpitMetrics";
 import { useCockpitAlerts, type ICockpitAlert } from "../hooks/useCockpitAlerts";
@@ -75,6 +76,23 @@ export function ExecutiveCockpitPage() {
   const alertsCtl = useCockpitAlerts({ metrics, activeGoals: goals.items });
 
   const comparisonLabel = filtersCtl.filters.compare === "yoy" ? S.kpiVsYoY : S.kpiVsPrevious;
+
+  // PRD-067 RF-019: breakdown of total orders by origin, shown in the orders KPI tooltip.
+  const ecommerceSummary = useEcommerceOrdersSummary(scope.storeId);
+  const ordersBreakdown = useMemo(() => {
+    const byOrigin = ecommerceSummary.data?.byOrigin;
+    if (!byOrigin) return undefined;
+    const labels: Record<string, string> = {
+      whatsapp: "WhatsApp/SDR",
+      ecommerce: "E-commerce",
+      portal: "Portal B2B",
+      pwa_externo: "Vendedor externo",
+      manual: "Manual",
+    };
+    return Object.entries(byOrigin)
+      .filter(([, count]) => count > 0)
+      .map(([origin, count]) => ({ label: labels[origin] ?? origin, value: count }));
+  }, [ecommerceSummary.data]);
 
   // Access guard — Owner / Gestor / Financeiro only. Vendedor is blocked.
   if (!userRole || !ALLOWED_ROLES.has(userRole)) {
@@ -170,6 +188,7 @@ export function ExecutiveCockpitPage() {
           formatValue={formatNumber}
           trend={metrics.kpis.orderCount.trend}
           sparkline={metrics.kpis.orderCount.sparkline}
+          breakdown={ordersBreakdown}
           comparisonLabel={comparisonLabel}
           isLoading={metrics.isLoading}
           hasError={metrics.hasError}

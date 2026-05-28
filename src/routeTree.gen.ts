@@ -108,7 +108,6 @@ import { Route as AppGestaoAtendimentoAnaliseRouteImport } from './routes/app.ge
 import { Route as AppGestaoAbcRouteImport } from './routes/app.gestao.abc'
 import { Route as AppConfiguracoesWhatsappRouteImport } from './routes/app.configuracoes.whatsapp'
 import { Route as AppConfiguracoesUsuariosRouteImport } from './routes/app.configuracoes.usuarios'
-import { Route as AppConfiguracoesStorefrontRouteImport } from './routes/app.configuracoes.storefront'
 import { Route as AppConfiguracoesSobreRouteImport } from './routes/app.configuracoes.sobre'
 import { Route as AppConfiguracoesPortalClienteRouteImport } from './routes/app.configuracoes.portal-cliente'
 import { Route as AppConfiguracoesPerfilRouteImport } from './routes/app.configuracoes.perfil'
@@ -135,6 +134,7 @@ import { Route as LojaContaOrcamentosIndexRouteImport } from './routes/loja.cont
 import { Route as AppGestaoRankingIndexRouteImport } from './routes/app.gestao.ranking.index'
 import { Route as AppGestaoComissoesIndexRouteImport } from './routes/app.gestao.comissoes.index'
 import { Route as AppGestaoAtendimentoAnaliseIndexRouteImport } from './routes/app.gestao.atendimento-analise.index'
+import { Route as AppConfiguracoesStorefrontIndexRouteImport } from './routes/app.configuracoes.storefront.index'
 import { Route as LojaContaPedidosIdRouteImport } from './routes/loja.conta.pedidos.$id'
 import { Route as LojaContaOrcamentosIdRouteImport } from './routes/loja.conta.orcamentos.$id'
 import { Route as AppGestaoRankingSellerIdRouteImport } from './routes/app.gestao.ranking.$sellerId'
@@ -146,6 +146,7 @@ import { Route as AppGestaoCarteiraAnaliticaSellerIdRouteImport } from './routes
 import { Route as AppGestaoAtendimentoAnaliseSellerIdRouteImport } from './routes/app.gestao.atendimento-analise.$sellerId'
 import { Route as AppGestaoAbcClassRouteImport } from './routes/app.gestao.abc.$class'
 import { Route as AppConfiguracoesVeiculosCadastroModeRouteImport } from './routes/app.configuracoes.veiculos.cadastro-mode'
+import { Route as AppConfiguracoesStorefrontCategoriasRouteImport } from './routes/app.configuracoes.storefront.categorias'
 import { Route as AppConfiguracoesSdrTemplatesRouteImport } from './routes/app.configuracoes.sdr.templates'
 import { Route as AppConfiguracoesSdrSimuladorRouteImport } from './routes/app.configuracoes.sdr.simulador'
 import { Route as AppConfiguracoesSdrOrcamentoRouteImport } from './routes/app.configuracoes.sdr.orcamento'
@@ -657,12 +658,6 @@ const AppConfiguracoesUsuariosRoute =
     path: '/configuracoes/usuarios',
     getParentRoute: () => AppRoute,
   } as any)
-const AppConfiguracoesStorefrontRoute =
-  AppConfiguracoesStorefrontRouteImport.update({
-    id: '/configuracoes/storefront',
-    path: '/configuracoes/storefront',
-    getParentRoute: () => AppRoute,
-  } as any)
 const AppConfiguracoesSobreRoute = AppConfiguracoesSobreRouteImport.update({
   id: '/configuracoes/sobre',
   path: '/configuracoes/sobre',
@@ -807,6 +802,12 @@ const AppGestaoAtendimentoAnaliseIndexRoute =
     path: '/',
     getParentRoute: () => AppGestaoAtendimentoAnaliseRoute,
   } as any)
+const AppConfiguracoesStorefrontIndexRoute =
+  AppConfiguracoesStorefrontIndexRouteImport.update({
+    id: '/configuracoes/storefront/',
+    path: '/configuracoes/storefront/',
+    getParentRoute: () => AppRoute,
+  } as any)
 const LojaContaPedidosIdRoute = LojaContaPedidosIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -866,6 +867,12 @@ const AppConfiguracoesVeiculosCadastroModeRoute =
   AppConfiguracoesVeiculosCadastroModeRouteImport.update({
     id: '/configuracoes/veiculos/cadastro-mode',
     path: '/configuracoes/veiculos/cadastro-mode',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppConfiguracoesStorefrontCategoriasRoute =
+  AppConfiguracoesStorefrontCategoriasRouteImport.update({
+    id: '/configuracoes/storefront/categorias',
+    path: '/configuracoes/storefront/categorias',
     getParentRoute: () => AppRoute,
   } as any)
 const AppConfiguracoesSdrTemplatesRoute =
@@ -993,7 +1000,6 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
   '/app/configuracoes/portal-cliente': typeof AppConfiguracoesPortalClienteRoute
   '/app/configuracoes/sobre': typeof AppConfiguracoesSobreRoute
-  '/app/configuracoes/storefront': typeof AppConfiguracoesStorefrontRoute
   '/app/configuracoes/usuarios': typeof AppConfiguracoesUsuariosRoute
   '/app/configuracoes/whatsapp': typeof AppConfiguracoesWhatsappRoute
   '/app/gestao/abc': typeof AppGestaoAbcRouteWithChildren
@@ -1053,6 +1059,7 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/sdr/orcamento': typeof AppConfiguracoesSdrOrcamentoRoute
   '/app/configuracoes/sdr/simulador': typeof AppConfiguracoesSdrSimuladorRoute
   '/app/configuracoes/sdr/templates': typeof AppConfiguracoesSdrTemplatesRoute
+  '/app/configuracoes/storefront/categorias': typeof AppConfiguracoesStorefrontCategoriasRoute
   '/app/configuracoes/veiculos/cadastro-mode': typeof AppConfiguracoesVeiculosCadastroModeRoute
   '/app/gestao/abc/$class': typeof AppGestaoAbcClassRoute
   '/app/gestao/atendimento-analise/$sellerId': typeof AppGestaoAtendimentoAnaliseSellerIdRoute
@@ -1064,6 +1071,7 @@ export interface FileRoutesByFullPath {
   '/app/gestao/ranking/$sellerId': typeof AppGestaoRankingSellerIdRoute
   '/loja/conta/orcamentos/$id': typeof LojaContaOrcamentosIdRoute
   '/loja/conta/pedidos/$id': typeof LojaContaPedidosIdRoute
+  '/app/configuracoes/storefront/': typeof AppConfiguracoesStorefrontIndexRoute
   '/app/gestao/atendimento-analise/': typeof AppGestaoAtendimentoAnaliseIndexRoute
   '/app/gestao/comissoes/': typeof AppGestaoComissoesIndexRoute
   '/app/gestao/ranking/': typeof AppGestaoRankingIndexRoute
@@ -1125,7 +1133,6 @@ export interface FileRoutesByTo {
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
   '/app/configuracoes/portal-cliente': typeof AppConfiguracoesPortalClienteRoute
   '/app/configuracoes/sobre': typeof AppConfiguracoesSobreRoute
-  '/app/configuracoes/storefront': typeof AppConfiguracoesStorefrontRoute
   '/app/configuracoes/usuarios': typeof AppConfiguracoesUsuariosRoute
   '/app/configuracoes/whatsapp': typeof AppConfiguracoesWhatsappRoute
   '/app/gestao/abc': typeof AppGestaoAbcRouteWithChildren
@@ -1180,6 +1187,7 @@ export interface FileRoutesByTo {
   '/app/configuracoes/sdr/orcamento': typeof AppConfiguracoesSdrOrcamentoRoute
   '/app/configuracoes/sdr/simulador': typeof AppConfiguracoesSdrSimuladorRoute
   '/app/configuracoes/sdr/templates': typeof AppConfiguracoesSdrTemplatesRoute
+  '/app/configuracoes/storefront/categorias': typeof AppConfiguracoesStorefrontCategoriasRoute
   '/app/configuracoes/veiculos/cadastro-mode': typeof AppConfiguracoesVeiculosCadastroModeRoute
   '/app/gestao/abc/$class': typeof AppGestaoAbcClassRoute
   '/app/gestao/atendimento-analise/$sellerId': typeof AppGestaoAtendimentoAnaliseSellerIdRoute
@@ -1191,6 +1199,7 @@ export interface FileRoutesByTo {
   '/app/gestao/ranking/$sellerId': typeof AppGestaoRankingSellerIdRoute
   '/loja/conta/orcamentos/$id': typeof LojaContaOrcamentosIdRoute
   '/loja/conta/pedidos/$id': typeof LojaContaPedidosIdRoute
+  '/app/configuracoes/storefront': typeof AppConfiguracoesStorefrontIndexRoute
   '/app/gestao/atendimento-analise': typeof AppGestaoAtendimentoAnaliseIndexRoute
   '/app/gestao/comissoes': typeof AppGestaoComissoesIndexRoute
   '/app/gestao/ranking': typeof AppGestaoRankingIndexRoute
@@ -1269,7 +1278,6 @@ export interface FileRoutesById {
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
   '/app/configuracoes/portal-cliente': typeof AppConfiguracoesPortalClienteRoute
   '/app/configuracoes/sobre': typeof AppConfiguracoesSobreRoute
-  '/app/configuracoes/storefront': typeof AppConfiguracoesStorefrontRoute
   '/app/configuracoes/usuarios': typeof AppConfiguracoesUsuariosRoute
   '/app/configuracoes/whatsapp': typeof AppConfiguracoesWhatsappRoute
   '/app/gestao/abc': typeof AppGestaoAbcRouteWithChildren
@@ -1329,6 +1337,7 @@ export interface FileRoutesById {
   '/app/configuracoes/sdr/orcamento': typeof AppConfiguracoesSdrOrcamentoRoute
   '/app/configuracoes/sdr/simulador': typeof AppConfiguracoesSdrSimuladorRoute
   '/app/configuracoes/sdr/templates': typeof AppConfiguracoesSdrTemplatesRoute
+  '/app/configuracoes/storefront/categorias': typeof AppConfiguracoesStorefrontCategoriasRoute
   '/app/configuracoes/veiculos/cadastro-mode': typeof AppConfiguracoesVeiculosCadastroModeRoute
   '/app/gestao/abc/$class': typeof AppGestaoAbcClassRoute
   '/app/gestao/atendimento-analise/$sellerId': typeof AppGestaoAtendimentoAnaliseSellerIdRoute
@@ -1340,6 +1349,7 @@ export interface FileRoutesById {
   '/app/gestao/ranking/$sellerId': typeof AppGestaoRankingSellerIdRoute
   '/loja/conta/orcamentos/$id': typeof LojaContaOrcamentosIdRoute
   '/loja/conta/pedidos/$id': typeof LojaContaPedidosIdRoute
+  '/app/configuracoes/storefront/': typeof AppConfiguracoesStorefrontIndexRoute
   '/app/gestao/atendimento-analise/': typeof AppGestaoAtendimentoAnaliseIndexRoute
   '/app/gestao/comissoes/': typeof AppGestaoComissoesIndexRoute
   '/app/gestao/ranking/': typeof AppGestaoRankingIndexRoute
@@ -1419,7 +1429,6 @@ export interface FileRouteTypes {
     | '/app/configuracoes/perfil'
     | '/app/configuracoes/portal-cliente'
     | '/app/configuracoes/sobre'
-    | '/app/configuracoes/storefront'
     | '/app/configuracoes/usuarios'
     | '/app/configuracoes/whatsapp'
     | '/app/gestao/abc'
@@ -1479,6 +1488,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/sdr/orcamento'
     | '/app/configuracoes/sdr/simulador'
     | '/app/configuracoes/sdr/templates'
+    | '/app/configuracoes/storefront/categorias'
     | '/app/configuracoes/veiculos/cadastro-mode'
     | '/app/gestao/abc/$class'
     | '/app/gestao/atendimento-analise/$sellerId'
@@ -1490,6 +1500,7 @@ export interface FileRouteTypes {
     | '/app/gestao/ranking/$sellerId'
     | '/loja/conta/orcamentos/$id'
     | '/loja/conta/pedidos/$id'
+    | '/app/configuracoes/storefront/'
     | '/app/gestao/atendimento-analise/'
     | '/app/gestao/comissoes/'
     | '/app/gestao/ranking/'
@@ -1551,7 +1562,6 @@ export interface FileRouteTypes {
     | '/app/configuracoes/perfil'
     | '/app/configuracoes/portal-cliente'
     | '/app/configuracoes/sobre'
-    | '/app/configuracoes/storefront'
     | '/app/configuracoes/usuarios'
     | '/app/configuracoes/whatsapp'
     | '/app/gestao/abc'
@@ -1606,6 +1616,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/sdr/orcamento'
     | '/app/configuracoes/sdr/simulador'
     | '/app/configuracoes/sdr/templates'
+    | '/app/configuracoes/storefront/categorias'
     | '/app/configuracoes/veiculos/cadastro-mode'
     | '/app/gestao/abc/$class'
     | '/app/gestao/atendimento-analise/$sellerId'
@@ -1617,6 +1628,7 @@ export interface FileRouteTypes {
     | '/app/gestao/ranking/$sellerId'
     | '/loja/conta/orcamentos/$id'
     | '/loja/conta/pedidos/$id'
+    | '/app/configuracoes/storefront'
     | '/app/gestao/atendimento-analise'
     | '/app/gestao/comissoes'
     | '/app/gestao/ranking'
@@ -1694,7 +1706,6 @@ export interface FileRouteTypes {
     | '/app/configuracoes/perfil'
     | '/app/configuracoes/portal-cliente'
     | '/app/configuracoes/sobre'
-    | '/app/configuracoes/storefront'
     | '/app/configuracoes/usuarios'
     | '/app/configuracoes/whatsapp'
     | '/app/gestao/abc'
@@ -1754,6 +1765,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/sdr/orcamento'
     | '/app/configuracoes/sdr/simulador'
     | '/app/configuracoes/sdr/templates'
+    | '/app/configuracoes/storefront/categorias'
     | '/app/configuracoes/veiculos/cadastro-mode'
     | '/app/gestao/abc/$class'
     | '/app/gestao/atendimento-analise/$sellerId'
@@ -1765,6 +1777,7 @@ export interface FileRouteTypes {
     | '/app/gestao/ranking/$sellerId'
     | '/loja/conta/orcamentos/$id'
     | '/loja/conta/pedidos/$id'
+    | '/app/configuracoes/storefront/'
     | '/app/gestao/atendimento-analise/'
     | '/app/gestao/comissoes/'
     | '/app/gestao/ranking/'
@@ -2479,13 +2492,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesUsuariosRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/configuracoes/storefront': {
-      id: '/app/configuracoes/storefront'
-      path: '/configuracoes/storefront'
-      fullPath: '/app/configuracoes/storefront'
-      preLoaderRoute: typeof AppConfiguracoesStorefrontRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/app/configuracoes/sobre': {
       id: '/app/configuracoes/sobre'
       path: '/configuracoes/sobre'
@@ -2668,6 +2674,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppGestaoAtendimentoAnaliseIndexRouteImport
       parentRoute: typeof AppGestaoAtendimentoAnaliseRoute
     }
+    '/app/configuracoes/storefront/': {
+      id: '/app/configuracoes/storefront/'
+      path: '/configuracoes/storefront'
+      fullPath: '/app/configuracoes/storefront/'
+      preLoaderRoute: typeof AppConfiguracoesStorefrontIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/loja/conta/pedidos/$id': {
       id: '/loja/conta/pedidos/$id'
       path: '/$id'
@@ -2743,6 +2756,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes/veiculos/cadastro-mode'
       fullPath: '/app/configuracoes/veiculos/cadastro-mode'
       preLoaderRoute: typeof AppConfiguracoesVeiculosCadastroModeRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/configuracoes/storefront/categorias': {
+      id: '/app/configuracoes/storefront/categorias'
+      path: '/configuracoes/storefront/categorias'
+      fullPath: '/app/configuracoes/storefront/categorias'
+      preLoaderRoute: typeof AppConfiguracoesStorefrontCategoriasRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/configuracoes/sdr/templates': {
@@ -3051,7 +3071,6 @@ interface AppRouteChildren {
   AppConfiguracoesPerfilRoute: typeof AppConfiguracoesPerfilRoute
   AppConfiguracoesPortalClienteRoute: typeof AppConfiguracoesPortalClienteRoute
   AppConfiguracoesSobreRoute: typeof AppConfiguracoesSobreRoute
-  AppConfiguracoesStorefrontRoute: typeof AppConfiguracoesStorefrontRoute
   AppConfiguracoesUsuariosRoute: typeof AppConfiguracoesUsuariosRoute
   AppConfiguracoesWhatsappRoute: typeof AppConfiguracoesWhatsappRoute
   AppGestaoAbcRoute: typeof AppGestaoAbcRouteWithChildren
@@ -3078,7 +3097,9 @@ interface AppRouteChildren {
   AppConfiguracoesSdrOrcamentoRoute: typeof AppConfiguracoesSdrOrcamentoRoute
   AppConfiguracoesSdrSimuladorRoute: typeof AppConfiguracoesSdrSimuladorRoute
   AppConfiguracoesSdrTemplatesRoute: typeof AppConfiguracoesSdrTemplatesRoute
+  AppConfiguracoesStorefrontCategoriasRoute: typeof AppConfiguracoesStorefrontCategoriasRoute
   AppConfiguracoesVeiculosCadastroModeRoute: typeof AppConfiguracoesVeiculosCadastroModeRoute
+  AppConfiguracoesStorefrontIndexRoute: typeof AppConfiguracoesStorefrontIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -3112,7 +3133,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesPerfilRoute: AppConfiguracoesPerfilRoute,
   AppConfiguracoesPortalClienteRoute: AppConfiguracoesPortalClienteRoute,
   AppConfiguracoesSobreRoute: AppConfiguracoesSobreRoute,
-  AppConfiguracoesStorefrontRoute: AppConfiguracoesStorefrontRoute,
   AppConfiguracoesUsuariosRoute: AppConfiguracoesUsuariosRoute,
   AppConfiguracoesWhatsappRoute: AppConfiguracoesWhatsappRoute,
   AppGestaoAbcRoute: AppGestaoAbcRouteWithChildren,
@@ -3144,8 +3164,11 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesSdrOrcamentoRoute: AppConfiguracoesSdrOrcamentoRoute,
   AppConfiguracoesSdrSimuladorRoute: AppConfiguracoesSdrSimuladorRoute,
   AppConfiguracoesSdrTemplatesRoute: AppConfiguracoesSdrTemplatesRoute,
+  AppConfiguracoesStorefrontCategoriasRoute:
+    AppConfiguracoesStorefrontCategoriasRoute,
   AppConfiguracoesVeiculosCadastroModeRoute:
     AppConfiguracoesVeiculosCadastroModeRoute,
+  AppConfiguracoesStorefrontIndexRoute: AppConfiguracoesStorefrontIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

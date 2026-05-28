@@ -14,7 +14,7 @@ export { PortalVehicleDetailPage } from "./pages/PortalVehicleDetailPage";
 export { PortalRequestsPage } from "./pages/PortalRequestsPage";
 export { PortalNewRequestPage, type IPortalNewRequestSearch } from "./pages/PortalNewRequestPage";
 export { PortalRequestDetailPage } from "./pages/PortalRequestDetailPage";
-export { PortalOrdersListPage } from "./pages/PortalOrdersListPage";
+export { PortalOrdersListPage, type IPortalOrdersSearch } from "./pages/PortalOrdersListPage";
 export { PortalOrderDetailPage } from "./pages/PortalOrderDetailPage";
 export { PortalBillingPage } from "./pages/PortalBillingPage";
 export { PortalAnalyticsPage } from "./pages/PortalAnalyticsPage";
@@ -23,4 +23,5 @@ export { PortalProfilePage } from "./pages/PortalProfilePage";
 export { PortalSupportPage } from "./pages/PortalSupportPage";
 
 export { readPortalSessionSync } from "./store/portalAuthStore";
+export { readPortalUserSync } from "./store/portalStore";
 export { usePortalAuth } from "./hooks/usePortalAuth";

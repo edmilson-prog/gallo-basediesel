@@ -58,5 +58,13 @@ function raiseToast(
       label: "Ver pedido",
       onClick: () => void navigate({ to: "/app/pedidos/$id", params: { id: n.orderId } }),
     },
+    // RF-009: second CTA to jump straight into the auto-created conversation.
+    cancel: n.conversationId
+      ? {
+          label: "Abrir conversa",
+          onClick: () =>
+            void navigate({ to: "/app/atendimento/$id", params: { id: n.conversationId! } }),
+        }
+      : undefined,
   });
 }

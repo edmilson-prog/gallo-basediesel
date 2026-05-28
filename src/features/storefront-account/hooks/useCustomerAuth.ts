@@ -32,6 +32,54 @@ export type CustomerRegisterInput = ICustomerRegisterInputB2C | ICustomerRegiste
 const DEFAULT_STORE_ID: ID = "store-matriz";
 const DEFAULT_SELLER_ID: ID = "seller-carlos-santos";
 
+const onlyDigits = (value: string): string => value.replace(/\D/g, "");
+
+/**
+ * Raised when a sign-up matches an existing guest-checkout record (PRD-067
+ * RF-023) — by e-mail OR document (CPF/CNPJ). The caller is expected to ask the
+ * visitor for confirmation ("Encontramos um pedido em seu nome — vincular?")
+ * before calling {@link useCustomerAuth().confirmGuestMerge}.
+ */
+export class GuestMatchError extends Error {
+  guestId: ID;
+  matchedBy: "email" | "document";
+  constructor(guestId: ID, matchedBy: "email" | "document") {
+    super("GUEST_MATCH");
+    this.name = "GuestMatchError";
+    this.guestId = guestId;
+    this.matchedBy = matchedBy;
+  }
+}
+
+/**
+ * Looks for a guest-checkout customer matching the registration input by e-mail
+ * or by document (CPF for B2C / CNPJ for B2B). Returns the match + how it was
+ * found, or null. Only guest records are eligible — fully registered ones are
+ * treated as e-mail-taken collisions by the caller.
+ */
+async function findGuestMatch(
+  provider: ReturnType<typeof useCustomersProvider>,
+  input: CustomerRegisterInput,
+): Promise<{ customer: ICustomer; matchedBy: "email" | "document" } | null> {
+  const email = input.email.trim().toLowerCase();
+  const byEmail = await provider.list({ search: email, pageSize: 20 });
+  const emailMatch = byEmail.data.find((c) => (c.email ?? "").toLowerCase() === email);
+  if (emailMatch?.isGuestCheckout) return { customer: emailMatch, matchedBy: "email" };
+
+  const doc = onlyDigits(input.type === "B2C" ? input.cpf : input.cnpj);
+  if (doc.length >= 11) {
+    const byDoc = await provider.list({ search: doc, pageSize: 20 });
+    const docMatch = byDoc.data.find((c) => {
+      if (!c.isGuestCheckout) return false;
+      if (c.type === "B2C" && input.type === "B2C") return onlyDigits(c.cpf) === doc;
+      if (c.type === "B2B" && input.type === "B2B") return onlyDigits(c.cnpj) === doc;
+      return false;
+    });
+    if (docMatch) return { customer: docMatch, matchedBy: "document" };
+  }
+  return null;
+}
+
 /**
  * Promote a guest-checkout customer to a registered account, merging the new
  * registration details onto the existing record (PRD-067 RF-023). Keeps the
@@ -131,28 +179,43 @@ export function useCustomerAuth() {
     [provider, setSession],
   );
 
+  /**
+   * Completes a guest-to-account merge after the visitor confirmed the prompt
+   * (PRD-067 RF-023). Promotes the record, signs in and audits the link.
+   */
+  const confirmGuestMerge = useCallback(
+    async (guestId: ID, input: CustomerRegisterInput): Promise<ICustomer> => {
+      const merged = await promoteGuestCustomer(provider, guestId, input);
+      setSession(merged);
+      auditLog({
+        actorId: merged.id,
+        action: "ecommerce_guest_merge",
+        resource: "customer",
+        resourceId: merged.id,
+        storeId: merged.storeId,
+        before: { isGuestCheckout: true },
+        after: { isGuestCheckout: false, source: "storefront_register_merge" },
+      });
+      return merged;
+    },
+    [provider, setSession],
+  );
+
   const register = useCallback(
     async (input: CustomerRegisterInput): Promise<ICustomer> => {
       const trimmedEmail = input.email.trim().toLowerCase();
+
+      // PRD-067 RF-023 — a prior guest checkout (matched by e-mail OR document)
+      // must NOT be merged silently: surface a typed error so the caller can ask
+      // "Encontramos um pedido em seu nome — vincular?" before linking.
+      const guestMatch = await findGuestMatch(provider, input);
+      if (guestMatch) {
+        throw new GuestMatchError(guestMatch.customer.id, guestMatch.matchedBy);
+      }
+
       const existing = await provider.list({ search: trimmedEmail, pageSize: 20 });
       const dup = existing.data.find((c) => (c.email ?? "").toLowerCase() === trimmedEmail);
       if (dup) {
-        // PRD-067 RF-023 — a prior guest checkout under this e-mail is "promoted"
-        // to a full account (records merged) instead of blocking the sign-up.
-        if (dup.isGuestCheckout) {
-          const merged = await promoteGuestCustomer(provider, dup.id, input);
-          setSession(merged);
-          auditLog({
-            actorId: merged.id,
-            action: "ecommerce_guest_merge",
-            resource: "customer",
-            resourceId: merged.id,
-            storeId: merged.storeId,
-            before: { isGuestCheckout: true },
-            after: { isGuestCheckout: false, source: "storefront_register_merge" },
-          });
-          return merged;
-        }
         const err = new Error("EMAIL_TAKEN");
         err.name = "EmailTakenError";
         throw err;
@@ -243,6 +306,7 @@ export function useCustomerAuth() {
     isHydrating,
     login,
     register,
+    confirmGuestMerge,
     logout,
     updateProfile,
   };

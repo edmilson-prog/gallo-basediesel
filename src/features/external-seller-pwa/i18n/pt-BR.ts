@@ -42,6 +42,7 @@ export const PWA_STRINGS = {
   tabOrders: "Pedidos",
   tabQuotes: "Orçamentos",
   tabVehicles: "Veículos",
+  tabConversations: "Conversas",
   detailNewQuote: "Novo orçamento",
   detailScheduleVisit: "Agendar visita",
 

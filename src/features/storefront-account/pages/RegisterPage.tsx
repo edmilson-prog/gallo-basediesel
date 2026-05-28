@@ -1,12 +1,23 @@
 import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
+import type { ID } from "@/shared/types";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Icon } from "@/components/Icon";
 import { useSeoMeta } from "@/features/storefront/hooks/useSeoMeta";
 import {
@@ -17,7 +28,11 @@ import {
   isValidCpf,
   isValidPhone,
 } from "@/features/customers/utils/cnpjCpf";
-import { useCustomerAuth, type CustomerRegisterInput } from "../hooks/useCustomerAuth";
+import {
+  GuestMatchError,
+  useCustomerAuth,
+  type CustomerRegisterInput,
+} from "../hooks/useCustomerAuth";
 import { STOREFRONT_ACCOUNT_STRINGS as S } from "../i18n/pt-BR";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -56,10 +71,17 @@ const EMPTY_FORM: IFormState = {
 
 export function RegisterPage() {
   const navigate = useNavigate();
-  const { register } = useCustomerAuth();
+  const { register, confirmGuestMerge } = useCustomerAuth();
   const [form, setForm] = useState<IFormState>(EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<Record<keyof IFormState | "root", string>>>({});
   const [submitting, setSubmitting] = useState(false);
+  // PRD-067 RF-023 — guest-checkout match awaiting the visitor's confirmation.
+  const [guestMatch, setGuestMatch] = useState<{
+    guestId: ID;
+    matchedBy: "email" | "document";
+    payload: CustomerRegisterInput;
+  } | null>(null);
+  const [merging, setMerging] = useState(false);
 
   useSeoMeta({ title: S.registerPageTitle, description: S.registerPageDescription });
 
@@ -97,39 +119,59 @@ export function RegisterPage() {
     if (submitting) return;
     if (!validate()) return;
 
+    const payload: CustomerRegisterInput =
+      form.type === "B2C"
+        ? {
+            type: "B2C",
+            fullName: form.fullName,
+            cpf: form.cpf,
+            email: form.email,
+            phone: form.phone,
+            password: form.password,
+          }
+        : {
+            type: "B2B",
+            razaoSocial: form.razaoSocial,
+            nomeFantasia: form.nomeFantasia,
+            cnpj: form.cnpj,
+            contactName: form.contactName,
+            email: form.email,
+            phone: form.phone,
+            password: form.password,
+          };
+
     setSubmitting(true);
     try {
-      const payload: CustomerRegisterInput =
-        form.type === "B2C"
-          ? {
-              type: "B2C",
-              fullName: form.fullName,
-              cpf: form.cpf,
-              email: form.email,
-              phone: form.phone,
-              password: form.password,
-            }
-          : {
-              type: "B2B",
-              razaoSocial: form.razaoSocial,
-              nomeFantasia: form.nomeFantasia,
-              cnpj: form.cnpj,
-              contactName: form.contactName,
-              email: form.email,
-              phone: form.phone,
-              password: form.password,
-            };
       await register(payload);
       toast.success(S.registerSuccess);
       void navigate({ to: "/loja/conta" });
     } catch (err) {
-      if (err instanceof Error && err.name === "EmailTakenError") {
+      if (err instanceof GuestMatchError) {
+        // Don't merge silently — ask the visitor to confirm linking the order.
+        setGuestMatch({ guestId: err.guestId, matchedBy: err.matchedBy, payload });
+      } else if (err instanceof Error && err.name === "EmailTakenError") {
         setErrors({ email: S.registerEmailTaken });
       } else {
         setErrors({ root: "Não foi possível criar a conta. Tente novamente." });
       }
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleConfirmMerge = async () => {
+    if (!guestMatch || merging) return;
+    setMerging(true);
+    try {
+      await confirmGuestMerge(guestMatch.guestId, guestMatch.payload);
+      setGuestMatch(null);
+      toast.success(S.guestMergeSuccess);
+      void navigate({ to: "/loja/conta" });
+    } catch {
+      setGuestMatch(null);
+      setErrors({ root: "Não foi possível vincular o pedido. Tente novamente." });
+    } finally {
+      setMerging(false);
     }
   };
 
@@ -307,6 +349,29 @@ export function RegisterPage() {
           </p>
         </form>
       </Card>
+
+      <AlertDialog open={guestMatch !== null} onOpenChange={(open) => !open && setGuestMatch(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{S.guestMergeTitle}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {guestMatch?.matchedBy === "document" ? S.guestMergeByDocument : S.guestMergeByEmail}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={merging}>{S.guestMergeCancel}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                void handleConfirmMerge();
+              }}
+              disabled={merging}
+            >
+              {S.guestMergeConfirm}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

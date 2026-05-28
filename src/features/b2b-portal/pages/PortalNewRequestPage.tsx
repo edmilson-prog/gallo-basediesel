@@ -242,6 +242,30 @@ export function PortalNewRequestPage() {
           <div className="border-t border-border pt-2 text-sm text-muted-foreground">
             Urgência: <span className="text-foreground">{urgency}</span>
           </div>
+
+          {customer?.portalContract?.discountPct ? (
+            <div className="space-y-1 rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
+              <p className="flex items-center gap-1.5 font-medium text-foreground">
+                <Icon icon="mdi:sale" size={16} className="text-primary" aria-hidden />
+                Desconto de contrato: {customer.portalContract.discountPct}%
+              </p>
+              {customer.portalContract.categoryDiscounts &&
+                Object.keys(customer.portalContract.categoryDiscounts).length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Descontos especiais por categoria:{" "}
+                    {Object.entries(customer.portalContract.categoryDiscounts)
+                      .map(([cat, pct]) => `${cat} ${pct}%`)
+                      .join(", ")}
+                    .
+                  </p>
+                )}
+              <p className="text-xs text-muted-foreground">
+                Aplicado automaticamente ao orçamento que a GALLO emitir.
+              </p>
+            </div>
+          ) : null}
+          <PortalBanner text="Catálogo personalizado completo (preços por contrato em tempo real) disponível na Fase 2." />
+
           <div className="flex gap-2">
             <Button variant="outline" className="flex-1" onClick={() => setStep(3)}>
               Voltar

@@ -136,3 +136,19 @@ export const usePortalStore = create<IPortalState>()(
 export function selectDefaultPortalCompanyId(state: IPortalState): ID | null {
   return state.users[0]?.customerId ?? null;
 }
+
+/**
+ * Synchronous read of a persisted portal user for route guards (`beforeLoad`),
+ * where React hooks are unavailable. Mirrors `readPortalSessionSync`.
+ */
+export function readPortalUserSync(userId: ID): IPortalUser | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { state?: { users?: IPortalUser[] } };
+    return parsed.state?.users?.find((u) => u.id === userId) ?? null;
+  } catch {
+    return null;
+  }
+}

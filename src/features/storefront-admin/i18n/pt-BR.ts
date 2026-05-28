@@ -26,7 +26,8 @@ export const STOREFRONT_ADMIN_STRINGS = {
   phase2Banner: "Métricas completas (tráfego, conversão real, origens) chegam na Fase 2.",
 
   // Content
-  contentSubHome: "Conteúdo & Categorias",
+  contentSubHome: "Home",
+  contentSubCategories: "Categorias",
   contentSubIdentity: "Identidade",
   identityTitle: "Identidade visual da loja",
   identityLogoLabel: "Logo da loja",

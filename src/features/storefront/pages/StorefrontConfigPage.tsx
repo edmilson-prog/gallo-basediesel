@@ -1,9 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
+import { useBlocker } from "@tanstack/react-router";
 import { toast } from "sonner";
 import type { IStorefrontConfig, PartCategory } from "@/shared/types";
 import { DEFAULT_STOREFRONT_CONFIG } from "@/shared/types";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -38,7 +49,18 @@ import { STOREFRONT_STRINGS as S } from "../i18n/pt-BR";
  * Persists into `IPlatformSettings.storefront`. Edits propagate to /loja on
  * the next render thanks to react-query refetch + the storefront settings hook.
  */
-export function StorefrontConfigPage() {
+export interface IStorefrontConfigPageProps {
+  /**
+   * Which block to render (PRD-066 RF-007): `home` shows the home editors,
+   * `categorias` shows the per-category editor, `all` (default) shows both —
+   * keeping the original standalone behaviour intact.
+   */
+  section?: "home" | "categorias" | "all";
+}
+
+export function StorefrontConfigPage({ section = "all" }: IStorefrontConfigPageProps = {}) {
+  const showHome = section === "home" || section === "all";
+  const showCategorias = section === "categorias" || section === "all";
   const role = useCurrentRole();
   const { currentStoreId } = useCurrentStore();
   const storeId = currentStoreId ?? "store-matriz";
@@ -54,6 +76,9 @@ export function StorefrontConfigPage() {
     if (!settings) return false;
     return JSON.stringify(draft) !== JSON.stringify(settings.storefront);
   }, [settings, draft]);
+
+  // RF-012: warn before leaving with unsaved content changes.
+  const blocker = useBlocker({ shouldBlockFn: () => dirty, withResolver: true });
 
   if (role !== "Owner") {
     return (
@@ -167,6 +192,7 @@ export function StorefrontConfigPage() {
       </Card>
 
       {/* Hero */}
+      {showHome && (
       <Card className="space-y-4 p-6">
         <h2 className="text-base font-semibold text-foreground">{S.configSectionHero}</h2>
         <div className="space-y-2">
@@ -211,8 +237,10 @@ export function StorefrontConfigPage() {
           ))}
         </div>
       </Card>
+      )}
 
       {/* Featured categories */}
+      {showHome && (
       <Card className="space-y-4 p-6">
         <div>
           <h2 className="text-base font-semibold text-foreground">{S.configSectionCategories}</h2>
@@ -236,8 +264,10 @@ export function StorefrontConfigPage() {
           })}
         </div>
       </Card>
+      )}
 
       {/* Featured products mode */}
+      {showHome && (
       <Card className="space-y-4 p-6">
         <h2 className="text-base font-semibold text-foreground">{S.configSectionFeatured}</h2>
         <div className="space-y-2">
@@ -270,8 +300,10 @@ export function StorefrontConfigPage() {
           )}
         </div>
       </Card>
+      )}
 
       {/* Category pages (PRD-062) */}
+      {showCategorias && (
       <Card className="space-y-4 p-6">
         <div>
           <h2 className="text-base font-semibold text-foreground">
@@ -333,8 +365,10 @@ export function StorefrontConfigPage() {
           />
         </div>
       </Card>
+      )}
 
       {/* Why buy */}
+      {showHome && (
       <Card className="space-y-4 p-6">
         <h2 className="text-base font-semibold text-foreground">{S.configSectionBenefits}</h2>
         <div className="space-y-3">
@@ -369,8 +403,10 @@ export function StorefrontConfigPage() {
           ))}
         </div>
       </Card>
+      )}
 
       {/* About */}
+      {showHome && (
       <Card className="space-y-4 p-6">
         <h2 className="text-base font-semibold text-foreground">{S.configSectionAbout}</h2>
         <div className="space-y-2">
@@ -395,8 +431,10 @@ export function StorefrontConfigPage() {
           />
         </div>
       </Card>
+      )}
 
       {/* Footer */}
+      {showHome && (
       <Card className="space-y-4 p-6">
         <h2 className="text-base font-semibold text-foreground">{S.configSectionFooter}</h2>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -449,8 +487,10 @@ export function StorefrontConfigPage() {
           </div>
         </div>
       </Card>
+      )}
 
       {/* SEO */}
+      {showHome && (
       <Card className="space-y-4 p-6">
         <h2 className="text-base font-semibold text-foreground">{S.configSectionSeo}</h2>
         <div className="space-y-2">
@@ -475,6 +515,7 @@ export function StorefrontConfigPage() {
           />
         </div>
       </Card>
+      )}
 
       <div className="sticky bottom-4 z-10 flex flex-wrap justify-end gap-2 rounded-md border border-border bg-card/95 p-3 backdrop-blur">
         <Button variant="outline" onClick={handleReset} disabled={!dirty || saving}>
@@ -484,6 +525,25 @@ export function StorefrontConfigPage() {
           {saving ? "Salvando…" : "Salvar alterações"}
         </Button>
       </div>
+
+      <AlertDialog open={blocker.status === "blocked"}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Alterações não salvas</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você tem alterações de conteúdo não salvas. Se sair agora, elas serão perdidas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => blocker.reset?.()}>
+              Continuar editando
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => blocker.proceed?.()}>
+              Descartar e sair
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -25,6 +25,68 @@ function endOfWeek(): Date {
   return d;
 }
 
+const WEEKDAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+function startOfWeek(): Date {
+  const d = new Date();
+  d.setDate(d.getDate() - d.getDay());
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function isSameDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+/** Compact week grid showing the visit count per day (PRD-070 RF-019). */
+function WeekCalendar({ visits }: { visits: IPwaVisitWithCustomer[] }) {
+  const start = startOfWeek();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    return d;
+  });
+  const countFor = (day: Date) =>
+    visits.filter((v) => isSameDay(new Date(v.scheduledAt), day)).length;
+
+  return (
+    <Card className="p-3">
+      <div className="grid grid-cols-7 gap-1">
+        {days.map((day, i) => {
+          const count = countFor(day);
+          const isToday = isSameDay(day, today);
+          return (
+            <div
+              key={day.toISOString()}
+              className={`flex flex-col items-center gap-1 rounded-md py-2 ${
+                isToday ? "bg-primary/10" : ""
+              }`}
+            >
+              <span className="text-[10px] uppercase text-muted-foreground">{WEEKDAY_LABELS[i]}</span>
+              <span className={`text-sm font-semibold ${isToday ? "text-primary" : "text-foreground"}`}>
+                {day.getDate()}
+              </span>
+              {count > 0 ? (
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                  {count}
+                </span>
+              ) : (
+                <span className="h-5" aria-hidden />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
 function VisitCard({ visit }: { visit: IPwaVisitWithCustomer }) {
   return (
     <Card className="flex items-start gap-3 p-3">
@@ -81,7 +143,11 @@ export function PWAAgendaPage() {
             <Skeleton key={i} className="h-16 w-full" />
           ))}
         </div>
-      ) : visits.length === 0 ? (
+      ) : (
+        <WeekCalendar visits={visits} />
+      )}
+
+      {isLoading ? null : visits.length === 0 ? (
         <p className="py-8 text-center text-sm text-muted-foreground">{S.agendaEmpty}</p>
       ) : (
         <>

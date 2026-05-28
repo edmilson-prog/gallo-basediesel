@@ -30,8 +30,10 @@ function isWithinWindow(order: IOrder): boolean {
 export function useEcommerceOrdersSummary(storeId: ID | undefined) {
   const provider = useOrdersProvider();
   return useQuery({
-    queryKey: ["ecommerce-integration", "orders-summary", storeId] as const,
-    enabled: Boolean(storeId),
+    // Runs even without a store id: the Cockpit's "all stores" view (PRD-067
+    // RF-019) needs a cross-store breakdown, while the Painel Gestor widget
+    // always passes a scoped store id.
+    queryKey: ["ecommerce-integration", "orders-summary", storeId ?? "all"] as const,
     staleTime: 60_000,
     queryFn: async (): Promise<IEcommerceOrdersSummary> => {
       const result = await provider.list({ storeId, pageSize: 500 });

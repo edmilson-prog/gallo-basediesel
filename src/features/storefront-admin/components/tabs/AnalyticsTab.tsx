@@ -53,32 +53,45 @@ export function AnalyticsTab({ storeId }: IAnalyticsTabProps) {
       <Card className="space-y-4 p-6">
         <h2 className="text-base font-semibold text-foreground">{S.funnelTitle}</h2>
         <div className="space-y-3">
-          {funnel.map((step) => (
-            <div key={step.label} className="space-y-1">
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2 text-foreground">
-                  {step.label}
-                  <Badge
-                    variant="outline"
-                    className={
-                      step.kind === "real"
-                        ? "border-primary/40 bg-primary/10 text-[10px] text-primary"
-                        : "border-amber-500/40 bg-amber-500/10 text-[10px] text-amber-600 dark:text-amber-400"
-                    }
-                  >
-                    {step.kind === "real" ? S.badgeReal : S.badgeMock}
-                  </Badge>
-                </span>
-                <span className="font-semibold tabular-nums text-foreground">{step.value}</span>
+          {funnel.map((step, idx) => {
+            const prev = idx > 0 ? funnel[idx - 1] : null;
+            // RF-018: conversion rate from the previous funnel step.
+            const conversion =
+              prev && prev.value > 0 ? Math.round((step.value / prev.value) * 1000) / 10 : null;
+            return (
+              <div key={step.label} className="space-y-1">
+                {conversion !== null && (
+                  <div className="flex items-center gap-1 pl-1 text-[11px] text-muted-foreground">
+                    <Icon icon="mdi:arrow-down" size={12} aria-hidden />
+                    <span className="tabular-nums">{conversion}%</span>
+                    <span>de conversão do passo anterior</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-2 text-foreground">
+                    {step.label}
+                    <Badge
+                      variant="outline"
+                      className={
+                        step.kind === "real"
+                          ? "border-primary/40 bg-primary/10 text-[10px] text-primary"
+                          : "border-amber-500/40 bg-amber-500/10 text-[10px] text-amber-600 dark:text-amber-400"
+                      }
+                    >
+                      {step.kind === "real" ? S.badgeReal : S.badgeMock}
+                    </Badge>
+                  </span>
+                  <span className="font-semibold tabular-nums text-foreground">{step.value}</span>
+                </div>
+                <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary"
+                    style={{ width: `${Math.max((step.value / max) * 100, 2)}%` }}
+                  />
+                </div>
               </div>
-              <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full rounded-full bg-primary"
-                  style={{ width: `${Math.max((step.value / max) * 100, 2)}%` }}
-                />
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </Card>
 

@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatBRL, formatDateBR, formatPhone } from "@/shared/utils/format";
 import {
+  useConversationsProvider,
   useCustomersProvider,
   useOrdersProvider,
   useQuotesProvider,
@@ -22,6 +23,7 @@ export function PWACustomerDetailPage() {
   const ordersProvider = useOrdersProvider();
   const quotesProvider = useQuotesProvider();
   const vehiclesProvider = useVehiclesProvider();
+  const conversationsProvider = useConversationsProvider();
 
   const customerQuery = useQuery({
     queryKey: ["pwa", "customer", id] as const,
@@ -38,6 +40,10 @@ export function PWACustomerDetailPage() {
   const vehiclesQuery = useQuery({
     queryKey: ["pwa", "customer-vehicles", id] as const,
     queryFn: () => vehiclesProvider.listByCustomer(id),
+  });
+  const conversationsQuery = useQuery({
+    queryKey: ["pwa", "customer-conversations", id] as const,
+    queryFn: async () => (await conversationsProvider.list({ customerId: id, pageSize: 50 })).data,
   });
 
   const customer = customerQuery.data;
@@ -100,6 +106,9 @@ export function PWACustomerDetailPage() {
           <TabsTrigger value="vehicles" className="flex-1">
             {S.tabVehicles}
           </TabsTrigger>
+          <TabsTrigger value="conversations" className="flex-1">
+            {S.tabConversations}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="orders" className="space-y-2">
@@ -148,6 +157,32 @@ export function PWACustomerDetailPage() {
                   <p className="text-xs text-muted-foreground">
                     {v.plate ?? "sem placa"} · {v.engine}
                   </p>
+                </div>
+              </Card>
+            ))
+          )}
+        </TabsContent>
+
+        <TabsContent value="conversations" className="space-y-2">
+          {(conversationsQuery.data ?? []).length === 0 ? (
+            <p className="py-4 text-center text-sm text-muted-foreground">Sem conversas.</p>
+          ) : (
+            (conversationsQuery.data ?? []).map((c) => (
+              <Card key={c.id} className="flex items-center justify-between gap-3 p-3">
+                <div className="min-w-0">
+                  <p className="flex items-center gap-1.5 text-sm font-medium capitalize text-foreground">
+                    <Icon icon="mdi:chat-outline" size={16} className="text-muted-foreground" aria-hidden />
+                    {c.channel}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{formatDateBR(c.lastMessageAt)}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {c.unreadCount > 0 && (
+                    <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
+                      {c.unreadCount}
+                    </span>
+                  )}
+                  <span className="text-xs capitalize text-muted-foreground">{c.status}</span>
                 </div>
               </Card>
             ))

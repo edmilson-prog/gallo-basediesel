@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { auditLog } from "@/features/rbac/utils/auditLog";
 import { usePortalStore } from "../store/portalStore";
 import { usePortalAuthStore } from "../store/portalAuthStore";
 
@@ -31,10 +32,31 @@ export function usePortalAuth() {
         storeId: DEFAULT_STORE_ID,
         loggedInAt: new Date().toISOString(),
       });
+      // RF-044: audit portal authentication events.
+      auditLog({
+        actorId: match.id,
+        action: "portal_login",
+        resource: "customer",
+        resourceId: match.customerId,
+        storeId: DEFAULT_STORE_ID,
+      });
       return true;
     },
     [users, setSession],
   );
 
-  return { session, isAuthenticated: Boolean(session), login, logout: clearSession };
+  const logout = useCallback(() => {
+    if (session) {
+      auditLog({
+        actorId: session.portalUserId,
+        action: "portal_logout",
+        resource: "customer",
+        resourceId: session.customerId,
+        storeId: session.storeId,
+      });
+    }
+    clearSession();
+  }, [session, clearSession]);
+
+  return { session, isAuthenticated: Boolean(session), login, logout };
 }

@@ -1,4 +1,5 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useState } from "react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Icon } from "@/components/Icon";
 import { StorefrontConfigPage } from "@/features/storefront";
@@ -12,30 +13,38 @@ const THEME_COLORS = [
 ];
 
 export interface IContentTabProps {
-  /** Sub-tab to open by default ("home" or "identidade"). */
+  /** Sub-tab to open by default ("home", "categorias" or "identidade"). */
   defaultSubtab?: string;
+}
+
+type ContentSubtab = "home" | "categorias" | "identidade";
+
+function normalizeSubtab(value: string | undefined): ContentSubtab {
+  return value === "categorias" || value === "identidade" ? value : "home";
 }
 
 /**
  * Consolidates the storefront content editors (PRD-060/062) under the admin
- * panel (PRD-066 RF-007/008/009/010). The home/categories editor is reused
- * verbatim from `StorefrontConfigPage` — no logic duplication.
+ * panel (PRD-066 RF-007/008/009/010) in three sub-tabs: Home, Categorias and
+ * Identidade. Home/Categorias reuse `StorefrontConfigPage` (no logic
+ * duplication) via its `section` prop, kept as a single mounted instance so the
+ * shared draft + save bar persist while toggling between the two editors.
  */
 export function ContentTab({ defaultSubtab = "home" }: IContentTabProps) {
-  const initial = defaultSubtab === "identidade" ? "identidade" : "home";
+  const [subtab, setSubtab] = useState<ContentSubtab>(normalizeSubtab(defaultSubtab));
 
   return (
-    <Tabs defaultValue={initial} className="space-y-4">
+    <Tabs value={subtab} onValueChange={(v) => setSubtab(v as ContentSubtab)} className="space-y-4">
       <TabsList>
         <TabsTrigger value="home">{S.contentSubHome}</TabsTrigger>
+        <TabsTrigger value="categorias">{S.contentSubCategories}</TabsTrigger>
         <TabsTrigger value="identidade">{S.contentSubIdentity}</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="home">
-        <StorefrontConfigPage />
-      </TabsContent>
-
-      <TabsContent value="identidade" className="space-y-4">
+      {subtab !== "identidade" ? (
+        <StorefrontConfigPage section={subtab} />
+      ) : (
+      <div className="space-y-4">
         <Card className="flex items-start gap-3 border-primary/30 bg-primary/5 p-4">
           <Icon icon="mdi:palette-outline" size={18} className="mt-0.5 text-primary" />
           <p className="text-xs text-muted-foreground">{S.identityPhase2}</p>
@@ -62,7 +71,8 @@ export function ContentTab({ defaultSubtab = "home" }: IContentTabProps) {
             ))}
           </div>
         </Card>
-      </TabsContent>
+      </div>
+      )}
     </Tabs>
   );
 }
