@@ -2,6 +2,7 @@ import { useCallback, useMemo } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import type { CustomerStatus, ICustomer, ID } from "@/shared/types";
 import type { INumericRange, RecencyBucket } from "@/providers/data";
+import { usePersistedListSearch } from "@/shared/hooks/usePersistedListSearch";
 import {
   ABC_KEYS,
   DEFAULT_PAGE_SIZE,
@@ -62,6 +63,8 @@ const VALID_ORDER_BY = new Set<CustomersOrderBy>([
   "status",
 ]);
 const VALID_ORDER_DIR = new Set<CustomersOrderDir>(["asc", "desc"]);
+
+const LIST_SEARCH_STORAGE_KEY = "gallo-customers-list-search";
 const VALID_STATUS = new Set<CustomerStatus>(STATUS_KEYS);
 const VALID_ABC = new Set<AbcKey>(ABC_KEYS);
 const VALID_RECENCY = new Set<RecencyBucket>(RECENCY_BUCKETS);
@@ -214,6 +217,10 @@ export function useCustomersUrlState(): ICustomersUrlState {
   const filters = useMemo(() => readFilters(search), [search]);
   const sort = useMemo(() => readSort(search), [search]);
   const { page, pageSize } = useMemo(() => readPage(search), [search]);
+
+  usePersistedListSearch(LIST_SEARCH_STORAGE_KEY, search as Record<string, unknown>, (saved) => {
+    void navigate({ search: () => saved as unknown as ICustomersListSearch, replace: true });
+  });
 
   const apply = useCallback(
     (patch: Partial<ICustomersListSearch>) => {

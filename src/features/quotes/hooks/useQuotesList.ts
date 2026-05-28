@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { ID, IQuote } from "@/shared/types";
+import type { ICustomer, ID, IQuote, ISeller } from "@/shared/types";
 import { useQuotesProvider } from "@/providers/data/hooks/useQuotesProvider";
 import {
+  PROVIDER_ORDER_BY,
   resolveDateBounds,
   type IQuotesListFilters,
   type IQuotesListSort,
@@ -37,17 +38,65 @@ function applyClientFilters(quotes: IQuote[], filters: IQuotesListFilters): IQuo
   });
 }
 
+function quoteCustomerName(q: IQuote, customersById?: Map<ID, ICustomer>): string {
+  const c = q.customerId ? customersById?.get(q.customerId) : undefined;
+  if (!c) return "";
+  return c.type === "B2B" ? c.nomeFantasia || c.razaoSocial : c.fullName;
+}
+
+function quoteSellerName(q: IQuote, sellersById?: Map<ID, ISeller>): string {
+  return sellersById?.get(q.sellerId)?.fullName ?? (q.sellerId === "sdr-agent" ? "Agente SDR" : "");
+}
+
+/** Sort quotes by any column — covers fields the provider cannot sort natively. */
+function sortQuotes(
+  quotes: IQuote[],
+  sort: IQuotesListSort,
+  customersById?: Map<ID, ICustomer>,
+  sellersById?: Map<ID, ISeller>,
+): IQuote[] {
+  const dir = sort.orderDir === "desc" ? -1 : 1;
+  const cmpStr = (a: string, b: string) => a.localeCompare(b, "pt-BR") * dir;
+  return [...quotes].sort((a, b) => {
+    switch (sort.orderBy) {
+      case "number":
+        return cmpStr(a.number, b.number);
+      case "customer":
+        return cmpStr(quoteCustomerName(a, customersById), quoteCustomerName(b, customersById));
+      case "origin":
+        return cmpStr(a.origin, b.origin);
+      case "seller":
+        return cmpStr(quoteSellerName(a, sellersById), quoteSellerName(b, sellersById));
+      case "status":
+        return cmpStr(a.status, b.status);
+      case "total":
+        return (a.total - b.total) * dir;
+      case "validUntil":
+        return cmpStr(a.validUntil ?? "", b.validUntil ?? "");
+      case "updatedAt":
+        return cmpStr(a.updatedAt ?? "", b.updatedAt ?? "");
+      case "createdAt":
+      default:
+        return cmpStr(a.createdAt, b.createdAt);
+    }
+  });
+}
+
 /**
  * Paginated quote list with provider-side primary filters and client-side
  * filtering for criteria not expressible via the provider (validity bucket,
- * total range, multi-store).
+ * total range, multi-store) plus client-side sorting across all columns.
  */
 export function useQuotesList(
   filters: IQuotesListFilters,
   sort: IQuotesListSort,
   page: number,
   pageSize: QuotesPageSize,
-  options: { sellerIdLock?: ID | null } = {},
+  options: {
+    sellerIdLock?: ID | null;
+    customersById?: Map<ID, ICustomer>;
+    sellersById?: Map<ID, ISeller>;
+  } = {},
 ): IQuotesListQuery {
   const provider = useQuotesProvider();
   const queryClient = useQueryClient();
@@ -63,8 +112,10 @@ export function useQuotesList(
       createdAfter: bounds.createdAfter,
       createdBefore: bounds.createdBefore,
       search: filters.search?.trim() ? filters.search.trim() : undefined,
-      orderBy: sort.orderBy,
-      orderDir: sort.orderDir,
+      orderBy: PROVIDER_ORDER_BY.has(sort.orderBy)
+        ? (sort.orderBy as "createdAt" | "updatedAt" | "total" | "validUntil")
+        : undefined,
+      orderDir: PROVIDER_ORDER_BY.has(sort.orderBy) ? sort.orderDir : undefined,
       page: 1,
       pageSize: 1000,
     };
@@ -86,9 +137,19 @@ export function useQuotesList(
       const set = new Set(filters.sellerIds);
       filtered = filtered.filter((q) => set.has(q.sellerId));
     }
+    const sorted = sortQuotes(filtered, sort, options.customersById, options.sellersById);
     const start = (page - 1) * pageSize;
-    return { paged: filtered.slice(start, start + pageSize), total: filtered.length };
-  }, [query.data, filters, page, pageSize, options.sellerIdLock]);
+    return { paged: sorted.slice(start, start + pageSize), total: sorted.length };
+  }, [
+    query.data,
+    filters,
+    sort,
+    page,
+    pageSize,
+    options.sellerIdLock,
+    options.customersById,
+    options.sellersById,
+  ]);
 
   return {
     data: result.paged,

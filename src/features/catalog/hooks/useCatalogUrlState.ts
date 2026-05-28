@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import type { PartCategory } from "@/shared/types";
+import { usePersistedListSearch } from "@/shared/hooks/usePersistedListSearch";
 import {
   DEFAULT_PAGE_SIZE,
   DEFAULT_SORT,
@@ -43,6 +44,8 @@ const VALID_ORDER_BY = new Set<CatalogOrderBy>([
   "status",
 ]);
 const VALID_ORDER_DIR = new Set<CatalogOrderDir>(["asc", "desc"]);
+
+const LIST_SEARCH_STORAGE_KEY = "gallo-catalog-list-search";
 
 export interface ICatalogListSearch {
   cats?: string;
@@ -187,6 +190,10 @@ export function useCatalogUrlState(): ICatalogUrlState {
   const filters = useMemo(() => readFilters(search), [search]);
   const sort = useMemo(() => readSort(search), [search]);
   const { page, pageSize } = useMemo(() => readPage(search), [search]);
+
+  usePersistedListSearch(LIST_SEARCH_STORAGE_KEY, search as Record<string, unknown>, (saved) => {
+    void navigate({ search: () => saved as unknown as ICatalogListSearch, replace: true });
+  });
 
   const apply = useCallback(
     (patch: Partial<ICatalogListSearch>) => {

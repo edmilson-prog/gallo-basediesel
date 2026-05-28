@@ -1,3 +1,4 @@
+import type { PointerEvent as ReactPointerEvent } from "react";
 import type { ICustomer, ID, IQuote, ISeller } from "@/shared/types";
 import { cn } from "@/lib/utils";
 import { Icon } from "@/components/Icon";
@@ -13,6 +14,7 @@ import {
 import { QuoteStatusBadge } from "../QuoteStatusBadge";
 import { QuoteOriginBadge } from "../QuoteOriginBadge";
 import { ValidityIndicator } from "../ValidityIndicator";
+import { useResizableColumns } from "../../hooks/useResizableColumns";
 import type { IQuotesListSort, QuoteOrderBy } from "../../utils/listFilters";
 
 const moneyFormatter = new Intl.NumberFormat("pt-BR", {
@@ -25,6 +27,37 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   month: "2-digit",
   year: "2-digit",
 });
+
+const COLUMN_WIDTHS_KEY = "gallo-quotes-column-widths";
+
+type QuoteColumnId =
+  | "number"
+  | "customer"
+  | "origin"
+  | "seller"
+  | "total"
+  | "status"
+  | "createdAt"
+  | "validUntil";
+
+interface IQuoteColumnDef {
+  id: QuoteColumnId;
+  label: string;
+  defaultWidth: number;
+  sortBy: QuoteOrderBy;
+  align?: "right";
+}
+
+const COLUMNS: readonly IQuoteColumnDef[] = [
+  { id: "number", label: "Número", defaultWidth: 120, sortBy: "number" },
+  { id: "customer", label: "Cliente", defaultWidth: 260, sortBy: "customer" },
+  { id: "origin", label: "Origem", defaultWidth: 120, sortBy: "origin" },
+  { id: "seller", label: "Vendedor", defaultWidth: 170, sortBy: "seller" },
+  { id: "total", label: "Total", defaultWidth: 130, sortBy: "total", align: "right" },
+  { id: "status", label: "Status", defaultWidth: 130, sortBy: "status" },
+  { id: "createdAt", label: "Criado", defaultWidth: 110, sortBy: "createdAt" },
+  { id: "validUntil", label: "Validade", defaultWidth: 140, sortBy: "validUntil" },
+];
 
 export interface IQuotesTableProps {
   quotes: IQuote[];
@@ -42,6 +75,18 @@ function customerName(c: ICustomer | undefined): string {
   return c.fullName;
 }
 
+function ResizeHandle({ onPointerDown }: { onPointerDown: (e: ReactPointerEvent) => void }) {
+  return (
+    <span
+      role="separator"
+      aria-orientation="vertical"
+      onPointerDown={onPointerDown}
+      onClick={(e) => e.stopPropagation()}
+      className="absolute right-0 top-0 z-10 h-full w-1.5 cursor-col-resize touch-none select-none hover:bg-primary/40"
+    />
+  );
+}
+
 export function QuotesTable({
   quotes,
   isLoading,
@@ -51,6 +96,8 @@ export function QuotesTable({
   sellers,
   customers,
 }: IQuotesTableProps) {
+  const { widths, totalWidth, startResize } = useResizableColumns(COLUMNS, COLUMN_WIDTHS_KEY);
+
   const toggleSort = (field: QuoteOrderBy) => {
     if (sort.orderBy !== field) {
       onSortChange({ orderBy: field, orderDir: "desc" });
@@ -59,18 +106,29 @@ export function QuotesTable({
     }
   };
 
-  const SortHeader = ({ field, children }: { field: QuoteOrderBy; children: React.ReactNode }) => {
-    const active = sort.orderBy === field;
+  const SortHeader = ({ col }: { col: IQuoteColumnDef }) => {
+    const active = sort.orderBy === col.sortBy;
     return (
       <button
         type="button"
-        onClick={() => toggleSort(field)}
-        className="inline-flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground"
-      >
-        {children}
-        {active && (
-          <Icon icon={sort.orderDir === "asc" ? "mdi:arrow-up" : "mdi:arrow-down"} size={12} />
+        onClick={() => toggleSort(col.sortBy)}
+        className={cn(
+          "inline-flex w-full items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground",
+          col.align === "right" && "justify-end",
         )}
+      >
+        {col.label}
+        <Icon
+          icon={
+            active
+              ? sort.orderDir === "asc"
+                ? "mdi:arrow-up"
+                : "mdi:arrow-down"
+              : "mdi:unfold-more-horizontal"
+          }
+          size={12}
+          className={cn(!active && "opacity-40")}
+        />
       </button>
     );
   };
@@ -86,23 +144,23 @@ export function QuotesTable({
   }
 
   return (
-    <Table>
+    <Table className="table-fixed" style={{ width: totalWidth }}>
+      <colgroup>
+        {COLUMNS.map((col) => (
+          <col key={col.id} style={{ width: widths[col.id] }} />
+        ))}
+      </colgroup>
       <TableHeader>
-        <TableRow>
-          <TableHead className="w-32">Número</TableHead>
-          <TableHead>Cliente</TableHead>
-          <TableHead className="w-24">Origem</TableHead>
-          <TableHead className="w-40">Vendedor</TableHead>
-          <TableHead className="w-28 text-right">
-            <SortHeader field="total">Total</SortHeader>
-          </TableHead>
-          <TableHead className="w-28">Status</TableHead>
-          <TableHead className="w-24">
-            <SortHeader field="createdAt">Criado</SortHeader>
-          </TableHead>
-          <TableHead className="w-28">
-            <SortHeader field="validUntil">Validade</SortHeader>
-          </TableHead>
+        <TableRow className="hover:bg-transparent">
+          {COLUMNS.map((col) => (
+            <TableHead
+              key={col.id}
+              className={cn("relative", col.align === "right" && "text-right")}
+            >
+              <SortHeader col={col} />
+              <ResizeHandle onPointerDown={(e) => startResize(col.id, e)} />
+            </TableHead>
+          ))}
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -116,23 +174,23 @@ export function QuotesTable({
               className={cn("cursor-pointer transition-colors hover:bg-muted/60")}
               onClick={() => onRowClick(q.id)}
             >
-              <TableCell className="font-mono text-xs font-semibold text-foreground">
+              <TableCell className="truncate font-mono text-xs font-semibold text-foreground">
                 #{q.number}
               </TableCell>
-              <TableCell className="text-sm">
-                <span className="truncate text-foreground">{customerName(customer)}</span>
+              <TableCell className="truncate text-sm uppercase text-foreground">
+                {customerName(customer)}
               </TableCell>
               <TableCell>
                 <QuoteOriginBadge origin={q.origin} size="sm" />
               </TableCell>
-              <TableCell className="text-sm text-muted-foreground">{sellerName}</TableCell>
+              <TableCell className="truncate text-sm text-muted-foreground">{sellerName}</TableCell>
               <TableCell className="text-right text-sm font-semibold tabular-nums">
                 {moneyFormatter.format(q.total)}
               </TableCell>
               <TableCell>
                 <QuoteStatusBadge status={q.status} size="sm" />
               </TableCell>
-              <TableCell className="text-xs text-muted-foreground">
+              <TableCell className="truncate text-xs text-muted-foreground">
                 {dateFormatter.format(new Date(q.createdAt))}
               </TableCell>
               <TableCell>

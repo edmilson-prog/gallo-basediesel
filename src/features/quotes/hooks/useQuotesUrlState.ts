@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import type { QuoteOrigin, QuoteStatus } from "@/shared/types";
+import { usePersistedListSearch } from "@/shared/hooks/usePersistedListSearch";
 import {
   DEFAULT_PAGE_SIZE,
   DEFAULT_SORT,
@@ -26,8 +27,20 @@ const VALID_STATUS = new Set<QuoteStatus>([
 const VALID_ORIGIN = new Set<QuoteOrigin>(["sdr", "vendedor", "cliente_portal", "ecommerce"]);
 const VALID_VALIDITY = new Set<ValidityBucket>(["any", "expiring_soon", "expired", "valid"]);
 const VALID_DATE = new Set<DateRangeBucket>(["any", "24h", "7d", "30d", "custom"]);
-const VALID_ORDER_BY = new Set<QuoteOrderBy>(["createdAt", "updatedAt", "total", "validUntil"]);
+const VALID_ORDER_BY = new Set<QuoteOrderBy>([
+  "number",
+  "customer",
+  "origin",
+  "seller",
+  "status",
+  "createdAt",
+  "updatedAt",
+  "total",
+  "validUntil",
+]);
 const VALID_ORDER_DIR = new Set<QuoteOrderDir>(["asc", "desc"]);
+
+const LIST_SEARCH_STORAGE_KEY = "gallo-quotes-list-search";
 
 export interface IQuotesListSearch {
   statuses?: string;
@@ -170,6 +183,10 @@ export function useQuotesUrlState(): IQuotesUrlState {
   const filters = useMemo(() => readFilters(search), [search]);
   const sort = useMemo(() => readSort(search), [search]);
   const { page, pageSize } = useMemo(() => readPage(search), [search]);
+
+  usePersistedListSearch(LIST_SEARCH_STORAGE_KEY, search as Record<string, unknown>, (saved) => {
+    void navigate({ search: () => saved as unknown as IQuotesListSearch, replace: true });
+  });
 
   const apply = useCallback(
     (patch: Partial<IQuotesListSearch>) => {

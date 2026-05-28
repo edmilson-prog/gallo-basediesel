@@ -34,8 +34,25 @@ export const EMPTY_FILTERS: IQuotesListFilters = {
   search: "",
 };
 
-export type QuoteOrderBy = "createdAt" | "updatedAt" | "total" | "validUntil";
+export type QuoteOrderBy =
+  | "number"
+  | "customer"
+  | "origin"
+  | "seller"
+  | "status"
+  | "createdAt"
+  | "updatedAt"
+  | "total"
+  | "validUntil";
 export type QuoteOrderDir = "asc" | "desc";
+
+/** Order fields the quotes provider can sort natively; others are sorted client-side. */
+export const PROVIDER_ORDER_BY = new Set<QuoteOrderBy>([
+  "createdAt",
+  "updatedAt",
+  "total",
+  "validUntil",
+]);
 
 export interface IQuotesListSort {
   orderBy: QuoteOrderBy;

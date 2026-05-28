@@ -32,8 +32,6 @@ export function QuotesListPage() {
   // Vendedor — restrição: vê apenas seus orçamentos via sellerIdLock.
   const sellerIdLock = !isManagerOrOwner && currentUser?.sellerId ? currentUser.sellerId : null;
 
-  const list = useQuotesList(filters, sort, page, pageSize, { sellerIdLock });
-
   const sellersProvider = useSellersProvider();
   const customersProvider = useCustomersProvider();
 
@@ -55,17 +53,9 @@ export function QuotesListPage() {
     return all;
   }, [sellersQuery.data, isManagerOrOwner, currentUser?.sellerId]);
 
-  const customerIds = useMemo(() => {
-    const ids = new Set<ID>();
-    list.data.forEach((q) => {
-      if (q.customerId) ids.add(q.customerId);
-    });
-    return Array.from(ids);
-  }, [list.data]);
   const customersQuery = useQuery({
-    queryKey: ["customers-for-quotes", customerIds.length, customerIds.join(",")] as const,
+    queryKey: ["customers-for-quotes"] as const,
     queryFn: () => customersProvider.list({ pageSize: 500 }),
-    enabled: customerIds.length > 0,
     staleTime: 60_000,
   });
   const customersMap = useMemo<Map<ID, ICustomer>>(() => {
@@ -73,6 +63,13 @@ export function QuotesListPage() {
     (customersQuery.data?.data ?? []).forEach((c) => m.set(c.id, c));
     return m;
   }, [customersQuery.data]);
+
+  // Lista — a ordenação client-side por nome de cliente/vendedor usa os mapas acima.
+  const list = useQuotesList(filters, sort, page, pageSize, {
+    sellerIdLock,
+    customersById: customersMap,
+    sellersById: sellersMap,
+  });
 
   // Lock visual no filtro de vendedor para Vendedor.
   useEffect(() => {
