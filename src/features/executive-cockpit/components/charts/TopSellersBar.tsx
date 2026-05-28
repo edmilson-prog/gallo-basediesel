@@ -71,6 +71,7 @@ export function TopSellersBar({ rows, isLoading, onClick }: ITopSellersBarProps)
                 width={110}
               />
               <Tooltip
+                cursor={false}
                 contentStyle={{
                   borderRadius: 8,
                   border: "1px solid var(--border)",

@@ -3,6 +3,10 @@ import type { IPaginatedResult, IPaginationParams } from "./_shared";
 
 export type VehiclesOrderBy =
   | "brand"
+  | "engine"
+  | "plate"
+  | "seller"
+  | "cadastroStatus"
   | "createdAt"
   | "lastServiceAt"
   | "currentKm"

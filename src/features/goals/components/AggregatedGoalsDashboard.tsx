@@ -100,12 +100,20 @@ export function AggregatedGoalsDashboard({
         </div>
 
         {canCreate && (
-          <Button asChild size="sm" className="gap-1">
-            <Link to="/app/gestao/metas/nova">
-              <Icon icon="mdi:plus" size={16} />
-              {S.createCta}
-            </Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline" size="sm" className="gap-1">
+              <Link to="/app/gestao/metas/lote">
+                <Icon icon="mdi:account-multiple-plus-outline" size={16} />
+                {S.batchCta}
+              </Link>
+            </Button>
+            <Button asChild size="sm" className="gap-1">
+              <Link to="/app/gestao/metas/nova">
+                <Icon icon="mdi:plus" size={16} />
+                {S.createCta}
+              </Link>
+            </Button>
+          </div>
         )}
       </header>
 

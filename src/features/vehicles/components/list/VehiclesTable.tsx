@@ -28,10 +28,14 @@ const COPY = VEHICLE_STRINGS.list.columns;
 
 const SORTABLE: Partial<Record<string, IVehiclesListSort["orderBy"]>> = {
   brand: "brand",
+  engine: "engine",
+  plate: "plate",
   year: "year",
   km: "currentKm",
   lastService: "lastServiceAt",
   customer: "customerName",
+  seller: "seller",
+  cadastroStatus: "cadastroStatus",
 };
 
 export interface IVehiclesTableProps {
@@ -100,10 +104,10 @@ export function VehiclesTable({
   };
 
   return (
-    <div className="w-full">
-      <Table>
-        <TableHeader>
-          <TableRow>
+    <div className="h-full w-full">
+      <Table containerClassName="h-full">
+        <TableHeader className="sticky top-0 z-10 bg-background">
+          <TableRow className="hover:bg-transparent">
             {canSelect && (
               <TableHead className="w-10 px-3">
                 <Checkbox
@@ -133,10 +137,17 @@ export function VehiclesTable({
                     )}
                   >
                     {col.label}
-                    {isSorted && (
+                    {sortKey && (
                       <Icon
-                        icon={sort.orderDir === "asc" ? "mdi:chevron-up" : "mdi:chevron-down"}
+                        icon={
+                          isSorted
+                            ? sort.orderDir === "asc"
+                              ? "mdi:chevron-up"
+                              : "mdi:chevron-down"
+                            : "mdi:unfold-more-horizontal"
+                        }
                         size={14}
+                        className={cn(!isSorted && "opacity-40")}
                       />
                     )}
                   </span>
@@ -210,7 +221,7 @@ function VehicleRow({
             <Icon icon={iconForBrand(vehicle.brand)} size={16} />
           </span>
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-foreground">
+            <p className="truncate text-sm font-medium uppercase text-foreground">
               {vehicle.brand} {vehicle.model}
             </p>
             <p className="truncate text-xs text-muted-foreground">{vehicle.engine || "—"}</p>

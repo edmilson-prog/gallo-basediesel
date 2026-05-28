@@ -59,6 +59,7 @@ export function SdrFaqBarChart({ data }: ISdrFaqBarChartProps) {
                 width={32}
               />
               <Tooltip
+                cursor={false}
                 contentStyle={{
                   borderRadius: 8,
                   border: "1px solid var(--border)",

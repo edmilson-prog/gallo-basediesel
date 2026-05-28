@@ -73,6 +73,7 @@ export function CategoryBarChart({ data, isLoading, onCategoryClick }: ICategory
                 width={104}
               />
               <Tooltip
+                cursor={false}
                 contentStyle={{
                   borderRadius: 8,
                   border: "1px solid var(--border)",

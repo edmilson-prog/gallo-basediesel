@@ -141,6 +141,7 @@ import { Route as LojaContaOrcamentosIdRouteImport } from './routes/loja.conta.o
 import { Route as AppGestaoRankingSellerIdRouteImport } from './routes/app.gestao.ranking.$sellerId'
 import { Route as AppGestaoPositivacaoSellerIdRouteImport } from './routes/app.gestao.positivacao.$sellerId'
 import { Route as AppGestaoMetasNovaRouteImport } from './routes/app.gestao.metas.nova'
+import { Route as AppGestaoMetasLoteRouteImport } from './routes/app.gestao.metas.lote'
 import { Route as AppGestaoMetasIdRouteImport } from './routes/app.gestao.metas.$id'
 import { Route as AppGestaoComissoesSellerIdRouteImport } from './routes/app.gestao.comissoes.$sellerId'
 import { Route as AppGestaoCarteiraAnaliticaSellerIdRouteImport } from './routes/app.gestao.carteira-analitica.$sellerId'
@@ -841,6 +842,11 @@ const AppGestaoMetasNovaRoute = AppGestaoMetasNovaRouteImport.update({
   path: '/nova',
   getParentRoute: () => AppGestaoMetasRoute,
 } as any)
+const AppGestaoMetasLoteRoute = AppGestaoMetasLoteRouteImport.update({
+  id: '/lote',
+  path: '/lote',
+  getParentRoute: () => AppGestaoMetasRoute,
+} as any)
 const AppGestaoMetasIdRoute = AppGestaoMetasIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -1072,6 +1078,7 @@ export interface FileRoutesByFullPath {
   '/app/gestao/carteira-analitica/$sellerId': typeof AppGestaoCarteiraAnaliticaSellerIdRoute
   '/app/gestao/comissoes/$sellerId': typeof AppGestaoComissoesSellerIdRoute
   '/app/gestao/metas/$id': typeof AppGestaoMetasIdRoute
+  '/app/gestao/metas/lote': typeof AppGestaoMetasLoteRoute
   '/app/gestao/metas/nova': typeof AppGestaoMetasNovaRoute
   '/app/gestao/positivacao/$sellerId': typeof AppGestaoPositivacaoSellerIdRoute
   '/app/gestao/ranking/$sellerId': typeof AppGestaoRankingSellerIdRoute
@@ -1200,6 +1207,7 @@ export interface FileRoutesByTo {
   '/app/gestao/carteira-analitica/$sellerId': typeof AppGestaoCarteiraAnaliticaSellerIdRoute
   '/app/gestao/comissoes/$sellerId': typeof AppGestaoComissoesSellerIdRoute
   '/app/gestao/metas/$id': typeof AppGestaoMetasIdRoute
+  '/app/gestao/metas/lote': typeof AppGestaoMetasLoteRoute
   '/app/gestao/metas/nova': typeof AppGestaoMetasNovaRoute
   '/app/gestao/positivacao/$sellerId': typeof AppGestaoPositivacaoSellerIdRoute
   '/app/gestao/ranking/$sellerId': typeof AppGestaoRankingSellerIdRoute
@@ -1351,6 +1359,7 @@ export interface FileRoutesById {
   '/app/gestao/carteira-analitica/$sellerId': typeof AppGestaoCarteiraAnaliticaSellerIdRoute
   '/app/gestao/comissoes/$sellerId': typeof AppGestaoComissoesSellerIdRoute
   '/app/gestao/metas/$id': typeof AppGestaoMetasIdRoute
+  '/app/gestao/metas/lote': typeof AppGestaoMetasLoteRoute
   '/app/gestao/metas/nova': typeof AppGestaoMetasNovaRoute
   '/app/gestao/positivacao/$sellerId': typeof AppGestaoPositivacaoSellerIdRoute
   '/app/gestao/ranking/$sellerId': typeof AppGestaoRankingSellerIdRoute
@@ -1503,6 +1512,7 @@ export interface FileRouteTypes {
     | '/app/gestao/carteira-analitica/$sellerId'
     | '/app/gestao/comissoes/$sellerId'
     | '/app/gestao/metas/$id'
+    | '/app/gestao/metas/lote'
     | '/app/gestao/metas/nova'
     | '/app/gestao/positivacao/$sellerId'
     | '/app/gestao/ranking/$sellerId'
@@ -1631,6 +1641,7 @@ export interface FileRouteTypes {
     | '/app/gestao/carteira-analitica/$sellerId'
     | '/app/gestao/comissoes/$sellerId'
     | '/app/gestao/metas/$id'
+    | '/app/gestao/metas/lote'
     | '/app/gestao/metas/nova'
     | '/app/gestao/positivacao/$sellerId'
     | '/app/gestao/ranking/$sellerId'
@@ -1781,6 +1792,7 @@ export interface FileRouteTypes {
     | '/app/gestao/carteira-analitica/$sellerId'
     | '/app/gestao/comissoes/$sellerId'
     | '/app/gestao/metas/$id'
+    | '/app/gestao/metas/lote'
     | '/app/gestao/metas/nova'
     | '/app/gestao/positivacao/$sellerId'
     | '/app/gestao/ranking/$sellerId'
@@ -2733,6 +2745,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppGestaoMetasNovaRouteImport
       parentRoute: typeof AppGestaoMetasRoute
     }
+    '/app/gestao/metas/lote': {
+      id: '/app/gestao/metas/lote'
+      path: '/lote'
+      fullPath: '/app/gestao/metas/lote'
+      preLoaderRoute: typeof AppGestaoMetasLoteRouteImport
+      parentRoute: typeof AppGestaoMetasRoute
+    }
     '/app/gestao/metas/$id': {
       id: '/app/gestao/metas/$id'
       path: '/$id'
@@ -3022,12 +3041,14 @@ const AppGestaoComissoesRouteWithChildren =
 
 interface AppGestaoMetasRouteChildren {
   AppGestaoMetasIdRoute: typeof AppGestaoMetasIdRoute
+  AppGestaoMetasLoteRoute: typeof AppGestaoMetasLoteRoute
   AppGestaoMetasNovaRoute: typeof AppGestaoMetasNovaRoute
   AppGestaoMetasIndexRoute: typeof AppGestaoMetasIndexRoute
 }
 
 const AppGestaoMetasRouteChildren: AppGestaoMetasRouteChildren = {
   AppGestaoMetasIdRoute: AppGestaoMetasIdRoute,
+  AppGestaoMetasLoteRoute: AppGestaoMetasLoteRoute,
   AppGestaoMetasNovaRoute: AppGestaoMetasNovaRoute,
   AppGestaoMetasIndexRoute: AppGestaoMetasIndexRoute,
 }

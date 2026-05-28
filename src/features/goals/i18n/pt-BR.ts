@@ -182,4 +182,44 @@ export const GOALS_STRINGS = {
   accessDeniedTitle: "Acesso restrito",
   accessDeniedDescription: "Você não tem permissão para acessar esta meta.",
   accessDeniedAction: "Voltar para metas",
+
+  // Batch annual goals (metas em lote)
+  batchCta: "Meta em lote",
+  batchTitle: "Metas em lote — planejamento anual",
+  batchSubtitle:
+    "Defina a meta de cada vendedor mês a mês. Edite um mês por vez; o total anual é atualizado conforme você preenche.",
+  batchSharedParams: "Parâmetros compartilhados",
+  batchStore: "Loja",
+  batchMetric: "Métrica",
+  batchYear: "Ano",
+  batchReward: "Recompensa (opcional)",
+  batchRewardPlaceholder: "Ex.: bônus trimestral...",
+  batchMonth: "Mês",
+  batchMonthHint: (filled: number) =>
+    `${filled} de 12 meses preenchidos. "Aplicar em" define se as ações agem só neste mês ou no ano todo.`,
+  batchScopeLabel: "Aplicar em",
+  batchScopeMonth: "Este mês",
+  batchScopeYear: "Ano todo",
+  batchBaseValue: "Valor-base",
+  batchApplyBase: "Aplicar valor-base",
+  batchSuggest: "Sugerir",
+  batchColSeller: "Vendedor",
+  batchColMonthTarget: (month: string) => `Meta de ${month}`,
+  batchColSuggestion: "Sugestão",
+  batchColAnnualTotal: "Total anual",
+  batchColStatus: "Status (mês)",
+  batchAnnualMonths: (n: number) => `${n}/12 meses`,
+  batchRowWillCreate: "será criada",
+  batchRowEmpty: "vazio — ignorado",
+  batchRowConflict: (month: string) => `já tem meta em ${month}`,
+  batchSellersCount: (n: number) => `Vendedores (${n} ativos)`,
+  batchSummary: (created: number, skipped: number, total: string) =>
+    `${created} metas mensais serão criadas${skipped ? ` · ${skipped} puladas por conflito` : ""} · total anual ${total}`,
+  batchCreate: (n: number) => `Criar ${n} metas do ano`,
+  batchSaveDraft: "Salvar rascunho",
+  batchCreateSuccess: (created: number, skipped: number) =>
+    `${created} metas criadas${skipped ? `, ${skipped} puladas` : ""}.`,
+  batchCreatePartial: (created: number, failed: number) =>
+    `${created} metas criadas, ${failed} falharam.`,
+  batchEmptyState: "Selecione vendedores e preencha ao menos um mês para criar metas.",
 } as const;
