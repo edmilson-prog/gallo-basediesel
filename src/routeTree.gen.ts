@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SemPermissaoRouteImport } from './routes/sem-permissao'
+import { Route as PwaRouteImport } from './routes/pwa'
 import { Route as PortalRouteImport } from './routes/portal'
 import { Route as LojaRouteImport } from './routes/loja'
 import { Route as ErroRouteImport } from './routes/erro'
@@ -17,7 +18,14 @@ import { Route as DesignSystemRouteImport } from './routes/design-system'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PwaIndexRouteImport } from './routes/pwa.index'
 import { Route as LojaIndexRouteImport } from './routes/loja.index'
+import { Route as PwaOrcamentoRapidoRouteImport } from './routes/pwa.orcamento-rapido'
+import { Route as PwaLoginRouteImport } from './routes/pwa.login'
+import { Route as PwaInicioRouteImport } from './routes/pwa.inicio'
+import { Route as PwaEuRouteImport } from './routes/pwa.eu'
+import { Route as PwaCarteiraRouteImport } from './routes/pwa.carteira'
+import { Route as PwaAgendaRouteImport } from './routes/pwa.agenda'
 import { Route as LojaRecuperarSenhaRouteImport } from './routes/loja.recuperar-senha'
 import { Route as LojaLoginRouteImport } from './routes/loja.login'
 import { Route as LojaContaRouteImport } from './routes/loja.conta'
@@ -39,6 +47,8 @@ import { Route as AppClientesRouteImport } from './routes/app.clientes'
 import { Route as AppCatalogoRouteImport } from './routes/app.catalogo'
 import { Route as AppCarteiraRouteImport } from './routes/app.carteira'
 import { Route as AppAtendimentoRouteImport } from './routes/app.atendimento'
+import { Route as PwaCarteiraIndexRouteImport } from './routes/pwa.carteira.index'
+import { Route as PwaAgendaIndexRouteImport } from './routes/pwa.agenda.index'
 import { Route as LojaContaIndexRouteImport } from './routes/loja.conta.index'
 import { Route as AppVeiculosIndexRouteImport } from './routes/app.veiculos.index'
 import { Route as AppPedidosIndexRouteImport } from './routes/app.pedidos.index'
@@ -49,6 +59,8 @@ import { Route as AppConfiguracoesIndexRouteImport } from './routes/app.configur
 import { Route as AppClientesIndexRouteImport } from './routes/app.clientes.index'
 import { Route as AppCatalogoIndexRouteImport } from './routes/app.catalogo.index'
 import { Route as AppAtendimentoIndexRouteImport } from './routes/app.atendimento.index'
+import { Route as PwaCarteiraIdRouteImport } from './routes/pwa.carteira.$id'
+import { Route as PwaAgendaNovaRouteImport } from './routes/pwa.agenda.nova'
 import { Route as LojaProdutoSlugRouteImport } from './routes/loja.produto.$slug'
 import { Route as LojaPedidoConfirmadoOrderIdRouteImport } from './routes/loja.pedido-confirmado.$orderId'
 import { Route as LojaContaVeiculosRouteImport } from './routes/loja.conta.veiculos'
@@ -131,6 +143,11 @@ const SemPermissaoRoute = SemPermissaoRouteImport.update({
   path: '/sem-permissao',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PwaRoute = PwaRouteImport.update({
+  id: '/pwa',
+  path: '/pwa',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PortalRoute = PortalRouteImport.update({
   id: '/portal',
   path: '/portal',
@@ -166,10 +183,45 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PwaIndexRoute = PwaIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PwaRoute,
+} as any)
 const LojaIndexRoute = LojaIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => LojaRoute,
+} as any)
+const PwaOrcamentoRapidoRoute = PwaOrcamentoRapidoRouteImport.update({
+  id: '/orcamento-rapido',
+  path: '/orcamento-rapido',
+  getParentRoute: () => PwaRoute,
+} as any)
+const PwaLoginRoute = PwaLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => PwaRoute,
+} as any)
+const PwaInicioRoute = PwaInicioRouteImport.update({
+  id: '/inicio',
+  path: '/inicio',
+  getParentRoute: () => PwaRoute,
+} as any)
+const PwaEuRoute = PwaEuRouteImport.update({
+  id: '/eu',
+  path: '/eu',
+  getParentRoute: () => PwaRoute,
+} as any)
+const PwaCarteiraRoute = PwaCarteiraRouteImport.update({
+  id: '/carteira',
+  path: '/carteira',
+  getParentRoute: () => PwaRoute,
+} as any)
+const PwaAgendaRoute = PwaAgendaRouteImport.update({
+  id: '/agenda',
+  path: '/agenda',
+  getParentRoute: () => PwaRoute,
 } as any)
 const LojaRecuperarSenhaRoute = LojaRecuperarSenhaRouteImport.update({
   id: '/recuperar-senha',
@@ -276,6 +328,16 @@ const AppAtendimentoRoute = AppAtendimentoRouteImport.update({
   path: '/atendimento',
   getParentRoute: () => AppRoute,
 } as any)
+const PwaCarteiraIndexRoute = PwaCarteiraIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PwaCarteiraRoute,
+} as any)
+const PwaAgendaIndexRoute = PwaAgendaIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PwaAgendaRoute,
+} as any)
 const LojaContaIndexRoute = LojaContaIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -325,6 +387,16 @@ const AppAtendimentoIndexRoute = AppAtendimentoIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppAtendimentoRoute,
+} as any)
+const PwaCarteiraIdRoute = PwaCarteiraIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => PwaCarteiraRoute,
+} as any)
+const PwaAgendaNovaRoute = PwaAgendaNovaRouteImport.update({
+  id: '/nova',
+  path: '/nova',
+  getParentRoute: () => PwaAgendaRoute,
 } as any)
 const LojaProdutoSlugRoute = LojaProdutoSlugRouteImport.update({
   id: '/produto/$slug',
@@ -750,6 +822,7 @@ export interface FileRoutesByFullPath {
   '/erro': typeof ErroRoute
   '/loja': typeof LojaRouteWithChildren
   '/portal': typeof PortalRoute
+  '/pwa': typeof PwaRouteWithChildren
   '/sem-permissao': typeof SemPermissaoRoute
   '/app/atendimento': typeof AppAtendimentoRouteWithChildren
   '/app/carteira': typeof AppCarteiraRoute
@@ -772,7 +845,14 @@ export interface FileRoutesByFullPath {
   '/loja/conta': typeof LojaContaRouteWithChildren
   '/loja/login': typeof LojaLoginRoute
   '/loja/recuperar-senha': typeof LojaRecuperarSenhaRoute
+  '/pwa/agenda': typeof PwaAgendaRouteWithChildren
+  '/pwa/carteira': typeof PwaCarteiraRouteWithChildren
+  '/pwa/eu': typeof PwaEuRoute
+  '/pwa/inicio': typeof PwaInicioRoute
+  '/pwa/login': typeof PwaLoginRoute
+  '/pwa/orcamento-rapido': typeof PwaOrcamentoRapidoRoute
   '/loja/': typeof LojaIndexRoute
+  '/pwa/': typeof PwaIndexRoute
   '/app/atendimento/$id': typeof AppAtendimentoIdRoute
   '/app/catalogo/$id': typeof AppCatalogoIdRouteWithChildren
   '/app/catalogo/novo': typeof AppCatalogoNovoRoute
@@ -824,6 +904,8 @@ export interface FileRoutesByFullPath {
   '/loja/conta/veiculos': typeof LojaContaVeiculosRoute
   '/loja/pedido-confirmado/$orderId': typeof LojaPedidoConfirmadoOrderIdRoute
   '/loja/produto/$slug': typeof LojaProdutoSlugRoute
+  '/pwa/agenda/nova': typeof PwaAgendaNovaRoute
+  '/pwa/carteira/$id': typeof PwaCarteiraIdRoute
   '/app/atendimento/': typeof AppAtendimentoIndexRoute
   '/app/catalogo/': typeof AppCatalogoIndexRoute
   '/app/clientes/': typeof AppClientesIndexRoute
@@ -834,6 +916,8 @@ export interface FileRoutesByFullPath {
   '/app/pedidos/': typeof AppPedidosIndexRoute
   '/app/veiculos/': typeof AppVeiculosIndexRoute
   '/loja/conta/': typeof LojaContaIndexRoute
+  '/pwa/agenda/': typeof PwaAgendaIndexRoute
+  '/pwa/carteira/': typeof PwaCarteiraIndexRoute
   '/app/catalogo/$id/editar': typeof AppCatalogoIdEditarRoute
   '/app/configuracoes/atendimento/horario-comercial': typeof AppConfiguracoesAtendimentoHorarioComercialRoute
   '/app/configuracoes/atendimento/lifecycle': typeof AppConfiguracoesAtendimentoLifecycleRoute
@@ -881,7 +965,12 @@ export interface FileRoutesByTo {
   '/loja/checkout': typeof LojaCheckoutRoute
   '/loja/login': typeof LojaLoginRoute
   '/loja/recuperar-senha': typeof LojaRecuperarSenhaRoute
+  '/pwa/eu': typeof PwaEuRoute
+  '/pwa/inicio': typeof PwaInicioRoute
+  '/pwa/login': typeof PwaLoginRoute
+  '/pwa/orcamento-rapido': typeof PwaOrcamentoRapidoRoute
   '/loja': typeof LojaIndexRoute
+  '/pwa': typeof PwaIndexRoute
   '/app/atendimento/$id': typeof AppAtendimentoIdRoute
   '/app/catalogo/$id': typeof AppCatalogoIdRouteWithChildren
   '/app/catalogo/novo': typeof AppCatalogoNovoRoute
@@ -928,6 +1017,8 @@ export interface FileRoutesByTo {
   '/loja/conta/veiculos': typeof LojaContaVeiculosRoute
   '/loja/pedido-confirmado/$orderId': typeof LojaPedidoConfirmadoOrderIdRoute
   '/loja/produto/$slug': typeof LojaProdutoSlugRoute
+  '/pwa/agenda/nova': typeof PwaAgendaNovaRoute
+  '/pwa/carteira/$id': typeof PwaCarteiraIdRoute
   '/app/atendimento': typeof AppAtendimentoIndexRoute
   '/app/catalogo': typeof AppCatalogoIndexRoute
   '/app/clientes': typeof AppClientesIndexRoute
@@ -938,6 +1029,8 @@ export interface FileRoutesByTo {
   '/app/pedidos': typeof AppPedidosIndexRoute
   '/app/veiculos': typeof AppVeiculosIndexRoute
   '/loja/conta': typeof LojaContaIndexRoute
+  '/pwa/agenda': typeof PwaAgendaIndexRoute
+  '/pwa/carteira': typeof PwaCarteiraIndexRoute
   '/app/catalogo/$id/editar': typeof AppCatalogoIdEditarRoute
   '/app/configuracoes/atendimento/horario-comercial': typeof AppConfiguracoesAtendimentoHorarioComercialRoute
   '/app/configuracoes/atendimento/lifecycle': typeof AppConfiguracoesAtendimentoLifecycleRoute
@@ -973,6 +1066,7 @@ export interface FileRoutesById {
   '/erro': typeof ErroRoute
   '/loja': typeof LojaRouteWithChildren
   '/portal': typeof PortalRoute
+  '/pwa': typeof PwaRouteWithChildren
   '/sem-permissao': typeof SemPermissaoRoute
   '/app/atendimento': typeof AppAtendimentoRouteWithChildren
   '/app/carteira': typeof AppCarteiraRoute
@@ -995,7 +1089,14 @@ export interface FileRoutesById {
   '/loja/conta': typeof LojaContaRouteWithChildren
   '/loja/login': typeof LojaLoginRoute
   '/loja/recuperar-senha': typeof LojaRecuperarSenhaRoute
+  '/pwa/agenda': typeof PwaAgendaRouteWithChildren
+  '/pwa/carteira': typeof PwaCarteiraRouteWithChildren
+  '/pwa/eu': typeof PwaEuRoute
+  '/pwa/inicio': typeof PwaInicioRoute
+  '/pwa/login': typeof PwaLoginRoute
+  '/pwa/orcamento-rapido': typeof PwaOrcamentoRapidoRoute
   '/loja/': typeof LojaIndexRoute
+  '/pwa/': typeof PwaIndexRoute
   '/app/atendimento/$id': typeof AppAtendimentoIdRoute
   '/app/catalogo/$id': typeof AppCatalogoIdRouteWithChildren
   '/app/catalogo/novo': typeof AppCatalogoNovoRoute
@@ -1047,6 +1148,8 @@ export interface FileRoutesById {
   '/loja/conta/veiculos': typeof LojaContaVeiculosRoute
   '/loja/pedido-confirmado/$orderId': typeof LojaPedidoConfirmadoOrderIdRoute
   '/loja/produto/$slug': typeof LojaProdutoSlugRoute
+  '/pwa/agenda/nova': typeof PwaAgendaNovaRoute
+  '/pwa/carteira/$id': typeof PwaCarteiraIdRoute
   '/app/atendimento/': typeof AppAtendimentoIndexRoute
   '/app/catalogo/': typeof AppCatalogoIndexRoute
   '/app/clientes/': typeof AppClientesIndexRoute
@@ -1057,6 +1160,8 @@ export interface FileRoutesById {
   '/app/pedidos/': typeof AppPedidosIndexRoute
   '/app/veiculos/': typeof AppVeiculosIndexRoute
   '/loja/conta/': typeof LojaContaIndexRoute
+  '/pwa/agenda/': typeof PwaAgendaIndexRoute
+  '/pwa/carteira/': typeof PwaCarteiraIndexRoute
   '/app/catalogo/$id/editar': typeof AppCatalogoIdEditarRoute
   '/app/configuracoes/atendimento/horario-comercial': typeof AppConfiguracoesAtendimentoHorarioComercialRoute
   '/app/configuracoes/atendimento/lifecycle': typeof AppConfiguracoesAtendimentoLifecycleRoute
@@ -1093,6 +1198,7 @@ export interface FileRouteTypes {
     | '/erro'
     | '/loja'
     | '/portal'
+    | '/pwa'
     | '/sem-permissao'
     | '/app/atendimento'
     | '/app/carteira'
@@ -1115,7 +1221,14 @@ export interface FileRouteTypes {
     | '/loja/conta'
     | '/loja/login'
     | '/loja/recuperar-senha'
+    | '/pwa/agenda'
+    | '/pwa/carteira'
+    | '/pwa/eu'
+    | '/pwa/inicio'
+    | '/pwa/login'
+    | '/pwa/orcamento-rapido'
     | '/loja/'
+    | '/pwa/'
     | '/app/atendimento/$id'
     | '/app/catalogo/$id'
     | '/app/catalogo/novo'
@@ -1167,6 +1280,8 @@ export interface FileRouteTypes {
     | '/loja/conta/veiculos'
     | '/loja/pedido-confirmado/$orderId'
     | '/loja/produto/$slug'
+    | '/pwa/agenda/nova'
+    | '/pwa/carteira/$id'
     | '/app/atendimento/'
     | '/app/catalogo/'
     | '/app/clientes/'
@@ -1177,6 +1292,8 @@ export interface FileRouteTypes {
     | '/app/pedidos/'
     | '/app/veiculos/'
     | '/loja/conta/'
+    | '/pwa/agenda/'
+    | '/pwa/carteira/'
     | '/app/catalogo/$id/editar'
     | '/app/configuracoes/atendimento/horario-comercial'
     | '/app/configuracoes/atendimento/lifecycle'
@@ -1224,7 +1341,12 @@ export interface FileRouteTypes {
     | '/loja/checkout'
     | '/loja/login'
     | '/loja/recuperar-senha'
+    | '/pwa/eu'
+    | '/pwa/inicio'
+    | '/pwa/login'
+    | '/pwa/orcamento-rapido'
     | '/loja'
+    | '/pwa'
     | '/app/atendimento/$id'
     | '/app/catalogo/$id'
     | '/app/catalogo/novo'
@@ -1271,6 +1393,8 @@ export interface FileRouteTypes {
     | '/loja/conta/veiculos'
     | '/loja/pedido-confirmado/$orderId'
     | '/loja/produto/$slug'
+    | '/pwa/agenda/nova'
+    | '/pwa/carteira/$id'
     | '/app/atendimento'
     | '/app/catalogo'
     | '/app/clientes'
@@ -1281,6 +1405,8 @@ export interface FileRouteTypes {
     | '/app/pedidos'
     | '/app/veiculos'
     | '/loja/conta'
+    | '/pwa/agenda'
+    | '/pwa/carteira'
     | '/app/catalogo/$id/editar'
     | '/app/configuracoes/atendimento/horario-comercial'
     | '/app/configuracoes/atendimento/lifecycle'
@@ -1315,6 +1441,7 @@ export interface FileRouteTypes {
     | '/erro'
     | '/loja'
     | '/portal'
+    | '/pwa'
     | '/sem-permissao'
     | '/app/atendimento'
     | '/app/carteira'
@@ -1337,7 +1464,14 @@ export interface FileRouteTypes {
     | '/loja/conta'
     | '/loja/login'
     | '/loja/recuperar-senha'
+    | '/pwa/agenda'
+    | '/pwa/carteira'
+    | '/pwa/eu'
+    | '/pwa/inicio'
+    | '/pwa/login'
+    | '/pwa/orcamento-rapido'
     | '/loja/'
+    | '/pwa/'
     | '/app/atendimento/$id'
     | '/app/catalogo/$id'
     | '/app/catalogo/novo'
@@ -1389,6 +1523,8 @@ export interface FileRouteTypes {
     | '/loja/conta/veiculos'
     | '/loja/pedido-confirmado/$orderId'
     | '/loja/produto/$slug'
+    | '/pwa/agenda/nova'
+    | '/pwa/carteira/$id'
     | '/app/atendimento/'
     | '/app/catalogo/'
     | '/app/clientes/'
@@ -1399,6 +1535,8 @@ export interface FileRouteTypes {
     | '/app/pedidos/'
     | '/app/veiculos/'
     | '/loja/conta/'
+    | '/pwa/agenda/'
+    | '/pwa/carteira/'
     | '/app/catalogo/$id/editar'
     | '/app/configuracoes/atendimento/horario-comercial'
     | '/app/configuracoes/atendimento/lifecycle'
@@ -1434,6 +1572,7 @@ export interface RootRouteChildren {
   ErroRoute: typeof ErroRoute
   LojaRoute: typeof LojaRouteWithChildren
   PortalRoute: typeof PortalRoute
+  PwaRoute: typeof PwaRouteWithChildren
   SemPermissaoRoute: typeof SemPermissaoRoute
 }
 
@@ -1444,6 +1583,13 @@ declare module '@tanstack/react-router' {
       path: '/sem-permissao'
       fullPath: '/sem-permissao'
       preLoaderRoute: typeof SemPermissaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pwa': {
+      id: '/pwa'
+      path: '/pwa'
+      fullPath: '/pwa'
+      preLoaderRoute: typeof PwaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/portal': {
@@ -1495,12 +1641,61 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pwa/': {
+      id: '/pwa/'
+      path: '/'
+      fullPath: '/pwa/'
+      preLoaderRoute: typeof PwaIndexRouteImport
+      parentRoute: typeof PwaRoute
+    }
     '/loja/': {
       id: '/loja/'
       path: '/'
       fullPath: '/loja/'
       preLoaderRoute: typeof LojaIndexRouteImport
       parentRoute: typeof LojaRoute
+    }
+    '/pwa/orcamento-rapido': {
+      id: '/pwa/orcamento-rapido'
+      path: '/orcamento-rapido'
+      fullPath: '/pwa/orcamento-rapido'
+      preLoaderRoute: typeof PwaOrcamentoRapidoRouteImport
+      parentRoute: typeof PwaRoute
+    }
+    '/pwa/login': {
+      id: '/pwa/login'
+      path: '/login'
+      fullPath: '/pwa/login'
+      preLoaderRoute: typeof PwaLoginRouteImport
+      parentRoute: typeof PwaRoute
+    }
+    '/pwa/inicio': {
+      id: '/pwa/inicio'
+      path: '/inicio'
+      fullPath: '/pwa/inicio'
+      preLoaderRoute: typeof PwaInicioRouteImport
+      parentRoute: typeof PwaRoute
+    }
+    '/pwa/eu': {
+      id: '/pwa/eu'
+      path: '/eu'
+      fullPath: '/pwa/eu'
+      preLoaderRoute: typeof PwaEuRouteImport
+      parentRoute: typeof PwaRoute
+    }
+    '/pwa/carteira': {
+      id: '/pwa/carteira'
+      path: '/carteira'
+      fullPath: '/pwa/carteira'
+      preLoaderRoute: typeof PwaCarteiraRouteImport
+      parentRoute: typeof PwaRoute
+    }
+    '/pwa/agenda': {
+      id: '/pwa/agenda'
+      path: '/agenda'
+      fullPath: '/pwa/agenda'
+      preLoaderRoute: typeof PwaAgendaRouteImport
+      parentRoute: typeof PwaRoute
     }
     '/loja/recuperar-senha': {
       id: '/loja/recuperar-senha'
@@ -1649,6 +1844,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAtendimentoRouteImport
       parentRoute: typeof AppRoute
     }
+    '/pwa/carteira/': {
+      id: '/pwa/carteira/'
+      path: '/'
+      fullPath: '/pwa/carteira/'
+      preLoaderRoute: typeof PwaCarteiraIndexRouteImport
+      parentRoute: typeof PwaCarteiraRoute
+    }
+    '/pwa/agenda/': {
+      id: '/pwa/agenda/'
+      path: '/'
+      fullPath: '/pwa/agenda/'
+      preLoaderRoute: typeof PwaAgendaIndexRouteImport
+      parentRoute: typeof PwaAgendaRoute
+    }
     '/loja/conta/': {
       id: '/loja/conta/'
       path: '/'
@@ -1718,6 +1927,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/atendimento/'
       preLoaderRoute: typeof AppAtendimentoIndexRouteImport
       parentRoute: typeof AppAtendimentoRoute
+    }
+    '/pwa/carteira/$id': {
+      id: '/pwa/carteira/$id'
+      path: '/$id'
+      fullPath: '/pwa/carteira/$id'
+      preLoaderRoute: typeof PwaCarteiraIdRouteImport
+      parentRoute: typeof PwaCarteiraRoute
+    }
+    '/pwa/agenda/nova': {
+      id: '/pwa/agenda/nova'
+      path: '/nova'
+      fullPath: '/pwa/agenda/nova'
+      preLoaderRoute: typeof PwaAgendaNovaRouteImport
+      parentRoute: typeof PwaAgendaRoute
     }
     '/loja/produto/$slug': {
       id: '/loja/produto/$slug'
@@ -2683,6 +2906,56 @@ const LojaRouteChildren: LojaRouteChildren = {
 
 const LojaRouteWithChildren = LojaRoute._addFileChildren(LojaRouteChildren)
 
+interface PwaAgendaRouteChildren {
+  PwaAgendaNovaRoute: typeof PwaAgendaNovaRoute
+  PwaAgendaIndexRoute: typeof PwaAgendaIndexRoute
+}
+
+const PwaAgendaRouteChildren: PwaAgendaRouteChildren = {
+  PwaAgendaNovaRoute: PwaAgendaNovaRoute,
+  PwaAgendaIndexRoute: PwaAgendaIndexRoute,
+}
+
+const PwaAgendaRouteWithChildren = PwaAgendaRoute._addFileChildren(
+  PwaAgendaRouteChildren,
+)
+
+interface PwaCarteiraRouteChildren {
+  PwaCarteiraIdRoute: typeof PwaCarteiraIdRoute
+  PwaCarteiraIndexRoute: typeof PwaCarteiraIndexRoute
+}
+
+const PwaCarteiraRouteChildren: PwaCarteiraRouteChildren = {
+  PwaCarteiraIdRoute: PwaCarteiraIdRoute,
+  PwaCarteiraIndexRoute: PwaCarteiraIndexRoute,
+}
+
+const PwaCarteiraRouteWithChildren = PwaCarteiraRoute._addFileChildren(
+  PwaCarteiraRouteChildren,
+)
+
+interface PwaRouteChildren {
+  PwaAgendaRoute: typeof PwaAgendaRouteWithChildren
+  PwaCarteiraRoute: typeof PwaCarteiraRouteWithChildren
+  PwaEuRoute: typeof PwaEuRoute
+  PwaInicioRoute: typeof PwaInicioRoute
+  PwaLoginRoute: typeof PwaLoginRoute
+  PwaOrcamentoRapidoRoute: typeof PwaOrcamentoRapidoRoute
+  PwaIndexRoute: typeof PwaIndexRoute
+}
+
+const PwaRouteChildren: PwaRouteChildren = {
+  PwaAgendaRoute: PwaAgendaRouteWithChildren,
+  PwaCarteiraRoute: PwaCarteiraRouteWithChildren,
+  PwaEuRoute: PwaEuRoute,
+  PwaInicioRoute: PwaInicioRoute,
+  PwaLoginRoute: PwaLoginRoute,
+  PwaOrcamentoRapidoRoute: PwaOrcamentoRapidoRoute,
+  PwaIndexRoute: PwaIndexRoute,
+}
+
+const PwaRouteWithChildren = PwaRoute._addFileChildren(PwaRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
@@ -2691,6 +2964,7 @@ const rootRouteChildren: RootRouteChildren = {
   ErroRoute: ErroRoute,
   LojaRoute: LojaRouteWithChildren,
   PortalRoute: PortalRoute,
+  PwaRoute: PwaRouteWithChildren,
   SemPermissaoRoute: SemPermissaoRoute,
 }
 export const routeTree = rootRouteImport

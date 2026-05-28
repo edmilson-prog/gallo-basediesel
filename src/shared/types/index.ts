@@ -266,6 +266,9 @@ export type {
 } from "./insights";
 export { DEFAULT_INSIGHT_THRESHOLDS } from "./insights";
 
+// Field visits (PRD-070 — external seller PWA)
+export type { IVisit, VisitStatus } from "./visit";
+
 // Storefront (PRD-060)
 export type {
   IStorefrontConfig,
