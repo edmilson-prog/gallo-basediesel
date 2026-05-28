@@ -147,11 +147,9 @@ export function computeEvolutionKpis(
   const expectedToday = todayPoint?.objetivo ?? 0;
   const projection = lastPoint?.previsao ?? realized;
 
-  // Gap still needed to hit target, measured against realized BEFORE today's sales —
-  // mirrors the reference dashboard's "necessário vender" snapshot.
-  const todaySales = todayPoint?.vendasDia ?? 0;
-  const realizedExcludingToday = realized - todaySales;
-  const gapToTarget = targetValue == null ? 0 : Math.max(0, target - realizedExcludingToday);
+  // Gap still needed to hit target, measured against realized including today —
+  // same realized base as the other KPIs.
+  const gapToTarget = targetValue == null ? 0 : Math.max(0, target - realized);
   const remainingBusinessDays = countBusinessDays(year, month, today, daysInMonth);
   const requiredPerBusinessDay =
     remainingBusinessDays > 0 ? gapToTarget / remainingBusinessDays : gapToTarget;

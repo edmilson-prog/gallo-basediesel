@@ -292,9 +292,11 @@ interface IEvolutionKpisProps {
 
 function EvolutionKpis({ kpis, hasGoal, isLoading }: IEvolutionKpisProps) {
   if (isLoading) return <Skeleton className="h-20 w-full" />;
-  const pctTarget = hasGoal && kpis.target > 0 ? Math.round((kpis.projection / kpis.target) * 100) : null;
-  const pctRealized = hasGoal && kpis.target > 0 ? Math.round((kpis.realized / kpis.target) * 100) : null;
+  const pctTarget = hasGoal && kpis.target > 0 ? (kpis.projection / kpis.target) * 100 : null;
+  const pctRealized = hasGoal && kpis.target > 0 ? (kpis.realized / kpis.target) * 100 : null;
   const below = kpis.gap > 0;
+  const fmtPct = (n: number) =>
+    `${n.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
   return (
     <div className="flex flex-wrap gap-2">
       <KpiCell
@@ -305,18 +307,18 @@ function EvolutionKpis({ kpis, hasGoal, isLoading }: IEvolutionKpisProps) {
       <KpiCell
         label={S.evolutionKpiTarget}
         value={hasGoal ? formatBRL(kpis.target) : S.evolutionNoGoal}
-        sub={pctRealized != null ? `${pctRealized}% ${S.evolutionKpiRealizedPct}` : undefined}
+        sub={pctRealized != null ? `${fmtPct(pctRealized)} ${S.evolutionKpiRealizedPct}` : undefined}
       />
       <KpiCell
         label={S.evolutionKpiProjection}
         value={formatBRL(kpis.projection)}
-        sub={pctTarget != null ? `${pctTarget}% ${S.evolutionKpiOfTarget}` : undefined}
+        sub={pctTarget != null ? `${fmtPct(pctTarget)} ${S.evolutionKpiOfTarget}` : undefined}
         subClass={pctTarget != null && pctTarget >= 100 ? "text-primary" : "text-destructive"}
       />
       {hasGoal && (
         <KpiCell
           label={S.evolutionKpiGap}
-          value={`${below ? "-" : "+"}${formatBRL(Math.abs(kpis.gap))}`}
+          value={formatBRL(Math.abs(kpis.gap))}
           valueClass={below ? "text-destructive" : "text-primary"}
           sub={below ? S.evolutionKpiBelow : S.evolutionKpiAbove}
         />
