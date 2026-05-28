@@ -4,6 +4,29 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.45.1] — Gateway · 2026-05-28
+
+Correções de lacunas de implementação identificadas pela auditoria dos PRDs 066, 067, 070 e 071: segurança, gráficos faltantes, filtros, service worker do PWA e qualidade geral das quatro features entregues na v0.45.0.
+
+### Fixed
+
+- **Portal B2B — faturamento bloqueado por permissão real**: a rota `/portal/faturamento` aceitava acesso via URL direta mesmo sem a permissão `canViewFinancial`; agora o guard de rota verifica a flag individual do usuário antes de carregar a página.
+- **Portal B2B — análise de gastos completa**: a tela de análise exibia apenas 2 dos 4 gráficos previstos; foram adicionados "Gastos por categoria" e "Gastos por veículo" (dados reais) com drill-down — clicar em um veículo filtra a lista de pedidos.
+- **Portal B2B — filtros na lista de pedidos**: a lista não tinha filtros; agora é possível filtrar por status de pagamento, período, valor mínimo, veículo de destino e comprador interno.
+- **Portal B2B — empresas B2B com contrato real nos dados de demonstração**: as duas empresas com portal habilitado agora carregam contrato negociado (desconto, categorias especiais, limite de crédito), tornando o módulo de faturamento e a exibição de desconto no wizard de solicitação coerentes.
+- **Portal B2B — audit de acesso a faturamento, login e logout**: eventos de autenticação e acesso à área sensível de faturamento agora são registrados no log de auditoria.
+- **Portal B2B — desconto de contrato visível na solicitação**: o wizard de nova solicitação exibe o desconto negociado que será aplicado ao orçamento, com aviso de que catálogo completo chega na Fase 2.
+- **Integração e-commerce — origem dos pedidos no Cockpit**: o KPI "Total de pedidos" do Cockpit Executivo agora exibe a distribuição por origem (WhatsApp/SDR, E-commerce, Portal B2B, Manual) em tooltip; o dado existia no hook mas não estava conectado à interface.
+- **Integração e-commerce — botão "Abrir conversa" no alerta de novo pedido**: o toast que aparece para o vendedor ao receber um pedido via e-commerce agora inclui o botão "Abrir conversa" além do "Ver pedido", abrindo diretamente o canal de atendimento criado automaticamente.
+- **Integração e-commerce — merge de compra como visitante com confirmação**: ao cadastrar uma conta com o mesmo e-mail ou CPF/CNPJ de uma compra feita como visitante, o sistema agora exibe o diálogo "Encontramos um pedido em seu nome — deseja vincular?" em vez de realizar o vínculo de forma silenciosa.
+- **PWA Vendedor — service worker ativado**: o aplicativo PWA agora registra um service worker para cache de arquivos estáticos em produção, tornando a experiência instalável (critério de instalabilidade via navegador).
+- **PWA Vendedor — aba "Conversas" na ficha do cliente**: a ficha resumida do cliente no PWA tinha 3 abas (Pedidos, Orçamentos, Veículos); foi adicionada a aba "Conversas" com o histórico de atendimentos do cliente.
+- **PWA Vendedor — grade de calendário na agenda**: a tela de agenda exibia apenas listas agrupadas; agora mostra uma grade semanal com o número de visitas por dia antes das listas.
+- **Admin Storefront — redirecionamento de link antigo de categorias**: o endereço `/app/configuracoes/storefront/categorias` não redirecionava; agora leva direto para a sub-aba "Categorias" no painel unificado.
+- **Admin Storefront — sub-abas separadas Home / Categorias / Identidade**: o editor de conteúdo tinha "Home" e "Categorias" fundidos em uma única aba; agora são três abas distintas, mantendo um único rascunho compartilhado para salvar tudo de uma vez.
+- **Admin Storefront — aviso ao sair com alterações não salvas**: navegar para outra aba enquanto há edições pendentes agora exibe um diálogo de confirmação antes de descartar as mudanças.
+- **Admin Storefront — taxa de conversão entre etapas do funil**: o funil de conversão do e-commerce mostrava apenas valores absolutos; agora cada etapa exibe a porcentagem de conversão em relação à etapa anterior.
+
 ## [0.45.0] — Gateway · 2026-05-28
 
 Sétima entrega do **Bloco 5 (E-commerce / Onda 3)** com quatro novas features de integração e dois cards do painel corrigidos: portal B2B corporativo, PWA para vendedores externos, painel unificado de e-commerce, integração e-commerce → central e correção dos widgets "Metas do mês" e "Saúde da carteira".
