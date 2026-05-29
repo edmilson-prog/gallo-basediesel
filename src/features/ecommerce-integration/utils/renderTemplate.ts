@@ -34,6 +34,8 @@ export function orderTemplateVars(order: IOrder, customerName: string): ITemplat
     customerName,
     orderNumber: order.number ?? order.id,
     total: formatBRL(order.total),
-    paymentMethod: order.paymentMethod ? (PAYMENT_LABELS[order.paymentMethod] ?? order.paymentMethod) : "—",
+    paymentMethod: order.paymentMethod
+      ? (PAYMENT_LABELS[order.paymentMethod] ?? order.paymentMethod)
+      : "—",
   };
 }

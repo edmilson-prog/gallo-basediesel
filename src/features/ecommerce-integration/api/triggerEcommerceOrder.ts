@@ -1,10 +1,4 @@
-import type {
-  ICustomer,
-  ID,
-  IEcommerceIntegrationSettings,
-  IOrder,
-  ISeller,
-} from "@/shared/types";
+import type { ICustomer, ID, IEcommerceIntegrationSettings, IOrder, ISeller } from "@/shared/types";
 import type { IOrdersProvider } from "@/providers/data/contracts/orders";
 import type { ISellersProvider } from "@/providers/data/contracts/sellers";
 import type { ICustomersProvider } from "@/providers/data/contracts/customers";
@@ -221,7 +215,10 @@ export function notifyCustomerOfStatusChange(
     delivered: settings.templates.statusDelivered,
     canceled: settings.templates.statusCanceled,
   } as const;
-  const message = renderTemplate(templateMap[status], { ...orderTemplateVars(order, customerName), reason });
+  const message = renderTemplate(templateMap[status], {
+    ...orderTemplateVars(order, customerName),
+    reason,
+  });
   auditLog({
     action: "ecommerce_notification_sent",
     resource: "order",

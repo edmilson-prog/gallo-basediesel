@@ -2,19 +2,19 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _Repositório vivo da Fase 1, `src/`, `supabase/functions/_shared/logger.ts`_ |
-| **Objetivo** | Estabelecer observabilidade end-to-end: agregação dos logs estruturados das Edge Functions (PRD-102), error tracking no frontend e backend (Sentry), métricas de saúde (latência, taxa de erro, uso de quota), alertas acionáveis, e dashboard de saúde do sistema. Fecha a Onda 4 entregando visibilidade operacional antes do go-live |
-| **Tipo** | Integração |
-| **Complexidade** | Média |
-| **Total de Fases** | 4 |
-| **Prioridade** | P0 — necessário antes do go-live; sem observabilidade, operar em prod é voar às cegas |
-| **Épico** | Onda 4 — Backend Supabase Real (v2.0.0 Engine) |
-| **PRDs Relacionados** | PRD-102 (Edge Functions — produz logs estruturados que este consome); PRD-101 (Schema — `integration_logs`, `llm_usage_metrics`); PRD-100 (Setup — billing alerts); PRD-109 (Backup — alerta de falha); PRD-151D Onda 9 (Dashboard LLM — padrão similar) |
-| **Implementação** | 🔵 Claude Code CLI |
-| **Padrão de código** | Integração Sentry no frontend e Edge Functions; dashboards em `/app/admin/saude` |
+| Campo                 | Valor                                                                                                                                                                                                                                                                                                                                   |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                                                                                                                                                                |
+| **Repositório**       | _Repositório vivo da Fase 1, `src/`, `supabase/functions/_shared/logger.ts`_                                                                                                                                                                                                                                                            |
+| **Objetivo**          | Estabelecer observabilidade end-to-end: agregação dos logs estruturados das Edge Functions (PRD-102), error tracking no frontend e backend (Sentry), métricas de saúde (latência, taxa de erro, uso de quota), alertas acionáveis, e dashboard de saúde do sistema. Fecha a Onda 4 entregando visibilidade operacional antes do go-live |
+| **Tipo**              | Integração                                                                                                                                                                                                                                                                                                                              |
+| **Complexidade**      | Média                                                                                                                                                                                                                                                                                                                                   |
+| **Total de Fases**    | 4                                                                                                                                                                                                                                                                                                                                       |
+| **Prioridade**        | P0 — necessário antes do go-live; sem observabilidade, operar em prod é voar às cegas                                                                                                                                                                                                                                                   |
+| **Épico**             | Onda 4 — Backend Supabase Real (v2.0.0 Engine)                                                                                                                                                                                                                                                                                          |
+| **PRDs Relacionados** | PRD-102 (Edge Functions — produz logs estruturados que este consome); PRD-101 (Schema — `integration_logs`, `llm_usage_metrics`); PRD-100 (Setup — billing alerts); PRD-109 (Backup — alerta de falha); PRD-151D Onda 9 (Dashboard LLM — padrão similar)                                                                                |
+| **Implementação**     | 🔵 Claude Code CLI                                                                                                                                                                                                                                                                                                                      |
+| **Padrão de código**  | Integração Sentry no frontend e Edge Functions; dashboards em `/app/admin/saude`                                                                                                                                                                                                                                                        |
 
 ### Critérios de Complexidade
 
@@ -25,6 +25,7 @@
 ## Contexto do Problema
 
 Após a Onda 4, o sistema sai do mockup e passa a ter backend real em produção. Operar sem observabilidade é arriscado:
+
 - Erro em Edge Function (webhook falha) → ninguém sabe até cliente reclamar
 - Query lenta degradando UX → invisível sem métricas
 - Quota Supabase estourando → fatura surpresa
@@ -38,18 +39,19 @@ O PRD-102 já produz **logs estruturados JSON** com traceId. O PRD-101 já tem `
 
 ### Pilares de Observabilidade
 
-| Pilar | Ferramenta | Cobre |
-|-------|-----------|-------|
-| **Error tracking** | Sentry (frontend + Edge Functions) | Exceções, stack traces, contexto de usuário |
-| **Logs estruturados** | Supabase Logs + Logflare (ou Sentry) | Logs JSON das Edge Functions (PRD-102) |
-| **Métricas de integração** | `crm.integration_logs` + dashboard | Chamadas a providers externos (latência, erro) |
-| **Métricas de DB** | Supabase Dashboard + métricas | Query performance, conexões, tamanho |
-| **Quota/billing** | Billing alerts (PRD-100) + dashboard | Uso vs limite do plano Pro |
-| **Uptime** | Supabase Status + healthcheck próprio | Disponibilidade |
+| Pilar                      | Ferramenta                            | Cobre                                          |
+| -------------------------- | ------------------------------------- | ---------------------------------------------- |
+| **Error tracking**         | Sentry (frontend + Edge Functions)    | Exceções, stack traces, contexto de usuário    |
+| **Logs estruturados**      | Supabase Logs + Logflare (ou Sentry)  | Logs JSON das Edge Functions (PRD-102)         |
+| **Métricas de integração** | `crm.integration_logs` + dashboard    | Chamadas a providers externos (latência, erro) |
+| **Métricas de DB**         | Supabase Dashboard + métricas         | Query performance, conexões, tamanho           |
+| **Quota/billing**          | Billing alerts (PRD-100) + dashboard  | Uso vs limite do plano Pro                     |
+| **Uptime**                 | Supabase Status + healthcheck próprio | Disponibilidade                                |
 
 ### Error Tracking com Sentry
 
 Frontend e Edge Functions reportam erros ao Sentry com:
+
 - `traceId` (correlaciona frontend ↔ backend)
 - Contexto de usuário (seller_id, store_id — sem PII)
 - Breadcrumbs de navegação
@@ -58,6 +60,7 @@ Frontend e Edge Functions reportam erros ao Sentry com:
 ### Dashboard de Saúde (`/app/admin/saude`)
 
 Tela interna (Owner only) com:
+
 - Taxa de erro por Edge Function (últimas 24h)
 - Latência p50/p95/p99 de integrações
 - Uso de quota Supabase (DB, egress, storage, realtime)
@@ -67,24 +70,24 @@ Tela interna (Owner only) com:
 
 ### Alertas Acionáveis
 
-| Alerta | Condição | Canal |
-|--------|----------|-------|
-| Taxa de erro alta | > 5% erros em Edge Function em 10min | Email + (futuramente Slack) |
-| Latência degradada | p95 integração > 5s | Email |
-| Quota crítica | > 95% de qualquer limite | Email (já no PRD-100) |
-| Backup falhou | Workflow backup falha | Email (PRD-109) |
-| Provider externo down | > 50% erro em provider em 5min | Email |
+| Alerta                | Condição                             | Canal                       |
+| --------------------- | ------------------------------------ | --------------------------- |
+| Taxa de erro alta     | > 5% erros em Edge Function em 10min | Email + (futuramente Slack) |
+| Latência degradada    | p95 integração > 5s                  | Email                       |
+| Quota crítica         | > 95% de qualquer limite             | Email (já no PRD-100)       |
+| Backup falhou         | Workflow backup falha                | Email (PRD-109)             |
+| Provider externo down | > 50% erro em provider em 5min       | Email                       |
 
 Princípio: **alerta = ação necessária**. Sem ruído. Alerta que não exige ação vira dashboard, não notificação.
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que descartada |
-|-------------|--------------------|
-| Datadog / New Relic | Caro para MVP. Sentry + Supabase nativo cobre |
-| Logs em texto livre | Já resolvido no PRD-102 (JSON estruturado) |
-| Sem error tracking | Operar cego em prod é inaceitável |
-| Alertas para tudo | Ruído faz equipe ignorar. Apenas acionáveis |
+| Alternativa                 | Por que descartada                                  |
+| --------------------------- | --------------------------------------------------- |
+| Datadog / New Relic         | Caro para MVP. Sentry + Supabase nativo cobre       |
+| Logs em texto livre         | Já resolvido no PRD-102 (JSON estruturado)          |
+| Sem error tracking          | Operar cego em prod é inaceitável                   |
+| Alertas para tudo           | Ruído faz equipe ignorar. Apenas acionáveis         |
 | Dashboard externo (Grafana) | Overkill MVP; dashboard interno no app é suficiente |
 
 ---
@@ -233,15 +236,19 @@ ENTÃO um alerta é enviado para infra@ailasistemas.com.br
 ## Fases de Implementação
 
 ### Fase 1 — Sentry Frontend + Edge (1 dia)
+
 - SDK no React e Edge Functions; traceId correlation; release tracking; sanitização PII
 
 ### Fase 2 — Healthcheck + Métricas (1 dia)
+
 - Edge Function `health`; agregação de integration_logs; queries/MV de métricas
 
 ### Fase 3 — Dashboard de Saúde (1.5 dias)
+
 - Tela `/app/admin/saude`; cards de métricas; link Sentry; Owner only
 
 ### Fase 4 — Alertas + Docs (1 dia)
+
 - Alertas acionáveis; runbook de incidente; observability.md; `_DONE` + **fecha Onda 4 → v2.0.0 Engine**
 
 ---
@@ -268,41 +275,41 @@ ENTÃO um alerta é enviado para infra@ailasistemas.com.br
 
 > ⚠️ **APÓS:** Bump para **v2.0.0** (release final da Onda 4 — codinome "Engine", sai do RC); CHANGELOG consolidado da Onda 4; renomear `PRD-110-monitoring_DONE.md`; validar que toda a Onda 4 está coesa (smoke test end-to-end de todos os PRDs 100-110).
 
-| Princípio | Descrição |
-|-----------|-----------|
-| **Alerta = ação** | Sem ruído; informativo vira dashboard |
-| **Zero PII em telemetria** | beforeSend sanitiza sempre |
-| **traceId correlaciona tudo** | Frontend ↔ Edge ↔ logs |
-| **Telemetria fail-open** | Monitoring quebrado não trava app |
+| Princípio                     | Descrição                             |
+| ----------------------------- | ------------------------------------- |
+| **Alerta = ação**             | Sem ruído; informativo vira dashboard |
+| **Zero PII em telemetria**    | beforeSend sanitiza sempre            |
+| **traceId correlaciona tudo** | Frontend ↔ Edge ↔ logs                |
+| **Telemetria fail-open**      | Monitoring quebrado não trava app     |
 
-| ❌ Evitar |
-|-----------|
-| PII em Sentry ou logs externos |
-| Alertas informativos (ruído) |
-| Dashboard de saúde acessível a não-Owner |
-| Healthcheck vazando detalhes internos |
-| Telemetria que trava o app se falhar |
+| ❌ Evitar                                               |
+| ------------------------------------------------------- |
+| PII em Sentry ou logs externos                          |
+| Alertas informativos (ruído)                            |
+| Dashboard de saúde acessível a não-Owner                |
+| Healthcheck vazando detalhes internos                   |
+| Telemetria que trava o app se falhar                    |
 | Esquecer release tracking (perde correlação com deploy) |
 
 ---
 
 ## Status de Implementação
 
-| Campo | Valor |
-|-------|-------|
-| **Status** | ⏳ PENDENTE |
-| **Data** | - |
-| **Versão** | - |
-| **Por** | - |
+| Campo           | Valor                          |
+| --------------- | ------------------------------ |
+| **Status**      | ⏳ PENDENTE                    |
+| **Data**        | -                              |
+| **Versão**      | -                              |
+| **Por**         | -                              |
 | **Observações** | Fecha a Onda 4 → v2.0.0 Engine |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 27/05/2026 | v1 | Criação inicial — Sub-lote 1d (Onda 4) |
+| Data       | Versão | Alteração                              |
+| ---------- | ------ | -------------------------------------- |
+| 27/05/2026 | v1     | Criação inicial — Sub-lote 1d (Onda 4) |
 
 ---
 

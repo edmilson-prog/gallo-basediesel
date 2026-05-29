@@ -4,12 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/Icon";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatBRL, formatDateBR } from "@/shared/utils/format";
 import { auditLog } from "@/features/rbac/utils/auditLog";
 import { EmptyState } from "@/features/shell/components/EmptyState";
@@ -90,7 +85,9 @@ export function PortalRequestDetailPage() {
         </div>
 
         {request.notes && (
-          <p className="border-t border-border pt-3 text-sm text-muted-foreground">{request.notes}</p>
+          <p className="border-t border-border pt-3 text-sm text-muted-foreground">
+            {request.notes}
+          </p>
         )}
       </Card>
 

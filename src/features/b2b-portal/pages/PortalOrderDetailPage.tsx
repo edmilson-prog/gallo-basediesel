@@ -24,7 +24,10 @@ export function PortalOrderDetailPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      <Link to="/portal/pedidos" className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+      <Link
+        to="/portal/pedidos"
+        className="inline-flex items-center gap-1 text-xs text-muted-foreground"
+      >
         <Icon icon="mdi:chevron-left" size={14} aria-hidden />
         {S.ordersTitle}
       </Link>

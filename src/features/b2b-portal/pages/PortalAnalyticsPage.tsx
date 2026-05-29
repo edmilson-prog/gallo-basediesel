@@ -166,7 +166,10 @@ export function PortalAnalyticsPage() {
                   tickLine={false}
                   width={64}
                 />
-                <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [formatBRL(v), "Gasto"]} />
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  formatter={(v: number) => [formatBRL(v), "Gasto"]}
+                />
                 <Line
                   type="monotone"
                   dataKey="value"
@@ -188,8 +191,17 @@ export function PortalAnalyticsPage() {
           ) : (
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={byCategory} layout="vertical" margin={{ top: 4, right: 12, bottom: 0, left: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.4} horizontal={false} />
+                <BarChart
+                  data={byCategory}
+                  layout="vertical"
+                  margin={{ top: 4, right: 12, bottom: 0, left: 8 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="var(--border)"
+                    opacity={0.4}
+                    horizontal={false}
+                  />
                   <XAxis
                     type="number"
                     tickFormatter={(v: number) => formatBRLCompact(v)}
@@ -205,7 +217,11 @@ export function PortalAnalyticsPage() {
                     stroke="var(--border)"
                     tickLine={false}
                   />
-                  <Tooltip cursor={false} contentStyle={tooltipStyle} formatter={(v: number) => [formatBRL(v), "Gasto"]} />
+                  <Tooltip
+                    cursor={false}
+                    contentStyle={tooltipStyle}
+                    formatter={(v: number) => [formatBRL(v), "Gasto"]}
+                  />
                   <Bar dataKey="value" fill="var(--primary)" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -221,11 +237,22 @@ export function PortalAnalyticsPage() {
             </p>
           ) : (
             <>
-              <p className="text-xs text-muted-foreground">Clique numa barra para ver os pedidos do veículo.</p>
+              <p className="text-xs text-muted-foreground">
+                Clique numa barra para ver os pedidos do veículo.
+              </p>
               <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={byVehicle} layout="vertical" margin={{ top: 4, right: 12, bottom: 0, left: 8 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.4} horizontal={false} />
+                  <BarChart
+                    data={byVehicle}
+                    layout="vertical"
+                    margin={{ top: 4, right: 12, bottom: 0, left: 8 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="var(--border)"
+                      opacity={0.4}
+                      horizontal={false}
+                    />
                     <XAxis
                       type="number"
                       tickFormatter={(v: number) => formatBRLCompact(v)}
@@ -241,7 +268,11 @@ export function PortalAnalyticsPage() {
                       stroke="var(--border)"
                       tickLine={false}
                     />
-                    <Tooltip cursor={false} contentStyle={tooltipStyle} formatter={(v: number) => [formatBRL(v), "Gasto"]} />
+                    <Tooltip
+                      cursor={false}
+                      contentStyle={tooltipStyle}
+                      formatter={(v: number) => [formatBRL(v), "Gasto"]}
+                    />
                     <Bar
                       dataKey="value"
                       fill="var(--primary)"
@@ -271,7 +302,12 @@ export function PortalAnalyticsPage() {
                 layout="vertical"
                 margin={{ top: 4, right: 12, bottom: 0, left: 8 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.4} horizontal={false} />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="var(--border)"
+                  opacity={0.4}
+                  horizontal={false}
+                />
                 <XAxis
                   type="number"
                   tickFormatter={(v: number) => formatBRLCompact(v)}
@@ -287,7 +323,11 @@ export function PortalAnalyticsPage() {
                   stroke="var(--border)"
                   tickLine={false}
                 />
-                <Tooltip cursor={false} contentStyle={tooltipStyle} formatter={(v: number) => [formatBRL(v), "Total"]} />
+                <Tooltip
+                  cursor={false}
+                  contentStyle={tooltipStyle}
+                  formatter={(v: number) => [formatBRL(v), "Total"]}
+                />
                 <Bar dataKey="value" fill="var(--primary)" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>

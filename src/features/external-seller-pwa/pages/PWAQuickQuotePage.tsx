@@ -82,7 +82,11 @@ export function PWAQuickQuotePage() {
       prev
         .map((it) =>
           it.id === itemId
-            ? { ...it, quantity: Math.max(0, it.quantity + delta), total: Math.max(0, it.quantity + delta) * it.unitPrice }
+            ? {
+                ...it,
+                quantity: Math.max(0, it.quantity + delta),
+                total: Math.max(0, it.quantity + delta) * it.unitPrice,
+              }
             : it,
         )
         .filter((it) => it.quantity > 0),

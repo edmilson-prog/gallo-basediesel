@@ -33,6 +33,7 @@
 ### Task 1: i18n strings
 
 **Files:**
+
 - Modify: `src/features/sales-analytics/i18n/pt-BR.ts`
 
 - [ ] **Step 1: Adicionar as chaves antes do fechamento `} as const;`**
@@ -81,6 +82,7 @@ git commit -m "feat(sales): add i18n strings for monthly evolution chart"
 ### Task 2: Util puro de séries diárias
 
 **Files:**
+
 - Create: `src/features/sales-analytics/utils/evolution.ts`
 
 - [ ] **Step 1: Criar o arquivo com tipos e funções puras**
@@ -166,8 +168,13 @@ function cumulative(byDay: Map<number, number>, daysInMonth: number): number[] {
 }
 
 export function buildDailyEvolution(input: IBuildEvolutionInput): IDailyEvolutionPoint[] {
-  const { referenceDate, currentMonthOrders, previousMonthOrders, lastYearMonthOrders, targetValue } =
-    input;
+  const {
+    referenceDate,
+    currentMonthOrders,
+    previousMonthOrders,
+    lastYearMonthOrders,
+    targetValue,
+  } = input;
 
   const year = referenceDate.getFullYear();
   const month = referenceDate.getMonth();
@@ -244,7 +251,11 @@ export function buildSellerEvolution(
   const top = ranked.slice(0, SELLER_TOP_N).map(([id]) => id);
   const rest = ranked.slice(SELLER_TOP_N).map(([id]) => id);
 
-  const toSeries = (sellerId: ID, name: string, perDayMaps: Map<number, number>[]): ISellerEvolutionSeries => {
+  const toSeries = (
+    sellerId: ID,
+    name: string,
+    perDayMaps: Map<number, number>[],
+  ): ISellerEvolutionSeries => {
     const data: (number | null)[] = [];
     let acc = 0;
     for (let d = 1; d <= daysInMonth; d += 1) {
@@ -254,10 +265,18 @@ export function buildSellerEvolution(
     return { sellerId, sellerName: name, data };
   };
 
-  const series = top.map((id) => toSeries(id, sellerNameById.get(id) ?? "—", [bySeller.get(id) ?? new Map()]));
+  const series = top.map((id) =>
+    toSeries(id, sellerNameById.get(id) ?? "—", [bySeller.get(id) ?? new Map()]),
+  );
 
   if (rest.length > 0) {
-    series.push(toSeries("outros", outrosLabel, rest.map((id) => bySeller.get(id) ?? new Map())));
+    series.push(
+      toSeries(
+        "outros",
+        outrosLabel,
+        rest.map((id) => bySeller.get(id) ?? new Map()),
+      ),
+    );
   }
   return series;
 }
@@ -266,6 +285,7 @@ export function buildSellerEvolution(
 - [ ] **Step 2: Sanity review (manual, sem runner)**
 
 Reler o arquivo e confirmar:
+
 - `vendas` é `null` para `day > today` e cumulativo até `today`.
 - `previsao[today] === curCum[today-1]` (mesmo valor → linhas conectam): como `runRate = realizedToday/today` e `previsao[today] = round(runRate*today) = round(realizedToday)`. OK (diferença ≤ arredondamento).
 - `objetivo` é `null` quando `targetValue == null`.
@@ -288,6 +308,7 @@ git commit -m "feat(sales): add pure daily evolution series builders"
 ### Task 3: Hook useSalesEvolution
 
 **Files:**
+
 - Create: `src/features/sales-analytics/hooks/useSalesEvolution.ts`
 
 - [ ] **Step 1: Criar o hook**
@@ -421,8 +442,7 @@ export function useSalesEvolution(params: IUseSalesEvolutionParams): IUseSalesEv
 
   const isLoading =
     curQuery.isLoading || prevQuery.isLoading || lastYearQuery.isLoading || goals.isLoading;
-  const hasError =
-    curQuery.isError || prevQuery.isError || lastYearQuery.isError || goals.hasError;
+  const hasError = curQuery.isError || prevQuery.isError || lastYearQuery.isError || goals.hasError;
 
   const points = useMemo(
     () =>
@@ -437,13 +457,7 @@ export function useSalesEvolution(params: IUseSalesEvolutionParams): IUseSalesEv
   );
 
   const sellerSeries = useMemo(
-    () =>
-      buildSellerEvolution(
-        curQuery.data?.data ?? [],
-        sellerNameById,
-        now,
-        S.evolutionOutros,
-      ),
+    () => buildSellerEvolution(curQuery.data?.data ?? [], sellerNameById, now, S.evolutionOutros),
     [curQuery.data, sellerNameById, now],
   );
 
@@ -481,6 +495,7 @@ git commit -m "feat(sales): add useSalesEvolution data hook"
 ### Task 4: Componente SalesEvolutionChart (modo consolidado + KPIs + toggles)
 
 **Files:**
+
 - Create: `src/features/sales-analytics/components/charts/SalesEvolutionChart.tsx`
 
 - [ ] **Step 1: Criar o componente (consolidado)**
@@ -527,7 +542,9 @@ const SERIES_META: Record<SeriesKey, { label: string; color: string; dashed: boo
 const SELLER_COLORS = ["#ef4444", "#7c3aed", "#0ea5e9", "#f59e0b", "#16a34a", "#db2777", "#94a3b8"];
 
 export function SalesEvolutionChart({ scope, canDrillDown }: ISalesEvolutionChartProps) {
-  const { isLoading, hasGoal, referenceDate, points, sellerSeries, kpis } = useSalesEvolution({ scope });
+  const { isLoading, hasGoal, referenceDate, points, sellerSeries, kpis } = useSalesEvolution({
+    scope,
+  });
   const [visible, setVisible] = useState<Record<SeriesKey, boolean>>({
     vendas: true,
     objetivo: true,
@@ -619,44 +636,97 @@ export function SalesEvolutionChart({ scope, canDrillDown }: ISalesEvolutionChar
                 }}
               />
 
-              {points.filter((p) => p.isWeekend).map((p) => (
-                <ReferenceArea
-                  key={`we-${p.day}`}
-                  x1={p.day - 0.5}
-                  x2={p.day + 0.5}
-                  fill="var(--muted)"
-                  fillOpacity={0.35}
-                />
-              ))}
+              {points
+                .filter((p) => p.isWeekend)
+                .map((p) => (
+                  <ReferenceArea
+                    key={`we-${p.day}`}
+                    x1={p.day - 0.5}
+                    x2={p.day + 0.5}
+                    fill="var(--muted)"
+                    fillOpacity={0.35}
+                  />
+                ))}
               <ReferenceLine
                 x={today}
                 stroke="var(--muted-foreground)"
                 strokeWidth={1.4}
-                label={{ value: S.evolutionToday, position: "insideTopRight", fontSize: 11, fill: "var(--muted-foreground)" }}
+                label={{
+                  value: S.evolutionToday,
+                  position: "insideTopRight",
+                  fontSize: 11,
+                  fill: "var(--muted-foreground)",
+                }}
               />
 
               {!bySeller ? (
                 <>
                   {visible.anoPassado && (
-                    <Line type="monotone" dataKey="anoPassado" stroke={SERIES_META.anoPassado.color} strokeWidth={1.5} strokeDasharray="2 3" dot={false} connectNulls />
+                    <Line
+                      type="monotone"
+                      dataKey="anoPassado"
+                      stroke={SERIES_META.anoPassado.color}
+                      strokeWidth={1.5}
+                      strokeDasharray="2 3"
+                      dot={false}
+                      connectNulls
+                    />
                   )}
                   {visible.mesPassado && (
-                    <Line type="monotone" dataKey="mesPassado" stroke={SERIES_META.mesPassado.color} strokeWidth={1.5} strokeDasharray="5 4" dot={false} connectNulls />
+                    <Line
+                      type="monotone"
+                      dataKey="mesPassado"
+                      stroke={SERIES_META.mesPassado.color}
+                      strokeWidth={1.5}
+                      strokeDasharray="5 4"
+                      dot={false}
+                      connectNulls
+                    />
                   )}
                   {visible.objetivo && (
-                    <Line type="linear" dataKey="objetivo" stroke={SERIES_META.objetivo.color} strokeWidth={2.5} dot={false} connectNulls />
+                    <Line
+                      type="linear"
+                      dataKey="objetivo"
+                      stroke={SERIES_META.objetivo.color}
+                      strokeWidth={2.5}
+                      dot={false}
+                      connectNulls
+                    />
                   )}
                   {visible.previsao && (
-                    <Line type="monotone" dataKey="previsao" stroke={SERIES_META.previsao.color} strokeWidth={2.5} strokeDasharray="6 4" dot={false} />
+                    <Line
+                      type="monotone"
+                      dataKey="previsao"
+                      stroke={SERIES_META.previsao.color}
+                      strokeWidth={2.5}
+                      strokeDasharray="6 4"
+                      dot={false}
+                    />
                   )}
                   {visible.vendas && (
-                    <Area type="monotone" dataKey="vendas" stroke={SERIES_META.vendas.color} strokeWidth={3} fill="url(#evolutionVendas)" dot={{ r: 3, fill: SERIES_META.vendas.color }} activeDot={{ r: 5 }} />
+                    <Area
+                      type="monotone"
+                      dataKey="vendas"
+                      stroke={SERIES_META.vendas.color}
+                      strokeWidth={3}
+                      fill="url(#evolutionVendas)"
+                      dot={{ r: 3, fill: SERIES_META.vendas.color }}
+                      activeDot={{ r: 5 }}
+                    />
                   )}
                 </>
               ) : (
                 <>
                   {visible.objetivo && (
-                    <Line type="linear" dataKey="objetivo" stroke={SERIES_META.objetivo.color} strokeWidth={2} strokeDasharray="5 4" dot={false} connectNulls />
+                    <Line
+                      type="linear"
+                      dataKey="objetivo"
+                      stroke={SERIES_META.objetivo.color}
+                      strokeWidth={2}
+                      strokeDasharray="5 4"
+                      dot={false}
+                      connectNulls
+                    />
                   )}
                   {sellerSeries.map((s, i) => (
                     <Line
@@ -685,12 +755,18 @@ export function SalesEvolutionChart({ scope, canDrillDown }: ISalesEvolutionChar
               onClick={() => toggle(k)}
               className={cn(
                 "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                visible[k] ? "border-border bg-background" : "border-border bg-background opacity-40",
+                visible[k]
+                  ? "border-border bg-background"
+                  : "border-border bg-background opacity-40",
               )}
             >
               <span
                 className="inline-block h-0 w-4 rounded"
-                style={{ borderTopWidth: 3, borderTopStyle: SERIES_META[k].dashed ? "dashed" : "solid", borderTopColor: SERIES_META[k].color }}
+                style={{
+                  borderTopWidth: 3,
+                  borderTopStyle: SERIES_META[k].dashed ? "dashed" : "solid",
+                  borderTopColor: SERIES_META[k].color,
+                }}
               />
               {SERIES_META[k].label}
             </button>
@@ -714,10 +790,27 @@ function DayTick({ x = 0, y = 0, payload, points }: IDayTickProps) {
   const muted = p.isWeekend;
   return (
     <g transform={`translate(${x},${y})`}>
-      <text x={0} y={0} dy={12} textAnchor="middle" fontSize={11} fontWeight={600} fill={muted ? "var(--muted-foreground)" : "var(--foreground)"} opacity={muted ? 0.55 : 1}>
+      <text
+        x={0}
+        y={0}
+        dy={12}
+        textAnchor="middle"
+        fontSize={11}
+        fontWeight={600}
+        fill={muted ? "var(--muted-foreground)" : "var(--foreground)"}
+        opacity={muted ? 0.55 : 1}
+      >
         {p.day}
       </text>
-      <text x={0} y={0} dy={26} textAnchor="middle" fontSize={10} fill="var(--muted-foreground)" opacity={muted ? 0.5 : 0.85}>
+      <text
+        x={0}
+        y={0}
+        dy={26}
+        textAnchor="middle"
+        fontSize={10}
+        fill="var(--muted-foreground)"
+        opacity={muted ? 0.5 : 0.85}
+      >
         {p.weekdayLabel}
       </text>
     </g>
@@ -725,20 +818,41 @@ function DayTick({ x = 0, y = 0, payload, points }: IDayTickProps) {
 }
 
 interface IEvolutionKpisProps {
-  kpis: { realized: number; expectedToday: number; target: number; projection: number; gap: number };
+  kpis: {
+    realized: number;
+    expectedToday: number;
+    target: number;
+    projection: number;
+    gap: number;
+  };
   hasGoal: boolean;
   isLoading: boolean;
 }
 
 function EvolutionKpis({ kpis, hasGoal, isLoading }: IEvolutionKpisProps) {
   if (isLoading) return <Skeleton className="h-20 w-full" />;
-  const pctTarget = hasGoal && kpis.target > 0 ? Math.round((kpis.projection / kpis.target) * 100) : null;
+  const pctTarget =
+    hasGoal && kpis.target > 0 ? Math.round((kpis.projection / kpis.target) * 100) : null;
   const below = kpis.gap > 0;
   return (
     <div className="flex flex-wrap gap-2">
-      <KpiCell label={S.evolutionKpiRealized} value={formatBRL(kpis.realized)} sub={hasGoal ? `${formatBRL(kpis.expectedToday)} ${S.evolutionKpiExpectedToday}` : undefined} />
-      <KpiCell label={S.evolutionKpiTarget} value={hasGoal ? formatBRL(kpis.target) : S.evolutionNoGoal} />
-      <KpiCell label={S.evolutionKpiProjection} value={formatBRL(kpis.projection)} sub={pctTarget != null ? `${pctTarget}% ${S.evolutionKpiOfTarget}` : undefined} subClass={pctTarget != null && pctTarget >= 100 ? "text-primary" : "text-destructive"} />
+      <KpiCell
+        label={S.evolutionKpiRealized}
+        value={formatBRL(kpis.realized)}
+        sub={
+          hasGoal ? `${formatBRL(kpis.expectedToday)} ${S.evolutionKpiExpectedToday}` : undefined
+        }
+      />
+      <KpiCell
+        label={S.evolutionKpiTarget}
+        value={hasGoal ? formatBRL(kpis.target) : S.evolutionNoGoal}
+      />
+      <KpiCell
+        label={S.evolutionKpiProjection}
+        value={formatBRL(kpis.projection)}
+        sub={pctTarget != null ? `${pctTarget}% ${S.evolutionKpiOfTarget}` : undefined}
+        subClass={pctTarget != null && pctTarget >= 100 ? "text-primary" : "text-destructive"}
+      />
       {hasGoal && (
         <KpiCell
           label={S.evolutionKpiGap}
@@ -751,7 +865,19 @@ function EvolutionKpis({ kpis, hasGoal, isLoading }: IEvolutionKpisProps) {
   );
 }
 
-function KpiCell({ label, value, sub, valueClass, subClass }: { label: string; value: string; sub?: string; valueClass?: string; subClass?: string }) {
+function KpiCell({
+  label,
+  value,
+  sub,
+  valueClass,
+  subClass,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  valueClass?: string;
+  subClass?: string;
+}) {
   return (
     <div className="min-w-[150px] flex-1 rounded-xl border border-border bg-card px-3 py-2.5">
       <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
@@ -783,6 +909,7 @@ git commit -m "feat(sales): add SalesEvolutionChart component with toggles and d
 ### Task 5: Integrar o chart no topo da aba Visão Geral
 
 **Files:**
+
 - Modify: `src/features/sales-analytics/pages/SalesAnalyticsPage.tsx`
 
 - [ ] **Step 1: Importar o componente**
@@ -798,22 +925,22 @@ import { SalesEvolutionChart } from "../components/charts/SalesEvolutionChart";
 Logo após `const tab = (filtersCtl.activeTab as TabId) ?? "overview";` adicionar:
 
 ```ts
-  const canDrillDown = userRole === "Owner" || userRole === "Gestor";
+const canDrillDown = userRole === "Owner" || userRole === "Gestor";
 ```
 
 Depois, no `TabsContent value="overview"`, inserir o chart como primeiro filho, acima de `<SalesOverviewTab ...>`:
 
 ```tsx
-        <TabsContent value="overview" className="focus-visible:outline-none">
-          <div className="mb-4">
-            <SalesEvolutionChart scope={scope} canDrillDown={canDrillDown} />
-          </div>
-          <SalesOverviewTab
-            analytics={analytics}
-            onCategoryFilter={filtersCtl.setCategory}
-            onBrandFilter={filtersCtl.setVehicleBrand}
-          />
-        </TabsContent>
+<TabsContent value="overview" className="focus-visible:outline-none">
+  <div className="mb-4">
+    <SalesEvolutionChart scope={scope} canDrillDown={canDrillDown} />
+  </div>
+  <SalesOverviewTab
+    analytics={analytics}
+    onCategoryFilter={filtersCtl.setCategory}
+    onBrandFilter={filtersCtl.setVehicleBrand}
+  />
+</TabsContent>
 ```
 
 - [ ] **Step 3: Type-check**
@@ -838,6 +965,7 @@ git commit -m "feat(sales): mount evolution chart atop the overview tab"
 
 Run: `bun run dev`
 O usuário valida manualmente em `/app/gestao/vendas` (aba Visão Geral). Conferir:
+
 - Card full-width no topo, antes da linha de KPIs da overview.
 - Linhas Vendas (área vermelha até hoje) + Objetivo (roxo) + Previsão (amarelo tracejado a partir de hoje).
 - Linha vertical "Hoje" e colunas de fim de semana sombreadas; eixo X com dia + letra do dia.
@@ -866,6 +994,7 @@ git commit -m "fix(sales): polish evolution chart after manual review"
 ## Self-Review (preenchido pelo autor do plano)
 
 **Cobertura do spec:**
+
 - Posição topo/full-width → Task 5. ✓
 - 5 séries com toggle (defaults) → Task 4 (`SERIES_META`, `visible`). ✓
 - Eixo dia + dia-da-semana + fim de semana esmaecido/sombreado → Task 4 (`DayTick`, `ReferenceArea`). ✓

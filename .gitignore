@@ -35,6 +35,14 @@ docs/images/*.mp4
 docs/images/*.zip
 docs/images/favicon_io/
 
+# Development screenshots dropped directly in docs/images (not part of the codebase).
+# Non-recursive on purpose: brand assets under docs/images/logos/ stay versioned.
+docs/images/*.png
+docs/images/*.jpg
+docs/images/*.jpeg
+docs/images/*.gif
+docs/images/*.webp
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

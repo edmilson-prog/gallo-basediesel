@@ -486,9 +486,9 @@ ENTÃO sessão limpa
 
 ## Status
 
-| Campo  | Valor                              |
-| ------ | ---------------------------------- |
-| Status | ✅ CONCLUÍDO — v0.44.0 (Passport)  |
+| Campo  | Valor                             |
+| ------ | --------------------------------- |
+| Status | ✅ CONCLUÍDO — v0.44.0 (Passport) |
 
 ---
 

@@ -3,18 +3,41 @@ import { GOAL_METRIC_LABEL } from "./labels";
 
 /** pt-BR month abbreviations, index 0 = January. */
 export const MONTH_LABELS = [
-  "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
-  "Jul", "Ago", "Set", "Out", "Nov", "Dez",
+  "Jan",
+  "Fev",
+  "Mar",
+  "Abr",
+  "Mai",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Set",
+  "Out",
+  "Nov",
+  "Dez",
 ] as const;
 
 /** Full pt-BR month names for goal naming, index 0 = January. */
 const MONTH_FULL = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
 ] as const;
 
 /** ISO start (day 1, 00:00) and end (last day, 23:59:59.999) of a month. */
-export function monthRangeISO(year: number, monthIdx: number): { startIso: string; endIso: string } {
+export function monthRangeISO(
+  year: number,
+  monthIdx: number,
+): { startIso: string; endIso: string } {
   const start = new Date(year, monthIdx, 1, 0, 0, 0, 0);
   const end = new Date(year, monthIdx + 1, 0, 23, 59, 59, 999);
   return { startIso: start.toISOString(), endIso: end.toISOString() };

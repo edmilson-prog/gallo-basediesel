@@ -67,7 +67,12 @@ export function PortalFleetPage() {
                     </p>
                   )}
                 </div>
-                <Icon icon="mdi:chevron-right" size={18} className="text-muted-foreground" aria-hidden />
+                <Icon
+                  icon="mdi:chevron-right"
+                  size={18}
+                  className="text-muted-foreground"
+                  aria-hidden
+                />
               </Card>
             </Link>
           ))}

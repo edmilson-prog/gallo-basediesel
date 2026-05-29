@@ -314,8 +314,8 @@ ENTÃO vê apenas Dashboard e Análise (ou abas Conteúdo bloqueadas read-only)
 
 ## Status
 
-| Campo  | Valor       |
-| ------ | ----------- |
+| Campo  | Valor                               |
+| ------ | ----------------------------------- |
 | Status | ✅ IMPLEMENTADO (v0.45.1 — Gateway) |
 
 ---

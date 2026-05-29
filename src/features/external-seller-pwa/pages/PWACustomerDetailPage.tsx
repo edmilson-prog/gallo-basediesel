@@ -50,7 +50,10 @@ export function PWACustomerDetailPage() {
 
   return (
     <div className="space-y-4">
-      <Link to="/pwa/carteira" className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+      <Link
+        to="/pwa/carteira"
+        className="inline-flex items-center gap-1 text-xs text-muted-foreground"
+      >
         <Icon icon="mdi:chevron-left" size={14} aria-hidden />
         {S.detailBack}
       </Link>
@@ -171,7 +174,12 @@ export function PWACustomerDetailPage() {
               <Card key={c.id} className="flex items-center justify-between gap-3 p-3">
                 <div className="min-w-0">
                   <p className="flex items-center gap-1.5 text-sm font-medium capitalize text-foreground">
-                    <Icon icon="mdi:chat-outline" size={16} className="text-muted-foreground" aria-hidden />
+                    <Icon
+                      icon="mdi:chat-outline"
+                      size={16}
+                      className="text-muted-foreground"
+                      aria-hidden
+                    />
                     {c.channel}
                   </p>
                   <p className="text-xs text-muted-foreground">{formatDateBR(c.lastMessageAt)}</p>

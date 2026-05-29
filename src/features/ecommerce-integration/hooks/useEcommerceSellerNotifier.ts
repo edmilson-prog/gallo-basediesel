@@ -43,10 +43,7 @@ export function useEcommerceSellerNotifier(): number {
   return unseenCount;
 }
 
-function raiseToast(
-  n: IEcommerceNotification,
-  navigate: ReturnType<typeof useNavigate>,
-): void {
+function raiseToast(n: IEcommerceNotification, navigate: ReturnType<typeof useNavigate>): void {
   const isPending = n.kind === "pending_distribution";
   const title = isPending
     ? `🛒 Pedido e-commerce aguardando distribuição`

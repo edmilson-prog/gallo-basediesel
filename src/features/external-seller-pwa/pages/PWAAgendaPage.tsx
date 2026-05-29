@@ -68,8 +68,12 @@ function WeekCalendar({ visits }: { visits: IPwaVisitWithCustomer[] }) {
                 isToday ? "bg-primary/10" : ""
               }`}
             >
-              <span className="text-[10px] uppercase text-muted-foreground">{WEEKDAY_LABELS[i]}</span>
-              <span className={`text-sm font-semibold ${isToday ? "text-primary" : "text-foreground"}`}>
+              <span className="text-[10px] uppercase text-muted-foreground">
+                {WEEKDAY_LABELS[i]}
+              </span>
+              <span
+                className={`text-sm font-semibold ${isToday ? "text-primary" : "text-foreground"}`}
+              >
                 {day.getDate()}
               </span>
               {count > 0 ? (

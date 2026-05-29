@@ -44,7 +44,9 @@ const SELLER_COLORS = ["#ef4444", "#7c3aed", "#0ea5e9", "#f59e0b", "#16a34a", "#
 type ChartPoint = IDailyEvolutionPoint & Record<string, number | null | string | boolean>;
 
 export function SalesEvolutionChart({ scope, canDrillDown }: ISalesEvolutionChartProps) {
-  const { isLoading, hasGoal, referenceDate, points, sellerSeries, kpis } = useSalesEvolution({ scope });
+  const { isLoading, hasGoal, referenceDate, points, sellerSeries, kpis } = useSalesEvolution({
+    scope,
+  });
   const [visible, setVisible] = useState<Record<SeriesKey, boolean>>({
     vendas: true,
     objetivo: true,
@@ -106,7 +108,10 @@ export function SalesEvolutionChart({ scope, canDrillDown }: ISalesEvolutionChar
       ) : (
         <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={sellerMergedPoints} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
+            <ComposedChart
+              data={sellerMergedPoints}
+              margin={{ top: 8, right: 16, bottom: 8, left: 0 }}
+            >
               <defs>
                 <linearGradient id="evolutionVendas" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#ef4444" stopOpacity={0.25} />
@@ -134,41 +139,94 @@ export function SalesEvolutionChart({ scope, canDrillDown }: ISalesEvolutionChar
               />
               <Tooltip content={<EvolutionTooltip bySeller={bySeller} />} />
 
-              {points.filter((p) => p.isWeekend).map((p) => (
-                <ReferenceArea
-                  key={`we-${p.day}`}
-                  x1={p.day - 0.5}
-                  x2={p.day + 0.5}
-                  fill="var(--muted)"
-                  fillOpacity={0.35}
-                />
-              ))}
+              {points
+                .filter((p) => p.isWeekend)
+                .map((p) => (
+                  <ReferenceArea
+                    key={`we-${p.day}`}
+                    x1={p.day - 0.5}
+                    x2={p.day + 0.5}
+                    fill="var(--muted)"
+                    fillOpacity={0.35}
+                  />
+                ))}
               <ReferenceLine
                 x={today}
                 stroke="var(--muted-foreground)"
                 strokeWidth={1.4}
-                label={{ value: S.evolutionToday, position: "insideTopRight", fontSize: 11, fill: "var(--muted-foreground)" }}
+                label={{
+                  value: S.evolutionToday,
+                  position: "insideTopRight",
+                  fontSize: 11,
+                  fill: "var(--muted-foreground)",
+                }}
               />
 
               {/* Series are rendered as DIRECT children of ComposedChart — Recharts
                   does not recurse into React Fragments to discover data series. */}
               {!bySeller && visible.anoPassado && (
-                <Line type="monotone" dataKey="anoPassado" stroke={SERIES_META.anoPassado.color} strokeWidth={1.5} strokeDasharray="2 3" dot={false} connectNulls />
+                <Line
+                  type="monotone"
+                  dataKey="anoPassado"
+                  stroke={SERIES_META.anoPassado.color}
+                  strokeWidth={1.5}
+                  strokeDasharray="2 3"
+                  dot={false}
+                  connectNulls
+                />
               )}
               {!bySeller && visible.mesPassado && (
-                <Line type="monotone" dataKey="mesPassado" stroke={SERIES_META.mesPassado.color} strokeWidth={1.5} strokeDasharray="5 4" dot={false} connectNulls />
+                <Line
+                  type="monotone"
+                  dataKey="mesPassado"
+                  stroke={SERIES_META.mesPassado.color}
+                  strokeWidth={1.5}
+                  strokeDasharray="5 4"
+                  dot={false}
+                  connectNulls
+                />
               )}
               {!bySeller && visible.objetivo && (
-                <Line type="linear" dataKey="objetivo" stroke={SERIES_META.objetivo.color} strokeWidth={2.5} dot={false} connectNulls />
+                <Line
+                  type="linear"
+                  dataKey="objetivo"
+                  stroke={SERIES_META.objetivo.color}
+                  strokeWidth={2.5}
+                  dot={false}
+                  connectNulls
+                />
               )}
               {!bySeller && visible.previsao && (
-                <Line type="monotone" dataKey="previsao" stroke={SERIES_META.previsao.color} strokeWidth={2.5} strokeDasharray="6 4" dot={false} />
+                <Line
+                  type="monotone"
+                  dataKey="previsao"
+                  stroke={SERIES_META.previsao.color}
+                  strokeWidth={2.5}
+                  strokeDasharray="6 4"
+                  dot={false}
+                />
               )}
               {!bySeller && visible.vendas && (
-                <Area type="monotone" dataKey="vendas" stroke={SERIES_META.vendas.color} strokeWidth={3} fill="url(#evolutionVendas)" dot={{ r: 3, fill: SERIES_META.vendas.color }} activeDot={{ r: 5 }} />
+                <Area
+                  type="monotone"
+                  dataKey="vendas"
+                  stroke={SERIES_META.vendas.color}
+                  strokeWidth={3}
+                  fill="url(#evolutionVendas)"
+                  dot={{ r: 3, fill: SERIES_META.vendas.color }}
+                  activeDot={{ r: 5 }}
+                />
               )}
               {bySeller && visible.objetivo && (
-                <Line type="linear" dataKey="objetivo" stroke={SERIES_META.objetivo.color} strokeWidth={2} strokeDasharray="5 4" dot={false} connectNulls />
+                <Line
+                  type="linear"
+                  dataKey="objetivo"
+                  stroke={SERIES_META.objetivo.color}
+                  strokeWidth={2}
+                  strokeDasharray="5 4"
+                  dot={false}
+                  connectNulls
+                />
               )}
               {bySeller &&
                 sellerSeries.map((s, i) => (
@@ -196,12 +254,18 @@ export function SalesEvolutionChart({ scope, canDrillDown }: ISalesEvolutionChar
               onClick={() => toggle(k)}
               className={cn(
                 "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                visible[k] ? "border-border bg-background" : "border-border bg-background opacity-40",
+                visible[k]
+                  ? "border-border bg-background"
+                  : "border-border bg-background opacity-40",
               )}
             >
               <span
                 className="inline-block h-0 w-4 rounded"
-                style={{ borderTopWidth: 3, borderTopStyle: SERIES_META[k].dashed ? "dashed" : "solid", borderTopColor: SERIES_META[k].color }}
+                style={{
+                  borderTopWidth: 3,
+                  borderTopStyle: SERIES_META[k].dashed ? "dashed" : "solid",
+                  borderTopColor: SERIES_META[k].color,
+                }}
               />
               {SERIES_META[k].label}
             </button>
@@ -227,10 +291,27 @@ function DayTick({ x = 0, y = 0, payload, points = [] }: IDayTickProps) {
   const muted = p.isWeekend;
   return (
     <g transform={`translate(${x},${y})`}>
-      <text x={0} y={0} dy={12} textAnchor="middle" fontSize={11} fontWeight={600} fill={muted ? "var(--muted-foreground)" : "var(--foreground)"} opacity={muted ? 0.55 : 1}>
+      <text
+        x={0}
+        y={0}
+        dy={12}
+        textAnchor="middle"
+        fontSize={11}
+        fontWeight={600}
+        fill={muted ? "var(--muted-foreground)" : "var(--foreground)"}
+        opacity={muted ? 0.55 : 1}
+      >
         {p.day}
       </text>
-      <text x={0} y={0} dy={26} textAnchor="middle" fontSize={10} fill="var(--muted-foreground)" opacity={muted ? 0.5 : 0.85}>
+      <text
+        x={0}
+        y={0}
+        dy={26}
+        textAnchor="middle"
+        fontSize={10}
+        fill="var(--muted-foreground)"
+        opacity={muted ? 0.5 : 0.85}
+      >
         {p.weekdayLabel}
       </text>
     </g>
@@ -302,12 +383,16 @@ function EvolutionKpis({ kpis, hasGoal, isLoading }: IEvolutionKpisProps) {
       <KpiCell
         label={S.evolutionKpiRealized}
         value={formatBRL(kpis.realized)}
-        sub={hasGoal ? `${formatBRL(kpis.expectedToday)} ${S.evolutionKpiExpectedToday}` : undefined}
+        sub={
+          hasGoal ? `${formatBRL(kpis.expectedToday)} ${S.evolutionKpiExpectedToday}` : undefined
+        }
       />
       <KpiCell
         label={S.evolutionKpiTarget}
         value={hasGoal ? formatBRL(kpis.target) : S.evolutionNoGoal}
-        sub={pctRealized != null ? `${fmtPct(pctRealized)} ${S.evolutionKpiRealizedPct}` : undefined}
+        sub={
+          pctRealized != null ? `${fmtPct(pctRealized)} ${S.evolutionKpiRealizedPct}` : undefined
+        }
       />
       <KpiCell
         label={S.evolutionKpiProjection}

@@ -2,19 +2,19 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _Repositório vivo da Fase 1, `supabase/` + `src/features/auth/`_ |
-| **Objetivo** | Implementar autenticação real via Supabase Auth com **custom claims** no JWT (`app_metadata`: `seller_id`, `store_id`, `role`, `customer_id`), populadas via Custom Access Token Hook. Fluxos de login, signup, convite de vendedor, recuperação de senha. Sincronização `auth.users` ↔ `crm.sellers` / `storefront.customer_accounts`. Este PRD **fecha o ciclo de segurança** — destrava as policies RLS (PRD-103) que sem claims operavam em fail-closed |
-| **Tipo** | Integração |
-| **Complexidade** | Alta |
-| **Total de Fases** | 5 |
-| **Prioridade** | P0 — sem custom claims, RLS bloqueia tudo; é o que torna o sistema multi-usuário operacional |
-| **Épico** | Onda 4 — Backend Supabase Real (v2.0.0 Engine) |
-| **PRDs Relacionados** | PRD-100 (Setup — JWT secret); PRD-101 (Schema — `crm.sellers.auth_user_id`, `custom_claims`); PRD-103 (RLS — consome claims via `current_seller_id()` etc.); PRD-104 (Provider — sessão); PRD-006 Fase 1 (matriz RBAC fonte dos roles); PRD-167 Onda 10 (Convite de usuários B2B — estende fluxo); PRD-065 Fase 1 (Conta Cliente storefront) |
-| **Implementação** | 🔵 Claude Code CLI |
-| **Padrão de código** | Auth hook em `supabase/functions/` ou Postgres function; lógica frontend em `src/features/auth/` |
+| Campo                 | Valor                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                                                                                                                                                                                                                                                                                    |
+| **Repositório**       | _Repositório vivo da Fase 1, `supabase/` + `src/features/auth/`_                                                                                                                                                                                                                                                                                                                                                                                            |
+| **Objetivo**          | Implementar autenticação real via Supabase Auth com **custom claims** no JWT (`app_metadata`: `seller_id`, `store_id`, `role`, `customer_id`), populadas via Custom Access Token Hook. Fluxos de login, signup, convite de vendedor, recuperação de senha. Sincronização `auth.users` ↔ `crm.sellers` / `storefront.customer_accounts`. Este PRD **fecha o ciclo de segurança** — destrava as policies RLS (PRD-103) que sem claims operavam em fail-closed |
+| **Tipo**              | Integração                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| **Complexidade**      | Alta                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| **Total de Fases**    | 5                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| **Prioridade**        | P0 — sem custom claims, RLS bloqueia tudo; é o que torna o sistema multi-usuário operacional                                                                                                                                                                                                                                                                                                                                                                |
+| **Épico**             | Onda 4 — Backend Supabase Real (v2.0.0 Engine)                                                                                                                                                                                                                                                                                                                                                                                                              |
+| **PRDs Relacionados** | PRD-100 (Setup — JWT secret); PRD-101 (Schema — `crm.sellers.auth_user_id`, `custom_claims`); PRD-103 (RLS — consome claims via `current_seller_id()` etc.); PRD-104 (Provider — sessão); PRD-006 Fase 1 (matriz RBAC fonte dos roles); PRD-167 Onda 10 (Convite de usuários B2B — estende fluxo); PRD-065 Fase 1 (Conta Cliente storefront)                                                                                                                |
+| **Implementação**     | 🔵 Claude Code CLI                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| **Padrão de código**  | Auth hook em `supabase/functions/` ou Postgres function; lógica frontend em `src/features/auth/`                                                                                                                                                                                                                                                                                                                                                            |
 
 ### Critérios de Complexidade
 
@@ -27,12 +27,14 @@
 Os PRDs 103 (RLS), 104 (Provider) e 105 (Realtime) foram construídos assumindo que o JWT carrega `app_metadata` com `seller_id`, `store_id`, `role`, `customer_id`. Mas **nada popula essas claims ainda** — os PRDs anteriores documentaram isso como workaround (operam fail-closed: sem claims, RLS bloqueia tudo).
 
 Este PRD fecha o ciclo. Após ele:
+
 - Vendedor faz login → JWT carrega `seller_id`, `store_id`, `role`
 - RLS (PRD-103) passa a filtrar corretamente (vendedor vê só a carteira)
 - Provider (PRD-104) opera com segurança real
 - Realtime (PRD-105) filtra eventos por permissão
 
 A complexidade está no **Custom Access Token Hook** — uma função que o Supabase chama toda vez que emite/refresha um JWT, para injetar as claims customizadas. Ela precisa:
+
 1. Buscar o `seller` (ou `customer_account`) correspondente ao `auth.users.id`
 2. Injetar `seller_id`, `store_id`, `role` (ou `customer_id`, `role='b2c_customer'`)
 3. Ser rápida (roda em todo refresh — a cada ~1h por usuário)
@@ -119,13 +121,13 @@ Registrar o hook no Supabase Dashboard (Auth → Hooks → Custom Access Token) 
 
 ### Fluxos de Autenticação
 
-| Fluxo | Quem | Como |
-|-------|------|------|
-| **Login interno** | Vendedor/Gestor/Owner | email + senha → JWT com claims de seller |
-| **Convite de vendedor** | Owner convida | Owner cria `crm.sellers` + envia invite via Supabase Auth; vendedor define senha no primeiro acesso |
-| **Signup B2C** | Cliente e-commerce | self-service email+senha → cria `auth.users` + `storefront.customer_accounts` |
-| **Login B2B** | Cliente empresa | credenciais fornecidas; `customer_account` linkado a `crm.customers` |
-| **Recuperação de senha** | Qualquer | fluxo nativo Supabase (magic link / reset email via Resend PRD-141) |
+| Fluxo                    | Quem                  | Como                                                                                                |
+| ------------------------ | --------------------- | --------------------------------------------------------------------------------------------------- |
+| **Login interno**        | Vendedor/Gestor/Owner | email + senha → JWT com claims de seller                                                            |
+| **Convite de vendedor**  | Owner convida         | Owner cria `crm.sellers` + envia invite via Supabase Auth; vendedor define senha no primeiro acesso |
+| **Signup B2C**           | Cliente e-commerce    | self-service email+senha → cria `auth.users` + `storefront.customer_accounts`                       |
+| **Login B2B**            | Cliente empresa       | credenciais fornecidas; `customer_account` linkado a `crm.customers`                                |
+| **Recuperação de senha** | Qualquer              | fluxo nativo Supabase (magic link / reset email via Resend PRD-141)                                 |
 
 ### Sincronização auth.users ↔ sellers
 
@@ -144,14 +146,14 @@ Quando Owner cria um vendedor (`crm.sellers`), precisa criar o `auth.users` corr
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que descartada |
-|-------------|--------------------|
-| Claims em `user_metadata` | `user_metadata` é editável pelo próprio usuário — inseguro para RBAC. `app_metadata` só é editável server-side |
-| Buscar role via query em cada request (sem claims) | Adiciona round-trip a cada operação; claims no JWT é o padrão eficiente |
-| Roles via Postgres roles nativos | Supabase usa role `authenticated` único; custom claims é o caminho suportado |
-| Tabela de sessão própria | Reinventa Supabase Auth. Sem ganho |
-| Hook em Edge Function (não Postgres) | Postgres function é mais rápida (sem cold start) e roda inline na emissão do token |
-| Magic link only (sem senha) | Vendedores preferem senha; B2C pode ter magic link como opção |
+| Alternativa                                        | Por que descartada                                                                                             |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Claims em `user_metadata`                          | `user_metadata` é editável pelo próprio usuário — inseguro para RBAC. `app_metadata` só é editável server-side |
+| Buscar role via query em cada request (sem claims) | Adiciona round-trip a cada operação; claims no JWT é o padrão eficiente                                        |
+| Roles via Postgres roles nativos                   | Supabase usa role `authenticated` único; custom claims é o caminho suportado                                   |
+| Tabela de sessão própria                           | Reinventa Supabase Auth. Sem ganho                                                                             |
+| Hook em Edge Function (não Postgres)               | Postgres function é mais rápida (sem cold start) e roda inline na emissão do token                             |
+| Magic link only (sem senha)                        | Vendedores preferem senha; B2C pode ter magic link como opção                                                  |
 
 ---
 
@@ -417,6 +419,7 @@ ENTÃO na próxima tentativa de refresh de token, S1 é deslogado
 > ⚠️ **1. ANTES DE IMPLEMENTAR:** O hook é o ponto mais crítico. Teste exaustivamente em staging com usuários reais antes de prod. Um hook quebrado = ninguém loga.
 
 > ⚠️ **2. APÓS IMPLEMENTAR:**
+>
 > - Bump v2.0.0-rc.7 (penúltimo RC da Onda 4)
 > - CHANGELOG: hook, fluxos, claims structure
 > - Renomear `PRD-107-auth-custom-claims_DONE.md`
@@ -425,46 +428,46 @@ ENTÃO na próxima tentativa de refresh de token, S1 é deslogado
 
 ### Princípios
 
-| Princípio | Descrição |
-|-----------|-----------|
-| **Hook nunca falha** | Tratamento defensivo; falha = lockout geral |
-| **app_metadata only** | Nunca claims sensíveis em user_metadata |
-| **Fail closed** | Sem mapeamento = sem claims = RLS bloqueia |
-| **Guarda de rota é UX** | RLS é a segurança real |
-| **Logout limpa tudo** | releaseAll + clearCache + signOut |
+| Princípio               | Descrição                                   |
+| ----------------------- | ------------------------------------------- |
+| **Hook nunca falha**    | Tratamento defensivo; falha = lockout geral |
+| **app_metadata only**   | Nunca claims sensíveis em user_metadata     |
+| **Fail closed**         | Sem mapeamento = sem claims = RLS bloqueia  |
+| **Guarda de rota é UX** | RLS é a segurança real                      |
+| **Logout limpa tudo**   | releaseAll + clearCache + signOut           |
 
 ### O que NÃO Fazer
 
-| ❌ Evitar |
-|-----------|
-| Claims em `user_metadata` (editável pelo user!) |
-| Hook que lança exceção não-tratada |
-| Confiar em guarda de rota como segurança |
+| ❌ Evitar                                                   |
+| ----------------------------------------------------------- |
+| Claims em `user_metadata` (editável pelo user!)             |
+| Hook que lança exceção não-tratada                          |
+| Confiar em guarda de rota como segurança                    |
 | Esquecer `is_active` no hook (vendedor desativado entraria) |
-| Hook lento (roda em todo refresh) |
-| Armazenar senha em qualquer lugar |
-| Expor qual campo de login está errado |
-| Esquecer de invalidar sessão na desativação |
+| Hook lento (roda em todo refresh)                           |
+| Armazenar senha em qualquer lugar                           |
+| Expor qual campo de login está errado                       |
+| Esquecer de invalidar sessão na desativação                 |
 
 ---
 
 ## Status de Implementação
 
-| Campo | Valor |
-|-------|-------|
-| **Status** | ⏳ PENDENTE |
-| **Data de Implementação** | - |
-| **Versão do App** | - |
-| **Implementado por** | - |
-| **Observações** | - |
+| Campo                     | Valor       |
+| ------------------------- | ----------- |
+| **Status**                | ⏳ PENDENTE |
+| **Data de Implementação** | -           |
+| **Versão do App**         | -           |
+| **Implementado por**      | -           |
+| **Observações**           | -           |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 27/05/2026 | v1 | Criação inicial — Sub-lote 1c do Lote 1 (Onda 4) |
+| Data       | Versão | Alteração                                        |
+| ---------- | ------ | ------------------------------------------------ |
+| 27/05/2026 | v1     | Criação inicial — Sub-lote 1c do Lote 1 (Onda 4) |
 
 ---
 

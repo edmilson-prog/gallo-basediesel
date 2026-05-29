@@ -34,16 +34,36 @@ export function PortalHomePage() {
   const creditLimit = customer?.portalContract?.creditLimit ?? 80_000;
 
   const kpis = [
-    { label: S.kpiOrdersOpen, value: String(openOrders), icon: "mdi:package-variant", tone: "text-foreground" },
-    { label: S.kpiSpendMonth, value: formatBRL(spendMonth), icon: "mdi:cash", tone: "text-foreground" },
-    { label: S.kpiFleet, value: String(vehicles.length), icon: "mdi:truck", tone: "text-foreground" },
+    {
+      label: S.kpiOrdersOpen,
+      value: String(openOrders),
+      icon: "mdi:package-variant",
+      tone: "text-foreground",
+    },
+    {
+      label: S.kpiSpendMonth,
+      value: formatBRL(spendMonth),
+      icon: "mdi:cash",
+      tone: "text-foreground",
+    },
+    {
+      label: S.kpiFleet,
+      value: String(vehicles.length),
+      icon: "mdi:truck",
+      tone: "text-foreground",
+    },
     {
       label: S.kpiRequestsPending,
       value: String(pendingRequests),
       icon: "mdi:clipboard-alert-outline",
       tone: "text-amber-600 dark:text-amber-400",
     },
-    { label: S.kpiCredit, value: formatBRL(creditLimit), icon: "mdi:credit-card-outline", tone: "text-foreground" },
+    {
+      label: S.kpiCredit,
+      value: formatBRL(creditLimit),
+      icon: "mdi:credit-card-outline",
+      tone: "text-foreground",
+    },
   ];
 
   return (

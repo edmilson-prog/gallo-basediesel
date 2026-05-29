@@ -27,6 +27,7 @@ anual** de cada vendedor enquanto preenche.
 ## 3. UI
 
 ### 3.1 Parâmetros compartilhados (topo, definidos uma vez)
+
 - **Loja** — Owner seleciona (dirige a lista de vendedores); Gestor travado na sua loja.
 - **Métrica** — mesmas opções de `NewGoalPage` (`PRIMARY_GOAL_METRICS` +
   `SECONDARY_GOAL_METRICS`).
@@ -35,13 +36,16 @@ anual** de cada vendedor enquanto preenche.
 - **Recompensa** — texto opcional, compartilhado por todas as metas criadas.
 
 ### 3.2 Navegação por mês
+
 - Abas **Jan–Dez** (segmentadas). Edita-se **um mês por vez**; trocar de aba **preserva**
   os valores digitados. Inicia no mês corrente.
 - Cada aba mostra um **ponto** (dot) verde quando há ao menos um valor preenchido naquele
   mês — visão de progresso do ano sem abrir os 12.
 
 ### 3.3 Tabela de vendedores (do mês selecionado)
+
 Uma linha por **vendedor ativo** da loja. Colunas:
+
 - **checkbox** (incluir/excluir o vendedor do lote)
 - **Vendedor** (avatar + nome — usar `fullName`)
 - **Meta de `<mês>`** — input monetário editável, valor daquele mês
@@ -52,6 +56,7 @@ Uma linha por **vendedor ativo** da loja. Colunas:
   ou `⚠ já tem meta em <mês>` (conflito; ver 3.5)
 
 ### 3.4 Barra de ações (escopo enxuto)
+
 - Seletor **"Aplicar em: [Este mês] [Ano todo]"** (segmentado; default "Este mês").
 - **"Aplicar valor-base"** — preenche o valor-base nos vendedores selecionados, no escopo
   escolhido (mês atual ou os 12 meses).
@@ -60,6 +65,7 @@ Uma linha por **vendedor ativo** da loja. Colunas:
   conjunto de vendedores marcados.
 
 ### 3.5 Conflito (por mês)
+
 - Para cada (vendedor, mês), detectar se já existe meta **ativa** do mesmo
   `metric`+`level: individual`+`targetId` com **período sobreposto** àquele mês — reusando
   a lógica de sobreposição de `validateGoalDraft` / `findDuplicateGoal`.
@@ -68,6 +74,7 @@ Uma linha por **vendedor ativo** da loja. Colunas:
   vendedor seguem normais.
 
 ### 3.6 Rodapé
+
 - Resumo dinâmico: **"N metas mensais serão criadas · M puladas por conflito · total anual
   R$…"** (N = vendedores marcados × meses preenchidos, exceto conflitos).
 - **"Criar N metas do ano"** (status `ativa`) + **"Salvar rascunho"** (status `arquivada`),
@@ -76,7 +83,9 @@ Uma linha por **vendedor ativo** da loja. Colunas:
 ## 4. Dados e lógica
 
 ### 4.1 Modelo
+
 Cada **célula preenchida (vendedor × mês)** = **um `IGoal`**:
+
 - `level: "individual"`, `targetId/sellerId` = vendedor, `storeId`
 - `period: { type: "monthly", start: <início do mês>, end: <fim do mês> }` no ano escolhido
 - `metric`, `targetValue` = valor da célula, `rewardDescription` (compartilhada)
@@ -85,6 +94,7 @@ Cada **célula preenchida (vendedor × mês)** = **um `IGoal`**:
   `progressPercent: 0`.
 
 ### 4.2 Criação
+
 - Loop: para cada (vendedor marcado, mês preenchido, sem conflito) → montar draft,
   validar com `validateGoalDraft`, `goalsProvider.upsert(goal)`, `recordAuditLogSync`
   (`action: "goal_create"`). **Não** é necessário novo método de provider (reusa `upsert`
@@ -93,10 +103,12 @@ Cada **célula preenchida (vendedor × mês)** = **um `IGoal`**:
   `X criadas, Y puladas/erro` e navegar para `/app/gestao/metas`.
 
 ### 4.3 Sugestão
+
 - `suggestTarget({ metric, level: "individual", storeId, sellerId, allGoals })` por
   vendedor → valor mensal sugerido. Reusar o engine existente.
 
 ### 4.4 Conflitos / metas existentes
+
 - Carregar metas ativas da loja via `useGoalsWithProgress({ storeId, statuses: ["ativa"] })`
   e indexar por (sellerId, metric) para checar sobreposição mês a mês.
 

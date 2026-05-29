@@ -36,10 +36,7 @@ export function PortalProfilePage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const patch =
-        customer.type === "B2B"
-          ? { phone, email, contactName }
-          : { phone, email };
+      const patch = customer.type === "B2B" ? { phone, email, contactName } : { phone, email };
       await provider.update(customer.id, patch);
       auditLog({
         actorId: user?.id,
@@ -65,7 +62,10 @@ export function PortalProfilePage() {
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label>Razão social</Label>
-            <Input value={customer.type === "B2B" ? customer.razaoSocial : customer.fullName} disabled />
+            <Input
+              value={customer.type === "B2B" ? customer.razaoSocial : customer.fullName}
+              disabled
+            />
           </div>
           <div className="space-y-1.5">
             <Label>CNPJ</Label>

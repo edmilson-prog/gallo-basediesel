@@ -22,12 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatBRL } from "@/shared/utils/format";
 import { auditLog } from "@/features/rbac/utils/auditLog";
 import { EmptyState } from "@/features/shell/components/EmptyState";
@@ -39,11 +34,29 @@ import { PORTAL_ROLE_LABEL, PORTAL_STRINGS as S } from "../i18n/pt-BR";
 function defaultFlags(role: PortalUserRole) {
   switch (role) {
     case "admin":
-      return { canCreateRequests: true, canApproveOrders: true, canManageFleet: true, canViewFinancial: true, approvalLimit: 50_000 };
+      return {
+        canCreateRequests: true,
+        canApproveOrders: true,
+        canManageFleet: true,
+        canViewFinancial: true,
+        approvalLimit: 50_000,
+      };
     case "comprador":
-      return { canCreateRequests: true, canApproveOrders: false, canManageFleet: false, canViewFinancial: false, approvalLimit: 5_000 };
+      return {
+        canCreateRequests: true,
+        canApproveOrders: false,
+        canManageFleet: false,
+        canViewFinancial: false,
+        approvalLimit: 5_000,
+      };
     default:
-      return { canCreateRequests: false, canApproveOrders: false, canManageFleet: false, canViewFinancial: false, approvalLimit: 0 };
+      return {
+        canCreateRequests: false,
+        canApproveOrders: false,
+        canManageFleet: false,
+        canViewFinancial: false,
+        approvalLimit: 0,
+      };
   }
 }
 
@@ -181,7 +194,11 @@ export function PortalUsersPage() {
             </div>
             <div className="flex items-center gap-1.5">
               <Badge variant="outline">{PORTAL_ROLE_LABEL[u.role]}</Badge>
-              {!u.isActive && <Badge variant="outline" className="text-muted-foreground">Inativo</Badge>}
+              {!u.isActive && (
+                <Badge variant="outline" className="text-muted-foreground">
+                  Inativo
+                </Badge>
+              )}
               <Button size="icon" variant="ghost" onClick={() => openEdit(u)} aria-label="Editar">
                 <Icon icon="mdi:pencil" size={16} />
               </Button>

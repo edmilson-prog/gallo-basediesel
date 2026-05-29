@@ -39,6 +39,7 @@
 ### Task 1: i18n strings
 
 **Files:**
+
 - Modify: `src/features/goals/i18n/pt-BR.ts`
 
 - [ ] **Step 1: Adicionar chaves**
@@ -104,6 +105,7 @@ git commit -m "feat(goals): add i18n strings for batch annual goals"
 ### Task 2: Util puro `batchGoals.ts`
 
 **Files:**
+
 - Create: `src/features/goals/utils/batchGoals.ts`
 
 - [ ] **Step 1: Criar o arquivo**
@@ -114,18 +116,41 @@ import { GOAL_METRIC_LABEL } from "./labels";
 
 /** pt-BR month abbreviations, index 0 = January. */
 export const MONTH_LABELS = [
-  "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
-  "Jul", "Ago", "Set", "Out", "Nov", "Dez",
+  "Jan",
+  "Fev",
+  "Mar",
+  "Abr",
+  "Mai",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Set",
+  "Out",
+  "Nov",
+  "Dez",
 ] as const;
 
 /** Full pt-BR month names for goal naming, index 0 = January. */
 const MONTH_FULL = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
 ] as const;
 
 /** ISO start (day 1, 00:00) and end (last day, 23:59:59.999) of a month. */
-export function monthRangeISO(year: number, monthIdx: number): { startIso: string; endIso: string } {
+export function monthRangeISO(
+  year: number,
+  monthIdx: number,
+): { startIso: string; endIso: string } {
   const start = new Date(year, monthIdx, 1, 0, 0, 0, 0);
   const end = new Date(year, monthIdx + 1, 0, 23, 59, 59, 999);
   return { startIso: start.toISOString(), endIso: end.toISOString() };
@@ -224,6 +249,7 @@ git commit -m "feat(goals): add pure helpers for batch monthly goals"
 ### Task 3: Hook `useBatchGoals.ts`
 
 **Files:**
+
 - Create: `src/features/goals/hooks/useBatchGoals.ts`
 
 - [ ] **Step 1: Criar o hook**
@@ -296,10 +322,7 @@ export function useBatchGoals(params: IUseBatchGoalsParams): IUseBatchGoalsResul
     [sellersQuery.data],
   );
 
-  const existingGoals = useMemo<IGoal[]>(
-    () => goals.items.map((i) => i.goal),
-    [goals.items],
-  );
+  const existingGoals = useMemo<IGoal[]>(() => goals.items.map((i) => i.goal), [goals.items]);
 
   // value[sellerId] = (number|null)[12]
   const [values, setValues] = useState<Record<ID, (number | null)[]>>({});
@@ -498,6 +521,7 @@ git commit -m "feat(goals): add useBatchGoals state hook"
 ### Task 4: Componente `BatchGoalsTable.tsx`
 
 **Files:**
+
 - Create: `src/features/goals/components/BatchGoalsTable.tsx`
 
 - [ ] **Step 1: Criar o componente**
@@ -646,6 +670,7 @@ git commit -m "feat(goals): add BatchGoalsTable component"
 ### Task 5: Página `BatchGoalsPage.tsx`
 
 **Files:**
+
 - Create: `src/features/goals/pages/BatchGoalsPage.tsx`
 
 - [ ] **Step 1: Criar a página**
@@ -712,7 +737,8 @@ export function BatchGoalsPage() {
     [ctl],
   );
 
-  const targetMonths = () => (scope === "year" ? Array.from({ length: 12 }, (_, i) => i) : [monthIdx]);
+  const targetMonths = () =>
+    scope === "year" ? Array.from({ length: 12 }, (_, i) => i) : [monthIdx];
 
   const handleSubmit = async (status: "ativa" | "arquivada") => {
     const goals = ctl.buildGoalsToCreate({
@@ -768,10 +794,17 @@ export function BatchGoalsPage() {
           <div className="flex flex-col gap-1.5">
             <Label>{S.batchStore}</Label>
             <Select value={storeId} onValueChange={(v) => setStoreId(v)} disabled={!isOwner}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
-                {(isOwner ? accessibleStores : accessibleStores.filter((s) => s.id === storeId)).map((s) => (
-                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                {(isOwner
+                  ? accessibleStores
+                  : accessibleStores.filter((s) => s.id === storeId)
+                ).map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -779,10 +812,14 @@ export function BatchGoalsPage() {
           <div className="flex flex-col gap-1.5">
             <Label>{S.batchMetric}</Label>
             <Select value={metric} onValueChange={(v) => setMetric(v as GoalMetric)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 {ALL_METRICS.map((m) => (
-                  <SelectItem key={m} value={m}>{GOAL_METRIC_LABEL[m]}</SelectItem>
+                  <SelectItem key={m} value={m}>
+                    {GOAL_METRIC_LABEL[m]}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -790,17 +827,25 @@ export function BatchGoalsPage() {
           <div className="flex flex-col gap-1.5">
             <Label>{S.batchYear}</Label>
             <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 {yearOptions.map((y) => (
-                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  <SelectItem key={y} value={String(y)}>
+                    {y}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label>{S.batchReward}</Label>
-            <Input value={reward} onChange={(e) => setReward(e.target.value)} placeholder={S.batchRewardPlaceholder} />
+            <Input
+              value={reward}
+              onChange={(e) => setReward(e.target.value)}
+              placeholder={S.batchRewardPlaceholder}
+            />
           </div>
         </div>
       </Card>
@@ -808,7 +853,10 @@ export function BatchGoalsPage() {
       {/* Month nav + table */}
       <Card className="mb-4 p-5">
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {S.batchMonth} <span className="text-primary">{MONTH_LABELS[monthIdx]}/{year}</span>
+          {S.batchMonth}{" "}
+          <span className="text-primary">
+            {MONTH_LABELS[monthIdx]}/{year}
+          </span>
         </h2>
         <div className="flex flex-wrap gap-1.5">
           {MONTH_LABELS.map((m, i) => {
@@ -820,11 +868,18 @@ export function BatchGoalsPage() {
                 onClick={() => setMonthIdx(i)}
                 className={cn(
                   "relative w-[72px] rounded-md border px-0 py-2 text-xs font-semibold transition-colors",
-                  i === monthIdx ? "border-primary bg-primary/10 text-foreground" : "border-border bg-background text-muted-foreground",
+                  i === monthIdx
+                    ? "border-primary bg-primary/10 text-foreground"
+                    : "border-border bg-background text-muted-foreground",
                 )}
               >
                 {m}
-                <span className={cn("absolute right-1.5 top-1.5 size-1.5 rounded-full", filled ? "bg-primary" : "bg-muted")} />
+                <span
+                  className={cn(
+                    "absolute right-1.5 top-1.5 size-1.5 rounded-full",
+                    filled ? "bg-primary" : "bg-muted",
+                  )}
+                />
               </button>
             );
           })}
@@ -836,18 +891,53 @@ export function BatchGoalsPage() {
           <div className="flex flex-col gap-1.5">
             <Label>{S.batchScopeLabel}</Label>
             <div className="inline-flex overflow-hidden rounded-md border border-border">
-              <button type="button" onClick={() => setScope("month")} className={cn("px-3.5 py-2 text-xs font-semibold", scope === "month" ? "bg-primary/10 text-foreground" : "bg-background text-muted-foreground")}>{S.batchScopeMonth}</button>
-              <button type="button" onClick={() => setScope("year")} className={cn("px-3.5 py-2 text-xs font-semibold", scope === "year" ? "bg-primary/10 text-foreground" : "bg-background text-muted-foreground")}>{S.batchScopeYear}</button>
+              <button
+                type="button"
+                onClick={() => setScope("month")}
+                className={cn(
+                  "px-3.5 py-2 text-xs font-semibold",
+                  scope === "month"
+                    ? "bg-primary/10 text-foreground"
+                    : "bg-background text-muted-foreground",
+                )}
+              >
+                {S.batchScopeMonth}
+              </button>
+              <button
+                type="button"
+                onClick={() => setScope("year")}
+                className={cn(
+                  "px-3.5 py-2 text-xs font-semibold",
+                  scope === "year"
+                    ? "bg-primary/10 text-foreground"
+                    : "bg-background text-muted-foreground",
+                )}
+              >
+                {S.batchScopeYear}
+              </button>
             </div>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label>{S.batchBaseValue}</Label>
-            <Input className="w-40 text-right tabular-nums" value={baseValue} onChange={(e) => setBaseValue(e.target.value)} />
+            <Input
+              className="w-40 text-right tabular-nums"
+              value={baseValue}
+              onChange={(e) => setBaseValue(e.target.value)}
+            />
           </div>
-          <Button variant="outline" size="sm" onClick={() => ctl.applyValue(parseBRL(baseValue), targetMonths())}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => ctl.applyValue(parseBRL(baseValue), targetMonths())}
+          >
             {S.batchApplyBase}
           </Button>
-          <Button variant="outline" size="sm" className="gap-1.5 text-sky-500" onClick={() => ctl.applySuggestion(targetMonths())}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-sky-500"
+            onClick={() => ctl.applySuggestion(targetMonths())}
+          >
             <Icon icon="mdi:auto-fix" size={15} />
             {S.batchSuggest}
           </Button>
@@ -864,10 +954,19 @@ export function BatchGoalsPage() {
           {S.batchSummary(ctl.createCount, ctl.skippedCount, formatBRL(ctl.annualGrandTotal))}
         </p>
         <div className="flex gap-2.5">
-          <Button variant="outline" size="sm" disabled={submitting} onClick={() => handleSubmit("arquivada")}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={submitting}
+            onClick={() => handleSubmit("arquivada")}
+          >
             {S.batchSaveDraft}
           </Button>
-          <Button size="sm" disabled={submitting || ctl.createCount === 0} onClick={() => handleSubmit("ativa")}>
+          <Button
+            size="sm"
+            disabled={submitting || ctl.createCount === 0}
+            onClick={() => handleSubmit("ativa")}
+          >
             {S.batchCreate(ctl.createCount)}
           </Button>
         </div>
@@ -898,6 +997,7 @@ git commit -m "feat(goals): add BatchGoalsPage with shared params, month tabs an
 ### Task 6: Rota `/app/gestao/metas/lote` + botão no dashboard
 
 **Files:**
+
 - Create: `src/routes/app.gestao.metas.lote.tsx`
 - Modify: `src/features/goals/components/AggregatedGoalsDashboard.tsx`
 - Modify (gerado): `src/routeTree.gen.ts`
@@ -924,35 +1024,39 @@ Verificar `src/features/goals/index.ts`: se `GoalsPage`/`NewGoalPage` são expor
 Em `src/features/goals/components/AggregatedGoalsDashboard.tsx`, localizar o bloco do botão "Nova meta":
 
 ```tsx
-        {canCreate && (
-          <Button asChild size="sm" className="gap-1">
-            <Link to="/app/gestao/metas/nova">
-              <Icon icon="mdi:plus" size={16} />
-              {S.createCta}
-            </Link>
-          </Button>
-        )}
+{
+  canCreate && (
+    <Button asChild size="sm" className="gap-1">
+      <Link to="/app/gestao/metas/nova">
+        <Icon icon="mdi:plus" size={16} />
+        {S.createCta}
+      </Link>
+    </Button>
+  );
+}
 ```
 
 Substituir por (envolvendo os dois botões num flex):
 
 ```tsx
-        {canCreate && (
-          <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline" size="sm" className="gap-1">
-              <Link to="/app/gestao/metas/lote">
-                <Icon icon="mdi:account-multiple-plus-outline" size={16} />
-                {S.batchCta}
-              </Link>
-            </Button>
-            <Button asChild size="sm" className="gap-1">
-              <Link to="/app/gestao/metas/nova">
-                <Icon icon="mdi:plus" size={16} />
-                {S.createCta}
-              </Link>
-            </Button>
-          </div>
-        )}
+{
+  canCreate && (
+    <div className="flex flex-wrap gap-2">
+      <Button asChild variant="outline" size="sm" className="gap-1">
+        <Link to="/app/gestao/metas/lote">
+          <Icon icon="mdi:account-multiple-plus-outline" size={16} />
+          {S.batchCta}
+        </Link>
+      </Button>
+      <Button asChild size="sm" className="gap-1">
+        <Link to="/app/gestao/metas/nova">
+          <Icon icon="mdi:plus" size={16} />
+          {S.createCta}
+        </Link>
+      </Button>
+    </div>
+  );
+}
 ```
 
 - [ ] **Step 4: Regenerar routeTree e validar build**
@@ -982,6 +1086,7 @@ git commit -m "feat(goals): add batch goals route and dashboard entry button"
 
 Run: `bun run dev`
 O usuário valida em `/app/gestao/metas`:
+
 - Botão **"Meta em lote"** aparece (Owner/Gestor) ao lado de "Nova meta" e abre `/app/gestao/metas/lote`.
 - Página: params compartilhados; abas Jan–Dez (um mês por vez; dots ao preencher); tabela com valor/mês, sugestão clicável, total anual; conflito por mês esmaecido + badge.
 - Barra: escopo "Este mês/Ano todo"; "Aplicar valor-base" e "✨ Sugerir" respeitam o escopo e pulam conflitos.
@@ -1005,6 +1110,7 @@ git commit -m "fix(goals): polish batch goals after manual review"
 ## Self-Review (autor do plano)
 
 **Cobertura do spec:**
+
 - Entrada (botão + rota Owner/Gestor) → Task 6. ✓
 - Params compartilhados (Loja/Métrica/Ano/Recompensa) → Task 5. ✓
 - Abas de mês (um por vez + dots) → Task 5. ✓

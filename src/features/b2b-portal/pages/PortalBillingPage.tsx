@@ -35,7 +35,11 @@ export function PortalBillingPage() {
   const cards = [
     { label: S.billingLimit, value: formatBRL(limit), icon: "mdi:credit-card-outline" },
     { label: S.billingUsed, value: formatBRL(used), icon: "mdi:credit-card-clock-outline" },
-    { label: S.billingAvailable, value: formatBRL(available), icon: "mdi:credit-card-check-outline" },
+    {
+      label: S.billingAvailable,
+      value: formatBRL(available),
+      icon: "mdi:credit-card-check-outline",
+    },
   ];
 
   return (

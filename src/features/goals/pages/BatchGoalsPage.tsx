@@ -115,10 +115,17 @@ export function BatchGoalsPage() {
           <div className="flex flex-col gap-1.5">
             <Label>{S.batchStore}</Label>
             <Select value={storeId} onValueChange={(v) => setStoreId(v)} disabled={!isOwner}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
-                {(isOwner ? accessibleStores : accessibleStores.filter((s) => s.id === storeId)).map((s) => (
-                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                {(isOwner
+                  ? accessibleStores
+                  : accessibleStores.filter((s) => s.id === storeId)
+                ).map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -126,10 +133,14 @@ export function BatchGoalsPage() {
           <div className="flex flex-col gap-1.5">
             <Label>{S.batchMetric}</Label>
             <Select value={metric} onValueChange={(v) => setMetric(v as GoalMetric)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 {ALL_METRICS.map((m) => (
-                  <SelectItem key={m} value={m}>{GOAL_METRIC_LABEL[m]}</SelectItem>
+                  <SelectItem key={m} value={m}>
+                    {GOAL_METRIC_LABEL[m]}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -137,17 +148,25 @@ export function BatchGoalsPage() {
           <div className="flex flex-col gap-1.5">
             <Label>{S.batchYear}</Label>
             <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 {yearOptions.map((y) => (
-                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  <SelectItem key={y} value={String(y)}>
+                    {y}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label>{S.batchReward}</Label>
-            <Input value={reward} onChange={(e) => setReward(e.target.value)} placeholder={S.batchRewardPlaceholder} />
+            <Input
+              value={reward}
+              onChange={(e) => setReward(e.target.value)}
+              placeholder={S.batchRewardPlaceholder}
+            />
           </div>
         </div>
       </Card>
@@ -155,7 +174,9 @@ export function BatchGoalsPage() {
       <Card className="mb-4 p-5">
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {S.batchMonth}{" "}
-          <span className="text-primary">{MONTH_LABELS[monthIdx] ?? ""}/{year}</span>
+          <span className="text-primary">
+            {MONTH_LABELS[monthIdx] ?? ""}/{year}
+          </span>
         </h2>
         <div className="flex flex-wrap gap-1.5">
           {MONTH_LABELS.map((m, i) => {

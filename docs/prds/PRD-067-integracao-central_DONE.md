@@ -456,8 +456,8 @@ ENTÃO próximas notificações usam novo template
 
 ## Status
 
-| Campo  | Valor       |
-| ------ | ----------- |
+| Campo  | Valor                               |
+| ------ | ----------------------------------- |
 | Status | ✅ IMPLEMENTADO (v0.45.1 — Gateway) |
 
 ---

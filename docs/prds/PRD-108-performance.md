@@ -2,19 +2,19 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _Repositório vivo da Fase 1, `supabase/migrations/` + `src/providers/supabase/`_ |
-| **Objetivo** | Otimizar performance do backend após schema (101), RLS (103) e provider (104) estarem operacionais: índices avançados baseados em profiling real, views materializadas para dashboards BI pesados, estratégia de cache no provider, paginação cursor-based para listas grandes, otimização de policies RLS com subquery, e baseline de métricas de performance |
-| **Tipo** | Feature |
-| **Complexidade** | Alta |
-| **Total de Fases** | 4 |
-| **Prioridade** | P1 — não-bloqueante para go-live com volume baixo, mas necessário antes de escala |
-| **Épico** | Onda 4 — Backend Supabase Real (v2.0.0 Engine) |
-| **PRDs Relacionados** | PRD-101 (Schema — índices básicos; este adiciona avançados); PRD-103 (RLS — otimiza subqueries); PRD-104 (Provider — cache); PRD-110 (Monitoring — mede performance); PRD-040 Fase 1 (Visão Executiva — consome views materializadas); PRD-014 Fase 1 (Painel Gestor) |
-| **Implementação** | 🔵 Claude Code CLI |
-| **Padrão de código** | Migrations de índice/view em `supabase/migrations/`; cache no provider |
+| Campo                 | Valor                                                                                                                                                                                                                                                                                                                                                          |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                                                                                                                                                                                       |
+| **Repositório**       | _Repositório vivo da Fase 1, `supabase/migrations/` + `src/providers/supabase/`_                                                                                                                                                                                                                                                                               |
+| **Objetivo**          | Otimizar performance do backend após schema (101), RLS (103) e provider (104) estarem operacionais: índices avançados baseados em profiling real, views materializadas para dashboards BI pesados, estratégia de cache no provider, paginação cursor-based para listas grandes, otimização de policies RLS com subquery, e baseline de métricas de performance |
+| **Tipo**              | Feature                                                                                                                                                                                                                                                                                                                                                        |
+| **Complexidade**      | Alta                                                                                                                                                                                                                                                                                                                                                           |
+| **Total de Fases**    | 4                                                                                                                                                                                                                                                                                                                                                              |
+| **Prioridade**        | P1 — não-bloqueante para go-live com volume baixo, mas necessário antes de escala                                                                                                                                                                                                                                                                              |
+| **Épico**             | Onda 4 — Backend Supabase Real (v2.0.0 Engine)                                                                                                                                                                                                                                                                                                                 |
+| **PRDs Relacionados** | PRD-101 (Schema — índices básicos; este adiciona avançados); PRD-103 (RLS — otimiza subqueries); PRD-104 (Provider — cache); PRD-110 (Monitoring — mede performance); PRD-040 Fase 1 (Visão Executiva — consome views materializadas); PRD-014 Fase 1 (Painel Gestor)                                                                                          |
+| **Implementação**     | 🔵 Claude Code CLI                                                                                                                                                                                                                                                                                                                                             |
+| **Padrão de código**  | Migrations de índice/view em `supabase/migrations/`; cache no provider                                                                                                                                                                                                                                                                                         |
 
 ### Critérios de Complexidade
 
@@ -40,6 +40,7 @@ Este PRD faz o tuning **baseado em medição**, não em suposição. Profiling p
 ### Profiling Primeiro
 
 Antes de qualquer índice novo, medir:
+
 - `pg_stat_statements` — quais queries são mais frequentes/lentas
 - `EXPLAIN ANALYZE` nas queries críticas (dashboards, listagens)
 - Supabase Dashboard → Query Performance
@@ -47,14 +48,14 @@ Antes de qualquer índice novo, medir:
 
 ### Áreas de Otimização
 
-| Área | Técnica |
-|------|---------|
-| Dashboards BI | Views materializadas com refresh agendado (pg_cron) |
-| Listagens frequentes | Índices compostos baseados em padrão real de WHERE/ORDER BY |
-| RLS subqueries | Reescrever policy com índice apropriado ou função `STABLE` cacheável |
-| Paginação profunda | Cursor-based (keyset pagination) em vez de offset |
-| Single-record reads | Cache no provider (PRD-104 opt-in → habilitar onde justifica) |
-| Texto/busca | Índice GIN com pg_trgm para busca de peças/clientes |
+| Área                 | Técnica                                                              |
+| -------------------- | -------------------------------------------------------------------- |
+| Dashboards BI        | Views materializadas com refresh agendado (pg_cron)                  |
+| Listagens frequentes | Índices compostos baseados em padrão real de WHERE/ORDER BY          |
+| RLS subqueries       | Reescrever policy com índice apropriado ou função `STABLE` cacheável |
+| Paginação profunda   | Cursor-based (keyset pagination) em vez de offset                    |
+| Single-record reads  | Cache no provider (PRD-104 opt-in → habilitar onde justifica)        |
+| Texto/busca          | Índice GIN com pg_trgm para busca de peças/clientes                  |
 
 ### Views Materializadas para BI
 
@@ -93,13 +94,13 @@ Provider (PRD-104) ganha modo cursor para listas grandes (mensagens, audit logs)
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que descartada |
-|-------------|--------------------|
-| Otimizar tudo preventivamente | Premature optimization. Profiling guia onde otimizar |
-| Read replicas | Supabase Pro não inclui; overkill para volume MVP |
-| Cache externo (Redis) | Cache in-memory no provider resolve o MVP |
-| Desabilitar RLS para performance | Inaceitável — segurança não negocia |
-| Denormalização agressiva | Adiciona complexidade de sync; views materializadas resolvem |
+| Alternativa                      | Por que descartada                                           |
+| -------------------------------- | ------------------------------------------------------------ |
+| Otimizar tudo preventivamente    | Premature optimization. Profiling guia onde otimizar         |
+| Read replicas                    | Supabase Pro não inclui; overkill para volume MVP            |
+| Cache externo (Redis)            | Cache in-memory no provider resolve o MVP                    |
+| Desabilitar RLS para performance | Inaceitável — segurança não negocia                          |
+| Denormalização agressiva         | Adiciona complexidade de sync; views materializadas resolvem |
 
 ---
 
@@ -242,15 +243,19 @@ ENTÃO usa índice, retorna em < 100ms
 ## Fases de Implementação
 
 ### Fase 1 — Profiling (1 dia)
+
 - pg_stat_statements, get_advisors, EXPLAIN ANALYZE; documentar baseline
 
 ### Fase 2 — Índices + Views Materializadas (2 dias)
+
 - Índices avançados; MVs + pg_cron; provider lê das MVs
 
 ### Fase 3 — Cursor + Cache + RLS opt (1.5 dias)
+
 - Cursor pagination; habilitar cache; otimizar policies
 
 ### Fase 4 — Testes de Carga + Docs (1 dia)
+
 - k6; documentação; comparativo antes/depois; `_DONE`
 
 ---
@@ -274,39 +279,39 @@ ENTÃO usa índice, retorna em < 100ms
 
 > ⚠️ **APÓS:** Bump v2.0.0-rc.8; CHANGELOG; renomear `PRD-108-performance_DONE.md`; baseline documentado antes/depois.
 
-| Princípio | Descrição |
-|-----------|-----------|
-| **Profiling primeiro** | Nunca criar índice sem medir necessidade |
-| **MV para BI, não transacional** | Defasagem aceitável só em dashboard |
-| **Cursor para listas grandes** | Offset só para listas pequenas |
-| **Validar com EXPLAIN** | Índice criado deve ser usado de fato |
+| Princípio                        | Descrição                                |
+| -------------------------------- | ---------------------------------------- |
+| **Profiling primeiro**           | Nunca criar índice sem medir necessidade |
+| **MV para BI, não transacional** | Defasagem aceitável só em dashboard      |
+| **Cursor para listas grandes**   | Offset só para listas pequenas           |
+| **Validar com EXPLAIN**          | Índice criado deve ser usado de fato     |
 
-| ❌ Evitar |
-|-----------|
+| ❌ Evitar                                     |
+| --------------------------------------------- |
 | Índice sem profiling (premature optimization) |
-| MV em dado transacional (frescor crítico) |
-| Enfraquecer RLS por performance |
-| Cache sem invalidação |
-| Refresh de MV bloqueante (use CONCURRENTLY) |
+| MV em dado transacional (frescor crítico)     |
+| Enfraquecer RLS por performance               |
+| Cache sem invalidação                         |
+| Refresh de MV bloqueante (use CONCURRENTLY)   |
 
 ---
 
 ## Status de Implementação
 
-| Campo | Valor |
-|-------|-------|
+| Campo      | Valor       |
+| ---------- | ----------- |
 | **Status** | ⏳ PENDENTE |
-| **Data** | - |
-| **Versão** | - |
-| **Por** | - |
+| **Data**   | -           |
+| **Versão** | -           |
+| **Por**    | -           |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 27/05/2026 | v1 | Criação inicial — Sub-lote 1d (Onda 4) |
+| Data       | Versão | Alteração                              |
+| ---------- | ------ | -------------------------------------- |
+| 27/05/2026 | v1     | Criação inicial — Sub-lote 1d (Onda 4) |
 
 ---
 
