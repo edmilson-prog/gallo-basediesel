@@ -25,7 +25,11 @@ const KIND_BADGE: Record<ReleaseKind, string> = {
   patch: "bg-success/10 text-success",
 };
 
-const GIT_BRANCH = __GIT_BRANCH__;
+// Guarded so a stale dev server (started before the Vite `define` was added)
+// or any environment without the define falls back to empty/version instead
+// of throwing a ReferenceError on the bare global.
+const GIT_BRANCH = typeof __GIT_BRANCH__ !== "undefined" ? __GIT_BRANCH__ : "";
+const APP_VERSION = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "0.0.0";
 
 interface IProps {
   /**
@@ -57,7 +61,7 @@ export function AppFooter({ className = "hidden md:flex", showWhatsNew = true }:
   const { data: releases } = useChangelog();
   const current = releases?.[0];
 
-  const version = current?.version ?? __APP_VERSION__;
+  const version = current?.version ?? APP_VERSION;
   const codename = current?.codename ?? null;
   const kind = current?.kind ?? null;
 
