@@ -10,8 +10,10 @@ const MATRIZ_STORE_ID: ID = "store-matriz";
 /**
  * Mock user profile available on the /auth/login screen.
  *
- * On the MVP there are exactly three profiles. Selecting one writes its `id`
- * to localStorage under `gallo-mock-user` and treats the user as logged in.
+ * On the MVP there are eight profiles: the GALLO team (Owner, Gestor, three
+ * Vendedores, one VendedorExterno), a synthetic B2B Cliente, and a discreet
+ * AILA admin. Selecting one writes its `id` to localStorage under
+ * `gallo-mock-user` and treats the user as logged in.
  *
  * The PRD-006 (RBAC) replaces the simple `role` field with a full permission
  * matrix; the PRD-100+ (Supabase Auth) replaces this whole module.
@@ -105,7 +107,7 @@ export const MOCK_USERS: IMockUserProfile[] = [
     defaultRedirect: "/app/atendimento",
     storeId: MATRIZ_STORE_ID,
     accessibleStoreIds: [MATRIZ_STORE_ID],
-    sellerId: "seller-carlos-santos",
+    sellerId: "seller-carlos-santos", // legacy stable id — maps to Lucas Costa in seedSellers.ts
   },
   {
     id: "mock-vendedor-cauan",
@@ -119,7 +121,7 @@ export const MOCK_USERS: IMockUserProfile[] = [
     defaultRedirect: "/app/atendimento",
     storeId: MATRIZ_STORE_ID,
     accessibleStoreIds: [MATRIZ_STORE_ID],
-    sellerId: "seller-rafael-lima",
+    sellerId: "seller-rafael-lima", // legacy stable id — maps to Cauan Bulegon in seedSellers.ts
   },
   {
     id: "mock-vendedor-ramon",
@@ -184,5 +186,5 @@ export const LOCALSTORAGE_USER_KEY = "gallo-mock-user";
 /** Finds a profile whose email matches (case-insensitive, trimmed). */
 export function findMockUserByEmail(email: string): IMockUserProfile | undefined {
   const normalized = email.trim().toLowerCase();
-  return MOCK_USERS.find((u) => u.email.toLowerCase() === normalized);
+  return MOCK_USERS.find((u) => u.email.trim().toLowerCase() === normalized);
 }
