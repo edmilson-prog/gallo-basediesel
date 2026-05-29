@@ -90,6 +90,7 @@ export function rankMetricValue(row: ISellerLeaderboardRow, metric: SellerRankMe
   }
 }
 
+// Callers pass only paid orders; fall back to createdAt when paidAt is missing (data hygiene).
 const dayOf = (o: IOrder): number => new Date(o.paidAt ?? o.createdAt).getDate();
 
 /** Build per-seller aggregated rows + summary, sorted by `metric`, ranks assigned. */
@@ -157,7 +158,7 @@ export function buildSellerLeaderboard(
     const rev = revenue.get(seller.id) ?? 0;
     const oc = orderCount.get(seller.id) ?? 0;
     const target = targetBySeller.get(seller.id) ?? null;
-    const runRate = today > 0 ? rev / today : 0;
+    const runRate = rev / today; // today is clamped to >= 1 above
     const projection = Math.round(runRate * daysInMonth);
     const trendInfo = computeTrend(rev, prevRevenue.get(seller.id) ?? 0, false);
     return {
@@ -168,9 +169,9 @@ export function buildSellerLeaderboard(
       orderCount: oc,
       avgTicket: oc > 0 ? rev / oc : 0,
       target,
-      attainmentPct: target && target > 0 ? (rev / target) * 100 : null,
+      attainmentPct: target !== null && target > 0 ? (rev / target) * 100 : null,
       projection,
-      attainmentForecastPct: target && target > 0 ? (projection / target) * 100 : null,
+      attainmentForecastPct: target !== null && target > 0 ? (projection / target) * 100 : null,
       trend: trendInfo.direction,
       trendPct: trendInfo.changePct,
       customerCount: customerCountBySeller.get(seller.id) ?? 0,
