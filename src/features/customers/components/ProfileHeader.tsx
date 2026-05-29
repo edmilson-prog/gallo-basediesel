@@ -54,7 +54,7 @@ export function ProfileHeader({ customer, conversation, variant }: IProfileHeade
         <div className="min-w-0 flex-1 space-y-1.5">
           <h2
             className={cn(
-              "font-semibold leading-tight text-foreground",
+              "font-semibold uppercase leading-tight text-foreground",
               variant === "page" ? "text-xl" : "text-base",
             )}
             title={display.name}
