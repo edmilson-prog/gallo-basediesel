@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/Icon";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -69,151 +70,168 @@ export function CustomersFiltersBar({
   const activeCount = useMemo(() => countActive(filters), [filters]);
 
   return (
-    <div
-      className={cn(
-        "flex flex-wrap items-center gap-2 border-b border-border bg-card px-4 py-2",
-        className,
-      )}
-    >
-      <MultiSelectPopover
-        label="Status"
-        icon="mdi:circle-medium"
-        selected={filters.statuses}
-        options={STATUS_KEYS.map((s) => ({ value: s, label: STATUS_LABELS[s] }))}
-        onChange={(next) => patch({ statuses: next as CustomerStatus[] })}
-      />
-
-      <TypeToggle type={filters.type} onChange={(next) => patch({ type: next })} />
-
-      <MultiSelectPopover
-        label="ABC"
-        icon="mdi:chart-arc"
-        selected={filters.abcClasses}
-        options={ABC_KEYS.map((k) => ({ value: k, label: ABC_LABELS[k] }))}
-        onChange={(next) => patch({ abcClasses: next as AbcKey[] })}
-      />
-
-      <MultiSelectPopover
-        label="Tags"
-        icon="mdi:tag-multiple-outline"
-        selected={filters.tags}
-        searchable
-        options={availableTags.map((t) => ({ value: t, label: t }))}
-        onChange={(next) => patch({ tags: next })}
-      />
-
-      {canFilterSeller && (
-        <MultiSelectPopover
-          label="Vendedor"
-          icon="mdi:account-tie"
-          selected={filters.sellerIds}
-          searchable
-          options={sellers.map((s) => ({ value: s.id, label: s.fullName }))}
-          onChange={(next) => patch({ sellerIds: next })}
-        />
-      )}
-
-      <MultiSelectPopover
-        label="Recência"
-        icon="mdi:clock-outline"
-        selected={filters.recencyBuckets}
-        options={RECENCY_BUCKETS.map((b) => ({ value: b, label: RECENCY_LABELS[b] }))}
-        onChange={(next) => patch({ recencyBuckets: next as RecencyBucket[] })}
-      />
-
-      <SingleSelectPopover
-        label="Positivação"
-        icon="mdi:account-check-outline"
-        value={filters.positivation}
-        options={[
-          { value: "all", label: "Todos" },
-          { value: "positivado", label: "Positivados este mês" },
-          { value: "nao_positivado", label: "Não positivados" },
-        ]}
-        onChange={(next) => patch({ positivation: next })}
-        isActive={filters.positivation !== "all"}
-      />
-
-      <RangePopover
-        label="Ticket médio"
-        icon="mdi:cash-multiple"
-        range={filters.ticketRange}
-        presets={[
-          { label: "< R$ 500", range: { max: 500 } },
-          { label: "R$ 500–2k", range: { min: 500, max: 2000 } },
-          { label: "R$ 2k–10k", range: { min: 2000, max: 10_000 } },
-          { label: "> R$ 10k", range: { min: 10_000 } },
-        ]}
-        onChange={(next) => patch({ ticketRange: next })}
-      />
-
-      <RangePopover
-        label="LTV"
-        icon="mdi:trophy-outline"
-        range={filters.ltvRange}
-        presets={[
-          { label: "< R$ 5 mil", range: { max: 5000 } },
-          { label: "R$ 5–50 mil", range: { min: 5000, max: 50_000 } },
-          { label: "> R$ 50 mil", range: { min: 50_000 } },
-        ]}
-        onChange={(next) => patch({ ltvRange: next })}
-      />
-
-      <MultiSelectPopover
-        label="Veículo"
-        icon="mdi:truck"
-        selected={filters.vehicleBrands}
-        options={[
-          { value: "any", label: "Qualquer veículo" },
-          ...VEHICLE_BRANDS.map((b) => ({ value: b, label: b })),
-        ]}
-        onChange={(next) => patch({ vehicleBrands: next as (VehicleBrandName | "any")[] })}
-      />
-
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        aria-pressed={filters.hasB2BPortal}
-        onClick={() => patch({ hasB2BPortal: !filters.hasB2BPortal })}
+    <TooltipProvider delayDuration={300}>
+      <div
         className={cn(
-          "h-8 gap-1.5 text-xs",
-          filters.hasB2BPortal && "border-primary/40 bg-primary/5 text-primary",
+          "flex flex-wrap items-center gap-2 border-b border-border bg-card px-4 py-2",
+          className,
         )}
       >
-        <Icon icon="mdi:account-tie-outline" size={14} />
-        Portal B2B
-      </Button>
-
-      {canFilterStore && stores.length > 1 && (
         <MultiSelectPopover
-          label="Loja"
-          icon="mdi:store"
-          selected={filters.storeIds}
-          options={stores.map((s) => ({ value: s.id, label: s.name }))}
-          onChange={(next) => patch({ storeIds: next })}
+          label="Status"
+          icon="mdi:circle-medium"
+          description="Filtrar por status do cliente (ativo, dormente, recuperação, perdido)"
+          selected={filters.statuses}
+          options={STATUS_KEYS.map((s) => ({ value: s, label: STATUS_LABELS[s] }))}
+          onChange={(next) => patch({ statuses: next as CustomerStatus[] })}
         />
-      )}
 
-      <div className="ml-auto flex items-center gap-2">
-        {activeCount > 0 && (
-          <Badge variant="outline" className="text-xs text-muted-foreground">
-            {activeCount} {activeCount === 1 ? "filtro ativo" : "filtros ativos"}
-          </Badge>
+        <TypeToggle type={filters.type} onChange={(next) => patch({ type: next })} />
+
+        <MultiSelectPopover
+          label="ABC"
+          icon="mdi:chart-arc"
+          description="Filtrar pela curva ABC — participação de cada cliente na receita"
+          selected={filters.abcClasses}
+          options={ABC_KEYS.map((k) => ({ value: k, label: ABC_LABELS[k] }))}
+          onChange={(next) => patch({ abcClasses: next as AbcKey[] })}
+        />
+
+        <MultiSelectPopover
+          label="Tags"
+          icon="mdi:tag-multiple-outline"
+          description="Filtrar por etiquetas atribuídas aos clientes"
+          selected={filters.tags}
+          searchable
+          options={availableTags.map((t) => ({ value: t, label: t }))}
+          onChange={(next) => patch({ tags: next })}
+        />
+
+        {canFilterSeller && (
+          <MultiSelectPopover
+            label="Vendedor"
+            icon="mdi:account-tie"
+            description="Filtrar pelos clientes de um ou mais vendedores"
+            selected={filters.sellerIds}
+            searchable
+            options={sellers.map((s) => ({ value: s.id, label: s.fullName }))}
+            onChange={(next) => patch({ sellerIds: next })}
+          />
         )}
-        {activeCount > 0 && (
-          <Button variant="ghost" size="sm" onClick={onClear} className="text-xs">
-            <Icon icon="mdi:close-circle-outline" size={14} />
-            Limpar tudo
-          </Button>
+
+        <MultiSelectPopover
+          label="Recência"
+          icon="mdi:clock-outline"
+          description="Filtrar pelo tempo desde a última compra do cliente"
+          selected={filters.recencyBuckets}
+          options={RECENCY_BUCKETS.map((b) => ({ value: b, label: RECENCY_LABELS[b] }))}
+          onChange={(next) => patch({ recencyBuckets: next as RecencyBucket[] })}
+        />
+
+        <SingleSelectPopover
+          label="Positivação"
+          icon="mdi:account-check-outline"
+          description="Filtrar por clientes que compraram (positivaram) no mês corrente"
+          value={filters.positivation}
+          options={[
+            { value: "all", label: "Todos" },
+            { value: "positivado", label: "Positivados este mês" },
+            { value: "nao_positivado", label: "Não positivados" },
+          ]}
+          onChange={(next) => patch({ positivation: next })}
+          isActive={filters.positivation !== "all"}
+        />
+
+        <RangePopover
+          label="Ticket médio"
+          icon="mdi:cash-multiple"
+          description="Filtrar pela faixa de ticket médio dos últimos 12 meses"
+          range={filters.ticketRange}
+          presets={[
+            { label: "< R$ 500", range: { max: 500 } },
+            { label: "R$ 500–2k", range: { min: 500, max: 2000 } },
+            { label: "R$ 2k–10k", range: { min: 2000, max: 10_000 } },
+            { label: "> R$ 10k", range: { min: 10_000 } },
+          ]}
+          onChange={(next) => patch({ ticketRange: next })}
+        />
+
+        <RangePopover
+          label="LTV"
+          icon="mdi:trophy-outline"
+          description="Filtrar pela faixa de valor total histórico (LTV) do cliente"
+          range={filters.ltvRange}
+          presets={[
+            { label: "< R$ 5 mil", range: { max: 5000 } },
+            { label: "R$ 5–50 mil", range: { min: 5000, max: 50_000 } },
+            { label: "> R$ 50 mil", range: { min: 50_000 } },
+          ]}
+          onChange={(next) => patch({ ltvRange: next })}
+        />
+
+        <MultiSelectPopover
+          label="Veículo"
+          icon="mdi:truck"
+          description="Filtrar por marca de veículo presente na frota do cliente"
+          selected={filters.vehicleBrands}
+          options={[
+            { value: "any", label: "Qualquer veículo" },
+            ...VEHICLE_BRANDS.map((b) => ({ value: b, label: b })),
+          ]}
+          onChange={(next) => patch({ vehicleBrands: next as (VehicleBrandName | "any")[] })}
+        />
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              aria-pressed={filters.hasB2BPortal}
+              onClick={() => patch({ hasB2BPortal: !filters.hasB2BPortal })}
+              className={cn(
+                "h-8 gap-1.5 text-xs",
+                filters.hasB2BPortal && "border-primary/40 bg-primary/5 text-primary",
+              )}
+            >
+              <Icon icon="mdi:account-tie-outline" size={14} />
+              Portal B2B
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Mostrar apenas clientes com acesso ao Portal B2B</TooltipContent>
+        </Tooltip>
+
+        {canFilterStore && stores.length > 1 && (
+          <MultiSelectPopover
+            label="Loja"
+            icon="mdi:store"
+            description="Filtrar pela loja de origem do cliente"
+            selected={filters.storeIds}
+            options={stores.map((s) => ({ value: s.id, label: s.name }))}
+            onChange={(next) => patch({ storeIds: next })}
+          />
         )}
-        {!isManagerOrOwner && (
-          <span className="text-[10px] text-muted-foreground">
-            Visualizando apenas sua carteira
-          </span>
-        )}
+
+        <div className="ml-auto flex items-center gap-2">
+          {activeCount > 0 && (
+            <Badge variant="outline" className="text-xs text-muted-foreground">
+              {activeCount} {activeCount === 1 ? "filtro ativo" : "filtros ativos"}
+            </Badge>
+          )}
+          {activeCount > 0 && (
+            <Button variant="ghost" size="sm" onClick={onClear} className="text-xs">
+              <Icon icon="mdi:close-circle-outline" size={14} />
+              Limpar tudo
+            </Button>
+          )}
+          {!isManagerOrOwner && (
+            <span className="text-[10px] text-muted-foreground">
+              Visualizando apenas sua carteira
+            </span>
+          )}
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }
 
@@ -242,6 +260,7 @@ interface IMultiOption<T extends string> {
 interface IMultiSelectPopoverProps<T extends string> {
   label: string;
   icon: string;
+  description: string;
   selected: T[];
   options: IMultiOption<T>[];
   onChange: (next: T[]) => void;
@@ -251,6 +270,7 @@ interface IMultiSelectPopoverProps<T extends string> {
 function MultiSelectPopover<T extends string>({
   label,
   icon,
+  description,
   selected,
   options,
   onChange,
@@ -263,24 +283,29 @@ function MultiSelectPopover<T extends string>({
   const active = selected.length > 0;
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn(
-            "h-8 gap-1.5 text-xs",
-            active && "border-primary/40 bg-primary/5 text-primary",
-          )}
-        >
-          <Icon icon={icon} size={14} />
-          {label}
-          {active && (
-            <span className="rounded-full bg-primary/15 px-1.5 py-0 text-[10px] font-semibold">
-              {selected.length}
-            </span>
-          )}
-        </Button>
-      </PopoverTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "h-8 gap-1.5 text-xs",
+                active && "border-primary/40 bg-primary/5 text-primary",
+              )}
+            >
+              <Icon icon={icon} size={14} />
+              {label}
+              {active && (
+                <span className="rounded-full bg-primary/15 px-1.5 py-0 text-[10px] font-semibold">
+                  {selected.length}
+                </span>
+              )}
+            </Button>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent>{description}</TooltipContent>
+      </Tooltip>
       <PopoverContent align="start" className="w-[260px] p-2">
         {searchable && (
           <Input
@@ -337,6 +362,7 @@ interface ISingleSelectOption {
 interface ISingleSelectPopoverProps {
   label: string;
   icon: string;
+  description: string;
   value: PositivationFilter;
   options: ISingleSelectOption[];
   onChange: (next: PositivationFilter) => void;
@@ -346,6 +372,7 @@ interface ISingleSelectPopoverProps {
 function SingleSelectPopover({
   label,
   icon,
+  description,
   value,
   options,
   onChange,
@@ -353,20 +380,25 @@ function SingleSelectPopover({
 }: ISingleSelectPopoverProps) {
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn(
-            "h-8 gap-1.5 text-xs",
-            isActive && "border-primary/40 bg-primary/5 text-primary",
-          )}
-        >
-          <Icon icon={icon} size={14} />
-          {label}
-          {isActive && <span className="text-[10px]">✓</span>}
-        </Button>
-      </PopoverTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "h-8 gap-1.5 text-xs",
+                isActive && "border-primary/40 bg-primary/5 text-primary",
+              )}
+            >
+              <Icon icon={icon} size={14} />
+              {label}
+              {isActive && <span className="text-[10px]">✓</span>}
+            </Button>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent>{description}</TooltipContent>
+      </Tooltip>
       <PopoverContent align="start" className="w-[220px] p-2">
         <div className="space-y-1">
           {options.map((opt) => {
@@ -402,27 +434,31 @@ interface ITypeToggleProps {
 }
 
 function TypeToggle({ type, onChange }: ITypeToggleProps) {
-  const options: { value: ICustomersListFilters["type"]; label: string }[] = [
-    { value: "all", label: "Ambos" },
-    { value: "B2B", label: "B2B" },
-    { value: "B2C", label: "B2C" },
+  const options: { value: ICustomersListFilters["type"]; label: string; description: string }[] = [
+    { value: "all", label: "Ambos", description: "Mostrar clientes B2B e B2C" },
+    { value: "B2B", label: "B2B", description: "Mostrar apenas pessoas jurídicas (B2B)" },
+    { value: "B2C", label: "B2C", description: "Mostrar apenas pessoas físicas (B2C)" },
   ];
   return (
     <div className="inline-flex h-8 items-center rounded-md border border-border bg-muted/30 p-0.5 text-xs">
       {options.map((o) => (
-        <button
-          key={o.value}
-          type="button"
-          onClick={() => onChange(o.value)}
-          className={cn(
-            "rounded px-2 py-1 transition-colors",
-            type === o.value
-              ? "bg-card text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          {o.label}
-        </button>
+        <Tooltip key={o.value}>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={() => onChange(o.value)}
+              className={cn(
+                "rounded px-2 py-1 transition-colors",
+                type === o.value
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {o.label}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{o.description}</TooltipContent>
+        </Tooltip>
       ))}
     </div>
   );
@@ -431,12 +467,13 @@ function TypeToggle({ type, onChange }: ITypeToggleProps) {
 interface IRangePopoverProps {
   label: string;
   icon: string;
+  description: string;
   range: INumericRange | undefined;
   presets: { label: string; range: INumericRange }[];
   onChange: (range: INumericRange | undefined) => void;
 }
 
-function RangePopover({ label, icon, range, presets, onChange }: IRangePopoverProps) {
+function RangePopover({ label, icon, description, range, presets, onChange }: IRangePopoverProps) {
   const [min, setMin] = useState<string>(range?.min !== undefined ? String(range.min) : "");
   const [max, setMax] = useState<string>(range?.max !== undefined ? String(range.max) : "");
   const active = Boolean(range && (range.min || range.max));
@@ -454,20 +491,25 @@ function RangePopover({ label, icon, range, presets, onChange }: IRangePopoverPr
 
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn(
-            "h-8 gap-1.5 text-xs",
-            active && "border-primary/40 bg-primary/5 text-primary",
-          )}
-        >
-          <Icon icon={icon} size={14} />
-          {label}
-          {active && <span className="text-[10px]">✓</span>}
-        </Button>
-      </PopoverTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "h-8 gap-1.5 text-xs",
+                active && "border-primary/40 bg-primary/5 text-primary",
+              )}
+            >
+              <Icon icon={icon} size={14} />
+              {label}
+              {active && <span className="text-[10px]">✓</span>}
+            </Button>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent>{description}</TooltipContent>
+      </Tooltip>
       <PopoverContent align="start" className="w-[260px] space-y-2 p-3">
         <div className="space-y-1">
           {presets.map((p) => (
