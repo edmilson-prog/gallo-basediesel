@@ -7,7 +7,7 @@ export const Route = createFileRoute("/app/gestao/despesas")({
   beforeLoad: ({ location }) => requireAuth(location.pathname, ["Owner"]),
   component: () => (
     <DashboardLayout>
-      <PlaceholderPage prd="050" icon="mdi:cash-remove" title="Despesas" />
+      <PlaceholderPage prd="054" icon="mdi:cash-remove" title="Despesas" />
     </DashboardLayout>
   ),
 });

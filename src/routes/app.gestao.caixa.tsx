@@ -7,7 +7,7 @@ export const Route = createFileRoute("/app/gestao/caixa")({
   beforeLoad: ({ location }) => requireAuth(location.pathname, ["Owner"]),
   component: () => (
     <DashboardLayout>
-      <PlaceholderPage prd="051" icon="mdi:cash-flow" title="Fluxo de Caixa" />
+      <PlaceholderPage prd="055" icon="mdi:cash-flow" title="Fluxo de Caixa" />
     </DashboardLayout>
   ),
 });
