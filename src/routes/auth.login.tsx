@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Icon } from "@/components/Icon";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/useAuth";
 import { MOCK_USERS, findMockUserByEmail } from "@/features/auth/mock-users";
-import { BrandPanel } from "@/features/auth/BrandPanel";
+import { BrandPanel, type BrandPanelVariant } from "@/features/auth/BrandPanel";
 import { ProfileCard } from "@/features/auth/ProfileCard";
 
 const searchSchema = z.object({
@@ -25,6 +26,7 @@ function LoginPage() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
   const { next } = Route.useSearch();
+  const [bg, setBg] = useState<BrandPanelVariant>("embers");
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -63,7 +65,26 @@ function LoginPage() {
 
   return (
     <div className="grid min-h-screen md:grid-cols-[45%_1fr]">
-      <BrandPanel />
+      {import.meta.env.DEV && (
+        <div className="fixed left-3 top-3 z-50 flex gap-1 rounded-md border border-border bg-card/90 p-1 text-xs shadow-lg backdrop-blur">
+          {(["embers", "gradient", "mesh"] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setBg(v)}
+              className={cn(
+                "rounded px-2 py-1 capitalize transition-colors",
+                bg === v
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
+      )}
+      <BrandPanel variant={bg} />
 
       <main className="flex flex-col justify-center px-5 py-10 sm:px-8 md:px-12 lg:px-16">
         <div className="mx-auto w-full max-w-xl space-y-8">

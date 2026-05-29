@@ -1,6 +1,12 @@
-import { Logo } from "@/components/Logo";
-import { Icon } from "@/components/Icon";
+import { lazy, Suspense } from "react";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/hooks/useTheme";
+import { EmbersBackground } from "./brand-backgrounds/EmbersBackground";
+import { GradientBackground } from "./brand-backgrounds/GradientBackground";
+
+const MeshWaveBackground = lazy(() => import("./brand-backgrounds/MeshWaveBackground"));
+
+export type BrandPanelVariant = "embers" | "gradient" | "mesh";
 
 const SUBMARCAS = [
   { label: "PARTS", dot: "bg-emerald-500" },
@@ -10,9 +16,21 @@ const SUBMARCAS = [
 
 /**
  * Brand panel shown on the left of the login split-screen (md+ only).
- * Pure presentation — no props. Uses semantic tokens + Tailwind palette dots.
+ * `variant` selects the animated background. Foreground content is shared.
  */
-export function BrandPanel({ className }: { className?: string }) {
+export function BrandPanel({
+  variant = "embers",
+  className,
+}: {
+  variant?: BrandPanelVariant;
+  className?: string;
+}) {
+  const { resolvedMode } = useTheme();
+  const logoSrc =
+    resolvedMode === "dark"
+      ? "/logos/logo-horizontal-white.png"
+      : "/logos/logo-horizontal-black.png";
+
   return (
     <aside
       className={cn(
@@ -20,19 +38,23 @@ export function BrandPanel({ className }: { className?: string }) {
         className,
       )}
     >
-      {/* industrial watermark */}
-      <Icon
-        icon="mdi:truck-cargo"
-        className="pointer-events-none absolute -right-10 bottom-0 text-foreground opacity-[0.04]"
-        size={420}
-      />
+      <div className="absolute inset-0" aria-hidden="true">
+        {variant === "embers" && <EmbersBackground />}
+        {variant === "gradient" && <GradientBackground />}
+        {variant === "mesh" && (
+          <Suspense fallback={null}>
+            <MeshWaveBackground />
+          </Suspense>
+        )}
+      </div>
+      {/* keep text legible over the animation */}
       <div
-        className="absolute inset-0 bg-gradient-to-br from-card to-background opacity-60"
-        aria-hidden
+        className="absolute inset-0 bg-gradient-to-t from-card/85 via-card/20 to-transparent"
+        aria-hidden="true"
       />
 
       <div className="relative">
-        <Logo variant="horizontal" className="h-10" />
+        <img src={logoSrc} alt="GALLO BASE DIESEL" className="h-10 w-auto" />
       </div>
 
       <div className="relative max-w-sm space-y-3">
@@ -50,7 +72,7 @@ export function BrandPanel({ className }: { className?: string }) {
       <div className="relative flex items-center gap-4">
         {SUBMARCAS.map((s) => (
           <div key={s.label} className="flex items-center gap-1.5">
-            <span className={cn("h-2 w-2 rounded-full", s.dot)} aria-hidden />
+            <span className={cn("h-2 w-2 rounded-full", s.dot)} aria-hidden="true" />
             <span className="text-[11px] font-semibold tracking-wider text-muted-foreground">
               {s.label}
             </span>
