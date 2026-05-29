@@ -21,7 +21,10 @@ const STATUS_TONE: Record<string, string> = {
 export function PWAPortfolioPage() {
   const { session } = usePwaAuth();
   const [search, setSearch] = useState("");
-  const { data: customers = [], isLoading } = usePwaPortfolio(session?.sellerId, search || undefined);
+  const { data: customers = [], isLoading } = usePwaPortfolio(
+    session?.sellerId,
+    search || undefined,
+  );
 
   return (
     <div className="space-y-4">

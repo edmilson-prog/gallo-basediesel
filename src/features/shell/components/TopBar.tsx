@@ -52,7 +52,9 @@ export function TopBar() {
   const canDistribute = currentUser?.role === "Owner" || currentUser?.role === "Gestor";
   const relevantEcom = ecomNotifications
     .filter((n) =>
-      n.kind === "pending_distribution" ? canDistribute : n.sellerId !== null && n.sellerId === sellerId,
+      n.kind === "pending_distribution"
+        ? canDistribute
+        : n.sellerId !== null && n.sellerId === sellerId,
     )
     .slice(0, 8);
   const notificationCount = MOCK_NOTIFICATIONS.length + relevantEcom.length;
@@ -117,7 +119,9 @@ export function TopBar() {
                 <li
                   key={n.id}
                   className="cursor-pointer border-b border-border px-4 py-3 last:border-b-0 hover:bg-muted/50"
-                  onClick={() => void navigate({ to: "/app/pedidos/$id", params: { id: n.orderId } })}
+                  onClick={() =>
+                    void navigate({ to: "/app/pedidos/$id", params: { id: n.orderId } })
+                  }
                 >
                   <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
                     <Icon icon="mdi:cart" size={14} className="text-primary" aria-hidden />

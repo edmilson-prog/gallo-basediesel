@@ -193,328 +193,330 @@ export function StorefrontConfigPage({ section = "all" }: IStorefrontConfigPageP
 
       {/* Hero */}
       {showHome && (
-      <Card className="space-y-4 p-6">
-        <h2 className="text-base font-semibold text-foreground">{S.configSectionHero}</h2>
-        <div className="space-y-2">
-          <Label htmlFor="hero-headline">{S.configHeadlineLabel}</Label>
-          <Input
-            id="hero-headline"
-            value={draft.hero.headline}
-            onChange={(e) =>
-              setDraft((p) => ({ ...p, hero: { ...p.hero, headline: e.target.value } }))
-            }
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="hero-subheadline">{S.configSubheadlineLabel}</Label>
-          <Textarea
-            id="hero-subheadline"
-            rows={2}
-            value={draft.hero.subheadline}
-            onChange={(e) =>
-              setDraft((p) => ({ ...p, hero: { ...p.hero, subheadline: e.target.value } }))
-            }
-          />
-        </div>
-        <div className="space-y-2">
-          <Label>Indicadores de confiança (até 3)</Label>
-          {[0, 1, 2].map((idx) => (
+        <Card className="space-y-4 p-6">
+          <h2 className="text-base font-semibold text-foreground">{S.configSectionHero}</h2>
+          <div className="space-y-2">
+            <Label htmlFor="hero-headline">{S.configHeadlineLabel}</Label>
             <Input
-              key={idx}
-              placeholder={`${S.configIndicatorLabel} ${idx + 1}`}
-              value={draft.hero.indicators[idx] ?? ""}
+              id="hero-headline"
+              value={draft.hero.headline}
               onChange={(e) =>
-                setDraft((p) => {
-                  const next = [...p.hero.indicators];
-                  next[idx] = e.target.value;
-                  return {
-                    ...p,
-                    hero: { ...p.hero, indicators: next.filter(Boolean) },
-                  };
-                })
+                setDraft((p) => ({ ...p, hero: { ...p.hero, headline: e.target.value } }))
               }
             />
-          ))}
-        </div>
-      </Card>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="hero-subheadline">{S.configSubheadlineLabel}</Label>
+            <Textarea
+              id="hero-subheadline"
+              rows={2}
+              value={draft.hero.subheadline}
+              onChange={(e) =>
+                setDraft((p) => ({ ...p, hero: { ...p.hero, subheadline: e.target.value } }))
+              }
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Indicadores de confiança (até 3)</Label>
+            {[0, 1, 2].map((idx) => (
+              <Input
+                key={idx}
+                placeholder={`${S.configIndicatorLabel} ${idx + 1}`}
+                value={draft.hero.indicators[idx] ?? ""}
+                onChange={(e) =>
+                  setDraft((p) => {
+                    const next = [...p.hero.indicators];
+                    next[idx] = e.target.value;
+                    return {
+                      ...p,
+                      hero: { ...p.hero, indicators: next.filter(Boolean) },
+                    };
+                  })
+                }
+              />
+            ))}
+          </div>
+        </Card>
       )}
 
       {/* Featured categories */}
       {showHome && (
-      <Card className="space-y-4 p-6">
-        <div>
-          <h2 className="text-base font-semibold text-foreground">{S.configSectionCategories}</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Selecione até 6 categorias para destacar na home.
-          </p>
-        </div>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-          {PART_CATEGORY_DESCRIPTORS.map((cat) => {
-            const checked = draft.featuredCategories.includes(cat.value);
-            return (
-              <label
-                key={cat.value}
-                className="flex cursor-pointer items-center gap-2 rounded-sm border border-border bg-card px-3 py-2 text-sm hover:border-primary/50"
-              >
-                <Checkbox checked={checked} onCheckedChange={() => toggleCategory(cat.value)} />
-                <Icon icon={cat.icon} size={16} className="text-primary" aria-hidden />
-                {cat.label}
-              </label>
-            );
-          })}
-        </div>
-      </Card>
+        <Card className="space-y-4 p-6">
+          <div>
+            <h2 className="text-base font-semibold text-foreground">{S.configSectionCategories}</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Selecione até 6 categorias para destacar na home.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+            {PART_CATEGORY_DESCRIPTORS.map((cat) => {
+              const checked = draft.featuredCategories.includes(cat.value);
+              return (
+                <label
+                  key={cat.value}
+                  className="flex cursor-pointer items-center gap-2 rounded-sm border border-border bg-card px-3 py-2 text-sm hover:border-primary/50"
+                >
+                  <Checkbox checked={checked} onCheckedChange={() => toggleCategory(cat.value)} />
+                  <Icon icon={cat.icon} size={16} className="text-primary" aria-hidden />
+                  {cat.label}
+                </label>
+              );
+            })}
+          </div>
+        </Card>
       )}
 
       {/* Featured products mode */}
       {showHome && (
-      <Card className="space-y-4 p-6">
-        <h2 className="text-base font-semibold text-foreground">{S.configSectionFeatured}</h2>
-        <div className="space-y-2">
-          <Label htmlFor="featured-mode">{S.configFeaturedModeLabel}</Label>
-          <Select
-            value={draft.featuredProducts.mode}
-            onValueChange={(v) =>
-              setDraft((p) => ({
-                ...p,
-                featuredProducts: {
-                  ...p.featuredProducts,
-                  mode: v as IStorefrontConfig["featuredProducts"]["mode"],
-                },
-              }))
-            }
-          >
-            <SelectTrigger id="featured-mode" className="bg-background">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="top-selling">{S.configFeaturedAuto}</SelectItem>
-              <SelectItem value="manual">{S.configFeaturedManual}</SelectItem>
-            </SelectContent>
-          </Select>
-          {draft.featuredProducts.mode === "manual" && (
-            <p className="text-xs text-muted-foreground">
-              Edite o array <code className="font-mono">manualPartIds</code> no JSON da loja
-              (curadoria manual será exposta via UI na Fase 2).
-            </p>
-          )}
-        </div>
-      </Card>
+        <Card className="space-y-4 p-6">
+          <h2 className="text-base font-semibold text-foreground">{S.configSectionFeatured}</h2>
+          <div className="space-y-2">
+            <Label htmlFor="featured-mode">{S.configFeaturedModeLabel}</Label>
+            <Select
+              value={draft.featuredProducts.mode}
+              onValueChange={(v) =>
+                setDraft((p) => ({
+                  ...p,
+                  featuredProducts: {
+                    ...p.featuredProducts,
+                    mode: v as IStorefrontConfig["featuredProducts"]["mode"],
+                  },
+                }))
+              }
+            >
+              <SelectTrigger id="featured-mode" className="bg-background">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="top-selling">{S.configFeaturedAuto}</SelectItem>
+                <SelectItem value="manual">{S.configFeaturedManual}</SelectItem>
+              </SelectContent>
+            </Select>
+            {draft.featuredProducts.mode === "manual" && (
+              <p className="text-xs text-muted-foreground">
+                Edite o array <code className="font-mono">manualPartIds</code> no JSON da loja
+                (curadoria manual será exposta via UI na Fase 2).
+              </p>
+            )}
+          </div>
+        </Card>
       )}
 
       {/* Category pages (PRD-062) */}
       {showCategorias && (
-      <Card className="space-y-4 p-6">
-        <div>
-          <h2 className="text-base font-semibold text-foreground">
-            {S.configSectionCategoryPages}
-          </h2>
-          <p className="mt-1 text-xs text-muted-foreground">{S.configCategoryPagesHint}</p>
-        </div>
-        <div className="space-y-3">
-          {KNOWN_CATEGORY_SLUGS.map((slug) => (
-            <div
-              key={slug}
-              className="grid gap-2 rounded-md border border-border p-3 sm:grid-cols-[10rem_1fr] sm:items-start"
-            >
-              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <Icon icon={iconForSlug(slug)} size={16} className="text-primary" aria-hidden />
-                {nameForSlug(slug)}
+        <Card className="space-y-4 p-6">
+          <div>
+            <h2 className="text-base font-semibold text-foreground">
+              {S.configSectionCategoryPages}
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground">{S.configCategoryPagesHint}</p>
+          </div>
+          <div className="space-y-3">
+            {KNOWN_CATEGORY_SLUGS.map((slug) => (
+              <div
+                key={slug}
+                className="grid gap-2 rounded-md border border-border p-3 sm:grid-cols-[10rem_1fr] sm:items-start"
+              >
+                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  <Icon icon={iconForSlug(slug)} size={16} className="text-primary" aria-hidden />
+                  {nameForSlug(slug)}
+                </div>
+                <Textarea
+                  rows={2}
+                  placeholder={S.configCategoryDescriptionPlaceholder}
+                  value={getCategoryOverride(slug)}
+                  onChange={(e) => updateCategoryDescription(slug, e.target.value)}
+                />
               </div>
-              <Textarea
-                rows={2}
-                placeholder={S.configCategoryDescriptionPlaceholder}
-                value={getCategoryOverride(slug)}
-                onChange={(e) => updateCategoryDescription(slug, e.target.value)}
-              />
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
 
-        <div className="space-y-3 border-t border-border pt-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Listas especiais
-          </p>
-          {KNOWN_SPECIAL_SLUGS.map((slug) => (
-            <div
-              key={slug}
-              className="grid gap-2 rounded-md border border-border p-3 sm:grid-cols-[10rem_1fr] sm:items-start"
-            >
-              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <Icon icon={iconForSlug(slug)} size={16} className="text-primary" aria-hidden />
-                {nameForSlug(slug)}
+          <div className="space-y-3 border-t border-border pt-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Listas especiais
+            </p>
+            {KNOWN_SPECIAL_SLUGS.map((slug) => (
+              <div
+                key={slug}
+                className="grid gap-2 rounded-md border border-border p-3 sm:grid-cols-[10rem_1fr] sm:items-start"
+              >
+                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  <Icon icon={iconForSlug(slug)} size={16} className="text-primary" aria-hidden />
+                  {nameForSlug(slug)}
+                </div>
+                <Textarea
+                  rows={2}
+                  placeholder={S.configCategoryDescriptionPlaceholder}
+                  value={getCategoryOverride(slug)}
+                  onChange={(e) => updateCategoryDescription(slug, e.target.value)}
+                />
               </div>
-              <Textarea
-                rows={2}
-                placeholder={S.configCategoryDescriptionPlaceholder}
-                value={getCategoryOverride(slug)}
-                onChange={(e) => updateCategoryDescription(slug, e.target.value)}
-              />
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
 
-        <div className="space-y-2 border-t border-border pt-4">
-          <Label htmlFor="promotion-ids">{S.configPromotionsTitle}</Label>
-          <p className="text-xs text-muted-foreground">{S.configPromotionsHint}</p>
-          <Input
-            id="promotion-ids"
-            placeholder={S.configPromotionsPlaceholder}
-            value={getPromotionIdsCsv()}
-            onChange={(e) => updatePromotionIds(e.target.value)}
-          />
-        </div>
-      </Card>
+          <div className="space-y-2 border-t border-border pt-4">
+            <Label htmlFor="promotion-ids">{S.configPromotionsTitle}</Label>
+            <p className="text-xs text-muted-foreground">{S.configPromotionsHint}</p>
+            <Input
+              id="promotion-ids"
+              placeholder={S.configPromotionsPlaceholder}
+              value={getPromotionIdsCsv()}
+              onChange={(e) => updatePromotionIds(e.target.value)}
+            />
+          </div>
+        </Card>
       )}
 
       {/* Why buy */}
       {showHome && (
-      <Card className="space-y-4 p-6">
-        <h2 className="text-base font-semibold text-foreground">{S.configSectionBenefits}</h2>
-        <div className="space-y-3">
-          {draft.whyBuy.slice(0, 4).map((benefit, idx) => (
-            <div
-              key={idx}
-              className="grid gap-2 rounded-md border border-border p-3 sm:grid-cols-[1fr_2fr]"
-            >
-              <Input
-                placeholder="Título"
-                value={benefit.title}
-                onChange={(e) =>
-                  setDraft((p) => {
-                    const next = [...p.whyBuy];
-                    next[idx] = { ...next[idx], title: e.target.value };
-                    return { ...p, whyBuy: next };
-                  })
-                }
-              />
-              <Input
-                placeholder="Descrição"
-                value={benefit.description}
-                onChange={(e) =>
-                  setDraft((p) => {
-                    const next = [...p.whyBuy];
-                    next[idx] = { ...next[idx], description: e.target.value };
-                    return { ...p, whyBuy: next };
-                  })
-                }
-              />
-            </div>
-          ))}
-        </div>
-      </Card>
+        <Card className="space-y-4 p-6">
+          <h2 className="text-base font-semibold text-foreground">{S.configSectionBenefits}</h2>
+          <div className="space-y-3">
+            {draft.whyBuy.slice(0, 4).map((benefit, idx) => (
+              <div
+                key={idx}
+                className="grid gap-2 rounded-md border border-border p-3 sm:grid-cols-[1fr_2fr]"
+              >
+                <Input
+                  placeholder="Título"
+                  value={benefit.title}
+                  onChange={(e) =>
+                    setDraft((p) => {
+                      const next = [...p.whyBuy];
+                      next[idx] = { ...next[idx], title: e.target.value };
+                      return { ...p, whyBuy: next };
+                    })
+                  }
+                />
+                <Input
+                  placeholder="Descrição"
+                  value={benefit.description}
+                  onChange={(e) =>
+                    setDraft((p) => {
+                      const next = [...p.whyBuy];
+                      next[idx] = { ...next[idx], description: e.target.value };
+                      return { ...p, whyBuy: next };
+                    })
+                  }
+                />
+              </div>
+            ))}
+          </div>
+        </Card>
       )}
 
       {/* About */}
       {showHome && (
-      <Card className="space-y-4 p-6">
-        <h2 className="text-base font-semibold text-foreground">{S.configSectionAbout}</h2>
-        <div className="space-y-2">
-          <Label htmlFor="about-headline">Título</Label>
-          <Input
-            id="about-headline"
-            value={draft.about.headline}
-            onChange={(e) =>
-              setDraft((p) => ({ ...p, about: { ...p.about, headline: e.target.value } }))
-            }
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="about-body">Texto institucional</Label>
-          <Textarea
-            id="about-body"
-            rows={4}
-            value={draft.about.body}
-            onChange={(e) =>
-              setDraft((p) => ({ ...p, about: { ...p.about, body: e.target.value } }))
-            }
-          />
-        </div>
-      </Card>
+        <Card className="space-y-4 p-6">
+          <h2 className="text-base font-semibold text-foreground">{S.configSectionAbout}</h2>
+          <div className="space-y-2">
+            <Label htmlFor="about-headline">Título</Label>
+            <Input
+              id="about-headline"
+              value={draft.about.headline}
+              onChange={(e) =>
+                setDraft((p) => ({ ...p, about: { ...p.about, headline: e.target.value } }))
+              }
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="about-body">Texto institucional</Label>
+            <Textarea
+              id="about-body"
+              rows={4}
+              value={draft.about.body}
+              onChange={(e) =>
+                setDraft((p) => ({ ...p, about: { ...p.about, body: e.target.value } }))
+              }
+            />
+          </div>
+        </Card>
       )}
 
       {/* Footer */}
       {showHome && (
-      <Card className="space-y-4 p-6">
-        <h2 className="text-base font-semibold text-foreground">{S.configSectionFooter}</h2>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="footer-phone">Telefone</Label>
-            <Input
-              id="footer-phone"
-              value={draft.footer.phone}
-              onChange={(e) =>
-                setDraft((p) => ({ ...p, footer: { ...p.footer, phone: e.target.value } }))
-              }
-            />
+        <Card className="space-y-4 p-6">
+          <h2 className="text-base font-semibold text-foreground">{S.configSectionFooter}</h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="footer-phone">Telefone</Label>
+              <Input
+                id="footer-phone"
+                value={draft.footer.phone}
+                onChange={(e) =>
+                  setDraft((p) => ({ ...p, footer: { ...p.footer, phone: e.target.value } }))
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="footer-whatsapp">WhatsApp</Label>
+              <Input
+                id="footer-whatsapp"
+                value={draft.footer.whatsapp}
+                onChange={(e) =>
+                  setDraft((p) => ({
+                    ...p,
+                    footer: { ...p.footer, whatsapp: e.target.value },
+                  }))
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="footer-email">E-mail</Label>
+              <Input
+                id="footer-email"
+                type="email"
+                value={draft.footer.email}
+                onChange={(e) =>
+                  setDraft((p) => ({ ...p, footer: { ...p.footer, email: e.target.value } }))
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="footer-address">Endereço</Label>
+              <Input
+                id="footer-address"
+                value={draft.footer.address}
+                onChange={(e) =>
+                  setDraft((p) => ({
+                    ...p,
+                    footer: { ...p.footer, address: e.target.value },
+                  }))
+                }
+              />
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="footer-whatsapp">WhatsApp</Label>
-            <Input
-              id="footer-whatsapp"
-              value={draft.footer.whatsapp}
-              onChange={(e) =>
-                setDraft((p) => ({
-                  ...p,
-                  footer: { ...p.footer, whatsapp: e.target.value },
-                }))
-              }
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="footer-email">E-mail</Label>
-            <Input
-              id="footer-email"
-              type="email"
-              value={draft.footer.email}
-              onChange={(e) =>
-                setDraft((p) => ({ ...p, footer: { ...p.footer, email: e.target.value } }))
-              }
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="footer-address">Endereço</Label>
-            <Input
-              id="footer-address"
-              value={draft.footer.address}
-              onChange={(e) =>
-                setDraft((p) => ({
-                  ...p,
-                  footer: { ...p.footer, address: e.target.value },
-                }))
-              }
-            />
-          </div>
-        </div>
-      </Card>
+        </Card>
       )}
 
       {/* SEO */}
       {showHome && (
-      <Card className="space-y-4 p-6">
-        <h2 className="text-base font-semibold text-foreground">{S.configSectionSeo}</h2>
-        <div className="space-y-2">
-          <Label htmlFor="seo-title">Title (≤ 60 chars)</Label>
-          <Input
-            id="seo-title"
-            value={draft.seo.title}
-            maxLength={80}
-            onChange={(e) => setDraft((p) => ({ ...p, seo: { ...p.seo, title: e.target.value } }))}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="seo-description">Description (≤ 160 chars)</Label>
-          <Textarea
-            id="seo-description"
-            rows={2}
-            maxLength={200}
-            value={draft.seo.description}
-            onChange={(e) =>
-              setDraft((p) => ({ ...p, seo: { ...p.seo, description: e.target.value } }))
-            }
-          />
-        </div>
-      </Card>
+        <Card className="space-y-4 p-6">
+          <h2 className="text-base font-semibold text-foreground">{S.configSectionSeo}</h2>
+          <div className="space-y-2">
+            <Label htmlFor="seo-title">Title (≤ 60 chars)</Label>
+            <Input
+              id="seo-title"
+              value={draft.seo.title}
+              maxLength={80}
+              onChange={(e) =>
+                setDraft((p) => ({ ...p, seo: { ...p.seo, title: e.target.value } }))
+              }
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="seo-description">Description (≤ 160 chars)</Label>
+            <Textarea
+              id="seo-description"
+              rows={2}
+              maxLength={200}
+              value={draft.seo.description}
+              onChange={(e) =>
+                setDraft((p) => ({ ...p, seo: { ...p.seo, description: e.target.value } }))
+              }
+            />
+          </div>
+        </Card>
       )}
 
       <div className="sticky bottom-4 z-10 flex flex-wrap justify-end gap-2 rounded-md border border-border bg-card/95 p-3 backdrop-blur">

@@ -27,7 +27,10 @@ export function PortalVehicleDetailPage() {
 
   return (
     <div className="space-y-4">
-      <Link to="/portal/frota" className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+      <Link
+        to="/portal/frota"
+        className="inline-flex items-center gap-1 text-xs text-muted-foreground"
+      >
         <Icon icon="mdi:chevron-left" size={14} aria-hidden />
         {S.fleetTitle}
       </Link>
@@ -91,7 +94,12 @@ export function PortalVehicleDetailPage() {
 
         <TabsContent value="maintenance" className="space-y-3">
           <Card className="flex items-center gap-3 border-amber-500/40 bg-amber-500/5 p-4">
-            <Icon icon="mdi:wrench-clock" size={20} className="text-amber-600 dark:text-amber-400" aria-hidden />
+            <Icon
+              icon="mdi:wrench-clock"
+              size={20}
+              className="text-amber-600 dark:text-amber-400"
+              aria-hidden
+            />
             <div>
               <p className="text-sm font-medium text-foreground">{S.fleetNextMaintenance}</p>
               <p className="text-xs text-muted-foreground">

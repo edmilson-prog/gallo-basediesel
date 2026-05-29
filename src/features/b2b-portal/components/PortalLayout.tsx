@@ -10,7 +10,15 @@ import { usePortalSession } from "../hooks/usePortalSession";
 import { PORTAL_NAV } from "../config/navigation";
 import { PORTAL_ROLE_LABEL, PORTAL_STRINGS as S } from "../i18n/pt-BR";
 
-function NavList({ onNavigate, canViewFinancial, role }: { onNavigate?: () => void; canViewFinancial: boolean; role: string }) {
+function NavList({
+  onNavigate,
+  canViewFinancial,
+  role,
+}: {
+  onNavigate?: () => void;
+  canViewFinancial: boolean;
+  role: string;
+}) {
   const { pathname } = useLocation();
   const items = PORTAL_NAV.filter((item) => {
     if (item.requires === "canViewFinancial" && !canViewFinancial) return false;

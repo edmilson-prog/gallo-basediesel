@@ -34,7 +34,9 @@ export function PWAHomePage() {
   });
 
   const quotes = quotesQuery.data ?? [];
-  const visitsToday = visits.filter((v) => isToday(v.scheduledAt) && v.status === "agendada").length;
+  const visitsToday = visits.filter(
+    (v) => isToday(v.scheduledAt) && v.status === "agendada",
+  ).length;
   const sentQuotes = quotes.filter((q) => q.status === "enviado").length;
   const pipeline = quotes
     .filter((q) => q.status === "enviado" || q.status === "rascunho")
@@ -66,7 +68,9 @@ export function PWAHomePage() {
           <p className="text-[11px] text-muted-foreground">{S.kpiQuotesSent}</p>
         </Card>
         <Card className="p-3 text-center">
-          <p className="text-2xl font-bold tabular-nums text-primary">{formatBRLCompact(pipeline)}</p>
+          <p className="text-2xl font-bold tabular-nums text-primary">
+            {formatBRLCompact(pipeline)}
+          </p>
           <p className="text-[11px] text-muted-foreground">{S.kpiPipeline}</p>
         </Card>
       </div>

@@ -126,8 +126,7 @@ export function useSalesEvolution(params: IUseSalesEvolutionParams): IUseSalesEv
 
   const isLoading =
     curQuery.isLoading || prevQuery.isLoading || lastYearQuery.isLoading || goals.isLoading;
-  const hasError =
-    curQuery.isError || prevQuery.isError || lastYearQuery.isError || goals.hasError;
+  const hasError = curQuery.isError || prevQuery.isError || lastYearQuery.isError || goals.hasError;
 
   const points = useMemo(
     () =>
@@ -142,13 +141,7 @@ export function useSalesEvolution(params: IUseSalesEvolutionParams): IUseSalesEv
   );
 
   const sellerSeries = useMemo(
-    () =>
-      buildSellerEvolution(
-        curQuery.data?.data ?? [],
-        sellerNameById,
-        now,
-        S.evolutionOutros,
-      ),
+    () => buildSellerEvolution(curQuery.data?.data ?? [], sellerNameById, now, S.evolutionOutros),
     [curQuery.data, sellerNameById, now],
   );
 

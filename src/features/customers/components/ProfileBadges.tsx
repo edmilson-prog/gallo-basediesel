@@ -77,9 +77,7 @@ export function ProfileBadges({ customer, preConversionSlot, className }: IProfi
             : "bg-muted text-muted-foreground border border-border",
         )}
         title={
-          positivated
-            ? "Cliente positivado: comprou neste mês"
-            : "Cliente não positivado neste mês"
+          positivated ? "Cliente positivado: comprou neste mês" : "Cliente não positivado neste mês"
         }
       >
         <span aria-hidden>{positivated ? "●" : "○"}</span>

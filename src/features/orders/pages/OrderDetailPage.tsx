@@ -693,12 +693,11 @@ export function OrderDetailPage() {
         initialTracking={order.trackingCode}
         onCancel={() => setDialog(null)}
         onConfirm={(payload) =>
-          void wrap(
-            shipOrder({ ordersProvider, order, input: payload }),
-            "Pedido enviado.",
-          ).then((r) => {
-            if (r) void notifyStatus("shipped");
-          })
+          void wrap(shipOrder({ ordersProvider, order, input: payload }), "Pedido enviado.").then(
+            (r) => {
+              if (r) void notifyStatus("shipped");
+            },
+          )
         }
       />
       <DeliverDialog

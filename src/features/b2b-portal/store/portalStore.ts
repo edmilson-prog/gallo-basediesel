@@ -26,12 +26,14 @@ function companyLabel(c: ICustomer): string {
 }
 
 function emailSlug(c: ICustomer): string {
-  return companyLabel(c)
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9]+/g, "")
-    .slice(0, 16) || "empresa";
+  return (
+    companyLabel(c)
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9]+/g, "")
+      .slice(0, 16) || "empresa"
+  );
 }
 
 /** Deterministic 3-user roster (admin / comprador / visualizador) per company. */

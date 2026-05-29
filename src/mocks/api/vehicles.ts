@@ -93,8 +93,10 @@ function compareVehicles(
     case "plate":
       return (a.plate ?? "").localeCompare(b.plate ?? "") * mult;
     case "seller":
-      return getCustomerSellerName(a.customerId).localeCompare(getCustomerSellerName(b.customerId)) *
-        mult;
+      return (
+        getCustomerSellerName(a.customerId).localeCompare(getCustomerSellerName(b.customerId)) *
+        mult
+      );
     case "cadastroStatus":
       return a.cadastroStatus.localeCompare(b.cadastroStatus) * mult;
     case "createdAt":

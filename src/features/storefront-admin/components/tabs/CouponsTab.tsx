@@ -2,12 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/Icon";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { STOREFRONT_ADMIN_STRINGS as S } from "../../i18n/pt-BR";
 
 interface IMockCoupon {
@@ -19,9 +14,24 @@ interface IMockCoupon {
 
 const MOCK_COUPONS: IMockCoupon[] = [
   { code: "PRIMEIRA10", description: "10% na primeira compra", discount: "10%", status: "ativo" },
-  { code: "FRETEGRATIS", description: "Frete grátis acima de R$ 500", discount: "Frete", status: "ativo" },
-  { code: "BLACK25", description: "25% em filtros — Black Friday", discount: "25%", status: "agendado" },
-  { code: "VOLTA15", description: "15% para clientes inativos", discount: "15%", status: "expirado" },
+  {
+    code: "FRETEGRATIS",
+    description: "Frete grátis acima de R$ 500",
+    discount: "Frete",
+    status: "ativo",
+  },
+  {
+    code: "BLACK25",
+    description: "25% em filtros — Black Friday",
+    discount: "25%",
+    status: "agendado",
+  },
+  {
+    code: "VOLTA15",
+    description: "15% para clientes inativos",
+    discount: "15%",
+    status: "expirado",
+  },
 ];
 
 const STATUS_LABEL: Record<IMockCoupon["status"], string> = {
@@ -63,7 +73,10 @@ export function CouponsTab() {
       <p className="text-xs text-muted-foreground">{S.couponsDemoNote}</p>
       <div className="grid gap-3 sm:grid-cols-2">
         {MOCK_COUPONS.map((coupon) => (
-          <Card key={coupon.code} className="flex items-center justify-between gap-3 p-4 opacity-80">
+          <Card
+            key={coupon.code}
+            className="flex items-center justify-between gap-3 p-4 opacity-80"
+          >
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <code className="rounded bg-muted px-2 py-0.5 font-mono text-sm text-foreground">

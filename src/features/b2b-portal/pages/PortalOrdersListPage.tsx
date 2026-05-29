@@ -13,12 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Icon } from "@/components/Icon";
 import { formatBRL, formatDateBR } from "@/shared/utils/format";
 import { usePortalSession } from "../hooks/usePortalSession";
@@ -84,7 +79,11 @@ export function PortalOrdersListPage() {
   }, [orders, status, period, minValue, vehicleId, buyerId, buyerByOrderId]);
 
   const hasActiveFilters =
-    status !== "all" || period !== "all" || minValue !== "" || vehicleId !== "all" || buyerId !== "all";
+    status !== "all" ||
+    period !== "all" ||
+    minValue !== "" ||
+    vehicleId !== "all" ||
+    buyerId !== "all";
 
   const clearFilters = () => {
     setStatus("all");
@@ -115,7 +114,9 @@ export function PortalOrdersListPage() {
 
       <Card className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-5">
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">{S.ordersFilterStatus}</label>
+          <label className="text-xs font-medium text-muted-foreground">
+            {S.ordersFilterStatus}
+          </label>
           <Select value={status} onValueChange={(v) => setStatus(v as OrderPaymentStatus | "all")}>
             <SelectTrigger>
               <SelectValue />
@@ -132,7 +133,9 @@ export function PortalOrdersListPage() {
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">{S.ordersFilterPeriod}</label>
+          <label className="text-xs font-medium text-muted-foreground">
+            {S.ordersFilterPeriod}
+          </label>
           <Select value={period} onValueChange={(v) => setPeriod(v as PeriodFilter)}>
             <SelectTrigger>
               <SelectValue />
@@ -147,7 +150,9 @@ export function PortalOrdersListPage() {
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">{S.ordersFilterMinValue}</label>
+          <label className="text-xs font-medium text-muted-foreground">
+            {S.ordersFilterMinValue}
+          </label>
           <Input
             type="number"
             min={0}
@@ -158,7 +163,9 @@ export function PortalOrdersListPage() {
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">{S.ordersFilterVehicle}</label>
+          <label className="text-xs font-medium text-muted-foreground">
+            {S.ordersFilterVehicle}
+          </label>
           <Select value={vehicleId} onValueChange={setVehicleId}>
             <SelectTrigger>
               <SelectValue />

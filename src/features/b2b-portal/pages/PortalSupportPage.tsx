@@ -19,15 +19,8 @@ export function PortalSupportPage() {
     <div className="mx-auto max-w-2xl space-y-4">
       <h1 className="font-display text-2xl font-semibold text-foreground">{S.supportTitle}</h1>
 
-      <Button
-        asChild
-        className="h-14 w-full bg-emerald-600 text-base hover:bg-emerald-700"
-      >
-        <a
-          href={`https://wa.me/${WHATSAPP_NUMBER}`}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+      <Button asChild className="h-14 w-full bg-emerald-600 text-base hover:bg-emerald-700">
+        <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noopener noreferrer">
           <Icon icon="mdi:whatsapp" size={22} className="mr-2" aria-hidden />
           {S.supportWhatsApp}
         </a>
@@ -46,7 +39,12 @@ export function PortalSupportPage() {
         <ul className="space-y-2">
           {FAQ.map((q) => (
             <li key={q} className="flex items-start gap-2 text-sm text-muted-foreground">
-              <Icon icon="mdi:help-circle-outline" size={16} className="mt-0.5 shrink-0 text-primary" aria-hidden />
+              <Icon
+                icon="mdi:help-circle-outline"
+                size={16}
+                className="mt-0.5 shrink-0 text-primary"
+                aria-hidden
+              />
               {q}
             </li>
           ))}

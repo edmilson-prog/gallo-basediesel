@@ -26,13 +26,20 @@ import { useSellersProvider } from "@/providers/data";
 import { DEFAULT_ECOMMERCE_INTEGRATION_SETTINGS } from "../config/defaults";
 import { ECOMMERCE_INTEGRATION_STRINGS as S } from "../i18n/pt-BR";
 
-const ASSIGNMENT_MODES: Array<{ value: IEcommerceIntegrationSettings["assignmentMode"]; label: string; hint: string }> = [
+const ASSIGNMENT_MODES: Array<{
+  value: IEcommerceIntegrationSettings["assignmentMode"];
+  label: string;
+  hint: string;
+}> = [
   { value: "round_robin", label: S.modeRoundRobin, hint: S.modeRoundRobinHint },
   { value: "manager_distributes", label: S.modeManager, hint: S.modeManagerHint },
   { value: "specific_seller", label: S.modeSpecific, hint: S.modeSpecificHint },
 ];
 
-const TEMPLATE_FIELDS: Array<{ key: keyof IEcommerceIntegrationSettings["templates"]; label: string }> = [
+const TEMPLATE_FIELDS: Array<{
+  key: keyof IEcommerceIntegrationSettings["templates"];
+  label: string;
+}> = [
   { key: "whatsappConfirmation", label: S.tplWhatsapp },
   { key: "emailConfirmation", label: S.tplEmail },
   { key: "statusPaid", label: S.tplPaid },
@@ -114,7 +121,10 @@ export function EcommerceIntegrationConfigPage() {
         <RadioGroup
           value={draft.assignmentMode}
           onValueChange={(v) =>
-            setDraft((p) => ({ ...p, assignmentMode: v as IEcommerceIntegrationSettings["assignmentMode"] }))
+            setDraft((p) => ({
+              ...p,
+              assignmentMode: v as IEcommerceIntegrationSettings["assignmentMode"],
+            }))
           }
           className="space-y-2"
         >
@@ -189,7 +199,9 @@ export function EcommerceIntegrationConfigPage() {
               <Label htmlFor={`tpl-${field.key}`}>{field.label}</Label>
               <Textarea
                 id={`tpl-${field.key}`}
-                rows={field.key === "whatsappConfirmation" || field.key === "emailConfirmation" ? 4 : 2}
+                rows={
+                  field.key === "whatsappConfirmation" || field.key === "emailConfirmation" ? 4 : 2
+                }
                 value={draft.templates[field.key]}
                 onChange={(e) =>
                   setDraft((p) => ({

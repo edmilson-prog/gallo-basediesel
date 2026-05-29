@@ -29,7 +29,9 @@ export interface IEcommerceNotification {
 
 interface IEcommerceNotificationState {
   notifications: IEcommerceNotification[];
-  push: (input: Omit<IEcommerceNotification, "id" | "createdAt" | "seen">) => IEcommerceNotification;
+  push: (
+    input: Omit<IEcommerceNotification, "id" | "createdAt" | "seen">,
+  ) => IEcommerceNotification;
   markSeen: (id: ID) => void;
   markAllSeenForSeller: (sellerId: ID) => void;
   clearForSeller: (sellerId: ID) => void;

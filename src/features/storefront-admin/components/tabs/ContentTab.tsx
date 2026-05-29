@@ -44,34 +44,34 @@ export function ContentTab({ defaultSubtab = "home" }: IContentTabProps) {
       {subtab !== "identidade" ? (
         <StorefrontConfigPage section={subtab} />
       ) : (
-      <div className="space-y-4">
-        <Card className="flex items-start gap-3 border-primary/30 bg-primary/5 p-4">
-          <Icon icon="mdi:palette-outline" size={18} className="mt-0.5 text-primary" />
-          <p className="text-xs text-muted-foreground">{S.identityPhase2}</p>
-        </Card>
+        <div className="space-y-4">
+          <Card className="flex items-start gap-3 border-primary/30 bg-primary/5 p-4">
+            <Icon icon="mdi:palette-outline" size={18} className="mt-0.5 text-primary" />
+            <p className="text-xs text-muted-foreground">{S.identityPhase2}</p>
+          </Card>
 
-        <Card className="space-y-3 p-6">
-          <h2 className="text-base font-semibold text-foreground">{S.identityLogoLabel}</h2>
-          <div className="flex h-28 w-full items-center justify-center rounded-md border border-dashed border-border bg-muted/30 text-sm text-muted-foreground">
-            <div className="flex flex-col items-center gap-1">
-              <Icon icon="mdi:image-outline" size={28} aria-hidden />
-              {S.identityLogoPlaceholder}
-            </div>
-          </div>
-        </Card>
-
-        <Card className="space-y-4 p-6">
-          <h2 className="text-base font-semibold text-foreground">{S.identityColorsLabel}</h2>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {THEME_COLORS.map((c) => (
-              <div key={c.label} className="space-y-2">
-                <div className={`h-14 w-full rounded-md ${c.token}`} aria-hidden />
-                <p className="text-xs text-muted-foreground">{c.label}</p>
+          <Card className="space-y-3 p-6">
+            <h2 className="text-base font-semibold text-foreground">{S.identityLogoLabel}</h2>
+            <div className="flex h-28 w-full items-center justify-center rounded-md border border-dashed border-border bg-muted/30 text-sm text-muted-foreground">
+              <div className="flex flex-col items-center gap-1">
+                <Icon icon="mdi:image-outline" size={28} aria-hidden />
+                {S.identityLogoPlaceholder}
               </div>
-            ))}
-          </div>
-        </Card>
-      </div>
+            </div>
+          </Card>
+
+          <Card className="space-y-4 p-6">
+            <h2 className="text-base font-semibold text-foreground">{S.identityColorsLabel}</h2>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {THEME_COLORS.map((c) => (
+                <div key={c.label} className="space-y-2">
+                  <div className={`h-14 w-full rounded-md ${c.token}`} aria-hidden />
+                  <p className="text-xs text-muted-foreground">{c.label}</p>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
       )}
     </Tabs>
   );

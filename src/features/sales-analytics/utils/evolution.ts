@@ -96,8 +96,13 @@ function cumulative(byDay: Map<number, number>, daysInMonth: number): number[] {
 }
 
 export function buildDailyEvolution(input: IBuildEvolutionInput): IDailyEvolutionPoint[] {
-  const { referenceDate, currentMonthOrders, previousMonthOrders, lastYearMonthOrders, targetValue } =
-    input;
+  const {
+    referenceDate,
+    currentMonthOrders,
+    previousMonthOrders,
+    lastYearMonthOrders,
+    targetValue,
+  } = input;
 
   const year = referenceDate.getFullYear();
   const month = referenceDate.getMonth();
@@ -195,7 +200,11 @@ export function buildSellerEvolution(
   const top = ranked.slice(0, SELLER_TOP_N).map(([id]) => id);
   const rest = ranked.slice(SELLER_TOP_N).map(([id]) => id);
 
-  const toSeries = (sellerId: ID, name: string, perDayMaps: Map<number, number>[]): ISellerEvolutionSeries => {
+  const toSeries = (
+    sellerId: ID,
+    name: string,
+    perDayMaps: Map<number, number>[],
+  ): ISellerEvolutionSeries => {
     const data: (number | null)[] = [];
     let acc = 0;
     for (let d = 1; d <= daysInMonth; d += 1) {
@@ -205,10 +214,18 @@ export function buildSellerEvolution(
     return { sellerId, sellerName: name, data };
   };
 
-  const series = top.map((id) => toSeries(id, sellerNameById.get(id) ?? "—", [bySeller.get(id) ?? new Map()]));
+  const series = top.map((id) =>
+    toSeries(id, sellerNameById.get(id) ?? "—", [bySeller.get(id) ?? new Map()]),
+  );
 
   if (rest.length > 0) {
-    series.push(toSeries("outros", outrosLabel, rest.map((id) => bySeller.get(id) ?? new Map())));
+    series.push(
+      toSeries(
+        "outros",
+        outrosLabel,
+        rest.map((id) => bySeller.get(id) ?? new Map()),
+      ),
+    );
   }
   return series;
 }

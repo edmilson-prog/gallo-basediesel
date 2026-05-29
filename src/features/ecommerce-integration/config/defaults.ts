@@ -15,7 +15,8 @@ export const DEFAULT_ECOMMERCE_INTEGRATION_SETTINGS: IEcommerceIntegrationSettin
     emailConfirmation:
       "Olá {customerName},\n\nRecebemos o seu pedido {orderNumber} no valor de {total}. Nossa equipe entrará em contato em breve.\n\nObrigado por comprar com a GALLO BASE DIESEL.",
     statusPaid: "Pagamento do pedido {orderNumber} confirmado. Já estamos preparando o envio!",
-    statusShipped: "Seu pedido {orderNumber} foi enviado. Acompanhe a entrega com a transportadora.",
+    statusShipped:
+      "Seu pedido {orderNumber} foi enviado. Acompanhe a entrega com a transportadora.",
     statusDelivered: "Seu pedido {orderNumber} foi entregue. Obrigado pela preferência!",
     statusCanceled: "Seu pedido {orderNumber} foi cancelado. Motivo: {reason}",
   },

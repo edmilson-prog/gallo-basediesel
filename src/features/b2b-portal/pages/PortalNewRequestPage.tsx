@@ -79,7 +79,8 @@ export function PortalNewRequestPage() {
       requestedBy: user.id,
       items,
       urgency,
-      scheduledFor: urgency === "programada" && scheduledFor ? new Date(scheduledFor).toISOString() : undefined,
+      scheduledFor:
+        urgency === "programada" && scheduledFor ? new Date(scheduledFor).toISOString() : undefined,
       notes: notes || undefined,
       storeId: "store-matriz",
     });
@@ -136,7 +137,10 @@ export function PortalNewRequestPage() {
               onChange={(e) => setDraftQty(Number(e.target.value))}
             />
           </div>
-          <Select value={draftVehicle ?? "none"} onValueChange={(v) => setDraftVehicle(v === "none" ? undefined : v)}>
+          <Select
+            value={draftVehicle ?? "none"}
+            onValueChange={(v) => setDraftVehicle(v === "none" ? undefined : v)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Veículo de destino (opcional)" />
             </SelectTrigger>
@@ -163,7 +167,9 @@ export function PortalNewRequestPage() {
                   <span className="text-foreground">
                     {it.quantity}× {it.description}
                   </span>
-                  <span className="text-xs text-muted-foreground">{vehicleLabel(it.targetVehicleId)}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {vehicleLabel(it.targetVehicleId)}
+                  </span>
                 </div>
               ))
             )}
@@ -213,7 +219,12 @@ export function PortalNewRequestPage() {
       {step === 3 && (
         <Card className="space-y-4 p-5">
           <p className="text-sm font-medium text-foreground">{S.reqStepNotes}</p>
-          <Textarea rows={4} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={S.reqNotes} />
+          <Textarea
+            rows={4}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder={S.reqNotes}
+          />
           <PortalBanner text="Anexar fotos disponível na Fase 2." />
           <div className="flex gap-2">
             <Button variant="outline" className="flex-1" onClick={() => setStep(2)}>
@@ -235,7 +246,9 @@ export function PortalNewRequestPage() {
                 <span className="text-foreground">
                   {it.quantity}× {it.description}
                 </span>
-                <span className="text-xs text-muted-foreground">{vehicleLabel(it.targetVehicleId)}</span>
+                <span className="text-xs text-muted-foreground">
+                  {vehicleLabel(it.targetVehicleId)}
+                </span>
               </div>
             ))}
           </div>

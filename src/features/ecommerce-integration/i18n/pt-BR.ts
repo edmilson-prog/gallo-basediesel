@@ -8,7 +8,8 @@ export const ECOMMERCE_INTEGRATION_STRINGS = {
 
   assignmentTitle: "Modo de atribuição",
   modeRoundRobin: "Rodízio automático (round-robin)",
-  modeRoundRobinHint: "Distribui entre vendedores ativos priorizando quem tem menos pedidos e-com abertos.",
+  modeRoundRobinHint:
+    "Distribui entre vendedores ativos priorizando quem tem menos pedidos e-com abertos.",
   modeManager: "Gestor distribui manualmente",
   modeManagerHint: "A conversa fica sem vendedor até um gestor distribuir.",
   modeSpecific: "Vendedor específico",
