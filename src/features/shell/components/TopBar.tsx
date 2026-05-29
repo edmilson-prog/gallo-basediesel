@@ -3,7 +3,6 @@ import { Icon } from "@/components/Icon";
 import { Logo } from "@/components/Logo";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -16,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/features/auth/useAuth";
+import { GlobalSearch } from "@/features/shell/components/GlobalSearch";
 import { StoreSwitcher } from "@/features/multistore";
 import { AvailabilityToggle } from "@/features/distribution/components/AvailabilityToggle";
 import { useEcommerceNotificationStore } from "@/features/ecommerce-integration";
@@ -52,7 +52,9 @@ export function TopBar() {
   const canDistribute = currentUser?.role === "Owner" || currentUser?.role === "Gestor";
   const relevantEcom = ecomNotifications
     .filter((n) =>
-      n.kind === "pending_distribution" ? canDistribute : n.sellerId !== null && n.sellerId === sellerId,
+      n.kind === "pending_distribution"
+        ? canDistribute
+        : n.sellerId !== null && n.sellerId === sellerId,
     )
     .slice(0, 8);
   const notificationCount = MOCK_NOTIFICATIONS.length + relevantEcom.length;
@@ -63,7 +65,7 @@ export function TopBar() {
   };
 
   return (
-    <header className="flex h-16 items-center gap-3 border-b border-border bg-background px-4">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/60 bg-background/80 px-4 shadow-sm backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-background/65">
       {/* Mobile compact logo (visible only when sidebar hidden) */}
       <div className="md:hidden">
         <Logo variant="mark" className="h-7 w-7" />
@@ -73,22 +75,8 @@ export function TopBar() {
           via withStoreScope and persists the choice in localStorage. */}
       <StoreSwitcher />
 
-      {/* Global search placeholder */}
-      <div className="hidden flex-1 max-w-xl md:block">
-        <div className="relative">
-          <Icon
-            icon="mdi:magnify"
-            size={18}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            type="search"
-            placeholder="Buscar clientes, peças, pedidos…"
-            className="pl-9"
-            aria-label="Busca global"
-          />
-        </div>
-      </div>
+      {/* Global search — dynamic width + "/" keyboard activation */}
+      <GlobalSearch />
 
       {/* Mobile search button */}
       <Button variant="ghost" size="icon" className="md:hidden" aria-label="Buscar">
@@ -117,7 +105,9 @@ export function TopBar() {
                 <li
                   key={n.id}
                   className="cursor-pointer border-b border-border px-4 py-3 last:border-b-0 hover:bg-muted/50"
-                  onClick={() => void navigate({ to: "/app/pedidos/$id", params: { id: n.orderId } })}
+                  onClick={() =>
+                    void navigate({ to: "/app/pedidos/$id", params: { id: n.orderId } })
+                  }
                 >
                   <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
                     <Icon icon="mdi:cart" size={14} className="text-primary" aria-hidden />
