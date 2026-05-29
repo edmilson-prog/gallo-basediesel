@@ -92,6 +92,8 @@ function LoginPage() {
                 aria-invalid={Boolean(error)}
               />
             </div>
+            {/* Password is collected for the future Supabase Auth flow but intentionally
+                ignored in the mock — any value (including empty) is accepted. */}
             <div className="space-y-1.5">
               <Label htmlFor="login-password">Senha</Label>
               <Input
@@ -104,7 +106,10 @@ function LoginPage() {
               />
             </div>
             {error && (
-              <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
+              <div
+                role="alert"
+                className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive"
+              >
                 {error}
               </div>
             )}
