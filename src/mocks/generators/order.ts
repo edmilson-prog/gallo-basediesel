@@ -368,9 +368,11 @@ function businessTimeOn(ctx: ISeededContext, day: Date, now: Date): string {
 /**
  * Generate a realistic order stream spread day-by-day across the last
  * `historyDays`. Business days carry 1–2 paid orders (with daily variance and a
- * gentle month-over-month growth trend); weekends are mostly quiet. Monthly
- * paid revenue lands near `monthlyTarget * REALIZED_PACE`, so every time-series
- * chart (daily evolution + 12-month) stays consistent with the revenue goal.
+ * gentle month-over-month growth trend); weekends produce no sales at all
+ * (business runs Mon–Fri), so the cumulative revenue line stays flat across
+ * Sat/Sun. Monthly paid revenue lands near `monthlyTarget * REALIZED_PACE`, so
+ * every time-series chart (daily evolution + 12-month) stays consistent with
+ * the revenue goal.
  */
 export function generateOrdersTimeline(
   ctx: ISeededContext,
@@ -425,26 +427,30 @@ export function generateOrdersTimeline(
   while (cursor.getTime() <= endDay.getTime()) {
     const weekday = cursor.getDay();
     const isWeekend = weekday === 0 || weekday === 6;
+
+    // Business runs Mon–Fri only: weekends produce no sales, so the cumulative
+    // revenue line stays flat at the last business day's value (Sat/Sun mirror
+    // the previous Friday).
+    if (isWeekend) {
+      cursor.setDate(cursor.getDate() + 1);
+      continue;
+    }
+
     const monthsAgo =
       (now.getFullYear() - cursor.getFullYear()) * 12 + (now.getMonth() - cursor.getMonth());
     // Gentle upward trend: ~0.68x twelve months ago → 1.0x in the current month.
     const growth = 0.68 + 0.32 * (1 - Math.min(monthsAgo, 11) / 11);
 
-    if (isWeekend) {
-      const chance = weekday === 6 ? 0.4 : 0.12;
-      if (ctx.bool(chance)) makeOrder(cursor, true);
-    } else {
-      const jitter = 0.6 + ctx.rng() * 0.8; // 0.6 .. 1.4
-      const dayTarget = dailyBase * growth * jitter;
-      const exactCount = dayTarget / REFERENCE_TICKET;
-      let count = Math.floor(exactCount);
-      if (ctx.rng() < exactCount - count) count += 1;
-      count = Math.max(1, count); // a business day always sees at least one sale
-      for (let i = 0; i < count; i += 1) makeOrder(cursor, true);
-      // A few pending/cancelled/returned orders for status variety.
-      const fillers = ctx.int(0, 1);
-      for (let i = 0; i < fillers; i += 1) makeOrder(cursor, false);
-    }
+    const jitter = 0.6 + ctx.rng() * 0.8; // 0.6 .. 1.4
+    const dayTarget = dailyBase * growth * jitter;
+    const exactCount = dayTarget / REFERENCE_TICKET;
+    let count = Math.floor(exactCount);
+    if (ctx.rng() < exactCount - count) count += 1;
+    count = Math.max(1, count); // a business day always sees at least one sale
+    for (let i = 0; i < count; i += 1) makeOrder(cursor, true);
+    // A few pending/cancelled/returned orders for status variety.
+    const fillers = ctx.int(0, 1);
+    for (let i = 0; i < fillers; i += 1) makeOrder(cursor, false);
 
     cursor.setDate(cursor.getDate() + 1);
   }

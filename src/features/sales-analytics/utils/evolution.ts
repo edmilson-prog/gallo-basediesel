@@ -114,21 +114,31 @@ export function buildDailyEvolution(input: IBuildEvolutionInput): IDailyEvolutio
   const prevCum = cumulative(revenueByDay(previousMonthOrders), daysInMonth);
   const lastYearCum = cumulative(revenueByDay(lastYearMonthOrders), daysInMonth);
 
+  // Sales only happen on business days (Mon–Fri), so both the objective and the
+  // run-rate forecast must advance per business day — never on weekends. This
+  // keeps every line flat across Sat/Sun, mirroring the realized-revenue line.
+  const totalBusinessDays = countBusinessDays(year, month, 1, daysInMonth);
+  const businessDaysToToday = countBusinessDays(year, month, 1, today);
   const realizedToday = curCum[today - 1] ?? 0;
-  const runRate = today > 0 ? realizedToday / today : 0;
+  const businessRunRate = businessDaysToToday > 0 ? realizedToday / businessDaysToToday : 0;
 
   const points: IDailyEvolutionPoint[] = [];
+  let businessDaysSoFar = 0;
   for (let d = 1; d <= daysInMonth; d += 1) {
     const weekday = new Date(year, month, d).getDay();
     const isWeekend = weekday === 0 || weekday === 6;
+    if (!isWeekend) businessDaysSoFar += 1;
     points.push({
       day: d,
       weekdayLabel: WEEKDAY_LABELS[weekday]!,
       isWeekend,
       vendas: d <= today ? (curCum[d - 1] ?? 0) : null,
       vendasDia: d <= today ? (curByDay.get(d) ?? 0) : null,
-      objetivo: targetValue == null ? null : Math.round((targetValue * d) / daysInMonth),
-      previsao: d < today ? null : Math.round(runRate * d),
+      objetivo:
+        targetValue == null || totalBusinessDays === 0
+          ? null
+          : Math.round((targetValue * businessDaysSoFar) / totalBusinessDays),
+      previsao: d < today ? null : Math.round(businessRunRate * businessDaysSoFar),
       mesPassado: prevCum[d - 1] ?? 0,
       anoPassado: lastYearCum[d - 1] ?? 0,
     });
