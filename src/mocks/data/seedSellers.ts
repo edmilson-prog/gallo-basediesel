@@ -2,20 +2,21 @@ import type { ISeller } from "@/shared/types";
 import { SEED_STORE_ID } from "./seedStore";
 
 /**
- * Fixed seller roster. The first three correspond to authentication profiles
- * exposed by `src/features/auth/mock-users.ts`, so logging in as one of those
- * profiles always lands on a real-looking carteira; the fourth seller exists
- * only to give the BI dashboards enough heads to compare.
+ * Fixed seller roster. The first five are internal staff; the sixth is an
+ * external field rep. IDs are stable strings referenced across the mock
+ * generators and a few feature pages, so they are kept unchanged even though
+ * the display names now map to the real GALLO team — only `fullName`/`email`
+ * move.
  *
- * IDs are stable strings (not UUIDs) so the auth layer and the bootstrap can
- * cross-reference them without coordination.
+ * `seller-joao-gallo` is the Owner (Fernando); `seller-marina-cardoso` is a
+ * synthetic Gestor kept around so the role can be demoed.
  */
 export const SEED_SELLERS: ISeller[] = [
   {
     id: "seller-joao-gallo",
     storeId: SEED_STORE_ID,
-    fullName: "João Gallo",
-    email: "joao@gallo.com.br",
+    fullName: "Fernando Mello Muniz Gallo",
+    email: "fernando@gallobasediesel.com.br",
     phone: "(55) 99800-0001",
     type: "internal",
     availability: "online",
@@ -26,8 +27,8 @@ export const SEED_SELLERS: ISeller[] = [
   {
     id: "seller-carlos-santos",
     storeId: SEED_STORE_ID,
-    fullName: "Carlos Santos",
-    email: "carlos@gallo.com.br",
+    fullName: "Lucas Costa",
+    email: "lucas@gallobasediesel.com.br",
     phone: "(55) 99800-0002",
     type: "internal",
     availability: "online",
@@ -39,7 +40,7 @@ export const SEED_SELLERS: ISeller[] = [
     id: "seller-marina-cardoso",
     storeId: SEED_STORE_ID,
     fullName: "Marina Cardoso",
-    email: "marina@gallo.com.br",
+    email: "marina@gallobasediesel.com.br",
     phone: "(55) 99800-0003",
     type: "internal",
     availability: "ausente",
@@ -50,14 +51,40 @@ export const SEED_SELLERS: ISeller[] = [
   {
     id: "seller-rafael-lima",
     storeId: SEED_STORE_ID,
-    fullName: "Rafael Lima",
-    email: "rafael@gallo.com.br",
+    fullName: "Cauan Bulegon",
+    email: "caua@gallobasediesel.com.br",
     phone: "(55) 99800-0004",
     type: "internal",
     availability: "ocupado",
     divisions: ["parts"],
     active: true,
     createdAt: "2026-01-12T08:00:00.000Z",
+  },
+  {
+    id: "seller-ramon-schimidt",
+    storeId: SEED_STORE_ID,
+    fullName: "Ramon Schimidt",
+    email: "ramon@gallobasediesel.com.br",
+    phone: "(55) 99800-0005",
+    type: "internal",
+    availability: "online",
+    divisions: ["parts"],
+    active: true,
+    createdAt: "2026-01-15T08:00:00.000Z",
+  },
+  {
+    id: "seller-welligton-nunes",
+    storeId: SEED_STORE_ID,
+    fullName: "Welligton Nunes",
+    email: "welligton@gallobasediesel.com.br",
+    phone: "(55) 99800-0006",
+    type: "external",
+    availability: "online",
+    region: "Noroeste RS",
+    commissionTier: "pleno",
+    divisions: ["parts"],
+    active: true,
+    createdAt: "2026-01-18T08:00:00.000Z",
   },
 ];
 
@@ -68,11 +95,12 @@ export const SEED_OWNER_ID = "seller-joao-gallo";
 
 /**
  * Sellers eligible to receive customer wallets (carteira 1:1).
- * Owners can hold customers but newcomer customers should land on internal
- * vendedores, never on the Owner.
+ * The Owner (Fernando) and the synthetic Gestor (Marina) may hold customers,
+ * but newcomers should always land on the vendedores roster below.
  */
 export const SEED_VENDEDOR_SELLER_IDS: string[] = [
   "seller-carlos-santos",
-  "seller-marina-cardoso",
   "seller-rafael-lima",
+  "seller-ramon-schimidt",
+  "seller-welligton-nunes",
 ];
