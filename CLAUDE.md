@@ -75,6 +75,6 @@ Padrões arquiteturais que devem ser preservados ao implementar features:
 
 ## Versionamento e changelog
 
-- **SemVer.** MINOR/MAJOR recebem **codinome em inglês** (atual: `Gateway` — v0.45.1).
+- **SemVer.** MINOR/MAJOR recebem **codinome em inglês** (atual: `Podium` — v0.47.0).
 - **CHANGELOG.md** segue Keep a Changelog; atualizado no version bump, não a cada commit.
 - Bump após PRD completo (obrigatório) ou quando solicitado para acumulado de fixes diretos.

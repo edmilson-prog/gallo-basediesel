@@ -4,6 +4,28 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.47.0] — Podium · 2026-05-28
+
+Oitava entrega do **Bloco 5** com a aba "Vendedores" completa em Análise de Vendas (leaderboard com pódio, ranking ranqueável, gaveta de detalhe individual com gráfico de evolução) e a redesign da tela de login com painel de marca animado e perfis de demonstração agrupados por função.
+
+### Added
+
+- **Aba "Vendedores" em Análise de Vendas** — nova aba dedicada ao ranking e detalhamento individual de vendedores na tela `/app/gestao/vendas`: pódio animado dos 3 primeiros (visível quando há ≥ 4 vendedores), lista ranqueada com barra de progresso da meta (cores por faixa de atingimento), tendência vs. mês anterior e botão de detalhamento.
+- **Gaveta de detalhe do vendedor** — ao clicar em qualquer vendedor, abre uma gaveta lateral com todas as métricas do período (valor vendido, meta, previsão, pedidos, ticket médio, clientes positivados, orçamentos em aberto) mais gráfico de evolução cumulativa individual.
+- **Seletor de métrica de ranqueamento** — segmented control no topo da aba permite reordenar o ranking por: valor vendido, % da meta, nº de pedidos ou ticket médio.
+- **Visão em tabela densa** — botão "Ver como tabela" alterna o leaderboard para uma tabela premium com todos os dados lado a lado e linha de totais.
+- **RBAC na aba Vendedores** — Owner e Gestor veem o ranking completo; Vendedor vê apenas a própria posição e métricas (sem expor colegas); demais perfis não veem a aba.
+- **Login redesenhado** — nova tela de acesso com painel lateral animado exibindo a identidade visual GALLO (3 variantes de animação), perfis de demonstração agrupados por função (Gestão, Comercial, Financeiro, Operações) e botão de seleção de perfil acessível com teclado.
+
+### Fixed
+
+- **Gaveta do vendedor impossível de fechar (perfil Vendedor)** — quando um usuário com papel de Vendedor abria a aba, a gaveta de detalhe abria automaticamente e não permitia ser fechada, pois o estado era atrelado ao parâmetro de URL de filtro de vendedor. O estado da gaveta agora é local ao componente e fecha corretamente.
+- **Tela em branco ao acessar `?aba=sellers` sem permissão** — navegar diretamente para a aba de Vendedores com um perfil sem acesso (ex.: Financeiro) gerava tela em branco; agora redireciona automaticamente para a aba "Visão geral".
+
+### Changed
+
+- **Acessibilidade no login** — erro de autenticação passa a usar `role="alert"` para leitura imediata por leitores de tela.
+
 ## [0.46.0] — Treasury · 2026-05-28
 
 Recuperação das duas features financeiras que ficaram sem PRD durante a renumeração do Bloco 4b (originalmente planejadas como slots 050/051), agora entregues como PRD-054 e PRD-055. A DRE passa a usar despesas reais por competência.
@@ -81,7 +103,7 @@ pré-popula a identificação e oferece endereços salvos para seleção.
 
 - **Feature `storefront-account`** com páginas, hooks, store e i18n próprios:
   - `store/customerAuthStore.ts` — Zustand persistido (`gallo-storefront-
-    customer-auth`) com sessão, snapshot do `ICustomer` e endereços salvos
+customer-auth`) com sessão, snapshot do `ICustomer` e endereços salvos
     multi-registro por cliente; seletor `selectIsCustomerAuthenticated` e
     `readCustomerSessionSync` para guards de rota.
   - `hooks/useCustomerAuth.ts` — `login` (busca `ICustomer` por e-mail no

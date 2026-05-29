@@ -1,7 +1,7 @@
 {
   "name": "gallo-base-diesel",
   "private": true,
-  "version": "0.46.0",
+  "version": "0.47.0",
   "sideEffects": false,
   "type": "module",
   "scripts": {
