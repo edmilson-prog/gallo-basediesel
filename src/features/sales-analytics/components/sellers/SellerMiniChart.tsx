@@ -21,7 +21,12 @@ export function SellerMiniChart({ dailySeries, target }: ISellerMiniChartProps) 
           </defs>
           <YAxis hide domain={[0, "dataMax"]} />
           {target != null && target > 0 && (
-            <ReferenceLine y={target} stroke="var(--muted-foreground)" strokeDasharray="4 4" strokeWidth={1.2} />
+            <ReferenceLine
+              y={target}
+              stroke="var(--muted-foreground)"
+              strokeDasharray="4 4"
+              strokeWidth={1.2}
+            />
           )}
           <Area
             type="monotone"

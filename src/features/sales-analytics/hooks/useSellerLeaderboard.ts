@@ -140,7 +140,16 @@ export function useSellerLeaderboard(
         },
         metric,
       ),
-    [now, sellersQ.data, ordersCur.data, ordersPrev.data, quotesQ.data, customerCountBySeller, targetBySeller, metric],
+    [
+      now,
+      sellersQ.data,
+      ordersCur.data,
+      ordersPrev.data,
+      quotesQ.data,
+      customerCountBySeller,
+      targetBySeller,
+      metric,
+    ],
   );
 
   return { ...result, isLoading, hasError, referenceDate: now };

@@ -25,7 +25,12 @@ export function SellerDetailDrawer({ row, open, onOpenChange }: ISellerDetailDra
                 </span>
                 <span className="flex flex-col">
                   <span className="text-base">{row.sellerName}</span>
-                  <span className={cn("text-xs font-medium", BAND_TEXT[attainmentBand(row.attainmentPct)])}>
+                  <span
+                    className={cn(
+                      "text-xs font-medium",
+                      BAND_TEXT[attainmentBand(row.attainmentPct)],
+                    )}
+                  >
                     {row.attainmentPct == null
                       ? S.sellersDrawerNoTarget
                       : `${Math.round(row.attainmentPct)}% ${S.sellersDrawerOfTarget}`}
@@ -42,7 +47,10 @@ export function SellerDetailDrawer({ row, open, onOpenChange }: ISellerDetailDra
 
               <dl className="flex flex-col">
                 <Metric label={S.sellersColRevenue} value={formatBRL(row.revenue)} />
-                <Metric label={S.sellersDrawerTarget} value={row.target == null ? "—" : formatBRL(row.target)} />
+                <Metric
+                  label={S.sellersDrawerTarget}
+                  value={row.target == null ? "—" : formatBRL(row.target)}
+                />
                 <Metric label={S.sellersColProjection} value={formatBRL(row.projection)} />
                 <Metric label={S.sellersColOrders} value={String(row.orderCount)} />
                 <Metric label={S.sellersColTicket} value={formatBRL(row.avgTicket)} />

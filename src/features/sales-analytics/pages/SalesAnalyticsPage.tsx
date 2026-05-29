@@ -110,8 +110,7 @@ export function SalesAnalyticsPage() {
 
   const rawTab = (filtersCtl.activeTab as TabId) ?? "overview";
   const canDrillDown = userRole === "Owner" || userRole === "Gestor";
-  const canSeeSellers =
-    userRole === "Owner" || userRole === "Gestor" || userRole === "Vendedor";
+  const canSeeSellers = userRole === "Owner" || userRole === "Gestor" || userRole === "Vendedor";
   const sellersViewerId = userRole === "Vendedor" ? currentUser?.sellerId : undefined;
   const tabDefs = buildTabDefs(canSeeSellers);
   const tab = rawTab === "sellers" && !canSeeSellers ? "overview" : rawTab;

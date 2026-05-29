@@ -16,7 +16,11 @@ export function SellerLeaderboardRow({ row, onSelect, selected }: ISellerLeaderb
   const trendIcon =
     row.trend === "up" ? "mdi:arrow-up" : row.trend === "down" ? "mdi:arrow-down" : "mdi:minus";
   const trendClass =
-    row.trend === "up" ? "text-success" : row.trend === "down" ? "text-destructive" : "text-muted-foreground";
+    row.trend === "up"
+      ? "text-success"
+      : row.trend === "down"
+        ? "text-destructive"
+        : "text-muted-foreground";
   return (
     <button
       type="button"
