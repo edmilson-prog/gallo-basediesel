@@ -4,6 +4,7 @@ import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { AppFooter } from "@/features/shell/components/AppFooter";
 import { usePortalSeed } from "../hooks/usePortalSeed";
 import { usePortalAuth } from "../hooks/usePortalAuth";
 import { usePortalSession } from "../hooks/usePortalSession";
@@ -84,7 +85,7 @@ export function PortalLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
       {/* Institutional header */}
       <header className="sticky top-0 z-40 flex h-14 items-center gap-3 bg-zinc-900 px-4 text-zinc-100">
         <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
@@ -131,7 +132,7 @@ export function PortalLayout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <div className="mx-auto flex w-full max-w-7xl">
+      <div className="mx-auto flex w-full max-w-7xl flex-1">
         {/* Desktop sidebar */}
         <aside className="hidden w-60 shrink-0 border-r border-border lg:block">
           <div className="sticky top-14">
@@ -141,6 +142,8 @@ export function PortalLayout({ children }: { children: React.ReactNode }) {
 
         <main className="min-w-0 flex-1 px-4 py-6 lg:px-8">{children}</main>
       </div>
+
+      <AppFooter className="flex" showWhatsNew={false} />
     </div>
   );
 }

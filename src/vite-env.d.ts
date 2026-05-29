@@ -20,3 +20,14 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+/**
+ * Build-time constants injected by Vite `define` (see vite.config.ts).
+ *
+ * - `__GIT_BRANCH__` — current git branch, surfaced by the dev-only footer.
+ *   Empty string when git is unavailable (e.g. some CI environments).
+ * - `__APP_VERSION__` — version field from package.json, used as a fallback
+ *   while the CHANGELOG-derived version is still loading.
+ */
+declare const __GIT_BRANCH__: string;
+declare const __APP_VERSION__: string;
