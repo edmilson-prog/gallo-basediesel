@@ -4,6 +4,29 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.46.0] — Treasury · 2026-05-28
+
+Recuperação das duas features financeiras que ficaram sem PRD durante a renumeração do Bloco 4b (originalmente planejadas como slots 050/051), agora entregues como PRD-054 e PRD-055. A DRE passa a usar despesas reais por competência.
+
+### Added
+
+- **Despesas (PRD-054)** — tela `/app/gestao/despesas` com livro-razão de despesas operacionais: lançamentos com dupla temporalidade (competência alimenta a DRE, pagamento alimenta o Fluxo de Caixa), 9 categorias mapeadas para as 3 linhas de despesa da DRE, KPIs (total/pagas/pendentes/atrasadas), 6 filtros com sincronização na URL e tabela paginada.
+- **Despesas — recorrência** — despesas recorrentes (mensal/trimestral/anual) geram a série de lançamentos futuros; edição e cancelamento oferecem escopo "somente esta / esta e futuras / toda a série".
+- **Despesas — ciclo de vida** — marcar como paga (com data e forma de pagamento), duplicar, cancelar e transição automática para "atrasado" via varredura diária de vencimentos.
+- **Fluxo de Caixa (PRD-055)** — tela `/app/gestao/caixa` em regime de caixa: KPIs (saldo atual/entradas/saídas/saldo projetado), gráfico de evolução do saldo (realizado sólido + projetado tracejado, com linha de saldo mínimo), tabela de movimentações com link para a origem e filtros com sincronização na URL.
+- **Fluxo de Caixa — projeção e alertas** — projeção determinística de contas a receber (pedidos pendentes) e a pagar (despesas/comissões pendentes); alertas de saldo abaixo do mínimo, projeção cruzando o mínimo e projeção negativa.
+- **Fluxo de Caixa — lançamentos manuais** — aportes de capital e retiradas lançados diretamente no módulo.
+- **Configuração financeira** — saldo inicial do caixa e alerta de saldo mínimo editáveis em Configurações → Financeiro.
+- **RBAC** — novos recursos `expense` e `cashflow` (Owner e Financeiro com CRUD, Gestor somente leitura, Vendedor bloqueado).
+
+### Changed
+
+- **DRE Gerencial** — a linha "Despesas Operacionais" passou a agregar os lançamentos reais por competência (PRD-054), substituindo os valores fixos mockados do PRD-048; clicar na linha abre as despesas do período. Os valores fixos anteriores foram descontinuados e mantidos apenas como referência histórica, com aviso na configuração financeira.
+
+### Fixed
+
+- **Placeholders de Despesas e Fluxo de Caixa** — as telas referenciavam PRDs incorretos (050/051, que na verdade são Estoque-Análise e Atendimento-Análise); agora apontam para os PRDs corretos e estão implementadas.
+
 ## [0.45.1] — Gateway · 2026-05-28
 
 Correções de lacunas de implementação identificadas pela auditoria dos PRDs 066, 067, 070 e 071: segurança, gráficos faltantes, filtros, service worker do PWA e qualidade geral das quatro features entregues na v0.45.0.
