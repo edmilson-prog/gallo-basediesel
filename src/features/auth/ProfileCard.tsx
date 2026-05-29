@@ -25,6 +25,7 @@ interface IProfileCardProps {
 export function ProfileCard({ profile, index, pending, onSelect }: IProfileCardProps) {
   const accent = ROLE_ACCENT[profile.role] ?? "bg-border";
   const roleLabel = profile.displayRole ?? profile.role;
+  // AILA admin also has role "Owner" but should not get the owner avatar highlight.
   const isOwner = profile.role === "Owner" && profile.group === "team";
 
   return (
