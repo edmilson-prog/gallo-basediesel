@@ -4,6 +4,19 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.48.0] — Polish · 2026-05-29
+
+Release de refinamento amplo de UX sobre as entregas recentes: o gráfico de evolução de vendas, o Portal B2B do cliente, a configuração da loja virtual, as metas em lote e as notificações de e-commerce a vendedores ganharam melhorias de exibição e comportamento, além dos ajustes finais na tela de login.
+
+### Changed
+
+- **Gráfico de evolução de vendas mais informativo** — a curva de evolução do mês passa a destacar os indicadores de "esperado para hoje" e "% da meta já realizada", traz a linha comparativa do mesmo período do ano anterior e permite acompanhar a evolução individual por vendedor, deixando a leitura da trajetória do mês mais clara.
+- **Portal B2B do cliente mais consistente** — diversos refinamentos visuais e de comportamento nas telas do portal: início, análises, lista e detalhe de pedidos, nova solicitação, perfil, faturamento, frota e suporte.
+- **Configuração da loja virtual reorganizada** — a tela de configuração da loja passa a separar as opções em seções claras (destaque principal, categorias, produtos em destaque, páginas de categoria e promoções), facilitando a edição.
+- **Metas em lote — exibição de período** — ajustes na apresentação de mês/ano e no preenchimento das metas anuais lançadas em lote.
+- **Notificações de e-commerce a vendedores** — a distribuição de pedidos vindos da loja prioriza vendedores ativos com menos pedidos em aberto, e as mensagens automáticas passam a variar conforme o status do pedido (enviado, em separação, etc.).
+- **Tela de login mais enxuta** — cartões de perfil de demonstração mais compactos, divisão equilibrada em 50/50 entre o painel de marca e o formulário, barra de rolagem oculta e remoção do subtítulo de demonstração.
+
 ## [0.47.0] — Podium · 2026-05-28
 
 Oitava entrega do **Bloco 5** com a aba "Vendedores" completa em Análise de Vendas (leaderboard com pódio, ranking ranqueável, gaveta de detalhe individual com gráfico de evolução) e a redesign da tela de login com painel de marca animado e perfis de demonstração agrupados por função.
