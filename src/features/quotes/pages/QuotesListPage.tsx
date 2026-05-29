@@ -91,7 +91,7 @@ export function QuotesListPage() {
   const showEmpty = !isFirstLoad && !hasResults;
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] min-h-0 flex-col bg-background">
+    <div className="flex h-[calc(100vh-4rem)] min-h-0 flex-col bg-background md:h-[calc(100vh-6rem)]">
       <QuotesHeader
         total={list.total}
         searchValue={filters.search}
