@@ -99,6 +99,18 @@ export function selectAllCommissions() {
   return getMockState().commissions;
 }
 
+export function selectAllExpenses() {
+  return getMockState().expenses;
+}
+
+export function selectExpenseById(id: ID) {
+  return getMockState().expenses.find((e) => e.id === id) ?? null;
+}
+
+export function selectAllCashFlowEntries() {
+  return getMockState().cashFlowEntries;
+}
+
 export function selectAllGoals() {
   return getMockState().goals;
 }

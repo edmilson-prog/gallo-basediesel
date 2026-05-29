@@ -42,6 +42,17 @@ export type {
   IListOrdersParams,
   ICommissionsProvider,
   IListCommissionsParams,
+  IExpensesProvider,
+  IListExpensesParams,
+  ICreateExpenseInput,
+  IMarkExpensePaidInput,
+  ICancelExpenseInput,
+  IUpdateExpenseSeriesInput,
+  ICancelExpenseSeriesInput,
+  ExpenseSeriesScope,
+  ICashFlowProvider,
+  IListCashFlowEntriesParams,
+  ICreateCashFlowEntryInput,
   IGoalsProvider,
   IListGoalsParams,
   IRecommendationsProvider,
@@ -79,6 +90,8 @@ export { usePartsProvider } from "./hooks/usePartsProvider";
 export { useQuotesProvider } from "./hooks/useQuotesProvider";
 export { useOrdersProvider } from "./hooks/useOrdersProvider";
 export { useCommissionsProvider } from "./hooks/useCommissionsProvider";
+export { useExpensesProvider } from "./hooks/useExpensesProvider";
+export { useCashFlowProvider } from "./hooks/useCashFlowProvider";
 export { useGoalsProvider } from "./hooks/useGoalsProvider";
 export { useRecommendationsProvider } from "./hooks/useRecommendationsProvider";
 export { useTransfersProvider } from "./hooks/useTransfersProvider";

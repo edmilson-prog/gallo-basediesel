@@ -5,6 +5,7 @@ import type { ISdrQuoteTemplates } from "./sdr-quote";
 import type { IShippingConfig } from "./shipping";
 import type { ICommissionRuleConfig } from "./commercial";
 import type { IFinancialSettings } from "./dre";
+import type { ICashFlowSettings } from "./cashflow";
 import type { IInventoryAnalysisSettings } from "./inventory";
 import type { IInsightThresholds } from "./insights";
 import type { IStorefrontConfig } from "./storefront";
@@ -229,6 +230,11 @@ export interface IPlatformSettings {
   commissionSettings: ICommissionSettings;
   /** Financial / DRE settings (PRD-048). */
   financialSettings: IFinancialSettings;
+  /**
+   * Cash flow settings (PRD-055) — opening balance + low-balance alert. Optional
+   * for back-compat; the engine falls back to {@link DEFAULT_CASHFLOW_SETTINGS}.
+   */
+  cashflowSettings?: ICashFlowSettings;
   /** Inventory analytics settings (PRD-050). */
   inventoryAnalysisSettings: IInventoryAnalysisSettings;
   /** IA analítica / Insights global toggle (PRD-053). */

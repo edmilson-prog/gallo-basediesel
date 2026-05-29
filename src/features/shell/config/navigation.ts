@@ -168,13 +168,13 @@ export const APP_NAV_GROUPS: INavGroup[] = [
         label: "Despesas",
         icon: "mdi:cash-remove",
         to: ROUTES.GESTAO_DESPESAS,
-        roles: ["Owner"],
+        roles: ["Owner", "Financeiro", "Gestor"],
       },
       {
         label: "Fluxo de Caixa",
         icon: "mdi:cash-flow",
         to: ROUTES.GESTAO_CAIXA,
-        roles: ["Owner"],
+        roles: ["Owner", "Financeiro", "Gestor"],
       },
       {
         label: "Estoque",

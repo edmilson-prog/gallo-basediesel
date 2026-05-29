@@ -64,6 +64,15 @@ const RESOURCE_LABELS: Record<ResourceName, string> = {
   settings: "Configurações",
   audit_log: "Auditoria",
   role: "Papéis",
+  dre: "DRE Gerencial",
+  expense: "Despesas",
+  cashflow: "Fluxo de Caixa",
+  profitability: "Rentabilidade",
+  inventory: "Estoque",
+  customer_service_analytics: "Análise de Atendimento",
+  insight: "Insights",
+  storefront_admin: "Admin E-commerce",
+  ecommerce_integration: "Integração E-commerce",
 };
 
 const ACTION_LABELS: Record<PermissionAction, string> = {

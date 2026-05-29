@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { IFinancialSettings } from "@/shared/types";
+import type { ICashFlowSettings, IFinancialSettings } from "@/shared/types";
+import { DEFAULT_CASHFLOW_SETTINGS } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -36,10 +37,12 @@ export function FinancialConfigPage() {
   const { settings, loading, saving, update } = usePlatformSettings(storeId);
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [cashDraft, setCashDraft] = useState<ICashFlowSettings | null>(null);
 
   useEffect(() => {
     if (!settings) return;
     setDraft(pickDraft(settings.financialSettings));
+    setCashDraft({ ...(settings.cashflowSettings ?? DEFAULT_CASHFLOW_SETTINGS) });
   }, [settings]);
 
   const dirty = useMemo(() => {
@@ -47,7 +50,7 @@ export function FinancialConfigPage() {
     return JSON.stringify(pickDraft(settings.financialSettings)) !== JSON.stringify(draft);
   }, [settings, draft]);
 
-  if (loading || !settings || !draft) {
+  if (loading || !settings || !draft || !cashDraft) {
     return (
       <div className="space-y-6">
         <SectionHeader title={S.configTitle} description={S.configSubtitle} />
@@ -67,6 +70,22 @@ export function FinancialConfigPage() {
   };
 
   const handleReset = () => setDraft(pickDraft(settings.financialSettings));
+
+  const cashDirty =
+    JSON.stringify(settings.cashflowSettings ?? DEFAULT_CASHFLOW_SETTINGS) !==
+    JSON.stringify(cashDraft);
+
+  const handleSaveCashflow = async () => {
+    try {
+      await update({ cashflowSettings: cashDraft }, "settings.financial.update");
+      void queryClient.invalidateQueries({ queryKey: ["cashflow"] });
+      toast.success("Configuração de caixa salva.", {
+        icon: <Icon icon="mdi:check" size={16} />,
+      });
+    } catch {
+      toast.error("Não foi possível salvar a configuração de caixa.");
+    }
+  };
 
   const updateExpense = (field: keyof IFinancialSettings["fixedExpenses"], value: number) => {
     setDraft({
@@ -103,6 +122,17 @@ export function FinancialConfigPage() {
 
       <Card className="space-y-5 p-5">
         <h2 className="text-base font-semibold text-foreground">{S.configFixedExpensesTitle}</h2>
+        <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-xs text-foreground">
+          <Icon
+            icon="mdi:information-outline"
+            size={14}
+            className="mr-1 inline align-text-bottom"
+          />
+          As despesas agora são lançadas individualmente em <strong>Gestão &rarr; Despesas</strong>,
+          e a DRE passou a usar esses lançamentos reais por competência. Os valores fixos abaixo
+          foram descontinuados e não influenciam mais o resultado — permanecem apenas como
+          referência histórica.
+        </div>
         <div className="grid gap-4 md:grid-cols-3">
           <ExpenseField
             label={S.configPayroll}
@@ -140,6 +170,32 @@ export function FinancialConfigPage() {
           {saving ? "Salvando…" : S.configSave}
         </Button>
       </div>
+
+      <Card className="space-y-5 p-5">
+        <div>
+          <h2 className="text-base font-semibold text-foreground">Fluxo de Caixa</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Saldo inicial e alerta de saldo mínimo usados pela tela de Fluxo de Caixa (PRD-055).
+          </p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <ExpenseField
+            label="Saldo inicial do caixa"
+            value={cashDraft.openingBalance}
+            onChange={(v) => setCashDraft({ ...cashDraft, openingBalance: Math.max(0, v) })}
+          />
+          <ExpenseField
+            label="Alerta de saldo mínimo"
+            value={cashDraft.minBalanceAlert}
+            onChange={(v) => setCashDraft({ ...cashDraft, minBalanceAlert: Math.max(0, v) })}
+          />
+        </div>
+        <div className="flex justify-end border-t border-border pt-4">
+          <Button type="button" onClick={handleSaveCashflow} disabled={!cashDirty || saving}>
+            {saving ? "Salvando…" : "Salvar caixa"}
+          </Button>
+        </div>
+      </Card>
     </div>
   );
 }

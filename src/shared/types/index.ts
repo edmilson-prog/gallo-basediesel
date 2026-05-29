@@ -229,6 +229,30 @@ export type {
   DREAlertSeverity,
 } from "./dre";
 
+// Expenses (PRD-054)
+export type {
+  IExpense,
+  IExpenseRecurrence,
+  IExpenseDREAggregate,
+  ExpenseCategory,
+  ExpensePaymentMethod,
+  ExpenseStatus,
+  ExpenseRecurrenceFrequency,
+} from "./expenses";
+export { EXPENSE_CATEGORY_TO_DRE_LINE } from "./expenses";
+
+// Cash flow (PRD-055)
+export type {
+  ICashFlowEntry,
+  ICashFlowDailyPoint,
+  ICashFlowSummary,
+  ICashFlowSettings,
+  CashFlowDirection,
+  CashFlowSource,
+  CashFlowStatus,
+} from "./cashflow";
+export { DEFAULT_CASHFLOW_SETTINGS } from "./cashflow";
+
 // Inventory analytics (PRD-050)
 export type {
   IInventoryAnalysis,

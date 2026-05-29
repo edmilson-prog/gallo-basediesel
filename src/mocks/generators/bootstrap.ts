@@ -2,6 +2,7 @@ import type {
   IABCClassification,
   IAuditLog,
   ICarteiraTransfer,
+  ICashFlowEntry,
   ICommission,
   IConversation,
   ICustomer,
@@ -46,6 +47,7 @@ import { generateOrdersTimeline } from "./order";
 import { generateCommission } from "./commission";
 import { seedCommissionRules } from "./commissionRules";
 import { generateExpenses } from "./expense";
+import { generateManualCashFlowEntries } from "./cashFlowEntry";
 import { generateGoals } from "./goal";
 import { generateRecommendation } from "./recommendation";
 import { generateTransfer } from "./transfer";
@@ -86,6 +88,7 @@ export interface IBootstrappedDataset {
   orders: IOrder[];
   commissions: ICommission[];
   expenses: IExpense[];
+  cashFlowEntries: ICashFlowEntry[];
   goals: IGoal[];
   badges: IGamificationBadge[];
   rankings: IRanking[];
@@ -309,6 +312,15 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
   // (competence) and the Cash Flow (payment). Owner is the author.
   const expenses = generateExpenses({ ctx, storeId: stores[0].id, ownerId: SEED_OWNER_ID, now });
 
+  // 15c. Manual cash flow entries (PRD-055) — aportes/retiradas. Derived
+  // entries (pedidos/despesas/comissões) are computed by the engine, not seeded.
+  const cashFlowEntries = generateManualCashFlowEntries({
+    ctx,
+    storeId: stores[0].id,
+    ownerId: SEED_OWNER_ID,
+    now,
+  });
+
   // 15. Goals (store + individual).
   const goals = generateGoals(ctx, { sellers, now });
 
@@ -434,6 +446,7 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
     orders,
     commissions,
     expenses,
+    cashFlowEntries,
     goals,
     badges,
     rankings: [ranking],

@@ -47,7 +47,12 @@ const LINES: IDRELineSpec[] = [
     emphasis: "subtotal",
     pctField: "grossMarginPct",
   },
-  { field: "totalOperatingExpenses", label: S.lineOperatingExpenses, emphasis: "section" },
+  {
+    field: "totalOperatingExpenses",
+    label: S.lineOperatingExpenses,
+    emphasis: "section",
+    navigateTo: "/app/gestao/despesas",
+  },
   {
     field: "commissions",
     label: S.lineCommissions,
@@ -133,6 +138,19 @@ export function DRETable({ dre }: IDRETableProps) {
   const navigate = useNavigate();
   const [opExpanded, setOpExpanded] = useState(true);
 
+  // Competence month (YYYY-MM) used to pre-filter the expenses drill-down (PRD-054 RF-027).
+  const competenceMonth = (() => {
+    const d = new Date(dre.period.start);
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+  })();
+
+  const goTo = (line: IDRELineSpec) => {
+    if (!line.navigateTo) return;
+    const search =
+      line.field === "totalOperatingExpenses" ? { competencia: competenceMonth } : undefined;
+    void navigate({ to: line.navigateTo, search });
+  };
+
   return (
     <Card className="overflow-hidden p-0">
       <div className="overflow-x-auto">
@@ -169,16 +187,14 @@ export function DRETable({ dre }: IDRETableProps) {
                     clickable &&
                       "cursor-pointer transition-colors hover:bg-accent/40 focus-within:bg-accent/40",
                   )}
-                  onClick={
-                    clickable ? () => navigate({ to: line.navigateTo as string }) : undefined
-                  }
+                  onClick={clickable ? () => goTo(line) : undefined}
                   tabIndex={clickable ? 0 : undefined}
                   onKeyDown={
                     clickable
                       ? (e) => {
                           if (e.key === "Enter" || e.key === " ") {
                             e.preventDefault();
-                            navigate({ to: line.navigateTo as string });
+                            goTo(line);
                           }
                         }
                       : undefined

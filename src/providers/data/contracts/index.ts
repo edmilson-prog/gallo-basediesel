@@ -14,6 +14,8 @@ import type { IPartsProvider } from "./parts";
 import type { IQuotesProvider } from "./quotes";
 import type { IOrdersProvider } from "./orders";
 import type { ICommissionsProvider } from "./commissions";
+import type { IExpensesProvider } from "./expenses";
+import type { ICashFlowProvider } from "./cashflow";
 import type { IGoalsProvider } from "./goals";
 import type { IRecommendationsProvider } from "./recommendations";
 import type { ITransfersProvider } from "./transfers";
@@ -50,6 +52,21 @@ export type { IPartsProvider, IListPartsParams } from "./parts";
 export type { IQuotesProvider, IListQuotesParams } from "./quotes";
 export type { IOrdersProvider, IListOrdersParams } from "./orders";
 export type { ICommissionsProvider, IListCommissionsParams } from "./commissions";
+export type {
+  IExpensesProvider,
+  IListExpensesParams,
+  ICreateExpenseInput,
+  IMarkExpensePaidInput,
+  ICancelExpenseInput,
+  IUpdateExpenseSeriesInput,
+  ICancelExpenseSeriesInput,
+  ExpenseSeriesScope,
+} from "./expenses";
+export type {
+  ICashFlowProvider,
+  IListCashFlowEntriesParams,
+  ICreateCashFlowEntryInput,
+} from "./cashflow";
 export type { IGoalsProvider, IListGoalsParams } from "./goals";
 export type { IRecommendationsProvider, IListRecommendationsParams } from "./recommendations";
 export type { ITransfersProvider, IListTransfersParams, ICreateTransferInput } from "./transfers";
@@ -86,6 +103,8 @@ export interface IDataProviders {
   quotes: IQuotesProvider;
   orders: IOrdersProvider;
   commissions: ICommissionsProvider;
+  expenses: IExpensesProvider;
+  cashflow: ICashFlowProvider;
   goals: IGoalsProvider;
   recommendations: IRecommendationsProvider;
   transfers: ITransfersProvider;

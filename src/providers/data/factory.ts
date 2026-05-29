@@ -9,6 +9,8 @@ import { mockPartsProvider } from "./impl/mock/parts";
 import { mockQuotesProvider } from "./impl/mock/quotes";
 import { mockOrdersProvider } from "./impl/mock/orders";
 import { mockCommissionsProvider } from "./impl/mock/commissions";
+import { mockExpensesProvider } from "./impl/mock/expenses";
+import { mockCashFlowProvider } from "./impl/mock/cashflow";
 import { mockGoalsProvider } from "./impl/mock/goals";
 import { mockRecommendationsProvider } from "./impl/mock/recommendations";
 import { mockTransfersProvider } from "./impl/mock/transfers";
@@ -32,6 +34,8 @@ import { supabasePartsProvider } from "./impl/supabase/parts";
 import { supabaseQuotesProvider } from "./impl/supabase/quotes";
 import { supabaseOrdersProvider } from "./impl/supabase/orders";
 import { supabaseCommissionsProvider } from "./impl/supabase/commissions";
+import { supabaseExpensesProvider } from "./impl/supabase/expenses";
+import { supabaseCashFlowProvider } from "./impl/supabase/cashflow";
 import { supabaseGoalsProvider } from "./impl/supabase/goals";
 import { supabaseRecommendationsProvider } from "./impl/supabase/recommendations";
 import { supabaseTransfersProvider } from "./impl/supabase/transfers";
@@ -80,6 +84,8 @@ const mockProviders: IDataProviders = {
   quotes: mockQuotesProvider,
   orders: mockOrdersProvider,
   commissions: mockCommissionsProvider,
+  expenses: mockExpensesProvider,
+  cashflow: mockCashFlowProvider,
   goals: mockGoalsProvider,
   recommendations: mockRecommendationsProvider,
   transfers: mockTransfersProvider,
@@ -105,6 +111,8 @@ const supabaseProviders: IDataProviders = {
   quotes: supabaseQuotesProvider,
   orders: supabaseOrdersProvider,
   commissions: supabaseCommissionsProvider,
+  expenses: supabaseExpensesProvider,
+  cashflow: supabaseCashFlowProvider,
   goals: supabaseGoalsProvider,
   recommendations: supabaseRecommendationsProvider,
   transfers: supabaseTransfersProvider,

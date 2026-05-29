@@ -55,6 +55,8 @@ const OWNER_ENTRIES: ScopedActions[] = [
   p("audit_log", ["view"], "all"),
   p("role", CRUD, "all"),
   p("dre", ["view", "edit"], "all"),
+  p("expense", CRUD, "all"),
+  p("cashflow", ["view", "create"], "all"),
   p("profitability", ["view"], "all"),
   p("inventory", ["view", "edit"], "all"),
   p("customer_service_analytics", ["view"], "all"),
@@ -83,6 +85,9 @@ const GESTOR_ENTRIES: ScopedActions[] = [
   p("audit_log", ["view"], "store"),
   p("role", ["view"], "store"),
   p("dre", ["view"], "store"),
+  // Gestor: read-only on financials (PRD-054 / PRD-055).
+  p("expense", ["view"], "store"),
+  p("cashflow", ["view"], "store"),
   p("profitability", ["view"], "store"),
   p("inventory", ["view"], "store"),
   p("customer_service_analytics", ["view"], "store"),
@@ -156,6 +161,9 @@ const FINANCEIRO_ENTRIES: ScopedActions[] = [
   p("part", ["view"], "store"),
   p("audit_log", ["view"], "store"),
   p("dre", ["view", "edit"], "store"),
+  // Financeiro: full expense CRUD + cash flow management (PRD-054 / PRD-055).
+  p("expense", CRUD, "store"),
+  p("cashflow", ["view", "create"], "store"),
   p("profitability", ["view"], "store"),
   p("inventory", ["view"], "store"),
   p("customer_service_analytics", ["view"], "store"),

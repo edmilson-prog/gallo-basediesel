@@ -29,6 +29,8 @@ export const RESOURCES = [
   "audit_log",
   "role",
   "dre",
+  "expense",
+  "cashflow",
   "profitability",
   "inventory",
   "customer_service_analytics",

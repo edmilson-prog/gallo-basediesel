@@ -1,13 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PlaceholderPage } from "@/features/shell/components/EmptyState";
 import { DashboardLayout } from "@/features/shell/layouts";
 import { requireAuth } from "@/features/auth/guards";
+import { CashFlowPage } from "@/features/cashflow";
+import {
+  validateCashFlowSearch,
+  type ICashFlowFiltersSearch,
+} from "@/features/cashflow/hooks/useCashFlowFilters";
 
 export const Route = createFileRoute("/app/gestao/caixa")({
-  beforeLoad: ({ location }) => requireAuth(location.pathname, ["Owner"]),
+  beforeLoad: ({ location }) =>
+    requireAuth(location.pathname, undefined, { resource: "cashflow", action: "view" }),
+  validateSearch: (search: Record<string, unknown>): ICashFlowFiltersSearch =>
+    validateCashFlowSearch(search),
   component: () => (
     <DashboardLayout>
-      <PlaceholderPage prd="055" icon="mdi:cash-flow" title="Fluxo de Caixa" />
+      <CashFlowPage />
     </DashboardLayout>
   ),
 });

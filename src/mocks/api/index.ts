@@ -7,6 +7,12 @@ export { partsApi, type IListPartsParams } from "./parts";
 export { quotesApi, type IListQuotesParams } from "./quotes";
 export { ordersApi, type IListOrdersParams } from "./orders";
 export { commissionsApi, type IListCommissionsParams } from "./commissions";
+export { expensesApi, type IListExpensesParams } from "./expenses";
+export {
+  cashflowApi,
+  type IListCashFlowEntriesParams,
+  type ICreateCashFlowEntryInput,
+} from "./cashflow";
 export { goalsApi, type IListGoalsParams } from "./goals";
 export { recommendationsApi, type IListRecommendationsParams } from "./recommendations";
 export { transfersApi, type IListTransfersParams } from "./transfers";

@@ -3,10 +3,12 @@ import type {
   IDREComparison,
   IDREComparativeBlock,
   IDREPeriod,
+  IExpense,
   IFinancialSettings,
   ID,
   IOrder,
 } from "@/shared/types";
+import { aggregateExpensesForDRE } from "@/features/expenses/engine";
 
 /**
  * Pure-input context for the DRE engine (PRD-048).
@@ -21,7 +23,15 @@ export interface IDREEngineContext {
   returnedOrders: IOrder[];
   /** Commissions referencing the analysis period (`YYYY-MM`). */
   commissions: ICommission[];
-  /** Financial settings driving taxes + fixed expenses. */
+  /**
+   * Operational expenses (PRD-054). When provided, the three operating-expense
+   * lines (payroll / rentInfra / otherExpenses) are aggregated from real
+   * entries by competence, replacing `settings.fixedExpenses`. Commissions
+   * still come from PRD-047. When omitted (legacy callers), the engine falls
+   * back to the deprecated `settings.fixedExpenses`.
+   */
+  expenses?: IExpense[];
+  /** Financial settings driving taxes + (deprecated) fixed expenses. */
   settings: IFinancialSettings;
   /** When set the DRE consolidates a single store; null = matriz consolidada. */
   storeId?: ID;
@@ -149,9 +159,16 @@ function computeCore(ctx: IDREEngineContext, startMs: number, endMs: number): ID
       .reduce((acc, c) => acc + c.totalCommission, 0),
   );
 
-  const payroll = round2(ctx.settings.fixedExpenses.payroll);
-  const rentInfra = round2(ctx.settings.fixedExpenses.rentInfra);
-  const otherExpenses = round2(ctx.settings.fixedExpenses.other);
+  // PRD-054 delta: real expenses by competence replace the fixed mocked values.
+  // Fall back to the deprecated `fixedExpenses` only when no ledger is provided.
+  const realExpenses = ctx.expenses ? aggregateExpensesForDRE(ctx.expenses, startMs, endMs) : null;
+  const payroll = round2(realExpenses ? realExpenses.payroll : ctx.settings.fixedExpenses.payroll);
+  const rentInfra = round2(
+    realExpenses ? realExpenses.rentInfra : ctx.settings.fixedExpenses.rentInfra,
+  );
+  const otherExpenses = round2(
+    realExpenses ? realExpenses.otherExpenses : ctx.settings.fixedExpenses.other,
+  );
 
   const totalOperatingExpenses = round2(commissionsValue + payroll + rentInfra + otherExpenses);
   const operatingResult = round2(grossMargin - totalOperatingExpenses);

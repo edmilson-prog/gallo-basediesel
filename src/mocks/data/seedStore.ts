@@ -91,6 +91,10 @@ export const SEED_STORE: IStore = {
         other: 8_000,
       },
     },
+    cashflowSettings: {
+      openingBalance: 50_000,
+      minBalanceAlert: 10_000,
+    },
     inventoryAnalysisSettings: {
       consumptionWindowDays: 90,
       targetCoverageDays: 30,

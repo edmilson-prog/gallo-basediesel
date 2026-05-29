@@ -1,11 +1,13 @@
 import type { IBootstrappedDataset } from "../generators/bootstrap";
 import type {
   IAuditLog,
+  ICashFlowEntry,
   ICommission,
   IConversation,
   ICustomer,
   ICustomerNote,
   IDistributionTrace,
+  IExpense,
   IGoal,
   ILead,
   IMessage,
@@ -30,6 +32,8 @@ type CollectionKey =
   | "messages"
   | "parts"
   | "commissions"
+  | "expenses"
+  | "cashFlowEntries"
   | "goals"
   | "recommendations"
   | "audits"
@@ -47,6 +51,8 @@ type CollectionMap = {
   messages: IMessage;
   parts: IPart;
   commissions: ICommission;
+  expenses: IExpense;
+  cashFlowEntries: ICashFlowEntry;
   goals: IGoal;
   recommendations: IRecommendation;
   audits: IAuditLog;

@@ -1,7 +1,12 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { ID, IDREPeriod, IDRETrendPoint, IOrder } from "@/shared/types";
-import { useCommissionsProvider, useOrdersProvider, useSettingsProvider } from "@/providers/data";
+import type { ID, IDREPeriod, IDRETrendPoint, IExpense, IOrder } from "@/shared/types";
+import {
+  useCommissionsProvider,
+  useExpensesProvider,
+  useOrdersProvider,
+  useSettingsProvider,
+} from "@/providers/data";
 import { calculateDRE, calculateDRETrend } from "../engine";
 
 export type DREPeriodKind = "monthly" | "quarterly" | "yearly";
@@ -76,6 +81,7 @@ export function useDREData(params: IUseDREDataParams): IUseDREDataResult {
   const { storeId, monthKey, kind = "monthly", enabled = true } = params;
   const ordersProvider = useOrdersProvider();
   const commissionsProvider = useCommissionsProvider();
+  const expensesProvider = useExpensesProvider();
   const settingsProvider = useSettingsProvider();
 
   const periodBounds = useMemo(() => resolvePeriodBounds(monthKey, kind), [monthKey, kind]);
@@ -108,6 +114,21 @@ export function useDREData(params: IUseDREDataParams): IUseDREDataResult {
     enabled,
   });
 
+  // PRD-054 delta: operational expenses across the same 24-month window so the
+  // DRE operating-expense lines aggregate from real entries by competence.
+  const expensesQuery = useQuery({
+    queryKey: ["dre", "expenses", storeId, fetchWindow.since, fetchWindow.until],
+    queryFn: () =>
+      expensesProvider.list({
+        storeId,
+        competenceStart: fetchWindow.since,
+        competenceEnd: fetchWindow.until,
+        pageSize: PAGE_SIZE,
+      }),
+    staleTime: STALE_MS,
+    enabled,
+  });
+
   const settingsQuery = useQuery({
     queryKey: ["dre", "settings", storeId],
     queryFn: () => settingsProvider.get(storeId),
@@ -117,6 +138,7 @@ export function useDREData(params: IUseDREDataParams): IUseDREDataResult {
 
   const ordersData = ordersQuery.data?.data ?? [];
   const commissionsData = commissionsQuery.data?.data ?? [];
+  const expensesData: IExpense[] = expensesQuery.data?.data ?? [];
   const settingsData = settingsQuery.data ?? null;
 
   const { dre, trend, paidOrders } = useMemo<{
@@ -135,20 +157,30 @@ export function useDREData(params: IUseDREDataParams): IUseDREDataResult {
       paidOrders: paid,
       returnedOrders: returned,
       commissions: commissionsData,
+      expenses: expensesData,
       settings: settingsData.financialSettings,
       storeId,
     };
     const computed = calculateDRE(periodBounds.startIso, periodBounds.endIso, ctx);
     const trendSeries = calculateDRETrend(periodBounds.endIso, ctx);
     return { dre: computed, trend: trendSeries, paidOrders: paid };
-  }, [ordersData, commissionsData, settingsData, periodBounds, storeId]);
+  }, [ordersData, commissionsData, expensesData, settingsData, periodBounds, storeId]);
 
   return {
-    isLoading: ordersQuery.isLoading || commissionsQuery.isLoading || settingsQuery.isLoading,
-    isError: ordersQuery.isError || commissionsQuery.isError || settingsQuery.isError,
+    isLoading:
+      ordersQuery.isLoading ||
+      commissionsQuery.isLoading ||
+      expensesQuery.isLoading ||
+      settingsQuery.isLoading,
+    isError:
+      ordersQuery.isError ||
+      commissionsQuery.isError ||
+      expensesQuery.isError ||
+      settingsQuery.isError,
     refetch: () => {
       void ordersQuery.refetch();
       void commissionsQuery.refetch();
+      void expensesQuery.refetch();
       void settingsQuery.refetch();
     },
     dre,
