@@ -480,7 +480,11 @@ ENTÃO "Despesas Operacionais" = comissões (PRD-047) apenas
 
 | Campo | Valor |
 |-------|-------|
-| **Status** | ⏳ PENDENTE |
+| **Status** | ✅ CONCLUÍDO |
+| **Versão** | v0.46.0 — Treasury |
+| **Data de conclusão** | 28/05/2026 |
+
+> **Observações de implementação:** formulário em modal (RF-009 permitia modal ou página). DELTA do PRD-048 aplicado — a DRE consome `aggregateExpensesForDRE` por competência. Edição/cancelamento de série recorrente com escopo (RF-015/016) implementados. Upload de comprovante segue como placeholder Fase 2 conforme escopo.
 
 ---
 
@@ -489,6 +493,7 @@ ENTÃO "Despesas Operacionais" = comissões (PRD-047) apenas
 | Data | Versão | Alteração |
 |------|--------|-----------|
 | 28/05/2026 | v1 | Criação inicial — recupera gap de Despesas identificado no double-check; substitui valores fixos do PRD-048 por lançamentos reais com dupla temporalidade |
+| 28/05/2026 | v1 — DONE | Implementação concluída na v0.46.0 (Treasury): modelo, mocks (~120 despesas), provider, página com KPIs/filtros/tabela, recorrência com escopo, ciclo de vida com atraso automático e DELTA da DRE |
 
 ---
 

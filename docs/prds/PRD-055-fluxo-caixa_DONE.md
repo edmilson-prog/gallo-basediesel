@@ -450,7 +450,11 @@ ENTÃO vê tudo read-only; botão de lançamento manual desabilitado
 
 | Campo | Valor |
 |-------|-------|
-| **Status** | ⏳ PENDENTE |
+| **Status** | ✅ CONCLUÍDO |
+| **Versão** | v0.46.0 — Treasury |
+| **Data de conclusão** | 28/05/2026 |
+
+> **Observações de implementação:** engine de regime de caixa com projeção determinística, alertas (mínimo/cruzamento/negativo), gráfico Recharts, lançamentos manuais e config (saldo inicial + alerta) em Configurações → Financeiro. Pendência menor: o KPI "Saldo em Caixa" no Cockpit (PRD-040, RF-029) não foi plugado para não alterar arquivos de outra feature em sessão paralela — o hook `useCashFlowSummary` já está exportado e pronto.
 
 ---
 
@@ -459,6 +463,7 @@ ENTÃO vê tudo read-only; botão de lançamento manual desabilitado
 | Data | Versão | Alteração |
 |------|--------|-----------|
 | 28/05/2026 | v1 | Criação inicial — recupera gap de Fluxo de Caixa identificado no double-check; regime de caixa com projeção e alertas, distinto do DRE |
+| 28/05/2026 | v1 — DONE | Implementação concluída na v0.46.0 (Treasury): modelo, engine (build/project), mocks derivados + manuais, página com KPIs/gráfico/tabela/filtros, alertas e lançamentos manuais |
 
 ---
 

@@ -172,8 +172,8 @@ Visão executiva, metas, gamificação, positivação, curva ABC, comissões, DR
 | 051 | **Atendimento (Análise Histórica)** ⚠️ _(era "Fluxo de Caixa" no plano v1.0)_ | Feature | D | 🔵 | 📝 | ⏳ |
 | 052 | **Estoque (Movimentação)** ⚠️ _(era "Estoque Curadoria" no plano v1.0)_ | Feature | E | 🔵 | 📝 | ⏳ |
 | 053 | IA Analítica e Insights Proativos | Feature | D | 🔵 | 📝 | ⏳ |
-| **054** | **Despesas (Lançamentos)** 🆕 _(recupera tema do slot 050 original)_ | Feature | D | 🔵 | 📝 | ⏳ |
-| **055** | **Fluxo de Caixa** 🆕 _(recupera tema do slot 051 original)_ | Feature | D | 🔵 | 📝 | ⏳ |
+| **054** | **Despesas (Lançamentos)** 🆕 _(recupera tema do slot 050 original)_ | Feature | D | 🔵 | 📝 | ✅ |
+| **055** | **Fluxo de Caixa** 🆕 _(recupera tema do slot 051 original)_ | Feature | D | 🔵 | 📝 | ✅ |
 
 ### Bloco 5 — E-commerce (PRDs 060–067)
 
@@ -250,14 +250,15 @@ PRD-054 (Despesas) ────┘
 
 ## Ações de Correção Pendentes (para o agente desenvolvedor)
 
-| Ação | Onde | Prioridade |
-|------|------|------------|
-| Corrigir placeholder Despesas: `prd="050"` → `prd="054"` | `src/routes/app.gestao.despesas.tsx` | Imediata (trivial) |
-| Corrigir placeholder Caixa: `prd="051"` → `prd="055"` | `src/routes/app.gestao.caixa.tsx` | Imediata (trivial) |
+| Ação | Onde | Status |
+|------|------|--------|
+| Corrigir placeholder Despesas: `prd="050"` → `prd="054"` | `src/routes/app.gestao.despesas.tsx` | ✅ Feito (v0.46.0) — rota agora renderiza a `ExpensesPage` |
+| Corrigir placeholder Caixa: `prd="051"` → `prd="055"` | `src/routes/app.gestao.caixa.tsx` | ✅ Feito (v0.46.0) — rota agora renderiza a `CashFlowPage` |
 | Auditar outros placeholders órfãos | `grep -r 'PlaceholderPage prd=' src/routes/` cruzado com `*_DONE.md` | Recomendada |
-| Implementar PRD-054 e PRD-055 | quando priorizado | Conforme roadmap |
-| Aplicar DELTA do DRE (PRD-048) ao implementar 054 | substituir `fixedExpenses` por `aggregateExpensesForDRE` | Junto com 054 |
-| Reconciliar estado `_DONE` entre Project Knowledge e git | — | Recomendada |
+| Implementar PRD-054 e PRD-055 | — | ✅ Concluído na v0.46.0 (Treasury) |
+| Aplicar DELTA do DRE (PRD-048) | substituir `fixedExpenses` por `aggregateExpensesForDRE` | ✅ Feito — DRE consome despesas reais por competência |
+| Reconciliar estado `_DONE` entre Project Knowledge e git | — | ✅ Feito — PRD-054/055 renomeados para `_DONE` |
+| Plugar KPI "Saldo em Caixa" no Cockpit (PRD-040, RF-029) | `src/features/manager-dashboard/*` | ⏳ Pendente — hook `useCashFlowSummary` já exportado |
 
 ---
 
