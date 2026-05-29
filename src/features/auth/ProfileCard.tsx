@@ -36,7 +36,7 @@ export function ProfileCard({ profile, index, pending, onSelect }: IProfileCardP
       aria-label={`Entrar como ${profile.displayName}, ${roleLabel}`}
       style={{ animationDelay: `${index * 40}ms` }}
       className={cn(
-        "group relative flex w-full min-h-[44px] items-center gap-4 overflow-hidden rounded-lg border border-border bg-card p-4 text-left",
+        "group relative flex w-full min-h-[44px] items-center gap-3 overflow-hidden rounded-lg border border-border bg-card p-3 text-left",
         "transition-colors duration-200 hover:border-primary/60 hover:bg-accent",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:fill-mode-both",
@@ -45,7 +45,7 @@ export function ProfileCard({ profile, index, pending, onSelect }: IProfileCardP
     >
       <span className={cn("absolute inset-y-0 left-0 w-[3px]", accent)} aria-hidden="true" />
 
-      <Avatar className="h-12 w-12 ring-2 ring-border">
+      <Avatar className="h-9 w-9 ring-2 ring-border">
         <AvatarFallback
           className={cn(
             "text-sm font-semibold",
@@ -59,14 +59,13 @@ export function ProfileCard({ profile, index, pending, onSelect }: IProfileCardP
       </Avatar>
 
       <div className="min-w-0 flex-1">
-        <p className="truncate font-semibold text-foreground">{profile.displayName}</p>
-        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+        <p className="truncate text-sm font-semibold text-foreground">{profile.displayName}</p>
+        <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
           <Badge variant="secondary" className="text-[10px]">
             {roleLabel}
           </Badge>
           <span className="truncate text-xs text-muted-foreground">{profile.storeLabel}</span>
         </div>
-        <p className="mt-1 truncate text-xs text-muted-foreground">{profile.description}</p>
       </div>
 
       <Icon
