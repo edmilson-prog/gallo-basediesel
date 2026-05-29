@@ -25,7 +25,7 @@ export function EmailCapture() {
   };
 
   return (
-    <form className="cs-form-wrap" onSubmit={handleSubmit(onSubmit)} noValidate>
+    <form onSubmit={handleSubmit(onSubmit)} noValidate>
       <div className="cs-form">
         <input
           type="email"
