@@ -45,7 +45,7 @@ export function Countdown({ target }: ICountdownProps) {
   ];
 
   return (
-    <div className="cs-countdown" aria-live="polite" aria-label="Tempo restante para o lançamento">
+    <div className="cs-countdown" aria-live="off" aria-label="Tempo restante para o lançamento">
       {cells.map(([value, label]) => (
         <div key={label} className="cs-cd-cell">
           <div className="cs-cd-num">{pad(value)}</div>
