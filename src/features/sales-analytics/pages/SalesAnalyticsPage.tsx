@@ -11,19 +11,28 @@ import { useFunnelMetrics } from "../hooks/useFunnelMetrics";
 import { SalesHeader } from "../components/SalesHeader";
 import { SalesEvolutionChart } from "../components/charts/SalesEvolutionChart";
 import { SalesOverviewTab } from "../components/tabs/SalesOverviewTab";
+import { SellersTab } from "../components/tabs/SellersTab";
 import { SalesProductsTab } from "../components/tabs/SalesProductsTab";
 import { SalesCustomersTab } from "../components/tabs/SalesCustomersTab";
 import { SalesFunnelTab } from "../components/tabs/SalesFunnelTab";
 import { SALES_ANALYTICS_STRINGS as S } from "../i18n/pt-BR";
 
-type TabId = "overview" | "products" | "customers" | "funnel";
+type TabId = "overview" | "sellers" | "products" | "customers" | "funnel";
 
-const TAB_DEFS: { id: TabId; label: string; icon: string }[] = [
-  { id: "overview", label: S.tabOverview, icon: "mdi:view-dashboard-outline" },
-  { id: "products", label: S.tabProducts, icon: "mdi:package-variant-closed" },
-  { id: "customers", label: S.tabCustomers, icon: "mdi:account-group-outline" },
-  { id: "funnel", label: S.tabFunnel, icon: "mdi:filter-variant" },
-];
+function buildTabDefs(canSeeSellers: boolean): { id: TabId; label: string; icon: string }[] {
+  const base: { id: TabId; label: string; icon: string }[] = [
+    { id: "overview", label: S.tabOverview, icon: "mdi:view-dashboard-outline" },
+  ];
+  if (canSeeSellers) {
+    base.push({ id: "sellers", label: S.tabSellers, icon: "mdi:trophy-outline" });
+  }
+  base.push(
+    { id: "products", label: S.tabProducts, icon: "mdi:package-variant-closed" },
+    { id: "customers", label: S.tabCustomers, icon: "mdi:account-group-outline" },
+    { id: "funnel", label: S.tabFunnel, icon: "mdi:filter-variant" },
+  );
+  return base;
+}
 
 const ALLOWED_ROLES = new Set(["Owner", "Gestor", "Vendedor", "Financeiro"]);
 
@@ -101,6 +110,14 @@ export function SalesAnalyticsPage() {
 
   const tab = (filtersCtl.activeTab as TabId) ?? "overview";
   const canDrillDown = userRole === "Owner" || userRole === "Gestor";
+  const canSeeSellers =
+    userRole === "Owner" || userRole === "Gestor" || userRole === "Vendedor";
+  const sellersViewerId = userRole === "Vendedor" ? currentUser?.sellerId : undefined;
+  const tabDefs = buildTabDefs(canSeeSellers);
+  const selectedSellerParam =
+    typeof filtersCtl.filters.seller === "string" && filtersCtl.filters.seller !== "all"
+      ? filtersCtl.filters.seller
+      : undefined;
 
   return (
     <DashboardLayout>
@@ -121,7 +138,7 @@ export function SalesAnalyticsPage() {
 
       <Tabs value={tab} onValueChange={(v) => filtersCtl.setTab(v)} className="w-full">
         <TabsList className="mb-6 flex h-auto w-full flex-wrap gap-1 bg-muted/40 p-1">
-          {TAB_DEFS.map((def) => (
+          {tabDefs.map((def) => (
             <TabsTrigger
               key={def.id}
               value={def.id}
@@ -143,6 +160,16 @@ export function SalesAnalyticsPage() {
             onBrandFilter={filtersCtl.setVehicleBrand}
           />
         </TabsContent>
+        {canSeeSellers && (
+          <TabsContent value="sellers" className="focus-visible:outline-none">
+            <SellersTab
+              storeId={scope.storeId ?? storeId}
+              viewerSellerId={sellersViewerId}
+              selectedSellerId={selectedSellerParam}
+              onSelectSeller={(id) => filtersCtl.setSeller(id ?? "all")}
+            />
+          </TabsContent>
+        )}
         <TabsContent value="products" className="focus-visible:outline-none">
           <SalesProductsTab analytics={analytics} onCategoryFilter={filtersCtl.setCategory} />
         </TabsContent>
