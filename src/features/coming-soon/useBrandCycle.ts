@@ -15,6 +15,11 @@ export const BRANDS: IBrand[] = [
   { name: "Industrial", rgb: [199, 156, 44] },
 ];
 
+const cloneRgb = (b: IBrand): Rgb => [b.rgb[0], b.rgb[1], b.rgb[2]];
+
+/** Guaranteed-present first brand (satisfies noUncheckedIndexedAccess). */
+const FIRST: IBrand = BRANDS[0] ?? { name: "Parts", rgb: [30, 122, 60] };
+
 const CYCLE_MS = 6000;
 const LERP = 0.04;
 
@@ -24,7 +29,7 @@ const LERP = 0.04;
  * Respeita prefers-reduced-motion: aplica a 1ª marca fixa, sem ciclo nem rAF.
  */
 export function useBrandCycle(targetRef: RefObject<HTMLElement | null>): RefObject<Rgb> {
-  const rgbRef = useRef<Rgb>([...BRANDS[0].rgb]);
+  const rgbRef = useRef<Rgb>(cloneRgb(FIRST));
 
   useEffect(() => {
     const el = targetRef.current;
@@ -40,18 +45,19 @@ export function useBrandCycle(targetRef: RefObject<HTMLElement | null>): RefObje
 
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduce) {
-      apply([...BRANDS[0].rgb]);
+      apply(cloneRgb(FIRST));
       return;
     }
 
     let idx = 0;
-    const cur: Rgb = [...BRANDS[0].rgb];
-    let target: Rgb = [...BRANDS[0].rgb];
+    const cur: Rgb = cloneRgb(FIRST);
+    let target: Rgb = cloneRgb(FIRST);
     let raf = 0;
 
     const interval = window.setInterval(() => {
       idx = (idx + 1) % BRANDS.length;
-      target = [...BRANDS[idx].rgb];
+      const next = BRANDS[idx] ?? FIRST;
+      target = cloneRgb(next);
     }, CYCLE_MS);
 
     const frame = () => {
