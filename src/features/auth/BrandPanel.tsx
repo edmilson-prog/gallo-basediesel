@@ -2,11 +2,11 @@ import { Logo } from "@/components/Logo";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
 
-const SUBMARCAS: { label: string; dot: string }[] = [
+const SUBMARCAS = [
   { label: "PARTS", dot: "bg-emerald-500" },
   { label: "SERVICE", dot: "bg-red-500" },
   { label: "INDUSTRIAL", dot: "bg-amber-500" },
-];
+] as const;
 
 /**
  * Brand panel shown on the left of the login split-screen (md+ only).
@@ -20,12 +20,11 @@ export function BrandPanel({ className }: { className?: string }) {
         className,
       )}
     >
-      {/* marca d'água industrial */}
+      {/* industrial watermark */}
       <Icon
         icon="mdi:truck-cargo"
         className="pointer-events-none absolute -right-10 bottom-0 text-foreground opacity-[0.04]"
         size={420}
-        aria-hidden
       />
       <div
         className="absolute inset-0 bg-gradient-to-br from-card to-background opacity-60"
