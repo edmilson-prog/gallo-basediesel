@@ -1,0 +1,136 @@
+/* src/features/coming-soon/coming-soon.css */
+
+.cs-root {
+  --coming-accent: 30, 122, 60; /* fallback; sobrescrito por useBrandCycle */
+  --cs-bg: #08090c;
+  --cs-gold: 201, 162, 74;
+  position: fixed;
+  inset: 0;
+  height: 100dvh;
+  width: 100%;
+  overflow: hidden;
+  background: var(--cs-bg);
+  color: #f4f4f5;
+  font-family: var(--font-sans, -apple-system, "Segoe UI", Roboto, sans-serif);
+}
+
+/* ---------- camada 1: aurora ---------- */
+.cs-aurora {
+  position: absolute;
+  inset: -20%;
+  z-index: 1;
+  filter: blur(70px);
+  opacity: 0.55;
+  pointer-events: none;
+}
+.cs-aurora .blob {
+  position: absolute;
+  border-radius: 50%;
+  width: 50vw;
+  height: 50vw;
+  mix-blend-mode: screen;
+  background: radial-gradient(circle at center, rgba(var(--coming-accent), 0.9), transparent 70%);
+}
+.cs-aurora .b1 { top: -10%; left: -5%; animation: cs-drift1 18s ease-in-out infinite; }
+.cs-aurora .b2 {
+  bottom: -15%; right: -5%; animation: cs-drift2 22s ease-in-out infinite;
+  background: radial-gradient(circle at center, rgba(var(--coming-accent), 0.7), transparent 70%);
+}
+.cs-aurora .b3 {
+  top: 30%; left: 35%; width: 38vw; height: 38vw; animation: cs-drift3 26s ease-in-out infinite;
+  background: radial-gradient(circle at center, rgba(var(--cs-gold), 0.5), transparent 70%);
+}
+@keyframes cs-drift1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(12vw,8vh) scale(1.2); } }
+@keyframes cs-drift2 { 0%,100% { transform: translate(0,0) scale(1.1); } 50% { transform: translate(-10vw,-6vh) scale(0.9); } }
+@keyframes cs-drift3 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-8vw,10vh); } }
+
+/* ---------- camada 2: grid técnico ---------- */
+.cs-grid {
+  position: absolute;
+  inset: -50px;
+  z-index: 2;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(var(--coming-accent), 0.14) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--coming-accent), 0.14) 1px, transparent 1px);
+  background-size: 46px 46px;
+  -webkit-mask-image: radial-gradient(ellipse 75% 65% at 50% 45%, #000 30%, transparent 80%);
+          mask-image: radial-gradient(ellipse 75% 65% at 50% 45%, #000 30%, transparent 80%);
+  animation: cs-gridfloat 20s linear infinite;
+}
+@keyframes cs-gridfloat { from { background-position: 0 0, 0 0; } to { background-position: 46px 46px, 46px 46px; } }
+
+/* ---------- camadas 3 e 4: canvases ---------- */
+.cs-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.cs-net { z-index: 3; }
+.cs-embers { z-index: 4; }
+
+/* ---------- conteúdo ---------- */
+.cs-content {
+  position: relative;
+  z-index: 5;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 22px;
+  padding: 24px;
+}
+.cs-logo { height: 44px; width: auto; filter: drop-shadow(0 0 20px rgba(var(--coming-accent), 0.5)); transition: filter 0.6s; }
+.cs-badge {
+  font-size: 12px; letter-spacing: 0.28em; text-transform: uppercase;
+  color: rgb(var(--coming-accent)); border: 1px solid rgba(var(--coming-accent), 0.4);
+  padding: 7px 16px; border-radius: 999px; transition: color 0.6s, border-color 0.6s;
+}
+.cs-headline { font-size: clamp(36px, 7vw, 80px); font-weight: 800; letter-spacing: -0.03em; line-height: 0.98; }
+.cs-headline span {
+  background: linear-gradient(90deg, rgb(var(--coming-accent)), #f4f4f5);
+  -webkit-background-clip: text; background-clip: text; color: transparent; transition: all 0.6s;
+}
+.cs-sub { font-size: clamp(15px, 2.4vw, 19px); color: #a1a1aa; max-width: 540px; }
+
+.cs-progress { width: min(420px, 80vw); }
+.cs-progress-meta { display: flex; justify-content: space-between; font-size: 12px; color: #71717a; margin-bottom: 7px; letter-spacing: 0.05em; }
+.cs-progress-track { height: 8px; background: rgba(255,255,255,0.08); border-radius: 999px; overflow: hidden; }
+.cs-progress-fill {
+  height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, rgba(var(--coming-accent), 0.6), rgb(var(--coming-accent)));
+  box-shadow: 0 0 16px rgba(var(--coming-accent), 0.7);
+  transition: width 1.6s cubic-bezier(0.2,0.8,0.2,1), background 0.6s, box-shadow 0.6s;
+}
+
+.cs-countdown { display: flex; gap: 14px; }
+.cs-cd-cell {
+  min-width: 64px; padding: 12px 10px; border-radius: 12px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(6px);
+}
+.cs-cd-num { font-size: 28px; font-weight: 700; color: rgb(var(--coming-accent)); transition: color 0.6s; font-variant-numeric: tabular-nums; }
+.cs-cd-lbl { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: #71717a; margin-top: 2px; }
+
+.cs-form { display: flex; gap: 8px; width: min(440px, 88vw); }
+.cs-form input {
+  flex: 1; padding: 13px 16px; border-radius: 10px;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
+  color: #f4f4f5; font-size: 15px; outline: none;
+}
+.cs-form input:focus-visible { border-color: rgb(var(--coming-accent)); }
+.cs-form button {
+  padding: 13px 22px; border-radius: 10px; border: none; cursor: pointer;
+  background: rgb(var(--coming-accent)); color: #08090c; font-weight: 700; font-size: 15px;
+  transition: background 0.6s, transform 0.15s;
+}
+.cs-form button:hover { transform: translateY(-1px); }
+.cs-form-error { color: #f87171; font-size: 12px; margin-top: 6px; min-height: 16px; }
+
+.cs-social { display: flex; flex-wrap: wrap; justify-content: center; gap: 18px; }
+.cs-social a { color: #a1a1aa; text-decoration: none; font-size: 13px; transition: color 0.25s; }
+.cs-social a:hover { color: rgb(var(--coming-accent)); }
+
+.cs-footer { position: absolute; bottom: 16px; left: 0; right: 0; z-index: 5; text-align: center; font-size: 11px; color: #52525b; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-aurora .b1, .cs-aurora .b2, .cs-aurora .b3, .cs-grid { animation: none; }
+}
