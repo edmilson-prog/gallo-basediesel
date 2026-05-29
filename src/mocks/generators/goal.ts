@@ -1,4 +1,5 @@
 import type { IGoal, ISeller, ID, GoalMetric, GoalStatus } from "@/shared/types";
+import { STORE_MONTHLY_REVENUE_TARGET } from "../config";
 import { SEED_STORE_ID } from "../data";
 import { monthRange, monthRef, type ISeededContext } from "./utils";
 
@@ -81,7 +82,7 @@ function buildPeriod(
       targetId: SEED_STORE_ID,
       sellerId: undefined,
       metric: "revenue",
-      targetValue: 1_200_000,
+      targetValue: STORE_MONTHLY_REVENUE_TARGET,
       currentValue: ctx.int(400_000, 1_400_000),
       start,
       end,

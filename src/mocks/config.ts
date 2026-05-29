@@ -44,6 +44,13 @@ export type MockEntityName =
 export const DEFAULT_SEED = 42;
 
 /**
+ * Store-level monthly revenue goal (R$). Single source of truth shared by the
+ * goal generator (the active "Faturamento" target) and the order timeline
+ * generator (which sizes daily volume so realized revenue tracks this target).
+ */
+export const STORE_MONTHLY_REVENUE_TARGET = 1_200_000;
+
+/**
  * Target volumes per entity. Bootstrap honors these with a ±10% tolerance to
  * preserve statistical realism (RF-013). Distributions of status/category are
  * encoded inline at each generator.

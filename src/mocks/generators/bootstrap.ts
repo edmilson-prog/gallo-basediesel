@@ -8,6 +8,7 @@ import type {
   ICustomerNote,
   ICustomerSegment,
   IDistributionTrace,
+  IExpense,
   IGamificationBadge,
   IGoal,
   ILead,
@@ -28,9 +29,9 @@ import type {
   IWhatsAppAccount,
 } from "@/shared/types";
 
-import { DEFAULT_SEED, VOLUMES } from "../config";
+import { DEFAULT_SEED, STORE_MONTHLY_REVENUE_TARGET, VOLUMES } from "../config";
 import { SEED_OWNER_ID, SEED_ROLES, SEED_STORE, SEED_VENDEDOR_SELLER_IDS } from "../data";
-import { createSeededContext, pickWeighted } from "./utils";
+import { createSeededContext } from "./utils";
 import { generateSellers } from "./seller";
 import { generateAudit } from "./audit";
 import { generatePart, linkEquivalentParts } from "./part";
@@ -41,9 +42,10 @@ import { generateConversation } from "./conversation";
 import { generateMessagesForConversation } from "./message";
 import { generateScriptedConversations } from "./scriptedConversations";
 import { generateQuote } from "./quote";
-import { generateOrder } from "./order";
+import { generateOrdersTimeline } from "./order";
 import { generateCommission } from "./commission";
 import { seedCommissionRules } from "./commissionRules";
+import { generateExpenses } from "./expense";
 import { generateGoals } from "./goal";
 import { generateRecommendation } from "./recommendation";
 import { generateTransfer } from "./transfer";
@@ -83,6 +85,7 @@ export interface IBootstrappedDataset {
   quotes: IQuote[];
   orders: IOrder[];
   commissions: ICommission[];
+  expenses: IExpense[];
   goals: IGoal[];
   badges: IGamificationBadge[];
   rankings: IRanking[];
@@ -262,40 +265,19 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
     );
   }
 
-  // 13. Orders — spread over the last 12 months for BI. PRD-032 RF-006:
-  // ~40% inherit from a quote, ~25% from an SDR conversation, ~35% manual.
-  const orders: IOrder[] = [];
-  for (let i = 0; i < VOLUMES.orders; i += 1) {
-    const origin = pickWeighted(ctx, [
-      { value: "fromQuote" as const, weight: 40 },
-      { value: "fromConversation" as const, weight: 25 },
-      { value: "manual" as const, weight: 35 },
-    ]);
-    const sourceQuote = origin === "fromQuote" ? ctx.pick(quotes) : undefined;
-    const conversationId =
-      origin === "fromConversation" && conversations.length > 0
-        ? ctx.pick(conversations).id
-        : undefined;
-    let customer: ICustomer | undefined;
-    if (sourceQuote && sourceQuote.customerId) {
-      customer = customers.find((c) => c.id === sourceQuote.customerId);
-    }
-    if (!customer) customer = ctx.pick(customers);
-    orders.push(
-      generateOrder(ctx, {
-        sequence: i,
-        customer,
-        parts,
-        sourceQuote,
-        conversationId,
-        now,
-      }),
-    );
-    if (sourceQuote) {
-      sourceQuote.status = "convertido";
-      sourceQuote.convertedToOrderId = orders[orders.length - 1].id;
-    }
-  }
+  // 13. Orders — generated day-by-day across the last 12 months so monthly paid
+  // revenue tracks the store revenue goal (~R$1.2M/mo). Business days carry the
+  // bulk with daily variance + a gentle growth trend; weekends stay quiet.
+  // PRD-032 RF-006: ~40% inherit from a quote, ~25% from an SDR conversation,
+  // ~35% manual (handled inside generateOrdersTimeline).
+  const orders: IOrder[] = generateOrdersTimeline(ctx, {
+    customers,
+    parts,
+    quotes,
+    conversationIds: conversations.map((c) => c.id),
+    monthlyTarget: STORE_MONTHLY_REVENUE_TARGET,
+    now,
+  });
 
   // 14. Commission rules (PRD-047) — seeded onto the store settings so every
   // commission generated below has a snapshotted rule. Default store-wide rule
@@ -322,6 +304,10 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
       }),
     );
   }
+
+  // 15b. Operational expenses (PRD-054) — 12-month ledger feeding the DRE
+  // (competence) and the Cash Flow (payment). Owner is the author.
+  const expenses = generateExpenses({ ctx, storeId: stores[0].id, ownerId: SEED_OWNER_ID, now });
 
   // 15. Goals (store + individual).
   const goals = generateGoals(ctx, { sellers, now });
@@ -447,6 +433,7 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
     quotes,
     orders,
     commissions,
+    expenses,
     goals,
     badges,
     rankings: [ranking],
