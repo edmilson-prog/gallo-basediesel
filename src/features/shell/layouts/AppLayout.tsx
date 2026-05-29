@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Sidebar } from "@/features/shell/components/Sidebar";
 import { TopBar } from "@/features/shell/components/TopBar";
 import { BottomNav } from "@/features/shell/components/BottomNav";
+import { AppFooter } from "@/features/shell/components/AppFooter";
 import { useDistributionToasts } from "@/features/distribution/hooks/useDistributionToasts";
 import { useAutoRevertTimer } from "@/features/carteira/hooks/useAutoRevertTimer";
 import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
@@ -42,6 +43,8 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
             <TopBar />
             {children ?? <Outlet />}
           </main>
+          {/* Status bar pinned to the bottom of the content column (desktop). */}
+          <AppFooter />
         </div>
         <BottomNav />
         <UrgentBroadcastClaim />
