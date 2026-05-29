@@ -108,16 +108,13 @@ export function SalesAnalyticsPage() {
     );
   }
 
-  const tab = (filtersCtl.activeTab as TabId) ?? "overview";
+  const rawTab = (filtersCtl.activeTab as TabId) ?? "overview";
   const canDrillDown = userRole === "Owner" || userRole === "Gestor";
   const canSeeSellers =
     userRole === "Owner" || userRole === "Gestor" || userRole === "Vendedor";
   const sellersViewerId = userRole === "Vendedor" ? currentUser?.sellerId : undefined;
   const tabDefs = buildTabDefs(canSeeSellers);
-  const selectedSellerParam =
-    typeof filtersCtl.filters.seller === "string" && filtersCtl.filters.seller !== "all"
-      ? filtersCtl.filters.seller
-      : undefined;
+  const tab = rawTab === "sellers" && !canSeeSellers ? "overview" : rawTab;
 
   return (
     <DashboardLayout>
@@ -162,12 +159,7 @@ export function SalesAnalyticsPage() {
         </TabsContent>
         {canSeeSellers && (
           <TabsContent value="sellers" className="focus-visible:outline-none">
-            <SellersTab
-              storeId={scope.storeId ?? storeId}
-              viewerSellerId={sellersViewerId}
-              selectedSellerId={selectedSellerParam}
-              onSelectSeller={(id) => filtersCtl.setSeller(id ?? "all")}
-            />
+            <SellersTab storeId={scope.storeId ?? storeId} viewerSellerId={sellersViewerId} />
           </TabsContent>
         )}
         <TabsContent value="products" className="focus-visible:outline-none">

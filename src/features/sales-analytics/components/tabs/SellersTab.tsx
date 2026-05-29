@@ -16,19 +16,12 @@ export interface ISellersTabProps {
   storeId?: ID;
   /** When set, the viewer is a Vendedor — only their own row is shown (rank preserved). */
   viewerSellerId?: ID;
-  /** Selected seller for the drawer (deep-link via ?vendedor=). */
-  selectedSellerId?: string;
-  onSelectSeller: (sellerId: string | undefined) => void;
 }
 
-export function SellersTab({
-  storeId,
-  viewerSellerId,
-  selectedSellerId,
-  onSelectSeller,
-}: ISellersTabProps) {
+export function SellersTab({ storeId, viewerSellerId }: ISellersTabProps) {
   const [metric, setMetric] = useState<SellerRankMetric>("revenue");
   const [showTable, setShowTable] = useState(false);
+  const [selectedSellerId, setSelectedSellerId] = useState<string | undefined>(undefined);
   const { rows, summary, isLoading } = useSellerLeaderboard({ storeId, metric });
 
   const visibleRows = useMemo(
@@ -79,17 +72,17 @@ export function SellersTab({
       )}
 
       {showTable && !viewerSellerId ? (
-        <SellersTable rows={visibleRows} onSelect={(id) => onSelectSeller(id)} />
+        <SellersTable rows={visibleRows} onSelect={(id) => setSelectedSellerId(id)} />
       ) : (
         <div className="flex flex-col gap-4">
-          {showPodium && <SellerPodium top3={top3} onSelect={(id) => onSelectSeller(id)} />}
+          {showPodium && <SellerPodium top3={top3} onSelect={(id) => setSelectedSellerId(id)} />}
           <div className="flex flex-col gap-2">
             {listRows.map((row) => (
               <SellerLeaderboardRow
                 key={row.sellerId}
                 row={row}
                 selected={row.sellerId === selectedSellerId}
-                onSelect={(id) => onSelectSeller(id)}
+                onSelect={(id) => setSelectedSellerId(id)}
               />
             ))}
           </div>
@@ -100,7 +93,7 @@ export function SellersTab({
         row={selectedRow}
         open={selectedRow !== null}
         onOpenChange={(open) => {
-          if (!open) onSelectSeller(undefined);
+          if (!open) setSelectedSellerId(undefined);
         }}
       />
     </Card>
