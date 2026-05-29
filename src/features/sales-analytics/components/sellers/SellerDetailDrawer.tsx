@@ -4,19 +4,13 @@ import { formatBRL } from "@/shared/utils/format";
 import { SALES_ANALYTICS_STRINGS as S } from "../../i18n/pt-BR";
 import { attainmentBand, type ISellerLeaderboardRow } from "../../utils/sellerLeaderboard";
 import { SellerMiniChart } from "./SellerMiniChart";
+import { BAND_TEXT } from "./bandTokens";
 
 export interface ISellerDetailDrawerProps {
   row: ISellerLeaderboardRow | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-
-const BAND_TEXT: Record<string, string> = {
-  success: "text-success",
-  warning: "text-warning",
-  below: "text-destructive",
-  none: "text-muted-foreground",
-};
 
 export function SellerDetailDrawer({ row, open, onOpenChange }: ISellerDetailDrawerProps) {
   return (

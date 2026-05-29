@@ -2,19 +2,7 @@ import { cn } from "@/lib/utils";
 import { Icon } from "@/components/Icon";
 import { formatBRLCompact } from "@/shared/utils/format";
 import { attainmentBand, type ISellerLeaderboardRow } from "../../utils/sellerLeaderboard";
-
-const BAND_BAR: Record<string, string> = {
-  success: "bg-success",
-  warning: "bg-warning",
-  below: "bg-destructive",
-  none: "bg-muted-foreground/40",
-};
-const BAND_TEXT: Record<string, string> = {
-  success: "text-success",
-  warning: "text-warning",
-  below: "text-destructive",
-  none: "text-muted-foreground",
-};
+import { BAND_BAR, BAND_TEXT } from "./bandTokens";
 
 export interface ISellerLeaderboardRowProps {
   row: ISellerLeaderboardRow;

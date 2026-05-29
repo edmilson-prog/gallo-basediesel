@@ -3,13 +3,7 @@ import { cn } from "@/lib/utils";
 import { formatBRL, formatBRLCompact } from "@/shared/utils/format";
 import { SALES_ANALYTICS_STRINGS as S } from "../../i18n/pt-BR";
 import { attainmentBand, type ISellerLeaderboardRow } from "../../utils/sellerLeaderboard";
-
-const BAND_BAR: Record<string, string> = {
-  success: "bg-success",
-  warning: "bg-warning",
-  below: "bg-destructive",
-  none: "bg-muted-foreground/40",
-};
+import { BAND_BAR } from "./bandTokens";
 
 export interface ISellersTableProps {
   rows: ISellerLeaderboardRow[];
