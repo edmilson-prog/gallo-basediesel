@@ -19,6 +19,16 @@ const MATRIZ_STORE_ID: ID = "store-matriz";
 export interface IMockUserProfile {
   id: ID;
   role: RoleName;
+  /**
+   * Optional display-only label that overrides `role` on the login card.
+   * Used for profiles whose RBAC role doesn't match their shown title — e.g.
+   * the AILA admin runs with `Owner` permissions but is labeled "Admin · AILA".
+   */
+  displayRole?: string;
+  /** Visual grouping on the login screen. */
+  group: "team" | "client" | "admin";
+  /** Email used by the hybrid login form to match the profile. */
+  email: string;
   displayName: string;
   storeLabel: string;
   avatarInitials: string;
@@ -58,10 +68,12 @@ export const MOCK_USERS: IMockUserProfile[] = [
   {
     id: "mock-owner",
     role: "Owner",
-    displayName: "João Gallo",
+    group: "team",
+    email: "fernando@gallobasediesel.com.br",
+    displayName: "Fernando Mello Muniz Gallo",
     storeLabel: "GALLO Matriz",
-    avatarInitials: "JG",
-    description: "Fundador e dono — vê e faz tudo na plataforma.",
+    avatarInitials: "FG",
+    description: "CEO e fundador — visão completa da operação.",
     defaultRedirect: "/app/inicio",
     storeId: MATRIZ_STORE_ID,
     accessibleStoreIds: [MATRIZ_STORE_ID],
@@ -70,21 +82,25 @@ export const MOCK_USERS: IMockUserProfile[] = [
   {
     id: "mock-gestor",
     role: "Gestor",
+    group: "team",
+    email: "marina@gallobasediesel.com.br",
     displayName: "Marina Cardoso",
     storeLabel: "GALLO Matriz",
     avatarInitials: "MC",
-    description: "Gestora da loja — operação diária, equipe e carteira.",
+    description: "Gestora da loja — equipe, carteira e operação diária.",
     defaultRedirect: "/app/inicio",
     storeId: MATRIZ_STORE_ID,
     accessibleStoreIds: [MATRIZ_STORE_ID],
     sellerId: "seller-marina-cardoso",
   },
   {
-    id: "mock-vendedor",
+    id: "mock-vendedor-lucas",
     role: "Vendedor",
-    displayName: "Carlos Santos",
+    group: "team",
+    email: "lucas@gallobasediesel.com.br",
+    displayName: "Lucas Costa",
     storeLabel: "GALLO Matriz",
-    avatarInitials: "CS",
+    avatarInitials: "LC",
     description: "Vendedor interno — Central de Atendimento e carteira.",
     defaultRedirect: "/app/atendimento",
     storeId: MATRIZ_STORE_ID,
@@ -92,8 +108,52 @@ export const MOCK_USERS: IMockUserProfile[] = [
     sellerId: "seller-carlos-santos",
   },
   {
+    id: "mock-vendedor-cauan",
+    role: "Vendedor",
+    group: "team",
+    email: "caua@gallobasediesel.com.br",
+    displayName: "Cauan Bulegon",
+    storeLabel: "GALLO Matriz",
+    avatarInitials: "CB",
+    description: "Vendedor interno — Central de Atendimento e carteira.",
+    defaultRedirect: "/app/atendimento",
+    storeId: MATRIZ_STORE_ID,
+    accessibleStoreIds: [MATRIZ_STORE_ID],
+    sellerId: "seller-rafael-lima",
+  },
+  {
+    id: "mock-vendedor-ramon",
+    role: "Vendedor",
+    group: "team",
+    email: "ramon@gallobasediesel.com.br",
+    displayName: "Ramon Schimidt",
+    storeLabel: "GALLO Matriz",
+    avatarInitials: "RS",
+    description: "Vendedor interno — Central de Atendimento e carteira.",
+    defaultRedirect: "/app/atendimento",
+    storeId: MATRIZ_STORE_ID,
+    accessibleStoreIds: [MATRIZ_STORE_ID],
+    sellerId: "seller-ramon-schimidt",
+  },
+  {
+    id: "mock-vendedor-externo",
+    role: "VendedorExterno",
+    group: "team",
+    email: "welligton@gallobasediesel.com.br",
+    displayName: "Welligton Nunes",
+    storeLabel: "GALLO Matriz",
+    avatarInitials: "WN",
+    description: "Vendedor externo — campo e carteira regional.",
+    defaultRedirect: "/app/atendimento",
+    storeId: MATRIZ_STORE_ID,
+    accessibleStoreIds: [MATRIZ_STORE_ID],
+    sellerId: "seller-welligton-nunes",
+  },
+  {
     id: "mock-cliente",
     role: "Cliente",
+    group: "client",
+    email: "aurora@cliente.com.br",
     displayName: "Transportadora Aurora Ltda",
     storeLabel: "Cliente B2B",
     avatarInitials: "TA",
@@ -101,8 +161,28 @@ export const MOCK_USERS: IMockUserProfile[] = [
     defaultRedirect: "/loja",
     storeId: MATRIZ_STORE_ID,
   },
+  {
+    id: "mock-admin-aila",
+    role: "Owner",
+    group: "admin",
+    displayRole: "Admin · AILA",
+    email: "admin@ailainteligente.com",
+    displayName: "Edmilson Souza",
+    storeLabel: "AILA · Suporte",
+    avatarInitials: "ES",
+    description: "Suporte AILA — acesso técnico total à plataforma.",
+    defaultRedirect: "/app/inicio",
+    storeId: MATRIZ_STORE_ID,
+    accessibleStoreIds: [MATRIZ_STORE_ID],
+  },
 ];
 
 export const MOCK_USER_BY_ID = new Map(MOCK_USERS.map((u) => [u.id, u]));
 
 export const LOCALSTORAGE_USER_KEY = "gallo-mock-user";
+
+/** Finds a profile whose email matches (case-insensitive, trimmed). */
+export function findMockUserByEmail(email: string): IMockUserProfile | undefined {
+  const normalized = email.trim().toLowerCase();
+  return MOCK_USERS.find((u) => u.email.toLowerCase() === normalized);
+}
