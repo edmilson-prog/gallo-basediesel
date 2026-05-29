@@ -507,7 +507,7 @@ export function CustomersListPage() {
 
         <div className={cn("hidden min-h-0 lg:block")}>
           {selectedCustomer ? (
-            <div className="h-full overflow-y-auto">
+            <div className="h-full overflow-y-auto scrollbar-hide">
               <CustomerProfile
                 customerId={selectedCustomer.id}
                 variant="column"

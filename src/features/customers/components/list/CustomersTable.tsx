@@ -153,7 +153,7 @@ export function CustomersTable({
 
   return (
     <div ref={tableRef} className="h-full w-full">
-      <Table containerClassName="h-full">
+      <Table containerClassName="h-full scrollbar-hide">
         <TableHeader className="sticky top-0 z-10 bg-background">
           <TableRow className="hover:bg-transparent">
             <TableHead className="w-10 px-3">
