@@ -33,13 +33,13 @@ Eixo X = dias do mês (1…último dia). Cada tick mostra **número do dia + let
 da semana** (D S T Q Q S S); **fins de semana esmaecidos** e com leve sombreamento
 de coluna (markArea). **Linha vertical de referência "Hoje"**.
 
-| Série | Cor / estilo | Default | Cálculo |
-|---|---|---|---|
-| **Vendas no mês** | vermelho, linha + área + dots | visível | Faturamento acumulado (pedidos `pago`) do dia 1 até **hoje**; `null` após hoje |
-| **Objetivo** | roxo, sólido | visível | Meta acumulada linear: `targetValue × dia / diasDoMês` (mês inteiro) |
-| **Previsão de vendas** | amarelo, tracejado | visível | Run-rate: `(realizadoHoje / diaHoje) × dia`, para `dia ≥ hoje`; conecta na ponta da linha de Vendas (`null` antes de hoje) |
-| **Mês passado** | cinza, tracejado | oculto | Faturamento acumulado do mês anterior, por dia-do-mês (mês inteiro) |
-| **Ano passado** | cinza, pontilhado | oculto | Faturamento acumulado do mesmo mês no ano anterior, por dia-do-mês |
+| Série                  | Cor / estilo                  | Default | Cálculo                                                                                                                    |
+| ---------------------- | ----------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **Vendas no mês**      | vermelho, linha + área + dots | visível | Faturamento acumulado (pedidos `pago`) do dia 1 até **hoje**; `null` após hoje                                             |
+| **Objetivo**           | roxo, sólido                  | visível | Meta acumulada linear: `targetValue × dia / diasDoMês` (mês inteiro)                                                       |
+| **Previsão de vendas** | amarelo, tracejado            | visível | Run-rate: `(realizadoHoje / diaHoje) × dia`, para `dia ≥ hoje`; conecta na ponta da linha de Vendas (`null` antes de hoje) |
+| **Mês passado**        | cinza, tracejado              | oculto  | Faturamento acumulado do mês anterior, por dia-do-mês (mês inteiro)                                                        |
+| **Ano passado**        | cinza, pontilhado             | oculto  | Faturamento acumulado do mesmo mês no ano anterior, por dia-do-mês                                                         |
 
 - **Toggle por série** via **legenda de chips clicáveis** no rodapé do card. Estado
   local (`useState`); padrão = Vendas + Objetivo + Previsão ligadas; comparativos
@@ -74,6 +74,7 @@ Reutiliza utilitários de formatação existentes (`formatBRL`, `formatBRLCompac
 ## 6. Arquitetura / dados
 
 ### 6.1 Util puro — `src/features/sales-analytics/utils/evolution.ts`
+
 - `buildDailyEvolution(input): IDailyEvolutionPoint[]` — função pura, testável isolada,
   no espírito de `goals/utils/composition.ts#buildEvolutionSeries`.
 - Entrada: pedidos das 3 janelas (mês atual, mês anterior, mesmo mês ano anterior),
@@ -85,12 +86,13 @@ Reutiliza utilitários de formatação existentes (`formatBRL`, `formatBRLCompac
   acumulação por dia-do-mês.
 
 ### 6.2 Hook — `src/features/sales-analytics/hooks/useSalesEvolution.ts`
+
 - Recebe o `scope` (`storeId`/`sellerId`) já resolvido pela página (RBAC) — **não usa**
   o filtro de período da `SalesHeader` (é sempre "mês atual").
 - 3 queries `useQuery` (`useOrdersProvider`) para as janelas mês atual / mês anterior /
   mesmo mês ano anterior, filtrando `paymentStatus: "pago"`.
 - Resolve o **Objetivo** via goals: meta ativa `metric: "revenue"`, `period.type:
-  "monthly"` do escopo — meta **individual** quando `scope.sellerId` definido, senão
+"monthly"` do escopo — meta **individual** quando `scope.sellerId` definido, senão
   meta da **loja** (`useStoreGoals` / `useGoalsWithProgress`). Sem meta ativa →
   `objetivo` ausente e aviso sutil ("Sem meta definida") no lugar da linha.
 - Retorna: série diária consolidada, séries por vendedor, `targetValue`, KPIs derivados
@@ -98,6 +100,7 @@ Reutiliza utilitários de formatação existentes (`formatBRL`, `formatBRLCompac
 - Para o modo vendedor: lista de vendedores via `useSellersProvider`, restrita ao escopo.
 
 ### 6.3 Componente — `src/features/sales-analytics/components/charts/SalesEvolutionChart.tsx`
+
 - `ComposedChart` do Recharts: `Area` (Vendas) + múltiplas `Line`; `ReferenceLine`
   vertical em hoje; tick customizado do `XAxis` (dia + dia-da-semana, fim de semana
   esmaecido); sombreamento de fim de semana via `ReferenceArea`.
@@ -108,11 +111,13 @@ Reutiliza utilitários de formatação existentes (`formatBRL`, `formatBRLCompac
   (séries visíveis, modo vendedor) é **local** ao componente.
 
 ### 6.4 i18n — `src/features/sales-analytics/i18n/pt-BR.ts`
+
 - Novas chaves em `SALES_ANALYTICS_STRINGS`: título, subtítulos (consolidado/vendedor),
   labels das 5 séries, labels dos KPIs, label do botão, aviso "sem meta", legenda
   da linha "Hoje".
 
 ### 6.5 Integração — `src/features/sales-analytics/components/tabs/SalesOverviewTab.tsx` + página
+
 - Renderizar `<SalesEvolutionChart>` como primeiro filho da overview, full-width.
 - A página (`SalesAnalyticsPage`) passa `scope` e papel (para `canDrillDown`) ao hook/
   componente. RBAC já existente é reutilizado.

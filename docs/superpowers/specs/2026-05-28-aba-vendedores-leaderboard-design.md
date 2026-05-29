@@ -65,12 +65,12 @@ em uma **aba dedicada**.
 
 Segmented control no header. Opções (default = **Valor vendido**):
 
-| Métrica | Ordenação |
-|---|---|
-| Valor vendido | `revenue` desc |
-| % da meta | `attainmentPct` desc |
-| Nº de pedidos | `orderCount` desc |
-| Ticket médio | `avgTicket` desc |
+| Métrica       | Ordenação            |
+| ------------- | -------------------- |
+| Valor vendido | `revenue` desc       |
+| % da meta     | `attainmentPct` desc |
+| Nº de pedidos | `orderCount` desc    |
+| Ticket médio  | `avgTicket` desc     |
 
 A métrica ativa governa a ordenação do ranking, o valor exibido nos cards do pódio e
 na coluna principal de valor do leaderboard. As demais métricas ficam disponíveis no
@@ -86,17 +86,17 @@ memoizado e com TanStack Query (drop-in Mock→Supabase preservado).
 
 Saída por vendedor (`ISellerLeaderboardRow`):
 
-| Campo | Origem |
-|---|---|
-| `sellerId`, `sellerName` | `ISeller` (usa `fullName`) |
-| `revenue`, `orderCount`, `avgTicket` | `IOrder` pagos do período (`sellerId`) |
-| `target`, `attainmentPct` | `IGoal` nível `individual`, métrica `revenue`, do mês |
-| `projection` | run-rate (reaproveita lógica de `computeEvolutionKpis`) |
-| `attainmentForecastPct` | `projection / target` |
-| `trend` (`up`/`down`/`flat`) + `trendPct` | faturamento mês atual vs mês anterior (`computeTrend`) |
-| `positivedCustomers`, `customerCount` | `IPositivation` + customers do vendedor |
-| `quoteCount`, `openQuotesValue` | `IQuote` (`sellerId`, status aberto) |
-| `dailySeries` | série diária cumulativa (reaproveita `buildSellerEvolution`) |
+| Campo                                     | Origem                                                       |
+| ----------------------------------------- | ------------------------------------------------------------ |
+| `sellerId`, `sellerName`                  | `ISeller` (usa `fullName`)                                   |
+| `revenue`, `orderCount`, `avgTicket`      | `IOrder` pagos do período (`sellerId`)                       |
+| `target`, `attainmentPct`                 | `IGoal` nível `individual`, métrica `revenue`, do mês        |
+| `projection`                              | run-rate (reaproveita lógica de `computeEvolutionKpis`)      |
+| `attainmentForecastPct`                   | `projection / target`                                        |
+| `trend` (`up`/`down`/`flat`) + `trendPct` | faturamento mês atual vs mês anterior (`computeTrend`)       |
+| `positivedCustomers`, `customerCount`     | `IPositivation` + customers do vendedor                      |
+| `quoteCount`, `openQuotesValue`           | `IQuote` (`sellerId`, status aberto)                         |
+| `dailySeries`                             | série diária cumulativa (reaproveita `buildSellerEvolution`) |
 
 O hook também devolve os **agregados do header** (totais/médias) e a posição/rank de
 cada linha após ordenar pela métrica ativa.

@@ -2,19 +2,19 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _Repositório vivo da Fase 1, diretórios `src/providers/supabase/` e `src/hooks/realtime/`_ |
-| **Objetivo** | Implementar subscriptions Supabase Realtime para mudanças em tempo real nas tabelas de alta frequência: `messages` (nova mensagem em conversa), `leads` (mudança de stage, atribuição), `notifications` futuras, `audit_logs` (para painel gestor). Padrão `useSubscription<T>` hook React reutilizável. Channels filtrados por `storeId + sellerId` para reduzir tráfego. Cleanup automático, reconexão transparente, rate limiting de re-renders |
-| **Tipo** | Feature |
-| **Complexidade** | Alta |
-| **Total de Fases** | 4 |
-| **Prioridade** | P1 — não-bloqueante para go-live (sistema funciona com polling), mas eleva UX significativamente |
-| **Épico** | Onda 4 — Backend Supabase Real (v2.0.0 Engine) |
-| **PRDs Relacionados** | PRD-104 (Provider Real — pré-requisito); PRD-101 (Schema — tabelas que recebem subscriptions); PRD-103 (RLS — filtra eventos Realtime conforme policies); PRD-115 (Envio WhatsApp — produz mensagens que disparam updates); PRD-014 Fase 1 (Painel Gestor — consome realtime); PRD-017 Fase 1 (Pipeline Leads — consome realtime) |
-| **Implementação** | 🔵 Claude Code CLI |
-| **Padrão de código** | Hooks React em `src/hooks/realtime/`; lógica de subscription em `src/providers/supabase/realtime/` |
+| Campo                 | Valor                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                                                                                                                                                                                                                                                                           |
+| **Repositório**       | _Repositório vivo da Fase 1, diretórios `src/providers/supabase/` e `src/hooks/realtime/`_                                                                                                                                                                                                                                                                                                                                                         |
+| **Objetivo**          | Implementar subscriptions Supabase Realtime para mudanças em tempo real nas tabelas de alta frequência: `messages` (nova mensagem em conversa), `leads` (mudança de stage, atribuição), `notifications` futuras, `audit_logs` (para painel gestor). Padrão `useSubscription<T>` hook React reutilizável. Channels filtrados por `storeId + sellerId` para reduzir tráfego. Cleanup automático, reconexão transparente, rate limiting de re-renders |
+| **Tipo**              | Feature                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **Complexidade**      | Alta                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| **Total de Fases**    | 4                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| **Prioridade**        | P1 — não-bloqueante para go-live (sistema funciona com polling), mas eleva UX significativamente                                                                                                                                                                                                                                                                                                                                                   |
+| **Épico**             | Onda 4 — Backend Supabase Real (v2.0.0 Engine)                                                                                                                                                                                                                                                                                                                                                                                                     |
+| **PRDs Relacionados** | PRD-104 (Provider Real — pré-requisito); PRD-101 (Schema — tabelas que recebem subscriptions); PRD-103 (RLS — filtra eventos Realtime conforme policies); PRD-115 (Envio WhatsApp — produz mensagens que disparam updates); PRD-014 Fase 1 (Painel Gestor — consome realtime); PRD-017 Fase 1 (Pipeline Leads — consome realtime)                                                                                                                  |
+| **Implementação**     | 🔵 Claude Code CLI                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| **Padrão de código**  | Hooks React em `src/hooks/realtime/`; lógica de subscription em `src/providers/supabase/realtime/`                                                                                                                                                                                                                                                                                                                                                 |
 
 ### Critérios de Complexidade
 
@@ -31,6 +31,7 @@ A Fase 1 entregou telas que **carregam uma vez** (`useEffect` + provider) e depe
 2. **Painel Gestor (PRD-014):** gestor monitora pipeline em tempo real. Vendedor da equipe move lead "Negociando" → "Ganho"; KPI de conversão deve refletir imediatamente.
 
 Polling resolve, mas:
+
 - **Latência:** polling a cada 5s = média 2.5s de delay
 - **Custo:** N clientes × queries frequentes = quota egress consumida
 - **UX inferior:** "esperar próxima rodada" sente lento mesmo em LAN
@@ -65,61 +66,66 @@ src/
 
 ```typescript
 // src/hooks/realtime/useSubscription.ts
-import { useEffect, useState } from 'react'
-import { RealtimeManager } from '@/providers/supabase/realtime/RealtimeManager'
-import { useDataProvider } from '@/providers/useDataProvider'
+import { useEffect, useState } from "react";
+import { RealtimeManager } from "@/providers/supabase/realtime/RealtimeManager";
+import { useDataProvider } from "@/providers/useDataProvider";
 
 type SubscriptionOptions<T> = {
-  table: string
-  event?: 'INSERT' | 'UPDATE' | 'DELETE' | '*'
-  filter?: string  // formato Supabase Realtime: 'column=eq.value'
-  schema?: 'crm' | 'storefront'
-  onInsert?: (row: T) => void
-  onUpdate?: (row: T, oldRow: T) => void
-  onDelete?: (oldRow: T) => void
-  enabled?: boolean
-}
+  table: string;
+  event?: "INSERT" | "UPDATE" | "DELETE" | "*";
+  filter?: string; // formato Supabase Realtime: 'column=eq.value'
+  schema?: "crm" | "storefront";
+  onInsert?: (row: T) => void;
+  onUpdate?: (row: T, oldRow: T) => void;
+  onDelete?: (oldRow: T) => void;
+  enabled?: boolean;
+};
 
 export function useSubscription<T>({
   table,
-  event = '*',
+  event = "*",
   filter,
-  schema = 'crm',
+  schema = "crm",
   onInsert,
   onUpdate,
   onDelete,
   enabled = true,
 }: SubscriptionOptions<T>): { connected: boolean; error: Error | null } {
-  const [connected, setConnected] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
+  const [connected, setConnected] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (!enabled) return
+    if (!enabled) return;
 
-    const channelKey = `${schema}.${table}:${filter ?? '*'}`
-    const channel = RealtimeManager.getOrCreateChannel(channelKey, schema, table, event, filter)
+    const channelKey = `${schema}.${table}:${filter ?? "*"}`;
+    const channel = RealtimeManager.getOrCreateChannel(channelKey, schema, table, event, filter);
 
-    const insertHandler = onInsert ? (payload: any) => onInsert(payload.new) : undefined
-    const updateHandler = onUpdate ? (payload: any) => onUpdate(payload.new, payload.old) : undefined
-    const deleteHandler = onDelete ? (payload: any) => onDelete(payload.old) : undefined
+    const insertHandler = onInsert ? (payload: any) => onInsert(payload.new) : undefined;
+    const updateHandler = onUpdate
+      ? (payload: any) => onUpdate(payload.new, payload.old)
+      : undefined;
+    const deleteHandler = onDelete ? (payload: any) => onDelete(payload.old) : undefined;
 
-    if (insertHandler) channel.on('postgres_changes', { event: 'INSERT', table, schema, filter }, insertHandler)
-    if (updateHandler) channel.on('postgres_changes', { event: 'UPDATE', table, schema, filter }, updateHandler)
-    if (deleteHandler) channel.on('postgres_changes', { event: 'DELETE', table, schema, filter }, deleteHandler)
+    if (insertHandler)
+      channel.on("postgres_changes", { event: "INSERT", table, schema, filter }, insertHandler);
+    if (updateHandler)
+      channel.on("postgres_changes", { event: "UPDATE", table, schema, filter }, updateHandler);
+    if (deleteHandler)
+      channel.on("postgres_changes", { event: "DELETE", table, schema, filter }, deleteHandler);
 
-    channel.subscribe(status => {
-      setConnected(status === 'SUBSCRIBED')
-      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-        setError(new Error(`Realtime: ${status}`))
+    channel.subscribe((status) => {
+      setConnected(status === "SUBSCRIBED");
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        setError(new Error(`Realtime: ${status}`));
       }
-    })
+    });
 
     return () => {
-      RealtimeManager.releaseChannel(channelKey)
-    }
-  }, [table, event, filter, schema, enabled])
+      RealtimeManager.releaseChannel(channelKey);
+    };
+  }, [table, event, filter, schema, enabled]);
 
-  return { connected, error }
+  return { connected, error };
 }
 ```
 
@@ -127,28 +133,28 @@ export function useSubscription<T>({
 
 ```typescript
 // src/hooks/realtime/useMessagesRealtime.ts
-import { useSubscription } from './useSubscription'
-import { useState, useCallback } from 'react'
-import type { IMessage } from '@/types/domain/message'
-import { rowToMessage } from '@/providers/supabase/mappers/message'
+import { useSubscription } from "./useSubscription";
+import { useState, useCallback } from "react";
+import type { IMessage } from "@/types/domain/message";
+import { rowToMessage } from "@/providers/supabase/mappers/message";
 
 export function useMessagesRealtime(conversationId: string) {
-  const [newMessages, setNewMessages] = useState<IMessage[]>([])
+  const [newMessages, setNewMessages] = useState<IMessage[]>([]);
 
   const handleInsert = useCallback((row: any) => {
-    setNewMessages(prev => [...prev, rowToMessage(row)])
-  }, [])
+    setNewMessages((prev) => [...prev, rowToMessage(row)]);
+  }, []);
 
   const { connected, error } = useSubscription({
-    table: 'messages',
-    schema: 'crm',
-    event: 'INSERT',
+    table: "messages",
+    schema: "crm",
+    event: "INSERT",
     filter: `conversation_id=eq.${conversationId}`,
     onInsert: handleInsert,
     enabled: !!conversationId,
-  })
+  });
 
-  return { newMessages, connected, error }
+  return { newMessages, connected, error };
 }
 ```
 
@@ -158,46 +164,52 @@ Centraliza gestão de channels para evitar criar 50 channels para a mesma tabela
 
 ```typescript
 // src/providers/supabase/realtime/RealtimeManager.ts
-import { RealtimeChannel } from '@supabase/supabase-js'
-import { crmClient, lojaClient } from '../clients'
+import { RealtimeChannel } from "@supabase/supabase-js";
+import { crmClient, lojaClient } from "../clients";
 
 class _RealtimeManager {
-  private channels = new Map<string, { channel: RealtimeChannel; refCount: number }>()
+  private channels = new Map<string, { channel: RealtimeChannel; refCount: number }>();
 
-  getOrCreateChannel(key: string, schema: string, table: string, event: string, filter?: string): RealtimeChannel {
-    const existing = this.channels.get(key)
+  getOrCreateChannel(
+    key: string,
+    schema: string,
+    table: string,
+    event: string,
+    filter?: string,
+  ): RealtimeChannel {
+    const existing = this.channels.get(key);
     if (existing) {
-      existing.refCount++
-      return existing.channel
+      existing.refCount++;
+      return existing.channel;
     }
-    const client = schema === 'storefront' ? lojaClient : crmClient
-    const channel = client.channel(key)
-    this.channels.set(key, { channel, refCount: 1 })
-    return channel
+    const client = schema === "storefront" ? lojaClient : crmClient;
+    const channel = client.channel(key);
+    this.channels.set(key, { channel, refCount: 1 });
+    return channel;
   }
 
   releaseChannel(key: string): void {
-    const entry = this.channels.get(key)
-    if (!entry) return
-    entry.refCount--
+    const entry = this.channels.get(key);
+    if (!entry) return;
+    entry.refCount--;
     if (entry.refCount === 0) {
-      entry.channel.unsubscribe()
-      this.channels.delete(key)
+      entry.channel.unsubscribe();
+      this.channels.delete(key);
     }
   }
 
   releaseAll(): void {
-    for (const [, entry] of this.channels) entry.channel.unsubscribe()
-    this.channels.clear()
+    for (const [, entry] of this.channels) entry.channel.unsubscribe();
+    this.channels.clear();
   }
 }
 
-export const RealtimeManager = new _RealtimeManager()
+export const RealtimeManager = new _RealtimeManager();
 ```
 
 ### RLS aplicado a Realtime
 
-Supabase Realtime **respeita RLS automaticamente** — eventos filtrados server-side antes de saírem para o WebSocket. Vendedor A não recebe evento de UPDATE em customer de vendedor B mesmo subscrevendo "*".
+Supabase Realtime **respeita RLS automaticamente** — eventos filtrados server-side antes de saírem para o WebSocket. Vendedor A não recebe evento de UPDATE em customer de vendedor B mesmo subscrevendo "\*".
 
 **Implicação:** subscriptions podem ser "amplas" no cliente (ex: `table: 'customers'` sem filter); RLS limita o que chega. Mas filtros server-side via `filter: 'seller_id=eq.<id>'` reduzem tráfego de rede (Realtime filtra antes de processar).
 
@@ -211,15 +223,15 @@ Cenário: 100 mensagens em 5 segundos → 100 re-renders. Solução: o hook acum
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que descartada |
-|-------------|--------------------|
-| Polling com setInterval | Funciona mas latência alta + custo de egress |
-| Server-Sent Events (SSE) próprio | Reinventaria a roda. Supabase já tem Realtime gerenciado |
-| Pusher / Ably (provider externo) | Custo adicional, integração extra, sem ganho real |
+| Alternativa                                          | Por que descartada                                                                     |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Polling com setInterval                              | Funciona mas latência alta + custo de egress                                           |
+| Server-Sent Events (SSE) próprio                     | Reinventaria a roda. Supabase já tem Realtime gerenciado                               |
+| Pusher / Ably (provider externo)                     | Custo adicional, integração extra, sem ganho real                                      |
 | Realtime sem filtro server-side (`filter` no client) | Tráfego de rede 10× maior — vendedor recebe eventos da loja toda e descarta no cliente |
-| Reescrever provider para incluir auto-realtime | Acopla demais — provider para CRUD, hooks para subscriptions é mais clean |
-| React Query / SWR para Realtime | Adiciona dependência grande; hook customizado resolve com menos código |
-| WebSocket próprio em Edge Function | Edge Functions não são WebSocket-friendly; Supabase Realtime é o caminho |
+| Reescrever provider para incluir auto-realtime       | Acopla demais — provider para CRUD, hooks para subscriptions é mais clean              |
+| React Query / SWR para Realtime                      | Adiciona dependência grande; hook customizado resolve com menos código                 |
+| WebSocket próprio em Edge Function                   | Edge Functions não são WebSocket-friendly; Supabase Realtime é o caminho               |
 
 ---
 
@@ -278,7 +290,7 @@ Cenário: 100 mensagens em 5 segundos → 100 re-renders. Solução: o hook acum
 ### Hook Genérico `useSubscription<T>`
 
 - **RF-020:** Implementar em `src/hooks/realtime/useSubscription.ts`.
-- **RF-021:** Aceitar opções: `table`, `event` ('INSERT' | 'UPDATE' | 'DELETE' | '*'), `filter` (formato Supabase: `column=eq.value`), `schema` ('crm' | 'storefront'), `onInsert/onUpdate/onDelete` (callbacks), `enabled` (boolean para condicional).
+- **RF-021:** Aceitar opções: `table`, `event` ('INSERT' | 'UPDATE' | 'DELETE' | '\*'), `filter` (formato Supabase: `column=eq.value`), `schema` ('crm' | 'storefront'), `onInsert/onUpdate/onDelete` (callbacks), `enabled` (boolean para condicional).
 - **RF-022:** Retornar `{ connected: boolean, error: Error | null }` para UI exibir status.
 - **RF-023:** Em mount: chamar `RealtimeManager.getOrCreateChannel` e atachar handlers.
 - **RF-024:** Em unmount: chamar `RealtimeManager.releaseChannel` — limpeza garantida mesmo com erro no componente.
@@ -578,14 +590,14 @@ ENTÃO ambas as telas funcionam concorrentemente
 
 ## Convenções de Código (Referência Rápida)
 
-| Elemento | Convenção | Exemplo |
-|----------|-----------|---------|
-| **Diretório hooks** | `src/hooks/realtime/` | `useMessagesRealtime.ts` |
-| **Diretório provider** | `src/providers/supabase/realtime/` | `RealtimeManager.ts` |
-| **Hook naming** | `use<Entidade>Realtime` | `useLeadsRealtime` |
-| **Channel key** | `<schema>.<table>:<filter>` | `crm.messages:conversation_id=eq.X` |
-| **Filter format** | Supabase Realtime nativo | `column=eq.value`, `column=in.(a,b,c)` |
-| **Status enum** | `'connected' \| 'connecting' \| 'disconnected'` | — |
+| Elemento               | Convenção                                       | Exemplo                                |
+| ---------------------- | ----------------------------------------------- | -------------------------------------- |
+| **Diretório hooks**    | `src/hooks/realtime/`                           | `useMessagesRealtime.ts`               |
+| **Diretório provider** | `src/providers/supabase/realtime/`              | `RealtimeManager.ts`                   |
+| **Hook naming**        | `use<Entidade>Realtime`                         | `useLeadsRealtime`                     |
+| **Channel key**        | `<schema>.<table>:<filter>`                     | `crm.messages:conversation_id=eq.X`    |
+| **Filter format**      | Supabase Realtime nativo                        | `column=eq.value`, `column=in.(a,b,c)` |
+| **Status enum**        | `'connected' \| 'connecting' \| 'disconnected'` | —                                      |
 
 ---
 
@@ -602,6 +614,7 @@ ENTÃO ambas as telas funcionam concorrentemente
 > ⚠️ **1. ANTES DE IMPLEMENTAR:** Estude o lifecycle de subscriptions Supabase JS (`channel`, `subscribe`, `unsubscribe`). Verifique que `RealtimeManager` realmente compartilha channels (otimização de conexões).
 
 > ⚠️ **2. APÓS IMPLEMENTAR:**
+>
 > - Bump v2.0.0-rc.5
 > - CHANGELOG: hooks criados, telas integradas
 > - Renomear `PRD-105-realtime_DONE.md`
@@ -610,60 +623,60 @@ ENTÃO ambas as telas funcionam concorrentemente
 
 ### Princípios de Implementação
 
-| Princípio | Descrição |
-|-----------|-----------|
-| **Cleanup obsessivo** | Toda subscription tem retorno de cleanup. Memory leak = bug crítico |
-| **Reuse de channels** | RealtimeManager é central; nunca criar channel direto fora dele |
-| **RLS confiança** | Cliente pode subscrever amplo; servidor filtra |
-| **Refetch após reconnect** | Realtime não garante delivery em disconnect; refetch reconcilia |
-| **Logger estruturado** | Connect/disconnect logados em debug; útil para diagnóstico |
-| **UX feedback** | Badge sempre presente, sutil — usuário sabe se está em tempo real |
+| Princípio                  | Descrição                                                           |
+| -------------------------- | ------------------------------------------------------------------- |
+| **Cleanup obsessivo**      | Toda subscription tem retorno de cleanup. Memory leak = bug crítico |
+| **Reuse de channels**      | RealtimeManager é central; nunca criar channel direto fora dele     |
+| **RLS confiança**          | Cliente pode subscrever amplo; servidor filtra                      |
+| **Refetch após reconnect** | Realtime não garante delivery em disconnect; refetch reconcilia     |
+| **Logger estruturado**     | Connect/disconnect logados em debug; útil para diagnóstico          |
+| **UX feedback**            | Badge sempre presente, sutil — usuário sabe se está em tempo real   |
 
 ### Orientações Específicas
 
-| Aspecto | Orientação |
-|---------|------------|
-| **Filter syntax** | `column=eq.value`, `column=in.(a,b)`, `column=gt.10` — não é SQL, é DSL Supabase |
-| **Multiple events** | Use `*` se precisa I/U/D; senão escolha o específico (mais barato) |
-| **Channel naming** | Único por filtro — `crm.messages:conversation_id=eq.X` é diferente de `crm.messages:conversation_id=eq.Y` |
-| **useCallback** | Handlers passados a useSubscription DEVEM ser estáveis (useCallback) — senão re-subscreve em cada render |
-| **Status badge UX** | Não chame atenção quando tá tudo bem (oculto após 3s); destaque apenas em problema |
-| **Logging** | `console.debug` no dev; logger estruturado quando PRD-110 ativar |
+| Aspecto             | Orientação                                                                                                |
+| ------------------- | --------------------------------------------------------------------------------------------------------- |
+| **Filter syntax**   | `column=eq.value`, `column=in.(a,b)`, `column=gt.10` — não é SQL, é DSL Supabase                          |
+| **Multiple events** | Use `*` se precisa I/U/D; senão escolha o específico (mais barato)                                        |
+| **Channel naming**  | Único por filtro — `crm.messages:conversation_id=eq.X` é diferente de `crm.messages:conversation_id=eq.Y` |
+| **useCallback**     | Handlers passados a useSubscription DEVEM ser estáveis (useCallback) — senão re-subscreve em cada render  |
+| **Status badge UX** | Não chame atenção quando tá tudo bem (oculto após 3s); destaque apenas em problema                        |
+| **Logging**         | `console.debug` no dev; logger estruturado quando PRD-110 ativar                                          |
 
 ### O que NÃO Fazer
 
-| ❌ Evitar |
-|-----------|
+| ❌ Evitar                                                             |
+| --------------------------------------------------------------------- |
 | Criar channel direto via `supabase.channel()` fora do RealtimeManager |
-| Esquecer cleanup no useEffect (memory leak garantido) |
-| Subscriptions com `*` sem necessidade (mais tráfego) |
-| Confiar em delivery garantida — Realtime é best-effort |
-| Re-render storm sem throttle em volumes altos |
-| Realtime para dados raramente acessados (gasta quota) |
-| Polling complementar redundante "por segurança" |
-| Optimistic UI sem rollback (escopo PRD-105 não inclui) |
-| Logar payloads sensíveis no console |
-| Subscriptions em `storefront` sem necessidade clara |
+| Esquecer cleanup no useEffect (memory leak garantido)                 |
+| Subscriptions com `*` sem necessidade (mais tráfego)                  |
+| Confiar em delivery garantida — Realtime é best-effort                |
+| Re-render storm sem throttle em volumes altos                         |
+| Realtime para dados raramente acessados (gasta quota)                 |
+| Polling complementar redundante "por segurança"                       |
+| Optimistic UI sem rollback (escopo PRD-105 não inclui)                |
+| Logar payloads sensíveis no console                                   |
+| Subscriptions em `storefront` sem necessidade clara                   |
 
 ---
 
 ## Status de Implementação
 
-| Campo | Valor |
-|-------|-------|
-| **Status** | ⏳ PENDENTE |
-| **Data de Implementação** | - |
-| **Versão do App** | - |
-| **Implementado por** | - |
-| **Observações** | - |
+| Campo                     | Valor       |
+| ------------------------- | ----------- |
+| **Status**                | ⏳ PENDENTE |
+| **Data de Implementação** | -           |
+| **Versão do App**         | -           |
+| **Implementado por**      | -           |
+| **Observações**           | -           |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 27/05/2026 | v1 | Criação inicial — Sub-lote 1b do Lote 1 (Onda 4) |
+| Data       | Versão | Alteração                                        |
+| ---------- | ------ | ------------------------------------------------ |
+| 27/05/2026 | v1     | Criação inicial — Sub-lote 1b do Lote 1 (Onda 4) |
 
 ---
 

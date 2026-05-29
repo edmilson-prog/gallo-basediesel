@@ -2,19 +2,19 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _Repositório vivo da Fase 1, diretório `src/providers/supabase/`_ |
-| **Objetivo** | Implementar `SupabaseDataProvider` substituindo o stub criado no PRD-005 Fase 1, mantendo **interface 100% estável** (drop-in replacement). Configurar 2 clients React (`crmClient`, `lojaClient`) com schemas distintos. Mapeamento automático camelCase ↔ snake_case. Tratamento padronizado de erros (RLS denial, constraint violations, integration errors). Quando `VITE_DATA_SOURCE=supabase`, a aplicação roda contra banco real sem refatoração nos consumidores |
-| **Tipo** | Feature |
-| **Complexidade** | Crítica |
-| **Total de Fases** | 5 |
-| **Prioridade** | P0 — destrava o "lado real" do switch e abre todas as Ondas 5+ |
-| **Épico** | Onda 4 — Backend Supabase Real (v2.0.0 Engine) |
-| **PRDs Relacionados** | PRD-005 Fase 1 (Provider Pattern — fonte da interface); PRD-002 Fase 1 (modelo conceitual); PRD-101 (Schema — tabelas que este provider acessa); PRD-103 (RLS — segurança); PRD-107 (Auth — JWT com claims); PRD-102 (Edge Functions — operações privilegiadas); PRD-108 (Performance — caching opcional) |
-| **Implementação** | 🔵 Claude Code CLI |
-| **Padrão de código** | Feature-based; código em `src/providers/supabase/`; uma classe `SupabaseDataProvider` ou conjunto de módulos funcionais (decisão do dev — interface única deve ser preservada) |
+| Campo                 | Valor                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| **Repositório**       | _Repositório vivo da Fase 1, diretório `src/providers/supabase/`_                                                                                                                                                                                                                                                                                                                                                                                                        |
+| **Objetivo**          | Implementar `SupabaseDataProvider` substituindo o stub criado no PRD-005 Fase 1, mantendo **interface 100% estável** (drop-in replacement). Configurar 2 clients React (`crmClient`, `lojaClient`) com schemas distintos. Mapeamento automático camelCase ↔ snake_case. Tratamento padronizado de erros (RLS denial, constraint violations, integration errors). Quando `VITE_DATA_SOURCE=supabase`, a aplicação roda contra banco real sem refatoração nos consumidores |
+| **Tipo**              | Feature                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| **Complexidade**      | Crítica                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| **Total de Fases**    | 5                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| **Prioridade**        | P0 — destrava o "lado real" do switch e abre todas as Ondas 5+                                                                                                                                                                                                                                                                                                                                                                                                           |
+| **Épico**             | Onda 4 — Backend Supabase Real (v2.0.0 Engine)                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| **PRDs Relacionados** | PRD-005 Fase 1 (Provider Pattern — fonte da interface); PRD-002 Fase 1 (modelo conceitual); PRD-101 (Schema — tabelas que este provider acessa); PRD-103 (RLS — segurança); PRD-107 (Auth — JWT com claims); PRD-102 (Edge Functions — operações privilegiadas); PRD-108 (Performance — caching opcional)                                                                                                                                                                |
+| **Implementação**     | 🔵 Claude Code CLI                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| **Padrão de código**  | Feature-based; código em `src/providers/supabase/`; uma classe `SupabaseDataProvider` ou conjunto de módulos funcionais (decisão do dev — interface única deve ser preservada)                                                                                                                                                                                                                                                                                           |
 
 ### Critérios de Complexidade
 
@@ -25,12 +25,14 @@
 ## Contexto do Problema
 
 A Fase 1 entregou o **Provider Pattern** (PRD-005) com 2 implementações:
+
 - `MockDataProvider` — operacional, retorna dados de `src/mocks/`
 - `SupabaseDataProvider` — **stub**, lança `NotImplementedError` em todo método
 
 O switch `VITE_DATA_SOURCE=mock|supabase` na verdade só funciona com mock. Por mais que tabelas, RLS e Edge Functions já estejam prontas (PRDs 101, 102, 103), o frontend não consegue consumir — falta o tradutor entre o mundo TS (camelCase, interfaces) e o mundo SQL (snake_case, JSONB).
 
 Este PRD **destrava o switch**. Após este PRD:
+
 - `VITE_DATA_SOURCE=supabase npm run dev` roda contra staging real
 - Login com user existente, navegação por todas as telas Fase 1, listagens, filtros, ordenações funcionam
 - Mocks continuam operacionais (`VITE_DATA_SOURCE=mock`) — não removemos nada
@@ -75,21 +77,21 @@ Conforme decisão consolidada do briefing v1.3 §4.3:
 
 ```typescript
 // src/providers/supabase/clients.ts
-import { createClient } from '@supabase/supabase-js'
-import type { Database } from '@/types/supabase.generated'
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/supabase.generated";
 
-const URL = import.meta.env.VITE_SUPABASE_URL!
-const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY!
+const URL = import.meta.env.VITE_SUPABASE_URL!;
+const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY!;
 
 export const crmClient = createClient<Database>(URL, ANON_KEY, {
-  db: { schema: 'crm' },
+  db: { schema: "crm" },
   auth: { persistSession: true, autoRefreshToken: true },
-})
+});
 
 export const lojaClient = createClient<Database>(URL, ANON_KEY, {
-  db: { schema: 'storefront' },
+  db: { schema: "storefront" },
   auth: { persistSession: true, autoRefreshToken: true },
-})
+});
 ```
 
 Componentes do `/app`, `/pwa`, `/portal` consomem via `SupabaseDataProvider` (que internamente usa `crmClient`).
@@ -103,10 +105,10 @@ Padrão funcional:
 
 ```typescript
 // src/providers/supabase/mappers/customer.ts
-import type { Database } from '@/types/supabase.generated'
-import type { ICustomer } from '@/types/domain/customer'
+import type { Database } from "@/types/supabase.generated";
+import type { ICustomer } from "@/types/domain/customer";
 
-type CustomerRow = Database['crm']['Tables']['customers']['Row']
+type CustomerRow = Database["crm"]["Tables"]["customers"]["Row"];
 
 export function rowToCustomer(row: CustomerRow): ICustomer {
   return {
@@ -115,22 +117,24 @@ export function rowToCustomer(row: CustomerRow): ICustomer {
     sellerId: row.seller_id,
     name: row.name,
     document: row.document,
-    documentType: row.document_type as 'cpf' | 'cnpj' | null,
+    documentType: row.document_type as "cpf" | "cnpj" | null,
     email: row.email,
     phone: row.phone,
     whatsapp: row.whatsapp,
-    address: row.address as ICustomer['address'],  // jsonb → objeto tipado
-    customerType: row.customer_type as 'b2c' | 'b2b',
+    address: row.address as ICustomer["address"], // jsonb → objeto tipado
+    customerType: row.customer_type as "b2c" | "b2b",
     segmentationTags: row.segmentation_tags ?? [],
-    consentRecords: row.consent_records as ICustomer['consentRecords'],
-    lgpdStatus: row.lgpd_status as ICustomer['lgpdStatus'],
+    consentRecords: row.consent_records as ICustomer["consentRecords"],
+    lgpdStatus: row.lgpd_status as ICustomer["lgpdStatus"],
     isActive: row.is_active,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-  }
+  };
 }
 
-export function customerToInsert(customer: Omit<ICustomer, 'id' | 'createdAt' | 'updatedAt'>): Database['crm']['Tables']['customers']['Insert'] {
+export function customerToInsert(
+  customer: Omit<ICustomer, "id" | "createdAt" | "updatedAt">,
+): Database["crm"]["Tables"]["customers"]["Insert"] {
   return {
     store_id: customer.storeId,
     seller_id: customer.sellerId,
@@ -146,7 +150,7 @@ export function customerToInsert(customer: Omit<ICustomer, 'id' | 'createdAt' | 
     consent_records: customer.consentRecords,
     lgpd_status: customer.lgpdStatus,
     is_active: customer.isActive,
-  }
+  };
 }
 ```
 
@@ -158,28 +162,37 @@ Padrão:
 
 ```typescript
 // src/providers/supabase/errors.ts
-import { PostgrestError } from '@supabase/supabase-js'
-import { AppError } from '@/shared/errors'
+import { PostgrestError } from "@supabase/supabase-js";
+import { AppError } from "@/shared/errors";
 
-export function mapSupabaseError(error: PostgrestError | Error, context: { operation: string }): AppError {
-  if ('code' in error) {
-    const pgError = error as PostgrestError
+export function mapSupabaseError(
+  error: PostgrestError | Error,
+  context: { operation: string },
+): AppError {
+  if ("code" in error) {
+    const pgError = error as PostgrestError;
     switch (pgError.code) {
-      case '23505': // unique violation
-        return new AppError('CONFLICT', 409, 'Registro duplicado', pgError.message, context)
-      case '23503': // foreign key violation
-        return new AppError('VALIDATION_ERROR', 422, 'Referência inválida', pgError.message, context)
-      case '23514': // check violation (constraint, ex: snapshot schema)
-        return new AppError('VALIDATION_ERROR', 422, 'Dados inválidos', pgError.message, context)
-      case '42501': // permission denied (RLS)
-        return new AppError('FORBIDDEN', 403, 'Acesso negado', pgError.message, context)
-      case 'PGRST116': // no rows from .single()
-        return new AppError('NOT_FOUND', 404, 'Registro não encontrado', pgError.message, context)
+      case "23505": // unique violation
+        return new AppError("CONFLICT", 409, "Registro duplicado", pgError.message, context);
+      case "23503": // foreign key violation
+        return new AppError(
+          "VALIDATION_ERROR",
+          422,
+          "Referência inválida",
+          pgError.message,
+          context,
+        );
+      case "23514": // check violation (constraint, ex: snapshot schema)
+        return new AppError("VALIDATION_ERROR", 422, "Dados inválidos", pgError.message, context);
+      case "42501": // permission denied (RLS)
+        return new AppError("FORBIDDEN", 403, "Acesso negado", pgError.message, context);
+      case "PGRST116": // no rows from .single()
+        return new AppError("NOT_FOUND", 404, "Registro não encontrado", pgError.message, context);
       default:
-        return new AppError('INTERNAL_ERROR', 500, 'Erro interno', pgError.message, context)
+        return new AppError("INTERNAL_ERROR", 500, "Erro interno", pgError.message, context);
     }
   }
-  return new AppError('INTERNAL_ERROR', 500, 'Erro de rede', error.message, context)
+  return new AppError("INTERNAL_ERROR", 500, "Erro de rede", error.message, context);
 }
 ```
 
@@ -191,14 +204,14 @@ Algumas operações exigem `service_role` (bypass RLS) — refresh de view, writ
 
 ```typescript
 // src/providers/supabase/invocations/writeAuditLog.ts
-import { crmClient } from '../clients'
-import type { AuditLogInput } from '@/types/domain/audit'
+import { crmClient } from "../clients";
+import type { AuditLogInput } from "@/types/domain/audit";
 
 export async function writeAuditLog(input: AuditLogInput): Promise<void> {
-  const { error } = await crmClient.functions.invoke('audit-write', {
+  const { error } = await crmClient.functions.invoke("audit-write", {
     body: input,
-  })
-  if (error) throw new AppError('INTEGRATION_ERROR', 500, 'Audit log falhou', error.message)
+  });
+  if (error) throw new AppError("INTEGRATION_ERROR", 500, "Audit log falhou", error.message);
 }
 ```
 
@@ -214,15 +227,15 @@ Para o MVP deste PRD, cache pode ser **opt-in** (desabilitado por default) — h
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que descartada |
-|-------------|--------------------|
-| ORM como Prisma | Adiciona camada extra; provider já abstrai. Não compensa |
-| Reflection/Decorators para mapeamento | Magic difícil de debugar. Mappers explícitos são chatos mas claros |
-| Provider único multi-schema (sem 2 clients) | Mais complexo internamente (passar schema em cada query). 2 clients é clearer |
-| Cache distribuído (Redis) | Overkill para MVP. Cache in-memory resolve |
-| RPC functions Postgres para tudo | RPC para casos específicos é útil; para CRUD direto, PostgREST nativo é melhor |
-| Repository pattern (camada extra) | Provider já é o repository. Mais camadas = mais boilerplate |
-| Substituir mocks (deletar) | Mocks continuam vivos para demos, treino, dev sem rede. Briefing v1.3 §5.2 garantiu |
+| Alternativa                                 | Por que descartada                                                                  |
+| ------------------------------------------- | ----------------------------------------------------------------------------------- |
+| ORM como Prisma                             | Adiciona camada extra; provider já abstrai. Não compensa                            |
+| Reflection/Decorators para mapeamento       | Magic difícil de debugar. Mappers explícitos são chatos mas claros                  |
+| Provider único multi-schema (sem 2 clients) | Mais complexo internamente (passar schema em cada query). 2 clients é clearer       |
+| Cache distribuído (Redis)                   | Overkill para MVP. Cache in-memory resolve                                          |
+| RPC functions Postgres para tudo            | RPC para casos específicos é útil; para CRUD direto, PostgREST nativo é melhor      |
+| Repository pattern (camada extra)           | Provider já é o repository. Mais camadas = mais boilerplate                         |
+| Substituir mocks (deletar)                  | Mocks continuam vivos para demos, treino, dev sem rede. Briefing v1.3 §5.2 garantiu |
 
 ---
 
@@ -617,15 +630,15 @@ ENTÃO lança erro claro "VITE_DATA_SOURCE deve ser 'mock' ou 'supabase', recebi
 
 ## Convenções de Código (Referência Rápida)
 
-| Elemento | Convenção | Exemplo |
-|----------|-----------|---------|
-| **Diretório provider** | `src/providers/supabase/` | — |
-| **Clients** | exports nomeados singletons | `export const crmClient = ...` |
-| **Mappers** | funções `rowTo<X>` e `<x>ToInsert/Update` | `rowToCustomer`, `customerToInsert` |
-| **Files** | kebab-case ou camelCase consistente | `customer.ts` (camelCase preferido para TS) |
-| **Edge Function invocation** | wrapper em `invocations/` | `writeAuditLog.ts` |
-| **Provider methods** | camelCase verbo + entidade | `listCustomers`, `getCustomerById` |
-| **Error class** | reutilizar `AppError` do `_shared` se possível | importar do PRD-102 ou shared module |
+| Elemento                     | Convenção                                      | Exemplo                                     |
+| ---------------------------- | ---------------------------------------------- | ------------------------------------------- |
+| **Diretório provider**       | `src/providers/supabase/`                      | —                                           |
+| **Clients**                  | exports nomeados singletons                    | `export const crmClient = ...`              |
+| **Mappers**                  | funções `rowTo<X>` e `<x>ToInsert/Update`      | `rowToCustomer`, `customerToInsert`         |
+| **Files**                    | kebab-case ou camelCase consistente            | `customer.ts` (camelCase preferido para TS) |
+| **Edge Function invocation** | wrapper em `invocations/`                      | `writeAuditLog.ts`                          |
+| **Provider methods**         | camelCase verbo + entidade                     | `listCustomers`, `getCustomerById`          |
+| **Error class**              | reutilizar `AppError` do `_shared` se possível | importar do PRD-102 ou shared module        |
 
 ---
 
@@ -642,6 +655,7 @@ ENTÃO lança erro claro "VITE_DATA_SOURCE deve ser 'mock' ou 'supabase', recebi
 > ⚠️ **1. ANTES DE IMPLEMENTAR:** Releia PRD-005 Fase 1 completo para conhecer a interface IDataProvider exata. Releia mappers como referência. Use os tipos gerados em `src/types/supabase.generated.ts` (PRD-101).
 
 > ⚠️ **2. APÓS IMPLEMENTAR:**
+>
 > - Bump app para v2.0.0-rc.4
 > - CHANGELOG detalhado por entidade implementada
 > - Renomear `PRD-104-substituir-providers-supabase_DONE.md`
@@ -650,63 +664,63 @@ ENTÃO lança erro claro "VITE_DATA_SOURCE deve ser 'mock' ou 'supabase', recebi
 
 ### Princípios de Implementação
 
-| Princípio | Descrição |
-|-----------|-----------|
-| **Drop-in is sacred** | Zero modificação em consumidores. Se precisa modificar, pare e reveja |
-| **Mappers explícitos** | Sem magic. Cada campo mapeado à mão é melhor que reflection |
-| **Erros nunca vazam internos** | userMessage genérico; internalMessage apenas em log |
-| **RLS é a fonte de verdade** | Provider não filtra duplicado — confia em RLS |
-| **Cache é opt-in** | Default off; habilitar só onde profiling justifica |
-| **Test mappers obsessivamente** | Round-trip é fácil de testar; bugs aqui são silenciosos |
-| **Edge Function para privilegiado** | Audit log, refresh, batch — service_role só via Edge |
+| Princípio                           | Descrição                                                             |
+| ----------------------------------- | --------------------------------------------------------------------- |
+| **Drop-in is sacred**               | Zero modificação em consumidores. Se precisa modificar, pare e reveja |
+| **Mappers explícitos**              | Sem magic. Cada campo mapeado à mão é melhor que reflection           |
+| **Erros nunca vazam internos**      | userMessage genérico; internalMessage apenas em log                   |
+| **RLS é a fonte de verdade**        | Provider não filtra duplicado — confia em RLS                         |
+| **Cache é opt-in**                  | Default off; habilitar só onde profiling justifica                    |
+| **Test mappers obsessivamente**     | Round-trip é fácil de testar; bugs aqui são silenciosos               |
+| **Edge Function para privilegiado** | Audit log, refresh, batch — service_role só via Edge                  |
 
 ### Orientações Específicas
 
-| Aspecto | Orientação |
-|---------|------------|
-| **TypeScript Database type** | `Database['crm']['Tables']['customers']['Row']` — nunca usar `any` |
-| **JSONB columns** | Definir interface TS auxiliar para o conteúdo; cast explícito no mapper |
-| **Snapshots** | Mappers de quote_item, order_item, commission devem mapear snapshots como objetos tipados |
-| **Boolean defaults** | Postgres pode retornar null mesmo em coluna NOT NULL DEFAULT false em casos raros (legacy); validar |
-| **Date handling** | timestamptz vem como string ISO. Manter assim no domain ou converter para Date? **Manter string** (consistência com mocks Fase 1) |
-| **Paginação** | `{ count: 'exact' }` em first call para `total`; subsequent fetches sem `count` para perf |
-| **MCP debugging** | Use `Supabase:execute_sql` para validar queries direto no banco antes de implementar no provider |
+| Aspecto                      | Orientação                                                                                                                        |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| **TypeScript Database type** | `Database['crm']['Tables']['customers']['Row']` — nunca usar `any`                                                                |
+| **JSONB columns**            | Definir interface TS auxiliar para o conteúdo; cast explícito no mapper                                                           |
+| **Snapshots**                | Mappers de quote_item, order_item, commission devem mapear snapshots como objetos tipados                                         |
+| **Boolean defaults**         | Postgres pode retornar null mesmo em coluna NOT NULL DEFAULT false em casos raros (legacy); validar                               |
+| **Date handling**            | timestamptz vem como string ISO. Manter assim no domain ou converter para Date? **Manter string** (consistência com mocks Fase 1) |
+| **Paginação**                | `{ count: 'exact' }` em first call para `total`; subsequent fetches sem `count` para perf                                         |
+| **MCP debugging**            | Use `Supabase:execute_sql` para validar queries direto no banco antes de implementar no provider                                  |
 
 ### O que NÃO Fazer
 
-| ❌ Evitar |
-|-----------|
-| Modificar consumidores (componentes, hooks, telas) |
-| Acessar `lojaClient` em `/app` ou `crmClient` em `/loja` |
-| Usar `service_role` no frontend (apenas via Edge Function) |
-| Engolir erros (sempre via `mapSupabaseError`) |
-| Mappers que dependem de input externo (devem ser puros) |
-| Lançar erros não-AppError (use a classe consistentemente) |
-| Logar dados de cliente em produção (PII vazamento) |
+| ❌ Evitar                                                             |
+| --------------------------------------------------------------------- |
+| Modificar consumidores (componentes, hooks, telas)                    |
+| Acessar `lojaClient` em `/app` ou `crmClient` em `/loja`              |
+| Usar `service_role` no frontend (apenas via Edge Function)            |
+| Engolir erros (sempre via `mapSupabaseError`)                         |
+| Mappers que dependem de input externo (devem ser puros)               |
+| Lançar erros não-AppError (use a classe consistentemente)             |
+| Logar dados de cliente em produção (PII vazamento)                    |
 | Reusar tipos gerados como tipo de domínio (sempre passar pelo mapper) |
-| Cache aggressive em listings com filtros (apenas single-record) |
-| Esquecer de tratar `null` em colunas optional |
-| Quebrar drop-in alterando interface de IDataProvider |
+| Cache aggressive em listings com filtros (apenas single-record)       |
+| Esquecer de tratar `null` em colunas optional                         |
+| Quebrar drop-in alterando interface de IDataProvider                  |
 
 ---
 
 ## Status de Implementação
 
-| Campo | Valor |
-|-------|-------|
-| **Status** | ⏳ PENDENTE |
-| **Data de Implementação** | - |
-| **Versão do App** | - |
-| **Implementado por** | - |
-| **Observações** | - |
+| Campo                     | Valor       |
+| ------------------------- | ----------- |
+| **Status**                | ⏳ PENDENTE |
+| **Data de Implementação** | -           |
+| **Versão do App**         | -           |
+| **Implementado por**      | -           |
+| **Observações**           | -           |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 27/05/2026 | v1 | Criação inicial — Sub-lote 1b do Lote 1 (Onda 4) |
+| Data       | Versão | Alteração                                        |
+| ---------- | ------ | ------------------------------------------------ |
+| 27/05/2026 | v1     | Criação inicial — Sub-lote 1b do Lote 1 (Onda 4) |
 
 ---
 

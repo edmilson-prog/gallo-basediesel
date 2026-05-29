@@ -2,20 +2,20 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _A definir após criação no Lovable_ |
-| **Objetivo** | Construir o sistema de gestão de despesas operacionais — CRUD de lançamentos, categorias, recorrências, regime de competência (alimenta DRE) e pagamento (alimenta Fluxo de Caixa) — substituindo os valores fixos mockados do PRD-048 |
-| **Tipo** | Feature |
-| **Complexidade** | Alta |
-| **Total de Fases** | 5 |
-| **Prioridade** | Alta |
-| **Épico** | Bloco 4 — Gestão B (Onda 2) |
-| **PRDs Relacionados** | PRD-019 (Configurações), PRD-032 (Pedido), PRD-047 (Comissões — despesa derivada), PRD-048 (DRE — consome), PRD-055 (Fluxo de Caixa — consome) |
-| **Implementação** | 🔵 Claude Code CLI |
-| **Padrão de código** | Feature-based; código em `src/features/expenses/`; rota `/app/gestao/despesas` |
-| **Origem** | Gap identificado no double-check de 28/05/2026 — slot originalmente planejado como PRD-050 no INDEX v1.0, deslocado durante redação do Bloco 4b; recuperado como PRD-054 |
+| Campo                 | Valor                                                                                                                                                                                                                                  |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                                                               |
+| **Repositório**       | _A definir após criação no Lovable_                                                                                                                                                                                                    |
+| **Objetivo**          | Construir o sistema de gestão de despesas operacionais — CRUD de lançamentos, categorias, recorrências, regime de competência (alimenta DRE) e pagamento (alimenta Fluxo de Caixa) — substituindo os valores fixos mockados do PRD-048 |
+| **Tipo**              | Feature                                                                                                                                                                                                                                |
+| **Complexidade**      | Alta                                                                                                                                                                                                                                   |
+| **Total de Fases**    | 5                                                                                                                                                                                                                                      |
+| **Prioridade**        | Alta                                                                                                                                                                                                                                   |
+| **Épico**             | Bloco 4 — Gestão B (Onda 2)                                                                                                                                                                                                            |
+| **PRDs Relacionados** | PRD-019 (Configurações), PRD-032 (Pedido), PRD-047 (Comissões — despesa derivada), PRD-048 (DRE — consome), PRD-055 (Fluxo de Caixa — consome)                                                                                         |
+| **Implementação**     | 🔵 Claude Code CLI                                                                                                                                                                                                                     |
+| **Padrão de código**  | Feature-based; código em `src/features/expenses/`; rota `/app/gestao/despesas`                                                                                                                                                         |
+| **Origem**            | Gap identificado no double-check de 28/05/2026 — slot originalmente planejado como PRD-050 no INDEX v1.0, deslocado durante redação do Bloco 4b; recuperado como PRD-054                                                               |
 
 ### Critérios de Complexidade
 
@@ -39,10 +39,10 @@ Este PRD entrega: gestão real de despesas com lançamentos individuais, categor
 
 Cada despesa tem **duas datas** que servem a dois regimes contábeis:
 
-| Data | Regime | Alimenta | Significado |
-|------|--------|----------|-------------|
-| `competenceDate` | Competência | DRE (PRD-048) | Mês a que a despesa se refere (ex: luz de janeiro) |
-| `paymentDate` | Caixa | Fluxo de Caixa (PRD-055) | Quando o dinheiro saiu de fato |
+| Data             | Regime      | Alimenta                 | Significado                                        |
+| ---------------- | ----------- | ------------------------ | -------------------------------------------------- |
+| `competenceDate` | Competência | DRE (PRD-048)            | Mês a que a despesa se refere (ex: luz de janeiro) |
+| `paymentDate`    | Caixa       | Fluxo de Caixa (PRD-055) | Quando o dinheiro saiu de fato                     |
 
 Exemplo: conta de luz de janeiro (competência) paga em 10/fevereiro (pagamento). No DRE de janeiro ela aparece; no Caixa de fevereiro ela sai. Essa distinção é fundamento contábil — sem ela, DRE e Caixa ficam errados.
 
@@ -50,17 +50,17 @@ Exemplo: conta de luz de janeiro (competência) paga em 10/fevereiro (pagamento)
 
 9 categorias que se agregam nas 3 linhas de despesa do DRE (PRD-048):
 
-| Categoria | Linha no DRE |
-|-----------|--------------|
-| `folha` | payroll |
-| `aluguel` | rentInfra |
-| `infraestrutura` (água, luz, internet, telefone) | rentInfra |
-| `marketing` | otherExpenses |
+| Categoria                                            | Linha no DRE  |
+| ---------------------------------------------------- | ------------- |
+| `folha`                                              | payroll       |
+| `aluguel`                                            | rentInfra     |
+| `infraestrutura` (água, luz, internet, telefone)     | rentInfra     |
+| `marketing`                                          | otherExpenses |
 | `impostos` (não sobre venda/lucro — ex: IPTU, taxas) | otherExpenses |
-| `fornecedores` (serviços terceirizados não-CMV) | otherExpenses |
-| `logistica` (frete próprio, combustível entregas) | otherExpenses |
-| `manutencao` (equipamentos, veículos próprios) | otherExpenses |
-| `outros` | otherExpenses |
+| `fornecedores` (serviços terceirizados não-CMV)      | otherExpenses |
+| `logistica` (frete próprio, combustível entregas)    | otherExpenses |
+| `manutencao` (equipamentos, veículos próprios)       | otherExpenses |
+| `outros`                                             | otherExpenses |
 
 > **Nota:** Comissões (PRD-047) continuam sendo calculadas, não lançadas como `IExpense`. No DRE, a linha de comissões vem do PRD-047; as demais despesas operacionais vêm deste PRD.
 
@@ -113,12 +113,14 @@ IExpenseRecurrence {
 Substitui o placeholder atual (que apontava incorretamente para "PRD-050"). Header com filtros + KPIs + tabela.
 
 **KPIs no topo:**
+
 - Total de despesas no período (por competência)
 - Pagas
 - Pendentes
 - Atrasadas (vermelho)
 
 **Filtros:**
+
 - Período (competência — mês/trimestre/ano/personalizado)
 - Categoria (multi-select)
 - Status (multi-select)
@@ -127,6 +129,7 @@ Substitui o placeholder atual (que apontava incorretamente para "PRD-050"). Head
 - Loja (Owner)
 
 **Tabela** (paginada, 50/página):
+
 - Descrição
 - Categoria (badge)
 - Valor
@@ -140,6 +143,7 @@ Substitui o placeholder atual (que apontava incorretamente para "PRD-050"). Head
 ### Criação/edição
 
 Modal ou página com formulário:
+
 - Descrição, categoria, valor (obrigatórios)
 - Competência (date picker — default mês atual)
 - Vencimento (date picker)
@@ -165,6 +169,7 @@ Hook `useExpenseStatusTimer()` roda diariamente marcando `atrasado` despesas ven
 ### Recorrências
 
 Despesa recorrente cria uma "mãe" + N "filhas" (`recurrenceParentId`):
+
 - Mensal: 12 lançamentos à frente
 - Trimestral: 4
 - Anual: 1-2
@@ -178,29 +183,30 @@ Ao clicar em "Despesas Operacionais" no DRE (PRD-048), navega para `/app/gestao/
 ### Configuração
 
 A sub-rota `/app/configuracoes/financeiro` (criada no PRD-048) ganha:
+
 - Gestão de categorias (ativar/desativar, sem CRUD livre no MVP — 9 fixas)
 - Banner: "Despesas agora são lançadas individualmente em Gestão > Despesas. Os valores fixos anteriores foram descontinuados."
 
 ### Permissões
 
-| Papel | Listar | Criar/Editar | Marcar pago | Cancelar |
-|-------|--------|--------------|-------------|----------|
-| **Owner** | ✅ | ✅ | ✅ | ✅ |
-| **Financeiro** | ✅ | ✅ | ✅ | ✅ |
-| **Gestor** | ✅ (read-only) | ❌ | ❌ | ❌ |
-| **Vendedor** | ❌ BLOQUEADO | ❌ | ❌ | ❌ |
+| Papel          | Listar         | Criar/Editar | Marcar pago | Cancelar |
+| -------------- | -------------- | ------------ | ----------- | -------- |
+| **Owner**      | ✅             | ✅           | ✅          | ✅       |
+| **Financeiro** | ✅             | ✅           | ✅          | ✅       |
+| **Gestor**     | ✅ (read-only) | ❌           | ❌          | ❌       |
+| **Vendedor**   | ❌ BLOQUEADO   | ❌           | ❌          | ❌       |
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que descartada |
-|-------------|---------------------|
-| Manter valores fixos do PRD-048 | Placeholder; DRE mente sobre resultado real |
-| Data única (sem competência vs pagamento) | DRE e Caixa precisam de regimes distintos — fundamento contábil |
-| Categorias livres (texto) | Vira bagunça; quebra mapeamento para o DRE |
-| Comissões como IExpense | Comissões são calculadas (PRD-047); duplicaria fonte |
-| Sem recorrência | Folha/aluguel/luz são recorrentes — lançar manual todo mês é fricção |
-| Anexo real de comprovante no MVP | Supabase Storage é Fase 2; placeholder coerente |
-| Despesa muta estoque/CMV | CMV vem do catálogo (PRD-030/048); despesa é operacional, não mercadoria |
+| Alternativa                               | Por que descartada                                                       |
+| ----------------------------------------- | ------------------------------------------------------------------------ |
+| Manter valores fixos do PRD-048           | Placeholder; DRE mente sobre resultado real                              |
+| Data única (sem competência vs pagamento) | DRE e Caixa precisam de regimes distintos — fundamento contábil          |
+| Categorias livres (texto)                 | Vira bagunça; quebra mapeamento para o DRE                               |
+| Comissões como IExpense                   | Comissões são calculadas (PRD-047); duplicaria fonte                     |
+| Sem recorrência                           | Folha/aluguel/luz são recorrentes — lançar manual todo mês é fricção     |
+| Anexo real de comprovante no MVP          | Supabase Storage é Fase 2; placeholder coerente                          |
+| Despesa muta estoque/CMV                  | CMV vem do catálogo (PRD-030/048); despesa é operacional, não mercadoria |
 
 **Decisão consolidada:** **CRUD com 9 categorias mapeadas ao DRE, dupla temporalidade (competência/pagamento), recorrências, status com atraso automático, drill-down do DRE, substituindo os valores fixos do PRD-048.**
 
@@ -390,13 +396,13 @@ ENTÃO "Despesas Operacionais" = comissões (PRD-047) apenas
 
 ## Fases de Implementação
 
-| Fase | Objetivo |
-|------|----------|
-| 1 | Modelo + mocks + hooks de agregação |
-| 2 | Página com KPIs, filtros, tabela |
-| 3 | Criação/edição + recorrências |
-| 4 | Status lifecycle + atraso automático + marcar pago |
-| 5 | DELTA DRE (substituir fixedExpenses) + drill-down + permissões + polish |
+| Fase | Objetivo                                                                |
+| ---- | ----------------------------------------------------------------------- |
+| 1    | Modelo + mocks + hooks de agregação                                     |
+| 2    | Página com KPIs, filtros, tabela                                        |
+| 3    | Criação/edição + recorrências                                           |
+| 4    | Status lifecycle + atraso automático + marcar pago                      |
+| 5    | DELTA DRE (substituir fixedExpenses) + drill-down + permissões + polish |
 
 ### Detalhamento
 
@@ -410,23 +416,23 @@ ENTÃO "Despesas Operacionais" = comissões (PRD-047) apenas
 
 ## Dependências
 
-| PRD | Status | Relação |
-|-----|--------|---------|
-| PRD-019 (Configurações) | ✅ DONE | Sub-rota financeira ganha gestão de categorias |
-| PRD-032 (Pedido) | ✅ DONE | — (Caixa cruza, não Despesas) |
-| PRD-047 (Comissões) | 📝 | Comissão é despesa derivada no DRE (não IExpense) |
-| PRD-048 (DRE) | ✅ DONE | **DELTA**: consome agregação real |
-| PRD-055 (Fluxo de Caixa) | ⏳ | Consome despesas por pagamento |
+| PRD                      | Status  | Relação                                           |
+| ------------------------ | ------- | ------------------------------------------------- |
+| PRD-019 (Configurações)  | ✅ DONE | Sub-rota financeira ganha gestão de categorias    |
+| PRD-032 (Pedido)         | ✅ DONE | — (Caixa cruza, não Despesas)                     |
+| PRD-047 (Comissões)      | 📝      | Comissão é despesa derivada no DRE (não IExpense) |
+| PRD-048 (DRE)            | ✅ DONE | **DELTA**: consome agregação real                 |
+| PRD-055 (Fluxo de Caixa) | ⏳      | Consome despesas por pagamento                    |
 
 ---
 
 ## Cadeia de PRDs
 
-| Ordem | PRD | Status |
-|-------|-----|--------|
-| ... | Bloco 4b (040-053) | ✅ DONE |
-| **54** | **PRD-054 ATUAL** | 🔄 |
-| 55 | PRD-055 (Fluxo de Caixa) | ⏳ |
+| Ordem  | PRD                      | Status  |
+| ------ | ------------------------ | ------- |
+| ...    | Bloco 4b (040-053)       | ✅ DONE |
+| **54** | **PRD-054 ATUAL**        | 🔄      |
+| 55     | PRD-055 (Fluxo de Caixa) | ⏳      |
 
 > Ambos recuperam temas planejados no INDEX v1.0 (slots 050/051) deslocados na redação original.
 
@@ -443,14 +449,14 @@ ENTÃO "Despesas Operacionais" = comissões (PRD-047) apenas
 
 ## Convenções de Código
 
-| Elemento | Convenção |
-|----------|-----------|
-| Página | `ExpensesPage`, `NewExpensePage` |
-| Componentes | `<ExpenseForm>`, `<RecurrenceConfig>`, `<ExpenseStatusBadge>` |
-| Hooks | `useExpenses`, `useExpensesByCompetence`, `useExpensesByPayment` |
-| Engine | `aggregateExpensesForDRE` |
-| Pasta | `expenses/` |
-| Git | `feat(expenses): add expense management replacing DRE fixed values` |
+| Elemento    | Convenção                                                           |
+| ----------- | ------------------------------------------------------------------- |
+| Página      | `ExpensesPage`, `NewExpensePage`                                    |
+| Componentes | `<ExpenseForm>`, `<RecurrenceConfig>`, `<ExpenseStatusBadge>`       |
+| Hooks       | `useExpenses`, `useExpensesByCompetence`, `useExpensesByPayment`    |
+| Engine      | `aggregateExpensesForDRE`                                           |
+| Pasta       | `expenses/`                                                         |
+| Git         | `feat(expenses): add expense management replacing DRE fixed values` |
 
 ---
 
@@ -478,11 +484,11 @@ ENTÃO "Despesas Operacionais" = comissões (PRD-047) apenas
 
 ## Status de Implementação
 
-| Campo | Valor |
-|-------|-------|
-| **Status** | ✅ CONCLUÍDO |
-| **Versão** | v0.46.0 — Treasury |
-| **Data de conclusão** | 28/05/2026 |
+| Campo                 | Valor              |
+| --------------------- | ------------------ |
+| **Status**            | ✅ CONCLUÍDO       |
+| **Versão**            | v0.46.0 — Treasury |
+| **Data de conclusão** | 28/05/2026         |
 
 > **Observações de implementação:** formulário em modal (RF-009 permitia modal ou página). DELTA do PRD-048 aplicado — a DRE consome `aggregateExpensesForDRE` por competência. Edição/cancelamento de série recorrente com escopo (RF-015/016) implementados. Upload de comprovante segue como placeholder Fase 2 conforme escopo.
 
@@ -490,9 +496,9 @@ ENTÃO "Despesas Operacionais" = comissões (PRD-047) apenas
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 28/05/2026 | v1 | Criação inicial — recupera gap de Despesas identificado no double-check; substitui valores fixos do PRD-048 por lançamentos reais com dupla temporalidade |
+| Data       | Versão    | Alteração                                                                                                                                                                                          |
+| ---------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 28/05/2026 | v1        | Criação inicial — recupera gap de Despesas identificado no double-check; substitui valores fixos do PRD-048 por lançamentos reais com dupla temporalidade                                          |
 | 28/05/2026 | v1 — DONE | Implementação concluída na v0.46.0 (Treasury): modelo, mocks (~120 despesas), provider, página com KPIs/filtros/tabela, recorrência com escopo, ciclo de vida com atraso automático e DELTA da DRE |
 
 ---

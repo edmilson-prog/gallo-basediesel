@@ -2,19 +2,19 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _Repositório vivo da Fase 1, diretórios `supabase/` e `src/providers/supabase/storage/`_ |
-| **Objetivo** | Configurar Supabase Storage com buckets organizados por domínio (imagens de produtos, anexos de mensagens, documentos fiscais, avatares), políticas de acesso espelhando RLS, transformações de imagem on-the-fly, limpeza/retenção, e integração transparente ao Provider Pattern para upload/download |
-| **Tipo** | Feature |
-| **Complexidade** | Média |
-| **Total de Fases** | 4 |
-| **Prioridade** | P1 — não-bloqueante para go-live mínimo, mas necessário para WhatsApp mídia (Onda 5), NF PDF (Onda 6) e catálogo com fotos |
-| **Épico** | Onda 4 — Backend Supabase Real (v2.0.0 Engine) |
-| **PRDs Relacionados** | PRD-100 (Setup — Storage habilitado); PRD-103 (RLS — políticas de bucket espelham padrão); PRD-104 (Provider — integra upload/download); PRD-114/115 (WhatsApp — mídia recebida/enviada); PRD-127B (NFe — PDF/XML armazenados); PRD-063 Fase 1 (Ficha de Produto — exibe imagens) |
-| **Implementação** | 🔵 Claude Code CLI |
-| **Padrão de código** | Buckets em kebab-case; paths estruturados `<entity>/<id>/<filename>`; lógica em `src/providers/supabase/storage/` |
+| Campo                 | Valor                                                                                                                                                                                                                                                                                                   |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                                                                                                                                |
+| **Repositório**       | _Repositório vivo da Fase 1, diretórios `supabase/` e `src/providers/supabase/storage/`_                                                                                                                                                                                                                |
+| **Objetivo**          | Configurar Supabase Storage com buckets organizados por domínio (imagens de produtos, anexos de mensagens, documentos fiscais, avatares), políticas de acesso espelhando RLS, transformações de imagem on-the-fly, limpeza/retenção, e integração transparente ao Provider Pattern para upload/download |
+| **Tipo**              | Feature                                                                                                                                                                                                                                                                                                 |
+| **Complexidade**      | Média                                                                                                                                                                                                                                                                                                   |
+| **Total de Fases**    | 4                                                                                                                                                                                                                                                                                                       |
+| **Prioridade**        | P1 — não-bloqueante para go-live mínimo, mas necessário para WhatsApp mídia (Onda 5), NF PDF (Onda 6) e catálogo com fotos                                                                                                                                                                              |
+| **Épico**             | Onda 4 — Backend Supabase Real (v2.0.0 Engine)                                                                                                                                                                                                                                                          |
+| **PRDs Relacionados** | PRD-100 (Setup — Storage habilitado); PRD-103 (RLS — políticas de bucket espelham padrão); PRD-104 (Provider — integra upload/download); PRD-114/115 (WhatsApp — mídia recebida/enviada); PRD-127B (NFe — PDF/XML armazenados); PRD-063 Fase 1 (Ficha de Produto — exibe imagens)                       |
+| **Implementação**     | 🔵 Claude Code CLI                                                                                                                                                                                                                                                                                      |
+| **Padrão de código**  | Buckets em kebab-case; paths estruturados `<entity>/<id>/<filename>`; lógica em `src/providers/supabase/storage/`                                                                                                                                                                                       |
 
 ### Critérios de Complexidade
 
@@ -26,19 +26,20 @@
 
 Várias features da Fase 2 precisam armazenar arquivos binários:
 
-| Necessidade | Onda | Tipo de arquivo |
-|-------------|------|------------------|
-| Fotos de produtos no e-commerce | Fase 1/2 | Imagens (jpg, png, webp) |
-| Mídia recebida via WhatsApp (cliente envia foto da peça) | 5 | Imagens, áudio, vídeo, documentos |
-| Mídia enviada via WhatsApp (vendedor manda catálogo) | 5 | Imagens, PDFs |
-| PDF e XML de NFe | 6 | PDF, XML |
-| Avatar de vendedor | Fase 1/2 | Imagens |
-| Anexos de orçamento (proposta formatada) | 6 | PDF |
-| CSV de import DINTEC | 6 | CSV (temporário) |
+| Necessidade                                              | Onda     | Tipo de arquivo                   |
+| -------------------------------------------------------- | -------- | --------------------------------- |
+| Fotos de produtos no e-commerce                          | Fase 1/2 | Imagens (jpg, png, webp)          |
+| Mídia recebida via WhatsApp (cliente envia foto da peça) | 5        | Imagens, áudio, vídeo, documentos |
+| Mídia enviada via WhatsApp (vendedor manda catálogo)     | 5        | Imagens, PDFs                     |
+| PDF e XML de NFe                                         | 6        | PDF, XML                          |
+| Avatar de vendedor                                       | Fase 1/2 | Imagens                           |
+| Anexos de orçamento (proposta formatada)                 | 6        | PDF                               |
+| CSV de import DINTEC                                     | 6        | CSV (temporário)                  |
 
 Hoje (mockup) imagens vêm de URLs fixas/placeholder. Sem Storage real, nenhuma dessas features funciona.
 
 A complexidade está em **organizar buckets e políticas** de forma que:
+
 1. Imagens de produto sejam públicas (e-commerce precisa servir rápido)
 2. PDF de NF de um cliente NÃO seja acessível por outro cliente
 3. Mídia de WhatsApp respeite o isolamento de carteira (vendedor A não vê foto enviada para vendedor B)
@@ -50,38 +51,43 @@ A complexidade está em **organizar buckets e políticas** de forma que:
 
 ### Estrutura de Buckets
 
-| Bucket | Visibilidade | Conteúdo | Path pattern |
-|--------|--------------|----------|--------------|
-| `product-images` | **Público** | Fotos de produtos (e-commerce) | `parts/<part_id>/<filename>` |
-| `whatsapp-media` | **Privado** | Mídia de conversas | `conversations/<conversation_id>/<message_id>/<filename>` |
-| `fiscal-documents` | **Privado** | PDF/XML de NFe | `orders/<order_id>/<nf_number>.{pdf,xml}` |
-| `quote-documents` | **Privado** | PDFs de orçamentos formatados | `quotes/<quote_id>/<filename>` |
-| `avatars` | **Público** | Avatares de vendedores | `sellers/<seller_id>/avatar.<ext>` |
-| `imports-temp` | **Privado** | CSVs de import DINTEC (temporário) | `dintec/<timestamp>/<filename>` |
+| Bucket             | Visibilidade | Conteúdo                           | Path pattern                                              |
+| ------------------ | ------------ | ---------------------------------- | --------------------------------------------------------- |
+| `product-images`   | **Público**  | Fotos de produtos (e-commerce)     | `parts/<part_id>/<filename>`                              |
+| `whatsapp-media`   | **Privado**  | Mídia de conversas                 | `conversations/<conversation_id>/<message_id>/<filename>` |
+| `fiscal-documents` | **Privado**  | PDF/XML de NFe                     | `orders/<order_id>/<nf_number>.{pdf,xml}`                 |
+| `quote-documents`  | **Privado**  | PDFs de orçamentos formatados      | `quotes/<quote_id>/<filename>`                            |
+| `avatars`          | **Público**  | Avatares de vendedores             | `sellers/<seller_id>/avatar.<ext>`                        |
+| `imports-temp`     | **Privado**  | CSVs de import DINTEC (temporário) | `dintec/<timestamp>/<filename>`                           |
 
 ### Políticas de Acesso (espelham RLS)
 
 **Bucket público (`product-images`, `avatars`):**
+
 - SELECT (read): qualquer um (`anon` + `authenticated`)
 - INSERT/UPDATE/DELETE: apenas `owner`/`manager` (via JWT autenticado)
 
 **Bucket privado (`whatsapp-media`):**
+
 - SELECT: vendedor responsável pela conversa OU owner/manager (policy usa join via path → conversation → seller_id)
 - INSERT: vendedor responsável + Edge Function de webhook (service_role)
 - DELETE: bloqueado (mídia de conversa é histórico)
 
 **Bucket privado (`fiscal-documents`):**
+
 - SELECT: owner/manager + cliente dono do pedido (B2B portal) + vendedor responsável
 - INSERT: apenas Edge Function de emissão NFe (service_role)
 - DELETE: bloqueado (documento fiscal é imutável por lei)
 
 **Bucket privado (`imports-temp`):**
+
 - Tudo: apenas owner/manager + service_role
 - Retenção: limpeza automática após 30 dias (arquivos temporários)
 
 ### Transformações de Imagem
 
 Supabase Storage oferece transformação on-the-fly via query params (`?width=400&quality=75`). Usado para:
+
 - Thumbnails de produto no e-commerce (não servir imagem full-size)
 - Avatar redimensionado
 - Preview de mídia WhatsApp
@@ -93,12 +99,12 @@ O provider expõe helper `getImageUrl(bucket, path, { width, height, quality })`
 ```typescript
 // src/providers/supabase/storage/StorageProvider.ts
 export interface IStorageProvider {
-  upload(bucket: string, path: string, file: File): Promise<{ path: string }>
-  getPublicUrl(bucket: string, path: string): string
-  getSignedUrl(bucket: string, path: string, expiresInSec: number): Promise<string>
-  getImageUrl(bucket: string, path: string, transform?: ImageTransform): string
-  remove(bucket: string, paths: string[]): Promise<void>
-  list(bucket: string, prefix: string): Promise<StorageFile[]>
+  upload(bucket: string, path: string, file: File): Promise<{ path: string }>;
+  getPublicUrl(bucket: string, path: string): string;
+  getSignedUrl(bucket: string, path: string, expiresInSec: number): Promise<string>;
+  getImageUrl(bucket: string, path: string, transform?: ImageTransform): string;
+  remove(bucket: string, paths: string[]): Promise<void>;
+  list(bucket: string, prefix: string): Promise<StorageFile[]>;
 }
 ```
 
@@ -106,13 +112,13 @@ Mock provider (Fase 1) já tem stub; este PRD implementa a versão Supabase.
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que descartada |
-|-------------|--------------------|
-| AWS S3 direto | Supabase Storage já é S3-compatible, integrado com Auth/RLS. Sem ganho em ir direto |
-| Cloudinary para imagens | Custo adicional; Supabase transform cobre o necessário no MVP |
-| Único bucket para tudo | Políticas de acesso ficariam complexas. Buckets por domínio é mais claro |
-| Armazenar imagens como base64 no banco | Infla o banco, péssima performance. Storage é o lugar certo |
-| URLs assinadas para tudo (inclusive público) | Imagens de produto são públicas por natureza; assinar adiciona latência sem ganho |
+| Alternativa                                  | Por que descartada                                                                  |
+| -------------------------------------------- | ----------------------------------------------------------------------------------- |
+| AWS S3 direto                                | Supabase Storage já é S3-compatible, integrado com Auth/RLS. Sem ganho em ir direto |
+| Cloudinary para imagens                      | Custo adicional; Supabase transform cobre o necessário no MVP                       |
+| Único bucket para tudo                       | Políticas de acesso ficariam complexas. Buckets por domínio é mais claro            |
+| Armazenar imagens como base64 no banco       | Infla o banco, péssima performance. Storage é o lugar certo                         |
+| URLs assinadas para tudo (inclusive público) | Imagens de produto são públicas por natureza; assinar adiciona latência sem ganho   |
 
 ---
 
@@ -361,43 +367,43 @@ ENTÃO bloqueia com "Tipo não permitido (apenas JPG, PNG, WEBP)"
 
 ### Princípios
 
-| Princípio | Descrição |
-|-----------|-----------|
-| **Privado por default** | Qualquer dado sensível em bucket privado |
-| **Path estruturado** | `<entity>/<id>/<file>` — facilita políticas |
-| **Transform on-the-fly** | Não pré-gerar thumbnails; usar query params |
+| Princípio                | Descrição                                    |
+| ------------------------ | -------------------------------------------- |
+| **Privado por default**  | Qualquer dado sensível em bucket privado     |
+| **Path estruturado**     | `<entity>/<id>/<file>` — facilita políticas  |
+| **Transform on-the-fly** | Não pré-gerar thumbnails; usar query params  |
 | **Política espelha RLS** | Acesso a arquivo deriva do acesso à entidade |
 
 ### O que NÃO Fazer
 
-| ❌ Evitar |
-|-----------|
+| ❌ Evitar                                                 |
+| --------------------------------------------------------- |
 | Bucket público para documento fiscal ou mídia de conversa |
-| Path sem estrutura (dificulta política) |
-| Armazenar binário no banco (use Storage) |
-| Signed URL com expiração longa para dado sensível |
-| Esquecer validação de MIME/tamanho |
-| Permitir DELETE em fiscal-documents |
+| Path sem estrutura (dificulta política)                   |
+| Armazenar binário no banco (use Storage)                  |
+| Signed URL com expiração longa para dado sensível         |
+| Esquecer validação de MIME/tamanho                        |
+| Permitir DELETE em fiscal-documents                       |
 
 ---
 
 ## Status de Implementação
 
-| Campo | Valor |
-|-------|-------|
-| **Status** | ⏳ PENDENTE |
-| **Data de Implementação** | - |
-| **Versão do App** | - |
-| **Implementado por** | - |
-| **Observações** | - |
+| Campo                     | Valor       |
+| ------------------------- | ----------- |
+| **Status**                | ⏳ PENDENTE |
+| **Data de Implementação** | -           |
+| **Versão do App**         | -           |
+| **Implementado por**      | -           |
+| **Observações**           | -           |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 27/05/2026 | v1 | Criação inicial — Sub-lote 1c do Lote 1 (Onda 4) |
+| Data       | Versão | Alteração                                        |
+| ---------- | ------ | ------------------------------------------------ |
+| 27/05/2026 | v1     | Criação inicial — Sub-lote 1c do Lote 1 (Onda 4) |
 
 ---
 

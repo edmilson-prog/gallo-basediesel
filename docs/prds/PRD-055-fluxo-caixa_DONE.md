@@ -2,20 +2,20 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _A definir após criação no Lovable_ |
-| **Objetivo** | Construir a visão de Fluxo de Caixa (regime caixa) — entradas (pedidos pagos) vs saídas (despesas pagas + comissões), saldo acumulado, projeção de contas a pagar/receber, e alertas de saldo |
-| **Tipo** | Feature |
-| **Complexidade** | Alta |
-| **Total de Fases** | 5 |
-| **Prioridade** | Alta |
-| **Épico** | Bloco 4 — Gestão B (Onda 2) |
-| **PRDs Relacionados** | PRD-032 (Pedido — entradas), PRD-047 (Comissões — saídas), PRD-048 (DRE — regime distinto), PRD-054 (Despesas — saídas), PRD-040 (Cockpit) |
-| **Implementação** | 🔵 Claude Code CLI |
-| **Padrão de código** | Feature-based; código em `src/features/cashflow/`; rota `/app/gestao/caixa` |
-| **Origem** | Gap identificado no double-check de 28/05/2026 — slot originalmente planejado como PRD-051 no INDEX v1.0, deslocado durante redação do Bloco 4b; recuperado como PRD-055 |
+| Campo                 | Valor                                                                                                                                                                                         |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                      |
+| **Repositório**       | _A definir após criação no Lovable_                                                                                                                                                           |
+| **Objetivo**          | Construir a visão de Fluxo de Caixa (regime caixa) — entradas (pedidos pagos) vs saídas (despesas pagas + comissões), saldo acumulado, projeção de contas a pagar/receber, e alertas de saldo |
+| **Tipo**              | Feature                                                                                                                                                                                       |
+| **Complexidade**      | Alta                                                                                                                                                                                          |
+| **Total de Fases**    | 5                                                                                                                                                                                             |
+| **Prioridade**        | Alta                                                                                                                                                                                          |
+| **Épico**             | Bloco 4 — Gestão B (Onda 2)                                                                                                                                                                   |
+| **PRDs Relacionados** | PRD-032 (Pedido — entradas), PRD-047 (Comissões — saídas), PRD-048 (DRE — regime distinto), PRD-054 (Despesas — saídas), PRD-040 (Cockpit)                                                    |
+| **Implementação**     | 🔵 Claude Code CLI                                                                                                                                                                            |
+| **Padrão de código**  | Feature-based; código em `src/features/cashflow/`; rota `/app/gestao/caixa`                                                                                                                   |
+| **Origem**            | Gap identificado no double-check de 28/05/2026 — slot originalmente planejado como PRD-051 no INDEX v1.0, deslocado durante redação do Bloco 4b; recuperado como PRD-055                      |
 
 ### Critérios de Complexidade
 
@@ -37,24 +37,24 @@ Este PRD entrega: visão de caixa em regime de caixa, saldo acumulado, projeçã
 
 ### Regime de caixa (distinção do DRE)
 
-| Dimensão | DRE (PRD-048) | Fluxo de Caixa (este) |
-|----------|---------------|------------------------|
-| Regime | Competência | Caixa |
-| Pergunta | A empresa deu lucro? | Tenho dinheiro? |
-| Entrada conta quando | Pedido é faturado (competência) | Pedido é **pago** (`paidAt`) |
-| Despesa conta quando | Mês de competência | Despesa é **paga** (`paymentDate`) |
+| Dimensão             | DRE (PRD-048)                   | Fluxo de Caixa (este)              |
+| -------------------- | ------------------------------- | ---------------------------------- |
+| Regime               | Competência                     | Caixa                              |
+| Pergunta             | A empresa deu lucro?            | Tenho dinheiro?                    |
+| Entrada conta quando | Pedido é faturado (competência) | Pedido é **pago** (`paidAt`)       |
+| Despesa conta quando | Mês de competência              | Despesa é **paga** (`paymentDate`) |
 
 Mesma venda a prazo aparece no DRE no mês da venda, mas no Caixa só quando o cliente paga. Essa é a razão de existirem as duas telas.
 
 ### Fontes de movimentação
 
-| Tipo | Fonte | Origem |
-|------|-------|--------|
-| **Entrada** | Pedidos pagos | PRD-032 (`IOrder` com `paymentStatus='paid'`, data = `paidAt`) |
-| **Entrada** | Aporte de capital | manual neste PRD |
-| **Saída** | Despesas pagas | PRD-054 (`IExpense` com `paymentDate`) |
-| **Saída** | Comissões pagas | PRD-047 (`ICommission` com status pago) |
-| **Saída** | Retirada (pró-labore, distribuição) | manual neste PRD |
+| Tipo        | Fonte                               | Origem                                                         |
+| ----------- | ----------------------------------- | -------------------------------------------------------------- |
+| **Entrada** | Pedidos pagos                       | PRD-032 (`IOrder` com `paymentStatus='paid'`, data = `paidAt`) |
+| **Entrada** | Aporte de capital                   | manual neste PRD                                               |
+| **Saída**   | Despesas pagas                      | PRD-054 (`IExpense` com `paymentDate`)                         |
+| **Saída**   | Comissões pagas                     | PRD-047 (`ICommission` com status pago)                        |
+| **Saída**   | Retirada (pró-labore, distribuição) | manual neste PRD                                               |
 
 ### Modelo
 
@@ -107,18 +107,21 @@ ICashFlowDailyPoint {
 Substitui o placeholder atual (que apontava incorretamente para "PRD-051").
 
 **KPIs no topo:**
+
 - Saldo atual (realizado)
 - Entradas do período
 - Saídas do período
 - Saldo projetado (fim do período, com previstos)
 
 **Gráfico principal — Evolução do saldo:**
+
 - Recharts: linha de saldo acumulado ao longo do tempo
 - Área de entradas (verde) e saídas (vermelho) por dia/semana
 - Trecho realizado (sólido) vs projetado (tracejado) a partir de hoje
 - Linha de alerta de saldo mínimo configurável
 
 **Tabela de movimentações:**
+
 - Data
 - Tipo (entrada/saída — ícone + cor)
 - Origem (badge: pedido/despesa/comissão/aporte/retirada)
@@ -127,6 +130,7 @@ Substitui o placeholder atual (que apontava incorretamente para "PRD-051").
 - Status (realizado/previsto)
 
 **Filtros:**
+
 - Período (mês/trimestre/ano/personalizado)
 - Tipo (entrada/saída/ambos)
 - Origem (multi-select)
@@ -136,6 +140,7 @@ Substitui o placeholder atual (que apontava incorretamente para "PRD-051").
 ### Projeção de caixa
 
 Calculada a partir de:
+
 - **A receber**: `IOrder` com `paymentStatus='pending_payment'` e previsão de pagamento (data estimada conforme prazo) → entradas previstas
 - **A pagar**: `IExpense` com status `pendente`/`atrasado` e `dueDate` → saídas previstas; comissões a pagar (PRD-047 não fechadas) → saídas previstas
 
@@ -144,6 +149,7 @@ A projeção estende a série temporal para o futuro (tracejado).
 ### Alertas
 
 `IPlatformSettings.cashflowSettings.minBalanceAlert` (default R$ 10.000):
+
 - Banner vermelho se saldo atual < mínimo
 - Banner amarelo se projeção cruza o mínimo nos próximos 30 dias ("Caixa projetado fica abaixo de R$ X em DD/MM")
 - Banner crítico se projeção fica negativa ("Caixa projetado negativo em DD/MM")
@@ -151,6 +157,7 @@ A projeção estende a série temporal para o futuro (tracejado).
 ### Entradas/saídas manuais
 
 Botão "+ Lançamento manual":
+
 - Tipo: aporte (entrada) ou retirada (saída)
 - Valor, data, descrição
 - Audit log
@@ -158,6 +165,7 @@ Botão "+ Lançamento manual":
 ### Configuração
 
 Sub-rota `/app/configuracoes/financeiro` (compartilhada com PRD-048/054) ganha:
+
 - Saldo inicial do caixa (opening balance base)
 - Alerta de saldo mínimo
 - Banner: "Fluxo de Caixa opera em regime de caixa (dinheiro que entra/sai). Para resultado por competência, veja o DRE."
@@ -168,23 +176,23 @@ KPI "Saldo em Caixa" no cockpit consome `useCashFlowSummary`. Alerta de saldo ba
 
 ### Permissões
 
-| Papel | Ver | Lançar manual | Configurar |
-|-------|-----|---------------|------------|
-| **Owner** | ✅ | ✅ | ✅ |
-| **Financeiro** | ✅ | ✅ | ✅ |
-| **Gestor** | ✅ (read-only) | ❌ | ❌ |
-| **Vendedor** | ❌ BLOQUEADO | ❌ | ❌ |
+| Papel          | Ver            | Lançar manual | Configurar |
+| -------------- | -------------- | ------------- | ---------- |
+| **Owner**      | ✅             | ✅            | ✅         |
+| **Financeiro** | ✅             | ✅            | ✅         |
+| **Gestor**     | ✅ (read-only) | ❌            | ❌         |
+| **Vendedor**   | ❌ BLOQUEADO   | ❌            | ❌         |
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que descartada |
-|-------------|---------------------|
-| Misturar com DRE | Regimes distintos (caixa vs competência); confundiria |
-| Sem projeção | Owner não antecipa furo de caixa — perde o principal valor |
-| Entradas derivadas editáveis aqui | Quebra fonte única (pedido/despesa mandam) |
-| Sem entradas manuais | Aporte/retirada não têm fonte em outro PRD — precisam ser lançados |
-| Projeção via ML | Fase 2; no MVP, projeção determinística (prazos + vencimentos) |
-| Sem alertas | Surpresa de caixa negativo é o problema central a evitar |
+| Alternativa                       | Por que descartada                                                 |
+| --------------------------------- | ------------------------------------------------------------------ |
+| Misturar com DRE                  | Regimes distintos (caixa vs competência); confundiria              |
+| Sem projeção                      | Owner não antecipa furo de caixa — perde o principal valor         |
+| Entradas derivadas editáveis aqui | Quebra fonte única (pedido/despesa mandam)                         |
+| Sem entradas manuais              | Aporte/retirada não têm fonte em outro PRD — precisam ser lançados |
+| Projeção via ML                   | Fase 2; no MVP, projeção determinística (prazos + vencimentos)     |
+| Sem alertas                       | Surpresa de caixa negativo é o problema central a evitar           |
 
 **Decisão consolidada:** **regime de caixa agregando 3 fontes derivadas + 2 manuais, saldo acumulado em série temporal, projeção determinística de contas a pagar/receber, alertas de saldo, distinto do DRE.**
 
@@ -358,13 +366,13 @@ ENTÃO vê tudo read-only; botão de lançamento manual desabilitado
 
 ## Fases de Implementação
 
-| Fase | Objetivo |
-|------|----------|
-| 1 | Modelo + engines (buildCashFlow + projectCashFlow) + mocks derivados |
-| 2 | Página com KPIs + tabela de movimentações + filtros |
-| 3 | Gráfico de evolução (realizado + projetado) |
-| 4 | Alertas + lançamentos manuais |
-| 5 | Configuração + integração Cockpit + permissões + polish |
+| Fase | Objetivo                                                             |
+| ---- | -------------------------------------------------------------------- |
+| 1    | Modelo + engines (buildCashFlow + projectCashFlow) + mocks derivados |
+| 2    | Página com KPIs + tabela de movimentações + filtros                  |
+| 3    | Gráfico de evolução (realizado + projetado)                          |
+| 4    | Alertas + lançamentos manuais                                        |
+| 5    | Configuração + integração Cockpit + permissões + polish              |
 
 ### Detalhamento
 
@@ -378,13 +386,13 @@ ENTÃO vê tudo read-only; botão de lançamento manual desabilitado
 
 ## Dependências
 
-| PRD | Status | Relação |
-|-----|--------|---------|
-| PRD-032 (Pedido) | ✅ DONE | Entradas (pedidos pagos por `paidAt`) + projeção (a receber) |
-| PRD-047 (Comissões) | 📝 | Saídas (comissões pagas) + projeção (a pagar) |
-| PRD-048 (DRE) | ✅ DONE | Regime distinto (referência conceitual) |
-| PRD-054 (Despesas) | ⏳ | Saídas (despesas pagas por `paymentDate`) + projeção (a pagar) |
-| PRD-040 (Cockpit) | ✅ DONE | Consome `useCashFlowSummary` |
+| PRD                 | Status  | Relação                                                        |
+| ------------------- | ------- | -------------------------------------------------------------- |
+| PRD-032 (Pedido)    | ✅ DONE | Entradas (pedidos pagos por `paidAt`) + projeção (a receber)   |
+| PRD-047 (Comissões) | 📝      | Saídas (comissões pagas) + projeção (a pagar)                  |
+| PRD-048 (DRE)       | ✅ DONE | Regime distinto (referência conceitual)                        |
+| PRD-054 (Despesas)  | ⏳      | Saídas (despesas pagas por `paymentDate`) + projeção (a pagar) |
+| PRD-040 (Cockpit)   | ✅ DONE | Consome `useCashFlowSummary`                                   |
 
 > **Ordem recomendada:** implementar PRD-054 (Despesas) antes ou junto — o Caixa depende das saídas de despesa para ser completo.
 
@@ -392,11 +400,11 @@ ENTÃO vê tudo read-only; botão de lançamento manual desabilitado
 
 ## Cadeia de PRDs
 
-| Ordem | PRD | Status |
-|-------|-----|--------|
-| ... | Bloco 4b (040-053) | ✅ DONE |
-| 54 | PRD-054 (Despesas) | 🔄 |
-| **55** | **PRD-055 ATUAL** | ⏳ |
+| Ordem  | PRD                | Status  |
+| ------ | ------------------ | ------- |
+| ...    | Bloco 4b (040-053) | ✅ DONE |
+| 54     | PRD-054 (Despesas) | 🔄      |
+| **55** | **PRD-055 ATUAL**  | ⏳      |
 
 > Marco: com 054 e 055, o Bloco 4 (Gestão e BI) fica completo e fiel ao escopo financeiro originalmente planejado no INDEX v1.0.
 
@@ -413,14 +421,14 @@ ENTÃO vê tudo read-only; botão de lançamento manual desabilitado
 
 ## Convenções de Código
 
-| Elemento | Convenção |
-|----------|-----------|
-| Página | `CashFlowPage` |
+| Elemento    | Convenção                                                                    |
+| ----------- | ---------------------------------------------------------------------------- |
+| Página      | `CashFlowPage`                                                               |
 | Componentes | `<CashFlowChart>`, `<CashFlowTable>`, `<ManualEntryModal>`, `<BalanceAlert>` |
-| Engine | `buildCashFlow`, `projectCashFlow` |
-| Hook | `useCashFlowSummary` |
-| Pasta | `cashflow/` |
-| Git | `feat(cashflow): add cash flow view with projection and alerts` |
+| Engine      | `buildCashFlow`, `projectCashFlow`                                           |
+| Hook        | `useCashFlowSummary`                                                         |
+| Pasta       | `cashflow/`                                                                  |
+| Git         | `feat(cashflow): add cash flow view with projection and alerts`              |
 
 ---
 
@@ -448,11 +456,11 @@ ENTÃO vê tudo read-only; botão de lançamento manual desabilitado
 
 ## Status de Implementação
 
-| Campo | Valor |
-|-------|-------|
-| **Status** | ✅ CONCLUÍDO |
-| **Versão** | v0.46.0 — Treasury |
-| **Data de conclusão** | 28/05/2026 |
+| Campo                 | Valor              |
+| --------------------- | ------------------ |
+| **Status**            | ✅ CONCLUÍDO       |
+| **Versão**            | v0.46.0 — Treasury |
+| **Data de conclusão** | 28/05/2026         |
 
 > **Observações de implementação:** engine de regime de caixa com projeção determinística, alertas (mínimo/cruzamento/negativo), gráfico Recharts, lançamentos manuais e config (saldo inicial + alerta) em Configurações → Financeiro. Pendência menor: o KPI "Saldo em Caixa" no Cockpit (PRD-040, RF-029) não foi plugado para não alterar arquivos de outra feature em sessão paralela — o hook `useCashFlowSummary` já está exportado e pronto.
 
@@ -460,9 +468,9 @@ ENTÃO vê tudo read-only; botão de lançamento manual desabilitado
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 28/05/2026 | v1 | Criação inicial — recupera gap de Fluxo de Caixa identificado no double-check; regime de caixa com projeção e alertas, distinto do DRE |
+| Data       | Versão    | Alteração                                                                                                                                                                       |
+| ---------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 28/05/2026 | v1        | Criação inicial — recupera gap de Fluxo de Caixa identificado no double-check; regime de caixa com projeção e alertas, distinto do DRE                                          |
 | 28/05/2026 | v1 — DONE | Implementação concluída na v0.46.0 (Treasury): modelo, engine (build/project), mocks derivados + manuais, página com KPIs/gráfico/tabela/filtros, alertas e lançamentos manuais |
 
 ---

@@ -2,19 +2,19 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _Repositório vivo da Fase 1, `docs/infra/runbooks/`_ |
-| **Objetivo** | Estabelecer estratégia completa de backup e disaster recovery: PITR (Point-In-Time Recovery) configurado, backups lógicos complementares, runbooks de restauração testados, definição de RTO/RPO, backup de Storage e configuração, e teste de DR documentado |
-| **Tipo** | Integração |
-| **Complexidade** | Média |
-| **Total de Fases** | 3 |
-| **Prioridade** | P1 — necessário antes do go-live com dados reais (Onda 8) |
-| **Épico** | Onda 4 — Backend Supabase Real (v2.0.0 Engine) |
-| **PRDs Relacionados** | PRD-100 (Setup — PITR habilitado, runbook scaffold); PRD-101 (Schema — o que é restaurado); PRD-106 (Storage — backup de mídias); PRD-110 (Monitoring — alerta de falha de backup) |
-| **Implementação** | 🔵 Claude Code CLI + operação manual AILA |
-| **Padrão de código** | Runbooks em `docs/infra/runbooks/`; scripts em `scripts/dr/` |
+| Campo                 | Valor                                                                                                                                                                                                                                                         |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                                                                                      |
+| **Repositório**       | _Repositório vivo da Fase 1, `docs/infra/runbooks/`_                                                                                                                                                                                                          |
+| **Objetivo**          | Estabelecer estratégia completa de backup e disaster recovery: PITR (Point-In-Time Recovery) configurado, backups lógicos complementares, runbooks de restauração testados, definição de RTO/RPO, backup de Storage e configuração, e teste de DR documentado |
+| **Tipo**              | Integração                                                                                                                                                                                                                                                    |
+| **Complexidade**      | Média                                                                                                                                                                                                                                                         |
+| **Total de Fases**    | 3                                                                                                                                                                                                                                                             |
+| **Prioridade**        | P1 — necessário antes do go-live com dados reais (Onda 8)                                                                                                                                                                                                     |
+| **Épico**             | Onda 4 — Backend Supabase Real (v2.0.0 Engine)                                                                                                                                                                                                                |
+| **PRDs Relacionados** | PRD-100 (Setup — PITR habilitado, runbook scaffold); PRD-101 (Schema — o que é restaurado); PRD-106 (Storage — backup de mídias); PRD-110 (Monitoring — alerta de falha de backup)                                                                            |
+| **Implementação**     | 🔵 Claude Code CLI + operação manual AILA                                                                                                                                                                                                                     |
+| **Padrão de código**  | Runbooks em `docs/infra/runbooks/`; scripts em `scripts/dr/`                                                                                                                                                                                                  |
 
 ### Critérios de Complexidade
 
@@ -25,6 +25,7 @@
 ## Contexto do Problema
 
 Quando o sistema sair do mockup e operar com dados reais (clientes, pedidos, financeiro, NFe), perda de dados vira risco de negócio sério. Cenários a cobrir:
+
 - Deleção acidental em massa (bug, erro humano, migration ruim)
 - Corrupção de dados (sync DINTEC mal-feito, Onda 6)
 - Incidente Supabase (raro, mas SLA não é 100%)
@@ -38,20 +39,20 @@ O Supabase Pro inclui PITR de 7 dias, mas **PITR só vale se a equipe sabe usar*
 
 ### Camadas de Backup
 
-| Camada | Mecanismo | Frequência | Retenção | Cobre |
-|--------|-----------|------------|----------|-------|
-| **PITR** | Supabase nativo (Pro) | Contínuo (WAL) | 7 dias | Restauração a qualquer segundo dos últimos 7 dias |
-| **Daily backup** | Supabase nativo | Diário | 7 dias (Pro) | Snapshot diário |
-| **Backup lógico** | `pg_dump` via CI agendado | Semanal | 90 dias (em bucket externo) | Cópia fria, independente do Supabase |
-| **Storage backup** | Sync de buckets para storage externo (opcional) | Semanal | 90 dias | Mídias, documentos fiscais |
-| **Config backup** | Git (migrations, config.toml, policies) | A cada commit | Permanente | Estrutura recriável |
+| Camada             | Mecanismo                                       | Frequência     | Retenção                    | Cobre                                             |
+| ------------------ | ----------------------------------------------- | -------------- | --------------------------- | ------------------------------------------------- |
+| **PITR**           | Supabase nativo (Pro)                           | Contínuo (WAL) | 7 dias                      | Restauração a qualquer segundo dos últimos 7 dias |
+| **Daily backup**   | Supabase nativo                                 | Diário         | 7 dias (Pro)                | Snapshot diário                                   |
+| **Backup lógico**  | `pg_dump` via CI agendado                       | Semanal        | 90 dias (em bucket externo) | Cópia fria, independente do Supabase              |
+| **Storage backup** | Sync de buckets para storage externo (opcional) | Semanal        | 90 dias                     | Mídias, documentos fiscais                        |
+| **Config backup**  | Git (migrations, config.toml, policies)         | A cada commit  | Permanente                  | Estrutura recriável                               |
 
 ### RTO / RPO
 
-| Métrica | Alvo | Justificativa |
-|---------|------|---------------|
-| **RPO** (perda máxima de dados) | < 5 minutos | PITR contínuo cobre |
-| **RTO** (tempo de recuperação) | < 4 horas | Restauração PITR + validação + religar app |
+| Métrica                         | Alvo        | Justificativa                              |
+| ------------------------------- | ----------- | ------------------------------------------ |
+| **RPO** (perda máxima de dados) | < 5 minutos | PITR contínuo cobre                        |
+| **RTO** (tempo de recuperação)  | < 4 horas   | Restauração PITR + validação + religar app |
 
 ### Runbooks
 
@@ -62,12 +63,12 @@ O Supabase Pro inclui PITR de 7 dias, mas **PITR só vale se a equipe sabe usar*
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que descartada |
-|-------------|--------------------|
-| Confiar só no PITR do Supabase | Single point of failure (se conta Supabase comprometida, perde tudo). Backup lógico externo é defesa adicional |
-| Backup manual ad-hoc | Não confiável. Automatizado via CI |
-| Backup em tempo real para outro DB | Overkill e caro para MVP |
-| Sem teste de DR | Antipattern crítico — backup não-testado é falsa segurança |
+| Alternativa                        | Por que descartada                                                                                             |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Confiar só no PITR do Supabase     | Single point of failure (se conta Supabase comprometida, perde tudo). Backup lógico externo é defesa adicional |
+| Backup manual ad-hoc               | Não confiável. Automatizado via CI                                                                             |
+| Backup em tempo real para outro DB | Overkill e caro para MVP                                                                                       |
+| Sem teste de DR                    | Antipattern crítico — backup não-testado é falsa segurança                                                     |
 
 ---
 
@@ -192,12 +193,15 @@ ENTÃO um alerta é enviado para infra@ailasistemas.com.br
 ## Fases de Implementação
 
 ### Fase 1 — Confirmar Nativo + Backup Lógico (1 dia)
+
 - Confirmar PITR + daily; workflow logical-backup.yml; storage externo
 
 ### Fase 2 — Runbooks + RTO/RPO (1 dia)
+
 - Escrever 4 runbooks; documentar dr-policy.md
 
 ### Fase 3 — Teste de DR + Storage Backup (1 dia)
+
 - Teste real de restauração; backup de Storage; alerta; `_DONE`
 
 ---
@@ -222,39 +226,39 @@ ENTÃO um alerta é enviado para infra@ailasistemas.com.br
 
 > ⚠️ **APÓS:** Bump v2.0.0-rc.9; CHANGELOG; renomear `PRD-109-backup-dr_DONE.md`; teste de DR executado e documentado ANTES do `_DONE`.
 
-| Princípio | Descrição |
-|-----------|-----------|
-| **Backup testado** | DR não-testado é falsa segurança |
-| **Independência** | Backup externo sobrevive a comprometimento da conta |
-| **Restauração validada** | Sempre validação humana, nunca automática |
-| **Compliance fiscal** | Documentos fiscais com backup independente |
+| Princípio                | Descrição                                           |
+| ------------------------ | --------------------------------------------------- |
+| **Backup testado**       | DR não-testado é falsa segurança                    |
+| **Independência**        | Backup externo sobrevive a comprometimento da conta |
+| **Restauração validada** | Sempre validação humana, nunca automática           |
+| **Compliance fiscal**    | Documentos fiscais com backup independente          |
 
-| ❌ Evitar |
-|-----------|
+| ❌ Evitar                                    |
+| -------------------------------------------- |
 | Confiar só no PITR (single point of failure) |
-| Backup não-testado |
-| Restauração automática sem validação |
-| Backup em mesma conta/storage do principal |
-| Esquecer backup de documentos fiscais |
+| Backup não-testado                           |
+| Restauração automática sem validação         |
+| Backup em mesma conta/storage do principal   |
+| Esquecer backup de documentos fiscais        |
 
 ---
 
 ## Status de Implementação
 
-| Campo | Valor |
-|-------|-------|
+| Campo      | Valor       |
+| ---------- | ----------- |
 | **Status** | ⏳ PENDENTE |
-| **Data** | - |
-| **Versão** | - |
-| **Por** | - |
+| **Data**   | -           |
+| **Versão** | -           |
+| **Por**    | -           |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 27/05/2026 | v1 | Criação inicial — Sub-lote 1d (Onda 4) |
+| Data       | Versão | Alteração                              |
+| ---------- | ------ | -------------------------------------- |
+| 27/05/2026 | v1     | Criação inicial — Sub-lote 1d (Onda 4) |
 
 ---
 

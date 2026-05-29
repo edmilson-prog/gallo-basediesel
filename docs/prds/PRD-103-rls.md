@@ -2,19 +2,19 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _Repositório vivo da Fase 1, diretório `supabase/migrations/`_ |
-| **Objetivo** | Implementar a matriz canônica de permissões do PRD-006 Fase 1 como políticas Row-Level Security do Postgres, distribuídas nos schemas `crm` e `storefront`, distinguindo os 4 tipos de consumidor (vendedor interno, vendedor externo, cliente B2B, anônimo/B2C) e os 4 scopes (own / store / team / all). Imutabilidade de audit log enforced via policies. Defense-in-depth real — sem dependência do frontend para segurança |
-| **Tipo** | Feature |
-| **Complexidade** | Crítica |
-| **Total de Fases** | 5 |
-| **Prioridade** | P0 — bloqueante para PRD-104 (Providers Reais) e qualquer operação multi-usuário em staging/prod |
-| **Épico** | Onda 4 — Backend Supabase Real (v2.0.0 Engine) |
-| **PRDs Relacionados** | PRD-006 Fase 1 (matriz RBAC fonte); PRD-101 (Schema — habilita RLS, este escreve policies); PRD-107 (Auth Custom Claims — popula `seller_id`, `store_id`, `role` no JWT); PRD-102 (Edge Functions — usam `service_role` que bypassa RLS); PRD-104 (Providers Reais — depende de RLS para funcionar com segurança); PRD-189 Onda 12 (Permissões Cross-Store — estende este padrão) |
-| **Implementação** | 🔵 Claude Code CLI |
-| **Padrão de código** | Policies SQL em arquivos `.sql` versionados em `supabase/migrations/`; uma migration por agrupamento lógico (core, comercial, gestão, audit, storefront) |
+| Campo                 | Valor                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                                                                                                                                                                                                                                                        |
+| **Repositório**       | _Repositório vivo da Fase 1, diretório `supabase/migrations/`_                                                                                                                                                                                                                                                                                                                                                                  |
+| **Objetivo**          | Implementar a matriz canônica de permissões do PRD-006 Fase 1 como políticas Row-Level Security do Postgres, distribuídas nos schemas `crm` e `storefront`, distinguindo os 4 tipos de consumidor (vendedor interno, vendedor externo, cliente B2B, anônimo/B2C) e os 4 scopes (own / store / team / all). Imutabilidade de audit log enforced via policies. Defense-in-depth real — sem dependência do frontend para segurança |
+| **Tipo**              | Feature                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| **Complexidade**      | Crítica                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| **Total de Fases**    | 5                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| **Prioridade**        | P0 — bloqueante para PRD-104 (Providers Reais) e qualquer operação multi-usuário em staging/prod                                                                                                                                                                                                                                                                                                                                |
+| **Épico**             | Onda 4 — Backend Supabase Real (v2.0.0 Engine)                                                                                                                                                                                                                                                                                                                                                                                  |
+| **PRDs Relacionados** | PRD-006 Fase 1 (matriz RBAC fonte); PRD-101 (Schema — habilita RLS, este escreve policies); PRD-107 (Auth Custom Claims — popula `seller_id`, `store_id`, `role` no JWT); PRD-102 (Edge Functions — usam `service_role` que bypassa RLS); PRD-104 (Providers Reais — depende de RLS para funcionar com segurança); PRD-189 Onda 12 (Permissões Cross-Store — estende este padrão)                                               |
+| **Implementação**     | 🔵 Claude Code CLI                                                                                                                                                                                                                                                                                                                                                                                                              |
+| **Padrão de código**  | Policies SQL em arquivos `.sql` versionados em `supabase/migrations/`; uma migration por agrupamento lógico (core, comercial, gestão, audit, storefront)                                                                                                                                                                                                                                                                        |
 
 ### Critérios de Complexidade
 
@@ -28,12 +28,12 @@ O PRD-101 (Schema) habilitou `ENABLE ROW LEVEL SECURITY` e `FORCE ROW LEVEL SECU
 
 Este PRD escreve as policies que destravam o acesso legítimo, espelhando a matriz RBAC do PRD-006 Fase 1. A matriz tem 4 dimensões:
 
-| Dimensão | Valores possíveis |
-|----------|-------------------|
-| **Recurso** | 18 entidades (customers, orders, parts, commissions, audit_logs, etc.) |
-| **Ação** | 5 (create, read, update, delete, special) |
-| **Scope** | 4 (own, store, team [dormente], all) |
-| **Role** | 6 (owner, manager, seller_internal, seller_external, b2b_customer, b2c_customer + anonymous) |
+| Dimensão    | Valores possíveis                                                                            |
+| ----------- | -------------------------------------------------------------------------------------------- |
+| **Recurso** | 18 entidades (customers, orders, parts, commissions, audit_logs, etc.)                       |
+| **Ação**    | 5 (create, read, update, delete, special)                                                    |
+| **Scope**   | 4 (own, store, team [dormente], all)                                                         |
+| **Role**    | 6 (owner, manager, seller_internal, seller_external, b2b_customer, b2c_customer + anonymous) |
 
 A complexidade não está em escrever uma policy — está em **garantir consistência em toda a matriz** sem deixar buraco. O PRD-006 já entregou o `matrix.ts` no frontend; este PRD traduz para SQL.
 
@@ -127,19 +127,20 @@ $$;
 
 ### 4 Tipos de Consumidor
 
-| Role | JWT app_metadata | Acesso esperado |
-|------|-------------------|------------------|
-| **`owner`** | `role: 'owner', store_id: X` | Acesso completo dentro do `store_id`; veta apenas tabelas globais não-store (raras) |
-| **`manager`** | `role: 'manager', store_id: X` | Acesso amplo dentro do `store_id`, mas sem operações destrutivas em config/audit |
-| **`seller_internal`** | `role: 'seller_internal', store_id: X, seller_id: Y` | Apenas dados da própria carteira; sem audit log de outros |
-| **`seller_external`** | `role: 'seller_external', store_id: X, seller_id: Y` | Como `seller_internal` mas com escopo mais estrito (não enxerga BI agregado) |
-| **`b2b_customer`** | `role: 'b2b_customer', customer_id: Z` | Apenas dados próprios do cliente (orders, quotes, vehicles próprios) — usa portal |
-| **`b2c_customer`** | `role: 'b2c_customer'` (sem store_id/seller_id) | Apenas dados próprios via `storefront.customer_accounts` |
-| **`anonymous`** | (sem JWT, role=`anon`) | Apenas leitura de `storefront.products`, categories, content_pages |
+| Role                  | JWT app_metadata                                     | Acesso esperado                                                                     |
+| --------------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| **`owner`**           | `role: 'owner', store_id: X`                         | Acesso completo dentro do `store_id`; veta apenas tabelas globais não-store (raras) |
+| **`manager`**         | `role: 'manager', store_id: X`                       | Acesso amplo dentro do `store_id`, mas sem operações destrutivas em config/audit    |
+| **`seller_internal`** | `role: 'seller_internal', store_id: X, seller_id: Y` | Apenas dados da própria carteira; sem audit log de outros                           |
+| **`seller_external`** | `role: 'seller_external', store_id: X, seller_id: Y` | Como `seller_internal` mas com escopo mais estrito (não enxerga BI agregado)        |
+| **`b2b_customer`**    | `role: 'b2b_customer', customer_id: Z`               | Apenas dados próprios do cliente (orders, quotes, vehicles próprios) — usa portal   |
+| **`b2c_customer`**    | `role: 'b2c_customer'` (sem store_id/seller_id)      | Apenas dados próprios via `storefront.customer_accounts`                            |
+| **`anonymous`**       | (sem JWT, role=`anon`)                               | Apenas leitura de `storefront.products`, categories, content_pages                  |
 
 ### Cross-Schema Considerations
 
 `storefront.product_reviews.part_id` referencia `crm.parts.id`. Policies de `product_reviews`:
+
 - SELECT: público (anônimo lê reviews aprovadas)
 - INSERT: apenas `b2c_customer` autenticado para seu próprio account
 - UPDATE/DELETE: apenas owner/manager (moderação) ou o próprio autor
@@ -187,15 +188,15 @@ CREATE POLICY "audit_no_delete" ON crm.audit_logs
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que descartada |
-|-------------|--------------------|
-| Aplicar segurança apenas no frontend (`matrix.ts` Fase 1) | Frontend é compromised pelo navegador; bug ou ataque dev tools vaza dados. RLS é defesa real |
-| Uma policy mega-genérica por tabela usando CASE | Difícil de auditar, debugar e evoluir. Multiple policies + OR semantics do Postgres é mais claro |
-| Helper functions em `public` schema | Polui `public` (deliberadamente vazio per briefing v1.3). `crm` é o lar natural |
-| Policies separadas para cada role e cada ação | Explosão combinatória. Agrupar por `has_role`/`has_any_role` é manageable |
-| Usar Postgres roles separados (postgres-level) por user | Não suportado pelo Supabase Auth padrão; quebra o modelo `authenticated` único |
-| Skip RLS em staging para "facilitar dev" | Antipattern crítico. Bug de RLS só aparece em prod. Staging tem que ser fiel a prod |
-| RLS apenas em SELECT (INSERT/UPDATE/DELETE livres) | Inserts cross-store seriam permitidos; vendedor B colocaria pedido na carteira de vendedor A. Inaceitável |
+| Alternativa                                               | Por que descartada                                                                                        |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Aplicar segurança apenas no frontend (`matrix.ts` Fase 1) | Frontend é compromised pelo navegador; bug ou ataque dev tools vaza dados. RLS é defesa real              |
+| Uma policy mega-genérica por tabela usando CASE           | Difícil de auditar, debugar e evoluir. Multiple policies + OR semantics do Postgres é mais claro          |
+| Helper functions em `public` schema                       | Polui `public` (deliberadamente vazio per briefing v1.3). `crm` é o lar natural                           |
+| Policies separadas para cada role e cada ação             | Explosão combinatória. Agrupar por `has_role`/`has_any_role` é manageable                                 |
+| Usar Postgres roles separados (postgres-level) por user   | Não suportado pelo Supabase Auth padrão; quebra o modelo `authenticated` único                            |
+| Skip RLS em staging para "facilitar dev"                  | Antipattern crítico. Bug de RLS só aparece em prod. Staging tem que ser fiel a prod                       |
+| RLS apenas em SELECT (INSERT/UPDATE/DELETE livres)        | Inserts cross-store seriam permitidos; vendedor B colocaria pedido na carteira de vendedor A. Inaceitável |
 
 ---
 
@@ -690,7 +691,7 @@ ENTÃO o teste "vendedor não vê customer de outro vendedor" falha
 - **Subquery em policy:** policies usando subquery (ex: `customer_id IN (SELECT ...)`) podem ter performance ruim. Postgres consegue otimizar muitas, mas validar com EXPLAIN ANALYZE em volumes realistas (PRD-108).
 - **Auditoria de mudanças de policy:** mudança em policy é mudança de superfície de segurança. PR review obrigatório com 2 reviewers para PRs que tocam em `_rls_policies_*.sql`.
 - **JWT claims tampering:** Supabase Auth assina JWT com HS256. Tampering exige conhecimento do secret. PRD-107 + Vault protegem o secret.
-- **Anti-pattern: usar RLS como "filtro": o frontend pode filtrar adicional, mas RLS é a fonte da verdade. Frontend que confia em RLS sem filtro adicional ainda funciona (é seguro).
+- \*\*Anti-pattern: usar RLS como "filtro": o frontend pode filtrar adicional, mas RLS é a fonte da verdade. Frontend que confia em RLS sem filtro adicional ainda funciona (é seguro).
 
 ---
 
@@ -736,13 +737,13 @@ ENTÃO o teste "vendedor não vê customer de outro vendedor" falha
 
 ## Convenções de Código (Referência Rápida)
 
-| Elemento | Convenção | Exemplo |
-|----------|-----------|---------|
-| **Migration RLS** | prefixo numérico 6x | `00000000000061_rls_policies_core.sql` |
-| **Policy name** | `<action>_<who>_<condition>` | `select_seller_own_portfolio`, `audit_no_delete` |
-| **Função helper** | em schema `crm`, snake_case | `crm.current_seller_id`, `crm.has_any_role` |
-| **Marker STABLE** | sempre em helpers de JWT | `LANGUAGE sql STABLE` |
-| **Test file** | `supabase/tests/rls/<tabela>_isolation_test.sql` | `customers_isolation_test.sql` |
+| Elemento          | Convenção                                        | Exemplo                                          |
+| ----------------- | ------------------------------------------------ | ------------------------------------------------ |
+| **Migration RLS** | prefixo numérico 6x                              | `00000000000061_rls_policies_core.sql`           |
+| **Policy name**   | `<action>_<who>_<condition>`                     | `select_seller_own_portfolio`, `audit_no_delete` |
+| **Função helper** | em schema `crm`, snake_case                      | `crm.current_seller_id`, `crm.has_any_role`      |
+| **Marker STABLE** | sempre em helpers de JWT                         | `LANGUAGE sql STABLE`                            |
+| **Test file**     | `supabase/tests/rls/<tabela>_isolation_test.sql` | `customers_isolation_test.sql`                   |
 
 ---
 
@@ -759,6 +760,7 @@ ENTÃO o teste "vendedor não vê customer de outro vendedor" falha
 > ⚠️ **1. ANTES DE IMPLEMENTAR:** Releia PRD-006 Fase 1 completo. Toda divergência entre policy SQL e `matrix.ts` deve ser sinalizada. PRD-103 prevalece (mais granular), mas vale validar.
 
 > ⚠️ **2. APÓS IMPLEMENTAR:**
+>
 > - Bump app para v2.0.0-rc.3
 > - CHANGELOG: lista cada policy criada por tabela
 > - Renomear para `PRD-103-rls_DONE.md`
@@ -767,60 +769,60 @@ ENTÃO o teste "vendedor não vê customer de outro vendedor" falha
 
 ### Princípios de Implementação
 
-| Princípio | Descrição |
-|-----------|-----------|
-| **Múltiplas policies OR** | Em vez de mega-policy com CASE, escrever uma policy por intent (OR semantics) |
-| **Helpers STABLE** | Permitem cache do planner; performance comparável a queries sem RLS |
-| **Test boundary cases** | Mudança de seller_id, transferência de carteira, etc. — bug-prone |
-| **service_role bypass** | Edge Functions privilegiadas usam; valide caso a caso |
-| **FORCE RLS sempre** | Garante que mesmo `service_role` respeite policies que retornam `false` (como audit imutabilidade) |
-| **MCP Supabase get_advisors** | Após aplicar policies, rodar advisors para detectar issues (políticas faltando, etc.) |
+| Princípio                     | Descrição                                                                                          |
+| ----------------------------- | -------------------------------------------------------------------------------------------------- |
+| **Múltiplas policies OR**     | Em vez de mega-policy com CASE, escrever uma policy por intent (OR semantics)                      |
+| **Helpers STABLE**            | Permitem cache do planner; performance comparável a queries sem RLS                                |
+| **Test boundary cases**       | Mudança de seller_id, transferência de carteira, etc. — bug-prone                                  |
+| **service_role bypass**       | Edge Functions privilegiadas usam; valide caso a caso                                              |
+| **FORCE RLS sempre**          | Garante que mesmo `service_role` respeite policies que retornam `false` (como audit imutabilidade) |
+| **MCP Supabase get_advisors** | Após aplicar policies, rodar advisors para detectar issues (políticas faltando, etc.)              |
 
 ### Orientações Específicas
 
-| Aspecto | Orientação |
-|---------|------------|
-| **Performance** | Policies com subquery podem ser lentas; EXPLAIN ANALYZE em volume realista |
-| **Debugging policy** | `SET ROLE authenticated; SET request.jwt.claims = '...'; SELECT ...` simula usuário |
-| **Policy não aplica** | Verificar `FORCE ROW LEVEL SECURITY` ativo; sem isso, owner do banco bypassa |
-| **Custom claims path** | `auth.jwt() -> 'app_metadata' ->> 'seller_id'` (não `user_metadata` — esse é editável pelo usuário) |
-| **NULL em current_seller_id** | Anônimo retorna NULL; comparação `seller_id = NULL` retorna NULL (não TRUE) — fail closed natural |
-| **Cross-schema FK** | `storefront.product_reviews → crm.parts` funciona com RLS; policy de reviews usa `part_id IN (SELECT id FROM storefront.products)` (view) |
+| Aspecto                       | Orientação                                                                                                                                |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **Performance**               | Policies com subquery podem ser lentas; EXPLAIN ANALYZE em volume realista                                                                |
+| **Debugging policy**          | `SET ROLE authenticated; SET request.jwt.claims = '...'; SELECT ...` simula usuário                                                       |
+| **Policy não aplica**         | Verificar `FORCE ROW LEVEL SECURITY` ativo; sem isso, owner do banco bypassa                                                              |
+| **Custom claims path**        | `auth.jwt() -> 'app_metadata' ->> 'seller_id'` (não `user_metadata` — esse é editável pelo usuário)                                       |
+| **NULL em current_seller_id** | Anônimo retorna NULL; comparação `seller_id = NULL` retorna NULL (não TRUE) — fail closed natural                                         |
+| **Cross-schema FK**           | `storefront.product_reviews → crm.parts` funciona com RLS; policy de reviews usa `part_id IN (SELECT id FROM storefront.products)` (view) |
 
 ### O que NÃO Fazer
 
-| ❌ Evitar |
-|-----------|
+| ❌ Evitar                                                                                                        |
+| ---------------------------------------------------------------------------------------------------------------- |
 | `USING (true)` sem qualificação — abre tabela inteira (use só em casos justificados como `feature_flags` SELECT) |
-| Lógica de negócio em policy (CASE complexo) — refatorar para função |
-| Subquery em policy sem index (lentidão garantida) |
-| Esquecer `WITH CHECK` em INSERT/UPDATE — só USING não basta |
-| `service_role` no frontend |
-| Pular testes em alguma tabela "porque é simples" |
-| Misturar policies de schemas diferentes na mesma migration (separar por arquivo) |
-| Editar policy via Dashboard Supabase (sempre via migration versionada) |
-| Confiar apenas em RLS sem JWT validado (Edge Function deve `withAuth`) |
-| Hardcode de role names em policies — usar `has_role`/`has_any_role` |
+| Lógica de negócio em policy (CASE complexo) — refatorar para função                                              |
+| Subquery em policy sem index (lentidão garantida)                                                                |
+| Esquecer `WITH CHECK` em INSERT/UPDATE — só USING não basta                                                      |
+| `service_role` no frontend                                                                                       |
+| Pular testes em alguma tabela "porque é simples"                                                                 |
+| Misturar policies de schemas diferentes na mesma migration (separar por arquivo)                                 |
+| Editar policy via Dashboard Supabase (sempre via migration versionada)                                           |
+| Confiar apenas em RLS sem JWT validado (Edge Function deve `withAuth`)                                           |
+| Hardcode de role names em policies — usar `has_role`/`has_any_role`                                              |
 
 ---
 
 ## Status de Implementação
 
-| Campo | Valor |
-|-------|-------|
-| **Status** | ⏳ PENDENTE |
-| **Data de Implementação** | - |
-| **Versão do App** | - |
-| **Implementado por** | - |
-| **Observações** | - |
+| Campo                     | Valor       |
+| ------------------------- | ----------- |
+| **Status**                | ⏳ PENDENTE |
+| **Data de Implementação** | -           |
+| **Versão do App**         | -           |
+| **Implementado por**      | -           |
+| **Observações**           | -           |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 27/05/2026 | v1 | Criação inicial — Sub-lote 1b do Lote 1 (Onda 4) |
+| Data       | Versão | Alteração                                        |
+| ---------- | ------ | ------------------------------------------------ |
+| 27/05/2026 | v1     | Criação inicial — Sub-lote 1b do Lote 1 (Onda 4) |
 
 ---
 
