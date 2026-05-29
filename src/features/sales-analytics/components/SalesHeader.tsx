@@ -123,7 +123,7 @@ export function SalesHeader({
 
   return (
     <header className="mb-6 flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-foreground">
           <Icon icon="mdi:chart-line" size={26} className="text-primary" />
           {S.pageTitle}
