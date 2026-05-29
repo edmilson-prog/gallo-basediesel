@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, type MouseEvent as ReactMouseEvent } from "react";
 import type { ICustomer, ID, ISeller, IVehicle } from "@/shared/types";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -13,7 +13,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { formatDateBR } from "@/shared/utils/format";
+import type { ColumnId, OptionalColumn } from "../../utils/columns";
+import { useVehiclesColumnWidths } from "../../hooks/useVehiclesColumnWidths";
+import { VehiclesColumnsContextContent, VehiclesColumnsDropdown } from "./VehiclesColumnsMenu";
 import {
   STATUS_BADGE_CLASSES,
   STATUS_LABEL,
@@ -25,6 +29,9 @@ import { lastServiceAt, type IVehiclesListSort } from "../../utils/listFilters";
 import { VEHICLE_STRINGS } from "../../i18n/pt-BR";
 
 const COPY = VEHICLE_STRINGS.list.columns;
+
+const SELECT_COLUMN_WIDTH = 40;
+const ACTIONS_COLUMN_WIDTH = 44;
 
 const SORTABLE: Partial<Record<string, IVehiclesListSort["orderBy"]>> = {
   brand: "brand",
@@ -52,6 +59,9 @@ export interface IVehiclesTableProps {
   onSelectVehicle: (id: ID) => void;
   showStore?: boolean;
   canSelect?: boolean;
+  visibleColumns: Set<OptionalColumn>;
+  onToggleColumn: (id: OptionalColumn) => void;
+  onShowAllColumns: () => void;
 }
 
 export function VehiclesTable({
@@ -67,9 +77,14 @@ export function VehiclesTable({
   sellersById,
   onSelectVehicle,
   canSelect = true,
+  visibleColumns,
+  onToggleColumn,
+  onShowAllColumns,
 }: IVehiclesTableProps) {
   const allInPageSelected = vehicles.length > 0 && vehicles.every((v) => selectedIds.has(v.id));
   const partialPageSelected = !allInPageSelected && vehicles.some((v) => selectedIds.has(v.id));
+
+  const { widths, setWidth, commit } = useVehiclesColumnWidths();
 
   const columns = useMemo(
     () =>
@@ -80,15 +95,28 @@ export function VehiclesTable({
         { id: "plate", label: COPY.plate },
         { id: "customer", label: COPY.customer },
         { id: "seller", label: COPY.seller },
-        { id: "km", label: COPY.km, align: "right" as const },
+        { id: "km", label: COPY.km },
         { id: "lastService", label: COPY.lastService },
         { id: "cadastroStatus", label: COPY.cadastroStatus },
-      ] satisfies { id: string; label: string; align?: "right" }[],
+      ] satisfies { id: string; label: string }[],
     [],
   );
 
+  // brand is mandatory; optional columns honor the visibility set.
+  const visibleCols = useMemo(
+    () =>
+      columns.filter((col) => col.id === "brand" || visibleColumns.has(col.id as OptionalColumn)),
+    [columns, visibleColumns],
+  );
+
+  const tableWidth =
+    (canSelect ? SELECT_COLUMN_WIDTH : 0) +
+    visibleCols.reduce((sum, col) => sum + widths[col.id as ColumnId], 0) +
+    ACTIONS_COLUMN_WIDTH;
+
   if (isLoading) {
-    return <VehiclesTableSkeleton columns={columns.length + (canSelect ? 1 : 0)} />;
+    // visible data columns + select + actions
+    return <VehiclesTableSkeleton columns={visibleCols.length + (canSelect ? 1 : 0) + 1} />;
   }
 
   if (vehicles.length === 0) return null;
@@ -103,64 +131,112 @@ export function VehiclesTable({
     }
   };
 
+  // Drag a column border to resize it; persists on mouse up.
+  const startResize = (e: ReactMouseEvent, id: ColumnId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startWidth = widths[id];
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    const onMove = (ev: MouseEvent) => setWidth(id, startWidth + (ev.clientX - startX));
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      commit();
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  };
+
   return (
     <div className="h-full w-full">
-      <Table containerClassName="h-full">
+      <Table containerClassName="h-full" className="table-fixed" style={{ width: tableWidth }}>
+        <colgroup>
+          {canSelect && <col style={{ width: SELECT_COLUMN_WIDTH }} />}
+          {visibleCols.map((col) => (
+            <col key={col.id} style={{ width: widths[col.id as ColumnId] }} />
+          ))}
+          <col style={{ width: ACTIONS_COLUMN_WIDTH }} />
+        </colgroup>
         <TableHeader className="sticky top-0 z-10 bg-background">
-          <TableRow className="hover:bg-transparent">
-            {canSelect && (
-              <TableHead className="w-10 px-3">
-                <Checkbox
-                  aria-label="Selecionar todos da página"
-                  checked={allInPageSelected ? true : partialPageSelected ? "indeterminate" : false}
-                  onCheckedChange={(checked) => onToggleAllInPage(Boolean(checked))}
-                />
-              </TableHead>
-            )}
-            {columns.map((col) => {
-              const sortKey = SORTABLE[col.id];
-              const isSorted = sortKey && sort.orderBy === sortKey;
-              return (
-                <TableHead
-                  key={col.id}
-                  onClick={() => handleHeaderClick(col.id)}
-                  className={cn(
-                    "select-none whitespace-nowrap text-xs font-semibold uppercase tracking-wide text-muted-foreground",
-                    sortKey && "cursor-pointer hover:text-foreground",
-                    col.align === "right" && "text-right",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1",
-                      col.align === "right" && "justify-end",
-                    )}
-                  >
-                    {col.label}
-                    {sortKey && (
-                      <Icon
-                        icon={
-                          isSorted
-                            ? sort.orderDir === "asc"
-                              ? "mdi:chevron-up"
-                              : "mdi:chevron-down"
-                            : "mdi:unfold-more-horizontal"
-                        }
-                        size={14}
-                        className={cn(!isSorted && "opacity-40")}
+          <ContextMenu>
+            <ContextMenuTrigger asChild>
+              <TableRow className="hover:bg-transparent [&>th:not(:last-child)]:border-r [&>th:not(:last-child)]:border-border/70">
+                {canSelect && (
+                  <TableHead className="w-10 px-3">
+                    <Checkbox
+                      aria-label="Selecionar todos da página"
+                      checked={
+                        allInPageSelected ? true : partialPageSelected ? "indeterminate" : false
+                      }
+                      onCheckedChange={(checked) => onToggleAllInPage(Boolean(checked))}
+                    />
+                  </TableHead>
+                )}
+                {visibleCols.map((col) => {
+                  const sortKey = SORTABLE[col.id];
+                  const isSorted = sortKey && sort.orderBy === sortKey;
+                  return (
+                    <TableHead
+                      key={col.id}
+                      onClick={() => handleHeaderClick(col.id)}
+                      className={cn(
+                        "relative select-none overflow-hidden whitespace-nowrap text-xs font-semibold uppercase tracking-wide text-muted-foreground",
+                        sortKey && "cursor-pointer hover:text-foreground",
+                      )}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        {col.label}
+                        {sortKey && (
+                          <Icon
+                            icon={
+                              isSorted
+                                ? sort.orderDir === "asc"
+                                  ? "mdi:chevron-up"
+                                  : "mdi:chevron-down"
+                                : "mdi:unfold-more-horizontal"
+                            }
+                            size={14}
+                            className={cn(!isSorted && "opacity-40")}
+                          />
+                        )}
+                      </span>
+                      <span
+                        role="separator"
+                        aria-orientation="vertical"
+                        aria-label={`Redimensionar coluna ${col.label}`}
+                        onMouseDown={(e) => startResize(e, col.id as ColumnId)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute right-0 top-0 z-20 h-full w-1.5 cursor-col-resize touch-none hover:bg-primary/40"
                       />
-                    )}
-                  </span>
+                    </TableHead>
+                  );
+                })}
+                <TableHead className="w-10 px-1 text-right">
+                  <VehiclesColumnsDropdown
+                    visible={visibleColumns}
+                    onToggle={onToggleColumn}
+                    onShowAll={onShowAllColumns}
+                  />
                 </TableHead>
-              );
-            })}
-          </TableRow>
+              </TableRow>
+            </ContextMenuTrigger>
+            <VehiclesColumnsContextContent
+              visible={visibleColumns}
+              onToggle={onToggleColumn}
+              onShowAll={onShowAllColumns}
+            />
+          </ContextMenu>
         </TableHeader>
         <TableBody className={cn(isFetching && "opacity-60 transition-opacity")}>
-          {vehicles.map((vehicle) => (
+          {vehicles.map((vehicle, index) => (
             <VehicleRow
               key={vehicle.id}
               vehicle={vehicle}
+              index={index}
               isSelected={selectedIds.has(vehicle.id)}
               onToggleSelected={onToggleSelected}
               onSelect={onSelectVehicle}
@@ -171,6 +247,7 @@ export function VehiclesTable({
                 null
               }
               canSelect={canSelect}
+              visible={visibleColumns}
             />
           ))}
         </TableBody>
@@ -181,22 +258,26 @@ export function VehiclesTable({
 
 interface IVehicleRowProps {
   vehicle: IVehicle;
+  index: number;
   isSelected: boolean;
   onToggleSelected: (id: ID, checked: boolean) => void;
   onSelect: (id: ID) => void;
   customer: ICustomer | null;
   seller: ISeller | null;
   canSelect: boolean;
+  visible: Set<OptionalColumn>;
 }
 
 function VehicleRow({
   vehicle,
+  index,
   isSelected,
   onToggleSelected,
   onSelect,
   customer,
   seller,
   canSelect,
+  visible,
 }: IVehicleRowProps) {
   const last = lastServiceAt(vehicle);
   const customerName = customer
@@ -205,7 +286,10 @@ function VehicleRow({
       : customer.fullName
     : "—";
   return (
-    <TableRow className="cursor-pointer hover:bg-accent/30" onClick={() => onSelect(vehicle.id)}>
+    <TableRow
+      className={cn("cursor-pointer hover:bg-accent/30", index % 2 === 1 && "bg-muted/30")}
+      onClick={() => onSelect(vehicle.id)}
+    >
       {canSelect && (
         <TableCell className="w-10 px-3" onClick={(e) => e.stopPropagation()}>
           <Checkbox
@@ -228,40 +312,55 @@ function VehicleRow({
           </div>
         </div>
       </TableCell>
-      <TableCell className="text-sm tabular-nums">{vehicle.year}</TableCell>
-      <TableCell className="text-xs text-muted-foreground">{vehicle.engine || "—"}</TableCell>
-      <TableCell className="font-mono text-xs uppercase">{formatPlate(vehicle.plate)}</TableCell>
-      <TableCell className="text-sm">
-        <div className="min-w-0">
-          <p className="truncate">{customerName}</p>
-          {customer && (
-            <p className="truncate text-[11px] text-muted-foreground">
-              {customer.type === "B2B" ? "B2B" : "B2C"}
-            </p>
-          )}
-        </div>
-      </TableCell>
-      <TableCell className="text-xs">
-        {seller ? (
-          <span className="text-muted-foreground">{seller.fullName}</span>
-        ) : (
-          <span className="text-muted-foreground">—</span>
-        )}
-      </TableCell>
-      <TableCell className="text-right text-sm tabular-nums text-foreground">
-        {formatKm(vehicle.currentKm)}
-      </TableCell>
-      <TableCell className="text-xs text-muted-foreground">
-        {last ? formatDateBR(last) : "—"}
-      </TableCell>
-      <TableCell>
-        <Badge
-          variant="outline"
-          className={cn("text-xs", STATUS_BADGE_CLASSES[vehicle.cadastroStatus])}
-        >
-          {STATUS_LABEL[vehicle.cadastroStatus]}
-        </Badge>
-      </TableCell>
+      {visible.has("year") && (
+        <TableCell className="text-sm tabular-nums">{vehicle.year}</TableCell>
+      )}
+      {visible.has("engine") && (
+        <TableCell className="truncate text-xs text-muted-foreground">
+          {vehicle.engine || "—"}
+        </TableCell>
+      )}
+      {visible.has("plate") && (
+        <TableCell className="font-mono text-xs uppercase">{formatPlate(vehicle.plate)}</TableCell>
+      )}
+      {visible.has("customer") && (
+        <TableCell className="text-sm">
+          <div className="min-w-0">
+            <p className="truncate uppercase">{customerName}</p>
+            {customer && (
+              <p className="truncate text-[11px] text-muted-foreground">
+                {customer.type === "B2B" ? "B2B" : "B2C"}
+              </p>
+            )}
+          </div>
+        </TableCell>
+      )}
+      {visible.has("seller") && (
+        <TableCell className="truncate text-xs uppercase text-muted-foreground">
+          {seller ? seller.fullName : "—"}
+        </TableCell>
+      )}
+      {visible.has("km") && (
+        <TableCell className="text-sm tabular-nums text-foreground">
+          {formatKm(vehicle.currentKm)}
+        </TableCell>
+      )}
+      {visible.has("lastService") && (
+        <TableCell className="text-xs text-muted-foreground">
+          {last ? formatDateBR(last) : "—"}
+        </TableCell>
+      )}
+      {visible.has("cadastroStatus") && (
+        <TableCell>
+          <Badge
+            variant="outline"
+            className={cn("text-xs", STATUS_BADGE_CLASSES[vehicle.cadastroStatus])}
+          >
+            {STATUS_LABEL[vehicle.cadastroStatus]}
+          </Badge>
+        </TableCell>
+      )}
+      <TableCell className="w-10 px-1" />
     </TableRow>
   );
 }

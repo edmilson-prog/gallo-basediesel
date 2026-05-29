@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/Icon";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -44,109 +45,114 @@ export function VehiclesFiltersBar({
 }: IVehiclesFiltersBarProps) {
   const activeCount = countActiveFilters(filters);
 
+  const onlyPending =
+    filters.cadastroStatuses.length === 1 && filters.cadastroStatuses[0] === "pendente";
+
   return (
-    <div
-      className={cn(
-        "flex flex-wrap items-center gap-2 border-b border-border bg-card px-4 py-2",
-        className,
-      )}
-    >
-      <MultiSelectPopover
-        label={COPY.brand}
-        icon="mdi:car-info"
-        selected={filters.brands}
-        options={VEHICLE_BRANDS.map((b) => ({ value: b, label: b }))}
-        onChange={(next) => patch({ brands: next })}
-      />
-
-      <TextFilterPopover
-        label={COPY.model}
-        icon="mdi:car-side"
-        value={filters.model}
-        onChange={(next) => patch({ model: next })}
-        placeholder="ex.: FH540"
-      />
-
-      <YearRangePopover
-        yearMin={filters.yearMin}
-        yearMax={filters.yearMax}
-        onChange={(next) => patch({ yearMin: next.yearMin, yearMax: next.yearMax })}
-      />
-
-      <TextFilterPopover
-        label={COPY.engine}
-        icon="mdi:engine"
-        value={filters.engine}
-        onChange={(next) => patch({ engine: next })}
-        placeholder="ex.: DC13"
-      />
-
-      <MultiSelectPopover
-        label={COPY.status}
-        icon="mdi:check-decagram-outline"
-        selected={filters.cadastroStatuses}
-        options={CADASTRO_STATUS_KEYS.map((s) => ({ value: s, label: STATUS_LABEL[s] }))}
-        onChange={(next) => patch({ cadastroStatuses: next as VehicleCadastroStatus[] })}
-      />
-
-      {canFilterSeller && (
+    <TooltipProvider delayDuration={300}>
+      <div className={cn("flex flex-wrap items-center gap-2", className)}>
         <MultiSelectPopover
-          label="Vendedor"
-          icon="mdi:account-tie"
-          searchable
-          selected={filters.sellerIds}
-          options={sellers.map((s) => ({ value: s.id, label: s.fullName }))}
-          onChange={(next) => patch({ sellerIds: next as ID[] })}
+          label={COPY.brand}
+          icon="mdi:car-info"
+          description="Filtrar por marca do veículo"
+          selected={filters.brands}
+          options={VEHICLE_BRANDS.map((b) => ({ value: b, label: b }))}
+          onChange={(next) => patch({ brands: next })}
         />
-      )}
 
-      {canFilterStore && stores.length > 1 && (
+        <TextFilterPopover
+          label={COPY.model}
+          icon="mdi:car-side"
+          description="Filtrar pelo modelo do veículo"
+          value={filters.model}
+          onChange={(next) => patch({ model: next })}
+          placeholder="ex.: FH540"
+        />
+
+        <YearRangePopover
+          yearMin={filters.yearMin}
+          yearMax={filters.yearMax}
+          description="Filtrar por faixa de ano de fabricação"
+          onChange={(next) => patch({ yearMin: next.yearMin, yearMax: next.yearMax })}
+        />
+
+        <TextFilterPopover
+          label={COPY.engine}
+          icon="mdi:engine"
+          description="Filtrar pelo motor do veículo"
+          value={filters.engine}
+          onChange={(next) => patch({ engine: next })}
+          placeholder="ex.: DC13"
+        />
+
         <MultiSelectPopover
-          label={COPY.store}
-          icon="mdi:store"
-          selected={filters.storeIds}
-          options={stores.map((s) => ({ value: s.id, label: s.name }))}
-          onChange={(next) => patch({ storeIds: next as ID[] })}
+          label={COPY.status}
+          icon="mdi:check-decagram-outline"
+          description="Filtrar pelo status do cadastro (aprovado, pendente, rejeitado)"
+          selected={filters.cadastroStatuses}
+          options={CADASTRO_STATUS_KEYS.map((s) => ({ value: s, label: STATUS_LABEL[s] }))}
+          onChange={(next) => patch({ cadastroStatuses: next as VehicleCadastroStatus[] })}
         />
-      )}
 
-      <Button
-        variant={
-          filters.cadastroStatuses.length === 1 && filters.cadastroStatuses[0] === "pendente"
-            ? "default"
-            : "outline"
-        }
-        size="sm"
-        className="h-8 gap-1.5 text-xs"
-        onClick={() => {
-          const onlyPending =
-            filters.cadastroStatuses.length === 1 && filters.cadastroStatuses[0] === "pendente";
-          patch({ cadastroStatuses: onlyPending ? [] : ["pendente"] });
-        }}
-      >
-        <Icon icon="mdi:clock-alert-outline" size={14} />
-        {COPY.pendingShortcut}
-      </Button>
+        {canFilterSeller && (
+          <MultiSelectPopover
+            label="Vendedor"
+            icon="mdi:account-tie"
+            description="Filtrar pelos veículos de um ou mais vendedores"
+            searchable
+            selected={filters.sellerIds}
+            options={sellers.map((s) => ({ value: s.id, label: s.fullName }))}
+            onChange={(next) => patch({ sellerIds: next as ID[] })}
+          />
+        )}
 
-      <div className="ml-auto flex items-center gap-2">
-        {activeCount > 0 && (
-          <Badge variant="outline" className="text-xs text-muted-foreground">
-            {activeCount} {activeCount === 1 ? "filtro ativo" : "filtros ativos"}
-          </Badge>
+        {canFilterStore && stores.length > 1 && (
+          <MultiSelectPopover
+            label={COPY.store}
+            icon="mdi:store"
+            description="Filtrar pela loja de origem do veículo"
+            selected={filters.storeIds}
+            options={stores.map((s) => ({ value: s.id, label: s.name }))}
+            onChange={(next) => patch({ storeIds: next as ID[] })}
+          />
         )}
-        {activeCount > 0 && (
-          <Button variant="ghost" size="sm" onClick={onClear} className="text-xs">
-            <Icon icon="mdi:close-circle-outline" size={14} />
-            {COPY.clear}
-          </Button>
-        )}
-        {!isManagerOrOwner && (
-          <span className="text-[10px] text-muted-foreground">
-            Visualizando apenas sua carteira
-          </span>
-        )}
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={onlyPending ? "default" : "outline"}
+              size="sm"
+              aria-pressed={onlyPending}
+              className="h-8 gap-1.5 text-xs"
+              onClick={() => patch({ cadastroStatuses: onlyPending ? [] : ["pendente"] })}
+            >
+              <Icon icon="mdi:clock-alert-outline" size={14} />
+              {COPY.pendingShortcut}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Mostrar apenas veículos com cadastro pendente</TooltipContent>
+        </Tooltip>
+
+        <div className="flex items-center gap-2">
+          {activeCount > 0 && (
+            <Badge variant="outline" className="text-xs text-muted-foreground">
+              {activeCount} {activeCount === 1 ? "filtro ativo" : "filtros ativos"}
+            </Badge>
+          )}
+          {activeCount > 0 && (
+            <Button variant="ghost" size="sm" onClick={onClear} className="text-xs">
+              <Icon icon="mdi:close-circle-outline" size={14} />
+              {COPY.clear}
+            </Button>
+          )}
+          {!isManagerOrOwner && (
+            <span className="text-[10px] text-muted-foreground">
+              Visualizando apenas sua carteira
+            </span>
+          )}
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }
 
@@ -158,6 +164,7 @@ interface IMultiOption<T extends string> {
 interface IMultiSelectPopoverProps<T extends string> {
   label: string;
   icon: string;
+  description: string;
   selected: T[];
   options: IMultiOption<T>[];
   onChange: (next: T[]) => void;
@@ -167,6 +174,7 @@ interface IMultiSelectPopoverProps<T extends string> {
 function MultiSelectPopover<T extends string>({
   label,
   icon,
+  description,
   selected,
   options,
   onChange,
@@ -179,24 +187,29 @@ function MultiSelectPopover<T extends string>({
   const active = selected.length > 0;
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn(
-            "h-8 gap-1.5 text-xs",
-            active && "border-primary/40 bg-primary/5 text-primary",
-          )}
-        >
-          <Icon icon={icon} size={14} />
-          {label}
-          {active && (
-            <span className="rounded-full bg-primary/15 px-1.5 py-0 text-[10px] font-semibold">
-              {selected.length}
-            </span>
-          )}
-        </Button>
-      </PopoverTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "h-8 gap-1.5 text-xs",
+                active && "border-primary/40 bg-primary/5 text-primary",
+              )}
+            >
+              <Icon icon={icon} size={14} />
+              {label}
+              {active && (
+                <span className="rounded-full bg-primary/15 px-1.5 py-0 text-[10px] font-semibold">
+                  {selected.length}
+                </span>
+              )}
+            </Button>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent>{description}</TooltipContent>
+      </Tooltip>
       <PopoverContent align="start" className="w-[260px] p-2">
         {searchable && (
           <Input
@@ -248,12 +261,20 @@ function MultiSelectPopover<T extends string>({
 interface ITextFilterPopoverProps {
   label: string;
   icon: string;
+  description: string;
   value: string;
   placeholder?: string;
   onChange: (next: string) => void;
 }
 
-function TextFilterPopover({ label, icon, value, placeholder, onChange }: ITextFilterPopoverProps) {
+function TextFilterPopover({
+  label,
+  icon,
+  description,
+  value,
+  placeholder,
+  onChange,
+}: ITextFilterPopoverProps) {
   const [draft, setDraft] = useState(value);
   const active = value.trim().length > 0;
   return (
@@ -262,20 +283,25 @@ function TextFilterPopover({ label, icon, value, placeholder, onChange }: ITextF
         if (open) setDraft(value);
       }}
     >
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn(
-            "h-8 gap-1.5 text-xs",
-            active && "border-primary/40 bg-primary/5 text-primary",
-          )}
-        >
-          <Icon icon={icon} size={14} />
-          {label}
-          {active && <span className="text-[10px]">✓</span>}
-        </Button>
-      </PopoverTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "h-8 gap-1.5 text-xs",
+                active && "border-primary/40 bg-primary/5 text-primary",
+              )}
+            >
+              <Icon icon={icon} size={14} />
+              {label}
+              {active && <span className="text-[10px]">✓</span>}
+            </Button>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent>{description}</TooltipContent>
+      </Tooltip>
       <PopoverContent align="start" className="w-[240px] space-y-2 p-3">
         <Input
           autoFocus
@@ -308,10 +334,11 @@ function TextFilterPopover({ label, icon, value, placeholder, onChange }: ITextF
 interface IYearRangePopoverProps {
   yearMin?: number;
   yearMax?: number;
+  description: string;
   onChange: (next: { yearMin?: number; yearMax?: number }) => void;
 }
 
-function YearRangePopover({ yearMin, yearMax, onChange }: IYearRangePopoverProps) {
+function YearRangePopover({ yearMin, yearMax, description, onChange }: IYearRangePopoverProps) {
   const [minDraft, setMinDraft] = useState<string>(yearMin !== undefined ? String(yearMin) : "");
   const [maxDraft, setMaxDraft] = useState<string>(yearMax !== undefined ? String(yearMax) : "");
   const active = yearMin !== undefined || yearMax !== undefined;
@@ -324,24 +351,29 @@ function YearRangePopover({ yearMin, yearMax, onChange }: IYearRangePopoverProps
         }
       }}
     >
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn(
-            "h-8 gap-1.5 text-xs",
-            active && "border-primary/40 bg-primary/5 text-primary",
-          )}
-        >
-          <Icon icon="mdi:calendar" size={14} />
-          {VEHICLE_STRINGS.filters.yearRange}
-          {active && (
-            <span className="text-[10px]">
-              {yearMin ?? "•"}–{yearMax ?? "•"}
-            </span>
-          )}
-        </Button>
-      </PopoverTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "h-8 gap-1.5 text-xs",
+                active && "border-primary/40 bg-primary/5 text-primary",
+              )}
+            >
+              <Icon icon="mdi:calendar" size={14} />
+              {VEHICLE_STRINGS.filters.yearRange}
+              {active && (
+                <span className="text-[10px]">
+                  {yearMin ?? "•"}–{yearMax ?? "•"}
+                </span>
+              )}
+            </Button>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent>{description}</TooltipContent>
+      </Tooltip>
       <PopoverContent align="start" className="w-[260px] space-y-2 p-3">
         <div className="flex items-center gap-2">
           <Input
