@@ -83,6 +83,7 @@ export interface ICustomersTableProps {
   onToggleAllInPage: (checked: boolean) => void;
   selectedDetailId: ID | null;
   onSelectDetail: (id: ID) => void;
+  onOpenDetail: (id: ID) => void;
   sort: ICustomersListSort;
   onSortChange: (next: ICustomersListSort) => void;
   searchTerm: string;
@@ -99,6 +100,7 @@ export function CustomersTable({
   onToggleAllInPage,
   selectedDetailId,
   onSelectDetail,
+  onOpenDetail,
   sort,
   onSortChange,
   searchTerm,
@@ -206,6 +208,7 @@ export function CustomersTable({
               onToggleSelected={onToggleSelected}
               isFocused={selectedDetailId === customer.id}
               onSelectDetail={onSelectDetail}
+              onOpenDetail={onOpenDetail}
               searchTerm={searchTerm}
               sellersById={sellersById}
             />
@@ -223,6 +226,7 @@ interface ICustomerRowProps {
   onToggleSelected: (id: ID, checked: boolean) => void;
   isFocused: boolean;
   onSelectDetail: (id: ID) => void;
+  onOpenDetail: (id: ID) => void;
   searchTerm: string;
   sellersById: Map<ID, ISellerLookupEntry>;
 }
@@ -234,6 +238,7 @@ function CustomerRow({
   onToggleSelected,
   isFocused,
   onSelectDetail,
+  onOpenDetail,
   searchTerm,
   sellersById,
 }: ICustomerRowProps) {
@@ -263,6 +268,7 @@ function CustomerRow({
             recencyDays,
             searchTerm,
             sellersById,
+            onOpenDetail,
           })}
         </TableCell>
       ))}
@@ -277,10 +283,11 @@ interface ICellContext {
   recencyDays: number | null;
   searchTerm: string;
   sellersById: Map<ID, ISellerLookupEntry>;
+  onOpenDetail: (id: ID) => void;
 }
 
 function renderCell(col: ColumnId, ctx: ICellContext) {
-  const { customer, display, name, recencyDays, searchTerm, sellersById } = ctx;
+  const { customer, display, name, recencyDays, searchTerm, sellersById, onOpenDetail } = ctx;
   switch (col) {
     case "name":
       return (
@@ -293,9 +300,17 @@ function renderCell(col: ColumnId, ctx: ICellContext) {
             {display.initials}
           </span>
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium uppercase text-foreground">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenDetail(customer.id);
+              }}
+              className="block max-w-full truncate text-left text-sm font-medium uppercase text-foreground transition-colors hover:text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-ring"
+              title={`Abrir página de ${name}`}
+            >
               {highlightSearchTerm(name, searchTerm)}
-            </p>
+            </button>
             <p className="truncate text-xs text-muted-foreground">
               {highlightSearchTerm(customer.phone, searchTerm)}
             </p>

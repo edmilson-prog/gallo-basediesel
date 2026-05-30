@@ -489,6 +489,7 @@ export function CustomersListPage() {
                 onToggleAllInPage={toggleAllInPage}
                 selectedDetailId={selectedId}
                 onSelectDetail={handleSelectDetail}
+                onOpenDetail={(id) => void navigate({ to: "/app/clientes/$id", params: { id } })}
                 sort={sort}
                 onSortChange={url.setSort}
                 searchTerm={filters.search}
