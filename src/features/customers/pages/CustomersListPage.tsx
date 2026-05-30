@@ -465,8 +465,18 @@ export function CustomersListPage() {
         onMarkDormant={() => void handleMarkDormant()}
       />
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[3fr_2fr]">
-        <div className="flex min-h-0 flex-col overflow-hidden border-r border-border">
+      <div
+        className={cn(
+          "grid min-h-0 flex-1 grid-cols-1",
+          selectedCustomer && "lg:grid-cols-[3fr_2fr]",
+        )}
+      >
+        <div
+          className={cn(
+            "flex min-h-0 flex-col overflow-hidden",
+            selectedCustomer && "lg:border-r lg:border-border",
+          )}
+        >
           <div className="min-h-0 flex-1">
             {showEmptyState ? (
               <EmptyState
@@ -506,8 +516,8 @@ export function CustomersListPage() {
           />
         </div>
 
-        <div className={cn("hidden min-h-0 lg:block")}>
-          {selectedCustomer ? (
+        {selectedCustomer && (
+          <div className="hidden min-h-0 lg:block">
             <div className="h-full overflow-y-auto scrollbar-hide">
               <CustomerProfile
                 customerId={selectedCustomer.id}
@@ -515,20 +525,8 @@ export function CustomersListPage() {
                 className="h-full"
               />
             </div>
-          ) : (
-            <div className="flex h-full flex-col items-center justify-center gap-3 px-6 py-12 text-center">
-              <div className="grid h-12 w-12 place-items-center rounded-full bg-muted text-muted-foreground">
-                <Icon icon="mdi:account-eye-outline" size={24} />
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-foreground">Selecione um cliente</p>
-                <p className="text-xs text-muted-foreground">
-                  Clique em uma linha para ver os detalhes completos da ficha aqui.
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <ColumnsConfigModal
