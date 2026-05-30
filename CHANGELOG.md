@@ -4,6 +4,13 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.49.2] — Spotlight · 2026-05-30
+
+### Fixed
+
+- **Botão de transferência de vendedor no detalhe do cliente** — o botão (ícone ↔ ao lado de "Vendedor responsável") não fazia nada: navegava para uma rota inexistente (`/app/carteiras`, no plural) com um cast que silenciava o erro de tipo do roteador. Agora abre o modal de transferência individual (vendedor de destino + motivo), o mesmo já usado no menu do cabeçalho.
+- **Detalhe do cliente não refletia a nova carteira após transferir** — as mutações de transferência passam a invalidar também a query `customer-profile`, então o vendedor responsável é atualizado na hora em todas as telas (criação, reversão e expiração de transferências).
+
 ## [0.49.1] — Spotlight · 2026-05-30
 
 ### Fixed
