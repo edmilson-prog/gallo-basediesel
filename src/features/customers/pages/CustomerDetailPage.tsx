@@ -79,7 +79,7 @@ export function CustomerDetailPage({ customerId }: ICustomerDetailPageProps) {
       <div className="flex h-full min-h-0 flex-col overflow-y-auto bg-background">
         <CustomerDetailHeader customer={customer} />
 
-        <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6">
+        <div className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 sm:px-6">
           <CustomerStatStrip customer={customer} />
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">

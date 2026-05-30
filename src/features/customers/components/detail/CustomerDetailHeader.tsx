@@ -25,7 +25,7 @@ export function CustomerDetailHeader({ customer }: ICustomerDetailHeaderProps) {
 
   return (
     <header className="shrink-0 border-b border-border bg-card">
-      <div className="mx-auto w-full max-w-7xl space-y-3 px-4 py-5 sm:px-6">
+      <div className="mx-auto w-full max-w-[1600px] space-y-3 px-4 py-5 sm:px-6">
         <nav
           className="flex items-center gap-1 text-xs text-muted-foreground"
           aria-label="breadcrumb"
