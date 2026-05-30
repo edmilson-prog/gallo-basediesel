@@ -34,6 +34,12 @@ import { NewVehicleModal } from "../components/NewVehicleModal";
 import { useVehiclesUrlState } from "../hooks/useVehiclesUrlState";
 import { useVehiclesList } from "../hooks/useVehiclesList";
 import { useCadastroMode } from "../hooks/useCadastroMode";
+import {
+  OPTIONAL_COLUMNS,
+  readVisibleOptional,
+  writeVisibleOptional,
+  type OptionalColumn,
+} from "../utils/columns";
 import { VEHICLE_STRINGS } from "../i18n/pt-BR";
 
 export function VehiclesListPage() {
@@ -142,6 +148,29 @@ export function VehiclesListPage() {
     setSelectedIds(new Set());
   }, [filters, sort, page, pageSize]);
 
+  // Column visibility (persisted in localStorage).
+  const [visibleColumns, setVisibleColumns] = useState<Set<OptionalColumn>>(
+    () => new Set(readVisibleOptional()),
+  );
+
+  const toggleColumn = useCallback((id: OptionalColumn) => {
+    setVisibleColumns((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const showAllColumns = useCallback(() => {
+    setVisibleColumns(new Set(OPTIONAL_COLUMNS));
+  }, []);
+
+  useEffect(() => {
+    // Persist in canonical column order.
+    writeVisibleOptional(OPTIONAL_COLUMNS.filter((id) => visibleColumns.has(id)));
+  }, [visibleColumns]);
+
   // Modais
   const [newOpen, setNewOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
@@ -217,17 +246,18 @@ export function VehiclesListPage() {
         onSearchChange={(q) => url.setSearch(q)}
         canCreate={effectiveCanCreate}
         onCreate={() => setNewOpen(true)}
-      />
-
-      <VehiclesFiltersBar
-        filters={filters}
-        patch={(p) => url.patchFilters(p)}
-        onClear={() => url.clearAll()}
-        sellers={sellers}
-        stores={accessibleStores}
-        canFilterStore={isOwner}
-        canFilterSeller={isManagerOrOwner}
-        isManagerOrOwner={isManagerOrOwner}
+        filtersSlot={
+          <VehiclesFiltersBar
+            filters={filters}
+            patch={(p) => url.patchFilters(p)}
+            onClear={() => url.clearAll()}
+            sellers={sellers}
+            stores={accessibleStores}
+            canFilterStore={isOwner}
+            canFilterSeller={isManagerOrOwner}
+            isManagerOrOwner={isManagerOrOwner}
+          />
+        }
       />
 
       <VehiclesBulkActionsBar
@@ -264,6 +294,9 @@ export function VehiclesListPage() {
               sellersById={sellersById}
               onSelectVehicle={goToDetail}
               canSelect={canApprove}
+              visibleColumns={visibleColumns}
+              onToggleColumn={toggleColumn}
+              onShowAllColumns={showAllColumns}
             />
           )}
         </div>

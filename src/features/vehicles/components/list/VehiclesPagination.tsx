@@ -30,7 +30,7 @@ export function VehiclesPagination({
   const to = Math.min(total, page * pageSize);
 
   return (
-    <div className="flex flex-col gap-3 border-t border-border bg-card px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-2 border-t border-border bg-card px-4 py-1.5 text-sm sm:flex-row sm:items-center sm:justify-between">
       <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
         <span>
           {total > 0 ? (
@@ -71,6 +71,7 @@ export function VehiclesPagination({
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
           aria-label="Página anterior"
+          className="h-7 w-7"
         >
           <Icon icon="mdi:chevron-left" size={16} />
         </Button>
@@ -97,6 +98,7 @@ export function VehiclesPagination({
           disabled={page >= totalPages}
           onClick={() => onPageChange(page + 1)}
           aria-label="Próxima página"
+          className="h-7 w-7"
         >
           <Icon icon="mdi:chevron-right" size={16} />
         </Button>
