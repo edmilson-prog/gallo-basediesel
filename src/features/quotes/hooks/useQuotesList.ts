@@ -13,6 +13,8 @@ import { validityBucket } from "../utils/quoteTotals";
 
 export interface IQuotesListQuery {
   data: IQuote[];
+  /** Full filtered set BEFORE the status filter and pagination — feeds KPIs/tabs. */
+  allFiltered: IQuote[];
   total: number;
   isLoading: boolean;
   isFetching: boolean;
@@ -106,7 +108,6 @@ export function useQuotesList(
     return {
       storeId: filters.storeIds.length === 1 ? filters.storeIds[0] : undefined,
       sellerId: options.sellerIdLock ?? undefined,
-      status: filters.statuses.length > 0 ? filters.statuses : undefined,
       origin: filters.origins.length > 0 ? filters.origins : undefined,
       customerId: filters.customerId,
       createdAfter: bounds.createdAfter,
@@ -130,16 +131,25 @@ export function useQuotesList(
 
   const result = useMemo(() => {
     const fetched = query.data?.data ?? [];
-    let filtered = applyClientFilters(fetched, filters);
+    // allFiltered = todos os filtros comuns + vendedor, MAS sem status nem paginação.
+    let allFiltered = applyClientFilters(fetched, filters);
     if (options.sellerIdLock && filters.sellerIds.length === 0) {
-      filtered = filtered.filter((q) => q.sellerId === options.sellerIdLock);
+      allFiltered = allFiltered.filter((q) => q.sellerId === options.sellerIdLock);
     } else if (filters.sellerIds.length > 0) {
       const set = new Set(filters.sellerIds);
-      filtered = filtered.filter((q) => set.has(q.sellerId));
+      allFiltered = allFiltered.filter((q) => set.has(q.sellerId));
     }
-    const sorted = sortQuotes(filtered, sort, options.customersById, options.sellersById);
+    // afterStatus aplica o filtro de status (agora client-side) sobre allFiltered.
+    const statusSet = new Set(filters.statuses);
+    const afterStatus =
+      statusSet.size > 0 ? allFiltered.filter((q) => statusSet.has(q.status)) : allFiltered;
+    const sorted = sortQuotes(afterStatus, sort, options.customersById, options.sellersById);
     const start = (page - 1) * pageSize;
-    return { paged: sorted.slice(start, start + pageSize), total: sorted.length };
+    return {
+      paged: sorted.slice(start, start + pageSize),
+      total: sorted.length,
+      allFiltered,
+    };
   }, [
     query.data,
     filters,
@@ -153,6 +163,7 @@ export function useQuotesList(
 
   return {
     data: result.paged,
+    allFiltered: result.allFiltered,
     total: result.total,
     isLoading: query.isLoading,
     isFetching: query.isFetching,
