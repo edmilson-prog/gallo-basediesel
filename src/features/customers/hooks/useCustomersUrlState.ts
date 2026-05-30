@@ -65,6 +65,12 @@ const VALID_ORDER_BY = new Set<CustomersOrderBy>([
 const VALID_ORDER_DIR = new Set<CustomersOrderDir>(["asc", "desc"]);
 
 const LIST_SEARCH_STORAGE_KEY = "gallo-customers-list-search";
+/**
+ * `selected` is an ephemeral detail-panel pointer — never persist it, so a fresh
+ * visit to /app/clientes starts with the panel closed (filters/sort/page still
+ * persist). Shared deep links with `?selected=` are still honored.
+ */
+const PERSIST_EXCLUDE_KEYS = ["selected"] as const;
 const VALID_STATUS = new Set<CustomerStatus>(STATUS_KEYS);
 const VALID_ABC = new Set<AbcKey>(ABC_KEYS);
 const VALID_RECENCY = new Set<RecencyBucket>(RECENCY_BUCKETS);
@@ -218,9 +224,14 @@ export function useCustomersUrlState(): ICustomersUrlState {
   const sort = useMemo(() => readSort(search), [search]);
   const { page, pageSize } = useMemo(() => readPage(search), [search]);
 
-  usePersistedListSearch(LIST_SEARCH_STORAGE_KEY, search as Record<string, unknown>, (saved) => {
-    void navigate({ search: () => saved as unknown as ICustomersListSearch, replace: true });
-  });
+  usePersistedListSearch(
+    LIST_SEARCH_STORAGE_KEY,
+    search as Record<string, unknown>,
+    (saved) => {
+      void navigate({ search: () => saved as unknown as ICustomersListSearch, replace: true });
+    },
+    PERSIST_EXCLUDE_KEYS,
+  );
 
   const apply = useCallback(
     (patch: Partial<ICustomersListSearch>) => {
