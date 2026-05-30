@@ -37,7 +37,7 @@ export function MaintenanceRecommendations({ vehicle }: IMaintenanceRecommendati
               <li
                 key={rec.rule.key}
                 className={cn(
-                  "rounded-md border bg-card px-3 py-3",
+                  "rounded-md border bg-card px-4 py-3",
                   isOverdue
                     ? "border-destructive/30 bg-destructive/5"
                     : "border-amber-500/30 bg-amber-500/5",

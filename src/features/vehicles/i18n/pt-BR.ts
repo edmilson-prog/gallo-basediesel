@@ -110,6 +110,8 @@ export const VEHICLE_STRINGS = {
     },
     history: {
       empty: "Sem manutenções registradas para este veículo.",
+      emptyCta: "Registrar manutenção",
+      emptyAutoHint: "O histórico também é preenchido automaticamente a partir de pedidos.",
       derivedFromOrder: "Derivado do pedido",
       view: "Ver pedido",
     },

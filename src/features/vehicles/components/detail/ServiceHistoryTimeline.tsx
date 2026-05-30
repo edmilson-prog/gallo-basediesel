@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { IVehicle, IVehicleServiceEntry } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { formatDateBR } from "@/shared/utils/format";
 import { VEHICLE_STRINGS } from "../../i18n/pt-BR";
 
@@ -10,9 +11,15 @@ const SECTION_COPY = VEHICLE_STRINGS.detail.sections;
 
 export interface IServiceHistoryTimelineProps {
   vehicle: IVehicle;
+  canEdit?: boolean;
+  onAddService?: () => void;
 }
 
-export function ServiceHistoryTimeline({ vehicle }: IServiceHistoryTimelineProps) {
+export function ServiceHistoryTimeline({
+  vehicle,
+  canEdit,
+  onAddService,
+}: IServiceHistoryTimelineProps) {
   const sorted = useMemo<IVehicleServiceEntry[]>(
     () => [...vehicle.serviceHistory].sort((a, b) => b.date.localeCompare(a.date)),
     [vehicle.serviceHistory],
@@ -24,9 +31,27 @@ export function ServiceHistoryTimeline({ vehicle }: IServiceHistoryTimelineProps
         {SECTION_COPY.history}
       </h2>
       {sorted.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted/20 px-4 py-6 text-center">
-          <Icon icon="mdi:wrench-clock" size={20} className="text-muted-foreground" />
-          <p className="text-xs text-muted-foreground">{COPY.empty}</p>
+        <div className="rounded-md border border-dashed border-border bg-muted/20 px-5 py-5">
+          <ol aria-hidden="true" className="mb-4 space-y-3 border-l border-border pl-4">
+            {[0, 1, 2].map((i) => (
+              <li key={i} className="relative">
+                <span className="absolute -left-[21px] top-0.5 h-3 w-3 rounded-full border border-border bg-muted/50" />
+                <div className="space-y-1.5">
+                  <div className="h-2.5 w-2/5 rounded bg-foreground/[0.06]" />
+                  <div className="h-2.5 w-3/5 rounded bg-foreground/[0.03]" />
+                </div>
+              </li>
+            ))}
+          </ol>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="max-w-sm text-xs text-muted-foreground">{COPY.emptyAutoHint}</p>
+            {canEdit && onAddService && (
+              <Button size="sm" onClick={onAddService}>
+                <Icon icon="mdi:wrench" size={14} />
+                {COPY.emptyCta}
+              </Button>
+            )}
+          </div>
         </div>
       ) : (
         <ol className="relative space-y-3 border-l border-border pl-4">

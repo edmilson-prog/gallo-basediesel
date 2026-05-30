@@ -31,7 +31,7 @@ export function CompatiblePartsPlaceholder({ vehicle }: ICompatiblePartsPlacehol
           PRD-030 (placeholder)
         </Badge>
       </div>
-      <div className="rounded-md border border-dashed border-border bg-muted/20 px-4 py-3">
+      <div className="rounded-md border border-dashed border-border bg-muted/20 px-4 py-4">
         <div className="flex items-start gap-3">
           <Icon icon="mdi:cog-outline" size={20} className="mt-0.5 text-muted-foreground" />
           <div className="min-w-0 flex-1">

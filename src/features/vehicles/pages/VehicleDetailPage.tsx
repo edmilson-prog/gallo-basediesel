@@ -108,7 +108,7 @@ export function VehicleDetailPage() {
         onAddService={() => setServiceOpen(true)}
       />
 
-      <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6">
+      <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6">
         <VehicleStatusBanner
           vehicle={vehicle}
           canApprove={canApprove}
@@ -116,20 +116,25 @@ export function VehicleDetailPage() {
           onReject={() => setRejectOpen(true)}
         />
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="space-y-6 lg:col-span-2">
-            <VehicleTechSpecs
+        <VehicleTechSpecs
+          vehicle={vehicle}
+          canEdit={canEdit}
+          onUpdated={() => void detail.invalidate()}
+        />
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <div className="space-y-6 lg:col-span-8">
+            <ServiceHistoryTimeline
               vehicle={vehicle}
               canEdit={canEdit}
-              onUpdated={() => void detail.invalidate()}
+              onAddService={() => setServiceOpen(true)}
             />
-            <ServiceHistoryTimeline vehicle={vehicle} />
             <MaintenanceRecommendations vehicle={vehicle} />
           </div>
-          <div className="space-y-6">
+          <aside className="space-y-6 lg:sticky lg:top-6 lg:col-span-4 lg:self-start">
             <VehicleOwnerCard customerId={vehicle.customerId} />
             <CompatiblePartsPlaceholder vehicle={vehicle} />
-          </div>
+          </aside>
         </div>
       </div>
 
