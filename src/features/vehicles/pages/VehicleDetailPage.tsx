@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { toast } from "sonner";
 import type { ID } from "@/shared/types";
@@ -21,15 +21,17 @@ import { useVehiclesProvider } from "@/providers/data/hooks/useVehiclesProvider"
 import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { auditLog } from "@/features/rbac/utils/auditLog";
 import { useVehicleDetail } from "../hooks/useVehicleDetail";
+import { useVehicleDetailLayout } from "../hooks/useVehicleDetailLayout";
 import { VehicleDetailHeader } from "../components/detail/VehicleDetailHeader";
 import { VehicleStatusBanner } from "../components/detail/VehicleStatusBanner";
-import { VehicleTechSpecs } from "../components/detail/VehicleTechSpecs";
-import { VehicleOwnerCard } from "../components/detail/VehicleOwnerCard";
-import { ServiceHistoryTimeline } from "../components/detail/ServiceHistoryTimeline";
-import { MaintenanceRecommendations } from "../components/detail/MaintenanceRecommendations";
-import { CompatiblePartsPlaceholder } from "../components/detail/CompatiblePartsPlaceholder";
-import { AddServiceEntryModal } from "../components/detail/AddServiceEntryModal";
+import { VehicleStatStrip } from "../components/detail/VehicleStatStrip";
+import { VehicleHistorySection } from "../components/detail/VehicleHistorySection";
+import { VehicleLayoutHealth } from "../components/detail/layouts/VehicleLayoutHealth";
+import { VehicleLayoutRails } from "../components/detail/layouts/VehicleLayoutRails";
+import { VehicleLayoutBento } from "../components/detail/layouts/VehicleLayoutBento";
+import type { IVehicleLayoutProps } from "../components/detail/layouts/types";
 import { EditVehicleModal } from "../components/EditVehicleModal";
+import { AddServiceEntryModal } from "../components/detail/AddServiceEntryModal";
 import { VEHICLE_STRINGS } from "../i18n/pt-BR";
 
 export function VehicleDetailPage() {
@@ -39,11 +41,14 @@ export function VehicleDetailPage() {
   const navigate = useNavigate();
   const canEdit = usePermission("vehicle", "edit");
   const canApprove = usePermission("vehicle", "approve");
+  const [layout, setLayout] = useVehicleDetailLayout();
 
   const [editOpen, setEditOpen] = useState(false);
   const [serviceOpen, setServiceOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const historyRef = useRef<HTMLDivElement>(null);
+  const now = useMemo(() => new Date(), []);
 
   if (detail.isLoading) {
     return (
@@ -99,6 +104,18 @@ export function VehicleDetailPage() {
     await detail.invalidate();
   };
 
+  const goToFullHistory = () =>
+    historyRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  const layoutProps: IVehicleLayoutProps = {
+    vehicle,
+    now,
+    canEdit,
+    onAddService: () => setServiceOpen(true),
+    onUpdated: () => void detail.invalidate(),
+    onSeeFullHistory: goToFullHistory,
+  };
+
   return (
     <div className="flex min-h-full flex-col bg-background">
       <VehicleDetailHeader
@@ -106,9 +123,11 @@ export function VehicleDetailPage() {
         canEdit={canEdit}
         onEdit={() => setEditOpen(true)}
         onAddService={() => setServiceOpen(true)}
+        layout={layout}
+        onLayoutChange={setLayout}
       />
 
-      <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6">
+      <div className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 sm:px-6">
         <VehicleStatusBanner
           vehicle={vehicle}
           canApprove={canApprove}
@@ -116,26 +135,18 @@ export function VehicleDetailPage() {
           onReject={() => setRejectOpen(true)}
         />
 
-        <VehicleTechSpecs
+        <VehicleStatStrip vehicle={vehicle} now={now} />
+
+        {layout === "health" && <VehicleLayoutHealth {...layoutProps} />}
+        {layout === "rails" && <VehicleLayoutRails {...layoutProps} />}
+        {layout === "bento" && <VehicleLayoutBento {...layoutProps} />}
+
+        <VehicleHistorySection
+          ref={historyRef}
           vehicle={vehicle}
           canEdit={canEdit}
-          onUpdated={() => void detail.invalidate()}
+          onAddService={() => setServiceOpen(true)}
         />
-
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-          <div className="space-y-6 lg:col-span-8">
-            <ServiceHistoryTimeline
-              vehicle={vehicle}
-              canEdit={canEdit}
-              onAddService={() => setServiceOpen(true)}
-            />
-            <MaintenanceRecommendations vehicle={vehicle} />
-          </div>
-          <aside className="space-y-6 lg:sticky lg:top-6 lg:col-span-4 lg:self-start">
-            <VehicleOwnerCard customerId={vehicle.customerId} />
-            <CompatiblePartsPlaceholder vehicle={vehicle} />
-          </aside>
-        </div>
       </div>
 
       <EditVehicleModal

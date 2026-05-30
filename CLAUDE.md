@@ -75,6 +75,6 @@ Padrões arquiteturais que devem ser preservados ao implementar features:
 
 ## Versionamento e changelog
 
-- **SemVer.** MINOR/MAJOR recebem **codinome em inglês** (atual: `Lens` — v0.50.0).
+- **SemVer.** MINOR/MAJOR recebem **codinome em inglês** (atual: `Cockpit` — v0.51.0).
 - **CHANGELOG.md** segue Keep a Changelog; atualizado no version bump, não a cada commit.
 - Bump após PRD completo (obrigatório) ou quando solicitado para acumulado de fixes diretos.

@@ -2,6 +2,7 @@ import type { IVehicle } from "@/shared/types";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { VEHICLE_STRINGS } from "../../i18n/pt-BR";
 
 const COPY = VEHICLE_STRINGS.detail.compatible;
@@ -18,11 +19,15 @@ const MOCK_PARTS = [
 
 export interface ICompatiblePartsPlaceholderProps {
   vehicle: IVehicle;
+  className?: string;
 }
 
-export function CompatiblePartsPlaceholder({ vehicle }: ICompatiblePartsPlaceholderProps) {
+export function CompatiblePartsPlaceholder({
+  vehicle,
+  className,
+}: ICompatiblePartsPlaceholderProps) {
   return (
-    <section className="space-y-3">
+    <section className={cn("space-y-3", className)}>
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           {SECTION_COPY.compatible}

@@ -4,6 +4,24 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.51.0] — Cockpit · 2026-05-30
+
+Redesenho da página de detalhamento do veículo: largura ampla (1600px), faixa de indicadores no topo e três modos de visualização que o usuário escolhe (Saúde, Trilhos e Bento), além de novos blocos de inteligência.
+
+### Added
+
+- **Três modos de layout no detalhe do veículo** — seletor no cabeçalho alterna entre **Saúde** (padrão), **Trilhos** e **Bento**; a preferência é lembrada para todos os veículos.
+- **Faixa de indicadores** — KM atual, próxima manutenção, manutenções vencidas, última visita e uso (km/ano).
+- **Saúde do veículo** — medidor visual consolidando o estado das manutenções (em dia / atenção / vencido).
+- **Evolução de KM** — gráfico da quilometragem ao longo do tempo.
+- **Frota do proprietário** — outras unidades do mesmo cliente, com atalho.
+- **Peças mais trocadas** — ranking das peças mais frequentes no histórico.
+
+### Changed
+
+- **Detalhe do veículo em largura ampla (1600px)** — aproveita melhor telas largas e reorganiza o conteúdo em cards.
+- **Histórico de manutenção** — resumo no painel principal com atalho para o histórico completo na área de abas.
+
 ## [0.50.0] — Lens · 2026-05-30
 
 Melhorias de navegação e usabilidade nas listas de veículos e leads: a tela de veículos ganhou controle de colunas visíveis, redimensionamento e polimento geral da interface; os filtros de leads passaram a exibir dicas ao passar o mouse sobre cada botão.
