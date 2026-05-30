@@ -1,5 +1,4 @@
 import type { ICustomer } from "@/shared/types";
-import { cn } from "@/lib/utils";
 import { MetricsCard } from "../cards/MetricsCard";
 import { CadastraisCard } from "../cards/CadastraisCard";
 import { StatusWalletCard } from "../cards/StatusWalletCard";
@@ -30,7 +29,7 @@ export function OverviewTab({ customer, variant = "column" }: IOverviewTabProps)
   }
 
   return (
-    <div className={cn("space-y-3")}>
+    <div className="space-y-3">
       <MetricsCard customer={customer} />
       <CadastraisCard customer={customer} />
       <StatusWalletCard customer={customer} />

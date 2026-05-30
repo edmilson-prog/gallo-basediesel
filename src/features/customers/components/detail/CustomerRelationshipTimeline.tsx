@@ -10,6 +10,7 @@ const COPY = CUSTOMER_STRINGS.detail.timeline;
 export interface ICustomerRelationshipTimelineProps {
   customer: ICustomer;
   className?: string;
+  onSeeAllNotes?: () => void;
 }
 
 interface ITimelineNode {
@@ -22,7 +23,9 @@ interface ITimelineNode {
 export function CustomerRelationshipTimeline({
   customer,
   className,
+  onSeeAllNotes,
 }: ICustomerRelationshipTimelineProps) {
+  const hasNotes = customer.notes.length > 0;
   const nodes = useMemo<ITimelineNode[]>(() => {
     const out: ITimelineNode[] = [];
     const since = customer.firstPurchaseAt ?? customer.createdAt;
@@ -98,6 +101,16 @@ export function CustomerRelationshipTimeline({
             </li>
           ))}
         </ol>
+        {hasNotes && onSeeAllNotes && (
+          <button
+            type="button"
+            onClick={onSeeAllNotes}
+            className="mt-3 inline-flex items-center gap-1 rounded text-[11px] font-medium text-primary transition-colors hover:underline focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            {COPY.seeAllNotes}
+            <Icon icon="mdi:arrow-right" size={12} />
+          </button>
+        )}
       )}
     </section>
   );

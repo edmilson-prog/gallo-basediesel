@@ -33,7 +33,7 @@ export function CustomerDetailHeader({ customer }: ICustomerDetailHeaderProps) {
           >
             {CUSTOMER_STRINGS.detail.breadcrumb}
           </Link>
-          <Icon icon="mdi:chevron-right" size={14} />
+          <span aria-hidden><Icon icon="mdi:chevron-right" size={14} /></span>
           <span className="truncate text-foreground">{display.name}</span>
         </nav>
 

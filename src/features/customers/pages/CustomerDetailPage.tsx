@@ -27,10 +27,11 @@ export function CustomerDetailPage({ customerId }: ICustomerDetailPageProps) {
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const tabsRef = useRef<HTMLDivElement>(null);
 
-  const handleNavigateTab = (target: PendingTabTarget) => {
-    setActiveTab(target as TabKey);
+  const goToTab = (tab: TabKey) => {
+    setActiveTab(tab);
     tabsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
+  const handleNavigateTab = (target: PendingTabTarget) => goToTab(target as TabKey);
 
   if (isLoading) {
     return (
@@ -75,12 +76,16 @@ export function CustomerDetailPage({ customerId }: ICustomerDetailPageProps) {
           <CustomerStatStrip customer={customer} />
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-            <CustomerPurchaseEvolutionCard customer={customer} className="lg:col-span-6" />
-            <CustomerRelationshipTimeline customer={customer} className="lg:col-span-3" />
+            <CustomerPurchaseEvolutionCard customer={customer} className="order-1 lg:col-span-6" />
+            <CustomerRelationshipTimeline
+              customer={customer}
+              onSeeAllNotes={() => goToTab("notes")}
+              className="order-3 lg:order-2 lg:col-span-3"
+            />
             <CustomerPendingActionsCard
               customer={customer}
               onNavigateTab={handleNavigateTab}
-              className="lg:col-span-3"
+              className="order-2 lg:order-3 lg:col-span-3"
             />
           </div>
 
