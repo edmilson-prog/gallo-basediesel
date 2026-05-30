@@ -4,6 +4,23 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.50.0] — Lens · 2026-05-30
+
+Melhorias de navegação e usabilidade nas listas de veículos e leads: a tela de veículos ganhou controle de colunas visíveis, redimensionamento e polimento geral da interface; os filtros de leads passaram a exibir dicas ao passar o mouse sobre cada botão.
+
+### Added
+
+- **Controle de colunas visíveis na lista de veículos** — novo botão de engrenagem no cabeçalho da tabela permite mostrar ou ocultar colunas individualmente; a preferência é salva e restaurada entre sessões. Também é possível abrir o menu com clique direito no cabeçalho da tabela.
+- **Colunas redimensionáveis na lista de veículos** — cada coluna pode ter sua largura ajustada arrastando a borda; o tamanho é salvo entre sessões e há um mínimo garantido para não comprometer a legibilidade.
+- **Dicas nos botões de filtro da lista de leads** — ao passar o mouse sobre qualquer botão de filtro (temperatura, origem, vendedor, próxima ação, criado em, valor estimado, loja, incluir perdidos/convertidos), uma dica explica o que aquele filtro faz; padrão já aplicado nas listas de clientes e veículos.
+
+### Changed
+
+- **Cabeçalho da lista de veículos consolidado** — título, filtros, busca e botão de cadastro ficam agora em uma única linha, deixando a tela mais compacta e consistente com as demais listas.
+- **Campo de busca da lista de veículos** — o campo se expande ao receber o foco, aceita o atalho "/" para ativação rápida e Escape para sair, com ícone de teclado como dica visual.
+- **Paginação da lista de veículos mais compacta** — barra de paginação com altura reduzida, alinhada ao padrão da lista de clientes.
+- **Listras alternadas e divisores no cabeçalho da tabela de veículos** — linhas com fundo alternado facilitam a leitura em tabelas longas; divisores verticais no cabeçalho melhoram a distinção entre colunas.
+
 ## [0.49.2] — Spotlight · 2026-05-30
 
 ### Fixed
