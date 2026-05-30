@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import type { ISeller, IStore, QuoteOrigin, QuoteStatus } from "@/shared/types";
+import type { ISeller, IStore, QuoteOrigin } from "@/shared/types";
+import { cn } from "@/lib/utils";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -18,17 +19,8 @@ import {
   type IQuotesListFilters,
   type ValidityBucket,
 } from "../../utils/listFilters";
-import { QUOTE_STATUS_META } from "../QuoteStatusBadge";
 import { QUOTE_ORIGIN_META } from "../QuoteOriginBadge";
 
-const STATUS_OPTIONS: QuoteStatus[] = [
-  "rascunho",
-  "enviado",
-  "aceito",
-  "recusado",
-  "expirado",
-  "convertido",
-];
 const ORIGIN_OPTIONS: QuoteOrigin[] = ["sdr", "vendedor", "cliente_portal", "ecommerce"];
 
 const DATE_LABELS: Record<DateRangeBucket, string> = {
@@ -54,6 +46,7 @@ export function QuotesFiltersBar({
   stores,
   canFilterStore,
   canFilterSeller,
+  stacked = false,
 }: {
   filters: IQuotesListFilters;
   patch: (p: Partial<IQuotesListFilters>) => void;
@@ -62,6 +55,8 @@ export function QuotesFiltersBar({
   stores: IStore[];
   canFilterStore: boolean;
   canFilterSeller: boolean;
+  /** Vertical, chrome-less layout for the Console rail. */
+  stacked?: boolean;
 }) {
   const filterCount = useMemo(() => activeFilterCount(filters), [filters]);
 
@@ -69,36 +64,13 @@ export function QuotesFiltersBar({
     arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value];
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-border bg-card/60 px-4 py-2 md:px-6">
-      {/* Status */}
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" className="gap-1">
-            <Icon icon="mdi:filter-variant" size={14} />
-            Status
-            {filters.statuses.length > 0 && (
-              <span className="ml-1 rounded-md bg-primary/15 px-1.5 text-[10px] font-semibold text-primary">
-                {filters.statuses.length}
-              </span>
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent align="start" className="w-56 space-y-1.5">
-          {STATUS_OPTIONS.map((s) => (
-            <label
-              key={s}
-              className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
-            >
-              <Checkbox
-                checked={filters.statuses.includes(s)}
-                onCheckedChange={() => patch({ statuses: toggleArray(filters.statuses, s) })}
-              />
-              <span>{QUOTE_STATUS_META[s].label}</span>
-            </label>
-          ))}
-        </PopoverContent>
-      </Popover>
-
+    <div
+      className={cn(
+        stacked
+          ? "flex flex-col gap-2"
+          : "flex flex-wrap items-center gap-2 border-b border-border bg-card/60 px-4 py-2 md:px-6",
+      )}
+    >
       {/* Origin */}
       <Popover>
         <PopoverTrigger asChild>
