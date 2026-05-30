@@ -17,6 +17,12 @@ const LABELS: Record<VehicleDetailLayout, string> = {
   bento: COPY.bento,
 };
 
+const HINTS: Record<VehicleDetailLayout, string> = {
+  health: COPY.healthHint,
+  rails: COPY.railsHint,
+  bento: COPY.bentoHint,
+};
+
 export interface IVehicleLayoutSwitcherProps {
   value: VehicleDetailLayout;
   onChange: (layout: VehicleDetailLayout) => void;
@@ -35,7 +41,12 @@ export function VehicleLayoutSwitcher({ value, onChange }: IVehicleLayoutSwitche
       aria-label={COPY.ariaLabel}
     >
       {VEHICLE_DETAIL_LAYOUTS.map((layout) => (
-        <ToggleGroupItem key={layout} value={layout} aria-label={LABELS[layout]}>
+        <ToggleGroupItem
+          key={layout}
+          value={layout}
+          aria-label={LABELS[layout]}
+          title={HINTS[layout]}
+        >
           <Icon icon={ICONS[layout]} size={16} />
           <span className="ml-1 hidden sm:inline">{LABELS[layout]}</span>
         </ToggleGroupItem>
