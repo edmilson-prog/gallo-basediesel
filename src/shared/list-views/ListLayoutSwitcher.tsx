@@ -34,7 +34,7 @@ export function ListLayoutSwitcher({ value, onChange }: IListLayoutSwitcherProps
           title={LIST_LAYOUT_HINTS[layout]}
         >
           <Icon icon={LIST_LAYOUT_ICONS[layout]} size={16} />
-          <span className="ml-1 hidden lg:inline">{LIST_LAYOUT_LABELS[layout]}</span>
+          <span className="ml-1 hidden sm:inline">{LIST_LAYOUT_LABELS[layout]}</span>
         </ToggleGroupItem>
       ))}
     </ToggleGroup>

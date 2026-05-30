@@ -27,7 +27,7 @@ export function ListStatusTabs({
 }: IListStatusTabsProps) {
   return (
     <div
-      role="tablist"
+      role="group"
       aria-label="Filtrar por status"
       className={cn(
         "flex gap-1.5",
@@ -41,8 +41,7 @@ export function ListStatusTabs({
           <button
             key={tab.key}
             type="button"
-            role="tab"
-            aria-selected={active}
+            aria-pressed={active}
             onClick={() => onSelect(tab.key)}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
