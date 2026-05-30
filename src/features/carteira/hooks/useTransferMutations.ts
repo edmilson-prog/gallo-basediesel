@@ -12,6 +12,7 @@ export function useCreateTransfer() {
       void queryClient.invalidateQueries({ queryKey: ["carteira-transfers"] });
       void queryClient.invalidateQueries({ queryKey: ["customers"] });
       void queryClient.invalidateQueries({ queryKey: ["customer-detail"] });
+      void queryClient.invalidateQueries({ queryKey: ["customer-profile"] });
       void queryClient.invalidateQueries({ queryKey: ["customers-list"] });
     },
   });
@@ -26,6 +27,7 @@ export function useRevertTransfer() {
       void queryClient.invalidateQueries({ queryKey: ["carteira-transfers"] });
       void queryClient.invalidateQueries({ queryKey: ["customers"] });
       void queryClient.invalidateQueries({ queryKey: ["customer-detail"] });
+      void queryClient.invalidateQueries({ queryKey: ["customer-profile"] });
       void queryClient.invalidateQueries({ queryKey: ["customers-list"] });
     },
   });
@@ -40,6 +42,7 @@ export function useExpireTransfer() {
       void queryClient.invalidateQueries({ queryKey: ["carteira-transfers"] });
       void queryClient.invalidateQueries({ queryKey: ["customers"] });
       void queryClient.invalidateQueries({ queryKey: ["customer-detail"] });
+      void queryClient.invalidateQueries({ queryKey: ["customer-profile"] });
       void queryClient.invalidateQueries({ queryKey: ["customers-list"] });
     },
   });

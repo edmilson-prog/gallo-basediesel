@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import type { ICustomer } from "@/shared/types";
@@ -7,9 +7,11 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StoreBadge } from "@/features/multistore/components/StoreBadge";
+import { NewPermanentIndividualTransferModal } from "@/features/carteira/components/NewPermanentIndividualTransferModal";
 import { useSellersProvider } from "@/providers/data/hooks/useSellersProvider";
 import { useStoresProvider } from "@/providers/data/hooks/useStoresProvider";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
+import { useAuth } from "@/features/auth/useAuth";
 import { hashHue, initialsFrom, avatarColors } from "@/shared/utils/avatar";
 import { formatDateBR } from "@/shared/utils/format";
 import { CUSTOMER_STRINGS } from "../../i18n/pt-BR";
@@ -25,13 +27,21 @@ export interface IStatusWalletCardProps {
 export function StatusWalletCard({ customer }: IStatusWalletCardProps) {
   const sellersProvider = useSellersProvider();
   const storesProvider = useStoresProvider();
-  const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const canTransfer = usePermission("transfer", "create");
+  const [transferOpen, setTransferOpen] = useState(false);
 
   const sellerQuery = useQuery({
     queryKey: ["seller", customer.sellerId] as const,
     staleTime: 5 * 60 * 1000,
     queryFn: () => sellersProvider.get(customer.sellerId).catch(() => null),
+  });
+
+  const sellersListQuery = useQuery({
+    queryKey: ["customer-profile-sellers", customer.storeId],
+    queryFn: () => sellersProvider.list({ storeId: customer.storeId }),
+    staleTime: 60_000,
+    enabled: transferOpen,
   });
 
   const storeQuery = useQuery({
@@ -46,90 +56,101 @@ export function StatusWalletCard({ customer }: IStatusWalletCardProps) {
   const sellerColors = avatarColors(sellerHue);
 
   return (
-    <section className="rounded-lg border border-border bg-background p-3">
-      <header className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        <Icon icon="mdi:account-group-outline" size={14} />
-        {COPY.title}
-      </header>
+    <>
+      <section className="rounded-lg border border-border bg-background p-3">
+        <header className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <Icon icon="mdi:account-group-outline" size={14} />
+          {COPY.title}
+        </header>
 
-      <div className="space-y-3 text-xs">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-muted-foreground">{COPY.lifecycle}</span>
-          <span
-            className={cn(
-              "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
-              STATUS_BADGE_CLASSES[customer.status],
-            )}
-          >
-            {CUSTOMER_STRINGS.lifecycle[customer.status]}
-          </span>
-        </div>
+        <div className="space-y-3 text-xs">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-muted-foreground">{COPY.lifecycle}</span>
+            <span
+              className={cn(
+                "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
+                STATUS_BADGE_CLASSES[customer.status],
+              )}
+            >
+              {CUSTOMER_STRINGS.lifecycle[customer.status]}
+            </span>
+          </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-border pt-3">
-          <span className="text-muted-foreground">{COPY.seller}</span>
-          <div className="flex items-center gap-2">
-            {sellerQuery.isLoading ? (
-              <Skeleton className="h-6 w-24" />
-            ) : seller ? (
-              <>
-                <Avatar className="h-6 w-6 text-[10px]">
-                  <AvatarFallback
-                    style={{ backgroundColor: sellerColors.bg, color: sellerColors.fg }}
-                    aria-hidden
-                  >
-                    {initialsFrom(seller.fullName)}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="font-medium text-foreground">{seller.fullName}</span>
-              </>
+          <div className="flex items-center justify-between gap-3 border-t border-border pt-3">
+            <span className="text-muted-foreground">{COPY.seller}</span>
+            <div className="flex items-center gap-2">
+              {sellerQuery.isLoading ? (
+                <Skeleton className="h-6 w-24" />
+              ) : seller ? (
+                <>
+                  <Avatar className="h-6 w-6 text-[10px]">
+                    <AvatarFallback
+                      style={{ backgroundColor: sellerColors.bg, color: sellerColors.fg }}
+                      aria-hidden
+                    >
+                      {initialsFrom(seller.fullName)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="font-medium text-foreground">{seller.fullName}</span>
+                </>
+              ) : (
+                <span className="italic text-muted-foreground">—</span>
+              )}
+              {canTransfer && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={COPY.transferWallet}
+                  onClick={() => setTransferOpen(true)}
+                  className="h-6 w-6"
+                >
+                  <Icon icon="mdi:swap-horizontal" size={14} />
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-2 border-t border-border pt-3">
+            <span className="text-muted-foreground">{COPY.store}</span>
+            {storeQuery.isLoading ? (
+              <Skeleton className="h-5 w-20" />
+            ) : store ? (
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-foreground">{store.name}</span>
+                <StoreBadge store={store} />
+              </div>
             ) : (
               <span className="italic text-muted-foreground">—</span>
             )}
-            {canTransfer && (
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={COPY.transferWallet}
-                onClick={() =>
-                  void navigate({ to: `/app/carteiras?customerId=${customer.id}` as never })
-                }
-                className="h-6 w-6"
-              >
-                <Icon icon="mdi:swap-horizontal" size={14} />
-              </Button>
-            )}
           </div>
-        </div>
 
-        <div className="flex items-center justify-between gap-2 border-t border-border pt-3">
-          <span className="text-muted-foreground">{COPY.store}</span>
-          {storeQuery.isLoading ? (
-            <Skeleton className="h-5 w-20" />
-          ) : store ? (
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-foreground">{store.name}</span>
-              <StoreBadge store={store} />
+          <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
+            <div>
+              <p className="text-muted-foreground">{COPY.firstPurchase}</p>
+              <p className="font-medium text-foreground">
+                {customer.firstPurchaseAt
+                  ? formatDateBR(customer.firstPurchaseAt)
+                  : COPY.noPurchase}
+              </p>
             </div>
-          ) : (
-            <span className="italic text-muted-foreground">—</span>
-          )}
+            <div>
+              <p className="text-muted-foreground">{COPY.lastPurchase}</p>
+              <p className="font-medium text-foreground">
+                {customer.lastPurchaseAt ? formatDateBR(customer.lastPurchaseAt) : COPY.noPurchase}
+              </p>
+            </div>
+          </div>
         </div>
+      </section>
 
-        <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
-          <div>
-            <p className="text-muted-foreground">{COPY.firstPurchase}</p>
-            <p className="font-medium text-foreground">
-              {customer.firstPurchaseAt ? formatDateBR(customer.firstPurchaseAt) : COPY.noPurchase}
-            </p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">{COPY.lastPurchase}</p>
-            <p className="font-medium text-foreground">
-              {customer.lastPurchaseAt ? formatDateBR(customer.lastPurchaseAt) : COPY.noPurchase}
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
+      <NewPermanentIndividualTransferModal
+        open={transferOpen}
+        customer={transferOpen ? customer : null}
+        sellers={sellersListQuery.data ?? []}
+        currentUserId={currentUser?.id ?? "system"}
+        onClose={() => setTransferOpen(false)}
+        onCreated={() => setTransferOpen(false)}
+      />
+    </>
   );
 }
