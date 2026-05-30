@@ -1,5 +1,5 @@
 import { createFileRoute, useParams } from "@tanstack/react-router";
-import { CustomerProfile } from "@/features/customers/components/CustomerProfile";
+import { CustomerDetailPage } from "@/features/customers/pages/CustomerDetailPage";
 
 export const Route = createFileRoute("/app/clientes/$id")({
   component: CustomerProfileRoute,
@@ -7,9 +7,5 @@ export const Route = createFileRoute("/app/clientes/$id")({
 
 function CustomerProfileRoute() {
   const { id } = useParams({ from: "/app/clientes/$id" });
-  return (
-    <div className="flex h-full min-h-0 flex-col bg-background">
-      <CustomerProfile customerId={id} variant="page" className="mx-auto w-full max-w-3xl" />
-    </div>
-  );
+  return <CustomerDetailPage customerId={id} />;
 }

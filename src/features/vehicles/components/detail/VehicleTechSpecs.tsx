@@ -21,7 +21,6 @@ import { formatKm, formatPlate, maskVin } from "../../utils/vehicleDisplay";
 import { VEHICLE_STRINGS } from "../../i18n/pt-BR";
 
 const COPY = VEHICLE_STRINGS.detail.tech;
-const SECTION_COPY = VEHICLE_STRINGS.detail.sections;
 
 const LARGE_KM_THRESHOLD = 50_000;
 
@@ -82,13 +81,10 @@ export function VehicleTechSpecs({ vehicle, canEdit, onUpdated }: IVehicleTechSp
   };
 
   return (
-    <section className="space-y-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-        {SECTION_COPY.tech}
-      </h2>
-      <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <SpecRow label={COPY.engine} value={vehicle.engine || "—"} />
-        <SpecRow
+    <>
+      <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-3 lg:grid-cols-5">
+        <StatCell label={COPY.engine} value={vehicle.engine || "—"} />
+        <StatCell
           label={COPY.vin}
           value={
             vehicle.vin ? (
@@ -107,8 +103,8 @@ export function VehicleTechSpecs({ vehicle, canEdit, onUpdated }: IVehicleTechSp
             )
           }
         />
-        <SpecRow label={COPY.plate} value={formatPlate(vehicle.plate)} mono />
-        <SpecRow
+        <StatCell label={COPY.plate} value={formatPlate(vehicle.plate)} mono />
+        <StatCell
           label={COPY.currentKm}
           value={
             editingKm ? (
@@ -117,7 +113,7 @@ export function VehicleTechSpecs({ vehicle, canEdit, onUpdated }: IVehicleTechSp
                   type="number"
                   value={kmDraft}
                   onChange={(e) => setKmDraft(e.target.value)}
-                  className="h-7 w-32 text-xs"
+                  className="h-7 w-28 text-xs"
                   autoFocus
                 />
                 <Button size="sm" variant="ghost" disabled={busy} onClick={handleSave}>
@@ -134,7 +130,7 @@ export function VehicleTechSpecs({ vehicle, canEdit, onUpdated }: IVehicleTechSp
               </div>
             ) : (
               <div className="inline-flex items-center gap-2">
-                <span>{formatKm(vehicle.currentKm)}</span>
+                <span className="tabular-nums">{formatKm(vehicle.currentKm)}</span>
                 {canEdit && (
                   <button
                     type="button"
@@ -148,7 +144,7 @@ export function VehicleTechSpecs({ vehicle, canEdit, onUpdated }: IVehicleTechSp
             )
           }
         />
-        <SpecRow label={COPY.createdAt} value={formatDateBR(vehicle.createdAt)} />
+        <StatCell label={COPY.createdAt} value={formatDateBR(vehicle.createdAt)} />
       </dl>
 
       <AlertDialog open={confirmLarge} onOpenChange={setConfirmLarge}>
@@ -178,11 +174,11 @@ export function VehicleTechSpecs({ vehicle, canEdit, onUpdated }: IVehicleTechSp
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </section>
+    </>
   );
 }
 
-function SpecRow({
+function StatCell({
   label,
   value,
   mono = false,
@@ -192,11 +188,11 @@ function SpecRow({
   mono?: boolean;
 }) {
   return (
-    <div className="rounded-md border border-border bg-card px-3 py-2">
+    <div className="min-w-0 bg-card px-4 py-3">
       <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </dt>
-      <dd className={`mt-0.5 text-sm text-foreground ${mono ? "font-mono uppercase" : ""}`}>
+      <dd className={`mt-1 text-sm text-foreground ${mono ? "font-mono uppercase" : ""}`}>
         {value}
       </dd>
     </div>

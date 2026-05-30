@@ -45,7 +45,7 @@ export function VehicleOwnerCard({ customerId }: IVehicleOwnerCardProps) {
       <Link
         to="/app/clientes/$id"
         params={{ id: customer.id }}
-        className="flex items-center gap-3 rounded-md border border-border bg-card px-3 py-3 hover:border-primary/30"
+        className="flex items-center gap-3 rounded-md border border-border bg-card px-4 py-3 hover:border-primary/30"
       >
         <span
           className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-sm font-semibold"

@@ -13,11 +13,18 @@ import { useEffect, useRef } from "react";
  *
  * The first render is skipped when saving to avoid clobbering saved state with
  * the empty mount value before restoration runs.
+ *
+ * `excludeKeys` lists search params that must never be persisted or restored
+ * (e.g. an ephemeral `selected` detail id) — they are stripped before saving
+ * and stripped from any legacy saved state before restoring, so a fresh visit
+ * never reopens transient UI. Deep links carrying those params are still
+ * respected, since restoration only runs when the URL has no params at all.
  */
 export function usePersistedListSearch(
   storageKey: string,
   search: Record<string, unknown>,
   restore: (saved: Record<string, unknown>) => void,
+  excludeKeys: readonly string[] = [],
 ): void {
   const hydratedRef = useRef(false);
   const firstPersistRef = useRef(true);
@@ -36,7 +43,9 @@ export function usePersistedListSearch(
         !Array.isArray(saved) &&
         Object.keys(saved).length > 0
       ) {
-        restore(saved as Record<string, unknown>);
+        const cleaned = { ...(saved as Record<string, unknown>) };
+        for (const key of excludeKeys) delete cleaned[key];
+        if (Object.keys(cleaned).length > 0) restore(cleaned);
       }
     } catch {
       // Corrupt or unavailable storage — fall back to defaults.
@@ -51,9 +60,13 @@ export function usePersistedListSearch(
       return;
     }
     try {
-      window.localStorage.setItem(storageKey, JSON.stringify(search));
+      const toSave = { ...search };
+      for (const key of excludeKeys) delete toSave[key];
+      window.localStorage.setItem(storageKey, JSON.stringify(toSave));
     } catch {
       // Quota exceeded or unavailable — keep state in memory only.
     }
+    // excludeKeys is a stable per-caller constant; intentionally omitted from deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, storageKey]);
 }

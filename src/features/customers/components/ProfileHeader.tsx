@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import type { IConversation, ICustomer } from "@/shared/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -82,6 +82,23 @@ export function ProfileHeader({ customer, conversation, variant }: IProfileHeade
           <Icon icon="mdi:file-document-plus-outline" size={14} />
           {CUSTOMER_STRINGS.header.createQuote}
         </Button>
+        {variant === "column" && (
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="px-2"
+            title={CUSTOMER_STRINGS.detail.openFullPage}
+          >
+            <Link
+              to="/app/clientes/$id"
+              params={{ id: customer.id }}
+              aria-label={CUSTOMER_STRINGS.detail.openFullPage}
+            >
+              <Icon icon="mdi:arrow-expand" size={14} />
+            </Link>
+          </Button>
+        )}
         <ProfileMenu customer={customer} />
       </div>
     </header>

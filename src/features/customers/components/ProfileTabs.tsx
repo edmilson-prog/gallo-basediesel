@@ -14,9 +14,14 @@ import { RecommendationsTab } from "./tabs/RecommendationsTab";
 export interface IProfileTabsProps {
   customer: ICustomer;
   conversation?: IConversation | null;
+  /** Controlled active tab (optional). Falls back to internal state. */
+  activeTab?: TabKey;
+  onActiveTabChange?: (tab: TabKey) => void;
+  /** Layout density of the Overview tab. */
+  overviewVariant?: "column" | "page";
 }
 
-type TabKey =
+export type TabKey =
   | "overview"
   | "orders"
   | "quotes"
@@ -43,8 +48,19 @@ const TAB_ORDER: TabKey[] = [
  * Keyboard navigation (←/→ between tabs) is provided by Radix Tabs natively
  * and satisfies RNF-005.
  */
-export function ProfileTabs({ customer, conversation }: IProfileTabsProps) {
-  const [active, setActive] = useState<TabKey>("overview");
+export function ProfileTabs({
+  customer,
+  conversation,
+  activeTab,
+  onActiveTabChange,
+  overviewVariant = "column",
+}: IProfileTabsProps) {
+  const [internal, setInternal] = useState<TabKey>("overview");
+  const active = activeTab ?? internal;
+  const setActive = (v: TabKey) => {
+    setInternal(v);
+    onActiveTabChange?.(v);
+  };
 
   return (
     <Tabs
@@ -71,7 +87,7 @@ export function ProfileTabs({ customer, conversation }: IProfileTabsProps) {
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <TabsContent value="overview" className="m-0 p-3 focus-visible:outline-none">
-          {active === "overview" && <OverviewTab customer={customer} />}
+          {active === "overview" && <OverviewTab customer={customer} variant={overviewVariant} />}
         </TabsContent>
         <TabsContent value="orders" className="m-0 p-3 focus-visible:outline-none">
           {active === "orders" && <OrdersTab customer={customer} />}

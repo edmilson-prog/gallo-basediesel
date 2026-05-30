@@ -4,6 +4,28 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.49.0] — Spotlight · 2026-05-30
+
+Página dedicada ao detalhamento do cliente: ao clicar no nome de um cliente na lista, agora abre uma tela completa com gráfico de evolução de compras, linha do tempo de relacionamento, pendências acionáveis e todas as informações em formato amplo. O painel lateral de consulta rápida foi preservado — aparece ao clicar no restante da linha e ganhou botão de fechar e animação de entrada.
+
+### Added
+
+- **Página dedicada do cliente** — clicar no nome na lista abre `/app/clientes/:id` em largura total (1600px), com faixa de KPIs (ticket médio, LTV, recência, frequência e curva ABC), gráfico de evolução de compras dos últimos 12 meses, linha do tempo de relacionamento e painel de pendências acionáveis (orçamentos abertos, veículos a aprovar, recomendações e recompra atrasada) — cada item com link direto para a aba correspondente.
+- **Botão "expandir" no painel lateral** — ícone no cabeçalho do painel de consulta rápida que abre a página dedicada sem precisar voltar à lista.
+- **Botão de fechar o painel lateral** — X no canto superior direito do painel; fechar retorna a lista para largura total.
+- **Animação de entrada no painel lateral** — o painel desliza da direita para a esquerda ao abrir.
+
+### Changed
+
+- **Lista começa com painel fechado** — ao entrar em `/app/clientes`, o painel lateral não é mais restaurado automaticamente; filtros, ordenação e paginação continuam sendo lembrados.
+- **Colunas da lista em largura total** — enquanto nenhum cliente estiver selecionado, a tabela ocupa 100% da largura disponível.
+- **Visão geral da página dedicada em 2 colunas** — na tela dedicada, os dados cadastrais e o status/carteira ficam lado a lado; o card de métricas é ocultado (os KPIs já aparecem na faixa no topo).
+
+### Fixed
+
+- **Dupla barra de rolagem na página dedicada** — removido contêiner de scroll redundante que gerava duas barras verticais simultâneas.
+- **Painel lateral não restaurava cliente salvo incorretamente** — o `?selected=` deixou de ser persistido no localStorage; links diretos com esse parâmetro ainda funcionam.
+
 ## [0.48.0] — Polish · 2026-05-29
 
 Release de refinamento amplo de UX sobre as entregas recentes: o gráfico de evolução de vendas, o Portal B2B do cliente, a configuração da loja virtual, as metas em lote e as notificações de e-commerce a vendedores ganharam melhorias de exibição e comportamento, além dos ajustes finais na tela de login.
