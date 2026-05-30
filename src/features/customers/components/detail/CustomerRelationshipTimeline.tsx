@@ -75,7 +75,8 @@ export function CustomerRelationshipTimeline({
       {nodes.length === 0 ? (
         <p className="text-xs text-muted-foreground">{COPY.empty}</p>
       ) : (
-        <ol className="relative space-y-3 border-l border-border pl-4">
+        <>
+          <ol className="relative space-y-3 border-l border-border pl-4">
           {nodes.map((node, i) => (
             <li key={i} className="relative">
               <span
@@ -111,6 +112,7 @@ export function CustomerRelationshipTimeline({
             <Icon icon="mdi:arrow-right" size={12} />
           </button>
         )}
+        </>
       )}
     </section>
   );
