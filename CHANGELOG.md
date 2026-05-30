@@ -4,6 +4,12 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.49.1] — Spotlight · 2026-05-30
+
+### Fixed
+
+- **Dupla barra de rolagem na página de detalhe do veículo** — removido contêiner de scroll redundante que gerava duas barras verticais simultâneas na tela de detalhe do veículo (mesmo ajuste já aplicado na tela de clientes).
+
 ## [0.49.0] — Spotlight · 2026-05-30
 
 Página dedicada ao detalhamento do cliente: ao clicar no nome de um cliente na lista, agora abre uma tela completa com gráfico de evolução de compras, linha do tempo de relacionamento, pendências acionáveis e todas as informações em formato amplo. O painel lateral de consulta rápida foi preservado — aparece ao clicar no restante da linha e ganhou botão de fechar e animação de entrada.
