@@ -42,6 +42,18 @@ export const LEADS_STRINGS = {
     },
     showLost: "Incluir perdidos",
     showConverted: "Incluir convertidos",
+    descriptions: {
+      stage: "Filtrar pelos estágios do pipeline",
+      temperature: "Filtrar pela temperatura do lead (frio, morno, quente)",
+      origin: "Filtrar pela origem do lead (WhatsApp, e-commerce, indicação, Google, outro)",
+      seller: "Filtrar pelos leads de um ou mais vendedores",
+      nextAction: "Filtrar pelo prazo da próxima ação agendada",
+      period: "Filtrar pela data de criação do lead",
+      valueRange: "Filtrar pela faixa de valor estimado do lead",
+      store: "Filtrar pela loja de origem do lead",
+      showLost: "Incluir leads marcados como perdidos",
+      showConverted: "Incluir leads já convertidos em clientes",
+    },
   },
   temperature: {
     frio: "Frio",
