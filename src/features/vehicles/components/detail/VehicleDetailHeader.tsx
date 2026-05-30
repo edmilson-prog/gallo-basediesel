@@ -6,12 +6,16 @@ import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
 import { STATUS_BADGE_CLASSES, STATUS_LABEL, iconForBrand } from "../../utils/vehicleDisplay";
 import { VEHICLE_STRINGS } from "../../i18n/pt-BR";
+import { VehicleLayoutSwitcher } from "./VehicleLayoutSwitcher";
+import type { VehicleDetailLayout } from "../../config/layout";
 
 export interface IVehicleDetailHeaderProps {
   vehicle: IVehicle;
   canEdit: boolean;
   onEdit: () => void;
   onAddService: () => void;
+  layout: VehicleDetailLayout;
+  onLayoutChange: (layout: VehicleDetailLayout) => void;
 }
 
 export function VehicleDetailHeader({
@@ -19,10 +23,12 @@ export function VehicleDetailHeader({
   canEdit,
   onEdit,
   onAddService,
+  layout,
+  onLayoutChange,
 }: IVehicleDetailHeaderProps) {
   return (
     <div className="border-b border-border bg-card">
-      <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6">
+      <div className="mx-auto w-full max-w-[1600px] px-4 py-4 sm:px-6">
         <Link
           to="/app/veiculos"
           className="mb-3 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
@@ -58,6 +64,7 @@ export function VehicleDetailHeader({
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <VehicleLayoutSwitcher value={layout} onChange={onLayoutChange} />
             {canEdit && (
               <>
                 <Button variant="outline" size="sm" onClick={onEdit}>
