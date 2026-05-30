@@ -15,6 +15,7 @@ import { useSellersProvider } from "@/providers/data/hooks/useSellersProvider";
 import { recordAuditLogSync } from "@/providers/data/auditLogger";
 import { hashHue, initialsFrom, avatarColors } from "@/shared/utils/avatar";
 import { CustomerProfile } from "../components/CustomerProfile";
+import { CUSTOMER_STRINGS } from "../i18n/pt-BR";
 import { CustomersFiltersBar } from "../components/list/CustomersFiltersBar";
 import { CustomersHeader } from "../components/list/CustomersHeader";
 import { CustomersPagination } from "../components/list/CustomersPagination";
@@ -517,7 +518,17 @@ export function CustomersListPage() {
         </div>
 
         {selectedCustomer && (
-          <div className="hidden min-h-0 lg:block">
+          <div className="relative hidden min-h-0 duration-300 ease-out animate-in slide-in-from-right lg:block">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => url.setSelectedId(null)}
+              aria-label={CUSTOMER_STRINGS.fiche.closeAriaLabel}
+              title={CUSTOMER_STRINGS.fiche.closeAriaLabel}
+              className="absolute right-2 top-2 z-10 h-8 w-8 text-muted-foreground hover:text-foreground"
+            >
+              <Icon icon="mdi:close" size={18} />
+            </Button>
             <div className="h-full overflow-y-auto scrollbar-hide">
               <CustomerProfile
                 customerId={selectedCustomer.id}
