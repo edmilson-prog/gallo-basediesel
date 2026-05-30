@@ -100,7 +100,7 @@ export function VehicleDetailPage() {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-y-auto bg-background">
+    <div className="flex min-h-full flex-col bg-background">
       <VehicleDetailHeader
         vehicle={vehicle}
         canEdit={canEdit}
