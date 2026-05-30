@@ -46,7 +46,10 @@ export function CustomerDetailPage({ customerId }: ICustomerDetailPageProps) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 bg-background px-6 py-12 text-center">
         <div className="grid h-12 w-12 place-items-center rounded-full bg-muted text-muted-foreground">
-          <Icon icon={notFound ? "mdi:account-question-outline" : "mdi:alert-circle-outline"} size={24} />
+          <Icon
+            icon={notFound ? "mdi:account-question-outline" : "mdi:alert-circle-outline"}
+            size={24}
+          />
         </div>
         <div className="space-y-1">
           <h1 className="text-sm font-semibold text-foreground">{copy.title}</h1>
@@ -58,7 +61,11 @@ export function CustomerDetailPage({ customerId }: ICustomerDetailPageProps) {
               {CUSTOMER_STRINGS.loadError.retry}
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={() => void navigate({ to: "/app/clientes" })}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void navigate({ to: "/app/clientes" })}
+          >
             <Icon icon="mdi:arrow-left" size={14} />
             {CUSTOMER_STRINGS.backToList}
           </Button>

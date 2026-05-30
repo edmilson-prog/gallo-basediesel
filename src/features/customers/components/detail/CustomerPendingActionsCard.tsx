@@ -45,7 +45,9 @@ export function CustomerPendingActionsCard({
     queryFn: () =>
       quotesProvider
         .list({ customerId: customer.id, pageSize: 200 })
-        .then((r) => r.data.filter((q) => q.status === "enviado" || q.status === "rascunho").length),
+        .then(
+          (r) => r.data.filter((q) => q.status === "enviado" || q.status === "rascunho").length,
+        ),
   });
 
   const pendingVehicles = useQuery({
@@ -123,12 +125,7 @@ export function CustomerPendingActionsCard({
   }, [openQuotes.data, pendingVehicles.data, unseenRecs.data, overdueDays]);
 
   return (
-    <section
-      className={cn(
-        "rounded-lg border border-primary/40 bg-primary/5 p-4",
-        className,
-      )}
-    >
+    <section className={cn("rounded-lg border border-primary/40 bg-primary/5 p-4", className)}>
       <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-foreground">
         <Icon icon="mdi:flash-outline" size={16} className="text-primary" />
         {COPY.title}
@@ -159,7 +156,9 @@ export function CustomerPendingActionsCard({
                     {item.count}
                   </span>
                 )}
-                {item.hint && <span className="text-[11px] text-muted-foreground">{item.hint}</span>}
+                {item.hint && (
+                  <span className="text-[11px] text-muted-foreground">{item.hint}</span>
+                )}
               </button>
             </li>
           ))}

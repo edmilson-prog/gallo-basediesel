@@ -77,41 +77,41 @@ export function CustomerRelationshipTimeline({
       ) : (
         <>
           <ol className="relative space-y-3 border-l border-border pl-4">
-          {nodes.map((node, i) => (
-            <li key={i} className="relative">
-              <span
-                className={cn(
-                  "absolute -left-[21px] grid h-3.5 w-3.5 place-items-center rounded-full border-2 border-card",
-                  node.muted ? "bg-muted-foreground/50" : "bg-primary",
-                )}
-                aria-hidden
-              />
-              <div className="flex items-start gap-1.5">
-                <Icon
-                  icon={node.icon}
-                  size={13}
-                  className="mt-0.5 shrink-0 text-muted-foreground"
+            {nodes.map((node, i) => (
+              <li key={i} className="relative">
+                <span
+                  className={cn(
+                    "absolute -left-[21px] grid h-3.5 w-3.5 place-items-center rounded-full border-2 border-card",
+                    node.muted ? "bg-muted-foreground/50" : "bg-primary",
+                  )}
+                  aria-hidden
                 />
-                <div className="min-w-0">
-                  <p className="text-xs font-medium text-foreground">{node.title}</p>
-                  <p className="truncate text-[11px] text-muted-foreground" title={node.detail}>
-                    {node.detail}
-                  </p>
+                <div className="flex items-start gap-1.5">
+                  <Icon
+                    icon={node.icon}
+                    size={13}
+                    className="mt-0.5 shrink-0 text-muted-foreground"
+                  />
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-foreground">{node.title}</p>
+                    <p className="truncate text-[11px] text-muted-foreground" title={node.detail}>
+                      {node.detail}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </li>
-          ))}
-        </ol>
-        {hasNotes && onSeeAllNotes && (
-          <button
-            type="button"
-            onClick={onSeeAllNotes}
-            className="mt-3 inline-flex items-center gap-1 rounded text-[11px] font-medium text-primary transition-colors hover:underline focus:outline-none focus:ring-2 focus:ring-ring"
-          >
-            {COPY.seeAllNotes}
-            <Icon icon="mdi:arrow-right" size={12} />
-          </button>
-        )}
+              </li>
+            ))}
+          </ol>
+          {hasNotes && onSeeAllNotes && (
+            <button
+              type="button"
+              onClick={onSeeAllNotes}
+              className="mt-3 inline-flex items-center gap-1 rounded text-[11px] font-medium text-primary transition-colors hover:underline focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              {COPY.seeAllNotes}
+              <Icon icon="mdi:arrow-right" size={12} />
+            </button>
+          )}
         </>
       )}
     </section>
