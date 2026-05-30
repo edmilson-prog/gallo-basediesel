@@ -12,10 +12,13 @@
 
 ## Convenções deste plano (LEIA antes de começar)
 
-- **Não há test runner** no projeto. O **portão de verificação de cada task** é, nesta ordem, sobre os arquivos tocados:
+- **Não há test runner** no projeto, e **`vite build` (= `bun run build`) NÃO faz type-check** — só empacota. Além disso, a árvore **já tem erros de `tsc` pré-existentes** em arquivos não relacionados (a equipe nunca rodou `tsc`; `noUncheckedIndexedAccess` está ligado). Portanto o **portão de verificação de cada task**, nesta ordem, sobre os arquivos tocados:
   1. `bunx prettier --write <arquivos>` (normaliza, inclusive CRLF→LF)
   2. `bunx eslint <arquivos>` → **exit 0**
-  3. `bun run build` → termina com `✓ built` (é o type-check oficial: Vite + `tsc --noEmit`)
+  3. `bunx tsc --noEmit 2>&1 | grep -F <cada-arquivo-tocado>` → **sem saída** (nenhum erro de tipo nos SEUS arquivos; ignore os erros pré-existentes em outros arquivos)
+  - Ao final de cada FASE (Tasks 8 e 14) rodar também `bun run build` → `✓ built` (garante que o bundle/imports compilam).
+  - ⚠️ **Onde as tasks abaixo dizem `bun run build` na verificação por-task, leia: use o portão acima (`tsc --noEmit` filtrado nos seus arquivos).**
+- ⚠️ **`noUncheckedIndexedAccess` está ligado:** acesso por índice de array vira `T | undefined`. Ex.: `filters.statuses[0]` é `QuoteStatus | undefined` — use `?? "all"` quando alimentar um `string`. (Acesso a `Record<UnionExata, V>` por chave da união continua `V`, sem `undefined`.)
 - **Só tokens semânticos** para estrutura/superfície (`bg-background`, `bg-card`, `bg-card/60`, `text-foreground`, `text-muted-foreground`, `border-border`, `bg-primary`, `text-primary`, `text-destructive`). Cores de status/tone usam a paleta `emerald/amber/rose/blue/violet/orange` **idêntica aos badges existentes** (precedente). Nunca hex direto nem `--gallo-*`.
 - **UI em pt-BR** com acentos corretos. **Código/identificadores em inglês.** Componentes `PascalCase`, arquivos `kebab-case`? → **Atenção:** este repo usa **PascalCase nos arquivos de componente** (ex.: `QuotesTable.tsx`, `CustomerStatStrip.tsx`) e camelCase em utils/hooks (`quoteTotals.ts`, `useQuotesList.ts`). Siga o padrão do diretório vizinho.
 - **Commits** Conventional Commits em inglês, atômicos (um por task). Trailer obrigatório:
@@ -1306,7 +1309,11 @@ export function QuotesListPage() {
   }, [list.allFiltered]);
 
   const activeStatusKey =
-    filters.statuses.length === 1 ? filters.statuses[0] : filters.statuses.length === 0 ? "all" : "";
+    filters.statuses.length === 1
+      ? (filters.statuses[0] ?? "all")
+      : filters.statuses.length === 0
+        ? "all"
+        : "";
 
   const onSelectStatus = (key: string) => {
     url.patchFilters({ statuses: key === "all" ? [] : [key as QuoteStatus] });
@@ -2385,7 +2392,11 @@ export function OrdersListPage() {
   }, [list.allFiltered]);
 
   const activeStatusKey =
-    filters.statuses.length === 1 ? filters.statuses[0] : filters.statuses.length === 0 ? "all" : "";
+    filters.statuses.length === 1
+      ? (filters.statuses[0] ?? "all")
+      : filters.statuses.length === 0
+        ? "all"
+        : "";
 
   const onSelectStatus = (key: string) => {
     url.patchFilters({ statuses: key === "all" ? [] : [key as OrderStatus] });
