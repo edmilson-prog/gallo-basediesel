@@ -76,7 +76,7 @@ export function CustomerDetailPage({ customerId }: ICustomerDetailPageProps) {
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="flex h-full min-h-0 flex-col overflow-y-auto bg-background">
+      <div className="flex min-h-full flex-col bg-background">
         <CustomerDetailHeader customer={customer} />
 
         <div className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 sm:px-6">
