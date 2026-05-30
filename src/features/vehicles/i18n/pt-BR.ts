@@ -24,6 +24,11 @@ export const VEHICLE_STRINGS = {
     emptySearchTitle: (q: string) => `Nenhum veículo para "${q}"`,
     errorTitle: "Não foi possível carregar os veículos",
     retry: "Tentar novamente",
+    columnsMenu: {
+      trigger: "Configurar colunas",
+      title: "Colunas visíveis",
+      showAll: "Exibir todas",
+    },
   },
   filters: {
     brand: "Marca",

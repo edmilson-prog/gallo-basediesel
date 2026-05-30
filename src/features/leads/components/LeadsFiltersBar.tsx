@@ -14,6 +14,7 @@ import { Icon } from "@/components/Icon";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   LEAD_ORIGINS,
@@ -57,119 +58,131 @@ export function LeadsFiltersBar({
   const activeCount = countActive(filters);
 
   return (
-    <div
-      className={cn(
-        "flex flex-wrap items-center gap-2 border-b border-border bg-card px-4 py-2",
-        className,
-      )}
-    >
-      {view === "list" && (
-        <MultiSelectPopover
-          label={COPY.stage}
-          icon="mdi:flag-outline"
-          selected={filters.stageIds}
-          options={stages.map((s) => ({ value: s.id, label: s.name }))}
-          onChange={(next) => patch({ stageIds: next as ID[] })}
-        />
-      )}
-
-      <MultiSelectPopover
-        label={COPY.temperature}
-        icon="mdi:thermometer"
-        selected={filters.temperatures}
-        options={LEAD_TEMPERATURES.map((t) => ({
-          value: t,
-          label: TEMPERATURE_META[t].label,
-        }))}
-        onChange={(next) => patch({ temperatures: next as LeadTemperature[] })}
-      />
-
-      <MultiSelectPopover
-        label={COPY.origin}
-        icon="mdi:source-branch"
-        selected={filters.origins}
-        options={LEAD_ORIGINS.map((o) => ({ value: o, label: ORIGIN_META[o].label }))}
-        onChange={(next) => patch({ origins: next as LeadOrigin[] })}
-      />
-
-      {canFilterSeller && (
-        <MultiSelectPopover
-          label={COPY.seller}
-          icon="mdi:account-tie"
-          searchable
-          selected={filters.sellerIds}
-          options={sellers.map((s) => ({ value: s.id, label: s.fullName }))}
-          onChange={(next) => patch({ sellerIds: next as ID[] })}
-        />
-      )}
-
-      <SingleSelectPopover
-        label={COPY.nextAction}
-        icon="mdi:calendar-clock-outline"
-        value={filters.nextAction}
-        options={NEXT_ACTION_FILTERS.map((k) => ({
-          value: k,
-          label: COPY.nextActionOptions[k],
-        }))}
-        onChange={(next) => patch({ nextAction: next as NextActionFilter })}
-      />
-
-      <SingleSelectPopover
-        label={COPY.period}
-        icon="mdi:calendar"
-        value={filters.period}
-        options={PERIOD_FILTERS.map((k) => ({
-          value: k,
-          label: COPY.periodOptions[k],
-        }))}
-        onChange={(next) => patch({ period: next as PeriodFilter })}
-      />
-
-      <RangePopover
-        label={COPY.valueRange}
-        icon="mdi:cash-multiple"
-        min={filters.valueMin}
-        max={filters.valueMax}
-        onChange={(next) => patch({ valueMin: next.min, valueMax: next.max })}
-      />
-
-      {canFilterStore && stores.length > 1 && (
-        <MultiSelectPopover
-          label={COPY.store}
-          icon="mdi:store"
-          selected={filters.storeIds}
-          options={stores.map((s) => ({ value: s.id, label: s.name }))}
-          onChange={(next) => patch({ storeIds: next as ID[] })}
-        />
-      )}
-
-      <ToggleChip
-        active={filters.includeLost}
-        onToggle={() => patch({ includeLost: !filters.includeLost })}
-        icon="mdi:close-octagon-outline"
-        label={COPY.showLost}
-      />
-      <ToggleChip
-        active={filters.includeConverted}
-        onToggle={() => patch({ includeConverted: !filters.includeConverted })}
-        icon="mdi:check-decagram-outline"
-        label={COPY.showConverted}
-      />
-
-      <div className="ml-auto flex items-center gap-2">
-        {activeCount > 0 && (
-          <Badge variant="outline" className="text-xs text-muted-foreground">
-            {activeCount} {activeCount === 1 ? "filtro ativo" : "filtros ativos"}
-          </Badge>
+    <TooltipProvider delayDuration={300}>
+      <div
+        className={cn(
+          "flex flex-wrap items-center gap-2 border-b border-border bg-card px-4 py-2",
+          className,
         )}
-        {activeCount > 0 && (
-          <Button variant="ghost" size="sm" onClick={onClear} className="text-xs">
-            <Icon icon="mdi:close-circle-outline" size={14} />
-            {COPY.clear}
-          </Button>
+      >
+        {view === "list" && (
+          <MultiSelectPopover
+            label={COPY.stage}
+            icon="mdi:flag-outline"
+            description={COPY.descriptions.stage}
+            selected={filters.stageIds}
+            options={stages.map((s) => ({ value: s.id, label: s.name }))}
+            onChange={(next) => patch({ stageIds: next as ID[] })}
+          />
         )}
+
+        <MultiSelectPopover
+          label={COPY.temperature}
+          icon="mdi:thermometer"
+          description={COPY.descriptions.temperature}
+          selected={filters.temperatures}
+          options={LEAD_TEMPERATURES.map((t) => ({
+            value: t,
+            label: TEMPERATURE_META[t].label,
+          }))}
+          onChange={(next) => patch({ temperatures: next as LeadTemperature[] })}
+        />
+
+        <MultiSelectPopover
+          label={COPY.origin}
+          icon="mdi:source-branch"
+          description={COPY.descriptions.origin}
+          selected={filters.origins}
+          options={LEAD_ORIGINS.map((o) => ({ value: o, label: ORIGIN_META[o].label }))}
+          onChange={(next) => patch({ origins: next as LeadOrigin[] })}
+        />
+
+        {canFilterSeller && (
+          <MultiSelectPopover
+            label={COPY.seller}
+            icon="mdi:account-tie"
+            description={COPY.descriptions.seller}
+            searchable
+            selected={filters.sellerIds}
+            options={sellers.map((s) => ({ value: s.id, label: s.fullName }))}
+            onChange={(next) => patch({ sellerIds: next as ID[] })}
+          />
+        )}
+
+        <SingleSelectPopover
+          label={COPY.nextAction}
+          icon="mdi:calendar-clock-outline"
+          description={COPY.descriptions.nextAction}
+          value={filters.nextAction}
+          options={NEXT_ACTION_FILTERS.map((k) => ({
+            value: k,
+            label: COPY.nextActionOptions[k],
+          }))}
+          onChange={(next) => patch({ nextAction: next as NextActionFilter })}
+        />
+
+        <SingleSelectPopover
+          label={COPY.period}
+          icon="mdi:calendar"
+          description={COPY.descriptions.period}
+          value={filters.period}
+          options={PERIOD_FILTERS.map((k) => ({
+            value: k,
+            label: COPY.periodOptions[k],
+          }))}
+          onChange={(next) => patch({ period: next as PeriodFilter })}
+        />
+
+        <RangePopover
+          label={COPY.valueRange}
+          icon="mdi:cash-multiple"
+          description={COPY.descriptions.valueRange}
+          min={filters.valueMin}
+          max={filters.valueMax}
+          onChange={(next) => patch({ valueMin: next.min, valueMax: next.max })}
+        />
+
+        {canFilterStore && stores.length > 1 && (
+          <MultiSelectPopover
+            label={COPY.store}
+            icon="mdi:store"
+            description={COPY.descriptions.store}
+            selected={filters.storeIds}
+            options={stores.map((s) => ({ value: s.id, label: s.name }))}
+            onChange={(next) => patch({ storeIds: next as ID[] })}
+          />
+        )}
+
+        <ToggleChip
+          active={filters.includeLost}
+          onToggle={() => patch({ includeLost: !filters.includeLost })}
+          icon="mdi:close-octagon-outline"
+          label={COPY.showLost}
+          description={COPY.descriptions.showLost}
+        />
+        <ToggleChip
+          active={filters.includeConverted}
+          onToggle={() => patch({ includeConverted: !filters.includeConverted })}
+          icon="mdi:check-decagram-outline"
+          label={COPY.showConverted}
+          description={COPY.descriptions.showConverted}
+        />
+
+        <div className="ml-auto flex items-center gap-2">
+          {activeCount > 0 && (
+            <Badge variant="outline" className="text-xs text-muted-foreground">
+              {activeCount} {activeCount === 1 ? "filtro ativo" : "filtros ativos"}
+            </Badge>
+          )}
+          {activeCount > 0 && (
+            <Button variant="ghost" size="sm" onClick={onClear} className="text-xs">
+              <Icon icon="mdi:close-circle-outline" size={14} />
+              {COPY.clear}
+            </Button>
+          )}
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }
 
@@ -196,6 +209,7 @@ interface IOption<T extends string> {
 interface IMultiSelectProps<T extends string> {
   label: string;
   icon: string;
+  description: string;
   selected: T[];
   options: IOption<T>[];
   onChange: (next: T[]) => void;
@@ -205,6 +219,7 @@ interface IMultiSelectProps<T extends string> {
 function MultiSelectPopover<T extends string>({
   label,
   icon,
+  description,
   selected,
   options,
   onChange,
@@ -217,24 +232,29 @@ function MultiSelectPopover<T extends string>({
   const active = selected.length > 0;
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn(
-            "h-8 gap-1.5 text-xs",
-            active && "border-primary/40 bg-primary/5 text-primary",
-          )}
-        >
-          <Icon icon={icon} size={14} />
-          {label}
-          {active && (
-            <span className="rounded-full bg-primary/15 px-1.5 py-0 text-[10px] font-semibold">
-              {selected.length}
-            </span>
-          )}
-        </Button>
-      </PopoverTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "h-8 gap-1.5 text-xs",
+                active && "border-primary/40 bg-primary/5 text-primary",
+              )}
+            >
+              <Icon icon={icon} size={14} />
+              {label}
+              {active && (
+                <span className="rounded-full bg-primary/15 px-1.5 py-0 text-[10px] font-semibold">
+                  {selected.length}
+                </span>
+              )}
+            </Button>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent>{description}</TooltipContent>
+      </Tooltip>
       <PopoverContent align="start" className="w-[260px] p-2">
         {searchable && (
           <Input
@@ -286,6 +306,7 @@ function MultiSelectPopover<T extends string>({
 interface ISingleSelectProps<T extends string> {
   label: string;
   icon: string;
+  description: string;
   value: T;
   options: IOption<T>[];
   onChange: (next: T) => void;
@@ -294,6 +315,7 @@ interface ISingleSelectProps<T extends string> {
 function SingleSelectPopover<T extends string>({
   label,
   icon,
+  description,
   value,
   options,
   onChange,
@@ -302,22 +324,27 @@ function SingleSelectPopover<T extends string>({
   const current = options.find((o) => o.value === value);
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn(
-            "h-8 gap-1.5 text-xs",
-            active && "border-primary/40 bg-primary/5 text-primary",
-          )}
-        >
-          <Icon icon={icon} size={14} />
-          {label}
-          {active && current && (
-            <span className="text-[10px] text-muted-foreground">· {current.label}</span>
-          )}
-        </Button>
-      </PopoverTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "h-8 gap-1.5 text-xs",
+                active && "border-primary/40 bg-primary/5 text-primary",
+              )}
+            >
+              <Icon icon={icon} size={14} />
+              {label}
+              {active && current && (
+                <span className="text-[10px] text-muted-foreground">· {current.label}</span>
+              )}
+            </Button>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent>{description}</TooltipContent>
+      </Tooltip>
       <PopoverContent align="start" className="w-[220px] p-1">
         {options.map((opt) => (
           <button
@@ -341,12 +368,13 @@ function SingleSelectPopover<T extends string>({
 interface IRangeProps {
   label: string;
   icon: string;
+  description: string;
   min?: number;
   max?: number;
   onChange: (next: { min?: number; max?: number }) => void;
 }
 
-function RangePopover({ label, icon, min, max, onChange }: IRangeProps) {
+function RangePopover({ label, icon, description, min, max, onChange }: IRangeProps) {
   const [minDraft, setMinDraft] = useState<string>(min !== undefined ? String(min) : "");
   const [maxDraft, setMaxDraft] = useState<string>(max !== undefined ? String(max) : "");
   const active = min !== undefined || max !== undefined;
@@ -359,24 +387,29 @@ function RangePopover({ label, icon, min, max, onChange }: IRangeProps) {
         }
       }}
     >
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn(
-            "h-8 gap-1.5 text-xs",
-            active && "border-primary/40 bg-primary/5 text-primary",
-          )}
-        >
-          <Icon icon={icon} size={14} />
-          {label}
-          {active && (
-            <span className="text-[10px]">
-              {min ?? "•"}–{max ?? "•"}
-            </span>
-          )}
-        </Button>
-      </PopoverTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "h-8 gap-1.5 text-xs",
+                active && "border-primary/40 bg-primary/5 text-primary",
+              )}
+            >
+              <Icon icon={icon} size={14} />
+              {label}
+              {active && (
+                <span className="text-[10px]">
+                  {min ?? "•"}–{max ?? "•"}
+                </span>
+              )}
+            </Button>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent>{description}</TooltipContent>
+      </Tooltip>
       <PopoverContent align="start" className="w-[260px] space-y-2 p-3">
         <div className="flex items-center gap-2">
           <Input
@@ -433,18 +466,25 @@ interface IToggleChipProps {
   onToggle: () => void;
   icon: string;
   label: string;
+  description: string;
 }
 
-function ToggleChip({ active, onToggle, icon, label }: IToggleChipProps) {
+function ToggleChip({ active, onToggle, icon, label, description }: IToggleChipProps) {
   return (
-    <Button
-      variant={active ? "default" : "outline"}
-      size="sm"
-      onClick={onToggle}
-      className="h-8 gap-1.5 text-xs"
-    >
-      <Icon icon={icon} size={14} />
-      {label}
-    </Button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant={active ? "default" : "outline"}
+          size="sm"
+          aria-pressed={active}
+          onClick={onToggle}
+          className="h-8 gap-1.5 text-xs"
+        >
+          <Icon icon={icon} size={14} />
+          {label}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{description}</TooltipContent>
+    </Tooltip>
   );
 }
