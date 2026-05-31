@@ -144,7 +144,7 @@ export function QuotesTable({
   }
 
   return (
-    <Table className="table-fixed" style={{ width: totalWidth }}>
+    <Table className="w-full table-fixed" style={{ minWidth: totalWidth }}>
       <colgroup>
         {COLUMNS.map((col) => (
           <col key={col.id} style={{ width: widths[col.id] }} />
