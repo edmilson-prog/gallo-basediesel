@@ -83,6 +83,7 @@ export function ruleUnansweredDeadline(ctx: ICopilotRuleContext): ICopilotSugges
   );
   if (deadlineMsgs.length < 2) return null;
   const last = deadlineMsgs[deadlineMsgs.length - 1];
+  if (!last) return null;
   const sellerRepliedAfter = ctx.messages.some(
     (m) => m.direction === "out" && m.authorType === "seller" && m.sentAt > last.sentAt,
   );
