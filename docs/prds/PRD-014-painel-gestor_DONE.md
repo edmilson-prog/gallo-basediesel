@@ -723,11 +723,30 @@ Gestor não consegue ver dados cross-store mesmo via URL manipulation — provid
 
 ---
 
+## Nota de migração — PRD-008 (Notificações)
+
+A partir do PRD-008 (fundação de notificações, codinome **Herald**), a lógica de **condição** dos três alertas derivados do painel (cliente A dormente, vendedor sobrecarregado, conversa sem resposta) foi **extraída** do hook `useActiveAlerts` para o módulo compartilhado `@/providers/notifications/conditions/derivedConditions` — fonte única de verdade, consumida tanto pelo painel quanto pelo **reconciliador** de notificações derivadas (RF-024+).
+
+- **Sem mudança de comportamento no painel:** `useActiveAlerts` reexporta os tipos (`IActiveAlert`, `AlertSeverity`, `AlertKind`) e passa a importar as funções `build*` do módulo compartilhado; `<ActiveAlertsList>` e a tela do Gestor permanecem idênticos (dismissals via `localStorage` preservados).
+- **Próximo passo (PRD-009 — RF-029):** migração visual do `<ActiveAlertsList>` para consumir o **Notification Center**, substituindo os dismissals locais pelo ciclo de vida `derived` (criação/expiração via reconciliação).
+
+## Nota de migração — PRD-009 (Notification Center — Chime · v0.55.0)
+
+A partir do PRD-009 (Central de Notificações, codinome **Chime**), o `<ActiveAlertsList>` foi **migrado** para consumir o Notification Center em vez de manter lógica própria.
+
+- **`<ActiveAlertsList>` agora consome o center:** lê notificações com filtro `lifecycle: "derived"` (notificações operacionais derivadas) via os hooks públicos do PRD-008 — nenhuma lógica de condição ou listagem própria permanece no componente.
+- **"Dispensar" arquiva via provider:** a ação "Dispensar" passou a chamar o provider de notificações (marcar como lida/arquivar) em vez de gravar um hash em `localStorage`; o caminho `gallo-alert-dismissed-{hash}` está aposentado nesta view.
+- **Aparência preservada:** `<ActiveAlertsList>` e o Painel do Gestor mantêm a mesma interface visual; a mudança é exclusivamente na origem dos dados e no mecanismo de dismiss.
+
+---
+
 ## Histórico
 
-| Data       | Versão | Alteração                                                                         |
-| ---------- | ------ | --------------------------------------------------------------------------------- |
-| 25/05/2026 | v1     | Criação inicial — painel operacional do gestor com 7 widgets, alertas, drill-down |
+| Data       | Versão | Alteração                                                                                                                                                       |
+| ---------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 25/05/2026 | v1     | Criação inicial — painel operacional do gestor com 7 widgets, alertas, drill-down                                                                               |
+| 31/05/2026 | delta  | PRD-008 extrai a lógica de condição dos alertas para `@/providers/notifications/conditions` (fonte única com o reconciliador); painel inalterado. Migração visual → PRD-009 (RF-029) |
+| 31/05/2026 | delta  | PRD-009 (Chime, v0.55.0): `<ActiveAlertsList>` migrado para consumir o Notification Center (filtro `lifecycle:"derived"`); dismissals locais via `localStorage` aposentados. |
 
 ---
 

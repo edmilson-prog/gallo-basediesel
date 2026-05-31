@@ -492,11 +492,23 @@ ENTÃO sessão limpa
 
 ---
 
+## Nota de adição — PRD-009 (Notification Center — Chime · v0.55.0)
+
+A partir do PRD-009 (Central de Notificações, codinome **Chime**), a área de conta do cliente (`/loja/conta`) ganhou dois novos itens de menu e páginas dedicadas:
+
+- **Notificações** (`/loja/conta/notificacoes`) — Central de Notificações do cliente: lista das notificações transacionais (pedidos, orçamentos, avisos do portal) com filtros e ações, sobre o `LojaLayout`, com tom comercial sem jargão interno.
+- **Preferências de aviso** (`/loja/conta/preferencias`) — Tela de preferências do cliente: canais por categoria, com os canais externos (e-mail, WhatsApp, SMS, push) marcados como "Fase 2" e marketing como opt-in explícito.
+
+Ambas as páginas funcionam por rota direta sobre o `LojaLayout` e estão estruturadas para integração à navegação lateral de conta (sidebar do `/loja/conta`) conforme o PRD-065.
+
+---
+
 ## Histórico
 
 | Data       | Versão | Alteração                                                                                        |
 | ---------- | ------ | ------------------------------------------------------------------------------------------------ |
 | 25/05/2026 | v1     | Criação inicial — área logada com login/cadastro B2B/B2C, histórico, perfil, endereços, veículos |
+| 31/05/2026 | delta  | PRD-009 (Chime, v0.55.0): adição de `/loja/conta/notificacoes` e `/loja/conta/preferencias` à área de conta do cliente. |
 
 ---
 

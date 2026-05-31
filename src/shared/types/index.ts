@@ -316,3 +316,19 @@ export {
   DEFAULT_STOREFRONT_BRANDS,
   DEFAULT_STOREFRONT_BENEFITS,
 } from "./storefront";
+
+// Notifications (PRD-008)
+export type {
+  INotification,
+  INotificationAction,
+  INotificationEntityRef,
+  IChannelDelivery,
+  INotificationPreference,
+  NotificationLifecycle,
+  NotificationCategory,
+  NotificationSeverity,
+  NotificationStatus,
+  NotificationChannel,
+  NotificationRecipientType,
+  ChannelDeliveryStatus,
+} from "./notification";

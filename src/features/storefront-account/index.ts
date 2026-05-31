@@ -17,6 +17,8 @@ export { AccountQuoteDetailPage } from "./pages/AccountQuoteDetailPage";
 export { AccountProfilePage } from "./pages/AccountProfilePage";
 export { AccountAddressesPage } from "./pages/AccountAddressesPage";
 export { AccountVehiclesPage } from "./pages/AccountVehiclesPage";
+export { AccountNotificationsPage } from "./pages/AccountNotificationsPage";
+export { AccountNotificationPreferencesPage } from "./pages/AccountNotificationPreferencesPage";
 
 export { AccountLayout } from "./components/AccountLayout";
 export { CustomerAccountMenu } from "./components/CustomerAccountMenu";

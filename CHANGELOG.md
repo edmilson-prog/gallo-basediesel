@@ -4,6 +4,32 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.55.0] — Chime · 2026-05-31
+
+A Central de Notificações ganha rosto. O sino do topo passa a mostrar notificações reais com contagem de não lidas e um preview; uma página dedicada reúne tudo com dois layouts (Painel e Lista), filtros e estados; o usuário escolhe por quais canais recebe cada tipo de aviso numa matriz de preferências; e o cliente ganha sua própria central e preferências na loja. Consome a fundação Herald (0.54.0) sem alterá-la.
+
+### Added
+
+- **Sino e preview de notificações** — o sino do topo mostra a contagem de não lidas (com destaque visual e leitura por leitores de tela) e um preview com as últimas notificações agrupadas, com "marcar todas como lidas" e atalho para a central.
+- **Central de Notificações (`/app/notificacoes`)** — página dedicada com dois layouts alternáveis (Painel com trilha lateral / Lista com barra horizontal, preferência lembrada), filtros por status, categoria e severidade sincronizados na URL, agrupamento de notificações relacionadas, paginação e estados de carregamento, vazio e erro.
+- **Matriz de preferências por canal e categoria** — o usuário decide por quais canais (in-app, toast) recebe cada categoria; os canais externos (e-mail, WhatsApp, SMS, push) aparecem preparados para a Onda 8; avisos críticos permanecem sempre ativos. Em Configurações › Notificações.
+- **Portal de notificações do cliente** — o cliente tem sua própria central (`/loja/conta/notificacoes`) e preferências (`/loja/conta/preferencias`) na loja, com tom comercial.
+- **Tokens de severidade dedicados** — escala de cor de severidade (informação, sucesso, atenção, crítico) constante nos quatro temas, com contraste adequado em claro e escuro.
+
+### Changed
+
+- **Sino do topo** — substitui o preview estático por notificações reais vindas da fundação.
+- **Alertas do Painel do Gestor** — a lista de alertas ativos passa a consumir a Central de Notificações; "Dispensar" arquiva o alerta, sem armazenamento local próprio.
+
+## [0.54.0] — Herald · 2026-05-31
+
+Fundação do sistema de notificações — a base invisível que vai alimentar a Central de Notificações e as preferências (em breve, no próximo release). Os eventos do dia a dia da plataforma passam a ser transformados em notificações por destinatário, com canais, preferências e condições derivadas. Sem mudança visível ainda — é a fundação sobre a qual a interface será construída.
+
+### Added
+
+- **Fundação de notificações (infraestrutura)** — modelo de dados único, barramento de eventos, roteamento por regras e preferências por destinatário, persistência via Provider Pattern e canais de entrega (in-app e toast ativos; e-mail, WhatsApp, SMS e push já preparados para a Onda 8). Base da Central de Notificações que chega no próximo release.
+- **Reconciliador de condições derivadas** — os alertas do Painel do Gestor (cliente A dormente, vendedor sobrecarregado, conversa sem resposta) agora também alimentam notificações, a partir de uma lógica de condição compartilhada e única.
+
 ## [0.53.0] — Dossier · 2026-05-31
 
 ### Added

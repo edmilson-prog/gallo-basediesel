@@ -1,32 +1,38 @@
 import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
 import { MANAGER_DASHBOARD_STRINGS } from "../i18n/pt-BR";
-import type { AlertSeverity, IActiveAlert } from "../hooks/useActiveAlerts";
+import {
+  useNotifications,
+  useNotificationMutations,
+  type NotificationSeverity,
+} from "@/providers/notifications";
 
-export interface IActiveAlertsListProps {
-  alerts: IActiveAlert[];
-  isLoading: boolean;
-  onView: (alert: IActiveAlert) => void;
-  onDismiss: (alert: IActiveAlert) => void;
+type BadgeTier = "critical" | "high" | "medium";
+
+function tierOf(sev: NotificationSeverity): BadgeTier {
+  if (sev === "critical") return "critical";
+  if (sev === "warning") return "high";
+  return "medium"; // info, success
 }
 
-const SEVERITY_LABEL: Record<AlertSeverity, string> = {
+const SEVERITY_LABEL: Record<BadgeTier, string> = {
   critical: MANAGER_DASHBOARD_STRINGS.alertSeverityCritical,
   high: MANAGER_DASHBOARD_STRINGS.alertSeverityHigh,
   medium: MANAGER_DASHBOARD_STRINGS.alertSeverityMedium,
 };
 
-const SEVERITY_BADGE: Record<AlertSeverity, string> = {
+const SEVERITY_BADGE: Record<BadgeTier, string> = {
   critical: "bg-red-500/15 text-red-600 dark:text-red-400",
   high: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
   medium: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
 };
 
-const SEVERITY_ICON: Record<AlertSeverity, string> = {
+const SEVERITY_ICON: Record<BadgeTier, string> = {
   critical: "mdi:alert-octagon-outline",
   high: "mdi:alert-outline",
   medium: "mdi:information-outline",
@@ -34,8 +40,19 @@ const SEVERITY_ICON: Record<AlertSeverity, string> = {
 
 const MAX_VISIBLE = 6;
 
-export function ActiveAlertsList({ alerts, isLoading, onView, onDismiss }: IActiveAlertsListProps) {
+/**
+ * Self-contained widget that reads lifecycle:"derived" notifications from the
+ * PRD-008 Notification Center (the reconciler projects the same 3 dashboard
+ * alert conditions into the store). "Ver" navigates to the Notification Center;
+ * "Dispensar" archives via useNotificationMutations.
+ */
+export function ActiveAlertsList() {
   const [expanded, setExpanded] = useState(false);
+  const navigate = useNavigate();
+  const { data, isLoading } = useNotifications({ statuses: ["unread", "read"], pageSize: 100 });
+  const { archive } = useNotificationMutations();
+
+  const alerts = data.filter((n) => n.lifecycle === "derived");
   const visible = expanded ? alerts : alerts.slice(0, MAX_VISIBLE);
   const hiddenCount = alerts.length - visible.length;
 
@@ -73,43 +90,49 @@ export function ActiveAlertsList({ alerts, isLoading, onView, onDismiss }: IActi
         </div>
       ) : (
         <ul className="flex flex-1 flex-col gap-2">
-          {visible.map((alert) => (
-            <li key={alert.id} className="flex items-start gap-3 rounded-md border bg-card/50 p-3">
-              <span
-                className={cn(
-                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-md",
-                  SEVERITY_BADGE[alert.severity],
-                )}
-                aria-label={SEVERITY_LABEL[alert.severity]}
+          {visible.map((alert) => {
+            const tier = tierOf(alert.severity);
+            return (
+              <li
+                key={alert.id}
+                className="flex items-start gap-3 rounded-md border bg-card/50 p-3"
               >
-                <Icon icon={SEVERITY_ICON[alert.severity]} size={16} />
-              </span>
-              <div className="flex flex-1 flex-col gap-1.5 min-w-0">
-                <p className="text-sm leading-snug text-foreground">{alert.message}</p>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onView(alert)}
-                    className="h-7 px-2 text-xs"
-                  >
-                    {MANAGER_DASHBOARD_STRINGS.alertsView}
-                    <Icon icon="mdi:arrow-right" size={12} className="ml-1" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onDismiss(alert)}
-                    className="h-7 px-2 text-xs text-muted-foreground"
-                  >
-                    {MANAGER_DASHBOARD_STRINGS.alertsDismiss}
-                  </Button>
+                <span
+                  className={cn(
+                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-md",
+                    SEVERITY_BADGE[tier],
+                  )}
+                  aria-label={SEVERITY_LABEL[tier]}
+                >
+                  <Icon icon={SEVERITY_ICON[tier]} size={16} />
+                </span>
+                <div className="flex flex-1 flex-col gap-1.5 min-w-0">
+                  <p className="text-sm leading-snug text-foreground">{alert.title}</p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void navigate({ to: "/app/notificacoes" })}
+                      className="h-7 px-2 text-xs"
+                    >
+                      {MANAGER_DASHBOARD_STRINGS.alertsView}
+                      <Icon icon="mdi:arrow-right" size={12} className="ml-1" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => void archive(alert.id)}
+                      className="h-7 px-2 text-xs text-muted-foreground"
+                    >
+                      {MANAGER_DASHBOARD_STRINGS.alertsDismiss}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
           {hiddenCount > 0 && (
             <li className="mt-auto">
               <Button

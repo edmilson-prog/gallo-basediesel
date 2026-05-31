@@ -649,6 +649,7 @@ Tipos de mudança a documentar:
 | Data       | Versão | Alteração                                                                                                                |
 | ---------- | ------ | ------------------------------------------------------------------------------------------------------------------------ |
 | 25/05/2026 | v1     | Criação inicial — modelo conceitual GALLO completo (32 entidades em 10 arquivos) + glossário do mercado de peças pesadas |
+| 30/05/2026 | delta  | PRD-008 estende o modelo com INotification e tipos auxiliares (notificação de evento/derivada, categoria, canal, preferência). Não redefine entidades existentes. |
 
 ---
 

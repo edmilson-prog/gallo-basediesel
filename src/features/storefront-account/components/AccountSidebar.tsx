@@ -19,8 +19,18 @@ const NAV: IAccountNavItem[] = [
   { to: "/loja/conta", label: S.navDashboard, icon: "mdi:view-dashboard-outline" },
   { to: "/loja/conta/pedidos", label: S.navOrders, icon: "mdi:clipboard-list-outline" },
   { to: "/loja/conta/orcamentos", label: S.navQuotes, icon: "mdi:file-document-outline" },
+  {
+    to: "/loja/conta/notificacoes",
+    label: S.navNotifications,
+    icon: "mdi:bell-outline",
+  },
   { to: "/loja/conta/perfil", label: S.navProfile, icon: "mdi:account-circle-outline" },
   { to: "/loja/conta/enderecos", label: S.navAddresses, icon: "mdi:map-marker-outline" },
+  {
+    to: "/loja/conta/preferencias",
+    label: S.navPreferences,
+    icon: "mdi:tune-variant",
+  },
   {
     to: "/loja/conta/veiculos",
     label: S.navVehicles,

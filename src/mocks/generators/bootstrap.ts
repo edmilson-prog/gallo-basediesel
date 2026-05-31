@@ -14,6 +14,7 @@ import type {
   IGoal,
   ILead,
   IMessage,
+  INotification,
   IOrder,
   IPart,
   IPositivation,
@@ -60,6 +61,7 @@ import { generateWhatsAppAccounts } from "./whatsappAccount";
 import { generateDistributionTrace } from "./distributionTrace";
 import { generateSdrSession } from "./sdrSession";
 import { generateSdrEscalation } from "./sdrEscalation";
+import { generateNotification } from "./notification";
 
 /**
  * Full GALLO mock dataset, ready to populate the Zustand store. Generated
@@ -97,6 +99,7 @@ export interface IBootstrappedDataset {
   distributionTraces: IDistributionTrace[];
   sdrSessions: ISdrSession[];
   sdrEscalations: ISdrEscalation[];
+  notifications: INotification[];
 }
 
 /**
@@ -423,6 +426,51 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
     );
   }
 
+  // 22. Notifications — ~40 per seller (vendedores + gestor + owner), ~12 each
+  // for the first several customers so PRD-009's storefront center has data
+  // regardless of which registered customer the demo logs in as. Uses a separate
+  // seeded context offset so adding notifications doesn't perturb any earlier
+  // PRNG sequence.
+  const notifCtx = createSeededContext(seed + 7919); // prime offset for isolation
+  const notifications: INotification[] = [];
+  let notifSeq = 0;
+
+  // Seller notifications (~40 each)
+  for (const seller of sellers) {
+    const count = 40;
+    for (let i = 0; i < count; i += 1) {
+      notifications.push(
+        generateNotification(notifCtx, {
+          sequence: notifSeq,
+          recipientId: seller.id,
+          recipientType: "seller",
+          now,
+        }),
+      );
+      notifSeq += 1;
+    }
+  }
+
+  // Customer notifications — seed the first several customers (not just one) so
+  // the storefront notification center is populated for whichever registered
+  // customer the demo signs in as (any customer e-mail works — see login hint).
+  const customerNotifSampleCount = Math.min(10, customers.length);
+  for (let c = 0; c < customerNotifSampleCount; c += 1) {
+    const sampleCustomer = customers[c];
+    if (!sampleCustomer) continue;
+    for (let i = 0; i < 12; i += 1) {
+      notifications.push(
+        generateNotification(notifCtx, {
+          sequence: notifSeq,
+          recipientId: sampleCustomer.id,
+          recipientType: "customer",
+          now,
+        }),
+      );
+      notifSeq += 1;
+    }
+  }
+
   const dataset: IBootstrappedDataset = {
     seed,
     generatedAt: now.toISOString(),
@@ -455,6 +503,7 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
     distributionTraces,
     sdrSessions,
     sdrEscalations,
+    notifications,
   };
 
   if (import.meta.env.DEV) {

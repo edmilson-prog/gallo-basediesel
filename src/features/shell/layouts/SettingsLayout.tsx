@@ -41,6 +41,12 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         to: "/app/configuracoes/aparencia",
         roles: ["Owner", "Gestor", "Vendedor", "SDR", "VendedorExterno", "Financeiro"],
       },
+      {
+        label: "Notificações",
+        icon: "mdi:bell-outline",
+        to: "/app/configuracoes/notificacoes",
+        roles: ["Owner", "Gestor", "Vendedor", "SDR", "VendedorExterno", "Financeiro"],
+      },
     ],
   },
   {
