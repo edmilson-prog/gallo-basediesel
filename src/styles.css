@@ -70,6 +70,12 @@
   --gallo-info-medium: #3b82f6;
   --gallo-info-dark: #1d4ed8;
 
+  /* Severidade — escala dedicada (constante nos 4 temas; tratamento tonal) */
+  --gallo-sev-info: #2563eb;
+  --gallo-sev-success: #16a34a;
+  --gallo-sev-warning: #d97706;
+  --gallo-sev-critical: #dc2626;
+
   /* Tipografia */
   --font-display: "Saira Condensed", "Inter", system-ui, -apple-system, sans-serif;
   --font-body: "Inter", system-ui, -apple-system, sans-serif;
@@ -129,6 +135,11 @@
   --color-warning: var(--warning);
   --color-info: var(--info);
 
+  --color-severity-info: var(--gallo-sev-info);
+  --color-severity-success: var(--gallo-sev-success);
+  --color-severity-warning: var(--gallo-sev-warning);
+  --color-severity-critical: var(--gallo-sev-critical);
+
   --font-sans: var(--font-body);
   --font-display: var(--font-display);
   --font-mono: var(--font-mono);
@@ -185,6 +196,12 @@
 
 /* DARK base — comum a todos os temas, accents trocam abaixo */
 .dark {
+  /* Severidade — variante dark (paridade AA) */
+  --gallo-sev-info: #60a5fa;
+  --gallo-sev-success: #22c55e;
+  --gallo-sev-warning: #f59e0b;
+  --gallo-sev-critical: #f87171;
+
   --background: var(--gallo-black-tech);
   --foreground: var(--gallo-neutral-50);
   --card: var(--gallo-gray-structural);
