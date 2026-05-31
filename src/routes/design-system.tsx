@@ -1,5 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { THEMES } from "@/config/themes";
 import { useTheme } from "@/hooks/useTheme";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
@@ -39,6 +39,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { notificationBus, type INotificationEvent } from "@/providers/notifications/bus";
+import { useNotifications, useUnreadCount } from "@/providers/notifications";
+import { useAuth } from "@/features/auth/useAuth";
 
 export const Route = createFileRoute("/design-system")({
   beforeLoad: () => {
@@ -666,6 +669,14 @@ function DesignSystemPage() {
               <MocksPanel />
             </Section>
 
+            {/* Notifications Harness — PRD-008 */}
+            <Section
+              title="Harness de Notificações (dev only)"
+              description="Dispara eventos de domínio reais no bus de notificações e observa roteamento e entrega."
+            >
+              <NotificationsHarnessPanel />
+            </Section>
+
             {/* WCAG */}
             <Section
               title="Validador de contraste WCAG 2.1"
@@ -705,6 +716,310 @@ function Section({
       </div>
       {children}
     </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Notifications Harness Panel — PRD-008 (dev only)
+// ---------------------------------------------------------------------------
+
+/** Max log entries kept in state (newest-first). */
+const MAX_LOG_ENTRIES = 20;
+
+/** Sample ids used when the event requires ids the current user doesn't own. */
+const SAMPLE_STORE_ID = "store-matriz";
+const SAMPLE_MANAGER_IDS = ["seller-marina-cardoso"];
+const SAMPLE_OWNER_IDS = ["seller-joao-gallo"];
+const SAMPLE_CUSTOMER_ID = "customer-001";
+const FALLBACK_SELLER_ID = "seller-0001";
+
+interface ILogEntry {
+  id: string;
+  occurredAt: string;
+  type: string;
+  recipientSummary: string;
+}
+
+/** Build a compact summary of which recipient ids are present in a payload. */
+function summarisePayload(payload: unknown): string {
+  if (!payload || typeof payload !== "object") return "(no payload)";
+  const p = payload as Record<string, unknown>;
+  const parts: string[] = [];
+  if (p.sellerId) parts.push(`seller:${String(p.sellerId)}`);
+  if (Array.isArray(p.managerIds) && p.managerIds.length > 0)
+    parts.push(`managers:[${(p.managerIds as string[]).join(",")}]`);
+  if (Array.isArray(p.ownerIds) && p.ownerIds.length > 0)
+    parts.push(`owners:[${(p.ownerIds as string[]).join(",")}]`);
+  if (p.customerId) parts.push(`customer:${String(p.customerId)}`);
+  if (p.storeId) parts.push(`store:${String(p.storeId)}`);
+  return parts.length ? parts.join(" · ") : "(sem destinatários)";
+}
+
+function NotificationsHarnessPanel() {
+  const { currentUser } = useAuth();
+  // Prefer the underlying domain seller id so RBAC scoping in the store matches.
+  const sellerId: string = currentUser?.sellerId ?? currentUser?.id ?? FALLBACK_SELLER_ID;
+  const usingFallback = !currentUser?.sellerId && !currentUser?.id;
+
+  const [log, setLog] = useState<ILogEntry[]>([]);
+  const counterRef = useRef(0);
+
+  // Subscribe to the bus to observe every emitted event.
+  useEffect(() => {
+    const unsubscribe = notificationBus.subscribe((event: INotificationEvent) => {
+      const entry: ILogEntry = {
+        id: String(++counterRef.current),
+        occurredAt: event.occurredAt,
+        type: String(event.type),
+        recipientSummary: summarisePayload(event.payload),
+      };
+      setLog((prev) => [entry, ...prev].slice(0, MAX_LOG_ENTRIES));
+    });
+    return unsubscribe;
+  }, []);
+
+  const { count: unreadCount, isLoading: unreadLoading } = useUnreadCount();
+  const {
+    data: notifications,
+    isLoading: notifLoading,
+    isFetching,
+    refetch,
+  } = useNotifications({ limit: 5 } as Parameters<typeof useNotifications>[0]);
+
+  // --- fire helpers -----------------------------------------------------------
+
+  const fire = (
+    type: Parameters<typeof notificationBus.emit>[0],
+    payload: Parameters<typeof notificationBus.emit>[1],
+  ) => {
+    notificationBus.emit(type, payload, new Date().toISOString());
+  };
+
+  const fireConversaAtribuida = () =>
+    fire("conversa.atribuida", {
+      sellerId,
+      storeId: SAMPLE_STORE_ID,
+      entityId: "conv-001",
+      entityType: "conversation",
+      title: "Nova conversa atribuída",
+      body: "Você foi atribuído a uma nova conversa de cliente.",
+    });
+
+  const fireLeadNovo = () =>
+    fire("lead.novo", {
+      sellerId,
+      storeId: SAMPLE_STORE_ID,
+      entityId: "lead-001",
+      entityType: "lead",
+      title: "Novo lead recebido",
+      body: "Um novo lead foi gerado e atribuído a você.",
+    });
+
+  const fireMetaBatida = () =>
+    fire("meta.batida", {
+      sellerId,
+      managerIds: SAMPLE_MANAGER_IDS,
+      storeId: SAMPLE_STORE_ID,
+      title: "Meta batida! 🏆",
+      body: "Parabéns! Você atingiu 100% da meta mensal de vendas.",
+    });
+
+  const firePedidoCriado = () =>
+    fire("pedido.criado", {
+      sellerId,
+      customerId: SAMPLE_CUSTOMER_ID,
+      storeId: SAMPLE_STORE_ID,
+      entityId: "pedido-001",
+      entityType: "order",
+      title: "Pedido criado",
+      body: "O pedido #pedido-001 foi criado com sucesso.",
+    });
+
+  const fireSistemaManutencao = () =>
+    fire("sistema.manutencao", {
+      sellerId,
+      managerIds: SAMPLE_MANAGER_IDS,
+      ownerIds: SAMPLE_OWNER_IDS,
+      customerId: SAMPLE_CUSTOMER_ID,
+      storeId: SAMPLE_STORE_ID,
+      title: "Manutenção programada",
+      body: "O sistema entrará em manutenção hoje às 22h por aproximadamente 1 hora.",
+    });
+
+  const fireClienteDormente = () =>
+    fire("cliente.dormente", {
+      sellerId,
+      managerIds: SAMPLE_MANAGER_IDS,
+      storeId: SAMPLE_STORE_ID,
+      entityId: SAMPLE_CUSTOMER_ID,
+      entityType: "customer",
+      title: "Cliente dormente",
+      body: "Transportadora Aurora Ltda está sem compras há 45 dias.",
+    });
+
+  // --- render -----------------------------------------------------------------
+
+  const EVENT_BUTTONS: { label: string; action: () => void; badge: string }[] = [
+    { label: "Conversa atribuída", action: fireConversaAtribuida, badge: "operational" },
+    { label: "Novo lead", action: fireLeadNovo, badge: "commercial" },
+    { label: "Meta batida", action: fireMetaBatida, badge: "gamification" },
+    { label: "Pedido criado", action: firePedidoCriado, badge: "transactional" },
+    { label: "Manutenção do sistema", action: fireSistemaManutencao, badge: "system" },
+    { label: "Cliente dormente", action: fireClienteDormente, badge: "commercial" },
+  ];
+
+  return (
+    <Stack gap={4}>
+      {/* Intro caption */}
+      <Card className="border-dashed">
+        <CardContent className="pt-4">
+          <p className="text-sm text-muted-foreground">
+            <strong className="text-foreground">Ferramenta de desenvolvimento (PRD-008).</strong>{" "}
+            Clique em um dos botões abaixo para disparar um evento de domínio real no bus de
+            notificações. O roteador global processa o evento, resolve destinatários e persiste
+            notificações in-app. Abra o{" "}
+            <strong className="text-foreground">console do navegador</strong> para ver o resumo
+            detalhado de roteamento:{" "}
+            <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
+              [notificationRouter]
+            </code>{" "}
+            — destinatários, canais enviados / adiados / ignorados.
+          </p>
+          {usingFallback && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Nenhum usuário autenticado detectado — usando{" "}
+              <code className="font-mono">{FALLBACK_SELLER_ID}</code> como{" "}
+              <code className="font-mono">sellerId</code>. Faça login em{" "}
+              <code className="font-mono">/auth/login</code> para direcionar eventos ao usuário
+              atual.
+            </p>
+          )}
+          {!usingFallback && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Usuário ativo: <strong className="text-foreground">{currentUser?.displayName}</strong>{" "}
+              — <code className="font-mono text-xs">{sellerId}</code>
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Fire buttons */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Disparar evento</CardTitle>
+          <CardDescription>
+            Cada botão emite um evento representativo de uma categoria distinta.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Grid cols={3} gap={3}>
+            {EVENT_BUTTONS.map((btn) => (
+              <div key={btn.label} className="flex flex-col gap-1">
+                <Button variant="outline" className="w-full justify-start" onClick={btn.action}>
+                  <Icon icon="mdi:bell-ring" size={16} className="mr-2 shrink-0" />
+                  {btn.label}
+                </Button>
+                <Badge variant="secondary" className="w-fit font-mono text-[10px]">
+                  {btn.badge}
+                </Badge>
+              </div>
+            ))}
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Live event log */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Log de eventos (bus)</CardTitle>
+          <CardDescription>
+            Eventos recebidos nesta sessão — últimos {MAX_LOG_ENTRIES}, mais recentes primeiro.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {log.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Nenhum evento ainda. Clique em um botão acima para disparar.
+            </p>
+          ) : (
+            <div className="max-h-64 overflow-y-auto rounded-md border border-border bg-muted/30 p-3">
+              <Stack gap={2}>
+                {log.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="rounded border border-border bg-card p-2 font-mono text-xs"
+                  >
+                    <span className="text-muted-foreground">
+                      {new Date(entry.occurredAt).toLocaleTimeString("pt-BR")}
+                    </span>{" "}
+                    <span className="font-semibold text-foreground">{entry.type}</span>
+                    <br />
+                    <span className="text-muted-foreground">{entry.recipientSummary}</span>
+                  </div>
+                ))}
+              </Stack>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Persistence readout */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Persistência in-app</CardTitle>
+          <CardDescription>
+            Confirme que os eventos disparados foram persistidos como notificações. O roteador
+            persiste de forma assíncrona — clique em "Atualizar" após disparar um evento.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Stack gap={4}>
+            <Inline gap={3} className="items-center">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Não lidas:</span>
+                {unreadLoading ? (
+                  <Skeleton className="h-6 w-10" />
+                ) : (
+                  <Badge className="font-mono">{unreadCount}</Badge>
+                )}
+              </div>
+              <Button variant="outline" size="sm" disabled={isFetching} onClick={() => refetch()}>
+                <Icon icon="mdi:refresh" size={14} className="mr-1" />
+                {isFetching ? "Atualizando…" : "Atualizar"}
+              </Button>
+            </Inline>
+
+            {notifLoading ? (
+              <Stack gap={2}>
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+              </Stack>
+            ) : notifications.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Nenhuma notificação persistida para o usuário atual ainda.
+              </p>
+            ) : (
+              <Stack gap={2}>
+                {notifications.map((n) => (
+                  <div
+                    key={n.id}
+                    className="flex items-start gap-2 rounded border border-border bg-muted/30 p-2 text-sm"
+                  >
+                    <Badge variant="outline" className="mt-0.5 shrink-0 font-mono text-[10px]">
+                      {n.status}
+                    </Badge>
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-foreground">{n.title}</p>
+                      {n.body && <p className="truncate text-xs text-muted-foreground">{n.body}</p>}
+                    </div>
+                  </div>
+                ))}
+              </Stack>
+            )}
+          </Stack>
+        </CardContent>
+      </Card>
+    </Stack>
   );
 }
 
