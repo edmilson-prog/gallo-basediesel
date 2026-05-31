@@ -18,6 +18,7 @@ export function CopilotCard({ panel }: { panel: ICopilotPanelState }) {
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
+        aria-label={open ? COPILOT_STRINGS.collapse : COPILOT_STRINGS.expand}
         className="flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2.5 text-left"
       >
         <span className="flex size-6 shrink-0 items-center justify-center rounded-md border border-primary/40 bg-primary/10 text-primary">
