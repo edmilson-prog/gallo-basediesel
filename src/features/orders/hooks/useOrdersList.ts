@@ -13,6 +13,8 @@ import {
 
 export interface IOrdersListQuery {
   data: IOrder[];
+  /** Full filtered set BEFORE the aggregate-status filter and pagination — feeds KPIs/tabs. */
+  allFiltered: IOrder[];
   total: number;
   isLoading: boolean;
   isFetching: boolean;
@@ -26,10 +28,6 @@ function applyClientFilters(orders: IOrder[], filters: IOrdersListFilters): IOrd
     if (filters.totalMin !== undefined && o.total < filters.totalMin) return false;
     if (filters.totalMax !== undefined && o.total > filters.totalMax) return false;
     if (filters.storeIds.length > 0 && !filters.storeIds.includes(o.storeId)) return false;
-    if (filters.statuses.length > 0) {
-      const agg = computeOrderStatus(o);
-      if (!filters.statuses.includes(agg)) return false;
-    }
     if (filters.paymentStatuses.length > 0) {
       if (!filters.paymentStatuses.includes(o.paymentStatus)) return false;
     }
@@ -98,20 +96,31 @@ export function useOrdersList(
 
   const result = useMemo(() => {
     const fetched = query.data?.data ?? [];
-    let filtered = applyClientFilters(fetched, filters);
+    // allFiltered = filtros comuns + vendedor, MAS sem o status agregado nem paginação.
+    let allFiltered = applyClientFilters(fetched, filters);
     if (options.sellerIdLock && filters.sellerIds.length === 0) {
-      filtered = filtered.filter((o) => o.sellerId === options.sellerIdLock);
+      allFiltered = allFiltered.filter((o) => o.sellerId === options.sellerIdLock);
     } else if (filters.sellerIds.length > 0) {
       const set = new Set(filters.sellerIds);
-      filtered = filtered.filter((o) => set.has(o.sellerId));
+      allFiltered = allFiltered.filter((o) => set.has(o.sellerId));
     }
-    const sorted = sortOrders(filtered, sort);
+    const statusSet = new Set(filters.statuses);
+    const afterStatus =
+      statusSet.size > 0
+        ? allFiltered.filter((o) => statusSet.has(computeOrderStatus(o)))
+        : allFiltered;
+    const sorted = sortOrders(afterStatus, sort);
     const start = (page - 1) * pageSize;
-    return { paged: sorted.slice(start, start + pageSize), total: sorted.length };
+    return {
+      paged: sorted.slice(start, start + pageSize),
+      total: sorted.length,
+      allFiltered,
+    };
   }, [query.data, filters, sort, page, pageSize, options.sellerIdLock]);
 
   return {
     data: result.paged,
+    allFiltered: result.allFiltered,
     total: result.total,
     isLoading: query.isLoading,
     isFetching: query.isFetching,
