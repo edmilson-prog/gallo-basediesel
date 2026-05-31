@@ -112,6 +112,31 @@ export default tseslint.config(
     },
   },
 
+  // Notification mock provider implementations are the single authorized bridge
+  // between `@/mocks` and the notifications layer — they may import the mock barrel.
+  {
+    files: ["src/providers/notifications/impl/mock/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "@/mocks/store/*",
+                "@/mocks/generators/*",
+                "@/mocks/data/*",
+                "@/mocks/config",
+              ],
+              message:
+                "Even inside the notification mock provider, internal mock modules stay private — go through '@/mocks'.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   // The dev-only design-system route consumes `useResetMocks` (a mock seed
   // utility, not a data API) — explicit allow.
   {
