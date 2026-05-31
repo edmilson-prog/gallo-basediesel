@@ -36,3 +36,21 @@ export const CATEGORY_ICON: Record<NotificationCategory, string> = {
   system: "mdi:cog",
   marketing: "mdi:bullhorn",
 };
+
+/** Category → pt-BR display label. */
+export const CATEGORY_LABEL: Record<NotificationCategory, string> = {
+  transactional: "Transacional",
+  commercial: "Comercial",
+  operational: "Operacional",
+  gamification: "Gamificação",
+  system: "Sistema",
+  marketing: "Marketing",
+};
+
+/** Severity → pt-BR display label. */
+export const SEVERITY_LABEL: Record<NotificationSeverity, string> = {
+  info: "Informação",
+  success: "Sucesso",
+  warning: "Atenção",
+  critical: "Crítico",
+};
