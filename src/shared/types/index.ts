@@ -193,6 +193,20 @@ export type {
   SdrEscalationStatus,
 } from "./sdr-escalation";
 
+// Copiloto de Vendas (PRD-025)
+export type {
+  ICopilotSuggestion,
+  ICopilotBriefing,
+  ICopilotSummary,
+  ICopilotPanelData,
+  CopilotSuggestionKind,
+  CopilotSuggestionSource,
+  CopilotSuggestionSeverity,
+  CopilotSuggestionStatus,
+  CopilotPlacement,
+  CopilotSummarySource,
+} from "./copilot";
+
 // BI
 export type {
   IGoal,
