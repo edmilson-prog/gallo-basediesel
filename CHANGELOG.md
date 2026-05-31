@@ -4,6 +4,17 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.53.0] — Dossier · 2026-05-31
+
+### Added
+- Ficha de **Orçamento** e **Pedido** com 3 visualizações selecionáveis — **Cockpit** (padrão), **Operacional** e **Documento** — alternáveis por um seletor no cabeçalho, com preferência lembrada por página.
+- Faixa de KPIs e trilho lateral fixo (resumo, cliente, ações) nas fichas de Orçamento e Pedido.
+- Stepper de status no layout Operacional (rascunho→convertido / aguardando pagamento→concluído), com estados terminais para recusado/expirado/cancelado/devolvido.
+- Framework compartilhado `src/shared/detail-views/` (config de layout, hook de persistência, seletor, faixa de KPIs, stepper, blocos de resumo/cliente/histórico e shells de layout).
+
+### Changed
+- Páginas de detalhe de Orçamento e Pedido passam a usar layout amplo (até 1600px) em vez da coluna central estreita, eliminando o desperdício de espaço lateral.
+
 ## [0.52.0] — Ledger · 2026-05-30
 
 ### Added
