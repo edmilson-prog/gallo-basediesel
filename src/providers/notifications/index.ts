@@ -17,6 +17,8 @@ export { NotificationProvidersProvider } from "./context";
 export { useNotifications } from "./hooks/useNotifications";
 export { useUnreadCount } from "./hooks/useUnreadCount";
 export { useNotificationPreferences } from "./hooks/useNotificationPreferences";
+export { useNotificationMutations } from "./hooks/useNotificationMutations";
+export type { IUseNotificationMutationsResult } from "./hooks/useNotificationMutations";
 
 // Public preference utilities (used by router and preference UI)
 export {
