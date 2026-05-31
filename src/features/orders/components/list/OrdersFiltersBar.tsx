@@ -1,11 +1,6 @@
 import { useMemo } from "react";
-import type {
-  ISeller,
-  IStore,
-  OrderFulfillmentStatus,
-  OrderPaymentStatus,
-  OrderStatus,
-} from "@/shared/types";
+import type { ISeller, IStore, OrderFulfillmentStatus, OrderPaymentStatus } from "@/shared/types";
+import { cn } from "@/lib/utils";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -24,20 +19,7 @@ import {
   type OrderDateRangeBucket,
   type OrderOriginFilterKind,
 } from "../../utils/listFilters";
-import { ORDER_STATUS_META } from "../OrderStatusBadge";
 import { ORDER_ORIGIN_META } from "../OrderOriginBadge";
-import { orderStatusLabel } from "../../utils/orderStatus";
-
-const STATUS_OPTIONS: OrderStatus[] = [
-  "aguardando_pagamento",
-  "pago_aguardando_envio",
-  "em_separacao",
-  "enviado",
-  "entregue",
-  "concluido",
-  "cancelado",
-  "devolvido",
-];
 
 const PAYMENT_OPTIONS: OrderPaymentStatus[] = [
   "pendente",
@@ -92,6 +74,7 @@ export function OrdersFiltersBar({
   stores,
   canFilterStore,
   canFilterSeller,
+  stacked = false,
 }: {
   filters: IOrdersListFilters;
   patch: (p: Partial<IOrdersListFilters>) => void;
@@ -100,6 +83,8 @@ export function OrdersFiltersBar({
   stores: IStore[];
   canFilterStore: boolean;
   canFilterSeller: boolean;
+  /** Vertical, chrome-less layout for the Console rail. */
+  stacked?: boolean;
 }) {
   const filterCount = useMemo(() => activeOrderFilterCount(filters), [filters]);
 
@@ -107,36 +92,13 @@ export function OrdersFiltersBar({
     arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value];
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-border bg-card/60 px-4 py-2 md:px-6">
-      {/* Aggregate status */}
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" className="gap-1">
-            <Icon icon="mdi:filter-variant" size={14} />
-            Status
-            {filters.statuses.length > 0 && (
-              <span className="ml-1 rounded-md bg-primary/15 px-1.5 text-[10px] font-semibold text-primary">
-                {filters.statuses.length}
-              </span>
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent align="start" className="w-64 space-y-1.5">
-          {STATUS_OPTIONS.map((s) => (
-            <label
-              key={s}
-              className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
-            >
-              <Checkbox
-                checked={filters.statuses.includes(s)}
-                onCheckedChange={() => patch({ statuses: toggleArray(filters.statuses, s) })}
-              />
-              <span>{ORDER_STATUS_META[s].label}</span>
-            </label>
-          ))}
-        </PopoverContent>
-      </Popover>
-
+    <div
+      className={cn(
+        stacked
+          ? "flex flex-col gap-2"
+          : "flex flex-wrap items-center gap-2 border-b border-border bg-card/60 px-4 py-2 md:px-6",
+      )}
+    >
       {/* Payment status */}
       <Popover>
         <PopoverTrigger asChild>
@@ -190,9 +152,7 @@ export function OrdersFiltersBar({
               <Checkbox
                 checked={filters.fulfillmentStatuses.includes(f)}
                 onCheckedChange={() =>
-                  patch({
-                    fulfillmentStatuses: toggleArray(filters.fulfillmentStatuses, f),
-                  })
+                  patch({ fulfillmentStatuses: toggleArray(filters.fulfillmentStatuses, f) })
                 }
               />
               <span>{FULFILL_LABELS[f]}</span>
@@ -369,14 +329,6 @@ export function OrdersFiltersBar({
           <Icon icon="mdi:close" size={14} />
           Limpar ({filterCount})
         </Button>
-      )}
-
-      {/* Active status pills — hint of selected aggregate filters */}
-      {filters.statuses.length > 0 && (
-        <div className="hidden items-center gap-1 text-[11px] text-muted-foreground lg:flex">
-          <Icon icon="mdi:chevron-right" size={12} />
-          {filters.statuses.map((s) => orderStatusLabel(s)).join(" · ")}
-        </div>
       )}
     </div>
   );
