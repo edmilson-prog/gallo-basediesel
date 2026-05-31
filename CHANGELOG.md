@@ -4,6 +4,15 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.52.0] — Herald · 2026-05-31
+
+Fundação do sistema de notificações — a base invisível que vai alimentar a Central de Notificações e as preferências (em breve, no próximo release). Os eventos do dia a dia da plataforma passam a ser transformados em notificações por destinatário, com canais, preferências e condições derivadas. Sem mudança visível ainda — é a fundação sobre a qual a interface será construída.
+
+### Added
+
+- **Fundação de notificações (infraestrutura)** — modelo de dados único, barramento de eventos, roteamento por regras e preferências por destinatário, persistência via Provider Pattern e canais de entrega (in-app e toast ativos; e-mail, WhatsApp, SMS e push já preparados para a Onda 8). Base da Central de Notificações que chega no próximo release.
+- **Reconciliador de condições derivadas** — os alertas do Painel do Gestor (cliente A dormente, vendedor sobrecarregado, conversa sem resposta) agora também alimentam notificações, a partir de uma lógica de condição compartilhada e única.
+
 ## [0.51.0] — Cockpit · 2026-05-30
 
 Redesenho da página de detalhamento do veículo: largura ampla (1600px), faixa de indicadores no topo e três modos de visualização que o usuário escolhe (Saúde, Trilhos e Bento), além de novos blocos de inteligência.

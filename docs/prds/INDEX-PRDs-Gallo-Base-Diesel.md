@@ -99,6 +99,15 @@ Estabelece os pilares técnicos e visuais sobre os quais todo o resto se constr�
 | 006 | [Sistema de Roles, Permissões e Auditoria (visual)](./PRD-006-rbac-permissoes-auditoria_DONE.md)       | Feature | D     | 🔵    | 📝        | ✅     | 002, 003   |
 | 007 | [Multi-Loja: Modelagem e Operação Cross-Store](./PRD-007-multistore_DONE.md)                           | Feature | D     | 🔵    | 📝        | ✅     | 002–006    |
 
+### Épico de Notificações (PRDs 008–009)
+
+Fundação invisível (008) + central de notificações e preferências (009). Inserido entre o Bloco 0 e o Bloco 1; alimenta toda a plataforma sem depender da Onda 8 (canais reais). Codinomes: **Herald** (008) e **Chime** (009).
+
+| #   | Título                                                                              | Tipo    | Prof. | Impl. | Documento | Status | Depende de |
+| --- | ----------------------------------------------------------------------------------- | ------- | ----- | ----- | --------- | ------ | ---------- |
+| 008 | [Fundação de Notificações](./PRD-008-fundacao-notificacoes_DONE.md)                 | Feature | D     | 🔵    | 📝        | ✅     | Bloco 0    |
+| 009 | [Notification Center e Preferências](./PRD-009-notification-center-preferencias.md) | Feature | D     | 🔵    | 📝        | ⏳     | 008        |
+
 ### Bloco 1 — Central de Atendimento e CRM (PRDs 010–019)
 
 O coração operacional do MVP. Inbox unificado, ficha do cliente, leads, veículos, carteira. Vai para o Claude Code CLI sobre o scaffold do Bloco 0. Corresponde à **Onda 1** da Proposta Comercial v2.
