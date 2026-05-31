@@ -4,7 +4,7 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
-## [0.52.0] - 2026-05-30 - Ledger
+## [0.52.0] — Ledger · 2026-05-30
 
 ### Added
 - Listas de Orçamentos e Pedidos com **3 visualizações selecionáveis** (Cockpit, Console, Linhas), seletor segmentado no cabeçalho e preferência lembrada por lista.
