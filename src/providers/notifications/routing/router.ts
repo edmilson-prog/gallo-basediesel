@@ -11,6 +11,7 @@
  */
 import type { IChannelDelivery, INotification, NotificationChannel } from "@/shared/types";
 import { notificationBus, type INotificationEvent } from "../bus";
+import type { NotificationEventType } from "../events";
 import type { INotificationStores } from "../contracts";
 import type { INotificationChannel } from "../channels/contract";
 import { isActive, makeChannelRegistry } from "../channels/registry";
@@ -25,6 +26,24 @@ import {
 } from "./rules";
 
 type ChannelRegistry = Record<NotificationChannel, INotificationChannel>;
+
+/** Event types whose notifications collapse into a per-recipient daily group (PRD-009 UI). */
+const GROUPABLE_EVENTS: ReadonlySet<NotificationEventType> = new Set<NotificationEventType>([
+  "conversa.atribuida",
+  "lead.novo",
+  "carteira.transferenciaRecebida",
+]);
+
+/** Structural group key for collapsible events; undefined leaves the notification ungrouped. */
+function groupKeyFor(
+  type: NotificationEventType,
+  recipientId: string,
+  occurredAtIso: string,
+): string | undefined {
+  if (!GROUPABLE_EVENTS.has(type)) return undefined;
+  const dayBucket = occurredAtIso.slice(0, 10); // YYYY-MM-DD
+  return `group:${type}:${recipientId}:${dayBucket}`;
+}
 
 /**
  * Subscribes the router to the bus and returns an unsubscribe function. The
@@ -128,6 +147,7 @@ async function routeToRecipient(
     status: "unread",
     channels: resolvedChannels,
     deliveryStatus,
+    groupKey: groupKeyFor(event.type, recipient.recipientId, event.occurredAt),
     source: "rule",
     createdAt: event.occurredAt,
   };
