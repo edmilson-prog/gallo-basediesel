@@ -1,5 +1,6 @@
 import type { ID, NotificationRecipientType } from "@/shared/types";
 import { getCurrentContext } from "@/features/multistore/utils/getCurrentContext";
+import { readCustomerSessionSync } from "@/features/storefront-account/store/customerAuthStore";
 import type { IListNotificationsParams } from "../../contracts/notifications";
 
 /**
@@ -47,6 +48,22 @@ export interface IRecipientScope {
  * (safer than accidentally exposing data).
  */
 export function resolveRecipientScope(): IRecipientScope {
+  // Customer portal: on the storefront account area with an active customer
+  // session, scope notifications to that customer. App surfaces (/app/*) never
+  // match this branch — they always run under a seller session.
+  if (typeof window !== "undefined" && window.location.pathname.startsWith("/loja")) {
+    const customerSession = readCustomerSessionSync();
+    if (customerSession) {
+      const { currentStoreId } = getCurrentContext();
+      return {
+        recipientId: customerSession.customerId,
+        recipientType: "customer",
+        storeScope: "own",
+        storeId: currentStoreId,
+      };
+    }
+  }
+
   const { user, currentStoreId } = getCurrentContext();
 
   if (!user) {

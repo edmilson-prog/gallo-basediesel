@@ -19,6 +19,7 @@ export { useUnreadCount } from "./hooks/useUnreadCount";
 export { useNotificationPreferences } from "./hooks/useNotificationPreferences";
 export { useNotificationMutations } from "./hooks/useNotificationMutations";
 export type { IUseNotificationMutationsResult } from "./hooks/useNotificationMutations";
+export { useCustomerNotifications } from "./hooks/useCustomerNotifications";
 
 // Public preference utilities (used by router and preference UI)
 export {
