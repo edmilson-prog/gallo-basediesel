@@ -110,27 +110,15 @@
 .cs-cd-num { font-size: 28px; font-weight: 700; color: rgb(var(--coming-accent)); transition: color 0.6s; font-variant-numeric: tabular-nums; }
 .cs-cd-lbl { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: #71717a; margin-top: 2px; }
 
-.cs-form { display: flex; gap: 8px; width: min(440px, 88vw); }
-.cs-form input {
-  flex: 1; padding: 13px 16px; border-radius: 10px;
-  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
-  color: #f4f4f5; font-size: 15px; outline: none;
+.cs-bottom {
+  position: absolute; bottom: 16px; left: 0; right: 0; z-index: 5;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
 }
-.cs-form input:focus-visible { border-color: rgb(var(--coming-accent)); }
-.cs-form button {
-  padding: 13px 22px; border-radius: 10px; border: none; cursor: pointer;
-  background: rgb(var(--coming-accent)); color: #08090c; font-weight: 700; font-size: 15px;
-  transition: background 0.6s, transform 0.15s;
-}
-.cs-form button:hover { transform: translateY(-1px); }
-.cs-form button:focus-visible { outline: 2px solid rgb(var(--coming-accent)); outline-offset: 2px; }
-.cs-form-error { color: #f87171; font-size: 12px; margin-top: 6px; min-height: 16px; }
-
 .cs-social { display: flex; flex-wrap: wrap; justify-content: center; gap: 18px; }
 .cs-social a { color: #a1a1aa; text-decoration: none; font-size: 13px; transition: color 0.25s; }
 .cs-social a:hover { color: rgb(var(--coming-accent)); }
 
-.cs-footer { position: absolute; bottom: 16px; left: 0; right: 0; z-index: 5; text-align: center; font-size: 11px; color: #52525b; }
+.cs-footer { text-align: center; font-size: 11px; color: #52525b; }
 
 @media (prefers-reduced-motion: reduce) {
   .cs-aurora .b1, .cs-aurora .b2, .cs-aurora .b3, .cs-grid { animation: none; }

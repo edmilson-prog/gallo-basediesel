@@ -1,6 +1,5 @@
 // src/features/coming-soon/ComingSoonPage.tsx
 import { useEffect, useRef, useState } from "react";
-import { Toaster } from "@/components/ui/sonner";
 import { COMING_SOON } from "./config";
 import { useBrandCycle } from "./useBrandCycle";
 import { AuroraLayer } from "./AuroraLayer";
@@ -8,7 +7,6 @@ import { GridLayer } from "./GridLayer";
 import { ParticleNetwork } from "./ParticleNetwork";
 import { EmberField } from "./EmberField";
 import { Countdown } from "./Countdown";
-import { EmailCapture } from "./EmailCapture";
 import "./coming-soon.css";
 
 export function ComingSoonPage() {
@@ -54,26 +52,20 @@ export function ComingSoonPage() {
         </div>
 
         <Countdown target={COMING_SOON.launchDate} />
+      </main>
 
-        <EmailCapture />
-
+      <div className="cs-bottom">
         <nav className="cs-social" aria-label="Contato">
           <a href={COMING_SOON.contacts.whatsapp} target="_blank" rel="noreferrer">
             WhatsApp
-          </a>
-          <a href={COMING_SOON.contacts.instagram} target="_blank" rel="noreferrer">
-            Instagram
           </a>
           <a href={`mailto:${COMING_SOON.contacts.email}`}>E-mail</a>
           <a href={`tel:${COMING_SOON.contacts.phone.replace(/\D/g, "")}`}>
             {COMING_SOON.contacts.phone}
           </a>
         </nav>
-      </main>
-
-      <footer className="cs-footer">GALLO Base Diesel · Frederico Westphalen/RS</footer>
-
-      <Toaster richColors position="bottom-center" />
+        <footer className="cs-footer">GALLO Base Diesel · Frederico Westphalen/RS</footer>
+      </div>
     </div>
   );
 }
