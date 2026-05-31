@@ -144,7 +144,11 @@ export function QuotesTable({
   }
 
   return (
-    <Table className="w-full table-fixed" style={{ minWidth: totalWidth }}>
+    <Table
+      className="w-full table-fixed"
+      containerClassName="h-full"
+      style={{ minWidth: totalWidth }}
+    >
       <colgroup>
         {COLUMNS.map((col) => (
           <col key={col.id} style={{ width: widths[col.id] }} />
@@ -155,7 +159,10 @@ export function QuotesTable({
           {COLUMNS.map((col) => (
             <TableHead
               key={col.id}
-              className={cn("relative", col.align === "right" && "text-right")}
+              className={cn(
+                "sticky top-0 z-20 bg-background",
+                col.align === "right" && "text-right",
+              )}
             >
               <SortHeader col={col} />
               <ResizeHandle onPointerDown={(e) => startResize(col.id, e)} />

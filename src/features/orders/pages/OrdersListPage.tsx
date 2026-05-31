@@ -66,8 +66,6 @@ export function OrdersListPage() {
 
   const sellerIdLock = !isManagerOrOwner && currentUser?.sellerId ? currentUser.sellerId : null;
 
-  const list = useOrdersList(filters, sort, page, pageSize, { sellerIdLock });
-
   const sellersProvider = useSellersProvider();
   const customersProvider = useCustomersProvider();
 
@@ -99,6 +97,12 @@ export function OrdersListPage() {
     (customersQuery.data?.data ?? []).forEach((c) => m.set(c.id, c));
     return m;
   }, [customersQuery.data]);
+
+  const list = useOrdersList(filters, sort, page, pageSize, {
+    sellerIdLock,
+    customersById: customersMap,
+    sellersById: sellersMap,
+  });
 
   const statCells = useMemo(() => orderStatCells(list.allFiltered, now), [list.allFiltered, now]);
   const statusTabs = useMemo<IStatusTab[]>(() => {

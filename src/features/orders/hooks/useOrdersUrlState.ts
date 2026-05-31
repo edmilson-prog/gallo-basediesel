@@ -48,7 +48,16 @@ const VALID_ORIGIN = new Set<OrderOriginFilterKind>([
   "portal",
 ]);
 const VALID_DATE = new Set<OrderDateRangeBucket>(["any", "24h", "7d", "30d", "90d", "custom"]);
-const VALID_ORDER_BY = new Set<OrderOrderBy>(["createdAt", "updatedAt", "total"]);
+const VALID_ORDER_BY = new Set<OrderOrderBy>([
+  "number",
+  "customer",
+  "origin",
+  "seller",
+  "status",
+  "createdAt",
+  "updatedAt",
+  "total",
+]);
 const VALID_ORDER_DIR = new Set<OrderOrderDir>(["asc", "desc"]);
 
 export interface IOrdersListSearch {

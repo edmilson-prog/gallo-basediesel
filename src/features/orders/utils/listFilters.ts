@@ -36,7 +36,15 @@ export const EMPTY_ORDER_FILTERS: IOrdersListFilters = {
   search: "",
 };
 
-export type OrderOrderBy = "createdAt" | "updatedAt" | "total";
+export type OrderOrderBy =
+  | "number"
+  | "customer"
+  | "origin"
+  | "seller"
+  | "status"
+  | "createdAt"
+  | "updatedAt"
+  | "total";
 export type OrderOrderDir = "asc" | "desc";
 
 export interface IOrdersListSort {
