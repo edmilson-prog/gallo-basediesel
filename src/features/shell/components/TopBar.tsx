@@ -16,7 +16,7 @@ import { useAuth } from "@/features/auth/useAuth";
 import { GlobalSearch } from "@/features/shell/components/GlobalSearch";
 import { StoreSwitcher } from "@/features/multistore";
 import { AvailabilityToggle } from "@/features/distribution/components/AvailabilityToggle";
-import { NotificationBell } from "@/features/notifications/components/NotificationBell";
+import { NotificationDropdown } from "@/features/notifications/components/NotificationDropdown";
 
 export function TopBar() {
   const { currentUser, signOut } = useAuth();
@@ -48,7 +48,7 @@ export function TopBar() {
 
       <div className="ml-auto flex items-center gap-1">
         {/* TODO(PRD-067 ↔ PRD-008): live e-commerce orders (triggerEcommerceOrder → useEcommerceNotificationStore) aren't emitted onto notificationBus yet, so only seeded order notifications appear here. They still toast via useEcommerceSellerNotifier. */}
-        <NotificationBell />
+        <NotificationDropdown />
 
         <ThemeSwitcher />
 
