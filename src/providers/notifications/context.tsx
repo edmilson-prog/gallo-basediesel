@@ -2,6 +2,7 @@ import { createContext, useMemo, useEffect, type ReactNode } from "react";
 import type { INotificationStores } from "./contracts";
 import { getNotificationStores } from "./factory";
 import { startReconciler } from "./reconciler";
+import { startRouter } from "./routing/router";
 
 export const NotificationProviderContext = createContext<INotificationStores | null>(null);
 
@@ -20,10 +21,10 @@ interface INotificationProvidersProviderProps {
  * mounted immediately after `<DataProvidersProvider>` (wrapping `<AuthProvider>`)
  * so that any auth helper relying on notification data is covered.
  *
- * Also boots the reconciler via a side-effect so derived conditions are kept
- * in sync from the moment the provider is mounted.
- *
- * Router wiring (`startRouter`) is added in Task 3.5 — not wired here yet.
+ * Boots two side-effects tied to the stores' lifetime:
+ *  - the event router (`startRouter`), which fans domain events out into
+ *    notifications across channels;
+ *  - the reconciler (`startReconciler`), which keeps derived conditions in sync.
  */
 export function NotificationProvidersProvider({
   children,
@@ -32,8 +33,10 @@ export function NotificationProvidersProvider({
   const value = useMemo(() => stores ?? getNotificationStores(), [stores]);
 
   useEffect(() => {
+    const stopRouter = startRouter(value);
     const stopReconciler = startReconciler(value);
     return () => {
+      stopRouter();
       stopReconciler();
     };
   }, [value]);
