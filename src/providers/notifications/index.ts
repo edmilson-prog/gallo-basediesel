@@ -19,7 +19,20 @@ export { useUnreadCount } from "./hooks/useUnreadCount";
 export { useNotificationPreferences } from "./hooks/useNotificationPreferences";
 
 // Public preference utilities (used by router and preference UI)
-export { defaultPreferenceFor, isChannelLocked, isCategoryFullyOptional } from "./preferences/defaults";
+export {
+  defaultPreferenceFor,
+  isChannelLocked,
+  isCategoryFullyOptional,
+} from "./preferences/defaults";
+
+// Shared derived-condition logic (PRD-014 ⇄ PRD-008): the manager dashboard and
+// the reconciler compute the same conditions from this single source of truth.
+export {
+  buildClienteADormenteAlerts,
+  buildVendedorSobrecarregadoAlerts,
+  buildConversaSemRespostaAlerts,
+} from "./conditions/derivedConditions";
+export type { IActiveAlert, AlertSeverity, AlertKind } from "./conditions/derivedConditions";
 
 // Public domain types (re-exported for consumer convenience)
 export type {
@@ -38,4 +51,8 @@ export type {
 } from "@/shared/types";
 
 // Contract types consumers may need (e.g. filtering)
-export type { IListNotificationsParams, IReconcileDerivedInput, INotificationStores } from "./contracts";
+export type {
+  IListNotificationsParams,
+  IReconcileDerivedInput,
+  INotificationStores,
+} from "./contracts";
