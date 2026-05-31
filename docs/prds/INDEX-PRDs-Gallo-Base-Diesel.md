@@ -21,7 +21,7 @@
 | **Versão alvo MVP**                  | v1.0.0 — codinome **Heavy**                                                                                |
 | **Total de PRDs planejados (MVP)**   | 50                                                                                                         |
 | **PRDs redigidos**                   | 50 (todos os PRDs do MVP redigidos)                                                                        |
-| **PRDs implementados**               | 33 (Bloco 0 completo · Bloco 1 completo · Bloco 2 completo · Bloco 3 completo · Bloco 4 ½ — 8/14)          |
+| **PRDs implementados**               | 34 (Bloco 0 completo · Bloco 1 completo · Bloco 2 completo · Bloco 3 completo · Bloco 4 ½ — 8/14 · PRD-009 Chime)          |
 | **PRDs futuros (Fase 2, PRDs 100+)** | 8 (roadmap futuro)                                                                                         |
 
 ---
@@ -66,9 +66,9 @@
 
 | Status          | Quantidade | Percentual |
 | --------------- | ---------- | ---------- |
-| ✅ Implementado | 33         | 66%        |
+| ✅ Implementado | 34         | 68%        |
 | 🔄 Em Andamento | 0          | 0%         |
-| ⏳ Pendente     | 17         | 34%        |
+| ⏳ Pendente     | 16         | 32%        |
 | ❌ Cancelado    | 0          | 0%         |
 | **Total**       | **50**     | **100%**   |
 
@@ -106,7 +106,7 @@ Fundação invisível (008) + central de notificações e preferências (009). I
 | #   | Título                                                                              | Tipo    | Prof. | Impl. | Documento | Status | Depende de |
 | --- | ----------------------------------------------------------------------------------- | ------- | ----- | ----- | --------- | ------ | ---------- |
 | 008 | [Fundação de Notificações](./PRD-008-fundacao-notificacoes_DONE.md)                 | Feature | D     | 🔵    | 📝        | ✅     | Bloco 0    |
-| 009 | [Notification Center e Preferências](./PRD-009-notification-center-preferencias.md) | Feature | D     | 🔵    | 📝        | ⏳     | 008        |
+| 009 | [Notification Center e Preferências](./PRD-009-notification-center-preferencias_DONE.md) | Feature | D     | 🔵    | 📝        | ✅     | 008        |
 
 ### Bloco 1 — Central de Atendimento e CRM (PRDs 010–019)
 
@@ -396,6 +396,7 @@ A plataforma usa Semantic Versioning com codinomes em inglês para releases MINO
 | v0.28.0    | **Coverage**   | 26/05/2026    | PRD-044 (Positivação)            | Cobertura mensal da base + at-risk + widget                           |
 | v0.29.0    | **Pareto**     | 26/05/2026    | PRD-045 (Curva ABC)              | Classificação ABC com migrações + gráfico Pareto                      |
 | v0.30.0    | **Vitals**     | 26/05/2026    | PRD-046 (Carteira Analítica)     | Saúde da carteira — churn, recovery, health score, evolução temporal  |
+| v0.53.0    | **Chime**      | 31/05/2026    | PRD-009 (Notification Center UI) | Central de notificações + sino real + preferências + portal do cliente |
 | v0.13.0+   | _A definir_    | Mês 2         | PRDs 017–019 + 020–024 + 030–033 | Onda 1 entregue                                                       |
 | v0.5.0     | **Storefront** | Mês 9         | PRDs 060–067 (Bloco 5)           | Onda 3 quase completa                                                 |
 | **v1.0.0** | **Heavy**      | Mês 10        | PRDs 070, 071 + polish final     | **MVP completo — release oficial**                                    |
@@ -551,10 +552,10 @@ Em ordem sugerida, respeitando dependências e os deltas retroativos do `DELTAS-
 
 | Campo                | Valor                                                                                   |
 | -------------------- | --------------------------------------------------------------------------------------- |
-| **Data**             | 27/05/2026                                                                              |
-| **Atualizado por**   | Claude Opus 4.7 (Claude Code CLI)                                                       |
-| **Motivo**           | Implementação do PRD-043 (Ranking/Gamificação) — v0.31.0 `Podium`, abertura do Bloco 4b |
-| **Versão do índice** | 1.8                                                                                     |
+| **Data**             | 31/05/2026                                                                              |
+| **Atualizado por**   | Claude Sonnet 4.6 (Claude Code CLI)                                                     |
+| **Motivo**           | Implementação do PRD-009 (Notification Center) — v0.53.0 `Chime`                       |
+| **Versão do índice** | 1.9                                                                                     |
 
 ---
 

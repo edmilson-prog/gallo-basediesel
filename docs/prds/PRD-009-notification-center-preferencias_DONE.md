@@ -589,12 +589,12 @@ Marketing        ☐        —       ▢(F2)    ▢(F2)     ▢(F2) ▢(F2)
 
 | Campo | Valor |
 |-------|-------|
-| **Status** | ⏳ PENDENTE |
-| **Data de Implementação** | - |
-| **Versão do App** | - |
-| **Codinome** | - (sugestão: Chime) |
-| **Implementado por** | - |
-| **Observações** | - |
+| **Status** | ✅ CONCLUÍDO |
+| **Data de Implementação** | 2026-05-31 |
+| **Versão do App** | 0.53.0 |
+| **Codinome** | Chime |
+| **Implementado por** | Claude (Claude Code CLI) |
+| **Observações** | Entregue em 5 fases (commits `5ad8c08`…release): (1) sino real + badge + dropdown de preview; (2) `/app/notificacoes` com layouts Painel/Lista alternáveis + URL filters + skeleton/empty/error states; (3) matriz de preferências canal × categoria em `/app/configuracoes/notificacoes`; (4) migração do `<ActiveAlertsList>` do PRD-014 para consumir o Notification Center (lifecycle `derived`; "Dispensar" arquiva via provider — localStorage próprio aposentado); (5) portal do cliente em `/loja/conta/notificacoes` e `/loja/conta/preferencias`. Consome exclusivamente os hooks do PRD-008 (Herald, v0.52.0) sem alterar a fundação. |
 
 ---
 
@@ -603,6 +603,7 @@ Marketing        ☐        —       ▢(F2)    ▢(F2)     ▢(F2) ▢(F2)
 | Data | Versão | Alteração |
 |------|--------|-----------|
 | 30/05/2026 | v1 | Criação inicial — UI do sistema de notificações: sino+badge, dropdown, página Notification Center (interna e portal do cliente), tela de preferências (matriz canal × categoria com canais da Onda 8 desabilitados), migração do `<ActiveAlertsList>` do PRD-014 e consolidação dos toasts. Consome a fundação do PRD-008 |
+| 31/05/2026 | v1 (impl.) | Implementação concluída — v0.53.0 Chime. 5 fases entregues: sino+dropdown, central+layouts+filtros, matriz de preferências, migração do ActiveAlertsList, portal do cliente. |
 
 ---
 
