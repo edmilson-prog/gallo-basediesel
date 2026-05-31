@@ -4,6 +4,17 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.52.0] - 2026-05-30 - Ledger
+
+### Added
+- Listas de Orçamentos e Pedidos com **3 visualizações selecionáveis** (Cockpit, Console, Linhas), seletor segmentado no cabeçalho e preferência lembrada por lista.
+- Faixa de **KPIs** nas listas — Orçamentos (em aberto, convertido, conversão, ticket médio, expirando ≤3d) e Pedidos (valor total, recebido, a receber, a expedir, vencidos).
+- **Abas de status** com contagem em ambas as listas.
+
+### Changed
+- A tabela de orçamentos agora é **fluida** (ocupa a largura disponível) em vez de largura fixa.
+- O filtro de status passou de popover para **abas**; os demais filtros foram mantidos.
+
 ## [0.51.0] — Cockpit · 2026-05-30
 
 Redesenho da página de detalhamento do veículo: largura ampla (1600px), faixa de indicadores no topo e três modos de visualização que o usuário escolhe (Saúde, Trilhos e Bento), além de novos blocos de inteligência.
