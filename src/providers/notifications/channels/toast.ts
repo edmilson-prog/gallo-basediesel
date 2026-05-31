@@ -6,12 +6,19 @@ import type { IChannelResult, INotificationChannel } from "./contract";
  * Active channel — shows an ephemeral toast via sonner, mapping the
  * notification severity to the matching sonner variant.
  *
- * Migration note (PRD-008 Task 4.4): existing feature call-sites still invoke
- * `toast()` from sonner directly. They are intentionally NOT rerouted through
- * this channel in PRD-008 — driving them via the bus/router would also persist
- * an in-app notification (a visible behaviour change), and the UI is validated
- * manually. Consolidating those call-sites through ToastChannel is deferred to
- * PRD-009 (Chime), where the Notification Center unifies toasts and the bell.
+ * Presentation boundary (resolved in PRD-009 / Chime). There are two distinct
+ * kinds of toast and they stay separate by design:
+ *   1. Ephemeral action feedback — CRUD success/error and PRD-011 "Desfazer"
+ *      (undo) toasts keep calling sonner `toast()` directly at the call-site.
+ *      These are transient UI confirmations, NOT notifications: routing them
+ *      through the bus would persist a bell/center entry (a real UX regression),
+ *      so they are intentionally left as direct toasts.
+ *   2. Notification-driven toasts — domain events the user should ALSO find in
+ *      the bell/center flow event → bus → router → this ToastChannel, which is
+ *      the single canonical presentation (severity → sonner variant).
+ * Net: no existing call-sites are rerouted; ToastChannel owns the
+ * notification-toast presentation. Toasts stay consistent without the
+ * Notification Center being polluted by ephemeral feedback.
  */
 export function makeToastChannel(): INotificationChannel {
   return {
