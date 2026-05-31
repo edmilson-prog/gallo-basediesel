@@ -13,7 +13,6 @@ import { useSellerLoad } from "../hooks/useSellerLoad";
 import { useVolumeHeatmap } from "../hooks/useVolumeHeatmap";
 import { useManagerDashboardSettings } from "../hooks/useManagerDashboardSettings";
 import { useCarteiraHealth } from "../hooks/useCarteiraHealth";
-import { useActiveAlerts, alertCustomerId, type IActiveAlert } from "../hooks/useActiveAlerts";
 import { DashboardFilters } from "../components/DashboardFilters";
 import { KpiCard } from "../components/KpiCard";
 import { SellerLoadList } from "../components/SellerLoadList";
@@ -75,21 +74,8 @@ export function ManagerDashboardPage() {
   });
   const heatmap = useVolumeHeatmap(snapshot);
   const carteira = useCarteiraHealth(snapshot);
-  const { alerts, dismiss } = useActiveAlerts(snapshot, settings.settings);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const canEditSettings = userRole === "Owner";
-
-  const handleAlertView = (alert: IActiveAlert) => {
-    if (alert.kind === "cliente-a-dormente") {
-      const id = alertCustomerId(alert);
-      if (id) void navigate({ to: "/app/clientes/$id", params: { id } });
-      return;
-    }
-    void navigate({
-      to: alert.view.to,
-      search: alert.view.search ?? {},
-    });
-  };
 
   const goToInbox = (params: Record<string, string>) => {
     const search: Record<string, string> = {};
@@ -267,12 +253,7 @@ export function ManagerDashboardPage() {
           isLoading={isLoading}
           onSliceClick={(status) => void navigate({ to: "/app/clientes", search: { status } })}
         />
-        <ActiveAlertsList
-          alerts={alerts}
-          isLoading={isLoading}
-          onView={handleAlertView}
-          onDismiss={(alert) => dismiss(alert.hash)}
-        />
+        <ActiveAlertsList />
       </section>
 
       {canEditSettings && (
