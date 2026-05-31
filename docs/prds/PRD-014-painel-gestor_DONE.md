@@ -730,7 +730,7 @@ A partir do PRD-008 (fundação de notificações, codinome **Herald**), a lógi
 - **Sem mudança de comportamento no painel:** `useActiveAlerts` reexporta os tipos (`IActiveAlert`, `AlertSeverity`, `AlertKind`) e passa a importar as funções `build*` do módulo compartilhado; `<ActiveAlertsList>` e a tela do Gestor permanecem idênticos (dismissals via `localStorage` preservados).
 - **Próximo passo (PRD-009 — RF-029):** migração visual do `<ActiveAlertsList>` para consumir o **Notification Center**, substituindo os dismissals locais pelo ciclo de vida `derived` (criação/expiração via reconciliação).
 
-## Nota de migração — PRD-009 (Notification Center — Chime · v0.53.0)
+## Nota de migração — PRD-009 (Notification Center — Chime · v0.55.0)
 
 A partir do PRD-009 (Central de Notificações, codinome **Chime**), o `<ActiveAlertsList>` foi **migrado** para consumir o Notification Center em vez de manter lógica própria.
 
@@ -746,7 +746,7 @@ A partir do PRD-009 (Central de Notificações, codinome **Chime**), o `<ActiveA
 | ---------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 25/05/2026 | v1     | Criação inicial — painel operacional do gestor com 7 widgets, alertas, drill-down                                                                               |
 | 31/05/2026 | delta  | PRD-008 extrai a lógica de condição dos alertas para `@/providers/notifications/conditions` (fonte única com o reconciliador); painel inalterado. Migração visual → PRD-009 (RF-029) |
-| 31/05/2026 | delta  | PRD-009 (Chime, v0.53.0): `<ActiveAlertsList>` migrado para consumir o Notification Center (filtro `lifecycle:"derived"`); dismissals locais via `localStorage` aposentados. |
+| 31/05/2026 | delta  | PRD-009 (Chime, v0.55.0): `<ActiveAlertsList>` migrado para consumir o Notification Center (filtro `lifecycle:"derived"`); dismissals locais via `localStorage` aposentados. |
 
 ---
 

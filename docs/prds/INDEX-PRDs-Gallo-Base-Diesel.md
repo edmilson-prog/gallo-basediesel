@@ -396,7 +396,7 @@ A plataforma usa Semantic Versioning com codinomes em inglês para releases MINO
 | v0.28.0    | **Coverage**   | 26/05/2026    | PRD-044 (Positivação)            | Cobertura mensal da base + at-risk + widget                           |
 | v0.29.0    | **Pareto**     | 26/05/2026    | PRD-045 (Curva ABC)              | Classificação ABC com migrações + gráfico Pareto                      |
 | v0.30.0    | **Vitals**     | 26/05/2026    | PRD-046 (Carteira Analítica)     | Saúde da carteira — churn, recovery, health score, evolução temporal  |
-| v0.53.0    | **Chime**      | 31/05/2026    | PRD-009 (Notification Center UI) | Central de notificações + sino real + preferências + portal do cliente |
+| v0.55.0    | **Chime**      | 31/05/2026    | PRD-009 (Notification Center UI) | Central de notificações + sino real + preferências + portal do cliente |
 | v0.13.0+   | _A definir_    | Mês 2         | PRDs 017–019 + 020–024 + 030–033 | Onda 1 entregue                                                       |
 | v0.5.0     | **Storefront** | Mês 9         | PRDs 060–067 (Bloco 5)           | Onda 3 quase completa                                                 |
 | **v1.0.0** | **Heavy**      | Mês 10        | PRDs 070, 071 + polish final     | **MVP completo — release oficial**                                    |
@@ -554,7 +554,7 @@ Em ordem sugerida, respeitando dependências e os deltas retroativos do `DELTAS-
 | -------------------- | --------------------------------------------------------------------------------------- |
 | **Data**             | 31/05/2026                                                                              |
 | **Atualizado por**   | Claude Sonnet 4.6 (Claude Code CLI)                                                     |
-| **Motivo**           | Implementação do PRD-009 (Notification Center) — v0.53.0 `Chime`                       |
+| **Motivo**           | Implementação do PRD-009 (Notification Center) — v0.55.0 `Chime`                       |
 | **Versão do índice** | 1.9                                                                                     |
 
 ---

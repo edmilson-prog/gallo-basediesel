@@ -1,11 +1,11 @@
+import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { ICustomer, IOrder, ISeller } from "@/shared/types";
+import type { ICustomer, ISeller } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/useAuth";
 import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
@@ -17,7 +17,6 @@ import { useAuditsProvider } from "@/providers/data/hooks/useAuditsProvider";
 import { useVehiclesProvider } from "@/providers/data/hooks/useVehiclesProvider";
 import { useOrder } from "../hooks/useOrdersList";
 import { OrderStatusBadge } from "../components/OrderStatusBadge";
-import { OrderOriginBadge } from "../components/OrderOriginBadge";
 import { OrderItemsTable } from "../components/OrderItemsTable";
 import {
   CancelDialog,
@@ -46,19 +45,34 @@ import { useCommissionForOrder } from "@/features/commissions/hooks/useCommissio
 import { useSettingsProvider } from "@/providers/data/hooks/useSettingsProvider";
 import { notifyCustomerOfStatusChange } from "@/features/ecommerce-integration";
 import { getCustomerName } from "@/features/customers/utils/customerDisplay";
-
-const moneyFormatter = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-});
-
-const dateTimeFormatter = new Intl.DateTimeFormat("pt-BR", {
-  day: "2-digit",
-  month: "2-digit",
-  year: "2-digit",
-  hour: "2-digit",
-  minute: "2-digit",
-});
+import {
+  CockpitShell,
+  DetailCard,
+  DetailCustomerCard,
+  DetailHistory,
+  DetailLayoutSwitcher,
+  DetailStatStrip,
+  DetailSummaryCard,
+  DocumentShell,
+  ORDER_DETAIL_LAYOUT_KEY,
+  OperationalShell,
+  StatusStepper,
+  useDetailLayout,
+} from "@/shared/detail-views";
+import { formatDateTimeBR } from "@/shared/utils/format";
+import {
+  orderDetailStats,
+  orderStepperSteps,
+  type IOrderCommissionStat,
+} from "../utils/orderDetailStats";
+import {
+  OrderActions,
+  OrderBanners,
+  OrderCommissionBlock,
+  OrderDeliveryBlock,
+  OrderHero,
+  OrderPaymentBlock,
+} from "../components/detail/OrderDetailBlocks";
 
 function customerName(c: ICustomer | undefined): string {
   if (!c) return "—";
@@ -123,6 +137,24 @@ export function OrderDetailPage() {
   });
 
   const [dialog, setDialog] = useState<OrderDialogKind>(null);
+
+  const [layout, setLayout] = useDetailLayout(ORDER_DETAIL_LAYOUT_KEY);
+  const now = useMemo(() => new Date(), []);
+  const commissionStat = useMemo<IOrderCommissionStat | undefined>(() => {
+    if (commissionsForOrder.hasCommission && commissionsForOrder.commissions.length > 0) {
+      const total = commissionsForOrder.commissions.reduce((acc, c) => acc + c.totalCommission, 0);
+      return { value: total, calculated: true };
+    }
+    return undefined;
+  }, [commissionsForOrder]);
+  const stats = useMemo(
+    () => (order ? orderDetailStats(order, now, commissionStat) : []),
+    [order, now, commissionStat],
+  );
+  const stepper = useMemo(
+    () => (order ? orderStepperSteps(order) : { steps: [], terminal: null }),
+    [order],
+  );
 
   const refresh = async () => {
     await Promise.all([
@@ -203,8 +235,8 @@ export function OrderDetailPage() {
   const isOwnerOfOrder = order.sellerId === currentUser?.sellerId;
   const canActOnOrder = isManagerOrOwner || isOwnerOfOrder;
 
-  return (
-    <div className="mx-auto w-full max-w-5xl space-y-4 p-4 md:p-8">
+  const header = (
+    <div className="flex items-center justify-between gap-2">
       <button
         type="button"
         onClick={() => void navigate({ to: "/app/pedidos" })}
@@ -213,464 +245,126 @@ export function OrderDetailPage() {
         <Icon icon="mdi:chevron-left" size={14} />
         Voltar à listagem
       </button>
+      <DetailLayoutSwitcher value={layout} onChange={setLayout} />
+    </div>
+  );
 
-      {/* 1 — Header */}
-      <Card className="p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="space-y-2">
-            <h1 className="font-mono text-2xl font-bold tracking-tight text-foreground">
-              #{order.number ?? order.id.replace(/^order-/, "PD-")}
-            </h1>
-            <div className="flex flex-wrap items-center gap-2">
-              <OrderStatusBadge status={agg} />
-              <OrderOriginBadge order={order} />
-              {order.quoteId && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() =>
-                    void navigate({
-                      to: "/app/orcamentos/$id",
-                      params: { id: order.quoteId! },
-                    })
-                  }
-                  className="h-6 gap-1 px-1.5 text-[11px]"
-                >
-                  <Icon icon="mdi:file-document-outline" size={12} />
-                  Orçamento de origem
-                </Button>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Criado em {dateTimeFormatter.format(new Date(order.createdAt))}
-              {order.updatedAt !== order.createdAt && (
-                <> · atualizado {dateTimeFormatter.format(new Date(order.updatedAt))}</>
-              )}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-muted-foreground">Total</p>
-            <p className="text-3xl font-bold tabular-nums text-foreground">
-              {moneyFormatter.format(order.total)}
-            </p>
-          </div>
-        </div>
+  const hero = (
+    <OrderHero
+      order={order}
+      agg={agg}
+      onViewQuote={() =>
+        order.quoteId && void navigate({ to: "/app/orcamentos/$id", params: { id: order.quoteId } })
+      }
+    />
+  );
+  const banners = <OrderBanners order={order} />;
+  const actions = (
+    <OrderActions
+      order={order}
+      agg={agg}
+      canActOnOrder={canActOnOrder}
+      cancellable={cancellable}
+      isManagerOrOwner={isManagerOrOwner}
+      onMarkPaid={() => setDialog("markPaid")}
+      onStartFulfillment={() => setDialog("startFulfillment")}
+      onShip={() => setDialog("ship")}
+      onDeliver={() => setDialog("deliver")}
+      onReturn={() => setDialog("return")}
+      onInvoice={() => setDialog("invoice")}
+      onCancel={() => setDialog("cancel")}
+    />
+  );
 
-        {/* Cancellation banner */}
-        {order.canceledAt && (
-          <div className="mt-4 flex items-start gap-2 rounded-md border border-rose-500/30 bg-rose-500/5 p-3 text-sm">
-            <Icon icon="mdi:close-circle-outline" size={18} className="mt-0.5 text-rose-600" />
-            <div className="flex-1 text-rose-700 dark:text-rose-200">
-              <p className="font-medium">Pedido cancelado</p>
-              {order.cancelReason && <p className="text-xs">Motivo: {order.cancelReason}</p>}
-              <p className="text-[11px] opacity-80">
-                {dateTimeFormatter.format(new Date(order.canceledAt))}
-              </p>
-            </div>
-          </div>
-        )}
+  const items = (
+    <DetailCard icon="mdi:format-list-bulleted" title="Itens">
+      <OrderItemsTable
+        order={order}
+        readOnly={!canActOnOrder}
+        onApplyVehicle={async (itemId, vehicleId) => {
+          try {
+            await applyOrderItemToVehicle({
+              ordersProvider,
+              vehiclesProvider,
+              order,
+              itemId,
+              vehicleId,
+            });
+            toast.success(
+              vehicleId
+                ? "Aplicação registrada — histórico do veículo atualizado."
+                : "Aplicação removida.",
+            );
+            await refresh();
+          } catch (err) {
+            console.error(err);
+            toast.error(err instanceof Error ? err.message : "Falha ao aplicar item ao veículo.");
+          }
+        }}
+      />
+    </DetailCard>
+  );
 
-        {/* Contextual actions */}
-        <div className="mt-4 flex flex-wrap gap-2">
-          {canActOnOrder && agg === "aguardando_pagamento" && (
-            <Button size="sm" onClick={() => setDialog("markPaid")}>
-              <Icon icon="mdi:cash-check" size={14} /> Marcar como pago
-            </Button>
-          )}
-          {canActOnOrder && agg === "pago_aguardando_envio" && (
-            <Button size="sm" onClick={() => setDialog("startFulfillment")}>
-              <Icon icon="mdi:package-variant" size={14} /> Iniciar separação
-            </Button>
-          )}
-          {canActOnOrder && agg === "em_separacao" && (
-            <Button size="sm" onClick={() => setDialog("ship")}>
-              <Icon icon="mdi:truck-fast-outline" size={14} /> Marcar como enviado
-            </Button>
-          )}
-          {canActOnOrder && agg === "enviado" && (
-            <Button size="sm" onClick={() => setDialog("deliver")}>
-              <Icon icon="mdi:package-variant-closed-check" size={14} /> Marcar entregue
-            </Button>
-          )}
-          {canActOnOrder && (agg === "entregue" || agg === "concluido") && !order.canceledAt && (
-            <Button size="sm" variant="outline" onClick={() => setDialog("return")}>
-              <Icon icon="mdi:keyboard-return" size={14} /> Registrar devolução
-            </Button>
-          )}
-          {/* NF placeholder */}
-          {isManagerOrOwner &&
-            order.paymentStatus === "pago" &&
-            order.fulfillmentStatus !== "devolvido" &&
-            !order.nfNumber && (
-              <Button size="sm" variant="outline" onClick={() => setDialog("invoice")}>
-                <Icon icon="mdi:receipt-text-outline" size={14} /> Gerar NF
-              </Button>
-            )}
-          {/* Cancel */}
-          {canActOnOrder && cancellable && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-rose-600 hover:bg-rose-500/10"
-              onClick={() => setDialog("cancel")}
-            >
-              <Icon icon="mdi:close-circle-outline" size={14} /> Cancelar pedido
-            </Button>
-          )}
-          {!cancellable &&
-            canActOnOrder &&
-            !order.canceledAt &&
-            (order.fulfillmentStatus === "expedido" || order.fulfillmentStatus === "entregue") && (
-              <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                <Icon icon="mdi:lock-outline" size={12} />
-                Pedido já enviado — use "Registrar devolução".
-              </span>
-            )}
-        </div>
-      </Card>
-
-      {/* 2 — Cliente */}
-      <Card className="p-5">
-        <SectionHeader icon="mdi:account-outline" title="Cliente" />
-        {customer ? (
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-foreground">{customerName(customer)}</p>
-              <p className="text-xs text-muted-foreground">
-                {customer.type === "B2B" ? `CNPJ ${customer.cnpj}` : `CPF ${customer.cpf}`}
-                {" · "}
-                {customer.phone}
-                {customer.email && <> · {customer.email}</>}
-              </p>
-              {order.deliveryAddress && (
-                <p className="mt-2 text-xs text-muted-foreground">
-                  <Icon icon="mdi:map-marker-outline" size={12} className="mr-1 inline" />
-                  {order.deliveryAddress.street}, {order.deliveryAddress.number} —{" "}
-                  {order.deliveryAddress.district}, {order.deliveryAddress.city}/
-                  {order.deliveryAddress.state}
-                </p>
-              )}
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() =>
-                void navigate({
-                  to: "/app/clientes/$id",
-                  params: { id: customer.id },
-                })
-              }
-            >
-              <Icon icon="mdi:account-eye-outline" size={14} /> Abrir ficha
-            </Button>
-          </div>
-        ) : (
-          <p className="text-xs text-muted-foreground">Cliente não encontrado.</p>
-        )}
-      </Card>
-
-      {/* 3 — Items */}
-      <Card className="p-5">
-        <SectionHeader icon="mdi:format-list-bulleted" title="Items" />
-        <OrderItemsTable
-          order={order}
-          readOnly={!canActOnOrder}
-          onApplyVehicle={async (itemId, vehicleId) => {
-            try {
-              await applyOrderItemToVehicle({
-                ordersProvider,
-                vehiclesProvider,
-                order,
-                itemId,
-                vehicleId,
-              });
-              toast.success(
-                vehicleId
-                  ? "Aplicação registrada — histórico do veículo atualizado."
-                  : "Aplicação removida.",
-              );
-              await refresh();
-            } catch (err) {
-              console.error(err);
-              toast.error(err instanceof Error ? err.message : "Falha ao aplicar item ao veículo.");
-            }
-          }}
-        />
-        <ValueSummary order={order} />
-      </Card>
-
-      {/* 4 — Pagamento */}
-      <Card className="p-5">
-        <SectionHeader icon="mdi:credit-card-outline" title="Pagamento" />
-        <dl className="grid gap-3 text-sm md:grid-cols-3">
-          <div>
-            <dt className="text-xs text-muted-foreground">Método</dt>
-            <dd className="font-medium text-foreground">{order.paymentMethod ?? "—"}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-muted-foreground">Prazo</dt>
-            <dd className="font-medium text-foreground">
-              {order.paymentTerms ?? order.paymentCondition}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-muted-foreground">Status</dt>
-            <dd className="font-medium text-foreground">{paymentLabel(order.paymentStatus)}</dd>
-          </div>
-          {order.paidAt && (
-            <div>
-              <dt className="text-xs text-muted-foreground">Pago em</dt>
-              <dd className="font-medium text-foreground">
-                {dateTimeFormatter.format(new Date(order.paidAt))}
-              </dd>
-            </div>
-          )}
-          {order.nfNumber && (
-            <div>
-              <dt className="text-xs text-muted-foreground">NF</dt>
-              <dd className="font-medium text-foreground">#{order.nfNumber}</dd>
-            </div>
-          )}
-        </dl>
-        {canActOnOrder && !order.canceledAt && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {order.paymentStatus === "pendente" && (
-              <Button size="sm" onClick={() => setDialog("markPaid")}>
-                <Icon icon="mdi:cash-check" size={14} /> Marcar como pago
-              </Button>
-            )}
-            {isManagerOrOwner &&
-              (order.paymentStatus === "pago" || order.paymentStatus === "parcial") &&
-              order.fulfillmentStatus !== "devolvido" && (
-                <Button size="sm" variant="outline" onClick={() => setDialog("refund")}>
-                  <Icon icon="mdi:cash-refund" size={14} /> Refund (placeholder)
-                </Button>
-              )}
-          </div>
-        )}
-      </Card>
-
-      {/* 5 — Entrega */}
-      <Card className="p-5">
-        <SectionHeader icon="mdi:truck-fast-outline" title="Entrega" />
-        <dl className="grid gap-3 text-sm md:grid-cols-3">
-          <div>
-            <dt className="text-xs text-muted-foreground">Status</dt>
-            <dd className="font-medium text-foreground">
-              {fulfillmentLabel(order.fulfillmentStatus)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-muted-foreground">Transportadora</dt>
-            <dd className="font-medium text-foreground">{order.carrier ?? "—"}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-muted-foreground">Rastreamento</dt>
-            <dd className="font-mono text-xs text-foreground">{order.trackingCode ?? "—"}</dd>
-          </div>
-          {order.shippedAt && (
-            <div>
-              <dt className="text-xs text-muted-foreground">Enviado em</dt>
-              <dd className="font-medium text-foreground">
-                {dateTimeFormatter.format(new Date(order.shippedAt))}
-              </dd>
-            </div>
-          )}
-          {order.deliveredAt && (
-            <div>
-              <dt className="text-xs text-muted-foreground">Entregue em</dt>
-              <dd className="font-medium text-foreground">
-                {dateTimeFormatter.format(new Date(order.deliveredAt))}
-              </dd>
-            </div>
-          )}
-          {order.returnedAt && (
-            <div>
-              <dt className="text-xs text-muted-foreground">Devolvido em</dt>
-              <dd className="font-medium text-foreground">
-                {dateTimeFormatter.format(new Date(order.returnedAt))}
-              </dd>
-            </div>
-          )}
-          {order.returnReason && (
-            <div className="md:col-span-3">
-              <dt className="text-xs text-muted-foreground">Motivo da devolução</dt>
-              <dd className="text-foreground">{order.returnReason}</dd>
-            </div>
-          )}
-        </dl>
-        {canActOnOrder &&
-          editable &&
-          order.fulfillmentStatus === "pendente" &&
-          order.paymentStatus === "pago" && (
-            <div className="mt-3">
-              <Button size="sm" variant="outline" onClick={() => setDialog("startFulfillment")}>
-                <Icon icon="mdi:package-variant" size={14} /> Iniciar separação
-              </Button>
-            </div>
-          )}
-        {canActOnOrder && order.fulfillmentStatus === "separacao" && (
-          <div className="mt-3">
-            <Button size="sm" variant="outline" onClick={() => setDialog("ship")}>
-              <Icon icon="mdi:truck-fast-outline" size={14} /> Marcar como enviado
-            </Button>
-          </div>
-        )}
-        {canActOnOrder && order.fulfillmentStatus === "expedido" && (
-          <div className="mt-3">
-            <Button size="sm" variant="outline" onClick={() => setDialog("deliver")}>
-              <Icon icon="mdi:package-variant-closed-check" size={14} /> Marcar como entregue
-            </Button>
-          </div>
-        )}
-      </Card>
-
-      {/* 6 — Comissão (PRD-047 — cálculo real quando disponível; preview caso contrário) */}
-      <Card className="p-5">
-        <SectionHeader
-          icon="mdi:percent-outline"
-          title={commissionsForOrder.hasCommission ? "Comissão calculada" : "Comissão (Preview)"}
-        />
-        {commissionsForOrder.hasCommission ? (
-          <div className="space-y-3">
-            {commissionsForOrder.commissions.map((c) => (
-              <div key={c.id} className="rounded-md border border-border bg-muted/40 p-3 text-sm">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-foreground">
-                      {moneyFormatter.format(c.totalCommission)}
-                    </span>
-                    {c.isSplit && (
-                      <span className="rounded bg-warning/15 px-1.5 py-0.5 text-xs text-warning-foreground">
-                        Split
-                      </span>
-                    )}
-                    {c.goalBonus > 0 && (
-                      <span className="rounded bg-success/15 px-1.5 py-0.5 text-xs text-success-foreground">
-                        +Bônus meta
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-xs text-muted-foreground">
-                    Status: <span className="font-medium text-foreground">{c.status}</span>
-                  </span>
-                </div>
-                <dl className="mt-2 grid gap-2 text-xs md:grid-cols-4">
-                  <div>
-                    <dt className="text-muted-foreground">Base</dt>
-                    <dd className="font-medium text-foreground">
-                      {moneyFormatter.format(c.baseValue)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-muted-foreground">Taxa</dt>
-                    <dd className="font-medium text-foreground">{(c.rate * 100).toFixed(2)}%</dd>
-                  </div>
-                  <div>
-                    <dt className="text-muted-foreground">Base × Taxa</dt>
-                    <dd className="font-medium text-foreground">
-                      {moneyFormatter.format(c.baseCommission)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-muted-foreground">Bônus meta</dt>
-                    <dd className="font-medium text-foreground">
-                      {moneyFormatter.format(c.goalBonus)}
-                    </dd>
-                  </div>
-                </dl>
-                {c.ruleSnapshot && (
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Regra: <span className="text-foreground">{c.ruleSnapshot.name}</span>
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : order.commissionPreview ? (
-          <>
-            <dl className="grid gap-3 text-sm md:grid-cols-3">
-              <div>
-                <dt className="text-xs text-muted-foreground">Base</dt>
-                <dd className="font-medium text-foreground">
-                  {moneyFormatter.format(order.commissionPreview.baseValue)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Taxa</dt>
-                <dd className="font-medium text-foreground">
-                  {(order.commissionPreview.commissionRate * 100).toFixed(1)}%
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Estimativa</dt>
-                <dd className="font-semibold text-foreground">
-                  {moneyFormatter.format(order.commissionPreview.estimatedCommission)}
-                </dd>
-              </div>
-              {order.commissionPreview.rules.length > 0 && (
-                <div className="md:col-span-3">
-                  <dt className="text-xs text-muted-foreground">Regras aplicadas</dt>
-                  <dd className="text-xs text-foreground">
-                    <ul className="ml-4 list-disc space-y-0.5">
-                      {order.commissionPreview.rules.map((r) => (
-                        <li key={r}>{r}</li>
-                      ))}
-                    </ul>
-                  </dd>
-                </div>
-              )}
-            </dl>
-            <div className="mt-3 flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-700 dark:text-amber-200">
-              <Icon icon="mdi:alert-outline" size={14} className="mt-0.5" />
-              <p>
-                Pedido ainda não confirmado como pago — após pagamento, a comissão definitiva
-                (PRD-047) é gerada automaticamente.
-              </p>
-            </div>
-          </>
-        ) : (
-          <p className="text-xs text-muted-foreground">
-            Comissão será calculada quando o pedido for criado a partir de um orçamento.
-          </p>
-        )}
-      </Card>
-
-      {/* 7 — Histórico */}
-      <Card className="p-5">
-        <SectionHeader icon="mdi:history" title="Histórico" />
-        {audits.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Sem eventos registrados ainda.</p>
-        ) : (
-          <ol className="space-y-2">
-            {audits.map((a) => (
-              <li
-                key={a.id}
-                className="flex items-start gap-3 border-l-2 border-border pl-3 text-xs"
-              >
-                <Icon
-                  icon="mdi:circle-medium"
-                  size={14}
-                  className="-ml-[18px] mt-0.5 text-primary"
-                />
-                <div className="flex-1">
-                  <p className="font-medium text-foreground">{describeAction(a.action)}</p>
-                  <p className="text-muted-foreground">
-                    {dateTimeFormatter.format(new Date(a.timestamp))} · {a.actorId}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        )}
-        {seller && (
+  const payment = (
+    <OrderPaymentBlock
+      order={order}
+      canActOnOrder={canActOnOrder}
+      isManagerOrOwner={isManagerOrOwner}
+      onMarkPaid={() => setDialog("markPaid")}
+      onRefund={() => setDialog("refund")}
+    />
+  );
+  const delivery = (
+    <OrderDeliveryBlock
+      order={order}
+      canActOnOrder={canActOnOrder}
+      editable={editable}
+      onStartFulfillment={() => setDialog("startFulfillment")}
+      onShip={() => setDialog("ship")}
+      onDeliver={() => setDialog("deliver")}
+    />
+  );
+  const commission = (
+    <OrderCommissionBlock
+      hasCommission={commissionsForOrder.hasCommission}
+      commissions={commissionsForOrder.commissions}
+      preview={order.commissionPreview}
+    />
+  );
+  const summary = (
+    <DetailSummaryCard
+      subtotal={order.subtotal}
+      discount={order.discount}
+      shipping={order.shipping}
+      total={order.total}
+    />
+  );
+  const customerCard = (
+    <DetailCustomerCard
+      customer={customer}
+      name={customerName(customer)}
+      deliveryAddress={order.deliveryAddress}
+      onOpenFicha={() =>
+        customer && void navigate({ to: "/app/clientes/$id", params: { id: customer.id } })
+      }
+    />
+  );
+  const history = (
+    <DetailHistory
+      audits={audits}
+      describeAction={describeAction}
+      footer={
+        seller ? (
           <p className="mt-3 text-[11px] text-muted-foreground">
             Vendedor responsável: <span className="text-foreground">{seller.fullName}</span>
           </p>
-        )}
-      </Card>
+        ) : undefined
+      }
+    />
+  );
 
-      {/* Dialogs */}
+  const dialogs = (
+    <>
       <MarkPaidDialog
         open={dialog === "markPaid"}
         onCancel={() => setDialog(null)}
@@ -751,72 +445,126 @@ export function OrderDetailPage() {
           )
         }
       />
-    </div>
+    </>
   );
-}
 
-function SectionHeader({ icon, title }: { icon: string; title: string }) {
-  return (
-    <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
-      <Icon icon={icon} size={16} className="text-muted-foreground" />
-      {title}
-    </h2>
-  );
-}
-
-function ValueSummary({ order }: { order: IOrder }) {
-  return (
-    <div className="mt-3 space-y-1 text-sm">
-      <div className="flex justify-between text-muted-foreground">
-        <span>Subtotal</span>
-        <span className="tabular-nums">{moneyFormatter.format(order.subtotal)}</span>
-      </div>
-      <div className="flex justify-between text-muted-foreground">
-        <span>Desconto</span>
-        <span className="tabular-nums">-{moneyFormatter.format(order.discount)}</span>
-      </div>
-      <div className="flex justify-between text-muted-foreground">
-        <span>Frete</span>
-        <span className="tabular-nums">+{moneyFormatter.format(order.shipping)}</span>
-      </div>
-      <div className="flex justify-between border-t border-border pt-2 text-base font-semibold text-foreground">
-        <span>Total</span>
-        <span className="tabular-nums">{moneyFormatter.format(order.total)}</span>
-      </div>
-    </div>
-  );
-}
-
-function paymentLabel(status: IOrder["paymentStatus"]): string {
-  switch (status) {
-    case "pago":
-      return "Pago";
-    case "parcial":
-      return "Parcial";
-    case "pendente":
-      return "Pendente";
-    case "estornado":
-      return "Estornado";
-    case "vencido":
-      return "Vencido";
+  let body: ReactNode;
+  if (layout === "operational") {
+    body = (
+      <OperationalShell
+        header={header}
+        hero={hero}
+        stepper={
+          <div className="space-y-3">
+            <StatusStepper steps={stepper.steps} terminal={stepper.terminal} />
+            {banners}
+          </div>
+        }
+        actions={actions}
+        grid={
+          <>
+            {payment}
+            {delivery}
+            {commission}
+          </>
+        }
+        main={
+          <>
+            {items}
+            {summary}
+            {customerCard}
+            {history}
+          </>
+        }
+      />
+    );
+  } else if (layout === "document") {
+    body = (
+      <DocumentShell
+        header={header}
+        docHeader={
+          <div className="flex items-start justify-between border-b border-border pb-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                GALLO BASE DIESEL
+              </p>
+              <h1 className="font-mono text-xl font-bold text-foreground">
+                #{order.number ?? order.id.replace(/^order-/, "PD-")}
+              </h1>
+            </div>
+            <div className="text-right text-xs text-muted-foreground">
+              <p>Criado em {formatDateTimeBR(order.createdAt)}</p>
+              <div className="mt-1 flex justify-end">
+                <OrderStatusBadge status={agg} />
+              </div>
+            </div>
+          </div>
+        }
+        parties={
+          <div className="grid gap-4 md:grid-cols-2">
+            {customerCard}
+            <OrderPaymentBlock
+              order={order}
+              canActOnOrder={false}
+              isManagerOrOwner={false}
+              onMarkPaid={() => undefined}
+              onRefund={() => undefined}
+            />
+          </div>
+        }
+        items={items}
+        totals={<div className="w-full max-w-xs">{summary}</div>}
+        footer={
+          <OrderDeliveryBlock
+            order={order}
+            canActOnOrder={false}
+            editable={false}
+            onStartFulfillment={() => undefined}
+            onShip={() => undefined}
+            onDeliver={() => undefined}
+          />
+        }
+      />
+    );
+  } else {
+    body = (
+      <CockpitShell
+        header={header}
+        hero={
+          <div className="space-y-3">
+            {hero}
+            {banners}
+          </div>
+        }
+        kpis={<DetailStatStrip stats={stats} />}
+        main={
+          <>
+            {items}
+            {payment}
+            {delivery}
+            {commission}
+            {history}
+          </>
+        }
+        rail={
+          <>
+            <DetailCard icon="mdi:lightning-bolt-outline" title="Ações">
+              {actions}
+            </DetailCard>
+            {summary}
+            {customerCard}
+          </>
+        }
+      />
+    );
   }
-}
 
-function fulfillmentLabel(status: IOrder["fulfillmentStatus"]): string {
-  switch (status) {
-    case "entregue":
-      return "Entregue";
-    case "expedido":
-      return "Expedido";
-    case "separacao":
-      return "Em separação";
-    case "pendente":
-      return "Pendente";
-    case "cancelado":
-      return "Cancelado";
-    case "devolvido":
-      return "Devolvido";
-  }
+  return (
+    <>
+      {body}
+      {dialogs}
+    </>
+  );
 }
 
 function describeAction(action: string): string {

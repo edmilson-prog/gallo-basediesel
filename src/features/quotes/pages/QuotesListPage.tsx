@@ -1,9 +1,19 @@
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import type { ICustomer, ID, ISeller } from "@/shared/types";
+import type { ICustomer, ID, ISeller, QuoteStatus } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
+import {
+  CockpitShell,
+  ConsoleShell,
+  ListStatStrip,
+  ListStatusTabs,
+  RowsShell,
+  useListLayout,
+  QUOTES_LIST_LAYOUT_KEY,
+  type IStatusTab,
+} from "@/shared/list-views";
 import { useAuth } from "@/features/auth/useAuth";
 import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
@@ -13,9 +23,30 @@ import { useCustomersProvider } from "@/providers/data/hooks/useCustomersProvide
 import { QuotesHeader } from "../components/list/QuotesHeader";
 import { QuotesFiltersBar } from "../components/list/QuotesFiltersBar";
 import { QuotesTable } from "../components/list/QuotesTable";
+import { QuotesTableRows } from "../components/list/QuotesTableRows";
 import { QuotesPagination } from "../components/list/QuotesPagination";
+import { QUOTE_STATUS_META } from "../components/QuoteStatusBadge";
+import { quoteStatCells, quoteStatusCounts } from "../utils/quoteListStats";
 import { useQuotesList } from "../hooks/useQuotesList";
 import { useQuotesUrlState } from "../hooks/useQuotesUrlState";
+
+/** Status tab order + solid dot color (matches the badge palette). */
+const STATUS_TAB_ORDER: QuoteStatus[] = [
+  "rascunho",
+  "enviado",
+  "aceito",
+  "recusado",
+  "expirado",
+  "convertido",
+];
+const STATUS_DOT: Record<QuoteStatus, string> = {
+  rascunho: "bg-muted-foreground",
+  enviado: "bg-blue-500",
+  aceito: "bg-emerald-500",
+  recusado: "bg-rose-500",
+  expirado: "bg-orange-500",
+  convertido: "bg-violet-500",
+};
 
 export function QuotesListPage() {
   const navigate = useNavigate();
@@ -26,10 +57,12 @@ export function QuotesListPage() {
   const isOwner = role === "Owner";
   const { accessibleStores } = useCurrentStore();
 
+  const [layout, setLayout] = useListLayout(QUOTES_LIST_LAYOUT_KEY);
+  const now = useMemo(() => new Date(), []);
+
   const url = useQuotesUrlState();
   const { filters, sort, page, pageSize } = url;
 
-  // Vendedor — restrição: vê apenas seus orçamentos via sellerIdLock.
   const sellerIdLock = !isManagerOrOwner && currentUser?.sellerId ? currentUser.sellerId : null;
 
   const sellersProvider = useSellersProvider();
@@ -64,24 +97,41 @@ export function QuotesListPage() {
     return m;
   }, [customersQuery.data]);
 
-  // Lista — a ordenação client-side por nome de cliente/vendedor usa os mapas acima.
   const list = useQuotesList(filters, sort, page, pageSize, {
     sellerIdLock,
     customersById: customersMap,
     sellersById: sellersMap,
   });
 
-  // Lock visual no filtro de vendedor para Vendedor.
-  useEffect(() => {
-    if (sellerIdLock && filters.sellerIds.length === 0) {
-      // Não disparamos patch: o filtro provider já está restrito via sellerIdLock.
-    }
-  }, [sellerIdLock, filters.sellerIds]);
+  // KPIs + contagens de abas, sobre o conjunto pré-status (allFiltered).
+  const statCells = useMemo(() => quoteStatCells(list.allFiltered, now), [list.allFiltered, now]);
+  const statusTabs = useMemo<IStatusTab[]>(() => {
+    const counts = quoteStatusCounts(list.allFiltered);
+    return [
+      { key: "all", label: "Todos", count: list.allFiltered.length },
+      ...STATUS_TAB_ORDER.map((s) => ({
+        key: s,
+        label: QUOTE_STATUS_META[s].label,
+        count: counts[s],
+        dotClassName: STATUS_DOT[s],
+      })),
+    ];
+  }, [list.allFiltered]);
+
+  const activeStatusKey =
+    filters.statuses.length === 1
+      ? (filters.statuses[0] ?? "all")
+      : filters.statuses.length === 0
+        ? "all"
+        : "";
+
+  const onSelectStatus = (key: string) => {
+    url.patchFilters({ statuses: key === "all" ? [] : [key as QuoteStatus] });
+  };
 
   const handleRowClick = (id: ID) => {
     void navigate({ to: "/app/orcamentos/$id", params: { id } });
   };
-
   const handleCreate = () => {
     void navigate({ to: "/app/orcamentos/novo" });
   };
@@ -89,6 +139,81 @@ export function QuotesListPage() {
   const hasResults = list.data.length > 0;
   const isFirstLoad = list.isLoading && !hasResults;
   const showEmpty = !isFirstLoad && !hasResults;
+
+  const tableNode = list.isError ? (
+    <ErrorState onRetry={list.refetch} />
+  ) : showEmpty ? (
+    <EmptyState canCreate={canCreate} onCreate={handleCreate} onClear={url.clearAll} />
+  ) : layout === "rows" ? (
+    <QuotesTableRows
+      quotes={list.data}
+      isLoading={list.isLoading}
+      now={now}
+      onRowClick={handleRowClick}
+      sellers={sellersMap}
+      customers={customersMap}
+    />
+  ) : (
+    <QuotesTable
+      quotes={list.data}
+      isLoading={list.isLoading}
+      sort={sort}
+      onSortChange={url.setSort}
+      onRowClick={handleRowClick}
+      sellers={sellersMap}
+      customers={customersMap}
+    />
+  );
+
+  const filtersProps = {
+    filters,
+    patch: url.patchFilters,
+    onClear: url.clearAll,
+    sellers: selectableSellers,
+    stores: accessibleStores,
+    canFilterStore: isOwner,
+    canFilterSeller: isManagerOrOwner,
+  };
+
+  let body: React.ReactNode;
+  if (layout === "console") {
+    body = (
+      <ConsoleShell
+        rail={
+          <>
+            <ListStatStrip cells={statCells} orientation="vertical" />
+            <ListStatusTabs
+              tabs={statusTabs}
+              activeKey={activeStatusKey}
+              onSelect={onSelectStatus}
+              orientation="vertical"
+            />
+            <QuotesFiltersBar {...filtersProps} stacked />
+          </>
+        }
+        table={tableNode}
+      />
+    );
+  } else if (layout === "rows") {
+    body = (
+      <RowsShell
+        strip={<ListStatStrip cells={statCells.slice(0, 3)} />}
+        filters={<QuotesFiltersBar {...filtersProps} />}
+        table={tableNode}
+      />
+    );
+  } else {
+    body = (
+      <CockpitShell
+        strip={<ListStatStrip cells={statCells} />}
+        tabs={
+          <ListStatusTabs tabs={statusTabs} activeKey={activeStatusKey} onSelect={onSelectStatus} />
+        }
+        filters={<QuotesFiltersBar {...filtersProps} />}
+        table={tableNode}
+      />
+    );
+  }
 
   return (
     <div className="flex h-[calc(100vh-4rem)] min-h-0 flex-col bg-background md:h-[calc(100vh-6rem)]">
@@ -98,44 +223,17 @@ export function QuotesListPage() {
         onSearchChange={(q) => url.setSearch(q)}
         canCreate={canCreate}
         onCreate={handleCreate}
+        layout={layout}
+        onLayoutChange={setLayout}
       />
-
-      <QuotesFiltersBar
-        filters={filters}
-        patch={url.patchFilters}
-        onClear={url.clearAll}
-        sellers={selectableSellers}
-        stores={accessibleStores}
-        canFilterStore={isOwner}
-        canFilterSeller={isManagerOrOwner}
+      {body}
+      <QuotesPagination
+        page={page}
+        pageSize={pageSize}
+        total={list.total}
+        onPageChange={url.setPage}
+        onPageSizeChange={url.setPageSize}
       />
-
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="flex-1 overflow-y-auto">
-          {list.isError ? (
-            <ErrorState onRetry={list.refetch} />
-          ) : showEmpty ? (
-            <EmptyState canCreate={canCreate} onCreate={handleCreate} onClear={url.clearAll} />
-          ) : (
-            <QuotesTable
-              quotes={list.data}
-              isLoading={list.isLoading}
-              sort={sort}
-              onSortChange={url.setSort}
-              onRowClick={handleRowClick}
-              sellers={sellersMap}
-              customers={customersMap}
-            />
-          )}
-        </div>
-        <QuotesPagination
-          page={page}
-          pageSize={pageSize}
-          total={list.total}
-          onPageChange={url.setPage}
-          onPageSizeChange={url.setPageSize}
-        />
-      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { ID, IOrder } from "@/shared/types";
+import type { ICustomer, ID, IOrder, ISeller } from "@/shared/types";
 import { useOrdersProvider } from "@/providers/data/hooks/useOrdersProvider";
 import { computeOrderStatus } from "../utils/orderStatus";
 import { resolveOrderOriginKind } from "../components/OrderOriginBadge";
@@ -13,6 +13,8 @@ import {
 
 export interface IOrdersListQuery {
   data: IOrder[];
+  /** Full filtered set BEFORE the aggregate-status filter and pagination — feeds KPIs/tabs. */
+  allFiltered: IOrder[];
   total: number;
   isLoading: boolean;
   isFetching: boolean;
@@ -26,10 +28,6 @@ function applyClientFilters(orders: IOrder[], filters: IOrdersListFilters): IOrd
     if (filters.totalMin !== undefined && o.total < filters.totalMin) return false;
     if (filters.totalMax !== undefined && o.total > filters.totalMax) return false;
     if (filters.storeIds.length > 0 && !filters.storeIds.includes(o.storeId)) return false;
-    if (filters.statuses.length > 0) {
-      const agg = computeOrderStatus(o);
-      if (!filters.statuses.includes(agg)) return false;
-    }
     if (filters.paymentStatuses.length > 0) {
       if (!filters.paymentStatuses.includes(o.paymentStatus)) return false;
     }
@@ -51,13 +49,49 @@ function applyClientFilters(orders: IOrder[], filters: IOrdersListFilters): IOrd
   });
 }
 
-function sortOrders(orders: IOrder[], sort: IOrdersListSort): IOrder[] {
-  const dir = sort.orderDir === "asc" ? 1 : -1;
+function orderCustomerName(o: IOrder, customersById?: Map<ID, ICustomer>): string {
+  const c = customersById?.get(o.customerId);
+  if (!c) return "";
+  return c.type === "B2B" ? c.nomeFantasia || c.razaoSocial : c.fullName;
+}
+
+function orderSellerName(o: IOrder, sellersById?: Map<ID, ISeller>): string {
+  return sellersById?.get(o.sellerId)?.fullName ?? (o.sellerId === "sdr-agent" ? "Agente SDR" : "");
+}
+
+function orderNumberLabel(o: IOrder): string {
+  return o.number ?? o.id.replace(/^order-/, "PD-");
+}
+
+/** Sort orders by any column — resolves customer/seller names and derived status/origin. */
+function sortOrders(
+  orders: IOrder[],
+  sort: IOrdersListSort,
+  customersById?: Map<ID, ICustomer>,
+  sellersById?: Map<ID, ISeller>,
+): IOrder[] {
+  const dir = sort.orderDir === "desc" ? -1 : 1;
+  const cmpStr = (a: string, b: string) => a.localeCompare(b, "pt-BR") * dir;
   return [...orders].sort((a, b) => {
-    const va = a[sort.orderBy];
-    const vb = b[sort.orderBy];
-    if (typeof va === "number" && typeof vb === "number") return dir * (va - vb);
-    return dir * String(va ?? "").localeCompare(String(vb ?? ""));
+    switch (sort.orderBy) {
+      case "number":
+        return cmpStr(orderNumberLabel(a), orderNumberLabel(b));
+      case "customer":
+        return cmpStr(orderCustomerName(a, customersById), orderCustomerName(b, customersById));
+      case "origin":
+        return cmpStr(resolveOrderOriginKind(a), resolveOrderOriginKind(b));
+      case "seller":
+        return cmpStr(orderSellerName(a, sellersById), orderSellerName(b, sellersById));
+      case "status":
+        return cmpStr(computeOrderStatus(a), computeOrderStatus(b));
+      case "total":
+        return (a.total - b.total) * dir;
+      case "updatedAt":
+        return cmpStr(a.updatedAt ?? "", b.updatedAt ?? "");
+      case "createdAt":
+      default:
+        return cmpStr(a.createdAt, b.createdAt);
+    }
   });
 }
 
@@ -71,7 +105,11 @@ export function useOrdersList(
   sort: IOrdersListSort,
   page: number,
   pageSize: OrdersPageSize,
-  options: { sellerIdLock?: ID | null } = {},
+  options: {
+    sellerIdLock?: ID | null;
+    customersById?: Map<ID, ICustomer>;
+    sellersById?: Map<ID, ISeller>;
+  } = {},
 ): IOrdersListQuery {
   const provider = useOrdersProvider();
   const queryClient = useQueryClient();
@@ -98,20 +136,40 @@ export function useOrdersList(
 
   const result = useMemo(() => {
     const fetched = query.data?.data ?? [];
-    let filtered = applyClientFilters(fetched, filters);
+    // allFiltered = filtros comuns + vendedor, MAS sem o status agregado nem paginação.
+    let allFiltered = applyClientFilters(fetched, filters);
     if (options.sellerIdLock && filters.sellerIds.length === 0) {
-      filtered = filtered.filter((o) => o.sellerId === options.sellerIdLock);
+      allFiltered = allFiltered.filter((o) => o.sellerId === options.sellerIdLock);
     } else if (filters.sellerIds.length > 0) {
       const set = new Set(filters.sellerIds);
-      filtered = filtered.filter((o) => set.has(o.sellerId));
+      allFiltered = allFiltered.filter((o) => set.has(o.sellerId));
     }
-    const sorted = sortOrders(filtered, sort);
+    const statusSet = new Set(filters.statuses);
+    const afterStatus =
+      statusSet.size > 0
+        ? allFiltered.filter((o) => statusSet.has(computeOrderStatus(o)))
+        : allFiltered;
+    const sorted = sortOrders(afterStatus, sort, options.customersById, options.sellersById);
     const start = (page - 1) * pageSize;
-    return { paged: sorted.slice(start, start + pageSize), total: sorted.length };
-  }, [query.data, filters, sort, page, pageSize, options.sellerIdLock]);
+    return {
+      paged: sorted.slice(start, start + pageSize),
+      total: sorted.length,
+      allFiltered,
+    };
+  }, [
+    query.data,
+    filters,
+    sort,
+    page,
+    pageSize,
+    options.sellerIdLock,
+    options.customersById,
+    options.sellersById,
+  ]);
 
   return {
     data: result.paged,
+    allFiltered: result.allFiltered,
     total: result.total,
     isLoading: query.isLoading,
     isFetching: query.isFetching,

@@ -1,9 +1,19 @@
 import { useMemo } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import type { ICustomer, ID, ISeller } from "@/shared/types";
+import type { ICustomer, ID, ISeller, OrderStatus } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
+import {
+  CockpitShell,
+  ConsoleShell,
+  ListStatStrip,
+  ListStatusTabs,
+  RowsShell,
+  useListLayout,
+  ORDERS_LIST_LAYOUT_KEY,
+  type IStatusTab,
+} from "@/shared/list-views";
 import { useAuth } from "@/features/auth/useAuth";
 import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
 import { useCurrentStore } from "@/features/multistore/hooks/useCurrentStore";
@@ -12,9 +22,33 @@ import { useCustomersProvider } from "@/providers/data/hooks/useCustomersProvide
 import { OrdersHeader } from "../components/list/OrdersHeader";
 import { OrdersFiltersBar } from "../components/list/OrdersFiltersBar";
 import { OrdersTable } from "../components/list/OrdersTable";
+import { OrdersTableRows } from "../components/list/OrdersTableRows";
 import { OrdersPagination } from "../components/list/OrdersPagination";
+import { ORDER_STATUS_META } from "../components/OrderStatusBadge";
+import { orderStatCells, orderStatusCounts } from "../utils/orderListStats";
 import { useOrdersList } from "../hooks/useOrdersList";
 import { useOrdersUrlState } from "../hooks/useOrdersUrlState";
+
+const STATUS_TAB_ORDER: OrderStatus[] = [
+  "aguardando_pagamento",
+  "pago_aguardando_envio",
+  "em_separacao",
+  "enviado",
+  "entregue",
+  "concluido",
+  "cancelado",
+  "devolvido",
+];
+const STATUS_DOT: Record<OrderStatus, string> = {
+  aguardando_pagamento: "bg-amber-500",
+  pago_aguardando_envio: "bg-blue-500",
+  em_separacao: "bg-violet-500",
+  enviado: "bg-sky-500",
+  entregue: "bg-teal-500",
+  concluido: "bg-emerald-500",
+  cancelado: "bg-rose-500",
+  devolvido: "bg-orange-500",
+};
 
 export function OrdersListPage() {
   const navigate = useNavigate();
@@ -24,12 +58,13 @@ export function OrdersListPage() {
   const isOwner = role === "Owner";
   const { accessibleStores } = useCurrentStore();
 
+  const [layout, setLayout] = useListLayout(ORDERS_LIST_LAYOUT_KEY);
+  const now = useMemo(() => new Date(), []);
+
   const url = useOrdersUrlState();
   const { filters, sort, page, pageSize } = url;
 
   const sellerIdLock = !isManagerOrOwner && currentUser?.sellerId ? currentUser.sellerId : null;
-
-  const list = useOrdersList(filters, sort, page, pageSize, { sellerIdLock });
 
   const sellersProvider = useSellersProvider();
   const customersProvider = useCustomersProvider();
@@ -52,15 +87,9 @@ export function OrdersListPage() {
     return all;
   }, [sellersQuery.data, isManagerOrOwner, currentUser?.sellerId]);
 
-  const customerIds = useMemo(() => {
-    const ids = new Set<ID>();
-    list.data.forEach((o) => ids.add(o.customerId));
-    return Array.from(ids);
-  }, [list.data]);
   const customersQuery = useQuery({
-    queryKey: ["customers-for-orders", customerIds.length, customerIds.join(",")] as const,
+    queryKey: ["customers-for-orders"] as const,
     queryFn: () => customersProvider.list({ pageSize: 500 }),
-    enabled: customerIds.length > 0,
     staleTime: 60_000,
   });
   const customersMap = useMemo<Map<ID, ICustomer>>(() => {
@@ -68,6 +97,37 @@ export function OrdersListPage() {
     (customersQuery.data?.data ?? []).forEach((c) => m.set(c.id, c));
     return m;
   }, [customersQuery.data]);
+
+  const list = useOrdersList(filters, sort, page, pageSize, {
+    sellerIdLock,
+    customersById: customersMap,
+    sellersById: sellersMap,
+  });
+
+  const statCells = useMemo(() => orderStatCells(list.allFiltered, now), [list.allFiltered, now]);
+  const statusTabs = useMemo<IStatusTab[]>(() => {
+    const counts = orderStatusCounts(list.allFiltered);
+    return [
+      { key: "all", label: "Todos", count: list.allFiltered.length },
+      ...STATUS_TAB_ORDER.map((s) => ({
+        key: s,
+        label: ORDER_STATUS_META[s].label,
+        count: counts[s],
+        dotClassName: STATUS_DOT[s],
+      })),
+    ];
+  }, [list.allFiltered]);
+
+  const activeStatusKey =
+    filters.statuses.length === 1
+      ? (filters.statuses[0] ?? "all")
+      : filters.statuses.length === 0
+        ? "all"
+        : "";
+
+  const onSelectStatus = (key: string) => {
+    url.patchFilters({ statuses: key === "all" ? [] : [key as OrderStatus] });
+  };
 
   const handleRowClick = (id: ID) => {
     void navigate({ to: "/app/pedidos/$id", params: { id } });
@@ -77,50 +137,97 @@ export function OrdersListPage() {
   const isFirstLoad = list.isLoading && !hasResults;
   const showEmpty = !isFirstLoad && !hasResults;
 
+  const tableNode = list.isError ? (
+    <ErrorState onRetry={list.refetch} />
+  ) : showEmpty ? (
+    <EmptyState onClear={url.clearAll} />
+  ) : layout === "rows" ? (
+    <OrdersTableRows
+      orders={list.data}
+      isLoading={list.isLoading}
+      onRowClick={handleRowClick}
+      sellers={sellersMap}
+      customers={customersMap}
+    />
+  ) : (
+    <OrdersTable
+      orders={list.data}
+      isLoading={list.isLoading}
+      sort={sort}
+      onSortChange={url.setSort}
+      onRowClick={handleRowClick}
+      sellers={sellersMap}
+      customers={customersMap}
+    />
+  );
+
+  const filtersProps = {
+    filters,
+    patch: url.patchFilters,
+    onClear: url.clearAll,
+    sellers: selectableSellers,
+    stores: accessibleStores,
+    canFilterStore: isOwner,
+    canFilterSeller: isManagerOrOwner,
+  };
+
+  let body: React.ReactNode;
+  if (layout === "console") {
+    body = (
+      <ConsoleShell
+        rail={
+          <>
+            <ListStatStrip cells={statCells} orientation="vertical" />
+            <ListStatusTabs
+              tabs={statusTabs}
+              activeKey={activeStatusKey}
+              onSelect={onSelectStatus}
+              orientation="vertical"
+            />
+            <OrdersFiltersBar {...filtersProps} stacked />
+          </>
+        }
+        table={tableNode}
+      />
+    );
+  } else if (layout === "rows") {
+    body = (
+      <RowsShell
+        strip={<ListStatStrip cells={statCells.slice(0, 3)} />}
+        filters={<OrdersFiltersBar {...filtersProps} />}
+        table={tableNode}
+      />
+    );
+  } else {
+    body = (
+      <CockpitShell
+        strip={<ListStatStrip cells={statCells} />}
+        tabs={
+          <ListStatusTabs tabs={statusTabs} activeKey={activeStatusKey} onSelect={onSelectStatus} />
+        }
+        filters={<OrdersFiltersBar {...filtersProps} />}
+        table={tableNode}
+      />
+    );
+  }
+
   return (
     <div className="flex h-[calc(100vh-4rem)] min-h-0 flex-col bg-background md:h-[calc(100vh-6rem)]">
       <OrdersHeader
         total={list.total}
         searchValue={filters.search}
         onSearchChange={(q) => url.setSearch(q)}
+        layout={layout}
+        onLayoutChange={setLayout}
       />
-
-      <OrdersFiltersBar
-        filters={filters}
-        patch={url.patchFilters}
-        onClear={url.clearAll}
-        sellers={selectableSellers}
-        stores={accessibleStores}
-        canFilterStore={isOwner}
-        canFilterSeller={isManagerOrOwner}
+      {body}
+      <OrdersPagination
+        page={page}
+        pageSize={pageSize}
+        total={list.total}
+        onPageChange={url.setPage}
+        onPageSizeChange={url.setPageSize}
       />
-
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="flex-1 overflow-y-auto">
-          {list.isError ? (
-            <ErrorState onRetry={list.refetch} />
-          ) : showEmpty ? (
-            <EmptyState onClear={url.clearAll} />
-          ) : (
-            <OrdersTable
-              orders={list.data}
-              isLoading={list.isLoading}
-              sort={sort}
-              onSortChange={url.setSort}
-              onRowClick={handleRowClick}
-              sellers={sellersMap}
-              customers={customersMap}
-            />
-          )}
-        </div>
-        <OrdersPagination
-          page={page}
-          pageSize={pageSize}
-          total={list.total}
-          onPageChange={url.setPage}
-          onPageSizeChange={url.setPageSize}
-        />
-      </div>
     </div>
   );
 }

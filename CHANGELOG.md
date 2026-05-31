@@ -4,9 +4,9 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
-## [0.53.0] — Chime · 2026-05-31
+## [0.55.0] — Chime · 2026-05-31
 
-A Central de Notificações ganha rosto. O sino do topo passa a mostrar notificações reais com contagem de não lidas e um preview; uma página dedicada reúne tudo com dois layouts (Painel e Lista), filtros e estados; o usuário escolhe por quais canais recebe cada tipo de aviso numa matriz de preferências; e o cliente ganha sua própria central e preferências na loja. Consome a fundação Herald (0.52.0) sem alterá-la.
+A Central de Notificações ganha rosto. O sino do topo passa a mostrar notificações reais com contagem de não lidas e um preview; uma página dedicada reúne tudo com dois layouts (Painel e Lista), filtros e estados; o usuário escolhe por quais canais recebe cada tipo de aviso numa matriz de preferências; e o cliente ganha sua própria central e preferências na loja. Consome a fundação Herald (0.54.0) sem alterá-la.
 
 ### Added
 
@@ -21,7 +21,7 @@ A Central de Notificações ganha rosto. O sino do topo passa a mostrar notifica
 - **Sino do topo** — substitui o preview estático por notificações reais vindas da fundação.
 - **Alertas do Painel do Gestor** — a lista de alertas ativos passa a consumir a Central de Notificações; "Dispensar" arquiva o alerta, sem armazenamento local próprio.
 
-## [0.52.0] — Herald · 2026-05-31
+## [0.54.0] — Herald · 2026-05-31
 
 Fundação do sistema de notificações — a base invisível que vai alimentar a Central de Notificações e as preferências (em breve, no próximo release). Os eventos do dia a dia da plataforma passam a ser transformados em notificações por destinatário, com canais, preferências e condições derivadas. Sem mudança visível ainda — é a fundação sobre a qual a interface será construída.
 
@@ -29,6 +29,28 @@ Fundação do sistema de notificações — a base invisível que vai alimentar 
 
 - **Fundação de notificações (infraestrutura)** — modelo de dados único, barramento de eventos, roteamento por regras e preferências por destinatário, persistência via Provider Pattern e canais de entrega (in-app e toast ativos; e-mail, WhatsApp, SMS e push já preparados para a Onda 8). Base da Central de Notificações que chega no próximo release.
 - **Reconciliador de condições derivadas** — os alertas do Painel do Gestor (cliente A dormente, vendedor sobrecarregado, conversa sem resposta) agora também alimentam notificações, a partir de uma lógica de condição compartilhada e única.
+
+## [0.53.0] — Dossier · 2026-05-31
+
+### Added
+- Ficha de **Orçamento** e **Pedido** com 3 visualizações selecionáveis — **Cockpit** (padrão), **Operacional** e **Documento** — alternáveis por um seletor no cabeçalho, com preferência lembrada por página.
+- Faixa de KPIs e trilho lateral fixo (resumo, cliente, ações) nas fichas de Orçamento e Pedido.
+- Stepper de status no layout Operacional (rascunho→convertido / aguardando pagamento→concluído), com estados terminais para recusado/expirado/cancelado/devolvido.
+- Framework compartilhado `src/shared/detail-views/` (config de layout, hook de persistência, seletor, faixa de KPIs, stepper, blocos de resumo/cliente/histórico e shells de layout).
+
+### Changed
+- Páginas de detalhe de Orçamento e Pedido passam a usar layout amplo (até 1600px) em vez da coluna central estreita, eliminando o desperdício de espaço lateral.
+
+## [0.52.0] — Ledger · 2026-05-30
+
+### Added
+- Listas de Orçamentos e Pedidos com **3 visualizações selecionáveis** (Cockpit, Console, Linhas), seletor segmentado no cabeçalho e preferência lembrada por lista.
+- Faixa de **KPIs** nas listas — Orçamentos (em aberto, convertido, conversão, ticket médio, expirando ≤3d) e Pedidos (valor total, recebido, a receber, a expedir, vencidos).
+- **Abas de status** com contagem em ambas as listas.
+
+### Changed
+- A tabela de orçamentos agora é **fluida** (ocupa a largura disponível) em vez de largura fixa.
+- O filtro de status passou de popover para **abas**; os demais filtros foram mantidos.
 
 ## [0.51.0] — Cockpit · 2026-05-30
 

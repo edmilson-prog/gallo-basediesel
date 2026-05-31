@@ -1,14 +1,19 @@
 import { Icon } from "@/components/Icon";
 import { Input } from "@/components/ui/input";
+import { ListLayoutSwitcher, type ListLayout } from "@/shared/list-views";
 
 export function OrdersHeader({
   total,
   searchValue,
   onSearchChange,
+  layout,
+  onLayoutChange,
 }: {
   total: number;
   searchValue: string;
   onSearchChange: (q: string) => void;
+  layout: ListLayout;
+  onLayoutChange: (layout: ListLayout) => void;
 }) {
   return (
     <header className="flex flex-col gap-3 border-b border-border bg-card px-4 py-4 md:flex-row md:items-center md:justify-between md:px-6">
@@ -34,6 +39,7 @@ export function OrdersHeader({
             onChange={(e) => onSearchChange(e.target.value)}
           />
         </div>
+        <ListLayoutSwitcher value={layout} onChange={onLayoutChange} />
       </div>
     </header>
   );

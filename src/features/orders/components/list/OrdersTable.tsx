@@ -59,18 +59,37 @@ export function OrdersTable({
     }
   };
 
-  const SortHeader = ({ field, children }: { field: OrderOrderBy; children: React.ReactNode }) => {
+  const SortHeader = ({
+    field,
+    align,
+    children,
+  }: {
+    field: OrderOrderBy;
+    align?: "right";
+    children: React.ReactNode;
+  }) => {
     const active = sort.orderBy === field;
     return (
       <button
         type="button"
         onClick={() => toggleSort(field)}
-        className="inline-flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground"
+        className={cn(
+          "inline-flex w-full items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground",
+          align === "right" && "justify-end",
+        )}
       >
         {children}
-        {active && (
-          <Icon icon={sort.orderDir === "asc" ? "mdi:arrow-up" : "mdi:arrow-down"} size={12} />
-        )}
+        <Icon
+          icon={
+            active
+              ? sort.orderDir === "asc"
+                ? "mdi:arrow-up"
+                : "mdi:arrow-down"
+              : "mdi:unfold-more-horizontal"
+          }
+          size={12}
+          className={cn(!active && "opacity-40")}
+        />
       </button>
     );
   };
@@ -86,18 +105,30 @@ export function OrdersTable({
   }
 
   return (
-    <Table>
+    <Table containerClassName="h-full">
       <TableHeader>
-        <TableRow>
-          <TableHead className="w-32">Número</TableHead>
-          <TableHead>Cliente</TableHead>
-          <TableHead className="w-24">Origem</TableHead>
-          <TableHead className="w-40">Vendedor</TableHead>
-          <TableHead className="w-28 text-right">
-            <SortHeader field="total">Total</SortHeader>
+        <TableRow className="hover:bg-transparent">
+          <TableHead className="sticky top-0 z-20 w-32 bg-background">
+            <SortHeader field="number">Número</SortHeader>
           </TableHead>
-          <TableHead className="w-44">Status</TableHead>
-          <TableHead className="w-24">
+          <TableHead className="sticky top-0 z-20 bg-background">
+            <SortHeader field="customer">Cliente</SortHeader>
+          </TableHead>
+          <TableHead className="sticky top-0 z-20 w-24 bg-background">
+            <SortHeader field="origin">Origem</SortHeader>
+          </TableHead>
+          <TableHead className="sticky top-0 z-20 w-40 bg-background">
+            <SortHeader field="seller">Vendedor</SortHeader>
+          </TableHead>
+          <TableHead className="sticky top-0 z-20 w-28 bg-background text-right">
+            <SortHeader field="total" align="right">
+              Total
+            </SortHeader>
+          </TableHead>
+          <TableHead className="sticky top-0 z-20 w-44 bg-background">
+            <SortHeader field="status">Status</SortHeader>
+          </TableHead>
+          <TableHead className="sticky top-0 z-20 w-24 bg-background">
             <SortHeader field="createdAt">Data</SortHeader>
           </TableHead>
         </TableRow>

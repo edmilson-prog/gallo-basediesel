@@ -654,7 +654,7 @@ Tipos de mudança a documentar: **Added** (novas funcionalidades), **Changed** (
 |-------|-------|
 | **Status** | ✅ CONCLUÍDO |
 | **Data de Implementação** | 2026-05-31 |
-| **Versão do App** | 0.52.0 |
+| **Versão do App** | 0.54.0 |
 | **Codinome** | Herald |
 | **Implementado por** | Claude (Claude Code CLI) |
 | **Observações** | Fundação invisível: modelo `INotification`, barramento de eventos, roteamento por regras/preferências, persistência via Provider Pattern (mock ativo / Supabase stub), canais (in-app/toast ativos; e-mail/WhatsApp/SMS/push como stubs deferidos para a Onda 8) e reconciliador de condições derivadas compartilhadas com o PRD-014. Harness de validação em `/design-system` (dev-only). UI no PRD-009 (Chime). |
