@@ -224,6 +224,16 @@ export const STOREFRONT_ACCOUNT_STRINGS = {
   vehiclesB2COnlyHint:
     "Esta área é exclusiva para clientes B2B. Quer cadastrar uma frota? Fale com nosso time.",
 
+  // Notifications
+  navNotifications: "Notificações",
+  navPreferences: "Preferências de aviso",
+  notificationsTitle: "Notificações",
+  notificationsSubtitle: "Atualizações dos seus pedidos, orçamentos e novidades.",
+  notificationsEmptyTitle: "Tudo em dia por aqui",
+  notificationsEmptyHint: "Você não tem notificações no momento.",
+  notificationPrefsTitle: "Preferências de aviso",
+  notificationPrefsSubtitle: "Escolha como você quer ser avisado sobre cada novidade.",
+
   // Header dropdown
   headerDropdownAccount: "Minha conta",
   headerDropdownOrders: "Meus pedidos",
