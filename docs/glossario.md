@@ -295,3 +295,41 @@ Planejada para acompanhar a entrega das ondas:
 | v0.4.x | **Compass**    | Onda 2 (Gestão + BI)                    |
 | v0.5.x | **Storefront** | Onda 3 (E-commerce)                     |
 | v1.0.0 | **Heavy**      | MVP completo                            |
+
+---
+
+## Termos de notificações
+
+### Notificação
+
+Aviso unificado entregue a um destinatário (vendedor ou cliente) sobre um fato ou estado relevante na plataforma. Independente do canal de entrega, toda notificação carrega um `lifecycle` que determina seu comportamento ao longo do tempo: se é um fato imutável (`event`) ou um estado calculado que pode ser reconciliado (`derived`).
+
+Modelado em `INotification`.
+
+### Notificação de evento
+
+Notificação com `lifecycle: 'event'` — representa um fato imutável que aconteceu num instante preciso (pedido confirmado, transferência de carteira recebida, meta batida) e permanece no histórico mesmo depois de lido ou descartado. Nunca é expirada por reconciliação; só o usuário pode descartá-la.
+
+> **Exemplos:** "Pedido #4521 confirmado", "Sua meta de faturamento foi batida", "Cliente João Silva transferido para você".
+
+### Notificação derivada
+
+Notificação com `lifecycle: 'derived'` — representa um estado calculado a partir dos dados correntes (ex.: cliente dormente há 95 dias, ruptura de estoque detectada). É criada quando a condição passa a ser verdadeira e expirada automaticamente quando a condição deixa de ser verdadeira — o ciclo de vida é controlado por reconciliação periódica, não por ação do usuário.
+
+> **Exemplo:** a notificação "Cliente X está inativo há 95 dias" desaparece do centro automaticamente se o cliente fizer uma compra antes de o vendedor agir.
+
+### Categoria
+
+Classificação da notificação que indica sua natureza e relevância operacional. Os valores válidos são: `transactional` (fatos transacionais — pedidos, orçamentos, pagamentos), `commercial` (oportunidades e alertas de carteira), `operational` (alertas de estoque e processos internos), `gamification` (conquistas, badges e ranking), `system` (avisos da plataforma — atualizações, manutenção) e `marketing` (campanhas e promoções dirigidas ao cliente).
+
+Modelado em `NotificationCategory`.
+
+### Canal
+
+Meio pelo qual a notificação é entregue ao destinatário. Na Fase 1, os canais ativos são `inApp` (centro de notificações na barra lateral) e `toast` (aviso efêmero na tela). Os canais `email`, `whatsapp`, `sms` e `push` estão modelados mas dormentes, com ativação prevista para a Onda 8 / Fase 2.
+
+Modelado em `NotificationChannel`.
+
+### Reconciliação
+
+Processo periódico executado pela plataforma que verifica as condições de notificações derivadas em aberto: cria a notificação quando a condição se torna verdadeira pela primeira vez e expira automaticamente (`expiredAt`) a notificação existente quando a condição deixa de ser verdadeira. Garante que o centro de notificações reflita sempre o estado atual dos dados, sem intervenção manual do usuário.
