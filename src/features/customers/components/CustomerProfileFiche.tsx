@@ -11,6 +11,8 @@ export interface ICustomerProfileFicheProps {
   open: boolean;
   /** Drawer close handler. */
   onOpenChange: (open: boolean) => void;
+  /** Optional "Copiloto" tab content injected by the conversation screen (PRD-025). */
+  copilotTab?: React.ReactNode;
 }
 
 /**
@@ -32,6 +34,7 @@ export function CustomerProfileFiche({
   conversation,
   open,
   onOpenChange,
+  copilotTab,
 }: ICustomerProfileFicheProps) {
   const mode = useFicheLayout();
 
@@ -49,6 +52,7 @@ export function CustomerProfileFiche({
             conversation={conversation}
             variant="column"
             className="h-full border-l-0"
+            copilotTab={copilotTab}
           />
         </SheetContent>
       </Sheet>
@@ -70,6 +74,7 @@ export function CustomerProfileFiche({
           conversation={conversation}
           variant="column"
           className="h-full"
+          copilotTab={copilotTab}
         />
       )}
     </aside>
