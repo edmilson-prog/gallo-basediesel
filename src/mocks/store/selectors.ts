@@ -1,4 +1,4 @@
-import type { ID } from "@/shared/types";
+import type { ID, INotification } from "@/shared/types";
 import { getMockState } from "./mockStore";
 
 /**
@@ -190,4 +190,16 @@ export function selectSdrEscalationByConversation(conversationId: ID) {
   const all = getMockState().sdrEscalations.filter((e) => e.conversationId === conversationId);
   if (all.length === 0) return null;
   return [...all].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+}
+
+export function selectAllNotifications(): INotification[] {
+  return getMockState().notifications;
+}
+
+export function selectNotificationById(id: ID): INotification | null {
+  return getMockState().notifications.find((n) => n.id === id) ?? null;
+}
+
+export function selectNotificationsByRecipient(recipientId: ID): INotification[] {
+  return getMockState().notifications.filter((n) => n.recipientId === recipientId);
 }

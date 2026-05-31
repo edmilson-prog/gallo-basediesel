@@ -11,6 +11,7 @@ import type {
   IGoal,
   ILead,
   IMessage,
+  INotification,
   IOrder,
   IPart,
   IQuote,
@@ -39,7 +40,8 @@ type CollectionKey =
   | "audits"
   | "distributionTraces"
   | "sdrSessions"
-  | "sdrEscalations";
+  | "sdrEscalations"
+  | "notifications";
 
 type CollectionMap = {
   customers: ICustomer;
@@ -59,6 +61,7 @@ type CollectionMap = {
   distributionTraces: IDistributionTrace;
   sdrSessions: ISdrSession;
   sdrEscalations: ISdrEscalation;
+  notifications: INotification;
 };
 
 /**

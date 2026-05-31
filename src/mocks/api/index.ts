@@ -31,6 +31,7 @@ export { distributionTracesApi, type IListDistributionTracesParams } from "./dis
 export { managerDashboardApi } from "./managerDashboard";
 export { sdrSessionsApi, type IListSdrSessionsParams } from "./sdrSessions";
 export { sdrEscalationsApi } from "./sdrEscalations";
+export { notificationsApi, type IListNotificationsParams } from "./notifications";
 
 export {
   MockError,
