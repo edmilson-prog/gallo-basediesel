@@ -105,3 +105,4 @@ export { useDistributionTracesProvider } from "./hooks/useDistributionTracesProv
 export { useManagerDashboardProvider } from "./hooks/useManagerDashboardProvider";
 export { useSdrSessionsProvider } from "./hooks/useSdrSessionsProvider";
 export { useSdrEscalationsProvider } from "./hooks/useSdrEscalationsProvider";
+export { useCopilotProvider } from "./hooks/useCopilotProvider";

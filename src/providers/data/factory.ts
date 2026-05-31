@@ -24,6 +24,7 @@ import { mockDistributionTracesProvider } from "./impl/mock/distributionTraces";
 import { mockManagerDashboardProvider } from "./impl/mock/managerDashboard";
 import { mockSdrSessionsProvider } from "./impl/mock/sdrSessions";
 import { mockSdrEscalationsProvider } from "./impl/mock/sdrEscalations";
+import { mockCopilotProvider } from "./impl/mock/copilot";
 
 import { supabaseCustomersProvider } from "./impl/supabase/customers";
 import { supabaseVehiclesProvider } from "./impl/supabase/vehicles";
@@ -49,6 +50,7 @@ import { supabaseDistributionTracesProvider } from "./impl/supabase/distribution
 import { supabaseManagerDashboardProvider } from "./impl/supabase/managerDashboard";
 import { supabaseSdrSessionsProvider } from "./impl/supabase/sdrSessions";
 import { supabaseSdrEscalationsProvider } from "./impl/supabase/sdrEscalations";
+import { supabaseCopilotProvider } from "./impl/supabase/copilot";
 
 type DataSource = "mock" | "supabase";
 
@@ -99,6 +101,7 @@ const mockProviders: IDataProviders = {
   managerDashboard: mockManagerDashboardProvider,
   sdrSessions: mockSdrSessionsProvider,
   sdrEscalations: mockSdrEscalationsProvider,
+  copilot: mockCopilotProvider,
 };
 
 const supabaseProviders: IDataProviders = {
@@ -126,6 +129,7 @@ const supabaseProviders: IDataProviders = {
   managerDashboard: supabaseManagerDashboardProvider,
   sdrSessions: supabaseSdrSessionsProvider,
   sdrEscalations: supabaseSdrEscalationsProvider,
+  copilot: supabaseCopilotProvider,
 };
 
 /**
