@@ -112,6 +112,47 @@ export default tseslint.config(
     },
   },
 
+  // PRD-008: lock the notifications provider layer behind its public barrel.
+  //
+  // Default policy for every file under `src/` (except the notifications layer itself):
+  //  - Provider implementations (`@/providers/notifications/impl/*`) are private.
+  //  - Individual contracts (`@/providers/notifications/contracts/*`) are private.
+  //  - The factory (`@/providers/notifications/factory`) is private.
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/providers/notifications/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/providers/notifications/impl/*", "**/providers/notifications/impl/*"],
+              message:
+                "Notification provider implementations are private — consume the public surface from '@/providers/notifications' instead.",
+            },
+            {
+              group: [
+                "@/providers/notifications/contracts/*",
+                "**/providers/notifications/contracts/*",
+              ],
+              message:
+                "Import notification contract types from '@/providers/notifications' barrel — individual contract files are internal.",
+            },
+            {
+              group: [
+                "@/providers/notifications/factory",
+                "**/providers/notifications/factory",
+              ],
+              message:
+                "The notification factory is internal — use '@/providers/notifications' (NotificationProvidersProvider + hooks).",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   // Notification mock provider implementations are the single authorized bridge
   // between `@/mocks` and the notifications layer — they may import the mock barrel.
   {

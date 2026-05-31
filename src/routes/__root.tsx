@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/features/auth/AuthProvider";
 import { MultistoreProvider } from "@/features/multistore";
 import { DataProvidersProvider } from "@/providers/data";
+import { NotificationProvidersProvider } from "@/providers/notifications";
 
 function NotFoundComponent() {
   return (
@@ -74,11 +75,13 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <DataProvidersProvider>
-          <AuthProvider>
-            <MultistoreProvider>
-              <Outlet />
-            </MultistoreProvider>
-          </AuthProvider>
+          <NotificationProvidersProvider>
+            <AuthProvider>
+              <MultistoreProvider>
+                <Outlet />
+              </MultistoreProvider>
+            </AuthProvider>
+          </NotificationProvidersProvider>
         </DataProvidersProvider>
       </ThemeProvider>
     </QueryClientProvider>
