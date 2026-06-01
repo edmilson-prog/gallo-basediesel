@@ -15,6 +15,21 @@ interface ImportMetaEnv {
    * @see docs/provider-pattern.md
    */
   readonly VITE_DATA_SOURCE?: "mock" | "supabase";
+
+  /**
+   * Factory default for where the Sales Copilot surface renders on the
+   * conversation screen (PRD-025).
+   *
+   * - `"strip"` (default) — collapsible strip above the message input.
+   * - `"card"` — collapsible card at the top of the conversation.
+   * - `"tab"` — dedicated tab inside the customer fiche.
+   *
+   * This is only the build-time **default**. Users override it at runtime in
+   * Configurações → Copiloto (persisted in `localStorage`).
+   *
+   * @see src/features/copilot/config.ts
+   */
+  readonly VITE_COPILOT_PLACEMENT?: "strip" | "tab" | "card";
 }
 
 interface ImportMeta {

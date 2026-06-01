@@ -1,8 +1,11 @@
-import { useMemo } from "react";
 import type { CopilotPlacement } from "@/shared/types";
-import { resolvePlacement } from "../config";
+import { useCopilotSettings } from "./useCopilotSettings";
 
-/** Variante ativa do copiloto (estável durante a sessão — vem de env build-time). */
+/**
+ * Active copilot placement variant. Reactive — reads the runtime preference
+ * (Configurações → Copiloto), which falls back to the `VITE_COPILOT_PLACEMENT`
+ * factory default, then to `strip`.
+ */
 export function useCopilotPlacement(): CopilotPlacement {
-  return useMemo(() => resolvePlacement(), []);
+  return useCopilotSettings().placement;
 }

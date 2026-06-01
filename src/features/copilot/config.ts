@@ -5,14 +5,24 @@ export const COPILOT_PLACEMENTS: readonly CopilotPlacement[] = ["strip", "tab", 
 export const DEFAULT_COPILOT_PLACEMENT: CopilotPlacement = "strip";
 
 /**
- * Resolve a variante de posicionamento a partir de `VITE_COPILOT_PLACEMENT`.
- * Valor inválido → variante default (`strip`) com aviso em DEV.
+ * localStorage key holding the user's runtime placement override (per-browser).
+ * Mirrors the theme system (`gallo-theme` / `gallo-mode`).
  */
-export function resolvePlacement(): CopilotPlacement {
+export const COPILOT_PLACEMENT_STORAGE_KEY = "gallo-copilot-placement";
+
+/** Type guard: narrows an unknown value to a valid `CopilotPlacement`. */
+export function isCopilotPlacement(value: unknown): value is CopilotPlacement {
+  return typeof value === "string" && (COPILOT_PLACEMENTS as readonly string[]).includes(value);
+}
+
+/**
+ * Factory default placement from `VITE_COPILOT_PLACEMENT` (build-time).
+ * Acts as the fallback when the user has no runtime override saved.
+ * Invalid value → `strip` (warns in DEV).
+ */
+export function resolveEnvDefaultPlacement(): CopilotPlacement {
   const raw = import.meta.env.VITE_COPILOT_PLACEMENT;
-  if (raw && (COPILOT_PLACEMENTS as readonly string[]).includes(raw)) {
-    return raw as CopilotPlacement;
-  }
+  if (isCopilotPlacement(raw)) return raw;
   if (raw && import.meta.env.DEV) {
     console.warn(
       `[copilot] VITE_COPILOT_PLACEMENT="${raw}" inválido. ` +
