@@ -96,7 +96,14 @@ export type {
 } from "./conversation";
 
 // Catalog
-export type { IPart, IApplication } from "./catalog";
+export type {
+  IPart,
+  IApplication,
+  IPriceTable,
+  IPartSupplier,
+  IPartFiscal,
+  SefazStatus,
+} from "./catalog";
 
 // Commercial
 export type {
