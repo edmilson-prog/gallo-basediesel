@@ -52,7 +52,13 @@ export function ApplicationsSection({ part }: IApplicationsSectionProps) {
   if (part.applications.length === 0) {
     return (
       <Section title={CATALOG_STRINGS.detail.sections.applications} icon="mdi:truck-outline">
-        <p className="text-sm text-muted-foreground">{CATALOG_STRINGS.detail.applications.empty}</p>
+        {part.applicationNotes ? (
+          <ApplicationNotes notes={part.applicationNotes} />
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            {CATALOG_STRINGS.detail.applications.empty}
+          </p>
+        )}
       </Section>
     );
   }
@@ -130,6 +136,8 @@ export function ApplicationsSection({ part }: IApplicationsSectionProps) {
           </div>
         ))}
       </div>
+
+      {part.applicationNotes && <ApplicationNotes notes={part.applicationNotes} />}
     </Section>
   );
 }
@@ -151,5 +159,16 @@ export function Section({
       </div>
       {children}
     </section>
+  );
+}
+
+function ApplicationNotes({ notes }: { notes: string }) {
+  return (
+    <div className="mt-4 border-t border-border pt-3">
+      <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        {CATALOG_STRINGS.detail.applications.rawLabel}
+      </p>
+      <p className="whitespace-pre-line text-xs leading-relaxed text-muted-foreground">{notes}</p>
+    </div>
   );
 }

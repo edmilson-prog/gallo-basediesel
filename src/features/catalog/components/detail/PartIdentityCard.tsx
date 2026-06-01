@@ -34,6 +34,11 @@ export function PartIdentityCard({ part, compact = false }: IPartIdentityCardPro
                 {getCategoryLabel(part.category)}
               </span>
             )}
+            {part.segment && (
+              <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                {part.segment}
+              </span>
+            )}
             {part.isOriginal ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/20 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
                 <Icon icon="mdi:check-decagram" size={11} />
