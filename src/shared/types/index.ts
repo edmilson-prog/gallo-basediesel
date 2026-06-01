@@ -102,6 +102,7 @@ export type {
   IPriceTable,
   IPartSupplier,
   IPartFiscal,
+  IPartCrossReference,
   SefazStatus,
 } from "./catalog";
 

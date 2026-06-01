@@ -80,6 +80,7 @@ export const CATALOG_STRINGS = {
     sections: {
       applications: "Aplicações",
       equivalents: "Equivalências",
+      crossReferences: "Referência cruzada",
       commercial: "Informações comerciais",
       stock: "Estoque",
       priceHistory: "Histórico de preço",
@@ -92,6 +93,9 @@ export const CATALOG_STRINGS = {
     equivalents: {
       empty: "Nenhuma equivalência cadastrada.",
       savings: (pct: number) => `${pct > 0 ? "-" : "+"}${Math.abs(pct).toFixed(0)}%`,
+    },
+    crossReferences: {
+      empty: "Nenhuma referência cruzada cadastrada.",
     },
     commercial: {
       price: "Preço unitário",

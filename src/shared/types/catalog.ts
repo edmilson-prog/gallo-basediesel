@@ -46,6 +46,18 @@ export interface IPartSupplier {
   quantity: number;
 }
 
+/**
+ * Aftermarket cross-reference — the same part as catalogued by a competitor
+ * brand. Distinct from `equivalentPartIds` (which links other GALLO parts) and
+ * from `oemCodes` (the vehicle manufacturer's original number).
+ */
+export interface IPartCrossReference {
+  /** Competitor brand (e.g. "Mann", "Fleetguard"). */
+  brand: string;
+  /** That brand's part number for this item. */
+  code: string;
+}
+
 /** Tax attributes surfaced on the detail page. */
 export interface IPartFiscal {
   /** Mercosul tax classification code (e.g. "8421.23.00"). */
@@ -74,6 +86,8 @@ export interface IPart {
   oemCodes: string[];
   /** Other parts considered functionally equivalent (alternative sale). */
   equivalentPartIds: ID[];
+  /** Competitor brand cross-references (aftermarket equivalents). */
+  crossReferences?: IPartCrossReference[];
   applications: IApplication[];
   brand: string;
   supplier: string;

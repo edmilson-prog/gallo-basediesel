@@ -1,5 +1,6 @@
 import { ApplicationsSection } from "../ApplicationsSection";
 import { EquivalentsSection } from "../EquivalentsSection";
+import { PartCrossReferenceSection } from "../PartCrossReferenceSection";
 import { PartFiscalCard } from "../PartFiscalCard";
 import { PartIdentityCard } from "../PartIdentityCard";
 import { PartLogisticsCard } from "../PartLogisticsCard";
@@ -26,6 +27,10 @@ export function PartLayoutPanel({ part }: IPartLayoutProps) {
 
       <div className="md:col-span-2 lg:col-span-4">
         <PartSuppliersTable part={part} />
+      </div>
+
+      <div className="overflow-hidden rounded-lg border border-border bg-card md:col-span-2 lg:col-span-4">
+        <PartCrossReferenceSection part={part} />
       </div>
 
       <div className="overflow-hidden rounded-lg border border-border bg-card md:col-span-2 lg:col-span-2">

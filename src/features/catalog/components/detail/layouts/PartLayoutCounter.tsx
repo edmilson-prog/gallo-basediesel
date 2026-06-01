@@ -1,6 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApplicationsSection } from "../ApplicationsSection";
 import { EquivalentsSection } from "../EquivalentsSection";
+import { PartCrossReferenceSection } from "../PartCrossReferenceSection";
 import { PartFiscalCard } from "../PartFiscalCard";
 import { PartIdentityCard } from "../PartIdentityCard";
 import { PartLogisticsCard } from "../PartLogisticsCard";
@@ -55,6 +56,7 @@ export function PartLayoutCounter({ part }: IPartLayoutProps) {
             <ApplicationsSection part={part} />
           </TabsContent>
           <TabsContent value="equivalents" className="mt-4 rounded-lg border border-border bg-card">
+            <PartCrossReferenceSection part={part} />
             <EquivalentsSection part={part} />
           </TabsContent>
         </Tabs>

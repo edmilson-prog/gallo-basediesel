@@ -37,6 +37,7 @@ import { createSeededContext } from "./utils";
 import { generateSellers } from "./seller";
 import { generateAudit } from "./audit";
 import { generatePart, linkEquivalentParts } from "./part";
+import { buildUfiSamplePart } from "../data/seedRealPart";
 import { generateCustomerB2B, generateCustomerB2C, generateCustomerNotes } from "./customer";
 import { generateVehicle, generateVehicleServiceEntry } from "./vehicle";
 import { generateLead } from "./lead";
@@ -125,6 +126,9 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
   for (let i = 0; i < VOLUMES.parts; i += 1) {
     parts.push(generatePart(ctx, { sequence: i, now }));
   }
+  // Single real record (UFI sheet, item 23.290.00) to validate the detail layout
+  // against high-density real data ahead of the bulk import.
+  parts.unshift(buildUfiSamplePart(now));
   linkEquivalentParts(ctx, parts);
 
   // 3. Customers (B2B + B2C). Vendedor ids only — owner does not hold carteira.
