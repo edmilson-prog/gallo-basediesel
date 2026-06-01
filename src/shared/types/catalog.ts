@@ -88,6 +88,10 @@ export interface IPart {
   equivalentPartIds: ID[];
   /** Competitor brand cross-references (aftermarket equivalents). */
   crossReferences?: IPartCrossReference[];
+  /** Application segment from the supplier sheet (Off Road | Linha Leve | Linha Pesada). */
+  segment?: string;
+  /** Raw application free-text preserved from the source (lossless parser fallback). */
+  applicationNotes?: string;
   applications: IApplication[];
   brand: string;
   supplier: string;
