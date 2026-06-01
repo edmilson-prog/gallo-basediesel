@@ -19,6 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Icon } from "@/components/Icon";
+import { useDebounce } from "@/shared/hooks/useDebounce";
 import {
   formatCnpj,
   formatCpf,
@@ -26,7 +28,9 @@ import {
   isValidCnpj,
   isValidCpf,
   isValidPhone,
+  onlyDigits,
 } from "../../utils/cnpjCpf";
+import { useMinhaReceita } from "../../hooks/useMinhaReceita";
 
 export interface INewCustomerModalProps {
   open: boolean;
@@ -39,6 +43,9 @@ export interface INewCustomerModalProps {
 }
 
 type CustomerType = ICustomer["type"];
+
+/** Visual validation state for the document field (drives icon + message). */
+type DocFieldState = "idle" | "checking" | "valid" | "invalid" | "warning";
 
 export function NewCustomerModal({
   open,
@@ -59,6 +66,14 @@ export function NewCustomerModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const {
+    lookup: lookupCnpj,
+    reset: resetCnpj,
+    status: cnpjStatus,
+    data: cnpjData,
+  } = useMinhaReceita();
+  const debouncedDocument = useDebounce(document, 500);
+
   useEffect(() => {
     if (open) {
       setType("B2B");
@@ -69,13 +84,58 @@ export function NewCustomerModal({
       setSellerId(defaultSellerId ?? "");
       setContactName("");
       setErrors({});
+      resetCnpj();
     }
-  }, [open, defaultSellerId]);
+  }, [open, defaultSellerId, resetCnpj]);
 
-  const documentValid = useMemo(
-    () => (type === "B2B" ? isValidCnpj(document) : isValidCpf(document)),
-    [type, document],
-  );
+  // CNPJ lookup against Minha Receita once a valid 14-digit number is typed.
+  // Autofill only happens into empty fields so the user's input is never lost.
+  useEffect(() => {
+    if (type !== "B2B") {
+      resetCnpj();
+      return;
+    }
+    const digits = onlyDigits(debouncedDocument);
+    if (digits.length !== 14 || !isValidCnpj(debouncedDocument)) {
+      resetCnpj();
+      return;
+    }
+    let active = true;
+    void lookupCnpj(debouncedDocument).then((company) => {
+      if (!active || !company) return;
+      const filled = company.razaoSocial || company.nomeFantasia;
+      if (filled) setName((prev) => (prev.trim() ? prev : filled));
+    });
+    return () => {
+      active = false;
+    };
+  }, [debouncedDocument, type, lookupCnpj, resetCnpj]);
+
+  // Document field visual state: instant for CPF, API-driven for CNPJ.
+  const docState = useMemo<DocFieldState>(() => {
+    const digits = onlyDigits(document);
+    if (type === "B2C") {
+      if (digits.length < 11) return "idle";
+      return isValidCpf(document) ? "valid" : "invalid";
+    }
+    if (digits.length < 14) return "idle";
+    if (!isValidCnpj(document)) return "invalid";
+    if (cnpjStatus === "loading") return "checking";
+    if (cnpjStatus === "invalid") return "invalid";
+    if (cnpjStatus === "error") return "warning";
+    if (cnpjStatus === "success") return "valid";
+    return "checking";
+  }, [type, document, cnpjStatus]);
+
+  // Local gate for submit: a network failure (warning) must not block, a
+  // 404 (invalid) must. CPF is purely local.
+  const documentValid = useMemo(() => {
+    if (type === "B2C") return isValidCpf(document);
+    if (!isValidCnpj(document)) return false;
+    return cnpjStatus !== "invalid";
+  }, [type, document, cnpjStatus]);
+
+  const cnpjChecking = type === "B2B" && cnpjStatus === "loading";
 
   const phoneValid = useMemo(() => isValidPhone(phone), [phone]);
 
@@ -86,12 +146,18 @@ export function NewCustomerModal({
     sellerId !== "" &&
     (type === "B2C" || contactName.trim().length > 0);
 
+  const documentLabel = type === "B2B" ? "CNPJ" : "CPF";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formValid) {
       const next: Record<string, string> = {};
       if (!name.trim()) next.name = "Obrigatório.";
-      if (!documentValid) next.document = type === "B2B" ? "CNPJ inválido." : "CPF inválido.";
+      if (!documentValid) {
+        if (type === "B2C") next.document = "CPF inválido.";
+        else if (cnpjStatus === "invalid") next.document = "CNPJ não encontrado na Receita.";
+        else next.document = "CNPJ inválido.";
+      }
       if (!phoneValid) next.phone = "Telefone inválido.";
       if (sellerId === "") next.seller = "Selecione um vendedor.";
       if (type === "B2B" && !contactName.trim()) next.contactName = "Obrigatório.";
@@ -150,6 +216,7 @@ export function NewCustomerModal({
                 onValueChange={(v) => {
                   setType(v as CustomerType);
                   setDocument("");
+                  setErrors((prev) => ({ ...prev, document: "" }));
                 }}
                 className="grid grid-cols-2 gap-2"
               >
@@ -194,19 +261,64 @@ export function NewCustomerModal({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="customer-document">{type === "B2B" ? "CNPJ" : "CPF"}</Label>
-                <Input
-                  id="customer-document"
-                  inputMode="numeric"
-                  value={document}
-                  onChange={(e) =>
-                    setDocument(
-                      type === "B2B" ? formatCnpj(e.target.value) : formatCpf(e.target.value),
-                    )
-                  }
-                  placeholder={type === "B2B" ? "00.000.000/0000-00" : "000.000.000-00"}
-                />
-                {errors.document && <p className="text-xs text-destructive">{errors.document}</p>}
+                <Label htmlFor="customer-document">{documentLabel}</Label>
+                <div className="relative">
+                  <Input
+                    id="customer-document"
+                    inputMode="numeric"
+                    className="pr-9"
+                    value={document}
+                    aria-invalid={docState === "invalid"}
+                    aria-describedby="customer-document-msg"
+                    onChange={(e) => {
+                      setDocument(
+                        type === "B2B" ? formatCnpj(e.target.value) : formatCpf(e.target.value),
+                      );
+                      if (errors.document) setErrors((prev) => ({ ...prev, document: "" }));
+                    }}
+                    placeholder={type === "B2B" ? "00.000.000/0000-00" : "000.000.000-00"}
+                  />
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+                    {docState === "checking" && (
+                      <Icon
+                        icon="mdi:loading"
+                        size={16}
+                        className="animate-spin text-muted-foreground motion-reduce:animate-none"
+                      />
+                    )}
+                    {docState === "valid" && (
+                      <Icon icon="mdi:check-circle" size={16} className="text-success" />
+                    )}
+                    {docState === "invalid" && (
+                      <Icon icon="mdi:alert-circle" size={16} className="text-destructive" />
+                    )}
+                    {docState === "warning" && (
+                      <Icon icon="mdi:cloud-alert-outline" size={16} className="text-warning" />
+                    )}
+                  </span>
+                </div>
+                <div id="customer-document-msg" className="min-h-4" aria-live="polite">
+                  {docState === "checking" && (
+                    <p className="text-xs text-muted-foreground">Consultando Receita…</p>
+                  )}
+                  {docState === "valid" && type === "B2C" && (
+                    <p className="text-xs text-success">CPF válido.</p>
+                  )}
+                  {docState === "invalid" && (
+                    <p role="alert" className="text-xs text-destructive">
+                      {type === "B2C"
+                        ? "CPF inválido."
+                        : cnpjStatus === "invalid"
+                          ? "CNPJ não encontrado na Receita."
+                          : "CNPJ inválido."}
+                    </p>
+                  )}
+                  {docState === "idle" && errors.document && (
+                    <p role="alert" className="text-xs text-destructive">
+                      {errors.document}
+                    </p>
+                  )}
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="customer-phone">Telefone</Label>
@@ -217,9 +329,33 @@ export function NewCustomerModal({
                   onChange={(e) => setPhone(formatPhone(e.target.value))}
                   placeholder="(55) 99800-0000"
                 />
-                {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
+                <div className="min-h-4">
+                  {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
+                </div>
               </div>
             </div>
+
+            {type === "B2B" && docState === "valid" && cnpjData?.razaoSocial && (
+              <p className="inline-flex items-center gap-1.5 rounded-md bg-success/10 px-2.5 py-1.5 text-xs text-success">
+                <Icon icon="mdi:office-building-outline" size={14} />
+                <span className="font-medium">{cnpjData.razaoSocial}</span>
+              </p>
+            )}
+
+            {type === "B2B" && docState === "warning" && (
+              <div className="flex flex-wrap items-center gap-2 rounded-md bg-warning/10 px-2.5 py-1.5 text-xs text-warning">
+                <Icon icon="mdi:cloud-alert-outline" size={14} />
+                <span>Não foi possível validar o CNPJ na Receita agora.</span>
+                <button
+                  type="button"
+                  onClick={() => void lookupCnpj(document)}
+                  className="inline-flex items-center gap-1 font-medium underline underline-offset-2 hover:no-underline"
+                >
+                  <Icon icon="mdi:refresh" size={14} />
+                  Tentar novamente
+                </button>
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <Label htmlFor="customer-email">Email (opcional)</Label>
@@ -258,8 +394,8 @@ export function NewCustomerModal({
             <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={!formValid || isSubmitting}>
-              {isSubmitting ? "Criando…" : "Criar cliente"}
+            <Button type="submit" disabled={!formValid || isSubmitting || cnpjChecking}>
+              {isSubmitting ? "Criando…" : cnpjChecking ? "Validando CNPJ…" : "Criar cliente"}
             </Button>
           </DialogFooter>
         </form>

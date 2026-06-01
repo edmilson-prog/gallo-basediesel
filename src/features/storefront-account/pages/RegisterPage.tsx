@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import type { ID } from "@/shared/types";
+import { useDebounce } from "@/shared/hooks/useDebounce";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +28,9 @@ import {
   isValidCnpj,
   isValidCpf,
   isValidPhone,
+  onlyDigits,
 } from "@/features/customers/utils/cnpjCpf";
+import { useMinhaReceita } from "@/features/customers/hooks/useMinhaReceita";
 import {
   GuestMatchError,
   useCustomerAuth,
@@ -38,6 +41,9 @@ import { STOREFRONT_ACCOUNT_STRINGS as S } from "../i18n/pt-BR";
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type RegisterType = "B2C" | "B2B";
+
+/** Visual validation state for the CNPJ field (drives icon + message). */
+type DocFieldState = "idle" | "checking" | "valid" | "invalid" | "warning";
 
 interface IFormState {
   type: RegisterType;
@@ -83,11 +89,64 @@ export function RegisterPage() {
   } | null>(null);
   const [merging, setMerging] = useState(false);
 
+  const {
+    lookup: lookupCnpj,
+    reset: resetCnpj,
+    status: cnpjStatus,
+    data: cnpjData,
+  } = useMinhaReceita();
+  const debouncedCnpj = useDebounce(form.cnpj, 500);
+  const cnpjChecking = form.type === "B2B" && cnpjStatus === "loading";
+
+  // Visual state for the CNPJ field: instant for the checksum, API-driven after.
+  const cnpjFieldState: DocFieldState =
+    form.type !== "B2B" || onlyDigits(form.cnpj).length < 14
+      ? "idle"
+      : !isValidCnpj(form.cnpj)
+        ? "invalid"
+        : cnpjStatus === "loading"
+          ? "checking"
+          : cnpjStatus === "invalid"
+            ? "invalid"
+            : cnpjStatus === "error"
+              ? "warning"
+              : cnpjStatus === "success"
+                ? "valid"
+                : "checking";
+
   useSeoMeta({ title: S.registerPageTitle, description: S.registerPageDescription });
 
   const update = <K extends keyof IFormState>(key: K, value: IFormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
+
+  // CNPJ lookup against Minha Receita; autofill razão social / nome fantasia
+  // only into empty fields so the visitor's own input is never overwritten.
+  useEffect(() => {
+    if (form.type !== "B2B") {
+      resetCnpj();
+      return;
+    }
+    const digits = onlyDigits(debouncedCnpj);
+    if (digits.length !== 14 || !isValidCnpj(debouncedCnpj)) {
+      resetCnpj();
+      return;
+    }
+    let active = true;
+    void lookupCnpj(debouncedCnpj).then((company) => {
+      if (!active || !company) return;
+      setForm((prev) => ({
+        ...prev,
+        razaoSocial: prev.razaoSocial.trim() ? prev.razaoSocial : company.razaoSocial,
+        nomeFantasia: prev.nomeFantasia.trim()
+          ? prev.nomeFantasia
+          : company.nomeFantasia || company.razaoSocial,
+      }));
+    });
+    return () => {
+      active = false;
+    };
+  }, [debouncedCnpj, form.type, lookupCnpj, resetCnpj]);
 
   const validate = (): boolean => {
     const next: typeof errors = {};
@@ -100,6 +159,7 @@ export function RegisterPage() {
       if (!form.nomeFantasia.trim()) next.nomeFantasia = S.errRequired;
       if (!form.cnpj) next.cnpj = S.errRequired;
       else if (!isValidCnpj(form.cnpj)) next.cnpj = S.errCnpjInvalid;
+      else if (cnpjStatus === "invalid") next.cnpj = S.errCnpjNotFound;
       if (!form.contactName.trim()) next.contactName = S.errRequired;
     }
     if (!form.email) next.email = S.errRequired;
@@ -257,14 +317,78 @@ export function RegisterPage() {
                   onChange={(e) => update("nomeFantasia", e.target.value)}
                 />
               </Field>
-              <Field label={S.registerCnpjLabel} error={errors.cnpj}>
-                <Input
-                  inputMode="numeric"
-                  placeholder={S.registerCnpjPlaceholder}
-                  value={form.cnpj}
-                  onChange={(e) => update("cnpj", formatCnpj(e.target.value))}
-                />
-              </Field>
+              <div className="space-y-1">
+                <Label className="text-xs font-medium text-muted-foreground">
+                  {S.registerCnpjLabel}
+                </Label>
+                <div className="relative">
+                  <Input
+                    inputMode="numeric"
+                    className="pr-9"
+                    placeholder={S.registerCnpjPlaceholder}
+                    value={form.cnpj}
+                    aria-invalid={cnpjFieldState === "invalid" || Boolean(errors.cnpj)}
+                    aria-describedby="register-cnpj-msg"
+                    onChange={(e) => {
+                      update("cnpj", formatCnpj(e.target.value));
+                      if (errors.cnpj) setErrors((prev) => ({ ...prev, cnpj: undefined }));
+                    }}
+                  />
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+                    {cnpjFieldState === "checking" && (
+                      <Icon
+                        icon="mdi:loading"
+                        size={16}
+                        className="animate-spin text-muted-foreground motion-reduce:animate-none"
+                      />
+                    )}
+                    {cnpjFieldState === "valid" && (
+                      <Icon icon="mdi:check-circle" size={16} className="text-success" />
+                    )}
+                    {cnpjFieldState === "invalid" && (
+                      <Icon icon="mdi:alert-circle" size={16} className="text-destructive" />
+                    )}
+                    {cnpjFieldState === "warning" && (
+                      <Icon icon="mdi:cloud-alert-outline" size={16} className="text-warning" />
+                    )}
+                  </span>
+                </div>
+                <div id="register-cnpj-msg" className="min-h-4" aria-live="polite">
+                  {cnpjFieldState === "checking" && (
+                    <p className="text-xs text-muted-foreground">{S.cnpjChecking}</p>
+                  )}
+                  {cnpjFieldState === "valid" && cnpjData?.razaoSocial && (
+                    <p className="inline-flex items-center gap-1 text-xs text-success">
+                      <Icon icon="mdi:office-building-outline" size={13} />
+                      <span className="font-medium">{cnpjData.razaoSocial}</span>
+                    </p>
+                  )}
+                  {cnpjFieldState === "warning" && (
+                    <p className="inline-flex flex-wrap items-center gap-1.5 text-xs text-warning">
+                      <Icon icon="mdi:cloud-alert-outline" size={13} />
+                      {S.cnpjLookupError}
+                      <button
+                        type="button"
+                        onClick={() => void lookupCnpj(form.cnpj)}
+                        className="font-medium underline underline-offset-2 hover:no-underline"
+                      >
+                        {S.cnpjRetry}
+                      </button>
+                    </p>
+                  )}
+                  {(cnpjFieldState === "invalid" || (cnpjFieldState === "idle" && errors.cnpj)) &&
+                    errors.cnpj && (
+                      <p role="alert" className="text-xs text-destructive">
+                        {errors.cnpj}
+                      </p>
+                    )}
+                  {cnpjFieldState === "invalid" && !errors.cnpj && (
+                    <p role="alert" className="text-xs text-destructive">
+                      {cnpjStatus === "invalid" ? S.errCnpjNotFound : S.errCnpjInvalid}
+                    </p>
+                  )}
+                </div>
+              </div>
               <Field
                 label={S.registerContactLabel}
                 error={errors.contactName}
@@ -334,8 +458,8 @@ export function RegisterPage() {
             </div>
           )}
 
-          <Button type="submit" size="lg" className="w-full" disabled={submitting}>
-            {submitting ? S.registerSubmitting : S.registerSubmit}
+          <Button type="submit" size="lg" className="w-full" disabled={submitting || cnpjChecking}>
+            {submitting ? S.registerSubmitting : cnpjChecking ? S.cnpjChecking : S.registerSubmit}
             {!submitting && (
               <Icon icon="mdi:account-plus-outline" size={16} className="ml-2" aria-hidden />
             )}
