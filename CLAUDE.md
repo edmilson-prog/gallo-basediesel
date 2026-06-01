@@ -8,6 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Estado atual: **Fase 1 (Frontend First)** — mockup navegável com dados fictícios. PRD-001 (Design System) implementado, codinome `Genesis` (v0.1.0). Demais PRDs (002–071) a serem executados via Claude Code CLI sobre o scaffold inicial. Projeto mantido pela AILA Sistemas Inteligentes.
 
+> ⚠️ **Worktrees — IGNORAR.** A pasta `.claude/worktrees/` (qualquer caminho contendo `worktrees`) contém git worktrees isoladas de outras branches e **não faz parte da branch `main`**. Ao explorar, buscar (grep/glob), editar ou raciocinar sobre o código, **ignore completamente** esse diretório. Trabalhe apenas no diretório principal do projeto (sobretudo `src/`). Não relate, edite nem referencie arquivos dentro de `worktrees`.
+
 ## Comandos
 
 ```bash
