@@ -32,12 +32,12 @@ import type {
 } from "@/shared/types";
 
 import { DEFAULT_SEED, STORE_MONTHLY_REVENUE_TARGET, VOLUMES } from "../config";
-import { SEED_OWNER_ID, SEED_ROLES, SEED_STORE, SEED_VENDEDOR_SELLER_IDS } from "../data";
+import { PART_CATEGORIES, SEED_OWNER_ID, SEED_ROLES, SEED_STORE, SEED_VENDEDOR_SELLER_IDS } from "../data";
 import { createSeededContext } from "./utils";
 import { generateSellers } from "./seller";
 import { generateAudit } from "./audit";
 import { generatePart, linkEquivalentParts } from "./part";
-import { buildUfiSamplePart } from "../data/seedRealPart";
+import { buildUfiParts } from "./ufiPart";
 import { generateCustomerB2B, generateCustomerB2C, generateCustomerNotes } from "./customer";
 import { generateVehicle, generateVehicleServiceEntry } from "./vehicle";
 import { generateLead } from "./lead";
@@ -121,14 +121,14 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
   const sellers = generateSellers();
   const whatsappAccounts = generateWhatsAppAccounts();
 
-  // 2. Catalog — purely independent.
+  // 2. Catalog — purely independent. Synthetic generator covers every category
+  // except filters; the filter slice comes from the real UFI supplier sheet.
+  const nonFilterCategories = PART_CATEGORIES.filter((c) => c.id !== "filtros");
   const parts: IPart[] = [];
   for (let i = 0; i < VOLUMES.parts; i += 1) {
-    parts.push(generatePart(ctx, { sequence: i, now }));
+    parts.push(generatePart(ctx, { sequence: i, now, categoryPool: nonFilterCategories }));
   }
-  // Single real record (UFI sheet, item 23.290.00) to validate the detail layout
-  // against high-density real data ahead of the bulk import.
-  parts.unshift(buildUfiSamplePart(now));
+  parts.push(...buildUfiParts(ctx, now));
   linkEquivalentParts(ctx, parts);
 
   // 3. Customers (B2B + B2C). Vendedor ids only — owner does not hold carteira.
