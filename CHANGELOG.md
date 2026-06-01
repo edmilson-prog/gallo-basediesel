@@ -4,6 +4,25 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.57.0] — Manifest · 2026-06-01
+
+O catálogo ganha dados de verdade. As **referências cruzadas** entre marcas concorrentes passam a ter lugar no modelo e na ficha do produto, e o catálogo é semeado com uma amostra de **filtros reais importados da planilha do fornecedor UFI** — com GTIN, dados fiscais, peso, múltiplo, aplicações e equivalências verdadeiras. Os filtros sintéticos dão lugar aos reais; as demais categorias seguem geradas. Tudo continua na Fase 1 (mock determinístico), agora muito mais fiel ao negócio.
+
+### Added
+
+- **Referência cruzada multi-marca** — novo conceito no modelo (`IPartCrossReference` + campo `crossReferences` em `IPart`), distinto dos códigos OEM do montador e das equivalências entre peças GALLO. Exibida em seção dedicada na ficha do produto, presente nos três layouts (Balcão, Painel, Ficha).
+- **Import de filtros reais UFI (amostra ~150 SKUs)** — um conversor offline (`scripts/import-ufi-parts.py`) transforma a planilha de cotação do fornecedor em dados crus versionados (`ufiPartsRaw.ts`); um builder determinístico (seeded) os converte em peças do catálogo, sintetizando estoque, SEFAZ, margem e localização. Cada filtro carrega GTIN, dados fiscais (NCM/ICMS/ST/origem), peso, múltiplo de embalagem, aplicações por veículo, referências cruzadas de até 10 marcas e custo real do fornecedor.
+- **Segmento de aplicação** — novo campo `segment` (Off Road / Linha Leve / Linha Pesada), exibido como chip no cabeçalho da ficha.
+- **Texto original da aplicação** — novo campo `applicationNotes`, que preserva de forma lossless o texto livre de aplicação da fonte, mostrado como rodapé na seção de Aplicações.
+
+### Changed
+
+- **Gerador de mocks do catálogo** — deixa de produzir filtros sintéticos; a fatia de filtros passa a vir da amostra real UFI, enquanto as outras sete categorias (motor, freios, transmissão, suspensão, elétrica, arrefecimento, lubrificantes) seguem geradas. A integridade referencial com pedidos, orçamentos e histórico de serviço é preservada.
+
+### Removed
+
+- **Fixture de peça única** (`seedRealPart.ts`) — o registro real avulso usado na validação inicial foi absorvido pela amostra de 150 filtros.
+
 ## [0.56.0] — Copilot · 2026-05-31
 
 O vendedor ganha um copiloto. Durante o atendimento, uma camada de orientação **privada** (só o vendedor vê) reúne o contexto do cliente, o resumo da conversa e sugestões acionáveis derivadas de regras — sem se confundir com a resposta enviada ao cliente. Tudo com dados fictícios na Fase 1; o motor de IA plena fica para a Fase 2, com o contrato já preparado.
