@@ -21,6 +21,8 @@ export interface ICustomerProfileProps {
   /** Layout density — `column` is the lateral 360px panel; `page` is the full route. */
   variant?: "column" | "page";
   className?: string;
+  /** Optional "Copiloto" tab content injected by the conversation screen (PRD-025). */
+  copilotTab?: React.ReactNode;
 }
 
 /**
@@ -39,6 +41,7 @@ export function CustomerProfile({
   conversation = null,
   variant = "column",
   className,
+  copilotTab,
 }: ICustomerProfileProps) {
   const { customer, isLoading, isError, notFound, refetch } = useCustomerProfile(customerId);
 
@@ -86,7 +89,7 @@ export function CustomerProfile({
         aria-label={`Ficha de ${customer.type === "B2B" ? customer.nomeFantasia : customer.fullName}`}
       >
         <ProfileHeader customer={customer} conversation={conversation} variant={variant} />
-        <ProfileTabs customer={customer} conversation={conversation} />
+        <ProfileTabs customer={customer} conversation={conversation} copilotTab={copilotTab} />
       </div>
     </TooltipProvider>
   );

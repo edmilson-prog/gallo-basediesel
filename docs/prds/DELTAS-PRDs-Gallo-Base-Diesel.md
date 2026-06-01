@@ -54,6 +54,7 @@ Cada entrada de delta segue o formato:
 | PRD-060+ | extend  | Tipos do storefront (configs, hero, etc.) — manter coesos                                                                     |
 | PRD-064  | extend  | Adicionar `ICartItem` em store global                                                                                         |
 | PRD-070  | extend  | Adicionar `IVisit` (visita do vendedor externo)                                                                               |
+| PRD-025  | extend  | Adicionar `ICopilotSuggestion`, `ICopilotBriefing`, `ICopilotSummary`, `ICopilotPanelData` e tipos auxiliares em `src/shared/types/copilot.ts` |
 | PRD-071  | extend  | Adicionar `IPortalUser`, `IPortalRequest`, `IPortalContract`, `PortalUserRole`                                                |
 
 > **Recomendação:** manter `src/shared/types/` modular — arquivo por domínio (`catalog.ts`, `quotes.ts`, `orders.ts`, `goals.ts`, etc.) em vez de tudo no `models.ts` original do PRD-002.
@@ -328,6 +329,16 @@ Cada entrada de delta segue o formato:
 
 ---
 
+### 3.19 PRD-011 — Tela de Conversa
+
+**Extendida pelo copiloto (PRD-025).**
+
+| Origem  | Tipo    | Descrição                                                                                                                                                                                                                   |
+| ------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PRD-025 | enhance | A tela de conversa (`ConversationPage`) monta a superfície do Copiloto (faixa, aba ou card, conforme `VITE_COPILOT_PLACEMENT`) via `useCopilotPanel`. A superfície é **privada ao vendedor** e nunca exposta ao cliente. O hook `useCopilotPanel` encapsula provider + dismiss + placement, sem alterar o modelo de mensagens nem o layout base da conversa. |
+
+---
+
 ## 4. Resumo de stubs substituídos
 
 Tabela consolidada de stubs criados em PRDs anteriores e substituídos por implementações reais em PRDs posteriores:
@@ -461,6 +472,7 @@ Cliente tem UM vendedor responsável. Transferências (PRD-018) são o mecanismo
 | ------ | ---------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1.0    | 25/05/2026 | AILA  | Criação inicial — consolidação de deltas dos 50 PRDs                                                                                                                       |
 | 1.1    | 27/05/2026 | AILA  | PRD-043 redigido — detalhamento do catálogo de badges + componente `<SellerBadgesGrid>` exportável; reforço de que PRD-040 já reserva slot para `<RankingHighlightWidget>` |
+| 1.2    | 31/05/2026 | AILA  | PRD-025 implementado — adicionado delta em 3.1 (PRD-002: tipos do copiloto) e nova seção 3.19 (PRD-011: tela de conversa extendida pela superfície do Copiloto) |
 
 ---
 

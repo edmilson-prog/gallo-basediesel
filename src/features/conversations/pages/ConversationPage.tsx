@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams } from "@tanstack/react-router";
 import type { ID } from "@/shared/types";
 import { Icon } from "@/components/Icon";
@@ -16,6 +17,7 @@ import { ConversationMenu } from "../components/ConversationMenu";
 import { useConversationFiche } from "../hooks/useConversationFiche";
 import { useMessages } from "../hooks/useMessages";
 import { ConversationProvider } from "../hooks/ConversationContext";
+import { CopilotStrip, CopilotCard, CopilotFicheTab, useCopilotPanel } from "@/features/copilot";
 
 export function ConversationPage() {
   const { id } = useParams({ from: "/app/atendimento/$id" });
@@ -24,6 +26,11 @@ export function ConversationPage() {
   const fiche = useConversationFiche();
   const messages = useMessages(conversationId);
   const escalation = useConversationEscalation(conversationId);
+  const copilot = useCopilotPanel(conversationId);
+  const [draft, setDraft] = useState("");
+  // Ready reply for the strip variant — reuses the boleto/NF heuristic from buildAiSuggestions
+  const stripReply =
+    copilot.placement === "strip" ? "Te envio o boleto e a NF ainda hoje." : undefined;
   const ficheButtonClick = useFicheButtonHandler({
     customerId: detail.conversation?.customerId ?? null,
     toggle: fiche.toggle,
@@ -78,16 +85,27 @@ export function ConversationPage() {
               escalation={escalation}
             />
 
+            {copilot.placement === "card" && conversation.customerId && !copilot.error && (
+              <CopilotCard panel={copilot} />
+            )}
+
             <div className="min-h-0 flex-1">
               <MessageList conversation={conversation} />
             </div>
 
             <MetaWindowIndicator conversation={conversation} whatsappAccount={whatsappAccount} />
 
+            {copilot.placement === "strip" && conversation.customerId && !copilot.error && (
+              <CopilotStrip panel={copilot} reply={stripReply} onInsertReply={setDraft} />
+            )}
+
             <MessageInput
               conversation={conversation}
               whatsappAccount={whatsappAccount}
               onSent={detail.refresh}
+              draft={draft}
+              onDraftChange={setDraft}
+              hideAiSuggestions={copilot.placement === "strip"}
             />
           </div>
 
@@ -97,6 +115,11 @@ export function ConversationPage() {
               conversation={conversation}
               open={fiche.open}
               onOpenChange={fiche.setOpen}
+              copilotTab={
+                copilot.placement === "tab" && !copilot.error ? (
+                  <CopilotFicheTab panel={copilot} />
+                ) : undefined
+              }
             />
           )}
         </div>

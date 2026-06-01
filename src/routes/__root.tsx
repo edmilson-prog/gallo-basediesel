@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Outlet, Link, createRootRouteWithContext, useRouter } from "@tanstack/react-router";
 
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { CopilotSettingsProvider } from "@/features/copilot";
 import { AuthProvider } from "@/features/auth/AuthProvider";
 import { MultistoreProvider } from "@/features/multistore";
 import { DataProvidersProvider } from "@/providers/data";
@@ -74,15 +75,17 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <DataProvidersProvider>
-          <NotificationProvidersProvider>
-            <AuthProvider>
-              <MultistoreProvider>
-                <Outlet />
-              </MultistoreProvider>
-            </AuthProvider>
-          </NotificationProvidersProvider>
-        </DataProvidersProvider>
+        <CopilotSettingsProvider>
+          <DataProvidersProvider>
+            <NotificationProvidersProvider>
+              <AuthProvider>
+                <MultistoreProvider>
+                  <Outlet />
+                </MultistoreProvider>
+              </AuthProvider>
+            </NotificationProvidersProvider>
+          </DataProvidersProvider>
+        </CopilotSettingsProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

@@ -26,6 +26,12 @@ export interface IMessageInputProps {
   /** Read-only mode (vendor doesn't own the conversation, archived etc). */
   readOnly?: boolean;
   readOnlyMessage?: string;
+  /** Controlled draft text (lifted from parent for copilot strip integration). */
+  draft?: string;
+  /** Called when the draft changes — enables controlled mode. */
+  onDraftChange?: (text: string) => void;
+  /** When true, hides the "Sugestões IA" bar (copilot strip handles it instead). */
+  hideAiSuggestions?: boolean;
 }
 
 const EMOJI_SET = [
@@ -82,18 +88,24 @@ function buildAiSuggestions(conversation: IConversation, lastInboundText: string
   return list.slice(0, 3);
 }
 
-export function MessageInput({
-  conversation,
-  whatsappAccount,
-  onSent,
-  readOnly = false,
-  readOnlyMessage,
-}: IMessageInputProps) {
+export function MessageInput(props: IMessageInputProps) {
+  const {
+    conversation,
+    whatsappAccount,
+    onSent,
+    readOnly = false,
+    readOnlyMessage,
+    draft,
+    onDraftChange,
+    hideAiSuggestions = false,
+  } = props;
   const { messages } = useConversationContext();
   const window = useMetaWindow(conversation, whatsappAccount);
   const sendHook = useMessageSend(conversation, whatsappAccount);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const [value, setValue] = useState("");
+  const [internalValue, setInternalValue] = useState("");
+  const value = draft ?? internalValue;
+  const setValue = onDraftChange ?? setInternalValue;
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [templateOpen, setTemplateOpen] = useState(false);
 
@@ -162,7 +174,7 @@ export function MessageInput({
   const insertEmoji = (emoji: string) => {
     const el = textareaRef.current;
     if (!el) {
-      setValue((v) => v + emoji);
+      setValue(value + emoji);
       return;
     }
     const start = el.selectionStart ?? value.length;
@@ -187,7 +199,7 @@ export function MessageInput({
 
   return (
     <footer className="border-t border-border bg-card">
-      {suggestions.length > 0 && canSendFreeText && (
+      {!hideAiSuggestions && suggestions.length > 0 && canSendFreeText && (
         <div
           className="flex items-center gap-1.5 overflow-x-auto border-b border-border px-3 py-2 text-[11px]"
           aria-label={CONVERSATION_STRINGS.aiSuggestionsLabel}

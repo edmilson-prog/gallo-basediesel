@@ -47,6 +47,12 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         to: "/app/configuracoes/notificacoes",
         roles: ["Owner", "Gestor", "Vendedor", "SDR", "VendedorExterno", "Financeiro"],
       },
+      {
+        label: "Copiloto",
+        icon: "mdi:lightbulb-on-outline",
+        to: "/app/configuracoes/copiloto",
+        roles: ["Owner", "Gestor", "Vendedor", "SDR", "VendedorExterno"],
+      },
     ],
   },
   {

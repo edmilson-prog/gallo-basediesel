@@ -774,6 +774,7 @@ A página `/design-system` (e portanto o reset de mocks) é **dev-only** (PRD-00
 | ---------- | ------ | ----------------------------------------------------------------------------------------------------------------------------- |
 | 25/05/2026 | v1     | Criação inicial — camada de mocks completa, geradores determinísticos, store Zustand, APIs com contrato drop-in para Supabase |
 | 25/05/2026 | v1.1   | Implementação concluída em v0.3.0 Genesis. Renomeado para `_DONE.md`.                                                         |
+| 31/05/2026 | delta  | PRD-025 adiciona Copiloto de Vendas. O resumo mockado (quando não há escalonamento SDR) e as sugestões baseadas em regras são gerados **em runtime** pelo `mockCopilotProvider` — **não há gerador estático** em `src/mocks/` para essas entidades. Os arquivos responsáveis são `src/providers/data/impl/mock/copilot.ts` (provider mock: monta `ICopilotPanelData` com `ICopilotBriefing`, `ICopilotSummary` e `ICopilotSuggestion[]`) e `src/providers/data/impl/mock/copilotRules.ts` (motor de regras: avalia o contexto e produz sugestões baseadas em regras). |
 
 ---
 
