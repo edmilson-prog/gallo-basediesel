@@ -16,6 +16,48 @@ export interface IApplication {
   engine?: string;
 }
 
+/** Validation state of a part's GTIN against the SEFAZ registry. */
+export type SefazStatus = "validated" | "not_checked" | "invalid";
+
+/**
+ * Named price table — final price is derived from the part's base cost by a
+ * markup. Mirrors the DINTEC "Cadastro de Valores do Produto".
+ */
+export interface IPriceTable {
+  /** Stable channel id (`padrao` | `ecommerce` | `oficina` | `varejo` | `atacado`). */
+  id: string;
+  label: string;
+  /** Markup as a decimal over cost (1.20 = +120%). */
+  markupPercent: number;
+  /** Final price = unitCost * (1 + markupPercent). */
+  price: Money;
+}
+
+/** A supplier stock-entry for a part (DINTEC "Entrada no Estoque" row). */
+export interface IPartSupplier {
+  id: ID;
+  name: string;
+  /** Supplier's internal code for this part. */
+  supplierCode?: string;
+  /** Inbound invoice (nota fiscal) number. */
+  invoiceNumber?: string;
+  invoiceDate?: ISO8601;
+  cost: Money;
+  quantity: number;
+}
+
+/** Tax attributes surfaced on the detail page. */
+export interface IPartFiscal {
+  /** Mercosul tax classification code (e.g. "8421.23.00"). */
+  ncm?: string;
+  /** ICMS rate in percent (e.g. 17). */
+  icmsPercent?: number;
+  /** Whether tax substitution (ST) applies. */
+  taxSubstitution?: boolean;
+  /** Goods origin label (e.g. "Nacional"). */
+  origin?: string;
+}
+
 /**
  * Part — the commercial unit sold by GALLO BASE DIESEL.
  *
@@ -47,6 +89,39 @@ export interface IPart {
   unitPrice: Money;
   /** Margin as decimal (0.30 = 30%). */
   marginPercent: number;
+  // --- DINTEC enrichment (PRD product-detail redesign) — all optional/additive ---
+  /** Global trade item number (EAN-13 barcode), distinct from the supplier code. */
+  gtin?: string;
+  /** SEFAZ validation state of the GTIN. */
+  sefazStatus?: SefazStatus;
+  /** When the GTIN was last validated against SEFAZ. */
+  sefazCheckedAt?: ISO8601;
+  /** Supplier's internal code — historically misused as the barcode in the ERP. */
+  supplierCode?: string;
+  /** Manufacturer reference number. */
+  reference?: string;
+  /** ERP product group (e.g. "1-FILTRO"). */
+  group?: string;
+  /** Free-text product type. */
+  partType?: string;
+  /** Named price tables (Padrão, Ecommerce, Oficina, Varejo, Atacado). */
+  priceTables?: IPriceTable[];
+  /** Tax attributes. */
+  fiscal?: IPartFiscal;
+  /** Net weight in kilograms. */
+  weightKg?: number;
+  /** Physical warehouse location (e.g. "A-12"). */
+  storageLocation?: string;
+  /** Units per box. */
+  boxQuantity?: number;
+  /** Whether the part can be sold fractionally. */
+  fractionable?: boolean;
+  /** Unit of measure (e.g. "UN", "PC", "L"). */
+  unitOfMeasure?: string;
+  /** Supplier stock-entry history. */
+  suppliers?: IPartSupplier[];
+  /** Weighted average cost (C.M.) across supplier entries. */
+  averageCost?: Money;
   stockAvailable: number;
   stockMinimum: number;
   /** Division this part belongs to. On the MVP always `'parts'`. */

@@ -1,5 +1,6 @@
-import type { IApplication, IPart, ID, PartCategory } from "@/shared/types";
+import type { IApplication, IPart, IPartSupplier, ID, PartCategory } from "@/shared/types";
 import { CATALOG_CATEGORY_TO_CANONICAL } from "@/features/part-identification/data/partCategories";
+import { buildPriceTables, weightedAverageCost } from "@/features/catalog/utils/pricing";
 import {
   OEM_PREFIXES,
   PART_BRAND_NAMES,
@@ -20,6 +21,35 @@ const SUBCATEGORIES_BY_CATEGORY: Record<string, string[]> = {
   arrefecimento: ["radiador", "intercooler", "ventoinha", "termostato"],
   lubrificantes: ["motor", "câmbio", "hidráulico", "graxa", "arla"],
 };
+
+/** ERP product group label per catalog category. */
+const GROUP_BY_CATEGORY: Record<string, string> = {
+  filtros: "1-FILTRO",
+  freios: "2-FREIOS",
+  transmissao: "3-TRANSMISSÃO",
+  suspensao: "4-SUSPENSÃO",
+  eletrica: "5-ELÉTRICA",
+  motor: "6-MOTOR",
+  arrefecimento: "7-ARREFECIMENTO",
+  lubrificantes: "8-LUBRIFICANTES",
+};
+
+/** Representative NCM per catalog category (heavy-truck parts). */
+const NCM_BY_CATEGORY: Record<string, string> = {
+  filtros: "8421.23.00",
+  freios: "8708.30.90",
+  transmissao: "8708.93.00",
+  suspensao: "8708.80.00",
+  eletrica: "8511.40.00",
+  motor: "8409.99.90",
+  arrefecimento: "8708.91.00",
+  lubrificantes: "2710.19.32",
+};
+
+const UNITS_OF_MEASURE = ["UN", "PC", "CJ", "L"] as const;
+const ICMS_RATES: number[] = [7, 12, 17, 18];
+const ORIGINS = ["Nacional", "Importado"] as const;
+const BOX_QUANTITIES: number[] = [1, 6, 12, 24];
 
 /** Mark some suppliers/brands as OEM originals based on naming. */
 const ORIGINAL_BRAND_HINTS = ["Volvo Genuine", "Scania Original", "Iveco Parts", "Cummins OEM"];
@@ -67,6 +97,22 @@ export function generatePart(
   const isOriginal =
     ORIGINAL_BRAND_HINTS.includes(brand) || ORIGINAL_BRAND_HINTS.includes(supplier);
 
+  // --- DINTEC enrichment ---
+  const hasGtin = ctx.bool(0.85);
+  const gtin = hasGtin ? generateEan13(ctx) : undefined;
+  let sefazStatus: IPart["sefazStatus"];
+  let sefazCheckedAt: string | undefined;
+  if (hasGtin) {
+    const roll = ctx.rng();
+    sefazStatus = roll < 0.7 ? "validated" : roll < 0.95 ? "not_checked" : "invalid";
+    if (sefazStatus === "validated") {
+      sefazCheckedAt = randomISO(ctx, new Date(2026, 0, 1), now);
+    }
+  }
+  const suppliers = generatePartSuppliers(ctx, id, baseCost);
+  const averageCost = weightedAverageCost(suppliers) ?? undefined;
+  const priceTables = unitCost > 0 ? buildPriceTables(unitCost, margin) : undefined;
+
   return {
     id,
     sku,
@@ -83,6 +129,27 @@ export function generatePart(
     unitCost,
     unitPrice,
     marginPercent: Number(margin.toFixed(4)),
+    gtin,
+    sefazStatus,
+    sefazCheckedAt,
+    supplierCode: suppliers[0]?.supplierCode,
+    reference: String(ctx.int(100000, 9999999)),
+    group: GROUP_BY_CATEGORY[category.id],
+    partType: ctx.bool(0.5) ? capitalize(noun) : undefined,
+    priceTables,
+    fiscal: {
+      ncm: NCM_BY_CATEGORY[category.id],
+      icmsPercent: ctx.pick(ICMS_RATES),
+      taxSubstitution: ctx.bool(0.3),
+      origin: ctx.pick(ORIGINS),
+    },
+    weightKg: roundMoney(ctx.int(20, 4000) / 100),
+    storageLocation: `${ctx.pick(["A", "B", "C", "D", "E", "F"])}-${ctx.int(1, 40)}`,
+    boxQuantity: ctx.pick(BOX_QUANTITIES),
+    fractionable: ctx.bool(0.4),
+    unitOfMeasure: ctx.pick(UNITS_OF_MEASURE),
+    suppliers,
+    averageCost,
     stockAvailable,
     stockMinimum,
     division: "parts",
@@ -170,6 +237,48 @@ function inferCategoryFromSku(sku: string): string | null {
   const code = match[1].toLowerCase();
   const category = PART_CATEGORIES.find((c) => c.id.slice(0, 3) === code);
   return category?.id ?? null;
+}
+
+/** Deterministic EAN-13 with a valid mod-10 check digit (GS1 Brazil prefix). */
+function generateEan13(ctx: ISeededContext): string {
+  const digits: number[] = [];
+  const prefix = ctx.pick(["789", "790"]);
+  for (const ch of prefix) digits.push(Number(ch));
+  while (digits.length < 12) digits.push(ctx.int(0, 9));
+  const sum = digits.reduce((acc, d, i) => acc + d * (i % 2 === 0 ? 1 : 3), 0);
+  const check = (10 - (sum % 10)) % 10;
+  digits.push(check);
+  return digits.join("");
+}
+
+/** Short alphanumeric supplier code derived from the supplier name. */
+function generateSupplierCode(ctx: ISeededContext, supplier: string): string {
+  const slug =
+    supplier
+      .replace(/[^A-Za-z]/g, "")
+      .slice(0, 3)
+      .toUpperCase() || "FRN";
+  return `${slug}-${ctx.int(1000, 9999)}`;
+}
+
+/** 1–3 supplier stock entries with costs around the part's base cost. */
+function generatePartSuppliers(ctx: ISeededContext, partId: ID, baseCost: number): IPartSupplier[] {
+  const count = ctx.int(1, 3);
+  const out: IPartSupplier[] = [];
+  for (let i = 0; i < count; i += 1) {
+    const name = ctx.pick(SUPPLIER_NAMES);
+    const variation = 1 + (ctx.rng() - 0.5) * 0.2; // ±10%
+    out.push({
+      id: `sup-${partId}-${i}`,
+      name,
+      supplierCode: generateSupplierCode(ctx, name),
+      invoiceNumber: String(ctx.int(10000, 99999)),
+      invoiceDate: randomISO(ctx, new Date(2025, 0, 1), new Date(2026, 5, 1)),
+      cost: roundMoney(Math.max(1, baseCost * variation)),
+      quantity: ctx.int(1, 60),
+    });
+  }
+  return out;
 }
 
 function clamp(value: number, lo: number, hi: number): number {
