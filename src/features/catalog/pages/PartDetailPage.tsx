@@ -18,12 +18,13 @@ import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { auditLog } from "@/features/rbac/utils/auditLog";
 import { usePartsProvider } from "@/providers/data/hooks/usePartsProvider";
-import { ApplicationsSection } from "../components/detail/ApplicationsSection";
-import { CommercialSection } from "../components/detail/CommercialSection";
-import { EquivalentsSection } from "../components/detail/EquivalentsSection";
 import { PartDetailHeader } from "../components/detail/PartDetailHeader";
-import { StockSection } from "../components/detail/StockSection";
+import { PartStatStrip } from "../components/detail/PartStatStrip";
+import { PartLayoutCounter } from "../components/detail/layouts/PartLayoutCounter";
+import { PartLayoutPanel } from "../components/detail/layouts/PartLayoutPanel";
+import { PartLayoutSheet } from "../components/detail/layouts/PartLayoutSheet";
 import { usePart } from "../hooks/useCatalogList";
+import { usePartDetailLayout } from "../hooks/usePartDetailLayout";
 import { CATALOG_STRINGS } from "../i18n/pt-BR";
 
 export function PartDetailPage() {
@@ -37,6 +38,7 @@ export function PartDetailPage() {
 
   const partQuery = usePart(id);
   const [confirmToggleOpen, setConfirmToggleOpen] = useState(false);
+  const [layout, setLayout] = usePartDetailLayout();
 
   if (partQuery.isLoading) {
     return <DetailSkeleton />;
@@ -83,20 +85,25 @@ export function PartDetailPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-background pb-12">
+    <div className="flex min-h-[calc(100vh-4rem)] flex-col bg-background">
       <PartDetailHeader
         part={part}
         canEdit={canEdit}
         canToggle={canToggle}
+        layout={layout}
+        onLayoutChange={setLayout}
         onBack={handleBack}
         onEdit={handleEdit}
         onDuplicate={handleDuplicate}
         onToggleActive={() => setConfirmToggleOpen(true)}
       />
-      <ApplicationsSection part={part} />
-      <EquivalentsSection part={part} />
-      <CommercialSection part={part} />
-      <StockSection part={part} />
+
+      <div className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 sm:px-6">
+        <PartStatStrip part={part} />
+        {layout === "counter" && <PartLayoutCounter part={part} />}
+        {layout === "panel" && <PartLayoutPanel part={part} />}
+        {layout === "sheet" && <PartLayoutSheet part={part} />}
+      </div>
 
       <AlertDialog open={confirmToggleOpen} onOpenChange={setConfirmToggleOpen}>
         <AlertDialogContent>
