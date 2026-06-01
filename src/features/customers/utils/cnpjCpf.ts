@@ -1,26 +1,58 @@
 /**
- * Lightweight CNPJ/CPF validators. Mocked workflows accept any digit pattern
- * (so seed data still passes), but the format itself must look real.
+ * CNPJ/CPF validators with real check-digit (dígito verificador) validation.
+ * Both length and the official checksum must pass, so only genuinely valid
+ * documents are accepted on input.
  */
 
 export function onlyDigits(value: string): string {
   return (value ?? "").replace(/\D/g, "");
 }
 
-/** Basic CPF validator — length + non-repeated digits. */
+/**
+ * CPF validator — length, non-repeated digits and both check digits.
+ * @see https://www.gov.br/receitafederal (módulo 11)
+ */
 export function isValidCpf(value: string): boolean {
   const digits = onlyDigits(value);
   if (digits.length !== 11) return false;
   if (/^(\d)\1{10}$/.test(digits)) return false;
-  return true;
+
+  const nums = digits.split("").map(Number);
+  const checkDigit = (length: number): number => {
+    let sum = 0;
+    for (let i = 0; i < length; i += 1) {
+      sum += (nums[i] ?? 0) * (length + 1 - i);
+    }
+    const remainder = (sum * 10) % 11;
+    return remainder === 10 ? 0 : remainder;
+  };
+
+  return checkDigit(9) === nums[9] && checkDigit(10) === nums[10];
 }
 
-/** Basic CNPJ validator — length + non-repeated digits. */
+/**
+ * CNPJ validator — length, non-repeated digits and both check digits.
+ * @see https://www.gov.br/receitafederal (módulo 11)
+ */
 export function isValidCnpj(value: string): boolean {
   const digits = onlyDigits(value);
   if (digits.length !== 14) return false;
   if (/^(\d)\1{13}$/.test(digits)) return false;
-  return true;
+
+  const nums = digits.split("").map(Number);
+  const checkDigit = (length: number): number => {
+    // Weights cycle 2..9 from right to left over the first `length` digits.
+    let sum = 0;
+    let weight = 2;
+    for (let i = length - 1; i >= 0; i -= 1) {
+      sum += (nums[i] ?? 0) * weight;
+      weight = weight === 9 ? 2 : weight + 1;
+    }
+    const remainder = sum % 11;
+    return remainder < 2 ? 0 : 11 - remainder;
+  };
+
+  return checkDigit(12) === nums[12] && checkDigit(13) === nums[13];
 }
 
 export function formatCpf(value: string): string {
