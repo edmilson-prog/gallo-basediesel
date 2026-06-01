@@ -35,7 +35,9 @@ export function PartDetailHeader({
         <div className="flex flex-1 flex-col gap-2">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h1 className="text-xl font-semibold tracking-tight text-foreground">{part.name}</h1>
+              <h1 className="text-xl font-semibold uppercase tracking-tight text-foreground">
+                {part.name}
+              </h1>
               <p className="font-mono text-xs text-muted-foreground">
                 SKU {part.sku} · OEM {part.oemCodes[0] ?? "—"}
               </p>
