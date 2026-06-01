@@ -88,6 +88,7 @@ export const CATALOG_STRINGS = {
     applications: {
       empty: "Esta peça ainda não tem aplicações cadastradas.",
       checkLabel: "Verificar compatibilidade",
+      rawLabel: "Texto original da aplicação",
       yearsRange: (a: number, b: number) => (a === b ? `${a}` : `${a} – ${b}`),
     },
     equivalents: {
@@ -137,6 +138,7 @@ export const CATALOG_STRINGS = {
       reference: "Referência",
       group: "Grupo",
       type: "Tipo",
+      segment: "Segmento",
       noGtin: "GTIN não cadastrado",
     },
     sefaz: {

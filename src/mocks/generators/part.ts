@@ -57,11 +57,12 @@ const ORIGINAL_BRAND_HINTS = ["Volvo Genuine", "Scania Original", "Iveco Parts",
 /** Deterministically generate a single `IPart` plus its applications. */
 export function generatePart(
   ctx: ISeededContext,
-  options: { now?: Date; sequence: number } = { sequence: 0 },
+  options: { now?: Date; sequence: number; categoryPool?: IPartCategory[] } = { sequence: 0 },
 ): IPart {
+  const pool = options.categoryPool ?? PART_CATEGORIES;
   const category = pickWeighted(
     ctx,
-    PART_CATEGORIES.map((c) => ({ value: c, weight: 1 })),
+    pool.map((c) => ({ value: c, weight: 1 })),
   );
   const noun = ctx.pick(category.nouns);
   const adjective = ctx.bool(0.7) ? ` ${ctx.pick(category.adjectives)}` : "";
