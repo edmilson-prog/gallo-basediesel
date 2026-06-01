@@ -169,6 +169,8 @@ export const CATALOG_STRINGS = {
       boxQty: "Qtd. por caixa",
       fractionable: "Fraciona",
       unit: "Unidade",
+      yes: "Sim",
+      no: "Não",
       empty: "Dados logísticos não cadastrados.",
     },
     suppliers: {
