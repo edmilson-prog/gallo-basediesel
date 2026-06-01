@@ -17,11 +17,11 @@
 | **Briefing de execução**             | `briefing-execucao-prds.md` v1.1                                                                           |
 | **Metodologia**                      | AILA GuiaPRD v1.4                                                                                          |
 | **Estratégia de desenvolvimento**    | Frontend First — mockup navegável → validação cliente → backend real (Fase 2)                              |
-| **Versão atual do app**              | Pré-implementação (sem versão release ainda)                                                               |
+| **Versão atual do app**              | v0.56.0 — codinome **Copilot**                                                                             |
 | **Versão alvo MVP**                  | v1.0.0 — codinome **Heavy**                                                                                |
 | **Total de PRDs planejados (MVP)**   | 50                                                                                                         |
 | **PRDs redigidos**                   | 50 (todos os PRDs do MVP redigidos)                                                                        |
-| **PRDs implementados**               | 34 (Bloco 0 completo · Bloco 1 completo · Bloco 2 completo · Bloco 3 completo · Bloco 4 ½ — 8/14 · PRD-009 Chime)          |
+| **PRDs implementados**               | 35 (Bloco 0 completo · Bloco 1 completo · Bloco 2 completo · Bloco 3 completo · Bloco 4 ½ — 8/14 · PRD-009 Chime · PRD-025 Copilot)          |
 | **PRDs futuros (Fase 2, PRDs 100+)** | 8 (roadmap futuro)                                                                                         |
 
 ---
@@ -397,6 +397,7 @@ A plataforma usa Semantic Versioning com codinomes em inglês para releases MINO
 | v0.29.0    | **Pareto**     | 26/05/2026    | PRD-045 (Curva ABC)              | Classificação ABC com migrações + gráfico Pareto                      |
 | v0.30.0    | **Vitals**     | 26/05/2026    | PRD-046 (Carteira Analítica)     | Saúde da carteira — churn, recovery, health score, evolução temporal  |
 | v0.55.0    | **Chime**      | 31/05/2026    | PRD-009 (Notification Center UI) | Central de notificações + sino real + preferências + portal do cliente |
+| v0.56.0    | **Copilot**    | 31/05/2026    | PRD-025 (Copiloto de Vendas)     | Orientação privada ao vendedor — briefing + resumo + sugestões por regra; posicionamento configurável na plataforma |
 | v0.13.0+   | _A definir_    | Mês 2         | PRDs 017–019 + 020–024 + 030–033 | Onda 1 entregue                                                       |
 | v0.5.0     | **Storefront** | Mês 9         | PRDs 060–067 (Bloco 5)           | Onda 3 quase completa                                                 |
 | **v1.0.0** | **Heavy**      | Mês 10        | PRDs 070, 071 + polish final     | **MVP completo — release oficial**                                    |
@@ -553,9 +554,9 @@ Em ordem sugerida, respeitando dependências e os deltas retroativos do `DELTAS-
 | Campo                | Valor                                                                                   |
 | -------------------- | --------------------------------------------------------------------------------------- |
 | **Data**             | 31/05/2026                                                                              |
-| **Atualizado por**   | Claude Sonnet 4.6 (Claude Code CLI)                                                     |
-| **Motivo**           | Implementação do PRD-009 (Notification Center) — v0.55.0 `Chime`                       |
-| **Versão do índice** | 1.9                                                                                     |
+| **Atualizado por**   | Claude Opus (Claude Code CLI)                                                           |
+| **Motivo**           | Implementação do PRD-025 (Copiloto de Vendas) — v0.56.0 `Copilot`                       |
+| **Versão do índice** | 1.10                                                                                    |
 
 ---
 

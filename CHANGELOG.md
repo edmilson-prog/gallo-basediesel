@@ -4,6 +4,22 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.56.0] — Copilot · 2026-05-31
+
+O vendedor ganha um copiloto. Durante o atendimento, uma camada de orientação **privada** (só o vendedor vê) reúne o contexto do cliente, o resumo da conversa e sugestões acionáveis derivadas de regras — sem se confundir com a resposta enviada ao cliente. Tudo com dados fictícios na Fase 1; o motor de IA plena fica para a Fase 2, com o contrato já preparado.
+
+### Added
+
+- **Copiloto de Vendas (`src/features/copilot/`)** — superfície de orientação privada ao vendedor na tela de atendimento, em três variantes (faixa sobre o campo de digitação, card no topo da conversa, aba na Ficha do cliente). Recolhida no estado normal e com expansão automática em alertas de alta severidade.
+- **Briefing e resumo reaproveitados** — o briefing reflete a Ficha do cliente e o resumo reflete o escalonamento do SDR, sem recomputar nem duplicar dados.
+- **Sugestões por regra determinística** — três regras prontas: prazo perguntado sem resposta (alerta), pedido de NF em nome de empresa para cadastro B2C (ação) e cliente dormente com intenção de compra (oportunidade). Cada sugestão pode ser dispensada.
+- **Posicionamento configurável na plataforma** — em Configurações › Copiloto, cada usuário escolhe onde o copiloto aparece (faixa, card ou aba); a preferência é salva no navegador e aplicada na hora, sem recarregar. O parâmetro de build `VITE_COPILOT_PLACEMENT` passa a ser apenas o default de fábrica.
+- **Botão "Gerar resposta" preparado** — presente porém inerte, reservando o lugar da geração por IA da Fase 2.
+
+### Changed
+
+- **Tela de atendimento** — passa a montar a superfície do copiloto conforme a variante ativa; o campo de digitação aceita rascunho controlado para receber a resposta sugerida.
+
 ## [0.55.0] — Chime · 2026-05-31
 
 A Central de Notificações ganha rosto. O sino do topo passa a mostrar notificações reais com contagem de não lidas e um preview; uma página dedicada reúne tudo com dois layouts (Painel e Lista), filtros e estados; o usuário escolhe por quais canais recebe cada tipo de aviso numa matriz de preferências; e o cliente ganha sua própria central e preferências na loja. Consome a fundação Herald (0.54.0) sem alterá-la.

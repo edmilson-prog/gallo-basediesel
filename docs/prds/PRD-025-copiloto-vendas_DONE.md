@@ -575,11 +575,11 @@ Tipos: **Added**, **Changed**, **Deprecated**, **Removed**, **Fixed**, **Securit
 
 | Campo | Valor |
 |-------|-------|
-| **Status** | ⏳ PENDENTE |
-| **Data de Implementação** | - |
-| **Versão do App** | - |
-| **Implementado por** | - |
-| **Observações** | - |
+| **Status** | ✅ CONCLUÍDO |
+| **Data de Implementação** | 31/05/2026 |
+| **Versão do App** | v0.56.0 — Copilot |
+| **Implementado por** | Claude Code CLI (Opus) |
+| **Observações** | Fase 1 entregue: superfície navegável em `src/features/copilot/`, três variantes (`strip` default / `card` / `tab`) com assistência por regras determinísticas (R1 `unanswered_deadline`, R2 `billing_mismatch`, R3 `dormant_opportunity`) e dados mockados. Briefing reaproveita a Ficha (PRD-012); resumo reaproveita o escalonamento do SDR (PRD-023). `ICopilotProvider` segue o Provider Pattern (PRD-005) com `mockCopilotProvider` ativo e stub Supabase para a Fase 2. **Posicionamento alternável em runtime** via Configurações → Copiloto (`/app/configuracoes/copiloto`), persistido em `localStorage` (`gallo-copilot-placement`); `VITE_COPILOT_PLACEMENT` permanece como default de fábrica. Botão "Gerar resposta" presente porém inerte (LLM reservado à Fase 2). Sem chamadas a IA real, sem persistência de sugestões/auditoria. |
 
 ---
 
@@ -588,6 +588,7 @@ Tipos: **Added**, **Changed**, **Deprecated**, **Removed**, **Fixed**, **Securit
 | Data | Versão | Alteração |
 |------|--------|-----------|
 | 31/05/2026 | v1 | Criação inicial — Copiloto de Vendas (Fase 1): superfície em três variantes alternáveis por parâmetro, briefing reaproveitando a Ficha, resumo reaproveitando o escalonamento do SDR, sugestões por regra determinística, Provider Pattern com mock e contrato preparado para o motor LLM da Fase 2 |
+| 31/05/2026 | v0.56.0 | Implementação concluída (Copilot). Posicionamento promovido a preferência de runtime configurável em Configurações → Copiloto (`localStorage`), com `VITE_COPILOT_PLACEMENT` como default de fábrica |
 
 ---
 
