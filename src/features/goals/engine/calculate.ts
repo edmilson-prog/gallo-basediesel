@@ -3,10 +3,9 @@ import type {
   IGoal,
   IGoalProgress,
   IOrder,
-  GoalProgressStatus,
-  GoalProgressTrend,
 } from "@/shared/types";
 import { computeProjection, describePeriodWindow } from "./projection";
+import { statusFromRatio, computeWindowedTrend } from "@/shared/progress";
 
 export interface IGoalContext {
   orders: IOrder[];
@@ -29,42 +28,6 @@ function matchesGoal(order: IOrder, goal: IGoal): boolean {
 
 function isPaid(order: IOrder): boolean {
   return order.paymentStatus === "pago";
-}
-
-function statusFromRatio(percentage: number, daysRatio: number): GoalProgressStatus {
-  if (percentage >= 100) return "concluida";
-  const expected = daysRatio * 100;
-  if (expected <= 0) return "no_caminho";
-  const ratio = percentage / expected;
-  if (ratio >= 1.0) return "no_caminho";
-  if (ratio >= 0.7) return "atencao";
-  return "atrasada";
-}
-
-function computeTrend(
-  goal: IGoal,
-  orders: IOrder[],
-  fromIso: string,
-  toIso: string,
-  now: Date,
-): GoalProgressTrend {
-  const half = new Date((new Date(fromIso).getTime() + now.getTime()) / 2).toISOString();
-  let firstHalf = 0;
-  let secondHalf = 0;
-  for (const order of orders) {
-    if (!matchesGoal(order, goal)) continue;
-    if (!isPaid(order)) continue;
-    const ts = order.paidAt ?? order.createdAt;
-    if (!isWithin(ts, fromIso, toIso)) continue;
-    if (ts < half) firstHalf += order.total;
-    else secondHalf += order.total;
-  }
-  if (firstHalf === 0 && secondHalf === 0) return "estavel";
-  if (firstHalf === 0) return "subindo";
-  const diff = (secondHalf - firstHalf) / firstHalf;
-  if (diff > 0.1) return "subindo";
-  if (diff < -0.1) return "caindo";
-  return "estavel";
 }
 
 /**
@@ -159,7 +122,11 @@ export function calculateGoalProgress(goal: IGoal, context: IGoalContext): IGoal
   );
   const paceRatio = window.daysRatio > 0 ? percentage / (window.daysRatio * 100) : 1;
   const status = statusFromRatio(percentage, window.daysRatio);
-  const trend = computeTrend(goal, context.orders, fromIso, toIso, now);
+  const trendSamples = context.orders
+    .filter((o) => matchesGoal(o, goal) && isPaid(o))
+    .map((o) => ({ ts: o.paidAt ?? o.createdAt, value: o.total }))
+    .filter((s) => s.ts >= fromIso && s.ts <= toIso);
+  const trend = computeWindowedTrend(trendSamples, fromIso, now);
 
   return {
     goalId: goal.id,
