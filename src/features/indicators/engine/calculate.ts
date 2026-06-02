@@ -1,14 +1,51 @@
 import type {
   ID,
   IOrder,
+  IOrderItem,
   IPart,
   IProductIndicator,
   IIndicatorProgress,
   IIndicatorContributor,
+  IndicatorMetric,
 } from "@/shared/types";
 import { computeProjection, describePeriodWindow } from "@/features/goals/engine/projection";
 import { statusFromRatio, computeWindowedTrend, type IProgressSample } from "@/shared/progress";
 import { buildItemMatcher } from "./matcher";
+
+/**
+ * Matched value a single order contributes for the given metric, using a
+ * prebuilt item matcher. Returns `{matched:false,value:0}` if no item matches.
+ * For "pedidos" returns `value:1` when at least one item matches (per-order
+ * count). For value metrics, `value` is the sum of matched-item values (may
+ * legitimately be 0 even when matched=true).
+ */
+export function computeOrderContribution(
+  order: IOrder,
+  metric: IndicatorMetric,
+  matches: (item: IOrderItem) => boolean,
+): { matched: boolean; value: number } {
+  let value = 0;
+  let matched = false;
+  for (const item of order.items) {
+    if (!matches(item)) continue;
+    matched = true;
+    switch (metric) {
+      case "faturamento":
+        value += item.total;
+        break;
+      case "quantidade":
+        value += item.quantity;
+        break;
+      case "margem":
+        value += item.marginValue;
+        break;
+      case "pedidos":
+        break;
+    }
+  }
+  if (!matched) return { matched: false, value: 0 };
+  return { matched: true, value: metric === "pedidos" ? 1 : value };
+}
 
 export interface IIndicatorContext {
   orders: IOrder[];
@@ -60,31 +97,13 @@ export function calculateIndicatorProgress(
     const ts = order.paidAt ?? order.createdAt;
     if (!isWithin(ts, fromIso, toIso)) continue;
 
-    let orderMatchedValue = 0;
-    let orderMatched = false;
-    for (const item of order.items) {
-      if (!matches(item)) continue;
-      orderMatched = true;
-      switch (indicator.metric) {
-        case "faturamento":
-          orderMatchedValue += item.total;
-          break;
-        case "quantidade":
-          orderMatchedValue += item.quantity;
-          break;
-        case "margem":
-          orderMatchedValue += item.marginValue;
-          break;
-        case "pedidos":
-          // counted once per order below
-          break;
-      }
-    }
+    const { matched: orderMatched, value: contribution } = computeOrderContribution(
+      order,
+      indicator.metric,
+      matches,
+    );
 
     if (!orderMatched) continue;
-
-    // One contribution per matched order. For "pedidos" each matched order counts as 1 (so currentValue becomes the distinct matched-order count); for value metrics it's the summed matched-item value.
-    const contribution = indicator.metric === "pedidos" ? 1 : orderMatchedValue;
     currentValue += contribution;
     bySeller.set(order.sellerId, (bySeller.get(order.sellerId) ?? 0) + contribution);
     samples.push({ ts, value: contribution });

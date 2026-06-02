@@ -11,8 +11,9 @@ import {
 } from "recharts";
 import { Card } from "@/components/ui/card";
 import { Icon } from "@/components/Icon";
-import type { ID, IOrder, IPart, IProductIndicator, IndicatorMetric } from "@/shared/types";
+import type { ID, IOrder, IPart, IProductIndicator } from "@/shared/types";
 import { buildItemMatcher } from "../engine/matcher";
+import { computeOrderContribution } from "../engine/calculate";
 import { indicatorsPtBR as S } from "../i18n/pt-BR";
 import { formatByMetric } from "../utils/format";
 
@@ -39,44 +40,6 @@ interface IChartPoint {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/**
- * Compute the per-order matched contribution (once), returning the value and
- * its effective timestamp for the given metric.
- */
-function computeOrderContribution(
-  order: IOrder,
-  metric: IndicatorMetric,
-  matches: (item: import("@/shared/types").IOrderItem) => boolean,
-): { ts: string; value: number } | null {
-  let orderMatchedValue = 0;
-  let orderMatched = false;
-
-  for (const item of order.items) {
-    if (!matches(item)) continue;
-    orderMatched = true;
-    switch (metric) {
-      case "faturamento":
-        orderMatchedValue += item.total;
-        break;
-      case "quantidade":
-        orderMatchedValue += item.quantity;
-        break;
-      case "margem":
-        orderMatchedValue += item.marginValue;
-        break;
-      case "pedidos":
-        // counted once per order below
-        break;
-    }
-  }
-
-  if (!orderMatched) return null;
-
-  const ts = order.paidAt ?? order.createdAt;
-  const value = metric === "pedidos" ? 1 : orderMatchedValue;
-  return { ts, value };
-}
 
 /** Format an ISO date "YYYY-MM-DD" into "dd/MM" for tick/label display. */
 function toShortLabel(iso: string): string {
@@ -145,9 +108,11 @@ export function IndicatorEvolutionChart({
     type OrderContrib = { ts: string; value: number };
     const contributions: OrderContrib[] = [];
     for (const order of orders) {
-      const contrib = computeOrderContribution(order, indicator.metric, matches);
-      if (contrib && contrib.ts >= start && contrib.ts <= end) {
-        contributions.push(contrib);
+      const { matched, value } = computeOrderContribution(order, indicator.metric, matches);
+      if (!matched) continue;
+      const ts = order.paidAt ?? order.createdAt;
+      if (ts >= start && ts <= end) {
+        contributions.push({ ts, value });
       }
     }
 
