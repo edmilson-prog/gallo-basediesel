@@ -124,6 +124,12 @@ export const indicatorsPtBR = {
   accessDeniedTitle: "Acesso restrito",
   accessDeniedDescription: "Você não tem permissão para visualizar este indicador.",
   accessDeniedAction: "Voltar para indicadores",
+  // Widget (Manager Dashboard)
+  widgetTitle: "Indicadores do mês",
+  widgetViewAll: "Ver todos",
+  widgetEmpty: "Nenhum indicador ativo",
+  widgetError: "Erro ao carregar indicadores.",
+
   // Milestones
   milestone50: (name: string) => `🎯 O indicador ${name} atingiu 50%!`,
   milestone80: (name: string) => `🚀 ${name}: 80% — falta pouco!`,

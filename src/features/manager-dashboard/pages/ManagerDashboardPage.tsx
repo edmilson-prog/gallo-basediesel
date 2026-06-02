@@ -26,6 +26,7 @@ import { PortfolioHealthWidget } from "@/features/portfolio-analytics";
 import { TopPerformersWidget } from "@/features/gamification";
 import { CriticalInsightsWidget } from "@/features/insights";
 import { EcommerceOrdersWidget } from "@/features/ecommerce-integration";
+import { IndicatorsWidget } from "@/features/indicators/components/IndicatorsWidget";
 import { MANAGER_DASHBOARD_STRINGS } from "../i18n/pt-BR";
 
 function formatMinutes(value: number): string {
@@ -228,12 +229,15 @@ export function ManagerDashboardPage() {
 
       <section
         className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
-        aria-label="Metas, positivação, saúde da carteira e top performers"
+        aria-label="Metas, positivação, saúde da carteira, top performers e indicadores"
       >
         <GoalsWidget storeId={currentStore?.id ?? "store-matriz"} />
         <PositivationWidget storeId={currentStore?.id ?? "store-matriz"} />
         <PortfolioHealthWidget storeId={currentStore?.id ?? "store-matriz"} />
         <TopPerformersWidget storeId={currentStore?.id ?? "store-matriz"} />
+        <div className="sm:col-span-2 lg:col-span-4">
+          <IndicatorsWidget storeId={currentStore?.id ?? "store-matriz"} />
+        </div>
       </section>
 
       <section
