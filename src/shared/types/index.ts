@@ -240,6 +240,19 @@ export type {
 // Goals (PRD-042 — runtime progress)
 export type { IGoalProgress, GoalProgressStatus, GoalProgressTrend } from "./goals";
 
+// Product Indicators
+export type {
+  IProductIndicator,
+  IIndicatorProgress,
+  IIndicatorContributor,
+  IIndicatorPeriod,
+  ProductSelector,
+  IndicatorMetric,
+  IndicatorScopeLevel,
+  IndicatorPeriodType,
+  IndicatorStatus,
+} from "./indicators";
+
 // DRE (PRD-048)
 export type {
   IDREPeriod,
