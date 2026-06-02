@@ -53,7 +53,7 @@ const COLUMNS: IColumnConfig[] = [
     align: "left",
   },
   { id: "price", label: CATALOG_STRINGS.columns.price, field: "unitPrice", align: "left" },
-  { id: "stock", label: CATALOG_STRINGS.columns.stock, field: "stockAvailable", align: "right" },
+  { id: "stock", label: CATALOG_STRINGS.columns.stock, field: "stockAvailable", align: "left" },
   { id: "status", label: CATALOG_STRINGS.columns.status, field: "status", align: "left" },
 ];
 
@@ -265,7 +265,7 @@ export function CatalogTable({
                       </td>
                     )}
                     {visibleColumns.has("stock") && (
-                      <td className="px-2 py-3 text-right">
+                      <td className="px-2 py-3">
                         <StockBadge part={part} variant="compact" />
                       </td>
                     )}
