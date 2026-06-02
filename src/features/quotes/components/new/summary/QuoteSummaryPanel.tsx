@@ -24,10 +24,102 @@ export interface IQuoteSummaryPanelProps {
   needsJustification: boolean;
   discountReason: string;
   onDiscountReason: (v: string) => void;
+  /** Slim horizontal rendering for the footer-bar layout. */
   compact?: boolean;
 }
 
+function ApprovalBlock({
+  needsJustification,
+  discountReason,
+  onDiscountReason,
+}: Pick<IQuoteSummaryPanelProps, "needsJustification" | "discountReason" | "onDiscountReason">) {
+  if (!needsJustification) return null;
+  return (
+    <div className="rounded-md border border-orange-500/30 bg-orange-500/5 p-3" role="alert">
+      <p className="text-xs font-medium text-orange-600 dark:text-orange-300">
+        <Icon icon="mdi:shield-alert-outline" size={14} className="mr-1 inline" />
+        Desconto acima do limite — requer aprovação do gestor
+      </p>
+      <Textarea
+        className="mt-2"
+        placeholder="Justifique o desconto (obrigatório)"
+        value={discountReason}
+        onChange={(e) => onDiscountReason(e.target.value)}
+      />
+    </div>
+  );
+}
+
 export function QuoteSummaryPanel(props: IQuoteSummaryPanelProps) {
+  const discountHint = `${(props.discountPct * 100).toFixed(1)}% do subtotal · limite ${(props.thresholdPct * 100).toFixed(0)}%`;
+
+  if (props.compact) {
+    return (
+      <div className="flex flex-col gap-2">
+        <ApprovalBlock
+          needsJustification={props.needsJustification}
+          discountReason={props.discountReason}
+          onDiscountReason={props.onDiscountReason}
+        />
+        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+          <div className="flex flex-wrap items-end gap-4">
+            <span className="pb-2 text-xs text-muted-foreground">
+              {props.itemCount} {props.itemCount === 1 ? "item" : "itens"} · {props.unitCount} un
+            </span>
+            <div>
+              <Label htmlFor="discount-compact" className="text-xs">
+                Desconto (R$)
+              </Label>
+              <Input
+                id="discount-compact"
+                type="number"
+                min={0}
+                step={0.01}
+                value={props.discountInput}
+                onChange={(e) => props.onDiscountInput(e.target.value)}
+                className="h-9 w-28"
+              />
+            </div>
+            <div>
+              <Label htmlFor="shipping-compact" className="text-xs">
+                Frete (R$)
+              </Label>
+              <div className="flex gap-1">
+                <Input
+                  id="shipping-compact"
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  value={props.shipping}
+                  onChange={(e) => props.onShipping(Math.max(0, Number(e.target.value) || 0))}
+                  className="h-9 w-28"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={props.onCalcShipping}
+                  className="h-9 shrink-0 gap-1"
+                  aria-label="Calcular frete"
+                >
+                  <Icon icon="mdi:truck-fast-outline" size={14} />
+                </Button>
+              </div>
+            </div>
+          </div>
+          <div className="text-right">
+            <span className="block text-[10px] uppercase tracking-wide text-muted-foreground">
+              Total
+            </span>
+            <span className="text-xl font-semibold tabular-nums text-primary">
+              {moneyFormatter.format(props.total)}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 rounded-lg border border-border bg-card p-4">
       <p className="text-xs font-medium text-muted-foreground">
@@ -44,10 +136,7 @@ export function QuoteSummaryPanel(props: IQuoteSummaryPanelProps) {
           value={props.discountInput}
           onChange={(e) => props.onDiscountInput(e.target.value)}
         />
-        <p className="mt-1 text-xs text-muted-foreground">
-          {(props.discountPct * 100).toFixed(1)}% do subtotal · limite{" "}
-          {(props.thresholdPct * 100).toFixed(0)}%
-        </p>
+        <p className="mt-1 text-xs text-muted-foreground">{discountHint}</p>
       </div>
 
       <div>
@@ -74,20 +163,11 @@ export function QuoteSummaryPanel(props: IQuoteSummaryPanelProps) {
         </div>
       </div>
 
-      {props.needsJustification && (
-        <div className="rounded-md border border-orange-500/30 bg-orange-500/5 p-3" role="alert">
-          <p className="text-xs font-medium text-orange-600 dark:text-orange-300">
-            <Icon icon="mdi:shield-alert-outline" size={14} className="mr-1 inline" />
-            Desconto acima do limite — requer aprovação do gestor
-          </p>
-          <Textarea
-            className="mt-2"
-            placeholder="Justifique o desconto (obrigatório)"
-            value={props.discountReason}
-            onChange={(e) => props.onDiscountReason(e.target.value)}
-          />
-        </div>
-      )}
+      <ApprovalBlock
+        needsJustification={props.needsJustification}
+        discountReason={props.discountReason}
+        onDiscountReason={props.onDiscountReason}
+      />
 
       <div className="space-y-1 border-t border-border pt-3">
         <Row label="Subtotal" value={moneyFormatter.format(props.subtotal)} />

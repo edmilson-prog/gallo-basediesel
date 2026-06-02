@@ -40,7 +40,10 @@ export function QuickAddBar({ inQuoteQtyByPart, onAddPart }: IAdderProps) {
             <CommandItem
               key={p.id}
               value={p.id}
-              onSelect={() => onAddPart(p)}
+              onSelect={() => {
+                onAddPart(p);
+                setQuery("");
+              }}
               className="flex justify-between gap-2"
             >
               <span className="truncate">
