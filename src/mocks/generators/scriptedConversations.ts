@@ -40,7 +40,7 @@ interface IScriptedTurn {
 type ParticipantPicker =
   | {
       kind: "customerByTier";
-      tier: "first-b2b" | "first-b2c" | "dormant" | "vip" | "atRisk";
+      tier: "first-b2b" | "first-b2c" | "dormant" | "dormant-b2c" | "vip" | "atRisk";
     }
   | { kind: "leadByStage"; stage: "new" | "qualified" };
 
@@ -564,6 +564,136 @@ const SCENARIOS: IScriptedScenario[] = [
       { author: "customer", offsetMin: 1500, text: "Retirei agora, peça beleza. Valeu Rafael!" },
     ],
   },
+
+  // ─── 13. Copiloto R1 — prazo perguntado 2× sem resposta (alert/high) ──
+  {
+    slug: "copilot-prazo-sem-resposta",
+    label: "Copiloto · R1 alerta: cliente pergunta o prazo 2× e ninguém responde",
+    channel: "whatsapp",
+    status: "aguardando",
+    isSdrActive: false,
+    assignedSellerId: "seller-marina-cardoso",
+    participant: { kind: "customerByTier", tier: "first-b2b" },
+    tags: ["Scania", "Frota pesada"],
+    daysAgo: 0,
+    turns: [
+      {
+        author: "customer",
+        offsetMin: 0,
+        text: "Marina, fechei os 6 filtros ontem. Qual o prazo de entrega pra Erechim?",
+      },
+      {
+        author: "seller",
+        offsetMin: 20,
+        text: "Oi! Deixa eu confirmar com a logística e já te falo.",
+      },
+      {
+        author: "customer",
+        offsetMin: 180,
+        text: "E aí, conseguiu a previsão de entrega? O caminhão sai sexta cedo",
+      },
+      {
+        author: "customer",
+        offsetMin: 420,
+        text: "Marina, só preciso saber o prazo pra me organizar. Chega quando?",
+      },
+    ],
+  },
+
+  // ─── 14. Copiloto R2 — B2C pede NF em nome da empresa (action/medium) ─
+  {
+    slug: "copilot-faturamento-b2c",
+    label: "Copiloto · R2 ação: cliente B2C (CPF) pede NF em nome da empresa",
+    channel: "whatsapp",
+    status: "em_andamento",
+    isSdrActive: false,
+    assignedSellerId: "seller-rafael-lima",
+    participant: { kind: "customerByTier", tier: "first-b2c" },
+    tags: ["Ford Cargo"],
+    daysAgo: 0,
+    turns: [
+      {
+        author: "customer",
+        offsetMin: 0,
+        text: "Rafael, vou levar o kit de embreagem do Cargo 1119, pode separar",
+      },
+      {
+        author: "seller",
+        offsetMin: 8,
+        text: "Boa tarde! Separado. Fecha em R$ 2.180 à vista. Confirmo a emissão?",
+      },
+      {
+        author: "customer",
+        offsetMin: 12,
+        text: "Confirma. Só que dessa vez preciso da nota fiscal em nome da empresa, no CNPJ da transportadora",
+      },
+    ],
+  },
+
+  // ─── 15. Copiloto R3 — cliente dormente com intenção de compra (opp) ──
+  {
+    slug: "copilot-dormente-oportunidade",
+    label: "Copiloto · R3 oportunidade: cliente dormente volta perguntando preço",
+    channel: "whatsapp",
+    status: "em_andamento",
+    isSdrActive: false,
+    assignedSellerId: "seller-carlos-santos",
+    participant: { kind: "customerByTier", tier: "dormant" },
+    tags: ["Em recuperação", "Volvo"],
+    daysAgo: 0,
+    turns: [
+      {
+        author: "customer",
+        offsetMin: 0,
+        text: "Carlos, faz tempo que não compro com vocês. Vi que preciso trocar a bomba d'água do FH",
+      },
+      {
+        author: "customer",
+        offsetMin: 3,
+        text: "Consegue me passar uma cotação? Queria saber o valor pra fechar essa semana",
+      },
+    ],
+  },
+
+  // ─── 16. Copiloto R1+R2+R3 — B2C dormente, três sinais juntos ─────────
+  {
+    slug: "copilot-tres-sinais",
+    label: "Copiloto · R1+R2+R3: B2C dormente — prazo 2×, NF da empresa e preço",
+    channel: "whatsapp",
+    status: "em_andamento",
+    isSdrActive: false,
+    assignedSellerId: "seller-rafael-lima",
+    participant: { kind: "customerByTier", tier: "dormant-b2c" },
+    tags: ["Em recuperação", "Iveco"],
+    daysAgo: 0,
+    turns: [
+      {
+        author: "customer",
+        offsetMin: 0,
+        text: "Oi Rafael! Sumi um tempo, mas preciso de um par de amortecedores pro Iveco Daily. Qual o valor?",
+      },
+      {
+        author: "seller",
+        offsetMin: 10,
+        text: "Opa, que bom te ver de volta! O par sai por R$ 740. Quer que eu já reserve?",
+      },
+      {
+        author: "customer",
+        offsetMin: 14,
+        text: "Pode reservar. Vou precisar da nota fiscal em nome da empresa, no CNPJ da oficina",
+      },
+      {
+        author: "customer",
+        offsetMin: 200,
+        text: "Rafael, qual o prazo de entrega? Preciso pra amanhã",
+      },
+      {
+        author: "customer",
+        offsetMin: 520,
+        text: "Conseguiu ver a previsão de entrega? Ainda não tive retorno do prazo",
+      },
+    ],
+  },
 ];
 
 // ────────────────────────────────────────────────────────────────────
@@ -614,6 +744,11 @@ export function generateScriptedConversations(input: IGenerateScriptedInput): IS
         return b2bs[0];
       case "first-b2c":
         return b2cs[0];
+      case "dormant-b2c":
+        // Prefer a naturally dormant B2C; fall back to the LAST B2C (not the
+        // shared b2cs[0]) so the determinism guard below mutates an isolated
+        // customer if the seed produced no dormant B2C.
+        return b2cs.find((c) => c.status === "dormente") ?? b2cs[b2cs.length - 1] ?? b2cs[0];
       case "vip":
         return b2bs.find((c) => c.tags?.includes("VIP")) ?? b2bs[1] ?? b2bs[0];
       case "dormant":
@@ -647,6 +782,14 @@ export function generateScriptedConversations(input: IGenerateScriptedInput): IS
       scenario.participant.kind === "customerByTier"
         ? pickCustomerFor(scenario.participant)
         : undefined;
+
+    // Determinism guard for the three-signal copilot demo (R1+R2+R3): R3 needs a
+    // customer whose lifecycle status is "dormente". If the seeded dataset didn't
+    // produce a dormant B2C, promote the chosen one so the rule fires every run.
+    // Coherent side effect: this customer's Ficha will also read as dormant.
+    if (scenario.slug === "copilot-tres-sinais" && customer && customer.status !== "dormente") {
+      customer.status = "dormente";
+    }
     const lead =
       scenario.participant.kind === "leadByStage" ? pickLeadFor(scenario.participant) : undefined;
     if (!customer && !lead) return; // skip scenario if dataset is too small
