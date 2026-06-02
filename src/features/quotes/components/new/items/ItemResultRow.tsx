@@ -2,15 +2,9 @@
 import type { IPart } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { getCategoryIcon } from "@/features/catalog";
+import { stockBadge } from "../../../utils/quoteItemDisplay";
 
 const moneyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-
-function stockTone(part: IPart): { label: string; className: string } {
-  if (part.stockAvailable <= 0) return { label: "sem estoque", className: "text-destructive" };
-  if (part.stockAvailable <= part.stockMinimum)
-    return { label: `estoque ${part.stockAvailable} (baixo)`, className: "text-amber-500" };
-  return { label: `estoque ${part.stockAvailable}`, className: "text-muted-foreground" };
-}
 
 export interface IItemResultRowProps {
   part: IPart;
@@ -20,7 +14,7 @@ export interface IItemResultRowProps {
 }
 
 export function ItemResultRow({ part, inQuoteQty = 0, onAdd }: IItemResultRowProps) {
-  const stock = stockTone(part);
+  const stock = stockBadge(part);
   return (
     <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-2 last:border-b-0">
       <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -32,10 +26,21 @@ export function ItemResultRow({ part, inQuoteQty = 0, onAdd }: IItemResultRowPro
           )}
         </span>
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-foreground">{part.name}</p>
+          <p className="flex items-center gap-1.5 truncate text-sm font-medium text-foreground">
+            <span className="truncate">{part.name}</span>
+            {part.isOriginal ? (
+              <span className="shrink-0 rounded border border-primary/30 bg-primary/10 px-1 py-0 text-[10px] font-semibold text-primary">
+                Original
+              </span>
+            ) : (
+              <span className="shrink-0 rounded border border-border bg-muted px-1 py-0 text-[10px] font-medium text-muted-foreground">
+                Equivalente
+              </span>
+            )}
+          </p>
           <p className="truncate text-xs text-muted-foreground">
             OEM {part.oemCodes[0] ?? "—"} · SKU {part.sku} · {part.brand} ·{" "}
-            <span className={stock.className}>{stock.label}</span>
+            <span className={stock.textClassName}>{stock.label}</span>
           </p>
         </div>
       </div>
