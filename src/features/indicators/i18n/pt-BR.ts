@@ -8,6 +8,8 @@ export const indicatorsPtBR = {
   new: "Novo indicador",
   empty: "Nenhum indicador ainda — crie o primeiro",
   emptySeller: "Você ainda não participa de nenhum indicador ativo",
+  emptyHint: "Crie o primeiro indicador de produto para começar a acompanhar o desempenho.",
+  chartEmpty: "Nenhum indicador para exibir.",
   metric: {
     faturamento: "Faturamento",
     quantidade: "Quantidade",

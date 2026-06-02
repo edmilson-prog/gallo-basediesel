@@ -13,61 +13,58 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Icon } from "@/components/Icon";
 import { progressColorFor } from "@/shared/utils/chartColors";
-import type { IGoalWithProgress } from "../hooks/useGoalsWithProgress";
+import type { IIndicatorWithProgress } from "../hooks/useIndicators";
+import { indicatorsPtBR as S } from "../i18n/pt-BR";
 
-export interface ISellerProgressBarChartProps {
-  items: IGoalWithProgress[];
-  sellerNames: Map<string, string>;
-  isLoading?: boolean;
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export interface IChartPoint {
+  name: string;
+  pct: number;
 }
 
-interface IPoint {
-  sellerName: string;
-  averagePct: number;
-}
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
-export function SellerProgressBarChart({
+export function IndicatorProgressChart({
   items,
-  sellerNames,
   isLoading,
-}: ISellerProgressBarChartProps) {
-  const data = useMemo<IPoint[]>(() => {
-    const bySeller = new Map<string, number[]>();
-    for (const { goal, progress } of items) {
-      if (goal.level !== "individual") continue;
-      const bucket = bySeller.get(goal.targetId) ?? [];
-      bucket.push(progress.percentage);
-      bySeller.set(goal.targetId, bucket);
-    }
-    const rows: IPoint[] = [];
-    for (const [sellerId, list] of bySeller) {
-      const average = list.length > 0 ? list.reduce((a, b) => a + b, 0) / list.length : 0;
-      rows.push({
-        sellerName: sellerNames.get(sellerId) ?? sellerId,
-        averagePct: Math.round(average),
-      });
-    }
-    return rows.sort((a, b) => b.averagePct - a.averagePct);
-  }, [items, sellerNames]);
+}: {
+  items: IIndicatorWithProgress[];
+  isLoading?: boolean;
+}) {
+  const data = useMemo<IChartPoint[]>(() => {
+    return items
+      .map(({ indicator, progress }) => ({
+        name: indicator.name.length > 20 ? `${indicator.name.slice(0, 18)}…` : indicator.name,
+        pct: Math.round(progress.percentage),
+      }))
+      .sort((a, b) => b.pct - a.pct)
+      .slice(0, 12); // cap at 12 bars for readability
+  }, [items]);
 
   return (
     <Card className="flex flex-col gap-4 p-5">
       <header className="flex items-baseline justify-between">
         <div>
           <h2 className="text-base font-semibold tracking-tight text-foreground">
-            Progresso por vendedor
+            Atingimento por indicador
           </h2>
           <p className="text-xs text-muted-foreground">
-            Média do atingimento das metas individuais ativas.
+            Percentual de atingimento de cada indicador ativo.
           </p>
         </div>
         <Icon icon="mdi:chart-bar" size={20} className="text-muted-foreground" />
       </header>
+
       {isLoading ? (
         <Skeleton className="h-56 w-full" />
       ) : data.length === 0 ? (
         <p className="py-10 text-center text-sm text-muted-foreground">
-          Sem metas individuais ativas.
+          {S.chartEmpty}
         </p>
       ) : (
         <div className="h-56 w-full">
@@ -75,10 +72,14 @@ export function SellerProgressBarChart({
             <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.4} />
               <XAxis
-                dataKey="sellerName"
-                tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                dataKey="name"
+                tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
                 stroke="var(--border)"
                 tickLine={false}
+                interval={0}
+                angle={-30}
+                textAnchor="end"
+                height={48}
               />
               <YAxis
                 tickFormatter={(v: number) => `${v}%`}
@@ -96,11 +97,11 @@ export function SellerProgressBarChart({
                   color: "var(--popover-foreground)",
                   fontSize: 12,
                 }}
-                formatter={(value: number) => [`${value}%`, "Média de atingimento"]}
+                formatter={(value: number) => [`${value}%`, "Atingimento"]}
               />
-              <Bar dataKey="averagePct" radius={[4, 4, 0, 0]}>
+              <Bar dataKey="pct" radius={[4, 4, 0, 0]}>
                 {data.map((entry) => (
-                  <Cell key={entry.sellerName} fill={progressColorFor(entry.averagePct)} />
+                  <Cell key={entry.name} fill={progressColorFor(entry.pct)} />
                 ))}
               </Bar>
             </BarChart>
