@@ -10,6 +10,7 @@ import { useSellersProvider } from "@/providers/data";
 import type { ID, ISeller } from "@/shared/types";
 import { useStoreIndicators } from "../hooks/useIndicators";
 import { useIndicatorFilters } from "../hooks/useIndicatorFilters";
+import { useIndicatorAutoStatusUpdate } from "../hooks/useIndicatorAutoStatusUpdate";
 import { applyFilters } from "../hooks/useIndicatorFilters";
 import { indicatorsPtBR as S } from "../i18n/pt-BR";
 import { IndicatorFiltersBar } from "./IndicatorFiltersBar";
@@ -27,6 +28,9 @@ export function AggregatedIndicatorsDashboard({
   storeId: ID;
   canCreate: boolean;
 }) {
+  // Auto-archive overdue indicators on mount (Owner/Gestor view).
+  useIndicatorAutoStatusUpdate({ storeId });
+
   const { items, isLoading, hasError, refetch } = useStoreIndicators(storeId);
   const sellersProvider = useSellersProvider();
   const [sellers, setSellers] = useState<ISeller[]>([]);
