@@ -51,6 +51,7 @@ import { Route as AppStorefrontAdminRouteImport } from './routes/app.storefront-
 import { Route as AppSdrRouteImport } from './routes/app.sdr'
 import { Route as AppPedidosRouteImport } from './routes/app.pedidos'
 import { Route as AppOrcamentosRouteImport } from './routes/app.orcamentos'
+import { Route as AppNotificacoesRouteImport } from './routes/app.notificacoes'
 import { Route as AppLeadsRouteImport } from './routes/app.leads'
 import { Route as AppInsightsRouteImport } from './routes/app.insights'
 import { Route as AppInicioRouteImport } from './routes/app.inicio'
@@ -82,9 +83,11 @@ import { Route as PortalFrotaIdRouteImport } from './routes/portal.frota.$id'
 import { Route as LojaProdutoSlugRouteImport } from './routes/loja.produto.$slug'
 import { Route as LojaPedidoConfirmadoOrderIdRouteImport } from './routes/loja.pedido-confirmado.$orderId'
 import { Route as LojaContaVeiculosRouteImport } from './routes/loja.conta.veiculos'
+import { Route as LojaContaPreferenciasRouteImport } from './routes/loja.conta.preferencias'
 import { Route as LojaContaPerfilRouteImport } from './routes/loja.conta.perfil'
 import { Route as LojaContaPedidosRouteImport } from './routes/loja.conta.pedidos'
 import { Route as LojaContaOrcamentosRouteImport } from './routes/loja.conta.orcamentos'
+import { Route as LojaContaNotificacoesRouteImport } from './routes/loja.conta.notificacoes'
 import { Route as LojaContaEnderecosRouteImport } from './routes/loja.conta.enderecos'
 import { Route as LojaCategoriaSlugRouteImport } from './routes/loja.categoria.$slug'
 import { Route as AppVeiculosIdRouteImport } from './routes/app.veiculos.$id'
@@ -97,6 +100,7 @@ import { Route as AppGestaoRentabilidadeRouteImport } from './routes/app.gestao.
 import { Route as AppGestaoRankingRouteImport } from './routes/app.gestao.ranking'
 import { Route as AppGestaoPositivacaoRouteImport } from './routes/app.gestao.positivacao'
 import { Route as AppGestaoMetasRouteImport } from './routes/app.gestao.metas'
+import { Route as AppGestaoIndicadoresRouteImport } from './routes/app.gestao.indicadores'
 import { Route as AppGestaoEstoqueMovimentacaoRouteImport } from './routes/app.gestao.estoque-movimentacao'
 import { Route as AppGestaoEstoqueRouteImport } from './routes/app.gestao.estoque'
 import { Route as AppGestaoDreRouteImport } from './routes/app.gestao.dre'
@@ -112,6 +116,7 @@ import { Route as AppConfiguracoesSobreRouteImport } from './routes/app.configur
 import { Route as AppConfiguracoesPortalClienteRouteImport } from './routes/app.configuracoes.portal-cliente'
 import { Route as AppConfiguracoesPerfilRouteImport } from './routes/app.configuracoes.perfil'
 import { Route as AppConfiguracoesPapeisRouteImport } from './routes/app.configuracoes.papeis'
+import { Route as AppConfiguracoesNotificacoesRouteImport } from './routes/app.configuracoes.notificacoes'
 import { Route as AppConfiguracoesLojasRouteImport } from './routes/app.configuracoes.lojas'
 import { Route as AppConfiguracoesInsightsRouteImport } from './routes/app.configuracoes.insights'
 import { Route as AppConfiguracoesGamificacaoRouteImport } from './routes/app.configuracoes.gamificacao'
@@ -122,6 +127,7 @@ import { Route as AppConfiguracoesEcommerceIntegracaoRouteImport } from './route
 import { Route as AppConfiguracoesDivisoesRouteImport } from './routes/app.configuracoes.divisoes'
 import { Route as AppConfiguracoesDistribuicaoRouteImport } from './routes/app.configuracoes.distribuicao'
 import { Route as AppConfiguracoesCurvaAbcRouteImport } from './routes/app.configuracoes.curva-abc'
+import { Route as AppConfiguracoesCopilotoRouteImport } from './routes/app.configuracoes.copiloto'
 import { Route as AppConfiguracoesComissoesRouteImport } from './routes/app.configuracoes.comissoes'
 import { Route as AppConfiguracoesAuditoriaRouteImport } from './routes/app.configuracoes.auditoria'
 import { Route as AppConfiguracoesAparenciaRouteImport } from './routes/app.configuracoes.aparencia'
@@ -133,6 +139,7 @@ import { Route as LojaContaPedidosIndexRouteImport } from './routes/loja.conta.p
 import { Route as LojaContaOrcamentosIndexRouteImport } from './routes/loja.conta.orcamentos.index'
 import { Route as AppGestaoRankingIndexRouteImport } from './routes/app.gestao.ranking.index'
 import { Route as AppGestaoMetasIndexRouteImport } from './routes/app.gestao.metas.index'
+import { Route as AppGestaoIndicadoresIndexRouteImport } from './routes/app.gestao.indicadores.index'
 import { Route as AppGestaoComissoesIndexRouteImport } from './routes/app.gestao.comissoes.index'
 import { Route as AppGestaoAtendimentoAnaliseIndexRouteImport } from './routes/app.gestao.atendimento-analise.index'
 import { Route as AppConfiguracoesStorefrontIndexRouteImport } from './routes/app.configuracoes.storefront.index'
@@ -143,6 +150,8 @@ import { Route as AppGestaoPositivacaoSellerIdRouteImport } from './routes/app.g
 import { Route as AppGestaoMetasNovaRouteImport } from './routes/app.gestao.metas.nova'
 import { Route as AppGestaoMetasLoteRouteImport } from './routes/app.gestao.metas.lote'
 import { Route as AppGestaoMetasIdRouteImport } from './routes/app.gestao.metas.$id'
+import { Route as AppGestaoIndicadoresNovoRouteImport } from './routes/app.gestao.indicadores.novo'
+import { Route as AppGestaoIndicadoresIdRouteImport } from './routes/app.gestao.indicadores.$id'
 import { Route as AppGestaoComissoesSellerIdRouteImport } from './routes/app.gestao.comissoes.$sellerId'
 import { Route as AppGestaoCarteiraAnaliticaSellerIdRouteImport } from './routes/app.gestao.carteira-analitica.$sellerId'
 import { Route as AppGestaoAtendimentoAnaliseSellerIdRouteImport } from './routes/app.gestao.atendimento-analise.$sellerId'
@@ -369,6 +378,11 @@ const AppOrcamentosRoute = AppOrcamentosRouteImport.update({
   path: '/orcamentos',
   getParentRoute: () => AppRoute,
 } as any)
+const AppNotificacoesRoute = AppNotificacoesRouteImport.update({
+  id: '/notificacoes',
+  path: '/notificacoes',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppLeadsRoute = AppLeadsRouteImport.update({
   id: '/leads',
   path: '/leads',
@@ -525,6 +539,11 @@ const LojaContaVeiculosRoute = LojaContaVeiculosRouteImport.update({
   path: '/veiculos',
   getParentRoute: () => LojaContaRoute,
 } as any)
+const LojaContaPreferenciasRoute = LojaContaPreferenciasRouteImport.update({
+  id: '/preferencias',
+  path: '/preferencias',
+  getParentRoute: () => LojaContaRoute,
+} as any)
 const LojaContaPerfilRoute = LojaContaPerfilRouteImport.update({
   id: '/perfil',
   path: '/perfil',
@@ -538,6 +557,11 @@ const LojaContaPedidosRoute = LojaContaPedidosRouteImport.update({
 const LojaContaOrcamentosRoute = LojaContaOrcamentosRouteImport.update({
   id: '/orcamentos',
   path: '/orcamentos',
+  getParentRoute: () => LojaContaRoute,
+} as any)
+const LojaContaNotificacoesRoute = LojaContaNotificacoesRouteImport.update({
+  id: '/notificacoes',
+  path: '/notificacoes',
   getParentRoute: () => LojaContaRoute,
 } as any)
 const LojaContaEnderecosRoute = LojaContaEnderecosRouteImport.update({
@@ -598,6 +622,11 @@ const AppGestaoPositivacaoRoute = AppGestaoPositivacaoRouteImport.update({
 const AppGestaoMetasRoute = AppGestaoMetasRouteImport.update({
   id: '/gestao/metas',
   path: '/gestao/metas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGestaoIndicadoresRoute = AppGestaoIndicadoresRouteImport.update({
+  id: '/gestao/indicadores',
+  path: '/gestao/indicadores',
   getParentRoute: () => AppRoute,
 } as any)
 const AppGestaoEstoqueMovimentacaoRoute =
@@ -681,6 +710,12 @@ const AppConfiguracoesPapeisRoute = AppConfiguracoesPapeisRouteImport.update({
   path: '/configuracoes/papeis',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConfiguracoesNotificacoesRoute =
+  AppConfiguracoesNotificacoesRouteImport.update({
+    id: '/configuracoes/notificacoes',
+    path: '/configuracoes/notificacoes',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppConfiguracoesLojasRoute = AppConfiguracoesLojasRouteImport.update({
   id: '/configuracoes/lojas',
   path: '/configuracoes/lojas',
@@ -737,6 +772,12 @@ const AppConfiguracoesCurvaAbcRoute =
   AppConfiguracoesCurvaAbcRouteImport.update({
     id: '/configuracoes/curva-abc',
     path: '/configuracoes/curva-abc',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppConfiguracoesCopilotoRoute =
+  AppConfiguracoesCopilotoRouteImport.update({
+    id: '/configuracoes/copiloto',
+    path: '/configuracoes/copiloto',
     getParentRoute: () => AppRoute,
   } as any)
 const AppConfiguracoesComissoesRoute =
@@ -798,6 +839,12 @@ const AppGestaoMetasIndexRoute = AppGestaoMetasIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppGestaoMetasRoute,
 } as any)
+const AppGestaoIndicadoresIndexRoute =
+  AppGestaoIndicadoresIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AppGestaoIndicadoresRoute,
+  } as any)
 const AppGestaoComissoesIndexRoute = AppGestaoComissoesIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -851,6 +898,17 @@ const AppGestaoMetasIdRoute = AppGestaoMetasIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => AppGestaoMetasRoute,
+} as any)
+const AppGestaoIndicadoresNovoRoute =
+  AppGestaoIndicadoresNovoRouteImport.update({
+    id: '/novo',
+    path: '/novo',
+    getParentRoute: () => AppGestaoIndicadoresRoute,
+  } as any)
+const AppGestaoIndicadoresIdRoute = AppGestaoIndicadoresIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppGestaoIndicadoresRoute,
 } as any)
 const AppGestaoComissoesSellerIdRoute =
   AppGestaoComissoesSellerIdRouteImport.update({
@@ -958,6 +1016,7 @@ export interface FileRoutesByFullPath {
   '/app/inicio': typeof AppInicioRoute
   '/app/insights': typeof AppInsightsRoute
   '/app/leads': typeof AppLeadsRouteWithChildren
+  '/app/notificacoes': typeof AppNotificacoesRoute
   '/app/orcamentos': typeof AppOrcamentosRouteWithChildren
   '/app/pedidos': typeof AppPedidosRouteWithChildren
   '/app/sdr': typeof AppSdrRoute
@@ -998,6 +1057,7 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
   '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
   '/app/configuracoes/comissoes': typeof AppConfiguracoesComissoesRoute
+  '/app/configuracoes/copiloto': typeof AppConfiguracoesCopilotoRoute
   '/app/configuracoes/curva-abc': typeof AppConfiguracoesCurvaAbcRoute
   '/app/configuracoes/distribuicao': typeof AppConfiguracoesDistribuicaoRoute
   '/app/configuracoes/divisoes': typeof AppConfiguracoesDivisoesRoute
@@ -1008,6 +1068,7 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/gamificacao': typeof AppConfiguracoesGamificacaoRoute
   '/app/configuracoes/insights': typeof AppConfiguracoesInsightsRoute
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
+  '/app/configuracoes/notificacoes': typeof AppConfiguracoesNotificacoesRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
   '/app/configuracoes/portal-cliente': typeof AppConfiguracoesPortalClienteRoute
@@ -1023,6 +1084,7 @@ export interface FileRoutesByFullPath {
   '/app/gestao/dre': typeof AppGestaoDreRoute
   '/app/gestao/estoque': typeof AppGestaoEstoqueRoute
   '/app/gestao/estoque-movimentacao': typeof AppGestaoEstoqueMovimentacaoRoute
+  '/app/gestao/indicadores': typeof AppGestaoIndicadoresRouteWithChildren
   '/app/gestao/metas': typeof AppGestaoMetasRouteWithChildren
   '/app/gestao/positivacao': typeof AppGestaoPositivacaoRouteWithChildren
   '/app/gestao/ranking': typeof AppGestaoRankingRouteWithChildren
@@ -1035,9 +1097,11 @@ export interface FileRoutesByFullPath {
   '/app/veiculos/$id': typeof AppVeiculosIdRoute
   '/loja/categoria/$slug': typeof LojaCategoriaSlugRoute
   '/loja/conta/enderecos': typeof LojaContaEnderecosRoute
+  '/loja/conta/notificacoes': typeof LojaContaNotificacoesRoute
   '/loja/conta/orcamentos': typeof LojaContaOrcamentosRouteWithChildren
   '/loja/conta/pedidos': typeof LojaContaPedidosRouteWithChildren
   '/loja/conta/perfil': typeof LojaContaPerfilRoute
+  '/loja/conta/preferencias': typeof LojaContaPreferenciasRoute
   '/loja/conta/veiculos': typeof LojaContaVeiculosRoute
   '/loja/pedido-confirmado/$orderId': typeof LojaPedidoConfirmadoOrderIdRoute
   '/loja/produto/$slug': typeof LojaProdutoSlugRoute
@@ -1077,6 +1141,8 @@ export interface FileRoutesByFullPath {
   '/app/gestao/atendimento-analise/$sellerId': typeof AppGestaoAtendimentoAnaliseSellerIdRoute
   '/app/gestao/carteira-analitica/$sellerId': typeof AppGestaoCarteiraAnaliticaSellerIdRoute
   '/app/gestao/comissoes/$sellerId': typeof AppGestaoComissoesSellerIdRoute
+  '/app/gestao/indicadores/$id': typeof AppGestaoIndicadoresIdRoute
+  '/app/gestao/indicadores/novo': typeof AppGestaoIndicadoresNovoRoute
   '/app/gestao/metas/$id': typeof AppGestaoMetasIdRoute
   '/app/gestao/metas/lote': typeof AppGestaoMetasLoteRoute
   '/app/gestao/metas/nova': typeof AppGestaoMetasNovaRoute
@@ -1087,6 +1153,7 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/storefront/': typeof AppConfiguracoesStorefrontIndexRoute
   '/app/gestao/atendimento-analise/': typeof AppGestaoAtendimentoAnaliseIndexRoute
   '/app/gestao/comissoes/': typeof AppGestaoComissoesIndexRoute
+  '/app/gestao/indicadores/': typeof AppGestaoIndicadoresIndexRoute
   '/app/gestao/metas/': typeof AppGestaoMetasIndexRoute
   '/app/gestao/ranking/': typeof AppGestaoRankingIndexRoute
   '/loja/conta/orcamentos/': typeof LojaContaOrcamentosIndexRoute
@@ -1102,6 +1169,7 @@ export interface FileRoutesByTo {
   '/app/carteira': typeof AppCarteiraRoute
   '/app/inicio': typeof AppInicioRoute
   '/app/insights': typeof AppInsightsRoute
+  '/app/notificacoes': typeof AppNotificacoesRoute
   '/app/sdr': typeof AppSdrRoute
   '/app/storefront-admin': typeof AppStorefrontAdminRoute
   '/auth/login': typeof AuthLoginRoute
@@ -1133,6 +1201,7 @@ export interface FileRoutesByTo {
   '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
   '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
   '/app/configuracoes/comissoes': typeof AppConfiguracoesComissoesRoute
+  '/app/configuracoes/copiloto': typeof AppConfiguracoesCopilotoRoute
   '/app/configuracoes/curva-abc': typeof AppConfiguracoesCurvaAbcRoute
   '/app/configuracoes/distribuicao': typeof AppConfiguracoesDistribuicaoRoute
   '/app/configuracoes/divisoes': typeof AppConfiguracoesDivisoesRoute
@@ -1143,6 +1212,7 @@ export interface FileRoutesByTo {
   '/app/configuracoes/gamificacao': typeof AppConfiguracoesGamificacaoRoute
   '/app/configuracoes/insights': typeof AppConfiguracoesInsightsRoute
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
+  '/app/configuracoes/notificacoes': typeof AppConfiguracoesNotificacoesRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
   '/app/configuracoes/portal-cliente': typeof AppConfiguracoesPortalClienteRoute
@@ -1166,7 +1236,9 @@ export interface FileRoutesByTo {
   '/app/veiculos/$id': typeof AppVeiculosIdRoute
   '/loja/categoria/$slug': typeof LojaCategoriaSlugRoute
   '/loja/conta/enderecos': typeof LojaContaEnderecosRoute
+  '/loja/conta/notificacoes': typeof LojaContaNotificacoesRoute
   '/loja/conta/perfil': typeof LojaContaPerfilRoute
+  '/loja/conta/preferencias': typeof LojaContaPreferenciasRoute
   '/loja/conta/veiculos': typeof LojaContaVeiculosRoute
   '/loja/pedido-confirmado/$orderId': typeof LojaPedidoConfirmadoOrderIdRoute
   '/loja/produto/$slug': typeof LojaProdutoSlugRoute
@@ -1206,6 +1278,8 @@ export interface FileRoutesByTo {
   '/app/gestao/atendimento-analise/$sellerId': typeof AppGestaoAtendimentoAnaliseSellerIdRoute
   '/app/gestao/carteira-analitica/$sellerId': typeof AppGestaoCarteiraAnaliticaSellerIdRoute
   '/app/gestao/comissoes/$sellerId': typeof AppGestaoComissoesSellerIdRoute
+  '/app/gestao/indicadores/$id': typeof AppGestaoIndicadoresIdRoute
+  '/app/gestao/indicadores/novo': typeof AppGestaoIndicadoresNovoRoute
   '/app/gestao/metas/$id': typeof AppGestaoMetasIdRoute
   '/app/gestao/metas/lote': typeof AppGestaoMetasLoteRoute
   '/app/gestao/metas/nova': typeof AppGestaoMetasNovaRoute
@@ -1216,6 +1290,7 @@ export interface FileRoutesByTo {
   '/app/configuracoes/storefront': typeof AppConfiguracoesStorefrontIndexRoute
   '/app/gestao/atendimento-analise': typeof AppGestaoAtendimentoAnaliseIndexRoute
   '/app/gestao/comissoes': typeof AppGestaoComissoesIndexRoute
+  '/app/gestao/indicadores': typeof AppGestaoIndicadoresIndexRoute
   '/app/gestao/metas': typeof AppGestaoMetasIndexRoute
   '/app/gestao/ranking': typeof AppGestaoRankingIndexRoute
   '/loja/conta/orcamentos': typeof LojaContaOrcamentosIndexRoute
@@ -1239,6 +1314,7 @@ export interface FileRoutesById {
   '/app/inicio': typeof AppInicioRoute
   '/app/insights': typeof AppInsightsRoute
   '/app/leads': typeof AppLeadsRouteWithChildren
+  '/app/notificacoes': typeof AppNotificacoesRoute
   '/app/orcamentos': typeof AppOrcamentosRouteWithChildren
   '/app/pedidos': typeof AppPedidosRouteWithChildren
   '/app/sdr': typeof AppSdrRoute
@@ -1279,6 +1355,7 @@ export interface FileRoutesById {
   '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
   '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
   '/app/configuracoes/comissoes': typeof AppConfiguracoesComissoesRoute
+  '/app/configuracoes/copiloto': typeof AppConfiguracoesCopilotoRoute
   '/app/configuracoes/curva-abc': typeof AppConfiguracoesCurvaAbcRoute
   '/app/configuracoes/distribuicao': typeof AppConfiguracoesDistribuicaoRoute
   '/app/configuracoes/divisoes': typeof AppConfiguracoesDivisoesRoute
@@ -1289,6 +1366,7 @@ export interface FileRoutesById {
   '/app/configuracoes/gamificacao': typeof AppConfiguracoesGamificacaoRoute
   '/app/configuracoes/insights': typeof AppConfiguracoesInsightsRoute
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
+  '/app/configuracoes/notificacoes': typeof AppConfiguracoesNotificacoesRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
   '/app/configuracoes/portal-cliente': typeof AppConfiguracoesPortalClienteRoute
@@ -1304,6 +1382,7 @@ export interface FileRoutesById {
   '/app/gestao/dre': typeof AppGestaoDreRoute
   '/app/gestao/estoque': typeof AppGestaoEstoqueRoute
   '/app/gestao/estoque-movimentacao': typeof AppGestaoEstoqueMovimentacaoRoute
+  '/app/gestao/indicadores': typeof AppGestaoIndicadoresRouteWithChildren
   '/app/gestao/metas': typeof AppGestaoMetasRouteWithChildren
   '/app/gestao/positivacao': typeof AppGestaoPositivacaoRouteWithChildren
   '/app/gestao/ranking': typeof AppGestaoRankingRouteWithChildren
@@ -1316,9 +1395,11 @@ export interface FileRoutesById {
   '/app/veiculos/$id': typeof AppVeiculosIdRoute
   '/loja/categoria/$slug': typeof LojaCategoriaSlugRoute
   '/loja/conta/enderecos': typeof LojaContaEnderecosRoute
+  '/loja/conta/notificacoes': typeof LojaContaNotificacoesRoute
   '/loja/conta/orcamentos': typeof LojaContaOrcamentosRouteWithChildren
   '/loja/conta/pedidos': typeof LojaContaPedidosRouteWithChildren
   '/loja/conta/perfil': typeof LojaContaPerfilRoute
+  '/loja/conta/preferencias': typeof LojaContaPreferenciasRoute
   '/loja/conta/veiculos': typeof LojaContaVeiculosRoute
   '/loja/pedido-confirmado/$orderId': typeof LojaPedidoConfirmadoOrderIdRoute
   '/loja/produto/$slug': typeof LojaProdutoSlugRoute
@@ -1358,6 +1439,8 @@ export interface FileRoutesById {
   '/app/gestao/atendimento-analise/$sellerId': typeof AppGestaoAtendimentoAnaliseSellerIdRoute
   '/app/gestao/carteira-analitica/$sellerId': typeof AppGestaoCarteiraAnaliticaSellerIdRoute
   '/app/gestao/comissoes/$sellerId': typeof AppGestaoComissoesSellerIdRoute
+  '/app/gestao/indicadores/$id': typeof AppGestaoIndicadoresIdRoute
+  '/app/gestao/indicadores/novo': typeof AppGestaoIndicadoresNovoRoute
   '/app/gestao/metas/$id': typeof AppGestaoMetasIdRoute
   '/app/gestao/metas/lote': typeof AppGestaoMetasLoteRoute
   '/app/gestao/metas/nova': typeof AppGestaoMetasNovaRoute
@@ -1368,6 +1451,7 @@ export interface FileRoutesById {
   '/app/configuracoes/storefront/': typeof AppConfiguracoesStorefrontIndexRoute
   '/app/gestao/atendimento-analise/': typeof AppGestaoAtendimentoAnaliseIndexRoute
   '/app/gestao/comissoes/': typeof AppGestaoComissoesIndexRoute
+  '/app/gestao/indicadores/': typeof AppGestaoIndicadoresIndexRoute
   '/app/gestao/metas/': typeof AppGestaoMetasIndexRoute
   '/app/gestao/ranking/': typeof AppGestaoRankingIndexRoute
   '/loja/conta/orcamentos/': typeof LojaContaOrcamentosIndexRoute
@@ -1392,6 +1476,7 @@ export interface FileRouteTypes {
     | '/app/inicio'
     | '/app/insights'
     | '/app/leads'
+    | '/app/notificacoes'
     | '/app/orcamentos'
     | '/app/pedidos'
     | '/app/sdr'
@@ -1432,6 +1517,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/aparencia'
     | '/app/configuracoes/auditoria'
     | '/app/configuracoes/comissoes'
+    | '/app/configuracoes/copiloto'
     | '/app/configuracoes/curva-abc'
     | '/app/configuracoes/distribuicao'
     | '/app/configuracoes/divisoes'
@@ -1442,6 +1528,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/gamificacao'
     | '/app/configuracoes/insights'
     | '/app/configuracoes/lojas'
+    | '/app/configuracoes/notificacoes'
     | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
     | '/app/configuracoes/portal-cliente'
@@ -1457,6 +1544,7 @@ export interface FileRouteTypes {
     | '/app/gestao/dre'
     | '/app/gestao/estoque'
     | '/app/gestao/estoque-movimentacao'
+    | '/app/gestao/indicadores'
     | '/app/gestao/metas'
     | '/app/gestao/positivacao'
     | '/app/gestao/ranking'
@@ -1469,9 +1557,11 @@ export interface FileRouteTypes {
     | '/app/veiculos/$id'
     | '/loja/categoria/$slug'
     | '/loja/conta/enderecos'
+    | '/loja/conta/notificacoes'
     | '/loja/conta/orcamentos'
     | '/loja/conta/pedidos'
     | '/loja/conta/perfil'
+    | '/loja/conta/preferencias'
     | '/loja/conta/veiculos'
     | '/loja/pedido-confirmado/$orderId'
     | '/loja/produto/$slug'
@@ -1511,6 +1601,8 @@ export interface FileRouteTypes {
     | '/app/gestao/atendimento-analise/$sellerId'
     | '/app/gestao/carteira-analitica/$sellerId'
     | '/app/gestao/comissoes/$sellerId'
+    | '/app/gestao/indicadores/$id'
+    | '/app/gestao/indicadores/novo'
     | '/app/gestao/metas/$id'
     | '/app/gestao/metas/lote'
     | '/app/gestao/metas/nova'
@@ -1521,6 +1613,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/storefront/'
     | '/app/gestao/atendimento-analise/'
     | '/app/gestao/comissoes/'
+    | '/app/gestao/indicadores/'
     | '/app/gestao/metas/'
     | '/app/gestao/ranking/'
     | '/loja/conta/orcamentos/'
@@ -1536,6 +1629,7 @@ export interface FileRouteTypes {
     | '/app/carteira'
     | '/app/inicio'
     | '/app/insights'
+    | '/app/notificacoes'
     | '/app/sdr'
     | '/app/storefront-admin'
     | '/auth/login'
@@ -1567,6 +1661,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/aparencia'
     | '/app/configuracoes/auditoria'
     | '/app/configuracoes/comissoes'
+    | '/app/configuracoes/copiloto'
     | '/app/configuracoes/curva-abc'
     | '/app/configuracoes/distribuicao'
     | '/app/configuracoes/divisoes'
@@ -1577,6 +1672,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/gamificacao'
     | '/app/configuracoes/insights'
     | '/app/configuracoes/lojas'
+    | '/app/configuracoes/notificacoes'
     | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
     | '/app/configuracoes/portal-cliente'
@@ -1600,7 +1696,9 @@ export interface FileRouteTypes {
     | '/app/veiculos/$id'
     | '/loja/categoria/$slug'
     | '/loja/conta/enderecos'
+    | '/loja/conta/notificacoes'
     | '/loja/conta/perfil'
+    | '/loja/conta/preferencias'
     | '/loja/conta/veiculos'
     | '/loja/pedido-confirmado/$orderId'
     | '/loja/produto/$slug'
@@ -1640,6 +1738,8 @@ export interface FileRouteTypes {
     | '/app/gestao/atendimento-analise/$sellerId'
     | '/app/gestao/carteira-analitica/$sellerId'
     | '/app/gestao/comissoes/$sellerId'
+    | '/app/gestao/indicadores/$id'
+    | '/app/gestao/indicadores/novo'
     | '/app/gestao/metas/$id'
     | '/app/gestao/metas/lote'
     | '/app/gestao/metas/nova'
@@ -1650,6 +1750,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/storefront'
     | '/app/gestao/atendimento-analise'
     | '/app/gestao/comissoes'
+    | '/app/gestao/indicadores'
     | '/app/gestao/metas'
     | '/app/gestao/ranking'
     | '/loja/conta/orcamentos'
@@ -1672,6 +1773,7 @@ export interface FileRouteTypes {
     | '/app/inicio'
     | '/app/insights'
     | '/app/leads'
+    | '/app/notificacoes'
     | '/app/orcamentos'
     | '/app/pedidos'
     | '/app/sdr'
@@ -1712,6 +1814,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/aparencia'
     | '/app/configuracoes/auditoria'
     | '/app/configuracoes/comissoes'
+    | '/app/configuracoes/copiloto'
     | '/app/configuracoes/curva-abc'
     | '/app/configuracoes/distribuicao'
     | '/app/configuracoes/divisoes'
@@ -1722,6 +1825,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/gamificacao'
     | '/app/configuracoes/insights'
     | '/app/configuracoes/lojas'
+    | '/app/configuracoes/notificacoes'
     | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
     | '/app/configuracoes/portal-cliente'
@@ -1737,6 +1841,7 @@ export interface FileRouteTypes {
     | '/app/gestao/dre'
     | '/app/gestao/estoque'
     | '/app/gestao/estoque-movimentacao'
+    | '/app/gestao/indicadores'
     | '/app/gestao/metas'
     | '/app/gestao/positivacao'
     | '/app/gestao/ranking'
@@ -1749,9 +1854,11 @@ export interface FileRouteTypes {
     | '/app/veiculos/$id'
     | '/loja/categoria/$slug'
     | '/loja/conta/enderecos'
+    | '/loja/conta/notificacoes'
     | '/loja/conta/orcamentos'
     | '/loja/conta/pedidos'
     | '/loja/conta/perfil'
+    | '/loja/conta/preferencias'
     | '/loja/conta/veiculos'
     | '/loja/pedido-confirmado/$orderId'
     | '/loja/produto/$slug'
@@ -1791,6 +1898,8 @@ export interface FileRouteTypes {
     | '/app/gestao/atendimento-analise/$sellerId'
     | '/app/gestao/carteira-analitica/$sellerId'
     | '/app/gestao/comissoes/$sellerId'
+    | '/app/gestao/indicadores/$id'
+    | '/app/gestao/indicadores/novo'
     | '/app/gestao/metas/$id'
     | '/app/gestao/metas/lote'
     | '/app/gestao/metas/nova'
@@ -1801,6 +1910,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/storefront/'
     | '/app/gestao/atendimento-analise/'
     | '/app/gestao/comissoes/'
+    | '/app/gestao/indicadores/'
     | '/app/gestao/metas/'
     | '/app/gestao/ranking/'
     | '/loja/conta/orcamentos/'
@@ -2115,6 +2225,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppOrcamentosRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/notificacoes': {
+      id: '/app/notificacoes'
+      path: '/notificacoes'
+      fullPath: '/app/notificacoes'
+      preLoaderRoute: typeof AppNotificacoesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/leads': {
       id: '/app/leads'
       path: '/leads'
@@ -2332,6 +2449,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LojaContaVeiculosRouteImport
       parentRoute: typeof LojaContaRoute
     }
+    '/loja/conta/preferencias': {
+      id: '/loja/conta/preferencias'
+      path: '/preferencias'
+      fullPath: '/loja/conta/preferencias'
+      preLoaderRoute: typeof LojaContaPreferenciasRouteImport
+      parentRoute: typeof LojaContaRoute
+    }
     '/loja/conta/perfil': {
       id: '/loja/conta/perfil'
       path: '/perfil'
@@ -2351,6 +2475,13 @@ declare module '@tanstack/react-router' {
       path: '/orcamentos'
       fullPath: '/loja/conta/orcamentos'
       preLoaderRoute: typeof LojaContaOrcamentosRouteImport
+      parentRoute: typeof LojaContaRoute
+    }
+    '/loja/conta/notificacoes': {
+      id: '/loja/conta/notificacoes'
+      path: '/notificacoes'
+      fullPath: '/loja/conta/notificacoes'
+      preLoaderRoute: typeof LojaContaNotificacoesRouteImport
       parentRoute: typeof LojaContaRoute
     }
     '/loja/conta/enderecos': {
@@ -2435,6 +2566,13 @@ declare module '@tanstack/react-router' {
       path: '/gestao/metas'
       fullPath: '/app/gestao/metas'
       preLoaderRoute: typeof AppGestaoMetasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/gestao/indicadores': {
+      id: '/app/gestao/indicadores'
+      path: '/gestao/indicadores'
+      fullPath: '/app/gestao/indicadores'
+      preLoaderRoute: typeof AppGestaoIndicadoresRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/gestao/estoque-movimentacao': {
@@ -2542,6 +2680,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesPapeisRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/configuracoes/notificacoes': {
+      id: '/app/configuracoes/notificacoes'
+      path: '/configuracoes/notificacoes'
+      fullPath: '/app/configuracoes/notificacoes'
+      preLoaderRoute: typeof AppConfiguracoesNotificacoesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/configuracoes/lojas': {
       id: '/app/configuracoes/lojas'
       path: '/configuracoes/lojas'
@@ -2610,6 +2755,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes/curva-abc'
       fullPath: '/app/configuracoes/curva-abc'
       preLoaderRoute: typeof AppConfiguracoesCurvaAbcRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/configuracoes/copiloto': {
+      id: '/app/configuracoes/copiloto'
+      path: '/configuracoes/copiloto'
+      fullPath: '/app/configuracoes/copiloto'
+      preLoaderRoute: typeof AppConfiguracoesCopilotoRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/configuracoes/comissoes': {
@@ -2689,6 +2841,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppGestaoMetasIndexRouteImport
       parentRoute: typeof AppGestaoMetasRoute
     }
+    '/app/gestao/indicadores/': {
+      id: '/app/gestao/indicadores/'
+      path: '/'
+      fullPath: '/app/gestao/indicadores/'
+      preLoaderRoute: typeof AppGestaoIndicadoresIndexRouteImport
+      parentRoute: typeof AppGestaoIndicadoresRoute
+    }
     '/app/gestao/comissoes/': {
       id: '/app/gestao/comissoes/'
       path: '/'
@@ -2758,6 +2917,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/gestao/metas/$id'
       preLoaderRoute: typeof AppGestaoMetasIdRouteImport
       parentRoute: typeof AppGestaoMetasRoute
+    }
+    '/app/gestao/indicadores/novo': {
+      id: '/app/gestao/indicadores/novo'
+      path: '/novo'
+      fullPath: '/app/gestao/indicadores/novo'
+      preLoaderRoute: typeof AppGestaoIndicadoresNovoRouteImport
+      parentRoute: typeof AppGestaoIndicadoresRoute
+    }
+    '/app/gestao/indicadores/$id': {
+      id: '/app/gestao/indicadores/$id'
+      path: '/$id'
+      fullPath: '/app/gestao/indicadores/$id'
+      preLoaderRoute: typeof AppGestaoIndicadoresIdRouteImport
+      parentRoute: typeof AppGestaoIndicadoresRoute
     }
     '/app/gestao/comissoes/$sellerId': {
       id: '/app/gestao/comissoes/$sellerId'
@@ -3039,6 +3212,21 @@ const AppGestaoComissoesRouteChildren: AppGestaoComissoesRouteChildren = {
 const AppGestaoComissoesRouteWithChildren =
   AppGestaoComissoesRoute._addFileChildren(AppGestaoComissoesRouteChildren)
 
+interface AppGestaoIndicadoresRouteChildren {
+  AppGestaoIndicadoresIdRoute: typeof AppGestaoIndicadoresIdRoute
+  AppGestaoIndicadoresNovoRoute: typeof AppGestaoIndicadoresNovoRoute
+  AppGestaoIndicadoresIndexRoute: typeof AppGestaoIndicadoresIndexRoute
+}
+
+const AppGestaoIndicadoresRouteChildren: AppGestaoIndicadoresRouteChildren = {
+  AppGestaoIndicadoresIdRoute: AppGestaoIndicadoresIdRoute,
+  AppGestaoIndicadoresNovoRoute: AppGestaoIndicadoresNovoRoute,
+  AppGestaoIndicadoresIndexRoute: AppGestaoIndicadoresIndexRoute,
+}
+
+const AppGestaoIndicadoresRouteWithChildren =
+  AppGestaoIndicadoresRoute._addFileChildren(AppGestaoIndicadoresRouteChildren)
+
 interface AppGestaoMetasRouteChildren {
   AppGestaoMetasIdRoute: typeof AppGestaoMetasIdRoute
   AppGestaoMetasLoteRoute: typeof AppGestaoMetasLoteRoute
@@ -3089,6 +3277,7 @@ interface AppRouteChildren {
   AppInicioRoute: typeof AppInicioRoute
   AppInsightsRoute: typeof AppInsightsRoute
   AppLeadsRoute: typeof AppLeadsRouteWithChildren
+  AppNotificacoesRoute: typeof AppNotificacoesRoute
   AppOrcamentosRoute: typeof AppOrcamentosRouteWithChildren
   AppPedidosRoute: typeof AppPedidosRouteWithChildren
   AppSdrRoute: typeof AppSdrRoute
@@ -3097,6 +3286,7 @@ interface AppRouteChildren {
   AppConfiguracoesAparenciaRoute: typeof AppConfiguracoesAparenciaRoute
   AppConfiguracoesAuditoriaRoute: typeof AppConfiguracoesAuditoriaRoute
   AppConfiguracoesComissoesRoute: typeof AppConfiguracoesComissoesRoute
+  AppConfiguracoesCopilotoRoute: typeof AppConfiguracoesCopilotoRoute
   AppConfiguracoesCurvaAbcRoute: typeof AppConfiguracoesCurvaAbcRoute
   AppConfiguracoesDistribuicaoRoute: typeof AppConfiguracoesDistribuicaoRoute
   AppConfiguracoesDivisoesRoute: typeof AppConfiguracoesDivisoesRoute
@@ -3107,6 +3297,7 @@ interface AppRouteChildren {
   AppConfiguracoesGamificacaoRoute: typeof AppConfiguracoesGamificacaoRoute
   AppConfiguracoesInsightsRoute: typeof AppConfiguracoesInsightsRoute
   AppConfiguracoesLojasRoute: typeof AppConfiguracoesLojasRoute
+  AppConfiguracoesNotificacoesRoute: typeof AppConfiguracoesNotificacoesRoute
   AppConfiguracoesPapeisRoute: typeof AppConfiguracoesPapeisRoute
   AppConfiguracoesPerfilRoute: typeof AppConfiguracoesPerfilRoute
   AppConfiguracoesPortalClienteRoute: typeof AppConfiguracoesPortalClienteRoute
@@ -3122,6 +3313,7 @@ interface AppRouteChildren {
   AppGestaoDreRoute: typeof AppGestaoDreRoute
   AppGestaoEstoqueRoute: typeof AppGestaoEstoqueRoute
   AppGestaoEstoqueMovimentacaoRoute: typeof AppGestaoEstoqueMovimentacaoRoute
+  AppGestaoIndicadoresRoute: typeof AppGestaoIndicadoresRouteWithChildren
   AppGestaoMetasRoute: typeof AppGestaoMetasRouteWithChildren
   AppGestaoPositivacaoRoute: typeof AppGestaoPositivacaoRouteWithChildren
   AppGestaoRankingRoute: typeof AppGestaoRankingRouteWithChildren
@@ -3150,6 +3342,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppInicioRoute: AppInicioRoute,
   AppInsightsRoute: AppInsightsRoute,
   AppLeadsRoute: AppLeadsRouteWithChildren,
+  AppNotificacoesRoute: AppNotificacoesRoute,
   AppOrcamentosRoute: AppOrcamentosRouteWithChildren,
   AppPedidosRoute: AppPedidosRouteWithChildren,
   AppSdrRoute: AppSdrRoute,
@@ -3158,6 +3351,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesAparenciaRoute: AppConfiguracoesAparenciaRoute,
   AppConfiguracoesAuditoriaRoute: AppConfiguracoesAuditoriaRoute,
   AppConfiguracoesComissoesRoute: AppConfiguracoesComissoesRoute,
+  AppConfiguracoesCopilotoRoute: AppConfiguracoesCopilotoRoute,
   AppConfiguracoesCurvaAbcRoute: AppConfiguracoesCurvaAbcRoute,
   AppConfiguracoesDistribuicaoRoute: AppConfiguracoesDistribuicaoRoute,
   AppConfiguracoesDivisoesRoute: AppConfiguracoesDivisoesRoute,
@@ -3169,6 +3363,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesGamificacaoRoute: AppConfiguracoesGamificacaoRoute,
   AppConfiguracoesInsightsRoute: AppConfiguracoesInsightsRoute,
   AppConfiguracoesLojasRoute: AppConfiguracoesLojasRoute,
+  AppConfiguracoesNotificacoesRoute: AppConfiguracoesNotificacoesRoute,
   AppConfiguracoesPapeisRoute: AppConfiguracoesPapeisRoute,
   AppConfiguracoesPerfilRoute: AppConfiguracoesPerfilRoute,
   AppConfiguracoesPortalClienteRoute: AppConfiguracoesPortalClienteRoute,
@@ -3185,6 +3380,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppGestaoDreRoute: AppGestaoDreRoute,
   AppGestaoEstoqueRoute: AppGestaoEstoqueRoute,
   AppGestaoEstoqueMovimentacaoRoute: AppGestaoEstoqueMovimentacaoRoute,
+  AppGestaoIndicadoresRoute: AppGestaoIndicadoresRouteWithChildren,
   AppGestaoMetasRoute: AppGestaoMetasRouteWithChildren,
   AppGestaoPositivacaoRoute: AppGestaoPositivacaoRouteWithChildren,
   AppGestaoRankingRoute: AppGestaoRankingRouteWithChildren,
@@ -3253,18 +3449,22 @@ const LojaContaPedidosRouteWithChildren =
 
 interface LojaContaRouteChildren {
   LojaContaEnderecosRoute: typeof LojaContaEnderecosRoute
+  LojaContaNotificacoesRoute: typeof LojaContaNotificacoesRoute
   LojaContaOrcamentosRoute: typeof LojaContaOrcamentosRouteWithChildren
   LojaContaPedidosRoute: typeof LojaContaPedidosRouteWithChildren
   LojaContaPerfilRoute: typeof LojaContaPerfilRoute
+  LojaContaPreferenciasRoute: typeof LojaContaPreferenciasRoute
   LojaContaVeiculosRoute: typeof LojaContaVeiculosRoute
   LojaContaIndexRoute: typeof LojaContaIndexRoute
 }
 
 const LojaContaRouteChildren: LojaContaRouteChildren = {
   LojaContaEnderecosRoute: LojaContaEnderecosRoute,
+  LojaContaNotificacoesRoute: LojaContaNotificacoesRoute,
   LojaContaOrcamentosRoute: LojaContaOrcamentosRouteWithChildren,
   LojaContaPedidosRoute: LojaContaPedidosRouteWithChildren,
   LojaContaPerfilRoute: LojaContaPerfilRoute,
+  LojaContaPreferenciasRoute: LojaContaPreferenciasRoute,
   LojaContaVeiculosRoute: LojaContaVeiculosRoute,
   LojaContaIndexRoute: LojaContaIndexRoute,
 }
