@@ -1,10 +1,14 @@
 // src/features/quotes/components/new/items/QuoteItemsTable.tsx
-import { useEffect, useState } from "react";
-import type { ID, IQuoteItem } from "@/shared/types";
+import { Fragment, useEffect, useState } from "react";
+import type { ID, IPart, IQuoteItem } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Input } from "@/components/ui/input";
+import { getCategoryIcon } from "@/features/catalog";
+import { stockBadge, lineMarginValue } from "../../../utils/quoteItemDisplay";
+import { EquivalentsPanel } from "./EquivalentsPanel";
 
 const moneyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const pctFormatter = new Intl.NumberFormat("pt-BR", { style: "percent", maximumFractionDigits: 0 });
 
 export interface IQuoteItemsTableProps {
   items: IQuoteItem[];
@@ -13,6 +17,14 @@ export interface IQuoteItemsTableProps {
   onRemove: (id: ID) => void;
   /** Line to flash as recently added/updated. */
   highlightId?: ID | null;
+  /** Resolves the IPart behind each item's partId (for the rich line). */
+  partsById: Map<ID, IPart>;
+  /** Full catalog, to resolve equivalents in the expand panel. */
+  allParts: IPart[];
+  /** Show per-line margin (Owner/Gestor only). */
+  showMargin: boolean;
+  /** Swap an existing line for one of its equivalents. */
+  onSwapEquivalent: (itemId: ID, equivalent: IPart) => void;
 }
 
 export function QuoteItemsTable({
@@ -21,8 +33,13 @@ export function QuoteItemsTable({
   onPatch,
   onRemove,
   highlightId,
+  partsById,
+  allParts,
+  showMargin,
+  onSwapEquivalent,
 }: IQuoteItemsTableProps) {
   const [flashId, setFlashId] = useState<ID | null>(null);
+  const [expandedId, setExpandedId] = useState<ID | null>(null);
   useEffect(() => {
     if (!highlightId) return;
     setFlashId(highlightId);
@@ -38,6 +55,9 @@ export function QuoteItemsTable({
     );
   }
 
+  // Column span for the full-width expand row: Peça, Qtd, Unit, Desc, Subtotal, action = 6.
+  const COLSPAN = 6;
+
   return (
     <div className="overflow-hidden rounded-md border border-border">
       <table className="w-full text-sm">
@@ -52,70 +72,153 @@ export function QuoteItemsTable({
           </tr>
         </thead>
         <tbody>
-          {items.map((it) => (
-            <tr
-              key={it.id}
-              className={`border-t border-border transition-colors duration-300 motion-reduce:transition-none ${
-                flashId === it.id ? "bg-primary/15" : ""
-              }`}
-            >
-              <td className="px-3 py-2">
-                <p className="text-sm font-medium text-foreground">{it.partName}</p>
-                <p className="text-[10px] text-muted-foreground">SKU {it.partSku}</p>
-              </td>
-              <td className="px-3 py-2 text-right">
-                <Input
-                  type="number"
-                  min={1}
-                  aria-label={`Quantidade de ${it.partName}`}
-                  value={it.quantity}
-                  onChange={(e) =>
-                    onPatch(it.id, { quantity: Math.max(1, Number(e.target.value) || 1) })
-                  }
-                  className="h-8 text-right tabular-nums"
-                />
-              </td>
-              <td className="px-3 py-2 text-right">
-                <Input
-                  type="number"
-                  min={0}
-                  step={0.01}
-                  aria-label={`Preço unitário de ${it.partName}`}
-                  value={it.unitPrice}
-                  onChange={(e) =>
-                    onPatch(it.id, { unitPrice: Math.max(0, Number(e.target.value) || 0) })
-                  }
-                  className="h-8 text-right tabular-nums"
-                />
-              </td>
-              <td className="px-3 py-2 text-right">
-                <Input
-                  type="number"
-                  min={0}
-                  step={0.01}
-                  aria-label={`Desconto de ${it.partName}`}
-                  value={it.discount}
-                  onChange={(e) =>
-                    onPatch(it.id, { discount: Math.max(0, Number(e.target.value) || 0) })
-                  }
-                  className="h-8 text-right tabular-nums"
-                />
-              </td>
-              <td className="px-3 py-2 text-right text-sm font-semibold tabular-nums">
-                {moneyFormatter.format(it.total)}
-              </td>
-              <td className="px-3 py-2 text-right">
-                <button
-                  type="button"
-                  onClick={() => onRemove(it.id)}
-                  className="grid h-7 w-7 place-items-center text-muted-foreground hover:text-destructive"
-                  aria-label={`Remover ${it.partName}`}
+          {items.map((it) => {
+            const part = partsById.get(it.partId);
+            const stock = part ? stockBadge(part) : null;
+            const hasEquivalents = (part?.equivalentPartIds.length ?? 0) > 0;
+            const isExpanded = expandedId === it.id;
+            const margin = showMargin ? lineMarginValue(it, part) : 0;
+            return (
+              <Fragment key={it.id}>
+                <tr
+                  className={`border-t border-border transition-colors duration-300 motion-reduce:transition-none ${
+                    flashId === it.id ? "bg-primary/15" : ""
+                  }`}
                 >
-                  <Icon icon="mdi:trash-can-outline" size={16} />
-                </button>
-              </td>
-            </tr>
-          ))}
+                  <td className="px-3 py-2">
+                    <div className="flex items-start gap-2">
+                      <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded bg-muted text-muted-foreground">
+                        {part?.imageUrl ? (
+                          <img src={part.imageUrl} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <Icon icon={getCategoryIcon(part?.category)} size={16} />
+                        )}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                          <span className="truncate">{it.partName}</span>
+                          {part &&
+                            (part.isOriginal ? (
+                              <span className="shrink-0 rounded border border-primary/30 bg-primary/10 px-1 text-[10px] font-semibold text-primary">
+                                Original
+                              </span>
+                            ) : (
+                              <span className="shrink-0 rounded border border-border bg-muted px-1 text-[10px] font-medium text-muted-foreground">
+                                Equivalente
+                              </span>
+                            ))}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {part ? (
+                            <>
+                              OEM {part.oemCodes[0] ?? "—"} · {part.brand} · SKU {it.partSku}
+                            </>
+                          ) : (
+                            <>SKU {it.partSku}</>
+                          )}
+                        </p>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                          {stock && (
+                            <span
+                              className={`inline-flex items-center gap-1 text-[10px] ${stock.textClassName}`}
+                            >
+                              <span className={`h-1.5 w-1.5 rounded-full ${stock.dotClassName}`} />
+                              {stock.label}
+                            </span>
+                          )}
+                          {showMargin && part && (
+                            <span className="text-[10px] text-muted-foreground">
+                              margem {moneyFormatter.format(margin)} (
+                              {pctFormatter.format(part.marginPercent)})
+                            </span>
+                          )}
+                          {hasEquivalents && (
+                            <button
+                              type="button"
+                              onClick={() => setExpandedId(isExpanded ? null : it.id)}
+                              className="inline-flex items-center gap-0.5 text-[10px] text-primary hover:underline"
+                              aria-expanded={isExpanded}
+                            >
+                              <Icon
+                                icon={isExpanded ? "mdi:chevron-up" : "mdi:chevron-down"}
+                                size={12}
+                              />
+                              {isExpanded ? "ocultar equivalentes" : "ver equivalentes"}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    <Input
+                      type="number"
+                      min={1}
+                      aria-label={`Quantidade de ${it.partName}`}
+                      value={it.quantity}
+                      onChange={(e) =>
+                        onPatch(it.id, { quantity: Math.max(1, Number(e.target.value) || 1) })
+                      }
+                      className="h-8 text-right tabular-nums"
+                    />
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    <Input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      aria-label={`Preço unitário de ${it.partName}`}
+                      value={it.unitPrice}
+                      onChange={(e) =>
+                        onPatch(it.id, { unitPrice: Math.max(0, Number(e.target.value) || 0) })
+                      }
+                      className="h-8 text-right tabular-nums"
+                    />
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    <Input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      aria-label={`Desconto de ${it.partName}`}
+                      value={it.discount}
+                      onChange={(e) =>
+                        onPatch(it.id, { discount: Math.max(0, Number(e.target.value) || 0) })
+                      }
+                      className="h-8 text-right tabular-nums"
+                    />
+                  </td>
+                  <td className="px-3 py-2 text-right text-sm font-semibold tabular-nums">
+                    {moneyFormatter.format(it.total)}
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    <button
+                      type="button"
+                      onClick={() => onRemove(it.id)}
+                      className="grid h-7 w-7 place-items-center text-muted-foreground hover:text-destructive"
+                      aria-label={`Remover ${it.partName}`}
+                    >
+                      <Icon icon="mdi:trash-can-outline" size={16} />
+                    </button>
+                  </td>
+                </tr>
+                {isExpanded && part && (
+                  <tr className="border-t border-border bg-muted/20">
+                    <td colSpan={COLSPAN} className="p-0">
+                      <EquivalentsPanel
+                        part={part}
+                        allParts={allParts}
+                        onSwap={(equivalent) => {
+                          onSwapEquivalent(it.id, equivalent);
+                          setExpandedId(null);
+                        }}
+                      />
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            );
+          })}
         </tbody>
         <tfoot className="bg-muted/30 text-xs">
           <tr>
