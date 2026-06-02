@@ -14,6 +14,7 @@ import type {
   INotification,
   IOrder,
   IPart,
+  IProductIndicator,
   IQuote,
   IRecommendation,
   ISdrEscalation,
@@ -41,7 +42,8 @@ type CollectionKey =
   | "distributionTraces"
   | "sdrSessions"
   | "sdrEscalations"
-  | "notifications";
+  | "notifications"
+  | "indicators";
 
 type CollectionMap = {
   customers: ICustomer;
@@ -62,6 +64,7 @@ type CollectionMap = {
   sdrSessions: ISdrSession;
   sdrEscalations: ISdrEscalation;
   notifications: INotification;
+  indicators: IProductIndicator;
 };
 
 /**

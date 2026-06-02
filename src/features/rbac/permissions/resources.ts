@@ -20,6 +20,7 @@ export const RESOURCES = [
   "order",
   "commission",
   "goal",
+  "indicator",
   "recommendation",
   "transfer",
   "segment",

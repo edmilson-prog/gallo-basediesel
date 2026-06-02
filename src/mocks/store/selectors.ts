@@ -115,6 +115,10 @@ export function selectAllGoals() {
   return getMockState().goals;
 }
 
+export function selectAllIndicators() {
+  return getMockState().indicators;
+}
+
 export function selectAllRecommendations() {
   return getMockState().recommendations;
 }

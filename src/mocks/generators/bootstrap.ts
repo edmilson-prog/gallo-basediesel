@@ -18,6 +18,7 @@ import type {
   IOrder,
   IPart,
   IPositivation,
+  IProductIndicator,
   IQuote,
   IRanking,
   IRecommendation,
@@ -51,6 +52,7 @@ import { seedCommissionRules } from "./commissionRules";
 import { generateExpenses } from "./expense";
 import { generateManualCashFlowEntries } from "./cashFlowEntry";
 import { generateGoals } from "./goal";
+import { generateIndicators } from "./indicator";
 import { generateRecommendation } from "./recommendation";
 import { generateTransfer } from "./transfer";
 import { generateSegments } from "./segment";
@@ -93,6 +95,7 @@ export interface IBootstrappedDataset {
   expenses: IExpense[];
   cashFlowEntries: ICashFlowEntry[];
   goals: IGoal[];
+  indicators: IProductIndicator[];
   badges: IGamificationBadge[];
   rankings: IRanking[];
   positivations: IPositivation[];
@@ -330,6 +333,7 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
 
   // 15. Goals (store + individual).
   const goals = generateGoals(ctx, { sellers, now });
+  const indicators = generateIndicators(ctx, { sellers, now });
 
   // 16. Recommendations — point to customers in dormente / recuperacao.
   const recommendationTargets = customers.filter(
@@ -500,6 +504,7 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
     expenses,
     cashFlowEntries,
     goals,
+    indicators,
     badges,
     rankings: [ranking],
     positivations: [positivation],

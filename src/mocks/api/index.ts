@@ -32,6 +32,7 @@ export { managerDashboardApi } from "./managerDashboard";
 export { sdrSessionsApi, type IListSdrSessionsParams } from "./sdrSessions";
 export { sdrEscalationsApi } from "./sdrEscalations";
 export { notificationsApi, type IListNotificationsParams } from "./notifications";
+export { indicatorsApi, type IListIndicatorsParams } from "./indicators";
 
 export {
   MockError,

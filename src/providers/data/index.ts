@@ -79,6 +79,8 @@ export type {
   IListSdrSessionsParams,
   ISdrEscalationsProvider,
   IListSdrEscalationsParams,
+  IIndicatorsProvider,
+  IListIndicatorsParams,
 } from "./contracts";
 
 export { useCustomersProvider } from "./hooks/useCustomersProvider";
@@ -106,3 +108,4 @@ export { useManagerDashboardProvider } from "./hooks/useManagerDashboardProvider
 export { useSdrSessionsProvider } from "./hooks/useSdrSessionsProvider";
 export { useSdrEscalationsProvider } from "./hooks/useSdrEscalationsProvider";
 export { useCopilotProvider } from "./hooks/useCopilotProvider";
+export { useIndicatorsProvider } from "./hooks/useIndicatorsProvider";
