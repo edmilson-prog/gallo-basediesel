@@ -4,6 +4,7 @@ import { Icon } from "@/components/Icon";
 import { EmptyState } from "@/features/shell/components/EmptyState";
 import type { ID } from "@/shared/types";
 import { useStoreIndicators } from "../hooks/useIndicators";
+import { useIndicatorMilestoneToast } from "../hooks/useIndicatorMilestoneToast";
 import { indicatorsPtBR as S } from "../i18n/pt-BR";
 import { IndicatorCard } from "./IndicatorCard";
 
@@ -19,6 +20,8 @@ export function VendedorIndicatorsDashboard({
   storeId: ID;
 }) {
   const { items, isLoading, hasError } = useStoreIndicators(storeId);
+
+  useIndicatorMilestoneToast(items);
 
   const visibleItems = useMemo(() => {
     return items.filter(({ indicator }) => {

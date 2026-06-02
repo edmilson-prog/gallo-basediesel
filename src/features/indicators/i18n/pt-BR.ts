@@ -124,6 +124,11 @@ export const indicatorsPtBR = {
   accessDeniedTitle: "Acesso restrito",
   accessDeniedDescription: "Você não tem permissão para visualizar este indicador.",
   accessDeniedAction: "Voltar para indicadores",
+  // Milestones
+  milestone50: (name: string) => `🎯 O indicador ${name} atingiu 50%!`,
+  milestone80: (name: string) => `🚀 ${name}: 80% — falta pouco!`,
+  milestone100: (name: string) => `🏆 Indicador ${name} batido!`,
+
   // Lifecycle status badges (indicator-specific)
   lifecycleStatus: {
     ativo: "Ativo",
