@@ -40,6 +40,11 @@ export default defineConfig({
     tsconfigPaths(),
   ],
   server: {
+    // Fail fast instead of silently hopping to the next port (5174, 5175…)
+    // when 5173 is taken. Prevents multiple concurrent dev-server instances
+    // from coexisting and corrupting the shared optimizeDeps cache, which
+    // surfaced as "more than one copy of React" / Invalid hook call errors.
+    strictPort: true,
     watch: {
       // Nested git worktrees (`.claude/worktrees/*`) and brainstorm sessions
       // (`.superpowers/*`) are full repo copies with their own index.html /
