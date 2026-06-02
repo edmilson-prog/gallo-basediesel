@@ -67,3 +67,31 @@ export function addOrIncrementItem(
   const created = buildItemFromPart(part, qty);
   return { items: [...items, created], affectedId: created.id };
 }
+
+/**
+ * Replace the part of an existing line with another part (an equivalent),
+ * keeping the quantity, resetting the line discount, and re-snapshotting the
+ * SKU/name/unitPrice from the new part. No-op if the line is not found.
+ * Returns a new array and the affected line id (for highlight).
+ */
+export function swapItemPart(
+  items: IQuoteItem[],
+  itemId: ID,
+  part: IPart,
+): { items: IQuoteItem[]; affectedId: ID } {
+  const target = items.find((it) => it.id === itemId);
+  if (!target) return { items, affectedId: itemId };
+  const updated: IQuoteItem = {
+    ...target,
+    partId: part.id,
+    partSku: part.sku,
+    partName: part.name,
+    unitPrice: part.unitPrice,
+    discount: 0,
+    total: round2(target.quantity * part.unitPrice),
+  };
+  return {
+    items: items.map((it) => (it.id === itemId ? updated : it)),
+    affectedId: itemId,
+  };
+}
