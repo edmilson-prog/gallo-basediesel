@@ -4,6 +4,6 @@ import { IndicatorDetailPage } from "@/features/indicators/pages/IndicatorDetail
 
 export const Route = createFileRoute("/app/gestao/indicadores/$id")({
   beforeLoad: ({ location }) =>
-    requireAuth(location.pathname, ["Owner", "Gestor", "Vendedor", "Financeiro"]),
+    requireAuth(location.pathname, ["Owner", "Gestor", "Vendedor", "VendedorExterno", "Financeiro"]),
   component: IndicatorDetailPage,
 });

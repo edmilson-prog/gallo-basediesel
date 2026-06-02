@@ -19,7 +19,7 @@ export const indicatorsPtBR = {
   metricDescription: {
     faturamento: "Soma do valor bruto das vendas dos produtos selecionados.",
     quantidade: "Número total de unidades vendidas dos produtos selecionados.",
-    margem: "Margem de lucro percentual sobre as vendas dos produtos selecionados.",
+    margem: "Valor total de margem de lucro dos produtos selecionados.",
     pedidos: "Quantidade de pedidos que incluem ao menos um produto selecionado.",
   },
   scope: { store: "Loja", individual: "Individual", global: "Global" },
