@@ -284,6 +284,8 @@ function generateOrderItems(
         discount: qi.discount,
         total: qi.total,
         marginValue,
+        partCategory: part?.category,
+        partSubcategory: part?.subcategory,
       };
     });
   }
@@ -314,6 +316,8 @@ function generateOrderItems(
       discount,
       total,
       marginValue,
+      partCategory: part.category,
+      partSubcategory: part.subcategory,
     });
   }
   return items;

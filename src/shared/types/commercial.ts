@@ -1,5 +1,6 @@
 import type { ICustomerAddress } from "./customer";
 import type { Division, ID, ISO8601, Money } from "./common";
+import type { PartCategory } from "./part-identification";
 
 /** Lifecycle status of a quote. */
 export type QuoteStatus =
@@ -173,6 +174,14 @@ export interface IOrderItem {
    * on the customer's vehicle so the service history (PRD-016) stays in sync.
    */
   appliedToVehicleId?: ID;
+  /**
+   * Snapshot of the part's category at sale time (denormalized for product
+   * indicators — see indicators design). Optional/additive: when absent, the
+   * indicator engine resolves it via the parts catalog (fallback).
+   */
+  partCategory?: PartCategory;
+  /** Snapshot of the part's subcategory at sale time. Captured for issue #23; unused in MVP. */
+  partSubcategory?: string;
 }
 
 /**
