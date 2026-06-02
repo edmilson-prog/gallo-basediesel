@@ -30,6 +30,7 @@ export const ROUTES = {
   GESTAO_INICIO: "/app/gestao",
   GESTAO_VENDAS: "/app/gestao/vendas",
   GESTAO_METAS: "/app/gestao/metas",
+  GESTAO_INDICADORES: "/app/gestao/indicadores",
   GESTAO_RANKING: "/app/gestao/ranking",
   GESTAO_POSITIVACAO: "/app/gestao/positivacao",
   GESTAO_ABC: "/app/gestao/abc",
