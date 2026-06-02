@@ -44,9 +44,11 @@ export const indicatorsPtBR = {
     behind: "Atrasados",
   },
   contribution: "Contribuição por vendedor",
+  noContributions: "Sem contribuições ainda",
   evolution: "Evolução",
   expected: "Esperado",
   realized: "Realizado",
+  noPeriodData: "Sem dados para o período do indicador.",
   // Form strings
   form: {
     pageTitle: "Novo indicador",
