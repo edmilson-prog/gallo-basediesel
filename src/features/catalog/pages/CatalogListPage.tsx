@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import type { ID } from "@/shared/types";
@@ -14,6 +14,12 @@ import { CatalogTable } from "../components/list/CatalogTable";
 import { CatalogPagination } from "../components/list/CatalogPagination";
 import { useCatalogList } from "../hooks/useCatalogList";
 import { useCatalogUrlState } from "../hooks/useCatalogUrlState";
+import {
+  OPTIONAL_COLUMNS,
+  readVisibleOptional,
+  writeVisibleOptional,
+  type OptionalColumn,
+} from "../utils/columns";
 import { CATALOG_STRINGS } from "../i18n/pt-BR";
 
 export function CatalogListPage() {
@@ -70,6 +76,29 @@ export function CatalogListPage() {
     return Array.from(set).sort((a, b) => b - a);
   }, [allParts.data]);
 
+  // Column visibility (persisted in localStorage).
+  const [visibleColumns, setVisibleColumns] = useState<Set<OptionalColumn>>(
+    () => new Set(readVisibleOptional()),
+  );
+
+  const toggleColumn = useCallback((id: OptionalColumn) => {
+    setVisibleColumns((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const showAllColumns = useCallback(() => {
+    setVisibleColumns(new Set(OPTIONAL_COLUMNS));
+  }, []);
+
+  useEffect(() => {
+    // Persist in canonical column order.
+    writeVisibleOptional(OPTIONAL_COLUMNS.filter((id) => visibleColumns.has(id)));
+  }, [visibleColumns]);
+
   const handleRowClick = (id: ID) => {
     void navigate({ to: "/app/catalogo/$id", params: { id } });
   };
@@ -117,6 +146,9 @@ export function CatalogListPage() {
               sort={sort}
               onSortChange={url.setSort}
               onRowClick={handleRowClick}
+              visibleColumns={visibleColumns}
+              onToggleColumn={toggleColumn}
+              onShowAllColumns={showAllColumns}
             />
           )}
         </div>

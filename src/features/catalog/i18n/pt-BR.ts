@@ -15,6 +15,11 @@ export const CATALOG_STRINGS = {
     emptyNoAccess: "Aguardando catálogo da equipe.",
     errorTitle: "Não foi possível carregar o catálogo",
     retry: "Tentar novamente",
+    columnsMenu: {
+      trigger: "Configurar colunas",
+      title: "Colunas visíveis",
+      showAll: "Exibir todas",
+    },
   },
   filters: {
     category: "Categoria",
