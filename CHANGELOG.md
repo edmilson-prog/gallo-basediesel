@@ -4,6 +4,29 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.59.0] — Counter · 2026-06-02
+
+A tela de criação de orçamento foi totalmente reformulada para funcionar como um **balcão de atendimento digital**: o vendedor escolhe o layout da tela (coluna dupla com resumo fixo, largura cheia ou barra de total no rodapé), adiciona múltiplos itens de uma vez sem fechar nenhuma janela e recebe sugestões automáticas de peças com base nos veículos do cliente e no histórico de compras. Todos os orçamentos criados até agora continuam funcionando normalmente.
+
+### Added
+
+- **3 layouts para a tela de orçamento** — o vendedor escolhe entre duas colunas (lista de itens ao lado do resumo fixo), largura total ou barra de total fixada no rodapé. A preferência é lembrada para as próximas sessões.
+- **3 modos de adição de itens** — modo Contínuo (busca que permanece aberta, sugestões de peças visíveis o tempo todo), modo Catálogo (painel lateral com seleção por caixas de marcação para adicionar vários itens de uma vez) e modo Rápido (digitação com teclado, tecla Enter adiciona e a busca continua aberta para o próximo item). A preferência de modo também é lembrada.
+- **Sugestões automáticas por veículo do cliente** — ao abrir a tela de itens com um cliente selecionado, a lista mostra imediatamente as peças compatíveis com os veículos cadastrados na frota dele. Quando o cliente tem mais de um veículo, botões permitem alternar entre eles sem precisar digitar nada.
+- **Histórico de recompra** — trilho "Já comprou antes" com as peças que o cliente adquiriu em pedidos anteriores, facilitando a repetição de pedidos de consumíveis (filtros, óleos, correias).
+- **Item avulso** — permite adicionar ao orçamento qualquer produto ou serviço que não esteja no catálogo, informando apenas o nome, preço e quantidade.
+- **Indicador de estoque na busca** — cada peça exibida nos resultados mostra o status de estoque em três estados: disponível, baixo ou indisponível.
+
+### Changed
+
+- **Adição de itens sem duplicação** — adicionar uma peça que já está no orçamento incrementa a quantidade da linha existente em vez de criar uma segunda linha idêntica.
+- **Resumo de desconto e frete integrado ao painel de totais** — os controles de desconto global e frete foram movidos para dentro do painel de totais (à direita na tela ou no rodapé), ficando sempre visíveis enquanto o orçamento é montado.
+- **Flash de confirmação ao adicionar** — a linha da peça recém-adicionada destaca-se brevemente com um realce dourado, confirmando visualmente que o item entrou no orçamento sem necessidade de toast por item.
+
+### Fixed
+
+- **Layout de barra no rodapé exibia painel completo** — o modo "barra no rodapé" agora renderiza corretamente o total e os controles em formato compacto horizontal, sem sobrepor o conteúdo com o painel expandido.
+
 ## [0.58.0] — Gauge · 2026-06-02
 
 A plataforma ganha o conceito de **Indicadores por produto** — uma nova forma de acompanhar metas comerciais recortadas por categoria, produto ou grupo de peças. Diferente das Metas (que medem performance geral), um Indicador responde: "quanto vendemos de filtros este mês?" — com barra de progresso em tempo real, semáforo, ranking de quem mais contribuiu, gráfico de evolução e composição clicável pelos pedidos que compõem o número.
