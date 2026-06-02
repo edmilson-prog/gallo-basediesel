@@ -4,6 +4,31 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.58.0] — Gauge · 2026-06-02
+
+A plataforma ganha o conceito de **Indicadores por produto** — uma nova forma de acompanhar metas comerciais recortadas por categoria, produto ou grupo de peças. Diferente das Metas (que medem performance geral), um Indicador responde: "quanto vendemos de filtros este mês?" — com barra de progresso em tempo real, semáforo, ranking de quem mais contribuiu, gráfico de evolução e composição clicável pelos pedidos que compõem o número.
+
+### Added
+
+- **Indicadores por produto (`/app/gestao/indicadores`)** — nova área de acompanhamento de vendas por recorte de produto (categoria, SKU ou grupo personalizado), com quatro métricas (faturamento, quantidade, margem, pedidos), três escopos (loja, individual, global) e períodos de diário a anual.
+- **Dashboard de Indicadores** — visão do gestor com KPIs (ativos, atingimento médio, acima de 100%, atrasados), tabela filtrável, gráfico de barras; visão do vendedor mostra apenas os indicadores que o incluem, em modo leitura.
+- **Criação e detalhe de indicador** — formulário em 5 seções com seletor multimodal de produto (chips de categoria / busca de SKU / montador de grupo personalizado), e página de detalhe com barra de progresso, gráfico evolutivo "realizado vs esperado", ranking de contribuição por vendedor e tabela de pedidos contribuintes clicável.
+- **Notificações de marco** — toast ao cruzar 50%, 80% e 100% do alvo do indicador.
+- **Transição automática de status** — indicador vencido vira "Concluído" (se bateu o alvo) ou "Arquivado" (se não bateu) sem intervenção manual.
+- **Widget no Painel do Gestor** — faixa "Indicadores do mês" com os 5 ativos de maior atingimento, com link direto para o detalhe.
+- **Conversas roteirizadas no mock** — cenários de atendimento que acionam as regras do Copiloto de Vendas, tornando o mockup mais realista para demonstrações.
+- **Colunas redimensionáveis e menu de visibilidade no catálogo** — cada coluna da listagem pode ser arrastada para redimensionar; o menu "Colunas" permite esconder ou mostrar colunas individuais.
+
+### Changed
+
+- **Helpers de progresso compartilhados** — os cálculos de semáforo (verde/amarelo/vermelho) e tendência de ritmo foram extraídos do motor de Metas para um módulo compartilhado, consumido tanto por Metas quanto por Indicadores.
+- **Alinhamento da coluna de estoque no catálogo** — agora à esquerda para consistência visual com as demais colunas de texto.
+
+### Fixed
+
+- **Conflito de porta no servidor de desenvolvimento** — `strictPort` agora garante falha imediata se a porta 5173 já estiver em uso, evitando que dois servidores coexistam e corrompam o cache do Vite.
+- **Acesso de VendedorExterno à área de Indicadores** — o guard de rota agora inclui o papel VendedorExterno, que tinha acesso garantido pela política RBAC mas era redirecionado para `/sem-permissão` antes de chegar à página.
+
 ## [0.57.0] — Manifest · 2026-06-01
 
 O catálogo ganha dados de verdade. As **referências cruzadas** entre marcas concorrentes passam a ter lugar no modelo e na ficha do produto, e o catálogo é semeado com uma amostra de **filtros reais importados da planilha do fornecedor UFI** — com GTIN, dados fiscais, peso, múltiplo, aplicações e equivalências verdadeiras. Os filtros sintéticos dão lugar aos reais; as demais categorias seguem geradas. Tudo continua na Fase 1 (mock determinístico), agora muito mais fiel ao negócio.
