@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type {
@@ -69,6 +69,7 @@ function isoDate(d: Date): string {
 
 export function QuoteEditor() {
   const navigate = useNavigate();
+  const { applyKitId } = useSearch({ from: "/app/orcamentos/novo" }) as { applyKitId?: string };
   const queryClient = useQueryClient();
   const { currentUser } = useAuth();
   const { currentStoreId } = useCurrentStore();
@@ -173,6 +174,18 @@ export function QuoteEditor() {
 
   // --- Kit auto-suggestion (PRD-035) ---
   const [suggestionDismissed, setSuggestionDismissed] = useState(false);
+
+  // --- applyKitId from URL (RF-014) ---
+  // Guard ref ensures we only pre-open the dialog once even on re-renders.
+  const appliedFromUrlRef = useRef(false);
+  useEffect(() => {
+    if (!applyKitId || appliedFromUrlRef.current || kits.length === 0) return;
+    const kit = kits.find((k) => k.id === applyKitId);
+    if (kit) {
+      appliedFromUrlRef.current = true;
+      setKitToApply(kit);
+    }
+  }, [applyKitId, kits]);
 
   // Reset dismiss state whenever customer changes.
   useEffect(() => {

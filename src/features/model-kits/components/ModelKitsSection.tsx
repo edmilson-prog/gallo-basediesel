@@ -1,7 +1,6 @@
 // src/features/model-kits/components/ModelKitsSection.tsx
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { toast } from "sonner";
 import type { ID, IVehicleModelKit } from "@/shared/types";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
@@ -43,9 +42,8 @@ export function ModelKitsSection({ modelId, modelLabel }: IModelKitsSectionProps
     });
   }
 
-  function handleApply(_kit: IVehicleModelKit) {
-    // Route APP_ORCAMENTOS_NOVO not yet registered; wired in Task 15/17.
-    toast.info("Abra um orçamento para aplicar este kit.");
+  function handleApply(kit: IVehicleModelKit) {
+    void navigate({ to: "/app/orcamentos/novo", search: { applyKitId: kit.id } });
   }
 
   // --- Loading state ---
