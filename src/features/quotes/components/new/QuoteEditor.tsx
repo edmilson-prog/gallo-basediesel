@@ -304,6 +304,8 @@ export function QuoteEditor() {
       <QuoteActionBar
         layout={prefs.layout}
         onLayoutChange={prefs.setLayout}
+        density={prefs.density}
+        onDensityChange={prefs.setDensity}
         onBack={() => void navigate({ to: "/app/orcamentos" })}
         canSubmit={canSubmit}
         submitting={submitting}
@@ -352,6 +354,7 @@ export function QuoteEditor() {
                 allParts={allParts}
                 showMargin={isManagerOrOwner}
                 onSwapEquivalent={handleSwapEquivalent}
+                density={prefs.density}
               />
             </div>
           </Card>

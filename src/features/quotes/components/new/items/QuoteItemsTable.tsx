@@ -1,5 +1,6 @@
 // src/features/quotes/components/new/items/QuoteItemsTable.tsx
 import { Fragment, useEffect, useState } from "react";
+import type { QuoteDensity } from "../../../types/editor";
 import type { ID, IPart, IQuoteItem } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ export interface IQuoteItemsTableProps {
   showMargin: boolean;
   /** Swap an existing line for one of its equivalents. */
   onSwapEquivalent: (itemId: ID, equivalent: IPart) => void;
+  density: QuoteDensity;
 }
 
 export function QuoteItemsTable({
@@ -37,7 +39,10 @@ export function QuoteItemsTable({
   allParts,
   showMargin,
   onSwapEquivalent,
+  density,
 }: IQuoteItemsTableProps) {
+  const cellPadY = density === "compact" ? "py-1" : "py-2";
+  const inputH = density === "compact" ? "h-7" : "h-8";
   const [flashId, setFlashId] = useState<ID | null>(null);
   const [expandedId, setExpandedId] = useState<ID | null>(null);
   useEffect(() => {
@@ -85,7 +90,7 @@ export function QuoteItemsTable({
                     flashId === it.id ? "bg-primary/15" : ""
                   }`}
                 >
-                  <td className="px-3 py-2">
+                  <td className={`px-3 ${cellPadY}`}>
                     <div className="flex items-start gap-2">
                       <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded bg-muted text-muted-foreground">
                         {part?.imageUrl ? (
@@ -150,7 +155,7 @@ export function QuoteItemsTable({
                       </div>
                     </div>
                   </td>
-                  <td className="px-3 py-2 text-right">
+                  <td className={`px-3 ${cellPadY} text-right`}>
                     <Input
                       type="number"
                       min={1}
@@ -159,10 +164,10 @@ export function QuoteItemsTable({
                       onChange={(e) =>
                         onPatch(it.id, { quantity: Math.max(1, Number(e.target.value) || 1) })
                       }
-                      className="h-8 text-right tabular-nums"
+                      className={`${inputH} text-right tabular-nums`}
                     />
                   </td>
-                  <td className="px-3 py-2 text-right">
+                  <td className={`px-3 ${cellPadY} text-right`}>
                     <Input
                       type="number"
                       min={0}
@@ -172,10 +177,10 @@ export function QuoteItemsTable({
                       onChange={(e) =>
                         onPatch(it.id, { unitPrice: Math.max(0, Number(e.target.value) || 0) })
                       }
-                      className="h-8 text-right tabular-nums"
+                      className={`${inputH} text-right tabular-nums`}
                     />
                   </td>
-                  <td className="px-3 py-2 text-right">
+                  <td className={`px-3 ${cellPadY} text-right`}>
                     <Input
                       type="number"
                       min={0}
@@ -185,13 +190,13 @@ export function QuoteItemsTable({
                       onChange={(e) =>
                         onPatch(it.id, { discount: Math.max(0, Number(e.target.value) || 0) })
                       }
-                      className="h-8 text-right tabular-nums"
+                      className={`${inputH} text-right tabular-nums`}
                     />
                   </td>
-                  <td className="px-3 py-2 text-right text-sm font-semibold tabular-nums">
+                  <td className={`px-3 ${cellPadY} text-right text-sm font-semibold tabular-nums`}>
                     {moneyFormatter.format(it.total)}
                   </td>
-                  <td className="px-3 py-2 text-right">
+                  <td className={`px-3 ${cellPadY} text-right`}>
                     <button
                       type="button"
                       onClick={() => onRemove(it.id)}

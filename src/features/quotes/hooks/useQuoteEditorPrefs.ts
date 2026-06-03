@@ -4,12 +4,14 @@ import {
   DEFAULT_QUOTE_EDITOR_PREFS,
   type IQuoteEditorPrefs,
   type QuoteAddMode,
+  type QuoteDensity,
   type QuoteLayout,
 } from "../types/editor";
 
 const STORAGE_KEY = "gallo-quote-editor-prefs";
 const LAYOUTS: QuoteLayout[] = ["twoCol", "full", "footerBar"];
 const ADD_MODES: QuoteAddMode[] = ["continuous", "catalog", "quick"];
+const DENSITIES: QuoteDensity[] = ["comfortable", "compact"];
 
 function readPrefs(): IQuoteEditorPrefs {
   if (typeof window === "undefined") return DEFAULT_QUOTE_EDITOR_PREFS;
@@ -24,6 +26,9 @@ function readPrefs(): IQuoteEditorPrefs {
       addMode: ADD_MODES.includes(parsed.addMode as QuoteAddMode)
         ? (parsed.addMode as QuoteAddMode)
         : DEFAULT_QUOTE_EDITOR_PREFS.addMode,
+      density: DENSITIES.includes(parsed.density as QuoteDensity)
+        ? (parsed.density as QuoteDensity)
+        : DEFAULT_QUOTE_EDITOR_PREFS.density,
     };
   } catch {
     return DEFAULT_QUOTE_EDITOR_PREFS;
@@ -33,6 +38,7 @@ function readPrefs(): IQuoteEditorPrefs {
 export interface IUseQuoteEditorPrefs extends IQuoteEditorPrefs {
   setLayout: (layout: QuoteLayout) => void;
   setAddMode: (addMode: QuoteAddMode) => void;
+  setDensity: (density: QuoteDensity) => void;
 }
 
 /** Persisted quote-editor preferences (layout + add mode) for the current seller. */
@@ -56,6 +62,10 @@ export function useQuoteEditorPrefs(): IUseQuoteEditorPrefs {
     (addMode: QuoteAddMode) => persist({ ...readPrefs(), addMode }),
     [persist],
   );
+  const setDensity = useCallback(
+    (density: QuoteDensity) => persist({ ...readPrefs(), density }),
+    [persist],
+  );
 
-  return { ...prefs, setLayout, setAddMode };
+  return { ...prefs, setLayout, setAddMode, setDensity };
 }
