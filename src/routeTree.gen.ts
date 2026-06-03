@@ -175,7 +175,9 @@ import { Route as AppConfiguracoesAtendimentoLifecycleRouteImport } from './rout
 import { Route as AppConfiguracoesAtendimentoHorarioComercialRouteImport } from './routes/app.configuracoes.atendimento.horario-comercial'
 import { Route as AppCatalogoKitsNovoRouteImport } from './routes/app.catalogo.kits.novo'
 import { Route as AppCatalogoIdEditarRouteImport } from './routes/app.catalogo.$id.editar'
+import { Route as AppKitsModelIdKitNovoRouteImport } from './routes/app.kits.$modelId.kit.novo'
 import { Route as AppCatalogoKitsIdEditarRouteImport } from './routes/app.catalogo.kits.$id.editar'
+import { Route as AppKitsModelIdKitKitIdEditarRouteImport } from './routes/app.kits.$modelId.kit.$kitId.editar'
 
 const SemPermissaoRoute = SemPermissaoRouteImport.update({
   id: '/sem-permissao',
@@ -1047,11 +1049,22 @@ const AppCatalogoIdEditarRoute = AppCatalogoIdEditarRouteImport.update({
   path: '/editar',
   getParentRoute: () => AppCatalogoIdRoute,
 } as any)
+const AppKitsModelIdKitNovoRoute = AppKitsModelIdKitNovoRouteImport.update({
+  id: '/kit/novo',
+  path: '/kit/novo',
+  getParentRoute: () => AppKitsModelIdRoute,
+} as any)
 const AppCatalogoKitsIdEditarRoute = AppCatalogoKitsIdEditarRouteImport.update({
   id: '/$id/editar',
   path: '/$id/editar',
   getParentRoute: () => AppCatalogoKitsRoute,
 } as any)
+const AppKitsModelIdKitKitIdEditarRoute =
+  AppKitsModelIdKitKitIdEditarRouteImport.update({
+    id: '/kit/$kitId/editar',
+    path: '/kit/$kitId/editar',
+    getParentRoute: () => AppKitsModelIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -1221,6 +1234,8 @@ export interface FileRoutesByFullPath {
   '/loja/conta/orcamentos/': typeof LojaContaOrcamentosIndexRoute
   '/loja/conta/pedidos/': typeof LojaContaPedidosIndexRoute
   '/app/catalogo/kits/$id/editar': typeof AppCatalogoKitsIdEditarRoute
+  '/app/kits/$modelId/kit/novo': typeof AppKitsModelIdKitNovoRoute
+  '/app/kits/$modelId/kit/$kitId/editar': typeof AppKitsModelIdKitKitIdEditarRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -1365,6 +1380,8 @@ export interface FileRoutesByTo {
   '/loja/conta/orcamentos': typeof LojaContaOrcamentosIndexRoute
   '/loja/conta/pedidos': typeof LojaContaPedidosIndexRoute
   '/app/catalogo/kits/$id/editar': typeof AppCatalogoKitsIdEditarRoute
+  '/app/kits/$modelId/kit/novo': typeof AppKitsModelIdKitNovoRoute
+  '/app/kits/$modelId/kit/$kitId/editar': typeof AppKitsModelIdKitKitIdEditarRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -1535,6 +1552,8 @@ export interface FileRoutesById {
   '/loja/conta/orcamentos/': typeof LojaContaOrcamentosIndexRoute
   '/loja/conta/pedidos/': typeof LojaContaPedidosIndexRoute
   '/app/catalogo/kits/$id/editar': typeof AppCatalogoKitsIdEditarRoute
+  '/app/kits/$modelId/kit/novo': typeof AppKitsModelIdKitNovoRoute
+  '/app/kits/$modelId/kit/$kitId/editar': typeof AppKitsModelIdKitKitIdEditarRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1706,6 +1725,8 @@ export interface FileRouteTypes {
     | '/loja/conta/orcamentos/'
     | '/loja/conta/pedidos/'
     | '/app/catalogo/kits/$id/editar'
+    | '/app/kits/$modelId/kit/novo'
+    | '/app/kits/$modelId/kit/$kitId/editar'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1850,6 +1871,8 @@ export interface FileRouteTypes {
     | '/loja/conta/orcamentos'
     | '/loja/conta/pedidos'
     | '/app/catalogo/kits/$id/editar'
+    | '/app/kits/$modelId/kit/novo'
+    | '/app/kits/$modelId/kit/$kitId/editar'
   id:
     | '__root__'
     | '/'
@@ -2019,6 +2042,8 @@ export interface FileRouteTypes {
     | '/loja/conta/orcamentos/'
     | '/loja/conta/pedidos/'
     | '/app/catalogo/kits/$id/editar'
+    | '/app/kits/$modelId/kit/novo'
+    | '/app/kits/$modelId/kit/$kitId/editar'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -3197,12 +3222,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCatalogoIdEditarRouteImport
       parentRoute: typeof AppCatalogoIdRoute
     }
+    '/app/kits/$modelId/kit/novo': {
+      id: '/app/kits/$modelId/kit/novo'
+      path: '/kit/novo'
+      fullPath: '/app/kits/$modelId/kit/novo'
+      preLoaderRoute: typeof AppKitsModelIdKitNovoRouteImport
+      parentRoute: typeof AppKitsModelIdRoute
+    }
     '/app/catalogo/kits/$id/editar': {
       id: '/app/catalogo/kits/$id/editar'
       path: '/$id/editar'
       fullPath: '/app/catalogo/kits/$id/editar'
       preLoaderRoute: typeof AppCatalogoKitsIdEditarRouteImport
       parentRoute: typeof AppCatalogoKitsRoute
+    }
+    '/app/kits/$modelId/kit/$kitId/editar': {
+      id: '/app/kits/$modelId/kit/$kitId/editar'
+      path: '/kit/$kitId/editar'
+      fullPath: '/app/kits/$modelId/kit/$kitId/editar'
+      preLoaderRoute: typeof AppKitsModelIdKitKitIdEditarRouteImport
+      parentRoute: typeof AppKitsModelIdRoute
     }
   }
 }
@@ -3283,10 +3322,14 @@ const AppClientesRouteWithChildren = AppClientesRoute._addFileChildren(
 
 interface AppKitsModelIdRouteChildren {
   AppKitsModelIdEditarRoute: typeof AppKitsModelIdEditarRoute
+  AppKitsModelIdKitNovoRoute: typeof AppKitsModelIdKitNovoRoute
+  AppKitsModelIdKitKitIdEditarRoute: typeof AppKitsModelIdKitKitIdEditarRoute
 }
 
 const AppKitsModelIdRouteChildren: AppKitsModelIdRouteChildren = {
   AppKitsModelIdEditarRoute: AppKitsModelIdEditarRoute,
+  AppKitsModelIdKitNovoRoute: AppKitsModelIdKitNovoRoute,
+  AppKitsModelIdKitKitIdEditarRoute: AppKitsModelIdKitKitIdEditarRoute,
 }
 
 const AppKitsModelIdRouteWithChildren = AppKitsModelIdRoute._addFileChildren(

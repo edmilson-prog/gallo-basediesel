@@ -33,16 +33,13 @@ export function ModelKitsSection({ modelId, modelLabel }: IModelKitsSectionProps
   const [kitToDelete, setKitToDelete] = useState<IVehicleModelKit | null>(null);
 
   function handleCreate() {
-    void (navigate as unknown as (opts: unknown) => Promise<void>)({
-      // route registered in Task 11
-      to: `/app/kits/${modelId}/kit/novo`,
-    });
+    void navigate({ to: "/app/kits/$modelId/kit/novo", params: { modelId } });
   }
 
   function handleEdit(kit: IVehicleModelKit) {
-    void (navigate as unknown as (opts: unknown) => Promise<void>)({
-      // route registered in Task 11
-      to: `/app/kits/${modelId}/kit/${kit.id}/editar`,
+    void navigate({
+      to: "/app/kits/$modelId/kit/$kitId/editar",
+      params: { modelId, kitId: kit.id },
     });
   }
 
