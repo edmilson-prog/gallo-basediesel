@@ -44,7 +44,7 @@ export function ServiceKitsListPage() {
 
   function openCreate() {
     if (uxMode === "page") {
-      void navigate({ to: "/app/catalogo/kits/novo" as string });
+      void navigate({ to: "/app/catalogo/kits/novo" });
       return;
     }
     setOverlayInitial(undefined);
@@ -53,7 +53,7 @@ export function ServiceKitsListPage() {
 
   function openEdit(kit: IServiceKit) {
     if (uxMode === "page") {
-      void navigate({ to: `/app/catalogo/kits/${kit.id}/editar` as string });
+      void navigate({ to: "/app/catalogo/kits/$id/editar", params: { id: kit.id } });
       return;
     }
     setOverlayInitial(kit);

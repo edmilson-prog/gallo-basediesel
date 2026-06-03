@@ -71,6 +71,12 @@ export const APP_NAV_GROUPS: INavGroup[] = [
         roles: ["Owner", "Vendedor"],
       },
       {
+        label: "Kits de revisão",
+        icon: "mdi:toolbox-outline",
+        to: ROUTES.APP_CATALOGO_KITS,
+        roles: ["Owner", "Gestor"],
+      },
+      {
         label: "Orçamentos",
         icon: "mdi:file-document-outline",
         to: ROUTES.APP_ORCAMENTOS,

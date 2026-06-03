@@ -19,13 +19,12 @@ export function ServiceKitFormPage({ mode }: IServiceKitFormPageProps) {
 
   const navigate = useNavigate();
   const mutations = useServiceKitMutations();
-  // Route not yet registered (Task 10 creates it); use strict:false to read $id safely.
   const { id } = useParams({ strict: false }) as { id?: string };
   const kitsQuery = useServiceKits(storeId);
   const initial = mode === "edit" ? kitsQuery.data?.find((k) => k.id === id) : undefined;
 
   function back() {
-    void navigate({ to: "/app/catalogo/kits" as string });
+    void navigate({ to: "/app/catalogo/kits" });
   }
 
   async function handleSubmit(input: ICreateServiceKitInput) {
