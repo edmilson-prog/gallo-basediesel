@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { IVehicleModel } from "@/shared/types";
 import type { ICreateVehicleModelInput } from "@/providers/data";
@@ -38,7 +38,6 @@ export function VehicleModelForm({ initial, saving, onSubmit, onCancel }: IVehic
 
   const {
     register,
-    control,
     handleSubmit,
     setValue,
     formState: { errors },
@@ -126,19 +125,7 @@ export function VehicleModelForm({ initial, saving, onSubmit, onCancel }: IVehic
         {/* Motor */}
         <div className="space-y-1">
           <Label htmlFor="vm-engine">Motor*</Label>
-          <Controller
-            control={control}
-            name="engine"
-            render={({ field }) => (
-              <Input
-                id="vm-engine"
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                placeholder="Ex.: DC13 143 Euro 5"
-              />
-            )}
-          />
+          <Input id="vm-engine" {...register("engine")} placeholder="Ex.: DC13 143 Euro 5" />
           {errors.engine && <p className="text-sm text-destructive">{errors.engine.message}</p>}
         </div>
 
