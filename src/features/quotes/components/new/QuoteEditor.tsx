@@ -9,8 +9,8 @@ import type {
   IQuote,
   IQuoteItem,
   IPart,
-  IServiceKit,
   IVehicle,
+  IVehicleModelKit,
   QuotePaymentMethod,
 } from "@/shared/types";
 import { Icon } from "@/components/Icon";
@@ -39,8 +39,10 @@ import { recalculateQuote, requiresDiscountApproval, round2 } from "../../utils/
 import { composePaymentCondition, generateQuoteNumber } from "../../utils/quoteNumber";
 import { addOrIncrementItem, swapItemPart } from "../../utils/quoteItemOps";
 import { quoteAggregates } from "../../utils/quoteItemDisplay";
-import { useServiceKitsProvider } from "@/providers/data/hooks/useServiceKitsProvider";
-import { expandKitToItems } from "../../utils/kitExpansion";
+import { useModelKits } from "@/features/model-kits/hooks/useModelKits";
+import { ApplyKitDialog } from "@/features/model-kits";
+import { recordAuditLogSync } from "@/providers/data";
+import { readCurrentUserSync } from "@/features/auth/guards";
 import { usePartsIndex } from "../../hooks/usePartsIndex";
 import { useQuoteDraft } from "../../hooks/useQuoteDraft";
 import { quoteLayoutClasses } from "../../utils/layoutClasses";
@@ -80,13 +82,10 @@ export function QuoteEditor() {
   const classes = quoteLayoutClasses(prefs.layout);
   const { partsById, allParts } = usePartsIndex();
 
-  const serviceKitsProvider = useServiceKitsProvider();
-  const kitsQuery = useQuery({
-    queryKey: ["service-kits", storeId] as const,
-    queryFn: () => serviceKitsProvider.list({ storeId }),
-    staleTime: 60_000,
-  });
-  const kits = kitsQuery.data ?? [];
+  const modelKitsQuery = useModelKits({});
+  // Manual picker lists every kit of the store; the auto-suggestion (PRD-035)
+  // is what narrows to official kits matching the client's vehicle.
+  const kits = modelKitsQuery.data ?? [];
 
   const settingsQuery = useQuery({
     queryKey: ["settings", storeId] as const,
@@ -100,6 +99,8 @@ export function QuoteEditor() {
   // --- State ---
   const [customer, setCustomer] = useState<ICustomer | null>(null);
   const [items, setItems] = useState<IQuoteItem[]>([]);
+  const [appliedKitIds, setAppliedKitIds] = useState<ID[]>([]);
+  const [kitToApply, setKitToApply] = useState<IVehicleModelKit | null>(null);
   const [freeOpen, setFreeOpen] = useState(false);
   const [highlightId, setHighlightId] = useState<ID | null>(null);
   const [discountInput, setDiscountInput] = useState<string>("0");
@@ -202,26 +203,45 @@ export function QuoteEditor() {
     setItems(result.items);
     setHighlightId(result.affectedId);
   };
-  const handleAddKit = (kit: IServiceKit) => {
-    const { resolved, missing } = expandKitToItems(kit, partsById);
-    if (resolved.length === 0) {
-      toast.error(`Nenhuma peça do kit "${kit.name}" está disponível no catálogo.`);
-      return;
-    }
+  const handleApplyKit = (selection: { part: IPart; quantity: number }[]) => {
+    if (!kitToApply) return;
+    const prevItems = items;
+    const prevAppliedKitIds = appliedKitIds;
+
     let next = items;
     let lastId: ID | null = null;
-    for (const { part, quantity } of resolved) {
+    for (const { part, quantity } of selection) {
       const result = addOrIncrementItem(next, part, quantity);
       next = result.items;
       lastId = result.affectedId;
     }
     setItems(next);
     setHighlightId(lastId);
+
+    setAppliedKitIds((prev) => (prev.includes(kitToApply.id) ? prev : [...prev, kitToApply.id]));
+
     toast.success(
-      missing > 0
-        ? `Kit "${kit.name}" inserido (${resolved.length} peças; ${missing} indisponível${missing > 1 ? "is" : ""}).`
-        : `Kit "${kit.name}" inserido (${resolved.length} peças).`,
+      `${selection.length} ${selection.length === 1 ? "item adicionado" : "itens adicionados"} ao orçamento`,
+      {
+        action: {
+          label: "Desfazer",
+          onClick: () => {
+            setItems(prevItems);
+            setAppliedKitIds(prevAppliedKitIds);
+          },
+        },
+      },
     );
+
+    const user = readCurrentUserSync();
+    recordAuditLogSync({
+      actorId: user?.id ?? "mock-user",
+      action: "apply",
+      resource: "modelKit",
+      resourceId: kitToApply.id,
+    });
+
+    setKitToApply(null);
   };
 
   // Quantity already in the quote, summed per partId (for adder badges).
@@ -293,6 +313,7 @@ export function QuoteEditor() {
         division: "parts",
         requiresApproval: needsJustification,
         notes: notes.trim() ? notes.trim() : undefined,
+        ...(appliedKitIds.length > 0 ? { appliedKitIds } : {}),
       });
       auditLog({
         action: "quote_create",
@@ -396,7 +417,7 @@ export function QuoteEditor() {
           <Card className="p-4">
             <SectionTitle icon="mdi:format-list-bulleted" title="Itens" />
             <div className="mb-2 flex items-center justify-end">
-              <KitPicker kits={kits} onAddKit={handleAddKit} />
+              <KitPicker kits={kits} onPickKit={setKitToApply} />
             </div>
             <ItemAdder
               key={customer?.id ?? "none"}
@@ -517,6 +538,15 @@ export function QuoteEditor() {
         open={freeOpen}
         onClose={() => setFreeOpen(false)}
         onAdd={handleAddFreeItem}
+      />
+
+      <ApplyKitDialog
+        kit={kitToApply}
+        partsById={partsById}
+        onOpenChange={(o) => {
+          if (!o) setKitToApply(null);
+        }}
+        onConfirm={handleApplyKit}
       />
     </div>
   );

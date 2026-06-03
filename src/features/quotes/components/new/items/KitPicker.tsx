@@ -1,16 +1,16 @@
 // src/features/quotes/components/new/items/KitPicker.tsx
 import { useState } from "react";
-import type { IServiceKit } from "@/shared/types";
+import type { IVehicleModelKit } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export interface IKitPickerProps {
-  kits: IServiceKit[];
-  onAddKit: (kit: IServiceKit) => void;
+  kits: IVehicleModelKit[];
+  onPickKit: (kit: IVehicleModelKit) => void;
 }
 
-export function KitPicker({ kits, onAddKit }: IKitPickerProps) {
+export function KitPicker({ kits, onPickKit }: IKitPickerProps) {
   const [open, setOpen] = useState(false);
   if (kits.length === 0) return null;
 
@@ -18,13 +18,13 @@ export function KitPicker({ kits, onAddKit }: IKitPickerProps) {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button type="button" variant="outline" size="sm">
-          <Icon icon="mdi:toolbox-outline" size={16} />
-          Kit de revisão
+          <Icon icon="mdi:air-filter" size={16} />
+          Aplicar kit
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0">
         <p className="border-b border-border px-3 py-2 text-xs font-medium text-muted-foreground">
-          Inserir um kit adiciona todas as peças dele de uma vez
+          Pré-visualizar e aplicar um kit
         </p>
         <ul className="max-h-80 divide-y divide-border overflow-y-auto">
           {kits.map((kit) => (
@@ -32,7 +32,7 @@ export function KitPicker({ kits, onAddKit }: IKitPickerProps) {
               <button
                 type="button"
                 onClick={() => {
-                  onAddKit(kit);
+                  onPickKit(kit);
                   setOpen(false);
                 }}
                 className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left hover:bg-muted"
@@ -43,12 +43,10 @@ export function KitPicker({ kits, onAddKit }: IKitPickerProps) {
                   </span>
                   <span className="block truncate text-[11px] text-muted-foreground">
                     {kit.items.length} {kit.items.length === 1 ? "peça" : "peças"}
-                    {kit.vehicleApplication
-                      ? ` · ${kit.vehicleApplication.brand} ${kit.vehicleApplication.model}`
-                      : ""}
+                    {kit.category ? ` · ${kit.category}` : ""}
                   </span>
                 </span>
-                <Icon icon="mdi:plus" size={16} className="shrink-0 text-primary" />
+                <Icon icon="mdi:eye-outline" size={16} className="shrink-0 text-primary" />
               </button>
             </li>
           ))}
