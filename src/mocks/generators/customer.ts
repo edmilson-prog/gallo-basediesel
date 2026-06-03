@@ -22,6 +22,12 @@ import {
 
 const TAG_LABELS = SEED_TAGS.map((t) => t.label);
 
+/** Demo-only: ~25% of customers carry 1–4 overdue titles. */
+function pickOverdueTitlesCount(ctx: ISeededContext): number | undefined {
+  if (!ctx.bool(0.25)) return undefined;
+  return ctx.int(1, 4);
+}
+
 const RS_CITIES = [
   "Frederico Westphalen",
   "Iraí",
@@ -100,6 +106,7 @@ export function generateCustomerB2B(
     lastPurchaseAt: purchase.lastPurchaseAt,
     hasB2BPortal: portalContract !== undefined,
     portalContract,
+    overdueTitlesCount: pickOverdueTitlesCount(ctx),
     createdAt: randomISO(ctx, new Date(now.getFullYear() - 3, 0, 1), now),
   };
 }
@@ -130,6 +137,7 @@ export function generateCustomerB2C(
     notes: [],
     firstPurchaseAt: purchase.firstPurchaseAt,
     lastPurchaseAt: purchase.lastPurchaseAt,
+    overdueTitlesCount: pickOverdueTitlesCount(ctx),
     createdAt: randomISO(ctx, new Date(now.getFullYear() - 2, 0, 1), now),
   };
 }
