@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/useAuth";
 import { hasPermission } from "@/features/rbac/utils/hasPermission";
+import { useModelKits } from "@/features/model-kits/hooks/useModelKits";
 import { useVehicleModels } from "../hooks/useVehicleModels";
 import { useVehicleModelMutations } from "../hooks/useVehicleModelMutations";
 import { BrandFilterChips } from "../components/BrandFilterChips";
@@ -25,6 +27,7 @@ export function VehicleModelsListPage() {
   const [search, setSearch] = useState("");
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [showInactive, setShowInactive] = useState(false);
+  const [showPendingDrafts, setShowPendingDrafts] = useState(false);
   const [toDelete, setToDelete] = useState<IVehicleModel | null>(null);
 
   // Fetch with brand + status filters server-side; search is client-side for instant feedback
@@ -33,12 +36,29 @@ export function VehicleModelsListPage() {
     status: showInactive ? undefined : "ativo",
   });
 
+  // Fetch all kits once at page level to compute counts per model
+  const kitsQuery = useModelKits({});
+
+  const kitCountsByModel = useMemo(() => {
+    const map = new Map<string, { total: number; rascunhos: number }>();
+    for (const kit of kitsQuery.data ?? []) {
+      const cur = map.get(kit.modelId) ?? { total: 0, rascunhos: 0 };
+      cur.total += 1;
+      if (kit.status === "rascunho") cur.rascunhos += 1;
+      map.set(kit.modelId, cur);
+    }
+    return map;
+  }, [kitsQuery.data]);
+
   const filteredModels = useMemo(() => {
     const all = modelsQuery.data ?? [];
     const needle = search.trim().toLowerCase();
-    if (!needle) return all;
-    return all.filter((m) => `${m.brand} ${m.model} ${m.engine}`.toLowerCase().includes(needle));
-  }, [modelsQuery.data, search]);
+    const bySearch = needle
+      ? all.filter((m) => `${m.brand} ${m.model} ${m.engine}`.toLowerCase().includes(needle))
+      : all;
+    if (!showPendingDrafts) return bySearch;
+    return bySearch.filter((m) => (kitCountsByModel.get(m.id)?.rascunhos ?? 0) > 0);
+  }, [modelsQuery.data, search, showPendingDrafts, kitCountsByModel]);
 
   // Group by brand in KNOWN_BRANDS order, unknown brands appended at the end
   const groups = useMemo(() => {
@@ -63,7 +83,8 @@ export function VehicleModelsListPage() {
     return ordered;
   }, [filteredModels]);
 
-  const hasActiveFilters = search.trim() !== "" || selectedBrand !== null || showInactive;
+  const hasActiveFilters =
+    search.trim() !== "" || selectedBrand !== null || showInactive || showPendingDrafts;
   const isEmpty = groups.length === 0;
   const isCatalogEmpty = (modelsQuery.data ?? []).length === 0 && !hasActiveFilters;
 
@@ -117,11 +138,27 @@ export function VehicleModelsListPage() {
             />
           </div>
 
-          <BrandFilterChips
-            brands={KNOWN_BRANDS}
-            selected={selectedBrand}
-            onSelect={setSelectedBrand}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <BrandFilterChips
+              brands={KNOWN_BRANDS}
+              selected={selectedBrand}
+              onSelect={setSelectedBrand}
+            />
+            <button
+              type="button"
+              aria-pressed={showPendingDrafts}
+              onClick={() => setShowPendingDrafts((v) => !v)}
+              className={cn(
+                "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-border px-3 text-sm font-medium transition-colors",
+                showPendingDrafts
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground",
+              )}
+            >
+              <Icon icon="mdi:clock-outline" size={14} />
+              Com rascunhos pendentes
+            </button>
+          </div>
 
           <div className="flex items-center gap-2">
             <Switch id="show-inactive" checked={showInactive} onCheckedChange={setShowInactive} />
@@ -163,6 +200,7 @@ export function VehicleModelsListPage() {
                 key={brand}
                 brand={brand}
                 models={models}
+                kitCountsByModel={kitCountsByModel}
                 canManage={canManage}
                 onEdit={handleEdit}
                 onToggleStatus={handleToggleStatus}
