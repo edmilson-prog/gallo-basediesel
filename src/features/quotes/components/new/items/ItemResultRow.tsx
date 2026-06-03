@@ -6,14 +6,30 @@ import { stockBadge } from "../../../utils/quoteItemDisplay";
 
 const moneyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
+/** Accent of the row's add button, matching the grid it belongs to. */
+export type ResultRowAccent = "default" | "info" | "success";
+
+const ADD_BUTTON_ACCENT: Record<ResultRowAccent, string> = {
+  default: "text-primary hover:bg-primary/10",
+  info: "text-info hover:bg-info/10",
+  success: "text-success hover:bg-success/10",
+};
+
 export interface IItemResultRowProps {
   part: IPart;
   /** Quantity already in the quote for this part (0 when absent). */
   inQuoteQty?: number;
   onAdd: (part: IPart) => void;
+  /** Tints the add button to match the source grid (default keeps primary). */
+  accent?: ResultRowAccent;
 }
 
-export function ItemResultRow({ part, inQuoteQty = 0, onAdd }: IItemResultRowProps) {
+export function ItemResultRow({
+  part,
+  inQuoteQty = 0,
+  onAdd,
+  accent = "default",
+}: IItemResultRowProps) {
   const stock = stockBadge(part);
   return (
     <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-2 last:border-b-0">
@@ -59,7 +75,7 @@ export function ItemResultRow({ part, inQuoteQty = 0, onAdd }: IItemResultRowPro
         <button
           type="button"
           onClick={() => onAdd(part)}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-border text-primary hover:bg-primary/10"
+          className={`grid h-9 w-9 shrink-0 place-items-center rounded-md border border-border ${ADD_BUTTON_ACCENT[accent]}`}
           aria-label={`Adicionar ${part.name}`}
         >
           <Icon icon="mdi:plus" size={18} />

@@ -64,7 +64,14 @@ export function QuoteItemsTable({
   const COLSPAN = 6;
 
   return (
-    <div className="overflow-hidden rounded-md border border-border">
+    <div className="overflow-hidden rounded-lg border-2 border-primary/40 bg-card shadow-lg">
+      <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+        <Icon icon="mdi:receipt-text-outline" size={16} className="shrink-0 text-primary" />
+        <span className="text-sm font-semibold text-foreground">Itens do orçamento</span>
+        <span className="ml-auto text-[11px] text-muted-foreground tabular-nums">
+          {items.length} {items.length === 1 ? "item" : "itens"}
+        </span>
+      </div>
       <table className="w-full text-sm">
         <thead className="bg-muted/40 text-xs text-muted-foreground">
           <tr>

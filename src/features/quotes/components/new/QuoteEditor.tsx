@@ -408,7 +408,13 @@ export function QuoteEditor() {
               onAddPart={handleAddPart}
               onAddFreeItemClick={() => setFreeOpen(true)}
             />
-            <div className="mt-3">
+            <div className="mt-6">
+              <div className="mb-3 flex items-center gap-3" aria-hidden="true">
+                <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  Orçamento
+                </span>
+                <span className="h-px flex-1 bg-border" />
+              </div>
               <QuoteItemsTable
                 items={items}
                 subtotal={totals.subtotal}
