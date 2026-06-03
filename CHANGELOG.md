@@ -4,6 +4,19 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.62.0] — Workshop · 2026-06-03
+
+Os kits de revisão agora podem ser montados e mantidos pela própria interface, sem depender do time técnico. Uma nova tela em **Catálogo → Kits de revisão** (disponível para donos e gestores) permite criar, editar, duplicar e excluir kits — cada um com nome, veículo de aplicação, categoria e a lista de peças com quantidades. O formulário pode ser aberto de três formas, à escolha do usuário (página inteira, janela ou painel lateral), e a preferência fica salva. Os kits criados aparecem imediatamente no botão "Kit de revisão" da tela de novo orçamento.
+
+### Added
+
+- **Tela de gestão de kits de revisão** — em Catálogo → Kits de revisão (donos e gestores), lista todos os kits da loja com busca por nome, veículo ou categoria, e mostra quantas peças cada kit tem.
+- **Criar e editar kits** — formulário com nome, descrição, veículo de aplicação e categoria opcionais, mais um montador de peças: busque no catálogo à esquerda e monte a lista do kit à direita, ajustando a quantidade de cada peça.
+- **Três formas de abrir o formulário** — página inteira, janela (dialog) ou painel lateral (drawer), selecionáveis por um botão e com a preferência lembrada entre sessões.
+- **Duplicar kit** — cria uma cópia pronta para editar, ideal para variações (por exemplo, revisão de 40.000 e de 60.000 km).
+- **Excluir com confirmação** — a exclusão é protegida por um aviso de confirmação para evitar remoções acidentais.
+- **Indicador de uso** — cada kit exibe em quantos orçamentos já foi utilizado.
+
 ## [0.61.1] — Toolkit · 2026-06-03
 
 As três listas da tela de novo orçamento — sugestões por veículo, "já comprou antes" e os itens do orçamento — agora têm cores, ícones e rótulos distintos, deixando claro de relance o que é sugestão do sistema, o que é histórico de compras do cliente e o que já foi adicionado ao orçamento.

@@ -77,7 +77,7 @@ Padrões arquiteturais que devem ser preservados ao implementar features:
 
 ## Versionamento e changelog
 
-- **SemVer.** MINOR/MAJOR recebem **codinome em inglês** (atual: `Toolkit` — v0.61.1).
+- **SemVer.** MINOR/MAJOR recebem **codinome em inglês** (atual: `Workshop` — v0.62.0).
 - **CHANGELOG.md** segue Keep a Changelog; atualizado no version bump, não a cada commit.
 - Bump após PRD completo (obrigatório) ou quando solicitado para acumulado de fixes diretos.
 - **Tags git** acompanham cada bump: `vX.Y.Z` no commit de release (ex.: `v0.57.0`).
