@@ -17,6 +17,7 @@ export const RESOURCES = [
   "message",
   "part",
   "serviceKit",
+  "vehicleModel",
   "quote",
   "order",
   "commission",

@@ -21,6 +21,7 @@ export const ROUTES = {
   APP_CARTEIRA: "/app/carteira",
   APP_CATALOGO: "/app/catalogo",
   APP_CATALOGO_KITS: "/app/catalogo/kits",
+  APP_KITS: "/app/kits",
   APP_ORCAMENTOS: "/app/orcamentos",
   APP_PEDIDOS: "/app/pedidos",
   APP_SDR: "/app/sdr",

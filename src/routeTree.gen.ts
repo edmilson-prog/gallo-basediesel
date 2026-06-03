@@ -53,6 +53,7 @@ import { Route as AppPedidosRouteImport } from './routes/app.pedidos'
 import { Route as AppOrcamentosRouteImport } from './routes/app.orcamentos'
 import { Route as AppNotificacoesRouteImport } from './routes/app.notificacoes'
 import { Route as AppLeadsRouteImport } from './routes/app.leads'
+import { Route as AppKitsRouteImport } from './routes/app.kits'
 import { Route as AppInsightsRouteImport } from './routes/app.insights'
 import { Route as AppInicioRouteImport } from './routes/app.inicio'
 import { Route as AppClientesRouteImport } from './routes/app.clientes'
@@ -69,6 +70,7 @@ import { Route as AppVeiculosIndexRouteImport } from './routes/app.veiculos.inde
 import { Route as AppPedidosIndexRouteImport } from './routes/app.pedidos.index'
 import { Route as AppOrcamentosIndexRouteImport } from './routes/app.orcamentos.index'
 import { Route as AppLeadsIndexRouteImport } from './routes/app.leads.index'
+import { Route as AppKitsIndexRouteImport } from './routes/app.kits.index'
 import { Route as AppGestaoIndexRouteImport } from './routes/app.gestao.index'
 import { Route as AppConfiguracoesIndexRouteImport } from './routes/app.configuracoes.index'
 import { Route as AppClientesIndexRouteImport } from './routes/app.clientes.index'
@@ -95,6 +97,8 @@ import { Route as AppPedidosIdRouteImport } from './routes/app.pedidos.$id'
 import { Route as AppOrcamentosNovoRouteImport } from './routes/app.orcamentos.novo'
 import { Route as AppOrcamentosIdRouteImport } from './routes/app.orcamentos.$id'
 import { Route as AppLeadsIdRouteImport } from './routes/app.leads.$id'
+import { Route as AppKitsNovoRouteImport } from './routes/app.kits.novo'
+import { Route as AppKitsModelIdRouteImport } from './routes/app.kits.$modelId'
 import { Route as AppGestaoVendasRouteImport } from './routes/app.gestao.vendas'
 import { Route as AppGestaoRentabilidadeRouteImport } from './routes/app.gestao.rentabilidade'
 import { Route as AppGestaoRankingRouteImport } from './routes/app.gestao.ranking'
@@ -147,6 +151,7 @@ import { Route as AppConfiguracoesStorefrontIndexRouteImport } from './routes/ap
 import { Route as AppCatalogoKitsIndexRouteImport } from './routes/app.catalogo.kits.index'
 import { Route as LojaContaPedidosIdRouteImport } from './routes/loja.conta.pedidos.$id'
 import { Route as LojaContaOrcamentosIdRouteImport } from './routes/loja.conta.orcamentos.$id'
+import { Route as AppKitsModelIdEditarRouteImport } from './routes/app.kits.$modelId.editar'
 import { Route as AppGestaoRankingSellerIdRouteImport } from './routes/app.gestao.ranking.$sellerId'
 import { Route as AppGestaoPositivacaoSellerIdRouteImport } from './routes/app.gestao.positivacao.$sellerId'
 import { Route as AppGestaoMetasNovaRouteImport } from './routes/app.gestao.metas.nova'
@@ -392,6 +397,11 @@ const AppLeadsRoute = AppLeadsRouteImport.update({
   path: '/leads',
   getParentRoute: () => AppRoute,
 } as any)
+const AppKitsRoute = AppKitsRouteImport.update({
+  id: '/kits',
+  path: '/kits',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppInsightsRoute = AppInsightsRouteImport.update({
   id: '/insights',
   path: '/insights',
@@ -471,6 +481,11 @@ const AppLeadsIndexRoute = AppLeadsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppLeadsRoute,
+} as any)
+const AppKitsIndexRoute = AppKitsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppKitsRoute,
 } as any)
 const AppGestaoIndexRoute = AppGestaoIndexRouteImport.update({
   id: '/gestao/',
@@ -602,6 +617,16 @@ const AppLeadsIdRoute = AppLeadsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => AppLeadsRoute,
+} as any)
+const AppKitsNovoRoute = AppKitsNovoRouteImport.update({
+  id: '/novo',
+  path: '/novo',
+  getParentRoute: () => AppKitsRoute,
+} as any)
+const AppKitsModelIdRoute = AppKitsModelIdRouteImport.update({
+  id: '/$modelId',
+  path: '/$modelId',
+  getParentRoute: () => AppKitsRoute,
 } as any)
 const AppGestaoVendasRoute = AppGestaoVendasRouteImport.update({
   id: '/gestao/vendas',
@@ -886,6 +911,11 @@ const LojaContaOrcamentosIdRoute = LojaContaOrcamentosIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => LojaContaOrcamentosRoute,
 } as any)
+const AppKitsModelIdEditarRoute = AppKitsModelIdEditarRouteImport.update({
+  id: '/editar',
+  path: '/editar',
+  getParentRoute: () => AppKitsModelIdRoute,
+} as any)
 const AppGestaoRankingSellerIdRoute =
   AppGestaoRankingSellerIdRouteImport.update({
     id: '/$sellerId',
@@ -1039,6 +1069,7 @@ export interface FileRoutesByFullPath {
   '/app/clientes': typeof AppClientesRouteWithChildren
   '/app/inicio': typeof AppInicioRoute
   '/app/insights': typeof AppInsightsRoute
+  '/app/kits': typeof AppKitsRouteWithChildren
   '/app/leads': typeof AppLeadsRouteWithChildren
   '/app/notificacoes': typeof AppNotificacoesRoute
   '/app/orcamentos': typeof AppOrcamentosRouteWithChildren
@@ -1115,6 +1146,8 @@ export interface FileRoutesByFullPath {
   '/app/gestao/ranking': typeof AppGestaoRankingRouteWithChildren
   '/app/gestao/rentabilidade': typeof AppGestaoRentabilidadeRoute
   '/app/gestao/vendas': typeof AppGestaoVendasRoute
+  '/app/kits/$modelId': typeof AppKitsModelIdRouteWithChildren
+  '/app/kits/novo': typeof AppKitsNovoRoute
   '/app/leads/$id': typeof AppLeadsIdRoute
   '/app/orcamentos/$id': typeof AppOrcamentosIdRoute
   '/app/orcamentos/novo': typeof AppOrcamentosNovoRoute
@@ -1141,6 +1174,7 @@ export interface FileRoutesByFullPath {
   '/app/clientes/': typeof AppClientesIndexRoute
   '/app/configuracoes/': typeof AppConfiguracoesIndexRoute
   '/app/gestao/': typeof AppGestaoIndexRoute
+  '/app/kits/': typeof AppKitsIndexRoute
   '/app/leads/': typeof AppLeadsIndexRoute
   '/app/orcamentos/': typeof AppOrcamentosIndexRoute
   '/app/pedidos/': typeof AppPedidosIndexRoute
@@ -1174,6 +1208,7 @@ export interface FileRoutesByFullPath {
   '/app/gestao/metas/nova': typeof AppGestaoMetasNovaRoute
   '/app/gestao/positivacao/$sellerId': typeof AppGestaoPositivacaoSellerIdRoute
   '/app/gestao/ranking/$sellerId': typeof AppGestaoRankingSellerIdRoute
+  '/app/kits/$modelId/editar': typeof AppKitsModelIdEditarRoute
   '/loja/conta/orcamentos/$id': typeof LojaContaOrcamentosIdRoute
   '/loja/conta/pedidos/$id': typeof LojaContaPedidosIdRoute
   '/app/catalogo/kits/': typeof AppCatalogoKitsIndexRoute
@@ -1257,6 +1292,8 @@ export interface FileRoutesByTo {
   '/app/gestao/positivacao': typeof AppGestaoPositivacaoRouteWithChildren
   '/app/gestao/rentabilidade': typeof AppGestaoRentabilidadeRoute
   '/app/gestao/vendas': typeof AppGestaoVendasRoute
+  '/app/kits/$modelId': typeof AppKitsModelIdRouteWithChildren
+  '/app/kits/novo': typeof AppKitsNovoRoute
   '/app/leads/$id': typeof AppLeadsIdRoute
   '/app/orcamentos/$id': typeof AppOrcamentosIdRoute
   '/app/orcamentos/novo': typeof AppOrcamentosNovoRoute
@@ -1281,6 +1318,7 @@ export interface FileRoutesByTo {
   '/app/clientes': typeof AppClientesIndexRoute
   '/app/configuracoes': typeof AppConfiguracoesIndexRoute
   '/app/gestao': typeof AppGestaoIndexRoute
+  '/app/kits': typeof AppKitsIndexRoute
   '/app/leads': typeof AppLeadsIndexRoute
   '/app/orcamentos': typeof AppOrcamentosIndexRoute
   '/app/pedidos': typeof AppPedidosIndexRoute
@@ -1314,6 +1352,7 @@ export interface FileRoutesByTo {
   '/app/gestao/metas/nova': typeof AppGestaoMetasNovaRoute
   '/app/gestao/positivacao/$sellerId': typeof AppGestaoPositivacaoSellerIdRoute
   '/app/gestao/ranking/$sellerId': typeof AppGestaoRankingSellerIdRoute
+  '/app/kits/$modelId/editar': typeof AppKitsModelIdEditarRoute
   '/loja/conta/orcamentos/$id': typeof LojaContaOrcamentosIdRoute
   '/loja/conta/pedidos/$id': typeof LojaContaPedidosIdRoute
   '/app/catalogo/kits': typeof AppCatalogoKitsIndexRoute
@@ -1344,6 +1383,7 @@ export interface FileRoutesById {
   '/app/clientes': typeof AppClientesRouteWithChildren
   '/app/inicio': typeof AppInicioRoute
   '/app/insights': typeof AppInsightsRoute
+  '/app/kits': typeof AppKitsRouteWithChildren
   '/app/leads': typeof AppLeadsRouteWithChildren
   '/app/notificacoes': typeof AppNotificacoesRoute
   '/app/orcamentos': typeof AppOrcamentosRouteWithChildren
@@ -1420,6 +1460,8 @@ export interface FileRoutesById {
   '/app/gestao/ranking': typeof AppGestaoRankingRouteWithChildren
   '/app/gestao/rentabilidade': typeof AppGestaoRentabilidadeRoute
   '/app/gestao/vendas': typeof AppGestaoVendasRoute
+  '/app/kits/$modelId': typeof AppKitsModelIdRouteWithChildren
+  '/app/kits/novo': typeof AppKitsNovoRoute
   '/app/leads/$id': typeof AppLeadsIdRoute
   '/app/orcamentos/$id': typeof AppOrcamentosIdRoute
   '/app/orcamentos/novo': typeof AppOrcamentosNovoRoute
@@ -1446,6 +1488,7 @@ export interface FileRoutesById {
   '/app/clientes/': typeof AppClientesIndexRoute
   '/app/configuracoes/': typeof AppConfiguracoesIndexRoute
   '/app/gestao/': typeof AppGestaoIndexRoute
+  '/app/kits/': typeof AppKitsIndexRoute
   '/app/leads/': typeof AppLeadsIndexRoute
   '/app/orcamentos/': typeof AppOrcamentosIndexRoute
   '/app/pedidos/': typeof AppPedidosIndexRoute
@@ -1479,6 +1522,7 @@ export interface FileRoutesById {
   '/app/gestao/metas/nova': typeof AppGestaoMetasNovaRoute
   '/app/gestao/positivacao/$sellerId': typeof AppGestaoPositivacaoSellerIdRoute
   '/app/gestao/ranking/$sellerId': typeof AppGestaoRankingSellerIdRoute
+  '/app/kits/$modelId/editar': typeof AppKitsModelIdEditarRoute
   '/loja/conta/orcamentos/$id': typeof LojaContaOrcamentosIdRoute
   '/loja/conta/pedidos/$id': typeof LojaContaPedidosIdRoute
   '/app/catalogo/kits/': typeof AppCatalogoKitsIndexRoute
@@ -1510,6 +1554,7 @@ export interface FileRouteTypes {
     | '/app/clientes'
     | '/app/inicio'
     | '/app/insights'
+    | '/app/kits'
     | '/app/leads'
     | '/app/notificacoes'
     | '/app/orcamentos'
@@ -1586,6 +1631,8 @@ export interface FileRouteTypes {
     | '/app/gestao/ranking'
     | '/app/gestao/rentabilidade'
     | '/app/gestao/vendas'
+    | '/app/kits/$modelId'
+    | '/app/kits/novo'
     | '/app/leads/$id'
     | '/app/orcamentos/$id'
     | '/app/orcamentos/novo'
@@ -1612,6 +1659,7 @@ export interface FileRouteTypes {
     | '/app/clientes/'
     | '/app/configuracoes/'
     | '/app/gestao/'
+    | '/app/kits/'
     | '/app/leads/'
     | '/app/orcamentos/'
     | '/app/pedidos/'
@@ -1645,6 +1693,7 @@ export interface FileRouteTypes {
     | '/app/gestao/metas/nova'
     | '/app/gestao/positivacao/$sellerId'
     | '/app/gestao/ranking/$sellerId'
+    | '/app/kits/$modelId/editar'
     | '/loja/conta/orcamentos/$id'
     | '/loja/conta/pedidos/$id'
     | '/app/catalogo/kits/'
@@ -1728,6 +1777,8 @@ export interface FileRouteTypes {
     | '/app/gestao/positivacao'
     | '/app/gestao/rentabilidade'
     | '/app/gestao/vendas'
+    | '/app/kits/$modelId'
+    | '/app/kits/novo'
     | '/app/leads/$id'
     | '/app/orcamentos/$id'
     | '/app/orcamentos/novo'
@@ -1752,6 +1803,7 @@ export interface FileRouteTypes {
     | '/app/clientes'
     | '/app/configuracoes'
     | '/app/gestao'
+    | '/app/kits'
     | '/app/leads'
     | '/app/orcamentos'
     | '/app/pedidos'
@@ -1785,6 +1837,7 @@ export interface FileRouteTypes {
     | '/app/gestao/metas/nova'
     | '/app/gestao/positivacao/$sellerId'
     | '/app/gestao/ranking/$sellerId'
+    | '/app/kits/$modelId/editar'
     | '/loja/conta/orcamentos/$id'
     | '/loja/conta/pedidos/$id'
     | '/app/catalogo/kits'
@@ -1814,6 +1867,7 @@ export interface FileRouteTypes {
     | '/app/clientes'
     | '/app/inicio'
     | '/app/insights'
+    | '/app/kits'
     | '/app/leads'
     | '/app/notificacoes'
     | '/app/orcamentos'
@@ -1890,6 +1944,8 @@ export interface FileRouteTypes {
     | '/app/gestao/ranking'
     | '/app/gestao/rentabilidade'
     | '/app/gestao/vendas'
+    | '/app/kits/$modelId'
+    | '/app/kits/novo'
     | '/app/leads/$id'
     | '/app/orcamentos/$id'
     | '/app/orcamentos/novo'
@@ -1916,6 +1972,7 @@ export interface FileRouteTypes {
     | '/app/clientes/'
     | '/app/configuracoes/'
     | '/app/gestao/'
+    | '/app/kits/'
     | '/app/leads/'
     | '/app/orcamentos/'
     | '/app/pedidos/'
@@ -1949,6 +2006,7 @@ export interface FileRouteTypes {
     | '/app/gestao/metas/nova'
     | '/app/gestao/positivacao/$sellerId'
     | '/app/gestao/ranking/$sellerId'
+    | '/app/kits/$modelId/editar'
     | '/loja/conta/orcamentos/$id'
     | '/loja/conta/pedidos/$id'
     | '/app/catalogo/kits/'
@@ -2285,6 +2343,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLeadsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/kits': {
+      id: '/app/kits'
+      path: '/kits'
+      fullPath: '/app/kits'
+      preLoaderRoute: typeof AppKitsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/insights': {
       id: '/app/insights'
       path: '/insights'
@@ -2396,6 +2461,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/leads/'
       preLoaderRoute: typeof AppLeadsIndexRouteImport
       parentRoute: typeof AppLeadsRoute
+    }
+    '/app/kits/': {
+      id: '/app/kits/'
+      path: '/'
+      fullPath: '/app/kits/'
+      preLoaderRoute: typeof AppKitsIndexRouteImport
+      parentRoute: typeof AppKitsRoute
     }
     '/app/gestao/': {
       id: '/app/gestao/'
@@ -2578,6 +2650,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/leads/$id'
       preLoaderRoute: typeof AppLeadsIdRouteImport
       parentRoute: typeof AppLeadsRoute
+    }
+    '/app/kits/novo': {
+      id: '/app/kits/novo'
+      path: '/novo'
+      fullPath: '/app/kits/novo'
+      preLoaderRoute: typeof AppKitsNovoRouteImport
+      parentRoute: typeof AppKitsRoute
+    }
+    '/app/kits/$modelId': {
+      id: '/app/kits/$modelId'
+      path: '/$modelId'
+      fullPath: '/app/kits/$modelId'
+      preLoaderRoute: typeof AppKitsModelIdRouteImport
+      parentRoute: typeof AppKitsRoute
     }
     '/app/gestao/vendas': {
       id: '/app/gestao/vendas'
@@ -2943,6 +3029,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LojaContaOrcamentosIdRouteImport
       parentRoute: typeof LojaContaOrcamentosRoute
     }
+    '/app/kits/$modelId/editar': {
+      id: '/app/kits/$modelId/editar'
+      path: '/editar'
+      fullPath: '/app/kits/$modelId/editar'
+      preLoaderRoute: typeof AppKitsModelIdEditarRouteImport
+      parentRoute: typeof AppKitsModelIdRoute
+    }
     '/app/gestao/ranking/$sellerId': {
       id: '/app/gestao/ranking/$sellerId'
       path: '/$sellerId'
@@ -3188,6 +3281,33 @@ const AppClientesRouteWithChildren = AppClientesRoute._addFileChildren(
   AppClientesRouteChildren,
 )
 
+interface AppKitsModelIdRouteChildren {
+  AppKitsModelIdEditarRoute: typeof AppKitsModelIdEditarRoute
+}
+
+const AppKitsModelIdRouteChildren: AppKitsModelIdRouteChildren = {
+  AppKitsModelIdEditarRoute: AppKitsModelIdEditarRoute,
+}
+
+const AppKitsModelIdRouteWithChildren = AppKitsModelIdRoute._addFileChildren(
+  AppKitsModelIdRouteChildren,
+)
+
+interface AppKitsRouteChildren {
+  AppKitsModelIdRoute: typeof AppKitsModelIdRouteWithChildren
+  AppKitsNovoRoute: typeof AppKitsNovoRoute
+  AppKitsIndexRoute: typeof AppKitsIndexRoute
+}
+
+const AppKitsRouteChildren: AppKitsRouteChildren = {
+  AppKitsModelIdRoute: AppKitsModelIdRouteWithChildren,
+  AppKitsNovoRoute: AppKitsNovoRoute,
+  AppKitsIndexRoute: AppKitsIndexRoute,
+}
+
+const AppKitsRouteWithChildren =
+  AppKitsRoute._addFileChildren(AppKitsRouteChildren)
+
 interface AppLeadsRouteChildren {
   AppLeadsIdRoute: typeof AppLeadsIdRoute
   AppLeadsIndexRoute: typeof AppLeadsIndexRoute
@@ -3368,6 +3488,7 @@ interface AppRouteChildren {
   AppClientesRoute: typeof AppClientesRouteWithChildren
   AppInicioRoute: typeof AppInicioRoute
   AppInsightsRoute: typeof AppInsightsRoute
+  AppKitsRoute: typeof AppKitsRouteWithChildren
   AppLeadsRoute: typeof AppLeadsRouteWithChildren
   AppNotificacoesRoute: typeof AppNotificacoesRoute
   AppOrcamentosRoute: typeof AppOrcamentosRouteWithChildren
@@ -3433,6 +3554,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppClientesRoute: AppClientesRouteWithChildren,
   AppInicioRoute: AppInicioRoute,
   AppInsightsRoute: AppInsightsRoute,
+  AppKitsRoute: AppKitsRouteWithChildren,
   AppLeadsRoute: AppLeadsRouteWithChildren,
   AppNotificacoesRoute: AppNotificacoesRoute,
   AppOrcamentosRoute: AppOrcamentosRouteWithChildren,

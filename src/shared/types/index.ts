@@ -370,3 +370,6 @@ export type {
 
 // Service kits / revision kits (Fase 3 — read-only MVP)
 export type { IServiceKit, IServiceKitItem } from "./service-kit";
+
+// Vehicle models / canonical model catalog (PRD-034)
+export type { IVehicleModel, VehicleModelStatus } from "./vehicle-models";

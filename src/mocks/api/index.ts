@@ -37,6 +37,13 @@ export { indicatorsApi, type IListIndicatorsParams } from "./indicators";
 export { serviceKitsApi, type IListServiceKitsParams } from "./serviceKits";
 
 export {
+  vehicleModelsApi,
+  type IListVehicleModelsParams,
+  type ICreateVehicleModelInput,
+  type IUpdateVehicleModelPatch,
+} from "./vehicleModels";
+
+export {
   MockError,
   MockNotFoundError,
   MockValidationError,

@@ -53,6 +53,7 @@ const RESOURCE_LABELS: Record<ResourceName, string> = {
   message: "Mensagens",
   part: "Catálogo",
   serviceKit: "Kits de revisão",
+  vehicleModel: "Modelos de veículo",
   quote: "Orçamentos",
   order: "Pedidos",
   commission: "Comissões",

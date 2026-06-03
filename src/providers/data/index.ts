@@ -84,6 +84,10 @@ export type {
   IServiceKitsProvider,
   IListServiceKitsParams,
   ICreateServiceKitInput,
+  IVehicleModelsProvider,
+  IListVehicleModelsParams,
+  ICreateVehicleModelInput,
+  IUpdateVehicleModelPatch,
 } from "./contracts";
 
 export { useCustomersProvider } from "./hooks/useCustomersProvider";
