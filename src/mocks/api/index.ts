@@ -37,6 +37,13 @@ export { indicatorsApi, type IListIndicatorsParams } from "./indicators";
 export { serviceKitsApi, type IListServiceKitsParams } from "./serviceKits";
 
 export {
+  modelKitsApi,
+  type IListModelKitsParams,
+  type ICreateModelKitInput,
+  type IUpdateModelKitPatch,
+} from "./modelKits";
+
+export {
   vehicleModelsApi,
   type IListVehicleModelsParams,
   type ICreateVehicleModelInput,
