@@ -4,6 +4,27 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.64.0] — Kit · 2026-06-03
+
+Os kits de peças agora vivem dentro de cada modelo de veículo. Na área **Kits por modelo**, você monta kits de filtros escolhendo as peças, as quantidades e marcando quais são base (sempre entram) ou opcionais (sugestões), e mantém cada kit como rascunho ou oficial — o vendedor propõe, o gestor oficializa. No orçamento, um clique em "Aplicar kit" abre uma pré-visualização onde você confirma os itens (os opcionais vêm desmarcados) e as peças entram com o preço congelado do momento; dá para desfazer. O sistema ainda sugere o kit certo quando o cliente tem um veículo compatível e avisa quando há peças que servem ao modelo mas estão fora do kit. A antiga tela "Kits de revisão" foi substituída por essa experiência unificada.
+
+### Added
+
+- **Kits por modelo** — em cada modelo de veículo, monte kits de filtros com peças, quantidades, itens base/opcionais e notas, mantidos como rascunho ou oficial.
+- **Curadoria (rascunho → oficial)** — o vendedor cria rascunhos; o gestor promove a oficial ou devolve para rascunho. A lista de modelos sinaliza quais têm rascunhos pendentes, com um filtro dedicado.
+- **Aplicar kit no orçamento** — uma pré-visualização mostra os itens base já marcados, os opcionais a confirmar, quantidades editáveis e o total estimado; ao confirmar, as peças entram com preço congelado e a ação pode ser desfeita.
+- **Sugestão automática** — quando o cliente tem um veículo compatível, o orçamento sugere aplicar o kit de filtros daquele modelo.
+- **Peças compatíveis fora do kit** — um aviso discreto no editor lista peças que servem ao modelo mas ainda não estão no kit, com um atalho para adicioná-las.
+- **Aplicar a partir do veículo** — o card "Filtros" no detalhe do veículo abre um orçamento já com o kit do modelo pronto para aplicar.
+
+### Changed
+
+- **"Kits de revisão" virou "Kits por modelo"** — a montagem de kits foi unificada dentro dos modelos de veículo; o endereço antigo passa a redirecionar para a nova área.
+
+### Removed
+
+- **Tela antiga de Kits de revisão** — substituída pela experiência de kits por modelo.
+
 ## [0.63.0] — Catalog · 2026-06-03
 
 A plataforma passa a contar com um catálogo centralizado de modelos de veículo — a base que conecta os kits de peças aos caminhões e ônibus que a distribuidora atende. Owners e Gestores podem cadastrar, editar, inativar e buscar modelos canônicos (marca, modelo, motor e anos de aplicação), organizados por montadora e com o ícone de cada marca. Cada modelo tem uma página própria, já estruturada para receber os kits de peças numa próxima entrega. Vendedores têm acesso em modo leitura para consultar a listagem.
