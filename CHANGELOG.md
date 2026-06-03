@@ -4,6 +4,14 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.61.1] — Toolkit · 2026-06-03
+
+As três listas da tela de novo orçamento — sugestões por veículo, "já comprou antes" e os itens do orçamento — agora têm cores, ícones e rótulos distintos, deixando claro de relance o que é sugestão do sistema, o que é histórico de compras do cliente e o que já foi adicionado ao orçamento.
+
+### Changed
+
+- **Distinção visual das listas no novo orçamento** — as grades de sugestões por veículo (azul), recompra (verde) e itens do orçamento (cartão dourado em destaque) receberam identidades próprias. As listas de origem ficam claramente separadas do orçamento em construção, que passa a ser destacado como o documento principal. A diferenciação usa cor, ícone e rótulo em conjunto, funcionando também para quem tem dificuldade de distinguir cores.
+
 ## [0.61.0] — Toolkit · 2026-06-02
 
 O editor de orçamento ganha três upgrades que deixam o processo de montar um pedido mais rápido. **Kits de revisão**: o vendedor clica em "Kit de revisão", escolhe um kit pré-configurado (ex.: "Revisão 40.000 km — Volvo FH") e todos os itens são inseridos de uma só vez. **Informação financeira do cliente**: o cartão do cliente exibe agora, quando disponíveis, o limite de crédito, títulos vencidos e as condições do contrato B2B — sem mostrar nada quando o dado não existe. **Aceleradores**: a tabela de itens pode ser exibida no modo compacto ou conforto (preferência salva), a tecla `/` foca a busca e as setas movem a seleção entre resultados, e o orçamento é salvo automaticamente como rascunho — ao reabrir a tela, o vendedor pode restaurar ou descartar o trabalho não finalizado.
