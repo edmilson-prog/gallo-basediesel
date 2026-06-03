@@ -4,6 +4,16 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.63.0] — Catalog · 2026-06-03
+
+A plataforma passa a contar com um catálogo centralizado de modelos de veículo — a base que conecta os kits de peças aos caminhões e ônibus que a distribuidora atende. Owners e Gestores podem cadastrar, editar, inativar e buscar modelos canônicos (marca, modelo, motor e anos de aplicação), organizados por montadora e com o ícone de cada marca. Cada modelo tem uma página própria, já estruturada para receber os kits de peças numa próxima entrega. Vendedores têm acesso em modo leitura para consultar a listagem.
+
+### Added
+
+- **Catálogo de modelos de veículo** — nova área **Kits por modelo** onde Owner e Gestor cadastram, editam, inativam e buscam os modelos canônicos (marca + modelo + motor + anos), agrupados por marca, com ícone de cada montadora.
+- **Página individual de modelo** — cada modelo tem página própria, já preparada para receber os kits de peças (em breve).
+- **Acesso em leitura para Vendedor** — o vendedor consulta o catálogo de modelos em modo leitura, sem permissão de edição.
+
 ## [0.62.0] — Workshop · 2026-06-03
 
 Os kits de revisão agora podem ser montados e mantidos pela própria interface, sem depender do time técnico. Uma nova tela em **Catálogo → Kits de revisão** (disponível para donos e gestores) permite criar, editar, duplicar e excluir kits — cada um com nome, veículo de aplicação, categoria e a lista de peças com quantidades. O formulário pode ser aberto de três formas, à escolha do usuário (página inteira, janela ou painel lateral), e a preferência fica salva. Os kits criados aparecem imediatamente no botão "Kit de revisão" da tela de novo orçamento.
