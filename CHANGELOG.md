@@ -4,6 +4,18 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.61.0] — Toolkit · 2026-06-02
+
+O editor de orçamento ganha três upgrades que deixam o processo de montar um pedido mais rápido. **Kits de revisão**: o vendedor clica em "Kit de revisão", escolhe um kit pré-configurado (ex.: "Revisão 40.000 km — Volvo FH") e todos os itens são inseridos de uma só vez. **Informação financeira do cliente**: o cartão do cliente exibe agora, quando disponíveis, o limite de crédito, títulos vencidos e as condições do contrato B2B — sem mostrar nada quando o dado não existe. **Aceleradores**: a tabela de itens pode ser exibida no modo compacto ou conforto (preferência salva), a tecla `/` foca a busca e as setas movem a seleção entre resultados, e o orçamento é salvo automaticamente como rascunho — ao reabrir a tela, o vendedor pode restaurar ou descartar o trabalho não finalizado.
+
+### Added
+
+- **Kits de revisão** — botão "Kit de revisão" na tela de itens abre uma lista de kits pré-configurados por veículo (ex.: filtros de óleo e combustível para Volvo FH ou Scania R). Clicar num kit insere todas as peças de uma vez, incrementando quantidades quando a peça já estava no orçamento. Peças removidas do catálogo são ignoradas automaticamente.
+- **Informações financeiras do cliente** — o cartão do cliente exibe, quando disponíveis: limite de crédito, quantidade de títulos vencidos (alerta em vermelho), desconto de contrato B2B e prazo especial de pagamento. Cada dado é ocultado individualmente quando ausente.
+- **Auto-save de rascunho** — o orçamento em andamento é salvo automaticamente. Ao reabrir a tela, um aviso oferece restaurar o rascunho (itens, desconto, frete, forma de pagamento e notas) ou descartá-lo. Após salvar o orçamento com sucesso, o rascunho é apagado.
+- **Atalhos de teclado na busca** — tecla `/` foca a busca de peças a partir de qualquer lugar da tela; `↑` `↓` navegam pelos resultados; `Enter` adiciona a peça em destaque; `Esc` limpa a busca.
+- **Densidade da tabela** — botão de alternância na barra superior troca entre modo "Conforto" (espaçamento generoso) e "Compacto" (mais linhas visíveis). Preferência é salva por sessão.
+
 ## [0.60.0] — Mosaic · 2026-06-02
 
 A tela de criação de orçamento agora entrega **informação de catálogo no momento certo**: cada peça adicionada mostra selo de Original ou Equivalente, código do fabricante, marca, status de estoque em cores (verde/âmbar/vermelho) e, para gestores e donos, a margem estimada por linha. Ao clicar em "ver equivalentes", o vendedor visualiza opções alternativas e pode trocar a peça diretamente na lista. O cliente selecionado vira um cartão compacto com status, classe ABC, data da última compra e todos os veículos da frota. O painel de totais ganha peso estimado do pedido, margem total e um medidor visual de desconto que acende em laranja ao ultrapassar o limite configurado.
