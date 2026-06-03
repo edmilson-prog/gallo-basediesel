@@ -14,6 +14,7 @@ import type {
   QuotePaymentMethod,
 } from "@/shared/types";
 import { Icon } from "@/components/Icon";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,6 +42,7 @@ import { quoteAggregates } from "../../utils/quoteItemDisplay";
 import { useServiceKitsProvider } from "@/providers/data/hooks/useServiceKitsProvider";
 import { expandKitToItems } from "../../utils/kitExpansion";
 import { usePartsIndex } from "../../hooks/usePartsIndex";
+import { useQuoteDraft } from "../../hooks/useQuoteDraft";
 import { quoteLayoutClasses } from "../../utils/layoutClasses";
 import { useQuoteEditorPrefs } from "../../hooks/useQuoteEditorPrefs";
 import { QuoteActionBar } from "./layout/QuoteActionBar";
@@ -110,6 +112,22 @@ export function QuoteEditor() {
   );
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const draftInput = useMemo(
+    () => ({
+      customerId: customer?.id,
+      items,
+      discountInput,
+      shipping,
+      paymentMethod,
+      paymentTerms,
+      notes,
+    }),
+    [customer?.id, items, discountInput, shipping, paymentMethod, paymentTerms, notes],
+  );
+  const draftEnabled = items.length > 0 || customer !== null;
+  const { savedAt, loadDraft, clearDraft } = useQuoteDraft(draftInput, draftEnabled);
+  const [draftOffer, setDraftOffer] = useState(() => loadDraft());
 
   // Update validUntil default when settings load.
   useEffect(() => {
@@ -290,6 +308,7 @@ export function QuoteEditor() {
             ? `Orçamento #${number} aguardando aprovação do gestor.`
             : `Rascunho #${number} salvo.`,
       );
+      clearDraft();
       void navigate({ to: "/app/orcamentos/$id", params: { id: created.id } });
     } catch (err) {
       console.error(err);
@@ -313,6 +332,52 @@ export function QuoteEditor() {
         onSaveDraft={() => void handleSave(false)}
         onSaveSend={() => void handleSave(true)}
       />
+
+      {draftOffer && items.length === 0 && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
+          <p className="text-xs text-foreground">
+            <Icon icon="mdi:history" size={14} className="mr-1 inline" />
+            Há um rascunho não salvo de {new Date(draftOffer.savedAt).toLocaleString("pt-BR")}.
+          </p>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setItems(draftOffer.items);
+                setDiscountInput(draftOffer.discountInput);
+                setShipping(draftOffer.shipping);
+                setPaymentMethod(draftOffer.paymentMethod as QuotePaymentMethod);
+                setPaymentTerms(draftOffer.paymentTerms);
+                setNotes(draftOffer.notes);
+                setDraftOffer(null);
+                toast.success("Rascunho restaurado.");
+              }}
+            >
+              Restaurar
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                clearDraft();
+                setDraftOffer(null);
+              }}
+            >
+              Descartar
+            </Button>
+          </div>
+        </div>
+      )}
+      {savedAt && (
+        <p className="mb-2 text-right text-[11px] text-muted-foreground">
+          <Icon icon="mdi:content-save-check-outline" size={12} className="mr-1 inline" />
+          Rascunho salvo às{" "}
+          {new Date(savedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+        </p>
+      )}
 
       <div className={classes.grid}>
         <div className={classes.body}>
