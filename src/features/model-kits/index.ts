@@ -8,3 +8,5 @@ export { KitCatalogSearch } from "./components/KitCatalogSearch";
 export { KitItemEditorRow } from "./components/KitItemEditorRow";
 export { KitDriftBanner } from "./components/KitDriftBanner";
 export { ModelKitFormPage } from "./pages/ModelKitFormPage";
+export { ApplyKitDialog } from "./components/ApplyKitDialog";
+export type { IApplyKitDialogProps, IApplyKitSelection } from "./components/ApplyKitDialog";
