@@ -40,7 +40,9 @@ import { composePaymentCondition, generateQuoteNumber } from "../../utils/quoteN
 import { addOrIncrementItem, swapItemPart } from "../../utils/quoteItemOps";
 import { quoteAggregates } from "../../utils/quoteItemDisplay";
 import { useModelKits } from "@/features/model-kits/hooks/useModelKits";
-import { ApplyKitDialog } from "@/features/model-kits";
+import { useVehicleModels } from "@/features/vehicle-models/hooks/useVehicleModels";
+import { findKitsForVehicle } from "@/features/model-kits/utils/modelKitMatching";
+import { ApplyKitDialog, KitSuggestionBanner } from "@/features/model-kits";
 import { recordAuditLogSync } from "@/providers/data";
 import { readCurrentUserSync } from "@/features/auth/guards";
 import { usePartsIndex } from "../../hooks/usePartsIndex";
@@ -86,6 +88,10 @@ export function QuoteEditor() {
   // Manual picker lists every kit of the store; the auto-suggestion (PRD-035)
   // is what narrows to official kits matching the client's vehicle.
   const kits = modelKitsQuery.data ?? [];
+
+  const vehicleModelsQuery = useVehicleModels({});
+  const vehicleModels = vehicleModelsQuery.data ?? [];
+  const modelsById = useMemo(() => new Map(vehicleModels.map((m) => [m.id, m])), [vehicleModels]);
 
   const settingsQuery = useQuery({
     queryKey: ["settings", storeId] as const,
@@ -164,6 +170,31 @@ export function QuoteEditor() {
     staleTime: 60_000,
   });
   const vehicles = vehiclesQuery.data ?? [];
+
+  // --- Kit auto-suggestion (PRD-035) ---
+  const [suggestionDismissed, setSuggestionDismissed] = useState(false);
+
+  // Reset dismiss state whenever customer changes.
+  useEffect(() => {
+    setSuggestionDismissed(false);
+  }, [customer?.id]);
+
+  // First vehicle of the customer (string-matched to kits).
+  const suggestionVehicle = vehicles[0] ?? null;
+
+  const suggestedKit = useMemo(() => {
+    if (!customer || !suggestionVehicle) return null;
+    const matched = findKitsForVehicle(suggestionVehicle, kits, modelsById).filter(
+      (k) => k.status === "oficial" && k.category === "filtros",
+    );
+    return matched[0] ?? null;
+  }, [customer, suggestionVehicle, kits, modelsById]);
+
+  // True when the quote already contains at least one filter part.
+  const hasFilterItem = useMemo(
+    () => items.some((it) => partsById.get(it.partId)?.category === "filtro"),
+    [items, partsById],
+  );
 
   // --- Customer orders (for repurchase suggestions) ---
   const ordersQuery = useQuery({
@@ -429,6 +460,17 @@ export function QuoteEditor() {
               onAddPart={handleAddPart}
               onAddFreeItemClick={() => setFreeOpen(true)}
             />
+            {suggestedKit && !suggestionDismissed && !hasFilterItem && (
+              <div className="mt-4">
+                <KitSuggestionBanner
+                  kit={suggestedKit}
+                  vehicleLabel={`${suggestionVehicle!.brand} ${suggestionVehicle!.model}`}
+                  onApply={() => setKitToApply(suggestedKit)}
+                  onDismiss={() => setSuggestionDismissed(true)}
+                />
+              </div>
+            )}
+
             <div className="mt-6">
               <div className="mb-3 flex items-center gap-3" aria-hidden="true">
                 <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
