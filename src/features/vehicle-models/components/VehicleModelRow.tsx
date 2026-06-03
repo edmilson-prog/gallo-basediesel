@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { BrandAvatar } from "./BrandAvatar";
 
 export interface IVehicleModelRowProps {
@@ -45,10 +45,9 @@ export function VehicleModelRow({
       )}
     >
       {/* Clickable area — Link to model detail */}
-      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
       <Link
-        to={"/app/kits/$modelId" as any}
-        params={{ modelId: model.id } as any}
+        to="/app/kits/$modelId"
+        params={{ modelId: model.id }}
         className="flex min-w-0 flex-1 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         aria-label={`Ver detalhes de ${model.brand} ${model.model}`}
       >
@@ -72,18 +71,16 @@ export function VehicleModelRow({
         </div>
 
         {/* Kits pill */}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span tabIndex={-1}>
-                <Badge variant="secondary" className="shrink-0 text-xs">
-                  Kits 0
-                </Badge>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>Kits chegam no PRD-035</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span tabIndex={-1}>
+              <Badge variant="secondary" className="shrink-0 text-xs">
+                Kits 0
+              </Badge>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>Kits chegam no PRD-035</TooltipContent>
+        </Tooltip>
       </Link>
 
       {/* Actions menu — sibling of Link, never nested inside */}

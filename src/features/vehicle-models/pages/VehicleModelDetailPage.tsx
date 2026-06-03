@@ -20,24 +20,21 @@ export function VehicleModelDetailPage() {
   const navigate = useNavigate();
   const mutations = useVehicleModelMutations();
 
-  // modelId provided by /app/kits/$modelId — strict: false because
-  // routeTree doesn't know the route yet (created in Task 11)
+  // modelId provided by /app/kits/$modelId; strict: false for flexibility.
   const { modelId } = useParams({ strict: false }) as { modelId?: string };
 
   const modelQuery = useVehicleModel(modelId);
   const model = modelQuery.data;
 
   function goBack() {
-    // Route /app/kits/ created in Task 11 — cast required until routeTree knows it
-    void navigate({ to: "/app/kits" as never });
+    void navigate({ to: "/app/kits" });
   }
 
   function handleEdit() {
     if (!model) return;
-    // Route /app/kits/$modelId/editar created in Task 11 — cast required until routeTree knows it
     void navigate({
-      to: "/app/kits/$modelId/editar" as never,
-      params: { modelId: model.id } as never,
+      to: "/app/kits/$modelId/editar",
+      params: { modelId: model.id },
     });
   }
 

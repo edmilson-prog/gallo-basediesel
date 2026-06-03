@@ -68,8 +68,7 @@ export function VehicleModelsListPage() {
   const isCatalogEmpty = (modelsQuery.data ?? []).length === 0 && !hasActiveFilters;
 
   function handleEdit(m: IVehicleModel) {
-    // Route /app/kits/$modelId/editar created in Task 11 — cast required until routeTree knows it
-    void navigate({ to: "/app/kits/$modelId/editar" as never, params: { modelId: m.id } as never });
+    void navigate({ to: "/app/kits/$modelId/editar", params: { modelId: m.id } });
   }
 
   function handleToggleStatus(m: IVehicleModel) {
@@ -77,8 +76,7 @@ export function VehicleModelsListPage() {
   }
 
   function handleCreate() {
-    // Route /app/kits/novo created in Task 11 — cast required until routeTree knows it
-    void navigate({ to: "/app/kits/novo" as never });
+    void navigate({ to: "/app/kits/novo" });
   }
 
   return (

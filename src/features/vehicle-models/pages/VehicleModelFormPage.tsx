@@ -15,16 +15,15 @@ export function VehicleModelFormPage({ mode }: IVehicleModelFormPageProps) {
   const navigate = useNavigate();
   const mutations = useVehicleModelMutations();
 
-  // modelId is provided by /app/kits/$modelId/editar — strict: false because
-  // routeTree doesn't know the route yet (created in Task 11)
+  // modelId is provided by /app/kits/$modelId/editar; strict: false because
+  // this page is shared between create and edit routes.
   const { modelId } = useParams({ strict: false }) as { modelId?: string };
 
   const modelQuery = useVehicleModel(mode === "edit" ? modelId : undefined);
   const initial = mode === "edit" ? modelQuery.data : undefined;
 
   function back() {
-    // Route /app/kits/ created in Task 11 — cast required until routeTree knows it
-    void navigate({ to: "/app/kits" as never });
+    void navigate({ to: "/app/kits" });
   }
 
   async function handleSubmit(input: ICreateVehicleModelInput) {
