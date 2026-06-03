@@ -18,11 +18,7 @@ import { Icon } from "@/components/Icon";
 import { DashboardLayout } from "@/features/shell/layouts";
 import { useAuth } from "@/features/auth/useAuth";
 import { useAccessibleStores, useCurrentStore } from "@/features/multistore";
-import {
-  recordAuditLogSync,
-  useIndicatorsProvider,
-  useSellersProvider,
-} from "@/providers/data";
+import { recordAuditLogSync, useIndicatorsProvider, useSellersProvider } from "@/providers/data";
 import type {
   ID,
   IndicatorMetric,
@@ -144,8 +140,7 @@ function validateIndicatorDraft(draft: {
     case "group": {
       const hasLabel = draft.selector.label.trim().length > 0;
       const hasItems =
-        (draft.selector.categories ?? []).length > 0 ||
-        (draft.selector.partIds ?? []).length > 0;
+        (draft.selector.categories ?? []).length > 0 || (draft.selector.partIds ?? []).length > 0;
       if (!hasLabel || !hasItems) errors.push(S.form.validationSelectorGroupEmpty);
       break;
     }
@@ -215,7 +210,12 @@ export function NewIndicatorPage() {
 
   // -- Name (auto-generated until touched)
   const [name, setName] = useState(() =>
-    generateIndicatorName("faturamento", { kind: "category", categories: [] }, "mensal", initial.start),
+    generateIndicatorName(
+      "faturamento",
+      { kind: "category", categories: [] },
+      "mensal",
+      initial.start,
+    ),
   );
   const [nameTouched, setNameTouched] = useState(false);
 
@@ -329,8 +329,7 @@ export function NewIndicatorPage() {
   };
 
   const fmt = metricFormat(metric);
-  const targetUnit =
-    fmt === "currency" ? S.form.targetUnitBRL : S.form.targetUnitCount;
+  const targetUnit = fmt === "currency" ? S.form.targetUnitBRL : S.form.targetUnitCount;
 
   return (
     <DashboardLayout>

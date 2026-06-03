@@ -2,27 +2,27 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _A definir após criação no Lovable_ |
-| **Objetivo** | Introduzir o Copiloto de Vendas — camada de orientação **privada** que assiste o vendedor humano durante a conversa (contexto do cliente, resumo do atendimento e sugestões acionáveis). Entregue na Fase 1 como superfície navegável com assistência por **regras determinísticas** e dados mockados; o motor de IA plena fica reservado à Fase 2. |
-| **Tipo** | Feature |
-| **Complexidade** | Alta |
-| **Total de Fases** | 5 |
-| **Prioridade** | Média |
-| **Épico** | Bloco 2 — Inteligência de IA no Atendimento (SDR autônomo + Copiloto assistido) |
-| **PRDs Relacionados** | PRD-002 (Modelo Conceitual), PRD-004 (Mocks), PRD-005 (Provider Pattern), PRD-006 (RBAC/Auditoria), PRD-010 (Inbox), PRD-011 (Conversa), PRD-012 (Ficha), PRD-017 (Pipeline de Leads), PRD-023 (Escalonamento c/ Resumo), PRD-024 (Painel SDR) |
-| **Implementação** | 🔵 Claude Code CLI |
-| **Padrão de código** | Feature-based; código em `src/features/copilot/`; `ICopilotProvider` seguindo o Provider Pattern do PRD-005; camelCase |
+| Campo                 | Valor                                                                                                                                                                                                                                                                                                                                               |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                                                                                                                                                                            |
+| **Repositório**       | _A definir após criação no Lovable_                                                                                                                                                                                                                                                                                                                 |
+| **Objetivo**          | Introduzir o Copiloto de Vendas — camada de orientação **privada** que assiste o vendedor humano durante a conversa (contexto do cliente, resumo do atendimento e sugestões acionáveis). Entregue na Fase 1 como superfície navegável com assistência por **regras determinísticas** e dados mockados; o motor de IA plena fica reservado à Fase 2. |
+| **Tipo**              | Feature                                                                                                                                                                                                                                                                                                                                             |
+| **Complexidade**      | Alta                                                                                                                                                                                                                                                                                                                                                |
+| **Total de Fases**    | 5                                                                                                                                                                                                                                                                                                                                                   |
+| **Prioridade**        | Média                                                                                                                                                                                                                                                                                                                                               |
+| **Épico**             | Bloco 2 — Inteligência de IA no Atendimento (SDR autônomo + Copiloto assistido)                                                                                                                                                                                                                                                                     |
+| **PRDs Relacionados** | PRD-002 (Modelo Conceitual), PRD-004 (Mocks), PRD-005 (Provider Pattern), PRD-006 (RBAC/Auditoria), PRD-010 (Inbox), PRD-011 (Conversa), PRD-012 (Ficha), PRD-017 (Pipeline de Leads), PRD-023 (Escalonamento c/ Resumo), PRD-024 (Painel SDR)                                                                                                      |
+| **Implementação**     | 🔵 Claude Code CLI                                                                                                                                                                                                                                                                                                                                  |
+| **Padrão de código**  | Feature-based; código em `src/features/copilot/`; `ICopilotProvider` seguindo o Provider Pattern do PRD-005; camelCase                                                                                                                                                                                                                              |
 
 ### Critérios de Complexidade
 
-| Complexidade | Critérios |
-|--------------|-----------|
-| **Baixa** | 1 arquivo, sem dependências externas, < 100 linhas |
-| **Média** | 2-5 arquivos, banco OU integração, funcionalidade isolada |
-| **Alta** | 5+ arquivos, múltiplas integrações, regras de negócio complexas |
+| Complexidade | Critérios                                                       |
+| ------------ | --------------------------------------------------------------- |
+| **Baixa**    | 1 arquivo, sem dependências externas, < 100 linhas              |
+| **Média**    | 2-5 arquivos, banco OU integração, funcionalidade isolada       |
+| **Alta**     | 5+ arquivos, múltiplas integrações, regras de negócio complexas |
 
 > **Justificativa de Alta:** nova superfície de UI com **três variantes de posicionamento alternáveis por parâmetro**; introdução de entidade nova (`ICopilotSuggestion`) exigindo DELTA no PRD-002 e gerador no PRD-004; Provider Pattern com troca Mock → IA (PRD-005); integração transversal com Ficha (PRD-012), Conversa/Inbox (PRD-010/011), Escalonamento (PRD-023) e Pipeline (PRD-017); três regras determinísticas com gatilhos sobre dados mockados; orientação privada sob RBAC (PRD-006); e preparação explícita do contrato para o motor LLM da Fase 2.
 
@@ -62,11 +62,11 @@ Distinção central, que o PRD trata como requisito: **orientação ≠ resposta
 
 A superfície do copiloto pode ocupar três lugares na tela de atendimento. **A decisão de qual adotar não é fixada neste PRD**: as três são implementadas como variantes selecionáveis por configuração, e a escolha da acomodação definitiva fica com o Agente Desenvolvedor durante a implementação.
 
-| Variante | Onde | Caráter |
-|----------|------|---------|
-| `strip` (Faixa sobre o input) | Faixa expansível acima do campo de digitação | Orientação **e** resposta pronta onde o olho do vendedor já está ao responder; evolução natural da "Sugestões IA" |
-| `tab` (Aba na Ficha) | Aba dedicada na Ficha do cliente | Espaço amplo e organizado; porém exige clique — fraco para alerta proativo |
-| `card` (Card no topo) | Card no topo da conversa, no lugar do banner de escalação | Máxima visibilidade; colapsável para não atrapalhar |
+| Variante                      | Onde                                                      | Caráter                                                                                                           |
+| ----------------------------- | --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `strip` (Faixa sobre o input) | Faixa expansível acima do campo de digitação              | Orientação **e** resposta pronta onde o olho do vendedor já está ao responder; evolução natural da "Sugestões IA" |
+| `tab` (Aba na Ficha)          | Aba dedicada na Ficha do cliente                          | Espaço amplo e organizado; porém exige clique — fraco para alerta proativo                                        |
+| `card` (Card no topo)         | Card no topo da conversa, no lugar do banner de escalação | Máxima visibilidade; colapsável para não atrapalhar                                                               |
 
 A variante ativa é resolvida por um parâmetro de configuração (padrão sugerido: `VITE_COPILOT_PLACEMENT = strip | tab | card`), de modo que a troca **não exija refatoração** — mesmo espírito do `VITE_DATA_SOURCE` (PRD-005). Um protótipo navegável acompanha este PRD como anexo de design (ver seção "Anexos"), demonstrando as três variantes na conversa real.
 
@@ -121,11 +121,11 @@ ICopilotProvider {                        // segue o Provider Pattern do PRD-005
 
 ### Tipos de sugestão e origem
 
-| `kind` | Significado | Tom semântico | Origem na Fase 1 |
-|--------|-------------|---------------|------------------|
-| `alert` | Risco a tratar (silêncio, repetição, pendência) | Atenção | `rule` |
-| `action` | Próxima ação concreta a executar | Informacional | `rule` |
-| `opportunity` | Abertura comercial a explorar | Positivo | `rule` |
+| `kind`        | Significado                                     | Tom semântico | Origem na Fase 1 |
+| ------------- | ----------------------------------------------- | ------------- | ---------------- |
+| `alert`       | Risco a tratar (silêncio, repetição, pendência) | Atenção       | `rule`           |
+| `action`      | Próxima ação concreta a executar                | Informacional | `rule`           |
+| `opportunity` | Abertura comercial a explorar                   | Positivo      | `rule`           |
 
 Na Fase 1, **toda** sugestão tem `source: 'rule'`. A Fase 2 habilita `source: 'ai'` para sugestões geradas por LLM (objeção interpretada, tom lido, oportunidade inferida) — sem mudar o contrato consumido pela superfície.
 
@@ -139,12 +139,12 @@ As três regras abaixo operam sobre dados que **já existem nos mocks** (convers
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que foi descartada |
-|-------------|------------------------|
-| Fixar **uma única** posição agora | A melhor acomodação depende de espaço, responsividade e validação em uso; manter as três por parâmetro custa pouco e preserva flexibilidade para o desenvolvedor decidir com o código na mão |
-| Concentrar tudo numa **aba da Ficha** | Enterra os alertas atrás de um clique, eliminando o caráter proativo do "sussurro" — adequado para consulta, fraco para tempo real |
+| Alternativa                                          | Por que foi descartada                                                                                                                                                                                                                 |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fixar **uma única** posição agora                    | A melhor acomodação depende de espaço, responsividade e validação em uso; manter as três por parâmetro custa pouco e preserva flexibilidade para o desenvolvedor decidir com o código na mão                                           |
+| Concentrar tudo numa **aba da Ficha**                | Enterra os alertas atrás de um clique, eliminando o caráter proativo do "sussurro" — adequado para consulta, fraco para tempo real                                                                                                     |
 | Reusar `IRecommendation` para **todas** as sugestões | Recomendações são sobre cliente/veículo no horizonte longo; o copiloto reage à **conversa em tempo real**. `IRecommendation` é reaproveitada apenas quando a sugestão deriva de uma recomendação existente (`relatedRecommendationId`) |
-| Já entregar o motor de IA na Fase 1 | Exigiria LLM e backend, contrariando o Frontend First; a casa + regras determinísticas valida o conceito antes do investimento |
+| Já entregar o motor de IA na Fase 1                  | Exigiria LLM e backend, contrariando o Frontend First; a casa + regras determinísticas valida o conceito antes do investimento                                                                                                         |
 
 ---
 
@@ -313,13 +313,13 @@ ENTÃO a regra de oportunidade dormente (R3) não dispara
 
 ## Fases de Implementação
 
-| Fase | Objetivo | Arquivos Estimados |
-|------|----------|-------------------|
-| 1 | Análise, contrato e DELTAs | 2-3 |
-| 2 | Superfície base + parametrização das variantes | 4-6 |
-| 3 | Briefing + Resumo (reaproveitamento) | 2-3 |
-| 4 | Sugestões por regra + MockCopilotProvider + esqueleto Fase 2 | 4-6 |
-| 5 | Validação (tema, responsividade, RBAC, acessibilidade) | — |
+| Fase | Objetivo                                                     | Arquivos Estimados |
+| ---- | ------------------------------------------------------------ | ------------------ |
+| 1    | Análise, contrato e DELTAs                                   | 2-3                |
+| 2    | Superfície base + parametrização das variantes               | 4-6                |
+| 3    | Briefing + Resumo (reaproveitamento)                         | 2-3                |
+| 4    | Sugestões por regra + MockCopilotProvider + esqueleto Fase 2 | 4-6                |
+| 5    | Validação (tema, responsividade, RBAC, acessibilidade)       | —                  |
 
 ### Detalhamento das Fases
 
@@ -328,6 +328,7 @@ ENTÃO a regra de oportunidade dormente (R3) não dispara
 **Objetivo:** definir o contrato e formalizar a extensão do modelo antes de qualquer UI.
 
 **Ações:**
+
 - [ ] Explorar a estrutura de dados existente (Ficha, Conversa, Escalonamento, Pipeline) e confirmar de onde vem cada dado do copiloto
 - [ ] Definir `ICopilotSuggestion`, `ICopilotBriefing`, `ICopilotPanelData` e a interface `ICopilotProvider`
 - [ ] Registrar DELTA no PRD-002 (nova entidade) e no PRD-004 (gerador de mocks)
@@ -339,6 +340,7 @@ ENTÃO a regra de oportunidade dormente (R3) não dispara
 **Objetivo:** entregar a "casa" do copiloto nas três variantes, alternáveis por parâmetro.
 
 **Ações:**
+
 - [ ] Implementar a superfície (cabeçalho "Copiloto" + selo de privacidade) reutilizável entre variantes
 - [ ] Implementar as variantes `strip`, `tab` e `card` e a resolução por parâmetro de configuração
 - [ ] Garantir que a troca de variante não altere o conteúdo nem exija refatoração
@@ -350,6 +352,7 @@ ENTÃO a regra de oportunidade dormente (R3) não dispara
 **Objetivo:** popular contexto e resumo sem duplicar fontes.
 
 **Ações:**
+
 - [ ] Exibir o briefing refletindo os valores da Ficha (PRD-012), sem recálculo
 - [ ] Exibir o resumo do escalonamento (PRD-023) quando aplicável; resumo mockado caso contrário
 
@@ -360,6 +363,7 @@ ENTÃO a regra de oportunidade dormente (R3) não dispara
 **Objetivo:** entregar as orientações determinísticas e o ponto de extensão.
 
 **Ações:**
+
 - [ ] Implementar as regras R1, R2 e R3 sobre os dados mockados
 - [ ] Implementar `MockCopilotProvider` atrás do contrato `ICopilotProvider`
 - [ ] Implementar `dismiss` de sugestão (estado local)
@@ -372,6 +376,7 @@ ENTÃO a regra de oportunidade dormente (R3) não dispara
 **Objetivo:** garantir qualidade transversal.
 
 **Ações:**
+
 - [ ] Validar tema light/dark e temas do design system
 - [ ] Validar responsividade das três variantes nas larguras-alvo
 - [ ] Validar privacidade (RBAC) e acessibilidade
@@ -385,23 +390,23 @@ ENTÃO a regra de oportunidade dormente (R3) não dispara
 
 ### PRDs Anteriores
 
-| PRD | Descrição | Status |
-|-----|-----------|--------|
-| PRD-002 | Modelo Conceitual (recebe DELTA) | ✅ Implementado |
-| PRD-004 | Mocks (recebe gerador de sugestões) | ✅ Implementado |
-| PRD-005 | Provider Pattern (base do `ICopilotProvider`) | ✅ Implementado |
-| PRD-006 | RBAC/Auditoria (privacidade da orientação) | ✅ Implementado |
-| PRD-010 | Inbox | ✅ Implementado |
+| PRD     | Descrição                                         | Status          |
+| ------- | ------------------------------------------------- | --------------- |
+| PRD-002 | Modelo Conceitual (recebe DELTA)                  | ✅ Implementado |
+| PRD-004 | Mocks (recebe gerador de sugestões)               | ✅ Implementado |
+| PRD-005 | Provider Pattern (base do `ICopilotProvider`)     | ✅ Implementado |
+| PRD-006 | RBAC/Auditoria (privacidade da orientação)        | ✅ Implementado |
+| PRD-010 | Inbox                                             | ✅ Implementado |
 | PRD-011 | Conversa (hospeda `strip`/`card`; "Sugestões IA") | ✅ Implementado |
-| PRD-012 | Ficha (fonte do briefing; hospeda `tab`) | ✅ Implementado |
-| PRD-017 | Pipeline de Leads (temperatura/intenção) | ✅ Implementado |
-| PRD-023 | Escalonamento c/ Resumo (fonte do resumo) | 📝 Redigido |
+| PRD-012 | Ficha (fonte do briefing; hospeda `tab`)          | ✅ Implementado |
+| PRD-017 | Pipeline de Leads (temperatura/intenção)          | ✅ Implementado |
+| PRD-023 | Escalonamento c/ Resumo (fonte do resumo)         | 📝 Redigido     |
 
 ### Serviços Externos
 
-| Serviço | Tipo | Status |
-|---------|------|--------|
-| Nenhum na Fase 1 | — | — |
+| Serviço          | Tipo | Status |
+| ---------------- | ---- | ------ |
+| Nenhum na Fase 1 | —    | —      |
 
 ### Decisões Pendentes
 
@@ -414,13 +419,13 @@ ENTÃO a regra de oportunidade dormente (R3) não dispara
 
 Este PRD faz parte do épico **"Bloco 2 — Inteligência de IA no Atendimento"**.
 
-| Ordem | PRD | Título | Status | Relação |
-|-------|-----|--------|--------|---------|
-| … | PRD-020–022 | SDR (engine, identificação, orçamento) | 📝 | Base de IA |
-| 14 | PRD-023 | Escalonamento c/ Resumo | 📝 | Fonte do resumo de conversa |
-| 15 | PRD-024 | Painel SDR | 📝 | Métricas de IA |
-| **16** | **PRD-025** | **Copiloto de Vendas (este)** | **🔄 ATUAL** | Depende de 010, 011, 012, 023 |
-| 17+ | PRD-11x (Fase 2) | Copiloto IA — motor de objeções, sentimento e geração de resposta | ⏳ | Substitui Mock por `AICopilotProvider` |
+| Ordem  | PRD              | Título                                                            | Status       | Relação                                |
+| ------ | ---------------- | ----------------------------------------------------------------- | ------------ | -------------------------------------- |
+| …      | PRD-020–022      | SDR (engine, identificação, orçamento)                            | 📝           | Base de IA                             |
+| 14     | PRD-023          | Escalonamento c/ Resumo                                           | 📝           | Fonte do resumo de conversa            |
+| 15     | PRD-024          | Painel SDR                                                        | 📝           | Métricas de IA                         |
+| **16** | **PRD-025**      | **Copiloto de Vendas (este)**                                     | **🔄 ATUAL** | Depende de 010, 011, 012, 023          |
+| 17+    | PRD-11x (Fase 2) | Copiloto IA — motor de objeções, sentimento e geração de resposta | ⏳           | Substitui Mock por `AICopilotProvider` |
 
 > **Nota:** implemente na ordem indicada. PRDs anteriores devem estar ✅ antes de iniciar este.
 
@@ -432,11 +437,11 @@ Este PRD faz parte do épico **"Bloco 2 — Inteligência de IA no Atendimento"*
 
 ### Dados Sensíveis
 
-| Dado | Classificação | Proteção |
-|------|---------------|----------|
+| Dado                                     | Classificação            | Proteção                                                                                                  |
+| ---------------------------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------- |
 | Briefing (nome, métricas, ciclo de vida) | PII / Sensível comercial | Reutiliza os mesmos dados da Ficha; exibido apenas a quem tem permissão de ver a conversa/ficha (PRD-006) |
-| Resumo da conversa | PII | Já protegido pelo RBAC da conversa (PRD-006/023) |
-| Orientações do copiloto | Interno | Privadas ao vendedor/perfis autorizados; jamais expostas ao cliente |
+| Resumo da conversa                       | PII                      | Já protegido pelo RBAC da conversa (PRD-006/023)                                                          |
+| Orientações do copiloto                  | Interno                  | Privadas ao vendedor/perfis autorizados; jamais expostas ao cliente                                       |
 
 ### Autenticação e Autorização
 
@@ -475,25 +480,25 @@ Na Fase 1, eventos relevantes (sugestão exibida, dispensada) podem ser refletid
 
 > **Consulte a Seção 5 do `guia-prd.md` para a versão completa.**
 
-| Elemento | Convenção | Exemplo |
-|----------|-----------|---------|
-| **Componentes React** | PascalCase | `CopilotPanel.tsx`, `CopilotSuggestionItem.tsx` |
-| **Hooks** | camelCase + `use` | `useCopilotPanel.ts` |
-| **Services/Providers** | camelCase + `Provider` | `mockCopilotProvider.ts` |
-| **Pastas** | kebab-case (feature-based) | `src/features/copilot/` |
-| **Variáveis/Funções** | camelCase | `dismissSuggestion()` |
-| **Interfaces** | PascalCase + `I` | `ICopilotProvider`, `ICopilotSuggestion` |
-| **Env vars (frontend)** | `VITE_` prefix | `VITE_COPILOT_PLACEMENT` |
-| **Git commits** | Conventional Commits | `feat(copilot): add sales copilot surface with rule-based suggestions` |
-| **Ícones** | Iconify (`@iconify/react`) | `<Icon icon="mdi:robot-outline" />` |
-| **Tema** | Light + Dark + temas GALLO | CSS variables / tokens do PRD-001 |
+| Elemento                | Convenção                  | Exemplo                                                                |
+| ----------------------- | -------------------------- | ---------------------------------------------------------------------- |
+| **Componentes React**   | PascalCase                 | `CopilotPanel.tsx`, `CopilotSuggestionItem.tsx`                        |
+| **Hooks**               | camelCase + `use`          | `useCopilotPanel.ts`                                                   |
+| **Services/Providers**  | camelCase + `Provider`     | `mockCopilotProvider.ts`                                               |
+| **Pastas**              | kebab-case (feature-based) | `src/features/copilot/`                                                |
+| **Variáveis/Funções**   | camelCase                  | `dismissSuggestion()`                                                  |
+| **Interfaces**          | PascalCase + `I`           | `ICopilotProvider`, `ICopilotSuggestion`                               |
+| **Env vars (frontend)** | `VITE_` prefix             | `VITE_COPILOT_PLACEMENT`                                               |
+| **Git commits**         | Conventional Commits       | `feat(copilot): add sales copilot surface with rule-based suggestions` |
+| **Ícones**              | Iconify (`@iconify/react`) | `<Icon icon="mdi:robot-outline" />`                                    |
+| **Tema**                | Light + Dark + temas GALLO | CSS variables / tokens do PRD-001                                      |
 
 ---
 
 ## Anexos
 
-| Anexo | Descrição |
-|-------|-----------|
+| Anexo                        | Descrição                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `gallo-copiloto-mockup.html` | Protótipo navegável de design (standalone) recriando a tela de atendimento no tema Black Gold, com as três variantes de posicionamento alternáveis pelos botões ou pelo parâmetro de URL `?copilot=a\|b\|c` (aliases `strip\|tab\|card`). **Referência visual, não especificação de layout** — a acomodação definitiva é decisão do desenvolvedor. _Observação:_ o protótipo usa ícones Lucide por conveniência; no produto, os ícones seguem o padrão Iconify. |
 
 ---
@@ -512,6 +517,7 @@ Na Fase 1, eventos relevantes (sugestão exibida, dispensada) podem ser refletid
 > "Lembre-se: explore a estrutura dos dados, planeje primeiro cada passo, analise, investigue a fundo, pense e revise tudo antes de realizar qualquer atualização ou implementação."
 
 > **⚠️ 2. APÓS IMPLEMENTAR:**
+>
 > - Incrementar a versão do app seguindo [SemVer](https://semver.org/)
 > - Atualizar o `CHANGELOG.md` seguindo [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 > - Atualizar o registro de versão no banco de dados (se aplicável)
@@ -520,10 +526,10 @@ Na Fase 1, eventos relevantes (sugestão exibida, dispensada) podem ser refletid
 
 ### Guia de Versionamento (SemVer)
 
-| Tipo de Mudança | Ação | Exemplo |
-|-----------------|------|---------|
-| Correção de bug | PATCH +1 | 1.0.0 → 1.0.1 |
-| Nova funcionalidade | MINOR +1, PATCH = 0 | 1.0.1 → 1.1.0 |
+| Tipo de Mudança      | Ação                 | Exemplo       |
+| -------------------- | -------------------- | ------------- |
+| Correção de bug      | PATCH +1             | 1.0.0 → 1.0.1 |
+| Nova funcionalidade  | MINOR +1, PATCH = 0  | 1.0.1 → 1.1.0 |
 | Mudança incompatível | MAJOR +1, outros = 0 | 1.1.0 → 2.0.0 |
 
 **Codinomes:** para MINOR/MAJOR, gerar codinome em inglês baseado no contexto (sugestão para este PRD: **Copilot** ou **Whisper**). PATCH mantém o codinome anterior.
@@ -538,57 +544,57 @@ Tipos: **Added**, **Changed**, **Deprecated**, **Removed**, **Fixed**, **Securit
 
 ### Princípios de Implementação
 
-| Princípio | Descrição |
-|-----------|-----------|
-| **Não bloquear o atendimento** | O copiloto é assistivo; nunca deve travar a conversa |
-| **Fail gracefully** | Falha do provider → estado vazio coerente, conversa intacta |
-| **Fonte única de verdade** | Briefing reflete a Ficha; resumo reflete o escalonamento — sem recomputar |
-| **Contrato pronto para a IA** | Manter `ICopilotProvider` estável para o `AICopilotProvider` da Fase 2 entrar sem mexer na UI |
-| **Documentar decisões** | Registrar a variante default escolhida e o porquê |
+| Princípio                      | Descrição                                                                                     |
+| ------------------------------ | --------------------------------------------------------------------------------------------- |
+| **Não bloquear o atendimento** | O copiloto é assistivo; nunca deve travar a conversa                                          |
+| **Fail gracefully**            | Falha do provider → estado vazio coerente, conversa intacta                                   |
+| **Fonte única de verdade**     | Briefing reflete a Ficha; resumo reflete o escalonamento — sem recomputar                     |
+| **Contrato pronto para a IA**  | Manter `ICopilotProvider` estável para o `AICopilotProvider` da Fase 2 entrar sem mexer na UI |
+| **Documentar decisões**        | Registrar a variante default escolhida e o porquê                                             |
 
 ### Orientações Gerais
 
-| Aspecto | Orientação |
-|---------|------------|
-| **Posicionamento** | Implemente as três variantes e a resolução por parâmetro; **escolha o default** com base no espaço real e na validação — esta decisão é sua |
-| **Distinção orientação × resposta** | Mantenha a orientação privada e visualmente separada da resposta pronta (PRD-011); não as funda |
-| **Reaproveitamento** | Não duplique a Ficha nem o resumo do SDR — consuma-os |
-| **Regras** | Termos/limiares das regras são fixos no mock; deixe o ponto de extensão para parametrização futura (PRD-019) |
-| **Esqueleto Fase 2** | O botão de geração de resposta deve existir, mas inerte; não implemente LLM |
+| Aspecto                             | Orientação                                                                                                                                  |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Posicionamento**                  | Implemente as três variantes e a resolução por parâmetro; **escolha o default** com base no espaço real e na validação — esta decisão é sua |
+| **Distinção orientação × resposta** | Mantenha a orientação privada e visualmente separada da resposta pronta (PRD-011); não as funda                                             |
+| **Reaproveitamento**                | Não duplique a Ficha nem o resumo do SDR — consuma-os                                                                                       |
+| **Regras**                          | Termos/limiares das regras são fixos no mock; deixe o ponto de extensão para parametrização futura (PRD-019)                                |
+| **Esqueleto Fase 2**                | O botão de geração de resposta deve existir, mas inerte; não implemente LLM                                                                 |
 
 ### O que NÃO Fazer
 
-| ❌ Evitar |
-|----------|
-| Implementar qualquer chamada a LLM/IA real nesta fase |
-| Duplicar dados da Ficha ou recalcular métricas no copiloto |
-| Inserir orientações automaticamente como mensagem ao cliente |
+| ❌ Evitar                                                                                       |
+| ----------------------------------------------------------------------------------------------- |
+| Implementar qualquer chamada a LLM/IA real nesta fase                                           |
+| Duplicar dados da Ficha ou recalcular métricas no copiloto                                      |
+| Inserir orientações automaticamente como mensagem ao cliente                                    |
 | Fixar uma única variante removendo as outras (todas devem permanecer alternáveis por parâmetro) |
-| Inventar dados fora da camada de mocks (PRD-004) |
-| Persistir sugestões ou auditoria de verdade (Fase 2) |
-| Implementar notificações push (Fase 2) |
-| Acoplar o copiloto de forma que sua falha quebre a conversa |
+| Inventar dados fora da camada de mocks (PRD-004)                                                |
+| Persistir sugestões ou auditoria de verdade (Fase 2)                                            |
+| Implementar notificações push (Fase 2)                                                          |
+| Acoplar o copiloto de forma que sua falha quebre a conversa                                     |
 
 ---
 
 ## Status de Implementação
 
-| Campo | Valor |
-|-------|-------|
-| **Status** | ✅ CONCLUÍDO |
-| **Data de Implementação** | 31/05/2026 |
-| **Versão do App** | v0.56.0 — Copilot |
-| **Implementado por** | Claude Code CLI (Opus) |
-| **Observações** | Fase 1 entregue: superfície navegável em `src/features/copilot/`, três variantes (`strip` default / `card` / `tab`) com assistência por regras determinísticas (R1 `unanswered_deadline`, R2 `billing_mismatch`, R3 `dormant_opportunity`) e dados mockados. Briefing reaproveita a Ficha (PRD-012); resumo reaproveita o escalonamento do SDR (PRD-023). `ICopilotProvider` segue o Provider Pattern (PRD-005) com `mockCopilotProvider` ativo e stub Supabase para a Fase 2. **Posicionamento alternável em runtime** via Configurações → Copiloto (`/app/configuracoes/copiloto`), persistido em `localStorage` (`gallo-copilot-placement`); `VITE_COPILOT_PLACEMENT` permanece como default de fábrica. Botão "Gerar resposta" presente porém inerte (LLM reservado à Fase 2). Sem chamadas a IA real, sem persistência de sugestões/auditoria. |
+| Campo                     | Valor                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**                | ✅ CONCLUÍDO                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| **Data de Implementação** | 31/05/2026                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| **Versão do App**         | v0.56.0 — Copilot                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| **Implementado por**      | Claude Code CLI (Opus)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| **Observações**           | Fase 1 entregue: superfície navegável em `src/features/copilot/`, três variantes (`strip` default / `card` / `tab`) com assistência por regras determinísticas (R1 `unanswered_deadline`, R2 `billing_mismatch`, R3 `dormant_opportunity`) e dados mockados. Briefing reaproveita a Ficha (PRD-012); resumo reaproveita o escalonamento do SDR (PRD-023). `ICopilotProvider` segue o Provider Pattern (PRD-005) com `mockCopilotProvider` ativo e stub Supabase para a Fase 2. **Posicionamento alternável em runtime** via Configurações → Copiloto (`/app/configuracoes/copiloto`), persistido em `localStorage` (`gallo-copilot-placement`); `VITE_COPILOT_PLACEMENT` permanece como default de fábrica. Botão "Gerar resposta" presente porém inerte (LLM reservado à Fase 2). Sem chamadas a IA real, sem persistência de sugestões/auditoria. |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 31/05/2026 | v1 | Criação inicial — Copiloto de Vendas (Fase 1): superfície em três variantes alternáveis por parâmetro, briefing reaproveitando a Ficha, resumo reaproveitando o escalonamento do SDR, sugestões por regra determinística, Provider Pattern com mock e contrato preparado para o motor LLM da Fase 2 |
-| 31/05/2026 | v0.56.0 | Implementação concluída (Copilot). Posicionamento promovido a preferência de runtime configurável em Configurações → Copiloto (`localStorage`), com `VITE_COPILOT_PLACEMENT` como default de fábrica |
+| Data       | Versão  | Alteração                                                                                                                                                                                                                                                                                           |
+| ---------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 31/05/2026 | v1      | Criação inicial — Copiloto de Vendas (Fase 1): superfície em três variantes alternáveis por parâmetro, briefing reaproveitando a Ficha, resumo reaproveitando o escalonamento do SDR, sugestões por regra determinística, Provider Pattern com mock e contrato preparado para o motor LLM da Fase 2 |
+| 31/05/2026 | v0.56.0 | Implementação concluída (Copilot). Posicionamento promovido a preferência de runtime configurável em Configurações → Copiloto (`localStorage`), com `VITE_COPILOT_PLACEMENT` como default de fábrica                                                                                                |
 
 ---
 

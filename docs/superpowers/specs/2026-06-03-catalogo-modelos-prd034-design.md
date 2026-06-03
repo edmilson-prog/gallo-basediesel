@@ -15,7 +15,7 @@ seu próprio ciclo spec → plano → implementação → versão:
    v0.62.0.
 3. **Delta PRD-016** — `IVehicle.modelId` + aplicar Kit no detalhe do veículo.
 
-**Decisão estratégica já tomada (usuário):** *consolidar*. Não haverá dois conceitos
+**Decisão estratégica já tomada (usuário):** _consolidar_. Não haverá dois conceitos
 de kit. O `IServiceKit` atual evolui para o kit-pendurado-no-modelo no sub-projeto 2.
 Este sub-projeto 1 **não toca** no `IServiceKit`; apenas cria a base (catálogo de
 modelos) sobre a qual os kits passarão a se apoiar.
@@ -31,8 +31,8 @@ modelos) sobre a qual os kits passarão a se apoiar.
   `ford-cargo→mdi:truck-cargo-container`, `iveco→mdi:tow-truck`). Será reusada (e
   promovida a helper compartilhado `getBrandIcon`) para os avatares de marca — sem
   depender de logos proprietários.
-- **`/app/veiculos`** é a *frota de clientes* (veículos-instância com dono/histórico).
-  O catálogo de modelos é o oposto: uma *taxonomia de referência* sem dono. O design
+- **`/app/veiculos`** é a _frota de clientes_ (veículos-instância com dono/histórico).
+  O catálogo de modelos é o oposto: uma _taxonomia de referência_ sem dono. O design
   deve parecer uma **biblioteca de referência**, distinta de `/app/veiculos` e de
   `/app/catalogo` (peças).
 - **Tipos de domínio** vivem em `src/shared/types/<dominio>.ts` (arquivo por domínio),
@@ -69,17 +69,17 @@ a gestão de kits dentro de cada modelo chega no PRD-035.
 
 ## Decisões de produto
 
-| Decisão | Escolha |
-|---|---|
-| Rota da área | **`/app/kits`** (espinha = lista de modelos) |
-| Rótulo do menu | **"Kits por modelo"** (novo item no grupo "Comercial") |
-| Layout | **Lista agrupada por marca → página de detalhe `/app/kits/$modelId`** |
-| Avatar de marca | Ícone mdi de `storefront.ts`, monocromático sobre `bg-muted` |
-| Agrupamento | Por marca, cabeçalho de grupo sticky com contador |
-| Status inativo | "Arquivado": badge `muted` + linha esmaecida; filtro esconde por padrão |
+| Decisão         | Escolha                                                                    |
+| --------------- | -------------------------------------------------------------------------- |
+| Rota da área    | **`/app/kits`** (espinha = lista de modelos)                               |
+| Rótulo do menu  | **"Kits por modelo"** (novo item no grupo "Comercial")                     |
+| Layout          | **Lista agrupada por marca → página de detalhe `/app/kits/$modelId`**      |
+| Avatar de marca | Ícone mdi de `storefront.ts`, monocromático sobre `bg-muted`               |
+| Agrupamento     | Por marca, cabeçalho de grupo sticky com contador                          |
+| Status inativo  | "Arquivado": badge `muted` + linha esmaecida; filtro esconde por padrão    |
 | Fonte dos mocks | Promover `SEED_VEHICLE_MODELS` (18 base) + dobrar combos de `applications` |
-| Quem gerencia | **Owner/Gestor** (Vendedor só lê) |
-| Resource RBAC | **`vehicleModel`** (camelCase), ações `view/create/edit/delete` |
+| Quem gerencia   | **Owner/Gestor** (Vendedor só lê)                                          |
+| Resource RBAC   | **`vehicleModel`** (camelCase), ações `view/create/edit/delete`            |
 
 ## Arquitetura de informação e layout
 
@@ -117,9 +117,10 @@ deste modelo" com empty state honesto ("Em breve você poderá montar kits…").
 abas desabilitadas com cadeado, **sem** números fake.
 
 **Página de detalhe `/app/kits/$modelId` (entrega 034):** cabeçalho do modelo (avatar
-+ modelo/motor/anos/status + ações Editar/Inativar para Owner/Gestor) + breadcrumb
-`Kits por modelo / Scania R450 (DC13)` + seção "Kits deste modelo" como slot vazio.
-No PRD-035 essa seção recebe a `KitsTable`/`KitForm` migradas.
+
+- modelo/motor/anos/status + ações Editar/Inativar para Owner/Gestor) + breadcrumb
+  `Kits por modelo / Scania R450 (DC13)` + seção "Kits deste modelo" como slot vazio.
+  No PRD-035 essa seção recebe a `KitsTable`/`KitForm` migradas.
 
 ## Modelo de dados
 
@@ -130,9 +131,9 @@ export type VehicleModelStatus = "ativo" | "inativo";
 
 export interface IVehicleModel {
   id: ID;
-  brand: string;            // "Scania"
-  model: string;            // "R 450"
-  engine: string;           // "DC13 143 Euro 5"
+  brand: string; // "Scania"
+  model: string; // "R 450"
+  engine: string; // "DC13 143 Euro 5"
   yearStart?: number;
   yearEnd?: number;
   status: VehicleModelStatus;
@@ -165,17 +166,25 @@ Re-exportar no barrel `src/shared/types/index.ts`.
 - **Contract** `src/providers/data/contracts/vehicleModels.ts`:
   ```ts
   export interface ICreateVehicleModelInput {
-    brand: string; model: string; engine: string;
-    yearStart?: number; yearEnd?: number;
+    brand: string;
+    model: string;
+    engine: string;
+    yearStart?: number;
+    yearEnd?: number;
   }
   export interface IListVehicleModelsParams {
-    brand?: string; status?: VehicleModelStatus; search?: string;
+    brand?: string;
+    status?: VehicleModelStatus;
+    search?: string;
   }
   export interface IVehicleModelsProvider {
     list(params?: IListVehicleModelsParams): Promise<IVehicleModel[]>;
     get(id: ID): Promise<IVehicleModel>;
     create(input: ICreateVehicleModelInput): Promise<IVehicleModel>;
-    update(id: ID, patch: Partial<ICreateVehicleModelInput> & { status?: VehicleModelStatus }): Promise<IVehicleModel>;
+    update(
+      id: ID,
+      patch: Partial<ICreateVehicleModelInput> & { status?: VehicleModelStatus },
+    ): Promise<IVehicleModel>;
     delete(id: ID): Promise<void>;
   }
   ```
@@ -258,7 +267,7 @@ A URL sincroniza busca + filtros (padrão do projeto). Busca com debounce 300ms.
   cadastrado ainda" + CTA "Cadastrar primeiro modelo" só Owner/Gestor; Vendedor vê
   mensagem neutra sem CTA); estado busca-sem-resultado distinto do empty inicial.
 - **Acessibilidade:** `h1` "Modelos", cabeçalho de marca `h2` em `<section
-  aria-labelledby>`; linha navegável como `<a>`/`<button>` real (não `onClick` em
+aria-labelledby>`; linha navegável como `<a>`/`<button>` real (não `onClick` em
   `div`), com o menu de ações como botão irmão (sem nested interactive); chips
   `aria-pressed`; contador com `aria-live="polite"`; avatar `aria-hidden` (nome
   textual carrega a semântica); alvos de toque ≥ 44px.

@@ -11,10 +11,12 @@
 A página `/app/clientes` mostra o detalhamento do cliente **somente** num painel lateral (`CustomerProfile variant="column"`, ~40% da largura). É ótimo para consulta rápida sem sair da lista, mas espreme muita informação num espaço estreito e não escala conforme o cliente acumula histórico.
 
 A rota `/app/clientes/$id` **já existe**, porém hoje:
+
 - só é acionada em mobile (`< 768px`) ou por acesso direto;
 - renderiza o **mesmo** `CustomerProfile` (header + 7 abas), apenas centralizado em `max-w-3xl` — ou seja, **não aproveita** o espaço extra nem mostra mais informação.
 
 Queremos **duas formas de visualização coexistindo**:
+
 1. **Painel lateral** (atual) — consulta rápida, sem sair da lista. **Preservado.**
 2. **Página dedicada** — acionada ao clicar no nome do cliente; largura total, mais respiro e **blocos novos** que não cabem no painel.
 
@@ -25,6 +27,7 @@ Adotar o padrão já estabelecido no redesign do detalhe de veículos (`docs/sup
 Sobre esse padrão, a página recebe um **hero analítico** com 4 blocos novos no topo e **mantém as 7 abas atuais intactas** logo abaixo (abordagem Híbrida). Isso entrega o "detalhar mais" sem reescrever as abas que já funcionam — menor risco.
 
 Abordagens descartadas:
+
 - **A (Espelho de veículos puro):** abas dentro de uma lane larga ainda deixam vazio quando a aba ativa é curta.
 - **B (Painel executivo):** reescreve a `OverviewTab` e o modelo de abas → maior esforço e risco de regressão.
 
@@ -59,11 +62,13 @@ CustomerDetailPage                         (novo — espelha VehicleDetailPage)
 ## Solução detalhada
 
 ### 1. Roteamento e shell (`app.clientes.$id.tsx` + `CustomerDetailPage.tsx`)
+
 - `app.clientes.$id.tsx` passa a renderizar `<CustomerDetailPage customerId={id} />` sem o wrapper `max-w-3xl`.
 - `CustomerDetailPage` reusa `useCustomerProfile(customerId)` para carregar o cliente (estados loading/notFound/error como hoje, no padrão do `CustomerProfile`).
 - Layout raiz: `flex h-full min-h-0 flex-col overflow-y-auto bg-background`. Header full-bleed; corpo em `mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6`.
 
 ### 2. Header (`CustomerDetailHeader.tsx`)
+
 - Conteúdo interno também no trilho `max-w-7xl` (alinha com o corpo), header full-bleed (`border-b bg-card`).
 - **Breadcrumb** "Clientes › {nome}" com link de volta (`Link to="/app/clientes"`), `text-xs text-muted-foreground`.
 - Avatar 64px (`display.bg/fg`), H1 com o nome (`getCustomerDisplay`), `ProfileBadges` + `PreConversionBadge`, `CoverageBanner`.
@@ -71,6 +76,7 @@ CustomerDetailPage                         (novo — espelha VehicleDetailPage)
 - Reaproveitar ao máximo a lógica do `ProfileHeader` existente (extrair se necessário, sem duplicar regras).
 
 ### 3. Faixa de stats (`CustomerStatStrip.tsx`)
+
 - Full-width entre header e hero, no padrão de `VehicleTechSpecs`:
   - `grid grid-cols-2 gap-px bg-border rounded-lg overflow-hidden sm:grid-cols-3 lg:grid-cols-5`.
   - Célula: `bg-card px-4 py-3`; label `text-[10px] uppercase tracking-wide text-muted-foreground` com ícone; valor `text-sm` (tabular-nums em valores numéricos).
@@ -79,6 +85,7 @@ CustomerDetailPage                         (novo — espelha VehicleDetailPage)
 - Ícone + texto sempre presentes (nunca cor como único indicador).
 
 ### 4. Hero analítico (bento 12 colunas)
+
 ```
 <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
   <CustomerPurchaseEvolutionCard className="lg:col-span-6" />
@@ -86,9 +93,11 @@ CustomerDetailPage                         (novo — espelha VehicleDetailPage)
   <CustomerPendingActionsCard     className="lg:col-span-3" />
 </div>
 ```
+
 - `< lg`: 1 coluna, ordem gráfico → pendências → timeline.
 
 #### 4a. `CustomerPurchaseEvolutionCard.tsx` (gráfico)
+
 - `AreaChart` (recharts), padrão `SellerMiniChart`: `stroke=var(--primary)`, fill gradiente, `ResponsiveContainer`, `dot={false}`.
 - Dados: pedidos do cliente (`useOrdersProvider().listByCustomer` ou equivalente usado por `CustomerOrdersList`) agregados por **mês** (últimos 12 meses), somando o total de pedidos pagos. Linha de referência opcional na média mensal.
 - Header do card: título "Evolução de compras" + janela ("12 meses").
@@ -96,6 +105,7 @@ CustomerDetailPage                         (novo — espelha VehicleDetailPage)
 - Respeitar `prefers-reduced-motion` (desabilitar animação do chart).
 
 #### 4b. `CustomerRelationshipTimeline.tsx` (timeline)
+
 - Timeline vertical (`border-l` + nós), nós em ordem cronológica:
   - **Cliente desde** — `firstPurchaseAt` (ou `createdAt` como fallback).
   - **Convertido de lead** — quando `convertedFromLeadAt` existe (com link/relação ao lead de origem; reusar a semântica do `PreConversionBadge`).
@@ -104,6 +114,7 @@ CustomerDetailPage                         (novo — espelha VehicleDetailPage)
 - Cada nó: ícone + texto (nunca só cor). Estado vazio quando não há eventos.
 
 #### 4c. `CustomerPendingActionsCard.tsx` (pendências)
+
 - Card destacado: `bg-primary/5 border border-primary/40` (token-based, não hex).
 - Linhas acionáveis (ícone + label + contagem + deep-link), ocultando as de contagem zero:
   - **Orçamentos abertos** — `quotesProvider.list({ customerId })` filtrando status `enviado`/`rascunho` → aba Orçamentos.
@@ -114,6 +125,7 @@ CustomerDetailPage                         (novo — espelha VehicleDetailPage)
 - Cada contagem usa `useQuery` próprio (lazy/independente), sem bloquear o render do resto da página.
 
 ### 5. Abas (reuso + ajuste mínimo na Visão geral)
+
 - Renderiza `ProfileTabs` **intacto** abaixo do hero (mesmas 7 abas, mesmos providers, mesma navegação por ←/→).
 - **Único ajuste:** `OverviewTab` recebe um `variant?: "column" | "page"` (default `column`):
   - `page`: grid 2 colunas no desktop (`md:grid-cols-2`) — ex. coluna 1 `CadastraisCard`; coluna 2 `StatusWalletCard` + `TagsCard` + `PortalCard` — e **oculta o `MetricsCard`** (a faixa de stats já cobre os KPIs, eliminando a duplicação).
@@ -121,12 +133,15 @@ CustomerDetailPage                         (novo — espelha VehicleDetailPage)
 - `ProfileTabs` precisa propagar esse `variant` até a `OverviewTab` (nova prop opcional `overviewVariant`).
 
 ### 6. Ritmo de espaçamento e tokens
+
 - `space-y-6` entre seções (header → strip → hero → abas); `space-y-3`/`gap-3` interno aos cards.
 - Padding de card unificado em `px-4 py-3` no estilo da faixa de veículos.
 - **Somente tokens semânticos** (`bg-card`, `bg-background`, `text-foreground`, `text-muted-foreground`, `border-border`, `text-primary`, `bg-primary/5`…). Charts via `var(--primary)`/`var(--muted-foreground)`. Nunca hex nem `--gallo-*` diretos.
 
 ## Strings (i18n pt-BR — `customers/i18n/pt-BR.ts`)
+
 Adicionar bloco para a página dedicada (todas com acentuação correta, UTF-8). Exemplos:
+
 - `detail.breadcrumb`: "Clientes"
 - `detail.openFullPage`: "Abrir página completa"
 - `detail.evolution.title`: "Evolução de compras"
@@ -147,6 +162,7 @@ Adicionar bloco para a página dedicada (todas com acentuação correta, UTF-8).
 (Nomes finais podem ser ajustados na implementação; manter o padrão existente do arquivo.)
 
 ## Acessibilidade
+
 - Hierarquia de headings `h1` (nome no header) → `h2` (títulos dos cards/seções) → `h3` (subtítulos internos).
 - KPIs, status do timeline e pendências: ícone + texto + cor (cor nunca como único indicador).
 - Botões de ícone (expandir, criar orçamento) com `aria-label`.
@@ -155,11 +171,13 @@ Adicionar bloco para a página dedicada (todas com acentuação correta, UTF-8).
 - Linhas/nós clicáveis com `cursor-pointer` e feedback de hover (`transition-colors`).
 
 ## Responsividade
+
 - `≥ lg` (1024px+): faixa de stats 5 colunas; hero 6/3/3.
 - `sm–lg`: faixa 3 colunas; hero empilha.
 - `< sm`: faixa 2 colunas; tudo em 1 coluna. Sem scroll horizontal.
 
 ## Não-objetivos (fora de escopo)
+
 - Sem mudança de modelo de dados, providers, RBAC ou rotas além de refazer `/app/clientes/$id`.
 - Sem novos pacotes (recharts e Iconify já existem).
 - Painel lateral (`variant="column"`) inalterado, exceto o novo botão "expandir".
@@ -167,6 +185,7 @@ Adicionar bloco para a página dedicada (todas com acentuação correta, UTF-8).
 - Sem App-shell de rail fixo (Fase 2).
 
 ## Arquivos afetados
+
 - `src/routes/app.clientes.$id.tsx` — renderiza `CustomerDetailPage`, remove `max-w-3xl`.
 - `src/features/customers/pages/CustomerDetailPage.tsx` — **novo** shell da página.
 - `src/features/customers/components/detail/CustomerDetailHeader.tsx` — **novo**.
@@ -183,10 +202,12 @@ Adicionar bloco para a página dedicada (todas com acentuação correta, UTF-8).
 - `src/features/customers/i18n/pt-BR.ts` — novas strings.
 
 ## Verificação
+
 - `bun run build` (gate real — vite + tsc noEmit) deve passar.
 - `bunx eslint` nos arquivos tocados, sem erros.
 - `tsc --noEmit` filtrado aos arquivos tocados (o projeto tem erros pré-existentes não relacionados).
 - Validação visual **manual pelo usuário** — não abrir browser/preview automaticamente para validar.
 
 ## Consistência
+
 `max-w-7xl` casa com veículos/loja/catálogo/carrinho/produto (páginas operacionais ricas em conteúdo). O padrão faixa-de-stats + bento 12-col já foi aprovado no detalhe de veículos, garantindo coerência visual entre os detalhamentos da plataforma.

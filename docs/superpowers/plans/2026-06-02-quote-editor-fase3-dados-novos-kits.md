@@ -36,30 +36,66 @@
 
 ```ts
 // @/shared/types
-type ID = string; type Money = number; type ISO8601 = string;
-type PartCategory = /* enum em ./part-identification */ string;  // import type { PartCategory } from "...";
-interface IQuoteItem { id: ID; partId: ID; partSku: string; partName: string; quantity: number; unitPrice: Money; discount: Money; total: Money; }
-interface IPart { id: ID; sku: string; name: string; unitPrice: Money; storeId?: ID; /* …Fase 2 fields */ }
+type ID = string;
+type Money = number;
+type ISO8601 = string;
+type PartCategory = /* enum em ./part-identification */ string; // import type { PartCategory } from "...";
+interface IQuoteItem {
+  id: ID;
+  partId: ID;
+  partSku: string;
+  partName: string;
+  quantity: number;
+  unitPrice: Money;
+  discount: Money;
+  total: Money;
+}
+interface IPart {
+  id: ID;
+  sku: string;
+  name: string;
+  unitPrice: Money;
+  storeId?: ID; /* …Fase 2 fields */
+}
 // ICustomer union (B2B|B2C) — base tem: status, abcClass?, lastPurchaseAt?, address?, portal?: IPortalSettings, portalContract?: IPortalContract
-interface IPortalSettings { creditLimit?: Money; /* … */ }
-interface IPortalContract { discountPct?: number; categoryDiscounts?: Partial<Record<PartCategory, number>>; paymentTermsExtended?: string; creditLimit?: Money; }
+interface IPortalSettings {
+  creditLimit?: Money; /* … */
+}
+interface IPortalContract {
+  discountPct?: number;
+  categoryDiscounts?: Partial<Record<PartCategory, number>>;
+  paymentTermsExtended?: string;
+  creditLimit?: Money;
+}
 
 // @/features/quotes/utils/quoteItemOps
 function buildItemFromPart(part: IPart, quantity?: number): IQuoteItem;
-function addOrIncrementItem(items: IQuoteItem[], part: IPart, quantity?: number): { items: IQuoteItem[]; affectedId: ID };
+function addOrIncrementItem(
+  items: IQuoteItem[],
+  part: IPart,
+  quantity?: number,
+): { items: IQuoteItem[]; affectedId: ID };
 
 // @/features/quotes/hooks/usePartsIndex (Fase 2)
-function usePartsIndex(enabled?: boolean): { partsById: Map<ID, IPart>; allParts: IPart[]; isLoading: boolean };
+function usePartsIndex(enabled?: boolean): {
+  partsById: Map<ID, IPart>;
+  allParts: IPart[];
+  isLoading: boolean;
+};
 
 // @/features/quotes/types/editor
 type QuoteLayout = "twoCol" | "full" | "footerBar";
 type QuoteAddMode = "continuous" | "catalog" | "quick";
-interface IQuoteEditorPrefs { layout: QuoteLayout; addMode: QuoteAddMode; }
+interface IQuoteEditorPrefs {
+  layout: QuoteLayout;
+  addMode: QuoteAddMode;
+}
 ```
 
 ## Estrutura de arquivos (Fase 3)
 
 **Grupo A — Kits**
+
 - Create `src/shared/types/service-kit.ts` — `IServiceKit`.
 - Modify `src/shared/types/index.ts` — re-export.
 - Create `src/mocks/data/seedServiceKits.ts` — seed estático.
@@ -76,12 +112,14 @@ interface IQuoteEditorPrefs { layout: QuoteLayout; addMode: QuoteAddMode; }
 - Modify `src/features/quotes/components/new/QuoteEditor.tsx` — `handleAddKit` + render `KitPicker`.
 
 **Grupo B — Enriquecimento financeiro**
+
 - Modify `src/shared/types/customer.ts` — `overdueTitlesCount?` em `ICustomerBase`.
 - Modify `src/mocks/generators/customer.ts` — popular `overdueTitlesCount`.
 - Create `src/features/quotes/utils/customerFinance.ts` — `customerFinanceSummary`.
 - Modify `src/features/quotes/components/new/customer/CustomerChip.tsx` — bloco financeiro.
 
 **Grupo C — Aceleradores**
+
 - Modify `src/features/quotes/types/editor.ts` — `QuoteDensity` + `density` em prefs + options.
 - Modify `src/features/quotes/hooks/useQuoteEditorPrefs.ts` — `setDensity` + sanitização.
 - Modify `src/features/quotes/components/new/layout/QuoteActionBar.tsx` — toggle de densidade.
@@ -95,6 +133,7 @@ interface IQuoteEditorPrefs { layout: QuoteLayout; addMode: QuoteAddMode; }
 ## Task 1: Tipo `IServiceKit`
 
 **Files:**
+
 - Create: `src/shared/types/service-kit.ts`
 - Modify: `src/shared/types/index.ts`
 
@@ -143,6 +182,7 @@ bunx prettier --check src/shared/types/service-kit.ts
 bunx eslint src/shared/types/service-kit.ts
 bunx tsc --noEmit 2>&1 | grep -iE "shared/types/service-kit|shared/types/index"
 ```
+
 Expected: prettier/eslint limpos; grep do tsc **vazio**.
 
 - [ ] **Step 4: Commit**
@@ -157,6 +197,7 @@ git commit -m "feat(types): add IServiceKit model for revision kits"
 ## Task 2: Seed + mock API de kits
 
 **Files:**
+
 - Create: `src/mocks/data/seedServiceKits.ts`
 - Create: `src/mocks/api/serviceKits.ts`
 - Modify: `src/mocks/api/index.ts`
@@ -248,6 +289,7 @@ export const serviceKitsApi = {
   },
 };
 ```
+
 > Se `runApi` exigir uma assinatura diferente (confira no utils real), adapte para a forma usada por `recommendationsApi`/`segmentsApi`. O importante: `list` é assíncrono e respeita `storeId`.
 
 - [ ] **Step 4: Exporte em `src/mocks/api/index.ts`**
@@ -267,15 +309,29 @@ import { serviceKitsApi } from "@/mocks/api/serviceKits";
 import { SEED_SERVICE_KITS } from "@/mocks/data/seedServiceKits";
 
 let pass = true;
-function assert(c: boolean, m: string) { if (!c) { pass = false; console.error("FAIL:", m); } }
+function assert(c: boolean, m: string) {
+  if (!c) {
+    pass = false;
+    console.error("FAIL:", m);
+  }
+}
 
 const all = await serviceKitsApi.list();
-assert(Array.isArray(all) && all.length === SEED_SERVICE_KITS.length, "returns all kits when no filter");
-assert(all.every((k) => k.items.length > 0), "every kit has at least one item");
+assert(
+  Array.isArray(all) && all.length === SEED_SERVICE_KITS.length,
+  "returns all kits when no filter",
+);
+assert(
+  all.every((k) => k.items.length > 0),
+  "every kit has at least one item",
+);
 
 const storeId = SEED_SERVICE_KITS[0].storeId;
 const scoped = await serviceKitsApi.list({ storeId });
-assert(scoped.every((k) => k.storeId === storeId), "filters by storeId");
+assert(
+  scoped.every((k) => k.storeId === storeId),
+  "filters by storeId",
+);
 
 const none = await serviceKitsApi.list({ storeId: "store-inexistente" });
 assert(none.length === 0, "unknown store → empty");
@@ -294,6 +350,7 @@ bunx prettier --check src/mocks/data/seedServiceKits.ts src/mocks/api/serviceKit
 bunx eslint src/mocks/data/seedServiceKits.ts src/mocks/api/serviceKits.ts src/mocks/api/index.ts
 bunx tsc --noEmit 2>&1 | grep -iE "mocks/(api|data)/(serviceKits|seedServiceKits)|mocks/api/index"
 ```
+
 Expected: limpos; grep tsc **vazio**.
 
 - [ ] **Step 7: Commit**
@@ -308,6 +365,7 @@ git commit -m "feat(mocks): seed revision kits and serviceKitsApi.list"
 ## Task 3: Provider de kits (contract → impl → factory → hook)
 
 **Files:**
+
 - Create: `src/providers/data/contracts/serviceKits.ts`
 - Modify: `src/providers/data/contracts/index.ts`
 - Create: `src/providers/data/impl/mock/serviceKits.ts`
@@ -352,6 +410,7 @@ export const mockServiceKitsProvider: IServiceKitsProvider = {
   list: (params) => serviceKitsApi.list(params),
 };
 ```
+
 > Confirme que `serviceKitsApi` é re-exportado por `@/mocks` (Task 2 Step 4 adicionou ao `src/mocks/api/index.ts`; verifique que `src/mocks/index.ts` reexporta o barrel de api — leia-o; se ele reexporta `./api`, está coberto).
 
 - [ ] **Step 4: Supabase stub — `src/providers/data/impl/supabase/serviceKits.ts`**
@@ -396,6 +455,7 @@ bunx prettier --check src/providers/data/contracts/serviceKits.ts src/providers/
 bunx eslint src/providers/data/contracts/serviceKits.ts src/providers/data/contracts/index.ts src/providers/data/impl/mock/serviceKits.ts src/providers/data/impl/supabase/serviceKits.ts src/providers/data/factory.ts src/providers/data/hooks/useServiceKitsProvider.ts
 bunx tsc --noEmit 2>&1 | grep -iE "providers/data"
 ```
+
 Expected: limpos; grep tsc **vazio** (a chave `serviceKits` no `IDataProviders` agora está satisfeita em ambos os bundles — se faltar em um, o tsc acusa aqui).
 
 - [ ] **Step 8: Commit**
@@ -410,6 +470,7 @@ git commit -m "feat(providers): add read-only serviceKits provider"
 ## Task 4: Expansão de kit em itens (`expandKitToItems`)
 
 **Files:**
+
 - Create: `src/features/quotes/utils/kitExpansion.ts`
 - Test (descartável): `scripts/_check_kit_expansion.ts`
 
@@ -454,19 +515,42 @@ import type { IPart, IServiceKit } from "@/shared/types";
 import { expandKitToItems } from "@/features/quotes/utils/kitExpansion";
 
 let pass = true;
-function assert(c: boolean, m: string) { if (!c) { pass = false; console.error("FAIL:", m); } }
+function assert(c: boolean, m: string) {
+  if (!c) {
+    pass = false;
+    console.error("FAIL:", m);
+  }
+}
 
 function part(id: string): IPart {
   return {
-    id, sku: id.toUpperCase(), name: `Peça ${id}`, oemCodes: [], equivalentPartIds: [],
-    applications: [], brand: "X", supplier: "S", unitCost: 10, unitPrice: 20, marginPercent: 0.5,
-    stockAvailable: 5, stockMinimum: 1, division: "parts", active: true,
-    createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z",
+    id,
+    sku: id.toUpperCase(),
+    name: `Peça ${id}`,
+    oemCodes: [],
+    equivalentPartIds: [],
+    applications: [],
+    brand: "X",
+    supplier: "S",
+    unitCost: 10,
+    unitPrice: 20,
+    marginPercent: 0.5,
+    stockAvailable: 5,
+    stockMinimum: 1,
+    division: "parts",
+    active: true,
+    createdAt: "2026-01-01T00:00:00Z",
+    updatedAt: "2026-01-01T00:00:00Z",
   };
 }
-const partsById = new Map<string, IPart>([["p1", part("p1")], ["p2", part("p2")]]);
+const partsById = new Map<string, IPart>([
+  ["p1", part("p1")],
+  ["p2", part("p2")],
+]);
 const kit: IServiceKit = {
-  id: "k1", storeId: "s1", name: "Kit",
+  id: "k1",
+  storeId: "s1",
+  name: "Kit",
   items: [
     { partId: "p1", quantity: 2 },
     { partId: "p2", quantity: 1 },
@@ -496,6 +580,7 @@ bunx prettier --check src/features/quotes/utils/kitExpansion.ts
 bunx eslint src/features/quotes/utils/kitExpansion.ts
 bunx tsc --noEmit 2>&1 | grep -iE "features/quotes/utils/kitExpansion"
 ```
+
 Expected: limpos; grep vazio.
 
 - [ ] **Step 4: Commit**
@@ -510,6 +595,7 @@ git commit -m "feat(quotes): add expandKitToItems with graceful missing-part han
 ## Task 5: `KitPicker` + fiação no editor
 
 **Files:**
+
 - Create: `src/features/quotes/components/new/items/KitPicker.tsx`
 - Modify: `src/features/quotes/components/new/QuoteEditor.tsx`
 
@@ -584,57 +670,65 @@ export function KitPicker({ kits, onAddKit }: IKitPickerProps) {
 READ o arquivo. Então:
 
 (a) Imports — após os imports de hooks/utils de quotes, adicione:
+
 ```tsx
 import { useServiceKitsProvider } from "@/providers/data/hooks/useServiceKitsProvider";
 import { expandKitToItems } from "../../utils/kitExpansion";
 import { KitPicker } from "./items/KitPicker";
 ```
+
 E garanta que `IServiceKit` esteja no import de tipos `@/shared/types` (adicione se faltar).
 
 (b) Dados — perto de `const { partsById, allParts } = usePartsIndex();`, adicione a query de kits:
+
 ```tsx
-  const serviceKitsProvider = useServiceKitsProvider();
-  const kitsQuery = useQuery({
-    queryKey: ["service-kits", storeId] as const,
-    queryFn: () => serviceKitsProvider.list({ storeId }),
-    staleTime: 60_000,
-  });
-  const kits = kitsQuery.data ?? [];
+const serviceKitsProvider = useServiceKitsProvider();
+const kitsQuery = useQuery({
+  queryKey: ["service-kits", storeId] as const,
+  queryFn: () => serviceKitsProvider.list({ storeId }),
+  staleTime: 60_000,
+});
+const kits = kitsQuery.data ?? [];
 ```
+
 (`useQuery` já está importado; `storeId` já existe na função.)
 
 (c) Handler — após `handleSwapEquivalent`, adicione:
+
 ```tsx
-  const handleAddKit = (kit: IServiceKit) => {
-    const { resolved, missing } = expandKitToItems(kit, partsById);
-    if (resolved.length === 0) {
-      toast.error(`Nenhuma peça do kit "${kit.name}" está disponível no catálogo.`);
-      return;
-    }
-    let next = items;
-    let lastId: ID | null = null;
-    for (const { part, quantity } of resolved) {
-      const result = addOrIncrementItem(next, part, quantity);
-      next = result.items;
-      lastId = result.affectedId;
-    }
-    setItems(next);
-    setHighlightId(lastId);
-    toast.success(
-      missing > 0
-        ? `Kit "${kit.name}" inserido (${resolved.length} peças; ${missing} indisponível${missing > 1 ? "is" : ""}).`
-        : `Kit "${kit.name}" inserido (${resolved.length} peças).`,
-    );
-  };
+const handleAddKit = (kit: IServiceKit) => {
+  const { resolved, missing } = expandKitToItems(kit, partsById);
+  if (resolved.length === 0) {
+    toast.error(`Nenhuma peça do kit "${kit.name}" está disponível no catálogo.`);
+    return;
+  }
+  let next = items;
+  let lastId: ID | null = null;
+  for (const { part, quantity } of resolved) {
+    const result = addOrIncrementItem(next, part, quantity);
+    next = result.items;
+    lastId = result.affectedId;
+  }
+  setItems(next);
+  setHighlightId(lastId);
+  toast.success(
+    missing > 0
+      ? `Kit "${kit.name}" inserido (${resolved.length} peças; ${missing} indisponível${missing > 1 ? "is" : ""}).`
+      : `Kit "${kit.name}" inserido (${resolved.length} peças).`,
+  );
+};
 ```
+
 (`toast` já é importado de sonner; `addOrIncrementItem` já está importado.)
 
 (d) Render — na seção "Itens", coloque o `KitPicker` ao lado do `ItemAdder`. Encontre o bloco que renderiza `<ItemAdder ... />` dentro do Card de Itens e adicione, logo acima dele, uma barra de ações:
+
 ```tsx
-            <div className="mb-2 flex items-center justify-end">
-              <KitPicker kits={kits} onAddKit={handleAddKit} />
-            </div>
+<div className="mb-2 flex items-center justify-end">
+  <KitPicker kits={kits} onAddKit={handleAddKit} />
+</div>
 ```
+
 (Inserir imediatamente antes de `<ItemAdder ... />`.)
 
 - [ ] **Step 3: Validar**
@@ -644,6 +738,7 @@ bunx prettier --check src/features/quotes/components/new/items/KitPicker.tsx src
 bunx eslint src/features/quotes/components/new/items/KitPicker.tsx src/features/quotes/components/new/QuoteEditor.tsx
 bunx tsc --noEmit 2>&1 | grep -iE "features/quotes/components/new/(items/KitPicker|QuoteEditor)"
 ```
+
 Expected: limpos; grep vazio.
 
 - [ ] **Step 4: Commit**
@@ -658,6 +753,7 @@ git commit -m "feat(quotes): insert a whole revision kit at once via KitPicker"
 ## Task 6: Campo de mock `overdueTitlesCount`
 
 **Files:**
+
 - Modify: `src/shared/types/customer.ts`
 - Modify: `src/mocks/generators/customer.ts`
 
@@ -688,9 +784,11 @@ function pickOverdueTitlesCount(ctx: ISeededContext): number | undefined {
   return 1 + Math.floor(ctx.rng() * 4); // 1..4
 }
 ```
+
 > Se `ISeededContext` NÃO expõe `rng()` mas sim outro método (ex.: `ctx.float()`, `ctx.int(min,max)`), adapte o helper para a API real — leia `src/mocks/generators/utils.ts` e use o mesmo método que os geradores vizinhos usam. NÃO use `Math.random()` (quebra o determinismo do seed).
 
 No objeto retornado pelo gerador B2B e pelo B2C, adicione a linha:
+
 ```ts
     overdueTitlesCount: pickOverdueTitlesCount(ctx),
 ```
@@ -702,6 +800,7 @@ bunx prettier --check src/shared/types/customer.ts src/mocks/generators/customer
 bunx eslint src/shared/types/customer.ts src/mocks/generators/customer.ts
 bunx tsc --noEmit 2>&1 | grep -iE "shared/types/customer|mocks/generators/customer"
 ```
+
 Expected: limpos; grep vazio.
 
 - [ ] **Step 4: Commit**
@@ -716,6 +815,7 @@ git commit -m "feat(mocks): add demo overdueTitlesCount to customers"
 ## Task 7: Resumo financeiro do cliente (`customerFinance.ts`)
 
 **Files:**
+
 - Create: `src/features/quotes/utils/customerFinance.ts`
 - Test (descartável): `scripts/_check_customer_finance.ts`
 
@@ -774,23 +874,65 @@ import type { ICustomer } from "@/shared/types";
 import { customerFinanceSummary } from "@/features/quotes/utils/customerFinance";
 
 let pass = true;
-function assert(c: boolean, m: string) { if (!c) { pass = false; console.error("FAIL:", m); } }
+function assert(c: boolean, m: string) {
+  if (!c) {
+    pass = false;
+    console.error("FAIL:", m);
+  }
+}
 
 function base(over: Partial<ICustomer>): ICustomer {
   return {
-    id: "c1", storeId: "s1", type: "B2B", cnpj: "1", razaoSocial: "R", nomeFantasia: "N",
-    contactName: "C", phone: "1", sellerId: "v1", status: "ativo", tags: [], notes: [],
+    id: "c1",
+    storeId: "s1",
+    type: "B2B",
+    cnpj: "1",
+    razaoSocial: "R",
+    nomeFantasia: "N",
+    contactName: "C",
+    phone: "1",
+    sellerId: "v1",
+    status: "ativo",
+    tags: [],
+    notes: [],
     createdAt: "2026-01-01T00:00:00Z",
     ...over,
   } as ICustomer;
 }
 
 assert(customerFinanceSummary(base({})).hasAny === false, "no data → hasAny false");
-assert(customerFinanceSummary(base({ overdueTitlesCount: 0 })).overdueTitlesCount === undefined, "0 overdue → undefined");
-assert(customerFinanceSummary(base({ overdueTitlesCount: 3 })).overdueTitlesCount === 3, "3 overdue surfaced");
-const withContract = customerFinanceSummary(base({ portalContract: { discountPct: 0.1, creditLimit: 5000 } }));
-assert(withContract.creditLimit === 5000 && withContract.contractDiscountPct === 0.1 && withContract.hasAny, "contract fields surfaced");
-const portalCredit = customerFinanceSummary(base({ portal: { customerId: "c1", enabled: true, canViewOrderHistory: false, canCreateQuote: false, canApproveQuote: false, canSeePriceTable: false, canDownloadNF: false, canSeeCreditLimit: true, creditLimit: 800 } }));
+assert(
+  customerFinanceSummary(base({ overdueTitlesCount: 0 })).overdueTitlesCount === undefined,
+  "0 overdue → undefined",
+);
+assert(
+  customerFinanceSummary(base({ overdueTitlesCount: 3 })).overdueTitlesCount === 3,
+  "3 overdue surfaced",
+);
+const withContract = customerFinanceSummary(
+  base({ portalContract: { discountPct: 0.1, creditLimit: 5000 } }),
+);
+assert(
+  withContract.creditLimit === 5000 &&
+    withContract.contractDiscountPct === 0.1 &&
+    withContract.hasAny,
+  "contract fields surfaced",
+);
+const portalCredit = customerFinanceSummary(
+  base({
+    portal: {
+      customerId: "c1",
+      enabled: true,
+      canViewOrderHistory: false,
+      canCreateQuote: false,
+      canApproveQuote: false,
+      canSeePriceTable: false,
+      canDownloadNF: false,
+      canSeeCreditLimit: true,
+      creditLimit: 800,
+    },
+  }),
+);
 assert(portalCredit.creditLimit === 800, "falls back to portal.creditLimit");
 
 console.log(pass ? "ALL PASS" : "SOME FAILED");
@@ -807,6 +949,7 @@ bunx prettier --check src/features/quotes/utils/customerFinance.ts
 bunx eslint src/features/quotes/utils/customerFinance.ts
 bunx tsc --noEmit 2>&1 | grep -iE "features/quotes/utils/customerFinance"
 ```
+
 Expected: limpos; grep vazio.
 
 - [ ] **Step 4: Commit**
@@ -821,53 +964,63 @@ git commit -m "feat(quotes): add customerFinanceSummary for graceful financial d
 ## Task 8: Bloco financeiro no `CustomerChip`
 
 **Files:**
+
 - Modify: `src/features/quotes/components/new/customer/CustomerChip.tsx`
 
 - [ ] **Step 1: Adicione o resumo financeiro ao chip**
 
 READ o arquivo (entregue na Fase 2). Adicione o import:
+
 ```tsx
 import { customerFinanceSummary } from "../../../utils/customerFinance";
 ```
+
 Logo após `const lastPurchase = formatLastPurchase(customer.lastPurchaseAt);`, adicione:
+
 ```tsx
-  const finance = customerFinanceSummary(customer);
+const finance = customerFinanceSummary(customer);
 ```
+
 E um formatador de moeda no topo do arquivo (junto ao `dateFormatter`):
+
 ```tsx
 const moneyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 ```
+
 Dentro do bloco de detalhes do cliente (na coluna `min-w-0 space-y-1.5`), **após** o parágrafo de "Última compra", insira o bloco financeiro (renderiza só quando há algo):
+
 ```tsx
-          {finance.hasAny && (
-            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-              {finance.creditLimit !== undefined && (
-                <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                  <Icon icon="mdi:credit-card-outline" size={11} className="mr-1 inline" />
-                  Limite {moneyFormatter.format(finance.creditLimit)}
-                </span>
-              )}
-              {finance.overdueTitlesCount !== undefined && (
-                <span className="rounded border border-rose-500/30 bg-rose-500/10 px-1.5 py-0.5 text-[10px] text-rose-700 dark:text-rose-300">
-                  <Icon icon="mdi:alert-circle-outline" size={11} className="mr-1 inline" />
-                  {finance.overdueTitlesCount} título{finance.overdueTitlesCount > 1 ? "s" : ""} vencido
-                  {finance.overdueTitlesCount > 1 ? "s" : ""}
-                </span>
-              )}
-              {finance.contractDiscountPct !== undefined && (
-                <span className="rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">
-                  <Icon icon="mdi:file-document-outline" size={11} className="mr-1 inline" />
-                  Contrato −{(finance.contractDiscountPct * 100).toFixed(0)}%
-                </span>
-              )}
-              {finance.contractPaymentTerms && (
-                <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                  <Icon icon="mdi:calendar-clock-outline" size={11} className="mr-1 inline" />
-                  {finance.contractPaymentTerms}
-                </span>
-              )}
-            </div>
-          )}
+{
+  finance.hasAny && (
+    <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+      {finance.creditLimit !== undefined && (
+        <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+          <Icon icon="mdi:credit-card-outline" size={11} className="mr-1 inline" />
+          Limite {moneyFormatter.format(finance.creditLimit)}
+        </span>
+      )}
+      {finance.overdueTitlesCount !== undefined && (
+        <span className="rounded border border-rose-500/30 bg-rose-500/10 px-1.5 py-0.5 text-[10px] text-rose-700 dark:text-rose-300">
+          <Icon icon="mdi:alert-circle-outline" size={11} className="mr-1 inline" />
+          {finance.overdueTitlesCount} título{finance.overdueTitlesCount > 1 ? "s" : ""} vencido
+          {finance.overdueTitlesCount > 1 ? "s" : ""}
+        </span>
+      )}
+      {finance.contractDiscountPct !== undefined && (
+        <span className="rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">
+          <Icon icon="mdi:file-document-outline" size={11} className="mr-1 inline" />
+          Contrato −{(finance.contractDiscountPct * 100).toFixed(0)}%
+        </span>
+      )}
+      {finance.contractPaymentTerms && (
+        <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+          <Icon icon="mdi:calendar-clock-outline" size={11} className="mr-1 inline" />
+          {finance.contractPaymentTerms}
+        </span>
+      )}
+    </div>
+  );
+}
 ```
 
 - [ ] **Step 2: Validar**
@@ -877,6 +1030,7 @@ bunx prettier --check src/features/quotes/components/new/customer/CustomerChip.t
 bunx eslint src/features/quotes/components/new/customer/CustomerChip.tsx
 bunx tsc --noEmit 2>&1 | grep -iE "customer/CustomerChip"
 ```
+
 Expected: limpos; grep vazio.
 
 - [ ] **Step 3: Commit**
@@ -891,6 +1045,7 @@ git commit -m "feat(quotes): show credit limit, overdue titles and contract on c
 ## Task 9: Densidade da tabela (prefs + toggle + linhas)
 
 **Files:**
+
 - Modify: `src/features/quotes/types/editor.ts`
 - Modify: `src/features/quotes/hooks/useQuoteEditorPrefs.ts`
 - Modify: `src/features/quotes/components/new/layout/QuoteActionBar.tsx`
@@ -900,11 +1055,14 @@ git commit -m "feat(quotes): show credit limit, overdue titles and contract on c
 - [ ] **Step 1: Tipos — `editor.ts`**
 
 Adicione o tipo e estenda os prefs:
+
 ```ts
 /** Table row density of the quote editor. */
 export type QuoteDensity = "comfortable" | "compact";
 ```
+
 Em `IQuoteEditorPrefs` adicione `density: QuoteDensity;`. Em `DEFAULT_QUOTE_EDITOR_PREFS` adicione `density: "comfortable",`. E adicione as opções:
+
 ```ts
 export const QUOTE_DENSITY_OPTIONS: ReadonlyArray<{
   value: QuoteDensity;
@@ -919,56 +1077,66 @@ export const QUOTE_DENSITY_OPTIONS: ReadonlyArray<{
 - [ ] **Step 2: Hook — `useQuoteEditorPrefs.ts`**
 
 Importe `QuoteDensity` no import de tipos. Adicione a whitelist:
+
 ```ts
 const DENSITIES: QuoteDensity[] = ["comfortable", "compact"];
 ```
+
 No `readPrefs`, adicione a sanitização de `density` (espelhando `layout`/`addMode`):
+
 ```ts
       density: DENSITIES.includes(parsed.density as QuoteDensity)
         ? (parsed.density as QuoteDensity)
         : DEFAULT_QUOTE_EDITOR_PREFS.density,
 ```
+
 Em `IUseQuoteEditorPrefs` adicione `setDensity: (density: QuoteDensity) => void;`. Adicione o setter:
+
 ```ts
-  const setDensity = useCallback(
-    (density: QuoteDensity) => persist({ ...readPrefs(), density }),
-    [persist],
-  );
+const setDensity = useCallback(
+  (density: QuoteDensity) => persist({ ...readPrefs(), density }),
+  [persist],
+);
 ```
+
 E inclua `setDensity` no objeto retornado.
 
 - [ ] **Step 3: Toggle na `QuoteActionBar`**
 
 Adicione props `density: QuoteDensity` e `onDensityChange: (d: QuoteDensity) => void` à `IQuoteActionBarProps` (importe `QuoteDensity` e `QUOTE_DENSITY_OPTIONS` de `../../../types/editor`). Renderize um toggle compacto ao lado do `LayoutSwitcher` (botão que alterna entre os dois valores):
+
 ```tsx
-        <button
-          type="button"
-          onClick={() =>
-            onDensityChange(density === "comfortable" ? "compact" : "comfortable")
-          }
-          className="inline-flex h-8 items-center gap-1 rounded-md border border-border px-2 text-xs text-muted-foreground hover:text-foreground"
-          aria-label="Alternar densidade da tabela"
-          title={density === "comfortable" ? "Densidade: conforto" : "Densidade: compacto"}
-        >
-          <Icon
-            icon={density === "comfortable" ? "mdi:format-line-spacing" : "mdi:view-headline"}
-            size={16}
-          />
-        </button>
+<button
+  type="button"
+  onClick={() => onDensityChange(density === "comfortable" ? "compact" : "comfortable")}
+  className="inline-flex h-8 items-center gap-1 rounded-md border border-border px-2 text-xs text-muted-foreground hover:text-foreground"
+  aria-label="Alternar densidade da tabela"
+  title={density === "comfortable" ? "Densidade: conforto" : "Densidade: compacto"}
+>
+  <Icon
+    icon={density === "comfortable" ? "mdi:format-line-spacing" : "mdi:view-headline"}
+    size={16}
+  />
+</button>
 ```
+
 (Coloque imediatamente antes do `<LayoutSwitcher ... />`.)
 
 - [ ] **Step 4: Linhas densas na `QuoteItemsTable`**
 
 Adicione a prop `density: QuoteDensity` à `IQuoteItemsTableProps` (importe `QuoteDensity` de `../../../types/editor`). Derive uma classe de padding e aplique nas células da linha de item (a `<td>` principal e as de inputs). No topo do componente:
+
 ```tsx
-  const cellPadY = density === "compact" ? "py-1" : "py-2";
+const cellPadY = density === "compact" ? "py-1" : "py-2";
 ```
-Troque os `className="px-3 py-2 ..."` das `<td>` da **linha de item** (não do header/footer) por `className={\`px-3 ${cellPadY} ...\`}`. Para os inputs, quando compacto use `h-7` no lugar de `h-8`:
+
+Troque os `className="px-3 py-2 ..."` das `<td>` da **linha de item** (não do header/footer) por `className={\`px-3 ${cellPadY} ...\`}`. Para os inputs, quando compacto use `h-7`no lugar de`h-8`:
+
 ```tsx
-  const inputH = density === "compact" ? "h-7" : "h-8";
+const inputH = density === "compact" ? "h-7" : "h-8";
 ```
-e aplique `className={\`${inputH} text-right tabular-nums\`}` nos três `<Input>`.
+
+e aplique `className={\`${inputH} text-right tabular-nums\`}`nos três`<Input>`.
 
 - [ ] **Step 5: Fiação no `QuoteEditor`**
 
@@ -981,6 +1149,7 @@ bunx prettier --check src/features/quotes/types/editor.ts src/features/quotes/ho
 bunx eslint src/features/quotes/types/editor.ts src/features/quotes/hooks/useQuoteEditorPrefs.ts src/features/quotes/components/new/layout/QuoteActionBar.tsx src/features/quotes/components/new/items/QuoteItemsTable.tsx src/features/quotes/components/new/QuoteEditor.tsx
 bunx tsc --noEmit 2>&1 | grep -iE "features/quotes/(types/editor|hooks/useQuoteEditorPrefs|components/new)"
 ```
+
 Expected: limpos; grep vazio.
 
 - [ ] **Step 7: Commit**
@@ -995,6 +1164,7 @@ git commit -m "feat(quotes): table density preference (comfortable/compact)"
 ## Task 10: Atalhos de teclado no `ContinuousAdder`
 
 **Files:**
+
 - Modify: `src/features/quotes/components/new/items/ContinuousAdder.tsx`
 
 Comportamento: `↑/↓` navegam os resultados; `Enter` adiciona o resultado ativo; `Esc` limpa a busca. Foco automático global: `/` (quando o foco não está num input/textarea) foca a busca. Mantém a semântica acessível (resultados como listbox simples — sem regressão visual).
@@ -1150,6 +1320,7 @@ bunx prettier --check src/features/quotes/components/new/items/ContinuousAdder.t
 bunx eslint src/features/quotes/components/new/items/ContinuousAdder.tsx
 bunx tsc --noEmit 2>&1 | grep -iE "items/ContinuousAdder"
 ```
+
 Expected: limpos; grep vazio.
 
 - [ ] **Step 3: Commit**
@@ -1164,6 +1335,7 @@ git commit -m "feat(quotes): keyboard navigation in continuous item adder"
 ## Task 11: Auto-save de rascunho (`useQuoteDraft`)
 
 **Files:**
+
 - Create: `src/features/quotes/hooks/useQuoteDraft.ts`
 - Test (descartável): `scripts/_check_quote_draft.ts`
 
@@ -1266,11 +1438,27 @@ export function useQuoteDraft(input: QuoteDraftInput, enabled: boolean): IUseQuo
 import type { IQuoteDraft } from "@/features/quotes/hooks/useQuoteDraft";
 
 let pass = true;
-function assert(c: boolean, m: string) { if (!c) { pass = false; console.error("FAIL:", m); } }
+function assert(c: boolean, m: string) {
+  if (!c) {
+    pass = false;
+    console.error("FAIL:", m);
+  }
+}
 
 const draft: IQuoteDraft = {
   customerId: "c1",
-  items: [{ id: "i1", partId: "p1", partSku: "S", partName: "N", quantity: 2, unitPrice: 10, discount: 0, total: 20 }],
+  items: [
+    {
+      id: "i1",
+      partId: "p1",
+      partSku: "S",
+      partName: "N",
+      quantity: 2,
+      unitPrice: 10,
+      discount: 0,
+      total: 20,
+    },
+  ],
   discountInput: "5",
   shipping: 0,
   paymentMethod: "pix",
@@ -1297,6 +1485,7 @@ bunx prettier --check src/features/quotes/hooks/useQuoteDraft.ts
 bunx eslint src/features/quotes/hooks/useQuoteDraft.ts
 bunx tsc --noEmit 2>&1 | grep -iE "hooks/useQuoteDraft"
 ```
+
 Expected: limpos; grep vazio.
 
 - [ ] **Step 4: Commit**
@@ -1311,6 +1500,7 @@ git commit -m "feat(quotes): add useQuoteDraft localStorage auto-save hook"
 ## Task 12: Fiação do auto-save no `QuoteEditor`
 
 **Files:**
+
 - Modify: `src/features/quotes/components/new/QuoteEditor.tsx`
 
 Persiste o rascunho enquanto há cliente OU itens; oferece restaurar na montagem se houver rascunho; limpa após salvar com sucesso. Mostra "salvo às hh:mm" perto do resumo.
@@ -1318,92 +1508,104 @@ Persiste o rascunho enquanto há cliente OU itens; oferece restaurar na montagem
 - [ ] **Step 1: Importe e instancie o hook**
 
 Import:
+
 ```tsx
 import { useQuoteDraft } from "../../hooks/useQuoteDraft";
 ```
+
 Após os estados existentes (perto de `const [notes, setNotes] = useState("");`), monte o input do draft e o hook:
+
 ```tsx
-  const draftInput = useMemo(
-    () => ({
-      customerId: customer?.id,
-      items,
-      discountInput,
-      shipping,
-      paymentMethod,
-      paymentTerms,
-      notes,
-    }),
-    [customer?.id, items, discountInput, shipping, paymentMethod, paymentTerms, notes],
-  );
-  const draftEnabled = items.length > 0 || customer !== null;
-  const { savedAt, loadDraft, clearDraft } = useQuoteDraft(draftInput, draftEnabled);
-  const [draftOffer, setDraftOffer] = useState(() => loadDraft());
+const draftInput = useMemo(
+  () => ({
+    customerId: customer?.id,
+    items,
+    discountInput,
+    shipping,
+    paymentMethod,
+    paymentTerms,
+    notes,
+  }),
+  [customer?.id, items, discountInput, shipping, paymentMethod, paymentTerms, notes],
+);
+const draftEnabled = items.length > 0 || customer !== null;
+const { savedAt, loadDraft, clearDraft } = useQuoteDraft(draftInput, draftEnabled);
+const [draftOffer, setDraftOffer] = useState(() => loadDraft());
 ```
+
 (`useMemo`/`useState` já importados.)
 
 - [ ] **Step 2: Banner de restauração**
 
 Logo abaixo da `<QuoteActionBar .../>` (dentro do `classes.root`, antes do `classes.grid`), renderize o banner quando houver oferta e o editor ainda estiver vazio:
+
 ```tsx
-      {draftOffer && items.length === 0 && (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
-          <p className="text-xs text-foreground">
-            <Icon icon="mdi:history" size={14} className="mr-1 inline" />
-            Há um rascunho não salvo de{" "}
-            {new Date(draftOffer.savedAt).toLocaleString("pt-BR")}.
-          </p>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setItems(draftOffer.items);
-                setDiscountInput(draftOffer.discountInput);
-                setShipping(draftOffer.shipping);
-                setPaymentMethod(draftOffer.paymentMethod as QuotePaymentMethod);
-                setPaymentTerms(draftOffer.paymentTerms);
-                setNotes(draftOffer.notes);
-                setDraftOffer(null);
-                toast.success("Rascunho restaurado.");
-              }}
-            >
-              Restaurar
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                clearDraft();
-                setDraftOffer(null);
-              }}
-            >
-              Descartar
-            </Button>
-          </div>
-        </div>
-      )}
+{
+  draftOffer && items.length === 0 && (
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
+      <p className="text-xs text-foreground">
+        <Icon icon="mdi:history" size={14} className="mr-1 inline" />
+        Há um rascunho não salvo de {new Date(draftOffer.savedAt).toLocaleString("pt-BR")}.
+      </p>
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            setItems(draftOffer.items);
+            setDiscountInput(draftOffer.discountInput);
+            setShipping(draftOffer.shipping);
+            setPaymentMethod(draftOffer.paymentMethod as QuotePaymentMethod);
+            setPaymentTerms(draftOffer.paymentTerms);
+            setNotes(draftOffer.notes);
+            setDraftOffer(null);
+            toast.success("Rascunho restaurado.");
+          }}
+        >
+          Restaurar
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            clearDraft();
+            setDraftOffer(null);
+          }}
+        >
+          Descartar
+        </Button>
+      </div>
+    </div>
+  );
+}
 ```
+
 > Nota: o rascunho **não** restaura o cliente automaticamente (o objeto `ICustomer` não é serializado — só `customerId`). Restauramos itens e campos comerciais; o vendedor reseleciona o cliente se necessário. Mantém o escopo seguro e evita buscar o cliente por id aqui.
 
 - [ ] **Step 3: Limpe o rascunho ao salvar**
 
 Dentro de `handleSave`, no bloco de sucesso (logo após `toast.success(...)` e antes do `navigate`), adicione:
+
 ```tsx
-      clearDraft();
+clearDraft();
 ```
 
 - [ ] **Step 4: Indicador "salvo às hh:mm"**
 
 Na barra de ações ou perto do resumo, exiba o horário do último auto-save. Adicione na `QuoteActionBar`? Para manter o escopo, renderize um pequeno texto logo abaixo do banner/junto ao grid — insira antes do `<div className={classes.grid}>`:
+
 ```tsx
-      {savedAt && (
-        <p className="mb-2 text-right text-[11px] text-muted-foreground">
-          <Icon icon="mdi:content-save-check-outline" size={12} className="mr-1 inline" />
-          Rascunho salvo às {new Date(savedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-        </p>
-      )}
+{
+  savedAt && (
+    <p className="mb-2 text-right text-[11px] text-muted-foreground">
+      <Icon icon="mdi:content-save-check-outline" size={12} className="mr-1 inline" />
+      Rascunho salvo às{" "}
+      {new Date(savedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+    </p>
+  );
+}
 ```
 
 - [ ] **Step 5: Validar**
@@ -1413,6 +1615,7 @@ bunx prettier --check src/features/quotes/components/new/QuoteEditor.tsx
 bunx eslint src/features/quotes/components/new/QuoteEditor.tsx
 bunx tsc --noEmit 2>&1 | grep -iE "components/new/QuoteEditor"
 ```
+
 Expected: limpos; grep vazio.
 
 - [ ] **Step 6: Commit**
@@ -1433,6 +1636,7 @@ git commit -m "feat(quotes): wire draft auto-save with restore banner and saved 
 ```
 bunx tsc --noEmit 2>&1 | grep -iE "features/quotes|features/customers|shared/types/service-kit|shared/types/customer|providers/data|mocks/(api|data|generators)/(serviceKits|seedServiceKits|customer)|mocks/api/index|providers/data/contracts/index|providers/data/factory"
 ```
+
 Expected: **vazio**.
 
 - [ ] **Step 2: Lint de todos os arquivos da Fase 3**
@@ -1444,6 +1648,7 @@ Rode `bunx prettier --check` e `bunx eslint` na lista completa dos arquivos cria
 ```
 bun run build
 ```
+
 Expected: `✓ built` (só o aviso de chunk-size pré-existente).
 
 - [ ] **Step 4: Checklist de não-regressão (leitura de código + teste manual do usuário)**
@@ -1462,6 +1667,7 @@ Expected: `✓ built` (só o aviso de chunk-size pré-existente).
 ## Self-Review (preenchido)
 
 **1. Cobertura do spec (Fase 3 — "Enriquecimento dependente de dados novos" + kits + aceleradores):**
+
 - Limite de crédito (exibir quando presente) → Tasks 7/8. ✅
 - Título vencido / contas a receber (campo de mock `overdueTitlesCount?`, ocultar ausente) → Tasks 6/7/8. ✅
 - Tabela de preço do cliente (`portalContract` quando presente) → Tasks 7/8 (contrato −X% + termos). ✅

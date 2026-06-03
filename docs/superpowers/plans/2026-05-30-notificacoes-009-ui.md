@@ -56,16 +56,16 @@ src/features/manager-dashboard/components/ActiveAlertsList.tsx  # MODIFY — con
 ```css
 /* ── Severity scale (constant across all 4 themes; tonal treatment in components) ── */
 :root {
-  --gallo-sev-info: #2563EB;
-  --gallo-sev-success: #16A34A;
-  --gallo-sev-warning: #D97706;
-  --gallo-sev-critical: #DC2626;
+  --gallo-sev-info: #2563eb;
+  --gallo-sev-success: #16a34a;
+  --gallo-sev-warning: #d97706;
+  --gallo-sev-critical: #dc2626;
 }
 .dark {
-  --gallo-sev-info: #60A5FA;
-  --gallo-sev-success: #22C55E;
-  --gallo-sev-warning: #F59E0B;
-  --gallo-sev-critical: #F87171;
+  --gallo-sev-info: #60a5fa;
+  --gallo-sev-success: #22c55e;
+  --gallo-sev-warning: #f59e0b;
+  --gallo-sev-critical: #f87171;
 }
 @theme inline {
   --color-severity-info: var(--gallo-sev-info);
@@ -100,7 +100,10 @@ export function NotificationItem({ notification, onAction, onMarkRead, dense }: 
       )}
       tabIndex={0}
     >
-      <span className={cn("flex h-8 w-8 items-center justify-center rounded-lg", tone.bg)} aria-hidden>
+      <span
+        className={cn("flex h-8 w-8 items-center justify-center rounded-lg", tone.bg)}
+        aria-hidden
+      >
         <Icon icon={CATEGORY_ICON[notification.category]} className={tone.text} />
       </span>
       {/* title row: unread dot + title + relative time; body; actions */}
@@ -246,4 +249,7 @@ export function NotificationItem({ notification, onAction, onMarkRead, dense }: 
 - **Type consistency:** consumes PRD-008's `useNotifications`/`useUnreadCount`/`useNotificationPreferences`, `INotification`, `isChannelLocked`/`isCategoryFullyOptional` — all defined in the 008 plan. `useNotificationLayout` returns `'painel'|'lista'` consistently in 2.3.
 - **Isolation:** UI imports only `@/providers/notifications` barrel (ESLint from PRD-008). No foundation files modified here.
 - **Implementer note:** confirm the file-based route convention (`app/configuracoes/notificacoes.tsx` vs flat `app/configuracoes.notificacoes.tsx`) against existing routes before creating Task 3.2 / 2.3 files.
+
+```
+
 ```

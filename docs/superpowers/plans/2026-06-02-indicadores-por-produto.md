@@ -9,6 +9,7 @@
 **Tech Stack:** React + TypeScript (strict), TanStack Router (file-based) + TanStack Query, Tailwind v4 + shadcn/ui, Recharts, Provider Pattern (mock/supabase), Vite + Bun.
 
 > **Validação neste projeto:** não há test runner (CLAUDE.md). A validação de cada task usa:
+>
 > - `bun run build` → type-check (`tsc --noEmit`) + build de produção.
 > - `bun run lint` → ESLint (inclui `no-restricted-imports` da camada de providers).
 > - Para a engine pura (Fase 1), um script descartável rodado com `bun run <script>.ts` que faz asserções e é removido antes do commit.
@@ -19,52 +20,57 @@
 ## File Structure
 
 **Tipos & progresso compartilhado**
-- `src/shared/types/indicators.ts` *(novo)* — `IProductIndicator`, `IIndicatorProgress`, `ProductSelector`, unions.
-- `src/shared/types/index.ts` *(modificar)* — re-export dos tipos novos.
-- `src/shared/types/commercial.ts` *(modificar)* — campos aditivos `partCategory?`/`partSubcategory?` em `IOrderItem`.
-- `src/shared/progress/index.ts` *(novo)* — `statusFromRatio`, `computeWindowedTrend` (extraídos das metas).
-- `src/features/goals/engine/calculate.ts` *(modificar)* — passa a importar de `src/shared/progress`.
+
+- `src/shared/types/indicators.ts` _(novo)_ — `IProductIndicator`, `IIndicatorProgress`, `ProductSelector`, unions.
+- `src/shared/types/index.ts` _(modificar)_ — re-export dos tipos novos.
+- `src/shared/types/commercial.ts` _(modificar)_ — campos aditivos `partCategory?`/`partSubcategory?` em `IOrderItem`.
+- `src/shared/progress/index.ts` _(novo)_ — `statusFromRatio`, `computeWindowedTrend` (extraídos das metas).
+- `src/features/goals/engine/calculate.ts` _(modificar)_ — passa a importar de `src/shared/progress`.
 
 **Engine do indicador**
-- `src/features/indicators/engine/matcher.ts` *(novo)* — `buildItemMatcher(selector, partsMap)`.
-- `src/features/indicators/engine/calculate.ts` *(novo)* — `calculateIndicatorProgress(indicator, context)`.
+
+- `src/features/indicators/engine/matcher.ts` _(novo)_ — `buildItemMatcher(selector, partsMap)`.
+- `src/features/indicators/engine/calculate.ts` _(novo)_ — `calculateIndicatorProgress(indicator, context)`.
 
 **Provider & mocks**
-- `src/providers/data/contracts/indicators.ts` *(novo)* — `IIndicatorsProvider`, `IListIndicatorsParams`.
-- `src/providers/data/contracts/index.ts` *(modificar)* — registrar no barrel + `IDataProviders`.
-- `src/providers/data/index.ts` *(modificar)* — export do hook + tipos.
-- `src/providers/data/hooks/useIndicatorsProvider.ts` *(novo)*.
-- `src/providers/data/impl/mock/indicators.ts` *(novo)*.
-- `src/providers/data/impl/supabase/indicators.ts` *(novo, stub NotImplementedError)*.
-- `src/providers/data/factory.ts` *(modificar)* — registrar mock + supabase.
-- `src/mocks/api/indicators.ts` *(novo)* — `indicatorsApi`.
-- `src/mocks/api/index.ts` *(modificar)* — export `indicatorsApi`.
-- `src/mocks/generators/indicator.ts` *(novo)* — `generateIndicators`.
-- `src/mocks/generators/order.ts` *(modificar)* — carimbar `partCategory` no item (C1).
-- `src/mocks/generators/bootstrap.ts` *(modificar)* — gerar e incluir `indicators` no dataset.
-- `src/mocks/store/mutations.ts` *(modificar)* — `indicators` em `CollectionKey`/`CollectionMap`.
-- `src/mocks/store/selectors.ts` *(modificar)* — `selectAllIndicators`.
+
+- `src/providers/data/contracts/indicators.ts` _(novo)_ — `IIndicatorsProvider`, `IListIndicatorsParams`.
+- `src/providers/data/contracts/index.ts` _(modificar)_ — registrar no barrel + `IDataProviders`.
+- `src/providers/data/index.ts` _(modificar)_ — export do hook + tipos.
+- `src/providers/data/hooks/useIndicatorsProvider.ts` _(novo)_.
+- `src/providers/data/impl/mock/indicators.ts` _(novo)_.
+- `src/providers/data/impl/supabase/indicators.ts` _(novo, stub NotImplementedError)_.
+- `src/providers/data/factory.ts` _(modificar)_ — registrar mock + supabase.
+- `src/mocks/api/indicators.ts` _(novo)_ — `indicatorsApi`.
+- `src/mocks/api/index.ts` _(modificar)_ — export `indicatorsApi`.
+- `src/mocks/generators/indicator.ts` _(novo)_ — `generateIndicators`.
+- `src/mocks/generators/order.ts` _(modificar)_ — carimbar `partCategory` no item (C1).
+- `src/mocks/generators/bootstrap.ts` _(modificar)_ — gerar e incluir `indicators` no dataset.
+- `src/mocks/store/mutations.ts` _(modificar)_ — `indicators` em `CollectionKey`/`CollectionMap`.
+- `src/mocks/store/selectors.ts` _(modificar)_ — `selectAllIndicators`.
 
 **Feature hooks**
-- `src/features/indicators/hooks/useIndicatorProgress.ts` *(novo)*.
-- `src/features/indicators/hooks/useIndicators.ts` *(novo)* — `useIndicators`, `useStoreIndicators`.
-- `src/features/indicators/hooks/useIndicatorAutoStatusUpdate.ts` *(novo)*.
+
+- `src/features/indicators/hooks/useIndicatorProgress.ts` _(novo)_.
+- `src/features/indicators/hooks/useIndicators.ts` _(novo)_ — `useIndicators`, `useStoreIndicators`.
+- `src/features/indicators/hooks/useIndicatorAutoStatusUpdate.ts` _(novo)_.
 
 **UI**
-- `src/features/indicators/i18n/pt-BR.ts` *(novo)*.
-- `src/features/indicators/pages/IndicatorsPage.tsx` *(novo)* — dashboard.
-- `src/features/indicators/pages/NewIndicatorPage.tsx` *(novo)* — criação.
-- `src/features/indicators/pages/IndicatorDetailPage.tsx` *(novo)* — detalhe.
-- `src/features/indicators/components/ProductSelectorField.tsx` *(novo)* — seletor multimodal.
-- `src/features/indicators/components/ContributionRanking.tsx` *(novo)* — ranking de contribuição.
-- `src/features/indicators/components/IndicatorEvolutionChart.tsx` *(novo)* — gráfico evolutivo.
-- `src/features/indicators/components/IndicatorsWidget.tsx` *(novo)* — widget do painel.
-- `src/routes/app.gestao.indicadores.tsx` *(novo)* — layout Outlet.
-- `src/routes/app.gestao.indicadores.index.tsx` *(novo)*.
-- `src/routes/app.gestao.indicadores.novo.tsx` *(novo)*.
-- `src/routes/app.gestao.indicadores.$id.tsx` *(novo)*.
-- `src/features/shell/config/navigation.ts` *(modificar)* — item de menu "Indicadores".
-- `src/features/manager-dashboard/pages/ManagerDashboardPage.tsx` *(modificar)* — montar `IndicatorsWidget`.
+
+- `src/features/indicators/i18n/pt-BR.ts` _(novo)_.
+- `src/features/indicators/pages/IndicatorsPage.tsx` _(novo)_ — dashboard.
+- `src/features/indicators/pages/NewIndicatorPage.tsx` _(novo)_ — criação.
+- `src/features/indicators/pages/IndicatorDetailPage.tsx` _(novo)_ — detalhe.
+- `src/features/indicators/components/ProductSelectorField.tsx` _(novo)_ — seletor multimodal.
+- `src/features/indicators/components/ContributionRanking.tsx` _(novo)_ — ranking de contribuição.
+- `src/features/indicators/components/IndicatorEvolutionChart.tsx` _(novo)_ — gráfico evolutivo.
+- `src/features/indicators/components/IndicatorsWidget.tsx` _(novo)_ — widget do painel.
+- `src/routes/app.gestao.indicadores.tsx` _(novo)_ — layout Outlet.
+- `src/routes/app.gestao.indicadores.index.tsx` _(novo)_.
+- `src/routes/app.gestao.indicadores.novo.tsx` _(novo)_.
+- `src/routes/app.gestao.indicadores.$id.tsx` _(novo)_.
+- `src/features/shell/config/navigation.ts` _(modificar)_ — item de menu "Indicadores".
+- `src/features/manager-dashboard/pages/ManagerDashboardPage.tsx` _(modificar)_ — montar `IndicatorsWidget`.
 
 ---
 
@@ -73,6 +79,7 @@
 ### Task 1: Tipos do Indicador
 
 **Files:**
+
 - Create: `src/shared/types/indicators.ts`
 - Modify: `src/shared/types/index.ts`
 
@@ -212,6 +219,7 @@ git commit -m "feat(indicators): add product indicator domain types"
 ### Task 2: Denormalizar categoria no item de pedido (C1)
 
 **Files:**
+
 - Modify: `src/shared/types/commercial.ts:158-176` (`IOrderItem`)
 - Modify: `src/mocks/generators/order.ts` (`generateOrderItems`)
 
@@ -265,6 +273,7 @@ git commit -m "feat(indicators): denormalize part category onto order items"
 ### Task 3: Extrair helpers de progresso compartilhados
 
 **Files:**
+
 - Create: `src/shared/progress/index.ts`
 - Modify: `src/features/goals/engine/calculate.ts`
 
@@ -330,11 +339,11 @@ Em `src/features/goals/engine/calculate.ts`:
 3. Substituir a chamada `const trend = computeTrend(goal, context.orders, fromIso, toIso, now);` por:
 
 ```typescript
-  const trendSamples = context.orders
-    .filter((o) => matchesGoal(o, goal) && isPaid(o))
-    .map((o) => ({ ts: o.paidAt ?? o.createdAt, value: o.total }))
-    .filter((s) => s.ts >= fromIso && s.ts <= toIso);
-  const trend = computeWindowedTrend(trendSamples, fromIso, now);
+const trendSamples = context.orders
+  .filter((o) => matchesGoal(o, goal) && isPaid(o))
+  .map((o) => ({ ts: o.paidAt ?? o.createdAt, value: o.total }))
+  .filter((s) => s.ts >= fromIso && s.ts <= toIso);
+const trend = computeWindowedTrend(trendSamples, fromIso, now);
 ```
 
 (Mantém o comportamento idêntico: mesma soma de `order.total` por metade do período.)
@@ -356,6 +365,7 @@ git commit -m "refactor(progress): extract shared status/trend helpers from goal
 ### Task 4: Matcher de produto
 
 **Files:**
+
 - Create: `src/features/indicators/engine/matcher.ts`
 
 - [ ] **Step 1: Implementar o matcher**
@@ -408,6 +418,7 @@ git commit -m "feat(indicators): add product selector matcher"
 ### Task 5: Engine de cálculo do progresso do indicador
 
 **Files:**
+
 - Create: `src/features/indicators/engine/calculate.ts`
 
 - [ ] **Step 1: Implementar `calculateIndicatorProgress`**
@@ -510,9 +521,7 @@ export function calculateIndicatorProgress(
 
   const window = describePeriodWindow(indicator.period, now);
   const percentage =
-    indicator.targetValue > 0
-      ? Math.round((currentValue / indicator.targetValue) * 1000) / 10
-      : 0;
+    indicator.targetValue > 0 ? Math.round((currentValue / indicator.targetValue) * 1000) / 10 : 0;
   const projection = computeProjection(
     currentValue,
     window.daysPassed,
@@ -565,6 +574,7 @@ git commit -m "feat(indicators): add runtime progress calculation engine"
 ### Task 6: Validar a engine com script descartável
 
 **Files:**
+
 - Create (temporário): `scripts/_validate-indicators.ts`
 
 - [ ] **Step 1: Escrever o script de asserção**
@@ -625,15 +635,51 @@ const orders: IOrder[] = [
     id: "o1",
     sellerId: "s1",
     items: [
-      { id: "i1", partId: "p1", partSku: "F1", partName: "Filtro", quantity: 2, unitPrice: 0, unitCost: 0, discount: 0, total: 100_000, marginValue: 30_000, partCategory: "filtro" },
-      { id: "i2", partId: "p2", partSku: "B1", partName: "Freio", quantity: 1, unitPrice: 0, unitCost: 0, discount: 0, total: 50_000, marginValue: 10_000, partCategory: "freio" },
+      {
+        id: "i1",
+        partId: "p1",
+        partSku: "F1",
+        partName: "Filtro",
+        quantity: 2,
+        unitPrice: 0,
+        unitCost: 0,
+        discount: 0,
+        total: 100_000,
+        marginValue: 30_000,
+        partCategory: "filtro",
+      },
+      {
+        id: "i2",
+        partId: "p2",
+        partSku: "B1",
+        partName: "Freio",
+        quantity: 1,
+        unitPrice: 0,
+        unitCost: 0,
+        discount: 0,
+        total: 50_000,
+        marginValue: 10_000,
+        partCategory: "freio",
+      },
     ],
   }),
   baseOrder({
     id: "o2",
     sellerId: "s2",
     items: [
-      { id: "i3", partId: "p1", partSku: "F1", partName: "Filtro", quantity: 1, unitPrice: 0, unitCost: 0, discount: 0, total: 60_000, marginValue: 20_000, partCategory: "filtro" },
+      {
+        id: "i3",
+        partId: "p1",
+        partSku: "F1",
+        partName: "Filtro",
+        quantity: 1,
+        unitPrice: 0,
+        unitCost: 0,
+        discount: 0,
+        total: 60_000,
+        marginValue: 20_000,
+        partCategory: "filtro",
+      },
     ],
   }),
 ];
@@ -645,20 +691,42 @@ assert(fat.currentValue === 160_000, "faturamento soma só filtros (100k + 60k)"
 assert(fat.contributors[0].sellerId === "s1", "ranking: s1 lidera (100k)");
 assert(fat.contributors.length === 2, "ranking tem 2 vendedores");
 
-const qty = calculateIndicatorProgress({ ...indicator, metric: "quantidade", targetValue: 10 }, { orders, now });
+const qty = calculateIndicatorProgress(
+  { ...indicator, metric: "quantidade", targetValue: 10 },
+  { orders, now },
+);
 assert(qty.currentValue === 3, "quantidade soma unidades de filtro (2 + 1)");
 
-const ped = calculateIndicatorProgress({ ...indicator, metric: "pedidos", targetValue: 5 }, { orders, now });
+const ped = calculateIndicatorProgress(
+  { ...indicator, metric: "pedidos", targetValue: 5 },
+  { orders, now },
+);
 assert(ped.currentValue === 2, "pedidos conta pedidos distintos com filtro");
 
-const mar = calculateIndicatorProgress({ ...indicator, metric: "margem", targetValue: 100_000 }, { orders, now });
+const mar = calculateIndicatorProgress(
+  { ...indicator, metric: "margem", targetValue: 100_000 },
+  { orders, now },
+);
 assert(mar.currentValue === 50_000, "margem soma marginValue de filtros (30k + 20k)");
 
 // Fallback C2: item sem partCategory, resolvido via parts catalog
 const ordersNoCat: IOrder[] = [
   baseOrder({
     id: "o3",
-    items: [{ id: "i4", partId: "p1", partSku: "F1", partName: "Filtro", quantity: 1, unitPrice: 0, unitCost: 0, discount: 0, total: 70_000, marginValue: 0 }],
+    items: [
+      {
+        id: "i4",
+        partId: "p1",
+        partSku: "F1",
+        partName: "Filtro",
+        quantity: 1,
+        unitPrice: 0,
+        unitCost: 0,
+        discount: 0,
+        total: 70_000,
+        marginValue: 0,
+      },
+    ],
   }),
 ];
 const viaCatalog = calculateIndicatorProgress(indicator, {
@@ -689,6 +757,7 @@ rm scripts/_validate-indicators.ts
 ### Task 7: Provider, contrato e wiring no store de mocks
 
 **Files:**
+
 - Create: `src/providers/data/contracts/indicators.ts`
 - Create: `src/mocks/api/indicators.ts`
 - Create: `src/providers/data/impl/mock/indicators.ts`
@@ -856,6 +925,7 @@ export function useIndicatorsProvider(): IIndicatorsProvider {
 - [ ] **Step 7: Registrar no barrel de contratos e em `IDataProviders`**
 
 Em `src/providers/data/contracts/index.ts`:
+
 1. `import type { IIndicatorsProvider } from "./indicators";`
 2. `export type { IIndicatorsProvider, IListIndicatorsParams } from "./indicators";`
 3. Em `interface IDataProviders`, adicionar: `indicators: IIndicatorsProvider;`
@@ -863,6 +933,7 @@ Em `src/providers/data/contracts/index.ts`:
 - [ ] **Step 8: Registrar na factory**
 
 Em `src/providers/data/factory.ts`:
+
 1. `import { mockIndicatorsProvider } from "./impl/mock/indicators";`
 2. `import { supabaseIndicatorsProvider } from "./impl/supabase/indicators";`
 3. Em `mockProviders`, adicionar: `indicators: mockIndicatorsProvider,`
@@ -871,12 +942,14 @@ Em `src/providers/data/factory.ts`:
 - [ ] **Step 9: Exportar hook + tipos no barrel público**
 
 Em `src/providers/data/index.ts`:
+
 1. Na lista `export type { ... } from "./contracts";`, adicionar `IIndicatorsProvider,` e `IListIndicatorsParams,`.
 2. Adicionar: `export { useIndicatorsProvider } from "./hooks/useIndicatorsProvider";`
 
 - [ ] **Step 10: Wiring no store de mocks**
 
 Em `src/mocks/store/mutations.ts`:
+
 1. No union `CollectionKey`, adicionar `| "indicators"`.
 2. No `CollectionMap`, adicionar `indicators: IProductIndicator;` (e importar o tipo no topo do arquivo).
 
@@ -893,7 +966,13 @@ export function selectAllIndicators() {
 `src/mocks/generators/indicator.ts`:
 
 ```typescript
-import type { ID, ISeller, IProductIndicator, IndicatorMetric, ProductSelector } from "@/shared/types";
+import type {
+  ID,
+  ISeller,
+  IProductIndicator,
+  IndicatorMetric,
+  ProductSelector,
+} from "@/shared/types";
 import { SEED_STORE_ID } from "../data";
 import { monthRange, monthRef, type ISeededContext } from "./utils";
 
@@ -1089,6 +1168,7 @@ export function generateIndicators(
 - [ ] **Step 12: Incluir no bootstrap**
 
 Em `src/mocks/generators/bootstrap.ts`:
+
 1. Import: `import { generateIndicators } from "./indicator";` (junto a `generateGoals`).
 2. Em `interface IBootstrappedDataset`, adicionar `indicators: IProductIndicator[];` (e importar `IProductIndicator` no bloco de imports de tipos no topo).
 3. Após `const goals = generateGoals(ctx, { sellers, now });`, adicionar:
@@ -1112,6 +1192,7 @@ git commit -m "feat(indicators): add provider, mock api, generator and store wir
 ### Task 8: Hooks reativos da feature
 
 **Files:**
+
 - Create: `src/features/indicators/hooks/useIndicatorProgress.ts`
 - Create: `src/features/indicators/hooks/useIndicators.ts`
 
@@ -1136,9 +1217,7 @@ export interface IUseIndicatorProgressResult {
 
 const STALE_MS = 30_000;
 
-export function useIndicatorProgress(
-  indicatorId: ID | undefined,
-): IUseIndicatorProgressResult {
+export function useIndicatorProgress(indicatorId: ID | undefined): IUseIndicatorProgressResult {
   const indicatorsProvider = useIndicatorsProvider();
   const ordersProvider = useOrdersProvider();
   const partsProvider = usePartsProvider();
@@ -1153,7 +1232,13 @@ export function useIndicatorProgress(
   const indicator = listQuery.data?.data.find((i) => i.id === indicatorId);
 
   const ordersQuery = useQuery({
-    queryKey: ["indicators", "progress-orders", indicator?.storeId, indicator?.sellerId, indicator?.scopeLevel],
+    queryKey: [
+      "indicators",
+      "progress-orders",
+      indicator?.storeId,
+      indicator?.sellerId,
+      indicator?.scopeLevel,
+    ],
     queryFn: () =>
       ordersProvider.list({
         storeId: indicator?.storeId,
@@ -1290,6 +1375,7 @@ git commit -m "feat(indicators): add reactive progress hooks"
 ### Task 9: i18n e rotas-esqueleto
 
 **Files:**
+
 - Create: `src/features/indicators/i18n/pt-BR.ts`
 - Create: `src/routes/app.gestao.indicadores.tsx`
 - Create: `src/routes/app.gestao.indicadores.index.tsx`
@@ -1314,7 +1400,12 @@ export const indicatorsPtBR = {
     pedidos: "Pedidos",
   },
   scope: { store: "Loja", individual: "Individual", global: "Global" },
-  status: { ativo: "Ativo", concluido: "Concluído", arquivado: "Arquivado", cancelado: "Cancelado" },
+  status: {
+    ativo: "Ativo",
+    concluido: "Concluído",
+    arquivado: "Arquivado",
+    cancelado: "Cancelado",
+  },
   selectorKind: { category: "Categoria", sku: "Produtos", group: "Grupo" },
   kpis: {
     active: "Indicadores ativos",
@@ -1350,6 +1441,7 @@ export const Route = createFileRoute("/app/gestao/indicadores")({
 Abra `src/routes/app.gestao.metas.index.tsx` para ver o padrão exato de `beforeLoad`/guard de papel e `validateSearch`. Replique-o nos três arquivos abaixo, trocando o componente importado:
 
 `src/routes/app.gestao.indicadores.index.tsx`:
+
 ```typescript
 import { createFileRoute } from "@tanstack/react-router";
 import { IndicatorsPage } from "@/features/indicators/pages/IndicatorsPage";
@@ -1360,6 +1452,7 @@ export const Route = createFileRoute("/app/gestao/indicadores/")({
 ```
 
 `src/routes/app.gestao.indicadores.novo.tsx`:
+
 ```typescript
 import { createFileRoute } from "@tanstack/react-router";
 import { NewIndicatorPage } from "@/features/indicators/pages/NewIndicatorPage";
@@ -1370,6 +1463,7 @@ export const Route = createFileRoute("/app/gestao/indicadores/novo")({
 ```
 
 `src/routes/app.gestao.indicadores.$id.tsx`:
+
 ```typescript
 import { createFileRoute } from "@tanstack/react-router";
 import { IndicatorDetailPage } from "@/features/indicators/pages/IndicatorDetailPage";
@@ -1410,11 +1504,13 @@ git commit -m "feat(indicators): add i18n, routes and page scaffolds"
 ### Task 10: Item de navegação
 
 **Files:**
+
 - Modify: `src/features/shell/config/navigation.ts`
 
 - [ ] **Step 1: Adicionar o item "Indicadores"**
 
 Abra `src/features/shell/config/navigation.ts` e localize o item de navegação de **Metas** (label "Metas", rota `/app/gestao/metas`). Copie a estrutura desse item para um novo item "Indicadores" imediatamente após, com:
+
 - `label: "Indicadores"`
 - rota/`to`: `/app/gestao/indicadores`
 - ícone Iconify apropriado (ex.: `"mdi:chart-line"` ou `"mdi:target-variant"`) — siga o formato de ícone usado pelo item de Metas.
@@ -1439,6 +1535,7 @@ git commit -m "feat(indicators): add navigation entry"
 ### Task 11: Dashboard (`IndicatorsPage`)
 
 **Files:**
+
 - Modify: `src/features/indicators/pages/IndicatorsPage.tsx`
 
 - [ ] **Step 1: Implementar o dashboard**
@@ -1482,6 +1579,7 @@ git commit -m "feat(indicators): implement dashboard with kpis, table and chart"
 ### Task 12: Seletor de produto multimodal
 
 **Files:**
+
 - Create: `src/features/indicators/components/ProductSelectorField.tsx`
 
 - [ ] **Step 1: Implementar o campo de seletor**
@@ -1512,6 +1610,7 @@ git commit -m "feat(indicators): add multimodal product selector field"
 ### Task 13: Página de criação (`NewIndicatorPage`)
 
 **Files:**
+
 - Modify: `src/features/indicators/pages/NewIndicatorPage.tsx`
 
 - [ ] **Step 1: Implementar o formulário de criação**
@@ -1553,6 +1652,7 @@ git commit -m "feat(indicators): implement creation page with multimodal selecto
 ### Task 14: Ranking de contribuição e gráfico evolutivo
 
 **Files:**
+
 - Create: `src/features/indicators/components/ContributionRanking.tsx`
 - Create: `src/features/indicators/components/IndicatorEvolutionChart.tsx`
 
@@ -1563,6 +1663,7 @@ Recebe `contributors: IIndicatorContributor[]`, `metric`, e uma forma de resolve
 - [ ] **Step 2: `IndicatorEvolutionChart`**
 
 Espelhar o gráfico evolutivo do detalhe de meta (procure em `src/features/goals/` o LineChart "realizado vs esperado"; reuse a mesma abordagem Recharts). Recebe a série acumulada realizada (derivada dos pedidos no período, bucketizada por dia) e a linha esperada proporcional (`targetValue * diaPassado/totalDias`). Se o detalhe de meta já tiver um util que monta essa série, extraia/compartilhe; senão, monte localmente:
+
 - agrupar contribuições por dia (reusar a lógica da engine: itens que casam, por `paidAt`), acumular.
 - linha esperada: pontos `(dia_i, targetValue * i / totalDays)`.
 
@@ -1585,6 +1686,7 @@ git commit -m "feat(indicators): add contribution ranking and evolution chart"
 ### Task 15: Página de detalhe (`IndicatorDetailPage`)
 
 **Files:**
+
 - Modify: `src/features/indicators/pages/IndicatorDetailPage.tsx`
 
 - [ ] **Step 1: Implementar o detalhe**
@@ -1622,11 +1724,13 @@ git commit -m "feat(indicators): implement detail page with progress, chart, ran
 ### Task 16: Status automático
 
 **Files:**
+
 - Create: `src/features/indicators/hooks/useIndicatorAutoStatusUpdate.ts`
 
 - [ ] **Step 1: Implementar o hook**
 
 Abra `src/features/goals/hooks/` e localize `useGoalAutoStatusUpdate` (se existir) para espelhar exatamente. O hook:
+
 - Roda no mount (e ao virar o dia, se o de metas o fizer).
 - Para indicadores com `period.end < now` e `status === "ativo"`: calcular `progress.percentage`; se `>= 100` → `status: "concluido"`, senão `"arquivado"`. Chamar `useIndicatorsProvider().update(id, { status })` + `recordAuditLog({ action: "indicator_auto_complete" | "indicator_auto_archive" })`.
 
@@ -1651,11 +1755,13 @@ git commit -m "feat(indicators): add automatic status transition at period end"
 ### Task 17: Notificações de marco
 
 **Files:**
+
 - Modify: `src/features/indicators/hooks/useIndicatorProgress.ts` (ou um hook dedicado, conforme padrão de metas)
 
 - [ ] **Step 1: Espelhar o mecanismo de marco das metas**
 
 Localize no código de metas como os toasts de marco (50/80/100%) são disparados (procure por `goalMilestoneThresholds` / `IPlatformSettings` e o uso de `toast` do sonner). Replique para indicadores:
+
 - ler thresholds de `IPlatformSettings` (reuse a mesma chave se fizer sentido, ou adicione `indicatorMilestoneThresholds` em `IPlatformSettings` com default `[0.5, 0.8, 1.0]` — verifique o tipo em `src/shared/types/platform.ts` e o seed em `seedStore.ts`).
 - quando `progress.percentage` cruza um threshold, `toast` com mensagem (ex.: "🎯 Indicador <nome> atingiu 50%!"). Guardar marcos já notificados (mesmo mecanismo das metas — provavelmente um `Set`/ref ou flag persistida).
 
@@ -1678,6 +1784,7 @@ git commit -m "feat(indicators): add milestone toast notifications"
 ### Task 18: Widget no Painel do Gestor
 
 **Files:**
+
 - Create: `src/features/indicators/components/IndicatorsWidget.tsx`
 - Modify: `src/features/manager-dashboard/pages/ManagerDashboardPage.tsx`
 
@@ -1710,6 +1817,7 @@ git commit -m "feat(indicators): add manager dashboard widget"
 ### Task 19: Documentação e polish responsivo
 
 **Files:**
+
 - Create: `docs/indicators.md`
 - Modify: arquivos de UI conforme necessário (responsivo)
 

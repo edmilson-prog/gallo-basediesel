@@ -2,27 +2,27 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _A definir após criação no Lovable_ |
-| **Objetivo** | Estabelecer a camada-fundação de notificações da plataforma — entidade `INotification`, barramento de eventos de domínio, roteamento por regras/preferências e providers de canal (Provider Pattern) — preparada para os dois públicos (interno e cliente final) e para a plugagem dos canais reais da Onda 8 sem reescrita |
-| **Tipo** | Feature |
-| **Complexidade** | Alta |
-| **Total de Fases** | 5 |
-| **Prioridade** | Alta |
-| **Épico** | Bloco 0 — Fundação |
-| **PRDs Relacionados** | PRD-002 (Modelo Conceitual — recebe delta), PRD-004 (Mocks), PRD-005 (Provider Pattern), PRD-006 (RBAC), PRD-007 (Multi-Loja), PRD-014 (Painel do Gestor — alertas absorvidos), PRD-009 (Notification Center — consome esta fundação), PRDs 141–150 (Onda 8 — plugam os canais reais) |
-| **Implementação** | 🔵 Claude Code CLI (sobre o scaffold do Lovable) |
-| **Padrão de código** | Tipos em `src/shared/types/`; providers em `src/providers/notifications/` espelhando a estrutura de `src/providers/data/` (contracts/impl/channels/hooks/factory); barramento, regras e reconciliadores na mesma raiz |
+| Campo                 | Valor                                                                                                                                                                                                                                                                                                                       |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                                                                                                                                                    |
+| **Repositório**       | _A definir após criação no Lovable_                                                                                                                                                                                                                                                                                         |
+| **Objetivo**          | Estabelecer a camada-fundação de notificações da plataforma — entidade `INotification`, barramento de eventos de domínio, roteamento por regras/preferências e providers de canal (Provider Pattern) — preparada para os dois públicos (interno e cliente final) e para a plugagem dos canais reais da Onda 8 sem reescrita |
+| **Tipo**              | Feature                                                                                                                                                                                                                                                                                                                     |
+| **Complexidade**      | Alta                                                                                                                                                                                                                                                                                                                        |
+| **Total de Fases**    | 5                                                                                                                                                                                                                                                                                                                           |
+| **Prioridade**        | Alta                                                                                                                                                                                                                                                                                                                        |
+| **Épico**             | Bloco 0 — Fundação                                                                                                                                                                                                                                                                                                          |
+| **PRDs Relacionados** | PRD-002 (Modelo Conceitual — recebe delta), PRD-004 (Mocks), PRD-005 (Provider Pattern), PRD-006 (RBAC), PRD-007 (Multi-Loja), PRD-014 (Painel do Gestor — alertas absorvidos), PRD-009 (Notification Center — consome esta fundação), PRDs 141–150 (Onda 8 — plugam os canais reais)                                       |
+| **Implementação**     | 🔵 Claude Code CLI (sobre o scaffold do Lovable)                                                                                                                                                                                                                                                                            |
+| **Padrão de código**  | Tipos em `src/shared/types/`; providers em `src/providers/notifications/` espelhando a estrutura de `src/providers/data/` (contracts/impl/channels/hooks/factory); barramento, regras e reconciliadores na mesma raiz                                                                                                       |
 
 ### Critérios de Complexidade Utilizados
 
-| Complexidade | Critérios |
-|--------------|-----------|
-| **Baixa** | 1 arquivo, sem dependências externas, < 100 linhas |
-| **Média** | 2-5 arquivos, banco OU integração, funcionalidade isolada |
-| **Alta** | 5+ arquivos, múltiplas integrações, regras de negócio complexas |
+| Complexidade | Critérios                                                       |
+| ------------ | --------------------------------------------------------------- |
+| **Baixa**    | 1 arquivo, sem dependências externas, < 100 linhas              |
+| **Média**    | 2-5 arquivos, banco OU integração, funcionalidade isolada       |
+| **Alta**     | 5+ arquivos, múltiplas integrações, regras de negócio complexas |
 
 > **Justificativa de Alta:** define uma abstração transversal consumida por praticamente todos os módulos (atendimento, carteira, leads, metas, gamificação, vendas, e-commerce, portal B2B); introduz dois eixos de Provider distintos (persistência Mock/Supabase + entrega multicanal); absorve a lógica de alertas hoje dispersa no PRD-014; e precisa nascer compatível com a Onda 8 (drop-in dos canais reais na Fase 2). Escolher errado aqui custa retrabalho em dez PRDs futuros (141–150) e na UI (PRD-009).
 
@@ -64,13 +64,13 @@ Em paralelo, a **persistência** das notificações segue o mesmo Provider Patte
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que foi descartada |
-|-------------|------------------------|
-| Manter toasts e alertas isolados e só unificar na Onda 8 | Repete o acoplamento que o PRD-005 já provou custar semanas de refatoração; e o PRD-009 (Notification Center) precisaria de uma fundação inexistente |
-| Tratar derivadas como cálculo puro (sem persistir), só "espelhando" no center | Dois lugares de verdade (cálculo + espelho) divergem; reconciliar numa única entidade foi a decisão aprovada com o Arquiteto |
-| Fan-out na leitura (calcular notificações por destinatário no momento de exibir) | Complexidade desnecessária para o volume de uma distribuidora; write-time (uma `INotification` por destinatário) é mais simples e suficiente |
-| Canais externos já parcialmente implementados na Fase 1 | Viola Frontend First — entrega real (email/WhatsApp/SMS/push) é Fase 2 por definição (Onda 8); aqui são esqueletos |
-| Usar uma lib externa de notificação pronta | Acopla a plataforma a um modelo de terceiros e não cobre as notificações derivadas específicas do domínio (curva ABC, positivação, carteira) |
+| Alternativa                                                                      | Por que foi descartada                                                                                                                               |
+| -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Manter toasts e alertas isolados e só unificar na Onda 8                         | Repete o acoplamento que o PRD-005 já provou custar semanas de refatoração; e o PRD-009 (Notification Center) precisaria de uma fundação inexistente |
+| Tratar derivadas como cálculo puro (sem persistir), só "espelhando" no center    | Dois lugares de verdade (cálculo + espelho) divergem; reconciliar numa única entidade foi a decisão aprovada com o Arquiteto                         |
+| Fan-out na leitura (calcular notificações por destinatário no momento de exibir) | Complexidade desnecessária para o volume de uma distribuidora; write-time (uma `INotification` por destinatário) é mais simples e suficiente         |
+| Canais externos já parcialmente implementados na Fase 1                          | Viola Frontend First — entrega real (email/WhatsApp/SMS/push) é Fase 2 por definição (Onda 8); aqui são esqueletos                                   |
+| Usar uma lib externa de notificação pronta                                       | Acopla a plataforma a um modelo de terceiros e não cobre as notificações derivadas específicas do domínio (curva ABC, positivação, carteira)         |
 
 ---
 
@@ -292,13 +292,13 @@ ENTÃO ele é ignorado com log de aviso em dev, sem criar notificação nem lan�
 
 ## Fases de Implementação
 
-| Fase | Objetivo | Arquivos Estimados |
-|------|----------|-------------------|
-| 1 | Modelo de domínio + glossário + delta PRD-002 | 3-4 |
-| 2 | Persistência (contratos + mock + esqueleto Supabase + factory + hooks + ESLint) | 8-10 |
-| 3 | Barramento + roteamento + dedupe + preferências (modelo + provider + defaults) | 6-8 |
-| 4 | Channel providers (inApp/toast ativos + email/wa/sms/push esqueletos) + registry | 7-9 |
-| 5 | Reconciliador de derivadas + groupKey/agrupamento + seeds de mock + harness de validação | 5-7 |
+| Fase | Objetivo                                                                                 | Arquivos Estimados |
+| ---- | ---------------------------------------------------------------------------------------- | ------------------ |
+| 1    | Modelo de domínio + glossário + delta PRD-002                                            | 3-4                |
+| 2    | Persistência (contratos + mock + esqueleto Supabase + factory + hooks + ESLint)          | 8-10               |
+| 3    | Barramento + roteamento + dedupe + preferências (modelo + provider + defaults)           | 6-8                |
+| 4    | Channel providers (inApp/toast ativos + email/wa/sms/push esqueletos) + registry         | 7-9                |
+| 5    | Reconciliador de derivadas + groupKey/agrupamento + seeds de mock + harness de validação | 5-7                |
 
 ### Detalhamento das Fases
 
@@ -307,6 +307,7 @@ ENTÃO ele é ignorado com log de aviso em dev, sem criar notificação nem lan�
 **Objetivo:** entidade e tipos disponíveis como fonte única, antes de qualquer lógica.
 
 **Ações:**
+
 - [ ] Criar arquivo de tipos de notificação em `src/shared/types/` com `INotification`, `INotificationAction`, `INotificationPreference` e os union types literais
 - [ ] Exportar explicitamente via barrel (`index.ts`), sem `export *`
 - [ ] Adicionar entradas de glossário em `docs/glossario.md` com JSDoc `@see` nas interfaces
@@ -319,6 +320,7 @@ ENTÃO ele é ignorado com log de aviso em dev, sem criar notificação nem lan�
 **Objetivo:** ler/escrever notificações e preferências via abstração, com mock ativo e Supabase esqueleto.
 
 **Ações:**
+
 - [ ] Criar `src/providers/notifications/contracts/` com `INotificationStore` e `INotificationPreferenceStore`
 - [ ] Implementar `impl/mock/` (ativo) delegando à camada de mocks/Faker
 - [ ] Criar `impl/supabase/` (esqueleto) com erro descritivo apontando PRD futuro
@@ -334,6 +336,7 @@ ENTÃO ele é ignorado com log de aviso em dev, sem criar notificação nem lan�
 **Objetivo:** transformar eventos de domínio em notificações roteadas e filtradas por preferência.
 
 **Ações:**
+
 - [ ] Criar `notificationBus` (emit/subscribe) na raiz de `src/providers/notifications/`
 - [ ] Criar `NotificationEventType` (catálogo do Anexo A) e o mapa de regras de roteamento
 - [ ] Implementar geração de `dedupeKey` determinístico
@@ -348,6 +351,7 @@ ENTÃO ele é ignorado com log de aviso em dev, sem criar notificação nem lan�
 **Objetivo:** entregar pelos canais ativos e deixar os externos prontos como esqueletos.
 
 **Ações:**
+
 - [ ] Criar contrato `INotificationChannel` e o `channel registry`
 - [ ] Implementar `InAppChannel` e `ToastChannel` (ativos)
 - [ ] Implementar `EmailChannel`, `WhatsAppChannel`, `SmsChannel`, `PushChannel` (esqueletos `deferred`)
@@ -361,6 +365,7 @@ ENTÃO ele é ignorado com log de aviso em dev, sem criar notificação nem lan�
 **Objetivo:** absorver os alertas do PRD-014, agrupar e popular dados de demonstração.
 
 **Ações:**
+
 - [ ] Implementar o reconciliador de derivadas (cliente A dormente, vendedor sobrecarregado, conversa sem resposta) lendo limiares das configurações (PRD-019/PRD-014)
 - [ ] Garantir criação e expiração automática conforme entrada/saída da condição
 - [ ] Implementar agrupamento por `groupKey` (colapso visual simples)
@@ -376,23 +381,23 @@ ENTÃO ele é ignorado com log de aviso em dev, sem criar notificação nem lan�
 
 ### PRDs Anteriores
 
-| PRD | Descrição | Status |
-|-----|-----------|--------|
-| PRD-002 | Modelo Conceitual (recebe delta com `INotification`) | ✅ Concluído |
-| PRD-004 | Mocks e geradores de dados (base para seeds) | ✅ Concluído |
-| PRD-005 | Provider Pattern (template de persistência e factory) | ✅ Concluído |
+| PRD     | Descrição                                                           | Status       |
+| ------- | ------------------------------------------------------------------- | ------------ |
+| PRD-002 | Modelo Conceitual (recebe delta com `INotification`)                | ✅ Concluído |
+| PRD-004 | Mocks e geradores de dados (base para seeds)                        | ✅ Concluído |
+| PRD-005 | Provider Pattern (template de persistência e factory)               | ✅ Concluído |
 | PRD-006 | RBAC e permissões (escopo das listagens, auditoria de preferências) | ✅ Concluído |
-| PRD-007 | Multi-Loja (escopo `storeId` das notificações) | ✅ Concluído |
-| PRD-014 | Painel do Gestor (alertas que serão absorvidos pelo reconciliador) | ✅ Concluído |
+| PRD-007 | Multi-Loja (escopo `storeId` das notificações)                      | ✅ Concluído |
+| PRD-014 | Painel do Gestor (alertas que serão absorvidos pelo reconciliador)  | ✅ Concluído |
 
 ### Serviços Externos
 
-| Serviço | Tipo | Status |
-|---------|------|--------|
-| Provedores de email (SendGrid/Resend/SES) | API | A configurar na Onda 8 (PRD-141) |
-| WhatsApp Cloud API / Evolution | API | A configurar na Onda 8 (PRD-143) |
-| SMS (Twilio) | API | A configurar na Onda 8 (PRD-144) |
-| Web Push (Service Worker + Push API) | API do navegador | A configurar na Onda 8 (PRD-145) |
+| Serviço                                   | Tipo             | Status                           |
+| ----------------------------------------- | ---------------- | -------------------------------- |
+| Provedores de email (SendGrid/Resend/SES) | API              | A configurar na Onda 8 (PRD-141) |
+| WhatsApp Cloud API / Evolution            | API              | A configurar na Onda 8 (PRD-143) |
+| SMS (Twilio)                              | API              | A configurar na Onda 8 (PRD-144) |
+| Web Push (Service Worker + Push API)      | API do navegador | A configurar na Onda 8 (PRD-145) |
 
 > Nenhum serviço externo é integrado neste PRD — todos entram como esqueletos de canal.
 
@@ -408,13 +413,13 @@ ENTÃO ele é ignorado com log de aviso em dev, sem criar notificação nem lan�
 
 Este PRD faz parte do épico **"Sistema de Notificações da Plataforma"** (Bloco 0 — Fundação, com continuidade na Onda 8 da Fase 2).
 
-| Ordem | PRD | Título | Status | Relação |
-|-------|-----|--------|--------|---------|
-| 1 | PRD-005 | Provider Pattern (Mock/Supabase) | ✅ | Template de persistência |
-| 2 | PRD-006 / PRD-007 | RBAC / Multi-Loja | ✅ | Escopo das notificações |
-| **3** | **PRD-008** | **Fundação de Notificações** | **🔄 ATUAL** | Depende de 002, 004, 005, 006, 007, 014 |
-| 4 | PRD-009 | Notification Center & Preferências (UI) | ⏳ | Depende de PRD-008 |
-| 5+ | PRDs 141–150 | Onda 8 — Notificações Reais | ⏳ | Plugam os canais reais sobre esta fundação |
+| Ordem | PRD               | Título                                  | Status       | Relação                                    |
+| ----- | ----------------- | --------------------------------------- | ------------ | ------------------------------------------ |
+| 1     | PRD-005           | Provider Pattern (Mock/Supabase)        | ✅           | Template de persistência                   |
+| 2     | PRD-006 / PRD-007 | RBAC / Multi-Loja                       | ✅           | Escopo das notificações                    |
+| **3** | **PRD-008**       | **Fundação de Notificações**            | **🔄 ATUAL** | Depende de 002, 004, 005, 006, 007, 014    |
+| 4     | PRD-009           | Notification Center & Preferências (UI) | ⏳           | Depende de PRD-008                         |
+| 5+    | PRDs 141–150      | Onda 8 — Notificações Reais             | ⏳           | Plugam os canais reais sobre esta fundação |
 
 > **Nota:** Implemente na ordem indicada. O PRD-009 (UI) só deve iniciar com o PRD-008 ✅. Os PRDs 141–150 deixam de redefinir infraestrutura e passam a **referenciar** esta fundação (ver "Impacto no Roadmap" abaixo).
 
@@ -426,12 +431,12 @@ Este PRD faz parte do épico **"Sistema de Notificações da Plataforma"** (Bloc
 
 ### Dados Sensíveis
 
-| Dado | Classificação | Proteção |
-|------|---------------|----------|
-| Nome/identificação de cliente em `title`/`body` | PII | Escopo por RBAC + `storeId`; cliente só vê as próprias notificações |
-| Valores comerciais (estimativa de lead, valor de pedido) | Sensível (negócio) | Restrito ao escopo do destinatário; nunca cross-store para Gestor |
-| Métricas de desempenho de vendedor (carga, sobrecarga) | Sensível (RH) | Visível apenas a Gestor/Owner; nunca a outros vendedores |
-| Preferências de canal do cliente | PII / consentimento | Base para LGPD; trilha legal completa no PRD-147 |
+| Dado                                                     | Classificação       | Proteção                                                            |
+| -------------------------------------------------------- | ------------------- | ------------------------------------------------------------------- |
+| Nome/identificação de cliente em `title`/`body`          | PII                 | Escopo por RBAC + `storeId`; cliente só vê as próprias notificações |
+| Valores comerciais (estimativa de lead, valor de pedido) | Sensível (negócio)  | Restrito ao escopo do destinatário; nunca cross-store para Gestor   |
+| Métricas de desempenho de vendedor (carga, sobrecarga)   | Sensível (RH)       | Visível apenas a Gestor/Owner; nunca a outros vendedores            |
+| Preferências de canal do cliente                         | PII / consentimento | Base para LGPD; trilha legal completa no PRD-147                    |
 
 ### Autenticação e Autorização
 
@@ -476,24 +481,24 @@ Alterações de preferências de notificação são auditáveis via o log do PRD
 
 > **Consulte a Seção 5 do `guia-prd.md` para a versão completa.**
 
-| Elemento | Convenção | Exemplo |
-|----------|-----------|---------|
-| **Componentes React** | PascalCase | `NotificationBell.tsx` (no PRD-009) |
-| **Hooks** | camelCase + `use` | `useNotifications.ts` |
-| **Services/Providers** | camelCase + sufixo | `mockNotificationStore.ts` |
-| **Pastas** | kebab-case | `providers/notifications/` |
-| **Variáveis/Funções** | camelCase | `dedupeKey`, `resolveRecipients()` |
-| **Constantes** | UPPER_SNAKE_CASE | `DEFAULT_RECONCILE_INTERVAL` |
-| **Interfaces** | PascalCase + `I` | `INotification`, `INotificationChannel` |
-| **Union types** | PascalCase sem `I` | `NotificationCategory` |
-| **Tabelas (banco)** | snake_case (plural) | `notifications` (Fase 2) |
-| **Colunas (banco)** | snake_case | `created_at`, `recipient_id` (Fase 2) |
-| **Env vars (frontend)** | `VITE_` prefix | `VITE_DATA_SOURCE` |
-| **Git commits** | Conventional Commits | `feat:`, `refactor:` |
-| **Estrutura de pastas** | Feature-based | `src/providers/notifications/` |
-| **Imports** | Ordem: React → libs → components → hooks → utils → types | — |
-| **Ícones** | Iconify (`@iconify/react`) | `<Icon icon="mdi:bell" />` (no PRD-009) |
-| **Tema** | Light + Dark obrigatório | aplicável à UI do PRD-009 |
+| Elemento                | Convenção                                                | Exemplo                                 |
+| ----------------------- | -------------------------------------------------------- | --------------------------------------- |
+| **Componentes React**   | PascalCase                                               | `NotificationBell.tsx` (no PRD-009)     |
+| **Hooks**               | camelCase + `use`                                        | `useNotifications.ts`                   |
+| **Services/Providers**  | camelCase + sufixo                                       | `mockNotificationStore.ts`              |
+| **Pastas**              | kebab-case                                               | `providers/notifications/`              |
+| **Variáveis/Funções**   | camelCase                                                | `dedupeKey`, `resolveRecipients()`      |
+| **Constantes**          | UPPER_SNAKE_CASE                                         | `DEFAULT_RECONCILE_INTERVAL`            |
+| **Interfaces**          | PascalCase + `I`                                         | `INotification`, `INotificationChannel` |
+| **Union types**         | PascalCase sem `I`                                       | `NotificationCategory`                  |
+| **Tabelas (banco)**     | snake_case (plural)                                      | `notifications` (Fase 2)                |
+| **Colunas (banco)**     | snake_case                                               | `created_at`, `recipient_id` (Fase 2)   |
+| **Env vars (frontend)** | `VITE_` prefix                                           | `VITE_DATA_SOURCE`                      |
+| **Git commits**         | Conventional Commits                                     | `feat:`, `refactor:`                    |
+| **Estrutura de pastas** | Feature-based                                            | `src/providers/notifications/`          |
+| **Imports**             | Ordem: React → libs → components → hooks → utils → types | —                                       |
+| **Ícones**              | Iconify (`@iconify/react`)                               | `<Icon icon="mdi:bell" />` (no PRD-009) |
+| **Tema**                | Light + Dark obrigatório                                 | aplicável à UI do PRD-009               |
 
 ---
 
@@ -511,6 +516,7 @@ Alterações de preferências de notificação são auditáveis via o log do PRD
 > "Lembre-se: explore a estrutura dos dados, planeje primeiro cada passo, analise, investigue a fundo, pense e revise tudo antes de realizar qualquer atualização ou implementação."
 
 > **⚠️ 2. APÓS IMPLEMENTAR:**
+>
 > - Incrementar a versão do app seguindo [SemVer](https://semver.org/) (MINOR — nova funcionalidade compatível)
 > - Gerar codinome em inglês (sugestão: **Herald**)
 > - Atualizar o CHANGELOG.md seguindo [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
@@ -520,10 +526,10 @@ Alterações de preferências de notificação são auditáveis via o log do PRD
 
 ### Guia de Versionamento (SemVer)
 
-| Tipo de Mudança | Ação | Exemplo |
-|-----------------|------|---------|
-| Correção de bug | PATCH +1 | 1.0.0 → 1.0.1 |
-| Nova funcionalidade | MINOR +1, PATCH = 0 | 1.0.1 → 1.1.0 |
+| Tipo de Mudança      | Ação                 | Exemplo       |
+| -------------------- | -------------------- | ------------- |
+| Correção de bug      | PATCH +1             | 1.0.0 → 1.0.1 |
+| Nova funcionalidade  | MINOR +1, PATCH = 0  | 1.0.1 → 1.1.0 |
 | Mudança incompatível | MAJOR +1, outros = 0 | 1.1.0 → 2.0.0 |
 
 **Codinomes:** para MINOR/MAJOR, gerar codinome em inglês baseado no contexto. Sugestão para este PRD: **Herald**.
@@ -538,42 +544,42 @@ Tipos de mudança a documentar: **Added** (novas funcionalidades), **Changed** (
 
 ### Princípios de Implementação
 
-| Princípio | Descrição |
-|-----------|-----------|
-| **Não bloquear fluxo principal** | A emissão/entrega de notificação nunca interrompe a ação de negócio que a originou |
-| **Fail gracefully** | Falha de canal ou de provider não derruba a UI; estado de erro é exposto, não propagado como exceção ao emissor |
-| **Preservar evidências** | Notificações de evento são snapshots imutáveis; o histórico sobrevive a mudanças no registro de origem |
-| **Testar incrementalmente** | Validar cada fase (tipos → persistência → roteamento → entrega → reconciliação) antes de avançar |
-| **Documentar decisões** | Registrar no CHANGELOG e nas observações qualquer divergência de implementação |
+| Princípio                        | Descrição                                                                                                       |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Não bloquear fluxo principal** | A emissão/entrega de notificação nunca interrompe a ação de negócio que a originou                              |
+| **Fail gracefully**              | Falha de canal ou de provider não derruba a UI; estado de erro é exposto, não propagado como exceção ao emissor |
+| **Preservar evidências**         | Notificações de evento são snapshots imutáveis; o histórico sobrevive a mudanças no registro de origem          |
+| **Testar incrementalmente**      | Validar cada fase (tipos → persistência → roteamento → entrega → reconciliação) antes de avançar                |
+| **Documentar decisões**          | Registrar no CHANGELOG e nas observações qualquer divergência de implementação                                  |
 
 ### Orientações Gerais
 
-| Aspecto | Orientação |
-|---------|------------|
-| **Espelhar o PRD-005** | A estrutura de `src/providers/notifications/` deve espelhar `src/providers/data/` (contracts/impl/hooks/factory). Quem já leu o PRD-005 deve reconhecer o padrão imediatamente |
-| **Dois eixos de Provider** | Não confundir persistência (Mock/Supabase, via `VITE_DATA_SOURCE`) com entrega (channel providers, via channel registry). São perpendiculares |
-| **Mensagens de erro dos esqueletos** | Devem citar canal, método e PRD futuro. Ex.: `"WhatsAppChannel.send — implementar no PRD-143 (Onda 8 / WhatsApp HSM)"` |
-| **Derivadas não são emitidas à mão** | Apenas o reconciliador produz `lifecycle: 'derived'`. Features emitem somente eventos |
-| **dedupeKey determinístico** | Mesmo fato → mesma chave. É o que protege contra a duplicação real-time + reconciliação |
-| **Limiares parametrizáveis** | Nunca hardcodar dias de dormência/horas de SLA/carga; ler de configurações (PRD-019/PRD-014) |
-| **Snapshot em title/body** | Copiar o texto no momento da criação; não referenciar o registro de origem |
+| Aspecto                              | Orientação                                                                                                                                                                     |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Espelhar o PRD-005**               | A estrutura de `src/providers/notifications/` deve espelhar `src/providers/data/` (contracts/impl/hooks/factory). Quem já leu o PRD-005 deve reconhecer o padrão imediatamente |
+| **Dois eixos de Provider**           | Não confundir persistência (Mock/Supabase, via `VITE_DATA_SOURCE`) com entrega (channel providers, via channel registry). São perpendiculares                                  |
+| **Mensagens de erro dos esqueletos** | Devem citar canal, método e PRD futuro. Ex.: `"WhatsAppChannel.send — implementar no PRD-143 (Onda 8 / WhatsApp HSM)"`                                                         |
+| **Derivadas não são emitidas à mão** | Apenas o reconciliador produz `lifecycle: 'derived'`. Features emitem somente eventos                                                                                          |
+| **dedupeKey determinístico**         | Mesmo fato → mesma chave. É o que protege contra a duplicação real-time + reconciliação                                                                                        |
+| **Limiares parametrizáveis**         | Nunca hardcodar dias de dormência/horas de SLA/carga; ler de configurações (PRD-019/PRD-014)                                                                                   |
+| **Snapshot em title/body**           | Copiar o texto no momento da criação; não referenciar o registro de origem                                                                                                     |
 
 ### O que NÃO Fazer
 
-| ❌ Evitar |
-|----------|
-| Implementar qualquer UI (sino, dropdown, página, tela de preferências) — é escopo do PRD-009 |
+| ❌ Evitar                                                                                          |
+| -------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| Implementar qualquer UI (sino, dropdown, página, tela de preferências) — é escopo do PRD-009       |
 | Integrar provedores externos reais (email/WhatsApp/SMS/push) — são esqueletos; integração é Onda 8 |
-| Implementar o `SupabaseNotificationStore` de verdade — é esqueleto |
-| Usar `enum` do TypeScript — sempre union types literais |
-| Usar `Date` em campos de tempo — sempre ISO8601 string |
-| Usar `| null` no modelo — apenas opcional com `?` |
-| Persistir dismiss de derivadas em `localStorage` — o ciclo de vida é por reconciliação |
-| Emitir notificações derivadas manualmente a partir de features |
-| Acoplar features à camada de persistência — consumir apenas o barrel público |
-| Bloquear o fluxo de negócio aguardando a entrega de notificação |
-| Silenciar totalmente notificações transacionais críticas via preferências |
-| Hardcodar limiares de dormência/SLA/carga |
+| Implementar o `SupabaseNotificationStore` de verdade — é esqueleto                                 |
+| Usar `enum` do TypeScript — sempre union types literais                                            |
+| Usar `Date` em campos de tempo — sempre ISO8601 string                                             |
+| Usar `                                                                                             | null`no modelo — apenas opcional com`?` |
+| Persistir dismiss de derivadas em `localStorage` — o ciclo de vida é por reconciliação             |
+| Emitir notificações derivadas manualmente a partir de features                                     |
+| Acoplar features à camada de persistência — consumir apenas o barrel público                       |
+| Bloquear o fluxo de negócio aguardando a entrega de notificação                                    |
+| Silenciar totalmente notificações transacionais críticas via preferências                          |
+| Hardcodar limiares de dormência/SLA/carga                                                          |
 
 ---
 
@@ -581,38 +587,38 @@ Tipos de mudança a documentar: **Added** (novas funcionalidades), **Changed** (
 
 > `lifecycle: derived` = produzido pelo reconciliador (RF-024+). Canais externos resolvem `deferred` na Fase 1.
 
-| Evento (`type`) | Módulo | Lifecycle | Categoria | Severidade | Destinatário(s) | Canais-alvo (Fase 1) |
-|-----------------|--------|-----------|-----------|------------|-----------------|----------------------|
-| `conversa.atribuida` | Atendimento | event | operational | info | Vendedor (assignee) | inApp, toast |
-| `conversa.semResposta` | Atendimento | derived | operational | warning | Vendedor + Gestor | inApp |
-| `sdr.escalonou` | Atendimento | event | operational | warning | Vendedor / Gestor | inApp, toast |
-| `carteira.transferenciaRecebida` | Carteira | event | operational | info | Vendedor (destino) | inApp, toast |
-| `carteira.autoRevertAgendado` | Carteira | event | operational | info | Vendedor | inApp |
-| `carteira.autoRevertExecutado` | Carteira | event | operational | info | Vendedor | inApp |
-| `lead.novo` | Leads | event | commercial | info | Vendedor (owner) | inApp, toast |
-| `lead.esfriando` | Leads | derived | commercial | warning | Vendedor | inApp |
-| `lead.perdido` | Leads | event | commercial | info | Vendedor + Gestor | inApp |
-| `meta.atingidaParcial` | Metas | event | gamification | info | Vendedor | inApp, toast |
-| `meta.batida` | Metas | event | gamification | success | Vendedor + Gestor | inApp, toast |
-| `badge.conquistado` | Gamificação | event | gamification | success | Vendedor | inApp, toast |
-| `ranking.mudouPosicao` | Gamificação | event | gamification | info | Vendedor | inApp |
-| `cliente.dormente` | Comercial | derived | commercial | warning | Vendedor (owner) + Gestor | inApp |
-| `vendedor.sobrecarregado` | Operacional | derived | operational | warning | Gestor + Owner | inApp |
-| `positivacao.emRisco` | Comercial | derived | commercial | warning | Vendedor | inApp |
-| `abc.clienteMudouClasse` | Comercial | event | commercial | info | Vendedor | inApp |
-| `pedido.criado` | Vendas | event | transactional | info | Vendedor + Cliente | inApp (+ email/whatsapp deferred p/ cliente) |
-| `pedido.statusMudou` | Vendas | event | transactional | info | Vendedor + Cliente | inApp (+ deferred) |
-| `pedido.confirmado` | Vendas | event | transactional | success | Vendedor + Cliente | inApp (+ deferred) |
-| `nf.emitida` | Vendas | event | transactional | info | Cliente | inApp (+ deferred) |
-| `ecom.pedidoRecebido` | E-commerce | event | transactional | success | Cliente | inApp (+ deferred) |
-| `ecom.pagamentoConfirmado` | E-commerce | event | transactional | success | Cliente | inApp (+ deferred) |
-| `ecom.pedidoEnviado` | E-commerce | event | transactional | info | Cliente | inApp (+ deferred) |
-| `ecom.carrinhoAbandonado` | E-commerce | event | marketing | info | Cliente | deferred (PRD-149) |
-| `portal.orcamentoAprovado` | Portal B2B | event | transactional | success | Cliente | inApp (+ deferred) |
-| `portal.faturaDisponivel` | Portal B2B | event | transactional | info | Cliente | inApp (+ deferred) |
-| `portal.creditoProximoLimite` | Portal B2B | derived | commercial | warning | Cliente | inApp (+ deferred) |
-| `sistema.manutencao` | Sistema | event | system | warning | Interno + Cliente | inApp, toast |
-| `sistema.novoRecurso` | Sistema | event | system | info | Interno + Cliente | inApp |
+| Evento (`type`)                  | Módulo      | Lifecycle | Categoria     | Severidade | Destinatário(s)           | Canais-alvo (Fase 1)                         |
+| -------------------------------- | ----------- | --------- | ------------- | ---------- | ------------------------- | -------------------------------------------- |
+| `conversa.atribuida`             | Atendimento | event     | operational   | info       | Vendedor (assignee)       | inApp, toast                                 |
+| `conversa.semResposta`           | Atendimento | derived   | operational   | warning    | Vendedor + Gestor         | inApp                                        |
+| `sdr.escalonou`                  | Atendimento | event     | operational   | warning    | Vendedor / Gestor         | inApp, toast                                 |
+| `carteira.transferenciaRecebida` | Carteira    | event     | operational   | info       | Vendedor (destino)        | inApp, toast                                 |
+| `carteira.autoRevertAgendado`    | Carteira    | event     | operational   | info       | Vendedor                  | inApp                                        |
+| `carteira.autoRevertExecutado`   | Carteira    | event     | operational   | info       | Vendedor                  | inApp                                        |
+| `lead.novo`                      | Leads       | event     | commercial    | info       | Vendedor (owner)          | inApp, toast                                 |
+| `lead.esfriando`                 | Leads       | derived   | commercial    | warning    | Vendedor                  | inApp                                        |
+| `lead.perdido`                   | Leads       | event     | commercial    | info       | Vendedor + Gestor         | inApp                                        |
+| `meta.atingidaParcial`           | Metas       | event     | gamification  | info       | Vendedor                  | inApp, toast                                 |
+| `meta.batida`                    | Metas       | event     | gamification  | success    | Vendedor + Gestor         | inApp, toast                                 |
+| `badge.conquistado`              | Gamificação | event     | gamification  | success    | Vendedor                  | inApp, toast                                 |
+| `ranking.mudouPosicao`           | Gamificação | event     | gamification  | info       | Vendedor                  | inApp                                        |
+| `cliente.dormente`               | Comercial   | derived   | commercial    | warning    | Vendedor (owner) + Gestor | inApp                                        |
+| `vendedor.sobrecarregado`        | Operacional | derived   | operational   | warning    | Gestor + Owner            | inApp                                        |
+| `positivacao.emRisco`            | Comercial   | derived   | commercial    | warning    | Vendedor                  | inApp                                        |
+| `abc.clienteMudouClasse`         | Comercial   | event     | commercial    | info       | Vendedor                  | inApp                                        |
+| `pedido.criado`                  | Vendas      | event     | transactional | info       | Vendedor + Cliente        | inApp (+ email/whatsapp deferred p/ cliente) |
+| `pedido.statusMudou`             | Vendas      | event     | transactional | info       | Vendedor + Cliente        | inApp (+ deferred)                           |
+| `pedido.confirmado`              | Vendas      | event     | transactional | success    | Vendedor + Cliente        | inApp (+ deferred)                           |
+| `nf.emitida`                     | Vendas      | event     | transactional | info       | Cliente                   | inApp (+ deferred)                           |
+| `ecom.pedidoRecebido`            | E-commerce  | event     | transactional | success    | Cliente                   | inApp (+ deferred)                           |
+| `ecom.pagamentoConfirmado`       | E-commerce  | event     | transactional | success    | Cliente                   | inApp (+ deferred)                           |
+| `ecom.pedidoEnviado`             | E-commerce  | event     | transactional | info       | Cliente                   | inApp (+ deferred)                           |
+| `ecom.carrinhoAbandonado`        | E-commerce  | event     | marketing     | info       | Cliente                   | deferred (PRD-149)                           |
+| `portal.orcamentoAprovado`       | Portal B2B  | event     | transactional | success    | Cliente                   | inApp (+ deferred)                           |
+| `portal.faturaDisponivel`        | Portal B2B  | event     | transactional | info       | Cliente                   | inApp (+ deferred)                           |
+| `portal.creditoProximoLimite`    | Portal B2B  | derived   | commercial    | warning    | Cliente                   | inApp (+ deferred)                           |
+| `sistema.manutencao`             | Sistema     | event     | system        | warning    | Interno + Cliente         | inApp, toast                                 |
+| `sistema.novoRecurso`            | Sistema     | event     | system        | info       | Interno + Cliente         | inApp                                        |
 
 ---
 
@@ -620,14 +626,14 @@ Tipos de mudança a documentar: **Added** (novas funcionalidades), **Changed** (
 
 > Matriz canal × categoria aplicada quando o destinatário ainda não tem preferências salvas. `✓` = habilitado por default; `—` = desabilitado por default; `🔒` = não silenciável (inApp sempre ativo).
 
-| Categoria | Vendedor | Gestor | Owner | Cliente |
-|-----------|----------|--------|-------|---------|
-| transactional | inApp 🔒, toast ✓ | inApp 🔒, toast ✓ | inApp 🔒, toast ✓ | inApp 🔒 (+ email/whatsapp ✓ na Onda 8) |
-| operational | inApp ✓, toast ✓ | inApp ✓, toast ✓ | inApp ✓, toast — | — |
-| commercial | inApp ✓, toast — | inApp ✓, toast — | inApp ✓, toast — | inApp ✓ |
-| gamification | inApp ✓, toast ✓ | inApp ✓, toast — | inApp —, toast — | — |
-| system | inApp 🔒, toast ✓ | inApp 🔒, toast ✓ | inApp 🔒, toast ✓ | inApp 🔒 |
-| marketing | — | — | — | inApp — (+ email/whatsapp opt-in na Onda 8) |
+| Categoria     | Vendedor          | Gestor            | Owner             | Cliente                                     |
+| ------------- | ----------------- | ----------------- | ----------------- | ------------------------------------------- |
+| transactional | inApp 🔒, toast ✓ | inApp 🔒, toast ✓ | inApp 🔒, toast ✓ | inApp 🔒 (+ email/whatsapp ✓ na Onda 8)     |
+| operational   | inApp ✓, toast ✓  | inApp ✓, toast ✓  | inApp ✓, toast —  | —                                           |
+| commercial    | inApp ✓, toast —  | inApp ✓, toast —  | inApp ✓, toast —  | inApp ✓                                     |
+| gamification  | inApp ✓, toast ✓  | inApp ✓, toast —  | inApp —, toast —  | —                                           |
+| system        | inApp 🔒, toast ✓ | inApp 🔒, toast ✓ | inApp 🔒, toast ✓ | inApp 🔒                                    |
+| marketing     | —                 | —                 | —                 | inApp — (+ email/whatsapp opt-in na Onda 8) |
 
 ---
 
@@ -635,37 +641,37 @@ Tipos de mudança a documentar: **Added** (novas funcionalidades), **Changed** (
 
 > Bloco informativo para o Arquiteto e o Frederico decidirem o ajuste dos PRDs 141–150. **Não implementar nada disto aqui** — é apenas o registro de que a Onda 8 passa a referenciar esta fundação.
 
-| PRD da Onda 8 | Ajuste sugerido em função do PRD-008 |
-|---------------|--------------------------------------|
-| PRD-141 (Email Transacional) | Implementa `EmailChannel` real sobre o contrato já existente; não recria modelo |
-| PRD-143 (WhatsApp HSM) | Implementa `WhatsAppChannel` real; reaproveita roteamento e `deliveryStatus` |
-| PRD-144 (SMS) | Implementa `SmsChannel` real |
-| PRD-145 (Push Web) | Implementa `PushChannel` real |
-| PRD-146 (Notification Center) | **Possível absorção pelo PRD-009** (UI já entregue na Fase 1); reavaliar se o 146 vira apenas "ativação dos canais reais na UI" |
-| PRD-147 (Preferências LGPD) | Estende a matriz já existente com trilha legal de consentimento; não recria a tela |
-| PRD-148 (Drip) / PRD-149 (Carrinho Abandonado) | Consomem o catálogo de eventos e os canais reais |
-| PRD-150 (Migração de Stubs) | Troca os esqueletos de canal pelas implementações reais; remove os marcadores `deferred` |
+| PRD da Onda 8                                  | Ajuste sugerido em função do PRD-008                                                                                            |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| PRD-141 (Email Transacional)                   | Implementa `EmailChannel` real sobre o contrato já existente; não recria modelo                                                 |
+| PRD-143 (WhatsApp HSM)                         | Implementa `WhatsAppChannel` real; reaproveita roteamento e `deliveryStatus`                                                    |
+| PRD-144 (SMS)                                  | Implementa `SmsChannel` real                                                                                                    |
+| PRD-145 (Push Web)                             | Implementa `PushChannel` real                                                                                                   |
+| PRD-146 (Notification Center)                  | **Possível absorção pelo PRD-009** (UI já entregue na Fase 1); reavaliar se o 146 vira apenas "ativação dos canais reais na UI" |
+| PRD-147 (Preferências LGPD)                    | Estende a matriz já existente com trilha legal de consentimento; não recria a tela                                              |
+| PRD-148 (Drip) / PRD-149 (Carrinho Abandonado) | Consomem o catálogo de eventos e os canais reais                                                                                |
+| PRD-150 (Migração de Stubs)                    | Troca os esqueletos de canal pelas implementações reais; remove os marcadores `deferred`                                        |
 
 ---
 
 ## Status de Implementação
 
-| Campo | Valor |
-|-------|-------|
-| **Status** | ✅ CONCLUÍDO |
-| **Data de Implementação** | 2026-05-31 |
-| **Versão do App** | 0.54.0 |
-| **Codinome** | Herald |
-| **Implementado por** | Claude (Claude Code CLI) |
-| **Observações** | Fundação invisível: modelo `INotification`, barramento de eventos, roteamento por regras/preferências, persistência via Provider Pattern (mock ativo / Supabase stub), canais (in-app/toast ativos; e-mail/WhatsApp/SMS/push como stubs deferidos para a Onda 8) e reconciliador de condições derivadas compartilhadas com o PRD-014. Harness de validação em `/design-system` (dev-only). UI no PRD-009 (Chime). |
+| Campo                     | Valor                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**                | ✅ CONCLUÍDO                                                                                                                                                                                                                                                                                                                                                                                                      |
+| **Data de Implementação** | 2026-05-31                                                                                                                                                                                                                                                                                                                                                                                                        |
+| **Versão do App**         | 0.54.0                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **Codinome**              | Herald                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **Implementado por**      | Claude (Claude Code CLI)                                                                                                                                                                                                                                                                                                                                                                                          |
+| **Observações**           | Fundação invisível: modelo `INotification`, barramento de eventos, roteamento por regras/preferências, persistência via Provider Pattern (mock ativo / Supabase stub), canais (in-app/toast ativos; e-mail/WhatsApp/SMS/push como stubs deferidos para a Onda 8) e reconciliador de condições derivadas compartilhadas com o PRD-014. Harness de validação em `/design-system` (dev-only). UI no PRD-009 (Chime). |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 30/05/2026 | v1 | Criação inicial — fundação de notificações (modelo `INotification`, event bus, roteamento por regras/preferências, persistência via Provider Pattern, channel providers com inApp/toast ativos e email/whatsapp/sms/push como esqueletos, reconciliador absorvendo alertas do PRD-014). Dois públicos (interno + cliente final). Onda 8 mapeada no Anexo C |
+| Data       | Versão | Alteração                                                                                                                                                                                                                                                                                                                                                  |
+| ---------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 30/05/2026 | v1     | Criação inicial — fundação de notificações (modelo `INotification`, event bus, roteamento por regras/preferências, persistência via Provider Pattern, channel providers com inApp/toast ativos e email/whatsapp/sms/push como esqueletos, reconciliador absorvendo alertas do PRD-014). Dois públicos (interno + cliente final). Onda 8 mapeada no Anexo C |
 
 ---
 

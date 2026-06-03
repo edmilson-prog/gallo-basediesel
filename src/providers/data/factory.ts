@@ -26,8 +26,8 @@ import { mockSdrSessionsProvider } from "./impl/mock/sdrSessions";
 import { mockSdrEscalationsProvider } from "./impl/mock/sdrEscalations";
 import { mockCopilotProvider } from "./impl/mock/copilot";
 import { mockIndicatorsProvider } from "./impl/mock/indicators";
-import { mockServiceKitsProvider } from "./impl/mock/serviceKits";
 import { mockVehicleModelsProvider } from "./impl/mock/vehicleModels";
+import { mockModelKitsProvider } from "./impl/mock/modelKits";
 
 import { supabaseCustomersProvider } from "./impl/supabase/customers";
 import { supabaseVehiclesProvider } from "./impl/supabase/vehicles";
@@ -55,8 +55,8 @@ import { supabaseSdrSessionsProvider } from "./impl/supabase/sdrSessions";
 import { supabaseSdrEscalationsProvider } from "./impl/supabase/sdrEscalations";
 import { supabaseCopilotProvider } from "./impl/supabase/copilot";
 import { supabaseIndicatorsProvider } from "./impl/supabase/indicators";
-import { supabaseServiceKitsProvider } from "./impl/supabase/serviceKits";
 import { supabaseVehicleModelsProvider } from "./impl/supabase/vehicleModels";
+import { supabaseModelKitsProvider } from "./impl/supabase/modelKits";
 
 type DataSource = "mock" | "supabase";
 
@@ -109,8 +109,8 @@ const mockProviders: IDataProviders = {
   sdrEscalations: mockSdrEscalationsProvider,
   copilot: mockCopilotProvider,
   indicators: mockIndicatorsProvider,
-  serviceKits: mockServiceKitsProvider,
   vehicleModels: mockVehicleModelsProvider,
+  modelKits: mockModelKitsProvider,
 };
 
 const supabaseProviders: IDataProviders = {
@@ -140,8 +140,8 @@ const supabaseProviders: IDataProviders = {
   sdrEscalations: supabaseSdrEscalationsProvider,
   copilot: supabaseCopilotProvider,
   indicators: supabaseIndicatorsProvider,
-  serviceKits: supabaseServiceKitsProvider,
   vehicleModels: supabaseVehicleModelsProvider,
+  modelKits: supabaseModelKitsProvider,
 };
 
 /**

@@ -35,7 +35,12 @@ export const indicatorsPtBR = {
     trimestral: "Trimestral",
     anual: "Anual",
   },
-  status: { ativo: "Ativo", concluido: "Concluído", arquivado: "Arquivado", cancelado: "Cancelado" },
+  status: {
+    ativo: "Ativo",
+    concluido: "Concluído",
+    arquivado: "Arquivado",
+    cancelado: "Cancelado",
+  },
   selectorKind: { category: "Categoria", sku: "Produtos", group: "Grupo" },
   kpis: {
     active: "Indicadores ativos",

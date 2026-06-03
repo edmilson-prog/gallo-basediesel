@@ -6,6 +6,7 @@ import { VehicleModelRow } from "./VehicleModelRow";
 export interface IBrandGroupProps {
   brand: string;
   models: IVehicleModel[];
+  kitCountsByModel?: Map<string, { total: number; rascunhos: number }>;
   canManage: boolean;
   onEdit: (m: IVehicleModel) => void;
   onToggleStatus: (m: IVehicleModel) => void;
@@ -15,6 +16,7 @@ export interface IBrandGroupProps {
 export function BrandGroup({
   brand,
   models,
+  kitCountsByModel,
   canManage,
   onEdit,
   onToggleStatus,
@@ -42,6 +44,7 @@ export function BrandGroup({
             <VehicleModelRow
               key={model.id}
               model={model}
+              kitCounts={kitCountsByModel?.get(model.id)}
               canManage={canManage}
               onEdit={onEdit}
               onToggleStatus={onToggleStatus}

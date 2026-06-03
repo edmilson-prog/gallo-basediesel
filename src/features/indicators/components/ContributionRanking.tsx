@@ -39,9 +39,7 @@ export function ContributionRanking({
       </header>
 
       {contributors.length === 0 ? (
-        <p className="py-6 text-center text-sm text-muted-foreground">
-          {S.noContributions}
-        </p>
+        <p className="py-6 text-center text-sm text-muted-foreground">{S.noContributions}</p>
       ) : (
         <>
           {/* Accessible hidden table for screen readers */}
@@ -79,11 +77,7 @@ export function ContributionRanking({
               const ariaLabel = `${name}: ${formatByMetric(metric, c.value, "full")} (${pct}%)`;
 
               return (
-                <li
-                  key={c.sellerId}
-                  className="flex flex-col gap-1"
-                  aria-label={ariaLabel}
-                >
+                <li key={c.sellerId} className="flex flex-col gap-1" aria-label={ariaLabel}>
                   <div className="flex items-center justify-between gap-2 text-sm">
                     {/* Rank badge + seller name */}
                     <div className="flex min-w-0 items-center gap-2">
@@ -98,9 +92,7 @@ export function ContributionRanking({
                       <span className="text-sm font-semibold tabular-nums text-foreground">
                         {formattedValue}
                       </span>
-                      <span className="min-w-[2.75rem] text-xs text-muted-foreground">
-                        {pct}%
-                      </span>
+                      <span className="min-w-[2.75rem] text-xs text-muted-foreground">{pct}%</span>
                     </div>
                   </div>
 

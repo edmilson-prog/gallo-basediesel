@@ -51,6 +51,7 @@
 ### Task 1: Config compartilhada + hook de persistência
 
 **Files:**
+
 - Create: `src/shared/list-views/config.ts`
 - Create: `src/shared/list-views/useListLayout.ts`
 
@@ -136,6 +137,7 @@ bunx prettier --write src/shared/list-views/config.ts src/shared/list-views/useL
 bunx eslint src/shared/list-views/config.ts src/shared/list-views/useListLayout.ts
 bun run build
 ```
+
 Esperado: prettier ok, eslint exit 0, build `✓ built`.
 
 - [ ] **Step 4: Commit**
@@ -150,6 +152,7 @@ git commit -m "feat: add shared list-view config and layout persistence hook" -m
 ### Task 2: Faixa de KPIs + abas de status (compartilhados)
 
 **Files:**
+
 - Create: `src/shared/list-views/ListStatStrip.tsx`
 - Create: `src/shared/list-views/ListStatusTabs.tsx`
 
@@ -288,7 +291,9 @@ export function ListStatusTabs({
               <span className={cn("h-1.5 w-1.5 rounded-full", tab.dotClassName)} />
             )}
             <span>{tab.label}</span>
-            <span className={cn("tabular-nums", active ? "text-primary" : "text-muted-foreground/70")}>
+            <span
+              className={cn("tabular-nums", active ? "text-primary" : "text-muted-foreground/70")}
+            >
               {tab.count}
             </span>
           </button>
@@ -306,6 +311,7 @@ bunx prettier --write src/shared/list-views/ListStatStrip.tsx src/shared/list-vi
 bunx eslint src/shared/list-views/ListStatStrip.tsx src/shared/list-views/ListStatusTabs.tsx
 bun run build
 ```
+
 Esperado: eslint exit 0, build `✓ built`.
 
 - [ ] **Step 4: Commit**
@@ -320,6 +326,7 @@ git commit -m "feat: add shared list KPI strip and status tabs" -m "Co-Authored-
 ### Task 3: Seletor segmentado + shells + barrel
 
 **Files:**
+
 - Create: `src/shared/list-views/ListLayoutSwitcher.tsx`
 - Create: `src/shared/list-views/LayoutShells.tsx`
 - Create: `src/shared/list-views/index.ts`
@@ -459,6 +466,7 @@ bunx prettier --write src/shared/list-views/ListLayoutSwitcher.tsx src/shared/li
 bunx eslint src/shared/list-views/ListLayoutSwitcher.tsx src/shared/list-views/LayoutShells.tsx src/shared/list-views/index.ts
 bun run build
 ```
+
 Esperado: build `✓ built`. (Confirma que `@/components/ui/toggle-group` existe — já é usado por `VehicleLayoutSwitcher`.)
 
 - [ ] **Step 5: Commit**
@@ -473,6 +481,7 @@ git commit -m "feat: add shared list layout switcher and arrangement shells" -m 
 ### Task 4: KPIs e contagens de Orçamentos
 
 **Files:**
+
 - Create: `src/features/quotes/utils/quoteListStats.ts`
 
 - [ ] **Step 1: Criar `src/features/quotes/utils/quoteListStats.ts`**
@@ -552,6 +561,7 @@ bunx prettier --write src/features/quotes/utils/quoteListStats.ts
 bunx eslint src/features/quotes/utils/quoteListStats.ts
 bun run build
 ```
+
 Esperado: build `✓ built`.
 
 - [ ] **Step 3: Commit**
@@ -566,6 +576,7 @@ git commit -m "feat: add quote list KPI and status-count derivations" -m "Co-Aut
 ### Task 5: Expor `allFiltered` em `useQuotesList` (status no cliente)
 
 **Files:**
+
 - Modify: `src/features/quotes/hooks/useQuotesList.ts`
 
 Contexto: hoje o `status` é enviado ao provider (`params.status`) e a paginação é client-side. Para alimentar abas/KPIs com contagens por status, movemos o filtro de status para o cliente e expomos `allFiltered` (conjunto pós-filtros-comuns, **pré-status**, pré-paginação).
@@ -603,37 +614,37 @@ No `useMemo` de `params`, **apagar** a linha:
 Substituir o bloco `const result = useMemo(...)` inteiro por:
 
 ```ts
-  const result = useMemo(() => {
-    const fetched = query.data?.data ?? [];
-    // allFiltered = todos os filtros comuns + vendedor, MAS sem status nem paginação.
-    let allFiltered = applyClientFilters(fetched, filters);
-    if (options.sellerIdLock && filters.sellerIds.length === 0) {
-      allFiltered = allFiltered.filter((q) => q.sellerId === options.sellerIdLock);
-    } else if (filters.sellerIds.length > 0) {
-      const set = new Set(filters.sellerIds);
-      allFiltered = allFiltered.filter((q) => set.has(q.sellerId));
-    }
-    // afterStatus aplica o filtro de status (agora client-side) sobre allFiltered.
-    const statusSet = new Set(filters.statuses);
-    const afterStatus =
-      statusSet.size > 0 ? allFiltered.filter((q) => statusSet.has(q.status)) : allFiltered;
-    const sorted = sortQuotes(afterStatus, sort, options.customersById, options.sellersById);
-    const start = (page - 1) * pageSize;
-    return {
-      paged: sorted.slice(start, start + pageSize),
-      total: sorted.length,
-      allFiltered,
-    };
-  }, [
-    query.data,
-    filters,
-    sort,
-    page,
-    pageSize,
-    options.sellerIdLock,
-    options.customersById,
-    options.sellersById,
-  ]);
+const result = useMemo(() => {
+  const fetched = query.data?.data ?? [];
+  // allFiltered = todos os filtros comuns + vendedor, MAS sem status nem paginação.
+  let allFiltered = applyClientFilters(fetched, filters);
+  if (options.sellerIdLock && filters.sellerIds.length === 0) {
+    allFiltered = allFiltered.filter((q) => q.sellerId === options.sellerIdLock);
+  } else if (filters.sellerIds.length > 0) {
+    const set = new Set(filters.sellerIds);
+    allFiltered = allFiltered.filter((q) => set.has(q.sellerId));
+  }
+  // afterStatus aplica o filtro de status (agora client-side) sobre allFiltered.
+  const statusSet = new Set(filters.statuses);
+  const afterStatus =
+    statusSet.size > 0 ? allFiltered.filter((q) => statusSet.has(q.status)) : allFiltered;
+  const sorted = sortQuotes(afterStatus, sort, options.customersById, options.sellersById);
+  const start = (page - 1) * pageSize;
+  return {
+    paged: sorted.slice(start, start + pageSize),
+    total: sorted.length,
+    allFiltered,
+  };
+}, [
+  query.data,
+  filters,
+  sort,
+  page,
+  pageSize,
+  options.sellerIdLock,
+  options.customersById,
+  options.sellersById,
+]);
 ```
 
 - [ ] **Step 4: Retornar `allFiltered`**
@@ -641,16 +652,16 @@ Substituir o bloco `const result = useMemo(...)` inteiro por:
 No `return` final do hook, adicionar o campo:
 
 ```ts
-  return {
-    data: result.paged,
-    allFiltered: result.allFiltered,
-    total: result.total,
-    isLoading: query.isLoading,
-    isFetching: query.isFetching,
-    isError: query.isError,
-    refetch: () => void query.refetch(),
-    invalidate: () => queryClient.invalidateQueries({ queryKey: ["quotes-list"] }),
-  };
+return {
+  data: result.paged,
+  allFiltered: result.allFiltered,
+  total: result.total,
+  isLoading: query.isLoading,
+  isFetching: query.isFetching,
+  isError: query.isError,
+  refetch: () => void query.refetch(),
+  invalidate: () => queryClient.invalidateQueries({ queryKey: ["quotes-list"] }),
+};
 ```
 
 - [ ] **Step 5: Verificar**
@@ -660,6 +671,7 @@ bunx prettier --write src/features/quotes/hooks/useQuotesList.ts
 bunx eslint src/features/quotes/hooks/useQuotesList.ts
 bun run build
 ```
+
 Esperado: build `✓ built`. (Se o build acusar `allFiltered` não usado, é esperado até a Task 8 — mas como é só adição de campo retornado, compila.)
 
 - [ ] **Step 6: Commit**
@@ -674,6 +686,7 @@ git commit -m "feat: expose pre-status filtered quote set for KPIs and tabs" -m 
 ### Task 6: Tabela de Orçamentos fluida + variante de linhas duplas
 
 **Files:**
+
 - Modify: `src/features/quotes/components/list/QuotesTable.tsx` (1 linha)
 - Create: `src/features/quotes/components/list/QuotesTableRows.tsx`
 
@@ -812,6 +825,7 @@ bunx prettier --write src/features/quotes/components/list/QuotesTable.tsx src/fe
 bunx eslint src/features/quotes/components/list/QuotesTable.tsx src/features/quotes/components/list/QuotesTableRows.tsx
 bun run build
 ```
+
 Esperado: build `✓ built`. (Confirma que `QuoteOriginBadge` aceita `origin={q.origin}` — é como `QuotesTable` o usa.)
 
 - [ ] **Step 4: Commit**
@@ -826,6 +840,7 @@ git commit -m "feat: make quotes table fluid and add two-line rows variant" -m "
 ### Task 7: Barra de filtros (remover Status, add `stacked`) + header com seletor
 
 **Files:**
+
 - Modify: `src/features/quotes/components/list/QuotesFiltersBar.tsx`
 - Modify: `src/features/quotes/components/list/QuotesHeader.tsx`
 
@@ -1169,6 +1184,7 @@ bunx prettier --write src/features/quotes/components/list/QuotesFiltersBar.tsx s
 bunx eslint src/features/quotes/components/list/QuotesFiltersBar.tsx src/features/quotes/components/list/QuotesHeader.tsx
 bun run build
 ```
+
 Esperado: build `✓ built`, sem `no-unused-vars` (os imports `QUOTE_STATUS_META`/`STATUS_OPTIONS` foram removidos).
 
 - [ ] **Step 4: Commit**
@@ -1183,6 +1199,7 @@ git commit -m "feat: status tabs replace status popover; add layout switcher to 
 ### Task 8: Compor a `QuotesListPage` com as 3 visualizações
 
 **Files:**
+
 - Modify: `src/features/quotes/pages/QuotesListPage.tsx`
 
 - [ ] **Step 1: Reescrever `QuotesListPage.tsx`**
@@ -1487,6 +1504,7 @@ bunx prettier --write src/features/quotes/pages/QuotesListPage.tsx
 bunx eslint src/features/quotes/pages/QuotesListPage.tsx
 bun run build
 ```
+
 Esperado: build `✓ built`. Confirmar que `QUOTE_STATUS_META` é exportado por `../components/QuoteStatusBadge` (é) e que `url.patchFilters`/`url.setSearch`/`url.setSort`/`url.setPage`/`url.setPageSize`/`url.clearAll` existem (já usados na versão anterior).
 
 - [ ] **Step 3: Commit**
@@ -1503,6 +1521,7 @@ git commit -m "feat: redesign quotes list with selectable cockpit/console/rows l
 ### Task 9: KPIs e contagens de Pedidos
 
 **Files:**
+
 - Create: `src/features/orders/utils/orderListStats.ts`
 
 - [ ] **Step 1: Criar `src/features/orders/utils/orderListStats.ts`**
@@ -1532,7 +1551,8 @@ export function orderStatCells(orders: IOrder[], now: Date): IStatCell[] {
       o.paymentStatus === "vencido",
   );
   const toShip = orders.filter(
-    (o) => !o.canceledAt && (o.fulfillmentStatus === "pendente" || o.fulfillmentStatus === "separacao"),
+    (o) =>
+      !o.canceledAt && (o.fulfillmentStatus === "pendente" || o.fulfillmentStatus === "separacao"),
   ).length;
   const overdue = orders.filter(
     (o) => o.paymentStatus === "vencido" || isPaymentOverdue(o, now),
@@ -1586,6 +1606,7 @@ bunx prettier --write src/features/orders/utils/orderListStats.ts
 bunx eslint src/features/orders/utils/orderListStats.ts
 bun run build
 ```
+
 Esperado: build `✓ built`.
 
 - [ ] **Step 3: Commit**
@@ -1600,6 +1621,7 @@ git commit -m "feat: add order list KPI and status-count derivations" -m "Co-Aut
 ### Task 10: Expor `allFiltered` em `useOrdersList` (status separado)
 
 **Files:**
+
 - Modify: `src/features/orders/hooks/useOrdersList.ts`
 
 - [ ] **Step 1: Adicionar `allFiltered` à interface**
@@ -1625,10 +1647,10 @@ export interface IOrdersListQuery {
 Dentro de `applyClientFilters`, **apagar** este bloco (o filtro de status agregado passa a ser aplicado depois, sobre `allFiltered`):
 
 ```ts
-    if (filters.statuses.length > 0) {
-      const agg = computeOrderStatus(o);
-      if (!filters.statuses.includes(agg)) return false;
-    }
+if (filters.statuses.length > 0) {
+  const agg = computeOrderStatus(o);
+  if (!filters.statuses.includes(agg)) return false;
+}
 ```
 
 (Os blocos de `totalMin/Max`, `storeIds`, `paymentStatuses`, `fulfillmentStatuses`, `origins` e `search` permanecem. `computeOrderStatus` continua importado — passa a ser usado no `useMemo` abaixo.)
@@ -1638,44 +1660,44 @@ Dentro de `applyClientFilters`, **apagar** este bloco (o filtro de status agrega
 Substituir o bloco `const result = useMemo(...)` inteiro por:
 
 ```ts
-  const result = useMemo(() => {
-    const fetched = query.data?.data ?? [];
-    // allFiltered = filtros comuns + vendedor, MAS sem o status agregado nem paginação.
-    let allFiltered = applyClientFilters(fetched, filters);
-    if (options.sellerIdLock && filters.sellerIds.length === 0) {
-      allFiltered = allFiltered.filter((o) => o.sellerId === options.sellerIdLock);
-    } else if (filters.sellerIds.length > 0) {
-      const set = new Set(filters.sellerIds);
-      allFiltered = allFiltered.filter((o) => set.has(o.sellerId));
-    }
-    const statusSet = new Set(filters.statuses);
-    const afterStatus =
-      statusSet.size > 0
-        ? allFiltered.filter((o) => statusSet.has(computeOrderStatus(o)))
-        : allFiltered;
-    const sorted = sortOrders(afterStatus, sort);
-    const start = (page - 1) * pageSize;
-    return {
-      paged: sorted.slice(start, start + pageSize),
-      total: sorted.length,
-      allFiltered,
-    };
-  }, [query.data, filters, sort, page, pageSize, options.sellerIdLock]);
+const result = useMemo(() => {
+  const fetched = query.data?.data ?? [];
+  // allFiltered = filtros comuns + vendedor, MAS sem o status agregado nem paginação.
+  let allFiltered = applyClientFilters(fetched, filters);
+  if (options.sellerIdLock && filters.sellerIds.length === 0) {
+    allFiltered = allFiltered.filter((o) => o.sellerId === options.sellerIdLock);
+  } else if (filters.sellerIds.length > 0) {
+    const set = new Set(filters.sellerIds);
+    allFiltered = allFiltered.filter((o) => set.has(o.sellerId));
+  }
+  const statusSet = new Set(filters.statuses);
+  const afterStatus =
+    statusSet.size > 0
+      ? allFiltered.filter((o) => statusSet.has(computeOrderStatus(o)))
+      : allFiltered;
+  const sorted = sortOrders(afterStatus, sort);
+  const start = (page - 1) * pageSize;
+  return {
+    paged: sorted.slice(start, start + pageSize),
+    total: sorted.length,
+    allFiltered,
+  };
+}, [query.data, filters, sort, page, pageSize, options.sellerIdLock]);
 ```
 
 - [ ] **Step 4: Retornar `allFiltered`**
 
 ```ts
-  return {
-    data: result.paged,
-    allFiltered: result.allFiltered,
-    total: result.total,
-    isLoading: query.isLoading,
-    isFetching: query.isFetching,
-    isError: query.isError,
-    refetch: () => void query.refetch(),
-    invalidate: () => queryClient.invalidateQueries({ queryKey: ["orders-list"] }),
-  };
+return {
+  data: result.paged,
+  allFiltered: result.allFiltered,
+  total: result.total,
+  isLoading: query.isLoading,
+  isFetching: query.isFetching,
+  isError: query.isError,
+  refetch: () => void query.refetch(),
+  invalidate: () => queryClient.invalidateQueries({ queryKey: ["orders-list"] }),
+};
 ```
 
 - [ ] **Step 5: Verificar**
@@ -1685,6 +1707,7 @@ bunx prettier --write src/features/orders/hooks/useOrdersList.ts
 bunx eslint src/features/orders/hooks/useOrdersList.ts
 bun run build
 ```
+
 Esperado: build `✓ built`.
 
 - [ ] **Step 6: Commit**
@@ -1699,6 +1722,7 @@ git commit -m "feat: expose pre-status filtered order set for KPIs and tabs" -m 
 ### Task 11: Variante de linhas duplas de Pedidos
 
 **Files:**
+
 - Create: `src/features/orders/components/list/OrdersTableRows.tsx`
 
 > A `OrdersTable` já usa o `<Table>` do shadcn (`w-full` + wrapper `overflow-auto`), então **já preenche a largura** — não precisa de alteração. Esta task só cria a variante de linhas.
@@ -1841,6 +1865,7 @@ bunx prettier --write src/features/orders/components/list/OrdersTableRows.tsx
 bunx eslint src/features/orders/components/list/OrdersTableRows.tsx
 bun run build
 ```
+
 Esperado: build `✓ built`.
 
 - [ ] **Step 3: Commit**
@@ -1855,6 +1880,7 @@ git commit -m "feat: add two-line rows variant for the orders table" -m "Co-Auth
 ### Task 12: Barra de filtros de Pedidos (remover Status, add `stacked`) + header com seletor
 
 **Files:**
+
 - Modify: `src/features/orders/components/list/OrdersFiltersBar.tsx`
 - Modify: `src/features/orders/components/list/OrdersHeader.tsx`
 
@@ -2256,6 +2282,7 @@ bunx prettier --write src/features/orders/components/list/OrdersFiltersBar.tsx s
 bunx eslint src/features/orders/components/list/OrdersFiltersBar.tsx src/features/orders/components/list/OrdersHeader.tsx
 bun run build
 ```
+
 Esperado: build `✓ built`, sem `no-unused-vars`.
 
 - [ ] **Step 4: Commit**
@@ -2270,6 +2297,7 @@ git commit -m "feat: status tabs replace status popover; add layout switcher to 
 ### Task 13: Compor a `OrdersListPage` com as 3 visualizações
 
 **Files:**
+
 - Modify: `src/features/orders/pages/OrdersListPage.tsx`
 
 - [ ] **Step 1: Reescrever `OrdersListPage.tsx`**
@@ -2548,6 +2576,7 @@ bunx prettier --write src/features/orders/pages/OrdersListPage.tsx
 bunx eslint src/features/orders/pages/OrdersListPage.tsx
 bun run build
 ```
+
 Esperado: build `✓ built`.
 
 - [ ] **Step 3: Commit**
@@ -2562,6 +2591,7 @@ git commit -m "feat: redesign orders list with selectable cockpit/console/rows l
 ### Task 14: Verificação final + bump de versão 0.52.0 "Ledger"
 
 **Files:**
+
 - Modify: `package.json` (linha `"version"`)
 - Modify: `CHANGELOG.md`
 - Modify: `CLAUDE.md`
@@ -2572,6 +2602,7 @@ git commit -m "feat: redesign orders list with selectable cockpit/console/rows l
 bun run build
 bunx eslint src/shared/list-views src/features/quotes src/features/orders
 ```
+
 Esperado: `✓ built`, eslint exit 0.
 
 - [ ] **Step 2: Bump em `package.json`**
@@ -2586,11 +2617,13 @@ Inserir como a seção de versão **mais recente** (logo abaixo do cabeçalho/in
 ## [0.52.0] - 2026-05-30 - Ledger
 
 ### Added
+
 - Listas de Orçamentos e Pedidos com **3 visualizações selecionáveis** (Cockpit, Console, Linhas), seletor segmentado no cabeçalho e preferência lembrada por lista.
 - Faixa de **KPIs** nas listas — Orçamentos (em aberto, convertido, conversão, ticket médio, expirando ≤3d) e Pedidos (valor total, recebido, a receber, a expedir, vencidos).
 - **Abas de status** com contagem em ambas as listas.
 
 ### Changed
+
 - A tabela de orçamentos agora é **fluida** (ocupa a largura disponível) em vez de largura fixa.
 - O filtro de status passou de popover para **abas**; os demais filtros foram mantidos.
 ```
@@ -2621,23 +2654,23 @@ git commit -m "chore: bump version to 0.52.0 Ledger" -m "Co-Authored-By: Claude 
 
 ## Cobertura da spec (auto-revisão)
 
-| Requisito da spec | Task(s) |
-|---|---|
-| Framework `src/shared/list-views/` (config, hook, switcher, strip, tabs, shells, barrel) | 1, 2, 3 |
-| KPIs Orçamentos (fórmulas §9.1) | 4 |
-| `allFiltered` + status client-side (Orçamentos) | 5 |
-| Tabela fluida + linhas duplas (Orçamentos) | 6 |
-| Abas substituem popover de status + seletor no header (Orçamentos) | 7 |
-| Composição das 3 visualizações (Orçamentos) | 8 |
-| KPIs Pedidos (fórmulas §9.2) | 9 |
-| `allFiltered` + status separado (Pedidos) | 10 |
-| Linhas duplas (Pedidos) — tabela já fluida | 11 |
-| Abas + seletor (Pedidos) | 12 |
-| Composição das 3 visualizações (Pedidos) | 13 |
-| Persistência por lista (chaves separadas) | 1 (config) + 8/13 (uso) |
-| Bump 0.52.0 + codinome + changelog | 14 |
+| Requisito da spec                                                                        | Task(s)                 |
+| ---------------------------------------------------------------------------------------- | ----------------------- |
+| Framework `src/shared/list-views/` (config, hook, switcher, strip, tabs, shells, barrel) | 1, 2, 3                 |
+| KPIs Orçamentos (fórmulas §9.1)                                                          | 4                       |
+| `allFiltered` + status client-side (Orçamentos)                                          | 5                       |
+| Tabela fluida + linhas duplas (Orçamentos)                                               | 6                       |
+| Abas substituem popover de status + seletor no header (Orçamentos)                       | 7                       |
+| Composição das 3 visualizações (Orçamentos)                                              | 8                       |
+| KPIs Pedidos (fórmulas §9.2)                                                             | 9                       |
+| `allFiltered` + status separado (Pedidos)                                                | 10                      |
+| Linhas duplas (Pedidos) — tabela já fluida                                               | 11                      |
+| Abas + seletor (Pedidos)                                                                 | 12                      |
+| Composição das 3 visualizações (Pedidos)                                                 | 13                      |
+| Persistência por lista (chaves separadas)                                                | 1 (config) + 8/13 (uso) |
+| Bump 0.52.0 + codinome + changelog                                                       | 14                      |
 
 **Notas:**
+
 - `activeFilterCount`/`activeOrderFilterCount` ainda contam `statuses`. Como o status agora é controlado pelas abas, o contador de "Limpar (N)" pode incluir a seleção de status — comportamento aceitável (o "Limpar" zera tudo, inclusive o status, voltando para "Todos"). **Não** alterar essas funções neste plano.
 - Teto de 1000 linhas em KPIs/contagens é a limitação pré-existente da paginação client-side (fora de escopo).
-

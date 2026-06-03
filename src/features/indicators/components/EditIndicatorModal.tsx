@@ -82,11 +82,7 @@ export function EditIndicatorModal({
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <Label htmlFor="ind-edit-name">{S.form.nameLabel}</Label>
-            <Input
-              id="ind-edit-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
+            <Input id="ind-edit-name" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
 
           <div className="flex flex-col gap-2">

@@ -2,26 +2,26 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | (repositório do projeto GALLO BASE DIESEL) |
-| **Objetivo** | Estabelecer um catálogo canônico de modelos de veículos (marca + modelo + motor), eliminando strings livres divergentes e servindo de chave estável para Kits de composição e para a frota de clientes. |
-| **Tipo** | Feature |
-| **Complexidade** | Média |
-| **Total de Fases** | 4 |
-| **Prioridade** | Alta |
-| **Épico** | Composição por Modelo (Kits) |
-| **PRDs Relacionados** | PRD-002 (Modelo Conceitual), PRD-004 (Mocks), PRD-005 (Provider Pattern), PRD-006 (RBAC), PRD-016 (Veículos), PRD-030 (Catálogo de Peças), PRD-035 (Kits de Composição) |
-| **Padrão de código** | Feature-based; código em `src/features/vehicle-models/`; tipos em `src/shared/types/vehicle-models.ts` |
+| Campo                 | Valor                                                                                                                                                                                                   |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                                |
+| **Repositório**       | (repositório do projeto GALLO BASE DIESEL)                                                                                                                                                              |
+| **Objetivo**          | Estabelecer um catálogo canônico de modelos de veículos (marca + modelo + motor), eliminando strings livres divergentes e servindo de chave estável para Kits de composição e para a frota de clientes. |
+| **Tipo**              | Feature                                                                                                                                                                                                 |
+| **Complexidade**      | Média                                                                                                                                                                                                   |
+| **Total de Fases**    | 4                                                                                                                                                                                                       |
+| **Prioridade**        | Alta                                                                                                                                                                                                    |
+| **Épico**             | Composição por Modelo (Kits)                                                                                                                                                                            |
+| **PRDs Relacionados** | PRD-002 (Modelo Conceitual), PRD-004 (Mocks), PRD-005 (Provider Pattern), PRD-006 (RBAC), PRD-016 (Veículos), PRD-030 (Catálogo de Peças), PRD-035 (Kits de Composição)                                 |
+| **Padrão de código**  | Feature-based; código em `src/features/vehicle-models/`; tipos em `src/shared/types/vehicle-models.ts`                                                                                                  |
 
 ### Critérios de Complexidade Utilizados
 
-| Complexidade | Critérios |
-|--------------|-----------|
-| **Baixa** | 1 arquivo, sem dependências externas, < 100 linhas |
-| **Média** | 2-5 arquivos, banco OU integração, funcionalidade isolada |
-| **Alta** | 5+ arquivos, múltiplas integrações, regras de negócio complexas |
+| Complexidade | Critérios                                                       |
+| ------------ | --------------------------------------------------------------- |
+| **Baixa**    | 1 arquivo, sem dependências externas, < 100 linhas              |
+| **Média**    | 2-5 arquivos, banco OU integração, funcionalidade isolada       |
+| **Alta**     | 5+ arquivos, múltiplas integrações, regras de negócio complexas |
 
 > **Justificativa de Média:** entidade nova de referência (`IVehicleModel`) com CRUD próprio, validação de duplicata e geração de mocks por consolidação dos dados existentes; superfície de gestão embutida em `/app/kits` (espinha de navegação por modelo); sem integrações externas no MVP; consumida por PRD-035 (Kits) e pelo delta do PRD-016 (`IVehicle.modelId`). A complexidade não é Alta porque não há regras de negócio transacionais nem múltiplas integrações — é um catálogo de referência.
 
@@ -57,12 +57,12 @@ Este PRD resolve a raiz do problema: cria um catálogo canônico de modelos que 
 ```typescript
 interface IVehicleModel {
   id: ID;
-  brand: string;             // "Scania"
-  model: string;             // "R 450"
-  engine: string;            // "DC13 143 Euro 5"
-  yearStart?: number;        // início da faixa de aplicação (opcional)
-  yearEnd?: number;          // fim da faixa de aplicação (opcional)
-  status: 'ativo' | 'inativo';
+  brand: string; // "Scania"
+  model: string; // "R 450"
+  engine: string; // "DC13 143 Euro 5"
+  yearStart?: number; // início da faixa de aplicação (opcional)
+  yearEnd?: number; // fim da faixa de aplicação (opcional)
+  status: "ativo" | "inativo";
   createdBy: ID;
   createdAt: ISO8601;
   updatedAt: ISO8601;
@@ -74,12 +74,12 @@ interface IVehicleModel {
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que foi descartada |
-|-------------|------------------------|
+| Alternativa                                                          | Por que foi descartada                                                                                                                                                           |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Autocomplete derivado das strings existentes (sem entidade canônica) | Resolve a digitação, mas não cria chave estável; variações continuam coexistindo; Kit teria de casar por string (frágil). Decisão do arquiteto foi pela entidade canônica agora. |
-| Modelo canônico embutido dentro do PRD-035 (Kits) | Mistura duas preocupações (catálogo de referência vs. feature de Kit) num único PRD; viola a disciplina de "uma preocupação por PRD" do projeto. |
-| Página dedicada e isolada `/app/modelos` | Usuário não tem o modelo mental de "gerenciar um catálogo de modelos"; geraria página órfã. O catálogo mora dentro de `/app/kits` como espinha de navegação. |
-| Importar modelos de base externa (FIPE-like / DINTEC) no MVP | Sem backend ainda; dependência externa fora do escopo da Fase 1. Reservado para Fase 2. |
+| Modelo canônico embutido dentro do PRD-035 (Kits)                    | Mistura duas preocupações (catálogo de referência vs. feature de Kit) num único PRD; viola a disciplina de "uma preocupação por PRD" do projeto.                                 |
+| Página dedicada e isolada `/app/modelos`                             | Usuário não tem o modelo mental de "gerenciar um catálogo de modelos"; geraria página órfã. O catálogo mora dentro de `/app/kits` como espinha de navegação.                     |
+| Importar modelos de base externa (FIPE-like / DINTEC) no MVP         | Sem backend ainda; dependência externa fora do escopo da Fase 1. Reservado para Fase 2.                                                                                          |
 
 ---
 
@@ -193,12 +193,12 @@ ENTÃO vejo os modelos em modo leitura
 
 ## Fases de Implementação
 
-| Fase | Objetivo | Arquivos Estimados |
-|------|----------|-------------------|
-| 1 | Modelo + mocks consolidados | 2-3 |
-| 2 | Provider + permissões RBAC | 2-3 |
-| 3 | Navegação por modelo + busca/filtros em /app/kits | 2-3 |
-| 4 | CRUD + validação + audit + polish | 2-3 |
+| Fase | Objetivo                                          | Arquivos Estimados |
+| ---- | ------------------------------------------------- | ------------------ |
+| 1    | Modelo + mocks consolidados                       | 2-3                |
+| 2    | Provider + permissões RBAC                        | 2-3                |
+| 3    | Navegação por modelo + busca/filtros em /app/kits | 2-3                |
+| 4    | CRUD + validação + audit + polish                 | 2-3                |
 
 ### Detalhamento das Fases
 
@@ -207,6 +207,7 @@ ENTÃO vejo os modelos em modo leitura
 **Objetivo:** entidade definida e catálogo canônico semeado.
 
 **Ações:**
+
 - [ ] Definir `IVehicleModel` em `src/shared/types/vehicle-models.ts`
 - [ ] Implementar geração de mocks por consolidação (veículos + aplicações), normalizando variações
 - [ ] Validar cobertura das 5 marcas
@@ -218,6 +219,7 @@ ENTÃO vejo os modelos em modo leitura
 **Objetivo:** acesso a dados padronizado e seguro.
 
 **Ações:**
+
 - [ ] `useVehicleModelsProvider` com interface estável
 - [ ] Permissões `vehicle_model.*` em `src/shared/rbac/permissions.ts`
 - [ ] Atualizar matriz visual de auditoria (PRD-006)
@@ -229,6 +231,7 @@ ENTÃO vejo os modelos em modo leitura
 **Objetivo:** espinha de `/app/kits` operacional.
 
 **Ações:**
+
 - [ ] Listagem de modelos em `/app/kits` com colunas e contador
 - [ ] Busca textual + filtros (marca, status) com URL sync
 - [ ] Empty states
@@ -240,6 +243,7 @@ ENTÃO vejo os modelos em modo leitura
 **Objetivo:** ciclo de gestão completo.
 
 **Ações:**
+
 - [ ] Criar/editar/inativar modelo com validação de duplicata
 - [ ] Audit log em todas as mutações
 - [ ] Mobile responsivo + dark mode
@@ -252,20 +256,20 @@ ENTÃO vejo os modelos em modo leitura
 
 ### PRDs Anteriores
 
-| PRD | Descrição | Status |
-|-----|-----------|--------|
+| PRD     | Descrição                             | Status       |
+| ------- | ------------------------------------- | ------------ |
 | PRD-002 | Modelo Conceitual (registry de tipos) | ✅ Concluído |
-| PRD-004 | Mocks e geradores | ✅ Concluído |
-| PRD-005 | Provider Pattern | ✅ Concluído |
-| PRD-006 | RBAC e auditoria | ✅ Concluído |
-| PRD-016 | Veículos | ✅ Concluído |
-| PRD-030 | Catálogo de Peças | ✅ Concluído |
+| PRD-004 | Mocks e geradores                     | ✅ Concluído |
+| PRD-005 | Provider Pattern                      | ✅ Concluído |
+| PRD-006 | RBAC e auditoria                      | ✅ Concluído |
+| PRD-016 | Veículos                              | ✅ Concluído |
+| PRD-030 | Catálogo de Peças                     | ✅ Concluído |
 
 ### Serviços Externos
 
-| Serviço | Tipo | Status |
-|---------|------|--------|
-| — | — | Nenhum no MVP (Fase 1 mockup) |
+| Serviço | Tipo | Status                        |
+| ------- | ---- | ----------------------------- |
+| —       | —    | Nenhum no MVP (Fase 1 mockup) |
 
 ### Decisões Pendentes
 
@@ -277,11 +281,11 @@ ENTÃO vejo os modelos em modo leitura
 
 Este PRD faz parte do épico **"Composição por Modelo (Kits)"**.
 
-| Ordem | PRD | Título | Status | Relação |
-|-------|-----|--------|--------|---------|
-| **1** | **PRD-034** | **Catálogo de Modelos** | **🔄 ATUAL** | Base do épico |
-| 2 | PRD-035 | Kits de Composição por Modelo | ⏳ | Depende de PRD-034 |
-| 3 | Delta PRD-016 | `IVehicle.modelId` + aplicação de Kit | ⏳ | Depende de PRD-034 e PRD-035 |
+| Ordem | PRD           | Título                                | Status       | Relação                      |
+| ----- | ------------- | ------------------------------------- | ------------ | ---------------------------- |
+| **1** | **PRD-034**   | **Catálogo de Modelos**               | **🔄 ATUAL** | Base do épico                |
+| 2     | PRD-035       | Kits de Composição por Modelo         | ⏳           | Depende de PRD-034           |
+| 3     | Delta PRD-016 | `IVehicle.modelId` + aplicação de Kit | ⏳           | Depende de PRD-034 e PRD-035 |
 
 > **Nota:** Implemente na ordem indicada. PRD-034 deve estar ✅ antes de iniciar o PRD-035.
 
@@ -293,8 +297,8 @@ Este PRD faz parte do épico **"Composição por Modelo (Kits)"**.
 
 ### Dados Sensíveis
 
-| Dado | Classificação | Proteção |
-|------|---------------|----------|
+| Dado                                   | Classificação        | Proteção                              |
+| -------------------------------------- | -------------------- | ------------------------------------- |
 | Modelo de veículo (marca/modelo/motor) | Público (referência) | Sem PII; controle de escrita por RBAC |
 
 ### Autenticação e Autorização
@@ -331,19 +335,19 @@ Logar criação, edição e inativação de modelo (autor, timestamp, valores al
 
 ### Convenções de Código (Referência Rápida)
 
-| Elemento | Convenção | Exemplo |
-|----------|-----------|---------|
-| **Componentes React** | PascalCase | `VehicleModelList.tsx` |
-| **Hooks** | camelCase + `use` | `useVehicleModelsProvider.ts` |
-| **Pastas** | kebab-case | `vehicle-models/` |
-| **Variáveis/Funções** | camelCase | `vehicleModel`, `findDuplicateModel()` |
-| **Interfaces** | PascalCase + `I` | `IVehicleModel` |
-| **Tabelas (banco, Fase 2)** | snake_case (plural) | `vehicle_models` |
-| **Colunas (banco, Fase 2)** | snake_case | `created_at`, `year_start` |
-| **Env vars (frontend)** | `VITE_` prefix | `VITE_DATA_SOURCE` |
-| **Estrutura de pastas** | Feature-based | `src/features/vehicle-models/` |
-| **Ícones** | Iconify (`@iconify/react`) | `<Icon icon="mdi:truck" />` |
-| **Tema** | Light + Dark obrigatório | CSS variables para cores |
+| Elemento                    | Convenção                  | Exemplo                                |
+| --------------------------- | -------------------------- | -------------------------------------- |
+| **Componentes React**       | PascalCase                 | `VehicleModelList.tsx`                 |
+| **Hooks**                   | camelCase + `use`          | `useVehicleModelsProvider.ts`          |
+| **Pastas**                  | kebab-case                 | `vehicle-models/`                      |
+| **Variáveis/Funções**       | camelCase                  | `vehicleModel`, `findDuplicateModel()` |
+| **Interfaces**              | PascalCase + `I`           | `IVehicleModel`                        |
+| **Tabelas (banco, Fase 2)** | snake_case (plural)        | `vehicle_models`                       |
+| **Colunas (banco, Fase 2)** | snake_case                 | `created_at`, `year_start`             |
+| **Env vars (frontend)**     | `VITE_` prefix             | `VITE_DATA_SOURCE`                     |
+| **Estrutura de pastas**     | Feature-based              | `src/features/vehicle-models/`         |
+| **Ícones**                  | Iconify (`@iconify/react`) | `<Icon icon="mdi:truck" />`            |
+| **Tema**                    | Light + Dark obrigatório   | CSS variables para cores               |
 
 ---
 
@@ -360,6 +364,7 @@ Logar criação, edição e inativação de modelo (autor, timestamp, valores al
 > **⚠️ 1. ANTES DE IMPLEMENTAR:** explore a estrutura dos dados existentes (veículos do PRD-016 e aplicações do PRD-030), planeje a consolidação dos mocks, investigue a fundo e revise antes de implementar.
 
 > **⚠️ 2. APÓS IMPLEMENTAR:**
+>
 > - Incrementar a versão do app (SemVer)
 > - Atualizar o CHANGELOG.md (Keep a Changelog)
 > - Renomear este arquivo para `PRD-034-catalogo-modelos_DONE.md`
@@ -367,59 +372,59 @@ Logar criação, edição e inativação de modelo (autor, timestamp, valores al
 
 ### Guia de Versionamento (SemVer)
 
-| Tipo de Mudança | Ação | Exemplo |
-|-----------------|------|---------|
-| Correção de bug | PATCH +1 | 1.0.0 → 1.0.1 |
-| Nova funcionalidade | MINOR +1, PATCH = 0 | 1.0.1 → 1.1.0 |
+| Tipo de Mudança      | Ação                 | Exemplo       |
+| -------------------- | -------------------- | ------------- |
+| Correção de bug      | PATCH +1             | 1.0.0 → 1.0.1 |
+| Nova funcionalidade  | MINOR +1, PATCH = 0  | 1.0.1 → 1.1.0 |
 | Mudança incompatível | MAJOR +1, outros = 0 | 1.1.0 → 2.0.0 |
 
 **Codinome sugerido:** "Catalog" (catálogo canônico de modelos).
 
 ### Princípios de Implementação
 
-| Princípio | Descrição |
-|-----------|-----------|
+| Princípio                   | Descrição                                                                      |
+| --------------------------- | ------------------------------------------------------------------------------ |
 | **Dado de referência vivo** | Modelo é fonte viva; veículos denormalizam display, Kits referenciam `modelId` |
-| **Consolidação criteriosa** | Normalizar variações reais; não fundir motores legitimamente distintos |
-| **Integridade referencial** | Inativar em vez de excluir quando houver vínculos |
-| **Drop-in replacement** | Provider com interface estável para Fase 2 |
+| **Consolidação criteriosa** | Normalizar variações reais; não fundir motores legitimamente distintos         |
+| **Integridade referencial** | Inativar em vez de excluir quando houver vínculos                              |
+| **Drop-in replacement**     | Provider com interface estável para Fase 2                                     |
 
 ### Orientações Gerais
 
-| Aspecto | Orientação |
-|---------|------------|
-| **Consolidação de mocks** | Priorizar correção da combinação real sobre quantidade; documentar regras de normalização aplicadas |
+| Aspecto                     | Orientação                                                                                             |
+| --------------------------- | ------------------------------------------------------------------------------------------------------ |
+| **Consolidação de mocks**   | Priorizar correção da combinação real sobre quantidade; documentar regras de normalização aplicadas    |
 | **Superfície em /app/kits** | Entregar apenas a espinha de navegação por modelo; a gestão de Kits dentro de cada modelo é do PRD-035 |
 
 ### O que NÃO Fazer
 
-| ❌ Evitar |
-|----------|
-| Manter marca/modelo/motor como única fonte em string livre |
+| ❌ Evitar                                                          |
+| ------------------------------------------------------------------ |
+| Manter marca/modelo/motor como única fonte em string livre         |
 | Fundir motores realmente distintos numa só entrada na consolidação |
-| Excluir fisicamente modelos com Kits/veículos vinculados |
-| Implementar a gestão de Kits aqui (pertence ao PRD-035) |
-| Criar página `/app/modelos` separada e órfã |
+| Excluir fisicamente modelos com Kits/veículos vinculados           |
+| Implementar a gestão de Kits aqui (pertence ao PRD-035)            |
+| Criar página `/app/modelos` separada e órfã                        |
 
 ---
 
 ## Status de Implementação
 
-| Campo | Valor |
-|-------|-------|
-| **Status** | ✅ IMPLEMENTADO |
-| **Data de Implementação** | 2026-06-03 |
-| **Versão do App** | v0.63.0 Catalog |
-| **Implementado por** | Claude Opus 4.8 (subagent-driven) |
-| **Observações** | Sub-projeto 1 do épico Kits por modelo; consolidação dos mocks de modelos existentes adiada para PRD-035. |
+| Campo                     | Valor                                                                                                     |
+| ------------------------- | --------------------------------------------------------------------------------------------------------- |
+| **Status**                | ✅ IMPLEMENTADO                                                                                           |
+| **Data de Implementação** | 2026-06-03                                                                                                |
+| **Versão do App**         | v0.63.0 Catalog                                                                                           |
+| **Implementado por**      | Claude Opus 4.8 (subagent-driven)                                                                         |
+| **Observações**           | Sub-projeto 1 do épico Kits por modelo; consolidação dos mocks de modelos existentes adiada para PRD-035. |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 03/06/2026 | v1 | Criação inicial — catálogo canônico de modelos (`IVehicleModel`) como base do épico de Kits |
+| Data       | Versão | Alteração                                                                                   |
+| ---------- | ------ | ------------------------------------------------------------------------------------------- |
+| 03/06/2026 | v1     | Criação inicial — catálogo canônico de modelos (`IVehicleModel`) como base do épico de Kits |
 
 ---
 

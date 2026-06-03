@@ -17,7 +17,10 @@ export function PartCrossReferenceSection({ part }: IPartCrossReferenceSectionPr
   const refs = part.crossReferences ?? [];
 
   return (
-    <Section title={CATALOG_STRINGS.detail.sections.crossReferences} icon="mdi:tag-multiple-outline">
+    <Section
+      title={CATALOG_STRINGS.detail.sections.crossReferences}
+      icon="mdi:tag-multiple-outline"
+    >
       {refs.length > 0 ? (
         <dl className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3 lg:grid-cols-4">
           {refs.map((ref) => (

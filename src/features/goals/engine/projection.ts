@@ -13,7 +13,10 @@ export interface IPeriodWindow {
  * Slice the period into total / passed / remaining day counts.
  * `now` defaults to wall-clock; injectable for testability and memo stability.
  */
-export function describePeriodWindow(period: { start: ISO8601; end: ISO8601 }, now: Date = new Date()): IPeriodWindow {
+export function describePeriodWindow(
+  period: { start: ISO8601; end: ISO8601 },
+  now: Date = new Date(),
+): IPeriodWindow {
   const start = new Date(period.start).getTime();
   const end = new Date(period.end).getTime();
   const totalDays = Math.max(1, Math.round((end - start) / DAY_MS));

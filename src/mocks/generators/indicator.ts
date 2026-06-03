@@ -1,4 +1,10 @@
-import type { ID, ISeller, IProductIndicator, IndicatorMetric, ProductSelector } from "@/shared/types";
+import type {
+  ID,
+  ISeller,
+  IProductIndicator,
+  IndicatorMetric,
+  ProductSelector,
+} from "@/shared/types";
 import { SEED_STORE_ID } from "../data";
 import { monthRange, monthRef, type ISeededContext } from "./utils";
 
@@ -69,23 +75,115 @@ export function generateIndicators(
   const period = monthRef(now);
   const featured = options.sellers.find((s) => s.id !== "seller-joao-gallo") ?? options.sellers[0];
 
-  out.push(make({ id: `ind-${period}-store-filtros-fat`, selector: { kind: "category", categories: ["filtro"] }, metric: "faturamento", scopeLevel: "store", targetValue: 400_000, start: cur.start, end: cur.end, status: "ativo" }));
-  out.push(make({ id: `ind-${period}-store-freios-qtd`, selector: { kind: "category", categories: ["freio"] }, metric: "quantidade", scopeLevel: "store", targetValue: 800, start: cur.start, end: cur.end, status: "ativo" }));
-  out.push(make({ id: `ind-${period}-store-lubrificante-margem`, selector: { kind: "category", categories: ["lubrificante"] }, metric: "margem", scopeLevel: "store", targetValue: 60_000, start: cur.start, end: cur.end, status: "ativo" }));
-  out.push(make({ id: `ind-${period}-store-linhapesada-grupo`, selector: { kind: "group", label: "Linha pesada", categories: ["motor", "transmissao", "suspensao"] }, metric: "faturamento", scopeLevel: "store", targetValue: 250_000, start: cur.start, end: cur.end, status: "ativo" }));
+  out.push(
+    make({
+      id: `ind-${period}-store-filtros-fat`,
+      selector: { kind: "category", categories: ["filtro"] },
+      metric: "faturamento",
+      scopeLevel: "store",
+      targetValue: 400_000,
+      start: cur.start,
+      end: cur.end,
+      status: "ativo",
+    }),
+  );
+  out.push(
+    make({
+      id: `ind-${period}-store-freios-qtd`,
+      selector: { kind: "category", categories: ["freio"] },
+      metric: "quantidade",
+      scopeLevel: "store",
+      targetValue: 800,
+      start: cur.start,
+      end: cur.end,
+      status: "ativo",
+    }),
+  );
+  out.push(
+    make({
+      id: `ind-${period}-store-lubrificante-margem`,
+      selector: { kind: "category", categories: ["lubrificante"] },
+      metric: "margem",
+      scopeLevel: "store",
+      targetValue: 60_000,
+      start: cur.start,
+      end: cur.end,
+      status: "ativo",
+    }),
+  );
+  out.push(
+    make({
+      id: `ind-${period}-store-linhapesada-grupo`,
+      selector: {
+        kind: "group",
+        label: "Linha pesada",
+        categories: ["motor", "transmissao", "suspensao"],
+      },
+      metric: "faturamento",
+      scopeLevel: "store",
+      targetValue: 250_000,
+      start: cur.start,
+      end: cur.end,
+      status: "ativo",
+    }),
+  );
   if (featured) {
-    out.push(make({ id: `ind-${period}-${featured.id}-filtros-fat`, selector: { kind: "category", categories: ["filtro"] }, metric: "faturamento", scopeLevel: "individual", sellerId: featured.id, targetValue: 80_000, start: cur.start, end: cur.end, status: "ativo" }));
-    out.push(make({ id: `ind-${period}-${featured.id}-pedidos-freio`, selector: { kind: "category", categories: ["freio"] }, metric: "pedidos", scopeLevel: "individual", sellerId: featured.id, targetValue: 15, start: cur.start, end: cur.end, status: "ativo" }));
+    out.push(
+      make({
+        id: `ind-${period}-${featured.id}-filtros-fat`,
+        selector: { kind: "category", categories: ["filtro"] },
+        metric: "faturamento",
+        scopeLevel: "individual",
+        sellerId: featured.id,
+        targetValue: 80_000,
+        start: cur.start,
+        end: cur.end,
+        status: "ativo",
+      }),
+    );
+    out.push(
+      make({
+        id: `ind-${period}-${featured.id}-pedidos-freio`,
+        selector: { kind: "category", categories: ["freio"] },
+        metric: "pedidos",
+        scopeLevel: "individual",
+        sellerId: featured.id,
+        targetValue: 15,
+        start: cur.start,
+        end: cur.end,
+        status: "ativo",
+      }),
+    );
   }
 
   for (let i = 1; i <= 3; i += 1) {
     const past = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const range = monthRange(past);
-    out.push(make({ id: `ind-${monthRef(past)}-store-filtros-fat`, selector: { kind: "category", categories: ["filtro"] }, metric: "faturamento", scopeLevel: "store", targetValue: 380_000, start: range.start, end: range.end, status: i % 2 === 0 ? "arquivado" : "concluido" }));
+    out.push(
+      make({
+        id: `ind-${monthRef(past)}-store-filtros-fat`,
+        selector: { kind: "category", categories: ["filtro"] },
+        metric: "faturamento",
+        scopeLevel: "store",
+        targetValue: 380_000,
+        start: range.start,
+        end: range.end,
+        status: i % 2 === 0 ? "arquivado" : "concluido",
+      }),
+    );
   }
 
   out.push({
-    ...make({ id: `ind-${period}-store-eletrica-cancelado`, selector: { kind: "category", categories: ["eletrica"] }, metric: "faturamento", scopeLevel: "store", targetValue: 90_000, start: cur.start, end: cur.end, status: "cancelado" }),
+    ...make({
+      id: `ind-${period}-store-eletrica-cancelado`,
+      selector: { kind: "category", categories: ["eletrica"] },
+      metric: "faturamento",
+      scopeLevel: "store",
+      targetValue: 90_000,
+      start: cur.start,
+      end: cur.end,
+      status: "cancelado",
+    }),
     cancelReason: "Reorientação de mix de produtos no trimestre",
   });
 

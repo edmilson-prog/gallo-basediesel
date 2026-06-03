@@ -32,6 +32,7 @@
 ## Task 1: Model — add `segment` and `applicationNotes` to `IPart`
 
 **Files:**
+
 - Modify: `src/shared/types/catalog.ts`
 
 - [ ] **Step 1: Add the two optional fields to `IPart`**
@@ -64,6 +65,7 @@ git commit -m "feat(catalog): add segment and applicationNotes to IPart"
 ## Task 2: Runtime builder — `IUfiPartRow` type + `mapUfiRowToPart` + `buildUfiParts`
 
 **Files:**
+
 - Create: `src/mocks/generators/ufiPart.ts`
 - Create: `src/mocks/data/ufiPartsRaw.ts` (empty stub — populated in Task 3)
 
@@ -129,7 +131,10 @@ const ICMS_RATES = [4, 7, 12, 17] as const;
 
 /** Slugify a commercial code into a stable id fragment. */
 function slug(commercialCode: string): string {
-  return commercialCode.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return commercialCode
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 function round2(value: number): number {
@@ -280,7 +285,10 @@ console.log("sku/name:", part.sku, "/", part.name);
 console.log("category/subcategory/segment:", part.category, part.subcategory, part.segment);
 console.log("unitCost/unitPrice/margin:", part.unitCost, part.unitPrice, part.marginPercent);
 console.log("priceTables count:", part.priceTables?.length);
-console.log("padrao === unitPrice:", part.priceTables?.find((t) => t.id === "padrao")?.price === part.unitPrice);
+console.log(
+  "padrao === unitPrice:",
+  part.priceTables?.find((t) => t.id === "padrao")?.price === part.unitPrice,
+);
 console.log("gtin/sefaz:", part.gtin, part.sefazStatus);
 console.log("boxQuantity/weight:", part.boxQuantity, part.weightKg);
 console.log("crossRefs/apps:", part.crossReferences?.length, part.applications.length);
@@ -308,6 +316,7 @@ git commit -m "feat(mocks): add UFI raw-row type and seeded part builder"
 ## Task 3: Offline converter — parse the xlsx and generate `ufiPartsRaw.ts`
 
 **Files:**
+
 - Create: `scripts/import-ufi-parts.py`
 - Overwrite (generated): `src/mocks/data/ufiPartsRaw.ts`
 
@@ -647,6 +656,7 @@ git commit -m "feat(mocks): generate ~150 real UFI filters from supplier sheet"
 ## Task 4: Bootstrap integration — inject real filters, exclude synthetic ones, drop the sample
 
 **Files:**
+
 - Modify: `src/mocks/generators/part.ts`
 - Modify: `src/mocks/generators/bootstrap.ts`
 - Delete: `src/mocks/data/seedRealPart.ts`
@@ -706,29 +716,29 @@ import { PART_CATEGORIES } from "../data";
 In `src/mocks/generators/bootstrap.ts`, the catalog block currently reads:
 
 ```ts
-  // 2. Catalog — purely independent.
-  const parts: IPart[] = [];
-  for (let i = 0; i < VOLUMES.parts; i += 1) {
-    parts.push(generatePart(ctx, { sequence: i, now }));
-  }
-  // Single real record (UFI sheet, item 23.290.00) to validate the detail layout
-  // against high-density real data ahead of the bulk import.
-  parts.unshift(buildUfiSamplePart(now));
-  linkEquivalentParts(ctx, parts);
+// 2. Catalog — purely independent.
+const parts: IPart[] = [];
+for (let i = 0; i < VOLUMES.parts; i += 1) {
+  parts.push(generatePart(ctx, { sequence: i, now }));
+}
+// Single real record (UFI sheet, item 23.290.00) to validate the detail layout
+// against high-density real data ahead of the bulk import.
+parts.unshift(buildUfiSamplePart(now));
+linkEquivalentParts(ctx, parts);
 ```
 
 Replace with:
 
 ```ts
-  // 2. Catalog — purely independent. Synthetic generator covers every category
-  // except filters; the filter slice comes from the real UFI supplier sheet.
-  const nonFilterCategories = PART_CATEGORIES.filter((c) => c.id !== "filtros");
-  const parts: IPart[] = [];
-  for (let i = 0; i < VOLUMES.parts; i += 1) {
-    parts.push(generatePart(ctx, { sequence: i, now, categoryPool: nonFilterCategories }));
-  }
-  parts.push(...buildUfiParts(ctx, now));
-  linkEquivalentParts(ctx, parts);
+// 2. Catalog — purely independent. Synthetic generator covers every category
+// except filters; the filter slice comes from the real UFI supplier sheet.
+const nonFilterCategories = PART_CATEGORIES.filter((c) => c.id !== "filtros");
+const parts: IPart[] = [];
+for (let i = 0; i < VOLUMES.parts; i += 1) {
+  parts.push(generatePart(ctx, { sequence: i, now, categoryPool: nonFilterCategories }));
+}
+parts.push(...buildUfiParts(ctx, now));
+linkEquivalentParts(ctx, parts);
 ```
 
 - [ ] **Step 4: Delete the one-off sample seed**
@@ -757,6 +767,7 @@ git commit -m "feat(mocks): inject real UFI filters and drop synthetic filter sl
 ## Task 5: UI — segment chip + application raw text + i18n
 
 **Files:**
+
 - Modify: `src/features/catalog/i18n/pt-BR.ts`
 - Modify: `src/features/catalog/components/detail/PartIdentityCard.tsx`
 - Modify: `src/features/catalog/components/detail/ApplicationsSection.tsx`
@@ -824,31 +835,29 @@ In `src/features/catalog/components/detail/ApplicationsSection.tsx`, the compone
 (a) The empty-state early return must still show raw notes when there are no structured apps but notes exist. Replace the current empty guard:
 
 ```tsx
-  if (part.applications.length === 0) {
-    return (
-      <Section title={CATALOG_STRINGS.detail.sections.applications} icon="mdi:truck-outline">
-        <p className="text-sm text-muted-foreground">{CATALOG_STRINGS.detail.applications.empty}</p>
-      </Section>
-    );
-  }
+if (part.applications.length === 0) {
+  return (
+    <Section title={CATALOG_STRINGS.detail.sections.applications} icon="mdi:truck-outline">
+      <p className="text-sm text-muted-foreground">{CATALOG_STRINGS.detail.applications.empty}</p>
+    </Section>
+  );
+}
 ```
 
 with:
 
 ```tsx
-  if (part.applications.length === 0) {
-    return (
-      <Section title={CATALOG_STRINGS.detail.sections.applications} icon="mdi:truck-outline">
-        {part.applicationNotes ? (
-          <ApplicationNotes notes={part.applicationNotes} />
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            {CATALOG_STRINGS.detail.applications.empty}
-          </p>
-        )}
-      </Section>
-    );
-  }
+if (part.applications.length === 0) {
+  return (
+    <Section title={CATALOG_STRINGS.detail.sections.applications} icon="mdi:truck-outline">
+      {part.applicationNotes ? (
+        <ApplicationNotes notes={part.applicationNotes} />
+      ) : (
+        <p className="text-sm text-muted-foreground">{CATALOG_STRINGS.detail.applications.empty}</p>
+      )}
+    </Section>
+  );
+}
 ```
 
 (b) In the main return, add the notes after the grouped list. The grouped block ends with:
@@ -910,4 +919,7 @@ git commit -m "feat(catalog): show segment chip and raw application text on deta
 - [ ] **No dead references:** `grep -rn "seedRealPart\|buildUfiSamplePart" src/` → no output.
 - [ ] **Real SKU present:** `grep -c '"commercialCode": "23.290.00"' src/mocks/data/ufiPartsRaw.ts` → `1`.
 - [ ] **Manual UI check (user):** open `/app/catalogo`, search `23.290`, open a real filter; confirm segment chip, cross-references, applications + raw text, price tables, fiscal/logistics cards; toggle the 3 layouts; verify a synthetic non-filter part (e.g. a brake/motor part) still renders.
+
+```
+
 ```

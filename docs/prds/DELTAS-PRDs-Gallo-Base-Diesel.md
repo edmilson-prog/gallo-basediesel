@@ -35,27 +35,27 @@ Cada entrada de delta segue o formato:
 
 **Origem múltipla** — PRD-002 é o registry de tipos; PRDs posteriores adicionam tipos novos.
 
-| Origem   | Tipo    | Descrição                                                                                                                     |
-| -------- | ------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| PRD-031  | extend  | Adicionar `IQuote`, `IQuoteItem`, `QuoteStatus`, `QuoteOrigin`                                                                |
-| PRD-032  | extend  | Adicionar `IOrder`, `IOrderItem`, `ICommissionPreview`, `OrderStatus`, `IAddress`                                             |
-| PRD-042  | extend  | `IGoal` já modelado no PRD-002; adicionar `IGoalProgress`, `GoalType`, `GoalScope`, `GoalPeriod`                              |
-| PRD-043  | extend  | Adicionar `IBadge`, `ISellerBadge`, `ISellerScore`, `BadgeCategory`, `BadgeRarity` (catálogo seed em `mocks/seeds/badges.ts`) |
-| PRD-044  | extend  | Adicionar `IPositivationMetrics`, `ISellerPositivation`                                                                       |
-| PRD-045  | extend  | Adicionar `ICustomerABC`, `IABCMetrics`, `ABCClass`                                                                           |
-| PRD-046  | extend  | Adicionar `IPortfolioMetrics`, `ISellerPortfolio`                                                                             |
-| PRD-047  | replace | `ICommissionPreview` (de PRD-032) substituído por `ICommissionRule` + `ICommission` + `ICommissionSplitDetails`               |
-| PRD-048  | extend  | Adicionar `IDREPeriod`, `IDREComparison`                                                                                      |
-| PRD-049  | extend  | Adicionar types de rentabilidade (multi-dimensão)                                                                             |
-| PRD-050  | extend  | Adicionar `IInventoryAnalysis`, `IInventoryMetrics`, classe XYZ                                                               |
-| PRD-051  | extend  | Adicionar `ICustomerServiceMetrics`, `IChannelMetrics`, `ISellerServiceMetrics`                                               |
-| PRD-052  | extend  | Adicionar `IInventoryMovement`, `MovementType`                                                                                |
-| PRD-053  | extend  | Adicionar `IInsight`, `InsightType`, `InsightPriority`, `InsightCategory`                                                     |
-| PRD-060+ | extend  | Tipos do storefront (configs, hero, etc.) — manter coesos                                                                     |
-| PRD-064  | extend  | Adicionar `ICartItem` em store global                                                                                         |
-| PRD-070  | extend  | Adicionar `IVisit` (visita do vendedor externo)                                                                               |
+| Origem   | Tipo    | Descrição                                                                                                                                      |
+| -------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| PRD-031  | extend  | Adicionar `IQuote`, `IQuoteItem`, `QuoteStatus`, `QuoteOrigin`                                                                                 |
+| PRD-032  | extend  | Adicionar `IOrder`, `IOrderItem`, `ICommissionPreview`, `OrderStatus`, `IAddress`                                                              |
+| PRD-042  | extend  | `IGoal` já modelado no PRD-002; adicionar `IGoalProgress`, `GoalType`, `GoalScope`, `GoalPeriod`                                               |
+| PRD-043  | extend  | Adicionar `IBadge`, `ISellerBadge`, `ISellerScore`, `BadgeCategory`, `BadgeRarity` (catálogo seed em `mocks/seeds/badges.ts`)                  |
+| PRD-044  | extend  | Adicionar `IPositivationMetrics`, `ISellerPositivation`                                                                                        |
+| PRD-045  | extend  | Adicionar `ICustomerABC`, `IABCMetrics`, `ABCClass`                                                                                            |
+| PRD-046  | extend  | Adicionar `IPortfolioMetrics`, `ISellerPortfolio`                                                                                              |
+| PRD-047  | replace | `ICommissionPreview` (de PRD-032) substituído por `ICommissionRule` + `ICommission` + `ICommissionSplitDetails`                                |
+| PRD-048  | extend  | Adicionar `IDREPeriod`, `IDREComparison`                                                                                                       |
+| PRD-049  | extend  | Adicionar types de rentabilidade (multi-dimensão)                                                                                              |
+| PRD-050  | extend  | Adicionar `IInventoryAnalysis`, `IInventoryMetrics`, classe XYZ                                                                                |
+| PRD-051  | extend  | Adicionar `ICustomerServiceMetrics`, `IChannelMetrics`, `ISellerServiceMetrics`                                                                |
+| PRD-052  | extend  | Adicionar `IInventoryMovement`, `MovementType`                                                                                                 |
+| PRD-053  | extend  | Adicionar `IInsight`, `InsightType`, `InsightPriority`, `InsightCategory`                                                                      |
+| PRD-060+ | extend  | Tipos do storefront (configs, hero, etc.) — manter coesos                                                                                      |
+| PRD-064  | extend  | Adicionar `ICartItem` em store global                                                                                                          |
+| PRD-070  | extend  | Adicionar `IVisit` (visita do vendedor externo)                                                                                                |
 | PRD-025  | extend  | Adicionar `ICopilotSuggestion`, `ICopilotBriefing`, `ICopilotSummary`, `ICopilotPanelData` e tipos auxiliares em `src/shared/types/copilot.ts` |
-| PRD-071  | extend  | Adicionar `IPortalUser`, `IPortalRequest`, `IPortalContract`, `PortalUserRole`                                                |
+| PRD-071  | extend  | Adicionar `IPortalUser`, `IPortalRequest`, `IPortalContract`, `PortalUserRole`                                                                 |
 
 > **Recomendação:** manter `src/shared/types/` modular — arquivo por domínio (`catalog.ts`, `quotes.ts`, `orders.ts`, `goals.ts`, etc.) em vez de tudo no `models.ts` original do PRD-002.
 
@@ -333,8 +333,8 @@ Cada entrada de delta segue o formato:
 
 **Extendida pelo copiloto (PRD-025).**
 
-| Origem  | Tipo    | Descrição                                                                                                                                                                                                                   |
-| ------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Origem  | Tipo    | Descrição                                                                                                                                                                                                                                                                                                                                                    |
+| ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | PRD-025 | enhance | A tela de conversa (`ConversationPage`) monta a superfície do Copiloto (faixa, aba ou card, conforme `VITE_COPILOT_PLACEMENT`) via `useCopilotPanel`. A superfície é **privada ao vendedor** e nunca exposta ao cliente. O hook `useCopilotPanel` encapsula provider + dismiss + placement, sem alterar o modelo de mensagens nem o layout base da conversa. |
 
 ---
@@ -472,7 +472,7 @@ Cliente tem UM vendedor responsável. Transferências (PRD-018) são o mecanismo
 | ------ | ---------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1.0    | 25/05/2026 | AILA  | Criação inicial — consolidação de deltas dos 50 PRDs                                                                                                                       |
 | 1.1    | 27/05/2026 | AILA  | PRD-043 redigido — detalhamento do catálogo de badges + componente `<SellerBadgesGrid>` exportável; reforço de que PRD-040 já reserva slot para `<RankingHighlightWidget>` |
-| 1.2    | 31/05/2026 | AILA  | PRD-025 implementado — adicionado delta em 3.1 (PRD-002: tipos do copiloto) e nova seção 3.19 (PRD-011: tela de conversa extendida pela superfície do Copiloto) |
+| 1.2    | 31/05/2026 | AILA  | PRD-025 implementado — adicionado delta em 3.1 (PRD-002: tipos do copiloto) e nova seção 3.19 (PRD-011: tela de conversa extendida pela superfície do Copiloto)            |
 
 ---
 

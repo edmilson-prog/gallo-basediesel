@@ -148,7 +148,6 @@ import { Route as AppGestaoIndicadoresIndexRouteImport } from './routes/app.gest
 import { Route as AppGestaoComissoesIndexRouteImport } from './routes/app.gestao.comissoes.index'
 import { Route as AppGestaoAtendimentoAnaliseIndexRouteImport } from './routes/app.gestao.atendimento-analise.index'
 import { Route as AppConfiguracoesStorefrontIndexRouteImport } from './routes/app.configuracoes.storefront.index'
-import { Route as AppCatalogoKitsIndexRouteImport } from './routes/app.catalogo.kits.index'
 import { Route as LojaContaPedidosIdRouteImport } from './routes/loja.conta.pedidos.$id'
 import { Route as LojaContaOrcamentosIdRouteImport } from './routes/loja.conta.orcamentos.$id'
 import { Route as AppKitsModelIdEditarRouteImport } from './routes/app.kits.$modelId.editar'
@@ -173,9 +172,9 @@ import { Route as AppConfiguracoesAtendimentoPipelineRouteImport } from './route
 import { Route as AppConfiguracoesAtendimentoMotivosPerdaRouteImport } from './routes/app.configuracoes.atendimento.motivos-perda'
 import { Route as AppConfiguracoesAtendimentoLifecycleRouteImport } from './routes/app.configuracoes.atendimento.lifecycle'
 import { Route as AppConfiguracoesAtendimentoHorarioComercialRouteImport } from './routes/app.configuracoes.atendimento.horario-comercial'
-import { Route as AppCatalogoKitsNovoRouteImport } from './routes/app.catalogo.kits.novo'
 import { Route as AppCatalogoIdEditarRouteImport } from './routes/app.catalogo.$id.editar'
-import { Route as AppCatalogoKitsIdEditarRouteImport } from './routes/app.catalogo.kits.$id.editar'
+import { Route as AppKitsModelIdKitNovoRouteImport } from './routes/app.kits.$modelId.kit.novo'
+import { Route as AppKitsModelIdKitKitIdEditarRouteImport } from './routes/app.kits.$modelId.kit.$kitId.editar'
 
 const SemPermissaoRoute = SemPermissaoRouteImport.update({
   id: '/sem-permissao',
@@ -896,11 +895,6 @@ const AppConfiguracoesStorefrontIndexRoute =
     path: '/configuracoes/storefront/',
     getParentRoute: () => AppRoute,
   } as any)
-const AppCatalogoKitsIndexRoute = AppCatalogoKitsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppCatalogoKitsRoute,
-} as any)
 const LojaContaPedidosIdRoute = LojaContaPedidosIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -1037,21 +1031,22 @@ const AppConfiguracoesAtendimentoHorarioComercialRoute =
     path: '/configuracoes/atendimento/horario-comercial',
     getParentRoute: () => AppRoute,
   } as any)
-const AppCatalogoKitsNovoRoute = AppCatalogoKitsNovoRouteImport.update({
-  id: '/novo',
-  path: '/novo',
-  getParentRoute: () => AppCatalogoKitsRoute,
-} as any)
 const AppCatalogoIdEditarRoute = AppCatalogoIdEditarRouteImport.update({
   id: '/editar',
   path: '/editar',
   getParentRoute: () => AppCatalogoIdRoute,
 } as any)
-const AppCatalogoKitsIdEditarRoute = AppCatalogoKitsIdEditarRouteImport.update({
-  id: '/$id/editar',
-  path: '/$id/editar',
-  getParentRoute: () => AppCatalogoKitsRoute,
+const AppKitsModelIdKitNovoRoute = AppKitsModelIdKitNovoRouteImport.update({
+  id: '/kit/novo',
+  path: '/kit/novo',
+  getParentRoute: () => AppKitsModelIdRoute,
 } as any)
+const AppKitsModelIdKitKitIdEditarRoute =
+  AppKitsModelIdKitKitIdEditarRouteImport.update({
+    id: '/kit/$kitId/editar',
+    path: '/kit/$kitId/editar',
+    getParentRoute: () => AppKitsModelIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -1107,7 +1102,7 @@ export interface FileRoutesByFullPath {
   '/pwa/': typeof PwaIndexRoute
   '/app/atendimento/$id': typeof AppAtendimentoIdRoute
   '/app/catalogo/$id': typeof AppCatalogoIdRouteWithChildren
-  '/app/catalogo/kits': typeof AppCatalogoKitsRouteWithChildren
+  '/app/catalogo/kits': typeof AppCatalogoKitsRoute
   '/app/catalogo/novo': typeof AppCatalogoNovoRoute
   '/app/clientes/$id': typeof AppClientesIdRoute
   '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
@@ -1186,7 +1181,6 @@ export interface FileRoutesByFullPath {
   '/pwa/agenda/': typeof PwaAgendaIndexRoute
   '/pwa/carteira/': typeof PwaCarteiraIndexRoute
   '/app/catalogo/$id/editar': typeof AppCatalogoIdEditarRoute
-  '/app/catalogo/kits/novo': typeof AppCatalogoKitsNovoRoute
   '/app/configuracoes/atendimento/horario-comercial': typeof AppConfiguracoesAtendimentoHorarioComercialRoute
   '/app/configuracoes/atendimento/lifecycle': typeof AppConfiguracoesAtendimentoLifecycleRoute
   '/app/configuracoes/atendimento/motivos-perda': typeof AppConfiguracoesAtendimentoMotivosPerdaRoute
@@ -1211,7 +1205,6 @@ export interface FileRoutesByFullPath {
   '/app/kits/$modelId/editar': typeof AppKitsModelIdEditarRoute
   '/loja/conta/orcamentos/$id': typeof LojaContaOrcamentosIdRoute
   '/loja/conta/pedidos/$id': typeof LojaContaPedidosIdRoute
-  '/app/catalogo/kits/': typeof AppCatalogoKitsIndexRoute
   '/app/configuracoes/storefront/': typeof AppConfiguracoesStorefrontIndexRoute
   '/app/gestao/atendimento-analise/': typeof AppGestaoAtendimentoAnaliseIndexRoute
   '/app/gestao/comissoes/': typeof AppGestaoComissoesIndexRoute
@@ -1220,7 +1213,8 @@ export interface FileRoutesByFullPath {
   '/app/gestao/ranking/': typeof AppGestaoRankingIndexRoute
   '/loja/conta/orcamentos/': typeof LojaContaOrcamentosIndexRoute
   '/loja/conta/pedidos/': typeof LojaContaPedidosIndexRoute
-  '/app/catalogo/kits/$id/editar': typeof AppCatalogoKitsIdEditarRoute
+  '/app/kits/$modelId/kit/novo': typeof AppKitsModelIdKitNovoRoute
+  '/app/kits/$modelId/kit/$kitId/editar': typeof AppKitsModelIdKitKitIdEditarRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -1259,6 +1253,7 @@ export interface FileRoutesByTo {
   '/pwa': typeof PwaIndexRoute
   '/app/atendimento/$id': typeof AppAtendimentoIdRoute
   '/app/catalogo/$id': typeof AppCatalogoIdRouteWithChildren
+  '/app/catalogo/kits': typeof AppCatalogoKitsRoute
   '/app/catalogo/novo': typeof AppCatalogoNovoRoute
   '/app/clientes/$id': typeof AppClientesIdRoute
   '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
@@ -1330,7 +1325,6 @@ export interface FileRoutesByTo {
   '/pwa/agenda': typeof PwaAgendaIndexRoute
   '/pwa/carteira': typeof PwaCarteiraIndexRoute
   '/app/catalogo/$id/editar': typeof AppCatalogoIdEditarRoute
-  '/app/catalogo/kits/novo': typeof AppCatalogoKitsNovoRoute
   '/app/configuracoes/atendimento/horario-comercial': typeof AppConfiguracoesAtendimentoHorarioComercialRoute
   '/app/configuracoes/atendimento/lifecycle': typeof AppConfiguracoesAtendimentoLifecycleRoute
   '/app/configuracoes/atendimento/motivos-perda': typeof AppConfiguracoesAtendimentoMotivosPerdaRoute
@@ -1355,7 +1349,6 @@ export interface FileRoutesByTo {
   '/app/kits/$modelId/editar': typeof AppKitsModelIdEditarRoute
   '/loja/conta/orcamentos/$id': typeof LojaContaOrcamentosIdRoute
   '/loja/conta/pedidos/$id': typeof LojaContaPedidosIdRoute
-  '/app/catalogo/kits': typeof AppCatalogoKitsIndexRoute
   '/app/configuracoes/storefront': typeof AppConfiguracoesStorefrontIndexRoute
   '/app/gestao/atendimento-analise': typeof AppGestaoAtendimentoAnaliseIndexRoute
   '/app/gestao/comissoes': typeof AppGestaoComissoesIndexRoute
@@ -1364,7 +1357,8 @@ export interface FileRoutesByTo {
   '/app/gestao/ranking': typeof AppGestaoRankingIndexRoute
   '/loja/conta/orcamentos': typeof LojaContaOrcamentosIndexRoute
   '/loja/conta/pedidos': typeof LojaContaPedidosIndexRoute
-  '/app/catalogo/kits/$id/editar': typeof AppCatalogoKitsIdEditarRoute
+  '/app/kits/$modelId/kit/novo': typeof AppKitsModelIdKitNovoRoute
+  '/app/kits/$modelId/kit/$kitId/editar': typeof AppKitsModelIdKitKitIdEditarRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -1421,7 +1415,7 @@ export interface FileRoutesById {
   '/pwa/': typeof PwaIndexRoute
   '/app/atendimento/$id': typeof AppAtendimentoIdRoute
   '/app/catalogo/$id': typeof AppCatalogoIdRouteWithChildren
-  '/app/catalogo/kits': typeof AppCatalogoKitsRouteWithChildren
+  '/app/catalogo/kits': typeof AppCatalogoKitsRoute
   '/app/catalogo/novo': typeof AppCatalogoNovoRoute
   '/app/clientes/$id': typeof AppClientesIdRoute
   '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
@@ -1500,7 +1494,6 @@ export interface FileRoutesById {
   '/pwa/agenda/': typeof PwaAgendaIndexRoute
   '/pwa/carteira/': typeof PwaCarteiraIndexRoute
   '/app/catalogo/$id/editar': typeof AppCatalogoIdEditarRoute
-  '/app/catalogo/kits/novo': typeof AppCatalogoKitsNovoRoute
   '/app/configuracoes/atendimento/horario-comercial': typeof AppConfiguracoesAtendimentoHorarioComercialRoute
   '/app/configuracoes/atendimento/lifecycle': typeof AppConfiguracoesAtendimentoLifecycleRoute
   '/app/configuracoes/atendimento/motivos-perda': typeof AppConfiguracoesAtendimentoMotivosPerdaRoute
@@ -1525,7 +1518,6 @@ export interface FileRoutesById {
   '/app/kits/$modelId/editar': typeof AppKitsModelIdEditarRoute
   '/loja/conta/orcamentos/$id': typeof LojaContaOrcamentosIdRoute
   '/loja/conta/pedidos/$id': typeof LojaContaPedidosIdRoute
-  '/app/catalogo/kits/': typeof AppCatalogoKitsIndexRoute
   '/app/configuracoes/storefront/': typeof AppConfiguracoesStorefrontIndexRoute
   '/app/gestao/atendimento-analise/': typeof AppGestaoAtendimentoAnaliseIndexRoute
   '/app/gestao/comissoes/': typeof AppGestaoComissoesIndexRoute
@@ -1534,7 +1526,8 @@ export interface FileRoutesById {
   '/app/gestao/ranking/': typeof AppGestaoRankingIndexRoute
   '/loja/conta/orcamentos/': typeof LojaContaOrcamentosIndexRoute
   '/loja/conta/pedidos/': typeof LojaContaPedidosIndexRoute
-  '/app/catalogo/kits/$id/editar': typeof AppCatalogoKitsIdEditarRoute
+  '/app/kits/$modelId/kit/novo': typeof AppKitsModelIdKitNovoRoute
+  '/app/kits/$modelId/kit/$kitId/editar': typeof AppKitsModelIdKitKitIdEditarRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1671,7 +1664,6 @@ export interface FileRouteTypes {
     | '/pwa/agenda/'
     | '/pwa/carteira/'
     | '/app/catalogo/$id/editar'
-    | '/app/catalogo/kits/novo'
     | '/app/configuracoes/atendimento/horario-comercial'
     | '/app/configuracoes/atendimento/lifecycle'
     | '/app/configuracoes/atendimento/motivos-perda'
@@ -1696,7 +1688,6 @@ export interface FileRouteTypes {
     | '/app/kits/$modelId/editar'
     | '/loja/conta/orcamentos/$id'
     | '/loja/conta/pedidos/$id'
-    | '/app/catalogo/kits/'
     | '/app/configuracoes/storefront/'
     | '/app/gestao/atendimento-analise/'
     | '/app/gestao/comissoes/'
@@ -1705,7 +1696,8 @@ export interface FileRouteTypes {
     | '/app/gestao/ranking/'
     | '/loja/conta/orcamentos/'
     | '/loja/conta/pedidos/'
-    | '/app/catalogo/kits/$id/editar'
+    | '/app/kits/$modelId/kit/novo'
+    | '/app/kits/$modelId/kit/$kitId/editar'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1744,6 +1736,7 @@ export interface FileRouteTypes {
     | '/pwa'
     | '/app/atendimento/$id'
     | '/app/catalogo/$id'
+    | '/app/catalogo/kits'
     | '/app/catalogo/novo'
     | '/app/clientes/$id'
     | '/app/configuracoes/aparencia'
@@ -1815,7 +1808,6 @@ export interface FileRouteTypes {
     | '/pwa/agenda'
     | '/pwa/carteira'
     | '/app/catalogo/$id/editar'
-    | '/app/catalogo/kits/novo'
     | '/app/configuracoes/atendimento/horario-comercial'
     | '/app/configuracoes/atendimento/lifecycle'
     | '/app/configuracoes/atendimento/motivos-perda'
@@ -1840,7 +1832,6 @@ export interface FileRouteTypes {
     | '/app/kits/$modelId/editar'
     | '/loja/conta/orcamentos/$id'
     | '/loja/conta/pedidos/$id'
-    | '/app/catalogo/kits'
     | '/app/configuracoes/storefront'
     | '/app/gestao/atendimento-analise'
     | '/app/gestao/comissoes'
@@ -1849,7 +1840,8 @@ export interface FileRouteTypes {
     | '/app/gestao/ranking'
     | '/loja/conta/orcamentos'
     | '/loja/conta/pedidos'
-    | '/app/catalogo/kits/$id/editar'
+    | '/app/kits/$modelId/kit/novo'
+    | '/app/kits/$modelId/kit/$kitId/editar'
   id:
     | '__root__'
     | '/'
@@ -1984,7 +1976,6 @@ export interface FileRouteTypes {
     | '/pwa/agenda/'
     | '/pwa/carteira/'
     | '/app/catalogo/$id/editar'
-    | '/app/catalogo/kits/novo'
     | '/app/configuracoes/atendimento/horario-comercial'
     | '/app/configuracoes/atendimento/lifecycle'
     | '/app/configuracoes/atendimento/motivos-perda'
@@ -2009,7 +2000,6 @@ export interface FileRouteTypes {
     | '/app/kits/$modelId/editar'
     | '/loja/conta/orcamentos/$id'
     | '/loja/conta/pedidos/$id'
-    | '/app/catalogo/kits/'
     | '/app/configuracoes/storefront/'
     | '/app/gestao/atendimento-analise/'
     | '/app/gestao/comissoes/'
@@ -2018,7 +2008,8 @@ export interface FileRouteTypes {
     | '/app/gestao/ranking/'
     | '/loja/conta/orcamentos/'
     | '/loja/conta/pedidos/'
-    | '/app/catalogo/kits/$id/editar'
+    | '/app/kits/$modelId/kit/novo'
+    | '/app/kits/$modelId/kit/$kitId/editar'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -3008,13 +2999,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesStorefrontIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/catalogo/kits/': {
-      id: '/app/catalogo/kits/'
-      path: '/'
-      fullPath: '/app/catalogo/kits/'
-      preLoaderRoute: typeof AppCatalogoKitsIndexRouteImport
-      parentRoute: typeof AppCatalogoKitsRoute
-    }
     '/loja/conta/pedidos/$id': {
       id: '/loja/conta/pedidos/$id'
       path: '/$id'
@@ -3183,13 +3167,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesAtendimentoHorarioComercialRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/catalogo/kits/novo': {
-      id: '/app/catalogo/kits/novo'
-      path: '/novo'
-      fullPath: '/app/catalogo/kits/novo'
-      preLoaderRoute: typeof AppCatalogoKitsNovoRouteImport
-      parentRoute: typeof AppCatalogoKitsRoute
-    }
     '/app/catalogo/$id/editar': {
       id: '/app/catalogo/$id/editar'
       path: '/editar'
@@ -3197,12 +3174,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCatalogoIdEditarRouteImport
       parentRoute: typeof AppCatalogoIdRoute
     }
-    '/app/catalogo/kits/$id/editar': {
-      id: '/app/catalogo/kits/$id/editar'
-      path: '/$id/editar'
-      fullPath: '/app/catalogo/kits/$id/editar'
-      preLoaderRoute: typeof AppCatalogoKitsIdEditarRouteImport
-      parentRoute: typeof AppCatalogoKitsRoute
+    '/app/kits/$modelId/kit/novo': {
+      id: '/app/kits/$modelId/kit/novo'
+      path: '/kit/novo'
+      fullPath: '/app/kits/$modelId/kit/novo'
+      preLoaderRoute: typeof AppKitsModelIdKitNovoRouteImport
+      parentRoute: typeof AppKitsModelIdRoute
+    }
+    '/app/kits/$modelId/kit/$kitId/editar': {
+      id: '/app/kits/$modelId/kit/$kitId/editar'
+      path: '/kit/$kitId/editar'
+      fullPath: '/app/kits/$modelId/kit/$kitId/editar'
+      preLoaderRoute: typeof AppKitsModelIdKitKitIdEditarRouteImport
+      parentRoute: typeof AppKitsModelIdRoute
     }
   }
 }
@@ -3233,32 +3217,16 @@ const AppCatalogoIdRouteWithChildren = AppCatalogoIdRoute._addFileChildren(
   AppCatalogoIdRouteChildren,
 )
 
-interface AppCatalogoKitsRouteChildren {
-  AppCatalogoKitsNovoRoute: typeof AppCatalogoKitsNovoRoute
-  AppCatalogoKitsIndexRoute: typeof AppCatalogoKitsIndexRoute
-  AppCatalogoKitsIdEditarRoute: typeof AppCatalogoKitsIdEditarRoute
-}
-
-const AppCatalogoKitsRouteChildren: AppCatalogoKitsRouteChildren = {
-  AppCatalogoKitsNovoRoute: AppCatalogoKitsNovoRoute,
-  AppCatalogoKitsIndexRoute: AppCatalogoKitsIndexRoute,
-  AppCatalogoKitsIdEditarRoute: AppCatalogoKitsIdEditarRoute,
-}
-
-const AppCatalogoKitsRouteWithChildren = AppCatalogoKitsRoute._addFileChildren(
-  AppCatalogoKitsRouteChildren,
-)
-
 interface AppCatalogoRouteChildren {
   AppCatalogoIdRoute: typeof AppCatalogoIdRouteWithChildren
-  AppCatalogoKitsRoute: typeof AppCatalogoKitsRouteWithChildren
+  AppCatalogoKitsRoute: typeof AppCatalogoKitsRoute
   AppCatalogoNovoRoute: typeof AppCatalogoNovoRoute
   AppCatalogoIndexRoute: typeof AppCatalogoIndexRoute
 }
 
 const AppCatalogoRouteChildren: AppCatalogoRouteChildren = {
   AppCatalogoIdRoute: AppCatalogoIdRouteWithChildren,
-  AppCatalogoKitsRoute: AppCatalogoKitsRouteWithChildren,
+  AppCatalogoKitsRoute: AppCatalogoKitsRoute,
   AppCatalogoNovoRoute: AppCatalogoNovoRoute,
   AppCatalogoIndexRoute: AppCatalogoIndexRoute,
 }
@@ -3283,10 +3251,14 @@ const AppClientesRouteWithChildren = AppClientesRoute._addFileChildren(
 
 interface AppKitsModelIdRouteChildren {
   AppKitsModelIdEditarRoute: typeof AppKitsModelIdEditarRoute
+  AppKitsModelIdKitNovoRoute: typeof AppKitsModelIdKitNovoRoute
+  AppKitsModelIdKitKitIdEditarRoute: typeof AppKitsModelIdKitKitIdEditarRoute
 }
 
 const AppKitsModelIdRouteChildren: AppKitsModelIdRouteChildren = {
   AppKitsModelIdEditarRoute: AppKitsModelIdEditarRoute,
+  AppKitsModelIdKitNovoRoute: AppKitsModelIdKitNovoRoute,
+  AppKitsModelIdKitKitIdEditarRoute: AppKitsModelIdKitKitIdEditarRoute,
 }
 
 const AppKitsModelIdRouteWithChildren = AppKitsModelIdRoute._addFileChildren(

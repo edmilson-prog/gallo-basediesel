@@ -1,10 +1,12 @@
 import { useMemo } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { toast } from "sonner";
 import type { IVehicle } from "@/shared/types";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
+import { useModelKits } from "@/features/model-kits/hooks/useModelKits";
+import { useVehicleModels } from "@/features/vehicle-models/hooks/useVehicleModels";
+import { findKitsForVehicle } from "@/features/model-kits/utils/modelKitMatching";
 import { computeRecommendations } from "../../utils/maintenanceRules";
 import { VEHICLE_STRINGS } from "../../i18n/pt-BR";
 
@@ -18,6 +20,20 @@ export interface IMaintenanceRecommendationsProps {
 export function MaintenanceRecommendations({ vehicle }: IMaintenanceRecommendationsProps) {
   const navigate = useNavigate();
   const recommendations = useMemo(() => computeRecommendations(vehicle), [vehicle]);
+
+  // Resolve applicable filter kit for this vehicle (RF-014).
+  const modelKitsQuery = useModelKits({});
+  const vehicleModelsQuery = useVehicleModels({});
+  const kits = modelKitsQuery.data ?? [];
+  const vehicleModels = vehicleModelsQuery.data ?? [];
+  const modelsById = useMemo(() => new Map(vehicleModels.map((m) => [m.id, m])), [vehicleModels]);
+  const applicableFilterKit = useMemo(
+    () =>
+      findKitsForVehicle(vehicle, kits, modelsById).find(
+        (k) => k.status === "oficial" && k.category === "filtros",
+      ) ?? null,
+    [vehicle, kits, modelsById],
+  );
 
   return (
     <section className="space-y-3">
@@ -33,6 +49,8 @@ export function MaintenanceRecommendations({ vehicle }: IMaintenanceRecommendati
         <ul className="grid gap-2 md:grid-cols-2">
           {recommendations.map((rec) => {
             const isOverdue = rec.remainingKm <= 0;
+            const isFilterCard = rec.rule.key === "filters";
+            const hasKit = isFilterCard && applicableFilterKit !== null;
             return (
               <li
                 key={rec.rule.key}
@@ -69,15 +87,18 @@ export function MaintenanceRecommendations({ vehicle }: IMaintenanceRecommendati
                     size="sm"
                     className="text-xs"
                     onClick={() => {
-                      // PRD-031 ainda não implementado — placeholder.
-                      toast.info(
-                        "Quando o módulo de orçamentos (PRD-031) estiver pronto, o atalho criará um orçamento com as peças sugeridas.",
-                      );
-                      void navigate({ to: "/app/orcamentos" });
+                      if (hasKit) {
+                        void navigate({
+                          to: "/app/orcamentos/novo",
+                          search: { applyKitId: applicableFilterKit!.id },
+                        });
+                      } else {
+                        void navigate({ to: "/app/orcamentos/novo" });
+                      }
                     }}
                   >
                     <Icon icon="mdi:file-document-plus-outline" size={12} />
-                    {COPY.createQuote}
+                    {hasKit ? "Criar orçamento com Kit" : COPY.createQuote}
                   </Button>
                 </div>
               </li>

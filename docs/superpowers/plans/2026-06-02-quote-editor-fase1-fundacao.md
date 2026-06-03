@@ -101,6 +101,7 @@ src/features/quotes/
 ## Task 1: Tipos do editor
 
 **Files:**
+
 - Create: `src/features/quotes/types/editor.ts`
 
 - [ ] **Step 1: Criar os tipos**
@@ -124,13 +125,21 @@ export const DEFAULT_QUOTE_EDITOR_PREFS: IQuoteEditorPrefs = {
   addMode: "continuous",
 };
 
-export const QUOTE_LAYOUT_OPTIONS: ReadonlyArray<{ value: QuoteLayout; label: string; icon: string }> = [
+export const QUOTE_LAYOUT_OPTIONS: ReadonlyArray<{
+  value: QuoteLayout;
+  label: string;
+  icon: string;
+}> = [
   { value: "twoCol", label: "2 colunas", icon: "mdi:view-split-vertical" },
   { value: "full", label: "Largura cheia", icon: "mdi:view-sequential" },
   { value: "footerBar", label: "Barra no rodapé", icon: "mdi:dock-bottom" },
 ];
 
-export const QUOTE_ADD_MODE_OPTIONS: ReadonlyArray<{ value: QuoteAddMode; label: string; icon: string }> = [
+export const QUOTE_ADD_MODE_OPTIONS: ReadonlyArray<{
+  value: QuoteAddMode;
+  label: string;
+  icon: string;
+}> = [
   { value: "continuous", label: "Contínuo", icon: "mdi:playlist-plus" },
   { value: "catalog", label: "Catálogo", icon: "mdi:view-grid-plus-outline" },
   { value: "quick", label: "Rápido", icon: "mdi:keyboard-outline" },
@@ -154,6 +163,7 @@ git commit -m "feat(quotes): add quote editor pref types"
 ## Task 2: Hook de preferências do editor (`useQuoteEditorPrefs`)
 
 **Files:**
+
 - Create: `src/features/quotes/hooks/useQuoteEditorPrefs.ts`
 
 - [ ] **Step 1: Implementar o hook** (segue o padrão localStorage de `useResizableColumns.ts`)
@@ -233,15 +243,20 @@ function sanitize(parsed: Record<string, unknown>) {
   const LAYOUTS = ["twoCol", "full", "footerBar"];
   const ADD_MODES = ["continuous", "catalog", "quick"];
   return {
-    layout: LAYOUTS.includes(parsed.layout as string) ? parsed.layout : DEFAULT_QUOTE_EDITOR_PREFS.layout,
-    addMode: ADD_MODES.includes(parsed.addMode as string) ? parsed.addMode : DEFAULT_QUOTE_EDITOR_PREFS.addMode,
+    layout: LAYOUTS.includes(parsed.layout as string)
+      ? parsed.layout
+      : DEFAULT_QUOTE_EDITOR_PREFS.layout,
+    addMode: ADD_MODES.includes(parsed.addMode as string)
+      ? parsed.addMode
+      : DEFAULT_QUOTE_EDITOR_PREFS.addMode,
   };
 }
 
 const a = sanitize({ layout: "full", addMode: "quick" });
 if (a.layout !== "full" || a.addMode !== "quick") throw new Error("valid prefs not preserved");
 const b = sanitize({ layout: "bogus", addMode: undefined as unknown as string });
-if (b.layout !== "twoCol" || b.addMode !== "continuous") throw new Error("invalid prefs not defaulted");
+if (b.layout !== "twoCol" || b.addMode !== "continuous")
+  throw new Error("invalid prefs not defaulted");
 console.log("ALL PASS");
 ```
 
@@ -267,6 +282,7 @@ git commit -m "feat(quotes): persist quote editor preferences per seller"
 ## Task 3: Operações de item (`quoteItemOps.ts`)
 
 **Files:**
+
 - Create: `src/features/quotes/utils/quoteItemOps.ts`
 
 - [ ] **Step 1: Implementar as operações puras**
@@ -295,7 +311,11 @@ export function buildItemFromPart(part: IPart, quantity = 1): IQuoteItem {
 }
 
 /** Build a free (off-catalog) quote item. */
-export function buildFreeItem(input: { name: string; unitPrice: number; quantity?: number }): IQuoteItem {
+export function buildFreeItem(input: {
+  name: string;
+  unitPrice: number;
+  quantity?: number;
+}): IQuoteItem {
   const qty = Math.max(1, Math.floor(input.quantity ?? 1) || 1);
   const price = Math.max(0, input.unitPrice || 0);
   return {
@@ -349,11 +369,13 @@ const part = { id: "p1", sku: "S1", name: "Filtro", unitPrice: 100 } as never;
 
 // 1) primeira adição cria linha
 const r1 = addOrIncrementItem([], part, 2);
-if (r1.items.length !== 1 || r1.items[0].quantity !== 2 || r1.items[0].total !== 200) throw new Error("create failed");
+if (r1.items.length !== 1 || r1.items[0].quantity !== 2 || r1.items[0].total !== 200)
+  throw new Error("create failed");
 
 // 2) re-adicionar mesma peça incrementa (não duplica)
 const r2 = addOrIncrementItem(r1.items, part, 3);
-if (r2.items.length !== 1 || r2.items[0].quantity !== 5 || r2.items[0].total !== 500) throw new Error("increment failed");
+if (r2.items.length !== 1 || r2.items[0].quantity !== 5 || r2.items[0].total !== 500)
+  throw new Error("increment failed");
 if (r2.affectedId !== r1.items[0].id) throw new Error("affectedId should point to existing line");
 
 // 3) item avulso sempre acrescenta
@@ -380,6 +402,7 @@ git commit -m "feat(quotes): add quote item ops with duplicate increment"
 ## Task 4: Montagem de sugestões (`suggestions.ts`)
 
 **Files:**
+
 - Create: `src/features/quotes/utils/suggestions.ts`
 
 - [ ] **Step 1: Implementar funções puras**
@@ -410,13 +433,20 @@ export interface IRepurchaseSuggestion {
  * Parts the customer bought before, resolved against the live catalog and
  * ranked by recency then frequency. Parts no longer in `parts` are dropped.
  */
-export function buildRepurchaseItems(parts: IPart[], orders: IOrder[], limit = 12): IRepurchaseSuggestion[] {
+export function buildRepurchaseItems(
+  parts: IPart[],
+  orders: IOrder[],
+  limit = 12,
+): IRepurchaseSuggestion[] {
   const byPart = new Map<string, IPart>(parts.map((p) => [p.id, p]));
   const agg = new Map<string, { orderIds: Set<string>; lastOrderedAt: string }>();
   for (const order of orders) {
     for (const item of order.items) {
       if (!byPart.has(item.partId)) continue;
-      const entry = agg.get(item.partId) ?? { orderIds: new Set<string>(), lastOrderedAt: order.createdAt };
+      const entry = agg.get(item.partId) ?? {
+        orderIds: new Set<string>(),
+        lastOrderedAt: order.createdAt,
+      };
       entry.orderIds.add(order.id);
       if (order.createdAt > entry.lastOrderedAt) entry.lastOrderedAt = order.createdAt;
       agg.set(item.partId, entry);
@@ -477,6 +507,7 @@ git commit -m "feat(quotes): add vehicle + repurchase suggestion builders"
 ## Task 5: Classes de layout (`layoutClasses.ts`)
 
 **Files:**
+
 - Create: `src/features/quotes/utils/layoutClasses.ts`
 
 - [ ] **Step 1: Implementar o mapa de classes**
@@ -527,7 +558,8 @@ export function quoteLayoutClasses(layout: QuoteLayout): IQuoteLayoutClasses {
         root: "w-full p-4 pb-24 md:p-6 md:pb-24",
         grid: "grid grid-cols-1 gap-6",
         body: "min-w-0 space-y-6",
-        summary: "fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 px-4 py-3 backdrop-blur",
+        summary:
+          "fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 px-4 py-3 backdrop-blur",
         summaryAsFooterBar: true,
       };
     default:
@@ -569,6 +601,7 @@ git commit -m "feat(quotes): add layout class map for quote editor"
 ## Task 6: Hook de busca compartilhada (`useItemSearch`)
 
 **Files:**
+
 - Create: `src/features/quotes/hooks/useItemSearch.ts`
 
 **Contexto:** os 3 modos de adição buscam peças da mesma forma. Centralizar evita 3 cópias. Carrega o catálogo via provider (cacheado por TanStack Query) e filtra em memória por texto e/ou veículo.
@@ -598,7 +631,12 @@ export interface IUseItemSearch {
 }
 
 /** Shared catalog search for the quote item adders. */
-export function useItemSearch({ enabled, query, vehicle, limit = 20 }: IUseItemSearchArgs): IUseItemSearch {
+export function useItemSearch({
+  enabled,
+  query,
+  vehicle,
+  limit = 20,
+}: IUseItemSearchArgs): IUseItemSearch {
   const partsProvider = usePartsProvider();
   const partsQuery = useQuery({
     queryKey: ["parts-for-quote"] as const,
@@ -643,6 +681,7 @@ git commit -m "feat(quotes): add shared item search hook"
 ## Task 7: `QuoteItemsTable` (extrair tabela editável)
 
 **Files:**
+
 - Create: `src/features/quotes/components/new/items/QuoteItemsTable.tsx`
 
 **Contexto:** extrai a `<table>` de itens hoje embutida em `NewQuotePage.tsx:237-328`, sem mudar comportamento (qtd/unit/desc editáveis, subtotal, remover). Recebe um `highlightId` opcional para o flash de "recém-adicionado".
@@ -667,7 +706,13 @@ export interface IQuoteItemsTableProps {
   highlightId?: ID | null;
 }
 
-export function QuoteItemsTable({ items, subtotal, onPatch, onRemove, highlightId }: IQuoteItemsTableProps) {
+export function QuoteItemsTable({
+  items,
+  subtotal,
+  onPatch,
+  onRemove,
+  highlightId,
+}: IQuoteItemsTableProps) {
   const [flashId, setFlashId] = useState<ID | null>(null);
   useEffect(() => {
     if (!highlightId) return;
@@ -715,7 +760,9 @@ export function QuoteItemsTable({ items, subtotal, onPatch, onRemove, highlightI
                   min={1}
                   aria-label={`Quantidade de ${it.partName}`}
                   value={it.quantity}
-                  onChange={(e) => onPatch(it.id, { quantity: Math.max(1, Number(e.target.value) || 1) })}
+                  onChange={(e) =>
+                    onPatch(it.id, { quantity: Math.max(1, Number(e.target.value) || 1) })
+                  }
                   className="h-8 text-right tabular-nums"
                 />
               </td>
@@ -726,7 +773,9 @@ export function QuoteItemsTable({ items, subtotal, onPatch, onRemove, highlightI
                   step={0.01}
                   aria-label={`Preço unitário de ${it.partName}`}
                   value={it.unitPrice}
-                  onChange={(e) => onPatch(it.id, { unitPrice: Math.max(0, Number(e.target.value) || 0) })}
+                  onChange={(e) =>
+                    onPatch(it.id, { unitPrice: Math.max(0, Number(e.target.value) || 0) })
+                  }
                   className="h-8 text-right tabular-nums"
                 />
               </td>
@@ -737,7 +786,9 @@ export function QuoteItemsTable({ items, subtotal, onPatch, onRemove, highlightI
                   step={0.01}
                   aria-label={`Desconto de ${it.partName}`}
                   value={it.discount}
-                  onChange={(e) => onPatch(it.id, { discount: Math.max(0, Number(e.target.value) || 0) })}
+                  onChange={(e) =>
+                    onPatch(it.id, { discount: Math.max(0, Number(e.target.value) || 0) })
+                  }
                   className="h-8 text-right tabular-nums"
                 />
               </td>
@@ -791,6 +842,7 @@ git commit -m "feat(quotes): extract editable quote items table"
 ## Task 8: `ItemResultRow` (linha de resultado da busca)
 
 **Files:**
+
 - Create: `src/features/quotes/components/new/items/ItemResultRow.tsx`
 
 **Contexto:** linha reutilizável de um resultado de peça (usada pelo Contínuo e pelo Catálogo). Na Fase 1 mostra: ícone/foto, nome, OEM·SKU·marca, badge de estoque (ok/baixo/zerado), preço, indicador "já no orçamento (qtd N)", e ação de adicionar. Badges ricos (Original/Equivalente, margem, equivalentes inline) ficam para a Fase 2 — não implementar agora.
@@ -841,7 +893,9 @@ export function ItemResultRow({ part, inQuoteQty = 0, onAdd }: IItemResultRowPro
       </div>
       <div className="flex items-center gap-3">
         <div className="text-right">
-          <p className="text-sm font-semibold tabular-nums">{moneyFormatter.format(part.unitPrice)}</p>
+          <p className="text-sm font-semibold tabular-nums">
+            {moneyFormatter.format(part.unitPrice)}
+          </p>
           {inQuoteQty > 0 && (
             <p className="text-[10px] text-primary">
               <Icon icon="mdi:check" size={11} className="mr-0.5 inline" />
@@ -880,6 +934,7 @@ git commit -m "feat(quotes): add catalog result row with stock badge"
 ## Task 9: `SuggestionRails` (estado-zero: veículos + recompra)
 
 **Files:**
+
 - Create: `src/features/quotes/components/new/items/SuggestionRails.tsx`
 
 **Contexto:** mostrado quando a busca está vazia. Recebe os veículos do cliente (chips para alternar) e o catálogo já carregado; computa sugestões por veículo selecionado e recompra. Sem cliente/veículos, renderiza uma dica neutra.
@@ -901,7 +956,13 @@ export interface ISuggestionRailsProps {
   onAdd: (part: IPart) => void;
 }
 
-export function SuggestionRails({ allParts, vehicles, orders, inQuoteQtyByPart, onAdd }: ISuggestionRailsProps) {
+export function SuggestionRails({
+  allParts,
+  vehicles,
+  orders,
+  inQuoteQtyByPart,
+  onAdd,
+}: ISuggestionRailsProps) {
   const [activeVehicleId, setActiveVehicleId] = useState<string | null>(vehicles[0]?.id ?? null);
   const activeVehicle = vehicles.find((v) => v.id === activeVehicleId) ?? null;
 
@@ -924,7 +985,9 @@ export function SuggestionRails({ allParts, vehicles, orders, inQuoteQtyByPart, 
       {vehicles.length > 0 && (
         <section>
           <div className="mb-1 flex flex-wrap items-center gap-1 px-1">
-            <span className="text-xs font-medium text-muted-foreground">Sugestões por veículo:</span>
+            <span className="text-xs font-medium text-muted-foreground">
+              Sugestões por veículo:
+            </span>
             {vehicles.map((v) => (
               <button
                 key={v.id}
@@ -947,7 +1010,12 @@ export function SuggestionRails({ allParts, vehicles, orders, inQuoteQtyByPart, 
           ) : (
             <div className="rounded-md border border-border">
               {vehicleParts.map((p) => (
-                <ItemResultRow key={p.id} part={p} inQuoteQty={inQuoteQtyByPart.get(p.id) ?? 0} onAdd={onAdd} />
+                <ItemResultRow
+                  key={p.id}
+                  part={p}
+                  inQuoteQty={inQuoteQtyByPart.get(p.id) ?? 0}
+                  onAdd={onAdd}
+                />
               ))}
             </div>
           )}
@@ -991,6 +1059,7 @@ git commit -m "feat(quotes): add suggestion rails (vehicle + repurchase)"
 ## Task 10: `FreeItemDialog` (item avulso)
 
 **Files:**
+
 - Create: `src/features/quotes/components/new/items/FreeItemDialog.tsx`
 
 - [ ] **Step 1: Implementar o componente**
@@ -1036,22 +1105,44 @@ export function FreeItemDialog({ open, onClose, onAdd }: IFreeItemDialogProps) {
         <div className="space-y-3">
           <div>
             <Label htmlFor="free-name">Descrição</Label>
-            <Input id="free-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="ex.: Mão de obra, taxa, peça sob encomenda" />
+            <Input
+              id="free-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="ex.: Mão de obra, taxa, peça sob encomenda"
+            />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label htmlFor="free-price">Preço unitário (R$)</Label>
-              <Input id="free-price" type="number" min={0} step={0.01} value={price} onChange={(e) => setPrice(e.target.value)} />
+              <Input
+                id="free-price"
+                type="number"
+                min={0}
+                step={0.01}
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+              />
             </div>
             <div>
               <Label htmlFor="free-qty">Quantidade</Label>
-              <Input id="free-qty" type="number" min={1} value={quantity} onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))} />
+              <Input
+                id="free-qty"
+                type="number"
+                min={1}
+                value={quantity}
+                onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))}
+              />
             </div>
           </div>
         </div>
         <div className="flex justify-end gap-2 pt-2">
-          <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button disabled={!canAdd} onClick={handleAdd}>Adicionar</Button>
+          <Button variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button disabled={!canAdd} onClick={handleAdd}>
+            Adicionar
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -1076,6 +1167,7 @@ git commit -m "feat(quotes): add free (off-catalog) item dialog"
 ## Task 11: Sub-modos de adição — `ContinuousAdder`, `QuickAddBar`, `CatalogDrawer`
 
 **Files:**
+
 - Create: `src/features/quotes/components/new/items/ContinuousAdder.tsx`
 - Create: `src/features/quotes/components/new/items/QuickAddBar.tsx`
 - Create: `src/features/quotes/components/new/items/CatalogDrawer.tsx`
@@ -1115,7 +1207,13 @@ export interface IAdderProps {
   onAddFreeItemClick: () => void;
 }
 
-export function ContinuousAdder({ vehicles, orders, inQuoteQtyByPart, onAddPart, onAddFreeItemClick }: IAdderProps) {
+export function ContinuousAdder({
+  vehicles,
+  orders,
+  inQuoteQtyByPart,
+  onAddPart,
+  onAddFreeItemClick,
+}: IAdderProps) {
   const [query, setQuery] = useState("");
   const { results, allParts, isLoading } = useItemSearch({ enabled: true, query });
 
@@ -1123,7 +1221,11 @@ export function ContinuousAdder({ vehicles, orders, inQuoteQtyByPart, onAddPart,
     <div className="space-y-3">
       <div className="flex flex-col gap-2 sm:flex-row">
         <div className="relative flex-1">
-          <Icon icon="mdi:magnify" size={16} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Icon
+            icon="mdi:magnify"
+            size={16}
+            className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+          />
           <Input
             type="search"
             className="pl-8"
@@ -1146,7 +1248,12 @@ export function ContinuousAdder({ vehicles, orders, inQuoteQtyByPart, onAddPart,
             </p>
           ) : (
             results.map((p) => (
-              <ItemResultRow key={p.id} part={p} inQuoteQty={inQuoteQtyByPart.get(p.id) ?? 0} onAdd={onAddPart} />
+              <ItemResultRow
+                key={p.id}
+                part={p}
+                inQuoteQty={inQuoteQtyByPart.get(p.id) ?? 0}
+                onAdd={onAddPart}
+              />
             ))
           )}
         </div>
@@ -1170,7 +1277,14 @@ export function ContinuousAdder({ vehicles, orders, inQuoteQtyByPart, onAddPart,
 // src/features/quotes/components/new/items/QuickAddBar.tsx
 import { useState } from "react";
 import type { IOrder, IPart, IVehicle } from "@/shared/types";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Icon } from "@/components/Icon";
 import { useItemSearch } from "../../../hooks/useItemSearch";
 
@@ -1190,19 +1304,30 @@ export function QuickAddBar({ inQuoteQtyByPart, onAddPart }: IAdderProps) {
 
   return (
     <Command shouldFilter={false} className="rounded-md border border-border">
-      <CommandInput value={query} onValueChange={setQuery} placeholder="Digite e pressione Enter para adicionar (OEM, SKU, nome)…" />
+      <CommandInput
+        value={query}
+        onValueChange={setQuery}
+        placeholder="Digite e pressione Enter para adicionar (OEM, SKU, nome)…"
+      />
       <CommandList>
         <CommandEmpty>Nenhuma peça encontrada.</CommandEmpty>
         <CommandGroup>
           {results.map((p) => (
-            <CommandItem key={p.id} value={p.id} onSelect={() => onAddPart(p)} className="flex justify-between gap-2">
+            <CommandItem
+              key={p.id}
+              value={p.id}
+              onSelect={() => onAddPart(p)}
+              className="flex justify-between gap-2"
+            >
               <span className="truncate">
                 {p.name} <span className="text-xs text-muted-foreground">· {p.sku}</span>
                 {(inQuoteQtyByPart.get(p.id) ?? 0) > 0 && (
                   <Icon icon="mdi:check" size={12} className="ml-1 inline text-primary" />
                 )}
               </span>
-              <span className="tabular-nums text-muted-foreground">{moneyFormatter.format(p.unitPrice)}</span>
+              <span className="tabular-nums text-muted-foreground">
+                {moneyFormatter.format(p.unitPrice)}
+              </span>
             </CommandItem>
           ))}
         </CommandGroup>
@@ -1271,21 +1396,44 @@ export function CatalogDrawer({ inQuoteQtyByPart, onAddPart, onAddFreeItemClick 
             <SheetTitle>Catálogo — selecione as peças</SheetTitle>
           </SheetHeader>
           <div className="relative mt-2">
-            <Icon icon="mdi:magnify" size={16} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input type="search" className="pl-8" placeholder="Buscar…" value={query} onChange={(e) => setQuery(e.target.value)} />
+            <Icon
+              icon="mdi:magnify"
+              size={16}
+              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+              type="search"
+              className="pl-8"
+              placeholder="Buscar…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
           </div>
           <div className="mt-2 flex-1 overflow-y-auto rounded-md border border-border">
             {results.map((p) => (
-              <label key={p.id} className="flex cursor-pointer items-center gap-3 border-b border-border px-3 py-2 last:border-b-0 hover:bg-muted">
-                <Checkbox checked={selected.has(p.id)} onCheckedChange={() => toggle(p.id)} aria-label={`Selecionar ${p.name}`} />
+              <label
+                key={p.id}
+                className="flex cursor-pointer items-center gap-3 border-b border-border px-3 py-2 last:border-b-0 hover:bg-muted"
+              >
+                <Checkbox
+                  checked={selected.has(p.id)}
+                  onCheckedChange={() => toggle(p.id)}
+                  aria-label={`Selecionar ${p.name}`}
+                />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium text-foreground">{p.name}</span>
+                  <span className="block truncate text-sm font-medium text-foreground">
+                    {p.name}
+                  </span>
                   <span className="block truncate text-xs text-muted-foreground">
                     SKU {p.sku} · {p.brand}
-                    {(inQuoteQtyByPart.get(p.id) ?? 0) > 0 && <span className="text-primary"> · no orçamento</span>}
+                    {(inQuoteQtyByPart.get(p.id) ?? 0) > 0 && (
+                      <span className="text-primary"> · no orçamento</span>
+                    )}
                   </span>
                 </span>
-                <span className="text-sm font-semibold tabular-nums">{moneyFormatter.format(p.unitPrice)}</span>
+                <span className="text-sm font-semibold tabular-nums">
+                  {moneyFormatter.format(p.unitPrice)}
+                </span>
               </label>
             ))}
           </div>
@@ -1327,6 +1475,7 @@ git commit -m "feat(quotes): add continuous, quick-add and catalog drawer modes"
 ## Task 12: `ItemAdder` + `ModeSwitcher` (despacho dos 3 modos)
 
 **Files:**
+
 - Create: `src/features/quotes/components/new/items/ModeSwitcher.tsx`
 - Create: `src/features/quotes/components/new/items/ItemAdder.tsx`
 
@@ -1338,7 +1487,13 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Icon } from "@/components/Icon";
 import { QUOTE_ADD_MODE_OPTIONS, type QuoteAddMode } from "../../../types/editor";
 
-export function ModeSwitcher({ value, onChange }: { value: QuoteAddMode; onChange: (v: QuoteAddMode) => void }) {
+export function ModeSwitcher({
+  value,
+  onChange,
+}: {
+  value: QuoteAddMode;
+  onChange: (v: QuoteAddMode) => void;
+}) {
   return (
     <ToggleGroup
       type="single"
@@ -1348,7 +1503,12 @@ export function ModeSwitcher({ value, onChange }: { value: QuoteAddMode; onChang
       size="sm"
     >
       {QUOTE_ADD_MODE_OPTIONS.map((opt) => (
-        <ToggleGroupItem key={opt.value} value={opt.value} aria-label={opt.label} className="gap-1 text-xs">
+        <ToggleGroupItem
+          key={opt.value}
+          value={opt.value}
+          aria-label={opt.label}
+          className="gap-1 text-xs"
+        >
           <Icon icon={opt.icon} size={14} />
           <span className="hidden sm:inline">{opt.label}</span>
         </ToggleGroupItem>
@@ -1410,6 +1570,7 @@ git commit -m "feat(quotes): add item adder dispatcher with mode switcher"
 ## Task 13: `LayoutSwitcher`, `QuoteActionBar`, `CustomerChip`, `QuoteSummaryPanel`
 
 **Files:**
+
 - Create: `src/features/quotes/components/new/layout/LayoutSwitcher.tsx`
 - Create: `src/features/quotes/components/new/layout/QuoteActionBar.tsx`
 - Create: `src/features/quotes/components/new/customer/CustomerChip.tsx`
@@ -1423,7 +1584,13 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Icon } from "@/components/Icon";
 import { QUOTE_LAYOUT_OPTIONS, type QuoteLayout } from "../../../types/editor";
 
-export function LayoutSwitcher({ value, onChange }: { value: QuoteLayout; onChange: (v: QuoteLayout) => void }) {
+export function LayoutSwitcher({
+  value,
+  onChange,
+}: {
+  value: QuoteLayout;
+  onChange: (v: QuoteLayout) => void;
+}) {
   return (
     <ToggleGroup
       type="single"
@@ -1474,7 +1641,11 @@ export function QuoteActionBar({
   return (
     <div className="sticky top-0 z-20 -mx-4 mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-border bg-background/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
       <div className="flex items-center gap-3">
-        <button type="button" onClick={onBack} className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+        >
           <Icon icon="mdi:chevron-left" size={14} />
           Voltar
         </button>
@@ -1482,7 +1653,12 @@ export function QuoteActionBar({
       </div>
       <div className="flex items-center gap-2">
         <LayoutSwitcher value={layout} onChange={onLayoutChange} />
-        <Button variant="outline" size="sm" disabled={!canSubmit || submitting} onClick={onSaveDraft}>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!canSubmit || submitting}
+          onClick={onSaveDraft}
+        >
           <Icon icon="mdi:content-save-outline" size={16} />
           Salvar rascunho
         </Button>
@@ -1516,23 +1692,32 @@ export interface ICustomerChipProps {
 
 export function CustomerChip({ customer, onChange, sellerIdFilter }: ICustomerChipProps) {
   if (!customer) {
-    return <CustomerAutocomplete value={null} onChange={onChange} sellerIdFilter={sellerIdFilter} />;
+    return (
+      <CustomerAutocomplete value={null} onChange={onChange} sellerIdFilter={sellerIdFilter} />
+    );
   }
   return (
     <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2">
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold text-foreground">
           {nameOf(customer)}
-          <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">{customer.type}</span>
+          <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">
+            {customer.type}
+          </span>
         </p>
         {customer.address && (
           <p className="truncate text-xs text-muted-foreground">
             <Icon icon="mdi:map-marker-outline" size={12} className="mr-1 inline" />
-            {customer.address.street}, {customer.address.number} — {customer.address.city}/{customer.address.state}
+            {customer.address.street}, {customer.address.number} — {customer.address.city}/
+            {customer.address.state}
           </p>
         )}
       </div>
-      <button type="button" onClick={() => onChange(null)} className="shrink-0 text-xs text-muted-foreground hover:text-foreground">
+      <button
+        type="button"
+        onClick={() => onChange(null)}
+        className="shrink-0 text-xs text-muted-foreground hover:text-foreground"
+      >
         Alterar
       </button>
     </div>
@@ -1582,17 +1767,38 @@ export function QuoteSummaryPanel(props: IQuoteSummaryPanelProps) {
 
       <div>
         <Label htmlFor="discount">Desconto global (R$)</Label>
-        <Input id="discount" type="number" min={0} step={0.01} value={props.discountInput} onChange={(e) => props.onDiscountInput(e.target.value)} />
+        <Input
+          id="discount"
+          type="number"
+          min={0}
+          step={0.01}
+          value={props.discountInput}
+          onChange={(e) => props.onDiscountInput(e.target.value)}
+        />
         <p className="mt-1 text-xs text-muted-foreground">
-          {(props.discountPct * 100).toFixed(1)}% do subtotal · limite {(props.thresholdPct * 100).toFixed(0)}%
+          {(props.discountPct * 100).toFixed(1)}% do subtotal · limite{" "}
+          {(props.thresholdPct * 100).toFixed(0)}%
         </p>
       </div>
 
       <div>
         <Label htmlFor="shipping">Frete (R$)</Label>
         <div className="flex gap-2">
-          <Input id="shipping" type="number" min={0} step={0.01} value={props.shipping} onChange={(e) => props.onShipping(Math.max(0, Number(e.target.value) || 0))} />
-          <Button type="button" variant="outline" size="sm" onClick={props.onCalcShipping} className="shrink-0 gap-1">
+          <Input
+            id="shipping"
+            type="number"
+            min={0}
+            step={0.01}
+            value={props.shipping}
+            onChange={(e) => props.onShipping(Math.max(0, Number(e.target.value) || 0))}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={props.onCalcShipping}
+            className="shrink-0 gap-1"
+          >
             <Icon icon="mdi:truck-fast-outline" size={14} />
             Calcular
           </Button>
@@ -1605,7 +1811,12 @@ export function QuoteSummaryPanel(props: IQuoteSummaryPanelProps) {
             <Icon icon="mdi:shield-alert-outline" size={14} className="mr-1 inline" />
             Desconto acima do limite — requer aprovação do gestor
           </p>
-          <Textarea className="mt-2" placeholder="Justifique o desconto (obrigatório)" value={props.discountReason} onChange={(e) => props.onDiscountReason(e.target.value)} />
+          <Textarea
+            className="mt-2"
+            placeholder="Justifique o desconto (obrigatório)"
+            value={props.discountReason}
+            onChange={(e) => props.onDiscountReason(e.target.value)}
+          />
         </div>
       )}
 
@@ -1649,6 +1860,7 @@ git commit -m "feat(quotes): add action bar, layout switcher, customer chip and 
 ## Task 14: `QuoteEditor` (orquestrador) + fiação na página
 
 **Files:**
+
 - Create: `src/features/quotes/components/new/QuoteEditor.tsx`
 - Modify: `src/features/quotes/pages/NewQuotePage.tsx` (passa a renderizar `<QuoteEditor/>`)
 
@@ -1691,7 +1903,11 @@ const body = (
   <div className={layout.body}>
     <Card className="p-4">
       <SectionTitle icon="mdi:account-outline" title="Cliente" />
-      <CustomerChip customer={customer} onChange={setCustomer} sellerIdFilter={isManagerOrOwner ? null : (currentUser?.sellerId ?? null)} />
+      <CustomerChip
+        customer={customer}
+        onChange={setCustomer}
+        sellerIdFilter={isManagerOrOwner ? null : (currentUser?.sellerId ?? null)}
+      />
     </Card>
     <Card className="p-4">
       <SectionTitle icon="mdi:format-list-bulleted" title="Itens" />
@@ -1705,7 +1921,13 @@ const body = (
         onAddFreeItemClick={() => setFreeOpen(true)}
       />
       <div className="mt-3">
-        <QuoteItemsTable items={items} subtotal={totals.subtotal} onPatch={handleItemPatch} onRemove={handleRemoveItem} highlightId={highlightId} />
+        <QuoteItemsTable
+          items={items}
+          subtotal={totals.subtotal}
+          onPatch={handleItemPatch}
+          onRemove={handleRemoveItem}
+          highlightId={highlightId}
+        />
       </div>
     </Card>
     <Card className="p-4">
@@ -1791,6 +2013,7 @@ git commit -m "feat(quotes): wire quote editor with layouts and multi-mode item 
 ## Task 15: Remover `AddItemModal` e verificar regressões
 
 **Files:**
+
 - Delete: `src/features/quotes/components/new/AddItemModal.tsx`
 
 - [ ] **Step 1: Confirmar que nada mais importa o modal**
@@ -1812,6 +2035,7 @@ Expected: limpos.
 - [ ] **Step 4: Checklist de não-regressão (manual — você executa, não o usuário)**
 
 Confirme por leitura de código que o `QuoteEditor` preserva:
+
 - geração de número via `generateQuoteNumber(all.data, storeId)`;
 - `composePaymentCondition(paymentMethod, paymentTerms)`;
 - `auditLog({ action: "quote_create", ... })`;
@@ -1830,6 +2054,7 @@ git commit -m "refactor(quotes): remove legacy AddItemModal"
 ## Self-Review (preenchido)
 
 **1. Cobertura do spec (Fase 1):**
+
 - Layout 3 opções + seletor + remoção do `max-w-5xl` → Tasks 1, 5, 13 (LayoutSwitcher/ActionBar), 14 (composição). ✅
 - Resumo sticky (twoCol) / rodapé (footerBar) → Task 5 (`layout.summary`/`summaryAsFooterBar`), 13 (`QuoteSummaryPanel`), 14 (composição). ✅
 - Adição contínua que não fecha + 3 modos + seletor → Tasks 11, 12. ✅

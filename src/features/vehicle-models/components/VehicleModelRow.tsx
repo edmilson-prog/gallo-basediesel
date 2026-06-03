@@ -15,6 +15,7 @@ import { BrandAvatar } from "./BrandAvatar";
 
 export interface IVehicleModelRowProps {
   model: IVehicleModel;
+  kitCounts?: { total: number; rascunhos: number };
   canManage: boolean;
   onEdit: (m: IVehicleModel) => void;
   onToggleStatus: (m: IVehicleModel) => void;
@@ -29,6 +30,7 @@ function formatYearRange(yearStart?: number, yearEnd?: number): string | null {
 
 export function VehicleModelRow({
   model,
+  kitCounts,
   canManage,
   onEdit,
   onToggleStatus,
@@ -36,6 +38,8 @@ export function VehicleModelRow({
 }: IVehicleModelRowProps) {
   const isInactive = model.status === "inativo";
   const yearRange = formatYearRange(model.yearStart, model.yearEnd);
+  const totalKits = kitCounts?.total ?? 0;
+  const pendingDrafts = kitCounts?.rascunhos ?? 0;
 
   return (
     <div
@@ -74,12 +78,28 @@ export function VehicleModelRow({
         <Tooltip>
           <TooltipTrigger asChild>
             <span tabIndex={-1}>
-              <Badge variant="secondary" className="shrink-0 text-xs">
-                Kits 0
+              <Badge variant="secondary" className="shrink-0 items-center gap-1 text-xs">
+                Kits {totalKits}
+                {pendingDrafts > 0 && (
+                  <span
+                    className="inline-flex items-center gap-0.5 text-muted-foreground"
+                    aria-label={`${pendingDrafts} ${pendingDrafts === 1 ? "rascunho pendente" : "rascunhos pendentes"}`}
+                  >
+                    <span aria-hidden="true">·</span>
+                    <Icon icon="mdi:circle" size={8} className="text-muted-foreground" />
+                    <span>
+                      {pendingDrafts} {pendingDrafts === 1 ? "rascunho" : "rascunhos"}
+                    </span>
+                  </span>
+                )}
               </Badge>
             </span>
           </TooltipTrigger>
-          <TooltipContent>Kits chegam no PRD-035</TooltipContent>
+          <TooltipContent>
+            {pendingDrafts > 0
+              ? `${pendingDrafts} ${pendingDrafts === 1 ? "rascunho pendente" : "rascunhos pendentes"}`
+              : `${totalKits} ${totalKits === 1 ? "kit" : "kits"} neste modelo`}
+          </TooltipContent>
         </Tooltip>
       </Link>
 

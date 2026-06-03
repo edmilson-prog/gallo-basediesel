@@ -111,9 +111,7 @@ export function calculateIndicatorProgress(
 
   const window = describePeriodWindow(indicator.period, now);
   const percentage =
-    indicator.targetValue > 0
-      ? Math.round((currentValue / indicator.targetValue) * 1000) / 10
-      : 0;
+    indicator.targetValue > 0 ? Math.round((currentValue / indicator.targetValue) * 1000) / 10 : 0;
   const projection = computeProjection(
     currentValue,
     window.daysPassed,

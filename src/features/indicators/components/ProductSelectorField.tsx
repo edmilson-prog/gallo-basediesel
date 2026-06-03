@@ -294,9 +294,7 @@ export function ProductSelectorField({ value, onChange }: IProductSelectorFieldP
     (cat: PartCategory) => {
       if (value.kind !== "category" && value.kind !== "group") return;
       const current = value.categories ?? [];
-      const next = current.includes(cat)
-        ? current.filter((c) => c !== cat)
-        : [...current, cat];
+      const next = current.includes(cat) ? current.filter((c) => c !== cat) : [...current, cat];
       onChange({ ...value, categories: next });
     },
     [value, onChange],

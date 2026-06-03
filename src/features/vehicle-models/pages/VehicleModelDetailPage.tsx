@@ -7,6 +7,7 @@ import { hasPermission } from "@/features/rbac/utils/hasPermission";
 import { useVehicleModel } from "../hooks/useVehicleModel";
 import { useVehicleModelMutations } from "../hooks/useVehicleModelMutations";
 import { BrandAvatar } from "../components/BrandAvatar";
+import { ModelKitsSection } from "@/features/model-kits/components/ModelKitsSection";
 
 function formatYearRange(yearStart?: number, yearEnd?: number): string | null {
   if (!yearStart) return null;
@@ -130,25 +131,11 @@ export function VehicleModelDetailPage() {
             )}
           </div>
 
-          {/* Kits section — honest empty slot (PRD-035) */}
-          <div>
-            <h2 className="mb-3 text-base font-semibold text-foreground">Kits deste modelo</h2>
-            <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border bg-card px-6 py-12 text-center">
-              <Icon
-                icon="mdi:package-variant-closed"
-                size={40}
-                className="text-muted-foreground opacity-40"
-              />
-              <div className="space-y-1">
-                <p className="font-medium text-foreground">
-                  Nenhum kit cadastrado para este modelo
-                </p>
-                <p className="max-w-sm text-sm text-muted-foreground">
-                  Em breve você poderá montar kits de peças aplicáveis a este modelo.
-                </p>
-              </div>
-            </div>
-          </div>
+          {/* Kits section (PRD-035) */}
+          <ModelKitsSection
+            modelId={model.id}
+            modelLabel={`${model.brand} ${model.model} (${model.engine})`}
+          />
         </div>
       )}
     </div>

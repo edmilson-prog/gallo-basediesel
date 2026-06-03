@@ -4,6 +4,27 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.64.0] — Kit · 2026-06-03
+
+Os kits de peças agora vivem dentro de cada modelo de veículo. Na área **Kits por modelo**, você monta kits de filtros escolhendo as peças, as quantidades e marcando quais são base (sempre entram) ou opcionais (sugestões), e mantém cada kit como rascunho ou oficial — o vendedor propõe, o gestor oficializa. No orçamento, um clique em "Aplicar kit" abre uma pré-visualização onde você confirma os itens (os opcionais vêm desmarcados) e as peças entram com o preço congelado do momento; dá para desfazer. O sistema ainda sugere o kit certo quando o cliente tem um veículo compatível e avisa quando há peças que servem ao modelo mas estão fora do kit. A antiga tela "Kits de revisão" foi substituída por essa experiência unificada.
+
+### Added
+
+- **Kits por modelo** — em cada modelo de veículo, monte kits de filtros com peças, quantidades, itens base/opcionais e notas, mantidos como rascunho ou oficial.
+- **Curadoria (rascunho → oficial)** — o vendedor cria rascunhos; o gestor promove a oficial ou devolve para rascunho. A lista de modelos sinaliza quais têm rascunhos pendentes, com um filtro dedicado.
+- **Aplicar kit no orçamento** — uma pré-visualização mostra os itens base já marcados, os opcionais a confirmar, quantidades editáveis e o total estimado; ao confirmar, as peças entram com preço congelado e a ação pode ser desfeita.
+- **Sugestão automática** — quando o cliente tem um veículo compatível, o orçamento sugere aplicar o kit de filtros daquele modelo.
+- **Peças compatíveis fora do kit** — um aviso discreto no editor lista peças que servem ao modelo mas ainda não estão no kit, com um atalho para adicioná-las.
+- **Aplicar a partir do veículo** — o card "Filtros" no detalhe do veículo abre um orçamento já com o kit do modelo pronto para aplicar.
+
+### Changed
+
+- **"Kits de revisão" virou "Kits por modelo"** — a montagem de kits foi unificada dentro dos modelos de veículo; o endereço antigo passa a redirecionar para a nova área.
+
+### Removed
+
+- **Tela antiga de Kits de revisão** — substituída pela experiência de kits por modelo.
+
 ## [0.63.0] — Catalog · 2026-06-03
 
 A plataforma passa a contar com um catálogo centralizado de modelos de veículo — a base que conecta os kits de peças aos caminhões e ônibus que a distribuidora atende. Owners e Gestores podem cadastrar, editar, inativar e buscar modelos canônicos (marca, modelo, motor e anos de aplicação), organizados por montadora e com o ícone de cada marca. Cada modelo tem uma página própria, já estruturada para receber os kits de peças numa próxima entrega. Vendedores têm acesso em modo leitura para consultar a listagem.
@@ -55,10 +76,10 @@ A tela de criação de orçamento agora entrega **informação de catálogo no m
 
 - **Linha de item enriquecida** — cada peça na tabela de itens exibe miniatura (ou ícone da categoria), selo **Original** (dourado) ou **Equivalente** (neutro), código OEM e marca, além do status de estoque em três estados com indicador colorido.
 - **Equivalentes inline** — botão "ver equivalentes" expande a linha e lista as peças alternativas cadastradas, com preço e estoque de cada uma. O vendedor troca a peça da linha por um equivalente com um clique; a quantidade é mantida.
-- **Margem por linha** *(visível apenas para Gestor e Owner)* — cada linha da tabela mostra a margem bruta estimada em reais e percentual.
+- **Margem por linha** _(visível apenas para Gestor e Owner)_ — cada linha da tabela mostra a margem bruta estimada em reais e percentual.
 - **Cartão de cliente inteligente** — ao selecionar um cliente, o cabeçalho passa a exibir seu status (Ativo, Dormente, Recuperação ou Perdido), classe ABC, data da última compra e chips dos veículos da frota.
 - **Peso total do pedido** — o painel de resumo calcula e exibe o peso estimado somando o peso de cada peça pela quantidade, útil para cotação de frete.
-- **Margem total do orçamento** *(visível apenas para Gestor e Owner)* — total de margem bruta e percentual sobre o subtotal, exibido no painel de resumo.
+- **Margem total do orçamento** _(visível apenas para Gestor e Owner)_ — total de margem bruta e percentual sobre o subtotal, exibido no painel de resumo.
 - **Medidor visual de desconto** — barra de progresso mostra o desconto aplicado em relação ao limite configurado; fica laranja quando o limite é ultrapassado, sinalizando que o orçamento precisará de aprovação.
 
 ### Changed
@@ -177,22 +198,26 @@ Fundação do sistema de notificações — a base invisível que vai alimentar 
 ## [0.53.0] — Dossier · 2026-05-31
 
 ### Added
+
 - Ficha de **Orçamento** e **Pedido** com 3 visualizações selecionáveis — **Cockpit** (padrão), **Operacional** e **Documento** — alternáveis por um seletor no cabeçalho, com preferência lembrada por página.
 - Faixa de KPIs e trilho lateral fixo (resumo, cliente, ações) nas fichas de Orçamento e Pedido.
 - Stepper de status no layout Operacional (rascunho→convertido / aguardando pagamento→concluído), com estados terminais para recusado/expirado/cancelado/devolvido.
 - Framework compartilhado `src/shared/detail-views/` (config de layout, hook de persistência, seletor, faixa de KPIs, stepper, blocos de resumo/cliente/histórico e shells de layout).
 
 ### Changed
+
 - Páginas de detalhe de Orçamento e Pedido passam a usar layout amplo (até 1600px) em vez da coluna central estreita, eliminando o desperdício de espaço lateral.
 
 ## [0.52.0] — Ledger · 2026-05-30
 
 ### Added
+
 - Listas de Orçamentos e Pedidos com **3 visualizações selecionáveis** (Cockpit, Console, Linhas), seletor segmentado no cabeçalho e preferência lembrada por lista.
 - Faixa de **KPIs** nas listas — Orçamentos (em aberto, convertido, conversão, ticket médio, expirando ≤3d) e Pedidos (valor total, recebido, a receber, a expedir, vencidos).
 - **Abas de status** com contagem em ambas as listas.
 
 ### Changed
+
 - A tabela de orçamentos agora é **fluida** (ocupa a largura disponível) em vez de largura fixa.
 - O filtro de status passou de popover para **abas**; os demais filtros foram mantidos.
 

@@ -11,12 +11,12 @@
 
 Um **Indicador de Produto** é um conceito **separado** de Meta (Goals — PRD-042).
 
-| Dimensão | Meta | Indicador de Produto |
-|---|---|---|
-| O que mede | Faturamento total do vendedor ou loja | Vendas de um **recorte de produto** específico |
-| Recorte | Nenhum (totalizador geral) | Categoria / SKU / Grupo de peças |
-| Criado por | Owner / Gestor | Owner / Gestor |
-| Visível para | Vendedor (suas metas) | Vendedor (indicadores do escopo) |
+| Dimensão     | Meta                                  | Indicador de Produto                           |
+| ------------ | ------------------------------------- | ---------------------------------------------- |
+| O que mede   | Faturamento total do vendedor ou loja | Vendas de um **recorte de produto** específico |
+| Recorte      | Nenhum (totalizador geral)            | Categoria / SKU / Grupo de peças               |
+| Criado por   | Owner / Gestor                        | Owner / Gestor                                 |
+| Visível para | Vendedor (suas metas)                 | Vendedor (indicadores do escopo)               |
 
 Indicadores reutilizam toda a maquinaria de progresso das Metas:
 `GoalProgressStatus` (semáforo verde/amarelo/vermelho), projeção linear, gráfico de evolução acumulada, and shared helpers `computeProjection`, `describePeriodWindow`, `statusFromRatio`, `computeWindowedTrend`.
@@ -31,18 +31,18 @@ Indicadores reutilizam toda a maquinaria de progresso das Metas:
 interface IProductIndicator {
   id: ID;
   storeId: ID;
-  name: string;                  // auto-gerado ou customizado
-  selector: ProductSelector;     // discriminated union — ver abaixo
+  name: string; // auto-gerado ou customizado
+  selector: ProductSelector; // discriminated union — ver abaixo
   metric: IndicatorMetric;
   scopeLevel: IndicatorScopeLevel;
-  sellerId?: ID;                 // presente quando scopeLevel === "individual"
+  sellerId?: ID; // presente quando scopeLevel === "individual"
   period: IIndicatorPeriod;
   targetValue: number;
   status: IndicatorStatus;
-  division?: Division;           // restringe à divisão (default "parts" no MVP)
-  rewardDescription?: string;    // texto livre exibido aos vendedores
-  createdBy: ID;                 // ator (Owner/Gestor)
-  cancelReason?: string;         // preenchido ao cancelar
+  division?: Division; // restringe à divisão (default "parts" no MVP)
+  rewardDescription?: string; // texto livre exibido aos vendedores
+  createdBy: ID; // ator (Owner/Gestor)
+  cancelReason?: string; // preenchido ao cancelar
   createdAt: ISO8601;
   updatedAt: ISO8601;
 }
@@ -64,12 +64,12 @@ type ProductSelector =
 
 ### Tipos relacionados
 
-| Tipo | Valores |
-|---|---|
-| `IndicatorMetric` | `"faturamento"` \| `"quantidade"` \| `"margem"` \| `"pedidos"` |
-| `IndicatorScopeLevel` | `"store"` \| `"individual"` \| `"global"` |
+| Tipo                  | Valores                                                                |
+| --------------------- | ---------------------------------------------------------------------- |
+| `IndicatorMetric`     | `"faturamento"` \| `"quantidade"` \| `"margem"` \| `"pedidos"`         |
+| `IndicatorScopeLevel` | `"store"` \| `"individual"` \| `"global"`                              |
 | `IndicatorPeriodType` | `"diario"` \| `"semanal"` \| `"mensal"` \| `"trimestral"` \| `"anual"` |
-| `IndicatorStatus` | `"ativo"` \| `"concluido"` \| `"arquivado"` \| `"cancelado"` |
+| `IndicatorStatus`     | `"ativo"` \| `"concluido"` \| `"arquivado"` \| `"cancelado"`           |
 
 ### `IIndicatorProgress` (runtime, nunca persistido)
 
@@ -77,14 +77,14 @@ type ProductSelector =
 interface IIndicatorProgress {
   indicatorId: ID;
   currentValue: number;
-  percentage: number;         // 0..200 (pode ultrapassar 100)
-  projection: number;         // projeção linear de fechamento
+  percentage: number; // 0..200 (pode ultrapassar 100)
+  projection: number; // projeção linear de fechamento
   daysRemaining: number;
   totalDays: number;
   status: GoalProgressStatus; // semáforo reusado das Metas
   trend: GoalProgressTrend;
-  paceRatio: number;          // percentage / expectedAtDate
-  contributors: IIndicatorContributor[];  // ranking por vendedor
+  paceRatio: number; // percentage / expectedAtDate
+  contributors: IIndicatorContributor[]; // ranking por vendedor
 }
 ```
 
@@ -101,11 +101,12 @@ Calcula o progresso em runtime a partir de pedidos pagos no período.
 ```typescript
 function calculateIndicatorProgress(
   indicator: IProductIndicator,
-  context: { orders: IOrder[]; parts?: IPart[]; now?: Date }
-): IIndicatorProgress
+  context: { orders: IOrder[]; parts?: IPart[]; now?: Date },
+): IIndicatorProgress;
 ```
 
 Fluxo interno:
+
 1. Constrói o `partsMap` (ID → IPart) para fallback de categoria.
 2. Chama `buildItemMatcher(selector, partsMap)` — predicado por item.
 3. Itera os `orders`, filtrando por `matchesScope` + `isPaid` + janela de datas ISO.
@@ -122,11 +123,12 @@ Fluxo interno:
 function computeOrderContribution(
   order: IOrder,
   metric: IndicatorMetric,
-  matches: (item: IOrderItem) => boolean
-): { matched: boolean; value: number }
+  matches: (item: IOrderItem) => boolean,
+): { matched: boolean; value: number };
 ```
 
 Computa quanto um único pedido contribui para a métrica:
+
 - `faturamento` → soma de `item.total` dos itens que batem.
 - `quantidade` → soma de `item.quantity`.
 - `margem` → soma de `item.marginValue`.
@@ -141,8 +143,8 @@ Esta função é **compartilhada** e usada pelo engine, pelo `IndicatorEvolution
 ```typescript
 function buildItemMatcher(
   selector: ProductSelector,
-  partsMap: Map<ID, IPart>
-): (item: IOrderItem) => boolean
+  partsMap: Map<ID, IPart>,
+): (item: IOrderItem) => boolean;
 ```
 
 Decide se um `IOrderItem` conta para o indicador. Implementa a estratégia de resolução de categoria em duas camadas:
@@ -171,16 +173,17 @@ interface IIndicatorsProvider {
 
 ### Implementações
 
-| Impl | Arquivo | Descrição |
-|---|---|---|
-| Mock | `src/providers/data/impl/mock/indicators.ts` | Delega para `indicatorsApi` (store in-memory) |
-| Supabase | `src/providers/data/impl/supabase/indicators.ts` | Stub — drop-in planejado para Fase 2 |
+| Impl     | Arquivo                                          | Descrição                                     |
+| -------- | ------------------------------------------------ | --------------------------------------------- |
+| Mock     | `src/providers/data/impl/mock/indicators.ts`     | Delega para `indicatorsApi` (store in-memory) |
+| Supabase | `src/providers/data/impl/supabase/indicators.ts` | Stub — drop-in planejado para Fase 2          |
 
 O switch entre implementações é feito pela env `VITE_DATA_SOURCE=mock|supabase` via `factory.ts` (padrão Provider Pattern do projeto).
 
 ### Gerador de seeds (`src/mocks/generators/indicator.ts`)
 
 A função `generateIndicators(ctx, { sellers, now? })` gera **~10 indicadores seed**:
+
 - 4 de escopo `store` (filtros faturamento, freios quantidade, lubrificantes margem, linha pesada grupo).
 - 2 de escopo `individual` (para o primeiro vendedor não-gestor: filtros faturamento + freios pedidos).
 - 3 históricos (meses anteriores, com status `concluido`/`arquivado` alternados).
@@ -192,11 +195,11 @@ O store in-memory (`src/mocks/store/`) persiste mutações durante a sessão do 
 
 ## Rotas
 
-| Rota | Arquivo | Quem acessa |
-|---|---|---|
-| `/app/gestao/indicadores` | `app.gestao.indicadores.index.tsx` | Owner, Gestor → `AggregatedIndicatorsDashboard`; Vendedor/VendedorExterno → `VendedorIndicatorsDashboard` |
-| `/app/gestao/indicadores/novo` | `app.gestao.indicadores.novo.tsx` | Owner, Gestor |
-| `/app/gestao/indicadores/$id` | `app.gestao.indicadores.$id.tsx` | Todos os roles (guarda de acesso no componente) |
+| Rota                           | Arquivo                            | Quem acessa                                                                                               |
+| ------------------------------ | ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `/app/gestao/indicadores`      | `app.gestao.indicadores.index.tsx` | Owner, Gestor → `AggregatedIndicatorsDashboard`; Vendedor/VendedorExterno → `VendedorIndicatorsDashboard` |
+| `/app/gestao/indicadores/novo` | `app.gestao.indicadores.novo.tsx`  | Owner, Gestor                                                                                             |
+| `/app/gestao/indicadores/$id`  | `app.gestao.indicadores.$id.tsx`   | Todos os roles (guarda de acesso no componente)                                                           |
 
 O widget `IndicatorsWidget` (top-5 indicadores ativos por atingimento) é exibido no **Painel do Gestor** (PRD-014 integration), via `src/features/indicators/components/IndicatorsWidget.tsx`.
 
@@ -204,14 +207,14 @@ O widget `IndicatorsWidget` (top-5 indicadores ativos por atingimento) é exibid
 
 ## Hooks
 
-| Hook | Arquivo | Uso |
-|---|---|---|
-| `useIndicators(params)` | `hooks/useIndicators.ts` | Lista indicadores com progresso calculado; usado na dashboard |
-| `useStoreIndicators(storeId)` | `hooks/useIndicators.ts` | Wrapper conveniente de `useIndicators` |
-| `useIndicatorProgress(id)` | `hooks/useIndicatorProgress.ts` | Indicador único para a página de detalhe |
-| `useIndicatorFilters()` | `hooks/useIndicatorFilters.ts` | Filtros locais por `selectorKind`, `metric`, `scopeLevel`, `status` |
-| `useIndicatorAutoStatusUpdate()` | `hooks/useIndicatorAutoStatusUpdate.ts` | Auto-transição no fim do período (máx. 1x/24h via `localStorage`) |
-| `useIndicatorMilestoneToast()` | `hooks/useIndicatorMilestoneToast.ts` | Toast de marco 50/80/100% (guardado por `localStorage`) |
+| Hook                             | Arquivo                                 | Uso                                                                 |
+| -------------------------------- | --------------------------------------- | ------------------------------------------------------------------- |
+| `useIndicators(params)`          | `hooks/useIndicators.ts`                | Lista indicadores com progresso calculado; usado na dashboard       |
+| `useStoreIndicators(storeId)`    | `hooks/useIndicators.ts`                | Wrapper conveniente de `useIndicators`                              |
+| `useIndicatorProgress(id)`       | `hooks/useIndicatorProgress.ts`         | Indicador único para a página de detalhe                            |
+| `useIndicatorFilters()`          | `hooks/useIndicatorFilters.ts`          | Filtros locais por `selectorKind`, `metric`, `scopeLevel`, `status` |
+| `useIndicatorAutoStatusUpdate()` | `hooks/useIndicatorAutoStatusUpdate.ts` | Auto-transição no fim do período (máx. 1x/24h via `localStorage`)   |
+| `useIndicatorMilestoneToast()`   | `hooks/useIndicatorMilestoneToast.ts`   | Toast de marco 50/80/100% (guardado por `localStorage`)             |
 
 ### Dados carregados pelos hooks
 
@@ -224,13 +227,13 @@ O widget `IndicatorsWidget` (top-5 indicadores ativos por atingimento) é exibid
 
 Resource: `"indicator"` — espelha as permissões do resource `"goal"`.
 
-| Role | Permissões |
-|---|---|
-| Owner | CRUD em todos os indicadores (qualquer loja) |
-| Gestor | CRUD nos indicadores da loja dele |
-| Vendedor | `view` (leitura), escopo `own` — `p("indicator", ["view"], "own")` |
+| Role            | Permissões                                                         |
+| --------------- | ------------------------------------------------------------------ |
+| Owner           | CRUD em todos os indicadores (qualquer loja)                       |
+| Gestor          | CRUD nos indicadores da loja dele                                  |
+| Vendedor        | `view` (leitura), escopo `own` — `p("indicator", ["view"], "own")` |
 | VendedorExterno | `view` (leitura), escopo `own` — `p("indicator", ["view"], "own")` |
-| Financeiro | Leitura dos indicadores da loja |
+| Financeiro      | Leitura dos indicadores da loja                                    |
 
 > O grant `own` é único na matriz; como ele resolve para indicadores de escopo `store`/`global` (vs. somente os `individual` do próprio vendedor) é tratado pela camada de enforcement do RBAC, não por grants separados na matriz.
 
@@ -249,6 +252,7 @@ Ao montar pela primeira vez (ref `seededRef`), o hook marca silenciosamente todo
 ### Status automático no fim do período
 
 `useIndicatorAutoStatusUpdate` (montado em `AggregatedIndicatorsDashboard`) executa ao montar e no máximo uma vez a cada 24 horas (`gallo-indicator-auto-status-run`). Para cada indicador `ativo` com `period.end < now`:
+
 - `percentage >= 100` → status `"concluido"` + audit `indicator_auto_complete`
 - caso contrário → status `"arquivado"` + audit `indicator_auto_archive`
 
@@ -260,19 +264,20 @@ Após as transições, invalida as queries `["indicators"]` via TanStack Query.
 
 ### Dashboard (`IndicatorsPage`)
 
-| Componente | Responsabilidade |
-|---|---|
-| `AggregatedIndicatorsDashboard` | Visão Owner/Gestor: KPI strip (4 cells), filtros, gráfico de barras, tabela |
-| `VendedorIndicatorsDashboard` | Visão Vendedor: grade de cards (1→2→3 cols) com `useIndicatorMilestoneToast` |
-| `IndicatorProgressChart` | Bar chart de atingimento por indicador (Recharts `BarChart` + `ResponsiveContainer`) |
-| `IndicatorsTable` | Tabela em `overflow-x-auto` — nome, recorte, métrica, escopo, período, alvo, progresso, status, projeção |
-| `IndicatorFiltersBar` | Filtros por tipo de recorte, métrica, escopo e status |
-| `IndicatorCard` | Card individual para a visão do vendedor |
-| `ListStatStrip` | KPI strip compartilhado (responsive: `grid-cols-2 sm:grid-cols-4`) |
+| Componente                      | Responsabilidade                                                                                         |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `AggregatedIndicatorsDashboard` | Visão Owner/Gestor: KPI strip (4 cells), filtros, gráfico de barras, tabela                              |
+| `VendedorIndicatorsDashboard`   | Visão Vendedor: grade de cards (1→2→3 cols) com `useIndicatorMilestoneToast`                             |
+| `IndicatorProgressChart`        | Bar chart de atingimento por indicador (Recharts `BarChart` + `ResponsiveContainer`)                     |
+| `IndicatorsTable`               | Tabela em `overflow-x-auto` — nome, recorte, métrica, escopo, período, alvo, progresso, status, projeção |
+| `IndicatorFiltersBar`           | Filtros por tipo de recorte, métrica, escopo e status                                                    |
+| `IndicatorCard`                 | Card individual para a visão do vendedor                                                                 |
+| `ListStatStrip`                 | KPI strip compartilhado (responsive: `grid-cols-2 sm:grid-cols-4`)                                       |
 
 ### Criação (`NewIndicatorPage`)
 
 Formulário em cards empilhados com 5 seções:
+
 1. **Recorte de produto** — `ProductSelectorField` (mode category/sku/group).
 2. **Métrica** — radio group em `grid md:grid-cols-2`.
 3. **Escopo e período** — radio group em `grid md:grid-cols-3`; selects de loja/vendedor/período; campos de data em `grid grid-cols-1 md:grid-cols-2`.
@@ -284,34 +289,34 @@ CTAs: "Salvar rascunho" (status `arquivado`) e "Criar indicador" (status `ativo`
 
 ### Detalhe (`IndicatorDetailPage`)
 
-| Seção | Componente |
-|---|---|
-| Header + ações | inline no `IndicatorDetailPage` |
-| Resumo de progresso | `IndicatorProgressSummary` |
-| Evolução (gráfico de linhas) | `IndicatorEvolutionChart` |
-| Ranking de contribuição | `ContributionRanking` (oculto para escopo individual) |
-| Pedidos contribuintes | `IndicatorCompositionSection` (tabela em `overflow-x-auto`) |
+| Seção                        | Componente                                                  |
+| ---------------------------- | ----------------------------------------------------------- |
+| Header + ações               | inline no `IndicatorDetailPage`                             |
+| Resumo de progresso          | `IndicatorProgressSummary`                                  |
+| Evolução (gráfico de linhas) | `IndicatorEvolutionChart`                                   |
+| Ranking de contribuição      | `ContributionRanking` (oculto para escopo individual)       |
+| Pedidos contribuintes        | `IndicatorCompositionSection` (tabela em `overflow-x-auto`) |
 
 O `IndicatorEvolutionChart` desenha duas linhas cumulativas — **Realizado** (acumulado de `computeOrderContribution`) e **Esperado** (proporção linear da meta). Períodos longos são amostrados em até 60 pontos via `sampleDays` para legibilidade.
 
 ### Modais e diálogos
 
-| Componente | Trigger |
-|---|---|
-| `EditIndicatorModal` | Botão "Editar" (Owner/Gestor, status `ativo`) — edita nome, valor-alvo e recompensa; recorte/métrica/período são imutáveis |
-| `CancelIndicatorDialog` | Botão "Cancelar indicador" — exige motivo; grava `cancelReason` |
+| Componente              | Trigger                                                                                                                    |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `EditIndicatorModal`    | Botão "Editar" (Owner/Gestor, status `ativo`) — edita nome, valor-alvo e recompensa; recorte/métrica/período são imutáveis |
+| `CancelIndicatorDialog` | Botão "Cancelar indicador" — exige motivo; grava `cancelReason`                                                            |
 
 ---
 
 ## Fora do MVP
 
-| Item | Status | Referência |
-|---|---|---|
-| Subcategoria no `ProductSelector` | Planejado | Issue #23 |
-| Indicadores em cascata (store → individual automático) | Não planejado | — |
-| Escopo de equipe (`team`) | Dormante | Comentário em `IndicatorScopeLevel` |
-| Forecasting ML | Pós-Fase 2 | — |
-| Export (CSV/PDF) | Pós-Fase 2 | — |
+| Item                                                   | Status        | Referência                          |
+| ------------------------------------------------------ | ------------- | ----------------------------------- |
+| Subcategoria no `ProductSelector`                      | Planejado     | Issue #23                           |
+| Indicadores em cascata (store → individual automático) | Não planejado | —                                   |
+| Escopo de equipe (`team`)                              | Dormante      | Comentário em `IndicatorScopeLevel` |
+| Forecasting ML                                         | Pós-Fase 2    | —                                   |
+| Export (CSV/PDF)                                       | Pós-Fase 2    | —                                   |
 
 ---
 

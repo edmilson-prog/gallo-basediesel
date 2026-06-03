@@ -29,20 +29,20 @@ Executar o **Plano 008** (fundação) tarefa por tarefa via `superpowers:subagen
 
 ## ✅ Progresso — PRD-008 Herald COMPLETO (12 commits desde o checkpoint anterior)
 
-| Commit | Entrega |
-|--------|---------|
-| `67e7014` | `bus.ts` — event bus pub/sub não-bloqueante |
-| `1638ae3` | `events.ts` — catálogo dos 30 eventos (Anexo A) + `DERIVED_EVENTS` (6) |
-| `9e73e9a` | `routing/dedupe.ts` + `routing/rules.ts` — `dedupeKey` + 30 regras (categoria/severidade/canais/destinatários fiéis ao Anexo A) |
-| `41082fd` | `channels/` — contract + registry + inApp/toast (ativos) + email/whatsapp/sms/push (stubs deferidos p/ Onda 8) |
+| Commit    | Entrega                                                                                                                                               |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `67e7014` | `bus.ts` — event bus pub/sub não-bloqueante                                                                                                           |
+| `1638ae3` | `events.ts` — catálogo dos 30 eventos (Anexo A) + `DERIVED_EVENTS` (6)                                                                                |
+| `9e73e9a` | `routing/dedupe.ts` + `routing/rules.ts` — `dedupeKey` + 30 regras (categoria/severidade/canais/destinatários fiéis ao Anexo A)                       |
+| `41082fd` | `channels/` — contract + registry + inApp/toast (ativos) + email/whatsapp/sms/push (stubs deferidos p/ Onda 8)                                        |
 | `ad44a47` | `routing/router.ts` — fan-out por destinatário, cruzamento com preferências, locks não-silenciáveis, marca `deferred`; wired no boot do `context.tsx` |
-| `5b5b7a5` | Consolidação de toasts existentes adiada p/ PRD-009 (nota em `toast.ts`; sem regressão de UX) |
-| `9d79ef8` | `conditions/derivedConditions.ts` — extração da lógica dos 3 alertas do PRD-014 (re-export garante painel idêntico) |
-| `ec50e5d` | `reconciler.ts` real — boot + intervalo, recipients via `customer.ownerId` + `store.managerId`, idempotente; injeta data providers via `context.tsx` |
-| `aae5064` | `groupKey` estrutural no router (eventos colapsáveis) |
-| `3adc024` | Harness dev-only em `/design-system` (dispara eventos, log ao vivo) |
-| `f6f9aca` | Nota de migração no PRD-014 |
-| `811bc38` | **Release v0.52.0 Herald** — bump, CHANGELOG, índice de PRDs (seção épico 008/009), PRD-008 → `_DONE` |
+| `5b5b7a5` | Consolidação de toasts existentes adiada p/ PRD-009 (nota em `toast.ts`; sem regressão de UX)                                                         |
+| `9d79ef8` | `conditions/derivedConditions.ts` — extração da lógica dos 3 alertas do PRD-014 (re-export garante painel idêntico)                                   |
+| `ec50e5d` | `reconciler.ts` real — boot + intervalo, recipients via `customer.ownerId` + `store.managerId`, idempotente; injeta data providers via `context.tsx`  |
+| `aae5064` | `groupKey` estrutural no router (eventos colapsáveis)                                                                                                 |
+| `3adc024` | Harness dev-only em `/design-system` (dispara eventos, log ao vivo)                                                                                   |
+| `f6f9aca` | Nota de migração no PRD-014                                                                                                                           |
+| `811bc38` | **Release v0.52.0 Herald** — bump, CHANGELOG, índice de PRDs (seção épico 008/009), PRD-008 → `_DONE`                                                 |
 
 `bun run build` **verde** após cada task. Tudo pushado.
 
@@ -64,6 +64,7 @@ Executar o **Plano 008** (fundação) tarefa por tarefa via `superpowers:subagen
 > Arquivo: `docs/superpowers/plans/2026-05-30-notificacoes-009-ui.md` — executar via `superpowers:subagent-driven-development`, tarefa por tarefa, validando por `bun run build` + `npx eslint <arquivos>`.
 
 **5 fases (UI):**
+
 1. **Tokens de severidade** — escala dedicada `--severity-{info,success,warning,critical}` em `src/styles.css`, constante nos 4 temas (diesel/parts/service/industrial), tratamento tonal, desacoplada de `--primary`.
 2. **Sino + dropdown** — substituir o sino placeholder em `src/features/shell/components/TopBar.tsx`; **Direção B** + **alternador** entre dois layouts (Painel/Lista) aprovados no design.
 3. **Página + alternador** — rota da central de notificações.
@@ -75,6 +76,7 @@ Decisões de design já resolvidas estão no spec: `docs/superpowers/specs/2026-
 ## ❓ Decisões pendentes
 
 Nenhuma de arquitetura/design (resolvidas no spec). Observações para revisar durante o 009:
+
 - O sino atual (`TopBar.tsx`) usa placeholder estático (`MOCK_NOTIFICATIONS`, `useEcommerceNotificationStore`) — **substituir** por `useUnreadCount`/`useNotifications`.
 - Sessão de cliente "viva" não existe na Fase 1 (`recipientType:'customer'` só via seed/reconciliador) — portal do cliente (Fase 5 do 009) exercita esse caminho pela primeira vez.
 

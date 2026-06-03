@@ -147,7 +147,8 @@ export function IndicatorEvolutionChart({
       // Sampled days are always a subset of allDays, so indexOf resolves to a valid index.
       const dayPosition = allDays.indexOf(day);
       // dayPosition is 0-based; N = totalDays; expected at day i = target * (i+1) / N
-      const esperado = totalDays > 0 ? Math.min(targetValue * ((dayPosition + 1) / totalDays), targetValue) : 0;
+      const esperado =
+        totalDays > 0 ? Math.min(targetValue * ((dayPosition + 1) / totalDays), targetValue) : 0;
 
       points.push({
         date: day,
@@ -166,9 +167,7 @@ export function IndicatorEvolutionChart({
     <Card className="flex flex-col gap-4 p-5">
       <header className="flex items-baseline justify-between">
         <div>
-          <h2 className="text-base font-semibold tracking-tight text-foreground">
-            {S.evolution}
-          </h2>
+          <h2 className="text-base font-semibold tracking-tight text-foreground">{S.evolution}</h2>
           <p className="text-xs text-muted-foreground">
             Comparativo entre o realizado e a linha proporcional ao período.
           </p>

@@ -42,15 +42,10 @@ export function IndicatorFiltersBar({
   activeCount,
 }: IIndicatorFiltersBarProps) {
   const selectorKindLabel =
-    filters.selectorKind === "all"
-      ? "Recorte"
-      : S.selectorKind[filters.selectorKind];
-  const metricLabel =
-    filters.metric === "all" ? "Métrica" : S.metric[filters.metric];
-  const scopeLabel =
-    filters.scopeLevel === "all" ? "Escopo" : S.scope[filters.scopeLevel];
-  const statusLabel =
-    filters.status === "all" ? "Status" : S.status[filters.status];
+    filters.selectorKind === "all" ? "Recorte" : S.selectorKind[filters.selectorKind];
+  const metricLabel = filters.metric === "all" ? "Métrica" : S.metric[filters.metric];
+  const scopeLabel = filters.scopeLevel === "all" ? "Escopo" : S.scope[filters.scopeLevel];
+  const statusLabel = filters.status === "all" ? "Status" : S.status[filters.status];
 
   const selectorOptions: { value: SelectorKind; label: string }[] = [
     { value: "category", label: S.selectorKind.category },

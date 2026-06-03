@@ -90,6 +90,9 @@ export interface IQuote {
   convertedToOrderId?: ID;
   convertedAt?: ISO8601;
   notes?: string;
+  /** Ids of kits applied to this quote — lightweight adoption metric
+   *  ("% de orçamentos via Kit", Bloco 4). PRD-035 delta. */
+  appliedKitIds?: ID[];
   createdAt: ISO8601;
   updatedAt: ISO8601;
 }

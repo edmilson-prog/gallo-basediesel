@@ -33,6 +33,7 @@ A validação visual é **manual pelo usuário** — não abrir browser/preview 
 ## File Structure
 
 **Novos arquivos:**
+
 - `src/features/customers/pages/CustomerDetailPage.tsx` — shell da página (compõe header + strip + hero + tabs).
 - `src/features/customers/components/detail/CustomerDetailHeader.tsx` — header full-bleed com breadcrumb e ações.
 - `src/features/customers/components/detail/CustomerStatStrip.tsx` — faixa de stats full-width.
@@ -42,6 +43,7 @@ A validação visual é **manual pelo usuário** — não abrir browser/preview 
 - `src/features/customers/utils/purchaseSeries.ts` — agregação mensal de pedidos (função pura).
 
 **Arquivos modificados:**
+
 - `src/features/customers/i18n/pt-BR.ts` — bloco `detail`.
 - `src/routes/app.clientes.$id.tsx` — renderiza `CustomerDetailPage`.
 - `src/features/customers/components/ProfileTabs.tsx` — props opcionais de aba controlada + `overviewVariant`.
@@ -57,6 +59,7 @@ A validação visual é **manual pelo usuário** — não abrir browser/preview 
 ### Task 1: Strings i18n (bloco `detail`)
 
 **Files:**
+
 - Modify: `src/features/customers/i18n/pt-BR.ts`
 
 - [ ] **Step 1: Adicionar o bloco `detail` ao objeto `CUSTOMER_STRINGS`**
@@ -124,6 +127,7 @@ git commit -m "feat(customers): add i18n strings for dedicated detail page"
 ### Task 2: Faixa de stats (`CustomerStatStrip`)
 
 **Files:**
+
 - Create: `src/features/customers/components/detail/CustomerStatStrip.tsx`
 
 - [ ] **Step 1: Criar o componente**
@@ -236,6 +240,7 @@ git commit -m "feat(customers): add customer stat strip component"
 ### Task 3: Agregação mensal + gráfico de evolução
 
 **Files:**
+
 - Create: `src/features/customers/utils/purchaseSeries.ts`
 - Create: `src/features/customers/components/detail/CustomerPurchaseEvolutionCard.tsx`
 
@@ -256,8 +261,18 @@ export interface IMonthlyPurchasePoint {
 }
 
 const MONTH_LABELS = [
-  "jan", "fev", "mar", "abr", "mai", "jun",
-  "jul", "ago", "set", "out", "nov", "dez",
+  "jan",
+  "fev",
+  "mar",
+  "abr",
+  "mai",
+  "jun",
+  "jul",
+  "ago",
+  "set",
+  "out",
+  "nov",
+  "dez",
 ];
 
 /**
@@ -306,7 +321,15 @@ export function averageOf(points: IMonthlyPurchasePoint[]): number {
 ```tsx
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Area, AreaChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  Area,
+  AreaChart,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import type { ICustomer } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
@@ -424,6 +447,7 @@ git commit -m "feat(customers): add purchase evolution chart with monthly aggreg
 ### Task 4: Timeline de relacionamento
 
 **Files:**
+
 - Create: `src/features/customers/components/detail/CustomerRelationshipTimeline.tsx`
 
 - [ ] **Step 1: Criar o componente**
@@ -552,6 +576,7 @@ git commit -m "feat(customers): add relationship timeline component"
 ### Task 5: Pendências e ações
 
 **Files:**
+
 - Create: `src/features/customers/components/detail/CustomerPendingActionsCard.tsx`
 
 - [ ] **Step 1: Criar o componente**
@@ -606,7 +631,9 @@ export function CustomerPendingActionsCard({
     queryFn: () =>
       quotesProvider
         .list({ customerId: customer.id, pageSize: 200 })
-        .then((r) => r.data.filter((q) => q.status === "enviado" || q.status === "rascunho").length),
+        .then(
+          (r) => r.data.filter((q) => q.status === "enviado" || q.status === "rascunho").length,
+        ),
   });
 
   const pendingVehicles = useQuery({
@@ -683,12 +710,7 @@ export function CustomerPendingActionsCard({
   }, [openQuotes.data, pendingVehicles.data, unseenRecs.data, overdueDays]);
 
   return (
-    <section
-      className={cn(
-        "rounded-lg border border-primary/40 bg-primary/5 p-4",
-        className,
-      )}
-    >
+    <section className={cn("rounded-lg border border-primary/40 bg-primary/5 p-4", className)}>
       <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-foreground">
         <Icon icon="mdi:flash-outline" size={16} className="text-primary" />
         {COPY.title}
@@ -719,7 +741,9 @@ export function CustomerPendingActionsCard({
                     {item.count}
                   </span>
                 )}
-                {item.hint && <span className="text-[11px] text-muted-foreground">{item.hint}</span>}
+                {item.hint && (
+                  <span className="text-[11px] text-muted-foreground">{item.hint}</span>
+                )}
               </button>
             </li>
           ))}
@@ -757,6 +781,7 @@ git commit -m "feat(customers): add pending actions card"
 ### Task 6: Header da página (`CustomerDetailHeader`)
 
 **Files:**
+
 - Create: `src/features/customers/components/detail/CustomerDetailHeader.tsx`
 
 - [ ] **Step 1: Criar o componente**
@@ -792,7 +817,10 @@ export function CustomerDetailHeader({ customer }: ICustomerDetailHeaderProps) {
   return (
     <header className="shrink-0 border-b border-border bg-card">
       <div className="mx-auto w-full max-w-7xl space-y-3 px-4 py-5 sm:px-6">
-        <nav className="flex items-center gap-1 text-xs text-muted-foreground" aria-label="breadcrumb">
+        <nav
+          className="flex items-center gap-1 text-xs text-muted-foreground"
+          aria-label="breadcrumb"
+        >
           <Link
             to="/app/clientes"
             className="rounded transition-colors hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -814,7 +842,10 @@ export function CustomerDetailHeader({ customer }: ICustomerDetailHeaderProps) {
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1 space-y-1.5">
-            <h1 className="text-xl font-semibold uppercase leading-tight text-foreground" title={display.name}>
+            <h1
+              className="text-xl font-semibold uppercase leading-tight text-foreground"
+              title={display.name}
+            >
               {display.name}
             </h1>
             <ProfileBadges
@@ -855,6 +886,7 @@ git commit -m "feat(customers): add dedicated detail page header"
 ### Task 7: `OverviewTab variant` + aba controlada no `ProfileTabs`
 
 **Files:**
+
 - Modify: `src/features/customers/components/tabs/OverviewTab.tsx`
 - Modify: `src/features/customers/components/ProfileTabs.tsx`
 
@@ -949,6 +981,7 @@ export function ProfileTabs({
 ```
 
 Aplicar as duas alterações pontuais no corpo existente:
+
 - `<Tabs value={active} onValueChange={(v) => setActive(v as TabKey)} ...>` (já usa `active`/`setActive`).
 - A linha do overview passa a: `{active === "overview" && <OverviewTab customer={customer} variant={overviewVariant} />}`.
 
@@ -969,6 +1002,7 @@ git commit -m "feat(customers): support page variant overview and controlled tab
 ### Task 8: Shell da página (`CustomerDetailPage`)
 
 **Files:**
+
 - Create: `src/features/customers/pages/CustomerDetailPage.tsx`
 
 - [ ] **Step 1: Criar o componente**
@@ -1021,7 +1055,10 @@ export function CustomerDetailPage({ customerId }: ICustomerDetailPageProps) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 bg-background px-6 py-12 text-center">
         <div className="grid h-12 w-12 place-items-center rounded-full bg-muted text-muted-foreground">
-          <Icon icon={notFound ? "mdi:account-question-outline" : "mdi:alert-circle-outline"} size={24} />
+          <Icon
+            icon={notFound ? "mdi:account-question-outline" : "mdi:alert-circle-outline"}
+            size={24}
+          />
         </div>
         <div className="space-y-1">
           <h1 className="text-sm font-semibold text-foreground">{copy.title}</h1>
@@ -1033,7 +1070,11 @@ export function CustomerDetailPage({ customerId }: ICustomerDetailPageProps) {
               {CUSTOMER_STRINGS.loadError.retry}
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={() => void navigate({ to: "/app/clientes" })}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void navigate({ to: "/app/clientes" })}
+          >
             <Icon icon="mdi:arrow-left" size={14} />
             {CUSTOMER_STRINGS.backToList}
           </Button>
@@ -1094,6 +1135,7 @@ git commit -m "feat(customers): assemble dedicated customer detail page shell"
 ### Task 9: Ligar a rota `/app/clientes/$id`
 
 **Files:**
+
 - Modify: `src/routes/app.clientes.$id.tsx`
 
 - [ ] **Step 1: Substituir o conteúdo**
@@ -1129,6 +1171,7 @@ git commit -m "feat(customers): wire dedicated detail page route"
 ### Task 10: Nome clicável na tabela → página dedicada
 
 **Files:**
+
 - Modify: `src/features/customers/components/list/CustomersTable.tsx`
 - Modify: `src/features/customers/pages/CustomersListPage.tsx`
 
@@ -1137,9 +1180,11 @@ git commit -m "feat(customers): wire dedicated detail page route"
 Em `CustomersTable.tsx`:
 
 1. Adicionar à interface `ICustomersTableProps`:
+
 ```ts
   onOpenDetail: (id: ID) => void;
 ```
+
 2. Receber `onOpenDetail` no destructuring do componente e repassar ao `CustomerRow`.
 3. Adicionar `onOpenDetail` à interface `ICustomerRowProps` e ao destructuring de `CustomerRow`.
 4. Passar para `renderCell` via o contexto: adicionar `onOpenDetail` a `ICellContext` e ao objeto passado em `renderCell(col, { ... })`.
@@ -1205,6 +1250,7 @@ git commit -m "feat(customers): open dedicated page when clicking customer name"
 ### Task 11: Botão "expandir" no painel lateral
 
 **Files:**
+
 - Modify: `src/features/customers/components/ProfileHeader.tsx`
 
 - [ ] **Step 1: Adicionar o botão de expandir (apenas no `variant="column"`)**
@@ -1212,31 +1258,43 @@ git commit -m "feat(customers): open dedicated page when clicking customer name"
 Em `ProfileHeader.tsx`:
 
 1. Garantir o import de `Link`:
+
 ```ts
 import { Link, useNavigate } from "@tanstack/react-router";
 ```
+
 2. Na linha de ações (o `div` com `Button` "Criar orçamento" + `ProfileMenu`), adicionar, **apenas quando `variant === "column"`**, um botão de ícone que navega para a página dedicada:
 
 ```tsx
-      <div className="flex items-center gap-1.5">
-        <Button
-          variant="default"
-          size="sm"
-          className="flex-1 gap-1.5 sm:flex-none"
-          onClick={handleCreateQuote}
-        >
-          <Icon icon="mdi:file-document-plus-outline" size={14} />
-          {CUSTOMER_STRINGS.header.createQuote}
-        </Button>
-        {variant === "column" && (
-          <Button asChild variant="outline" size="sm" className="px-2" title={CUSTOMER_STRINGS.detail.openFullPage}>
-            <Link to="/app/clientes/$id" params={{ id: customer.id }} aria-label={CUSTOMER_STRINGS.detail.openFullPage}>
-              <Icon icon="mdi:arrow-expand" size={14} />
-            </Link>
-          </Button>
-        )}
-        <ProfileMenu customer={customer} />
-      </div>
+<div className="flex items-center gap-1.5">
+  <Button
+    variant="default"
+    size="sm"
+    className="flex-1 gap-1.5 sm:flex-none"
+    onClick={handleCreateQuote}
+  >
+    <Icon icon="mdi:file-document-plus-outline" size={14} />
+    {CUSTOMER_STRINGS.header.createQuote}
+  </Button>
+  {variant === "column" && (
+    <Button
+      asChild
+      variant="outline"
+      size="sm"
+      className="px-2"
+      title={CUSTOMER_STRINGS.detail.openFullPage}
+    >
+      <Link
+        to="/app/clientes/$id"
+        params={{ id: customer.id }}
+        aria-label={CUSTOMER_STRINGS.detail.openFullPage}
+      >
+        <Icon icon="mdi:arrow-expand" size={14} />
+      </Link>
+    </Button>
+  )}
+  <ProfileMenu customer={customer} />
+</div>
 ```
 
 - [ ] **Step 2: Verificar build + visual**
@@ -1263,14 +1321,17 @@ Expected: build de produção conclui; nenhum erro novo de tipo nos arquivos toc
 - [ ] **Step 2: Lint dos arquivos tocados**
 
 Run:
+
 ```bash
 bunx eslint src/features/customers/pages/CustomerDetailPage.tsx src/features/customers/components/detail src/features/customers/components/list/CustomersTable.tsx src/features/customers/components/ProfileHeader.tsx src/features/customers/components/ProfileTabs.tsx src/features/customers/components/tabs/OverviewTab.tsx src/features/customers/pages/CustomersListPage.tsx src/features/customers/utils/purchaseSeries.ts src/routes/app.clientes.$id.tsx
 ```
+
 Expected: sem erros.
 
 - [ ] **Step 3: Checklist de validação visual manual (usuário)**
 
 Confirmar em `/app/clientes`:
+
 - Clicar no **nome** → abre `/app/clientes/:id` (página larga). Clicar no **resto da linha** → painel lateral.
 - Painel lateral exibe o ícone **expandir** → leva à mesma página.
 - Página dedicada: breadcrumb funcional, faixa de stats (5 KPIs), hero (gráfico de evolução + timeline + pendências), e as 7 abas — a aba **Visão geral** em 2 colunas, **sem** o card de Métricas (coberto pela faixa).
@@ -1303,4 +1364,7 @@ git commit -m "fix(customers): polish dedicated detail page after manual review"
 - **Sem novos pacotes / sem mudança de dados-providers-RBAC:** respeitado (só leituras de providers existentes). ✔
 
 Pontos a confirmar durante a execução (sinalizados nos steps): assinatura de `ProfileSkeleton variant`, props de `PreConversionBadge/ProfileMenu/CoverageBanner`, e remoção do import acidental de `TabKey` na Task 5.
+
+```
+
 ```

@@ -368,8 +368,8 @@ export type {
   ChannelDeliveryStatus,
 } from "./notification";
 
-// Service kits / revision kits (Fase 3 — read-only MVP)
-export type { IServiceKit, IServiceKitItem } from "./service-kit";
-
 // Vehicle models / canonical model catalog (PRD-034)
 export type { IVehicleModel, VehicleModelStatus } from "./vehicle-models";
+
+// Model kits / curated part bundles per vehicle model (PRD-035)
+export type { IVehicleModelKit, IKitItem, ModelKitCategory, ModelKitStatus } from "./model-kits";

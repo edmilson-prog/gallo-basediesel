@@ -82,6 +82,7 @@ docs/prds/PRD-002-modelo-conceitual-glossario_DONE.md  # MODIFY — delta note
 ### Task 1.1: Notification domain types
 
 **Files:**
+
 - Create: `src/shared/types/notification.ts`
 - Modify: `src/shared/types/index.ts`
 
@@ -235,6 +236,7 @@ git commit -m "feat(notifications): add INotification domain model and aux union
 ### Task 1.2: Glossary + PRD-002 delta
 
 **Files:**
+
 - Modify: `docs/glossario.md`
 - Modify: `docs/prds/PRD-002-modelo-conceitual-glossario_DONE.md`
 
@@ -258,6 +260,7 @@ git commit -m "docs(notifications): glossary entries and PRD-002 model delta"
 ### Task 2.1: Contracts
 
 **Files:**
+
 - Create: `src/providers/notifications/contracts/_shared.ts`, `contracts/notifications.ts`, `contracts/preferences.ts`, `contracts/index.ts`
 - Create: `src/providers/notifications/errors.ts`
 
@@ -321,7 +324,9 @@ export interface IReconcileDerivedInput {
 export interface INotificationStore {
   list(params?: IListNotificationsParams): Promise<IPaginatedResult<INotification>>;
   get(id: ID): Promise<INotification>;
-  create(input: Omit<INotification, "id" | "createdAt" | "status"> & { status?: NotificationStatus }): Promise<INotification>;
+  create(
+    input: Omit<INotification, "id" | "createdAt" | "status"> & { status?: NotificationStatus },
+  ): Promise<INotification>;
   unreadCount(recipientId?: ID): Promise<number>;
   markRead(id: ID): Promise<INotification>;
   markAllRead(recipientId?: ID): Promise<number>;
@@ -354,10 +359,7 @@ export interface INotificationStores {
 }
 export type { INotificationStore } from "./notifications";
 export type { INotificationPreferenceStore } from "./preferences";
-export type {
-  IListNotificationsParams,
-  IReconcileDerivedInput,
-} from "./notifications";
+export type { IListNotificationsParams, IReconcileDerivedInput } from "./notifications";
 ```
 
 - [ ] **Step 6: Validate** (`bun run build` + `bun run lint`) and **commit**:
@@ -370,6 +372,7 @@ git commit -m "feat(notifications): persistence contracts (store + preferences)"
 ### Task 2.2: Mock API + generator + bootstrap wiring
 
 **Files:**
+
 - Create: `src/mocks/generators/notification.ts`, `src/mocks/api/notifications.ts`
 - Modify: `src/mocks/generators/bootstrap.ts`
 
@@ -391,6 +394,7 @@ git commit -m "feat(mocks): seed notifications generator and mock api"
 ### Task 2.3: Mock + Supabase store impls with RBAC scope
 
 **Files:**
+
 - Create: `src/providers/notifications/impl/mock/_scope.ts`, `impl/mock/notifications.ts`, `impl/mock/preferences.ts`
 - Create: `src/providers/notifications/impl/supabase/notifications.ts`, `impl/supabase/preferences.ts`
 
@@ -409,12 +413,18 @@ import { NotImplementedError } from "../../errors";
 import type { INotificationStore } from "../../contracts/notifications";
 
 const stub = (m: string) => () => {
-  throw new NotImplementedError(`SupabaseNotificationStore.${m} — implementar no PRD-104+ (notificações via Supabase).`);
+  throw new NotImplementedError(
+    `SupabaseNotificationStore.${m} — implementar no PRD-104+ (notificações via Supabase).`,
+  );
 };
 export const supabaseNotificationStore: INotificationStore = {
-  list: stub("list"), get: stub("get"), create: stub("create"),
-  unreadCount: stub("unreadCount"), markRead: stub("markRead"),
-  markAllRead: stub("markAllRead"), archive: stub("archive"),
+  list: stub("list"),
+  get: stub("get"),
+  create: stub("create"),
+  unreadCount: stub("unreadCount"),
+  markRead: stub("markRead"),
+  markAllRead: stub("markAllRead"),
+  archive: stub("archive"),
   reconcileDerived: stub("reconcileDerived"),
 };
 ```
@@ -429,6 +439,7 @@ git commit -m "feat(notifications): mock and supabase store implementations with
 ### Task 2.4: Factory, context, hooks, ESLint, mount
 
 **Files:**
+
 - Create: `factory.ts`, `context.tsx`, `hooks/_useNotificationSlice.ts`, `hooks/useNotifications.ts`, `hooks/useUnreadCount.ts`, `hooks/useNotificationPreferences.ts`, `index.ts`
 - Modify: `eslint.config.js`, `src/routes/__root.tsx`
 
@@ -440,7 +451,9 @@ git commit -m "feat(notifications): mock and supabase store implementations with
 
 ```typescript
 // useUnreadCount.ts
-export function useUnreadCount(): { count: number; isLoading: boolean } { /* react-query over store.unreadCount() */ }
+export function useUnreadCount(): { count: number; isLoading: boolean } {
+  /* react-query over store.unreadCount() */
+}
 // useNotifications.ts — react-query list with filters
 // useNotificationPreferences.ts — read+update preferences
 ```
@@ -532,7 +545,12 @@ export const notificationBus = {
 ```typescript
 import type { NotificationEventType } from "../events";
 const WINDOW_MS = 60_000;
-export function dedupeKey(type: NotificationEventType, entityId: string | undefined, occurredAtIso: string, recipientId: string): string {
+export function dedupeKey(
+  type: NotificationEventType,
+  entityId: string | undefined,
+  occurredAtIso: string,
+  recipientId: string,
+): string {
   const bucket = Math.floor(new Date(occurredAtIso).getTime() / WINDOW_MS);
   return `${type}:${entityId ?? "-"}:${recipientId}:${bucket}`;
 }
@@ -577,7 +595,10 @@ export function dedupeKey(type: NotificationEventType, entityId: string | undefi
 
 ```typescript
 import type { INotification, ChannelDeliveryStatus, NotificationChannel } from "@/shared/types";
-export interface IChannelResult { status: ChannelDeliveryStatus; detail?: string; }
+export interface IChannelResult {
+  status: ChannelDeliveryStatus;
+  detail?: string;
+}
 export interface INotificationChannel {
   readonly channel: NotificationChannel;
   send(notification: INotification): Promise<IChannelResult>;
@@ -610,14 +631,16 @@ import type { INotificationChannel } from "./contract";
 export const emailChannel: INotificationChannel = {
   channel: "email",
   async send() {
-    throw new NotImplementedError("EmailChannel.send — implementar no PRD-141 (Onda 8 / e-mail transacional).");
+    throw new NotImplementedError(
+      "EmailChannel.send — implementar no PRD-141 (Onda 8 / e-mail transacional).",
+    );
   },
 };
 ```
 
 (whatsapp→PRD-143, sms→PRD-144, push→PRD-145.)
 
-- [ ] **Step 2:** Wire the registry's `getChannel` to return these; ensure the router only *dispatches* to `ACTIVE_CHANNELS` and records the rest as `deferred` (never calls `send` on inactive channels).
+- [ ] **Step 2:** Wire the registry's `getChannel` to return these; ensure the router only _dispatches_ to `ACTIVE_CHANNELS` and records the rest as `deferred` (never calls `send` on inactive channels).
 
 - [ ] **Step 3: Validate + commit** (`feat(notifications): deferred channel stubs for Onda 8`).
 
@@ -636,6 +659,7 @@ export const emailChannel: INotificationChannel = {
 ### Task 5.1: extract shared derived-condition logic from PRD-014
 
 **Files:**
+
 - Create: `src/providers/notifications/conditions/derivedConditions.ts`
 - Modify: `src/features/manager-dashboard/hooks/useActiveAlerts.ts`
 

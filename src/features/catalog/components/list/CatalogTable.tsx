@@ -84,9 +84,7 @@ export function CatalogTable({
   // name is mandatory; optional columns honor the visibility set.
   const visibleCols = useMemo(
     () =>
-      COLUMNS.filter(
-        (col) => col.id === "name" || visibleColumns.has(col.id as OptionalColumn),
-      ),
+      COLUMNS.filter((col) => col.id === "name" || visibleColumns.has(col.id as OptionalColumn)),
     [visibleColumns],
   );
 

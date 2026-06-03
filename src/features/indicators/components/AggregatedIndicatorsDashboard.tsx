@@ -78,7 +78,8 @@ export function AggregatedIndicatorsDashboard({
         icon: "mdi:percent-outline",
         label: S.kpis.avgAttainment,
         value: `${avgPct}%`,
-        tone: avgPct >= 100 ? ("good" as const) : avgPct >= 70 ? ("warn" as const) : ("bad" as const),
+        tone:
+          avgPct >= 100 ? ("good" as const) : avgPct >= 70 ? ("warn" as const) : ("bad" as const),
       },
       {
         icon: "mdi:trophy-outline",
@@ -166,11 +167,7 @@ export function AggregatedIndicatorsDashboard({
           actionTo={canCreate ? "/app/gestao/indicadores/novo" : undefined}
         />
       ) : (
-        <IndicatorsTable
-          rows={filteredItems}
-          isLoading={isLoading}
-          sellerNames={sellerNames}
-        />
+        <IndicatorsTable rows={filteredItems} isLoading={isLoading} sellerNames={sellerNames} />
       )}
     </div>
   );

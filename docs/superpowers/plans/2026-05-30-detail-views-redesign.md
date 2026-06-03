@@ -15,12 +15,14 @@
 ## Conventions (read before any task)
 
 **Verification gate (per task — there is NO test runner):**
+
 1. `bunx prettier --write <touched files>`
 2. `bunx eslint <touched files>` → must exit 0 (no errors)
-3. `bunx tsc --noEmit 2>&1 | grep -F <each touched file>` → must print **nothing**. The baseline `tsc` has many *pre-existing* errors in unrelated files (about/, cashflow/, commissions/, orders/api/createOrderFromCart.ts) — only regressions in files **you touched** count.
+3. `bunx tsc --noEmit 2>&1 | grep -F <each touched file>` → must print **nothing**. The baseline `tsc` has many _pre-existing_ errors in unrelated files (about/, cashflow/, commissions/, orders/api/createOrderFromCart.ts) — only regressions in files **you touched** count.
 4. At the **end of each phase**: `bun run build` → must print `✓ built`. (`vite build` does NOT type-check; that's why step 3 exists.)
 
 **Token rules (hard):**
+
 - Components consume **only semantic tokens**: `bg-background`, `bg-card`, `text-foreground`, `text-muted-foreground`, `border-border`, `bg-primary`, `text-primary`, `text-primary-foreground`, `text-destructive`. Never raw hex or `--gallo-*`.
 - Status/tone colors use the established Tailwind palette already used by the badges: `emerald` (good), `amber` (warn), `rose` / `text-destructive` (bad). Always pair light+dark (`text-emerald-600 dark:text-emerald-400`).
 
@@ -38,6 +40,7 @@
 ### Task 1: Layout config + persistence hook
 
 **Files:**
+
 - Create: `src/shared/detail-views/config.ts`
 - Create: `src/shared/detail-views/useDetailLayout.ts`
 
@@ -129,6 +132,7 @@ export function useDetailLayout(
 ### Task 2: DetailLayoutSwitcher
 
 **Files:**
+
 - Create: `src/shared/detail-views/DetailLayoutSwitcher.tsx`
 
 - [ ] **Step 1: Write the component** (mirrors the shipped `ListLayoutSwitcher`)
@@ -185,6 +189,7 @@ export function DetailLayoutSwitcher({ value, onChange }: IDetailLayoutSwitcherP
 ### Task 3: DetailStatStrip
 
 **Files:**
+
 - Create: `src/shared/detail-views/DetailStatStrip.tsx`
 
 - [ ] **Step 1: Write the component** (3-line cells: label / value / sub; mirrors `ListStatStrip`'s hairline grid)
@@ -262,6 +267,7 @@ export function DetailStatStrip({ stats, className }: IDetailStatStripProps) {
 ### Task 4: StatusStepper
 
 **Files:**
+
 - Create: `src/shared/detail-views/StatusStepper.tsx`
 
 - [ ] **Step 1: Write the component**
@@ -351,6 +357,7 @@ export function StatusStepper({ steps, terminal, className }: IStatusStepperProp
 ### Task 5: DetailCard + shared blocks (summary, customer, history)
 
 **Files:**
+
 - Create: `src/shared/detail-views/DetailCard.tsx`
 - Create: `src/shared/detail-views/DetailSummaryCard.tsx`
 - Create: `src/shared/detail-views/DetailCustomerCard.tsx`
@@ -401,7 +408,12 @@ export interface IDetailSummaryCardProps {
   total: number;
 }
 
-export function DetailSummaryCard({ subtotal, discount, shipping, total }: IDetailSummaryCardProps) {
+export function DetailSummaryCard({
+  subtotal,
+  discount,
+  shipping,
+  total,
+}: IDetailSummaryCardProps) {
   return (
     <DetailCard icon="mdi:cash-multiple" title="Resumo">
       <dl className="space-y-1 text-sm">
@@ -540,6 +552,7 @@ export function DetailHistory({ audits, describeAction, footer }: IDetailHistory
 ### Task 6: Layout shells + barrel
 
 **Files:**
+
 - Create: `src/shared/detail-views/LayoutShells.tsx`
 - Create: `src/shared/detail-views/index.ts`
 
@@ -660,7 +673,12 @@ export {
 } from "./config";
 export { useDetailLayout } from "./useDetailLayout";
 export { DetailLayoutSwitcher, type IDetailLayoutSwitcherProps } from "./DetailLayoutSwitcher";
-export { DetailStatStrip, type IDetailStat, type IDetailStatStripProps, type StatTone } from "./DetailStatStrip";
+export {
+  DetailStatStrip,
+  type IDetailStat,
+  type IDetailStatStripProps,
+  type StatTone,
+} from "./DetailStatStrip";
 export {
   StatusStepper,
   type IStepperStep,
@@ -670,11 +688,7 @@ export {
 export { DetailCard, type IDetailCardProps } from "./DetailCard";
 export { DetailSummaryCard, type IDetailSummaryCardProps } from "./DetailSummaryCard";
 export { DetailCustomerCard, type IDetailCustomerCardProps } from "./DetailCustomerCard";
-export {
-  DetailHistory,
-  type IDetailHistoryEntry,
-  type IDetailHistoryProps,
-} from "./DetailHistory";
+export { DetailHistory, type IDetailHistoryEntry, type IDetailHistoryProps } from "./DetailHistory";
 export { CockpitShell, OperationalShell, DocumentShell } from "./LayoutShells";
 ```
 
@@ -687,6 +701,7 @@ export { CockpitShell, OperationalShell, DocumentShell } from "./LayoutShells";
 ### Task 7: Quote KPI + stepper derivation
 
 **Files:**
+
 - Create: `src/features/quotes/utils/quoteDetailStats.ts`
 
 - [ ] **Step 1: Write the file**
@@ -694,7 +709,12 @@ export { CockpitShell, OperationalShell, DocumentShell } from "./LayoutShells";
 ```ts
 import type { IQuote } from "@/shared/types";
 import type { IDetailStat, IStepperStep, IStepperTerminal, StatTone } from "@/shared/detail-views";
-import { formatBRL, formatDateBR, formatPercent, formatRelativeTimeBR } from "@/shared/utils/format";
+import {
+  formatBRL,
+  formatDateBR,
+  formatPercent,
+  formatRelativeTimeBR,
+} from "@/shared/utils/format";
 import { daysUntil, validityBucket } from "./quoteTotals";
 
 const sumQty = (q: IQuote): number => q.items.reduce((acc, it) => acc + it.quantity, 0);
@@ -795,6 +815,7 @@ export function quoteStepperSteps(quote: IQuote): {
 ### Task 8: Quote detail blocks
 
 **Files:**
+
 - Create: `src/features/quotes/components/detail/QuoteDetailBlocks.tsx`
 
 - [ ] **Step 1: Write the file** (presentational blocks lifted verbatim from the current page, re-skinned with `DetailCard` + `formatBRL`/`formatDateBR`)
@@ -834,7 +855,9 @@ export function QuoteHero({ quote }: { quote: IQuote }) {
         </div>
         <div className="text-right">
           <p className="text-xs text-muted-foreground">Total</p>
-          <p className="text-3xl font-bold tabular-nums text-foreground">{formatBRL(quote.total)}</p>
+          <p className="text-3xl font-bold tabular-nums text-foreground">
+            {formatBRL(quote.total)}
+          </p>
         </div>
       </div>
     </Card>
@@ -1074,6 +1097,7 @@ export function QuoteConditionsBlock({ quote, seller }: { quote: IQuote; seller:
 ### Task 9: Wire QuoteDetailPage (3 layouts)
 
 **Files:**
+
 - Modify: `src/features/quotes/pages/QuoteDetailPage.tsx`
 
 This is a **render-only** rewrite. Keep every hook, `useQuery`, `useState`, handler (`handleSend`, `handleAccept`, `handleReject`, `handleCancel`, `handleApprove`, `handleRejectApproval`, `handleDuplicate`, `handleConvertToOrder`, `handleWhatsappShare`), the `refresh` helper, `buildWhatsappText`, `customerName`, `describeAction`, and the loading/error early-returns **exactly as they are**. Only imports, the post-`canEdit` derived block, and the final `return` change.
@@ -1106,18 +1130,19 @@ import {
   QuoteItemsBlock,
 } from "../components/detail/QuoteDetailBlocks";
 ```
+
 (The existing `import { useMemo, useState } from "react"` already covers `useMemo`; add only the `ReactNode` type import and the new module imports. `QuoteStatusBadge` stays imported — it is reused by the Documento doc-header below.)
 
 - [ ] **Step 2: Add the layout hooks with the OTHER hooks — BEFORE the early returns** (Rules of Hooks: never call a hook after a conditional `return`). Insert immediately after the existing `const [rejectReason, setRejectReason] = useState("");` line (which sits above `refresh`/the handlers/the loading+error early-returns). The `stats`/`stepper` memos **must guard against `quote` being undefined** at this point:
 
 ```tsx
-  const [layout, setLayout] = useDetailLayout(QUOTE_DETAIL_LAYOUT_KEY);
-  const now = useMemo(() => new Date(), []);
-  const stats = useMemo(() => (quote ? quoteDetailStats(quote, now) : []), [quote, now]);
-  const stepper = useMemo(
-    () => (quote ? quoteStepperSteps(quote) : { steps: [], terminal: null }),
-    [quote],
-  );
+const [layout, setLayout] = useDetailLayout(QUOTE_DETAIL_LAYOUT_KEY);
+const now = useMemo(() => new Date(), []);
+const stats = useMemo(() => (quote ? quoteDetailStats(quote, now) : []), [quote, now]);
+const stepper = useMemo(
+  () => (quote ? quoteStepperSteps(quote) : { steps: [], terminal: null }),
+  [quote],
+);
 ```
 
 (The node consts in Step 3 — which read `quote`, `customer`, `seller`, `audits`, `canEdit`, `canApprove` — live AFTER the early returns, where `quote` is guaranteed defined; that's fine because they are plain consts, not hooks.)
@@ -1125,174 +1150,172 @@ import {
 - [ ] **Step 3: Replace the entire `return (…)`** (the `<div className="mx-auto w-full max-w-5xl …">` … through its matching `</div>`, INCLUDING the 5 `<AlertDialog>` blocks) with the following. The dialogs are preserved verbatim inside the `dialogs` fragment — **copy the 5 existing `<AlertDialog …>…</AlertDialog>` blocks unchanged** into the marked spot.
 
 ```tsx
-  const header = (
-    <div className="flex items-center justify-between gap-2">
-      <button
-        type="button"
-        onClick={() => void navigate({ to: "/app/orcamentos" })}
-        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-      >
-        <Icon icon="mdi:chevron-left" size={14} />
-        Voltar à listagem
-      </button>
-      <DetailLayoutSwitcher value={layout} onChange={setLayout} />
-    </div>
-  );
+const header = (
+  <div className="flex items-center justify-between gap-2">
+    <button
+      type="button"
+      onClick={() => void navigate({ to: "/app/orcamentos" })}
+      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+    >
+      <Icon icon="mdi:chevron-left" size={14} />
+      Voltar à listagem
+    </button>
+    <DetailLayoutSwitcher value={layout} onChange={setLayout} />
+  </div>
+);
 
-  const banners = (
-    <QuoteBanners
-      quote={quote}
-      canApprove={canApprove}
-      onApprove={() => void handleApprove()}
-      onRejectApproval={() => setConfirmOpen("reject")}
-      onViewConversation={() => void navigate({ to: "/app/atendimento" })}
-    />
-  );
+const banners = (
+  <QuoteBanners
+    quote={quote}
+    canApprove={canApprove}
+    onApprove={() => void handleApprove()}
+    onRejectApproval={() => setConfirmOpen("reject")}
+    onViewConversation={() => void navigate({ to: "/app/atendimento" })}
+  />
+);
 
-  const actions = (
-    <QuoteActions
-      quote={quote}
-      canEdit={canEdit}
-      onSend={() => setConfirmOpen("send")}
-      onAccept={() => setConfirmOpen("accept")}
-      onReject={() => setConfirmOpen("reject")}
-      onCancelSend={() => setConfirmOpen("cancel")}
-      onConvert={() => setConfirmOpen("convert")}
-      onViewPedido={() => void navigate({ to: "/app/pedidos" })}
-      onDuplicate={() => void handleDuplicate()}
-      onWhatsapp={handleWhatsappShare}
-    />
-  );
+const actions = (
+  <QuoteActions
+    quote={quote}
+    canEdit={canEdit}
+    onSend={() => setConfirmOpen("send")}
+    onAccept={() => setConfirmOpen("accept")}
+    onReject={() => setConfirmOpen("reject")}
+    onCancelSend={() => setConfirmOpen("cancel")}
+    onConvert={() => setConfirmOpen("convert")}
+    onViewPedido={() => void navigate({ to: "/app/pedidos" })}
+    onDuplicate={() => void handleDuplicate()}
+    onWhatsapp={handleWhatsappShare}
+  />
+);
 
-  const items = <QuoteItemsBlock items={quote.items} />;
-  const conditions = <QuoteConditionsBlock quote={quote} seller={seller} />;
-  const summary = (
-    <DetailSummaryCard
-      subtotal={quote.subtotal}
-      discount={quote.discount}
-      shipping={quote.shipping}
-      total={quote.total}
-    />
-  );
-  const customerCard = (
-    <DetailCustomerCard
-      customer={customer}
-      name={customerName(customer)}
-      deliveryAddress={quote.deliveryAddress}
-      onOpenFicha={() =>
-        customer && void navigate({ to: "/app/clientes/$id", params: { id: customer.id } })
+const items = <QuoteItemsBlock items={quote.items} />;
+const conditions = <QuoteConditionsBlock quote={quote} seller={seller} />;
+const summary = (
+  <DetailSummaryCard
+    subtotal={quote.subtotal}
+    discount={quote.discount}
+    shipping={quote.shipping}
+    total={quote.total}
+  />
+);
+const customerCard = (
+  <DetailCustomerCard
+    customer={customer}
+    name={customerName(customer)}
+    deliveryAddress={quote.deliveryAddress}
+    onOpenFicha={() =>
+      customer && void navigate({ to: "/app/clientes/$id", params: { id: customer.id } })
+    }
+  />
+);
+const history = <DetailHistory audits={audits} describeAction={describeAction} />;
+
+const dialogs = (
+  <>{/* PASTE the 5 existing <AlertDialog …>…</AlertDialog> blocks here, unchanged */}</>
+);
+
+let body: ReactNode;
+if (layout === "operational") {
+  body = (
+    <OperationalShell
+      header={header}
+      hero={<QuoteHero quote={quote} />}
+      stepper={
+        <div className="space-y-3">
+          <StatusStepper steps={stepper.steps} terminal={stepper.terminal} />
+          {banners}
+        </div>
+      }
+      actions={actions}
+      grid={
+        <>
+          {summary}
+          {customerCard}
+          {conditions}
+        </>
+      }
+      main={
+        <>
+          {items}
+          {history}
+        </>
       }
     />
   );
-  const history = <DetailHistory audits={audits} describeAction={describeAction} />;
-
-  const dialogs = (
-    <>
-      {/* PASTE the 5 existing <AlertDialog …>…</AlertDialog> blocks here, unchanged */}
-    </>
-  );
-
-  let body: ReactNode;
-  if (layout === "operational") {
-    body = (
-      <OperationalShell
-        header={header}
-        hero={<QuoteHero quote={quote} />}
-        stepper={
-          <div className="space-y-3">
-            <StatusStepper steps={stepper.steps} terminal={stepper.terminal} />
-            {banners}
+} else if (layout === "document") {
+  body = (
+    <DocumentShell
+      header={header}
+      docHeader={
+        <div className="flex items-start justify-between border-b border-border pb-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              GALLO BASE DIESEL
+            </p>
+            <h1 className="font-mono text-xl font-bold text-foreground">#{quote.number}</h1>
           </div>
-        }
-        actions={actions}
-        grid={
-          <>
-            {summary}
-            {customerCard}
-            {conditions}
-          </>
-        }
-        main={
-          <>
-            {items}
-            {history}
-          </>
-        }
-      />
-    );
-  } else if (layout === "document") {
-    body = (
-      <DocumentShell
-        header={header}
-        docHeader={
-          <div className="flex items-start justify-between border-b border-border pb-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                GALLO BASE DIESEL
-              </p>
-              <h1 className="font-mono text-xl font-bold text-foreground">#{quote.number}</h1>
-            </div>
-            <div className="text-right text-xs text-muted-foreground">
-              <p>Criado em {formatDateTimeBR(quote.createdAt)}</p>
-              <div className="mt-1 flex justify-end">
-                <QuoteStatusBadge status={quote.status} />
-              </div>
+          <div className="text-right text-xs text-muted-foreground">
+            <p>Criado em {formatDateTimeBR(quote.createdAt)}</p>
+            <div className="mt-1 flex justify-end">
+              <QuoteStatusBadge status={quote.status} />
             </div>
           </div>
-        }
-        parties={
-          <div className="grid gap-4 md:grid-cols-2">
-            {customerCard}
-            {conditions}
-          </div>
-        }
-        items={items}
-        totals={<div className="w-full max-w-xs">{summary}</div>}
-        footer={
-          <div className="border-t border-border pt-4 text-xs text-muted-foreground">
-            <p>Validade: {formatDateBR(quote.validUntil)}</p>
-            {quote.notes && <p className="mt-1">Observações: {quote.notes}</p>}
-          </div>
-        }
-      />
-    );
-  } else {
-    body = (
-      <CockpitShell
-        header={header}
-        hero={
-          <div className="space-y-3">
-            <QuoteHero quote={quote} />
-            {banners}
-          </div>
-        }
-        kpis={<DetailStatStrip stats={stats} />}
-        main={
-          <>
-            {items}
-            {conditions}
-            {history}
-          </>
-        }
-        rail={
-          <>
-            <DetailCard icon="mdi:lightning-bolt-outline" title="Ações">
-              {actions}
-            </DetailCard>
-            {summary}
-            {customerCard}
-          </>
-        }
-      />
-    );
-  }
-
-  return (
-    <>
-      {body}
-      {dialogs}
-    </>
+        </div>
+      }
+      parties={
+        <div className="grid gap-4 md:grid-cols-2">
+          {customerCard}
+          {conditions}
+        </div>
+      }
+      items={items}
+      totals={<div className="w-full max-w-xs">{summary}</div>}
+      footer={
+        <div className="border-t border-border pt-4 text-xs text-muted-foreground">
+          <p>Validade: {formatDateBR(quote.validUntil)}</p>
+          {quote.notes && <p className="mt-1">Observações: {quote.notes}</p>}
+        </div>
+      }
+    />
   );
+} else {
+  body = (
+    <CockpitShell
+      header={header}
+      hero={
+        <div className="space-y-3">
+          <QuoteHero quote={quote} />
+          {banners}
+        </div>
+      }
+      kpis={<DetailStatStrip stats={stats} />}
+      main={
+        <>
+          {items}
+          {conditions}
+          {history}
+        </>
+      }
+      rail={
+        <>
+          <DetailCard icon="mdi:lightning-bolt-outline" title="Ações">
+            {actions}
+          </DetailCard>
+          {summary}
+          {customerCard}
+        </>
+      }
+    />
+  );
+}
+
+return (
+  <>
+    {body}
+    {dialogs}
+  </>
+);
 ```
 
 (Add `DetailCard` to the `@/shared/detail-views` import in Step 1 — it is used by the Cockpit rail "Ações" wrapper.)
@@ -1308,6 +1331,7 @@ import {
 ### Task 10: Order KPI + stepper derivation
 
 **Files:**
+
 - Create: `src/features/orders/utils/orderDetailStats.ts`
 
 - [ ] **Step 1: Write the file**
@@ -1470,6 +1494,7 @@ export function orderStepperSteps(order: IOrder): {
 ### Task 11: Order detail blocks
 
 **Files:**
+
 - Create: `src/features/orders/components/detail/OrderDetailBlocks.tsx`
 
 - [ ] **Step 1: Write the file** (blocks lifted verbatim from the current page; payment/delivery actions gate on `canActOnOrder`, so passing `canActOnOrder={false}` in the Documento layout renders them read-only)
@@ -1524,7 +1549,9 @@ export function OrderHero({ order, agg, onViewQuote }: IOrderHeroProps) {
         </div>
         <div className="text-right">
           <p className="text-xs text-muted-foreground">Total</p>
-          <p className="text-3xl font-bold tabular-nums text-foreground">{formatBRL(order.total)}</p>
+          <p className="text-3xl font-bold tabular-nums text-foreground">
+            {formatBRL(order.total)}
+          </p>
         </div>
       </div>
     </Card>
@@ -1665,7 +1692,9 @@ export function OrderPaymentBlock({
         </div>
         <div>
           <dt className="text-xs text-muted-foreground">Status</dt>
-          <dd className="font-medium text-foreground">{ORDER_PAYMENT_LABEL[order.paymentStatus]}</dd>
+          <dd className="font-medium text-foreground">
+            {ORDER_PAYMENT_LABEL[order.paymentStatus]}
+          </dd>
         </div>
         {order.paidAt && (
           <div>
@@ -1889,8 +1918,8 @@ export function OrderCommissionBlock({
           <div className="mt-3 flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-700 dark:text-amber-200">
             <Icon icon="mdi:alert-outline" size={14} className="mt-0.5" />
             <p>
-              Pedido ainda não confirmado como pago — após pagamento, a comissão definitiva (PRD-047)
-              é gerada automaticamente.
+              Pedido ainda não confirmado como pago — após pagamento, a comissão definitiva
+              (PRD-047) é gerada automaticamente.
             </p>
           </div>
         </>
@@ -1911,6 +1940,7 @@ export function OrderCommissionBlock({
 ### Task 12: Wire OrderDetailPage (3 layouts)
 
 **Files:**
+
 - Modify: `src/features/orders/pages/OrderDetailPage.tsx`
 
 Same render-only rewrite discipline as Task 9. Keep every hook, `useQuery`, `useCommissionForOrder`, `useState`, the `refresh`/`wrap`/`notifyStatus` helpers, all transition handlers, the apply-vehicle callback, and the loading/error early-returns **verbatim**.
@@ -1948,286 +1978,287 @@ import {
   OrderPaymentBlock,
 } from "../components/detail/OrderDetailBlocks";
 ```
+
 (`useMemo` is already imported from `"react"`. `OrderStatusBadge` stays imported — reused by the Documento doc-header. `OrderItemsTable` stays — reused by the Items block.)
 
 - [ ] **Step 2: Add the layout hooks — BEFORE the early returns** (Rules of Hooks). Insert immediately after the existing `const [dialog, setDialog] = useState<OrderDialogKind>(null);` line. Guard the memos against `order` being undefined:
 
 ```tsx
-  const [layout, setLayout] = useDetailLayout(ORDER_DETAIL_LAYOUT_KEY);
-  const now = useMemo(() => new Date(), []);
-  const commissionStat = useMemo<IOrderCommissionStat | undefined>(() => {
-    if (commissionsForOrder.hasCommission && commissionsForOrder.commissions.length > 0) {
-      const total = commissionsForOrder.commissions.reduce((acc, c) => acc + c.totalCommission, 0);
-      return { value: total, calculated: true };
-    }
-    return undefined;
-  }, [commissionsForOrder]);
-  const stats = useMemo(
-    () => (order ? orderDetailStats(order, now, commissionStat) : []),
-    [order, now, commissionStat],
-  );
-  const stepper = useMemo(
-    () => (order ? orderStepperSteps(order) : { steps: [], terminal: null }),
-    [order],
-  );
+const [layout, setLayout] = useDetailLayout(ORDER_DETAIL_LAYOUT_KEY);
+const now = useMemo(() => new Date(), []);
+const commissionStat = useMemo<IOrderCommissionStat | undefined>(() => {
+  if (commissionsForOrder.hasCommission && commissionsForOrder.commissions.length > 0) {
+    const total = commissionsForOrder.commissions.reduce((acc, c) => acc + c.totalCommission, 0);
+    return { value: total, calculated: true };
+  }
+  return undefined;
+}, [commissionsForOrder]);
+const stats = useMemo(
+  () => (order ? orderDetailStats(order, now, commissionStat) : []),
+  [order, now, commissionStat],
+);
+const stepper = useMemo(
+  () => (order ? orderStepperSteps(order) : { steps: [], terminal: null }),
+  [order],
+);
 ```
 
 - [ ] **Step 3: Replace the entire `return (…)`** (the `<div className="mx-auto w-full max-w-5xl …">` … its closing `</div>`, INCLUDING the 8 dialog components at the end) with the following. **Copy the 8 existing dialog elements** (`<MarkPaidDialog …/>` … `<InvoiceDialog …/>`) verbatim into the `dialogs` fragment. **Move the existing inline `onApplyVehicle` async callback** (currently passed to `<OrderItemsTable>`) into the `items` const unchanged.
 
 ```tsx
-  const header = (
-    <div className="flex items-center justify-between gap-2">
-      <button
-        type="button"
-        onClick={() => void navigate({ to: "/app/pedidos" })}
-        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-      >
-        <Icon icon="mdi:chevron-left" size={14} />
-        Voltar à listagem
-      </button>
-      <DetailLayoutSwitcher value={layout} onChange={setLayout} />
-    </div>
-  );
+const header = (
+  <div className="flex items-center justify-between gap-2">
+    <button
+      type="button"
+      onClick={() => void navigate({ to: "/app/pedidos" })}
+      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+    >
+      <Icon icon="mdi:chevron-left" size={14} />
+      Voltar à listagem
+    </button>
+    <DetailLayoutSwitcher value={layout} onChange={setLayout} />
+  </div>
+);
 
-  const hero = (
-    <OrderHero
-      order={order}
-      agg={agg}
-      onViewQuote={() =>
-        order.quoteId && void navigate({ to: "/app/orcamentos/$id", params: { id: order.quoteId } })
-      }
-    />
-  );
-  const banners = <OrderBanners order={order} />;
-  const actions = (
-    <OrderActions
-      order={order}
-      agg={agg}
-      canActOnOrder={canActOnOrder}
-      cancellable={cancellable}
-      isManagerOrOwner={isManagerOrOwner}
-      onMarkPaid={() => setDialog("markPaid")}
-      onStartFulfillment={() => setDialog("startFulfillment")}
-      onShip={() => setDialog("ship")}
-      onDeliver={() => setDialog("deliver")}
-      onReturn={() => setDialog("return")}
-      onInvoice={() => setDialog("invoice")}
-      onCancel={() => setDialog("cancel")}
-    />
-  );
+const hero = (
+  <OrderHero
+    order={order}
+    agg={agg}
+    onViewQuote={() =>
+      order.quoteId && void navigate({ to: "/app/orcamentos/$id", params: { id: order.quoteId } })
+    }
+  />
+);
+const banners = <OrderBanners order={order} />;
+const actions = (
+  <OrderActions
+    order={order}
+    agg={agg}
+    canActOnOrder={canActOnOrder}
+    cancellable={cancellable}
+    isManagerOrOwner={isManagerOrOwner}
+    onMarkPaid={() => setDialog("markPaid")}
+    onStartFulfillment={() => setDialog("startFulfillment")}
+    onShip={() => setDialog("ship")}
+    onDeliver={() => setDialog("deliver")}
+    onReturn={() => setDialog("return")}
+    onInvoice={() => setDialog("invoice")}
+    onCancel={() => setDialog("cancel")}
+  />
+);
 
-  const items = (
-    <DetailCard icon="mdi:format-list-bulleted" title="Itens">
-      <OrderItemsTable
-        order={order}
-        readOnly={!canActOnOrder}
-        onApplyVehicle={async (itemId, vehicleId) => {
-          try {
-            await applyOrderItemToVehicle({
-              ordersProvider,
-              vehiclesProvider,
-              order,
-              itemId,
-              vehicleId,
-            });
-            toast.success(
-              vehicleId
-                ? "Aplicação registrada — histórico do veículo atualizado."
-                : "Aplicação removida.",
-            );
-            await refresh();
-          } catch (err) {
-            console.error(err);
-            toast.error(err instanceof Error ? err.message : "Falha ao aplicar item ao veículo.");
-          }
-        }}
-      />
-    </DetailCard>
-  );
-
-  const payment = (
-    <OrderPaymentBlock
+const items = (
+  <DetailCard icon="mdi:format-list-bulleted" title="Itens">
+    <OrderItemsTable
       order={order}
-      canActOnOrder={canActOnOrder}
-      isManagerOrOwner={isManagerOrOwner}
-      onMarkPaid={() => setDialog("markPaid")}
-      onRefund={() => setDialog("refund")}
+      readOnly={!canActOnOrder}
+      onApplyVehicle={async (itemId, vehicleId) => {
+        try {
+          await applyOrderItemToVehicle({
+            ordersProvider,
+            vehiclesProvider,
+            order,
+            itemId,
+            vehicleId,
+          });
+          toast.success(
+            vehicleId
+              ? "Aplicação registrada — histórico do veículo atualizado."
+              : "Aplicação removida.",
+          );
+          await refresh();
+        } catch (err) {
+          console.error(err);
+          toast.error(err instanceof Error ? err.message : "Falha ao aplicar item ao veículo.");
+        }
+      }}
     />
-  );
-  const delivery = (
-    <OrderDeliveryBlock
-      order={order}
-      canActOnOrder={canActOnOrder}
-      editable={editable}
-      onStartFulfillment={() => setDialog("startFulfillment")}
-      onShip={() => setDialog("ship")}
-      onDeliver={() => setDialog("deliver")}
-    />
-  );
-  const commission = (
-    <OrderCommissionBlock
-      hasCommission={commissionsForOrder.hasCommission}
-      commissions={commissionsForOrder.commissions}
-      preview={order.commissionPreview}
-    />
-  );
-  const summary = (
-    <DetailSummaryCard
-      subtotal={order.subtotal}
-      discount={order.discount}
-      shipping={order.shipping}
-      total={order.total}
-    />
-  );
-  const customerCard = (
-    <DetailCustomerCard
-      customer={customer}
-      name={customerName(customer)}
-      deliveryAddress={order.deliveryAddress}
-      onOpenFicha={() =>
-        customer && void navigate({ to: "/app/clientes/$id", params: { id: customer.id } })
-      }
-    />
-  );
-  const history = (
-    <DetailHistory
-      audits={audits}
-      describeAction={describeAction}
-      footer={
-        seller ? (
-          <p className="mt-3 text-[11px] text-muted-foreground">
-            Vendedor responsável: <span className="text-foreground">{seller.fullName}</span>
-          </p>
-        ) : undefined
-      }
-    />
-  );
+  </DetailCard>
+);
 
-  const dialogs = (
-    <>
-      {/* PASTE the 8 existing dialog elements here, unchanged:
+const payment = (
+  <OrderPaymentBlock
+    order={order}
+    canActOnOrder={canActOnOrder}
+    isManagerOrOwner={isManagerOrOwner}
+    onMarkPaid={() => setDialog("markPaid")}
+    onRefund={() => setDialog("refund")}
+  />
+);
+const delivery = (
+  <OrderDeliveryBlock
+    order={order}
+    canActOnOrder={canActOnOrder}
+    editable={editable}
+    onStartFulfillment={() => setDialog("startFulfillment")}
+    onShip={() => setDialog("ship")}
+    onDeliver={() => setDialog("deliver")}
+  />
+);
+const commission = (
+  <OrderCommissionBlock
+    hasCommission={commissionsForOrder.hasCommission}
+    commissions={commissionsForOrder.commissions}
+    preview={order.commissionPreview}
+  />
+);
+const summary = (
+  <DetailSummaryCard
+    subtotal={order.subtotal}
+    discount={order.discount}
+    shipping={order.shipping}
+    total={order.total}
+  />
+);
+const customerCard = (
+  <DetailCustomerCard
+    customer={customer}
+    name={customerName(customer)}
+    deliveryAddress={order.deliveryAddress}
+    onOpenFicha={() =>
+      customer && void navigate({ to: "/app/clientes/$id", params: { id: customer.id } })
+    }
+  />
+);
+const history = (
+  <DetailHistory
+    audits={audits}
+    describeAction={describeAction}
+    footer={
+      seller ? (
+        <p className="mt-3 text-[11px] text-muted-foreground">
+          Vendedor responsável: <span className="text-foreground">{seller.fullName}</span>
+        </p>
+      ) : undefined
+    }
+  />
+);
+
+const dialogs = (
+  <>
+    {/* PASTE the 8 existing dialog elements here, unchanged:
           MarkPaidDialog, StartFulfillmentDialog, ShipDialog, DeliverDialog,
           ReturnDialog, CancelDialog, RefundDialog, InvoiceDialog */}
-    </>
-  );
+  </>
+);
 
-  let body: ReactNode;
-  if (layout === "operational") {
-    body = (
-      <OperationalShell
-        header={header}
-        hero={hero}
-        stepper={
-          <div className="space-y-3">
-            <StatusStepper steps={stepper.steps} terminal={stepper.terminal} />
-            {banners}
+let body: ReactNode;
+if (layout === "operational") {
+  body = (
+    <OperationalShell
+      header={header}
+      hero={hero}
+      stepper={
+        <div className="space-y-3">
+          <StatusStepper steps={stepper.steps} terminal={stepper.terminal} />
+          {banners}
+        </div>
+      }
+      actions={actions}
+      grid={
+        <>
+          {payment}
+          {delivery}
+          {commission}
+        </>
+      }
+      main={
+        <>
+          {items}
+          {summary}
+          {customerCard}
+          {history}
+        </>
+      }
+    />
+  );
+} else if (layout === "document") {
+  body = (
+    <DocumentShell
+      header={header}
+      docHeader={
+        <div className="flex items-start justify-between border-b border-border pb-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              GALLO BASE DIESEL
+            </p>
+            <h1 className="font-mono text-xl font-bold text-foreground">
+              #{order.number ?? order.id.replace(/^order-/, "PD-")}
+            </h1>
           </div>
-        }
-        actions={actions}
-        grid={
-          <>
-            {payment}
-            {delivery}
-            {commission}
-          </>
-        }
-        main={
-          <>
-            {items}
-            {summary}
-            {customerCard}
-            {history}
-          </>
-        }
-      />
-    );
-  } else if (layout === "document") {
-    body = (
-      <DocumentShell
-        header={header}
-        docHeader={
-          <div className="flex items-start justify-between border-b border-border pb-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                GALLO BASE DIESEL
-              </p>
-              <h1 className="font-mono text-xl font-bold text-foreground">
-                #{order.number ?? order.id.replace(/^order-/, "PD-")}
-              </h1>
+          <div className="text-right text-xs text-muted-foreground">
+            <p>Criado em {formatDateTimeBR(order.createdAt)}</p>
+            <div className="mt-1 flex justify-end">
+              <OrderStatusBadge status={agg} />
             </div>
-            <div className="text-right text-xs text-muted-foreground">
-              <p>Criado em {formatDateTimeBR(order.createdAt)}</p>
-              <div className="mt-1 flex justify-end">
-                <OrderStatusBadge status={agg} />
-              </div>
-            </div>
           </div>
-        }
-        parties={
-          <div className="grid gap-4 md:grid-cols-2">
-            {customerCard}
-            <OrderPaymentBlock
-              order={order}
-              canActOnOrder={false}
-              isManagerOrOwner={false}
-              onMarkPaid={() => undefined}
-              onRefund={() => undefined}
-            />
-          </div>
-        }
-        items={items}
-        totals={<div className="w-full max-w-xs">{summary}</div>}
-        footer={
-          <OrderDeliveryBlock
+        </div>
+      }
+      parties={
+        <div className="grid gap-4 md:grid-cols-2">
+          {customerCard}
+          <OrderPaymentBlock
             order={order}
             canActOnOrder={false}
-            editable={false}
-            onStartFulfillment={() => undefined}
-            onShip={() => undefined}
-            onDeliver={() => undefined}
+            isManagerOrOwner={false}
+            onMarkPaid={() => undefined}
+            onRefund={() => undefined}
           />
-        }
-      />
-    );
-  } else {
-    body = (
-      <CockpitShell
-        header={header}
-        hero={
-          <div className="space-y-3">
-            {hero}
-            {banners}
-          </div>
-        }
-        kpis={<DetailStatStrip stats={stats} />}
-        main={
-          <>
-            {items}
-            {payment}
-            {delivery}
-            {commission}
-            {history}
-          </>
-        }
-        rail={
-          <>
-            <DetailCard icon="mdi:lightning-bolt-outline" title="Ações">
-              {actions}
-            </DetailCard>
-            {summary}
-            {customerCard}
-          </>
-        }
-      />
-    );
-  }
-
-  return (
-    <>
-      {body}
-      {dialogs}
-    </>
+        </div>
+      }
+      items={items}
+      totals={<div className="w-full max-w-xs">{summary}</div>}
+      footer={
+        <OrderDeliveryBlock
+          order={order}
+          canActOnOrder={false}
+          editable={false}
+          onStartFulfillment={() => undefined}
+          onShip={() => undefined}
+          onDeliver={() => undefined}
+        />
+      }
+    />
   );
+} else {
+  body = (
+    <CockpitShell
+      header={header}
+      hero={
+        <div className="space-y-3">
+          {hero}
+          {banners}
+        </div>
+      }
+      kpis={<DetailStatStrip stats={stats} />}
+      main={
+        <>
+          {items}
+          {payment}
+          {delivery}
+          {commission}
+          {history}
+        </>
+      }
+      rail={
+        <>
+          <DetailCard icon="mdi:lightning-bolt-outline" title="Ações">
+            {actions}
+          </DetailCard>
+          {summary}
+          {customerCard}
+        </>
+      }
+    />
+  );
+}
+
+return (
+  <>
+    {body}
+    {dialogs}
+  </>
+);
 ```
 
 - [ ] **Step 4: Remove now-unused locals** flagged by eslint — the local `SectionHeader`, `ValueSummary`, `paymentLabel`, and `fulfillmentLabel` helpers are superseded (by `DetailCard`, `DetailSummaryCard`, and the `ORDER_*_LABEL` maps). Keep `describeAction`, `customerName`, and `getCustomerName` import only if still referenced. Run eslint and delete what it reports as unused; the local `moneyFormatter`/`dateTimeFormatter` are likely unused after the rewrite — remove them.
@@ -2245,17 +2276,21 @@ import {
 - [ ] **Step 1: Type-check the whole feature**
 
 Run:
+
 ```bash
 bunx tsc --noEmit 2>&1 | grep -E "detail-views|quoteDetailStats|orderDetailStats|QuoteDetailBlocks|OrderDetailBlocks|QuoteDetailPage|OrderDetailPage"
 ```
+
 Expected: **no output** (baseline `tsc` errors in unrelated files are ignored — we only fail on regressions in touched files).
 
 - [ ] **Step 2: Lint the feature**
 
 Run:
+
 ```bash
 bunx eslint src/shared/detail-views src/features/quotes/utils/quoteDetailStats.ts src/features/quotes/components/detail src/features/quotes/pages/QuoteDetailPage.tsx src/features/orders/utils/orderDetailStats.ts src/features/orders/components/detail src/features/orders/pages/OrderDetailPage.tsx
 ```
+
 Expected: exit 0, no errors. Fix any unused-import / unused-var warnings (the removed `SectionHeader`/`ValueSummary`/`paymentLabel`/`fulfillmentLabel`/`moneyFormatter`/`dateTimeFormatter` locals).
 
 - [ ] **Step 3: Production build**
@@ -2265,6 +2300,7 @@ Run: `bun run build` → Expected: `✓ built in …`.
 - [ ] **Step 4: Manual UI validation (user)**
 
 The user validates the UI manually (do NOT open a browser/devtools preview). Provide a short checklist for them:
+
 - Both pages default to **Cockpit**; switcher offers Cockpit / Operacional / Documento; choice persists per page across reloads.
 - Quote: send / accept / reject / cancel / convert / duplicate / WhatsApp / approve still work; SDR + approval banners show; validity/discount KPIs correct.
 - Order: markPaid / start / ship / deliver / return / NF / cancel / refund / apply-to-vehicle still work; cancellation banner; payment/delivery/commission blocks correct; stepper advances with status.
@@ -2277,6 +2313,7 @@ No commit (verification only). If issues found, fix in the relevant file and re-
 ### Task 14: Version bump → v0.53.0 "Dossier"
 
 **Files:**
+
 - Modify: `package.json`
 - Modify: `CHANGELOG.md`
 - Modify: `CLAUDE.md`
@@ -2289,16 +2326,18 @@ No commit (verification only). If issues found, fix in the relevant file and re-
 ## [0.53.0] — Dossier · 2026-05-31
 
 ### Added
+
 - Ficha de **Orçamento** e **Pedido** com 3 visualizações selecionáveis — **Cockpit** (padrão), **Operacional** e **Documento** — alternáveis por um seletor no cabeçalho, com preferência lembrada por página.
 - Faixa de KPIs e trilho lateral fixo (resumo, cliente, ações) nas fichas de Orçamento e Pedido.
 - Stepper de status no layout Operacional (rascunho→convertido / aguardando pagamento→concluído), com estados terminais para recusado/expirado/cancelado/devolvido.
 - Framework compartilhado `src/shared/detail-views/` (config de layout, hook de persistência, seletor, faixa de KPIs, stepper, blocos de resumo/cliente/histórico e shells de layout).
 
 ### Changed
+
 - Páginas de detalhe de Orçamento e Pedido passam a usar layout amplo (até 1600px) em vez da coluna central estreita, eliminando o desperdício de espaço lateral.
 ```
 
-- [ ] **Step 3: Update `CLAUDE.md`** — the versioning line `(atual: \`Ledger\` — v0.52.0)` → `(atual: \`Dossier\` — v0.53.0)`.
+- [ ] **Step 3: Update `CLAUDE.md`** — the versioning line `(atual: \`Ledger\` — v0.52.0)`→`(atual: \`Dossier\` — v0.53.0)`.
 
 - [ ] **Step 4:** `bun run build` (`✓ built`) to confirm the version injection compiles. Commit (stage `package.json`, `CHANGELOG.md`, `CLAUDE.md`): `chore: release v0.53.0 "Dossier" — detail views redesign`.
 

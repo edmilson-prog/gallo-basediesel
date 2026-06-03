@@ -31,8 +31,8 @@ import type { ISdrSessionsProvider } from "./sdrSessions";
 import type { ISdrEscalationsProvider } from "./sdrEscalations";
 import type { ICopilotProvider } from "./copilot";
 import type { IIndicatorsProvider } from "./indicators";
-import type { IServiceKitsProvider } from "./serviceKits";
 import type { IVehicleModelsProvider } from "./vehicleModels";
+import type { IModelKitsProvider } from "./modelKits";
 
 export type { IPaginatedResult, IPaginationParams } from "./_shared";
 
@@ -94,16 +94,17 @@ export type { ISdrEscalationsProvider, IListSdrEscalationsParams } from "./sdrEs
 export type { ICopilotProvider } from "./copilot";
 export type { IIndicatorsProvider, IListIndicatorsParams } from "./indicators";
 export type {
-  IServiceKitsProvider,
-  IListServiceKitsParams,
-  ICreateServiceKitInput,
-} from "./serviceKits";
-export type {
   IVehicleModelsProvider,
   IListVehicleModelsParams,
   ICreateVehicleModelInput,
   IUpdateVehicleModelPatch,
 } from "./vehicleModels";
+export type {
+  IModelKitsProvider,
+  IListModelKitsParams,
+  ICreateModelKitInput,
+  IUpdateModelKitPatch,
+} from "./modelKits";
 
 /**
  * Aggregate of every data provider returned by `getDataProviders()`. The factory
@@ -137,6 +138,6 @@ export interface IDataProviders {
   sdrEscalations: ISdrEscalationsProvider;
   copilot: ICopilotProvider;
   indicators: IIndicatorsProvider;
-  serviceKits: IServiceKitsProvider;
   vehicleModels: IVehicleModelsProvider;
+  modelKits: IModelKitsProvider;
 }

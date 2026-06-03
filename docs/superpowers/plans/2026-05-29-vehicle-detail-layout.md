@@ -11,6 +11,7 @@
 **Spec:** `docs/superpowers/specs/2026-05-29-vehicle-detail-layout-design.md`
 
 **Convenção de verificação (todas as tasks):**
+
 - Lint do(s) arquivo(s) tocado(s): `bunx eslint <arquivo>` → esperado: sem erros.
 - Build completo só na Task 7 (gate real): `bun run build` → esperado: "built in …", exit 0.
 - NÃO commitar até a Task 7 e somente com confirmação do usuário (regra do CLAUDE.md global).
@@ -19,22 +20,23 @@
 
 ## File Structure
 
-| Arquivo | Responsabilidade após a mudança |
-|---|---|
-| `src/features/vehicles/i18n/pt-BR.ts` | +2 strings no bloco `detail.history` (CTA e dica do empty-state). |
-| `src/features/vehicles/components/detail/VehicleTechSpecs.tsx` | `dl` de cards → **faixa de stats** com hairlines; `SpecRow` → `StatCell`. |
-| `src/features/vehicles/components/detail/ServiceHistoryTimeline.tsx` | Empty-state com nós fantasma + CTA; novas props `canEdit`/`onAddService`. |
-| `src/features/vehicles/components/detail/VehicleDetailHeader.tsx` | Trilho interno `max-w-7xl` + hierarquia (placa-chip, badge ao lado do título, ícone tintado). |
-| `src/features/vehicles/pages/VehicleDetailPage.tsx` | Container `max-w-7xl`, ordem (banner → faixa → bento), bento 12-col, fiação das props do histórico. |
-| `src/features/vehicles/components/detail/MaintenanceRecommendations.tsx` | Ritmo de padding `px-4 py-3` (polimento). |
-| `src/features/vehicles/components/detail/VehicleOwnerCard.tsx` | Ritmo de padding `px-4 py-3` (polimento). |
-| `src/features/vehicles/components/detail/CompatiblePartsPlaceholder.tsx` | Ritmo de padding `px-4 py-3` (polimento). |
+| Arquivo                                                                  | Responsabilidade após a mudança                                                                     |
+| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| `src/features/vehicles/i18n/pt-BR.ts`                                    | +2 strings no bloco `detail.history` (CTA e dica do empty-state).                                   |
+| `src/features/vehicles/components/detail/VehicleTechSpecs.tsx`           | `dl` de cards → **faixa de stats** com hairlines; `SpecRow` → `StatCell`.                           |
+| `src/features/vehicles/components/detail/ServiceHistoryTimeline.tsx`     | Empty-state com nós fantasma + CTA; novas props `canEdit`/`onAddService`.                           |
+| `src/features/vehicles/components/detail/VehicleDetailHeader.tsx`        | Trilho interno `max-w-7xl` + hierarquia (placa-chip, badge ao lado do título, ícone tintado).       |
+| `src/features/vehicles/pages/VehicleDetailPage.tsx`                      | Container `max-w-7xl`, ordem (banner → faixa → bento), bento 12-col, fiação das props do histórico. |
+| `src/features/vehicles/components/detail/MaintenanceRecommendations.tsx` | Ritmo de padding `px-4 py-3` (polimento).                                                           |
+| `src/features/vehicles/components/detail/VehicleOwnerCard.tsx`           | Ritmo de padding `px-4 py-3` (polimento).                                                           |
+| `src/features/vehicles/components/detail/CompatiblePartsPlaceholder.tsx` | Ritmo de padding `px-4 py-3` (polimento).                                                           |
 
 ---
 
 ### Task 1: Strings i18n do empty-state
 
 **Files:**
+
 - Modify: `src/features/vehicles/i18n/pt-BR.ts:116-120` (bloco `detail.history`)
 
 - [ ] **Step 1: Adicionar as 2 strings**
@@ -71,6 +73,7 @@ Expected: sem erros.
 ### Task 2: Dados Técnicos → faixa de stats
 
 **Files:**
+
 - Modify: `src/features/vehicles/components/detail/VehicleTechSpecs.tsx`
 
 - [ ] **Step 1: Remover o import não usado de `SECTION_COPY`**
@@ -222,6 +225,7 @@ Expected: sem erros (sem variáveis/imports não usados).
 ### Task 3: Empty-state do histórico com nós fantasma + CTA
 
 **Files:**
+
 - Modify: `src/features/vehicles/components/detail/ServiceHistoryTimeline.tsx`
 
 - [ ] **Step 1: Importar `Button`**
@@ -273,37 +277,37 @@ export function ServiceHistoryTimeline({
 Substituir o bloco do empty-state (o ramo `sorted.length === 0 ? (...)`):
 
 ```tsx
-        <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted/20 px-4 py-6 text-center">
-          <Icon icon="mdi:wrench-clock" size={20} className="text-muted-foreground" />
-          <p className="text-xs text-muted-foreground">{COPY.empty}</p>
-        </div>
+<div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted/20 px-4 py-6 text-center">
+  <Icon icon="mdi:wrench-clock" size={20} className="text-muted-foreground" />
+  <p className="text-xs text-muted-foreground">{COPY.empty}</p>
+</div>
 ```
 
 por:
 
 ```tsx
-        <div className="rounded-md border border-dashed border-border bg-muted/20 px-5 py-5">
-          <ol className="mb-4 space-y-3 border-l border-border pl-4">
-            {[0, 1, 2].map((i) => (
-              <li key={i} className="relative">
-                <span className="absolute -left-[21px] top-0.5 h-3 w-3 rounded-full border border-border bg-muted/50" />
-                <div className="space-y-1.5">
-                  <div className="h-2.5 w-2/5 rounded bg-foreground/[0.06]" />
-                  <div className="h-2.5 w-3/5 rounded bg-foreground/[0.03]" />
-                </div>
-              </li>
-            ))}
-          </ol>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="max-w-sm text-xs text-muted-foreground">{COPY.emptyAutoHint}</p>
-            {canEdit && onAddService && (
-              <Button size="sm" onClick={onAddService}>
-                <Icon icon="mdi:wrench" size={14} />
-                {COPY.emptyCta}
-              </Button>
-            )}
-          </div>
+<div className="rounded-md border border-dashed border-border bg-muted/20 px-5 py-5">
+  <ol className="mb-4 space-y-3 border-l border-border pl-4">
+    {[0, 1, 2].map((i) => (
+      <li key={i} className="relative">
+        <span className="absolute -left-[21px] top-0.5 h-3 w-3 rounded-full border border-border bg-muted/50" />
+        <div className="space-y-1.5">
+          <div className="h-2.5 w-2/5 rounded bg-foreground/[0.06]" />
+          <div className="h-2.5 w-3/5 rounded bg-foreground/[0.03]" />
         </div>
+      </li>
+    ))}
+  </ol>
+  <div className="flex flex-wrap items-center justify-between gap-3">
+    <p className="max-w-sm text-xs text-muted-foreground">{COPY.emptyAutoHint}</p>
+    {canEdit && onAddService && (
+      <Button size="sm" onClick={onAddService}>
+        <Icon icon="mdi:wrench" size={14} />
+        {COPY.emptyCta}
+      </Button>
+    )}
+  </div>
+</div>
 ```
 
 - [ ] **Step 4: Lint**
@@ -316,6 +320,7 @@ Expected: sem erros.
 ### Task 4: Header com trilho e hierarquia
 
 **Files:**
+
 - Modify: `src/features/vehicles/components/detail/VehicleDetailHeader.tsx`
 
 - [ ] **Step 1: Substituir o JSX retornado (linhas 23-68)**
@@ -323,61 +328,59 @@ Expected: sem erros.
 Substituir o `return (...)` inteiro por:
 
 ```tsx
-  return (
-    <div className="border-b border-border bg-card">
-      <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6">
-        <Link
-          to="/app/veiculos"
-          className="mb-3 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-        >
-          <Icon icon="mdi:arrow-left" size={14} />
-          {VEHICLE_STRINGS.detail.backToList}
-        </Link>
-        <div className="flex flex-wrap items-start gap-4">
-          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
-            <Icon icon={iconForBrand(vehicle.brand)} size={28} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <h1 className="flex flex-wrap items-center gap-2 text-lg font-semibold text-foreground sm:text-xl">
-              <span>
-                {vehicle.brand} {vehicle.model}{" "}
-                <span className="text-base font-normal text-muted-foreground">
-                  · {vehicle.year}
-                </span>
-              </span>
-              <Badge
-                variant="outline"
-                className={cn("text-xs", STATUS_BADGE_CLASSES[vehicle.cadastroStatus])}
-              >
-                {STATUS_LABEL[vehicle.cadastroStatus]}
-              </Badge>
-            </h1>
-            <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              <span className="rounded border border-border bg-muted px-1.5 font-mono uppercase text-foreground">
-                {vehicle.plate ?? "—"}
-              </span>
-              <span aria-hidden>·</span>
-              <span>{vehicle.engine || "—"}</span>
-            </div>
+return (
+  <div className="border-b border-border bg-card">
+    <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6">
+      <Link
+        to="/app/veiculos"
+        className="mb-3 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+      >
+        <Icon icon="mdi:arrow-left" size={14} />
+        {VEHICLE_STRINGS.detail.backToList}
+      </Link>
+      <div className="flex flex-wrap items-start gap-4">
+        <span className="grid h-14 w-14 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
+          <Icon icon={iconForBrand(vehicle.brand)} size={28} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h1 className="flex flex-wrap items-center gap-2 text-lg font-semibold text-foreground sm:text-xl">
+            <span>
+              {vehicle.brand} {vehicle.model}{" "}
+              <span className="text-base font-normal text-muted-foreground">· {vehicle.year}</span>
+            </span>
+            <Badge
+              variant="outline"
+              className={cn("text-xs", STATUS_BADGE_CLASSES[vehicle.cadastroStatus])}
+            >
+              {STATUS_LABEL[vehicle.cadastroStatus]}
+            </Badge>
+          </h1>
+          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <span className="rounded border border-border bg-muted px-1.5 font-mono uppercase text-foreground">
+              {vehicle.plate ?? "—"}
+            </span>
+            <span aria-hidden>·</span>
+            <span>{vehicle.engine || "—"}</span>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {canEdit && (
-              <>
-                <Button variant="outline" size="sm" onClick={onEdit}>
-                  <Icon icon="mdi:pencil" size={14} />
-                  {VEHICLE_STRINGS.detail.edit}
-                </Button>
-                <Button size="sm" onClick={onAddService}>
-                  <Icon icon="mdi:wrench" size={14} />
-                  {VEHICLE_STRINGS.detail.addService}
-                </Button>
-              </>
-            )}
-          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {canEdit && (
+            <>
+              <Button variant="outline" size="sm" onClick={onEdit}>
+                <Icon icon="mdi:pencil" size={14} />
+                {VEHICLE_STRINGS.detail.edit}
+              </Button>
+              <Button size="sm" onClick={onAddService}>
+                <Icon icon="mdi:wrench" size={14} />
+                {VEHICLE_STRINGS.detail.addService}
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 ```
 
 - [ ] **Step 2: Lint**
@@ -390,6 +393,7 @@ Expected: sem erros.
 ### Task 5: Página — container 7xl, ordem e bento 12-col
 
 **Files:**
+
 - Modify: `src/features/vehicles/pages/VehicleDetailPage.tsx:111-134`
 
 - [ ] **Step 1: Substituir o bloco do corpo**
@@ -397,64 +401,64 @@ Expected: sem erros.
 Substituir o bloco (do `<div className="mx-auto w-full max-w-5xl ...">` até o `</div>` que fecha esse container — linhas 111-134):
 
 ```tsx
-      <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6">
-        <VehicleStatusBanner
-          vehicle={vehicle}
-          canApprove={canApprove}
-          onApprove={() => void handleApprove()}
-          onReject={() => setRejectOpen(true)}
-        />
+<div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6">
+  <VehicleStatusBanner
+    vehicle={vehicle}
+    canApprove={canApprove}
+    onApprove={() => void handleApprove()}
+    onReject={() => setRejectOpen(true)}
+  />
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="space-y-6 lg:col-span-2">
-            <VehicleTechSpecs
-              vehicle={vehicle}
-              canEdit={canEdit}
-              onUpdated={() => void detail.invalidate()}
-            />
-            <ServiceHistoryTimeline vehicle={vehicle} />
-            <MaintenanceRecommendations vehicle={vehicle} />
-          </div>
-          <div className="space-y-6">
-            <VehicleOwnerCard customerId={vehicle.customerId} />
-            <CompatiblePartsPlaceholder vehicle={vehicle} />
-          </div>
-        </div>
-      </div>
+  <div className="grid gap-6 lg:grid-cols-3">
+    <div className="space-y-6 lg:col-span-2">
+      <VehicleTechSpecs
+        vehicle={vehicle}
+        canEdit={canEdit}
+        onUpdated={() => void detail.invalidate()}
+      />
+      <ServiceHistoryTimeline vehicle={vehicle} />
+      <MaintenanceRecommendations vehicle={vehicle} />
+    </div>
+    <div className="space-y-6">
+      <VehicleOwnerCard customerId={vehicle.customerId} />
+      <CompatiblePartsPlaceholder vehicle={vehicle} />
+    </div>
+  </div>
+</div>
 ```
 
 por:
 
 ```tsx
-      <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6">
-        <VehicleStatusBanner
-          vehicle={vehicle}
-          canApprove={canApprove}
-          onApprove={() => void handleApprove()}
-          onReject={() => setRejectOpen(true)}
-        />
+<div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6">
+  <VehicleStatusBanner
+    vehicle={vehicle}
+    canApprove={canApprove}
+    onApprove={() => void handleApprove()}
+    onReject={() => setRejectOpen(true)}
+  />
 
-        <VehicleTechSpecs
-          vehicle={vehicle}
-          canEdit={canEdit}
-          onUpdated={() => void detail.invalidate()}
-        />
+  <VehicleTechSpecs
+    vehicle={vehicle}
+    canEdit={canEdit}
+    onUpdated={() => void detail.invalidate()}
+  />
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-          <div className="space-y-6 lg:col-span-8">
-            <ServiceHistoryTimeline
-              vehicle={vehicle}
-              canEdit={canEdit}
-              onAddService={() => setServiceOpen(true)}
-            />
-            <MaintenanceRecommendations vehicle={vehicle} />
-          </div>
-          <aside className="space-y-6 lg:sticky lg:top-6 lg:col-span-4 lg:self-start">
-            <VehicleOwnerCard customerId={vehicle.customerId} />
-            <CompatiblePartsPlaceholder vehicle={vehicle} />
-          </aside>
-        </div>
-      </div>
+  <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+    <div className="space-y-6 lg:col-span-8">
+      <ServiceHistoryTimeline
+        vehicle={vehicle}
+        canEdit={canEdit}
+        onAddService={() => setServiceOpen(true)}
+      />
+      <MaintenanceRecommendations vehicle={vehicle} />
+    </div>
+    <aside className="space-y-6 lg:sticky lg:top-6 lg:col-span-4 lg:self-start">
+      <VehicleOwnerCard customerId={vehicle.customerId} />
+      <CompatiblePartsPlaceholder vehicle={vehicle} />
+    </aside>
+  </div>
+</div>
 ```
 
 - [ ] **Step 2: Lint**
@@ -467,6 +471,7 @@ Expected: sem erros.
 ### Task 6: Ritmo de padding (polimento)
 
 **Files:**
+
 - Modify: `src/features/vehicles/components/detail/VehicleOwnerCard.tsx:48`
 - Modify: `src/features/vehicles/components/detail/CompatiblePartsPlaceholder.tsx:34`
 - Modify: `src/features/vehicles/components/detail/MaintenanceRecommendations.tsx:42`
@@ -476,7 +481,8 @@ Expected: sem erros.
 Em `VehicleOwnerCard.tsx`, no `<Link>` do card, trocar `px-3 py-3` por `px-4 py-3`:
 
 ```tsx
-        className="flex items-center gap-3 rounded-md border border-border bg-card px-4 py-3 hover:border-primary/30"
+className =
+  "flex items-center gap-3 rounded-md border border-border bg-card px-4 py-3 hover:border-primary/30";
 ```
 
 - [ ] **Step 2: Compatible parts container padding**
@@ -519,9 +525,11 @@ Expected: termina com "built in …" e exit code 0 (vite + tsc noEmit sem novos 
 - [ ] **Step 2: Lint de todos os arquivos tocados**
 
 Run:
+
 ```bash
 bunx eslint src/features/vehicles/i18n/pt-BR.ts src/features/vehicles/components/detail/VehicleTechSpecs.tsx src/features/vehicles/components/detail/ServiceHistoryTimeline.tsx src/features/vehicles/components/detail/VehicleDetailHeader.tsx src/features/vehicles/pages/VehicleDetailPage.tsx src/features/vehicles/components/detail/VehicleOwnerCard.tsx src/features/vehicles/components/detail/CompatiblePartsPlaceholder.tsx src/features/vehicles/components/detail/MaintenanceRecommendations.tsx
 ```
+
 Expected: sem erros.
 
 - [ ] **Step 3: Validação visual manual (usuário)**
@@ -540,6 +548,7 @@ git commit -m "feat(vehicles): redistribute detail page layout into 12-col bento
 ## Self-Review
 
 **1. Spec coverage:**
+
 - max-w-7xl unificado → Task 4 (header) + Task 5 (corpo). ✓
 - Header hierarquia (placa-chip, badge, ícone tintado) → Task 4. ✓
 - Faixa de stats → Task 2. ✓
@@ -551,6 +560,7 @@ git commit -m "feat(vehicles): redistribute detail page layout into 12-col bento
 **2. Placeholder scan:** Nenhum "TBD/TODO"; todo passo de código mostra o código completo. ✓
 
 **3. Type/nome consistency:**
+
 - `StatCell` definido na Task 2 e usado só na Task 2. ✓
 - `COPY.emptyCta` / `COPY.emptyAutoHint` criados na Task 1, usados na Task 3. ✓
 - Props `canEdit`/`onAddService` definidas na Task 3 e passadas na Task 5 com os mesmos nomes. ✓

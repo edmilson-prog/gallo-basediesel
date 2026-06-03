@@ -16,43 +16,44 @@
 
 ## Mapa de arquivos
 
-| Arquivo | Responsabilidade |
-|---------|------------------|
-| `src/shared/types/copilot.ts` | tipos do domínio (`ICopilotSuggestion`, `ICopilotBriefing`, `ICopilotSummary`, `ICopilotPanelData`, `CopilotPlacement`) |
-| `src/shared/types/index.ts` | barrel — re-exporta os tipos do copiloto |
-| `src/providers/data/contracts/copilot.ts` | `ICopilotProvider` |
-| `src/providers/data/contracts/index.ts` | adiciona `copilot` ao `IDataProviders` |
-| `src/providers/data/impl/mock/copilotRules.ts` | regras puras R1/R2/R3 + `runCopilotRules` |
-| `src/providers/data/impl/mock/copilot.ts` | `mockCopilotProvider` — compõe o painel |
-| `src/providers/data/impl/supabase/copilot.ts` | stub Fase 2 (`AICopilotProvider` + `generateReply`) |
-| `src/providers/data/factory.ts` | registra mock + supabase nos bundles |
-| `src/providers/data/hooks/useCopilotProvider.ts` | hook de acesso ao provider |
-| `src/providers/data/index.ts` | exporta `useCopilotProvider` |
-| `src/features/copilot/config.ts` | `resolvePlacement()` + constantes |
-| `src/features/copilot/hooks/useCopilotPlacement.ts` | resolve a variante ativa |
-| `src/features/copilot/hooks/useCopilotPanel.ts` | orquestra painel + dismiss local + loading/erro |
-| `src/features/copilot/i18n/pt-BR.ts` | strings em pt-BR |
-| `src/features/copilot/components/*` | `CopilotHeader`, `CopilotSuggestionItem`, `CopilotSummary`, `CopilotReply`, `CopilotStrip`, `CopilotCard`, `CopilotFicheTab` |
-| `src/features/copilot/index.ts` | barrel da feature |
-| `src/features/conversations/pages/ConversationPage.tsx` | monta `strip`/`card` nos slots |
-| `src/features/customers/components/CustomerProfileFiche.tsx` | aba "Copiloto" quando placement = `tab` |
-| `docs/prds/PRD-002-*`, `docs/prds/DELTAS-*`, `docs/prds/PRD-004-*` | DELTAs |
+| Arquivo                                                            | Responsabilidade                                                                                                             |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| `src/shared/types/copilot.ts`                                      | tipos do domínio (`ICopilotSuggestion`, `ICopilotBriefing`, `ICopilotSummary`, `ICopilotPanelData`, `CopilotPlacement`)      |
+| `src/shared/types/index.ts`                                        | barrel — re-exporta os tipos do copiloto                                                                                     |
+| `src/providers/data/contracts/copilot.ts`                          | `ICopilotProvider`                                                                                                           |
+| `src/providers/data/contracts/index.ts`                            | adiciona `copilot` ao `IDataProviders`                                                                                       |
+| `src/providers/data/impl/mock/copilotRules.ts`                     | regras puras R1/R2/R3 + `runCopilotRules`                                                                                    |
+| `src/providers/data/impl/mock/copilot.ts`                          | `mockCopilotProvider` — compõe o painel                                                                                      |
+| `src/providers/data/impl/supabase/copilot.ts`                      | stub Fase 2 (`AICopilotProvider` + `generateReply`)                                                                          |
+| `src/providers/data/factory.ts`                                    | registra mock + supabase nos bundles                                                                                         |
+| `src/providers/data/hooks/useCopilotProvider.ts`                   | hook de acesso ao provider                                                                                                   |
+| `src/providers/data/index.ts`                                      | exporta `useCopilotProvider`                                                                                                 |
+| `src/features/copilot/config.ts`                                   | `resolvePlacement()` + constantes                                                                                            |
+| `src/features/copilot/hooks/useCopilotPlacement.ts`                | resolve a variante ativa                                                                                                     |
+| `src/features/copilot/hooks/useCopilotPanel.ts`                    | orquestra painel + dismiss local + loading/erro                                                                              |
+| `src/features/copilot/i18n/pt-BR.ts`                               | strings em pt-BR                                                                                                             |
+| `src/features/copilot/components/*`                                | `CopilotHeader`, `CopilotSuggestionItem`, `CopilotSummary`, `CopilotReply`, `CopilotStrip`, `CopilotCard`, `CopilotFicheTab` |
+| `src/features/copilot/index.ts`                                    | barrel da feature                                                                                                            |
+| `src/features/conversations/pages/ConversationPage.tsx`            | monta `strip`/`card` nos slots                                                                                               |
+| `src/features/customers/components/CustomerProfileFiche.tsx`       | aba "Copiloto" quando placement = `tab`                                                                                      |
+| `docs/prds/PRD-002-*`, `docs/prds/DELTAS-*`, `docs/prds/PRD-004-*` | DELTAs                                                                                                                       |
 
 ## Mapa Fase do PRD → Tarefas
 
-| Fase PRD | Tarefas |
-|----------|---------|
-| 1 — Análise, contrato e DELTAs | T1, T2 (DELTA-002/004 documentados em T13) |
-| 4 — Sugestões + Provider + esqueleto | T3, T4, T5 |
-| 2 — Superfície + parametrização | T6, T7, T8, T9, T10, T11, T12 |
-| 3 — Briefing + Resumo | embutido em T4 (composição) + T9/T10 (render) |
-| 5 — Validação | T13 |
+| Fase PRD                             | Tarefas                                       |
+| ------------------------------------ | --------------------------------------------- |
+| 1 — Análise, contrato e DELTAs       | T1, T2 (DELTA-002/004 documentados em T13)    |
+| 4 — Sugestões + Provider + esqueleto | T3, T4, T5                                    |
+| 2 — Superfície + parametrização      | T6, T7, T8, T9, T10, T11, T12                 |
+| 3 — Briefing + Resumo                | embutido em T4 (composição) + T9/T10 (render) |
+| 5 — Validação                        | T13                                           |
 
 ---
 
 ## Task 1: Tipos do domínio do Copiloto
 
 **Files:**
+
 - Create: `src/shared/types/copilot.ts`
 - Modify: `src/shared/types/index.ts` (após o bloco "SDR Escalation (PRD-023)")
 
@@ -181,6 +182,7 @@ git commit -m "feat(copilot): add domain types for sales copilot (PRD-025)"
 ## Task 2: Contrato do provider + agregador `IDataProviders`
 
 **Files:**
+
 - Create: `src/providers/data/contracts/copilot.ts`
 - Modify: `src/providers/data/contracts/index.ts`
 
@@ -224,7 +226,7 @@ export type { ICopilotProvider } from "./copilot";
 No `interface IDataProviders { ... }`, adicione como última chave (após `sdrEscalations: ISdrEscalationsProvider;`):
 
 ```typescript
-  copilot: ICopilotProvider;
+copilot: ICopilotProvider;
 ```
 
 - [ ] **Step 4: Type-check**
@@ -244,6 +246,7 @@ git commit -m "feat(copilot): add ICopilotProvider contract to data providers (P
 ## Task 3: Regras determinísticas R1/R2/R3 (puras)
 
 **Files:**
+
 - Create: `src/providers/data/impl/mock/copilotRules.ts`
 
 - [ ] **Step 1: Criar `src/providers/data/impl/mock/copilotRules.ts`**
@@ -268,10 +271,7 @@ export interface ICopilotRuleContext {
 
 /** Remove acentos e normaliza caixa para casamento robusto em pt-BR. */
 function normalize(text: string): string {
-  return text
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase();
+  return text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 }
 
 function inboundFromCustomer(messages: IMessage[]): IMessage[] {
@@ -309,7 +309,15 @@ function makeSuggestion(
 const DEADLINE_TERMS = ["prazo", "entrega", "quando chega", "quando que chega", "previsao"];
 const BILLING_TERMS = ["nota", "nf", "nota fiscal", "faturar", "faturamento", "fiscal"];
 const COMPANY_TERMS = ["empresa", "cnpj", "razao social", "em nome da", "pessoa juridica"];
-const BUYING_INTENT_TERMS = ["orcamento", "preco", "valor", "boleto", "cotacao", "parcel", "quanto"];
+const BUYING_INTENT_TERMS = [
+  "orcamento",
+  "preco",
+  "valor",
+  "boleto",
+  "cotacao",
+  "parcel",
+  "quanto",
+];
 
 function matchesAny(text: string, terms: string[]): boolean {
   const n = normalize(text);
@@ -324,7 +332,9 @@ export function ruleUnansweredDeadline(ctx: ICopilotRuleContext): ICopilotSugges
   if (ctx.conversation.status === "resolvida" || ctx.conversation.status === "arquivada") {
     return null;
   }
-  const deadlineMsgs = inboundFromCustomer(ctx.messages).filter((m) => matchesAny(m.text, DEADLINE_TERMS));
+  const deadlineMsgs = inboundFromCustomer(ctx.messages).filter((m) =>
+    matchesAny(m.text, DEADLINE_TERMS),
+  );
   if (deadlineMsgs.length < 2) return null;
   const last = deadlineMsgs[deadlineMsgs.length - 1];
   const sellerRepliedAfter = ctx.messages.some(
@@ -365,7 +375,9 @@ export function ruleBillingMismatch(ctx: ICopilotRuleContext): ICopilotSuggestio
  */
 export function ruleDormantOpportunity(ctx: ICopilotRuleContext): ICopilotSuggestion | null {
   if (ctx.customer?.status !== "dormente") return null;
-  const hit = inboundFromCustomer(ctx.messages).some((m) => matchesAny(m.text, BUYING_INTENT_TERMS));
+  const hit = inboundFromCustomer(ctx.messages).some((m) =>
+    matchesAny(m.text, BUYING_INTENT_TERMS),
+  );
   if (!hit) return null;
   return makeSuggestion(ctx, {
     kind: "opportunity",
@@ -416,6 +428,7 @@ git commit -m "feat(copilot): add deterministic suggestion rules R1/R2/R3 (PRD-0
 ## Task 4: `mockCopilotProvider` — composição do painel
 
 **Files:**
+
 - Create: `src/providers/data/impl/mock/copilot.ts`
 
 - [ ] **Step 1: Criar `src/providers/data/impl/mock/copilot.ts`**
@@ -463,7 +476,9 @@ function buildBriefing(customer: ICustomer, now: Date): ICopilotBriefing {
     averageTicket: customer.purchaseStats?.ticketMedio,
     ltv: customer.purchaseStats?.ltv,
     recencyDays: daysSince(customer.lastPurchaseAt, now),
-    frequency: customer.purchaseStats ? `${customer.purchaseStats.orderCount12m} pedidos · 12m` : undefined,
+    frequency: customer.purchaseStats
+      ? `${customer.purchaseStats.orderCount12m} pedidos · 12m`
+      : undefined,
     isPositivado: isSameCalendarMonth(customer.lastPurchaseAt, now),
   };
 }
@@ -472,7 +487,9 @@ function summaryFromSdr(context: ISdrContextSummary): ICopilotSummary {
   const parts: string[] = [];
   if (context.partIdentified) parts.push(`Peça: ${context.partIdentified.name}`);
   if (context.vehicleIdentified) {
-    parts.push(`Veículo: ${[context.vehicleIdentified.brand, context.vehicleIdentified.model].filter(Boolean).join(" ")}`);
+    parts.push(
+      `Veículo: ${[context.vehicleIdentified.brand, context.vehicleIdentified.model].filter(Boolean).join(" ")}`,
+    );
   }
   if (context.quoteGenerated) parts.push("Orçamento enviado pelo SDR");
   const text = parts.length > 0 ? parts.join(" · ") : "Conversa escalada pelo SDR.";
@@ -484,7 +501,9 @@ function truncate(text: string, max = 80): string {
 }
 
 function mockSummaryFromMessages(messages: IMessage[]): ICopilotSummary | undefined {
-  const inbound = messages.filter((m) => m.direction === "in" && m.authorType === "customer" && m.text.trim());
+  const inbound = messages.filter(
+    (m) => m.direction === "in" && m.authorType === "customer" && m.text.trim(),
+  );
   if (inbound.length === 0) return undefined;
   const first = inbound[0];
   const last = inbound[inbound.length - 1];
@@ -540,6 +559,7 @@ git commit -m "feat(copilot): add mockCopilotProvider composing panel data (PRD-
 ## Task 5: Stub Supabase + registro no factory + hook + barrel
 
 **Files:**
+
 - Create: `src/providers/data/impl/supabase/copilot.ts`
 - Create: `src/providers/data/hooks/useCopilotProvider.ts`
 - Modify: `src/providers/data/factory.ts`
@@ -553,7 +573,8 @@ git commit -m "feat(copilot): add mockCopilotProvider composing panel data (PRD-
 import type { ID, ICopilotPanelData } from "@/shared/types";
 import type { ICopilotProvider } from "../../contracts/copilot";
 
-const NOT_IMPLEMENTED = "CopilotProvider: implementação Supabase pendente (Fase 2 — AICopilotProvider).";
+const NOT_IMPLEMENTED =
+  "CopilotProvider: implementação Supabase pendente (Fase 2 — AICopilotProvider).";
 
 export const supabaseCopilotProvider: ICopilotProvider = {
   getPanelData(_conversationId: ID): Promise<ICopilotPanelData> {
@@ -580,6 +601,7 @@ Adicione a chave `copilot` em **ambos** os bundles (`mockProviders` e `supabaseP
   // em mockProviders:
   copilot: mockCopilotProvider,
 ```
+
 ```typescript
   // em supabaseProviders:
   copilot: supabaseCopilotProvider,
@@ -617,6 +639,7 @@ git commit -m "feat(copilot): wire copilot provider into factory + hook (PRD-025
 ## Task 6: Resolução da variante (`VITE_COPILOT_PLACEMENT`)
 
 **Files:**
+
 - Create: `src/features/copilot/config.ts`
 - Create: `src/features/copilot/hooks/useCopilotPlacement.ts`
 
@@ -675,6 +698,7 @@ git commit -m "feat(copilot): resolve placement variant from env (PRD-025)"
 ## Task 7: `useCopilotPanel` — orquestração + dismiss local + estados
 
 **Files:**
+
 - Create: `src/features/copilot/hooks/useCopilotPanel.ts`
 
 - [ ] **Step 1: Criar `src/features/copilot/hooks/useCopilotPanel.ts`**
@@ -776,6 +800,7 @@ git commit -m "feat(copilot): add useCopilotPanel orchestration hook (PRD-025)"
 ## Task 8: Strings pt-BR
 
 **Files:**
+
 - Create: `src/features/copilot/i18n/pt-BR.ts`
 
 - [ ] **Step 1: Criar `src/features/copilot/i18n/pt-BR.ts`**
@@ -814,6 +839,7 @@ git commit -m "feat(copilot): add pt-BR strings (PRD-025)"
 ## Task 9: Componentes compartilhados (Header, SuggestionItem, Summary, Reply)
 
 **Files:**
+
 - Create: `src/features/copilot/components/CopilotHeader.tsx`
 - Create: `src/features/copilot/components/CopilotSuggestionItem.tsx`
 - Create: `src/features/copilot/components/CopilotSummary.tsx`
@@ -863,7 +889,10 @@ export function CopilotSuggestionItem({ suggestion, onDismiss }: ICopilotSuggest
   return (
     <li className="group flex items-start gap-2.5 text-sm leading-relaxed">
       <span
-        className={cn("mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md", meta.chip)}
+        className={cn(
+          "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md",
+          meta.chip,
+        )}
         aria-hidden="true"
       >
         <Icon icon={meta.icon} size={15} />
@@ -874,7 +903,12 @@ export function CopilotSuggestionItem({ suggestion, onDismiss }: ICopilotSuggest
           <span className="mt-0.5 block text-xs text-muted-foreground">{suggestion.detail}</span>
         )}
       </span>
-      <span className={cn("shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide", meta.tone)}>
+      <span
+        className={cn(
+          "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+          meta.tone,
+        )}
+      >
         {meta.label}
       </span>
       {onDismiss && (
@@ -925,7 +959,9 @@ export function CopilotHeader({ briefing, trailing }: ICopilotHeaderProps) {
           {briefing.abcClass && (
             <>
               <span className="text-muted-foreground/60">·</span>
-              <span>ABC <span className="font-semibold text-primary">{briefing.abcClass}</span></span>
+              <span>
+                ABC <span className="font-semibold text-primary">{briefing.abcClass}</span>
+              </span>
             </>
           )}
           {ticket && (
@@ -942,7 +978,10 @@ export function CopilotHeader({ briefing, trailing }: ICopilotHeaderProps) {
           )}
         </span>
       )}
-      <span className="ml-auto inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-[11px] text-muted-foreground" title={COPILOT_STRINGS.privacyAria}>
+      <span
+        className="ml-auto inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-[11px] text-muted-foreground"
+        title={COPILOT_STRINGS.privacyAria}
+      >
         <Icon icon="mdi:lock-outline" size={12} />
         {COPILOT_STRINGS.privacy}
       </span>
@@ -1030,6 +1069,7 @@ git commit -m "feat(copilot): add shared surface components (PRD-025)"
 ## Task 10: `CopilotStrip` — variante default (repouso + expandida + auto-expand)
 
 **Files:**
+
 - Create: `src/features/copilot/components/CopilotStrip.tsx`
 
 - [ ] **Step 1: Criar `CopilotStrip.tsx`**
@@ -1058,7 +1098,11 @@ const KIND_ICON = {
   opportunity: "mdi:lightbulb-on-outline",
 } as const;
 
-const KIND_COLOR = { alert: "text-warning", action: "text-info", opportunity: "text-success" } as const;
+const KIND_COLOR = {
+  alert: "text-warning",
+  action: "text-info",
+  opportunity: "text-success",
+} as const;
 
 export function CopilotStrip({ panel, reply, onInsertReply }: ICopilotStripProps) {
   const { briefing, summary, suggestions, loading, dismiss } = panel;
@@ -1107,7 +1151,11 @@ export function CopilotStrip({ panel, reply, onInsertReply }: ICopilotStripProps
           </span>
           {top ? (
             <span className="flex min-w-0 flex-1 items-center gap-2 text-sm">
-              <Icon icon={KIND_ICON[top.kind]} size={15} className={cn("shrink-0", KIND_COLOR[top.kind])} />
+              <Icon
+                icon={KIND_ICON[top.kind]}
+                size={15}
+                className={cn("shrink-0", KIND_COLOR[top.kind])}
+              />
               <span className="truncate text-foreground">{top.title}</span>
             </span>
           ) : (
@@ -1176,6 +1224,7 @@ git commit -m "feat(copilot): add CopilotStrip default variant with rest/expande
 ## Task 11: `CopilotCard` + `CopilotFicheTab`
 
 **Files:**
+
 - Create: `src/features/copilot/components/CopilotCard.tsx`
 - Create: `src/features/copilot/components/CopilotFicheTab.tsx`
 
@@ -1215,7 +1264,11 @@ export function CopilotCard({ panel }: { panel: ICopilotPanelState }) {
           <Icon icon="mdi:lock-outline" size={12} />
           {COPILOT_STRINGS.privacy}
         </span>
-        <Icon icon={open ? "mdi:chevron-up" : "mdi:chevron-down"} size={16} className="text-muted-foreground" />
+        <Icon
+          icon={open ? "mdi:chevron-up" : "mdi:chevron-down"}
+          size={16}
+          className="text-muted-foreground"
+        />
       </button>
       {open && suggestions.length > 0 && (
         <ul className="flex flex-col gap-2.5 px-3.5 pb-3.5">
@@ -1299,6 +1352,7 @@ git commit -m "feat(copilot): add card and fiche-tab variants + feature barrel (
 ## Task 12: Integração na tela de atendimento
 
 **Files:**
+
 - Modify: `src/features/conversations/pages/ConversationPage.tsx`
 - Modify: `src/features/conversations/components/MessageInput.tsx`
 - Modify: `src/features/customers/components/CustomerProfileFiche.tsx`
@@ -1339,7 +1393,8 @@ Dentro de `ConversationPage`, após `const escalation = ...`:
 const copilot = useCopilotPanel(conversationId);
 const [draft, setDraft] = useState("");
 // resposta pronta reaproveitada do composer (1ª sugestão de IA), só para a faixa:
-const stripReply = copilot.placement === "strip" ? "Te envio o boleto e a NF ainda hoje." : undefined;
+const stripReply =
+  copilot.placement === "strip" ? "Te envio o boleto e a NF ainda hoje." : undefined;
 ```
 
 > Nota: na Fase 1, a resposta pronta exibida pela faixa pode reusar a mesma heurística do `buildAiSuggestions`. Para evitar duplicar a função, exporte-a de `MessageInput.tsx` (ou mova-a para `src/features/conversations/utils/aiSuggestions.ts`) e use a primeira sugestão. Mantenha simples: se preferir, passe um texto fixo coerente como acima — não há LLM nesta fase.
@@ -1347,17 +1402,21 @@ const stripReply = copilot.placement === "strip" ? "Te envio o boleto e a NF ain
 Renderize `card` no topo do chat (logo após `<ConversationHeader/>`):
 
 ```tsx
-{copilot.placement === "card" && conversation.customerId && !copilot.error && (
-  <CopilotCard panel={copilot} />
-)}
+{
+  copilot.placement === "card" && conversation.customerId && !copilot.error && (
+    <CopilotCard panel={copilot} />
+  );
+}
 ```
 
 Renderize `strip` acima do `MessageInput` (entre `<MetaWindowIndicator/>` e `<MessageInput/>`):
 
 ```tsx
-{copilot.placement === "strip" && conversation.customerId && !copilot.error && (
-  <CopilotStrip panel={copilot} reply={stripReply} onInsertReply={setDraft} />
-)}
+{
+  copilot.placement === "strip" && conversation.customerId && !copilot.error && (
+    <CopilotStrip panel={copilot} reply={stripReply} onInsertReply={setDraft} />
+  );
+}
 ```
 
 Passe o rascunho controlado e o flag de ocultar sugestões ao `MessageInput`:
@@ -1394,8 +1453,10 @@ import { CopilotFicheTab } from "@/features/copilot";
   conversation={conversation}
   open={fiche.open}
   onOpenChange={fiche.setOpen}
-  copilotTab={copilot.placement === "tab" && !copilot.error ? <CopilotFicheTab panel={copilot} /> : undefined}
-/>
+  copilotTab={
+    copilot.placement === "tab" && !copilot.error ? <CopilotFicheTab panel={copilot} /> : undefined
+  }
+/>;
 ```
 
 - [ ] **Step 4: Type-check + lint** — Run: `bun run build && bun run lint` — Expected: PASS.
@@ -1403,6 +1464,7 @@ import { CopilotFicheTab } from "@/features/copilot";
 - [ ] **Step 5: Validação manual (as 3 variantes)**
 
 Run: `bun run dev` (porta já ativa em dev). Abra `/app/atendimento/<id>` numa conversa com cliente.
+
 - Default (sem env): a **faixa** aparece acima do input, em repouso (1 linha) e expande ao clicar; "Inserir ↑" escreve no campo; a barra "Sugestões IA" some.
 - `VITE_COPILOT_PLACEMENT=card`: card no topo. `=tab`: aba "Copiloto" na Ficha. Valor inválido → cai em `strip` (ver warning no console DEV).
 
@@ -1418,6 +1480,7 @@ git commit -m "feat(copilot): mount copilot variants in conversation screen (PRD
 ## Task 13: DELTAs, validação transversal, versão e changelog
 
 **Files:**
+
 - Modify: `docs/prds/PRD-002-modelo-conceitual-glossario_DONE.md`
 - Modify: `docs/prds/DELTAS-PRDs-Gallo-Base-Diesel.md`
 - Modify: `docs/prds/PRD-004-mocks-geradores-dados_DONE.md`
@@ -1437,7 +1500,7 @@ git commit -m "feat(copilot): mount copilot variants in conversation screen (PRD
 
 - [ ] **Step 4: Build final + lint** — Run: `bun run build && bun run lint` — Expected: PASS.
 
-- [ ] **Step 5: Versão + changelog + _DONE**
+- [ ] **Step 5: Versão + changelog + \_DONE**
   - Bump **MINOR** (nova feature), codinome em inglês sugerido pelo PRD: **Copilot** (ou **Whisper**). Atualize o arquivo de versão do app e o `CHANGELOG.md` (Keep a Changelog — seção `Added`).
   - Atualize a seção "Status de Implementação" do PRD-025 (status ✅, data, versão, implementado por).
   - Renomeie `docs/prds/PRD-025-copiloto-vendas.md` → `docs/prds/PRD-025-copiloto-vendas_DONE.md`.

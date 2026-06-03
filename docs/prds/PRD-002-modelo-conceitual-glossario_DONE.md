@@ -650,7 +650,7 @@ Tipos de mudança a documentar:
 | ---------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 25/05/2026 | v1     | Criação inicial — modelo conceitual GALLO completo (32 entidades em 10 arquivos) + glossário do mercado de peças pesadas                                          |
 | 30/05/2026 | delta  | PRD-008 estende o modelo com INotification e tipos auxiliares (notificação de evento/derivada, categoria, canal, preferência). Não redefine entidades existentes. |
-| 31/05/2026 | delta  | PRD-025 adiciona entidades do Copiloto de Vendas em `src/shared/types/copilot.ts` (ver abaixo). |
+| 31/05/2026 | delta  | PRD-025 adiciona entidades do Copiloto de Vendas em `src/shared/types/copilot.ts` (ver abaixo).                                                                   |
 
 ---
 
@@ -660,18 +660,18 @@ Tipos de mudança a documentar:
 
 Arquivo: `src/shared/types/copilot.ts`
 
-| Entidade / Tipo | Descrição |
-| --- | --- |
-| `CopilotSuggestionKind` | Union type — `'alert' \| 'action' \| 'opportunity'` |
-| `CopilotSuggestionSource` | Union type — `'rule' \| 'ai'` (Fase 1 sempre `'rule'`; Fase 2 habilita `'ai'`) |
-| `CopilotSuggestionSeverity` | Union type — `'low' \| 'medium' \| 'high'` |
-| `CopilotSuggestionStatus` | Union type — `'active' \| 'dismissed' \| 'acted'` |
-| `CopilotPlacement` | Union type — `'strip' \| 'tab' \| 'card'` (configuração de superfície, resolvida em build-time) |
-| `ICopilotSuggestion` | Orientação privada ao vendedor, derivada de regra (Fase 1) ou IA (Fase 2). Campos: `id`, `conversationId`, `customerId?`, `leadId?`, `storeId`, `kind`, `source`, `title`, `detail?`, `triggeredBy`, `severity?`, `relatedRecommendationId?`, `status`, `createdAt`. Nunca trafega para o cliente. |
-| `ICopilotBriefing` | Extrato de contexto do cliente — referência (não recálculo) dos mesmos valores da Ficha (PRD-012). Campos: `customerName`, `lifecycleStatus`, `abcClass?`, `averageTicket?`, `ltv?`, `recencyDays?`, `frequency?`, `primaryVehicle?`, `isPositivado?`. |
-| `CopilotSummarySource` | Union type — `'sdr' \| 'mock'` |
-| `ICopilotSummary` | Resumo da conversa apresentado pelo copiloto. Campos: `text`, `source`, `sdrContext?` (presente quando resumo deriva do handoff do SDR — PRD-023). |
-| `ICopilotPanelData` | Agregado consumido pela superfície do copiloto. Campos: `conversationId`, `briefing?`, `summary?`, `suggestions`. Nota: `placement` **não** vive aqui — é configuração de front (`VITE_COPILOT_PLACEMENT`), resolvida por `useCopilotPlacement`. |
+| Entidade / Tipo             | Descrição                                                                                                                                                                                                                                                                                          |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CopilotSuggestionKind`     | Union type — `'alert' \| 'action' \| 'opportunity'`                                                                                                                                                                                                                                                |
+| `CopilotSuggestionSource`   | Union type — `'rule' \| 'ai'` (Fase 1 sempre `'rule'`; Fase 2 habilita `'ai'`)                                                                                                                                                                                                                     |
+| `CopilotSuggestionSeverity` | Union type — `'low' \| 'medium' \| 'high'`                                                                                                                                                                                                                                                         |
+| `CopilotSuggestionStatus`   | Union type — `'active' \| 'dismissed' \| 'acted'`                                                                                                                                                                                                                                                  |
+| `CopilotPlacement`          | Union type — `'strip' \| 'tab' \| 'card'` (configuração de superfície, resolvida em build-time)                                                                                                                                                                                                    |
+| `ICopilotSuggestion`        | Orientação privada ao vendedor, derivada de regra (Fase 1) ou IA (Fase 2). Campos: `id`, `conversationId`, `customerId?`, `leadId?`, `storeId`, `kind`, `source`, `title`, `detail?`, `triggeredBy`, `severity?`, `relatedRecommendationId?`, `status`, `createdAt`. Nunca trafega para o cliente. |
+| `ICopilotBriefing`          | Extrato de contexto do cliente — referência (não recálculo) dos mesmos valores da Ficha (PRD-012). Campos: `customerName`, `lifecycleStatus`, `abcClass?`, `averageTicket?`, `ltv?`, `recencyDays?`, `frequency?`, `primaryVehicle?`, `isPositivado?`.                                             |
+| `CopilotSummarySource`      | Union type — `'sdr' \| 'mock'`                                                                                                                                                                                                                                                                     |
+| `ICopilotSummary`           | Resumo da conversa apresentado pelo copiloto. Campos: `text`, `source`, `sdrContext?` (presente quando resumo deriva do handoff do SDR — PRD-023).                                                                                                                                                 |
+| `ICopilotPanelData`         | Agregado consumido pela superfície do copiloto. Campos: `conversationId`, `briefing?`, `summary?`, `suggestions`. Nota: `placement` **não** vive aqui — é configuração de front (`VITE_COPILOT_PLACEMENT`), resolvida por `useCopilotPlacement`.                                                   |
 
 ---
 

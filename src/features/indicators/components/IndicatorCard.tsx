@@ -41,7 +41,8 @@ export function IndicatorCard({ item }: { item: IIndicatorWithProgress }) {
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1">
           <Icon icon="mdi:calendar-clock-outline" size={13} />
-          {progress.daysRemaining} {progress.daysRemaining === 1 ? "dia restante" : "dias restantes"}
+          {progress.daysRemaining}{" "}
+          {progress.daysRemaining === 1 ? "dia restante" : "dias restantes"}
         </span>
         <span>
           Projeção:{" "}

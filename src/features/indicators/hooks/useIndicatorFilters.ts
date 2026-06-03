@@ -1,5 +1,10 @@
 import { useCallback, useMemo, useState } from "react";
-import type { IndicatorMetric, IndicatorScopeLevel, IndicatorStatus, ProductSelector } from "@/shared/types";
+import type {
+  IndicatorMetric,
+  IndicatorScopeLevel,
+  IndicatorStatus,
+  ProductSelector,
+} from "@/shared/types";
 import type { IIndicatorWithProgress } from "./useIndicators";
 
 // ---------------------------------------------------------------------------

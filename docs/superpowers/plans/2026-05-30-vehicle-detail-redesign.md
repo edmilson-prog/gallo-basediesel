@@ -17,6 +17,7 @@
 ## File Structure
 
 **New (17):**
+
 - `src/features/vehicles/utils/vehicleHealth.ts` — health score from maintenance rules
 - `src/features/vehicles/utils/kmSeries.ts` — km-over-time series + usage/year
 - `src/features/vehicles/utils/partsRanking.ts` — most-replaced-parts aggregation
@@ -36,6 +37,7 @@
 - `src/features/vehicles/components/detail/layouts/VehicleLayoutBento.tsx` — mode C
 
 **Modified (4):**
+
 - `src/features/vehicles/i18n/pt-BR.ts` — new `detail.*` strings
 - `src/features/vehicles/components/detail/ServiceHistoryTimeline.tsx` — additive `limit`/`title`/`onSeeAll`
 - `src/features/vehicles/components/detail/VehicleDetailHeader.tsx` — 1600 rail + switcher
@@ -46,6 +48,7 @@
 ## Task 1: Derivation utilities
 
 **Files:**
+
 - Create: `src/features/vehicles/utils/vehicleHealth.ts`
 - Create: `src/features/vehicles/utils/kmSeries.ts`
 - Create: `src/features/vehicles/utils/partsRanking.ts`
@@ -230,6 +233,7 @@ git commit -m "feat: add vehicle detail derivation utils (health, km series, par
 ## Task 2: i18n strings
 
 **Files:**
+
 - Modify: `src/features/vehicles/i18n/pt-BR.ts`
 
 - [ ] **Step 1: Add `seeAll` / `fullTab` / `summaryTitle` to the existing `detail.history` block**
@@ -323,6 +327,7 @@ git commit -m "feat: add vehicle detail redesign i18n strings"
 ## Task 3: VehicleStatStrip
 
 **Files:**
+
 - Create: `src/features/vehicles/components/detail/VehicleStatStrip.tsx`
 
 - [ ] **Step 1: Create the component**
@@ -428,6 +433,7 @@ git commit -m "feat: add VehicleStatStrip KPI strip"
 ## Task 4: VehicleHealthCard
 
 **Files:**
+
 - Create: `src/features/vehicles/components/detail/VehicleHealthCard.tsx`
 
 - [ ] **Step 1: Create the component**
@@ -542,6 +548,7 @@ git commit -m "feat: add VehicleHealthCard ring gauge"
 ## Task 5: VehicleKmEvolutionCard
 
 **Files:**
+
 - Create: `src/features/vehicles/components/detail/VehicleKmEvolutionCard.tsx`
 
 - [ ] **Step 1: Create the component** (mirrors `CustomerPurchaseEvolutionCard`)
@@ -652,6 +659,7 @@ git commit -m "feat: add VehicleKmEvolutionCard area chart"
 ## Task 6: MostReplacedPartsCard
 
 **Files:**
+
 - Create: `src/features/vehicles/components/detail/MostReplacedPartsCard.tsx`
 
 - [ ] **Step 1: Create the component**
@@ -725,6 +733,7 @@ git commit -m "feat: add MostReplacedPartsCard ranking"
 ## Task 7: OwnerFleetCard
 
 **Files:**
+
 - Create: `src/features/vehicles/components/detail/OwnerFleetCard.tsx`
 
 - [ ] **Step 1: Create the component** (uses `provider.listByCustomer`, excludes current vehicle)
@@ -833,6 +842,7 @@ git commit -m "feat: add OwnerFleetCard cross-sell list"
 ## Task 8: ServiceHistoryTimeline summary mode + VehicleHistorySection
 
 **Files:**
+
 - Modify: `src/features/vehicles/components/detail/ServiceHistoryTimeline.tsx` (full replacement below — additive props)
 - Create: `src/features/vehicles/components/detail/VehicleHistorySection.tsx`
 
@@ -1020,6 +1030,7 @@ git commit -m "feat: add history summary mode and tabbed full-history section"
 ## Task 9: Layout composers (A / B / C)
 
 **Files:**
+
 - Create: `src/features/vehicles/components/detail/layouts/types.ts`
 - Create: `src/features/vehicles/components/detail/layouts/VehicleLayoutHealth.tsx`
 - Create: `src/features/vehicles/components/detail/layouts/VehicleLayoutRails.tsx`
@@ -1250,6 +1261,7 @@ git commit -m "feat: add vehicle detail layout composers (health, rails, bento)"
 ## Task 10: Layout preference (config + hook + switcher)
 
 **Files:**
+
 - Create: `src/features/vehicles/config/layout.ts`
 - Create: `src/features/vehicles/hooks/useVehicleDetailLayout.ts`
 - Create: `src/features/vehicles/components/detail/VehicleLayoutSwitcher.tsx`
@@ -1375,6 +1387,7 @@ git commit -m "feat: add vehicle detail layout preference and switcher"
 ## Task 11: Wire the page + header together
 
 **Files:**
+
 - Modify: `src/features/vehicles/components/detail/VehicleDetailHeader.tsx` (full replacement below)
 - Modify: `src/features/vehicles/pages/VehicleDetailPage.tsx` (full replacement below)
 
@@ -1691,6 +1704,7 @@ git commit -m "feat: wire vehicle detail redesign (1600 rail, layout switcher, e
 ## Task 12: Final verification, manual QA, version bump
 
 **Files:**
+
 - Modify: `package.json`, `CHANGELOG.md`, `CLAUDE.md`
 
 - [ ] **Step 1: Full build + lint of the whole project**
@@ -1761,4 +1775,7 @@ gh pr create --base main --head feat/vehicle-detail-redesign \
 - **Spec coverage:** §3 decisions 1–7 → Tasks 10/11 (modes+switcher+persistence+1600), Task 3 (KPI strip), Tasks 4–7 (4 enrichment blocks), Task 8 (hybrid tabs). §6 derivations → Task 1. §9 i18n → Task 2. §7 tokens/charts → enforced in component tasks. All covered.
 - **Placeholder scan:** no TBD/TODO; every code step has full code. The only conditional is Task 9 Step 4's `className` check on `CompatiblePartsPlaceholder` (explicit, with the exact change to make).
 - **Type consistency:** `IVehicleLayoutProps` defined in Task 9 (`layouts/types.ts`) and consumed identically in Tasks 9 & 11. `VehicleDetailLayout` defined in Task 10 and used in Tasks 10/11. `computeHealth`/`nextMaintenance`/`lastServiceEntry`/`usagePerYear`/`buildKmSeries`/`rankParts` signatures defined in Task 1 match their call sites in Tasks 3/4/5/6. Switcher `value/onChange` matches header `layout/onLayoutChange` → page `[layout, setLayout]`.
+
+```
+
 ```

@@ -1,572 +1,1815 @@
 <!doctype html>
 <html lang="pt-BR">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GALLO · Copiloto de vendas — protótipo de posições</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.456.0/umd/lucide.min.js"></script>
-<style>
-:root{
-  --bg:#101010; --bg-1:#161616; --bg-2:#1c1c1c; --bg-3:#232323; --bg-elev:#2a2a2a;
-  --border:#2c2c2c; --border-2:#3a3a3a;
-  --text:#eae7df; --text-2:#9b978c; --text-3:#6c685f;
-  --gold:#c9a227; --gold-2:#e2bb42; --gold-soft:rgba(201,162,39,.14); --gold-line:rgba(201,162,39,.4);
-  --green:#3fb37a; --green-soft:rgba(63,179,122,.16);
-  --amber:#e0972e; --amber-soft:rgba(224,151,46,.16);
-  --red:#d9534f; --red-soft:rgba(217,83,79,.16);
-  --blue:#5b9bd5; --blue-soft:rgba(91,155,213,.16);
-  --bubble-in:#222; --bubble-out:#2a2c20;
-  --r:8px; --r-lg:12px;
-  --sans:"Manrope",-apple-system,"Segoe UI",sans-serif;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
-.muted{color:var(--text-2)} .dim{color:var(--text-3)}
-svg.lucide{width:18px;height:18px;stroke-width:1.75}
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GALLO · Copiloto de vendas — protótipo de posições</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.456.0/umd/lucide.min.js"></script>
+    <style>
+      :root {
+        --bg: #101010;
+        --bg-1: #161616;
+        --bg-2: #1c1c1c;
+        --bg-3: #232323;
+        --bg-elev: #2a2a2a;
+        --border: #2c2c2c;
+        --border-2: #3a3a3a;
+        --text: #eae7df;
+        --text-2: #9b978c;
+        --text-3: #6c685f;
+        --gold: #c9a227;
+        --gold-2: #e2bb42;
+        --gold-soft: rgba(201, 162, 39, 0.14);
+        --gold-line: rgba(201, 162, 39, 0.4);
+        --green: #3fb37a;
+        --green-soft: rgba(63, 179, 122, 0.16);
+        --amber: #e0972e;
+        --amber-soft: rgba(224, 151, 46, 0.16);
+        --red: #d9534f;
+        --red-soft: rgba(217, 83, 79, 0.16);
+        --blue: #5b9bd5;
+        --blue-soft: rgba(91, 155, 213, 0.16);
+        --bubble-in: #222;
+        --bubble-out: #2a2c20;
+        --r: 8px;
+        --r-lg: 12px;
+        --sans: "Manrope", -apple-system, "Segoe UI", sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--sans);
+        font-size: 14px;
+        line-height: 1.45;
+        -webkit-font-smoothing: antialiased;
+      }
+      .muted {
+        color: var(--text-2);
+      }
+      .dim {
+        color: var(--text-3);
+      }
+      svg.lucide {
+        width: 18px;
+        height: 18px;
+        stroke-width: 1.75;
+      }
 
-/* ---- proto control bar ---- */
-.proto{max-width:1320px;margin:0 auto;padding:20px 20px 0}
-.proto h1{font-size:15px;font-weight:600;letter-spacing:.2px}
-.proto .sub{font-size:12.5px;color:var(--text-2);margin-top:3px}
-.seg{display:inline-flex;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:4px;gap:4px;margin-top:14px}
-.seg button{font-family:inherit;font-size:13px;color:var(--text-2);background:transparent;border:0;border-radius:7px;padding:8px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:.15s}
-.seg button:hover{color:var(--text)}
-.seg button[aria-pressed="true"]{background:var(--gold-soft);color:var(--gold-2)}
-.seg button b{font-weight:700;font-size:12px;opacity:.7}
-.hint{font-size:12.5px;color:var(--text-2);margin-top:10px;max-width:760px;min-height:18px}
-.hint b{color:var(--gold-2);font-weight:600}
-.devnote{margin-top:14px;background:var(--bg-2);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:0 10px 10px 0;padding:11px 14px;font-size:12.5px;color:var(--text-2);max-width:840px;line-height:1.6}
-code{font-family:ui-monospace,monospace;font-size:11.5px;background:var(--bg-3);border:1px solid var(--border);border-radius:5px;padding:1px 6px;color:var(--gold-2)}
+      /* ---- proto control bar ---- */
+      .proto {
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 20px 20px 0;
+      }
+      .proto h1 {
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: 0.2px;
+      }
+      .proto .sub {
+        font-size: 12.5px;
+        color: var(--text-2);
+        margin-top: 3px;
+      }
+      .seg {
+        display: inline-flex;
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 4px;
+        gap: 4px;
+        margin-top: 14px;
+      }
+      .seg button {
+        font-family: inherit;
+        font-size: 13px;
+        color: var(--text-2);
+        background: transparent;
+        border: 0;
+        border-radius: 7px;
+        padding: 8px 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: 0.15s;
+      }
+      .seg button:hover {
+        color: var(--text);
+      }
+      .seg button[aria-pressed="true"] {
+        background: var(--gold-soft);
+        color: var(--gold-2);
+      }
+      .seg button b {
+        font-weight: 700;
+        font-size: 12px;
+        opacity: 0.7;
+      }
+      .hint {
+        font-size: 12.5px;
+        color: var(--text-2);
+        margin-top: 10px;
+        max-width: 760px;
+        min-height: 18px;
+      }
+      .hint b {
+        color: var(--gold-2);
+        font-weight: 600;
+      }
+      .devnote {
+        margin-top: 14px;
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-left: 3px solid var(--gold);
+        border-radius: 0 10px 10px 0;
+        padding: 11px 14px;
+        font-size: 12.5px;
+        color: var(--text-2);
+        max-width: 840px;
+        line-height: 1.6;
+      }
+      code {
+        font-family: ui-monospace, monospace;
+        font-size: 11.5px;
+        background: var(--bg-3);
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        padding: 1px 6px;
+        color: var(--gold-2);
+      }
 
-/* ---- app frame ---- */
-.frame{max-width:1320px;margin:14px auto 36px;padding:0 20px}
-.app{height:780px;display:flex;flex-direction:column;background:var(--bg-1);border:1px solid var(--border);border-radius:14px;overflow:hidden;min-width:1080px}
-.scroller{overflow-x:auto}
+      /* ---- app frame ---- */
+      .frame {
+        max-width: 1320px;
+        margin: 14px auto 36px;
+        padding: 0 20px;
+      }
+      .app {
+        height: 780px;
+        display: flex;
+        flex-direction: column;
+        background: var(--bg-1);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+        min-width: 1080px;
+      }
+      .scroller {
+        overflow-x: auto;
+      }
 
-/* topbar */
-.topbar{height:54px;flex:0 0 54px;display:flex;align-items:center;gap:14px;padding:0 16px;border-bottom:1px solid var(--border);background:var(--bg-1)}
-.brand{display:flex;align-items:center;gap:9px;padding-right:6px}
-.brand .mark{width:30px;height:30px;border-radius:7px;background:linear-gradient(135deg,#2a2a2a,#171717);border:1px solid var(--border-2);display:flex;align-items:center;justify-content:center}
-.brand .mark svg{width:18px;height:18px;color:var(--gold)}
-.brand .wm{line-height:1}
-.brand .wm .n{font-weight:800;letter-spacing:1px;font-size:15px}
-.brand .wm .t{font-size:8px;letter-spacing:2.5px;color:var(--text-3);font-weight:600}
-.store-pill{display:flex;align-items:center;gap:8px;background:var(--bg-2);border:1px solid var(--border);border-radius:9px;padding:6px 10px;font-size:13px}
-.tag-gold{font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--gold-2);border:1px solid var(--gold-line);border-radius:5px;padding:1px 6px}
-.search{flex:1;max-width:430px;display:flex;align-items:center;gap:8px;background:var(--bg-2);border:1px solid var(--border);border-radius:9px;padding:8px 12px;color:var(--text-3);font-size:13px}
-.search .k{margin-left:auto;border:1px solid var(--border-2);border-radius:5px;padding:0 6px;font-size:11px;color:var(--text-3)}
-.tb-right{display:flex;align-items:center;gap:14px;margin-left:auto;color:var(--text-2)}
-.tb-right .ic{position:relative;cursor:pointer}
-.tb-right .ic .dot{position:absolute;top:-5px;right:-6px;background:var(--red);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:0 4px}
-.theme-pill{display:flex;align-items:center;gap:7px;background:var(--bg-2);border:1px solid var(--border);border-radius:9px;padding:6px 11px;font-size:12.5px;color:var(--gold-2)}
-.theme-pill .dot{width:9px;height:9px;border-radius:50%;background:var(--gold)}
-.avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
-.av-gold{background:var(--gold-soft);color:var(--gold-2);border:1px solid var(--gold-line)}
+      /* topbar */
+      .topbar {
+        height: 54px;
+        flex: 0 0 54px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 0 16px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg-1);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding-right: 6px;
+      }
+      .brand .mark {
+        width: 30px;
+        height: 30px;
+        border-radius: 7px;
+        background: linear-gradient(135deg, #2a2a2a, #171717);
+        border: 1px solid var(--border-2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .brand .mark svg {
+        width: 18px;
+        height: 18px;
+        color: var(--gold);
+      }
+      .brand .wm {
+        line-height: 1;
+      }
+      .brand .wm .n {
+        font-weight: 800;
+        letter-spacing: 1px;
+        font-size: 15px;
+      }
+      .brand .wm .t {
+        font-size: 8px;
+        letter-spacing: 2.5px;
+        color: var(--text-3);
+        font-weight: 600;
+      }
+      .store-pill {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        padding: 6px 10px;
+        font-size: 13px;
+      }
+      .tag-gold {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        color: var(--gold-2);
+        border: 1px solid var(--gold-line);
+        border-radius: 5px;
+        padding: 1px 6px;
+      }
+      .search {
+        flex: 1;
+        max-width: 430px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        padding: 8px 12px;
+        color: var(--text-3);
+        font-size: 13px;
+      }
+      .search .k {
+        margin-left: auto;
+        border: 1px solid var(--border-2);
+        border-radius: 5px;
+        padding: 0 6px;
+        font-size: 11px;
+        color: var(--text-3);
+      }
+      .tb-right {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-left: auto;
+        color: var(--text-2);
+      }
+      .tb-right .ic {
+        position: relative;
+        cursor: pointer;
+      }
+      .tb-right .ic .dot {
+        position: absolute;
+        top: -5px;
+        right: -6px;
+        background: var(--red);
+        color: #fff;
+        font-size: 9px;
+        font-weight: 700;
+        border-radius: 8px;
+        padding: 0 4px;
+      }
+      .theme-pill {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        padding: 6px 11px;
+        font-size: 12.5px;
+        color: var(--gold-2);
+      }
+      .theme-pill .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--gold);
+      }
+      .avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .av-gold {
+        background: var(--gold-soft);
+        color: var(--gold-2);
+        border: 1px solid var(--gold-line);
+      }
 
-/* body columns */
-.body{flex:1;display:flex;min-height:0}
-.col{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--border)}
-.sidebar{flex:0 0 208px;background:var(--bg-1);padding:12px 10px;overflow-y:auto}
-.inbox{flex:0 0 296px;background:var(--bg-1)}
-.chat{flex:1;background:var(--bg);min-width:380px}
-.ficha{flex:0 0 332px;background:var(--bg-1);border-right:0}
+      /* body columns */
+      .body {
+        flex: 1;
+        display: flex;
+        min-height: 0;
+      }
+      .col {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        border-right: 1px solid var(--border);
+      }
+      .sidebar {
+        flex: 0 0 208px;
+        background: var(--bg-1);
+        padding: 12px 10px;
+        overflow-y: auto;
+      }
+      .inbox {
+        flex: 0 0 296px;
+        background: var(--bg-1);
+      }
+      .chat {
+        flex: 1;
+        background: var(--bg);
+        min-width: 380px;
+      }
+      .ficha {
+        flex: 0 0 332px;
+        background: var(--bg-1);
+        border-right: 0;
+      }
 
-/* sidebar */
-.nav-h{font-size:10.5px;letter-spacing:1.4px;color:var(--text-3);font-weight:700;padding:14px 10px 7px;display:flex;align-items:center;justify-content:space-between}
-.nav-i{display:flex;align-items:center;gap:11px;padding:8px 10px;border-radius:8px;color:var(--text-2);font-size:13.5px;cursor:pointer;transition:.12s;position:relative}
-.nav-i:hover{background:var(--bg-2);color:var(--text)}
-.nav-i svg{width:17px;height:17px;flex-shrink:0}
-.nav-i.active{background:var(--gold-soft);color:var(--gold-2)}
-.nav-i.active::before{content:"";position:absolute;left:-10px;top:6px;bottom:6px;width:3px;border-radius:3px;background:var(--gold)}
+      /* sidebar */
+      .nav-h {
+        font-size: 10.5px;
+        letter-spacing: 1.4px;
+        color: var(--text-3);
+        font-weight: 700;
+        padding: 14px 10px 7px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .nav-i {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        color: var(--text-2);
+        font-size: 13.5px;
+        cursor: pointer;
+        transition: 0.12s;
+        position: relative;
+      }
+      .nav-i:hover {
+        background: var(--bg-2);
+        color: var(--text);
+      }
+      .nav-i svg {
+        width: 17px;
+        height: 17px;
+        flex-shrink: 0;
+      }
+      .nav-i.active {
+        background: var(--gold-soft);
+        color: var(--gold-2);
+      }
+      .nav-i.active::before {
+        content: "";
+        position: absolute;
+        left: -10px;
+        top: 6px;
+        bottom: 6px;
+        width: 3px;
+        border-radius: 3px;
+        background: var(--gold);
+      }
 
-/* inbox */
-.inbox-head{padding:12px 14px 8px;border-bottom:1px solid var(--border)}
-.inbox-title{display:flex;align-items:center;gap:8px;font-weight:600}
-.inbox-title .count{color:var(--text-2);font-weight:400;font-size:13px}
-.badge-unread{background:var(--gold-soft);color:var(--gold-2);font-size:11px;font-weight:600;border-radius:6px;padding:2px 7px}
-.inbox-sub{font-size:11.5px;color:var(--text-3);margin-top:6px}
-.inbox-tools{padding:10px 12px;display:flex;flex-direction:column;gap:7px;border-bottom:1px solid var(--border)}
-.search-sm{display:flex;align-items:center;gap:7px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text-3);font-size:12.5px}
-.chips{display:flex;flex-wrap:wrap;gap:6px}
-.fchip{display:inline-flex;align-items:center;gap:5px;background:var(--bg-2);border:1px solid var(--border);border-radius:7px;padding:5px 9px;font-size:12px;color:var(--text-2)}
-.fchip svg{width:13px;height:13px}
-.btn-sdr{display:flex;align-items:center;gap:7px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12.5px;color:var(--text-2);justify-content:center}
-.btn-sdr svg{width:14px;height:14px;color:var(--gold)}
-.threads{flex:1;overflow-y:auto;padding:6px}
-.thread{display:flex;gap:10px;padding:11px 10px;border-radius:10px;cursor:pointer;position:relative}
-.thread:hover{background:var(--bg-2)}
-.thread.sel{background:var(--gold-soft)}
-.thread.sel::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:3px;background:var(--gold)}
-.th-av{width:34px;height:34px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
-.th-main{flex:1;min-width:0}
-.th-top{display:flex;align-items:baseline;gap:8px}
-.th-name{font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.th-time{margin-left:auto;font-size:11px;color:var(--text-3);white-space:nowrap}
-.th-msg{font-size:12.5px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
-.th-tags{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}
-.tg{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:600;border-radius:5px;padding:2px 6px}
-.tg svg{width:11px;height:11px}
-.tg-wa{background:var(--green-soft);color:var(--green)} .tg-ec{background:var(--gold-soft);color:var(--gold-2)}
-.tg-morno{background:var(--amber-soft);color:var(--amber)} .tg-esc{background:var(--red-soft);color:var(--red)}
-.tg-novo{background:var(--red);color:#fff}
-.th-count{width:17px;height:17px;border-radius:50%;background:var(--green);color:#08110b;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-left:6px}
+      /* inbox */
+      .inbox-head {
+        padding: 12px 14px 8px;
+        border-bottom: 1px solid var(--border);
+      }
+      .inbox-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+      }
+      .inbox-title .count {
+        color: var(--text-2);
+        font-weight: 400;
+        font-size: 13px;
+      }
+      .badge-unread {
+        background: var(--gold-soft);
+        color: var(--gold-2);
+        font-size: 11px;
+        font-weight: 600;
+        border-radius: 6px;
+        padding: 2px 7px;
+      }
+      .inbox-sub {
+        font-size: 11.5px;
+        color: var(--text-3);
+        margin-top: 6px;
+      }
+      .inbox-tools {
+        padding: 10px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        border-bottom: 1px solid var(--border);
+      }
+      .search-sm {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 7px 10px;
+        color: var(--text-3);
+        font-size: 12.5px;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .fchip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        padding: 5px 9px;
+        font-size: 12px;
+        color: var(--text-2);
+      }
+      .fchip svg {
+        width: 13px;
+        height: 13px;
+      }
+      .btn-sdr {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 12.5px;
+        color: var(--text-2);
+        justify-content: center;
+      }
+      .btn-sdr svg {
+        width: 14px;
+        height: 14px;
+        color: var(--gold);
+      }
+      .threads {
+        flex: 1;
+        overflow-y: auto;
+        padding: 6px;
+      }
+      .thread {
+        display: flex;
+        gap: 10px;
+        padding: 11px 10px;
+        border-radius: 10px;
+        cursor: pointer;
+        position: relative;
+      }
+      .thread:hover {
+        background: var(--bg-2);
+      }
+      .thread.sel {
+        background: var(--gold-soft);
+      }
+      .thread.sel::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 8px;
+        bottom: 8px;
+        width: 3px;
+        border-radius: 3px;
+        background: var(--gold);
+      }
+      .th-av {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .th-main {
+        flex: 1;
+        min-width: 0;
+      }
+      .th-top {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+      }
+      .th-name {
+        font-weight: 600;
+        font-size: 13.5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .th-time {
+        margin-left: auto;
+        font-size: 11px;
+        color: var(--text-3);
+        white-space: nowrap;
+      }
+      .th-msg {
+        font-size: 12.5px;
+        color: var(--text-2);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-top: 2px;
+      }
+      .th-tags {
+        display: flex;
+        gap: 5px;
+        margin-top: 7px;
+        flex-wrap: wrap;
+      }
+      .tg {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10.5px;
+        font-weight: 600;
+        border-radius: 5px;
+        padding: 2px 6px;
+      }
+      .tg svg {
+        width: 11px;
+        height: 11px;
+      }
+      .tg-wa {
+        background: var(--green-soft);
+        color: var(--green);
+      }
+      .tg-ec {
+        background: var(--gold-soft);
+        color: var(--gold-2);
+      }
+      .tg-morno {
+        background: var(--amber-soft);
+        color: var(--amber);
+      }
+      .tg-esc {
+        background: var(--red-soft);
+        color: var(--red);
+      }
+      .tg-novo {
+        background: var(--red);
+        color: #fff;
+      }
+      .th-count {
+        width: 17px;
+        height: 17px;
+        border-radius: 50%;
+        background: var(--green);
+        color: #08110b;
+        font-size: 10px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: 6px;
+      }
 
-/* chat */
-.chat-head{flex:0 0 auto;display:flex;align-items:center;gap:11px;padding:12px 16px;border-bottom:1px solid var(--border)}
-.ch-av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
-.ch-name{font-weight:600;font-size:15px}
-.ch-meta{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--text-2);margin-top:2px}
-.ch-meta .dotsep{color:var(--text-3)}
-.pill{font-size:11px;border-radius:6px;padding:2px 8px}
-.pill-resolv{background:var(--bg-3);color:var(--text-2)}
-.ch-actions{margin-left:auto;display:flex;align-items:center;gap:8px}
-.btn{font-family:inherit;display:inline-flex;align-items:center;gap:7px;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border-2);background:var(--bg-2);color:var(--text)}
-.btn svg{width:15px;height:15px}
-.btn:hover{background:var(--bg-elev)}
-.btn-gold{background:var(--gold);color:#1a1500;border-color:var(--gold)}
-.btn-gold:hover{background:var(--gold-2)}
-.btn-icon{width:34px;height:34px;justify-content:center;padding:0;color:var(--text-2)}
+      /* chat */
+      .chat-head {
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+      }
+      .ch-av {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .ch-name {
+        font-weight: 600;
+        font-size: 15px;
+      }
+      .ch-meta {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 12.5px;
+        color: var(--text-2);
+        margin-top: 2px;
+      }
+      .ch-meta .dotsep {
+        color: var(--text-3);
+      }
+      .pill {
+        font-size: 11px;
+        border-radius: 6px;
+        padding: 2px 8px;
+      }
+      .pill-resolv {
+        background: var(--bg-3);
+        color: var(--text-2);
+      }
+      .ch-actions {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .btn {
+        font-family: inherit;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1px solid var(--border-2);
+        background: var(--bg-2);
+        color: var(--text);
+      }
+      .btn svg {
+        width: 15px;
+        height: 15px;
+      }
+      .btn:hover {
+        background: var(--bg-elev);
+      }
+      .btn-gold {
+        background: var(--gold);
+        color: #1a1500;
+        border-color: var(--gold);
+      }
+      .btn-gold:hover {
+        background: var(--gold-2);
+      }
+      .btn-icon {
+        width: 34px;
+        height: 34px;
+        justify-content: center;
+        padding: 0;
+        color: var(--text-2);
+      }
 
-.chat-scroll{flex:1;overflow-y:auto;padding:18px 18px 8px;display:flex;flex-direction:column;gap:10px}
-.daysep{align-self:center;background:var(--bg-2);color:var(--text-2);font-size:11.5px;border-radius:20px;padding:4px 12px;margin:2px 0 6px}
-.msg{max-width:74%;padding:9px 12px;border-radius:12px;font-size:13.5px;position:relative}
-.msg .t{display:block;font-size:10.5px;color:var(--text-3);margin-top:5px;text-align:right}
-.in{align-self:flex-start;background:var(--bubble-in);border:1px solid var(--border);border-bottom-left-radius:4px}
-.out{align-self:flex-end;background:var(--bubble-out);border:1px solid #34361f;border-bottom-right-radius:4px}
+      .chat-scroll {
+        flex: 1;
+        overflow-y: auto;
+        padding: 18px 18px 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .daysep {
+        align-self: center;
+        background: var(--bg-2);
+        color: var(--text-2);
+        font-size: 11.5px;
+        border-radius: 20px;
+        padding: 4px 12px;
+        margin: 2px 0 6px;
+      }
+      .msg {
+        max-width: 74%;
+        padding: 9px 12px;
+        border-radius: 12px;
+        font-size: 13.5px;
+        position: relative;
+      }
+      .msg .t {
+        display: block;
+        font-size: 10.5px;
+        color: var(--text-3);
+        margin-top: 5px;
+        text-align: right;
+      }
+      .in {
+        align-self: flex-start;
+        background: var(--bubble-in);
+        border: 1px solid var(--border);
+        border-bottom-left-radius: 4px;
+      }
+      .out {
+        align-self: flex-end;
+        background: var(--bubble-out);
+        border: 1px solid #34361f;
+        border-bottom-right-radius: 4px;
+      }
 
-/* composer */
-.composer{flex:0 0 auto;border-top:1px solid var(--border);padding:10px 16px 13px;background:var(--bg-1)}
-.sug-simple{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.sug-lbl{font-size:11.5px;color:var(--gold-2);display:flex;align-items:center;gap:6px;font-weight:600}
-.sug-lbl svg{width:14px;height:14px}
-.sug-chip{font-size:13px;color:var(--text);background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:6px 11px;cursor:pointer}
-.sug-chip:hover{border-color:var(--gold-line)}
-.input-row{display:flex;align-items:center;gap:10px;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:9px 12px}
-.input-row .ph{flex:1;color:var(--text-3);font-size:13.5px}
-.input-row .ic{color:var(--text-3);cursor:pointer}
-.send{background:var(--gold);color:#1a1500;border-radius:8px;padding:7px 14px;font-weight:700;font-size:13px;display:flex;align-items:center;gap:7px}
-.send svg{width:15px;height:15px}
+      /* composer */
+      .composer {
+        flex: 0 0 auto;
+        border-top: 1px solid var(--border);
+        padding: 10px 16px 13px;
+        background: var(--bg-1);
+      }
+      .sug-simple {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .sug-lbl {
+        font-size: 11.5px;
+        color: var(--gold-2);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 600;
+      }
+      .sug-lbl svg {
+        width: 14px;
+        height: 14px;
+      }
+      .sug-chip {
+        font-size: 13px;
+        color: var(--text);
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 6px 11px;
+        cursor: pointer;
+      }
+      .sug-chip:hover {
+        border-color: var(--gold-line);
+      }
+      .input-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 9px 12px;
+      }
+      .input-row .ph {
+        flex: 1;
+        color: var(--text-3);
+        font-size: 13.5px;
+      }
+      .input-row .ic {
+        color: var(--text-3);
+        cursor: pointer;
+      }
+      .send {
+        background: var(--gold);
+        color: #1a1500;
+        border-radius: 8px;
+        padding: 7px 14px;
+        font-weight: 700;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .send svg {
+        width: 15px;
+        height: 15px;
+      }
 
-/* ===== COPILOTO shared ===== */
-.cop-accent{color:var(--gold-2)}
-.cop-head{display:flex;align-items:center;gap:9px}
-.cop-bot{width:24px;height:24px;border-radius:7px;background:var(--gold-soft);border:1px solid var(--gold-line);display:flex;align-items:center;justify-content:center}
-.cop-bot svg{width:15px;height:15px;color:var(--gold-2)}
-.cop-title{font-weight:700;font-size:13.5px}
-.only-you{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2);background:var(--bg-3);border-radius:6px;padding:3px 8px}
-.only-you svg{width:12px;height:12px}
-.cop-items{display:flex;flex-direction:column;gap:11px}
-.cop-i{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.5}
-.cop-i .ico{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
-.cop-i .ico svg{width:15px;height:15px}
-.i-alert .ico{background:var(--amber-soft);color:var(--amber)}
-.i-act .ico{background:var(--blue-soft);color:var(--blue)}
-.i-opp .ico{background:var(--green-soft);color:var(--green)}
-.cop-i b{font-weight:700}
+      /* ===== COPILOTO shared ===== */
+      .cop-accent {
+        color: var(--gold-2);
+      }
+      .cop-head {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+      .cop-bot {
+        width: 24px;
+        height: 24px;
+        border-radius: 7px;
+        background: var(--gold-soft);
+        border: 1px solid var(--gold-line);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .cop-bot svg {
+        width: 15px;
+        height: 15px;
+        color: var(--gold-2);
+      }
+      .cop-title {
+        font-weight: 700;
+        font-size: 13.5px;
+      }
+      .only-you {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 11px;
+        color: var(--text-2);
+        background: var(--bg-3);
+        border-radius: 6px;
+        padding: 3px 8px;
+      }
+      .only-you svg {
+        width: 12px;
+        height: 12px;
+      }
+      .cop-items {
+        display: flex;
+        flex-direction: column;
+        gap: 11px;
+      }
+      .cop-i {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .cop-i .ico {
+        width: 26px;
+        height: 26px;
+        border-radius: 7px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      .cop-i .ico svg {
+        width: 15px;
+        height: 15px;
+      }
+      .i-alert .ico {
+        background: var(--amber-soft);
+        color: var(--amber);
+      }
+      .i-act .ico {
+        background: var(--blue-soft);
+        color: var(--blue);
+      }
+      .i-opp .ico {
+        background: var(--green-soft);
+        color: var(--green);
+      }
+      .cop-i b {
+        font-weight: 700;
+      }
 
-/* variant A — faixa sobre o input */
-.cop-strip{border:1px solid var(--gold-line);background:linear-gradient(180deg,var(--gold-soft),transparent 60%),var(--bg-2);border-radius:12px;padding:13px 14px;margin:0 16px 12px}
-.cop-strip .top{display:flex;align-items:center;gap:9px;margin-bottom:12px}
-.cop-strip .top .only-you{margin-left:auto}
-.cop-reply{margin-top:13px;padding-top:12px;border-top:1px dashed var(--border-2);display:flex;align-items:center;gap:10px}
-.cop-reply .lbl{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px}
-.cop-reply .chip{flex:1;font-size:13px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;padding:7px 11px}
-.cop-reply .use{background:var(--gold-soft);color:var(--gold-2);border:1px solid var(--gold-line);border-radius:7px;padding:7px 12px;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap}
+      /* variant A — faixa sobre o input */
+      .cop-strip {
+        border: 1px solid var(--gold-line);
+        background: linear-gradient(180deg, var(--gold-soft), transparent 60%), var(--bg-2);
+        border-radius: 12px;
+        padding: 13px 14px;
+        margin: 0 16px 12px;
+      }
+      .cop-strip .top {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin-bottom: 12px;
+      }
+      .cop-strip .top .only-you {
+        margin-left: auto;
+      }
+      .cop-reply {
+        margin-top: 13px;
+        padding-top: 12px;
+        border-top: 1px dashed var(--border-2);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .cop-reply .lbl {
+        font-size: 11px;
+        color: var(--text-3);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .cop-reply .chip {
+        flex: 1;
+        font-size: 13px;
+        background: var(--bg-3);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 7px 11px;
+      }
+      .cop-reply .use {
+        background: var(--gold-soft);
+        color: var(--gold-2);
+        border: 1px solid var(--gold-line);
+        border-radius: 7px;
+        padding: 7px 12px;
+        font-size: 12.5px;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+      }
 
-/* variant C — card no topo */
-.cop-card{margin:14px 18px 2px;border:1px solid var(--gold-line);background:linear-gradient(180deg,var(--gold-soft),transparent 55%),var(--bg-2);border-radius:12px;overflow:hidden}
-.cop-card .ch{display:flex;align-items:center;gap:9px;padding:11px 14px;cursor:pointer}
-.cop-card .ch .only-you{margin-left:auto}
-.cop-card .ch .chev{color:var(--text-3)}
-.cop-card .bd{padding:0 14px 14px}
-.cop-card.collapsed .bd{display:none}
+      /* variant C — card no topo */
+      .cop-card {
+        margin: 14px 18px 2px;
+        border: 1px solid var(--gold-line);
+        background: linear-gradient(180deg, var(--gold-soft), transparent 55%), var(--bg-2);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .cop-card .ch {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 11px 14px;
+        cursor: pointer;
+      }
+      .cop-card .ch .only-you {
+        margin-left: auto;
+      }
+      .cop-card .ch .chev {
+        color: var(--text-3);
+      }
+      .cop-card .bd {
+        padding: 0 14px 14px;
+      }
+      .cop-card.collapsed .bd {
+        display: none;
+      }
 
-/* ficha */
-.ficha-head{padding:14px 16px 12px;border-bottom:1px solid var(--border)}
-.fh-top{display:flex;align-items:center;gap:11px}
-.fh-av{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
-.fh-name{font-weight:700;font-size:15px;text-transform:uppercase;letter-spacing:.3px}
-.fh-badges{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
-.fb{font-size:10.5px;font-weight:700;border-radius:6px;padding:2px 7px;display:inline-flex;align-items:center;gap:4px;letter-spacing:.3px}
-.fb svg{width:11px;height:11px}
-.fb-b2c{background:var(--bg-3);color:var(--text-2)}
-.fb-a{background:var(--gold-soft);color:var(--gold-2)}
-.fb-dorm{background:var(--amber-soft);color:var(--amber)}
-.fb-nopos{background:transparent;border:1px solid var(--border-2);color:var(--text-2);font-weight:600}
-.fh-contact{margin-top:13px;display:flex;flex-direction:column;gap:7px;font-size:12.5px;color:var(--text-2)}
-.fh-contact div{display:flex;align-items:center;gap:8px}
-.fh-contact svg{width:14px;height:14px;color:var(--text-3)}
-.fh-cta{display:flex;gap:8px;margin-top:13px}
-.fh-cta .btn{flex:1;justify-content:center}
+      /* ficha */
+      .ficha-head {
+        padding: 14px 16px 12px;
+        border-bottom: 1px solid var(--border);
+      }
+      .fh-top {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+      }
+      .fh-av {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .fh-name {
+        font-weight: 700;
+        font-size: 15px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+      }
+      .fh-badges {
+        display: flex;
+        gap: 6px;
+        margin-top: 8px;
+        flex-wrap: wrap;
+      }
+      .fb {
+        font-size: 10.5px;
+        font-weight: 700;
+        border-radius: 6px;
+        padding: 2px 7px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        letter-spacing: 0.3px;
+      }
+      .fb svg {
+        width: 11px;
+        height: 11px;
+      }
+      .fb-b2c {
+        background: var(--bg-3);
+        color: var(--text-2);
+      }
+      .fb-a {
+        background: var(--gold-soft);
+        color: var(--gold-2);
+      }
+      .fb-dorm {
+        background: var(--amber-soft);
+        color: var(--amber);
+      }
+      .fb-nopos {
+        background: transparent;
+        border: 1px solid var(--border-2);
+        color: var(--text-2);
+        font-weight: 600;
+      }
+      .fh-contact {
+        margin-top: 13px;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        font-size: 12.5px;
+        color: var(--text-2);
+      }
+      .fh-contact div {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .fh-contact svg {
+        width: 14px;
+        height: 14px;
+        color: var(--text-3);
+      }
+      .fh-cta {
+        display: flex;
+        gap: 8px;
+        margin-top: 13px;
+      }
+      .fh-cta .btn {
+        flex: 1;
+        justify-content: center;
+      }
 
-.ftabs{display:flex;gap:2px;padding:0 12px;border-bottom:1px solid var(--border);overflow-x:auto}
-.ftab{font-size:12.5px;color:var(--text-2);padding:11px 11px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
-.ftab:hover{color:var(--text)}
-.ftab.on{color:var(--gold-2);border-bottom-color:var(--gold)}
-.ftab.cop-tab{display:none;align-items:center;gap:6px}
-.ftab.cop-tab svg{width:13px;height:13px}
+      .ftabs {
+        display: flex;
+        gap: 2px;
+        padding: 0 12px;
+        border-bottom: 1px solid var(--border);
+        overflow-x: auto;
+      }
+      .ftab {
+        font-size: 12.5px;
+        color: var(--text-2);
+        padding: 11px 11px;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        white-space: nowrap;
+      }
+      .ftab:hover {
+        color: var(--text);
+      }
+      .ftab.on {
+        color: var(--gold-2);
+        border-bottom-color: var(--gold);
+      }
+      .ftab.cop-tab {
+        display: none;
+        align-items: center;
+        gap: 6px;
+      }
+      .ftab.cop-tab svg {
+        width: 13px;
+        height: 13px;
+      }
 
-.fbody{flex:1;overflow-y:auto;padding:14px 16px}
-.fsec{margin-bottom:18px}
-.fsec-h{display:flex;align-items:center;gap:7px;font-size:11px;letter-spacing:1px;color:var(--text-3);font-weight:700;margin-bottom:11px}
-.fsec-h svg{width:13px;height:13px;color:var(--gold)}
-.metrics{display:grid;grid-template-columns:1fr 1fr;gap:13px 16px}
-.metric .ml{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-2)}
-.metric .ml svg{width:13px;height:13px;color:var(--text-3)}
-.metric .mv{font-size:17px;font-weight:700;margin-top:3px}
-.metric .ms{font-size:10.5px;color:var(--text-3)}
-.abc{display:flex;align-items:center;gap:9px;margin-top:4px}
-.abc .badge{width:24px;height:24px;border-radius:50%;background:var(--gold-soft);border:1px solid var(--gold-line);color:var(--gold-2);font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center}
-.frow{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border)}
-.frow:last-child{border-bottom:0}
-.frow .k{color:var(--text-2)} .frow .v{font-weight:600;text-align:right}
-.frow .v.mono{font-family:ui-monospace,monospace;font-weight:500;font-size:12.5px}
-.owner{display:flex;align-items:center;gap:9px;margin-top:4px}
-.owner .av{width:26px;height:26px;border-radius:50%;background:var(--blue-soft);color:var(--blue);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+      .fbody {
+        flex: 1;
+        overflow-y: auto;
+        padding: 14px 16px;
+      }
+      .fsec {
+        margin-bottom: 18px;
+      }
+      .fsec-h {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 11px;
+        letter-spacing: 1px;
+        color: var(--text-3);
+        font-weight: 700;
+        margin-bottom: 11px;
+      }
+      .fsec-h svg {
+        width: 13px;
+        height: 13px;
+        color: var(--gold);
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 13px 16px;
+      }
+      .metric .ml {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11.5px;
+        color: var(--text-2);
+      }
+      .metric .ml svg {
+        width: 13px;
+        height: 13px;
+        color: var(--text-3);
+      }
+      .metric .mv {
+        font-size: 17px;
+        font-weight: 700;
+        margin-top: 3px;
+      }
+      .metric .ms {
+        font-size: 10.5px;
+        color: var(--text-3);
+      }
+      .abc {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin-top: 4px;
+      }
+      .abc .badge {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--gold-soft);
+        border: 1px solid var(--gold-line);
+        color: var(--gold-2);
+        font-weight: 700;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .frow {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 0;
+        font-size: 13px;
+        border-bottom: 1px solid var(--border);
+      }
+      .frow:last-child {
+        border-bottom: 0;
+      }
+      .frow .k {
+        color: var(--text-2);
+      }
+      .frow .v {
+        font-weight: 600;
+        text-align: right;
+      }
+      .frow .v.mono {
+        font-family: ui-monospace, monospace;
+        font-weight: 500;
+        font-size: 12.5px;
+      }
+      .owner {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin-top: 4px;
+      }
+      .owner .av {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: var(--blue-soft);
+        color: var(--blue);
+        font-size: 11px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
 
-/* ficha copiloto pane */
-.pane-cop{display:none}
-.cop-mini{background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:12px 13px;margin-bottom:14px;font-size:13px;line-height:1.55}
-.cop-mini .lbl{font-size:11px;letter-spacing:.8px;color:var(--text-3);font-weight:700;margin-bottom:6px}
+      /* ficha copiloto pane */
+      .pane-cop {
+        display: none;
+      }
+      .cop-mini {
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 12px 13px;
+        margin-bottom: 14px;
+        font-size: 13px;
+        line-height: 1.55;
+      }
+      .cop-mini .lbl {
+        font-size: 11px;
+        letter-spacing: 0.8px;
+        color: var(--text-3);
+        font-weight: 700;
+        margin-bottom: 6px;
+      }
 
-/* footer */
-.app-foot{flex:0 0 auto;height:34px;display:flex;align-items:center;padding:0 16px;border-top:1px solid var(--border);font-size:11.5px;color:var(--text-3);gap:14px}
-.app-foot .branch{display:flex;align-items:center;gap:6px;color:var(--text-2);margin:0 auto}
-.app-foot .branch .d{width:7px;height:7px;border-radius:50%;background:var(--amber)}
-.app-foot .branch svg{width:12px;height:12px}
+      /* footer */
+      .app-foot {
+        flex: 0 0 auto;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        padding: 0 16px;
+        border-top: 1px solid var(--border);
+        font-size: 11.5px;
+        color: var(--text-3);
+        gap: 14px;
+      }
+      .app-foot .branch {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text-2);
+        margin: 0 auto;
+      }
+      .app-foot .branch .d {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--amber);
+      }
+      .app-foot .branch svg {
+        width: 12px;
+        height: 12px;
+      }
 
-/* visibility per variant */
-.v-a,.v-b,.v-c{display:none}
-.app[data-cop="a"] .cop-strip.v-a{display:block}
-.app[data-cop="a"] .sug-simple{display:none}
-.app[data-cop="c"] .cop-card.v-c{display:block}
-.app[data-cop="b"] .ftab.cop-tab{display:inline-flex}
-.app[data-cop="b"] .pane-overview{display:none}
-.app[data-cop="b"] .pane-cop{display:block}
-</style>
-</head>
-<body>
-
-<div class="proto">
-  <h1>Protótipo · onde colocar o copiloto de vendas</h1>
-  <div class="sub">Mesma conversa, mesma Ficha. Alterne a posição e veja como cada opção se comporta na prática.</div>
-  <div class="seg" role="tablist">
-    <button id="bt-a" aria-pressed="true" onclick="setCop('a')"><b>A</b> Faixa sobre o input</button>
-    <button id="bt-b" aria-pressed="false" onclick="setCop('b')"><b>B</b> Aba na Ficha</button>
-    <button id="bt-c" aria-pressed="false" onclick="setCop('c')"><b>C</b> Card no topo</button>
-  </div>
-  <div class="hint" id="hint"></div>
-  <div class="devnote"><b style="color:var(--gold-2)">Sugestão para o agente desenvolvedor.</b> As três posições são variantes alternáveis por parâmetro (<code>?copilot=a|b|c</code> — aliases <code>strip|tab|card</code>). Não é decisão fechada: avalie na implementação qual acomoda melhor, a critério das suas skills de design.</div>
-</div>
-
-<div class="frame">
-<div class="scroller">
-<div class="app" data-cop="a">
-
-  <!-- TOPBAR -->
-  <header class="topbar">
-    <div class="brand">
-      <div class="mark"><i data-lucide="flame"></i></div>
-      <div class="wm"><div class="n">GALLO</div><div class="t">BASE DIESEL</div></div>
+      /* visibility per variant */
+      .v-a,
+      .v-b,
+      .v-c {
+        display: none;
+      }
+      .app[data-cop="a"] .cop-strip.v-a {
+        display: block;
+      }
+      .app[data-cop="a"] .sug-simple {
+        display: none;
+      }
+      .app[data-cop="c"] .cop-card.v-c {
+        display: block;
+      }
+      .app[data-cop="b"] .ftab.cop-tab {
+        display: inline-flex;
+      }
+      .app[data-cop="b"] .pane-overview {
+        display: none;
+      }
+      .app[data-cop="b"] .pane-cop {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="proto">
+      <h1>Protótipo · onde colocar o copiloto de vendas</h1>
+      <div class="sub">
+        Mesma conversa, mesma Ficha. Alterne a posição e veja como cada opção se comporta na
+        prática.
+      </div>
+      <div class="seg" role="tablist">
+        <button id="bt-a" aria-pressed="true" onclick="setCop('a')">
+          <b>A</b> Faixa sobre o input
+        </button>
+        <button id="bt-b" aria-pressed="false" onclick="setCop('b')"><b>B</b> Aba na Ficha</button>
+        <button id="bt-c" aria-pressed="false" onclick="setCop('c')"><b>C</b> Card no topo</button>
+      </div>
+      <div class="hint" id="hint"></div>
+      <div class="devnote">
+        <b style="color: var(--gold-2)">Sugestão para o agente desenvolvedor.</b> As três posições
+        são variantes alternáveis por parâmetro (<code>?copilot=a|b|c</code> — aliases
+        <code>strip|tab|card</code>). Não é decisão fechada: avalie na implementação qual acomoda
+        melhor, a critério das suas skills de design.
+      </div>
     </div>
-    <div class="store-pill"><i data-lucide="store" style="width:15px;height:15px;color:var(--text-2)"></i> GALLO Matriz <span class="tag-gold">MATRIZ</span> <i data-lucide="info" style="width:14px;height:14px;color:var(--text-3)"></i></div>
-    <div class="search"><i data-lucide="search" style="width:15px;height:15px"></i> Buscar clientes, peças, pedidos… <span class="k">/</span></div>
-    <div class="tb-right">
-      <div class="ic"><i data-lucide="bell"></i><span class="dot">3</span></div>
-      <div class="theme-pill"><span class="dot"></span> Black Gold <i data-lucide="moon" style="width:14px;height:14px"></i></div>
-      <div class="avatar av-gold">FG</div>
+
+    <div class="frame">
+      <div class="scroller">
+        <div class="app" data-cop="a">
+          <!-- TOPBAR -->
+          <header class="topbar">
+            <div class="brand">
+              <div class="mark"><i data-lucide="flame"></i></div>
+              <div class="wm">
+                <div class="n">GALLO</div>
+                <div class="t">BASE DIESEL</div>
+              </div>
+            </div>
+            <div class="store-pill">
+              <i data-lucide="store" style="width: 15px; height: 15px; color: var(--text-2)"></i>
+              GALLO Matriz <span class="tag-gold">MATRIZ</span>
+              <i data-lucide="info" style="width: 14px; height: 14px; color: var(--text-3)"></i>
+            </div>
+            <div class="search">
+              <i data-lucide="search" style="width: 15px; height: 15px"></i> Buscar clientes, peças,
+              pedidos… <span class="k">/</span>
+            </div>
+            <div class="tb-right">
+              <div class="ic"><i data-lucide="bell"></i><span class="dot">3</span></div>
+              <div class="theme-pill">
+                <span class="dot"></span> Black Gold
+                <i data-lucide="moon" style="width: 14px; height: 14px"></i>
+              </div>
+              <div class="avatar av-gold">FG</div>
+            </div>
+          </header>
+
+          <div class="body">
+            <!-- SIDEBAR -->
+            <aside class="col sidebar">
+              <div class="nav-h">
+                ATENDIMENTO <i data-lucide="chevron-down" style="width: 13px; height: 13px"></i>
+              </div>
+              <div class="nav-i"><i data-lucide="home"></i> Início</div>
+              <div class="nav-i active"><i data-lucide="message-square"></i> Atendimento</div>
+              <div class="nav-i"><i data-lucide="users"></i> Clientes</div>
+              <div class="nav-i"><i data-lucide="user-search"></i> Leads</div>
+              <div class="nav-i"><i data-lucide="truck"></i> Veículos</div>
+              <div class="nav-i"><i data-lucide="wallet"></i> Carteira</div>
+              <div class="nav-h">
+                COMERCIAL <i data-lucide="chevron-down" style="width: 13px; height: 13px"></i>
+              </div>
+              <div class="nav-i"><i data-lucide="settings"></i> Catálogo</div>
+              <div class="nav-i"><i data-lucide="file-text"></i> Orçamentos</div>
+              <div class="nav-i"><i data-lucide="package"></i> Pedidos</div>
+              <div class="nav-i"><i data-lucide="store"></i> Admin da Loja</div>
+              <div class="nav-h">
+                SDR <i data-lucide="chevron-down" style="width: 13px; height: 13px"></i>
+              </div>
+              <div class="nav-i"><i data-lucide="bot"></i> Painel SDR</div>
+              <div class="nav-h">
+                GESTÃO <i data-lucide="chevron-down" style="width: 13px; height: 13px"></i>
+              </div>
+              <div class="nav-i"><i data-lucide="layout-dashboard"></i> Visão executiva</div>
+              <div class="nav-i"><i data-lucide="trending-up"></i> Vendas</div>
+              <div class="nav-i"><i data-lucide="target"></i> Metas</div>
+              <div class="nav-i"><i data-lucide="award"></i> Ranking</div>
+              <div class="nav-i"><i data-lucide="badge-check"></i> Positivação</div>
+              <div class="nav-i"><i data-lucide="bar-chart-3"></i> Curva ABC</div>
+              <div class="nav-i"><i data-lucide="pie-chart"></i> Carteira Analítica</div>
+            </aside>
+
+            <!-- INBOX -->
+            <section class="col inbox">
+              <div class="inbox-head">
+                <div class="inbox-title">
+                  <i
+                    data-lucide="message-square"
+                    style="width: 16px; height: 16px; color: var(--gold)"
+                  ></i>
+                  Conversas <span class="count">84 conversas</span>
+                  <span class="badge-unread">14 não lidas</span>
+                </div>
+                <div class="inbox-sub">Ordenado por: Mais recentes</div>
+              </div>
+              <div class="inbox-tools">
+                <div class="search-sm">
+                  <i data-lucide="search" style="width: 14px; height: 14px"></i> Buscar nome,
+                  telefone ou mensagem
+                </div>
+                <div class="chips">
+                  <span class="fchip">Status: Todas <i data-lucide="chevron-down"></i></span>
+                  <span class="fchip">Canal: Todos <i data-lucide="chevron-down"></i></span>
+                  <span class="fchip">Atribuição: Todas <i data-lucide="chevron-down"></i></span>
+                </div>
+                <div class="btn-sdr"><i data-lucide="bot"></i> Escaladas pelo SDR</div>
+              </div>
+              <div class="threads">
+                <div class="thread">
+                  <div class="th-av" style="background: #7a4a7a33; color: #c98fc9">SS</div>
+                  <div class="th-main">
+                    <div class="th-top">
+                      <span class="th-name">Saraiva S.A.</span><span class="th-time">agora</span>
+                    </div>
+                    <div class="th-msg">Tranquilo. Se quiser eu seguro es…</div>
+                    <div class="th-tags">
+                      <span class="tg tg-wa"><i data-lucide="message-circle"></i> WhatsApp</span
+                      ><span class="tg tg-novo">NOVO!</span>
+                    </div>
+                  </div>
+                  <span class="th-count">1</span>
+                </div>
+                <div class="thread">
+                  <div class="th-av" style="background: #4a6a4a33; color: #8fc98f">TF</div>
+                  <div class="th-main">
+                    <div class="th-top">
+                      <span class="th-name">Talita Franco Filho</span
+                      ><span class="th-time">agora</span>
+                    </div>
+                    <div class="th-msg">Esse valor inclui a montagem?</div>
+                    <div class="th-tags">
+                      <span class="tg tg-wa"><i data-lucide="message-circle"></i> WhatsApp</span
+                      ><span class="tg tg-esc"><i data-lucide="alert-triangle"></i> Escalado</span
+                      ><span class="tg tg-morno"><i data-lucide="flame"></i> Morno</span>
+                    </div>
+                  </div>
+                  <span class="th-count">2</span>
+                </div>
+                <div class="thread sel">
+                  <div class="th-av" style="background: var(--blue-soft); color: var(--blue)">
+                    BM
+                  </div>
+                  <div class="th-main">
+                    <div class="th-top">
+                      <span class="th-name">Beatriz Moraes</span><span class="th-time"></span>
+                    </div>
+                    <div class="th-msg">Pode emitir a nota em nome da empre…</div>
+                    <div class="th-tags">
+                      <span class="tg tg-ec"><i data-lucide="shopping-cart"></i> e-commerce</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="thread">
+                  <div class="th-av" style="background: #7a4a5a33; color: #c98fa9">SB</div>
+                  <div class="th-main">
+                    <div class="th-top">
+                      <span class="th-name">Sra. Júlia Braga</span
+                      ><span class="th-time">há 3 horas</span>
+                    </div>
+                    <div class="th-msg">É linha original Bosch, com garantia d…</div>
+                    <div class="th-tags">
+                      <span class="tg tg-wa"><i data-lucide="message-circle"></i> WhatsApp</span
+                      ><span class="tg tg-morno"><i data-lucide="flame"></i> Morno</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="thread">
+                  <div class="th-av" style="background: #4a5a7a33; color: #8fa9c9">ML</div>
+                  <div class="th-main">
+                    <div class="th-top">
+                      <span class="th-name">Moreira-Reis Logística</span
+                      ><span class="th-time">há 6 horas</span>
+                    </div>
+                    <div class="th-msg">Esse preço é à vista ou parcelado?</div>
+                    <div class="th-tags">
+                      <span class="tg tg-wa"><i data-lucide="message-circle"></i> WhatsApp</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- CHAT -->
+            <main class="col chat">
+              <div class="chat-head">
+                <div class="ch-av" style="background: var(--blue-soft); color: var(--blue)">BM</div>
+                <div>
+                  <div class="ch-name">Beatriz Moraes</div>
+                  <div class="ch-meta">
+                    <i data-lucide="shopping-cart" style="width: 13px; height: 13px"></i> E-commerce
+                    <span class="dotsep">•</span> (39) 92822-2193
+                    <span class="pill pill-resolv">Resolvida</span>
+                  </div>
+                </div>
+                <div class="ch-actions">
+                  <button class="btn btn-gold">
+                    <i data-lucide="file-plus"></i> Criar orçamento
+                  </button>
+                  <button class="btn"><i data-lucide="user-round"></i> Ficha</button>
+                  <button class="btn btn-icon"><i data-lucide="more-vertical"></i></button>
+                </div>
+              </div>
+
+              <!-- VARIANT C: card no topo -->
+              <div class="cop-card v-c" id="copCard">
+                <div
+                  class="ch"
+                  onclick="document.getElementById('copCard').classList.toggle('collapsed')"
+                >
+                  <div class="cop-bot"><i data-lucide="bot"></i></div>
+                  <span class="cop-title cop-accent">Copiloto</span>
+                  <span class="muted" style="font-size: 12px"
+                    >· 3 sugestões para esta conversa</span
+                  >
+                  <span class="only-you"><i data-lucide="lock"></i> só você vê</span>
+                  <i data-lucide="chevron-up" class="chev" style="width: 16px; height: 16px"></i>
+                </div>
+                <div class="bd">
+                  <div class="cop-items">
+                    <div class="cop-i i-alert">
+                      <div class="ico"><i data-lucide="alert-triangle"></i></div>
+                      <div>
+                        Perguntou o <b>prazo 2×</b> sem resposta — confirme a entrega para Frederico
+                        Westphalen.
+                      </div>
+                    </div>
+                    <div class="cop-i i-act">
+                      <div class="ico"><i data-lucide="receipt"></i></div>
+                      <div>
+                        Pediu NF <b>em nome da empresa</b>, mas o cadastro é B2C (CPF). Confirme os
+                        dados de faturamento antes de emitir.
+                      </div>
+                    </div>
+                    <div class="cop-i i-opp">
+                      <div class="ico"><i data-lucide="lightbulb"></i></div>
+                      <div>
+                        Cliente <b>dormente</b> voltando a comprar — oferecer o parcelado costuma
+                        destravar o fechamento.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="chat-scroll">
+                <div class="daysep">Hoje</div>
+                <div class="msg in">
+                  Esse preço é à vista ou parcelado?<span class="t">08:18</span>
+                </div>
+                <div class="msg out">
+                  Já te envio aqui pelo WhatsApp.<span class="t">08:27 ✓✓</span>
+                </div>
+                <div class="msg in">
+                  Combinado, pode enviar o boleto.<span class="t">08:37</span>
+                </div>
+                <div class="msg in">
+                  Qual o prazo de entrega para Frederico Westphalen?<span class="t">08:47</span>
+                </div>
+                <div class="msg in">
+                  Bom dia! Vocês têm pastilha de freio para Volvo FH 460?<span class="t"
+                    >08:56</span
+                  >
+                </div>
+                <div class="msg out">
+                  Vou montar uma cotação especial considerando o volume.<span class="t"
+                    >09:06 ✓✓</span
+                  >
+                </div>
+                <div class="msg in">
+                  Qual o prazo de entrega para Frederico Westphalen?<span class="t">09:16</span>
+                </div>
+                <div class="msg in">
+                  Pode emitir a nota em nome da empresa, por favor.<span class="t">09:26</span>
+                </div>
+              </div>
+
+              <!-- VARIANT A: faixa sobre o input -->
+              <div class="cop-strip v-a">
+                <div class="top">
+                  <div class="cop-bot"><i data-lucide="bot"></i></div>
+                  <span class="cop-title cop-accent">Copiloto</span>
+                  <span class="only-you"><i data-lucide="lock"></i> só você vê</span>
+                </div>
+                <div class="cop-items">
+                  <div class="cop-i i-alert">
+                    <div class="ico"><i data-lucide="alert-triangle"></i></div>
+                    <div>
+                      Perguntou o <b>prazo 2×</b> sem resposta — confirme a entrega para Frederico
+                      Westphalen.
+                    </div>
+                  </div>
+                  <div class="cop-i i-act">
+                    <div class="ico"><i data-lucide="receipt"></i></div>
+                    <div>
+                      Pediu NF <b>em nome da empresa</b>, mas o cadastro é B2C (CPF). Confirme os
+                      dados de faturamento.
+                    </div>
+                  </div>
+                  <div class="cop-i i-opp">
+                    <div class="ico"><i data-lucide="lightbulb"></i></div>
+                    <div>
+                      Cliente <b>dormente</b> voltando a comprar — oferecer o parcelado costuma
+                      destravar o fechamento.
+                    </div>
+                  </div>
+                </div>
+                <div class="cop-reply">
+                  <span class="lbl">Resposta</span>
+                  <span class="chip"
+                    >Posso confirmar: te envio o boleto e a NF em nome da empresa ainda hoje.</span
+                  >
+                  <span class="use">Inserir ↑</span>
+                </div>
+              </div>
+
+              <!-- COMPOSER -->
+              <div class="composer">
+                <div class="sug-simple">
+                  <span class="sug-lbl"><i data-lucide="sparkles"></i> Sugestões IA</span>
+                  <span class="sug-chip">Te envio o boleto e a NF ainda hoje.</span>
+                </div>
+                <div class="input-row">
+                  <i data-lucide="paperclip" class="ic"></i>
+                  <span class="ph">Digite uma mensagem…</span>
+                  <i data-lucide="smile" class="ic"></i>
+                  <button class="btn btn-icon" style="border: 0; background: transparent">
+                    <i data-lucide="layout-template" style="color: var(--text-2)"></i>
+                  </button>
+                  <span class="send"><i data-lucide="send"></i> Enviar</span>
+                </div>
+              </div>
+            </main>
+
+            <!-- FICHA -->
+            <aside class="col ficha">
+              <div class="ficha-head">
+                <div class="fh-top">
+                  <div class="fh-av" style="background: var(--blue-soft); color: var(--blue)">
+                    BM
+                  </div>
+                  <div>
+                    <div class="fh-name">Beatriz Moraes</div>
+                    <div class="fh-badges">
+                      <span class="fb fb-b2c">B2C</span>
+                      <span class="fb fb-a"><i data-lucide="award"></i> A</span>
+                      <span class="fb fb-dorm">DORMENTE</span>
+                      <span class="fb fb-nopos"
+                        ><i data-lucide="circle-slash"></i> NÃO POSITIVADO</span
+                      >
+                    </div>
+                  </div>
+                </div>
+                <div class="fh-contact">
+                  <div><i data-lucide="phone"></i> (39) 92822-2193</div>
+                  <div><i data-lucide="mail"></i> Tertuliano_Silva@gmail.com</div>
+                </div>
+                <div class="fh-cta">
+                  <button class="btn btn-gold">
+                    <i data-lucide="file-plus"></i> Criar orçamento
+                  </button>
+                  <button class="btn btn-icon"><i data-lucide="maximize-2"></i></button>
+                  <button class="btn btn-icon"><i data-lucide="more-vertical"></i></button>
+                </div>
+              </div>
+
+              <div class="ftabs">
+                <span class="ftab on" data-tab="overview">Visão geral</span>
+                <span class="ftab" data-tab="pedidos">Pedidos</span>
+                <span class="ftab" data-tab="orcamentos">Orçamentos</span>
+                <span class="ftab" data-tab="veiculos">Veículos</span>
+                <span class="ftab cop-tab" data-tab="copiloto"
+                  ><i data-lucide="bot"></i> Copiloto</span
+                >
+              </div>
+
+              <div class="fbody">
+                <!-- overview pane -->
+                <div class="pane-overview">
+                  <div class="fsec">
+                    <div class="fsec-h"><i data-lucide="bar-chart-3"></i> MÉTRICAS COMERCIAIS</div>
+                    <div class="metrics">
+                      <div class="metric">
+                        <div class="ml"><i data-lucide="dollar-sign"></i> Ticket médio</div>
+                        <div class="mv">R$ 34.596,24</div>
+                        <div class="ms">Últimos 12 meses</div>
+                      </div>
+                      <div class="metric">
+                        <div class="ml"><i data-lucide="trending-up"></i> LTV</div>
+                        <div class="mv">R$ 138.384,98</div>
+                        <div class="ms">Total histórico</div>
+                      </div>
+                      <div class="metric">
+                        <div class="ml"><i data-lucide="clock"></i> Recência</div>
+                        <div class="mv">Há 85 dias</div>
+                      </div>
+                      <div class="metric">
+                        <div class="ml"><i data-lucide="repeat"></i> Frequência</div>
+                        <div class="mv">4 pedidos</div>
+                        <div class="ms">12 meses</div>
+                      </div>
+                    </div>
+                    <div class="abc" style="margin-top: 14px">
+                      <span class="metric ml"
+                        ><i data-lucide="tag" style="width: 13px; height: 13px"></i> Curva ABC</span
+                      ><span class="badge">A</span
+                      ><span class="muted" style="font-size: 12.5px">1,3% da receita</span>
+                    </div>
+                  </div>
+                  <div class="fsec">
+                    <div class="fsec-h"><i data-lucide="file-text"></i> DADOS CADASTRAIS</div>
+                    <div class="frow">
+                      <span class="k">Nome completo</span><span class="v">Beatriz Moraes</span>
+                    </div>
+                    <div class="frow">
+                      <span class="k">CPF</span><span class="v mono">799.562.369-00</span>
+                    </div>
+                    <div class="frow">
+                      <span class="k">Endereço</span
+                      ><span class="v" style="max-width: 180px"
+                        >Rodovia Talita, 2237 · Industrial · Passo Fundo/RS</span
+                      >
+                    </div>
+                  </div>
+                  <div class="fsec">
+                    <div class="fsec-h"><i data-lucide="briefcase"></i> STATUS E CARTEIRA</div>
+                    <div class="frow">
+                      <span class="k">Ciclo de vida</span
+                      ><span class="v"><span class="fb fb-dorm">DORMENTE</span></span>
+                    </div>
+                    <div class="frow">
+                      <span class="k">Vendedor responsável</span
+                      ><span class="v"
+                        ><span class="owner"><span class="av">CB</span> Cauan Bulegon</span></span
+                      >
+                    </div>
+                    <div class="frow">
+                      <span class="k">Loja</span><span class="v">GALLO BASE DIESEL</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- copiloto pane (variant B) -->
+                <div class="pane-cop">
+                  <div class="cop-head" style="margin-bottom: 13px">
+                    <div class="cop-bot"><i data-lucide="bot"></i></div>
+                    <span class="cop-title cop-accent">Copiloto</span>
+                    <span class="only-you" style="margin-left: auto"
+                      ><i data-lucide="lock"></i> só você vê</span
+                    >
+                  </div>
+                  <div class="cop-mini">
+                    <div class="lbl">RESUMO DA CONVERSA</div>
+                    Pediu pastilha de freio p/ Volvo FH 460. Negocia preço (à vista ou parcelado),
+                    quer entrega em Frederico Westphalen e NF em nome da empresa.
+                  </div>
+                  <div class="fsec-h" style="margin-bottom: 12px">
+                    <i data-lucide="sparkles"></i> SUGESTÕES DO COPILOTO
+                  </div>
+                  <div class="cop-items">
+                    <div class="cop-i i-alert">
+                      <div class="ico"><i data-lucide="alert-triangle"></i></div>
+                      <div>
+                        Perguntou o <b>prazo 2×</b> sem resposta — confirme a entrega para Frederico
+                        Westphalen.
+                      </div>
+                    </div>
+                    <div class="cop-i i-act">
+                      <div class="ico"><i data-lucide="receipt"></i></div>
+                      <div>
+                        Pediu NF <b>em nome da empresa</b>, mas o cadastro é B2C (CPF). Confirme os
+                        dados de faturamento antes de emitir.
+                      </div>
+                    </div>
+                    <div class="cop-i i-opp">
+                      <div class="ico"><i data-lucide="lightbulb"></i></div>
+                      <div>
+                        Cliente <b>dormente</b> voltando a comprar — oferecer o parcelado costuma
+                        destravar o fechamento.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </aside>
+          </div>
+
+          <!-- FOOTER -->
+          <footer class="app-foot">
+            <span>GALLO BASE DIESEL <span class="muted">v0.53.0 “Dossier”</span></span>
+            <span class="branch"
+              ><span class="d"></span><i data-lucide="git-branch"></i> feat/list-tables · dev</span
+            >
+            <span>© 2026 AILA Sistemas Inteligentes</span>
+          </footer>
+        </div>
+      </div>
     </div>
-  </header>
 
-  <div class="body">
-
-    <!-- SIDEBAR -->
-    <aside class="col sidebar">
-      <div class="nav-h">ATENDIMENTO <i data-lucide="chevron-down" style="width:13px;height:13px"></i></div>
-      <div class="nav-i"><i data-lucide="home"></i> Início</div>
-      <div class="nav-i active"><i data-lucide="message-square"></i> Atendimento</div>
-      <div class="nav-i"><i data-lucide="users"></i> Clientes</div>
-      <div class="nav-i"><i data-lucide="user-search"></i> Leads</div>
-      <div class="nav-i"><i data-lucide="truck"></i> Veículos</div>
-      <div class="nav-i"><i data-lucide="wallet"></i> Carteira</div>
-      <div class="nav-h">COMERCIAL <i data-lucide="chevron-down" style="width:13px;height:13px"></i></div>
-      <div class="nav-i"><i data-lucide="settings"></i> Catálogo</div>
-      <div class="nav-i"><i data-lucide="file-text"></i> Orçamentos</div>
-      <div class="nav-i"><i data-lucide="package"></i> Pedidos</div>
-      <div class="nav-i"><i data-lucide="store"></i> Admin da Loja</div>
-      <div class="nav-h">SDR <i data-lucide="chevron-down" style="width:13px;height:13px"></i></div>
-      <div class="nav-i"><i data-lucide="bot"></i> Painel SDR</div>
-      <div class="nav-h">GESTÃO <i data-lucide="chevron-down" style="width:13px;height:13px"></i></div>
-      <div class="nav-i"><i data-lucide="layout-dashboard"></i> Visão executiva</div>
-      <div class="nav-i"><i data-lucide="trending-up"></i> Vendas</div>
-      <div class="nav-i"><i data-lucide="target"></i> Metas</div>
-      <div class="nav-i"><i data-lucide="award"></i> Ranking</div>
-      <div class="nav-i"><i data-lucide="badge-check"></i> Positivação</div>
-      <div class="nav-i"><i data-lucide="bar-chart-3"></i> Curva ABC</div>
-      <div class="nav-i"><i data-lucide="pie-chart"></i> Carteira Analítica</div>
-    </aside>
-
-    <!-- INBOX -->
-    <section class="col inbox">
-      <div class="inbox-head">
-        <div class="inbox-title"><i data-lucide="message-square" style="width:16px;height:16px;color:var(--gold)"></i> Conversas <span class="count">84 conversas</span> <span class="badge-unread">14 não lidas</span></div>
-        <div class="inbox-sub">Ordenado por: Mais recentes</div>
-      </div>
-      <div class="inbox-tools">
-        <div class="search-sm"><i data-lucide="search" style="width:14px;height:14px"></i> Buscar nome, telefone ou mensagem</div>
-        <div class="chips">
-          <span class="fchip">Status: Todas <i data-lucide="chevron-down"></i></span>
-          <span class="fchip">Canal: Todos <i data-lucide="chevron-down"></i></span>
-          <span class="fchip">Atribuição: Todas <i data-lucide="chevron-down"></i></span>
-        </div>
-        <div class="btn-sdr"><i data-lucide="bot"></i> Escaladas pelo SDR</div>
-      </div>
-      <div class="threads">
-        <div class="thread">
-          <div class="th-av" style="background:#7a4a7a33;color:#c98fc9">SS</div>
-          <div class="th-main">
-            <div class="th-top"><span class="th-name">Saraiva S.A.</span><span class="th-time">agora</span></div>
-            <div class="th-msg">Tranquilo. Se quiser eu seguro es…</div>
-            <div class="th-tags"><span class="tg tg-wa"><i data-lucide="message-circle"></i> WhatsApp</span><span class="tg tg-novo">NOVO!</span></div>
-          </div>
-          <span class="th-count">1</span>
-        </div>
-        <div class="thread">
-          <div class="th-av" style="background:#4a6a4a33;color:#8fc98f">TF</div>
-          <div class="th-main">
-            <div class="th-top"><span class="th-name">Talita Franco Filho</span><span class="th-time">agora</span></div>
-            <div class="th-msg">Esse valor inclui a montagem?</div>
-            <div class="th-tags"><span class="tg tg-wa"><i data-lucide="message-circle"></i> WhatsApp</span><span class="tg tg-esc"><i data-lucide="alert-triangle"></i> Escalado</span><span class="tg tg-morno"><i data-lucide="flame"></i> Morno</span></div>
-          </div>
-          <span class="th-count">2</span>
-        </div>
-        <div class="thread sel">
-          <div class="th-av" style="background:var(--blue-soft);color:var(--blue)">BM</div>
-          <div class="th-main">
-            <div class="th-top"><span class="th-name">Beatriz Moraes</span><span class="th-time"></span></div>
-            <div class="th-msg">Pode emitir a nota em nome da empre…</div>
-            <div class="th-tags"><span class="tg tg-ec"><i data-lucide="shopping-cart"></i> e-commerce</span></div>
-          </div>
-        </div>
-        <div class="thread">
-          <div class="th-av" style="background:#7a4a5a33;color:#c98fa9">SB</div>
-          <div class="th-main">
-            <div class="th-top"><span class="th-name">Sra. Júlia Braga</span><span class="th-time">há 3 horas</span></div>
-            <div class="th-msg">É linha original Bosch, com garantia d…</div>
-            <div class="th-tags"><span class="tg tg-wa"><i data-lucide="message-circle"></i> WhatsApp</span><span class="tg tg-morno"><i data-lucide="flame"></i> Morno</span></div>
-          </div>
-        </div>
-        <div class="thread">
-          <div class="th-av" style="background:#4a5a7a33;color:#8fa9c9">ML</div>
-          <div class="th-main">
-            <div class="th-top"><span class="th-name">Moreira-Reis Logística</span><span class="th-time">há 6 horas</span></div>
-            <div class="th-msg">Esse preço é à vista ou parcelado?</div>
-            <div class="th-tags"><span class="tg tg-wa"><i data-lucide="message-circle"></i> WhatsApp</span></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- CHAT -->
-    <main class="col chat">
-      <div class="chat-head">
-        <div class="ch-av" style="background:var(--blue-soft);color:var(--blue)">BM</div>
-        <div>
-          <div class="ch-name">Beatriz Moraes</div>
-          <div class="ch-meta"><i data-lucide="shopping-cart" style="width:13px;height:13px"></i> E-commerce <span class="dotsep">•</span> (39) 92822-2193 <span class="pill pill-resolv">Resolvida</span></div>
-        </div>
-        <div class="ch-actions">
-          <button class="btn btn-gold"><i data-lucide="file-plus"></i> Criar orçamento</button>
-          <button class="btn"><i data-lucide="user-round"></i> Ficha</button>
-          <button class="btn btn-icon"><i data-lucide="more-vertical"></i></button>
-        </div>
-      </div>
-
-      <!-- VARIANT C: card no topo -->
-      <div class="cop-card v-c" id="copCard">
-        <div class="ch" onclick="document.getElementById('copCard').classList.toggle('collapsed')">
-          <div class="cop-bot"><i data-lucide="bot"></i></div>
-          <span class="cop-title cop-accent">Copiloto</span>
-          <span class="muted" style="font-size:12px">· 3 sugestões para esta conversa</span>
-          <span class="only-you"><i data-lucide="lock"></i> só você vê</span>
-          <i data-lucide="chevron-up" class="chev" style="width:16px;height:16px"></i>
-        </div>
-        <div class="bd">
-          <div class="cop-items">
-            <div class="cop-i i-alert"><div class="ico"><i data-lucide="alert-triangle"></i></div><div>Perguntou o <b>prazo 2×</b> sem resposta — confirme a entrega para Frederico Westphalen.</div></div>
-            <div class="cop-i i-act"><div class="ico"><i data-lucide="receipt"></i></div><div>Pediu NF <b>em nome da empresa</b>, mas o cadastro é B2C (CPF). Confirme os dados de faturamento antes de emitir.</div></div>
-            <div class="cop-i i-opp"><div class="ico"><i data-lucide="lightbulb"></i></div><div>Cliente <b>dormente</b> voltando a comprar — oferecer o parcelado costuma destravar o fechamento.</div></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="chat-scroll">
-        <div class="daysep">Hoje</div>
-        <div class="msg in">Esse preço é à vista ou parcelado?<span class="t">08:18</span></div>
-        <div class="msg out">Já te envio aqui pelo WhatsApp.<span class="t">08:27 ✓✓</span></div>
-        <div class="msg in">Combinado, pode enviar o boleto.<span class="t">08:37</span></div>
-        <div class="msg in">Qual o prazo de entrega para Frederico Westphalen?<span class="t">08:47</span></div>
-        <div class="msg in">Bom dia! Vocês têm pastilha de freio para Volvo FH 460?<span class="t">08:56</span></div>
-        <div class="msg out">Vou montar uma cotação especial considerando o volume.<span class="t">09:06 ✓✓</span></div>
-        <div class="msg in">Qual o prazo de entrega para Frederico Westphalen?<span class="t">09:16</span></div>
-        <div class="msg in">Pode emitir a nota em nome da empresa, por favor.<span class="t">09:26</span></div>
-      </div>
-
-      <!-- VARIANT A: faixa sobre o input -->
-      <div class="cop-strip v-a">
-        <div class="top">
-          <div class="cop-bot"><i data-lucide="bot"></i></div>
-          <span class="cop-title cop-accent">Copiloto</span>
-          <span class="only-you"><i data-lucide="lock"></i> só você vê</span>
-        </div>
-        <div class="cop-items">
-          <div class="cop-i i-alert"><div class="ico"><i data-lucide="alert-triangle"></i></div><div>Perguntou o <b>prazo 2×</b> sem resposta — confirme a entrega para Frederico Westphalen.</div></div>
-          <div class="cop-i i-act"><div class="ico"><i data-lucide="receipt"></i></div><div>Pediu NF <b>em nome da empresa</b>, mas o cadastro é B2C (CPF). Confirme os dados de faturamento.</div></div>
-          <div class="cop-i i-opp"><div class="ico"><i data-lucide="lightbulb"></i></div><div>Cliente <b>dormente</b> voltando a comprar — oferecer o parcelado costuma destravar o fechamento.</div></div>
-        </div>
-        <div class="cop-reply">
-          <span class="lbl">Resposta</span>
-          <span class="chip">Posso confirmar: te envio o boleto e a NF em nome da empresa ainda hoje.</span>
-          <span class="use">Inserir ↑</span>
-        </div>
-      </div>
-
-      <!-- COMPOSER -->
-      <div class="composer">
-        <div class="sug-simple">
-          <span class="sug-lbl"><i data-lucide="sparkles"></i> Sugestões IA</span>
-          <span class="sug-chip">Te envio o boleto e a NF ainda hoje.</span>
-        </div>
-        <div class="input-row">
-          <i data-lucide="paperclip" class="ic"></i>
-          <span class="ph">Digite uma mensagem…</span>
-          <i data-lucide="smile" class="ic"></i>
-          <button class="btn btn-icon" style="border:0;background:transparent"><i data-lucide="layout-template" style="color:var(--text-2)"></i></button>
-          <span class="send"><i data-lucide="send"></i> Enviar</span>
-        </div>
-      </div>
-    </main>
-
-    <!-- FICHA -->
-    <aside class="col ficha">
-      <div class="ficha-head">
-        <div class="fh-top">
-          <div class="fh-av" style="background:var(--blue-soft);color:var(--blue)">BM</div>
-          <div>
-            <div class="fh-name">Beatriz Moraes</div>
-            <div class="fh-badges">
-              <span class="fb fb-b2c">B2C</span>
-              <span class="fb fb-a"><i data-lucide="award"></i> A</span>
-              <span class="fb fb-dorm">DORMENTE</span>
-              <span class="fb fb-nopos"><i data-lucide="circle-slash"></i> NÃO POSITIVADO</span>
-            </div>
-          </div>
-        </div>
-        <div class="fh-contact">
-          <div><i data-lucide="phone"></i> (39) 92822-2193</div>
-          <div><i data-lucide="mail"></i> Tertuliano_Silva@gmail.com</div>
-        </div>
-        <div class="fh-cta">
-          <button class="btn btn-gold"><i data-lucide="file-plus"></i> Criar orçamento</button>
-          <button class="btn btn-icon"><i data-lucide="maximize-2"></i></button>
-          <button class="btn btn-icon"><i data-lucide="more-vertical"></i></button>
-        </div>
-      </div>
-
-      <div class="ftabs">
-        <span class="ftab on" data-tab="overview">Visão geral</span>
-        <span class="ftab" data-tab="pedidos">Pedidos</span>
-        <span class="ftab" data-tab="orcamentos">Orçamentos</span>
-        <span class="ftab" data-tab="veiculos">Veículos</span>
-        <span class="ftab cop-tab" data-tab="copiloto"><i data-lucide="bot"></i> Copiloto</span>
-      </div>
-
-      <div class="fbody">
-        <!-- overview pane -->
-        <div class="pane-overview">
-          <div class="fsec">
-            <div class="fsec-h"><i data-lucide="bar-chart-3"></i> MÉTRICAS COMERCIAIS</div>
-            <div class="metrics">
-              <div class="metric"><div class="ml"><i data-lucide="dollar-sign"></i> Ticket médio</div><div class="mv">R$ 34.596,24</div><div class="ms">Últimos 12 meses</div></div>
-              <div class="metric"><div class="ml"><i data-lucide="trending-up"></i> LTV</div><div class="mv">R$ 138.384,98</div><div class="ms">Total histórico</div></div>
-              <div class="metric"><div class="ml"><i data-lucide="clock"></i> Recência</div><div class="mv">Há 85 dias</div></div>
-              <div class="metric"><div class="ml"><i data-lucide="repeat"></i> Frequência</div><div class="mv">4 pedidos</div><div class="ms">12 meses</div></div>
-            </div>
-            <div class="abc" style="margin-top:14px"><span class="metric ml"><i data-lucide="tag" style="width:13px;height:13px"></i> Curva ABC</span><span class="badge">A</span><span class="muted" style="font-size:12.5px">1,3% da receita</span></div>
-          </div>
-          <div class="fsec">
-            <div class="fsec-h"><i data-lucide="file-text"></i> DADOS CADASTRAIS</div>
-            <div class="frow"><span class="k">Nome completo</span><span class="v">Beatriz Moraes</span></div>
-            <div class="frow"><span class="k">CPF</span><span class="v mono">799.562.369-00</span></div>
-            <div class="frow"><span class="k">Endereço</span><span class="v" style="max-width:180px">Rodovia Talita, 2237 · Industrial · Passo Fundo/RS</span></div>
-          </div>
-          <div class="fsec">
-            <div class="fsec-h"><i data-lucide="briefcase"></i> STATUS E CARTEIRA</div>
-            <div class="frow"><span class="k">Ciclo de vida</span><span class="v"><span class="fb fb-dorm">DORMENTE</span></span></div>
-            <div class="frow"><span class="k">Vendedor responsável</span><span class="v"><span class="owner"><span class="av">CB</span> Cauan Bulegon</span></span></div>
-            <div class="frow"><span class="k">Loja</span><span class="v">GALLO BASE DIESEL</span></div>
-          </div>
-        </div>
-
-        <!-- copiloto pane (variant B) -->
-        <div class="pane-cop">
-          <div class="cop-head" style="margin-bottom:13px">
-            <div class="cop-bot"><i data-lucide="bot"></i></div>
-            <span class="cop-title cop-accent">Copiloto</span>
-            <span class="only-you" style="margin-left:auto"><i data-lucide="lock"></i> só você vê</span>
-          </div>
-          <div class="cop-mini">
-            <div class="lbl">RESUMO DA CONVERSA</div>
-            Pediu pastilha de freio p/ Volvo FH 460. Negocia preço (à vista ou parcelado), quer entrega em Frederico Westphalen e NF em nome da empresa.
-          </div>
-          <div class="fsec-h" style="margin-bottom:12px"><i data-lucide="sparkles"></i> SUGESTÕES DO COPILOTO</div>
-          <div class="cop-items">
-            <div class="cop-i i-alert"><div class="ico"><i data-lucide="alert-triangle"></i></div><div>Perguntou o <b>prazo 2×</b> sem resposta — confirme a entrega para Frederico Westphalen.</div></div>
-            <div class="cop-i i-act"><div class="ico"><i data-lucide="receipt"></i></div><div>Pediu NF <b>em nome da empresa</b>, mas o cadastro é B2C (CPF). Confirme os dados de faturamento antes de emitir.</div></div>
-            <div class="cop-i i-opp"><div class="ico"><i data-lucide="lightbulb"></i></div><div>Cliente <b>dormente</b> voltando a comprar — oferecer o parcelado costuma destravar o fechamento.</div></div>
-          </div>
-        </div>
-      </div>
-    </aside>
-
-  </div>
-
-  <!-- FOOTER -->
-  <footer class="app-foot">
-    <span>GALLO BASE DIESEL <span class="muted">v0.53.0 “Dossier”</span></span>
-    <span class="branch"><span class="d"></span><i data-lucide="git-branch"></i> feat/list-tables · dev</span>
-    <span>© 2026 AILA Sistemas Inteligentes</span>
-  </footer>
-
-</div>
-</div>
-</div>
-
-<script>
-  const hints = {
-    a: 'A faixa cresce sobre o campo de digitação: orientações <b>e</b> a resposta pronta no mesmo lugar onde o vendedor olha ao responder. É a evolução natural da sua “Sugestões IA”.',
-    b: 'Uma aba dedicada dentro da Ficha do cliente — espaço amplo e organizado, mas o vendedor precisa <b>clicar</b> para ver. Bom para consulta, fraco para alerta proativo.',
-    c: 'Um card no topo da conversa, no lugar do banner de escalação. <b>Máxima visibilidade</b>; é colapsável para não atrapalhar (clique no cabeçalho).'
-  };
-  function setCop(v){
-    document.querySelector('.app').dataset.cop = v;
-    ['a','b','c'].forEach(x => document.getElementById('bt-'+x).setAttribute('aria-pressed', x===v));
-    document.getElementById('hint').innerHTML = hints[v];
-    document.querySelectorAll('.ftab').forEach(t => t.classList.toggle('on', v==='b' ? t.dataset.tab==='copiloto' : t.dataset.tab==='overview'));
-  }
-  document.querySelectorAll('.ftab').forEach(t => t.addEventListener('click', () => {
-    if(document.querySelector('.app').dataset.cop !== 'b') return;
-    document.querySelectorAll('.ftab').forEach(x => x.classList.remove('on'));
-    t.classList.add('on');
-  }));
-  const params = new URLSearchParams(location.search);
-  const alias = {strip:'a', tab:'b', card:'c', a:'a', b:'b', c:'c'};
-  const initial = alias[(params.get('copilot')||'a').toLowerCase()] || 'a';
-  setCop(initial);
-  if(window.lucide) lucide.createIcons();
-</script>
-</body>
+    <script>
+      const hints = {
+        a: "A faixa cresce sobre o campo de digitação: orientações <b>e</b> a resposta pronta no mesmo lugar onde o vendedor olha ao responder. É a evolução natural da sua “Sugestões IA”.",
+        b: "Uma aba dedicada dentro da Ficha do cliente — espaço amplo e organizado, mas o vendedor precisa <b>clicar</b> para ver. Bom para consulta, fraco para alerta proativo.",
+        c: "Um card no topo da conversa, no lugar do banner de escalação. <b>Máxima visibilidade</b>; é colapsável para não atrapalhar (clique no cabeçalho).",
+      };
+      function setCop(v) {
+        document.querySelector(".app").dataset.cop = v;
+        ["a", "b", "c"].forEach((x) =>
+          document.getElementById("bt-" + x).setAttribute("aria-pressed", x === v),
+        );
+        document.getElementById("hint").innerHTML = hints[v];
+        document
+          .querySelectorAll(".ftab")
+          .forEach((t) =>
+            t.classList.toggle(
+              "on",
+              v === "b" ? t.dataset.tab === "copiloto" : t.dataset.tab === "overview",
+            ),
+          );
+      }
+      document.querySelectorAll(".ftab").forEach((t) =>
+        t.addEventListener("click", () => {
+          if (document.querySelector(".app").dataset.cop !== "b") return;
+          document.querySelectorAll(".ftab").forEach((x) => x.classList.remove("on"));
+          t.classList.add("on");
+        }),
+      );
+      const params = new URLSearchParams(location.search);
+      const alias = { strip: "a", tab: "b", card: "c", a: "a", b: "b", c: "c" };
+      const initial = alias[(params.get("copilot") || "a").toLowerCase()] || "a";
+      setCop(initial);
+      if (window.lucide) lucide.createIcons();
+    </script>
+  </body>
 </html>

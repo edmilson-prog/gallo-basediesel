@@ -48,16 +48,16 @@ ESLint `no-restricted-imports` isolando `impl/*`, `contracts/*` e `factory` (mes
 
 ### 1.4 Decisões resolvidas
 
-| Decisão pendente (PRD-008) | Resolução | Fundamento no código |
-|---|---|---|
-| **Origem dos limiares das derivadas** | Reusar `IManagerDashboardSettings` — já existem `conversationWaitingHoursThreshold`, `sellerOverloadThreshold`, `alert*Enabled`. **Sem novos campos.** | [`src/shared/types/platform.ts`](../../../src/shared/types/platform.ts) |
-| **Cadência de reconciliação** | Reusar `settings.alertPollingSeconds` (mesmo valor que `useActiveAlerts` já usa) | [`useActiveAlerts.ts`](../../../src/features/manager-dashboard/hooks/useActiveAlerts.ts) |
+| Decisão pendente (PRD-008)             | Resolução                                                                                                                                                   | Fundamento no código                                                                                                           |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Origem dos limiares das derivadas**  | Reusar `IManagerDashboardSettings` — já existem `conversationWaitingHoursThreshold`, `sellerOverloadThreshold`, `alert*Enabled`. **Sem novos campos.**      | [`src/shared/types/platform.ts`](../../../src/shared/types/platform.ts)                                                        |
+| **Cadência de reconciliação**          | Reusar `settings.alertPollingSeconds` (mesmo valor que `useActiveAlerts` já usa)                                                                            | [`useActiveAlerts.ts`](../../../src/features/manager-dashboard/hooks/useActiveAlerts.ts)                                       |
 | **Reconciliador vs `useActiveAlerts`** | **Extrair lógica de condição compartilhada** para `notifications/conditions/` — consumida pelo reconciliador E pelo PRD-014. Fonte única, zero divergência. | `buildClienteADormenteAlerts` / `buildVendedorSobrecarregadoAlerts` / `buildConversaSemRespostaAlerts` em `useActiveAlerts.ts` |
-| **Codinome** | **Herald** | — |
+| **Codinome**                           | **Herald**                                                                                                                                                  | —                                                                                                                              |
 
 ### 1.5 Coexistência (evita "buraco" entre 008 e 009)
 
-O 008 **não tem UI**: `<ActiveAlertsList>` + `useActiveAlerts` (PRD-014) **continuam funcionando** durante o 008. O reconciliador passa a *produzir* as derivadas; a *migração* do `<ActiveAlertsList>` para consumir o center é do **PRD-009** (RF-029). Durante o 008, ambos coexistem lendo a lógica de condição compartilhada.
+O 008 **não tem UI**: `<ActiveAlertsList>` + `useActiveAlerts` (PRD-014) **continuam funcionando** durante o 008. O reconciliador passa a _produzir_ as derivadas; a _migração_ do `<ActiveAlertsList>` para consumir o center é do **PRD-009** (RF-029). Durante o 008, ambos coexistem lendo a lógica de condição compartilhada.
 
 ### 1.6 Pontos de integração (mock/seed/harness)
 
@@ -81,12 +81,12 @@ Camada visível, consome **apenas** os hooks do PRD-008.
 
 ### 2.1 Decisões resolvidas
 
-| Decisão pendente (PRD-009) | Resolução |
-|---|---|
+| Decisão pendente (PRD-009)                      | Resolução                                                                                                                  |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | **Páginas do cliente vs PRD-065 (inexistente)** | **Rota direta sobre `LojaLayout`** agora (sessão mock "Cliente"), estruturada para plugar no menu quando o PRD-065 existir |
-| **Local da preferência do cliente** | **Página própria** `/loja/conta/preferencias` |
-| **Codinome** | **Chime** |
-| **Absorção do PRD-146** | Registrar: o 146 da Onda 8 passa a ser "ativar canais reais na UI já existente" (decisão final com o Frederico) |
+| **Local da preferência do cliente**             | **Página própria** `/loja/conta/preferencias`                                                                              |
+| **Codinome**                                    | **Chime**                                                                                                                  |
+| **Absorção do PRD-146**                         | Registrar: o 146 da Onda 8 passa a ser "ativar canais reais na UI já existente" (decisão final com o Frederico)            |
 
 ### 2.2 Sistema visual (direção do `ui-ux-pro-max`)
 
