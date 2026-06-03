@@ -19,9 +19,7 @@ const STALE_MS = 30_000;
  * then orders + parts scoped to its store/seller — minimum data needed for an
  * accurate runtime progress recalc.
  */
-export function useIndicatorProgress(
-  indicatorId: ID | undefined,
-): IUseIndicatorProgressResult {
+export function useIndicatorProgress(indicatorId: ID | undefined): IUseIndicatorProgressResult {
   const indicatorsProvider = useIndicatorsProvider();
   const ordersProvider = useOrdersProvider();
   const partsProvider = usePartsProvider();

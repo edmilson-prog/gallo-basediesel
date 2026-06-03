@@ -140,10 +140,7 @@ export default tseslint.config(
                 "Import notification contract types from '@/providers/notifications' barrel — individual contract files are internal.",
             },
             {
-              group: [
-                "@/providers/notifications/factory",
-                "**/providers/notifications/factory",
-              ],
+              group: ["@/providers/notifications/factory", "**/providers/notifications/factory"],
               message:
                 "The notification factory is internal — use '@/providers/notifications' (NotificationProvidersProvider + hooks).",
             },

@@ -42,15 +42,15 @@ GALLO se posiciona como o **cérebro comercial acima do ERP**. O detalhe do SKU 
 
 ## 3. Requirements (decisões capturadas no brainstorming)
 
-| # | Decisão | Escolha |
-|---|----------|--------|
-| 1 | Superfície a refatorar | **Detalhe interno (admin)** — `/app/catalogo/$id` |
-| 2 | Modelagem das tabelas de preço | **Tabelas nomeadas com markup %** (`priceTables[]`), preço derivado do custo |
-| 3 | Grupos de dados da DINTEC a incorporar | **Todos os 4** — Identificação & códigos · Fiscal · Logística & estoque · Multi-fornecedor & C.M. |
-| 4 | Layouts | **Manter os 3 como modos selecionáveis pelo usuário; A (Balcão) é default** |
-| 5 | Switcher | **Segmented control no header** (sempre visível, 1 clique), espelhando veículo/pedidos |
-| 6 | Persistência da preferência | **Global** (localStorage `gallo-part-detail-layout`), default `counter` |
-| 7 | Escopo desta rodada | **Detalhe + modelo + mocks** (formulário fica para depois) |
+| #   | Decisão                                | Escolha                                                                                           |
+| --- | -------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| 1   | Superfície a refatorar                 | **Detalhe interno (admin)** — `/app/catalogo/$id`                                                 |
+| 2   | Modelagem das tabelas de preço         | **Tabelas nomeadas com markup %** (`priceTables[]`), preço derivado do custo                      |
+| 3   | Grupos de dados da DINTEC a incorporar | **Todos os 4** — Identificação & códigos · Fiscal · Logística & estoque · Multi-fornecedor & C.M. |
+| 4   | Layouts                                | **Manter os 3 como modos selecionáveis pelo usuário; A (Balcão) é default**                       |
+| 5   | Switcher                               | **Segmented control no header** (sempre visível, 1 clique), espelhando veículo/pedidos            |
+| 6   | Persistência da preferência            | **Global** (localStorage `gallo-part-detail-layout`), default `counter`                           |
+| 7   | Escopo desta rodada                    | **Detalhe + modelo + mocks** (formulário fica para depois)                                        |
 
 ## 4. Data Model (`IPart` estendido)
 
@@ -64,8 +64,8 @@ export type SefazStatus = "validated" | "not_checked" | "invalid";
 
 /** Tabela de preço nomeada — preço derivado do custo base por um markup. */
 export interface IPriceTable {
-  id: string;                 // "padrao" | "ecommerce" | "oficina" | "atacado" | "varejo"
-  label: string;              // "Padrão", "Ecommerce", …
+  id: string; // "padrao" | "ecommerce" | "oficina" | "atacado" | "varejo"
+  label: string; // "Padrão", "Ecommerce", …
   /** Markup como decimal sobre o custo (1.20 = +120%). */
   markupPercent: number;
   /** Preço final calculado = unitCost * (1 + markupPercent). */
@@ -141,11 +141,11 @@ Mesma mecânica leve do veículo (lazy `useState` initializer lendo `localStorag
 - **`src/features/catalog/hooks/usePartDetailLayout.ts`** (novo)
   - Retorna `[layout, setLayout]`. `typeof window` guard, valor inválido/ausente → `counter`. Mesmo padrão de `useVehicleDetailLayout`/`useDetailLayout`.
 
-| Layout | Rótulo (pt-BR) | Ícone | Descrição |
-|---|---|---|---|
-| `counter` (A) | **Balcão** | `mdi:view-split-vertical` | Sidebar sticky (identidade + KPIs + GTIN/SEFAZ + C.M. + localização) + workspace em abas. **Default** |
-| `panel` (B) | **Painel** | `mdi:view-grid-outline` | Bento grid de cards, visão panorâmica |
-| `sheet` (C) | **Ficha** | `mdi:file-document-outline` | Header denso sticky + abas full-width (melhor p/ tabelas largas) |
+| Layout        | Rótulo (pt-BR) | Ícone                       | Descrição                                                                                             |
+| ------------- | -------------- | --------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `counter` (A) | **Balcão**     | `mdi:view-split-vertical`   | Sidebar sticky (identidade + KPIs + GTIN/SEFAZ + C.M. + localização) + workspace em abas. **Default** |
+| `panel` (B)   | **Painel**     | `mdi:view-grid-outline`     | Bento grid de cards, visão panorâmica                                                                 |
+| `sheet` (C)   | **Ficha**      | `mdi:file-document-outline` | Header denso sticky + abas full-width (melhor p/ tabelas largas)                                      |
 
 ## 6. Page composition
 
@@ -181,9 +181,11 @@ export interface IPartLayoutProps {
 ## 7. Component Inventory
 
 ### 7.1 Novo — switcher
+
 - **`components/detail/PartLayoutSwitcher.tsx`** — `ToggleGroup type="single"` (espelha `VehicleLayoutSwitcher`/`DetailLayoutSwitcher`): props `{ value, onChange }`, 3 itens com ícone + label, `aria-label`, `title` (hint), label colapsa para ícone em telas estreitas.
 
 ### 7.2 Novo — building blocks (mode-agnostic, compostos diferente por layout)
+
 - **`components/detail/PartStatStrip.tsx`** — 5 KPI cells (espelha `VehicleStatStrip`: `grid grid-cols-2 gap-px bg-border … lg:grid-cols-5`, tokens semânticos). Cells: **Preço Padrão · Custo médio (C.M.) · Estoque** (vs mínimo; accent âmbar/destructive quando ≤ mínimo) **· Localização · Margem**. Degrada para "—" quando ausente. Props `{ part }`.
 - **`components/detail/PartIdentityCard.tsx`** — imagem, nome (uppercase), SKU, badges Original/Equivalente + ativo/inativo (move o conteúdo do `PartDetailHeader` atual para um card reusável). Inclui o **bloco GTIN** (grande, `font-mono`, ícone `mdi:barcode`) + **`PartSefazBadge`** + **código do fornecedor subordinado** (`text-muted-foreground`, label "Cód. fornecedor"), além de Referência/Grupo/Tipo em chips. Props `{ part }`.
 - **`components/detail/PartSefazBadge.tsx`** — badge de estado: `validated` (emerald + check + "Validado em DD/MM"), `not_checked` (âmbar outline "Não consultado no SEFAZ" + botão "Consultar agora" → toast placeholder), `invalid` (destructive "GTIN não encontrado"). **Cor + ícone + texto** sempre (a11y). Props `{ status, checkedAt? }`.
@@ -193,6 +195,7 @@ export interface IPartLayoutProps {
 - **`components/detail/PartSuppliersTable.tsx`** — tabela de fornecedores (nome, cód., NF, data, custo, qtd) + **C.M. ponderado** em destaque no topo/rodapé. Linhas compactas, `tabular-nums`, empty state. Props `{ part }`.
 
 ### 7.3 Novo — composers de layout
+
 - **`components/detail/layouts/PartLayoutCounter.tsx`** (A, default)
   - `grid lg:grid-cols-12`. **Aside esquerda sticky** (`lg:col-span-4 lg:sticky lg:top-6 lg:self-start`): `PartIdentityCard` + mini-resumo (C.M., localização). **Direita** (`lg:col-span-8`): shadcn `Tabs` — **Comercial** (default: `PartPricingTable` + `PartFiscalCard` resumido em chips) · **Fiscal & Logística** (`PartFiscalCard` + `PartLogisticsCard`) · **Fornecedores** (`PartSuppliersTable`) · **Aplicações** (`ApplicationsSection`) · **Equivalências** (`EquivalentsSection`).
 - **`components/detail/layouts/PartLayoutPanel.tsx`** (B, bento)
@@ -201,11 +204,13 @@ export interface IPartLayoutProps {
   - Header denso (identidade + KPIs em chips, reusa `PartIdentityCard` compacto) + shadcn `Tabs` **full-width** com as mesmas abas do Balcão, dando largura total às tabelas largas (Aplicações/Fornecedores).
 
 ### 7.4 Reuso (sem ou com mudança mínima)
+
 - **`ApplicationsSection`**, **`EquivalentsSection`** — reusados como estão (já recebem `{ part }`; a `Section` interna serve de card).
 - **`CommercialSection`** — o **histórico de preço** (lógica `useAuditsProvider`) é extraído para `PartPriceHistory.tsx` (popover/disclosure) e consumido por `PartPricingTable`. `CommercialSection` é descontinuada da composição (substituída por `PartPricingTable` + cards), mas o subcomponente de histórico é preservado.
 - **`StockBadge`**, **`PartImage`** — reusados.
 
 ### 7.5 Modificado
+
 - **`PartDetailPage.tsx`** — rail 1600, wiring do layout, nova composição (§6).
 - **`PartDetailHeader.tsx`** — rail interno `max-w-[1600px]`; adiciona props `layout`/`onLayoutChange`; renderiza `PartLayoutSwitcher` no cluster de ações. A "ficha de identidade" (imagem/nome/SKU/badges/descrição) migra para `PartIdentityCard`; o header mantém voltar + ações + switcher.
 - **`shared/types/catalog.ts`** — novos tipos + campos (§4).
@@ -259,6 +264,7 @@ Estender `generatePart` (sem quebrar a assinatura). Todos derivados de `ctx` (se
 ## 12. i18n (pt-BR, acentos corretos)
 
 Adicionar em `CATALOG_STRINGS.detail`:
+
 - `layout`: `{ ariaLabel: "Escolher layout da ficha", counter: "Balcão", panel: "Painel", sheet: "Ficha", counterHint, panelHint, sheetHint }`.
 - `statStrip`: `{ standardPrice: "Preço Padrão", avgCost: "Custo médio", stock: "Estoque", location: "Localização", margin: "Margem", noStock, belowMin: (n) => … }`.
 - `identity`: `{ gtinLabel: "GTIN (EAN)", supplierCode: "Cód. fornecedor", reference: "Referência", group: "Grupo", type: "Tipo", noGtin: "GTIN não cadastrado" }`.

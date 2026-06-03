@@ -8,21 +8,21 @@
 
 ## Informações do Projeto
 
-| Campo                                | Valor                                                                                                      |
-| ------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| **Projeto**                          | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                   |
-| **Cliente**                          | GALLO BASE DIESEL (rebranding de Turbo Diesel — distribuidora de peças pesadas em Frederico Westphalen/RS) |
-| **Repositório**                      | _A definir após criação no Lovable_                                                                        |
-| **Início do projeto**                | Maio/2026                                                                                                  |
-| **Briefing de execução**             | `briefing-execucao-prds.md` v1.1                                                                           |
-| **Metodologia**                      | AILA GuiaPRD v1.4                                                                                          |
-| **Estratégia de desenvolvimento**    | Frontend First — mockup navegável → validação cliente → backend real (Fase 2)                              |
-| **Versão atual do app**              | v0.56.0 — codinome **Copilot**                                                                             |
-| **Versão alvo MVP**                  | v1.0.0 — codinome **Heavy**                                                                                |
-| **Total de PRDs planejados (MVP)**   | 50                                                                                                         |
-| **PRDs redigidos**                   | 50 (todos os PRDs do MVP redigidos)                                                                        |
-| **PRDs implementados**               | 35 (Bloco 0 completo · Bloco 1 completo · Bloco 2 completo · Bloco 3 completo · Bloco 4 ½ — 8/14 · PRD-009 Chime · PRD-025 Copilot)          |
-| **PRDs futuros (Fase 2, PRDs 100+)** | 8 (roadmap futuro)                                                                                         |
+| Campo                                | Valor                                                                                                                               |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**                          | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                            |
+| **Cliente**                          | GALLO BASE DIESEL (rebranding de Turbo Diesel — distribuidora de peças pesadas em Frederico Westphalen/RS)                          |
+| **Repositório**                      | _A definir após criação no Lovable_                                                                                                 |
+| **Início do projeto**                | Maio/2026                                                                                                                           |
+| **Briefing de execução**             | `briefing-execucao-prds.md` v1.1                                                                                                    |
+| **Metodologia**                      | AILA GuiaPRD v1.4                                                                                                                   |
+| **Estratégia de desenvolvimento**    | Frontend First — mockup navegável → validação cliente → backend real (Fase 2)                                                       |
+| **Versão atual do app**              | v0.56.0 — codinome **Copilot**                                                                                                      |
+| **Versão alvo MVP**                  | v1.0.0 — codinome **Heavy**                                                                                                         |
+| **Total de PRDs planejados (MVP)**   | 50                                                                                                                                  |
+| **PRDs redigidos**                   | 50 (todos os PRDs do MVP redigidos)                                                                                                 |
+| **PRDs implementados**               | 35 (Bloco 0 completo · Bloco 1 completo · Bloco 2 completo · Bloco 3 completo · Bloco 4 ½ — 8/14 · PRD-009 Chime · PRD-025 Copilot) |
+| **PRDs futuros (Fase 2, PRDs 100+)** | 8 (roadmap futuro)                                                                                                                  |
 
 ---
 
@@ -103,9 +103,9 @@ Estabelece os pilares técnicos e visuais sobre os quais todo o resto se constr�
 
 Fundação invisível (008) + central de notificações e preferências (009). Inserido entre o Bloco 0 e o Bloco 1; alimenta toda a plataforma sem depender da Onda 8 (canais reais). Codinomes: **Herald** (008) e **Chime** (009).
 
-| #   | Título                                                                              | Tipo    | Prof. | Impl. | Documento | Status | Depende de |
-| --- | ----------------------------------------------------------------------------------- | ------- | ----- | ----- | --------- | ------ | ---------- |
-| 008 | [Fundação de Notificações](./PRD-008-fundacao-notificacoes_DONE.md)                 | Feature | D     | 🔵    | 📝        | ✅     | Bloco 0    |
+| #   | Título                                                                                   | Tipo    | Prof. | Impl. | Documento | Status | Depende de |
+| --- | ---------------------------------------------------------------------------------------- | ------- | ----- | ----- | --------- | ------ | ---------- |
+| 008 | [Fundação de Notificações](./PRD-008-fundacao-notificacoes_DONE.md)                      | Feature | D     | 🔵    | 📝        | ✅     | Bloco 0    |
 | 009 | [Notification Center e Preferências](./PRD-009-notification-center-preferencias_DONE.md) | Feature | D     | 🔵    | 📝        | ✅     | 008        |
 
 ### Bloco 1 — Central de Atendimento e CRM (PRDs 010–019)
@@ -377,31 +377,31 @@ Mês 11+   ── Operação contínua + manutenção
 
 A plataforma usa Semantic Versioning com codinomes em inglês para releases MINOR e MAJOR.
 
-| Versão     | Codinome       | Data prevista | PRDs incluídos                   | Marco                                                                 |
-| ---------- | -------------- | ------------- | -------------------------------- | --------------------------------------------------------------------- |
-| v0.1.0     | **Genesis**    | Mês 1         | PRD-001                          | Scaffold inicial                                                      |
-| v0.1.1     | **Genesis**    | 25/05/2026    | PRD-002                          | Modelo conceitual de domínio + glossário                              |
-| v0.2.0     | **Genesis**    | 25/05/2026    | PRD-003                          | Shell navegável, auth mockada, 8 layouts, 30+ rotas                   |
-| v0.3.0     | **Genesis**    | 25/05/2026    | PRD-004 (mocks)                  | Camada de mocks com geradores determinísticos                         |
-| v0.4.0     | **Hub**        | 25/05/2026    | PRD-005 (provider pattern)       | Provider pattern Mock + Supabase                                      |
-| v0.5.0     | **Pilot**      | 25/05/2026    | PRD-006 (RBAC + auditoria)       | RBAC visual + matriz de permissões + audit log                        |
-| v0.6.0     | **Compass**    | 25/05/2026    | PRD-007 (multi-loja)             | **Bloco 0 (Fundação) completo** — multi-loja modelado                 |
-| v0.7.0     | **Hub**        | 25/05/2026    | PRD-010 (Inbox unificado)        | Bloco 1 aberto — central de atendimento navegável                     |
-| v0.8.0     | **Pilot**      | 25/05/2026    | PRD-011 (Conversa multicanal)    | Vendedor opera conversas dentro da plataforma                         |
-| v0.13.0    | **Fleet**      | 26/05/2026    | PRD-016 (Veículos do Cliente)    | Veículo como entidade primária + recomendações por km                 |
-| v0.24.0    | **Logistics**  | 26/05/2026    | PRD-032 + PRD-033                | Bloco 3 fechado — Pedido + Frete centralizado                         |
-| v0.25.0    | **Insight**    | 26/05/2026    | PRD-041 (Vendas — Análise)       | Abertura do Bloco 4 — dashboard analítico multidimensional            |
-| v0.26.0    | **Pulse**      | 26/05/2026    | PRD-042 (Metas)                  | Sistema de metas com tracking em tempo real + widget no painel gestor |
-| v0.27.0    | **Cockpit**    | 26/05/2026    | PRD-040 (Visão Executiva)        | Home do Gestor com 12 KPIs cross-feature                              |
-| v0.28.0    | **Coverage**   | 26/05/2026    | PRD-044 (Positivação)            | Cobertura mensal da base + at-risk + widget                           |
-| v0.29.0    | **Pareto**     | 26/05/2026    | PRD-045 (Curva ABC)              | Classificação ABC com migrações + gráfico Pareto                      |
-| v0.30.0    | **Vitals**     | 26/05/2026    | PRD-046 (Carteira Analítica)     | Saúde da carteira — churn, recovery, health score, evolução temporal  |
-| v0.55.0    | **Chime**      | 31/05/2026    | PRD-009 (Notification Center UI) | Central de notificações + sino real + preferências + portal do cliente |
+| Versão     | Codinome       | Data prevista | PRDs incluídos                   | Marco                                                                                                               |
+| ---------- | -------------- | ------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| v0.1.0     | **Genesis**    | Mês 1         | PRD-001                          | Scaffold inicial                                                                                                    |
+| v0.1.1     | **Genesis**    | 25/05/2026    | PRD-002                          | Modelo conceitual de domínio + glossário                                                                            |
+| v0.2.0     | **Genesis**    | 25/05/2026    | PRD-003                          | Shell navegável, auth mockada, 8 layouts, 30+ rotas                                                                 |
+| v0.3.0     | **Genesis**    | 25/05/2026    | PRD-004 (mocks)                  | Camada de mocks com geradores determinísticos                                                                       |
+| v0.4.0     | **Hub**        | 25/05/2026    | PRD-005 (provider pattern)       | Provider pattern Mock + Supabase                                                                                    |
+| v0.5.0     | **Pilot**      | 25/05/2026    | PRD-006 (RBAC + auditoria)       | RBAC visual + matriz de permissões + audit log                                                                      |
+| v0.6.0     | **Compass**    | 25/05/2026    | PRD-007 (multi-loja)             | **Bloco 0 (Fundação) completo** — multi-loja modelado                                                               |
+| v0.7.0     | **Hub**        | 25/05/2026    | PRD-010 (Inbox unificado)        | Bloco 1 aberto — central de atendimento navegável                                                                   |
+| v0.8.0     | **Pilot**      | 25/05/2026    | PRD-011 (Conversa multicanal)    | Vendedor opera conversas dentro da plataforma                                                                       |
+| v0.13.0    | **Fleet**      | 26/05/2026    | PRD-016 (Veículos do Cliente)    | Veículo como entidade primária + recomendações por km                                                               |
+| v0.24.0    | **Logistics**  | 26/05/2026    | PRD-032 + PRD-033                | Bloco 3 fechado — Pedido + Frete centralizado                                                                       |
+| v0.25.0    | **Insight**    | 26/05/2026    | PRD-041 (Vendas — Análise)       | Abertura do Bloco 4 — dashboard analítico multidimensional                                                          |
+| v0.26.0    | **Pulse**      | 26/05/2026    | PRD-042 (Metas)                  | Sistema de metas com tracking em tempo real + widget no painel gestor                                               |
+| v0.27.0    | **Cockpit**    | 26/05/2026    | PRD-040 (Visão Executiva)        | Home do Gestor com 12 KPIs cross-feature                                                                            |
+| v0.28.0    | **Coverage**   | 26/05/2026    | PRD-044 (Positivação)            | Cobertura mensal da base + at-risk + widget                                                                         |
+| v0.29.0    | **Pareto**     | 26/05/2026    | PRD-045 (Curva ABC)              | Classificação ABC com migrações + gráfico Pareto                                                                    |
+| v0.30.0    | **Vitals**     | 26/05/2026    | PRD-046 (Carteira Analítica)     | Saúde da carteira — churn, recovery, health score, evolução temporal                                                |
+| v0.55.0    | **Chime**      | 31/05/2026    | PRD-009 (Notification Center UI) | Central de notificações + sino real + preferências + portal do cliente                                              |
 | v0.56.0    | **Copilot**    | 31/05/2026    | PRD-025 (Copiloto de Vendas)     | Orientação privada ao vendedor — briefing + resumo + sugestões por regra; posicionamento configurável na plataforma |
-| v0.13.0+   | _A definir_    | Mês 2         | PRDs 017–019 + 020–024 + 030–033 | Onda 1 entregue                                                       |
-| v0.5.0     | **Storefront** | Mês 9         | PRDs 060–067 (Bloco 5)           | Onda 3 quase completa                                                 |
-| **v1.0.0** | **Heavy**      | Mês 10        | PRDs 070, 071 + polish final     | **MVP completo — release oficial**                                    |
-| v1.1.0+    | _A definir_    | Mês 11+       | PRDs 100+ (Fase 2)               | Integrações reais                                                     |
+| v0.13.0+   | _A definir_    | Mês 2         | PRDs 017–019 + 020–024 + 030–033 | Onda 1 entregue                                                                                                     |
+| v0.5.0     | **Storefront** | Mês 9         | PRDs 060–067 (Bloco 5)           | Onda 3 quase completa                                                                                               |
+| **v1.0.0** | **Heavy**      | Mês 10        | PRDs 070, 071 + polish final     | **MVP completo — release oficial**                                                                                  |
+| v1.1.0+    | _A definir_    | Mês 11+       | PRDs 100+ (Fase 2)               | Integrações reais                                                                                                   |
 
 ---
 
@@ -551,12 +551,12 @@ Em ordem sugerida, respeitando dependências e os deltas retroativos do `DELTAS-
 
 ## Última Atualização
 
-| Campo                | Valor                                                                                   |
-| -------------------- | --------------------------------------------------------------------------------------- |
-| **Data**             | 31/05/2026                                                                              |
-| **Atualizado por**   | Claude Opus (Claude Code CLI)                                                           |
-| **Motivo**           | Implementação do PRD-025 (Copiloto de Vendas) — v0.56.0 `Copilot`                       |
-| **Versão do índice** | 1.10                                                                                    |
+| Campo                | Valor                                                             |
+| -------------------- | ----------------------------------------------------------------- |
+| **Data**             | 31/05/2026                                                        |
+| **Atualizado por**   | Claude Opus (Claude Code CLI)                                     |
+| **Motivo**           | Implementação do PRD-025 (Copiloto de Vendas) — v0.56.0 `Copilot` |
+| **Versão do índice** | 1.10                                                              |
 
 ---
 

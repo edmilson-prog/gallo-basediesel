@@ -79,22 +79,27 @@ Só dado real normalizado, sem nada sintetizado:
 
 ```ts
 export interface IUfiPartRow {
-  commercialCode: string;   // "23.290.00"
-  description: string;      // "Filtro Spin-On Do Óleo" (já title-cased)
-  segment: string;          // "Off Road" | "Linha Leve" | "Linha Pesada"
-  family: string;           // normalizada → subcategoria: "óleo" | "ar" | ...
-  origin: string;           // "Importado" | "Nacional"
-  multiple: number;         // múltiplo de venda (boxQuantity)
-  ncm?: string;             // "8421.23.00" (formatado com pontos)
-  taxSubstitution?: boolean;// derivado do CST
-  gtin?: string;            // EAN-13 quando presente
-  weightKg?: number;        // Peso Líq, undefined se 0/-
-  reference?: string;       // Original UFI || OE
-  oemCodes: string[];       // OE (split por separadores comuns)
+  commercialCode: string; // "23.290.00"
+  description: string; // "Filtro Spin-On Do Óleo" (já title-cased)
+  segment: string; // "Off Road" | "Linha Leve" | "Linha Pesada"
+  family: string; // normalizada → subcategoria: "óleo" | "ar" | ...
+  origin: string; // "Importado" | "Nacional"
+  multiple: number; // múltiplo de venda (boxQuantity)
+  ncm?: string; // "8421.23.00" (formatado com pontos)
+  taxSubstitution?: boolean; // derivado do CST
+  gtin?: string; // EAN-13 quando presente
+  weightKg?: number; // Peso Líq, undefined se 0/-
+  reference?: string; // Original UFI || OE
+  oemCodes: string[]; // OE (split por separadores comuns)
   crossReferences: { brand: string; code: string }[];
-  applications: { vehicleBrand: string; vehicleModel: string; yearStart: number; yearEnd: number }[];
+  applications: {
+    vehicleBrand: string;
+    vehicleModel: string;
+    yearStart: number;
+    yearEnd: number;
+  }[];
   applicationNotes: string; // texto cru de APLICAÇÃO (lossless)
-  unitCost: number;         // Preço c/ ICMS, Pis e Cofins
+  unitCost: number; // Preço c/ ICMS, Pis e Cofins
 }
 ```
 
@@ -102,49 +107,49 @@ export interface IUfiPartRow {
 
 ### Dado real (planilha → IPart)
 
-| `IPart` | Origem |
-|---|---|
-| `sku` | `commercialCode`; `id` = `part-ufi-<slug(commercialCode)>` |
-| `name` | `description` |
-| `brand` / `supplier` | `"UFI"` / `"UFI Filters"` |
-| `category` | sempre `"filtro"` |
-| `subcategory` | `family` normalizada (Air→`ar`, Oil→`óleo`, Fuel→`combustível`, Cabin→`cabine`, Hydraulic→`hidráulico`, Separator→`separador`); undefined se desconhecida |
-| `segment` *(novo)* | `segment` |
-| `unitCost` | `unitCost` |
-| `gtin` | `gtin` |
-| `weightKg` | `weightKg` |
-| `boxQuantity` | `multiple` |
-| `fiscal.ncm` | `ncm` |
-| `fiscal.origin` | `origin` |
-| `fiscal.taxSubstitution` | `taxSubstitution` |
-| `oemCodes` | `oemCodes` |
-| `reference` | `reference` |
-| `crossReferences` | `crossReferences` |
-| `applications` | `applications` (com ids `app-<partId>-<i>`) |
-| `applicationNotes` *(novo)* | `applicationNotes` |
-| `supplierCode` | `commercialCode` |
-| `group` | `"1-FILTRO"` |
-| `partType` | `"Filtro"` (constante) |
+| `IPart`                     | Origem                                                                                                                                                    |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sku`                       | `commercialCode`; `id` = `part-ufi-<slug(commercialCode)>`                                                                                                |
+| `name`                      | `description`                                                                                                                                             |
+| `brand` / `supplier`        | `"UFI"` / `"UFI Filters"`                                                                                                                                 |
+| `category`                  | sempre `"filtro"`                                                                                                                                         |
+| `subcategory`               | `family` normalizada (Air→`ar`, Oil→`óleo`, Fuel→`combustível`, Cabin→`cabine`, Hydraulic→`hidráulico`, Separator→`separador`); undefined se desconhecida |
+| `segment` _(novo)_          | `segment`                                                                                                                                                 |
+| `unitCost`                  | `unitCost`                                                                                                                                                |
+| `gtin`                      | `gtin`                                                                                                                                                    |
+| `weightKg`                  | `weightKg`                                                                                                                                                |
+| `boxQuantity`               | `multiple`                                                                                                                                                |
+| `fiscal.ncm`                | `ncm`                                                                                                                                                     |
+| `fiscal.origin`             | `origin`                                                                                                                                                  |
+| `fiscal.taxSubstitution`    | `taxSubstitution`                                                                                                                                         |
+| `oemCodes`                  | `oemCodes`                                                                                                                                                |
+| `reference`                 | `reference`                                                                                                                                               |
+| `crossReferences`           | `crossReferences`                                                                                                                                         |
+| `applications`              | `applications` (com ids `app-<partId>-<i>`)                                                                                                               |
+| `applicationNotes` _(novo)_ | `applicationNotes`                                                                                                                                        |
+| `supplierCode`              | `commercialCode`                                                                                                                                          |
+| `group`                     | `"1-FILTRO"`                                                                                                                                              |
+| `partType`                  | `"Filtro"` (constante)                                                                                                                                    |
 
 ### Sintetizado determinístico (seeded por sku)
 
-| `IPart` | Regra |
-|---|---|
-| `marginPercent` | `clamp(0.45 + (ctx.rng()-0.5)*0.18, 0.1, 0.7)` (igual a filtros no gerador) |
-| `unitPrice` | `round(unitCost * (1 + marginPercent))` |
-| `priceTables` | `buildPriceTables(unitCost, marginPercent)` |
-| `fiscal.icmsPercent` | `ctx.pick([4, 7, 12, 17])` (não há na planilha) |
-| `sefazStatus` / `sefazCheckedAt` | se tem GTIN: `validated` 70% / `not_checked` 25% / `invalid` 5%; `sefazCheckedAt` só quando validated |
-| `stockAvailable` / `stockMinimum` | distribuição PRD-030: ~10% zero, ~20% baixo, ~70% normal; `stockMinimum = ctx.int(2,10)` |
-| `storageLocation` | `${pick(A..F)}-${int(1,40)}` |
-| `fractionable` | `ctx.bool(0.4)` |
-| `unitOfMeasure` | `"PC"` |
-| `suppliers` | 1 entrada: UFI Filters, `supplierCode = commercialCode`, `invoiceDate` = data da planilha, `cost = unitCost`, `quantity = int(1,60)` |
-| `averageCost` | `weightedAverageCost(suppliers)` |
-| `isOriginal` | `false` |
-| `division` / `storeId` / `active` | `"parts"` / `"store-matriz"` / `true` |
-| `createdAt` / `updatedAt` | seeded entre 2 anos atrás e `now` |
-| `equivalentPartIds` | `[]` (linkagem opcional via `linkEquivalentParts` se na mesma categoria) |
+| `IPart`                           | Regra                                                                                                                                |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `marginPercent`                   | `clamp(0.45 + (ctx.rng()-0.5)*0.18, 0.1, 0.7)` (igual a filtros no gerador)                                                          |
+| `unitPrice`                       | `round(unitCost * (1 + marginPercent))`                                                                                              |
+| `priceTables`                     | `buildPriceTables(unitCost, marginPercent)`                                                                                          |
+| `fiscal.icmsPercent`              | `ctx.pick([4, 7, 12, 17])` (não há na planilha)                                                                                      |
+| `sefazStatus` / `sefazCheckedAt`  | se tem GTIN: `validated` 70% / `not_checked` 25% / `invalid` 5%; `sefazCheckedAt` só quando validated                                |
+| `stockAvailable` / `stockMinimum` | distribuição PRD-030: ~10% zero, ~20% baixo, ~70% normal; `stockMinimum = ctx.int(2,10)`                                             |
+| `storageLocation`                 | `${pick(A..F)}-${int(1,40)}`                                                                                                         |
+| `fractionable`                    | `ctx.bool(0.4)`                                                                                                                      |
+| `unitOfMeasure`                   | `"PC"`                                                                                                                               |
+| `suppliers`                       | 1 entrada: UFI Filters, `supplierCode = commercialCode`, `invoiceDate` = data da planilha, `cost = unitCost`, `quantity = int(1,60)` |
+| `averageCost`                     | `weightedAverageCost(suppliers)`                                                                                                     |
+| `isOriginal`                      | `false`                                                                                                                              |
+| `division` / `storeId` / `active` | `"parts"` / `"store-matriz"` / `true`                                                                                                |
+| `createdAt` / `updatedAt`         | seeded entre 2 anos atrás e `now`                                                                                                    |
+| `equivalentPartIds`               | `[]` (linkagem opcional via `linkEquivalentParts` se na mesma categoria)                                                             |
 
 ### Novos campos no modelo (`src/shared/types/catalog.ts`)
 
@@ -240,4 +245,7 @@ Ambos opcionais/aditivos — não quebram consumidores existentes. Re-exportar n
 - **Modificar:** `src/features/catalog/components/detail/ApplicationsSection.tsx` (texto cru)
 - **Modificar:** `src/features/catalog/i18n/pt-BR.ts` (strings novas)
 - **Remover:** `src/mocks/data/seedRealPart.ts` + desreferenciar no bootstrap
+
+```
+
 ```

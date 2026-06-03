@@ -34,14 +34,14 @@ sem editar código. Os kits criados/editados ficam imediatamente disponíveis no
 
 ## Decisões de produto (definidas no brainstorm)
 
-| Decisão | Escolha |
-|---|---|
-| Localização na navegação | **Dentro de Catálogo** (`/app/catalogo/kits`) |
-| UX de criar/editar | **As 3** — página, dialog e drawer — selecionáveis |
-| Seleção da UX | **Preferência persistida** (toggle + localStorage, padrão `useQuoteEditorPrefs`) |
-| Operações no MVP | criar, editar, **duplicar**, **excluir (com confirmação)**, **filtros/busca**, **contagem de uso** |
-| Contagem de uso | **Mock determinístico** (semeado por id) — rastreamento real adiado |
-| Quem gerencia | **Owner + Gestor** (Vendedor só consome no editor) |
+| Decisão                  | Escolha                                                                                            |
+| ------------------------ | -------------------------------------------------------------------------------------------------- |
+| Localização na navegação | **Dentro de Catálogo** (`/app/catalogo/kits`)                                                      |
+| UX de criar/editar       | **As 3** — página, dialog e drawer — selecionáveis                                                 |
+| Seleção da UX            | **Preferência persistida** (toggle + localStorage, padrão `useQuoteEditorPrefs`)                   |
+| Operações no MVP         | criar, editar, **duplicar**, **excluir (com confirmação)**, **filtros/busca**, **contagem de uso** |
+| Contagem de uso          | **Mock determinístico** (semeado por id) — rastreamento real adiado                                |
+| Quem gerencia            | **Owner + Gestor** (Vendedor só consome no editor)                                                 |
 
 ## Arquitetura e fluxo de dados
 
@@ -85,6 +85,7 @@ export interface IServiceKitsProvider {
 ```
 
 **Mock api** (`src/mocks/api/serviceKits.ts`):
+
 - Store mutável in-memory inicializado a partir de `SEED_SERVICE_KITS` (o seed vira
   **estado inicial**, não fonte imutável).
 - `create`: gera id determinístico-incremental (`kit-<slug(name)>-<n>`), faz push.
@@ -94,6 +95,7 @@ export interface IServiceKitsProvider {
 - Todas via `runApi("serviceKitsApi", "<op>", …)` para latência simulada e logging.
 
 **Impls:**
+
 - `impl/mock/serviceKits.ts`: delega as 4 novas ops à api.
 - `impl/supabase/serviceKits.ts`: as 4 novas ops lançam `NotImplementedError`.
 
@@ -126,6 +128,7 @@ src/features/service-kits/
 
 **Seleção da casca de UX:** os botões "Novo kit" e "Editar" consultam
 `useServiceKitFormPrefs`:
+
 - modo `page` → navega para `/app/catalogo/kits/novo` ou `/$id/editar`;
 - modos `dialog`/`drawer` → abrem a casca in-place sobre a lista (sem trocar rota).
 
@@ -142,7 +145,7 @@ no catálogo) aparece como "peça indisponível", sem quebrar.
 
 - **Matriz** (`src/features/rbac/permissions/matrix.ts`): novo resource
   `serviceKit` com ações `view/create/edit/delete` liberadas para **Owner** e
-  **Gestor**. Vendedor não recebe nenhuma — continua apenas *consumindo* kits no
+  **Gestor**. Vendedor não recebe nenhuma — continua apenas _consumindo_ kits no
   editor de orçamento.
 - **Gate de rota:** `app.catalogo.kits.*` exige `requireAuth` com `["Owner","Gestor"]`.
 - **Gate de UI:** ações de criar/editar/duplicar/excluir envoltas em

@@ -63,9 +63,7 @@ export function IndicatorProgressChart({
       {isLoading ? (
         <Skeleton className="h-56 w-full" />
       ) : data.length === 0 ? (
-        <p className="py-10 text-center text-sm text-muted-foreground">
-          {S.chartEmpty}
-        </p>
+        <p className="py-10 text-center text-sm text-muted-foreground">{S.chartEmpty}</p>
       ) : (
         <div className="h-56 w-full">
           <ResponsiveContainer width="100%" height="100%">

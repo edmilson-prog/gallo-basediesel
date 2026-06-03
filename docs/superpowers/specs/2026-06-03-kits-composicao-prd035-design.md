@@ -18,7 +18,7 @@ próprio ciclo spec → plano → implementação → versão:
 3. **Delta PRD-016** — `IVehicle.modelId` + aplicar Kit no detalhe do veículo (liga o
    matching por `modelId` que este sub-projeto deixa por string).
 
-**Decisão estratégica já tomada (usuário, epic-level):** *consolidar*. Não haverá dois
+**Decisão estratégica já tomada (usuário, epic-level):** _consolidar_. Não haverá dois
 conceitos de kit. O `IServiceKit` (entregue na v0.62.0) é **substituído** pelo
 kit-pendurado-no-modelo — **recomeço limpo**, não coexistência.
 
@@ -35,7 +35,7 @@ kit-pendurado-no-modelo — **recomeço limpo**, não coexistência.
   (`src/features/quotes/utils/kitExpansion.ts`) resolve itens e faz snapshot;
   `KitPicker` (`src/features/quotes/components/new/items/KitPicker.tsx`, popover) injeta
   direto via `handleAddKit` no `QuoteEditor` (linhas ~205-225). Será **evoluído** para
-  o fluxo *pick → modal de preview → injeta*.
+  o fluxo _pick → modal de preview → injeta_.
 - **`IQuoteItem`** (`src/shared/types/commercial.ts`) já guarda snapshot
   (`partSku`, `partName`, `unitPrice`); `addOrIncrementItem`
   (`src/features/quotes/utils/quoteItemOps.ts`) é a operação atômica de inserção.
@@ -76,15 +76,15 @@ excluem). A composição é **propriedade do modelo, não do cliente**.
 
 ## Decisões de produto (deste brainstorm)
 
-| # | Decisão | Escolha |
-|---|---|---|
-| 1 | Ponto de partida | Só brainstorm/spec agora; decisão de branch fica para a implementação (pós-merge do PR #25). |
-| 2 | Migração de dados | **Recomeçar limpo** — `IServiceKit` → `IVehicleModelKit`; seed novo de ~10 kits `filtros`; redirect `/app/catalogo/kits` → `/app/kits`; nav unificada. |
-| 3 | Curadoria | **Filtro na lista de modelos** — a pílula "Kits N" indica rascunhos pendentes (`Kits 3 · ●1 rascunho`) + chip "Com rascunhos pendentes". Sem tela global nova. |
-| 4 | Casca do editor | **Página dedicada** (rotas aninhadas sob o modelo), consistente com o form de modelo do PRD-034. |
-| 5 | Categoria no MVP | `Select` expõe as 5 categorias; default `filtros`; **só `filtros` é semeado**; só o card "Filtros" do veículo aplica kit no MVP. |
-| 6 | Matching até PRD-016 | Por **string** `brand+model+engine` (limitação conhecida); PRD-016 troca para `modelId`. |
-| 7 | Confirmação | **Undo > confirmação** — aplicar injeta direto + toast `[Desfazer]`; `AlertDialog` só no destrutivo real. |
+| #   | Decisão              | Escolha                                                                                                                                                        |
+| --- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Ponto de partida     | Só brainstorm/spec agora; decisão de branch fica para a implementação (pós-merge do PR #25).                                                                   |
+| 2   | Migração de dados    | **Recomeçar limpo** — `IServiceKit` → `IVehicleModelKit`; seed novo de ~10 kits `filtros`; redirect `/app/catalogo/kits` → `/app/kits`; nav unificada.         |
+| 3   | Curadoria            | **Filtro na lista de modelos** — a pílula "Kits N" indica rascunhos pendentes (`Kits 3 · ●1 rascunho`) + chip "Com rascunhos pendentes". Sem tela global nova. |
+| 4   | Casca do editor      | **Página dedicada** (rotas aninhadas sob o modelo), consistente com o form de modelo do PRD-034.                                                               |
+| 5   | Categoria no MVP     | `Select` expõe as 5 categorias; default `filtros`; **só `filtros` é semeado**; só o card "Filtros" do veículo aplica kit no MVP.                               |
+| 6   | Matching até PRD-016 | Por **string** `brand+model+engine` (limitação conhecida); PRD-016 troca para `modelId`.                                                                       |
+| 7   | Confirmação          | **Undo > confirmação** — aplicar injeta direto + toast `[Desfazer]`; `AlertDialog` só no destrutivo real.                                                      |
 
 ## Modelo de dados
 
@@ -95,17 +95,17 @@ export type ModelKitCategory = "filtros" | "freios" | "correia" | "revisao" | "c
 export type ModelKitStatus = "rascunho" | "oficial";
 
 export interface IKitItem {
-  partId: ID;              // referência VIVA ao IPart (sem snapshot)
+  partId: ID; // referência VIVA ao IPart (sem snapshot)
   defaultQuantity: number; // > 0 (combustível costuma vir em par: 2)
-  isOptional: boolean;     // false = base (pré-marcado no preview); true = sugestão
-  note?: string;           // ex.: "trocar a cada 30.000 km"
+  isOptional: boolean; // false = base (pré-marcado no preview); true = sugestão
+  note?: string; // ex.: "trocar a cada 30.000 km"
 }
 
 export interface IVehicleModelKit {
   id: ID;
-  modelId: ID;             // chave canônica do PRD-034 (obrigatória)
+  modelId: ID; // chave canônica do PRD-034 (obrigatória)
   storeId: ID;
-  name: string;            // "Kit Filtros — Scania R450 DC13"
+  name: string; // "Kit Filtros — Scania R450 DC13"
   category: ModelKitCategory;
   status: ModelKitStatus;
   items: IKitItem[];
@@ -127,17 +127,17 @@ appliedKitIds?: ID[];      // rastreabilidade para "% de orçamentos via Kit" (B
 
 ## Consolidação (recomeço limpo)
 
-| Antes (`IServiceKit`) | Depois (`IVehicleModelKit`) |
-|---|---|
-| `src/features/service-kits/` | `src/features/model-kits/` |
-| `src/shared/types/service-kit.ts` | `src/shared/types/model-kits.ts` |
-| rota `/app/catalogo/kits` (lista plana) | gerenciado em `/app/kits/$modelId`; redirect da rota antiga |
-| nav "Kits de revisão" (Owner/Gestor) | **removido** — uma só nav "Kits por modelo" (PRD-034) |
-| resource RBAC `serviceKit` | resource `modelKit` |
-| provider `serviceKits` + `useServiceKitsProvider` | `modelKits` + `useModelKitsProvider` |
-| `mocks/api/serviceKits.ts` + `seedServiceKits.ts` | `mocks/api/modelKits.ts` + `seedModelKits.ts` |
-| seed: 3 kits genéricos | seed: ~10 kits `filtros` ancorados em `modelId` real |
-| `expandKitToItems` + `KitPicker` (injeta direto) | evoluem para *pick → modal de preview → injeta com snapshot* |
+| Antes (`IServiceKit`)                             | Depois (`IVehicleModelKit`)                                  |
+| ------------------------------------------------- | ------------------------------------------------------------ |
+| `src/features/service-kits/`                      | `src/features/model-kits/`                                   |
+| `src/shared/types/service-kit.ts`                 | `src/shared/types/model-kits.ts`                             |
+| rota `/app/catalogo/kits` (lista plana)           | gerenciado em `/app/kits/$modelId`; redirect da rota antiga  |
+| nav "Kits de revisão" (Owner/Gestor)              | **removido** — uma só nav "Kits por modelo" (PRD-034)        |
+| resource RBAC `serviceKit`                        | resource `modelKit`                                          |
+| provider `serviceKits` + `useServiceKitsProvider` | `modelKits` + `useModelKitsProvider`                         |
+| `mocks/api/serviceKits.ts` + `seedServiceKits.ts` | `mocks/api/modelKits.ts` + `seedModelKits.ts`                |
+| seed: 3 kits genéricos                            | seed: ~10 kits `filtros` ancorados em `modelId` real         |
+| `expandKitToItems` + `KitPicker` (injeta direto)  | evoluem para _pick → modal de preview → injeta com snapshot_ |
 
 O redirect de `/app/catalogo/kits` → `/app/kits` (rota mantida como `beforeLoad` →
 `redirect`) preserva links/favoritos. A constante antiga `APP_CATALOGO_KITS` é removida
@@ -148,14 +148,23 @@ da nav mas a rota de redirect permanece até a Fase 2.
 - **Contract** `src/providers/data/contracts/modelKits.ts`:
   ```ts
   export interface ICreateModelKitInput {
-    modelId: ID; name: string; category: ModelKitCategory;
-    status?: ModelKitStatus; items: IKitItem[];
+    modelId: ID;
+    name: string;
+    category: ModelKitCategory;
+    status?: ModelKitStatus;
+    items: IKitItem[];
   }
   export interface IUpdateModelKitPatch {
-    name?: string; category?: ModelKitCategory; status?: ModelKitStatus; items?: IKitItem[];
+    name?: string;
+    category?: ModelKitCategory;
+    status?: ModelKitStatus;
+    items?: IKitItem[];
   }
   export interface IListModelKitsParams {
-    modelId?: ID; status?: ModelKitStatus; category?: ModelKitCategory; search?: string;
+    modelId?: ID;
+    status?: ModelKitStatus;
+    category?: ModelKitCategory;
+    search?: string;
   }
   export interface IModelKitsProvider {
     list(params?: IListModelKitsParams): Promise<IVehicleModelKit[]>;
@@ -182,7 +191,8 @@ da nav mas a rota de redirect permanece até a Fase 2.
 ## Arquitetura de informação e as 4 superfícies
 
 **Idioma visual transversal** (consultoria de design):
-- **`●` base / `○` opcional** repetido nas 4 superfícies — distinção pela *forma*, não
+
+- **`●` base / `○` opcional** repetido nas 4 superfícies — distinção pela _forma_, não
   só pela cor (cumpre WCAG de graça). Sempre acompanhado de micro-legenda
   `● N base · ○ N opcional` na primeira aparição da tela.
 - **Ouro (`primary`) escasso de propósito:** só no CTA primário, no badge `oficial` e no
@@ -225,15 +235,15 @@ Layout (página, container confortável): **contexto do modelo fixo** no topo (r
 Superfície 1, não aqui — não confundir "salvar" com "promover"). **Editor de itens:**
 
 - **Busca no catálogo** (`Command`/combobox com teclado): resultado mostra nome + código
-  + `[+ Adicionar]`. Ao adicionar, anima a entrada (`animate-in fade-in
-  slide-in-from-top-1`, sob `motion-reduce:transition-none`).
+  - `[+ Adicionar]`. Ao adicionar, anima a entrada (`animate-in fade-in
+slide-in-from-top-1`, sob `motion-reduce:transition-none`).
 - **Lista de itens** (`<ul>`/`<li>`): marcador `●/○`; `stepper` qtd `[− N +]` (botões
   ≥44px, `aria-live` no valor, min 1); `Switch` **Base/Opcional** com rótulo textual
   visível (default OFF = base); **nota** colapsável (`▸ Nota` → `Input`); `[🗑]` remover.
 - **Botão "Sugerir composição (IA)" desabilitado:** `variant="outline" disabled`
   envolvido em `<span tabIndex={0}>` para o `Tooltip` "Disponível na Fase 2" funcionar
   (disabled não dispara tooltip) + micro-selo `ⓘ Fase 2` em `text-[10px]
-  text-muted-foreground` — indisponibilidade honesta sem depender de hover.
+text-muted-foreground` — indisponibilidade honesta sem depender de hover.
 - **Banner de drift** abaixo da busca (ver Superfície 4a).
 - **Footer:** `[Cancelar]` + `[Salvar rascunho]`/`[Salvar]` (texto conforme permissão);
   Salvar `disabled` até ≥1 item (tooltip "Adicione ao menos uma peça").

@@ -61,9 +61,7 @@ export function useIndicatorMilestoneToast(items: IIndicatorWithProgress[]): voi
       for (const { indicator, progress } of activeItems) {
         const reached = MILESTONES.filter((m) => progress.percentage >= m);
         if (reached.length > 0) {
-          seen[indicator.id] = Array.from(
-            new Set([...(seen[indicator.id] ?? []), ...reached]),
-          );
+          seen[indicator.id] = Array.from(new Set([...(seen[indicator.id] ?? []), ...reached]));
         }
       }
       writeSeen(seen);
@@ -77,10 +75,7 @@ export function useIndicatorMilestoneToast(items: IIndicatorWithProgress[]): voi
       const previous = seen[indicator.id] ?? [];
       const newOnes = reached.filter((m) => !previous.includes(m));
       if (newOnes.length === 0) continue;
-      const highest = newOnes.reduce<Milestone>(
-        (acc, m) => (m > acc ? m : acc),
-        0 as Milestone,
-      );
+      const highest = newOnes.reduce<Milestone>((acc, m) => (m > acc ? m : acc), 0 as Milestone);
       toastFor(highest, indicator.name);
       seen[indicator.id] = Array.from(new Set([...previous, ...reached]));
       mutated = true;

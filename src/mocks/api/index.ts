@@ -34,8 +34,6 @@ export { sdrEscalationsApi } from "./sdrEscalations";
 export { notificationsApi, type IListNotificationsParams } from "./notifications";
 export { indicatorsApi, type IListIndicatorsParams } from "./indicators";
 
-export { serviceKitsApi, type IListServiceKitsParams } from "./serviceKits";
-
 export {
   modelKitsApi,
   type IListModelKitsParams,

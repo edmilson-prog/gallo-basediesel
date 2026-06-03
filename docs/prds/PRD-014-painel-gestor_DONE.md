@@ -742,11 +742,11 @@ A partir do PRD-009 (Central de Notificações, codinome **Chime**), o `<ActiveA
 
 ## Histórico
 
-| Data       | Versão | Alteração                                                                                                                                                       |
-| ---------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 25/05/2026 | v1     | Criação inicial — painel operacional do gestor com 7 widgets, alertas, drill-down                                                                               |
+| Data       | Versão | Alteração                                                                                                                                                                            |
+| ---------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 25/05/2026 | v1     | Criação inicial — painel operacional do gestor com 7 widgets, alertas, drill-down                                                                                                    |
 | 31/05/2026 | delta  | PRD-008 extrai a lógica de condição dos alertas para `@/providers/notifications/conditions` (fonte única com o reconciliador); painel inalterado. Migração visual → PRD-009 (RF-029) |
-| 31/05/2026 | delta  | PRD-009 (Chime, v0.55.0): `<ActiveAlertsList>` migrado para consumir o Notification Center (filtro `lifecycle:"derived"`); dismissals locais via `localStorage` aposentados. |
+| 31/05/2026 | delta  | PRD-009 (Chime, v0.55.0): `<ActiveAlertsList>` migrado para consumir o Notification Center (filtro `lifecycle:"derived"`); dismissals locais via `localStorage` aposentados.         |
 
 ---
 

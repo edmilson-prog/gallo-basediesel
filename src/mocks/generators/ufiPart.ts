@@ -43,7 +43,10 @@ const ICMS_RATES = [4, 7, 12, 17] as const;
 
 /** Slugify a commercial code into a stable id fragment. */
 function slug(commercialCode: string): string {
-  return commercialCode.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return commercialCode
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 function roundMoney(value: number): number {

@@ -19,17 +19,17 @@ Esse acompanhamento por recorte de produto é, conceitualmente, um **Indicador**
 
 ## 2. Decisões do brainstorming
 
-| Decisão | Resultado |
-| --- | --- |
-| Relação com Metas | Conceito **separado** (entidade própria, reuso máximo da maquinaria) |
-| Recorte de produto | `category`, `sku`, `group` (**subcategoria fora do MVP** → issue #23) |
-| Métricas | `faturamento`, `quantidade`, `margem`, `pedidos` |
-| Escopo | `store` (coletivo), `individual`, `global` (cross-store) |
-| Ranking de contribuição | **Sim** — abre o número por vendedor |
-| Períodos | `diario`, `semanal`, `mensal`, `trimestral`, `anual` |
-| Riqueza visual | **Igual às metas** — barra, semáforo, projeção, dias restantes, gráfico evolutivo, notificações de marco |
-| Localização | **Área própria** (`/app/gestao/indicadores`) **+ widget** no painel |
-| Nome do conceito | **Indicador** |
+| Decisão                 | Resultado                                                                                                |
+| ----------------------- | -------------------------------------------------------------------------------------------------------- |
+| Relação com Metas       | Conceito **separado** (entidade própria, reuso máximo da maquinaria)                                     |
+| Recorte de produto      | `category`, `sku`, `group` (**subcategoria fora do MVP** → issue #23)                                    |
+| Métricas                | `faturamento`, `quantidade`, `margem`, `pedidos`                                                         |
+| Escopo                  | `store` (coletivo), `individual`, `global` (cross-store)                                                 |
+| Ranking de contribuição | **Sim** — abre o número por vendedor                                                                     |
+| Períodos                | `diario`, `semanal`, `mensal`, `trimestral`, `anual`                                                     |
+| Riqueza visual          | **Igual às metas** — barra, semáforo, projeção, dias restantes, gráfico evolutivo, notificações de marco |
+| Localização             | **Área própria** (`/app/gestao/indicadores`) **+ widget** no painel                                      |
+| Nome do conceito        | **Indicador**                                                                                            |
 
 ---
 
@@ -128,10 +128,15 @@ function buildItemMatcher(sel: ProductSelector, partsMap: Map<ID, IPart>) {
   return (item: IOrderItem): boolean => {
     const cat = item.partCategory ?? partsMap.get(item.partId)?.category;
     switch (sel.kind) {
-      case "category": return !!cat && sel.categories.includes(cat);
-      case "sku":      return sel.partIds.includes(item.partId);
-      case "group":    return (!!cat && (sel.categories?.includes(cat) ?? false)) ||
-                              (sel.partIds?.includes(item.partId) ?? false);
+      case "category":
+        return !!cat && sel.categories.includes(cat);
+      case "sku":
+        return sel.partIds.includes(item.partId);
+      case "group":
+        return (
+          (!!cat && (sel.categories?.includes(cat) ?? false)) ||
+          (sel.partIds?.includes(item.partId) ?? false)
+        );
     }
   };
 }
@@ -143,12 +148,12 @@ Fluxo de `calculateIndicatorProgress(indicator, context)`:
 2. Em cada pedido elegível, filtra os **itens que casam** com o `selector`.
 3. Agrega por métrica:
 
-   | Métrica | Agregação sobre itens que casam |
-   | --- | --- |
-   | `faturamento` | `Σ item.total` |
-   | `quantidade` | `Σ item.quantity` |
-   | `margem` | `Σ item.marginValue` |
-   | `pedidos` | nº de **pedidos distintos** com ≥1 item que casa |
+   | Métrica       | Agregação sobre itens que casam                  |
+   | ------------- | ------------------------------------------------ |
+   | `faturamento` | `Σ item.total`                                   |
+   | `quantidade`  | `Σ item.quantity`                                |
+   | `margem`      | `Σ item.marginValue`                             |
+   | `pedidos`     | nº de **pedidos distintos** com ≥1 item que casa |
 
 4. **Ranking de contribuição:** acumula o valor casado por `order.sellerId`; ao final ordena desc e calcula `share = value / currentValue`.
 5. `percentage`, `projection`, `paceRatio`, `status`, `trend` via helpers compartilhados (`computeProjection`, `describePeriodWindow`, `statusFromRatio`, `computeTrend` genérico que soma "valor casado" em vez de `order.total`).
@@ -174,12 +179,14 @@ Fluxo de `calculateIndicatorProgress(indicator, context)`:
 ## 7. UI — rotas e telas
 
 ### `/app/gestao/indicadores` — Dashboard
+
 - KPIs no topo: indicadores ativos, % média de atingimento, nº ≥ 100%, nº atrasados.
 - Tabela filtrável (recorte, métrica, escopo, status, período) + URL sync.
 - Bar chart de % atingido por indicador.
 - Vendedor vê em **modo leitura** os indicadores que o incluem.
 
 ### `/app/gestao/indicadores/novo` — Criação (Owner/Gestor)
+
 1. **Recorte de produto** — seletor que troca de UI conforme `kind`:
    - `category`: chips das 10 categorias.
    - `sku`: autocomplete de SKU (1+ produtos).
@@ -190,6 +197,7 @@ Fluxo de `calculateIndicatorProgress(indicator, context)`:
 5. **Recompensa** (textarea opcional).
 
 ### `/app/gestao/indicadores/:id` — Detalhe (`DetailLayout`)
+
 - Header: nome, recorte (badge), métrica, escopo, datas, status, ações.
 - Resumo de progresso: barra, valor atual/alvo, %, semáforo, projeção, dias restantes.
 - **Gráfico evolutivo** (Recharts): realizado vs esperado proporcional.
@@ -197,6 +205,7 @@ Fluxo de `calculateIndicatorProgress(indicator, context)`:
 - Composição clicável: pedidos/itens que somaram (link p/ PRD-032).
 
 ### Widget "Indicadores do mês"
+
 - No Painel do Gestor / cockpit: lista compacta com mini-barra; click → detalhe.
 
 ---
@@ -215,13 +224,13 @@ Fluxo de `calculateIndicatorProgress(indicator, context)`:
 
 ## 9. Fases de implementação
 
-| Fase | Entrega | Arquivos (est.) |
-| --- | --- | --- |
-| 1 | Tipos `indicators.ts`, denormalização C1 no `IOrderItem` + mocks, engine + matcher, helpers compartilhados extraídos, hooks | ~7 |
-| 2 | Provider + dashboard (`/indicadores`): KPIs, tabela, filtros, bar chart | ~5 |
-| 3 | Criação `/novo`: seletor de recorte multimodal + sugestões + audit | ~5 |
-| 4 | Detalhe `/:id`: progresso, gráfico evolutivo, ranking de contribuição, composição | ~5 |
-| 5 | Status automático, notificações de marco, widget no painel, responsivo, doc | ~3 |
+| Fase | Entrega                                                                                                                     | Arquivos (est.) |
+| ---- | --------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| 1    | Tipos `indicators.ts`, denormalização C1 no `IOrderItem` + mocks, engine + matcher, helpers compartilhados extraídos, hooks | ~7              |
+| 2    | Provider + dashboard (`/indicadores`): KPIs, tabela, filtros, bar chart                                                     | ~5              |
+| 3    | Criação `/novo`: seletor de recorte multimodal + sugestões + audit                                                          | ~5              |
+| 4    | Detalhe `/:id`: progresso, gráfico evolutivo, ranking de contribuição, composição                                           | ~5              |
+| 5    | Status automático, notificações de marco, widget no painel, responsivo, doc                                                 | ~3              |
 
 ---
 

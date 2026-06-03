@@ -84,8 +84,7 @@ export function IndicatorDetailPage() {
     return map;
   }, [sellersQuery.data]);
 
-  const resolveSellerName = (sellerId: ID): string =>
-    sellersMap.get(sellerId) ?? sellerId;
+  const resolveSellerName = (sellerId: ID): string => sellersMap.get(sellerId) ?? sellerId;
 
   // ── orders + parts (same query keys as useIndicatorProgress → cache hit) ───
   const ordersQuery = useQuery({
@@ -244,7 +243,9 @@ export function IndicatorDetailPage() {
               <GoalStatusBadge mode="progress" value={progress.status} />
 
               {/* Lifecycle status badge (when not ativo) */}
-              {indicator.status !== "ativo" && <IndicatorLifecycleBadge status={indicator.status} />}
+              {indicator.status !== "ativo" && (
+                <IndicatorLifecycleBadge status={indicator.status} />
+              )}
 
               {/* Scope */}
               <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">

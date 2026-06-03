@@ -11,6 +11,7 @@
 **Spec:** `docs/superpowers/specs/2026-06-03-kits-composicao-prd035-design.md` (aprovado).
 
 **Gates do repositório (LER ANTES DE COMEÇAR):**
+
 - **`bun run build` NÃO faz type-check** (esbuild remove tipos). O gate de tipos real é `bunx tsc --noEmit 2>&1` filtrado pelos arquivos tocados — deve sair **vazio**. O repo tem ~316 erros pré-existentes de `tsc`; ignore os que não casam com os arquivos da tarefa.
 - **`bun run lint` global é INUTILIZÁVEL** (milhares de falsos `prettier/prettier Delete ␍` por CRLF). Valide **por-arquivo**: `bunx prettier --check "<arquivo>"`.
 - **Sem test runner.** Lógica pura é validada com script descartável `scripts/_check_*.ts` rodado com `bun`, **apagado no mesmo commit**.
@@ -28,6 +29,7 @@
 ## File Structure
 
 **Criar:**
+
 - `src/shared/types/model-kits.ts` — `IVehicleModelKit`, `IKitItem`, `ModelKitCategory`, `ModelKitStatus`
 - `src/providers/data/contracts/modelKits.ts` — contrato + inputs/params
 - `src/providers/data/impl/mock/modelKits.ts` — delega à api
@@ -61,6 +63,7 @@
 - `scripts/_check_seed_model_kits.ts` (descartável, apagado no commit da Task 5)
 
 **Modificar:**
+
 - `src/shared/types/index.ts` — re-export do tipo novo
 - `src/shared/types/commercial.ts` — `appliedKitIds?` em `IQuote`
 - `src/providers/data/contracts/index.ts` — registrar contrato + `IDataProviders.modelKits`
@@ -78,6 +81,7 @@
 - `src/features/vehicles/components/detail/MaintenanceRecommendations.tsx` — card "Filtros" aplica Kit
 
 **Remover (Task 19 — cutover):**
+
 - `src/features/service-kits/**` (16 arquivos)
 - `src/shared/types/service-kit.ts`
 - `src/providers/data/contracts/serviceKits.ts`, `impl/mock/serviceKits.ts`, `impl/supabase/serviceKits.ts`, `hooks/useServiceKitsProvider.ts`
@@ -93,6 +97,7 @@
 ## Task 1: Tipos de domínio `IVehicleModelKit` / `IKitItem`
 
 **Files:**
+
 - Create: `src/shared/types/model-kits.ts`
 - Modify: `src/shared/types/index.ts` (FIM do arquivo, após o export de `vehicle-models`)
 
@@ -174,6 +179,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 2: Delta `appliedKitIds` em `IQuote`
 
 **Files:**
+
 - Modify: `src/shared/types/commercial.ts:92` (após `notes?: string;`, antes de `createdAt`)
 
 - [ ] **Step 1: Adicionar o campo** — inserir após a linha `notes?: string;` dentro de `interface IQuote`:
@@ -208,6 +214,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 3: Provider `modelKits` (contract + impls + hook + factory + barrels)
 
 **Files:**
+
 - Create: `src/providers/data/contracts/modelKits.ts`
 - Create: `src/providers/data/impl/mock/modelKits.ts`
 - Create: `src/providers/data/impl/supabase/modelKits.ts`
@@ -221,7 +228,13 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 - [ ] **Step 1: Contract** — `src/providers/data/contracts/modelKits.ts`:
 
 ```ts
-import type { ID, IVehicleModelKit, IKitItem, ModelKitCategory, ModelKitStatus } from "@/shared/types";
+import type {
+  ID,
+  IVehicleModelKit,
+  IKitItem,
+  ModelKitCategory,
+  ModelKitStatus,
+} from "@/shared/types";
 
 export interface IListModelKitsParams {
   modelId?: ID;
@@ -330,6 +343,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 4: Mock api `modelKits` + barrel
 
 **Files:**
+
 - Create: `src/mocks/api/modelKits.ts`
 - Modify: `src/mocks/api/index.ts` (re-export, espelhando `serviceKitsApi`)
 
@@ -376,7 +390,10 @@ const NOW = "2026-06-03T12:00:00.000Z";
 
 // In-memory store seeded from SEED_MODEL_KITS. Writes persist for the session and
 // reset on reload (Fase 1 mock semantics). TanStack Query invalidation drives UI.
-let kits: IVehicleModelKit[] = SEED_MODEL_KITS.map((k) => ({ ...k, items: k.items.map((i) => ({ ...i })) }));
+let kits: IVehicleModelKit[] = SEED_MODEL_KITS.map((k) => ({
+  ...k,
+  items: k.items.map((i) => ({ ...i })),
+}));
 
 let createdSeq = 0;
 function nextId(): ID {
@@ -421,12 +438,9 @@ function matches(kit: IVehicleModelKit, params: IListModelKitsParams): boolean {
 
 export const modelKitsApi = {
   list(params: IListModelKitsParams = {}): Promise<IVehicleModelKit[]> {
-    return runApi(
-      "modelKitsApi",
-      "list",
-      () => kits.filter((k) => matches(k, params)).map(clone),
-      { payload: params },
-    );
+    return runApi("modelKitsApi", "list", () => kits.filter((k) => matches(k, params)).map(clone), {
+      payload: params,
+    });
   },
 
   get(id: ID): Promise<IVehicleModelKit> {
@@ -517,6 +531,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 5: Seed `SEED_MODEL_KITS` (~10 kits `filtros`)
 
 **Files:**
+
 - Create: `src/mocks/data/seedModelKits.ts`
 - Create (descartável): `scripts/_check_seed_model_kits.ts`
 
@@ -524,18 +539,18 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 `modelId` reais já derivados de `SEED_VEHICLE_MODELS` (use estes; cubra as 5 marcas):
 
-| Marca | Modelo / Motor | `modelId` |
-|---|---|---|
-| Scania | R 450 / DC13 | `vmodel-scania-r-450-dc13` |
-| Scania | P 320 / DC09 | `vmodel-scania-p-320-dc09` |
-| Volvo | FH 540 / D13K540 | `vmodel-volvo-fh-540-d13k540` |
-| Volvo | FH 460 / D13K460 | `vmodel-volvo-fh-460-d13k460` |
-| Volvo | FM 370 / D11K370 | `vmodel-volvo-fm-370-d11k370` |
-| Mercedes-Benz | Actros 2651 / OM 473 LA | `vmodel-mercedes-benz-actros-2651-om-473-la` |
-| Mercedes-Benz | Axor 2544 / OM 457 LA | `vmodel-mercedes-benz-axor-2544-om-457-la` |
-| Ford Cargo | 1719 / Cummins ISBe4 | `vmodel-ford-cargo-1719-cummins-isbe4` |
-| Iveco | Stralis 600S44T / Cursor 13 | `vmodel-iveco-stralis-600s44t-cursor-13` |
-| Iveco | Tector 240E28 / Tector 6 | `vmodel-iveco-tector-240e28-tector-6` |
+| Marca         | Modelo / Motor              | `modelId`                                    |
+| ------------- | --------------------------- | -------------------------------------------- |
+| Scania        | R 450 / DC13                | `vmodel-scania-r-450-dc13`                   |
+| Scania        | P 320 / DC09                | `vmodel-scania-p-320-dc09`                   |
+| Volvo         | FH 540 / D13K540            | `vmodel-volvo-fh-540-d13k540`                |
+| Volvo         | FH 460 / D13K460            | `vmodel-volvo-fh-460-d13k460`                |
+| Volvo         | FM 370 / D11K370            | `vmodel-volvo-fm-370-d11k370`                |
+| Mercedes-Benz | Actros 2651 / OM 473 LA     | `vmodel-mercedes-benz-actros-2651-om-473-la` |
+| Mercedes-Benz | Axor 2544 / OM 457 LA       | `vmodel-mercedes-benz-axor-2544-om-457-la`   |
+| Ford Cargo    | 1719 / Cummins ISBe4        | `vmodel-ford-cargo-1719-cummins-isbe4`       |
+| Iveco         | Stralis 600S44T / Cursor 13 | `vmodel-iveco-stralis-600s44t-cursor-13`     |
+| Iveco         | Tector 240E28 / Tector 6    | `vmodel-iveco-tector-240e28-tector-6`        |
 
 - [ ] **Step 1: Criar o seed** — `src/mocks/data/seedModelKits.ts`. Estrutura (≥10 kits, mix `oficial`/`rascunho`, 3-5 itens cada, ≥1 item `isOptional: true` por kit; `STORE_ID = "store-matriz"` inline como em `seedServiceKits.ts`):
 
@@ -564,8 +579,18 @@ export const SEED_MODEL_KITS: IVehicleModelKit[] = [
     items: [
       { partId: "part-ufi-23-127-00", defaultQuantity: 1, isOptional: false },
       { partId: "part-ufi-24-159-00", defaultQuantity: 1, isOptional: false },
-      { partId: "part-ufi-20-016-00", defaultQuantity: 2, isOptional: false, note: "Filtro de combustível — par." },
-      { partId: "part-ufi-23-290-00", defaultQuantity: 1, isOptional: true, note: "Separador de água — opcional." },
+      {
+        partId: "part-ufi-20-016-00",
+        defaultQuantity: 2,
+        isOptional: false,
+        note: "Filtro de combustível — par.",
+      },
+      {
+        partId: "part-ufi-23-290-00",
+        defaultQuantity: 1,
+        isOptional: true,
+        note: "Separador de água — opcional.",
+      },
     ],
     createdBy: SEED_ACTOR,
     createdAt: SEED_TIMESTAMP,
@@ -593,20 +618,45 @@ const partIds = new Set(parts.map((p: { id: string }) => p.id));
 let failures = 0;
 const seenIds = new Set<string>();
 for (const kit of SEED_MODEL_KITS) {
-  if (seenIds.has(kit.id)) { console.error(`DUP kit id: ${kit.id}`); failures++; }
+  if (seenIds.has(kit.id)) {
+    console.error(`DUP kit id: ${kit.id}`);
+    failures++;
+  }
   seenIds.add(kit.id);
-  if (!modelIds.has(kit.modelId)) { console.error(`BAD modelId: ${kit.id} -> ${kit.modelId}`); failures++; }
-  if (kit.items.length < 3) { console.error(`TOO FEW items: ${kit.id}`); failures++; }
+  if (!modelIds.has(kit.modelId)) {
+    console.error(`BAD modelId: ${kit.id} -> ${kit.modelId}`);
+    failures++;
+  }
+  if (kit.items.length < 3) {
+    console.error(`TOO FEW items: ${kit.id}`);
+    failures++;
+  }
   for (const it of kit.items) {
-    if (!partIds.has(it.partId)) { console.error(`BAD partId: ${kit.id} -> ${it.partId}`); failures++; }
-    if (!Number.isInteger(it.defaultQuantity) || it.defaultQuantity < 1) { console.error(`BAD qty: ${kit.id} -> ${it.partId}`); failures++; }
+    if (!partIds.has(it.partId)) {
+      console.error(`BAD partId: ${kit.id} -> ${it.partId}`);
+      failures++;
+    }
+    if (!Number.isInteger(it.defaultQuantity) || it.defaultQuantity < 1) {
+      console.error(`BAD qty: ${kit.id} -> ${it.partId}`);
+      failures++;
+    }
   }
 }
 const drafts = SEED_MODEL_KITS.filter((k) => k.status === "rascunho").length;
-if (drafts < 1) { console.error("Need at least 1 rascunho kit for curation flow."); failures++; }
-if (SEED_MODEL_KITS.length < 10) { console.error(`Need >= 10 kits, got ${SEED_MODEL_KITS.length}`); failures++; }
+if (drafts < 1) {
+  console.error("Need at least 1 rascunho kit for curation flow.");
+  failures++;
+}
+if (SEED_MODEL_KITS.length < 10) {
+  console.error(`Need >= 10 kits, got ${SEED_MODEL_KITS.length}`);
+  failures++;
+}
 
-console.log(failures === 0 ? `OK — ${SEED_MODEL_KITS.length} kits, all ids resolve.` : `FAIL — ${failures} problem(s).`);
+console.log(
+  failures === 0
+    ? `OK — ${SEED_MODEL_KITS.length} kits, all ids resolve.`
+    : `FAIL — ${failures} problem(s).`,
+);
 process.exit(failures === 0 ? 0 : 1);
 ```
 
@@ -628,6 +678,7 @@ Expected: vazio.
 bunx prettier --check "src/mocks/data/seedModelKits.ts"
 git rm -f --quiet scripts/_check_seed_model_kits.ts 2>$null; Remove-Item -Force scripts/_check_seed_model_kits.ts -ErrorAction SilentlyContinue
 ```
+
 (O script descartável NÃO entra no commit.)
 
 - [ ] **Step 6: Commit**
@@ -646,6 +697,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 6: RBAC resource `modelKit` (aditivo)
 
 **Files:**
+
 - Modify: `src/features/rbac/permissions/resources.ts:20` (após `"vehicleModel"`)
 - Modify: `src/features/rbac/permissions/matrix.ts` (Owner/Gestor/Vendedor)
 - Modify: `src/features/rbac/pages/RolesPage.tsx:56` (após `vehicleModel`)
@@ -682,6 +734,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 7: Lógica pura — matching, drift e expansão para preview
 
 **Files:**
+
 - Create: `src/features/model-kits/utils/modelKitMatching.ts`
 - Create: `src/features/model-kits/utils/modelKitDrift.ts`
 - Create: `src/features/model-kits/utils/kitPreview.ts`
@@ -815,36 +868,92 @@ export function buildKitPreview(kit: IVehicleModelKit, partsById: Map<ID, IPart>
 
 ```ts
 import type { IPart, IVehicle, IVehicleModel, IVehicleModelKit } from "../src/shared/types";
-import { findKitsForVehicle, vehicleMatchesModel } from "../src/features/model-kits/utils/modelKitMatching";
+import {
+  findKitsForVehicle,
+  vehicleMatchesModel,
+} from "../src/features/model-kits/utils/modelKitMatching";
 import { getCompatiblePartsNotInKit } from "../src/features/model-kits/utils/modelKitDrift";
 import { buildKitPreview } from "../src/features/model-kits/utils/kitPreview";
 
 let fail = 0;
-const assert = (cond: boolean, msg: string) => { if (!cond) { console.error("FAIL:", msg); fail++; } };
+const assert = (cond: boolean, msg: string) => {
+  if (!cond) {
+    console.error("FAIL:", msg);
+    fail++;
+  }
+};
 
-const model = { id: "vmodel-x", brand: "Scania", model: "R 450", engine: "DC13", status: "ativo", createdBy: "s", createdAt: "", updatedAt: "" } as IVehicleModel;
+const model = {
+  id: "vmodel-x",
+  brand: "Scania",
+  model: "R 450",
+  engine: "DC13",
+  status: "ativo",
+  createdBy: "s",
+  createdAt: "",
+  updatedAt: "",
+} as IVehicleModel;
 const vehicle = { brand: "scania", model: "r 450", engine: "DC13" } as IVehicle;
 assert(vehicleMatchesModel(vehicle, model), "case/diacritic-insensitive brand+model match");
 
-const kitOficial = { id: "k1", modelId: "vmodel-x", storeId: "s", name: "B", category: "filtros", status: "oficial", items: [{ partId: "p1", defaultQuantity: 1, isOptional: false }], createdBy: "s", createdAt: "", updatedAt: "" } as IVehicleModelKit;
+const kitOficial = {
+  id: "k1",
+  modelId: "vmodel-x",
+  storeId: "s",
+  name: "B",
+  category: "filtros",
+  status: "oficial",
+  items: [{ partId: "p1", defaultQuantity: 1, isOptional: false }],
+  createdBy: "s",
+  createdAt: "",
+  updatedAt: "",
+} as IVehicleModelKit;
 const kitRascunho = { ...kitOficial, id: "k2", name: "A", status: "rascunho" } as IVehicleModelKit;
 const modelsById = new Map([[model.id, model]]);
 const found = findKitsForVehicle(vehicle, [kitRascunho, kitOficial], modelsById);
 assert(found.length === 2 && found[0]!.status === "oficial", "official sorted before draft");
 
 const parts: IPart[] = [
-  { id: "p1", applications: [{ id: "a", vehicleBrand: "Scania", vehicleModel: "R 450", yearStart: 2014, yearEnd: 2024 }] } as IPart,
-  { id: "p2", applications: [{ id: "b", vehicleBrand: "Scania", vehicleModel: "R 450", yearStart: 2014, yearEnd: 2024 }] } as IPart,
-  { id: "p3", applications: [{ id: "c", vehicleBrand: "Volvo", vehicleModel: "FH 540", yearStart: 2017, yearEnd: 2024 }] } as IPart,
+  {
+    id: "p1",
+    applications: [
+      { id: "a", vehicleBrand: "Scania", vehicleModel: "R 450", yearStart: 2014, yearEnd: 2024 },
+    ],
+  } as IPart,
+  {
+    id: "p2",
+    applications: [
+      { id: "b", vehicleBrand: "Scania", vehicleModel: "R 450", yearStart: 2014, yearEnd: 2024 },
+    ],
+  } as IPart,
+  {
+    id: "p3",
+    applications: [
+      { id: "c", vehicleBrand: "Volvo", vehicleModel: "FH 540", yearStart: 2017, yearEnd: 2024 },
+    ],
+  } as IPart,
 ];
 const drift = getCompatiblePartsNotInKit(kitOficial, model, parts);
-assert(drift.length === 1 && drift[0]!.id === "p2", "drift = compatible parts not in kit (p2 only)");
+assert(
+  drift.length === 1 && drift[0]!.id === "p2",
+  "drift = compatible parts not in kit (p2 only)",
+);
 
 const partsById = new Map(parts.map((p) => [p.id, p]));
-const kitMix = { ...kitOficial, items: [{ partId: "p1", defaultQuantity: 1, isOptional: true }, { partId: "p2", defaultQuantity: 2, isOptional: false }, { partId: "gone", defaultQuantity: 1, isOptional: false }] } as IVehicleModelKit;
+const kitMix = {
+  ...kitOficial,
+  items: [
+    { partId: "p1", defaultQuantity: 1, isOptional: true },
+    { partId: "p2", defaultQuantity: 2, isOptional: false },
+    { partId: "gone", defaultQuantity: 1, isOptional: false },
+  ],
+} as IVehicleModelKit;
 const preview = buildKitPreview(kitMix, partsById);
 assert(preview.missing === 1, "missing counts unresolved part");
-assert(preview.lines.length === 2 && preview.lines[0]!.isOptional === false, "base before optional, missing skipped");
+assert(
+  preview.lines.length === 2 && preview.lines[0]!.isOptional === false,
+  "base before optional, missing skipped",
+);
 
 console.log(fail === 0 ? "OK — model-kits logic passes." : `FAIL — ${fail} assertion(s).`);
 process.exit(fail === 0 ? 0 : 1);
@@ -879,6 +988,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 8: Hooks de dados + validação do editor
 
 **Files:**
+
 - Create: `src/features/model-kits/hooks/useModelKits.ts`
 - Create: `src/features/model-kits/hooks/useModelKit.ts`
 - Create: `src/features/model-kits/hooks/useModelKitMutations.ts`
@@ -961,9 +1071,11 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 9: Componentes de apresentação do kit (badges + preview + card)
 
 **Files:**
+
 - Create: `KitCategoryBadge.tsx`, `KitStatusBadge.tsx`, `KitItemsPreview.tsx`, `ModelKitCard.tsx`, `DeleteModelKitDialog.tsx` (em `src/features/model-kits/components/`)
 
 **Contrato (props):**
+
 ```ts
 // KitCategoryBadge: { category: ModelKitCategory }
 // KitStatusBadge: { status: ModelKitStatus }
@@ -973,11 +1085,12 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ```
 
 **Especificação de design (consultor — Superfície 1), seguir verbatim:**
+
 - **Card** `Card` (`bg-card border-border rounded-lg`), hover `hover:border-primary/40 transition-colors` (só borda).
 - Ícone de categoria via mapa: `filtros` `mdi:air-filter` · `freios` `mdi:car-brake-alarm` · `correia` `mdi:fan` · `revisao` `mdi:wrench-clock` · `custom` `mdi:package-variant`. `text-muted-foreground size-5`.
 - **KitStatusBadge:** `oficial` → `Badge` `bg-primary/15 text-primary border-primary/30` (ouro comedido) + texto "Oficial"; `rascunho` → `variant="outline" text-muted-foreground` + ícone `mdi:pencil-ruler` + "Rascunho". **Nunca só cor** (ícone/texto sempre).
 - **KitCategoryBadge:** `variant="secondary"` (`bg-muted text-muted-foreground`), ícone + label minúsculo.
-- **KitItemsPreview:** bloco `bg-muted/50 rounded-md p-3`. **Base = `●` (`mdi:circle`, `text-foreground`)**, **Opcional = `○` (`mdi:circle-outline`, `text-muted-foreground`)`. Quantidade > 1 mostrada inline (`×2`). Legenda compacta `● N base · ○ N opcional`.
+- **KitItemsPreview:** bloco `bg-muted/50 rounded-md p-3`. **Base = `●` (`mdi:circle`, `text-foreground`)**, \*\*Opcional = `○` (`mdi:circle-outline`, `text-muted-foreground`)`. Quantidade > 1 mostrada inline (`×2`). Legenda compacta `● N base · ○ N opcional`.
 - **Ações** (alvos ≥44px): Vendedor `[Editar]` `[Aplicar]`; Gestor/Owner + `[Promover]`/`[Despromover]` e `[Excluir]` no overflow `⋯` (`DropdownMenu`). `[Aplicar]` = `variant="default"` (ouro); demais `outline`/`ghost`. `[Excluir]` abre `DeleteModelKitDialog` (`AlertDialog`, `text-destructive`).
 - Linha clicável = `<a>`/área de leitura; botões como **irmãos** fora do anchor (sem nested-interactive).
 - **Tokens semânticos apenas**; light+dark; `motion-reduce` respeitado.
@@ -1005,12 +1118,14 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 10: Seção "Kits deste modelo" no detalhe do modelo
 
 **Files:**
+
 - Create: `src/features/model-kits/components/ModelKitsSection.tsx`
 - Modify: `src/features/vehicle-models/pages/VehicleModelDetailPage.tsx:133-151` (substituir o slot vazio)
 
 **Contrato:** `ModelKitsSection: { modelId: ID; modelLabel: string }`. Internamente: `useModelKits({ modelId })` para a lista, `usePartsProvider`/`usePartsIndex` (ou o hook de índice já usado em quotes) para `partsById`, `useModelKitMutations` para promote/demote/remove, `useAuth` + `hasPermission(currentUser, "modelKit", "create")` para `canManage` e `"modelKit","edit"` para curar. Navega para o editor via `navigate({ to: "/app/kits/$modelId/kit/novo", params })` e para aplicar via `ApplyKitDialog` (Task 14 — até lá, `onApply` pode no-op com `toast.info`; fie a fiação real na Task 15).
 
 **Especificação de design (Superfície 1 — estados):**
+
 - Cabeçalho da seção: `h2` "Kits deste modelo" + `[+ Criar kit]` (só `canManage`).
 - Lista de `ModelKitCard` (gap confortável).
 - **Vazio com permissão:** ícone `mdi:tray-plus`, "Nenhum kit para este modelo ainda", subtítulo "Crie um kit de filtros para agilizar orçamentos deste {modelLabel}." + `[+ Criar kit]`.
@@ -1022,12 +1137,15 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 - [ ] **Step 2:** Em `VehicleModelDetailPage.tsx`, substituir TODO o bloco `{/* Kits section — honest empty slot (PRD-035) */} … </div>` (linhas 133-151) por:
 
 ```tsx
-{/* Kits section (PRD-035) */}
+{
+  /* Kits section (PRD-035) */
+}
 <ModelKitsSection
   modelId={model.id}
   modelLabel={`${model.brand} ${model.model} (${model.engine})`}
-/>
+/>;
 ```
+
 e adicionar o import `import { ModelKitsSection } from "@/features/model-kits/components/ModelKitsSection";` no topo.
 
 - [ ] **Step 3: Verificar tipos + prettier**
@@ -1051,6 +1169,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 11: Editor de kit (página dedicada) + rotas
 
 **Files:**
+
 - Create: `src/features/model-kits/components/KitCatalogSearch.tsx`
 - Create: `src/features/model-kits/components/KitItemEditorRow.tsx`
 - Create: `src/features/model-kits/pages/ModelKitFormPage.tsx`
@@ -1060,6 +1179,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 - Regenerar: `src/routeTree.gen.ts` (via dev server)
 
 **Contratos:**
+
 ```ts
 // KitCatalogSearch: { onAdd(part: IPart): void; excludePartIds: Set<ID> }  // Command/combobox sobre o catálogo
 // KitItemEditorRow: { item: IKitItem; part: IPart | undefined; onPatch(patch: Partial<IKitItem>): void; onRemove(): void }
@@ -1067,6 +1187,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ```
 
 **Especificação de design (Superfície 2 — página dedicada, seguir verbatim):**
+
 - Contexto do modelo fixo no topo (read-only): "Modelo: {brand} {model} {engine}".
 - Campos: **nome** (`Input`); **categoria** (`Select`, itens com ícone+label, default `filtros`); **status** como `Badge` read-only (muda via promoção, não aqui).
 - **KitCatalogSearch:** `Command`/combobox com `mdi:magnify`; resultado = nome + código + `[+ Adicionar]`; ao adicionar anima `animate-in fade-in slide-in-from-top-1` (sob `motion-reduce:transition-none`). `excludePartIds` esconde itens já no kit.
@@ -1108,12 +1229,14 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 12: Banner de drift no editor
 
 **Files:**
+
 - Create: `src/features/model-kits/components/KitDriftBanner.tsx`
 - Modify: `src/features/model-kits/pages/ModelKitFormPage.tsx` (fiar o banner abaixo da busca)
 
 **Contrato:** `KitDriftBanner: { parts: IPart[]; onAdd(part: IPart): void }` — `parts` = resultado de `getCompatiblePartsNotInKit(kit, model, allParts)` excluindo os já adicionados no form.
 
 **Especificação de design (Superfície 4a — tom info, jamais alarme):**
+
 - Casca `bg-muted/50 border border-border rounded-md` (NÃO `bg-card`, NÃO borda forte). Ícone `mdi:information-outline text-muted-foreground`. Texto `text-sm text-muted-foreground`: "{N} peças compatíveis com este modelo estão fora deste kit."
 - Ação inline `[Ver peças ▾]` (`variant="link"`/`ghost`) que expande sub-bloco com cada peça + `[+ Adicionar]` (progressive disclosure; reusa o componente de resultado da busca).
 - Se `parts.length === 0` → **não renderiza** (ausência honesta). `[✕]` opcional para ocultar na sessão.
@@ -1141,12 +1264,14 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 13: Curadoria — indicador de rascunho na lista de modelos
 
 **Files:**
+
 - Modify: `src/features/vehicle-models/components/VehicleModelRow.tsx` (pílula "Kits N · ●rascunhos")
 - Modify: `src/features/vehicle-models/pages/VehicleModelsListPage.tsx` (chip "Com rascunhos pendentes")
 
 > A lista de modelos do PRD-034 já mostra uma pílula "Kits N". Esta task a alimenta com a contagem real de kits do modelo e dos rascunhos pendentes, e adiciona um filtro.
 
 **Especificação:**
+
 - Carregar a contagem por modelo: usar `useModelKits({})` uma vez no nível da lista e agrupar por `modelId` → `{ total, rascunhos }`. Passar a contagem para cada `VehicleModelRow` (prop nova `kitCounts?: { total: number; rascunhos: number }`).
 - Pílula: "Kits {total}"; se `rascunhos > 0`, sufixo `· ●{rascunhos} rascunho(s)` com o `●` em `text-muted-foreground` + `aria-label` "{rascunhos} rascunhos pendentes". (Sem cor de alarme; ícone/texto carregam a semântica.)
 - Chip `[☐ Com rascunhos pendentes]` no topo da lista (`aria-pressed`); quando ativo, filtra os modelos para os que têm `rascunhos > 0`. Sincronizar com a URL como os demais filtros do PRD-034.
@@ -1178,21 +1303,28 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 14: Modal "Aplicar Kit" (preview)
 
 **Files:**
+
 - Create: `src/features/model-kits/components/ApplyKitDialog.tsx`
 
 **Contrato:**
+
 ```ts
-export interface IApplyKitSelection { part: IPart; quantity: number }
+export interface IApplyKitSelection {
+  part: IPart;
+  quantity: number;
+}
 export interface IApplyKitDialogProps {
-  kit: IVehicleModelKit | null;        // null = fechado
+  kit: IVehicleModelKit | null; // null = fechado
   partsById: Map<ID, IPart>;
   onOpenChange(open: boolean): void;
-  onConfirm(selection: IApplyKitSelection[]): void;  // só itens marcados
+  onConfirm(selection: IApplyKitSelection[]): void; // só itens marcados
 }
 ```
+
 Usa `buildKitPreview(kit, partsById)` (Task 7) para as linhas.
 
 **Especificação de design (Superfície 3 — `Dialog`, seguir verbatim):**
+
 - `Dialog max-w-xl`, corpo `max-h-[70vh] overflow-y-auto`.
 - Título "Aplicar {kit.name}". Subtítulo: **"Opcionais vêm desmarcados — são sugestões, você escolhe."**
 - Cada linha: `Checkbox` + `●/○` + nome + `stepper` qtd + unit (snapshot do catálogo) + subtotal. **Base pré-marcado**; **opcional desmarcado** sob divisor "opcionais (sugestões)" (`border-t` + label `text-xs uppercase tracking-wide text-muted-foreground`).
@@ -1224,12 +1356,13 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 15: Fiar a aplicação no `QuoteEditor` (preview → snapshot → appliedKitIds → undo)
 
 **Files:**
+
 - Modify: `src/features/quotes/components/new/items/KitPicker.tsx` (tipo `IVehicleModelKit`; abre o modal em vez de injetar)
 - Modify: `src/features/quotes/components/new/QuoteEditor.tsx` (estado do modal, confirmação, `appliedKitIds`, undo, audit)
 
 > Evolui o fluxo existente. Hoje `KitPicker` recebe `IServiceKit[]` e `onAddKit` injeta direto (linhas 205-225). Agora: `KitPicker` lista `IVehicleModelKit[]` e chama `onPickKit(kit)`; o `QuoteEditor` abre `<ApplyKitDialog>`; ao `onConfirm(selection)`, injeta cada item com snapshot via `addOrIncrementItem`, registra o `kit.id` em `appliedKitIds`, emite toast com `[Desfazer]`, e grava audit (`action: "apply", resource: "modelKit", resourceId: kit.id`; incluir `quoteId` quando disponível).
 
-- [ ] **Step 1:** Onde o `QuoteEditor` obtém os kits (hoje via `useServiceKits`/provider de serviceKits — localizar o ponto que alimenta `<KitPicker kits=…>`, ~linha 399), trocar para `useModelKits({})`. (Opcional MVP: filtrar por kits cujo modelo casa com algum veículo do cliente via `findKitsForVehicle`; senão listar todos os oficiais.) 
+- [ ] **Step 1:** Onde o `QuoteEditor` obtém os kits (hoje via `useServiceKits`/provider de serviceKits — localizar o ponto que alimenta `<KitPicker kits=…>`, ~linha 399), trocar para `useModelKits({})`. (Opcional MVP: filtrar por kits cujo modelo casa com algum veículo do cliente via `findKitsForVehicle`; senão listar todos os oficiais.)
 
 - [ ] **Step 2:** Adaptar `KitPicker.tsx`: trocar `IServiceKit` por `IVehicleModelKit`; renomear `onAddKit` → `onPickKit`; ajustar o subtítulo para "Pré-visualizar e aplicar um kit"; manter o ícone (use `mdi:air-filter`).
 
@@ -1260,12 +1393,14 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 16: Sugestão automática no orçamento
 
 **Files:**
+
 - Create: `src/features/model-kits/components/KitSuggestionBanner.tsx`
 - Modify: `src/features/quotes/components/new/QuoteEditor.tsx` (renderizar a sugestão)
 
 **Contrato:** `KitSuggestionBanner: { kit: IVehicleModelKit; vehicleLabel: string; onApply(): void; onDismiss(): void }`.
 
 **Especificação de design (Superfície 4b — faixa discreta, não modal):**
+
 - Casca `bg-muted/50 border border-border rounded-lg`, ícone `mdi:truck-outline text-muted-foreground`. Texto: "Este cliente tem um {vehicleLabel} — aplicar Kit de filtros?" `[Aplicar]` (`variant="default"`, abre o `ApplyKitDialog`) + `[Agora não]` (`ghost`).
 - No máximo **uma** sugestão por vez; **não** sugerir se já há itens de filtro no orçamento; respeitar dispensa (não repetir na mesma sessão do editor). `role="region" aria-label="Sugestão de kit"`; não rouba foco.
 
@@ -1296,6 +1431,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 17: Card "Filtros" do detalhe do veículo aplica Kit
 
 **Files:**
+
 - Modify: `src/features/vehicles/components/detail/MaintenanceRecommendations.tsx`
 
 > O card "Filtro" tem hoje um botão "Criar orçamento" placeholder. No MVP, ele passa a, quando há um Kit `filtros` oficial casando com o veículo (via `findKitsForVehicle`), navegar para o novo orçamento já com a intenção de aplicar o kit (ou abrir o `ApplyKitDialog` localmente e, ao confirmar, criar o orçamento com os itens). Para o MVP do mockup, o caminho mais simples e coerente: ao clicar, navegar para `/app/orcamentos/novo` passando o `kitId` sugerido (search param) que o `QuoteEditor` lê para pré-abrir o `ApplyKitDialog`.
@@ -1325,6 +1461,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 18: Placeholder SDR + revisão do placeholder de IA
 
 **Files:**
+
 - Modify: arquivo do fluxo de orçamento do SDR (localizar via grep `SDR`/`sdr-quote` que monta orçamento — provável `src/features/sdr-quote/` ou similar)
 
 > RF-015: no SDR, ao montar orçamento, oferecer "anexar Kit" como **placeholder coerente** (sem automação de IA). RF-016 (botão IA desabilitado) já foi entregue no editor (Task 11) — apenas confirmar que existe e está com o tooltip correto.
@@ -1349,6 +1486,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 19: CUTOVER — remover `service-kits` e ligar o redirect
 
 **Files:**
+
 - Delete: `src/features/service-kits/**` (16 arquivos), `src/shared/types/service-kit.ts`, `src/providers/data/contracts/serviceKits.ts`, `src/providers/data/impl/mock/serviceKits.ts`, `src/providers/data/impl/supabase/serviceKits.ts`, `src/providers/data/hooks/useServiceKitsProvider.ts`, `src/mocks/api/serviceKits.ts`, `src/mocks/data/seedServiceKits.ts`, `src/features/quotes/utils/kitExpansion.ts`
 - Modify: `src/providers/data/contracts/index.ts`, `factory.ts`, `index.ts`, `src/mocks/api/index.ts` (remover toda referência a `serviceKits`)
 - Modify: `src/shared/types/index.ts` (remover export de `service-kit`)
@@ -1379,6 +1517,7 @@ Expected: apenas ocorrências nos arquivos que esta task vai deletar/editar. Se 
 # dev server ativo regenera src/routeTree.gen.ts
 bunx tsc --noEmit 2>&1 | rg -iE "serviceKit|IServiceKit|kitExpansion|service-kits"   # ESPERADO: vazio
 ```
+
 (Confirme também que o `tsc` filtrado pelos arquivos tocados está limpo. Erros pré-existentes não relacionados são ignorados.)
 
 - [ ] **Step 8: Prettier nos arquivos modificados + Commit**
@@ -1396,6 +1535,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 20: Versão v0.64.0 "Kit" + changelog + PRD DONE + tag
 
 **Files:**
+
 - Modify: `package.json` (version), `CHANGELOG.md`, `CLAUDE.md` (linha do codinome)
 - Rename: `docs/prds/PRD-035-kits-composicao.md` → `…_DONE.md` (Status ✅)
 
@@ -1426,6 +1566,7 @@ git tag v0.64.0
 ## Self-Review (executado pelo autor do plano)
 
 **1. Cobertura do spec (RF-001…RF-017):**
+
 - RF-001 (tipos) → Task 1. RF-002 (`appliedKitIds`) → Task 2. RF-003 (seed ~10) → Task 5.
 - RF-004 (provider) → Task 3/4. RF-005 (kits por modelo) → Task 10. RF-006 (editor) → Task 11.
 - RF-007 (validações) → Task 4 (api) + Task 8 (zod). RF-008/009 (curadoria/promoção) → Task 8 (mutations) + Task 9 (ações) + Task 13 (descoberta).

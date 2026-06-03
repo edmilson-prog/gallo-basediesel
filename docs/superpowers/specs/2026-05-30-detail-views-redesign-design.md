@@ -22,12 +22,14 @@ The rest of the app already solved this with a **wide bento + user-selectable la
 ## 2. Goals & Non-Goals
 
 **Goals**
+
 - Replace the narrow centered column with a **wide layout** that uses horizontal space.
 - Surface more information via a **KPI strip** and a **summary/actions rail**.
 - Ship **3 user-selectable layouts** (Cockpit default, Operacional, Documento), switched via a **segmented control in the page header**, **persisted per page**.
 - **Preserve 100% of existing behavior** — every action, dialog, permission gate, audit log, banner, notification, and navigation must keep working.
 
 **Non-Goals**
+
 - No new data sources, providers, or backend changes. All new values are derived client-side from already-loaded records.
 - No real PDF/print engine — "Documento" is an on-screen layout (printing via the browser is a bonus, not a deliverable).
 - No changes to the list pages (already shipped) or to the action/transition logic itself.
@@ -82,50 +84,78 @@ All KPIs/steppers/relative-time labels are pure functions of this in-memory data
 ## 6. Shared Framework — Contracts
 
 ### config.ts
+
 ```ts
 export type DetailLayout = "cockpit" | "operational" | "document";
 export const DETAIL_LAYOUTS: DetailLayout[] = ["cockpit", "operational", "document"];
 export const DEFAULT_DETAIL_LAYOUT: DetailLayout = "cockpit";
 export const QUOTE_DETAIL_LAYOUT_KEY = "gallo-quote-detail-layout";
 export const ORDER_DETAIL_LAYOUT_KEY = "gallo-order-detail-layout";
-export const DETAIL_LAYOUT_LABELS: Record<DetailLayout, string>;  // Cockpit / Operacional / Documento
-export const DETAIL_LAYOUT_ICONS:  Record<DetailLayout, string>;  // iconify ids
-export const DETAIL_LAYOUT_HINTS:  Record<DetailLayout, string>;  // tooltip text (pt-BR)
+export const DETAIL_LAYOUT_LABELS: Record<DetailLayout, string>; // Cockpit / Operacional / Documento
+export const DETAIL_LAYOUT_ICONS: Record<DetailLayout, string>; // iconify ids
+export const DETAIL_LAYOUT_HINTS: Record<DetailLayout, string>; // tooltip text (pt-BR)
 ```
 
 ### useDetailLayout.ts
+
 ```ts
 function useDetailLayout(storageKey: string): [DetailLayout, (l: DetailLayout) => void];
 ```
+
 Lazy initializer reads `localStorage[storageKey]`, validates against `DETAIL_LAYOUTS`, falls back to `DEFAULT_DETAIL_LAYOUT`. Setter writes through.
 
 ### DetailStatStrip.tsx
+
 ```ts
 type StatTone = "default" | "good" | "warn" | "bad";
-interface IDetailStat { label: string; value: string; sub?: string; tone?: StatTone; icon?: string; }
+interface IDetailStat {
+  label: string;
+  value: string;
+  sub?: string;
+  tone?: StatTone;
+  icon?: string;
+}
 function DetailStatStrip({ stats }: { stats: IDetailStat[] }): JSX.Element;
 ```
+
 Renders a responsive grid (2 cols on mobile → 5 cols on desktop). Each cell: uppercase `label`, prominent `value` (tabular-nums), muted `sub`. `tone` maps to text color: `good→emerald`, `warn→amber`, `bad→text-destructive`, `default→text-foreground`. Card surface (`bg-card`), `border-border`.
 
 ### StatusStepper.tsx
+
 ```ts
-interface IStepperStep { key: string; label: string; state: "done" | "current" | "todo"; }
+interface IStepperStep {
+  key: string;
+  label: string;
+  state: "done" | "current" | "todo";
+}
 interface IStatusStepperProps {
   steps: IStepperStep[];
   terminal?: { label: string; tone: "bad" | "warn" } | null; // canceled/returned/rejected/expired
 }
 ```
+
 Horizontal connected dots/labels; `done→primary`, `current→primary ring`, `todo→muted`. When `terminal` is set, render a distinct callout (rose/amber) instead of/above the normal track.
 
 ### DetailCard.tsx
+
 ```ts
-function DetailCard({ icon, title, action, children }: {
-  icon: string; title: string; action?: React.ReactNode; children: React.ReactNode;
+function DetailCard({
+  icon,
+  title,
+  action,
+  children,
+}: {
+  icon: string;
+  title: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
 }): JSX.Element;
 ```
+
 `Card` + the existing section-header pattern (icon + title, optional right-aligned `action`).
 
 ### LayoutShells.tsx
+
 ```ts
 function CockpitShell({ header, hero, kpis, main, rail }): JSX.Element;
 //   header row (back + switcher) · hero · KPI strip · grid[ main (2fr) | rail (1fr, lg:sticky) ]
@@ -134,22 +164,26 @@ function OperationalShell({ header, hero, stepper, actions, grid, main }): JSX.E
 function DocumentShell({ header, docHeader, parties, items, totals, footer }): JSX.Element;
 //   header (back + switcher) · centered max-w-3xl document: docHeader · parties grid · items table · totals (right) · footer
 ```
+
 All slots are `React.ReactNode`. Shells own only layout/spacing; pages own content. The `header` slot (back link + `DetailLayoutSwitcher`) is shared across all three.
 
 ## 7. Layout Compositions
 
 ### Cockpit (default) — both
+
 - **Hero:** `#número`, status badge(s), origin badge, contextual links (e.g. "Orçamento de origem"), `Total` (large, right). Banners (SDR / approval / cancellation) render inside the hero region.
 - **KPI strip:** 5 cells (§8).
 - **Main (2fr):** Items → (order: Pagamento, Entrega, Comissão | quote: Condições) → Histórico.
 - **Rail (1fr, sticky on `lg`):** Resumo de valores → Cliente (+ Abrir ficha) → ⚡ Ações contextuais → Datas-chave.
 
 ### Operacional — both
+
 - **Hero** (compact) + **Status stepper** (large, §9) + **action zone** (the same contextual buttons, prominent).
 - **Operational grid:** order → Pagamento | Entrega | Comissão; quote → Condições | Aprovação | Resumo.
 - **Main:** Items + Histórico. Cliente shown compactly in the grid or beside the stepper.
 
 ### Documento — both
+
 - **Doc header:** GALLO BASE DIESEL · `#número` · datas (criado/atualizado) · status.
 - **Parties grid:** Cliente (nome/doc/contato/endereço) | (order: Loja + Vendedor + condições | quote: Condições + Validade).
 - **Items table:** full width (Peça/SKU, Qtd, Unit., Desc., Subtotal).
@@ -189,6 +223,7 @@ All over the single loaded record; tone drives color.
 ## 10. Header & Switcher
 
 Every layout begins with a header row:
+
 - **Left:** "‹ Voltar à listagem" (existing back navigation).
 - **Right:** `DetailLayoutSwitcher` (segmented; icon + label hidden under `sm`).
 

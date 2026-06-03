@@ -2,27 +2,27 @@
 
 ## Informações Gerais
 
-| Campo | Valor |
-|-------|-------|
-| **Projeto** | GALLO BASE DIESEL — Plataforma de Inteligência Comercial |
-| **Repositório** | _A definir após criação no Lovable_ |
-| **Objetivo** | Entregar a camada visível das notificações — sino na TopBar com badge de não-lidas, dropdown de preview, página de Notification Center (interna e no portal do cliente) e tela de preferências (matriz canal × categoria) — consumindo a fundação do PRD-008 e substituindo o sino placeholder do PRD-003 |
-| **Tipo** | Feature |
-| **Complexidade** | Alta |
-| **Total de Fases** | 5 |
-| **Prioridade** | Alta |
-| **Épico** | Bloco 0 — Fundação (camada de superfície) |
+| Campo                 | Valor                                                                                                                                                                                                                                                                                                           |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projeto**           | GALLO BASE DIESEL — Plataforma de Inteligência Comercial                                                                                                                                                                                                                                                        |
+| **Repositório**       | _A definir após criação no Lovable_                                                                                                                                                                                                                                                                             |
+| **Objetivo**          | Entregar a camada visível das notificações — sino na TopBar com badge de não-lidas, dropdown de preview, página de Notification Center (interna e no portal do cliente) e tela de preferências (matriz canal × categoria) — consumindo a fundação do PRD-008 e substituindo o sino placeholder do PRD-003       |
+| **Tipo**              | Feature                                                                                                                                                                                                                                                                                                         |
+| **Complexidade**      | Alta                                                                                                                                                                                                                                                                                                            |
+| **Total de Fases**    | 5                                                                                                                                                                                                                                                                                                               |
+| **Prioridade**        | Alta                                                                                                                                                                                                                                                                                                            |
+| **Épico**             | Bloco 0 — Fundação (camada de superfície)                                                                                                                                                                                                                                                                       |
 | **PRDs Relacionados** | PRD-008 (Fundação de Notificações — base obrigatória), PRD-001 (Design System), PRD-003 (Shell/TopBar — sino substituído), PRD-014 (Painel do Gestor — `<ActiveAlertsList>` vira view filtrada), PRD-065 (Conta do Cliente — hospeda a página do cliente), PRD-146 (Onda 8 — candidato a absorção por este PRD) |
-| **Implementação** | 🔵 Claude Code CLI (sobre o scaffold do Lovable) |
-| **Padrão de código** | Feature-based; componentes em `src/features/notifications/components/`; páginas em `src/routes/` (TanStack file-based); preferências reaproveitam o padrão de `/app/configuracoes` (PRD-019) |
+| **Implementação**     | 🔵 Claude Code CLI (sobre o scaffold do Lovable)                                                                                                                                                                                                                                                                |
+| **Padrão de código**  | Feature-based; componentes em `src/features/notifications/components/`; páginas em `src/routes/` (TanStack file-based); preferências reaproveitam o padrão de `/app/configuracoes` (PRD-019)                                                                                                                    |
 
 ### Critérios de Complexidade Utilizados
 
-| Complexidade | Critérios |
-|--------------|-----------|
-| **Baixa** | 1 arquivo, sem dependências externas, < 100 linhas |
-| **Média** | 2-5 arquivos, banco OU integração, funcionalidade isolada |
-| **Alta** | 5+ arquivos, múltiplas integrações, regras de negócio complexas |
+| Complexidade | Critérios                                                       |
+| ------------ | --------------------------------------------------------------- |
+| **Baixa**    | 1 arquivo, sem dependências externas, < 100 linhas              |
+| **Média**    | 2-5 arquivos, banco OU integração, funcionalidade isolada       |
+| **Alta**     | 5+ arquivos, múltiplas integrações, regras de negócio complexas |
 
 > **Justificativa de Alta:** múltiplos componentes (sino, dropdown, item, grupo, página, tela de preferências) renderizados em **dois sub-apps** (`/app/*` interno e `/loja/*` do cliente) com públicos e tom distintos; integração reativa com a fundação do PRD-008 (hooks, real-time simulado, agrupamento); substituição de um componente existente do shell (PRD-003) e migração visual do `<ActiveAlertsList>` do PRD-014; tema light/dark obrigatório e acessibilidade. Toca a experiência de praticamente todos os módulos.
 
@@ -59,13 +59,13 @@ Como consequência, o sino placeholder do PRD-003 é **substituído**, os toasts
 
 ### Alternativas Consideradas
 
-| Alternativa | Por que foi descartada |
-|-------------|------------------------|
-| Manter só toasts e adiar o center para a Onda 8 (PRD-146) | Desperdiça a fundação do PRD-008 já entregue e mantém o usuário sem histórico nem controle; a antecipação é barata sobre a fundação pronta |
-| Center só para o usuário interno (cliente fica para depois) | O escopo aprovado inclui o cliente final; e a página do cliente é de baixo custo reaproveitando os mesmos componentes |
-| Tela de preferências sem os canais da Onda 8 | Esconder os canais futuros perde a oportunidade de comunicar o roadmap; mostrá-los desabilitados é mais honesto e prepara o terreno do PRD-147 |
-| Criar um layout próprio para o center | Viola o PRD-003 (8 layouts são contrato); o center usa `AppLayout` (interno) e `LojaLayout` (cliente) |
-| Reimplementar contagem/listagem na UI | Quebra o isolamento do PRD-008; a UI só consome hooks, nunca acessa providers diretamente |
+| Alternativa                                                 | Por que foi descartada                                                                                                                         |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Manter só toasts e adiar o center para a Onda 8 (PRD-146)   | Desperdiça a fundação do PRD-008 já entregue e mantém o usuário sem histórico nem controle; a antecipação é barata sobre a fundação pronta     |
+| Center só para o usuário interno (cliente fica para depois) | O escopo aprovado inclui o cliente final; e a página do cliente é de baixo custo reaproveitando os mesmos componentes                          |
+| Tela de preferências sem os canais da Onda 8                | Esconder os canais futuros perde a oportunidade de comunicar o roadmap; mostrá-los desabilitados é mais honesto e prepara o terreno do PRD-147 |
+| Criar um layout próprio para o center                       | Viola o PRD-003 (8 layouts são contrato); o center usa `AppLayout` (interno) e `LojaLayout` (cliente)                                          |
+| Reimplementar contagem/listagem na UI                       | Quebra o isolamento do PRD-008; a UI só consome hooks, nunca acessa providers diretamente                                                      |
 
 ---
 
@@ -258,13 +258,13 @@ ENTÃO sou levado a um empty state ("registro não encontrado") em vez de uma te
 
 ## Fases de Implementação
 
-| Fase | Objetivo | Arquivos Estimados |
-|------|----------|-------------------|
-| 1 | Sino + badge + dropdown (TopBar interna) | 4-5 |
-| 2 | Página `/app/notificacoes` + item + grupo + filtros | 6-8 |
-| 3 | Tela de preferências interna (sub-rota de configurações) | 3-4 |
-| 4 | Migração do `<ActiveAlertsList>` (PRD-014) + consolidação dos toasts | 3-4 |
-| 5 | Páginas do cliente (notificações + preferências) no portal | 4-6 |
+| Fase | Objetivo                                                             | Arquivos Estimados |
+| ---- | -------------------------------------------------------------------- | ------------------ |
+| 1    | Sino + badge + dropdown (TopBar interna)                             | 4-5                |
+| 2    | Página `/app/notificacoes` + item + grupo + filtros                  | 6-8                |
+| 3    | Tela de preferências interna (sub-rota de configurações)             | 3-4                |
+| 4    | Migração do `<ActiveAlertsList>` (PRD-014) + consolidação dos toasts | 3-4                |
+| 5    | Páginas do cliente (notificações + preferências) no portal           | 4-6                |
 
 ### Detalhamento das Fases
 
@@ -273,6 +273,7 @@ ENTÃO sou levado a um empty state ("registro não encontrado") em vez de uma te
 **Objetivo:** tornar o sino real e dar o primeiro ponto de acesso às notificações.
 
 **Ações:**
+
 - [ ] Criar `<NotificationBell>` consumindo `useUnreadCount()` e substituir o placeholder na TopBar (PRD-003)
 - [ ] Criar `<NotificationDropdown>` consumindo `useNotifications()` (últimas N)
 - [ ] Implementar agrupamento por `groupKey` no preview e ações "marcar todas como lidas" / "ver todas"
@@ -285,6 +286,7 @@ ENTÃO sou levado a um empty state ("registro não encontrado") em vez de uma te
 **Objetivo:** a visão completa com filtros e ações.
 
 **Ações:**
+
 - [ ] Criar a rota `/app/notificacoes` sobre `AppLayout`
 - [ ] Criar `<NotificationItem>` e `<NotificationGroup>` (ícone/cor por categoria+severidade — Anexo A)
 - [ ] Implementar filtros (categoria/status/severidade) sincronizados na URL
@@ -298,6 +300,7 @@ ENTÃO sou levado a um empty state ("registro não encontrado") em vez de uma te
 **Objetivo:** dar ao usuário controle sobre o que recebe e por onde.
 
 **Ações:**
+
 - [ ] Criar `<NotificationPreferences>` (matriz canal × categoria) consumindo `useNotificationPreferences()`
 - [ ] Marcar canais da Onda 8 como desabilitados + selo "Fase 2"
 - [ ] Bloquear in-app das categorias não-silenciáveis (transacional/sistema crítico)
@@ -310,6 +313,7 @@ ENTÃO sou levado a um empty state ("registro não encontrado") em vez de uma te
 **Objetivo:** unificar o que já existia sob o novo center.
 
 **Ações:**
+
 - [ ] Adaptar `<ActiveAlertsList>` (PRD-014) para consumir o center filtrado por `category=operational`
 - [ ] Trocar o dismiss em `localStorage` por marcar-lida/arquivar via PRD-008
 - [ ] Consolidar a apresentação visual dos toasts roteados pelo `ToastChannel`, preservando "Desfazer" (5s)
@@ -321,6 +325,7 @@ ENTÃO sou levado a um empty state ("registro não encontrado") em vez de uma te
 **Objetivo:** replicar a experiência para o cliente final.
 
 **Ações:**
+
 - [ ] Criar `/loja/conta/notificacoes` sobre `LojaLayout` (versão simplificada, tom comercial)
 - [ ] Criar a tela de preferências do cliente (canais por categoria; Onda 8 desabilitada; marketing opt-in)
 - [ ] Garantir funcionamento por rota direta e estrutura pronta para integração ao PRD-065 quando existir
@@ -334,21 +339,21 @@ ENTÃO sou levado a um empty state ("registro não encontrado") em vez de uma te
 
 ### PRDs Anteriores
 
-| PRD | Descrição | Status |
-|-----|-----------|--------|
-| PRD-008 | Fundação de Notificações (modelo, bus, providers, hooks) | ⏳ Pendente (pré-requisito direto) |
-| PRD-001 | Design System (tokens, tema, componentes, Iconify) | ✅ Concluído |
-| PRD-003 | Shell/TopBar (sino placeholder substituído; layouts) | ✅ Concluído |
-| PRD-006 | RBAC (escopo e auditoria de preferências) | ✅ Concluído |
-| PRD-014 | Painel do Gestor (`<ActiveAlertsList>` migrado) | ✅ Concluído |
-| PRD-019 | Configurações (hospeda a sub-rota de preferências interna) | ✅ Concluído |
-| PRD-065 | Conta do Cliente (hospeda a página do cliente) | ⏳ Pendente (Bloco 5 / Onda 3) |
+| PRD     | Descrição                                                  | Status                             |
+| ------- | ---------------------------------------------------------- | ---------------------------------- |
+| PRD-008 | Fundação de Notificações (modelo, bus, providers, hooks)   | ⏳ Pendente (pré-requisito direto) |
+| PRD-001 | Design System (tokens, tema, componentes, Iconify)         | ✅ Concluído                       |
+| PRD-003 | Shell/TopBar (sino placeholder substituído; layouts)       | ✅ Concluído                       |
+| PRD-006 | RBAC (escopo e auditoria de preferências)                  | ✅ Concluído                       |
+| PRD-014 | Painel do Gestor (`<ActiveAlertsList>` migrado)            | ✅ Concluído                       |
+| PRD-019 | Configurações (hospeda a sub-rota de preferências interna) | ✅ Concluído                       |
+| PRD-065 | Conta do Cliente (hospeda a página do cliente)             | ⏳ Pendente (Bloco 5 / Onda 3)     |
 
 ### Serviços Externos
 
-| Serviço | Tipo | Status |
-|---------|------|--------|
-| — | — | Nenhum (toda entrega externa é Onda 8; aqui os canais aparecem desabilitados) |
+| Serviço | Tipo | Status                                                                        |
+| ------- | ---- | ----------------------------------------------------------------------------- |
+| —       | —    | Nenhum (toda entrega externa é Onda 8; aqui os canais aparecem desabilitados) |
 
 ### Decisões Pendentes
 
@@ -363,11 +368,11 @@ ENTÃO sou levado a um empty state ("registro não encontrado") em vez de uma te
 
 Este PRD faz parte do épico **"Sistema de Notificações da Plataforma"** (Bloco 0 — Fundação, camada de superfície).
 
-| Ordem | PRD | Título | Status | Relação |
-|-------|-----|--------|--------|---------|
-| 1 | PRD-008 | Fundação de Notificações | ⏳ | Base obrigatória |
-| **2** | **PRD-009** | **Notification Center & Preferências (UI)** | **🔄 ATUAL** | Depende de PRD-008 (e 001/003/014/019; 065 para o cliente) |
-| 3+ | PRDs 141–150 | Onda 8 — Notificações Reais | ⏳ | Ativam os canais reais sobre esta UI |
+| Ordem | PRD          | Título                                      | Status       | Relação                                                    |
+| ----- | ------------ | ------------------------------------------- | ------------ | ---------------------------------------------------------- |
+| 1     | PRD-008      | Fundação de Notificações                    | ⏳           | Base obrigatória                                           |
+| **2** | **PRD-009**  | **Notification Center & Preferências (UI)** | **🔄 ATUAL** | Depende de PRD-008 (e 001/003/014/019; 065 para o cliente) |
+| 3+    | PRDs 141–150 | Onda 8 — Notificações Reais                 | ⏳           | Ativam os canais reais sobre esta UI                       |
 
 > **Nota:** Implemente na ordem indicada. O PRD-008 deve estar ✅ antes de iniciar este. A parte do cliente (Fase 5) pressupõe o PRD-065 ou a estratégia de rota direta descrita em Decisões Pendentes.
 
@@ -379,10 +384,10 @@ Este PRD faz parte do épico **"Sistema de Notificações da Plataforma"** (Bloc
 
 ### Dados Sensíveis
 
-| Dado | Classificação | Proteção |
-|------|---------------|----------|
-| Conteúdo de notificação (nomes, valores, métricas) | PII / Sensível | A UI exibe apenas o que o provider do PRD-008 retorna no escopo do usuário; nada é buscado fora do escopo |
-| Preferências de notificação | PII / consentimento | Persistidas via provider; alterações auditadas (PRD-006) |
+| Dado                                               | Classificação       | Proteção                                                                                                  |
+| -------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------- |
+| Conteúdo de notificação (nomes, valores, métricas) | PII / Sensível      | A UI exibe apenas o que o provider do PRD-008 retorna no escopo do usuário; nada é buscado fora do escopo |
+| Preferências de notificação                        | PII / consentimento | Persistidas via provider; alterações auditadas (PRD-006)                                                  |
 
 ### Autenticação e Autorização
 
@@ -428,20 +433,20 @@ Alterações na tela de preferências disparam auditoria via PRD-006 (autor + ti
 
 > **Consulte a Seção 5 do `guia-prd.md` para a versão completa.**
 
-| Elemento | Convenção | Exemplo |
-|----------|-----------|---------|
-| **Componentes React** | PascalCase | `NotificationBell.tsx` |
-| **Hooks** | camelCase + `use` | `useNotifications.ts` (do PRD-008) |
-| **Pastas** | kebab-case | `features/notifications/` |
-| **Variáveis/Funções** | camelCase | `unreadCount`, `markAllRead()` |
-| **Constantes** | UPPER_SNAKE_CASE | `DROPDOWN_PREVIEW_LIMIT` |
-| **Interfaces** | PascalCase + `I` | `INotification` (do PRD-008) |
-| **Rotas** | TanStack file-based | `src/routes/app/notificacoes.tsx` |
-| **Env vars (frontend)** | `VITE_` prefix | `VITE_DATA_SOURCE` |
-| **Git commits** | Conventional Commits | `feat:`, `refactor:` |
-| **Estrutura de pastas** | Feature-based | `src/features/notifications/` |
-| **Ícones** | Iconify (`@iconify/react`) | `<Icon icon="mdi:bell" />` |
-| **Tema** | Light + Dark obrigatório | CSS variables para cores |
+| Elemento                | Convenção                  | Exemplo                            |
+| ----------------------- | -------------------------- | ---------------------------------- |
+| **Componentes React**   | PascalCase                 | `NotificationBell.tsx`             |
+| **Hooks**               | camelCase + `use`          | `useNotifications.ts` (do PRD-008) |
+| **Pastas**              | kebab-case                 | `features/notifications/`          |
+| **Variáveis/Funções**   | camelCase                  | `unreadCount`, `markAllRead()`     |
+| **Constantes**          | UPPER_SNAKE_CASE           | `DROPDOWN_PREVIEW_LIMIT`           |
+| **Interfaces**          | PascalCase + `I`           | `INotification` (do PRD-008)       |
+| **Rotas**               | TanStack file-based        | `src/routes/app/notificacoes.tsx`  |
+| **Env vars (frontend)** | `VITE_` prefix             | `VITE_DATA_SOURCE`                 |
+| **Git commits**         | Conventional Commits       | `feat:`, `refactor:`               |
+| **Estrutura de pastas** | Feature-based              | `src/features/notifications/`      |
+| **Ícones**              | Iconify (`@iconify/react`) | `<Icon icon="mdi:bell" />`         |
+| **Tema**                | Light + Dark obrigatório   | CSS variables para cores           |
 
 ---
 
@@ -459,6 +464,7 @@ Alterações na tela de preferências disparam auditoria via PRD-006 (autor + ti
 > "Lembre-se: explore a estrutura dos dados, planeje primeiro cada passo, analise, investigue a fundo, pense e revise tudo antes de realizar qualquer atualização ou implementação."
 
 > **⚠️ 2. APÓS IMPLEMENTAR:**
+>
 > - Incrementar a versão do app seguindo [SemVer](https://semver.org/) (MINOR)
 > - Gerar codinome em inglês (sugestão: **Chime**)
 > - Atualizar o CHANGELOG.md seguindo [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
@@ -468,10 +474,10 @@ Alterações na tela de preferências disparam auditoria via PRD-006 (autor + ti
 
 ### Guia de Versionamento (SemVer)
 
-| Tipo de Mudança | Ação | Exemplo |
-|-----------------|------|---------|
-| Correção de bug | PATCH +1 | 1.0.0 → 1.0.1 |
-| Nova funcionalidade | MINOR +1, PATCH = 0 | 1.0.1 → 1.1.0 |
+| Tipo de Mudança      | Ação                 | Exemplo       |
+| -------------------- | -------------------- | ------------- |
+| Correção de bug      | PATCH +1             | 1.0.0 → 1.0.1 |
+| Nova funcionalidade  | MINOR +1, PATCH = 0  | 1.0.1 → 1.1.0 |
 | Mudança incompatível | MAJOR +1, outros = 0 | 1.1.0 → 2.0.0 |
 
 **Codinomes:** para MINOR/MAJOR, gerar codinome em inglês baseado no contexto. Sugestão para este PRD: **Chime**.
@@ -486,39 +492,39 @@ Tipos de mudança a documentar: **Added**, **Changed**, **Deprecated**, **Remove
 
 ### Princípios de Implementação
 
-| Princípio | Descrição |
-|-----------|-----------|
-| **Não bloquear fluxo principal** | Erro de notificação nunca derruba a TopBar nem a navegação |
-| **Fail gracefully** | Estado de erro visível e recuperável; nunca tela branca |
-| **Reuso sobre reinvenção** | Usar componentes shadcn/ui, ícones Iconify e os 8 layouts do PRD-003; não criar layout novo |
-| **Testar incrementalmente** | Validar sino → página → preferências → migração → cliente, nessa ordem |
-| **Documentar decisões** | Registrar no CHANGELOG qualquer divergência (ex.: local da preferência do cliente) |
+| Princípio                        | Descrição                                                                                   |
+| -------------------------------- | ------------------------------------------------------------------------------------------- |
+| **Não bloquear fluxo principal** | Erro de notificação nunca derruba a TopBar nem a navegação                                  |
+| **Fail gracefully**              | Estado de erro visível e recuperável; nunca tela branca                                     |
+| **Reuso sobre reinvenção**       | Usar componentes shadcn/ui, ícones Iconify e os 8 layouts do PRD-003; não criar layout novo |
+| **Testar incrementalmente**      | Validar sino → página → preferências → migração → cliente, nessa ordem                      |
+| **Documentar decisões**          | Registrar no CHANGELOG qualquer divergência (ex.: local da preferência do cliente)          |
 
 ### Orientações Gerais
 
-| Aspecto | Orientação |
-|---------|------------|
-| **Consumir só hooks** | A UI nunca importa providers/implementações do PRD-008 — apenas `useNotifications`, `useUnreadCount`, `useNotificationPreferences` |
-| **Substituir, não duplicar** | O sino do PRD-003 é substituído, não duplicado; o `<ActiveAlertsList>` é migrado, não mantido em paralelo |
-| **Timestamps relativos** | Usar utilitário de data já adotado no projeto (ex.: `date-fns`) com locale pt-BR |
-| **Cores de severidade** | Derivar das CSS variables do tema (PRD-001), legíveis em light e dark; alinhar com o padrão de severidade do PRD-014 |
-| **Cliente vs. interno** | Mesmos componentes, props/variações diferentes; tom comercial no cliente, sem jargão |
-| **Real-time** | Reaproveitar o mecanismo simulado do PRD-010; não criar um segundo loop concorrente |
+| Aspecto                      | Orientação                                                                                                                         |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Consumir só hooks**        | A UI nunca importa providers/implementações do PRD-008 — apenas `useNotifications`, `useUnreadCount`, `useNotificationPreferences` |
+| **Substituir, não duplicar** | O sino do PRD-003 é substituído, não duplicado; o `<ActiveAlertsList>` é migrado, não mantido em paralelo                          |
+| **Timestamps relativos**     | Usar utilitário de data já adotado no projeto (ex.: `date-fns`) com locale pt-BR                                                   |
+| **Cores de severidade**      | Derivar das CSS variables do tema (PRD-001), legíveis em light e dark; alinhar com o padrão de severidade do PRD-014               |
+| **Cliente vs. interno**      | Mesmos componentes, props/variações diferentes; tom comercial no cliente, sem jargão                                               |
+| **Real-time**                | Reaproveitar o mecanismo simulado do PRD-010; não criar um segundo loop concorrente                                                |
 
 ### O que NÃO Fazer
 
-| ❌ Evitar |
-|----------|
-| Alterar a fundação (modelo, bus, providers, reconciliador) — é o PRD-008 |
+| ❌ Evitar                                                                                          |
+| -------------------------------------------------------------------------------------------------- |
+| Alterar a fundação (modelo, bus, providers, reconciliador) — é o PRD-008                           |
 | Implementar entrega real de email/WhatsApp/SMS/push — é Onda 8; aqui os canais ficam desabilitados |
-| Criar um layout novo — usar `AppLayout`/`LojaLayout` (PRD-003) |
-| Acessar providers/implementações internas do PRD-008 a partir da UI |
-| Manter o sino placeholder ou o `<ActiveAlertsList>` com lógica própria em paralelo |
-| Persistir dismiss/estado de notificação em `localStorage` na UI — o ciclo de vida é do PRD-008 |
-| Permitir opt-out completo de transacionais/sistema críticos |
-| Implementar a área de conta do cliente (dashboard, pedidos, perfil) — é o PRD-065 |
-| Esquecer `aria-live`, foco no dropdown e `prefers-reduced-motion` |
-| Bloquear a TopBar/navegação em caso de erro de notificação |
+| Criar um layout novo — usar `AppLayout`/`LojaLayout` (PRD-003)                                     |
+| Acessar providers/implementações internas do PRD-008 a partir da UI                                |
+| Manter o sino placeholder ou o `<ActiveAlertsList>` com lógica própria em paralelo                 |
+| Persistir dismiss/estado de notificação em `localStorage` na UI — o ciclo de vida é do PRD-008     |
+| Permitir opt-out completo de transacionais/sistema críticos                                        |
+| Implementar a área de conta do cliente (dashboard, pedidos, perfil) — é o PRD-065                  |
+| Esquecer `aria-live`, foco no dropdown e `prefers-reduced-motion`                                  |
+| Bloquear a TopBar/navegação em caso de erro de notificação                                         |
 
 ---
 
@@ -526,14 +532,14 @@ Tipos de mudança a documentar: **Added**, **Changed**, **Deprecated**, **Remove
 
 > Ícones Iconify (set `mdi`) sugeridos; cores derivadas das CSS variables do tema (PRD-001), com paridade light/dark. Severidade governa a cor; categoria governa o ícone.
 
-| Categoria | Ícone sugerido | | Severidade | Cor (semântica) |
-|-----------|----------------|---|------------|-----------------|
-| transactional | `mdi:receipt-text` | | info | neutra/azulada |
-| commercial | `mdi:account-clock` | | success | verde |
-| operational | `mdi:alert-circle` | | warning | amarelo/âmbar |
-| gamification | `mdi:trophy` | | critical | vermelho (acento Diesel Heavy) |
-| system | `mdi:cog` | | | |
-| marketing | `mdi:bullhorn` | | | |
+| Categoria     | Ícone sugerido      |     | Severidade | Cor (semântica)                |
+| ------------- | ------------------- | --- | ---------- | ------------------------------ |
+| transactional | `mdi:receipt-text`  |     | info       | neutra/azulada                 |
+| commercial    | `mdi:account-clock` |     | success    | verde                          |
+| operational   | `mdi:alert-circle`  |     | warning    | amarelo/âmbar                  |
+| gamification  | `mdi:trophy`        |     | critical   | vermelho (acento Diesel Heavy) |
+| system        | `mdi:cog`           |     |            |                                |
+| marketing     | `mdi:bullhorn`      |     |            |                                |
 
 > O ícone do sino na TopBar é `mdi:bell` (com `mdi:bell-badge` quando há não-lidas, se preferível à sobreposição de badge).
 
@@ -544,6 +550,7 @@ Tipos de mudança a documentar: **Added**, **Changed**, **Deprecated**, **Remove
 > Wireframe textual — referência estrutural, não prescrição visual.
 
 **Dropdown (sino):**
+
 ```
 ┌────────────────────────────────────────┐
 │ Notificações        [Marcar todas lidas]│
@@ -558,6 +565,7 @@ Tipos de mudança a documentar: **Added**, **Changed**, **Deprecated**, **Remove
 ```
 
 **Página `/app/notificacoes`:**
+
 ```
 Notificações                         [Marcar todas como lidas]
 [Categoria ▾] [Status ▾] [Severidade ▾]        [Apenas não-lidas]
@@ -571,6 +579,7 @@ Notificações                         [Marcar todas como lidas]
 ```
 
 **Preferências (matriz canal × categoria):**
+
 ```
                 In-app   Toast   Email*   WhatsApp*  SMS*  Push*
 Transacional     🔒 ✓     ☑       ▢(F2)    ▢(F2)     ▢(F2) ▢(F2)
@@ -587,23 +596,23 @@ Marketing        ☐        —       ▢(F2)    ▢(F2)     ▢(F2) ▢(F2)
 
 ## Status de Implementação
 
-| Campo | Valor |
-|-------|-------|
-| **Status** | ✅ CONCLUÍDO |
-| **Data de Implementação** | 2026-05-31 |
-| **Versão do App** | 0.55.0 |
-| **Codinome** | Chime |
-| **Implementado por** | Claude (Claude Code CLI) |
-| **Observações** | Entregue em 5 fases (commits `5ad8c08`…release): (1) sino real + badge + dropdown de preview; (2) `/app/notificacoes` com layouts Painel/Lista alternáveis + URL filters + skeleton/empty/error states; (3) matriz de preferências canal × categoria em `/app/configuracoes/notificacoes`; (4) migração do `<ActiveAlertsList>` do PRD-014 para consumir o Notification Center (lifecycle `derived`; "Dispensar" arquiva via provider — localStorage próprio aposentado); (5) portal do cliente em `/loja/conta/notificacoes` e `/loja/conta/preferencias`. Consome exclusivamente os hooks do PRD-008 (Herald, v0.54.0) sem alterar a fundação. |
+| Campo                     | Valor                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Status**                | ✅ CONCLUÍDO                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| **Data de Implementação** | 2026-05-31                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| **Versão do App**         | 0.55.0                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| **Codinome**              | Chime                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **Implementado por**      | Claude (Claude Code CLI)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| **Observações**           | Entregue em 5 fases (commits `5ad8c08`…release): (1) sino real + badge + dropdown de preview; (2) `/app/notificacoes` com layouts Painel/Lista alternáveis + URL filters + skeleton/empty/error states; (3) matriz de preferências canal × categoria em `/app/configuracoes/notificacoes`; (4) migração do `<ActiveAlertsList>` do PRD-014 para consumir o Notification Center (lifecycle `derived`; "Dispensar" arquiva via provider — localStorage próprio aposentado); (5) portal do cliente em `/loja/conta/notificacoes` e `/loja/conta/preferencias`. Consome exclusivamente os hooks do PRD-008 (Herald, v0.54.0) sem alterar a fundação. |
 
 ---
 
 ## Histórico
 
-| Data | Versão | Alteração |
-|------|--------|-----------|
-| 30/05/2026 | v1 | Criação inicial — UI do sistema de notificações: sino+badge, dropdown, página Notification Center (interna e portal do cliente), tela de preferências (matriz canal × categoria com canais da Onda 8 desabilitados), migração do `<ActiveAlertsList>` do PRD-014 e consolidação dos toasts. Consome a fundação do PRD-008 |
-| 31/05/2026 | v1 (impl.) | Implementação concluída — v0.55.0 Chime. 5 fases entregues: sino+dropdown, central+layouts+filtros, matriz de preferências, migração do ActiveAlertsList, portal do cliente. |
+| Data       | Versão     | Alteração                                                                                                                                                                                                                                                                                                                 |
+| ---------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 30/05/2026 | v1         | Criação inicial — UI do sistema de notificações: sino+badge, dropdown, página Notification Center (interna e portal do cliente), tela de preferências (matriz canal × categoria com canais da Onda 8 desabilitados), migração do `<ActiveAlertsList>` do PRD-014 e consolidação dos toasts. Consome a fundação do PRD-008 |
+| 31/05/2026 | v1 (impl.) | Implementação concluída — v0.55.0 Chime. 5 fases entregues: sino+dropdown, central+layouts+filtros, matriz de preferências, migração do ActiveAlertsList, portal do cliente.                                                                                                                                              |
 
 ---
 

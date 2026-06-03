@@ -33,7 +33,13 @@ import type {
 } from "@/shared/types";
 
 import { DEFAULT_SEED, STORE_MONTHLY_REVENUE_TARGET, VOLUMES } from "../config";
-import { PART_CATEGORIES, SEED_OWNER_ID, SEED_ROLES, SEED_STORE, SEED_VENDEDOR_SELLER_IDS } from "../data";
+import {
+  PART_CATEGORIES,
+  SEED_OWNER_ID,
+  SEED_ROLES,
+  SEED_STORE,
+  SEED_VENDEDOR_SELLER_IDS,
+} from "../data";
 import { createSeededContext } from "./utils";
 import { generateSellers } from "./seller";
 import { generateAudit } from "./audit";

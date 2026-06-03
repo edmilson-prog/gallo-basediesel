@@ -19,9 +19,7 @@ export interface IUseNotificationsResult {
  * Query key: `["notifications", filters]` — stable so callers can invalidate by
  * prefix when a notification is created, marked read, or archived.
  */
-export function useNotifications(
-  filters?: IListNotificationsParams,
-): IUseNotificationsResult {
+export function useNotifications(filters?: IListNotificationsParams): IUseNotificationsResult {
   const store = useNotificationSlice("notifications", "useNotifications");
 
   const query = useQuery<IPaginatedResult<INotification>>({

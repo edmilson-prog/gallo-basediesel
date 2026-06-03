@@ -61,6 +61,7 @@ Fluxo executado: **brainstorming → consultoria design (`design-specialist`/ui-
 ## ❓ Decisões pendentes
 
 Nenhuma em aberto. Decisões tomadas no brainstorming e implementadas:
+
 - Escopo: detalhe interno (admin) `/app/catalogo/$id`, **não** vitrine; **sem** formulário nesta rodada; **sem** backend.
 - Preços: tabelas nomeadas com markup; Padrão reconciliada com a margem existente (`padrao.price === unitPrice`), demais canais por offset (Ecommerce +0.20, Oficina −0.20, Varejo −0.40, Atacado −0.60, floor 0.05).
 - Layouts: 3 selecionáveis (counter/panel/sheet), default `counter`, persistência **global** em localStorage.

@@ -21,6 +21,7 @@
 ## File Structure
 
 **Criar:**
+
 - `src/features/service-kits/types.ts` — `KitUxMode`, re-export de input types.
 - `src/features/service-kits/utils/kitValidation.ts` — schema zod + helper.
 - `src/features/service-kits/utils/kitUsageMock.ts` — contagem determinística semeada.
@@ -43,6 +44,7 @@
 - `src/routes/app.catalogo.kits.$id.editar.tsx` — editar (modo página).
 
 **Modificar:**
+
 - `src/mocks/api/serviceKits.ts` — store mutável + create/update/remove/duplicate.
 - `src/providers/data/contracts/serviceKits.ts` — estender interface + `ICreateServiceKitInput`.
 - `src/providers/data/impl/mock/serviceKits.ts` — delegar novas ops.
@@ -58,6 +60,7 @@
 ### Task 1: Mock API de escrita (store mutável + CRUD)
 
 **Files:**
+
 - Modify: `src/mocks/api/serviceKits.ts`
 - Test (throwaway): `scripts/_check_servicekits_api.ts`
 
@@ -157,12 +160,8 @@ export const serviceKitsApi = {
       const merged: IServiceKit = {
         ...current,
         ...("name" in patch ? { name: (patch.name ?? "").trim() } : {}),
-        ...("description" in patch
-          ? { description: patch.description?.trim() || undefined }
-          : {}),
-        ...("vehicleApplication" in patch
-          ? { vehicleApplication: patch.vehicleApplication }
-          : {}),
+        ...("description" in patch ? { description: patch.description?.trim() || undefined } : {}),
+        ...("vehicleApplication" in patch ? { vehicleApplication: patch.vehicleApplication } : {}),
         ...("category" in patch ? { category: patch.category } : {}),
         ...("items" in patch ? { items: (patch.items ?? []).map((i) => ({ ...i })) } : {}),
       };
@@ -263,6 +262,7 @@ rm scripts/_check_servicekits_api.ts
 git add src/mocks/api/serviceKits.ts
 git commit -m "feat(service-kits): add write operations to the mock api"
 ```
+
 Expected: prettier ok; eslint sem erros reais (só falsos CRLF, se houver).
 
 ---
@@ -270,6 +270,7 @@ Expected: prettier ok; eslint sem erros reais (só falsos CRLF, se houver).
 ### Task 2: Provider — contract, impls, factory, barrel
 
 **Files:**
+
 - Modify: `src/providers/data/contracts/serviceKits.ts`
 - Modify: `src/providers/data/impl/mock/serviceKits.ts`
 - Modify: `src/providers/data/impl/supabase/serviceKits.ts`
@@ -372,6 +373,7 @@ Se já existir uma export de `./contracts/serviceKits`, apenas acrescentar `ICre
 ```bash
 bunx tsc --noEmit 2>&1 | grep -iE "serviceKits|providers/data/index"
 ```
+
 Expected: vazio.
 
 ```bash
@@ -386,6 +388,7 @@ git commit -m "feat(service-kits): extend provider contract with write operation
 ### Task 3: RBAC — resource e matriz
 
 **Files:**
+
 - Modify: `src/features/rbac/permissions/resources.ts`
 - Modify: `src/features/rbac/permissions/matrix.ts`
 - Test (throwaway): `scripts/_check_servicekit_rbac.ts`
@@ -404,11 +407,13 @@ Em `src/features/rbac/permissions/resources.ts`, dentro do array `RESOURCES`, ad
 Em `src/features/rbac/permissions/matrix.ts`:
 
 No array `OWNER_ENTRIES`, após `p("part", CRUD, "all"),` adicionar:
+
 ```ts
   p("serviceKit", CRUD, "all"),
 ```
 
 No array `GESTOR_ENTRIES`, após `p("part", ["view", "create", "edit"], "store"),` adicionar:
+
 ```ts
   p("serviceKit", CRUD, "store"),
 ```
@@ -431,8 +436,14 @@ const owner = EFFECTIVE_PERMISSIONS_INDEX.Owner.serviceKit;
 const gestor = EFFECTIVE_PERMISSIONS_INDEX.Gestor.serviceKit;
 const vendedor = EFFECTIVE_PERMISSIONS_INDEX.Vendedor.serviceKit;
 
-assert(!!owner && owner.actions.has("create") && owner.actions.has("delete"), "Owner CRUD serviceKit");
-assert(!!gestor && gestor.actions.has("edit") && gestor.scope === "store", "Gestor CRUD store serviceKit");
+assert(
+  !!owner && owner.actions.has("create") && owner.actions.has("delete"),
+  "Owner CRUD serviceKit",
+);
+assert(
+  !!gestor && gestor.actions.has("edit") && gestor.scope === "store",
+  "Gestor CRUD store serviceKit",
+);
 assert(vendedor === undefined, "Vendedor não tem serviceKit");
 
 console.log("ALL PASS");
@@ -449,6 +460,7 @@ rm scripts/_check_servicekit_rbac.ts
 git add src/features/rbac/permissions/resources.ts src/features/rbac/permissions/matrix.ts
 git commit -m "feat(rbac): add serviceKit resource for Owner and Gestor"
 ```
+
 Expected: `ALL PASS`; tsc filtrado vazio.
 
 ---
@@ -456,6 +468,7 @@ Expected: `ALL PASS`; tsc filtrado vazio.
 ### Task 4: Utils puras — validação e contagem de uso mock
 
 **Files:**
+
 - Create: `src/features/service-kits/types.ts`
 - Create: `src/features/service-kits/utils/kitValidation.ts`
 - Create: `src/features/service-kits/utils/kitUsageMock.ts`
@@ -558,6 +571,7 @@ rm scripts/_check_kit_utils.ts
 git add src/features/service-kits/types.ts src/features/service-kits/utils/
 git commit -m "feat(service-kits): add form validation schema and mock usage count"
 ```
+
 Expected: `ALL PASS`; tsc filtrado vazio.
 
 ---
@@ -565,6 +579,7 @@ Expected: `ALL PASS`; tsc filtrado vazio.
 ### Task 5: Hooks — lista, mutations, preferência de UX
 
 **Files:**
+
 - Create: `src/features/service-kits/hooks/useServiceKits.ts`
 - Create: `src/features/service-kits/hooks/useServiceKitMutations.ts`
 - Create: `src/features/service-kits/hooks/useServiceKitFormPrefs.ts`
@@ -697,6 +712,7 @@ bunx eslint src/features/service-kits/hooks/useServiceKits.ts src/features/servi
 git add src/features/service-kits/hooks/
 git commit -m "feat(service-kits): add list, mutations and UX-pref hooks"
 ```
+
 Expected: tsc filtrado vazio. (Confirmar que `useServiceKitsProvider` é exportado por `@/providers/data`; se não, importar de `@/providers/data/hooks/useServiceKitsProvider` como em `useServiceKits.ts`.)
 
 ---
@@ -704,6 +720,7 @@ Expected: tsc filtrado vazio. (Confirmar que `useServiceKitsProvider` é exporta
 ### Task 6: KitItemBuilder (busca de peça + itens + quantidade)
 
 **Files:**
+
 - Create: `src/features/service-kits/components/KitItemBuilder.tsx`
 
 - [ ] **Step 1: Implementar o construtor de itens**
@@ -737,13 +754,19 @@ export function KitItemBuilder({ items, onChange }: IKitItemBuilderProps) {
   function addPart(part: IPart) {
     const existing = items.find((it) => it.partId === part.id);
     if (existing) {
-      onChange(items.map((it) => (it.partId === part.id ? { ...it, quantity: it.quantity + 1 } : it)));
+      onChange(
+        items.map((it) => (it.partId === part.id ? { ...it, quantity: it.quantity + 1 } : it)),
+      );
     } else {
       onChange([...items, { partId: part.id, quantity: 1 }]);
     }
   }
   function setQty(partId: ID, quantity: number) {
-    onChange(items.map((it) => (it.partId === partId ? { ...it, quantity: Math.max(1, Math.floor(quantity) || 1) } : it)));
+    onChange(
+      items.map((it) =>
+        it.partId === partId ? { ...it, quantity: Math.max(1, Math.floor(quantity) || 1) } : it,
+      ),
+    );
   }
   function removeItem(partId: ID) {
     onChange(items.filter((it) => it.partId !== partId));
@@ -754,14 +777,25 @@ export function KitItemBuilder({ items, onChange }: IKitItemBuilderProps) {
       {/* Busca de peça */}
       <div className="rounded-lg border border-border">
         <div className="relative border-b border-border p-2">
-          <Icon icon="mdi:magnify" size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-8" placeholder="Buscar peça, OEM ou SKU…" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <Icon
+            icon="mdi:magnify"
+            size={16}
+            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+          />
+          <Input
+            className="pl-8"
+            placeholder="Buscar peça, OEM ou SKU…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
         </div>
         <div className="max-h-72 overflow-y-auto">
           {isLoading ? (
             <p className="p-4 text-center text-xs text-muted-foreground">Carregando catálogo…</p>
           ) : results.length === 0 ? (
-            <p className="p-4 text-center text-xs text-muted-foreground">{query ? "Nenhuma peça encontrada." : "Digite para buscar peças."}</p>
+            <p className="p-4 text-center text-xs text-muted-foreground">
+              {query ? "Nenhuma peça encontrada." : "Digite para buscar peças."}
+            </p>
           ) : (
             results.map((p) => (
               <button
@@ -770,7 +804,11 @@ export function KitItemBuilder({ items, onChange }: IKitItemBuilderProps) {
                 onClick={() => addPart(p)}
                 className="flex w-full items-center gap-2 border-b border-border px-3 py-2 text-left last:border-b-0 hover:bg-muted/50"
               >
-                <Icon icon={getCategoryIcon(p.category)} size={16} className="shrink-0 text-muted-foreground" />
+                <Icon
+                  icon={getCategoryIcon(p.category)}
+                  size={16}
+                  className="shrink-0 text-muted-foreground"
+                />
                 <span className="min-w-0 flex-1 truncate text-sm">{p.name}</span>
                 <Icon icon="mdi:plus" size={16} className="shrink-0 text-primary" />
               </button>
@@ -786,14 +824,23 @@ export function KitItemBuilder({ items, onChange }: IKitItemBuilderProps) {
         </p>
         <div className="max-h-72 overflow-y-auto">
           {items.length === 0 ? (
-            <p className="p-4 text-center text-xs text-muted-foreground">Nenhuma peça adicionada.</p>
+            <p className="p-4 text-center text-xs text-muted-foreground">
+              Nenhuma peça adicionada.
+            </p>
           ) : (
             items.map((it) => {
               const part = partsById.get(it.partId);
               return (
-                <div key={it.partId} className="flex items-center gap-2 border-b border-border px-3 py-2 last:border-b-0">
+                <div
+                  key={it.partId}
+                  className="flex items-center gap-2 border-b border-border px-3 py-2 last:border-b-0"
+                >
                   <span className="min-w-0 flex-1 truncate text-sm">
-                    {part ? part.name : <span className="text-muted-foreground">Peça indisponível ({it.partId})</span>}
+                    {part ? (
+                      part.name
+                    ) : (
+                      <span className="text-muted-foreground">Peça indisponível ({it.partId})</span>
+                    )}
                   </span>
                   <Input
                     type="number"
@@ -831,6 +878,7 @@ bunx eslint src/features/service-kits/components/KitItemBuilder.tsx
 git add src/features/service-kits/components/KitItemBuilder.tsx
 git commit -m "feat(service-kits): add catalog item builder for the kit form"
 ```
+
 Expected: tsc filtrado vazio. (Confirmar que `getCategoryIcon` é exportado por `@/features/catalog` — é usado assim em `ItemResultRow.tsx`.)
 
 ---
@@ -838,6 +886,7 @@ Expected: tsc filtrado vazio. (Confirmar que `getCategoryIcon` é exportado por 
 ### Task 7: KitForm (núcleo único do formulário)
 
 **Files:**
+
 - Create: `src/features/service-kits/components/KitForm.tsx`
 
 - [ ] **Step 1: Implementar o formulário com react-hook-form + zod**
@@ -908,7 +957,11 @@ export function KitForm({ storeId, initial, saving, onSubmit, onCancel }: IKitFo
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1">
           <Label htmlFor="kit-name">Nome*</Label>
-          <Input id="kit-name" {...register("name")} placeholder="Ex.: Revisão 40.000 km — Volvo FH" />
+          <Input
+            id="kit-name"
+            {...register("name")}
+            placeholder="Ex.: Revisão 40.000 km — Volvo FH"
+          />
           {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
         </div>
         <div className="space-y-1">
@@ -925,7 +978,11 @@ export function KitForm({ storeId, initial, saving, onSubmit, onCancel }: IKitFo
         </div>
         <div className="space-y-1 sm:col-span-2">
           <Label htmlFor="kit-desc">Descrição</Label>
-          <Textarea id="kit-desc" {...register("description")} placeholder="Observações do kit (opcional)" />
+          <Textarea
+            id="kit-desc"
+            {...register("description")}
+            placeholder="Observações do kit (opcional)"
+          />
         </div>
       </div>
 
@@ -961,6 +1018,7 @@ bunx eslint src/features/service-kits/components/KitForm.tsx
 git add src/features/service-kits/components/KitForm.tsx
 git commit -m "feat(service-kits): add shared kit form core"
 ```
+
 Expected: tsc filtrado vazio. (Confirmar que existe `@/components/ui/textarea`; se o nome do componente diferir, ajustar o import. `category` é tratada como string livre no MVP, convertida para `PartCategory` no submit.)
 
 ---
@@ -968,6 +1026,7 @@ Expected: tsc filtrado vazio. (Confirmar que existe `@/components/ui/textarea`; 
 ### Task 8: As 3 cascas — Dialog, Drawer, Page + KitUxToggle
 
 **Files:**
+
 - Create: `src/features/service-kits/components/KitFormDialog.tsx`
 - Create: `src/features/service-kits/components/KitFormDrawer.tsx`
 - Create: `src/features/service-kits/components/KitUxToggle.tsx`
@@ -979,12 +1038,7 @@ Expected: tsc filtrado vazio. (Confirmar que existe `@/components/ui/textarea`; 
 
 ```tsx
 import type { ID, IServiceKit } from "@/shared/types";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { ICreateServiceKitInput } from "@/providers/data";
 import { KitForm } from "./KitForm";
 
@@ -997,7 +1051,14 @@ export interface IKitFormDialogProps {
   onSubmit: (input: ICreateServiceKitInput) => void;
 }
 
-export function KitFormDialog({ open, onOpenChange, storeId, initial, saving, onSubmit }: IKitFormDialogProps) {
+export function KitFormDialog({
+  open,
+  onOpenChange,
+  storeId,
+  initial,
+  saving,
+  onSubmit,
+}: IKitFormDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
@@ -1023,12 +1084,7 @@ export function KitFormDialog({ open, onOpenChange, storeId, initial, saving, on
 
 ```tsx
 import type { ID, IServiceKit } from "@/shared/types";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { ICreateServiceKitInput } from "@/providers/data";
 import { KitForm } from "./KitForm";
 
@@ -1041,7 +1097,14 @@ export interface IKitFormDrawerProps {
   onSubmit: (input: ICreateServiceKitInput) => void;
 }
 
-export function KitFormDrawer({ open, onOpenChange, storeId, initial, saving, onSubmit }: IKitFormDrawerProps) {
+export function KitFormDrawer({
+  open,
+  onOpenChange,
+  storeId,
+  initial,
+  saving,
+  onSubmit,
+}: IKitFormDrawerProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-2xl">
@@ -1085,7 +1148,11 @@ export interface IKitUxToggleProps {
 /** Segmented control selecting which UX hosts the kit form. */
 export function KitUxToggle({ value, onChange }: IKitUxToggleProps) {
   return (
-    <div className="inline-flex rounded-md border border-border p-0.5" role="group" aria-label="Modo do formulário">
+    <div
+      className="inline-flex rounded-md border border-border p-0.5"
+      role="group"
+      aria-label="Modo do formulário"
+    >
       {OPTIONS.map((o) => (
         <button
           key={o.mode}
@@ -1094,7 +1161,9 @@ export function KitUxToggle({ value, onChange }: IKitUxToggleProps) {
           aria-pressed={value === o.mode}
           title={o.label}
           className={`grid h-7 w-7 place-items-center rounded ${
-            value === o.mode ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"
+            value === o.mode
+              ? "bg-primary/15 text-primary"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
           <Icon icon={o.icon} size={16} />
@@ -1151,7 +1220,9 @@ export function ServiceKitFormPage({ mode }: IServiceKitFormPageProps) {
         <Icon icon="mdi:chevron-left" size={18} /> Voltar
       </Button>
       <Card className="p-4">
-        <h1 className="mb-4 text-lg font-semibold">{mode === "edit" ? "Editar kit" : "Novo kit de revisão"}</h1>
+        <h1 className="mb-4 text-lg font-semibold">
+          {mode === "edit" ? "Editar kit" : "Novo kit de revisão"}
+        </h1>
         {mode === "edit" && !initial && kitsQuery.isLoading ? (
           <p className="text-sm text-muted-foreground">Carregando…</p>
         ) : mode === "edit" && !initial ? (
@@ -1182,6 +1253,7 @@ bunx eslint src/features/service-kits/components/KitFormDialog.tsx src/features/
 git add src/features/service-kits/components/KitFormDialog.tsx src/features/service-kits/components/KitFormDrawer.tsx src/features/service-kits/components/KitUxToggle.tsx src/features/service-kits/pages/ServiceKitFormPage.tsx
 git commit -m "feat(service-kits): add dialog, drawer and page shells plus UX toggle"
 ```
+
 Expected: tsc filtrado vazio. (Confirmar nomes reais dos componentes shadcn `@/components/ui/sheet`, `@/components/ui/dialog`, `@/components/ui/card`.)
 
 ---
@@ -1189,6 +1261,7 @@ Expected: tsc filtrado vazio. (Confirmar nomes reais dos componentes shadcn `@/c
 ### Task 9: Lista — KitsTable, DeleteKitDialog, ServiceKitsListPage
 
 **Files:**
+
 - Create: `src/features/service-kits/components/DeleteKitDialog.tsx`
 - Create: `src/features/service-kits/components/KitsTable.tsx`
 - Create: `src/features/service-kits/pages/ServiceKitsListPage.tsx`
@@ -1229,7 +1302,10 @@ export function DeleteKitDialog({ kit, onOpenChange, onConfirm }: IDeleteKitDial
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+          <AlertDialogAction
+            onClick={onConfirm}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
             Excluir kit
           </AlertDialogAction>
         </AlertDialogFooter>
@@ -1281,10 +1357,14 @@ export function KitsTable({ kits, onEdit, onDuplicate, onDelete }: IKitsTablePro
             <tr key={kit.id} className="border-t border-border">
               <td className="px-3 py-2">
                 <p className="font-medium text-foreground">{kit.name}</p>
-                {kit.description && <p className="text-xs text-muted-foreground">{kit.description}</p>}
+                {kit.description && (
+                  <p className="text-xs text-muted-foreground">{kit.description}</p>
+                )}
               </td>
               <td className="px-3 py-2 text-muted-foreground">
-                {kit.vehicleApplication ? `${kit.vehicleApplication.brand} ${kit.vehicleApplication.model}` : "—"}
+                {kit.vehicleApplication
+                  ? `${kit.vehicleApplication.brand} ${kit.vehicleApplication.model}`
+                  : "—"}
               </td>
               <td className="px-3 py-2 text-muted-foreground">{kit.category ?? "—"}</td>
               <td className="px-3 py-2 text-right tabular-nums">{kit.items.length}</td>
@@ -1293,13 +1373,28 @@ export function KitsTable({ kits, onEdit, onDuplicate, onDelete }: IKitsTablePro
               </td>
               <td className="px-3 py-2">
                 <div className="flex justify-end gap-1">
-                  <button type="button" onClick={() => onEdit(kit)} aria-label={`Editar ${kit.name}`} className="grid h-7 w-7 place-items-center rounded text-muted-foreground hover:text-foreground">
+                  <button
+                    type="button"
+                    onClick={() => onEdit(kit)}
+                    aria-label={`Editar ${kit.name}`}
+                    className="grid h-7 w-7 place-items-center rounded text-muted-foreground hover:text-foreground"
+                  >
                     <Icon icon="mdi:pencil-outline" size={16} />
                   </button>
-                  <button type="button" onClick={() => onDuplicate(kit)} aria-label={`Duplicar ${kit.name}`} className="grid h-7 w-7 place-items-center rounded text-muted-foreground hover:text-foreground">
+                  <button
+                    type="button"
+                    onClick={() => onDuplicate(kit)}
+                    aria-label={`Duplicar ${kit.name}`}
+                    className="grid h-7 w-7 place-items-center rounded text-muted-foreground hover:text-foreground"
+                  >
                     <Icon icon="mdi:content-copy" size={16} />
                   </button>
-                  <button type="button" onClick={() => onDelete(kit)} aria-label={`Excluir ${kit.name}`} className="grid h-7 w-7 place-items-center rounded text-muted-foreground hover:text-destructive">
+                  <button
+                    type="button"
+                    onClick={() => onDelete(kit)}
+                    aria-label={`Excluir ${kit.name}`}
+                    className="grid h-7 w-7 place-items-center rounded text-muted-foreground hover:text-destructive"
+                  >
                     <Icon icon="mdi:trash-can-outline" size={16} />
                   </button>
                 </div>
@@ -1354,7 +1449,9 @@ export function ServiceKitsListPage() {
       (k) =>
         k.name.toLowerCase().includes(needle) ||
         (k.vehicleApplication &&
-          `${k.vehicleApplication.brand} ${k.vehicleApplication.model}`.toLowerCase().includes(needle)) ||
+          `${k.vehicleApplication.brand} ${k.vehicleApplication.model}`
+            .toLowerCase()
+            .includes(needle)) ||
         (k.category ?? "").toLowerCase().includes(needle),
     );
   }, [kitsQuery.data, search]);
@@ -1394,21 +1491,49 @@ export function ServiceKitsListPage() {
       </div>
 
       <div className="relative max-w-sm">
-        <Icon icon="mdi:magnify" size={16} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input className="pl-8" placeholder="Buscar por nome, veículo ou categoria…" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <Icon
+          icon="mdi:magnify"
+          size={16}
+          className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+        />
+        <Input
+          className="pl-8"
+          placeholder="Buscar por nome, veículo ou categoria…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
       {kitsQuery.isLoading ? (
         <p className="text-sm text-muted-foreground">Carregando kits…</p>
       ) : (
-        <KitsTable kits={kits} onEdit={openEdit} onDuplicate={(k) => void mutations.duplicate(k.id)} onDelete={setToDelete} />
+        <KitsTable
+          kits={kits}
+          onEdit={openEdit}
+          onDuplicate={(k) => void mutations.duplicate(k.id)}
+          onDelete={setToDelete}
+        />
       )}
 
       {uxMode === "dialog" && (
-        <KitFormDialog open={overlayOpen} onOpenChange={setOverlayOpen} storeId={storeId} initial={overlayInitial} saving={mutations.saving} onSubmit={submitOverlay} />
+        <KitFormDialog
+          open={overlayOpen}
+          onOpenChange={setOverlayOpen}
+          storeId={storeId}
+          initial={overlayInitial}
+          saving={mutations.saving}
+          onSubmit={submitOverlay}
+        />
       )}
       {uxMode === "drawer" && (
-        <KitFormDrawer open={overlayOpen} onOpenChange={setOverlayOpen} storeId={storeId} initial={overlayInitial} saving={mutations.saving} onSubmit={submitOverlay} />
+        <KitFormDrawer
+          open={overlayOpen}
+          onOpenChange={setOverlayOpen}
+          storeId={storeId}
+          initial={overlayInitial}
+          saving={mutations.saving}
+          onSubmit={submitOverlay}
+        />
       )}
 
       <DeleteKitDialog
@@ -1442,6 +1567,7 @@ bunx eslint src/features/service-kits/components/DeleteKitDialog.tsx src/feature
 git add src/features/service-kits/components/DeleteKitDialog.tsx src/features/service-kits/components/KitsTable.tsx src/features/service-kits/pages/ServiceKitsListPage.tsx src/features/service-kits/index.ts
 git commit -m "feat(service-kits): add list page with table, filters and delete confirm"
 ```
+
 Expected: tsc filtrado vazio.
 
 ---
@@ -1449,6 +1575,7 @@ Expected: tsc filtrado vazio.
 ### Task 10: Rotas, constante e item de menu
 
 **Files:**
+
 - Create: `src/routes/app.catalogo.kits.tsx`
 - Create: `src/routes/app.catalogo.kits.index.tsx`
 - Create: `src/routes/app.catalogo.kits.novo.tsx`
@@ -1575,15 +1702,19 @@ git commit -m "feat(service-kits): add routes and sidebar entry under Catálogo"
 ## Validação final (após todas as tasks)
 
 - [ ] **Type-check global filtrado pela feature:**
+
 ```bash
 bunx tsc --noEmit 2>&1 | grep -iE "service-kits|serviceKits|catalogo.kits"
 ```
+
 Expected: vazio.
 
 - [ ] **Build de produção (bundling):**
+
 ```bash
 bun run build
 ```
+
 Expected: sucesso (só aviso de chunk-size pré-existente).
 
 - [ ] **Smoke manual (o usuário valida a UI):** menu "Kits de revisão" visível para Owner/Gestor → lista carrega → criar/editar/duplicar/excluir funcionam nas 3 UX (toggle) → o `KitPicker` do editor de orçamento reflete um kit recém-criado.
@@ -1595,6 +1726,7 @@ Expected: sucesso (só aviso de chunk-size pré-existente).
 ## Self-Review (preenchido)
 
 **1. Cobertura do spec:**
+
 - Localização em Catálogo → Task 10 (rotas + menu). ✓
 - 3 UX selecionáveis + preferência persistida → Tasks 5 (prefs), 8 (cascas), 9 (toggle/roteamento). ✓
 - Provider create/update/remove/duplicate + supabase stub → Tasks 1, 2. ✓

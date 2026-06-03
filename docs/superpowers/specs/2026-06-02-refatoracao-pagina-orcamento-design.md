@@ -121,11 +121,11 @@ Tudo nesta seção **degrada graciosamente** quando o dado está ausente (não r
 
 ## Faseamento
 
-| Fase | Escopo | Resolve |
-|------|--------|---------|
-| **1 — Fundação** | Layouts (3 + seletor) · remoção do `max-w-5xl` · resumo sticky · adição contínua + 3 modos + seletor · incremento de duplicata · sugestões por veículo (multi) · recompra · item avulso · `useQuoteEditorPrefs` | As 2 dores diretas |
-| **2 — Detalhamento de catálogo** | Linha de item rica (badges, estoque 3 estados, equivalentes inline, margem gated) · resumo painel de decisão · cliente chip (dados existentes) | Tela rica |
-| **3 — Dados novos + kits** | Limite de crédito / título vencido / tabela de preço do cliente (mock + degradação) · `IServiceKit` + config · atalhos de teclado · densidade · auto-save | Enriquecimento avançado |
+| Fase                             | Escopo                                                                                                                                                                                                          | Resolve                 |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| **1 — Fundação**                 | Layouts (3 + seletor) · remoção do `max-w-5xl` · resumo sticky · adição contínua + 3 modos + seletor · incremento de duplicata · sugestões por veículo (multi) · recompra · item avulso · `useQuoteEditorPrefs` | As 2 dores diretas      |
+| **2 — Detalhamento de catálogo** | Linha de item rica (badges, estoque 3 estados, equivalentes inline, margem gated) · resumo painel de decisão · cliente chip (dados existentes)                                                                  | Tela rica               |
+| **3 — Dados novos + kits**       | Limite de crédito / título vencido / tabela de preço do cliente (mock + degradação) · `IServiceKit` + config · atalhos de teclado · densidade · auto-save                                                       | Enriquecimento avançado |
 
 Um spec (este) cobre a visão; a implementação sai em **3 planos sequenciais** (um por fase).
 
@@ -138,6 +138,7 @@ Um spec (este) cobre a visão; a implementação sai em **3 planos sequenciais**
 ## Validação
 
 Sem test runner no projeto. Validação por:
+
 - `bun run build` (type-check `tsc --noEmit`) sem erros.
 - `bun run lint` sem erros (respeitar `no-restricted-imports` — consumir providers via barrel `@/providers/data`).
 - Verificação manual de UI pelo usuário (não abrir browser automaticamente).

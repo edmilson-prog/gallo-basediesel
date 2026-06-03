@@ -30,35 +30,35 @@
 
 **Novos arquivos:**
 
-| Arquivo | Responsabilidade |
-|---|---|
-| `src/features/catalog/config/layout.ts` | Tipo `PartDetailLayout`, lista, default, storage key |
-| `src/features/catalog/hooks/usePartDetailLayout.ts` | Estado do layout persistido em localStorage |
-| `src/features/catalog/utils/pricing.ts` | Canais, `computePrice`, `buildPriceTables`, `weightedAverageCost`, `tableMargin`, `resolvePriceTables` |
-| `src/features/catalog/components/detail/PartLayoutSwitcher.tsx` | Segmented control de layout |
-| `src/features/catalog/components/detail/PartSefazBadge.tsx` | Badge de status SEFAZ (3 estados) |
-| `src/features/catalog/components/detail/PartIdentityCard.tsx` | Identidade + GTIN + código fornecedor + ref/grupo/tipo |
-| `src/features/catalog/components/detail/PartStatStrip.tsx` | 5 KPIs |
-| `src/features/catalog/components/detail/PartPriceHistory.tsx` | Histórico de preço (extraído de CommercialSection) |
-| `src/features/catalog/components/detail/PartPricingTable.tsx` | Tabela comparativa das 5 tabelas de preço |
-| `src/features/catalog/components/detail/PartFiscalCard.tsx` | NCM/ICMS/ST/origem |
-| `src/features/catalog/components/detail/PartLogisticsCard.tsx` | Peso/local/caixa/fraciona/unidade + estoque |
-| `src/features/catalog/components/detail/PartSuppliersTable.tsx` | Fornecedores + C.M. |
-| `src/features/catalog/components/detail/layouts/types.ts` | `IPartLayoutProps` |
-| `src/features/catalog/components/detail/layouts/PartLayoutCounter.tsx` | Layout A (Balcão) |
-| `src/features/catalog/components/detail/layouts/PartLayoutPanel.tsx` | Layout B (Painel/bento) |
-| `src/features/catalog/components/detail/layouts/PartLayoutSheet.tsx` | Layout C (Ficha) |
+| Arquivo                                                                | Responsabilidade                                                                                       |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `src/features/catalog/config/layout.ts`                                | Tipo `PartDetailLayout`, lista, default, storage key                                                   |
+| `src/features/catalog/hooks/usePartDetailLayout.ts`                    | Estado do layout persistido em localStorage                                                            |
+| `src/features/catalog/utils/pricing.ts`                                | Canais, `computePrice`, `buildPriceTables`, `weightedAverageCost`, `tableMargin`, `resolvePriceTables` |
+| `src/features/catalog/components/detail/PartLayoutSwitcher.tsx`        | Segmented control de layout                                                                            |
+| `src/features/catalog/components/detail/PartSefazBadge.tsx`            | Badge de status SEFAZ (3 estados)                                                                      |
+| `src/features/catalog/components/detail/PartIdentityCard.tsx`          | Identidade + GTIN + código fornecedor + ref/grupo/tipo                                                 |
+| `src/features/catalog/components/detail/PartStatStrip.tsx`             | 5 KPIs                                                                                                 |
+| `src/features/catalog/components/detail/PartPriceHistory.tsx`          | Histórico de preço (extraído de CommercialSection)                                                     |
+| `src/features/catalog/components/detail/PartPricingTable.tsx`          | Tabela comparativa das 5 tabelas de preço                                                              |
+| `src/features/catalog/components/detail/PartFiscalCard.tsx`            | NCM/ICMS/ST/origem                                                                                     |
+| `src/features/catalog/components/detail/PartLogisticsCard.tsx`         | Peso/local/caixa/fraciona/unidade + estoque                                                            |
+| `src/features/catalog/components/detail/PartSuppliersTable.tsx`        | Fornecedores + C.M.                                                                                    |
+| `src/features/catalog/components/detail/layouts/types.ts`              | `IPartLayoutProps`                                                                                     |
+| `src/features/catalog/components/detail/layouts/PartLayoutCounter.tsx` | Layout A (Balcão)                                                                                      |
+| `src/features/catalog/components/detail/layouts/PartLayoutPanel.tsx`   | Layout B (Painel/bento)                                                                                |
+| `src/features/catalog/components/detail/layouts/PartLayoutSheet.tsx`   | Layout C (Ficha)                                                                                       |
 
 **Modificados:**
 
-| Arquivo | Mudança |
-|---|---|
-| `src/shared/types/catalog.ts` | Novos tipos + campos opcionais em `IPart` |
-| `src/shared/types/index.ts` | Exportar novos tipos |
-| `src/features/catalog/i18n/pt-BR.ts` | Novas strings em `detail` |
-| `src/mocks/generators/part.ts` | Popular novos campos (determinístico) |
+| Arquivo                                                       | Mudança                                                          |
+| ------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `src/shared/types/catalog.ts`                                 | Novos tipos + campos opcionais em `IPart`                        |
+| `src/shared/types/index.ts`                                   | Exportar novos tipos                                             |
+| `src/features/catalog/i18n/pt-BR.ts`                          | Novas strings em `detail`                                        |
+| `src/mocks/generators/part.ts`                                | Popular novos campos (determinístico)                            |
 | `src/features/catalog/components/detail/PartDetailHeader.tsx` | Rail 1600 + props de layout + switcher; identidade migra p/ card |
-| `src/features/catalog/pages/PartDetailPage.tsx` | Rail 1600, wiring de layout, composição nova |
+| `src/features/catalog/pages/PartDetailPage.tsx`               | Rail 1600, wiring de layout, composição nova                     |
 
 `CommercialSection.tsx` deixa de ser usada na composição (substituída por `PartPricingTable` + cards), mas **não é deletada** nesta rodada (segurança; pode ser referenciada em outro lugar — confirmar no Task 12).
 
@@ -67,6 +67,7 @@
 ### Task 1: Estender o modelo de domínio `IPart`
 
 **Files:**
+
 - Modify: `src/shared/types/catalog.ts`
 - Modify: `src/shared/types/index.ts`
 
@@ -198,6 +199,7 @@ git commit -m "feat(catalog): extend IPart model with DINTEC fields (gtin, price
 ### Task 2: Utilitários de precificação (funções puras)
 
 **Files:**
+
 - Create: `src/features/catalog/utils/pricing.ts`
 - Temp check: `src/features/catalog/utils/pricing.check.ts` (criado e removido)
 
@@ -342,6 +344,7 @@ git commit -m "feat(catalog): add pricing utils for price tables and weighted av
 ### Task 3: Popular os mocks com os novos campos
 
 **Files:**
+
 - Modify: `src/mocks/generators/part.ts`
 - Temp check: `src/mocks/generators/part.check.ts` (criado e removido)
 
@@ -405,16 +408,16 @@ function generateEan13(ctx: ISeededContext): string {
 
 /** Short alphanumeric supplier code derived from the supplier name. */
 function generateSupplierCode(ctx: ISeededContext, supplier: string): string {
-  const slug = supplier.replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase() || "FRN";
+  const slug =
+    supplier
+      .replace(/[^A-Za-z]/g, "")
+      .slice(0, 3)
+      .toUpperCase() || "FRN";
   return `${slug}-${ctx.int(1000, 9999)}`;
 }
 
 /** 1–3 supplier stock entries with costs around the part's base cost. */
-function generatePartSuppliers(
-  ctx: ISeededContext,
-  partId: ID,
-  baseCost: number,
-): IPartSupplier[] {
+function generatePartSuppliers(ctx: ISeededContext, partId: ID, baseCost: number): IPartSupplier[] {
   const count = ctx.int(1, 3);
   const out: IPartSupplier[] = [];
   for (let i = 0; i < count; i += 1) {
@@ -451,21 +454,21 @@ import type { IApplication, IPart, IPartSupplier, ID, PartCategory } from "@/sha
 Dentro de `generatePart`, **logo antes do `return {`**, adicione o bloco de derivações:
 
 ```ts
-  // --- DINTEC enrichment ---
-  const hasGtin = ctx.bool(0.85);
-  const gtin = hasGtin ? generateEan13(ctx) : undefined;
-  let sefazStatus: IPart["sefazStatus"];
-  let sefazCheckedAt: string | undefined;
-  if (hasGtin) {
-    const roll = ctx.rng();
-    sefazStatus = roll < 0.7 ? "validated" : roll < 0.95 ? "not_checked" : "invalid";
-    if (sefazStatus === "validated") {
-      sefazCheckedAt = randomISO(ctx, new Date(2026, 0, 1), now);
-    }
+// --- DINTEC enrichment ---
+const hasGtin = ctx.bool(0.85);
+const gtin = hasGtin ? generateEan13(ctx) : undefined;
+let sefazStatus: IPart["sefazStatus"];
+let sefazCheckedAt: string | undefined;
+if (hasGtin) {
+  const roll = ctx.rng();
+  sefazStatus = roll < 0.7 ? "validated" : roll < 0.95 ? "not_checked" : "invalid";
+  if (sefazStatus === "validated") {
+    sefazCheckedAt = randomISO(ctx, new Date(2026, 0, 1), now);
   }
-  const suppliers = generatePartSuppliers(ctx, id, baseCost);
-  const averageCost = weightedAverageCost(suppliers) ?? undefined;
-  const priceTables = unitCost > 0 ? buildPriceTables(unitCost, margin) : undefined;
+}
+const suppliers = generatePartSuppliers(ctx, id, baseCost);
+const averageCost = weightedAverageCost(suppliers) ?? undefined;
+const priceTables = unitCost > 0 ? buildPriceTables(unitCost, margin) : undefined;
 ```
 
 Depois, dentro do objeto literal retornado, **após a linha `marginPercent: Number(margin.toFixed(4)),`**, adicione:
@@ -556,6 +559,7 @@ git commit -m "feat(catalog): populate mock parts with gtin, price tables, fisca
 ### Task 4: Strings i18n do detalhe
 
 **Files:**
+
 - Modify: `src/features/catalog/i18n/pt-BR.ts`
 
 - [ ] **Step 1: Adicionar os blocos de strings em `detail`**
@@ -659,6 +663,7 @@ git commit -m "feat(catalog): add i18n strings for redesigned part detail"
 ### Task 5: Config de layout, hook de persistência e switcher
 
 **Files:**
+
 - Create: `src/features/catalog/config/layout.ts`
 - Create: `src/features/catalog/hooks/usePartDetailLayout.ts`
 - Create: `src/features/catalog/components/detail/PartLayoutSwitcher.tsx`
@@ -792,6 +797,7 @@ git commit -m "feat(catalog): add part detail layout config, hook and switcher"
 ### Task 6: `PartSefazBadge` e `PartIdentityCard`
 
 **Files:**
+
 - Create: `src/features/catalog/components/detail/PartSefazBadge.tsx`
 - Create: `src/features/catalog/components/detail/PartIdentityCard.tsx`
 
@@ -974,6 +980,7 @@ git commit -m "feat(catalog): add SEFAZ badge and part identity card"
 ### Task 7: `PartStatStrip` (5 KPIs)
 
 **Files:**
+
 - Create: `src/features/catalog/components/detail/PartStatStrip.tsx`
 
 - [ ] **Step 1: Criar `PartStatStrip.tsx`**
@@ -1015,12 +1022,14 @@ export function PartStatStrip({ part }: IPartStatStripProps) {
     {
       icon: "mdi:scale-balance",
       label: COPY.avgCost,
-      value: part.averageCost != null ? formatBRL(part.averageCost) : formatBRL(part.unitCost || null),
+      value:
+        part.averageCost != null ? formatBRL(part.averageCost) : formatBRL(part.unitCost || null),
     },
     {
       icon: "mdi:warehouse",
       label: COPY.stock,
-      value: isLow || isZero ? `${part.stockAvailable} (${COPY.belowMin})` : String(part.stockAvailable),
+      value:
+        isLow || isZero ? `${part.stockAvailable} (${COPY.belowMin})` : String(part.stockAvailable),
       accent: isZero ? "danger" : isLow ? "warn" : undefined,
     },
     {
@@ -1073,6 +1082,7 @@ git commit -m "feat(catalog): add part KPI stat strip"
 ### Task 8: `PartPriceHistory` (extração) e `PartPricingTable`
 
 **Files:**
+
 - Create: `src/features/catalog/components/detail/PartPriceHistory.tsx`
 - Create: `src/features/catalog/components/detail/PartPricingTable.tsx`
 
@@ -1146,7 +1156,9 @@ export function PartPriceHistory({ part }: IPartPriceHistoryProps) {
                     : undefined;
                 return (
                   <li key={entry.id} className="flex items-center justify-between">
-                    <span className="text-muted-foreground">{formatDateTimeBR(entry.timestamp)}</span>
+                    <span className="text-muted-foreground">
+                      {formatDateTimeBR(entry.timestamp)}
+                    </span>
                     <span className="font-mono tabular-nums">
                       {before !== undefined ? formatBRL(before) : "?"} →{" "}
                       {after !== undefined ? formatBRL(after) : "?"}
@@ -1212,17 +1224,26 @@ export function PartPricingTable({ part }: IPartPricingTableProps) {
     <Card>
       <Header />
       <p className="mb-3 text-xs text-muted-foreground">
-        {COPY.baseCost}: <span className="font-mono font-medium text-foreground">{formatBRL(baseCost)}</span>
+        {COPY.baseCost}:{" "}
+        <span className="font-mono font-medium text-foreground">{formatBRL(baseCost)}</span>
       </p>
 
       <div className="overflow-hidden rounded-md border border-border">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/40 text-[11px] uppercase tracking-wide text-muted-foreground">
-              <th scope="col" className="px-3 py-2 text-left font-medium">{COPY.table}</th>
-              <th scope="col" className="px-3 py-2 text-left font-medium">{COPY.markup}</th>
-              <th scope="col" className="px-3 py-2 text-right font-medium">{COPY.price}</th>
-              <th scope="col" className="px-3 py-2 text-right font-medium">{COPY.margin}</th>
+              <th scope="col" className="px-3 py-2 text-left font-medium">
+                {COPY.table}
+              </th>
+              <th scope="col" className="px-3 py-2 text-left font-medium">
+                {COPY.markup}
+              </th>
+              <th scope="col" className="px-3 py-2 text-right font-medium">
+                {COPY.price}
+              </th>
+              <th scope="col" className="px-3 py-2 text-right font-medium">
+                {COPY.margin}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -1304,6 +1325,7 @@ git commit -m "feat(catalog): add price tables card and extracted price history"
 ### Task 9: Cards Fiscal, Logística e Fornecedores
 
 **Files:**
+
 - Create: `src/features/catalog/components/detail/PartFiscalCard.tsx`
 - Create: `src/features/catalog/components/detail/PartLogisticsCard.tsx`
 - Create: `src/features/catalog/components/detail/PartSuppliersTable.tsx`
@@ -1334,8 +1356,16 @@ export function PartFiscalCard({ part }: IPartFiscalCardProps) {
       {hasData ? (
         <dl className="grid grid-cols-2 gap-2 text-sm">
           <Field label={COPY.ncm} value={f?.ncm} mono />
-          <Field label={COPY.icms} value={f?.icmsPercent != null ? `${f.icmsPercent}%` : undefined} />
-          <Field label={COPY.st} value={f?.taxSubstitution != null ? (f.taxSubstitution ? COPY.yes : COPY.no) : undefined} />
+          <Field
+            label={COPY.icms}
+            value={f?.icmsPercent != null ? `${f.icmsPercent}%` : undefined}
+          />
+          <Field
+            label={COPY.st}
+            value={
+              f?.taxSubstitution != null ? (f.taxSubstitution ? COPY.yes : COPY.no) : undefined
+            }
+          />
           <Field label={COPY.origin} value={f?.origin} />
         </dl>
       ) : (
@@ -1388,10 +1418,21 @@ export function PartLogisticsCard({ part }: IPartLogisticsCardProps) {
       </div>
       {hasData ? (
         <dl className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
-          <Field label={COPY.weight} value={part.weightKg != null ? `${part.weightKg.toLocaleString("pt-BR")} kg` : undefined} />
+          <Field
+            label={COPY.weight}
+            value={
+              part.weightKg != null ? `${part.weightKg.toLocaleString("pt-BR")} kg` : undefined
+            }
+          />
           <Field label={COPY.location} value={part.storageLocation} mono />
-          <Field label={COPY.boxQty} value={part.boxQuantity != null ? String(part.boxQuantity) : undefined} />
-          <Field label={COPY.fractionable} value={part.fractionable != null ? (part.fractionable ? "Sim" : "Não") : undefined} />
+          <Field
+            label={COPY.boxQty}
+            value={part.boxQuantity != null ? String(part.boxQuantity) : undefined}
+          />
+          <Field
+            label={COPY.fractionable}
+            value={part.fractionable != null ? (part.fractionable ? "Sim" : "Não") : undefined}
+          />
           <Field label={COPY.unit} value={part.unitOfMeasure} />
         </dl>
       ) : (
@@ -1438,7 +1479,9 @@ export function PartSuppliersTable({ part }: IPartSuppliersTableProps) {
         {part.averageCost != null && (
           <span className="text-xs text-muted-foreground">
             {COPY.avgCost}:{" "}
-            <span className="font-mono font-semibold text-foreground">{formatBRL(part.averageCost)}</span>
+            <span className="font-mono font-semibold text-foreground">
+              {formatBRL(part.averageCost)}
+            </span>
           </span>
         )}
       </div>
@@ -1450,23 +1493,45 @@ export function PartSuppliersTable({ part }: IPartSuppliersTableProps) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/40 text-[11px] uppercase tracking-wide text-muted-foreground">
-                <th scope="col" className="px-3 py-2 text-left font-medium">{COPY.name}</th>
-                <th scope="col" className="px-3 py-2 text-left font-medium">{COPY.code}</th>
-                <th scope="col" className="px-3 py-2 text-left font-medium">{COPY.invoice}</th>
-                <th scope="col" className="px-3 py-2 text-left font-medium">{COPY.date}</th>
-                <th scope="col" className="px-3 py-2 text-right font-medium">{COPY.cost}</th>
-                <th scope="col" className="px-3 py-2 text-right font-medium">{COPY.qty}</th>
+                <th scope="col" className="px-3 py-2 text-left font-medium">
+                  {COPY.name}
+                </th>
+                <th scope="col" className="px-3 py-2 text-left font-medium">
+                  {COPY.code}
+                </th>
+                <th scope="col" className="px-3 py-2 text-left font-medium">
+                  {COPY.invoice}
+                </th>
+                <th scope="col" className="px-3 py-2 text-left font-medium">
+                  {COPY.date}
+                </th>
+                <th scope="col" className="px-3 py-2 text-right font-medium">
+                  {COPY.cost}
+                </th>
+                <th scope="col" className="px-3 py-2 text-right font-medium">
+                  {COPY.qty}
+                </th>
               </tr>
             </thead>
             <tbody>
               {suppliers.map((s) => (
                 <tr key={s.id} className="border-b border-border last:border-b-0">
                   <td className="px-3 py-2 text-foreground">{s.name}</td>
-                  <td className="px-3 py-2 font-mono text-muted-foreground">{s.supplierCode ?? "—"}</td>
-                  <td className="px-3 py-2 font-mono text-muted-foreground">{s.invoiceNumber ?? "—"}</td>
-                  <td className="px-3 py-2 tabular-nums text-muted-foreground">{formatDateBR(s.invoiceDate)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums text-foreground">{formatBRL(s.cost)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums text-foreground">{s.quantity}</td>
+                  <td className="px-3 py-2 font-mono text-muted-foreground">
+                    {s.supplierCode ?? "—"}
+                  </td>
+                  <td className="px-3 py-2 font-mono text-muted-foreground">
+                    {s.invoiceNumber ?? "—"}
+                  </td>
+                  <td className="px-3 py-2 tabular-nums text-muted-foreground">
+                    {formatDateBR(s.invoiceDate)}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums text-foreground">
+                    {formatBRL(s.cost)}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums text-foreground">
+                    {s.quantity}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -1492,6 +1557,7 @@ git commit -m "feat(catalog): add fiscal, logistics and suppliers detail cards"
 ### Task 10: Composers de layout (Balcão / Painel / Ficha)
 
 **Files:**
+
 - Create: `src/features/catalog/components/detail/layouts/types.ts`
 - Create: `src/features/catalog/components/detail/layouts/PartLayoutCounter.tsx`
 - Create: `src/features/catalog/components/detail/layouts/PartLayoutPanel.tsx`
@@ -1534,11 +1600,21 @@ export function PartLayoutCounter({ part }: IPartLayoutProps) {
       <div className="lg:col-span-8">
         <Tabs defaultValue="commercial" className="w-full">
           <TabsList className="flex flex-wrap">
-            <TabsTrigger value="commercial" className="cursor-pointer">{TABS.commercial}</TabsTrigger>
-            <TabsTrigger value="fiscal" className="cursor-pointer">{TABS.fiscalLogistics}</TabsTrigger>
-            <TabsTrigger value="suppliers" className="cursor-pointer">{TABS.suppliers}</TabsTrigger>
-            <TabsTrigger value="applications" className="cursor-pointer">{TABS.applications}</TabsTrigger>
-            <TabsTrigger value="equivalents" className="cursor-pointer">{TABS.equivalents}</TabsTrigger>
+            <TabsTrigger value="commercial" className="cursor-pointer">
+              {TABS.commercial}
+            </TabsTrigger>
+            <TabsTrigger value="fiscal" className="cursor-pointer">
+              {TABS.fiscalLogistics}
+            </TabsTrigger>
+            <TabsTrigger value="suppliers" className="cursor-pointer">
+              {TABS.suppliers}
+            </TabsTrigger>
+            <TabsTrigger value="applications" className="cursor-pointer">
+              {TABS.applications}
+            </TabsTrigger>
+            <TabsTrigger value="equivalents" className="cursor-pointer">
+              {TABS.equivalents}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="commercial" className="mt-4">
@@ -1551,7 +1627,10 @@ export function PartLayoutCounter({ part }: IPartLayoutProps) {
           <TabsContent value="suppliers" className="mt-4">
             <PartSuppliersTable part={part} />
           </TabsContent>
-          <TabsContent value="applications" className="mt-4 rounded-lg border border-border bg-card">
+          <TabsContent
+            value="applications"
+            className="mt-4 rounded-lg border border-border bg-card"
+          >
             <ApplicationsSection part={part} />
           </TabsContent>
           <TabsContent value="equivalents" className="mt-4 rounded-lg border border-border bg-card">
@@ -1633,11 +1712,21 @@ export function PartLayoutSheet({ part }: IPartLayoutProps) {
 
       <Tabs defaultValue="commercial" className="w-full">
         <TabsList className="flex flex-wrap">
-          <TabsTrigger value="commercial" className="cursor-pointer">{TABS.commercial}</TabsTrigger>
-          <TabsTrigger value="fiscal" className="cursor-pointer">{TABS.fiscalLogistics}</TabsTrigger>
-          <TabsTrigger value="suppliers" className="cursor-pointer">{TABS.suppliers}</TabsTrigger>
-          <TabsTrigger value="applications" className="cursor-pointer">{TABS.applications}</TabsTrigger>
-          <TabsTrigger value="equivalents" className="cursor-pointer">{TABS.equivalents}</TabsTrigger>
+          <TabsTrigger value="commercial" className="cursor-pointer">
+            {TABS.commercial}
+          </TabsTrigger>
+          <TabsTrigger value="fiscal" className="cursor-pointer">
+            {TABS.fiscalLogistics}
+          </TabsTrigger>
+          <TabsTrigger value="suppliers" className="cursor-pointer">
+            {TABS.suppliers}
+          </TabsTrigger>
+          <TabsTrigger value="applications" className="cursor-pointer">
+            {TABS.applications}
+          </TabsTrigger>
+          <TabsTrigger value="equivalents" className="cursor-pointer">
+            {TABS.equivalents}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="commercial" className="mt-4">
@@ -1676,6 +1765,7 @@ git commit -m "feat(catalog): add counter, panel and sheet layout composers"
 ### Task 11: Conectar o header e a página
 
 **Files:**
+
 - Modify: `src/features/catalog/components/detail/PartDetailHeader.tsx`
 - Modify: `src/features/catalog/pages/PartDetailPage.tsx`
 
@@ -1718,7 +1808,12 @@ export function PartDetailHeader({
     <div className="border-b border-border bg-card">
       <div className="mx-auto w-full max-w-[1600px] px-4 py-4 sm:px-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2 cursor-pointer text-xs">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onBack}
+            className="-ml-2 cursor-pointer text-xs"
+          >
             <Icon icon="mdi:arrow-left" size={14} />
             {CATALOG_STRINGS.detail.backToList}
           </Button>
@@ -1738,7 +1833,12 @@ export function PartDetailHeader({
               </Button>
             )}
             {canToggle && (
-              <Button variant="outline" size="sm" className="cursor-pointer" onClick={onToggleActive}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="cursor-pointer"
+                onClick={onToggleActive}
+              >
                 <Icon
                   icon={part.active ? "mdi:archive-outline" : "mdi:archive-arrow-up-outline"}
                   size={14}
@@ -1782,57 +1882,55 @@ import { usePartDetailLayout } from "../hooks/usePartDetailLayout";
 Adicione, logo após `const partsProvider = usePartsProvider();`:
 
 ```ts
-  const [layout, setLayout] = usePartDetailLayout();
+const [layout, setLayout] = usePartDetailLayout();
 ```
 
 Substitua o `return (` principal (o bloco que começa em `<div className="min-h-[calc(100vh-4rem)] bg-background pb-12">` e contém `<PartDetailHeader … />`, as 4 seções e o `AlertDialog`) por:
 
 ```tsx
-  return (
-    <div className="flex min-h-[calc(100vh-4rem)] flex-col bg-background">
-      <PartDetailHeader
-        part={part}
-        canEdit={canEdit}
-        canToggle={canToggle}
-        layout={layout}
-        onLayoutChange={setLayout}
-        onBack={handleBack}
-        onEdit={handleEdit}
-        onDuplicate={handleDuplicate}
-        onToggleActive={() => setConfirmToggleOpen(true)}
-      />
+return (
+  <div className="flex min-h-[calc(100vh-4rem)] flex-col bg-background">
+    <PartDetailHeader
+      part={part}
+      canEdit={canEdit}
+      canToggle={canToggle}
+      layout={layout}
+      onLayoutChange={setLayout}
+      onBack={handleBack}
+      onEdit={handleEdit}
+      onDuplicate={handleDuplicate}
+      onToggleActive={() => setConfirmToggleOpen(true)}
+    />
 
-      <div className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 sm:px-6">
-        <PartStatStrip part={part} />
-        {layout === "counter" && <PartLayoutCounter part={part} />}
-        {layout === "panel" && <PartLayoutPanel part={part} />}
-        {layout === "sheet" && <PartLayoutSheet part={part} />}
-      </div>
-
-      <AlertDialog open={confirmToggleOpen} onOpenChange={setConfirmToggleOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {part.active ? "Desativar peça?" : "Reativar peça?"}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {part.active
-                ? "A peça deixará de aparecer em buscas, novos orçamentos e listagens padrão. O histórico permanece preservado."
-                : "A peça voltará a aparecer no catálogo e ficará disponível para orçamentos."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void handleConfirmToggle()}>
-              {part.active
-                ? CATALOG_STRINGS.detail.actions.deactivate
-                : CATALOG_STRINGS.detail.actions.activate}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+    <div className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 sm:px-6">
+      <PartStatStrip part={part} />
+      {layout === "counter" && <PartLayoutCounter part={part} />}
+      {layout === "panel" && <PartLayoutPanel part={part} />}
+      {layout === "sheet" && <PartLayoutSheet part={part} />}
     </div>
-  );
+
+    <AlertDialog open={confirmToggleOpen} onOpenChange={setConfirmToggleOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{part.active ? "Desativar peça?" : "Reativar peça?"}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {part.active
+              ? "A peça deixará de aparecer em buscas, novos orçamentos e listagens padrão. O histórico permanece preservado."
+              : "A peça voltará a aparecer no catálogo e ficará disponível para orçamentos."}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={() => void handleConfirmToggle()}>
+            {part.active
+              ? CATALOG_STRINGS.detail.actions.deactivate
+              : CATALOG_STRINGS.detail.actions.activate}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  </div>
+);
 ```
 
 (Os handlers `handleBack`/`handleEdit`/`handleDuplicate`/`handleConfirmToggle`, `usePart`, permissões e a query permanecem inalterados.)
@@ -1857,12 +1955,14 @@ git commit -m "feat(catalog): wire 3 selectable layouts into the part detail pag
 ### Task 12: Verificação final, lint e limpeza
 
 **Files:**
+
 - Verify only (sem novas mudanças além de eventuais correções de lint/prettier).
 
 - [ ] **Step 1: Verificar se `CommercialSection`/`StockSection`/`ApplicationsSection`/`EquivalentsSection` ainda são referenciadas em outro lugar**
 
 Run: `bunx grep -rn "CommercialSection\|StockSection" src/ || rg -n "CommercialSection|StockSection" src/`
 Expected: `CommercialSection` e `StockSection` **não** devem ter mais nenhuma referência (foram substituídas). `ApplicationsSection`/`EquivalentsSection` continuam referenciadas pelos novos composers — OK.
+
 - Se `CommercialSection.tsx`/`StockSection.tsx` ficaram órfãos, **não delete agora** (fora do escopo); apenas registre no resumo final que estão órfãos e podem ser removidos numa limpeza futura.
 
 - [ ] **Step 2: Prettier em tudo que foi tocado**
@@ -1895,6 +1995,7 @@ git commit -m "style(catalog): format redesigned part detail files"
 - [ ] **Step 6: Validação manual (usuário)**
 
 Checklist a passar para o usuário validar em `bun run dev` → `/app/catalogo` → abrir uma peça:
+
 - Alternar **Balcão / Painel / Ficha** no switcher do header; recarregar a página e confirmar que o layout escolhido **persiste**.
 - Abrir uma peça **com custo** (tabelas de preço com 5 linhas; Padrão destacado; markup em barra; valores alinhados) e uma peça **sem custo** (empty state "Defina o custo…").
 - Conferir o bloco **GTIN** nos 3 estados SEFAZ (validado/não consultado/inválido) — o botão "Consultar agora" mostra toast de Fase 2.
@@ -1907,6 +2008,7 @@ Checklist a passar para o usuário validar em `bun run dev` → `/app/catalogo` 
 ## Self-Review (preenchido pelo autor do plano)
 
 **1. Cobertura da spec:**
+
 - §4 Modelo → Task 1. §9 Utils → Task 2. §8 Mocks → Task 3. §12 i18n → Task 4. §5 Layout state/switcher → Task 5. §7.2 cards (identity/sefaz) → Task 6; (stat strip) → Task 7; (pricing+history) → Task 8; (fiscal/logistics/suppliers) → Task 9. §7.3 composers → Task 10. §6 page + §7.5 header → Task 11. §14 verificação → Task 12. **Sem lacunas.**
 
 **2. Placeholders:** Nenhum "TBD/TODO"; todo passo de código mostra o código real; comandos têm output esperado.

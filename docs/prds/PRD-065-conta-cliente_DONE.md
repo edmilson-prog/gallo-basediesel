@@ -505,9 +505,9 @@ Ambas as páginas funcionam por rota direta sobre o `LojaLayout` e estão estrut
 
 ## Histórico
 
-| Data       | Versão | Alteração                                                                                        |
-| ---------- | ------ | ------------------------------------------------------------------------------------------------ |
-| 25/05/2026 | v1     | Criação inicial — área logada com login/cadastro B2B/B2C, histórico, perfil, endereços, veículos |
+| Data       | Versão | Alteração                                                                                                               |
+| ---------- | ------ | ----------------------------------------------------------------------------------------------------------------------- |
+| 25/05/2026 | v1     | Criação inicial — área logada com login/cadastro B2B/B2C, histórico, perfil, endereços, veículos                        |
 | 31/05/2026 | delta  | PRD-009 (Chime, v0.55.0): adição de `/loja/conta/notificacoes` e `/loja/conta/preferencias` à área de conta do cliente. |
 
 ---

@@ -26,10 +26,12 @@ Três frentes, em sequência: (1) ajuste visual nas grades do editor de orçamen
 ## ✅ Progresso (o que foi feito)
 
 **1. Diferenciação visual das grades do novo orçamento (v0.61.1 Toolkit — PATCH):**
+
 - [x] `bb73263` — `style(quotes)`: as 3 grades do modo Contínuo ganharam identidade visual distinta. **Sugestões por veículo** = faixa azul `info` + ícone `mdi:truck-outline` + badge "Sugestão"; **Já comprou antes** = faixa verde `success` + `mdi:history` + badge "Recompra"; **Itens do orçamento** = cartão sólido `border-2 border-primary/40 shadow-lg` (documento). Divisor "ORÇAMENTO" separando origens do destino. `ItemResultRow` ganhou prop opcional `accent` (default preserva o listbox de busca). Tokens fixos `info`/`success` (não colidem com a troca de submarca).
 - [x] `face0ed` — bump **v0.61.1 Toolkit** (PATCH, mesmo codinome) + tag `v0.61.1`. Consultoria do agente `design-specialist`.
 
 **2. Tela de gestão de kits de revisão (issue #24 → v0.62.0 Workshop — MINOR):**
+
 - [x] `db73c19` — spec (`docs/superpowers/specs/2026-06-03-gestao-kits-revisao-design.md`)
 - [x] `88e6818` — plano (`docs/superpowers/plans/2026-06-03-gestao-kits-revisao.md`), 10 tasks
 - [x] Execução **subagent-driven** (1 implementador + revisão dupla spec→qualidade por task):
@@ -40,6 +42,7 @@ Três frentes, em sequência: (1) ajuste visual nas grades do editor de orçamen
 - [x] Issue **#24 fechada** (https://github.com/edmilson-prog/gallo-basediesel/issues/24)
 
 **3. Investigação + limpeza de PRDs (sem commit — eram arquivos untracked):**
+
 - [x] Confirmado que **PRD-008 (Herald, v0.54.0), PRD-009 (Chime, v0.55.0) e PRD-025 (Copilot, v0.56.0) já estão 100% implementados** (arquivos `_DONE` commitados; features em `src/providers/notifications/`, `src/features/notifications/`, `src/features/copilot/`).
 - [x] Removidas 3 duplicatas untracked (`PRD-008/009/025-*.md` sem `_DONE`) após verificar via diff que o corpo era **content-idêntico** ao `_DONE` (só diferia o bloco "Status de Implementação", que o `_DONE` já tem preenchido). Os `_DONE` autoritativos permanecem.
 

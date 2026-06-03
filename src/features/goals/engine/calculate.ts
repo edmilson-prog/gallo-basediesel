@@ -1,9 +1,4 @@
-import type {
-  ICustomer,
-  IGoal,
-  IGoalProgress,
-  IOrder,
-} from "@/shared/types";
+import type { ICustomer, IGoal, IGoalProgress, IOrder } from "@/shared/types";
 import { computeProjection, describePeriodWindow } from "./projection";
 import { statusFromRatio, computeWindowedTrend } from "@/shared/progress";
 

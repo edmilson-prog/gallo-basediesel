@@ -33,27 +33,60 @@ Onde "teste" aparece abaixo, significa **script de asserção descartável** (l�
 
 ```ts
 // @/shared/types
-interface IQuoteItem { id: ID; partId: ID; partSku: string; partName: string; quantity: number; unitPrice: Money; discount: Money; total: Money; }
+interface IQuoteItem {
+  id: ID;
+  partId: ID;
+  partSku: string;
+  partName: string;
+  quantity: number;
+  unitPrice: Money;
+  discount: Money;
+  total: Money;
+}
 interface IPart {
-  id: ID; sku: string; name: string; oemCodes: string[]; equivalentPartIds: ID[];
-  crossReferences?: { brand: string; code: string }[]; applications: IApplication[];
-  brand: string; category?: PartCategory; subcategory?: string; isOriginal?: boolean;
-  imageUrl?: string; unitCost: Money; unitPrice: Money; marginPercent: number;
-  averageCost?: Money; weightKg?: number; stockAvailable: number; stockMinimum: number;
+  id: ID;
+  sku: string;
+  name: string;
+  oemCodes: string[];
+  equivalentPartIds: ID[];
+  crossReferences?: { brand: string; code: string }[];
+  applications: IApplication[];
+  brand: string;
+  category?: PartCategory;
+  subcategory?: string;
+  isOriginal?: boolean;
+  imageUrl?: string;
+  unitCost: Money;
+  unitPrice: Money;
+  marginPercent: number;
+  averageCost?: Money;
+  weightKg?: number;
+  stockAvailable: number;
+  stockMinimum: number;
   active: boolean; /* …more */
 }
-interface IVehicle { id: ID; customerId: ID; brand: string; model: string; year: number; engine: string; plate?: string; /* … */ }
-type ICustomer = ICustomerB2B | ICustomerB2C;          // discriminated union over `type: "B2B" | "B2C"`
+interface IVehicle {
+  id: ID;
+  customerId: ID;
+  brand: string;
+  model: string;
+  year: number;
+  engine: string;
+  plate?: string; /* … */
+}
+type ICustomer = ICustomerB2B | ICustomerB2C; // discriminated union over `type: "B2B" | "B2C"`
 //   common: status: CustomerStatus; abcClass?: ABCClass; lastPurchaseAt?: ISO8601; address?: ICustomerAddress;
 type CustomerStatus = "ativo" | "dormente" | "recuperacao" | "perdido";
 type ABCClass = "A" | "B" | "C";
-type ID = string; type Money = number; type ISO8601 = string;
+type ID = string;
+type Money = number;
+type ISO8601 = string;
 ```
 
 ```ts
 // @/features/catalog  (barrel — já exporta tudo abaixo)
-function getEquivalents(parts: IPart[], partId: ID): IPart[];           // resolve equivalentPartIds
-function getCategoryIcon(category?: PartCategory): string;             // mdi:* fallback icon
+function getEquivalents(parts: IPart[], partId: ID): IPart[]; // resolve equivalentPartIds
+function getCategoryIcon(category?: PartCategory): string; // mdi:* fallback icon
 function searchPartsByText(parts: IPart[], query: string): IPart[];
 function searchPartsByApplication(parts: IPart[], input): IPart[];
 
@@ -62,7 +95,11 @@ function round2(value: number): number;
 
 // @/features/quotes/utils/quoteItemOps
 const FREE_ITEM_PART_ID = "avulso";
-function addOrIncrementItem(items: IQuoteItem[], part: IPart, quantity?): { items: IQuoteItem[]; affectedId: ID };
+function addOrIncrementItem(
+  items: IQuoteItem[],
+  part: IPart,
+  quantity?,
+): { items: IQuoteItem[]; affectedId: ID };
 
 // @/features/customers/utils/customerDisplay  (reusar — NÃO duplicar)
 function getCustomerName(customer: ICustomer): string;
@@ -71,17 +108,19 @@ const ABC_BADGE_CLASSES: Record<ABCClass, string>;
 const TYPE_BADGE_CLASSES: Record<ICustomer["type"], string>;
 
 // @/components/ui/badge
-function Badge(props): JSX.Element;   // variant: default|secondary|destructive|outline
+function Badge(props): JSX.Element; // variant: default|secondary|destructive|outline
 ```
 
 ## Estrutura de arquivos (Fase 2)
 
 **Novos:**
+
 - `src/features/quotes/utils/quoteItemDisplay.ts` — apresentação pura: `stockBadge`, `lineMarginValue`, `quoteAggregates`.
 - `src/features/quotes/hooks/usePartsIndex.ts` — `Map<ID, IPart>` + `allParts` da query `["parts-for-quote"]`.
 - `src/features/quotes/components/new/items/EquivalentsPanel.tsx` — lista expansível de equivalentes com ação "Trocar".
 
 **Modificados:**
+
 - `src/features/quotes/utils/quoteItemOps.ts` — `+ swapItemPart`.
 - `src/features/customers/utils/customerDisplay.ts` — `+ CUSTOMER_STATUS_LABELS` (export canônico).
 - `src/features/quotes/components/new/items/ItemResultRow.tsx` — usa `stockBadge` compartilhado + selo Original/Equivalente.
@@ -95,6 +134,7 @@ function Badge(props): JSX.Element;   // variant: default|secondary|destructive|
 ## Task 1: Utilitários de apresentação (`quoteItemDisplay.ts`)
 
 **Files:**
+
 - Create: `src/features/quotes/utils/quoteItemDisplay.ts`
 - Test (descartável): `scripts/_check_quote_item_display.ts`
 
@@ -199,7 +239,11 @@ Crie `scripts/_check_quote_item_display.ts`:
 
 ```ts
 import type { IPart, IQuoteItem } from "@/shared/types";
-import { stockBadge, lineMarginValue, quoteAggregates } from "@/features/quotes/utils/quoteItemDisplay";
+import {
+  stockBadge,
+  lineMarginValue,
+  quoteAggregates,
+} from "@/features/quotes/utils/quoteItemDisplay";
 
 let pass = true;
 function assert(cond: boolean, msg: string) {
@@ -211,27 +255,70 @@ function assert(cond: boolean, msg: string) {
 
 function makePart(over: Partial<IPart>): IPart {
   return {
-    id: "p1", sku: "SKU1", name: "Filtro", oemCodes: ["OEM-1"], equivalentPartIds: [],
-    applications: [], brand: "Mann", unitCost: 50, unitPrice: 100, marginPercent: 0.5,
-    stockAvailable: 10, stockMinimum: 2, division: "parts", active: true,
-    createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z",
+    id: "p1",
+    sku: "SKU1",
+    name: "Filtro",
+    oemCodes: ["OEM-1"],
+    equivalentPartIds: [],
+    applications: [],
+    brand: "Mann",
+    unitCost: 50,
+    unitPrice: 100,
+    marginPercent: 0.5,
+    stockAvailable: 10,
+    stockMinimum: 2,
+    division: "parts",
+    active: true,
+    createdAt: "2026-01-01T00:00:00Z",
+    updatedAt: "2026-01-01T00:00:00Z",
     ...over,
   };
 }
 function makeItem(over: Partial<IQuoteItem>): IQuoteItem {
-  return { id: "i1", partId: "p1", partSku: "SKU1", partName: "Filtro", quantity: 1, unitPrice: 100, discount: 0, total: 100, ...over };
+  return {
+    id: "i1",
+    partId: "p1",
+    partSku: "SKU1",
+    partName: "Filtro",
+    quantity: 1,
+    unitPrice: 100,
+    discount: 0,
+    total: 100,
+    ...over,
+  };
 }
 
 // stockBadge — three states
 assert(stockBadge(makePart({ stockAvailable: 0 })).tone === "out", "stock 0 → out");
-assert(stockBadge(makePart({ stockAvailable: 2, stockMinimum: 2 })).tone === "low", "available == minimum → low");
-assert(stockBadge(makePart({ stockAvailable: 1, stockMinimum: 2 })).tone === "low", "below minimum → low");
-assert(stockBadge(makePart({ stockAvailable: 10, stockMinimum: 2 })).tone === "ok", "above minimum → ok");
+assert(
+  stockBadge(makePart({ stockAvailable: 2, stockMinimum: 2 })).tone === "low",
+  "available == minimum → low",
+);
+assert(
+  stockBadge(makePart({ stockAvailable: 1, stockMinimum: 2 })).tone === "low",
+  "below minimum → low",
+);
+assert(
+  stockBadge(makePart({ stockAvailable: 10, stockMinimum: 2 })).tone === "ok",
+  "above minimum → ok",
+);
 
 // lineMarginValue — uses averageCost when present, else unitCost
-assert(lineMarginValue(makeItem({ quantity: 2 }), makePart({ unitCost: 60 })) === 80, "(100-60)*2 = 80");
-assert(lineMarginValue(makeItem({ quantity: 2, discount: 10 }), makePart({ unitCost: 60 })) === 70, "minus line discount");
-assert(lineMarginValue(makeItem({ averageCost: undefined } as never), makePart({ averageCost: 70, unitCost: 60 })) === 30, "prefers averageCost (100-70)");
+assert(
+  lineMarginValue(makeItem({ quantity: 2 }), makePart({ unitCost: 60 })) === 80,
+  "(100-60)*2 = 80",
+);
+assert(
+  lineMarginValue(makeItem({ quantity: 2, discount: 10 }), makePart({ unitCost: 60 })) === 70,
+  "minus line discount",
+);
+assert(
+  lineMarginValue(
+    makeItem({ averageCost: undefined } as never),
+    makePart({ averageCost: 70, unitCost: 60 }),
+  ) === 30,
+  "prefers averageCost (100-70)",
+);
 assert(lineMarginValue(makeItem({ partId: "avulso" }), undefined) === 0, "free item → 0 margin");
 
 // quoteAggregates
@@ -264,6 +351,7 @@ bunx prettier --check src/features/quotes/utils/quoteItemDisplay.ts
 bunx eslint src/features/quotes/utils/quoteItemDisplay.ts
 bun run build
 ```
+
 Expected: prettier "All matched files use Prettier code style!", eslint sem saída, build sem erros.
 
 - [ ] **Step 4: Commit**
@@ -278,6 +366,7 @@ git commit -m "feat(quotes): add stock badge and margin/weight aggregates for ri
 ## Task 2: Operação de troca por equivalente (`swapItemPart`)
 
 **Files:**
+
 - Modify: `src/features/quotes/utils/quoteItemOps.ts`
 - Test (descartável): `scripts/_check_swap_item.ts`
 
@@ -324,22 +413,51 @@ import type { IPart, IQuoteItem } from "@/shared/types";
 import { swapItemPart } from "@/features/quotes/utils/quoteItemOps";
 
 let pass = true;
-function assert(c: boolean, m: string) { if (!c) { pass = false; console.error("FAIL:", m); } }
+function assert(c: boolean, m: string) {
+  if (!c) {
+    pass = false;
+    console.error("FAIL:", m);
+  }
+}
 
 const part: IPart = {
-  id: "p2", sku: "SKU2", name: "Filtro equivalente", oemCodes: [], equivalentPartIds: [],
-  applications: [], brand: "Fleetguard", unitCost: 30, unitPrice: 90, marginPercent: 0.4,
-  stockAvailable: 20, stockMinimum: 3, division: "parts", active: true,
-  createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z",
+  id: "p2",
+  sku: "SKU2",
+  name: "Filtro equivalente",
+  oemCodes: [],
+  equivalentPartIds: [],
+  applications: [],
+  brand: "Fleetguard",
+  unitCost: 30,
+  unitPrice: 90,
+  marginPercent: 0.4,
+  stockAvailable: 20,
+  stockMinimum: 3,
+  division: "parts",
+  active: true,
+  createdAt: "2026-01-01T00:00:00Z",
+  updatedAt: "2026-01-01T00:00:00Z",
 };
 const items: IQuoteItem[] = [
-  { id: "i1", partId: "p1", partSku: "SKU1", partName: "Filtro orig.", quantity: 3, unitPrice: 100, discount: 15, total: 285 },
+  {
+    id: "i1",
+    partId: "p1",
+    partSku: "SKU1",
+    partName: "Filtro orig.",
+    quantity: 3,
+    unitPrice: 100,
+    discount: 15,
+    total: 285,
+  },
 ];
 
 const r = swapItemPart(items, "i1", part);
 assert(r.affectedId === "i1", "affectedId is the line");
 const line = r.items[0];
-assert(line.partId === "p2" && line.partSku === "SKU2" && line.partName === "Filtro equivalente", "re-snapshots part fields");
+assert(
+  line.partId === "p2" && line.partSku === "SKU2" && line.partName === "Filtro equivalente",
+  "re-snapshots part fields",
+);
 assert(line.quantity === 3, "keeps quantity");
 assert(line.unitPrice === 90, "takes new unit price");
 assert(line.discount === 0, "resets discount");
@@ -364,6 +482,7 @@ bunx prettier --check src/features/quotes/utils/quoteItemOps.ts
 bunx eslint src/features/quotes/utils/quoteItemOps.ts
 bun run build
 ```
+
 Expected: tudo limpo.
 
 - [ ] **Step 4: Commit**
@@ -378,6 +497,7 @@ git commit -m "feat(quotes): add swapItemPart to replace a line with an equivale
 ## Task 3: Índice de peças (`usePartsIndex`)
 
 **Files:**
+
 - Create: `src/features/quotes/hooks/usePartsIndex.ts`
 
 Reusa a **mesma** query key `["parts-for-quote"]` de `useItemSearch` — TanStack Query deduplica, então não há fetch extra quando o adder já carregou as peças.
@@ -430,6 +550,7 @@ bunx prettier --check src/features/quotes/hooks/usePartsIndex.ts
 bunx eslint src/features/quotes/hooks/usePartsIndex.ts
 bun run build
 ```
+
 Expected: tudo limpo (build cobre o type-check do hook mesmo sem consumidor ainda).
 
 - [ ] **Step 3: Commit**
@@ -446,6 +567,7 @@ git commit -m "feat(quotes): add usePartsIndex hook to resolve parts by id"
 Refatora a linha de resultado de busca para (a) usar o `stockBadge` compartilhado (remove a função local `stockTone`) e (b) exibir um selo **Original** (dourado) ou **Equivalente** (neutro).
 
 **Files:**
+
 - Modify: `src/features/quotes/components/new/items/ItemResultRow.tsx`
 
 - [ ] **Step 1: Substitua o conteúdo do arquivo**
@@ -530,6 +652,7 @@ bunx prettier --check src/features/quotes/components/new/items/ItemResultRow.tsx
 bunx eslint src/features/quotes/components/new/items/ItemResultRow.tsx
 bun run build
 ```
+
 Expected: tudo limpo.
 
 - [ ] **Step 3: Commit**
@@ -546,6 +669,7 @@ git commit -m "feat(quotes): show original/equivalent badge and shared stock bad
 Lista os equivalentes de uma peça e permite **trocar** a linha por um deles. Renderizado dentro de uma linha expandida da tabela.
 
 **Files:**
+
 - Create: `src/features/quotes/components/new/items/EquivalentsPanel.tsx`
 
 - [ ] **Step 1: Crie o componente**
@@ -628,6 +752,7 @@ bunx prettier --check src/features/quotes/components/new/items/EquivalentsPanel.
 bunx eslint src/features/quotes/components/new/items/EquivalentsPanel.tsx
 bun run build
 ```
+
 Expected: tudo limpo.
 
 - [ ] **Step 3: Commit**
@@ -644,6 +769,7 @@ git commit -m "feat(quotes): add EquivalentsPanel to swap a line for an equivale
 Enriquece cada linha da tabela do orçamento com: thumbnail, selo Original/Equivalente, OEM+marca, badge de estoque (3 estados), margem por linha (**só** `Owner`/`Gestor`) e link "ver equivalentes" que expande o `EquivalentsPanel`. Itens avulsos (`partId === "avulso"`, sem `IPart`) degradam graciosamente (sem badges/estoque/equivalentes).
 
 **Files:**
+
 - Modify: `src/features/quotes/components/new/items/QuoteItemsTable.tsx`
 
 - [ ] **Step 1: Substitua o conteúdo do arquivo**
@@ -771,14 +897,17 @@ export function QuoteItemsTable({
                         </p>
                         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
                           {stock && (
-                            <span className={`inline-flex items-center gap-1 text-[10px] ${stock.textClassName}`}>
+                            <span
+                              className={`inline-flex items-center gap-1 text-[10px] ${stock.textClassName}`}
+                            >
                               <span className={`h-1.5 w-1.5 rounded-full ${stock.dotClassName}`} />
                               {stock.label}
                             </span>
                           )}
                           {showMargin && part && (
                             <span className="text-[10px] text-muted-foreground">
-                              margem {moneyFormatter.format(margin)} ({pctFormatter.format(part.marginPercent)})
+                              margem {moneyFormatter.format(margin)} (
+                              {pctFormatter.format(part.marginPercent)})
                             </span>
                           )}
                           {hasEquivalents && (
@@ -895,6 +1024,7 @@ bunx prettier --check src/features/quotes/components/new/items/QuoteItemsTable.t
 bunx eslint src/features/quotes/components/new/items/QuoteItemsTable.tsx
 bun run build
 ```
+
 Expected: tudo limpo. Se o eslint reclamar de `key` no fragmento, troque `<>` por `<Fragment key={it.id}>` (importando `Fragment` de `react`) e remova a `key` do primeiro `<tr>`.
 
 - [ ] **Step 3: Commit**
@@ -911,6 +1041,7 @@ git commit -m "feat(quotes): enrich quote items table with badges, stock, margin
 Enriquece o chip do cliente selecionado com: tipo (B2B/B2C), status, classe ABC, última compra e veículos (chips). Apenas **dados já existentes** — sem campos financeiros (Fase 3). Reusa os mapas de classe de `customerDisplay.ts` e adiciona lá o `CUSTOMER_STATUS_LABELS` canônico.
 
 **Files:**
+
 - Modify: `src/features/customers/utils/customerDisplay.ts`
 - Modify: `src/features/quotes/components/new/customer/CustomerChip.tsx`
 
@@ -1062,6 +1193,7 @@ bunx prettier --check src/features/customers/utils/customerDisplay.ts src/featur
 bunx eslint src/features/customers/utils/customerDisplay.ts src/features/quotes/components/new/customer/CustomerChip.tsx
 bun run build
 ```
+
 Expected: tudo limpo.
 
 - [ ] **Step 4: Commit**
@@ -1078,6 +1210,7 @@ git commit -m "feat(quotes): smart customer chip with status, ABC, last purchase
 Adiciona ao resumo: **peso total** (Σ `weightKg`·qtd), **margem total** + % (gated `Owner`/`Gestor`) e um **medidor visual** de desconto vs. limite. As novas props têm defaults seguros para não quebrar o modo `compact` (rodapé).
 
 **Files:**
+
 - Modify: `src/features/quotes/components/new/summary/QuoteSummaryPanel.tsx`
 
 - [ ] **Step 1: Adicione as props novas à interface**
@@ -1085,20 +1218,26 @@ Adiciona ao resumo: **peso total** (Σ `weightKg`·qtd), **margem total** + % (g
 Em `IQuoteSummaryPanelProps`, acrescente (após `compact?`):
 
 ```ts
-  /** Total weight (kg) of the quote — Σ weightKg * quantity. */
-  totalWeightKg: number;
-  /** Total monetary margin — shown only when `showMargin`. */
-  totalMargin: number;
-  /** Margin as fraction of subtotal (0..1). */
-  marginPct: number;
-  /** Whether to surface margin figures (Owner/Gestor only). */
-  showMargin: boolean;
+/** Total weight (kg) of the quote — Σ weightKg * quantity. */
+totalWeightKg: number;
+/** Total monetary margin — shown only when `showMargin`. */
+totalMargin: number;
+/** Margin as fraction of subtotal (0..1). */
+marginPct: number;
+/** Whether to surface margin figures (Owner/Gestor only). */
+showMargin: boolean;
 ```
 
 - [ ] **Step 2: Adicione um sub-componente de medidor de desconto (acima de `export function QuoteSummaryPanel`)**
 
 ```tsx
-function DiscountMeter({ discountPct, thresholdPct }: { discountPct: number; thresholdPct: number }) {
+function DiscountMeter({
+  discountPct,
+  thresholdPct,
+}: {
+  discountPct: number;
+  thresholdPct: number;
+}) {
   const over = discountPct > thresholdPct + 1e-9;
   // Scale the bar against twice the threshold so the limit sits at the midpoint.
   const scaleMax = Math.max(thresholdPct * 2, discountPct, 0.0001);
@@ -1117,7 +1256,9 @@ function DiscountMeter({ discountPct, thresholdPct }: { discountPct: number; thr
           aria-hidden
         />
       </div>
-      <p className={`text-xs ${over ? "text-orange-600 dark:text-orange-300" : "text-muted-foreground"}`}>
+      <p
+        className={`text-xs ${over ? "text-orange-600 dark:text-orange-300" : "text-muted-foreground"}`}
+      >
         {(discountPct * 100).toFixed(1)}% de desconto · limite {(thresholdPct * 100).toFixed(0)}%
       </p>
     </div>
@@ -1192,6 +1333,7 @@ bunx prettier --check src/features/quotes/components/new/summary/QuoteSummaryPan
 bunx eslint src/features/quotes/components/new/summary/QuoteSummaryPanel.tsx
 bun run build
 ```
+
 Expected: tudo limpo. Se o build acusar `discountHint` não usado, remova a declaração.
 
 - [ ] **Step 6: Commit**
@@ -1208,6 +1350,7 @@ git commit -m "feat(quotes): summary as decision panel — total weight, gated m
 Conecta o índice de peças, a troca de equivalente, os agregados de peso/margem, o `showMargin` e os veículos ao chip. Preserva integralmente `handleSave`, cálculo de frete e aprovação de desconto.
 
 **Files:**
+
 - Modify: `src/features/quotes/components/new/QuoteEditor.tsx`
 
 - [ ] **Step 1: Importe os novos utilitários/hook**
@@ -1225,16 +1368,16 @@ import { usePartsIndex } from "../../hooks/usePartsIndex";
 Logo após `const classes = quoteLayoutClasses(prefs.layout);`, adicione:
 
 ```tsx
-  const { partsById, allParts } = usePartsIndex();
+const { partsById, allParts } = usePartsIndex();
 ```
 
 E logo após o cálculo de `discountPct` (perto de `const discountPct = ...`), adicione:
 
 ```tsx
-  const aggregates = useMemo(
-    () => quoteAggregates(items, partsById, totals.subtotal),
-    [items, partsById, totals.subtotal],
-  );
+const aggregates = useMemo(
+  () => quoteAggregates(items, partsById, totals.subtotal),
+  [items, partsById, totals.subtotal],
+);
 ```
 
 - [ ] **Step 3: Adicione o handler de troca de equivalente**
@@ -1242,11 +1385,11 @@ E logo após o cálculo de `discountPct` (perto de `const discountPct = ...`), a
 Logo após `handleAddFreeItem`, acrescente:
 
 ```tsx
-  const handleSwapEquivalent = (itemId: ID, equivalent: IPart) => {
-    const result = swapItemPart(items, itemId, equivalent);
-    setItems(result.items);
-    setHighlightId(result.affectedId);
-  };
+const handleSwapEquivalent = (itemId: ID, equivalent: IPart) => {
+  const result = swapItemPart(items, itemId, equivalent);
+  setItems(result.items);
+  setHighlightId(result.affectedId);
+};
 ```
 
 - [ ] **Step 4: Passe `vehicles` ao `CustomerChip`**
@@ -1254,22 +1397,22 @@ Logo após `handleAddFreeItem`, acrescente:
 Troque:
 
 ```tsx
-            <CustomerChip
-              customer={customer}
-              onChange={setCustomer}
-              sellerIdFilter={isManagerOrOwner ? null : (currentUser?.sellerId ?? null)}
-            />
+<CustomerChip
+  customer={customer}
+  onChange={setCustomer}
+  sellerIdFilter={isManagerOrOwner ? null : (currentUser?.sellerId ?? null)}
+/>
 ```
 
 por (adicione a prop `vehicles`):
 
 ```tsx
-            <CustomerChip
-              customer={customer}
-              onChange={setCustomer}
-              sellerIdFilter={isManagerOrOwner ? null : (currentUser?.sellerId ?? null)}
-              vehicles={vehicles}
-            />
+<CustomerChip
+  customer={customer}
+  onChange={setCustomer}
+  sellerIdFilter={isManagerOrOwner ? null : (currentUser?.sellerId ?? null)}
+  vehicles={vehicles}
+/>
 ```
 
 - [ ] **Step 5: Passe as novas props à `QuoteItemsTable`**
@@ -1277,29 +1420,29 @@ por (adicione a prop `vehicles`):
 Troque:
 
 ```tsx
-              <QuoteItemsTable
-                items={items}
-                subtotal={totals.subtotal}
-                onPatch={handleItemPatch}
-                onRemove={handleRemoveItem}
-                highlightId={highlightId}
-              />
+<QuoteItemsTable
+  items={items}
+  subtotal={totals.subtotal}
+  onPatch={handleItemPatch}
+  onRemove={handleRemoveItem}
+  highlightId={highlightId}
+/>
 ```
 
 por:
 
 ```tsx
-              <QuoteItemsTable
-                items={items}
-                subtotal={totals.subtotal}
-                onPatch={handleItemPatch}
-                onRemove={handleRemoveItem}
-                highlightId={highlightId}
-                partsById={partsById}
-                allParts={allParts}
-                showMargin={isManagerOrOwner}
-                onSwapEquivalent={handleSwapEquivalent}
-              />
+<QuoteItemsTable
+  items={items}
+  subtotal={totals.subtotal}
+  onPatch={handleItemPatch}
+  onRemove={handleRemoveItem}
+  highlightId={highlightId}
+  partsById={partsById}
+  allParts={allParts}
+  showMargin={isManagerOrOwner}
+  onSwapEquivalent={handleSwapEquivalent}
+/>
 ```
 
 - [ ] **Step 6: Passe as novas props ao `QuoteSummaryPanel`**
@@ -1320,6 +1463,7 @@ bunx prettier --check src/features/quotes/components/new/QuoteEditor.tsx
 bunx eslint src/features/quotes/components/new/QuoteEditor.tsx
 bun run build
 ```
+
 Expected: tudo limpo. O build cobre o type-check de toda a fiação (props batendo com as interfaces das Tasks 6 e 8).
 
 - [ ] **Step 8: Commit**
@@ -1364,11 +1508,13 @@ bunx eslint \
   src/features/quotes/components/new/QuoteEditor.tsx \
   src/features/customers/utils/customerDisplay.ts
 ```
+
 Expected: build sem erros; prettier "All matched files use Prettier code style!"; eslint sem saída.
 
 - [ ] **Step 2: Checklist de não-regressão (manual — reportar ao usuário, não abrir browser)**
 
 Confirme por leitura de código que estes fluxos seguem intactos:
+
 - `handleSave(false/true)` inalterado (gera número, audita `quote_create`, status `rascunho`/`enviado`, `requiresApproval`, `invalidateQueries(["quotes-list"])`, navega).
 - `handleCalcShipping` inalterado.
 - Incremento de duplicata (`addOrIncrementItem`) e item avulso (`FreeItemDialog`) seguem funcionando.
@@ -1386,6 +1532,7 @@ Os pares de cor introduzidos reusam tons já validados na Fase 1 / em `customerD
 ## Self-Review (preenchido)
 
 **1. Cobertura do spec (seção "Detalhamento de catálogo (Fase 2)" + "Cliente chip" + "Resumo painel de decisão"):**
+
 - Thumbnail / fallback ícone → Task 6 (`getCategoryIcon`). ✅
 - Selo Original vs Equivalente → Tasks 4 e 6. ✅
 - OEM + marca → Tasks 4 e 6. ✅

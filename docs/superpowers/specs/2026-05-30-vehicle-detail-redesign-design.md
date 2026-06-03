@@ -38,15 +38,15 @@ GALLO positions itself as the **commercial brain above the ERP**. Each vehicle i
 
 ## 3. Requirements (decisions captured in brainstorming)
 
-| # | Decision | Choice |
-|---|----------|--------|
-| 1 | Visual consistency with customer page | **Same base, own identity** (focus on maintenance/health/fleet) |
-| 2 | KPI strip cells | **KM atual · Próxima manutenção · Manutenções vencidas · Última visita · Uso (km/ano)** |
-| 3 | New enrichment blocks | **KM-evolution chart · Vehicle-health score · Owner fleet · Most-replaced parts** (all four) |
-| 4 | Content structure | **Hybrid** — main bento + tabs only for long content |
-| 5 | Layout choice | **Keep all 3 as user-selectable view modes; A is default** |
-| 6 | Switcher form/placement | **Segmented control in the header** (always visible, 1-click) |
-| 7 | Preference persistence | **Global** (localStorage, applies to all vehicles), default A |
+| #   | Decision                              | Choice                                                                                       |
+| --- | ------------------------------------- | -------------------------------------------------------------------------------------------- |
+| 1   | Visual consistency with customer page | **Same base, own identity** (focus on maintenance/health/fleet)                              |
+| 2   | KPI strip cells                       | **KM atual · Próxima manutenção · Manutenções vencidas · Última visita · Uso (km/ano)**      |
+| 3   | New enrichment blocks                 | **KM-evolution chart · Vehicle-health score · Owner fleet · Most-replaced parts** (all four) |
+| 4   | Content structure                     | **Hybrid** — main bento + tabs only for long content                                         |
+| 5   | Layout choice                         | **Keep all 3 as user-selectable view modes; A is default**                                   |
+| 6   | Switcher form/placement               | **Segmented control in the header** (always visible, 1-click)                                |
+| 7   | Preference persistence                | **Global** (localStorage, applies to all vehicles), default A                                |
 
 ## 4. Architecture
 
@@ -92,6 +92,7 @@ Unchanged behavior. Loading skeleton becomes layout-agnostic (a header skeleton 
 ## 5. Component Inventory
 
 ### 5.1 New — switcher
+
 - **`components/detail/VehicleLayoutSwitcher.tsx`**
   - Props: `{ value: VehicleDetailLayout; onChange: (l: VehicleDetailLayout) => void }`.
   - Segmented control (shadcn `ToggleGroup type="single"`, or styled buttons) with 3 items: Saúde / Trilhos / Bento, each with an Iconify icon (`mdi:heart-pulse`, `mdi:view-split-vertical`, `mdi:view-grid-outline`) + label.
@@ -99,6 +100,7 @@ Unchanged behavior. Loading skeleton becomes layout-agnostic (a header skeleton 
   - Responsive: on narrow widths, collapse labels to icons (tooltips carry the name).
 
 ### 5.2 New — shared building blocks (mode-agnostic, composed differently per layout)
+
 - **`components/detail/VehicleStatStrip.tsx`** — 5 KPI cells. Mirrors `CustomerStatStrip` (`grid grid-cols-2 gap-px bg-border … lg:grid-cols-5`, semantic tokens). Cells: KM atual, Próxima manutenção (km restantes + rule label), Manutenções vencidas (count; amber/destructive accent when > 0), Última visita (date + "há Xd"), Uso (km/ano). Props `{ vehicle; now }`.
 - **`components/detail/VehicleHealthCard.tsx`** — SVG ring/gauge showing `score%`, colored by status token (ok=emerald, attention=amber, overdue=destructive). Center: score + status label; below: "X vencidas · Y a vencer". Props `{ vehicle }`. Static (no animation, or `prefers-reduced-motion`-respecting CSS only).
 - **`components/detail/VehicleKmEvolutionCard.tsx`** — recharts `AreaChart` of km over time. Mirrors `CustomerPurchaseEvolutionCard` exactly: `isAnimationActive={false}`, stroke/fill via `var(--primary)`, fill ~20% opacity, typed tooltip formatter. Empty state when < 2 data points. Props `{ vehicle; now; className }`.
@@ -106,6 +108,7 @@ Unchanged behavior. Loading skeleton becomes layout-agnostic (a header skeleton 
 - **`components/detail/OwnerFleetCard.tsx`** — `useQuery(["vehicle-owner-fleet", customerId], () => provider.listByCustomer(customerId))`, excludes the current vehicle id, lists up to N with plate/model/status + link to each `/app/veiculos/$id`. Empty state ("única unidade"). Props `{ customerId; currentVehicleId }`.
 
 ### 5.3 New — layout composers
+
 - **`components/detail/layouts/VehicleLayoutHealth.tsx`** (A, default)
   - Hero `grid lg:grid-cols-12`: Health (col-3) · KmEvolution (col-6) · MaintenanceRecommendations (col-3).
   - Row 2 `grid lg:grid-cols-12`: ServiceHistory **summary** (col-8) · Owner + OwnerFleet (col-4).
@@ -120,13 +123,16 @@ Unchanged behavior. Loading skeleton becomes layout-agnostic (a header skeleton 
 - Each composer accepts `{ vehicle; now; onSeeFullHistory }` and forwards `canEdit`/`onAddService` to the summary timeline where relevant.
 
 ### 5.4 New — long-content tabbed area
+
 - **`components/detail/VehicleHistorySection.tsx`** — shadcn `Tabs`, default tab **"Histórico completo"** = full `ServiceHistoryTimeline` (all entries). Scaffolded to accept future tabs. `forwardRef` so the page/layouts can `scrollIntoView` when "ver tudo" is clicked. Props `{ vehicle; canEdit; onAddService }`.
   - **Note (refinement of approved mockup):** the bento tiles show a **summary** timeline (latest 3); the full chronological list lives here. The "ver tudo" affordance in the summary scrolls to this section. This is the only "long content", consistent with the hybrid decision.
 
 ### 5.5 Reused as-is (no edits)
+
 `ServiceHistoryTimeline` (gains a `limit?` prop — see §8), `MaintenanceRecommendations`, `VehicleOwnerCard`, `VehicleTechSpecs`, `CompatiblePartsPlaceholder`, `VehicleStatusBanner`, `EditVehicleModal`, `AddServiceEntryModal`.
 
 ### 5.6 Modified
+
 - **`VehicleDetailPage.tsx`** — width 1600, layout state wiring, new composition (see §4.2).
 - **`VehicleDetailHeader.tsx`** — inner rail `max-w-[1600px]`; add `layout`/`onLayoutChange` props; render `VehicleLayoutSwitcher` in the actions cluster.
 - **`ServiceHistoryTimeline.tsx`** — add optional `limit?: number` (summary mode shows `limit` latest entries + a "ver tudo" button when truncated). Full mode passes no limit. Backward compatible.
@@ -165,6 +171,7 @@ Unchanged behavior. Loading skeleton becomes layout-agnostic (a header skeleton 
 ## 9. i18n (pt-BR, correct accents)
 
 Add under `VEHICLE_STRINGS.detail`:
+
 - `layout`: `{ ariaLabel: "Escolher layout", health: "Saúde", rails: "Trilhos", bento: "Bento", healthHint, railsHint, bentoHint }`
 - `statStrip`: `{ currentKm: "KM atual", nextMaintenance: "Próxima manutenção", overdue: "Manutenções vencidas", lastVisit: "Última visita", usage: "Uso", usageUnit: "km/ano", daysAgo: (n) => …, noVisit: "Sem visitas" }`
 - `health`: `{ title: "Saúde do veículo", ok: "Em dia", attention: "Atenção", overdue: "Vencido", summary: (o, u) => `${o} vencidas · ${u} a vencer` }`

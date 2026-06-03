@@ -69,12 +69,26 @@ export function isCategoryFullyOptional(category: NotificationCategory): boolean
  * | marketing     |  —    |  —    |   —   |    —     |  —  |  —   |
  */
 const VENDEDOR_MATRIX: INotificationPreference["matrix"] = {
-  transactional: { inApp: true,  toast: true,  email: false, whatsapp: false, sms: false, push: false },
-  operational:   { inApp: true,  toast: true,  email: false, whatsapp: false, sms: false, push: false },
-  commercial:    { inApp: true,  toast: false, email: false, whatsapp: false, sms: false, push: false },
-  gamification:  { inApp: true,  toast: true,  email: false, whatsapp: false, sms: false, push: false },
-  system:        { inApp: true,  toast: true,  email: false, whatsapp: false, sms: false, push: false },
-  marketing:     { inApp: false, toast: false, email: false, whatsapp: false, sms: false, push: false },
+  transactional: {
+    inApp: true,
+    toast: true,
+    email: false,
+    whatsapp: false,
+    sms: false,
+    push: false,
+  },
+  operational: { inApp: true, toast: true, email: false, whatsapp: false, sms: false, push: false },
+  commercial: { inApp: true, toast: false, email: false, whatsapp: false, sms: false, push: false },
+  gamification: {
+    inApp: true,
+    toast: true,
+    email: false,
+    whatsapp: false,
+    sms: false,
+    push: false,
+  },
+  system: { inApp: true, toast: true, email: false, whatsapp: false, sms: false, push: false },
+  marketing: { inApp: false, toast: false, email: false, whatsapp: false, sms: false, push: false },
 };
 
 /**
@@ -90,12 +104,26 @@ const VENDEDOR_MATRIX: INotificationPreference["matrix"] = {
  * | marketing     |  —    |  —    |   —   |    —     |  —  |  —   |
  */
 const GESTOR_MATRIX: INotificationPreference["matrix"] = {
-  transactional: { inApp: true,  toast: true,  email: false, whatsapp: false, sms: false, push: false },
-  operational:   { inApp: true,  toast: true,  email: false, whatsapp: false, sms: false, push: false },
-  commercial:    { inApp: true,  toast: false, email: false, whatsapp: false, sms: false, push: false },
-  gamification:  { inApp: true,  toast: false, email: false, whatsapp: false, sms: false, push: false },
-  system:        { inApp: true,  toast: true,  email: false, whatsapp: false, sms: false, push: false },
-  marketing:     { inApp: false, toast: false, email: false, whatsapp: false, sms: false, push: false },
+  transactional: {
+    inApp: true,
+    toast: true,
+    email: false,
+    whatsapp: false,
+    sms: false,
+    push: false,
+  },
+  operational: { inApp: true, toast: true, email: false, whatsapp: false, sms: false, push: false },
+  commercial: { inApp: true, toast: false, email: false, whatsapp: false, sms: false, push: false },
+  gamification: {
+    inApp: true,
+    toast: false,
+    email: false,
+    whatsapp: false,
+    sms: false,
+    push: false,
+  },
+  system: { inApp: true, toast: true, email: false, whatsapp: false, sms: false, push: false },
+  marketing: { inApp: false, toast: false, email: false, whatsapp: false, sms: false, push: false },
 };
 
 /**
@@ -111,12 +139,33 @@ const GESTOR_MATRIX: INotificationPreference["matrix"] = {
  * | marketing     |  —    |  —    |   —   |    —     |  —  |  —   |
  */
 const OWNER_MATRIX: INotificationPreference["matrix"] = {
-  transactional: { inApp: true,  toast: true,  email: false, whatsapp: false, sms: false, push: false },
-  operational:   { inApp: true,  toast: false, email: false, whatsapp: false, sms: false, push: false },
-  commercial:    { inApp: true,  toast: false, email: false, whatsapp: false, sms: false, push: false },
-  gamification:  { inApp: false, toast: false, email: false, whatsapp: false, sms: false, push: false },
-  system:        { inApp: true,  toast: true,  email: false, whatsapp: false, sms: false, push: false },
-  marketing:     { inApp: false, toast: false, email: false, whatsapp: false, sms: false, push: false },
+  transactional: {
+    inApp: true,
+    toast: true,
+    email: false,
+    whatsapp: false,
+    sms: false,
+    push: false,
+  },
+  operational: {
+    inApp: true,
+    toast: false,
+    email: false,
+    whatsapp: false,
+    sms: false,
+    push: false,
+  },
+  commercial: { inApp: true, toast: false, email: false, whatsapp: false, sms: false, push: false },
+  gamification: {
+    inApp: false,
+    toast: false,
+    email: false,
+    whatsapp: false,
+    sms: false,
+    push: false,
+  },
+  system: { inApp: true, toast: true, email: false, whatsapp: false, sms: false, push: false },
+  marketing: { inApp: false, toast: false, email: false, whatsapp: false, sms: false, push: false },
 };
 
 /**
@@ -138,12 +187,33 @@ const OWNER_MATRIX: INotificationPreference["matrix"] = {
  * *email/whatsapp ✓ = intent for Onda 8; deferred in Fase 1.
  */
 const CLIENTE_MATRIX: INotificationPreference["matrix"] = {
-  transactional: { inApp: true,  toast: false, email: true,  whatsapp: true,  sms: false, push: false },
-  operational:   { inApp: false, toast: false, email: false, whatsapp: false, sms: false, push: false },
-  commercial:    { inApp: true,  toast: false, email: false, whatsapp: false, sms: false, push: false },
-  gamification:  { inApp: false, toast: false, email: false, whatsapp: false, sms: false, push: false },
-  system:        { inApp: true,  toast: false, email: false, whatsapp: false, sms: false, push: false },
-  marketing:     { inApp: false, toast: false, email: false, whatsapp: false, sms: false, push: false },
+  transactional: {
+    inApp: true,
+    toast: false,
+    email: true,
+    whatsapp: true,
+    sms: false,
+    push: false,
+  },
+  operational: {
+    inApp: false,
+    toast: false,
+    email: false,
+    whatsapp: false,
+    sms: false,
+    push: false,
+  },
+  commercial: { inApp: true, toast: false, email: false, whatsapp: false, sms: false, push: false },
+  gamification: {
+    inApp: false,
+    toast: false,
+    email: false,
+    whatsapp: false,
+    sms: false,
+    push: false,
+  },
+  system: { inApp: true, toast: false, email: false, whatsapp: false, sms: false, push: false },
+  marketing: { inApp: false, toast: false, email: false, whatsapp: false, sms: false, push: false },
 };
 
 // ---------------------------------------------------------------------------
@@ -187,11 +257,10 @@ export function defaultPreferenceFor(
   recipientType: NotificationRecipientType,
   role?: string,
 ): INotificationPreference {
-  const matrix =
-    recipientType === "customer" ? CLIENTE_MATRIX : resolveSellerMatrix(role);
+  const matrix = recipientType === "customer" ? CLIENTE_MATRIX : resolveSellerMatrix(role);
 
   return {
-    recipientId: "",           // placeholder — caller must set the real ID before persisting
+    recipientId: "", // placeholder — caller must set the real ID before persisting
     recipientType,
     matrix,
     updatedAt: "1970-01-01T00:00:00.000Z", // sentinel for "not yet saved"

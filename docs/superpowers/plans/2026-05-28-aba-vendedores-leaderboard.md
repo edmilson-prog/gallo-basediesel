@@ -25,6 +25,7 @@
 ## File Structure
 
 **Criar:**
+
 - `src/features/sales-analytics/utils/sellerLeaderboard.ts` — tipos + função pura `buildSellerLeaderboard` (agregação/ranking) e helpers `attainmentBand`, `rankMetricValue`.
 - `src/features/sales-analytics/hooks/useSellerLeaderboard.ts` — hook que faz as queries e chama a função pura.
 - `src/features/sales-analytics/components/sellers/SellersSummaryHeader.tsx` — mini-cards de resumo + seletor de métrica + toggle "Ver como tabela".
@@ -36,6 +37,7 @@
 - `src/features/sales-analytics/components/tabs/SellersTab.tsx` — orquestrador da aba.
 
 **Modificar:**
+
 - `src/features/sales-analytics/i18n/pt-BR.ts` — novas strings (bloco "Sellers tab").
 - `src/features/sales-analytics/pages/SalesAnalyticsPage.tsx` — registrar a aba "Vendedores" (condicional por RBAC), `TabId`, `TabsContent`.
 - `src/features/sales-analytics/hooks/useSalesFilters.ts` — aceitar/validar o search param `vendedor` para deep-link do drawer (já existe `vendedor` como filtro; ver Task 8 — reutilizamos, sem novo param).
@@ -45,6 +47,7 @@
 ## Task 1: Strings de UI (i18n)
 
 **Files:**
+
 - Modify: `src/features/sales-analytics/i18n/pt-BR.ts`
 
 - [ ] **Step 1: Adicionar bloco de strings da aba Vendedores**
@@ -113,6 +116,7 @@ git commit -m "feat(sales): add i18n strings for Sellers tab"
 ## Task 2: Função pura de agregação e helpers
 
 **Files:**
+
 - Create: `src/features/sales-analytics/utils/sellerLeaderboard.ts`
 
 - [ ] **Step 1: Criar o arquivo com tipos, helpers e a função pura**
@@ -337,6 +341,7 @@ git commit -m "feat(sales): add seller leaderboard aggregation util"
 ## Task 3: Hook `useSellerLeaderboard`
 
 **Files:**
+
 - Create: `src/features/sales-analytics/hooks/useSellerLeaderboard.ts`
 
 - [ ] **Step 1: Criar o hook**
@@ -484,7 +489,16 @@ export function useSellerLeaderboard(
         },
         metric,
       ),
-    [now, sellersQ.data, ordersCur.data, ordersPrev.data, quotesQ.data, customerCountBySeller, targetBySeller, metric],
+    [
+      now,
+      sellersQ.data,
+      ordersCur.data,
+      ordersPrev.data,
+      quotesQ.data,
+      customerCountBySeller,
+      targetBySeller,
+      metric,
+    ],
   );
 
   return { ...result, isLoading, hasError, referenceDate: now };
@@ -510,6 +524,7 @@ git commit -m "feat(sales): add useSellerLeaderboard hook"
 ## Task 4: Header de resumo + linha do leaderboard + pódio
 
 **Files:**
+
 - Create: `src/features/sales-analytics/components/sellers/SellersSummaryHeader.tsx`
 - Create: `src/features/sales-analytics/components/sellers/SellerLeaderboardRow.tsx`
 - Create: `src/features/sales-analytics/components/sellers/SellerPodium.tsx`
@@ -629,7 +644,11 @@ export function SellerLeaderboardRow({ row, onSelect, selected }: ISellerLeaderb
   const trendIcon =
     row.trend === "up" ? "mdi:arrow-up" : row.trend === "down" ? "mdi:arrow-down" : "mdi:minus";
   const trendClass =
-    row.trend === "up" ? "text-success" : row.trend === "down" ? "text-destructive" : "text-muted-foreground";
+    row.trend === "up"
+      ? "text-success"
+      : row.trend === "down"
+        ? "text-destructive"
+        : "text-muted-foreground";
   return (
     <button
       type="button"
@@ -750,6 +769,7 @@ git commit -m "feat(sales): add sellers summary header, leaderboard row and podi
 ## Task 5: Mini gráfico + drawer de detalhe
 
 **Files:**
+
 - Create: `src/features/sales-analytics/components/sellers/SellerMiniChart.tsx`
 - Create: `src/features/sales-analytics/components/sellers/SellerDetailDrawer.tsx`
 
@@ -779,7 +799,12 @@ export function SellerMiniChart({ dailySeries, target }: ISellerMiniChartProps) 
           </defs>
           <YAxis hide domain={[0, "dataMax"]} />
           {target != null && target > 0 && (
-            <ReferenceLine y={target} stroke="var(--muted-foreground)" strokeDasharray="4 4" strokeWidth={1.2} />
+            <ReferenceLine
+              y={target}
+              stroke="var(--muted-foreground)"
+              strokeDasharray="4 4"
+              strokeWidth={1.2}
+            />
           )}
           <Area
             type="monotone"
@@ -834,7 +859,12 @@ export function SellerDetailDrawer({ row, open, onOpenChange }: ISellerDetailDra
                 </span>
                 <span className="flex flex-col">
                   <span className="text-base">{row.sellerName}</span>
-                  <span className={cn("text-xs font-medium", BAND_TEXT[attainmentBand(row.attainmentPct)])}>
+                  <span
+                    className={cn(
+                      "text-xs font-medium",
+                      BAND_TEXT[attainmentBand(row.attainmentPct)],
+                    )}
+                  >
                     {row.attainmentPct == null
                       ? S.sellersDrawerNoTarget
                       : `${Math.round(row.attainmentPct)}% ${S.sellersDrawerOfTarget}`}
@@ -851,7 +881,10 @@ export function SellerDetailDrawer({ row, open, onOpenChange }: ISellerDetailDra
 
               <dl className="flex flex-col">
                 <Metric label={S.sellersColRevenue} value={formatBRL(row.revenue)} />
-                <Metric label={S.sellersDrawerTarget} value={row.target == null ? "—" : formatBRL(row.target)} />
+                <Metric
+                  label={S.sellersDrawerTarget}
+                  value={row.target == null ? "—" : formatBRL(row.target)}
+                />
                 <Metric label={S.sellersColProjection} value={formatBRL(row.projection)} />
                 <Metric label={S.sellersColOrders} value={String(row.orderCount)} />
                 <Metric label={S.sellersColTicket} value={formatBRL(row.avgTicket)} />
@@ -905,6 +938,7 @@ git commit -m "feat(sales): add seller detail drawer with individual mini chart"
 ## Task 6: Tabela densa premium (visão alternativa)
 
 **Files:**
+
 - Create: `src/features/sales-analytics/components/sellers/SellersTable.tsx`
 
 - [ ] **Step 1: Criar `SellersTable.tsx`**
@@ -1031,6 +1065,7 @@ git commit -m "feat(sales): add dense premium sellers table view"
 ## Task 7: Orquestrador `SellersTab`
 
 **Files:**
+
 - Create: `src/features/sales-analytics/components/tabs/SellersTab.tsx`
 
 - [ ] **Step 1: Criar `SellersTab.tsx`**
@@ -1163,6 +1198,7 @@ git commit -m "feat(sales): add SellersTab orchestrator (podium + leaderboard + 
 ## Task 8: Integrar na página de Vendas (aba + RBAC + deep-link)
 
 **Files:**
+
 - Modify: `src/features/sales-analytics/pages/SalesAnalyticsPage.tsx`
 
 - [ ] **Step 1: Importar `SellersTab` e ampliar `TabId`**
@@ -1205,14 +1241,13 @@ function buildTabDefs(canSeeSellers: boolean): { id: TabId; label: string; icon:
 Logo após `const canDrillDown = userRole === "Owner" || userRole === "Gestor";` (linha ~103), adicionar:
 
 ```tsx
-  const canSeeSellers =
-    userRole === "Owner" || userRole === "Gestor" || userRole === "Vendedor";
-  const sellersViewerId = userRole === "Vendedor" ? currentUser?.sellerId : undefined;
-  const tabDefs = buildTabDefs(canSeeSellers);
-  const selectedSellerParam =
-    typeof filtersCtl.filters.seller === "string" && filtersCtl.filters.seller !== "all"
-      ? filtersCtl.filters.seller
-      : undefined;
+const canSeeSellers = userRole === "Owner" || userRole === "Gestor" || userRole === "Vendedor";
+const sellersViewerId = userRole === "Vendedor" ? currentUser?.sellerId : undefined;
+const tabDefs = buildTabDefs(canSeeSellers);
+const selectedSellerParam =
+  typeof filtersCtl.filters.seller === "string" && filtersCtl.filters.seller !== "all"
+    ? filtersCtl.filters.seller
+    : undefined;
 ```
 
 > **Nota:** Reutilizamos o search param **`vendedor`** já existente (gerenciado por `useSalesFilters`) como deep-link do drawer — sem criar param novo. `filtersCtl.setSeller(id)` grava `?vendedor=id`; `setSeller("all")` limpa.
@@ -1226,16 +1261,18 @@ Na `TabsList` (linha ~124), trocar `{TAB_DEFS.map((def) => (` por `{tabDefs.map(
 Imediatamente após o fechamento do `</TabsContent>` de `value="overview"` (linha ~145), inserir:
 
 ```tsx
-        {canSeeSellers && (
-          <TabsContent value="sellers" className="focus-visible:outline-none">
-            <SellersTab
-              storeId={scope.storeId ?? storeId}
-              viewerSellerId={sellersViewerId}
-              selectedSellerId={selectedSellerParam}
-              onSelectSeller={(id) => filtersCtl.setSeller(id ?? "all")}
-            />
-          </TabsContent>
-        )}
+{
+  canSeeSellers && (
+    <TabsContent value="sellers" className="focus-visible:outline-none">
+      <SellersTab
+        storeId={scope.storeId ?? storeId}
+        viewerSellerId={sellersViewerId}
+        selectedSellerId={selectedSellerParam}
+        onSelectSeller={(id) => filtersCtl.setSeller(id ?? "all")}
+      />
+    </TabsContent>
+  );
+}
 ```
 
 > **Nota de escopo:** passamos `scope.storeId ?? storeId` para a aba sempre operar **store-wide** (o leaderboard nunca é seller-locked; a restrição ao Vendedor acontece via `viewerSellerId`). Como `useSellerLeaderboard` recebe apenas `storeId`, o lock de vendedor do `scope` não afeta o ranking.
@@ -1271,6 +1308,7 @@ Expected: build conclui sem erro (lembrando que `tsc` não roda no build; o obje
 - [ ] **Step 3: Verificação manual de UI (usuário)**
 
 Pedir ao usuário para dar **F5** em `localhost` → `/app/gestao/vendas` e validar, logado como **Owner/Gestor**:
+
 - Existe a aba **"Vendedores"** entre "Visão geral" e "Produtos".
 - Header de resumo (vendedores, faturamento, atingimento médio) + seletor "Ranquear por" (4 opções) trocando a ordenação.
 - Pódio dos 3 primeiros (com ≥4 vendedores) + leaderboard abaixo, com barra de meta colorida por faixa e seta de tendência.

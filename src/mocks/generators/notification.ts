@@ -61,7 +61,12 @@ const TEMPLATES: Record<NotificationCategory, IContentTemplate[]> = {
       entityRefType: "conversation",
       hasActions: true,
       actions: [
-        { id: "ver-conversa", label: "Ver conversa", type: "navigate", target: "/app/conversations" },
+        {
+          id: "ver-conversa",
+          label: "Ver conversa",
+          type: "navigate",
+          target: "/app/conversations",
+        },
       ],
     },
     {
@@ -71,9 +76,7 @@ const TEMPLATES: Record<NotificationCategory, IContentTemplate[]> = {
       hasEntityRef: true,
       entityRefType: "order",
       hasActions: true,
-      actions: [
-        { id: "ver-pedido", label: "Ver pedido", type: "navigate", target: "/app/orders" },
-      ],
+      actions: [{ id: "ver-pedido", label: "Ver pedido", type: "navigate", target: "/app/orders" }],
     },
     {
       type: "conversa.atribuida",
@@ -83,7 +86,12 @@ const TEMPLATES: Record<NotificationCategory, IContentTemplate[]> = {
       entityRefType: "quote",
       hasActions: true,
       actions: [
-        { id: "gerar-pedido", label: "Gerar pedido", type: "mutation", target: "convertQuoteToOrder" },
+        {
+          id: "gerar-pedido",
+          label: "Gerar pedido",
+          type: "mutation",
+          target: "convertQuoteToOrder",
+        },
         { id: "ver-cotacao", label: "Ver cotação", type: "navigate", target: "/app/quotes" },
       ],
     },
@@ -112,9 +120,7 @@ const TEMPLATES: Record<NotificationCategory, IContentTemplate[]> = {
       hasEntityRef: true,
       entityRefType: "lead",
       hasActions: true,
-      actions: [
-        { id: "ver-lead", label: "Ver lead", type: "navigate", target: "/app/leads" },
-      ],
+      actions: [{ id: "ver-lead", label: "Ver lead", type: "navigate", target: "/app/leads" }],
     },
     {
       type: "conversa.atribuida",
@@ -195,7 +201,12 @@ const TEMPLATES: Record<NotificationCategory, IContentTemplate[]> = {
       entityRefType: "sdrEscalation",
       hasActions: true,
       actions: [
-        { id: "ver-escalada", label: "Ver escalada", type: "navigate", target: "/app/conversations" },
+        {
+          id: "ver-escalada",
+          label: "Ver escalada",
+          type: "navigate",
+          target: "/app/conversations",
+        },
       ],
     },
   ],
@@ -260,9 +271,7 @@ const TEMPLATES: Record<NotificationCategory, IContentTemplate[]> = {
       title: "Nova campanha ativa",
       body: "A campanha de peças Volvo está ativa. Veja os materiais disponíveis.",
       hasActions: true,
-      actions: [
-        { id: "ver-campanha", label: "Ver campanha", type: "navigate", target: "/app" },
-      ],
+      actions: [{ id: "ver-campanha", label: "Ver campanha", type: "navigate", target: "/app" }],
     },
     {
       type: "conversa.atribuida",
@@ -345,10 +354,7 @@ export function generateNotification(
   const createdAt = randomISO(ctx, windowStart, now);
 
   // readAt only when status is "read" or "archived"
-  const readAt =
-    status !== "unread"
-      ? randomISO(ctx, new Date(createdAt), now)
-      : undefined;
+  const readAt = status !== "unread" ? randomISO(ctx, new Date(createdAt), now) : undefined;
 
   // expiresAt: ~30% of notifications expire
   const expiresAt = ctx.bool(0.3)

@@ -44,6 +44,7 @@ Concluir a refatoração completa do editor de orçamento, executada em **3 fase
 - [x] Issue GitHub **#24** registrada — CRUD de kits (deferido no spec)
 
 **Histórico do épico (sessões anteriores, já em `main`):**
+
 - v0.59.0 Counter — Fase 1 (Fundação): 3 layouts, 3 modos de adição, sugestões por veículo, recompra, item avulso, `useQuoteEditorPrefs`.
 - v0.60.0 Mosaic — Fase 2 (Detalhamento): linha de item rica (selo Original/Equivalente, OEM+marca, estoque 3 estados, equivalentes inline com troca, margem gated), cliente chip inteligente, resumo como painel de decisão.
 

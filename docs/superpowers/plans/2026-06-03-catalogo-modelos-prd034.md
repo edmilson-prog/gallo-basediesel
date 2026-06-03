@@ -9,6 +9,7 @@
 **Tech Stack:** React 19 + TS strict, Vite, TanStack Router (file-based) + TanStack Query, Tailwind v4 + shadcn/ui, Iconify (`mdi:*`), zod + react-hook-form, sonner, Bun.
 
 **Gates do repositório (LER ANTES DE COMEÇAR):**
+
 - **`bun run build` NÃO faz type-check** (esbuild remove tipos). O gate de tipos real é `bunx tsc --noEmit 2>&1` filtrado pelos arquivos tocados — deve sair **vazio**. O repo tem ~316 erros pré-existentes de `tsc`; ignore os que não casam com os arquivos da tarefa.
 - **`bun run lint` global é INUTILIZÁVEL** (milhares de falsos `prettier/prettier Delete ␍` por CRLF). Valide **por-arquivo**: `bunx prettier --check "<arquivo>"`.
 - **Sem test runner.** Lógica pura é validada com script descartável `scripts/_check_*.ts` rodado com `bun`, **apagado no mesmo commit**.
@@ -22,6 +23,7 @@
 ## File Structure
 
 **Criar:**
+
 - `src/shared/types/vehicle-models.ts` — `IVehicleModel`, `VehicleModelStatus`
 - `src/mocks/data/seedVehicleModelsCanonical.ts` — consolidação → `SEED_VEHICLE_MODELS_CANONICAL`
 - `src/mocks/api/vehicleModels.ts` — mock api (store in-memory, CRUD, validação)
@@ -47,6 +49,7 @@
 - `src/routes/app.kits.tsx`, `app.kits.index.tsx`, `app.kits.novo.tsx`, `app.kits.$modelId.tsx`, `app.kits.$modelId.editar.tsx`
 
 **Modificar:**
+
 - `src/shared/types/index.ts` — re-export do tipo
 - `src/mocks/api/index.ts` — re-export `vehicleModelsApi`
 - `src/providers/data/contracts/index.ts` — registrar contrato + `IDataProviders.vehicleModels`
@@ -63,6 +66,7 @@
 ## Task 1: Tipo de domínio `IVehicleModel`
 
 **Files:**
+
 - Create: `src/shared/types/vehicle-models.ts`
 - Modify: `src/shared/types/index.ts` (após a linha de service-kit, fim do arquivo)
 
@@ -127,6 +131,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 2: Helper `getBrandIcon`
 
 **Files:**
+
 - Create: `src/features/vehicle-models/utils/brandIcon.ts`
 
 Reusa a fonte da verdade marca→ícone de `DEFAULT_STOREFRONT_BRANDS` (`src/shared/types/storefront.ts`), normalizando o nome da marca ("Mercedes-Benz" → slug "mercedes-benz").
@@ -174,7 +179,8 @@ for (const [brand, expected] of cases) {
   const got = getBrandIcon(brand);
   if (got !== expected) throw new Error(`getBrandIcon(${brand}) = ${got}, esperado ${expected}`);
 }
-if (KNOWN_BRANDS.length !== 5) throw new Error(`KNOWN_BRANDS deve ter 5, tem ${KNOWN_BRANDS.length}`);
+if (KNOWN_BRANDS.length !== 5)
+  throw new Error(`KNOWN_BRANDS deve ter 5, tem ${KNOWN_BRANDS.length}`);
 console.log("OK brandIcon");
 ```
 
@@ -204,6 +210,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 3: Consolidação / seed canônico
 
 **Files:**
+
 - Create: `src/mocks/data/seedVehicleModelsCanonical.ts`
 
 Deriva o catálogo canônico expandindo cada variante de motor de `SEED_VEHICLE_MODELS` em uma entrada `IVehicleModel` distinta. **Vive em `src/mocks/`** (a fronteira ESLint impede features de importar `src/mocks/data/*`; o seed e a api ficam dentro de mocks). As `applications` de peças derivam da mesma fonte (`SEED_VEHICLE_MODELS`), então não introduzem combinações novas — dobrá-las é desnecessário (decisão documentada no arquivo).
@@ -323,6 +330,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 4: Mock API `vehicleModelsApi`
 
 **Files:**
+
 - Create: `src/mocks/api/vehicleModels.ts`
 - Modify: `src/mocks/api/index.ts` (após a linha do `serviceKitsApi`)
 
@@ -378,11 +386,7 @@ function validate(input: ICreateVehicleModelInput, ignoreId?: ID): void {
   if (!input.brand?.trim()) throw new MockValidationError("A marca é obrigatória.", "brand");
   if (!input.model?.trim()) throw new MockValidationError("O modelo é obrigatório.", "model");
   if (!input.engine?.trim()) throw new MockValidationError("O motor é obrigatório.", "engine");
-  if (
-    input.yearStart != null &&
-    input.yearEnd != null &&
-    input.yearStart > input.yearEnd
-  ) {
+  if (input.yearStart != null && input.yearEnd != null && input.yearStart > input.yearEnd) {
     throw new MockValidationError("Ano inicial não pode ser maior que o final.", "yearStart");
   }
   const key = `${input.brand}|${input.model}|${input.engine}`.trim().toLowerCase();
@@ -511,7 +515,11 @@ if (scania.length !== 5) throw new Error(`Scania = ${scania.length}, esperado 5`
 const search = await vehicleModelsApi.list({ search: "dc13" });
 if (search.length === 0) throw new Error("busca 'dc13' não retornou nada");
 
-const created = await vehicleModelsApi.create({ brand: "Volvo", model: "FH 500", engine: "D13K500X" });
+const created = await vehicleModelsApi.create({
+  brand: "Volvo",
+  model: "FH 500",
+  engine: "D13K500X",
+});
 if (!created.id.startsWith("vmodel-volvo-fh-500")) throw new Error(`id inesperado: ${created.id}`);
 
 try {
@@ -557,6 +565,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 5: Camada de provider (contract + impls + hook + factory)
 
 **Files:**
+
 - Create: `src/providers/data/contracts/vehicleModels.ts`
 - Create: `src/providers/data/impl/mock/vehicleModels.ts`
 - Create: `src/providers/data/impl/supabase/vehicleModels.ts`
@@ -658,11 +667,15 @@ export function useVehicleModelsProvider(): IVehicleModelsProvider {
 - [ ] **Step 5: Registrar no contracts/index.ts**
 
 Em `src/providers/data/contracts/index.ts`:
+
 1. Após `import type { IServiceKitsProvider } from "./serviceKits";` adicionar:
+
 ```ts
 import type { IVehicleModelsProvider } from "./vehicleModels";
 ```
+
 2. Após o bloco `export type { IServiceKitsProvider, ... } from "./serviceKits";` adicionar:
+
 ```ts
 export type {
   IVehicleModelsProvider,
@@ -671,27 +684,37 @@ export type {
   IUpdateVehicleModelPatch,
 } from "./vehicleModels";
 ```
+
 3. Em `interface IDataProviders`, após `serviceKits: IServiceKitsProvider;` adicionar:
+
 ```ts
-  vehicleModels: IVehicleModelsProvider;
+vehicleModels: IVehicleModelsProvider;
 ```
 
 - [ ] **Step 6: Registrar na factory.ts**
 
 Em `src/providers/data/factory.ts`:
+
 1. Após `import { mockServiceKitsProvider } from "./impl/mock/serviceKits";` adicionar:
+
 ```ts
 import { mockVehicleModelsProvider } from "./impl/mock/vehicleModels";
 ```
+
 2. Após `import { supabaseServiceKitsProvider } from "./impl/supabase/serviceKits";` adicionar:
+
 ```ts
 import { supabaseVehicleModelsProvider } from "./impl/supabase/vehicleModels";
 ```
+
 3. Em `mockProviders`, após `serviceKits: mockServiceKitsProvider,` adicionar:
+
 ```ts
   vehicleModels: mockVehicleModelsProvider,
 ```
+
 4. Em `supabaseProviders`, após `serviceKits: supabaseServiceKitsProvider,` adicionar:
+
 ```ts
   vehicleModels: supabaseVehicleModelsProvider,
 ```
@@ -699,12 +722,14 @@ import { supabaseVehicleModelsProvider } from "./impl/supabase/vehicleModels";
 - [ ] **Step 7: Re-exportar input/params no barrel `index.ts`**
 
 Em `src/providers/data/index.ts`, dentro do bloco `export type { ... } from "./contracts";`, após a linha `  ICreateServiceKitInput,` (última antes do `} from "./contracts";`) adicionar:
+
 ```ts
   IVehicleModelsProvider,
   IListVehicleModelsParams,
   ICreateVehicleModelInput,
   IUpdateVehicleModelPatch,
 ```
+
 > Os nomes não colidem com nada já exportado no barrel — adicione-os diretamente, sem alias.
 
 - [ ] **Step 8: tsc + prettier**
@@ -726,6 +751,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 6: RBAC — resource `vehicleModel`
 
 **Files:**
+
 - Modify: `src/features/rbac/permissions/resources.ts`
 - Modify: `src/features/rbac/permissions/matrix.ts`
 - Modify: `src/features/rbac/pages/RolesPage.tsx`
@@ -778,6 +804,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 7: Hooks de query e mutação (com audit log)
 
 **Files:**
+
 - Create: `src/features/vehicle-models/hooks/useVehicleModels.ts`
 - Create: `src/features/vehicle-models/hooks/useVehicleModel.ts`
 - Create: `src/features/vehicle-models/hooks/useVehicleModelMutations.ts`
@@ -924,6 +951,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 8: Validação + formulário de modelo
 
 **Files:**
+
 - Create: `src/features/vehicle-models/utils/modelValidation.ts`
 - Create: `src/features/vehicle-models/components/VehicleModelForm.tsx`
 
@@ -968,6 +996,7 @@ export type ModelFormValues = z.infer<typeof modelFormSchema>;
 Props: `{ initial?: IVehicleModel; saving: boolean; onSubmit: (input: ICreateVehicleModelInput) => void | Promise<void>; onCancel?: () => void }`.
 
 Requisitos:
+
 - `useForm<ModelFormValues>({ resolver: zodResolver(modelFormSchema), defaultValues: ... })`.
 - Marca: shadcn `Select` com itens de `KNOWN_BRANDS` + item `"__other__"` rotulado "Outro…"; quando "Outro", mostrar `Input` livre para a marca. (Se `initial.brand` não estiver em `KNOWN_BRANDS`, iniciar em "Outro".)
 - Motor: `Input` com hint "Ex.: DC13 143 Euro 5".
@@ -997,6 +1026,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 9: Componentes de lista (avatar, chips, linha, grupo, delete dialog)
 
 **Files:**
+
 - Create: `src/features/vehicle-models/components/BrandAvatar.tsx`
 - Create: `src/features/vehicle-models/components/BrandFilterChips.tsx`
 - Create: `src/features/vehicle-models/components/VehicleModelRow.tsx`
@@ -1044,7 +1074,7 @@ Props `{ brand: string; models: IVehicleModel[]; canManage: boolean; ...handlers
 
 - [ ] **Step 5: `DeleteVehicleModelDialog`**
 
-Props `{ model: IVehicleModel | null; onOpenChange: (open: boolean) => void; onConfirm: () => void }`. Usa shadcn `AlertDialog`. Tom calmo (não alarmante): título "Excluir modelo?", descrição explicando que excluir remove o modelo do catálogo (e sugerindo *inativar* como alternativa reversível). Botão de confirmação `variant="destructive"` só para exclusão física. Espelhe `DeleteKitDialog.tsx`.
+Props `{ model: IVehicleModel | null; onOpenChange: (open: boolean) => void; onConfirm: () => void }`. Usa shadcn `AlertDialog`. Tom calmo (não alarmante): título "Excluir modelo?", descrição explicando que excluir remove o modelo do catálogo (e sugerindo _inativar_ como alternativa reversível). Botão de confirmação `variant="destructive"` só para exclusão física. Espelhe `DeleteKitDialog.tsx`.
 
 - [ ] **Step 6: tsc + prettier**
 
@@ -1065,6 +1095,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 10: Páginas (lista, form, detalhe) + barrel da feature
 
 **Files:**
+
 - Create: `src/features/vehicle-models/pages/VehicleModelsListPage.tsx`
 - Create: `src/features/vehicle-models/pages/VehicleModelFormPage.tsx`
 - Create: `src/features/vehicle-models/pages/VehicleModelDetailPage.tsx`
@@ -1075,6 +1106,7 @@ Espelhe `ServiceKitsListPage.tsx` (estrutura de página, busca, permissão). Use
 - [ ] **Step 1: `VehicleModelsListPage`**
 
 Comportamento:
+
 - `useVehicleModels({ brand, status, search })` (passar `status: showInactive ? undefined : "ativo"`; `brand` do chip; `search` do input — ou filtrar client-side como no `ServiceKitsListPage`; preferir client-side para busca instantânea e server-param para brand/status).
 - Estado local: `search`, `selectedBrand: string | null`, `showInactive: boolean`, `toDelete`.
 - Agrupar os modelos resultantes por marca (na ordem de `KNOWN_BRANDS`, marcas desherdadas ao fim) e renderizar um `BrandGroup` por marca não-vazia.
@@ -1093,6 +1125,7 @@ Props `{ mode: "create" | "edit" }`. Em `edit`, lê `modelId` de `useParams` e `
 - [ ] **Step 3: `VehicleModelDetailPage`**
 
 Lê `modelId` via `useParams`, `useVehicleModel(modelId)`. Renderiza:
+
 - Breadcrumb `Kits por modelo / <marca> <modelo> (<motor>)` (link de volta para `/app/kits`).
 - Cabeçalho: `BrandAvatar` (maior, `size-12`) + `<h1>` modelo + motor + faixa de anos + badge de status; ações Editar/Inativar **só `canManage`**.
 - Seção "Kits deste modelo" — **slot vazio honesto**: card `border-dashed` com ícone + título "Nenhum kit cadastrado para este modelo" + texto "Em breve você poderá montar kits de peças aplicáveis a este modelo." **Sem** botão de criar kit (não existe ainda).
@@ -1126,6 +1159,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 11: Rotas + constante + navegação
 
 **Files:**
+
 - Create: `src/routes/app.kits.tsx`, `app.kits.index.tsx`, `app.kits.novo.tsx`, `app.kits.$modelId.tsx`, `app.kits.$modelId.editar.tsx`
 - Modify: `src/features/shell/config/routes.ts`, `src/features/shell/config/navigation.ts`
 
@@ -1265,6 +1299,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 12: Versionamento (MINOR "Catalog")
 
 **Files:**
+
 - Modify: `package.json`, `CHANGELOG.md`, `CLAUDE.md`
 
 Executar **após** todas as tarefas anteriores aprovadas e a revisão holística final. Seguir a skill `versionamento` (descoberta de infra de versão). Hoje: `package.json` v0.62.0 "Workshop" → **v0.63.0 "Catalog"** (MINOR).
