@@ -24,6 +24,6 @@ export interface IServiceKitsProvider {
   list(params?: IListServiceKitsParams): Promise<IServiceKit[]>;
   create(input: ICreateServiceKitInput): Promise<IServiceKit>;
   update(id: ID, patch: Partial<ICreateServiceKitInput>): Promise<IServiceKit>;
-  remove(id: ID): Promise<void>;
+  delete(id: ID): Promise<void>;
   duplicate(id: ID): Promise<IServiceKit>;
 }

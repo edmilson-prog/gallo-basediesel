@@ -11,6 +11,6 @@ export const supabaseServiceKitsProvider: IServiceKitsProvider = {
   list: stub("list"),
   create: stub("create"),
   update: stub("update"),
-  remove: stub("remove"),
+  delete: stub("delete"),
   duplicate: stub("duplicate"),
 };
