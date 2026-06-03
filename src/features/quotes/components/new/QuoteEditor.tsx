@@ -9,10 +9,12 @@ import type {
   IQuote,
   IQuoteItem,
   IPart,
+  IServiceKit,
   IVehicle,
   QuotePaymentMethod,
 } from "@/shared/types";
 import { Icon } from "@/components/Icon";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,12 +39,16 @@ import { recalculateQuote, requiresDiscountApproval, round2 } from "../../utils/
 import { composePaymentCondition, generateQuoteNumber } from "../../utils/quoteNumber";
 import { addOrIncrementItem, swapItemPart } from "../../utils/quoteItemOps";
 import { quoteAggregates } from "../../utils/quoteItemDisplay";
+import { useServiceKitsProvider } from "@/providers/data/hooks/useServiceKitsProvider";
+import { expandKitToItems } from "../../utils/kitExpansion";
 import { usePartsIndex } from "../../hooks/usePartsIndex";
+import { useQuoteDraft } from "../../hooks/useQuoteDraft";
 import { quoteLayoutClasses } from "../../utils/layoutClasses";
 import { useQuoteEditorPrefs } from "../../hooks/useQuoteEditorPrefs";
 import { QuoteActionBar } from "./layout/QuoteActionBar";
 import { CustomerChip } from "./customer/CustomerChip";
 import { ItemAdder } from "./items/ItemAdder";
+import { KitPicker } from "./items/KitPicker";
 import { QuoteItemsTable } from "./items/QuoteItemsTable";
 import { FreeItemDialog } from "./items/FreeItemDialog";
 import { QuoteSummaryPanel } from "./summary/QuoteSummaryPanel";
@@ -74,6 +80,14 @@ export function QuoteEditor() {
   const classes = quoteLayoutClasses(prefs.layout);
   const { partsById, allParts } = usePartsIndex();
 
+  const serviceKitsProvider = useServiceKitsProvider();
+  const kitsQuery = useQuery({
+    queryKey: ["service-kits", storeId] as const,
+    queryFn: () => serviceKitsProvider.list({ storeId }),
+    staleTime: 60_000,
+  });
+  const kits = kitsQuery.data ?? [];
+
   const settingsQuery = useQuery({
     queryKey: ["settings", storeId] as const,
     queryFn: () => settingsProvider.get(storeId),
@@ -98,6 +112,22 @@ export function QuoteEditor() {
   );
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const draftInput = useMemo(
+    () => ({
+      customerId: customer?.id,
+      items,
+      discountInput,
+      shipping,
+      paymentMethod,
+      paymentTerms,
+      notes,
+    }),
+    [customer?.id, items, discountInput, shipping, paymentMethod, paymentTerms, notes],
+  );
+  const draftEnabled = items.length > 0 || customer !== null;
+  const { savedAt, loadDraft, clearDraft } = useQuoteDraft(draftInput, draftEnabled);
+  const [draftOffer, setDraftOffer] = useState(() => loadDraft());
 
   // Update validUntil default when settings load.
   useEffect(() => {
@@ -171,6 +201,27 @@ export function QuoteEditor() {
     const result = swapItemPart(items, itemId, equivalent);
     setItems(result.items);
     setHighlightId(result.affectedId);
+  };
+  const handleAddKit = (kit: IServiceKit) => {
+    const { resolved, missing } = expandKitToItems(kit, partsById);
+    if (resolved.length === 0) {
+      toast.error(`Nenhuma peça do kit "${kit.name}" está disponível no catálogo.`);
+      return;
+    }
+    let next = items;
+    let lastId: ID | null = null;
+    for (const { part, quantity } of resolved) {
+      const result = addOrIncrementItem(next, part, quantity);
+      next = result.items;
+      lastId = result.affectedId;
+    }
+    setItems(next);
+    setHighlightId(lastId);
+    toast.success(
+      missing > 0
+        ? `Kit "${kit.name}" inserido (${resolved.length} peças; ${missing} indisponível${missing > 1 ? "is" : ""}).`
+        : `Kit "${kit.name}" inserido (${resolved.length} peças).`,
+    );
   };
 
   // Quantity already in the quote, summed per partId (for adder badges).
@@ -257,6 +308,7 @@ export function QuoteEditor() {
             ? `Orçamento #${number} aguardando aprovação do gestor.`
             : `Rascunho #${number} salvo.`,
       );
+      clearDraft();
       void navigate({ to: "/app/orcamentos/$id", params: { id: created.id } });
     } catch (err) {
       console.error(err);
@@ -271,6 +323,8 @@ export function QuoteEditor() {
       <QuoteActionBar
         layout={prefs.layout}
         onLayoutChange={prefs.setLayout}
+        density={prefs.density}
+        onDensityChange={prefs.setDensity}
         onBack={() => void navigate({ to: "/app/orcamentos" })}
         canSubmit={canSubmit}
         submitting={submitting}
@@ -278,6 +332,52 @@ export function QuoteEditor() {
         onSaveDraft={() => void handleSave(false)}
         onSaveSend={() => void handleSave(true)}
       />
+
+      {draftOffer && items.length === 0 && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
+          <p className="text-xs text-foreground">
+            <Icon icon="mdi:history" size={14} className="mr-1 inline" />
+            Há um rascunho não salvo de {new Date(draftOffer.savedAt).toLocaleString("pt-BR")}.
+          </p>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setItems(draftOffer.items);
+                setDiscountInput(draftOffer.discountInput);
+                setShipping(draftOffer.shipping);
+                setPaymentMethod(draftOffer.paymentMethod as QuotePaymentMethod);
+                setPaymentTerms(draftOffer.paymentTerms);
+                setNotes(draftOffer.notes);
+                setDraftOffer(null);
+                toast.success("Rascunho restaurado.");
+              }}
+            >
+              Restaurar
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                clearDraft();
+                setDraftOffer(null);
+              }}
+            >
+              Descartar
+            </Button>
+          </div>
+        </div>
+      )}
+      {savedAt && (
+        <p className="mb-2 text-right text-[11px] text-muted-foreground">
+          <Icon icon="mdi:content-save-check-outline" size={12} className="mr-1 inline" />
+          Rascunho salvo às{" "}
+          {new Date(savedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+        </p>
+      )}
 
       <div className={classes.grid}>
         <div className={classes.body}>
@@ -295,6 +395,9 @@ export function QuoteEditor() {
           {/* Items */}
           <Card className="p-4">
             <SectionTitle icon="mdi:format-list-bulleted" title="Itens" />
+            <div className="mb-2 flex items-center justify-end">
+              <KitPicker kits={kits} onAddKit={handleAddKit} />
+            </div>
             <ItemAdder
               key={customer?.id ?? "none"}
               mode={prefs.addMode}
@@ -316,6 +419,7 @@ export function QuoteEditor() {
                 allParts={allParts}
                 showMargin={isManagerOrOwner}
                 onSwapEquivalent={handleSwapEquivalent}
+                density={prefs.density}
               />
             </div>
           </Card>

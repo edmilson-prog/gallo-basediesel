@@ -62,6 +62,12 @@ interface ICustomerBase {
   abcClass?: ABCClass;
   /** Share of total store revenue (0..1) — convenience copy of latest IABCClassification. */
   abcShare?: number;
+  /**
+   * Demo-only count of overdue receivable titles (contas a receber vencidas).
+   * No real billing module exists yet (Fase 2 do produto). Absent on most
+   * customers; surfaced read-only on the quote editor when present.
+   */
+  overdueTitlesCount?: number;
   /** Customer Portal granular permissions — read-only on the profile (edit lives in PRD-019). */
   portal?: IPortalSettings;
   /**

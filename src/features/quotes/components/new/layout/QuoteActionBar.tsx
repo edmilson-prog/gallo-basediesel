@@ -1,5 +1,5 @@
 // src/features/quotes/components/new/layout/QuoteActionBar.tsx
-import type { QuoteLayout } from "../../../types/editor";
+import type { QuoteDensity, QuoteLayout } from "../../../types/editor";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import { LayoutSwitcher } from "./LayoutSwitcher";
@@ -7,6 +7,8 @@ import { LayoutSwitcher } from "./LayoutSwitcher";
 export interface IQuoteActionBarProps {
   layout: QuoteLayout;
   onLayoutChange: (l: QuoteLayout) => void;
+  density: QuoteDensity;
+  onDensityChange: (d: QuoteDensity) => void;
   onBack: () => void;
   canSubmit: boolean;
   submitting: boolean;
@@ -18,6 +20,8 @@ export interface IQuoteActionBarProps {
 export function QuoteActionBar({
   layout,
   onLayoutChange,
+  density,
+  onDensityChange,
   onBack,
   canSubmit,
   submitting,
@@ -39,6 +43,18 @@ export function QuoteActionBar({
         <h1 className="text-lg font-semibold text-foreground">Novo orçamento</h1>
       </div>
       <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onDensityChange(density === "comfortable" ? "compact" : "comfortable")}
+          className="inline-flex h-8 items-center gap-1 rounded-md border border-border px-2 text-xs text-muted-foreground hover:text-foreground"
+          aria-label="Alternar densidade da tabela"
+          title={density === "comfortable" ? "Densidade: conforto" : "Densidade: compacto"}
+        >
+          <Icon
+            icon={density === "comfortable" ? "mdi:format-line-spacing" : "mdi:view-headline"}
+            size={16}
+          />
+        </button>
         <LayoutSwitcher value={layout} onChange={onLayoutChange} />
         <Button
           variant="outline"

@@ -5,15 +5,20 @@ export type QuoteLayout = "twoCol" | "full" | "footerBar";
 /** Item-adding interaction mode. */
 export type QuoteAddMode = "continuous" | "catalog" | "quick";
 
+/** Table row density of the quote editor. */
+export type QuoteDensity = "comfortable" | "compact";
+
 /** Persisted per-seller editor preferences. */
 export interface IQuoteEditorPrefs {
   layout: QuoteLayout;
   addMode: QuoteAddMode;
+  density: QuoteDensity;
 }
 
 export const DEFAULT_QUOTE_EDITOR_PREFS: IQuoteEditorPrefs = {
   layout: "twoCol",
   addMode: "continuous",
+  density: "comfortable",
 };
 
 export const QUOTE_LAYOUT_OPTIONS: ReadonlyArray<{
@@ -34,4 +39,13 @@ export const QUOTE_ADD_MODE_OPTIONS: ReadonlyArray<{
   { value: "continuous", label: "Contínuo", icon: "mdi:playlist-plus" },
   { value: "catalog", label: "Catálogo", icon: "mdi:view-grid-plus-outline" },
   { value: "quick", label: "Rápido", icon: "mdi:keyboard-outline" },
+];
+
+export const QUOTE_DENSITY_OPTIONS: ReadonlyArray<{
+  value: QuoteDensity;
+  label: string;
+  icon: string;
+}> = [
+  { value: "comfortable", label: "Conforto", icon: "mdi:format-line-spacing" },
+  { value: "compact", label: "Compacto", icon: "mdi:view-headline" },
 ];

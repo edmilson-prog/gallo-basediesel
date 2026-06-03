@@ -367,3 +367,6 @@ export type {
   NotificationRecipientType,
   ChannelDeliveryStatus,
 } from "./notification";
+
+// Service kits / revision kits (Fase 3 — read-only MVP)
+export type { IServiceKit, IServiceKitItem } from "./service-kit";
