@@ -9,12 +9,15 @@ import {
   CUSTOMER_STATUS_LABELS,
 } from "@/features/customers/utils/customerDisplay";
 import { CustomerAutocomplete } from "../CustomerAutocomplete";
+import { customerFinanceSummary } from "../../../utils/customerFinance";
 
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit",
   month: "2-digit",
   year: "numeric",
 });
+
+const moneyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 function formatLastPurchase(iso?: string): string | null {
   if (!iso) return null;
@@ -44,6 +47,7 @@ export function CustomerChip({
   }
 
   const lastPurchase = formatLastPurchase(customer.lastPurchaseAt);
+  const finance = customerFinanceSummary(customer);
 
   return (
     <div className="rounded-md border border-border bg-card p-3">
@@ -86,6 +90,37 @@ export function CustomerChip({
               <Icon icon="mdi:history" size={12} className="mr-1 inline" />
               Última compra em {lastPurchase}
             </p>
+          )}
+
+          {finance.hasAny && (
+            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+              {finance.creditLimit !== undefined && (
+                <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                  <Icon icon="mdi:credit-card-outline" size={11} className="mr-1 inline" />
+                  Limite {moneyFormatter.format(finance.creditLimit)}
+                </span>
+              )}
+              {finance.overdueTitlesCount !== undefined && (
+                <span className="rounded border border-rose-500/30 bg-rose-500/10 px-1.5 py-0.5 text-[10px] text-rose-700 dark:text-rose-300">
+                  <Icon icon="mdi:alert-circle-outline" size={11} className="mr-1 inline" />
+                  {finance.overdueTitlesCount} título{finance.overdueTitlesCount > 1 ? "s" : ""}{" "}
+                  vencido
+                  {finance.overdueTitlesCount > 1 ? "s" : ""}
+                </span>
+              )}
+              {finance.contractDiscountPct !== undefined && (
+                <span className="rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">
+                  <Icon icon="mdi:file-document-outline" size={11} className="mr-1 inline" />
+                  Contrato −{(finance.contractDiscountPct * 100).toFixed(0)}%
+                </span>
+              )}
+              {finance.contractPaymentTerms && (
+                <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                  <Icon icon="mdi:calendar-clock-outline" size={11} className="mr-1 inline" />
+                  {finance.contractPaymentTerms}
+                </span>
+              )}
+            </div>
           )}
 
           {vehicles.length > 0 && (
