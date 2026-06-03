@@ -58,3 +58,11 @@ export const TYPE_BADGE_CLASSES: Record<ICustomer["type"], string> = {
   B2B: "bg-primary/10 text-primary border border-primary/30",
   B2C: "bg-muted text-muted-foreground border border-border",
 };
+
+/** Human labels (pt-BR) for each customer lifecycle status. */
+export const CUSTOMER_STATUS_LABELS: Record<CustomerStatus, string> = {
+  ativo: "Ativo",
+  dormente: "Dormente",
+  recuperacao: "Recuperação",
+  perdido: "Perdido",
+};

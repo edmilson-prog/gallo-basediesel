@@ -35,7 +35,9 @@ import { auditLog } from "@/features/rbac/utils/auditLog";
 import { calculateShipping } from "@/features/shipping/api/calculate";
 import { recalculateQuote, requiresDiscountApproval, round2 } from "../../utils/quoteTotals";
 import { composePaymentCondition, generateQuoteNumber } from "../../utils/quoteNumber";
-import { addOrIncrementItem } from "../../utils/quoteItemOps";
+import { addOrIncrementItem, swapItemPart } from "../../utils/quoteItemOps";
+import { quoteAggregates } from "../../utils/quoteItemDisplay";
+import { usePartsIndex } from "../../hooks/usePartsIndex";
 import { quoteLayoutClasses } from "../../utils/layoutClasses";
 import { useQuoteEditorPrefs } from "../../hooks/useQuoteEditorPrefs";
 import { QuoteActionBar } from "./layout/QuoteActionBar";
@@ -70,6 +72,7 @@ export function QuoteEditor() {
 
   const prefs = useQuoteEditorPrefs();
   const classes = quoteLayoutClasses(prefs.layout);
+  const { partsById, allParts } = usePartsIndex();
 
   const settingsQuery = useQuery({
     queryKey: ["settings", storeId] as const,
@@ -110,6 +113,10 @@ export function QuoteEditor() {
     [items, discountValue, shipping],
   );
   const discountPct = totals.subtotal > 0 ? totals.discount / totals.subtotal : 0;
+  const aggregates = useMemo(
+    () => quoteAggregates(items, partsById, totals.subtotal),
+    [items, partsById, totals.subtotal],
+  );
   const needsJustification = requiresDiscountApproval(
     totals.subtotal,
     totals.discount,
@@ -159,6 +166,11 @@ export function QuoteEditor() {
   const handleAddFreeItem = (item: IQuoteItem) => {
     setItems((prev) => [...prev, item]);
     setHighlightId(item.id);
+  };
+  const handleSwapEquivalent = (itemId: ID, equivalent: IPart) => {
+    const result = swapItemPart(items, itemId, equivalent);
+    setItems(result.items);
+    setHighlightId(result.affectedId);
   };
 
   // Quantity already in the quote, summed per partId (for adder badges).
@@ -276,6 +288,7 @@ export function QuoteEditor() {
               customer={customer}
               onChange={setCustomer}
               sellerIdFilter={isManagerOrOwner ? null : (currentUser?.sellerId ?? null)}
+              vehicles={vehicles}
             />
           </Card>
 
@@ -299,6 +312,10 @@ export function QuoteEditor() {
                 onPatch={handleItemPatch}
                 onRemove={handleRemoveItem}
                 highlightId={highlightId}
+                partsById={partsById}
+                allParts={allParts}
+                showMargin={isManagerOrOwner}
+                onSwapEquivalent={handleSwapEquivalent}
               />
             </div>
           </Card>
@@ -378,6 +395,10 @@ export function QuoteEditor() {
             discountReason={discountReason}
             onDiscountReason={setDiscountReason}
             compact={classes.summaryAsFooterBar}
+            totalWeightKg={aggregates.totalWeightKg}
+            totalMargin={aggregates.totalMargin}
+            marginPct={aggregates.marginPct}
+            showMargin={isManagerOrOwner}
           />
         </div>
       </div>

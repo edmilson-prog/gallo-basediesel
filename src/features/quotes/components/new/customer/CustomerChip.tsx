@@ -1,48 +1,122 @@
 // src/features/quotes/components/new/customer/CustomerChip.tsx
-import type { ICustomer, ID } from "@/shared/types";
+import type { ICustomer, ID, IVehicle } from "@/shared/types";
 import { Icon } from "@/components/Icon";
+import {
+  getCustomerName,
+  STATUS_BADGE_CLASSES,
+  ABC_BADGE_CLASSES,
+  TYPE_BADGE_CLASSES,
+  CUSTOMER_STATUS_LABELS,
+} from "@/features/customers/utils/customerDisplay";
 import { CustomerAutocomplete } from "../CustomerAutocomplete";
 
-function nameOf(c: ICustomer): string {
-  return c.type === "B2B" ? c.nomeFantasia || c.razaoSocial : c.fullName;
+const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
+
+function formatLastPurchase(iso?: string): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return dateFormatter.format(d);
 }
 
 export interface ICustomerChipProps {
   customer: ICustomer | null;
   onChange: (c: ICustomer | null) => void;
   sellerIdFilter?: ID | null;
+  /** Customer fleet, shown as vehicle chips. */
+  vehicles?: IVehicle[];
 }
 
-export function CustomerChip({ customer, onChange, sellerIdFilter }: ICustomerChipProps) {
+export function CustomerChip({
+  customer,
+  onChange,
+  sellerIdFilter,
+  vehicles = [],
+}: ICustomerChipProps) {
   if (!customer) {
     return (
       <CustomerAutocomplete value={null} onChange={onChange} sellerIdFilter={sellerIdFilter} />
     );
   }
+
+  const lastPurchase = formatLastPurchase(customer.lastPurchaseAt);
+
   return (
-    <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2">
-      <div className="min-w-0">
-        <p className="truncate text-sm font-semibold text-foreground">
-          {nameOf(customer)}
-          <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">
-            {customer.type}
-          </span>
-        </p>
-        {customer.address && (
-          <p className="truncate text-xs text-muted-foreground">
-            <Icon icon="mdi:map-marker-outline" size={12} className="mr-1 inline" />
-            {customer.address.street}, {customer.address.number} — {customer.address.city}/
-            {customer.address.state}
-          </p>
-        )}
+    <div className="rounded-md border border-border bg-card p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 space-y-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="truncate text-sm font-semibold text-foreground">
+              {getCustomerName(customer)}
+            </span>
+            <span
+              className={`rounded px-1.5 py-0.5 text-[10px] font-medium uppercase ${TYPE_BADGE_CLASSES[customer.type]}`}
+            >
+              {customer.type}
+            </span>
+            <span
+              className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${STATUS_BADGE_CLASSES[customer.status]}`}
+            >
+              {CUSTOMER_STATUS_LABELS[customer.status]}
+            </span>
+            {customer.abcClass && (
+              <span
+                className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${ABC_BADGE_CLASSES[customer.abcClass]}`}
+                title="Classe ABC"
+              >
+                ABC {customer.abcClass}
+              </span>
+            )}
+          </div>
+
+          {customer.address && (
+            <p className="truncate text-xs text-muted-foreground">
+              <Icon icon="mdi:map-marker-outline" size={12} className="mr-1 inline" />
+              {customer.address.street}, {customer.address.number} — {customer.address.city}/
+              {customer.address.state}
+            </p>
+          )}
+
+          {lastPurchase && (
+            <p className="text-xs text-muted-foreground">
+              <Icon icon="mdi:history" size={12} className="mr-1 inline" />
+              Última compra em {lastPurchase}
+            </p>
+          )}
+
+          {vehicles.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1 pt-0.5">
+              <Icon
+                icon="mdi:truck-outline"
+                size={12}
+                className="text-muted-foreground"
+                aria-hidden
+              />
+              {vehicles.map((v) => (
+                <span
+                  key={v.id}
+                  className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                >
+                  {v.brand} {v.model} {v.year}
+                  {v.plate ? ` · ${v.plate}` : ""}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => onChange(null)}
+          className="shrink-0 text-xs text-muted-foreground hover:text-foreground"
+        >
+          Alterar
+        </button>
       </div>
-      <button
-        type="button"
-        onClick={() => onChange(null)}
-        className="shrink-0 text-xs text-muted-foreground hover:text-foreground"
-      >
-        Alterar
-      </button>
     </div>
   );
 }

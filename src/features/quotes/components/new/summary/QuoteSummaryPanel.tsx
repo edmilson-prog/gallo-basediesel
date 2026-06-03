@@ -1,4 +1,3 @@
-// src/features/quotes/components/new/summary/QuoteSummaryPanel.tsx
 import { Icon } from "@/components/Icon";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +25,14 @@ export interface IQuoteSummaryPanelProps {
   onDiscountReason: (v: string) => void;
   /** Slim horizontal rendering for the footer-bar layout. */
   compact?: boolean;
+  /** Total weight (kg) of the quote — Σ weightKg * quantity. */
+  totalWeightKg: number;
+  /** Total monetary margin — shown only when `showMargin`. */
+  totalMargin: number;
+  /** Margin as fraction of subtotal (0..1). */
+  marginPct: number;
+  /** Whether to surface margin figures (Owner/Gestor only). */
+  showMargin: boolean;
 }
 
 function ApprovalBlock({
@@ -50,9 +57,41 @@ function ApprovalBlock({
   );
 }
 
-export function QuoteSummaryPanel(props: IQuoteSummaryPanelProps) {
-  const discountHint = `${(props.discountPct * 100).toFixed(1)}% do subtotal · limite ${(props.thresholdPct * 100).toFixed(0)}%`;
+function DiscountMeter({
+  discountPct,
+  thresholdPct,
+}: {
+  discountPct: number;
+  thresholdPct: number;
+}) {
+  const over = discountPct > thresholdPct + 1e-9;
+  // Scale the bar against twice the threshold so the limit sits at the midpoint.
+  const scaleMax = Math.max(thresholdPct * 2, discountPct, 0.0001);
+  const fillPct = Math.min(100, (discountPct / scaleMax) * 100);
+  const markerPct = Math.min(100, (thresholdPct / scaleMax) * 100);
+  return (
+    <div className="space-y-1">
+      <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-muted">
+        <div
+          className={`h-full rounded-full ${over ? "bg-orange-500" : "bg-primary"}`}
+          style={{ width: `${fillPct}%` }}
+        />
+        <span
+          className="absolute top-1/2 h-2.5 w-0.5 -translate-y-1/2 bg-foreground/60"
+          style={{ left: `${markerPct}%` }}
+          aria-hidden
+        />
+      </div>
+      <p
+        className={`text-xs ${over ? "text-orange-600 dark:text-orange-300" : "text-muted-foreground"}`}
+      >
+        {(discountPct * 100).toFixed(1)}% de desconto · limite {(thresholdPct * 100).toFixed(0)}%
+      </p>
+    </div>
+  );
+}
 
+export function QuoteSummaryPanel(props: IQuoteSummaryPanelProps) {
   if (props.compact) {
     return (
       <div className="flex flex-col gap-2">
@@ -122,10 +161,6 @@ export function QuoteSummaryPanel(props: IQuoteSummaryPanelProps) {
 
   return (
     <div className="space-y-4 rounded-lg border border-border bg-card p-4">
-      <p className="text-xs font-medium text-muted-foreground">
-        {props.itemCount} {props.itemCount === 1 ? "item" : "itens"} · {props.unitCount} un
-      </p>
-
       <div>
         <Label htmlFor="discount">Desconto global (R$)</Label>
         <Input
@@ -136,7 +171,9 @@ export function QuoteSummaryPanel(props: IQuoteSummaryPanelProps) {
           value={props.discountInput}
           onChange={(e) => props.onDiscountInput(e.target.value)}
         />
-        <p className="mt-1 text-xs text-muted-foreground">{discountHint}</p>
+        <div className="mt-1.5">
+          <DiscountMeter discountPct={props.discountPct} thresholdPct={props.thresholdPct} />
+        </div>
       </div>
 
       <div>
@@ -170,6 +207,24 @@ export function QuoteSummaryPanel(props: IQuoteSummaryPanelProps) {
       />
 
       <div className="space-y-1 border-t border-border pt-3">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 pb-1 text-xs text-muted-foreground">
+          <span>
+            {props.itemCount} {props.itemCount === 1 ? "item" : "itens"} · {props.unitCount} un
+          </span>
+          {props.totalWeightKg > 0 && (
+            <span>
+              <Icon icon="mdi:weight-kilogram" size={12} className="mr-0.5 inline" />
+              {props.totalWeightKg.toLocaleString("pt-BR")} kg
+            </span>
+          )}
+          {props.showMargin && (
+            <span title="Margem bruta estimada">
+              <Icon icon="mdi:chart-line" size={12} className="mr-0.5 inline" />
+              margem {moneyFormatter.format(props.totalMargin)} (
+              {(props.marginPct * 100).toFixed(1)}%)
+            </span>
+          )}
+        </div>
         <Row label="Subtotal" value={moneyFormatter.format(props.subtotal)} />
         <Row label="Desconto" value={`-${moneyFormatter.format(props.discountTotal)}`} />
         <Row label="Frete" value={`+${moneyFormatter.format(props.shippingTotal)}`} />
