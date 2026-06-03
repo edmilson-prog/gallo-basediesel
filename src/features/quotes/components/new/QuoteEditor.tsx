@@ -9,6 +9,7 @@ import type {
   IQuote,
   IQuoteItem,
   IPart,
+  IServiceKit,
   IVehicle,
   QuotePaymentMethod,
 } from "@/shared/types";
@@ -37,12 +38,15 @@ import { recalculateQuote, requiresDiscountApproval, round2 } from "../../utils/
 import { composePaymentCondition, generateQuoteNumber } from "../../utils/quoteNumber";
 import { addOrIncrementItem, swapItemPart } from "../../utils/quoteItemOps";
 import { quoteAggregates } from "../../utils/quoteItemDisplay";
+import { useServiceKitsProvider } from "@/providers/data/hooks/useServiceKitsProvider";
+import { expandKitToItems } from "../../utils/kitExpansion";
 import { usePartsIndex } from "../../hooks/usePartsIndex";
 import { quoteLayoutClasses } from "../../utils/layoutClasses";
 import { useQuoteEditorPrefs } from "../../hooks/useQuoteEditorPrefs";
 import { QuoteActionBar } from "./layout/QuoteActionBar";
 import { CustomerChip } from "./customer/CustomerChip";
 import { ItemAdder } from "./items/ItemAdder";
+import { KitPicker } from "./items/KitPicker";
 import { QuoteItemsTable } from "./items/QuoteItemsTable";
 import { FreeItemDialog } from "./items/FreeItemDialog";
 import { QuoteSummaryPanel } from "./summary/QuoteSummaryPanel";
@@ -73,6 +77,14 @@ export function QuoteEditor() {
   const prefs = useQuoteEditorPrefs();
   const classes = quoteLayoutClasses(prefs.layout);
   const { partsById, allParts } = usePartsIndex();
+
+  const serviceKitsProvider = useServiceKitsProvider();
+  const kitsQuery = useQuery({
+    queryKey: ["service-kits", storeId] as const,
+    queryFn: () => serviceKitsProvider.list({ storeId }),
+    staleTime: 60_000,
+  });
+  const kits = kitsQuery.data ?? [];
 
   const settingsQuery = useQuery({
     queryKey: ["settings", storeId] as const,
@@ -171,6 +183,27 @@ export function QuoteEditor() {
     const result = swapItemPart(items, itemId, equivalent);
     setItems(result.items);
     setHighlightId(result.affectedId);
+  };
+  const handleAddKit = (kit: IServiceKit) => {
+    const { resolved, missing } = expandKitToItems(kit, partsById);
+    if (resolved.length === 0) {
+      toast.error(`Nenhuma peça do kit "${kit.name}" está disponível no catálogo.`);
+      return;
+    }
+    let next = items;
+    let lastId: ID | null = null;
+    for (const { part, quantity } of resolved) {
+      const result = addOrIncrementItem(next, part, quantity);
+      next = result.items;
+      lastId = result.affectedId;
+    }
+    setItems(next);
+    setHighlightId(lastId);
+    toast.success(
+      missing > 0
+        ? `Kit "${kit.name}" inserido (${resolved.length} peças; ${missing} indisponível${missing > 1 ? "is" : ""}).`
+        : `Kit "${kit.name}" inserido (${resolved.length} peças).`,
+    );
   };
 
   // Quantity already in the quote, summed per partId (for adder badges).
@@ -295,6 +328,9 @@ export function QuoteEditor() {
           {/* Items */}
           <Card className="p-4">
             <SectionTitle icon="mdi:format-list-bulleted" title="Itens" />
+            <div className="mb-2 flex items-center justify-end">
+              <KitPicker kits={kits} onAddKit={handleAddKit} />
+            </div>
             <ItemAdder
               key={customer?.id ?? "none"}
               mode={prefs.addMode}
