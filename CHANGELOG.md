@@ -4,6 +4,24 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.60.0] — Mosaic · 2026-06-02
+
+A tela de criação de orçamento agora entrega **informação de catálogo no momento certo**: cada peça adicionada mostra selo de Original ou Equivalente, código do fabricante, marca, status de estoque em cores (verde/âmbar/vermelho) e, para gestores e donos, a margem estimada por linha. Ao clicar em "ver equivalentes", o vendedor visualiza opções alternativas e pode trocar a peça diretamente na lista. O cliente selecionado vira um cartão compacto com status, classe ABC, data da última compra e todos os veículos da frota. O painel de totais ganha peso estimado do pedido, margem total e um medidor visual de desconto que acende em laranja ao ultrapassar o limite configurado.
+
+### Added
+
+- **Linha de item enriquecida** — cada peça na tabela de itens exibe miniatura (ou ícone da categoria), selo **Original** (dourado) ou **Equivalente** (neutro), código OEM e marca, além do status de estoque em três estados com indicador colorido.
+- **Equivalentes inline** — botão "ver equivalentes" expande a linha e lista as peças alternativas cadastradas, com preço e estoque de cada uma. O vendedor troca a peça da linha por um equivalente com um clique; a quantidade é mantida.
+- **Margem por linha** *(visível apenas para Gestor e Owner)* — cada linha da tabela mostra a margem bruta estimada em reais e percentual.
+- **Cartão de cliente inteligente** — ao selecionar um cliente, o cabeçalho passa a exibir seu status (Ativo, Dormente, Recuperação ou Perdido), classe ABC, data da última compra e chips dos veículos da frota.
+- **Peso total do pedido** — o painel de resumo calcula e exibe o peso estimado somando o peso de cada peça pela quantidade, útil para cotação de frete.
+- **Margem total do orçamento** *(visível apenas para Gestor e Owner)* — total de margem bruta e percentual sobre o subtotal, exibido no painel de resumo.
+- **Medidor visual de desconto** — barra de progresso mostra o desconto aplicado em relação ao limite configurado; fica laranja quando o limite é ultrapassado, sinalizando que o orçamento precisará de aprovação.
+
+### Changed
+
+- **Informação de estoque unificada** — o indicador de estoque (disponível, baixo, indisponível) agora aparece tanto na busca de itens quanto na tabela do orçamento, com a mesma lógica e cores em ambos os lugares.
+
 ## [0.59.0] — Counter · 2026-06-02
 
 A tela de criação de orçamento foi totalmente reformulada para funcionar como um **balcão de atendimento digital**: o vendedor escolhe o layout da tela (coluna dupla com resumo fixo, largura cheia ou barra de total no rodapé), adiciona múltiplos itens de uma vez sem fechar nenhuma janela e recebe sugestões automáticas de peças com base nos veículos do cliente e no histórico de compras. Todos os orçamentos criados até agora continuam funcionando normalmente.
