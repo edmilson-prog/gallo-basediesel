@@ -9,4 +9,8 @@ const stub = (method: string) => () => {
 
 export const supabaseServiceKitsProvider: IServiceKitsProvider = {
   list: stub("list"),
+  create: stub("create"),
+  update: stub("update"),
+  delete: stub("delete"),
+  duplicate: stub("duplicate"),
 };

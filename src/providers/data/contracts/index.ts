@@ -92,7 +92,11 @@ export type { ISdrSessionsProvider, IListSdrSessionsParams } from "./sdrSessions
 export type { ISdrEscalationsProvider, IListSdrEscalationsParams } from "./sdrEscalations";
 export type { ICopilotProvider } from "./copilot";
 export type { IIndicatorsProvider, IListIndicatorsParams } from "./indicators";
-export type { IServiceKitsProvider, IListServiceKitsParams } from "./serviceKits";
+export type {
+  IServiceKitsProvider,
+  IListServiceKitsParams,
+  ICreateServiceKitInput,
+} from "./serviceKits";
 
 /**
  * Aggregate of every data provider returned by `getDataProviders()`. The factory

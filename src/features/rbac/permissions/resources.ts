@@ -16,6 +16,7 @@ export const RESOURCES = [
   "conversation",
   "message",
   "part",
+  "serviceKit",
   "quote",
   "order",
   "commission",
