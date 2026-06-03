@@ -31,6 +31,7 @@ import type { ISdrSessionsProvider } from "./sdrSessions";
 import type { ISdrEscalationsProvider } from "./sdrEscalations";
 import type { ICopilotProvider } from "./copilot";
 import type { IIndicatorsProvider } from "./indicators";
+import type { IServiceKitsProvider } from "./serviceKits";
 
 export type { IPaginatedResult, IPaginationParams } from "./_shared";
 
@@ -91,6 +92,7 @@ export type { ISdrSessionsProvider, IListSdrSessionsParams } from "./sdrSessions
 export type { ISdrEscalationsProvider, IListSdrEscalationsParams } from "./sdrEscalations";
 export type { ICopilotProvider } from "./copilot";
 export type { IIndicatorsProvider, IListIndicatorsParams } from "./indicators";
+export type { IServiceKitsProvider, IListServiceKitsParams } from "./serviceKits";
 
 /**
  * Aggregate of every data provider returned by `getDataProviders()`. The factory
@@ -124,4 +126,5 @@ export interface IDataProviders {
   sdrEscalations: ISdrEscalationsProvider;
   copilot: ICopilotProvider;
   indicators: IIndicatorsProvider;
+  serviceKits: IServiceKitsProvider;
 }
