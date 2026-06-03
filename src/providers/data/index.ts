@@ -88,6 +88,10 @@ export type {
   IListVehicleModelsParams,
   ICreateVehicleModelInput,
   IUpdateVehicleModelPatch,
+  IModelKitsProvider,
+  IListModelKitsParams,
+  ICreateModelKitInput,
+  IUpdateModelKitPatch,
 } from "./contracts";
 
 export { useCustomersProvider } from "./hooks/useCustomersProvider";
@@ -116,3 +120,6 @@ export { useSdrSessionsProvider } from "./hooks/useSdrSessionsProvider";
 export { useSdrEscalationsProvider } from "./hooks/useSdrEscalationsProvider";
 export { useCopilotProvider } from "./hooks/useCopilotProvider";
 export { useIndicatorsProvider } from "./hooks/useIndicatorsProvider";
+export { useServiceKitsProvider } from "./hooks/useServiceKitsProvider";
+export { useVehicleModelsProvider } from "./hooks/useVehicleModelsProvider";
+export { useModelKitsProvider } from "./hooks/useModelKitsProvider";
