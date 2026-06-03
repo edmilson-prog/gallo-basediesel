@@ -3,7 +3,7 @@ import { useCallback, useMemo } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { IKitItem, IPart, ModelKitCategory } from "@/shared/types";
+import type { IKitItem, IPart, IVehicleModelKit, ModelKitCategory } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,8 @@ import { useModelKitMutations } from "../hooks/useModelKitMutations";
 import { modelKitFormSchema, type ModelKitFormValues } from "../utils/modelKitValidation";
 import { KitCatalogSearch } from "../components/KitCatalogSearch";
 import { KitItemEditorRow } from "../components/KitItemEditorRow";
+import { KitDriftBanner } from "../components/KitDriftBanner";
+import { getCompatiblePartsNotInKit } from "../utils/modelKitDrift";
 
 // Category configuration with icons and labels
 const CATEGORY_OPTIONS: Array<{ value: ModelKitCategory; icon: string; label: string }> = [
@@ -59,8 +61,8 @@ export function ModelKitFormPage() {
 
   const mutations = useModelKitMutations();
 
-  // Parts catalog for enriching item rows
-  const { partsById } = usePartsIndex();
+  // Parts catalog for enriching item rows and drift detection
+  const { partsById, allParts } = usePartsIndex();
 
   // --- React Hook Form ---
   const {
@@ -98,6 +100,12 @@ export function ModelKitFormPage() {
 
   // Set of part ids already in the form (to exclude from search)
   const excludePartIds = useMemo(() => new Set(items.map((i) => i.partId)), [items]);
+
+  // Catalog drift: compatible parts not yet in the kit
+  const driftParts = useMemo(() => {
+    const formKitForDrift = { items } as IVehicleModelKit;
+    return getCompatiblePartsNotInKit(formKitForDrift, vehicleModel, allParts);
+  }, [items, vehicleModel, allParts]);
 
   // --- Item manipulation helpers ---
   const addItem = useCallback(
@@ -296,7 +304,7 @@ export function ModelKitFormPage() {
             </div>
           </div>
 
-          {/* drift banner — Task 12 */}
+          <KitDriftBanner parts={driftParts} onAdd={addItem} />
         </div>
 
         {/* Items list */}
