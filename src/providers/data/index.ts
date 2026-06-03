@@ -81,6 +81,9 @@ export type {
   IListSdrEscalationsParams,
   IIndicatorsProvider,
   IListIndicatorsParams,
+  IServiceKitsProvider,
+  IListServiceKitsParams,
+  ICreateServiceKitInput,
 } from "./contracts";
 
 export { useCustomersProvider } from "./hooks/useCustomersProvider";
