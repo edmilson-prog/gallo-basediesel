@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Icon } from "@/components/Icon";
 import { Logo } from "@/components/Logo";
@@ -14,13 +15,35 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/features/auth/useAuth";
 import { GlobalSearch } from "@/features/shell/components/GlobalSearch";
-import { StoreSwitcher } from "@/features/multistore";
+import { StoreSwitcher, useCurrentStore } from "@/features/multistore";
+import { usePlatformSettings } from "@/features/admin-settings/hooks/usePlatformSettings";
 import { AvailabilityToggle } from "@/features/distribution/components/AvailabilityToggle";
 import { NotificationDropdown } from "@/features/notifications/components/NotificationDropdown";
+import { AnalyticsCopilotPanel } from "@/features/analytics-copilot";
 
 export function TopBar() {
   const { currentUser, signOut } = useAuth();
   const navigate = useNavigate();
+
+  // Analytics copilot (PRD-057). Gated by the per-store platform setting
+  // (default on when undefined). Opened via the TopBar button or Ctrl/Cmd+K.
+  const { currentStoreId } = useCurrentStore();
+  const storeId = currentStoreId ?? "store-matriz";
+  const { settings } = usePlatformSettings(storeId);
+  const copilotEnabled = settings?.analyticsCopilotEnabled !== false;
+  const [copilotOpen, setCopilotOpen] = useState(false);
+
+  useEffect(() => {
+    if (!copilotEnabled) return;
+    function handleGlobalKeyDown(event: KeyboardEvent) {
+      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "k") return;
+      if (event.defaultPrevented) return;
+      event.preventDefault();
+      setCopilotOpen(true);
+    }
+    document.addEventListener("keydown", handleGlobalKeyDown);
+    return () => document.removeEventListener("keydown", handleGlobalKeyDown);
+  }, [copilotEnabled]);
 
   const handleSwitchProfile = () => {
     signOut();
@@ -47,6 +70,19 @@ export function TopBar() {
       </Button>
 
       <div className="ml-auto flex items-center gap-1">
+        {/* Analytics copilot entry point (PRD-057). Hidden when disabled per store. */}
+        {copilotEnabled && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setCopilotOpen(true)}
+            aria-label="Copiloto analítico"
+            title="Copiloto (Ctrl+K)"
+          >
+            <Icon icon="mdi:robot-happy-outline" size={20} />
+          </Button>
+        )}
+
         {/* TODO(PRD-067 ↔ PRD-008): live e-commerce orders (triggerEcommerceOrder → useEcommerceNotificationStore) aren't emitted onto notificationBus yet, so only seeded order notifications appear here. They still toast via useEcommerceSellerNotifier. */}
         <NotificationDropdown />
 
@@ -102,6 +138,8 @@ export function TopBar() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {copilotEnabled && <AnalyticsCopilotPanel open={copilotOpen} onOpenChange={setCopilotOpen} />}
     </header>
   );
 }
