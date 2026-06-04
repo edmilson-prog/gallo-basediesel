@@ -242,6 +242,8 @@ export interface IPlatformSettings {
   inventoryAnalysisSettings: IInventoryAnalysisSettings;
   /** IA analítica / Insights global toggle (PRD-053). */
   insightsEnabled: boolean;
+  /** Toggles the analytics copilot panel (PRD-057). Undefined → enabled. */
+  analyticsCopilotEnabled?: boolean;
   /** Configurable thresholds for the insight detection heuristics (PRD-053). */
   insightThresholds: IInsightThresholds;
   /** Public storefront (/loja) configuration — hero, brands, footer, SEO (PRD-060). */
