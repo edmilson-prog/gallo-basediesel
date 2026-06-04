@@ -1,8 +1,8 @@
 # DELTAS — Atualizações Cruzadas entre PRDs
 
 **Projeto:** GALLO BASE DIESEL — Plataforma de Inteligência Comercial
-**Versão:** 1.0
-**Data:** 25/05/2026
+**Versão:** 1.3
+**Data:** 04/06/2026
 **Autor:** AILA Sistemas Inteligentes
 
 ---
@@ -35,27 +35,29 @@ Cada entrada de delta segue o formato:
 
 **Origem múltipla** — PRD-002 é o registry de tipos; PRDs posteriores adicionam tipos novos.
 
-| Origem   | Tipo    | Descrição                                                                                                                                      |
-| -------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| PRD-031  | extend  | Adicionar `IQuote`, `IQuoteItem`, `QuoteStatus`, `QuoteOrigin`                                                                                 |
-| PRD-032  | extend  | Adicionar `IOrder`, `IOrderItem`, `ICommissionPreview`, `OrderStatus`, `IAddress`                                                              |
-| PRD-042  | extend  | `IGoal` já modelado no PRD-002; adicionar `IGoalProgress`, `GoalType`, `GoalScope`, `GoalPeriod`                                               |
-| PRD-043  | extend  | Adicionar `IBadge`, `ISellerBadge`, `ISellerScore`, `BadgeCategory`, `BadgeRarity` (catálogo seed em `mocks/seeds/badges.ts`)                  |
-| PRD-044  | extend  | Adicionar `IPositivationMetrics`, `ISellerPositivation`                                                                                        |
-| PRD-045  | extend  | Adicionar `ICustomerABC`, `IABCMetrics`, `ABCClass`                                                                                            |
-| PRD-046  | extend  | Adicionar `IPortfolioMetrics`, `ISellerPortfolio`                                                                                              |
-| PRD-047  | replace | `ICommissionPreview` (de PRD-032) substituído por `ICommissionRule` + `ICommission` + `ICommissionSplitDetails`                                |
-| PRD-048  | extend  | Adicionar `IDREPeriod`, `IDREComparison`                                                                                                       |
-| PRD-049  | extend  | Adicionar types de rentabilidade (multi-dimensão)                                                                                              |
-| PRD-050  | extend  | Adicionar `IInventoryAnalysis`, `IInventoryMetrics`, classe XYZ                                                                                |
-| PRD-051  | extend  | Adicionar `ICustomerServiceMetrics`, `IChannelMetrics`, `ISellerServiceMetrics`                                                                |
-| PRD-052  | extend  | Adicionar `IInventoryMovement`, `MovementType`                                                                                                 |
-| PRD-053  | extend  | Adicionar `IInsight`, `InsightType`, `InsightPriority`, `InsightCategory`                                                                      |
-| PRD-060+ | extend  | Tipos do storefront (configs, hero, etc.) — manter coesos                                                                                      |
-| PRD-064  | extend  | Adicionar `ICartItem` em store global                                                                                                          |
-| PRD-070  | extend  | Adicionar `IVisit` (visita do vendedor externo)                                                                                                |
+| Origem   | Tipo    | Descrição                                                                                                                     |
+| -------- | ------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| PRD-031  | extend  | Adicionar `IQuote`, `IQuoteItem`, `QuoteStatus`, `QuoteOrigin`                                                                |
+| PRD-032  | extend  | Adicionar `IOrder`, `IOrderItem`, `ICommissionPreview`, `OrderStatus`, `IAddress`                                             |
+| PRD-042  | extend  | `IGoal` já modelado no PRD-002; adicionar `IGoalProgress`, `GoalType`, `GoalScope`, `GoalPeriod`                              |
+| PRD-043  | extend  | Adicionar `IBadge`, `ISellerBadge`, `ISellerScore`, `BadgeCategory`, `BadgeRarity` (catálogo seed em `mocks/seeds/badges.ts`) |
+| PRD-044  | extend  | Adicionar `IPositivationMetrics`, `ISellerPositivation`                                                                       |
+| PRD-045  | extend  | Adicionar `ICustomerABC`, `IABCMetrics`, `ABCClass`                                                                           |
+| PRD-046  | extend  | Adicionar `IPortfolioMetrics`, `ISellerPortfolio`                                                                             |
+| PRD-047  | replace | `ICommissionPreview` (de PRD-032) substituído por `ICommissionRule` + `ICommission` + `ICommissionSplitDetails`               |
+| PRD-048  | extend  | Adicionar `IDREPeriod`, `IDREComparison`                                                                                      |
+| PRD-049  | extend  | Adicionar types de rentabilidade (multi-dimensão)                                                                             |
+| PRD-050  | extend  | Adicionar `IInventoryAnalysis`, `IInventoryMetrics`, classe XYZ                                                               |
+| PRD-051  | extend  | Adicionar `ICustomerServiceMetrics`, `IChannelMetrics`, `ISellerServiceMetrics`                                               |
+| PRD-052  | extend  | Adicionar `IInventoryMovement`, `MovementType`                                                                                |
+| PRD-053  | extend  | Adicionar `IInsight`, `InsightType`, `InsightPriority`, `InsightCategory`                                                     |
+| PRD-060+ | extend  | Tipos do storefront (configs, hero, etc.) — manter coesos                                                                     |
+| PRD-064  | extend  | Adicionar `ICartItem` em store global                                                                                         |
+| PRD-070  | extend  | Adicionar `IVisit` (visita do vendedor externo)                                                                               |
+| PRD-071  | extend  | Adicionar `IPortalUser`, `IPortalRequest`, `IPortalContract`, `PortalUserRole`                                                |
+| PRD-034  | extend  | Adicionar `IVehicleModel` (catálogo canônico de modelos)                                                                      |
+| PRD-035  | extend  | Adicionar `IVehicleModelKit`, `IKitItem`, `KitCategory`, `KitStatus`; estender `IQuote` com `appliedKitIds?: ID[]`            |
 | PRD-025  | extend  | Adicionar `ICopilotSuggestion`, `ICopilotBriefing`, `ICopilotSummary`, `ICopilotPanelData` e tipos auxiliares em `src/shared/types/copilot.ts` |
-| PRD-071  | extend  | Adicionar `IPortalUser`, `IPortalRequest`, `IPortalContract`, `PortalUserRole`                                                                 |
 
 > **Recomendação:** manter `src/shared/types/` modular — arquivo por domínio (`catalog.ts`, `quotes.ts`, `orders.ts`, `goals.ts`, etc.) em vez de tudo no `models.ts` original do PRD-002.
 
@@ -81,6 +83,8 @@ Cada entrada de delta segue o formato:
 | PRD-067 | `useEcommerceIntegrationProvider`                                                             |
 | PRD-070 | Reusa providers do /app                                                                       |
 | PRD-071 | `usePortalAuthStore` (Zustand persist), `usePortalRequestsProvider`, `usePortalUsersProvider` |
+| PRD-034 | `useVehicleModelsProvider`                                                                    |
+| PRD-035 | `useModelKitsProvider`                                                                        |
 
 > **Padrão consolidado:** todos os providers seguem interface estável (`list`, `get`, `create`, `update`, `delete`) preparada para drop-in replacement Mock → Supabase na Fase 2.
 
@@ -114,6 +118,8 @@ Cada entrada de delta segue o formato:
 | PRD-067 | `ecommerce_integration.config`                                                                                                                                 |
 | PRD-070 | `pwa_external.view` (Fase 2: apenas `ISeller.type='external'`)                                                                                                 |
 | PRD-071 | Roles próprios: `portal_admin`, `portal_buyer`, `portal_viewer` + flags (canCreateRequests, canApproveOrders, canManageFleet, canViewFinancial, approvalLimit) |
+| PRD-034 | `vehicle_model.view`, `vehicle_model.create`, `vehicle_model.edit`, `vehicle_model.deactivate`                                                                 |
+| PRD-035 | `model_kit.view`, `model_kit.create`, `model_kit.edit`, `model_kit.promote`, `model_kit.delete`, `model_kit.apply`                                             |
 
 > **Recomendação:** organizar permissões em `src/shared/rbac/permissions.ts` agrupadas por domínio. Atualizar matriz visual de auditoria (PRD-006) a cada novo conjunto.
 
@@ -175,10 +181,15 @@ Cada entrada de delta segue o formato:
 
 **Origem múltipla** — integrações automáticas + extensões.
 
-| Origem  | Tipo    | Descrição                                                                                                                                    |
-| ------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| PRD-032 | enhance | Quando vendedor marca `appliedToVehicleId` em item de pedido, criar `IVehicleServiceEntry` automaticamente                                   |
-| PRD-071 | extend  | Tela de detalhe do veículo no portal B2B tem tabs adicionais (Documentação, Quem dirige); alertas de manutenção placeholder; bulk operations |
+| Origem  | Tipo    | Descrição                                                                                                                                                                                                                                                                                                                                                            |
+| ------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PRD-032 | enhance | Quando vendedor marca `appliedToVehicleId` em item de pedido, criar `IVehicleServiceEntry` automaticamente                                                                                                                                                                                                                                                           |
+| PRD-034 | extend  | `IVehicle` ganha `modelId: ID \| null` referenciando `IVehicleModel` (catálogo canônico). `brand/model/engine` mantidos como display denormalizado (snapshot). Veículo sem match entra em estado "modelo não catalogado" → Gestor vincula/cria modelo (ação leve no cadastro). Mocks: cada um dos ~60 veículos vinculado ao seu `modelId` na consolidação do PRD-034 |
+| PRD-035 | enhance | Card "Filtros" das "Recomendações de manutenção" → botão "Criar orçamento" passa a aplicar o Kit de categoria `filtros` do modelo do veículo, pré-carregado (hoje abre orçamento vazio). Demais cards (Freios/Correia/Revisão) ficam preparados para Kits futuros das categorias correspondentes                                                                     |
+| PRD-035 | enhance | Seção "Peças compatíveis" passa a refletir as `applications` do modelo canônico e a indicar o Kit aplicável (drift: peças compatíveis fora do Kit). Substitui o placeholder atual "PRD-030 (placeholder)" quando o Kit existir                                                                                                                                       |
+| PRD-071 | extend  | Tela de detalhe do veículo no portal B2B tem tabs adicionais (Documentação, Quem dirige); alertas de manutenção placeholder; bulk operations                                                                                                                                                                                                                         |
+
+> **Sequência do delta PRD-016:** a parte `IVehicle.modelId` (origem PRD-034) depende apenas do PRD-034. A parte "Criar orçamento aplica Kit" e "Peças compatíveis ↔ Kit" (origem PRD-035) depende do PRD-035. Aplicar o delta completo somente após PRD-034 e PRD-035 implementados. A função de aplicação de Kit deve ser reutilizável entre o detalhe do veículo (este delta) e o orçamento (PRD-035).
 
 ---
 
@@ -468,11 +479,12 @@ Cliente tem UM vendedor responsável. Transferências (PRD-018) são o mecanismo
 
 ## 8. Versionamento deste documento
 
-| Versão | Data       | Autor | Mudança                                                                                                                                                                    |
-| ------ | ---------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1.0    | 25/05/2026 | AILA  | Criação inicial — consolidação de deltas dos 50 PRDs                                                                                                                       |
-| 1.1    | 27/05/2026 | AILA  | PRD-043 redigido — detalhamento do catálogo de badges + componente `<SellerBadgesGrid>` exportável; reforço de que PRD-040 já reserva slot para `<RankingHighlightWidget>` |
-| 1.2    | 31/05/2026 | AILA  | PRD-025 implementado — adicionado delta em 3.1 (PRD-002: tipos do copiloto) e nova seção 3.19 (PRD-011: tela de conversa extendida pela superfície do Copiloto)            |
+| Versão | Data       | Autor | Mudança                                                                                                                                                                      |
+| ------ | ---------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.0    | 25/05/2026 | AILA  | Criação inicial — consolidação de deltas dos 50 PRDs                                                                                                                         |
+| 1.1    | 27/05/2026 | AILA  | PRD-043 redigido — detalhamento do catálogo de badges + componente `<SellerBadgesGrid>` exportável; reforço de que PRD-040 já reserva slot para `<RankingHighlightWidget>`   |
+| 1.2    | 31/05/2026 | AILA  | PRD-025 implementado — delta em 3.1 (tipos do copiloto) e nova seção 3.19 (PRD-011: tela de conversa extendida pela superfície do Copiloto)                                   |
+| 1.3    | 04/06/2026 | AILA  | Épico de Kits (PRD-034/035) — `IVehicle.modelId` + peças compatíveis e aplicação de Kit (PRD-016); novos tipos, providers e permissões. **Consolidação canônica: fusão dos dois deltas divergentes (Copiloto + Kits) num único documento.** |
 
 ---
 
