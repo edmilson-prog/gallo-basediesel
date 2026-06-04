@@ -135,12 +135,6 @@ export const VEHICLE_STRINGS = {
           : `Próxima troca em cerca de ${km.toLocaleString("pt-BR")} km.`,
       createQuote: "Criar orçamento",
     },
-    compatible: {
-      placeholderTitle: "Catálogo de peças em construção",
-      placeholderDescription:
-        "Quando o catálogo for ativado (PRD-030), as peças compatíveis com este veículo aparecerão aqui.",
-      seeAll: "Ver todas",
-    },
     compatibleV2: {
       modes: {
         curadoria: "Curadoria",

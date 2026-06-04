@@ -51,7 +51,11 @@ export function VehicleLayoutRails({
           </div>
           <OwnerFleetCard customerId={vehicle.customerId} currentVehicleId={vehicle.id} />
           <VehicleTechSpecs vehicle={vehicle} canEdit={canEdit} onUpdated={onUpdated} />
-          <CompatibleParts vehicle={vehicle} canEdit={canEdit} onRequestLinkModel={onRequestLinkModel} />
+          <CompatibleParts
+            vehicle={vehicle}
+            canEdit={canEdit}
+            onRequestLinkModel={onRequestLinkModel}
+          />
         </aside>
       </div>
     </div>

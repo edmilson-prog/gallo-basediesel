@@ -54,7 +54,11 @@ export function VehicleLayoutHealth({
         <MostReplacedPartsCard vehicle={vehicle} className="lg:col-span-6" />
         <div className="space-y-6 lg:col-span-6">
           <VehicleTechSpecs vehicle={vehicle} canEdit={canEdit} onUpdated={onUpdated} />
-          <CompatibleParts vehicle={vehicle} canEdit={canEdit} onRequestLinkModel={onRequestLinkModel} />
+          <CompatibleParts
+            vehicle={vehicle}
+            canEdit={canEdit}
+            onRequestLinkModel={onRequestLinkModel}
+          />
         </div>
       </div>
     </div>

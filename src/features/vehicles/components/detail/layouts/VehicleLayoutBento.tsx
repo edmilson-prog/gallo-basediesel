@@ -48,7 +48,12 @@ export function VehicleLayoutBento({
       <div className="rounded-lg border border-border bg-card p-4 md:col-span-2">
         <VehicleTechSpecs vehicle={vehicle} canEdit={canEdit} onUpdated={onUpdated} />
       </div>
-      <CompatibleParts vehicle={vehicle} canEdit={canEdit} onRequestLinkModel={onRequestLinkModel} className="md:col-span-2" />
+      <CompatibleParts
+        vehicle={vehicle}
+        canEdit={canEdit}
+        onRequestLinkModel={onRequestLinkModel}
+        className="md:col-span-2"
+      />
     </div>
   );
 }
