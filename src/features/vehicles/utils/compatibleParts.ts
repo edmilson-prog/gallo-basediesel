@@ -6,6 +6,11 @@ import { searchPartsByApplication } from "@/features/catalog/api/search";
  * The canonical model (PRD-034) is authoritative; falls back to the vehicle's
  * denormalized snapshot for orphans (which match nothing — exotic models have
  * no catalog applications).
+ *
+ * Matching is brand + model + year (engine-agnostic on purpose): part
+ * applications rarely carry the exact engine string of every model variant, so
+ * requiring an engine match left the list near-empty. Engine precision is a
+ * future refinement once `IApplication` carries `modelId` (delta do catálogo).
  */
 export function findCompatibleParts(
   vehicle: IVehicle,
@@ -14,11 +19,9 @@ export function findCompatibleParts(
 ): IPart[] {
   const brand = model?.brand ?? vehicle.brand;
   const modelName = model?.model ?? vehicle.model;
-  const engine = model?.engine ?? vehicle.engine;
   return searchPartsByApplication(parts, {
     brand,
     model: modelName,
-    engine: engine || undefined,
     year: vehicle.year,
   });
 }

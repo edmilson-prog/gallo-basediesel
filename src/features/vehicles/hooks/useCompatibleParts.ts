@@ -11,8 +11,12 @@ import { findCompatibleParts, splitByKitMembership } from "../utils/compatiblePa
 export interface IUseCompatibleParts {
   isLoading: boolean;
   model: IVehicleModel | null;
+  /** Catalog parts whose applications match the vehicle's model (Catálogo mode). */
   parts: IPart[];
-  inKit: IPart[];
+  /** The applicable kit's items resolved to parts — shown regardless of the
+   *  application match so the curated set is always visible (No Kit oficial / Só o Kit). */
+  kitParts: IPart[];
+  /** Compatible parts that are NOT in the kit (curation opportunities). */
   drift: IPart[];
   applicableKit: IVehicleModelKit | null;
 }
@@ -50,8 +54,20 @@ export function useCompatibleParts(vehicle: IVehicle): IUseCompatibleParts {
     [vehicle, model, allParts],
   );
 
-  const { inKit, drift } = useMemo(
-    () => splitByKitMembership(parts, applicableKit),
+  const partsById = useMemo(() => new Map(allParts.map((p) => [p.id, p] as const)), [allParts]);
+
+  // Kit's own parts, resolved from the full catalog — always shown when a kit
+  // applies, even if a part's applications don't match this exact model.
+  const kitParts = useMemo(() => {
+    if (!applicableKit) return [];
+    return applicableKit.items
+      .map((item) => partsById.get(item.partId))
+      .filter((p): p is IPart => Boolean(p));
+  }, [applicableKit, partsById]);
+
+  // Drift = compatible parts that are not curated into the kit.
+  const drift = useMemo(
+    () => splitByKitMembership(parts, applicableKit).drift,
     [parts, applicableKit],
   );
 
@@ -59,7 +75,7 @@ export function useCompatibleParts(vehicle: IVehicle): IUseCompatibleParts {
     isLoading: partsQuery.isLoading || vehicleModelsQuery.isLoading || modelKitsQuery.isLoading,
     model,
     parts,
-    inKit,
+    kitParts,
     drift,
     applicableKit,
   };

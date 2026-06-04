@@ -35,7 +35,12 @@ export function CompatibleParts({
   const [view, setView] = useCompatiblePartsView();
   const [showingAll, setShowingAll] = useState(false);
 
-  const partsById = useMemo(() => new Map(data.parts.map((p) => [p.id, p] as const)), [data.parts]);
+  // Resolve names for the kit callout from the kit's own parts (not just the
+  // application-matched slice), so every kit item shows its real name.
+  const kitPartsById = useMemo(
+    () => new Map(data.kitParts.map((p) => [p.id, p] as const)),
+    [data.kitParts],
+  );
 
   const kitPartIds = useMemo(
     () => new Set(data.applicableKit?.items.map((i) => i.partId) ?? []),
@@ -104,7 +109,7 @@ export function CompatibleParts({
       {data.applicableKit && (
         <KitCallout
           kit={data.applicableKit}
-          partsById={partsById}
+          partsById={kitPartsById}
           onSeeKit={() =>
             void navigate({
               to: "/app/kits/$modelId/kit/$kitId/editar",
@@ -117,14 +122,14 @@ export function CompatibleParts({
         />
       )}
 
-      {/* Empty state — model linked but no parts found */}
-      {data.parts.length === 0 ? (
+      {/* Empty state — model linked but neither compatible parts nor a kit */}
+      {data.parts.length === 0 && data.kitParts.length === 0 ? (
         <CompatiblePartsEmpty title={COMPATIBLE_COPY.emptyCatalogued} description="" />
       ) : (
         <>
           {view === "curadoria" && (
             <CuradoriaView
-              inKit={data.inKit}
+              inKit={data.kitParts}
               drift={data.drift}
               topN={CURADORIA_TOP_N}
               showingAll={showingAll}
@@ -140,7 +145,7 @@ export function CompatibleParts({
               onAddToQuote={onAddToQuote}
             />
           )}
-          {view === "kit" && <KitOnlyView inKit={data.inKit} onAddToQuote={onAddToQuote} />}
+          {view === "kit" && <KitOnlyView inKit={data.kitParts} onAddToQuote={onAddToQuote} />}
         </>
       )}
     </section>
