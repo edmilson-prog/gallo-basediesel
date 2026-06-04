@@ -9,6 +9,7 @@ import type { ICashFlowSettings } from "./cashflow";
 import type { IInventoryAnalysisSettings } from "./inventory";
 import type { IInsightThresholds } from "./insights";
 import type { IStorefrontConfig } from "./storefront";
+import type { IForecastConfig } from "./forecast";
 
 /** Store type. Matriz is the headquarters, filial is a branch, parceira is a partner store. */
 export type StoreType = "matriz" | "filial" | "parceira";
@@ -226,6 +227,8 @@ export interface IPlatformSettings {
   quoteDefaultValidityDays: number;
   /** Customer ABC curve classification settings (PRD-045). */
   abcCurveSettings: IABCCurveSettings;
+  /** Forecast engine tuning (PRD-056). Undefined → DEFAULT_FORECAST_CONFIG. */
+  forecast?: IForecastConfig;
   /** Commission engine settings (PRD-047). */
   commissionSettings: ICommissionSettings;
   /** Financial / DRE settings (PRD-048). */

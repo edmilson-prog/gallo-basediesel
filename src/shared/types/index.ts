@@ -373,3 +373,18 @@ export type { IVehicleModel, VehicleModelStatus } from "./vehicle-models";
 
 // Model kits / curated part bundles per vehicle model (PRD-035)
 export type { IVehicleModelKit, IKitItem, ModelKitCategory, ModelKitStatus } from "./model-kits";
+
+// Forecast / closing projection (PRD-056)
+export type {
+  IForecast,
+  IForecastScenario,
+  IForecastBreakdown,
+  IForecastScope,
+  IForecastConfig,
+  IForecastInput,
+  ITemperatureWeights,
+  IScenarioFactors,
+  ForecastMetric,
+  ForecastScenarioType,
+  PipelineWeightingMode,
+} from "./forecast";
