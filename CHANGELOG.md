@@ -4,6 +4,25 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.65.0] — Fitment · 2026-06-03
+
+O detalhe de cada veículo agora mostra as **peças compatíveis de verdade**, puxadas do catálogo conforme o modelo do veículo. Você escolhe como visualizar: a **Curadoria** separa o que já está no kit oficial do que é compatível mas ficou de fora (uma oportunidade de incluir no kit); o **Catálogo** lista todas as peças compatíveis com busca e filtro por categoria; e o modo **Só o Kit** mostra apenas as peças do kit. Quando existe um kit oficial de filtros para o modelo, um destaque no topo leva direto a ele. Veículos cujo modelo ainda não está cadastrado aparecem marcados como **"modelo não catalogado"**, e o gestor pode vinculá-los a um modelo existente ou cadastrar um novo na hora — a partir daí, os kits e as peças compatíveis passam a aparecer.
+
+### Added
+
+- **Peças compatíveis no detalhe do veículo** — substituem o antigo aviso "em construção" por uma lista real, com três modos de visualização à sua escolha (lembrados entre acessos): Curadoria, Catálogo e Só o Kit.
+- **Destaque do kit aplicável** — quando há um kit oficial de filtros para o modelo do veículo, um destaque no topo da seção mostra os itens e leva direto ao kit.
+- **Peças fora do kit (drift)** — no modo Curadoria, as peças compatíveis que ainda não estão no kit aparecem separadas, sinalizando oportunidades de incluí-las.
+- **Modelo não catalogado** — veículos sem modelo no catálogo recebem um indicador discreto; o gestor pode vincular a um modelo existente ou cadastrar um novo sem sair da tela.
+
+### Changed
+
+- **Veículos ligados ao catálogo de modelos** — cada veículo passa a referenciar o modelo canônico; os kits e as peças compatíveis agora casam pelo modelo do veículo, não mais por texto aproximado.
+
+### Removed
+
+- **Aviso "catálogo de peças em construção"** — substituído pela seção real de peças compatíveis.
+
 ## [0.64.0] — Kit · 2026-06-03
 
 Os kits de peças agora vivem dentro de cada modelo de veículo. Na área **Kits por modelo**, você monta kits de filtros escolhendo as peças, as quantidades e marcando quais são base (sempre entram) ou opcionais (sugestões), e mantém cada kit como rascunho ou oficial — o vendedor propõe, o gestor oficializa. No orçamento, um clique em "Aplicar kit" abre uma pré-visualização onde você confirma os itens (os opcionais vêm desmarcados) e as peças entram com o preço congelado do momento; dá para desfazer. O sistema ainda sugere o kit certo quando o cliente tem um veículo compatível e avisa quando há peças que servem ao modelo mas estão fora do kit. A antiga tela "Kits de revisão" foi substituída por essa experiência unificada.
