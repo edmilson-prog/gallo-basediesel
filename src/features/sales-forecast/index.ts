@@ -16,4 +16,5 @@ export {
 export { ForecastWidget, type IForecastWidgetProps } from "./components/ForecastWidget";
 
 export { SalesForecastPage } from "./pages/SalesForecastPage";
+export { ForecastConfigPage } from "./pages/ForecastConfigPage";
 export { validateForecastSearch, type IForecastSearch } from "./pages/forecastSearch";
