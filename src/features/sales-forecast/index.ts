@@ -6,3 +6,14 @@ export {
   type IUseForecastFilters,
   type IUseForecastResult,
 } from "./hooks/useForecast";
+export {
+  useStoreForecast,
+  type ISellerForecast,
+  type IUseStoreForecastParams,
+  type IUseStoreForecastResult,
+} from "./hooks/useStoreForecast";
+
+export { ForecastWidget, type IForecastWidgetProps } from "./components/ForecastWidget";
+
+export { SalesForecastPage } from "./pages/SalesForecastPage";
+export { validateForecastSearch, type IForecastSearch } from "./pages/forecastSearch";
