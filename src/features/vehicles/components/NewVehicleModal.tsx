@@ -165,6 +165,7 @@ export function NewVehicleModal({
         model: model.trim(),
         year,
         engine: engine.trim(),
+        modelId: null,
         plate: plate.trim() ? plate.replace(/[^A-Za-z0-9]/g, "").toUpperCase() : undefined,
         vin: vin.trim() ? vin.trim().toUpperCase() : undefined,
         currentKm: Number.isFinite(kmNum) ? kmNum : undefined,
