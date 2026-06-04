@@ -22,7 +22,11 @@ function makeLead(over: Partial<ILead>): ILead {
   };
 }
 
-const period = { type: "monthly" as const, start: "2026-06-01T00:00:00.000Z", end: "2026-06-30T23:59:59.999Z" };
+const period = {
+  type: "monthly" as const,
+  start: "2026-06-01T00:00:00.000Z",
+  end: "2026-06-30T23:59:59.999Z",
+};
 const scope = { level: "store" as const, targetId: "store-1", storeId: "store-1" };
 
 describe("buildForecastInput", () => {

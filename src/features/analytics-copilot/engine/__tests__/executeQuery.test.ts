@@ -54,7 +54,9 @@ describe("executeQuery", () => {
 
   it("throws when the query is not scoped (clamp must run first)", async () => {
     const unscoped: IMetricQuery = { ...scopedQuery, scope: undefined };
-    await expect(executeQuery(findMetricById("faturamento")!, unscoped, makeStubPort())).rejects.toThrow();
+    await expect(
+      executeQuery(findMetricById("faturamento")!, unscoped, makeStubPort()),
+    ).rejects.toThrow();
   });
 
   it("unresolvedAnswer carries suggestions and no number", () => {

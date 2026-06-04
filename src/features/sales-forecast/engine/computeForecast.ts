@@ -28,14 +28,21 @@ function leadWeight(lead: ILead, config: IForecastConfig): number {
 }
 
 function computeWeightedPipeline(openLeads: ILead[], config: IForecastConfig): number {
-  return openLeads.reduce((sum, lead) => sum + (lead.estimatedValue ?? 0) * leadWeight(lead, config), 0);
+  return openLeads.reduce(
+    (sum, lead) => sum + (lead.estimatedValue ?? 0) * leadWeight(lead, config),
+    0,
+  );
 }
 
 /**
  * Scenario traffic-light status. Distinguishes "concluida" (already realized >= target)
  * from "no_caminho" (projected to reach target). Reuses GoalProgressStatus (PRD-042).
  */
-function scenarioStatus(realized: number, projected: number, target: number | undefined): GoalProgressStatus {
+function scenarioStatus(
+  realized: number,
+  projected: number,
+  target: number | undefined,
+): GoalProgressStatus {
   if (target === undefined || target <= 0) return "no_caminho";
   if (realized >= target) return "concluida";
   if (projected >= target) return "no_caminho";
@@ -60,7 +67,8 @@ function buildScenario(
   avgTicket: number | undefined,
 ): IForecastScenario {
   const breakdown = scaleBreakdown(baseBreakdown, factor);
-  const projectedValue = breakdown.realized + breakdown.weightedPipeline + breakdown.runRateRemainder;
+  const projectedValue =
+    breakdown.realized + breakdown.weightedPipeline + breakdown.runRateRemainder;
   const status = scenarioStatus(realizedValue, projectedValue, target);
 
   let gapToTarget: number | undefined;
@@ -101,9 +109,30 @@ export function computeForecast(input: IForecastInput, config: IForecastConfig):
 
   const targetValue = target?.value;
   const scenarios: IForecastScenario[] = [
-    buildScenario("pessimista", config.scenarioFactors.pessimista, baseBreakdown, realizedValue, targetValue, avgTicket),
-    buildScenario("provavel", config.scenarioFactors.provavel, baseBreakdown, realizedValue, targetValue, avgTicket),
-    buildScenario("otimista", config.scenarioFactors.otimista, baseBreakdown, realizedValue, targetValue, avgTicket),
+    buildScenario(
+      "pessimista",
+      config.scenarioFactors.pessimista,
+      baseBreakdown,
+      realizedValue,
+      targetValue,
+      avgTicket,
+    ),
+    buildScenario(
+      "provavel",
+      config.scenarioFactors.provavel,
+      baseBreakdown,
+      realizedValue,
+      targetValue,
+      avgTicket,
+    ),
+    buildScenario(
+      "otimista",
+      config.scenarioFactors.otimista,
+      baseBreakdown,
+      realizedValue,
+      targetValue,
+      avgTicket,
+    ),
   ];
 
   return {

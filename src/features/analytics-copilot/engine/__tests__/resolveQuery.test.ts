@@ -4,7 +4,11 @@ import { resolveQuery } from "../resolveQuery";
 import { metricCatalog } from "../../catalog/metricCatalog";
 import type { IGoalPeriod } from "@/shared/types/bi";
 
-const period: IGoalPeriod = { type: "monthly", start: "2026-06-01T00:00:00.000Z", end: "2026-06-30T23:59:59.999Z" };
+const period: IGoalPeriod = {
+  type: "monthly",
+  start: "2026-06-01T00:00:00.000Z",
+  end: "2026-06-30T23:59:59.999Z",
+};
 const ctx = { period };
 
 describe("resolveQuery", () => {

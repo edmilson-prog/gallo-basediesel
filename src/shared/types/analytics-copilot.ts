@@ -3,7 +3,14 @@ import type { IGoalPeriod } from "./bi";
 import type { RoleName } from "./people";
 
 /** Dimensions a question can slice a metric by. */
-export type MetricDimension = "vendedor" | "canal" | "categoria" | "marca" | "cliente" | "loja" | "tempo";
+export type MetricDimension =
+  | "vendedor"
+  | "canal"
+  | "categoria"
+  | "marca"
+  | "cliente"
+  | "loja"
+  | "tempo";
 
 export type ComparisonMode = "previous_period" | "previous_year";
 
@@ -37,7 +44,9 @@ export interface IMetricQuery {
  * usePortfolioMetrics / useForecast.
  */
 export interface IAnalyticsDataAccess {
-  getSalesMetric(query: IMetricQuery): Promise<{ value: number; previousValue?: number; series?: number[] }>;
+  getSalesMetric(
+    query: IMetricQuery,
+  ): Promise<{ value: number; previousValue?: number; series?: number[] }>;
   getMargin(query: IMetricQuery): Promise<{ value: number; previousValue?: number }>;
   getPositivation(query: IMetricQuery): Promise<{ value: number; previousValue?: number }>;
   getABCClass(query: IMetricQuery): Promise<{ value: number; series?: number[] }>;

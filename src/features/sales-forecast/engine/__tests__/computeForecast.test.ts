@@ -56,7 +56,11 @@ describe("computeForecast", () => {
   });
 
   it("stage mode weights pipeline by stage id", () => {
-    const config = { ...DEFAULT_FORECAST_CONFIG, pipelineWeightingMode: "stage" as const, stageWeights: { "stage-1": 0.5 } };
+    const config = {
+      ...DEFAULT_FORECAST_CONFIG,
+      pipelineWeightingMode: "stage" as const,
+      stageWeights: { "stage-1": 0.5 },
+    };
     const f = provavel(
       baseInput({
         realizedValue: 0,
@@ -70,7 +74,11 @@ describe("computeForecast", () => {
   });
 
   it("hybrid mode averages temperature and stage weights", () => {
-    const config = { ...DEFAULT_FORECAST_CONFIG, pipelineWeightingMode: "hybrid" as const, stageWeights: { "stage-1": 0.5 } };
+    const config = {
+      ...DEFAULT_FORECAST_CONFIG,
+      pipelineWeightingMode: "hybrid" as const,
+      stageWeights: { "stage-1": 0.5 },
+    };
     const f = provavel(
       baseInput({
         realizedValue: 0,
@@ -147,7 +155,10 @@ describe("computeForecast", () => {
 
   it("omits gap fields when there is no target", () => {
     const all = computeForecast(
-      baseInput({ target: undefined, calendar: { daysElapsed: 30, daysRemaining: 0, totalDays: 30 } }),
+      baseInput({
+        target: undefined,
+        calendar: { daysElapsed: 30, daysRemaining: 0, totalDays: 30 },
+      }),
       DEFAULT_FORECAST_CONFIG,
     );
     const f = all.scenarios.find((s) => s.type === "provavel")!;
@@ -158,12 +169,16 @@ describe("computeForecast", () => {
 
   it("flags lowConfidence below the threshold and not at/above it", () => {
     expect(
-      computeForecast(baseInput({ calendar: { daysElapsed: 2, daysRemaining: 28, totalDays: 30 } }), DEFAULT_FORECAST_CONFIG)
-        .lowConfidence,
+      computeForecast(
+        baseInput({ calendar: { daysElapsed: 2, daysRemaining: 28, totalDays: 30 } }),
+        DEFAULT_FORECAST_CONFIG,
+      ).lowConfidence,
     ).toBe(true);
     expect(
-      computeForecast(baseInput({ calendar: { daysElapsed: 3, daysRemaining: 27, totalDays: 30 } }), DEFAULT_FORECAST_CONFIG)
-        .lowConfidence,
+      computeForecast(
+        baseInput({ calendar: { daysElapsed: 3, daysRemaining: 27, totalDays: 30 } }),
+        DEFAULT_FORECAST_CONFIG,
+      ).lowConfidence,
     ).toBe(false);
   });
 
@@ -192,7 +207,10 @@ describe("computeForecast", () => {
   });
 
   it("uses the injected now for computedAt (deterministic)", () => {
-    const out = computeForecast(baseInput({ now: "2026-06-15T12:00:00.000Z" }), DEFAULT_FORECAST_CONFIG);
+    const out = computeForecast(
+      baseInput({ now: "2026-06-15T12:00:00.000Z" }),
+      DEFAULT_FORECAST_CONFIG,
+    );
     expect(out.computedAt).toBe("2026-06-15T12:00:00.000Z");
   });
 });
