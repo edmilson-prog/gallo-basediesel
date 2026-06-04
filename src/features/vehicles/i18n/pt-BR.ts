@@ -151,15 +151,11 @@ export const VEHICLE_STRINGS = {
       emptyKitOnly: "Nenhum Kit oficial de filtros para este modelo.",
       kitCallout: "Kit oficial de filtros disponível para este modelo",
       seeKit: "Ver Kit",
-      noKitHint: (n: number) =>
-        `Nenhum Kit oficial — ${n} peças compatíveis poderiam virar um Kit.`,
     },
     notCatalogued: {
       badge: "Modelo não catalogado",
       orphanPartsTitle: "Sem catálogo de peças",
       orphanPartsDescription: "Vincule ou cadastre o modelo para ver peças compatíveis.",
-      orphanKitsTitle: "Nenhum Kit aplicável",
-      orphanKitsDescription: "Kits são vinculados por modelo. Catalogue o modelo para habilitar.",
     },
     linkModel: {
       trigger: "Vincular modelo",
