@@ -6,7 +6,7 @@ import { VehicleOwnerCard } from "../VehicleOwnerCard";
 import { OwnerFleetCard } from "../OwnerFleetCard";
 import { MostReplacedPartsCard } from "../MostReplacedPartsCard";
 import { VehicleTechSpecs } from "../VehicleTechSpecs";
-import { CompatiblePartsPlaceholder } from "../CompatiblePartsPlaceholder";
+import { CompatibleParts } from "../compatible-parts/CompatibleParts";
 import { VEHICLE_STRINGS } from "../../../i18n/pt-BR";
 import type { IVehicleLayoutProps } from "./types";
 
@@ -19,6 +19,7 @@ export function VehicleLayoutRails({
   onAddService,
   onUpdated,
   onSeeFullHistory,
+  onRequestLinkModel,
 }: IVehicleLayoutProps) {
   return (
     <div className="space-y-6">
@@ -50,7 +51,7 @@ export function VehicleLayoutRails({
           </div>
           <OwnerFleetCard customerId={vehicle.customerId} currentVehicleId={vehicle.id} />
           <VehicleTechSpecs vehicle={vehicle} canEdit={canEdit} onUpdated={onUpdated} />
-          <CompatiblePartsPlaceholder vehicle={vehicle} />
+          <CompatibleParts vehicle={vehicle} canEdit={canEdit} onRequestLinkModel={onRequestLinkModel} />
         </aside>
       </div>
     </div>
