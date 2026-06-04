@@ -101,3 +101,22 @@ export const SEED_VEHICLE_MODELS: IVehicleModelEntry[] = [
   { brand: "Iveco", model: "Tector 240E28", engines: ["Tector 6"], yearStart: 2013, yearEnd: 2024 },
   { brand: "Iveco", model: "Daily 70C17", engines: ["F1C"], yearStart: 2013, yearEnd: 2024 },
 ];
+
+/**
+ * Models present in the customer fleet but intentionally absent from the
+ * canonical catalog (PRD-034). Used ONLY by the vehicle generator to exercise
+ * the "modelo não catalogado" state — these brands are outside GALLO's canonical
+ * coverage, so the generated vehicles get `modelId: null`. NOT fed into
+ * buildCanonicalVehicleModels().
+ */
+export const SEED_EXOTIC_VEHICLE_MODELS: IVehicleModelEntry[] = [
+  {
+    brand: "Volkswagen",
+    model: "Constellation 24.280",
+    engines: ["MAN D08"],
+    yearStart: 2014,
+    yearEnd: 2023,
+  },
+  { brand: "MAN", model: "TGX 29.480", engines: ["D26"], yearStart: 2016, yearEnd: 2023 },
+  { brand: "DAF", model: "XF 105", engines: ["PACCAR MX-13"], yearStart: 2013, yearEnd: 2021 },
+];

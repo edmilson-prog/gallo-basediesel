@@ -6,7 +6,7 @@ import { VehicleOwnerCard } from "../VehicleOwnerCard";
 import { OwnerFleetCard } from "../OwnerFleetCard";
 import { MostReplacedPartsCard } from "../MostReplacedPartsCard";
 import { VehicleTechSpecs } from "../VehicleTechSpecs";
-import { CompatiblePartsPlaceholder } from "../CompatiblePartsPlaceholder";
+import { CompatibleParts } from "../compatible-parts/CompatibleParts";
 import { VEHICLE_STRINGS } from "../../../i18n/pt-BR";
 import type { IVehicleLayoutProps } from "./types";
 
@@ -19,6 +19,7 @@ export function VehicleLayoutBento({
   onAddService,
   onUpdated,
   onSeeFullHistory,
+  onRequestLinkModel,
 }: IVehicleLayoutProps) {
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -47,7 +48,12 @@ export function VehicleLayoutBento({
       <div className="rounded-lg border border-border bg-card p-4 md:col-span-2">
         <VehicleTechSpecs vehicle={vehicle} canEdit={canEdit} onUpdated={onUpdated} />
       </div>
-      <CompatiblePartsPlaceholder vehicle={vehicle} className="md:col-span-2" />
+      <CompatibleParts
+        vehicle={vehicle}
+        canEdit={canEdit}
+        onRequestLinkModel={onRequestLinkModel}
+        className="md:col-span-2"
+      />
     </div>
   );
 }

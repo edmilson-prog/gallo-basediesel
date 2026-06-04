@@ -40,7 +40,6 @@ import { composePaymentCondition, generateQuoteNumber } from "../../utils/quoteN
 import { addOrIncrementItem, swapItemPart } from "../../utils/quoteItemOps";
 import { quoteAggregates } from "../../utils/quoteItemDisplay";
 import { useModelKits } from "@/features/model-kits/hooks/useModelKits";
-import { useVehicleModels } from "@/features/vehicle-models/hooks/useVehicleModels";
 import { findKitsForVehicle } from "@/features/model-kits/utils/modelKitMatching";
 import { ApplyKitDialog, KitSuggestionBanner } from "@/features/model-kits";
 import { recordAuditLogSync } from "@/providers/data";
@@ -89,10 +88,6 @@ export function QuoteEditor() {
   // Manual picker lists every kit of the store; the auto-suggestion (PRD-035)
   // is what narrows to official kits matching the client's vehicle.
   const kits = modelKitsQuery.data ?? [];
-
-  const vehicleModelsQuery = useVehicleModels({});
-  const vehicleModels = vehicleModelsQuery.data ?? [];
-  const modelsById = useMemo(() => new Map(vehicleModels.map((m) => [m.id, m])), [vehicleModels]);
 
   const settingsQuery = useQuery({
     queryKey: ["settings", storeId] as const,
@@ -197,11 +192,11 @@ export function QuoteEditor() {
 
   const suggestedKit = useMemo(() => {
     if (!customer || !suggestionVehicle) return null;
-    const matched = findKitsForVehicle(suggestionVehicle, kits, modelsById).filter(
+    const matched = findKitsForVehicle(suggestionVehicle, kits).filter(
       (k) => k.status === "oficial" && k.category === "filtros",
     );
     return matched[0] ?? null;
-  }, [customer, suggestionVehicle, kits, modelsById]);
+  }, [customer, suggestionVehicle, kits]);
 
   // True when the quote already contains at least one filter part.
   const hasFilterItem = useMemo(

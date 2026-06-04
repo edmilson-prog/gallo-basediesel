@@ -8,4 +8,6 @@ export interface IVehicleLayoutProps {
   onAddService: () => void;
   onUpdated: () => void;
   onSeeFullHistory: () => void;
+  /** Opens the link-model dialog (used by header badge + orphan empty states). */
+  onRequestLinkModel: () => void;
 }

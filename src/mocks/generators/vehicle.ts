@@ -1,16 +1,25 @@
 import type { ICustomer, ID, IVehicle, IVehicleServiceEntry } from "@/shared/types";
-import { SEED_VEHICLE_MODELS } from "../data";
+import { SEED_VEHICLE_MODELS, SEED_EXOTIC_VEHICLE_MODELS } from "../data";
+import { SEED_VEHICLE_MODELS_CANONICAL, slug } from "../data/seedVehicleModelsCanonical";
 import { daysAgo, randomISO, type ISeededContext } from "./utils";
+
+const CANONICAL_MODEL_IDS = new Set(SEED_VEHICLE_MODELS_CANONICAL.map((m) => m.id));
 
 /** Generate a vehicle owned by a customer (preferentially B2B fleets). */
 export function generateVehicle(
   ctx: ISeededContext,
   options: { sequence: number; owner: ICustomer; now?: Date },
 ): IVehicle {
-  const model = ctx.pick(SEED_VEHICLE_MODELS);
+  // ~12% of vehicles draw from the exotic (non-canonical) pool → orphans.
+  const useExotic = ctx.bool(0.12);
+  const model = useExotic ? ctx.pick(SEED_EXOTIC_VEHICLE_MODELS) : ctx.pick(SEED_VEHICLE_MODELS);
+  const engine = ctx.pick(model.engines);
   const year = ctx.int(model.yearStart, model.yearEnd);
   const id: ID = `vehicle-${String(options.sequence + 1).padStart(4, "0")}`;
   const now = options.now ?? new Date();
+
+  const candidateModelId = `vmodel-${slug(model.brand)}-${slug(model.model)}-${slug(engine)}`;
+  const modelId: ID | null = CANONICAL_MODEL_IDS.has(candidateModelId) ? candidateModelId : null;
 
   return {
     id,
@@ -18,7 +27,8 @@ export function generateVehicle(
     brand: model.brand,
     model: model.model,
     year,
-    engine: ctx.pick(model.engines),
+    engine,
+    modelId,
     plate: ctx.bool(0.9) ? generatePlate(ctx) : undefined,
     vin: ctx.bool(0.6) ? generateVin(ctx) : undefined,
     currentKm: ctx.int(35_000, 850_000),

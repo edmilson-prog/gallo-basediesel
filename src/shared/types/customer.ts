@@ -142,6 +142,9 @@ export interface IVehicle {
   model: string;
   year: number;
   engine: string;
+  /** Canonical model (PRD-034). `null` = "modelo não catalogado". The
+   *  brand/model/engine above remain the denormalized display snapshot. */
+  modelId: ID | null;
   plate?: string;
   vin?: string;
   currentKm?: number;
