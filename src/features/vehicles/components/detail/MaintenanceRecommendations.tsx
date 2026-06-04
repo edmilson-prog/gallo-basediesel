@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
 import { useModelKits } from "@/features/model-kits/hooks/useModelKits";
-import { useVehicleModels } from "@/features/vehicle-models/hooks/useVehicleModels";
 import { findKitsForVehicle } from "@/features/model-kits/utils/modelKitMatching";
 import { computeRecommendations } from "../../utils/maintenanceRules";
 import { VEHICLE_STRINGS } from "../../i18n/pt-BR";
@@ -23,16 +22,13 @@ export function MaintenanceRecommendations({ vehicle }: IMaintenanceRecommendati
 
   // Resolve applicable filter kit for this vehicle (RF-014).
   const modelKitsQuery = useModelKits({});
-  const vehicleModelsQuery = useVehicleModels({});
   const kits = modelKitsQuery.data ?? [];
-  const vehicleModels = vehicleModelsQuery.data ?? [];
-  const modelsById = useMemo(() => new Map(vehicleModels.map((m) => [m.id, m])), [vehicleModels]);
   const applicableFilterKit = useMemo(
     () =>
-      findKitsForVehicle(vehicle, kits, modelsById).find(
+      findKitsForVehicle(vehicle, kits).find(
         (k) => k.status === "oficial" && k.category === "filtros",
       ) ?? null,
-    [vehicle, kits, modelsById],
+    [vehicle, kits],
   );
 
   return (
