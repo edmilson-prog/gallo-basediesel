@@ -105,6 +105,7 @@ import { Route as AppGestaoRankingRouteImport } from './routes/app.gestao.rankin
 import { Route as AppGestaoPositivacaoRouteImport } from './routes/app.gestao.positivacao'
 import { Route as AppGestaoMetasRouteImport } from './routes/app.gestao.metas'
 import { Route as AppGestaoIndicadoresRouteImport } from './routes/app.gestao.indicadores'
+import { Route as AppGestaoForecastRouteImport } from './routes/app.gestao.forecast'
 import { Route as AppGestaoEstoqueMovimentacaoRouteImport } from './routes/app.gestao.estoque-movimentacao'
 import { Route as AppGestaoEstoqueRouteImport } from './routes/app.gestao.estoque'
 import { Route as AppGestaoDreRouteImport } from './routes/app.gestao.dre'
@@ -657,6 +658,11 @@ const AppGestaoIndicadoresRoute = AppGestaoIndicadoresRouteImport.update({
   path: '/gestao/indicadores',
   getParentRoute: () => AppRoute,
 } as any)
+const AppGestaoForecastRoute = AppGestaoForecastRouteImport.update({
+  id: '/gestao/forecast',
+  path: '/gestao/forecast',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppGestaoEstoqueMovimentacaoRoute =
   AppGestaoEstoqueMovimentacaoRouteImport.update({
     id: '/gestao/estoque-movimentacao',
@@ -1135,6 +1141,7 @@ export interface FileRoutesByFullPath {
   '/app/gestao/dre': typeof AppGestaoDreRoute
   '/app/gestao/estoque': typeof AppGestaoEstoqueRoute
   '/app/gestao/estoque-movimentacao': typeof AppGestaoEstoqueMovimentacaoRoute
+  '/app/gestao/forecast': typeof AppGestaoForecastRoute
   '/app/gestao/indicadores': typeof AppGestaoIndicadoresRouteWithChildren
   '/app/gestao/metas': typeof AppGestaoMetasRouteWithChildren
   '/app/gestao/positivacao': typeof AppGestaoPositivacaoRouteWithChildren
@@ -1284,6 +1291,7 @@ export interface FileRoutesByTo {
   '/app/gestao/dre': typeof AppGestaoDreRoute
   '/app/gestao/estoque': typeof AppGestaoEstoqueRoute
   '/app/gestao/estoque-movimentacao': typeof AppGestaoEstoqueMovimentacaoRoute
+  '/app/gestao/forecast': typeof AppGestaoForecastRoute
   '/app/gestao/positivacao': typeof AppGestaoPositivacaoRouteWithChildren
   '/app/gestao/rentabilidade': typeof AppGestaoRentabilidadeRoute
   '/app/gestao/vendas': typeof AppGestaoVendasRoute
@@ -1448,6 +1456,7 @@ export interface FileRoutesById {
   '/app/gestao/dre': typeof AppGestaoDreRoute
   '/app/gestao/estoque': typeof AppGestaoEstoqueRoute
   '/app/gestao/estoque-movimentacao': typeof AppGestaoEstoqueMovimentacaoRoute
+  '/app/gestao/forecast': typeof AppGestaoForecastRoute
   '/app/gestao/indicadores': typeof AppGestaoIndicadoresRouteWithChildren
   '/app/gestao/metas': typeof AppGestaoMetasRouteWithChildren
   '/app/gestao/positivacao': typeof AppGestaoPositivacaoRouteWithChildren
@@ -1618,6 +1627,7 @@ export interface FileRouteTypes {
     | '/app/gestao/dre'
     | '/app/gestao/estoque'
     | '/app/gestao/estoque-movimentacao'
+    | '/app/gestao/forecast'
     | '/app/gestao/indicadores'
     | '/app/gestao/metas'
     | '/app/gestao/positivacao'
@@ -1767,6 +1777,7 @@ export interface FileRouteTypes {
     | '/app/gestao/dre'
     | '/app/gestao/estoque'
     | '/app/gestao/estoque-movimentacao'
+    | '/app/gestao/forecast'
     | '/app/gestao/positivacao'
     | '/app/gestao/rentabilidade'
     | '/app/gestao/vendas'
@@ -1930,6 +1941,7 @@ export interface FileRouteTypes {
     | '/app/gestao/dre'
     | '/app/gestao/estoque'
     | '/app/gestao/estoque-movimentacao'
+    | '/app/gestao/forecast'
     | '/app/gestao/indicadores'
     | '/app/gestao/metas'
     | '/app/gestao/positivacao'
@@ -2696,6 +2708,13 @@ declare module '@tanstack/react-router' {
       path: '/gestao/indicadores'
       fullPath: '/app/gestao/indicadores'
       preLoaderRoute: typeof AppGestaoIndicadoresRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/gestao/forecast': {
+      id: '/app/gestao/forecast'
+      path: '/gestao/forecast'
+      fullPath: '/app/gestao/forecast'
+      preLoaderRoute: typeof AppGestaoForecastRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/gestao/estoque-movimentacao': {
@@ -3498,6 +3517,7 @@ interface AppRouteChildren {
   AppGestaoDreRoute: typeof AppGestaoDreRoute
   AppGestaoEstoqueRoute: typeof AppGestaoEstoqueRoute
   AppGestaoEstoqueMovimentacaoRoute: typeof AppGestaoEstoqueMovimentacaoRoute
+  AppGestaoForecastRoute: typeof AppGestaoForecastRoute
   AppGestaoIndicadoresRoute: typeof AppGestaoIndicadoresRouteWithChildren
   AppGestaoMetasRoute: typeof AppGestaoMetasRouteWithChildren
   AppGestaoPositivacaoRoute: typeof AppGestaoPositivacaoRouteWithChildren
@@ -3566,6 +3586,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppGestaoDreRoute: AppGestaoDreRoute,
   AppGestaoEstoqueRoute: AppGestaoEstoqueRoute,
   AppGestaoEstoqueMovimentacaoRoute: AppGestaoEstoqueMovimentacaoRoute,
+  AppGestaoForecastRoute: AppGestaoForecastRoute,
   AppGestaoIndicadoresRoute: AppGestaoIndicadoresRouteWithChildren,
   AppGestaoMetasRoute: AppGestaoMetasRouteWithChildren,
   AppGestaoPositivacaoRoute: AppGestaoPositivacaoRouteWithChildren,

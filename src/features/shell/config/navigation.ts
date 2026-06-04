@@ -123,6 +123,12 @@ export const APP_NAV_GROUPS: INavGroup[] = [
         roles: ["Owner", "Gestor", "Vendedor", "Financeiro"],
       },
       {
+        label: "Forecast",
+        icon: "mdi:chart-timeline",
+        to: ROUTES.GESTAO_FORECAST,
+        roles: ["Owner", "Gestor", "Financeiro"],
+      },
+      {
         label: "Metas",
         icon: "mdi:target",
         to: ROUTES.GESTAO_METAS,
