@@ -14,7 +14,9 @@ import { SEED_VEHICLE_MODELS } from "./seedVehicleModels";
 const SEED_TIMESTAMP = "2026-01-01T00:00:00.000Z";
 const SEED_ACTOR = "system";
 
-function slug(value: string): string {
+/** Slugify a brand/model/engine token for the canonical model id. Shared with
+ *  the vehicle generator so both produce identical ids. */
+export function slug(value: string): string {
   return value
     .toLowerCase()
     .normalize("NFD")
