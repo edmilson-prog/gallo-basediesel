@@ -32,6 +32,7 @@ import { VehicleLayoutBento } from "../components/detail/layouts/VehicleLayoutBe
 import type { IVehicleLayoutProps } from "../components/detail/layouts/types";
 import { EditVehicleModal } from "../components/EditVehicleModal";
 import { AddServiceEntryModal } from "../components/detail/AddServiceEntryModal";
+import { LinkModelDialog } from "../components/detail/LinkModelDialog";
 import { VEHICLE_STRINGS } from "../i18n/pt-BR";
 
 export function VehicleDetailPage() {
@@ -46,6 +47,7 @@ export function VehicleDetailPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [serviceOpen, setServiceOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const historyRef = useRef<HTMLDivElement>(null);
   const now = useMemo(() => new Date(), []);
@@ -114,6 +116,7 @@ export function VehicleDetailPage() {
     onAddService: () => setServiceOpen(true),
     onUpdated: () => void detail.invalidate(),
     onSeeFullHistory: goToFullHistory,
+    onRequestLinkModel: () => setLinkOpen(true),
   };
 
   return (
@@ -123,6 +126,7 @@ export function VehicleDetailPage() {
         canEdit={canEdit}
         onEdit={() => setEditOpen(true)}
         onAddService={() => setServiceOpen(true)}
+        onRequestLinkModel={() => setLinkOpen(true)}
         layout={layout}
         onLayoutChange={setLayout}
       />
@@ -161,6 +165,13 @@ export function VehicleDetailPage() {
         vehicle={vehicle}
         onClose={() => setServiceOpen(false)}
         onSaved={() => void detail.invalidate()}
+      />
+
+      <LinkModelDialog
+        vehicle={vehicle}
+        open={linkOpen}
+        onOpenChange={setLinkOpen}
+        onLinked={() => void detail.invalidate()}
       />
 
       <AlertDialog open={rejectOpen} onOpenChange={(o) => !o && setRejectOpen(false)}>

@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { STATUS_BADGE_CLASSES, STATUS_LABEL, iconForBrand } from "../../utils/vehicleDisplay";
 import { VEHICLE_STRINGS } from "../../i18n/pt-BR";
 import { VehicleLayoutSwitcher } from "./VehicleLayoutSwitcher";
+import { ModelNotCataloguedBadge } from "./ModelNotCataloguedBadge";
 import type { VehicleDetailLayout } from "../../config/layout";
 
 export interface IVehicleDetailHeaderProps {
@@ -14,6 +15,7 @@ export interface IVehicleDetailHeaderProps {
   canEdit: boolean;
   onEdit: () => void;
   onAddService: () => void;
+  onRequestLinkModel: () => void;
   layout: VehicleDetailLayout;
   onLayoutChange: (layout: VehicleDetailLayout) => void;
 }
@@ -23,6 +25,7 @@ export function VehicleDetailHeader({
   canEdit,
   onEdit,
   onAddService,
+  onRequestLinkModel,
   layout,
   onLayoutChange,
 }: IVehicleDetailHeaderProps) {
@@ -54,6 +57,7 @@ export function VehicleDetailHeader({
               >
                 {STATUS_LABEL[vehicle.cadastroStatus]}
               </Badge>
+              {vehicle.modelId == null && <ModelNotCataloguedBadge />}
             </h1>
             <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
               <span className="rounded border border-border bg-muted px-1.5 font-mono uppercase text-foreground">
@@ -67,6 +71,12 @@ export function VehicleDetailHeader({
             <VehicleLayoutSwitcher value={layout} onChange={onLayoutChange} />
             {canEdit && (
               <>
+                {vehicle.modelId == null && (
+                  <Button variant="outline" size="sm" onClick={onRequestLinkModel}>
+                    <Icon icon="mdi:link-variant" size={14} />
+                    {VEHICLE_STRINGS.detail.linkModel.trigger}
+                  </Button>
+                )}
                 <Button variant="outline" size="sm" onClick={onEdit}>
                   <Icon icon="mdi:pencil" size={14} />
                   {VEHICLE_STRINGS.detail.edit}
