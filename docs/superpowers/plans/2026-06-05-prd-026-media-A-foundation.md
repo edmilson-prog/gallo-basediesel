@@ -996,7 +996,7 @@ EOF
     abcClassifications: 70,
     mediaAssets: 90,
   ```
-- [ ] **Step 2: Write the failing generator test.** Create `src/mocks/generators/__tests__/mediaAsset.test.ts`:
+- [x] **Step 2: Write the failing generator test.** *(Done — committed together with the implementation in d62ad86; see TDD-RED note below.)* Create `src/mocks/generators/__tests__/mediaAsset.test.ts`:
   ```ts
   import { describe, expect, it } from "vitest";
   import { createSeededContext } from "../utils";
@@ -1057,12 +1057,12 @@ EOF
     });
   });
   ```
-- [ ] **Step 3: Run the test, expect FAIL.**
+- [x] **Step 3: Run the test, expect FAIL.** *(Executed locally before implementation but not captured as a separate commit — see TDD-RED note below.)*
   ```bash
   bun run test -- src/mocks/generators/__tests__/mediaAsset.test.ts
   ```
   Expected: FAIL — `Cannot find module '../mediaAsset'`.
-- [ ] **Step 4: Implement the generator.** Uses `ISeededContext` exclusively (no `Math.random`). It produces realistic `fileName`s / OCR markers per intended classification and runs them through `classifyMedia` (the same engine the runtime uses), so the dataset both looks varied and demonstrates "classifyMedia aplicado na criação". **mockMarker path:** the picked `intent` is passed to `classifyMedia` as `mockMarker`, which is the explicit-hint escape hatch that wins over the fileName/ocr heuristics — this guarantees the generated `classification` is deterministic and spans all six classes even when a fileName is ambiguous. Create `src/mocks/generators/mediaAsset.ts`:
+- [x] **Step 4: Implement the generator.** *(Done — committed in d62ad86.)* Uses `ISeededContext` exclusively (no `Math.random`). It produces realistic `fileName`s / OCR markers per intended classification and runs them through `classifyMedia` (the same engine the runtime uses), so the dataset both looks varied and demonstrates "classifyMedia aplicado na criação". **mockMarker path:** the picked `intent` is passed to `classifyMedia` as `mockMarker`, which is the explicit-hint escape hatch that wins over the fileName/ocr heuristics — this guarantees the generated `classification` is deterministic and spans all six classes even when a fileName is ambiguous. Create `src/mocks/generators/mediaAsset.ts`:
   ```ts
   import type { ID, IMediaAsset, IMediaClassification } from "@/shared/types";
   import { contentHash, mediaHashSeed } from "@/features/media/engine/contentHash";
@@ -1224,12 +1224,12 @@ EOF
     return out;
   }
   ```
-- [ ] **Step 5: Run the test, expect PASS.**
+- [x] **Step 5: Run the test, expect PASS.** *(Verified — 8/8 pass at HEAD. Re-confirmed by code-review fix agent: `bun run test -- src/mocks/generators/__tests__/mediaAsset.test.ts` exits 0, 8 tests passed.)*
   ```bash
   bun run test -- src/mocks/generators/__tests__/mediaAsset.test.ts
   ```
   Expected: PASS (8 tests).
-- [ ] **Step 6: Wire into bootstrap.** In `src/mocks/generators/bootstrap.ts`: add `IMediaAsset` to the type import block (after `IMessage,` line 24-ish), add the field to `IBootstrappedDataset` (after `messages: IMessage[];` line 95), add the import after `import { generateMessagesForConversation } from "./message";` (line 52), generate after the scripted-conversations block (after line 267), and add to the `dataset` object (after `messages,` line 504). Specifically:
+- [x] **Step 6: Wire into bootstrap.** *(Done — committed in d62ad86.)* In `src/mocks/generators/bootstrap.ts`: add `IMediaAsset` to the type import block (after `IMessage,` line 24-ish), add the field to `IBootstrappedDataset` (after `messages: IMessage[];` line 95), add the import after `import { generateMessagesForConversation } from "./message";` (line 52), generate after the scripted-conversations block (after line 267), and add to the `dataset` object (after `messages,` line 504). Specifically:
   Add to the type imports (alphabetical, after `IMessage,`):
   ```ts
     IMediaAsset,
@@ -1262,7 +1262,7 @@ EOF
   ```ts
       mediaAssets,
   ```
-- [ ] **Step 7: Verify build + full test run (gate).**
+- [x] **Step 7: Verify build + full test run (gate).** *(Re-confirmed by code-review fix agent 2026-06-05: `bun run build` exits 0; `bun run test` exits 0, 18 test files / 85 tests passed. Gate is now auditable before the fix commit 8067472 trail.)*
   ```bash
   bun run build
   bun run test
@@ -1284,14 +1284,18 @@ EOF
 )"
   ```
 
-> **TDD RED-GREEN NOTE (retroactively documented):** Both `src/mocks/generators/__tests__/mediaAsset.test.ts`
-> and `src/mocks/generators/mediaAsset.ts` were committed together in commit d62ad86 —
-> there is no intermediate "failing test" commit with a bare red run. The plan's Step 3
-> (`bun run test ... → expect FAIL`) was executed locally but not captured in a separate
-> commit before the implementation was written. The 8 tests in `mediaAsset.test.ts` all
-> pass at current HEAD (verified: `bun run test -- src/mocks/generators/__tests__/mediaAsset.test.ts`
-> exits 0, 8/8 pass). The build is green. Going forward, commit the failing test first
-> (even if immediately followed by the implementation commit) to leave an auditable trail.
+> **TDD RED-GREEN NOTE (retroactively documented; steps 2-7 checked by code-review fix commit):**
+> Both `src/mocks/generators/__tests__/mediaAsset.test.ts` and `src/mocks/generators/mediaAsset.ts`
+> were committed together in commit d62ad86 — there is no intermediate "failing test" commit
+> with a bare red run. The plan's Step 3 (`bun run test ... → expect FAIL`) was executed
+> locally but not captured in a separate commit before the implementation was written.
+> The 8 tests in `mediaAsset.test.ts` all pass at current HEAD (verified: `bun run test --
+> src/mocks/generators/__tests__/mediaAsset.test.ts` exits 0, 8/8 pass). The build is green
+> (`bun run build` exits 0; `bun run test` exits 0, 18 files / 85 tests) — re-confirmed by
+> the code-review fix agent on 2026-06-05 before committing the fix. Steps 2-7 checkboxes
+> have been retroactively ticked. Going forward, commit the failing test first (even if
+> immediately followed by the implementation commit) to leave an auditable two-commit trail:
+> a RED commit and a GREEN commit.
 
 ---
 
