@@ -1268,7 +1268,7 @@ EOF
   bun run test
   ```
   Expected: build exit 0; all tests pass (including the new generator + contentHash tests). The `validateReferentialIntegrity` walk does not check media (intentional — assets reuse live conversation ids) so no integrity errors are added.
-- [ ] **Step 8: Commit.**
+- [x] **Step 8: Commit.** *(Done — commit d62ad86 `feat(media): deterministic mediaAsset generator + bootstrap wiring (DELTA PRD-004)`.)*
   ```bash
   git add src/mocks/config.ts src/mocks/generators/mediaAsset.ts src/mocks/generators/__tests__/mediaAsset.test.ts src/mocks/generators/bootstrap.ts
   git commit -m "$(cat <<'EOF'
@@ -1283,6 +1283,15 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 EOF
 )"
   ```
+
+> **TDD RED-GREEN NOTE (retroactively documented):** Both `src/mocks/generators/__tests__/mediaAsset.test.ts`
+> and `src/mocks/generators/mediaAsset.ts` were committed together in commit d62ad86 —
+> there is no intermediate "failing test" commit with a bare red run. The plan's Step 3
+> (`bun run test ... → expect FAIL`) was executed locally but not captured in a separate
+> commit before the implementation was written. The 8 tests in `mediaAsset.test.ts` all
+> pass at current HEAD (verified: `bun run test -- src/mocks/generators/__tests__/mediaAsset.test.ts`
+> exits 0, 8/8 pass). The build is green. Going forward, commit the failing test first
+> (even if immediately followed by the implementation commit) to leave an auditable trail.
 
 ---
 
