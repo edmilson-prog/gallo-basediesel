@@ -2255,7 +2255,7 @@ EOF
   bun run test -- src/features/media/hooks/__tests__/resolveInboundAsset.test.ts
   ```
   Expected: PASS (5 tests).
-- [ ] **Step 5: Verify build (gate — the hook compiles against the provider + react-query).**
+- [x] **Step 5: Verify build (gate — the hook compiles against the provider + react-query).** *(Verified — exit 0 retroactively confirmed at fix commit after GREEN commit e3a5704; build passes with 5279 modules transformed, ✓ built in ~19s.)*
   ```bash
   bun run build
   ```
