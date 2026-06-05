@@ -64,8 +64,9 @@ src/features/analytics-copilot/
     runCopilotQuery.ts              # [NOVO] orquestração pura: resolveQuery→scopeClamp→executeQuery
     sessionStore.ts                 # [NOVO] reducers puros + (de)serialização localStorage
   utils/
-    relativeTime.ts                 # [NOVO] "agora"/"há 2h"/"ontem"/"12 mai" (pt-BR)
     sessionGrouping.ts              # [NOVO] agrupa sessões por Hoje/Ontem/Anteriores
+    answerFormatting.ts             # [NOVO] período/escopo/filtros para card e painel
+    # tempo relativo: reusar formatRelativeTimeBR de @/shared/utils/format (DRY)
   i18n/
     suggestions.ts                  # [EXISTENTE — reestruturar p/ {category, question, icon} por papel]
   catalog/
@@ -257,7 +258,7 @@ Persistência Supabase; renomear sessões; gráfico completo (eixos/tooltip) no 
 - `src/features/analytics-copilot/components/{CopilotHeader,CopilotViewSwitcher,CopilotConversation,CopilotEmptyState,CopilotComposer,CopilotSessionList,CopilotDetailPanel}.tsx`
 - `src/features/analytics-copilot/hooks/{useCopilotChat,useCopilotSessions,useCopilotViewMode}.ts`
 - `src/features/analytics-copilot/engine/{runCopilotQuery,sessionStore}.ts` + `__tests__/{runCopilotQuery,sessionStore}.test.ts`
-- `src/features/analytics-copilot/utils/{relativeTime,sessionGrouping}.ts` + `__tests__/{relativeTime,sessionGrouping}.test.ts`
+- `src/features/analytics-copilot/utils/{sessionGrouping,answerFormatting}.ts` + `__tests__/{sessionGrouping,answerFormatting}.test.ts` (tempo relativo reusa `formatRelativeTimeBR`)
 - `src/routes/app.gestao.copiloto.tsx`
 
 **Modificar:**
