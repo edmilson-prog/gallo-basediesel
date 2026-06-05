@@ -31,10 +31,12 @@ export function CopilotEmptyState({ onPick }: ICopilotEmptyStateProps) {
           />
           <Icon icon="mdi:robot-happy-outline" size={32} />
         </div>
-        <h1 className="mt-5 text-3xl font-semibold tracking-tight text-foreground">
+        {/* Not an <h1>: the page's single heading is the CopilotHeader title.
+            This greeting is decorative copy, so it stays a <p> for a11y. */}
+        <p className="mt-5 text-3xl font-semibold tracking-tight text-foreground">
           {greeting(new Date().getHours())}
           {firstName ? `, ${firstName}` : ""} 👋
-        </h1>
+        </p>
         <p className="mt-2 max-w-md text-sm text-muted-foreground">
           Sou seu copiloto analítico. Pergunte sobre seus números — respondo com o valor, a
           comparação e a fonte oficial.
