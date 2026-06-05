@@ -209,6 +209,12 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         roles: ["Owner"],
       },
       {
+        label: "Forecast",
+        icon: "mdi:chart-bell-curve-cumulative",
+        to: "/app/configuracoes/forecast",
+        roles: ["Owner"],
+      },
+      {
         label: "Vitrine pública",
         icon: "mdi:storefront-outline",
         to: "/app/storefront-admin",

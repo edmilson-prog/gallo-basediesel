@@ -18,6 +18,7 @@ import { RankingHighlightWidget } from "@/features/gamification";
 import { CommissionsWidget } from "@/features/commissions";
 import { RecentMovementsWidget } from "@/features/inventory-movement";
 import { InsightsBanner } from "@/features/insights";
+import { ForecastWidget } from "@/features/sales-forecast";
 import { useEcommerceOrdersSummary } from "@/features/ecommerce-integration";
 import { useCockpitFilters } from "../hooks/useCockpitFilters";
 import { useCockpitMetrics } from "../hooks/useCockpitMetrics";
@@ -325,6 +326,10 @@ export function ExecutiveCockpitPage() {
           storeId={scope.storeId}
           accessibleStoreIds={accessibleStores.map((s) => s.id)}
         />
+      </section>
+
+      <section className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3" aria-label={S.sectionCharts}>
+        <ForecastWidget storeId={scope.storeId} />
       </section>
 
       <section className="mt-6" aria-label={S.sectionComparison}>

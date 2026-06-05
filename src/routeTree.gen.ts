@@ -105,6 +105,7 @@ import { Route as AppGestaoRankingRouteImport } from './routes/app.gestao.rankin
 import { Route as AppGestaoPositivacaoRouteImport } from './routes/app.gestao.positivacao'
 import { Route as AppGestaoMetasRouteImport } from './routes/app.gestao.metas'
 import { Route as AppGestaoIndicadoresRouteImport } from './routes/app.gestao.indicadores'
+import { Route as AppGestaoForecastRouteImport } from './routes/app.gestao.forecast'
 import { Route as AppGestaoEstoqueMovimentacaoRouteImport } from './routes/app.gestao.estoque-movimentacao'
 import { Route as AppGestaoEstoqueRouteImport } from './routes/app.gestao.estoque'
 import { Route as AppGestaoDreRouteImport } from './routes/app.gestao.dre'
@@ -125,12 +126,14 @@ import { Route as AppConfiguracoesLojasRouteImport } from './routes/app.configur
 import { Route as AppConfiguracoesInsightsRouteImport } from './routes/app.configuracoes.insights'
 import { Route as AppConfiguracoesGamificacaoRouteImport } from './routes/app.configuracoes.gamificacao'
 import { Route as AppConfiguracoesFreteRouteImport } from './routes/app.configuracoes.frete'
+import { Route as AppConfiguracoesForecastRouteImport } from './routes/app.configuracoes.forecast'
 import { Route as AppConfiguracoesFinanceiroRouteImport } from './routes/app.configuracoes.financeiro'
 import { Route as AppConfiguracoesEstoqueAnaliseRouteImport } from './routes/app.configuracoes.estoque-analise'
 import { Route as AppConfiguracoesEcommerceIntegracaoRouteImport } from './routes/app.configuracoes.ecommerce-integracao'
 import { Route as AppConfiguracoesDivisoesRouteImport } from './routes/app.configuracoes.divisoes'
 import { Route as AppConfiguracoesDistribuicaoRouteImport } from './routes/app.configuracoes.distribuicao'
 import { Route as AppConfiguracoesCurvaAbcRouteImport } from './routes/app.configuracoes.curva-abc'
+import { Route as AppConfiguracoesCopilotoAnaliticoRouteImport } from './routes/app.configuracoes.copiloto-analitico'
 import { Route as AppConfiguracoesCopilotoRouteImport } from './routes/app.configuracoes.copiloto'
 import { Route as AppConfiguracoesComissoesRouteImport } from './routes/app.configuracoes.comissoes'
 import { Route as AppConfiguracoesAuditoriaRouteImport } from './routes/app.configuracoes.auditoria'
@@ -657,6 +660,11 @@ const AppGestaoIndicadoresRoute = AppGestaoIndicadoresRouteImport.update({
   path: '/gestao/indicadores',
   getParentRoute: () => AppRoute,
 } as any)
+const AppGestaoForecastRoute = AppGestaoForecastRouteImport.update({
+  id: '/gestao/forecast',
+  path: '/gestao/forecast',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppGestaoEstoqueMovimentacaoRoute =
   AppGestaoEstoqueMovimentacaoRouteImport.update({
     id: '/gestao/estoque-movimentacao',
@@ -766,6 +774,12 @@ const AppConfiguracoesFreteRoute = AppConfiguracoesFreteRouteImport.update({
   path: '/configuracoes/frete',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConfiguracoesForecastRoute =
+  AppConfiguracoesForecastRouteImport.update({
+    id: '/configuracoes/forecast',
+    path: '/configuracoes/forecast',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppConfiguracoesFinanceiroRoute =
   AppConfiguracoesFinanceiroRouteImport.update({
     id: '/configuracoes/financeiro',
@@ -800,6 +814,12 @@ const AppConfiguracoesCurvaAbcRoute =
   AppConfiguracoesCurvaAbcRouteImport.update({
     id: '/configuracoes/curva-abc',
     path: '/configuracoes/curva-abc',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppConfiguracoesCopilotoAnaliticoRoute =
+  AppConfiguracoesCopilotoAnaliticoRouteImport.update({
+    id: '/configuracoes/copiloto-analitico',
+    path: '/configuracoes/copiloto-analitico',
     getParentRoute: () => AppRoute,
   } as any)
 const AppConfiguracoesCopilotoRoute =
@@ -1109,12 +1129,14 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
   '/app/configuracoes/comissoes': typeof AppConfiguracoesComissoesRoute
   '/app/configuracoes/copiloto': typeof AppConfiguracoesCopilotoRoute
+  '/app/configuracoes/copiloto-analitico': typeof AppConfiguracoesCopilotoAnaliticoRoute
   '/app/configuracoes/curva-abc': typeof AppConfiguracoesCurvaAbcRoute
   '/app/configuracoes/distribuicao': typeof AppConfiguracoesDistribuicaoRoute
   '/app/configuracoes/divisoes': typeof AppConfiguracoesDivisoesRoute
   '/app/configuracoes/ecommerce-integracao': typeof AppConfiguracoesEcommerceIntegracaoRoute
   '/app/configuracoes/estoque-analise': typeof AppConfiguracoesEstoqueAnaliseRoute
   '/app/configuracoes/financeiro': typeof AppConfiguracoesFinanceiroRoute
+  '/app/configuracoes/forecast': typeof AppConfiguracoesForecastRoute
   '/app/configuracoes/frete': typeof AppConfiguracoesFreteRoute
   '/app/configuracoes/gamificacao': typeof AppConfiguracoesGamificacaoRoute
   '/app/configuracoes/insights': typeof AppConfiguracoesInsightsRoute
@@ -1135,6 +1157,7 @@ export interface FileRoutesByFullPath {
   '/app/gestao/dre': typeof AppGestaoDreRoute
   '/app/gestao/estoque': typeof AppGestaoEstoqueRoute
   '/app/gestao/estoque-movimentacao': typeof AppGestaoEstoqueMovimentacaoRoute
+  '/app/gestao/forecast': typeof AppGestaoForecastRoute
   '/app/gestao/indicadores': typeof AppGestaoIndicadoresRouteWithChildren
   '/app/gestao/metas': typeof AppGestaoMetasRouteWithChildren
   '/app/gestao/positivacao': typeof AppGestaoPositivacaoRouteWithChildren
@@ -1260,12 +1283,14 @@ export interface FileRoutesByTo {
   '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
   '/app/configuracoes/comissoes': typeof AppConfiguracoesComissoesRoute
   '/app/configuracoes/copiloto': typeof AppConfiguracoesCopilotoRoute
+  '/app/configuracoes/copiloto-analitico': typeof AppConfiguracoesCopilotoAnaliticoRoute
   '/app/configuracoes/curva-abc': typeof AppConfiguracoesCurvaAbcRoute
   '/app/configuracoes/distribuicao': typeof AppConfiguracoesDistribuicaoRoute
   '/app/configuracoes/divisoes': typeof AppConfiguracoesDivisoesRoute
   '/app/configuracoes/ecommerce-integracao': typeof AppConfiguracoesEcommerceIntegracaoRoute
   '/app/configuracoes/estoque-analise': typeof AppConfiguracoesEstoqueAnaliseRoute
   '/app/configuracoes/financeiro': typeof AppConfiguracoesFinanceiroRoute
+  '/app/configuracoes/forecast': typeof AppConfiguracoesForecastRoute
   '/app/configuracoes/frete': typeof AppConfiguracoesFreteRoute
   '/app/configuracoes/gamificacao': typeof AppConfiguracoesGamificacaoRoute
   '/app/configuracoes/insights': typeof AppConfiguracoesInsightsRoute
@@ -1284,6 +1309,7 @@ export interface FileRoutesByTo {
   '/app/gestao/dre': typeof AppGestaoDreRoute
   '/app/gestao/estoque': typeof AppGestaoEstoqueRoute
   '/app/gestao/estoque-movimentacao': typeof AppGestaoEstoqueMovimentacaoRoute
+  '/app/gestao/forecast': typeof AppGestaoForecastRoute
   '/app/gestao/positivacao': typeof AppGestaoPositivacaoRouteWithChildren
   '/app/gestao/rentabilidade': typeof AppGestaoRentabilidadeRoute
   '/app/gestao/vendas': typeof AppGestaoVendasRoute
@@ -1422,12 +1448,14 @@ export interface FileRoutesById {
   '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
   '/app/configuracoes/comissoes': typeof AppConfiguracoesComissoesRoute
   '/app/configuracoes/copiloto': typeof AppConfiguracoesCopilotoRoute
+  '/app/configuracoes/copiloto-analitico': typeof AppConfiguracoesCopilotoAnaliticoRoute
   '/app/configuracoes/curva-abc': typeof AppConfiguracoesCurvaAbcRoute
   '/app/configuracoes/distribuicao': typeof AppConfiguracoesDistribuicaoRoute
   '/app/configuracoes/divisoes': typeof AppConfiguracoesDivisoesRoute
   '/app/configuracoes/ecommerce-integracao': typeof AppConfiguracoesEcommerceIntegracaoRoute
   '/app/configuracoes/estoque-analise': typeof AppConfiguracoesEstoqueAnaliseRoute
   '/app/configuracoes/financeiro': typeof AppConfiguracoesFinanceiroRoute
+  '/app/configuracoes/forecast': typeof AppConfiguracoesForecastRoute
   '/app/configuracoes/frete': typeof AppConfiguracoesFreteRoute
   '/app/configuracoes/gamificacao': typeof AppConfiguracoesGamificacaoRoute
   '/app/configuracoes/insights': typeof AppConfiguracoesInsightsRoute
@@ -1448,6 +1476,7 @@ export interface FileRoutesById {
   '/app/gestao/dre': typeof AppGestaoDreRoute
   '/app/gestao/estoque': typeof AppGestaoEstoqueRoute
   '/app/gestao/estoque-movimentacao': typeof AppGestaoEstoqueMovimentacaoRoute
+  '/app/gestao/forecast': typeof AppGestaoForecastRoute
   '/app/gestao/indicadores': typeof AppGestaoIndicadoresRouteWithChildren
   '/app/gestao/metas': typeof AppGestaoMetasRouteWithChildren
   '/app/gestao/positivacao': typeof AppGestaoPositivacaoRouteWithChildren
@@ -1592,12 +1621,14 @@ export interface FileRouteTypes {
     | '/app/configuracoes/auditoria'
     | '/app/configuracoes/comissoes'
     | '/app/configuracoes/copiloto'
+    | '/app/configuracoes/copiloto-analitico'
     | '/app/configuracoes/curva-abc'
     | '/app/configuracoes/distribuicao'
     | '/app/configuracoes/divisoes'
     | '/app/configuracoes/ecommerce-integracao'
     | '/app/configuracoes/estoque-analise'
     | '/app/configuracoes/financeiro'
+    | '/app/configuracoes/forecast'
     | '/app/configuracoes/frete'
     | '/app/configuracoes/gamificacao'
     | '/app/configuracoes/insights'
@@ -1618,6 +1649,7 @@ export interface FileRouteTypes {
     | '/app/gestao/dre'
     | '/app/gestao/estoque'
     | '/app/gestao/estoque-movimentacao'
+    | '/app/gestao/forecast'
     | '/app/gestao/indicadores'
     | '/app/gestao/metas'
     | '/app/gestao/positivacao'
@@ -1743,12 +1775,14 @@ export interface FileRouteTypes {
     | '/app/configuracoes/auditoria'
     | '/app/configuracoes/comissoes'
     | '/app/configuracoes/copiloto'
+    | '/app/configuracoes/copiloto-analitico'
     | '/app/configuracoes/curva-abc'
     | '/app/configuracoes/distribuicao'
     | '/app/configuracoes/divisoes'
     | '/app/configuracoes/ecommerce-integracao'
     | '/app/configuracoes/estoque-analise'
     | '/app/configuracoes/financeiro'
+    | '/app/configuracoes/forecast'
     | '/app/configuracoes/frete'
     | '/app/configuracoes/gamificacao'
     | '/app/configuracoes/insights'
@@ -1767,6 +1801,7 @@ export interface FileRouteTypes {
     | '/app/gestao/dre'
     | '/app/gestao/estoque'
     | '/app/gestao/estoque-movimentacao'
+    | '/app/gestao/forecast'
     | '/app/gestao/positivacao'
     | '/app/gestao/rentabilidade'
     | '/app/gestao/vendas'
@@ -1904,12 +1939,14 @@ export interface FileRouteTypes {
     | '/app/configuracoes/auditoria'
     | '/app/configuracoes/comissoes'
     | '/app/configuracoes/copiloto'
+    | '/app/configuracoes/copiloto-analitico'
     | '/app/configuracoes/curva-abc'
     | '/app/configuracoes/distribuicao'
     | '/app/configuracoes/divisoes'
     | '/app/configuracoes/ecommerce-integracao'
     | '/app/configuracoes/estoque-analise'
     | '/app/configuracoes/financeiro'
+    | '/app/configuracoes/forecast'
     | '/app/configuracoes/frete'
     | '/app/configuracoes/gamificacao'
     | '/app/configuracoes/insights'
@@ -1930,6 +1967,7 @@ export interface FileRouteTypes {
     | '/app/gestao/dre'
     | '/app/gestao/estoque'
     | '/app/gestao/estoque-movimentacao'
+    | '/app/gestao/forecast'
     | '/app/gestao/indicadores'
     | '/app/gestao/metas'
     | '/app/gestao/positivacao'
@@ -2698,6 +2736,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppGestaoIndicadoresRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/gestao/forecast': {
+      id: '/app/gestao/forecast'
+      path: '/gestao/forecast'
+      fullPath: '/app/gestao/forecast'
+      preLoaderRoute: typeof AppGestaoForecastRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/gestao/estoque-movimentacao': {
       id: '/app/gestao/estoque-movimentacao'
       path: '/gestao/estoque-movimentacao'
@@ -2838,6 +2883,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesFreteRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/configuracoes/forecast': {
+      id: '/app/configuracoes/forecast'
+      path: '/configuracoes/forecast'
+      fullPath: '/app/configuracoes/forecast'
+      preLoaderRoute: typeof AppConfiguracoesForecastRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/configuracoes/financeiro': {
       id: '/app/configuracoes/financeiro'
       path: '/configuracoes/financeiro'
@@ -2878,6 +2930,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes/curva-abc'
       fullPath: '/app/configuracoes/curva-abc'
       preLoaderRoute: typeof AppConfiguracoesCurvaAbcRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/configuracoes/copiloto-analitico': {
+      id: '/app/configuracoes/copiloto-analitico'
+      path: '/configuracoes/copiloto-analitico'
+      fullPath: '/app/configuracoes/copiloto-analitico'
+      preLoaderRoute: typeof AppConfiguracoesCopilotoAnaliticoRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/configuracoes/copiloto': {
@@ -3472,12 +3531,14 @@ interface AppRouteChildren {
   AppConfiguracoesAuditoriaRoute: typeof AppConfiguracoesAuditoriaRoute
   AppConfiguracoesComissoesRoute: typeof AppConfiguracoesComissoesRoute
   AppConfiguracoesCopilotoRoute: typeof AppConfiguracoesCopilotoRoute
+  AppConfiguracoesCopilotoAnaliticoRoute: typeof AppConfiguracoesCopilotoAnaliticoRoute
   AppConfiguracoesCurvaAbcRoute: typeof AppConfiguracoesCurvaAbcRoute
   AppConfiguracoesDistribuicaoRoute: typeof AppConfiguracoesDistribuicaoRoute
   AppConfiguracoesDivisoesRoute: typeof AppConfiguracoesDivisoesRoute
   AppConfiguracoesEcommerceIntegracaoRoute: typeof AppConfiguracoesEcommerceIntegracaoRoute
   AppConfiguracoesEstoqueAnaliseRoute: typeof AppConfiguracoesEstoqueAnaliseRoute
   AppConfiguracoesFinanceiroRoute: typeof AppConfiguracoesFinanceiroRoute
+  AppConfiguracoesForecastRoute: typeof AppConfiguracoesForecastRoute
   AppConfiguracoesFreteRoute: typeof AppConfiguracoesFreteRoute
   AppConfiguracoesGamificacaoRoute: typeof AppConfiguracoesGamificacaoRoute
   AppConfiguracoesInsightsRoute: typeof AppConfiguracoesInsightsRoute
@@ -3498,6 +3559,7 @@ interface AppRouteChildren {
   AppGestaoDreRoute: typeof AppGestaoDreRoute
   AppGestaoEstoqueRoute: typeof AppGestaoEstoqueRoute
   AppGestaoEstoqueMovimentacaoRoute: typeof AppGestaoEstoqueMovimentacaoRoute
+  AppGestaoForecastRoute: typeof AppGestaoForecastRoute
   AppGestaoIndicadoresRoute: typeof AppGestaoIndicadoresRouteWithChildren
   AppGestaoMetasRoute: typeof AppGestaoMetasRouteWithChildren
   AppGestaoPositivacaoRoute: typeof AppGestaoPositivacaoRouteWithChildren
@@ -3538,6 +3600,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesAuditoriaRoute: AppConfiguracoesAuditoriaRoute,
   AppConfiguracoesComissoesRoute: AppConfiguracoesComissoesRoute,
   AppConfiguracoesCopilotoRoute: AppConfiguracoesCopilotoRoute,
+  AppConfiguracoesCopilotoAnaliticoRoute:
+    AppConfiguracoesCopilotoAnaliticoRoute,
   AppConfiguracoesCurvaAbcRoute: AppConfiguracoesCurvaAbcRoute,
   AppConfiguracoesDistribuicaoRoute: AppConfiguracoesDistribuicaoRoute,
   AppConfiguracoesDivisoesRoute: AppConfiguracoesDivisoesRoute,
@@ -3545,6 +3609,7 @@ const AppRouteChildren: AppRouteChildren = {
     AppConfiguracoesEcommerceIntegracaoRoute,
   AppConfiguracoesEstoqueAnaliseRoute: AppConfiguracoesEstoqueAnaliseRoute,
   AppConfiguracoesFinanceiroRoute: AppConfiguracoesFinanceiroRoute,
+  AppConfiguracoesForecastRoute: AppConfiguracoesForecastRoute,
   AppConfiguracoesFreteRoute: AppConfiguracoesFreteRoute,
   AppConfiguracoesGamificacaoRoute: AppConfiguracoesGamificacaoRoute,
   AppConfiguracoesInsightsRoute: AppConfiguracoesInsightsRoute,
@@ -3566,6 +3631,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppGestaoDreRoute: AppGestaoDreRoute,
   AppGestaoEstoqueRoute: AppGestaoEstoqueRoute,
   AppGestaoEstoqueMovimentacaoRoute: AppGestaoEstoqueMovimentacaoRoute,
+  AppGestaoForecastRoute: AppGestaoForecastRoute,
   AppGestaoIndicadoresRoute: AppGestaoIndicadoresRouteWithChildren,
   AppGestaoMetasRoute: AppGestaoMetasRouteWithChildren,
   AppGestaoPositivacaoRoute: AppGestaoPositivacaoRouteWithChildren,
