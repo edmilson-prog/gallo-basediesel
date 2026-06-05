@@ -1,4 +1,4 @@
-import type { ID, INotification } from "@/shared/types";
+import type { ID, IMediaAsset, INotification } from "@/shared/types";
 import { getMockState } from "./mockStore";
 
 /**
@@ -206,4 +206,28 @@ export function selectNotificationById(id: ID): INotification | null {
 
 export function selectNotificationsByRecipient(recipientId: ID): INotification[] {
   return getMockState().notifications.filter((n) => n.recipientId === recipientId);
+}
+
+export function selectAllMediaAssets(): IMediaAsset[] {
+  return getMockState().mediaAssets;
+}
+
+export function selectMediaAssetById(id: ID): IMediaAsset | null {
+  return getMockState().mediaAssets.find((m) => m.id === id) ?? null;
+}
+
+export function selectMediaAssetsByConversation(conversationId: ID): IMediaAsset[] {
+  return getMockState().mediaAssets.filter((m) => m.conversationId === conversationId);
+}
+
+export function selectMediaAssetsByCustomer(customerId: ID): IMediaAsset[] {
+  return getMockState().mediaAssets.filter((m) => m.customerId === customerId);
+}
+
+export function selectMediaAssetByMessage(messageId: ID): IMediaAsset | null {
+  return getMockState().mediaAssets.find((m) => m.messageId === messageId) ?? null;
+}
+
+export function selectMediaAssetByContentHash(contentHash: string): IMediaAsset | null {
+  return getMockState().mediaAssets.find((m) => m.contentHash === contentHash) ?? null;
 }
