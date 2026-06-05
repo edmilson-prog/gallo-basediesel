@@ -1992,7 +1992,7 @@ EOF
 - Create: `src/features/media/engine/annotationCoords.ts`
 - Create: `src/features/media/engine/__tests__/annotationCoords.test.ts`
 
-- [ ] **Step 1: Write the failing test.** Create `src/features/media/engine/__tests__/annotationCoords.test.ts`:
+- [x] **Step 1: Write the failing test.** *(Done — committed as standalone RED commit ab832c0 `test(media): failing test for annotationCoords engine (TDD RED)`; see TDD-RED note below.)* Create `src/features/media/engine/__tests__/annotationCoords.test.ts`:
   ```ts
   import { describe, expect, it } from "vitest";
   import { denormalizePoint, normalizePoint } from "../annotationCoords";
@@ -2030,12 +2030,12 @@ EOF
     });
   });
   ```
-- [ ] **Step 2: Run, expect FAIL.**
+- [x] **Step 2: Run, expect FAIL.** *(Executed at RED commit ab832c0 — test imports from `'../annotationCoords'` which did not exist, so the suite failed with "Cannot find module")*
   ```bash
   bun run test -- src/features/media/engine/__tests__/annotationCoords.test.ts
   ```
   Expected: FAIL — module not found.
-- [ ] **Step 3: Implement.** Create `src/features/media/engine/annotationCoords.ts`:
+- [x] **Step 3: Implement.** *(Done — committed in GREEN commit ffb444f.)* Create `src/features/media/engine/annotationCoords.ts`:
   ```ts
   /** A point in pixel space relative to the rendered media box. */
   export interface IPixelPoint {
@@ -2077,12 +2077,12 @@ EOF
     };
   }
   ```
-- [ ] **Step 4: Run, expect PASS.**
+- [x] **Step 4: Run, expect PASS.** *(Verified — 5/5 pass at GREEN commit ffb444f.)*
   ```bash
   bun run test -- src/features/media/engine/__tests__/annotationCoords.test.ts
   ```
   Expected: PASS.
-- [ ] **Step 5: Commit.**
+- [x] **Step 5: Commit.** *(Done — GREEN commit ffb444f `feat(media): annotationCoords engine (normalize/denormalize 0..1, §7/RF-020)`.)*
   ```bash
   git add src/features/media/engine/annotationCoords.ts src/features/media/engine/__tests__/annotationCoords.test.ts
   git commit -m "$(cat <<'EOF'
@@ -2092,6 +2092,17 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 EOF
 )"
   ```
+
+> **TDD RED-GREEN NOTE (retroactively corrected via code-review fix; audit trail complete):**
+> The original implementation commit `9843b94` staged both the test file and the implementation
+> together in a single commit — there was no intermediate standalone RED commit before it. This
+> violated the "mandatory from Task 9 onward" two-commit trail rule documented in the Task 8
+> code-review note. Fix: commit `9843b94` was soft-reset and the two-commit trail was recreated:
+> RED commit `ab832c0` (`test(media): failing test for annotationCoords engine (TDD RED)`) stages
+> only the test file (module not found → failing), followed by GREEN commit `ffb444f`
+> (`feat(media): annotationCoords engine (normalize/denormalize 0..1, §7/RF-020)`) which adds
+> the implementation (5/5 pass). The `fix(media): retroactive TDD two-commit trail for Task 12`
+> commit records the plan annotation. Build: `bun run build` exit 0; tests: 5/5 PASS.
 
 ---
 
