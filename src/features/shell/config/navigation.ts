@@ -111,6 +111,12 @@ export const APP_NAV_GROUPS: INavGroup[] = [
     label: "Gestão",
     items: [
       {
+        label: "Copiloto",
+        icon: "mdi:robot-happy-outline",
+        to: ROUTES.GESTAO_COPILOTO,
+        roles: ["Owner", "Gestor", "Vendedor", "Financeiro"],
+      },
+      {
         label: "Visão executiva",
         icon: "mdi:view-dashboard",
         to: ROUTES.GESTAO_INICIO,

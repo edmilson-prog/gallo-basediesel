@@ -110,6 +110,7 @@ import { Route as AppGestaoEstoqueMovimentacaoRouteImport } from './routes/app.g
 import { Route as AppGestaoEstoqueRouteImport } from './routes/app.gestao.estoque'
 import { Route as AppGestaoDreRouteImport } from './routes/app.gestao.dre'
 import { Route as AppGestaoDespesasRouteImport } from './routes/app.gestao.despesas'
+import { Route as AppGestaoCopilotoRouteImport } from './routes/app.gestao.copiloto'
 import { Route as AppGestaoComissoesRouteImport } from './routes/app.gestao.comissoes'
 import { Route as AppGestaoCarteiraAnaliticaRouteImport } from './routes/app.gestao.carteira-analitica'
 import { Route as AppGestaoCaixaRouteImport } from './routes/app.gestao.caixa'
@@ -686,6 +687,11 @@ const AppGestaoDespesasRoute = AppGestaoDespesasRouteImport.update({
   path: '/gestao/despesas',
   getParentRoute: () => AppRoute,
 } as any)
+const AppGestaoCopilotoRoute = AppGestaoCopilotoRouteImport.update({
+  id: '/gestao/copiloto',
+  path: '/gestao/copiloto',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppGestaoComissoesRoute = AppGestaoComissoesRouteImport.update({
   id: '/gestao/comissoes',
   path: '/gestao/comissoes',
@@ -1153,6 +1159,7 @@ export interface FileRoutesByFullPath {
   '/app/gestao/caixa': typeof AppGestaoCaixaRoute
   '/app/gestao/carteira-analitica': typeof AppGestaoCarteiraAnaliticaRouteWithChildren
   '/app/gestao/comissoes': typeof AppGestaoComissoesRouteWithChildren
+  '/app/gestao/copiloto': typeof AppGestaoCopilotoRoute
   '/app/gestao/despesas': typeof AppGestaoDespesasRoute
   '/app/gestao/dre': typeof AppGestaoDreRoute
   '/app/gestao/estoque': typeof AppGestaoEstoqueRoute
@@ -1305,6 +1312,7 @@ export interface FileRoutesByTo {
   '/app/gestao/abc': typeof AppGestaoAbcRouteWithChildren
   '/app/gestao/caixa': typeof AppGestaoCaixaRoute
   '/app/gestao/carteira-analitica': typeof AppGestaoCarteiraAnaliticaRouteWithChildren
+  '/app/gestao/copiloto': typeof AppGestaoCopilotoRoute
   '/app/gestao/despesas': typeof AppGestaoDespesasRoute
   '/app/gestao/dre': typeof AppGestaoDreRoute
   '/app/gestao/estoque': typeof AppGestaoEstoqueRoute
@@ -1472,6 +1480,7 @@ export interface FileRoutesById {
   '/app/gestao/caixa': typeof AppGestaoCaixaRoute
   '/app/gestao/carteira-analitica': typeof AppGestaoCarteiraAnaliticaRouteWithChildren
   '/app/gestao/comissoes': typeof AppGestaoComissoesRouteWithChildren
+  '/app/gestao/copiloto': typeof AppGestaoCopilotoRoute
   '/app/gestao/despesas': typeof AppGestaoDespesasRoute
   '/app/gestao/dre': typeof AppGestaoDreRoute
   '/app/gestao/estoque': typeof AppGestaoEstoqueRoute
@@ -1645,6 +1654,7 @@ export interface FileRouteTypes {
     | '/app/gestao/caixa'
     | '/app/gestao/carteira-analitica'
     | '/app/gestao/comissoes'
+    | '/app/gestao/copiloto'
     | '/app/gestao/despesas'
     | '/app/gestao/dre'
     | '/app/gestao/estoque'
@@ -1797,6 +1807,7 @@ export interface FileRouteTypes {
     | '/app/gestao/abc'
     | '/app/gestao/caixa'
     | '/app/gestao/carteira-analitica'
+    | '/app/gestao/copiloto'
     | '/app/gestao/despesas'
     | '/app/gestao/dre'
     | '/app/gestao/estoque'
@@ -1963,6 +1974,7 @@ export interface FileRouteTypes {
     | '/app/gestao/caixa'
     | '/app/gestao/carteira-analitica'
     | '/app/gestao/comissoes'
+    | '/app/gestao/copiloto'
     | '/app/gestao/despesas'
     | '/app/gestao/dre'
     | '/app/gestao/estoque'
@@ -2771,6 +2783,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppGestaoDespesasRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/gestao/copiloto': {
+      id: '/app/gestao/copiloto'
+      path: '/gestao/copiloto'
+      fullPath: '/app/gestao/copiloto'
+      preLoaderRoute: typeof AppGestaoCopilotoRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/gestao/comissoes': {
       id: '/app/gestao/comissoes'
       path: '/gestao/comissoes'
@@ -3555,6 +3574,7 @@ interface AppRouteChildren {
   AppGestaoCaixaRoute: typeof AppGestaoCaixaRoute
   AppGestaoCarteiraAnaliticaRoute: typeof AppGestaoCarteiraAnaliticaRouteWithChildren
   AppGestaoComissoesRoute: typeof AppGestaoComissoesRouteWithChildren
+  AppGestaoCopilotoRoute: typeof AppGestaoCopilotoRoute
   AppGestaoDespesasRoute: typeof AppGestaoDespesasRoute
   AppGestaoDreRoute: typeof AppGestaoDreRoute
   AppGestaoEstoqueRoute: typeof AppGestaoEstoqueRoute
@@ -3627,6 +3647,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppGestaoCaixaRoute: AppGestaoCaixaRoute,
   AppGestaoCarteiraAnaliticaRoute: AppGestaoCarteiraAnaliticaRouteWithChildren,
   AppGestaoComissoesRoute: AppGestaoComissoesRouteWithChildren,
+  AppGestaoCopilotoRoute: AppGestaoCopilotoRoute,
   AppGestaoDespesasRoute: AppGestaoDespesasRoute,
   AppGestaoDreRoute: AppGestaoDreRoute,
   AppGestaoEstoqueRoute: AppGestaoEstoqueRoute,

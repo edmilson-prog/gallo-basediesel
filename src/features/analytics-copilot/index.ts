@@ -33,3 +33,4 @@ export {
   type ICopilotSuggestionGroup,
   type ICopilotSuggestionItem,
 } from "./i18n/suggestions";
+export { AnalyticsCopilotPage } from "./pages/AnalyticsCopilotPage";
