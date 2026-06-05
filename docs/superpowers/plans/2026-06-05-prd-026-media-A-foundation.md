@@ -1421,6 +1421,22 @@ EOF
 )"
   ```
 
+> **Second code-review pass (2026-06-05) — findings acknowledged:**
+>
+> 1. **TDD RED-GREEN skipped (important, retroactive):** The plan and commit `6e23763` already
+>    document the forced-ordering pre-emption. No re-implementation required. Going forward (Tasks
+>    9-12+), the failing test is committed first (standalone RED commit), then the implementation
+>    (GREEN commit). The auditable two-commit trail is mandatory from Task 9 onward.
+>
+> 2. **Commit prefix `fix(media):` vs `feat(media):` (minor, accepted as-is):** Commit `8321247`
+>    used `fix(media):` because delivery was framed as restoring the build gate. By Conventional
+>    Commits semantics, a new production module is `feat:` regardless of ordering reason. The
+>    deviation is accepted in context; from Task 9 onward any new production module uses `feat:`.
+>
+> Both issues confirmed **resolved / no action** by the code-review fix commit
+> `fix(media): acknowledge Task 8 code-review findings in plan`. Tests: 6/6 PASS.
+> Build: `bun run build` exit 0.
+
 ---
 
 ### Task 9: Pure engine — `sourceExpiry.ts` (TDD)
