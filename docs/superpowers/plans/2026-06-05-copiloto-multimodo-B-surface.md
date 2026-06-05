@@ -263,7 +263,6 @@ import { cn } from "@/lib/utils";
 import { formatBRL, formatPercent } from "@/shared/utils/format";
 import type { IAnalyticsAnswer } from "@/shared/types/analytics-copilot";
 import { findMetricById } from "../catalog/metricCatalog";
-import { metricIcon } from "../catalog/metricUi";
 import { formatPeriodLabel, scopeLabel } from "../utils/answerFormatting";
 import { Sparkline } from "./Sparkline";
 
@@ -441,12 +440,10 @@ export function AnalyticsAnswerCard({ answer, onSuggestion, onAskAgain }: IAnaly
 }
 ```
 
-> Nota: o `metricIcon` está importado para uso futuro pelo painel; se o lint reclamar de import não usado neste arquivo, remova a linha `import { metricIcon }`. (Mantido no painel B10.)
-
 - [ ] **Step 2: Build de delta**
 
 Run: `bunx tsc --noEmit 2>&1 | grep "AnalyticsAnswerCard"`
-Expected: nenhuma saída. (Se houver "metricIcon declarado mas não usado" via lint, remova o import.)
+Expected: nenhuma saída.
 
 - [ ] **Step 3: Commit**
 
@@ -948,7 +945,7 @@ export function CopilotHeader({
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden"
+              className="xl:hidden"
               onClick={onOpenDetail}
               aria-label="Detalhe da resposta"
             >
@@ -1420,7 +1417,7 @@ export function AnalyticsCopilotPage() {
 }
 ```
 
-> **Nota responsiva (Split em `md`–`xl`):** o painel inline só aparece em `xl+`; entre `md` e `xl` o usuário abre o `Sheet` pelo botão "Detalhe" do header. Como o botão de drawer só renderiza `md:hidden`, adicionar no header um disparo de detalhe também para `< xl`: na Task B8 o botão é `md:hidden`; se quiser o drawer entre md–xl, trocar a classe do botão de detalhe para `xl:hidden` e a do botão de sessões permanece `md:hidden`. **Decisão de implementação:** botão "Detalhe" = `xl:hidden` (aparece em mobile e em md–lg); botão "Conversas" = `md:hidden`. Ajustar a Task B8 conforme esta nota ao implementar.
+> **Nota responsiva (Split em `md`–`xl`):** o painel de detalhe inline só aparece em `xl+`; entre `md` e `xl` (e no mobile) o usuário abre o `Sheet` pelo botão "Detalhe" do header — por isso, na Task B8, o botão "Detalhe" usa `xl:hidden` e o botão "Conversas" usa `md:hidden`. Já está consistente; nada a ajustar aqui.
 
 - [ ] **Step 2: Build de delta** → `bunx tsc --noEmit 2>&1 | grep "AnalyticsCopilotPage"` → vazio.
 
