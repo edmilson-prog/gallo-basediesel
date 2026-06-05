@@ -942,12 +942,20 @@ EOF
     });
   });
   ```
-- [ ] **Step 6: Verify build + the creation-wiring test (gate — first full wiring check).**
+- [x] **Step 6: Verify build + the creation-wiring test (gate — first full wiring check).**
   ```bash
   bun run build
   bun run test -- src/mocks/api/__tests__/media.test.ts
   ```
   Expected: build exit 0; the media API test passes. If the build fails on `mediaAssets` missing from the store state type, that field is added in Task 7 — run Task 7 then re-run. (To keep the build green at each commit, this task is committed AFTER Task 7's bootstrap field. If you are doing strict per-task commits, run Task 7 Steps 1-4 before committing here.)
+
+  > **GATE VIOLATION (retroactively noted):** Task 6 was committed (c8d28f5) before
+  > `classifyMedia.ts` existed, causing `bun run build` to exit 1 at commit time.
+  > Fix commit `8321247` (`fix(media): implement classifyMedia engine…`) restored the
+  > green build by delivering Task 8's `classifyMedia.ts` and its test early. The build
+  > is now green; the `media.test.ts` 2/2 failures are the known Task 7 cluster
+  > dependency (`getMockState().mediaAssets` undefined — resolved by Task 7 Step 6).
+  > See code-review audit commit `fix(media): document Task 8 pre-emption in plan`.
 - [ ] **Step 7: Commit.**
   ```bash
   git add src/mocks/api/media.ts src/mocks/api/__tests__/media.test.ts src/mocks/api/index.ts src/features/rbac/permissions/resources.ts src/features/rbac/permissions/matrix.ts src/providers/data/impl/mock/media.ts src/providers/data/impl/supabase/media.ts src/providers/data/hooks/useMediaStorageProvider.ts src/providers/data/factory.ts src/providers/data/index.ts
@@ -1280,11 +1288,22 @@ EOF
 
 ### Task 8: Pure engine — `classifyMedia.ts` (TDD)
 
-**Files:**
-- Create: `src/features/media/engine/classifyMedia.ts`
-- Create: `src/features/media/engine/__tests__/classifyMedia.test.ts`
+> **PRE-EMPTED (delivered early):** Both files were committed in fix commit `8321247`
+> (`fix(media): implement classifyMedia engine to resolve Task 6 build gate`) as a
+> forced ordering fix: Task 6's `src/mocks/api/media.ts` imports `classifyMedia` at
+> module level, so the file had to exist for `bun run build` to exit 0. The TDD
+> sequence (write failing test → see fail → implement → see pass) was skipped by this
+> forced ordering. The 6 tests in `classifyMedia.test.ts` pass at current HEAD; the
+> build is green. Task 8 implementers should **verify** (not re-implement) and tick the
+> boxes below by running `bun run test -- src/features/media/engine/__tests__/classifyMedia.test.ts`.
+> See code-review fix commit `fix(media): document Task 8 pre-emption in plan` for the
+> audit trail.
 
-- [ ] **Step 1: Write the failing test.** Create `src/features/media/engine/__tests__/classifyMedia.test.ts`:
+**Files:**
+- Create: `src/features/media/engine/classifyMedia.ts` ✓ (done in fix commit 8321247)
+- Create: `src/features/media/engine/__tests__/classifyMedia.test.ts` ✓ (done in fix commit 8321247)
+
+- [x] **Step 1: Write the failing test.** *(Pre-empted — file committed in 8321247.)* Create `src/features/media/engine/__tests__/classifyMedia.test.ts`:
   ```ts
   import { describe, expect, it } from "vitest";
   import { classifyMedia } from "../classifyMedia";
@@ -1329,12 +1348,12 @@ EOF
     });
   });
   ```
-- [ ] **Step 2: Run, expect FAIL.**
+- [x] **Step 2: Run, expect FAIL.** *(Pre-empted — skipped due to forced ordering.)*
   ```bash
   bun run test -- src/features/media/engine/__tests__/classifyMedia.test.ts
   ```
   Expected: FAIL — module not found.
-- [ ] **Step 3: Implement.** Create `src/features/media/engine/classifyMedia.ts`:
+- [x] **Step 3: Implement.** *(Pre-empted — file committed in 8321247.)* Create `src/features/media/engine/classifyMedia.ts`:
   ```ts
   import type { IMediaAsset, IMediaClassification } from "@/shared/types";
 
@@ -1372,12 +1391,13 @@ EOF
     return "outro";
   }
   ```
-- [ ] **Step 4: Run, expect PASS.**
+- [x] **Step 4: Run, expect PASS.** *(Verified — 6/6 pass at current HEAD.)*
   ```bash
   bun run test -- src/features/media/engine/__tests__/classifyMedia.test.ts
   ```
   Expected: PASS (6 tests).
-- [ ] **Step 5: Commit.**
+- [x] **Step 5: Commit.** *(Pre-empted — covered by fix commit 8321247; audit trail in
+  `fix(media): document Task 8 pre-emption in plan`.)*
   ```bash
   git add src/features/media/engine/classifyMedia.ts src/features/media/engine/__tests__/classifyMedia.test.ts
   git commit -m "$(cat <<'EOF'
