@@ -10,7 +10,7 @@
  */
 
 // Utility types
-export type { ID, ISO8601, Money, Division, ThemeName, ThemeMode } from "./common";
+export type { ID, ISO8601, Money, Division, ThemeName, ThemeMode, IPaginatedResult } from "./common";
 
 // Platform & organization
 export type {
@@ -388,3 +388,13 @@ export type {
   ForecastScenarioType,
   PipelineWeightingMode,
 } from "./forecast";
+
+// Media (PRD-026 — DAM + Galeria)
+export type {
+  IMediaClassification,
+  IMediaAnnotation,
+  IMediaAsset,
+  IMediaUploadInput,
+  IListMediaParams,
+  IMediaStorageProvider,
+} from "./media";

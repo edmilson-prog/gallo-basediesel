@@ -31,3 +31,15 @@ export type ThemeName = "diesel" | "parts" | "service" | "industrial";
 
 /** Theme color mode (matches `data-mode` on `<html>`; `auto` follows OS). */
 export type ThemeMode = "light" | "dark" | "auto";
+
+/**
+ * Generic paginated result returned by every `list` op across the data layer.
+ * Mirrors the shape the mock paginate util and the future Supabase response
+ * both normalize into.
+ */
+export interface IPaginatedResult<T> {
+  data: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
