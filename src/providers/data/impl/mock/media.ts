@@ -5,6 +5,7 @@ import { MockValidationError } from "@/mocks";
 import type { IMediaStorageProvider, IMediaUploadInput } from "../../contracts/mediaStorage";
 import { logMockMutation } from "./_audit";
 import { scopedListParams } from "./_storeScope";
+import { canViewSensitive } from "@/features/media/engine/sensitiveAccess";
 
 /** Resolve the active store id or fail cleanly (mirrors withCreateStoreId). */
 function requireStoreId(): ID {
@@ -13,15 +14,6 @@ function requireStoreId(): ID {
     throw new MockValidationError("Não é possível arquivar mídia sem uma loja ativa.", "storeId");
   }
   return currentStoreId;
-}
-
-/**
- * Roles allowed to receive the real signed ref for sensitive assets (D-6).
- * Replaced by engine/sensitiveAccess.canViewSensitive in Task 10.
- */
-function canViewSensitiveInline(): boolean {
-  const { user } = getCurrentContext();
-  return user?.role === "Owner" || user?.role === "Gestor";
 }
 
 export const mockMediaProvider: IMediaStorageProvider = {
@@ -36,7 +28,7 @@ export const mockMediaProvider: IMediaStorageProvider = {
    */
   getSignedUrl: async (id) => {
     const asset = await mediaApi.get(id);
-    if (asset && asset.sensitivity === "sensitive" && !canViewSensitiveInline()) {
+    if (asset && asset.sensitivity === "sensitive" && !canViewSensitive(getCurrentContext().user)) {
       logMockMutation({
         action: "view_denied",
         resource: "media",
