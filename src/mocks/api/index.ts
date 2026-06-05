@@ -33,6 +33,7 @@ export { sdrSessionsApi, type IListSdrSessionsParams } from "./sdrSessions";
 export { sdrEscalationsApi } from "./sdrEscalations";
 export { notificationsApi, type IListNotificationsParams } from "./notifications";
 export { indicatorsApi, type IListIndicatorsParams } from "./indicators";
+export { mediaApi, type IListMediaApiParams } from "./media";
 
 export {
   modelKitsApi,

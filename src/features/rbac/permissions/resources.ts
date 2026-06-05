@@ -30,6 +30,7 @@ export const RESOURCES = [
   "store",
   "settings",
   "audit_log",
+  "media",
   "role",
   "dre",
   "expense",
