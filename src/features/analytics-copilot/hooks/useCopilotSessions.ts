@@ -1,5 +1,5 @@
 // src/features/analytics-copilot/hooks/useCopilotSessions.ts
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { IAnalyticsMessage } from "@/shared/types/analytics-copilot";
 import {
   appendMessages,
@@ -52,54 +52,56 @@ export interface IUseCopilotSessions {
 
 /**
  * localStorage-backed session list for the copilot. Always exposes a valid active
- * session (creating an empty one when none exists). Pure list logic lives in
- * `engine/sessionStore` (tested); this hook only does I/O + React state.
+ * session: state is seeded with one session on first mount, and a reconciliation
+ * effect reseeds whenever the list goes empty and repairs a dangling active id.
+ * Pure list logic lives in `engine/sessionStore` (tested); this hook only does
+ * I/O + React state.
  */
 export function useCopilotSessions(): IUseCopilotSessions {
-  const [sessions, setSessions] = useState<ICopilotSessionRecord[]>(() => readSessions());
-  const [activeId, setActiveId] = useState<string | null>(() => readActiveId());
+  // Seed on first mount when storage is empty so state is never empty for more
+  // than the reconciliation effect's single tick.
+  const [sessions, setSessions] = useState<ICopilotSessionRecord[]>(() => {
+    const stored = readSessions();
+    return stored.length > 0 ? stored : [createSession(nowIso(), newId())];
+  });
+  const [activeId, setActiveId] = useState<string>(() => readActiveId() ?? "");
 
-  // Ensure there is always exactly one active session.
-  const ensured = useMemo(() => {
+  // Keep state valid: reseed when empty, repair a dangling active id. Commits to
+  // real state — no derived-but-uncommitted divergence.
+  useEffect(() => {
     if (sessions.length === 0) {
       const fresh = createSession(nowIso(), newId());
-      return { sessions: [fresh], activeId: fresh.id };
+      setSessions([fresh]);
+      setActiveId(fresh.id);
+      return;
     }
-    const validActive = activeId && sessions.some((s) => s.id === activeId);
-    return { sessions, activeId: validActive ? activeId! : sessions[0]!.id };
+    if (!sessions.some((s) => s.id === activeId)) {
+      setActiveId(sessions[0]!.id);
+    }
   }, [sessions, activeId]);
-
-  // Commit the ensured state back when it diverges (e.g. first mount with empty storage).
-  const bootstrapped = useRef(false);
-  useEffect(() => {
-    if (bootstrapped.current) return;
-    bootstrapped.current = true;
-    if (ensured.sessions !== sessions) setSessions(ensured.sessions);
-    if (ensured.activeId !== activeId) setActiveId(ensured.activeId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Persist.
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      window.localStorage.setItem(SESSIONS_KEY, JSON.stringify(ensured.sessions));
+      window.localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
     } catch {
       // ignore quota errors
     }
-  }, [ensured.sessions]);
+  }, [sessions]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !activeId) return;
     try {
-      window.localStorage.setItem(ACTIVE_KEY, ensured.activeId);
+      window.localStorage.setItem(ACTIVE_KEY, activeId);
     } catch {
       // ignore
     }
-  }, [ensured.activeId]);
+  }, [activeId]);
 
-  const activeSession =
-    ensured.sessions.find((s) => s.id === ensured.activeId) ?? ensured.sessions[0]!;
+  // Always resolve a valid active session for render — guards the single tick
+  // before the reconciliation effect repairs a dangling/empty active id.
+  const activeSession = sessions.find((s) => s.id === activeId) ?? sessions[0]!;
 
   const newSession = useCallback(() => {
     const fresh = createSession(nowIso(), newId());
@@ -109,37 +111,31 @@ export function useCopilotSessions(): IUseCopilotSessions {
 
   const selectSession = useCallback((id: string) => setActiveId(id), []);
 
-  const deleteSession = useCallback(
-    (id: string) => {
-      setSessions((prev) => {
-        const next = deleteFromList(prev, id);
-        return next;
-      });
-      setActiveId((prevActive) => {
-        if (prevActive !== id) return prevActive;
-        const remaining = ensured.sessions.filter((s) => s.id !== id);
-        return remaining[0]?.id ?? null;
-      });
-    },
-    [ensured.sessions],
-  );
+  const deleteSession = useCallback((id: string) => {
+    setSessions((prev) => deleteFromList(prev, id));
+    // Clear the active id when the active session is deleted; the reconciliation
+    // effect then picks the next valid id (or a freshly seeded session).
+    setActiveId((prev) => (prev === id ? "" : prev));
+  }, []);
 
   const appendToActive = useCallback(
     (messages: IAnalyticsMessage[]) => {
       setSessions((prev) => {
-        const current = prev.find((s) => s.id === ensured.activeId);
+        // Fall back to the first session during the transient tick where the
+        // active id was just cleared by a delete.
+        const current = prev.find((s) => s.id === activeId) ?? prev[0];
         if (!current) return prev;
         const updated = appendMessages(current, messages, nowIso());
         return enforceRetention(upsertSession(prev, updated));
       });
     },
-    [ensured.activeId],
+    [activeId],
   );
 
   return {
-    sessions: ensured.sessions,
+    sessions,
     activeSession,
-    activeSessionId: ensured.activeId,
+    activeSessionId: activeSession.id,
     newSession,
     selectSession,
     deleteSession,

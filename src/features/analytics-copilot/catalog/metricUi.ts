@@ -1,5 +1,4 @@
 // src/features/analytics-copilot/catalog/metricUi.ts
-import { metricCatalog } from "./metricCatalog";
 
 /** UI presentation layer for catalog metrics (icon + hero category). Kept apart
  *  from the engine catalog so the natural-language vocabulary stays decoupled
@@ -54,6 +53,3 @@ export function categoryById(id: string): ICopilotCategory | undefined {
 export function metricIcon(metricId: string): string {
   return metricUiMeta[metricId]?.icon ?? "mdi:chart-line";
 }
-
-// Compile-time-ish guard: keep `metricCatalog` referenced so a renamed id surfaces in tests.
-export const KNOWN_METRIC_IDS = metricCatalog.map((m) => m.id);

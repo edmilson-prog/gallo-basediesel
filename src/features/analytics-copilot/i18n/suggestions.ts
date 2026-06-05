@@ -23,8 +23,6 @@ export function suggestionsForRole(role: RoleName | null): string[] {
   return GESTOR_SUGGESTIONS;
 }
 
-// --- abaixo do código existente em suggestions.ts ---
-
 export interface ICopilotSuggestionItem {
   question: string;
   icon: string;

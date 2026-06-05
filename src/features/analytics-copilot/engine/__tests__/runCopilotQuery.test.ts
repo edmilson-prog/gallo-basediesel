@@ -92,21 +92,23 @@ describe("runCopilotQuery", () => {
     expect(answer.suggestions).toEqual(["Quanto faturei?"]);
   });
 
-  it("recusa por escopo: Vendedor pedindo outro vendedor", async () => {
-    const da = makeDataAccess(1);
+  it("Vendedor: pergunta resolve no próprio escopo (sellerId aplicado pelo scopeClamp)", async () => {
+    const da = makeDataAccess(1000);
     const ctx = {
       ...baseCtx,
       role: "Vendedor" as const,
       sellerId: "seller-1",
     };
-    const { answer } = await runCopilotQuery("faturamento do vendedor seller-2", ctx, {
+    const { answer } = await runCopilotQuery("Quanto faturei esse mês?", ctx, {
       dataAccess: da,
       catalog,
     });
-    // resolver não extrai filtro de vendedor por nome aqui; garantimos ao menos que não vaza número de outro escopo
-    expect(answer.resolved === false || answer.refusedByScope === true || answer.value !== undefined).toBe(
-      true,
-    );
+    // O resolver não extrai filtro de vendedor do texto, então a pergunta resolve e o
+    // scopeClamp aplica o escopo do próprio vendedor (RNF-001: valor vem do mock).
+    expect(answer.resolved).toBe(true);
+    expect(answer.value).toBe(1000);
+    expect(answer.query?.scope?.role).toBe("Vendedor");
+    expect(answer.query?.scope?.sellerId).toBe("seller-1");
   });
 
   it("erro do dataAccess não propaga — devolve errorText", async () => {
