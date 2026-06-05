@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Icon } from "@/components/Icon";
 import { Logo } from "@/components/Logo";
@@ -19,7 +19,7 @@ import { StoreSwitcher, useCurrentStore } from "@/features/multistore";
 import { usePlatformSettings } from "@/features/admin-settings/hooks/usePlatformSettings";
 import { AvailabilityToggle } from "@/features/distribution/components/AvailabilityToggle";
 import { NotificationDropdown } from "@/features/notifications/components/NotificationDropdown";
-import { AnalyticsCopilotPanel } from "@/features/analytics-copilot";
+import { ROUTES } from "@/features/shell/config/routes";
 
 export function TopBar() {
   const { currentUser, signOut } = useAuth();
@@ -31,7 +31,6 @@ export function TopBar() {
   const storeId = currentStoreId ?? "store-matriz";
   const { settings } = usePlatformSettings(storeId);
   const copilotEnabled = settings?.analyticsCopilotEnabled !== false;
-  const [copilotOpen, setCopilotOpen] = useState(false);
 
   useEffect(() => {
     if (!copilotEnabled) return;
@@ -39,11 +38,11 @@ export function TopBar() {
       if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "k") return;
       if (event.defaultPrevented) return;
       event.preventDefault();
-      setCopilotOpen(true);
+      void navigate({ to: ROUTES.GESTAO_COPILOTO });
     }
     document.addEventListener("keydown", handleGlobalKeyDown);
     return () => document.removeEventListener("keydown", handleGlobalKeyDown);
-  }, [copilotEnabled]);
+  }, [copilotEnabled, navigate]);
 
   const handleSwitchProfile = () => {
     signOut();
@@ -75,7 +74,7 @@ export function TopBar() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setCopilotOpen(true)}
+            onClick={() => void navigate({ to: ROUTES.GESTAO_COPILOTO })}
             aria-label="Copiloto analítico"
             title="Copiloto (Ctrl+K)"
           >
@@ -138,8 +137,6 @@ export function TopBar() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-
-      {copilotEnabled && <AnalyticsCopilotPanel open={copilotOpen} onOpenChange={setCopilotOpen} />}
     </header>
   );
 }

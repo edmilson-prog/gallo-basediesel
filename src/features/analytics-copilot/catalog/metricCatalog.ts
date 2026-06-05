@@ -54,7 +54,7 @@ export const metricCatalog: IMetricDefinition[] = [
     dimensions: ["vendedor", "tempo"],
     supportedFilters: ["vendedor"],
     keywords: ["positivacao", "clientes que compraram", "positivados"],
-    source: { prd: "PRD-043", panelRoute: "/app/gestao/positivacao", label: "Positivação" },
+    source: { prd: "PRD-044", panelRoute: "/app/gestao/positivacao", label: "Positivação" },
     dataAccessKey: "getPositivation",
   },
   {

@@ -4,6 +4,19 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.66.0] — Oracle · 2026-06-05
+
+Duas frentes de inteligência comercial chegam juntas. O **Forecast de Fechamento** projeta onde o período vai fechar — realizado + pipeline ponderado + ritmo — em três cenários (pessimista, provável, otimista), com detalhamento por vendedor e um widget no cockpit. E o **Copiloto Analítico** ganha uma **página dedicada** (menu Gestão → Copiloto): você pergunta em linguagem natural ("quanto faturei de filtro Volvo esse mês?") e recebe o número com a fonte oficial citada e link direto para o painel. A página tem três modos que você alterna e ficam lembrados — **Foco** (conversa única), **Histórico** (conversas salvas) e **Split** (conversa + ficha de detalhe) — além de um início com sugestões por categoria. Tudo respeita o seu papel (RBAC) e nunca inventa números: todo valor vem dos motores de BI.
+
+### Added
+
+- **Forecast de Fechamento (PRD-056)** — página em Gestão → Forecast com três cenários (pessimista/provável/otimista), detalhamento por vendedor, alternância faturamento/pedidos, widget no cockpit executivo e configuração por loja (Owner).
+- **Copiloto Analítico — página dedicada (PRD-057)** — Q&A em linguagem natural em Gestão → Copiloto, respondendo com valor, comparação, **fonte citada** e drill-down para o painel de origem.
+- **Três modos de visualização do Copiloto** — Foco, Histórico e Split, alternáveis por um seletor e lembrados entre acessos.
+- **Histórico de conversas do Copiloto** — sessões salvas no navegador, agrupadas por data (Hoje/Ontem/Anteriores), com "Nova conversa" e exclusão.
+- **Início guiado do Copiloto** — saudação contextual e perguntas de exemplo agrupadas por categoria (Faturamento & Margem, Clientes & Positivação, Projeção), conforme o papel do usuário.
+- **Acesso ao Copiloto** — item no menu Gestão, botão na barra superior e atalho Ctrl/Cmd+K levam à página.
+
 ## [0.65.0] — Fitment · 2026-06-03
 
 O detalhe de cada veículo agora mostra as **peças compatíveis de verdade**, puxadas do catálogo conforme o modelo do veículo. Você escolhe como visualizar: a **Curadoria** separa o que já está no kit oficial do que é compatível mas ficou de fora (uma oportunidade de incluir no kit); o **Catálogo** lista todas as peças compatíveis com busca e filtro por categoria; e o modo **Só o Kit** mostra apenas as peças do kit. Quando existe um kit oficial de filtros para o modelo, um destaque no topo leva direto a ele. Veículos cujo modelo ainda não está cadastrado aparecem marcados como **"modelo não catalogado"**, e o gestor pode vinculá-los a um modelo existente ou cadastrar um novo na hora — a partir daí, os kits e as peças compatíveis passam a aparecer.

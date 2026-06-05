@@ -5,6 +5,9 @@ import { Logo } from "@/components/Logo";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/useAuth";
 import { APP_NAV_GROUPS, type INavGroup } from "@/features/shell/config/navigation";
+import { ROUTES } from "@/features/shell/config/routes";
+import { useCurrentStore } from "@/features/multistore";
+import { usePlatformSettings } from "@/features/admin-settings/hooks/usePlatformSettings";
 
 const COLLAPSED_KEY = "gallo-sidebar-collapsed";
 const COLLAPSED_GROUPS_KEY = "gallo-sidebar-groups";
@@ -102,7 +105,19 @@ export function Sidebar() {
     });
   };
 
-  const groups = filterGroupsByRole(APP_NAV_GROUPS, userRole);
+  const { currentStoreId } = useCurrentStore();
+  const { settings } = usePlatformSettings(currentStoreId ?? "store-matriz");
+  const copilotEnabled = settings?.analyticsCopilotEnabled !== false;
+
+  const roleGroups = filterGroupsByRole(APP_NAV_GROUPS, userRole);
+  const groups = copilotEnabled
+    ? roleGroups
+    : roleGroups
+        .map((group) => ({
+          ...group,
+          items: group.items.filter((item) => item.to !== ROUTES.GESTAO_COPILOTO),
+        }))
+        .filter((group) => group.items.length > 0);
   const activeTo = pickActiveTo(
     location.pathname,
     groups.flatMap((group) => group.items.map((item) => item.to)),
