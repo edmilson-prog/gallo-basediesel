@@ -95,4 +95,11 @@ export const MEDIA_STRINGS = {
     requestSent: "Solicitação enviada ao gestor.",
     close: "Fechar",
   },
+  audio: {
+    play: "Reproduzir",
+    pause: "Pausar",
+    speed: "Velocidade",
+    noTranscription: "Sem transcrição disponível.",
+    transcriptionLabel: "Transcrição",
+  },
 };
