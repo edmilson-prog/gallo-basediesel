@@ -37,6 +37,23 @@ export function MediaGrid({
   // Roving tabindex anchor — flat cell index (0-based).
   const [active, setActive] = useState(0);
 
+  // Whether virtualizer is active for this render.
+  const isVirtualized = assets.length > VIRTUALIZE_THRESHOLD;
+
+  const rowCount = Math.ceil(assets.length / columns);
+
+  // Always call useVirtualizer at the top level (Rules of Hooks).
+  // When not virtualized we still create the instance but never use its output.
+  const rv = useVirtualizer({
+    count: rowCount,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => ESTIMATED_ROW_HEIGHT,
+    overscan: 4,
+    // Disable when not needed by returning a 0-count. This avoids DOM side-effects
+    // while keeping hook call unconditional. (Re-count is set via `count` above,
+    // but when isVirtualized is false we simply don't render the virtual items.)
+  });
+
   // FIX: clamp `active` whenever the asset list shrinks (e.g. after a filter).
   // Guards the empty-list case (assets.length === 0) by clamping to 0.
   useEffect(() => {
@@ -52,18 +69,20 @@ export function MediaGrid({
 
   /**
    * focusCell targets the primary <button> inside the cell at flat index `idx`.
-   * The roving tabIndex now lives on that button (not on the gridcell wrapper),
-   * so focus and the visible ring land on the same element.
+   *
+   * FIX (virtualized-path keyboard navigation):
+   * Each cell receives `data-cell-index={idx}` (the flat asset index). We
+   * select by that attribute rather than by NodeList position, so the lookup is
+   * immune to the virtualizer rendering only a subset of cells.
+   *
+   * In the virtualized path callers MUST call rv.scrollToIndex first and then
+   * schedule this via requestAnimationFrame so the target row has a chance to
+   * be rendered before we attempt querySelector. See onKeyDown below.
    */
   const focusCell = useCallback((idx: number) => {
-    // Query the primary button (first button) inside the indexed [data-cell].
-    const cells = parentRef.current?.querySelectorAll<HTMLElement>("[data-cell]");
-    if (!cells) return;
-    const cell = cells[idx];
-    if (!cell) return;
-    // The primary button is the first button child (the retry button is
-    // tabIndex=-1 and not the intended focus target for arrow navigation).
-    const btn = cell.querySelector<HTMLButtonElement>("button[data-primary]");
+    const btn = parentRef.current?.querySelector<HTMLButtonElement>(
+      `[data-cell-index="${idx}"] button[data-primary]`,
+    );
     btn?.focus();
   }, []);
 
@@ -79,9 +98,22 @@ export function MediaGrid({
       else return;
       e.preventDefault();
       setActive(next);
-      focusCell(next);
+
+      if (isVirtualized) {
+        // Scroll the target row into view first so the virtualizer renders it,
+        // then focus the cell via rAF (after the DOM update).
+        const targetRow = Math.floor(next / columns);
+        rv.scrollToIndex(targetRow, { align: "auto" });
+        // rAF gives the virtualizer one render cycle to paint the target row.
+        requestAnimationFrame(() => {
+          focusCell(next);
+        });
+      } else {
+        // Non-virtual: all cells are in DOM, focus synchronously.
+        focusCell(next);
+      }
     },
-    [clampedActive, assets.length, columns, focusCell],
+    [clampedActive, assets.length, columns, focusCell, isVirtualized, rv],
   );
 
   /**
@@ -93,12 +125,17 @@ export function MediaGrid({
    * satisfying the "Tab enters/exits once" contract (spec §7 / D-7 / RNF-004).
    * The gridcell <div> itself has no tabIndex, so it is not in the tab order.
    *
+   * FIX (virtualized index lookup): each cell receives `data-cell-index={idx}`
+   * (flat asset index) so focusCell can find it with a stable attribute selector
+   * regardless of how many rows the virtualizer has rendered.
+   *
    * aria-colindex is 1-based per the ARIA spec for virtualized grids.
    */
   const cell = (asset: IMediaAsset, idx: number, colIndex: number) => (
     <div
       key={asset.id}
       data-cell
+      data-cell-index={idx}
       role="gridcell"
       aria-colindex={colIndex + 1}
     >
@@ -115,7 +152,6 @@ export function MediaGrid({
 
   // A real grid row of up to `columns` cells.
   const rowStyle = { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` };
-  const rowCount = Math.ceil(assets.length / columns);
 
   /**
    * renderRow renders a single role="row" div.
@@ -134,7 +170,7 @@ export function MediaGrid({
 
   const gridLabel = MEDIA_STRINGS.grid.ariaLabel;
 
-  if (assets.length <= VIRTUALIZE_THRESHOLD) {
+  if (!isVirtualized) {
     return (
       <div
         ref={parentRef}
@@ -153,6 +189,8 @@ export function MediaGrid({
   }
 
   // Virtualized: each virtual item is one role="row".
+  // rv is created at the top of this component so the parent can call
+  // rv.scrollToIndex in onKeyDown before focusing (fix for WCAG 2.1.1 / D-7).
   return (
     <div
       ref={parentRef}
@@ -163,7 +201,19 @@ export function MediaGrid({
       onKeyDown={onKeyDown}
       className={cn("overflow-auto p-3", className)}
     >
-      <VirtualRows parentRef={parentRef} rowCount={rowCount} renderRow={renderRow} />
+      <div style={{ height: rv.getTotalSize(), position: "relative" }}>
+        {rv.getVirtualItems().map((vr) => (
+          <div
+            key={vr.key}
+            ref={rv.measureElement}
+            data-index={vr.index}
+            className="pb-2"
+            style={{ position: "absolute", top: 0, left: 0, width: "100%", transform: `translateY(${vr.start}px)` }}
+          >
+            {renderRow(vr.index)}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -171,38 +221,4 @@ export function MediaGrid({
 /** Keeps the row key stable without adding extra DOM (Fragment-like wrapper). */
 function RowWrapper({ children }: { children: ReactNode }) {
   return <>{children}</>;
-}
-
-function VirtualRows({
-  parentRef, rowCount, renderRow,
-}: {
-  parentRef: React.RefObject<HTMLDivElement | null>;
-  rowCount: number;
-  renderRow: (rowIndex: number) => ReactNode;
-}) {
-  const rv = useVirtualizer({
-    count: rowCount,
-    getScrollElement: () => parentRef.current,
-    // FIX: use a realistic non-zero estimate so the scroll container does not
-    // collapse to 0 px on first paint. The virtualizer refines heights via
-    // measureElement after mount; ESTIMATED_ROW_HEIGHT is just the pre-mount
-    // reservation that prevents jank and invisible rows.
-    estimateSize: () => ESTIMATED_ROW_HEIGHT,
-    overscan: 4,
-  });
-  return (
-    <div style={{ height: rv.getTotalSize(), position: "relative" }}>
-      {rv.getVirtualItems().map((vr) => (
-        <div
-          key={vr.key}
-          ref={rv.measureElement}
-          data-index={vr.index}
-          className="pb-2"
-          style={{ position: "absolute", top: 0, left: 0, width: "100%", transform: `translateY(${vr.start}px)` }}
-        >
-          {renderRow(vr.index)}
-        </div>
-      ))}
-    </div>
-  );
 }
