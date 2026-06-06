@@ -27,7 +27,7 @@ export function parseSlash(value: string, caret: number): ISlashState {
   if (slashIndex < 0) return INACTIVE;
 
   // The char immediately before the slash must be start-of-string or whitespace.
-  const prev = slashIndex === 0 ? "" : head[slashIndex - 1];
+  const prev = slashIndex === 0 ? "" : (head[slashIndex - 1] ?? "");
   if (prev !== "" && !/\s/.test(prev)) return INACTIVE;
 
   // `//` escape → literal slash, never a command.
