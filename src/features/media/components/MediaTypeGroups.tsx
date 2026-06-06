@@ -19,13 +19,14 @@ interface IMediaTypeGroupsProps {
   instanceId?: string;
 }
 
-function ListRow({ asset, onOpen, snippet, playable }: {
-  asset: IMediaAsset; onOpen: () => void; snippet?: string; playable?: boolean;
+function ListRow({ asset, onOpen, snippet, playable, playLabel }: {
+  asset: IMediaAsset; onOpen: () => void; snippet?: string; playable?: boolean; playLabel?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onOpen}
+      aria-label={playable && playLabel ? `${playLabel} — ${asset.fileName ?? "—"}` : undefined}
       className="flex w-full items-center gap-3 rounded-md border border-border bg-card px-3 py-2 text-left hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-muted text-muted-foreground">
@@ -96,7 +97,7 @@ export function MediaTypeGroups({
         ) : (
           <div className="flex flex-col gap-1.5">
             {audios.map((a) => (
-              <ListRow key={a.id} asset={a} onOpen={() => onOpen(a)} playable snippet={a.transcription} />
+              <ListRow key={a.id} asset={a} onOpen={() => onOpen(a)} playable playLabel={g.playAudio} snippet={a.transcription} />
             ))}
           </div>
         )}
