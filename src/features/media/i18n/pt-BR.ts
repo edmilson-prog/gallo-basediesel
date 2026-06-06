@@ -79,4 +79,13 @@ export const MEDIA_STRINGS = {
     empty: "Nenhum item deste tipo.",
     playAudio: "Reproduzir áudio",
   },
+  sensitive: {
+    caption: "Conteúdo sensível — acesso restrito",
+    dialogTitle: "Conteúdo sensível",
+    dialogBody:
+      "Esta mídia contém dados sensíveis (ex.: CPF/CNPJ em nota fiscal). Apenas Owner e Gestor podem visualizá-la. Solicite acesso ao seu gestor se precisar abri-la.",
+    requestAccess: "Solicitar acesso ao gestor",
+    requestSent: "Solicitação enviada ao gestor.",
+    close: "Fechar",
+  },
 };
