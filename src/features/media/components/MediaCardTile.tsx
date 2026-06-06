@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { IMediaAsset } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
+import { formatRelativeTimeBR } from "@/shared/utils/format";
 import { mediaKindIcon, formatBytes } from "../utils/mediaDisplay";
 import { MEDIA_STRINGS } from "../i18n/pt-BR";
 
@@ -44,6 +45,7 @@ export function MediaCardTile({ asset, onOpen, lockedOverlay, className }: IMedi
         </p>
         <p className="text-[11px] text-muted-foreground">
           {formatBytes(asset.sizeBytes)}
+          <span className="ml-1">· {formatRelativeTimeBR(asset.createdAt)}</span>
           {asset.sensitivity === "sensitive" && (
             <span className="ml-1 text-severity-warning">· sensível</span>
           )}
