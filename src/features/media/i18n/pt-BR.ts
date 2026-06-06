@@ -122,6 +122,16 @@ export const MEDIA_STRINGS = {
     openConversation: "Abrir conversa",
     counter: (i: number, total: number) => `${i} de ${total}`,
   },
+  annotator: {
+    tools: { point: "Ponto", arrow: "Seta", text: "Texto", select: "Selecionar" },
+    listTitle: "Anotações",
+    empty: "Nenhuma anotação ainda. Selecione uma ferramenta e clique na imagem.",
+    labelPlaceholder: "Descrição da anotação…",
+    save: "Salvar anotações",
+    cancel: "Cancelar",
+    remove: "Remover anotação",
+    nudgeHint: "Use as setas para mover (Shift = 10px)",
+  },
   actions: {
     annotate: "Anotar",
     classify: "Classificar",
