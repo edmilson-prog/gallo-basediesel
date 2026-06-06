@@ -38,14 +38,23 @@ export function MediaAudioPlayer({ asset, searchTerm, registerToggle }: IMediaAu
   const last = useRef<number>(0);
 
   useEffect(() => {
-    try { window.localStorage.setItem(SPEED_KEY, speed); } catch { /* ignore */ }
+    try {
+      window.localStorage.setItem(SPEED_KEY, speed);
+    } catch {
+      /* ignore */
+    }
   }, [speed]);
 
   // Reset position when the asset changes (speed intentionally kept).
-  useEffect(() => { setPos(0); setPlaying(false); }, [asset.id]);
+  useEffect(() => {
+    setPos(0);
+    setPlaying(false);
+  }, [asset.id]);
 
   const toggle = useCallback(() => setPlaying((p) => !p), []);
-  useEffect(() => { registerToggle?.(toggle); }, [registerToggle, toggle]);
+  useEffect(() => {
+    registerToggle?.(toggle);
+  }, [registerToggle, toggle]);
 
   useEffect(() => {
     if (!playing) return;
@@ -55,17 +64,24 @@ export function MediaAudioPlayer({ asset, searchTerm, registerToggle }: IMediaAu
       last.current = t;
       setPos((prev) => {
         const next = prev + dt;
-        if (next >= duration) { setPlaying(false); return duration; }
+        if (next >= duration) {
+          setPlaying(false);
+          return duration;
+        }
         return next;
       });
       raf.current = requestAnimationFrame(step);
     };
     raf.current = requestAnimationFrame(step);
-    return () => { if (raf.current) cancelAnimationFrame(raf.current); };
+    return () => {
+      if (raf.current) cancelAnimationFrame(raf.current);
+    };
   }, [playing, speed, duration]);
 
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
-  const segments = asset.transcription ? highlightSegments(asset.transcription, searchTerm ?? "") : [];
+  const segments = asset.transcription
+    ? highlightSegments(asset.transcription, searchTerm ?? "")
+    : [];
 
   return (
     <div className="flex flex-col gap-3">
@@ -86,10 +102,12 @@ export function MediaAudioPlayer({ asset, searchTerm, registerToggle }: IMediaAu
             max={duration}
             step={1}
             onValueChange={([v]) => setPos(v)}
-            aria-label="Posição do áudio"
+            aria-label={a.sliderLabel}
             className="flex-1"
           />
-          <span className="w-9 text-[11px] tabular-nums text-muted-foreground">{fmt(duration)}</span>
+          <span className="w-9 text-[11px] tabular-nums text-muted-foreground">
+            {fmt(duration)}
+          </span>
         </div>
         <ToggleGroup
           type="single"

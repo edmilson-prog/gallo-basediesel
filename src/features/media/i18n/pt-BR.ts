@@ -47,7 +47,12 @@ export const MEDIA_STRINGS = {
     authorAll: "Todos os autores",
     author: { customer: "Cliente", seller: "Vendedor", sdr: "SDR", system: "Sistema" },
     periodLabel: "Período",
-    period: { all: "Qualquer data", "7d": "Últimos 7 dias", "30d": "Últimos 30 dias", "90d": "Últimos 90 dias" },
+    period: {
+      all: "Qualquer data",
+      "7d": "Últimos 7 dias",
+      "30d": "Últimos 30 dias",
+      "90d": "Últimos 90 dias",
+    },
     classificationLabel: "Classificação",
     classificationAll: "Todas",
     classification: {
@@ -99,6 +104,7 @@ export const MEDIA_STRINGS = {
     play: "Reproduzir",
     pause: "Pausar",
     speed: "Velocidade",
+    sliderLabel: "Posição do áudio",
     noTranscription: "Sem transcrição disponível.",
     transcriptionLabel: "Transcrição",
   },
