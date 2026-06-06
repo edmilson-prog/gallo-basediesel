@@ -1,5 +1,5 @@
 // src/features/media/components/MediaTypeGroups.tsx
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import type { IMediaAsset } from "@/shared/types";
 import type { IMockUserProfile } from "@/features/auth/mock-users";
 import { Icon } from "@/components/Icon";
@@ -15,6 +15,8 @@ interface IMediaTypeGroupsProps {
   onRetry?: (asset: IMediaAsset) => void;
   isLocked: (asset: IMediaAsset) => boolean;
   renderLockedOverlay: (asset: IMediaAsset) => ReactNode;
+  /** Optional stable prefix for section heading IDs. Defaults to a useId()-generated value. */
+  instanceId?: string;
 }
 
 function ListRow({ asset, onOpen, snippet, playable }: {
@@ -44,17 +46,21 @@ function ListRow({ asset, onOpen, snippet, playable }: {
 }
 
 export function MediaTypeGroups({
-  assets, columns, viewer, onOpen, onRetry, isLocked, renderLockedOverlay,
+  assets, columns, viewer, onOpen, onRetry, isLocked, renderLockedOverlay, instanceId,
 }: IMediaTypeGroupsProps) {
+  const autoId = useId();
+  const prefix = instanceId ?? autoId;
   const g = MEDIA_STRINGS.groups;
+  // Videos are grouped with images in the grid (per spec §5.1: "imagens em grid").
+  // Documents and audios are shown as list rows below.
   const images = assets.filter((a) => a.kind === "image" || a.kind === "video");
   const docs = assets.filter((a) => a.kind === "document");
   const audios = assets.filter((a) => a.kind === "audio");
 
   return (
     <div className="flex flex-col gap-4 p-3">
-      <section aria-labelledby="media-grp-images">
-        <h3 id="media-grp-images" className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <section aria-labelledby={`${prefix}-grp-images`}>
+        <h3 id={`${prefix}-grp-images`} className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {g.images} · {images.length}
         </h3>
         {images.length === 0 ? (
@@ -68,8 +74,8 @@ export function MediaTypeGroups({
         )}
       </section>
 
-      <section aria-labelledby="media-grp-docs">
-        <h3 id="media-grp-docs" className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <section aria-labelledby={`${prefix}-grp-docs`}>
+        <h3 id={`${prefix}-grp-docs`} className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {g.documents} · {docs.length}
         </h3>
         {docs.length === 0 ? (
@@ -81,8 +87,8 @@ export function MediaTypeGroups({
         )}
       </section>
 
-      <section aria-labelledby="media-grp-audios">
-        <h3 id="media-grp-audios" className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <section aria-labelledby={`${prefix}-grp-audios`}>
+        <h3 id={`${prefix}-grp-audios`} className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {g.audios} · {audios.length}
         </h3>
         {audios.length === 0 ? (

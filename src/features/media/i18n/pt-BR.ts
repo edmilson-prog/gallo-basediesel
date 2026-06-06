@@ -73,10 +73,9 @@ export const MEDIA_STRINGS = {
     ariaLabel: "Mídias",
   },
   groups: {
-    images: "Imagens",
+    images: "Imagens e vídeos",
     documents: "Documentos",
     audios: "Áudios",
-    videos: "Vídeos",
     empty: "Nenhum item deste tipo.",
     playAudio: "Reproduzir áudio",
   },
