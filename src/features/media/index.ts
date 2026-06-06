@@ -62,6 +62,7 @@ export {
   MEDIA_VIEW_MODES,
   type MediaViewMode,
 } from "./hooks/useMediaViewMode";
+export { useConversationMedia, type IUseConversationMedia } from "./hooks/useConversationMedia";
 
 // i18n
 export { CLASSIFICATION_LABELS, KIND_LABELS, MEDIA_STRINGS } from "./i18n/pt-BR";

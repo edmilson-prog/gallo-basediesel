@@ -52,6 +52,15 @@ function pickLine(): string {
   return SIMULATED_LINES[Math.floor(Math.random() * SIMULATED_LINES.length)];
 }
 
+/**
+ * ~1 in 5 simulated inbound messages carries an image payload so a fresh media
+ * asset is created + deduped through the live inbound archival path
+ * (useEnsureInboundMedia → ensureFromMessage) at runtime (RF-006/007/008).
+ */
+function pickMediaType(): "image" | undefined {
+  return Math.random() < 0.2 ? "image" : undefined;
+}
+
 function pickIntervalMs(): number {
   return MIN_INTERVAL_MS + Math.floor(Math.random() * (MAX_INTERVAL_MS - MIN_INTERVAL_MS));
 }
@@ -96,7 +105,7 @@ export function useRealtimeConversations(): IRealtimeState {
       const page = await conversationsProvider.list({ pageSize: 50 });
       const target = pickActive(page.data);
       if (!target) return;
-      await messagesProvider.simulateIncoming(target.id, pickLine());
+      await messagesProvider.simulateIncoming(target.id, pickLine(), pickMediaType());
       setTick((t) => t + 1);
     } catch {
       // Silent — real-time is best-effort. A failed mock tick should not
