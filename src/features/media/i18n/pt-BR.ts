@@ -56,4 +56,11 @@ export const MEDIA_STRINGS = {
     activeBadge: (n: number) => `${n} filtro${n === 1 ? "" : "s"}`,
     clearAll: "Limpar filtros",
   },
+  chip: {
+    failure: "Falha",
+    retry: "Tentar novamente",
+    expiringDays: (n: number) => `${n}d`,
+    expiringLabel: (n: number) => `Expira em ${n} dia${n === 1 ? "" : "s"}`,
+    sensitive: "Conteúdo sensível",
+  },
 };
