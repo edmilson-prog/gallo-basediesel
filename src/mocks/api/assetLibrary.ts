@@ -309,7 +309,7 @@ export const assetLibraryApi = {
           .sort((a, b) => b.count - a.count);
         const perSeller = new Map<ID, number>();
         for (const [key, count] of usageBySellerAsset.entries()) {
-          const sellerId = key.split("|")[0];
+          const sellerId = key.split("|")[0] ?? key;
           perSeller.set(sellerId, (perSeller.get(sellerId) ?? 0) + count);
         }
         const bySeller = [...perSeller.entries()]
