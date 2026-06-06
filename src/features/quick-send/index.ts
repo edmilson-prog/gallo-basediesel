@@ -40,3 +40,8 @@ export {
 
 // i18n
 export { QUICK_SEND_STRINGS } from "./i18n/pt-BR";
+
+// Foundation data hooks (pure data — Plan A)
+export { useAssetLibrary } from "./hooks/useAssetLibrary";
+export { useQuickReplies } from "./hooks/useQuickReplies";
+export { useAssetUsageStats } from "./hooks/useAssetUsageStats";
