@@ -140,6 +140,19 @@ export const MEDIA_STRINGS = {
     retry: "Tentar novamente",
     loading: "Carregando mídias…",
   },
+  retention: {
+    title: "Retenção de mídia (LGPD)",
+    description:
+      "Períodos de retenção das mídias arquivadas. Placeholder de configuração — o expurgo automático entra na Fase 2.",
+    common: {
+      label: "Mídia comum",
+      value: "365 dias",
+    },
+    sensitive: {
+      label: "Mídia sensível",
+      value: "1825 dias (5 anos)",
+    },
+  },
   actions: {
     annotate: "Anotar",
     classify: "Classificar",
