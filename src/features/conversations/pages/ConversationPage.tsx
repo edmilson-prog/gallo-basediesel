@@ -18,12 +18,14 @@ import { useConversationFiche } from "../hooks/useConversationFiche";
 import { useMessages } from "../hooks/useMessages";
 import { ConversationProvider } from "../hooks/ConversationContext";
 import { CopilotStrip, CopilotCard, CopilotFicheTab, useCopilotPanel } from "@/features/copilot";
+import { ConversationMediaGallery, useMediaGallery } from "@/features/media";
 
 export function ConversationPage() {
   const { id } = useParams({ from: "/app/atendimento/$id" });
   const conversationId: ID = id;
   const detail = useConversationDetail(conversationId);
   const fiche = useConversationFiche();
+  const media = useMediaGallery();
   const messages = useMessages(conversationId);
   const escalation = useConversationEscalation(conversationId);
   const copilot = useCopilotPanel(conversationId);
@@ -74,6 +76,8 @@ export function ConversationPage() {
               whatsappAccount={whatsappAccount}
               ficheOpen={fiche.open}
               onToggleFiche={ficheButtonClick}
+              mediaOpen={media.open}
+              onToggleMedia={media.toggle}
               menuSlot={
                 <ConversationMenu
                   conversation={conversation}
@@ -122,6 +126,11 @@ export function ConversationPage() {
               }
             />
           )}
+          <ConversationMediaGallery
+            conversationId={conversationId}
+            open={media.open}
+            onOpenChange={media.setOpen}
+          />
         </div>
       </ConversationProvider>
     </TooltipProvider>

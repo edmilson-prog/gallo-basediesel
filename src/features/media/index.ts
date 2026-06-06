@@ -51,5 +51,15 @@ export {
   type IKindCounts,
 } from "./utils/mediaDisplay";
 
+// Gallery surfaces (Plan B)
+export { ConversationMediaGallery } from "./components/ConversationMediaGallery";
+export { useMediaGallery } from "./hooks/useMediaGallery";
+export {
+  useMediaViewMode,
+  normalizeMediaViewMode,
+  MEDIA_VIEW_MODES,
+  type MediaViewMode,
+} from "./hooks/useMediaViewMode";
+
 // i18n
 export { CLASSIFICATION_LABELS, KIND_LABELS, MEDIA_STRINGS } from "./i18n/pt-BR";
