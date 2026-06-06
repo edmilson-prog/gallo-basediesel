@@ -92,6 +92,11 @@ export type {
   IMediaStorageProvider,
   IMediaUploadInput,
   IListMediaParams,
+  IAssetLibraryProvider,
+  IAssetLibraryListParams,
+  IQuickReplyProvider,
+  ITrackableLinkProvider,
+  IScheduledSendProvider,
 } from "./contracts";
 
 export { useCustomersProvider } from "./hooks/useCustomersProvider";
@@ -123,3 +128,7 @@ export { useIndicatorsProvider } from "./hooks/useIndicatorsProvider";
 export { useVehicleModelsProvider } from "./hooks/useVehicleModelsProvider";
 export { useModelKitsProvider } from "./hooks/useModelKitsProvider";
 export { useMediaStorageProvider } from "./hooks/useMediaStorageProvider";
+export { useAssetLibraryProvider } from "./hooks/useAssetLibraryProvider";
+export { useQuickReplyProvider } from "./hooks/useQuickReplyProvider";
+export { useTrackableLinkProvider } from "./hooks/useTrackableLinkProvider";
+export { useScheduledSendProvider } from "./hooks/useScheduledSendProvider";
