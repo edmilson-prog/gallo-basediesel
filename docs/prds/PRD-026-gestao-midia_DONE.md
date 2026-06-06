@@ -500,11 +500,11 @@ Added, Changed, Deprecated, Removed, Fixed, Security. 🔗 https://keepachangelo
 
 | Campo | Valor |
 |-------|-------|
-| **Status** | ⏳ PENDENTE |
-| **Data de Implementação** | - |
-| **Versão do App** | - |
-| **Implementado por** | - |
-| **Observações** | - |
+| **Status** | ✅ CONCLUÍDO (Fase 1 — Frontend First) |
+| **Data de Implementação** | 06/06/2026 |
+| **Versão do App** | v0.67.0 (Vault) |
+| **Implementado por** | Claude Opus 4.8 (1M) via Claude Code — fluxo subagent-driven |
+| **Observações** | Épico completo: provider de storage abstrato (Mock + stub Supabase, contrato drop-in p/ Fase 2), persistência inbound com dedup/expiração, galeria 3-modos (Grade/Cartões/Por tipo) com switcher persistido, lightbox full-screen (imagem/áudio 1x·1.5x·2x + transcrição/documento), aba Mídias do cliente, classificação + vínculo assistidos com confirmação/auditoria, governança LGPD (gate de sensível na camada de dados + RF-021 em runtime e marcação manual), anotação com read-back. 152 testes (Vitest) + `bun run build` verdes. Spec: `docs/superpowers/specs/2026-06-05-prd-026-gestao-midia-design.md`; planos A/B em `docs/superpowers/plans/`. PRD-027 (Envio Rápido) consome o `IMediaStorageProvider` entregue aqui. |
 
 ---
 
@@ -513,6 +513,7 @@ Added, Changed, Deprecated, Removed, Fixed, Security. 🔗 https://keepachangelo
 | Data | Versão | Alteração |
 |------|--------|-----------|
 | 04/06/2026 | v1 | Criação inicial |
+| 06/06/2026 | v1 | Implementação concluída (Fase 1) — app v0.67.0 "Vault" |
 
 ---
 
