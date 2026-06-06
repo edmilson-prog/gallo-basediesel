@@ -29,6 +29,10 @@ import { mockIndicatorsProvider } from "./impl/mock/indicators";
 import { mockVehicleModelsProvider } from "./impl/mock/vehicleModels";
 import { mockModelKitsProvider } from "./impl/mock/modelKits";
 import { mockMediaProvider } from "./impl/mock/media";
+import { mockAssetLibraryProvider } from "./impl/mock/assetLibrary";
+import { mockQuickReplyProvider } from "./impl/mock/quickReply";
+import { mockTrackableLinkProvider } from "./impl/mock/trackableLink";
+import { mockScheduledSendProvider } from "./impl/mock/scheduledSend";
 
 import { supabaseCustomersProvider } from "./impl/supabase/customers";
 import { supabaseVehiclesProvider } from "./impl/supabase/vehicles";
@@ -59,6 +63,10 @@ import { supabaseIndicatorsProvider } from "./impl/supabase/indicators";
 import { supabaseVehicleModelsProvider } from "./impl/supabase/vehicleModels";
 import { supabaseModelKitsProvider } from "./impl/supabase/modelKits";
 import { supabaseMediaProvider } from "./impl/supabase/media";
+import { supabaseAssetLibraryProvider } from "./impl/supabase/assetLibrary";
+import { supabaseQuickReplyProvider } from "./impl/supabase/quickReply";
+import { supabaseTrackableLinkProvider } from "./impl/supabase/trackableLink";
+import { supabaseScheduledSendProvider } from "./impl/supabase/scheduledSend";
 
 type DataSource = "mock" | "supabase";
 
@@ -114,6 +122,10 @@ const mockProviders: IDataProviders = {
   vehicleModels: mockVehicleModelsProvider,
   modelKits: mockModelKitsProvider,
   media: mockMediaProvider,
+  assetLibrary: mockAssetLibraryProvider,
+  quickReply: mockQuickReplyProvider,
+  trackableLink: mockTrackableLinkProvider,
+  scheduledSend: mockScheduledSendProvider,
 };
 
 const supabaseProviders: IDataProviders = {
@@ -146,6 +158,10 @@ const supabaseProviders: IDataProviders = {
   vehicleModels: supabaseVehicleModelsProvider,
   modelKits: supabaseModelKitsProvider,
   media: supabaseMediaProvider,
+  assetLibrary: supabaseAssetLibraryProvider,
+  quickReply: supabaseQuickReplyProvider,
+  trackableLink: supabaseTrackableLinkProvider,
+  scheduledSend: supabaseScheduledSendProvider,
 };
 
 /**
