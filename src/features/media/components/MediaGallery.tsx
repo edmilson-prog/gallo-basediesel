@@ -57,16 +57,6 @@ export function MediaGallery({
   // Track lightbox by asset id (not positional index) so filter changes do not silently
   // resolve to a different asset. The positional index is derived from `filtered` on render.
   const [lightboxId, setLightboxId] = useState<string | null>(null);
-  const lightboxIndex = useMemo(
-    () => (lightboxId === null ? null : filtered.findIndex((x) => x.id === lightboxId)),
-    [lightboxId, filtered],
-  );
-  // Close the lightbox if the active asset is no longer in the filtered set (e.g. filter changed).
-  useEffect(() => {
-    if (lightboxId !== null && filtered.findIndex((x) => x.id === lightboxId) < 0) {
-      setLightboxId(null);
-    }
-  }, [lightboxId, filtered]);
   const [annotating, setAnnotating] = useState<IMediaAsset | null>(null);
   const [classifying, setClassifying] = useState<IMediaAsset | null>(null);
   const [linking, setLinking] = useState<IMediaAsset | null>(null);
@@ -97,6 +87,19 @@ export function MediaGallery({
           : undefined,
     });
   }, [assets, filtersApi.filters, scope]);
+
+  // Track lightbox by asset id (not positional index) so filter changes do not silently
+  // resolve to a different asset. The positional index is derived from `filtered` on render.
+  const lightboxIndex = useMemo(
+    () => (lightboxId === null ? null : filtered.findIndex((x) => x.id === lightboxId)),
+    [lightboxId, filtered],
+  );
+  // Close the lightbox if the active asset is no longer in the filtered set (e.g. filter changed).
+  useEffect(() => {
+    if (lightboxId !== null && filtered.findIndex((x) => x.id === lightboxId) < 0) {
+      setLightboxId(null);
+    }
+  }, [lightboxId, filtered]);
 
   // canViewSensitive takes ONE arg (the viewer) — role-based gate (contract).
   const isLocked = (a: IMediaAsset) =>
