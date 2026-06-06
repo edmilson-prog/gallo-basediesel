@@ -65,4 +65,8 @@ export const MEDIA_STRINGS = {
     expiredLabel: "URL expirada",
     sensitive: "Conteúdo sensível",
   },
+  card: {
+    unnamed: "Sem nome",
+    noClassification: "Sem classificação",
+  },
 };
