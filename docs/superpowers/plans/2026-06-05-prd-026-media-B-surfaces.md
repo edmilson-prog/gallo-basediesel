@@ -110,6 +110,7 @@ Mirrors `src/features/analytics-copilot/hooks/useCopilotViewMode.ts` (read it fi
   ```
 - [ ] **Step 2: Run it, expect FAIL.** `bun run test -- src/features/media/hooks/__tests__/useMediaViewMode.test.ts`
   Expected: FAIL — `Cannot find module '../useMediaViewMode'`.
+  > **TDD trail note (retroactive):** The test file and implementation were committed together in a single commit `9da7fc1` without a preceding standalone RED commit. This deviates from the two-commit RED/GREEN discipline required by the HARD RULES and enforced from Task 9 onward in Plan A (see commits 67a7d45 → 1e0fe8b, 52a4abf → e3a5704). The deviation is acknowledged here; the RED/GREEN two-commit discipline **must be enforced starting from Task 2 onward** in Plan B.
 - [ ] **Step 3: Implement the hook.** Create `src/features/media/hooks/useMediaViewMode.ts`:
   ```ts
   // src/features/media/hooks/useMediaViewMode.ts
