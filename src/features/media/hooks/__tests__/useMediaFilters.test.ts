@@ -23,7 +23,7 @@ describe("countActiveFilters", () => {
 
   it("(b) increments by 1 when authorType is set to a non-default value", () => {
     expect(countActiveFilters({ ...EMPTY, authorType: "customer" }, "conversation")).toBe(1);
-    expect(countActiveFilters({ ...EMPTY, authorType: "agent" }, "customer")).toBe(1);
+    expect(countActiveFilters({ ...EMPTY, authorType: "seller" }, "customer")).toBe(1);
   });
 
   it("(b) increments by 1 when period is set to a non-default value", () => {
@@ -33,15 +33,11 @@ describe("countActiveFilters", () => {
   });
 
   it("(c) increments by 1 for classification only when scope === 'customer'", () => {
-    expect(
-      countActiveFilters({ ...EMPTY, classification: "document" }, "customer"),
-    ).toBe(1);
+    expect(countActiveFilters({ ...EMPTY, classification: "nota_fiscal" }, "customer")).toBe(1);
   });
 
   it("(c) does NOT increment for classification when scope === 'conversation'", () => {
-    expect(
-      countActiveFilters({ ...EMPTY, classification: "document" }, "conversation"),
-    ).toBe(0);
+    expect(countActiveFilters({ ...EMPTY, classification: "nota_fiscal" }, "conversation")).toBe(0);
   });
 
   it("(d) never increments activeCount for the search/free-text field", () => {
@@ -53,9 +49,9 @@ describe("countActiveFilters", () => {
     const allSet: IMediaFilterState = {
       search: "ignored",
       kind: "video",
-      authorType: "agent",
+      authorType: "seller",
       period: "30d",
-      classification: "document",
+      classification: "nota_fiscal",
     };
     // scope=customer: kind + authorType + period + classification = 4
     expect(countActiveFilters(allSet, "customer")).toBe(4);
