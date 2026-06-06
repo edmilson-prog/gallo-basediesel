@@ -21,7 +21,11 @@ interface IMediaLightboxProps {
   canView: (asset: IMediaAsset) => boolean;
   /** Right-aside actions (Anotar/Classificar/Vincular/Baixar/Excluir), RBAC-gated by the gallery. */
   renderActions: (asset: IMediaAsset) => ReactNode;
-  /** Audited when a blocked sensitive asset is opened. */
+  /**
+   * Audited whenever a blocked sensitive asset becomes the active asset (open
+   * or arrow-key navigation). Fired via effect keyed on `asset.id`, not only
+   * on click, so every visualisation attempt is captured (spec §5.5 / D-6).
+   */
   onSensitiveAttempt?: (asset: IMediaAsset) => void;
   /**
    * Navigate to the origin conversation (customer scope only). When provided
@@ -63,12 +67,24 @@ export function MediaLightbox({
       else if (e.key === "ArrowLeft") { e.preventDefault(); go(-1); }
       else if (e.key === "Escape") { onIndexChange(null); }
       else if (e.key === " ") { if (asset?.kind === "audio") { e.preventDefault(); audioToggle.current?.(); } }
-      else if (e.key === "+" || e.key === "=") { e.preventDefault(); setZoom((z) => Math.min(z + 0.25, 3)); }
-      else if (e.key === "-") { e.preventDefault(); setZoom((z) => Math.max(z - 0.25, 1)); }
+      else if ((e.key === "+" || e.key === "=") && (asset?.kind === "image" || asset?.kind === "video")) { e.preventDefault(); setZoom((z) => Math.min(z + 0.25, 3)); }
+      else if (e.key === "-" && (asset?.kind === "image" || asset?.kind === "video")) { e.preventDefault(); setZoom((z) => Math.max(z - 0.25, 1)); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, go, asset, onIndexChange]);
+
+  // Audit when a blocked asset becomes active (open + navigate), not only on click
+  // (spec §5.5 / D-6 — every sensitive visualisation attempt must be recorded).
+  useEffect(() => {
+    if (open && asset && !canView(asset)) {
+      onSensitiveAttempt?.(asset);
+    }
+    // Reset stale audio toggle ref whenever the active asset changes so a
+    // prior player's closure cannot be invoked after it unmounts (D-footgun fix).
+    audioToggle.current = null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, asset?.id]);
 
   if (!open || !asset) return null;
   const allowed = canView(asset);
@@ -97,6 +113,34 @@ export function MediaLightbox({
               </span>
             </dd>
           </dl>
+          {/* Vínculos — Pedido / Peça / Veículo read-back (spec §5.4 / i18n: lightbox.meta.links) */}
+          <div className="border-t border-border pt-3">
+            <h4 className="mb-1.5 text-xs font-medium text-muted-foreground">{l.meta.links}</h4>
+            {asset.linkedOrderId || asset.linkedPartId || asset.linkedVehicleId ? (
+              <dl className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-1 text-xs">
+                {asset.linkedOrderId && (
+                  <>
+                    <dt className="text-muted-foreground">Pedido</dt>
+                    <dd className="truncate text-foreground">{asset.linkedOrderId}</dd>
+                  </>
+                )}
+                {asset.linkedPartId && (
+                  <>
+                    <dt className="text-muted-foreground">Peça</dt>
+                    <dd className="truncate text-foreground">{asset.linkedPartId}</dd>
+                  </>
+                )}
+                {asset.linkedVehicleId && (
+                  <>
+                    <dt className="text-muted-foreground">Veículo</dt>
+                    <dd className="truncate text-foreground">{asset.linkedVehicleId}</dd>
+                  </>
+                )}
+              </dl>
+            ) : (
+              <p className="text-xs text-muted-foreground">{l.noLinks}</p>
+            )}
+          </div>
           {/* "Abrir conversa" — customer scope, origin conversation (spec §5.3/D-12) */}
           {onOpenConversation && asset.conversationId && (
             <Button
@@ -124,14 +168,8 @@ export function MediaLightbox({
         <div className="flex h-full min-h-0 flex-col lg:flex-row">
           {/* center */}
           <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden">
-            <Button
-              variant="ghost" size="icon"
-              className="absolute right-3 top-3 z-10"
-              aria-label={l.close}
-              onClick={() => onIndexChange(null)}
-            >
-              <Icon icon="mdi:close" size={22} />
-            </Button>
+            {/* The built-in shadcn DialogContent close 'X' lives at absolute right-4 top-4
+                (dialog.tsx line 47). No second close button is rendered here. */}
             <span className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full bg-card/80 px-3 py-1 text-[11px] text-muted-foreground">
               {l.counter(index + 1, assets.length)}
             </span>
@@ -150,7 +188,9 @@ export function MediaLightbox({
             )}
 
             {!allowed ? (
-              <div className="relative h-full w-full" onClickCapture={() => onSensitiveAttempt?.(asset)}>
+              // Audit is fired by the effect keyed on asset.id (open + navigate),
+              // so no onClickCapture duplicate is needed here.
+              <div className="relative h-full w-full">
                 <SensitiveLock variant="full" />
               </div>
             ) : asset.kind === "image" || asset.kind === "video" ? (
