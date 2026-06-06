@@ -1,6 +1,7 @@
 import type { ID, IMediaAsset, IMediaClassification } from "@/shared/types";
 import { contentHash, mediaHashSeed } from "@/features/media/engine/contentHash";
 import { classifyMedia } from "@/features/media/engine/classifyMedia";
+import { isSensitiveClassification } from "@/features/media/engine/sensitiveAccess";
 import { pickWeighted, type ISeededContext } from "./utils";
 
 export interface IGenerateMediaAssetsInput {
@@ -109,9 +110,11 @@ export function generateMediaAssets(
     const createdAt = new Date(nowMs - ageDays * DAY_MS).toISOString();
     const sizeBytes = ctx.int(20_000, 4_000_000);
 
-    // Sensitivity is auto-derived from classification (D-5/§5.5).
-    const sensitivity: IMediaAsset["sensitivity"] =
-      classification === "nota_fiscal" || classification === "comprovante" ? "sensitive" : "normal";
+    // Sensitivity is auto-derived from classification (D-5/§5.5) — single
+    // source of truth shared with the runtime paths (RF-021).
+    const sensitivity: IMediaAsset["sensitivity"] = isSensitiveClassification(classification)
+      ? "sensitive"
+      : "normal";
 
     // ~15% are still in flight (not archived) → exercise the retry/persist UI.
     const persisted = !ctx.bool(0.15);

@@ -14,6 +14,7 @@ export {
 } from "./engine/sourceExpiry";
 export {
   canViewSensitive,
+  isSensitiveClassification,
   statusChipPriority,
   type IMediaViewer,
   type MediaStatusChip,

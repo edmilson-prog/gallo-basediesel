@@ -8,6 +8,7 @@ import {
 import { patchById, removeById, upsert } from "../store/mutations";
 import { contentHash, mediaHashSeed } from "@/features/media/engine/contentHash";
 import { classifyMedia } from "@/features/media/engine/classifyMedia";
+import { isSensitiveClassification } from "@/features/media/engine/sensitiveAccess";
 import {
   MockNotFoundError,
   paginate,
@@ -148,9 +149,14 @@ export const mediaApi = {
           persisted: true,
           sourceExpiresAt: input.sourceExpiresAt,
           contentHash: hash,
+          classification: input.classification,
           ocrText: input.ocrText,
           transcription: input.transcription,
-          sensitivity: "normal",
+          // RF-021: derive sensitivity from the (optional) classification —
+          // nota_fiscal/comprovante are always sensitive. The upload payload
+          // carries no classification today, so this defaults to "normal";
+          // the derivation stays correct if one is later supplied.
+          sensitivity: isSensitiveClassification(input.classification) ? "sensitive" : "normal",
           version: 1,
         };
         upsert("mediaAssets", asset);
@@ -211,7 +217,9 @@ export const mediaApi = {
           persisted: true,
           contentHash: hash,
           classification,
-          sensitivity: "normal",
+          // RF-021/§5.5/D-4: nota_fiscal & comprovante are auto-tagged sensitive
+          // at creation (single source of truth in isSensitiveClassification).
+          sensitivity: isSensitiveClassification(classification) ? "sensitive" : "normal",
           version: 1,
         };
         upsert("mediaAssets", asset);

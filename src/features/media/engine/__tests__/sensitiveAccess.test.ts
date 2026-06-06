@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { IMediaAsset } from "@/shared/types";
-import { canViewSensitive, statusChipPriority } from "../sensitiveAccess";
+import type { IMediaAsset, IMediaClassification } from "@/shared/types";
+import { canViewSensitive, isSensitiveClassification, statusChipPriority } from "../sensitiveAccess";
 
 function asset(over: Partial<IMediaAsset>): IMediaAsset {
   return {
@@ -18,6 +18,47 @@ function asset(over: Partial<IMediaAsset>): IMediaAsset {
     ...over,
   };
 }
+
+describe("isSensitiveClassification (RF-021)", () => {
+  it("flags nota_fiscal and comprovante as sensitive", () => {
+    expect(isSensitiveClassification("nota_fiscal")).toBe(true);
+    expect(isSensitiveClassification("comprovante")).toBe(true);
+  });
+  it("does not flag non-sensitive classes", () => {
+    expect(isSensitiveClassification("peca")).toBe(false);
+    expect(isSensitiveClassification("chassi_placa")).toBe(false);
+    expect(isSensitiveClassification("catalogo")).toBe(false);
+    expect(isSensitiveClassification("outro")).toBe(false);
+    expect(isSensitiveClassification(undefined)).toBe(false);
+  });
+});
+
+/**
+ * Mirrors the exact derivation used by useMediaActions.setClassification: a
+ * sensitive class forces "sensitive"; otherwise the asset's current sensitivity
+ * is preserved (NEVER a silent downgrade of a manually-sensitised asset).
+ */
+function deriveReclassifiedSensitivity(
+  currentSensitivity: IMediaAsset["sensitivity"],
+  next: IMediaClassification,
+): IMediaAsset["sensitivity"] {
+  return isSensitiveClassification(next) ? "sensitive" : currentSensitivity;
+}
+
+describe("reclassification sensitivity derivation (RF-021, no downgrade)", () => {
+  it("flips a normal asset to sensitive when reclassified to comprovante", () => {
+    expect(deriveReclassifiedSensitivity("normal", "comprovante")).toBe("sensitive");
+  });
+  it("flips a normal asset to sensitive when reclassified to nota_fiscal", () => {
+    expect(deriveReclassifiedSensitivity("normal", "nota_fiscal")).toBe("sensitive");
+  });
+  it("keeps a manually-sensitised asset sensitive when reclassified to a non-sensitive class", () => {
+    expect(deriveReclassifiedSensitivity("sensitive", "peca")).toBe("sensitive");
+  });
+  it("leaves a normal asset normal when reclassified to a non-sensitive class", () => {
+    expect(deriveReclassifiedSensitivity("normal", "peca")).toBe("normal");
+  });
+});
 
 describe("canViewSensitive", () => {
   it("allows Owner and Gestor", () => {

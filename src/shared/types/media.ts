@@ -94,6 +94,11 @@ export interface IMediaUploadInput {
   contentHash?: string;
   ocrText?: string;
   transcription?: string;
+  /**
+   * Optional assisted classification. When it is a sensitive class
+   * (nota_fiscal/comprovante) the asset is auto-tagged `sensitive` (RF-021).
+   */
+  classification?: IMediaClassification;
 }
 
 /** Filter accepted by the `list` op. Store-scoped by the provider. */

@@ -6,6 +6,7 @@ import type { ID, IMediaAsset, IMediaAnnotation, IMediaClassification } from "@/
 import { useMediaStorageProvider } from "@/providers/data";
 import { auditLog } from "@/features/rbac/utils/auditLog";
 import { classifyMedia } from "../engine/classifyMedia";
+import { isSensitiveClassification } from "../engine/sensitiveAccess";
 import { MEDIA_STRINGS } from "../i18n/pt-BR";
 
 export interface IMediaLinkPatch {
@@ -46,7 +47,13 @@ export function useMediaActions() {
 
   const setClassification = useCallback(
     async (asset: IMediaAsset, classification: IMediaClassification) => {
-      const updated = await provider.update(asset.id, { classification });
+      // RF-021: reclassifying TO nota_fiscal/comprovante auto-tags sensitive.
+      // Never DOWNGRADE: if the new class is non-sensitive, keep the asset's
+      // current sensitivity (preserves a manually-sensitised asset).
+      const sensitivity = isSensitiveClassification(classification)
+        ? "sensitive"
+        : asset.sensitivity;
+      const updated = await provider.update(asset.id, { classification, sensitivity });
       auditLog({
         action: "media.classify",
         resource: "media",

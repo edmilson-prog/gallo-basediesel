@@ -1,10 +1,19 @@
 import type { RoleName } from "@/shared/types";
-import type { IMediaAsset } from "@/shared/types";
+import type { IMediaAsset, IMediaClassification } from "@/shared/types";
 import { expiryUrgency } from "./sourceExpiry";
 
 export interface IMediaViewer {
   role: RoleName;
 }
+
+/**
+ * D-4 / §5.5 / RF-021: notas fiscais e comprovantes são SEMPRE sensíveis.
+ * Single source of truth shared by the seed generator and every runtime path
+ * (`ensureFromMessage`, `upload`, reclassification) so a nota_fiscal/comprovante
+ * is auto-tagged `sensitivity: "sensitive"` on creation AND reclassification.
+ */
+export const isSensitiveClassification = (c?: IMediaClassification): boolean =>
+  c === "nota_fiscal" || c === "comprovante";
 
 /** Primary status chip per tile (D-13). One chip wins; the rest go to tooltip. */
 export type MediaStatusChip = "failure" | "sensitive" | "expiring" | "none";
