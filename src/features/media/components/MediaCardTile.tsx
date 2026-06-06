@@ -18,6 +18,19 @@ export function MediaCardTile({ asset, onOpen, lockedOverlay, className }: IMedi
   const classLabel = asset.classification
     ? MEDIA_STRINGS.filters.classification[asset.classification]
     : MEDIA_STRINGS.card.noClassification;
+
+  const isSensitive = asset.sensitivity === "sensitive";
+
+  // Viewer-agnostic by design: MediaCardTile receives no viewer prop (unlike MediaTile which
+  // uses statusChipPriority). The sensitive marker is intentionally shown to all viewers;
+  // the caller is responsible for passing a lockedOverlay when canViewSensitive(viewer) is false.
+  const ariaLabel = [
+    asset.fileName ?? MEDIA_STRINGS.card.unnamed,
+    isSensitive ? MEDIA_STRINGS.chip.sensitive : null,
+  ]
+    .filter(Boolean)
+    .join(" — ");
+
   return (
     <div
       role="gridcell"
@@ -26,7 +39,7 @@ export function MediaCardTile({ asset, onOpen, lockedOverlay, className }: IMedi
       <button
         type="button"
         onClick={onOpen}
-        aria-label={asset.fileName ?? MEDIA_STRINGS.card.unnamed}
+        aria-label={ariaLabel}
         className="relative aspect-video w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         {lockedOverlay ?? (
@@ -46,8 +59,12 @@ export function MediaCardTile({ asset, onOpen, lockedOverlay, className }: IMedi
         <p className="text-[11px] text-muted-foreground">
           {formatBytes(asset.sizeBytes)}
           <span className="ml-1">· {formatRelativeTimeBR(asset.createdAt)}</span>
-          {asset.sensitivity === "sensitive" && (
-            <span className="ml-1 text-severity-warning">· sensível</span>
+          {isSensitive && (
+            <span className="ml-1 inline-flex items-center gap-0.5 text-severity-warning">
+              ·{" "}
+              <Icon icon="mdi:lock" size={11} aria-hidden />
+              {MEDIA_STRINGS.chip.sensitive}
+            </span>
           )}
         </p>
       </div>
