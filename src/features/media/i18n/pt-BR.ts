@@ -132,6 +132,14 @@ export const MEDIA_STRINGS = {
     remove: "Remover anotação",
     nudgeHint: "Use as setas para mover (Shift = 10px)",
   },
+  gallery: {
+    title: "Mídias",
+    empty: "Nenhuma mídia ainda.",
+    emptyFiltered: "Nenhuma mídia corresponde aos filtros.",
+    loadError: "Não foi possível carregar as mídias.",
+    retry: "Tentar novamente",
+    loading: "Carregando mídias…",
+  },
   actions: {
     annotate: "Anotar",
     classify: "Classificar",
