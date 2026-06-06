@@ -398,3 +398,23 @@ export type {
   IListMediaParams,
   IMediaStorageProvider,
 } from "./media";
+
+// Quick Send & Asset Library (PRD-027)
+export type {
+  AssetCategory,
+  AssetKind,
+  AssetStatus,
+  AssetSensitivity,
+  IAssetVersionSnapshot,
+  IAssetLibraryItem,
+  IQuickReply,
+  ITrackableLink,
+  IAssetCombo,
+  ScheduledSendStatus,
+  IScheduledSend,
+  IAssetLibraryListParams,
+  IAssetLibraryProvider,
+  IQuickReplyProvider,
+  ITrackableLinkProvider,
+  IScheduledSendProvider,
+} from "./quickSend";
