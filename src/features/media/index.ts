@@ -53,6 +53,7 @@ export {
 
 // Gallery surfaces (Plan B)
 export { ConversationMediaGallery } from "./components/ConversationMediaGallery";
+export { CustomerMediaGallery } from "./components/CustomerMediaGallery";
 export { useMediaGallery } from "./hooks/useMediaGallery";
 export {
   useMediaViewMode,

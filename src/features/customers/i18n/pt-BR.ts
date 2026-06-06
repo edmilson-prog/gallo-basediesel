@@ -50,6 +50,7 @@ export const CUSTOMER_STRINGS = {
     quotes: "Orçamentos",
     vehicles: "Veículos",
     conversations: "Conversas",
+    midias: "Mídias",
     notes: "Notas",
     recommendations: "Recomendações",
   },
