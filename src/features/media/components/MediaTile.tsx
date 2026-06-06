@@ -151,7 +151,10 @@ export function MediaTile({ asset, viewer, onOpen, onRetry, lockedOverlay: locke
             <button
               type="button"
               tabIndex={tabIndex}
-              onClick={onRetry}
+              onClick={(e) => {
+                e.stopPropagation();
+                onRetry();
+              }}
               aria-label={c.retry}
               className="ml-0.5 rounded-full p-0.5 hover:bg-severity-critical/20 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >

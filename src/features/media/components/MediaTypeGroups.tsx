@@ -108,7 +108,10 @@ function ListRow({
         <button
           type="button"
           aria-label={c.retry}
-          onClick={onRetry}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRetry();
+          }}
           className="shrink-0 rounded p-2 text-muted-foreground hover:text-severity-critical focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Icon icon="mdi:refresh" size={14} aria-hidden />
