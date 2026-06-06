@@ -21,20 +21,38 @@ interface ISensitiveLockProps {
   onAttempt?: () => void;
   /** Fired when the user requests access (caller may audit / notify). */
   onRequestAccess?: () => void;
+  /**
+   * Roving tabindex forwarded from MediaGrid/MediaTile so grid keyboard navigation
+   * can reach a locked tile. Defaults to 0 so the overlay is focusable standalone.
+   */
+  tabIndex?: number;
   className?: string;
 }
 
-/** Redacted, statically-blurred placeholder + lock + access-request dialog (D-4/D-6). */
+/**
+ * Redacted, statically-blurred placeholder + lock + access-request dialog (D-4/D-6).
+ *
+ * IMPORTANT — composition contract:
+ * This component's root is a NON-BUTTON interactive element (`role="button"` div).
+ * Consumers that use it as `lockedOverlay` MUST NOT wrap it inside a `<button>`.
+ * MediaTile and MediaCardTile switch their primary wrapper to a plain `<div>` when
+ * `lockedOverlay` is provided so that this element is the only interactive descendant.
+ *
+ * The `handleOpen` handler calls `e.stopPropagation()` to prevent bubbling to any
+ * ancestor click handlers that may be present in other consumer contexts.
+ */
 export function SensitiveLock({
   variant = "tile",
   onAttempt,
   onRequestAccess,
+  tabIndex = 0,
   className,
 }: ISensitiveLockProps) {
   const [open, setOpen] = useState(false);
   const s = MEDIA_STRINGS.sensitive;
 
-  const handleOpen = () => {
+  const handleOpen = (e: React.MouseEvent | React.KeyboardEvent) => {
+    e.stopPropagation();
     onAttempt?.();
     setOpen(true);
   };
@@ -47,9 +65,23 @@ export function SensitiveLock({
 
   return (
     <>
-      <button
-        type="button"
+      {/*
+       * Root is a `role="button"` div — NOT a <button> — so it composes safely inside
+       * a parent button (MediaTile/MediaCardTile switch their wrapper; other consumers
+       * that use the full-variant inside a non-button ancestor are unaffected).
+       * Keyboard: Enter/Space fire handleOpen to match implicit button semantics.
+       */}
+      <div
+        role="button"
+        data-primary
+        tabIndex={tabIndex}
         onClick={handleOpen}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleOpen(e);
+          }
+        }}
         aria-label={s.caption}
         className={cn(
           "group relative flex h-full w-full flex-col items-center justify-center gap-1",
@@ -64,8 +96,8 @@ export function SensitiveLock({
           <span className="block h-2 w-24 rounded bg-muted-foreground/30" />
           <span className="mt-1 block h-2 w-16 rounded bg-muted-foreground/20" />
         </span>
-      </button>
-      {/* lock + caption overlaid sharp (not blurred) */}
+      </div>
+      {/* lock + caption overlaid sharp (not blurred) — pointer-events-none so clicks reach the div above */}
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1">
         <Icon
           icon="mdi:lock"

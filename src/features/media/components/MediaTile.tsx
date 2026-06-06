@@ -1,5 +1,5 @@
 // src/features/media/components/MediaTile.tsx
-import type { ReactNode } from "react";
+import { isValidElement, cloneElement, type ReactNode, type ReactElement } from "react";
 import type { IMediaAsset } from "@/shared/types";
 import type { IMockUserProfile } from "@/features/auth/mock-users";
 import { Icon } from "@/components/Icon";
@@ -40,7 +40,13 @@ const EXPIRY_TONE: Record<"soft" | "strong" | "critical", string> = {
 };
 
 /** Square thumbnail tile with exactly one priority chip (D-13) + a11y label. */
-export function MediaTile({ asset, viewer, onOpen, onRetry, lockedOverlay, tabIndex = -1, className }: IMediaTileProps) {
+export function MediaTile({ asset, viewer, onOpen, onRetry, lockedOverlay: lockedOverlayProp, tabIndex = -1, className }: IMediaTileProps) {
+  // Forward tabIndex into the overlay so SensitiveLock's data-primary element participates
+  // in the MediaGrid roving-tabindex pattern (focusCell queries [data-primary]).
+  const lockedOverlay =
+    lockedOverlayProp != null && isValidElement(lockedOverlayProp)
+      ? cloneElement(lockedOverlayProp as ReactElement<{ tabIndex?: number }>, { tabIndex })
+      : lockedOverlayProp;
   const chip = statusChipPriority(asset, viewer); // 'failure' | 'sensitive' | 'expiring' | 'none'
   const exp = sourceExpiry(asset);
   const c = MEDIA_STRINGS.chip;
@@ -61,25 +67,45 @@ export function MediaTile({ asset, viewer, onOpen, onRetry, lockedOverlay, tabIn
     <div
       className={cn("relative aspect-square overflow-hidden rounded-md border border-border bg-muted", className)}
     >
-      {/* data-primary marks this as the roving-tabindex focus target for focusCell() in MediaGrid */}
-      <button
-        type="button"
-        data-primary
-        tabIndex={tabIndex}
-        onClick={onOpen}
-        aria-label={ariaLabel}
-        className="group block h-full w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        {lockedOverlay ?? (
+      {/*
+       * When a lockedOverlay is provided, SensitiveLock is the interactive element
+       * (it renders role="button" with data-primary). Nesting it inside a <button>
+       * produces invalid HTML (button-in-button) and double-fires click handlers.
+       * Switch to a plain <div> wrapper so SensitiveLock owns the sole focus target.
+       *
+       * When there is no lockedOverlay, use a normal <button> with data-primary so
+       * focusCell() in MediaGrid can locate it with `[data-primary]`.
+       */}
+      {lockedOverlay ? (
+        <div
+          aria-label={ariaLabel}
+          className="group block h-full w-full"
+        >
+          {lockedOverlay}
+          {/* type icon badge top-left */}
+          <span className="absolute left-1.5 top-1.5 rounded bg-background/80 p-0.5 text-foreground shadow-sm">
+            <Icon icon={mediaKindIcon(asset.kind)} size={13} aria-hidden />
+          </span>
+        </div>
+      ) : (
+        /* data-primary marks this as the roving-tabindex focus target for focusCell() in MediaGrid */
+        <button
+          type="button"
+          data-primary
+          tabIndex={tabIndex}
+          onClick={onOpen}
+          aria-label={ariaLabel}
+          className="group block h-full w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
           <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-muted to-muted/60 text-muted-foreground">
             <Icon icon={mediaKindIcon(asset.kind)} size={28} />
           </div>
-        )}
-        {/* type icon badge top-left */}
-        <span className="absolute left-1.5 top-1.5 rounded bg-background/80 p-0.5 text-foreground shadow-sm">
-          <Icon icon={mediaKindIcon(asset.kind)} size={13} aria-hidden />
-        </span>
-      </button>
+          {/* type icon badge top-left */}
+          <span className="absolute left-1.5 top-1.5 rounded bg-background/80 p-0.5 text-foreground shadow-sm">
+            <Icon icon={mediaKindIcon(asset.kind)} size={13} aria-hidden />
+          </span>
+        </button>
+      )}
 
       {/* ONE priority chip, bottom-right */}
       {chip === "sensitive" && (

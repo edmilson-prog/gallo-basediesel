@@ -18,10 +18,15 @@ export const KIND_LABELS: Record<IMediaAsset["kind"], string> = {
   video: "Vídeo",
 };
 
+// Canonical sensitive-access strings — referenced by both the top-level Plan-A keys
+// and the nested `sensitive` block (Task 10) to avoid duplicate literals (DRY).
+const _SENSITIVE_CAPTION = "Conteúdo sensível — acesso restrito";
+const _REQUEST_ACCESS = "Solicitar acesso ao gestor";
+
 /** Foundation-level strings reused by Fases 3-5 surfaces. */
 export const MEDIA_STRINGS = {
-  sensitiveCaption: "Conteúdo sensível — acesso restrito",
-  requestAccess: "Solicitar acesso ao gestor",
+  sensitiveCaption: _SENSITIVE_CAPTION,
+  requestAccess: _REQUEST_ACCESS,
   retry: "Tentar novamente",
   emptyState: "Nenhuma mídia",
   galleryTitle: "Mídias",
@@ -80,11 +85,13 @@ export const MEDIA_STRINGS = {
     playAudio: "Reproduzir áudio",
   },
   sensitive: {
-    caption: "Conteúdo sensível — acesso restrito",
+    // Reference the module-level constants so caption/requestAccess are the same
+    // string as the top-level Plan-A keys (DRY — single source of truth).
+    caption: _SENSITIVE_CAPTION,
     dialogTitle: "Conteúdo sensível",
     dialogBody:
       "Esta mídia contém dados sensíveis (ex.: CPF/CNPJ em nota fiscal). Apenas Owner e Gestor podem visualizá-la. Solicite acesso ao seu gestor se precisar abri-la.",
-    requestAccess: "Solicitar acesso ao gestor",
+    requestAccess: _REQUEST_ACCESS,
     requestSent: "Solicitação enviada ao gestor.",
     close: "Fechar",
   },

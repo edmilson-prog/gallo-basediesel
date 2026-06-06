@@ -36,18 +36,32 @@ export function MediaCardTile({ asset, onOpen, lockedOverlay, className }: IMedi
       role="gridcell"
       className={cn("flex flex-col overflow-hidden rounded-lg border border-border bg-card", className)}
     >
-      <button
-        type="button"
-        onClick={onOpen}
-        aria-label={ariaLabel}
-        className="relative aspect-video w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        {lockedOverlay ?? (
+      {/*
+       * When a lockedOverlay is provided, SensitiveLock is the interactive element
+       * (it renders role="button"). Nesting it inside a <button> produces invalid
+       * HTML (button-in-button) and double-fires click handlers (lock dialog AND
+       * lightbox open simultaneously). Switch to a plain <div> so the overlay's
+       * own interactive element is the only focusable descendant in this region.
+       */}
+      {lockedOverlay ? (
+        <div
+          aria-label={ariaLabel}
+          className="relative aspect-video w-full"
+        >
+          {lockedOverlay}
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={onOpen}
+          aria-label={ariaLabel}
+          className="relative aspect-video w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
           <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-muted to-muted/60 text-muted-foreground">
             <Icon icon={mediaKindIcon(asset.kind)} size={32} />
           </div>
-        )}
-      </button>
+        </button>
+      )}
       <div className="flex flex-col gap-1 p-2">
         <span className="inline-flex w-fit items-center gap-1 rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
           <Icon icon={mediaKindIcon(asset.kind)} size={11} aria-hidden />

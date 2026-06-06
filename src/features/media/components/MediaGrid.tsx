@@ -80,10 +80,12 @@ export function MediaGrid({
    * be rendered before we attempt querySelector. See onKeyDown below.
    */
   const focusCell = useCallback((idx: number) => {
-    const btn = parentRef.current?.querySelector<HTMLButtonElement>(
-      `[data-cell-index="${idx}"] button[data-primary]`,
+    // Query for [data-primary] rather than button[data-primary] so that locked tiles
+    // (which render SensitiveLock as role="button" div with data-primary) are also found.
+    const el = parentRef.current?.querySelector<HTMLElement>(
+      `[data-cell-index="${idx}"] [data-primary]`,
     );
-    btn?.focus();
+    el?.focus();
   }, []);
 
   const onKeyDown = useCallback(
