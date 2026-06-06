@@ -6,7 +6,7 @@ import { SEED_TAGS } from "./seedTags";
 import { DEFAULT_DISTRIBUTION_SETTINGS } from "./seedDistribution";
 import { DEFAULT_MANAGER_DASHBOARD_SETTINGS } from "./seedManagerDashboard";
 import { DEFAULT_SDR_TEMPLATES } from "@/features/sdr/templates/defaults";
-import { DEFAULT_SDR_QUOTE_TEMPLATES } from "@/features/sdr-quote";
+import { DEFAULT_SDR_QUOTE_TEMPLATES } from "@/features/sdr-quote/templates/defaults";
 import { DEFAULT_SHIPPING_CONFIG } from "@/features/shipping/config/defaults";
 import { DEFAULT_BADGE_CATALOG } from "@/features/gamification/catalog/badgeCatalog";
 import { DEFAULT_ECOMMERCE_INTEGRATION_SETTINGS } from "@/features/ecommerce-integration/config/defaults";

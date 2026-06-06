@@ -138,7 +138,9 @@ export interface IBootstrappedDataset {
  */
 export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
   const ctx = createSeededContext(seed);
-  const now = new Date();
+  // Truncate to minutes so two rapid bootstrap(seed) calls produce identical
+  // timestamps (eliminates sub-minute jitter that would break equality tests).
+  const now = new Date(Math.floor(Date.now() / 60_000) * 60_000);
 
   // 1. Foundational entities (no cross-deps).
   const stores: IStore[] = [{ ...SEED_STORE }];
