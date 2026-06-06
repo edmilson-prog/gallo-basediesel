@@ -1,0 +1,42 @@
+/**
+ * PRD-027 — Quick Send & Asset Library feature barrel.
+ *
+ * Plan A exports the pure engines, the i18n bundle and the domain types.
+ * Plans B and C append hooks and components (append-only).
+ */
+
+// Engines (pure)
+export {
+  resolvePlaceholders,
+  hasUnresolved,
+  type IPlaceholderContext,
+} from "./engine/placeholderResolver";
+export { parseSlash, type ISlashState } from "./engine/slashParser";
+export { isSensitiveAsset, canSendSensitiveAsset } from "./engine/assetSensitivity";
+export { pickSendableVersion, bumpVersion } from "./engine/assetVersioning";
+export { filterAssets, type IAssetFilter } from "./engine/assetFiltering";
+export { nextTemperature } from "./engine/temperatureEscalation";
+export {
+  buildShortRef,
+  buildUtm,
+  encodeLinkMarker,
+  TRACKABLE_LINK_MARKER,
+  type ILinkPayload,
+} from "./engine/trackableLink";
+export { isDue, validateFuture } from "./engine/scheduledSend";
+export {
+  planComboSend,
+  type IComboPlan,
+  type IComboPlanItem,
+} from "./engine/comboSend";
+export {
+  encodeProductCard,
+  decodeProductCard,
+  priceLabel,
+  hasImage,
+  PRODUCT_CARD_MARKER,
+  type IProductCardSnapshot,
+} from "./engine/productCardPayload";
+
+// i18n
+export { QUICK_SEND_STRINGS } from "./i18n/pt-BR";
