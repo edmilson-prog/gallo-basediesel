@@ -1,4 +1,13 @@
-import type { ID, IMediaAsset, INotification } from "@/shared/types";
+import type {
+  ID,
+  IAssetCombo,
+  IAssetLibraryItem,
+  IMediaAsset,
+  INotification,
+  IQuickReply,
+  IScheduledSend,
+  ITrackableLink,
+} from "@/shared/types";
 import { getMockState } from "./mockStore";
 
 /**
@@ -230,4 +239,46 @@ export function selectMediaAssetByMessage(messageId: ID): IMediaAsset | null {
 
 export function selectMediaAssetByContentHash(contentHash: string): IMediaAsset | null {
   return getMockState().mediaAssets.find((m) => m.contentHash === contentHash) ?? null;
+}
+
+// --- Quick Send & Asset Library (PRD-027) ---
+
+export function selectAllAssetLibraryItems(): IAssetLibraryItem[] {
+  return getMockState().assetLibraryItems;
+}
+
+export function selectAssetLibraryItemById(id: ID): IAssetLibraryItem | null {
+  return getMockState().assetLibraryItems.find((a) => a.id === id) ?? null;
+}
+
+export function selectAllQuickReplies(): IQuickReply[] {
+  return getMockState().quickReplies;
+}
+
+export function selectQuickReplyById(id: ID): IQuickReply | null {
+  return getMockState().quickReplies.find((q) => q.id === id) ?? null;
+}
+
+export function selectAllTrackableLinks(): ITrackableLink[] {
+  return getMockState().trackableLinks;
+}
+
+export function selectTrackableLinkById(id: ID): ITrackableLink | null {
+  return getMockState().trackableLinks.find((l) => l.id === id) ?? null;
+}
+
+export function selectTrackableLinksByConversation(conversationId: ID): ITrackableLink[] {
+  return getMockState().trackableLinks.filter((l) => l.conversationId === conversationId);
+}
+
+export function selectAllAssetCombos(): IAssetCombo[] {
+  return getMockState().assetCombos;
+}
+
+export function selectAllScheduledSends(): IScheduledSend[] {
+  return getMockState().scheduledSends;
+}
+
+export function selectScheduledSendsByConversation(conversationId: ID): IScheduledSend[] {
+  return getMockState().scheduledSends.filter((s) => s.conversationId === conversationId);
 }
