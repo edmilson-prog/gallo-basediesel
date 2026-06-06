@@ -195,9 +195,11 @@ export function MediaGallery({
         <h2 className="text-sm font-semibold text-foreground">{g.title}</h2>
       </div>
 
-      {/* Counters — aria-live so screen readers announce filter changes */}
+      {/* Counters — aria-live so screen readers announce filter changes.
+          Suppressed while loading to avoid announcing an inaccurate zero count
+          simultaneously with the loading spinner (spec coherence + a11y). */}
       <p className="px-3 pt-2 text-xs text-muted-foreground" aria-live="polite">
-        {mediaCounterLabel(filtered)}
+        {isLoading ? null : mediaCounterLabel(filtered)}
       </p>
 
       {/* Filters + view switcher */}
@@ -224,26 +226,22 @@ export function MediaGallery({
             columns={columns}
             viewer={currentUser}
             onOpen={openLightbox}
-            onRetry={(a) =>
-              void actions.setClassification(
-                a,
-                a.classification ?? actions.suggestClassification(a),
-              )
-            }
+            onRetry={(a) => void actions.retryPersist(a)}
             isLocked={isLocked}
             renderLockedOverlay={renderLockedOverlay}
           />
         ) : viewMode === "cartoes" ? (
-          <div
-            className="flex flex-col gap-2 p-3"
-            role="grid"
+          // role="list" (not role="grid") because we do not implement the roving-tabindex /
+          // arrow-key navigation contract required by role="grid". Each MediaCardTile button
+          // remains independently Tab-focusable, matching the <ul>/<li> list semantic.
+          <ul
+            className="flex flex-col gap-2 p-3 list-none"
             aria-label={g.title}
-            aria-colcount={2}
           >
             {Array.from({ length: Math.ceil(filtered.length / 2) }, (_, r) => (
-              <div
+              <li
                 key={r}
-                role="row"
+                role="listitem"
                 className="grid gap-2"
                 style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}
               >
@@ -255,21 +253,16 @@ export function MediaGallery({
                     lockedOverlay={isLocked(a) ? renderLockedOverlay(a) : undefined}
                   />
                 ))}
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         ) : (
           <MediaTypeGroups
             assets={filtered}
             columns={columns}
             viewer={currentUser}
             onOpen={openLightbox}
-            onRetry={(a) =>
-              void actions.setClassification(
-                a,
-                a.classification ?? actions.suggestClassification(a),
-              )
-            }
+            onRetry={(a) => void actions.retryPersist(a)}
             isLocked={isLocked}
             renderLockedOverlay={renderLockedOverlay}
           />

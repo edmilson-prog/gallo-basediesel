@@ -164,6 +164,30 @@ export function useMediaActions() {
     [provider, invalidate, a.annotatedToast],
   );
 
+  /**
+   * Retry-persist: transitions an asset with `persisted: false` back to
+   * `persisted: true` by writing through the provider (archival/storage retry).
+   * Audits `media.retry_persist`, invalidates scoped queries, and toasts.
+   * This is the correct handler for the failure-chip retry button (spec §5.5 /
+   * RF-006/007/008) — it retries ARCHIVAL, not classification.
+   */
+  const retryPersist = useCallback(
+    async (asset: IMediaAsset) => {
+      const updated = await provider.update(asset.id, { persisted: true });
+      auditLog({
+        action: "media.retry_persist",
+        resource: "media",
+        resourceId: asset.id,
+        before: { persisted: false },
+        after: { persisted: true },
+      });
+      invalidate(asset);
+      toast.success(a.retryPersistToast);
+      return updated;
+    },
+    [provider, invalidate, a.retryPersistToast],
+  );
+
   /** Fire-and-forget audit of a blocked sensitive view/open (spec §5.5). */
   const auditSensitiveAttempt = useCallback(
     (asset: IMediaAsset, kind: "view" | "open" | "download") => {
@@ -185,6 +209,7 @@ export function useMediaActions() {
   return {
     suggestClassification,
     setClassification,
+    retryPersist,
     link,
     linkVehicle,
     linkOrder,

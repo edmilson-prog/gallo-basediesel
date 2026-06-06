@@ -155,6 +155,7 @@ export const MEDIA_STRINGS = {
     sensitivityToast: "Sensibilidade atualizada.",
     deletedToast: "Mídia excluída.",
     annotatedToast: "Anotações salvas.",
+    retryPersistToast: "Reenvio iniciado.",
     suggestedClassification: (label: string) => `Sugestão: ${label}`,
     applySuggestion: "Aplicar sugestão",
     linkVehicle: "Vincular veículo",
