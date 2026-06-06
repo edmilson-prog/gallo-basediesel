@@ -21,6 +21,20 @@ const EMPTY: IMediaFilterState = {
   classification: "all",
 };
 
+/**
+ * Pure derivation of the number of non-default active filters.
+ * Excludes the free-text search field.
+ * Classification is only counted when scope === "customer".
+ */
+export function countActiveFilters(filters: IMediaFilterState, scope: MediaFilterScope): number {
+  let n = 0;
+  if (filters.kind !== "all") n++;
+  if (filters.authorType !== "all") n++;
+  if (filters.period !== "all") n++;
+  if (scope === "customer" && filters.classification !== "all") n++;
+  return n;
+}
+
 export interface IUseMediaFilters {
   scope: MediaFilterScope;
   filters: IMediaFilterState;
@@ -42,14 +56,7 @@ export function useMediaFilters(scope: MediaFilterScope): IUseMediaFilters {
 
   const reset = useCallback(() => setFilters(EMPTY), []);
 
-  const activeCount = useMemo(() => {
-    let n = 0;
-    if (filters.kind !== "all") n++;
-    if (filters.authorType !== "all") n++;
-    if (filters.period !== "all") n++;
-    if (scope === "customer" && filters.classification !== "all") n++;
-    return n;
-  }, [filters, scope]);
+  const activeCount = useMemo(() => countActiveFilters(filters, scope), [filters, scope]);
 
   return { scope, filters, setFilter, reset, activeCount };
 }
