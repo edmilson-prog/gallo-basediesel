@@ -69,4 +69,7 @@ export const MEDIA_STRINGS = {
     unnamed: "Sem nome",
     noClassification: "Sem classificação",
   },
+  grid: {
+    ariaLabel: "Mídias",
+  },
 };

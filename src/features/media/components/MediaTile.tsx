@@ -17,6 +17,12 @@ interface IMediaTileProps {
   onRetry?: () => void;
   /** Replaces the thumbnail with a blurred placeholder when locked. */
   lockedOverlay?: ReactNode;
+  /**
+   * Roving tabindex value for the primary button. MediaGrid sets 0 for the
+   * active cell and -1 for all others so Tab enters the grid exactly once.
+   * Default -1 keeps the tile inert when rendered standalone.
+   */
+  tabIndex?: number;
   className?: string;
 }
 
@@ -34,7 +40,7 @@ const EXPIRY_TONE: Record<"soft" | "strong" | "critical", string> = {
 };
 
 /** Square thumbnail tile with exactly one priority chip (D-13) + a11y label. */
-export function MediaTile({ asset, viewer, onOpen, onRetry, lockedOverlay, className }: IMediaTileProps) {
+export function MediaTile({ asset, viewer, onOpen, onRetry, lockedOverlay, tabIndex = -1, className }: IMediaTileProps) {
   const chip = statusChipPriority(asset, viewer); // 'failure' | 'sensitive' | 'expiring' | 'none'
   const exp = sourceExpiry(asset);
   const c = MEDIA_STRINGS.chip;
@@ -55,8 +61,11 @@ export function MediaTile({ asset, viewer, onOpen, onRetry, lockedOverlay, class
     <div
       className={cn("relative aspect-square overflow-hidden rounded-md border border-border bg-muted", className)}
     >
+      {/* data-primary marks this as the roving-tabindex focus target for focusCell() in MediaGrid */}
       <button
         type="button"
+        data-primary
+        tabIndex={tabIndex}
         onClick={onOpen}
         aria-label={ariaLabel}
         className="group block h-full w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -104,6 +113,7 @@ export function MediaTile({ asset, viewer, onOpen, onRetry, lockedOverlay, class
           {onRetry && (
             <button
               type="button"
+              tabIndex={-1}
               onClick={onRetry}
               aria-label={c.retry}
               className="ml-0.5 rounded-full p-0.5 hover:bg-severity-critical/20 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
