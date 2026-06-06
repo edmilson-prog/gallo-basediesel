@@ -25,4 +25,10 @@ export const MEDIA_STRINGS = {
   retry: "Tentar novamente",
   emptyState: "Nenhuma mídia",
   galleryTitle: "Mídias",
+  viewMode: {
+    label: "Modo de visualização",
+    grade: "Grade — miniaturas densas",
+    cartoes: "Cartões — com nome e classificação",
+    tipo: "Por tipo — imagens, documentos e áudios",
+  },
 } as const;
