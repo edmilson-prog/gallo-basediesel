@@ -40,7 +40,7 @@ export function MediaAnnotator({ asset, currentUserId, onClose }: IMediaAnnotato
       { width: rect.width, height: rect.height },
     );
     const base: IMediaAnnotation = {
-      id: `ann-${Date.now()}`,
+      id: `ann-${crypto.randomUUID()}`,
       type: tool,
       x, y,
       color: COLOR_TOKEN,
@@ -132,12 +132,12 @@ export function MediaAnnotator({ asset, currentUserId, onClose }: IMediaAnnotato
           <p className="text-xs text-muted-foreground">{t.empty}</p>
         ) : (
           <ul className="flex flex-col gap-1">
-            {items.map((a) => (
+            {items.map((a, i) => (
               <li key={a.id} className="flex items-center gap-2 rounded border border-border bg-card px-2 py-1">
                 <span
                   tabIndex={0}
                   onKeyDown={(e) => onListKey(e, a.id)}
-                  aria-label={`${t.tools[a.type]} ${a.label ?? ""} — ${t.nudgeHint}`}
+                  aria-label={`${[t.tools[a.type], a.label].filter(Boolean).join(" ")} — Anotação ${i + 1} — ${t.nudgeHint}`}
                   className="cursor-grab rounded p-0.5 text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <Icon icon="mdi:drag" size={14} />
