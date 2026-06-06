@@ -9,12 +9,6 @@ import { classifyMedia } from "../engine/classifyMedia";
 import { isSensitiveClassification } from "../engine/sensitiveAccess";
 import { MEDIA_STRINGS } from "../i18n/pt-BR";
 
-export interface IMediaLinkPatch {
-  linkedVehicleId?: ID;
-  linkedOrderId?: ID;
-  linkedPartId?: ID;
-}
-
 export function useMediaActions() {
   const provider = useMediaStorageProvider();
   const qc = useQueryClient();
@@ -66,17 +60,6 @@ export function useMediaActions() {
       return updated;
     },
     [provider, invalidate, a.classifiedToast],
-  );
-
-  const link = useCallback(
-    async (asset: IMediaAsset, patch: IMediaLinkPatch) => {
-      const updated = await provider.update(asset.id, patch);
-      auditLog({ action: "media.link", resource: "media", resourceId: asset.id, after: patch });
-      invalidate(asset);
-      toast.success(a.linkedToast);
-      return updated;
-    },
-    [provider, invalidate, a.linkedToast],
   );
 
   /** Typed link helpers — each audits the specific link kind (PRD-016/Order/PRD-021). */
@@ -217,7 +200,6 @@ export function useMediaActions() {
     suggestClassification,
     setClassification,
     retryPersist,
-    link,
     linkVehicle,
     linkOrder,
     linkPart,

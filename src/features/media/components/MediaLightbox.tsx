@@ -161,7 +161,11 @@ export function MediaLightbox({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onIndexChange(null)}>
-      <DialogContent className="h-[100dvh] w-screen max-w-none gap-0 border-0 bg-background/98 p-0 sm:rounded-none">
+      <DialogContent
+        className="h-[100dvh] w-screen max-w-none gap-0 border-0 bg-background/98 p-0 sm:rounded-none"
+        // Surface the implemented keymap for assistive technology (spec §7).
+        aria-keyshortcuts="ArrowLeft ArrowRight Escape Space Equal Minus"
+      >
         <DialogTitle className="sr-only">{asset.fileName ?? "Mídia"}</DialogTitle>
         <div className="flex h-full min-h-0 flex-col lg:flex-row">
           {/* center */}
