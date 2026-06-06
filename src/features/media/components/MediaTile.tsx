@@ -131,7 +131,18 @@ export function MediaTile({ asset, viewer, onOpen, onRetry, lockedOverlay: locke
         </span>
       )}
 
-      {/* failure chip carries a real focusable retry button (RF-008, reachable without hover) */}
+      {/* failure chip carries a real focusable retry button (RF-008, reachable without hover).
+       *
+       * Roving-tabindex integration (D-7 / RNF-004): the retry button mirrors the same
+       * tabIndex as the primary button so it participates in the MediaGrid roving sequence.
+       * When this tile is the active cell (tabIndex=0 from MediaGrid) the retry button is
+       * also reachable; when the tile is inactive (tabIndex=-1) retry is hidden from Tab.
+       * This satisfies BOTH "Tab enters the grid exactly once" AND RF-008 keyboard reachability.
+       *
+       * Note: non-grid surfaces (MediaTypeGroups ListRow, cartões) do NOT use this component
+       * for their retry affordance — they render independent sibling buttons in natural tab
+       * order, which is correct because those surfaces are role="list" not role="grid".
+       */}
       {chip === "failure" && (
         <span className={cn("absolute bottom-1.5 right-1.5 inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium", CHIP_TONE.failure)}>
           <Icon icon="mdi:alert-circle" size={11} aria-hidden />
@@ -139,6 +150,7 @@ export function MediaTile({ asset, viewer, onOpen, onRetry, lockedOverlay: locke
           {onRetry && (
             <button
               type="button"
+              tabIndex={tabIndex}
               onClick={onRetry}
               aria-label={c.retry}
               className="ml-0.5 rounded-full p-0.5 hover:bg-severity-critical/20 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"

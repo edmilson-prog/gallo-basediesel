@@ -104,9 +104,10 @@ function ListRow({
       {failed && onRetry && (
         // Retry affordance for failed assets — sibling of the open button (not nested).
         // tabIndex omitted so it enters the natural tab order (RF-008 / WCAG 2.1.1).
+        // i18n: use MEDIA_STRINGS.chip.retry (c.retry) — never hardcode user-facing strings.
         <button
           type="button"
-          aria-label="Tentar novamente"
+          aria-label={c.retry}
           onClick={onRetry}
           className="shrink-0 rounded p-2 text-muted-foreground hover:text-severity-critical focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
