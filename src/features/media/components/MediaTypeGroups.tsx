@@ -5,7 +5,8 @@ import type { IMockUserProfile } from "@/features/auth/mock-users";
 import { Icon } from "@/components/Icon";
 import { mediaKindIcon, formatBytes } from "../utils/mediaDisplay";
 import { MediaGrid } from "./MediaGrid";
-import { MEDIA_STRINGS } from "../i18n/pt-BR";
+import { MEDIA_STRINGS, KIND_LABELS } from "../i18n/pt-BR";
+import { canViewSensitive, statusChipPriority } from "../engine/sensitiveAccess";
 
 interface IMediaTypeGroupsProps {
   assets: IMediaAsset[];
@@ -19,24 +20,58 @@ interface IMediaTypeGroupsProps {
   instanceId?: string;
 }
 
-function ListRow({ asset, onOpen, snippet, playable, playLabel }: {
-  asset: IMediaAsset; onOpen: () => void; snippet?: string; playable?: boolean; playLabel?: string;
+function ListRow({
+  asset,
+  viewer,
+  onOpen,
+  snippet,
+  playable,
+  playLabel,
+}: {
+  asset: IMediaAsset;
+  viewer: IMockUserProfile | null;
+  onOpen: () => void;
+  snippet?: string;
+  playable?: boolean;
+  playLabel?: string;
 }) {
+  const c = MEDIA_STRINGS.chip;
+  const chip = statusChipPriority(asset, viewer);
+  const locked = chip === "sensitive";
+
+  // D-6/§5.5: sensitive assets must carry a visible lock signal in every surface.
+  // When locked, suppress bytes (snippet/transcription) and show the lock label instead.
+  const showSnippet = !locked && !!snippet;
+  const showLockSignal = locked;
+
+  // aria-label: fall back to kind label when fileName is absent so screen readers
+  // don't announce a trailing em-dash placeholder (fix minor issue 4).
+  const displayName = asset.fileName ?? KIND_LABELS[asset.kind];
+  const ariaLabel =
+    playable && playLabel ? `${playLabel} — ${displayName}` : undefined;
+
   return (
     <button
       type="button"
-      onClick={onOpen}
-      aria-label={playable && playLabel ? `${playLabel} — ${asset.fileName ?? "—"}` : undefined}
+      onClick={locked ? undefined : onOpen}
+      aria-label={ariaLabel}
+      aria-disabled={locked || undefined}
       className="flex w-full items-center gap-3 rounded-md border border-border bg-card px-3 py-2 text-left hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-muted text-muted-foreground">
-        <Icon icon={playable ? "mdi:play" : mediaKindIcon(asset.kind)} size={16} aria-hidden />
+        <Icon icon={playable && !locked ? "mdi:play" : mediaKindIcon(asset.kind)} size={16} aria-hidden />
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-xs font-medium text-foreground">
           {asset.fileName ?? "—"}
         </span>
-        {snippet ? (
+        {showLockSignal ? (
+          // Spec §5.5 / D-6: visible lock signal — lock icon (mdi:lock) + label, RNF-004 paired color+icon+text.
+          <span className="inline-flex items-center gap-1 text-[11px] text-severity-warning">
+            <Icon icon="mdi:lock" size={12} aria-hidden />
+            {c.sensitive}
+          </span>
+        ) : showSnippet ? (
           <span className="block truncate text-[11px] text-muted-foreground">{snippet}</span>
         ) : (
           <span className="block text-[11px] text-muted-foreground">{formatBytes(asset.sizeBytes)}</span>
@@ -83,7 +118,7 @@ export function MediaTypeGroups({
           <p className="text-xs text-muted-foreground">{g.empty}</p>
         ) : (
           <div className="flex flex-col gap-1.5">
-            {docs.map((a) => <ListRow key={a.id} asset={a} onOpen={() => onOpen(a)} />)}
+            {docs.map((a) => <ListRow key={a.id} asset={a} viewer={viewer} onOpen={() => onOpen(a)} />)}
           </div>
         )}
       </section>
@@ -97,7 +132,22 @@ export function MediaTypeGroups({
         ) : (
           <div className="flex flex-col gap-1.5">
             {audios.map((a) => (
-              <ListRow key={a.id} asset={a} onOpen={() => onOpen(a)} playable playLabel={g.playAudio} snippet={a.transcription} />
+              <ListRow
+                key={a.id}
+                asset={a}
+                viewer={viewer}
+                onOpen={() => onOpen(a)}
+                playable
+                playLabel={g.playAudio}
+                // D-6/§5.5 defense-in-depth: only expose transcription text when the viewer
+                // can access sensitive content OR the asset is not sensitive. This prevents a
+                // latent plaintext leak the moment any audio asset is marked sensitivity:'sensitive'.
+                snippet={
+                  canViewSensitive(viewer) || a.sensitivity !== "sensitive"
+                    ? a.transcription
+                    : undefined
+                }
+              />
             ))}
           </div>
         )}
