@@ -72,4 +72,12 @@ export const MEDIA_STRINGS = {
   grid: {
     ariaLabel: "Mídias",
   },
+  groups: {
+    images: "Imagens",
+    documents: "Documentos",
+    audios: "Áudios",
+    videos: "Vídeos",
+    empty: "Nenhum item deste tipo.",
+    playAudio: "Reproduzir áudio",
+  },
 };
