@@ -34,6 +34,10 @@ import type { IIndicatorsProvider } from "./indicators";
 import type { IVehicleModelsProvider } from "./vehicleModels";
 import type { IModelKitsProvider } from "./modelKits";
 import type { IMediaStorageProvider } from "./mediaStorage";
+import type { IAssetLibraryProvider } from "./assetLibrary";
+import type { IQuickReplyProvider } from "./quickReply";
+import type { ITrackableLinkProvider } from "./trackableLink";
+import type { IScheduledSendProvider } from "./scheduledSend";
 
 export type { IPaginatedResult, IPaginationParams } from "./_shared";
 
@@ -107,6 +111,10 @@ export type {
   IUpdateModelKitPatch,
 } from "./modelKits";
 export type { IMediaStorageProvider, IMediaUploadInput, IListMediaParams } from "./mediaStorage";
+export type { IAssetLibraryProvider, IAssetLibraryListParams } from "./assetLibrary";
+export type { IQuickReplyProvider } from "./quickReply";
+export type { ITrackableLinkProvider } from "./trackableLink";
+export type { IScheduledSendProvider } from "./scheduledSend";
 
 /**
  * Aggregate of every data provider returned by `getDataProviders()`. The factory
@@ -143,4 +151,8 @@ export interface IDataProviders {
   vehicleModels: IVehicleModelsProvider;
   modelKits: IModelKitsProvider;
   media: IMediaStorageProvider;
+  assetLibrary: IAssetLibraryProvider;
+  quickReply: IQuickReplyProvider;
+  trackableLink: ITrackableLinkProvider;
+  scheduledSend: IScheduledSendProvider;
 }
