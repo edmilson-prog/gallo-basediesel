@@ -63,6 +63,7 @@ export function MediaLightbox({
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (isFormField(e.target)) return;
+      if (asideOpen) return;
       if (e.key === "ArrowRight") { e.preventDefault(); go(1); }
       else if (e.key === "ArrowLeft") { e.preventDefault(); go(-1); }
       else if (e.key === "Escape") { onIndexChange(null); }
@@ -72,7 +73,7 @@ export function MediaLightbox({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, go, asset, onIndexChange]);
+  }, [open, go, asset, onIndexChange, asideOpen]);
 
   // Audit when a blocked asset becomes active (open + navigate), not only on click
   // (spec §5.5 / D-6 — every sensitive visualisation attempt must be recorded).
@@ -80,9 +81,6 @@ export function MediaLightbox({
     if (open && asset && !canView(asset)) {
       onSensitiveAttempt?.(asset);
     }
-    // Reset stale audio toggle ref whenever the active asset changes so a
-    // prior player's closure cannot be invoked after it unmounts (D-footgun fix).
-    audioToggle.current = null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, asset?.id]);
 
@@ -96,7 +94,7 @@ export function MediaLightbox({
         <>
           <dl className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-1 text-xs">
             <dt className="text-muted-foreground">{l.meta.author}</dt>
-            <dd className="text-foreground">{asset.authorType}</dd>
+            <dd className="text-foreground">{MEDIA_STRINGS.filters.author[asset.authorType]}</dd>
             <dt className="text-muted-foreground">{l.meta.date}</dt>
             <dd className="text-foreground">{new Date(asset.createdAt).toLocaleString("pt-BR")}</dd>
             <dt className="text-muted-foreground">{l.meta.size}</dt>
@@ -109,7 +107,7 @@ export function MediaLightbox({
                   ? "border-severity-warning/30 bg-severity-warning/15 text-severity-warning"
                   : "border-border bg-muted text-muted-foreground",
               )}>
-                {asset.classification ?? "—"}
+                {asset.classification ? MEDIA_STRINGS.filters.classification[asset.classification] : "—"}
               </span>
             </dd>
           </dl>
