@@ -1,5 +1,5 @@
 // src/features/media/components/MediaGallery.tsx
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import type { IMediaAsset, IMediaClassification } from "@/shared/types";
 import { Icon } from "@/components/Icon";
@@ -54,7 +54,19 @@ export function MediaGallery({
   const [viewMode, setViewMode] = useMediaViewMode();
   const filtersApi = useMediaFilters(scope);
   const actions = useMediaActions();
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  // Track lightbox by asset id (not positional index) so filter changes do not silently
+  // resolve to a different asset. The positional index is derived from `filtered` on render.
+  const [lightboxId, setLightboxId] = useState<string | null>(null);
+  const lightboxIndex = useMemo(
+    () => (lightboxId === null ? null : filtered.findIndex((x) => x.id === lightboxId)),
+    [lightboxId, filtered],
+  );
+  // Close the lightbox if the active asset is no longer in the filtered set (e.g. filter changed).
+  useEffect(() => {
+    if (lightboxId !== null && filtered.findIndex((x) => x.id === lightboxId) < 0) {
+      setLightboxId(null);
+    }
+  }, [lightboxId, filtered]);
   const [annotating, setAnnotating] = useState<IMediaAsset | null>(null);
   const [classifying, setClassifying] = useState<IMediaAsset | null>(null);
   const [linking, setLinking] = useState<IMediaAsset | null>(null);
@@ -95,18 +107,28 @@ export function MediaGallery({
   );
 
   const openLightbox = (asset: IMediaAsset) => {
-    const idx = filtered.findIndex((x) => x.id === asset.id);
-    if (idx >= 0) setLightboxIndex(idx);
+    if (filtered.some((x) => x.id === asset.id)) setLightboxId(asset.id);
     if (asset.sensitivity === "sensitive") {
       if (canViewSensitive(currentUser)) actions.auditSensitiveAccess(asset, "open");
       else actions.auditSensitiveAttempt(asset, "open");
     }
   };
 
+  // MediaLightbox calls onIndexChange with a positional number (prev/next arrows) or null (close).
+  // We convert the positional index back to an id so the id-tracking state stays consistent.
+  const handleLightboxIndexChange = (i: number | null) => {
+    if (i === null) {
+      setLightboxId(null);
+    } else {
+      const target = filtered[i];
+      if (target) setLightboxId(target.id);
+    }
+  };
+
   const openConversation = (asset: IMediaAsset) => {
     if (!asset.conversationId) return;
     void navigate({ to: "/app/atendimento/$id", params: { id: asset.conversationId } });
-    setLightboxIndex(null);
+    setLightboxId(null);
   };
 
   const renderActions = (asset: IMediaAsset) => {
@@ -234,25 +256,21 @@ export function MediaGallery({
           // role="list" (not role="grid") because we do not implement the roving-tabindex /
           // arrow-key navigation contract required by role="grid". Each MediaCardTile button
           // remains independently Tab-focusable, matching the <ul>/<li> list semantic.
+          // One <li> per asset (flat) — the two-column layout is applied via CSS grid on the
+          // <ul> so each media is an individually addressable list item (correct count for AT).
           <ul
-            className="flex flex-col gap-2 p-3 list-none"
+            className="grid gap-2 p-3 list-none"
+            style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}
             aria-label={g.title}
           >
-            {Array.from({ length: Math.ceil(filtered.length / 2) }, (_, r) => (
-              <li
-                key={r}
-                role="listitem"
-                className="grid gap-2"
-                style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}
-              >
-                {filtered.slice(r * 2, r * 2 + 2).map((a) => (
-                  <MediaCardTile
-                    key={a.id}
-                    asset={a}
-                    onOpen={() => openLightbox(a)}
-                    lockedOverlay={isLocked(a) ? renderLockedOverlay(a) : undefined}
-                  />
-                ))}
+            {filtered.map((a) => (
+              <li key={a.id}>
+                <MediaCardTile
+                  asset={a}
+                  onOpen={() => openLightbox(a)}
+                  lockedOverlay={isLocked(a) ? renderLockedOverlay(a) : undefined}
+                  className="h-full"
+                />
               </li>
             ))}
           </ul>
@@ -273,7 +291,7 @@ export function MediaGallery({
       <MediaLightbox
         assets={filtered}
         index={lightboxIndex}
-        onIndexChange={setLightboxIndex}
+        onIndexChange={handleLightboxIndexChange}
         canView={(a) => a.sensitivity !== "sensitive" || canViewSensitive(currentUser)}
         renderActions={renderActions}
         onSensitiveAttempt={(a) => actions.auditSensitiveAttempt(a, "open")}
@@ -409,7 +427,7 @@ export function MediaGallery({
               onClick={() => {
                 if (pendingDelete) void actions.remove(pendingDelete);
                 setPendingDelete(null);
-                setLightboxIndex(null);
+                setLightboxId(null);
               }}
             >
               {MEDIA_STRINGS.actions.deleteConfirm}

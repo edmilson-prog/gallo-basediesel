@@ -33,7 +33,6 @@ export function MediaCardTile({ asset, onOpen, lockedOverlay, className }: IMedi
 
   return (
     <div
-      role="gridcell"
       className={cn("flex flex-col overflow-hidden rounded-lg border border-border bg-card", className)}
     >
       {/*
