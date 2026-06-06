@@ -108,4 +108,18 @@ export const MEDIA_STRINGS = {
     noTranscription: "Sem transcrição disponível.",
     transcriptionLabel: "Transcrição",
   },
+  lightbox: {
+    close: "Fechar",
+    prev: "Anterior",
+    next: "Próxima",
+    zoomIn: "Aumentar zoom",
+    zoomOut: "Reduzir zoom",
+    openDoc: "Abrir documento",
+    downloadDoc: "Baixar",
+    details: "Detalhes e ações",
+    meta: { author: "Autor", date: "Data", size: "Tamanho", classification: "Classificação", links: "Vínculos" },
+    noLinks: "Sem vínculos.",
+    openConversation: "Abrir conversa",
+    counter: (i: number, total: number) => `${i} de ${total}`,
+  },
 };
