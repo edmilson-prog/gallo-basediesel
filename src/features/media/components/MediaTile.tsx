@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { mediaKindIcon } from "../utils/mediaDisplay";
 import { statusChipPriority } from "../engine/sensitiveAccess";
 import { sourceExpiry } from "../engine/sourceExpiry";
-import { MEDIA_STRINGS } from "../i18n/pt-BR";
+import { KIND_LABELS, MEDIA_STRINGS } from "../i18n/pt-BR";
 
 interface IMediaTileProps {
   asset: IMediaAsset;
@@ -22,10 +22,9 @@ interface IMediaTileProps {
 
 // D-14: Tailwind severity utilities ONLY — never var(--severity-*).
 // Expiry urgency tiers (D-13/§5.6): soft ⇒ muted warning, strong ⇒ solid warning, critical ⇒ critical.
-const CHIP_TONE: Record<"failure" | "sensitive" | "expiring", string> = {
+const CHIP_TONE: Record<"failure" | "sensitive", string> = {
   failure: "bg-severity-critical/15 text-severity-critical border-severity-critical/30",
   sensitive: "bg-severity-warning/15 text-severity-warning border-severity-warning/30",
-  expiring: "bg-severity-warning/15 text-severity-warning border-severity-warning/30",
 };
 
 const EXPIRY_TONE: Record<"soft" | "strong" | "critical", string> = {
@@ -40,11 +39,14 @@ export function MediaTile({ asset, viewer, onOpen, onRetry, lockedOverlay, class
   const exp = sourceExpiry(asset);
   const c = MEDIA_STRINGS.chip;
 
+  const isExpired = chip === "expiring" && exp.daysLeft <= 0;
+
   const ariaLabel = [
-    asset.fileName ?? mediaKindIcon(asset.kind),
+    asset.fileName ?? KIND_LABELS[asset.kind],
     chip === "sensitive" ? c.sensitive : null,
     chip === "failure" ? c.failure : null,
-    chip === "expiring" ? c.expiringLabel(exp.daysLeft) : null,
+    chip === "expiring" && !isExpired ? c.expiringLabel(exp.daysLeft) : null,
+    isExpired ? c.expiredLabel : null,
   ]
     .filter(Boolean)
     .join(" — ");
@@ -90,7 +92,7 @@ export function MediaTile({ asset, viewer, onOpen, onRetry, lockedOverlay, class
           )}
         >
           <Icon icon="mdi:clock-alert-outline" size={11} aria-hidden />
-          {c.expiringDays(exp.daysLeft)}
+          {isExpired ? c.expired : c.expiringDays(exp.daysLeft)}
         </span>
       )}
 

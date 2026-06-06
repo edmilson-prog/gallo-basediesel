@@ -61,6 +61,8 @@ export const MEDIA_STRINGS = {
     retry: "Tentar novamente",
     expiringDays: (n: number) => `${n}d`,
     expiringLabel: (n: number) => `Expira em ${n} dia${n === 1 ? "" : "s"}`,
+    expired: "Expirada",
+    expiredLabel: "URL expirada",
     sensitive: "Conteúdo sensível",
   },
 };
