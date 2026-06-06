@@ -56,58 +56,64 @@ function ListRow({
   const ariaLabel =
     playable && playLabel ? `${playLabel} — ${displayName}` : undefined;
 
+  // §5.5 / D-6 AUDIT: the open button always fires onOpen — even for sensitive/locked
+  // assets. The lightbox enforces the canView gate; clicking here triggers the audit
+  // trail (actions.auditSensitiveAttempt). Short-circuiting here would silently skip
+  // the required audit entry.
+  //
+  // RF-008 / WCAG 2.1.1: the retry control MUST NOT be nested inside another interactive
+  // element. Restructured as a flex row div so the open button and the retry button are
+  // siblings — each independently keyboard-focusable, no invalid nesting.
   return (
-    <button
-      type="button"
-      // §5.5 / D-6 AUDIT: always call onOpen — even for sensitive/locked assets.
-      // The lightbox enforces the canView gate; clicking here triggers the audit
-      // trail (actions.auditSensitiveAttempt) and shows the blocked SensitiveLock body.
-      // Short-circuiting onClick here would silently skip the required audit entry.
-      onClick={onOpen}
-      aria-label={ariaLabel}
-      className="flex w-full items-center gap-3 rounded-md border border-border bg-card px-3 py-2 text-left hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-muted text-muted-foreground">
-        {/* Play icon is shown for playable assets regardless of lock state;
-            the lock signal below communicates the restriction. */}
-        <Icon icon={playable ? "mdi:play" : mediaKindIcon(asset.kind)} size={16} aria-hidden />
-      </span>
-      <span className="min-w-0 flex-1">
-        {/* Use displayName so nameless assets show a kind label instead of '—'. */}
-        <span className="block truncate text-xs font-medium text-foreground">
-          {displayName}
+    <div className="flex w-full items-center gap-1 rounded-md border border-border bg-card text-left">
+      <button
+        type="button"
+        onClick={onOpen}
+        aria-label={ariaLabel}
+        className="flex min-w-0 flex-1 items-center gap-3 rounded-md px-3 py-2 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-muted text-muted-foreground">
+          {/* Play icon is shown for playable assets regardless of lock state;
+              the lock signal below communicates the restriction. */}
+          <Icon icon={playable ? "mdi:play" : mediaKindIcon(asset.kind)} size={16} aria-hidden />
         </span>
-        {failed ? (
-          // Failure indicator: mirrors MediaTile's failure chip (inconsistency fix).
-          <span className="inline-flex items-center gap-1 text-[11px] text-severity-critical">
-            <Icon icon="mdi:alert-circle" size={12} aria-hidden />
-            {c.failure}
+        <span className="min-w-0 flex-1">
+          {/* Use displayName so nameless assets show a kind label instead of '—'. */}
+          <span className="block truncate text-xs font-medium text-foreground">
+            {displayName}
           </span>
-        ) : showLockSignal ? (
-          // Spec §5.5 / D-6: visible lock signal — lock icon (mdi:lock) + label, RNF-004 paired color+icon+text.
-          <span className="inline-flex items-center gap-1 text-[11px] text-severity-warning">
-            <Icon icon="mdi:lock" size={12} aria-hidden />
-            {c.sensitive}
-          </span>
-        ) : showSnippet ? (
-          <span className="block truncate text-[11px] text-muted-foreground">{snippet}</span>
-        ) : (
-          <span className="block text-[11px] text-muted-foreground">{formatBytes(asset.sizeBytes)}</span>
-        )}
-      </span>
+          {failed ? (
+            // Failure indicator: mirrors MediaTile's failure chip (inconsistency fix).
+            <span className="inline-flex items-center gap-1 text-[11px] text-severity-critical">
+              <Icon icon="mdi:alert-circle" size={12} aria-hidden />
+              {c.failure}
+            </span>
+          ) : showLockSignal ? (
+            // Spec §5.5 / D-6: visible lock signal — lock icon (mdi:lock) + label, RNF-004 paired color+icon+text.
+            <span className="inline-flex items-center gap-1 text-[11px] text-severity-warning">
+              <Icon icon="mdi:lock" size={12} aria-hidden />
+              {c.sensitive}
+            </span>
+          ) : showSnippet ? (
+            <span className="block truncate text-[11px] text-muted-foreground">{snippet}</span>
+          ) : (
+            <span className="block text-[11px] text-muted-foreground">{formatBytes(asset.sizeBytes)}</span>
+          )}
+        </span>
+      </button>
       {failed && onRetry && (
-        // Retry affordance for failed assets, mirroring the grid surface.
-        <span
-          role="button"
-          tabIndex={-1}
+        // Retry affordance for failed assets — sibling of the open button (not nested).
+        // tabIndex omitted so it enters the natural tab order (RF-008 / WCAG 2.1.1).
+        <button
+          type="button"
           aria-label="Tentar novamente"
-          onClick={(e) => { e.stopPropagation(); onRetry(); }}
-          className="shrink-0 rounded p-1 text-muted-foreground hover:text-severity-critical focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          onClick={onRetry}
+          className="shrink-0 rounded p-2 text-muted-foreground hover:text-severity-critical focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Icon icon="mdi:refresh" size={14} aria-hidden />
-        </span>
+        </button>
       )}
-    </button>
+    </div>
   );
 }
 
