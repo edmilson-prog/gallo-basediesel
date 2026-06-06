@@ -13,9 +13,7 @@ export function isSensitiveAsset(item: IAssetLibraryItem): boolean {
   return item.category === "tabela_preco" || item.sensitivity === "sensitive";
 }
 
-export function canSendSensitiveAsset(
-  viewer: { role: RoleName } | null | undefined,
-): boolean {
+export function canSendSensitiveAsset(viewer: { role: RoleName } | null | undefined): boolean {
   if (!viewer) return false;
   return SENSITIVE_ROLES.includes(viewer.role);
 }
