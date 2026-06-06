@@ -25,11 +25,6 @@ const _REQUEST_ACCESS = "Solicitar acesso ao gestor";
 
 /** Foundation-level strings reused by Fases 3-5 surfaces. */
 export const MEDIA_STRINGS = {
-  sensitiveCaption: _SENSITIVE_CAPTION,
-  requestAccess: _REQUEST_ACCESS,
-  retry: "Tentar novamente",
-  emptyState: "Nenhuma mídia",
-  galleryTitle: "Mídias",
   viewMode: {
     label: "Modo de visualização",
     grade: "Grade — miniaturas densas",
@@ -165,6 +160,8 @@ export const MEDIA_STRINGS = {
     cancel: "Cancelar",
     classifiedToast: "Classificação atualizada.",
     linkedToast: "Vínculo salvo.",
+    markSensitive: "Marcar como sensível",
+    unmarkSensitive: "Remover sensibilidade",
     sensitivityToast: "Sensibilidade atualizada.",
     deletedToast: "Mídia excluída.",
     annotatedToast: "Anotações salvas.",

@@ -174,6 +174,30 @@ export function MediaGallery({
               {MEDIA_STRINGS.actions.link}
             </Button>
           </Can>
+          {/* Manual sensitivity marking (RF-021) — Owner/Gestor only; audited via setSensitivity. */}
+          <Can resource="media" action="edit">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                void actions.setSensitivity(
+                  asset,
+                  asset.sensitivity === "sensitive" ? "normal" : "sensitive",
+                )
+              }
+            >
+              <Icon
+                icon={
+                  asset.sensitivity === "sensitive" ? "mdi:lock-open-variant-outline" : "mdi:lock"
+                }
+                size={14}
+                className="mr-1"
+              />
+              {asset.sensitivity === "sensitive"
+                ? MEDIA_STRINGS.actions.unmarkSensitive
+                : MEDIA_STRINGS.actions.markSensitive}
+            </Button>
+          </Can>
           <Button
             variant="outline"
             size="sm"
