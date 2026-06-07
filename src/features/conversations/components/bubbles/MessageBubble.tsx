@@ -5,6 +5,8 @@ import { AudioBubble } from "./AudioBubble";
 import { DocumentBubble } from "./DocumentBubble";
 import { SystemBubble } from "./SystemBubble";
 import { TemplateBubble } from "./TemplateBubble";
+import { ProductCardBubble } from "@/features/quick-send/components/ProductCardBubble";
+import { PRODUCT_CARD_MARKER } from "@/features/quick-send/engine/productCardPayload";
 
 export interface IMessageBubbleProps {
   message: IMessage;
@@ -30,6 +32,9 @@ export function MessageBubble({ message, onRetry }: IMessageBubbleProps) {
       message.text.startsWith("📋 "))
   ) {
     return <TemplateBubble message={message} onRetry={onRetry} />;
+  }
+  if (message.text.startsWith(PRODUCT_CARD_MARKER)) {
+    return <ProductCardBubble message={message} onRetry={onRetry} />;
   }
   if (message.mediaType === "image" || message.mediaType === "sticker") {
     return <ImageBubble message={message} onRetry={onRetry} />;
