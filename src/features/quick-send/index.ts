@@ -76,3 +76,4 @@ export {
   type IUseScheduleSendResult,
   type IScheduleSendPayload,
 } from "./hooks/useScheduleSend";
+export { ScheduledList, type IScheduledListProps } from "./components/ScheduledList";
