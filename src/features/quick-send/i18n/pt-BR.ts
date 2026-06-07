@@ -42,6 +42,8 @@ export const QUICK_SEND_STRINGS = {
     stockOk: "Em estoque",
     stockWarning: "Estoque baixo",
     stockCritical: "Sem estoque",
+    // dentro do grupo productCard: {...} — chave nova do Plano B (não enumerada em CONTRACT §J)
+    cardFooter: "Valores sujeitos a confirmação.",
   },
   combo: {
     packageMode: "Modo pacote",
