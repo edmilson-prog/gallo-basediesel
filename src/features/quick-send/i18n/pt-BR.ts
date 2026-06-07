@@ -115,9 +115,13 @@ export const QUICK_SEND_STRINGS = {
     manageSnippets: "Gerenciar respostas rápidas",
   },
   stats: {
+    title: "Estatística de uso da biblioteca",
+    subtitle: "Ativos mais enviados e ranking por vendedor no período.",
     topAssets: "Ativos mais enviados",
     perSeller: "Ranking por vendedor",
     period: "Período",
+    sendCount: (n: number) => (n === 1 ? "1 envio" : `${n} envios`),
+    empty: "Nenhum envio registrado ainda.",
   },
   errors: {
     loadAssetFailed: "Não foi possível carregar a biblioteca.",

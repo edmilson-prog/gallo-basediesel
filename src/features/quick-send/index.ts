@@ -90,3 +90,5 @@ export {
   type IUseCopilotAssetHandoffResult,
   type ICopilotAssetSuggestion,
 } from "./hooks/useCopilotAssetHandoff";
+
+export { AssetUsageStatsPage, type IAssetUsageStatsPageProps } from "./components/library-admin/AssetUsageStatsPage";
