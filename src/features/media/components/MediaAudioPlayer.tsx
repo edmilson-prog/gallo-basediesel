@@ -101,7 +101,7 @@ export function MediaAudioPlayer({ asset, searchTerm, registerToggle }: IMediaAu
             value={[pos]}
             max={duration}
             step={1}
-            onValueChange={([v]) => setPos(v)}
+            onValueChange={([v]) => setPos(v ?? 0)}
             aria-label={a.sliderLabel}
             className="flex-1"
           />

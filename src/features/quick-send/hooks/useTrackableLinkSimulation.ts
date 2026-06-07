@@ -112,6 +112,7 @@ export function useTrackableLinkSimulation(
       if (candidates.length === 0) return;
       // Pick the link with the fewest opens to spread the simulation.
       const target = [...candidates].sort((a, b) => a.opens - b.opens)[0];
+      if (!target) return;
       try {
         const updated = await linkProvider.registerOpen(target.id);
         // Trackable-links IS a real query (useConversationLinks) — invalidate it

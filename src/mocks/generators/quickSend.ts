@@ -74,7 +74,7 @@ export function generateAssetLibrary(
     // Guarantee one of every category for the first N items, then weight.
     const category: AssetCategory =
       i < CATEGORIES.length
-        ? CATEGORIES[i]
+        ? CATEGORIES[i]!
         : pickWeighted<AssetCategory>(ctx, [
             { value: "catalogo", weight: 5 },
             { value: "ficha_tecnica", weight: 4 },
@@ -189,9 +189,9 @@ export function generateQuickReplies(
 
   let p = 0;
   while (out.length < input.count) {
-    const seed = PRIVATE_SNIPPET_SEEDS[p % PRIVATE_SNIPPET_SEEDS.length];
+    const seed = PRIVATE_SNIPPET_SEEDS[p % PRIVATE_SNIPPET_SEEDS.length]!;
     const sellerId =
-      input.sellerIds.length > 0 ? input.sellerIds[p % input.sellerIds.length] : owner;
+      input.sellerIds.length > 0 ? input.sellerIds[p % input.sellerIds.length]! : owner;
     const suffix = Math.floor(p / PRIVATE_SNIPPET_SEEDS.length);
     const createdAt = new Date(nowMs - ctx.int(1, 120) * DAY_MS).toISOString();
     out.push({
@@ -235,7 +235,7 @@ export function generateTrackableLinks(
   const nowMs = input.now.getTime();
 
   for (let i = 0; i < input.count; i += 1) {
-    const conversationId = input.conversationIds[i % input.conversationIds.length];
+    const conversationId = input.conversationIds[i % input.conversationIds.length]!;
     const leadId = input.leadIdByConversation[conversationId];
     const asset = input.assets.length > 0 ? input.assets[i % input.assets.length] : undefined;
     const targetUrl =
@@ -302,14 +302,14 @@ export function generateAssetCombos(
     const size = Math.min(ctx.int(2, 4), usable.length);
     const assetIds: ID[] = [];
     for (let j = 0; j < size; j += 1) {
-      const candidate = usable[(i + j * 3) % usable.length].id;
+      const candidate = usable[(i + j * 3) % usable.length]!.id;
       if (!assetIds.includes(candidate)) assetIds.push(candidate);
     }
     const createdAt = new Date(nowMs - ctx.int(1, 90) * DAY_MS).toISOString();
     out.push({
       id: `combo-${String(i + 1).padStart(4, "0")}`,
       storeId: input.storeId,
-      title: COMBO_TITLES[i % COMBO_TITLES.length],
+      title: COMBO_TITLES[i % COMBO_TITLES.length]!,
       assetIds,
       ownerId: input.ownerId,
       createdAt,

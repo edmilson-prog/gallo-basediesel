@@ -3,16 +3,17 @@ import type { IMediaAnnotation } from "@/shared/types";
 import { cn } from "@/lib/utils";
 
 /** IMediaAnnotation.color stores a severity TOKEN NAME → Tailwind text color class. */
+const FALLBACK_TONE = "text-severity-info";
 const ANNOTATION_TONE: Record<string, string> = {
   critical: "text-severity-critical",
   warning: "text-severity-warning",
-  info: "text-severity-info",
+  info: FALLBACK_TONE,
   success: "text-severity-success",
 };
 
 /** Resolve a token name to its class; default to info if unknown. */
 export function annotationToneClass(color: string): string {
-  return ANNOTATION_TONE[color] ?? ANNOTATION_TONE.info;
+  return ANNOTATION_TONE[color] ?? FALLBACK_TONE;
 }
 
 interface IAnnotationLayerProps {

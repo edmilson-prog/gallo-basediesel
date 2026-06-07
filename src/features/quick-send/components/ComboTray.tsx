@@ -25,8 +25,9 @@ const CATEGORY_ICON: Record<IAssetLibraryItem["category"], string> = {
 /** Move item at `from` to `to`, returning the reordered id list. */
 function reorder(items: IAssetLibraryItem[], from: number, to: number): ID[] {
   const ids = items.map((i) => i.id);
-  if (to < 0 || to >= ids.length) return ids;
+  if (from < 0 || from >= ids.length || to < 0 || to >= ids.length) return ids;
   const [moved] = ids.splice(from, 1);
+  if (moved === undefined) return ids;
   ids.splice(to, 0, moved);
   return ids;
 }
@@ -44,10 +45,12 @@ export function ComboTray({ items, onReorder, onRemove, onSendAll, progress }: I
 
   /** Reorder an item and announce its new 1-based position to AT (RNF-004). */
   const move = (from: number, to: number) => {
+    const item = items[from];
+    if (!item) return;
     const dest = Math.max(0, Math.min(items.length - 1, to));
     if (dest === from) return;
     onReorder(reorder(items, from, dest));
-    setAnnouncement(s.moved(items[from].title, dest + 1, items.length));
+    setAnnouncement(s.moved(item.title, dest + 1, items.length));
   };
 
   const handleKey = (e: React.KeyboardEvent<HTMLLIElement>, index: number) => {
