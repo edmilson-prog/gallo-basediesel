@@ -21,7 +21,7 @@ import { useQuickReplyProvider } from "@/providers/data";
 import { useAuth } from "@/features/auth/useAuth";
 import { QUICK_SEND_STRINGS } from "../../i18n/pt-BR";
 
-export interface ISharedSnippetsManagerProps {}
+export type ISharedSnippetsManagerProps = Record<string, never>;
 
 /**
  * Shared-snippet governance (D-12, RF-013/019). Owner/Gestor create/edit/delete
@@ -166,9 +166,7 @@ export function SharedSnippetsManager(_: ISharedSnippetsManagerProps) {
           <p className="text-sm font-semibold">{s.sharedSnippetsList}</p>
         </div>
         {loadError ? (
-          <p className="px-4 py-6 text-center text-sm text-destructive">
-            {e.loadAssetFailed}
-          </p>
+          <p className="px-4 py-6 text-center text-sm text-destructive">{e.loadAssetFailed}</p>
         ) : items === null ? (
           <div className="p-4">
             <Skeleton className="h-24 w-full" />
@@ -184,7 +182,9 @@ export function SharedSnippetsManager(_: ISharedSnippetsManagerProps) {
                     <Badge variant="secondary" className="font-mono text-[11px]">
                       {item.shortcut}
                     </Badge>
-                    <span className="truncate text-sm font-medium text-foreground">{item.title}</span>
+                    <span className="truncate text-sm font-medium text-foreground">
+                      {item.title}
+                    </span>
                   </div>
                   <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.body}</p>
                 </div>

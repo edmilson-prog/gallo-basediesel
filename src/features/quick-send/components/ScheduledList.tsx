@@ -13,7 +13,10 @@ export interface IScheduledListProps {
   conversationId: ID;
 }
 
-const PAYLOAD_LABEL: Record<IScheduledSend["payload"]["type"], keyof typeof QUICK_SEND_STRINGS.schedule> = {
+const PAYLOAD_LABEL: Record<
+  IScheduledSend["payload"]["type"],
+  keyof typeof QUICK_SEND_STRINGS.schedule
+> = {
   asset: "payloadAsset",
   snippet: "payloadSnippet",
   combo: "payloadCombo",
@@ -90,7 +93,9 @@ export function ScheduledList({ conversationId }: IScheduledListProps) {
         aria-expanded={open}
       >
         <Icon icon="mdi:calendar-clock" size={14} />
-        <span>{s.listTitle} · {s.scheduledCount(pending.length)}</span>
+        <span>
+          {s.listTitle} · {s.scheduledCount(pending.length)}
+        </span>
         <Icon
           icon="mdi:chevron-down"
           size={14}
@@ -110,16 +115,19 @@ export function ScheduledList({ conversationId }: IScheduledListProps) {
                     {payloadLabel}
                     {item.payload.contextMessage ? ` — ${item.payload.contextMessage}` : ""}
                   </p>
-                  <p className="text-[11px] text-muted-foreground">{formatWhen(item.scheduledFor)}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {formatWhen(item.scheduledFor)}
+                  </p>
                 </div>
                 {item.status === "failed" && (
-                  <Badge variant="outline" className="border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300">
+                  <Badge
+                    variant="outline"
+                    className="border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300"
+                  >
                     {s.failedBadge}
                   </Badge>
                 )}
-                {item.status === "sent" && (
-                  <Badge variant="secondary">{s.sentBadge}</Badge>
-                )}
+                {item.status === "sent" && <Badge variant="secondary">{s.sentBadge}</Badge>}
                 {item.status === "pending" && (
                   <div className="flex items-center gap-0.5">
                     <ScheduleSendMenu onSchedule={(iso) => handleReschedule(item, iso)} />

@@ -13,7 +13,7 @@ import { SharedSnippetsManager } from "./SharedSnippetsManager";
 import { AssetUsageStatsPage } from "./AssetUsageStatsPage";
 import { QUICK_SEND_STRINGS } from "../../i18n/pt-BR";
 
-export interface ILibraryManagerPageProps {}
+export type ILibraryManagerPageProps = Record<string, never>;
 
 const STATUS_TONE: Record<IAssetLibraryItem["status"], string> = {
   published: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
@@ -112,9 +112,7 @@ export function LibraryManagerPage(_: ILibraryManagerPageProps) {
           />
           <div className="rounded-lg border border-border bg-card">
             {loadError ? (
-              <p className="px-4 py-6 text-center text-sm text-destructive">
-                {e.loadAssetFailed}
-              </p>
+              <p className="px-4 py-6 text-center text-sm text-destructive">{e.loadAssetFailed}</p>
             ) : items === null ? (
               <div className="p-4">
                 <Skeleton className="h-64 w-full" />
@@ -169,7 +167,9 @@ export function LibraryManagerPage(_: ILibraryManagerPageProps) {
                           onClick={() => togglePublish(item)}
                         >
                           <Icon
-                            icon={item.status === "published" ? "mdi:eye-off-outline" : "mdi:publish"}
+                            icon={
+                              item.status === "published" ? "mdi:eye-off-outline" : "mdi:publish"
+                            }
                             size={14}
                           />
                           {item.status === "published" ? s.unpublish : s.publish}
@@ -191,7 +191,10 @@ export function LibraryManagerPage(_: ILibraryManagerPageProps) {
                           disabled={busy}
                           onClick={() => toggleSensitive(item)}
                         >
-                          <Icon icon={sensitive ? "mdi:lock-open-outline" : "mdi:lock-outline"} size={14} />
+                          <Icon
+                            icon={sensitive ? "mdi:lock-open-outline" : "mdi:lock-outline"}
+                            size={14}
+                          />
                           {s.permission}
                         </Button>
                       </div>

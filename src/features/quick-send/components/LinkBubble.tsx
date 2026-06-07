@@ -8,6 +8,7 @@ import { QUICK_SEND_STRINGS } from "../i18n/pt-BR";
 export type { ILinkPayload };
 
 /** Parse `[link]<json>` from message text. Null on malformed → caller degrades. */
+// eslint-disable-next-line react-refresh/only-export-components -- co-located utility consumed by MessageBubble
 export function decodeLinkMarker(text: string): ILinkPayload | null {
   if (!text.startsWith(TRACKABLE_LINK_MARKER)) return null;
   const json = text.slice(TRACKABLE_LINK_MARKER.length);
@@ -41,11 +42,14 @@ export function LinkBubble({ message, link, onRetry }: ILinkBubbleProps) {
   return (
     <BubbleChrome message={message} onRetry={onRetry}>
       <div className="flex items-start gap-2">
-        <Icon icon="mdi:link-variant" size={16} className="mt-0.5 shrink-0 text-primary" aria-hidden />
+        <Icon
+          icon="mdi:link-variant"
+          size={16}
+          className="mt-0.5 shrink-0 text-primary"
+          aria-hidden
+        />
         <div className="min-w-0">
-          <p className="truncate font-medium text-foreground">
-            {payload?.label ?? message.text}
-          </p>
+          <p className="truncate font-medium text-foreground">{payload?.label ?? message.text}</p>
           {payload?.shortRef && (
             <p className="truncate text-[11px] text-muted-foreground">{payload.shortRef}</p>
           )}

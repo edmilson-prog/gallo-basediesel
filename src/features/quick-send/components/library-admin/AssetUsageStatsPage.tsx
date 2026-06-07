@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAssetUsageStats } from "@/features/quick-send";
 import { QUICK_SEND_STRINGS } from "../../i18n/pt-BR";
 
-export interface IAssetUsageStatsPageProps {}
+export type IAssetUsageStatsPageProps = Record<string, never>;
 
 /**
  * Asset usage statistics (D-13, RF-025): most-sent assets and per-seller

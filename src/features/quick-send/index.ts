@@ -24,11 +24,7 @@ export {
   type ILinkPayload,
 } from "./engine/trackableLink";
 export { isDue, validateFuture } from "./engine/scheduledSend";
-export {
-  planComboSend,
-  type IComboPlan,
-  type IComboPlanItem,
-} from "./engine/comboSend";
+export { planComboSend, type IComboPlan, type IComboPlanItem } from "./engine/comboSend";
 export {
   encodeProductCard,
   decodeProductCard,
@@ -47,7 +43,11 @@ export { useQuickReplies } from "./hooks/useQuickReplies";
 export { useAssetUsageStats } from "./hooks/useAssetUsageStats";
 
 // Composer & Library surfaces (Plano B — PRD-027)
-export { useAssetPickerMode, ASSET_PICKER_MODES, normalizeAssetPickerMode } from "./hooks/useAssetPickerMode";
+export {
+  useAssetPickerMode,
+  ASSET_PICKER_MODES,
+  normalizeAssetPickerMode,
+} from "./hooks/useAssetPickerMode";
 export type { AssetPickerMode } from "./hooks/useAssetPickerMode";
 export { QuickSendBusProvider, useQuickSendBus } from "./hooks/useQuickSendBus";
 export type { IPickerRequest } from "./hooks/useQuickSendBus";
@@ -91,6 +91,15 @@ export {
   type ICopilotAssetSuggestion,
 } from "./hooks/useCopilotAssetHandoff";
 
-export { AssetUsageStatsPage, type IAssetUsageStatsPageProps } from "./components/library-admin/AssetUsageStatsPage";
-export { SharedSnippetsManager, type ISharedSnippetsManagerProps } from "./components/library-admin/SharedSnippetsManager";
-export { LibraryManagerPage, type ILibraryManagerPageProps } from "./components/library-admin/LibraryManagerPage";
+export {
+  AssetUsageStatsPage,
+  type IAssetUsageStatsPageProps,
+} from "./components/library-admin/AssetUsageStatsPage";
+export {
+  SharedSnippetsManager,
+  type ISharedSnippetsManagerProps,
+} from "./components/library-admin/SharedSnippetsManager";
+export {
+  LibraryManagerPage,
+  type ILibraryManagerPageProps,
+} from "./components/library-admin/LibraryManagerPage";

@@ -133,7 +133,8 @@ export const QUICK_SEND_STRINGS = {
     sharedSnippetsList: "Respostas compartilhadas",
     snippetsEmpty: "Nenhuma resposta compartilhada ainda.",
     snippetDeleteTitle: "Excluir resposta rápida?",
-    snippetDeleteDesc: (title: string) => `A resposta "${title}" deixará de aparecer para a equipe.`,
+    snippetDeleteDesc: (title: string) =>
+      `A resposta "${title}" deixará de aparecer para a equipe.`,
     // Plan C Task 17 additions
     managerTitle: "Biblioteca de ativos",
     managerDesc: "Publique, versione e defina a sensibilidade de cada ativo da equipe.",

@@ -42,7 +42,7 @@ function presetTomorrowMorning(now: Date): Date {
 function presetNextMonday(now: Date): Date {
   const d = new Date(now);
   const day = d.getDay(); // 0=Sun..6=Sat
-  const delta = ((8 - day) % 7) || 7; // strictly next Monday
+  const delta = (8 - day) % 7 || 7; // strictly next Monday
   d.setDate(d.getDate() + delta);
   d.setHours(8, 0, 0, 0);
   return d;
