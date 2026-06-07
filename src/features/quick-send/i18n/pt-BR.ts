@@ -22,6 +22,9 @@ export const QUICK_SEND_STRINGS = {
   slash: {
     emptyState: "Nenhum comando ou resposta rápida.",
     literalSlashHint: "Use // para inserir uma barra literal.",
+    // chaves novas do Plano B (não enumeradas em CONTRACT §J)
+    menuLabel: "Comandos rápidos",
+    close: "Fechar",
   },
   snippet: {
     fieldsToFill: (n: number) => `${n} campo${n === 1 ? "" : "s"} a preencher`,
