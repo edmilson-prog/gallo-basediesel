@@ -4,6 +4,12 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- **Botão "Ficha" duplicado no atendimento** — removido o botão "Ficha" extra no canto superior direito da conversa, que era redundante e não tinha efeito (alternava um painel que ficava sempre vazio). A ficha do cliente continua acessível pelo botão "Ficha" do cabeçalho da conversa.
+
 ## [0.68.0] — Dispatch · 2026-06-07
 
 O atendimento ganha **envio rápido**. Agora o vendedor dispara catálogos, fichas, tabelas, garantias, vídeos e links direto do composer, a partir de uma **biblioteca de ativos curada e versionada** (por marca e linha), aberta em **três modos** que você alterna e ficam lembrados — **Painel** (⌘K), **Grade** e **Lateral** — com **Recentes**, **Favoritos** e busca. **Comandos de barra** (`/catalogo`, `/tabela`, `/garantia`, `/loja`) acham e inserem o material em segundos, e **respostas rápidas** preenchem variáveis (`{{nome}}`, `{{peça}}`, `{{prazo}}`) a partir do contexto da conversa — com trava que impede enviar campo em branco. Dá para mandar um **card de produto** rico (foto, código OE, equivalência, estoque, preço) montado do catálogo, montar **pacotes/combos** e **agendar** envios por conversa. **Links rastreáveis** sinalizam quando o cliente abriu o material e **elevam a temperatura do lead** automaticamente. A gestão controla o que circula: **publicar/despublicar, versão e permissão por ativo**, gestão de respostas compartilhadas e **estatística de uso** — e a **tabela de preços** (sensível) só pode ser enviada por Owner e Gestor, com auditoria. Tudo sobre o storage do PRD-026, sem alterar nada do composer existente.
