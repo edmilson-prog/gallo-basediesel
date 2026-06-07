@@ -80,3 +80,4 @@ export { ScheduledList, type IScheduledListProps } from "./components/ScheduledL
 export { useScheduledSendRunner } from "./hooks/useScheduledSendRunner";
 export { TemperatureChip, type ITemperatureChipProps } from "./components/TemperatureChip";
 export { LinkOpenIndicator, type ILinkOpenIndicatorProps } from "./components/LinkOpenIndicator";
+export { useTrackableLinkSimulation } from "./hooks/useTrackableLinkSimulation";
