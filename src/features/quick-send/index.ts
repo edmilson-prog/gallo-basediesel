@@ -93,3 +93,4 @@ export {
 
 export { AssetUsageStatsPage, type IAssetUsageStatsPageProps } from "./components/library-admin/AssetUsageStatsPage";
 export { SharedSnippetsManager, type ISharedSnippetsManagerProps } from "./components/library-admin/SharedSnippetsManager";
+export { LibraryManagerPage, type ILibraryManagerPageProps } from "./components/library-admin/LibraryManagerPage";
