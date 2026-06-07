@@ -1,18 +1,8 @@
 import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type {
-  ID,
-  IConversation,
-  IMessage,
-  ITrackableLink,
-  LeadTemperature,
-} from "@/shared/types";
-import {
-  useTrackableLinkProvider,
-  useLeadsProvider,
-  useMessagesProvider,
-} from "@/providers/data";
+import type { ID, IConversation, IMessage, ITrackableLink, LeadTemperature } from "@/shared/types";
+import { useTrackableLinkProvider, useLeadsProvider, useMessagesProvider } from "@/providers/data";
 import { useConversationContext } from "@/features/conversations/hooks/ConversationContext";
 import { nextTemperature } from "../engine/temperatureEscalation";
 import { QUICK_SEND_STRINGS } from "../i18n/pt-BR";
