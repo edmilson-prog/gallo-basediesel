@@ -59,6 +59,8 @@ export const QUICK_SEND_STRINGS = {
     remove: "Remover do pacote",
     partialDone: (sent: number, skipped: number) =>
       `Pacote enviado: ${sent} item(ns)${skipped > 0 ? `, ${skipped} ignorado(s)` : ""}.`,
+    moved: (title: string, pos: number, total: number) =>
+      `${title} movido para posição ${pos} de ${total}`,
   },
   schedule: {
     scheduleSend: "Agendar envio",

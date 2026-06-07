@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { ID, IAssetLibraryItem } from "@/shared/types";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
@@ -37,22 +38,34 @@ function reorder(items: IAssetLibraryItem[], from: number, to: number): ID[] {
  */
 export function ComboTray({ items, onReorder, onRemove, onSendAll, progress }: IComboTrayProps) {
   const s = QUICK_SEND_STRINGS.combo;
+  const [announcement, setAnnouncement] = useState("");
   if (items.length === 0) return null;
   const sending = progress !== undefined && progress.sent < progress.total;
+
+  /** Reorder an item and announce its new 1-based position to AT (RNF-004). */
+  const move = (from: number, to: number) => {
+    const dest = Math.max(0, Math.min(items.length - 1, to));
+    if (dest === from) return;
+    onReorder(reorder(items, from, dest));
+    setAnnouncement(s.moved(items[from].title, dest + 1, items.length));
+  };
 
   const handleKey = (e: React.KeyboardEvent<HTMLLIElement>, index: number) => {
     if (!e.altKey) return;
     if (e.key === "ArrowUp") {
       e.preventDefault();
-      onReorder(reorder(items, index, index - 1));
+      move(index, index - 1);
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
-      onReorder(reorder(items, index, index + 1));
+      move(index, index + 1);
     }
   };
 
   return (
     <div className="border-b border-border bg-muted/30 px-3 py-2" aria-label={s.tray}>
+      <span role="status" aria-live="polite" className="sr-only">
+        {announcement}
+      </span>
       <div className="mb-1.5 flex items-center justify-between">
         <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
           <Icon icon="mdi:package-variant-closed" size={14} />
@@ -106,7 +119,7 @@ export function ComboTray({ items, onReorder, onRemove, onSendAll, progress }: I
                 className="h-6 w-6 p-0"
                 aria-label={s.moveUp}
                 disabled={index === 0}
-                onClick={() => onReorder(reorder(items, index, index - 1))}
+                onClick={() => move(index, index - 1)}
               >
                 <Icon icon="mdi:chevron-up" size={14} />
               </Button>
@@ -117,7 +130,7 @@ export function ComboTray({ items, onReorder, onRemove, onSendAll, progress }: I
                 className="h-6 w-6 p-0"
                 aria-label={s.moveDown}
                 disabled={index === items.length - 1}
-                onClick={() => onReorder(reorder(items, index, index + 1))}
+                onClick={() => move(index, index + 1)}
               >
                 <Icon icon="mdi:chevron-down" size={14} />
               </Button>
