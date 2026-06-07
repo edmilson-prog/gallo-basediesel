@@ -13,6 +13,7 @@ export function useAssetUsageStats(params?: { from?: ISO8601; to?: ISO8601 }): {
   topAssets: { assetId: ID; title: string; count: number }[];
   bySeller: { sellerId: ID; count: number }[];
   isLoading: boolean;
+  isError: boolean;
 } {
   const provider = useAssetLibraryProvider();
   const statsQuery = useQuery({
@@ -24,5 +25,6 @@ export function useAssetUsageStats(params?: { from?: ISO8601; to?: ISO8601 }): {
     topAssets: statsQuery.data?.topAssets ?? [],
     bySeller: statsQuery.data?.bySeller ?? [],
     isLoading: statsQuery.isLoading,
+    isError: statsQuery.isError,
   };
 }

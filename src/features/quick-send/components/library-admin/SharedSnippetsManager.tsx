@@ -30,9 +30,11 @@ export interface ISharedSnippetsManagerProps {}
  */
 export function SharedSnippetsManager(_: ISharedSnippetsManagerProps) {
   const s = QUICK_SEND_STRINGS.library;
+  const e = QUICK_SEND_STRINGS.errors;
   const provider = useQuickReplyProvider();
   const { currentUser } = useAuth();
   const [items, setItems] = useState<IQuickReply[] | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const [editing, setEditing] = useState<IQuickReply | null>(null);
   const [shortcut, setShortcut] = useState("");
   const [title, setTitle] = useState("");
@@ -41,7 +43,11 @@ export function SharedSnippetsManager(_: ISharedSnippetsManagerProps) {
   const [saving, setSaving] = useState(false);
 
   const refresh = () => {
-    void provider.list({ scope: "shared" }).then(setItems);
+    setLoadError(false);
+    void provider
+      .list({ scope: "shared" })
+      .then(setItems)
+      .catch(() => setLoadError(true));
   };
 
   useEffect(() => {
@@ -159,7 +165,11 @@ export function SharedSnippetsManager(_: ISharedSnippetsManagerProps) {
         <div className="border-b border-border px-4 py-3">
           <p className="text-sm font-semibold">{s.sharedSnippetsList}</p>
         </div>
-        {items === null ? (
+        {loadError ? (
+          <p className="px-4 py-6 text-center text-sm text-destructive">
+            {e.loadAssetFailed}
+          </p>
+        ) : items === null ? (
           <div className="p-4">
             <Skeleton className="h-24 w-full" />
           </div>

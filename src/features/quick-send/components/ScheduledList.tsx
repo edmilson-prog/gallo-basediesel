@@ -37,13 +37,25 @@ function formatWhen(iso: ISO8601): string {
  */
 export function ScheduledList({ conversationId }: IScheduledListProps) {
   const s = QUICK_SEND_STRINGS.schedule;
-  const { items, cancel, update, isLoading } = useConversationScheduled(conversationId);
+  const { items, cancel, update, isLoading, isError } = useConversationScheduled(conversationId);
   const [open, setOpen] = useState(false);
 
   const pending = items.filter((i) => i.status === "pending");
   const visible = items.filter((i) => i.status !== "cancelled");
 
-  if (isLoading || visible.length === 0) return null;
+  if (isLoading) return null;
+
+  if (isError) {
+    return (
+      <div className="border-b border-border bg-muted/30">
+        <p className="px-4 py-3 text-center text-sm text-destructive">
+          {QUICK_SEND_STRINGS.errors.loadAssetFailed}
+        </p>
+      </div>
+    );
+  }
+
+  if (visible.length === 0) return null;
 
   const handleCancel = (item: IScheduledSend) => {
     let undone = false;

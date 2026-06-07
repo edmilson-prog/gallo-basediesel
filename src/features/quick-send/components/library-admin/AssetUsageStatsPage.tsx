@@ -11,7 +11,7 @@ export interface IAssetUsageStatsPageProps {}
  */
 export function AssetUsageStatsPage(_: IAssetUsageStatsPageProps) {
   const s = QUICK_SEND_STRINGS.stats;
-  const { topAssets, bySeller, isLoading } = useAssetUsageStats();
+  const { topAssets, bySeller, isLoading, isError } = useAssetUsageStats();
   const maxAsset = topAssets.reduce((m, a) => Math.max(m, a.count), 0) || 1;
   const maxSeller = bySeller.reduce((m, a) => Math.max(m, a.count), 0) || 1;
 
@@ -20,6 +20,17 @@ export function AssetUsageStatsPage(_: IAssetUsageStatsPageProps) {
       <div className="space-y-6">
         <h1 className="text-2xl font-semibold tracking-tight">{s.title}</h1>
         <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-semibold tracking-tight">{s.title}</h1>
+        <p className="px-4 py-6 text-center text-sm text-destructive">
+          {QUICK_SEND_STRINGS.errors.loadAssetFailed}
+        </p>
       </div>
     );
   }

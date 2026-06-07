@@ -13,6 +13,7 @@ export interface IUseConversationScheduledResult {
   cancel: (id: ID) => void;
   update: (id: ID, patch: Partial<IScheduledSend>) => void;
   isLoading: boolean;
+  isError: boolean;
 }
 
 /**
@@ -58,6 +59,7 @@ export function useConversationScheduled(conversationId: ID): IUseConversationSc
     cancel,
     update,
     isLoading: query.isLoading,
+    isError: query.isError,
     // intentionally narrow surface (CONTRACT §C)
   };
 }

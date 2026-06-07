@@ -11,6 +11,7 @@ export function useConversationLinks(conversationId: ID): {
   links: ITrackableLink[];
   byId: Map<ID, ITrackableLink>;
   isLoading: boolean;
+  isError: boolean;
 } {
   const provider = useTrackableLinkProvider();
   const query = useQuery({
@@ -20,5 +21,5 @@ export function useConversationLinks(conversationId: ID): {
   });
   const links = query.data ?? [];
   const byId = new Map<ID, ITrackableLink>(links.map((l) => [l.id, l]));
-  return { links, byId, isLoading: query.isLoading };
+  return { links, byId, isLoading: query.isLoading, isError: query.isError };
 }

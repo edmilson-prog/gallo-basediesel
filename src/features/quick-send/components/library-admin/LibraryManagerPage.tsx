@@ -28,15 +28,19 @@ const STATUS_TONE: Record<IAssetLibraryItem["status"], string> = {
  */
 export function LibraryManagerPage(_: ILibraryManagerPageProps) {
   const s = QUICK_SEND_STRINGS.library;
+  const e = QUICK_SEND_STRINGS.errors;
   const provider = useAssetLibraryProvider();
   const [items, setItems] = useState<IAssetLibraryItem[] | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const refresh = () => {
+    setLoadError(false);
     void provider
       .list({ pageSize: 200 })
-      .then((res) => setItems(res.data));
+      .then((res) => setItems(res.data))
+      .catch(() => setLoadError(true));
   };
 
   useEffect(() => {
@@ -107,7 +111,11 @@ export function LibraryManagerPage(_: ILibraryManagerPageProps) {
             className="max-w-sm"
           />
           <div className="rounded-lg border border-border bg-card">
-            {items === null ? (
+            {loadError ? (
+              <p className="px-4 py-6 text-center text-sm text-destructive">
+                {e.loadAssetFailed}
+              </p>
+            ) : items === null ? (
               <div className="p-4">
                 <Skeleton className="h-64 w-full" />
               </div>
