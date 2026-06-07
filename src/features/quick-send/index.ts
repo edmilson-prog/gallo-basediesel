@@ -71,3 +71,8 @@ export {
   type IUseConversationScheduledResult,
 } from "./hooks/useConversationScheduled";
 export { ScheduleSendMenu, type IScheduleSendMenuProps } from "./components/ScheduleSendMenu";
+export {
+  useScheduleSend,
+  type IUseScheduleSendResult,
+  type IScheduleSendPayload,
+} from "./hooks/useScheduleSend";
