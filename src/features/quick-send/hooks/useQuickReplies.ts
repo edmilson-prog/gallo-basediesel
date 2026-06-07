@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { IQuickReply } from "@/shared/types";
 import { useQuickReplyProvider } from "@/providers/data";
@@ -22,7 +22,9 @@ export function useQuickReplies(): {
     queryFn: () => provider.list({ sellerId }),
   });
 
-  const replies = repliesQuery.data ?? [];
+  // Stabilize identity so the `?? []` fallback doesn't produce a fresh array
+  // every render (clears react-hooks/exhaustive-deps on findByShortcut).
+  const replies = useMemo(() => repliesQuery.data ?? [], [repliesQuery.data]);
 
   const findByShortcut = useCallback(
     (shortcut: string): IQuickReply | null => {
