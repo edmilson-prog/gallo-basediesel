@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "@tanstack/react-router";
-import type { ID } from "@/shared/types";
+import type { ID, IConversation, IWhatsAppAccount } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { EmptyState } from "@/features/shell/components/EmptyState";
@@ -24,7 +24,53 @@ import {
   useConversationMedia,
   useEnsureInboundMedia,
 } from "@/features/media";
-import { QuickSendBusProvider } from "@/features/quick-send";
+import {
+  useScheduledSendRunner,
+  useTrackableLinkSimulation,
+  ScheduledList,
+  ComboTray,
+  useComboSend,
+  useQuickSendBus,
+  QuickSendBusProvider,
+} from "@/features/quick-send";
+
+function ConversationRunners({
+  conversation,
+  whatsappAccount,
+  refreshDetail,
+}: {
+  conversation: IConversation;
+  whatsappAccount: IWhatsAppAccount | null;
+  refreshDetail: () => void;
+}) {
+  useScheduledSendRunner(conversation, whatsappAccount);
+  useTrackableLinkSimulation(conversation, refreshDetail);
+  return null;
+}
+
+function ConversationComboTray({
+  conversation,
+  whatsappAccount,
+}: {
+  conversation: IConversation;
+  whatsappAccount: IWhatsAppAccount | null;
+}) {
+  const { comboItems, reorderCombo, removeFromCombo, clearCombo } = useQuickSendBus();
+  const { sendCombo, progress } = useComboSend(conversation, whatsappAccount);
+  if (comboItems.length === 0) return null;
+  return (
+    <ComboTray
+      items={comboItems}
+      onReorder={reorderCombo}
+      onRemove={removeFromCombo}
+      onSendAll={async () => {
+        await sendCombo(comboItems);
+        clearCombo();
+      }}
+      progress={progress}
+    />
+  );
+}
 
 export function ConversationPage() {
   const { id } = useParams({ from: "/app/atendimento/$id" });
@@ -141,6 +187,16 @@ export function ConversationPage() {
               <CopilotStrip panel={copilot} reply={stripReply} onInsertReply={setDraft} />
             )}
 
+            <ConversationRunners
+              conversation={conversation}
+              whatsappAccount={whatsappAccount}
+              refreshDetail={detail.refresh}
+            />
+            <ConversationComboTray
+              conversation={conversation}
+              whatsappAccount={whatsappAccount}
+            />
+            <ScheduledList conversationId={conversationId} />
             <MessageInput
               conversation={conversation}
               whatsappAccount={whatsappAccount}

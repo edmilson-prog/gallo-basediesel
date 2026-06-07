@@ -15,6 +15,9 @@ import { cn } from "@/lib/utils";
 import { CHANNEL_META, getConversationDisplay } from "../utils/conversationDisplay";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
 import { EscalationBadge } from "@/features/sdr-escalation/components/EscalationBadge";
+import { TemperatureChip } from "@/features/quick-send/components/TemperatureChip";
+import { useConversationScheduled } from "@/features/quick-send/hooks/useConversationScheduled";
+import { QUICK_SEND_STRINGS } from "@/features/quick-send/i18n/pt-BR";
 
 export interface IConversationHeaderProps {
   conversation: IConversation;
@@ -57,6 +60,8 @@ export function ConversationHeader({
   const display = getConversationDisplay(conversation, customer, lead);
   const channel = CHANNEL_META[conversation.channel];
   const navigate = useNavigate();
+  const scheduled = useConversationScheduled(conversation.id);
+  const pendingScheduled = scheduled.items.filter((i) => i.status === "pending").length;
 
   const channelSubtitle = (() => {
     if (conversation.channel === "whatsapp") {
@@ -105,6 +110,7 @@ export function ConversationHeader({
                 <TooltipContent>{CONVERSATION_STRINGS.sdrActiveTooltip}</TooltipContent>
               </Tooltip>
             )}
+            {lead && <TemperatureChip temperature={lead.temperature} />}
           </div>
           <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
             <span
@@ -163,6 +169,15 @@ export function ConversationHeader({
               </TooltipTrigger>
               <TooltipContent>{CONVERSATION_STRINGS.toggleMedia}</TooltipContent>
             </Tooltip>
+          )}
+          {pendingScheduled > 0 && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
+              title={QUICK_SEND_STRINGS.schedule.listTitle}
+            >
+              <Icon icon="mdi:calendar-clock" size={12} aria-hidden />
+              {QUICK_SEND_STRINGS.schedule.scheduledCount(pendingScheduled)}
+            </span>
           )}
           {menuSlot}
         </div>
