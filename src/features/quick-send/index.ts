@@ -84,3 +84,4 @@ export { useTrackableLinkSimulation } from "./hooks/useTrackableLinkSimulation";
 export { LinkBubble, decodeLinkMarker, type ILinkBubbleProps } from "./components/LinkBubble";
 export { useConversationLinks, conversationLinksQueryKey } from "./hooks/useConversationLinks";
 export { ComboTray, type IComboTrayProps } from "./components/ComboTray";
+export { useComboSend, type IUseComboSendResult } from "./hooks/useComboSend";
