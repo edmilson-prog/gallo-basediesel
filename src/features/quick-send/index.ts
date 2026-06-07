@@ -63,3 +63,10 @@ export { ComposerStagedAsset } from "./components/ComposerStagedAsset";
 export { SnippetField } from "./components/SnippetField";
 export { ProductCardBubble } from "./components/ProductCardBubble";
 export { ProductSearchDialog } from "./components/ProductSearchDialog";
+
+// Plan C — Scheduling (PRD-027)
+export {
+  useConversationScheduled,
+  scheduledSendsQueryKey,
+  type IUseConversationScheduledResult,
+} from "./hooks/useConversationScheduled";
