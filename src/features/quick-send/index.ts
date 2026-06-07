@@ -85,3 +85,8 @@ export { LinkBubble, decodeLinkMarker, type ILinkBubbleProps } from "./component
 export { useConversationLinks, conversationLinksQueryKey } from "./hooks/useConversationLinks";
 export { ComboTray, type IComboTrayProps } from "./components/ComboTray";
 export { useComboSend, type IUseComboSendResult } from "./hooks/useComboSend";
+export {
+  useCopilotAssetHandoff,
+  type IUseCopilotAssetHandoffResult,
+  type ICopilotAssetSuggestion,
+} from "./hooks/useCopilotAssetHandoff";
