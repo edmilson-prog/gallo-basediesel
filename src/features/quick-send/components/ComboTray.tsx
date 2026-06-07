@@ -92,7 +92,11 @@ export function ComboTray({ items, onReorder, onRemove, onSendAll, progress }: I
             <span className="flex w-5 shrink-0 justify-center text-[10px] font-semibold text-muted-foreground">
               {index + 1}
             </span>
-            <Icon icon={CATEGORY_ICON[item.category]} size={14} className="shrink-0 text-muted-foreground" />
+            <Icon
+              icon={CATEGORY_ICON[item.category]}
+              size={14}
+              className="shrink-0 text-muted-foreground"
+            />
             <span className="min-w-0 flex-1 truncate text-foreground">{item.title}</span>
             <div className="flex shrink-0 items-center gap-0.5">
               <Button

@@ -7,12 +7,12 @@ import type {
   IWhatsAppAccount,
   MessageMediaType,
 } from "@/shared/types";
-import { useMediaStorageProvider, useAssetLibraryProvider, useTrackableLinkProvider } from "@/providers/data";
 import {
-  buildShortRef,
-  buildUtm,
-  encodeLinkMarker,
-} from "../engine/trackableLink";
+  useMediaStorageProvider,
+  useAssetLibraryProvider,
+  useTrackableLinkProvider,
+} from "@/providers/data";
+import { buildShortRef, buildUtm, encodeLinkMarker } from "../engine/trackableLink";
 import { useMessageSend } from "@/features/conversations/hooks/useMessageSend";
 import { useAuth } from "@/features/auth/useAuth";
 import { pickSendableVersion } from "../engine/assetVersioning";
@@ -120,7 +120,12 @@ export function useSendAsset(
         } else {
           // Materialize the file as an outbound media asset (PRD-026).
           const uploaded = await media.upload({
-            kind: assetKindToMediaType(sendable) === "image" ? "image" : sendable.kind === "video" ? "video" : "document",
+            kind:
+              assetKindToMediaType(sendable) === "image"
+                ? "image"
+                : sendable.kind === "video"
+                  ? "video"
+                  : "document",
             mimeType:
               sendable.kind === "image"
                 ? "image/jpeg"
