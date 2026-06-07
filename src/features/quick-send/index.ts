@@ -45,3 +45,21 @@ export { QUICK_SEND_STRINGS } from "./i18n/pt-BR";
 export { useAssetLibrary } from "./hooks/useAssetLibrary";
 export { useQuickReplies } from "./hooks/useQuickReplies";
 export { useAssetUsageStats } from "./hooks/useAssetUsageStats";
+
+// Composer & Library surfaces (Plano B — PRD-027)
+export { useAssetPickerMode, ASSET_PICKER_MODES, normalizeAssetPickerMode } from "./hooks/useAssetPickerMode";
+export type { AssetPickerMode } from "./hooks/useAssetPickerMode";
+export { QuickSendBusProvider, useQuickSendBus } from "./hooks/useQuickSendBus";
+export type { IPickerRequest } from "./hooks/useQuickSendBus";
+export { useSendAsset } from "./hooks/useSendAsset";
+export { useSendProductCard, buildProductSnapshot } from "./hooks/useSendProductCard";
+export { AssetPicker } from "./components/AssetPicker";
+export type { IAssetPickerProps } from "./components/AssetPicker";
+export { AssetPickerModeSwitcher } from "./components/AssetPickerModeSwitcher";
+export { AssetRow } from "./components/AssetRow";
+export { AssetGridCard } from "./components/AssetGridCard";
+export { SlashMenu } from "./components/SlashMenu";
+export { ComposerStagedAsset } from "./components/ComposerStagedAsset";
+export { SnippetField } from "./components/SnippetField";
+export { ProductCardBubble } from "./components/ProductCardBubble";
+export { ProductSearchDialog } from "./components/ProductSearchDialog";

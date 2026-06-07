@@ -280,6 +280,14 @@ export const CONVERSATION_STRINGS = {
   undone: "Ação desfeita",
   actionFailed: "Não foi possível concluir a ação",
 
+  // Library / quick-send menu sections (PRD-027 Plano B)
+  attachSectionLibrary: "Biblioteca",
+  attachSectionFile: "Arquivo avulso",
+  openLibrary: "Abrir biblioteca",
+  openLibraryShortcut: "⌘K",
+  quickReply: "Resposta rápida",
+  sendProduct: "Enviar produto",
+
   // Dialogs
   transferDialog: {
     title: "Transferir conversa",
