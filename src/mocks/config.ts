@@ -38,7 +38,8 @@ export type MockEntityName =
   | "badges"
   | "rankings"
   | "positivations"
-  | "abcClassifications";
+  | "abcClassifications"
+  | "mediaAssets";
 
 /** Default seed for deterministic dataset generation. Changing this regenerates everything. */
 export const DEFAULT_SEED = 42;
@@ -83,6 +84,7 @@ export const VOLUMES: Record<MockEntityName, number> = {
   rankings: 1,
   positivations: 1,
   abcClassifications: 70,
+  mediaAssets: 90,
 };
 
 /** Minimum simulated latency (ms) per API call. */

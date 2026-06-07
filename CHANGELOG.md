@@ -4,6 +4,21 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.67.0] — Vault · 2026-06-06
+
+Toda mídia trocada no atendimento — foto de peça, foto de chassi/placa, nota fiscal, comprovante, áudio, documento — agora é **preservada e fácil de achar**. Cada conversa ganha uma **galeria de mídias** (botão no topo), e a ficha do cliente ganha uma aba **Mídias** que reúne tudo de todas as conversas dele. Você escolhe como ver — **Grade**, **Cartões** ou **Por tipo** — e a preferência fica lembrada. Um **visualizador em tela cheia** abre imagem (com zoom), toca áudio (1x/1.5x/2x) com a transcrição em destaque e abre/baixa documentos, tudo navegável por teclado. A plataforma **classifica e sugere vínculos** (peça, chassi/placa, nota, comprovante) para você confirmar, e protege o que é sensível: **nota fiscal e comprovante** ficam restritos a Owner e Gestor — os demais veem uma prévia borrada com aviso, e cada acesso é auditado. Imagens podem receber **anotações** salvas como nova versão. Por trás, uma camada de storage abstrata já está pronta para o provedor real da Fase 2.
+
+### Added
+
+- **Galeria de mídia por conversa (PRD-026)** — botão "Mídias" no topo da conversa abre uma galeria com contadores por tipo, busca (nome/transcrição), filtros e três modos de visualização (Grade/Cartões/Por tipo), lembrados por usuário.
+- **Aba Mídias na ficha do cliente** — agrega as mídias de todas as conversas do cliente, com filtro por classificação e atalho para abrir a conversa de origem.
+- **Visualizador em tela cheia (lightbox)** — imagem com zoom, player de áudio com velocidade (1x/1.5x/2x) e transcrição com realce, abrir/baixar documento; navegação por teclado (setas, Esc, Espaço, +/−).
+- **Classificação e vínculo assistidos** — a mídia é classificada automaticamente (nota fiscal, peça, chassi/placa, comprovante, catálogo) e sugere vínculo a veículo/pedido/peça, sempre com confirmação do usuário e registro em auditoria.
+- **Governança LGPD de mídia sensível** — notas fiscais e comprovantes ficam restritos a Owner e Gestor; os demais perfis veem prévia borrada com aviso e têm o acesso bloqueado e auditado; marcação manual de sensibilidade disponível para a gestão.
+- **Anotação de imagem** — marcações de ponto/seta/texto sobre a imagem, salvas como uma nova versão sem alterar o original.
+- **Preservação de mídia recebida** — toda mídia que chega é arquivada (com deduplicação) e sinaliza quando a origem está prestes a expirar ou falhou ao arquivar, com opção de tentar novamente — sem nunca travar a conversa.
+- **Retenção configurável** — parâmetros de retenção de mídia (365 dias para comum, 5 anos para sensível) exibidos em Configurações.
+
 ## [0.66.0] — Oracle · 2026-06-05
 
 Duas frentes de inteligência comercial chegam juntas. O **Forecast de Fechamento** projeta onde o período vai fechar — realizado + pipeline ponderado + ritmo — em três cenários (pessimista, provável, otimista), com detalhamento por vendedor e um widget no cockpit. E o **Copiloto Analítico** ganha uma **página dedicada** (menu Gestão → Copiloto): você pergunta em linguagem natural ("quanto faturei de filtro Volvo esse mês?") e recebe o número com a fonte oficial citada e link direto para o painel. A página tem três modos que você alterna e ficam lembrados — **Foco** (conversa única), **Histórico** (conversas salvas) e **Split** (conversa + ficha de detalhe) — além de um início com sugestões por categoria. Tudo respeita o seu papel (RBAC) e nunca inventa números: todo valor vem dos motores de BI.

@@ -172,6 +172,7 @@ export const CONVERSATION_STRINGS = {
   } as const,
   createQuote: "Criar orçamento",
   toggleFiche: "Ficha",
+  toggleMedia: "Mídias",
   moreActions: "Mais ações",
   sdrActiveTag: "SDR ativo",
   sdrActiveTooltip: "Esta conversa está sendo atendida pelo agente SDR",

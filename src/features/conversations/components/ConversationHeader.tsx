@@ -23,6 +23,10 @@ export interface IConversationHeaderProps {
   whatsappAccount: IWhatsAppAccount | null;
   ficheOpen: boolean;
   onToggleFiche: () => void;
+  /** Whether the media gallery sheet is open. */
+  mediaOpen?: boolean;
+  /** Toggles the media gallery sheet. */
+  onToggleMedia?: () => void;
   /** Action menu rendered as a popover trigger (kebab). */
   menuSlot?: React.ReactNode;
   /** SDR escalation record bound to this conversation (PRD-023), when any. */
@@ -45,6 +49,8 @@ export function ConversationHeader({
   whatsappAccount,
   ficheOpen,
   onToggleFiche,
+  mediaOpen,
+  onToggleMedia,
   menuSlot,
   escalation,
 }: IConversationHeaderProps) {
@@ -141,6 +147,23 @@ export function ConversationHeader({
             </TooltipTrigger>
             <TooltipContent>{CONVERSATION_STRINGS.toggleFiche}</TooltipContent>
           </Tooltip>
+          {onToggleMedia && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={mediaOpen ? "secondary" : "ghost"}
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={onToggleMedia}
+                  aria-pressed={mediaOpen}
+                >
+                  <Icon icon="mdi:image-multiple-outline" size={14} />
+                  <span className="hidden md:inline">{CONVERSATION_STRINGS.toggleMedia}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{CONVERSATION_STRINGS.toggleMedia}</TooltipContent>
+            </Tooltip>
+          )}
           {menuSlot}
         </div>
       </div>

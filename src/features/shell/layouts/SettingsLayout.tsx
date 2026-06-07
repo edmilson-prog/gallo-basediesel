@@ -234,6 +234,12 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         upcoming: true,
       },
       {
+        label: "Mídias (retenção)",
+        icon: "mdi:database-clock-outline",
+        to: "/app/configuracoes/midias",
+        roles: ["Owner", "Gestor"],
+      },
+      {
         label: "Auditoria",
         icon: "mdi:history",
         to: "/app/configuracoes/auditoria",

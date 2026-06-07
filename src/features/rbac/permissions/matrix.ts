@@ -56,6 +56,7 @@ const OWNER_ENTRIES: ScopedActions[] = [
   // not get `delete` so the UI never offers it (Fase 2 enforces append-only at
   // the DB level via revoke + trigger).
   p("audit_log", ["view"], "all"),
+  p("media", CRUD, "all"),
   p("role", CRUD, "all"),
   p("dre", ["view", "edit"], "all"),
   p("expense", CRUD, "all"),
@@ -89,6 +90,7 @@ const GESTOR_ENTRIES: ScopedActions[] = [
   p("store", ["view"], "own"),
   p("settings", ["view"], "store"),
   p("audit_log", ["view"], "store"),
+  p("media", ["view", "edit", "delete"], "store"),
   p("role", ["view"], "store"),
   p("dre", ["view"], "store"),
   // Gestor: read-only on financials (PRD-054 / PRD-055).
@@ -108,6 +110,7 @@ const VENDEDOR_ENTRIES: ScopedActions[] = [
   p("lead", ["view", "edit"], "own"),
   p("conversation", ["view", "edit"], "own"),
   p("message", ["view", "create"], "own"),
+  p("media", ["view"], "own"),
   p("part", ["view"], "store"),
   p("vehicleModel", ["view"], "store"),
   p("modelKit", ["view", "create"], "store"),
@@ -128,6 +131,7 @@ const SDR_ENTRIES: ScopedActions[] = [
   p("lead", ["view", "create"], "own"),
   p("conversation", ["view", "create"], "own"),
   p("message", ["view", "create"], "own"),
+  p("media", ["view"], "own"),
   p("part", ["view"], "store"),
   p("quote", ["view", "create"], "own"),
   p("recommendation", ["view"], "own"),
@@ -149,6 +153,7 @@ const VENDEDOR_EXTERNO_ENTRIES: ScopedActions[] = [
   p("lead", ["view", "edit"], "own"),
   p("conversation", ["view", "edit"], "own"),
   p("message", ["view", "create"], "own"),
+  p("media", ["view"], "own"),
   p("part", ["view"], "store"),
   p("quote", ["view", "edit"], "own"),
   p("order", ["view"], "own"),

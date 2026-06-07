@@ -1,4 +1,4 @@
-import type { ID, IMessage } from "@/shared/types";
+import type { ID, IMessage, MessageMediaType } from "@/shared/types";
 import { selectMessagesByConversation } from "../store/selectors";
 import { patchById, upsert } from "../store/mutations";
 import { getMockState } from "../store/mockStore";
@@ -104,7 +104,11 @@ export const messagesApi = {
     });
   },
 
-  async simulateIncoming(conversationId: ID, text?: string): Promise<IMessage> {
+  async simulateIncoming(
+    conversationId: ID,
+    text?: string,
+    mediaType?: MessageMediaType,
+  ): Promise<IMessage> {
     return runApi("messagesApi", "simulateIncoming", () => {
       const conversation = getMockState().conversations.find((c) => c.id === conversationId);
       if (!conversation) throw new MockNotFoundError("conversation", conversationId);
@@ -117,6 +121,11 @@ export const messagesApi = {
         authorId: conversation.customerId ?? conversation.leadId,
         provider: conversation.channel === "whatsapp" ? "meta" : "mock",
         text: text ?? "Você ainda tem essa peça em estoque?",
+        // When a media payload is simulated, attach a mock kind + url so the
+        // bubble renders media (PRD-011) and the live inbound archival path
+        // (useEnsureInboundMedia → ensureFromMessage) creates a fresh asset.
+        mediaType,
+        mediaUrl: mediaType ? `mock-inbound-${mediaType}.jpg` : undefined,
         status: "delivered",
         sentAt: now,
         deliveredAt: now,

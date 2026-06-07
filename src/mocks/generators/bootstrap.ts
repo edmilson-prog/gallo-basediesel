@@ -13,6 +13,7 @@ import type {
   IGamificationBadge,
   IGoal,
   ILead,
+  IMediaAsset,
   IMessage,
   INotification,
   IOrder,
@@ -50,6 +51,7 @@ import { generateVehicle, generateVehicleServiceEntry } from "./vehicle";
 import { generateLead } from "./lead";
 import { generateConversation } from "./conversation";
 import { generateMessagesForConversation } from "./message";
+import { generateMediaAssets } from "./mediaAsset";
 import { generateScriptedConversations } from "./scriptedConversations";
 import { generateQuote } from "./quote";
 import { generateOrdersTimeline } from "./order";
@@ -93,6 +95,7 @@ export interface IBootstrappedDataset {
   recommendations: IRecommendation[];
   conversations: IConversation[];
   messages: IMessage[];
+  mediaAssets: IMediaAsset[];
   whatsappAccounts: IWhatsAppAccount[];
   parts: IPart[];
   quotes: IQuote[];
@@ -265,6 +268,19 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
   });
   conversations.push(...scripted.conversations);
   messages.push(...scripted.messages);
+
+  // 11.6. Media assets (PRD-026) — derived from conversations so every asset
+  // points at a real conversation/customer. Eager archival is simulated here;
+  // useEnsureInboundMedia tops this up at runtime for newly received inbound.
+  const customerIdByConversation: Record<string, string | undefined> = {};
+  for (const conv of conversations) customerIdByConversation[conv.id] = conv.customerId;
+  const mediaAssets = generateMediaAssets(ctx, {
+    count: VOLUMES.mediaAssets,
+    conversationIds: conversations.map((c) => c.id),
+    customerIdByConversation,
+    storeId: stores[0].id,
+    now,
+  });
 
   // 12. Quotes — bound to customers or leads, items pulled from the part catalog.
   const quotes: IQuote[] = [];
@@ -502,6 +518,7 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
     recommendations,
     conversations,
     messages,
+    mediaAssets,
     whatsappAccounts,
     parts,
     quotes,

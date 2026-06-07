@@ -89,6 +89,9 @@ export type {
   IListModelKitsParams,
   ICreateModelKitInput,
   IUpdateModelKitPatch,
+  IMediaStorageProvider,
+  IMediaUploadInput,
+  IListMediaParams,
 } from "./contracts";
 
 export { useCustomersProvider } from "./hooks/useCustomersProvider";
@@ -119,3 +122,4 @@ export { useCopilotProvider } from "./hooks/useCopilotProvider";
 export { useIndicatorsProvider } from "./hooks/useIndicatorsProvider";
 export { useVehicleModelsProvider } from "./hooks/useVehicleModelsProvider";
 export { useModelKitsProvider } from "./hooks/useModelKitsProvider";
+export { useMediaStorageProvider } from "./hooks/useMediaStorageProvider";

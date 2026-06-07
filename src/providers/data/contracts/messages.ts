@@ -1,4 +1,4 @@
-import type { ID, IMessage } from "@/shared/types";
+import type { ID, IMessage, MessageMediaType } from "@/shared/types";
 import type { IPaginatedResult, IPaginationParams } from "./_shared";
 
 export interface IListMessagesParams extends IPaginationParams {
@@ -33,10 +33,16 @@ export interface IMessagesProvider {
   /**
    * Synthesize an inbound message from the customer/lead side. Used by the
    * mock layer to drive the real-time demo (`useRealtimeConversations`) and
-   * to simulate the inbox receiving traffic. The Supabase implementation
-   * remains a no-op until Fase 2 (PRD-100+) wires real WhatsApp inbound.
+   * to simulate the inbox receiving traffic. An optional `mediaType` attaches
+   * a mock media payload so the live inbound archival path is exercised. The
+   * Supabase implementation remains a no-op until Fase 2 (PRD-100+) wires real
+   * WhatsApp inbound.
    */
-  simulateIncoming(conversationId: ID, text?: string): Promise<IMessage>;
+  simulateIncoming(
+    conversationId: ID,
+    text?: string,
+    mediaType?: MessageMediaType,
+  ): Promise<IMessage>;
   /**
    * Analytics-only bulk read. Returns every message matching the filters.
    * Implementations without bulk support may return an empty array.

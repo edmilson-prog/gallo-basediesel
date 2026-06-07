@@ -10,6 +10,7 @@ import type {
   IExpense,
   IGoal,
   ILead,
+  IMediaAsset,
   IMessage,
   INotification,
   IOrder,
@@ -43,7 +44,8 @@ type CollectionKey =
   | "sdrSessions"
   | "sdrEscalations"
   | "notifications"
-  | "indicators";
+  | "indicators"
+  | "mediaAssets";
 
 type CollectionMap = {
   customers: ICustomer;
@@ -65,6 +67,7 @@ type CollectionMap = {
   sdrEscalations: ISdrEscalation;
   notifications: INotification;
   indicators: IProductIndicator;
+  mediaAssets: IMediaAsset;
 };
 
 /**

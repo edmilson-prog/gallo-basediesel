@@ -11,6 +11,7 @@ import { VehiclesTab } from "./tabs/VehiclesTab";
 import { ConversationsTab } from "./tabs/ConversationsTab";
 import { NotesTab } from "./tabs/NotesTab";
 import { RecommendationsTab } from "./tabs/RecommendationsTab";
+import { CustomerMediaGallery } from "@/features/media";
 
 export interface IProfileTabsProps {
   customer: ICustomer;
@@ -30,6 +31,7 @@ export type TabKey =
   | "quotes"
   | "vehicles"
   | "conversations"
+  | "midias"
   | "notes"
   | "recommendations";
 
@@ -39,6 +41,7 @@ const TAB_ORDER: TabKey[] = [
   "quotes",
   "vehicles",
   "conversations",
+  "midias",
   "notes",
   "recommendations",
 ];
@@ -116,6 +119,9 @@ export function ProfileTabs({
           {activeString === "conversations" && (
             <ConversationsTab customer={customer} currentConversation={conversation} />
           )}
+        </TabsContent>
+        <TabsContent value="midias" className="m-0 p-0 focus-visible:outline-none">
+          {activeString === "midias" && <CustomerMediaGallery customerId={customer.id} />}
         </TabsContent>
         <TabsContent value="notes" className="m-0 p-3 focus-visible:outline-none">
           {activeString === "notes" && <NotesTab customer={customer} />}

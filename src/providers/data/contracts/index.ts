@@ -33,6 +33,7 @@ import type { ICopilotProvider } from "./copilot";
 import type { IIndicatorsProvider } from "./indicators";
 import type { IVehicleModelsProvider } from "./vehicleModels";
 import type { IModelKitsProvider } from "./modelKits";
+import type { IMediaStorageProvider } from "./mediaStorage";
 
 export type { IPaginatedResult, IPaginationParams } from "./_shared";
 
@@ -105,6 +106,7 @@ export type {
   ICreateModelKitInput,
   IUpdateModelKitPatch,
 } from "./modelKits";
+export type { IMediaStorageProvider, IMediaUploadInput, IListMediaParams } from "./mediaStorage";
 
 /**
  * Aggregate of every data provider returned by `getDataProviders()`. The factory
@@ -140,4 +142,5 @@ export interface IDataProviders {
   indicators: IIndicatorsProvider;
   vehicleModels: IVehicleModelsProvider;
   modelKits: IModelKitsProvider;
+  media: IMediaStorageProvider;
 }

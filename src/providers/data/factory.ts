@@ -28,6 +28,7 @@ import { mockCopilotProvider } from "./impl/mock/copilot";
 import { mockIndicatorsProvider } from "./impl/mock/indicators";
 import { mockVehicleModelsProvider } from "./impl/mock/vehicleModels";
 import { mockModelKitsProvider } from "./impl/mock/modelKits";
+import { mockMediaProvider } from "./impl/mock/media";
 
 import { supabaseCustomersProvider } from "./impl/supabase/customers";
 import { supabaseVehiclesProvider } from "./impl/supabase/vehicles";
@@ -57,6 +58,7 @@ import { supabaseCopilotProvider } from "./impl/supabase/copilot";
 import { supabaseIndicatorsProvider } from "./impl/supabase/indicators";
 import { supabaseVehicleModelsProvider } from "./impl/supabase/vehicleModels";
 import { supabaseModelKitsProvider } from "./impl/supabase/modelKits";
+import { supabaseMediaProvider } from "./impl/supabase/media";
 
 type DataSource = "mock" | "supabase";
 
@@ -111,6 +113,7 @@ const mockProviders: IDataProviders = {
   indicators: mockIndicatorsProvider,
   vehicleModels: mockVehicleModelsProvider,
   modelKits: mockModelKitsProvider,
+  media: mockMediaProvider,
 };
 
 const supabaseProviders: IDataProviders = {
@@ -142,6 +145,7 @@ const supabaseProviders: IDataProviders = {
   indicators: supabaseIndicatorsProvider,
   vehicleModels: supabaseVehicleModelsProvider,
   modelKits: supabaseModelKitsProvider,
+  media: supabaseMediaProvider,
 };
 
 /**

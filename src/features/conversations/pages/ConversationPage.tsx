@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "@tanstack/react-router";
 import type { ID } from "@/shared/types";
 import { Icon } from "@/components/Icon";
@@ -18,12 +18,19 @@ import { useConversationFiche } from "../hooks/useConversationFiche";
 import { useMessages } from "../hooks/useMessages";
 import { ConversationProvider } from "../hooks/ConversationContext";
 import { CopilotStrip, CopilotCard, CopilotFicheTab, useCopilotPanel } from "@/features/copilot";
+import {
+  ConversationMediaGallery,
+  useMediaGallery,
+  useConversationMedia,
+  useEnsureInboundMedia,
+} from "@/features/media";
 
 export function ConversationPage() {
   const { id } = useParams({ from: "/app/atendimento/$id" });
   const conversationId: ID = id;
   const detail = useConversationDetail(conversationId);
   const fiche = useConversationFiche();
+  const media = useMediaGallery();
   const messages = useMessages(conversationId);
   const escalation = useConversationEscalation(conversationId);
   const copilot = useCopilotPanel(conversationId);
@@ -35,6 +42,37 @@ export function ConversationPage() {
     customerId: detail.conversation?.customerId ?? null,
     toggle: fiche.toggle,
   });
+
+  // RF-006/007/008: archive inbound media without blocking render/send. For
+  // every INBOUND message carrying media, resolve any already-archived asset
+  // (by messageId) and let the hook decide create/dedup/retry. De-dup is
+  // handled inside the hook (messageId/contentHash), so backfilling on every
+  // load is a safe no-op; a per-session ref guards against duplicate fires
+  // before the media cache refetches.
+  const conversationMedia = useConversationMedia(conversationId);
+  const { ensure } = useEnsureInboundMedia();
+  const ensuredMessageIdsRef = useRef<Set<ID>>(new Set());
+  const inboundMessages = messages.messages;
+  const archivedAssets = conversationMedia.assets;
+  useEffect(() => {
+    const assetByMessageId = new Map<ID, (typeof archivedAssets)[number]>();
+    for (const asset of archivedAssets) {
+      if (asset.messageId) assetByMessageId.set(asset.messageId, asset);
+    }
+    for (const message of inboundMessages) {
+      if (message.direction !== "in" || !message.mediaType) continue;
+      const existing = assetByMessageId.get(message.id) ?? null;
+      if (existing) {
+        // Keep the guard in sync so we never re-fire for an already-archived msg.
+        ensuredMessageIdsRef.current.add(message.id);
+        continue;
+      }
+      if (ensuredMessageIdsRef.current.has(message.id)) continue;
+      ensuredMessageIdsRef.current.add(message.id);
+      // Fire-and-forget: never blocks the conversation (RNF-002 / RF-008).
+      ensure(message, null);
+    }
+  }, [conversationId, inboundMessages, archivedAssets, ensure]);
 
   if (detail.isLoading && !detail.conversation) {
     return (
@@ -74,6 +112,8 @@ export function ConversationPage() {
               whatsappAccount={whatsappAccount}
               ficheOpen={fiche.open}
               onToggleFiche={ficheButtonClick}
+              mediaOpen={media.open}
+              onToggleMedia={media.toggle}
               menuSlot={
                 <ConversationMenu
                   conversation={conversation}
@@ -122,6 +162,11 @@ export function ConversationPage() {
               }
             />
           )}
+          <ConversationMediaGallery
+            conversationId={conversationId}
+            open={media.open}
+            onOpenChange={media.setOpen}
+          />
         </div>
       </ConversationProvider>
     </TooltipProvider>
