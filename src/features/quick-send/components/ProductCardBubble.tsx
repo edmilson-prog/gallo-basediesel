@@ -13,9 +13,9 @@ export interface IProductCardBubbleProps {
 }
 
 const SEVERITY_CLASS: Record<"ok" | "warning" | "critical", string> = {
-  ok: "text-emerald-600 dark:text-emerald-400",
-  warning: "text-amber-600 dark:text-amber-400",
-  critical: "text-destructive",
+  ok: "text-severity-success",
+  warning: "text-severity-warning",
+  critical: "text-severity-critical",
 };
 
 /** Rich product card bubble; degrades gracefully and falls back to text on parse fail (D-7). */

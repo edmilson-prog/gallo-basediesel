@@ -50,7 +50,7 @@ export function SnippetField({ value, gaps, textareaRef: _textareaRef, onChange:
           seg.gap ? (
             <mark
               key={i}
-              className="rounded bg-amber-500/25 text-transparent ring-1 ring-amber-500/50"
+              className="rounded bg-severity-warning/25 text-transparent ring-1 ring-severity-warning/50"
             >
               {seg.text}
             </mark>
@@ -62,7 +62,7 @@ export function SnippetField({ value, gaps, textareaRef: _textareaRef, onChange:
       {gaps.length > 0 && (
         <div
           className={cn(
-            "pointer-events-none absolute -top-5 left-2 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300",
+            "pointer-events-none absolute -top-5 left-2 rounded-full bg-severity-warning/15 px-2 py-0.5 text-[10px] font-medium text-severity-warning",
           )}
           role="status"
         >

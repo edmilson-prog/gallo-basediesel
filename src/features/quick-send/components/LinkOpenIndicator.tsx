@@ -27,7 +27,7 @@ export function LinkOpenIndicator({ link }: ILinkOpenIndicatorProps) {
   const s = QUICK_SEND_STRINGS.link;
   if (link.opens <= 0 || !link.lastOpenedAt) return null;
   return (
-    <p className="mt-0.5 flex items-center gap-1 text-[11px] text-sky-700 dark:text-sky-300">
+    <p className="mt-0.5 flex items-center gap-1 text-[11px] text-severity-info">
       <Icon icon="mdi:eye-outline" size={12} aria-hidden />
       <span>
         {s.openedAgo(relativeAgo(link.lastOpenedAt))} · {s.openCount(link.opens)}
