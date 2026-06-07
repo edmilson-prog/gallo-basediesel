@@ -135,6 +135,7 @@ export function MessageInput(props: IMessageInputProps) {
   const bus = useQuickSendBus();
   const { sendAsset } = useSendAsset(conversation, whatsappAccount);
   const { sendProductCard } = useSendProductCard(conversation, whatsappAccount);
+  const { schedule } = useScheduleSend(conversation);
   const quickReplies = useQuickReplies();
 
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -289,11 +290,13 @@ export function MessageInput(props: IMessageInputProps) {
     }
   };
 
-  const { schedule } = useScheduleSend(conversation);
-
   const handleSchedule = async (scheduledFor: string) => {
     const text = value.trim();
     if (!text) return;
+    if (hasUnresolved(value)) {
+      toast.warning(QUICK_SEND_STRINGS.snippet.sendBlockedHint);
+      return;
+    }
     try {
       // Snippet payload carries the already-typed text as contextMessage so the
       // runner can re-send it verbatim at the simulated time (RF-023).
@@ -590,7 +593,7 @@ export function MessageInput(props: IMessageInputProps) {
           </Button>
           <ScheduleSendMenu
             onSchedule={(iso) => void handleSchedule(iso)}
-            disabled={!value.trim() || !canSendFreeText}
+            disabled={!value.trim() || !canSendFreeText || hasUnresolvedPlaceholders}
           />
         </div>
       </div>
