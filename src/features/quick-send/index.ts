@@ -70,3 +70,4 @@ export {
   scheduledSendsQueryKey,
   type IUseConversationScheduledResult,
 } from "./hooks/useConversationScheduled";
+export { ScheduleSendMenu, type IScheduleSendMenuProps } from "./components/ScheduleSendMenu";
