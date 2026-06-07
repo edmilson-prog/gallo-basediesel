@@ -18,6 +18,27 @@ import { useMetaWindow } from "../hooks/useMetaWindow";
 import { useConversationContext } from "../hooks/ConversationContext";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
 import { TemplateDialog } from "./dialogs/TemplateDialog";
+import {
+  AssetPicker,
+  ComposerStagedAsset,
+  ProductSearchDialog,
+  SlashMenu,
+  SnippetField,
+  useSendAsset,
+  useSendProductCard,
+  useQuickSendBus,
+  useQuickReplies,
+} from "@/features/quick-send";
+import { parseSlash } from "@/features/quick-send/engine/slashParser";
+import { filterAssets } from "@/features/quick-send/engine/assetFiltering";
+import { resolvePlaceholders, hasUnresolved } from "@/features/quick-send/engine/placeholderResolver";
+import { useAssetLibrary } from "@/features/quick-send/hooks/useAssetLibrary";
+import type { IAssetLibraryItem, IPart } from "@/shared/types";
+import {
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { QUICK_SEND_STRINGS } from "@/features/quick-send/i18n/pt-BR";
 
 export interface IMessageInputProps {
   conversation: IConversation;
@@ -109,6 +130,21 @@ export function MessageInput(props: IMessageInputProps) {
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [templateOpen, setTemplateOpen] = useState(false);
 
+  const bus = useQuickSendBus();
+  const { sendAsset } = useSendAsset(conversation, whatsappAccount);
+  const { sendProductCard } = useSendProductCard(conversation, whatsappAccount);
+  const quickReplies = useQuickReplies();
+
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [productSearchOpen, setProductSearchOpen] = useState(false);
+  const [stagedAsset, setStagedAsset] = useState<IAssetLibraryItem | null>(null);
+  const [stagedContext, setStagedContext] = useState("");
+  const [slashIndex, setSlashIndex] = useState(0);
+  // Caret position tracked in STATE (not read from the ref during render) so the
+  // slash parser reacts to cursor moves (arrow keys/click), not only to value
+  // changes — D-5 non-regression. Updated by the textarea's select/keyup/click.
+  const [caret, setCaret] = useState(0);
+
   const supportsTemplates = whatsappAccount?.capabilities.supportsTemplatesHsm ?? false;
   const isMeta = whatsappAccount?.provider === "meta";
   const canSendFreeText = readOnly ? false : window.canSendFreeText;
@@ -130,6 +166,42 @@ export function MessageInput(props: IMessageInputProps) {
     [conversation, lastInboundText],
   );
 
+  // --- Slash (read-only observer over value + caret) ---
+  // `caret` comes from state (updated by select/keyup/click handlers below), so
+  // parseSlash refreshes when the cursor moves into/out of a "/token" even if the
+  // value didn't change (e.g. arrow keys). Clamp to the current value length.
+  const safeCaret = Math.min(caret, value.length);
+  const slash = parseSlash(value, safeCaret);
+  const slashLib = useAssetLibrary(
+    slash.active ? { query: slash.query } : { query: "" },
+  );
+  const slashAssets = slash.active
+    ? filterAssets(slashLib.items, { query: slash.query }).slice(0, 5)
+    : [];
+  const slashReplies =
+    slash.active && quickReplies.replies.length > 0
+      ? quickReplies.replies
+          .filter((r) =>
+            `${r.shortcut} ${r.title}`.toLowerCase().includes(slash.query.toLowerCase()),
+          )
+          .slice(0, 5)
+      : [];
+  const slashTotal = slashAssets.length + slashReplies.length;
+  const slashOpen = slash.active && slashTotal > 0;
+
+  // --- Snippet gaps (double send-lock) ---
+  const placeholderCtx = useMemo(
+    () => ({ nome: undefined, peca: undefined, prazo: undefined }),
+    [],
+  );
+  const snippetGaps = resolvePlaceholders(value, placeholderCtx).gaps;
+  const hasUnresolvedPlaceholders = hasUnresolved(value);
+
+  // Reset slash highlight when the candidate list changes.
+  useEffect(() => {
+    setSlashIndex(0);
+  }, [slash.query, slashTotal]);
+
   // Auto-resize the textarea to fit content, capped at ~5 lines.
   useEffect(() => {
     const el = textareaRef.current;
@@ -147,9 +219,60 @@ export function MessageInput(props: IMessageInputProps) {
     );
   }
 
+  // Keep the caret state in sync with the textarea selection on every cursor move.
+  const syncCaret = () => {
+    const pos = textareaRef.current?.selectionStart;
+    if (typeof pos === "number") setCaret(pos);
+  };
+
+  const stageAsset = (item: IAssetLibraryItem) => {
+    setStagedAsset(item);
+    setStagedContext("");
+  };
+
+  const handleStagedSend = async () => {
+    if (!stagedAsset) return;
+    const item = stagedAsset;
+    setStagedAsset(null);
+    setStagedContext("");
+    if (!canSendFreeText) {
+      toast.info(CONVERSATION_STRINGS.windowDisabledHint);
+      setTemplateOpen(true);
+      return;
+    }
+    await sendAsset(item, stagedContext);
+    onSent?.();
+  };
+
+  const handleProductSelected = async (part: IPart) => {
+    if (!canSendFreeText) {
+      toast.info(CONVERSATION_STRINGS.windowDisabledHint);
+      setTemplateOpen(true);
+      return;
+    }
+    await sendProductCard(part);
+    onSent?.();
+  };
+
+  const insertSnippetBody = (body: string) => {
+    // Replace the active "/shortcut..." token with the snippet body.
+    setValue(body);
+    requestAnimationFrame(() => textareaRef.current?.focus());
+  };
+
+  const pickSlashAsset = (item: IAssetLibraryItem) => {
+    // Picking an asset via slash clears the slash token and stages the asset.
+    setValue("");
+    stageAsset(item);
+  };
+
   const handleSend = async () => {
     const text = value.trim();
     if (!text) return;
+    if (hasUnresolved(value)) {
+      toast.warning(QUICK_SEND_STRINGS.snippet.sendBlockedHint);
+      return;
+    }
     if (!canSendFreeText) {
       toast.info(CONVERSATION_STRINGS.windowDisabledHint);
       setTemplateOpen(true);
@@ -165,6 +288,40 @@ export function MessageInput(props: IMessageInputProps) {
   };
 
   const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K")) {
+      e.preventDefault();
+      setPickerOpen(true);
+      return;
+    }
+    // Slash menu navigation — intercept ONLY while the menu is open (D-5).
+    if (slashOpen) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSlashIndex((i) => Math.min(i + 1, slashTotal - 1));
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSlashIndex((i) => Math.max(i - 1, 0));
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        // Soft-close: append a space so parseSlash no longer matches the token.
+        setValue(value + " ");
+        return;
+      }
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        if (slashIndex < slashAssets.length) {
+          pickSlashAsset(slashAssets[slashIndex]);
+        } else {
+          insertSnippetBody(slashReplies[slashIndex - slashAssets.length].body);
+        }
+        return;
+      }
+    }
+    // Default behaviour — UNCHANGED when no menu is open (Enter sends / Shift+Enter newline).
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       void handleSend();
@@ -220,6 +377,19 @@ export function MessageInput(props: IMessageInputProps) {
         </div>
       )}
 
+      {stagedAsset && (
+        <ComposerStagedAsset
+          item={stagedAsset}
+          contextMessage={stagedContext}
+          onContextChange={setStagedContext}
+          onSend={handleStagedSend}
+          onCancel={() => {
+            setStagedAsset(null);
+            setStagedContext("");
+          }}
+        />
+      )}
+
       <div className="flex items-end gap-2 px-3 py-2">
         {/* Anexo */}
         <DropdownMenu>
@@ -239,7 +409,36 @@ export function MessageInput(props: IMessageInputProps) {
             </TooltipTrigger>
             <TooltipContent>{CONVERSATION_STRINGS.attach}</TooltipContent>
           </Tooltip>
-          <DropdownMenuContent align="start">
+          <DropdownMenuContent align="start" className="w-56">
+            <DropdownMenuLabel className="text-[11px] uppercase text-muted-foreground">
+              {CONVERSATION_STRINGS.attachSectionLibrary}
+            </DropdownMenuLabel>
+            <DropdownMenuItem onSelect={() => setPickerOpen(true)}>
+              <Icon icon="mdi:bookshelf" size={14} className="mr-2" />
+              {CONVERSATION_STRINGS.openLibrary}
+              <span className="ml-auto text-[10px] text-muted-foreground">
+                {CONVERSATION_STRINGS.openLibraryShortcut}
+              </span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() => {
+                // Resposta rápida: open the library focused on the all tab; snippets
+                // are also reachable via the "/" slash. (Reuses the same picker.)
+                setPickerOpen(true);
+              }}
+            >
+              <Icon icon="mdi:lightning-bolt-outline" size={14} className="mr-2" />
+              {CONVERSATION_STRINGS.quickReply}
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setProductSearchOpen(true)}>
+              <Icon icon="mdi:cog-outline" size={14} className="mr-2" />
+              {CONVERSATION_STRINGS.sendProduct}
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-[11px] uppercase text-muted-foreground">
+              {CONVERSATION_STRINGS.attachSectionFile}
+            </DropdownMenuLabel>
             <DropdownMenuItem onSelect={() => toast.info(CONVERSATION_STRINGS.attachComingSoon)}>
               <Icon icon="mdi:image-outline" size={14} className="mr-2" />
               {CONVERSATION_STRINGS.attachImage}
@@ -292,21 +491,49 @@ export function MessageInput(props: IMessageInputProps) {
           </PopoverContent>
         </Popover>
 
-        {/* Textarea */}
-        <Textarea
-          ref={textareaRef}
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onKeyDown={handleKey}
-          placeholder={placeholder}
-          rows={1}
-          disabled={!canSendFreeText}
-          className={cn(
-            "min-h-[40px] flex-1 resize-none py-2",
-            !canSendFreeText && "cursor-not-allowed bg-muted/40",
+        {/* Textarea + overlays */}
+        <div className="relative flex-1">
+          {slashOpen && (
+            <SlashMenu
+              state={slash}
+              items={slashAssets}
+              replies={slashReplies}
+              activeIndex={slashIndex}
+              onPickAsset={pickSlashAsset}
+              onPickReply={(r) => insertSnippetBody(r.body)}
+              onClose={() => setValue(value + " ")}
+            />
           )}
-          aria-label="Mensagem"
-        />
+          <SnippetField
+            value={value}
+            gaps={snippetGaps}
+            onChange={setValue}
+            textareaRef={textareaRef as React.RefObject<HTMLTextAreaElement>}
+          />
+          <Textarea
+            ref={textareaRef}
+            value={value}
+            onChange={(e) => {
+              setValue(e.target.value);
+              setCaret(e.target.selectionStart ?? e.target.value.length);
+            }}
+            onKeyDown={handleKey}
+            onKeyUp={syncCaret}
+            onSelect={syncCaret}
+            onClick={syncCaret}
+            placeholder={placeholder}
+            rows={1}
+            disabled={!canSendFreeText}
+            className={cn(
+              // Mirror ui/textarea defaults (px-3 py-2, text-base md:text-sm) so the
+              // SnippetField overlay aligns pixel-for-pixel with the real text (D-6).
+              "relative min-h-[40px] w-full resize-none bg-transparent px-3 py-2 text-base leading-normal md:text-sm",
+              snippetGaps.length > 0 && "caret-foreground",
+              !canSendFreeText && "cursor-not-allowed bg-muted/40",
+            )}
+            aria-label="Mensagem"
+          />
+        </div>
 
         {/* Templates */}
         <Tooltip>
@@ -338,7 +565,7 @@ export function MessageInput(props: IMessageInputProps) {
           size="sm"
           className="h-9 gap-1.5 px-3"
           onClick={handleSend}
-          disabled={!value.trim() || !canSendFreeText}
+          disabled={!value.trim() || !canSendFreeText || hasUnresolvedPlaceholders}
         >
           <Icon icon="mdi:send" size={14} />
           <span className="hidden lg:inline">{CONVERSATION_STRINGS.send}</span>
@@ -349,6 +576,22 @@ export function MessageInput(props: IMessageInputProps) {
         open={templateOpen}
         onOpenChange={setTemplateOpen}
         onConfirm={handleTemplateConfirm}
+      />
+      <AssetPicker
+        conversation={conversation}
+        whatsappAccount={whatsappAccount}
+        open={pickerOpen || bus.pickerRequest !== null}
+        onOpenChange={(o) => {
+          setPickerOpen(o);
+          if (!o) bus.clearRequest();
+        }}
+        initialFilter={bus.pickerRequest ?? undefined}
+        onStage={stageAsset}
+      />
+      <ProductSearchDialog
+        open={productSearchOpen}
+        onOpenChange={setProductSearchOpen}
+        onSelect={handleProductSelected}
       />
     </footer>
   );
