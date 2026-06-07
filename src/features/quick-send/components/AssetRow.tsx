@@ -11,6 +11,8 @@ export interface IAssetRowProps {
   item: IAssetLibraryItem;
   viewer: { role: RoleName } | null;
   isFavorite: boolean;
+  /** True when this row is the listbox's active option (aria-activedescendant). */
+  isActive?: boolean;
   onSelect: () => void;
   onSendNow?: () => void;
   onToggleFavorite: () => void;
@@ -30,6 +32,7 @@ export function AssetRow({
   item,
   viewer,
   isFavorite,
+  isActive = false,
   onSelect,
   onSendNow,
   onToggleFavorite,
@@ -41,13 +44,15 @@ export function AssetRow({
 
   return (
     <div
+      id={`asset-opt-${item.id}`}
       className={cn(
         "group flex items-center gap-3 rounded-md px-2 py-2 text-sm",
         !blocked && sendable && "cursor-pointer hover:bg-muted/60",
+        isActive && !blocked && sendable && "bg-muted/60 ring-1 ring-ring",
         (blocked || isArchived) && "opacity-60",
       )}
       role="option"
-      aria-selected={false}
+      aria-selected={isActive}
       aria-disabled={blocked || !sendable}
       onClick={() => {
         if (blocked || !sendable) return;
@@ -66,7 +71,7 @@ export function AssetRow({
           onSelect();
         }
       }}
-      tabIndex={blocked || !sendable ? -1 : 0}
+      tabIndex={-1}
     >
       <span
         className={cn(

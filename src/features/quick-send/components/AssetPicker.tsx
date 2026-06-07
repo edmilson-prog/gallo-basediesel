@@ -18,6 +18,8 @@ import { useAssetLibrary } from "../hooks/useAssetLibrary";
 import { useAssetPickerMode } from "../hooks/useAssetPickerMode";
 import { useSendAsset } from "../hooks/useSendAsset";
 import { filterAssets } from "../engine/assetFiltering";
+import { isSensitiveAsset, canSendSensitiveAsset } from "../engine/assetSensitivity";
+import { pickSendableVersion } from "../engine/assetVersioning";
 import { useQuickSendBus, type IPickerRequest } from "../hooks/useQuickSendBus";
 import { Toggle } from "@/components/ui/toggle";
 import { AssetPickerModeSwitcher } from "./AssetPickerModeSwitcher";
@@ -120,6 +122,53 @@ export function AssetPicker({
     void sendAsset(item);
   };
 
+  // --- Listbox keyboard navigation (D-16/RNF-004) ---
+  // The container is the focusable widget; rows defer to aria-activedescendant
+  // (roving via id). Mirrors AssetRow's gates so blocked/non-sendable items are
+  // skipped on Enter/⌘Enter (the same checks AssetRow uses for its own handlers).
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  // Reset the highlight whenever the visible set, mode or open state changes so
+  // the active id always points at a real, currently-rendered option.
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [visible, mode, open]);
+
+  const isItemSendable = (item: IAssetLibraryItem): boolean =>
+    pickSendableVersion(item) !== null && !(isSensitiveAsset(item) && !canSendSensitiveAsset(viewer));
+
+  const handleListKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (visible.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.min(i + 1, visible.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.max(i - 1, 0));
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      setActiveIndex(0);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      setActiveIndex(visible.length - 1);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      onOpenChange(false);
+    } else if (e.key === "Enter") {
+      const item = visible[Math.min(activeIndex, visible.length - 1)];
+      if (!item || !isItemSendable(item)) return;
+      e.preventDefault();
+      // ⌘/Ctrl+Enter sends immediately (mirror AssetRow); plain Enter stages.
+      if ((e.metaKey || e.ctrlKey) && mode !== "grid") {
+        handleSendNow(item);
+      } else {
+        handleStage(item);
+      }
+    }
+  };
+
+  const activeId = visible[Math.min(activeIndex, Math.max(0, visible.length - 1))]?.id;
+
   const body = (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
@@ -190,12 +239,21 @@ export function AssetPicker({
             {QUICK_SEND_STRINGS.picker.emptyState}
           </p>
         ) : mode === "grid" ? (
-          <div className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-3" role="listbox">
+          <div
+            className="grid grid-cols-2 gap-2 p-3 outline-none sm:grid-cols-3"
+            role="listbox"
+            aria-label={QUICK_SEND_STRINGS.picker.title}
+            aria-multiselectable={packageMode}
+            aria-activedescendant={activeId ? `asset-opt-${activeId}` : undefined}
+            tabIndex={0}
+            onKeyDown={handleListKey}
+          >
             {visible.map((item) => (
               <AssetGridCard
                 key={item.id}
                 item={item}
                 viewer={viewer}
+                isActive={item.id === activeId}
                 isFavorite={favoriteIds.has(item.id)}
                 onSelect={() => handleStage(item)}
                 onToggleFavorite={() => lib.toggleFavorite(item.id)}
@@ -203,12 +261,21 @@ export function AssetPicker({
             ))}
           </div>
         ) : (
-          <div className="p-1.5" role="listbox">
+          <div
+            className="p-1.5 outline-none"
+            role="listbox"
+            aria-label={QUICK_SEND_STRINGS.picker.title}
+            aria-multiselectable={packageMode}
+            aria-activedescendant={activeId ? `asset-opt-${activeId}` : undefined}
+            tabIndex={0}
+            onKeyDown={handleListKey}
+          >
             {visible.map((item) => (
               <AssetRow
                 key={item.id}
                 item={item}
                 viewer={viewer}
+                isActive={item.id === activeId}
                 isFavorite={favoriteIds.has(item.id)}
                 onSelect={() => handleStage(item)}
                 onSendNow={() => handleSendNow(item)}

@@ -544,6 +544,11 @@ export function MessageInput(props: IMessageInputProps) {
             placeholder={placeholder}
             rows={1}
             disabled={!canSendFreeText}
+            role="combobox"
+            aria-expanded={slashOpen}
+            aria-controls={slashOpen ? "slash-listbox" : undefined}
+            aria-autocomplete="list"
+            aria-activedescendant={slashOpen ? `slash-opt-${slashIndex}` : undefined}
             className={cn(
               // Mirror ui/textarea defaults (px-3 py-2, text-base md:text-sm) so the
               // SnippetField overlay aligns pixel-for-pixel with the real text (D-6).

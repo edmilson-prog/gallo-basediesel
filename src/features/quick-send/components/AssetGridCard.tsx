@@ -11,6 +11,8 @@ export interface IAssetGridCardProps {
   item: IAssetLibraryItem;
   viewer: { role: RoleName } | null;
   isFavorite: boolean;
+  /** True when this card is the listbox's active option (aria-activedescendant). */
+  isActive?: boolean;
   onSelect: () => void;
   onToggleFavorite: () => void;
 }
@@ -29,6 +31,7 @@ export function AssetGridCard({
   item,
   viewer,
   isFavorite,
+  isActive = false,
   onSelect,
   onToggleFavorite,
 }: IAssetGridCardProps) {
@@ -38,16 +41,18 @@ export function AssetGridCard({
 
   return (
     <div
+      id={`asset-opt-${item.id}`}
       className={cn(
         "relative flex flex-col overflow-hidden rounded-lg border border-border bg-card",
         !blocked && sendable && "cursor-pointer hover:border-primary/40 hover:shadow-sm",
+        isActive && !blocked && sendable && "border-primary ring-1 ring-ring",
         (blocked || isArchived) && "opacity-60",
         isSensitiveAsset(item) && "ring-1 ring-amber-500/40",
       )}
       role="option"
-      aria-selected={false}
+      aria-selected={isActive}
       aria-disabled={blocked || !sendable}
-      tabIndex={blocked || !sendable ? -1 : 0}
+      tabIndex={-1}
       onClick={() => {
         if (blocked || !sendable) return;
         onSelect();

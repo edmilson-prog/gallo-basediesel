@@ -38,6 +38,7 @@ export function SlashMenu({
     <div
       className="absolute bottom-full left-0 z-30 mb-1 max-h-64 w-80 overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-lg"
       role="listbox"
+      id="slash-listbox"
       aria-label={QUICK_SEND_STRINGS.slash.menuLabel}
     >
       {total === 0 ? (
@@ -50,6 +51,7 @@ export function SlashMenu({
           {items.map((item, i) => (
             <button
               key={item.id}
+              id={`slash-opt-${i}`}
               type="button"
               role="option"
               aria-selected={activeIndex === i}
@@ -72,6 +74,7 @@ export function SlashMenu({
             return (
               <button
                 key={reply.id}
+                id={`slash-opt-${idx}`}
                 type="button"
                 role="option"
                 aria-selected={activeIndex === idx}
