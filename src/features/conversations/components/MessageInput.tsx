@@ -200,6 +200,17 @@ export function MessageInput(props: IMessageInputProps) {
   const snippetGaps = resolvePlaceholders(value, placeholderCtx).gaps;
   const hasUnresolvedPlaceholders = hasUnresolved(value);
 
+  // Why is Send/Schedule disabled? Surface a concise reason for AT (a11y) — gate
+  // priority mirrors handleSend: pending fields → closed window → empty draft.
+  const sendDisabled = !value.trim() || !canSendFreeText || hasUnresolvedPlaceholders;
+  const sendDisabledReason = hasUnresolvedPlaceholders
+    ? CONVERSATION_STRINGS.sendDisabledPendingFields
+    : !canSendFreeText
+      ? CONVERSATION_STRINGS.sendDisabledWindowClosed
+      : !value.trim()
+        ? CONVERSATION_STRINGS.sendDisabledEmpty
+        : undefined;
+
   // Reset slash highlight when the candidate list changes.
   useEffect(() => {
     setSlashIndex(0);
@@ -586,19 +597,27 @@ export function MessageInput(props: IMessageInputProps) {
 
         {/* Enviar (split: enviar agora + agendar) */}
         <div className="flex shrink-0">
-          <Button
-            type="button"
-            size="sm"
-            className="h-9 gap-1.5 rounded-r-none px-3"
-            onClick={handleSend}
-            disabled={!value.trim() || !canSendFreeText || hasUnresolvedPlaceholders}
-          >
-            <Icon icon="mdi:send" size={14} />
-            <span className="hidden lg:inline">{CONVERSATION_STRINGS.send}</span>
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-9 gap-1.5 rounded-r-none px-3"
+                  onClick={handleSend}
+                  disabled={sendDisabled}
+                  aria-disabled={sendDisabled}
+                >
+                  <Icon icon="mdi:send" size={14} />
+                  <span className="hidden lg:inline">{CONVERSATION_STRINGS.send}</span>
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{sendDisabledReason ?? CONVERSATION_STRINGS.send}</TooltipContent>
+          </Tooltip>
           <ScheduleSendMenu
             onSchedule={(iso) => void handleSchedule(iso)}
-            disabled={!value.trim() || !canSendFreeText || hasUnresolvedPlaceholders}
+            disabled={sendDisabled}
           />
         </div>
       </div>

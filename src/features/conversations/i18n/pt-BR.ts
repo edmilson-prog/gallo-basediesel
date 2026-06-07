@@ -240,6 +240,10 @@ export const CONVERSATION_STRINGS = {
   inputPlaceholder: "Digite uma mensagem…",
   inputPlaceholderClosed: "Janela fechada — selecione um template",
   send: "Enviar",
+  // Disabled-state reasons surfaced via tooltip on the Send/Schedule buttons (a11y).
+  sendDisabledEmpty: "Digite uma mensagem",
+  sendDisabledWindowClosed: "Janela 24h fechada — use um template",
+  sendDisabledPendingFields: "Preencha os campos pendentes",
   attach: "Anexar",
   attachImage: "Imagem",
   attachDocument: "Documento",

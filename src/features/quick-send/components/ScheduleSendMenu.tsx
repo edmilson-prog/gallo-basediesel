@@ -98,6 +98,7 @@ export function ScheduleSendMenu({ onSchedule, disabled = false }: IScheduleSend
           className="h-9 w-7 shrink-0 rounded-l-none border-l border-primary-foreground/20 px-0"
           aria-label={s.scheduleSend}
           disabled={disabled}
+          aria-disabled={disabled}
         >
           <Icon icon="mdi:chevron-down" size={16} />
         </Button>
