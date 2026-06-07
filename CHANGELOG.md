@@ -4,6 +4,22 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.68.0] — Dispatch · 2026-06-07
+
+O atendimento ganha **envio rápido**. Agora o vendedor dispara catálogos, fichas, tabelas, garantias, vídeos e links direto do composer, a partir de uma **biblioteca de ativos curada e versionada** (por marca e linha), aberta em **três modos** que você alterna e ficam lembrados — **Painel** (⌘K), **Grade** e **Lateral** — com **Recentes**, **Favoritos** e busca. **Comandos de barra** (`/catalogo`, `/tabela`, `/garantia`, `/loja`) acham e inserem o material em segundos, e **respostas rápidas** preenchem variáveis (`{{nome}}`, `{{peça}}`, `{{prazo}}`) a partir do contexto da conversa — com trava que impede enviar campo em branco. Dá para mandar um **card de produto** rico (foto, código OE, equivalência, estoque, preço) montado do catálogo, montar **pacotes/combos** e **agendar** envios por conversa. **Links rastreáveis** sinalizam quando o cliente abriu o material e **elevam a temperatura do lead** automaticamente. A gestão controla o que circula: **publicar/despublicar, versão e permissão por ativo**, gestão de respostas compartilhadas e **estatística de uso** — e a **tabela de preços** (sensível) só pode ser enviada por Owner e Gestor, com auditoria. Tudo sobre o storage do PRD-026, sem alterar nada do composer existente.
+
+### Added
+
+- **Biblioteca de ativos no composer (PRD-027)** — seletor curado e versionado (catálogo, ficha técnica, tabela de preços, garantia, vídeo, link) por marca/linha, com busca, Recentes e Favoritos, em três modos lembrados (Painel/Grade/Lateral); abre por botão, `Ctrl/Cmd+K` ou `/`.
+- **Comandos de barra (slash)** — `/catalogo`, `/tabela`, `/garantia`, `/loja` (e busca livre) inserem o ativo em 1 clique, sem capturar barra literal (`http://`, datas).
+- **Respostas rápidas (snippets)** — texto reutilizável com variáveis resolvidas do contexto; o que não resolve fica em destaque editável e o envio é bloqueado até preencher (nunca envia placeholder cru).
+- **Card de produto** — bubble rico montado do catálogo (foto, código OE, equivalência, estoque, preço), com degradação elegante quando falta imagem ou preço.
+- **Links rastreáveis + temperatura do lead** — ao enviar um link, a abertura (simulada na Fase 1) aparece na conversa e eleva a temperatura do lead (frio→morno→quente), com indicação e registro do evento.
+- **Pacotes/combos** — selecione vários ativos e envie em sequência; falha em um item não impede os demais.
+- **Agendamento de envio** — agende ativo/snippet/combo por conversa, com lista de agendados (editar/cancelar + desfazer) e disparo no horário (simulado na Fase 1).
+- **Governança da biblioteca** — publicar/despublicar, versão e permissão por ativo; gestão de respostas compartilhadas; estatística de uso (mais enviados + ranking por vendedor), em Configurações → Biblioteca.
+- **Governança de ativo sensível** — a tabela de preços é restrita a Owner e Gestor para envio; tentativas de perfis sem permissão são bloqueadas e auditadas.
+
 ## [0.67.0] — Vault · 2026-06-06
 
 Toda mídia trocada no atendimento — foto de peça, foto de chassi/placa, nota fiscal, comprovante, áudio, documento — agora é **preservada e fácil de achar**. Cada conversa ganha uma **galeria de mídias** (botão no topo), e a ficha do cliente ganha uma aba **Mídias** que reúne tudo de todas as conversas dele. Você escolhe como ver — **Grade**, **Cartões** ou **Por tipo** — e a preferência fica lembrada. Um **visualizador em tela cheia** abre imagem (com zoom), toca áudio (1x/1.5x/2x) com a transcrição em destaque e abre/baixa documentos, tudo navegável por teclado. A plataforma **classifica e sugere vínculos** (peça, chassi/placa, nota, comprovante) para você confirmar, e protege o que é sensível: **nota fiscal e comprovante** ficam restritos a Owner e Gestor — os demais veem uma prévia borrada com aviso, e cada acesso é auditado. Imagens podem receber **anotações** salvas como nova versão. Por trás, uma camada de storage abstrata já está pronta para o provedor real da Fase 2.

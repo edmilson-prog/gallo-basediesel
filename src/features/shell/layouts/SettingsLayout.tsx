@@ -240,6 +240,12 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         roles: ["Owner", "Gestor"],
       },
       {
+        label: "Biblioteca de ativos",
+        icon: "mdi:bookshelf",
+        to: "/app/configuracoes/biblioteca",
+        roles: ["Owner", "Gestor"],
+      },
+      {
         label: "Auditoria",
         icon: "mdi:history",
         to: "/app/configuracoes/auditoria",

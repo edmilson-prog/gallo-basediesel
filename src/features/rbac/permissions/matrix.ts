@@ -67,6 +67,11 @@ const OWNER_ENTRIES: ScopedActions[] = [
   p("insight", ["view", "edit", "delete"], "all"),
   p("storefront_admin", ["view", "edit"], "all"),
   p("ecommerce_integration", ["view", "edit"], "all"),
+  // Quick Send & Asset Library (PRD-027 D-12)
+  p("asset_library", CRUD, "all"),
+  p("quick_reply", CRUD, "all"),
+  p("trackable_link", CRUD, "all"),
+  p("scheduled_send", CRUD, "all"),
 ];
 
 const GESTOR_ENTRIES: ScopedActions[] = [
@@ -102,6 +107,11 @@ const GESTOR_ENTRIES: ScopedActions[] = [
   p("insight", ["view", "edit"], "store"),
   // Gestor: read-only on the storefront admin dashboard/analysis (PRD-066 RF-023).
   p("storefront_admin", ["view"], "store"),
+  // Quick Send & Asset Library (PRD-027 D-12) — manage at store scope.
+  p("asset_library", CRUD, "store"),
+  p("quick_reply", CRUD, "store"),
+  p("trackable_link", CRUD, "store"),
+  p("scheduled_send", CRUD, "store"),
 ];
 
 const VENDEDOR_ENTRIES: ScopedActions[] = [
@@ -123,6 +133,11 @@ const VENDEDOR_ENTRIES: ScopedActions[] = [
   p("segment", ["view", "create", "edit"], "own"),
   p("seller", ["view"], "own"),
   p("settings", ["view"], "own"),
+  // Quick Send & Asset Library (PRD-027 D-12) — read library, create own links/sends.
+  p("asset_library", ["view"], "own"),
+  p("quick_reply", ["view"], "own"),
+  p("trackable_link", ["create"], "own"),
+  p("scheduled_send", ["create"], "own"),
 ];
 
 const SDR_ENTRIES: ScopedActions[] = [
@@ -136,6 +151,11 @@ const SDR_ENTRIES: ScopedActions[] = [
   p("quote", ["view", "create"], "own"),
   p("recommendation", ["view"], "own"),
   p("seller", ["view"], "store"),
+  // Quick Send & Asset Library (PRD-027 D-12) — same as Vendedor.
+  p("asset_library", ["view"], "own"),
+  p("quick_reply", ["view"], "own"),
+  p("trackable_link", ["create"], "own"),
+  p("scheduled_send", ["create"], "own"),
 ];
 
 const CLIENTE_ENTRIES: ScopedActions[] = [

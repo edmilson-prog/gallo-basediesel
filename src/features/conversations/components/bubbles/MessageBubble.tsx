@@ -5,6 +5,11 @@ import { AudioBubble } from "./AudioBubble";
 import { DocumentBubble } from "./DocumentBubble";
 import { SystemBubble } from "./SystemBubble";
 import { TemplateBubble } from "./TemplateBubble";
+import { ProductCardBubble } from "@/features/quick-send/components/ProductCardBubble";
+import { PRODUCT_CARD_MARKER } from "@/features/quick-send/engine/productCardPayload";
+import { LinkBubble, decodeLinkMarker } from "@/features/quick-send/components/LinkBubble";
+import { useConversationLinks } from "@/features/quick-send/hooks/useConversationLinks";
+import { TRACKABLE_LINK_MARKER } from "@/features/quick-send/engine/trackableLink";
 
 export interface IMessageBubbleProps {
   message: IMessage;
@@ -31,6 +36,12 @@ export function MessageBubble({ message, onRetry }: IMessageBubbleProps) {
   ) {
     return <TemplateBubble message={message} onRetry={onRetry} />;
   }
+  if (message.text.startsWith(PRODUCT_CARD_MARKER)) {
+    return <ProductCardBubble message={message} onRetry={onRetry} />;
+  }
+  if (message.text.startsWith(TRACKABLE_LINK_MARKER)) {
+    return <LinkBubbleWithLiveData message={message} onRetry={onRetry} />;
+  }
   if (message.mediaType === "image" || message.mediaType === "sticker") {
     return <ImageBubble message={message} onRetry={onRetry} />;
   }
@@ -41,4 +52,18 @@ export function MessageBubble({ message, onRetry }: IMessageBubbleProps) {
     return <DocumentBubble message={message} onRetry={onRetry} />;
   }
   return <TextBubble message={message} onRetry={onRetry} />;
+}
+
+/** Co-located wrapper so the hook only runs for link messages (Rules of Hooks). */
+function LinkBubbleWithLiveData({
+  message,
+  onRetry,
+}: {
+  message: IMessage;
+  onRetry?: () => void;
+}) {
+  const payload = decodeLinkMarker(message.text);
+  const { byId } = useConversationLinks(message.conversationId);
+  const link = payload ? (byId.get(payload.linkId) ?? null) : null;
+  return <LinkBubble message={message} link={link} onRetry={onRetry} />;
 }

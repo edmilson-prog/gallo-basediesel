@@ -34,6 +34,10 @@ export { sdrEscalationsApi } from "./sdrEscalations";
 export { notificationsApi, type IListNotificationsParams } from "./notifications";
 export { indicatorsApi, type IListIndicatorsParams } from "./indicators";
 export { mediaApi, type IListMediaApiParams } from "./media";
+export { assetLibraryApi, type IListAssetLibraryApiParams } from "./assetLibrary";
+export { quickReplyApi } from "./quickReply";
+export { trackableLinkApi } from "./trackableLink";
+export { scheduledSendApi } from "./scheduledSend";
 
 export {
   modelKitsApi,

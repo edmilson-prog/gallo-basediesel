@@ -39,7 +39,12 @@ export type MockEntityName =
   | "rankings"
   | "positivations"
   | "abcClassifications"
-  | "mediaAssets";
+  | "mediaAssets"
+  | "assetLibraryItems"
+  | "quickReplies"
+  | "trackableLinks"
+  | "assetCombos"
+  | "scheduledSends";
 
 /** Default seed for deterministic dataset generation. Changing this regenerates everything. */
 export const DEFAULT_SEED = 42;
@@ -85,6 +90,11 @@ export const VOLUMES: Record<MockEntityName, number> = {
   positivations: 1,
   abcClassifications: 70,
   mediaAssets: 90,
+  assetLibraryItems: 30,
+  quickReplies: 20,
+  trackableLinks: 10,
+  assetCombos: 5,
+  scheduledSends: 0,
 };
 
 /** Minimum simulated latency (ms) per API call. */

@@ -65,8 +65,8 @@ export function withOwnSellerScope<T extends Record<string, unknown>>(
  * Falls back to a sentinel id when no current store is resolved so the
  * underlying validation surfaces a clean error instead of an obscure crash.
  */
-export function withCreateStoreId<T extends { storeId?: ID }>(input: T): T {
-  if (input.storeId) return input;
+export function withCreateStoreId<T extends { storeId?: ID }>(input: T): T & { storeId: ID } {
+  if (input.storeId) return input as T & { storeId: ID };
   const { currentStoreId } = getCurrentContext();
   if (!currentStoreId) {
     throw new MockValidationError("Não é possível criar o registro sem uma loja ativa.", "storeId");

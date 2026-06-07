@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "@tanstack/react-router";
-import type { ID } from "@/shared/types";
+import type { ID, IConversation, IWhatsAppAccount } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { EmptyState } from "@/features/shell/components/EmptyState";
@@ -24,6 +24,53 @@ import {
   useConversationMedia,
   useEnsureInboundMedia,
 } from "@/features/media";
+import {
+  useScheduledSendRunner,
+  useTrackableLinkSimulation,
+  ScheduledList,
+  ComboTray,
+  useComboSend,
+  useQuickSendBus,
+  QuickSendBusProvider,
+} from "@/features/quick-send";
+
+function ConversationRunners({
+  conversation,
+  whatsappAccount,
+  refreshDetail,
+}: {
+  conversation: IConversation;
+  whatsappAccount: IWhatsAppAccount | null;
+  refreshDetail: () => void;
+}) {
+  useScheduledSendRunner(conversation, whatsappAccount);
+  useTrackableLinkSimulation(conversation, refreshDetail);
+  return null;
+}
+
+function ConversationComboTray({
+  conversation,
+  whatsappAccount,
+}: {
+  conversation: IConversation;
+  whatsappAccount: IWhatsAppAccount | null;
+}) {
+  const { comboItems, reorderCombo, removeFromCombo, clearCombo } = useQuickSendBus();
+  const { sendCombo, progress } = useComboSend(conversation, whatsappAccount);
+  if (comboItems.length === 0) return null;
+  return (
+    <ComboTray
+      items={comboItems}
+      onReorder={reorderCombo}
+      onRemove={removeFromCombo}
+      onSendAll={async () => {
+        await sendCombo(comboItems);
+        clearCombo();
+      }}
+      progress={progress}
+    />
+  );
+}
 
 export function ConversationPage() {
   const { id } = useParams({ from: "/app/atendimento/$id" });
@@ -102,73 +149,85 @@ export function ConversationPage() {
 
   return (
     <TooltipProvider delayDuration={200}>
-      <ConversationProvider value={{ messages }}>
-        <div className="flex h-full min-h-0 bg-background">
-          <div className="flex h-full min-h-0 flex-1 flex-col">
-            <ConversationHeader
-              conversation={conversation}
-              customer={customer}
-              lead={lead}
-              whatsappAccount={whatsappAccount}
-              ficheOpen={fiche.open}
-              onToggleFiche={ficheButtonClick}
-              mediaOpen={media.open}
-              onToggleMedia={media.toggle}
-              menuSlot={
-                <ConversationMenu
-                  conversation={conversation}
-                  customer={customer}
-                  lead={lead}
-                  onMutated={detail.refresh}
-                />
-              }
-              escalation={escalation}
-            />
+      <QuickSendBusProvider>
+        <ConversationProvider value={{ messages }}>
+          <div className="flex h-full min-h-0 bg-background">
+            <div className="flex h-full min-h-0 flex-1 flex-col">
+              <ConversationHeader
+                conversation={conversation}
+                customer={customer}
+                lead={lead}
+                whatsappAccount={whatsappAccount}
+                ficheOpen={fiche.open}
+                onToggleFiche={ficheButtonClick}
+                mediaOpen={media.open}
+                onToggleMedia={media.toggle}
+                menuSlot={
+                  <ConversationMenu
+                    conversation={conversation}
+                    customer={customer}
+                    lead={lead}
+                    onMutated={detail.refresh}
+                  />
+                }
+                escalation={escalation}
+              />
 
-            {copilot.placement === "card" && conversation.customerId && !copilot.error && (
-              <CopilotCard panel={copilot} />
-            )}
+              {copilot.placement === "card" && conversation.customerId && !copilot.error && (
+                <CopilotCard panel={copilot} />
+              )}
 
-            <div className="min-h-0 flex-1">
-              <MessageList conversation={conversation} />
+              <div className="min-h-0 flex-1">
+                <MessageList conversation={conversation} />
+              </div>
+
+              <MetaWindowIndicator conversation={conversation} whatsappAccount={whatsappAccount} />
+
+              {copilot.placement === "strip" && conversation.customerId && !copilot.error && (
+                <CopilotStrip panel={copilot} reply={stripReply} onInsertReply={setDraft} />
+              )}
+
+              <ConversationRunners
+                conversation={conversation}
+                whatsappAccount={whatsappAccount}
+                refreshDetail={detail.refresh}
+              />
+              <ConversationComboTray
+                conversation={conversation}
+                whatsappAccount={whatsappAccount}
+              />
+              <ScheduledList conversationId={conversationId} />
+              <MessageInput
+                conversation={conversation}
+                whatsappAccount={whatsappAccount}
+                onSent={detail.refresh}
+                draft={draft}
+                onDraftChange={setDraft}
+                hideAiSuggestions={copilot.placement === "strip"}
+              />
             </div>
 
-            <MetaWindowIndicator conversation={conversation} whatsappAccount={whatsappAccount} />
-
-            {copilot.placement === "strip" && conversation.customerId && !copilot.error && (
-              <CopilotStrip panel={copilot} reply={stripReply} onInsertReply={setDraft} />
+            {conversation.customerId && (
+              <CustomerProfileFiche
+                customerId={conversation.customerId}
+                conversation={conversation}
+                open={fiche.open}
+                onOpenChange={fiche.setOpen}
+                copilotTab={
+                  copilot.placement === "tab" && !copilot.error ? (
+                    <CopilotFicheTab panel={copilot} />
+                  ) : undefined
+                }
+              />
             )}
-
-            <MessageInput
-              conversation={conversation}
-              whatsappAccount={whatsappAccount}
-              onSent={detail.refresh}
-              draft={draft}
-              onDraftChange={setDraft}
-              hideAiSuggestions={copilot.placement === "strip"}
+            <ConversationMediaGallery
+              conversationId={conversationId}
+              open={media.open}
+              onOpenChange={media.setOpen}
             />
           </div>
-
-          {conversation.customerId && (
-            <CustomerProfileFiche
-              customerId={conversation.customerId}
-              conversation={conversation}
-              open={fiche.open}
-              onOpenChange={fiche.setOpen}
-              copilotTab={
-                copilot.placement === "tab" && !copilot.error ? (
-                  <CopilotFicheTab panel={copilot} />
-                ) : undefined
-              }
-            />
-          )}
-          <ConversationMediaGallery
-            conversationId={conversationId}
-            open={media.open}
-            onOpenChange={media.setOpen}
-          />
-        </div>
-      </ConversationProvider>
+        </ConversationProvider>
+      </QuickSendBusProvider>
     </TooltipProvider>
   );
 }

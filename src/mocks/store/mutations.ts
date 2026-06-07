@@ -10,9 +10,14 @@ import type {
   IExpense,
   IGoal,
   ILead,
+  IAssetCombo,
+  IAssetLibraryItem,
   IMediaAsset,
   IMessage,
   INotification,
+  IQuickReply,
+  IScheduledSend,
+  ITrackableLink,
   IOrder,
   IPart,
   IProductIndicator,
@@ -45,7 +50,12 @@ type CollectionKey =
   | "sdrEscalations"
   | "notifications"
   | "indicators"
-  | "mediaAssets";
+  | "mediaAssets"
+  | "assetLibraryItems"
+  | "quickReplies"
+  | "trackableLinks"
+  | "assetCombos"
+  | "scheduledSends";
 
 type CollectionMap = {
   customers: ICustomer;
@@ -68,6 +78,11 @@ type CollectionMap = {
   notifications: INotification;
   indicators: IProductIndicator;
   mediaAssets: IMediaAsset;
+  assetLibraryItems: IAssetLibraryItem;
+  quickReplies: IQuickReply;
+  trackableLinks: ITrackableLink;
+  assetCombos: IAssetCombo;
+  scheduledSends: IScheduledSend;
 };
 
 /**

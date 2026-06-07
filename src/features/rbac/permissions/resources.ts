@@ -41,6 +41,10 @@ export const RESOURCES = [
   "insight",
   "storefront_admin",
   "ecommerce_integration",
+  "asset_library",
+  "quick_reply",
+  "trackable_link",
+  "scheduled_send",
 ] as const;
 
 export type ResourceName = (typeof RESOURCES)[number];

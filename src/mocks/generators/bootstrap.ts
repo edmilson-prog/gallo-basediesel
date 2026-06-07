@@ -1,5 +1,7 @@
 import type {
   IABCClassification,
+  IAssetCombo,
+  IAssetLibraryItem,
   IAuditLog,
   ICarteiraTransfer,
   ICashFlowEntry,
@@ -20,14 +22,17 @@ import type {
   IPart,
   IPositivation,
   IProductIndicator,
+  IQuickReply,
   IQuote,
   IRanking,
   IRecommendation,
   IRole,
+  IScheduledSend,
   ISdrEscalation,
   ISdrSession,
   ISeller,
   IStore,
+  ITrackableLink,
   IVehicle,
   IVehicleServiceEntry,
   IWhatsAppAccount,
@@ -52,6 +57,12 @@ import { generateLead } from "./lead";
 import { generateConversation } from "./conversation";
 import { generateMessagesForConversation } from "./message";
 import { generateMediaAssets } from "./mediaAsset";
+import {
+  generateAssetCombos,
+  generateAssetLibrary,
+  generateQuickReplies,
+  generateTrackableLinks,
+} from "./quickSend";
 import { generateScriptedConversations } from "./scriptedConversations";
 import { generateQuote } from "./quote";
 import { generateOrdersTimeline } from "./order";
@@ -96,6 +107,11 @@ export interface IBootstrappedDataset {
   conversations: IConversation[];
   messages: IMessage[];
   mediaAssets: IMediaAsset[];
+  assetLibraryItems: IAssetLibraryItem[];
+  quickReplies: IQuickReply[];
+  trackableLinks: ITrackableLink[];
+  assetCombos: IAssetCombo[];
+  scheduledSends: IScheduledSend[];
   whatsappAccounts: IWhatsAppAccount[];
   parts: IPart[];
   quotes: IQuote[];
@@ -122,7 +138,9 @@ export interface IBootstrappedDataset {
  */
 export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
   const ctx = createSeededContext(seed);
-  const now = new Date();
+  // Truncate to minutes so two rapid bootstrap(seed) calls produce identical
+  // timestamps (eliminates sub-minute jitter that would break equality tests).
+  const now = new Date(Math.floor(Date.now() / 60_000) * 60_000);
 
   // 1. Foundational entities (no cross-deps).
   const stores: IStore[] = [{ ...SEED_STORE }];
@@ -281,6 +299,42 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
     storeId: stores[0].id,
     now,
   });
+
+  // 11.7. Quick Send & Asset Library (PRD-027) — curated library + snippets +
+  // trackable links + saved combos. Links are bound to existing conversations
+  // (and their leads, when present) so temperature escalation has real targets.
+  // Scheduled sends start EMPTY (created at runtime by the composer, D-11).
+  const assetLibraryItems = generateAssetLibrary(ctx, {
+    count: VOLUMES.assetLibraryItems,
+    storeId: stores[0].id,
+    createdBy: SEED_OWNER_ID,
+    now,
+  });
+  const quickReplies = generateQuickReplies(ctx, {
+    count: VOLUMES.quickReplies,
+    storeId: stores[0].id,
+    sellerIds: SEED_VENDEDOR_SELLER_IDS,
+    now,
+  });
+  const leadIdByConversation: Record<string, string | undefined> = {};
+  for (const conv of conversations) leadIdByConversation[conv.id] = conv.leadId;
+  const trackableLinks = generateTrackableLinks(ctx, {
+    count: VOLUMES.trackableLinks,
+    storeId: stores[0].id,
+    assets: assetLibraryItems.filter((a) => a.category === "link"),
+    conversationIds: conversations.map((c) => c.id),
+    leadIdByConversation,
+    createdBy: SEED_OWNER_ID,
+    now,
+  });
+  const assetCombos = generateAssetCombos(ctx, {
+    count: VOLUMES.assetCombos,
+    storeId: stores[0].id,
+    assets: assetLibraryItems,
+    ownerId: SEED_OWNER_ID,
+    now,
+  });
+  const scheduledSends: IScheduledSend[] = [];
 
   // 12. Quotes — bound to customers or leads, items pulled from the part catalog.
   const quotes: IQuote[] = [];
@@ -519,6 +573,11 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
     conversations,
     messages,
     mediaAssets,
+    assetLibraryItems,
+    quickReplies,
+    trackableLinks,
+    assetCombos,
+    scheduledSends,
     whatsappAccounts,
     parts,
     quotes,
