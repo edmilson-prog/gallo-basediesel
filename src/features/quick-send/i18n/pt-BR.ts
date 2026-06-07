@@ -18,6 +18,10 @@ export const QUICK_SEND_STRINGS = {
     modePalette: "Paleta",
     modeGrid: "Grade",
     modeSheet: "Gaveta",
+    // chaves novas do Plano B (não enumeradas em CONTRACT §J)
+    contextPlaceholder: "Adicionar uma mensagem (opcional)…",
+    sendStaged: "Enviar ativo",
+    cancelStaged: "Cancelar",
   },
   slash: {
     emptyState: "Nenhum comando ou resposta rápida.",
