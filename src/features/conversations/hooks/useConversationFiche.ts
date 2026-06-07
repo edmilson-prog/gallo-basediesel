@@ -5,13 +5,12 @@ const STORAGE_KEY = "gallo-conversation-fiche-open";
 /**
  * Persistent toggle for the customer fiche column.
  *
- * Lives next to the conversation viewer because the layout (`ConversationLayout`)
- * still owns its own internal toggle, while the header inside the viewer needs
- * a parallel control mirrored through localStorage so the user's preference
- * survives navigation between conversations.
+ * Owned by the conversation viewer: the header's "Ficha" button drives it and
+ * the state is mirrored through localStorage so the user's preference survives
+ * navigation between conversations. (`ConversationLayout` no longer renders a
+ * fiche slot of its own.)
  *
- * The actual fiche column is delivered by PRD-012; for now the toggle just
- * records intent and lets the header reflect the current state.
+ * The actual fiche column is delivered by PRD-012 (`CustomerProfileFiche`).
  */
 export function useConversationFiche() {
   const [open, setOpen] = useState<boolean>(() => {

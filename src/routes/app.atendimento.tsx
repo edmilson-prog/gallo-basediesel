@@ -14,7 +14,6 @@ function AtendimentoLayout() {
     <ConversationLayout
       listSlot={<InboxPage />}
       conversationSlot={<Outlet />}
-      ficheSlot={null}
       mobileShow={hasSelection ? "conversation" : "list"}
     />
   );
