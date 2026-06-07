@@ -58,6 +58,10 @@ export function useScheduledSendRunner(
             if (!asset) continue;
             if (!pickSendableVersion(asset)) continue; // not published anymore
             if (isSensitiveAsset(asset) && !canSendSensitiveAsset(viewer)) continue;
+            // useSendAsset is fire-and-forget: it swallows its own send errors
+            // (try/catch + toast). So `anySent` means "a sendable asset was
+            // dispatched", not "delivery confirmed". Full delivery-state
+            // reconciliation is a Fase-2 concern.
             await sendAsset(asset, ctx);
             anySent = true;
           }
@@ -108,13 +112,5 @@ export function useScheduledSendRunner(
       cancelled = true;
       window.clearInterval(handle);
     };
-  }, [
-    provider,
-    assetProvider,
-    send,
-    sendAsset,
-    userRole,
-    queryClient,
-    conversation.id,
-  ]);
+  }, [provider, assetProvider, send, sendAsset, userRole, queryClient, conversation.id]);
 }
