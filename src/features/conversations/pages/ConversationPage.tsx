@@ -24,6 +24,7 @@ import {
   useConversationMedia,
   useEnsureInboundMedia,
 } from "@/features/media";
+import { QuickSendBusProvider } from "@/features/quick-send";
 
 export function ConversationPage() {
   const { id } = useParams({ from: "/app/atendimento/$id" });
@@ -102,7 +103,8 @@ export function ConversationPage() {
 
   return (
     <TooltipProvider delayDuration={200}>
-      <ConversationProvider value={{ messages }}>
+      <QuickSendBusProvider>
+        <ConversationProvider value={{ messages }}>
         <div className="flex h-full min-h-0 bg-background">
           <div className="flex h-full min-h-0 flex-1 flex-col">
             <ConversationHeader
@@ -168,7 +170,8 @@ export function ConversationPage() {
             onOpenChange={media.setOpen}
           />
         </div>
-      </ConversationProvider>
+        </ConversationProvider>
+      </QuickSendBusProvider>
     </TooltipProvider>
   );
 }
