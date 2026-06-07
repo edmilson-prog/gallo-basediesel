@@ -92,3 +92,4 @@ export {
 } from "./hooks/useCopilotAssetHandoff";
 
 export { AssetUsageStatsPage, type IAssetUsageStatsPageProps } from "./components/library-admin/AssetUsageStatsPage";
+export { SharedSnippetsManager, type ISharedSnippetsManagerProps } from "./components/library-admin/SharedSnippetsManager";
