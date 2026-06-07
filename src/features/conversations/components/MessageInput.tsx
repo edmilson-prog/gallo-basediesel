@@ -29,6 +29,8 @@ import {
   useQuickSendBus,
   useQuickReplies,
 } from "@/features/quick-send";
+import { ScheduleSendMenu } from "@/features/quick-send/components/ScheduleSendMenu";
+import { useScheduleSend } from "@/features/quick-send/hooks/useScheduleSend";
 import { parseSlash } from "@/features/quick-send/engine/slashParser";
 import { filterAssets } from "@/features/quick-send/engine/assetFiltering";
 import { resolvePlaceholders, hasUnresolved } from "@/features/quick-send/engine/placeholderResolver";
@@ -282,6 +284,21 @@ export function MessageInput(props: IMessageInputProps) {
     try {
       await sendHook.send({ text });
       onSent?.();
+    } catch {
+      toast.error(CONVERSATION_STRINGS.actionFailed);
+    }
+  };
+
+  const { schedule } = useScheduleSend(conversation);
+
+  const handleSchedule = async (scheduledFor: string) => {
+    const text = value.trim();
+    if (!text) return;
+    try {
+      // Snippet payload carries the already-typed text as contextMessage so the
+      // runner can re-send it verbatim at the simulated time (RF-023).
+      await schedule(scheduledFor, { type: "snippet", contextMessage: text });
+      setValue("");
     } catch {
       toast.error(CONVERSATION_STRINGS.actionFailed);
     }
@@ -559,17 +576,23 @@ export function MessageInput(props: IMessageInputProps) {
           </TooltipContent>
         </Tooltip>
 
-        {/* Enviar */}
-        <Button
-          type="button"
-          size="sm"
-          className="h-9 gap-1.5 px-3"
-          onClick={handleSend}
-          disabled={!value.trim() || !canSendFreeText || hasUnresolvedPlaceholders}
-        >
-          <Icon icon="mdi:send" size={14} />
-          <span className="hidden lg:inline">{CONVERSATION_STRINGS.send}</span>
-        </Button>
+        {/* Enviar (split: enviar agora + agendar) */}
+        <div className="flex shrink-0">
+          <Button
+            type="button"
+            size="sm"
+            className="h-9 gap-1.5 rounded-r-none px-3"
+            onClick={handleSend}
+            disabled={!value.trim() || !canSendFreeText || hasUnresolvedPlaceholders}
+          >
+            <Icon icon="mdi:send" size={14} />
+            <span className="hidden lg:inline">{CONVERSATION_STRINGS.send}</span>
+          </Button>
+          <ScheduleSendMenu
+            onSchedule={(iso) => void handleSchedule(iso)}
+            disabled={!value.trim() || !canSendFreeText}
+          />
+        </div>
       </div>
 
       <TemplateDialog
