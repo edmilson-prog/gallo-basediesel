@@ -62,7 +62,9 @@ export function useScheduledSendRunner(
             // (try/catch + toast). So `anySent` means "a sendable asset was
             // dispatched", not "delivery confirmed". Full delivery-state
             // reconciliation is a Fase-2 concern.
-            await sendAsset(asset, ctx);
+            // Only the first sendable asset carries the context note (mirror
+            // useComboSend) so it isn't repeated for every item in a combo.
+            await sendAsset(asset, anySent ? undefined : ctx);
             anySent = true;
           }
           if (!anySent) throw new Error("nenhum ativo enviável");
