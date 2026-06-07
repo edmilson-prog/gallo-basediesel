@@ -1,7 +1,7 @@
 # Checkpoint — PRD-027 Envio Rápido & Biblioteca de Ativos (Dispatch) — 2026-06-07T14:12:47-0300
 
-> **Branch:** `feat/prd-027-envio-rapido-biblioteca-ativos` · **Último commit:** `4e3b526` docs(qa): manual validation checklist for PRD-026 + PRD-027
-> **Sessão anterior:** Claude Opus 4.8 (1M) · **Gerado em:** 2026-06-07T14:12:47-0300
+> **Branch:** `feat/prd-027-envio-rapido-biblioteca-ativos` · **Último commit:** `ef6c147` style(conversations): re-indent ConversationProvider children
+> **Sessão anterior:** Claude Opus 4.8 (1M) · **Gerado em:** 2026-06-07T14:12:47-0300 · **Atualizado em:** 2026-06-07 (sessão de varredura de regressão)
 
 ---
 
@@ -36,11 +36,36 @@ Implementar o **PRD-027 inteiro** (épico completo) seguindo o fluxo Superpowers
 - [x] **Release v0.68.0 "Dispatch"** (`5c16107`): bump `package.json`, `CHANGELOG.md`, PRD renomeado para `_DONE` com Status/Histórico. Pushado. **PR #38 aberto** contra `main`.
 - [x] **Checklist de QA** (`4e3b526`) — `docs/qa/PRD-027-checklist.md` (PRD-026 + PRD-027 em seções separadas).
 
+## 🔄 Atualização — Varredura de regressão + fixes de type-safety (2026-06-07, sessão seguinte)
+
+Disparada por um falso alarme: o seletor de loja (`StoreSwitcher`) pareceu sumir do header. **Não era regressão** — estado transiente do dev server (voltou ao recarregar). Código/dados/build estavam íntegros: `StoreSwitcher` é idêntico desde o PRD-007, o data layer retorna a matriz (confirmado por sonda Vitest), data source = `mock`.
+
+A pedido do usuário, varredura completa em 2 camadas:
+- **Camada 1 (gates automáticos):** build verde · 244 testes verdes · ESLint sem regressão real (os ~46k "erros" são `Delete ␍`/CRLF do autocrlf — falso-positivo conhecido; sinal real = 34 warnings + 1 trivial em `vitest.config.ts`).
+- **Camada 2 (workflow multi-agente — 14 agentes, 8 dimensões, verificação adversarial):** **0 regressões funcionais/runtime**. Composer, MessageBubble, galeria de mídia, fiação de providers, rotas/nav e RBAC — todos limpos. 6 achados brutos → 1 confirmado (apenas indentação) → 5 refutados (type-safety de código novo, runtime-seguro por guardas existentes).
+
+**Único débito real:** 19 erros de type-safety no código novo do PRD-026/027 — mascarados porque o build da Vite/esbuild **não checa tipos**. **Todos corrigidos** (guardas defensivas, sem mudança de comportamento):
+- `providers/data/impl/mock/_storeScope.ts` — `withCreateStoreId` agora retorna `T & { storeId: ID }` (resolve 5 erros dos providers assetLibrary/quickReply/trackableLink/scheduledSend)
+- `quick-send/components/ComboTray.tsx` — bound-check em `reorder`/`move`
+- `quick-send/hooks/useTrackableLinkSimulation.ts` — `if (!target) return`
+- `media/components/MediaAudioPlayer.tsx` — `setPos(v ?? 0)`
+- `media/components/AnnotationLayer.tsx` — constante `FALLBACK_TONE`
+- `mocks/generators/quickSend.ts` — 6 asserções em acessos já garantidos pelos loops
+- `conversations/pages/ConversationPage.tsx` — re-indentação dos filhos do `ConversationProvider` (cosmético; `style:` separado)
+
+**Commits (pushados — PR #38 atualizado):**
+- `7c744e1` fix(quick-send,media): close type-safety gaps in new PRD-026/027 code
+- `ef6c147` style(conversations): re-indent ConversationProvider children
+
+**Revalidado como ground truth:** build verde · 244 testes verdes · `tsc`: **344 → 325** total, **0 erros em arquivos novos** (o restante é baseline pré-existente).
+
+> 🧰 Técnica registrada: o gate de build (esbuild) **não** faz type-check. Para isolar erro de tipo de código NOVO sem ruído do baseline, rode `bunx tsc --noEmit` e cruze com `git diff --name-status main...HEAD --diff-filter=A` (erros em arquivos criados nesta branch = delta inequívoco).
+
 ## 🔧 Estado do código
 
-- **Branch:** `feat/prd-027-envio-rapido-biblioteca-ativos` (ahead da `main` por **170 commits** — inclui PRD-026, pois empilhada; 174 arquivos vs main)
-- **Último commit:** `4e3b526` · **Pushado:** sim (`origin/feat/prd-027-...`)
-- **Build/testes:** `bun run build` (vite) **VERDE** · `vitest run` **244 testes VERDES** (verificado nesta sessão como ground truth, não só relatórios de agentes)
+- **Branch:** `feat/prd-027-envio-rapido-biblioteca-ativos` (ahead da `main` por **173 commits** — inclui PRD-026, pois empilhada; +2 commits de fixes de type-safety nesta sessão)
+- **Último commit:** `ef6c147` · **Pushado:** sim (`origin/feat/prd-027-...`)
+- **Build/testes:** `bun run build` (vite) **VERDE** · `vitest run` **244 testes VERDES** · `tsc --noEmit` 325 (baseline; **0 em arquivos novos** após os fixes desta sessão) — verificado como ground truth
 - **Working tree:** apenas `M src/routeTree.gen.ts` (gerado — NÃO commitar) + untracked `knip.json`, `docs/relatorio-codigo-morto-2026-06-04.md` (deixar)
 - **PRs abertos relacionados:** **#38** (PRD-027, esta branch) · **#37** (PRD-026, base do empilhamento) · (#9 não relacionado)
 
