@@ -5,7 +5,7 @@ import { countByKind, formatBytes, mediaCounterLabel, mediaKindIcon } from "../m
 function asset(kind: IMediaAsset["kind"]): IMediaAsset {
   return {
     id: `m-${kind}-${Math.random()}`,
-    storeId: "store-matriz",
+    storeId: "00000000-0000-0000-0000-000000000001",
     kind,
     mimeType: "x",
     sizeBytes: 1,

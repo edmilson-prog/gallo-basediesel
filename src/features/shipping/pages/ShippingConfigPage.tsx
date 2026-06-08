@@ -99,7 +99,7 @@ export function ShippingConfigPage() {
   const { currentStoreId } = useCurrentStore();
   const { currentUser } = useAuth();
   const role = useCurrentRole();
-  const storeId = currentStoreId ?? "store-matriz";
+  const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
   const canView = hasPermission(currentUser, "settings", "view");
   const canEdit = hasPermission(currentUser, "settings", "edit");
   const isVendedor = role === "Vendedor" || role === "VendedorExterno" || role === "SDR";

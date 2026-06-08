@@ -50,7 +50,7 @@ function makeDataAccess(value: number): IAnalyticsDataAccess {
 
 const baseCtx = {
   role: "Owner" as const,
-  storeId: "store-matriz",
+  storeId: "00000000-0000-0000-0000-000000000001",
   sellerId: undefined,
   period,
   fallbackSuggestions: ["Quanto faturei?"],

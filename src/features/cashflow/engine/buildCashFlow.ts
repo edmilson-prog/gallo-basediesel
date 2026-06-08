@@ -64,7 +64,7 @@ function commissionProjectedDate(commission: ICommission): string {
 export function deriveCashFlowEntries(ctx: ICashFlowEngineContext): ICashFlowEntry[] {
   const nowMs = toMs(ctx.now);
   const entries: ICashFlowEntry[] = [];
-  const storeId = ctx.storeId ?? "store-matriz";
+  const storeId = ctx.storeId ?? "00000000-0000-0000-0000-000000000001";
 
   // Realized inflows — paid orders.
   for (const o of ctx.paidOrders) {

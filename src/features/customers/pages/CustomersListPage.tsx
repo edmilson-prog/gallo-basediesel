@@ -572,7 +572,7 @@ export function CustomersListPage() {
         sellers={selectableSellers}
         defaultSellerId={isManagerOrOwner ? null : (currentUser?.sellerId ?? null)}
         sellerLocked={!isManagerOrOwner}
-        storeId={currentStore?.id ?? currentStoreId ?? "store-matriz"}
+        storeId={currentStore?.id ?? currentStoreId ?? "00000000-0000-0000-0000-000000000001"}
         onClose={() => setNewCustomerOpen(false)}
         onSubmit={handleCreateCustomer}
       />
@@ -602,7 +602,7 @@ export function CustomersListPage() {
           open={transferOpen}
           customers={selectedCustomers}
           sellers={sellers}
-          storeId={currentStoreId ?? "store-matriz"}
+          storeId={currentStoreId ?? "00000000-0000-0000-0000-000000000001"}
           currentUserId={currentUser?.id ?? "system"}
           onClose={() => setTransferOpen(false)}
           onCreated={async () => {

@@ -58,7 +58,7 @@ function computeFreeTags(customers: ICustomer[], official: ITagSuggestion[]): IF
 
 export function TagsSettingsPage() {
   const { currentStoreId } = useCurrentStore();
-  const storeId = currentStoreId ?? "store-matriz";
+  const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
   const { userRole } = useAuth();
   const { settings, loading, saving, update } = usePlatformSettings(storeId);
   const customersProvider = useCustomersProvider();

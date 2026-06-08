@@ -106,7 +106,7 @@ export function Sidebar() {
   };
 
   const { currentStoreId } = useCurrentStore();
-  const { settings } = usePlatformSettings(currentStoreId ?? "store-matriz");
+  const { settings } = usePlatformSettings(currentStoreId ?? "00000000-0000-0000-0000-000000000001");
   const copilotEnabled = settings?.analyticsCopilotEnabled !== false;
 
   const roleGroups = filterGroupsByRole(APP_NAV_GROUPS, userRole);

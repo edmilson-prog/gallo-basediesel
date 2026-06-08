@@ -21,7 +21,7 @@ function message(over: Partial<IMessage>): IMessage {
 function asset(over: Partial<IMediaAsset>): IMediaAsset {
   return {
     id: "media-1",
-    storeId: "store-matriz",
+    storeId: "00000000-0000-0000-0000-000000000001",
     conversationId: "conv-1",
     messageId: "msg-1",
     kind: "image",

@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { useSellersProvider } from "@/providers/data";
 import { usePwaAuthStore } from "../store/pwaAuthStore";
 
-const DEFAULT_STORE_ID = "store-matriz";
+const DEFAULT_STORE_ID = "00000000-0000-0000-0000-000000000001";
 
 /**
  * Mock PWA auth (PRD-070 RF-005). `login` matches a seller by e-mail (any

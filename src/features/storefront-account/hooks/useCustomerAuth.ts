@@ -29,7 +29,7 @@ export interface ICustomerRegisterInputB2B {
 
 export type CustomerRegisterInput = ICustomerRegisterInputB2C | ICustomerRegisterInputB2B;
 
-const DEFAULT_STORE_ID: ID = "store-matriz";
+const DEFAULT_STORE_ID: ID = "00000000-0000-0000-0000-000000000001";
 const DEFAULT_SELLER_ID: ID = "seller-carlos-santos";
 
 const onlyDigits = (value: string): string => value.replace(/\D/g, "");

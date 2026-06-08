@@ -11,7 +11,7 @@ import type {
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { resolveRecipientScope, enforceListScope } from "./_scope";
 
-const FALLBACK_STORE_ID = "store-matriz";
+const FALLBACK_STORE_ID = "00000000-0000-0000-0000-000000000001";
 const SYSTEM_ACTOR_ID = "system";
 
 /**

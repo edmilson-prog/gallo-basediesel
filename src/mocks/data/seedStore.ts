@@ -11,7 +11,7 @@ import { DEFAULT_SHIPPING_CONFIG } from "@/features/shipping/config/defaults";
 import { DEFAULT_BADGE_CATALOG } from "@/features/gamification/catalog/badgeCatalog";
 import { DEFAULT_ECOMMERCE_INTEGRATION_SETTINGS } from "@/features/ecommerce-integration/config/defaults";
 
-export const SEED_STORE_ID = "store-matriz";
+export const SEED_STORE_ID = "00000000-0000-0000-0000-000000000001";
 
 /**
  * Headquarters store (Matriz) — the only store created on the MVP.
@@ -26,7 +26,7 @@ export const SEED_STORE: IStore = {
   activeDivisions: ["parts"],
   createdAt: "2026-01-01T00:00:00.000Z",
   settings: {
-    storeId: "store-matriz",
+    storeId: "00000000-0000-0000-0000-000000000001",
     lifecycleThresholds: {
       dormantDays: 60,
       lostDays: 180,

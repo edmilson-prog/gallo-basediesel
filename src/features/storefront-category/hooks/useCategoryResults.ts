@@ -5,7 +5,7 @@ import { useOrdersProvider, usePartsProvider } from "@/providers/data";
 import type { ICategorySlugMapping } from "../data/slugs";
 import type { ICategoryFiltersState } from "./useCategoryFilters";
 
-const STORE_ID = "store-matriz";
+const STORE_ID = "00000000-0000-0000-0000-000000000001";
 const STALE_MS = 5 * 60 * 1000;
 const PAGE_SIZE = 24;
 const NEWEST_WINDOW_DAYS = 90;

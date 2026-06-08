@@ -16,7 +16,7 @@ import { EmptySearchState } from "../components/EmptySearchState";
 import { MobileFiltersSheet } from "../components/MobileFiltersSheet";
 import { STOREFRONT_SEARCH_STRINGS as S } from "../i18n/pt-BR";
 
-const STORE_ID = "store-matriz";
+const STORE_ID = "00000000-0000-0000-0000-000000000001";
 const STALE_MS = 5 * 60 * 1000;
 
 /**

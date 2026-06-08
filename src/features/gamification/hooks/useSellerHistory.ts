@@ -62,7 +62,7 @@ function labelForDate(d: Date): string {
  * scores each of the last `months` monthly periods via the pure engine.
  */
 export function useSellerHistory(params: IUseSellerHistoryParams): IUseSellerHistoryResult {
-  const { sellerId, storeId = "store-matriz", months = 6, enabled = true } = params;
+  const { sellerId, storeId = "00000000-0000-0000-0000-000000000001", months = 6, enabled = true } = params;
 
   const sellersProvider = useSellersProvider();
   const goalsProvider = useGoalsProvider();

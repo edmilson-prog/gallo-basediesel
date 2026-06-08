@@ -118,7 +118,7 @@ export function useABCClassification(
 
   const settingsQuery = useQuery({
     queryKey: ["abc", "settings", scope.storeId ?? "default"],
-    queryFn: () => settingsProvider.get(scope.storeId ?? "store-matriz"),
+    queryFn: () => settingsProvider.get(scope.storeId ?? "00000000-0000-0000-0000-000000000001"),
     staleTime: 5 * 60_000,
     enabled,
   });

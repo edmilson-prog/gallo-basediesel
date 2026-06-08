@@ -35,7 +35,7 @@ interface ISimMessage {
 }
 
 const SIM_CONVERSATION_ID = "sim-conv";
-const SIM_STORE_ID = "store-matriz";
+const SIM_STORE_ID = "00000000-0000-0000-0000-000000000001";
 
 /**
  * Stub customer wired into the simulator so the PRD-022 quote path runs

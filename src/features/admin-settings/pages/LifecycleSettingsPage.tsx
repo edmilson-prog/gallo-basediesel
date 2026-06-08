@@ -44,7 +44,7 @@ function simulateCounts(customers: ICustomer[], dormantDays: number, lostDays: n
 
 export function LifecycleSettingsPage() {
   const { currentStoreId } = useCurrentStore();
-  const storeId = currentStoreId ?? "store-matriz";
+  const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
   const { settings, loading, saving, update } = usePlatformSettings(storeId);
   const customersProvider = useCustomersProvider();
   const [allCustomers, setAllCustomers] = useState<ICustomer[]>([]);

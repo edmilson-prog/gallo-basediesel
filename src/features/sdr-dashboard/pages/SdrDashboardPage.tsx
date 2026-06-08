@@ -31,7 +31,7 @@ export function SdrDashboardPage() {
   const { userRole } = useAuth();
   const { currentStore } = useCurrentStore();
   const storeLocked = userRole === "Gestor";
-  const storeId = currentStore?.id ?? "store-matriz";
+  const storeId = currentStore?.id ?? "00000000-0000-0000-0000-000000000001";
 
   const filtersCtx = useMemo(
     () => ({ gestorLockedStoreId: storeLocked ? storeId : undefined }),

@@ -29,7 +29,7 @@ export function TopBar() {
   // Analytics copilot (PRD-057). Gated by the per-store platform setting
   // (default on when undefined). Opened via the TopBar button or Ctrl/Cmd+K.
   const { currentStoreId } = useCurrentStore();
-  const storeId = currentStoreId ?? "store-matriz";
+  const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
   const { settings } = usePlatformSettings(storeId);
   const copilotEnabled = settings?.analyticsCopilotEnabled !== false;
 

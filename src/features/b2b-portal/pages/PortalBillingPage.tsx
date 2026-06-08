@@ -22,7 +22,7 @@ export function PortalBillingPage() {
       action: "portal_billing_access",
       resource: "customer",
       resourceId: customer.id,
-      storeId: "store-matriz",
+      storeId: "00000000-0000-0000-0000-000000000001",
     });
   }, [user?.id, customer]);
 

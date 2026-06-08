@@ -5,7 +5,7 @@ import { applyMediaFilters, highlightRanges, highlightSegments } from "../mediaF
 function asset(over: Partial<IMediaAsset>): IMediaAsset {
   return {
     id: "m",
-    storeId: "store-matriz",
+    storeId: "00000000-0000-0000-0000-000000000001",
     kind: "image",
     mimeType: "image/jpeg",
     sizeBytes: 1000,

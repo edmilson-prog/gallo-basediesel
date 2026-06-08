@@ -19,7 +19,7 @@ import { useState } from "react";
  */
 export function DistributionRulesPanel() {
   const { currentStoreId } = useCurrentStore();
-  const storeId = currentStoreId ?? "store-matriz";
+  const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
   const { settings, loading, saving, update, error } = useDistributionSettings(storeId);
   const [historyKey, setHistoryKey] = useState(0);
 

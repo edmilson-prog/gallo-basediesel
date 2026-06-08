@@ -181,7 +181,7 @@ export function NewIndicatorPage() {
   const { currentStore } = useCurrentStore();
   const accessibleStores = useAccessibleStores();
   const storeLocked = userRole === "Gestor";
-  const defaultStoreId = currentStore?.id ?? "store-matriz";
+  const defaultStoreId = currentStore?.id ?? "00000000-0000-0000-0000-000000000001";
 
   const indicatorsProvider = useIndicatorsProvider();
   const sellersProvider = useSellersProvider();

@@ -65,7 +65,7 @@ export function useRanking(params: IUseRankingParams): IUseRankingResult {
   const settingsProvider = useSettingsProvider();
   const badgesQuery = useBadges({ storeId: scope.storeId, enabled });
 
-  const storeId = scope.storeId ?? "store-matriz";
+  const storeId = scope.storeId ?? "00000000-0000-0000-0000-000000000001";
 
   const sellersQuery = useQuery({
     queryKey: ["gamification", "sellers", storeId],

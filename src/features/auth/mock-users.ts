@@ -5,7 +5,7 @@ import type { ICustomer, ID, ISeller, RoleName } from "@/shared/types";
  * layer doesn't have to reach into the private mock seed module — kept in
  * lockstep with `SEED_STORE_ID` in `src/mocks/data/seedStore.ts`.
  */
-const MATRIZ_STORE_ID: ID = "store-matriz";
+const MATRIZ_STORE_ID: ID = "00000000-0000-0000-0000-000000000001";
 
 /**
  * Mock user profile available on the /auth/login screen.

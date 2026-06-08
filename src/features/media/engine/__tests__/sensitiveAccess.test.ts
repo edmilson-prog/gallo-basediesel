@@ -5,7 +5,7 @@ import { canViewSensitive, isSensitiveClassification, statusChipPriority } from 
 function asset(over: Partial<IMediaAsset>): IMediaAsset {
   return {
     id: "media-1",
-    storeId: "store-matriz",
+    storeId: "00000000-0000-0000-0000-000000000001",
     kind: "image",
     mimeType: "image/jpeg",
     sizeBytes: 1000,

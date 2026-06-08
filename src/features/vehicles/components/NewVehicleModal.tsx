@@ -123,7 +123,7 @@ export function NewVehicleModal({
   const targetStoreId = useMemo(() => {
     if (presetCustomer) return presetCustomer.storeId;
     const found = customerSuggestions.find((c) => c.id === customerId);
-    return found?.storeId ?? currentStoreId ?? "store-matriz";
+    return found?.storeId ?? currentStoreId ?? "00000000-0000-0000-0000-000000000001";
   }, [presetCustomer, customerSuggestions, customerId, currentStoreId]);
 
   const validate = (): Record<string, string> => {

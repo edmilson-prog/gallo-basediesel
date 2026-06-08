@@ -162,7 +162,7 @@ export function ModelKitFormPage() {
       } else {
         await mutations.create({
           modelId: modelId ?? "",
-          storeId: currentUser?.storeId ?? "store-matriz",
+          storeId: currentUser?.storeId ?? "00000000-0000-0000-0000-000000000001",
           name: values.name,
           category: values.category,
           items: values.items,

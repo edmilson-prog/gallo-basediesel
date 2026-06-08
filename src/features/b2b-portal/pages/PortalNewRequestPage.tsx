@@ -82,7 +82,7 @@ export function PortalNewRequestPage() {
       scheduledFor:
         urgency === "programada" && scheduledFor ? new Date(scheduledFor).toISOString() : undefined,
       notes: notes || undefined,
-      storeId: "store-matriz",
+      storeId: "00000000-0000-0000-0000-000000000001",
     });
     auditLog({
       actorId: user.id,
@@ -90,7 +90,7 @@ export function PortalNewRequestPage() {
       resource: "quote",
       resourceId: request.id,
       after: { customerId: customer.id, items: items.length, urgency },
-      storeId: "store-matriz",
+      storeId: "00000000-0000-0000-0000-000000000001",
     });
     toast.success(S.reqCreated);
     void navigate({ to: "/portal/solicitacoes/$id", params: { id: request.id } });

@@ -59,7 +59,7 @@ export function ForecastConfigPage() {
   const { currentStoreId } = useCurrentStore();
   const { currentUser } = useAuth();
   const role = useCurrentRole();
-  const storeId = currentStoreId ?? "store-matriz";
+  const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
   const canView = hasPermission(currentUser, "settings", "view");
   const canEdit = role === "Owner";
 

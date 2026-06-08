@@ -727,7 +727,7 @@ function Section({
 const MAX_LOG_ENTRIES = 20;
 
 /** Sample ids used when the event requires ids the current user doesn't own. */
-const SAMPLE_STORE_ID = "store-matriz";
+const SAMPLE_STORE_ID = "00000000-0000-0000-0000-000000000001";
 const SAMPLE_MANAGER_IDS = ["seller-marina-cardoso"];
 const SAMPLE_OWNER_IDS = ["seller-joao-gallo"];
 const SAMPLE_CUSTOMER_ID = "customer-001";

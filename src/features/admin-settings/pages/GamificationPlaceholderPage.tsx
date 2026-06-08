@@ -8,7 +8,7 @@ import { PlaceholderSection } from "../components/PlaceholderSection";
 
 export function GamificationPlaceholderPage() {
   const { currentStoreId } = useCurrentStore();
-  const storeId = currentStoreId ?? "store-matriz";
+  const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
   const provider = useSettingsProvider();
   const [settings, setSettings] = useState<IPlatformSettings | null>(null);
 

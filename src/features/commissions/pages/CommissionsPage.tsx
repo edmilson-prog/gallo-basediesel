@@ -38,7 +38,7 @@ export function CommissionsPage() {
   const navigate = useNavigate();
   const { userRole, currentUser } = useAuth();
   const { currentStore } = useCurrentStore();
-  const storeId = currentStore?.id ?? "store-matriz";
+  const storeId = currentStore?.id ?? "00000000-0000-0000-0000-000000000001";
 
   const isSellerView = userRole === "Vendedor";
   const lockedSellerId = isSellerView ? currentUser?.sellerId : undefined;

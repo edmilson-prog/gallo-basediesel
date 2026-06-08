@@ -139,7 +139,7 @@ export function ExecutiveCockpitPage() {
 
       <div className="mb-6">
         <InsightsBanner
-          storeId={scope.storeId ?? currentStore?.id ?? "store-matriz"}
+          storeId={scope.storeId ?? currentStore?.id ?? "00000000-0000-0000-0000-000000000001"}
           accessibleStoreIds={accessibleStores.map((s) => s.id)}
         />
       </div>
@@ -333,7 +333,7 @@ export function ExecutiveCockpitPage() {
 
       <section className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3" aria-label={S.sectionCharts}>
         <RankingHighlightWidget storeId={currentStore?.id ?? undefined} />
-        <CommissionsWidget storeId={currentStore?.id ?? "store-matriz"} />
+        <CommissionsWidget storeId={currentStore?.id ?? "00000000-0000-0000-0000-000000000001"} />
         <RecentMovementsWidget
           storeId={scope.storeId}
           accessibleStoreIds={accessibleStores.map((s) => s.id)}

@@ -2,7 +2,7 @@ import type { IVehicleModelKit } from "@/shared/types";
 
 // Mirroring SEED_STORE_ID inline to avoid the ESM circular dependency that arises
 // when scripts import this module outside the Vite bundler (see seedServiceKits.ts).
-const STORE_ID = "store-matriz";
+const STORE_ID = "00000000-0000-0000-0000-000000000001";
 const SEED_TIMESTAMP = "2026-01-01T00:00:00.000Z";
 const SEED_ACTOR = "system";
 

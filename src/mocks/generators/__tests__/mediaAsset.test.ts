@@ -8,7 +8,7 @@ function build(seed: number) {
     count: 90,
     conversationIds: ["conv-1", "conv-2", "conv-3"],
     customerIdByConversation: { "conv-1": "cust-1", "conv-2": "cust-2", "conv-3": "cust-3" },
-    storeId: "store-matriz",
+    storeId: "00000000-0000-0000-0000-000000000001",
     now: new Date("2026-06-05T12:00:00.000Z"),
   });
 }

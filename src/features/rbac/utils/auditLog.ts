@@ -20,7 +20,7 @@ export interface IAuditLogParams {
  * fired before `<MultistoreProvider>` finishes hydrating). Matches the seed
  * matriz so MVP entries stay consistent.
  */
-const FALLBACK_STORE_ID = "store-matriz";
+const FALLBACK_STORE_ID = "00000000-0000-0000-0000-000000000001";
 
 /** Used when no user is authenticated (anonymous events shouldn't normally log). */
 const SYSTEM_ACTOR_ID = "system";

@@ -231,12 +231,12 @@ export function ManagerDashboardPage() {
         className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
         aria-label="Metas, positivação, saúde da carteira, top performers e indicadores"
       >
-        <GoalsWidget storeId={currentStore?.id ?? "store-matriz"} />
-        <PositivationWidget storeId={currentStore?.id ?? "store-matriz"} />
-        <PortfolioHealthWidget storeId={currentStore?.id ?? "store-matriz"} />
-        <TopPerformersWidget storeId={currentStore?.id ?? "store-matriz"} />
+        <GoalsWidget storeId={currentStore?.id ?? "00000000-0000-0000-0000-000000000001"} />
+        <PositivationWidget storeId={currentStore?.id ?? "00000000-0000-0000-0000-000000000001"} />
+        <PortfolioHealthWidget storeId={currentStore?.id ?? "00000000-0000-0000-0000-000000000001"} />
+        <TopPerformersWidget storeId={currentStore?.id ?? "00000000-0000-0000-0000-000000000001"} />
         <div className="sm:col-span-2 lg:col-span-4">
-          <IndicatorsWidget storeId={currentStore?.id ?? "store-matriz"} />
+          <IndicatorsWidget storeId={currentStore?.id ?? "00000000-0000-0000-0000-000000000001"} />
         </div>
       </section>
 
@@ -244,8 +244,8 @@ export function ManagerDashboardPage() {
         className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2"
         aria-label="Insights e e-commerce"
       >
-        <CriticalInsightsWidget storeId={currentStore?.id ?? "store-matriz"} />
-        <EcommerceOrdersWidget storeId={currentStore?.id ?? "store-matriz"} />
+        <CriticalInsightsWidget storeId={currentStore?.id ?? "00000000-0000-0000-0000-000000000001"} />
+        <EcommerceOrdersWidget storeId={currentStore?.id ?? "00000000-0000-0000-0000-000000000001"} />
       </section>
 
       <section

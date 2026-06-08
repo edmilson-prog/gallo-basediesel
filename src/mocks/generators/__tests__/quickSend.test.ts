@@ -8,7 +8,7 @@ import {
 } from "../quickSend";
 
 const NOW = new Date("2026-06-06T12:00:00.000Z");
-const STORE = "store-matriz";
+const STORE = "00000000-0000-0000-0000-000000000001";
 const OWNER = "seller-joao-gallo";
 const SELLERS = ["seller-carlos-santos", "seller-rafael-lima"];
 

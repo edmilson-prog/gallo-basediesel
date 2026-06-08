@@ -41,7 +41,7 @@ export function BatchGoalsPage() {
   const goalsProvider = useGoalsProvider();
 
   const isOwner = userRole === "Owner";
-  const defaultStoreId = currentStore?.id ?? "store-matriz";
+  const defaultStoreId = currentStore?.id ?? "00000000-0000-0000-0000-000000000001";
 
   const [storeId, setStoreId] = useState<ID>(defaultStoreId);
   const [metric, setMetric] = useState<GoalMetric>("revenue");

@@ -146,7 +146,7 @@ export function PortalUsersPage() {
       resource: "customer",
       resourceId: customer.id,
       after: { name: edit.name, role: edit.role },
-      storeId: "store-matriz",
+      storeId: "00000000-0000-0000-0000-000000000001",
     });
     toast.success("Usuário salvo.");
     setEdit(null);
@@ -161,7 +161,7 @@ export function PortalUsersPage() {
         resource: "customer",
         resourceId: customer.id,
         after: { removedUserId: id },
-        storeId: "store-matriz",
+        storeId: "00000000-0000-0000-0000-000000000001",
       });
     }
     toast.success("Usuário removido.");

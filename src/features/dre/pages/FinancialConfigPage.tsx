@@ -33,7 +33,7 @@ function pickDraft(s: IFinancialSettings): Draft {
  */
 export function FinancialConfigPage() {
   const { currentStoreId } = useCurrentStore();
-  const storeId = currentStoreId ?? "store-matriz";
+  const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
   const { settings, loading, saving, update } = usePlatformSettings(storeId);
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<Draft | null>(null);

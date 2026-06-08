@@ -80,7 +80,7 @@ export function SalesForecastPage() {
   const navigate = useNavigate({ from: ROUTE_ID });
 
   const metric = search.metric;
-  const storeId = currentStoreId ?? "store-matriz";
+  const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
 
   const { storeForecast, bySeller, isLoading, hasError } = useStoreForecast({ storeId, metric });
 

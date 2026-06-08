@@ -4,7 +4,7 @@ import { useSettingsProvider } from "@/providers/data";
 import { calculateShipping } from "@/features/shipping";
 import { useViaCep, formatZip, isValidZip } from "./useViaCep";
 
-const STORE_ID = "store-matriz";
+const STORE_ID = "00000000-0000-0000-0000-000000000001";
 
 export interface IUseCartShippingResult {
   /** Current ViaCEP-resolved address (when the lookup succeeded). */

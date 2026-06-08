@@ -24,7 +24,7 @@ import type {
   IMetricQueryScope,
 } from "@/shared/types/analytics-copilot";
 
-const DEFAULT_STORE_ID = "store-matriz";
+const DEFAULT_STORE_ID = "00000000-0000-0000-0000-000000000001";
 
 /** Previous calendar month bounds derived from the current period start (RNF-001 stays data-driven). */
 function prevPeriod(period: IGoalPeriod): IGoalPeriod {

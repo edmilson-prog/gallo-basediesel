@@ -77,7 +77,7 @@ export function QuoteEditor() {
   const vehiclesProvider = useVehiclesProvider();
   const ordersProvider = useOrdersProvider();
   const settingsProvider = useSettingsProvider();
-  const storeId: ID = currentStoreId ?? "store-matriz";
+  const storeId: ID = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
   const isManagerOrOwner = role === "Owner" || role === "Gestor";
 
   const prefs = useQuoteEditorPrefs();

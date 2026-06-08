@@ -44,7 +44,7 @@ export function PortalProfilePage() {
         resource: "customer",
         resourceId: customer.id,
         after: { phone, email },
-        storeId: "store-matriz",
+        storeId: "00000000-0000-0000-0000-000000000001",
       });
       toast.success(S.profileSaved);
     } catch {

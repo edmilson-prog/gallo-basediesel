@@ -14,7 +14,7 @@ import { formatGoalValue } from "@/features/goals/utils/formatGoalValue";
 import { useForecast } from "../hooks/useForecast";
 
 export interface IForecastWidgetProps {
-  /** Defaults to "store-matriz" like the other cockpit widgets. */
+  /** Defaults to "00000000-0000-0000-0000-000000000001" like the other cockpit widgets. */
   storeId?: ID;
 }
 
@@ -68,7 +68,7 @@ function MiniBreakdown({ scenario }: { scenario: IForecastScenario }) {
  * small inline message with retry instead of throwing, so it never breaks the
  * cockpit grid.
  */
-export function ForecastWidget({ storeId = "store-matriz" }: IForecastWidgetProps) {
+export function ForecastWidget({ storeId = "00000000-0000-0000-0000-000000000001" }: IForecastWidgetProps) {
   const queryClient = useQueryClient();
   const { forecast, isLoading, hasError } = useForecast({ storeId, metric: "revenue" });
 

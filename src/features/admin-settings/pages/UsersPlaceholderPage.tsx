@@ -15,7 +15,7 @@ const ROLE_LABEL: Record<ISeller["type"], string> = {
 
 export function UsersPlaceholderPage() {
   const { currentStoreId } = useCurrentStore();
-  const storeId = currentStoreId ?? "store-matriz";
+  const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
   const provider = useSellersProvider();
   const [sellers, setSellers] = useState<ISeller[] | null>(null);
 

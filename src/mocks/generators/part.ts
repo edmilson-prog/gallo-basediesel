@@ -155,7 +155,7 @@ export function generatePart(
     stockMinimum,
     division: "parts",
     active: ctx.bool(0.95),
-    storeId: "store-matriz",
+    storeId: "00000000-0000-0000-0000-000000000001",
     createdAt,
     updatedAt: randomISO(ctx, new Date(createdAt), now),
   };

@@ -5,7 +5,7 @@ import { usePartsProvider } from "@/providers/data/hooks/usePartsProvider";
 import { useCartStore } from "@/features/storefront/store/cartStore";
 import { STOREFRONT_CART_STRINGS as S } from "../i18n/pt-BR";
 
-const STORE_ID = "store-matriz";
+const STORE_ID = "00000000-0000-0000-0000-000000000001";
 const STALE_MS = 5 * 60 * 1000;
 
 /**

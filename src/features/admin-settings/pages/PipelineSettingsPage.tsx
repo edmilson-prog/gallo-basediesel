@@ -9,7 +9,7 @@ import { usePlatformSettings } from "../hooks/usePlatformSettings";
 
 export function PipelineSettingsPage() {
   const { currentStoreId } = useCurrentStore();
-  const storeId = currentStoreId ?? "store-matriz";
+  const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
   const { settings, loading } = usePlatformSettings(storeId);
 
   if (loading || !settings) {

@@ -35,7 +35,7 @@ function extractUsedVariables(text: string): string[] {
 
 export function SdrTemplatesPage() {
   const { currentStoreId } = useCurrentStore();
-  const storeId = currentStoreId ?? "store-matriz";
+  const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
   const { settings, loading, saving, update } = usePlatformSettings(storeId);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [sdrEnabled, setSdrEnabled] = useState<boolean | null>(null);

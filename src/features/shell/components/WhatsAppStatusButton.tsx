@@ -19,7 +19,7 @@ import { useWhatsAppAccountsProvider } from "@/providers/data";
 export function WhatsAppStatusButton() {
   const navigate = useNavigate();
   const { currentStoreId } = useCurrentStore();
-  const storeId = currentStoreId ?? "store-matriz";
+  const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
   const provider = useWhatsAppAccountsProvider();
   const [accounts, setAccounts] = useState<IWhatsAppAccount[] | null>(null);
 

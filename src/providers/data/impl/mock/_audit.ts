@@ -7,7 +7,7 @@ import { recordAuditLog } from "../../auditLogger";
  * Fallback store id when the multi-store layer hasn't hydrated yet — matches
  * the seed matriz so MVP audit entries remain consistent.
  */
-const FALLBACK_STORE_ID = "store-matriz";
+const FALLBACK_STORE_ID = "00000000-0000-0000-0000-000000000001";
 const SYSTEM_ACTOR_ID = "system";
 
 /**

@@ -25,9 +25,9 @@ export function StorefrontCategories({ categories }: IStorefrontCategoriesProps)
   const navigate = useNavigate();
 
   const partsQuery = useQuery({
-    queryKey: ["storefront", "category-counts", "store-matriz"] as const,
+    queryKey: ["storefront", "category-counts", "00000000-0000-0000-0000-000000000001"] as const,
     queryFn: async () => {
-      const r = await partsProvider.list({ storeId: "store-matriz", pageSize: 2000 });
+      const r = await partsProvider.list({ storeId: "00000000-0000-0000-0000-000000000001", pageSize: 2000 });
       return r.data;
     },
     staleTime: STALE_MS,

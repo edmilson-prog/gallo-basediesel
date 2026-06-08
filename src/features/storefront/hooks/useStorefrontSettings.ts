@@ -3,7 +3,7 @@ import type { IStorefrontConfig } from "@/shared/types";
 import { DEFAULT_STOREFRONT_CONFIG } from "@/shared/types";
 import { useSettingsProvider } from "@/providers/data";
 
-const STOREFRONT_STORE_ID = "store-matriz";
+const STOREFRONT_STORE_ID = "00000000-0000-0000-0000-000000000001";
 const STALE_MS = 5 * 60 * 1000;
 
 export interface IUseStorefrontSettingsResult {

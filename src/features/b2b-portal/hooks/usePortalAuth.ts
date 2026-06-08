@@ -3,7 +3,7 @@ import { auditLog } from "@/features/rbac/utils/auditLog";
 import { usePortalStore } from "../store/portalStore";
 import { usePortalAuthStore } from "../store/portalAuthStore";
 
-const DEFAULT_STORE_ID = "store-matriz";
+const DEFAULT_STORE_ID = "00000000-0000-0000-0000-000000000001";
 
 /**
  * Mock auth for the B2B portal (PRD-071 RF-007). Matches a portal user by

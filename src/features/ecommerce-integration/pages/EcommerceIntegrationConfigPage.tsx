@@ -55,7 +55,7 @@ const TEMPLATE_FIELDS: Array<{
 export function EcommerceIntegrationConfigPage() {
   const role = useCurrentRole();
   const { currentStoreId } = useCurrentStore();
-  const storeId = currentStoreId ?? "store-matriz";
+  const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
   const { settings, loading, saving, update } = usePlatformSettings(storeId);
   const sellersProvider = useSellersProvider();
 

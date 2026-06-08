@@ -36,7 +36,7 @@ export function StorefrontAdminPage() {
   const navigate = useNavigate({ from: "/app/storefront-admin" });
   const search = useSearch({ from: "/app/storefront-admin" }) as IStorefrontAdminSearch;
   const { currentStoreId } = useCurrentStore();
-  const storeId = currentStoreId ?? "store-matriz";
+  const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
 
   const isOwner = role === "Owner";
   const activeTab = normalizeTab(search.tab);

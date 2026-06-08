@@ -4,7 +4,7 @@ import type { ID, IPart, IStorefrontConfig } from "@/shared/types";
 import { useOrdersProvider, usePartsProvider } from "@/providers/data";
 
 const STALE_MS = 10 * 60 * 1000;
-const STORE_ID = "store-matriz";
+const STORE_ID = "00000000-0000-0000-0000-000000000001";
 const TARGET_COUNT = 8;
 const TOP_SELLING_WINDOW_DAYS = 90;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;

@@ -253,7 +253,7 @@ export function CarteiraPage() {
         <NewTemporaryTransferModal
           open={newOpen === "temporary"}
           sellers={sellers}
-          storeId={currentStoreId ?? "store-matriz"}
+          storeId={currentStoreId ?? "00000000-0000-0000-0000-000000000001"}
           currentUserId={currentUser.id}
           activeTransfers={activeList}
           onClose={() => setNewOpen("none")}

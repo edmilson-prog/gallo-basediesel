@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { IPart } from "@/shared/types";
 import { usePartsProvider } from "@/providers/data/hooks/usePartsProvider";
 
-const STORE_ID = "store-matriz";
+const STORE_ID = "00000000-0000-0000-0000-000000000001";
 const STALE_MS = 5 * 60 * 1000;
 const MAX_RELATED = 4;
 

@@ -45,7 +45,7 @@ export function InsightsHubPage() {
   const [dismissTarget, setDismissTarget] = useState<IInsight | null>(null);
 
   const isAllowed = role !== null && ALLOWED_ROLES.has(role);
-  const storeId = (currentStore?.id ?? "store-matriz") as ID;
+  const storeId = (currentStore?.id ?? "00000000-0000-0000-0000-000000000001") as ID;
   const accessibleStoreIds = useMemo(() => accessibleStores.map((s) => s.id), [accessibleStores]);
 
   const result = useInsightsDailyDetection(storeId, accessibleStoreIds);

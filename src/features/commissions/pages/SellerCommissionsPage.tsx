@@ -36,7 +36,7 @@ export function SellerCommissionsPage() {
   const { sellerId } = useParams({ from: "/app/gestao/comissoes/$sellerId" });
   const { userRole, currentUser } = useAuth();
   const { currentStore } = useCurrentStore();
-  const storeId = currentStore?.id ?? "store-matriz";
+  const storeId = currentStore?.id ?? "00000000-0000-0000-0000-000000000001";
   const commissionsProvider = useCommissionsProvider();
   const sellersProvider = useSellersProvider();
 

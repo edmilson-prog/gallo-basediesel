@@ -5,7 +5,7 @@ import { readCurrentUserSync } from "@/features/auth/guards";
 import type { INotificationPreferenceStore } from "../../contracts/preferences";
 import { defaultPreferenceFor } from "../../preferences/defaults";
 
-const FALLBACK_STORE_ID = "store-matriz";
+const FALLBACK_STORE_ID = "00000000-0000-0000-0000-000000000001";
 const SYSTEM_ACTOR_ID = "system";
 
 /**

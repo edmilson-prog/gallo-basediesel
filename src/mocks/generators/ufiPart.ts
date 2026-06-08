@@ -146,7 +146,7 @@ export function mapUfiRowToPart(ctx: ISeededContext, row: IUfiPartRow, now: Date
     stockMinimum,
     division: "parts",
     active: true,
-    storeId: "store-matriz",
+    storeId: "00000000-0000-0000-0000-000000000001",
     createdAt,
     updatedAt: randomISO(ctx, new Date(createdAt), now),
   };

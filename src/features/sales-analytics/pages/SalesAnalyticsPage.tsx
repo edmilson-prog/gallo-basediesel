@@ -42,7 +42,7 @@ export function SalesAnalyticsPage() {
 
   const storeLocked = userRole === "Gestor";
   const sellerLocked = userRole === "Vendedor";
-  const storeId = currentStore?.id ?? "store-matriz";
+  const storeId = currentStore?.id ?? "00000000-0000-0000-0000-000000000001";
   const sellerLockedId = sellerLocked ? currentUser?.sellerId : undefined;
 
   const filtersCtx = useMemo(
