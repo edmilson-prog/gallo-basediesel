@@ -23,6 +23,9 @@ export const SEED_STORE: IStore = {
   type: "matriz",
   address: "Av. Brasil, 1500 — Centro, Frederico Westphalen / RS — CEP 98400-000",
   cnpj: "12.345.678/0001-90",
+  // The Owner (Fernando) — SEED_OWNER_ID in seedSellers.ts. Inlined as a literal
+  // to avoid a circular import (seedSellers imports SEED_STORE_ID from here).
+  managerId: "seller-joao-gallo",
   activeDivisions: ["parts"],
   createdAt: "2026-01-01T00:00:00.000Z",
   settings: {

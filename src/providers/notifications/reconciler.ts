@@ -187,14 +187,13 @@ function collectAlerts(
 }
 
 /**
- * The store's gestor recipient. `managerId` is not part of {@link IStore} (it
- * lives on the dormant {@link ITeam}), so the Supabase store mapper cannot
- * provide it and the owner↔seller link is still pending. Read it defensively:
- * a store without a resolvable manager simply yields no manager-targeted
- * notification instead of an unpersistable one with a null recipient.
+ * The store's gestor recipient. `IStore.managerId` is optional (dormant until
+ * the owner↔seller link is set — PRD-107), so read it defensively: a store
+ * without a resolvable manager simply yields no manager-targeted notification
+ * instead of an unpersistable one with a null recipient.
  */
 function storeManagerId(store: IStore): ID | undefined {
-  const id = (store as { managerId?: ID }).managerId;
+  const id = store.managerId;
   return id && id.length > 0 ? id : undefined;
 }
 
