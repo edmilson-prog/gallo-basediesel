@@ -37,6 +37,25 @@ export const EXECUTIVE_COCKPIT_STRINGS = {
   kpiNps: "NPS",
   kpiNpsSoon: "Em breve",
 
+  // KPI help (tooltips)
+  kpiRevenueHelp: "Receita total de pedidos pagos no período selecionado.",
+  kpiAvgTicketHelp: "Valor médio por pedido no período (faturamento ÷ número de pedidos).",
+  kpiOrdersHelp:
+    "Quantidade de pedidos no período, somando todas as origens (WhatsApp, e-commerce, portal, etc.).",
+  kpiMarginHelp:
+    "Margem de contribuição estimada sobre o faturamento. Valor projetado até a integração final dos custos.",
+  kpiActiveCustomersHelp: "Clientes que compraram pelo menos uma vez no período.",
+  kpiPositivationHelp:
+    "Percentual da carteira que comprou no período (clientes positivados ÷ total da carteira).",
+  kpiChurnHelp:
+    "Clientes que passaram para 'perdido' no período, por ficarem muito tempo sem comprar.",
+  kpiNewCustomersHelp: "Clientes que fizeram a primeira compra no período.",
+  kpiOpenPipelineHelp: "Valor total dos orçamentos em aberto, ainda não convertidos em pedido.",
+  kpiConversionRateHelp: "Percentual de orçamentos que viraram pedido no período.",
+  kpiPendingCommissionsHelp:
+    "Total de comissões a pagar aos vendedores no período. Valor estimado.",
+  kpiNpsHelp: "Índice de satisfação dos clientes (Net Promoter Score). Disponível em breve.",
+
   kpiVsPrevious: "vs período anterior",
   kpiVsYoY: "vs ano anterior",
   kpiStub: "Estimativa",

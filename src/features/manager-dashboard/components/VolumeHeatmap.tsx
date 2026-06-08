@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Icon } from "@/components/Icon";
+import { InfoHint } from "@/components/InfoHint";
 import { MANAGER_DASHBOARD_STRINGS } from "../i18n/pt-BR";
 import type { IVolumeHeatmapData } from "../hooks/useVolumeHeatmap";
 
@@ -53,8 +54,12 @@ export function VolumeHeatmap({ data, isLoading, onCellClick }: IVolumeHeatmapPr
     <Card className="flex h-full flex-col gap-4 p-5">
       <header className="flex items-baseline justify-between">
         <div>
-          <h2 className="text-base font-semibold tracking-tight text-foreground">
+          <h2 className="flex items-center gap-1.5 text-base font-semibold tracking-tight text-foreground">
             {MANAGER_DASHBOARD_STRINGS.heatmapTitle}
+            <InfoHint
+              text={MANAGER_DASHBOARD_STRINGS.heatmapHelp}
+              label={MANAGER_DASHBOARD_STRINGS.heatmapTitle}
+            />
           </h2>
           <p className="text-xs text-muted-foreground">
             {MANAGER_DASHBOARD_STRINGS.heatmapSubtitle}

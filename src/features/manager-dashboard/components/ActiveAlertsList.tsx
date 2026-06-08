@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
+import { InfoHint } from "@/components/InfoHint";
 import { MANAGER_DASHBOARD_STRINGS } from "../i18n/pt-BR";
 import {
   useNotifications,
@@ -60,13 +61,17 @@ export function ActiveAlertsList() {
     <Card className="flex h-full flex-col gap-3 p-5">
       <header className="flex items-baseline justify-between">
         <div>
-          <h2 className="text-base font-semibold tracking-tight text-foreground">
+          <h2 className="flex items-center gap-1.5 text-base font-semibold tracking-tight text-foreground">
             {MANAGER_DASHBOARD_STRINGS.alertsTitle}
             {alerts.length > 0 && (
-              <span className="ml-2 inline-flex items-center justify-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+              <span className="inline-flex items-center justify-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                 {alerts.length}
               </span>
             )}
+            <InfoHint
+              text={MANAGER_DASHBOARD_STRINGS.alertsHelp}
+              label={MANAGER_DASHBOARD_STRINGS.alertsTitle}
+            />
           </h2>
           <p className="text-xs text-muted-foreground">
             {MANAGER_DASHBOARD_STRINGS.alertsSubtitle}

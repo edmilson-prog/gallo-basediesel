@@ -50,6 +50,8 @@ export const MANAGER_DASHBOARD_STRINGS = {
   // Seller load
   sellerLoadTitle: "Carga por vendedor",
   sellerLoadSubtitle: "Conversas ativas — aguardando e em andamento",
+  sellerLoadHelp:
+    "Quantas conversas ativas (aguardando + em andamento) cada vendedor tem agora. Ajuda a identificar sobrecarga e equilibrar a distribuição da equipe.",
   sellerLoadEmpty: "Nenhum vendedor com carga ativa no momento.",
   sellerLoadCount: (n: number) => (n === 1 ? "1 conversa" : `${n} conversas`),
   sellerLoadAvailabilityOnline: "Online",
@@ -60,6 +62,8 @@ export const MANAGER_DASHBOARD_STRINGS = {
   // Heatmap
   heatmapTitle: "Heatmap de volume",
   heatmapSubtitle: "Mensagens recebidas por dia da semana × hora",
+  heatmapHelp:
+    "Concentração de mensagens recebidas por dia da semana e hora. As células mais escuras mostram os horários de pico do atendimento.",
   heatmapEmpty: "Sem mensagens neste período.",
   heatmapLegendMin: "Menos",
   heatmapLegendMax: "Mais",
@@ -70,6 +74,8 @@ export const MANAGER_DASHBOARD_STRINGS = {
   // Carteira health
   carteiraTitle: "Saúde da carteira",
   carteiraSubtitle: "Distribuição dos clientes por ciclo de vida",
+  carteiraHelp:
+    "Distribuição dos clientes da carteira por ciclo de vida (ativo, dormente, recuperação, perdido). Clique numa fatia para ver os clientes daquele grupo.",
   carteiraEmpty: "Sem clientes na loja ainda.",
   carteiraTotal: "Total de clientes",
   carteiraStatusAtivo: "Ativo",
@@ -80,6 +86,8 @@ export const MANAGER_DASHBOARD_STRINGS = {
   // Alerts
   alertsTitle: "Alertas ativos",
   alertsSubtitle: "Pontos que pedem atenção agora",
+  alertsHelp:
+    "Pontos que pedem atenção agora: clientes importantes dormentes, vendedores sobrecarregados e conversas sem resposta. Os limites são definidos em 'Configurar alertas'.",
   alertsEmpty: "Tudo certo no momento.",
   alertsView: "Ver",
   alertsDismiss: "Dispensar",

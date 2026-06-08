@@ -3,6 +3,7 @@ import { Icon } from "@/components/Icon";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { InfoHint } from "@/components/InfoHint";
 import { MANAGER_DASHBOARD_STRINGS } from "../i18n/pt-BR";
 import type { ITrendInfo } from "../utils/kpiMath";
 
@@ -115,7 +116,10 @@ export function KpiCard({
             <Icon icon={icon} size={20} />
           </span>
           <div className="flex flex-col">
-            <span className="text-sm font-medium text-foreground">{shortLabel}</span>
+            <span className="flex items-center gap-1 text-sm font-medium text-foreground">
+              {shortLabel}
+              <InfoHint text={helpText} label={`O que significa ${shortLabel}`} />
+            </span>
             <span className="text-xs text-muted-foreground">{label}</span>
           </div>
         </div>
@@ -126,7 +130,7 @@ export function KpiCard({
         )}
       </div>
 
-      <div className="flex flex-1 items-end justify-between gap-3">
+      <div className="flex flex-1 items-end gap-3">
         {isLoading ? (
           <Skeleton className="h-9 w-24" />
         ) : hasError ? (
@@ -154,9 +158,6 @@ export function KpiCard({
             {formatValue(value)}
           </span>
         )}
-        <span className="hidden text-xs text-muted-foreground sm:block max-w-[55%] text-right">
-          {helpText}
-        </span>
       </div>
 
       {trend && !isLoading && !hasError && trend.changePct !== null && (

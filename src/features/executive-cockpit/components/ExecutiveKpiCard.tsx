@@ -4,6 +4,7 @@ import { Icon } from "@/components/Icon";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { InfoHint } from "@/components/InfoHint";
 import { cn } from "@/lib/utils";
 import type { ITrendInfo } from "@/features/manager-dashboard/utils/kpiMath";
 import { EXECUTIVE_COCKPIT_STRINGS as S } from "../i18n/pt-BR";
@@ -154,10 +155,10 @@ export function ExecutiveKpiCard({
             <Icon icon={icon} size={18} />
           </span>
           <div className="flex min-w-0 flex-col">
-            <span className="truncate text-xs font-medium text-foreground">{label}</span>
-            {helpText && (
-              <span className="line-clamp-1 text-[11px] text-muted-foreground">{helpText}</span>
-            )}
+            <span className="flex min-w-0 items-center gap-1 text-xs font-medium text-foreground">
+              <span className="truncate">{label}</span>
+              {helpText && <InfoHint text={helpText} label={label} size={13} />}
+            </span>
           </div>
         </div>
         <div className="flex items-center gap-1.5">

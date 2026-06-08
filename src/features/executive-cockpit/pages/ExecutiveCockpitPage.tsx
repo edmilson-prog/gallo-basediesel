@@ -161,6 +161,7 @@ export function ExecutiveCockpitPage() {
         <ExecutiveKpiCard
           icon="mdi:cash-multiple"
           label={S.kpiRevenue}
+          helpText={S.kpiRevenueHelp}
           value={metrics.kpis.revenue.current}
           formatValue={formatBRLCompact}
           trend={metrics.kpis.revenue.trend}
@@ -174,6 +175,7 @@ export function ExecutiveCockpitPage() {
         <ExecutiveKpiCard
           icon="mdi:receipt-text-outline"
           label={S.kpiAvgTicket}
+          helpText={S.kpiAvgTicketHelp}
           value={metrics.kpis.avgTicket.current}
           formatValue={formatBRL}
           trend={metrics.kpis.avgTicket.trend}
@@ -185,6 +187,7 @@ export function ExecutiveCockpitPage() {
         <ExecutiveKpiCard
           icon="mdi:clipboard-list-outline"
           label={S.kpiOrders}
+          helpText={S.kpiOrdersHelp}
           value={metrics.kpis.orderCount.current}
           formatValue={formatNumber}
           trend={metrics.kpis.orderCount.trend}
@@ -198,6 +201,7 @@ export function ExecutiveCockpitPage() {
         <ExecutiveKpiCard
           icon="mdi:scale-balance"
           label={S.kpiMargin}
+          helpText={S.kpiMarginHelp}
           value={metrics.kpis.marginPct.current}
           formatValue={formatPercentInt}
           trend={metrics.kpis.marginPct.trend}
@@ -210,6 +214,7 @@ export function ExecutiveCockpitPage() {
         <ExecutiveKpiCard
           icon="mdi:account-multiple-check-outline"
           label={S.kpiActiveCustomers}
+          helpText={S.kpiActiveCustomersHelp}
           value={metrics.kpis.activeCustomers.current}
           formatValue={formatNumber}
           trend={metrics.kpis.activeCustomers.trend}
@@ -221,6 +226,7 @@ export function ExecutiveCockpitPage() {
         <ExecutiveKpiCard
           icon="mdi:account-check-outline"
           label={S.kpiPositivation}
+          helpText={S.kpiPositivationHelp}
           value={metrics.kpis.positivationRate.current}
           formatValue={formatPercentInt}
           trend={metrics.kpis.positivationRate.trend}
@@ -232,6 +238,7 @@ export function ExecutiveCockpitPage() {
         <ExecutiveKpiCard
           icon="mdi:account-arrow-down-outline"
           label={S.kpiChurn}
+          helpText={S.kpiChurnHelp}
           value={metrics.kpis.churnCount.current}
           formatValue={formatNumber}
           trend={metrics.kpis.churnCount.trend}
@@ -243,6 +250,7 @@ export function ExecutiveCockpitPage() {
         <ExecutiveKpiCard
           icon="mdi:account-plus-outline"
           label={S.kpiNewCustomers}
+          helpText={S.kpiNewCustomersHelp}
           value={metrics.kpis.newCustomers.current}
           formatValue={formatNumber}
           trend={metrics.kpis.newCustomers.trend}
@@ -254,6 +262,7 @@ export function ExecutiveCockpitPage() {
         <ExecutiveKpiCard
           icon="mdi:file-document-multiple-outline"
           label={S.kpiOpenPipeline}
+          helpText={S.kpiOpenPipelineHelp}
           value={metrics.kpis.openPipeline.current}
           formatValue={formatBRLCompact}
           trend={metrics.kpis.openPipeline.trend}
@@ -265,6 +274,7 @@ export function ExecutiveCockpitPage() {
         <ExecutiveKpiCard
           icon="mdi:filter-variant"
           label={S.kpiConversionRate}
+          helpText={S.kpiConversionRateHelp}
           value={metrics.kpis.conversionRate.current}
           formatValue={formatPercentInt}
           trend={metrics.kpis.conversionRate.trend}
@@ -276,6 +286,7 @@ export function ExecutiveCockpitPage() {
         <ExecutiveKpiCard
           icon="mdi:cash-clock"
           label={S.kpiPendingCommissions}
+          helpText={S.kpiPendingCommissionsHelp}
           value={metrics.kpis.pendingCommissions.current}
           formatValue={formatBRLCompact}
           trend={metrics.kpis.pendingCommissions.trend}
@@ -288,6 +299,7 @@ export function ExecutiveCockpitPage() {
         <ExecutiveKpiCard
           icon="mdi:emoticon-outline"
           label={S.kpiNps}
+          helpText={S.kpiNpsHelp}
           value={null}
           formatValue={formatNumber}
           isLoading={false}

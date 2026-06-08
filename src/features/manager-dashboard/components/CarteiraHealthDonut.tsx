@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
+import { InfoHint } from "@/components/InfoHint";
 import type { CustomerStatus } from "@/shared/types";
 import { MANAGER_DASHBOARD_STRINGS } from "../i18n/pt-BR";
 import type { ICarteiraHealthData } from "../hooks/useCarteiraHealth";
@@ -41,8 +42,12 @@ export function CarteiraHealthDonut({ data, isLoading, onSliceClick }: ICarteira
     <Card className="flex h-full flex-col gap-4 p-5">
       <header className="flex items-baseline justify-between">
         <div>
-          <h2 className="text-base font-semibold tracking-tight text-foreground">
+          <h2 className="flex items-center gap-1.5 text-base font-semibold tracking-tight text-foreground">
             {MANAGER_DASHBOARD_STRINGS.carteiraTitle}
+            <InfoHint
+              text={MANAGER_DASHBOARD_STRINGS.carteiraHelp}
+              label={MANAGER_DASHBOARD_STRINGS.carteiraTitle}
+            />
           </h2>
           <p className="text-xs text-muted-foreground">
             {MANAGER_DASHBOARD_STRINGS.carteiraSubtitle}
