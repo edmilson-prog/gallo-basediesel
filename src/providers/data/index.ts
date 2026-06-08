@@ -11,6 +11,7 @@
  */
 
 export { DataProvidersProvider } from "./context";
+export { getActiveDataSource, type DataSource } from "./factory";
 export { NotImplementedError } from "./errors";
 export { recordAuditLog, recordAuditLogSync, type ICreateAuditInput } from "./auditLogger";
 

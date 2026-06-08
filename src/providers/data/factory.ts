@@ -68,7 +68,7 @@ import { supabaseQuickReplyProvider } from "./impl/supabase/quickReply";
 import { supabaseTrackableLinkProvider } from "./impl/supabase/trackableLink";
 import { supabaseScheduledSendProvider } from "./impl/supabase/scheduledSend";
 
-type DataSource = "mock" | "supabase";
+export type DataSource = "mock" | "supabase";
 
 const VALID_SOURCES: readonly DataSource[] = ["mock", "supabase"] as const;
 
@@ -171,4 +171,13 @@ const supabaseProviders: IDataProviders = {
  */
 export function getDataProviders(): IDataProviders {
   return DATA_SOURCE === "supabase" ? supabaseProviders : mockProviders;
+}
+
+/**
+ * The data origin selected at build time (`mock` or `supabase`). Exposed so the
+ * UI (e.g. the data-source health banner) can label which source is active when
+ * surfacing a data-origin break.
+ */
+export function getActiveDataSource(): DataSource {
+  return DATA_SOURCE;
 }

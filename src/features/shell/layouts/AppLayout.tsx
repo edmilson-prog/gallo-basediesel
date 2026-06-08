@@ -4,6 +4,7 @@ import { Sidebar } from "@/features/shell/components/Sidebar";
 import { TopBar } from "@/features/shell/components/TopBar";
 import { BottomNav } from "@/features/shell/components/BottomNav";
 import { AppFooter } from "@/features/shell/components/AppFooter";
+import { DataSourceBanner } from "@/features/shell/components/DataSourceBanner";
 import { useDistributionToasts } from "@/features/distribution/hooks/useDistributionToasts";
 import { useAutoRevertTimer } from "@/features/carteira/hooks/useAutoRevertTimer";
 import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
@@ -37,6 +38,9 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       <div className="flex h-screen overflow-hidden bg-background text-foreground">
         <Sidebar />
         <div className="flex min-w-0 flex-1 flex-col">
+          {/* Data-origin health banner — surfaces a break in the active data
+              source (mock or Supabase) above everything else, then auto-hides. */}
+          <DataSourceBanner />
           {/* TopBar lives inside the scroll container as a sticky header so
               content scrolls *behind* it — required for the glass effect. */}
           <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
