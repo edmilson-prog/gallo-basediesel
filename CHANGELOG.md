@@ -6,6 +6,12 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.69.0] — Beacon · 2026-06-07
+
+### Added
+
+- **Indicador de conexão do WhatsApp no topo** — o cabeçalho agora mostra um ícone do WhatsApp, ao lado do copiloto, que sinaliza se a conta de WhatsApp da loja está conectada (ponto verde pulsante) ou desconectada (ponto cinza). Ao clicar no ícone, você vai direto para a tela de configuração do WhatsApp.
+
 ## [0.68.2] — Dispatch · 2026-06-07
 
 ### Fixed
