@@ -50,23 +50,15 @@ export function WhatsAppStatusButton() {
     <Button
       variant="ghost"
       size="icon"
-      className="relative"
       onClick={() => void navigate({ to: "/app/configuracoes/whatsapp" })}
       aria-label={label}
       title={label}
     >
-      <Icon icon="mdi:whatsapp" size={20} />
-      <span className="absolute right-1.5 top-1.5 flex size-2">
-        {online && (
-          <span className="absolute inline-flex size-full animate-ping rounded-full bg-severity-success opacity-75" />
-        )}
-        <span
-          className={cn(
-            "relative inline-flex size-2 rounded-full ring-2 ring-background",
-            online ? "bg-severity-success" : "bg-muted-foreground/60",
-          )}
-        />
-      </span>
+      <Icon
+        icon="mdi:whatsapp"
+        size={20}
+        className={cn(online ? "animate-pulse text-severity-success" : "text-muted-foreground")}
+      />
     </Button>
   );
 }
