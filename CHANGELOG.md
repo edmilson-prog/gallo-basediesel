@@ -6,10 +6,16 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.68.1] — Dispatch · 2026-06-07
+
+### Changed
+
+- **Botão "Ficha" removido do canto superior direito** — o botão duplicado que não fazia nada foi removido da área acima da conversa. O botão "Ficha" que abre o painel do cliente continua no cabeçalho da conversa, ao lado de "Criar orçamento" e "Mídias".
+
 ### Fixed
 
-- **Botão "Ficha" duplicado no atendimento** — removido o botão "Ficha" extra no canto superior direito da conversa, que era redundante e não tinha efeito (alternava um painel que ficava sempre vazio). A ficha do cliente continua acessível pelo botão "Ficha" do cabeçalho da conversa.
-- **Barra de rolagem dupla** — removida a barra de rolagem vertical extra que aparecia encostada na ficha do cliente (e também nas telas de detalhe e em Configurações). Os layouts de tela cheia agora descontam a barra de status do rodapé, deixando apenas a rolagem interna de cada painel.
+- **Barra de rolagem dupla na ficha do cliente** — resolvida a barra de rolagem externa que aparecia encostada na barra da ficha em telas de atendimento, detalhe e configurações. O cálculo de altura dos painéis agora desconta a barra de status do rodapé, deixando apenas a rolagem interna de cada painel.
+- **Falhas de tipagem em quick-send e mídia** — corrigidas inconsistências de tipos no código dos PRDs 026 e 027 que o compilador TypeScript detectava mas o build não bloqueava (esbuild não checa tipos).
 
 ## [0.68.0] — Dispatch · 2026-06-07
 
