@@ -19,6 +19,7 @@ import { StoreSwitcher, useCurrentStore } from "@/features/multistore";
 import { usePlatformSettings } from "@/features/admin-settings/hooks/usePlatformSettings";
 import { AvailabilityToggle } from "@/features/distribution/components/AvailabilityToggle";
 import { NotificationDropdown } from "@/features/notifications/components/NotificationDropdown";
+import { WhatsAppStatusButton } from "@/features/shell/components/WhatsAppStatusButton";
 import { ROUTES } from "@/features/shell/config/routes";
 
 export function TopBar() {
@@ -69,6 +70,9 @@ export function TopBar() {
       </Button>
 
       <div className="ml-auto flex items-center gap-1">
+        {/* WhatsApp connection indicator — online/offline status per store. */}
+        <WhatsAppStatusButton />
+
         {/* Analytics copilot entry point (PRD-057). Hidden when disabled per store. */}
         {copilotEnabled && (
           <Button
