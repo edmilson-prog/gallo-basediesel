@@ -6,6 +6,12 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.72.0] — Bedrock · 2026-06-08
+
+### Added
+
+- **Base para a Fase 2 (banco de dados em nuvem)** — toda a fundação dos bastidores foi preparada para a plataforma passar a funcionar sobre um banco de dados em nuvem (Supabase), incluindo login real por e-mail e senha. Tudo já fica selecionável por configuração. **Nesta versão nada muda na sua experiência** — o sistema continua usando os dados de demonstração; a virada para os dados em nuvem virá numa próxima etapa.
+
 ## [0.71.0] — Focus · 2026-06-08
 
 ### Added
