@@ -6,6 +6,12 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.71.0] — Focus · 2026-06-08
+
+### Added
+
+- **Filtros recolhíveis na lista de conversas** — a barra de filtros do Atendimento agora pode ser recolhida com um clique, liberando bem mais espaço para a lista de conversas. Ela já abre recolhida e lembra a sua preferência. Um número ao lado de "Filtros" mostra quantos filtros estão ativos mesmo quando está recolhida, e o "Limpar tudo" continua à mão para zerar os filtros sem precisar abrir a barra.
+
 ## [0.70.0] — Guide · 2026-06-07
 
 ### Added
