@@ -6,6 +6,13 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.70.0] — Guide · 2026-06-07
+
+### Added
+
+- **Dicas de ajuda nos indicadores** — os cards de indicadores do Painel do Gestor e da Visão Executiva agora têm um ícone de informação ao lado do título; ao passar o mouse (ou focar pelo teclado), aparece uma explicação curta do que cada número significa.
+- **"Como funciona?" no Forecast e na Positivação** — logo abaixo do título dessas páginas há um "Como funciona?" que, ao ser aberto, explica em linguagem simples como os números são calculados (o que entra em cada parte do cálculo).
+
 ## [0.69.1] — Beacon · 2026-06-07
 
 ### Changed
