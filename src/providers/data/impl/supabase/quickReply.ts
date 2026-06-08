@@ -139,7 +139,7 @@ export const supabaseQuickReplyProvider: IQuickReplyProvider = {
     // the caller passes it through (cast to a permissive shape).
     const withStore = input as typeof input & { storeId?: ID };
     const storeId: ID = withStore.storeId ?? "";
-    const id: ID = `qr-${crypto.randomUUID()}`;
+    const id: ID = crypto.randomUUID();
     const nowIso = new Date().toISOString();
 
     const { data, error } = await getSupabaseClient()

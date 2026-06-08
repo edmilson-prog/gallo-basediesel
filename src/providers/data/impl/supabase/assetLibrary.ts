@@ -316,7 +316,7 @@ export const supabaseAssetLibraryProvider: IAssetLibraryProvider = {
     // object, so we read it defensively here.
     const scoped = input as typeof input & { storeId?: ID };
     const storeId = scoped.storeId ?? "";
-    const id: ID = `asset-${crypto.randomUUID()}`;
+    const id: ID = crypto.randomUUID();
     const { data, error } = await getSupabaseClient()
       .from(TABLE)
       .insert(createInputToRow(input, id, storeId))
@@ -422,7 +422,7 @@ export const supabaseAssetLibraryProvider: IAssetLibraryProvider = {
     // context. Read it defensively from the scoped input on the Supabase path.
     const scoped = input as typeof input & { storeId?: ID };
     const storeId = scoped.storeId ?? "";
-    const id: ID = `combo-${crypto.randomUUID()}`;
+    const id: ID = crypto.randomUUID();
     const { data, error } = await getSupabaseClient()
       .from(COMBOS_TABLE)
       .insert({
@@ -456,7 +456,7 @@ export const supabaseAssetLibraryProvider: IAssetLibraryProvider = {
     // "viewer without permission cannot send sensitive assets" requires the
     // runtime auth/RBAC context, which in Fase 2 is owned by RLS policies and an
     // Edge Function — not this thin table-write provider.
-    const id: ID = `send-${crypto.randomUUID()}`;
+    const id: ID = crypto.randomUUID();
     const { error } = await getSupabaseClient().from(SEND_LOG_TABLE).insert({
       id,
       seller_id: sellerId,

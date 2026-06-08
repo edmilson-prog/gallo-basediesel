@@ -115,7 +115,7 @@ export const supabaseTransfersProvider: ITransfersProvider = {
       }
     }
 
-    const id: ID = `transfer-${crypto.randomUUID()}`;
+    const id: ID = crypto.randomUUID();
     const now = new Date().toISOString();
     const row = {
       id,

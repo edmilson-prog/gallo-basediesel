@@ -93,7 +93,7 @@ export const supabaseScheduledSendProvider: IScheduledSendProvider = {
   async create(
     input: Omit<IScheduledSend, "id" | "storeId" | "status" | "createdAt">,
   ): Promise<IScheduledSend> {
-    const id: ID = `sched-${crypto.randomUUID()}`;
+    const id: ID = crypto.randomUUID();
     // The multistore layer threads the active `storeId` onto the create input
     // before it reaches the provider (mirrors `withCreateStoreId` in the mock
     // impl); read it back here for the insert row.

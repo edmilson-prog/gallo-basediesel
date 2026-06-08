@@ -94,7 +94,7 @@ export const supabaseMessagesProvider: IMessagesProvider = {
   },
 
   async send(conversationId: ID, input: MessageSendInput): Promise<IMessage> {
-    const id: ID = `msg-${crypto.randomUUID()}`;
+    const id: ID = crypto.randomUUID();
     const now = new Date().toISOString();
     const row = {
       id,

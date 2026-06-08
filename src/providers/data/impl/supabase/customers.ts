@@ -286,7 +286,7 @@ export const supabaseCustomersProvider: ICustomersProvider = {
   },
 
   async create(input: Omit<ICustomer, "id" | "createdAt" | "notes">): Promise<ICustomer> {
-    const id: ID = `cust-${input.type.toLowerCase()}-${crypto.randomUUID()}`;
+    const id: ID = crypto.randomUUID();
     const { data, error } = await getSupabaseClient()
       .from(TABLE)
       .insert(createInputToRow(input, id))
@@ -315,7 +315,7 @@ export const supabaseCustomersProvider: ICustomersProvider = {
   },
 
   async addNote(customerId: ID, content: string, authorId: ID): Promise<ICustomerNote> {
-    const id: ID = `note-${crypto.randomUUID()}`;
+    const id: ID = crypto.randomUUID();
     const { data, error } = await getSupabaseClient()
       .from(NOTES_TABLE)
       .insert({ id, customer_id: customerId, author_id: authorId, content })

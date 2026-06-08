@@ -323,7 +323,7 @@ export const supabaseOrdersProvider: IOrdersProvider = {
 
   async create(input: Omit<IOrder, "id" | "createdAt" | "updatedAt">): Promise<IOrder> {
     const supabase = getSupabaseClient();
-    const id: ID = `order-${crypto.randomUUID()}`;
+    const id: ID = crypto.randomUUID();
 
     const { error: insertError } = await supabase.from(TABLE).insert(createInputToRow(input, id));
     if (insertError) throw new Error(`[supabase] orders.create failed: ${insertError.message}`);

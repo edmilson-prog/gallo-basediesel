@@ -94,7 +94,7 @@ export const supabaseCashFlowProvider: ICashFlowProvider = {
     // Mirror the mock: manual entries are always realized, the amount is stored
     // positive, and the source is derived from the direction.
     const source: CashFlowSource = input.type === "entrada" ? "aporte" : "retirada";
-    const id: ID = `cf-rt-${crypto.randomUUID()}`;
+    const id: ID = crypto.randomUUID();
     const { data, error } = await getSupabaseClient()
       .from(TABLE)
       .insert({

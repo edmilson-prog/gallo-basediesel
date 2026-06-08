@@ -217,7 +217,7 @@ export const supabaseCommissionsProvider: ICommissionsProvider = {
   },
 
   async create(input: ICreateCommissionInput): Promise<ICommission> {
-    const id: ID = `comm-rt-${crypto.randomUUID()}`;
+    const id: ID = crypto.randomUUID();
     const { data, error } = await getSupabaseClient()
       .from(TABLE)
       .insert(createInputToRow(input, id))

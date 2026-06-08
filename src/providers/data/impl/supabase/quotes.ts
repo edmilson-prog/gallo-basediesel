@@ -310,7 +310,7 @@ export const supabaseQuotesProvider: IQuotesProvider = {
   },
 
   async create(input: Omit<IQuote, "id" | "createdAt" | "updatedAt">): Promise<IQuote> {
-    const id: ID = `quote-${crypto.randomUUID()}`;
+    const id: ID = crypto.randomUUID();
     const client = getSupabaseClient();
 
     const { data, error } = await client

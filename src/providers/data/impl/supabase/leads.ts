@@ -159,7 +159,7 @@ export const supabaseLeadsProvider: ILeadsProvider = {
   async create(
     input: Omit<ILead, "id" | "createdAt" | "updatedAt" | "conversations">,
   ): Promise<ILead> {
-    const id: ID = `lead-${crypto.randomUUID()}`;
+    const id: ID = crypto.randomUUID();
     const { data, error } = await getSupabaseClient()
       .from(TABLE)
       .insert(createInputToRow(input, id))

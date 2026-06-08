@@ -94,7 +94,7 @@ export const supabaseAuditsProvider: IAuditsProvider = {
   },
 
   async create(input: ICreateAuditInput): Promise<IAuditLog> {
-    const id: ID = `audit-${crypto.randomUUID()}`;
+    const id: ID = crypto.randomUUID();
     const { data, error } = await getSupabaseClient()
       .from(TABLE)
       .insert({

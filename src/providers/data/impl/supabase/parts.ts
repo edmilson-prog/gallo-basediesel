@@ -188,7 +188,7 @@ function createInputToRow(
   const now: ISO8601 = new Date().toISOString();
   return {
     ...partPatchToRow(input),
-    id: `part-${crypto.randomUUID()}`,
+    id: crypto.randomUUID(),
     store_id: input.storeId ?? null,
     created_at: now,
     updated_at: now,

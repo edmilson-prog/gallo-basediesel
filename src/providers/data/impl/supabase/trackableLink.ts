@@ -87,7 +87,7 @@ export const supabaseTrackableLinkProvider: ITrackableLinkProvider = {
   async create(
     input: Omit<ITrackableLink, "id" | "storeId" | "createdAt" | "opens">,
   ): Promise<ITrackableLink> {
-    const id: ID = `tl-${crypto.randomUUID()}`;
+    const id: ID = crypto.randomUUID();
     // `storeId` is stripped from the public input type but supplied by the
     // store-scope wrapper at the call site; read it defensively off the input.
     const storeId = (input as typeof input & { storeId?: ID }).storeId ?? "";

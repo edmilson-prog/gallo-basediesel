@@ -188,7 +188,7 @@ export const supabaseVehiclesProvider: IVehiclesProvider = {
 
   async create(input: Omit<IVehicle, "id" | "createdAt" | "serviceHistory">): Promise<IVehicle> {
     const insertRow = {
-      id: `vehicle-${crypto.randomUUID()}`,
+      id: crypto.randomUUID(),
       customer_id: input.customerId,
       brand: input.brand,
       model: input.model,

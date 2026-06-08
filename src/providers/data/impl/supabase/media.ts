@@ -317,7 +317,7 @@ export const supabaseMediaProvider: IMediaStorageProvider = {
         }),
       );
     const asset: IMediaAsset = {
-      id: `media-${crypto.randomUUID()}`,
+      id: crypto.randomUUID(),
       storeId,
       conversationId: input.conversationId,
       customerId: input.customerId,
@@ -383,7 +383,7 @@ export const supabaseMediaProvider: IMediaStorageProvider = {
       ocrText: message.text,
     });
     const asset: IMediaAsset = {
-      id: `media-${crypto.randomUUID()}`,
+      id: crypto.randomUUID(),
       storeId,
       conversationId: message.conversationId,
       messageId: message.id,

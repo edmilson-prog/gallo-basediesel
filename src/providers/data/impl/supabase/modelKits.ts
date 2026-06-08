@@ -144,7 +144,7 @@ export const supabaseModelKitsProvider: IModelKitsProvider = {
   },
 
   async create(input: ICreateModelKitInput): Promise<IVehicleModelKit> {
-    const id: ID = `mkit-${crypto.randomUUID()}`;
+    const id: ID = crypto.randomUUID();
     const now = new Date().toISOString();
     const client = getSupabaseClient();
 

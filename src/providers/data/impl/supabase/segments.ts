@@ -85,7 +85,7 @@ export const supabaseSegmentsProvider: ISegmentsProvider = {
   },
 
   async create(input: ICreateSegmentInput): Promise<ICustomerSegment> {
-    const id: ID = `segment-${crypto.randomUUID()}`;
+    const id: ID = crypto.randomUUID();
     const row: Record<string, unknown> = {
       id,
       owner_id: input.ownerId,
