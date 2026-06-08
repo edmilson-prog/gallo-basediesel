@@ -10,6 +10,7 @@ import { EmptyState } from "@/features/shell/components/EmptyState";
 import { useSellersProvider } from "@/providers/data";
 import { displayCustomerName } from "../utils/recencyFormat";
 import { PositivationHeader } from "../components/PositivationHeader";
+import { PositivationHowItWorks } from "../components/PositivationHowItWorks";
 import { PositivationKpis } from "../components/PositivationKpis";
 import { PositivationEvolutionChart } from "../components/PositivationEvolutionChart";
 import { PositivationBySellerTable } from "../components/PositivationBySellerTable";
@@ -168,6 +169,8 @@ export function PositivationPage() {
         onSeller={filtersCtl.setSeller}
         onReset={filtersCtl.reset}
       />
+
+      <PositivationHowItWorks />
 
       <PositivationKpis
         totalCustomers={metrics?.totalCustomers ?? 0}

@@ -12,6 +12,7 @@ import { useCurrentStore } from "@/features/multistore";
 import { useStoreForecast } from "../hooks/useStoreForecast";
 import { ForecastScenarioCard } from "../components/ForecastScenarioCard";
 import { ForecastSellersTable } from "../components/ForecastSellersTable";
+import { ForecastHowItWorks } from "../components/ForecastHowItWorks";
 
 const ROUTE_ID = "/app/gestao/forecast" as const;
 
@@ -215,6 +216,7 @@ export function SalesForecastPage() {
   return (
     <DashboardLayout>
       {header}
+      <ForecastHowItWorks />
       {body}
     </DashboardLayout>
   );
