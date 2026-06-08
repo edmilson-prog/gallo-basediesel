@@ -1,7 +1,7 @@
 # RLS — Fase 2 (MVP adaptado) — write policies
 
 > **PRDs relacionados:** PRD-103 (RLS) e PRD-107 (Auth custom claims). Este documento registra a **implementação MVP adaptada** aplicada em 2026-06-08, que diverge do PRD-103 original em dois pontos (schema e fonte de identidade) — ver abaixo. O PRD-107 (Fase 1) iniciou a **transição da identidade para claims do JWT** (com fallback para a subquery) — ver seção "Funções helper de identidade".
-> **Aplicação:** migrations versionadas no remoto via MCP (`apply_migration`). Nomes: `rls_helpers_identity`, `rls_policies_store_direct`, `rls_policies_derived_global`, `rls_helpers_security_invoker`, `rls_helpers_jwt_claims_with_fallback`.
+> **Aplicação:** migrations versionadas no remoto via MCP (`apply_migration`). Nomes: `rls_helpers_identity`, `rls_policies_store_direct`, `rls_policies_derived_global`, `rls_helpers_security_invoker`, `rls_helpers_jwt_claims_with_fallback`, `add_manager_id_to_stores`, `rls_per_seller_carteira_scope`.
 
 ## Por que "adaptado"
 
@@ -68,13 +68,39 @@ Padrão de nome: `<tabela>_<select|insert|update|delete>`. `anon` **não** tem p
 - **Isolamento:** usuário sem perfil → `current_store_id()` NULL + 0 linhas em tudo (fail closed) — ✅
 - **`get_advisors(security)`:** sem erros; resta só `auth_leaked_password_protection` (config de dashboard, não relacionado).
 
+## RBAC fino — isolamento de carteira por vendedor (Slice 1, migration `rls_per_seller_carteira_scope`)
+
+Nas 6 tabelas-núcleo com dono, os **4 comandos** trocaram `store_id = current_store_id()` por:
+
+```
+store_id = current_store_id() AND (is_staff() OR <col> = current_seller_id())
+```
+
+| Tabela                                        | coluna de dono       |
+| --------------------------------------------- | -------------------- |
+| customers, orders, quotes, leads, commissions | `seller_id`          |
+| conversations                                 | `assigned_seller_id` |
+
+**Staff (owner/manager) seguem com escopo de loja** (`is_staff()` curto-circuita). Só **não-staff** sentem o recorte por carteira. As **tabelas-filhas herdam automaticamente** — o `<fk> in (select id from <pai> …)` roda sob a RLS do pai, então o escopo por vendedor se propaga sem alterá-las.
+
+Validação por impersonação (claims com `app_metadata`):
+
+| Persona                   | staff | customers | orders | quotes | conversations | order_items (filha) | messages (filha) |
+| ------------------------- | ----- | --------- | ------ | ------ | ------------- | ------------------- | ---------------- |
+| Lucas (`seller_internal`) | false | 18        | 132    | 10     | 28            | 423                 | 230              |
+| Owner                     | true  | 70        | 477    | 80     | 96            | 1511                | 693              |
+
+Vazamento cruzado (impersonando Lucas): `customers` de outro vendedor → 0; `orders` do Fernando → 0; `conversations` não-atribuídas → 0. ✅
+
+**Deferido neste slice:** tabelas financeiras/gerenciais (`expenses`, `cash_flow_entries`, `dre`, `goals` nível-loja) ainda são store-wide → viram **staff-only** para não-staff num próximo slice (vendedor não deve ver P&L); assets pessoais (`quick_replies`/`asset_combos.owner_id`); semântica do pool de não-atribuídos; edge de `conversations.create` disparado por vendedor.
+
 ## Deferido para "corrigir depois"
 
-- RBAC fino por vendedor/B2B (hoje owner/manager fazem tudo na loja; vendedor não tem isolamento de carteira ainda).
+- **RBAC fino Slice 2:** financeiras como staff-only para não-staff; assets pessoais por `owner_id`; pool de não-atribuídos.
 - Testes pgTAP + workflow CI (`rls-tests.yml`).
 - Storefront anônimo (loja B2C em `supabase` precisa de policies `anon` de catálogo).
-- Performance das subqueries derivadas (PRD-108 — indexar FKs, otimizar inicialização de RLS).
-- **Habilitar o Custom Access Token Hook no Dashboard** (ação do usuário) + relogar — fecha o ciclo do PRD-107 (Fase 1). Helpers já preparados (claims com fallback).
+- Performance das subqueries derivadas (PRD-108 — indexar FKs, otimizar inicialização de RLS — incl. envolver `current_*()` em `(select …)` para initplan).
+- ~~Habilitar o Custom Access Token Hook~~ **FEITO** (Dashboard, 2026-06-08) — claims reais no JWT; helpers já liam claims com fallback.
 - Remover o fallback `profiles` das helpers quando o hook estiver universal (perf — PRD-108).
 - Fases 2–5 do PRD-107: login real conectado ao `crmClient`, guarda de rotas por `role`, convite de vendedor (Edge Function), signup B2C/B2B, recuperação de senha.
 - Caso de borda: se uma mutação na UI dispara INSERT em `audit_logs` sem `store_id` preenchido pelo provider, a auditoria falha (a operação principal não). Ajustar quando observado.
