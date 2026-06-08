@@ -9,6 +9,7 @@ versioning follows [SemVer](https://semver.org/).
 ### Fixed
 
 - **Botão "Ficha" duplicado no atendimento** — removido o botão "Ficha" extra no canto superior direito da conversa, que era redundante e não tinha efeito (alternava um painel que ficava sempre vazio). A ficha do cliente continua acessível pelo botão "Ficha" do cabeçalho da conversa.
+- **Barra de rolagem dupla** — removida a barra de rolagem vertical extra que aparecia encostada na ficha do cliente (e também nas telas de detalhe e em Configurações). Os layouts de tela cheia agora descontam a barra de status do rodapé, deixando apenas a rolagem interna de cada painel.
 
 ## [0.68.0] — Dispatch · 2026-06-07
 

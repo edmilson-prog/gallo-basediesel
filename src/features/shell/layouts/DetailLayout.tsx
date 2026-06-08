@@ -16,8 +16,11 @@ export interface IDetailLayoutProps {
  * Assumes Sidebar + TopBar are provided by the parent route (`app.tsx`).
  */
 export function DetailLayout({ listSlot, detailSlot }: IDetailLayoutProps) {
+  // Fill <main> minus the sticky TopBar (4rem) and, on desktop, the AppFooter
+  // (2rem) — same `md:h-[calc(100vh-6rem)]` convention the list pages use,
+  // so <main> doesn't overflow and show a phantom outer scrollbar.
   return (
-    <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
+    <div className="flex h-[calc(100vh-4rem)] overflow-hidden md:h-[calc(100vh-6rem)]">
       <div className="hidden w-[360px] shrink-0 border-r border-border lg:flex lg:flex-col">
         {listSlot}
       </div>

@@ -39,8 +39,12 @@ export function ConversationLayout({
 }: IConversationLayoutProps) {
   const showListOnMobile = mobileShow === "list";
 
+  // Fill <main> minus the sticky TopBar (4rem) and, on desktop, the AppFooter
+  // (2rem) — same `md:h-[calc(100vh-6rem)]` convention the list pages use.
+  // Otherwise <main> overflows by the footer height and shows a phantom outer
+  // scrollbar beside the panels' own scrollbars.
   return (
-    <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
+    <div className="flex h-[calc(100vh-4rem)] overflow-hidden md:h-[calc(100vh-6rem)]">
       {/* List column */}
       <div
         className={cn(
@@ -52,7 +56,7 @@ export function ConversationLayout({
       </div>
       {/* Conversation column */}
       <div className={cn("min-w-0 flex-1 flex-col md:flex", showListOnMobile ? "hidden" : "flex")}>
-        <div className="min-h-0 flex-1 overflow-y-auto">{conversationSlot}</div>
+        <div className="min-h-0 flex-1 overflow-hidden">{conversationSlot}</div>
       </div>
     </div>
   );
