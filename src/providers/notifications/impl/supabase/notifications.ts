@@ -262,6 +262,10 @@ export const supabaseNotificationStore: INotificationStore = {
     const toInsert: Record<string, unknown>[] = [];
     const toReactivate: string[] = [];
     for (const notification of input.upsert) {
+      // Defensive: `recipient_id` is NOT NULL in the DB. A derived notification
+      // with no resolvable recipient (e.g. a store without a manager) is dropped
+      // rather than failing the whole reconcile pass.
+      if (!notification.recipientId) continue;
       const found = byKey.get(notification.dedupeKey);
       if (!found) {
         toInsert.push(toInsertRow(notification));

@@ -112,13 +112,14 @@ async function reconcileOnce(notif: INotificationStores, data: IReconcilerData):
     // Every internal recipient is in scope so cleared conditions get expired,
     // even when they produce no alert this pass.
     for (const seller of snapshot.sellers) recipientScope.add(seller.id);
-    recipientScope.add(store.managerId);
+    const managerId = storeManagerId(store);
+    if (managerId) recipientScope.add(managerId);
 
     const alerts = collectAlerts(snapshot, settings, nowMs);
     for (const alert of alerts) {
       const event = EVENT_BY_KIND[alert.kind];
       const rule = ROUTING_RULES[event];
-      for (const recipientId of resolveRecipients(alert, snapshot, store)) {
+      for (const recipientId of resolveRecipients(alert, snapshot, managerId)) {
         const dedupeKey = `derived:${alert.hash}:${recipientId}`;
         keepKeys.push(dedupeKey);
         upsert.push({
@@ -186,24 +187,40 @@ function collectAlerts(
 }
 
 /**
+ * The store's gestor recipient. `managerId` is not part of {@link IStore} (it
+ * lives on the dormant {@link ITeam}), so the Supabase store mapper cannot
+ * provide it and the owner↔seller link is still pending. Read it defensively:
+ * a store without a resolvable manager simply yields no manager-targeted
+ * notification instead of an unpersistable one with a null recipient.
+ */
+function storeManagerId(store: IStore): ID | undefined {
+  const id = (store as { managerId?: ID }).managerId;
+  return id && id.length > 0 ? id : undefined;
+}
+
+/**
  * Resolves the internal recipients for a derived alert (Anexo A):
  *  - cliente.dormente        → the customer's owner seller + the store gestor
  *  - vendedor.sobrecarregado → the store gestor (owner targeting deferred)
  *  - conversa.semResposta    → the store gestor
+ *
+ * Null/empty recipients are dropped — a notification must target someone, and a
+ * missing manager/owner must not produce a row with a null recipient (the
+ * Supabase store enforces NOT NULL; the mock silently tolerated it before).
  */
 function resolveRecipients(
   alert: IActiveAlert,
   snapshot: IManagerDashboardSnapshot,
-  store: IStore,
+  managerId: ID | undefined,
 ): ID[] {
   const recipients = new Set<ID>();
   if (alert.kind === "cliente-a-dormente") {
     const customerId = alert.id.replace(/^cliente-a-dormente-/, "");
     const customer = snapshot.customers.find((c) => c.id === customerId);
-    if (customer) recipients.add(customer.ownerId);
+    if (customer?.ownerId) recipients.add(customer.ownerId);
   }
-  recipients.add(store.managerId);
-  return [...recipients];
+  if (managerId) recipients.add(managerId);
+  return [...recipients].filter((id): id is ID => Boolean(id));
 }
 
 function snapshotParams(storeId: ID, nowMs: number): IManagerDashboardSnapshotParams {
