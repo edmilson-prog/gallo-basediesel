@@ -6,6 +6,12 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.68.2] — Dispatch · 2026-06-07
+
+### Fixed
+
+- **Copiloto do atendimento abrindo sozinho** — o painel de sugestões do copiloto na tela de atendimento agora vem fechado por padrão e abre apenas quando você clica nele. Antes, ele se expandia automaticamente sempre que havia um alerta na conversa, ocupando espaço acima das mensagens. O alerta principal continua visível na faixa fechada, então nada importante deixa de aparecer.
+
 ## [0.68.1] — Dispatch · 2026-06-07
 
 ### Changed
