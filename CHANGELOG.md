@@ -6,6 +6,12 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.69.1] — Beacon · 2026-06-07
+
+### Changed
+
+- **Indicador de WhatsApp mais limpo** — o status de conexão do WhatsApp no topo agora é mostrado pela própria cor do ícone (verde pulsante quando conectado, cinza quando desconectado), sem a bolinha sobreposta no canto.
+
 ## [0.69.0] — Beacon · 2026-06-07
 
 ### Added
