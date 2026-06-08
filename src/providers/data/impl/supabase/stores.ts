@@ -1,6 +1,6 @@
 import type { Division, ID, IPlatformSettings, IStore } from "@/shared/types";
 import type { IStoresProvider } from "../../contracts/stores";
-import { getSupabaseClient } from "./client";
+import { getSupabaseClient } from "@/shared/lib/supabase";
 
 /**
  * Supabase implementation of {@link IStoresProvider} — the first Fase 2

@@ -17,11 +17,26 @@ interface ImportMetaEnv {
   readonly VITE_DATA_SOURCE?: "mock" | "supabase";
 
   /**
+   * Selects the authentication backend `<AuthProvider>` uses. Independent from
+   * `VITE_DATA_SOURCE` (real auth can run against mock data, and vice-versa).
+   *
+   * - `"mock"` (default in Fase 1) — pick-a-profile login from
+   *   `src/features/auth/mock-users.ts`; password is ignored.
+   * - `"supabase"` (Fase 2) — real Supabase Auth (email/password), resolving
+   *   the profile from the `profiles` table.
+   *
+   * Build-time only.
+   *
+   * @see src/features/auth/authSource.ts
+   */
+  readonly VITE_AUTH_SOURCE?: "mock" | "supabase";
+
+  /**
    * Supabase project URL (e.g. `https://<ref>.supabase.co`).
    *
    * Only consumed when `VITE_DATA_SOURCE=supabase`. Public by design.
    *
-   * @see src/providers/data/impl/supabase/client.ts
+   * @see src/shared/lib/supabase.ts
    */
   readonly VITE_SUPABASE_URL?: string;
 
@@ -31,7 +46,7 @@ interface ImportMetaEnv {
    * Safe to ship in the client bundle — it is gated by Row Level Security on
    * the server. NEVER use the `service_role`/secret key on the client.
    *
-   * @see src/providers/data/impl/supabase/client.ts
+   * @see src/shared/lib/supabase.ts
    */
   readonly VITE_SUPABASE_PUBLISHABLE_KEY?: string;
 

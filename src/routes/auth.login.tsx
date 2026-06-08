@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/useAuth";
-import { MOCK_USERS, findMockUserByEmail } from "@/features/auth/mock-users";
+import { MOCK_USERS } from "@/features/auth/mock-users";
+import { AUTH_SOURCE } from "@/features/auth/authSource";
 import { BrandPanel, type BrandPanelVariant } from "@/features/auth/BrandPanel";
 import { ProfileCard } from "@/features/auth/ProfileCard";
 
@@ -23,9 +24,10 @@ export const Route = createFileRoute("/auth/login")({
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function LoginPage() {
-  const { signIn } = useAuth();
+  const { signIn, signInWithPassword } = useAuth();
   const navigate = useNavigate();
   const { next } = Route.useSearch();
+  const isSupabase = AUTH_SOURCE === "supabase";
   const [bg, setBg] = useState<BrandPanelVariant>("embers");
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [email, setEmail] = useState("");
@@ -51,12 +53,16 @@ function LoginPage() {
       setError("Informe um e-mail válido.");
       return;
     }
-    const profile = findMockUserByEmail(email);
-    if (!profile) {
-      setError("E-mail não reconhecido. Use um perfil de demonstração abaixo.");
-      return;
-    }
-    enter(profile.id);
+    setPendingId("__form__");
+    void signInWithPassword(email, password).then((result) => {
+      if (!result.ok || !result.profile) {
+        setError(result.error ?? "Não foi possível entrar.");
+        setPendingId(null);
+        return;
+      }
+      const target = next ?? result.profile.defaultRedirect;
+      void navigate({ to: target });
+    });
   };
 
   const teamProfiles = MOCK_USERS.filter((u) => u.group === "team");
@@ -138,67 +144,71 @@ function LoginPage() {
               </Button>
             </form>
 
-            <div className="flex items-center gap-3">
-              <span className="h-px flex-1 bg-border" aria-hidden="true" />
-              <span className="text-xs text-muted-foreground">
-                ou entre como perfil de demonstração
-              </span>
-              <span className="h-px flex-1 bg-border" aria-hidden="true" />
-            </div>
-
-            <section className="space-y-3" aria-label="Perfis da equipe GALLO">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Equipe GALLO
-              </h2>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {teamProfiles.map((profile, i) => (
-                  <ProfileCard
-                    key={profile.id}
-                    profile={profile}
-                    index={i}
-                    pending={pendingId === profile.id}
-                    onSelect={enter}
-                  />
-                ))}
-              </div>
-            </section>
-
-            {clientProfiles.length > 0 && (
-              <section className="space-y-3" aria-label="Perfil de cliente">
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Cliente
-                </h2>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {clientProfiles.map((profile, i) => (
-                    <ProfileCard
-                      key={profile.id}
-                      profile={profile}
-                      index={teamProfiles.length + i}
-                      pending={pendingId === profile.id}
-                      onSelect={enter}
-                    />
-                  ))}
+            {!isSupabase && (
+              <>
+                <div className="flex items-center gap-3">
+                  <span className="h-px flex-1 bg-border" aria-hidden="true" />
+                  <span className="text-xs text-muted-foreground">
+                    ou entre como perfil de demonstração
+                  </span>
+                  <span className="h-px flex-1 bg-border" aria-hidden="true" />
                 </div>
-              </section>
+
+                <section className="space-y-3" aria-label="Perfis da equipe GALLO">
+                  <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Equipe GALLO
+                  </h2>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {teamProfiles.map((profile, i) => (
+                      <ProfileCard
+                        key={profile.id}
+                        profile={profile}
+                        index={i}
+                        pending={pendingId === profile.id}
+                        onSelect={enter}
+                      />
+                    ))}
+                  </div>
+                </section>
+
+                {clientProfiles.length > 0 && (
+                  <section className="space-y-3" aria-label="Perfil de cliente">
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Cliente
+                    </h2>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {clientProfiles.map((profile, i) => (
+                        <ProfileCard
+                          key={profile.id}
+                          profile={profile}
+                          index={teamProfiles.length + i}
+                          pending={pendingId === profile.id}
+                          onSelect={enter}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {adminProfiles.map((profile) => (
+                  <div key={profile.id} className="border-t border-border pt-4">
+                    <button
+                      type="button"
+                      onClick={() => enter(profile.id)}
+                      disabled={pendingId !== null}
+                      className="text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline disabled:opacity-60"
+                    >
+                      Acesso {profile.storeLabel} ({profile.displayName})
+                    </button>
+                  </div>
+                ))}
+
+                <p className="text-xs text-muted-foreground">
+                  Esta é uma fase de mockup. Autenticação real será habilitada na Fase 2 (Supabase
+                  Auth).
+                </p>
+              </>
             )}
-
-            {adminProfiles.map((profile) => (
-              <div key={profile.id} className="border-t border-border pt-4">
-                <button
-                  type="button"
-                  onClick={() => enter(profile.id)}
-                  disabled={pendingId !== null}
-                  className="text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline disabled:opacity-60"
-                >
-                  Acesso {profile.storeLabel} ({profile.displayName})
-                </button>
-              </div>
-            ))}
-
-            <p className="text-xs text-muted-foreground">
-              Esta é uma fase de mockup. Autenticação real será habilitada na Fase 2 (Supabase
-              Auth).
-            </p>
           </div>
         </div>
       </main>

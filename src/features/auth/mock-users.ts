@@ -66,6 +66,13 @@ export interface IMockUserProfile {
   sellerId?: ID;
 }
 
+/**
+ * Auth-source-agnostic user profile. Today it is structurally the mock profile;
+ * the Supabase backend (PRD-107) builds the same shape from the `profiles`
+ * table so `IAuthContextValue.currentUser` stays identical across backends.
+ */
+export type IUserProfile = IMockUserProfile;
+
 export const MOCK_USERS: IMockUserProfile[] = [
   {
     id: "mock-owner",
