@@ -6,7 +6,8 @@ import { CopilotSuggestionItem } from "./CopilotSuggestionItem";
 
 export function CopilotCard({ panel }: { panel: ICopilotPanelState }) {
   const { suggestions, dismiss, loading } = panel;
-  const [open, setOpen] = useState(true);
+  // Sempre inicia fechado; abre apenas por ação do usuário.
+  const [open, setOpen] = useState(false);
   if (loading) return null;
 
   return (

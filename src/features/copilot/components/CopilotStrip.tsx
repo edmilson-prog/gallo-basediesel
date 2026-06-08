@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
 import type { ICopilotPanelState } from "../hooks/useCopilotPanel";
@@ -29,21 +29,10 @@ const KIND_COLOR = {
 
 export function CopilotStrip({ panel, reply, onInsertReply }: ICopilotStripProps) {
   const { briefing, summary, suggestions, loading, dismiss } = panel;
+  // Sempre inicia fechado; abre apenas por ação do usuário (sem auto-expand).
   const [expanded, setExpanded] = useState(false);
-  const userCollapsed = useRef(false);
 
-  // Auto-expande 1× quando há alerta de alta severidade e o usuário não colapsou.
-  const hasHighAlert = suggestions.some((s) => s.kind === "alert" && s.severity === "high");
-  useEffect(() => {
-    if (hasHighAlert && !userCollapsed.current) setExpanded(true);
-  }, [hasHighAlert]);
-
-  const toggle = () => {
-    setExpanded((prev) => {
-      if (prev) userCollapsed.current = true;
-      return !prev;
-    });
-  };
+  const toggle = () => setExpanded((prev) => !prev);
 
   const top = suggestions[0];
   const rest = Math.max(0, suggestions.length - 1);
