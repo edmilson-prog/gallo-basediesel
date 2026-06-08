@@ -17,6 +17,25 @@ interface ImportMetaEnv {
   readonly VITE_DATA_SOURCE?: "mock" | "supabase";
 
   /**
+   * Supabase project URL (e.g. `https://<ref>.supabase.co`).
+   *
+   * Only consumed when `VITE_DATA_SOURCE=supabase`. Public by design.
+   *
+   * @see src/providers/data/impl/supabase/client.ts
+   */
+  readonly VITE_SUPABASE_URL?: string;
+
+  /**
+   * Supabase publishable key (format: `sb_publishable_...`).
+   *
+   * Safe to ship in the client bundle — it is gated by Row Level Security on
+   * the server. NEVER use the `service_role`/secret key on the client.
+   *
+   * @see src/providers/data/impl/supabase/client.ts
+   */
+  readonly VITE_SUPABASE_PUBLISHABLE_KEY?: string;
+
+  /**
    * Factory default for where the Sales Copilot surface renders on the
    * conversation screen (PRD-025).
    *
