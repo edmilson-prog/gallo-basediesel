@@ -9,14 +9,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/useAuth";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { useSellersProvider } from "@/providers/data";
 import { useEffect, useState } from "react";
 import type { ISeller } from "@/shared/types";
+import { useInboxFiltersCollapsed } from "../hooks/useInboxFiltersCollapsed";
 import type {
   AssignmentFilter,
   IInboxFiltersState,
@@ -99,6 +102,7 @@ export function InboxFilters({
   const { currentUser } = useAuth();
   const canSeeAllAssignments = usePermission("conversation", "view", "store");
   const sellers = useSellersForAssignment(canSeeAllAssignments);
+  const { collapsed, setCollapsed } = useInboxFiltersCollapsed();
 
   const statusLabel = INBOX_STRINGS.statusOptions[state.status];
   const channelLabel = INBOX_STRINGS.channelOptions[state.channel];
@@ -115,248 +119,283 @@ export function InboxFilters({
   }, [state.assignment, sellers]);
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5 border-b border-border px-3 py-2">
-      {/* Status */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <span>
-            <TriggerButton
-              label={INBOX_STRINGS.statusLabel}
-              value={statusLabel}
-              active={state.status !== "all"}
-            />
-          </span>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-56">
-          <DropdownMenuLabel>{INBOX_STRINGS.statusLabel}</DropdownMenuLabel>
-          <DropdownMenuRadioGroup
-            value={state.status}
-            onValueChange={(v) => onStatus(v as IInboxFiltersState["status"])}
+    <Collapsible open={!collapsed} onOpenChange={(open) => setCollapsed(!open)}>
+      {/* Trigger row — always visible so the user can re-open and still sees
+          how many filters are active while collapsed. */}
+      <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-1.5">
+        <CollapsibleTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-1.5 px-2 text-xs"
+            aria-label={
+              collapsed ? INBOX_STRINGS.filtersExpandAria : INBOX_STRINGS.filtersCollapseAria
+            }
           >
-            <DropdownMenuRadioItem value="all">
-              {INBOX_STRINGS.statusOptions.all}
-            </DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="aguardando">
-              {INBOX_STRINGS.statusOptions.aguardando}
-            </DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="em_andamento">
-              {INBOX_STRINGS.statusOptions.em_andamento}
-            </DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="aguardando_cliente">
-              {INBOX_STRINGS.statusOptions.aguardando_cliente}
-            </DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="resolvida">
-              {INBOX_STRINGS.statusOptions.resolvida}
-            </DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="arquivada">
-              {INBOX_STRINGS.statusOptions.arquivada}
-            </DropdownMenuRadioItem>
-          </DropdownMenuRadioGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      {/* Channel */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <span>
-            <TriggerButton
-              label={INBOX_STRINGS.channelLabel}
-              value={channelLabel}
-              active={state.channel !== "all"}
-            />
-          </span>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-48">
-          <DropdownMenuRadioGroup
-            value={state.channel}
-            onValueChange={(v) => onChannel(v as IInboxFiltersState["channel"])}
-          >
-            <DropdownMenuRadioItem value="all">
-              {INBOX_STRINGS.channelOptions.all}
-            </DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="whatsapp">
-              {INBOX_STRINGS.channelOptions.whatsapp}
-            </DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="ecommerce">
-              {INBOX_STRINGS.channelOptions.ecommerce}
-            </DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="phone">
-              {INBOX_STRINGS.channelOptions.phone}
-            </DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="site">
-              {INBOX_STRINGS.channelOptions.site}
-            </DropdownMenuRadioItem>
-          </DropdownMenuRadioGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      {/* Assignment */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <span>
-            <TriggerButton
-              label={INBOX_STRINGS.assignmentLabel}
-              value={assignmentLabel}
-              active={state.assignment !== "me"}
-            />
-          </span>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="max-h-80 w-56 overflow-y-auto">
-          <DropdownMenuRadioGroup value={state.assignment} onValueChange={(v) => onAssignment(v)}>
-            {currentUser && (
-              <DropdownMenuRadioItem value="me">
-                {INBOX_STRINGS.assignmentOptions.me}
-              </DropdownMenuRadioItem>
-            )}
-            {canSeeAllAssignments && (
-              <>
-                <DropdownMenuRadioItem value="all">
-                  {INBOX_STRINGS.assignmentOptions.all}
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="unassigned">
-                  {INBOX_STRINGS.assignmentOptions.unassigned}
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="queue">
-                  {INBOX_STRINGS.assignmentOptions.queue}
-                </DropdownMenuRadioItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs">
-                  {INBOX_STRINGS.assignmentOptions.seller}
-                </DropdownMenuLabel>
-                {sellers.map((s) => (
-                  <DropdownMenuRadioItem key={s.id} value={s.id}>
-                    {s.fullName}
-                  </DropdownMenuRadioItem>
-                ))}
-              </>
-            )}
-          </DropdownMenuRadioGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      {/* Tags */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <span>
-            <TriggerButton
-              label={INBOX_STRINGS.tagsLabel}
-              value={INBOX_STRINGS.tagsCounter(state.tags.length)}
-              active={state.tags.length > 0}
-            />
-          </span>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="max-h-80 w-56 overflow-y-auto">
-          <DropdownMenuLabel>{INBOX_STRINGS.tagsLabel}</DropdownMenuLabel>
-          {availableTags.length === 0 && (
-            <p className="px-2 py-1.5 text-xs text-muted-foreground">{INBOX_STRINGS.tagsEmpty}</p>
-          )}
-          {availableTags.map((tag) => {
-            const checked = state.tags.includes(tag);
-            return (
-              <DropdownMenuCheckboxItem
-                key={tag}
-                checked={checked}
-                onCheckedChange={(next) => {
-                  if (next) onTags([...state.tags, tag]);
-                  else onTags(state.tags.filter((t) => t !== tag));
-                }}
+            <Icon icon="mdi:filter-variant" size={14} className="text-muted-foreground" />
+            <span className="font-medium">{INBOX_STRINGS.filtersToggle}</span>
+            {activeCount > 0 && (
+              <Badge
+                variant="secondary"
+                className="h-4 min-w-4 justify-center px-1 text-[10px] tabular-nums"
+                aria-label={INBOX_STRINGS.filtersActiveCountAria(activeCount)}
               >
-                {tag}
-              </DropdownMenuCheckboxItem>
-            );
-          })}
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      {/* Period */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <span>
-            <TriggerButton
-              label={INBOX_STRINGS.periodLabel}
-              value={periodLabel}
-              active={state.period !== "all"}
+                {activeCount}
+              </Badge>
+            )}
+            <Icon
+              icon="mdi:chevron-down"
+              size={14}
+              className={cn(
+                "text-muted-foreground transition-transform duration-200",
+                !collapsed && "rotate-180",
+              )}
             />
-          </span>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-48">
-          <DropdownMenuRadioGroup
-            value={state.period}
-            onValueChange={(v) => onPeriod(v as PeriodFilter)}
-          >
-            <DropdownMenuRadioItem value="all">
-              {INBOX_STRINGS.periodOptions.all}
-            </DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="24h">
-              {INBOX_STRINGS.periodOptions["24h"]}
-            </DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="7d">
-              {INBOX_STRINGS.periodOptions["7d"]}
-            </DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="30d">
-              {INBOX_STRINGS.periodOptions["30d"]}
-            </DropdownMenuRadioItem>
-          </DropdownMenuRadioGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
+          </Button>
+        </CollapsibleTrigger>
 
-      {/* Sort */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <span>
-            <TriggerButton
-              label={INBOX_STRINGS.sortLabel}
-              value={sortLabel}
-              active={state.sort !== "lastMessage"}
-            />
-          </span>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-48">
-          <DropdownMenuRadioGroup value={state.sort} onValueChange={(v) => onSort(v as SortMode)}>
-            <DropdownMenuRadioItem value="lastMessage">
-              {INBOX_STRINGS.sortOptions.lastMessage}
-            </DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="waiting">
-              {INBOX_STRINGS.sortOptions.waiting}
-            </DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="abc">
-              {INBOX_STRINGS.sortOptions.abc}
-            </DropdownMenuRadioItem>
-          </DropdownMenuRadioGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      {/* Escalated (PRD-023) */}
-      <Button
-        type="button"
-        variant={state.escalated ? "secondary" : "outline"}
-        size="sm"
-        className="h-8 gap-1 text-xs"
-        onClick={() => onEscalated(!state.escalated)}
-        aria-pressed={state.escalated}
-      >
-        <Icon icon="mdi:robot" size={12} />
-        Escaladas pelo SDR
-      </Button>
-
-      <div className="ml-auto flex items-center gap-2">
         {activeCount > 0 && (
-          <>
-            <Badge variant="secondary" className="text-xs">
-              {INBOX_STRINGS.activeFilters(activeCount)}
-            </Badge>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 text-xs"
-              onClick={onClear}
-            >
-              {INBOX_STRINGS.clearAll}
-            </Button>
-          </>
+          <Button type="button" variant="ghost" size="sm" className="h-8 text-xs" onClick={onClear}>
+            {INBOX_STRINGS.clearAll}
+          </Button>
         )}
       </div>
-    </div>
+
+      <CollapsibleContent className="overflow-hidden data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-top-1 data-[state=closed]:animate-out data-[state=closed]:fade-out-0">
+        <div className="flex flex-wrap items-center gap-1.5 border-b border-border px-3 pb-2 pt-1">
+          {/* Status */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <span>
+                <TriggerButton
+                  label={INBOX_STRINGS.statusLabel}
+                  value={statusLabel}
+                  active={state.status !== "all"}
+                />
+              </span>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              <DropdownMenuLabel>{INBOX_STRINGS.statusLabel}</DropdownMenuLabel>
+              <DropdownMenuRadioGroup
+                value={state.status}
+                onValueChange={(v) => onStatus(v as IInboxFiltersState["status"])}
+              >
+                <DropdownMenuRadioItem value="all">
+                  {INBOX_STRINGS.statusOptions.all}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="aguardando">
+                  {INBOX_STRINGS.statusOptions.aguardando}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="em_andamento">
+                  {INBOX_STRINGS.statusOptions.em_andamento}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="aguardando_cliente">
+                  {INBOX_STRINGS.statusOptions.aguardando_cliente}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="resolvida">
+                  {INBOX_STRINGS.statusOptions.resolvida}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="arquivada">
+                  {INBOX_STRINGS.statusOptions.arquivada}
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Channel */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <span>
+                <TriggerButton
+                  label={INBOX_STRINGS.channelLabel}
+                  value={channelLabel}
+                  active={state.channel !== "all"}
+                />
+              </span>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuRadioGroup
+                value={state.channel}
+                onValueChange={(v) => onChannel(v as IInboxFiltersState["channel"])}
+              >
+                <DropdownMenuRadioItem value="all">
+                  {INBOX_STRINGS.channelOptions.all}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="whatsapp">
+                  {INBOX_STRINGS.channelOptions.whatsapp}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="ecommerce">
+                  {INBOX_STRINGS.channelOptions.ecommerce}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="phone">
+                  {INBOX_STRINGS.channelOptions.phone}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="site">
+                  {INBOX_STRINGS.channelOptions.site}
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Assignment */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <span>
+                <TriggerButton
+                  label={INBOX_STRINGS.assignmentLabel}
+                  value={assignmentLabel}
+                  active={state.assignment !== "me"}
+                />
+              </span>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="max-h-80 w-56 overflow-y-auto">
+              <DropdownMenuRadioGroup
+                value={state.assignment}
+                onValueChange={(v) => onAssignment(v)}
+              >
+                {currentUser && (
+                  <DropdownMenuRadioItem value="me">
+                    {INBOX_STRINGS.assignmentOptions.me}
+                  </DropdownMenuRadioItem>
+                )}
+                {canSeeAllAssignments && (
+                  <>
+                    <DropdownMenuRadioItem value="all">
+                      {INBOX_STRINGS.assignmentOptions.all}
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="unassigned">
+                      {INBOX_STRINGS.assignmentOptions.unassigned}
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="queue">
+                      {INBOX_STRINGS.assignmentOptions.queue}
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel className="text-xs">
+                      {INBOX_STRINGS.assignmentOptions.seller}
+                    </DropdownMenuLabel>
+                    {sellers.map((s) => (
+                      <DropdownMenuRadioItem key={s.id} value={s.id}>
+                        {s.fullName}
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </>
+                )}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Tags */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <span>
+                <TriggerButton
+                  label={INBOX_STRINGS.tagsLabel}
+                  value={INBOX_STRINGS.tagsCounter(state.tags.length)}
+                  active={state.tags.length > 0}
+                />
+              </span>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="max-h-80 w-56 overflow-y-auto">
+              <DropdownMenuLabel>{INBOX_STRINGS.tagsLabel}</DropdownMenuLabel>
+              {availableTags.length === 0 && (
+                <p className="px-2 py-1.5 text-xs text-muted-foreground">
+                  {INBOX_STRINGS.tagsEmpty}
+                </p>
+              )}
+              {availableTags.map((tag) => {
+                const checked = state.tags.includes(tag);
+                return (
+                  <DropdownMenuCheckboxItem
+                    key={tag}
+                    checked={checked}
+                    onCheckedChange={(next) => {
+                      if (next) onTags([...state.tags, tag]);
+                      else onTags(state.tags.filter((t) => t !== tag));
+                    }}
+                  >
+                    {tag}
+                  </DropdownMenuCheckboxItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Period */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <span>
+                <TriggerButton
+                  label={INBOX_STRINGS.periodLabel}
+                  value={periodLabel}
+                  active={state.period !== "all"}
+                />
+              </span>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuRadioGroup
+                value={state.period}
+                onValueChange={(v) => onPeriod(v as PeriodFilter)}
+              >
+                <DropdownMenuRadioItem value="all">
+                  {INBOX_STRINGS.periodOptions.all}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="24h">
+                  {INBOX_STRINGS.periodOptions["24h"]}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="7d">
+                  {INBOX_STRINGS.periodOptions["7d"]}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="30d">
+                  {INBOX_STRINGS.periodOptions["30d"]}
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Sort */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <span>
+                <TriggerButton
+                  label={INBOX_STRINGS.sortLabel}
+                  value={sortLabel}
+                  active={state.sort !== "lastMessage"}
+                />
+              </span>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuRadioGroup
+                value={state.sort}
+                onValueChange={(v) => onSort(v as SortMode)}
+              >
+                <DropdownMenuRadioItem value="lastMessage">
+                  {INBOX_STRINGS.sortOptions.lastMessage}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="waiting">
+                  {INBOX_STRINGS.sortOptions.waiting}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="abc">
+                  {INBOX_STRINGS.sortOptions.abc}
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Escalated (PRD-023) */}
+          <Button
+            type="button"
+            variant={state.escalated ? "secondary" : "outline"}
+            size="sm"
+            className="h-8 gap-1 text-xs"
+            onClick={() => onEscalated(!state.escalated)}
+            aria-pressed={state.escalated}
+          >
+            <Icon icon="mdi:robot" size={12} />
+            Escaladas pelo SDR
+          </Button>
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }

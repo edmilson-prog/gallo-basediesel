@@ -26,6 +26,11 @@ export const INBOX_STRINGS = {
   clearAll: "Limpar tudo",
   activeFilters: (n: number) =>
     n === 0 ? "Sem filtros" : `${n} filtro${n === 1 ? "" : "s"} ativo${n === 1 ? "" : "s"}`,
+  // Collapsible filter panel
+  filtersToggle: "Filtros",
+  filtersExpandAria: "Mostrar filtros",
+  filtersCollapseAria: "Ocultar filtros",
+  filtersActiveCountAria: (n: number) => (n === 1 ? "1 filtro ativo" : `${n} filtros ativos`),
 
   // Status filter
   statusLabel: "Status",
