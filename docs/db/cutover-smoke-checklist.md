@@ -68,3 +68,43 @@ Abra `/loja` **deslogado** (aba anônima ajuda). Confirme:
 - **Checkout B2C** → handoff (frente futura), falha por design no modo anon.
 - **Mídia/Storage** → simulada (`storage_ref` fake); não há bytes reais nem upload — exibição é placeholder.
 - **Convite por email** → inerte até setar `RESEND_API_KEY` (Edge Function `invite-seller-email`).
+
+## 7. Resultado — smoke de RLS por impersonação (2026-06-09)
+
+Fronteira de segurança validada no banco (impersonação `set local role` + claims). **Camada DB/RLS: ✅ APROVADA.** A UI (seções 2–4) segue para validação manual.
+
+**Paridade (staff) × isolamento (vendedor não-staff):**
+
+| Tabela              | Owner (staff) | Lucas (`seller_internal`) | Recorte                            |
+| ------------------- | ------------- | ------------------------- | ---------------------------------- |
+| customers           | 70            | 18                        | per-seller                         |
+| orders              | 477           | 132                       | per-seller (filha herda)           |
+| quotes              | 80            | 10                        | per-seller                         |
+| leads               | 80            | 18                        | per-seller                         |
+| conversations       | 96            | 42                        | per-seller + pool (28 own + 14)    |
+| messages            | 693           | 326                       | herda de conversations             |
+| commissions         | 40            | 12                        | per-seller                         |
+| goals               | 85            | 24                        | per-seller                         |
+| recommendations     | 25            | 12                        | per-seller                         |
+| product_indicators  | 10            | 2                         | per-seller                         |
+| expenses            | 120           | **0**                     | staff-only                         |
+| cash_flow_entries   | 5             | **0**                     | staff-only                         |
+| distribution_traces | 40            | **0**                     | staff-only                         |
+| audit_logs          | 40            | **0**                     | staff+financeiro (#43)             |
+| carteira_transfers  | 8             | **0**                     | staff-only (#43)                   |
+| media_assets        | 90            | **36**                    | dono via cliente/conversa (#43)    |
+| quick_replies       | 20            | 8                         | own + shared                       |
+| asset_combos        | 5             | 0                         | own                                |
+| customer_segments   | 6             | 6                         | own + shared (5 shared + 1 dele)   |
+| parts               | 351           | 351                       | catálogo full (staff+vendedor)     |
+| vehicle_models      | 21            | 21                        | global                             |
+
+**Escrita:** Lucas atualiza o **próprio** cliente → 1 linha ✅. (Per-seller write boundary dos Slices 1–4 + `carteira_transfers` agora `with check(is_staff())`.)
+
+**Loja anônima (`anon`):**
+- `parts`: **344** ativas visíveis, **0** inativas (policy `active = true`) ✅
+- Colunas concedidas ao `anon` em `parts`: `name, unit_price, stock_available, stock_minimum` — **custo/margem/fornecedor/fiscal/localização NÃO concedidos** ✅
+- `storefront_config(HQ)` → jsonb ✅ · `storefront_top_selling(HQ)` → **186** IDs ✅
+- `orders` → **0** linhas · `stores` → **0** linhas (grants em massa presentes, mas **RLS ativa** sem policy `anon` → nega) ✅
+
+**Advisor de segurança:** sem novos WARN (só os 2 RPCs `storefront_*` definer, intencionais, + leaked-password config).
