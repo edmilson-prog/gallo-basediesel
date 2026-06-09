@@ -384,7 +384,7 @@ export function SettingsLayout({ children }: { children?: ReactNode }) {
             </SheetContent>
           </Sheet>
         </div>
-        <div className="mx-auto w-full max-w-4xl px-4 py-6 md:px-8">{children}</div>
+        <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-8">{children}</div>
       </main>
     </div>
   );
