@@ -250,6 +250,7 @@ Retorna **só** `settings->'storefront'` — nunca cnpj/comissões/financeiro. `
 
 - **RBAC fino:** pool de não-atribuídos (semântica do pool de conversas sem dono).
 - Testes pgTAP + workflow CI (`rls-tests.yml`).
+- Convite por email (PRD-141 / Resend) — **scaffold FEITO** (Edge Function `invite-seller-email`, v1 ACTIVE, `verify_jwt:true`, **inerte** sem `RESEND_API_KEY`; usa `generateLink({type:'invite'})` + template pt-BR via Resend, com rollback). `invite-seller` (senha temp) segue intacto. **Pendente p/ ativar:** setar `RESEND_API_KEY`/`RESEND_FROM`/`INVITE_REDIRECT_URL`, wiring client (`inviteSellerByEmail`) + dialog, e a rota `/auth/definir-senha` de destino do link.
 - ~~Storefront anônimo (loja B2C em `supabase` precisa de policies `anon` de catálogo).~~ **FEITO** (migration `storefront_anon_read`) — grant por coluna em `parts` + RPC `storefront_config`. **Pendente de wiring:** ligar os providers da loja ao modo `anon` (colunas explícitas + RPC).
 - ~~Performance (PRD-108) — **parcial**~~ **COMPLETO:** FKs indexadas (21 índices), initplan da `profiles`, e Part C (envelopar `current_*()`/`is_staff()` em `(select …)` nas 151 policies — migration `perf_initplan_wrap_helpers`).
 - ~~Habilitar o Custom Access Token Hook~~ **FEITO** (Dashboard, 2026-06-08) — claims reais no JWT; helpers já liam claims com fallback.
