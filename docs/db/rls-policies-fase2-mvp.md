@@ -1,7 +1,7 @@
 # RLS — Fase 2 (MVP adaptado) — write policies
 
 > **PRDs relacionados:** PRD-103 (RLS) e PRD-107 (Auth custom claims). Este documento registra a **implementação MVP adaptada** aplicada em 2026-06-08, que diverge do PRD-103 original em dois pontos (schema e fonte de identidade) — ver abaixo. O PRD-107 (Fase 1) iniciou a **transição da identidade para claims do JWT** (com fallback para a subquery) — ver seção "Funções helper de identidade".
-> **Aplicação:** migrations versionadas no remoto via MCP (`apply_migration`). Nomes: `rls_helpers_identity`, `rls_policies_store_direct`, `rls_policies_derived_global`, `rls_helpers_security_invoker`, `rls_helpers_jwt_claims_with_fallback`, `add_manager_id_to_stores`, `rls_per_seller_carteira_scope`, `profiles_select_staff`, `rls_slice2_financial_staff_only`, `rls_slice3_personal_assets`, `rls_slice4_personal_derived`, `perf_index_unindexed_fks`, `profiles_select_consolidate_initplan`.
+> **Aplicação:** migrations versionadas no remoto via MCP (`apply_migration`). Nomes: `rls_helpers_identity`, `rls_policies_store_direct`, `rls_policies_derived_global`, `rls_helpers_security_invoker`, `rls_helpers_jwt_claims_with_fallback`, `add_manager_id_to_stores`, `rls_per_seller_carteira_scope`, `profiles_select_staff`, `rls_slice2_financial_staff_only`, `rls_slice3_personal_assets`, `rls_slice4_personal_derived`, `perf_index_unindexed_fks`, `profiles_select_consolidate_initplan`, `storefront_anon_read`.
 
 ## Por que "adaptado"
 
@@ -210,11 +210,50 @@ Semanticamente idêntico (permissivas = OR; `(select …)` só muda a estratégi
 
 **Deferido:** envelopar `current_*()`/`is_staff()` em `(select …)` nas demais ~140 policies (pass proativo de InitPlan; o advisor não flaga, pois são funções wrapper, não `auth.*` direto).
 
+## Storefront anônimo — leitura pública da loja B2C (migration `storefront_anon_read`)
+
+A loja pública (`/loja/*`, sem login) precisa ler **catálogo** e **config da vitrine** como role `anon`. O risco não é "expor o catálogo" — é vazar **colunas comerciais** (`parts`: custo/margem/fornecedor/estoque) e o **resto das settings** (comissões/financeiro/cnpj, que dividem a coluna `stores.settings` jsonb com a config pública). Como `anon` já tinha grants de tabela completos (default Supabase, gated só pelo RLS), uma simples policy de SELECT vazaria todas as colunas. Solução em duas peças:
+
+**A. Catálogo (`parts`) — grant por coluna + policy `anon`.**
+
+```sql
+revoke all on public.parts from anon;                 -- remove o grant cego (todas as colunas + escritas)
+grant select (id, sku, name, description, oem_codes, oem_codes_text,
+  equivalent_part_ids, cross_references, segment, application_notes, applications,
+  brand, category, subcategory, is_original, image_url, unit_price, gtin,
+  reference, group_label, part_type, weight_kg, box_quantity, fractionable,
+  unit_of_measure, division, active, store_id, created_at, updated_at)
+  on public.parts to anon;                            -- só colunas PÚBLICAS
+create policy parts_select_anon on public.parts for select to anon using (active = true);
+```
+
+**Excluídas (sigilosas):** `unit_cost`, `margin_percent`, `average_cost`, `suppliers`, `supplier`, `supplier_code`, `price_tables`, `fiscal`, `sefaz_status`, `sefaz_checked_at`, `storage_location`, `stock_available`, `stock_minimum`. Anon que tentar lê-las recebe `42501 permission denied`. Escrita anônima negada (grant removido + sem policy de write).
+
+**B. Config da vitrine — função `SECURITY DEFINER` (sem view).**
+
+```sql
+create function public.storefront_config(p_store_id uuid) returns jsonb
+  language sql stable security definer set search_path = ''
+  as $$ select settings -> 'storefront' from public.stores where id = p_store_id $$;
+revoke all on function public.storefront_config(uuid) from public;
+grant execute on function public.storefront_config(uuid) to anon, authenticated;
+```
+
+Retorna **só** `settings->'storefront'` — nunca cnpj/comissões/financeiro. `authenticated` também recebe execute porque **cliente B2C logado não pertence a loja** (`current_store_id()` = null → não lê `stores` pela policy normal). Não há como expor um slice de jsonb a `anon` sem função/view definer.
+
+**Não exposto:** `orders` (ranking "mais vendidos" fica no fallback de ordem-de-catálogo; um `storefront_featured` RPC é follow-up); `vehicle_models` (páginas públicas leem aplicações do jsonb `parts.applications`).
+
+**Validação (impersonação `set local role anon`):** vê 344 ativas / 7 inativas ocultas; lê id/nome/preço/marca/categoria/imagem; `select unit_cost` → `42501`; `insert into parts` → `42501`; `stores`/`orders` → 0 linhas; `storefront_config(HQ)` → jsonb.
+
+**Advisor de segurança:** zero novos **ERRORs**. Surgem 2 **WARN** esperados/aceitos — `anon_security_definer_function_executable` e `authenticated_security_definer_function_executable` — inerentes a qualquer RPC público definer; a função é mínima, read-only e `search_path`-locked, sem vazamento. (`auth_leaked_password_protection` segue WARN pré-existente.)
+
+> ⚠️ **Follow-up de wiring (fora desta migration):** quando a loja for ligada ao Supabase em modo `anon`, o provider de `parts` precisa selecionar **colunas explícitas** (não `select *`, que falha sob grant por coluna), e o de `settings` deve chamar o RPC `storefront_config` em vez de ler `stores` direto.
+
 ## Deferido para "corrigir depois"
 
 - **RBAC fino:** pool de não-atribuídos (semântica do pool de conversas sem dono).
 - Testes pgTAP + workflow CI (`rls-tests.yml`).
-- Storefront anônimo (loja B2C em `supabase` precisa de policies `anon` de catálogo).
+- ~~Storefront anônimo (loja B2C em `supabase` precisa de policies `anon` de catálogo).~~ **FEITO** (migration `storefront_anon_read`) — grant por coluna em `parts` + RPC `storefront_config`. **Pendente de wiring:** ligar os providers da loja ao modo `anon` (colunas explícitas + RPC).
 - Performance (PRD-108) — **parcial:** indexar FKs (21 índices, feito) e initplan da `profiles` (feito). **Pendente:** envelopar `current_*()`/`is_staff()` em `(select …)` nas demais policies (pass proativo; advisor não flaga).
 - ~~Habilitar o Custom Access Token Hook~~ **FEITO** (Dashboard, 2026-06-08) — claims reais no JWT; helpers já liam claims com fallback.
 - Remover o fallback `profiles` das helpers quando o hook estiver universal (perf — PRD-108).
