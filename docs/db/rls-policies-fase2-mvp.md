@@ -1,7 +1,7 @@
 # RLS — Fase 2 (MVP adaptado) — write policies
 
 > **PRDs relacionados:** PRD-103 (RLS) e PRD-107 (Auth custom claims). Este documento registra a **implementação MVP adaptada** aplicada em 2026-06-08, que diverge do PRD-103 original em dois pontos (schema e fonte de identidade) — ver abaixo. O PRD-107 (Fase 1) iniciou a **transição da identidade para claims do JWT** (com fallback para a subquery) — ver seção "Funções helper de identidade".
-> **Aplicação:** migrations versionadas no remoto via MCP (`apply_migration`). Nomes: `rls_helpers_identity`, `rls_policies_store_direct`, `rls_policies_derived_global`, `rls_helpers_security_invoker`, `rls_helpers_jwt_claims_with_fallback`, `add_manager_id_to_stores`, `rls_per_seller_carteira_scope`, `profiles_select_staff`, `rls_slice2_financial_staff_only`, `rls_slice3_personal_assets`, `rls_slice4_personal_derived`, `perf_index_unindexed_fks`, `profiles_select_consolidate_initplan`, `storefront_anon_read`, `perf_initplan_wrap_helpers`, `rls_helpers_drop_profiles_fallback`.
+> **Aplicação:** migrations versionadas no remoto via MCP (`apply_migration`). Nomes: `rls_helpers_identity`, `rls_policies_store_direct`, `rls_policies_derived_global`, `rls_helpers_security_invoker`, `rls_helpers_jwt_claims_with_fallback`, `add_manager_id_to_stores`, `rls_per_seller_carteira_scope`, `profiles_select_staff`, `rls_slice2_financial_staff_only`, `rls_slice3_personal_assets`, `rls_slice4_personal_derived`, `perf_index_unindexed_fks`, `profiles_select_consolidate_initplan`, `storefront_anon_read`, `perf_initplan_wrap_helpers`, `rls_helpers_drop_profiles_fallback`, `rls_conversations_pool`.
 
 ## Por que "adaptado"
 
@@ -246,9 +246,29 @@ Retorna **só** `settings->'storefront'` — nunca cnpj/comissões/financeiro. `
 
 > ⚠️ **Follow-up de wiring (fora desta migration):** quando a loja for ligada ao Supabase em modo `anon`, o provider de `parts` precisa selecionar **colunas explícitas** (não `select *`, que falha sob grant por coluna), e o de `settings` deve chamar o RPC `storefront_config` em vez de ler `stores` direto.
 
+## Pool de não-atribuídos — conversas sem dono (migration `rls_conversations_pool`)
+
+A loja já expõe os filtros **"Sem atribuição"** e **"Em fila"** no inbox (`useInboxFilters`) + a mensagem `readOnlyAssign`. A semântica é **claim**: o vendedor não-staff **vê** e **reivindica** conversas sem dono (`assigned_seller_id IS NULL`), **sem** enxergar a carteira *atribuída* a outros (preserva Slices 1–4). Antes, o RLS per-seller escondia o pool do não-staff, quebrando esses filtros no modo Supabase.
+
+Duas policies em `conversations` (helpers envelopados, consistente com Part C):
+
+```sql
+-- SELECT: own + pool (staff vê tudo)
+using ( store_id = (select current_store_id())
+  and ( (select is_staff()) or assigned_seller_id = (select current_seller_id()) or assigned_seller_id is null ) )
+
+-- UPDATE: USING mira own+pool; WITH CHECK força o resultado a ficar com o próprio
+using      ( ... or assigned_seller_id is null )                       -- pode mirar o pool
+with check ( ... (select is_staff()) or assigned_seller_id = (select current_seller_id()) )  -- claim null->self; não atribui a outro
+```
+
+**`messages` não muda** — sua policy delega a `conversations` (`conversation_id IN (SELECT id FROM conversations WHERE …)`), e essa subquery é RLS-filtrada; abrir o pool em `conversations_select` **cascateia** as mensagens do pool automaticamente (provado: Lucas via 230 msgs / 0 do pool antes; 326 / 96 do pool depois). `INSERT`/`DELETE` de `conversations` inalterados.
+
+**Validação (impersonação):** owner 96 convos / 693 msgs (inalterado); Lucas 28→**42** convos (14 do pool), 230→**326** msgs, e **42 ≠ 96** (carteira de outros segue oculta); claim `null→self` **OK**; claim `null→outro` **`42501`** (bloqueado por `with check`). `get_advisors(security)` inalterado.
+
 ## Deferido para "corrigir depois"
 
-- **RBAC fino:** pool de não-atribuídos (semântica do pool de conversas sem dono).
+- ~~**RBAC fino:** pool de não-atribuídos (semântica do pool de conversas sem dono).~~ **FEITO** (migration `rls_conversations_pool`) — claim model: não-staff vê+reivindica o pool; `messages` cascateia; validado por impersonação.
 - Testes pgTAP + workflow CI (`rls-tests.yml`).
 - Convite por email (PRD-141 / Resend) — **scaffold FEITO** (Edge Function `invite-seller-email`, v1 ACTIVE, `verify_jwt:true`, **inerte** sem `RESEND_API_KEY`; usa `generateLink({type:'invite'})` + template pt-BR via Resend, com rollback). `invite-seller` (senha temp) segue intacto. **Pendente p/ ativar:** setar `RESEND_API_KEY`/`RESEND_FROM`/`INVITE_REDIRECT_URL`, wiring client (`inviteSellerByEmail`) + dialog, e a rota `/auth/definir-senha` de destino do link.
 - ~~Storefront anônimo (loja B2C em `supabase` precisa de policies `anon` de catálogo).~~ **FEITO** (migration `storefront_anon_read`) — grant por coluna em `parts` + RPC `storefront_config`. **Pendente de wiring:** ligar os providers da loja ao modo `anon` (colunas explícitas + RPC).
