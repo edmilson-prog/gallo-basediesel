@@ -29,7 +29,7 @@ O backend está **muito mais completo** do que o `CLAUDE.md` sugere (a descriç�
 
 | # | Item | Tamanho | Bloqueio / decisão |
 | --- | --- | --- | --- |
-| 1 | **Pool de não-atribuídos** — semântica de conversas sem dono (`seller_id` null) | **P** | decisão: não-staff vê o pool pra reivindicar, ou só staff? |
+| ~~1~~ | ~~**Pool de não-atribuídos**~~ **FEITO** (migration `rls_conversations_pool`, claim model) | — | — |
 | 2 | **Mídia → Supabase Storage** — buckets + storage RLS + upload/signed URL reais (hoje `storage_ref` é texto fake `supabase-signed://…`) | **G** | decisão de escopo: mídia real entra na Fase 2? |
 | 3 | **Storefront anon wiring** — providers em modo `anon` (provider de `parts` com colunas explícitas em vez de `select *`; provider de settings via RPC `storefront_config`) | **M** | — |
 | 4 | **Ativar convite por email** — `RESEND_API_KEY`/`RESEND_FROM`/`INVITE_REDIRECT_URL` + wiring client (`inviteSellerByEmail`) + dialog + rota `/auth/definir-senha` | **P** | conta Resend + domínio (você) |
@@ -38,8 +38,8 @@ O backend está **muito mais completo** do que o `CLAUDE.md` sugere (a descriç�
 
 ## 🎯 Ordem recomendada
 
-1. **Pool** — fecha a última lacuna de comportamento RBAC (pequeno, autônomo).
-2. **Storefront anon wiring** — torna a loja pública real no Supabase; valida o que já foi feito.
+1. ~~**Pool**~~ ✅ **FEITO** (2026-06-09).
+2. **Storefront anon wiring** — torna a loja pública real no Supabase; valida o que já foi feito. ← **próximo**
 3. **Decisão de Mídia/Storage** — se entra, é o item grande; se fica simulado, sai do roadmap.
 4. **Convite por email** — quando o Resend estiver pronto.
 5. **pgTAP + CI** — trava as garantias de isolamento.
@@ -48,7 +48,7 @@ O backend está **muito mais completo** do que o `CLAUDE.md` sugere (a descriç�
 ## ❓ Decisões em aberto
 
 - **Mídia real (Supabase Storage) entra na Fase 2** ou fica simulada (`storage_ref` fake) por enquanto? (Define se o item #2 existe.)
-- **Pool:** vendedor **não-staff** enxerga conversas sem dono (`seller_id` null) para reivindicar, ou **só staff** vê o pool?
+- ~~**Pool:** … reivindicar … ou só staff?~~ **Resolvido** (claim model — não-staff vê+reivindica o pool).
 
 ## 📌 Notas
 
