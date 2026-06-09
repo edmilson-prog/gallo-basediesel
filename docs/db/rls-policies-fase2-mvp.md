@@ -1,7 +1,7 @@
 # RLS — Fase 2 (MVP adaptado) — write policies
 
 > **PRDs relacionados:** PRD-103 (RLS) e PRD-107 (Auth custom claims). Este documento registra a **implementação MVP adaptada** aplicada em 2026-06-08, que diverge do PRD-103 original em dois pontos (schema e fonte de identidade) — ver abaixo. O PRD-107 (Fase 1) iniciou a **transição da identidade para claims do JWT** (com fallback para a subquery) — ver seção "Funções helper de identidade".
-> **Aplicação:** migrations versionadas no remoto via MCP (`apply_migration`). Nomes: `rls_helpers_identity`, `rls_policies_store_direct`, `rls_policies_derived_global`, `rls_helpers_security_invoker`, `rls_helpers_jwt_claims_with_fallback`, `add_manager_id_to_stores`, `rls_per_seller_carteira_scope`, `profiles_select_staff`, `rls_slice2_financial_staff_only`.
+> **Aplicação:** migrations versionadas no remoto via MCP (`apply_migration`). Nomes: `rls_helpers_identity`, `rls_policies_store_direct`, `rls_policies_derived_global`, `rls_helpers_security_invoker`, `rls_helpers_jwt_claims_with_fallback`, `add_manager_id_to_stores`, `rls_per_seller_carteira_scope`, `profiles_select_staff`, `rls_slice2_financial_staff_only`, `rls_slice3_personal_assets`.
 
 ## Por que "adaptado"
 
@@ -92,7 +92,7 @@ Validação por impersonação (claims com `app_metadata`):
 
 Vazamento cruzado (impersonando Lucas): `customers` de outro vendedor → 0; `orders` do Fernando → 0; `conversations` não-atribuídas → 0. ✅
 
-**Deferido neste slice:** assets pessoais (`quick_replies`/`asset_combos.owner_id`); semântica do pool de não-atribuídos; edge de `conversations.create` disparado por vendedor. (Financeiras/gerenciais resolvidas no Slice 2.)
+**Deferido neste slice:** assets pessoais (`quick_replies`/`asset_combos.owner_id` — resolvido no Slice 3); semântica do pool de não-atribuídos; edge de `conversations.create` disparado por vendedor. (Financeiras/gerenciais resolvidas no Slice 2.)
 
 ## RBAC fino — financeiras staff-only + per-seller (Slice 2, migration `rls_slice2_financial_staff_only`)
 
@@ -121,9 +121,42 @@ Validação por impersonação:
 
 `get_advisors(security)` → nada novo (só `auth_leaked_password_protection`, config de dashboard).
 
+## RBAC fino — assets pessoais por `owner_id` (Slice 3, migration `rls_slice3_personal_assets`)
+
+As duas tabelas com dono pessoal (`owner_id` uuid → `sellers.id`) trocaram `store_id = current_store_id()` por:
+
+```
+store_id = current_store_id() AND (is_staff() OR owner_id = current_seller_id())
+```
+
+nos 4 comandos — com **uma exceção no SELECT de `quick_replies`**, que também expõe os snippets `scope = 'shared'` a toda a loja:
+
+```
+-- quick_replies SELECT
+store_id = current_store_id() AND (is_staff() OR scope = 'shared' OR owner_id = current_seller_id())
+```
+
+| Tabela          | Dono       | SELECT extra               | Observação                   |
+| --------------- | ---------- | -------------------------- | ---------------------------- |
+| `quick_replies` | `owner_id` | `scope = 'shared'` visível | privados só do dono (+staff) |
+| `asset_combos`  | `owner_id` | —                          | puramente pessoal            |
+
+Escrita (INSERT/UPDATE/DELETE) é sempre só do dono (+staff); o `with check (owner_id = current_seller_id())` impede um vendedor de criar/reatribuir em nome de outro. Os providers já gravam `owner_id = input.ownerId` (vendedor logado), então a escrita não-staff passa sem ajuste.
+
+Validação por impersonação (claims com `app_metadata`):
+
+| Persona                   | quick_replies | asset_combos |
+| ------------------------- | ------------- | ------------ |
+| Lucas (`seller_internal`) | 8             | 0            |
+| Owner                     | 20            | 5            |
+
+Baseline (service role): `quick_replies` 20 (4 shared, 16 private; 8 do Lucas), `asset_combos` 5 (0 do Lucas). Lucas passa a ver só seus 8 (4 shared + 4 privados próprios) e 0 combos — os **12 privados de outros vendedores** e os **5 combos alheios** ficam ocultos. `get_advisors(security)` → nada novo.
+
+**Deferido (mesma classe — ainda vazam entre vendedores):** `customer_segments` / `asset_favorites` / `asset_send_log` (bucket derivado→sellers) seguem store-scoped. Fecháveis com o mesmo padrão per-seller adaptado ao pai, quando priorizado.
+
 ## Deferido para "corrigir depois"
 
-- **RBAC fino Slice 2:** financeiras como staff-only para não-staff; assets pessoais por `owner_id`; pool de não-atribuídos.
+- **RBAC fino:** pool de não-atribuídos (semântica do pool de conversas sem dono); assets per-seller em `customer_segments` / `asset_favorites` / `asset_send_log` (derivado→sellers, mesma classe do Slice 3).
 - Testes pgTAP + workflow CI (`rls-tests.yml`).
 - Storefront anônimo (loja B2C em `supabase` precisa de policies `anon` de catálogo).
 - Performance das subqueries derivadas (PRD-108 — indexar FKs, otimizar inicialização de RLS — incl. envolver `current_*()` em `(select …)` para initplan).
