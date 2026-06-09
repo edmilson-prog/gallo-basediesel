@@ -30,7 +30,7 @@ A **loja transacional** (checkout + conta B2C) foi **deferida da Fase 2 por deci
 - **Bloqueio / dono:** adicionar o **secret de repositório `SUPABASE_DB_URL`** (string de conexão Postgres para um banco seeded — idealmente um **branch de preview** do Supabase, ou um projeto de teste; o role precisa poder `SET ROLE authenticated|anon`, ex.: `postgres`).
 - **Critério de pronto:** PR que toca `supabase/tests/**` dispara o job e ele roda verde de verdade (não no-op).
 - **Arquivos:** `supabase/tests/rls-regression.sql`, `.github/workflows/rls-tests.yml`.
-- **Issue:** _(ponteiro criado — ver topo)_
+- **Issue:** #45
 
 ### A2 — Ativar convite por e-mail (Resend) {#a2-resend}
 - **O quê:** ligar o fluxo de convite de vendedor por e-mail (Edge Function `invite-seller-email`, hoje **inerte**).
@@ -38,7 +38,7 @@ A **loja transacional** (checkout + conta B2C) foi **deferida da Fase 2 por deci
 - **Bloqueio / dono:** criar conta **Resend** + domínio verificado; setar `RESEND_API_KEY`, `RESEND_FROM`, `INVITE_REDIRECT_URL` no projeto. Falta também: wiring client (`inviteSellerByEmail`) + dialog, e a rota `/auth/definir-senha` (destino do link).
 - **Critério de pronto:** owner convida um vendedor por e-mail, ele recebe o link, define senha e loga.
 - **Arquivos:** `supabase/functions/invite-seller-email/index.ts` (+ wiring client a fazer).
-- **Issue:** _(ponteiro criado)_
+- **Issue:** #46
 
 ### A3 — Flip de produção + smoke final {#a3-flip}
 - **O quê:** virar o default de **produção** para `supabase` (env na Vercel, escopo Production) e rodar o smoke geral.
@@ -46,7 +46,7 @@ A **loja transacional** (checkout + conta B2C) foi **deferida da Fase 2 por deci
 - **Bloqueio / dono:** **decisão sua.** ⚠️ Pré-condição prática: a **loja transacional** (Grupo B) precisa estar pronta **ou blindada** (B3 handoff), senão visitantes reais da loja caem no checkout que falha. O `/app` em si está pronto para o flip.
 - **Critério de pronto:** produção em `supabase`, smoke owner+vendedor+loja verde, console limpo.
 - **Arquivos:** env da Vercel (Production) — ver `docs/db/cutover-smoke-checklist.md` §1/§8.
-- **Issue:** _(ponteiro criado)_
+- **Issue:** #47
 
 ### A4 — Merge do PR #39 {#a4-merge}
 - **O quê:** mergear `feat/fase2-supabase-cutover` → `main`.
@@ -93,14 +93,14 @@ A **loja transacional** (checkout + conta B2C) foi **deferida da Fase 2 por deci
 - **Por quê pendente:** a semântica de ingestão de anexo no modo Supabase (cliente vs Edge Function) ainda não está fechada; apertar agora arriscaria quebrar o fluxo de anexos.
 - **Critério de pronto:** escrita de mídia alinhada à matriz (vendedor só na própria conversa/cliente; staff na loja), validada por impersonação.
 - **Arquivos:** policies de `media_assets` (via migration MCP); `docs/db/rls-policies-fase2-mvp.md` §#43.
-- **Issue:** _(ponteiro criado)_
+- **Issue:** #48
 
 ### C2 — Autor de nota: `addNote` usa user id {#c2-addnote}
 - **O quê:** `ConversationMenu.tsx:222` chama `customersProvider.addNote(customer.id, content, currentUser.id)`. Verificar se o 3º arg (autor da nota) deveria ser `sellerId` (como nas demais semânticas de vendedor) ou se é mesmo o usuário.
 - **Por quê pendente:** "autor de nota" é semântica de autoria (pode ser user), diferente de "vendedor atribuído"; precisa checar o contrato `addNote` + a coluna no DB e a RLS de `customer_notes`.
 - **Critério de pronto:** decisão registrada (user vs seller) e, se for seller, corrigido + validado.
 - **Arquivos:** `customers/components/ConversationMenu.tsx`, contrato/RLS de `customer_notes`.
-- **Issue:** _(ponteiro criado)_
+- **Issue:** #49
 
 ### C3 — Notificações derivadas no servidor {#c3-notif}
 - **O quê:** mover o reconciliador de notificações derivadas para o servidor (cron/Edge Function); hoje roda no cliente, gated por papel staff (fix do 403 desta fase).
