@@ -31,7 +31,8 @@ O backend está **muito mais completo** do que o `CLAUDE.md` sugere (a descriç�
 | --- | --- | --- | --- |
 | ~~1~~ | ~~**Pool de não-atribuídos**~~ **FEITO** (migration `rls_conversations_pool`, claim model) | — | — |
 | 2 | **Mídia → Supabase Storage** — buckets + storage RLS + upload/signed URL reais (hoje `storage_ref` é texto fake `supabase-signed://…`) | **G** | decisão de escopo: mídia real entra na Fase 2? |
-| 3 | **Storefront anon wiring** — providers em modo `anon` (provider de `parts` com colunas explícitas em vez de `select *`; provider de settings via RPC `storefront_config`) | **M** | — |
+| ~~3~~ | ~~**Storefront anon wiring**~~ **FEITO** (commit `4c69771`) — `IStorefrontProvider` dedicado (colunas públicas + RPCs `storefront_config`/`storefront_top_selling`) + 11 consumidores migrados + migration `storefront_anon_read_stock`. App interno intocado. | **M** | — |
+| ~~3.5~~ | ~~**Checkout-backend B2C**~~ **DEFERIDO (fora da Fase 2)** — o funil de compra (`createOrderFromCart` + `triggerEcommerceOrder`) escreve `orders`/`customers`/`conversations` como anon (proibido). Decisão: loja pública é **browse-only**; "Finalizar" vira **handoff p/ vendedor** (WhatsApp/orçamento). Hoje é um demo rotulado. | — | resolvido: não entra na Fase 2 |
 | 4 | **Ativar convite por email** — `RESEND_API_KEY`/`RESEND_FROM`/`INVITE_REDIRECT_URL` + wiring client (`inviteSellerByEmail`) + dialog + rota `/auth/definir-senha` | **P** | conta Resend + domínio (você) |
 | 5 | **pgTAP + CI** — testes de RLS versionados (`rls-tests.yml`) | **M** | decisão de secrets/runner do CI |
 | 6 | **Flip do cutover + smoke test** — defaults → `supabase` + regressão geral (owner + vendedor logados) | **M** | marco final; depende de 1–5 |
@@ -39,16 +40,19 @@ O backend está **muito mais completo** do que o `CLAUDE.md` sugere (a descriç�
 ## 🎯 Ordem recomendada
 
 1. ~~**Pool**~~ ✅ **FEITO** (2026-06-09).
-2. **Storefront anon wiring** — torna a loja pública real no Supabase; valida o que já foi feito. ← **próximo**
-3. **Decisão de Mídia/Storage** — se entra, é o item grande; se fica simulado, sai do roadmap.
+2. ~~**Storefront anon wiring**~~ ✅ **FEITO** (2026-06-09, commit `4c69771`).
+3. **Decisão de Mídia/Storage** — se entra, é o item grande; se fica simulado, sai do roadmap. ← **próximo**
 4. **Convite por email** — quando o Resend estiver pronto.
 5. **pgTAP + CI** — trava as garantias de isolamento.
 6. **Flip + smoke** — o grande final.
+
+> **Pré-cutover (UX, leve, não-backend):** redesenhar o "Finalizar compra" da loja para handoff (WhatsApp/orçamento) em vez do checkout demo — para o modo `supabase` não cair num fluxo que falha. Não bloqueia os itens de backend.
 
 ## ❓ Decisões em aberto
 
 - **Mídia real (Supabase Storage) entra na Fase 2** ou fica simulada (`storage_ref` fake) por enquanto? (Define se o item #2 existe.)
 - ~~**Pool:** … reivindicar … ou só staff?~~ **Resolvido** (claim model — não-staff vê+reivindica o pool).
+- ~~**Checkout B2C:** pedido online vs handoff?~~ **Resolvido** (handoff — checkout-backend fora da Fase 2; "Finalizar" → WhatsApp/orçamento como tarefa de UX pré-cutover).
 
 ## 📌 Notas
 
