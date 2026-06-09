@@ -1,7 +1,7 @@
 # RLS — Fase 2 (MVP adaptado) — write policies
 
 > **PRDs relacionados:** PRD-103 (RLS) e PRD-107 (Auth custom claims). Este documento registra a **implementação MVP adaptada** aplicada em 2026-06-08, que diverge do PRD-103 original em dois pontos (schema e fonte de identidade) — ver abaixo. O PRD-107 (Fase 1) iniciou a **transição da identidade para claims do JWT** (com fallback para a subquery) — ver seção "Funções helper de identidade".
-> **Aplicação:** migrations versionadas no remoto via MCP (`apply_migration`). Nomes: `rls_helpers_identity`, `rls_policies_store_direct`, `rls_policies_derived_global`, `rls_helpers_security_invoker`, `rls_helpers_jwt_claims_with_fallback`, `add_manager_id_to_stores`, `rls_per_seller_carteira_scope`, `profiles_select_staff`, `rls_slice2_financial_staff_only`, `rls_slice3_personal_assets`, `rls_slice4_personal_derived`, `perf_index_unindexed_fks`, `profiles_select_consolidate_initplan`, `storefront_anon_read`, `perf_initplan_wrap_helpers`, `rls_helpers_drop_profiles_fallback`, `rls_conversations_pool`, `storefront_anon_read_stock`, `storefront_top_selling_rpc`.
+> **Aplicação:** migrations versionadas no remoto via MCP (`apply_migration`). Nomes: `rls_helpers_identity`, `rls_policies_store_direct`, `rls_policies_derived_global`, `rls_helpers_security_invoker`, `rls_helpers_jwt_claims_with_fallback`, `add_manager_id_to_stores`, `rls_per_seller_carteira_scope`, `profiles_select_staff`, `rls_slice2_financial_staff_only`, `rls_slice3_personal_assets`, `rls_slice4_personal_derived`, `perf_index_unindexed_fks`, `profiles_select_consolidate_initplan`, `storefront_anon_read`, `perf_initplan_wrap_helpers`, `rls_helpers_drop_profiles_fallback`, `rls_conversations_pool`, `storefront_anon_read_stock`, `storefront_top_selling_rpc`, `rls_conversations_pool`, `rls_fase2_43_tighten_audit_transfers_media`.
 
 ## Por que "adaptado"
 
@@ -50,7 +50,7 @@ $$;
 | **Store-direto** (23)     | customers, orders, quotes, leads, conversations, parts, commissions, expenses, cash_flow_entries, goals, media_assets, recommendations, carteira_transfers, distribution_traces, product_indicators, quick_replies, scheduled_sends, sdr_escalations, trackable_links, whatsapp_accounts, model_kits, asset_combos, asset_library_items | `store_id = public.current_store_id()`                                      |
 | **Derivado via pai** (10) | order_items→orders, quote_items→quotes, messages→conversations, sdr_sessions→conversations, vehicles→customers, customer_notes→customers, model_kit_items→model_kits, customer_segments→sellers, asset_favorites→sellers, asset_send_log→sellers                                                                                        | `<fk> in (select id from <pai> where store_id = public.current_store_id())` |
 | **Global** (1)            | vehicle_models                                                                                                                                                                                                                                                                                                                          | SELECT: `authenticated` (todos); escrita: `public.is_staff()`               |
-| **Especial** (3)          | `audit_logs` (imutável: SELECT/INSERT por loja, UPDATE/DELETE `using(false)`) · `sellers` (escrita `is_staff()` + self-update do próprio `auth_user_id`) · `stores` (SELECT/UPDATE só a própria, sem INSERT/DELETE no cliente)                                                                                                          | —                                                                           |
+| **Especial** (3)          | `audit_logs` (imutável: INSERT por loja, **SELECT staff+financeiro** — ver #43, UPDATE/DELETE `using(false)`) · `sellers` (escrita `is_staff()` + self-update do próprio `auth_user_id`) · `stores` (SELECT/UPDATE só a própria, sem INSERT/DELETE no cliente)                                                                                                          | —                                                                           |
 
 Padrão de nome: `<tabela>_<select|insert|update|delete>`. `anon` **não** tem policy no CRM (fechou o vazamento das policies temporárias `*_select_poc_temp`, que permitiam `anon using(true)`).
 
@@ -291,6 +291,31 @@ with check ( ... (select is_staff()) or assigned_seller_id = (select current_sel
 **`messages` não muda** — sua policy delega a `conversations` (`conversation_id IN (SELECT id FROM conversations WHERE …)`), e essa subquery é RLS-filtrada; abrir o pool em `conversations_select` **cascateia** as mensagens do pool automaticamente (provado: Lucas via 230 msgs / 0 do pool antes; 326 / 96 do pool depois). `INSERT`/`DELETE` de `conversations` inalterados.
 
 **Validação (impersonação):** owner 96 convos / 693 msgs (inalterado); Lucas 28→**42** convos (14 do pool), 230→**326** msgs, e **42 ≠ 96** (carteira de outros segue oculta); claim `null→self` **OK**; claim `null→outro` **`42501`** (bloqueado por `with check`). `get_advisors(security)` inalterado.
+
+## RBAC fino — fechando o #43: audit/transfers/media per-seller (migration `rls_fase2_43_tighten_audit_transfers_media`)
+
+Três tabelas tinham SELECT só por loja (`store_id = current_store_id()`) e **vazavam linhas store-wide para vendedor não-staff**, contradizendo a matriz de permissões (PRD-006). Alinhadas à matriz:
+
+| Tabela               | SELECT antes                    | SELECT depois                                                   | Matriz                          |
+| -------------------- | ------------------------------- | -------------------------------------------------------------- | ------------------------------- |
+| `audit_logs`         | `store_id = current_store_id()` | `… AND (is_staff() OR current_app_role() = 'financeiro')`      | `audit_log` → Owner/Gestor/Fin. |
+| `carteira_transfers` | `store_id = current_store_id()` | `… AND is_staff()` (+ INSERT/UPDATE/DELETE)                    | `transfer` → Owner/Gestor       |
+| `media_assets`       | `store_id = current_store_id()` | `… AND (is_staff() OR <mídia de cliente/conversa do vendedor>)` | `media` → vendedor: view "own"  |
+
+- **`audit_logs`:** só o **SELECT** restringe — o INSERT segue por loja (o audit logger grava em nome de **qualquer** ator que age; `no_update`/`no_delete` garantem append-only). `financeiro` entra explícito (não é coberto por `is_staff()` = owner/manager).
+- **`carteira_transfers`:** os **4 comandos** viram `is_staff()` — a matriz não dá `transfer` a vendedor e a UI de carteira já é Owner/Gestor. Fecha também o gap de **escrita** (antes qualquer membro da loja escrevia).
+- **`media_assets`:** SELECT escopa por dono via subquery — mídia ligada a `customer_id` na carteira do vendedor **ou** a `conversation_id` atribuída a ele (índices `customers_seller_id_idx`/`conversations_assigned_seller_id_idx` já cobrem). **Escrita deixada store-scoped** (semântica de ingestão de anexo ainda não fechada — follow-up). 0 mídias órfãs (toda mídia tem `conversation_id`).
+
+Validação por impersonação:
+
+| Persona                   | audit_logs | carteira_transfers | media_assets                  |
+| ------------------------- | ---------- | ------------------ | ----------------------------- |
+| Lucas (`seller_internal`) | 40→**0**   | 8→**0**            | 90→**36** (= esperado por dono) |
+| Owner                     | 40         | 8                  | 90                            |
+
+`get_advisors(security)` → nada novo (seguem só os 2 WARN dos RPCs `storefront_*` e o `auth_leaked_password_protection`).
+
+> **Supersede** as entradas de `audit_logs` (bucket "Especial") e de `media_assets`/`carteira_transfers` (bucket "Store-direto") da tabela de escopo no topo — agora as três têm recorte por papel/vendedor.
 
 ## Deferido para "corrigir depois"
 
