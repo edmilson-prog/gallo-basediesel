@@ -108,3 +108,15 @@ Fronteira de segurança validada no banco (impersonação `set local role` + cla
 - `orders` → **0** linhas · `stores` → **0** linhas (grants em massa presentes, mas **RLS ativa** sem policy `anon` → nega) ✅
 
 **Advisor de segurança:** sem novos WARN (só os 2 RPCs `storefront_*` definer, intencionais, + leaked-password config).
+
+## 8. Flip do cutover — Preview (2026-06-09)
+
+Decisão: virar o cutover **apenas no ambiente Preview da Vercel**, mantendo **produção em `mock`** até a loja transacional (checkout B2C + auth de cliente) estar pronta ou blindada. Coerente com "PR #39 draft, não mergear até a Fase 2 fechar".
+
+- **Env (escopo Preview):** `VITE_DATA_SOURCE=supabase`, `VITE_AUTH_SOURCE=supabase`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` (publishable — nunca service_role).
+- **Produção:** intacta em `mock` (default do código).
+- **Como aplica:** Vite inlina no build → cada novo deploy da branch `feat/fase2-supabase-cutover` roda em `supabase`. Mudança de env exige redeploy.
+- **Validação:** smoke das seções 2–4 na URL de Preview (foco no `/app`; loja-browse OK; checkout B2C falha por design).
+- **Reverter:** remover os env vars do Preview (ou trocar para `mock`) e redeployar.
+
+> **Gap conhecido exposto no Preview:** checkout B2C e `/loja/conta` (auth mock) quebram no modo supabase — esperado, é a frente de checkout-backend/handoff (fora da Fase 2 atual). Não bloqueia a validação do `/app`.
