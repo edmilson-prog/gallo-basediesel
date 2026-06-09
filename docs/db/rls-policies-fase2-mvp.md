@@ -1,7 +1,7 @@
 # RLS — Fase 2 (MVP adaptado) — write policies
 
 > **PRDs relacionados:** PRD-103 (RLS) e PRD-107 (Auth custom claims). Este documento registra a **implementação MVP adaptada** aplicada em 2026-06-08, que diverge do PRD-103 original em dois pontos (schema e fonte de identidade) — ver abaixo. O PRD-107 (Fase 1) iniciou a **transição da identidade para claims do JWT** (com fallback para a subquery) — ver seção "Funções helper de identidade".
-> **Aplicação:** migrations versionadas no remoto via MCP (`apply_migration`). Nomes: `rls_helpers_identity`, `rls_policies_store_direct`, `rls_policies_derived_global`, `rls_helpers_security_invoker`, `rls_helpers_jwt_claims_with_fallback`, `add_manager_id_to_stores`, `rls_per_seller_carteira_scope`, `profiles_select_staff`, `rls_slice2_financial_staff_only`, `rls_slice3_personal_assets`, `rls_slice4_personal_derived`.
+> **Aplicação:** migrations versionadas no remoto via MCP (`apply_migration`). Nomes: `rls_helpers_identity`, `rls_policies_store_direct`, `rls_policies_derived_global`, `rls_helpers_security_invoker`, `rls_helpers_jwt_claims_with_fallback`, `add_manager_id_to_stores`, `rls_per_seller_carteira_scope`, `profiles_select_staff`, `rls_slice2_financial_staff_only`, `rls_slice3_personal_assets`, `rls_slice4_personal_derived`, `perf_index_unindexed_fks`, `profiles_select_consolidate_initplan`.
 
 ## Por que "adaptado"
 
@@ -18,7 +18,7 @@ Aplicar o PRD literal **bloquearia tudo** (helpers leem JWT vazio → fail close
 
 `SECURITY INVOKER`, `STABLE`, `set search_path = ''`. `EXECUTE` concedido apenas a `authenticated` (revogado de `public`/`anon`).
 
-**Transição PRD-107 (aplicada — migration `rls_helpers_jwt_claims_with_fallback`):** as helpers agora lêem a identidade **primeiro das claims do JWT** (`auth.jwt() -> 'app_metadata'`) e, se ausente, **caem na subquery em `public.profiles`** (permitida por `profiles_select_self`). Esse `coalesce(claim, subquery)` torna o cutover **sem janela de lockout**: token velho / hook ainda não habilitado → fallback idêntico ao comportamento anterior; token com claims → caminho JWT, sem subquery.
+**Transição PRD-107 (aplicada — migration `rls_helpers_jwt_claims_with_fallback`):** as helpers agora lêem a identidade **primeiro das claims do JWT** (`auth.jwt() -> 'app_metadata'`) e, se ausente, **caem na subquery em `public.profiles`** (permitida por `profiles_select_self_or_staff`). Esse `coalesce(claim, subquery)` torna o cutover **sem janela de lockout**: token velho / hook ainda não habilitado → fallback idêntico ao comportamento anterior; token com claims → caminho JWT, sem subquery.
 
 ```sql
 create or replace function public.current_store_id()
@@ -188,12 +188,34 @@ Baseline: `customer_segments` 6 (5 shared + 1 private, do Lucas); `asset_favorit
 
 Com isto, o **isolamento per-seller (Slices 1–4)** está completo em todas as tabelas com dono.
 
+## Performance (PRD-108) — índices de FK + initplan da `profiles`
+
+Duas migrations de perf, guiadas pelo `get_advisors(performance)`:
+
+**`perf_index_unindexed_fks`** — 21 índices `idx_<tabela>_<col>` cobrindo todas as FKs sem índice apontadas pelo advisor (inclui `profiles.seller_id`/`store_id`, `stores.manager_id`, `customers.converted_by_seller_id`, `media_assets.linked_*`, `sdr_escalations.*`, etc.). Índices comuns (tabelas pequenas; migration transacional).
+
+**`profiles_select_consolidate_initplan`** — as duas policies permissivas de SELECT (`authenticated`) na `profiles` (`profiles_select_self` + `profiles_select_staff`) viraram **uma só** (`profiles_select_self_or_staff`), com `auth.uid()`/`auth.jwt()` envelopados em `(select …)`:
+
+```sql
+using (
+  auth_user_id = (select auth.uid())
+  or ( coalesce(((select auth.jwt()) -> 'app_metadata' ->> 'role'), '') in ('owner','manager')
+       and (((select auth.jwt()) -> 'app_metadata' ->> 'store_id'))::uuid = store_id )
+)
+```
+
+Semanticamente idêntico (permissivas = OR; `(select …)` só muda a estratégia de avaliação para InitPlan). Lê o JWT direto (sem `is_staff()`/`current_*()`) → sem recursão na `profiles`. A policy de `supabase_auth_admin` (usada pelo hook) fica intacta.
+
+**Resultado do advisor:** `unindexed_foreign_keys` 21→0, `auth_rls_initplan` 2→0, `multiple_permissive_policies` 1→0. Restam só INFO (`unused_index` — os 21 novos ainda sem tráfego — e config de conexões). `get_advisors(security)` inalterado. Impersonação: owner lê os 2 profiles da loja (`listSellerAccessRoles` ok); vendedor lê só o próprio (1).
+
+**Deferido:** envelopar `current_*()`/`is_staff()` em `(select …)` nas demais ~140 policies (pass proativo de InitPlan; o advisor não flaga, pois são funções wrapper, não `auth.*` direto).
+
 ## Deferido para "corrigir depois"
 
 - **RBAC fino:** pool de não-atribuídos (semântica do pool de conversas sem dono).
 - Testes pgTAP + workflow CI (`rls-tests.yml`).
 - Storefront anônimo (loja B2C em `supabase` precisa de policies `anon` de catálogo).
-- Performance das subqueries derivadas (PRD-108 — indexar FKs, otimizar inicialização de RLS — incl. envolver `current_*()` em `(select …)` para initplan).
+- Performance (PRD-108) — **parcial:** indexar FKs (21 índices, feito) e initplan da `profiles` (feito). **Pendente:** envelopar `current_*()`/`is_staff()` em `(select …)` nas demais policies (pass proativo; advisor não flaga).
 - ~~Habilitar o Custom Access Token Hook~~ **FEITO** (Dashboard, 2026-06-08) — claims reais no JWT; helpers já liam claims com fallback.
 - Remover o fallback `profiles` das helpers quando o hook estiver universal (perf — PRD-108).
 - Fases 2–5 do PRD-107: login real conectado ao `crmClient`, guarda de rotas por `role`, convite de vendedor (Edge Function), signup B2C/B2B, recuperação de senha.
