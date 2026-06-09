@@ -77,6 +77,18 @@ export async function resetSellerPassword(sellerId: string, password: string): P
   if (error) throw new Error(await extractFunctionError(error));
 }
 
+/**
+ * Changes a seller's platform access role (profiles.role) via the
+ * `set-seller-role` function. Owner-only on the server; the new role only
+ * reaches the seller's session on their next token refresh.
+ */
+export async function setSellerRole(sellerId: string, role: InviteSellerRole): Promise<void> {
+  const { error } = await getSupabaseClient().functions.invoke("set-seller-role", {
+    body: { sellerId, role },
+  });
+  if (error) throw new Error(await extractFunctionError(error));
+}
+
 /** Pulls the JSON `error` field out of a non-2xx Edge Function response. */
 async function extractFunctionError(error: unknown): Promise<string> {
   const ctx = (error as { context?: Response }).context;

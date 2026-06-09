@@ -60,6 +60,15 @@ export function ResetPasswordDialog({ seller, open, onOpenChange }: IResetPasswo
         </DialogHeader>
 
         <div className="space-y-4 py-2">
+          {!seller.active && (
+            <div className="flex items-start gap-2 rounded-md border border-severity-warning/40 bg-severity-warning/10 px-3 py-2 text-xs text-severity-warning">
+              <Icon icon="mdi:alert" size={14} className="mt-0.5 shrink-0" />
+              <span>
+                Este vendedor está <strong>desligado</strong>. Redefinir a senha não reativa o
+                acesso — clique em <strong>Reativar</strong> para ele conseguir entrar.
+              </span>
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label htmlFor="reset-password">Nova senha temporária</Label>
             <div className="flex gap-2">

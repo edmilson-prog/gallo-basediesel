@@ -8,9 +8,11 @@ import type { ISeller } from "@/shared/types";
 import { useCurrentStore } from "@/features/multistore";
 import { useSellersProvider } from "@/providers/data";
 import { AUTH_SOURCE } from "@/features/auth/authSource";
+import { useAuth } from "@/features/auth/useAuth";
 import { SectionHeader } from "../components/SectionHeader";
-import { listSellerAccessRoles } from "../api/sellerAccess";
+import { listSellerAccessRoles, type InviteSellerRole } from "../api/sellerAccess";
 import { CreateAccessDialog } from "../components/CreateAccessDialog";
+import { ChangeRoleDialog } from "../components/ChangeRoleDialog";
 import { ResetPasswordDialog } from "../components/ResetPasswordDialog";
 import { ToggleSellerAccessButton } from "../components/ToggleSellerAccessButton";
 
@@ -37,6 +39,9 @@ export function UsersPlaceholderPage() {
   const provider = useSellersProvider();
   const [inviteFor, setInviteFor] = useState<ISeller | null>(null);
   const [resetFor, setResetFor] = useState<ISeller | null>(null);
+  const [roleFor, setRoleFor] = useState<ISeller | null>(null);
+  const { userRole } = useAuth();
+  const isOwner = userRole === "Owner";
 
   const sellersQuery = useQuery({
     queryKey: ["sellers", storeId],
@@ -95,6 +100,11 @@ export function UsersPlaceholderPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline">{ROLE_LABEL[s.type]}</Badge>
+                    {SUPABASE_AUTH && accessRole === "manager" && (
+                      <Badge variant="outline" className="border-primary/40 text-primary">
+                        Gestor
+                      </Badge>
+                    )}
                     {SUPABASE_AUTH &&
                       (accessQuery.isLoading ? (
                         <Skeleton className="h-6 w-28" />
@@ -126,6 +136,17 @@ export function UsersPlaceholderPage() {
                           )}
                           {!isOwnerAccess && (
                             <>
+                              {isOwner && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="gap-1.5"
+                                  onClick={() => setRoleFor(s)}
+                                >
+                                  <Icon icon="mdi:account-switch-outline" size={14} />
+                                  Alterar papel
+                                </Button>
+                              )}
                               <Button
                                 size="sm"
                                 variant="ghost"
@@ -177,6 +198,18 @@ export function UsersPlaceholderPage() {
           open={resetFor !== null}
           onOpenChange={(open) => {
             if (!open) setResetFor(null);
+          }}
+        />
+      )}
+
+      {roleFor && (
+        <ChangeRoleDialog
+          seller={roleFor}
+          storeId={storeId}
+          currentRole={(accessRoles.get(roleFor.id) ?? "seller_internal") as InviteSellerRole}
+          open={roleFor !== null}
+          onOpenChange={(open) => {
+            if (!open) setRoleFor(null);
           }}
         />
       )}
