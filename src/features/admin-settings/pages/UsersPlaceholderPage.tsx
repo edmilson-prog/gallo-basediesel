@@ -11,6 +11,7 @@ import { AUTH_SOURCE } from "@/features/auth/authSource";
 import { SectionHeader } from "../components/SectionHeader";
 import { listSellerAccessRoles } from "../api/sellerAccess";
 import { CreateAccessDialog } from "../components/CreateAccessDialog";
+import { ResetPasswordDialog } from "../components/ResetPasswordDialog";
 import { ToggleSellerAccessButton } from "../components/ToggleSellerAccessButton";
 
 const ROLE_LABEL: Record<ISeller["type"], string> = {
@@ -35,6 +36,7 @@ export function UsersPlaceholderPage() {
   const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
   const provider = useSellersProvider();
   const [inviteFor, setInviteFor] = useState<ISeller | null>(null);
+  const [resetFor, setResetFor] = useState<ISeller | null>(null);
 
   const sellersQuery = useQuery({
     queryKey: ["sellers", storeId],
@@ -123,7 +125,18 @@ export function UsersPlaceholderPage() {
                             </Badge>
                           )}
                           {!isOwnerAccess && (
-                            <ToggleSellerAccessButton seller={s} storeId={storeId} />
+                            <>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="gap-1.5"
+                                onClick={() => setResetFor(s)}
+                              >
+                                <Icon icon="mdi:key-variant" size={14} />
+                                Redefinir senha
+                              </Button>
+                              <ToggleSellerAccessButton seller={s} storeId={storeId} />
+                            </>
                           )}
                         </>
                       ))}
@@ -142,8 +155,8 @@ export function UsersPlaceholderPage() {
 
       {SUPABASE_AUTH && (
         <p className="text-xs italic text-muted-foreground">
-          Criar acesso e desligar/reativar já disponíveis. Trocar papéis e convite por email chegam
-          nas próximas fases (PRD-107 / PRD-141).
+          Criar acesso, redefinir senha e desligar/reativar já disponíveis. Trocar papéis e convite
+          por email chegam nas próximas fases (PRD-107 / PRD-141).
         </p>
       )}
 
@@ -154,6 +167,16 @@ export function UsersPlaceholderPage() {
           open={inviteFor !== null}
           onOpenChange={(open) => {
             if (!open) setInviteFor(null);
+          }}
+        />
+      )}
+
+      {resetFor && (
+        <ResetPasswordDialog
+          seller={resetFor}
+          open={resetFor !== null}
+          onOpenChange={(open) => {
+            if (!open) setResetFor(null);
           }}
         />
       )}

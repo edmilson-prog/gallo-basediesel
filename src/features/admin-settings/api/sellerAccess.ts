@@ -65,6 +65,18 @@ export async function setSellerAccess(sellerId: string, active: boolean): Promis
   if (error) throw new Error(await extractFunctionError(error));
 }
 
+/**
+ * Sets a fresh temporary password for a seller who lost theirs, via the
+ * `reset-seller-password` function. The new password is generated on the client
+ * (so it can be shown for hand-off) and only applied server-side.
+ */
+export async function resetSellerPassword(sellerId: string, password: string): Promise<void> {
+  const { error } = await getSupabaseClient().functions.invoke("reset-seller-password", {
+    body: { sellerId, password },
+  });
+  if (error) throw new Error(await extractFunctionError(error));
+}
+
 /** Pulls the JSON `error` field out of a non-2xx Edge Function response. */
 async function extractFunctionError(error: unknown): Promise<string> {
   const ctx = (error as { context?: Response }).context;
