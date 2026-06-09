@@ -4,7 +4,9 @@
 
 ## TL;DR
 
-O backend está **muito mais completo** do que o `CLAUDE.md` sugere (a descrição de "providers Supabase = stubs que lançam `NotImplementedError`" está **desatualizada**). O cutover é **só env** (`VITE_DATA_SOURCE` + `VITE_AUTH_SOURCE`). Restam ~6 itens, sendo só **1 grande** (Mídia/Storage, e mesmo esse pode ficar simulado).
+O backend está **muito mais completo** do que o `CLAUDE.md` sugere (a descrição de "providers Supabase = stubs que lançam `NotImplementedError`" está **desatualizada**). O cutover é **só env** (`VITE_DATA_SOURCE` + `VITE_AUTH_SOURCE`).
+
+**Estado em 2026-06-09:** o backend de cutover está **essencialmente pronto**. Pool ✅, Storefront anon ✅. Os dois itens "grandes" foram **deferidos por análise** (não por preguiça): **Mídia/Storage** (encanamento vazio — sem fonte de bytes; acoplado a WhatsApp/upload-UI) e **Checkout B2C** (escreve como anon — vira handoff). Restam: **pgTAP+CI** (garantia, próximo), **convite por email** (bloqueado no Resend, com o dono) e o **flip do cutover + smoke** (marco final).
 
 ---
 
@@ -30,7 +32,7 @@ O backend está **muito mais completo** do que o `CLAUDE.md` sugere (a descriç�
 | # | Item | Tamanho | Bloqueio / decisão |
 | --- | --- | --- | --- |
 | ~~1~~ | ~~**Pool de não-atribuídos**~~ **FEITO** (migration `rls_conversations_pool`, claim model) | — | — |
-| 2 | **Mídia → Supabase Storage** — buckets + storage RLS + upload/signed URL reais (hoje `storage_ref` é texto fake `supabase-signed://…`) | **G** | decisão de escopo: mídia real entra na Fase 2? |
+| ~~2~~ | ~~**Mídia → Supabase Storage**~~ **DEFERIDO (fora da Fase 2)** — exploração (2026-06-09) mostrou: sem buckets, sistema é **metadata-only**, o contrato `IMediaUploadInput` **não carrega bytes**, não há UI de upload e a exibição é placeholder. Storage real seria encanamento vazio. **Acoplado** à frente que traz a fonte de bytes (ingestão WhatsApp PRD-111–120 / upload-UI). Storefront usa `parts.imageUrl` externo, não Storage. | **G** | resolvido: não entra na Fase 2 |
 | ~~3~~ | ~~**Storefront anon wiring**~~ **FEITO** (commit `4c69771`) — `IStorefrontProvider` dedicado (colunas públicas + RPCs `storefront_config`/`storefront_top_selling`) + 11 consumidores migrados + migration `storefront_anon_read_stock`. App interno intocado. | **M** | — |
 | ~~3.5~~ | ~~**Checkout-backend B2C**~~ **DEFERIDO (fora da Fase 2)** — o funil de compra (`createOrderFromCart` + `triggerEcommerceOrder`) escreve `orders`/`customers`/`conversations` como anon (proibido). Decisão: loja pública é **browse-only**; "Finalizar" vira **handoff p/ vendedor** (WhatsApp/orçamento). Hoje é um demo rotulado. | — | resolvido: não entra na Fase 2 |
 | 4 | **Ativar convite por email** — `RESEND_API_KEY`/`RESEND_FROM`/`INVITE_REDIRECT_URL` + wiring client (`inviteSellerByEmail`) + dialog + rota `/auth/definir-senha` | **P** | conta Resend + domínio (você) |
@@ -41,16 +43,16 @@ O backend está **muito mais completo** do que o `CLAUDE.md` sugere (a descriç�
 
 1. ~~**Pool**~~ ✅ **FEITO** (2026-06-09).
 2. ~~**Storefront anon wiring**~~ ✅ **FEITO** (2026-06-09, commit `4c69771`).
-3. **Decisão de Mídia/Storage** — se entra, é o item grande; se fica simulado, sai do roadmap. ← **próximo**
-4. **Convite por email** — quando o Resend estiver pronto.
-5. **pgTAP + CI** — trava as garantias de isolamento.
+3. ~~**Decisão de Mídia/Storage**~~ ✅ **DEFERIDO** (2026-06-09) — acoplado à frente WhatsApp/upload-UI.
+4. **Convite por email** — quando o Resend estiver pronto (bloqueado em você).
+5. **pgTAP + CI** — trava as garantias de isolamento. ← **próximo (única implementação restante sem dependência externa)**
 6. **Flip + smoke** — o grande final.
 
 > **Pré-cutover (UX, leve, não-backend):** redesenhar o "Finalizar compra" da loja para handoff (WhatsApp/orçamento) em vez do checkout demo — para o modo `supabase` não cair num fluxo que falha. Não bloqueia os itens de backend.
 
 ## ❓ Decisões em aberto
 
-- **Mídia real (Supabase Storage) entra na Fase 2** ou fica simulada (`storage_ref` fake) por enquanto? (Define se o item #2 existe.)
+- ~~**Mídia real (Supabase Storage) entra na Fase 2?**~~ **Resolvido** (deferida — encanamento vazio sem fonte de bytes; acoplada a WhatsApp/upload-UI).
 - ~~**Pool:** … reivindicar … ou só staff?~~ **Resolvido** (claim model — não-staff vê+reivindica o pool).
 - ~~**Checkout B2C:** pedido online vs handoff?~~ **Resolvido** (handoff — checkout-backend fora da Fase 2; "Finalizar" → WhatsApp/orçamento como tarefa de UX pré-cutover).
 
