@@ -1,7 +1,7 @@
 # RLS — Fase 2 (MVP adaptado) — write policies
 
 > **PRDs relacionados:** PRD-103 (RLS) e PRD-107 (Auth custom claims). Este documento registra a **implementação MVP adaptada** aplicada em 2026-06-08, que diverge do PRD-103 original em dois pontos (schema e fonte de identidade) — ver abaixo. O PRD-107 (Fase 1) iniciou a **transição da identidade para claims do JWT** (com fallback para a subquery) — ver seção "Funções helper de identidade".
-> **Aplicação:** migrations versionadas no remoto via MCP (`apply_migration`). Nomes: `rls_helpers_identity`, `rls_policies_store_direct`, `rls_policies_derived_global`, `rls_helpers_security_invoker`, `rls_helpers_jwt_claims_with_fallback`, `add_manager_id_to_stores`, `rls_per_seller_carteira_scope`, `profiles_select_staff`, `rls_slice2_financial_staff_only`, `rls_slice3_personal_assets`.
+> **Aplicação:** migrations versionadas no remoto via MCP (`apply_migration`). Nomes: `rls_helpers_identity`, `rls_policies_store_direct`, `rls_policies_derived_global`, `rls_helpers_security_invoker`, `rls_helpers_jwt_claims_with_fallback`, `add_manager_id_to_stores`, `rls_per_seller_carteira_scope`, `profiles_select_staff`, `rls_slice2_financial_staff_only`, `rls_slice3_personal_assets`, `rls_slice4_personal_derived`.
 
 ## Por que "adaptado"
 
@@ -152,11 +152,45 @@ Validação por impersonação (claims com `app_metadata`):
 
 Baseline (service role): `quick_replies` 20 (4 shared, 16 private; 8 do Lucas), `asset_combos` 5 (0 do Lucas). Lucas passa a ver só seus 8 (4 shared + 4 privados próprios) e 0 combos — os **12 privados de outros vendedores** e os **5 combos alheios** ficam ocultos. `get_advisors(security)` → nada novo.
 
-**Deferido (mesma classe — ainda vazam entre vendedores):** `customer_segments` / `asset_favorites` / `asset_send_log` (bucket derivado→sellers) seguem store-scoped. Fecháveis com o mesmo padrão per-seller adaptado ao pai, quando priorizado.
+**Resolvido no Slice 4:** `customer_segments` / `asset_favorites` / `asset_send_log` (bucket derivado→sellers) — antes store-scoped, agora per-seller.
+
+## RBAC fino — derivadas per-seller (Slice 4, migration `rls_slice4_personal_derived`)
+
+As 3 tabelas com dono pessoal mas **sem `store_id`** (escopadas via o pai `sellers`) mantiveram o store-scope por subquery e **ganharam o recorte per-seller** nos 4 comandos:
+
+```
+<dono> in (select id from public.sellers where store_id = current_store_id())
+AND (is_staff() OR <dono> = current_seller_id())
+```
+
+O **SELECT de `customer_segments`** ainda expõe os `scope = 'shared'` à equipe (igual `quick_replies`):
+
+```
+... AND (is_staff() OR scope = 'shared' OR owner_id = current_seller_id())
+```
+
+| Tabela              | Dono        | SELECT extra               | Observação            |
+| ------------------- | ----------- | -------------------------- | --------------------- |
+| `customer_segments` | `owner_id`  | `scope = 'shared'` visível | filtros salvos        |
+| `asset_favorites`   | `seller_id` | —                          | pins pessoais         |
+| `asset_send_log`    | `seller_id` | —                          | log de envios pessoal |
+
+Escrita só do próprio dono (+staff); os providers gravam `seller_id`/`owner_id` do vendedor que age, então a escrita non-staff passa.
+
+Validação por impersonação (claims com `app_metadata`):
+
+| Persona                   | customer_segments | asset_favorites | asset_send_log |
+| ------------------------- | ----------------- | --------------- | -------------- |
+| Lucas (`seller_internal`) | 6                 | 0               | 0              |
+| Owner                     | 6                 | 0               | 0              |
+
+Baseline: `customer_segments` 6 (5 shared + 1 private, do Lucas); `asset_favorites`/`asset_send_log` vazios no seed. Lucas vê os 5 shared + seu 1 private = 6. **Teste de injeção (tx revertida):** ao inserir um segmento `private` de OUTRO vendedor, Lucas segue vendo 6 (não 7) → recorte cruzado fechado. `get_advisors(security)` → nada novo.
+
+Com isto, o **isolamento per-seller (Slices 1–4)** está completo em todas as tabelas com dono.
 
 ## Deferido para "corrigir depois"
 
-- **RBAC fino:** pool de não-atribuídos (semântica do pool de conversas sem dono); assets per-seller em `customer_segments` / `asset_favorites` / `asset_send_log` (derivado→sellers, mesma classe do Slice 3).
+- **RBAC fino:** pool de não-atribuídos (semântica do pool de conversas sem dono).
 - Testes pgTAP + workflow CI (`rls-tests.yml`).
 - Storefront anônimo (loja B2C em `supabase` precisa de policies `anon` de catálogo).
 - Performance das subqueries derivadas (PRD-108 — indexar FKs, otimizar inicialização de RLS — incl. envolver `current_*()` em `(select …)` para initplan).
