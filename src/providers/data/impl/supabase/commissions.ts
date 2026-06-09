@@ -63,6 +63,8 @@ interface CommissionRow {
   notes: string | null;
   calculated_at: string;
   created_at: string;
+  /** Embedded order number (PostgREST `order:orders(number)`) — list reads only. */
+  order?: { number: string | null } | null;
 }
 
 const TABLE = "commissions";
@@ -79,6 +81,7 @@ function rowToCommission(row: CommissionRow): ICommission {
     storeId: row.store_id,
     sellerId: row.seller_id,
     orderId: row.order_id,
+    orderNumber: row.order?.number ?? undefined,
     baseValue: row.base_value,
     rate: row.rate,
     baseRate: row.base_rate,
@@ -179,7 +182,9 @@ function createInputToRow(input: ICreateCommissionInput, id: string): Record<str
 
 export const supabaseCommissionsProvider: ICommissionsProvider = {
   async list(params: IListCommissionsParams = {}): Promise<IPaginatedResult<ICommission>> {
-    let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
+    let query = getSupabaseClient()
+      .from(TABLE)
+      .select(`${COLUMNS}, order:orders(number)`, { count: "exact" });
 
     if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
 

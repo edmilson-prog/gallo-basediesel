@@ -255,7 +255,7 @@ export function SellerCommissionsPage() {
                           size={14}
                           className="mr-1 inline align-text-bottom text-warning"
                         />
-                        Disputa aberta no pedido #{c.orderId.replace(/^order-/, "PD-")}
+                        Disputa aberta no pedido #{c.orderNumber ?? c.orderId.replace(/^order-/, "PD-")}
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">{c.disputeReason}</p>
                     </div>
@@ -273,7 +273,7 @@ export function SellerCommissionsPage() {
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold text-foreground">
-                        Aguardando pagamento — #{c.orderId.replace(/^order-/, "PD-")}
+                        Aguardando pagamento — #{c.orderNumber ?? c.orderId.replace(/^order-/, "PD-")}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Aprovada em{" "}
