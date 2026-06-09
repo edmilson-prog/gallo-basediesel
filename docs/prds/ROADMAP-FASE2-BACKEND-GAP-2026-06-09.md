@@ -50,7 +50,7 @@ O backend está **muito mais completo** do que o `CLAUDE.md` sugere (a descriç�
 
 > **Hardening de cutover (frontend, esta sessão):** varredura do bug "id de usuário usado como id de vendedor" — corrigido no inbox (filtro/claim), Comissões (menu + nº do pedido), e em segmentos/snippets/quick-send/copiloto/escalação SDR. Tudo em `mock` **e** `supabase`. Sem isso, vendedores veriam "0 resultados" ou escritas falhariam no RLS.
 
-> **Pré-cutover (UX, leve, não-backend):** redesenhar o "Finalizar compra" da loja para handoff (WhatsApp/orçamento) em vez do checkout demo — para o modo `supabase` não cair num fluxo que falha. Não bloqueia os itens de backend.
+> **Pré-cutover (UX, leve, não-backend):** ✅ **FEITO** (commit `cb7a13d`, #42) — `CheckoutPage` faz switch por `getActiveDataSource()`: `supabase` renderiza um handoff por WhatsApp (deep-link write-free + fallback "copiar resumo"); `mock` mantém o wizard demo. O modo `supabase` não cai mais num fluxo de checkout que falha — desbloqueia o flip de produção.
 
 ## ❓ Decisões em aberto
 

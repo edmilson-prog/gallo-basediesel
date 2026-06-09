@@ -43,7 +43,7 @@ A **loja transacional** (checkout + conta B2C) foi **deferida da Fase 2 por deci
 ### A3 — Flip de produção + smoke final {#a3-flip}
 - **O quê:** virar o default de **produção** para `supabase` (env na Vercel, escopo Production) e rodar o smoke geral.
 - **Status:** **Preview** já roda supabase e passou no smoke de RLS. Produção intacta em `mock`.
-- **Bloqueio / dono:** **decisão sua.** ⚠️ Pré-condição prática: a **loja transacional** (Grupo B) precisa estar pronta **ou blindada** (B3 handoff), senão visitantes reais da loja caem no checkout que falha. O `/app` em si está pronto para o flip.
+- **Bloqueio / dono:** **decisão sua.** ✅ Pré-condição prática **satisfeita**: a loja em `supabase` agora faz **handoff por WhatsApp** (B3, commit `cb7a13d`) em vez do checkout que falhava — visitantes reais não caem mais num fluxo quebrado. O `/app` já estava pronto para o flip.
 - **Critério de pronto:** produção em `supabase`, smoke owner+vendedor+loja verde, console limpo.
 - **Arquivos:** env da Vercel (Production) — ver `docs/db/cutover-smoke-checklist.md` §1/§8.
 - **Issue:** #47
@@ -74,10 +74,12 @@ A **loja transacional** (checkout + conta B2C) foi **deferida da Fase 2 por deci
 - **Issue:** **#41**.
 
 ### B3 — Handoff do "Finalizar" + polimento da vitrine {#b3-handoff}
-- **O quê:** redesenhar o CTA "Finalizar compra" para **handoff** (deep-link WhatsApp / criar orçamento) em vez do checkout demo — para a loja em `supabase` não cair num fluxo que falha. Frontend leve, sem backend de checkout.
-- **Relevância:** **pré-requisito prático do A3** (flip de produção) se a loja receber tráfego.
-- **Arquivos:** `storefront-cart/pages/CheckoutPage.tsx` (+ slug humano, imagens, multi-loja como polimento).
-- **Issue:** **#42**.
+- **O quê:** redesenhar o CTA "Finalizar compra" para **handoff** (deep-link WhatsApp) em vez do checkout demo — para a loja em `supabase` não cair num fluxo que falha. Frontend leve, sem backend de checkout.
+- **Status:** **HANDOFF FEITO** (commit `cb7a13d`). `CheckoutPage` faz switch por `getActiveDataSource()`: `mock` mantém o wizard demo de 3 passos intacto; `supabase` renderiza `CheckoutHandoff` — revisão do carrinho + dados opcionais (nome/WhatsApp) + CTA "Enviar pedido pelo WhatsApp" (deep-link write-free) + fallback "Copiar resumo" quando não há número configurado. Texto montado por função pura testada (`buildHandoffMessage`). **Desbloqueia o A3** (flip de produção) com segurança. ~~Criar orçamento~~ descartado do handoff: também é escrita (bloqueada para anon).
+- **Polimento da vitrine (opcional, não-bloqueante):** slug humano, imagens reais (acoplado a B4 mídia), multi-loja — não impactam o flip; ficam para quando a loja voltar a ser prioridade.
+- **Relevância:** **pré-requisito prático do A3** (flip de produção) — agora satisfeito.
+- **Arquivos:** `storefront-cart/pages/CheckoutPage.tsx`, `components/checkout/CheckoutHandoff.tsx`, `utils/handoffMessage.ts(+test)`, `i18n/pt-BR.ts`.
+- **Issue:** **#42** (handoff entregue; issue fechável — polimento da vitrine permanece rastreado aqui como opcional).
 
 ### B4 — Mídia → Supabase Storage {#b4-midia}
 - **O quê:** Storage real para mídia (hoje é metadata-only; exibição usa `parts.imageUrl` externo / placeholder).
