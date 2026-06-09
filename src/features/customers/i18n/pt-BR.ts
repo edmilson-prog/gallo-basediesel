@@ -183,6 +183,7 @@ export const CUSTOMER_STRINGS = {
     submit: "Adicionar nota",
     submitHint: "Cmd/Ctrl + Enter",
     addedToast: "Nota adicionada.",
+    noSellerError: "Sua conta não está vinculada a um vendedor — não é possível registrar a nota.",
   },
   recommendations: {
     title: "Recomendações para este cliente",

@@ -280,6 +280,8 @@ export const CONVERSATION_STRINGS = {
   unarchived: "Conversa desarquivada",
   markedUnread: "Conversa marcada como não lida",
   noteSaved: "Nota adicionada à ficha",
+  noteAuthorMissing:
+    "Sua conta não está vinculada a um vendedor — não é possível registrar a nota.",
   noteEmpty: "Escreva alguma coisa antes de salvar.",
   sdrPaused: "Agente SDR pausado",
   sdrResumed: "Agente SDR retomado",

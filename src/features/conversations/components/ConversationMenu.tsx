@@ -214,12 +214,20 @@ export function ConversationMenu({ conversation, customer, onMutated }: IConvers
   };
 
   const handleAddNote = async (content: string) => {
-    if (!customer || !currentUser) {
+    if (!customer) {
       toast.error(CONVERSATION_STRINGS.actionFailed);
       return;
     }
+    // `customer_notes.author_id` is a FK to sellers(id) — the note's author is
+    // the acting *seller*, not the auth user. Using currentUser.id (auth uuid)
+    // violates that FK on Supabase and shows a raw id in the UI on mock.
+    const sellerId = currentUser?.sellerId;
+    if (!sellerId) {
+      toast.error(CONVERSATION_STRINGS.noteAuthorMissing);
+      return;
+    }
     try {
-      await customersProvider.addNote(customer.id, content, currentUser.id);
+      await customersProvider.addNote(customer.id, content, sellerId);
       toast.success(CONVERSATION_STRINGS.noteSaved);
     } catch {
       toast.error(CONVERSATION_STRINGS.actionFailed);
