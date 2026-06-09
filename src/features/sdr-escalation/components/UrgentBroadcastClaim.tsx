@@ -58,8 +58,12 @@ export function UrgentBroadcastClaim() {
               variant="destructive"
               className="flex-1"
               onClick={async () => {
+                if (!currentUser?.sellerId) {
+                  toast.error("Vendedor não identificado.");
+                  return;
+                }
                 try {
-                  await queue.claim(escalation.id, currentUser.id, {
+                  await queue.claim(escalation.id, currentUser.sellerId, {
                     storeId: escalation.storeId,
                   });
                   toast.success("Você assumiu a conversa.");
