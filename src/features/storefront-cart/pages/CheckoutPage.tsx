@@ -7,6 +7,7 @@ import { Icon } from "@/components/Icon";
 import { useCartStore, selectCartSubtotal } from "@/features/storefront/store/cartStore";
 import { useSeoMeta } from "@/features/storefront/hooks/useSeoMeta";
 import {
+  getActiveDataSource,
   useConversationsProvider,
   useCustomersProvider,
   useOrdersProvider,
@@ -21,6 +22,7 @@ import { CheckoutStepper } from "../components/checkout/CheckoutStepper";
 import { IdentificationStep } from "../components/checkout/IdentificationStep";
 import { AddressStep } from "../components/checkout/AddressStep";
 import { PaymentStep } from "../components/checkout/PaymentStep";
+import { CheckoutHandoff } from "../components/checkout/CheckoutHandoff";
 import { CartSummary } from "../components/CartSummary";
 import { useCheckoutState } from "../hooks/useCheckoutState";
 import { useCartShipping } from "../hooks/useCartShipping";
@@ -30,13 +32,32 @@ import { STOREFRONT_CART_STRINGS as S } from "../i18n/pt-BR";
 const STORE_ID = "00000000-0000-0000-0000-000000000001";
 
 /**
- * `/loja/checkout` — three-step wizard (PRD-064 RF-014–029).
+ * `/loja/checkout` — entry point that picks the checkout experience by the
+ * active data source (#42).
+ *
+ * - `mock`: the full 3-step demo wizard below (`CheckoutWizard`).
+ * - `supabase`: a write-free WhatsApp handoff (`CheckoutHandoff`), because the
+ *   storefront visitor is anonymous and anon writes are blocked by RLS — the
+ *   demo funnel would fail on order creation.
+ *
+ * The branch reads a build-time constant, so this component itself calls no
+ * hooks and never violates the rules of hooks.
+ */
+export function CheckoutPage() {
+  if (getActiveDataSource() === "supabase") {
+    return <CheckoutHandoff />;
+  }
+  return <CheckoutWizard />;
+}
+
+/**
+ * Three-step demo checkout wizard (PRD-064 RF-014–029).
  *
  * Each step is gated by `canAdvance` from `useCheckoutState`; once the user
  * completes step 3 we call `createOrderFromCart`, clear the cart and
  * navigate to `/loja/pedido-confirmado/:orderId`.
  */
-export function CheckoutPage() {
+function CheckoutWizard() {
   const navigate = useNavigate();
   const items = useCartStore((s) => s.items);
   const subtotal = useCartStore(selectCartSubtotal);
