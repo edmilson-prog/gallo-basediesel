@@ -304,7 +304,7 @@ Três tabelas tinham SELECT só por loja (`store_id = current_store_id()`) e **v
 
 - **`audit_logs`:** só o **SELECT** restringe — o INSERT segue por loja (o audit logger grava em nome de **qualquer** ator que age; `no_update`/`no_delete` garantem append-only). `financeiro` entra explícito (não é coberto por `is_staff()` = owner/manager).
 - **`carteira_transfers`:** os **4 comandos** viram `is_staff()` — a matriz não dá `transfer` a vendedor e a UI de carteira já é Owner/Gestor. Fecha também o gap de **escrita** (antes qualquer membro da loja escrevia).
-- **`media_assets`:** SELECT escopa por dono via subquery — mídia ligada a `customer_id` na carteira do vendedor **ou** a `conversation_id` atribuída a ele (índices `customers_seller_id_idx`/`conversations_assigned_seller_id_idx` já cobrem). **Escrita deixada store-scoped** (semântica de ingestão de anexo ainda não fechada — follow-up). 0 mídias órfãs (toda mídia tem `conversation_id`).
+- **`media_assets`:** SELECT escopa por dono via subquery — mídia ligada a `customer_id` na carteira do vendedor **ou** a `conversation_id` atribuída a ele (índices `customers_seller_id_idx`/`conversations_assigned_seller_id_idx` já cobrem). **Escrita apertada no #48** (migration `rls_fase2_48_tighten_media_writes`, ver seção abaixo). 0 mídias órfãs (toda mídia tem `conversation_id`).
 
 Validação por impersonação:
 
@@ -316,6 +316,22 @@ Validação por impersonação:
 `get_advisors(security)` → nada novo (seguem só os 2 WARN dos RPCs `storefront_*` e o `auth_leaked_password_protection`).
 
 > **Supersede** as entradas de `audit_logs` (bucket "Especial") e de `media_assets`/`carteira_transfers` (bucket "Store-direto") da tabela de escopo no topo — agora as três têm recorte por papel/vendedor.
+
+## #48 — escrita de `media_assets` per-seller (migration `rls_fase2_48_tighten_media_writes`)
+
+Fechando o follow-up do #43: a **escrita** de `media_assets` era só por loja (`store_id = current_store_id()`), permitindo a qualquer membro da loja **modificar/apagar** mídia de qualquer conversa/cliente — e **injetar** uma mídia na galeria de outro vendedor (que faz SELECT por `conversation_id`). Apertado para espelhar o recorte per-seller:
+
+| Comando | Antes | Depois |
+| ------- | ----- | ------ |
+| INSERT | `store_id = current_store_id()` | `… AND (is_staff() OR customer∈carteira OR conversa∈{atribuídas a mim + pool})` |
+| UPDATE | `store_id = current_store_id()` (using+check) | `… AND (is_staff() OR own-customer OR own-conversa-atribuída)` (espelha o SELECT) |
+| DELETE | `store_id = current_store_id()` | idem UPDATE |
+
+- **INSERT inclui o pool** (`assigned_seller_id IS NULL`) espelhando a *visibilidade* de `conversations` (own + pool), para não quebrar o arquivamento inbound (`ensureFromMessage`) nem o envio do quick-send (`upload`) em conversas que o vendedor está triando. Não há mídia órfã (todo asset carrega `conversation_id`).
+- **UPDATE/DELETE espelham o SELECT de mídia** (sem pool — o vendedor não enxerga mídia do pool no #43): só muta o que vê.
+- Helpers em `(select …)` (perf PRD-108); subqueries usam `customers_seller_id_idx`/`conversations_assigned_seller_id_idx`. `get_advisors` → nada novo.
+
+Validação por impersonação (Lucas, rollback): INSERT em conversa própria ✅ / pool ✅ / de outro vendedor ❌ (with_check); UPDATE own = 1 linha, cross-seller = **0**; DELETE cross-seller = **0**; owner (staff) ✅ em tudo. Coberto pela suíte versionada `supabase/tests/rls-regression.sql`.
 
 ## Deferido para "corrigir depois"
 

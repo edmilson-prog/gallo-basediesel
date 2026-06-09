@@ -119,6 +119,100 @@ end $$;
 reset role;
 
 -- ---------------------------------------------------------------------------
+-- Issue #48 — media_assets write scoping. A seller may INSERT media for their
+-- own / pool conversations, never for another seller's; and may UPDATE/DELETE
+-- only media it can see (own). Inserts here are rolled back with the suite.
+-- ---------------------------------------------------------------------------
+-- A foreign (other-seller) conversation/media id must be captured while
+-- unimpersonated — a seller cannot SELECT them.
+select set_config('t48.other_conv',
+  (select id::text from public.conversations
+     where assigned_seller_id is not null
+       and assigned_seller_id <> '5a6400ed-5aec-4bf1-b641-31635f15c887' limit 1), true);
+select set_config('t48.other_media',
+  (select m.id::text from public.media_assets m
+     join public.conversations c on c.id = m.conversation_id
+     where c.assigned_seller_id is not null
+       and c.assigned_seller_id <> '5a6400ed-5aec-4bf1-b641-31635f15c887' limit 1), true);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+
+do $$
+declare
+  store uuid := '00000000-0000-0000-0000-000000000001';
+  own_conv  uuid;
+  pool_conv uuid;
+  own_media uuid;
+  other_conv  uuid := nullif(current_setting('t48.other_conv', true), '')::uuid;
+  other_media uuid := nullif(current_setting('t48.other_media', true), '')::uuid;
+  n int;
+  blocked boolean;
+begin
+  select id into own_conv
+    from public.conversations
+    where assigned_seller_id = '5a6400ed-5aec-4bf1-b641-31635f15c887' limit 1;
+  select id into pool_conv from public.conversations where assigned_seller_id is null limit 1;
+  select m.id into own_media
+    from public.media_assets m
+    join public.conversations c on c.id = m.conversation_id
+    where c.assigned_seller_id = '5a6400ed-5aec-4bf1-b641-31635f15c887' limit 1;
+
+  if own_conv is null or own_media is null or other_conv is null or other_media is null then
+    raise exception '#48: missing seed fixtures for the media write test';
+  end if;
+
+  -- INSERT into own conversation -> allowed.
+  insert into public.media_assets
+    (id, store_id, conversation_id, kind, mime_type, size_bytes, author_type, direction,
+     created_at, storage_ref, persisted, sensitivity)
+    values (gen_random_uuid(), store, own_conv, 'image', 'image/jpeg', 1, 'seller', 'out',
+            now(), 'rls-own', true, 'normal');
+
+  -- INSERT into a pool conversation -> allowed (archival/upload of triaged pool).
+  insert into public.media_assets
+    (id, store_id, conversation_id, kind, mime_type, size_bytes, author_type, direction,
+     created_at, storage_ref, persisted, sensitivity)
+    values (gen_random_uuid(), store, pool_conv, 'image', 'image/jpeg', 1, 'seller', 'out',
+            now(), 'rls-pool', true, 'normal');
+
+  -- INSERT into another seller's conversation -> blocked by with_check (no injection).
+  blocked := false;
+  begin
+    insert into public.media_assets
+      (id, store_id, conversation_id, kind, mime_type, size_bytes, author_type, direction,
+       created_at, storage_ref, persisted, sensitivity)
+      values (gen_random_uuid(), store, other_conv, 'image', 'image/jpeg', 1, 'seller', 'out',
+              now(), 'rls-inject', true, 'normal');
+  exception when insufficient_privilege then
+    blocked := true;
+  end;
+  if not blocked then
+    raise exception '#48: INSERT into another seller''s conversation must be blocked';
+  end if;
+
+  -- UPDATE own media -> 1 row; another seller's -> 0 rows (RLS filters it out).
+  update public.media_assets set ocr_text = 'rls' where id = own_media;
+  get diagnostics n = row_count;
+  if n <> 1 then raise exception '#48: UPDATE of own media affected % rows (want 1)', n; end if;
+
+  update public.media_assets set ocr_text = 'rls' where id = other_media;
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception '#48: UPDATE of another seller media affected % rows (want 0)', n; end if;
+
+  -- DELETE another seller's media -> 0 rows.
+  delete from public.media_assets where id = other_media;
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception '#48: DELETE of another seller media affected % rows (want 0)', n; end if;
+end $$;
+
+reset role;
+
+-- ---------------------------------------------------------------------------
 -- Principal: ANON (public storefront, logged out).
 -- ---------------------------------------------------------------------------
 set local role anon;

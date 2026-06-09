@@ -18,7 +18,7 @@ A **loja transacional** (checkout + conta B2C) foi **deferida da Fase 2 por deci
 | --- | --- | --- |
 | **A. Fechar o cutover** | A1 CI · A2 Resend · A3 Flip prod · A4 Merge | gated no dono / decisão |
 | **B. Loja transacional** (deferida) | B1 #40 · B2 #41 · B3 #42 · B4 mídia | fase própria |
-| **C. Hardening** (follow-ups) | C1 media write · ~~C2 addNote~~ ✅ · C3 #44 | dívida técnica leve |
+| **C. Hardening** (follow-ups) | ~~C1 media write~~ ✅ · ~~C2 addNote~~ ✅ · C3 #44 | dívida técnica leve |
 
 ---
 
@@ -91,11 +91,10 @@ A **loja transacional** (checkout + conta B2C) foi **deferida da Fase 2 por deci
 ## C. Hardening — follow-ups (dívida técnica leve)
 
 ### C1 — Apertar a ESCRITA de `media_assets` {#c1-media-write}
-- **O quê:** o **SELECT** de `media_assets` já é per-seller/staff (#43). As policies de **escrita** (INSERT/UPDATE/DELETE) seguem store-scoped.
-- **Por quê pendente:** a semântica de ingestão de anexo no modo Supabase (cliente vs Edge Function) ainda não está fechada; apertar agora arriscaria quebrar o fluxo de anexos.
-- **Critério de pronto:** escrita de mídia alinhada à matriz (vendedor só na própria conversa/cliente; staff na loja), validada por impersonação.
-- **Arquivos:** policies de `media_assets` (via migration MCP); `docs/db/rls-policies-fase2-mvp.md` §#43.
-- **Issue:** #48
+- **Status:** ✅ **FEITO** (migration `rls_fase2_48_tighten_media_writes`). O SELECT já era per-seller/staff (#43); agora a **escrita** também: INSERT = `is_staff() OR customer∈carteira OR conversa∈{minhas + pool}` (preserva arquivamento/upload em conversas próprias e do pool); UPDATE/DELETE espelham o SELECT (own conv/cliente ou staff). Fecha o vetor de **injeção** de mídia na galeria de outro vendedor. Após traçar os call sites (`ensureFromMessage`/`upload`/`useMediaActions`) e confirmar que toda mídia tem `conversation_id` e que o vendedor só interage com conversas own+pool, o risco apontado no defer foi descartado.
+- **Validação:** impersonação (rollback) — INSERT own/pool ✅, cross-seller ❌; UPDATE/DELETE cross-seller = 0 linhas; owner ✅. Coberto na suíte `supabase/tests/rls-regression.sql`.
+- **Arquivos:** policies via migration MCP; `docs/db/rls-policies-fase2-mvp.md` §#48; `supabase/tests/rls-regression.sql`.
+- **Issue:** #48 (fechado).
 
 ### C2 — Autor de nota: `addNote` usa user id {#c2-addnote}
 - **Status:** ✅ **FEITO** (commit `46606d1`). **Decisão: é seller.** A coluna `customer_notes.author_id` é `uuid NOT NULL` com **FK → `sellers(id)`**, e o display resolve o autor via mapa de vendedores; o seed usa `customer.sellerId`. Os 2 call sites passavam `currentUser.id` (auth/profile id, **não** seller) → no Supabase isso viola a FK (23503) e a nota falha; no mock grava id não-resolvível (mostra id cru). Corrigido para `currentUser.sellerId` em `ConversationMenu.tsx` e `NotesTab.tsx`, com guarda (toast) quando o usuário não tem vendedor vinculado. **Provado por impersonação** (rollback): `author_id=seller_id` insere OK; `author_id=auth_uuid` rejeitado pela FK.
