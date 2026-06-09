@@ -18,7 +18,7 @@ A **loja transacional** (checkout + conta B2C) foi **deferida da Fase 2 por deci
 | --- | --- | --- |
 | **A. Fechar o cutover** | A1 CI · A2 Resend · A3 Flip prod · A4 Merge | gated no dono / decisão |
 | **B. Loja transacional** (deferida) | B1 #40 · B2 #41 · B3 #42 · B4 mídia | fase própria |
-| **C. Hardening** (follow-ups) | C1 media write · C2 addNote · C3 #44 | dívida técnica leve |
+| **C. Hardening** (follow-ups) | C1 media write · ~~C2 addNote~~ ✅ · C3 #44 | dívida técnica leve |
 
 ---
 
@@ -98,11 +98,9 @@ A **loja transacional** (checkout + conta B2C) foi **deferida da Fase 2 por deci
 - **Issue:** #48
 
 ### C2 — Autor de nota: `addNote` usa user id {#c2-addnote}
-- **O quê:** `ConversationMenu.tsx:222` chama `customersProvider.addNote(customer.id, content, currentUser.id)`. Verificar se o 3º arg (autor da nota) deveria ser `sellerId` (como nas demais semânticas de vendedor) ou se é mesmo o usuário.
-- **Por quê pendente:** "autor de nota" é semântica de autoria (pode ser user), diferente de "vendedor atribuído"; precisa checar o contrato `addNote` + a coluna no DB e a RLS de `customer_notes`.
-- **Critério de pronto:** decisão registrada (user vs seller) e, se for seller, corrigido + validado.
-- **Arquivos:** `customers/components/ConversationMenu.tsx`, contrato/RLS de `customer_notes`.
-- **Issue:** #49
+- **Status:** ✅ **FEITO** (commit `46606d1`). **Decisão: é seller.** A coluna `customer_notes.author_id` é `uuid NOT NULL` com **FK → `sellers(id)`**, e o display resolve o autor via mapa de vendedores; o seed usa `customer.sellerId`. Os 2 call sites passavam `currentUser.id` (auth/profile id, **não** seller) → no Supabase isso viola a FK (23503) e a nota falha; no mock grava id não-resolvível (mostra id cru). Corrigido para `currentUser.sellerId` em `ConversationMenu.tsx` e `NotesTab.tsx`, com guarda (toast) quando o usuário não tem vendedor vinculado. **Provado por impersonação** (rollback): `author_id=seller_id` insere OK; `author_id=auth_uuid` rejeitado pela FK.
+- **Arquivos:** `conversations/components/ConversationMenu.tsx`, `customers/components/tabs/NotesTab.tsx`, `conversations/i18n/pt-BR.ts`, `customers/i18n/pt-BR.ts`.
+- **Issue:** #49 (fechado).
 
 ### C3 — Notificações derivadas no servidor {#c3-notif}
 - **O quê:** mover o reconciliador de notificações derivadas para o servidor (cron/Edge Function); hoje roda no cliente, gated por papel staff (fix do 403 desta fase).
