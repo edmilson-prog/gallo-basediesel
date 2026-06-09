@@ -1,7 +1,7 @@
 # RLS — Fase 2 (MVP adaptado) — write policies
 
 > **PRDs relacionados:** PRD-103 (RLS) e PRD-107 (Auth custom claims). Este documento registra a **implementação MVP adaptada** aplicada em 2026-06-08, que diverge do PRD-103 original em dois pontos (schema e fonte de identidade) — ver abaixo. O PRD-107 (Fase 1) iniciou a **transição da identidade para claims do JWT** (com fallback para a subquery) — ver seção "Funções helper de identidade".
-> **Aplicação:** migrations versionadas no remoto via MCP (`apply_migration`). Nomes: `rls_helpers_identity`, `rls_policies_store_direct`, `rls_policies_derived_global`, `rls_helpers_security_invoker`, `rls_helpers_jwt_claims_with_fallback`, `add_manager_id_to_stores`, `rls_per_seller_carteira_scope`, `profiles_select_staff`, `rls_slice2_financial_staff_only`, `rls_slice3_personal_assets`, `rls_slice4_personal_derived`, `perf_index_unindexed_fks`, `profiles_select_consolidate_initplan`, `storefront_anon_read`, `perf_initplan_wrap_helpers`, `rls_helpers_drop_profiles_fallback`, `rls_conversations_pool`.
+> **Aplicação:** migrations versionadas no remoto via MCP (`apply_migration`). Nomes: `rls_helpers_identity`, `rls_policies_store_direct`, `rls_policies_derived_global`, `rls_helpers_security_invoker`, `rls_helpers_jwt_claims_with_fallback`, `add_manager_id_to_stores`, `rls_per_seller_carteira_scope`, `profiles_select_staff`, `rls_slice2_financial_staff_only`, `rls_slice3_personal_assets`, `rls_slice4_personal_derived`, `perf_index_unindexed_fks`, `profiles_select_consolidate_initplan`, `storefront_anon_read`, `perf_initplan_wrap_helpers`, `rls_helpers_drop_profiles_fallback`, `rls_conversations_pool`, `storefront_anon_read_stock`, `storefront_top_selling_rpc`.
 
 ## Por que "adaptado"
 
@@ -224,7 +224,9 @@ grant select (id, sku, name, description, oem_codes, oem_codes_text,
 create policy parts_select_anon on public.parts for select to anon using (active = true);
 ```
 
-**Excluídas (sigilosas):** `unit_cost`, `margin_percent`, `average_cost`, `suppliers`, `supplier`, `supplier_code`, `price_tables`, `fiscal`, `sefaz_status`, `sefaz_checked_at`, `storage_location`, `stock_available`, `stock_minimum`. Anon que tentar lê-las recebe `42501 permission denied`. Escrita anônima negada (grant removido + sem policy de write).
+**Excluídas (sigilosas):** `unit_cost`, `margin_percent`, `average_cost`, `suppliers`, `supplier`, `supplier_code`, `price_tables`, `fiscal`, `sefaz_status`, `sefaz_checked_at`, `storage_location`. Anon que tentar lê-las recebe `42501 permission denied`. Escrita anônima negada (grant removido + sem policy de write).
+
+> 🔧 **Correção (migration `storefront_anon_read_stock`):** a migration original revogou `stock_available`/`stock_minimum` do `anon`, mas a loja B2C usa estoque no **núcleo** (badge "fora de estoque", "pronta entrega / apenas X em estoque", filtro "só em estoque", cap de quantidade e validação do carrinho). Re-concedidas ao `anon` via `grant select (stock_available, stock_minimum) on public.parts to anon`. É e-commerce padrão; **não** vaza custo/margem.
 
 **B. Config da vitrine — função `SECURITY DEFINER` (sem view).**
 
@@ -238,13 +240,37 @@ grant execute on function public.storefront_config(uuid) to anon, authenticated;
 
 Retorna **só** `settings->'storefront'` — nunca cnpj/comissões/financeiro. `authenticated` também recebe execute porque **cliente B2C logado não pertence a loja** (`current_store_id()` = null → não lê `stores` pela policy normal). Não há como expor um slice de jsonb a `anon` sem função/view definer.
 
-**Não exposto:** `orders` (ranking "mais vendidos" fica no fallback de ordem-de-catálogo; um `storefront_featured` RPC é follow-up); `vehicle_models` (páginas públicas leem aplicações do jsonb `parts.applications`).
+**Não exposto:** `orders` permanece sem grant/policy para `anon`. O ranking "mais vendidos" da loja vem de uma RPC `SECURITY DEFINER` (migration `storefront_top_selling_rpc`) que lê `orders`/`order_items` como owner e devolve **só IDs de peças** ranqueados (status `pago`/`parcial`, janela 90d, soma de quantidade) — nenhum dado de pedido vaza:
+
+```sql
+create function public.storefront_top_selling(p_store_id uuid, p_limit int default 2000)
+  returns table (part_id uuid) language sql stable security definer set search_path = ''
+  as $$ select oi.part_id from public.order_items oi join public.orders o on o.id = oi.order_id
+        where o.store_id = p_store_id and o.payment_status in ('pago','parcial')
+          and coalesce(o.paid_at, o.updated_at, o.created_at) >= (now() - interval '90 days')
+        group by oi.part_id order by sum(oi.quantity) desc
+        limit greatest(1, least(coalesce(p_limit, 2000), 5000)) $$;
+revoke all on function public.storefront_top_selling(uuid, integer) from public;
+grant execute on function public.storefront_top_selling(uuid, integer) to anon, authenticated;
+```
+
+`vehicle_models` segue não exposto (páginas públicas leem aplicações do jsonb `parts.applications`).
 
 **Validação (impersonação `set local role anon`):** vê 344 ativas / 7 inativas ocultas; lê id/nome/preço/marca/categoria/imagem; `select unit_cost` → `42501`; `insert into parts` → `42501`; `stores`/`orders` → 0 linhas; `storefront_config(HQ)` → jsonb.
 
 **Advisor de segurança:** zero novos **ERRORs**. Surgem 2 **WARN** esperados/aceitos — `anon_security_definer_function_executable` e `authenticated_security_definer_function_executable` — inerentes a qualquer RPC público definer; a função é mínima, read-only e `search_path`-locked, sem vazamento. (`auth_leaked_password_protection` segue WARN pré-existente.)
 
-> ⚠️ **Follow-up de wiring (fora desta migration):** quando a loja for ligada ao Supabase em modo `anon`, o provider de `parts` precisa selecionar **colunas explícitas** (não `select *`, que falha sob grant por coluna), e o de `settings` deve chamar o RPC `storefront_config` em vez de ler `stores` direto.
+### Wiring da loja ao modo `anon` — FEITO
+
+Os providers de `parts`/`settings` são **compartilhados** com o app interno (staff vê custo/margem). Para não regredir o catálogo interno, o wiring foi feito por **provider dedicado** em vez de estreitar os providers existentes:
+
+- **`IStorefrontProvider`** (`providers/data/contracts/storefront.ts`) — só leitura pública: `listCatalog()`, `getPart(id)`, `listEquivalents(id)`, `getConfig(storeId)`, `listTopSellingIds(storeId, limit?)`.
+  - **mock** (`impl/mock/storefront.ts`): delega aos providers mock existentes → comportamento **idêntico** ao de hoje em modo mock.
+  - **supabase** (`impl/supabase/storefront.ts`): seleciona só `PUBLIC_COLUMNS` (subconjunto exato do grant `anon`) e mapeia via `rowToPublicPart`, que **defaulta** os obrigatórios não-concedidos (`unitCost:0`, `marginPercent:0`, `supplier:""`) para satisfazer `IPart`; `getConfig` via RPC `storefront_config`; `listTopSellingIds` via RPC `storefront_top_selling`.
+- **11 consumidores** da loja migrados de `usePartsProvider`/`useSettingsProvider`/`useOrdersProvider` para `useStorefrontProvider`: home (destaques, categorias), busca (página + engine), categoria (engine), ficha do produto, relacionados, equivalências, config da vitrine, e carrinho (validação + linha). O ranking "mais vendidos" trocou o agregador de `orders` inline pela RPC.
+- **App interno intocado** — `parts`/`settings`/`orders` providers seguem com a projeção completa para staff.
+
+> ⛔ **Funil de checkout — fora de escopo (frente própria).** O checkout B2C (`CheckoutPage`, `useCartShipping`, `OrderConfirmedPage`) **escreve** como visitante: cria `orders`/`customers`/`conversations` e atualiza pedido. Isso exige write anon (proibido) ou um Edge Function transacional + auth de cliente B2C. Além disso, `settings.shipping`/`settings.ecommerceIntegration` ficam **fora** da fatia `storefront` (a RPC `storefront_config` não os expõe). A loja pública em modo `anon` é **navegável** (catálogo/busca/ficha/carrinho client-side); fechar pedido fica para a frente de **checkout-backend**.
 
 ## Pool de não-atribuídos — conversas sem dono (migration `rls_conversations_pool`)
 
@@ -271,7 +297,8 @@ with check ( ... (select is_staff()) or assigned_seller_id = (select current_sel
 - ~~**RBAC fino:** pool de não-atribuídos (semântica do pool de conversas sem dono).~~ **FEITO** (migration `rls_conversations_pool`) — claim model: não-staff vê+reivindica o pool; `messages` cascateia; validado por impersonação.
 - Testes pgTAP + workflow CI (`rls-tests.yml`).
 - Convite por email (PRD-141 / Resend) — **scaffold FEITO** (Edge Function `invite-seller-email`, v1 ACTIVE, `verify_jwt:true`, **inerte** sem `RESEND_API_KEY`; usa `generateLink({type:'invite'})` + template pt-BR via Resend, com rollback). `invite-seller` (senha temp) segue intacto. **Pendente p/ ativar:** setar `RESEND_API_KEY`/`RESEND_FROM`/`INVITE_REDIRECT_URL`, wiring client (`inviteSellerByEmail`) + dialog, e a rota `/auth/definir-senha` de destino do link.
-- ~~Storefront anônimo (loja B2C em `supabase` precisa de policies `anon` de catálogo).~~ **FEITO** (migration `storefront_anon_read`) — grant por coluna em `parts` + RPC `storefront_config`. **Pendente de wiring:** ligar os providers da loja ao modo `anon` (colunas explícitas + RPC).
+- ~~Storefront anônimo (loja B2C em `supabase` precisa de policies `anon` de catálogo).~~ **FEITO** (migrations `storefront_anon_read` + `storefront_anon_read_stock` + `storefront_top_selling_rpc`) — grant por coluna em `parts` + RPC `storefront_config` + RPC de ranking. ~~**Pendente de wiring.**~~ **Wiring FEITO** — `IStorefrontProvider` dedicado + 11 consumidores migrados (catálogo/busca/ficha/carrinho navegáveis como `anon`).
+- **Checkout-backend (nova frente):** o funil de compra B2C (criar pedido/cliente/conversa, frete via `settings.shipping`, integração e-commerce) escreve como anon — precisa de Edge Function transacional e/ou auth de cliente B2C + write policies por cliente. Loja pública hoje é browse-only no modo `supabase`.
 - ~~Performance (PRD-108) — **parcial**~~ **COMPLETO:** FKs indexadas (21 índices), initplan da `profiles`, e Part C (envelopar `current_*()`/`is_staff()` em `(select …)` nas 151 policies — migration `perf_initplan_wrap_helpers`).
 - ~~Habilitar o Custom Access Token Hook~~ **FEITO** (Dashboard, 2026-06-08) — claims reais no JWT; helpers já liam claims com fallback.
 - ~~Remover o fallback `profiles` das helpers quando o hook estiver universal (perf — PRD-108).~~ **FEITO** (migration `rls_helpers_drop_profiles_fallback`) — helpers leem só o claim do JWT; fail-closed validado por impersonação (com claims = baseline; sem `app_metadata` = 0 linhas).

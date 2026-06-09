@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/Icon";
 import { PartImage } from "@/features/catalog";
-import { usePartsProvider } from "@/providers/data/hooks/usePartsProvider";
+import { useStorefrontProvider } from "@/providers/data";
 import { useCartStore } from "@/features/storefront/store/cartStore";
 import { formatBRL } from "@/shared/utils/format";
 import { STOREFRONT_CART_STRINGS as S } from "../i18n/pt-BR";
@@ -31,11 +31,11 @@ const STALE_MS = 5 * 60 * 1000;
 export function CartItemRow({ item }: ICartItemRowProps) {
   const setQuantity = useCartStore((s) => s.setQuantity);
   const removeItem = useCartStore((s) => s.removeItem);
-  const partsProvider = usePartsProvider();
+  const storefrontProvider = useStorefrontProvider();
 
   const partQuery = useQuery({
     queryKey: ["storefront-cart", "part", item.partId] as const,
-    queryFn: () => partsProvider.get(item.partId),
+    queryFn: () => storefrontProvider.getPart(item.partId),
     staleTime: STALE_MS,
     retry: false,
   });

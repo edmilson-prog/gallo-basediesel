@@ -33,6 +33,7 @@ import { mockAssetLibraryProvider } from "./impl/mock/assetLibrary";
 import { mockQuickReplyProvider } from "./impl/mock/quickReply";
 import { mockTrackableLinkProvider } from "./impl/mock/trackableLink";
 import { mockScheduledSendProvider } from "./impl/mock/scheduledSend";
+import { mockStorefrontProvider } from "./impl/mock/storefront";
 
 import { supabaseCustomersProvider } from "./impl/supabase/customers";
 import { supabaseVehiclesProvider } from "./impl/supabase/vehicles";
@@ -67,6 +68,7 @@ import { supabaseAssetLibraryProvider } from "./impl/supabase/assetLibrary";
 import { supabaseQuickReplyProvider } from "./impl/supabase/quickReply";
 import { supabaseTrackableLinkProvider } from "./impl/supabase/trackableLink";
 import { supabaseScheduledSendProvider } from "./impl/supabase/scheduledSend";
+import { supabaseStorefrontProvider } from "./impl/supabase/storefront";
 
 export type DataSource = "mock" | "supabase";
 
@@ -126,6 +128,7 @@ const mockProviders: IDataProviders = {
   quickReply: mockQuickReplyProvider,
   trackableLink: mockTrackableLinkProvider,
   scheduledSend: mockScheduledSendProvider,
+  storefront: mockStorefrontProvider,
 };
 
 const supabaseProviders: IDataProviders = {
@@ -162,6 +165,7 @@ const supabaseProviders: IDataProviders = {
   quickReply: supabaseQuickReplyProvider,
   trackableLink: supabaseTrackableLinkProvider,
   scheduledSend: supabaseScheduledSendProvider,
+  storefront: supabaseStorefrontProvider,
 };
 
 /**

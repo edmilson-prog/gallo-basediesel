@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Icon } from "@/components/Icon";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { usePartsProvider } from "@/providers/data";
+import { useStorefrontProvider } from "@/providers/data";
 import { useSeoMeta } from "@/features/storefront";
 import { useSearchFilters } from "../hooks/useSearchFilters";
 import { useSearchResults } from "../hooks/useSearchResults";
@@ -16,7 +16,6 @@ import { EmptySearchState } from "../components/EmptySearchState";
 import { MobileFiltersSheet } from "../components/MobileFiltersSheet";
 import { STOREFRONT_SEARCH_STRINGS as S } from "../i18n/pt-BR";
 
-const STORE_ID = "00000000-0000-0000-0000-000000000001";
 const STALE_MS = 5 * 60 * 1000;
 
 /**
@@ -27,16 +26,13 @@ const STALE_MS = 5 * 60 * 1000;
  * drawer on mobile). Header + footer come from `LojaLayout`.
  */
 export function SearchResultsPage() {
-  const partsProvider = usePartsProvider();
+  const storefrontProvider = useStorefrontProvider();
   const controller = useSearchFilters();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const partsQuery = useQuery({
     queryKey: ["storefront-search", "parts-base"] as const,
-    queryFn: async () => {
-      const r = await partsProvider.list({ storeId: STORE_ID, pageSize: 2000 });
-      return r.data;
-    },
+    queryFn: () => storefrontProvider.listCatalog(),
     staleTime: STALE_MS,
   });
 

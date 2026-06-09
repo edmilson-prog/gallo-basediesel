@@ -98,6 +98,7 @@ export type {
   IQuickReplyProvider,
   ITrackableLinkProvider,
   IScheduledSendProvider,
+  IStorefrontProvider,
 } from "./contracts";
 
 export { useCustomersProvider } from "./hooks/useCustomersProvider";
@@ -133,3 +134,4 @@ export { useAssetLibraryProvider } from "./hooks/useAssetLibraryProvider";
 export { useQuickReplyProvider } from "./hooks/useQuickReplyProvider";
 export { useTrackableLinkProvider } from "./hooks/useTrackableLinkProvider";
 export { useScheduledSendProvider } from "./hooks/useScheduledSendProvider";
+export { useStorefrontProvider } from "./hooks/useStorefrontProvider";

@@ -38,6 +38,7 @@ import type { IAssetLibraryProvider } from "./assetLibrary";
 import type { IQuickReplyProvider } from "./quickReply";
 import type { ITrackableLinkProvider } from "./trackableLink";
 import type { IScheduledSendProvider } from "./scheduledSend";
+import type { IStorefrontProvider } from "./storefront";
 
 export type { IPaginatedResult, IPaginationParams } from "./_shared";
 
@@ -115,6 +116,7 @@ export type { IAssetLibraryProvider, IAssetLibraryListParams } from "./assetLibr
 export type { IQuickReplyProvider } from "./quickReply";
 export type { ITrackableLinkProvider } from "./trackableLink";
 export type { IScheduledSendProvider } from "./scheduledSend";
+export type { IStorefrontProvider } from "./storefront";
 
 /**
  * Aggregate of every data provider returned by `getDataProviders()`. The factory
@@ -155,4 +157,5 @@ export interface IDataProviders {
   quickReply: IQuickReplyProvider;
   trackableLink: ITrackableLinkProvider;
   scheduledSend: IScheduledSendProvider;
+  storefront: IStorefrontProvider;
 }

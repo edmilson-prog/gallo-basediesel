@@ -1,11 +1,10 @@
 import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { usePartsProvider } from "@/providers/data/hooks/usePartsProvider";
+import { useStorefrontProvider } from "@/providers/data";
 import { useCartStore } from "@/features/storefront/store/cartStore";
 import { STOREFRONT_CART_STRINGS as S } from "../i18n/pt-BR";
 
-const STORE_ID = "00000000-0000-0000-0000-000000000001";
 const STALE_MS = 5 * 60 * 1000;
 
 /**
@@ -24,14 +23,11 @@ export function useCartValidation(): void {
   const items = useCartStore((s) => s.items);
   const setQuantity = useCartStore((s) => s.setQuantity);
   const removeItem = useCartStore((s) => s.removeItem);
-  const partsProvider = usePartsProvider();
+  const storefrontProvider = useStorefrontProvider();
 
   const partsQuery = useQuery({
     queryKey: ["storefront-cart", "validation-parts"] as const,
-    queryFn: async () => {
-      const r = await partsProvider.list({ storeId: STORE_ID, pageSize: 2000 });
-      return r.data;
-    },
+    queryFn: () => storefrontProvider.listCatalog(),
     staleTime: STALE_MS,
     enabled: items.length > 0,
   });

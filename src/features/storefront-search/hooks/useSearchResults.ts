@@ -1,15 +1,13 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { ID, IOrder, IPart } from "@/shared/types";
-import { useOrdersProvider, usePartsProvider } from "@/providers/data";
+import type { ID, IPart } from "@/shared/types";
+import { useStorefrontProvider } from "@/providers/data";
 import { findByOemCode, searchPartsByApplication, searchPartsByText } from "@/features/catalog";
 import type { ISearchFiltersState } from "./useSearchFilters";
 
 const STORE_ID = "00000000-0000-0000-0000-000000000001";
 const STALE_MS = 5 * 60 * 1000;
 const PAGE_SIZE = 24;
-const TOP_SELLING_WINDOW_DAYS = 90;
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export interface IUseSearchResultsResult {
   isLoading: boolean;
@@ -32,27 +30,20 @@ export interface IUseSearchResultsResult {
  * back to `searchPartsByText` otherwise.
  */
 export function useSearchResults(filters: ISearchFiltersState): IUseSearchResultsResult {
-  const partsProvider = usePartsProvider();
-  const ordersProvider = useOrdersProvider();
+  const storefrontProvider = useStorefrontProvider();
 
   const partsQuery = useQuery({
     queryKey: ["storefront-search", "parts"] as const,
-    queryFn: async () => {
-      const r = await partsProvider.list({ storeId: STORE_ID, pageSize: 2000 });
-      return r.data;
-    },
+    queryFn: () => storefrontProvider.listCatalog(),
     staleTime: STALE_MS,
   });
 
-  const enableOrders = filters.sort === "top-selling";
-  const ordersQuery = useQuery({
-    queryKey: ["storefront-search", "orders"] as const,
-    queryFn: async () => {
-      const r = await ordersProvider.list({ storeId: STORE_ID, pageSize: 2000 });
-      return r.data;
-    },
+  const enableTopSelling = filters.sort === "top-selling";
+  const topSellingQuery = useQuery({
+    queryKey: ["storefront-search", "top-selling"] as const,
+    queryFn: () => storefrontProvider.listTopSellingIds(STORE_ID),
     staleTime: STALE_MS,
-    enabled: enableOrders,
+    enabled: enableTopSelling,
   });
 
   const result = useMemo<IUseSearchResultsResult>(() => {
@@ -132,7 +123,7 @@ export function useSearchResults(filters: ISearchFiltersState): IUseSearchResult
     }
 
     // Stage 3: sort.
-    filtered = sortResults(filtered, filters.sort, ordersQuery.data ?? []);
+    filtered = sortResults(filtered, filters.sort, topSellingQuery.data ?? []);
 
     const totalCount = filtered.length;
     const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
@@ -141,8 +132,8 @@ export function useSearchResults(filters: ISearchFiltersState): IUseSearchResult
     const pageItems = filtered.slice(start, start + PAGE_SIZE);
 
     return {
-      isLoading: partsQuery.isLoading || (enableOrders && ordersQuery.isLoading),
-      isError: partsQuery.isError || (enableOrders && ordersQuery.isError),
+      isLoading: partsQuery.isLoading || (enableTopSelling && topSellingQuery.isLoading),
+      isError: partsQuery.isError || (enableTopSelling && topSellingQuery.isError),
       matchCount,
       totalCount,
       pageItems,
@@ -152,17 +143,21 @@ export function useSearchResults(filters: ISearchFiltersState): IUseSearchResult
     partsQuery.data,
     partsQuery.isLoading,
     partsQuery.isError,
-    ordersQuery.data,
-    ordersQuery.isLoading,
-    ordersQuery.isError,
-    enableOrders,
+    topSellingQuery.data,
+    topSellingQuery.isLoading,
+    topSellingQuery.isError,
+    enableTopSelling,
     filters,
   ]);
 
   return result;
 }
 
-function sortResults(parts: IPart[], sort: ISearchFiltersState["sort"], orders: IOrder[]): IPart[] {
+function sortResults(
+  parts: IPart[],
+  sort: ISearchFiltersState["sort"],
+  topSellingIds: ID[],
+): IPart[] {
   switch (sort) {
     case "price-asc":
       return [...parts].sort((a, b) => a.unitPrice - b.unitPrice);
@@ -171,17 +166,10 @@ function sortResults(parts: IPart[], sort: ISearchFiltersState["sort"], orders: 
     case "newest":
       return [...parts].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
     case "top-selling": {
-      const sinceIso = new Date(Date.now() - TOP_SELLING_WINDOW_DAYS * MS_PER_DAY).toISOString();
-      const sold = new Map<ID, number>();
-      for (const o of orders) {
-        if (o.paymentStatus !== "pago" && o.paymentStatus !== "parcial") continue;
-        const ts = o.paidAt ?? o.updatedAt ?? o.createdAt;
-        if (ts < sinceIso) continue;
-        for (const item of o.items) {
-          sold.set(item.partId, (sold.get(item.partId) ?? 0) + item.quantity);
-        }
-      }
-      return [...parts].sort((a, b) => (sold.get(b.id) ?? 0) - (sold.get(a.id) ?? 0));
+      const rank = new Map(topSellingIds.map((id, index) => [id, index] as const));
+      return [...parts].sort(
+        (a, b) => (rank.get(a.id) ?? Infinity) - (rank.get(b.id) ?? Infinity),
+      );
     }
     case "relevance":
     default:
