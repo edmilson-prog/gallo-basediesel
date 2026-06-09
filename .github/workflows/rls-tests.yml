@@ -1,0 +1,48 @@
+name: RLS regression
+
+# Runs the versioned RLS regression suite (supabase/tests/rls-regression.sql)
+# against a seeded Postgres. The script is transactional and rolls back, so it
+# never persists data.
+#
+# ACTIVATION (one-time, by a maintainer): add a repository secret named
+#   SUPABASE_DB_URL
+# with a Postgres connection string that:
+#   - points at a database seeded with the standard fixtures (a Supabase
+#     preview branch is ideal; a dedicated test project also works), and
+#   - connects as a role that is allowed to `SET ROLE authenticated|anon`
+#     (e.g. the `postgres` role).
+# Until the secret is set the job is a no-op (it skips, green), so it never
+# blocks PRs before the test database is wired.
+#
+# Do NOT point this at a production database whose rollback guarantees you
+# haven't reviewed — prefer an ephemeral branch.
+
+on:
+  pull_request:
+    paths:
+      - "supabase/tests/**"
+      - ".github/workflows/rls-tests.yml"
+  workflow_dispatch: {}
+
+jobs:
+  rls-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install psql client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-client
+
+      - name: Run RLS regression suite
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "${SUPABASE_DB_URL}" ]; then
+            echo "::notice::SUPABASE_DB_URL secret not set — skipping RLS regression (no-op)."
+            exit 0
+          fi
+          echo "Running supabase/tests/rls-regression.sql ..."
+          psql "${SUPABASE_DB_URL}" -v ON_ERROR_STOP=1 -f supabase/tests/rls-regression.sql

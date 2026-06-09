@@ -6,7 +6,7 @@
 
 O backend está **muito mais completo** do que o `CLAUDE.md` sugere (a descrição de "providers Supabase = stubs que lançam `NotImplementedError`" está **desatualizada**). O cutover é **só env** (`VITE_DATA_SOURCE` + `VITE_AUTH_SOURCE`).
 
-**Estado em 2026-06-09:** o backend de cutover está **essencialmente pronto**. Pool ✅, Storefront anon ✅. Os dois itens "grandes" foram **deferidos por análise** (não por preguiça): **Mídia/Storage** (encanamento vazio — sem fonte de bytes; acoplado a WhatsApp/upload-UI) e **Checkout B2C** (escreve como anon — vira handoff). Restam: **pgTAP+CI** (garantia, próximo), **convite por email** (bloqueado no Resend, com o dono) e o **flip do cutover + smoke** (marco final).
+**Estado em 2026-06-09:** o backend de cutover está **essencialmente pronto**. Pool ✅, Storefront anon ✅, #43 RLS audit/transfers/media ✅, testes de RLS versionados + CI ✅. Os dois itens "grandes" foram **deferidos por análise** (não por preguiça): **Mídia/Storage** (encanamento vazio — sem fonte de bytes; acoplado a WhatsApp/upload-UI) e **Checkout B2C** (escreve como anon — vira handoff). **Restam apenas itens gated no dono:** **convite por email** (bloqueado no Resend) e o **flip do cutover de produção** (decisão — Preview já validado; ativar o CI exige o secret `SUPABASE_DB_URL`).
 
 ---
 
@@ -36,7 +36,7 @@ O backend está **muito mais completo** do que o `CLAUDE.md` sugere (a descriç�
 | ~~3~~ | ~~**Storefront anon wiring**~~ **FEITO** (commit `4c69771`) — `IStorefrontProvider` dedicado (colunas públicas + RPCs `storefront_config`/`storefront_top_selling`) + 11 consumidores migrados + migration `storefront_anon_read_stock`. App interno intocado. | **M** | — |
 | ~~3.5~~ | ~~**Checkout-backend B2C**~~ **DEFERIDO (fora da Fase 2)** — o funil de compra (`createOrderFromCart` + `triggerEcommerceOrder`) escreve `orders`/`customers`/`conversations` como anon (proibido). Decisão: loja pública é **browse-only**; "Finalizar" vira **handoff p/ vendedor** (WhatsApp/orçamento). Hoje é um demo rotulado. | — | resolvido: não entra na Fase 2 |
 | 4 | **Ativar convite por email** — `RESEND_API_KEY`/`RESEND_FROM`/`INVITE_REDIRECT_URL` + wiring client (`inviteSellerByEmail`) + dialog + rota `/auth/definir-senha` | **P** | conta Resend + domínio (você) |
-| 5 | **pgTAP + CI** — testes de RLS versionados (`rls-tests.yml`) | **M** | decisão de secrets/runner do CI |
+| ~~5~~ | ~~**pgTAP + CI**~~ **FEITO** — harness de RLS em **SQL puro** (`supabase/tests/rls-regression.sql`, sem dependência de extensão; validado por impersonação: owner/seller/anon/fail-closed + #43 + sem cross-leak) + workflow `.github/workflows/rls-tests.yml`. Optou-se por SQL puro porque instalar pgTAP no banco compartilhado exige consentimento explícito (mudança persistente de infra). | **M** | só falta o secret `SUPABASE_DB_URL` p/ ativar o CI (no-op verde até lá) |
 | 6 | **Flip do cutover + smoke test** — defaults → `supabase` + regressão geral (owner + vendedor logados) | **M** | marco final; depende de 1–5 |
 
 ## 🎯 Ordem recomendada
@@ -45,8 +45,10 @@ O backend está **muito mais completo** do que o `CLAUDE.md` sugere (a descriç�
 2. ~~**Storefront anon wiring**~~ ✅ **FEITO** (2026-06-09, commit `4c69771`).
 3. ~~**Decisão de Mídia/Storage**~~ ✅ **DEFERIDO** (2026-06-09) — acoplado à frente WhatsApp/upload-UI.
 4. **Convite por email** — quando o Resend estiver pronto (bloqueado em você).
-5. **pgTAP + CI** — trava as garantias de isolamento. ← **próximo (única implementação restante sem dependência externa)**
-6. **Flip + smoke** — o grande final.
+5. ~~**pgTAP + CI**~~ ✅ **FEITO** (2026-06-09) — harness SQL validado + workflow; falta só o secret `SUPABASE_DB_URL` para ativar o CI.
+6. **Flip + smoke** — Preview ✅ (env escopado + smoke de RLS verde). Flip de **produção** é decisão do dono (loja transacional ainda deferida).
+
+> **Hardening de cutover (frontend, esta sessão):** varredura do bug "id de usuário usado como id de vendedor" — corrigido no inbox (filtro/claim), Comissões (menu + nº do pedido), e em segmentos/snippets/quick-send/copiloto/escalação SDR. Tudo em `mock` **e** `supabase`. Sem isso, vendedores veriam "0 resultados" ou escritas falhariam no RLS.
 
 > **Pré-cutover (UX, leve, não-backend):** redesenhar o "Finalizar compra" da loja para handoff (WhatsApp/orçamento) em vez do checkout demo — para o modo `supabase` não cair num fluxo que falha. Não bloqueia os itens de backend.
 
