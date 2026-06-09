@@ -1,7 +1,7 @@
 # RLS — Fase 2 (MVP adaptado) — write policies
 
 > **PRDs relacionados:** PRD-103 (RLS) e PRD-107 (Auth custom claims). Este documento registra a **implementação MVP adaptada** aplicada em 2026-06-08, que diverge do PRD-103 original em dois pontos (schema e fonte de identidade) — ver abaixo. O PRD-107 (Fase 1) iniciou a **transição da identidade para claims do JWT** (com fallback para a subquery) — ver seção "Funções helper de identidade".
-> **Aplicação:** migrations versionadas no remoto via MCP (`apply_migration`). Nomes: `rls_helpers_identity`, `rls_policies_store_direct`, `rls_policies_derived_global`, `rls_helpers_security_invoker`, `rls_helpers_jwt_claims_with_fallback`, `add_manager_id_to_stores`, `rls_per_seller_carteira_scope`.
+> **Aplicação:** migrations versionadas no remoto via MCP (`apply_migration`). Nomes: `rls_helpers_identity`, `rls_policies_store_direct`, `rls_policies_derived_global`, `rls_helpers_security_invoker`, `rls_helpers_jwt_claims_with_fallback`, `add_manager_id_to_stores`, `rls_per_seller_carteira_scope`, `profiles_select_staff`, `rls_slice2_financial_staff_only`.
 
 ## Por que "adaptado"
 
@@ -92,7 +92,34 @@ Validação por impersonação (claims com `app_metadata`):
 
 Vazamento cruzado (impersonando Lucas): `customers` de outro vendedor → 0; `orders` do Fernando → 0; `conversations` não-atribuídas → 0. ✅
 
-**Deferido neste slice:** tabelas financeiras/gerenciais (`expenses`, `cash_flow_entries`, `dre`, `goals` nível-loja) ainda são store-wide → viram **staff-only** para não-staff num próximo slice (vendedor não deve ver P&L); assets pessoais (`quick_replies`/`asset_combos.owner_id`); semântica do pool de não-atribuídos; edge de `conversations.create` disparado por vendedor.
+**Deferido neste slice:** assets pessoais (`quick_replies`/`asset_combos.owner_id`); semântica do pool de não-atribuídos; edge de `conversations.create` disparado por vendedor. (Financeiras/gerenciais resolvidas no Slice 2.)
+
+## RBAC fino — financeiras staff-only + per-seller (Slice 2, migration `rls_slice2_financial_staff_only`)
+
+Não há tabela de DRE/estoque/movimentação (computados de `orders`/`expenses`). O financeiro vive em `expenses`/`cash_flow_entries`.
+
+**2a — staff-only** (`store_id = current_store_id() AND is_staff()`), nos 4 comandos — não-staff **não vê nada**:
+
+| Tabela                | Motivo                                |
+| --------------------- | ------------------------------------- |
+| `expenses`            | despesas da loja (P&L)                |
+| `cash_flow_entries`   | fluxo de caixa                        |
+| `distribution_traces` | auditoria de distribuição (gerencial) |
+
+**2b — per-seller** (`store_id = current_store_id() AND (is_staff() OR seller_id = current_seller_id())`), nos 4 comandos — antes store-wide (vazavam cross-seller):
+
+| Tabela                                           | coluna                                                          |
+| ------------------------------------------------ | --------------------------------------------------------------- |
+| `goals`, `recommendations`, `product_indicators` | `seller_id` (linhas nível-loja com `seller_id` null → só staff) |
+
+Validação por impersonação:
+
+| Persona                   | expenses | cash_flow | distribution_traces | goals | recommendations | product_indicators |
+| ------------------------- | -------- | --------- | ------------------- | ----- | --------------- | ------------------ |
+| Lucas (`seller_internal`) | 0        | 0         | 0                   | 24    | 12              | 2                  |
+| Owner                     | 120      | 5         | 40                  | 85    | 25              | 10                 |
+
+`get_advisors(security)` → nada novo (só `auth_leaked_password_protection`, config de dashboard).
 
 ## Deferido para "corrigir depois"
 
