@@ -18,7 +18,7 @@ A **loja transacional** (checkout + conta B2C) foi **deferida da Fase 2 por deci
 | --- | --- | --- |
 | **A. Fechar o cutover** | A1 CI · A2 Resend · A3 Flip prod · A4 Merge | gated no dono / decisão |
 | **B. Loja transacional** (deferida) | B1 #40 · B2 #41 · B3 #42 · B4 mídia | fase própria |
-| **C. Hardening** (follow-ups) | ~~C1 media write~~ ✅ · ~~C2 addNote~~ ✅ · C3 #44 | dívida técnica leve |
+| **C. Hardening** (follow-ups) | ~~C1 media write~~ ✅ · ~~C2 addNote~~ ✅ · ~~C3 #44~~ ✅ | **tudo feito** |
 
 ---
 
@@ -102,10 +102,12 @@ A **loja transacional** (checkout + conta B2C) foi **deferida da Fase 2 por deci
 - **Issue:** #49 (fechado).
 
 ### C3 — Notificações derivadas no servidor {#c3-notif}
-- **O quê:** mover o reconciliador de notificações derivadas para o servidor (cron/Edge Function); hoje roda no cliente, gated por papel staff (fix do 403 desta fase).
-- **Status:** funciona client-side gated; mover ao servidor é endurecimento, não bloqueante do cutover.
-- **Arquivos:** `providers/notifications/reconciler.ts`.
-- **Issue:** **#44**.
+- **Status:** ✅ **FEITO** (migration `notif_44_server_side_derived_reconciler`). As 3 condições derivadas (cliente dormente / vendedor sobrecarregado / conversa sem resposta) agora são recompostas por uma função `public.reconcile_derived_notifications()` (`SECURITY DEFINER`, `search_path` fixo, `EXECUTE` revogado de public/anon/authenticated) agendada por **`pg_cron`** a cada 1 min. Reproduz fielmente o `reconcileDerived` (expira fora de escopo, insere novas, reativa arquivadas). No modo `supabase` o `startReconciler` client-side vira **no-op** (sem escrita dupla); o modo `mock` segue client-side.
+- **Validação:** execução (rollback) gerou 14 `cliente.dormente` + 1 `conversa.semResposta` + 2 `vendedor.sobrecarregado`, títulos fiéis ao TS; job `active`; função **não chamável** por `authenticated` (asserção na suíte `supabase/tests/rls-regression.sql`); `get_advisors` sem alerta novo.
+- **Dívida consciente (drift):** as 3 condições passam a viver em **2 lugares** — o TS `derivedConditions.ts` (que o dashboard ainda usa para renderizar ao vivo) e a função SQL do job. Mudanças de regra devem tocar os dois. Consolidar numa única fonte (RPC compartilhado) fica para o épico de notificações server-side.
+- **Pré-requisito de infra:** exigiu habilitar a extensão **`pg_cron`** (autorizado pelo dono).
+- **Arquivos:** migration MCP; `providers/notifications/reconciler.ts`; `supabase/tests/rls-regression.sql`.
+- **Issue:** **#44** (fechado).
 
 ---
 

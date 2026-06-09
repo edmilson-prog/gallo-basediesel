@@ -213,6 +213,34 @@ end $$;
 reset role;
 
 -- ---------------------------------------------------------------------------
+-- Issue #44 — the server-side derived reconciler is not callable by clients.
+-- public.reconcile_derived_notifications() is SECURITY DEFINER with EXECUTE
+-- revoked; only the pg_cron scheduler (postgres) runs it. A signed-in seller
+-- must be denied (guards against a future migration re-granting EXECUTE).
+-- ---------------------------------------------------------------------------
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+
+do $$
+declare denied boolean := false;
+begin
+  begin
+    perform public.reconcile_derived_notifications();
+  exception when insufficient_privilege then
+    denied := true;
+  end;
+  if not denied then
+    raise exception '#44: reconcile_derived_notifications() must not be callable by authenticated';
+  end if;
+end $$;
+
+reset role;
+
+-- ---------------------------------------------------------------------------
 -- Principal: ANON (public storefront, logged out).
 -- ---------------------------------------------------------------------------
 set local role anon;

@@ -33,7 +33,6 @@ import {
 import type { NotificationEventType } from "./events";
 import { ROUTING_RULES } from "./routing/rules";
 import { getActiveDataSource } from "@/providers/data";
-import { getSupabaseClient } from "@/shared/lib/supabase";
 
 /** Data providers the reconciler reads from (injected by the provider). */
 export interface IReconcilerData {
@@ -53,47 +52,24 @@ const EVENT_BY_KIND: Record<AlertKind, NotificationEventType> = {
   "conversa-sem-resposta": "conversa.semResposta",
 };
 
-/** App roles allowed to run the manager-level derived reconciler. */
-const RECONCILER_ROLES = new Set(["owner", "manager"]);
-
-/**
- * The derived reconciler is a manager-dashboard job: it reads the whole-store
- * snapshot and inserts notifications targeting other sellers / the store
- * manager, which the `notifications` RLS only permits for `is_staff()`.
- *
- * Under Supabase it must therefore run ONLY for an authenticated staff user — a
- * non-staff seller (or an anon/logged-out boot) would compute a partial,
- * RLS-scoped snapshot and be denied on INSERT (403). In mock mode there is no
- * RLS, so the Fase-1 behavior (dashboard alerts for everyone) is preserved.
- */
-async function shouldRunDerivedReconciler(): Promise<boolean> {
-  if (getActiveDataSource() !== "supabase") return true;
-  try {
-    const { data } = await getSupabaseClient().auth.getSession();
-    const role = data.session?.user?.app_metadata?.role;
-    return typeof role === "string" && RECONCILER_ROLES.has(role);
-  } catch {
-    return false;
-  }
-}
-
 /**
  * Boots the reconciler: one immediate pass, then a polling interval driven by
- * `alertPollingSeconds`. Returns a stop function. A no-op when `data` is absent.
+ * `alertPollingSeconds`. Returns a stop function.
+ *
+ * No-op when `data` is absent, and ALSO a no-op under Supabase: there the
+ * derived reconciler runs server-side (pg_cron → `public.reconcile_derived_notifications`,
+ * #44), so the client must not double-write. In mock mode it keeps running the
+ * Fase-1 client-side pass.
  */
 export function startReconciler(stores: INotificationStores, data?: IReconcilerData): () => void {
   if (!data) return () => {};
+  if (getActiveDataSource() === "supabase") return () => {};
 
   let stopped = false;
   let timer: number | undefined;
 
   const tick = (): void => {
-    void (async () => {
-      // Skip silently for non-staff / unauthenticated principals under Supabase
-      // (the manager job they cannot run and whose INSERTs RLS would reject).
-      if (!(await shouldRunDerivedReconciler())) return;
-      await reconcileOnce(stores, data);
-    })().catch((err) => {
+    void reconcileOnce(stores, data).catch((err) => {
       if (import.meta.env.DEV) {
         console.error("[notificationReconciler] pass failed", err);
       }
