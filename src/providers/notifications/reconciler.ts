@@ -216,7 +216,7 @@ function resolveRecipients(
   if (alert.kind === "cliente-a-dormente") {
     const customerId = alert.id.replace(/^cliente-a-dormente-/, "");
     const customer = snapshot.customers.find((c) => c.id === customerId);
-    if (customer?.ownerId) recipients.add(customer.ownerId);
+    if (customer?.sellerId) recipients.add(customer.sellerId);
   }
   if (managerId) recipients.add(managerId);
   return [...recipients].filter((id): id is ID => Boolean(id));
