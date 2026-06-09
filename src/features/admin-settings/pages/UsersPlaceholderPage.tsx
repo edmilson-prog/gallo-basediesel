@@ -9,8 +9,9 @@ import { useCurrentStore } from "@/features/multistore";
 import { useSellersProvider } from "@/providers/data";
 import { AUTH_SOURCE } from "@/features/auth/authSource";
 import { SectionHeader } from "../components/SectionHeader";
-import { listSellersWithAccess } from "../api/sellerAccess";
+import { listSellerAccessRoles } from "../api/sellerAccess";
 import { CreateAccessDialog } from "../components/CreateAccessDialog";
+import { ToggleSellerAccessButton } from "../components/ToggleSellerAccessButton";
 
 const ROLE_LABEL: Record<ISeller["type"], string> = {
   internal: "Vendedor interno",
@@ -21,12 +22,13 @@ const ROLE_LABEL: Record<ISeller["type"], string> = {
 const SUPABASE_AUTH = AUTH_SOURCE === "supabase";
 
 /**
- * Usuários — gestão de acesso à plataforma (PRD-107 Fase 3, fatia "criar acesso").
+ * Usuários — gestão de acesso à plataforma (PRD-107 Fase 3).
  *
  * Em modo Supabase: lista a equipe com o status de acesso e permite ao Owner
- * criar o login de cada vendedor (via Edge Function `invite-seller`). Em modo
- * mock, segue informativo (a equipe vem do seed). Editar papéis, desligar/
- * reativar e convite por email chegam nas próximas fases (PRD-107 / PRD-141).
+ * criar o login de cada vendedor (Edge Function `invite-seller`) e desligar/
+ * reativar (Edge Function `set-seller-access`). Em modo mock, segue informativo
+ * (a equipe vem do seed). Trocar papéis e convite por email chegam depois
+ * (PRD-107 / PRD-141).
  */
 export function UsersPlaceholderPage() {
   const { currentStoreId } = useCurrentStore();
@@ -41,12 +43,12 @@ export function UsersPlaceholderPage() {
 
   const accessQuery = useQuery({
     queryKey: ["seller-access", storeId],
-    queryFn: () => listSellersWithAccess(storeId),
+    queryFn: () => listSellerAccessRoles(storeId),
     enabled: SUPABASE_AUTH,
   });
 
   const sellers = sellersQuery.data;
-  const withAccess = accessQuery.data ?? new Set<string>();
+  const accessRoles = accessQuery.data ?? new Map<string, string>();
 
   return (
     <div className="space-y-6">
@@ -72,7 +74,9 @@ export function UsersPlaceholderPage() {
         ) : (
           <ul className="space-y-2">
             {sellers.map((s) => {
-              const hasAccess = withAccess.has(s.id);
+              const accessRole = accessRoles.get(s.id);
+              const hasAccess = accessRole !== undefined;
+              const isOwnerAccess = accessRole === "owner";
               return (
                 <li
                   key={s.id}
@@ -92,15 +96,7 @@ export function UsersPlaceholderPage() {
                     {SUPABASE_AUTH &&
                       (accessQuery.isLoading ? (
                         <Skeleton className="h-6 w-28" />
-                      ) : hasAccess ? (
-                        <Badge
-                          variant="outline"
-                          className="gap-1 border-severity-success/40 text-severity-success"
-                        >
-                          <Icon icon="mdi:check-circle" size={12} />
-                          Acesso ativo
-                        </Badge>
-                      ) : (
+                      ) : !hasAccess ? (
                         <Button
                           size="sm"
                           variant="outline"
@@ -110,6 +106,26 @@ export function UsersPlaceholderPage() {
                           <Icon icon="mdi:account-plus-outline" size={14} />
                           Criar acesso
                         </Button>
+                      ) : (
+                        <>
+                          {s.active ? (
+                            <Badge
+                              variant="outline"
+                              className="gap-1 border-severity-success/40 text-severity-success"
+                            >
+                              <Icon icon="mdi:check-circle" size={12} />
+                              Acesso ativo
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="gap-1 text-muted-foreground">
+                              <Icon icon="mdi:cancel" size={12} />
+                              Desligado
+                            </Badge>
+                          )}
+                          {!isOwnerAccess && (
+                            <ToggleSellerAccessButton seller={s} storeId={storeId} />
+                          )}
+                        </>
                       ))}
                   </div>
                 </li>
@@ -126,7 +142,7 @@ export function UsersPlaceholderPage() {
 
       {SUPABASE_AUTH && (
         <p className="text-xs italic text-muted-foreground">
-          Criar acesso já disponível. Editar papéis, desligar/reativar e convite por email chegam
+          Criar acesso e desligar/reativar já disponíveis. Trocar papéis e convite por email chegam
           nas próximas fases (PRD-107 / PRD-141).
         </p>
       )}

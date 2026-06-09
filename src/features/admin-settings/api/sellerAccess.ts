@@ -25,18 +25,25 @@ export interface IInviteSellerResult {
 }
 
 /**
- * Seller ids that already have a platform access profile. Empty in mock auth
- * mode (no Supabase session). Requires the caller to be staff.
+ * Maps `sellerId → role` for every seller that already has a platform access
+ * profile. Empty in mock auth mode (no Supabase session). Requires the caller
+ * to be staff (policy `profiles_select_staff`). The role lets the UI hide the
+ * deactivate action for Owners.
  */
-export async function listSellersWithAccess(storeId: string): Promise<Set<string>> {
-  if (AUTH_SOURCE !== "supabase") return new Set();
+export async function listSellerAccessRoles(storeId: string): Promise<Map<string, string>> {
+  if (AUTH_SOURCE !== "supabase") return new Map();
   const { data, error } = await getSupabaseClient()
     .from("profiles")
-    .select("seller_id")
+    .select("seller_id, role")
     .eq("store_id", storeId)
     .not("seller_id", "is", null);
   if (error) throw new Error(`Não foi possível carregar os acessos: ${error.message}`);
-  return new Set((data ?? []).map((row) => (row as { seller_id: string }).seller_id));
+  const map = new Map<string, string>();
+  for (const row of data ?? []) {
+    const r = row as { seller_id: string; role: string };
+    map.set(r.seller_id, r.role);
+  }
+  return map;
 }
 
 /** Invokes `invite-seller` (creates the auth user + links the profile). */
@@ -48,6 +55,14 @@ export async function inviteSeller(input: IInviteSellerInput): Promise<IInviteSe
   if (error) throw new Error(await extractFunctionError(error));
   if (!data) throw new Error("Resposta vazia do servidor.");
   return data;
+}
+
+/** Turns a seller's platform login on/off via the `set-seller-access` function. */
+export async function setSellerAccess(sellerId: string, active: boolean): Promise<void> {
+  const { error } = await getSupabaseClient().functions.invoke("set-seller-access", {
+    body: { sellerId, active },
+  });
+  if (error) throw new Error(await extractFunctionError(error));
 }
 
 /** Pulls the JSON `error` field out of a non-2xx Edge Function response. */
