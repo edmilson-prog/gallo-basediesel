@@ -208,7 +208,9 @@ Semanticamente idêntico (permissivas = OR; `(select …)` só muda a estratégi
 
 **Resultado do advisor:** `unindexed_foreign_keys` 21→0, `auth_rls_initplan` 2→0, `multiple_permissive_policies` 1→0. Restam só INFO (`unused_index` — os 21 novos ainda sem tráfego — e config de conexões). `get_advisors(security)` inalterado. Impersonação: owner lê os 2 profiles da loja (`listSellerAccessRoles` ok); vendedor lê só o próprio (1).
 
-**Deferido:** envelopar `current_*()`/`is_staff()` em `(select …)` nas demais ~140 policies (pass proativo de InitPlan; o advisor não flaga, pois são funções wrapper, não `auth.*` direto).
+**Part C (migration `perf_initplan_wrap_helpers`) — FEITO.** Envelopadas em `(select …)` as **151** policies (de 157) que chamam helper — `current_store_id()`/`current_seller_id()`/`current_app_role()`/`is_staff()` viram `(select fn())`, forçando avaliação **InitPlan** (1× por query) em vez de 1× por linha. Reescrita programática via bloco `DO` que tira um snapshot do `pg_policies` numa temp table e dropa/recria cada policy preservando `permissive`/`cmd`/`roles` (o Postgres guarda a função por OID → runtime imune a search_path). Excluídas (sem helper): policies de `profiles` (já com `auth.*` em `(select …)`), `parts_select_anon`, `vehicle_models_select` (`true`) e a do `supabase_auth_admin`.
+
+**Validação:** `still_unwrapped` 151→0; `EXPLAIN` de `select id from orders` (impersonando vendedor) mostra `current_store_id`/`is_staff`/`current_seller_id` como `InitPlan 1/2/3` (uma vez cada); **paridade de impersonação idêntica ao baseline** (owner: orders 477/customers 70/leads 80/quotes 80/conv 96/comm 40/expenses 120/cashflow 5/segments 6/q_replies 20/combos 5/parts 351 · Lucas: 132/18/18/10/28/12/0/0/6/8/0/351). `get_advisors(security)` inalterado.
 
 ## Storefront anônimo — leitura pública da loja B2C (migration `storefront_anon_read`)
 
@@ -254,7 +256,7 @@ Retorna **só** `settings->'storefront'` — nunca cnpj/comissões/financeiro. `
 - **RBAC fino:** pool de não-atribuídos (semântica do pool de conversas sem dono).
 - Testes pgTAP + workflow CI (`rls-tests.yml`).
 - ~~Storefront anônimo (loja B2C em `supabase` precisa de policies `anon` de catálogo).~~ **FEITO** (migration `storefront_anon_read`) — grant por coluna em `parts` + RPC `storefront_config`. **Pendente de wiring:** ligar os providers da loja ao modo `anon` (colunas explícitas + RPC).
-- Performance (PRD-108) — **parcial:** indexar FKs (21 índices, feito) e initplan da `profiles` (feito). **Pendente:** envelopar `current_*()`/`is_staff()` em `(select …)` nas demais policies (pass proativo; advisor não flaga).
+- ~~Performance (PRD-108) — **parcial**~~ **COMPLETO:** FKs indexadas (21 índices), initplan da `profiles`, e Part C (envelopar `current_*()`/`is_staff()` em `(select …)` nas 151 policies — migration `perf_initplan_wrap_helpers`).
 - ~~Habilitar o Custom Access Token Hook~~ **FEITO** (Dashboard, 2026-06-08) — claims reais no JWT; helpers já liam claims com fallback.
 - Remover o fallback `profiles` das helpers quando o hook estiver universal (perf — PRD-108).
 - Fases 2–5 do PRD-107: login real conectado ao `crmClient`, guarda de rotas por `role`, convite de vendedor (Edge Function), signup B2C/B2B, recuperação de senha.
