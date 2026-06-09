@@ -93,12 +93,12 @@ function parseTags(raw: string | undefined): string[] {
     .filter((t) => t.length > 0);
 }
 
-function readState(search: IInboxFiltersSearch, currentUserId: ID | null): IInboxFiltersState {
+function readState(search: IInboxFiltersSearch, currentSellerId: ID | null): IInboxFiltersState {
   return {
     status: (search.status as IInboxFiltersState["status"] | undefined) ?? DEFAULT_FILTERS.status,
     channel:
       (search.channel as IInboxFiltersState["channel"] | undefined) ?? DEFAULT_FILTERS.channel,
-    assignment: search.assignment ?? (currentUserId ? DEFAULT_FILTERS.assignment : "all"),
+    assignment: search.assignment ?? (currentSellerId ? DEFAULT_FILTERS.assignment : "all"),
     tags: parseTags(search.tags),
     period: (search.period as IInboxFiltersState["period"] | undefined) ?? DEFAULT_FILTERS.period,
     search: search.q ?? DEFAULT_FILTERS.search,
@@ -115,7 +115,7 @@ function readState(search: IInboxFiltersSearch, currentUserId: ID | null): IInbo
  * raw query string. Default values are omitted from the URL so the bar
  * stays clean (e.g. `?status=aguardando` not `?status=aguardando&channel=all`).
  */
-export function useInboxFilters(currentUserId: ID | null): {
+export function useInboxFilters(currentSellerId: ID | null): {
   filters: IInboxFiltersState;
   setStatus: (status: IInboxFiltersState["status"]) => void;
   setChannel: (channel: IInboxFiltersState["channel"]) => void;
@@ -135,7 +135,7 @@ export function useInboxFilters(currentUserId: ID | null): {
   // which then triggers a re-navigation that strips the search params we just
   // wrote, making filter changes silently revert.
   const navigate = useNavigate();
-  const filters = useMemo(() => readState(search, currentUserId), [search, currentUserId]);
+  const filters = useMemo(() => readState(search, currentSellerId), [search, currentSellerId]);
 
   const apply = useCallback(
     (patch: Partial<IInboxFiltersSearch>) => {
@@ -201,7 +201,7 @@ function countActive(filters: IInboxFiltersState): number {
  */
 export function filtersToListParams(
   filters: IInboxFiltersState,
-  ctx: { currentUserId: ID | null },
+  ctx: { currentSellerId: ID | null },
 ) {
   const params: Record<string, unknown> = {};
 
@@ -218,8 +218,8 @@ export function filtersToListParams(
   if (filters.search.length > 0) params.search = filters.search;
 
   // Assignment.
-  if (filters.assignment === "me" && ctx.currentUserId) {
-    params.assignedSellerId = ctx.currentUserId;
+  if (filters.assignment === "me" && ctx.currentSellerId) {
+    params.assignedSellerId = ctx.currentSellerId;
   } else if (filters.assignment === "unassigned") {
     params.unassigned = true;
   } else if (filters.assignment === "queue") {

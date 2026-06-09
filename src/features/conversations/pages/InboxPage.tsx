@@ -122,6 +122,11 @@ function useAvailableTags(): string[] {
 export function InboxPage() {
   const { currentUser } = useAuth();
   const userId: ID | null = currentUser?.id ?? null;
+  // Conversations are assigned by seller_id, which is distinct from the auth/user
+  // id in BOTH backends (Supabase: user id = auth_user_id vs profiles.seller_id;
+  // mock: profile.id vs profile.sellerId). Use the seller id for the "me" filter
+  // so it matches conversation.assignedSellerId. `userId` stays for unread tracking.
+  const sellerId: ID | null = currentUser?.sellerId ?? null;
   const navigate = useNavigate();
 
   const selectedId = (useParams({ strict: false }) as { id?: ID }).id ?? null;
@@ -138,14 +143,14 @@ export function InboxPage() {
     setEscalated,
     reset,
     activeCount,
-  } = useInboxFilters(userId);
+  } = useInboxFilters(sellerId);
 
   const availableTags = useAvailableTags();
   const realtime = useRealtimeConversations();
 
   const listParams = useMemo(
-    () => filtersToListParams(filters, { currentUserId: userId }),
-    [filters, userId],
+    () => filtersToListParams(filters, { currentSellerId: sellerId }),
+    [filters, sellerId],
   );
   const {
     items: rawItems,

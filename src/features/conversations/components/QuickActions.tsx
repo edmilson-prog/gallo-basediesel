@@ -43,10 +43,9 @@ export function QuickActions({ conversation, onMutated }: IQuickActionsProps) {
   const sellersProvider = useSellersProvider();
 
   const canTransferOrArchive = usePermission("conversation", "edit", "store");
-  const canSelfAssign =
-    currentUser !== null &&
-    !conversation.assignedSellerId &&
-    conversation.assignedSellerId !== currentUser.id;
+  // A seller can claim an unassigned conversation. Requires a seller identity
+  // (admin-style users without a seller_id cannot self-assign).
+  const canSelfAssign = currentUser?.sellerId != null && !conversation.assignedSellerId;
 
   const [transferOpen, setTransferOpen] = useState(false);
   const [sellers, setSellers] = useState<ISeller[]>([]);
@@ -68,10 +67,11 @@ export function QuickActions({ conversation, onMutated }: IQuickActionsProps) {
   }, [transferOpen, canTransferOrArchive, sellersProvider, conversation.storeId]);
 
   const handleAssignToMe = async () => {
-    if (!currentUser) return;
+    if (!currentUser?.sellerId) return;
+    const sellerId = currentUser.sellerId;
     const before = conversation.assignedSellerId;
     try {
-      await conversationsProvider.assignSeller(conversation.id, currentUser.id);
+      await conversationsProvider.assignSeller(conversation.id, sellerId);
       onMutated?.();
       showUndoableToast(INBOX_STRINGS.assignedToYou, async () => {
         await conversationsProvider.update(conversation.id, {
@@ -86,7 +86,7 @@ export function QuickActions({ conversation, onMutated }: IQuickActionsProps) {
         resource: "conversation",
         resourceId: conversation.id,
         before: { assignedSellerId: before },
-        after: { assignedSellerId: currentUser.id },
+        after: { assignedSellerId: sellerId },
       });
     } catch {
       toast.error(INBOX_STRINGS.actionFailed);
