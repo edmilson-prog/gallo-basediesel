@@ -6,6 +6,21 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.76.0] — Bridge · 2026-06-10
+
+Começou a construção da **ponte para o WhatsApp de verdade** (PRDs 111, 112 e 113): a plataforma agora sabe conversar com os dois caminhos de envio e recebimento — a API oficial da Meta e a Evolution API (auto-hospedada) — cada um com suas capacidades e limites mapeados. **Nada muda na sua experiência nesta versão**: são as fundações invisíveis; o recebimento e o envio reais de mensagens chegam nas próximas etapas, quando as credenciais forem ativadas.
+
+### Added
+
+- **Conector da API oficial do WhatsApp (Meta)** — preparado para enviar textos, mídias, mensagens de modelo aprovadas e botões/listas interativas, receber mensagens e confirmações de entrega/leitura, e verificar a autenticidade de tudo que chega. Já entende as regras da Meta, como a janela de 24 horas para resposta livre.
+- **Conector da Evolution API** — caminho alternativo para contas que ainda não têm aprovação da Meta: envia textos e mídias sem janela de 24 horas, detecta quando o WhatsApp do aparelho desconecta e avisa que é preciso reconectar pelo QR Code.
+- **Registro de auditoria das integrações** — toda conversa da plataforma com os provedores de WhatsApp passa a ser registrada (endereço chamado, resultado, tempo de resposta), visível apenas para o perfil Owner.
+
+### Security
+
+- **Credenciais fora do banco de dados** — as chaves de acesso aos provedores vivem apenas no cofre seguro do servidor, nunca no banco nem no navegador; os registros de auditoria removem automaticamente qualquer segredo e limitam o tamanho do conteúdo guardado.
+- **Verificação criptográfica das mensagens recebidas** — tudo que chega pelos provedores tem a assinatura validada com comparação resistente a ataques de tempo, antes de qualquer processamento.
+
 ## [0.75.0] — Sentinel · 2026-06-10
 
 A plataforma ganhou a sua **rede de segurança**: cópias de segurança automáticas, planos de recuperação prontos e um painel para acompanhar a saúde do sistema. Fecha a faixa de infraestrutura da nuvem (PRDs 100–110). **Nada muda na sua experiência nesta versão** — são proteções e visibilidade dos bastidores.
