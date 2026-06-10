@@ -1,5 +1,4 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.107.0";
 
 /**
  * set-seller-access (PRD-107 Fase 3) — turns a seller's platform login on/off,
@@ -12,117 +11,75 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.107.0";
  *
  * Guards: caller must be staff (owner/manager); nobody may change their own
  * access or deactivate an Owner.
+ *
+ * Shared lifecycle/auth/error patterns: supabase/functions/_shared (PRD-102).
  */
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+import { bestEffortAudit } from "../_shared/audit.ts";
+import { requireCaller, STAFF_ROLES } from "../_shared/auth.ts";
+import { HttpError, json, parseJsonBody } from "../_shared/http.ts";
+import { servePost } from "../_shared/serve.ts";
 
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-const STAFF_ROLES = ["owner", "manager"];
 // ~100 years — effectively permanent until an explicit reactivate ("none").
 const BAN_DURATION = "876600h";
 
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...CORS, "Content-Type": "application/json" },
-  });
-}
+servePost(async (req, { log }) => {
+  // 1) Identify the caller and require staff.
+  const { callerId, admin, profile } = await requireCaller(req, STAFF_ROLES);
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
-  if (req.method !== "POST") return json({ error: "method not allowed" }, 405);
-
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader) return json({ error: "missing authorization" }, 401);
-
-  // 1) Identify the caller.
-  const callerClient = createClient(SUPABASE_URL, ANON_KEY, {
-    global: { headers: { Authorization: authHeader } },
-    auth: { persistSession: false },
-  });
-  const { data: callerData, error: callerErr } = await callerClient.auth.getUser();
-  if (callerErr || !callerData?.user) return json({ error: "invalid session" }, 401);
-  const caller = callerData.user;
-
-  // 2) Caller must be staff.
-  const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
-  const { data: callerProfile } = await admin
-    .from("profiles")
-    .select("role, store_id")
-    .eq("auth_user_id", caller.id)
-    .maybeSingle();
-  if (!callerProfile || !STAFF_ROLES.includes(callerProfile.role)) {
-    return json({ error: "forbidden: requires owner or manager" }, 403);
-  }
-
-  // 3) Parse + validate the input.
-  let body: Record<string, unknown>;
-  try {
-    body = await req.json();
-  } catch {
-    return json({ error: "invalid json body" }, 400);
-  }
+  // 2) Parse + validate the input.
+  const body = await parseJsonBody(req);
   const sellerId = String(body.sellerId ?? "");
   if (!sellerId || typeof body.active !== "boolean") {
-    return json({ error: "missing sellerId or active flag" }, 400);
+    throw new HttpError(400, "missing sellerId or active flag");
   }
   const active = body.active as boolean;
 
-  // 4) Resolve the target seller's access profile (within the caller's store).
+  // 3) Resolve the target seller's access profile (within the caller's store).
   const { data: target } = await admin
     .from("profiles")
     .select("auth_user_id, role, store_id")
     .eq("seller_id", sellerId)
     .maybeSingle();
-  if (!target || target.store_id !== callerProfile.store_id) {
-    return json({ error: "seller has no access in your store" }, 404);
+  if (!target || target.store_id !== profile.store_id) {
+    throw new HttpError(404, "seller has no access in your store");
   }
 
-  // 5) Guards: never touch your own access; never deactivate an Owner.
-  if (target.auth_user_id === caller.id) {
-    return json({ error: "you cannot change your own access" }, 403);
+  // 4) Guards: never touch your own access; never deactivate an Owner.
+  if (target.auth_user_id === callerId) {
+    throw new HttpError(403, "you cannot change your own access");
   }
   if (!active && target.role === "owner") {
-    return json({ error: "owners cannot be deactivated" }, 403);
+    throw new HttpError(403, "owners cannot be deactivated");
   }
 
-  // 6) Ban / un-ban the auth user.
+  // 5) Ban / un-ban the auth user.
   const { error: banErr } = await admin.auth.admin.updateUserById(target.auth_user_id, {
     ban_duration: active ? "none" : BAN_DURATION,
   });
   if (banErr) {
-    return json({ error: `could not update auth user: ${banErr.message}` }, 400);
+    throw new HttpError(400, `could not update auth user: ${banErr.message}`);
   }
 
-  // 7) Flip the business flag.
+  // 6) Flip the business flag.
   const { error: sellerErr } = await admin
     .from("sellers")
     .update({ active, updated_at: new Date().toISOString() })
     .eq("id", sellerId);
   if (sellerErr) {
-    return json({ error: `could not update seller: ${sellerErr.message}` }, 400);
+    throw new HttpError(400, `could not update seller: ${sellerErr.message}`);
   }
 
-  // 8) Audit — best-effort.
-  try {
-    await admin.from("audit_logs").insert({
-      store_id: callerProfile.store_id,
-      actor_id: caller.id,
-      action: active ? "seller.access_reactivated" : "seller.access_deactivated",
-      resource: "seller",
-      resource_id: sellerId,
-      after: { active },
-    });
-  } catch (_) {
-    // ignore audit failures
-  }
+  // 7) Audit — best-effort.
+  await bestEffortAudit(admin, {
+    store_id: profile.store_id,
+    actor_id: callerId,
+    action: active ? "seller.access_reactivated" : "seller.access_deactivated",
+    resource: "seller",
+    resource_id: sellerId,
+    after: { active },
+  });
 
+  log.info("seller access toggled", { sellerId, active });
   return json({ sellerId, active }, 200);
 });
