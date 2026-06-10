@@ -6,6 +6,23 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.80.0] — Hourglass · 2026-06-10
+
+A **janela de 24 horas do WhatsApp ficou visível e precisa** (PRD-117): o aviso na conversa agora mostra exatamente quanto tempo resta para responder com texto livre, e quando a janela fecha o caminho para o modelo aprovado está a um clique.
+
+### Added
+
+- **Atalho direto para o modelo** — quando a janela fecha, o aviso na conversa ganha o botão "Selecionar template", que abre o seletor de modelos aprovados na hora — sem precisar tentar enviar e receber o aviso de bloqueio.
+
+### Changed
+
+- **Contagem regressiva exata** — o tempo restante da janela passa a ser calculado pela última mensagem recebida **do cliente** registrada no servidor; antes, em alguns casos, mensagens enviadas pela loja podiam fazer a janela parecer aberta quando já tinha fechado.
+- **Reabertura em tempo real** — se o cliente responder com a tela aberta, o aviso volta a verde e o campo de mensagem reabilita na hora, sem recarregar.
+
+### Security
+
+- **Consulta protegida** — a verificação do horário da última mensagem respeita as mesmas regras de acesso do banco: cada vendedor só consulta as conversas que pode ver, e visitantes não autenticados não têm acesso.
+
 ## [0.79.0] — Stencil · 2026-06-10
 
 Chegaram os **modelos de mensagem aprovados (templates HSM)** (PRD-116) — a única forma que a API oficial da Meta permite para falar com o cliente fora da janela de 24 horas. A plataforma agora tem o catálogo desses modelos e um seletor integrado à conversa. Em modo demonstração, nada muda na sua experiência.
