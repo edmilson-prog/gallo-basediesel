@@ -1,5 +1,6 @@
 import type { ID, IWhatsAppAccount } from "@/shared/types";
 import { selectAllWhatsAppAccounts } from "../store/selectors";
+import { patchById } from "../store/mutations";
 import { MockNotFoundError, runApi } from "./utils";
 
 export const whatsappAccountsApi = {
@@ -17,5 +18,18 @@ export const whatsappAccountsApi = {
       if (!found) throw new MockNotFoundError("whatsapp_account", id);
       return found;
     });
+  },
+
+  async update(id: ID, patch: Partial<IWhatsAppAccount>): Promise<IWhatsAppAccount> {
+    return runApi(
+      "whatsappAccountsApi",
+      "update",
+      () => {
+        const updated = patchById("whatsappAccounts", id, patch);
+        if (!updated) throw new MockNotFoundError("whatsapp_account", id);
+        return updated;
+      },
+      { payload: { id, patch } },
+    );
   },
 };

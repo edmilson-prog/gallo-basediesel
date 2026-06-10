@@ -91,6 +91,12 @@ Shapes do `provider_config`:
 > config não-secreta e `credentials_ref` nomeia o secret. Mesma garantia
 > (RNF-005), menos superfície.
 
+Desde o **PRD-119** (reconciliação da Onda 5 — `docs/dev/onda5-migration.md`),
+`label`/`credentials_ref`/`provider_config` são editáveis pela tela
+Configurações → WhatsApp (`WhatsAppAccountsPage`, rota Owner-only) via
+`IWhatsAppAccountsProvider.update`; a RLS aperta as escritas de
+`whatsapp_accounts` para staff (migration `20260610145458`).
+
 ## Onde o engine real roda
 
 O envio/recepção REAL (tokens Meta, apiKey Evolution) acontece **server-side

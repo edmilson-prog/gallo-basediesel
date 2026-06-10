@@ -26,6 +26,7 @@ import type {
   ISdrEscalation,
   ISdrSession,
   IVehicle,
+  IWhatsAppAccount,
   ID,
 } from "@/shared/types";
 import { useMockStore } from "./mockStore";
@@ -55,7 +56,8 @@ type CollectionKey =
   | "quickReplies"
   | "trackableLinks"
   | "assetCombos"
-  | "scheduledSends";
+  | "scheduledSends"
+  | "whatsappAccounts";
 
 type CollectionMap = {
   customers: ICustomer;
@@ -83,6 +85,7 @@ type CollectionMap = {
   trackableLinks: ITrackableLink;
   assetCombos: IAssetCombo;
   scheduledSends: IScheduledSend;
+  whatsappAccounts: IWhatsAppAccount;
 };
 
 /**

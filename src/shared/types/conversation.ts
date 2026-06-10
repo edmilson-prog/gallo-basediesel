@@ -114,6 +114,24 @@ export interface IWhatsAppCapabilities {
 }
 
 /**
+ * Non-secret engine configuration of a WhatsApp account (PRD-111/119).
+ * Which fields apply depends on {@link IWhatsAppAccount.provider}: Meta uses
+ * `phoneNumberId`/`businessAccountId`; Evolution uses `baseUrl`/`instanceName`.
+ * Secrets NEVER live here — they are Edge Function secrets named by the
+ * `credentialsRef` prefix.
+ */
+export interface IWhatsAppProviderConfig {
+  /** Meta Cloud API — WhatsApp Business phone number id. */
+  phoneNumberId?: string;
+  /** Meta Cloud API — WhatsApp Business Account (WABA) id. */
+  businessAccountId?: string;
+  /** Evolution — base URL of the Evolution API instance host. */
+  baseUrl?: string;
+  /** Evolution — instance name within the host. */
+  instanceName?: string;
+}
+
+/**
  * WhatsApp account configured per store.
  * `credentialsRef` is **always** an obfuscated reference — never the raw credential.
  * Secrets live in a vault (Fase 2) and are dereferenced server-side.
@@ -128,5 +146,7 @@ export interface IWhatsAppAccount {
   credentialsRef: string;
   status: WhatsAppAccountStatus;
   capabilities: IWhatsAppCapabilities;
+  /** Non-secret engine config (PRD-111). `undefined` while unconfigured. */
+  providerConfig?: IWhatsAppProviderConfig;
   createdAt: ISO8601;
 }
