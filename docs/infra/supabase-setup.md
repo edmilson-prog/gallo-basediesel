@@ -52,5 +52,9 @@ VITE_SUPABASE_PUBLISHABLE_KEY=…
 | `rls-tests.yml` | PR tocando `supabase/tests/**` | `SUPABASE_DB_URL` |
 | `db-deploy.yml` | push em `main` tocando `supabase/migrations/**` | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, `SUPABASE_DB_PASSWORD` |
 | `gen-types.yml` | PR tocando migrations/tipos | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF` |
+| `logical-backup.yml` | agendado (dom 06:00 UTC) | `SUPABASE_DB_URL` |
+| `storage-backup.yml` | agendado (dom 07:00 UTC) | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` |
 
-Todos são **no-op verdes** até os secrets existirem — adicionar os secrets é a única ativação necessária.
+Todos são **no-op verdes** até os secrets existirem — adicionar os secrets é a única
+ativação necessária. Política de backup/DR e runbooks de restauração:
+`docs/infra/dr-policy.md` + `docs/infra/runbooks/`.
