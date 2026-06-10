@@ -74,6 +74,18 @@ interface ImportMetaEnv {
   readonly VITE_WHATSAPP_PROVIDER?: "mock";
 
   /**
+   * Forces the DINTEC import provider factory to the mock provider
+   * regardless of the active data source (PRD-121, RF-011).
+   *
+   * Optional. When unset, the provider follows `VITE_DATA_SOURCE` (`mock` →
+   * MockDintecProvider; `supabase` → CsvDintecProvider, available from
+   * PRD-122 onwards).
+   *
+   * @see src/providers/dintec/factory.ts
+   */
+  readonly VITE_DINTEC_PROVIDER?: "mock";
+
+  /**
    * Factory default for where the Sales Copilot surface renders on the
    * conversation screen (PRD-025).
    *
