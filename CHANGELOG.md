@@ -6,6 +6,21 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.77.0] — Gateway · 2026-06-10
+
+A **porta de entrada das mensagens reais do WhatsApp** está construída (PRD-114): quando um cliente mandar mensagem para um número da GALLO, ela vai chegar direto na tela de Atendimento — com cliente e conversa criados automaticamente quando for um contato novo. **Nada muda na sua experiência ainda**: o recebimento liga quando as credenciais dos provedores forem ativadas.
+
+### Added
+
+- **Recebimento unificado de mensagens** — um único ponto de entrada recebe as mensagens dos dois provedores (API oficial da Meta e Evolution), identifica a conta da loja, encontra ou cria o cliente e a conversa, e registra a mensagem — que aparece na tela de Atendimento em tempo real.
+- **Cliente novo entra como "revisar"** — quem manda mensagem sem cadastro vira um cliente mínimo marcado para revisão, atribuído ao gestor da loja — sem inventar dados.
+- **Confirmações de entrega e leitura** — quando o destinatário recebe ou lê uma mensagem enviada, o estado dela é atualizado na conversa.
+- **Mídias recebidas guardadas na hora** — fotos, áudios e documentos enviados pelos clientes são baixados imediatamente (os links dos provedores expiram em minutos) e guardados no armazenamento privado da plataforma.
+
+### Security
+
+- **Porta fechada por padrão** — toda chamada recebida tem a autenticidade verificada criptograficamente (ou por lista de IPs confiáveis); sem as chaves configuradas, o ponto de entrada recusa tudo. Eventos repetidos pelos provedores nunca duplicam mensagens, e os registros de auditoria mascaram o telefone do cliente.
+
 ## [0.76.0] — Bridge · 2026-06-10
 
 Começou a construção da **ponte para o WhatsApp de verdade** (PRDs 111, 112 e 113): a plataforma agora sabe conversar com os dois caminhos de envio e recebimento — a API oficial da Meta e a Evolution API (auto-hospedada) — cada um com suas capacidades e limites mapeados. **Nada muda na sua experiência nesta versão**: são as fundações invisíveis; o recebimento e o envio reais de mensagens chegam nas próximas etapas, quando as credenciais forem ativadas.
