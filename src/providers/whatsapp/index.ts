@@ -25,10 +25,21 @@ export type {
   IMediaDownloadResult,
   IHealthCheckResult,
   IProviderCapabilities,
+  SecretResolver,
+  IIntegrationLogEntry,
+  IntegrationLogSink,
+  IEngineDeps,
+  IMetaAccountConfig,
+  IEvolutionAccountConfig,
 } from "./types";
+export { WhatsAppProviderError, type WhatsAppErrorCode } from "./errors";
 export {
   getWhatsAppProvider,
+  getEngineCapabilities,
   invalidateWhatsAppProviderCache,
   WhatsAppAccountNotFoundError,
 } from "./factory";
+export { buildWhatsAppEngine, type IBuildEngineInput } from "./build";
+export { MetaCloudProvider } from "./meta/MetaCloudProvider";
+export { EvolutionProvider } from "./evolution/EvolutionProvider";
 export { MockWhatsAppProvider, type IMockInboundPayload } from "./mock/MockWhatsAppProvider";

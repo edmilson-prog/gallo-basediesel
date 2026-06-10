@@ -84,7 +84,7 @@ export class MockWhatsAppProvider implements IWhatsAppProvider {
     return mockSendResult();
   }
 
-  verifyWebhookSignature(_rawBody: string, signature: string): boolean {
+  async verifyWebhookSignature(_rawBody: string, signature: string): Promise<boolean> {
     // The mock accepts any non-empty signature so error paths stay testable.
     return signature.length > 0;
   }

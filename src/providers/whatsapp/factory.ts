@@ -15,9 +15,13 @@
  *   the PRD, mirroring how the data-provider stubs were staged.
  */
 
-import { getActiveDataSource, NotImplementedError } from "@/providers/data";
+import { getActiveDataSource } from "@/providers/data";
 import { getSupabaseClient } from "@/shared/lib/supabase";
+import { WhatsAppProviderError } from "./errors";
 import type { IWhatsAppProvider } from "./IWhatsAppProvider";
+import type { IProviderCapabilities, WhatsAppProviderEngine } from "./types";
+import { EVOLUTION_CAPABILITIES } from "./evolution/constants";
+import { META_CAPABILITIES } from "./meta/constants";
 import { MockWhatsAppProvider } from "./mock/MockWhatsAppProvider";
 
 /** Raised when the account does not exist, is not visible (RLS) or is off. */
@@ -67,15 +71,33 @@ export async function getWhatsAppProvider(accountId: string): Promise<IWhatsAppP
 
   switch (data.provider) {
     case "meta":
-      throw new NotImplementedError(
-        "MetaCloudProvider — implementar no PRD-112 (Meta Cloud API Provider)",
-      );
     case "evolution":
-      throw new NotImplementedError(
-        "EvolutionProvider — implementar no PRD-113 (Evolution API Provider)",
+      // The real engines (PRDs 112/113) exist but require Edge Function
+      // secrets — they run SERVER-SIDE only (webhook PRD-114, send PRD-115,
+      // via `buildWhatsAppEngine`). In the app, use the mock engine or the
+      // static capability matrix below for read-only surfaces.
+      throw new WhatsAppProviderError(
+        "NOT_SUPPORTED",
+        501,
+        `Engine '${data.provider}' roda server-side (Edge Functions — PRDs 114/115). No app, use VITE_WHATSAPP_PROVIDER=mock ou getEngineCapabilities('${data.provider}').`,
       );
     default:
       throw new WhatsAppAccountNotFoundError(accountId);
+  }
+}
+
+/**
+ * Static capability matrix per engine (PRD-111 RF-004) — safe for read-only
+ * UI surfaces without instantiating an engine (no secrets involved).
+ */
+export function getEngineCapabilities(engine: WhatsAppProviderEngine): IProviderCapabilities {
+  switch (engine) {
+    case "meta":
+      return META_CAPABILITIES;
+    case "evolution":
+      return EVOLUTION_CAPABILITIES;
+    case "mock":
+      return new MockWhatsAppProvider().capabilities;
   }
 }
 

@@ -1,21 +1,40 @@
-# WhatsApp Providers — arquitetura (PRD-111)
+# WhatsApp Providers — arquitetura (PRDs 111/112/113)
 
-> Fundação da Onda 5 (WhatsApp Real). Os PRDs 112 (Meta Cloud API) e 113
-> (Evolution API) implementam contra a interface descrita aqui; os PRDs
-> 114–120 (webhook, envio, templates, janela 24h, status, migração, failover)
-> consomem só a abstração.
+> Fundação da Onda 5 (WhatsApp Real). O PRD-111 definiu a interface; os PRDs
+> 112 (Meta Cloud API) e 113 (Evolution API) entregaram os engines reais; os
+> PRDs 114–120 (webhook, envio, templates, janela 24h, status, migração,
+> failover) consomem só a abstração.
 
 ## Visão geral
 
 ```
 src/providers/whatsapp/
 ├── IWhatsAppProvider.ts   # contrato único (envio, recepção, mídia, health)
-├── types.ts               # tipos normalizados (I*) — fronteira canônica
-├── factory.ts             # getWhatsAppProvider(accountId) + cache por conta
+├── types.ts               # tipos normalizados (I*) + deps/configs de engine
+├── errors.ts              # WhatsAppProviderError (code + httpStatus)
+├── phone.ts               # E.164 (assertE164/toWireNumber/toE164)
+├── crypto.ts              # HMAC-SHA256 (Web Crypto) + constant-time compare
+├── sanitize.ts            # redação de segredos + truncamento p/ logs (10KB)
+├── http.ts                # ciclo compartilhado: timeout 30s, latência, log sink
+├── build.ts               # buildWhatsAppEngine(row + deps) — puro, server-side
+├── factory.ts             # getWhatsAppProvider(accountId) + cache por conta (app)
+├── meta/                  # MetaCloudProvider (PRD-112): client, signature,
+│                          #   parser, errors, constants + testes
+├── evolution/             # EvolutionProvider (PRD-113): client, parser,
+│                          #   errors, constants + testes
 ├── mock/MockWhatsAppProvider.ts  # engine sintético (default em mock)
 ├── factory.test.ts        # contrato + cache + RF-015
 └── index.ts               # barrel público (@/providers/whatsapp)
 ```
+
+**Regra de ouro da camada: runtime-agnostic.** Todo arquivo usa só Web APIs
+(`fetch`, `crypto.subtle`, `FormData`) e **imports relativos** — sem
+`import.meta.env`, sem `@/`, sem Deno/Node APIs (exceções: `factory.ts`, que é
+app-side, e os testes). Dependências de ambiente entram **injetadas**
+(`IEngineDeps`: `resolveSecret`, `logIntegration`, `fetchFn`). Por isso o
+mesmo código roda nos testes Vitest e será espelhado byte a byte em
+`supabase/functions/_shared/whatsapp/` nos PRDs 114/115 (decisão de layout
+que o PRD-112 resolveu).
 
 - **Factory por conta, não singleton:** cada linha de `whatsapp_accounts`
   carrega o próprio `provider` — duas lojas podem operar Meta e Evolution em
@@ -24,10 +43,11 @@ src/providers/whatsapp/
   após trocar `provider`/`provider_config`.
 - **Resolução do engine:** `VITE_WHATSAPP_PROVIDER=mock` **ou** fonte de dados
   ativa `mock` (default do build) → `MockWhatsAppProvider` para qualquer id.
-  Fonte `supabase` → lookup da conta (RLS se aplica) e engine do `provider`;
-  até os PRDs 112/113, `meta`/`evolution` lançam `NotImplementedError`
-  apontando o PRD que os implementa (mesmo padrão de staging dos data
-  providers da Fase 2).
+  Fonte `supabase` → lookup da conta (RLS se aplica); para `meta`/`evolution`
+  a factory **do app** lança `WhatsAppProviderError('NOT_SUPPORTED', 501)`:
+  os engines reais exigem secrets e rodam **server-side** — Edge Functions os
+  instanciam via `buildWhatsAppEngine` (PRDs 114/115). Superfícies read-only
+  do app usam `getEngineCapabilities(engine)` (matriz estática, sem segredo).
 - **Capabilities, não if-por-provider:** consumidores ramificam por
   `provider.capabilities.supportsTemplates` etc., nunca por
   `providerName === 'meta'`.
@@ -40,7 +60,7 @@ src/providers/whatsapp/
 | Método | Contrato |
 | --- | --- |
 | `sendText/sendMedia/sendTemplate/sendInteractive` | Recebem input normalizado, retornam `ISendResult { providerMessageId, status: 'queued'\|'sent' }`. Erros sempre via throw (nunca result de erro). |
-| `verifyWebhookSignature(rawBody, signature)` | Validação criptográfica/token do webhook (PRD-114). Sem side effects. |
+| `verifyWebhookSignature(rawBody, signature)` | **Async** (Web Crypto HMAC). Validação criptográfica/token do webhook (PRD-114), comparação constant-time. Nunca lança — input inválido ⇒ `false`. |
 | `parseInboundMessage(rawPayload)` | Normaliza para `IInboundMessage` ou `IInboundStatus`; **lança** em payload irreconhecível. |
 | `downloadInboundMedia(mediaId)` | Bytes + mime do objeto de mídia do provider. |
 | `uploadOutboundMedia(data, mimeType)` | Sobe mídia, retorna `{ mediaId }` para usar em `sendMedia`. |
@@ -75,10 +95,14 @@ Shapes do `provider_config`:
 
 O envio/recepção REAL (tokens Meta, apiKey Evolution) acontece **server-side
 nas Edge Functions** (webhook PRD-114, envio PRD-115) — segredos jamais no
-browser. A implementação edge dos engines (PRDs 112/113) seguirá este mesmo
-contrato em `supabase/functions/_shared/whatsapp/` (decisão de layout no
-PRD-112). No app, a factory existe para o modo mock (desenvolvimento/testes)
-e para superfícies read-only (capabilities, health do dashboard).
+browser. Os engines (PRDs 112/113) vivem em `src/providers/whatsapp/{meta,evolution}/`
+como código runtime-agnostic; os PRDs 114/115 os espelham em
+`supabase/functions/_shared/whatsapp/` no deploy, injetando
+`resolveSecret: (n) => Deno.env.get(n)` e um `logIntegration` que grava em
+`public.integration_logs` (service_role; tabela da migration
+`20260610122110` — RLS owner-only read, sem write policies). No app, a
+factory existe para o modo mock (desenvolvimento/testes) e para superfícies
+read-only (`getEngineCapabilities`).
 
 ## Como adicionar um provider novo (ex.: Twilio — fora do MVP)
 
@@ -92,17 +116,20 @@ e para superfícies read-only (capabilities, health do dashboard).
    (`whatsapp_accounts_provider_config_shape`) via migration aditiva.
 5. Documentar capabilities aqui e cobrir com testes de contrato.
 
-## Capabilities de referência (valores esperados nos PRDs 112/113)
+## Capabilities entregues (PRDs 112/113 — valores reais dos engines)
 
 | Capability | Meta Cloud | Evolution | Mock |
 | --- | --- | --- | --- |
-| `supportsTemplates` (HSM) | ✅ | ❌ | ✅ |
-| `supportsInteractive` | ✅ | parcial (depende da versão) | ✅ |
-| `supportsMediaUpload` | ✅ | ✅ | ✅ |
-| `supportsStatusReadReceipts` | ✅ | ✅ | ✅ |
+| `supportsTemplates` (HSM) | ✅ | ❌ (`sendTemplate` lança `NOT_SUPPORTED`) | ✅ |
+| `supportsInteractive` | ✅ (buttons ≤3, list ≤10) | ❌ (`sendInteractive` lança `NOT_SUPPORTED`) | ✅ |
+| `supportsMediaUpload` | ✅ (2 passos) | ❌ — mídia vai por **URL** em `sendMedia` | ✅ |
+| `supportsStatusReadReceipts` | ✅ | ✅ (acks Baileys) | ✅ |
 | `supportsCustomWebhook` | ❌ | ✅ | ✅ |
-| `maxMessageLength` | 4096 | ~65k | 4096 |
-| `maxMediaSizeBytes` | 16 MiB | configurável (VPS) | 16 MiB |
+| `maxMessageLength` | 4096 | 65536 | 4096 |
+| `maxMediaSizeBytes` | 16 MiB | 64 MiB (configurável na VPS) | 16 MiB |
+
+Detalhes por engine: `docs/dev/whatsapp-meta-provider.md` e
+`docs/dev/whatsapp-evolution-provider.md`.
 
 ## Desvios do PRD-111 (registrados)
 
@@ -115,3 +142,7 @@ e para superfícies read-only (capabilities, health do dashboard).
 4. **Prefixo `I` nos tipos** (`ISendTextInput`, …) — convenção do repositório.
 5. **Erro de conta:** classe própria `WhatsAppAccountNotFoundError` (não há
    `AppError` no repo); mensagem pt-BR idêntica à do PRD.
+6. **`verifyWebhookSignature` é async** (ajuste dos PRDs 112/113, mesmo PR):
+   o HMAC usa Web Crypto (`crypto.subtle`), que é assíncrono. Engines também
+   ganharam `InboundContentType: "unknown"` (PRD-112 RF-090) e o erro comum
+   `WhatsAppProviderError` em `errors.ts`.

@@ -44,8 +44,12 @@ export interface IWhatsAppProvider {
   sendInteractive(input: ISendInteractiveInput): Promise<ISendResult>;
 
   // ===== Receiving (webhook utilities — PRD-114) ===========================
-  /** Validates the webhook signature/token of the raw request body. */
-  verifyWebhookSignature(rawBody: string, signature: string): boolean;
+  /**
+   * Validates the webhook signature/token of the raw request body. Async
+   * because real engines use Web Crypto HMAC (PRD-112 RF-080). Never throws —
+   * unverifiable input returns `false`.
+   */
+  verifyWebhookSignature(rawBody: string, signature: string): Promise<boolean>;
   /**
    * Normalizes a raw webhook payload into a canonical inbound message or a
    * delivery-status update. Throws on payloads the provider cannot parse.

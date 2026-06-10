@@ -11,7 +11,13 @@
  * convention (CLAUDE.md) prefixes domain interfaces with `I`, so that wins.
  */
 
-import type { ISO8601 } from "@/shared/types";
+/**
+ * Local alias instead of importing `@/shared/types` on purpose: every file in
+ * this layer is RUNTIME-AGNOSTIC (browser/Deno/Node) and uses only relative
+ * imports, so PRDs 114/115 can mirror it byte-identical into
+ * `supabase/functions/_shared/whatsapp/`.
+ */
+type ISO8601 = string;
 
 /** Provider engines supported today. Extending = widening this union (PRD-111 RF-003). */
 export type WhatsAppProviderEngine = "meta" | "evolution" | "mock";
@@ -24,7 +30,8 @@ export type InboundContentType =
   | "video"
   | "document"
   | "location"
-  | "contact";
+  | "contact"
+  | "unknown";
 
 /** Media kinds accepted for outbound sends. */
 export type OutboundMediaType = "image" | "audio" | "video" | "document";
@@ -161,6 +168,7 @@ export interface IHealthCheckResult {
 export interface IProviderCapabilities {
   supportsTemplates: boolean;
   supportsInteractive: boolean;
+  /** Separate media-upload step (Meta 2-step flow). Evolution sends by URL. */
   supportsMediaUpload: boolean;
   /** delivered/read receipts via webhook statuses. */
   supportsStatusReadReceipts: boolean;
@@ -168,4 +176,65 @@ export interface IProviderCapabilities {
   supportsCustomWebhook: boolean;
   maxMessageLength: number;
   maxMediaSizeBytes: number;
+}
+
+// ===== Engine construction (PRDs 112/113) ==================================
+
+/**
+ * Resolves a named secret (Edge Function secret in production, stub in tests).
+ * Returns `undefined` when the secret is not configured — required secrets
+ * make the engine throw; optional ones (e.g. Evolution webhook secret) fall
+ * back gracefully.
+ */
+export type SecretResolver = (secretName: string) => Promise<string | undefined>;
+
+/** One sanitized record of an outbound provider call (PRD-112 RF-120). */
+export interface IIntegrationLogEntry {
+  integrationName: "whatsapp_meta" | "whatsapp_evolution";
+  direction: "outbound" | "inbound";
+  endpoint: string;
+  httpStatus?: number;
+  latencyMs: number;
+  traceId?: string;
+  /** Sanitized/truncated — never carries tokens or full binaries. */
+  requestPayload?: unknown;
+  responsePayload?: unknown;
+  errorMessage?: string;
+}
+
+/** Persists an integration log entry. Failures are swallowed by the client. */
+export type IntegrationLogSink = (entry: IIntegrationLogEntry) => void | Promise<void>;
+
+/**
+ * Dependencies injected into concrete engines. Server-side (Edge Functions —
+ * PRDs 114/115) wires `Deno.env` + `public.integration_logs`; tests inject
+ * stubs. Engines never reach for globals beyond `fetch`/`crypto`.
+ */
+export interface IEngineDeps {
+  resolveSecret: SecretResolver;
+  logIntegration?: IntegrationLogSink;
+  /** Injectable for tests; defaults to `globalThis.fetch`. */
+  fetchFn?: typeof fetch;
+}
+
+/** Non-secret Meta account config (`whatsapp_accounts.provider_config`). */
+export interface IMetaAccountConfig {
+  accountId: string;
+  phoneNumberId: string;
+  businessAccountId: string;
+  /**
+   * Secret-name PREFIX (`whatsapp_accounts.credentials_ref`). The engine
+   * resolves `<ref>_ACCESS_TOKEN`, `<ref>_APP_SECRET`, `<ref>_VERIFY_TOKEN`.
+   */
+  credentialsRef: string;
+}
+
+/** Non-secret Evolution account config (`whatsapp_accounts.provider_config`). */
+export interface IEvolutionAccountConfig {
+  accountId: string;
+  /** Base URL of the self-hosted Evolution API (e.g. https://evo.example.com). */
+  baseUrl: string;
+  instanceName: string;
+  /** Prefix for `<ref>_API_KEY` and optional `<ref>_WEBHOOK_SECRET`. */
+  credentialsRef: string;
 }

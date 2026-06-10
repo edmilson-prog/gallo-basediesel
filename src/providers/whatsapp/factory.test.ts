@@ -157,8 +157,8 @@ describe("MockWhatsAppProvider contract (RF-020..024)", () => {
     expect(new Date(health.checkedAt).getTime()).not.toBeNaN();
   });
 
-  it("verifyWebhookSignature accepts non-empty and rejects empty signatures", () => {
-    expect(provider.verifyWebhookSignature("body", "sig")).toBe(true);
-    expect(provider.verifyWebhookSignature("body", "")).toBe(false);
+  it("verifyWebhookSignature accepts non-empty and rejects empty signatures", async () => {
+    expect(await provider.verifyWebhookSignature("body", "sig")).toBe(true);
+    expect(await provider.verifyWebhookSignature("body", "")).toBe(false);
   });
 });
