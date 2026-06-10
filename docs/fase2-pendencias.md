@@ -33,12 +33,10 @@ A **loja transacional** (checkout + conta B2C) foi **deferida da Fase 2 por deci
 - **Issue:** #45
 
 ### A2 — Ativar convite por e-mail (Resend) {#a2-resend}
-- **O quê:** ligar o fluxo de convite de vendedor por e-mail (Edge Function `invite-seller-email`, hoje **inerte**).
-- **Status:** scaffold pronto (`supabase/functions/invite-seller-email/index.ts`, v1 ACTIVE, `verify_jwt:true`). Não dispara nada sem a chave.
-- **Bloqueio / dono:** criar conta **Resend** + domínio verificado; setar `RESEND_API_KEY`, `RESEND_FROM`, `INVITE_REDIRECT_URL` no projeto. Falta também: wiring client (`inviteSellerByEmail`) + dialog, e a rota `/auth/definir-senha` (destino do link).
-- **Critério de pronto:** owner convida um vendedor por e-mail, ele recebe o link, define senha e loga.
-- **Arquivos:** `supabase/functions/invite-seller-email/index.ts` (+ wiring client a fazer).
-- **Issue:** #46
+- **Status:** ✅ **FEITO (2026-06-10, validado e2e pelo dono).** Secrets setados (`RESEND_API_KEY`/`RESEND_FROM`/`INVITE_REDIRECT_URL`), domínio verificado, allowlist da redirect URL configurada no Auth. Wiring completo entregue no PR #50 (v0.74.0): rota `/auth/definir-senha` + `inviteSellerByEmail` + botão "Convidar por e-mail" no dialog de Usuários. **Teste de ponta a ponta passou**: convite → e-mail → link → senha definida → login.
+- **Follow-ups registrados:** (a) **rotacionar a `RESEND_API_KEY`** (apareceu em print durante a configuração — runbook `docs/infra/rotate-keys.md`); (b) se o teste usou `INVITE_REDIRECT_URL` de localhost, **voltar para a URL de produção** quando o flip (#47) acontecer.
+- **Arquivos:** `supabase/functions/invite-seller-email/index.ts`, `src/features/auth/SetPasswordPage.tsx`, `src/features/admin-settings/api/sellerAccess.ts`.
+- **Issue:** #46 (fechado).
 
 ### A3 — Flip de produção + smoke final {#a3-flip}
 - **O quê:** virar o default de **produção** para `supabase` (env na Vercel, escopo Production) e rodar o smoke geral.
