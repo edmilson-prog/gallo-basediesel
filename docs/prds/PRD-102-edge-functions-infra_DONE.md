@@ -1,5 +1,11 @@
 # PRD-102: Edge Functions — Infraestrutura
 
+> **✅ STATUS: CONCLUÍDO (com ressalvas) — 2026-06-09**
+>
+> `_shared/` (cors/http/env/logger/serve/auth/audit), canário `hello-trace`, e as 5 funções de gestão de usuários refatoradas e redeployadas (v3) com smoke verde (boot + pipeline + `x-trace-id`). `edge-deploy.yml`, `deno.json` e `docs/edge/conventions.md` entregues.
+>
+> **Ressalvas:** testes unitários Deno de `_shared/` não criados (sem runner Deno no CI atual); módulos idempotency/integration-log ficam para a primeira função que os exija (épico WhatsApp, PRDs 111+).
+
 ## Informações Gerais
 
 | Campo                 | Valor                                                                                                                                                                                                                                                                                                                                                                                                                                              |

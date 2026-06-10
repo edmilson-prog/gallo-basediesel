@@ -1,5 +1,11 @@
 # PRD-101: Schema do Banco (Migrations + Seeds)
 
+> **✅ STATUS: CONCLUÍDO (com ressalvas) — 2026-06-09**
+>
+> Migrations exportadas byte a byte do histórico remoto para `supabase/migrations/` (+ regra de export no README do diretório), 40 tabelas com RLS, seed (`scripts/seed-supabase.ts`), tipos gerados em `src/types/supabase.generated.ts`, visão geral em `docs/db/schema-overview.md`. Desvio registrado: schema único `public` (não `crm`+`storefront`).
+>
+> **Ressalvas:** `gen-types.yml` é no-op até os secrets (#45); os providers ainda não consomem o tipo `Database` gerado (adoção incremental).
+
 ## Informações Gerais
 
 | Campo                 | Valor                                                                                                                                                                                                                                                                                                                                           |
