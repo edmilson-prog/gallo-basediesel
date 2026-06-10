@@ -6,6 +6,25 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.83.0] — Relay · 2026-06-10
+
+A **etapa do WhatsApp real está completa**: se uma conta de WhatsApp cair, o sistema agora tem **plano B** (PRD-120) — os envios novos passam automaticamente para uma conta reserva, o dono é avisado e tudo volta ao normal sozinho quando o provedor se recupera.
+
+### Added
+
+- **Failover entre contas** — cada conta de WhatsApp pode ter uma conta reserva e uma política: desativado, manual (você liga quando quiser) ou automático (liga sozinho quando a conta principal cai). Enquanto a contingência está ativa, as mensagens novas saem pela reserva; o histórico e o recebimento continuam no número original.
+- **Monitor de saúde dos provedores** — uma rotina no servidor avalia a cada 5 minutos a taxa de erro de cada provedor; quando uma conta degrada ou cai, o estado muda, o gestor recebe um aviso no sino e, na política automática, a contingência liga sozinha. Após 30 minutos saudável, ela desliga e avisa.
+- **Painel de provedores** — a tela Gestão → Saúde do Sistema ganhou a seção "WhatsApp — Provedores & Failover": estado de cada conta, chamadas das últimas 24h, taxa de erro, latência e a situação da contingência.
+- **Controles do dono** — em Configurações → WhatsApp você define a política e a conta reserva, e tem os botões "Ativar failover agora" / "Desativar failover". Toda mudança fica registrada na auditoria.
+
+### Changed
+
+- **Envio ciente da contingência** — com o failover ativo, o aviso de janela de 24 horas considera o provedor que realmente vai enviar; modelos aprovados não saem por reserva sem suporte a eles — nesse caso o sistema bloqueia com explicação clara em vez de enviar errado.
+
+### Security
+
+- **Painel restrito ao dono** — os indicadores de provedores só retornam para o perfil Owner (regra no banco); a rotina de monitoramento não pode ser executada por usuários do aplicativo.
+
 ## [0.82.0] — Weave · 2026-06-10
 
 A **integração do WhatsApp real fechou o ciclo com as telas do dia a dia** (PRD-119): anexar arquivos direto na conversa agora funciona de verdade, e a tela de configuração das contas de WhatsApp saiu do "em breve".
