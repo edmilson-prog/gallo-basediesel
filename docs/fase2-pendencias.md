@@ -135,7 +135,7 @@ A **loja transacional** (checkout + conta B2C) foi **deferida da Fase 2 por deci
 
 ---
 
-## E. DINTEC (Onda 6) — encerrada por decisão {#e-dintec}
+## E. Onda 6 (DINTEC + NF-e) — encerrada por decisão {#e-dintec}
 
 > **Decisão registrada (2026-06-10):** o DINTEC não disponibiliza export de dados
 > (e talvez jamais disponibilize). O **PRD-121** foi entregue como fundação
@@ -145,8 +145,18 @@ A **loja transacional** (checkout + conta B2C) foi **deferida da Fase 2 por deci
 > CSV, quando ocorrerem, serão **conduzidas de forma assistida pelo agente
 > desenvolvedor** (dry-run + revisão caso a caso, campos do CRM protegidos),
 > por ser mais seguro do que manter superfície de upload para um fluxo
-> esporádico. Os PRDs 127–129 (NF-e própria) **não dependem do DINTEC** e
-> seguem como backlog viável.
+> esporádico.
+>
+> **NF-e própria (PRDs 127–129) — DEFERIDA PARA PÓS-GO-LIVE (decisão de
+> 2026-06-10):** a emissão fiscal continua no DINTEC; NF-e própria só se torna
+> necessária quando a GALLO decidir substituir o ERP. Pré-requisitos gated no
+> dono antes de iniciar: contratar o provedor fiscal (Focus NFe / PlugNotas /
+> eNotas — preferir um que **calcule tributos**), certificado digital A1
+> (.pfx + senha), IE/regime tributário cadastrados e **NCM real nas peças**
+> (hoje o catálogo não tem NCM — sem isso a SEFAZ rejeita). Lacuna conhecida:
+> os PRDs **130** (cancelamento + polling) e **131** (config UI + migração),
+> referenciados pelos 127–129, não existem em `docs/prds/` — criar ou absorver
+> quando a frente for retomada.
 
 ## Ordem sugerida para fechar de vez
 
