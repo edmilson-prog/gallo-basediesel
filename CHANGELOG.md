@@ -6,6 +6,22 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.74.0] — Backbone · 2026-06-10
+
+A **infraestrutura da nuvem foi completada de ponta a ponta** (PRDs 100–108): atendimento ao vivo, envio de arquivos, convite por e-mail com definição de senha e relatórios pré-calculados no servidor. O sistema continua nos dados de demonstração por padrão — **nada muda na sua experiência nesta versão**; os novos recursos de nuvem ligam junto com a virada, quando você decidir.
+
+### Added
+
+- **Atendimento ao vivo (modo nuvem)** — a lista de conversas e as mensagens passam a se atualizar sozinhas no momento em que algo novo chega, sem recarregar a tela. O indicador de "tempo real" no topo do Atendimento agora também mostra, em âmbar, quando a conexão ao vivo ainda está sendo estabelecida.
+- **Envio de arquivos para a galeria de mídias** — novo botão "Enviar mídia" nas galerias da conversa e da ficha do cliente: você pode subir fotos, vídeos, áudios e PDFs. No modo nuvem os arquivos ficam guardados em armazenamento próprio da loja, com links de acesso temporários.
+- **Convite de vendedor por e-mail com definição de senha** — a tela de Usuários ganhou o botão "Convidar por e-mail": o vendedor recebe um link, define a própria senha numa página nova e já entra na plataforma (ativa de fato quando o provedor de e-mail estiver conectado).
+- **Relatórios gerenciais preparados no servidor (modo nuvem)** — vendas por vendedor e mês, comissões por período e indicadores executivos passam a ser pré-calculados a cada 15 minutos nos bastidores, deixando os painéis prontos para crescer em volume. A busca de peças e clientes por nome também ficou indexada (mais rápida em bases grandes).
+- **Bastidores versionados e padronizados** — todo o histórico de estrutura do banco em nuvem agora vive junto do código (reproduzível do zero), e as funções de servidor ganharam uma base comum com rastreio de erros por requisição e automações de publicação preparadas.
+
+### Security
+
+- **Acesso controlado a arquivos e relatórios (modo nuvem)** — arquivos de mídia só são acessíveis pela própria loja e por links temporários; nos relatórios pré-calculados, cada vendedor enxerga apenas os próprios números e os indicadores executivos ficam restritos à gestão.
+
 ## [0.73.0] — Keystone · 2026-06-10
 
 A **Fase 2 (banco de dados em nuvem)** foi concluída, reforçada e integrada à base do produto. O sistema continua usando os dados de demonstração por padrão — **nada muda na sua experiência nesta versão**; a virada para os dados em nuvem é um passo separado, ligado quando você decidir.
