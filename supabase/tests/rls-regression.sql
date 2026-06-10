@@ -321,6 +321,76 @@ end $$;
 
 reset role;
 
+-- ---------------------------------------------------------------------------
+-- PRD-110: system health RPCs — owner-only (silent filter) + anon denied.
+-- ---------------------------------------------------------------------------
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"9a418578-2671-4141-a15a-d39b2fd13af7","role":"authenticated","app_metadata":{"role":"owner","seller_id":"57706ecc-01b5-4a96-b403-0359a4bb767f","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+
+do $$
+begin
+  if (select count(*) from public.system_health_cron_jobs()) = 0 then
+    raise exception '#110: owner should see the pg_cron job roster';
+  end if;
+  if public.system_health_db_stats() is null then
+    raise exception '#110: owner should see db stats';
+  end if;
+end $$;
+
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+
+do $$
+declare
+  blocked boolean := false;
+begin
+  if (select count(*) from public.system_health_cron_jobs()) <> 0 then
+    raise exception '#110: non-owner must get an empty cron roster';
+  end if;
+  if public.system_health_db_stats() is not null then
+    raise exception '#110: non-owner must get null db stats';
+  end if;
+  -- health_ping is service_role-only: authenticated must be denied execute.
+  begin
+    perform public.health_ping();
+  exception when insufficient_privilege then
+    blocked := true;
+  end;
+  if not blocked then
+    raise exception '#110: health_ping must not be executable by authenticated';
+  end if;
+end $$;
+
+reset role;
+
+set local role anon;
+
+do $$
+declare
+  blocked boolean := false;
+begin
+  begin
+    perform public.system_health_cron_jobs();
+  exception when insufficient_privilege then
+    blocked := true;
+  end;
+  if not blocked then
+    raise exception '#110: system_health_cron_jobs must not be executable by anon';
+  end if;
+end $$;
+
+reset role;
+
 select 'ALL RLS REGRESSION TESTS PASSED' as result;
 
 rollback;

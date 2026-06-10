@@ -1,4 +1,5 @@
 import { MockAuthProvider } from "./MockAuthProvider";
+import { ObservabilityUserSync } from "./ObservabilityUserSync";
 import { SupabaseAuthProvider } from "./SupabaseAuthProvider";
 import { AUTH_SOURCE } from "./authSource";
 
@@ -14,7 +15,17 @@ export type { IAuthContextValue, IAuthResult } from "./authContext";
  */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   if (AUTH_SOURCE === "supabase") {
-    return <SupabaseAuthProvider>{children}</SupabaseAuthProvider>;
+    return (
+      <SupabaseAuthProvider>
+        <ObservabilityUserSync />
+        {children}
+      </SupabaseAuthProvider>
+    );
   }
-  return <MockAuthProvider>{children}</MockAuthProvider>;
+  return (
+    <MockAuthProvider>
+      <ObservabilityUserSync />
+      {children}
+    </MockAuthProvider>
+  );
 }

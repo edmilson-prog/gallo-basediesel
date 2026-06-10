@@ -51,6 +51,17 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_PUBLISHABLE_KEY?: string;
 
   /**
+   * Sentry DSN for frontend error tracking (PRD-110).
+   *
+   * Optional — when absent the observability layer is a complete no-op
+   * (Sentry is not even downloaded; it loads via dynamic import). The DSN is
+   * safe to expose in the client bundle by design.
+   *
+   * @see src/shared/lib/observability.ts
+   */
+  readonly VITE_SENTRY_DSN?: string;
+
+  /**
    * Factory default for where the Sales Copilot surface renders on the
    * conversation screen (PRD-025).
    *

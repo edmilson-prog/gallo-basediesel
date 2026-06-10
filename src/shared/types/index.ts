@@ -34,6 +34,15 @@ export type {
   VehicleCadastroMode,
 } from "./platform";
 
+// System health & observability (PRD-110)
+export type {
+  SystemHealthStatus,
+  SystemCheckResult,
+  ISystemHealthcheck,
+  ISystemCronJob,
+  ISystemDbStats,
+} from "./system-health";
+
 // People & permissions
 export type {
   ISeller,

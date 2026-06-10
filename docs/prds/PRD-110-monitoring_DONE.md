@@ -1,5 +1,13 @@
 # PRD-110: Monitoring e Observabilidade
 
+> ✅ **STATUS (2026-06-10): CONCLUÍDO com ressalvas — entregue no PR dos PRDs 109/110.**
+>
+> **Entregue:** Sentry **gated por env** no frontend (`src/shared/lib/observability.ts` — dynamic import só com `VITE_SENTRY_DSN`, `beforeSend` com scrub de PII, release tracking, contexto sellerId/storeId/role sem PII) e nas Edge Functions (`_shared/sentry.ts` — mini-client envelope API no catch do `servePost`, fail-open, correlação por traceId); Edge Function **`health`** pública (RF-020/021, `verify_jwt:false` by design); RPCs owner-only `system_health_cron_jobs`/`system_health_db_stats` (migration `system_health_110`); **dashboard `/app/gestao/saude`** Owner-only via provider `systemHealth` (35º, mock+supabase); docs `docs/ops/observability.md` + `docs/ops/runbooks/incident-response.md`.
+>
+> **Desvios conscientes do PRD original:** (1) rota é `/app/gestao/saude` (o app não tem prefixo `/app/admin`); (2) cards de **integration_logs/providers externos NÃO entregues** — as tabelas/integrações (WhatsApp, NF-e, LLM) não existem ainda (backlog 111+); o dashboard cobre healthcheck, pg_cron, DB stats e links externos; (3) alertas de taxa de erro >5%/p95>5s/provider down **adiados** pelo mesmo motivo (sem tráfego/integrações reais — revisar na primeira integração); (4) Logflare não usado (Supabase Logs nativo basta); (5) o bump segue o SemVer real do repo (v0.75.0) — a numeração "v2.0.0 Engine" do PRD pertence ao plano antigo de ondas.
+>
+> **Gated no dono** (`docs/fase2-pendencias.md` §D): D3 conta Sentry + DSN; D4 monitor externo de uptime no healthcheck.
+
 ## Informações Gerais
 
 | Campo                 | Valor                                                                                                                                                                                                                                                                                                                                   |
@@ -295,13 +303,13 @@ ENTÃO um alerta é enviado para infra@ailasistemas.com.br
 
 ## Status de Implementação
 
-| Campo           | Valor                          |
-| --------------- | ------------------------------ |
-| **Status**      | ⏳ PENDENTE                    |
-| **Data**        | -                              |
-| **Versão**      | -                              |
-| **Por**         | -                              |
-| **Observações** | Fecha a Onda 4 → v2.0.0 Engine |
+| Campo           | Valor                                                                  |
+| --------------- | ---------------------------------------------------------------------- |
+| **Status**      | ✅ CONCLUÍDO (com ressalvas — ver nota no topo)                        |
+| **Data**        | 2026-06-10                                                              |
+| **Versão**      | v0.75.0                                                                 |
+| **Por**         | Claude Code (AILA)                                                      |
+| **Observações** | Fecha a faixa de infra 100–110 (numeração v2.0.0 Engine não adotada)   |
 
 ---
 

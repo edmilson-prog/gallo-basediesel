@@ -39,6 +39,7 @@ import type { IQuickReplyProvider } from "./quickReply";
 import type { ITrackableLinkProvider } from "./trackableLink";
 import type { IScheduledSendProvider } from "./scheduledSend";
 import type { IStorefrontProvider } from "./storefront";
+import type { ISystemHealthProvider } from "./systemHealth";
 
 export type { IPaginatedResult, IPaginationParams } from "./_shared";
 
@@ -117,6 +118,7 @@ export type { IQuickReplyProvider } from "./quickReply";
 export type { ITrackableLinkProvider } from "./trackableLink";
 export type { IScheduledSendProvider } from "./scheduledSend";
 export type { IStorefrontProvider } from "./storefront";
+export type { ISystemHealthProvider } from "./systemHealth";
 
 /**
  * Aggregate of every data provider returned by `getDataProviders()`. The factory
@@ -158,4 +160,5 @@ export interface IDataProviders {
   trackableLink: ITrackableLinkProvider;
   scheduledSend: IScheduledSendProvider;
   storefront: IStorefrontProvider;
+  systemHealth: ISystemHealthProvider;
 }

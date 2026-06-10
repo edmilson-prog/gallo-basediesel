@@ -218,6 +218,12 @@ export const APP_NAV_GROUPS: INavGroup[] = [
         to: ROUTES.APP_INSIGHTS,
         roles: ["Owner", "Gestor", "Financeiro"],
       },
+      {
+        label: "Saúde do Sistema",
+        icon: "mdi:pulse",
+        to: ROUTES.GESTAO_SAUDE,
+        roles: ["Owner"],
+      },
     ],
   },
   {
