@@ -11,7 +11,7 @@
 | Projeto Supabase | `njizaasajkdqptlxddqn` (Pro) |
 | Schema | `public` — 40 tabelas, todas com RLS (ver `docs/db/schema-overview.md`) |
 | Auth | E-mail/senha; **Custom Access Token Hook habilitado** (claims role/seller_id/store_id) |
-| Edge Functions | `invite-seller`, `invite-seller-email`, `reset-seller-password`, `set-seller-access`, `set-seller-role` (todas `verify_jwt:true`) |
+| Edge Functions | `invite-seller`, `invite-seller-email`, `reset-seller-password`, `set-seller-access`, `set-seller-role`, `hello-trace` (todas `verify_jwt:true`) + `health` (`verify_jwt:false` by design — healthcheck público, PRD-110 RF-021) |
 | Extensões | `pg_cron` (reconciler de notificações), `pgcrypto`, `uuid-ossp`, `pg_stat_statements`, `supabase_vault` |
 | Seed | `scripts/seed-supabase.ts` (usa `SUPABASE_SERVICE_ROLE_KEY` do `.env.local`) |
 

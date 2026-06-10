@@ -1,5 +1,13 @@
 # PRD-109: Backup e Disaster Recovery
 
+> ✅ **STATUS (2026-06-10): CONCLUÍDO com ressalvas — entregue no PR dos PRDs 109/110.**
+>
+> **Entregue:** `logical-backup.yml` (pg_dump semanal `-Fc`, validação `pg_restore --list`, retenção 90 dias) e `storage-backup.yml` (+ `scripts/dr/backup-storage.ts` / `restore-storage.ts`) — ambos no padrão **no-op verde até secrets**; 4 runbooks (`restore-pitr`, `restore-logical`, `restore-storage`, `disaster-recovery`); `docs/infra/dr-policy.md` (camadas, RTO/RPO); template `docs/infra/dr-test-log.md`.
+>
+> **Desvios conscientes do PRD original:** (1) destino do backup externo = **GitHub Artifacts** (decisão do dono — zero custo, 90 dias nativos, independente da conta Supabase; não S3/projeto separado); (2) **não há staging** — projeto único, o teste de DR usa o próprio banco (Preview); (3) RPO real **hoje é 24 h** (daily backup) até o PITR ser habilitado.
+>
+> **Gated no dono** (`docs/fase2-pendencias.md` §D): D1 habilitar PITR + executar o 1º teste de DR (RF-050/051 — o PRD pedia teste ANTES do `_DONE`, mas a restauração exige o Dashboard e é ação do dono; runbook e template prontos); D2 secrets dos workflows.
+
 ## Informações Gerais
 
 | Campo                 | Valor                                                                                                                                                                                                                                                         |
@@ -245,12 +253,12 @@ ENTÃO um alerta é enviado para infra@ailasistemas.com.br
 
 ## Status de Implementação
 
-| Campo      | Valor       |
-| ---------- | ----------- |
-| **Status** | ⏳ PENDENTE |
-| **Data**   | -           |
-| **Versão** | -           |
-| **Por**    | -           |
+| Campo      | Valor                                                       |
+| ---------- | ----------------------------------------------------------- |
+| **Status** | ✅ CONCLUÍDO (com ressalvas — ver nota no topo)             |
+| **Data**   | 2026-06-10                                                  |
+| **Versão** | v0.75.0                                                     |
+| **Por**    | Claude Code (AILA)                                          |
 
 ---
 

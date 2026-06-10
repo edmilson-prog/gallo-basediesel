@@ -16,9 +16,10 @@ A **loja transacional** (checkout + conta B2C) foi **deferida da Fase 2 por deci
 
 | Grupo | Itens | Natureza |
 | --- | --- | --- |
-| **A. Fechar o cutover** | A1 CI · A2 Resend · A3 Flip prod · A4 Merge | gated no dono / decisão |
+| **A. Fechar o cutover** | A1 CI · ~~A2 Resend~~ ✅ · A3 Flip prod · ~~A4 Merge~~ ✅ | gated no dono / decisão |
 | **B. Loja transacional** (deferida) | B1 #40 · B2 #41 · B3 #42 · B4 mídia | fase própria |
 | **C. Hardening** (follow-ups) | ~~C1 media write~~ ✅ · ~~C2 addNote~~ ✅ · ~~C3 #44~~ ✅ | **tudo feito** |
+| **D. DR & Observabilidade** (PRD-109/110) | D1 PITR+teste DR · D2 secrets backup · D3 Sentry DSN · D4 monitor uptime | código entregue; ativação gated no dono |
 
 ---
 
@@ -106,6 +107,30 @@ A **loja transacional** (checkout + conta B2C) foi **deferida da Fase 2 por deci
 - **Pré-requisito de infra:** exigiu habilitar a extensão **`pg_cron`** (autorizado pelo dono).
 - **Arquivos:** migration MCP; `providers/notifications/reconciler.ts`; `supabase/tests/rls-regression.sql`.
 - **Issue:** **#44** (fechado).
+
+---
+
+## D. DR & Observabilidade — ativação (PRD-109/110, entregues em 2026-06-10)
+
+> Código, workflows, runbooks, healthcheck e dashboard **entregues** (PRDs 109/110
+> `_DONE` com ressalvas). O que segue é a ativação, gated no dono.
+
+### D1 — Habilitar PITR + executar o 1º teste de DR {#d1-pitr}
+- **O quê:** habilitar o add-on PITR (Dashboard → Database → Backups → Point in Time) e executar o primeiro teste real de restauração seguindo `docs/infra/runbooks/restore-pitr.md`.
+- **Por quê:** sem PITR o RPO real é 24 h (daily backup). Backup não testado é falsa segurança (RF-050).
+- **Critério de pronto:** teste registrado em `docs/infra/dr-test-log.md` com RTO medido.
+
+### D2 — Secrets dos workflows de backup {#d2-backup-secrets}
+- **O quê:** adicionar no GitHub: `SUPABASE_DB_URL` (mesmo do A1/#45), `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` (storage backup). Opcional: `RESEND_API_KEY` + `BACKUP_ALERT_EMAIL` para alerta explícito de falha.
+- **Critério de pronto:** `logical-backup.yml` e `storage-backup.yml` rodam verdes com artifact gerado (disparar manualmente a 1ª vez).
+
+### D3 — Conta Sentry + DSN {#d3-sentry}
+- **O quê:** criar projeto no Sentry (free tier), pôr o DSN em `VITE_SENTRY_DSN` (Vercel) e no secret `SENTRY_DSN` das Edge Functions. Passo a passo: `docs/ops/observability.md` § Sentry.
+- **Critério de pronto:** erro de teste aparece no Sentry com tag `traceId`.
+
+### D4 — Monitor de uptime externo {#d4-uptime}
+- **O quê:** cadastrar o endpoint público `GET /functions/v1/health` num monitor (UptimeRobot/BetterStack/cron-job.org, 5 em 5 min) e assinar https://status.supabase.com.
+- **Critério de pronto:** alerta de teste recebido (pausar o monitor dispara notificação).
 
 ---
 
