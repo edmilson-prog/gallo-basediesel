@@ -135,6 +135,19 @@ A **loja transacional** (checkout + conta B2C) foi **deferida da Fase 2 por deci
 
 ---
 
+## E. DINTEC (Onda 6) — encerrada por decisão {#e-dintec}
+
+> **Decisão registrada (2026-06-10):** o DINTEC não disponibiliza export de dados
+> (e talvez jamais disponibilize). O **PRD-121** foi entregue como fundação
+> agnóstica de fonte (PR #62, v0.84.0 `Anchor` — `src/providers/dintec/`); os
+> **PRDs 122–126** (CSV provider + tela de upload, engine `dintec-process`,
+> syncs de clientes/peças e reconciliação) estão **DEFERIDOS**. Importações via
+> CSV, quando ocorrerem, serão **conduzidas de forma assistida pelo agente
+> desenvolvedor** (dry-run + revisão caso a caso, campos do CRM protegidos),
+> por ser mais seguro do que manter superfície de upload para um fluxo
+> esporádico. Os PRDs 127–129 (NF-e própria) **não dependem do DINTEC** e
+> seguem como backlog viável.
+
 ## Ordem sugerida para fechar de vez
 
 1. **B3 handoff** (se a loja receber tráfego) → desbloqueia o **A3 flip de produção** com segurança.

@@ -6,6 +6,18 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.84.0] — Anchor · 2026-06-10
+
+Preparamos a **base para importar dados de outros sistemas** (PRD-121): clientes, peças e pedidos vindos de fora (como o ERP da loja) agora têm uma porta de entrada padronizada na plataforma, com dados de exemplo para testes.
+
+### Added
+
+- **Fundação de importação de dados** — camada interna que define como lotes de dados externos entram no sistema (clientes, peças, pedidos e itens), com validação de estrutura antes de qualquer gravação e um conjunto de dados de demonstração para testes. Nenhuma tela nova nesta versão — é o alicerce das importações.
+
+### Changed
+
+- **Importações via planilha serão assistidas** — por decisão registrada, a importação de arquivos CSV do ERP não terá tela de upload: cada importação será conduzida de forma assistida pelo agente desenvolvedor, com prévia das mudanças antes de gravar. Mais seguro para um fluxo que é esporádico.
+
 ## [0.83.0] — Relay · 2026-06-10
 
 A **etapa do WhatsApp real está completa**: se uma conta de WhatsApp cair, o sistema agora tem **plano B** (PRD-120) — os envios novos passam automaticamente para uma conta reserva, o dono é avisado e tudo volta ao normal sozinho quando o provedor se recupera.
