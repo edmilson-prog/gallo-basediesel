@@ -21,6 +21,7 @@ import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supa
 import { bestEffortAudit } from "../_shared/audit.ts";
 import { requiredEnv } from "../_shared/env.ts";
 import { HttpError, json, parseJsonBody } from "../_shared/http.ts";
+import { createSecretResolver } from "../_shared/secrets.ts";
 import { servePost } from "../_shared/serve.ts";
 import { buildWhatsAppEngine } from "../_shared/whatsapp/build.ts";
 import { WhatsAppProviderError } from "../_shared/whatsapp/errors.ts";
@@ -232,7 +233,8 @@ function makeSendDb(admin: SupabaseClient, traceId: string): ISendDb {
 
 function makeEngineDeps(admin: SupabaseClient, traceId: string): IEngineDeps {
   return {
-    resolveSecret: (name) => Promise.resolve(Deno.env.get(name)),
+    // Vault-first ("Integrações & Chaves"), env secret as fallback.
+    resolveSecret: createSecretResolver(admin),
     logIntegration: async (entry: IIntegrationLogEntry) => {
       await admin.from("integration_logs").insert({
         integration_name: entry.integrationName,

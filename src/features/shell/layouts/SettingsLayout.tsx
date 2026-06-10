@@ -171,6 +171,12 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         roles: ["Owner"],
       },
       {
+        label: "Chaves & API",
+        icon: "mdi:key-variant",
+        to: "/app/configuracoes/chaves",
+        roles: ["Owner"],
+      },
+      {
         label: "Portal do cliente",
         icon: "mdi:web",
         to: "/app/configuracoes/portal-cliente",

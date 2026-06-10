@@ -141,6 +141,7 @@ import { Route as AppConfiguracoesCurvaAbcRouteImport } from './routes/app.confi
 import { Route as AppConfiguracoesCopilotoAnaliticoRouteImport } from './routes/app.configuracoes.copiloto-analitico'
 import { Route as AppConfiguracoesCopilotoRouteImport } from './routes/app.configuracoes.copiloto'
 import { Route as AppConfiguracoesComissoesRouteImport } from './routes/app.configuracoes.comissoes'
+import { Route as AppConfiguracoesChavesRouteImport } from './routes/app.configuracoes.chaves'
 import { Route as AppConfiguracoesBibliotecaRouteImport } from './routes/app.configuracoes.biblioteca'
 import { Route as AppConfiguracoesAuditoriaRouteImport } from './routes/app.configuracoes.auditoria'
 import { Route as AppConfiguracoesAparenciaRouteImport } from './routes/app.configuracoes.aparencia'
@@ -866,6 +867,11 @@ const AppConfiguracoesComissoesRoute =
     path: '/configuracoes/comissoes',
     getParentRoute: () => AppRoute,
   } as any)
+const AppConfiguracoesChavesRoute = AppConfiguracoesChavesRouteImport.update({
+  id: '/configuracoes/chaves',
+  path: '/configuracoes/chaves',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppConfiguracoesBibliotecaRoute =
   AppConfiguracoesBibliotecaRouteImport.update({
     id: '/configuracoes/biblioteca',
@@ -1167,6 +1173,7 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
   '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
   '/app/configuracoes/biblioteca': typeof AppConfiguracoesBibliotecaRoute
+  '/app/configuracoes/chaves': typeof AppConfiguracoesChavesRoute
   '/app/configuracoes/comissoes': typeof AppConfiguracoesComissoesRoute
   '/app/configuracoes/copiloto': typeof AppConfiguracoesCopilotoRoute
   '/app/configuracoes/copiloto-analitico': typeof AppConfiguracoesCopilotoAnaliticoRoute
@@ -1327,6 +1334,7 @@ export interface FileRoutesByTo {
   '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
   '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
   '/app/configuracoes/biblioteca': typeof AppConfiguracoesBibliotecaRoute
+  '/app/configuracoes/chaves': typeof AppConfiguracoesChavesRoute
   '/app/configuracoes/comissoes': typeof AppConfiguracoesComissoesRoute
   '/app/configuracoes/copiloto': typeof AppConfiguracoesCopilotoRoute
   '/app/configuracoes/copiloto-analitico': typeof AppConfiguracoesCopilotoAnaliticoRoute
@@ -1498,6 +1506,7 @@ export interface FileRoutesById {
   '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
   '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
   '/app/configuracoes/biblioteca': typeof AppConfiguracoesBibliotecaRoute
+  '/app/configuracoes/chaves': typeof AppConfiguracoesChavesRoute
   '/app/configuracoes/comissoes': typeof AppConfiguracoesComissoesRoute
   '/app/configuracoes/copiloto': typeof AppConfiguracoesCopilotoRoute
   '/app/configuracoes/copiloto-analitico': typeof AppConfiguracoesCopilotoAnaliticoRoute
@@ -1677,6 +1686,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/aparencia'
     | '/app/configuracoes/auditoria'
     | '/app/configuracoes/biblioteca'
+    | '/app/configuracoes/chaves'
     | '/app/configuracoes/comissoes'
     | '/app/configuracoes/copiloto'
     | '/app/configuracoes/copiloto-analitico'
@@ -1837,6 +1847,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/aparencia'
     | '/app/configuracoes/auditoria'
     | '/app/configuracoes/biblioteca'
+    | '/app/configuracoes/chaves'
     | '/app/configuracoes/comissoes'
     | '/app/configuracoes/copiloto'
     | '/app/configuracoes/copiloto-analitico'
@@ -2007,6 +2018,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/aparencia'
     | '/app/configuracoes/auditoria'
     | '/app/configuracoes/biblioteca'
+    | '/app/configuracoes/chaves'
     | '/app/configuracoes/comissoes'
     | '/app/configuracoes/copiloto'
     | '/app/configuracoes/copiloto-analitico'
@@ -3062,6 +3074,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesComissoesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/configuracoes/chaves': {
+      id: '/app/configuracoes/chaves'
+      path: '/configuracoes/chaves'
+      fullPath: '/app/configuracoes/chaves'
+      preLoaderRoute: typeof AppConfiguracoesChavesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/configuracoes/biblioteca': {
       id: '/app/configuracoes/biblioteca'
       path: '/configuracoes/biblioteca'
@@ -3646,6 +3665,7 @@ interface AppRouteChildren {
   AppConfiguracoesAparenciaRoute: typeof AppConfiguracoesAparenciaRoute
   AppConfiguracoesAuditoriaRoute: typeof AppConfiguracoesAuditoriaRoute
   AppConfiguracoesBibliotecaRoute: typeof AppConfiguracoesBibliotecaRoute
+  AppConfiguracoesChavesRoute: typeof AppConfiguracoesChavesRoute
   AppConfiguracoesComissoesRoute: typeof AppConfiguracoesComissoesRoute
   AppConfiguracoesCopilotoRoute: typeof AppConfiguracoesCopilotoRoute
   AppConfiguracoesCopilotoAnaliticoRoute: typeof AppConfiguracoesCopilotoAnaliticoRoute
@@ -3720,6 +3740,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesAparenciaRoute: AppConfiguracoesAparenciaRoute,
   AppConfiguracoesAuditoriaRoute: AppConfiguracoesAuditoriaRoute,
   AppConfiguracoesBibliotecaRoute: AppConfiguracoesBibliotecaRoute,
+  AppConfiguracoesChavesRoute: AppConfiguracoesChavesRoute,
   AppConfiguracoesComissoesRoute: AppConfiguracoesComissoesRoute,
   AppConfiguracoesCopilotoRoute: AppConfiguracoesCopilotoRoute,
   AppConfiguracoesCopilotoAnaliticoRoute:

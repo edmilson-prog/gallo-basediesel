@@ -1,0 +1,83 @@
+import { describe, expect, it } from "vitest";
+import { buildIntegrationKeyCatalog, isValidSecretName } from "./integrationKeys";
+
+const META_ACCOUNT = {
+  id: "wa-meta-1",
+  label: "Matriz",
+  provider: "meta" as const,
+  credentialsRef: "WHATSAPP_META_MATRIZ",
+};
+
+const EVOLUTION_ACCOUNT = {
+  id: "wa-evo-1",
+  label: "Campanhas",
+  provider: "evolution" as const,
+  credentialsRef: "WHATSAPP_EVO_CAMPANHAS",
+};
+
+describe("isValidSecretName", () => {
+  it("accepts env-style names", () => {
+    expect(isValidSecretName("RESEND_API_KEY")).toBe(true);
+    expect(isValidSecretName("WHATSAPP_META_MATRIZ_ACCESS_TOKEN")).toBe(true);
+  });
+
+  it("rejects lowercase, leading digits/underscore and symbols", () => {
+    expect(isValidSecretName("resend_api_key")).toBe(false);
+    expect(isValidSecretName("1KEY")).toBe(false);
+    expect(isValidSecretName("_KEY")).toBe(false);
+    expect(isValidSecretName("KEY WITH SPACE")).toBe(false);
+    expect(isValidSecretName("")).toBe(false);
+  });
+});
+
+describe("buildIntegrationKeyCatalog", () => {
+  it("always includes the Resend and webhook app-level groups", () => {
+    const groups = buildIntegrationKeyCatalog([]);
+    const ids = groups.map((group) => group.id);
+    expect(ids).toEqual(["resend", "whatsapp-webhook"]);
+
+    const resend = groups[0];
+    expect(resend?.keys.map((key) => key.name)).toEqual([
+      "RESEND_API_KEY",
+      "RESEND_FROM",
+      "INVITE_REDIRECT_URL",
+    ]);
+  });
+
+  it("derives Meta account keys from credentials_ref (engine convention)", () => {
+    const groups = buildIntegrationKeyCatalog([META_ACCOUNT]);
+    const accountGroup = groups.find((group) => group.id === "account-wa-meta-1");
+    expect(accountGroup?.title).toBe("WhatsApp — Matriz");
+    expect(accountGroup?.keys.map((key) => key.name)).toEqual([
+      "WHATSAPP_META_MATRIZ_ACCESS_TOKEN",
+      "WHATSAPP_META_MATRIZ_APP_SECRET",
+      "WHATSAPP_META_MATRIZ_VERIFY_TOKEN",
+    ]);
+  });
+
+  it("derives Evolution account keys (apikey + optional webhook secret)", () => {
+    const groups = buildIntegrationKeyCatalog([EVOLUTION_ACCOUNT]);
+    const accountGroup = groups.find((group) => group.id === "account-wa-evo-1");
+    expect(accountGroup?.keys.map((key) => key.name)).toEqual([
+      "WHATSAPP_EVO_CAMPANHAS_API_KEY",
+      "WHATSAPP_EVO_CAMPANHAS_WEBHOOK_SECRET",
+    ]);
+  });
+
+  it("skips accounts without a usable credentials_ref", () => {
+    const groups = buildIntegrationKeyCatalog([
+      { ...META_ACCOUNT, credentialsRef: "" },
+      { ...EVOLUTION_ACCOUNT, credentialsRef: "lower case ref" },
+    ]);
+    expect(groups.map((group) => group.id)).toEqual(["resend", "whatsapp-webhook"]);
+  });
+
+  it("every generated name passes the server-side validation", () => {
+    const groups = buildIntegrationKeyCatalog([META_ACCOUNT, EVOLUTION_ACCOUNT]);
+    for (const group of groups) {
+      for (const key of group.keys) {
+        expect(isValidSecretName(key.name)).toBe(true);
+      }
+    }
+  });
+});
