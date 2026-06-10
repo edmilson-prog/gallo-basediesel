@@ -6,6 +6,23 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.81.0] — Pulse · 2026-06-10
+
+O **ciclo de cada mensagem do WhatsApp agora é visível do início ao fim** (PRD-118): você acompanha na conversa se a mensagem foi enviada, entregue ou lida — ao vivo, sem recarregar —, entende por que uma falhou e tem ação corretiva na hora. O dono ganhou um painel de saúde de entrega por conta.
+
+### Added
+
+- **Confirmações como no WhatsApp** — cada mensagem enviada mostra seu estado na bolha: relógio (enviando), ✓ (enviada), ✓✓ (entregue), ✓✓ azul (lida) e ⚠ vermelho em caso de falha — com o motivo no tooltip. A lista de conversas também ganhou o mini-indicador antes do prévia quando a última mensagem é da loja.
+- **Atualização ao vivo** — as confirmações transicionam em tempo real com a tela aberta: a mensagem do cliente aparece sem recarregar e o ✓ vira ✓✓ no momento em que o provedor confirma.
+- **Tentar de novo de verdade** — o botão de reenvio em mensagens com falha agora cria um novo envio real pelo mesmo canal seguro, preservando a mensagem original com o erro registrado.
+- **Proteção contra número inválido** — quando a Meta informa que o número não tem WhatsApp, o cliente fica marcado e a conversa exibe o aviso "Número não é WhatsApp". Novos envios são bloqueados com explicação; Owner e Gestor podem confirmar e enviar mesmo assim (fica registrado), e a revalidação é manual pelo botão "Marcar como WhatsApp válido".
+- **Saúde de entrega no painel** — a tela Gestão → Saúde do Sistema (Owner) ganhou a seção "WhatsApp — Saúde de Entrega": enviadas, entregues, lidas e falhas por conta nas janelas de 24 horas e 7 dias, além das principais causas de falha.
+
+### Security
+
+- **Indicadores restritos ao dono** — os números de saúde de entrega só são retornados para o perfil Owner; demais perfis e visitantes não recebem nada, com a regra aplicada direto no banco.
+- **Forçar envio é privilégio auditado** — vendedor comum não consegue contornar o bloqueio de número inválido; quando Owner/Gestor confirma o envio, a decisão fica na trilha de auditoria.
+
 ## [0.80.0] — Hourglass · 2026-06-10
 
 A **janela de 24 horas do WhatsApp ficou visível e precisa** (PRD-117): o aviso na conversa agora mostra exatamente quanto tempo resta para responder com texto livre, e quando a janela fecha o caminho para o modelo aprovado está a um clique.
