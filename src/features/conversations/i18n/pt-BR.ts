@@ -241,6 +241,7 @@ export const CONVERSATION_STRINGS = {
   windowSuggestTemplate: "Considere usar um template HSM",
   windowOpenedByInbound: (when: string) => `Cliente respondeu há ${when}`,
   windowDisabledHint: "Use um template HSM para reabrir a conversa",
+  windowSelectTemplate: "Selecionar template",
 
   // Message input
   inputPlaceholder: "Digite uma mensagem…",

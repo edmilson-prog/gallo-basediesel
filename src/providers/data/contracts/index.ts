@@ -59,7 +59,11 @@ export type {
   ICreateConversationInput,
   ICreateConversationResult,
 } from "./conversations";
-export type { IMessagesProvider, IListMessagesParams } from "./messages";
+export type {
+  IMessagesProvider,
+  IListMessagesParams,
+  IListMessagesForAnalyticsParams,
+} from "./messages";
 export type { IPartsProvider, IListPartsParams } from "./parts";
 export type { IQuotesProvider, IListQuotesParams } from "./quotes";
 export type { IOrdersProvider, IListOrdersParams } from "./orders";

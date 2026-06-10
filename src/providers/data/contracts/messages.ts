@@ -1,4 +1,4 @@
-import type { ID, IMessage, MessageMediaType } from "@/shared/types";
+import type { ID, IMessage, ISO8601, MessageMediaType } from "@/shared/types";
 import type { IPaginatedResult, IPaginationParams } from "./_shared";
 
 export interface IListMessagesParams extends IPaginationParams {
@@ -48,4 +48,12 @@ export interface IMessagesProvider {
    * Implementations without bulk support may return an empty array.
    */
   listForAnalytics(params?: IListMessagesForAnalyticsParams): Promise<IMessage[]>;
+  /**
+   * Timestamp of the customer's last inbound message, or `null` when the
+   * customer never wrote. Feeds the Meta 24h session-window countdown
+   * (PRD-117) with an exact value even when the loaded message page contains
+   * no inbound rows. Supabase resolves via the `last_inbound_at` RPC
+   * (SECURITY INVOKER — RLS applies).
+   */
+  getLastInboundAt(conversationId: ID): Promise<ISO8601 | null>;
 }
