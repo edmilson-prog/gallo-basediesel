@@ -21,6 +21,8 @@ export const SEND_ERROR_MESSAGES: Record<string, string> = {
   RATE_LIMITED: "Limite de envios atingido. Aguarde alguns segundos e tente novamente.",
   PROVIDER_DISCONNECTED:
     "WhatsApp desconectado — peça ao gestor para reconectar a conta via QR Code.",
+  FAILOVER_INCOMPATIBLE:
+    "Conta em contingência — templates não podem sair pela conta reserva. Aguarde a restauração ou contate o gestor.",
   CONVERSATION_CLOSED: "Conversa encerrada — reabra antes de enviar.",
   FORBIDDEN: "Você não tem permissão para enviar nesta conversa.",
 };

@@ -2,15 +2,30 @@ import { describe, expect, it, vi } from "vitest";
 import { MockWhatsAppProvider } from "../mock/MockWhatsAppProvider";
 import { WhatsAppProviderError } from "../errors";
 import type { IAccountRecord } from "../webhook/core";
+import type { IFailoverAwareAccount } from "../failover";
 import { processSendRequest, type ISendDb, type ISendRequest, type ISender } from "./core";
 
-const ACCOUNT: IAccountRecord = {
+const ACCOUNT: IFailoverAwareAccount = {
   id: "acc-1",
   storeId: "store-1",
   provider: "meta",
   phoneNumber: "+5555911111111",
   credentialsRef: "WHATSAPP_META_TEST",
   providerConfig: { phoneNumberId: "123", businessAccountId: "456" },
+  currentState: "healthy",
+  stateChangedAt: null,
+  failoverPolicy: "disabled",
+  failoverAccountId: null,
+  isFailoverActive: false,
+};
+
+const BACKUP_EVOLUTION: IAccountRecord = {
+  id: "acc-bkp",
+  storeId: "store-1",
+  provider: "evolution",
+  phoneNumber: "+5555922222222",
+  credentialsRef: "WHATSAPP_EVO_TEST",
+  providerConfig: { baseUrl: "https://evo.test", instanceName: "gallo" },
 };
 
 const SELLER: ISender = { sellerId: "seller-1", role: "seller_internal", storeId: "store-1" };
@@ -23,6 +38,10 @@ interface IFakeOpts {
   provider?: "meta" | "evolution";
   customerPhone?: string | null;
   customerWhatsappStatus?: string | null;
+  /** PRD-120: failover overrides applied to the primary account. */
+  failover?: Partial<IFailoverAwareAccount>;
+  /** PRD-120: row returned by getAccountRecord (default: Evolution backup). */
+  failoverRow?: IAccountRecord | null;
 }
 
 function makeDb(opts: IFakeOpts = {}) {
@@ -43,11 +62,13 @@ function makeDb(opts: IFakeOpts = {}) {
         status: opts.status ?? "em_andamento",
         assignedSellerId: opts.assignedSellerId === undefined ? "seller-1" : opts.assignedSellerId,
       },
-      account: { ...ACCOUNT, provider: opts.provider ?? "meta" },
+      account: { ...ACCOUNT, provider: opts.provider ?? "meta", ...(opts.failover ?? {}) },
       customerId: "cust-1",
       customerPhone: opts.customerPhone === undefined ? "+55 (55) 99888-7777" : opts.customerPhone,
       customerWhatsappStatus: opts.customerWhatsappStatus ?? "unknown",
     }),
+    getAccountRecord: async () =>
+      opts.failoverRow === undefined ? BACKUP_EVOLUTION : opts.failoverRow,
     isWithin24hWindow: async () => opts.within24h ?? true,
     insertQueuedMessage: async (input) => {
       calls.queued.push(input);
@@ -264,3 +285,63 @@ describe("processSendRequest — input validation (RF-003)", () => {
     await expect(send({}, noPhone.db)).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
   });
 });
+
+describe("processSendRequest — failover (PRD-120 RF-040/041)", () => {
+  const ACTIVE_FAILOVER: Partial<IFailoverAwareAccount> = {
+    currentState: "down",
+    failoverPolicy: "automatic",
+    failoverAccountId: "acc-bkp",
+    isFailoverActive: true,
+  };
+
+  it("routes text through the backup account and audits failover_used", async () => {
+    const { db, calls } = makeDb({ failover: ACTIVE_FAILOVER });
+    const engine = new MockWhatsAppProvider();
+    const spy = vi.spyOn(engine, "sendText");
+
+    await send({}, db, SELLER, engine);
+
+    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ accountId: "acc-bkp" }));
+    expect(calls.queued[0]).toMatchObject({ provider: "evolution" });
+    expect(calls.audits[0]).toMatchObject({
+      action: "failover_used",
+      resource: "whatsapp_account",
+      resourceId: "acc-1",
+      after: expect.objectContaining({ toAccountId: "acc-bkp" }),
+    });
+    expect(calls.audits[1]).toMatchObject({
+      action: "dispatch",
+      after: expect.objectContaining({ usedFailover: true, provider: "evolution" }),
+    });
+  });
+
+  it("skips the Meta 24h pre-check when the EFFECTIVE account is Evolution", async () => {
+    const { db } = makeDb({ failover: ACTIVE_FAILOVER, within24h: false });
+    await expect(send({}, db)).resolves.toMatchObject({ dispatchStatus: "sent" });
+  });
+
+  it("template over an Evolution backup bounces FAILOVER_INCOMPATIBLE without persisting", async () => {
+    const { db, calls } = makeDb({ failover: ACTIVE_FAILOVER });
+    await expect(
+      send({ kind: "template", templateName: "boas_vindas", templateLanguage: "pt_BR" }, db),
+    ).rejects.toMatchObject({ code: "FAILOVER_INCOMPATIBLE", httpStatus: 422 });
+    expect(calls.queued).toHaveLength(0);
+  });
+
+  it("inactive failover keeps the primary account (no failover audit)", async () => {
+    const { db, calls } = makeDb({
+      failover: { failoverPolicy: "manual", failoverAccountId: "acc-bkp", isFailoverActive: false },
+    });
+    await send({}, db);
+    expect(calls.queued[0]).toMatchObject({ provider: "meta" });
+    expect(calls.audits.some((a) => a.action === "failover_used")).toBe(false);
+  });
+
+  it("missing backup row fails open to the primary", async () => {
+    const { db, calls } = makeDb({ failover: ACTIVE_FAILOVER, failoverRow: null });
+    await send({}, db);
+    expect(calls.queued[0]).toMatchObject({ provider: "meta" });
+    expect(calls.audits.some((a) => a.action === "failover_used")).toBe(false);
+  });
+});
+

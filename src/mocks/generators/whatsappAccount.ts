@@ -15,6 +15,10 @@ export const SEED_WHATSAPP_ACCOUNTS: IWhatsAppAccount[] = [
     provider: "meta",
     credentialsRef: "vault://gallo/wa-meta-matriz",
     status: "connected",
+    currentState: "healthy",
+    failoverPolicy: "manual",
+    failoverAccountId: "wa-evo-campanhas",
+    isFailoverActive: false,
     capabilities: {
       supportsTemplatesHsm: true,
       supportsInteractiveButtons: true,
@@ -33,6 +37,9 @@ export const SEED_WHATSAPP_ACCOUNTS: IWhatsAppAccount[] = [
     provider: "evolution",
     credentialsRef: "vault://gallo/wa-evo-campanhas",
     status: "connected",
+    currentState: "healthy",
+    failoverPolicy: "disabled",
+    isFailoverActive: false,
     capabilities: {
       supportsTemplatesHsm: false,
       supportsInteractiveButtons: false,

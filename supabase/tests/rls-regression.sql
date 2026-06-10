@@ -589,6 +589,79 @@ end $$;
 
 reset role;
 
+-- ============================================================================
+-- PRD-120 — whatsapp_provider_health: owner-only (silent filter) + anon denied.
+-- ============================================================================
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"9a418578-2671-4141-a15a-d39b2fd13af7","role":"authenticated","app_metadata":{"role":"owner","seller_id":"57706ecc-01b5-4a96-b403-0359a4bb767f","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+
+do $$
+begin
+  if public.whatsapp_provider_health() is null then
+    raise exception '#120: owner should see the whatsapp provider health snapshot';
+  end if;
+end $$;
+
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+
+do $$
+begin
+  if public.whatsapp_provider_health() is not null then
+    raise exception '#120: non-owner must get null provider health';
+  end if;
+end $$;
+
+reset role;
+
+set local role anon;
+
+do $$
+declare
+  blocked boolean := false;
+begin
+  begin
+    perform public.whatsapp_provider_health();
+  exception when insufficient_privilege then
+    blocked := true;
+  end;
+  if not blocked then
+    raise exception '#120: whatsapp_provider_health must not be executable by anon';
+  end if;
+end $$;
+
+reset role;
+
+-- The health tick must not be callable by app roles (cron-only).
+set local role authenticated;
+
+do $$
+declare
+  blocked boolean := false;
+begin
+  begin
+    perform public.whatsapp_health_tick();
+  exception when insufficient_privilege then
+    blocked := true;
+  end;
+  if not blocked then
+    raise exception '#120: whatsapp_health_tick must not be executable by authenticated';
+  end if;
+end $$;
+
+reset role;
+
 select 'ALL RLS REGRESSION TESTS PASSED' as result;
 
 rollback;

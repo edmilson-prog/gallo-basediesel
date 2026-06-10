@@ -3,6 +3,7 @@ import type {
   ISystemDbStats,
   ISystemHealthcheck,
   IWhatsAppDeliveryHealth,
+  IWhatsAppProviderHealthAccount,
 } from "@/shared/types";
 import { getSupabaseClient } from "@/shared/lib/supabase";
 import type { ISystemHealthProvider } from "../../contracts/systemHealth";
@@ -100,5 +101,12 @@ export const supabaseSystemHealthProvider: ISystemHealthProvider = {
     if (error) throw new Error(`whatsapp_delivery_health: ${error.message}`);
     // The RPC already returns the camelCase shape (jsonb built server-side).
     return (data as IWhatsAppDeliveryHealth | null) ?? null;
+  },
+
+  async getWhatsAppProviderHealth(): Promise<IWhatsAppProviderHealthAccount[] | null> {
+    const { data, error } = await getSupabaseClient().rpc("whatsapp_provider_health");
+    if (error) throw new Error(`whatsapp_provider_health: ${error.message}`);
+    // The RPC already returns the camelCase shape (jsonb built server-side).
+    return (data as IWhatsAppProviderHealthAccount[] | null) ?? null;
   },
 };

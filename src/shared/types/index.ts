@@ -52,6 +52,7 @@ export type {
   IWhatsAppAccountDelivery,
   IWhatsAppFailureBucket,
   IWhatsAppDeliveryHealth,
+  IWhatsAppProviderHealthAccount,
 } from "./system-health";
 
 // WhatsApp HSM templates (PRD-116)
@@ -124,6 +125,8 @@ export type {
   MessageMediaType,
   WhatsAppProviderName,
   WhatsAppAccountStatus,
+  WhatsAppAccountHealthState,
+  WhatsAppFailoverPolicy,
 } from "./conversation";
 
 // Catalog

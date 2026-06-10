@@ -1,19 +1,29 @@
-import type { ID, IWhatsAppAccount, IWhatsAppProviderConfig } from "@/shared/types";
+import type {
+  ID,
+  IWhatsAppAccount,
+  IWhatsAppProviderConfig,
+  WhatsAppFailoverPolicy,
+} from "@/shared/types";
 
 export interface IListWhatsAppAccountsParams {
   storeId?: ID;
 }
 
 /**
- * Editable subset of a WhatsApp account (PRD-119 — Admin → Integrações).
+ * Editable subset of a WhatsApp account (PRD-119/120 — Admin → Integrações).
  * Deliberately narrow: provider/phone/store binding and capabilities are
  * operational facts, not form fields; secrets never transit the client
  * (`credentialsRef` is only the NAME PREFIX of the Edge Function secrets).
+ * The failover fields power the PRD-120 owner override (policy, backup
+ * account and the manual activate/deactivate toggle).
  */
 export interface IWhatsAppAccountPatch {
   label?: string;
   credentialsRef?: string;
   providerConfig?: IWhatsAppProviderConfig | null;
+  failoverPolicy?: WhatsAppFailoverPolicy;
+  failoverAccountId?: ID | null;
+  isFailoverActive?: boolean;
 }
 
 /**

@@ -43,5 +43,11 @@ export function useSystemHealth() {
     staleTime: 60_000,
   });
 
-  return { healthcheck, cronJobs, dbStats, whatsapp24h, whatsapp7d };
+  const whatsappProviders = useQuery({
+    queryKey: ["system-health", "whatsapp-providers"],
+    queryFn: () => provider.getWhatsAppProviderHealth(),
+    refetchInterval: HEALTHCHECK_REFETCH_MS,
+  });
+
+  return { healthcheck, cronJobs, dbStats, whatsapp24h, whatsapp7d, whatsappProviders };
 }

@@ -3,6 +3,7 @@ import type {
   ISystemDbStats,
   ISystemHealthcheck,
   IWhatsAppDeliveryHealth,
+  IWhatsAppProviderHealthAccount,
 } from "@/shared/types";
 import type { ISystemHealthProvider } from "../../contracts/systemHealth";
 
@@ -104,5 +105,43 @@ export const mockSystemHealthProvider: ISystemHealthProvider = {
         },
       ],
     };
+  },
+
+  async getWhatsAppProviderHealth(): Promise<IWhatsAppProviderHealthAccount[] | null> {
+    await delay();
+    // Deterministic demo posture: Meta healthy with a configured manual
+    // failover to Evolution; Evolution degraded (shows the warning visuals).
+    return [
+      {
+        accountId: "wa-mock-matriz",
+        label: "Matriz (Meta)",
+        provider: "meta",
+        status: "connected",
+        currentState: "healthy",
+        stateChangedAt: new Date(Date.now() - 6 * 60 * 60_000).toISOString(),
+        failoverPolicy: "manual",
+        failoverAccountId: "wa-mock-filial",
+        failoverLabel: "Filial 1 (Evolution)",
+        isFailoverActive: false,
+        totalCalls24h: 248,
+        errorCalls24h: 2,
+        latencyP95Ms: 840,
+      },
+      {
+        accountId: "wa-mock-filial",
+        label: "Filial 1 (Evolution)",
+        provider: "evolution",
+        status: "connected",
+        currentState: "degraded",
+        stateChangedAt: new Date(Date.now() - 35 * 60_000).toISOString(),
+        failoverPolicy: "disabled",
+        failoverAccountId: null,
+        failoverLabel: null,
+        isFailoverActive: false,
+        totalCalls24h: 71,
+        errorCalls24h: 9,
+        latencyP95Ms: 2100,
+      },
+    ];
   },
 };
