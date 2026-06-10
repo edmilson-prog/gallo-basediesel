@@ -14,7 +14,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { ISeller } from "@/shared/types";
-import { generateTempPassword, inviteSeller, type InviteSellerRole } from "../api/sellerAccess";
+import {
+  generateTempPassword,
+  inviteSeller,
+  inviteSellerByEmail,
+  type InviteSellerRole,
+} from "../api/sellerAccess";
 
 const ROLE_BY_TYPE: Record<ISeller["type"], InviteSellerRole> = {
   internal: "seller_internal",
@@ -64,6 +69,31 @@ export function CreateAccessDialog({
     onError: (err: Error) =>
       toast.error("Não foi possível criar o acesso", { description: err.message }),
   });
+
+  const emailMutation = useMutation({
+    mutationFn: () =>
+      inviteSellerByEmail({ sellerId: seller.id, email: email.trim().toLowerCase(), role }),
+    onSuccess: (result) => {
+      if (result.scaffold) {
+        // Inert mode: the server validated everything but mutated nothing
+        // (RESEND_API_KEY not configured yet — issue #46).
+        toast.info("Convite por e-mail ainda não está ativo", {
+          description:
+            "O provedor de e-mail ainda não foi configurado. Use a senha temporária por enquanto.",
+        });
+        return;
+      }
+      toast.success(`Convite enviado para ${email.trim().toLowerCase()}.`, {
+        description: "O vendedor define a própria senha pelo link recebido.",
+      });
+      void queryClient.invalidateQueries({ queryKey: ["seller-access", storeId] });
+      onOpenChange(false);
+    },
+    onError: (err: Error) =>
+      toast.error("Não foi possível enviar o convite", { description: err.message }),
+  });
+
+  const busy = mutation.isPending || emailMutation.isPending;
 
   const copyPassword = () => {
     void navigator.clipboard.writeText(password);
@@ -126,11 +156,20 @@ export function CreateAccessDialog({
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={mutation.isPending}>
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={busy}>
             Cancelar
           </Button>
-          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || !email.trim()}>
+          <Button
+            variant="outline"
+            onClick={() => emailMutation.mutate()}
+            disabled={busy || !email.trim()}
+            title="Envia um link por e-mail para o vendedor definir a própria senha"
+          >
+            <Icon icon="mdi:email-outline" size={16} className="mr-1.5" />
+            {emailMutation.isPending ? "Enviando…" : "Convidar por e-mail"}
+          </Button>
+          <Button onClick={() => mutation.mutate()} disabled={busy || !email.trim()}>
             {mutation.isPending ? "Criando…" : "Criar acesso"}
           </Button>
         </DialogFooter>

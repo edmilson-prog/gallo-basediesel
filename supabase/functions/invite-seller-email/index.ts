@@ -1,5 +1,4 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.107.0";
 
 /**
  * invite-seller-email (PRD-141) — SCAFFOLD.
@@ -15,41 +14,26 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.107.0";
  *    links the profile (rolling back the user on failure), sends a branded
  *    pt-BR email via Resend, and writes a best-effort audit log.
  *
- * Wiring left as follow-up (not part of this scaffold):
- *  - client `inviteSellerByEmail` in src/features/admin-settings/api/sellerAccess.ts
- *  - a dialog in the Usuários page
- *  - the `/auth/definir-senha` route the invite link redirects to
- *
  * Secrets to set when activating (Owner-controlled):
  *  - RESEND_API_KEY      Resend API key
  *  - RESEND_FROM         verified sender, e.g. "GALLO <nao-responda@seu-dominio>"
- *  - INVITE_REDIRECT_URL where the invite link lands (the set-password page)
+ *  - INVITE_REDIRECT_URL where the invite link lands (/auth/definir-senha)
+ *
+ * Shared lifecycle/auth/error patterns: supabase/functions/_shared (PRD-102).
  */
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+import { bestEffortAudit } from "../_shared/audit.ts";
+import { requireCaller, STAFF_ROLES } from "../_shared/auth.ts";
+import { optionalEnv } from "../_shared/env.ts";
+import { HttpError, json, parseJsonBody } from "../_shared/http.ts";
+import { servePost } from "../_shared/serve.ts";
 
 // Optional — their absence is what keeps this function inert.
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
-const RESEND_FROM = Deno.env.get("RESEND_FROM") ?? "GALLO <onboarding@resend.dev>";
-const INVITE_REDIRECT_URL = Deno.env.get("INVITE_REDIRECT_URL") ?? "";
+const RESEND_API_KEY = optionalEnv("RESEND_API_KEY");
+const RESEND_FROM = optionalEnv("RESEND_FROM", "GALLO <onboarding@resend.dev>");
+const INVITE_REDIRECT_URL = optionalEnv("INVITE_REDIRECT_URL");
 
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-const STAFF_ROLES = ["owner", "manager"];
 const ALLOWED_ROLES = ["seller_internal", "seller_external", "manager"];
-
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...CORS, "Content-Type": "application/json" },
-  });
-}
 
 /** Branded pt-BR invite email. `actionLink` is the Supabase invite action link. */
 function inviteEmailHtml(params: { sellerName: string; actionLink: string }): string {
@@ -117,67 +101,39 @@ async function sendViaResend(params: { to: string; subject: string; html: string
   }
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
-  if (req.method !== "POST") return json({ error: "method not allowed" }, 405);
+servePost(async (req, { log }) => {
+  // 1) Identify the caller and require staff.
+  const { callerId, admin, profile } = await requireCaller(req, STAFF_ROLES);
 
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader) return json({ error: "missing authorization" }, 401);
-
-  // 1) Identify the caller from their JWT.
-  const callerClient = createClient(SUPABASE_URL, ANON_KEY, {
-    global: { headers: { Authorization: authHeader } },
-    auth: { persistSession: false },
-  });
-  const { data: callerData, error: callerErr } = await callerClient.auth.getUser();
-  if (callerErr || !callerData?.user) return json({ error: "invalid session" }, 401);
-  const caller = callerData.user;
-
-  // 2) Verify the caller is staff. Service role bypasses RLS for the lookups.
-  const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
-  const { data: callerProfile } = await admin
-    .from("profiles")
-    .select("role, store_id")
-    .eq("auth_user_id", caller.id)
-    .maybeSingle();
-  if (!callerProfile || !STAFF_ROLES.includes(callerProfile.role)) {
-    return json({ error: "forbidden: requires owner or manager" }, 403);
-  }
-
-  // 3) Parse + validate the input (no password — the seller sets their own).
-  let body: Record<string, unknown>;
-  try {
-    body = await req.json();
-  } catch {
-    return json({ error: "invalid json body" }, 400);
-  }
+  // 2) Parse + validate the input (no password — the seller sets their own).
+  const body = await parseJsonBody(req);
   const sellerId = String(body.sellerId ?? "");
   const email = String(body.email ?? "")
     .trim()
     .toLowerCase();
   const role = String(body.role ?? "");
-  if (!sellerId || !email) return json({ error: "missing sellerId or email" }, 400);
-  if (!ALLOWED_ROLES.includes(role)) return json({ error: "invalid role" }, 400);
+  if (!sellerId || !email) throw new HttpError(400, "missing sellerId or email");
+  if (!ALLOWED_ROLES.includes(role)) throw new HttpError(400, "invalid role");
 
-  // 4) The target seller must belong to the caller's store.
+  // 3) The target seller must belong to the caller's store.
   const { data: seller } = await admin
     .from("sellers")
     .select("id, store_id, full_name")
     .eq("id", sellerId)
     .maybeSingle();
-  if (!seller || seller.store_id !== callerProfile.store_id) {
-    return json({ error: "seller not found in your store" }, 400);
+  if (!seller || seller.store_id !== profile.store_id) {
+    throw new HttpError(400, "seller not found in your store");
   }
 
-  // 5) Refuse if this seller already has an access profile.
+  // 4) Refuse if this seller already has an access profile.
   const { data: existing } = await admin
     .from("profiles")
     .select("auth_user_id")
     .eq("seller_id", sellerId)
     .maybeSingle();
-  if (existing) return json({ error: "this seller already has platform access" }, 409);
+  if (existing) throw new HttpError(409, "this seller already has platform access");
 
-  // 6) INERT MODE — no Resend key configured. Run the guards, preview the email,
+  // 5) INERT MODE — no Resend key configured. Run the guards, preview the email,
   //    mutate nothing. This is the default "off" state for the scaffold.
   if (!RESEND_API_KEY) {
     return json(
@@ -194,33 +150,33 @@ Deno.serve(async (req) => {
     );
   }
 
-  // 7) ACTIVE MODE — generate the invite link (this creates the auth user).
+  // 6) ACTIVE MODE — generate the invite link (this creates the auth user).
   const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
     type: "invite",
     email,
     options: INVITE_REDIRECT_URL ? { redirectTo: INVITE_REDIRECT_URL } : undefined,
   });
   if (linkErr || !linkData?.user || !linkData.properties?.action_link) {
-    return json({ error: `could not create invite: ${linkErr?.message ?? "unknown error"}` }, 400);
+    throw new HttpError(400, `could not create invite: ${linkErr?.message ?? "unknown error"}`);
   }
   const newUserId = linkData.user.id;
   const actionLink = linkData.properties.action_link;
 
-  // 8) Link the profile; roll back the auth user on failure (no orphans).
+  // 7) Link the profile; roll back the auth user on failure (no orphans).
   const { error: profErr } = await admin.from("profiles").insert({
     auth_user_id: newUserId,
     seller_id: sellerId,
-    store_id: callerProfile.store_id,
+    store_id: profile.store_id,
     role,
     display_name: seller.full_name,
     email,
   });
   if (profErr) {
     await admin.auth.admin.deleteUser(newUserId);
-    return json({ error: `could not link profile: ${profErr.message}` }, 400);
+    throw new HttpError(400, `could not link profile: ${profErr.message}`);
   }
 
-  // 9) Send the branded invite email. Roll back on failure (no half-invited user).
+  // 8) Send the branded invite email. Roll back on failure (no half-invited user).
   try {
     await sendViaResend({
       to: email,
@@ -231,22 +187,19 @@ Deno.serve(async (req) => {
     await admin.from("profiles").delete().eq("auth_user_id", newUserId);
     await admin.auth.admin.deleteUser(newUserId);
     const msg = sendErr instanceof Error ? sendErr.message : "unknown error";
-    return json({ error: `could not send invite email: ${msg}` }, 502);
+    throw new HttpError(502, `could not send invite email: ${msg}`);
   }
 
-  // 10) Audit — best-effort, never fails the request.
-  try {
-    await admin.from("audit_logs").insert({
-      store_id: callerProfile.store_id,
-      actor_id: caller.id,
-      action: "seller.invited_email",
-      resource: "seller",
-      resource_id: sellerId,
-      after: { email, role, authUserId: newUserId },
-    });
-  } catch (_) {
-    // ignore audit failures
-  }
+  // 9) Audit — best-effort, never fails the request.
+  await bestEffortAudit(admin, {
+    store_id: profile.store_id,
+    actor_id: callerId,
+    action: "seller.invited_email",
+    resource: "seller",
+    resource_id: sellerId,
+    after: { email, role, authUserId: newUserId },
+  });
 
+  log.info("seller invited by email", { sellerId, role });
   return json({ sent: true, userId: newUserId, sellerId, email, role }, 200);
 });

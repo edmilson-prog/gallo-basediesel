@@ -2,8 +2,15 @@
 import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { ID, IMediaAsset, IMediaAnnotation, IMediaClassification } from "@/shared/types";
+import type {
+  ID,
+  IMediaAsset,
+  IMediaAnnotation,
+  IMediaClassification,
+  IMediaUploadInput,
+} from "@/shared/types";
 import { useMediaStorageProvider } from "@/providers/data";
+import { useCurrentStore } from "@/features/multistore";
 import { auditLog } from "@/features/rbac/utils/auditLog";
 import { classifyMedia } from "../engine/classifyMedia";
 import { isSensitiveClassification } from "../engine/sensitiveAccess";
@@ -11,6 +18,7 @@ import { MEDIA_STRINGS } from "../i18n/pt-BR";
 
 export function useMediaActions() {
   const provider = useMediaStorageProvider();
+  const { currentStoreId } = useCurrentStore();
   const qc = useQueryClient();
   const a = MEDIA_STRINGS.actions;
 
@@ -37,6 +45,36 @@ export function useMediaActions() {
         ocrText: asset.ocrText,
       }),
     [],
+  );
+
+  /**
+   * Manual upload from the gallery (PRD-106). Injects the active storeId
+   * (mirrors withCreateStoreId — the Supabase provider requires it) and, when
+   * `input.file` is present, the Supabase path stores the real bytes in the
+   * Storage bucket. Audited as `media.upload`.
+   */
+  const upload = useCallback(
+    async (input: IMediaUploadInput) => {
+      try {
+        const augmented = { ...input, storeId: currentStoreId ?? undefined } as IMediaUploadInput;
+        const asset = await provider.upload(augmented);
+        auditLog({
+          action: "media.upload",
+          resource: "media",
+          resourceId: asset.id,
+          after: { kind: asset.kind, fileName: asset.fileName, sizeBytes: asset.sizeBytes },
+        });
+        invalidate(asset);
+        toast.success(a.uploadedToast);
+        return asset;
+      } catch (err) {
+        toast.error(a.uploadErrorToast, {
+          description: err instanceof Error ? err.message : undefined,
+        });
+        throw err;
+      }
+    },
+    [provider, currentStoreId, invalidate, a.uploadedToast, a.uploadErrorToast],
   );
 
   const setClassification = useCallback(
@@ -198,6 +236,7 @@ export function useMediaActions() {
 
   return {
     suggestClassification,
+    upload,
     setClassification,
     retryPersist,
     linkVehicle,

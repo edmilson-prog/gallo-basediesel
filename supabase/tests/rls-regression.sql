@@ -241,6 +241,41 @@ end $$;
 reset role;
 
 -- ---------------------------------------------------------------------------
+-- PRD-108 — BI materialized views are not directly readable; the *_read()
+-- RPCs re-apply store/seller scoping (staff = whole store, seller = own rows,
+-- executive KPIs = staff-only).
+-- ---------------------------------------------------------------------------
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+
+do $$
+declare
+  lucas uuid := '5a6400ed-5aec-4bf1-b641-31635f15c887';
+  n int; blocked boolean := false;
+begin
+  if (select count(*) from public.mv_sales_by_seller_month_read() where seller_id <> lucas) <> 0 then
+    raise exception '#108: seller must not see other sellers'' MV rows';
+  end if;
+  if (select count(*) from public.mv_executive_kpis_read()) <> 0 then
+    raise exception '#108: executive KPIs MV must be staff-only';
+  end if;
+  begin
+    perform count(*) from public.mv_sales_by_seller_month;
+  exception when insufficient_privilege then
+    blocked := true;
+  end;
+  if not blocked then
+    raise exception '#108: direct SELECT on the MV must be denied to authenticated';
+  end if;
+end $$;
+
+reset role;
+
+-- ---------------------------------------------------------------------------
 -- Principal: ANON (public storefront, logged out).
 -- ---------------------------------------------------------------------------
 set local role anon;

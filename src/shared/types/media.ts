@@ -99,6 +99,12 @@ export interface IMediaUploadInput {
    * (nota_fiscal/comprovante) the asset is auto-tagged `sensitive` (RF-021).
    */
   classification?: IMediaClassification;
+  /**
+   * Real file bytes (PRD-106). When present, the Supabase provider uploads
+   * them to the Storage bucket and persists the object path as `storageRef`;
+   * the mock provider ignores them (metadata-only demo).
+   */
+  file?: Blob;
 }
 
 /** Filter accepted by the `list` op. Store-scoped by the provider. */

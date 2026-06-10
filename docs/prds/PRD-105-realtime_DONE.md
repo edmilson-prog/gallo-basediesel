@@ -1,5 +1,11 @@
 # PRD-105: Realtime (Subscriptions Supabase)
 
+> **✅ STATUS: CONCLUÍDO — escopo core (decisão do dono, 2026-06-09)**
+>
+> Realtime real em `conversations` + `messages`: publication (`realtime_105_conversations_messages`), channel manager ref-counted (`src/shared/lib/realtime.ts`) e `useRealtimeConversations` com gate por fonte de dados — em `mock` o simulador segue intacto. Indicador de status (âmbar "conectando") no toggle do Inbox. RLS escopa os eventos server-side.
+>
+> **Ressalvas (deferidas por decisão de escopo):** hooks de `leads`/`audit_logs`; testes E2E de realtime. Reconexão é a nativa do supabase-js.
+
 ## Informações Gerais
 
 | Campo                 | Valor                                                                                                                                                                                                                                                                                                                                                                                                                                              |

@@ -1,5 +1,11 @@
 # PRD-108: Performance e Otimização
 
+> **✅ STATUS: CONCLUÍDO (com ressalvas) — 2026-06-09**
+>
+> Policies otimizadas (InitPlan) + 21 índices de FK (rodada anterior); `pg_trgm` autorizado + 5 índices GIN de busca + índice parcial do pipeline; 3 MVs de BI com refresh `pg_cron` (15 min, CONCURRENTLY) lidas via RPCs scoped (validadas por impersonação e cobertas na suíte de regressão); baseline em `docs/db/performance-baseline.md` e estado/decisões em `docs/db/performance.md`.
+>
+> **Ressalvas (deferidas com motivo documentado):** cursor pagination, cache no provider, testes de carga k6 e tuning de pooling.
+
 ## Informações Gerais
 
 | Campo                 | Valor                                                                                                                                                                                                                                                                                                                                                          |

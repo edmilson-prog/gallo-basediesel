@@ -1,5 +1,11 @@
 # PRD-106: Storage (Buckets e Mídias)
 
+> **✅ STATUS: CONCLUÍDO (com ressalvas) — 2026-06-09**
+>
+> 6 buckets + 12 policies (`storage_106_buckets_policies`); upload real de bytes pela galeria → `whatsapp-media` (store-scoped por prefixo de path); signed URLs reais (5 min) para assets de bucket; remoção best-effort do objeto no delete; UI "Enviar mídia" nas galerias de conversa e cliente.
+>
+> **Ressalvas:** transformações de imagem (width/quality) não habilitadas; limpeza automática de `imports-temp` deferida; a visibilidade fina per-seller do binário fica na camada de metadata (path opaco + policy por loja) — endurecer junto com a ingestão do épico WhatsApp (B4).
+
 ## Informações Gerais
 
 | Campo                 | Valor                                                                                                                                                                                                                                                                                                   |

@@ -23,6 +23,7 @@ export function CustomerMediaGallery({ customerId }: ICustomerMediaGalleryProps)
         isError={media.isError}
         onRetryLoad={media.refetch}
         columns={columns}
+        customerId={customerId}
       />
     </div>
   );

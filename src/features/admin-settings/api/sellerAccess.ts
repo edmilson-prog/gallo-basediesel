@@ -57,6 +57,37 @@ export async function inviteSeller(input: IInviteSellerInput): Promise<IInviteSe
   return data;
 }
 
+export interface IInviteSellerEmailResult {
+  /** true when the email actually went out (Resend configured). */
+  sent?: boolean;
+  /** true when the function ran in inert scaffold mode (no Resend key yet). */
+  scaffold?: boolean;
+  note?: string;
+  userId?: string;
+  sellerId?: string;
+  email?: string;
+  role?: string;
+}
+
+/**
+ * Invokes `invite-seller-email`: creates the auth user via an invite action
+ * link and emails it through Resend so the seller sets their own password at
+ * /auth/definir-senha. While `RESEND_API_KEY` is not configured (issue #46) the
+ * function is INERT — it validates the request, mutates nothing and returns
+ * `scaffold: true`; the UI surfaces that as "not activated yet".
+ */
+export async function inviteSellerByEmail(
+  input: Omit<IInviteSellerInput, "password">,
+): Promise<IInviteSellerEmailResult> {
+  const { data, error } = await getSupabaseClient().functions.invoke<IInviteSellerEmailResult>(
+    "invite-seller-email",
+    { body: input },
+  );
+  if (error) throw new Error(await extractFunctionError(error));
+  if (!data) throw new Error("Resposta vazia do servidor.");
+  return data;
+}
+
 /** Turns a seller's platform login on/off via the `set-seller-access` function. */
 export async function setSellerAccess(sellerId: string, active: boolean): Promise<void> {
   const { error } = await getSupabaseClient().functions.invoke("set-seller-access", {

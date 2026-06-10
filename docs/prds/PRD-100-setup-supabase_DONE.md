@@ -1,5 +1,11 @@
 # PRD-100: Setup do Projeto Supabase
 
+> **✅ STATUS: CONCLUÍDO (com ressalvas) — 2026-06-09**
+>
+> Infra provisionada e documentada: projeto único `njizaasajkdqptlxddqn` (desvio registrado: sem par staging/prod — o Preview da Vercel cumpre o papel), envs na Vercel/`.env.example`, runbooks `docs/infra/supabase-setup.md` + `rotate-keys.md`, smoke validado. Workflows `db-deploy.yml`/`gen-types.yml` criados no padrão no-op-até-secret.
+>
+> **Ressalvas:** secrets de CI gated no dono (#45); custom domains e billing alerts são configuração de dashboard (dono); runbook de DR pertence ao PRD-109 (pendente).
+
 ## Informações Gerais
 
 | Campo                 | Valor                                                                                                                                                                                                                                                                                                                        |

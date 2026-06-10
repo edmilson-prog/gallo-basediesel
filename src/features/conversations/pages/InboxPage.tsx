@@ -282,6 +282,7 @@ export function InboxPage() {
           unreadGlobal={unreadGlobal}
           realtimeEnabled={realtime.enabled}
           onToggleRealtime={realtime.setEnabled}
+          realtimeConnected={realtime.connected}
           sortDescription={sortDescription}
         />
         <div className="border-b border-border px-3 py-2">

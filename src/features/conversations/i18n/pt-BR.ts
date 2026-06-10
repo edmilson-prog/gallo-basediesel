@@ -14,6 +14,7 @@ export const INBOX_STRINGS = {
   unreadGlobal: (n: number) => `${n} não lida${n === 1 ? "" : "s"}`,
   realtimePaused: "Atualização pausada",
   realtimeActive: "Atualização em tempo real",
+  realtimeConnecting: "Conectando ao tempo real…",
   realtimeToggleLabel: "Alternar atualização em tempo real",
 
   // Search

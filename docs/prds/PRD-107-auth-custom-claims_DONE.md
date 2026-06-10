@@ -1,5 +1,11 @@
 # PRD-107: Auth com Custom Claims
 
+> **✅ STATUS: CONCLUÍDO (com ressalvas) — 2026-06-09**
+>
+> Custom Access Token Hook HABILITADO (claims role/seller_id/store_id); login real switchável; 5 Edge Functions owner-triggered (criar acesso, convite por e-mail, reset de senha, desligar/reativar, trocar papel); rota `/auth/definir-senha` (destino do link de convite/recovery) e wiring client `inviteSellerByEmail` + botão no dialog de Usuários.
+>
+> **Ressalvas:** envio de e-mail real gated na conta Resend (#46 — a função fica inerte até o secret existir); signup/recovery B2C deferidos para a fase da loja transacional (#41).
+
 ## Informações Gerais
 
 | Campo                 | Valor                                                                                                                                                                                                                                                                                                                                                                                                                                                       |

@@ -1,0 +1,52 @@
+name: Edge Functions deploy
+
+# Deploys all Edge Functions in supabase/functions/ via the Supabase CLI when
+# their sources change on main. The CLI bundles ../_shared imports natively.
+#
+# ACTIVATION (one-time, by a maintainer): add the repository secrets
+#   SUPABASE_ACCESS_TOKEN  — personal access token
+#   SUPABASE_PROJECT_REF   — the project ref
+# Until the secrets are set the job is a no-op (it skips, green). Issue #45
+# tracks the CI wiring.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/functions/**"
+      - ".github/workflows/edge-deploy.yml"
+  workflow_dispatch: {}
+
+jobs:
+  deploy-functions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check secrets
+        id: gate
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_PROJECT_REF" ]; then
+            echo "::notice::Supabase secrets not set — skipping functions deploy (no-op)."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Supabase CLI
+        if: steps.gate.outputs.enabled == 'true'
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Deploy functions
+        if: steps.gate.outputs.enabled == 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          # Deploys every function folder (skips _shared, which is bundled in).
+          supabase functions deploy --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
