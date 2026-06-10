@@ -38,7 +38,10 @@ export interface IWebhookDb {
   isProcessed(eventKey: string): Promise<boolean>;
   markProcessed(eventKey: string, traceId: string): Promise<void>;
   /** meta: by provider_config.phoneNumberId, falling back to phone digits. */
-  findMetaAccount(phoneNumberId: string, accountPhoneDigits: string): Promise<IAccountRecord | null>;
+  findMetaAccount(
+    phoneNumberId: string,
+    accountPhoneDigits: string,
+  ): Promise<IAccountRecord | null>;
   /** evolution: by provider_config.instanceName. */
   findEvolutionAccount(instanceName: string): Promise<IAccountRecord | null>;
   findCustomerByPhone(storeId: string, phoneDigits: string): Promise<ICustomerRecord | null>;
