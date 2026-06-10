@@ -1,0 +1,112 @@
+name: Logical backup (pg_dump)
+
+# Weekly logical backup of the Supabase database (PRD-109).
+#
+# Dumps the business-relevant schemas (public, auth, storage,
+# supabase_migrations) in custom format, validates the dump with
+# `pg_restore --list`, and stores it as a GitHub Actions artifact with
+# 90-day retention. The artifact lives outside the Supabase account, so a
+# compromised Supabase account cannot destroy the cold copy (RNF-004).
+#
+# Restore procedure: docs/infra/runbooks/restore-logical.md
+# Policy (layers / RTO / RPO): docs/infra/dr-policy.md
+#
+# ACTIVATION (one-time, by a maintainer): add the repository secret
+#   SUPABASE_DB_URL — Postgres connection string of the project
+#     (Settings > Database > Connection string, "Direct" or session pooler).
+# Until the secret is set the job is a no-op (it skips, green).
+#
+# FAILURE ALERT: a failed scheduled run notifies the workflow author via
+# GitHub's native e-mail notification. Optionally, add the secrets
+#   RESEND_API_KEY + BACKUP_ALERT_EMAIL
+# to also send an explicit alert e-mail through Resend (RF-060).
+
+on:
+  schedule:
+    # Every Sunday 06:00 UTC (03:00 BRT)
+    - cron: "0 6 * * 0"
+  workflow_dispatch: {}
+
+jobs:
+  logical-backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check secrets
+        id: gate
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::notice::SUPABASE_DB_URL secret not set — skipping logical backup (no-op)."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install PostgreSQL 17 client (PGDG)
+        if: steps.gate.outputs.enabled == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends curl ca-certificates gnupg
+          sudo install -d /usr/share/postgresql-common/pgdg
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            | sudo gpg --dearmor -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-client-17
+
+      - name: Dump database (custom format, compressed)
+        if: steps.gate.outputs.enabled == 'true'
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          STAMP="$(date -u +%Y%m%d-%H%M%S)"
+          FILE="gallo-logical-backup-${STAMP}.dump"
+          echo "file=${FILE}" >> "$GITHUB_ENV"
+          # Scoped to the schemas that matter for recovery: business data
+          # (public), users (auth), storage object metadata (storage) and the
+          # migration history (supabase_migrations). Internal/managed schemas
+          # (realtime, vault, pgsodium, ...) are intentionally excluded — they
+          # are recreated by the platform and may deny access to `postgres`.
+          pg_dump "$SUPABASE_DB_URL" \
+            --format=custom \
+            --compress=6 \
+            --no-owner \
+            --no-privileges \
+            --schema=public \
+            --schema=auth \
+            --schema=storage \
+            --schema=supabase_migrations \
+            --file="$FILE"
+          ls -lh "$FILE"
+
+      - name: Validate dump (pg_restore --list)
+        if: steps.gate.outputs.enabled == 'true'
+        run: |
+          pg_restore --list "$file" > /dev/null
+          echo "Dump is readable and structurally valid."
+
+      - name: Upload artifact (90-day retention)
+        if: steps.gate.outputs.enabled == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.file }}
+          path: ${{ env.file }}
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Alert on failure (Resend, optional)
+        if: failure()
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          BACKUP_ALERT_EMAIL: ${{ secrets.BACKUP_ALERT_EMAIL }}
+        run: |
+          if [ -z "$RESEND_API_KEY" ] || [ -z "$BACKUP_ALERT_EMAIL" ]; then
+            echo "::warning::Backup failed and RESEND_API_KEY/BACKUP_ALERT_EMAIL are not set — relying on GitHub's native failure notification."
+            exit 0
+          fi
+          curl -fsS -X POST https://api.resend.com/emails \
+            -H "Authorization: Bearer ${RESEND_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{\"from\":\"GALLO BASE DIESEL <onboarding@resend.dev>\",\"to\":[\"${BACKUP_ALERT_EMAIL}\"],\"subject\":\"[ALERTA] Backup lógico falhou — gallo-basediesel\",\"text\":\"O workflow logical-backup.yml falhou. Verifique: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\"}"

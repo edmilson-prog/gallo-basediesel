@@ -1,0 +1,95 @@
+name: Storage backup (critical buckets)
+
+# Weekly backup of the critical Storage buckets (PRD-109, RF-040):
+#   fiscal-documents — legal retention obligation
+#   whatsapp-media   — customer conversation assets
+# Public, recreatable buckets (product-images, avatars) are intentionally
+# excluded (RF-041 — low priority).
+#
+# Downloads every object via scripts/dr/backup-storage.ts (service role) and
+# stores a tar.gz as a GitHub Actions artifact with 90-day retention.
+#
+# Restore procedure: docs/infra/runbooks/restore-storage.md
+#
+# ACTIVATION (one-time, by a maintainer): add the repository secrets
+#   SUPABASE_URL              — https://<project-ref>.supabase.co
+#   SUPABASE_SERVICE_ROLE_KEY — Settings > API > service_role (NEVER client-side)
+# Until both are set the job is a no-op (it skips, green).
+#
+# FAILURE ALERT: same scheme as logical-backup.yml (GitHub native
+# notification; optional Resend e-mail via RESEND_API_KEY + BACKUP_ALERT_EMAIL).
+
+on:
+  schedule:
+    # Every Sunday 07:00 UTC (04:00 BRT), after the logical backup
+    - cron: "0 7 * * 0"
+  workflow_dispatch: {}
+
+jobs:
+  storage-backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check secrets
+        id: gate
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::notice::SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY secrets not set — skipping storage backup (no-op)."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        if: steps.gate.outputs.enabled == 'true'
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        if: steps.gate.outputs.enabled == 'true'
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        if: steps.gate.outputs.enabled == 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Download critical buckets
+        if: steps.gate.outputs.enabled == 'true'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: bun run scripts/dr/backup-storage.ts ./storage-backup
+
+      - name: Compress
+        if: steps.gate.outputs.enabled == 'true'
+        run: |
+          STAMP="$(date -u +%Y%m%d-%H%M%S)"
+          FILE="gallo-storage-backup-${STAMP}.tar.gz"
+          echo "file=${FILE}" >> "$GITHUB_ENV"
+          tar -czf "$FILE" -C ./storage-backup .
+          ls -lh "$FILE"
+
+      - name: Upload artifact (90-day retention)
+        if: steps.gate.outputs.enabled == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.file }}
+          path: ${{ env.file }}
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Alert on failure (Resend, optional)
+        if: failure()
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          BACKUP_ALERT_EMAIL: ${{ secrets.BACKUP_ALERT_EMAIL }}
+        run: |
+          if [ -z "$RESEND_API_KEY" ] || [ -z "$BACKUP_ALERT_EMAIL" ]; then
+            echo "::warning::Backup failed and RESEND_API_KEY/BACKUP_ALERT_EMAIL are not set — relying on GitHub's native failure notification."
+            exit 0
+          fi
+          curl -fsS -X POST https://api.resend.com/emails \
+            -H "Authorization: Bearer ${RESEND_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{\"from\":\"GALLO BASE DIESEL <onboarding@resend.dev>\",\"to\":[\"${BACKUP_ALERT_EMAIL}\"],\"subject\":\"[ALERTA] Backup de Storage falhou — gallo-basediesel\",\"text\":\"O workflow storage-backup.yml falhou. Verifique: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\"}"
