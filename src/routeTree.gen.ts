@@ -46,6 +46,7 @@ import { Route as LojaCadastroRouteImport } from './routes/loja.cadastro'
 import { Route as LojaBuscaRouteImport } from './routes/loja.busca'
 import { Route as AuthLogoutRouteImport } from './routes/auth.logout'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
+import { Route as AuthDefinirSenhaRouteImport } from './routes/auth.definir-senha'
 import { Route as AppVeiculosRouteImport } from './routes/app.veiculos'
 import { Route as AppStorefrontAdminRouteImport } from './routes/app.storefront-admin'
 import { Route as AppSdrRouteImport } from './routes/app.sdr'
@@ -123,6 +124,7 @@ import { Route as AppConfiguracoesPortalClienteRouteImport } from './routes/app.
 import { Route as AppConfiguracoesPerfilRouteImport } from './routes/app.configuracoes.perfil'
 import { Route as AppConfiguracoesPapeisRouteImport } from './routes/app.configuracoes.papeis'
 import { Route as AppConfiguracoesNotificacoesRouteImport } from './routes/app.configuracoes.notificacoes'
+import { Route as AppConfiguracoesMidiasRouteImport } from './routes/app.configuracoes.midias'
 import { Route as AppConfiguracoesLojasRouteImport } from './routes/app.configuracoes.lojas'
 import { Route as AppConfiguracoesInsightsRouteImport } from './routes/app.configuracoes.insights'
 import { Route as AppConfiguracoesGamificacaoRouteImport } from './routes/app.configuracoes.gamificacao'
@@ -137,6 +139,7 @@ import { Route as AppConfiguracoesCurvaAbcRouteImport } from './routes/app.confi
 import { Route as AppConfiguracoesCopilotoAnaliticoRouteImport } from './routes/app.configuracoes.copiloto-analitico'
 import { Route as AppConfiguracoesCopilotoRouteImport } from './routes/app.configuracoes.copiloto'
 import { Route as AppConfiguracoesComissoesRouteImport } from './routes/app.configuracoes.comissoes'
+import { Route as AppConfiguracoesBibliotecaRouteImport } from './routes/app.configuracoes.biblioteca'
 import { Route as AppConfiguracoesAuditoriaRouteImport } from './routes/app.configuracoes.auditoria'
 import { Route as AppConfiguracoesAparenciaRouteImport } from './routes/app.configuracoes.aparencia'
 import { Route as AppClientesIdRouteImport } from './routes/app.clientes.$id'
@@ -363,6 +366,11 @@ const AuthLogoutRoute = AuthLogoutRouteImport.update({
 const AuthLoginRoute = AuthLoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthDefinirSenhaRoute = AuthDefinirSenhaRouteImport.update({
+  id: '/definir-senha',
+  path: '/definir-senha',
   getParentRoute: () => AuthRoute,
 } as any)
 const AppVeiculosRoute = AppVeiculosRouteImport.update({
@@ -758,6 +766,11 @@ const AppConfiguracoesNotificacoesRoute =
     path: '/configuracoes/notificacoes',
     getParentRoute: () => AppRoute,
   } as any)
+const AppConfiguracoesMidiasRoute = AppConfiguracoesMidiasRouteImport.update({
+  id: '/configuracoes/midias',
+  path: '/configuracoes/midias',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppConfiguracoesLojasRoute = AppConfiguracoesLojasRouteImport.update({
   id: '/configuracoes/lojas',
   path: '/configuracoes/lojas',
@@ -838,6 +851,12 @@ const AppConfiguracoesComissoesRoute =
   AppConfiguracoesComissoesRouteImport.update({
     id: '/configuracoes/comissoes',
     path: '/configuracoes/comissoes',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppConfiguracoesBibliotecaRoute =
+  AppConfiguracoesBibliotecaRouteImport.update({
+    id: '/configuracoes/biblioteca',
+    path: '/configuracoes/biblioteca',
     getParentRoute: () => AppRoute,
   } as any)
 const AppConfiguracoesAuditoriaRoute =
@@ -1098,6 +1117,7 @@ export interface FileRoutesByFullPath {
   '/app/sdr': typeof AppSdrRoute
   '/app/storefront-admin': typeof AppStorefrontAdminRoute
   '/app/veiculos': typeof AppVeiculosRouteWithChildren
+  '/auth/definir-senha': typeof AuthDefinirSenhaRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/logout': typeof AuthLogoutRoute
   '/loja/busca': typeof LojaBuscaRoute
@@ -1133,6 +1153,7 @@ export interface FileRoutesByFullPath {
   '/app/clientes/$id': typeof AppClientesIdRoute
   '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
   '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
+  '/app/configuracoes/biblioteca': typeof AppConfiguracoesBibliotecaRoute
   '/app/configuracoes/comissoes': typeof AppConfiguracoesComissoesRoute
   '/app/configuracoes/copiloto': typeof AppConfiguracoesCopilotoRoute
   '/app/configuracoes/copiloto-analitico': typeof AppConfiguracoesCopilotoAnaliticoRoute
@@ -1147,6 +1168,7 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/gamificacao': typeof AppConfiguracoesGamificacaoRoute
   '/app/configuracoes/insights': typeof AppConfiguracoesInsightsRoute
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
+  '/app/configuracoes/midias': typeof AppConfiguracoesMidiasRoute
   '/app/configuracoes/notificacoes': typeof AppConfiguracoesNotificacoesRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
@@ -1259,6 +1281,7 @@ export interface FileRoutesByTo {
   '/app/notificacoes': typeof AppNotificacoesRoute
   '/app/sdr': typeof AppSdrRoute
   '/app/storefront-admin': typeof AppStorefrontAdminRoute
+  '/auth/definir-senha': typeof AuthDefinirSenhaRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/logout': typeof AuthLogoutRoute
   '/loja/busca': typeof LojaBuscaRoute
@@ -1288,6 +1311,7 @@ export interface FileRoutesByTo {
   '/app/clientes/$id': typeof AppClientesIdRoute
   '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
   '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
+  '/app/configuracoes/biblioteca': typeof AppConfiguracoesBibliotecaRoute
   '/app/configuracoes/comissoes': typeof AppConfiguracoesComissoesRoute
   '/app/configuracoes/copiloto': typeof AppConfiguracoesCopilotoRoute
   '/app/configuracoes/copiloto-analitico': typeof AppConfiguracoesCopilotoAnaliticoRoute
@@ -1302,6 +1326,7 @@ export interface FileRoutesByTo {
   '/app/configuracoes/gamificacao': typeof AppConfiguracoesGamificacaoRoute
   '/app/configuracoes/insights': typeof AppConfiguracoesInsightsRoute
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
+  '/app/configuracoes/midias': typeof AppConfiguracoesMidiasRoute
   '/app/configuracoes/notificacoes': typeof AppConfiguracoesNotificacoesRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
@@ -1419,6 +1444,7 @@ export interface FileRoutesById {
   '/app/sdr': typeof AppSdrRoute
   '/app/storefront-admin': typeof AppStorefrontAdminRoute
   '/app/veiculos': typeof AppVeiculosRouteWithChildren
+  '/auth/definir-senha': typeof AuthDefinirSenhaRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/logout': typeof AuthLogoutRoute
   '/loja/busca': typeof LojaBuscaRoute
@@ -1454,6 +1480,7 @@ export interface FileRoutesById {
   '/app/clientes/$id': typeof AppClientesIdRoute
   '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
   '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
+  '/app/configuracoes/biblioteca': typeof AppConfiguracoesBibliotecaRoute
   '/app/configuracoes/comissoes': typeof AppConfiguracoesComissoesRoute
   '/app/configuracoes/copiloto': typeof AppConfiguracoesCopilotoRoute
   '/app/configuracoes/copiloto-analitico': typeof AppConfiguracoesCopilotoAnaliticoRoute
@@ -1468,6 +1495,7 @@ export interface FileRoutesById {
   '/app/configuracoes/gamificacao': typeof AppConfiguracoesGamificacaoRoute
   '/app/configuracoes/insights': typeof AppConfiguracoesInsightsRoute
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
+  '/app/configuracoes/midias': typeof AppConfiguracoesMidiasRoute
   '/app/configuracoes/notificacoes': typeof AppConfiguracoesNotificacoesRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
@@ -1593,6 +1621,7 @@ export interface FileRouteTypes {
     | '/app/sdr'
     | '/app/storefront-admin'
     | '/app/veiculos'
+    | '/auth/definir-senha'
     | '/auth/login'
     | '/auth/logout'
     | '/loja/busca'
@@ -1628,6 +1657,7 @@ export interface FileRouteTypes {
     | '/app/clientes/$id'
     | '/app/configuracoes/aparencia'
     | '/app/configuracoes/auditoria'
+    | '/app/configuracoes/biblioteca'
     | '/app/configuracoes/comissoes'
     | '/app/configuracoes/copiloto'
     | '/app/configuracoes/copiloto-analitico'
@@ -1642,6 +1672,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/gamificacao'
     | '/app/configuracoes/insights'
     | '/app/configuracoes/lojas'
+    | '/app/configuracoes/midias'
     | '/app/configuracoes/notificacoes'
     | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
@@ -1754,6 +1785,7 @@ export interface FileRouteTypes {
     | '/app/notificacoes'
     | '/app/sdr'
     | '/app/storefront-admin'
+    | '/auth/definir-senha'
     | '/auth/login'
     | '/auth/logout'
     | '/loja/busca'
@@ -1783,6 +1815,7 @@ export interface FileRouteTypes {
     | '/app/clientes/$id'
     | '/app/configuracoes/aparencia'
     | '/app/configuracoes/auditoria'
+    | '/app/configuracoes/biblioteca'
     | '/app/configuracoes/comissoes'
     | '/app/configuracoes/copiloto'
     | '/app/configuracoes/copiloto-analitico'
@@ -1797,6 +1830,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/gamificacao'
     | '/app/configuracoes/insights'
     | '/app/configuracoes/lojas'
+    | '/app/configuracoes/midias'
     | '/app/configuracoes/notificacoes'
     | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
@@ -1913,6 +1947,7 @@ export interface FileRouteTypes {
     | '/app/sdr'
     | '/app/storefront-admin'
     | '/app/veiculos'
+    | '/auth/definir-senha'
     | '/auth/login'
     | '/auth/logout'
     | '/loja/busca'
@@ -1948,6 +1983,7 @@ export interface FileRouteTypes {
     | '/app/clientes/$id'
     | '/app/configuracoes/aparencia'
     | '/app/configuracoes/auditoria'
+    | '/app/configuracoes/biblioteca'
     | '/app/configuracoes/comissoes'
     | '/app/configuracoes/copiloto'
     | '/app/configuracoes/copiloto-analitico'
@@ -1962,6 +1998,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/gamificacao'
     | '/app/configuracoes/insights'
     | '/app/configuracoes/lojas'
+    | '/app/configuracoes/midias'
     | '/app/configuracoes/notificacoes'
     | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
@@ -2333,6 +2370,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/auth/login'
       preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/auth/definir-senha': {
+      id: '/auth/definir-senha'
+      path: '/definir-senha'
+      fullPath: '/auth/definir-senha'
+      preLoaderRoute: typeof AuthDefinirSenhaRouteImport
       parentRoute: typeof AuthRoute
     }
     '/app/veiculos': {
@@ -2874,6 +2918,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesNotificacoesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/configuracoes/midias': {
+      id: '/app/configuracoes/midias'
+      path: '/configuracoes/midias'
+      fullPath: '/app/configuracoes/midias'
+      preLoaderRoute: typeof AppConfiguracoesMidiasRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/configuracoes/lojas': {
       id: '/app/configuracoes/lojas'
       path: '/configuracoes/lojas'
@@ -2970,6 +3021,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes/comissoes'
       fullPath: '/app/configuracoes/comissoes'
       preLoaderRoute: typeof AppConfiguracoesComissoesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/configuracoes/biblioteca': {
+      id: '/app/configuracoes/biblioteca'
+      path: '/configuracoes/biblioteca'
+      fullPath: '/app/configuracoes/biblioteca'
+      preLoaderRoute: typeof AppConfiguracoesBibliotecaRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/configuracoes/auditoria': {
@@ -3548,6 +3606,7 @@ interface AppRouteChildren {
   AppVeiculosRoute: typeof AppVeiculosRouteWithChildren
   AppConfiguracoesAparenciaRoute: typeof AppConfiguracoesAparenciaRoute
   AppConfiguracoesAuditoriaRoute: typeof AppConfiguracoesAuditoriaRoute
+  AppConfiguracoesBibliotecaRoute: typeof AppConfiguracoesBibliotecaRoute
   AppConfiguracoesComissoesRoute: typeof AppConfiguracoesComissoesRoute
   AppConfiguracoesCopilotoRoute: typeof AppConfiguracoesCopilotoRoute
   AppConfiguracoesCopilotoAnaliticoRoute: typeof AppConfiguracoesCopilotoAnaliticoRoute
@@ -3562,6 +3621,7 @@ interface AppRouteChildren {
   AppConfiguracoesGamificacaoRoute: typeof AppConfiguracoesGamificacaoRoute
   AppConfiguracoesInsightsRoute: typeof AppConfiguracoesInsightsRoute
   AppConfiguracoesLojasRoute: typeof AppConfiguracoesLojasRoute
+  AppConfiguracoesMidiasRoute: typeof AppConfiguracoesMidiasRoute
   AppConfiguracoesNotificacoesRoute: typeof AppConfiguracoesNotificacoesRoute
   AppConfiguracoesPapeisRoute: typeof AppConfiguracoesPapeisRoute
   AppConfiguracoesPerfilRoute: typeof AppConfiguracoesPerfilRoute
@@ -3618,6 +3678,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppVeiculosRoute: AppVeiculosRouteWithChildren,
   AppConfiguracoesAparenciaRoute: AppConfiguracoesAparenciaRoute,
   AppConfiguracoesAuditoriaRoute: AppConfiguracoesAuditoriaRoute,
+  AppConfiguracoesBibliotecaRoute: AppConfiguracoesBibliotecaRoute,
   AppConfiguracoesComissoesRoute: AppConfiguracoesComissoesRoute,
   AppConfiguracoesCopilotoRoute: AppConfiguracoesCopilotoRoute,
   AppConfiguracoesCopilotoAnaliticoRoute:
@@ -3634,6 +3695,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesGamificacaoRoute: AppConfiguracoesGamificacaoRoute,
   AppConfiguracoesInsightsRoute: AppConfiguracoesInsightsRoute,
   AppConfiguracoesLojasRoute: AppConfiguracoesLojasRoute,
+  AppConfiguracoesMidiasRoute: AppConfiguracoesMidiasRoute,
   AppConfiguracoesNotificacoesRoute: AppConfiguracoesNotificacoesRoute,
   AppConfiguracoesPapeisRoute: AppConfiguracoesPapeisRoute,
   AppConfiguracoesPerfilRoute: AppConfiguracoesPerfilRoute,
@@ -3683,11 +3745,13 @@ const AppRouteChildren: AppRouteChildren = {
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 interface AuthRouteChildren {
+  AuthDefinirSenhaRoute: typeof AuthDefinirSenhaRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthLogoutRoute: typeof AuthLogoutRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
+  AuthDefinirSenhaRoute: AuthDefinirSenhaRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthLogoutRoute: AuthLogoutRoute,
 }
