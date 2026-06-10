@@ -101,6 +101,7 @@ import { Route as AppLeadsIdRouteImport } from './routes/app.leads.$id'
 import { Route as AppKitsNovoRouteImport } from './routes/app.kits.novo'
 import { Route as AppKitsModelIdRouteImport } from './routes/app.kits.$modelId'
 import { Route as AppGestaoVendasRouteImport } from './routes/app.gestao.vendas'
+import { Route as AppGestaoSaudeRouteImport } from './routes/app.gestao.saude'
 import { Route as AppGestaoRentabilidadeRouteImport } from './routes/app.gestao.rentabilidade'
 import { Route as AppGestaoRankingRouteImport } from './routes/app.gestao.ranking'
 import { Route as AppGestaoPositivacaoRouteImport } from './routes/app.gestao.positivacao'
@@ -642,6 +643,11 @@ const AppKitsModelIdRoute = AppKitsModelIdRouteImport.update({
 const AppGestaoVendasRoute = AppGestaoVendasRouteImport.update({
   id: '/gestao/vendas',
   path: '/gestao/vendas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGestaoSaudeRoute = AppGestaoSaudeRouteImport.update({
+  id: '/gestao/saude',
+  path: '/gestao/saude',
   getParentRoute: () => AppRoute,
 } as any)
 const AppGestaoRentabilidadeRoute = AppGestaoRentabilidadeRouteImport.update({
@@ -1192,6 +1198,7 @@ export interface FileRoutesByFullPath {
   '/app/gestao/positivacao': typeof AppGestaoPositivacaoRouteWithChildren
   '/app/gestao/ranking': typeof AppGestaoRankingRouteWithChildren
   '/app/gestao/rentabilidade': typeof AppGestaoRentabilidadeRoute
+  '/app/gestao/saude': typeof AppGestaoSaudeRoute
   '/app/gestao/vendas': typeof AppGestaoVendasRoute
   '/app/kits/$modelId': typeof AppKitsModelIdRouteWithChildren
   '/app/kits/novo': typeof AppKitsNovoRoute
@@ -1345,6 +1352,7 @@ export interface FileRoutesByTo {
   '/app/gestao/forecast': typeof AppGestaoForecastRoute
   '/app/gestao/positivacao': typeof AppGestaoPositivacaoRouteWithChildren
   '/app/gestao/rentabilidade': typeof AppGestaoRentabilidadeRoute
+  '/app/gestao/saude': typeof AppGestaoSaudeRoute
   '/app/gestao/vendas': typeof AppGestaoVendasRoute
   '/app/kits/$modelId': typeof AppKitsModelIdRouteWithChildren
   '/app/kits/novo': typeof AppKitsNovoRoute
@@ -1519,6 +1527,7 @@ export interface FileRoutesById {
   '/app/gestao/positivacao': typeof AppGestaoPositivacaoRouteWithChildren
   '/app/gestao/ranking': typeof AppGestaoRankingRouteWithChildren
   '/app/gestao/rentabilidade': typeof AppGestaoRentabilidadeRoute
+  '/app/gestao/saude': typeof AppGestaoSaudeRoute
   '/app/gestao/vendas': typeof AppGestaoVendasRoute
   '/app/kits/$modelId': typeof AppKitsModelIdRouteWithChildren
   '/app/kits/novo': typeof AppKitsNovoRoute
@@ -1696,6 +1705,7 @@ export interface FileRouteTypes {
     | '/app/gestao/positivacao'
     | '/app/gestao/ranking'
     | '/app/gestao/rentabilidade'
+    | '/app/gestao/saude'
     | '/app/gestao/vendas'
     | '/app/kits/$modelId'
     | '/app/kits/novo'
@@ -1849,6 +1859,7 @@ export interface FileRouteTypes {
     | '/app/gestao/forecast'
     | '/app/gestao/positivacao'
     | '/app/gestao/rentabilidade'
+    | '/app/gestao/saude'
     | '/app/gestao/vendas'
     | '/app/kits/$modelId'
     | '/app/kits/novo'
@@ -2022,6 +2033,7 @@ export interface FileRouteTypes {
     | '/app/gestao/positivacao'
     | '/app/gestao/ranking'
     | '/app/gestao/rentabilidade'
+    | '/app/gestao/saude'
     | '/app/gestao/vendas'
     | '/app/kits/$modelId'
     | '/app/kits/novo'
@@ -2755,6 +2767,13 @@ declare module '@tanstack/react-router' {
       path: '/gestao/vendas'
       fullPath: '/app/gestao/vendas'
       preLoaderRoute: typeof AppGestaoVendasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/gestao/saude': {
+      id: '/app/gestao/saude'
+      path: '/gestao/saude'
+      fullPath: '/app/gestao/saude'
+      preLoaderRoute: typeof AppGestaoSaudeRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/gestao/rentabilidade': {
@@ -3645,6 +3664,7 @@ interface AppRouteChildren {
   AppGestaoPositivacaoRoute: typeof AppGestaoPositivacaoRouteWithChildren
   AppGestaoRankingRoute: typeof AppGestaoRankingRouteWithChildren
   AppGestaoRentabilidadeRoute: typeof AppGestaoRentabilidadeRoute
+  AppGestaoSaudeRoute: typeof AppGestaoSaudeRoute
   AppGestaoVendasRoute: typeof AppGestaoVendasRoute
   AppConfiguracoesIndexRoute: typeof AppConfiguracoesIndexRoute
   AppGestaoIndexRoute: typeof AppGestaoIndexRoute
@@ -3720,6 +3740,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppGestaoPositivacaoRoute: AppGestaoPositivacaoRouteWithChildren,
   AppGestaoRankingRoute: AppGestaoRankingRouteWithChildren,
   AppGestaoRentabilidadeRoute: AppGestaoRentabilidadeRoute,
+  AppGestaoSaudeRoute: AppGestaoSaudeRoute,
   AppGestaoVendasRoute: AppGestaoVendasRoute,
   AppConfiguracoesIndexRoute: AppConfiguracoesIndexRoute,
   AppGestaoIndexRoute: AppGestaoIndexRoute,

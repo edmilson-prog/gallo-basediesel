@@ -34,6 +34,7 @@ import { mockQuickReplyProvider } from "./impl/mock/quickReply";
 import { mockTrackableLinkProvider } from "./impl/mock/trackableLink";
 import { mockScheduledSendProvider } from "./impl/mock/scheduledSend";
 import { mockStorefrontProvider } from "./impl/mock/storefront";
+import { mockSystemHealthProvider } from "./impl/mock/systemHealth";
 
 import { supabaseCustomersProvider } from "./impl/supabase/customers";
 import { supabaseVehiclesProvider } from "./impl/supabase/vehicles";
@@ -69,6 +70,7 @@ import { supabaseQuickReplyProvider } from "./impl/supabase/quickReply";
 import { supabaseTrackableLinkProvider } from "./impl/supabase/trackableLink";
 import { supabaseScheduledSendProvider } from "./impl/supabase/scheduledSend";
 import { supabaseStorefrontProvider } from "./impl/supabase/storefront";
+import { supabaseSystemHealthProvider } from "./impl/supabase/systemHealth";
 
 export type DataSource = "mock" | "supabase";
 
@@ -129,6 +131,7 @@ const mockProviders: IDataProviders = {
   trackableLink: mockTrackableLinkProvider,
   scheduledSend: mockScheduledSendProvider,
   storefront: mockStorefrontProvider,
+  systemHealth: mockSystemHealthProvider,
 };
 
 const supabaseProviders: IDataProviders = {
@@ -166,6 +169,7 @@ const supabaseProviders: IDataProviders = {
   trackableLink: supabaseTrackableLinkProvider,
   scheduledSend: supabaseScheduledSendProvider,
   storefront: supabaseStorefrontProvider,
+  systemHealth: supabaseSystemHealthProvider,
 };
 
 /**

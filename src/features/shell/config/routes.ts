@@ -47,6 +47,7 @@ export const ROUTES = {
   GESTAO_CAIXA: "/app/gestao/caixa",
   GESTAO_ESTOQUE: "/app/gestao/estoque",
   GESTAO_ESTOQUE_MOVIMENTACAO: "/app/gestao/estoque-movimentacao",
+  GESTAO_SAUDE: "/app/gestao/saude",
 
   // Configurações
   CONFIG_INICIO: "/app/configuracoes",
