@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **GALLO BASE DIESEL** — Plataforma SaaS de inteligência comercial para distribuidora de peças pesadas (Volvo, Scania, Mercedes-Benz, Ford Cargo, Iveco) em Frederico Westphalen/RS. A plataforma se posiciona **acima do ERP DINTEC** como cérebro comercial e relacional. Marca guarda-chuva com 3 submarcas: PARTS (verde), SERVICE (vermelho), INDUSTRIAL (amarelo).
 
-Estado atual: **Fase 1 (Frontend First)** — mockup navegável e funcional sobre uma camada de dados fictícios determinísticos (faker + seed). A arquitetura-alvo já está materializada (`features/`, `mocks/`, `providers/`, `shared/`) e a maioria dos PRDs comerciais foi implementada e marcada `_DONE` — incluindo os épicos recentes de gestão de mídia (PRD-026, "Vault") e envio rápido / biblioteca de ativos (PRD-027, "Dispatch"). Codinome atual `Bedrock` (v0.72.0). A migração Mock → Supabase (Fase 2, PRDs 100+) já tem o **backend materializado**: os 33 providers Supabase, 39 tabelas (schema `public`, todas com RLS) e o **auth real switchável** (`VITE_AUTH_SOURCE=mock|supabase`) estão implementados. Falta a migração de dados (tabelas faker nascem vazias) e as write policies (PRD-103) para o cutover; o app segue rodando em `mock` por default. Projeto mantido pela AILA Sistemas Inteligentes.
+Estado atual: **Fase 1 (Frontend First)** — mockup navegável e funcional sobre uma camada de dados fictícios determinísticos (faker + seed). A arquitetura-alvo já está materializada (`features/`, `mocks/`, `providers/`, `shared/`) e a maioria dos PRDs comerciais foi implementada e marcada `_DONE` — incluindo os épicos recentes de gestão de mídia (PRD-026, "Vault") e envio rápido / biblioteca de ativos (PRD-027, "Dispatch"). Codinome atual `Keystone` (v0.73.0). A migração Mock → Supabase (Fase 2, PRDs 100+) já tem o **backend materializado**: os 33 providers Supabase, 39 tabelas (schema `public`, todas com RLS) e o **auth real switchável** (`VITE_AUTH_SOURCE=mock|supabase`) estão implementados. Falta a migração de dados (tabelas faker nascem vazias) e as write policies (PRD-103) para o cutover; o app segue rodando em `mock` por default. Projeto mantido pela AILA Sistemas Inteligentes.
 
 > ⚠️ **Worktrees — IGNORAR.** A pasta `.claude/worktrees/` (qualquer caminho contendo `worktrees`) contém git worktrees isoladas de outras branches e **não faz parte da branch `main`**. Ao explorar, buscar (grep/glob), editar ou raciocinar sobre o código, **ignore completamente** esse diretório. Trabalhe apenas no diretório principal do projeto (sobretudo `src/`). Não relate, edite nem referencie arquivos dentro de `worktrees`.
 
@@ -168,7 +168,7 @@ Padrões arquiteturais que devem ser preservados ao implementar features:
 
 ## Versionamento e changelog
 
-- **SemVer.** MINOR/MAJOR recebem **codinome em inglês** (atual: `Bedrock` — v0.72.0).
+- **SemVer.** MINOR/MAJOR recebem **codinome em inglês** (atual: `Keystone` — v0.73.0).
 - **CHANGELOG.md** segue Keep a Changelog; atualizado no version bump, não a cada commit. É copiado para `public/` pelos pre-scripts (`scripts/copy-changelog.mjs`).
 - Bump após PRD completo (obrigatório) ou quando solicitado para acumulado de fixes diretos.
-- **Tags git** acompanham cada bump: `vX.Y.Z` no commit de release/merge (ex.: `v0.67.0` Vault, `v0.68.0` Dispatch, `v0.69.0` Beacon, `v0.70.0` Guide, `v0.71.0` Focus, `v0.72.0` Bedrock).
+- **Tags git** acompanham cada bump: `vX.Y.Z` no commit de release/merge (ex.: `v0.67.0` Vault, `v0.68.0` Dispatch, `v0.69.0` Beacon, `v0.70.0` Guide, `v0.71.0` Focus, `v0.72.0` Bedrock, `v0.73.0` Keystone).

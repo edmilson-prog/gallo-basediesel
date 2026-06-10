@@ -6,6 +6,19 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.73.0] — Keystone · 2026-06-10
+
+A **Fase 2 (banco de dados em nuvem)** foi concluída, reforçada e integrada à base do produto. O sistema continua usando os dados de demonstração por padrão — **nada muda na sua experiência nesta versão**; a virada para os dados em nuvem é um passo separado, ligado quando você decidir.
+
+### Added
+
+- **Fundação da nuvem concluída e endurecida** — toda a virada para a plataforma funcionar sobre o banco em nuvem foi finalizada e testada nos bastidores: login real por e-mail e senha, separação dos dados por vendedor, catálogo público da loja e **geração automática dos alertas de gestão pelo servidor** (cliente A dormente, vendedor sobrecarregado, conversa sem resposta), sem depender de alguém estar com a tela aberta. Continua selecionável por configuração; o padrão segue nos dados de demonstração.
+- **Finalização de pedido da loja pelo WhatsApp** — quando a loja estiver no modo nuvem, o "Finalizar pedido" passa a enviar o pedido direto ao nosso time pelo WhatsApp, já com o resumo do carrinho, em vez do checkout de demonstração — com a opção de copiar o resumo caso o WhatsApp ainda não esteja configurado.
+
+### Security
+
+- **Privacidade dos dados por vendedor (modo nuvem)** — cada vendedor passa a ver e alterar apenas as conversas, clientes, mídias e notas da própria carteira; as informações dos demais ficam protegidas inclusive contra acesso pela camada de dados, e cada nota fica corretamente atribuída ao vendedor que a registrou.
+
 ## [0.72.0] — Bedrock · 2026-06-08
 
 ### Added
