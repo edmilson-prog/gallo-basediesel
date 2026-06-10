@@ -6,6 +6,23 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.82.0] — Weave · 2026-06-10
+
+A **integração do WhatsApp real fechou o ciclo com as telas do dia a dia** (PRD-119): anexar arquivos direto na conversa agora funciona de verdade, e a tela de configuração das contas de WhatsApp saiu do "em breve".
+
+### Added
+
+- **Anexar arquivos na conversa** — os botões Imagem, Documento e Áudio do clipe de anexos passaram a funcionar: escolha o arquivo do computador e ele sai na conversa (o texto digitado vira a legenda). Imagens até 5 MB, áudios até 16 MB e documentos até 25 MB; fora da janela de 24 horas, o sistema orienta a usar um modelo aprovado, como em qualquer envio.
+- **Tela de contas de WhatsApp** — Configurações → WhatsApp deixou de ser uma prévia: mostra as contas conectadas com provedor, situação e recursos de cada uma, e permite editar o nome, o prefixo de credenciais e a configuração técnica de cada provedor. Tokens e chaves continuam fora da tela — ficam guardados apenas no servidor.
+
+### Changed
+
+- **Revisão geral das telas** — auditoria confirmou que Central de Atendimento, Conversa e Distribuição já operam pelos dados reais quando o modo Supabase está ativo, sem nenhum resquício dos dados de demonstração fora do lugar. A tela de Simulação SDR permanece um ambiente de treino isolado, que nunca grava no sistema.
+
+### Security
+
+- **Configuração de contas restrita** — editar as contas de WhatsApp agora é permitido apenas para Dono e Gestor, com a regra aplicada direto no banco de dados; vendedores continuam enxergando os recursos das contas para usar a conversa normalmente.
+
 ## [0.81.0] — Pulse · 2026-06-10
 
 O **ciclo de cada mensagem do WhatsApp agora é visível do início ao fim** (PRD-118): você acompanha na conversa se a mensagem foi enviada, entregue ou lida — ao vivo, sem recarregar —, entende por que uma falhou e tem ação corretiva na hora. O dono ganhou um painel de saúde de entrega por conta.
