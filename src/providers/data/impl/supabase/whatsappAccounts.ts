@@ -26,13 +26,19 @@ interface WhatsAppAccountRow {
   status: IWhatsAppAccount["status"];
   capabilities: IWhatsAppCapabilities;
   provider_config: IWhatsAppAccount["providerConfig"] | null;
+  current_state: IWhatsAppAccount["currentState"];
+  state_changed_at: string | null;
+  failover_policy: IWhatsAppAccount["failoverPolicy"];
+  failover_account_id: string | null;
+  is_failover_active: boolean;
   created_at: string;
 }
 
 const TABLE = "whatsapp_accounts";
 const COLUMNS =
   "id, store_id, label, phone_number, provider, credentials_ref, status, capabilities, " +
-  "provider_config, created_at";
+  "provider_config, current_state, state_changed_at, failover_policy, failover_account_id, " +
+  "is_failover_active, created_at";
 
 function rowToWhatsAppAccount(row: WhatsAppAccountRow): IWhatsAppAccount {
   return {
@@ -45,6 +51,11 @@ function rowToWhatsAppAccount(row: WhatsAppAccountRow): IWhatsAppAccount {
     status: row.status,
     capabilities: row.capabilities,
     providerConfig: row.provider_config ?? undefined,
+    currentState: row.current_state,
+    stateChangedAt: row.state_changed_at ?? undefined,
+    failoverPolicy: row.failover_policy,
+    failoverAccountId: row.failover_account_id ?? undefined,
+    isFailoverActive: row.is_failover_active,
     createdAt: row.created_at,
   };
 }
@@ -74,6 +85,9 @@ export const supabaseWhatsAppAccountsProvider: IWhatsAppAccountsProvider = {
     if (patch.label !== undefined) row.label = patch.label;
     if (patch.credentialsRef !== undefined) row.credentials_ref = patch.credentialsRef;
     if (patch.providerConfig !== undefined) row.provider_config = patch.providerConfig;
+    if (patch.failoverPolicy !== undefined) row.failover_policy = patch.failoverPolicy;
+    if (patch.failoverAccountId !== undefined) row.failover_account_id = patch.failoverAccountId;
+    if (patch.isFailoverActive !== undefined) row.is_failover_active = patch.isFailoverActive;
 
     const { data, error } = await getSupabaseClient()
       .from(TABLE)

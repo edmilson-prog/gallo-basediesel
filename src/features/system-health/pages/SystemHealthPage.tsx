@@ -8,6 +8,7 @@ import { getActiveDataSource } from "@/providers/data";
 import type {
   ISystemHealthcheck,
   IWhatsAppDeliveryHealth,
+  IWhatsAppProviderHealthAccount,
   SystemCheckResult,
   SystemHealthStatus,
 } from "@/shared/types";
@@ -270,8 +271,136 @@ function WhatsAppDeliveryCard({
   );
 }
 
+/** Per-account provider state + failover posture (PRD-120 RF-060). */
+const PROVIDER_STATE_VISUAL: Record<
+  IWhatsAppProviderHealthAccount["currentState"],
+  { label: string; className: string; icon: string }
+> = {
+  healthy: {
+    label: S.providersStateHealthy,
+    className: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    icon: "mdi:check-circle-outline",
+  },
+  degraded: {
+    label: S.providersStateDegraded,
+    className: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+    icon: "mdi:alert-outline",
+  },
+  down: {
+    label: S.providersStateDown,
+    className: "border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300",
+    icon: "mdi:close-circle-outline",
+  },
+  paused: {
+    label: S.providersStatePaused,
+    className: "border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300",
+    icon: "mdi:pause-circle-outline",
+  },
+};
+
+function WhatsAppProvidersCard({
+  accounts,
+  isLoading,
+}: {
+  accounts: IWhatsAppProviderHealthAccount[] | null | undefined;
+  isLoading: boolean;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{S.providersCardTitle}</CardTitle>
+        <CardDescription>{S.providersCardSubtitle}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <Skeleton className="h-24 w-full" />
+        ) : !accounts || accounts.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{S.providersEmpty}</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                  <th className="py-2 pr-2 font-medium">{S.providersColAccount}</th>
+                  <th className="px-2 py-2 font-medium">{S.providersColState}</th>
+                  <th className="px-2 py-2 text-right font-medium">{S.providersColCalls}</th>
+                  <th className="px-2 py-2 text-right font-medium">{S.providersColErrorRate}</th>
+                  <th className="px-2 py-2 text-right font-medium">{S.providersColLatency}</th>
+                  <th className="py-2 pl-2 font-medium">{S.providersColFailover}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {accounts.map((acc) => {
+                  const visual = PROVIDER_STATE_VISUAL[acc.currentState];
+                  const errorRate =
+                    acc.totalCalls24h > 0
+                      ? `${((acc.errorCalls24h / acc.totalCalls24h) * 100).toFixed(1)}%`
+                      : S.providersNoData;
+                  return (
+                    <tr key={acc.accountId} className="border-b border-border/60">
+                      <td className="py-2 pr-2">
+                        <span className="font-medium text-foreground">{acc.label}</span>{" "}
+                        <Badge variant="outline" className="ml-1 text-[10px] uppercase">
+                          {acc.provider}
+                        </Badge>
+                      </td>
+                      <td className="px-2 py-2">
+                        <Badge
+                          variant="outline"
+                          className={visual.className}
+                          title={
+                            acc.stateChangedAt
+                              ? `${S.providersStateSince} ${new Date(acc.stateChangedAt).toLocaleString("pt-BR")}`
+                              : undefined
+                          }
+                        >
+                          <Icon icon={visual.icon} size={12} className="mr-1" />
+                          {visual.label}
+                        </Badge>
+                      </td>
+                      <td className="px-2 py-2 text-right tabular-nums">{acc.totalCalls24h}</td>
+                      <td
+                        className={
+                          acc.errorCalls24h > 0
+                            ? "px-2 py-2 text-right font-medium tabular-nums text-severity-critical"
+                            : "px-2 py-2 text-right tabular-nums"
+                        }
+                      >
+                        {errorRate}
+                      </td>
+                      <td className="px-2 py-2 text-right tabular-nums">
+                        {acc.latencyP95Ms != null ? `${acc.latencyP95Ms} ms` : S.providersNoData}
+                      </td>
+                      <td className="py-2 pl-2 text-xs">
+                        {acc.isFailoverActive && acc.failoverLabel ? (
+                          <span className="font-medium text-severity-critical">
+                            {S.providersFailoverActive(acc.failoverLabel)}
+                          </span>
+                        ) : acc.failoverPolicy !== "disabled" && acc.failoverLabel ? (
+                          <span className="text-muted-foreground">
+                            {S.providersFailoverConfigured(acc.failoverLabel)}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">
+                            {S.providersFailoverDisabled}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function SystemHealthPage() {
-  const { healthcheck, cronJobs, dbStats, whatsapp24h, whatsapp7d } = useSystemHealth();
+  const { healthcheck, cronJobs, dbStats, whatsapp24h, whatsapp7d, whatsappProviders } =
+    useSystemHealth();
   const projectRef = supabaseProjectRef();
   const hasSentry = Boolean(import.meta.env.VITE_SENTRY_DSN);
 
@@ -315,6 +444,11 @@ export function SystemHealthPage() {
         healthcheck={healthcheck.data}
         isFetching={healthcheck.isFetching}
         onRefresh={() => void healthcheck.refetch()}
+      />
+
+      <WhatsAppProvidersCard
+        accounts={whatsappProviders.data}
+        isLoading={whatsappProviders.isLoading}
       />
 
       <WhatsAppDeliveryCard

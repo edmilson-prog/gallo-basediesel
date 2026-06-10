@@ -3,6 +3,7 @@ import type {
   ISystemDbStats,
   ISystemHealthcheck,
   IWhatsAppDeliveryHealth,
+  IWhatsAppProviderHealthAccount,
 } from "@/shared/types";
 
 /**
@@ -26,4 +27,9 @@ export interface ISystemHealthProvider {
    * (PRD-118). `null` for non-owners (silent filter).
    */
   getWhatsAppDeliveryHealth(windowHours: number): Promise<IWhatsAppDeliveryHealth | null>;
+  /**
+   * Per-account provider health + failover posture (PRD-120).
+   * `null` for non-owners (silent filter).
+   */
+  getWhatsAppProviderHealth(): Promise<IWhatsAppProviderHealthAccount[] | null>;
 }

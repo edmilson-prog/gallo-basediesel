@@ -6,9 +6,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { IWhatsAppAccount, IWhatsAppProviderConfig } from "@/shared/types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type {
+  IWhatsAppAccount,
+  IWhatsAppProviderConfig,
+  WhatsAppFailoverPolicy,
+} from "@/shared/types";
+import { useAuth } from "@/features/auth/useAuth";
 import { useCurrentStore } from "@/features/multistore";
-import { getActiveDataSource, useWhatsAppAccountsProvider } from "@/providers/data";
+import {
+  getActiveDataSource,
+  recordAuditLogSync,
+  useWhatsAppAccountsProvider,
+} from "@/providers/data";
 import { SectionHeader } from "../components/SectionHeader";
 
 const STATUS_VISUAL: Record<
@@ -37,6 +53,39 @@ const PROVIDER_LABEL: Record<IWhatsAppAccount["provider"], string> = {
   evolution: "Evolution API",
 };
 
+/** Health state visuals (PRD-120) — mirrors the dashboard badges. */
+const HEALTH_VISUAL: Record<
+  IWhatsAppAccount["currentState"],
+  { label: string; className: string; icon: string }
+> = {
+  healthy: {
+    label: "Saudável",
+    className: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    icon: "mdi:heart-pulse",
+  },
+  degraded: {
+    label: "Degradada",
+    className: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+    icon: "mdi:alert-outline",
+  },
+  down: {
+    label: "Indisponível",
+    className: "border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300",
+    icon: "mdi:close-circle-outline",
+  },
+  paused: {
+    label: "Pausada",
+    className: "border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300",
+    icon: "mdi:pause-circle-outline",
+  },
+};
+
+const FAILOVER_POLICY_LABEL: Record<WhatsAppFailoverPolicy, string> = {
+  disabled: "Desativado",
+  manual: "Manual (Owner ativa)",
+  automatic: "Automático (quando a conta cair)",
+};
+
 const CAPABILITY_LABELS: Array<{
   key: keyof IWhatsAppAccount["capabilities"];
   label: string;
@@ -55,6 +104,9 @@ interface IAccountDraft {
   businessAccountId: string;
   baseUrl: string;
   instanceName: string;
+  failoverPolicy: WhatsAppFailoverPolicy;
+  /** Empty string = no backup account selected. */
+  failoverAccountId: string;
 }
 
 function draftFromAccount(account: IWhatsAppAccount): IAccountDraft {
@@ -65,6 +117,8 @@ function draftFromAccount(account: IWhatsAppAccount): IAccountDraft {
     businessAccountId: account.providerConfig?.businessAccountId ?? "",
     baseUrl: account.providerConfig?.baseUrl ?? "",
     instanceName: account.providerConfig?.instanceName ?? "",
+    failoverPolicy: account.failoverPolicy,
+    failoverAccountId: account.failoverAccountId ?? "",
   };
 }
 
@@ -101,6 +155,7 @@ export function WhatsAppAccountsPage() {
   const { currentStoreId } = useCurrentStore();
   const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
   const provider = useWhatsAppAccountsProvider();
+  const { currentUser } = useAuth();
   const [accounts, setAccounts] = useState<IWhatsAppAccount[] | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<IAccountDraft | null>(null);
@@ -153,18 +208,71 @@ export function WhatsAppAccountsPage() {
       );
       return;
     }
+    // RF-003: a non-disabled policy requires a backup account (DB CHECK).
+    if (draft.failoverPolicy !== "disabled" && !draft.failoverAccountId) {
+      toast.error("Selecione a conta reserva para usar failover.");
+      return;
+    }
     setSaving(true);
     try {
+      const failoverChanged =
+        draft.failoverPolicy !== account.failoverPolicy ||
+        (draft.failoverAccountId || null) !== (account.failoverAccountId ?? null);
       await provider.update(account.id, {
         label: draft.label.trim(),
         credentialsRef: draft.credentialsRef.trim(),
         providerConfig: config.config,
+        failoverPolicy: draft.failoverPolicy,
+        failoverAccountId: draft.failoverAccountId || null,
+        // Disabling the policy also clears an active failover.
+        ...(draft.failoverPolicy === "disabled" && account.isFailoverActive
+          ? { isFailoverActive: false }
+          : {}),
       });
+      if (failoverChanged && currentUser?.sellerId) {
+        recordAuditLogSync({
+          storeId,
+          actorId: currentUser.sellerId,
+          action: "failover_policy_changed",
+          resource: "whatsapp_account",
+          resourceId: account.id,
+          before: { policy: account.failoverPolicy, backup: account.failoverAccountId ?? null },
+          after: { policy: draft.failoverPolicy, backup: draft.failoverAccountId || null },
+        });
+      }
       toast.success("Conta atualizada.");
       cancelEdit();
       await refresh();
     } catch {
       toast.error("Não foi possível salvar a conta.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // RF-050: manual failover toggle (Owner override) — audited.
+  const handleFailoverToggle = async (account: IWhatsAppAccount, next: boolean) => {
+    setSaving(true);
+    try {
+      await provider.update(account.id, { isFailoverActive: next });
+      if (currentUser?.sellerId) {
+        recordAuditLogSync({
+          storeId,
+          actorId: currentUser.sellerId,
+          action: "manual_failover_toggle",
+          resource: "whatsapp_account",
+          resourceId: account.id,
+          after: { isFailoverActive: next, backup: account.failoverAccountId ?? null },
+        });
+      }
+      toast.success(
+        next
+          ? "Failover ativado — novos envios usam a conta reserva."
+          : "Failover desativado — envios voltam à conta principal.",
+      );
+      await refresh();
+    } catch {
+      toast.error("Não foi possível alterar o failover.");
     } finally {
       setSaving(false);
     }
@@ -217,12 +325,37 @@ export function WhatsAppAccountsPage() {
                       <p className="text-xs text-muted-foreground">{account.phoneNumber}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="outline">{PROVIDER_LABEL[account.provider]}</Badge>
                     <Badge variant="outline" className={status.className}>
                       <Icon icon={status.icon} size={12} className="mr-1" />
                       {status.label}
                     </Badge>
+                    <Badge
+                      variant="outline"
+                      className={HEALTH_VISUAL[account.currentState].className}
+                      title={
+                        account.stateChangedAt
+                          ? `Desde ${new Date(account.stateChangedAt).toLocaleString("pt-BR")}`
+                          : undefined
+                      }
+                    >
+                      <Icon
+                        icon={HEALTH_VISUAL[account.currentState].icon}
+                        size={12}
+                        className="mr-1"
+                      />
+                      {HEALTH_VISUAL[account.currentState].label}
+                    </Badge>
+                    {account.isFailoverActive && (
+                      <Badge
+                        variant="outline"
+                        className="border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300"
+                      >
+                        <Icon icon="mdi:swap-horizontal" size={12} className="mr-1" />
+                        Failover ativo
+                      </Badge>
+                    )}
                   </div>
                 </div>
 
@@ -241,7 +374,7 @@ export function WhatsAppAccountsPage() {
 
                 {!isEditing ? (
                   <div className="mt-4 flex flex-wrap items-end justify-between gap-3 border-t border-border pt-4">
-                    <dl className="grid gap-x-8 gap-y-1 text-xs sm:grid-cols-2">
+                    <dl className="grid gap-x-8 gap-y-1 text-xs sm:grid-cols-3">
                       <div>
                         <dt className="text-muted-foreground">Prefixo de credenciais</dt>
                         <dd className="font-mono text-foreground">{account.credentialsRef}</dd>
@@ -262,11 +395,39 @@ export function WhatsAppAccountsPage() {
                               : "Não configurado"}
                         </dd>
                       </div>
+                      <div>
+                        <dt className="text-muted-foreground">Failover</dt>
+                        <dd className="text-foreground">
+                          {account.failoverPolicy === "disabled"
+                            ? "Desativado"
+                            : `${FAILOVER_POLICY_LABEL[account.failoverPolicy]} → ${
+                                accounts?.find((a) => a.id === account.failoverAccountId)?.label ??
+                                "conta reserva"
+                              }`}
+                        </dd>
+                      </div>
                     </dl>
-                    <Button variant="outline" size="sm" onClick={() => startEdit(account)}>
-                      <Icon icon="mdi:pencil-outline" size={14} className="mr-1.5" />
-                      Editar
-                    </Button>
+                    <div className="flex gap-2">
+                      {account.failoverPolicy !== "disabled" && account.failoverAccountId && (
+                        <Button
+                          variant={account.isFailoverActive ? "destructive" : "outline"}
+                          size="sm"
+                          disabled={saving}
+                          onClick={() =>
+                            void handleFailoverToggle(account, !account.isFailoverActive)
+                          }
+                        >
+                          <Icon icon="mdi:swap-horizontal" size={14} className="mr-1.5" />
+                          {account.isFailoverActive
+                            ? "Desativar failover"
+                            : "Ativar failover agora"}
+                        </Button>
+                      )}
+                      <Button variant="outline" size="sm" onClick={() => startEdit(account)}>
+                        <Icon icon="mdi:pencil-outline" size={14} className="mr-1.5" />
+                        Editar
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <div className="mt-4 space-y-4 border-t border-border pt-4">
@@ -350,6 +511,59 @@ export function WhatsAppAccountsPage() {
                           </div>
                         </>
                       )}
+                      <div className="space-y-1.5">
+                        <Label htmlFor={`fpolicy-${account.id}`}>Política de failover</Label>
+                        <Select
+                          value={draft?.failoverPolicy ?? "disabled"}
+                          onValueChange={(v) =>
+                            setDraft((d) =>
+                              d ? { ...d, failoverPolicy: v as WhatsAppFailoverPolicy } : d,
+                            )
+                          }
+                        >
+                          <SelectTrigger id={`fpolicy-${account.id}`}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(Object.keys(FAILOVER_POLICY_LABEL) as WhatsAppFailoverPolicy[]).map(
+                              (p) => (
+                                <SelectItem key={p} value={p}>
+                                  {FAILOVER_POLICY_LABEL[p]}
+                                </SelectItem>
+                              ),
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor={`fbackup-${account.id}`}>Conta reserva</Label>
+                        <Select
+                          value={draft?.failoverAccountId || "none"}
+                          onValueChange={(v) =>
+                            setDraft((d) =>
+                              d ? { ...d, failoverAccountId: v === "none" ? "" : v } : d,
+                            )
+                          }
+                        >
+                          <SelectTrigger id={`fbackup-${account.id}`}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Nenhuma</SelectItem>
+                            {(accounts ?? [])
+                              .filter((a) => a.id !== account.id)
+                              .map((a) => (
+                                <SelectItem key={a.id} value={a.id}>
+                                  {a.label} ({PROVIDER_LABEL[a.provider]})
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-[11px] text-muted-foreground">
+                          Templates HSM não saem por reserva Evolution — esses envios são bloqueados
+                          com aviso enquanto o failover estiver ativo.
+                        </p>
+                      </div>
                     </div>
                     <div className="flex justify-end gap-2">
                       <Button variant="outline" size="sm" onClick={cancelEdit} disabled={saving}>

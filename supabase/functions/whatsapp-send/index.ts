@@ -31,6 +31,7 @@ import {
   type ISendRequest,
 } from "../_shared/whatsapp/send/core.ts";
 import type { IAccountRecord } from "../_shared/whatsapp/webhook/core.ts";
+import type { IFailoverAwareAccount } from "../_shared/whatsapp/failover.ts";
 import type { IEngineDeps, IIntegrationLogEntry } from "../_shared/whatsapp/types.ts";
 
 const SIGNED_URL_TTL_SECONDS = 300; // 5min — provider fetches immediately
@@ -81,11 +82,14 @@ function makeSendDb(admin: SupabaseClient, traceId: string): ISendDb {
         .maybeSingle();
       if (!conv) return null;
 
-      let account: IAccountRecord | null = null;
+      let account: IFailoverAwareAccount | null = null;
       if (conv.whatsapp_account_id) {
         const { data: row } = await admin
           .from("whatsapp_accounts")
-          .select("id, store_id, provider, phone_number, credentials_ref, provider_config")
+          .select(
+            "id, store_id, provider, phone_number, credentials_ref, provider_config, " +
+              "current_state, state_changed_at, failover_policy, failover_account_id, is_failover_active",
+          )
           .eq("id", conv.whatsapp_account_id)
           .neq("status", "disconnected")
           .maybeSingle();
@@ -97,6 +101,11 @@ function makeSendDb(admin: SupabaseClient, traceId: string): ISendDb {
             phoneNumber: row.phone_number as string,
             credentialsRef: row.credentials_ref as string,
             providerConfig: (row.provider_config as Record<string, unknown> | null) ?? null,
+            currentState: row.current_state as IFailoverAwareAccount["currentState"],
+            stateChangedAt: (row.state_changed_at as string | null) ?? null,
+            failoverPolicy: row.failover_policy as IFailoverAwareAccount["failoverPolicy"],
+            failoverAccountId: (row.failover_account_id as string | null) ?? null,
+            isFailoverActive: Boolean(row.is_failover_active),
           };
         }
       }
@@ -125,6 +134,23 @@ function makeSendDb(admin: SupabaseClient, traceId: string): ISendDb {
         customerPhone,
         customerWhatsappStatus,
       };
+    },
+    // PRD-120: failover (backup) account row for resolveEffectiveAccount.
+    async getAccountRecord(accountId) {
+      const { data: row } = await admin
+        .from("whatsapp_accounts")
+        .select("id, store_id, provider, phone_number, credentials_ref, provider_config")
+        .eq("id", accountId)
+        .maybeSingle();
+      if (!row) return null;
+      return {
+        id: row.id as string,
+        storeId: row.store_id as string,
+        provider: row.provider as "meta" | "evolution",
+        phoneNumber: row.phone_number as string,
+        credentialsRef: row.credentials_ref as string,
+        providerConfig: (row.provider_config as Record<string, unknown> | null) ?? null,
+      } satisfies IAccountRecord;
     },
     async isWithin24hWindow(conversationId) {
       const { data, error } = await admin.rpc("is_within_24h_window", {

@@ -15,6 +15,7 @@
 
 import { WhatsAppProviderError } from "../errors.ts";
 import { toE164 } from "../phone.ts";
+import { resolveEffectiveAccount, type IFailoverAwareAccount } from "../failover.ts";
 import type { IWhatsAppProvider } from "../IWhatsAppProvider.ts";
 import type { IAccountRecord } from "../webhook/core.ts";
 import type { OutboundMediaType } from "../types.ts";
@@ -58,7 +59,8 @@ export interface ISendConversationContext {
     status: string;
     assignedSellerId: string | null;
   };
-  account: IAccountRecord | null;
+  /** Primary account of the conversation, with the PRD-120 failover columns. */
+  account: IFailoverAwareAccount | null;
   customerId: string | null;
   customerPhone: string | null;
   /** customers.whatsapp_status — drives the invalid-number gate (PRD-118). */
@@ -67,6 +69,8 @@ export interface ISendConversationContext {
 
 export interface ISendDb {
   getSendContext(conversationId: string): Promise<ISendConversationContext | null>;
+  /** PRD-120: loads the failover (backup) account row. Null when missing. */
+  getAccountRecord(accountId: string): Promise<IAccountRecord | null>;
   isWithin24hWindow(conversationId: string): Promise<boolean>;
   insertQueuedMessage(input: {
     conversationId: string;
@@ -204,9 +208,41 @@ export async function processSendRequest(args: {
   }
   const to = toE164(customerPhone.replace(/\D/g, ""));
 
+  // PRD-120 RF-040: effective account — an ACTIVE failover routes NEW
+  // outbound through the backup account (history stays on the primary; the
+  // 24h pre-check below must use the EFFECTIVE provider). Templates require
+  // a Meta backup (FAILOVER_INCOMPATIBLE otherwise — RF-041).
+  let effectiveAccount: IAccountRecord = account;
+  let usedFailover = false;
+  if (account.isFailoverActive && account.failoverAccountId) {
+    const failoverRow = await db.getAccountRecord(account.failoverAccountId);
+    const resolved = resolveEffectiveAccount({
+      primary: account,
+      failover: failoverRow,
+      kind: input.kind,
+    });
+    effectiveAccount = resolved.account;
+    usedFailover = resolved.usedFailover;
+    if (usedFailover) {
+      await db.audit({
+        storeId: conversation.storeId,
+        actorId: sender.sellerId ?? "staff",
+        action: "failover_used",
+        resource: "whatsapp_account",
+        resourceId: account.id,
+        after: {
+          toAccountId: effectiveAccount.id,
+          conversationId: conversation.id,
+          kind: input.kind,
+          traceId,
+        },
+      });
+    }
+  }
+
   // Meta 24h window pre-check (RF-020..023): free text AND media captions are
   // free-form content; templates exist precisely for outside the window.
-  if (account.provider === "meta" && input.kind !== "template") {
+  if (effectiveAccount.provider === "meta" && input.kind !== "template") {
     const within = await db.isWithin24hWindow(conversation.id);
     if (!within) {
       throw new WhatsAppProviderError(
@@ -222,18 +258,18 @@ export async function processSendRequest(args: {
   const message = await db.insertQueuedMessage({
     conversationId: conversation.id,
     sellerId: sender.sellerId,
-    provider: account.provider,
+    provider: effectiveAccount.provider,
     text: input.text ?? "",
     mediaType: input.kind === "media" ? (input.mediaType ?? null) : null,
     mediaUrl: input.kind === "media" ? (input.mediaPath ?? null) : null,
   });
 
-  const engine = args.buildProvider(account);
+  const engine = args.buildProvider(effectiveAccount);
   try {
     let providerMessageId: string;
     if (input.kind === "text") {
       const result = await engine.sendText({
-        accountId: account.id,
+        accountId: effectiveAccount.id,
         to,
         text: input.text ?? "",
         replyToMessageId: input.replyToMessageId,
@@ -246,7 +282,7 @@ export async function processSendRequest(args: {
         ? mediaPath
         : await db.createSignedMediaUrl(mediaPath);
       const result = await engine.sendMedia({
-        accountId: account.id,
+        accountId: effectiveAccount.id,
         to,
         mediaType: input.mediaType as OutboundMediaType,
         mediaIdOrUrl: url,
@@ -256,7 +292,7 @@ export async function processSendRequest(args: {
       providerMessageId = result.providerMessageId;
     } else {
       const result = await engine.sendTemplate({
-        accountId: account.id,
+        accountId: effectiveAccount.id,
         to,
         templateName: input.templateName ?? "",
         languageCode: input.templateLanguage ?? "",
@@ -276,10 +312,11 @@ export async function processSendRequest(args: {
       resource: "message",
       resourceId: message.id,
       after: {
-        provider: account.provider,
+        provider: effectiveAccount.provider,
         kind: input.kind,
         success: true,
         providerMessageId,
+        ...(usedFailover ? { usedFailover: true, accountId: effectiveAccount.id } : {}),
         ...(input.retryOfMessageId ? { originalMessageId: input.retryOfMessageId } : {}),
         traceId,
       },
@@ -309,10 +346,11 @@ export async function processSendRequest(args: {
       resource: "message",
       resourceId: message.id,
       after: {
-        provider: account.provider,
+        provider: effectiveAccount.provider,
         kind: input.kind,
         success: false,
         errorCode: error instanceof WhatsAppProviderError ? error.code : "UNKNOWN",
+        ...(usedFailover ? { usedFailover: true, accountId: effectiveAccount.id } : {}),
         ...(input.retryOfMessageId ? { originalMessageId: input.retryOfMessageId } : {}),
         traceId,
       },

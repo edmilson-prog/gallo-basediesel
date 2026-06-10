@@ -7,6 +7,12 @@
  */
 
 import type { ISO8601 } from "./common";
+import type {
+  WhatsAppAccountHealthState,
+  WhatsAppAccountStatus,
+  WhatsAppFailoverPolicy,
+  WhatsAppProviderName,
+} from "./conversation";
 
 /** Aggregate verdict reported by the `health` Edge Function. */
 export type SystemHealthStatus = "healthy" | "degraded" | "down" | "unknown";
@@ -73,4 +79,25 @@ export interface IWhatsAppDeliveryHealth {
   windowHours: number;
   accounts: IWhatsAppAccountDelivery[];
   topFailures: IWhatsAppFailureBucket[];
+}
+
+/**
+ * Per-account provider health + failover posture (PRD-120). Call metrics are
+ * attributed by provider over the last 24h (integration_logs granularity).
+ */
+export interface IWhatsAppProviderHealthAccount {
+  accountId: string;
+  label: string;
+  provider: WhatsAppProviderName;
+  status: WhatsAppAccountStatus;
+  currentState: WhatsAppAccountHealthState;
+  stateChangedAt: ISO8601 | null;
+  failoverPolicy: WhatsAppFailoverPolicy;
+  failoverAccountId: string | null;
+  /** Label of the backup account, when configured. */
+  failoverLabel: string | null;
+  isFailoverActive: boolean;
+  totalCalls24h: number;
+  errorCalls24h: number;
+  latencyP95Ms: number | null;
 }

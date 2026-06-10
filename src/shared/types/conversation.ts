@@ -98,6 +98,12 @@ export type WhatsAppProviderName = "meta" | "evolution";
 /** Connection status of a WhatsApp account. */
 export type WhatsAppAccountStatus = "connected" | "disconnected" | "pending";
 
+/** Health state maintained by the monitoring tick + manual action (PRD-120). */
+export type WhatsAppAccountHealthState = "healthy" | "degraded" | "down" | "paused";
+
+/** Failover policy of an account (PRD-120). */
+export type WhatsAppFailoverPolicy = "disabled" | "manual" | "automatic";
+
 /**
  * Capability matrix advertised by a WhatsApp provider.
  * UI adapts based on these flags (e.g. hide HSM templates when Evolution is selected).
@@ -148,5 +154,15 @@ export interface IWhatsAppAccount {
   capabilities: IWhatsAppCapabilities;
   /** Non-secret engine config (PRD-111). `undefined` while unconfigured. */
   providerConfig?: IWhatsAppProviderConfig;
+  /** Health state from the monitoring tick (PRD-120). Default `healthy`. */
+  currentState: WhatsAppAccountHealthState;
+  /** Last state transition. */
+  stateChangedAt?: ISO8601;
+  /** Failover policy (PRD-120). Default `disabled`. */
+  failoverPolicy: WhatsAppFailoverPolicy;
+  /** Backup account for NEW outbound while failover is active. */
+  failoverAccountId?: ID;
+  /** True while outbound is being routed through the backup account. */
+  isFailoverActive: boolean;
   createdAt: ISO8601;
 }

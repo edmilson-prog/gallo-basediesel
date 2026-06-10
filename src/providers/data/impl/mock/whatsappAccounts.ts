@@ -11,5 +11,12 @@ export const mockWhatsAppAccountsProvider: IWhatsAppAccountsProvider = {
       ...(patch.providerConfig !== undefined
         ? { providerConfig: patch.providerConfig ?? undefined }
         : {}),
+      ...(patch.failoverPolicy !== undefined ? { failoverPolicy: patch.failoverPolicy } : {}),
+      ...(patch.failoverAccountId !== undefined
+        ? { failoverAccountId: patch.failoverAccountId ?? undefined }
+        : {}),
+      ...(patch.isFailoverActive !== undefined
+        ? { isFailoverActive: patch.isFailoverActive }
+        : {}),
     }),
 };
