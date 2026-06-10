@@ -62,6 +62,18 @@ interface ImportMetaEnv {
   readonly VITE_SENTRY_DSN?: string;
 
   /**
+   * Forces the WhatsApp provider factory to the mock engine regardless of
+   * the active data source (PRD-111, RF-015).
+   *
+   * Optional. When unset, the engine follows `VITE_DATA_SOURCE` (`mock` →
+   * MockWhatsAppProvider; `supabase` → the account's real engine, available
+   * from PRDs 112/113 onwards).
+   *
+   * @see src/providers/whatsapp/factory.ts
+   */
+  readonly VITE_WHATSAPP_PROVIDER?: "mock";
+
+  /**
    * Factory default for where the Sales Copilot surface renders on the
    * conversation screen (PRD-025).
    *
