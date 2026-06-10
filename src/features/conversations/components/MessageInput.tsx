@@ -18,6 +18,8 @@ import { useMetaWindow } from "../hooks/useMetaWindow";
 import { useConversationContext } from "../hooks/ConversationContext";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
 import { TemplateDialog } from "./dialogs/TemplateDialog";
+import { TemplatePicker, type ITemplatePickerSelection } from "@/features/templates";
+import { getActiveDataSource } from "@/providers/data";
 import {
   AssetPicker,
   ComposerStagedAsset,
@@ -33,13 +35,13 @@ import { ScheduleSendMenu } from "@/features/quick-send/components/ScheduleSendM
 import { useScheduleSend } from "@/features/quick-send/hooks/useScheduleSend";
 import { parseSlash } from "@/features/quick-send/engine/slashParser";
 import { filterAssets } from "@/features/quick-send/engine/assetFiltering";
-import { resolvePlaceholders, hasUnresolved } from "@/features/quick-send/engine/placeholderResolver";
+import {
+  resolvePlaceholders,
+  hasUnresolved,
+} from "@/features/quick-send/engine/placeholderResolver";
 import { useAssetLibrary } from "@/features/quick-send/hooks/useAssetLibrary";
 import type { IAssetLibraryItem, IPart } from "@/shared/types";
-import {
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { QUICK_SEND_STRINGS } from "@/features/quick-send/i18n/pt-BR";
 
 export interface IMessageInputProps {
@@ -175,9 +177,7 @@ export function MessageInput(props: IMessageInputProps) {
   // value didn't change (e.g. arrow keys). Clamp to the current value length.
   const safeCaret = Math.min(caret, value.length);
   const slash = parseSlash(value, safeCaret);
-  const slashLib = useAssetLibrary(
-    slash.active ? { query: slash.query } : { query: "" },
-  );
+  const slashLib = useAssetLibrary(slash.active ? { query: slash.query } : { query: "" });
   const slashAssets = slash.active
     ? filterAssets(slashLib.items, { query: slash.query }).slice(0, 5)
     : [];
@@ -296,8 +296,33 @@ export function MessageInput(props: IMessageInputProps) {
     try {
       await sendHook.send({ text });
       onSent?.();
+    } catch (err) {
+      // Supabase source already toasts per error code inside the hook; the
+      // 24h-window bounce opens the HSM picker instead (PRD-116).
+      if (err instanceof Error && err.message === "TEMPLATE_REQUIRED") {
+        setTemplateOpen(true);
+        return;
+      }
+      if (getActiveDataSource() !== "supabase") {
+        toast.error(CONVERSATION_STRINGS.actionFailed);
+      }
+    }
+  };
+
+  const handleRealTemplateSelect = async (selection: ITemplatePickerSelection) => {
+    try {
+      await sendHook.send({
+        text: selection.renderedText,
+        template: true,
+        templateMeta: {
+          templateName: selection.templateName,
+          languageCode: selection.languageCode,
+          variables: selection.variables,
+        },
+      });
+      onSent?.();
     } catch {
-      toast.error(CONVERSATION_STRINGS.actionFailed);
+      // Hook already toasted the friendly message.
     }
   };
 
@@ -622,11 +647,21 @@ export function MessageInput(props: IMessageInputProps) {
         </div>
       </div>
 
-      <TemplateDialog
-        open={templateOpen}
-        onOpenChange={setTemplateOpen}
-        onConfirm={handleTemplateConfirm}
-      />
+      {getActiveDataSource() === "supabase" ? (
+        // PRD-116: real HSM catalog picker — sends kind='template' through
+        // the whatsapp-send pipeline with name/language/variables.
+        <TemplatePicker
+          open={templateOpen}
+          onOpenChange={setTemplateOpen}
+          onSelect={(selection) => void handleRealTemplateSelect(selection)}
+        />
+      ) : (
+        <TemplateDialog
+          open={templateOpen}
+          onOpenChange={setTemplateOpen}
+          onConfirm={handleTemplateConfirm}
+        />
+      )}
       <AssetPicker
         conversation={conversation}
         whatsappAccount={whatsappAccount}

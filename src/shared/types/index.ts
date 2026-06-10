@@ -43,6 +43,15 @@ export type {
   ISystemDbStats,
 } from "./system-health";
 
+// WhatsApp HSM templates (PRD-116)
+export type {
+  MessageTemplateCategory,
+  MessageTemplateMetaStatus,
+  MessageTemplateHeaderType,
+  IMessageTemplateButton,
+  IMessageTemplate,
+} from "./message-template";
+
 // People & permissions
 export type {
   ISeller,

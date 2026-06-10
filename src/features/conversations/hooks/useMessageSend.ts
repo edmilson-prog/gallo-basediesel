@@ -15,8 +15,7 @@ import { useAuth } from "@/features/auth/useAuth";
 
 /** Friendly pt-BR feedback per whatsapp-send error code (PRD-115 RF-073..075). */
 const SEND_ERROR_MESSAGES: Record<string, string> = {
-  TEMPLATE_REQUIRED:
-    "Fora da janela de 24h — envie um template HSM (disponível em breve, PRD-116).",
+  TEMPLATE_REQUIRED: "Fora da janela de 24h — envie um template HSM.",
   RATE_LIMITED: "Limite de envios atingido. Aguarde alguns segundos e tente novamente.",
   PROVIDER_DISCONNECTED:
     "WhatsApp desconectado — peça ao gestor para reconectar a conta via QR Code.",
@@ -39,11 +38,15 @@ async function invokeWhatsAppSend(body: Record<string, unknown>): Promise<{ mess
     } catch {
       // Non-JSON error body — fall through to the generic message.
     }
-    const friendly =
-      (payload.code && SEND_ERROR_MESSAGES[payload.code]) ??
-      payload.error ??
-      "Falha ao enviar a mensagem. Tente novamente.";
-    toast.error(friendly);
+    // TEMPLATE_REQUIRED is not an error to the user — the conversation screen
+    // reacts by opening the template picker (PRD-116).
+    if (payload.code !== "TEMPLATE_REQUIRED") {
+      const friendly =
+        (payload.code && SEND_ERROR_MESSAGES[payload.code]) ??
+        payload.error ??
+        "Falha ao enviar a mensagem. Tente novamente.";
+      toast.error(friendly);
+    }
     throw new Error(payload.code ?? "SEND_FAILED");
   }
   return data as { messageId: string };
@@ -59,6 +62,12 @@ export interface ISendOptions {
   mediaUrl?: string;
   /** Marks this message as a template HSM send (uses provider = meta). */
   template?: boolean;
+  /** Real HSM payload (PRD-116) — supabase source sends kind='template'. */
+  templateMeta?: {
+    templateName: string;
+    languageCode: string;
+    variables: string[];
+  };
 }
 
 export interface IUseMessageSendResult {
@@ -86,7 +95,7 @@ export function useMessageSend(
   const { currentUser } = useAuth();
 
   const send = useCallback(
-    async ({ text, mediaType, mediaUrl, template }: ISendOptions) => {
+    async ({ text, mediaType, mediaUrl, template, templateMeta }: ISendOptions) => {
       const now = new Date().toISOString();
       const tempId: ID = `tmp-${crypto.randomUUID()}`;
       const optimistic: IMessage = {
@@ -117,15 +126,29 @@ export function useMessageSend(
       // via webhook (PRD-114) + Realtime (refinement tracked by PRD-118).
       if (getActiveDataSource() === "supabase") {
         try {
-          const result = await invokeWhatsAppSend({
-            conversationId: conversation.id,
-            kind: mediaType ? "media" : "text",
-            text: optimistic.text,
-            ...(mediaType ? { mediaPath: mediaUrl, mediaType } : {}),
-          });
+          const result = await invokeWhatsAppSend(
+            templateMeta
+              ? {
+                  conversationId: conversation.id,
+                  kind: "template",
+                  text: optimistic.text,
+                  templateName: templateMeta.templateName,
+                  templateLanguage: templateMeta.languageCode,
+                  templateParameters: templateMeta.variables,
+                }
+              : {
+                  conversationId: conversation.id,
+                  kind: mediaType ? "media" : "text",
+                  text: optimistic.text,
+                  ...(mediaType ? { mediaPath: mediaUrl, mediaType } : {}),
+                },
+          );
           handle.commit({ ...optimistic, id: result.messageId, status: "sent" });
-        } catch {
+        } catch (error) {
           handle.fail();
+          // Surface the machine code so MessageInput can react (e.g. open the
+          // template picker on TEMPLATE_REQUIRED).
+          throw error;
         }
         return;
       }
