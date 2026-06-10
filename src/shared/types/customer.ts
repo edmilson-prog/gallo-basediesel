@@ -5,6 +5,9 @@ import type { IPortalContract } from "./portal-b2b";
 /** Lifecycle status of a customer. */
 export type CustomerStatus = "ativo" | "dormente" | "recuperacao" | "perdido";
 
+/** WhatsApp number validity (PRD-118) — see {@link ICustomerBase.whatsappStatus}. */
+export type CustomerWhatsappStatus = "unknown" | "valid" | "invalid" | "blocked";
+
 /** Vehicle registration approval state. */
 export type VehicleCadastroStatus = "aprovado" | "pendente" | "rejeitado";
 
@@ -38,6 +41,12 @@ interface ICustomerBase {
   storeId: ID;
   email?: string;
   phone: string;
+  /**
+   * WhatsApp number validity (PRD-118). `invalid` is set by the webhook when
+   * Meta reports error 131026 (number is not on WhatsApp); going back to
+   * `valid` is a MANUAL staff action — never automatic.
+   */
+  whatsappStatus?: CustomerWhatsappStatus;
   address?: ICustomerAddress;
   /** Primary seller responsible for this customer (1:1 wallet rule). */
   sellerId: ID;

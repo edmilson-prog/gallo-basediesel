@@ -136,6 +136,8 @@ export interface IInboundStatus {
   providerMessageId: string;
   status: "sent" | "delivered" | "read" | "failed";
   failureReason?: string;
+  /** Semantic provider error code (e.g. Meta "131026") — PRD-118. */
+  failureCode?: string;
   timestamp: ISO8601;
   rawPayload: unknown;
 }

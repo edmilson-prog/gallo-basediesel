@@ -31,5 +31,17 @@ export function useSystemHealth() {
     staleTime: 60_000,
   });
 
-  return { healthcheck, cronJobs, dbStats };
+  const whatsapp24h = useQuery({
+    queryKey: ["system-health", "whatsapp-delivery", 24],
+    queryFn: () => provider.getWhatsAppDeliveryHealth(24),
+    staleTime: 60_000,
+  });
+
+  const whatsapp7d = useQuery({
+    queryKey: ["system-health", "whatsapp-delivery", 168],
+    queryFn: () => provider.getWhatsAppDeliveryHealth(168),
+    staleTime: 60_000,
+  });
+
+  return { healthcheck, cronJobs, dbStats, whatsapp24h, whatsapp7d };
 }

@@ -45,3 +45,32 @@ export interface ISystemDbStats {
   activeConnections: number;
   totalConnections: number;
 }
+
+/** Per-account outbound delivery aggregates over a sliding window (PRD-118). */
+export interface IWhatsAppAccountDelivery {
+  accountId: string;
+  label: string;
+  provider: "meta" | "evolution";
+  total: number;
+  queued: number;
+  /** Accepted by the provider (sent, delivered or read). */
+  sent: number;
+  /** Reached the customer's phone (delivered or read). */
+  delivered: number;
+  read: number;
+  failed: number;
+}
+
+/** One failure-code bucket of the delivery-health window (PRD-118). */
+export interface IWhatsAppFailureBucket {
+  failureCode: string;
+  failureReason: string | null;
+  count: number;
+}
+
+/** WhatsApp delivery health snapshot (owner-only on the supabase source). */
+export interface IWhatsAppDeliveryHealth {
+  windowHours: number;
+  accounts: IWhatsAppAccountDelivery[];
+  topFailures: IWhatsAppFailureBucket[];
+}

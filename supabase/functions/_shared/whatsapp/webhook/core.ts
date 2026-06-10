@@ -71,14 +71,23 @@ export interface IWebhookDb {
     sentAt: string;
   }): Promise<{ id: string }>;
   bumpConversation(conversationId: string, lastMessageAt: string): Promise<void>;
-  findMessageIdByProviderMessageId(providerMessageId: string): Promise<string | null>;
+  /** Outbound message lookup with enough context to flag the customer (PRD-118). */
+  findOutboundMessageByProviderMessageId(providerMessageId: string): Promise<{
+    id: string;
+    conversationId: string;
+    customerId: string | null;
+    storeId: string | null;
+  } | null>;
   applyStatusToMessage(input: {
     messageId: string;
     status: "sent" | "delivered" | "read" | "failed";
     eventKey: string;
     timestamp: string;
     failureReason?: string;
+    failureCode?: string;
   }): Promise<void>;
+  /** PRD-118 RF-050: customers.whatsapp_status = 'invalid' (Meta 131026). */
+  markCustomerWhatsappInvalid(customerId: string): Promise<void>;
   setMessageMedia(
     messageId: string,
     mediaUrl: string | null,
@@ -196,8 +205,8 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
   // 3. Status updates (RF-060/061) — no account resolution needed: the
   //    provider_message_id of the outbound message is globally unique.
   if (parsed.type === "status") {
-    const messageId = await db.findMessageIdByProviderMessageId(parsed.providerMessageId);
-    if (!messageId) {
+    const outbound = await db.findOutboundMessageByProviderMessageId(parsed.providerMessageId);
+    if (!outbound) {
       warn("status for unknown outbound message", {
         providerMessageId: parsed.providerMessageId,
       });
@@ -205,14 +214,44 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
       return { outcome: "status-unmatched", detail: parsed.providerMessageId };
     }
     await db.applyStatusToMessage({
-      messageId,
+      messageId: outbound.id,
       status: parsed.status,
       eventKey,
       timestamp: parsed.timestamp,
       failureReason: parsed.failureReason,
+      failureCode: parsed.failureCode,
     });
     await db.markProcessed(eventKey, traceId);
-    return { outcome: "status-applied", messageId };
+
+    // PRD-118 RF-050: Meta 131026 = the destination number is not on WhatsApp.
+    // Flag the customer so future sends ask for explicit confirmation. Going
+    // back to 'valid' is a manual staff action — never automatic (RF-052).
+    // Best-effort: a flag failure must not turn the status event into a retry.
+    if (parsed.status === "failed" && parsed.failureCode === "131026" && outbound.customerId) {
+      try {
+        await db.markCustomerWhatsappInvalid(outbound.customerId);
+        if (outbound.storeId) {
+          await db.audit({
+            storeId: outbound.storeId,
+            action: "customer_whatsapp_marked_invalid",
+            resource: "customer",
+            resourceId: outbound.customerId,
+            after: {
+              reason: parsed.failureReason ?? "Meta 131026",
+              failureCode: parsed.failureCode,
+              messageId: outbound.id,
+              traceId,
+            },
+          });
+        }
+      } catch (error) {
+        warn("failed to flag invalid whatsapp customer", {
+          customerId: outbound.customerId,
+          detail: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+    return { outcome: "status-applied", messageId: outbound.id };
   }
 
   // 4. Account resolution (RF-040.1). Not ours / misconfigured → 200 + warn;

@@ -1,4 +1,9 @@
-import type { ISystemCronJob, ISystemDbStats, ISystemHealthcheck } from "@/shared/types";
+import type {
+  ISystemCronJob,
+  ISystemDbStats,
+  ISystemHealthcheck,
+  IWhatsAppDeliveryHealth,
+} from "@/shared/types";
 import { getSupabaseClient } from "@/shared/lib/supabase";
 import type { ISystemHealthProvider } from "../../contracts/systemHealth";
 
@@ -86,5 +91,14 @@ export const supabaseSystemHealthProvider: ISystemHealthProvider = {
       activeConnections: row.active_connections,
       totalConnections: row.total_connections,
     };
+  },
+
+  async getWhatsAppDeliveryHealth(windowHours: number): Promise<IWhatsAppDeliveryHealth | null> {
+    const { data, error } = await getSupabaseClient().rpc("whatsapp_delivery_health", {
+      p_hours: windowHours,
+    });
+    if (error) throw new Error(`whatsapp_delivery_health: ${error.message}`);
+    // The RPC already returns the camelCase shape (jsonb built server-side).
+    return (data as IWhatsAppDeliveryHealth | null) ?? null;
   },
 };

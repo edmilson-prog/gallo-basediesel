@@ -57,6 +57,12 @@ export interface IStatusVisual {
 
 export function statusVisual(status: MessageStatus): IStatusVisual {
   switch (status) {
+    case "queued":
+      return {
+        icon: "mdi:clock-outline",
+        className: "text-muted-foreground",
+        label: "Enviando",
+      };
     case "sent":
       return {
         icon: "mdi:check",

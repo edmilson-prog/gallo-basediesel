@@ -10,7 +10,7 @@
  * Input (JSON body):
  *   { conversationId, kind: 'text'|'media'|'template', text?, mediaPath?,
  *     mediaType?, templateName?, templateLanguage?, templateParameters?,
- *     replyToMessageId? }
+ *     replyToMessageId?, overrideInvalid?, retryOfMessageId? }   (PRD-118)
  *
  * Errors keep the house `{ error }` contract; the body also carries `code`
  * (TEMPLATE_REQUIRED, RATE_LIMITED, PROVIDER_DISCONNECTED, …) so the frontend
@@ -47,9 +47,13 @@ async function resolveSender(req: Request): Promise<{ sender: ISender; admin: Su
   const { data, error } = await callerClient.auth.getUser();
   if (error || !data?.user) throw new HttpError(401, "invalid session");
 
-  const admin = createClient(requiredEnv("SUPABASE_URL"), requiredEnv("SUPABASE_SERVICE_ROLE_KEY"), {
-    auth: { persistSession: false },
-  });
+  const admin = createClient(
+    requiredEnv("SUPABASE_URL"),
+    requiredEnv("SUPABASE_SERVICE_ROLE_KEY"),
+    {
+      auth: { persistSession: false },
+    },
+  );
   const { data: profile } = await admin
     .from("profiles")
     .select("role, store_id, seller_id")
@@ -98,13 +102,15 @@ function makeSendDb(admin: SupabaseClient, traceId: string): ISendDb {
       }
 
       let customerPhone: string | null = null;
+      let customerWhatsappStatus: string | null = null;
       if (conv.customer_id) {
         const { data: customer } = await admin
           .from("customers")
-          .select("phone")
+          .select("phone, whatsapp_status")
           .eq("id", conv.customer_id)
           .maybeSingle();
         customerPhone = (customer?.phone as string | undefined) ?? null;
+        customerWhatsappStatus = (customer?.whatsapp_status as string | undefined) ?? null;
       }
 
       return {
@@ -115,7 +121,9 @@ function makeSendDb(admin: SupabaseClient, traceId: string): ISendDb {
           assignedSellerId: (conv.assigned_seller_id as string | null) ?? null,
         },
         account,
+        customerId: (conv.customer_id as string | null) ?? null,
         customerPhone,
+        customerWhatsappStatus,
       };
     },
     async isWithin24hWindow(conversationId) {
@@ -151,11 +159,18 @@ function makeSendDb(admin: SupabaseClient, traceId: string): ISendDb {
         .update({ status: "sent", provider_message_id: providerMessageId })
         .eq("id", messageId);
     },
-    async markMessageFailed(messageId, failureReason) {
+    async markMessageFailed(messageId, failureReason, failureCode) {
       await admin
         .from("messages")
-        .update({ status: "failed", failure_reason: failureReason })
+        .update({
+          status: "failed",
+          failure_reason: failureReason,
+          ...(failureCode ? { failure_code: failureCode } : {}),
+        })
         .eq("id", messageId);
+    },
+    async markCustomerWhatsappInvalid(customerId) {
+      await admin.from("customers").update({ whatsapp_status: "invalid" }).eq("id", customerId);
     },
     async touchConversation(conversationId, lastMessageAt) {
       await admin

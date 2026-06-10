@@ -68,12 +68,17 @@ export function BubbleChrome({
               </TooltipTrigger>
               <TooltipContent side="bottom">
                 {message.status === "failed"
-                  ? CONVERSATION_STRINGS.statusTooltip.failed
-                  : message.status === "sent"
-                    ? CONVERSATION_STRINGS.statusTooltip.sent(time)
-                    : message.status === "delivered"
-                      ? CONVERSATION_STRINGS.statusTooltip.delivered(time)
-                      : CONVERSATION_STRINGS.statusTooltip.read(time)}
+                  ? // PRD-118 RF-012: surface WHY it failed when the provider told us.
+                    message.failureReason
+                    ? CONVERSATION_STRINGS.statusTooltip.failedWithReason(message.failureReason)
+                    : CONVERSATION_STRINGS.statusTooltip.failed
+                  : message.status === "queued"
+                    ? CONVERSATION_STRINGS.statusTooltip.queued
+                    : message.status === "sent"
+                      ? CONVERSATION_STRINGS.statusTooltip.sent(time)
+                      : message.status === "delivered"
+                        ? CONVERSATION_STRINGS.statusTooltip.delivered(time)
+                        : CONVERSATION_STRINGS.statusTooltip.read(time)}
               </TooltipContent>
             </Tooltip>
           )}

@@ -36,13 +36,15 @@ interface MessageRow {
   sent_at: string;
   delivered_at: string | null;
   read_at: string | null;
+  failure_reason: string | null;
+  failure_code: string | null;
   created_at: string;
 }
 
 const TABLE = "messages";
 const COLUMNS =
   "id, conversation_id, direction, author_type, author_id, provider, text, media_type, " +
-  "media_url, status, sent_at, delivered_at, read_at, created_at";
+  "media_url, status, sent_at, delivered_at, read_at, failure_reason, failure_code, created_at";
 
 function rowToMessage(row: MessageRow): IMessage {
   return {
@@ -59,6 +61,8 @@ function rowToMessage(row: MessageRow): IMessage {
     sentAt: row.sent_at,
     deliveredAt: row.delivered_at ?? undefined,
     readAt: row.read_at ?? undefined,
+    failureReason: row.failure_reason ?? undefined,
+    failureCode: row.failure_code ?? undefined,
   };
 }
 

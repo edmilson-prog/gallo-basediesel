@@ -22,16 +22,18 @@ interface IFakeOpts {
   within24h?: boolean;
   provider?: "meta" | "evolution";
   customerPhone?: string | null;
+  customerWhatsappStatus?: string | null;
 }
 
 function makeDb(opts: IFakeOpts = {}) {
   const calls = {
     queued: [] as Array<Record<string, unknown>>,
     sent: [] as string[],
-    failed: [] as Array<{ id: string; reason: string }>,
+    failed: [] as Array<{ id: string; reason: string; code?: string }>,
     touched: [] as string[],
     audits: [] as Array<Record<string, unknown>>,
     signed: [] as string[],
+    invalidCustomers: [] as string[],
   };
   const db: ISendDb = {
     getSendContext: async () => ({
@@ -42,7 +44,9 @@ function makeDb(opts: IFakeOpts = {}) {
         assignedSellerId: opts.assignedSellerId === undefined ? "seller-1" : opts.assignedSellerId,
       },
       account: { ...ACCOUNT, provider: opts.provider ?? "meta" },
+      customerId: "cust-1",
       customerPhone: opts.customerPhone === undefined ? "+55 (55) 99888-7777" : opts.customerPhone,
+      customerWhatsappStatus: opts.customerWhatsappStatus ?? "unknown",
     }),
     isWithin24hWindow: async () => opts.within24h ?? true,
     insertQueuedMessage: async (input) => {
@@ -52,8 +56,11 @@ function makeDb(opts: IFakeOpts = {}) {
     markMessageSent: async (id, pmid) => {
       calls.sent.push(`${id}:${pmid}`);
     },
-    markMessageFailed: async (id, reason) => {
-      calls.failed.push({ id, reason });
+    markMessageFailed: async (id, reason, code) => {
+      calls.failed.push({ id, reason, code });
+    },
+    markCustomerWhatsappInvalid: async (customerId) => {
+      calls.invalidCustomers.push(customerId);
     },
     touchConversation: async (id) => {
       calls.touched.push(id);
@@ -181,6 +188,59 @@ describe("processSendRequest — provider failure (RF-044/051)", () => {
       after: expect.objectContaining({ success: false, errorCode: "VALIDATION_ERROR" }),
     });
     expect(calls.touched).toHaveLength(0);
+  });
+});
+
+describe("processSendRequest — invalid whatsapp number gate (PRD-118 RF-051)", () => {
+  it("bounces with CUSTOMER_INVALID_WHATSAPP before persisting", async () => {
+    const { db, calls } = makeDb({ customerWhatsappStatus: "invalid" });
+    await expect(send({}, db)).rejects.toMatchObject({
+      code: "CUSTOMER_INVALID_WHATSAPP",
+      httpStatus: 422,
+    });
+    expect(calls.queued).toHaveLength(0);
+  });
+
+  it("seller cannot override; staff override sends and audits dispatch_override_invalid", async () => {
+    const seller = makeDb({ customerWhatsappStatus: "invalid" });
+    await expect(send({ overrideInvalid: true }, seller.db)).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+
+    const staff = makeDb({ customerWhatsappStatus: "invalid" });
+    await expect(send({ overrideInvalid: true }, staff.db, MANAGER)).resolves.toMatchObject({
+      dispatchStatus: "sent",
+    });
+    expect(staff.calls.audits[0]).toMatchObject({
+      action: "dispatch_override_invalid",
+      resourceId: "cust-1",
+    });
+  });
+
+  it("retry audits dispatch_retry with the original message id (RF-040)", async () => {
+    const { db, calls } = makeDb();
+    await expect(send({ retryOfMessageId: "msg-old" }, db)).resolves.toMatchObject({
+      dispatchStatus: "sent",
+    });
+    expect(calls.audits[0]).toMatchObject({
+      action: "dispatch_retry",
+      after: expect.objectContaining({ originalMessageId: "msg-old" }),
+    });
+  });
+
+  it("sync Meta 131026 persists failure_code and flags the customer (RF-050 sync)", async () => {
+    const { db, calls } = makeDb();
+    const engine = new MockWhatsAppProvider();
+    engine.sendText = async () => {
+      throw new WhatsAppProviderError("VALIDATION_ERROR", 422, "Número não é WhatsApp", {
+        metaCode: 131026,
+      });
+    };
+    await expect(send({}, db, SELLER, engine)).rejects.toMatchObject({
+      code: "VALIDATION_ERROR",
+    });
+    expect(calls.failed[0]).toMatchObject({ id: "msg-1", code: "131026" });
+    expect(calls.invalidCustomers).toEqual(["cust-1"]);
   });
 });
 

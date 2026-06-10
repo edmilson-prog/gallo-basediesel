@@ -26,7 +26,22 @@ export interface IUseMessagesResult {
   retry: (message: IMessage) => Promise<void>;
   /** Patch the status of a local message by id (used by send simulation). */
   patchStatus: (messageId: ID, status: MessageStatus) => void;
+  /**
+   * Upsert a row coming from Supabase Realtime (PRD-118): INSERTs append,
+   * UPDATEs patch in place. Status never regresses (e.g. a late `queued`
+   * INSERT event cannot downgrade an already `sent` bubble).
+   */
+  applyRealtimeRow: (incoming: IMessage) => void;
 }
+
+/** Monotonic delivery ranking — `failed` is terminal and always applies. */
+const STATUS_RANK: Record<MessageStatus, number> = {
+  queued: 0,
+  sent: 1,
+  delivered: 2,
+  read: 3,
+  failed: 4,
+};
 
 /**
  * Load messages of a conversation in ascending chronological order, with
@@ -44,6 +59,10 @@ export function useMessages(conversationId: ID): IUseMessagesResult {
   const [tick, setTick] = useState(0);
 
   const loadedPagesRef = useRef<number>(0);
+  // Render-time mirror of `messages` — lets event callbacks (Realtime) decide
+  // append-vs-patch without a stale closure.
+  const messagesMirrorRef = useRef<IMessage[]>([]);
+  messagesMirrorRef.current = messages;
 
   useEffect(() => {
     let cancelled = false;
@@ -108,7 +127,14 @@ export function useMessages(conversationId: ID): IUseMessagesResult {
     setMessages((prev) => [...prev, message]);
     return {
       commit: (real: IMessage) => {
-        setMessages((prev) => prev.map((m) => (m.id === message.id ? real : m)));
+        // Drop a Realtime copy that may have landed before the commit (the
+        // INSERT event carries the real id while the optimistic row still has
+        // the temp id) — then swap the optimistic row for the real one.
+        setMessages((prev) =>
+          prev
+            .filter((m) => m.id !== real.id || m.id === message.id)
+            .map((m) => (m.id === message.id ? real : m)),
+        );
       },
       fail: () => {
         setMessages((prev) =>
@@ -123,6 +149,28 @@ export function useMessages(conversationId: ID): IUseMessagesResult {
 
   const patchStatus = useCallback((messageId: ID, status: MessageStatus) => {
     setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, status } : m)));
+  }, []);
+
+  const applyRealtimeRow = useCallback((incoming: IMessage) => {
+    // Membership decided on the ref mirror (updaters run at render time, so a
+    // local flag set inside one is not readable here). The updater still
+    // dedupes defensively against a same-id race.
+    const appended = !messagesMirrorRef.current.some((m) => m.id === incoming.id);
+    setMessages((prev) => {
+      const existing = prev.find((m) => m.id === incoming.id);
+      if (existing) {
+        const keepStatus = STATUS_RANK[existing.status] > STATUS_RANK[incoming.status];
+        return prev.map((m) =>
+          m.id === incoming.id
+            ? { ...m, ...incoming, status: keepStatus ? m.status : incoming.status }
+            : m,
+        );
+      }
+      return [...prev, incoming];
+    });
+    // Keep hasMore (length < total) honest when a live row lands; a rare
+    // extra +1 only delays hasMore turning false (loadMore dedupes by id).
+    if (appended) setTotal((t) => t + 1);
   }, []);
 
   const retry = useCallback(
@@ -153,5 +201,6 @@ export function useMessages(conversationId: ID): IUseMessagesResult {
     appendOptimistic,
     retry,
     patchStatus,
+    applyRealtimeRow,
   };
 }

@@ -204,15 +204,22 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
         })
         .eq("id", conversationId);
     },
-    async findMessageIdByProviderMessageId(providerMessageId) {
+    async findOutboundMessageByProviderMessageId(providerMessageId) {
       const { data } = await admin
         .from("messages")
-        .select("id")
+        .select("id, conversation_id, conversations(customer_id, store_id)")
         .eq("provider_message_id", providerMessageId)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      return data ? (data.id as string) : null;
+      if (!data) return null;
+      const conv = data.conversations as { customer_id?: string; store_id?: string } | null;
+      return {
+        id: data.id as string,
+        conversationId: data.conversation_id as string,
+        customerId: conv?.customer_id ?? null,
+        storeId: conv?.store_id ?? null,
+      };
     },
     async applyStatusToMessage(input) {
       const { data } = await admin
@@ -233,7 +240,13 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
       if (input.status === "failed" && input.failureReason) {
         patch.failure_reason = input.failureReason;
       }
+      if (input.status === "failed" && input.failureCode) {
+        patch.failure_code = input.failureCode;
+      }
       await admin.from("messages").update(patch).eq("id", input.messageId);
+    },
+    async markCustomerWhatsappInvalid(customerId) {
+      await admin.from("customers").update({ whatsapp_status: "invalid" }).eq("id", customerId);
     },
     async setMessageMedia(messageId, mediaUrl, downloadStatus) {
       await admin
@@ -299,11 +312,7 @@ function metaHandshake(url: URL): Response {
   const mode = url.searchParams.get("hub.mode");
   const token = url.searchParams.get("hub.verify_token") ?? "";
   const challenge = url.searchParams.get("hub.challenge") ?? "";
-  if (
-    verifyToken &&
-    mode === "subscribe" &&
-    timingSafeEqualStrings(token, verifyToken)
-  ) {
+  if (verifyToken && mode === "subscribe" && timingSafeEqualStrings(token, verifyToken)) {
     return new Response(challenge, { status: 200 });
   }
   return json({ error: "forbidden" }, 403);
@@ -331,9 +340,7 @@ async function evolutionGate(
   log: Logger,
 ): Promise<Response | null> {
   // Per-account webhook secret (preferred when configured on the instance).
-  const secret = account
-    ? Deno.env.get(`${account.credentialsRef}_WEBHOOK_SECRET`)
-    : undefined;
+  const secret = account ? Deno.env.get(`${account.credentialsRef}_WEBHOOK_SECRET`) : undefined;
   if (secret) {
     const provided = (req.headers.get("x-webhook-signature") ?? "").replace(/^sha256=/, "");
     const expected = await hmacSha256Hex(secret, rawBody);
@@ -389,10 +396,7 @@ Deno.serve(async (req) => {
     return respond(json({ error: "invalid json body" }, 400));
   }
 
-  const admin = createClient(
-    requiredEnv("SUPABASE_URL"),
-    requiredEnv("SUPABASE_SERVICE_ROLE_KEY"),
-  );
+  const admin = createClient(requiredEnv("SUPABASE_URL"), requiredEnv("SUPABASE_SERVICE_ROLE_KEY"));
   const db = makeDb(admin, traceId);
 
   // Auth gates (fail closed) — the ONLY paths that answer 4xx on POST.

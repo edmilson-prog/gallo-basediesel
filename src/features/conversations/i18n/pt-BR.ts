@@ -228,10 +228,12 @@ export const CONVERSATION_STRINGS = {
 
   // Status tooltips
   statusTooltip: {
+    queued: "Enviando…",
     sent: (time: string) => `Enviada às ${time}`,
     delivered: (time: string) => `Entregue às ${time}`,
     read: (time: string) => `Lida às ${time}`,
     failed: "Falha no envio",
+    failedWithReason: (reason: string) => `Falha no envio — ${reason}`,
   },
 
   // 24h window
@@ -320,6 +322,18 @@ export const CONVERSATION_STRINGS = {
     cancel: "Cancelar",
     emptyVariables: "Preencha todas as variáveis para enviar.",
   },
+  invalidNumberDialog: {
+    title: "Número marcado como inválido",
+    description:
+      "Uma tentativa anterior indicou que este número não é WhatsApp. Deseja confirmar e enviar mesmo assim? A ação fica registrada na auditoria.",
+    confirm: "Confirmar e enviar",
+    cancel: "Cancelar",
+  },
+  invalidNumberBadge: "Número não é WhatsApp",
+  invalidNumberBadgeTooltip:
+    "Uma falha de entrega indicou que este número não está no WhatsApp. Envio exige confirmação de gestor.",
+  markWhatsappValid: "Marcar como WhatsApp válido",
+  markedWhatsappValid: "Número marcado como válido",
   noteDialog: {
     title: "Adicionar nota à ficha",
     description: "A nota fica visível para vendedores e gestores com acesso a este cliente.",
