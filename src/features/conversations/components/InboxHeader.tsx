@@ -9,6 +9,8 @@ export interface IInboxHeaderProps {
   realtimeEnabled: boolean;
   onToggleRealtime: (next: boolean) => void;
   sortDescription?: string;
+  /** Realtime channel health (PRD-105) — undefined keeps the mock behaviour. */
+  realtimeConnected?: boolean;
 }
 
 export function InboxHeader({
@@ -17,6 +19,7 @@ export function InboxHeader({
   realtimeEnabled,
   onToggleRealtime,
   sortDescription,
+  realtimeConnected,
 }: IInboxHeaderProps) {
   return (
     <div className="flex flex-col gap-1 border-b border-border px-3 py-2">
@@ -32,7 +35,11 @@ export function InboxHeader({
           )}
         </div>
         <div className="flex items-center gap-1">
-          <RealtimeToggle enabled={realtimeEnabled} onToggle={onToggleRealtime} />
+          <RealtimeToggle
+            enabled={realtimeEnabled}
+            onToggle={onToggleRealtime}
+            connected={realtimeConnected}
+          />
         </div>
       </div>
       <div className="flex min-h-[1rem] items-center justify-between text-[11px] text-muted-foreground">

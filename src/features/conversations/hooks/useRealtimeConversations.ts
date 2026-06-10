@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useConversationsProvider, useMessagesProvider } from "@/providers/data";
+import {
+  getActiveDataSource,
+  useConversationsProvider,
+  useMessagesProvider,
+} from "@/providers/data";
+import { subscribeToTable } from "@/shared/lib/realtime";
 import type { IConversation } from "@/shared/types";
+
+/** Build-time data source: decides simulator (mock) vs Supabase Realtime. */
+const IS_SUPABASE = getActiveDataSource() === "supabase";
 
 const LOCAL_STORAGE_KEY = "gallo-realtime-enabled";
 const MIN_INTERVAL_MS = 8_000;
@@ -68,26 +76,34 @@ function pickIntervalMs(): number {
 export interface IRealtimeState {
   enabled: boolean;
   setEnabled: (next: boolean) => void;
-  /** Increments each time a simulated message is injected. Use as refetch key. */
+  /** Increments on every live event (real or simulated). Use as refetch key. */
   tick: number;
+  /**
+   * Channel health. Always true in mock mode (the simulator is local); in
+   * supabase mode it reflects the Realtime channel status (false while
+   * connecting / reconnecting).
+   */
+  connected: boolean;
 }
 
 /**
- * Drive the inbox demo by injecting one inbound message every 8-15 seconds.
+ * Keeps the inbox live.
  *
- * - Reads the persisted on/off state from `localStorage` once on mount.
- * - When enabled, schedules a single jittered timeout and reschedules after
- *   every successful injection (no `setInterval`, so a slow provider can't
- *   queue up dozens of pending tries).
- * - Bumps `tick` whenever a message lands so list consumers refresh.
- * - On Fase 2, swap the body for a Supabase Realtime subscription — the
- *   public API of this hook stays the same.
+ * - `mock` (default): drives the demo by injecting one inbound message every
+ *   8-15 seconds — single jittered timeout, rescheduled after each injection.
+ * - `supabase` (PRD-105): subscribes to Supabase Realtime postgres_changes on
+ *   `conversations` + `messages` (RLS scopes the events server-side) and bumps
+ *   `tick` so list consumers refetch. The simulator never runs in this mode.
+ *
+ * The on/off state persists in `localStorage` and the public API is identical
+ * in both modes.
  */
 export function useRealtimeConversations(): IRealtimeState {
   const conversationsProvider = useConversationsProvider();
   const messagesProvider = useMessagesProvider();
   const [enabled, setEnabledState] = useState(readEnabled);
   const [tick, setTick] = useState(0);
+  const [connected, setConnected] = useState(!IS_SUPABASE);
   const timerRef = useRef<number | null>(null);
   const enabledRef = useRef(enabled);
   enabledRef.current = enabled;
@@ -113,7 +129,9 @@ export function useRealtimeConversations(): IRealtimeState {
     }
   }, [conversationsProvider, messagesProvider]);
 
+  // mock mode — simulated inbound traffic.
   useEffect(() => {
+    if (IS_SUPABASE) return;
     if (!enabled) {
       if (timerRef.current !== null) {
         window.clearTimeout(timerRef.current);
@@ -136,5 +154,21 @@ export function useRealtimeConversations(): IRealtimeState {
     };
   }, [enabled, fire]);
 
-  return { enabled, setEnabled, tick };
+  // supabase mode — real Realtime subscriptions (shared, ref-counted channels).
+  useEffect(() => {
+    if (!IS_SUPABASE) return;
+    if (!enabled) {
+      setConnected(false);
+      return;
+    }
+    const bump = () => setTick((t) => t + 1);
+    const offMessages = subscribeToTable("messages", bump, setConnected);
+    const offConversations = subscribeToTable("conversations", bump);
+    return () => {
+      offMessages();
+      offConversations();
+    };
+  }, [enabled]);
+
+  return { enabled, setEnabled, tick, connected };
 }
