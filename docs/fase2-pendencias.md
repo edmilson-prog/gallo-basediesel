@@ -113,7 +113,8 @@ A **loja transacional** (checkout + conta B2C) foi **deferida da Fase 2 por deci
 ## D. DR & Observabilidade — ativação (PRD-109/110, entregues em 2026-06-10)
 
 > Código, workflows, runbooks, healthcheck e dashboard **entregues** (PRDs 109/110
-> `_DONE` com ressalvas). O que segue é a ativação, gated no dono.
+> `_DONE` com ressalvas, PR #51). O que segue é a ativação, gated no dono.
+> **Issue:** #52.
 
 ### D1 — Habilitar PITR + executar o 1º teste de DR {#d1-pitr}
 - **O quê:** habilitar o add-on PITR (Dashboard → Database → Backups → Point in Time) e executar o primeiro teste real de restauração seguindo `docs/infra/runbooks/restore-pitr.md`.
