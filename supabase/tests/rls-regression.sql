@@ -662,6 +662,73 @@ end $$;
 
 reset role;
 
+-- ============================================================================
+-- Integrações & Chaves — Vault wrappers are service_role-only: no app role
+-- (not even owner) may read, write or list integration secrets via PostgREST.
+-- ============================================================================
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"9a418578-2671-4141-a15a-d39b2fd13af7","role":"authenticated","app_metadata":{"role":"owner","seller_id":"57706ecc-01b5-4a96-b403-0359a4bb767f","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+
+do $$
+declare
+  blocked boolean;
+begin
+  blocked := false;
+  begin
+    perform public.integration_secret_get('RESEND_API_KEY');
+  exception when insufficient_privilege then
+    blocked := true;
+  end;
+  if not blocked then
+    raise exception 'chaves: integration_secret_get must not be executable by authenticated (owner included)';
+  end if;
+
+  blocked := false;
+  begin
+    perform public.integration_secret_set('RLS_TEST_KEY', 'value');
+  exception when insufficient_privilege then
+    blocked := true;
+  end;
+  if not blocked then
+    raise exception 'chaves: integration_secret_set must not be executable by authenticated';
+  end if;
+
+  blocked := false;
+  begin
+    perform public.integration_secrets_status();
+  exception when insufficient_privilege then
+    blocked := true;
+  end;
+  if not blocked then
+    raise exception 'chaves: integration_secrets_status must not be executable by authenticated';
+  end if;
+end $$;
+
+reset role;
+
+set local role anon;
+
+do $$
+declare
+  blocked boolean := false;
+begin
+  begin
+    perform public.integration_secret_get('RESEND_API_KEY');
+  exception when insufficient_privilege then
+    blocked := true;
+  end;
+  if not blocked then
+    raise exception 'chaves: integration_secret_get must not be executable by anon';
+  end if;
+end $$;
+
+reset role;
+
 select 'ALL RLS REGRESSION TESTS PASSED' as result;
 
 rollback;

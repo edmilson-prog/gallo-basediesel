@@ -14,7 +14,9 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
  *    links the profile (rolling back the user on failure), sends a branded
  *    pt-BR email via Resend, and writes a best-effort audit log.
  *
- * Secrets to set when activating (Owner-controlled):
+ * Secrets to set when activating (Owner-controlled — managed from the
+ * platform at Configurações → Integrações & Chaves, Vault-first with env
+ * secret fallback):
  *  - RESEND_API_KEY      Resend API key
  *  - RESEND_FROM         verified sender, e.g. "GALLO <nao-responda@seu-dominio>"
  *  - INVITE_REDIRECT_URL where the invite link lands (/auth/definir-senha)
@@ -24,14 +26,9 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 import { bestEffortAudit } from "../_shared/audit.ts";
 import { requireCaller, STAFF_ROLES } from "../_shared/auth.ts";
-import { optionalEnv } from "../_shared/env.ts";
 import { HttpError, json, parseJsonBody } from "../_shared/http.ts";
+import { createSecretResolver } from "../_shared/secrets.ts";
 import { servePost } from "../_shared/serve.ts";
-
-// Optional — their absence is what keeps this function inert.
-const RESEND_API_KEY = optionalEnv("RESEND_API_KEY");
-const RESEND_FROM = optionalEnv("RESEND_FROM", "GALLO <onboarding@resend.dev>");
-const INVITE_REDIRECT_URL = optionalEnv("INVITE_REDIRECT_URL");
 
 const ALLOWED_ROLES = ["seller_internal", "seller_external", "manager"];
 
@@ -81,15 +78,21 @@ function inviteEmailHtml(params: { sellerName: string; actionLink: string }): st
 }
 
 /** POSTs a single email through the Resend API. Throws on a non-2xx response. */
-async function sendViaResend(params: { to: string; subject: string; html: string }): Promise<void> {
+async function sendViaResend(params: {
+  apiKey: string;
+  from: string;
+  to: string;
+  subject: string;
+  html: string;
+}): Promise<void> {
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
+      Authorization: `Bearer ${params.apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: RESEND_FROM,
+      from: params.from,
       to: [params.to],
       subject: params.subject,
       html: params.html,
@@ -104,6 +107,13 @@ async function sendViaResend(params: { to: string; subject: string; html: string
 servePost(async (req, { log }) => {
   // 1) Identify the caller and require staff.
   const { callerId, admin, profile } = await requireCaller(req, STAFF_ROLES);
+
+  // Resend settings: Vault-first (Integrações & Chaves), env fallback.
+  // Their absence is what keeps this function inert.
+  const resolveSecret = createSecretResolver(admin);
+  const RESEND_API_KEY = await resolveSecret("RESEND_API_KEY");
+  const RESEND_FROM = (await resolveSecret("RESEND_FROM")) ?? "GALLO <onboarding@resend.dev>";
+  const INVITE_REDIRECT_URL = await resolveSecret("INVITE_REDIRECT_URL");
 
   // 2) Parse + validate the input (no password — the seller sets their own).
   const body = await parseJsonBody(req);
@@ -179,6 +189,8 @@ servePost(async (req, { log }) => {
   // 8) Send the branded invite email. Roll back on failure (no half-invited user).
   try {
     await sendViaResend({
+      apiKey: RESEND_API_KEY,
+      from: RESEND_FROM,
       to: email,
       subject: "Seu acesso à plataforma GALLO BASE DIESEL",
       html: inviteEmailHtml({ sellerName: seller.full_name, actionLink }),

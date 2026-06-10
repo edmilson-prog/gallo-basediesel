@@ -14,7 +14,7 @@
  * Per PRD RF-090, internal processing errors still answer 200 (logged +
  * Sentry) — only auth/routing failures get 4xx, so Meta never retry-storms.
  *
- * Secrets (Edge Function env):
+ * Secrets (Vault-first via "Integrações & Chaves", env secret as fallback):
  *   WHATSAPP_META_APP_SECRET    — Meta APP-level secret signing all webhooks
  *   WHATSAPP_META_VERIFY_TOKEN  — Meta handshake verify token
  *   <credentials_ref>_WEBHOOK_SECRET — optional per-account Evolution HMAC
@@ -25,6 +25,7 @@ import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supa
 import { bestEffortAudit } from "../_shared/audit.ts";
 import { requiredEnv } from "../_shared/env.ts";
 import { json } from "../_shared/http.ts";
+import { createSecretResolver, type VaultSecretResolver } from "../_shared/secrets.ts";
 import { createLogger, type Logger } from "../_shared/logger.ts";
 import { captureException } from "../_shared/sentry.ts";
 import { buildWhatsAppEngine } from "../_shared/whatsapp/build.ts";
@@ -288,7 +289,8 @@ function toAccountRecord(row: Record<string, unknown>): IAccountRecord {
 
 function makeEngineDeps(admin: SupabaseClient, traceId: string): IEngineDeps {
   return {
-    resolveSecret: (name) => Promise.resolve(Deno.env.get(name)),
+    // Vault-first ("Integrações & Chaves"), env secret as fallback.
+    resolveSecret: createSecretResolver(admin),
     logIntegration: async (entry: IIntegrationLogEntry) => {
       await admin.from("integration_logs").insert({
         integration_name: entry.integrationName,
@@ -307,8 +309,8 @@ function makeEngineDeps(admin: SupabaseClient, traceId: string): IEngineDeps {
 
 // ===== Gates ================================================================
 
-function metaHandshake(url: URL): Response {
-  const verifyToken = Deno.env.get("WHATSAPP_META_VERIFY_TOKEN");
+async function metaHandshake(url: URL, resolveSecret: VaultSecretResolver): Promise<Response> {
+  const verifyToken = await resolveSecret("WHATSAPP_META_VERIFY_TOKEN");
   const mode = url.searchParams.get("hub.mode");
   const token = url.searchParams.get("hub.verify_token") ?? "";
   const challenge = url.searchParams.get("hub.challenge") ?? "";
@@ -318,8 +320,13 @@ function metaHandshake(url: URL): Response {
   return json({ error: "forbidden" }, 403);
 }
 
-async function metaGate(req: Request, rawBody: string, log: Logger): Promise<Response | null> {
-  const appSecret = Deno.env.get("WHATSAPP_META_APP_SECRET");
+async function metaGate(
+  req: Request,
+  rawBody: string,
+  log: Logger,
+  resolveSecret: VaultSecretResolver,
+): Promise<Response | null> {
+  const appSecret = await resolveSecret("WHATSAPP_META_APP_SECRET");
   if (!appSecret) {
     log.error("WHATSAPP_META_APP_SECRET not configured — rejecting webhook (fail closed)");
     return json({ error: "webhook not configured" }, 403);
@@ -338,9 +345,12 @@ async function evolutionGate(
   rawBody: string,
   account: IAccountRecord | null,
   log: Logger,
+  resolveSecret: VaultSecretResolver,
 ): Promise<Response | null> {
   // Per-account webhook secret (preferred when configured on the instance).
-  const secret = account ? Deno.env.get(`${account.credentialsRef}_WEBHOOK_SECRET`) : undefined;
+  const secret = account
+    ? await resolveSecret(`${account.credentialsRef}_WEBHOOK_SECRET`)
+    : undefined;
   if (secret) {
     const provided = (req.headers.get("x-webhook-signature") ?? "").replace(/^sha256=/, "");
     const expected = await hmacSha256Hex(secret, rawBody);
@@ -349,7 +359,7 @@ async function evolutionGate(
     return json({ error: "invalid signature" }, 403);
   }
   // Fallback gate: source IP allowlist (RF-011).
-  const allowlist = (Deno.env.get("EVOLUTION_ALLOWED_IPS") ?? "")
+  const allowlist = ((await resolveSecret("EVOLUTION_ALLOWED_IPS")) ?? "")
     .split(",")
     .map((ip) => ip.trim())
     .filter(Boolean);
@@ -381,8 +391,13 @@ Deno.serve(async (req) => {
   if (provider !== "meta" && provider !== "evolution") {
     return respond(json({ error: "unknown provider" }, 400));
   }
+
+  const admin = createClient(requiredEnv("SUPABASE_URL"), requiredEnv("SUPABASE_SERVICE_ROLE_KEY"));
+  // Per-request resolver: Vault-first ("Integrações & Chaves"), env fallback.
+  const resolveSecret = createSecretResolver(admin);
+
   if (req.method === "GET" && provider === "meta") {
-    return respond(metaHandshake(url));
+    return respond(await metaHandshake(url, resolveSecret));
   }
   if (req.method !== "POST") {
     return respond(json({ error: "method not allowed" }, 405));
@@ -396,17 +411,16 @@ Deno.serve(async (req) => {
     return respond(json({ error: "invalid json body" }, 400));
   }
 
-  const admin = createClient(requiredEnv("SUPABASE_URL"), requiredEnv("SUPABASE_SERVICE_ROLE_KEY"));
   const db = makeDb(admin, traceId);
 
   // Auth gates (fail closed) — the ONLY paths that answer 4xx on POST.
   if (provider === "meta") {
-    const rejection = await metaGate(req, rawBody, log);
+    const rejection = await metaGate(req, rawBody, log, resolveSecret);
     if (rejection) return respond(rejection);
   } else {
     const instance = (payload as { instance?: string } | null)?.instance ?? "";
     const account = await db.findEvolutionAccount(instance);
-    const rejection = await evolutionGate(req, rawBody, account, log);
+    const rejection = await evolutionGate(req, rawBody, account, log, resolveSecret);
     if (rejection) return respond(rejection);
   }
 
