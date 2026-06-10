@@ -114,6 +114,7 @@ export type {
   IMessage,
   IWhatsAppAccount,
   IWhatsAppCapabilities,
+  IWhatsAppProviderConfig,
   ConversationChannel,
   ConversationStatus,
   MessageDirection,

@@ -25,6 +25,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/features/auth/useAuth";
 import { SEND_ERROR_MESSAGES, useMessageSend, type ISendOptions } from "../hooks/useMessageSend";
+import {
+  ATTACHMENT_ACCEPT,
+  useAttachmentUpload,
+  type AttachmentKind,
+} from "../hooks/useAttachmentUpload";
 import { useMetaWindow } from "../hooks/useMetaWindow";
 import { useConversationContext } from "../hooks/ConversationContext";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
@@ -156,6 +161,11 @@ export function MessageInput(props: IMessageInputProps) {
   const { hasRole } = useAuth();
 
   const bus = useQuickSendBus();
+  const { prepareAttachment } = useAttachmentUpload(conversation);
+  const attachInputRef = useRef<HTMLInputElement | null>(null);
+  // Kind picked in the dropdown — a ref because the file dialog opens
+  // synchronously after the menu select (no re-render in between).
+  const attachKindRef = useRef<AttachmentKind>("image");
   const { sendAsset } = useSendAsset(conversation, whatsappAccount);
   const { sendProductCard } = useSendProductCard(conversation, whatsappAccount);
   const { schedule } = useScheduleSend(conversation);
@@ -282,6 +292,51 @@ export function MessageInput(props: IMessageInputProps) {
     }
     await sendAsset(item, stagedContext);
     onSent?.();
+  };
+
+  // Ad-hoc file attachment (PRD-119 RF-026): picker → upload (PRD-026) → real
+  // dispatch (PRD-115). The 24h-window gate applies as for any free-form send.
+  const openAttachPicker = (kind: AttachmentKind) => {
+    if (!canSendFreeText) {
+      toast.info(CONVERSATION_STRINGS.windowDisabledHint);
+      setTemplateOpen(true);
+      return;
+    }
+    attachKindRef.current = kind;
+    const el = attachInputRef.current;
+    if (!el) return;
+    el.accept = ATTACHMENT_ACCEPT[kind];
+    el.click();
+  };
+
+  const handleAttachSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Reset so picking the same file twice re-triggers the change event.
+    e.target.value = "";
+    if (!file) return;
+    const caption = value.trim();
+    let payload: ISendOptions | null = null;
+    try {
+      payload = await prepareAttachment(file, attachKindRef.current, caption);
+    } catch {
+      toast.error(CONVERSATION_STRINGS.attachUploadFailed);
+      return;
+    }
+    if (!payload) return;
+    try {
+      await sendHook.send(payload);
+      setValue("");
+      onSent?.();
+    } catch (err) {
+      if (err instanceof Error && err.message === "TEMPLATE_REQUIRED") {
+        setTemplateOpen(true);
+        return;
+      }
+      if (handleInvalidNumberBounce(err, payload)) return;
+      if (getActiveDataSource() !== "supabase") {
+        toast.error(CONVERSATION_STRINGS.actionFailed);
+      }
+    }
   };
 
   const handleProductSelected = async (part: IPart) => {
@@ -548,20 +603,28 @@ export function MessageInput(props: IMessageInputProps) {
             <DropdownMenuLabel className="text-[11px] uppercase text-muted-foreground">
               {CONVERSATION_STRINGS.attachSectionFile}
             </DropdownMenuLabel>
-            <DropdownMenuItem onSelect={() => toast.info(CONVERSATION_STRINGS.attachComingSoon)}>
+            <DropdownMenuItem onSelect={() => openAttachPicker("image")}>
               <Icon icon="mdi:image-outline" size={14} className="mr-2" />
               {CONVERSATION_STRINGS.attachImage}
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => toast.info(CONVERSATION_STRINGS.attachComingSoon)}>
+            <DropdownMenuItem onSelect={() => openAttachPicker("document")}>
               <Icon icon="mdi:file-document-outline" size={14} className="mr-2" />
               {CONVERSATION_STRINGS.attachDocument}
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => toast.info(CONVERSATION_STRINGS.attachComingSoon)}>
+            <DropdownMenuItem onSelect={() => openAttachPicker("audio")}>
               <Icon icon="mdi:microphone-outline" size={14} className="mr-2" />
               {CONVERSATION_STRINGS.attachAudio}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <input
+          ref={attachInputRef}
+          type="file"
+          className="hidden"
+          aria-hidden="true"
+          tabIndex={-1}
+          onChange={(e) => void handleAttachSelected(e)}
+        />
 
         {/* Emoji */}
         <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>

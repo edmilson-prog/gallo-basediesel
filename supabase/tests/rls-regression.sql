@@ -516,6 +516,79 @@ end $$;
 
 reset role;
 
+-- ============================================================================
+-- PRD-119 — whatsapp_accounts: SELECT store-wide, writes staff-only.
+-- ============================================================================
+
+-- Non-staff seller (Lucas): reads the store accounts, cannot update them.
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+
+do $$
+declare
+  visible integer;
+  touched integer;
+begin
+  select count(*) into visible from public.whatsapp_accounts;
+  if visible = 0 then
+    raise exception '#119: seller must still READ the store whatsapp accounts (conversation UI)';
+  end if;
+
+  update public.whatsapp_accounts set label = label;
+  get diagnostics touched = row_count;
+  if touched <> 0 then
+    raise exception '#119: non-staff seller must not update whatsapp_accounts (touched %)', touched;
+  end if;
+end $$;
+
+reset role;
+
+-- Owner (staff): update reaches rows.
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"9a418578-2671-4141-a15a-d39b2fd13af7","role":"authenticated","app_metadata":{"role":"owner","seller_id":"57706ecc-01b5-4a96-b403-0359a4bb767f","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+
+do $$
+declare
+  touched integer;
+begin
+  update public.whatsapp_accounts set label = label;
+  get diagnostics touched = row_count;
+  if touched = 0 then
+    raise exception '#119: staff (owner) must be able to update whatsapp_accounts';
+  end if;
+end $$;
+
+reset role;
+
+-- Anon: no write path at all.
+set local role anon;
+
+do $$
+declare
+  touched integer := 0;
+  blocked boolean := false;
+begin
+  begin
+    update public.whatsapp_accounts set label = label;
+    get diagnostics touched = row_count;
+  exception when insufficient_privilege then
+    blocked := true;
+  end;
+  if not blocked and touched <> 0 then
+    raise exception '#119: anon must not update whatsapp_accounts';
+  end if;
+end $$;
+
+reset role;
+
 select 'ALL RLS REGRESSION TESTS PASSED' as result;
 
 rollback;

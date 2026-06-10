@@ -1,17 +1,19 @@
 import type { ID, IWhatsAppAccount, IWhatsAppCapabilities } from "@/shared/types";
 import type {
   IListWhatsAppAccountsParams,
+  IWhatsAppAccountPatch,
   IWhatsAppAccountsProvider,
 } from "../../contracts/whatsappAccounts";
 import { getSupabaseClient } from "@/shared/lib/supabase";
 
 /**
- * Supabase implementation of {@link IWhatsAppAccountsProvider} (PRD-011/104).
+ * Supabase implementation of {@link IWhatsAppAccountsProvider} (PRD-011/104/119).
  *
  * snake_case table ↔ camelCase {@link IWhatsAppAccount} via `rowToWhatsAppAccount`.
- * Read-only, mirroring the mock provider. The capability matrix is stored as a
- * single `jsonb` column. Seeded from the small static mock fixture
- * (`mocks/generators/whatsappAccount.ts`).
+ * The capability matrix and the non-secret engine config (`provider_config`,
+ * PRD-111) are `jsonb` columns. `update` powers the Owner-only config screen
+ * (PRD-119) — RLS keeps writes staff-only; secrets never transit here
+ * (`credentials_ref` is just the name prefix of the Edge Function secrets).
  */
 
 interface WhatsAppAccountRow {
@@ -23,12 +25,14 @@ interface WhatsAppAccountRow {
   credentials_ref: string;
   status: IWhatsAppAccount["status"];
   capabilities: IWhatsAppCapabilities;
+  provider_config: IWhatsAppAccount["providerConfig"] | null;
   created_at: string;
 }
 
 const TABLE = "whatsapp_accounts";
 const COLUMNS =
-  "id, store_id, label, phone_number, provider, credentials_ref, status, capabilities, created_at";
+  "id, store_id, label, phone_number, provider, credentials_ref, status, capabilities, " +
+  "provider_config, created_at";
 
 function rowToWhatsAppAccount(row: WhatsAppAccountRow): IWhatsAppAccount {
   return {
@@ -40,6 +44,7 @@ function rowToWhatsAppAccount(row: WhatsAppAccountRow): IWhatsAppAccount {
     credentialsRef: row.credentials_ref,
     status: row.status,
     capabilities: row.capabilities,
+    providerConfig: row.provider_config ?? undefined,
     createdAt: row.created_at,
   };
 }
@@ -51,7 +56,7 @@ export const supabaseWhatsAppAccountsProvider: IWhatsAppAccountsProvider = {
 
     const { data, error } = await query.order("created_at", { ascending: true });
     if (error) throw new Error(`[supabase] whatsappAccounts.list failed: ${error.message}`);
-    return (data as WhatsAppAccountRow[]).map(rowToWhatsAppAccount);
+    return (data as unknown as WhatsAppAccountRow[]).map(rowToWhatsAppAccount);
   },
 
   async get(id: ID): Promise<IWhatsAppAccount> {
@@ -61,6 +66,23 @@ export const supabaseWhatsAppAccountsProvider: IWhatsAppAccountsProvider = {
       .eq("id", id)
       .single();
     if (error) throw new Error(`[supabase] whatsappAccounts.get(${id}) failed: ${error.message}`);
-    return rowToWhatsAppAccount(data as WhatsAppAccountRow);
+    return rowToWhatsAppAccount(data as unknown as WhatsAppAccountRow);
+  },
+
+  async update(id: ID, patch: IWhatsAppAccountPatch): Promise<IWhatsAppAccount> {
+    const row: Record<string, unknown> = {};
+    if (patch.label !== undefined) row.label = patch.label;
+    if (patch.credentialsRef !== undefined) row.credentials_ref = patch.credentialsRef;
+    if (patch.providerConfig !== undefined) row.provider_config = patch.providerConfig;
+
+    const { data, error } = await getSupabaseClient()
+      .from(TABLE)
+      .update(row)
+      .eq("id", id)
+      .select(COLUMNS)
+      .single();
+    if (error)
+      throw new Error(`[supabase] whatsappAccounts.update(${id}) failed: ${error.message}`);
+    return rowToWhatsAppAccount(data as unknown as WhatsAppAccountRow);
   },
 };
