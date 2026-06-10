@@ -82,6 +82,9 @@ export function ConversationPage() {
   const escalation = useConversationEscalation(conversationId);
   const copilot = useCopilotPanel(conversationId);
   const [draft, setDraft] = useState("");
+  // SessionBanner CTA → template picker bridge (PRD-117): each click bumps the
+  // counter and the MessageInput effect opens its dialog.
+  const [templateSignal, setTemplateSignal] = useState(0);
   // Ready reply for the strip variant — reuses the boleto/NF heuristic from buildAiSuggestions
   const stripReply =
     copilot.placement === "strip" ? "Te envio o boleto e a NF ainda hoje." : undefined;
@@ -181,7 +184,11 @@ export function ConversationPage() {
                 <MessageList conversation={conversation} />
               </div>
 
-              <MetaWindowIndicator conversation={conversation} whatsappAccount={whatsappAccount} />
+              <MetaWindowIndicator
+                conversation={conversation}
+                whatsappAccount={whatsappAccount}
+                onSelectTemplate={() => setTemplateSignal((s) => s + 1)}
+              />
 
               {copilot.placement === "strip" && conversation.customerId && !copilot.error && (
                 <CopilotStrip panel={copilot} reply={stripReply} onInsertReply={setDraft} />
@@ -204,6 +211,7 @@ export function ConversationPage() {
                 draft={draft}
                 onDraftChange={setDraft}
                 hideAiSuggestions={copilot.placement === "strip"}
+                openTemplateSignal={templateSignal}
               />
             </div>
 

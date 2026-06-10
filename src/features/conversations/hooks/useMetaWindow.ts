@@ -1,10 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { IConversation, IMessage, IWhatsAppAccount } from "@/shared/types";
+import { getActiveDataSource, useMessagesProvider } from "@/providers/data";
+import {
+  computeSessionWindow,
+  formatRemaining,
+  SESSION_WINDOW_MS,
+  type MetaWindowState,
+} from "../engine/sessionWindow";
 import { useConversationContext } from "./ConversationContext";
 
-const WINDOW_MS = 24 * 60 * 60 * 1000;
-
-export type MetaWindowState = "open-fresh" | "open-soon" | "open-closing" | "closed";
+export type { MetaWindowState };
+export { formatRemaining };
 
 export interface IMetaWindowSnapshot {
   /** True only when provider is Meta. */
@@ -18,14 +24,6 @@ export interface IMetaWindowSnapshot {
   canSendFreeText: boolean;
 }
 
-function pickState(msRemaining: number): MetaWindowState {
-  if (msRemaining <= 0) return "closed";
-  const hours = msRemaining / 3_600_000;
-  if (hours <= 1) return "open-closing";
-  if (hours <= 12) return "open-soon";
-  return "open-fresh";
-}
-
 function lastInbound(messages: IMessage[]): IMessage | null {
   for (let i = messages.length - 1; i >= 0; i -= 1) {
     const m = messages[i];
@@ -34,22 +32,36 @@ function lastInbound(messages: IMessage[]): IMessage | null {
   return null;
 }
 
+/** Picks the most recent of two optional ISO timestamps. */
+function newest(a: string | null, b: string | null): string | null {
+  if (!a) return b;
+  if (!b) return a;
+  return new Date(a).getTime() >= new Date(b).getTime() ? a : b;
+}
+
 /**
- * Compute the Meta provider's 24-hour conversation window state.
+ * Compute the Meta provider's 24-hour conversation window state (PRD-117).
  *
  * Only meaningful when the account uses the Meta Cloud API and the
  * conversation is not archived. Other providers (Evolution) advertise
  * `supportsProactiveMessaging` and have no equivalent restriction.
  *
- * The hook re-evaluates every 30 seconds via a local timer so the
- * indicator and the input both stay in sync without prop drilling.
+ * The math lives in the pure `engine/sessionWindow.ts`; this hook adds the
+ * reactive shell: a 30s tick, the in-memory message stream (Realtime inserts
+ * land there, reopening the window in real time) and — on the `supabase`
+ * source — an exact seed from the `last_inbound_at` RPC, so the countdown is
+ * correct even when the loaded message page contains no inbound rows.
+ * The mock source keeps the Fase-1 behaviour byte-identical (falls back to
+ * `conversation.lastMessageAt` when no inbound message is loaded).
  */
 export function useMetaWindow(
   conversation: IConversation,
   whatsappAccount: IWhatsAppAccount | null,
 ): IMetaWindowSnapshot {
   const { messages: msg } = useConversationContext();
+  const provider = useMessagesProvider();
   const [now, setNow] = useState(() => Date.now());
+  const [rpcSeed, setRpcSeed] = useState<string | null>(null);
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 30_000);
@@ -62,34 +74,54 @@ export function useMetaWindow(
     whatsappAccount.provider === "meta" &&
     conversation.status !== "arquivada";
 
-  if (!applicable) {
-    return {
-      applicable: false,
-      lastInboundAt: null,
-      msRemaining: WINDOW_MS,
-      state: "open-fresh",
-      canSendFreeText: true,
+  const isSupabase = getActiveDataSource() === "supabase";
+
+  // Exact seed (supabase only): the visible page may hold zero inbound rows
+  // (e.g. a long outbound streak), and `lastMessageAt` counts outbound too —
+  // both would wrongly extend the window. Best-effort: on failure the
+  // in-memory stream still drives the state.
+  useEffect(() => {
+    if (!isSupabase || !applicable) return;
+    let cancelled = false;
+    setRpcSeed(null);
+    provider
+      .getLastInboundAt(conversation.id)
+      .then((ts) => {
+        if (!cancelled) setRpcSeed(ts);
+      })
+      .catch(() => {
+        /* keep null — in-memory inbound still applies */
+      });
+    return () => {
+      cancelled = true;
     };
-  }
+  }, [applicable, conversation.id, isSupabase, provider]);
 
-  const inbound = lastInbound(msg.messages);
-  const lastInboundAt = inbound?.sentAt ?? conversation.lastMessageAt;
-  const elapsed = now - new Date(lastInboundAt).getTime();
-  const msRemaining = Math.max(0, WINDOW_MS - elapsed);
-  const state = pickState(msRemaining);
+  return useMemo<IMetaWindowSnapshot>(() => {
+    if (!applicable) {
+      return {
+        applicable: false,
+        lastInboundAt: null,
+        msRemaining: SESSION_WINDOW_MS,
+        state: "open-fresh",
+        canSendFreeText: true,
+      };
+    }
 
-  return {
-    applicable: true,
-    lastInboundAt,
-    msRemaining,
-    state,
-    canSendFreeText: msRemaining > 0,
-  };
-}
+    const inboundInMemory = lastInbound(msg.messages)?.sentAt ?? null;
+    // Mock keeps the Fase-1 fallback; supabase trusts RPC + live stream only
+    // (no inbound at all => window never opened => template required).
+    const lastInboundAt = isSupabase
+      ? newest(rpcSeed, inboundInMemory)
+      : (inboundInMemory ?? conversation.lastMessageAt);
 
-export function formatRemaining(msRemaining: number): { hours: number; minutes: number } {
-  const totalMinutes = Math.max(0, Math.floor(msRemaining / 60_000));
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return { hours, minutes };
+    const w = computeSessionWindow({ provider: "meta", lastInboundAt, nowMs: now });
+    return {
+      applicable: true,
+      lastInboundAt: w.lastInboundAt,
+      msRemaining: w.msRemaining,
+      state: w.state,
+      canSendFreeText: w.canSendFreeText,
+    };
+  }, [applicable, conversation.lastMessageAt, isSupabase, msg.messages, now, rpcSeed]);
 }

@@ -171,4 +171,17 @@ export const supabaseMessagesProvider: IMessagesProvider = {
     if (error) throw new Error(`[supabase] messages.listForAnalytics failed: ${error.message}`);
     return (data as unknown as MessageRow[]).map(rowToMessage);
   },
+
+  async getLastInboundAt(conversationId: ID): Promise<string | null> {
+    // SECURITY INVOKER RPC (PRD-117): RLS on messages applies, so an invisible
+    // conversation resolves to null and the UI treats the window as closed.
+    const { data, error } = await getSupabaseClient().rpc("last_inbound_at", {
+      p_conversation_id: conversationId,
+    });
+    if (error)
+      throw new Error(
+        `[supabase] messages.getLastInboundAt(${conversationId}) failed: ${error.message}`,
+      );
+    return (data as string | null) ?? null;
+  },
 };

@@ -57,6 +57,12 @@ export interface IMessageInputProps {
   onDraftChange?: (text: string) => void;
   /** When true, hides the "Sugestões IA" bar (copilot strip handles it instead). */
   hideAiSuggestions?: boolean;
+  /**
+   * Monotonic counter — each increment opens the template dialog/picker.
+   * Lets the SessionBanner CTA (PRD-117) trigger the picker without lifting
+   * the whole dialog state out of this component.
+   */
+  openTemplateSignal?: number;
 }
 
 const EMOJI_SET = [
@@ -123,6 +129,7 @@ export function MessageInput(props: IMessageInputProps) {
     draft,
     onDraftChange,
     hideAiSuggestions = false,
+    openTemplateSignal = 0,
   } = props;
   const { messages } = useConversationContext();
   const window = useMetaWindow(conversation, whatsappAccount);
@@ -215,6 +222,11 @@ export function MessageInput(props: IMessageInputProps) {
   useEffect(() => {
     setSlashIndex(0);
   }, [slash.query, slashTotal]);
+
+  // External "open template picker" requests (SessionBanner CTA — PRD-117).
+  useEffect(() => {
+    if (openTemplateSignal > 0) setTemplateOpen(true);
+  }, [openTemplateSignal]);
 
   // Auto-resize the textarea to fit content, capped at ~5 lines.
   useEffect(() => {
