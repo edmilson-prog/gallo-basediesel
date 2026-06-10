@@ -1,5 +1,14 @@
 # PRD-104: Substituir Providers Mock por Supabase
 
+> **✅ STATUS: CONCLUÍDO (com ressalvas) — 2026-06-09 · v0.73.0 Keystone**
+>
+> Implementado com adaptações registradas: **34 providers** em `src/providers/data/impl/supabase/` (não classe única; caminho difere do previsto), client único `public` (não `crmClient`+`lojaClient`), mappers camelCase↔snake_case por provider, switch build-time `VITE_DATA_SOURCE=mock|supabase` via `factory.ts`. Interface 100% preservada — validado em Preview com auth real (owner + vendedor) e smoke de cutover (`docs/db/cutover-smoke-checklist.md`).
+>
+> **Ressalvas (dívida rastreada, não bloqueia o done):**
+> - Cache opt-in (TTL) não implementado — absorvido pelo escopo do PRD-108 (pendente).
+> - Tratamento de erros é local por provider; `mapSupabaseError()` centralizado não existe.
+> - Documentação `docs/dev/supabase-provider.md` não escrita (arquitetura coberta parcialmente em `docs/fase2-pendencias.md` e docs de RLS).
+
 ## Informações Gerais
 
 | Campo                 | Valor                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |

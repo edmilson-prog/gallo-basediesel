@@ -1,5 +1,14 @@
 # PRD-103: RLS (Row Level Security)
 
+> **✅ STATUS: CONCLUÍDO (com ressalvas) — 2026-06-09 · v0.73.0 Keystone**
+>
+> Implementado com adaptações registradas: schema único `public` (não `crm`+`storefront`), policies aplicadas via migrations MCP (56 no histórico remoto), helpers de identidade via JWT claims (`current_store_id()`, `current_seller_id()`, `is_staff()`), isolamento per-seller (Slices 1–4 + #43/#48), storefront anon read-only e suíte de regressão versionada (`supabase/tests/rls-regression.sql`).
+>
+> **Ressalvas (dívida rastreada, não bloqueia o done):**
+> - CI de RLS (`.github/workflows/rls-tests.yml`) é **no-op até o secret `SUPABASE_DB_URL`** ser adicionado — issue **#45** / `docs/fase2-pendencias.md#a1-ci`.
+> - Matriz visual completa (18 recursos × 5 ações × 4 scopes) resumida por buckets em `docs/db/rls-policies-fase2-mvp.md`, não tabela integral.
+> - Cliente B2B/B2C (4º consumidor) sem claim/policies — deferido para a fase loja transacional (issue #41).
+
 ## Informações Gerais
 
 | Campo                 | Valor                                                                                                                                                                                                                                                                                                                                                                                                                           |
