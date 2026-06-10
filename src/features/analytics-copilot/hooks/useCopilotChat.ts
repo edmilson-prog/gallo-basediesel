@@ -79,7 +79,7 @@ export function useCopilotChat(): IUseCopilotChat {
       setIsThinking(true);
 
       const effectiveRole = role ?? "Vendedor";
-      const sellerId = effectiveRole === "Vendedor" ? currentUser?.id : undefined;
+      const sellerId = effectiveRole === "Vendedor" ? currentUser?.sellerId : undefined;
       const { answer, errorText } = await runCopilotQuery(
         trimmed,
         {

@@ -32,6 +32,7 @@ import {
 } from "./conditions/derivedConditions";
 import type { NotificationEventType } from "./events";
 import { ROUTING_RULES } from "./routing/rules";
+import { getActiveDataSource } from "@/providers/data";
 
 /** Data providers the reconciler reads from (injected by the provider). */
 export interface IReconcilerData {
@@ -53,10 +54,16 @@ const EVENT_BY_KIND: Record<AlertKind, NotificationEventType> = {
 
 /**
  * Boots the reconciler: one immediate pass, then a polling interval driven by
- * `alertPollingSeconds`. Returns a stop function. A no-op when `data` is absent.
+ * `alertPollingSeconds`. Returns a stop function.
+ *
+ * No-op when `data` is absent, and ALSO a no-op under Supabase: there the
+ * derived reconciler runs server-side (pg_cron → `public.reconcile_derived_notifications`,
+ * #44), so the client must not double-write. In mock mode it keeps running the
+ * Fase-1 client-side pass.
  */
 export function startReconciler(stores: INotificationStores, data?: IReconcilerData): () => void {
   if (!data) return () => {};
+  if (getActiveDataSource() === "supabase") return () => {};
 
   let stopped = false;
   let timer: number | undefined;
@@ -112,13 +119,14 @@ async function reconcileOnce(notif: INotificationStores, data: IReconcilerData):
     // Every internal recipient is in scope so cleared conditions get expired,
     // even when they produce no alert this pass.
     for (const seller of snapshot.sellers) recipientScope.add(seller.id);
-    recipientScope.add(store.managerId);
+    const managerId = storeManagerId(store);
+    if (managerId) recipientScope.add(managerId);
 
     const alerts = collectAlerts(snapshot, settings, nowMs);
     for (const alert of alerts) {
       const event = EVENT_BY_KIND[alert.kind];
       const rule = ROUTING_RULES[event];
-      for (const recipientId of resolveRecipients(alert, snapshot, store)) {
+      for (const recipientId of resolveRecipients(alert, snapshot, managerId)) {
         const dedupeKey = `derived:${alert.hash}:${recipientId}`;
         keepKeys.push(dedupeKey);
         upsert.push({
@@ -186,24 +194,39 @@ function collectAlerts(
 }
 
 /**
+ * The store's gestor recipient. `IStore.managerId` is optional (dormant until
+ * the owner↔seller link is set — PRD-107), so read it defensively: a store
+ * without a resolvable manager simply yields no manager-targeted notification
+ * instead of an unpersistable one with a null recipient.
+ */
+function storeManagerId(store: IStore): ID | undefined {
+  const id = store.managerId;
+  return id && id.length > 0 ? id : undefined;
+}
+
+/**
  * Resolves the internal recipients for a derived alert (Anexo A):
  *  - cliente.dormente        → the customer's owner seller + the store gestor
  *  - vendedor.sobrecarregado → the store gestor (owner targeting deferred)
  *  - conversa.semResposta    → the store gestor
+ *
+ * Null/empty recipients are dropped — a notification must target someone, and a
+ * missing manager/owner must not produce a row with a null recipient (the
+ * Supabase store enforces NOT NULL; the mock silently tolerated it before).
  */
 function resolveRecipients(
   alert: IActiveAlert,
   snapshot: IManagerDashboardSnapshot,
-  store: IStore,
+  managerId: ID | undefined,
 ): ID[] {
   const recipients = new Set<ID>();
   if (alert.kind === "cliente-a-dormente") {
     const customerId = alert.id.replace(/^cliente-a-dormente-/, "");
     const customer = snapshot.customers.find((c) => c.id === customerId);
-    if (customer) recipients.add(customer.ownerId);
+    if (customer?.sellerId) recipients.add(customer.sellerId);
   }
-  recipients.add(store.managerId);
-  return [...recipients];
+  if (managerId) recipients.add(managerId);
+  return [...recipients].filter((id): id is ID => Boolean(id));
 }
 
 function snapshotParams(storeId: ID, nowMs: number): IManagerDashboardSnapshotParams {

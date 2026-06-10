@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { IPart } from "@/shared/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { usePartsProvider } from "@/providers/data/hooks/usePartsProvider";
+import { useStorefrontProvider } from "@/providers/data";
 import { useSeoMeta } from "@/features/storefront/hooks/useSeoMeta";
 import { getCategoryLabel } from "@/features/catalog";
 import { formatBRL } from "@/shared/utils/format";
@@ -27,11 +27,11 @@ const STALE_MS = 5 * 60 * 1000;
  */
 export function ProductDetailPage() {
   const { slug } = useParams({ from: ROUTE_ID });
-  const partsProvider = usePartsProvider();
+  const storefrontProvider = useStorefrontProvider();
 
   const partQuery = useQuery({
     queryKey: ["storefront-product", "part", slug] as const,
-    queryFn: () => partsProvider.get(slug),
+    queryFn: () => storefrontProvider.getPart(slug),
     staleTime: STALE_MS,
     retry: false,
   });

@@ -49,9 +49,16 @@ export function NotesTab({ customer }: INotesTabProps) {
   const handleSubmit = async () => {
     const content = draft.trim();
     if (!content) return;
+    // `customer_notes.author_id` is a FK to sellers(id): the note's author is
+    // the acting *seller*, not the auth user. currentUser.id (auth uuid) would
+    // violate that FK on Supabase and render a raw id in the UI on mock.
+    const authorId = currentUser?.sellerId;
+    if (!authorId) {
+      toast.error(COPY.noSellerError);
+      return;
+    }
     setSubmitting(true);
     try {
-      const authorId = currentUser?.id ?? "system";
       const created = await provider.addNote(customer.id, content, authorId);
       auditLog({
         action: "customer.note_added",

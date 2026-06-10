@@ -292,6 +292,12 @@ export interface IStore {
   type: StoreType;
   address: string;
   cnpj: string;
+  /**
+   * Gestor seller for the store — recipient of manager-targeted derived
+   * notifications (PRD-008 reconciler). Optional: stays dormant until the
+   * owner↔seller link is established (PRD-107).
+   */
+  managerId?: ID;
   settings: IPlatformSettings;
   /** Divisions active for this store. On the MVP always `['parts']`. */
   activeDivisions: Division[];

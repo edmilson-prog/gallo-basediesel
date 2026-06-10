@@ -1,9 +1,8 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { IPart } from "@/shared/types";
-import { usePartsProvider } from "@/providers/data/hooks/usePartsProvider";
+import { useStorefrontProvider } from "@/providers/data";
 
-const STORE_ID = "00000000-0000-0000-0000-000000000001";
 const STALE_MS = 5 * 60 * 1000;
 const MAX_RELATED = 4;
 
@@ -22,13 +21,10 @@ export interface IUseRelatedProductsResult {
  * Always returns up to `MAX_RELATED` items and excludes the source part itself.
  */
 export function useRelatedProducts(source: IPart | null): IUseRelatedProductsResult {
-  const partsProvider = usePartsProvider();
+  const storefrontProvider = useStorefrontProvider();
   const query = useQuery({
     queryKey: ["storefront-product", "related", source?.id ?? "none"] as const,
-    queryFn: async () => {
-      const r = await partsProvider.list({ storeId: STORE_ID, pageSize: 2000 });
-      return r.data;
-    },
+    queryFn: () => storefrontProvider.listCatalog(),
     staleTime: STALE_MS,
     enabled: Boolean(source),
   });

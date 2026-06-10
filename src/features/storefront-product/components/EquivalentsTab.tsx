@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Icon } from "@/components/Icon";
 import { PartImage } from "@/features/catalog";
-import { usePartsProvider } from "@/providers/data/hooks/usePartsProvider";
+import { useStorefrontProvider } from "@/providers/data";
 import { formatBRL } from "@/shared/utils/format";
 import { STOREFRONT_PRODUCT_STRINGS as S } from "../i18n/pt-BR";
 
@@ -23,10 +23,10 @@ const STALE_MS = 5 * 60 * 1000;
  * current part price (PRD-063 RF-014).
  */
 export function EquivalentsTab({ part }: IEquivalentsTabProps) {
-  const partsProvider = usePartsProvider();
+  const storefrontProvider = useStorefrontProvider();
   const equivalentsQuery = useQuery({
     queryKey: ["storefront-product", "equivalents", part.id] as const,
-    queryFn: () => partsProvider.listEquivalents(part.id),
+    queryFn: () => storefrontProvider.listEquivalents(part.id),
     staleTime: STALE_MS,
   });
 

@@ -259,16 +259,20 @@ export function InboxFilters({
                     {INBOX_STRINGS.assignmentOptions.me}
                   </DropdownMenuRadioItem>
                 )}
+                {/* Pool — visible to any inbox user. Non-staff sellers can view
+                    and claim unassigned conversations per RLS (rls_conversations_pool),
+                    so the pool filters must not be gated behind store scope. */}
+                <DropdownMenuRadioItem value="unassigned">
+                  {INBOX_STRINGS.assignmentOptions.unassigned}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="queue">
+                  {INBOX_STRINGS.assignmentOptions.queue}
+                </DropdownMenuRadioItem>
+                {/* Staff-only: see every conversation + filter by a specific seller. */}
                 {canSeeAllAssignments && (
                   <>
                     <DropdownMenuRadioItem value="all">
                       {INBOX_STRINGS.assignmentOptions.all}
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="unassigned">
-                      {INBOX_STRINGS.assignmentOptions.unassigned}
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="queue">
-                      {INBOX_STRINGS.assignmentOptions.queue}
                     </DropdownMenuRadioItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuLabel className="text-xs">

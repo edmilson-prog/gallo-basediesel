@@ -46,7 +46,7 @@ export function useSegments(): ISegmentsBuckets & {
 
   const allRaw = query.data ?? [];
   const all = allRaw.filter(
-    (s) => s.scope === "shared" || (currentUser ? s.ownerId === currentUser.id : false),
+    (s) => s.scope === "shared" || (currentUser?.sellerId ? s.ownerId === currentUser.sellerId : false),
   );
   const privateOnes = all.filter((s) => s.scope === "private");
   const shared = all.filter((s) => s.scope === "shared");
@@ -55,9 +55,11 @@ export function useSegments(): ISegmentsBuckets & {
 
   const createMut = useMutation({
     mutationFn: (args: ICreateSegmentArgs) => {
-      if (!currentUser) throw new Error("Usuário não autenticado");
+      // Segments are owned by the seller (customer_segments.owner_id = seller id;
+      // RLS write check is `owner_id = current_seller_id()`), not the auth user id.
+      if (!currentUser?.sellerId) throw new Error("Vendedor não identificado");
       return provider.create({
-        ownerId: currentUser.id,
+        ownerId: currentUser.sellerId,
         name: args.name,
         description: args.description,
         scope: args.scope,

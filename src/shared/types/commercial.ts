@@ -370,6 +370,12 @@ export interface ICommission {
   storeId: ID;
   sellerId: ID;
   orderId: ID;
+  /**
+   * Human-readable number of the linked order (e.g. `PD-2026-0042`), for display.
+   * Populated by the Supabase provider via an `orders(number)` embed; absent in
+   * mock, where callers fall back to deriving it from `orderId`.
+   */
+  orderNumber?: string;
   /** Base value over which the rate is applied (subtotal - discount). */
   baseValue: Money;
   /** Decimal rate effectively applied (already includes goal bonus when

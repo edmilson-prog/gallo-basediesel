@@ -174,7 +174,7 @@ export const APP_NAV_GROUPS: INavGroup[] = [
         label: "Comissões",
         icon: "mdi:cash-multiple",
         to: ROUTES.GESTAO_COMISSOES,
-        roles: ["Owner"],
+        roles: ["Owner", "Gestor", "Vendedor", "Financeiro"],
       },
       {
         label: "DRE Gerencial",

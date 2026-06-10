@@ -146,8 +146,8 @@ export function useSendAsset(
           });
         }
 
-        if (currentUser?.id) {
-          await library.recordSend(currentUser.id, sendable.id);
+        if (currentUser?.sellerId) {
+          await library.recordSend(currentUser.sellerId, sendable.id);
         }
       } catch {
         toast.error(QUICK_SEND_STRINGS.errors.sendFailed);

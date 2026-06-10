@@ -43,7 +43,9 @@ export function ResolveDisputeDialog({ open, commission, onClose, onResolve }: I
         <DialogHeader>
           <DialogTitle>{S.disputeResolveTitle}</DialogTitle>
           <DialogDescription>
-            {commission ? `Pedido #${commission.orderId.replace(/^order-/, "PD-")}` : ""}
+            {commission
+              ? `Pedido #${commission.orderNumber ?? commission.orderId.replace(/^order-/, "PD-")}`
+              : ""}
           </DialogDescription>
         </DialogHeader>
         {commission?.disputeReason && (

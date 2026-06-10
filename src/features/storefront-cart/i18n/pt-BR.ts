@@ -63,6 +63,27 @@ export const STOREFRONT_CART_STRINGS = {
   checkoutDemoBanner:
     "Pedido em modo demonstração — pagamento real e emissão de NF disponíveis na Fase 2.",
 
+  // Checkout handoff (#42 — loja anônima envia o pedido pelo WhatsApp)
+  handoffTitle: "Finalizar pedido",
+  handoffBackToCart: "Voltar ao carrinho",
+  handoffIntro:
+    "Para concluir, envie seu pedido direto ao nosso time pelo WhatsApp. Confirmamos disponibilidade, frete e a melhor forma de pagamento por lá — rápido e sem complicação.",
+  handoffReviewTitle: "Resumo do pedido",
+  handoffShippingNote: "O frete é calculado pelo nosso time conforme o endereço de entrega.",
+  handoffContactTitle: "Seus dados (opcional)",
+  handoffContactHint:
+    "Informe seu nome e WhatsApp para agilizarmos o atendimento. Você também pode enviar só o pedido.",
+  handoffNameLabel: "Nome",
+  handoffNamePlaceholder: "Como podemos te chamar",
+  handoffPhoneLabel: "WhatsApp",
+  handoffPhonePlaceholder: "(99) 99999-9999",
+  handoffWhatsappCta: "Enviar pedido pelo WhatsApp",
+  handoffCopyCta: "Copiar resumo",
+  handoffCopied: "Resumo do pedido copiado — é só colar na conversa.",
+  handoffCopyFailed: "Não foi possível copiar. Selecione e copie o resumo manualmente.",
+  handoffNoWhatsapp:
+    "WhatsApp ainda não configurado para esta loja. Copie o resumo acima e envie pelos nossos canais de atendimento:",
+
   // Identification step
   idLoggedAs: (name: string) => `Você está logado(a) como ${name}.`,
   idLoggedHint: "Vamos usar seus dados para esta compra.",

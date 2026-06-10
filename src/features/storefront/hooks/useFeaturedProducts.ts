@@ -1,12 +1,11 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { ID, IPart, IStorefrontConfig } from "@/shared/types";
-import { useOrdersProvider, usePartsProvider } from "@/providers/data";
+import { useStorefrontProvider } from "@/providers/data";
 
 const STALE_MS = 10 * 60 * 1000;
 const STORE_ID = "00000000-0000-0000-0000-000000000001";
 const TARGET_COUNT = 8;
-const TOP_SELLING_WINDOW_DAYS = 90;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export interface IFeaturedProduct extends IPart {
@@ -26,27 +25,20 @@ export function useFeaturedProducts(config: IStorefrontConfig["featuredProducts"
   isLoading: boolean;
   isError: boolean;
 } {
-  const partsProvider = usePartsProvider();
-  const ordersProvider = useOrdersProvider();
+  const storefrontProvider = useStorefrontProvider();
 
   const partsQuery = useQuery({
     queryKey: ["storefront", "featured-parts"] as const,
-    queryFn: async () => {
-      const r = await partsProvider.list({ storeId: STORE_ID, pageSize: 2000 });
-      return r.data;
-    },
+    queryFn: () => storefrontProvider.listCatalog(),
     staleTime: STALE_MS,
   });
 
-  const enableOrders = config.mode === "top-selling" || config.manualPartIds.length === 0;
-  const ordersQuery = useQuery({
-    queryKey: ["storefront", "featured-orders"] as const,
-    queryFn: async () => {
-      const r = await ordersProvider.list({ storeId: STORE_ID, pageSize: 2000 });
-      return r.data;
-    },
+  const enableTopSelling = config.mode === "top-selling" || config.manualPartIds.length === 0;
+  const topSellingQuery = useQuery({
+    queryKey: ["storefront", "featured-top-selling"] as const,
+    queryFn: () => storefrontProvider.listTopSellingIds(STORE_ID),
     staleTime: STALE_MS,
-    enabled: enableOrders,
+    enabled: enableTopSelling,
   });
 
   const products = useMemo<IFeaturedProduct[]>(() => {
@@ -66,7 +58,7 @@ export function useFeaturedProducts(config: IStorefrontConfig["featuredProducts"
       }
       if (picked.length === TARGET_COUNT) return picked;
       // Top-up with top-selling so we always render 8 cards.
-      const topUp = computeTopSelling(parts, ordersQuery.data ?? [], partsById).filter(
+      const topUp = computeTopSelling(parts, topSellingQuery.data ?? [], partsById).filter(
         (p) => !config.manualPartIds.includes(p.id),
       );
       for (const p of topUp) {
@@ -76,36 +68,28 @@ export function useFeaturedProducts(config: IStorefrontConfig["featuredProducts"
       return picked.slice(0, TARGET_COUNT);
     }
 
-    return computeTopSelling(parts, ordersQuery.data ?? [], partsById).slice(0, TARGET_COUNT);
-  }, [config, partsQuery.data, ordersQuery.data]);
+    return computeTopSelling(parts, topSellingQuery.data ?? [], partsById).slice(0, TARGET_COUNT);
+  }, [config, partsQuery.data, topSellingQuery.data]);
 
   return {
     products,
-    isLoading: partsQuery.isLoading || (enableOrders && ordersQuery.isLoading),
-    isError: partsQuery.isError || (enableOrders && ordersQuery.isError),
+    isLoading: partsQuery.isLoading || (enableTopSelling && topSellingQuery.isLoading),
+    isError: partsQuery.isError || (enableTopSelling && topSellingQuery.isError),
   };
 }
 
 function computeTopSelling(
   parts: IPart[],
-  orders: import("@/shared/types").IOrder[],
+  topSellingIds: ID[],
   partsById: Map<ID, IPart>,
 ): IFeaturedProduct[] {
-  const sinceIso = new Date(Date.now() - TOP_SELLING_WINDOW_DAYS * MS_PER_DAY).toISOString();
-  const qtyById = new Map<ID, number>();
-  for (const order of orders) {
-    if (order.paymentStatus !== "pago" && order.paymentStatus !== "parcial") continue;
-    const ts = order.paidAt ?? order.updatedAt ?? order.createdAt;
-    if (ts < sinceIso) continue;
-    for (const item of order.items) {
-      qtyById.set(item.partId, (qtyById.get(item.partId) ?? 0) + item.quantity);
-    }
+  // `topSellingIds` is already ranked by units sold (desc), computed server-side
+  // (mock reproduces the same ranking) — just resolve to active parts in order.
+  const ranked: IPart[] = [];
+  for (const id of topSellingIds) {
+    const part = partsById.get(id);
+    if (part && part.active) ranked.push(part);
   }
-
-  const ranked = [...qtyById.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .map(([id]) => partsById.get(id))
-    .filter((p): p is IPart => Boolean(p && p.active));
 
   // Make sure we always have at least 8 candidates: fall back to active parts in catalog order.
   if (ranked.length < TARGET_COUNT) {

@@ -1,4 +1,4 @@
-import type { ID, IConversation } from "@/shared/types";
+import type { ID, IConversation, IDistributionTrace, IMessage } from "@/shared/types";
 import type {
   IConversationsProvider,
   ICreateConversationInput,
@@ -7,7 +7,12 @@ import type {
 } from "../../contracts/conversations";
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
-import { NotImplementedError } from "../../errors";
+import { distributeConversation, type IDistributionInput } from "@/features/distribution/engine";
+import { supabaseSettingsProvider } from "./settings";
+import { supabaseSellersProvider } from "./sellers";
+import { supabaseCustomersProvider } from "./customers";
+import { supabaseLeadsProvider } from "./leads";
+import { supabaseDistributionTracesProvider } from "./distributionTraces";
 
 /**
  * Supabase implementation of {@link IConversationsProvider} (PRD-100+).
@@ -17,12 +22,14 @@ import { NotImplementedError } from "../../errors";
  * assignSeller/archive) works today under the temporary permissive RLS; the
  * mutations require the write policies that land with PRD-103.
  *
- * `create` runs the distribution engine (PRD-013), persists a
- * `distribution_traces` row, emits system/inbound `messages`, and advances the
- * round-robin cursor on the store settings — an orchestration that belongs to a
- * Fase 2 Edge Function. It stays a {@link NotImplementedError} stub until that
- * server-side wiring (and the dependent settings / distributionTraces / leads /
- * customers Supabase providers) lands.
+ * `create` runs the pure distribution engine (PRD-013) against the sibling
+ * Supabase providers (settings / sellers / customers / leads), then persists the
+ * conversation, the inbound (+ optional system) `messages`, and a
+ * `distribution_traces` row, and advances the round-robin cursor on the store
+ * settings. The four writes are NOT wrapped in a transaction (PostgREST has no
+ * client-side multi-statement tx) — atomicity is deferred to the Fase 2 inbound
+ * Edge Function; for the current single-store MVP the ordered best-effort writes
+ * mirror the mock's own non-atomic flow.
  *
  * Filter caveats vs. the mock provider:
  *  - `search` (cross-entity full text over customer/lead name + phone + recent
@@ -198,14 +205,162 @@ export const supabaseConversationsProvider: IConversationsProvider = {
     if (error) throw new Error(`[supabase] conversations.archive(${id}) failed: ${error.message}`);
   },
 
-  create(_input: ICreateConversationInput): Promise<ICreateConversationResult> {
-    // The inbound-creation flow runs the pure distribution engine (PRD-013),
-    // persists a distribution trace, emits inbound/system messages, and advances
-    // the store round-robin cursor — orchestration reserved for a Fase 2 Edge
-    // Function (depends on the settings / distributionTraces / messages / leads /
-    // customers Supabase providers, several of which are still stubs).
-    throw new NotImplementedError(
-      "SupabaseConversationsProvider.create — implementar na Fase 2 (engine de distribuição como Edge Function).",
+  async create(input: ICreateConversationInput): Promise<ICreateConversationResult> {
+    const client = getSupabaseClient();
+    const occurredAt = input.occurredAt ?? new Date().toISOString();
+
+    // --- Build the read-only world the (pure) engine inspects ------------------
+    const platform = await supabaseSettingsProvider.get(input.storeId);
+    const settings = platform.distribution;
+    const sellers = await supabaseSellersProvider.list({ storeId: input.storeId });
+
+    // Open-conversation load per seller (the `carga` criterion reads this).
+    const { data: openRows, error: loadError } = await client
+      .from(TABLE)
+      .select("assigned_seller_id")
+      .eq("store_id", input.storeId)
+      .in("status", ["aguardando", "em_andamento", "aguardando_cliente"])
+      .not("assigned_seller_id", "is", null);
+    if (loadError)
+      throw new Error(`[supabase] conversations.create (load) failed: ${loadError.message}`);
+    const loadBySeller: Record<ID, number> = {};
+    for (const row of openRows as { assigned_seller_id: string | null }[]) {
+      if (!row.assigned_seller_id) continue;
+      loadBySeller[row.assigned_seller_id] = (loadBySeller[row.assigned_seller_id] ?? 0) + 1;
+    }
+
+    let participant: IDistributionInput["participant"];
+    if (input.customerId) {
+      participant = {
+        kind: "customer",
+        customer: await supabaseCustomersProvider.get(input.customerId),
+      };
+    } else if (input.leadId) {
+      participant = { kind: "lead", lead: await supabaseLeadsProvider.get(input.leadId) };
+    } else {
+      throw new Error("[supabase] conversations.create requires a customerId or a leadId.");
+    }
+
+    // --- Decide (pure) ---------------------------------------------------------
+    const conversationId = crypto.randomUUID();
+    const decision = distributeConversation(
+      {
+        conversationId,
+        storeId: input.storeId,
+        channel: input.channel,
+        participant,
+        firstMessageText: input.firstMessageText,
+        occurredAt,
+      },
+      { settings, sellers, loadBySeller },
     );
+
+    // --- Persist (ordered, best-effort — see file header on atomicity) ---------
+    const { data: convData, error: convError } = await client
+      .from(TABLE)
+      .insert({
+        id: conversationId,
+        store_id: input.storeId,
+        customer_id: input.customerId ?? null,
+        lead_id: input.leadId ?? null,
+        assigned_seller_id: decision.selectedSellerId,
+        channel: input.channel,
+        whatsapp_account_id: input.whatsappAccountId ?? null,
+        status: decision.status,
+        is_sdr_active: decision.isSdrActive,
+        tags: [],
+        linked_order_id: null,
+        last_message_at: occurredAt,
+        unread_count: 1,
+        created_at: occurredAt,
+      })
+      .select(COLUMNS)
+      .single();
+    if (convError) throw new Error(`[supabase] conversations.create failed: ${convError.message}`);
+    const conversation = rowToConversation(convData as ConversationRow);
+
+    const provider = input.channel === "whatsapp" ? "meta" : "mock";
+    const messages: IMessage[] = [];
+    const messageRows: Record<string, unknown>[] = [];
+
+    const incoming: IMessage = {
+      id: crypto.randomUUID(),
+      conversationId,
+      direction: "in",
+      authorType: "customer",
+      authorId: input.customerId ?? input.leadId,
+      provider,
+      text: input.firstMessageText,
+      status: "delivered",
+      sentAt: occurredAt,
+      deliveredAt: occurredAt,
+    };
+    messages.push(incoming);
+    messageRows.push({
+      id: incoming.id,
+      conversation_id: conversationId,
+      direction: "in",
+      author_type: "customer",
+      author_id: incoming.authorId ?? null,
+      provider,
+      text: incoming.text,
+      status: "delivered",
+      sent_at: occurredAt,
+      delivered_at: occurredAt,
+    });
+
+    if (decision.systemMessage) {
+      const systemSentAt = new Date(new Date(occurredAt).getTime() + 1000).toISOString();
+      const system: IMessage = {
+        id: crypto.randomUUID(),
+        conversationId,
+        direction: "out",
+        authorType: "system",
+        authorId: "sdr-agent",
+        provider,
+        text: decision.systemMessage,
+        status: "sent",
+        sentAt: systemSentAt,
+      };
+      messages.push(system);
+      messageRows.push({
+        id: system.id,
+        conversation_id: conversationId,
+        direction: "out",
+        author_type: "system",
+        author_id: "sdr-agent",
+        provider,
+        text: system.text,
+        status: "sent",
+        sent_at: systemSentAt,
+      });
+    }
+
+    const { error: msgError } = await client.from("messages").insert(messageRows);
+    if (msgError)
+      throw new Error(`[supabase] conversations.create (messages) failed: ${msgError.message}`);
+
+    const trace: IDistributionTrace = {
+      id: crypto.randomUUID(),
+      conversationId,
+      customerId: input.customerId,
+      leadId: input.leadId,
+      storeId: input.storeId,
+      timestamp: occurredAt,
+      selectedSellerId: decision.selectedSellerId,
+      criterionMatched: decision.criterionMatched,
+      candidatesEvaluated: decision.candidatesEvaluated,
+      mode: decision.mode,
+    };
+    await supabaseDistributionTracesProvider.create(trace);
+
+    // Advance the round-robin cursor when applicable (mirrors the mock).
+    if (decision.criterionMatched === "round_robin" && decision.selectedSellerId) {
+      await supabaseSettingsProvider.update(input.storeId, {
+        distribution: { ...settings, lastAssignedSellerId: decision.selectedSellerId },
+      });
+    }
+
+    return { conversation, messages, trace };
   },
 };

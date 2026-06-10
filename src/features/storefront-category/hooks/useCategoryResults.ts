@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { ID, IOrder, IPart } from "@/shared/types";
-import { useOrdersProvider, usePartsProvider } from "@/providers/data";
+import type { ID, IPart } from "@/shared/types";
+import { useStorefrontProvider } from "@/providers/data";
 import type { ICategorySlugMapping } from "../data/slugs";
 import type { ICategoryFiltersState } from "./useCategoryFilters";
 
@@ -9,7 +9,6 @@ const STORE_ID = "00000000-0000-0000-0000-000000000001";
 const STALE_MS = 5 * 60 * 1000;
 const PAGE_SIZE = 24;
 const NEWEST_WINDOW_DAYS = 90;
-const TOP_SELLING_WINDOW_DAYS = 90;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export interface IUseCategoryResultsInput {
@@ -42,35 +41,28 @@ export interface IUseCategoryResultsResult {
  */
 export function useCategoryResults(input: IUseCategoryResultsInput): IUseCategoryResultsResult {
   const { mapping, filters, promotionPartIds } = input;
-  const partsProvider = usePartsProvider();
-  const ordersProvider = useOrdersProvider();
+  const storefrontProvider = useStorefrontProvider();
 
   const partsQuery = useQuery({
     queryKey: ["storefront-category", "parts"] as const,
-    queryFn: async () => {
-      const r = await partsProvider.list({ storeId: STORE_ID, pageSize: 2000 });
-      return r.data;
-    },
+    queryFn: () => storefrontProvider.listCatalog(),
     staleTime: STALE_MS,
   });
 
-  const needsOrders =
+  const needsTopSelling =
     filters.sort === "top-selling" ||
     (mapping.kind === "special" && mapping.special === "top-selling");
 
-  const ordersQuery = useQuery({
-    queryKey: ["storefront-category", "orders"] as const,
-    queryFn: async () => {
-      const r = await ordersProvider.list({ storeId: STORE_ID, pageSize: 2000 });
-      return r.data;
-    },
+  const topSellingQuery = useQuery({
+    queryKey: ["storefront-category", "top-selling"] as const,
+    queryFn: () => storefrontProvider.listTopSellingIds(STORE_ID),
     staleTime: STALE_MS,
-    enabled: needsOrders,
+    enabled: needsTopSelling,
   });
 
   return useMemo<IUseCategoryResultsResult>(() => {
     const parts = partsQuery.data ?? [];
-    const orders = ordersQuery.data ?? [];
+    const topSellingIds = topSellingQuery.data ?? [];
 
     if (parts.length === 0) {
       return {
@@ -86,7 +78,7 @@ export function useCategoryResults(input: IUseCategoryResultsInput): IUseCategor
 
     // Stage 1 — scope by mapping.
     const active = parts.filter((p) => p.active);
-    const scopeParts = scopeByMapping(active, mapping, orders, promotionPartIds);
+    const scopeParts = scopeByMapping(active, mapping, topSellingIds, promotionPartIds);
     const scopeCount = scopeParts.length;
 
     // Stage 2 — secondary filters (additive AND).
@@ -126,7 +118,7 @@ export function useCategoryResults(input: IUseCategoryResultsInput): IUseCategor
     }
 
     // Stage 3 — sort + paginate.
-    filtered = sortResults(filtered, filters.sort, orders, mapping);
+    filtered = sortResults(filtered, filters.sort, topSellingIds, mapping);
 
     const totalCount = filtered.length;
     const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
@@ -135,8 +127,8 @@ export function useCategoryResults(input: IUseCategoryResultsInput): IUseCategor
     const pageItems = filtered.slice(start, start + PAGE_SIZE);
 
     return {
-      isLoading: partsQuery.isLoading || (needsOrders && ordersQuery.isLoading),
-      isError: partsQuery.isError || (needsOrders && ordersQuery.isError),
+      isLoading: partsQuery.isLoading || (needsTopSelling && topSellingQuery.isLoading),
+      isError: partsQuery.isError || (needsTopSelling && topSellingQuery.isError),
       scopeCount,
       totalCount,
       pageItems,
@@ -147,10 +139,10 @@ export function useCategoryResults(input: IUseCategoryResultsInput): IUseCategor
     partsQuery.data,
     partsQuery.isLoading,
     partsQuery.isError,
-    ordersQuery.data,
-    ordersQuery.isLoading,
-    ordersQuery.isError,
-    needsOrders,
+    topSellingQuery.data,
+    topSellingQuery.isLoading,
+    topSellingQuery.isError,
+    needsTopSelling,
     mapping,
     filters,
     promotionPartIds,
@@ -160,7 +152,7 @@ export function useCategoryResults(input: IUseCategoryResultsInput): IUseCategor
 function scopeByMapping(
   parts: IPart[],
   mapping: ICategorySlugMapping,
-  orders: IOrder[],
+  topSellingIds: ID[],
   promotionPartIds?: ID[],
 ): IPart[] {
   if (mapping.kind === "category") {
@@ -172,8 +164,8 @@ function scopeByMapping(
       return parts.filter((p) => p.createdAt >= sinceIso);
     }
     case "top-selling": {
-      const sold = buildSoldMap(orders);
-      return parts.filter((p) => (sold.get(p.id) ?? 0) > 0);
+      const topSet = new Set(topSellingIds);
+      return parts.filter((p) => topSet.has(p.id));
     }
     case "promotions": {
       const ids = new Set(promotionPartIds ?? []);
@@ -188,7 +180,7 @@ function scopeByMapping(
 function sortResults(
   parts: IPart[],
   sort: ICategoryFiltersState["sort"],
-  orders: IOrder[],
+  topSellingIds: ID[],
   mapping: ICategorySlugMapping,
 ): IPart[] {
   const effectiveSort =
@@ -206,27 +198,15 @@ function sortResults(
     case "newest":
       return [...parts].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
     case "top-selling": {
-      const sold = buildSoldMap(orders);
-      return [...parts].sort((a, b) => (sold.get(b.id) ?? 0) - (sold.get(a.id) ?? 0));
+      const rank = new Map(topSellingIds.map((id, index) => [id, index] as const));
+      return [...parts].sort(
+        (a, b) => (rank.get(a.id) ?? Infinity) - (rank.get(b.id) ?? Infinity),
+      );
     }
     case "relevance":
     default:
       return parts;
   }
-}
-
-function buildSoldMap(orders: IOrder[]): Map<ID, number> {
-  const sinceIso = new Date(Date.now() - TOP_SELLING_WINDOW_DAYS * MS_PER_DAY).toISOString();
-  const sold = new Map<ID, number>();
-  for (const o of orders) {
-    if (o.paymentStatus !== "pago" && o.paymentStatus !== "parcial") continue;
-    const ts = o.paidAt ?? o.updatedAt ?? o.createdAt;
-    if (ts < sinceIso) continue;
-    for (const item of o.items) {
-      sold.set(item.partId, (sold.get(item.partId) ?? 0) + item.quantity);
-    }
-  }
-  return sold;
 }
 
 export const CATEGORY_PAGE_SIZE = PAGE_SIZE;

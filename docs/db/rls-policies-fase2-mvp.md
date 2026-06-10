@@ -1,0 +1,347 @@
+# RLS — Fase 2 (MVP adaptado) — write policies
+
+> **PRDs relacionados:** PRD-103 (RLS) e PRD-107 (Auth custom claims). Este documento registra a **implementação MVP adaptada** aplicada em 2026-06-08, que diverge do PRD-103 original em dois pontos (schema e fonte de identidade) — ver abaixo. O PRD-107 (Fase 1) iniciou a **transição da identidade para claims do JWT** (com fallback para a subquery) — ver seção "Funções helper de identidade".
+> **Aplicação:** migrations versionadas no remoto via MCP (`apply_migration`). Nomes: `rls_helpers_identity`, `rls_policies_store_direct`, `rls_policies_derived_global`, `rls_helpers_security_invoker`, `rls_helpers_jwt_claims_with_fallback`, `add_manager_id_to_stores`, `rls_per_seller_carteira_scope`, `profiles_select_staff`, `rls_slice2_financial_staff_only`, `rls_slice3_personal_assets`, `rls_slice4_personal_derived`, `perf_index_unindexed_fks`, `profiles_select_consolidate_initplan`, `storefront_anon_read`, `perf_initplan_wrap_helpers`, `rls_helpers_drop_profiles_fallback`, `rls_conversations_pool`, `storefront_anon_read_stock`, `storefront_top_selling_rpc`, `rls_conversations_pool`, `rls_fase2_43_tighten_audit_transfers_media`.
+
+## Por que "adaptado"
+
+O PRD-103 foi escrito para schemas `crm` + `storefront` e identidade via **JWT claims** (`auth.jwt() -> 'app_metadata'`), que dependem do **Custom Access Token Hook** (PRD-107). A realidade materializada é:
+
+| PRD-103 assume                    | Realidade                                                                                                     |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| schemas `crm` + `storefront`      | schema **`public`**                                                                                           |
+| identidade via JWT `app_metadata` | hook **desligado** → identidade resolvida por **subquery em `public.profiles`** (`auth_user_id = auth.uid()`) |
+
+Aplicar o PRD literal **bloquearia tudo** (helpers leem JWT vazio → fail closed). A decisão (Opção A) foi: **profiles-subquery, MVP pragmático** — escopo por loja real, funciona já, e migra para JWT depois sem reescrever policy (basta trocar o corpo das helpers).
+
+## Funções helper de identidade
+
+`SECURITY INVOKER`, `STABLE`, `set search_path = ''`. `EXECUTE` concedido apenas a `authenticated` (revogado de `public`/`anon`).
+
+**Estado atual (migration `rls_helpers_drop_profiles_fallback`):** com o hook do JWT **universal**, as helpers leem a identidade **só do claim** (`auth.jwt() -> 'app_metadata'`) — o JWT é a **fonte única de verdade** e o sistema é **fail-closed** (sem `app_metadata` → identidade `null` → RLS nega). `is_staff()` segue derivando de `current_app_role()`.
+
+```sql
+create or replace function public.current_store_id()
+returns uuid language sql stable security invoker set search_path = '' as $$
+  select nullif(auth.jwt() -> 'app_metadata' ->> 'store_id', '')::uuid;
+$$;
+-- idem: current_seller_id() (seller_id), current_app_role() (role, sem cast)
+create or replace function public.is_staff()
+returns boolean language sql stable security invoker set search_path = '' as $$
+  select coalesce(public.current_app_role() in ('owner','manager'), false);
+$$;
+```
+
+> **Histórico:** a migration anterior `rls_helpers_jwt_claims_with_fallback` usava `coalesce(claim, (subquery em public.profiles))` para um cutover **sem janela de lockout** (token velho / hook não habilitado → fallback idêntico ao comportamento anterior). Com o hook habilitado (Dashboard, 2026-06-08), o claim sempre vem preenchido → o subquery virou código morto em runtime e foi removido. As policies **nunca** mudaram nessa transição.
+
+### Validação por impersonação (migration `rls_helpers_jwt_claims_with_fallback`)
+
+| Teste | Cenário                                                 | Resultado                                                     |
+| ----- | ------------------------------------------------------- | ------------------------------------------------------------- |
+| A     | `sub` ausente de `profiles` + `app_metadata` nas claims | store=matriz, role=owner, staff=true → identidade veio do JWT |
+| B     | `sub` real do owner, **sem** `app_metadata`             | store=matriz, role=owner, staff=true → fallback `profiles`    |
+| C     | owner via claims lê dados                               | 70 customers, 477 orders, 693 messages → sem regressão        |
+| D     | `sub` desconhecido, sem claims                          | store=`<null>`, 0 customers → fail-closed                     |
+
+## Escopo por tabela
+
+| Bucket                    | Tabelas                                                                                                                                                                                                                                                                                                                                 | Regra (SELECT/INSERT/UPDATE/DELETE)                                         |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| **Store-direto** (23)     | customers, orders, quotes, leads, conversations, parts, commissions, expenses, cash_flow_entries, goals, media_assets, recommendations, carteira_transfers, distribution_traces, product_indicators, quick_replies, scheduled_sends, sdr_escalations, trackable_links, whatsapp_accounts, model_kits, asset_combos, asset_library_items | `store_id = public.current_store_id()`                                      |
+| **Derivado via pai** (10) | order_items→orders, quote_items→quotes, messages→conversations, sdr_sessions→conversations, vehicles→customers, customer_notes→customers, model_kit_items→model_kits, customer_segments→sellers, asset_favorites→sellers, asset_send_log→sellers                                                                                        | `<fk> in (select id from <pai> where store_id = public.current_store_id())` |
+| **Global** (1)            | vehicle_models                                                                                                                                                                                                                                                                                                                          | SELECT: `authenticated` (todos); escrita: `public.is_staff()`               |
+| **Especial** (3)          | `audit_logs` (imutável: INSERT por loja, **SELECT staff+financeiro** — ver #43, UPDATE/DELETE `using(false)`) · `sellers` (escrita `is_staff()` + self-update do próprio `auth_user_id`) · `stores` (SELECT/UPDATE só a própria, sem INSERT/DELETE no cliente)                                                                                                          | —                                                                           |
+
+Padrão de nome: `<tabela>_<select|insert|update|delete>`. `anon` **não** tem policy no CRM (fechou o vazamento das policies temporárias `*_select_poc_temp`, que permitiam `anon using(true)`).
+
+## Validação (impersonando o owner)
+
+`begin; select set_config('request.jwt.claims', '{"sub":"<auth_user_id>","role":"authenticated"}', true); set local role authenticated; … rollback;`
+
+- **Leitura:** customers 70, orders 477, order_items 1511, messages 693, vehicles 60, vehicle_models 21 — ✅
+- **Escrita same-store:** UPDATE afeta linhas — ✅
+- **Isolamento:** usuário sem perfil → `current_store_id()` NULL + 0 linhas em tudo (fail closed) — ✅
+- **`get_advisors(security)`:** sem erros; resta só `auth_leaked_password_protection` (config de dashboard, não relacionado).
+
+## RBAC fino — isolamento de carteira por vendedor (Slice 1, migration `rls_per_seller_carteira_scope`)
+
+Nas 6 tabelas-núcleo com dono, os **4 comandos** trocaram `store_id = current_store_id()` por:
+
+```
+store_id = current_store_id() AND (is_staff() OR <col> = current_seller_id())
+```
+
+| Tabela                                        | coluna de dono       |
+| --------------------------------------------- | -------------------- |
+| customers, orders, quotes, leads, commissions | `seller_id`          |
+| conversations                                 | `assigned_seller_id` |
+
+**Staff (owner/manager) seguem com escopo de loja** (`is_staff()` curto-circuita). Só **não-staff** sentem o recorte por carteira. As **tabelas-filhas herdam automaticamente** — o `<fk> in (select id from <pai> …)` roda sob a RLS do pai, então o escopo por vendedor se propaga sem alterá-las.
+
+Validação por impersonação (claims com `app_metadata`):
+
+| Persona                   | staff | customers | orders | quotes | conversations | order_items (filha) | messages (filha) |
+| ------------------------- | ----- | --------- | ------ | ------ | ------------- | ------------------- | ---------------- |
+| Lucas (`seller_internal`) | false | 18        | 132    | 10     | 28            | 423                 | 230              |
+| Owner                     | true  | 70        | 477    | 80     | 96            | 1511                | 693              |
+
+Vazamento cruzado (impersonando Lucas): `customers` de outro vendedor → 0; `orders` do Fernando → 0; `conversations` não-atribuídas → 0. ✅
+
+**Deferido neste slice:** assets pessoais (`quick_replies`/`asset_combos.owner_id` — resolvido no Slice 3); semântica do pool de não-atribuídos; edge de `conversations.create` disparado por vendedor. (Financeiras/gerenciais resolvidas no Slice 2.)
+
+## RBAC fino — financeiras staff-only + per-seller (Slice 2, migration `rls_slice2_financial_staff_only`)
+
+Não há tabela de DRE/estoque/movimentação (computados de `orders`/`expenses`). O financeiro vive em `expenses`/`cash_flow_entries`.
+
+**2a — staff-only** (`store_id = current_store_id() AND is_staff()`), nos 4 comandos — não-staff **não vê nada**:
+
+| Tabela                | Motivo                                |
+| --------------------- | ------------------------------------- |
+| `expenses`            | despesas da loja (P&L)                |
+| `cash_flow_entries`   | fluxo de caixa                        |
+| `distribution_traces` | auditoria de distribuição (gerencial) |
+
+**2b — per-seller** (`store_id = current_store_id() AND (is_staff() OR seller_id = current_seller_id())`), nos 4 comandos — antes store-wide (vazavam cross-seller):
+
+| Tabela                                           | coluna                                                          |
+| ------------------------------------------------ | --------------------------------------------------------------- |
+| `goals`, `recommendations`, `product_indicators` | `seller_id` (linhas nível-loja com `seller_id` null → só staff) |
+
+Validação por impersonação:
+
+| Persona                   | expenses | cash_flow | distribution_traces | goals | recommendations | product_indicators |
+| ------------------------- | -------- | --------- | ------------------- | ----- | --------------- | ------------------ |
+| Lucas (`seller_internal`) | 0        | 0         | 0                   | 24    | 12              | 2                  |
+| Owner                     | 120      | 5         | 40                  | 85    | 25              | 10                 |
+
+`get_advisors(security)` → nada novo (só `auth_leaked_password_protection`, config de dashboard).
+
+## RBAC fino — assets pessoais por `owner_id` (Slice 3, migration `rls_slice3_personal_assets`)
+
+As duas tabelas com dono pessoal (`owner_id` uuid → `sellers.id`) trocaram `store_id = current_store_id()` por:
+
+```
+store_id = current_store_id() AND (is_staff() OR owner_id = current_seller_id())
+```
+
+nos 4 comandos — com **uma exceção no SELECT de `quick_replies`**, que também expõe os snippets `scope = 'shared'` a toda a loja:
+
+```
+-- quick_replies SELECT
+store_id = current_store_id() AND (is_staff() OR scope = 'shared' OR owner_id = current_seller_id())
+```
+
+| Tabela          | Dono       | SELECT extra               | Observação                   |
+| --------------- | ---------- | -------------------------- | ---------------------------- |
+| `quick_replies` | `owner_id` | `scope = 'shared'` visível | privados só do dono (+staff) |
+| `asset_combos`  | `owner_id` | —                          | puramente pessoal            |
+
+Escrita (INSERT/UPDATE/DELETE) é sempre só do dono (+staff); o `with check (owner_id = current_seller_id())` impede um vendedor de criar/reatribuir em nome de outro. Os providers já gravam `owner_id = input.ownerId` (vendedor logado), então a escrita não-staff passa sem ajuste.
+
+Validação por impersonação (claims com `app_metadata`):
+
+| Persona                   | quick_replies | asset_combos |
+| ------------------------- | ------------- | ------------ |
+| Lucas (`seller_internal`) | 8             | 0            |
+| Owner                     | 20            | 5            |
+
+Baseline (service role): `quick_replies` 20 (4 shared, 16 private; 8 do Lucas), `asset_combos` 5 (0 do Lucas). Lucas passa a ver só seus 8 (4 shared + 4 privados próprios) e 0 combos — os **12 privados de outros vendedores** e os **5 combos alheios** ficam ocultos. `get_advisors(security)` → nada novo.
+
+**Resolvido no Slice 4:** `customer_segments` / `asset_favorites` / `asset_send_log` (bucket derivado→sellers) — antes store-scoped, agora per-seller.
+
+## RBAC fino — derivadas per-seller (Slice 4, migration `rls_slice4_personal_derived`)
+
+As 3 tabelas com dono pessoal mas **sem `store_id`** (escopadas via o pai `sellers`) mantiveram o store-scope por subquery e **ganharam o recorte per-seller** nos 4 comandos:
+
+```
+<dono> in (select id from public.sellers where store_id = current_store_id())
+AND (is_staff() OR <dono> = current_seller_id())
+```
+
+O **SELECT de `customer_segments`** ainda expõe os `scope = 'shared'` à equipe (igual `quick_replies`):
+
+```
+... AND (is_staff() OR scope = 'shared' OR owner_id = current_seller_id())
+```
+
+| Tabela              | Dono        | SELECT extra               | Observação            |
+| ------------------- | ----------- | -------------------------- | --------------------- |
+| `customer_segments` | `owner_id`  | `scope = 'shared'` visível | filtros salvos        |
+| `asset_favorites`   | `seller_id` | —                          | pins pessoais         |
+| `asset_send_log`    | `seller_id` | —                          | log de envios pessoal |
+
+Escrita só do próprio dono (+staff); os providers gravam `seller_id`/`owner_id` do vendedor que age, então a escrita non-staff passa.
+
+Validação por impersonação (claims com `app_metadata`):
+
+| Persona                   | customer_segments | asset_favorites | asset_send_log |
+| ------------------------- | ----------------- | --------------- | -------------- |
+| Lucas (`seller_internal`) | 6                 | 0               | 0              |
+| Owner                     | 6                 | 0               | 0              |
+
+Baseline: `customer_segments` 6 (5 shared + 1 private, do Lucas); `asset_favorites`/`asset_send_log` vazios no seed. Lucas vê os 5 shared + seu 1 private = 6. **Teste de injeção (tx revertida):** ao inserir um segmento `private` de OUTRO vendedor, Lucas segue vendo 6 (não 7) → recorte cruzado fechado. `get_advisors(security)` → nada novo.
+
+Com isto, o **isolamento per-seller (Slices 1–4)** está completo em todas as tabelas com dono.
+
+## Performance (PRD-108) — índices de FK + initplan da `profiles`
+
+Duas migrations de perf, guiadas pelo `get_advisors(performance)`:
+
+**`perf_index_unindexed_fks`** — 21 índices `idx_<tabela>_<col>` cobrindo todas as FKs sem índice apontadas pelo advisor (inclui `profiles.seller_id`/`store_id`, `stores.manager_id`, `customers.converted_by_seller_id`, `media_assets.linked_*`, `sdr_escalations.*`, etc.). Índices comuns (tabelas pequenas; migration transacional).
+
+**`profiles_select_consolidate_initplan`** — as duas policies permissivas de SELECT (`authenticated`) na `profiles` (`profiles_select_self` + `profiles_select_staff`) viraram **uma só** (`profiles_select_self_or_staff`), com `auth.uid()`/`auth.jwt()` envelopados em `(select …)`:
+
+```sql
+using (
+  auth_user_id = (select auth.uid())
+  or ( coalesce(((select auth.jwt()) -> 'app_metadata' ->> 'role'), '') in ('owner','manager')
+       and (((select auth.jwt()) -> 'app_metadata' ->> 'store_id'))::uuid = store_id )
+)
+```
+
+Semanticamente idêntico (permissivas = OR; `(select …)` só muda a estratégia de avaliação para InitPlan). Lê o JWT direto (sem `is_staff()`/`current_*()`) → sem recursão na `profiles`. A policy de `supabase_auth_admin` (usada pelo hook) fica intacta.
+
+**Resultado do advisor:** `unindexed_foreign_keys` 21→0, `auth_rls_initplan` 2→0, `multiple_permissive_policies` 1→0. Restam só INFO (`unused_index` — os 21 novos ainda sem tráfego — e config de conexões). `get_advisors(security)` inalterado. Impersonação: owner lê os 2 profiles da loja (`listSellerAccessRoles` ok); vendedor lê só o próprio (1).
+
+**Part C (migration `perf_initplan_wrap_helpers`) — FEITO.** Envelopadas em `(select …)` as **151** policies (de 157) que chamam helper — `current_store_id()`/`current_seller_id()`/`current_app_role()`/`is_staff()` viram `(select fn())`, forçando avaliação **InitPlan** (1× por query) em vez de 1× por linha. Reescrita programática via bloco `DO` que tira um snapshot do `pg_policies` numa temp table e dropa/recria cada policy preservando `permissive`/`cmd`/`roles` (o Postgres guarda a função por OID → runtime imune a search_path). Excluídas (sem helper): policies de `profiles` (já com `auth.*` em `(select …)`), `parts_select_anon`, `vehicle_models_select` (`true`) e a do `supabase_auth_admin`.
+
+**Validação:** `still_unwrapped` 151→0; `EXPLAIN` de `select id from orders` (impersonando vendedor) mostra `current_store_id`/`is_staff`/`current_seller_id` como `InitPlan 1/2/3` (uma vez cada); **paridade de impersonação idêntica ao baseline** (owner: orders 477/customers 70/leads 80/quotes 80/conv 96/comm 40/expenses 120/cashflow 5/segments 6/q_replies 20/combos 5/parts 351 · Lucas: 132/18/18/10/28/12/0/0/6/8/0/351). `get_advisors(security)` inalterado.
+
+## Storefront anônimo — leitura pública da loja B2C (migration `storefront_anon_read`)
+
+A loja pública (`/loja/*`, sem login) precisa ler **catálogo** e **config da vitrine** como role `anon`. O risco não é "expor o catálogo" — é vazar **colunas comerciais** (`parts`: custo/margem/fornecedor/estoque) e o **resto das settings** (comissões/financeiro/cnpj, que dividem a coluna `stores.settings` jsonb com a config pública). Como `anon` já tinha grants de tabela completos (default Supabase, gated só pelo RLS), uma simples policy de SELECT vazaria todas as colunas. Solução em duas peças:
+
+**A. Catálogo (`parts`) — grant por coluna + policy `anon`.**
+
+```sql
+revoke all on public.parts from anon;                 -- remove o grant cego (todas as colunas + escritas)
+grant select (id, sku, name, description, oem_codes, oem_codes_text,
+  equivalent_part_ids, cross_references, segment, application_notes, applications,
+  brand, category, subcategory, is_original, image_url, unit_price, gtin,
+  reference, group_label, part_type, weight_kg, box_quantity, fractionable,
+  unit_of_measure, division, active, store_id, created_at, updated_at)
+  on public.parts to anon;                            -- só colunas PÚBLICAS
+create policy parts_select_anon on public.parts for select to anon using (active = true);
+```
+
+**Excluídas (sigilosas):** `unit_cost`, `margin_percent`, `average_cost`, `suppliers`, `supplier`, `supplier_code`, `price_tables`, `fiscal`, `sefaz_status`, `sefaz_checked_at`, `storage_location`. Anon que tentar lê-las recebe `42501 permission denied`. Escrita anônima negada (grant removido + sem policy de write).
+
+> 🔧 **Correção (migration `storefront_anon_read_stock`):** a migration original revogou `stock_available`/`stock_minimum` do `anon`, mas a loja B2C usa estoque no **núcleo** (badge "fora de estoque", "pronta entrega / apenas X em estoque", filtro "só em estoque", cap de quantidade e validação do carrinho). Re-concedidas ao `anon` via `grant select (stock_available, stock_minimum) on public.parts to anon`. É e-commerce padrão; **não** vaza custo/margem.
+
+**B. Config da vitrine — função `SECURITY DEFINER` (sem view).**
+
+```sql
+create function public.storefront_config(p_store_id uuid) returns jsonb
+  language sql stable security definer set search_path = ''
+  as $$ select settings -> 'storefront' from public.stores where id = p_store_id $$;
+revoke all on function public.storefront_config(uuid) from public;
+grant execute on function public.storefront_config(uuid) to anon, authenticated;
+```
+
+Retorna **só** `settings->'storefront'` — nunca cnpj/comissões/financeiro. `authenticated` também recebe execute porque **cliente B2C logado não pertence a loja** (`current_store_id()` = null → não lê `stores` pela policy normal). Não há como expor um slice de jsonb a `anon` sem função/view definer.
+
+**Não exposto:** `orders` permanece sem grant/policy para `anon`. O ranking "mais vendidos" da loja vem de uma RPC `SECURITY DEFINER` (migration `storefront_top_selling_rpc`) que lê `orders`/`order_items` como owner e devolve **só IDs de peças** ranqueados (status `pago`/`parcial`, janela 90d, soma de quantidade) — nenhum dado de pedido vaza:
+
+```sql
+create function public.storefront_top_selling(p_store_id uuid, p_limit int default 2000)
+  returns table (part_id uuid) language sql stable security definer set search_path = ''
+  as $$ select oi.part_id from public.order_items oi join public.orders o on o.id = oi.order_id
+        where o.store_id = p_store_id and o.payment_status in ('pago','parcial')
+          and coalesce(o.paid_at, o.updated_at, o.created_at) >= (now() - interval '90 days')
+        group by oi.part_id order by sum(oi.quantity) desc
+        limit greatest(1, least(coalesce(p_limit, 2000), 5000)) $$;
+revoke all on function public.storefront_top_selling(uuid, integer) from public;
+grant execute on function public.storefront_top_selling(uuid, integer) to anon, authenticated;
+```
+
+`vehicle_models` segue não exposto (páginas públicas leem aplicações do jsonb `parts.applications`).
+
+**Validação (impersonação `set local role anon`):** vê 344 ativas / 7 inativas ocultas; lê id/nome/preço/marca/categoria/imagem; `select unit_cost` → `42501`; `insert into parts` → `42501`; `stores`/`orders` → 0 linhas; `storefront_config(HQ)` → jsonb.
+
+**Advisor de segurança:** zero novos **ERRORs**. Surgem 2 **WARN** esperados/aceitos — `anon_security_definer_function_executable` e `authenticated_security_definer_function_executable` — inerentes a qualquer RPC público definer; a função é mínima, read-only e `search_path`-locked, sem vazamento. (`auth_leaked_password_protection` segue WARN pré-existente.)
+
+### Wiring da loja ao modo `anon` — FEITO
+
+Os providers de `parts`/`settings` são **compartilhados** com o app interno (staff vê custo/margem). Para não regredir o catálogo interno, o wiring foi feito por **provider dedicado** em vez de estreitar os providers existentes:
+
+- **`IStorefrontProvider`** (`providers/data/contracts/storefront.ts`) — só leitura pública: `listCatalog()`, `getPart(id)`, `listEquivalents(id)`, `getConfig(storeId)`, `listTopSellingIds(storeId, limit?)`.
+  - **mock** (`impl/mock/storefront.ts`): delega aos providers mock existentes → comportamento **idêntico** ao de hoje em modo mock.
+  - **supabase** (`impl/supabase/storefront.ts`): seleciona só `PUBLIC_COLUMNS` (subconjunto exato do grant `anon`) e mapeia via `rowToPublicPart`, que **defaulta** os obrigatórios não-concedidos (`unitCost:0`, `marginPercent:0`, `supplier:""`) para satisfazer `IPart`; `getConfig` via RPC `storefront_config`; `listTopSellingIds` via RPC `storefront_top_selling`.
+- **11 consumidores** da loja migrados de `usePartsProvider`/`useSettingsProvider`/`useOrdersProvider` para `useStorefrontProvider`: home (destaques, categorias), busca (página + engine), categoria (engine), ficha do produto, relacionados, equivalências, config da vitrine, e carrinho (validação + linha). O ranking "mais vendidos" trocou o agregador de `orders` inline pela RPC.
+- **App interno intocado** — `parts`/`settings`/`orders` providers seguem com a projeção completa para staff.
+
+> ⛔ **Funil de checkout — fora de escopo (frente própria).** O checkout B2C (`CheckoutPage`, `useCartShipping`, `OrderConfirmedPage`) **escreve** como visitante: cria `orders`/`customers`/`conversations` e atualiza pedido. Isso exige write anon (proibido) ou um Edge Function transacional + auth de cliente B2C. Além disso, `settings.shipping`/`settings.ecommerceIntegration` ficam **fora** da fatia `storefront` (a RPC `storefront_config` não os expõe). A loja pública em modo `anon` é **navegável** (catálogo/busca/ficha/carrinho client-side); fechar pedido fica para a frente de **checkout-backend**.
+
+## Pool de não-atribuídos — conversas sem dono (migration `rls_conversations_pool`)
+
+A loja já expõe os filtros **"Sem atribuição"** e **"Em fila"** no inbox (`useInboxFilters`) + a mensagem `readOnlyAssign`. A semântica é **claim**: o vendedor não-staff **vê** e **reivindica** conversas sem dono (`assigned_seller_id IS NULL`), **sem** enxergar a carteira *atribuída* a outros (preserva Slices 1–4). Antes, o RLS per-seller escondia o pool do não-staff, quebrando esses filtros no modo Supabase.
+
+Duas policies em `conversations` (helpers envelopados, consistente com Part C):
+
+```sql
+-- SELECT: own + pool (staff vê tudo)
+using ( store_id = (select current_store_id())
+  and ( (select is_staff()) or assigned_seller_id = (select current_seller_id()) or assigned_seller_id is null ) )
+
+-- UPDATE: USING mira own+pool; WITH CHECK força o resultado a ficar com o próprio
+using      ( ... or assigned_seller_id is null )                       -- pode mirar o pool
+with check ( ... (select is_staff()) or assigned_seller_id = (select current_seller_id()) )  -- claim null->self; não atribui a outro
+```
+
+**`messages` não muda** — sua policy delega a `conversations` (`conversation_id IN (SELECT id FROM conversations WHERE …)`), e essa subquery é RLS-filtrada; abrir o pool em `conversations_select` **cascateia** as mensagens do pool automaticamente (provado: Lucas via 230 msgs / 0 do pool antes; 326 / 96 do pool depois). `INSERT`/`DELETE` de `conversations` inalterados.
+
+**Validação (impersonação):** owner 96 convos / 693 msgs (inalterado); Lucas 28→**42** convos (14 do pool), 230→**326** msgs, e **42 ≠ 96** (carteira de outros segue oculta); claim `null→self` **OK**; claim `null→outro` **`42501`** (bloqueado por `with check`). `get_advisors(security)` inalterado.
+
+## RBAC fino — fechando o #43: audit/transfers/media per-seller (migration `rls_fase2_43_tighten_audit_transfers_media`)
+
+Três tabelas tinham SELECT só por loja (`store_id = current_store_id()`) e **vazavam linhas store-wide para vendedor não-staff**, contradizendo a matriz de permissões (PRD-006). Alinhadas à matriz:
+
+| Tabela               | SELECT antes                    | SELECT depois                                                   | Matriz                          |
+| -------------------- | ------------------------------- | -------------------------------------------------------------- | ------------------------------- |
+| `audit_logs`         | `store_id = current_store_id()` | `… AND (is_staff() OR current_app_role() = 'financeiro')`      | `audit_log` → Owner/Gestor/Fin. |
+| `carteira_transfers` | `store_id = current_store_id()` | `… AND is_staff()` (+ INSERT/UPDATE/DELETE)                    | `transfer` → Owner/Gestor       |
+| `media_assets`       | `store_id = current_store_id()` | `… AND (is_staff() OR <mídia de cliente/conversa do vendedor>)` | `media` → vendedor: view "own"  |
+
+- **`audit_logs`:** só o **SELECT** restringe — o INSERT segue por loja (o audit logger grava em nome de **qualquer** ator que age; `no_update`/`no_delete` garantem append-only). `financeiro` entra explícito (não é coberto por `is_staff()` = owner/manager).
+- **`carteira_transfers`:** os **4 comandos** viram `is_staff()` — a matriz não dá `transfer` a vendedor e a UI de carteira já é Owner/Gestor. Fecha também o gap de **escrita** (antes qualquer membro da loja escrevia).
+- **`media_assets`:** SELECT escopa por dono via subquery — mídia ligada a `customer_id` na carteira do vendedor **ou** a `conversation_id` atribuída a ele (índices `customers_seller_id_idx`/`conversations_assigned_seller_id_idx` já cobrem). **Escrita apertada no #48** (migration `rls_fase2_48_tighten_media_writes`, ver seção abaixo). 0 mídias órfãs (toda mídia tem `conversation_id`).
+
+Validação por impersonação:
+
+| Persona                   | audit_logs | carteira_transfers | media_assets                  |
+| ------------------------- | ---------- | ------------------ | ----------------------------- |
+| Lucas (`seller_internal`) | 40→**0**   | 8→**0**            | 90→**36** (= esperado por dono) |
+| Owner                     | 40         | 8                  | 90                            |
+
+`get_advisors(security)` → nada novo (seguem só os 2 WARN dos RPCs `storefront_*` e o `auth_leaked_password_protection`).
+
+> **Supersede** as entradas de `audit_logs` (bucket "Especial") e de `media_assets`/`carteira_transfers` (bucket "Store-direto") da tabela de escopo no topo — agora as três têm recorte por papel/vendedor.
+
+## #48 — escrita de `media_assets` per-seller (migration `rls_fase2_48_tighten_media_writes`)
+
+Fechando o follow-up do #43: a **escrita** de `media_assets` era só por loja (`store_id = current_store_id()`), permitindo a qualquer membro da loja **modificar/apagar** mídia de qualquer conversa/cliente — e **injetar** uma mídia na galeria de outro vendedor (que faz SELECT por `conversation_id`). Apertado para espelhar o recorte per-seller:
+
+| Comando | Antes | Depois |
+| ------- | ----- | ------ |
+| INSERT | `store_id = current_store_id()` | `… AND (is_staff() OR customer∈carteira OR conversa∈{atribuídas a mim + pool})` |
+| UPDATE | `store_id = current_store_id()` (using+check) | `… AND (is_staff() OR own-customer OR own-conversa-atribuída)` (espelha o SELECT) |
+| DELETE | `store_id = current_store_id()` | idem UPDATE |
+
+- **INSERT inclui o pool** (`assigned_seller_id IS NULL`) espelhando a *visibilidade* de `conversations` (own + pool), para não quebrar o arquivamento inbound (`ensureFromMessage`) nem o envio do quick-send (`upload`) em conversas que o vendedor está triando. Não há mídia órfã (todo asset carrega `conversation_id`).
+- **UPDATE/DELETE espelham o SELECT de mídia** (sem pool — o vendedor não enxerga mídia do pool no #43): só muta o que vê.
+- Helpers em `(select …)` (perf PRD-108); subqueries usam `customers_seller_id_idx`/`conversations_assigned_seller_id_idx`. `get_advisors` → nada novo.
+
+Validação por impersonação (Lucas, rollback): INSERT em conversa própria ✅ / pool ✅ / de outro vendedor ❌ (with_check); UPDATE own = 1 linha, cross-seller = **0**; DELETE cross-seller = **0**; owner (staff) ✅ em tudo. Coberto pela suíte versionada `supabase/tests/rls-regression.sql`.
+
+## Deferido para "corrigir depois"
+
+- ~~**RBAC fino:** pool de não-atribuídos (semântica do pool de conversas sem dono).~~ **FEITO** (migration `rls_conversations_pool`) — claim model: não-staff vê+reivindica o pool; `messages` cascateia; validado por impersonação.
+- Testes pgTAP + workflow CI (`rls-tests.yml`).
+- Convite por email (PRD-141 / Resend) — **scaffold FEITO** (Edge Function `invite-seller-email`, v1 ACTIVE, `verify_jwt:true`, **inerte** sem `RESEND_API_KEY`; usa `generateLink({type:'invite'})` + template pt-BR via Resend, com rollback). `invite-seller` (senha temp) segue intacto. **Pendente p/ ativar:** setar `RESEND_API_KEY`/`RESEND_FROM`/`INVITE_REDIRECT_URL`, wiring client (`inviteSellerByEmail`) + dialog, e a rota `/auth/definir-senha` de destino do link.
+- ~~Storefront anônimo (loja B2C em `supabase` precisa de policies `anon` de catálogo).~~ **FEITO** (migrations `storefront_anon_read` + `storefront_anon_read_stock` + `storefront_top_selling_rpc`) — grant por coluna em `parts` + RPC `storefront_config` + RPC de ranking. ~~**Pendente de wiring.**~~ **Wiring FEITO** — `IStorefrontProvider` dedicado + 11 consumidores migrados (catálogo/busca/ficha/carrinho navegáveis como `anon`).
+- **Checkout-backend (nova frente):** o funil de compra B2C (criar pedido/cliente/conversa, frete via `settings.shipping`, integração e-commerce) escreve como anon — precisa de Edge Function transacional e/ou auth de cliente B2C + write policies por cliente. Loja pública hoje é browse-only no modo `supabase`.
+- ~~Performance (PRD-108) — **parcial**~~ **COMPLETO:** FKs indexadas (21 índices), initplan da `profiles`, e Part C (envelopar `current_*()`/`is_staff()` em `(select …)` nas 151 policies — migration `perf_initplan_wrap_helpers`).
+- ~~Habilitar o Custom Access Token Hook~~ **FEITO** (Dashboard, 2026-06-08) — claims reais no JWT; helpers já liam claims com fallback.
+- ~~Remover o fallback `profiles` das helpers quando o hook estiver universal (perf — PRD-108).~~ **FEITO** (migration `rls_helpers_drop_profiles_fallback`) — helpers leem só o claim do JWT; fail-closed validado por impersonação (com claims = baseline; sem `app_metadata` = 0 linhas).
+- Fases 2–5 do PRD-107: login real conectado ao `crmClient`, guarda de rotas por `role`, convite de vendedor (Edge Function), signup B2C/B2B, recuperação de senha.
+- Caso de borda: se uma mutação na UI dispara INSERT em `audit_logs` sem `store_id` preenchido pelo provider, a auditoria falha (a operação principal não). Ajustar quando observado.

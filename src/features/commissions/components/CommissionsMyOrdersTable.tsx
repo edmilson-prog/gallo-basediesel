@@ -94,7 +94,7 @@ export function CommissionsMyOrdersTable({ commissions, canContest, onContestDon
                       params={{ id: c.orderId }}
                       className="font-medium text-primary hover:underline"
                     >
-                      #{c.orderId.replace(/^order-/, "PD-")}
+                      #{c.orderNumber ?? c.orderId.replace(/^order-/, "PD-")}
                     </Link>
                     {c.isSplit && (
                       <span className="ml-2 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] text-warning-foreground">

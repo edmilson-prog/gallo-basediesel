@@ -88,7 +88,7 @@ export function SharedSnippetsManager(_: ISharedSnippetsManagerProps) {
           title: tt,
           body: bd,
           scope: "shared",
-          ownerId: currentUser?.id ?? "system",
+          ownerId: currentUser?.sellerId ?? "system",
         });
         toast.success(s.snippetCreated);
       }

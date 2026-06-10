@@ -5,7 +5,7 @@ import type { PartCategory } from "@/shared/types";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Icon } from "@/components/Icon";
-import { usePartsProvider } from "@/providers/data";
+import { useStorefrontProvider } from "@/providers/data";
 import { getCategoryDescriptor } from "@/features/catalog";
 import { STOREFRONT_STRINGS as S } from "../i18n/pt-BR";
 
@@ -21,15 +21,12 @@ const STALE_MS = 5 * 60 * 1000;
  * empty categories don't surface here.
  */
 export function StorefrontCategories({ categories }: IStorefrontCategoriesProps) {
-  const partsProvider = usePartsProvider();
+  const storefrontProvider = useStorefrontProvider();
   const navigate = useNavigate();
 
   const partsQuery = useQuery({
     queryKey: ["storefront", "category-counts", "00000000-0000-0000-0000-000000000001"] as const,
-    queryFn: async () => {
-      const r = await partsProvider.list({ storeId: "00000000-0000-0000-0000-000000000001", pageSize: 2000 });
-      return r.data;
-    },
+    queryFn: () => storefrontProvider.listCatalog(),
     staleTime: STALE_MS,
   });
 

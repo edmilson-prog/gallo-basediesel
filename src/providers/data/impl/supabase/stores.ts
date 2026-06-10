@@ -19,6 +19,7 @@ interface StoreRow {
   type: IStore["type"];
   address: string;
   cnpj: string;
+  manager_id: string | null;
   // POC seed stores a faithful subset of IPlatformSettings; trusted via cast.
   settings: IPlatformSettings;
   active_divisions: Division[];
@@ -34,6 +35,7 @@ function rowToStore(row: StoreRow): IStore {
     type: row.type,
     address: row.address,
     cnpj: row.cnpj,
+    managerId: row.manager_id ?? undefined,
     settings: row.settings,
     activeDivisions: row.active_divisions,
     createdAt: row.created_at,

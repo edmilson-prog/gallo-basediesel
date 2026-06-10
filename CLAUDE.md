@@ -63,7 +63,7 @@ src/
 ├── providers/data/       # Provider Pattern (camada de dados — ver abaixo)
 │   ├── contracts/        # interfaces por domínio (IXxxProvider) + IDataProviders
 │   ├── impl/mock/        # implementações mock (Fase 1)
-│   ├── impl/supabase/    # stubs Supabase (Fase 2 — lançam NotImplementedError)
+│   ├── impl/supabase/    # implementações Supabase (Fase 2 — 34 providers reais; cutover por env)
 │   ├── hooks/            # useXxxProvider() — acesso via context
 │   ├── factory.ts        # getDataProviders() seleciona o set por VITE_DATA_SOURCE
 │   ├── context.tsx       # DataProvidersProvider (React context)
