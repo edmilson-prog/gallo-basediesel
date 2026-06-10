@@ -169,7 +169,6 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         icon: "mdi:whatsapp",
         to: "/app/configuracoes/whatsapp",
         roles: ["Owner"],
-        upcoming: true,
       },
       {
         label: "Portal do cliente",

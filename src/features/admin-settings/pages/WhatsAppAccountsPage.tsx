@@ -588,7 +588,7 @@ export function WhatsAppAccountsPage() {
           secrets de servidor e webhook no provedor) — siga os guias{" "}
           <code className="font-mono">docs/dev/whatsapp-meta-provider.md</code> e{" "}
           <code className="font-mono">docs/dev/whatsapp-evolution-provider.md</code>. O
-          monitoramento de saúde e quota chega com o PRD-120.
+          monitoramento de saúde dos provedores vive em Gestão → Saúde do Sistema.
         </p>
       </div>
     </div>
