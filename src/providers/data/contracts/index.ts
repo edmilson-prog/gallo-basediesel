@@ -40,6 +40,7 @@ import type { ITrackableLinkProvider } from "./trackableLink";
 import type { IScheduledSendProvider } from "./scheduledSend";
 import type { IStorefrontProvider } from "./storefront";
 import type { ISystemHealthProvider } from "./systemHealth";
+import type { IMessageTemplatesProvider } from "./messageTemplates";
 
 export type { IPaginatedResult, IPaginationParams } from "./_shared";
 
@@ -119,6 +120,12 @@ export type { ITrackableLinkProvider } from "./trackableLink";
 export type { IScheduledSendProvider } from "./scheduledSend";
 export type { IStorefrontProvider } from "./storefront";
 export type { ISystemHealthProvider } from "./systemHealth";
+export type {
+  IMessageTemplatesProvider,
+  IListMessageTemplatesParams,
+  ICreateMessageTemplateInput,
+  IUpdateMessageTemplateInput,
+} from "./messageTemplates";
 
 /**
  * Aggregate of every data provider returned by `getDataProviders()`. The factory
@@ -161,4 +168,5 @@ export interface IDataProviders {
   scheduledSend: IScheduledSendProvider;
   storefront: IStorefrontProvider;
   systemHealth: ISystemHealthProvider;
+  messageTemplates: IMessageTemplatesProvider;
 }

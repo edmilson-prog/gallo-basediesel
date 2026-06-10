@@ -100,6 +100,10 @@ export type {
   IScheduledSendProvider,
   IStorefrontProvider,
   ISystemHealthProvider,
+  IMessageTemplatesProvider,
+  IListMessageTemplatesParams,
+  ICreateMessageTemplateInput,
+  IUpdateMessageTemplateInput,
 } from "./contracts";
 
 export { useCustomersProvider } from "./hooks/useCustomersProvider";
@@ -137,3 +141,4 @@ export { useTrackableLinkProvider } from "./hooks/useTrackableLinkProvider";
 export { useScheduledSendProvider } from "./hooks/useScheduledSendProvider";
 export { useStorefrontProvider } from "./hooks/useStorefrontProvider";
 export { useSystemHealthProvider } from "./hooks/useSystemHealthProvider";
+export { useMessageTemplatesProvider } from "./hooks/useMessageTemplatesProvider";

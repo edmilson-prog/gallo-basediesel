@@ -89,6 +89,12 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         permission: { resource: "settings", action: "edit" },
       },
       {
+        label: "Templates WhatsApp",
+        icon: "mdi:message-text-clock-outline",
+        to: "/app/configuracoes/templates-whatsapp",
+        roles: ["Owner", "Gestor"],
+      },
+      {
         label: "Pipeline de leads",
         icon: "mdi:view-column-outline",
         to: "/app/configuracoes/atendimento/pipeline",
