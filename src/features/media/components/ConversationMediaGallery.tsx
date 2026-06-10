@@ -12,7 +12,11 @@ interface IConversationMediaGalleryProps {
 }
 
 /** Side sheet (scope=conversation) opened by the ConversationHeader "Mídias" button (PRD-011). */
-export function ConversationMediaGallery({ conversationId, open, onOpenChange }: IConversationMediaGalleryProps) {
+export function ConversationMediaGallery({
+  conversationId,
+  open,
+  onOpenChange,
+}: IConversationMediaGalleryProps) {
   const media = useConversationMedia(conversationId, open); // only fetch when open
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -27,6 +31,7 @@ export function ConversationMediaGallery({ conversationId, open, onOpenChange }:
           isError={media.isError}
           onRetryLoad={media.refetch}
           columns={3}
+          conversationId={conversationId}
         />
       </SheetContent>
     </Sheet>

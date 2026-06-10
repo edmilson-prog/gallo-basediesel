@@ -14,6 +14,14 @@ import { contentHash, mediaHashSeed } from "@/features/media/engine/contentHash"
 import { classifyMedia } from "@/features/media/engine/classifyMedia";
 import { isSensitiveClassification } from "@/features/media/engine/sensitiveAccess";
 
+/** Storage bucket for conversation/customer media bytes (PRD-106). */
+const MEDIA_BUCKET = "whatsapp-media";
+
+/** Object-path refs ("whatsapp-media/<store>/<uuid>.<ext>") vs legacy opaque refs. */
+function isBucketRef(storageRef: string): boolean {
+  return storageRef.startsWith(`${MEDIA_BUCKET}/`);
+}
+
 /**
  * Supabase implementation of {@link IMediaStorageProvider} (PRD-026, "Vault").
  *
@@ -272,6 +280,21 @@ export const supabaseMediaProvider: IMediaStorageProvider = {
   async getSignedUrl(assetId: ID): Promise<string> {
     const asset = await fetchAssetById(assetId);
     if (!asset) throw new Error(`[supabase] media.getSignedUrl(${assetId}) failed: not found`);
+    // PRD-106: bucket-backed assets get a REAL signed URL (5 min) from Supabase
+    // Storage — the storage policies gate who can sign (store-scoped).
+    if (isBucketRef(asset.storageRef)) {
+      const objectPath = asset.storageRef.slice(MEDIA_BUCKET.length + 1);
+      const { data, error } = await getSupabaseClient()
+        .storage.from(MEDIA_BUCKET)
+        .createSignedUrl(objectPath, 300);
+      if (error || !data?.signedUrl) {
+        throw new Error(
+          `[supabase] media.getSignedUrl(${assetId}) failed: ${error?.message ?? "no url"}`,
+        );
+      }
+      return data.signedUrl;
+    }
+    // Legacy metadata-only refs keep the opaque signed-looking shape.
     return `supabase-signed://${asset.storageRef}?exp=${Date.now() + 5 * 60_000}`;
   },
 
@@ -280,6 +303,16 @@ export const supabaseMediaProvider: IMediaStorageProvider = {
     if (!before) throw new Error(`[supabase] media.delete(${assetId}) failed: not found`);
     const { error } = await getSupabaseClient().from(TABLE).delete().eq("id", assetId);
     if (error) throw new Error(`[supabase] media.delete(${assetId}) failed: ${error.message}`);
+    // PRD-106: best-effort removal of the bucket object — the metadata row is
+    // the source of truth; an orphaned object only wastes storage, never leaks
+    // (signing requires knowing the opaque path AND passing the storage policy).
+    if (isBucketRef(before.storageRef)) {
+      const objectPath = before.storageRef.slice(MEDIA_BUCKET.length + 1);
+      void getSupabaseClient()
+        .storage.from(MEDIA_BUCKET)
+        .remove([objectPath])
+        .catch(() => undefined);
+    }
     return before;
   },
 
@@ -316,6 +349,29 @@ export const supabaseMediaProvider: IMediaStorageProvider = {
           fileName: input.fileName,
         }),
       );
+
+    // PRD-106: when real bytes are provided, store them in the bucket first and
+    // persist the object path as the ref. Metadata-only uploads (e.g. quick-send
+    // library sends) keep the legacy opaque ref.
+    let storageRef = `ref-${hash}`;
+    if (input.file) {
+      const ext = (input.fileName?.split(".").pop() ?? "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "")
+        .slice(0, 8);
+      const objectPath = `${storeId}/${crypto.randomUUID()}${ext ? `.${ext}` : ""}`;
+      const { error: storageErr } = await getSupabaseClient()
+        .storage.from(MEDIA_BUCKET)
+        .upload(objectPath, input.file, {
+          contentType: input.mimeType,
+          upsert: false,
+        });
+      if (storageErr) {
+        throw new Error(`[supabase] media.upload failed (storage): ${storageErr.message}`);
+      }
+      storageRef = `${MEDIA_BUCKET}/${objectPath}`;
+    }
+
     const asset: IMediaAsset = {
       id: crypto.randomUUID(),
       storeId,
@@ -329,7 +385,7 @@ export const supabaseMediaProvider: IMediaStorageProvider = {
       authorType: input.authorType,
       direction: input.direction,
       createdAt: new Date().toISOString(),
-      storageRef: `ref-${hash}`,
+      storageRef,
       persisted: true,
       sourceExpiresAt: input.sourceExpiresAt,
       contentHash: hash,

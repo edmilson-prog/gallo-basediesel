@@ -69,7 +69,10 @@ export const mockMediaProvider: IMediaStorageProvider = {
 
   upload: async (input: IMediaUploadInput) => {
     const storeId = requireStoreId();
-    const created = await mediaApi.upload({ ...input, storeId });
+    // Strip the real bytes (PRD-106): the mock layer is metadata-only and the
+    // in-memory store must never hold Blobs. The Supabase provider uses them.
+    const { file: _file, ...metadata } = input;
+    const created = await mediaApi.upload({ ...metadata, storeId });
     logMockMutation({
       action: "create",
       resource: "media",

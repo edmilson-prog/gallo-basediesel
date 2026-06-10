@@ -1,7 +1,7 @@
 // src/features/media/components/MediaGallery.tsx
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import type { IMediaAsset, IMediaClassification } from "@/shared/types";
+import type { ID, IMediaAsset, IMediaClassification } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +39,17 @@ interface IMediaGalleryProps {
   onRetryLoad: () => void;
   /** Grid columns for this scope (3 in drawer; 2..6 responsive for customer). */
   columns: number;
+  /** Upload context (PRD-106) — when set, the gallery offers "Enviar mídia". */
+  conversationId?: ID;
+  customerId?: ID;
+}
+
+/** Maps a picked file's MIME type to the 4 catalog kinds. */
+function kindFromMime(mime: string): IMediaAsset["kind"] {
+  if (mime.startsWith("image/")) return "image";
+  if (mime.startsWith("video/")) return "video";
+  if (mime.startsWith("audio/")) return "audio";
+  return "document";
 }
 
 export function MediaGallery({
@@ -48,6 +59,8 @@ export function MediaGallery({
   isError,
   onRetryLoad,
   columns,
+  conversationId,
+  customerId,
 }: IMediaGalleryProps) {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
@@ -61,7 +74,36 @@ export function MediaGallery({
   const [classifying, setClassifying] = useState<IMediaAsset | null>(null);
   const [linking, setLinking] = useState<IMediaAsset | null>(null);
   const [pendingDelete, setPendingDelete] = useState<IMediaAsset | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const canUpload = Boolean(conversationId || customerId);
   const g = MEDIA_STRINGS.gallery;
+
+  /** Manual upload (PRD-106): real bytes go to Supabase Storage in cloud mode. */
+  const handleFilePicked = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = ""; // allow re-picking the same file
+    if (!file) return;
+    setUploading(true);
+    try {
+      await actions.upload({
+        kind: kindFromMime(file.type),
+        mimeType: file.type || "application/octet-stream",
+        sizeBytes: file.size,
+        fileName: file.name,
+        conversationId,
+        customerId,
+        authorType: "seller",
+        direction: "out",
+        file,
+      });
+      onRetryLoad();
+    } catch {
+      // toast handled by the action
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const filtered = useMemo(() => {
     // Map the period preset to a `from` ISO BEFORE filtering — applyMediaFilters
@@ -74,12 +116,12 @@ export function MediaGallery({
           : filtersApi.filters.period === "90d"
             ? 90
             : null;
-    const from =
-      days === null ? undefined : new Date(Date.now() - days * 86_400_000).toISOString();
+    const from = days === null ? undefined : new Date(Date.now() - days * 86_400_000).toISOString();
     return applyMediaFilters(assets, {
       search: filtersApi.filters.search,
       kind: filtersApi.filters.kind === "all" ? undefined : filtersApi.filters.kind,
-      authorType: filtersApi.filters.authorType === "all" ? undefined : filtersApi.filters.authorType,
+      authorType:
+        filtersApi.filters.authorType === "all" ? undefined : filtersApi.filters.authorType,
       from,
       classification:
         scope === "customer" && filtersApi.filters.classification !== "all"
@@ -242,6 +284,33 @@ export function MediaGallery({
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border bg-card px-3 py-2">
         <h2 className="text-sm font-semibold text-foreground">{g.title}</h2>
+        {canUpload && (
+          <Can resource="media" action="edit">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,video/*,audio/*,application/pdf"
+              className="hidden"
+              onChange={(e) => void handleFilePicked(e)}
+              aria-hidden="true"
+              tabIndex={-1}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1"
+              disabled={uploading}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Icon
+                icon={uploading ? "mdi:loading" : "mdi:upload"}
+                size={14}
+                className={uploading ? "animate-spin" : undefined}
+              />
+              {MEDIA_STRINGS.actions.upload}
+            </Button>
+          </Can>
+        )}
       </div>
 
       {/* Counters — aria-live so screen readers announce filter changes.
@@ -439,10 +508,7 @@ export function MediaGallery({
       )}
 
       {/* Delete confirmation */}
-      <AlertDialog
-        open={pendingDelete !== null}
-        onOpenChange={(o) => !o && setPendingDelete(null)}
-      >
+      <AlertDialog open={pendingDelete !== null} onOpenChange={(o) => !o && setPendingDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{MEDIA_STRINGS.actions.deleteTitle}</AlertDialogTitle>
