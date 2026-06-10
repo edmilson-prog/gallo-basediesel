@@ -1,4 +1,9 @@
-import type { ISystemCronJob, ISystemDbStats, ISystemHealthcheck } from "@/shared/types";
+import type {
+  ISystemCronJob,
+  ISystemDbStats,
+  ISystemHealthcheck,
+  IWhatsAppDeliveryHealth,
+} from "@/shared/types";
 import type { ISystemHealthProvider } from "../../contracts/systemHealth";
 
 /**
@@ -59,5 +64,45 @@ export const mockSystemHealthProvider: ISystemHealthProvider = {
   async getDbStats(): Promise<ISystemDbStats | null> {
     await delay();
     return MOCK_DB_STATS;
+  },
+
+  async getWhatsAppDeliveryHealth(windowHours: number): Promise<IWhatsAppDeliveryHealth | null> {
+    await delay();
+    // Deterministic synthetic numbers; the 7d window scales the 24h baseline.
+    const factor = windowHours >= 168 ? 7 : 1;
+    return {
+      windowHours,
+      accounts: [
+        {
+          accountId: "wa-mock-matriz",
+          label: "Matriz (Meta)",
+          provider: "meta",
+          total: 124 * factor,
+          queued: 0,
+          sent: 123 * factor,
+          delivered: 119 * factor,
+          read: 78 * factor,
+          failed: 1 * factor,
+        },
+        {
+          accountId: "wa-mock-filial",
+          label: "Filial 1 (Evolution)",
+          provider: "evolution",
+          total: 36 * factor,
+          queued: 0,
+          sent: 36 * factor,
+          delivered: 34 * factor,
+          read: 0,
+          failed: 0,
+        },
+      ],
+      topFailures: [
+        {
+          failureCode: "131026",
+          failureReason: "Número não é WhatsApp",
+          count: 1 * factor,
+        },
+      ],
+    };
   },
 };

@@ -10,7 +10,15 @@
  */
 
 // Utility types
-export type { ID, ISO8601, Money, Division, ThemeName, ThemeMode, IPaginatedResult } from "./common";
+export type {
+  ID,
+  ISO8601,
+  Money,
+  Division,
+  ThemeName,
+  ThemeMode,
+  IPaginatedResult,
+} from "./common";
 
 // Platform & organization
 export type {
@@ -41,6 +49,9 @@ export type {
   ISystemHealthcheck,
   ISystemCronJob,
   ISystemDbStats,
+  IWhatsAppAccountDelivery,
+  IWhatsAppFailureBucket,
+  IWhatsAppDeliveryHealth,
 } from "./system-health";
 
 // WhatsApp HSM templates (PRD-116)
@@ -81,6 +92,7 @@ export type {
   ICustomerSegment,
   IPortalSettings,
   CustomerStatus,
+  CustomerWhatsappStatus,
   VehicleCadastroStatus,
   SegmentScope,
 } from "./customer";

@@ -55,8 +55,12 @@ export type MessageAuthorType = "customer" | "seller" | "sdr" | "system";
 /** Provider that delivered or originated a message. */
 export type MessageProvider = "meta" | "evolution" | "mock";
 
-/** Delivery status reported by the provider. */
-export type MessageStatus = "sent" | "delivered" | "read" | "failed";
+/**
+ * Delivery status reported by the provider.
+ * `queued` is transient (persist-before-send, PRD-115) — it can surface in the
+ * UI briefly via Realtime before the dispatch settles into sent/failed.
+ */
+export type MessageStatus = "queued" | "sent" | "delivered" | "read" | "failed";
 
 /** Media payload kind, when present. */
 export type MessageMediaType = "image" | "audio" | "video" | "document" | "sticker";
@@ -82,6 +86,10 @@ export interface IMessage {
   sentAt: ISO8601;
   deliveredAt?: ISO8601;
   readAt?: ISO8601;
+  /** Human-readable reason of a failed dispatch (PRD-114/118). */
+  failureReason?: string;
+  /** Semantic provider error code of a failed dispatch (e.g. "131026"). */
+  failureCode?: string;
 }
 
 /** WhatsApp provider engine. */

@@ -22,6 +22,7 @@ interface IFakeState {
   audits: Array<Record<string, unknown>>;
   bumps: string[];
   mediaSet: Array<{ messageId: string; mediaUrl: string | null; status: string }>;
+  invalidCustomers: string[];
 }
 
 function makeFakeDb(state: IFakeState, opts?: { knownOutboundId?: string }): IWebhookDb {
@@ -69,10 +70,20 @@ function makeFakeDb(state: IFakeState, opts?: { knownOutboundId?: string }): IWe
     bumpConversation: async (conversationId) => {
       state.bumps.push(conversationId);
     },
-    findMessageIdByProviderMessageId: async (pmid) =>
-      pmid === opts?.knownOutboundId ? "msg-outbound-1" : null,
+    findOutboundMessageByProviderMessageId: async (pmid) =>
+      pmid === opts?.knownOutboundId
+        ? {
+            id: "msg-outbound-1",
+            conversationId: "conv-out-1",
+            customerId: "cust-out-1",
+            storeId: "store-1",
+          }
+        : null,
     applyStatusToMessage: async (input) => {
       state.statusApplied.push(input);
+    },
+    markCustomerWhatsappInvalid: async (customerId) => {
+      state.invalidCustomers.push(customerId);
     },
     setMessageMedia: async (messageId, mediaUrl, status) => {
       state.mediaSet.push({ messageId, mediaUrl, status });
@@ -97,6 +108,7 @@ function emptyState(): IFakeState {
     audits: [],
     bumps: [],
     mediaSet: [],
+    invalidCustomers: [],
   };
 }
 
@@ -252,6 +264,64 @@ describe("processWebhookEvent — statuses (RF-060/061)", () => {
       eventKey: "whatsapp:evolution:OUT1",
     });
     expect(state.processed.has("whatsapp:evolution:OUT1")).toBe(true);
+  });
+
+  function metaFailedStatusEvent(code: number, keyId = "wamid.OUT") {
+    return {
+      entry: [
+        {
+          changes: [
+            {
+              value: {
+                metadata: { display_phone_number: "5555911111111", phone_number_id: "123" },
+                statuses: [
+                  {
+                    id: keyId,
+                    status: "failed",
+                    timestamp: "1765400100",
+                    errors: [{ code, title: "Falha", message: `meta error ${code}` }],
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    };
+  }
+
+  it("Meta 131026 marks the customer's whatsapp as invalid and audits it (PRD-118 RF-050)", async () => {
+    const state = emptyState();
+    const result = await processWebhookEvent({
+      provider: "meta",
+      rawPayload: metaFailedStatusEvent(131026),
+      db: makeFakeDb(state, { knownOutboundId: "wamid.OUT" }),
+      buildProvider: buildMock,
+      traceId: "t",
+    });
+
+    expect(result.outcome).toBe("status-applied");
+    expect(state.statusApplied[0]).toMatchObject({ status: "failed", failureCode: "131026" });
+    expect(state.invalidCustomers).toEqual(["cust-out-1"]);
+    expect(state.audits[0]).toMatchObject({
+      action: "customer_whatsapp_marked_invalid",
+      resourceId: "cust-out-1",
+    });
+  });
+
+  it("other failure codes do NOT flag the customer", async () => {
+    const state = emptyState();
+    await processWebhookEvent({
+      provider: "meta",
+      rawPayload: metaFailedStatusEvent(131047),
+      db: makeFakeDb(state, { knownOutboundId: "wamid.OUT" }),
+      buildProvider: buildMock,
+      traceId: "t",
+    });
+
+    expect(state.statusApplied[0]).toMatchObject({ status: "failed", failureCode: "131047" });
+    expect(state.invalidCustomers).toEqual([]);
+    expect(state.audits).toHaveLength(0);
   });
 
   it("logs and marks processed when the outbound message is unknown", async () => {

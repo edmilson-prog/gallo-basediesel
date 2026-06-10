@@ -16,6 +16,7 @@ import { MetaWindowIndicator } from "../components/MetaWindowIndicator";
 import { ConversationMenu } from "../components/ConversationMenu";
 import { useConversationFiche } from "../hooks/useConversationFiche";
 import { useMessages } from "../hooks/useMessages";
+import { useRealtimeMessages } from "../hooks/useRealtimeMessages";
 import { ConversationProvider } from "../hooks/ConversationContext";
 import { CopilotStrip, CopilotCard, CopilotFicheTab, useCopilotPanel } from "@/features/copilot";
 import {
@@ -79,6 +80,8 @@ export function ConversationPage() {
   const fiche = useConversationFiche();
   const media = useMediaGallery();
   const messages = useMessages(conversationId);
+  // PRD-118: live INSERT/UPDATE stream of this conversation (supabase only).
+  useRealtimeMessages(conversationId, messages.applyRealtimeRow);
   const escalation = useConversationEscalation(conversationId);
   const copilot = useCopilotPanel(conversationId);
   const [draft, setDraft] = useState("");
@@ -174,6 +177,7 @@ export function ConversationPage() {
                   />
                 }
                 escalation={escalation}
+                onCustomerUpdated={detail.refresh}
               />
 
               {copilot.placement === "card" && conversation.customerId && !copilot.error && (
@@ -181,7 +185,7 @@ export function ConversationPage() {
               )}
 
               <div className="min-h-0 flex-1">
-                <MessageList conversation={conversation} />
+                <MessageList conversation={conversation} whatsappAccount={whatsappAccount} />
               </div>
 
               <MetaWindowIndicator

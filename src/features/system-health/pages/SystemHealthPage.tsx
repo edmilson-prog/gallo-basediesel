@@ -1,10 +1,16 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Icon } from "@/components/Icon";
 import { getActiveDataSource } from "@/providers/data";
-import type { ISystemHealthcheck, SystemCheckResult, SystemHealthStatus } from "@/shared/types";
+import type {
+  ISystemHealthcheck,
+  IWhatsAppDeliveryHealth,
+  SystemCheckResult,
+  SystemHealthStatus,
+} from "@/shared/types";
 import { useSystemHealth } from "../hooks/useSystemHealth";
 import { SYSTEM_HEALTH_STRINGS as S } from "../i18n/pt-BR";
 
@@ -134,8 +140,138 @@ function StatusCard({
   );
 }
 
+/** Percentage of `part` over `total`, "—" when nothing was sent. */
+function pct(part: number, total: number): string {
+  if (total === 0) return "—";
+  return `${((part / total) * 100).toFixed(1)}%`;
+}
+
+/** WhatsApp delivery health section (PRD-118 RF-070). */
+function WhatsAppDeliveryCard({
+  h24,
+  h7d,
+  isLoading,
+}: {
+  h24: IWhatsAppDeliveryHealth | null | undefined;
+  h7d: IWhatsAppDeliveryHealth | null | undefined;
+  isLoading: boolean;
+}) {
+  const [window, setWindow] = useState<"24h" | "7d">("24h");
+  const data = window === "24h" ? h24 : h7d;
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-start justify-between space-y-0">
+        <div>
+          <CardTitle>{S.whatsappCardTitle}</CardTitle>
+          <CardDescription>{S.whatsappCardSubtitle}</CardDescription>
+        </div>
+        <div className="flex gap-1">
+          <Button
+            variant={window === "24h" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setWindow("24h")}
+          >
+            {S.whatsappWindow24h}
+          </Button>
+          <Button
+            variant={window === "7d" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setWindow("7d")}
+          >
+            {S.whatsappWindow7d}
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {isLoading ? (
+          <Skeleton className="h-24 w-full" />
+        ) : !data || data.accounts.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{S.whatsappEmpty}</p>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                    <th className="py-2 pr-2 font-medium">{S.whatsappColAccount}</th>
+                    <th className="px-2 py-2 text-right font-medium">{S.whatsappColTotal}</th>
+                    <th className="px-2 py-2 text-right font-medium">{S.whatsappColSent}</th>
+                    <th className="px-2 py-2 text-right font-medium">{S.whatsappColDelivered}</th>
+                    <th className="px-2 py-2 text-right font-medium">{S.whatsappColRead}</th>
+                    <th className="pl-2 py-2 text-right font-medium">{S.whatsappColFailed}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.accounts.map((acc) => (
+                    <tr key={acc.accountId} className="border-b border-border/60">
+                      <td className="py-2 pr-2">
+                        <span className="font-medium text-foreground">{acc.label}</span>{" "}
+                        <Badge variant="outline" className="ml-1 text-[10px] uppercase">
+                          {acc.provider}
+                        </Badge>
+                      </td>
+                      <td className="px-2 py-2 text-right tabular-nums">{acc.total}</td>
+                      <td className="px-2 py-2 text-right tabular-nums">
+                        {pct(acc.sent, acc.total)}
+                      </td>
+                      <td className="px-2 py-2 text-right tabular-nums">
+                        {pct(acc.delivered, acc.total)}
+                      </td>
+                      <td className="px-2 py-2 text-right tabular-nums">
+                        {/* Evolution has no read receipts surface on this MVP. */}
+                        {acc.provider === "evolution" && acc.read === 0
+                          ? S.whatsappReadNa
+                          : pct(acc.read, acc.total)}
+                      </td>
+                      <td
+                        className={
+                          acc.failed > 0
+                            ? "pl-2 py-2 text-right tabular-nums font-medium text-severity-critical"
+                            : "pl-2 py-2 text-right tabular-nums"
+                        }
+                      >
+                        {acc.failed}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {data.topFailures.length > 0 && (
+              <div>
+                <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+                  {S.whatsappTopFailures}
+                </p>
+                <ul className="space-y-1">
+                  {data.topFailures.map((f) => (
+                    <li
+                      key={f.failureCode}
+                      className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-xs"
+                    >
+                      <span className="font-semibold text-severity-critical">
+                        {S.whatsappFailureCount(f.count)}
+                      </span>
+                      <span className="text-foreground">
+                        {f.failureReason ?? S.whatsappFailureUnknown}
+                      </span>
+                      <span className="ml-auto font-mono text-muted-foreground">
+                        {f.failureCode}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function SystemHealthPage() {
-  const { healthcheck, cronJobs, dbStats } = useSystemHealth();
+  const { healthcheck, cronJobs, dbStats, whatsapp24h, whatsapp7d } = useSystemHealth();
   const projectRef = supabaseProjectRef();
   const hasSentry = Boolean(import.meta.env.VITE_SENTRY_DSN);
 
@@ -179,6 +315,12 @@ export function SystemHealthPage() {
         healthcheck={healthcheck.data}
         isFetching={healthcheck.isFetching}
         onRefresh={() => void healthcheck.refetch()}
+      />
+
+      <WhatsAppDeliveryCard
+        h24={whatsapp24h.data}
+        h7d={whatsapp7d.data}
+        isLoading={whatsapp24h.isLoading || whatsapp7d.isLoading}
       />
 
       <div className="grid gap-6 lg:grid-cols-2">

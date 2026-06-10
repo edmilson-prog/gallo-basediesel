@@ -12,6 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { useCustomersProvider } from "@/providers/data";
+import { useAuth } from "@/features/auth/useAuth";
 import { CHANNEL_META, getConversationDisplay } from "../utils/conversationDisplay";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
 import { EscalationBadge } from "@/features/sdr-escalation/components/EscalationBadge";
@@ -34,6 +37,8 @@ export interface IConversationHeaderProps {
   menuSlot?: React.ReactNode;
   /** SDR escalation record bound to this conversation (PRD-023), when any. */
   escalation?: ISdrEscalation | null;
+  /** Called after a customer mutation done from the header (PRD-118). */
+  onCustomerUpdated?: () => void;
 }
 
 const STATUS_TONE: Record<IConversation["status"], string> = {
@@ -56,10 +61,25 @@ export function ConversationHeader({
   onToggleMedia,
   menuSlot,
   escalation,
+  onCustomerUpdated,
 }: IConversationHeaderProps) {
   const display = getConversationDisplay(conversation, customer, lead);
   const channel = CHANNEL_META[conversation.channel];
   const navigate = useNavigate();
+  const customersProvider = useCustomersProvider();
+  const { hasRole } = useAuth();
+
+  // PRD-118 RF-052: back to 'valid' is a MANUAL staff action — never automatic.
+  const handleMarkWhatsappValid = async () => {
+    if (!customer) return;
+    try {
+      await customersProvider.update(customer.id, { whatsappStatus: "valid" });
+      toast.success(CONVERSATION_STRINGS.markedWhatsappValid);
+      onCustomerUpdated?.();
+    } catch {
+      toast.error(CONVERSATION_STRINGS.actionFailed);
+    }
+  };
   const scheduled = useConversationScheduled(conversation.id);
   const pendingScheduled = scheduled.items.filter((i) => i.status === "pending").length;
 
@@ -111,6 +131,33 @@ export function ConversationHeader({
               </Tooltip>
             )}
             {lead && <TemperatureChip temperature={lead.temperature} />}
+            {customer?.whatsappStatus === "invalid" && (
+              <>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge
+                      variant="outline"
+                      className="border-destructive/40 bg-destructive/10 text-destructive"
+                    >
+                      <Icon icon="mdi:cellphone-off" size={11} className="mr-1" />
+                      {CONVERSATION_STRINGS.invalidNumberBadge}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>{CONVERSATION_STRINGS.invalidNumberBadgeTooltip}</TooltipContent>
+                </Tooltip>
+                {hasRole(["Owner", "Gestor"]) && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-[11px] text-muted-foreground"
+                    onClick={() => void handleMarkWhatsappValid()}
+                  >
+                    {CONVERSATION_STRINGS.markWhatsappValid}
+                  </Button>
+                )}
+              </>
+            )}
           </div>
           <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
             <span

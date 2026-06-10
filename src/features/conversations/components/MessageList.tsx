@@ -1,22 +1,27 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { IConversation, IMessage } from "@/shared/types";
+import { toast } from "sonner";
+import type { IConversation, IMessage, IWhatsAppAccount } from "@/shared/types";
 import { Icon } from "@/components/Icon";
+import { getActiveDataSource } from "@/providers/data";
 import { groupMessagesWithDaySeparators } from "../utils/dayGroups";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
 import { MessageBubble } from "./bubbles/MessageBubble";
 import { TypingIndicator } from "./TypingIndicator";
 import { useTypingSimulation } from "../hooks/useTypingSimulation";
 import { useConversationContext } from "../hooks/ConversationContext";
+import { SEND_ERROR_MESSAGES, useMessageSend } from "../hooks/useMessageSend";
 
 export interface IMessageListProps {
   conversation: IConversation;
+  whatsappAccount?: IWhatsAppAccount | null;
 }
 
 const SCROLL_BOTTOM_THRESHOLD = 80;
 
-export function MessageList({ conversation }: IMessageListProps) {
+export function MessageList({ conversation, whatsappAccount = null }: IMessageListProps) {
   const { messages: msg } = useConversationContext();
   const { messages, isLoading, hasMore, loadMore, isLoadingMore, retry } = msg;
+  const sendHook = useMessageSend(conversation, whatsappAccount);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const lastIdRef = useRef<string | null>(null);
@@ -72,6 +77,26 @@ export function MessageList({ conversation }: IMessageListProps) {
   };
 
   const handleRetry = (message: IMessage) => {
+    // PRD-118 RF-040 (supabase): retry = NEW message through the real send
+    // pipeline; the failed bubble stays for audit. Mock keeps the Fase-1
+    // status dance on the same message.
+    if (getActiveDataSource() === "supabase") {
+      void sendHook
+        .send({
+          text: message.text,
+          mediaType: message.mediaType,
+          mediaUrl: message.mediaUrl,
+          retryOfMessageId: message.id,
+        })
+        .catch((err: unknown) => {
+          // The hook already toasts per code; the silent codes get a manual one
+          // here (no template picker / staff dialog exists in the list context).
+          const code = err instanceof Error ? err.message : "";
+          const friendly = SEND_ERROR_MESSAGES[code];
+          if (friendly) toast.error(friendly);
+        });
+      return;
+    }
     void retry(message);
   };
 

@@ -29,6 +29,17 @@ export interface ISendRequest {
   templateLanguage?: string;
   templateParameters?: string[];
   replyToMessageId?: string;
+  /**
+   * PRD-118 RF-051: staff confirmation to send to a customer whose number is
+   * flagged `whatsapp_status='invalid'`. Sellers cannot override.
+   */
+  overrideInvalid?: boolean;
+  /**
+   * PRD-118 RF-040: id of the failed message this send retries. The failed
+   * row is never mutated — this creates a NEW message; audit gets
+   * `action='dispatch_retry'` with the original id.
+   */
+  retryOfMessageId?: string;
 }
 
 export interface ISender {
@@ -45,7 +56,10 @@ export interface ISendConversationContext {
     assignedSellerId: string | null;
   };
   account: IAccountRecord | null;
+  customerId: string | null;
   customerPhone: string | null;
+  /** customers.whatsapp_status — drives the invalid-number gate (PRD-118). */
+  customerWhatsappStatus: string | null;
 }
 
 export interface ISendDb {
@@ -60,7 +74,9 @@ export interface ISendDb {
     mediaUrl: string | null;
   }): Promise<{ id: string }>;
   markMessageSent(messageId: string, providerMessageId: string): Promise<void>;
-  markMessageFailed(messageId: string, failureReason: string): Promise<void>;
+  markMessageFailed(messageId: string, failureReason: string, failureCode?: string): Promise<void>;
+  /** PRD-118 RF-050 (sync path): customers.whatsapp_status = 'invalid'. */
+  markCustomerWhatsappInvalid(customerId: string): Promise<void>;
   /** Outbound touch: last_message_at only — unread_count belongs to inbound. */
   touchConversation(conversationId: string, lastMessageAt: string): Promise<void>;
   /** Signs a whatsapp-media storage path (short TTL) for the provider to fetch. */
@@ -127,7 +143,7 @@ export async function processSendRequest(args: {
   if (!context) {
     throw new WhatsAppProviderError("NOT_FOUND", 404, "Conversa não encontrada");
   }
-  const { conversation, account, customerPhone } = context;
+  const { conversation, account, customerId, customerPhone, customerWhatsappStatus } = context;
 
   // Permission (RF-010/011) — staff of the store, the assigned seller, or any
   // seller of the store when the conversation sits in the pool (assigned null,
@@ -147,6 +163,34 @@ export async function processSendRequest(args: {
       422,
       "Conversa encerrada — reabra antes de enviar",
     );
+  }
+
+  // Invalid-number gate (PRD-118 RF-051): a number flagged by Meta 131026
+  // bounces with a dedicated code so the UI can offer the staff-only
+  // confirmation; sellers cannot override. Override is audited.
+  if (customerWhatsappStatus === "invalid") {
+    if (!input.overrideInvalid) {
+      throw new WhatsAppProviderError(
+        "CUSTOMER_INVALID_WHATSAPP",
+        422,
+        "Número marcado como inválido no WhatsApp. Confirme antes de enviar.",
+      );
+    }
+    if (!isStaff) {
+      throw new WhatsAppProviderError(
+        "FORBIDDEN",
+        403,
+        "Apenas Owner/Gestor pode enviar para número marcado como inválido",
+      );
+    }
+    await db.audit({
+      storeId: conversation.storeId,
+      actorId: sender.sellerId ?? "staff",
+      action: "dispatch_override_invalid",
+      resource: "customer",
+      resourceId: customerId ?? conversation.id,
+      after: { conversationId: conversation.id, traceId },
+    });
   }
 
   if (!account) {
@@ -225,7 +269,7 @@ export async function processSendRequest(args: {
     await db.audit({
       storeId: conversation.storeId,
       actorId: sender.sellerId ?? "staff",
-      action: "dispatch",
+      action: input.retryOfMessageId ? "dispatch_retry" : "dispatch",
       resource: "message",
       resourceId: message.id,
       after: {
@@ -233,17 +277,32 @@ export async function processSendRequest(args: {
         kind: input.kind,
         success: true,
         providerMessageId,
+        ...(input.retryOfMessageId ? { originalMessageId: input.retryOfMessageId } : {}),
         traceId,
       },
     });
     return { messageId: message.id, providerMessageId, dispatchStatus: "sent" };
   } catch (error) {
     const reason = error instanceof Error ? error.message : "Erro desconhecido no provider";
-    await db.markMessageFailed(message.id, reason);
+    const providerCode =
+      error instanceof WhatsAppProviderError && error.details?.metaCode !== undefined
+        ? String(error.details.metaCode)
+        : undefined;
+    await db.markMessageFailed(message.id, reason, providerCode);
+
+    // PRD-118 RF-050 (synchronous variant): Meta can reject 131026 directly
+    // on the send call. Best-effort flag — never masks the dispatch error.
+    if (providerCode === "131026" && customerId) {
+      try {
+        await db.markCustomerWhatsappInvalid(customerId);
+      } catch {
+        /* best-effort */
+      }
+    }
     await db.audit({
       storeId: conversation.storeId,
       actorId: sender.sellerId ?? "staff",
-      action: "dispatch",
+      action: input.retryOfMessageId ? "dispatch_retry" : "dispatch",
       resource: "message",
       resourceId: message.id,
       after: {
@@ -251,6 +310,7 @@ export async function processSendRequest(args: {
         kind: input.kind,
         success: false,
         errorCode: error instanceof WhatsAppProviderError ? error.code : "UNKNOWN",
+        ...(input.retryOfMessageId ? { originalMessageId: input.retryOfMessageId } : {}),
         traceId,
       },
     });

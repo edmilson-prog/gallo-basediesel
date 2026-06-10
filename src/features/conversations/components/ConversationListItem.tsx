@@ -17,6 +17,7 @@ import {
   getMessagePreview,
   type IConversationDisplay,
 } from "../utils/conversationDisplay";
+import { statusVisual } from "../utils/messageDisplay";
 import { INBOX_STRINGS } from "../i18n/pt-BR";
 import type { ICustomer, ILead } from "@/shared/types";
 
@@ -157,6 +158,18 @@ function ConversationListItemInner({
               isUnread ? "text-foreground/90" : "text-muted-foreground",
             )}
           >
+            {/* PRD-118 RF-030: mini delivery badge when WE sent the last message. */}
+            {lastMessage?.direction === "out" && (
+              <span
+                className={cn(
+                  "mr-1 inline-flex align-middle",
+                  statusVisual(lastMessage.status).className,
+                )}
+                aria-label={statusVisual(lastMessage.status).label}
+              >
+                <Icon icon={statusVisual(lastMessage.status).icon} size={12} />
+              </span>
+            )}
             {highlight(preview, highlightTerm)}
           </p>
           {unread > 0 && (

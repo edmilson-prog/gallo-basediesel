@@ -1,4 +1,9 @@
-import type { ISystemCronJob, ISystemDbStats, ISystemHealthcheck } from "@/shared/types";
+import type {
+  ISystemCronJob,
+  ISystemDbStats,
+  ISystemHealthcheck,
+  IWhatsAppDeliveryHealth,
+} from "@/shared/types";
 
 /**
  * Read-only provider behind the Owner-only system health dashboard
@@ -16,4 +21,9 @@ export interface ISystemHealthProvider {
   listCronJobs(): Promise<ISystemCronJob[]>;
   /** Coarse database statistics. `null` for non-owners (silent filter). */
   getDbStats(): Promise<ISystemDbStats | null>;
+  /**
+   * WhatsApp outbound delivery aggregates over the last `windowHours`
+   * (PRD-118). `null` for non-owners (silent filter).
+   */
+  getWhatsAppDeliveryHealth(windowHours: number): Promise<IWhatsAppDeliveryHealth | null>;
 }

@@ -14,8 +14,10 @@ import { useConversationContext } from "./ConversationContext";
 import { useAuth } from "@/features/auth/useAuth";
 
 /** Friendly pt-BR feedback per whatsapp-send error code (PRD-115 RF-073..075). */
-const SEND_ERROR_MESSAGES: Record<string, string> = {
+export const SEND_ERROR_MESSAGES: Record<string, string> = {
   TEMPLATE_REQUIRED: "Fora da janela de 24h — envie um template HSM.",
+  CUSTOMER_INVALID_WHATSAPP:
+    "Número marcado como inválido no WhatsApp — peça a um gestor para confirmar o envio.",
   RATE_LIMITED: "Limite de envios atingido. Aguarde alguns segundos e tente novamente.",
   PROVIDER_DISCONNECTED:
     "WhatsApp desconectado — peça ao gestor para reconectar a conta via QR Code.",
@@ -39,8 +41,10 @@ async function invokeWhatsAppSend(body: Record<string, unknown>): Promise<{ mess
       // Non-JSON error body — fall through to the generic message.
     }
     // TEMPLATE_REQUIRED is not an error to the user — the conversation screen
-    // reacts by opening the template picker (PRD-116).
-    if (payload.code !== "TEMPLATE_REQUIRED") {
+    // reacts by opening the template picker (PRD-116). Same idea for
+    // CUSTOMER_INVALID_WHATSAPP (PRD-118): staff gets a confirmation dialog,
+    // so the toast is up to the caller.
+    if (payload.code !== "TEMPLATE_REQUIRED" && payload.code !== "CUSTOMER_INVALID_WHATSAPP") {
       const friendly =
         (payload.code && SEND_ERROR_MESSAGES[payload.code]) ??
         payload.error ??
@@ -68,6 +72,10 @@ export interface ISendOptions {
     languageCode: string;
     variables: string[];
   };
+  /** Staff-only confirmation to send to an invalid-flagged number (PRD-118). */
+  overrideInvalid?: boolean;
+  /** Failed message this send retries — NEW message, original preserved (PRD-118). */
+  retryOfMessageId?: string;
 }
 
 export interface IUseMessageSendResult {
@@ -95,7 +103,15 @@ export function useMessageSend(
   const { currentUser } = useAuth();
 
   const send = useCallback(
-    async ({ text, mediaType, mediaUrl, template, templateMeta }: ISendOptions) => {
+    async ({
+      text,
+      mediaType,
+      mediaUrl,
+      template,
+      templateMeta,
+      overrideInvalid,
+      retryOfMessageId,
+    }: ISendOptions) => {
       const now = new Date().toISOString();
       const tempId: ID = `tmp-${crypto.randomUUID()}`;
       const optimistic: IMessage = {
@@ -126,6 +142,10 @@ export function useMessageSend(
       // via webhook (PRD-114) + Realtime (refinement tracked by PRD-118).
       if (getActiveDataSource() === "supabase") {
         try {
+          const flags = {
+            ...(overrideInvalid ? { overrideInvalid: true } : {}),
+            ...(retryOfMessageId ? { retryOfMessageId } : {}),
+          };
           const result = await invokeWhatsAppSend(
             templateMeta
               ? {
@@ -135,12 +155,14 @@ export function useMessageSend(
                   templateName: templateMeta.templateName,
                   templateLanguage: templateMeta.languageCode,
                   templateParameters: templateMeta.variables,
+                  ...flags,
                 }
               : {
                   conversationId: conversation.id,
                   kind: mediaType ? "media" : "text",
                   text: optimistic.text,
                   ...(mediaType ? { mediaPath: mediaUrl, mediaType } : {}),
+                  ...flags,
                 },
           );
           handle.commit({ ...optimistic, id: result.messageId, status: "sent" });

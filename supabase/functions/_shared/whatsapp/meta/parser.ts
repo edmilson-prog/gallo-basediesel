@@ -94,6 +94,8 @@ export function parseMetaInbound(
       providerMessageId: status.id ?? "",
       status: STATUS_MAP[status.status ?? ""] ?? "failed",
       failureReason: status.errors?.[0]?.message ?? status.errors?.[0]?.title ?? undefined,
+      failureCode:
+        status.errors?.[0]?.code !== undefined ? String(status.errors[0]?.code) : undefined,
       timestamp: unixToIso(status.timestamp),
       rawPayload,
     };

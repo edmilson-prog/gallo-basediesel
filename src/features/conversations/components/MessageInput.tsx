@@ -13,7 +13,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useMessageSend } from "../hooks/useMessageSend";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useAuth } from "@/features/auth/useAuth";
+import { SEND_ERROR_MESSAGES, useMessageSend, type ISendOptions } from "../hooks/useMessageSend";
 import { useMetaWindow } from "../hooks/useMetaWindow";
 import { useConversationContext } from "../hooks/ConversationContext";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
@@ -140,6 +151,9 @@ export function MessageInput(props: IMessageInputProps) {
   const setValue = onDraftChange ?? setInternalValue;
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [templateOpen, setTemplateOpen] = useState(false);
+  // PRD-118 RF-051: payload held while the staff confirmation dialog is open.
+  const [invalidPending, setInvalidPending] = useState<ISendOptions | null>(null);
+  const { hasRole } = useAuth();
 
   const bus = useQuickSendBus();
   const { sendAsset } = useSendAsset(conversation, whatsappAccount);
@@ -315,25 +329,52 @@ export function MessageInput(props: IMessageInputProps) {
         setTemplateOpen(true);
         return;
       }
+      if (handleInvalidNumberBounce(err, { text })) return;
       if (getActiveDataSource() !== "supabase") {
         toast.error(CONVERSATION_STRINGS.actionFailed);
       }
     }
   };
 
-  const handleRealTemplateSelect = async (selection: ITemplatePickerSelection) => {
+  // PRD-118 RF-051: invalid-flagged number — staff confirms (override audited
+  // server-side); sellers get the explanatory toast. Returns true when handled.
+  const handleInvalidNumberBounce = (err: unknown, payload: ISendOptions): boolean => {
+    if (!(err instanceof Error) || err.message !== "CUSTOMER_INVALID_WHATSAPP") return false;
+    if (hasRole(["Owner", "Gestor"])) {
+      setInvalidPending(payload);
+    } else {
+      toast.error(SEND_ERROR_MESSAGES.CUSTOMER_INVALID_WHATSAPP);
+    }
+    return true;
+  };
+
+  const handleInvalidConfirm = async () => {
+    const payload = invalidPending;
+    setInvalidPending(null);
+    if (!payload) return;
     try {
-      await sendHook.send({
-        text: selection.renderedText,
-        template: true,
-        templateMeta: {
-          templateName: selection.templateName,
-          languageCode: selection.languageCode,
-          variables: selection.variables,
-        },
-      });
+      await sendHook.send({ ...payload, overrideInvalid: true });
       onSent?.();
     } catch {
+      // Hook already toasted the friendly message.
+    }
+  };
+
+  const handleRealTemplateSelect = async (selection: ITemplatePickerSelection) => {
+    const payload: ISendOptions = {
+      text: selection.renderedText,
+      template: true,
+      templateMeta: {
+        templateName: selection.templateName,
+        languageCode: selection.languageCode,
+        variables: selection.variables,
+      },
+    };
+    try {
+      await sendHook.send(payload);
+      onSent?.();
+    } catch (err) {
+      if (handleInvalidNumberBounce(err, payload)) return;
       // Hook already toasted the friendly message.
     }
   };
@@ -690,6 +731,25 @@ export function MessageInput(props: IMessageInputProps) {
         onOpenChange={setProductSearchOpen}
         onSelect={handleProductSelected}
       />
+      <AlertDialog
+        open={invalidPending !== null}
+        onOpenChange={(o) => !o && setInvalidPending(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{CONVERSATION_STRINGS.invalidNumberDialog.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {CONVERSATION_STRINGS.invalidNumberDialog.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{CONVERSATION_STRINGS.invalidNumberDialog.cancel}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void handleInvalidConfirm()}>
+              {CONVERSATION_STRINGS.invalidNumberDialog.confirm}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </footer>
   );
 }

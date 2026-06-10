@@ -34,6 +34,7 @@ interface CustomerRow {
   type: ICustomer["type"];
   email: string | null;
   phone: string;
+  whatsapp_status: ICustomer["whatsappStatus"] | null;
   address: ICustomerAddress | null;
   seller_id: string;
   status: ICustomer["status"];
@@ -73,7 +74,7 @@ interface CustomerNoteRow {
 const TABLE = "customers";
 const NOTES_TABLE = "customer_notes";
 const COLUMNS =
-  "id, store_id, type, email, phone, address, seller_id, status, tags, first_purchase_at, " +
+  "id, store_id, type, email, phone, whatsapp_status, address, seller_id, status, tags, first_purchase_at, " +
   "last_purchase_at, converted_from_lead_id, converted_from_lead_at, converted_by_seller_id, " +
   "purchase_stats, abc_class, abc_share, overdue_titles_count, portal, is_guest_checkout, " +
   "has_b2b_portal, portal_contract, cnpj, razao_social, nome_fantasia, contact_name, cpf, " +
@@ -95,6 +96,7 @@ function rowToCustomerBase(row: CustomerRow): Omit<ICustomer, "type" | "id"> {
     storeId: row.store_id,
     email: row.email ?? undefined,
     phone: row.phone,
+    whatsappStatus: row.whatsapp_status ?? undefined,
     address: row.address ?? undefined,
     sellerId: row.seller_id,
     status: row.status,
@@ -150,6 +152,7 @@ function customerPatchToRow(patch: Partial<ICustomer>): Record<string, unknown> 
   if (patch.type !== undefined) row.type = patch.type;
   if (patch.email !== undefined) row.email = patch.email;
   if (patch.phone !== undefined) row.phone = patch.phone;
+  if (patch.whatsappStatus !== undefined) row.whatsapp_status = patch.whatsappStatus;
   if (patch.address !== undefined) row.address = patch.address;
   if (patch.sellerId !== undefined) row.seller_id = patch.sellerId;
   if (patch.status !== undefined) row.status = patch.status;
