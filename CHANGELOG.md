@@ -6,6 +6,20 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.78.0] — Courier · 2026-06-10
+
+O **envio real de mensagens** está pronto (PRD-115): quando as credenciais dos provedores forem ativadas, o botão Enviar da Central de Atendimento passa a despachar mensagens de verdade pelo WhatsApp — com confirmações de entrega e leitura voltando para a conversa. **Nada muda na sua experiência ainda** (o modo demonstração segue idêntico).
+
+### Added
+
+- **Envio pela Central de Atendimento** — texto e mídia saem por um canal seguro do servidor, que valida quem pode enviar em cada conversa (dono da conversa, gestores, ou conversas ainda sem responsável), registra a mensagem antes do envio e mostra falhas com motivo e opção de tentar de novo.
+- **Aviso da janela de 24 horas** — na API oficial da Meta, texto livre só pode ser enviado até 24h após a última mensagem do cliente; fora disso o sistema avisa na hora e orienta a usar um modelo aprovado (os modelos chegam na próxima etapa).
+- **Mensagens com erro ficam visíveis** — um envio que falhar nunca some: fica na conversa marcado com o motivo, para correção ou nova tentativa.
+
+### Security
+
+- **Permissão em dupla camada** — além das regras do banco, o servidor confere explicitamente se quem envia pode atuar naquela conversa; mídias saem por links temporários de 5 minutos; toda tentativa (sucesso ou falha) fica registrada na auditoria.
+
 ## [0.77.0] — Gateway · 2026-06-10
 
 A **porta de entrada das mensagens reais do WhatsApp** está construída (PRD-114): quando um cliente mandar mensagem para um número da GALLO, ela vai chegar direto na tela de Atendimento — com cliente e conversa criados automaticamente quando for um contato novo. **Nada muda na sua experiência ainda**: o recebimento liga quando as credenciais dos provedores forem ativadas.
