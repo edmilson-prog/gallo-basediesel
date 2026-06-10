@@ -57,6 +57,9 @@ jobs:
             | sudo tee /etc/apt/sources.list.d/pgdg.list
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends postgresql-client-17
+          # The runner image ships pg 16 first on PATH; pin the 17 binaries
+          # (pg_dump must match the server major version: 17.x).
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
 
       - name: Dump database (custom format, compressed)
         if: steps.gate.outputs.enabled == 'true'
