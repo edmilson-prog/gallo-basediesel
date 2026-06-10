@@ -6,6 +6,20 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.79.0] — Stencil · 2026-06-10
+
+Chegaram os **modelos de mensagem aprovados (templates HSM)** (PRD-116) — a única forma que a API oficial da Meta permite para falar com o cliente fora da janela de 24 horas. A plataforma agora tem o catálogo desses modelos e um seletor integrado à conversa. Em modo demonstração, nada muda na sua experiência.
+
+### Added
+
+- **Catálogo de templates** — nova tela em Configurações → Templates WhatsApp (perfis Owner e Gestor) para cadastrar os modelos aprovados no Meta Business Manager: corpo com variáveis `{{1}}`, rótulos amigáveis para cada campo, pré-visualização ao vivo e selo com o status de aprovação da Meta. Nome, idioma e corpo ficam travados após criar (mudou na Meta ⇒ cadastre um modelo novo).
+- **Seletor de template na conversa** — ao tentar enviar texto livre fora da janela de 24h, a tela de Atendimento abre automaticamente o seletor: escolha o modelo aprovado, preencha os campos pelos rótulos, confira o resultado e envie. O texto final fica registrado na conversa como qualquer mensagem.
+- **3 modelos de exemplo** — boas-vindas, aviso de pedido pronto e cobrança amigável já vêm cadastrados para demonstração (devem ser substituídos pelos modelos reais aprovados da GALLO).
+
+### Security
+
+- **Visibilidade por loja** — cada loja enxerga apenas seus modelos (e os globais); criar, editar e desativar é restrito a Owner e Gestor, com as regras aplicadas direto no banco de dados.
+
 ## [0.78.0] — Courier · 2026-06-10
 
 O **envio real de mensagens** está pronto (PRD-115): quando as credenciais dos provedores forem ativadas, o botão Enviar da Central de Atendimento passa a despachar mensagens de verdade pelo WhatsApp — com confirmações de entrega e leitura voltando para a conversa. **Nada muda na sua experiência ainda** (o modo demonstração segue idêntico).
