@@ -10,6 +10,7 @@
 import { handleOptions } from "./cors.ts";
 import { HttpError, json } from "./http.ts";
 import { createLogger, type Logger } from "./logger.ts";
+import { captureException } from "./sentry.ts";
 
 export interface RequestContext {
   log: Logger;
@@ -39,6 +40,11 @@ export function servePost(
       log.error("unhandled error", {
         error: err instanceof Error ? err.message : String(err),
       });
+      // PRD-110: report unexpected 500s to Sentry (no-op without SENTRY_DSN;
+      // fail-open — never delays or alters the response).
+      const functionName =
+        new URL(req.url).pathname.split("/").filter(Boolean)[0] ?? "unknown";
+      captureException(err, { traceId, functionName });
       const res = json({ error: "internal error", traceId }, 500);
       res.headers.set("x-trace-id", traceId);
       return res;

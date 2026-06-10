@@ -2,7 +2,12 @@ import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
 import { getRouter } from "@/router";
+import { initObservability } from "@/shared/lib/observability";
 import "@/styles.css";
+
+// PRD-110: error tracking boots before the first render so early crashes are
+// captured. No-op (zero overhead) when VITE_SENTRY_DSN is not configured.
+initObservability();
 
 // QueryClientProvider e ThemeProvider são injetados pelo RootComponent
 // em src/routes/__root.tsx — o queryClient sai do router context.
