@@ -6,6 +6,22 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.75.0] — Sentinel · 2026-06-10
+
+A plataforma ganhou a sua **rede de segurança**: cópias de segurança automáticas, planos de recuperação prontos e um painel para acompanhar a saúde do sistema. Fecha a faixa de infraestrutura da nuvem (PRDs 100–110). **Nada muda na sua experiência nesta versão** — são proteções e visibilidade dos bastidores.
+
+### Added
+
+- **Painel "Saúde do Sistema"** — nova tela no menu Gestão (perfil Owner) mostrando, em tempo real, se o banco de dados, o armazenamento de arquivos e o login estão respondendo; as rotinas automáticas do servidor com a última execução de cada uma; o tamanho da base; e atalhos para os painéis externos de investigação. A verificação se renova sozinha a cada 30 segundos.
+- **Verificação pública de disponibilidade** — a plataforma ganhou um endereço próprio de "está no ar?", que permite que serviços de vigilância externos chequem a saúde do sistema a cada poucos minutos e avisem se algo cair — sem expor nenhum dado interno.
+- **Cópias de segurança semanais automáticas** — toda semana o banco de dados completo e os arquivos críticos (documentos fiscais e mídias de conversas) passam a ser copiados para fora da nuvem principal, com validação automática da cópia e guarda por 90 dias. Se uma cópia falhar, chega aviso por e-mail.
+- **Planos de recuperação prontos e testáveis** — guias passo a passo para recuperar o sistema em qualquer cenário: desfazer uma exclusão acidental voltando no tempo, reconstruir o banco a partir da cópia semanal, recuperar arquivos e até reconstruir tudo do zero — com metas de tempo de recuperação definidas.
+- **Rastreamento de erros preparado (opcional)** — quando ativado, erros que acontecerem nas telas ou no servidor passam a ser capturados automaticamente com o rastro completo do problema e a versão em que ocorreram, acelerando o diagnóstico — sem nunca incluir dados pessoais de clientes.
+
+### Security
+
+- **Telemetria sem dados pessoais** — qualquer informação de erro enviada para fora da plataforma passa por uma limpeza automática que remove nome, e-mail, telefone e documentos de clientes; o painel de saúde é restrito ao perfil Owner também na camada do banco; e as cópias de segurança ficam guardadas em conta separada da nuvem principal.
+
 ## [0.74.0] — Backbone · 2026-06-10
 
 A **infraestrutura da nuvem foi completada de ponta a ponta** (PRDs 100–108): atendimento ao vivo, envio de arquivos, convite por e-mail com definição de senha e relatórios pré-calculados no servidor. O sistema continua nos dados de demonstração por padrão — **nada muda na sua experiência nesta versão**; os novos recursos de nuvem ligam junto com a virada, quando você decidir.
