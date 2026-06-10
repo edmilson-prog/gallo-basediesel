@@ -6,6 +6,20 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.85.0] — Keyring · 2026-06-10
+
+As **chaves das integrações agora são gerenciadas dentro da plataforma**: uma tela nova permite ao dono cadastrar e substituir as credenciais de e-mail e WhatsApp sem precisar de painéis técnicos externos — com tudo guardado criptografado em um cofre.
+
+### Added
+
+- **Tela "Chaves & API"** — em Configurações → Integrações (exclusiva do dono): cadastre a chave do serviço de e-mail, as credenciais do webhook do WhatsApp e as chaves de cada conta de WhatsApp conectada, cada uma com instruções do que é e de onde vem.
+- **Cofre criptografado** — os valores são gravados cifrados no servidor. A tela mostra apenas quando cada chave foi configurada e os 4 últimos caracteres, para reconhecimento; o valor completo nunca é exibido de volta.
+- **Troca sem interrupção** — substituir uma chave entra em vigor imediatamente, sem reiniciar nada; as chaves configuradas pelo método antigo continuam funcionando como reserva.
+
+### Security
+
+- **Acesso blindado** — nem pelo banco de dados é possível ler as chaves: somente o servidor interno acessa o cofre, e toda gravação fica registrada na auditoria (sem o valor).
+
 ## [0.84.0] — Anchor · 2026-06-10
 
 Preparamos a **base para importar dados de outros sistemas** (PRD-121): clientes, peças e pedidos vindos de fora (como o ERP da loja) agora têm uma porta de entrada padronizada na plataforma, com dados de exemplo para testes.
