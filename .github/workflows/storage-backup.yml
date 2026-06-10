@@ -89,7 +89,10 @@ jobs:
             echo "::warning::Backup failed and RESEND_API_KEY/BACKUP_ALERT_EMAIL are not set — relying on GitHub's native failure notification."
             exit 0
           fi
-          curl -fsS -X POST https://api.resend.com/emails \
+          # Best-effort: a failed alert must not mask the backup failure itself
+          # (GitHub's native notification still fires for the failed run).
+          curl -sS -X POST https://api.resend.com/emails \
             -H "Authorization: Bearer ${RESEND_API_KEY}" \
             -H "Content-Type: application/json" \
-            -d "{\"from\":\"GALLO BASE DIESEL <onboarding@resend.dev>\",\"to\":[\"${BACKUP_ALERT_EMAIL}\"],\"subject\":\"[ALERTA] Backup de Storage falhou — gallo-basediesel\",\"text\":\"O workflow storage-backup.yml falhou. Verifique: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\"}"
+            -d "{\"from\":\"GALLO BASE DIESEL <onboarding@resend.dev>\",\"to\":[\"${BACKUP_ALERT_EMAIL}\"],\"subject\":\"[ALERTA] Backup de Storage falhou — gallo-basediesel\",\"text\":\"O workflow storage-backup.yml falhou. Verifique: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\"}" \
+            || echo "::warning::Resend alert failed — relying on GitHub's native failure notification."

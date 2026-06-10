@@ -49,8 +49,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends curl ca-certificates gnupg
           sudo install -d /usr/share/postgresql-common/pgdg
+          # --batch --yes: the runner image may ship the PGDG key already and
+          # gpg would otherwise prompt for overwrite on a non-existent tty.
           curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
-            | sudo gpg --dearmor -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg
+            | sudo gpg --dearmor --batch --yes -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg
           echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
             | sudo tee /etc/apt/sources.list.d/pgdg.list
           sudo apt-get update
@@ -106,7 +108,10 @@ jobs:
             echo "::warning::Backup failed and RESEND_API_KEY/BACKUP_ALERT_EMAIL are not set — relying on GitHub's native failure notification."
             exit 0
           fi
-          curl -fsS -X POST https://api.resend.com/emails \
+          # Best-effort: a failed alert must not mask the backup failure itself
+          # (GitHub's native notification still fires for the failed run).
+          curl -sS -X POST https://api.resend.com/emails \
             -H "Authorization: Bearer ${RESEND_API_KEY}" \
             -H "Content-Type: application/json" \
-            -d "{\"from\":\"GALLO BASE DIESEL <onboarding@resend.dev>\",\"to\":[\"${BACKUP_ALERT_EMAIL}\"],\"subject\":\"[ALERTA] Backup lógico falhou — gallo-basediesel\",\"text\":\"O workflow logical-backup.yml falhou. Verifique: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\"}"
+            -d "{\"from\":\"GALLO BASE DIESEL <onboarding@resend.dev>\",\"to\":[\"${BACKUP_ALERT_EMAIL}\"],\"subject\":\"[ALERTA] Backup lógico falhou — gallo-basediesel\",\"text\":\"O workflow logical-backup.yml falhou. Verifique: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\"}" \
+            || echo "::warning::Resend alert failed — relying on GitHub's native failure notification."
