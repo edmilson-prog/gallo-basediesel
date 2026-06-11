@@ -120,7 +120,7 @@ export const sellersApi = {
         const patched = patchById("sellers", id, {
           deletedAt: new Date().toISOString(),
           active: false,
-        } as Partial<ISeller>);
+        });
         if (!patched) throw new MockNotFoundError("seller", id);
       },
       { payload: { id } },

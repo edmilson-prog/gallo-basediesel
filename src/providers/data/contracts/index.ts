@@ -87,7 +87,7 @@ export type { IGoalsProvider, IListGoalsParams } from "./goals";
 export type { IRecommendationsProvider, IListRecommendationsParams } from "./recommendations";
 export type { ITransfersProvider, IListTransfersParams, ICreateTransferInput } from "./transfers";
 export type { ISegmentsProvider, IListSegmentsParams } from "./segments";
-export type { ISellersProvider, IListSellersParams } from "./sellers";
+export type { ISellersProvider, IListSellersParams, ICreateSellerInput } from "./sellers";
 export type { IStoresProvider } from "./stores";
 export type { ISettingsProvider } from "./settings";
 export type { IAuditsProvider, IListAuditsParams, ICreateAuditInput } from "./audits";
