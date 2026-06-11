@@ -17,7 +17,7 @@ export { goalsApi, type IListGoalsParams } from "./goals";
 export { recommendationsApi, type IListRecommendationsParams } from "./recommendations";
 export { transfersApi, type IListTransfersParams } from "./transfers";
 export { segmentsApi, type IListSegmentsParams } from "./segments";
-export { sellersApi, type IListSellersParams } from "./sellers";
+export { sellersApi, type IListSellersParams, type ICreateSellerInput } from "./sellers";
 export { storesApi } from "./stores";
 export { settingsApi } from "./settings";
 export { auditsApi, type IListAuditsParams } from "./audits";
