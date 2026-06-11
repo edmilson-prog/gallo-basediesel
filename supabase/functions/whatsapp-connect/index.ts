@@ -98,7 +98,7 @@ async function markConnected(
   } catch (_err) {
     // Profile resolution is best-effort — connection state is what matters.
   }
-  await admin
+  const { data: updated } = await admin
     .from("whatsapp_accounts")
     .update({
       status: "connected",
@@ -108,8 +108,10 @@ async function markConnected(
         ...(profile.profileName ? { profileName: profile.profileName } : {}),
       },
     })
-    .eq("id", row.id);
-  if (row.status !== "connected" && actorId) {
+    .eq("id", row.id)
+    .neq("status", "connected")
+    .select("id");
+  if ((updated?.length ?? 0) > 0 && actorId) {
     await bestEffortAudit(admin, {
       store_id: row.store_id,
       actor_id: actorId,
