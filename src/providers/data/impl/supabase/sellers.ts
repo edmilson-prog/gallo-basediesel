@@ -162,5 +162,5 @@ async function extractFunctionError(error: unknown): Promise<string> {
       /* fall through to the generic message */
     }
   }
-  return error instanceof Error ? error.message : "Falha ao excluir o usuário.";
+  return error instanceof Error ? error.message : "[supabase] sellers.remove failed";
 }
