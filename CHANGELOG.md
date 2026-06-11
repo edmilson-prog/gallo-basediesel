@@ -6,6 +6,21 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.86.0] — Lever · 2026-06-10
+
+Agora dá para **alternar entre Demonstração e Produção de dentro da própria plataforma**, sem mexer em configurações de servidor — e o sistema deixa sempre claro em qual modo você está.
+
+### Added
+
+- **Tela "Ambiente & Dados"** — em Configurações → Avançado (exclusiva do dono): dois cartões grandes para escolher entre **Produção** (dados reais e login por e-mail e senha) e **Demonstração** (dados fictícios e perfis de teste), com uma área avançada para combinar dados e login de formas diferentes quando necessário.
+- **Confirmação transparente** — antes de aplicar, um aviso lista exatamente o que vai acontecer: a página recarrega, a sessão é encerrada se a forma de login mudar e, ao entrar em Produção, tudo o que for cadastrado passa a ser permanente.
+- **Aviso de modo Demonstração** — enquanto os dados forem fictícios, uma faixa discreta no topo lembra que nada está sendo salvo de verdade, com atalho para o dono trocar de modo. O menu do usuário e a tela Saúde do Sistema também mostram o modo ativo.
+- **Ajuste por navegador** — a escolha vale apenas no navegador em que foi feita e pode ser desfeita com um clique em "Voltar ao padrão do ambiente"; os demais usuários não são afetados.
+
+### Security
+
+- **Proteções inalteradas** — o modo escolhido não abre nenhuma porta: as permissões e o login dos dados reais continuam valendo independentemente da escolha, e a tela é exclusiva do perfil Owner.
+
 ## [0.85.0] — Keyring · 2026-06-10
 
 As **chaves das integrações agora são gerenciadas dentro da plataforma**: uma tela nova permite ao dono cadastrar e substituir as credenciais de e-mail e WhatsApp sem precisar de painéis técnicos externos — com tudo guardado criptografado em um cofre.
