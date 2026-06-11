@@ -13,7 +13,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/features/auth/useAuth";
+import { AUTH_SOURCE } from "@/features/auth/authSource";
+import { getActiveDataSource } from "@/providers/data";
+import { presetOf } from "@/shared/lib/environmentMode";
 import { GlobalSearch } from "@/features/shell/components/GlobalSearch";
 import { StoreSwitcher, useCurrentStore } from "@/features/multistore";
 import { usePlatformSettings } from "@/features/admin-settings/hooks/usePlatformSettings";
@@ -107,11 +111,12 @@ export function TopBar() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-60">
             <DropdownMenuLabel>
-              <div className="flex flex-col">
+              <div className="flex flex-col gap-1.5">
                 <span className="font-semibold">{currentUser?.displayName ?? "—"}</span>
                 <span className="text-xs font-normal text-muted-foreground">
                   {currentUser?.role} · {currentUser?.storeLabel}
                 </span>
+                <EnvironmentBadge />
               </div>
             </DropdownMenuLabel>
             {currentUser?.sellerId && (
@@ -142,5 +147,41 @@ export function TopBar() {
         </DropdownMenu>
       </div>
     </header>
+  );
+}
+
+/** Quiet reminder of the running environment mode inside the user menu. */
+function EnvironmentBadge() {
+  const preset = presetOf(getActiveDataSource(), AUTH_SOURCE);
+  if (preset === "production") {
+    return (
+      <Badge
+        variant="outline"
+        className="w-fit border-severity-success/30 bg-severity-success/10 font-normal text-severity-success"
+      >
+        <Icon icon="mdi:rocket-launch-outline" size={12} className="mr-1" />
+        Produção
+      </Badge>
+    );
+  }
+  if (preset === "demo") {
+    return (
+      <Badge
+        variant="outline"
+        className="w-fit border-severity-info/30 bg-severity-info/10 font-normal text-severity-info"
+      >
+        <Icon icon="mdi:flask-outline" size={12} className="mr-1" />
+        Demonstração
+      </Badge>
+    );
+  }
+  return (
+    <Badge
+      variant="outline"
+      className="w-fit border-severity-warning/30 bg-severity-warning/10 font-normal text-severity-warning"
+    >
+      <Icon icon="mdi:tune-variant" size={12} className="mr-1" />
+      Personalizado
+    </Badge>
   );
 }

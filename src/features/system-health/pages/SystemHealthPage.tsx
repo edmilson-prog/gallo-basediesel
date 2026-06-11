@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -429,15 +430,41 @@ export function SystemHealthPage() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold text-foreground">{S.pageTitle}</h1>
-        <p className="text-sm text-muted-foreground">{S.pageSubtitle}</p>
-        {IS_MOCK && (
-          <p className="mt-1 flex items-center gap-1.5 text-xs text-severity-info">
-            <Icon icon="mdi:information-outline" size={14} />
-            {S.mockNotice}
-          </p>
-        )}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-bold text-foreground">{S.pageTitle}</h1>
+          <p className="text-sm text-muted-foreground">{S.pageSubtitle}</p>
+          {IS_MOCK && (
+            <p className="mt-1 flex items-center gap-1.5 text-xs text-severity-info">
+              <Icon icon="mdi:information-outline" size={14} />
+              {S.mockNotice}
+            </p>
+          )}
+        </div>
+        {/* Read-only mode indicator — managing it lives in Configurações. */}
+        <div className="flex items-center gap-2">
+          <Badge
+            variant="outline"
+            className={
+              IS_MOCK
+                ? "border-severity-info/30 bg-severity-info/10 text-severity-info"
+                : "border-severity-success/30 bg-severity-success/10 text-severity-success"
+            }
+          >
+            <Icon
+              icon={IS_MOCK ? "mdi:flask-outline" : "mdi:rocket-launch-outline"}
+              size={12}
+              className="mr-1"
+            />
+            {IS_MOCK ? S.modeDemo : S.modeProduction}
+          </Badge>
+          <Link
+            to="/app/configuracoes/ambiente"
+            className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            {S.manageEnvironment}
+          </Link>
+        </div>
       </div>
 
       <StatusCard

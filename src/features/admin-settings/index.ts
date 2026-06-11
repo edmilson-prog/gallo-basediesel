@@ -8,6 +8,7 @@ export { TagsSettingsPage } from "./pages/TagsSettingsPage";
 export { UsersPlaceholderPage } from "./pages/UsersPlaceholderPage";
 export { WhatsAppAccountsPage } from "./pages/WhatsAppAccountsPage";
 export { IntegrationKeysPage } from "./pages/IntegrationKeysPage";
+export { EnvironmentModePage } from "./pages/EnvironmentModePage";
 export { PortalPlaceholderPage } from "./pages/PortalPlaceholderPage";
 export { GamificationPlaceholderPage } from "./pages/GamificationPlaceholderPage";
 export { DivisionsPlaceholderPage } from "./pages/DivisionsPlaceholderPage";

@@ -262,6 +262,12 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         to: "/app/configuracoes/auditoria",
         permission: { resource: "audit_log", action: "view" },
       },
+      {
+        label: "Ambiente & Dados",
+        icon: "mdi:swap-horizontal-circle-outline",
+        to: "/app/configuracoes/ambiente",
+        roles: ["Owner"],
+      },
     ],
   },
   {
