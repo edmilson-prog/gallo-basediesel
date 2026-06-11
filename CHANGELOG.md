@@ -6,6 +6,17 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.86.1] — Lever · 2026-06-11
+
+Ajustes do **dia da virada para Produção**: correções identificadas no teste geral feito após a plataforma passar a operar com dados reais.
+
+### Fixed
+
+- **Listas completas** — telas como Pedidos mostravam no máximo 200 registros ao operar com dados reais; agora as listas carregam tudo o que existe (limite elevado em 17 fontes de dados).
+- **Atualização imediata após editar cliente** — ações como "Marcar como dormente", bloquear ou transferir a carteira passavam a valer no servidor, mas a tela do cliente continuava mostrando o estado antigo até recarregar a página; agora a mudança aparece na hora.
+- **Registro de auditoria das ações** — em Produção, algumas ações sobre clientes falhavam silenciosamente ao gravar a trilha de auditoria por usarem a identidade errada do usuário; o registro agora usa o vendedor vinculado, como o histórico espera.
+- **Substituição de chaves no cofre** — atualizar uma chave de integração já cadastrada na tela "Chaves & API" falhava por falta de permissão interna; a regravação agora usa o mecanismo oficial do cofre.
+
 ## [0.86.0] — Lever · 2026-06-10
 
 Agora dá para **alternar entre Demonstração e Produção de dentro da própria plataforma**, sem mexer em configurações de servidor — e o sistema deixa sempre claro em qual modo você está.
