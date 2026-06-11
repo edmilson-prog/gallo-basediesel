@@ -68,6 +68,7 @@ export async function getInstanceQr(
     baseUrl: target.baseUrl,
     path: `/instance/connect/${target.instanceName}`,
     method: "GET",
+    omitResponsePayload: true,
     traceId,
   });
   const body = response.body as {

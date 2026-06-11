@@ -18,6 +18,8 @@ export interface IEvolutionRequestOptions {
   json?: unknown;
   traceId?: string;
   timeoutMs?: number;
+  /** Skip logging the response payload (e.g. QR pairing credentials). */
+  omitResponsePayload?: boolean;
 }
 
 export async function evolutionRequest(
@@ -44,6 +46,7 @@ export async function evolutionRequest(
       logIntegration: deps.logIntegration,
       fetchFn: deps.fetchFn,
       timeoutMs: options.timeoutMs,
+      omitResponsePayload: options.omitResponsePayload,
     },
   );
 

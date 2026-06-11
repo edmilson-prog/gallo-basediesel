@@ -70,6 +70,23 @@ describe("getInstanceQr", () => {
     });
   });
 
+  it("never logs the QR payload (omitted from the integration log)", async () => {
+    const entries: unknown[] = [];
+    const deps: IEngineDeps = {
+      resolveSecret: async () => undefined,
+      logIntegration: (entry) => {
+        entries.push(entry.responsePayload);
+      },
+      fetchFn: (async () =>
+        new Response(JSON.stringify({ base64: "data:image/png;base64,QR==", code: "2@abc" }), {
+          status: 200,
+        })) as typeof fetch,
+    };
+    await getInstanceQr("key", deps, TARGET);
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toBe("[omitted]");
+  });
+
   it("maps 401 to UNAUTHORIZED via mapEvolutionError", async () => {
     const { deps } = makeDeps(401, { message: "invalid apikey" });
     await expect(getInstanceQr("key", deps, TARGET)).rejects.toBeInstanceOf(
