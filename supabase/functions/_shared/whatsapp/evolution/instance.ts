@@ -129,8 +129,9 @@ export async function fetchInstanceProfile(
   const list = Array.isArray(response.body) ? response.body : [response.body];
   for (const raw of list) {
     const v2 = raw as { name?: string; ownerJid?: string; profileName?: string } | null;
-    const v1 = (raw as { instance?: { instanceName?: string; owner?: string; profileName?: string } } | null)
-      ?.instance;
+    const v1 = (
+      raw as { instance?: { instanceName?: string; owner?: string; profileName?: string } } | null
+    )?.instance;
     const name = v1?.instanceName ?? v2?.name;
     if (name !== target.instanceName) continue;
     const jid = v1?.owner ?? v2?.ownerJid;

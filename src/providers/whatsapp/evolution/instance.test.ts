@@ -16,10 +16,7 @@ interface IRecordedCall {
 }
 
 /** Engine deps with a stubbed fetch returning a fixed JSON response. */
-function makeDeps(
-  status: number,
-  body: unknown,
-): { deps: IEngineDeps; calls: IRecordedCall[] } {
+function makeDeps(status: number, body: unknown): { deps: IEngineDeps; calls: IRecordedCall[] } {
   const calls: IRecordedCall[] = [];
   const deps: IEngineDeps = {
     resolveSecret: async () => undefined,
@@ -46,8 +43,8 @@ describe("getInstanceQr", () => {
       qrBase64: "data:image/png;base64,QR==",
       pairingCode: "ABCD-1234",
     });
-    expect(calls[0].url).toBe("https://evo.test/instance/connect/inst1");
-    expect(calls[0].init.method).toBe("GET");
+    expect(calls[0]!.url).toBe("https://evo.test/instance/connect/inst1");
+    expect(calls[0]!.init.method).toBe("GET");
   });
 
   it("returns the QR from a nested qrcode.base64 (v1 compat)", async () => {
@@ -89,9 +86,7 @@ describe("getInstanceQr", () => {
 
   it("maps 401 to UNAUTHORIZED via mapEvolutionError", async () => {
     const { deps } = makeDeps(401, { message: "invalid apikey" });
-    await expect(getInstanceQr("key", deps, TARGET)).rejects.toBeInstanceOf(
-      WhatsAppProviderError,
-    );
+    await expect(getInstanceQr("key", deps, TARGET)).rejects.toBeInstanceOf(WhatsAppProviderError);
     await expect(getInstanceQr("key", deps, TARGET)).rejects.toMatchObject({
       code: "UNAUTHORIZED",
     });
@@ -103,7 +98,7 @@ describe("getConnectionState", () => {
     const { deps, calls } = makeDeps(200, { instance: { state: "connecting" } });
     const result = await getConnectionState("key", deps, TARGET);
     expect(result.state).toBe("connecting");
-    expect(calls[0].url).toBe("https://evo.test/instance/connectionState/inst1");
+    expect(calls[0]!.url).toBe("https://evo.test/instance/connectionState/inst1");
   });
 
   it("parses the flat shape and falls back to unknown", async () => {
@@ -127,7 +122,13 @@ describe("fetchInstanceProfile", () => {
 
   it("extracts from the v1 nested shape", async () => {
     const { deps } = makeDeps(200, [
-      { instance: { instanceName: "inst1", owner: "5555911112222@s.whatsapp.net", profileName: "Loja" } },
+      {
+        instance: {
+          instanceName: "inst1",
+          owner: "5555911112222@s.whatsapp.net",
+          profileName: "Loja",
+        },
+      },
     ]);
     const result = await fetchInstanceProfile("key", deps, TARGET);
     expect(result.phoneNumber).toBe("+5555911112222");
@@ -152,23 +153,28 @@ describe("logout / restart / webhook", () => {
   it("logoutInstance issues DELETE on the logout path", async () => {
     const { deps, calls } = makeDeps(200, { status: "SUCCESS" });
     await logoutInstance("key", deps, TARGET);
-    expect(calls[0].url).toBe("https://evo.test/instance/logout/inst1");
-    expect(calls[0].init.method).toBe("DELETE");
+    expect(calls[0]!.url).toBe("https://evo.test/instance/logout/inst1");
+    expect(calls[0]!.init.method).toBe("DELETE");
   });
 
   it("restartInstance issues POST on the restart path", async () => {
     const { deps, calls } = makeDeps(200, { status: "SUCCESS" });
     await restartInstance("key", deps, TARGET);
-    expect(calls[0].url).toBe("https://evo.test/instance/restart/inst1");
-    expect(calls[0].init.method).toBe("POST");
+    expect(calls[0]!.url).toBe("https://evo.test/instance/restart/inst1");
+    expect(calls[0]!.init.method).toBe("POST");
   });
 
   it("setInstanceWebhook posts the v2 webhook payload", async () => {
     const { deps, calls } = makeDeps(200, {});
-    await setInstanceWebhook("key", deps, TARGET, "https://x.supabase.co/functions/v1/whatsapp-webhook/evolution");
-    expect(calls[0].url).toBe("https://evo.test/webhook/set/inst1");
-    expect(calls[0].init.method).toBe("POST");
-    const sent = JSON.parse(String(calls[0].init.body));
+    await setInstanceWebhook(
+      "key",
+      deps,
+      TARGET,
+      "https://x.supabase.co/functions/v1/whatsapp-webhook/evolution",
+    );
+    expect(calls[0]!.url).toBe("https://evo.test/webhook/set/inst1");
+    expect(calls[0]!.init.method).toBe("POST");
+    const sent = JSON.parse(String(calls[0]!.init.body));
     expect(sent.webhook.enabled).toBe(true);
     expect(sent.webhook.url).toContain("/whatsapp-webhook/evolution");
     expect(sent.webhook.events).toEqual([
