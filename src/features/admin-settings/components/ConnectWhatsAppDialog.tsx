@@ -26,6 +26,8 @@ import { getActiveDataSource, useWhatsAppAccountsProvider } from "@/providers/da
 import { listIntegrationSecrets, setIntegrationSecret } from "../api/integrationSecrets";
 import {
   connectErrorMessage,
+  INVALID_CREDENTIALS_REF_MESSAGE,
+  isValidCredentialsRef,
   logoutEvolution,
   restartEvolution,
   testEvolutionServer,
@@ -128,6 +130,15 @@ export function ConnectWhatsAppDialog({
       setFormError("A URL do servidor deve começar com http(s)://");
       return;
     }
+    // The secret name is derived from the account's credentials prefix — a
+    // legacy/seed prefix (e.g. "vault://...") would be rejected by the vault
+    // with a raw English error; fail early with actionable pt-BR copy.
+    if (apiKeyValue.trim() && !isMock && !isValidCredentialsRef(account.credentialsRef)) {
+      setFormError(
+        `${INVALID_CREDENTIALS_REF_MESSAGE} Edite a conta na lista (campo "Prefixo de credenciais") e tente de novo.`,
+      );
+      return;
+    }
     setBusy(true);
     try {
       // Spread the existing config: keys merged server-side by the edge
@@ -160,6 +171,9 @@ export function ConnectWhatsAppDialog({
       const result = await testEvolutionServer(account.id);
       setServerOk(result.ok);
       if (result.ok) toast.success("Servidor Evolution respondeu.");
+      // The edge syncs whatsapp_accounts.status with the live connection
+      // state on `test` — refresh so the card badges reflect reality.
+      onMutated();
     } catch (err) {
       setServerOk(false);
       setFormError(connectErrorMessage(err));

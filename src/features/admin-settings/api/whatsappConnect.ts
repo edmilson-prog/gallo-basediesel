@@ -68,6 +68,24 @@ export function connectErrorMessage(error: unknown): string {
   return CONNECT_ERROR_MESSAGES.DEFAULT;
 }
 
+// ===== Credentials-ref validation ===========================================
+
+/**
+ * Secret names are `{credentialsRef}_API_KEY` and must satisfy the
+ * integration-secrets edge pattern (env-style: starts with an uppercase
+ * letter; only A-Z, 0-9 and _). Fase-1 seed refs like
+ * `vault://gallo/wa-evo-campanhas` fail this and must be renamed before the
+ * apikey can be stored.
+ */
+const SECRET_NAME_PATTERN = /^[A-Z][A-Z0-9_]{2,64}$/;
+
+export function isValidCredentialsRef(ref: string): boolean {
+  return SECRET_NAME_PATTERN.test(`${ref}_API_KEY`);
+}
+
+export const INVALID_CREDENTIALS_REF_MESSAGE =
+  "Prefixo de credenciais inválido para nomear o secret — use apenas letras maiúsculas, números e _ (ex.: WA_EVO_CAMPANHAS).";
+
 // ===== Mock simulation =======================================================
 
 /** ms after pairing start → simulated session state (exported for tests). */

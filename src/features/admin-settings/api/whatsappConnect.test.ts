@@ -3,6 +3,7 @@ import {
   connectErrorMessage,
   CONNECT_ERROR_MESSAGES,
   EvolutionConnectError,
+  isValidCredentialsRef,
   resolveMockPairingState,
 } from "./whatsappConnect";
 
@@ -25,5 +26,22 @@ describe("connectErrorMessage", () => {
       CONNECT_ERROR_MESSAGES.UNAUTHORIZED,
     );
     expect(connectErrorMessage(new Error("boom"))).toBe(CONNECT_ERROR_MESSAGES.DEFAULT);
+  });
+});
+
+describe("isValidCredentialsRef", () => {
+  it("accepts env-style prefixes", () => {
+    expect(isValidCredentialsRef("WA_EVO_CAMPANHAS")).toBe(true);
+    expect(isValidCredentialsRef("WA_META_MATRIZ")).toBe(true);
+    expect(isValidCredentialsRef("W1")).toBe(true); // short prefix, valid full name
+  });
+
+  it("rejects legacy seed refs and invalid characters", () => {
+    expect(isValidCredentialsRef("vault://gallo/wa-evo-campanhas")).toBe(false);
+    expect(isValidCredentialsRef("wa_evo_campanhas")).toBe(false); // lowercase
+    expect(isValidCredentialsRef("WA-EVO")).toBe(false); // hyphen
+    expect(isValidCredentialsRef("")).toBe(false); // name would start with _
+    expect(isValidCredentialsRef("1WA")).toBe(false); // must start with a letter
+    expect(isValidCredentialsRef("A".repeat(60))).toBe(false); // name > 65 chars
   });
 });

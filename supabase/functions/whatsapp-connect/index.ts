@@ -124,6 +124,35 @@ async function markConnected(
   return profile;
 }
 
+/**
+ * Flips a stale `connected` row to disconnected when the live Evolution state
+ * says the session is not open (seed rows, phone unlinked outside the app…).
+ * Conditional update + audit guard: concurrent polls won't double-audit.
+ */
+async function markDisconnected(
+  admin: SupabaseClient,
+  row: IAccountRow,
+  actorId: string | null,
+  liveState: string,
+): Promise<void> {
+  const { data: updated } = await admin
+    .from("whatsapp_accounts")
+    .update({ status: "disconnected" })
+    .eq("id", row.id)
+    .eq("status", "connected")
+    .select("id");
+  if ((updated?.length ?? 0) > 0 && actorId) {
+    await bestEffortAudit(admin, {
+      store_id: row.store_id,
+      actor_id: actorId,
+      action: "whatsapp_instance_disconnected",
+      resource: "whatsapp_account",
+      resource_id: row.id,
+      after: { state: liveState, reason: "state_sync" },
+    });
+  }
+}
+
 servePost(async (req, ctx) => {
   const { callerId, admin, profile: caller } = await requireCaller(req, STAFF_ROLES);
   const body = (await parseJsonBody(req)) as { accountId?: string; action?: string };
@@ -156,7 +185,11 @@ servePost(async (req, ctx) => {
   };
   if (!target.baseUrl || !target.instanceName) {
     return json(
-      { error: "Configure a URL do servidor e a instância antes de conectar.", code: "CONFIG_MISSING", traceId: ctx.traceId },
+      {
+        error: "Configure a URL do servidor e a instância antes de conectar.",
+        code: "CONFIG_MISSING",
+        traceId: ctx.traceId,
+      },
       422,
     );
   }
@@ -167,7 +200,11 @@ servePost(async (req, ctx) => {
   );
   if (!apiKey) {
     return json(
-      { error: "API key da Evolution não configurada — salve a chave no cofre primeiro.", code: "MISSING_API_KEY", traceId: ctx.traceId },
+      {
+        error: "API key da Evolution não configurada — salve a chave no cofre primeiro.",
+        code: "MISSING_API_KEY",
+        traceId: ctx.traceId,
+      },
       422,
     );
   }
@@ -178,6 +215,13 @@ servePost(async (req, ctx) => {
     switch (action) {
       case "test": {
         const result = await getConnectionState(apiKey, deps, target, ctx.traceId);
+        // Sync the stored status with reality in both directions — the card
+        // badge must not say "Conectada" for a session that is actually down.
+        if (result.state === "open") {
+          await markConnected(admin, account, apiKey, deps, target, actorId, ctx.traceId);
+        } else {
+          await markDisconnected(admin, account, actorId, result.state);
+        }
         return json({ ok: true, state: result.state, traceId: ctx.traceId }, 200);
       }
 
@@ -205,11 +249,27 @@ servePost(async (req, ctx) => {
 
         const qr = await getInstanceQr(apiKey, deps, target, ctx.traceId);
         if (qr.state === "open") {
-          const profile = await markConnected(admin, account, apiKey, deps, target, actorId, ctx.traceId);
+          const profile = await markConnected(
+            admin,
+            account,
+            apiKey,
+            deps,
+            target,
+            actorId,
+            ctx.traceId,
+          );
           return json({ state: "open", ...profile, traceId: ctx.traceId }, 200);
         }
+        // A QR being issued means the session is NOT open — clear stale status.
+        await markDisconnected(admin, account, actorId, "close");
         return json(
-          { state: "qr", qrBase64: qr.qrBase64, pairingCode: qr.pairingCode, expiresInSeconds: QR_EXPIRES_IN_SECONDS, traceId: ctx.traceId },
+          {
+            state: "qr",
+            qrBase64: qr.qrBase64,
+            pairingCode: qr.pairingCode,
+            expiresInSeconds: QR_EXPIRES_IN_SECONDS,
+            traceId: ctx.traceId,
+          },
           200,
         );
       }
@@ -217,11 +277,20 @@ servePost(async (req, ctx) => {
       case "state": {
         const result = await getConnectionState(apiKey, deps, target, ctx.traceId);
         if (result.state === "open") {
-          const profile = await markConnected(admin, account, apiKey, deps, target, actorId, ctx.traceId);
+          const profile = await markConnected(
+            admin,
+            account,
+            apiKey,
+            deps,
+            target,
+            actorId,
+            ctx.traceId,
+          );
           return json({ state: "open", ...profile, traceId: ctx.traceId }, 200);
         }
-        // `close` during pairing is normal (pre-scan) — only logout flips the
-        // stored status to disconnected.
+        // `close` during pairing is normal (pre-scan), but it also means the
+        // stored status must not read `connected` — keep the row truthful.
+        await markDisconnected(admin, account, actorId, result.state);
         return json({ state: result.state, traceId: ctx.traceId }, 200);
       }
 

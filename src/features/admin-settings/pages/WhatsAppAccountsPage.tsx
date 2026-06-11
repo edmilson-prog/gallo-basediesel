@@ -26,6 +26,7 @@ import {
   useWhatsAppAccountsProvider,
 } from "@/providers/data";
 import { SectionHeader } from "../components/SectionHeader";
+import { INVALID_CREDENTIALS_REF_MESSAGE, isValidCredentialsRef } from "../api/whatsappConnect";
 import { ConnectWhatsAppDialog, type ConnectDialogStep } from "../components/ConnectWhatsAppDialog";
 
 const STATUS_VISUAL: Record<
@@ -224,6 +225,13 @@ export function WhatsAppAccountsPage() {
     // RF-003: a non-disabled policy requires a backup account (DB CHECK).
     if (draft.failoverPolicy !== "disabled" && !draft.failoverAccountId) {
       toast.error("Selecione a conta reserva para usar failover.");
+      return;
+    }
+    // The prefix names the server-side secrets ({prefix}_API_KEY etc.) — in
+    // real mode it must be env-style; legacy seed refs ("vault://...") break
+    // both the vault write and the send pipeline's secret resolution.
+    if (!isMock && !isValidCredentialsRef(draft.credentialsRef.trim())) {
+      toast.error(INVALID_CREDENTIALS_REF_MESSAGE);
       return;
     }
     setSaving(true);
