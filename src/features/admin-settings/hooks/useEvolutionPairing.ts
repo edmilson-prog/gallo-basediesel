@@ -73,10 +73,19 @@ export function useEvolutionPairing(accountId: string | null): IEvolutionPairing
   }, [accountId]);
 
   // Start (and restart on account change); cancel everything on close.
+  // With no account, reset the visual state so a reopened dialog never
+  // paints one stale frame (and the countdown interval dies with the phase).
   useEffect(() => {
     activeRef.current = Boolean(accountId);
     autoRenewsRef.current = 0;
-    if (accountId) void requestQr();
+    if (accountId) {
+      void requestQr();
+    } else {
+      setPhase("loading-qr");
+      setQrBase64(null);
+      setProfile({});
+      setErrorMessage(null);
+    }
     return () => {
       activeRef.current = false;
       epochRef.current += 1;

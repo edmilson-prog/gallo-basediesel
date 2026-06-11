@@ -69,6 +69,7 @@ export function ConnectWhatsAppDialog({
   const [busy, setBusy] = useState(false);
   const [serverOk, setServerOk] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [invalidField, setInvalidField] = useState<"label" | "url" | "instance" | null>(null);
   const [confirmClose, setConfirmClose] = useState(false);
 
   // Re-seed local state whenever the dialog (re)opens for an account.
@@ -79,13 +80,16 @@ export function ConnectWhatsAppDialog({
     setBaseUrl(account.providerConfig?.baseUrl ?? "");
     setInstanceName(account.providerConfig?.instanceName ?? "");
     setApiKeyValue("");
+    setSavedKeyHint(null);
     setServerOk(false);
     setFormError(null);
+    setInvalidField(null);
   }, [account, initialStep]);
 
   // Saved-key hint (write-only secret): name + last 4 chars, never the value.
   useEffect(() => {
     if (!account || isMock) return;
+    setSavedKeyHint(null);
     const secretName = `${account.credentialsRef}_API_KEY`;
     void listIntegrationSecrets()
       .then((secrets) => {
@@ -113,36 +117,49 @@ export function ConnectWhatsAppDialog({
   const handleSaveAndTest = async () => {
     if (!account) return;
     setFormError(null);
+    setInvalidField(null);
     if (!label.trim() || !baseUrl.trim() || !instanceName.trim()) {
+      setInvalidField(!label.trim() ? "label" : !baseUrl.trim() ? "url" : "instance");
       setFormError("Preencha nome, URL do servidor e instância.");
       return;
     }
     if (!/^https?:\/\//.test(baseUrl.trim())) {
+      setInvalidField("url");
       setFormError("A URL do servidor deve começar com http(s)://");
       return;
     }
     setBusy(true);
     try {
+      // Spread the existing config: keys merged server-side by the edge
+      // (e.g. profileName) must survive this form save.
       await provider.update(account.id, {
         label: label.trim(),
         providerConfig: {
+          ...account.providerConfig,
           baseUrl: baseUrl.trim().replace(/\/$/, ""),
           instanceName: instanceName.trim(),
         },
       });
+      onMutated();
       if (apiKeyValue.trim() && !isMock) {
-        await setIntegrationSecret(
-          `${account.credentialsRef}_API_KEY`,
-          apiKeyValue.trim(),
-          `API key Evolution — ${label.trim()}`,
-        );
-        setApiKeyValue("");
-        setSavedKeyHint(apiKeyValue.trim().slice(-4));
+        try {
+          await setIntegrationSecret(
+            `${account.credentialsRef}_API_KEY`,
+            apiKeyValue.trim(),
+            `API key Evolution — ${label.trim()}`,
+          );
+          setSavedKeyHint(apiKeyValue.trim().slice(-4));
+          setApiKeyValue("");
+        } catch (err) {
+          // integration-secrets is Owner-only; surface its own message (e.g. 403)
+          // instead of the generic Evolution copy.
+          setFormError(err instanceof Error ? err.message : "Não foi possível salvar a chave.");
+          return;
+        }
       }
       const result = await testEvolutionServer(account.id);
       setServerOk(result.ok);
-      toast.success("Servidor Evolution respondeu.");
-      onMutated();
+      if (result.ok) toast.success("Servidor Evolution respondeu.");
     } catch (err) {
       setServerOk(false);
       setFormError(connectErrorMessage(err));
@@ -208,7 +225,12 @@ export function ConnectWhatsAppDialog({
                 <Input
                   id="connect-label"
                   value={label}
-                  onChange={(e) => setLabel(e.target.value)}
+                  onChange={(e) => {
+                    setLabel(e.target.value);
+                    setInvalidField(null);
+                  }}
+                  aria-invalid={invalidField === "label" || undefined}
+                  aria-describedby={formError ? "connect-form-error" : undefined}
                 />
               </div>
               <div className="space-y-1.5">
@@ -219,8 +241,13 @@ export function ConnectWhatsAppDialog({
                   inputMode="url"
                   placeholder="https://evolution.exemplo.com.br"
                   value={baseUrl}
-                  onChange={(e) => setBaseUrl(e.target.value)}
-                  aria-invalid={Boolean(formError) || undefined}
+                  onChange={(e) => {
+                    setBaseUrl(e.target.value);
+                    setInvalidField(null);
+                    setServerOk(false);
+                  }}
+                  aria-invalid={invalidField === "url" || undefined}
+                  aria-describedby={formError ? "connect-form-error" : undefined}
                 />
               </div>
               <div className="space-y-1.5">
@@ -229,7 +256,13 @@ export function ConnectWhatsAppDialog({
                   id="connect-instance"
                   className="font-mono"
                   value={instanceName}
-                  onChange={(e) => setInstanceName(e.target.value)}
+                  onChange={(e) => {
+                    setInstanceName(e.target.value);
+                    setInvalidField(null);
+                    setServerOk(false);
+                  }}
+                  aria-invalid={invalidField === "instance" || undefined}
+                  aria-describedby={formError ? "connect-form-error" : undefined}
                 />
               </div>
               <div className="space-y-1.5">
@@ -237,12 +270,17 @@ export function ConnectWhatsAppDialog({
                 <Input
                   id="connect-apikey"
                   type="password"
+                  autoComplete="new-password"
                   className="font-mono"
                   placeholder={
                     savedKeyHint ? `••••••••${savedKeyHint}` : "Cole a apikey da instância"
                   }
                   value={apiKeyValue}
-                  onChange={(e) => setApiKeyValue(e.target.value)}
+                  onChange={(e) => {
+                    setApiKeyValue(e.target.value);
+                    setInvalidField(null);
+                    setServerOk(false);
+                  }}
                 />
                 <p className="text-[11px] text-muted-foreground">
                   {savedKeyHint
@@ -252,7 +290,11 @@ export function ConnectWhatsAppDialog({
               </div>
 
               {formError && (
-                <p role="alert" className="flex items-start gap-1.5 text-sm text-severity-critical">
+                <p
+                  id="connect-form-error"
+                  role="alert"
+                  className="flex items-start gap-1.5 text-sm text-severity-critical"
+                >
                   <Icon icon="mdi:alert-circle-outline" size={16} className="mt-0.5 shrink-0" />
                   {formError}
                 </p>
