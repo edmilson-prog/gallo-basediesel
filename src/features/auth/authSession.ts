@@ -11,6 +11,8 @@ import type { RoleName } from "@/shared/types";
 export interface IAuthSyncMirror {
   id: string;
   role: RoleName;
+  /** Linked seller id — the identity audit trails reference (FK → sellers). */
+  sellerId?: string | null;
 }
 
 export const AUTH_SYNC_KEY = "gallo-auth-sync";
@@ -32,7 +34,11 @@ export function readAuthSyncMirror(): IAuthSyncMirror | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<IAuthSyncMirror>;
     if (typeof parsed?.id === "string" && typeof parsed?.role === "string") {
-      return { id: parsed.id, role: parsed.role as RoleName };
+      return {
+        id: parsed.id,
+        role: parsed.role as RoleName,
+        sellerId: typeof parsed.sellerId === "string" ? parsed.sellerId : null,
+      };
     }
     return null;
   } catch {

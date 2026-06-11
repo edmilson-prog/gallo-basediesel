@@ -13,7 +13,11 @@ import { readAuthSyncMirror } from "./authSession";
  * written by whichever `AuthProvider` backend is active, falling back to the
  * legacy mock key for sessions persisted before the mirror existed.
  */
-export function readCurrentUserSync(): { id: string; role: RoleName } | null {
+export function readCurrentUserSync(): {
+  id: string;
+  role: RoleName;
+  sellerId?: string | null;
+} | null {
   if (typeof window === "undefined") return null;
   try {
     const mirror = readAuthSyncMirror();
@@ -23,7 +27,7 @@ export function readCurrentUserSync(): { id: string; role: RoleName } | null {
     if (!legacyId) return null;
     const profile = MOCK_USER_BY_ID.get(legacyId);
     if (!profile) return null;
-    return { id: profile.id, role: profile.role };
+    return { id: profile.id, role: profile.role, sellerId: profile.sellerId ?? null };
   } catch {
     return null;
   }

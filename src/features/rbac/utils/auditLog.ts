@@ -40,7 +40,9 @@ const SYSTEM_ACTOR_ID = "system";
  */
 export function auditLog(params: IAuditLogParams): void {
   const user = readCurrentUserSync();
-  const actorId = params.actorId ?? user?.id ?? SYSTEM_ACTOR_ID;
+  // The audit trail references SELLERS (audit_logs.actor_id FK → sellers.id on
+  // Supabase) — prefer the linked seller over the auth/profile id (#49 family).
+  const actorId = params.actorId ?? user?.sellerId ?? user?.id ?? SYSTEM_ACTOR_ID;
   const { currentStoreId } = getCurrentContext();
   void recordAuditLog({
     actorId,
