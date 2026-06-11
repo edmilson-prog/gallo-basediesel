@@ -10,10 +10,11 @@ import type { IEvolutionPairing } from "../hooks/useEvolutionPairing";
 
 const RING_RADIUS = 9;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
-const QR_TTL_SECONDS = 30;
 
 function formatSeconds(total: number): string {
-  return `0:${String(total).padStart(2, "0")}`;
+  const minutes = Math.floor(total / 60);
+  const seconds = total % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
 export interface IQrPairingStepProps {
@@ -21,8 +22,8 @@ export interface IQrPairingStepProps {
 }
 
 export function QrPairingStep({ pairing }: IQrPairingStepProps) {
-  const { phase, qrBase64, secondsLeft, errorMessage, renew } = pairing;
-  const ringOffset = RING_CIRCUMFERENCE * (1 - secondsLeft / QR_TTL_SECONDS);
+  const { phase, qrBase64, secondsLeft, ttlSeconds, errorMessage, renew } = pairing;
+  const ringOffset = RING_CIRCUMFERENCE * (1 - secondsLeft / Math.max(1, ttlSeconds));
 
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
