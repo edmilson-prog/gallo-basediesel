@@ -90,7 +90,9 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       const profile = await resolveProfile(supabase, user);
       if (!active) return;
       setCurrentUser(profile);
-      writeAuthSyncMirror(profile ? { id: profile.id, role: profile.role } : null);
+      writeAuthSyncMirror(
+        profile ? { id: profile.id, role: profile.role, sellerId: profile.sellerId ?? null } : null,
+      );
     };
 
     supabase.auth
@@ -131,7 +133,11 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
         };
       }
       setCurrentUser(profile);
-      writeAuthSyncMirror({ id: profile.id, role: profile.role });
+      writeAuthSyncMirror({
+        id: profile.id,
+        role: profile.role,
+        sellerId: profile.sellerId ?? null,
+      });
       return { ok: true, profile };
     },
     [],

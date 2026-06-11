@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { ICustomer } from "@/shared/types";
 import { NewPermanentIndividualTransferModal } from "@/features/carteira/components/NewPermanentIndividualTransferModal";
@@ -49,8 +49,16 @@ export function ProfileMenu({ customer, onMutated }: IProfileMenuProps) {
   const { currentUser } = useAuth();
   const provider = useCustomersProvider();
   const sellersProvider = useSellersProvider();
+  const queryClient = useQueryClient();
   const [blockOpen, setBlockOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
+
+  // The detail screen reads from TanStack Query — refetch after every mutation
+  // (the mock store mutated shared objects in place, which masked this need).
+  const refreshCustomer = () => {
+    void queryClient.invalidateQueries({ queryKey: ["customer-profile", customer.id] });
+    void queryClient.invalidateQueries({ queryKey: ["customers-list"] });
+  };
 
   const sellersQuery = useQuery({
     queryKey: ["customer-profile-sellers", customer.storeId],
@@ -78,6 +86,7 @@ export function ProfileMenu({ customer, onMutated }: IProfileMenuProps) {
         after: { status: "dormente" },
       });
       toast.success(CUSTOMER_STRINGS.menu.markedDormantToast);
+      refreshCustomer();
       onMutated?.();
     } catch {
       toast.error("Não foi possível atualizar o cliente.");
@@ -97,6 +106,7 @@ export function ProfileMenu({ customer, onMutated }: IProfileMenuProps) {
       });
       toast.success(CUSTOMER_STRINGS.menu.blockedToast);
       setBlockOpen(false);
+      refreshCustomer();
       onMutated?.();
     } catch {
       toast.error("Não foi possível bloquear o cliente.");
@@ -197,6 +207,7 @@ export function ProfileMenu({ customer, onMutated }: IProfileMenuProps) {
         onClose={() => setTransferOpen(false)}
         onCreated={() => {
           setTransferOpen(false);
+          refreshCustomer();
           onMutated?.();
         }}
       />
