@@ -44,6 +44,17 @@ export interface IWebhookDb {
   ): Promise<IAccountRecord | null>;
   /** evolution: by provider_config.instanceName. */
   findEvolutionAccount(instanceName: string): Promise<IAccountRecord | null>;
+  /**
+   * Like findEvolutionAccount but INCLUDING disconnected rows — connection
+   * lifecycle events must reach accounts the message pipeline ignores
+   * (a reconnect done straight on the Evolution server flips them back).
+   */
+  findEvolutionAccountAnyStatus(instanceName: string): Promise<IAccountRecord | null>;
+  /** Conditional status write; returns true when the row actually changed. */
+  setAccountConnectionStatus(
+    accountId: string,
+    status: "connected" | "disconnected",
+  ): Promise<boolean>;
   findCustomerByPhone(storeId: string, phoneDigits: string): Promise<ICustomerRecord | null>;
   /** Store default owner for auto-created customers (manager → fallback staff). */
   resolveDefaultSellerId(storeId: string): Promise<string>;
@@ -109,6 +120,7 @@ export type WebhookOutcome =
   | "status-applied"
   | "status-unmatched"
   | "account-not-found"
+  | "connection-synced"
   | "ignored";
 
 export interface IProcessResult {
@@ -163,6 +175,28 @@ function extractEvolutionInstance(rawPayload: unknown): string {
   return (rawPayload as { instance?: string } | null)?.instance ?? "";
 }
 
+/**
+ * Detects an Evolution `connection.update` lifecycle event (the subscription
+ * uses CONNECTION_UPDATE; payloads arrive dot-lowercase — both accepted).
+ * State key varies across builds: data.state (v2) / data.connection (Baileys).
+ */
+function extractEvolutionConnectionUpdate(
+  rawPayload: unknown,
+): { instance: string; state: "open" | "connecting" | "close" } | null {
+  const payload = rawPayload as {
+    event?: string;
+    instance?: string;
+    data?: { state?: string; connection?: string; status?: string };
+  } | null;
+  const event = String(payload?.event ?? "")
+    .toLowerCase()
+    .replace(/_/g, ".");
+  if (event !== "connection.update") return null;
+  const raw = payload?.data?.state ?? payload?.data?.connection ?? payload?.data?.status;
+  if (raw !== "open" && raw !== "connecting" && raw !== "close") return null;
+  return { instance: payload?.instance ?? "", state: raw };
+}
+
 async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
@@ -180,6 +214,39 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessResult> {
   const { provider, rawPayload, db, traceId } = args;
   const warn = args.warn ?? (() => {});
+
+  // 0. Evolution connection lifecycle (CONNECTION_UPDATE subscription): keep
+  //    whatsapp_accounts.status truthful when the session opens/closes OUTSIDE
+  //    the app (phone unlinked, logout on the Evolution server…). Conditional
+  //    write makes redeliveries idempotent; `connecting` is transient → ignored.
+  if (provider === "evolution") {
+    const connection = extractEvolutionConnectionUpdate(rawPayload);
+    if (connection) {
+      if (connection.state === "connecting") {
+        return { outcome: "ignored", detail: "connection.update: connecting (transient)" };
+      }
+      const account = await db.findEvolutionAccountAnyStatus(connection.instance);
+      if (!account) {
+        warn("connection.update for unknown instance", { instance: connection.instance });
+        return { outcome: "account-not-found" };
+      }
+      const status = connection.state === "open" ? "connected" : "disconnected";
+      const changed = await db.setAccountConnectionStatus(account.id, status);
+      if (changed) {
+        await db.audit({
+          storeId: account.storeId,
+          action:
+            status === "connected"
+              ? "whatsapp_instance_connected"
+              : "whatsapp_instance_disconnected",
+          resource: "whatsapp_account",
+          resourceId: account.id,
+          after: { state: connection.state, reason: "connection_update", traceId },
+        });
+      }
+      return { outcome: "connection-synced", detail: `${connection.instance}:${connection.state}` };
+    }
+  }
 
   // 1. Defensive parse FIRST (pure, cheap). Unparseable payloads — including
   //    Evolution own-message echoes and non-message events — are ignorable by
