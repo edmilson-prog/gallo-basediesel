@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import type { ICustomer, ID, ISeller, QuoteStatus } from "@/shared/types";
@@ -20,6 +20,7 @@ import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { useCurrentStore } from "@/features/multistore/hooks/useCurrentStore";
 import { useSellersProvider } from "@/providers/data/hooks/useSellersProvider";
 import { useCustomersProvider } from "@/providers/data/hooks/useCustomersProvider";
+import { ScrollProgressBar } from "@/features/shell/components/ScrollProgressBar";
 import { QuotesHeader } from "../components/list/QuotesHeader";
 import { QuotesFiltersBar } from "../components/list/QuotesFiltersBar";
 import { QuotesTable } from "../components/list/QuotesTable";
@@ -29,6 +30,12 @@ import { QUOTE_STATUS_META } from "../components/QuoteStatusBadge";
 import { quoteStatCells, quoteStatusCounts } from "../utils/quoteListStats";
 import { useQuotesList } from "../hooks/useQuotesList";
 import { useQuotesUrlState } from "../hooks/useQuotesUrlState";
+import {
+  OPTIONAL_COLUMNS,
+  readVisibleOptional,
+  writeVisibleOptional,
+  type OptionalColumn,
+} from "../utils/columns";
 
 /** Status tab order + solid dot color (matches the badge palette). */
 const STATUS_TAB_ORDER: QuoteStatus[] = [
@@ -140,6 +147,31 @@ export function QuotesListPage() {
   const isFirstLoad = list.isLoading && !hasResults;
   const showEmpty = !isFirstLoad && !hasResults;
 
+  // Actual scroll container: the Table wrapper inside QuotesTable (cockpit/
+  // console layouts) or the RowsShell body (rows layout) — the progress line
+  // receives whichever is mounted.
+  const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
+
+  // Column visibility (persisted in localStorage).
+  const [visibleColumns, setVisibleColumns] = useState<Set<OptionalColumn>>(
+    () => new Set(readVisibleOptional()),
+  );
+  const toggleColumn = useCallback((id: OptionalColumn) => {
+    setVisibleColumns((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+  const showAllColumns = useCallback(() => {
+    setVisibleColumns(new Set(OPTIONAL_COLUMNS));
+  }, []);
+  useEffect(() => {
+    // Persist in canonical column order.
+    writeVisibleOptional(OPTIONAL_COLUMNS.filter((id) => visibleColumns.has(id)));
+  }, [visibleColumns]);
+
   const tableNode = list.isError ? (
     <ErrorState onRetry={list.refetch} />
   ) : showEmpty ? (
@@ -162,6 +194,10 @@ export function QuotesListPage() {
       onRowClick={handleRowClick}
       sellers={sellersMap}
       customers={customersMap}
+      visibleColumns={visibleColumns}
+      onToggleColumn={toggleColumn}
+      onShowAllColumns={showAllColumns}
+      scrollRef={setScrollEl}
     />
   );
 
@@ -174,6 +210,10 @@ export function QuotesListPage() {
     canFilterStore: isOwner,
     canFilterSeller: isManagerOrOwner,
   };
+
+  // Progress line rendered at the seam between the fixed chrome and the
+  // scrolling table (the shells' `progress` slot).
+  const progressNode = <ScrollProgressBar container={scrollEl} />;
 
   let body: React.ReactNode;
   if (layout === "console") {
@@ -192,6 +232,7 @@ export function QuotesListPage() {
           </>
         }
         table={tableNode}
+        progress={progressNode}
       />
     );
   } else if (layout === "rows") {
@@ -200,6 +241,8 @@ export function QuotesListPage() {
         strip={<ListStatStrip cells={statCells.slice(0, 3)} />}
         filters={<QuotesFiltersBar {...filtersProps} />}
         table={tableNode}
+        scrollRef={setScrollEl}
+        progress={progressNode}
       />
     );
   } else {
@@ -211,6 +254,7 @@ export function QuotesListPage() {
         }
         filters={<QuotesFiltersBar {...filtersProps} />}
         table={tableNode}
+        progress={progressNode}
       />
     );
   }

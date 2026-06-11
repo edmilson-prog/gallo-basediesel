@@ -30,6 +30,8 @@ export interface IEngineCallContext {
   timeoutMs?: number;
   /** `bytes` for media downloads; default parses JSON (null when not JSON). */
   expect?: "json" | "bytes";
+  /** Skip logging the response payload (e.g. QR pairing credentials). */
+  omitResponsePayload?: boolean;
 }
 
 export interface IEngineFetchResult {
@@ -105,7 +107,11 @@ export async function engineFetch(
     latencyMs: Date.now() - startedAt,
     traceId: ctx.traceId,
     requestPayload: sanitizeForLog(ctx.requestPayload),
-    responsePayload: bytes ? { bytes: bytes.byteLength } : sanitizeForLog(body),
+    responsePayload: ctx.omitResponsePayload
+      ? "[omitted]"
+      : bytes
+        ? { bytes: bytes.byteLength }
+        : sanitizeForLog(body),
     errorMessage: response.ok ? undefined : `HTTP ${response.status}`,
   });
 

@@ -29,5 +29,8 @@ export async function recordAuditLog(input: ICreateAuditInput): Promise<void> {
 export function recordAuditLogSync(
   input: Omit<ICreateAuditInput, "storeId"> & { storeId?: ID },
 ): void {
-  void recordAuditLog({ storeId: input.storeId ?? "00000000-0000-0000-0000-000000000001", ...input });
+  void recordAuditLog({
+    storeId: input.storeId ?? "00000000-0000-0000-0000-000000000001",
+    ...input,
+  });
 }

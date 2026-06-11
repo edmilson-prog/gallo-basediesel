@@ -96,3 +96,28 @@ Sem instância de homologação até a decisão da VPS. Quando existir: enviar
 | `NOT_FOUND` instância | `instanceName` divergente do Manager |
 | `PROVIDER_DISCONNECTED` | Sessão caiu — reconectar QR no Manager |
 | `healthCheck` com `ECONNREFUSED` | VPS/container fora do ar |
+
+## Conexão por QR (in-platform)
+
+Desde a feature `whatsapp-evolution-connect` (spec
+`docs/superpowers/specs/2026-06-11-whatsapp-evolution-qr-connect-design.md`),
+a conexão da instância é feita pela própria plataforma em
+**Configurações → WhatsApp → Conectar** (staff-only):
+
+1. **Dados:** URL do servidor + nome/ID da instância vão para
+   `whatsapp_accounts.provider_config`; a apikey é gravada criptografada no
+   Vault como `{credentials_ref}_API_KEY` via `integration-secrets`
+   (write-only). "Salvar e testar servidor" valida tudo antes do QR.
+2. **QR:** a Edge Function `whatsapp-connect` (proxy staff-only) chama
+   `GET /instance/connect` e devolve o QR; o webhook da instância é apontado
+   automaticamente para `whatsapp-webhook/evolution` (idempotente). O modal
+   renova o código a cada ~30s (máx. 3×) e faz polling de
+   `GET /instance/connectionState` a cada 2s. O payload do QR nunca é
+   persistido (`omitResponsePayload` no engine).
+3. **Conectado:** a edge marca `status='connected'`, captura número/perfil
+   (`fetchInstances`) e audita `whatsapp_instance_connected`. Desconectar
+   (logout) e reiniciar a instância também passam pela edge, auditados.
+
+A pré-condição continua sendo uma instância JÁ CRIADA no servidor Evolution —
+a plataforma não provisiona instâncias. Engine: métodos standalone em
+`src/providers/whatsapp/evolution/instance.ts` (espelhados em `_shared/`).

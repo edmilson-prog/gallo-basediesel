@@ -5,11 +5,13 @@ import { cn } from "@/lib/utils";
 interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
   /** Extra classes for the scroll container that wraps the table. */
   containerClassName?: string;
+  /** Ref to the scroll container that wraps the table (e.g. progress lines). */
+  containerRef?: React.Ref<HTMLDivElement>;
 }
 
 const Table = React.forwardRef<HTMLTableElement, TableProps>(
-  ({ className, containerClassName, ...props }, ref) => (
-    <div className={cn("relative w-full overflow-auto", containerClassName)}>
+  ({ className, containerClassName, containerRef, ...props }, ref) => (
+    <div ref={containerRef} className={cn("relative w-full overflow-auto", containerClassName)}>
       <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
     </div>
   ),

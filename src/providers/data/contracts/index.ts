@@ -91,7 +91,12 @@ export type { ISellersProvider, IListSellersParams } from "./sellers";
 export type { IStoresProvider } from "./stores";
 export type { ISettingsProvider } from "./settings";
 export type { IAuditsProvider, IListAuditsParams, ICreateAuditInput } from "./audits";
-export type { IWhatsAppAccountsProvider, IListWhatsAppAccountsParams } from "./whatsappAccounts";
+export type {
+  IWhatsAppAccountsProvider,
+  IListWhatsAppAccountsParams,
+  IWhatsAppAccountMetrics,
+} from "./whatsappAccounts";
+export { computeFailureRate } from "./whatsappAccounts";
 export type {
   IDistributionTracesProvider,
   IListDistributionTracesParams,

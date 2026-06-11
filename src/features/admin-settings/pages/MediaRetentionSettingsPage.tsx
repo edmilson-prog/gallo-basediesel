@@ -29,11 +29,7 @@ export function MediaRetentionSettingsPage() {
       {/* Read-only retention card (D-5) */}
       <section className="rounded-lg border border-border bg-card p-4">
         <div className="mb-2 flex items-center gap-2">
-          <Icon
-            icon="mdi:database-clock-outline"
-            size={18}
-            className="text-muted-foreground"
-          />
+          <Icon icon="mdi:database-clock-outline" size={18} className="text-muted-foreground" />
           <h3 className="text-sm font-semibold text-foreground">{r.title}</h3>
         </div>
         <p className="mb-3 text-xs text-muted-foreground">{r.description}</p>

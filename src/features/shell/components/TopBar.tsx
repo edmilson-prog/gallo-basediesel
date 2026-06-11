@@ -18,12 +18,12 @@ import { useAuth } from "@/features/auth/useAuth";
 import { AUTH_SOURCE } from "@/features/auth/authSource";
 import { getActiveDataSource } from "@/providers/data";
 import { presetOf } from "@/shared/lib/environmentMode";
-import { GlobalSearch } from "@/features/shell/components/GlobalSearch";
 import { StoreSwitcher, useCurrentStore } from "@/features/multistore";
 import { usePlatformSettings } from "@/features/admin-settings/hooks/usePlatformSettings";
 import { AvailabilityToggle } from "@/features/distribution/components/AvailabilityToggle";
 import { NotificationDropdown } from "@/features/notifications/components/NotificationDropdown";
 import { WhatsAppStatusButton } from "@/features/shell/components/WhatsAppStatusButton";
+import { ScrollProgressBar } from "@/features/shell/components/ScrollProgressBar";
 import { ROUTES } from "@/features/shell/config/routes";
 
 export function TopBar() {
@@ -55,7 +55,7 @@ export function TopBar() {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/60 bg-background/80 px-4 shadow-sm backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-background/65">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/40 bg-background/85 px-4 shadow-lg shadow-foreground/5 backdrop-blur-2xl backdrop-saturate-[1.8] supports-[backdrop-filter]:bg-background/50 before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-foreground/15 before:to-transparent">
       {/* Mobile compact logo (visible only when sidebar hidden) */}
       <div className="md:hidden">
         <Logo variant="mark" className="h-7 w-7" />
@@ -64,14 +64,6 @@ export function TopBar() {
       {/* Active store selector (PRD-007). Reactive — drives every list query
           via withStoreScope and persists the choice in localStorage. */}
       <StoreSwitcher />
-
-      {/* Global search — dynamic width + "/" keyboard activation */}
-      <GlobalSearch />
-
-      {/* Mobile search button */}
-      <Button variant="ghost" size="icon" className="md:hidden" aria-label="Buscar">
-        <Icon icon="mdi:magnify" size={20} />
-      </Button>
 
       <div className="ml-auto flex items-center gap-1">
         {/* WhatsApp connection indicator — online/offline status per store. */}
@@ -146,6 +138,9 @@ export function TopBar() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* Scroll progress line riding the bottom edge of the glass header. */}
+      <ScrollProgressBar />
     </header>
   );
 }

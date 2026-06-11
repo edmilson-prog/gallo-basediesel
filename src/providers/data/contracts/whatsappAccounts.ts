@@ -1,5 +1,6 @@
 import type {
   ID,
+  ISO8601,
   IWhatsAppAccount,
   IWhatsAppProviderConfig,
   WhatsAppFailoverPolicy,
@@ -7,6 +8,23 @@ import type {
 
 export interface IListWhatsAppAccountsParams {
   storeId?: ID;
+}
+
+/** Outbound delivery aggregates for one account over a sliding window. */
+export interface IWhatsAppAccountMetrics {
+  windowDays: number;
+  /** Messages that left (status sent/delivered/read). */
+  sent: number;
+  failed: number;
+  /** failed / (sent + failed); 0 when there is no traffic. */
+  failureRate: number;
+  lastOutboundAt?: ISO8601;
+}
+
+/** Shared rate math so both impls (and the UI) agree on the denominator. */
+export function computeFailureRate(sent: number, failed: number): number {
+  const total = sent + failed;
+  return total > 0 ? failed / total : 0;
 }
 
 /**
@@ -41,4 +59,6 @@ export interface IWhatsAppAccountsProvider {
   list(params?: IListWhatsAppAccountsParams): Promise<IWhatsAppAccount[]>;
   get(id: ID): Promise<IWhatsAppAccount>;
   update(id: ID, patch: IWhatsAppAccountPatch): Promise<IWhatsAppAccount>;
+  /** Outbound delivery metrics for the accounts screen (staff-only data). */
+  getMetrics(id: ID, days?: number): Promise<IWhatsAppAccountMetrics>;
 }

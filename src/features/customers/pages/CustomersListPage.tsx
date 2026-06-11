@@ -12,6 +12,7 @@ import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { useCustomersProvider } from "@/providers/data/hooks/useCustomersProvider";
 import { useSellersProvider } from "@/providers/data/hooks/useSellersProvider";
+import { ScrollProgressBar } from "@/features/shell/components/ScrollProgressBar";
 import { recordAuditLogSync } from "@/providers/data/auditLogger";
 import { hashHue, initialsFrom, avatarColors } from "@/shared/utils/avatar";
 import { CustomerProfile } from "../components/CustomerProfile";
@@ -39,6 +40,7 @@ import {
 } from "../utils/listFilters";
 import {
   DEFAULT_VISIBLE_OPTIONAL,
+  OPTIONAL_COLUMNS,
   readVisibleOptional,
   writeVisibleOptional,
   type OptionalColumn,
@@ -177,6 +179,22 @@ export function CustomersListPage() {
     return readVisibleOptional();
   });
   const [columnsModalOpen, setColumnsModalOpen] = useState(false);
+
+  // Toggles from the header context menu / dropdown — keeps canonical order.
+  const toggleColumn = useCallback((id: OptionalColumn) => {
+    setVisibleOptional((prev) => {
+      const next = prev.includes(id)
+        ? prev.filter((c) => c !== id)
+        : OPTIONAL_COLUMNS.filter((c) => c === id || prev.includes(c));
+      writeVisibleOptional(next);
+      return next;
+    });
+  }, []);
+  const showAllColumns = useCallback(() => {
+    const next = [...OPTIONAL_COLUMNS];
+    writeVisibleOptional(next);
+    setVisibleOptional(next);
+  }, []);
 
   // --- Segmentações ---
   const [saveSegmentOpen, setSaveSegmentOpen] = useState(false);
@@ -418,53 +436,62 @@ export function CustomersListPage() {
 
   const showEmptyState = !list.isLoading && list.data.length === 0;
 
+  // Scroll container lives inside CustomersTable (sibling of the header
+  // block), so the progress line receives it explicitly.
+  const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
+
   return (
     <div className="flex h-[calc(100vh-4rem)] min-h-0 flex-col bg-background md:h-[calc(100vh-6rem)]">
-      <CustomersHeader
-        total={list.total}
-        searchValue={filters.search}
-        onSearchChange={(q) => url.setSearch(q)}
-        canCreateCustomer={canCreateCustomer}
-        onCreateCustomer={() => setNewCustomerOpen(true)}
-        privateSegments={segments.privateOnes}
-        sharedSegments={segments.shared}
-        activeSegmentId={activeSegment?.id ?? null}
-        activeSegmentName={activeSegment?.name ?? null}
-        hasFilters={hasAnyFilter}
-        hasUnsavedFilters={hasUnsavedFilters}
-        onApplySegment={handleApplySegment}
-        onSaveAsNew={() => setSaveSegmentOpen(true)}
-        onSaveChanges={() => void handleSaveChanges()}
-        onManageSegments={() => setManageSegmentsOpen(true)}
-        onClearSegment={() => url.setSegmentId(null)}
-        onConfigureColumns={() => setColumnsModalOpen(true)}
-      />
+      {/* Fixed header block — the progress line rides its bottom edge. */}
+      <div className="relative">
+        <CustomersHeader
+          total={list.total}
+          searchValue={filters.search}
+          onSearchChange={(q) => url.setSearch(q)}
+          canCreateCustomer={canCreateCustomer}
+          onCreateCustomer={() => setNewCustomerOpen(true)}
+          privateSegments={segments.privateOnes}
+          sharedSegments={segments.shared}
+          activeSegmentId={activeSegment?.id ?? null}
+          activeSegmentName={activeSegment?.name ?? null}
+          hasFilters={hasAnyFilter}
+          hasUnsavedFilters={hasUnsavedFilters}
+          onApplySegment={handleApplySegment}
+          onSaveAsNew={() => setSaveSegmentOpen(true)}
+          onSaveChanges={() => void handleSaveChanges()}
+          onManageSegments={() => setManageSegmentsOpen(true)}
+          onClearSegment={() => url.setSegmentId(null)}
+          onConfigureColumns={() => setColumnsModalOpen(true)}
+        />
 
-      <CustomersFiltersBar
-        filters={filters}
-        patch={(p) => url.patchFilters(p)}
-        onClear={() => url.clearAll()}
-        sellers={selectableSellers}
-        stores={accessibleStores}
-        availableTags={availableTags}
-        canFilterStore={isOwner}
-        canFilterSeller={isManagerOrOwner}
-        isManagerOrOwner={isManagerOrOwner}
-      />
+        <CustomersFiltersBar
+          filters={filters}
+          patch={(p) => url.patchFilters(p)}
+          onClear={() => url.clearAll()}
+          sellers={selectableSellers}
+          stores={accessibleStores}
+          availableTags={availableTags}
+          canFilterStore={isOwner}
+          canFilterSeller={isManagerOrOwner}
+          isManagerOrOwner={isManagerOrOwner}
+        />
 
-      <BulkActionsBar
-        count={selectedIds.size}
-        totalFiltered={list.total}
-        isPageScope={selectAllScope === "page"}
-        canTransfer={canCreateTransfer && isManagerOrOwner}
-        canExport={canExport}
-        onClear={clearSelection}
-        onSelectAllFiltered={() => void handleSelectAllFiltered()}
-        onAddTag={() => setAddTagOpen(true)}
-        onRemoveTag={() => setRemoveTagOpen(true)}
-        onTransferSeller={() => setTransferOpen(true)}
-        onMarkDormant={() => void handleMarkDormant()}
-      />
+        <BulkActionsBar
+          count={selectedIds.size}
+          totalFiltered={list.total}
+          isPageScope={selectAllScope === "page"}
+          canTransfer={canCreateTransfer && isManagerOrOwner}
+          canExport={canExport}
+          onClear={clearSelection}
+          onSelectAllFiltered={() => void handleSelectAllFiltered()}
+          onAddTag={() => setAddTagOpen(true)}
+          onRemoveTag={() => setRemoveTagOpen(true)}
+          onTransferSeller={() => setTransferOpen(true)}
+          onMarkDormant={() => void handleMarkDormant()}
+        />
+
+        <ScrollProgressBar container={scrollEl} />
+      </div>
 
       <div
         className={cn(
@@ -505,6 +532,9 @@ export function CustomersListPage() {
                 onSortChange={url.setSort}
                 searchTerm={filters.search}
                 sellersById={sellersById}
+                onToggleColumn={toggleColumn}
+                onShowAllColumns={showAllColumns}
+                scrollRef={setScrollEl}
               />
             )}
           </div>

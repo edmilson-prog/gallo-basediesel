@@ -71,6 +71,7 @@ export type {
   IListAuditsParams,
   IWhatsAppAccountsProvider,
   IListWhatsAppAccountsParams,
+  IWhatsAppAccountMetrics,
   IDistributionTracesProvider,
   IListDistributionTracesParams,
   IManagerDashboardProvider,
@@ -105,6 +106,7 @@ export type {
   ICreateMessageTemplateInput,
   IUpdateMessageTemplateInput,
 } from "./contracts";
+export { computeFailureRate } from "./contracts";
 
 export { useCustomersProvider } from "./hooks/useCustomersProvider";
 export { useVehiclesProvider } from "./hooks/useVehiclesProvider";

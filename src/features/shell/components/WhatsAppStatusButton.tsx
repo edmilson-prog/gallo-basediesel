@@ -1,55 +1,43 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { IWhatsAppAccount } from "@/shared/types";
-import { useCurrentStore } from "@/features/multistore";
-import { useWhatsAppAccountsProvider } from "@/providers/data";
+import { useWhatsAppConnectionStatus } from "../hooks/useWhatsAppConnectionStatus";
 
 /**
- * Header WhatsApp connection indicator.
+ * Header WhatsApp connection indicator (SIGPRO-inspired).
  *
- * Shows a WhatsApp icon with a status dot derived from the current store's
- * accounts: online (green, pulsing) when at least one account is connected,
- * offline (muted, static) otherwise. Clicking opens the WhatsApp settings page.
- *
- * Phase 1: reads the mock accounts via the provider; no live socket yet.
+ * Shares the 60s TanStack Query with WhatsAppDisconnectedBanner — one fetch
+ * feeds both. Visual states:
+ *   green  — every account connected;
+ *   amber  — partial (some connected, some not);
+ *   red+!  — none connected;
+ *   muted  — loading or no accounts registered.
+ * While the disconnect banner is snoozed, the icon pulses as the residual
+ * signal that something is still down. Clicking opens Configurações → WhatsApp.
  */
 export function WhatsAppStatusButton() {
   const navigate = useNavigate();
-  const { currentStoreId } = useCurrentStore();
-  const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
-  const provider = useWhatsAppAccountsProvider();
-  const [accounts, setAccounts] = useState<IWhatsAppAccount[] | null>(null);
+  const { loading, total, connectedCount, snoozed } = useWhatsAppConnectionStatus();
 
-  useEffect(() => {
-    let cancelled = false;
-    provider
-      .list({ storeId })
-      .then((list) => {
-        if (!cancelled) setAccounts(list);
-      })
-      .catch(() => {
-        if (!cancelled) setAccounts([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [provider, storeId]);
+  const allConnected = total > 0 && connectedCount === total;
+  const noneConnected = total > 0 && connectedCount === 0;
 
-  const loading = accounts === null;
-  const online = !loading && accounts.some((a) => a.status === "connected");
   const label = loading
     ? "WhatsApp — verificando conexão"
-    : online
-      ? "WhatsApp conectado"
-      : "WhatsApp desconectado";
+    : total === 0
+      ? "Nenhuma conta WhatsApp cadastrada"
+      : noneConnected
+        ? "WhatsApp desconectado — clique para reconectar"
+        : allConnected
+          ? `WhatsApp conectado (${connectedCount} ${connectedCount === 1 ? "conta" : "contas"})`
+          : `WhatsApp parcial — ${connectedCount} de ${total} contas conectadas`;
 
   return (
     <Button
       variant="ghost"
       size="icon"
+      className="relative"
       onClick={() => void navigate({ to: "/app/configuracoes/whatsapp" })}
       aria-label={label}
       title={label}
@@ -57,8 +45,23 @@ export function WhatsAppStatusButton() {
       <Icon
         icon="mdi:whatsapp"
         size={20}
-        className={cn(online ? "animate-pulse text-severity-success" : "text-muted-foreground")}
+        className={cn(
+          loading || total === 0
+            ? "text-muted-foreground"
+            : noneConnected
+              ? "text-severity-critical"
+              : allConnected
+                ? "text-severity-success"
+                : "text-severity-warning",
+          // Residual signal while the disconnect banner is snoozed.
+          snoozed && "motion-safe:animate-pulse",
+        )}
       />
+      {noneConnected && (
+        <span className="absolute right-1 top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full border border-background bg-severity-critical text-[8px] font-bold text-white">
+          !
+        </span>
+      )}
     </Button>
   );
 }

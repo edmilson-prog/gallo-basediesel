@@ -1,9 +1,11 @@
 import type { ID, IWhatsAppAccount, IWhatsAppCapabilities } from "@/shared/types";
 import type {
   IListWhatsAppAccountsParams,
+  IWhatsAppAccountMetrics,
   IWhatsAppAccountPatch,
   IWhatsAppAccountsProvider,
 } from "../../contracts/whatsappAccounts";
+import { computeFailureRate } from "../../contracts/whatsappAccounts";
 import { getSupabaseClient } from "@/shared/lib/supabase";
 
 /**
@@ -98,5 +100,30 @@ export const supabaseWhatsAppAccountsProvider: IWhatsAppAccountsProvider = {
     if (error)
       throw new Error(`[supabase] whatsappAccounts.update(${id}) failed: ${error.message}`);
     return rowToWhatsAppAccount(data as unknown as WhatsAppAccountRow);
+  },
+
+  async getMetrics(id: ID, days = 30): Promise<IWhatsAppAccountMetrics> {
+    const { data, error } = await getSupabaseClient().rpc("whatsapp_account_metrics", {
+      p_account_id: id,
+      p_days: days,
+    });
+    if (error)
+      throw new Error(`[supabase] whatsappAccounts.getMetrics(${id}) failed: ${error.message}`);
+    // Staff-only silent filter: non-staff callers get null → empty metrics.
+    const payload = (data ?? {}) as {
+      windowDays?: number;
+      sent?: number;
+      failed?: number;
+      lastOutboundAt?: string | null;
+    };
+    const sent = payload.sent ?? 0;
+    const failed = payload.failed ?? 0;
+    return {
+      windowDays: payload.windowDays ?? days,
+      sent,
+      failed,
+      failureRate: computeFailureRate(sent, failed),
+      lastOutboundAt: payload.lastOutboundAt ?? undefined,
+    };
   },
 };

@@ -91,6 +91,28 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
       );
       return row ? toAccountRecord(row) : null;
     },
+    async findEvolutionAccountAnyStatus(instanceName) {
+      if (!instanceName) return null;
+      const { data } = await admin
+        .from("whatsapp_accounts")
+        .select("id, store_id, provider, phone_number, credentials_ref, provider_config, status")
+        .eq("provider", "evolution");
+      const row = (data ?? []).find(
+        (candidate) =>
+          (candidate.provider_config as { instanceName?: string } | null)?.instanceName ===
+          instanceName,
+      );
+      return row ? toAccountRecord(row) : null;
+    },
+    async setAccountConnectionStatus(accountId, status) {
+      const { data } = await admin
+        .from("whatsapp_accounts")
+        .update({ status })
+        .eq("id", accountId)
+        .neq("status", status)
+        .select("id");
+      return (data?.length ?? 0) > 0;
+    },
     async findCustomerByPhone(storeId, phoneDigits) {
       // Narrow by suffix in SQL, confirm exact digit match in code (phone
       // formatting in the base varies: +55..., (55) 9..., etc.).
@@ -363,14 +385,15 @@ async function evolutionGate(
     .split(",")
     .map((ip) => ip.trim())
     .filter(Boolean);
+  const sourceIp = (req.headers.get("x-forwarded-for") ?? "").split(",")[0]?.trim() ?? "";
   if (allowlist.length > 0) {
-    const sourceIp = (req.headers.get("x-forwarded-for") ?? "").split(",")[0]?.trim() ?? "";
     if (allowlist.includes(sourceIp)) return null;
     log.warn("evolution webhook from non-allowlisted ip", { sourceIp });
     return json({ error: "forbidden" }, 403);
   }
-  // Neither secret nor allowlist configured: fail closed.
-  log.error("evolution webhook validation not configured — rejecting (fail closed)");
+  // Neither secret nor allowlist configured: fail closed. The sourceIp in the
+  // log is what an operator must allowlist (EVOLUTION_ALLOWED_IPS).
+  log.error("evolution webhook validation not configured — rejecting (fail closed)", { sourceIp });
   return json({ error: "webhook not configured" }, 403);
 }
 
@@ -418,8 +441,10 @@ Deno.serve(async (req) => {
     const rejection = await metaGate(req, rawBody, log, resolveSecret);
     if (rejection) return respond(rejection);
   } else {
+    // Any-status lookup: the gate is about AUTH (per-account secret), and
+    // connection.update events must also reach disconnected accounts.
     const instance = (payload as { instance?: string } | null)?.instance ?? "";
-    const account = await db.findEvolutionAccount(instance);
+    const account = await db.findEvolutionAccountAnyStatus(instance);
     const rejection = await evolutionGate(req, rawBody, account, log, resolveSecret);
     if (rejection) return respond(rejection);
   }

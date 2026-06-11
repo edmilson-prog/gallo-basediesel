@@ -23,6 +23,8 @@ interface IFakeState {
   bumps: string[];
   mediaSet: Array<{ messageId: string; mediaUrl: string | null; status: string }>;
   invalidCustomers: string[];
+  /** Simulated whatsapp_accounts.status for the single test account. */
+  accountStatus: string;
 }
 
 function makeFakeDb(state: IFakeState, opts?: { knownOutboundId?: string }): IWebhookDb {
@@ -35,7 +37,14 @@ function makeFakeDb(state: IFakeState, opts?: { knownOutboundId?: string }): IWe
     },
     findMetaAccount: async () => ({ ...ACCOUNT, provider: "meta" }),
     findEvolutionAccount: async (instanceName) =>
+      instanceName === "gallo-matriz" && state.accountStatus !== "disconnected" ? ACCOUNT : null,
+    findEvolutionAccountAnyStatus: async (instanceName) =>
       instanceName === "gallo-matriz" ? ACCOUNT : null,
+    setAccountConnectionStatus: async (_accountId, status) => {
+      if (state.accountStatus === status) return false;
+      state.accountStatus = status;
+      return true;
+    },
     findCustomerByPhone: async (storeId, digits) => {
       const found = state.customers.find((c) => c.storeId === storeId && c.phoneDigits === digits);
       return found ? { id: found.id, sellerId: found.sellerId } : null;
@@ -109,6 +118,7 @@ function emptyState(): IFakeState {
     bumps: [],
     mediaSet: [],
     invalidCustomers: [],
+    accountStatus: "connected",
   };
 }
 
@@ -418,5 +428,73 @@ describe("processWebhookEvent — meta routing", () => {
 
     expect(result.outcome).toBe("message-created");
     expect(state.messages[0]).toMatchObject({ provider: "meta", providerMessageId: "wamid.X" });
+  });
+});
+
+describe("processWebhookEvent — evolution connection.update (status sync)", () => {
+  function connectionEvent(state: string, event = "connection.update") {
+    return { event, instance: "gallo-matriz", data: { state } };
+  }
+
+  it("close flips a connected account to disconnected (with audit)", async () => {
+    const state = emptyState();
+    const result = await run(state, connectionEvent("close"));
+
+    expect(result.outcome).toBe("connection-synced");
+    expect(state.accountStatus).toBe("disconnected");
+    expect(state.audits[0]).toMatchObject({
+      action: "whatsapp_instance_disconnected",
+      after: expect.objectContaining({ reason: "connection_update", state: "close" }),
+    });
+  });
+
+  it("open flips a disconnected account back to connected (any-status lookup)", async () => {
+    const state = emptyState();
+    state.accountStatus = "disconnected";
+    const result = await run(state, connectionEvent("open"));
+
+    expect(result.outcome).toBe("connection-synced");
+    expect(state.accountStatus).toBe("connected");
+    expect(state.audits[0]).toMatchObject({ action: "whatsapp_instance_connected" });
+  });
+
+  it("is idempotent: same state again does not re-audit", async () => {
+    const state = emptyState();
+    await run(state, connectionEvent("open"));
+
+    expect(state.accountStatus).toBe("connected");
+    expect(state.audits).toHaveLength(0);
+  });
+
+  it("ignores the transient connecting state", async () => {
+    const state = emptyState();
+    const result = await run(state, connectionEvent("connecting"));
+
+    expect(result.outcome).toBe("ignored");
+    expect(state.accountStatus).toBe("connected");
+  });
+
+  it("accepts the uppercase CONNECTION_UPDATE event name and data.connection key", async () => {
+    const state = emptyState();
+    const result = await run(state, {
+      event: "CONNECTION_UPDATE",
+      instance: "gallo-matriz",
+      data: { connection: "close" },
+    });
+
+    expect(result.outcome).toBe("connection-synced");
+    expect(state.accountStatus).toBe("disconnected");
+  });
+
+  it("returns account-not-found for an unknown instance", async () => {
+    const state = emptyState();
+    const result = await run(state, {
+      event: "connection.update",
+      instance: "outra-instancia",
+      data: { state: "close" },
+    });
+
+    expect(result.outcome).toBe("account-not-found");
+    expect(state.accountStatus).toBe("connected");
   });
 });
