@@ -41,6 +41,13 @@ export interface IInstanceStateResult {
   state: EvolutionInstanceState;
 }
 
+/** Owner jid → E.164, stripping the optional device suffix (":12"). */
+function jidToPhone(jid: string | undefined): string | undefined {
+  if (!jid) return undefined;
+  const digits = toE164(jid.split("@")[0]?.split(":")[0] ?? "");
+  return digits.length > 0 ? digits : undefined;
+}
+
 function parseState(body: unknown): EvolutionInstanceState {
   const candidate = body as { instance?: { state?: string }; state?: string } | null;
   const raw = candidate?.instance?.state ?? candidate?.state;
@@ -124,7 +131,7 @@ export async function fetchInstanceProfile(
     if (name !== target.instanceName) continue;
     const jid = v1?.owner ?? v2?.ownerJid;
     return {
-      phoneNumber: jid ? toE164(jid.split("@")[0] ?? "") : undefined,
+      phoneNumber: jidToPhone(jid),
       profileName: v1?.profileName ?? v2?.profileName ?? undefined,
     };
   }

@@ -117,6 +117,14 @@ describe("fetchInstanceProfile", () => {
     expect(result.profileName).toBe("Loja");
   });
 
+  it("strips the device suffix from the owner jid", async () => {
+    const { deps } = makeDeps(200, [
+      { name: "inst1", ownerJid: "5555999887766:12@s.whatsapp.net" },
+    ]);
+    const result = await fetchInstanceProfile("key", deps, TARGET);
+    expect(result.phoneNumber).toBe("+5555999887766");
+  });
+
   it("returns an empty profile when the instance is not in the list", async () => {
     const { deps } = makeDeps(200, [{ name: "other" }]);
     expect(await fetchInstanceProfile("key", deps, TARGET)).toEqual({});
@@ -142,6 +150,7 @@ describe("logout / restart / webhook", () => {
     const { deps, calls } = makeDeps(200, {});
     await setInstanceWebhook("key", deps, TARGET, "https://x.supabase.co/functions/v1/whatsapp-webhook/evolution");
     expect(calls[0].url).toBe("https://evo.test/webhook/set/inst1");
+    expect(calls[0].init.method).toBe("POST");
     const sent = JSON.parse(String(calls[0].init.body));
     expect(sent.webhook.enabled).toBe(true);
     expect(sent.webhook.url).toContain("/whatsapp-webhook/evolution");
