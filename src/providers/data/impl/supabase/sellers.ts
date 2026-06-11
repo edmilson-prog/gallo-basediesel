@@ -1,5 +1,5 @@
 import type { Division, ID, ISeller } from "@/shared/types";
-import type { IListSellersParams, ISellersProvider } from "../../contracts/sellers";
+import type { ICreateSellerInput, IListSellersParams, ISellersProvider } from "../../contracts/sellers";
 import { getSupabaseClient } from "@/shared/lib/supabase";
 
 /**
@@ -27,11 +27,12 @@ interface SellerRow {
   vehicle_cadastro_mode: ISeller["vehicleCadastroMode"] | null;
   active: boolean;
   created_at: string;
+  deleted_at: string | null;
 }
 
 const TABLE = "sellers";
 const COLUMNS =
-  "id, store_id, full_name, email, phone, type, availability, divisions, theme_preference, region, commission_tier, parent_seller_id, commission_rule, vehicle_cadastro_mode, active, created_at";
+  "id, store_id, full_name, email, phone, type, availability, divisions, theme_preference, region, commission_tier, parent_seller_id, commission_rule, vehicle_cadastro_mode, active, created_at, deleted_at";
 
 function rowToSeller(row: SellerRow): ISeller {
   return {
@@ -51,6 +52,7 @@ function rowToSeller(row: SellerRow): ISeller {
     vehicleCadastroMode: row.vehicle_cadastro_mode ?? undefined,
     active: row.active,
     createdAt: row.created_at,
+    deletedAt: row.deleted_at ?? undefined,
   };
 }
 
@@ -78,6 +80,7 @@ function sellerPatchToRow(patch: Partial<ISeller>): Record<string, unknown> {
 export const supabaseSellersProvider: ISellersProvider = {
   async list(params?: IListSellersParams): Promise<ISeller[]> {
     let query = getSupabaseClient().from(TABLE).select(COLUMNS);
+    query = query.is("deleted_at", null);
     if (params?.storeId) query = query.eq("store_id", params.storeId);
     if (params?.active !== undefined) query = query.eq("active", params.active);
 
@@ -118,4 +121,46 @@ export const supabaseSellersProvider: ISellersProvider = {
     if (error) throw new Error(`[supabase] sellers.update(${id}) failed: ${error.message}`);
     return rowToSeller(data as SellerRow);
   },
+
+  async create(input: ICreateSellerInput): Promise<ISeller> {
+    // RLS sellers_insert (staff of the store) protects this direct insert; the
+    // DB fills id/availability/divisions/active/created_at defaults.
+    const { data, error } = await getSupabaseClient()
+      .from(TABLE)
+      .insert({
+        store_id: input.storeId,
+        full_name: input.fullName.trim(),
+        email: input.email.trim().toLowerCase(),
+        phone: input.phone?.trim() || null,
+        type: input.type,
+        region: input.region?.trim() || null,
+      })
+      .select(COLUMNS)
+      .single();
+    if (error) throw new Error(`[supabase] sellers.create failed: ${error.message}`);
+    return rowToSeller(data as SellerRow);
+  },
+
+  async remove(id: ID): Promise<void> {
+    // Soft delete runs server-side (delete-seller Edge Function) because
+    // revoking the login needs the service_role key.
+    const { error } = await getSupabaseClient().functions.invoke("delete-seller", {
+      body: { sellerId: id },
+    });
+    if (error) throw new Error(await extractFunctionError(error));
+  },
 };
+
+/** Pulls the JSON `error` field out of a non-2xx Edge Function response. */
+async function extractFunctionError(error: unknown): Promise<string> {
+  const ctx = (error as { context?: Response }).context;
+  if (ctx && typeof ctx.json === "function") {
+    try {
+      const body = (await ctx.json()) as { error?: string };
+      if (body?.error) return body.error;
+    } catch {
+      /* fall through to the generic message */
+    }
+  }
+  return error instanceof Error ? error.message : "Falha ao excluir o usuário.";
+}
