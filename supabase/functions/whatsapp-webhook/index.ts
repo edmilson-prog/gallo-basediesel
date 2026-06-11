@@ -385,14 +385,15 @@ async function evolutionGate(
     .split(",")
     .map((ip) => ip.trim())
     .filter(Boolean);
+  const sourceIp = (req.headers.get("x-forwarded-for") ?? "").split(",")[0]?.trim() ?? "";
   if (allowlist.length > 0) {
-    const sourceIp = (req.headers.get("x-forwarded-for") ?? "").split(",")[0]?.trim() ?? "";
     if (allowlist.includes(sourceIp)) return null;
     log.warn("evolution webhook from non-allowlisted ip", { sourceIp });
     return json({ error: "forbidden" }, 403);
   }
-  // Neither secret nor allowlist configured: fail closed.
-  log.error("evolution webhook validation not configured — rejecting (fail closed)");
+  // Neither secret nor allowlist configured: fail closed. The sourceIp in the
+  // log is what an operator must allowlist (EVOLUTION_ALLOWED_IPS).
+  log.error("evolution webhook validation not configured — rejecting (fail closed)", { sourceIp });
   return json({ error: "webhook not configured" }, 403);
 }
 
