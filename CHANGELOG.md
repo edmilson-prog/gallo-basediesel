@@ -6,6 +6,29 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.87.0] — Socket · 2026-06-11
+
+**Conectar o WhatsApp agora é coisa de dentro da plataforma**: leia um QR code e pronto, sem painéis técnicos. E as telas de lista ganharam um pacote de produtividade — visual de vidro, linha de progresso, busca mais esperta e colunas sob seu controle.
+
+### Added
+
+- **Conexão do WhatsApp por QR code** — em Configurações → WhatsApp, o botão "Conectar" abre um assistente: informe os dados do servidor, leia o QR code com o celular (igual ao WhatsApp Web) e o número fica ativo. Dá para testar o servidor antes de conectar e reconectar um número que caiu pelo mesmo caminho.
+- **Status de conexão sempre verdadeiro** — a plataforma confere sozinha, de tempos em tempos (e na hora, quando o provedor avisa), se cada número segue conectado. O cartão da conta mostra o estado real e tem o botão "Verificar agora".
+- **Métricas e mensagem de teste por conta** — cada conta de WhatsApp exibe envios dos últimos 30 dias, falhas, taxa de falha e o horário do último envio; o botão "Mensagem de teste" dispara um texto para um número à sua escolha (o campo formata o telefone automaticamente) para validar a conexão de ponta a ponta.
+- **Aviso imediato de desconexão** — se um número cair, o gestor recebe notificação no sino e uma faixa translúcida fixa avisa no topo de todas as telas, com atalho "Reconectar"; o X silencia o aviso por 30 minutos. O ícone do WhatsApp no topo fica verde, âmbar ou vermelho conforme a situação das contas.
+- **Linha de progresso de leitura** — uma linha fina colorida na base do cabeçalho avança conforme você rola a página, no app inteiro e nas telas de lista.
+- **Menu de colunas nas listas** — clique com o botão direito no cabeçalho das tabelas de Clientes, Orçamentos e Pedidos para escolher quais colunas exibir (como já existia em Veículos e Catálogo); a escolha fica salva no navegador.
+- **Colunas ajustáveis em Pedidos** — arraste a divisória no cabeçalho para mudar a largura de cada coluna, como no Catálogo; as larguras ficam salvas.
+
+### Changed
+
+- **Visual de vidro nos cabeçalhos** — o topo do app e os cabeçalhos de Catálogo, Clientes, Veículos, Orçamentos e Pedidos ganharam efeito de vidro fosco: o conteúdo passa desfocado por trás ao rolar.
+- **Busca mais esperta nas listas** — o campo de busca dessas telas cresce quando você clica nele, a tecla "/" leva o cursor direto para a busca e Esc recolhe o campo.
+
+### Removed
+
+- **Busca global do topo** — a barra de busca do cabeçalho principal foi removida; a busca agora vive dentro de cada tela, com atalho "/" e mais contexto.
+
 ## [0.86.1] — Lever · 2026-06-11
 
 Ajustes do **dia da virada para Produção**: correções identificadas no teste geral feito após a plataforma passar a operar com dados reais.
