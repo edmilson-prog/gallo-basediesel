@@ -613,7 +613,9 @@ export function WhatsAppAccountsPage() {
             </p>
           </div>
           {(() => {
-            const evolution = (accounts ?? []).find((a) => a.provider === "evolution");
+            const evolutionAccounts = (accounts ?? []).filter((a) => a.provider === "evolution");
+            const evolution =
+              evolutionAccounts.find((a) => a.status !== "connected") ?? evolutionAccounts[0];
             return evolution ? (
               <Button size="sm" onClick={() => openConnect(evolution)}>
                 <Icon icon="mdi:qrcode-scan" size={14} className="mr-1.5" />

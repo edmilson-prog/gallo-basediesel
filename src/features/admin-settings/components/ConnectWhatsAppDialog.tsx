@@ -322,7 +322,17 @@ export function ConnectWhatsAppDialog({
           )}
 
           {step === "qr" && account && pairing.phase !== "open" && (
-            <QrPairingStep pairing={pairing} />
+            <div className="space-y-2">
+              <QrPairingStep pairing={pairing} />
+              {pairing.phase === "error" && (
+                <div className="flex justify-start">
+                  <Button variant="ghost" size="sm" onClick={() => setStep("form")}>
+                    <Icon icon="mdi:arrow-left" size={14} className="mr-1.5" />
+                    Editar dados da conexão
+                  </Button>
+                </div>
+              )}
+            </div>
           )}
 
           {step === "qr" && account && pairing.phase === "open" && (
@@ -334,8 +344,7 @@ export function ConnectWhatsAppDialog({
                 Conectado{pairing.profile.profileName ? ` como ${pairing.profile.profileName}` : ""}
               </p>
               <p className="text-xs text-muted-foreground">
-                {pairing.profile.phoneNumber ?? account.phoneNumber} · instância{" "}
-                {account.providerConfig?.instanceName}
+                {pairing.profile.phoneNumber ?? account.phoneNumber} · instância {instanceName}
               </p>
               <div className="mt-3 flex gap-2">
                 <Button
