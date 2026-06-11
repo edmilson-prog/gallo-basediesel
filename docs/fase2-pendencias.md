@@ -8,15 +8,18 @@
 
 ## Onde a Fase 2 está
 
-O **backend do cutover está pronto e validado** (34 providers, 39 tabelas com RLS, isolamento per-seller Slices 1–4, #43 audit/transfers/media, storefront anon, auth real + JWT hook, seed populado). O `/app` foi validado por impersonação + UI, e há **suíte de testes de RLS versionada** (`supabase/tests/rls-regression.sql`, verde). O **flip está ativo só no Preview** (produção segue `mock` por decisão).
+O **backend do cutover está pronto e validado** (34 providers, 39 tabelas com RLS, isolamento per-seller Slices 1–4, #43 audit/transfers/media, storefront anon, auth real + JWT hook, seed populado). O `/app` foi validado por impersonação + UI, e há **suíte de testes de RLS versionada** (`supabase/tests/rls-regression.sql`, verde).
+
+> 🚀 **GO-LIVE (2026-06-10): produção está em `supabase`** — flip executado e
+> smoke completo aprovado pelo dono (ver §A3). A Fase 2 está **fechada**.
 
 A **loja transacional** (checkout + conta B2C) foi **deferida da Fase 2 por decisão registrada** — vira fase própria.
 
-**Resumo:** no escopo combinado (`/app`), a parte implementável está concluída. O que resta são **itens gated no dono** (secret de CI, conta Resend, decisão de flip/merge) e **follow-ups de hardening** pequenos.
+**Resumo:** todos os grupos gated no dono foram concluídos (A1–A4, C1–C3, D2–D4; D1 com PITR ligado e teste de DR pendente). Este documento permanece como registro histórico + backlog do grupo B e §E.
 
 | Grupo | Itens | Natureza |
 | --- | --- | --- |
-| **A. Fechar o cutover** | A1 CI · ~~A2 Resend~~ ✅ · A3 Flip prod · ~~A4 Merge~~ ✅ | gated no dono / decisão |
+| **A. Fechar o cutover** | ~~A1 CI~~ ✅ · ~~A2 Resend~~ ✅ · ~~A3 Flip prod~~ ✅ · ~~A4 Merge~~ ✅ | **tudo feito** |
 | **B. Loja transacional** (deferida) | B1 #40 · B2 #41 · B3 #42 · B4 mídia | fase própria |
 | **C. Hardening** (follow-ups) | ~~C1 media write~~ ✅ · ~~C2 addNote~~ ✅ · ~~C3 #44~~ ✅ | **tudo feito** |
 | **D. DR & Observabilidade** (PRD-109/110) | D1 PITR+teste DR · D2 secrets backup · D3 Sentry DSN · D4 monitor uptime | código entregue; ativação gated no dono |
@@ -27,7 +30,7 @@ A **loja transacional** (checkout + conta B2C) foi **deferida da Fase 2 por deci
 
 ### A1 — Ativar a suíte de testes de RLS no CI {#a1-ci}
 - **O quê:** ativar o workflow `.github/workflows/rls-tests.yml` que roda `supabase/tests/rls-regression.sql`.
-- **Status:** testes + workflow **entregues e validados** (commit `a47de19`). O job é **no-op verde** até o secret existir.
+- **Status:** ✅ **FEITO (2026-06-10).** Secret `SUPABASE_DB_URL` configurado e o workflow roda **verde de verdade** a cada PR (validado em execução real — ver §D2 para o hardening no caminho). Issue #45 fechada.
 - **Bloqueio / dono:** adicionar o **secret de repositório `SUPABASE_DB_URL`** (string de conexão Postgres para um banco seeded — idealmente um **branch de preview** do Supabase, ou um projeto de teste; o role precisa poder `SET ROLE authenticated|anon`, ex.: `postgres`).
 - **Critério de pronto:** PR que toca `supabase/tests/**` dispara o job e ele roda verde de verdade (não no-op).
 - **Arquivos:** `supabase/tests/rls-regression.sql`, `.github/workflows/rls-tests.yml`.
@@ -35,18 +38,26 @@ A **loja transacional** (checkout + conta B2C) foi **deferida da Fase 2 por deci
 
 ### A2 — Ativar convite por e-mail (Resend) {#a2-resend}
 - **Status:** ✅ **FEITO (2026-06-10, validado e2e pelo dono).** Secrets setados (`RESEND_API_KEY`/`RESEND_FROM`/`INVITE_REDIRECT_URL`), domínio verificado, allowlist da redirect URL configurada no Auth. Wiring completo entregue no PR #50 (v0.74.0): rota `/auth/definir-senha` + `inviteSellerByEmail` + botão "Convidar por e-mail" no dialog de Usuários. **Teste de ponta a ponta passou**: convite → e-mail → link → senha definida → login.
-- **Follow-ups registrados:** (a) **rotacionar a `RESEND_API_KEY`** (apareceu em print durante a configuração — runbook `docs/infra/rotate-keys.md`); (b) se o teste usou `INVITE_REDIRECT_URL` de localhost, **voltar para a URL de produção** quando o flip (#47) acontecer.
+- **Follow-ups registrados:** (a) **rotacionar a `RESEND_API_KEY`** (apareceu em print durante a configuração — runbook `docs/infra/rotate-keys.md`); (b) ~~voltar `INVITE_REDIRECT_URL` para a URL de produção no flip~~ ✅ feito no go-live (2026-06-10, via Vault: `https://crm.gallobasediesel.com.br/auth/definir-senha`).
 - **Arquivos:** `supabase/functions/invite-seller-email/index.ts`, `src/features/auth/SetPasswordPage.tsx`, `src/features/admin-settings/api/sellerAccess.ts`.
 - **Issue:** #46 (fechado).
 
 ### A3 — Flip de produção + smoke final {#a3-flip}
-- **O quê:** virar o default de **produção** para `supabase` (env na Vercel, escopo Production) e rodar o smoke geral.
-- **Status:** **Preview** já roda supabase e passou no smoke de RLS. Produção intacta em `mock`.
-- **Bloqueio / dono:** **decisão sua.** ✅ Pré-condição prática **satisfeita**: a loja em `supabase` agora faz **handoff por WhatsApp** (B3, commit `cb7a13d`) em vez do checkout que falhava — visitantes reais não caem mais num fluxo quebrado. O `/app` já estava pronto para o flip.
-- **Critério de pronto:** produção em `supabase`, smoke owner+vendedor+loja verde, console limpo.
-- **Itens acoplados ao dia do flip:** (a) **habilitar PITR** (ver D1 — decisão de 2026-06-10: liga junto com o flip, não antes); (b) apontar `INVITE_REDIRECT_URL` para a URL de produção (ver A2).
+- **Status:** ✅ **FEITO — GO-LIVE em 2026-06-10.** Produção
+  (crm.gallobasediesel.com.br) roda `supabase` em dados **e** auth (envs da
+  Vercel, escopo Production; verificado por inspeção do bundle publicado).
+  Itens acoplados executados no mesmo dia: **PITR habilitado** (ver D1) e
+  `INVITE_REDIRECT_URL` apontada para a URL de produção via Vault.
+- **Smoke final (aprovado pelo dono):** login real, badge "Produção", catálogo
+  interno, lista de pedidos completa, mutação de cliente (dormente) com refresh
+  imediato, smoke de vendedor e loja anônima — tudo verde.
+- **Hotfixes no caminho (mergeados + deployados):** **PR #65** (providers
+  supabase clampavam listas em 200 itens → teto 1000 em 17 providers) e
+  **PR #66** (detalhe do cliente não refletia mutação — invalidação de queries
+  no `ProfileMenu`; espelho de sessão agora carrega `sellerId` para o
+  `audit_logs.actor_id` FK → sellers, família #49).
 - **Arquivos:** env da Vercel (Production) — ver `docs/db/cutover-smoke-checklist.md` §1/§8.
-- **Issue:** #47
+- **Issue:** #47 (fechada no go-live).
 
 ### A4 — Merge do PR #39 {#a4-merge}
 - **O quê:** mergear `feat/fase2-supabase-cutover` → `main`.
@@ -118,12 +129,11 @@ A **loja transacional** (checkout + conta B2C) foi **deferida da Fase 2 por deci
 > **Issue:** #52.
 
 ### D1 — Habilitar PITR + executar o 1º teste de DR {#d1-pitr}
-- **⏸️ DEFERIDO PARA O FLIP (#47) — decisão do dono em 2026-06-10.** A produção
-  ainda roda em `mock` (o banco real só tem seed); pagar o add-on agora
-  protegeria dado sem valor. O PITR entra como **item obrigatório do checklist
-  do flip de produção (#47)**: ligar o add-on no mesmo dia em que a Vercel
-  flipar para `supabase`. Até lá o RPO aceito é 24 h (daily backup do Supabase
-  + dump semanal no GitHub).
+- **🟡 PITR HABILITADO (2026-06-10, dia do flip — conforme a decisão de deferir
+  até o go-live).** RPO agora ~2 min. **Pendente:** o 1º teste real de
+  restauração (runbook `restore-pitr.md`) registrado em
+  `docs/infra/dr-test-log.md` com RTO medido — backup não testado é falsa
+  segurança (RF-050).
 - **O quê:** habilitar o add-on PITR (Dashboard → Database → Backups → Point in Time, ~US$ 100/mês, RPO ~2 min) e executar o primeiro teste real de restauração seguindo `docs/infra/runbooks/restore-pitr.md`.
 - **Por quê:** sem PITR o RPO real é 24 h (daily backup). Backup não testado é falsa segurança (RF-050).
 - **Critério de pronto:** teste registrado em `docs/infra/dr-test-log.md` com RTO medido. O teste de DR pode ser antecipado com o dump do GitHub (`restore-logical.md`), independente do PITR.
@@ -183,8 +193,7 @@ A **loja transacional** (checkout + conta B2C) foi **deferida da Fase 2 por deci
 
 ## Ordem sugerida para fechar de vez
 
-1. **B3 handoff** (se a loja receber tráfego) → desbloqueia o **A3 flip de produção** com segurança.
-2. **A1 CI** (adicionar `SUPABASE_DB_URL`) — trava as garantias de RLS em PRs.
-3. **A4 merge** quando você considerar a Fase 2 fechada (escopo `/app`).
-4. **A2 Resend** e **C1/C2/C3** conforme prioridade.
-5. **B1/B2** (loja transacional) — fase própria, quando a loja voltar a ser prioridade.
+> ✅ **Fase 2 fechada no go-live de 2026-06-10** — grupos A, C e D concluídos
+> (única pendência viva: 1º teste de DR, §D1). O que resta é backlog de fases
+> próprias: **B1/B2** (loja transacional), rotação da `RESEND_API_KEY` (§A2) e
+> as frentes deferidas da §E.
