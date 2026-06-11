@@ -146,8 +146,15 @@ A **loja transacional** (checkout + conta B2C) foi **deferida da Fase 2 por deci
 - **Critério de pronto:** erro de teste aparece no Sentry com tag `traceId`.
 
 ### D4 — Monitor de uptime externo {#d4-uptime}
+- **✅ FEITO (2026-06-10).** Monitor UptimeRobot ativo no `GET /functions/v1/health`
+  (5 em 5 min), confirmado Up. Gotcha resolvido: o UptimeRobot sonda com `HEAD`
+  e a função só aceitava `GET` (405 → falso "Down") — `health` v5 aceita `HEAD`
+  (mesmos checks, corpo vazio; commit `2499238`).
 - **O quê:** cadastrar o endpoint público `GET /functions/v1/health` num monitor (UptimeRobot/BetterStack/cron-job.org, 5 em 5 min) e assinar https://status.supabase.com.
 - **Critério de pronto:** alerta de teste recebido (pausar o monitor dispara notificação).
+
+> **Issue #52 FECHADA (2026-06-10):** D2/D3/D4 concluídos; D1 (PITR) deferido
+> para o dia do flip (#47) por decisão do dono — ver §D1 e checklist do A3.
 
 ---
 
