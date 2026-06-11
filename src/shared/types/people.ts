@@ -61,6 +61,8 @@ export interface ISeller {
    */
   vehicleCadastroMode?: VehicleCadastroMode;
   active: boolean;
+  /** Soft delete (users CRUD) — set means hidden from lists; login revoked. */
+  deletedAt?: ISO8601;
   createdAt: ISO8601;
 }
 
