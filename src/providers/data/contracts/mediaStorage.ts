@@ -8,8 +8,4 @@
  * @see ../../../mocks/api/media.ts
  * @see ../../../../docs/provider-pattern.md
  */
-export type {
-  IMediaStorageProvider,
-  IMediaUploadInput,
-  IListMediaParams,
-} from "@/shared/types";
+export type { IMediaStorageProvider, IMediaUploadInput, IListMediaParams } from "@/shared/types";
