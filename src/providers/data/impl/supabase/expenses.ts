@@ -224,7 +224,7 @@ export const supabaseExpensesProvider: IExpensesProvider = {
     if (params.paymentEnd) query = query.lte("payment_date", params.paymentEnd);
 
     const page = Math.max(1, Math.floor(params.page ?? 1));
-    const pageSize = Math.max(1, Math.min(200, Math.floor(params.pageSize ?? 20)));
+    const pageSize = Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20)));
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
