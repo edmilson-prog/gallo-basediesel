@@ -11,10 +11,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu";
+import { useResizableColumns } from "@/shared/hooks/useResizableColumns";
 import { QuoteStatusBadge } from "../QuoteStatusBadge";
 import { QuoteOriginBadge } from "../QuoteOriginBadge";
 import { ValidityIndicator } from "../ValidityIndicator";
-import { useResizableColumns } from "../../hooks/useResizableColumns";
+import { QuotesColumnsContextContent, QuotesColumnsDropdown } from "./QuotesColumnsMenu";
+import { COLUMN_LABELS, type ColumnId, type OptionalColumn } from "../../utils/columns";
 import type { IQuotesListSort, QuoteOrderBy } from "../../utils/listFilters";
 
 const moneyFormatter = new Intl.NumberFormat("pt-BR", {
@@ -30,18 +33,11 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
 
 const COLUMN_WIDTHS_KEY = "gallo-quotes-column-widths";
 
-type QuoteColumnId =
-  | "number"
-  | "customer"
-  | "origin"
-  | "seller"
-  | "total"
-  | "status"
-  | "createdAt"
-  | "validUntil";
+/** Trailing actions column — holds the columns menu trigger. */
+const ACTIONS_COLUMN_WIDTH = 44;
 
 interface IQuoteColumnDef {
-  id: QuoteColumnId;
+  id: ColumnId;
   label: string;
   defaultWidth: number;
   sortBy: QuoteOrderBy;
@@ -49,14 +45,14 @@ interface IQuoteColumnDef {
 }
 
 const COLUMNS: readonly IQuoteColumnDef[] = [
-  { id: "number", label: "Número", defaultWidth: 120, sortBy: "number" },
-  { id: "customer", label: "Cliente", defaultWidth: 260, sortBy: "customer" },
-  { id: "origin", label: "Origem", defaultWidth: 120, sortBy: "origin" },
-  { id: "seller", label: "Vendedor", defaultWidth: 170, sortBy: "seller" },
-  { id: "total", label: "Total", defaultWidth: 130, sortBy: "total", align: "right" },
-  { id: "status", label: "Status", defaultWidth: 130, sortBy: "status" },
-  { id: "createdAt", label: "Criado", defaultWidth: 110, sortBy: "createdAt" },
-  { id: "validUntil", label: "Validade", defaultWidth: 140, sortBy: "validUntil" },
+  { id: "number", label: COLUMN_LABELS.number, defaultWidth: 120, sortBy: "number" },
+  { id: "customer", label: COLUMN_LABELS.customer, defaultWidth: 260, sortBy: "customer" },
+  { id: "origin", label: COLUMN_LABELS.origin, defaultWidth: 120, sortBy: "origin" },
+  { id: "seller", label: COLUMN_LABELS.seller, defaultWidth: 170, sortBy: "seller" },
+  { id: "total", label: COLUMN_LABELS.total, defaultWidth: 130, sortBy: "total", align: "right" },
+  { id: "status", label: COLUMN_LABELS.status, defaultWidth: 130, sortBy: "status" },
+  { id: "createdAt", label: COLUMN_LABELS.createdAt, defaultWidth: 110, sortBy: "createdAt" },
+  { id: "validUntil", label: COLUMN_LABELS.validUntil, defaultWidth: 140, sortBy: "validUntil" },
 ];
 
 export interface IQuotesTableProps {
@@ -67,6 +63,11 @@ export interface IQuotesTableProps {
   onRowClick: (id: ID) => void;
   sellers: Map<ID, ISeller>;
   customers: Map<ID, ICustomer>;
+  visibleColumns: Set<OptionalColumn>;
+  onToggleColumn: (id: OptionalColumn) => void;
+  onShowAllColumns: () => void;
+  /** Exposes the inner scroll container (drives the header progress line). */
+  scrollRef?: (el: HTMLDivElement | null) => void;
 }
 
 function customerName(c: ICustomer | undefined): string {
@@ -95,8 +96,19 @@ export function QuotesTable({
   onRowClick,
   sellers,
   customers,
+  visibleColumns,
+  onToggleColumn,
+  onShowAllColumns,
+  scrollRef,
 }: IQuotesTableProps) {
-  const { widths, totalWidth, startResize } = useResizableColumns(COLUMNS, COLUMN_WIDTHS_KEY);
+  const { widths, startResize } = useResizableColumns(COLUMNS, COLUMN_WIDTHS_KEY);
+
+  // number is mandatory; optional columns honor the visibility set.
+  const visibleCols = COLUMNS.filter(
+    (col) => col.id === "number" || visibleColumns.has(col.id as OptionalColumn),
+  );
+  const tableWidth =
+    visibleCols.reduce((sum, col) => sum + widths[col.id], 0) + ACTIONS_COLUMN_WIDTH;
 
   const toggleSort = (field: QuoteOrderBy) => {
     if (sort.orderBy !== field) {
@@ -117,7 +129,7 @@ export function QuotesTable({
           col.align === "right" && "justify-end",
         )}
       >
-        {col.label}
+        <span className="truncate">{col.label}</span>
         <Icon
           icon={
             active
@@ -143,69 +155,122 @@ export function QuotesTable({
     );
   }
 
+  const renderCell = (col: IQuoteColumnDef, q: IQuote) => {
+    const customer = q.customerId ? customers.get(q.customerId) : undefined;
+    const seller = sellers.get(q.sellerId);
+    const sellerName = seller?.fullName ?? (q.sellerId === "sdr-agent" ? "Agente SDR" : "—");
+    switch (col.id) {
+      case "number":
+        return (
+          <TableCell
+            key={col.id}
+            className="truncate font-mono text-xs font-semibold text-foreground"
+          >
+            #{q.number}
+          </TableCell>
+        );
+      case "customer":
+        return (
+          <TableCell key={col.id} className="truncate text-sm uppercase text-foreground">
+            {customerName(customer)}
+          </TableCell>
+        );
+      case "origin":
+        return (
+          <TableCell key={col.id}>
+            <QuoteOriginBadge origin={q.origin} size="sm" />
+          </TableCell>
+        );
+      case "seller":
+        return (
+          <TableCell key={col.id} className="truncate text-sm text-muted-foreground">
+            {sellerName}
+          </TableCell>
+        );
+      case "total":
+        return (
+          <TableCell key={col.id} className="text-right text-sm font-semibold tabular-nums">
+            {moneyFormatter.format(q.total)}
+          </TableCell>
+        );
+      case "status":
+        return (
+          <TableCell key={col.id}>
+            <QuoteStatusBadge status={q.status} size="sm" />
+          </TableCell>
+        );
+      case "createdAt":
+        return (
+          <TableCell key={col.id} className="truncate text-xs text-muted-foreground">
+            {dateFormatter.format(new Date(q.createdAt))}
+          </TableCell>
+        );
+      case "validUntil":
+        return (
+          <TableCell key={col.id}>
+            <ValidityIndicator validUntil={q.validUntil} />
+          </TableCell>
+        );
+    }
+  };
+
   return (
     <Table
+      containerRef={scrollRef}
       className="w-full table-fixed"
       containerClassName="h-full"
-      style={{ minWidth: totalWidth }}
+      style={{ minWidth: tableWidth }}
     >
       <colgroup>
-        {COLUMNS.map((col) => (
+        {visibleCols.map((col) => (
           <col key={col.id} style={{ width: widths[col.id] }} />
         ))}
+        <col style={{ width: ACTIONS_COLUMN_WIDTH }} />
       </colgroup>
       <TableHeader>
-        <TableRow className="hover:bg-transparent">
-          {COLUMNS.map((col) => (
-            <TableHead
-              key={col.id}
-              className={cn(
-                "sticky top-0 z-20 bg-background",
-                col.align === "right" && "text-right",
-              )}
-            >
-              <SortHeader col={col} />
-              <ResizeHandle onPointerDown={(e) => startResize(col.id, e)} />
-            </TableHead>
-          ))}
-        </TableRow>
+        <ContextMenu>
+          <ContextMenuTrigger asChild>
+            {/* Vertical delimiters between columns live in the header only. */}
+            <TableRow className="hover:bg-transparent [&>th:not(:last-child)]:border-r [&>th:not(:last-child)]:border-border/70">
+              {visibleCols.map((col) => (
+                <TableHead
+                  key={col.id}
+                  className={cn(
+                    "sticky top-0 z-20 overflow-hidden bg-background",
+                    col.align === "right" && "text-right",
+                  )}
+                >
+                  <SortHeader col={col} />
+                  <ResizeHandle onPointerDown={(e) => startResize(col.id, e)} />
+                </TableHead>
+              ))}
+              <TableHead className="sticky top-0 z-20 bg-background px-1 text-right">
+                <QuotesColumnsDropdown
+                  visible={visibleColumns}
+                  onToggle={onToggleColumn}
+                  onShowAll={onShowAllColumns}
+                />
+              </TableHead>
+            </TableRow>
+          </ContextMenuTrigger>
+          <QuotesColumnsContextContent
+            visible={visibleColumns}
+            onToggle={onToggleColumn}
+            onShowAll={onShowAllColumns}
+          />
+        </ContextMenu>
       </TableHeader>
       <TableBody>
-        {quotes.map((q) => {
-          const customer = q.customerId ? customers.get(q.customerId) : undefined;
-          const seller = sellers.get(q.sellerId);
-          const sellerName = seller?.fullName ?? (q.sellerId === "sdr-agent" ? "Agente SDR" : "—");
-          return (
-            <TableRow
-              key={q.id}
-              className={cn("cursor-pointer transition-colors hover:bg-muted/60")}
-              onClick={() => onRowClick(q.id)}
-            >
-              <TableCell className="truncate font-mono text-xs font-semibold text-foreground">
-                #{q.number}
-              </TableCell>
-              <TableCell className="truncate text-sm uppercase text-foreground">
-                {customerName(customer)}
-              </TableCell>
-              <TableCell>
-                <QuoteOriginBadge origin={q.origin} size="sm" />
-              </TableCell>
-              <TableCell className="truncate text-sm text-muted-foreground">{sellerName}</TableCell>
-              <TableCell className="text-right text-sm font-semibold tabular-nums">
-                {moneyFormatter.format(q.total)}
-              </TableCell>
-              <TableCell>
-                <QuoteStatusBadge status={q.status} size="sm" />
-              </TableCell>
-              <TableCell className="truncate text-xs text-muted-foreground">
-                {dateFormatter.format(new Date(q.createdAt))}
-              </TableCell>
-              <TableCell>
-                <ValidityIndicator validUntil={q.validUntil} />
-              </TableCell>
-            </TableRow>
-          );
-        })}
+        {quotes.map((q) => (
+          <TableRow
+            key={q.id}
+            className={cn("cursor-pointer transition-colors hover:bg-muted/60")}
+            onClick={() => onRowClick(q.id)}
+          >
+            {visibleCols.map((col) => renderCell(col, q))}
+            <TableCell className="px-1" />
+          </TableRow>
+        ))}
       </TableBody>
     </Table>
   );

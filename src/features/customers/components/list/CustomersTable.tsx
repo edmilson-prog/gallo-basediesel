@@ -13,6 +13,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu";
+import { CustomersColumnsContextContent, CustomersColumnsDropdown } from "./CustomersColumnsMenu";
 import {
   daysSince,
   formatBRLCompact,
@@ -88,6 +90,10 @@ export interface ICustomersTableProps {
   onSortChange: (next: ICustomersListSort) => void;
   searchTerm: string;
   sellersById: Map<ID, ISellerLookupEntry>;
+  onToggleColumn: (id: OptionalColumn) => void;
+  onShowAllColumns: () => void;
+  /** Exposes the inner scroll container (drives the header progress line). */
+  scrollRef?: (el: HTMLDivElement | null) => void;
 }
 
 export function CustomersTable({
@@ -105,6 +111,9 @@ export function CustomersTable({
   onSortChange,
   searchTerm,
   sellersById,
+  onToggleColumn,
+  onShowAllColumns,
+  scrollRef,
 }: ICustomersTableProps) {
   const allColumns = useMemo<ColumnId[]>(
     () => [...MANDATORY_COLUMNS, ...visibleOptional],
@@ -146,7 +155,8 @@ export function CustomersTable({
   }, [selectedDetailId, customers, onSelectDetail]);
 
   if (isLoading) {
-    return <CustomersTableSkeleton columns={allColumns.length + 1} />;
+    // +2: leading checkbox column and trailing actions (columns menu) column.
+    return <CustomersTableSkeleton columns={allColumns.length + 2} />;
   }
 
   if (customers.length === 0) {
@@ -155,48 +165,66 @@ export function CustomersTable({
 
   return (
     <div ref={tableRef} className="h-full w-full">
-      <Table containerClassName="h-full scrollbar-hide">
+      <Table containerRef={scrollRef} containerClassName="h-full scrollbar-hide">
         <TableHeader className="sticky top-0 z-10 bg-background">
-          <TableRow className="hover:bg-transparent">
-            <TableHead className="w-10 px-3">
-              <Checkbox
-                aria-label="Selecionar todos da página"
-                checked={allInPageSelected ? true : partialPageSelected ? "indeterminate" : false}
-                onCheckedChange={(checked) => onToggleAllInPage(Boolean(checked))}
-              />
-            </TableHead>
-            {allColumns.map((col) => {
-              const sortKey = COLUMN_SORT_KEY[col];
-              const isSorted = sortKey && sort.orderBy === sortKey;
-              return (
-                <TableHead
-                  key={col}
-                  onClick={() => handleHeaderClick(col)}
-                  className={cn(
-                    "select-none whitespace-nowrap text-xs font-semibold uppercase tracking-wide text-muted-foreground",
-                    sortKey && "cursor-pointer hover:text-foreground",
-                  )}
-                >
-                  <span className="inline-flex items-center gap-1">
-                    {COLUMN_LABELS[col]}
-                    {sortKey && (
-                      <Icon
-                        icon={
-                          isSorted
-                            ? sort.orderDir === "asc"
-                              ? "mdi:chevron-up"
-                              : "mdi:chevron-down"
-                            : "mdi:unfold-more-horizontal"
-                        }
-                        size={14}
-                        className={cn(!isSorted && "opacity-40")}
-                      />
-                    )}
-                  </span>
+          <ContextMenu>
+            <ContextMenuTrigger asChild>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-10 px-3">
+                  <Checkbox
+                    aria-label="Selecionar todos da página"
+                    checked={
+                      allInPageSelected ? true : partialPageSelected ? "indeterminate" : false
+                    }
+                    onCheckedChange={(checked) => onToggleAllInPage(Boolean(checked))}
+                  />
                 </TableHead>
-              );
-            })}
-          </TableRow>
+                {allColumns.map((col) => {
+                  const sortKey = COLUMN_SORT_KEY[col];
+                  const isSorted = sortKey && sort.orderBy === sortKey;
+                  return (
+                    <TableHead
+                      key={col}
+                      onClick={() => handleHeaderClick(col)}
+                      className={cn(
+                        "select-none whitespace-nowrap text-xs font-semibold uppercase tracking-wide text-muted-foreground",
+                        sortKey && "cursor-pointer hover:text-foreground",
+                      )}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        {COLUMN_LABELS[col]}
+                        {sortKey && (
+                          <Icon
+                            icon={
+                              isSorted
+                                ? sort.orderDir === "asc"
+                                  ? "mdi:chevron-up"
+                                  : "mdi:chevron-down"
+                                : "mdi:unfold-more-horizontal"
+                            }
+                            size={14}
+                            className={cn(!isSorted && "opacity-40")}
+                          />
+                        )}
+                      </span>
+                    </TableHead>
+                  );
+                })}
+                <TableHead className="w-10 px-1 text-right">
+                  <CustomersColumnsDropdown
+                    visible={visibleOptional}
+                    onToggle={onToggleColumn}
+                    onShowAll={onShowAllColumns}
+                  />
+                </TableHead>
+              </TableRow>
+            </ContextMenuTrigger>
+            <CustomersColumnsContextContent
+              visible={visibleOptional}
+              onToggle={onToggleColumn}
+              onShowAll={onShowAllColumns}
+            />
+          </ContextMenu>
         </TableHeader>
         <TableBody className={cn(isFetching && "opacity-60 transition-opacity")}>
           {customers.map((customer) => (
@@ -272,6 +300,7 @@ function CustomerRow({
           })}
         </TableCell>
       ))}
+      <TableCell className="px-1" />
     </TableRow>
   );
 }
