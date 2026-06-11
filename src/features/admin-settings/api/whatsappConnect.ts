@@ -85,7 +85,7 @@ const MOCK_QR_BASE64 =
       `<rect width="33" height="33" fill="#fff"/>` +
       `<path fill="#000" fill-rule="evenodd" d="M0 0h7v7H0zm2 2h3v3H2zM26 0h7v7h-7zm2 2h3v3h-3zM0 26h7v7H0zm2 2h3v3H2z"/>` +
       `<path fill="#000" d="M9 1h2v2H9zm4-1h2v2h-2zm4 2h2v2h-2zm4-1h2v2h-2zM1 9h2v2H1zm8 0h2v2H9zm9 0h2v2h-2zm9 0h2v2h-2zM3 13h2v2H3zm9 0h2v2h-2zm9 0h2v2h-2zM1 17h2v2H1zm9 0h2v2h-2zm9 0h2v2h-2zm9 0h2v2h-2zM2 21h2v2H2zm10 0h2v2h-2zm10 0h2v2h-2zM9 26h2v2H9zm9 0h2v2h-2zm8 0h2v2h-2zm-15 4h2v2h-2zm10 0h2v2h-2z"/>` +
-    `</svg>`,
+      `</svg>`,
   );
 
 const mockPairingStartedAt = new Map<string, number>();
