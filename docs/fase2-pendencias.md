@@ -44,6 +44,7 @@ A **loja transacional** (checkout + conta B2C) foi **deferida da Fase 2 por deci
 - **Status:** **Preview** já roda supabase e passou no smoke de RLS. Produção intacta em `mock`.
 - **Bloqueio / dono:** **decisão sua.** ✅ Pré-condição prática **satisfeita**: a loja em `supabase` agora faz **handoff por WhatsApp** (B3, commit `cb7a13d`) em vez do checkout que falhava — visitantes reais não caem mais num fluxo quebrado. O `/app` já estava pronto para o flip.
 - **Critério de pronto:** produção em `supabase`, smoke owner+vendedor+loja verde, console limpo.
+- **Itens acoplados ao dia do flip:** (a) **habilitar PITR** (ver D1 — decisão de 2026-06-10: liga junto com o flip, não antes); (b) apontar `INVITE_REDIRECT_URL` para a URL de produção (ver A2).
 - **Arquivos:** env da Vercel (Production) — ver `docs/db/cutover-smoke-checklist.md` §1/§8.
 - **Issue:** #47
 
@@ -117,15 +118,30 @@ A **loja transacional** (checkout + conta B2C) foi **deferida da Fase 2 por deci
 > **Issue:** #52.
 
 ### D1 — Habilitar PITR + executar o 1º teste de DR {#d1-pitr}
-- **O quê:** habilitar o add-on PITR (Dashboard → Database → Backups → Point in Time) e executar o primeiro teste real de restauração seguindo `docs/infra/runbooks/restore-pitr.md`.
+- **⏸️ DEFERIDO PARA O FLIP (#47) — decisão do dono em 2026-06-10.** A produção
+  ainda roda em `mock` (o banco real só tem seed); pagar o add-on agora
+  protegeria dado sem valor. O PITR entra como **item obrigatório do checklist
+  do flip de produção (#47)**: ligar o add-on no mesmo dia em que a Vercel
+  flipar para `supabase`. Até lá o RPO aceito é 24 h (daily backup do Supabase
+  + dump semanal no GitHub).
+- **O quê:** habilitar o add-on PITR (Dashboard → Database → Backups → Point in Time, ~US$ 100/mês, RPO ~2 min) e executar o primeiro teste real de restauração seguindo `docs/infra/runbooks/restore-pitr.md`.
 - **Por quê:** sem PITR o RPO real é 24 h (daily backup). Backup não testado é falsa segurança (RF-050).
-- **Critério de pronto:** teste registrado em `docs/infra/dr-test-log.md` com RTO medido.
+- **Critério de pronto:** teste registrado em `docs/infra/dr-test-log.md` com RTO medido. O teste de DR pode ser antecipado com o dump do GitHub (`restore-logical.md`), independente do PITR.
 
 ### D2 — Secrets dos workflows de backup {#d2-backup-secrets}
+- **✅ FEITO (2026-06-10).** 5 secrets configurados no GitHub Actions e os 3
+  workflows validados verdes em execução real (RLS regression roda a cada PR;
+  backups todo domingo 06:00 UTC). Hardening no caminho: commits `180de53`
+  (gpg `--batch`, alerta Resend best-effort) e `8b6321d` (pin pg17). A senha do
+  banco foi **resetada para alfanumérica** — caracteres especiais quebravam o
+  parse da URI no psql/pg_dump.
 - **O quê:** adicionar no GitHub: `SUPABASE_DB_URL` (mesmo do A1/#45), `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` (storage backup). Opcional: `RESEND_API_KEY` + `BACKUP_ALERT_EMAIL` para alerta explícito de falha.
 - **Critério de pronto:** `logical-backup.yml` e `storage-backup.yml` rodam verdes com artifact gerado (disparar manualmente a 1ª vez).
 
 ### D3 — Conta Sentry + DSN {#d3-sentry}
+- **✅ FEITO (2026-06-10).** Projeto Sentry criado; `VITE_SENTRY_DSN` na Vercel
+  (Production + Preview, redeploy feito) e `SENTRY_DSN` setado como secret de
+  Edge Function via CLI. DSN validado com evento de teste aceito (HTTP 200).
 - **O quê:** criar projeto no Sentry (free tier), pôr o DSN em `VITE_SENTRY_DSN` (Vercel) e no secret `SENTRY_DSN` das Edge Functions. Passo a passo: `docs/ops/observability.md` § Sentry.
 - **Critério de pronto:** erro de teste aparece no Sentry com tag `traceId`.
 
