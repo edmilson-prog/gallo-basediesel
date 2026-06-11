@@ -48,7 +48,9 @@ export class EvolutionConnectError extends Error {
 }
 
 /** Spec microcopy per error code (Seção 3 do design). */
-export const CONNECT_ERROR_MESSAGES: Record<string, string> = {
+export const CONNECT_ERROR_MESSAGES: Partial<Record<EvolutionConnectErrorCode, string>> & {
+  DEFAULT: string;
+} = {
   UNAUTHORIZED: "A chave de API foi recusada pelo servidor. Confira a apikey.",
   NOT_FOUND: "Instância não encontrada neste servidor. Confira o nome/ID.",
   MISSING_API_KEY: "Salve a chave de API no cofre antes de conectar.",
@@ -126,7 +128,8 @@ export async function testEvolutionServer(accountId: string): Promise<IEvolution
     const startedAt = mockPairingStartedAt.get(accountId);
     return {
       ok: true,
-      state: startedAt === undefined ? "close" : resolveMockPairingState(Date.now() - startedAt).state,
+      state:
+        startedAt === undefined ? "close" : resolveMockPairingState(Date.now() - startedAt).state,
     };
   }
   return invokeConnect<IEvolutionTestResponse>({ accountId, action: "test" });
