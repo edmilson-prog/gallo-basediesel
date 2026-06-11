@@ -26,6 +26,7 @@ import {
   useWhatsAppAccountsProvider,
 } from "@/providers/data";
 import { SectionHeader } from "../components/SectionHeader";
+import { ConnectWhatsAppDialog, type ConnectDialogStep } from "../components/ConnectWhatsAppDialog";
 
 const STATUS_VISUAL: Record<
   IWhatsAppAccount["status"],
@@ -160,6 +161,10 @@ export function WhatsAppAccountsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<IAccountDraft | null>(null);
   const [saving, setSaving] = useState(false);
+  const [connectTarget, setConnectTarget] = useState<{
+    account: IWhatsAppAccount;
+    step: ConnectDialogStep;
+  } | null>(null);
 
   const refresh = useCallback(async () => {
     const list = await provider.list({ storeId });
@@ -191,6 +196,14 @@ export function WhatsAppAccountsPage() {
   const cancelEdit = () => {
     setEditingId(null);
     setDraft(null);
+  };
+
+  /** Opens the connect dialog — straight to QR when the config is complete. */
+  const openConnect = (account: IWhatsAppAccount) => {
+    const configured = Boolean(
+      account.providerConfig?.baseUrl && account.providerConfig?.instanceName,
+    );
+    setConnectTarget({ account, step: configured ? "qr" : "form" });
   };
 
   const handleSave = async (account: IWhatsAppAccount) => {
@@ -423,6 +436,12 @@ export function WhatsAppAccountsPage() {
                             : "Ativar failover agora"}
                         </Button>
                       )}
+                      {account.provider === "evolution" && (
+                        <Button variant="outline" size="sm" onClick={() => openConnect(account)}>
+                          <Icon icon="mdi:qrcode-scan" size={14} className="mr-1.5" />
+                          {account.status === "connected" ? "Conexão" : "Conectar"}
+                        </Button>
+                      )}
                       <Button variant="outline" size="sm" onClick={() => startEdit(account)}>
                         <Icon icon="mdi:pencil-outline" size={14} className="mr-1.5" />
                         Editar
@@ -581,16 +600,35 @@ export function WhatsAppAccountsPage() {
         </ul>
       )}
 
-      <div className="rounded-md border border-border bg-card p-4 text-xs text-muted-foreground">
-        <p className="font-semibold uppercase tracking-wider">Conectar uma conta nova</p>
-        <p className="mt-1.5">
-          O cadastro de novas contas é um processo operacional assistido (criação do registro,
-          secrets de servidor e webhook no provedor) — siga os guias{" "}
-          <code className="font-mono">docs/dev/whatsapp-meta-provider.md</code> e{" "}
-          <code className="font-mono">docs/dev/whatsapp-evolution-provider.md</code>. O
-          monitoramento de saúde dos provedores vive em Gestão → Saúde do Sistema.
-        </p>
+      <div className="rounded-md border border-border bg-card p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="text-xs text-muted-foreground">
+            <p className="font-semibold uppercase tracking-wider text-foreground">
+              Conectar uma conta
+            </p>
+            <p className="mt-1.5">
+              Contas Evolution conectam por QR code direto daqui. Contas Meta Cloud API seguem o
+              processo assistido (
+              <code className="font-mono">docs/dev/whatsapp-meta-provider.md</code>).
+            </p>
+          </div>
+          {(() => {
+            const evolution = (accounts ?? []).find((a) => a.provider === "evolution");
+            return evolution ? (
+              <Button size="sm" onClick={() => openConnect(evolution)}>
+                <Icon icon="mdi:qrcode-scan" size={14} className="mr-1.5" />
+                Conectar conta
+              </Button>
+            ) : null;
+          })()}
+        </div>
       </div>
+      <ConnectWhatsAppDialog
+        account={connectTarget?.account ?? null}
+        initialStep={connectTarget?.step ?? "form"}
+        onClose={() => setConnectTarget(null)}
+        onMutated={() => void refresh()}
+      />
     </div>
   );
 }
