@@ -150,6 +150,7 @@ Mais a classe `.dark` (variante Tailwind via `@custom-variant dark (&:is(.dark *
 - **Comentários:** inglês. **UI/conteúdo de usuário:** português do Brasil com acentos corretos (UTF-8 — nunca `nao`/`avaliacao`/`conclusao`).
 - **Commits:** Conventional Commits em inglês (`feat:`, `fix:`, `refactor:`, etc.), atômicos.
 - **TypeScript:** `strict: true`. Evitar `any`. Interfaces de domínio prefixadas com `I`.
+- **Regras de UX (obrigatório em telas novas/reformadas):** seguir `docs/dev/ux-guidelines.md` — header glassmorphism com tokens semânticos, linha de progresso de scroll na divisa do bloco fixo (`ScrollProgressBar`), busca com largura dinâmica + atalho `/` + `kbd` + `Escape`, tabelas com colunas redimensionáveis (`@/shared/hooks/useResizableColumns`, persistência `gallo-<feature>-column-widths`), delimitadores verticais **somente no header** e menu de visibilidade de colunas no **clique-direito do cabeçalho** (`ContextMenu` "Colunas visíveis" + "Exibir todas").
 - `bunfig.toml` impõe **24h supply-chain guard** (`minimumReleaseAge = 86400`). Antes de adicionar pacote à `minimumReleaseAgeExcludes`, **confirmar com o usuário**.
 
 ## Fluxo de desenvolvimento dirigido por PRD
