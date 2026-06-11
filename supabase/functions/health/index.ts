@@ -14,6 +14,9 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
  * Deployed with verify_jwt=false BY DESIGN: external uptime monitors must be
  * able to probe it without credentials (RF-021). It exposes no data and
  * performs no mutations. HTTP 200 for healthy/degraded, 503 for down.
+ *
+ * HEAD is supported (same checks/status code, empty body) — uptime monitors
+ * like UptimeRobot probe with HEAD by default.
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.107.0";
@@ -27,7 +30,7 @@ const SERVICE_ROLE = requiredEnv("SUPABASE_SERVICE_ROLE_KEY");
 const HEALTH_CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
 } as const;
 
 type CheckResult = "ok" | "fail";
@@ -75,12 +78,13 @@ async function checkAuth(): Promise<void> {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: HEALTH_CORS });
-  if (req.method !== "GET") {
+  if (req.method !== "GET" && req.method !== "HEAD") {
     return new Response(JSON.stringify({ error: "method not allowed" }), {
       status: 405,
       headers: { ...HEALTH_CORS, "Content-Type": "application/json" },
     });
   }
+  const isHead = req.method === "HEAD";
 
   const traceId = req.headers.get("x-trace-id") ?? crypto.randomUUID();
   const log = createLogger(traceId);
@@ -101,7 +105,9 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ status, checks: { db, storage, auth }, ts: new Date().toISOString() }),
+      isHead
+        ? null
+        : JSON.stringify({ status, checks: { db, storage, auth }, ts: new Date().toISOString() }),
       {
         status: status === "down" ? 503 : 200,
         headers: { ...HEALTH_CORS, "Content-Type": "application/json", "x-trace-id": traceId },
@@ -110,9 +116,12 @@ Deno.serve(async (req) => {
   } catch (err) {
     // Should be unreachable (probes never throw) — belt and braces.
     captureException(err, { traceId, functionName: "health" });
-    return new Response(JSON.stringify({ status: "down", ts: new Date().toISOString() }), {
-      status: 503,
-      headers: { ...HEALTH_CORS, "Content-Type": "application/json", "x-trace-id": traceId },
-    });
+    return new Response(
+      isHead ? null : JSON.stringify({ status: "down", ts: new Date().toISOString() }),
+      {
+        status: 503,
+        headers: { ...HEALTH_CORS, "Content-Type": "application/json", "x-trace-id": traceId },
+      },
+    );
   }
 });
