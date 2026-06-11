@@ -74,22 +74,30 @@ import { supabaseStorefrontProvider } from "./impl/supabase/storefront";
 import { supabaseSystemHealthProvider } from "./impl/supabase/systemHealth";
 import { supabaseMessageTemplatesProvider } from "./impl/supabase/messageTemplates";
 
+import {
+  DATA_SOURCE_OVERRIDE_KEY,
+  readSourceOverride,
+  resolveSourceMode,
+} from "@/shared/lib/environmentMode";
+
 export type DataSource = "mock" | "supabase";
 
 const VALID_SOURCES: readonly DataSource[] = ["mock", "supabase"] as const;
 
 function resolveDataSource(): DataSource {
   const raw = import.meta.env.VITE_DATA_SOURCE;
-  if (raw && (VALID_SOURCES as readonly string[]).includes(raw)) {
-    return raw as DataSource;
+  // Per-browser override (Configurações → Ambiente & Dados) beats the env
+  // default; still resolved ONCE at boot — applying a change reloads the page.
+  const override = readSourceOverride(DATA_SOURCE_OVERRIDE_KEY);
+  if (!override && raw && !(VALID_SOURCES as readonly string[]).includes(raw)) {
+    if (import.meta.env.DEV) {
+      console.warn(
+        `[providers/data] VITE_DATA_SOURCE="${raw}" is not a valid data source. ` +
+          `Falling back to "mock". Allowed values: ${VALID_SOURCES.join(", ")}.`,
+      );
+    }
   }
-  if (raw && import.meta.env.DEV) {
-    console.warn(
-      `[providers/data] VITE_DATA_SOURCE="${raw}" is not a valid data source. ` +
-        `Falling back to "mock". Allowed values: ${VALID_SOURCES.join(", ")}.`,
-    );
-  }
-  return "mock";
+  return resolveSourceMode(raw, override);
 }
 
 const DATA_SOURCE: DataSource = resolveDataSource();

@@ -6,6 +6,9 @@ export const SYSTEM_HEALTH_STRINGS = {
   checkNow: "Verificar agora",
   checking: "Verificando…",
   mockNotice: "Dados simulados — a fonte de dados ativa é a base de demonstração (mock).",
+  modeDemo: "Demonstração",
+  modeProduction: "Produção",
+  manageEnvironment: "Gerenciar ambiente →",
 
   statusCardTitle: "Disponibilidade",
   statusHealthy: "Operacional",

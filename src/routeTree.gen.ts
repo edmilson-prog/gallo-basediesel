@@ -145,6 +145,7 @@ import { Route as AppConfiguracoesChavesRouteImport } from './routes/app.configu
 import { Route as AppConfiguracoesBibliotecaRouteImport } from './routes/app.configuracoes.biblioteca'
 import { Route as AppConfiguracoesAuditoriaRouteImport } from './routes/app.configuracoes.auditoria'
 import { Route as AppConfiguracoesAparenciaRouteImport } from './routes/app.configuracoes.aparencia'
+import { Route as AppConfiguracoesAmbienteRouteImport } from './routes/app.configuracoes.ambiente'
 import { Route as AppClientesIdRouteImport } from './routes/app.clientes.$id'
 import { Route as AppCatalogoNovoRouteImport } from './routes/app.catalogo.novo'
 import { Route as AppCatalogoKitsRouteImport } from './routes/app.catalogo.kits'
@@ -890,6 +891,12 @@ const AppConfiguracoesAparenciaRoute =
     path: '/configuracoes/aparencia',
     getParentRoute: () => AppRoute,
   } as any)
+const AppConfiguracoesAmbienteRoute =
+  AppConfiguracoesAmbienteRouteImport.update({
+    id: '/configuracoes/ambiente',
+    path: '/configuracoes/ambiente',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppClientesIdRoute = AppClientesIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -1170,6 +1177,7 @@ export interface FileRoutesByFullPath {
   '/app/catalogo/kits': typeof AppCatalogoKitsRoute
   '/app/catalogo/novo': typeof AppCatalogoNovoRoute
   '/app/clientes/$id': typeof AppClientesIdRoute
+  '/app/configuracoes/ambiente': typeof AppConfiguracoesAmbienteRoute
   '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
   '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
   '/app/configuracoes/biblioteca': typeof AppConfiguracoesBibliotecaRoute
@@ -1331,6 +1339,7 @@ export interface FileRoutesByTo {
   '/app/catalogo/kits': typeof AppCatalogoKitsRoute
   '/app/catalogo/novo': typeof AppCatalogoNovoRoute
   '/app/clientes/$id': typeof AppClientesIdRoute
+  '/app/configuracoes/ambiente': typeof AppConfiguracoesAmbienteRoute
   '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
   '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
   '/app/configuracoes/biblioteca': typeof AppConfiguracoesBibliotecaRoute
@@ -1503,6 +1512,7 @@ export interface FileRoutesById {
   '/app/catalogo/kits': typeof AppCatalogoKitsRoute
   '/app/catalogo/novo': typeof AppCatalogoNovoRoute
   '/app/clientes/$id': typeof AppClientesIdRoute
+  '/app/configuracoes/ambiente': typeof AppConfiguracoesAmbienteRoute
   '/app/configuracoes/aparencia': typeof AppConfiguracoesAparenciaRoute
   '/app/configuracoes/auditoria': typeof AppConfiguracoesAuditoriaRoute
   '/app/configuracoes/biblioteca': typeof AppConfiguracoesBibliotecaRoute
@@ -1683,6 +1693,7 @@ export interface FileRouteTypes {
     | '/app/catalogo/kits'
     | '/app/catalogo/novo'
     | '/app/clientes/$id'
+    | '/app/configuracoes/ambiente'
     | '/app/configuracoes/aparencia'
     | '/app/configuracoes/auditoria'
     | '/app/configuracoes/biblioteca'
@@ -1844,6 +1855,7 @@ export interface FileRouteTypes {
     | '/app/catalogo/kits'
     | '/app/catalogo/novo'
     | '/app/clientes/$id'
+    | '/app/configuracoes/ambiente'
     | '/app/configuracoes/aparencia'
     | '/app/configuracoes/auditoria'
     | '/app/configuracoes/biblioteca'
@@ -2015,6 +2027,7 @@ export interface FileRouteTypes {
     | '/app/catalogo/kits'
     | '/app/catalogo/novo'
     | '/app/clientes/$id'
+    | '/app/configuracoes/ambiente'
     | '/app/configuracoes/aparencia'
     | '/app/configuracoes/auditoria'
     | '/app/configuracoes/biblioteca'
@@ -3102,6 +3115,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesAparenciaRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/configuracoes/ambiente': {
+      id: '/app/configuracoes/ambiente'
+      path: '/configuracoes/ambiente'
+      fullPath: '/app/configuracoes/ambiente'
+      preLoaderRoute: typeof AppConfiguracoesAmbienteRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/clientes/$id': {
       id: '/app/clientes/$id'
       path: '/$id'
@@ -3662,6 +3682,7 @@ interface AppRouteChildren {
   AppSdrRoute: typeof AppSdrRoute
   AppStorefrontAdminRoute: typeof AppStorefrontAdminRoute
   AppVeiculosRoute: typeof AppVeiculosRouteWithChildren
+  AppConfiguracoesAmbienteRoute: typeof AppConfiguracoesAmbienteRoute
   AppConfiguracoesAparenciaRoute: typeof AppConfiguracoesAparenciaRoute
   AppConfiguracoesAuditoriaRoute: typeof AppConfiguracoesAuditoriaRoute
   AppConfiguracoesBibliotecaRoute: typeof AppConfiguracoesBibliotecaRoute
@@ -3737,6 +3758,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSdrRoute: AppSdrRoute,
   AppStorefrontAdminRoute: AppStorefrontAdminRoute,
   AppVeiculosRoute: AppVeiculosRouteWithChildren,
+  AppConfiguracoesAmbienteRoute: AppConfiguracoesAmbienteRoute,
   AppConfiguracoesAparenciaRoute: AppConfiguracoesAparenciaRoute,
   AppConfiguracoesAuditoriaRoute: AppConfiguracoesAuditoriaRoute,
   AppConfiguracoesBibliotecaRoute: AppConfiguracoesBibliotecaRoute,
