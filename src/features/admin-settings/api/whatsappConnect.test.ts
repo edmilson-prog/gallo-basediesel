@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { resolveMockPairingState } from "./whatsappConnect";
+import {
+  connectErrorMessage,
+  CONNECT_ERROR_MESSAGES,
+  EvolutionConnectError,
+  resolveMockPairingState,
+} from "./whatsappConnect";
 
 describe("resolveMockPairingState", () => {
   it("starts closed, moves to connecting, then opens with a fake profile", () => {
@@ -11,5 +16,14 @@ describe("resolveMockPairingState", () => {
     expect(open.state).toBe("open");
     expect(open.phoneNumber).toBe("+5555999887766");
     expect(open.profileName).toBe("Gallo Base Diesel (demo)");
+  });
+});
+
+describe("connectErrorMessage", () => {
+  it("maps known codes and falls back to DEFAULT", () => {
+    expect(connectErrorMessage(new EvolutionConnectError("x", "UNAUTHORIZED"))).toBe(
+      CONNECT_ERROR_MESSAGES.UNAUTHORIZED,
+    );
+    expect(connectErrorMessage(new Error("boom"))).toBe(CONNECT_ERROR_MESSAGES.DEFAULT);
   });
 });

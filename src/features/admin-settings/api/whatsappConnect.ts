@@ -53,6 +53,8 @@ export const CONNECT_ERROR_MESSAGES: Record<string, string> = {
   NOT_FOUND: "Instância não encontrada neste servidor. Confira o nome/ID.",
   MISSING_API_KEY: "Salve a chave de API no cofre antes de conectar.",
   CONFIG_MISSING: "Configure a URL do servidor e a instância antes de conectar.",
+  PROVIDER_DISCONNECTED:
+    "O servidor respondeu, mas o WhatsApp desta instância está desconectado. Gere o QR para reconectar.",
   DEFAULT:
     "Não conseguimos falar com o servidor Evolution. Verifique se a URL está correta e se o servidor está no ar.",
 };
@@ -120,7 +122,13 @@ const isMock = () => getActiveDataSource() === "mock";
 // ===== Public API ============================================================
 
 export async function testEvolutionServer(accountId: string): Promise<IEvolutionTestResponse> {
-  if (isMock()) return { ok: true, state: "close" };
+  if (isMock()) {
+    const startedAt = mockPairingStartedAt.get(accountId);
+    return {
+      ok: true,
+      state: startedAt === undefined ? "close" : resolveMockPairingState(Date.now() - startedAt).state,
+    };
+  }
   return invokeConnect<IEvolutionTestResponse>({ accountId, action: "test" });
 }
 
