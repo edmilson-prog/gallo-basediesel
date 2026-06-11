@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import type { IWhatsAppAccount } from "@/shared/types";
 import {
   connectErrorMessage,
+  formatTestPhoneMask,
   normalizeTestPhoneDigits,
   sendEvolutionTestMessage,
 } from "../api/whatsappConnect";
@@ -40,6 +41,14 @@ export function TestMessageDialog({
       setSending(false);
     }
   }, [account]);
+
+  /** Masked input: deleting a separator must consume the digit before it. */
+  const handleNumberChange = (raw: string) => {
+    const digits = raw.replace(/\D/g, "");
+    const prevDigits = number.replace(/\D/g, "");
+    const next = raw.length < number.length && digits === prevDigits ? digits.slice(0, -1) : digits;
+    setNumber(formatTestPhoneMask(next));
+  };
 
   const handleSend = async () => {
     if (!account) return;
@@ -72,15 +81,15 @@ export function TestMessageDialog({
         </DialogHeader>
 
         <div className="space-y-1.5">
-          <Label htmlFor="test-message-number">Número de destino (DDI + DDD)</Label>
+          <Label htmlFor="test-message-number">Número de destino</Label>
           <Input
             id="test-message-number"
             className="font-mono"
-            placeholder="5554999887766"
+            placeholder="+55 54 99988-7766"
             inputMode="numeric"
             autoComplete="off"
             value={number}
-            onChange={(e) => setNumber(e.target.value)}
+            onChange={(e) => handleNumberChange(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") void handleSend();
             }}
@@ -88,7 +97,8 @@ export function TestMessageDialog({
             autoFocus
           />
           <p className="text-[11px] text-muted-foreground">
-            Apenas dígitos — Brasil: 55 + DDD + número (ex.: 5554999887766).
+            Digite só os números, com DDI e DDD (ex.: 5554999887766) — a máscara é aplicada
+            automaticamente.
           </p>
         </div>
 

@@ -98,6 +98,26 @@ export function normalizeTestPhoneDigits(input: string): string | null {
   return digits.length >= 12 && digits.length <= 13 ? digits : null;
 }
 
+/**
+ * Progressive display mask for the test-message phone input:
+ * `5554999887766` → `+55 54 99988-7766` (hyphen always before the last 4
+ * digits of the local number; works for 8- and 9-digit numbers). Pure —
+ * callers strip with {@link normalizeTestPhoneDigits} before sending.
+ */
+export function formatTestPhoneMask(input: string): string {
+  const digits = input.replace(/\D/g, "").slice(0, 13);
+  if (digits.length === 0) return "";
+  let out = `+${digits.slice(0, 2)}`;
+  const ddd = digits.slice(2, 4);
+  if (ddd) out += ` ${ddd}`;
+  const local = digits.slice(4);
+  if (local) {
+    const hyphenAt = local.length > 4 ? local.length - 4 : 0;
+    out += ` ${hyphenAt > 0 ? `${local.slice(0, hyphenAt)}-${local.slice(hyphenAt)}` : local}`;
+  }
+  return out;
+}
+
 // ===== Mock simulation =======================================================
 
 /** ms after pairing start → simulated session state (exported for tests). */
