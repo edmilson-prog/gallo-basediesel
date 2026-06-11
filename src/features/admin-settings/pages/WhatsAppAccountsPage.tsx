@@ -24,10 +24,13 @@ import {
   getActiveDataSource,
   recordAuditLogSync,
   useWhatsAppAccountsProvider,
+  type IWhatsAppAccountMetrics,
 } from "@/providers/data";
 import { SectionHeader } from "../components/SectionHeader";
 import { INVALID_CREDENTIALS_REF_MESSAGE, isValidCredentialsRef } from "../api/whatsappConnect";
+import { useEvolutionStatusSync } from "../hooks/useEvolutionStatusSync";
 import { ConnectWhatsAppDialog, type ConnectDialogStep } from "../components/ConnectWhatsAppDialog";
+import { TestMessageDialog } from "../components/TestMessageDialog";
 
 const STATUS_VISUAL: Record<
   IWhatsAppAccount["status"],
@@ -124,6 +127,16 @@ function draftFromAccount(account: IWhatsAppAccount): IAccountDraft {
   };
 }
 
+function formatLastOutbound(iso?: string): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 /**
  * Builds the providerConfig patch from the draft, honoring the DB shape guard
  * (PRD-111 RF-032): the engine's minimum keys must BOTH be present — partial
@@ -166,18 +179,42 @@ export function WhatsAppAccountsPage() {
     account: IWhatsAppAccount;
     step: ConnectDialogStep;
   } | null>(null);
+  const [metrics, setMetrics] = useState<Record<string, IWhatsAppAccountMetrics>>({});
+  const [testTarget, setTestTarget] = useState<IWhatsAppAccount | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  const loadMetrics = useCallback(
+    async (list: IWhatsAppAccount[]) => {
+      const entries = await Promise.all(
+        list.map(async (account) => {
+          try {
+            return [account.id, await provider.getMetrics(account.id)] as const;
+          } catch {
+            return null; // metrics are decorative — never block the screen
+          }
+        }),
+      );
+      const loaded: Record<string, IWhatsAppAccountMetrics> = {};
+      for (const entry of entries) if (entry) loaded[entry[0]] = entry[1];
+      setMetrics(loaded);
+    },
+    [provider],
+  );
 
   const refresh = useCallback(async () => {
     const list = await provider.list({ storeId });
     setAccounts(list);
-  }, [provider, storeId]);
+    void loadMetrics(list);
+  }, [provider, storeId, loadMetrics]);
 
   useEffect(() => {
     let cancelled = false;
     provider
       .list({ storeId })
       .then((list) => {
-        if (!cancelled) setAccounts(list);
+        if (cancelled) return;
+        setAccounts(list);
+        void loadMetrics(list);
       })
       .catch(() => {
         if (!cancelled) setAccounts([]);
@@ -185,9 +222,22 @@ export function WhatsAppAccountsPage() {
     return () => {
       cancelled = true;
     };
-  }, [provider, storeId]);
+  }, [provider, storeId, loadMetrics]);
 
   const isMock = useMemo(() => getActiveDataSource() === "mock", []);
+
+  // SIGPRO-style live status: 30s polling (visible tab) + focus + manual.
+  const { checkNow } = useEvolutionStatusSync(accounts, () => void refresh(), !isMock);
+
+  const handleCheckNow = async () => {
+    setChecking(true);
+    try {
+      await checkNow();
+      await refresh();
+    } finally {
+      setChecking(false);
+    }
+  };
 
   const startEdit = (account: IWhatsAppAccount) => {
     setEditingId(account.id);
@@ -394,68 +444,163 @@ export function WhatsAppAccountsPage() {
                 </div>
 
                 {!isEditing ? (
-                  <div className="mt-4 flex flex-wrap items-end justify-between gap-3 border-t border-border pt-4">
-                    <dl className="grid gap-x-8 gap-y-1 text-xs sm:grid-cols-3">
-                      <div>
-                        <dt className="text-muted-foreground">Prefixo de credenciais</dt>
-                        <dd className="font-mono text-foreground">{account.credentialsRef}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-muted-foreground">
-                          {account.provider === "meta"
-                            ? "Phone Number ID / WABA ID"
-                            : "Instância Evolution"}
-                        </dt>
-                        <dd className="font-mono text-foreground">
-                          {account.provider === "meta"
-                            ? account.providerConfig?.phoneNumberId
-                              ? `${account.providerConfig.phoneNumberId} / ${account.providerConfig.businessAccountId ?? "—"}`
-                              : "Não configurado"
-                            : account.providerConfig?.instanceName
-                              ? `${account.providerConfig.instanceName} @ ${account.providerConfig.baseUrl ?? "—"}`
-                              : "Não configurado"}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-muted-foreground">Failover</dt>
-                        <dd className="text-foreground">
-                          {account.failoverPolicy === "disabled"
-                            ? "Desativado"
-                            : `${FAILOVER_POLICY_LABEL[account.failoverPolicy]} → ${
-                                accounts?.find((a) => a.id === account.failoverAccountId)?.label ??
-                                "conta reserva"
-                              }`}
-                        </dd>
-                      </div>
-                    </dl>
-                    <div className="flex gap-2">
-                      {account.failoverPolicy !== "disabled" && account.failoverAccountId && (
-                        <Button
-                          variant={account.isFailoverActive ? "destructive" : "outline"}
-                          size="sm"
-                          disabled={saving}
-                          onClick={() =>
-                            void handleFailoverToggle(account, !account.isFailoverActive)
-                          }
-                        >
-                          <Icon icon="mdi:swap-horizontal" size={14} className="mr-1.5" />
-                          {account.isFailoverActive
-                            ? "Desativar failover"
-                            : "Ativar failover agora"}
+                  <>
+                    <div className="mt-4 flex flex-wrap items-end justify-between gap-3 border-t border-border pt-4">
+                      <dl className="grid gap-x-8 gap-y-1 text-xs sm:grid-cols-3">
+                        <div>
+                          <dt className="text-muted-foreground">Prefixo de credenciais</dt>
+                          <dd className="font-mono text-foreground">{account.credentialsRef}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground">
+                            {account.provider === "meta"
+                              ? "Phone Number ID / WABA ID"
+                              : "Instância Evolution"}
+                          </dt>
+                          <dd className="font-mono text-foreground">
+                            {account.provider === "meta"
+                              ? account.providerConfig?.phoneNumberId
+                                ? `${account.providerConfig.phoneNumberId} / ${account.providerConfig.businessAccountId ?? "—"}`
+                                : "Não configurado"
+                              : account.providerConfig?.instanceName
+                                ? `${account.providerConfig.instanceName} @ ${account.providerConfig.baseUrl ?? "—"}`
+                                : "Não configurado"}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground">Failover</dt>
+                          <dd className="text-foreground">
+                            {account.failoverPolicy === "disabled"
+                              ? "Desativado"
+                              : `${FAILOVER_POLICY_LABEL[account.failoverPolicy]} → ${
+                                  accounts?.find((a) => a.id === account.failoverAccountId)
+                                    ?.label ?? "conta reserva"
+                                }`}
+                          </dd>
+                        </div>
+                      </dl>
+                      <div className="flex gap-2">
+                        {account.failoverPolicy !== "disabled" && account.failoverAccountId && (
+                          <Button
+                            variant={account.isFailoverActive ? "destructive" : "outline"}
+                            size="sm"
+                            disabled={saving}
+                            onClick={() =>
+                              void handleFailoverToggle(account, !account.isFailoverActive)
+                            }
+                          >
+                            <Icon icon="mdi:swap-horizontal" size={14} className="mr-1.5" />
+                            {account.isFailoverActive
+                              ? "Desativar failover"
+                              : "Ativar failover agora"}
+                          </Button>
+                        )}
+                        {account.provider === "evolution" && (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={checking}
+                              onClick={() => void handleCheckNow()}
+                              title="Consulta o estado real da sessão no servidor Evolution"
+                            >
+                              <Icon
+                                icon="mdi:refresh"
+                                size={14}
+                                className={`mr-1.5 ${checking ? "animate-spin" : ""}`}
+                              />
+                              Verificar agora
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={account.status !== "connected"}
+                              onClick={() => setTestTarget(account)}
+                              title={
+                                account.status === "connected"
+                                  ? "Envia um texto padrão para validar a conexão"
+                                  : "Disponível com a conta conectada"
+                              }
+                            >
+                              <Icon icon="mdi:message-check-outline" size={14} className="mr-1.5" />
+                              Mensagem de teste
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openConnect(account)}
+                            >
+                              <Icon icon="mdi:qrcode-scan" size={14} className="mr-1.5" />
+                              {account.status === "connected" ? "Conexão" : "Conectar"}
+                            </Button>
+                          </>
+                        )}
+                        <Button variant="outline" size="sm" onClick={() => startEdit(account)}>
+                          <Icon icon="mdi:pencil-outline" size={14} className="mr-1.5" />
+                          Editar
                         </Button>
-                      )}
-                      {account.provider === "evolution" && (
-                        <Button variant="outline" size="sm" onClick={() => openConnect(account)}>
-                          <Icon icon="mdi:qrcode-scan" size={14} className="mr-1.5" />
-                          {account.status === "connected" ? "Conexão" : "Conectar"}
-                        </Button>
-                      )}
-                      <Button variant="outline" size="sm" onClick={() => startEdit(account)}>
-                        <Icon icon="mdi:pencil-outline" size={14} className="mr-1.5" />
-                        Editar
-                      </Button>
+                      </div>
                     </div>
-                  </div>
+
+                    {/* Delivery metrics (staff-only data; absent → still loading or no access) */}
+                    {metrics[account.id] && (
+                      <div className="mt-4 grid grid-cols-2 gap-2 border-t border-border pt-3 sm:grid-cols-4">
+                        <div className="text-center">
+                          <p className="text-lg font-bold text-severity-success">
+                            {metrics[account.id]?.sent ?? 0}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">Enviadas (30d)</p>
+                        </div>
+                        <div className="text-center">
+                          <p
+                            className={`text-lg font-bold ${
+                              (metrics[account.id]?.failed ?? 0) > 0
+                                ? "text-severity-critical"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            {metrics[account.id]?.failed ?? 0}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">Falhas (30d)</p>
+                        </div>
+                        <div className="text-center">
+                          <p
+                            className={`text-lg font-bold ${
+                              (metrics[account.id]?.failureRate ?? 0) > 0.05
+                                ? "text-severity-critical"
+                                : "text-foreground"
+                            }`}
+                          >
+                            {((metrics[account.id]?.failureRate ?? 0) * 100).toFixed(1)}%
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">Taxa de falha</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-medium leading-7 text-foreground">
+                            {formatLastOutbound(metrics[account.id]?.lastOutboundAt)}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">Último envio</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Lost connection: inline call to action (SIGPRO-style) */}
+                    {account.provider === "evolution" && account.status === "disconnected" && (
+                      <div className="mt-3 flex flex-wrap items-center gap-2 rounded-md border border-severity-critical/40 bg-severity-critical/10 px-3 py-2">
+                        <Icon
+                          icon="mdi:alert-circle-outline"
+                          size={16}
+                          className="shrink-0 text-severity-critical"
+                        />
+                        <p className="text-sm text-foreground">
+                          Conexão perdida — mensagens não saem nem chegam por esta conta.
+                        </p>
+                        <Button size="sm" className="ml-auto" onClick={() => openConnect(account)}>
+                          Reconectar
+                        </Button>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <div className="mt-4 space-y-4 border-t border-border pt-4">
                     <div className="grid gap-4 sm:grid-cols-2">
@@ -639,6 +784,7 @@ export function WhatsAppAccountsPage() {
         onClose={() => setConnectTarget(null)}
         onMutated={() => void refresh()}
       />
+      <TestMessageDialog account={testTarget} onClose={() => setTestTarget(null)} />
     </div>
   );
 }

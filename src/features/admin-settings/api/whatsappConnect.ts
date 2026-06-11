@@ -36,6 +36,7 @@ export type EvolutionConnectErrorCode =
   | "MISSING_API_KEY"
   | "CONFIG_MISSING"
   | "PROVIDER_DISCONNECTED"
+  | "VALIDATION_ERROR"
   | "INTEGRATION_ERROR";
 
 export class EvolutionConnectError extends Error {
@@ -57,6 +58,7 @@ export const CONNECT_ERROR_MESSAGES: Partial<Record<EvolutionConnectErrorCode, s
   CONFIG_MISSING: "Configure a URL do servidor e a instância antes de conectar.",
   PROVIDER_DISCONNECTED:
     "O servidor respondeu, mas o WhatsApp desta instância está desconectado. Gere o QR para reconectar.",
+  VALIDATION_ERROR: "Número inválido — informe DDI + DDD + número (ex.: 5554999887766).",
   DEFAULT:
     "Não conseguimos falar com o servidor Evolution. Verifique se a URL está correta e se o servidor está no ar.",
 };
@@ -85,6 +87,16 @@ export function isValidCredentialsRef(ref: string): boolean {
 
 export const INVALID_CREDENTIALS_REF_MESSAGE =
   "Prefixo de credenciais inválido para nomear o secret — use apenas letras maiúsculas, números e _ (ex.: WA_EVO_CAMPANHAS).";
+
+/**
+ * Normalizes a user-typed phone for the test-message send: strips everything
+ * but digits and requires DDI+DDD+number (12–13 digits, e.g. 5554999887766).
+ * Returns null when the input cannot be a valid wire number.
+ */
+export function normalizeTestPhoneDigits(input: string): string | null {
+  const digits = input.replace(/\D/g, "");
+  return digits.length >= 12 && digits.length <= 13 ? digits : null;
+}
 
 // ===== Mock simulation =======================================================
 
@@ -129,7 +141,11 @@ async function toConnectError(error: unknown, fallback: string): Promise<Evoluti
   return new EvolutionConnectError(error instanceof Error ? error.message : fallback);
 }
 
-async function invokeConnect<T>(body: { accountId: string; action: string }): Promise<T> {
+async function invokeConnect<T>(body: {
+  accountId: string;
+  action: string;
+  to?: string;
+}): Promise<T> {
   const { data, error } = await getSupabaseClient().functions.invoke<T>("whatsapp-connect", {
     body,
   });
@@ -181,4 +197,13 @@ export async function logoutEvolution(accountId: string): Promise<void> {
 export async function restartEvolution(accountId: string): Promise<void> {
   if (isMock()) return;
   await invokeConnect<{ ok: boolean }>({ accountId, action: "restart" });
+}
+
+/** Ad-hoc validation send — never persisted as a conversation message. */
+export async function sendEvolutionTestMessage(accountId: string, toDigits: string): Promise<void> {
+  if (isMock()) {
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    return;
+  }
+  await invokeConnect<{ ok: boolean }>({ accountId, action: "test-message", to: toDigits });
 }

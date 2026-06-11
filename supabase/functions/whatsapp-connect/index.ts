@@ -5,7 +5,9 @@
  * to the Evolution server nor sees the apikey: this function resolves the
  * key Vault-first ({credentials_ref}_API_KEY) and proxies the instance calls.
  *
- * Input (JSON body): { accountId, action: 'test'|'qr'|'state'|'logout'|'restart' }
+ * Input (JSON body):
+ *   { accountId, action: 'test'|'qr'|'state'|'logout'|'restart' }
+ *   { accountId, action: 'test-message', to } — ad-hoc validation send
  *
  * Side effects: updates whatsapp_accounts (status/phone/profile) and audits
  * connect/disconnect/restart/webhook-set. Errors keep the house `{ error }`
@@ -21,6 +23,7 @@ import { requiredEnv } from "../_shared/env.ts";
 import { HttpError, json, parseJsonBody } from "../_shared/http.ts";
 import { createSecretResolver } from "../_shared/secrets.ts";
 import { servePost } from "../_shared/serve.ts";
+import { buildWhatsAppEngine } from "../_shared/whatsapp/build.ts";
 import { EVOLUTION_SECRET_SUFFIXES } from "../_shared/whatsapp/evolution/constants.ts";
 import {
   fetchInstanceProfile,
@@ -37,7 +40,7 @@ import type { IEngineDeps, IIntegrationLogEntry } from "../_shared/whatsapp/type
 /** Client-side QR rotation window (Evolution rotates ~30-40s; we renew at 30). */
 const QR_EXPIRES_IN_SECONDS = 30;
 
-const ACTIONS = ["test", "qr", "state", "logout", "restart"] as const;
+const ACTIONS = ["test", "qr", "state", "logout", "restart", "test-message"] as const;
 type ConnectAction = (typeof ACTIONS)[number];
 
 interface IAccountRow {
@@ -155,11 +158,14 @@ async function markDisconnected(
 
 servePost(async (req, ctx) => {
   const { callerId, admin, profile: caller } = await requireCaller(req, STAFF_ROLES);
-  const body = (await parseJsonBody(req)) as { accountId?: string; action?: string };
+  const body = (await parseJsonBody(req)) as { accountId?: string; action?: string; to?: string };
 
   const action = body.action as ConnectAction;
   if (!body.accountId || !ACTIONS.includes(action)) {
-    throw new HttpError(422, "accountId e action (test|qr|state|logout|restart) são obrigatórios");
+    throw new HttpError(
+      422,
+      "accountId e action (test|qr|state|logout|restart|test-message) são obrigatórios",
+    );
   }
 
   const { data: row } = await admin
@@ -217,8 +223,12 @@ servePost(async (req, ctx) => {
         const result = await getConnectionState(apiKey, deps, target, ctx.traceId);
         // Sync the stored status with reality in both directions — the card
         // badge must not say "Conectada" for a session that is actually down.
+        // Already-connected rows skip markConnected (no profile re-fetch):
+        // this path runs on the 30s page polling.
         if (result.state === "open") {
-          await markConnected(admin, account, apiKey, deps, target, actorId, ctx.traceId);
+          if (account.status !== "connected") {
+            await markConnected(admin, account, apiKey, deps, target, actorId, ctx.traceId);
+          }
         } else {
           await markDisconnected(admin, account, actorId, result.state);
         }
@@ -277,16 +287,21 @@ servePost(async (req, ctx) => {
       case "state": {
         const result = await getConnectionState(apiKey, deps, target, ctx.traceId);
         if (result.state === "open") {
-          const profile = await markConnected(
-            admin,
-            account,
-            apiKey,
-            deps,
-            target,
-            actorId,
-            ctx.traceId,
-          );
-          return json({ state: "open", ...profile, traceId: ctx.traceId }, 200);
+          // Profile fetch only on the not-connected→connected transition (the
+          // pairing moment); steady-state polling answers without extra calls.
+          if (account.status !== "connected") {
+            const profile = await markConnected(
+              admin,
+              account,
+              apiKey,
+              deps,
+              target,
+              actorId,
+              ctx.traceId,
+            );
+            return json({ state: "open", ...profile, traceId: ctx.traceId }, 200);
+          }
+          return json({ state: "open", traceId: ctx.traceId }, 200);
         }
         // `close` during pairing is normal (pre-scan), but it also means the
         // stored status must not read `connected` — keep the row truthful.
@@ -326,6 +341,53 @@ servePost(async (req, ctx) => {
           });
         }
         return json({ ok: true, traceId: ctx.traceId }, 200);
+      }
+
+      case "test-message": {
+        // Ad-hoc validation send (SIGPRO-style): goes out through the real
+        // engine but is NEVER persisted as a conversation message, so it does
+        // not pollute the Inbox nor the delivery metrics.
+        const digits = String(body.to ?? "").replace(/\D/g, "");
+        if (digits.length < 12 || digits.length > 13) {
+          return json(
+            {
+              error: "Informe o número com DDI e DDD (ex.: 5554999887766).",
+              code: "VALIDATION_ERROR",
+              traceId: ctx.traceId,
+            },
+            422,
+          );
+        }
+        const engine = buildWhatsAppEngine({
+          engine: "evolution",
+          accountId: account.id,
+          providerConfig: account.provider_config,
+          credentialsRef: account.credentials_ref,
+          deps,
+        });
+        const result = await engine.sendText({
+          accountId: account.id,
+          to: `+${digits}`,
+          text: "✅ Mensagem de teste — GALLO Base Diesel. A conexão WhatsApp desta conta está funcionando.",
+          traceId: ctx.traceId,
+        });
+        if (actorId) {
+          await bestEffortAudit(admin, {
+            store_id: account.store_id,
+            actor_id: actorId,
+            action: "whatsapp_test_message_sent",
+            resource: "whatsapp_account",
+            resource_id: account.id,
+            after: {
+              toMasked: `***${digits.slice(-4)}`,
+              providerMessageId: result.providerMessageId,
+            },
+          });
+        }
+        return json(
+          { ok: true, providerMessageId: result.providerMessageId, traceId: ctx.traceId },
+          200,
+        );
       }
     }
   } catch (err) {

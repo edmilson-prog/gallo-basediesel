@@ -4,6 +4,7 @@ import {
   CONNECT_ERROR_MESSAGES,
   EvolutionConnectError,
   isValidCredentialsRef,
+  normalizeTestPhoneDigits,
   resolveMockPairingState,
 } from "./whatsappConnect";
 
@@ -26,6 +27,20 @@ describe("connectErrorMessage", () => {
       CONNECT_ERROR_MESSAGES.UNAUTHORIZED,
     );
     expect(connectErrorMessage(new Error("boom"))).toBe(CONNECT_ERROR_MESSAGES.DEFAULT);
+  });
+});
+
+describe("normalizeTestPhoneDigits", () => {
+  it("accepts DDI+DDD+number with or without formatting", () => {
+    expect(normalizeTestPhoneDigits("5554999887766")).toBe("5554999887766"); // 13 digits
+    expect(normalizeTestPhoneDigits("555481572275")).toBe("555481572275"); // 12 digits
+    expect(normalizeTestPhoneDigits("+55 (54) 99988-7766")).toBe("5554999887766");
+  });
+
+  it("rejects numbers without DDI or too long", () => {
+    expect(normalizeTestPhoneDigits("54999887766")).toBeNull(); // 11 — sem DDI
+    expect(normalizeTestPhoneDigits("55549998877665")).toBeNull(); // 14
+    expect(normalizeTestPhoneDigits("")).toBeNull();
   });
 });
 
