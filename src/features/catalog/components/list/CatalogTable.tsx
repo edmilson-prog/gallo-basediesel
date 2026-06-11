@@ -22,6 +22,8 @@ export interface ICatalogTableProps {
   visibleColumns: Set<OptionalColumn>;
   onToggleColumn: (id: OptionalColumn) => void;
   onShowAllColumns: () => void;
+  /** Exposes the inner scroll container (drives the header progress line). */
+  scrollRef?: (el: HTMLDivElement | null) => void;
 }
 
 /** Leading image column — fixed width, not resizable. */
@@ -78,6 +80,7 @@ export function CatalogTable({
   visibleColumns,
   onToggleColumn,
   onShowAllColumns,
+  scrollRef,
 }: ICatalogTableProps) {
   const { widths, setWidth, commit } = useCatalogColumnWidths();
 
@@ -122,7 +125,7 @@ export function CatalogTable({
   };
 
   return (
-    <div className="h-full overflow-auto">
+    <div ref={scrollRef} className="h-full overflow-auto">
       <table
         className="table-fixed border-separate border-spacing-0 text-sm"
         style={{ width: tableWidth }}

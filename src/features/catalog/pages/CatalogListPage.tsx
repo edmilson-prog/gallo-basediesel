@@ -5,6 +5,7 @@ import type { ID } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
 import { useCurrentStore } from "@/features/multistore/hooks/useCurrentStore";
+import { ScrollProgressBar } from "@/features/shell/components/ScrollProgressBar";
 import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { usePartsProvider } from "@/providers/data/hooks/usePartsProvider";
@@ -111,27 +112,37 @@ export function CatalogListPage() {
   const isFirstLoad = list.isLoading && !hasResults;
   const showEmpty = !isFirstLoad && !hasResults;
 
+  // Scroll container lives inside CatalogTable (sibling of the header block),
+  // so the progress line receives it explicitly instead of walking ancestors.
+  const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
+
   return (
     <div className="flex h-[calc(100vh-4rem)] min-h-0 flex-col bg-background md:h-[calc(100vh-6rem)]">
-      <CatalogHeader
-        total={list.total}
-        searchValue={filters.search}
-        onSearchChange={(q) => url.setSearch(q)}
-        canCreate={canCreate}
-        onCreate={handleCreate}
-      />
+      {/* Fixed header block — the progress line rides its bottom edge, right
+          where the table starts scrolling. */}
+      <div className="relative">
+        <CatalogHeader
+          total={list.total}
+          searchValue={filters.search}
+          onSearchChange={(q) => url.setSearch(q)}
+          canCreate={canCreate}
+          onCreate={handleCreate}
+        />
 
-      <CatalogFiltersBar
-        filters={filters}
-        patch={url.patchFilters}
-        onClear={url.clearAll}
-        manufacturerOptions={manufacturerOptions}
-        vehicleBrandOptions={vehicleBrandOptions}
-        vehicleModelOptions={vehicleModelOptions}
-        vehicleYearOptions={vehicleYearOptions}
-        stores={accessibleStores}
-        canFilterStore={isOwner}
-      />
+        <CatalogFiltersBar
+          filters={filters}
+          patch={url.patchFilters}
+          onClear={url.clearAll}
+          manufacturerOptions={manufacturerOptions}
+          vehicleBrandOptions={vehicleBrandOptions}
+          vehicleModelOptions={vehicleModelOptions}
+          vehicleYearOptions={vehicleYearOptions}
+          stores={accessibleStores}
+          canFilterStore={isOwner}
+        />
+
+        <ScrollProgressBar container={scrollEl} />
+      </div>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="min-h-0 flex-1">
@@ -149,6 +160,7 @@ export function CatalogListPage() {
               visibleColumns={visibleColumns}
               onToggleColumn={toggleColumn}
               onShowAllColumns={showAllColumns}
+              scrollRef={setScrollEl}
             />
           )}
         </div>

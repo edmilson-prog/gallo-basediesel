@@ -62,6 +62,8 @@ export interface IVehiclesTableProps {
   visibleColumns: Set<OptionalColumn>;
   onToggleColumn: (id: OptionalColumn) => void;
   onShowAllColumns: () => void;
+  /** Exposes the inner scroll container (drives the header progress line). */
+  scrollRef?: (el: HTMLDivElement | null) => void;
 }
 
 export function VehiclesTable({
@@ -80,6 +82,7 @@ export function VehiclesTable({
   visibleColumns,
   onToggleColumn,
   onShowAllColumns,
+  scrollRef,
 }: IVehiclesTableProps) {
   const allInPageSelected = vehicles.length > 0 && vehicles.every((v) => selectedIds.has(v.id));
   const partialPageSelected = !allInPageSelected && vehicles.some((v) => selectedIds.has(v.id));
@@ -153,7 +156,12 @@ export function VehiclesTable({
 
   return (
     <div className="h-full w-full">
-      <Table containerClassName="h-full" className="table-fixed" style={{ width: tableWidth }}>
+      <Table
+        containerRef={scrollRef}
+        containerClassName="h-full"
+        className="table-fixed"
+        style={{ width: tableWidth }}
+      >
         <colgroup>
           {canSelect && <col style={{ width: SELECT_COLUMN_WIDTH }} />}
           {visibleCols.map((col) => (
