@@ -258,7 +258,7 @@ export const supabaseCustomersProvider: ICustomersProvider = {
     if (params.hasB2BPortal) query = query.eq("has_b2b_portal", true);
 
     const page = Math.max(1, Math.floor(params.page ?? 1));
-    const pageSize = Math.max(1, Math.min(200, Math.floor(params.pageSize ?? 20)));
+    const pageSize = Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20)));
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 

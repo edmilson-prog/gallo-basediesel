@@ -204,7 +204,7 @@ export const supabaseAssetLibraryProvider: IAssetLibraryProvider = {
     if (filter.search) query = query.ilike("title", `%${filter.search}%`);
 
     const page = Math.max(1, Math.floor(filter.page ?? 1));
-    const pageSize = Math.max(1, Math.min(200, Math.floor(filter.pageSize ?? 20)));
+    const pageSize = Math.max(1, Math.min(1000, Math.floor(filter.pageSize ?? 20)));
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
