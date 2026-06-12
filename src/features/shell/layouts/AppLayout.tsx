@@ -15,12 +15,16 @@ import { useEscalationQueueTimeoutMonitor } from "@/features/sdr-escalation/hook
 import { useUrgentBroadcastTimer } from "@/features/sdr-escalation/hooks/useUrgentBroadcastTimer";
 import { useQuoteExpirationTimer } from "@/features/quotes/hooks/useQuoteExpirationTimer";
 import { useEcommerceSellerNotifier } from "@/features/ecommerce-integration";
+import { usePresenceTracker } from "@/features/shell/hooks/useStorePresence";
 
 /**
  * Default layout of the internal app (`/app/*`).
  * Sidebar (md+) + TopBar + scrollable content. BottomNav on mobile.
  */
 export function AppLayout({ children }: { children?: React.ReactNode }) {
+  // Announces the signed-in seller as online via Supabase Realtime Presence
+  // (no-op in mock auth mode). Consumed by the users screen (useStorePresence).
+  usePresenceTracker();
   useDistributionToasts();
   useEscalationToasts();
   // Auto-revert global: Owner/Gestor com app aberto disparam expiração
