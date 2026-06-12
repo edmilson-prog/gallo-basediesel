@@ -30,6 +30,7 @@ import { SectionHeader } from "../components/SectionHeader";
 import { INVALID_CREDENTIALS_REF_MESSAGE, isValidCredentialsRef } from "../api/whatsappConnect";
 import { useEvolutionStatusSync } from "../hooks/useEvolutionStatusSync";
 import { ConnectWhatsAppDialog, type ConnectDialogStep } from "../components/ConnectWhatsAppDialog";
+import { ImportConversationsDialog } from "../components/ImportConversationsDialog";
 import { TestMessageDialog } from "../components/TestMessageDialog";
 
 const STATUS_VISUAL: Record<
@@ -181,6 +182,7 @@ export function WhatsAppAccountsPage() {
   } | null>(null);
   const [metrics, setMetrics] = useState<Record<string, IWhatsAppAccountMetrics>>({});
   const [testTarget, setTestTarget] = useState<IWhatsAppAccount | null>(null);
+  const [importTarget, setImportTarget] = useState<IWhatsAppAccount | null>(null);
   const [checking, setChecking] = useState(false);
 
   const loadMetrics = useCallback(
@@ -525,6 +527,22 @@ export function WhatsAppAccountsPage() {
                               <Icon icon="mdi:message-check-outline" size={14} className="mr-1.5" />
                               Mensagem de teste
                             </Button>
+                            {!isMock && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={account.status !== "connected"}
+                                onClick={() => setImportTarget(account)}
+                                title={
+                                  account.status === "connected"
+                                    ? "Importa o histórico de conversas que o servidor Evolution tem desta conta"
+                                    : "Disponível com a conta conectada"
+                                }
+                              >
+                                <Icon icon="mdi:download-multiple" size={14} className="mr-1.5" />
+                                Importar conversas
+                              </Button>
+                            )}
                             <Button
                               variant="outline"
                               size="sm"
@@ -785,6 +803,7 @@ export function WhatsAppAccountsPage() {
         onMutated={() => void refresh()}
       />
       <TestMessageDialog account={testTarget} onClose={() => setTestTarget(null)} />
+      <ImportConversationsDialog account={importTarget} onClose={() => setImportTarget(null)} />
     </div>
   );
 }
