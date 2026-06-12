@@ -4,6 +4,7 @@ import { Icon } from "@/components/Icon";
 import { BubbleChrome } from "./bubbleChrome";
 import { fileNameFromUrl, formatFileSize, mediaIcon } from "../../utils/messageDisplay";
 import { CONVERSATION_STRINGS } from "../../i18n/pt-BR";
+import { useResolvedMediaUrl } from "../../hooks/useResolvedMediaUrl";
 
 function deterministicSize(id: string): number {
   let h = 0;
@@ -12,6 +13,9 @@ function deterministicSize(id: string): number {
 }
 
 export function DocumentBubble({ message, onRetry }: { message: IMessage; onRetry?: () => void }) {
+  // Inbound documents/videos are private storage paths; sign on demand for the
+  // download link. When unresolved (failed download), the link is hidden.
+  const { data: url } = useResolvedMediaUrl(message.mediaUrl);
   const fileName = fileNameFromUrl(message.mediaUrl) || "anexo.pdf";
   const size = formatFileSize(deterministicSize(message.id));
   const icon = mediaIcon(message.mediaType, fileName);
@@ -26,7 +30,7 @@ export function DocumentBubble({ message, onRetry }: { message: IMessage; onRetr
           <p className="truncate text-sm font-medium text-foreground">{fileName}</p>
           <p className="text-[11px] text-muted-foreground">{size}</p>
         </div>
-        {message.mediaUrl && (
+        {url && (
           <Button
             asChild
             variant="ghost"
@@ -34,7 +38,7 @@ export function DocumentBubble({ message, onRetry }: { message: IMessage; onRetr
             className="h-8 w-8 p-0"
             aria-label={CONVERSATION_STRINGS.download}
           >
-            <a href={message.mediaUrl} target="_blank" rel="noreferrer" download>
+            <a href={url} target="_blank" rel="noreferrer" download>
               <Icon icon="mdi:download" size={16} />
             </a>
           </Button>
