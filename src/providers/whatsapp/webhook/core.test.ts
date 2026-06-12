@@ -15,12 +15,19 @@ const ACCOUNT: IAccountRecord = {
 interface IFakeState {
   processed: Set<string>;
   customers: Array<{ id: string; storeId: string; phoneDigits: string; sellerId: string }>;
-  conversations: Array<{ id: string; customerId: string; accountId: string; open: boolean }>;
+  conversations: Array<{
+    id: string;
+    customerId: string;
+    accountId: string;
+    open: boolean;
+    status?: string;
+  }>;
   messages: Array<Record<string, unknown>>;
   statusApplied: Array<Record<string, unknown>>;
   uploads: string[];
   audits: Array<Record<string, unknown>>;
   bumps: string[];
+  touches: Array<{ conversationId: string; lastMessageAt: string }>;
   mediaSet: Array<{ messageId: string; mediaUrl: string | null; status: string }>;
   invalidCustomers: string[];
   /** Simulated whatsapp_accounts.status for the single test account. */
@@ -66,10 +73,18 @@ function makeFakeDb(state: IFakeState, opts?: { knownOutboundId?: string }): IWe
       );
       return found ? { id: found.id } : null;
     },
-    createConversation: async ({ customerId, accountId }) => {
-      const conversation = { id: nextId("conv"), customerId, accountId, open: true };
+    createConversation: async ({ customerId, accountId, status }) => {
+      const conversation = { id: nextId("conv"), customerId, accountId, open: true, status };
       state.conversations.push(conversation);
       return { id: conversation.id };
+    },
+    insertOutboundEchoMessage: async (input) => {
+      const message = { id: nextId("msg"), direction: "out", ...input };
+      state.messages.push(message);
+      return { id: message.id as string };
+    },
+    touchConversation: async (conversationId, lastMessageAt) => {
+      state.touches.push({ conversationId, lastMessageAt });
     },
     insertInboundMessage: async (input) => {
       const message = { id: nextId("msg"), ...input };
@@ -116,6 +131,7 @@ function emptyState(): IFakeState {
     uploads: [],
     audits: [],
     bumps: [],
+    touches: [],
     mediaSet: [],
     invalidCustomers: [],
     accountStatus: "connected",
@@ -237,19 +253,12 @@ describe("processWebhookEvent — inbound messages (RF-040/050)", () => {
     expect(state.processed.size).toBe(0);
   });
 
-  it("ignores unparseable payloads and own-message echoes (RNF-007)", async () => {
+  it("ignores unparseable payloads (RNF-007)", async () => {
     const state = emptyState();
     const warn = vi.fn();
     // Unparseable payload → parse throws → warn called once
     expect((await run(state, { foo: "bar" }, { warn })).outcome).toBe("ignored");
     expect(warn).toHaveBeenCalledTimes(1);
-    // fromMe echo → now returns outbound-echo (no parse throw, no warn) →
-    // core returns "ignored" early (Task 2 will handle these)
-    const echo = evolutionTextEvent();
-    echo.data.key.fromMe = true;
-    expect((await run(state, echo, { warn })).outcome).toBe("ignored");
-    expect(warn).toHaveBeenCalledTimes(1); // still 1 — echo silently ignored
-    expect(state.messages).toHaveLength(0);
   });
 
   it("ignores upsert payloads without data.key.id (empty provider message id)", async () => {
@@ -511,5 +520,83 @@ describe("processWebhookEvent — evolution connection.update (status sync)", ()
 
     expect(result.outcome).toBe("account-not-found");
     expect(state.accountStatus).toBe("connected");
+  });
+});
+
+function evolutionEchoEvent(text = "te envio o boleto", keyId = "3EB0ECHO1") {
+  return {
+    event: "messages.upsert",
+    instance: "gallo-matriz",
+    sender: "5555911111111@s.whatsapp.net",
+    data: {
+      key: { id: keyId, remoteJid: "5555988887777@s.whatsapp.net", fromMe: true },
+      message: { conversation: text },
+      messageTimestamp: 1765400000,
+    },
+  };
+}
+
+describe("processWebhookEvent — outbound echoes (real inbox spec)", () => {
+  it("ignores the echo of an app-sent message (dedup by provider_message_id)", async () => {
+    const state = emptyState();
+    const result = await processWebhookEvent({
+      provider: "evolution",
+      rawPayload: evolutionEchoEvent("oi", "APP-SENT-1"),
+      db: makeFakeDb(state, { knownOutboundId: "APP-SENT-1" }),
+      buildProvider: buildMock,
+      traceId: "trace-test",
+    });
+    expect(result.outcome).toBe("duplicate");
+    expect(state.messages).toHaveLength(0);
+    expect(state.processed.has("whatsapp:evolution:APP-SENT-1")).toBe(true);
+  });
+
+  it("mirrors a phone-sent message: em_andamento conversation, out message, no unread bump", async () => {
+    const state = emptyState();
+    const result = await run(state, evolutionEchoEvent());
+
+    expect(result.outcome).toBe("echo-created");
+    expect(state.customers).toHaveLength(1); // pending customer for the new number
+    expect(state.conversations[0]).toMatchObject({ status: "em_andamento" });
+    expect(state.messages[0]).toMatchObject({
+      provider: "evolution",
+      text: "te envio o boleto",
+      providerMessageId: "3EB0ECHO1",
+    });
+    expect(state.bumps).toHaveLength(0); // NEVER the unread-bumping path
+    expect(state.touches).toEqual([
+      { conversationId: state.conversations[0]?.id, lastMessageAt: expect.any(String) },
+    ]);
+    expect(state.audits[0]).toMatchObject({
+      action: "webhook_received",
+      after: expect.objectContaining({ direction: "out", toPhoneMasked: "***7777" }),
+    });
+  });
+
+  it("reuses the existing open conversation for the destination customer", async () => {
+    const state = emptyState();
+    state.customers.push({
+      id: "cust-old",
+      storeId: "store-1",
+      phoneDigits: "5555988887777",
+      sellerId: "seller-lucas",
+    });
+    state.conversations.push({
+      id: "conv-old",
+      customerId: "cust-old",
+      accountId: "acc-1",
+      open: true,
+    });
+    const result = await run(state, evolutionEchoEvent("segunda", "3EB0ECHO2"));
+    expect(result).toMatchObject({ outcome: "echo-created", conversationId: "conv-old" });
+    expect(state.conversations).toHaveLength(1);
+  });
+
+  it("is idempotent across redeliveries (processed_events)", async () => {
+    const state = emptyState();
+    await run(state, evolutionEchoEvent());
+    const second = await run(state, evolutionEchoEvent());
+    expect(second.outcome).toBe("duplicate");
+    expect(state.messages).toHaveLength(1);
   });
 });
