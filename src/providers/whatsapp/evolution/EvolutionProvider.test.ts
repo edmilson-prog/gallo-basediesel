@@ -294,10 +294,13 @@ describe("parseEvolutionInbound (RF-060)", () => {
     });
   });
 
-  it("throws on own-message echoes (fromMe=true) and unknown events", () => {
-    expect(() =>
-      parseEvolutionInbound(upsertEvent({ conversation: "eco" }, { fromMe: true }), "acc"),
-    ).toThrow(/fromMe/);
+  it("returns outbound-echo for fromMe=true (no longer throws) and throws on unknown events", () => {
+    // fromMe=true now produces an outbound-echo (PRD spec 2026-06-11-whatsapp-real-inbox)
+    const echo = parseEvolutionInbound(
+      upsertEvent({ conversation: "eco" }, { fromMe: true }),
+      "acc",
+    );
+    expect(echo).toMatchObject({ type: "outbound-echo", contentType: "text", text: "eco" });
     expect(() => parseEvolutionInbound({ event: "connection.update", data: {} }, "acc")).toThrow(
       /não suportado/,
     );

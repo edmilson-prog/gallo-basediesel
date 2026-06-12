@@ -14,7 +14,7 @@
 import { parseEvolutionInbound } from "../evolution/parser";
 import { parseMetaInbound } from "../meta/parser";
 import type { IWhatsAppProvider } from "../IWhatsAppProvider";
-import type { IInboundMessage, IInboundStatus } from "../types";
+import type { IInboundMessage, IInboundStatus, IOutboundEcho } from "../types";
 
 export interface IAccountRecord {
   id: string;
@@ -248,7 +248,7 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
   // 1. Defensive parse FIRST (pure, cheap). Unparseable payloads — including
   //    Evolution own-message echoes and non-message events — are ignorable by
   //    design (RNF-007): the webhook answers 200 and moves on.
-  let parsed: IInboundMessage | IInboundStatus;
+  let parsed: IInboundMessage | IInboundStatus | IOutboundEcho;
   try {
     parsed =
       provider === "meta"
@@ -264,6 +264,12 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
   const eventKey = `whatsapp:${provider}:${parsed.providerMessageId}`;
   if (await db.isProcessed(eventKey)) {
     return { outcome: "duplicate", detail: eventKey };
+  }
+
+  // 3a. Outbound echo — Task 2 will mirror these into the conversation; for
+  //     now return ignored to preserve existing behavior.
+  if (parsed.type === "outbound-echo") {
+    return { outcome: "ignored", detail: "outbound echo (handled in Task 2)" };
   }
 
   // 3. Status updates (RF-060/061) — no account resolution needed: the

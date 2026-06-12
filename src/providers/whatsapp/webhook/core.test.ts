@@ -240,11 +240,15 @@ describe("processWebhookEvent — inbound messages (RF-040/050)", () => {
   it("ignores unparseable payloads and own-message echoes (RNF-007)", async () => {
     const state = emptyState();
     const warn = vi.fn();
+    // Unparseable payload → parse throws → warn called once
     expect((await run(state, { foo: "bar" }, { warn })).outcome).toBe("ignored");
+    expect(warn).toHaveBeenCalledTimes(1);
+    // fromMe echo → now returns outbound-echo (no parse throw, no warn) →
+    // core returns "ignored" early (Task 2 will handle these)
     const echo = evolutionTextEvent();
     echo.data.key.fromMe = true;
     expect((await run(state, echo, { warn })).outcome).toBe("ignored");
-    expect(warn).toHaveBeenCalledTimes(2);
+    expect(warn).toHaveBeenCalledTimes(1); // still 1 — echo silently ignored
     expect(state.messages).toHaveLength(0);
   });
 });
