@@ -44,6 +44,13 @@ export interface ISendRequest {
    * `action='dispatch_retry'` with the original id.
    */
   retryOfMessageId?: string;
+  /**
+   * Client-generated message id (UUID). When provided, the outbound row is
+   * inserted with THIS id so the optimistic bubble and the Realtime INSERT
+   * share one id — no duplicate bubble during the send window. Omitted (or
+   * invalid) → the database generates the id.
+   */
+  messageId?: string;
 }
 
 export interface ISender {
@@ -73,6 +80,8 @@ export interface ISendDb {
   getAccountRecord(accountId: string): Promise<IAccountRecord | null>;
   isWithin24hWindow(conversationId: string): Promise<boolean>;
   insertQueuedMessage(input: {
+    /** Client-provided UUID for the row id (optimistic dedup); adapter validates. */
+    messageId?: string;
     conversationId: string;
     sellerId: string | null;
     provider: "meta" | "evolution";
@@ -256,6 +265,7 @@ export async function processSendRequest(args: {
   // Persist BEFORE dispatch (RNF-002) — a provider failure leaves a visible
   // failed message, never a ghost sent only on the provider side.
   const message = await db.insertQueuedMessage({
+    messageId: input.messageId,
     conversationId: conversation.id,
     sellerId: sender.sellerId,
     provider: effectiveAccount.provider,

@@ -128,6 +128,15 @@ describe("processSendRequest — happy path (RF-030/040/050)", () => {
     });
   });
 
+  it("forwards a client-generated messageId to the queued insert (optimistic dedup)", async () => {
+    const { db, calls } = makeDb();
+    const clientId = "11111111-1111-4111-8111-111111111111";
+    await send({ messageId: clientId }, db);
+    // The Inbox sends a UUID so the optimistic bubble and the Realtime INSERT
+    // share one id — no duplicate bubble during the send window.
+    expect(calls.queued[0]).toMatchObject({ messageId: clientId });
+  });
+
   it("media: signs storage paths and passes the URL to the engine (RF-042)", async () => {
     const { db, calls } = makeDb();
     const engine = new MockWhatsAppProvider();
