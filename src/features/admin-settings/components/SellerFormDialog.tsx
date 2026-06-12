@@ -90,7 +90,8 @@ export function SellerFormDialog({
 
   const watchedType = form.watch("type");
   const watchedEmail = form.watch("email");
-  const emailChanged = isEdit && hasAccess && watchedEmail.trim().toLowerCase() !== seller?.email;
+  const emailChanged =
+    isEdit && hasAccess && watchedEmail.trim().toLowerCase() !== (seller?.email ?? "").toLowerCase();
 
   const mutation = useMutation({
     mutationFn: async (values: SellerFormValues) => {
@@ -114,7 +115,7 @@ export function SellerFormDialog({
         region,
       });
     },
-    onSuccess: (saved) => {
+    onSuccess: async (saved) => {
       toast.success(
         isEdit ? `Dados de ${saved.fullName} atualizados.` : `${saved.fullName} cadastrado(a).`,
         {
@@ -123,7 +124,7 @@ export function SellerFormDialog({
             : `Use “Criar acesso” quando quiser liberar o login na plataforma.`,
         },
       );
-      void queryClient.invalidateQueries({ queryKey: ["sellers", storeId] });
+      await queryClient.invalidateQueries({ queryKey: ["sellers", storeId] });
       onOpenChange(false);
     },
     onError: (err: Error) =>
