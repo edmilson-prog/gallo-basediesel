@@ -4,11 +4,13 @@ import { Icon } from "@/components/Icon";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import type { ISeller } from "@/shared/types";
 import { useCurrentStore } from "@/features/multistore";
 import { useSellersProvider } from "@/providers/data";
 import { AUTH_SOURCE } from "@/features/auth/authSource";
 import { useAuth } from "@/features/auth/useAuth";
+import { useStorePresence } from "@/features/shell/hooks/useStorePresence";
 import { SectionHeader } from "../components/SectionHeader";
 import {
   listSellerAccessInfo,
@@ -30,6 +32,22 @@ const ROLE_LABEL: Record<ISeller["type"], string> = {
 
 const SUPABASE_AUTH = AUTH_SOURCE === "supabase";
 
+const LAST_SIGN_IN_FORMAT = new Intl.DateTimeFormat("pt-BR", {
+  dateStyle: "short",
+  timeStyle: "short",
+});
+
+/** Secondary line under the e-mail: last sign-in, or a placeholder in demo mode. */
+function lastAccessLabel(
+  info: ISellerAccessInfo | undefined,
+  supabaseAuth: boolean,
+): string | null {
+  if (!supabaseAuth) return "Último acesso: —";
+  if (!info) return null; // no access yet — nothing to show
+  if (!info.lastSignInAt) return "Nunca acessou";
+  return `Último acesso: ${LAST_SIGN_IN_FORMAT.format(new Date(info.lastSignInAt))}`;
+}
+
 /**
  * Usuários — CRUD completo da equipe (users CRUD + PRD-107 Fase 3).
  *
@@ -49,6 +67,8 @@ export function UsersPage() {
   const [creating, setCreating] = useState(false);
   const { userRole, currentUser } = useAuth();
   const isOwner = userRole === "Owner";
+
+  const presence = useStorePresence(storeId);
 
   const sellersQuery = useQuery({
     queryKey: ["sellers", storeId],
@@ -105,18 +125,39 @@ export function UsersPage() {
               const hasAccess = accessRole !== undefined;
               const isOwnerAccess = accessRole === "owner";
               const isSelf = currentUser?.sellerId === s.id;
+              const isOnline = presence ? presence.has(s.id) : s.availability !== "offline";
+              const accessLabel = lastAccessLabel(accessInfo.get(s.id), SUPABASE_AUTH);
               return (
                 <li
                   key={s.id}
                   className="flex items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                      {s.fullName.slice(0, 2).toUpperCase()}
+                    <div className="relative">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                        {s.fullName.slice(0, 2).toUpperCase()}
+                      </div>
+                      <span
+                        aria-hidden
+                        className={cn(
+                          "absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-card",
+                          isOnline ? "bg-severity-success" : "bg-muted-foreground/40",
+                        )}
+                      />
                     </div>
                     <div>
-                      <p className="text-sm font-medium">{s.fullName}</p>
+                      <p className="flex items-center gap-1.5 text-sm font-medium">
+                        {s.fullName}
+                        {isOnline && (
+                          <span className="text-[10px] font-semibold uppercase tracking-wide text-severity-success">
+                            Online
+                          </span>
+                        )}
+                      </p>
                       <p className="text-xs text-muted-foreground">{s.email}</p>
+                      {accessLabel && (
+                        <p className="text-[11px] text-muted-foreground/80">{accessLabel}</p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
