@@ -36,6 +36,14 @@ export function ImportConversationsDialog({
   const [batches, setBatches] = useState(0);
   const [errorText, setErrorText] = useState("");
   const runningRef = useRef(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (account) {
@@ -52,12 +60,15 @@ export function ImportConversationsDialog({
     setPhase("running");
     try {
       const total = await runHistoryImport(account.id, (progress) => {
+        if (!mountedRef.current) return;
         setStats(progress.total);
         setBatches(progress.batches);
       });
+      if (!mountedRef.current) return;
       setStats(total);
       setPhase("done");
     } catch (error) {
+      if (!mountedRef.current) return;
       setErrorText(importErrorMessage(error));
       setPhase("error");
     } finally {
@@ -104,6 +115,10 @@ export function ImportConversationsDialog({
             <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
               <dt className="text-muted-foreground">Conversas processadas</dt>
               <dd className="text-right font-medium text-foreground">{stats.chatsProcessed}</dd>
+              <dt className="text-muted-foreground">Conversas novas criadas</dt>
+              <dd className="text-right font-medium text-foreground">
+                {stats.conversationsCreated}
+              </dd>
               <dt className="text-muted-foreground">Mensagens importadas</dt>
               <dd className="text-right font-medium text-foreground">{stats.messagesImported}</dd>
               <dt className="text-muted-foreground">Clientes novos (revisar)</dt>
@@ -112,11 +127,30 @@ export function ImportConversationsDialog({
               <dd className="text-right font-medium text-foreground">{stats.chatsSkippedGroup}</dd>
               <dt className="text-muted-foreground">Já existiam (puladas)</dt>
               <dd className="text-right font-medium text-foreground">{stats.messagesSkipped}</dd>
+              {stats.chatsFailed > 0 && (
+                <>
+                  <dt className="text-severity-warning">Conversas com falha</dt>
+                  <dd className="text-right font-medium text-severity-warning">
+                    {stats.chatsFailed}
+                  </dd>
+                </>
+              )}
             </dl>
             {phase === "done" && (
-              <p className="flex items-center gap-1.5 text-sm text-severity-success">
-                <Icon icon="mdi:check-circle-outline" size={16} />
-                Importação concluída — as conversas já estão no Inbox.
+              <p
+                className={`flex items-center gap-1.5 text-sm ${
+                  stats.chatsFailed > 0 ? "text-severity-warning" : "text-severity-success"
+                }`}
+              >
+                <Icon
+                  icon={
+                    stats.chatsFailed > 0 ? "mdi:alert-circle-outline" : "mdi:check-circle-outline"
+                  }
+                  size={16}
+                />
+                {stats.chatsFailed > 0
+                  ? `Importação concluída — ${stats.chatsFailed} conversa(s) falharam e podem ser reimportadas (tente de novo).`
+                  : "Importação concluída — as conversas já estão no Inbox."}
               </p>
             )}
           </div>

@@ -481,7 +481,7 @@ export function WhatsAppAccountsPage() {
                           </dd>
                         </div>
                       </dl>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         {account.failoverPolicy !== "disabled" && account.failoverAccountId && (
                           <Button
                             variant={account.isFailoverActive ? "destructive" : "outline"}
