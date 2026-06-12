@@ -169,7 +169,7 @@ Padrões arquiteturais que devem ser preservados ao implementar features:
 
 ## Versionamento e changelog
 
-- **SemVer.** MINOR/MAJOR recebem **codinome em inglês** (atual: `Roster` — v0.89.1).
+- **SemVer.** MINOR/MAJOR recebem **codinome em inglês** (atual: `Mosaic` — v0.90.0).
 - **CHANGELOG.md** segue Keep a Changelog; atualizado no version bump, não a cada commit. É copiado para `public/` pelos pre-scripts (`scripts/copy-changelog.mjs`).
 - Bump após PRD completo (obrigatório) ou quando solicitado para acumulado de fixes diretos.
-- **Tags git** acompanham cada bump: `vX.Y.Z` no commit de release/merge (ex.: `v0.67.0` Vault, `v0.68.0` Dispatch, `v0.69.0` Beacon, `v0.70.0` Guide, `v0.71.0` Focus, `v0.72.0` Bedrock, `v0.73.0` Keystone, `v0.74.0` Backbone, `v0.75.0` Sentinel, `v0.76.0` Bridge, `v0.77.0` Gateway, `v0.78.0` Courier, `v0.79.0` Stencil, `v0.80.0` Hourglass, `v0.81.0` Pulse, `v0.82.0` Weave, `v0.83.0` Relay, `v0.84.0` Anchor, `v0.85.0` Keyring, `v0.86.0` Lever, `v0.87.0` Socket, `v0.88.0` Chronicle, `v0.89.0` Roster, `v0.89.1` Roster).
+- **Tags git** acompanham cada bump: `vX.Y.Z` no commit de release/merge (ex.: `v0.67.0` Vault, `v0.68.0` Dispatch, `v0.69.0` Beacon, `v0.70.0` Guide, `v0.71.0` Focus, `v0.72.0` Bedrock, `v0.73.0` Keystone, `v0.74.0` Backbone, `v0.75.0` Sentinel, `v0.76.0` Bridge, `v0.77.0` Gateway, `v0.78.0` Courier, `v0.79.0` Stencil, `v0.80.0` Hourglass, `v0.81.0` Pulse, `v0.82.0` Weave, `v0.83.0` Relay, `v0.84.0` Anchor, `v0.85.0` Keyring, `v0.86.0` Lever, `v0.87.0` Socket, `v0.88.0` Chronicle, `v0.89.0` Roster, `v0.89.1` Roster, `v0.90.0` Mosaic).

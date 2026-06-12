@@ -6,9 +6,15 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
-## [0.89.1] — Roster · 2026-06-12
+## [0.90.0] — Mosaic · 2026-06-12
 
-**Áudios e mídias do WhatsApp agora tocam e abrem de verdade** — corrige a reprodução de áudio e a abertura de fotos e documentos recebidos nas conversas.
+**As mídias do WhatsApp voltaram a tocar e abrir — e agora têm um painel próprio na conversa.** Além de corrigir áudios e fotos recebidos, a aba "Mídias" virou uma galeria com três modos de visualização e um mini-player de áudio.
+
+### Added
+
+- **Painel de mídias da conversa** — a aba "Mídias" passa a exibir as fotos, áudios, vídeos e documentos da conversa em miniaturas de verdade, com busca por legenda e filtros por tipo, por autor (recebidas/enviadas) e por período. Aparecem apenas as mídias com arquivo disponível.
+- **Três modos de visualização** — alterne entre Grade (miniaturas densas), Cartões (com legenda e data) e Por tipo (agrupado em imagens e vídeos, documentos e áudios). A preferência de modo fica salva.
+- **Mini-player de áudio no painel** — cada áudio toca direto ali, sem abrir outra tela, mostrando a duração, se foi recebido ou enviado e a data e hora do envio. Ao iniciar um áudio, o que estava tocando pausa sozinho.
 
 ### Fixed
 
