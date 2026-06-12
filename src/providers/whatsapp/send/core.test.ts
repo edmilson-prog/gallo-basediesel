@@ -158,6 +158,29 @@ describe("processSendRequest — happy path (RF-030/040/050)", () => {
       }),
     );
   });
+
+  it("media: forwards the original fileName to the engine for documents (PRD-119)", async () => {
+    const { db } = makeDb();
+    const engine = new MockWhatsAppProvider();
+    const spy = vi.spyOn(engine, "sendMedia");
+
+    await send(
+      {
+        kind: "media",
+        mediaPath: "https://signed.test/quote.pdf",
+        mediaType: "document",
+        text: "",
+        fileName: "orçamento.pdf",
+      },
+      db,
+      SELLER,
+      engine,
+    );
+
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({ filename: "orçamento.pdf", mediaType: "document" }),
+    );
+  });
 });
 
 describe("processSendRequest — permission and state gates (RF-010..012)", () => {

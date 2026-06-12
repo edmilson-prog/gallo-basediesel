@@ -76,7 +76,9 @@ export function useAttachmentUpload(conversation: IConversation): IUseAttachment
         getActiveDataSource() === "supabase"
           ? await media.getSignedUrl(uploaded.id)
           : URL.createObjectURL(file);
-      return { text: caption, mediaType: kind, mediaUrl };
+      // fileName lets the send pipeline label documents with the real name on
+      // the recipient side (Meta/Evolution); ignored for image/audio/video.
+      return { text: caption, mediaType: kind, mediaUrl, fileName: file.name };
     },
     [conversation.customerId, conversation.id, media],
   );

@@ -6,6 +6,15 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.90.1] — Mosaic · 2026-06-12
+
+**Correções no envio de mídias pelo clipe.** Áudios anexados agora chegam como mensagem de voz tocável e documentos chegam com o nome de arquivo correto.
+
+### Fixed
+
+- **Envio de áudio pelo WhatsApp** — ao anexar um arquivo de áudio pelo clipe, ele agora chega ao cliente como uma mensagem de voz que toca direto na conversa. Antes, o envio de áudio não era concluído.
+- **Nome dos documentos enviados** — ao enviar um documento pelo clipe (PDF, planilha etc.), o cliente passa a ver o nome original do arquivo (por exemplo, "orçamento.pdf") em vez de um nome genérico.
+
 ## [0.90.0] — Mosaic · 2026-06-12
 
 **As mídias do WhatsApp voltaram a tocar e abrir — e agora têm um painel próprio na conversa.** Além de corrigir áudios e fotos recebidos, a aba "Mídias" virou uma galeria com três modos de visualização e um mini-player de áudio.

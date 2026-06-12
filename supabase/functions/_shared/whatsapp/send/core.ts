@@ -29,6 +29,12 @@ export interface ISendRequest {
   /** Storage path in whatsapp-media OR an absolute URL the provider can fetch. */
   mediaPath?: string;
   mediaType?: OutboundMediaType;
+  /**
+   * Original filename of the picked file (PRD-119). Threaded to providers that
+   * label documents with it (Meta `document.filename`, Evolution `fileName`);
+   * ignored for image/audio/video.
+   */
+  fileName?: string;
   templateName?: string;
   templateLanguage?: string;
   templateParameters?: string[];
@@ -297,6 +303,7 @@ export async function processSendRequest(args: {
         mediaType: input.mediaType as OutboundMediaType,
         mediaIdOrUrl: url,
         caption: input.text || undefined,
+        filename: input.fileName,
         traceId,
       });
       providerMessageId = result.providerMessageId;

@@ -118,6 +118,21 @@ export class EvolutionProvider implements IWhatsAppProvider {
         "Provider Evolution envia mídia por URL — passe uma URL pública/assinada em mediaIdOrUrl",
       );
     }
+    // Audio is NOT a /sendMedia mediatype on Evolution v2 — it has a dedicated
+    // endpoint that transcodes the source to a playable WhatsApp voice message
+    // (the recipient sees the audio player, not a downloadable file).
+    if (input.mediaType === "audio") {
+      const response = await evolutionRequest(await this.apiKey(), this.deps, {
+        baseUrl: this.config.baseUrl,
+        path: `/message/sendWhatsAppAudio/${this.config.instanceName}`,
+        json: {
+          number: toWireNumber(input.to),
+          audio: input.mediaIdOrUrl,
+        },
+        traceId: input.traceId,
+      });
+      return this.toSendResult(response.body);
+    }
     const response = await evolutionRequest(await this.apiKey(), this.deps, {
       baseUrl: this.config.baseUrl,
       path: `/message/sendMedia/${this.config.instanceName}`,
