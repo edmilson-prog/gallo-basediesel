@@ -97,6 +97,50 @@ describe("EvolutionProvider sending (RF-020..041)", () => {
     expect(result.providerMessageId).toBe("MEDIA1");
   });
 
+  it("sendMedia routes audio to /sendWhatsAppAudio (not a sendMedia mediatype on v2)", async () => {
+    // Evolution v2 has no `audio` mediatype on /sendMedia — audio goes through a
+    // dedicated endpoint that transcodes to a playable WhatsApp voice message.
+    const fetchFn = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(url)).toBe("https://evo.test.local/message/sendWhatsAppAudio/gallo-matriz");
+      expect(JSON.parse(String(init?.body))).toEqual({
+        number: "5555912345678",
+        audio: "https://storage.test/voice.ogg",
+      });
+      return jsonResponse({ key: { id: "AUDIO1" } });
+    }) as unknown as typeof fetch;
+    const { provider } = makeProvider(fetchFn);
+
+    const result = await provider.sendMedia({
+      accountId: "a",
+      to: "+5555912345678",
+      mediaType: "audio",
+      mediaIdOrUrl: "https://storage.test/voice.ogg",
+    });
+    expect(result.providerMessageId).toBe("AUDIO1");
+  });
+
+  it("sendMedia forwards the document fileName so the recipient sees a real name", async () => {
+    const fetchFn = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(url)).toBe("https://evo.test.local/message/sendMedia/gallo-matriz");
+      expect(JSON.parse(String(init?.body))).toMatchObject({
+        mediatype: "document",
+        media: "https://storage.test/quote.pdf",
+        fileName: "orçamento.pdf",
+      });
+      return jsonResponse({ key: { id: "DOC1" } });
+    }) as unknown as typeof fetch;
+    const { provider } = makeProvider(fetchFn);
+
+    const result = await provider.sendMedia({
+      accountId: "a",
+      to: "+5555912345678",
+      mediaType: "document",
+      mediaIdOrUrl: "https://storage.test/quote.pdf",
+      filename: "orçamento.pdf",
+    });
+    expect(result.providerMessageId).toBe("DOC1");
+  });
+
   it("sendTemplate and sendInteractive throw NOT_SUPPORTED (RF-040/041)", async () => {
     const fetchFn = vi.fn() as unknown as typeof fetch;
     const { provider } = makeProvider(fetchFn);

@@ -66,6 +66,8 @@ export interface ISendOptions {
   text: string;
   mediaType?: MessageMediaType;
   mediaUrl?: string;
+  /** Original filename of an attached file — labels documents for the recipient (PRD-119). */
+  fileName?: string;
   /** Marks this message as a template HSM send (uses provider = meta). */
   template?: boolean;
   /** Real HSM payload (PRD-116) — supabase source sends kind='template'. */
@@ -109,6 +111,7 @@ export function useMessageSend(
       text,
       mediaType,
       mediaUrl,
+      fileName,
       template,
       templateMeta,
       overrideInvalid,
@@ -169,7 +172,9 @@ export function useMessageSend(
                   conversationId: conversation.id,
                   kind: mediaType ? "media" : "text",
                   text: optimistic.text,
-                  ...(mediaType ? { mediaPath: mediaUrl, mediaType } : {}),
+                  ...(mediaType
+                    ? { mediaPath: mediaUrl, mediaType, ...(fileName ? { fileName } : {}) }
+                    : {}),
                   ...flags,
                 },
           );

@@ -15,6 +15,7 @@
   "text": "…",                       // texto ou caption (≤4096)
   "mediaPath": "conversations/...",  // path no bucket whatsapp-media OU URL absoluta
   "mediaType": "image|audio|video|document",
+  "fileName": "orçamento.pdf",       // opcional — nome real do documento p/ o destinatário
   "templateName": "...", "templateLanguage": "pt_BR", "templateParameters": ["..."],
   "replyToMessageId": "wamid..."     // opcional
 }

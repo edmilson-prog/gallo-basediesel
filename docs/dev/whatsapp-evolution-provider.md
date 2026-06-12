@@ -39,7 +39,8 @@ valida HMAC-SHA256 constant-time (aceita com ou sem prefixo `sha256=`).
 | Operação | Endpoint |
 | --- | --- |
 | sendText | `POST /message/sendText/{instance}` → `key.id` |
-| sendMedia | `POST /message/sendMedia/{instance}` — `media` é **URL** (Storage assinado — PRD-106); nunca base64 gigante |
+| sendMedia (image/video/document) | `POST /message/sendMedia/{instance}` — `media` é **URL** (Storage assinado — PRD-106); nunca base64 gigante. Para `document`, passa `fileName` (nome real para o destinatário) |
+| sendMedia (**audio**) | `POST /message/sendWhatsAppAudio/{instance}` — **endpoint próprio**: a v2 não tem `mediatype: "audio"` no `/sendMedia`. Body `{ number, audio: <URL> }`; a Evolution transcodifica para **mensagem de voz tocável** (PTT). Sem caption (limitação do WhatsApp para áudio) |
 | healthCheck | `GET /instance/connectionState/{instance}` — `open`→healthy; `connecting`/`close`→`healthy:false` com `detail: "state: ..."` (tri-state do PRD colapsado no contrato booleano do PRD-111; PRD-120 lê o detail) |
 | downloadInboundMedia | `POST /chat/getBase64FromMediaMessage/{instance}` — `mediaId` é o **key id da mensagem** (ver parser); retorna base64 decodificado |
 
