@@ -6,6 +6,17 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.89.0] — Roster · 2026-06-12
+
+**Gestão completa da equipe numa tela só** — agora dá para cadastrar, editar e desligar usuários direto na plataforma, ver quem está online e quando cada um acessou pela última vez.
+
+### Added
+
+- **Cadastro e edição de usuários** — em Configurações → Usuários, o botão "Novo usuário" cria um membro da equipe (nome, e-mail, telefone, tipo e região, quando se aplica) e cada pessoa pode ser ajustada pelo botão "Editar". O cadastro cria o usuário sem login; o acesso à plataforma é liberado depois por "Criar acesso" (senha temporária ou convite por e-mail).
+- **Exclusão de usuário com histórico preservado** — o botão "Excluir" tira o acesso da pessoa e a remove de todas as listas (equipe, distribuição, rankings), mas mantém intacto o histórico de vendas, clientes e conversas vinculado a ela. O próprio usuário logado e os donos da conta não podem ser excluídos.
+- **Presença online da equipe** — a tela de Usuários mostra um ponto verde e a etiqueta "Online" em quem está com a plataforma aberta naquele momento, atualizando em tempo real.
+- **Último acesso de cada usuário** — abaixo do e-mail, a tela informa quando a pessoa entrou pela última vez (ou "Nunca acessou" para quem ainda não fez login).
+
 ## [0.88.0] — Chronicle · 2026-06-12
 
 **As conversas reais do WhatsApp agora aparecem na plataforma** — incluindo o histórico importado do número conectado. E o envio ficou mais confiável: um balão só por mensagem, com status que reflete a verdade da entrega.
