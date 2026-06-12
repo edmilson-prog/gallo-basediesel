@@ -295,9 +295,9 @@ describe("processWebhookEvent — statuses (RF-060/061)", () => {
     expect(result).toMatchObject({ outcome: "status-applied", messageId: "msg-outbound-1" });
     expect(state.statusApplied[0]).toMatchObject({
       status: "read",
-      eventKey: "whatsapp:evolution:OUT1",
+      eventKey: "whatsapp:evolution:OUT1:read",
     });
-    expect(state.processed.has("whatsapp:evolution:OUT1")).toBe(true);
+    expect(state.processed.has("whatsapp:evolution:OUT1:read")).toBe(true);
   });
 
   function metaFailedStatusEvent(code: number, keyId = "wamid.OUT") {
@@ -372,7 +372,29 @@ describe("processWebhookEvent — statuses (RF-060/061)", () => {
 
     expect(result.outcome).toBe("status-unmatched");
     expect(warn).toHaveBeenCalled();
-    expect(state.processed.has("whatsapp:evolution:GHOST")).toBe(true);
+    expect(state.processed.has("whatsapp:evolution:GHOST:delivered")).toBe(true);
+  });
+
+  it("each ack of the same message gets its own idempotency key (sent → read)", async () => {
+    const state = emptyState();
+    const first = await processWebhookEvent({
+      provider: "evolution",
+      rawPayload: statusEvent("SERVER_ACK", "OUT2"),
+      db: makeFakeDb(state, { knownOutboundId: "OUT2" }),
+      buildProvider: buildMock,
+      traceId: "t",
+    });
+    const second = await processWebhookEvent({
+      provider: "evolution",
+      rawPayload: statusEvent("READ", "OUT2"),
+      db: makeFakeDb(state, { knownOutboundId: "OUT2" }),
+      buildProvider: buildMock,
+      traceId: "t",
+    });
+
+    expect(first.outcome).toBe("status-applied");
+    expect(second.outcome).toBe("status-applied"); // NOT swallowed by the sent ack
+    expect(state.statusApplied.map((s) => s.status)).toEqual(["sent", "read"]);
   });
 });
 
@@ -564,8 +586,12 @@ describe("processWebhookEvent — outbound echoes (real inbox spec)", () => {
       providerMessageId: "3EB0ECHO1",
     });
     expect(state.bumps).toHaveLength(0); // NEVER the unread-bumping path
+    // Pinned ISO: the touch uses the MESSAGE timestamp, never now().
     expect(state.touches).toEqual([
-      { conversationId: state.conversations[0]?.id, lastMessageAt: expect.any(String) },
+      {
+        conversationId: state.conversations[0]?.id,
+        lastMessageAt: new Date(1765400000 * 1000).toISOString(),
+      },
     ]);
     expect(state.audits[0]).toMatchObject({
       action: "webhook_received",
@@ -590,6 +616,8 @@ describe("processWebhookEvent — outbound echoes (real inbox spec)", () => {
     const result = await run(state, evolutionEchoEvent("segunda", "3EB0ECHO2"));
     expect(result).toMatchObject({ outcome: "echo-created", conversationId: "conv-old" });
     expect(state.conversations).toHaveLength(1);
+    // Reuse never rewrites the pre-existing conversation status.
+    expect(state.conversations[0]?.status).toBeUndefined();
   });
 
   it("is idempotent across redeliveries (processed_events)", async () => {
@@ -597,6 +625,68 @@ describe("processWebhookEvent — outbound echoes (real inbox spec)", () => {
     await run(state, evolutionEchoEvent());
     const second = await run(state, evolutionEchoEvent());
     expect(second.outcome).toBe("duplicate");
+    expect(state.messages).toHaveLength(1);
+  });
+
+  it("returns account-not-found (and does not mark processed) for an unknown instance", async () => {
+    const state = emptyState();
+    const payload = { ...evolutionEchoEvent(), instance: "desconhecida" };
+    const result = await run(state, payload);
+
+    expect(result.outcome).toBe("account-not-found");
+    expect(state.messages).toHaveLength(0);
+    expect(state.processed.size).toBe(0);
+  });
+});
+
+describe("processWebhookEvent — status keys (echo/ack share the provider message id)", () => {
+  function ackEvent(status: string, keyId: string) {
+    return {
+      event: "messages.update",
+      instance: "gallo-matriz",
+      data: { keyId, status, messageTimestamp: 1765400100 },
+    };
+  }
+
+  it("echo then ack: the echo mark never swallows the delivery status", async () => {
+    const state = emptyState();
+    // 1st: fake WITHOUT knownOutboundId — the echo is phone-sent and mirrors.
+    const echo = await processWebhookEvent({
+      provider: "evolution",
+      rawPayload: evolutionEchoEvent("x", "SEQ1"),
+      db: makeFakeDb(state),
+      buildProvider: buildMock,
+      traceId: "trace-test",
+    });
+    expect(echo.outcome).toBe("echo-created");
+
+    // 2nd: same state, fake WITH knownOutboundId — the ack finds the message.
+    const ack = await processWebhookEvent({
+      provider: "evolution",
+      rawPayload: ackEvent("DELIVERY_ACK", "SEQ1"),
+      db: makeFakeDb(state, { knownOutboundId: "SEQ1" }),
+      buildProvider: buildMock,
+      traceId: "trace-test",
+    });
+    expect(ack.outcome).toBe("status-applied"); // NOT duplicate
+    expect(state.statusApplied).toHaveLength(1);
+  });
+
+  it("ack before the upsert: the status-unmatched mark never suppresses the echo mirror", async () => {
+    const state = emptyState();
+    const warn = vi.fn();
+    const ack = await processWebhookEvent({
+      provider: "evolution",
+      rawPayload: ackEvent("SERVER_ACK", "SEQ2"),
+      db: makeFakeDb(state),
+      buildProvider: buildMock,
+      traceId: "trace-test",
+      warn,
+    });
+    expect(ack.outcome).toBe("status-unmatched");
+
+    const echo = await run(state, evolutionEchoEvent("x", "SEQ2"));
+    expect(echo.outcome).toBe("echo-created"); // bare key was never marked
     expect(state.messages).toHaveLength(1);
   });
 });

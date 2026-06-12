@@ -281,8 +281,14 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
     return { outcome: "ignored", detail: "missing provider message id" };
   }
 
-  // 2. Idempotency (RF-020..022): Meta retries the same event 2-3×.
-  const eventKey = `whatsapp:${provider}:${parsed.providerMessageId}`;
+  // 2. Idempotency (RF-020..022). Status events get a per-status key: the
+  //    SAME provider message id flows through upsert (echo) AND every ack
+  //    (sent/delivered/read/failed) — a shared key would let whichever event
+  //    lands first swallow all the others.
+  const eventKey =
+    parsed.type === "status"
+      ? `whatsapp:${provider}:${parsed.providerMessageId}:${parsed.status}`
+      : `whatsapp:${provider}:${parsed.providerMessageId}`;
   if (await db.isProcessed(eventKey)) {
     return { outcome: "duplicate", detail: eventKey };
   }

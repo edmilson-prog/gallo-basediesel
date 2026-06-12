@@ -17,6 +17,7 @@ import type {
   IInboundMessage,
   IInboundStatus,
   IMediaDownloadResult,
+  IOutboundEcho,
   ISendInteractiveInput,
   ISendMediaInput,
   ISendResult,
@@ -170,7 +171,7 @@ export class EvolutionProvider implements IWhatsAppProvider {
     }
   }
 
-  parseInboundMessage(rawPayload: unknown): IInboundMessage | IInboundStatus {
+  parseInboundMessage(rawPayload: unknown): IInboundMessage | IInboundStatus | IOutboundEcho {
     return parseEvolutionInbound(rawPayload, this.config.accountId);
   }
 
