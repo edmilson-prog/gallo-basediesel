@@ -98,11 +98,16 @@ export function fileNameFromUrl(url?: string): string {
   return decodeURIComponent(segments[segments.length - 1] ?? "anexo");
 }
 
-/** Estimated audio duration from a deterministic hash of the message id. */
-export function fakeAudioSeconds(message: IMessage): number {
+/** Estimated audio duration (8–67s) from a deterministic hash of an id. */
+export function estimateAudioSeconds(id: string): number {
   let h = 0;
-  for (let i = 0; i < message.id.length; i += 1) {
-    h = (h * 31 + message.id.charCodeAt(i)) | 0;
+  for (let i = 0; i < id.length; i += 1) {
+    h = (h * 31 + id.charCodeAt(i)) | 0;
   }
   return 8 + (Math.abs(h) % 60);
+}
+
+/** Estimated audio duration from a deterministic hash of the message id. */
+export function fakeAudioSeconds(message: IMessage): number {
+  return estimateAudioSeconds(message.id);
 }

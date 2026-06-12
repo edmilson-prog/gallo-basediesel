@@ -56,4 +56,22 @@ export interface IMessagesProvider {
    * (SECURITY INVOKER — RLS applies).
    */
   getLastInboundAt(conversationId: ID): Promise<ISO8601 | null>;
+  /**
+   * Resolve a message's `mediaUrl` into a browser-navigable URL.
+   *
+   * Inbound WhatsApp media lands as a PRIVATE `whatsapp-media` object PATH
+   * (`conversations/<conv>/<msg>/media.<ext>`), not a URL — the Supabase impl
+   * mints a short-lived signed URL for it (Storage RLS gates access to the
+   * caller's store). Absolute refs (seed/mock/outbound) pass through verbatim;
+   * empty or unreadable refs resolve to `null` so the UI can show the media as
+   * unavailable instead of a broken element.
+   */
+  resolveMediaUrl(mediaUrl: string | undefined): Promise<string | null>;
+  /**
+   * Messages of a conversation that carry displayable media (image/audio/video/
+   * document) WITH bytes available (non-null `mediaUrl`), newest first. Feeds
+   * the conversation media side panel. Inbound media whose download failed or
+   * expired has a null url and is therefore excluded.
+   */
+  listConversationMedia(conversationId: ID): Promise<IMessage[]>;
 }

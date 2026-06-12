@@ -6,6 +6,13 @@ import type {
 } from "../../contracts/messages";
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
+import { classifyMediaRef } from "@/shared/utils/mediaRef";
+
+/** Storage bucket holding conversation media bytes (PRD-106). */
+const MEDIA_BUCKET = "whatsapp-media";
+/** Signed-URL lifetime for in-app playback/preview — comfortably long so a
+ *  conversation left open doesn't expire mid-listen (Storage RLS still gates). */
+const MEDIA_SIGNED_URL_TTL_SECONDS = 3600;
 
 /**
  * Supabase implementation of {@link IMessagesProvider} (PRD-100+).
@@ -187,5 +194,38 @@ export const supabaseMessagesProvider: IMessagesProvider = {
         `[supabase] messages.getLastInboundAt(${conversationId}) failed: ${error.message}`,
       );
     return (data as string | null) ?? null;
+  },
+
+  async resolveMediaUrl(mediaUrl: string | undefined): Promise<string | null> {
+    const ref = classifyMediaRef(mediaUrl);
+    if (ref.kind === "none") return null;
+    // Seed/outbound media already carries a navigable URL — use it as-is.
+    if (ref.kind === "absolute") return ref.url;
+    // Inbound media is a private `whatsapp-media` object path: sign it. The
+    // `storage_whatsapp_media_select_inbound` policy gates signing to the
+    // conversation's store; a forbidden/absent object resolves to null so the
+    // bubble degrades to an "unavailable" state instead of throwing.
+    const { data, error } = await getSupabaseClient()
+      .storage.from(MEDIA_BUCKET)
+      .createSignedUrl(ref.path, MEDIA_SIGNED_URL_TTL_SECONDS);
+    if (error || !data?.signedUrl) return null;
+    return data.signedUrl;
+  },
+
+  async listConversationMedia(conversationId: ID): Promise<IMessage[]> {
+    // `media_url IS NOT NULL` already excludes failed/expired inbound media
+    // (the webhook stores a null url on download failure), so a status filter
+    // is unnecessary and would wrongly drop outbound media (null status).
+    const { data, error } = await getSupabaseClient()
+      .from(TABLE)
+      .select(COLUMNS)
+      .eq("conversation_id", conversationId)
+      .not("media_type", "is", null)
+      .not("media_url", "is", null)
+      .order("sent_at", { ascending: false })
+      .limit(500);
+    if (error)
+      throw new Error(`[supabase] messages.listConversationMedia failed: ${error.message}`);
+    return (data as unknown as MessageRow[]).map(rowToMessage);
   },
 };

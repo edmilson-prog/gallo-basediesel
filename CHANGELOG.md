@@ -6,6 +6,22 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.90.0] — Mosaic · 2026-06-12
+
+**As mídias do WhatsApp voltaram a tocar e abrir — e agora têm um painel próprio na conversa.** Além de corrigir áudios e fotos recebidos, a aba "Mídias" virou uma galeria com três modos de visualização e um mini-player de áudio.
+
+### Added
+
+- **Painel de mídias da conversa** — a aba "Mídias" passa a exibir as fotos, áudios, vídeos e documentos da conversa em miniaturas de verdade, com busca por legenda e filtros por tipo, por autor (recebidas/enviadas) e por período. Aparecem apenas as mídias com arquivo disponível.
+- **Três modos de visualização** — alterne entre Grade (miniaturas densas), Cartões (com legenda e data) e Por tipo (agrupado em imagens e vídeos, documentos e áudios). A preferência de modo fica salva.
+- **Mini-player de áudio no painel** — cada áudio toca direto ali, sem abrir outra tela, mostrando a duração, se foi recebido ou enviado e a data e hora do envio. Ao iniciar um áudio, o que estava tocando pausa sozinho.
+
+### Fixed
+
+- **Reprodução de áudio nas conversas** — os áudios recebidos pelo WhatsApp agora tocam de verdade ao apertar play; antes a barrinha andava mas não saía som. Dá para pausar, retomar e arrastar para um trecho específico do áudio.
+- **Fotos, documentos e vídeos recebidos** — passam a abrir e baixar normalmente nas conversas. Quando o arquivo não está mais disponível no servidor, a mensagem mostra "indisponível" em vez de um item quebrado.
+- **Recuperação de áudios e fotos recentes** — áudios e imagens recebidos nas últimas semanas que apareciam como indisponíveis foram baixados e agora tocam e abrem normalmente. Mídias com mais de algumas semanas não puderam ser recuperadas porque o WhatsApp as remove de seus servidores depois desse período.
+
 ## [0.89.0] — Roster · 2026-06-12
 
 **Gestão completa da equipe numa tela só** — agora dá para cadastrar, editar e desligar usuários direto na plataforma, ver quem está online e quando cada um acessou pela última vez.
