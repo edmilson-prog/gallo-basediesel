@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ID, IMessage, MessageStatus } from "@/shared/types";
 import { useMessagesProvider } from "@/providers/data";
+import { statusAdvances } from "@/providers/whatsapp/messageStatus";
 
 const PAGE_SIZE = 50;
 
@@ -33,15 +34,6 @@ export interface IUseMessagesResult {
    */
   applyRealtimeRow: (incoming: IMessage) => void;
 }
-
-/** Monotonic delivery ranking — `failed` is terminal and always applies. */
-const STATUS_RANK: Record<MessageStatus, number> = {
-  queued: 0,
-  sent: 1,
-  delivered: 2,
-  read: 3,
-  failed: 4,
-};
 
 /**
  * Load messages of a conversation in ascending chronological order, with
@@ -159,10 +151,13 @@ export function useMessages(conversationId: ID): IUseMessagesResult {
     setMessages((prev) => {
       const existing = prev.find((m) => m.id === incoming.id);
       if (existing) {
-        const keepStatus = STATUS_RANK[existing.status] > STATUS_RANK[incoming.status];
+        // Status never regresses; `failed` is recoverable (a transient provider
+        // ERROR ack can be superseded by a later delivered/read) — see
+        // statusAdvances / MESSAGE_STATUS_RANK.
+        const advances = statusAdvances(existing.status, incoming.status);
         return prev.map((m) =>
           m.id === incoming.id
-            ? { ...m, ...incoming, status: keepStatus ? m.status : incoming.status }
+            ? { ...m, ...incoming, status: advances ? incoming.status : m.status }
             : m,
         );
       }

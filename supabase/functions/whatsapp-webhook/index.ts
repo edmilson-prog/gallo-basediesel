@@ -29,6 +29,7 @@ import { createSecretResolver, type VaultSecretResolver } from "../_shared/secre
 import { createLogger, type Logger } from "../_shared/logger.ts";
 import { captureException } from "../_shared/sentry.ts";
 import { buildWhatsAppEngine } from "../_shared/whatsapp/build.ts";
+import { statusAdvances, type DeliveryStatus } from "../_shared/whatsapp/messageStatus.ts";
 import { hmacSha256Hex, timingSafeEqualStrings } from "../_shared/whatsapp/crypto.ts";
 import { verifyMetaWebhookSignature } from "../_shared/whatsapp/meta/signature.ts";
 import {
@@ -277,24 +278,37 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
     async applyStatusToMessage(input) {
       const { data } = await admin
         .from("messages")
-        .select("webhook_event_ids")
+        .select("status, webhook_event_ids")
         .eq("id", input.messageId)
         .maybeSingle();
       const eventIds = [
         ...((data?.webhook_event_ids as string[] | undefined) ?? []),
         input.eventKey,
       ];
-      const patch: Record<string, unknown> = {
-        status: input.status,
-        webhook_event_ids: eventIds,
-      };
-      if (input.status === "delivered") patch.delivered_at = input.timestamp;
-      if (input.status === "read") patch.read_at = input.timestamp;
-      if (input.status === "failed" && input.failureReason) {
-        patch.failure_reason = input.failureReason;
-      }
-      if (input.status === "failed" && input.failureCode) {
-        patch.failure_code = input.failureCode;
+      // Always record the event id, but only ADVANCE the status: `failed` is
+      // recoverable (Baileys emits a spurious ERROR ack mid-flight), so it must
+      // never clobber an already delivered/read message — see statusAdvances.
+      const current = (data?.status as DeliveryStatus | undefined) ?? "queued";
+      const patch: Record<string, unknown> = { webhook_event_ids: eventIds };
+      if (statusAdvances(current, input.status)) {
+        patch.status = input.status;
+        // A forward confirmation clears any stale failure left by a transient ack.
+        if (input.status === "delivered") {
+          patch.delivered_at = input.timestamp;
+          patch.failure_reason = null;
+          patch.failure_code = null;
+        }
+        if (input.status === "read") {
+          patch.read_at = input.timestamp;
+          patch.failure_reason = null;
+          patch.failure_code = null;
+        }
+        if (input.status === "failed" && input.failureReason) {
+          patch.failure_reason = input.failureReason;
+        }
+        if (input.status === "failed" && input.failureCode) {
+          patch.failure_code = input.failureCode;
+        }
       }
       await admin.from("messages").update(patch).eq("id", input.messageId);
     },
