@@ -142,6 +142,25 @@ export interface IInboundStatus {
   rawPayload: unknown;
 }
 
+/**
+ * Own-account message echo (Evolution `messages.upsert` with `fromMe=true`):
+ * something the team sent FROM THE PHONE (or another client). The webhook
+ * mirrors it into the conversation as an outbound message (PRD spec
+ * 2026-06-11-whatsapp-real-inbox). App-sent messages also echo — consumers
+ * dedup by `providerMessageId` before persisting.
+ */
+export interface IOutboundEcho {
+  type: "outbound-echo";
+  providerMessageId: string;
+  /** Destination phone in E.164 (the chat the message was sent to). */
+  toPhone: string;
+  contentType: InboundContentType;
+  text?: string;
+  mediaCaption?: string;
+  timestamp: ISO8601;
+  rawPayload: unknown;
+}
+
 // ===== Media ================================================================
 
 export interface IMediaDownloadResult {

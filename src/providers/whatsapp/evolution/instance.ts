@@ -15,6 +15,7 @@ import { WhatsAppProviderError } from "../errors";
 import { toE164 } from "../phone";
 import type { IEngineDeps } from "../types";
 import { evolutionRequest } from "./client";
+import type { IEvolutionRawMessage } from "./parser";
 
 export interface IEvolutionInstanceTarget {
   baseUrl: string;
@@ -194,4 +195,109 @@ export async function setInstanceWebhook(
     },
     traceId,
   });
+}
+
+// ===== Chat history (real-inbox import — spec 2026-06-11) ===================
+
+export interface IEvolutionChatSummary {
+  remoteJid: string;
+}
+
+/** One message as stored by the Evolution instance DB. */
+export interface IEvolutionStoredMessage {
+  key?: { id?: string; remoteJid?: string; fromMe?: boolean };
+  message?: IEvolutionRawMessage;
+  messageTimestamp?: number | string;
+  /** Baileys ack label (SERVER_ACK/DELIVERY_ACK/READ/...) when stored. */
+  status?: string;
+}
+
+export interface IFindMessagesPage {
+  records: IEvolutionStoredMessage[];
+  /** Total pages when the build reports it; undefined → stop on empty page. */
+  pages?: number;
+}
+
+/** Evolution page-size param (`offset` doubles as records per page on v2). */
+export const EVOLUTION_HISTORY_PAGE_SIZE = 100;
+
+/**
+ * POST /chat/findChats — every chat the instance has stored. Response shapes
+ * vary across builds (flat array | {chats} | {records}); jid-less entries are
+ * dropped. Payload logging is omitted (PII: full chat list).
+ */
+export async function findChats(
+  apiKey: string,
+  deps: IEngineDeps,
+  target: IEvolutionInstanceTarget,
+  traceId?: string,
+): Promise<IEvolutionChatSummary[]> {
+  const response = await evolutionRequest(apiKey, deps, {
+    baseUrl: target.baseUrl,
+    path: `/chat/findChats/${target.instanceName}`,
+    json: { where: {} },
+    timeoutMs: 30_000,
+    omitResponsePayload: true,
+    traceId,
+  });
+  const body = response.body as unknown[] | { chats?: unknown[]; records?: unknown[] } | null;
+  const list = Array.isArray(body)
+    ? body
+    : Array.isArray(body?.chats)
+      ? body.chats
+      : Array.isArray(body?.records)
+        ? body.records
+        : [];
+  if (list.length === 0 && body !== null && !Array.isArray(body)) {
+    // Surface unknown response shapes in integration_logs — the payload itself
+    // is omitted (PII), so the key list is the only diagnosable trace.
+    await deps.logIntegration?.({
+      integrationName: "whatsapp_evolution",
+      direction: "outbound",
+      endpoint: `/chat/findChats/${target.instanceName}`,
+      latencyMs: 0,
+      traceId,
+      errorMessage: `findChats: unrecognised response shape — keys: ${Object.keys(body as object).join(", ")}`,
+    });
+  }
+  const out: IEvolutionChatSummary[] = [];
+  for (const raw of list) {
+    const candidate = raw as { remoteJid?: string; id?: string } | null;
+    const jid = candidate?.remoteJid ?? candidate?.id;
+    if (typeof jid === "string" && jid.includes("@")) out.push({ remoteJid: jid });
+  }
+  return out;
+}
+
+/**
+ * POST /chat/findMessages — one page of a chat's stored messages. `offset`
+ * doubles as page size on v2 builds; older builds return a bare array.
+ * Payload logging is omitted (PII: message bodies).
+ */
+export async function findMessages(
+  apiKey: string,
+  deps: IEngineDeps,
+  target: IEvolutionInstanceTarget,
+  remoteJid: string,
+  page: number,
+  traceId?: string,
+): Promise<IFindMessagesPage> {
+  const response = await evolutionRequest(apiKey, deps, {
+    baseUrl: target.baseUrl,
+    path: `/chat/findMessages/${target.instanceName}`,
+    json: { where: { key: { remoteJid } }, page, offset: EVOLUTION_HISTORY_PAGE_SIZE },
+    timeoutMs: 30_000,
+    omitResponsePayload: true,
+    traceId,
+  });
+  const body = response.body as
+    | unknown[]
+    | { messages?: { records?: unknown[]; pages?: number } }
+    | null;
+  if (Array.isArray(body)) return { records: body as IEvolutionStoredMessage[] };
+  const nested = body?.messages;
+  return {
+    records: (nested?.records as IEvolutionStoredMessage[] | undefined) ?? [],
+    pages: typeof nested?.pages === "number" ? nested.pages : undefined,
+  };
 }

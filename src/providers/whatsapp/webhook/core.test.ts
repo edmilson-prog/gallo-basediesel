@@ -15,12 +15,19 @@ const ACCOUNT: IAccountRecord = {
 interface IFakeState {
   processed: Set<string>;
   customers: Array<{ id: string; storeId: string; phoneDigits: string; sellerId: string }>;
-  conversations: Array<{ id: string; customerId: string; accountId: string; open: boolean }>;
+  conversations: Array<{
+    id: string;
+    customerId: string;
+    accountId: string;
+    open: boolean;
+    status?: string;
+  }>;
   messages: Array<Record<string, unknown>>;
   statusApplied: Array<Record<string, unknown>>;
   uploads: string[];
   audits: Array<Record<string, unknown>>;
   bumps: string[];
+  touches: Array<{ conversationId: string; lastMessageAt: string }>;
   mediaSet: Array<{ messageId: string; mediaUrl: string | null; status: string }>;
   invalidCustomers: string[];
   /** Simulated whatsapp_accounts.status for the single test account. */
@@ -66,10 +73,18 @@ function makeFakeDb(state: IFakeState, opts?: { knownOutboundId?: string }): IWe
       );
       return found ? { id: found.id } : null;
     },
-    createConversation: async ({ customerId, accountId }) => {
-      const conversation = { id: nextId("conv"), customerId, accountId, open: true };
+    createConversation: async ({ customerId, accountId, status }) => {
+      const conversation = { id: nextId("conv"), customerId, accountId, open: true, status };
       state.conversations.push(conversation);
       return { id: conversation.id };
+    },
+    insertOutboundEchoMessage: async (input) => {
+      const message = { id: nextId("msg"), direction: "out", ...input };
+      state.messages.push(message);
+      return { id: message.id as string };
+    },
+    touchConversation: async (conversationId, lastMessageAt) => {
+      state.touches.push({ conversationId, lastMessageAt });
     },
     insertInboundMessage: async (input) => {
       const message = { id: nextId("msg"), ...input };
@@ -116,6 +131,7 @@ function emptyState(): IFakeState {
     uploads: [],
     audits: [],
     bumps: [],
+    touches: [],
     mediaSet: [],
     invalidCustomers: [],
     accountStatus: "connected",
@@ -237,15 +253,23 @@ describe("processWebhookEvent — inbound messages (RF-040/050)", () => {
     expect(state.processed.size).toBe(0);
   });
 
-  it("ignores unparseable payloads and own-message echoes (RNF-007)", async () => {
+  it("ignores unparseable payloads (RNF-007)", async () => {
     const state = emptyState();
     const warn = vi.fn();
+    // Unparseable payload → parse throws → warn called once
     expect((await run(state, { foo: "bar" }, { warn })).outcome).toBe("ignored");
-    const echo = evolutionTextEvent();
-    echo.data.key.fromMe = true;
-    expect((await run(state, echo, { warn })).outcome).toBe("ignored");
-    expect(warn).toHaveBeenCalledTimes(2);
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores upsert payloads without data.key.id (empty provider message id)", async () => {
+    const state = emptyState();
+    const event = evolutionTextEvent();
+    (event.data.key as { id?: string }).id = undefined;
+    const result = await run(state, event);
+    expect(result).toMatchObject({ outcome: "ignored", detail: "missing provider message id" });
     expect(state.messages).toHaveLength(0);
+    expect(state.processed.size).toBe(0);
+    expect(state.audits).toHaveLength(0);
   });
 });
 
@@ -271,9 +295,9 @@ describe("processWebhookEvent — statuses (RF-060/061)", () => {
     expect(result).toMatchObject({ outcome: "status-applied", messageId: "msg-outbound-1" });
     expect(state.statusApplied[0]).toMatchObject({
       status: "read",
-      eventKey: "whatsapp:evolution:OUT1",
+      eventKey: "whatsapp:evolution:OUT1:read",
     });
-    expect(state.processed.has("whatsapp:evolution:OUT1")).toBe(true);
+    expect(state.processed.has("whatsapp:evolution:OUT1:read")).toBe(true);
   });
 
   function metaFailedStatusEvent(code: number, keyId = "wamid.OUT") {
@@ -348,7 +372,29 @@ describe("processWebhookEvent — statuses (RF-060/061)", () => {
 
     expect(result.outcome).toBe("status-unmatched");
     expect(warn).toHaveBeenCalled();
-    expect(state.processed.has("whatsapp:evolution:GHOST")).toBe(true);
+    expect(state.processed.has("whatsapp:evolution:GHOST:delivered")).toBe(true);
+  });
+
+  it("each ack of the same message gets its own idempotency key (sent → read)", async () => {
+    const state = emptyState();
+    const first = await processWebhookEvent({
+      provider: "evolution",
+      rawPayload: statusEvent("SERVER_ACK", "OUT2"),
+      db: makeFakeDb(state, { knownOutboundId: "OUT2" }),
+      buildProvider: buildMock,
+      traceId: "t",
+    });
+    const second = await processWebhookEvent({
+      provider: "evolution",
+      rawPayload: statusEvent("READ", "OUT2"),
+      db: makeFakeDb(state, { knownOutboundId: "OUT2" }),
+      buildProvider: buildMock,
+      traceId: "t",
+    });
+
+    expect(first.outcome).toBe("status-applied");
+    expect(second.outcome).toBe("status-applied"); // NOT swallowed by the sent ack
+    expect(state.statusApplied.map((s) => s.status)).toEqual(["sent", "read"]);
   });
 });
 
@@ -496,5 +542,151 @@ describe("processWebhookEvent — evolution connection.update (status sync)", ()
 
     expect(result.outcome).toBe("account-not-found");
     expect(state.accountStatus).toBe("connected");
+  });
+});
+
+function evolutionEchoEvent(text = "te envio o boleto", keyId = "3EB0ECHO1") {
+  return {
+    event: "messages.upsert",
+    instance: "gallo-matriz",
+    sender: "5555911111111@s.whatsapp.net",
+    data: {
+      key: { id: keyId, remoteJid: "5555988887777@s.whatsapp.net", fromMe: true },
+      message: { conversation: text },
+      messageTimestamp: 1765400000,
+    },
+  };
+}
+
+describe("processWebhookEvent — outbound echoes (real inbox spec)", () => {
+  it("ignores the echo of an app-sent message (dedup by provider_message_id)", async () => {
+    const state = emptyState();
+    const result = await processWebhookEvent({
+      provider: "evolution",
+      rawPayload: evolutionEchoEvent("oi", "APP-SENT-1"),
+      db: makeFakeDb(state, { knownOutboundId: "APP-SENT-1" }),
+      buildProvider: buildMock,
+      traceId: "trace-test",
+    });
+    expect(result.outcome).toBe("duplicate");
+    expect(state.messages).toHaveLength(0);
+    expect(state.processed.has("whatsapp:evolution:APP-SENT-1")).toBe(true);
+  });
+
+  it("mirrors a phone-sent message: em_andamento conversation, out message, no unread bump", async () => {
+    const state = emptyState();
+    const result = await run(state, evolutionEchoEvent());
+
+    expect(result.outcome).toBe("echo-created");
+    expect(state.customers).toHaveLength(1); // pending customer for the new number
+    expect(state.conversations[0]).toMatchObject({ status: "em_andamento" });
+    expect(state.messages[0]).toMatchObject({
+      provider: "evolution",
+      text: "te envio o boleto",
+      providerMessageId: "3EB0ECHO1",
+    });
+    expect(state.bumps).toHaveLength(0); // NEVER the unread-bumping path
+    // Pinned ISO: the touch uses the MESSAGE timestamp, never now().
+    expect(state.touches).toEqual([
+      {
+        conversationId: state.conversations[0]?.id,
+        lastMessageAt: new Date(1765400000 * 1000).toISOString(),
+      },
+    ]);
+    expect(state.audits[0]).toMatchObject({
+      action: "webhook_received",
+      after: expect.objectContaining({ direction: "out", toPhoneMasked: "***7777" }),
+    });
+  });
+
+  it("reuses the existing open conversation for the destination customer", async () => {
+    const state = emptyState();
+    state.customers.push({
+      id: "cust-old",
+      storeId: "store-1",
+      phoneDigits: "5555988887777",
+      sellerId: "seller-lucas",
+    });
+    state.conversations.push({
+      id: "conv-old",
+      customerId: "cust-old",
+      accountId: "acc-1",
+      open: true,
+    });
+    const result = await run(state, evolutionEchoEvent("segunda", "3EB0ECHO2"));
+    expect(result).toMatchObject({ outcome: "echo-created", conversationId: "conv-old" });
+    expect(state.conversations).toHaveLength(1);
+    // Reuse never rewrites the pre-existing conversation status.
+    expect(state.conversations[0]?.status).toBeUndefined();
+  });
+
+  it("is idempotent across redeliveries (processed_events)", async () => {
+    const state = emptyState();
+    await run(state, evolutionEchoEvent());
+    const second = await run(state, evolutionEchoEvent());
+    expect(second.outcome).toBe("duplicate");
+    expect(state.messages).toHaveLength(1);
+  });
+
+  it("returns account-not-found (and does not mark processed) for an unknown instance", async () => {
+    const state = emptyState();
+    const payload = { ...evolutionEchoEvent(), instance: "desconhecida" };
+    const result = await run(state, payload);
+
+    expect(result.outcome).toBe("account-not-found");
+    expect(state.messages).toHaveLength(0);
+    expect(state.processed.size).toBe(0);
+  });
+});
+
+describe("processWebhookEvent — status keys (echo/ack share the provider message id)", () => {
+  function ackEvent(status: string, keyId: string) {
+    return {
+      event: "messages.update",
+      instance: "gallo-matriz",
+      data: { keyId, status, messageTimestamp: 1765400100 },
+    };
+  }
+
+  it("echo then ack: the echo mark never swallows the delivery status", async () => {
+    const state = emptyState();
+    // 1st: fake WITHOUT knownOutboundId — the echo is phone-sent and mirrors.
+    const echo = await processWebhookEvent({
+      provider: "evolution",
+      rawPayload: evolutionEchoEvent("x", "SEQ1"),
+      db: makeFakeDb(state),
+      buildProvider: buildMock,
+      traceId: "trace-test",
+    });
+    expect(echo.outcome).toBe("echo-created");
+
+    // 2nd: same state, fake WITH knownOutboundId — the ack finds the message.
+    const ack = await processWebhookEvent({
+      provider: "evolution",
+      rawPayload: ackEvent("DELIVERY_ACK", "SEQ1"),
+      db: makeFakeDb(state, { knownOutboundId: "SEQ1" }),
+      buildProvider: buildMock,
+      traceId: "trace-test",
+    });
+    expect(ack.outcome).toBe("status-applied"); // NOT duplicate
+    expect(state.statusApplied).toHaveLength(1);
+  });
+
+  it("ack before the upsert: the status-unmatched mark never suppresses the echo mirror", async () => {
+    const state = emptyState();
+    const warn = vi.fn();
+    const ack = await processWebhookEvent({
+      provider: "evolution",
+      rawPayload: ackEvent("SERVER_ACK", "SEQ2"),
+      db: makeFakeDb(state),
+      buildProvider: buildMock,
+      traceId: "trace-test",
+      warn,
+    });
+    expect(ack.outcome).toBe("status-unmatched");
+
+    const echo = await run(state, evolutionEchoEvent("x", "SEQ2"));
+    expect(echo.outcome).toBe("echo-created"); // bare key was never marked
+    expect(state.messages).toHaveLength(1);
   });
 });

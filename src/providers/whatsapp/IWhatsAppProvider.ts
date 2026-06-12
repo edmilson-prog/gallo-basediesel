@@ -20,6 +20,7 @@ import type {
   IInboundMessage,
   IInboundStatus,
   IMediaDownloadResult,
+  IOutboundEcho,
   IProviderCapabilities,
   ISendInteractiveInput,
   ISendMediaInput,
@@ -51,10 +52,12 @@ export interface IWhatsAppProvider {
    */
   verifyWebhookSignature(rawBody: string, signature: string): Promise<boolean>;
   /**
-   * Normalizes a raw webhook payload into a canonical inbound message or a
-   * delivery-status update. Throws on payloads the provider cannot parse.
+   * Normalizes a raw webhook payload into a canonical inbound message, a
+   * delivery-status update or an outbound echo (a message the account itself
+   * sent — e.g. Evolution `fromMe`, mirrored by the real-inbox spec). Throws
+   * on payloads the provider cannot parse.
    */
-  parseInboundMessage(rawPayload: unknown): IInboundMessage | IInboundStatus;
+  parseInboundMessage(rawPayload: unknown): IInboundMessage | IInboundStatus | IOutboundEcho;
 
   // ===== Media ==============================================================
   /** Downloads an inbound media object by the provider's media id. */

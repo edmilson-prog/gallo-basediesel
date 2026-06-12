@@ -14,7 +14,7 @@
 import { parseEvolutionInbound } from "../evolution/parser";
 import { parseMetaInbound } from "../meta/parser";
 import type { IWhatsAppProvider } from "../IWhatsAppProvider";
-import type { IInboundMessage, IInboundStatus } from "../types";
+import type { IInboundMessage, IInboundStatus, IOutboundEcho } from "../types";
 
 export interface IAccountRecord {
   id: string;
@@ -67,6 +67,8 @@ export interface IWebhookDb {
     accountId: string;
     assignedSellerId: string | null;
     lastMessageAt: string;
+    /** aguardando = inbound awaiting staff; em_andamento = we initiated (echo). */
+    status: "aguardando" | "em_andamento";
   }): Promise<{ id: string }>;
   insertInboundMessage(input: {
     conversationId: string;
@@ -79,6 +81,18 @@ export interface IWebhookDb {
     sentAt: string;
   }): Promise<{ id: string }>;
   bumpConversation(conversationId: string, lastMessageAt: string): Promise<void>;
+  /** Mirrored phone-sent message (outbound echo) — direction out, status sent. */
+  insertOutboundEchoMessage(input: {
+    conversationId: string;
+    provider: "meta" | "evolution";
+    text: string;
+    mediaType: string | null;
+    providerMessageId: string;
+    eventKey: string;
+    sentAt: string;
+  }): Promise<{ id: string }>;
+  /** last_message_at bump WITHOUT unread increment (echo path). */
+  touchConversation(conversationId: string, lastMessageAt: string): Promise<void>;
   /** Outbound message lookup with enough context to flag the customer (PRD-118). */
   findOutboundMessageByProviderMessageId(providerMessageId: string): Promise<{
     id: string;
@@ -114,6 +128,7 @@ export interface IWebhookDb {
 export type WebhookOutcome =
   | "duplicate"
   | "message-created"
+  | "echo-created"
   | "status-applied"
   | "status-unmatched"
   | "account-not-found"
@@ -246,9 +261,9 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
   }
 
   // 1. Defensive parse FIRST (pure, cheap). Unparseable payloads — including
-  //    Evolution own-message echoes and non-message events — are ignorable by
-  //    design (RNF-007): the webhook answers 200 and moves on.
-  let parsed: IInboundMessage | IInboundStatus;
+  //    Evolution group/broadcast/lid events and non-message events — are
+  //    ignorable by design (RNF-007): the webhook answers 200 and moves on.
+  let parsed: IInboundMessage | IInboundStatus | IOutboundEcho;
   try {
     parsed =
       provider === "meta"
@@ -260,8 +275,20 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
     return { outcome: "ignored", detail };
   }
 
-  // 2. Idempotency (RF-020..022): Meta retries the same event 2-3×.
-  const eventKey = `whatsapp:${provider}:${parsed.providerMessageId}`;
+  // A missing provider id would collapse distinct events into the same
+  // eventKey ("whatsapp:<provider>:") — refuse early.
+  if (!parsed.providerMessageId) {
+    return { outcome: "ignored", detail: "missing provider message id" };
+  }
+
+  // 2. Idempotency (RF-020..022). Status events get a per-status key: the
+  //    SAME provider message id flows through upsert (echo) AND every ack
+  //    (sent/delivered/read/failed) — a shared key would let whichever event
+  //    lands first swallow all the others.
+  const eventKey =
+    parsed.type === "status"
+      ? `whatsapp:${provider}:${parsed.providerMessageId}:${parsed.status}`
+      : `whatsapp:${provider}:${parsed.providerMessageId}`;
   if (await db.isProcessed(eventKey)) {
     return { outcome: "duplicate", detail: eventKey };
   }
@@ -318,6 +345,72 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
     return { outcome: "status-applied", messageId: outbound.id };
   }
 
+  // 3.5. Outbound echoes (Evolution fromMe — real-inbox spec 2026-06-11):
+  //      mirror what the team sends FROM THE PHONE. App-sent messages echo
+  //      too — the provider_message_id lookup below dedups them.
+  if (parsed.type === "outbound-echo") {
+    const existing = await db.findOutboundMessageByProviderMessageId(parsed.providerMessageId);
+    if (existing) {
+      await db.markProcessed(eventKey, traceId);
+      return { outcome: "duplicate", detail: "app-send echo" };
+    }
+    const account = await db.findEvolutionAccount(extractEvolutionInstance(rawPayload));
+    if (!account) {
+      warn("echo for unknown account", { provider });
+      return { outcome: "account-not-found" };
+    }
+    const toDigits = digits(parsed.toPhone);
+    let customer = await db.findCustomerByPhone(account.storeId, toDigits);
+    let customerCreated = false;
+    if (!customer) {
+      const sellerId = await db.resolveDefaultSellerId(account.storeId);
+      customer = await db.createPendingCustomer({
+        storeId: account.storeId,
+        phone: parsed.toPhone,
+        sellerId,
+      });
+      customerCreated = true;
+    }
+    let conversation = await db.findOpenConversation(customer.id, account.id);
+    if (!conversation) {
+      conversation = await db.createConversation({
+        storeId: account.storeId,
+        customerId: customer.id,
+        accountId: account.id,
+        assignedSellerId: customer.sellerId,
+        lastMessageAt: parsed.timestamp,
+        status: "em_andamento",
+      });
+    }
+    const message = await db.insertOutboundEchoMessage({
+      conversationId: conversation.id,
+      provider,
+      text: parsed.text ?? parsed.mediaCaption ?? "",
+      mediaType: toMediaType(parsed.contentType),
+      providerMessageId: parsed.providerMessageId,
+      eventKey,
+      sentAt: parsed.timestamp,
+    });
+    await db.touchConversation(conversation.id, parsed.timestamp);
+    await db.markProcessed(eventKey, traceId);
+    await db.audit({
+      storeId: account.storeId,
+      action: "webhook_received",
+      resource: "message",
+      resourceId: message.id,
+      after: {
+        provider,
+        eventKey,
+        direction: "out",
+        contentType: parsed.contentType,
+        toPhoneMasked: `***${toDigits.slice(-4)}`,
+        customerCreated,
+        traceId,
+      },
+    });
+    return { outcome: "echo-created", messageId: message.id, conversationId: conversation.id };
+  }
+
   // 4. Account resolution (RF-040.1). Not ours / misconfigured → 200 + warn;
   //    deliberately NOT marked processed, so a later config fix can replay.
   const account =
@@ -359,6 +452,7 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
       accountId: account.id,
       assignedSellerId: customer.sellerId,
       lastMessageAt: parsed.timestamp,
+      status: "aguardando",
     });
   }
 
