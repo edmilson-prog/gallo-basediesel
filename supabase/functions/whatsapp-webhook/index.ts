@@ -234,10 +234,12 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
       return { id: data.id as string };
     },
     async touchConversation(conversationId, lastMessageAt) {
+      // Advance-only: a late echo must never walk last_message_at backwards.
       await admin
         .from("conversations")
         .update({ last_message_at: lastMessageAt, updated_at: new Date().toISOString() })
-        .eq("id", conversationId);
+        .eq("id", conversationId)
+        .lt("last_message_at", lastMessageAt);
     },
     async bumpConversation(conversationId, lastMessageAt) {
       const { data } = await admin
