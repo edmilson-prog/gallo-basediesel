@@ -3,9 +3,10 @@ import { AUTH_SOURCE } from "@/features/auth/authSource";
 
 /**
  * Client surface for the user-access management (PRD-107 Fase 3). Reads access
- * status from `profiles` (staff-only, policy `profiles_select_staff`) and
- * creates access through the `invite-seller` Edge Function — the service_role
- * key never reaches the browser.
+ * status (role + last login) via the staff-scoped RPC `seller_access_info`
+ * (SECURITY DEFINER — joins auth.users server-side) and creates/manages access
+ * through the `invite-seller` Edge Function — the service_role key never
+ * reaches the browser.
  */
 
 export type InviteSellerRole = "seller_internal" | "seller_external" | "manager";
@@ -24,24 +25,25 @@ export interface IInviteSellerResult {
   role: string;
 }
 
+export interface ISellerAccessInfo {
+  role: string;
+  /** Last Supabase sign-in (null = invited but never logged in). */
+  lastSignInAt: string | null;
+}
+
 /**
- * Maps `sellerId → role` for every seller that already has a platform access
- * profile. Empty in mock auth mode (no Supabase session). Requires the caller
- * to be staff (policy `profiles_select_staff`). The role lets the UI hide the
- * deactivate action for Owners.
+ * Maps `sellerId → access info` (role + last login) for every seller with a
+ * platform profile, via the staff-scoped RPC `seller_access_info`. Empty in
+ * mock auth mode.
  */
-export async function listSellerAccessRoles(storeId: string): Promise<Map<string, string>> {
+export async function listSellerAccessInfo(): Promise<Map<string, ISellerAccessInfo>> {
   if (AUTH_SOURCE !== "supabase") return new Map();
-  const { data, error } = await getSupabaseClient()
-    .from("profiles")
-    .select("seller_id, role")
-    .eq("store_id", storeId)
-    .not("seller_id", "is", null);
+  const { data, error } = await getSupabaseClient().rpc("seller_access_info");
   if (error) throw new Error(`Não foi possível carregar os acessos: ${error.message}`);
-  const map = new Map<string, string>();
+  const map = new Map<string, ISellerAccessInfo>();
   for (const row of data ?? []) {
-    const r = row as { seller_id: string; role: string };
-    map.set(r.seller_id, r.role);
+    const r = row as { seller_id: string; role: string; last_sign_in_at: string | null };
+    map.set(r.seller_id, { role: r.role, lastSignInAt: r.last_sign_in_at });
   }
   return map;
 }

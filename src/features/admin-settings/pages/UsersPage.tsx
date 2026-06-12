@@ -10,7 +10,11 @@ import { useSellersProvider } from "@/providers/data";
 import { AUTH_SOURCE } from "@/features/auth/authSource";
 import { useAuth } from "@/features/auth/useAuth";
 import { SectionHeader } from "../components/SectionHeader";
-import { listSellerAccessRoles, type InviteSellerRole } from "../api/sellerAccess";
+import {
+  listSellerAccessInfo,
+  type ISellerAccessInfo,
+  type InviteSellerRole,
+} from "../api/sellerAccess";
 import { CreateAccessDialog } from "../components/CreateAccessDialog";
 import { ChangeRoleDialog } from "../components/ChangeRoleDialog";
 import { ResetPasswordDialog } from "../components/ResetPasswordDialog";
@@ -53,12 +57,12 @@ export function UsersPage() {
 
   const accessQuery = useQuery({
     queryKey: ["seller-access", storeId],
-    queryFn: () => listSellerAccessRoles(storeId),
+    queryFn: () => listSellerAccessInfo(),
     enabled: SUPABASE_AUTH,
   });
 
   const sellers = sellersQuery.data;
-  const accessRoles = accessQuery.data ?? new Map<string, string>();
+  const accessInfo = accessQuery.data ?? new Map<string, ISellerAccessInfo>();
 
   return (
     <div className="space-y-6">
@@ -97,7 +101,7 @@ export function UsersPage() {
         ) : (
           <ul className="space-y-2">
             {sellers.map((s) => {
-              const accessRole = accessRoles.get(s.id);
+              const accessRole = accessInfo.get(s.id)?.role;
               const hasAccess = accessRole !== undefined;
               const isOwnerAccess = accessRole === "owner";
               const isSelf = currentUser?.sellerId === s.id;
@@ -222,7 +226,7 @@ export function UsersPage() {
         <SellerFormDialog
           storeId={storeId}
           seller={editFor}
-          hasAccess={editFor ? accessRoles.has(editFor.id) : false}
+          hasAccess={editFor ? accessInfo.has(editFor.id) : false}
           open={creating || editFor !== null}
           onOpenChange={(open) => {
             if (!open) {
@@ -269,7 +273,7 @@ export function UsersPage() {
         <ChangeRoleDialog
           seller={roleFor}
           storeId={storeId}
-          currentRole={(accessRoles.get(roleFor.id) ?? "seller_internal") as InviteSellerRole}
+          currentRole={(accessInfo.get(roleFor.id)?.role ?? "seller_internal") as InviteSellerRole}
           open={roleFor !== null}
           onOpenChange={(open) => {
             if (!open) setRoleFor(null);
