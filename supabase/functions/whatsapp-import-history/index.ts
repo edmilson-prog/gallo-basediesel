@@ -101,7 +101,8 @@ function makeImportDb(admin: SupabaseClient): IImportDb {
         .from("customers")
         .insert({
           store_id: storeId,
-          type: "b2c",
+          // customers_type_check requires uppercase 'B2C' (matches the app/seed).
+          type: "B2C",
           phone,
           full_name: phone,
           seller_id: sellerId,
