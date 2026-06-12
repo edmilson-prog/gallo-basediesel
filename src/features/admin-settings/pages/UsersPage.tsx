@@ -15,6 +15,8 @@ import { CreateAccessDialog } from "../components/CreateAccessDialog";
 import { ChangeRoleDialog } from "../components/ChangeRoleDialog";
 import { ResetPasswordDialog } from "../components/ResetPasswordDialog";
 import { ToggleSellerAccessButton } from "../components/ToggleSellerAccessButton";
+import { SellerFormDialog } from "../components/SellerFormDialog";
+import { DeleteSellerDialog } from "../components/DeleteSellerDialog";
 
 const ROLE_LABEL: Record<ISeller["type"], string> = {
   internal: "Vendedor interno",
@@ -25,22 +27,23 @@ const ROLE_LABEL: Record<ISeller["type"], string> = {
 const SUPABASE_AUTH = AUTH_SOURCE === "supabase";
 
 /**
- * Usuários — gestão de acesso à plataforma (PRD-107 Fase 3).
+ * Usuários — CRUD completo da equipe (users CRUD + PRD-107 Fase 3).
  *
- * Em modo Supabase: lista a equipe com o status de acesso e permite ao Owner
- * criar o login de cada vendedor (Edge Function `invite-seller`) e desligar/
- * reativar (Edge Function `set-seller-access`). Em modo mock, segue informativo
- * (a equipe vem do seed). Trocar papéis e convite por email chegam depois
- * (PRD-107 / PRD-141).
+ * Cadastro/edição/exclusão (soft delete) funcionam em ambas as fontes de dados
+ * via ISellersProvider. As operações de ACESSO (criar login, redefinir senha,
+ * papéis, desligar/reativar) exigem o backend Supabase (Edge Functions).
  */
-export function UsersPlaceholderPage() {
+export function UsersPage() {
   const { currentStoreId } = useCurrentStore();
   const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
   const provider = useSellersProvider();
   const [inviteFor, setInviteFor] = useState<ISeller | null>(null);
   const [resetFor, setResetFor] = useState<ISeller | null>(null);
   const [roleFor, setRoleFor] = useState<ISeller | null>(null);
-  const { userRole } = useAuth();
+  const [editFor, setEditFor] = useState<ISeller | null>(null);
+  const [deleteFor, setDeleteFor] = useState<ISeller | null>(null);
+  const [creating, setCreating] = useState(false);
+  const { userRole, currentUser } = useAuth();
   const isOwner = userRole === "Owner";
 
   const sellersQuery = useQuery({
@@ -66,16 +69,22 @@ export function UsersPlaceholderPage() {
 
       {!SUPABASE_AUTH && (
         <div className="rounded-md border border-dashed border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-          A criação de acessos exige o backend Supabase ativo (
-          <code className="font-mono text-xs">VITE_AUTH_SOURCE=supabase</code>). Em modo mock, a
-          equipe é definida pelo seed (PRD-004).
+          As operações de acesso (criar login, redefinir senha, papéis, desligar) exigem o backend
+          Supabase ativo (<code className="font-mono text-xs">VITE_AUTH_SOURCE=supabase</code>).
+          Cadastro, edição e exclusão funcionam também em modo demonstração.
         </div>
       )}
 
       <div className="rounded-md border border-border bg-card p-4">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Equipe atual da loja
-        </p>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Equipe atual da loja
+          </p>
+          <Button size="sm" className="gap-1.5" onClick={() => setCreating(true)}>
+            <Icon icon="mdi:account-plus" size={16} />
+            Novo usuário
+          </Button>
+        </div>
         {!sellers ? (
           <Skeleton className="h-32 w-full" />
         ) : (
@@ -84,6 +93,7 @@ export function UsersPlaceholderPage() {
               const accessRole = accessRoles.get(s.id);
               const hasAccess = accessRole !== undefined;
               const isOwnerAccess = accessRole === "owner";
+              const isSelf = currentUser?.sellerId === s.id;
               return (
                 <li
                   key={s.id}
@@ -105,6 +115,15 @@ export function UsersPlaceholderPage() {
                         Gestor
                       </Badge>
                     )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="gap-1.5"
+                      onClick={() => setEditFor(s)}
+                    >
+                      <Icon icon="mdi:pencil-outline" size={14} />
+                      Editar
+                    </Button>
                     {SUPABASE_AUTH &&
                       (accessQuery.isLoading ? (
                         <Skeleton className="h-6 w-28" />
@@ -161,6 +180,17 @@ export function UsersPlaceholderPage() {
                           )}
                         </>
                       ))}
+                    {!isOwnerAccess && !isSelf && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="gap-1.5 text-destructive hover:text-destructive"
+                        onClick={() => setDeleteFor(s)}
+                      >
+                        <Icon icon="mdi:trash-can-outline" size={14} />
+                        Excluir
+                      </Button>
+                    )}
                   </div>
                 </li>
               );
@@ -176,9 +206,35 @@ export function UsersPlaceholderPage() {
 
       {SUPABASE_AUTH && (
         <p className="text-xs italic text-muted-foreground">
-          Criar acesso, redefinir senha e desligar/reativar já disponíveis. Trocar papéis e convite
-          por email chegam nas próximas fases (PRD-107 / PRD-141).
+          O cadastro cria o usuário sem login — use "Criar acesso" para liberar a plataforma (senha
+          temporária ou convite por e-mail). A exclusão preserva o histórico de vendas e conversas.
         </p>
+      )}
+
+      {(creating || editFor) && (
+        <SellerFormDialog
+          storeId={storeId}
+          seller={editFor}
+          hasAccess={editFor ? accessRoles.has(editFor.id) : false}
+          open={creating || editFor !== null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setCreating(false);
+              setEditFor(null);
+            }
+          }}
+        />
+      )}
+
+      {deleteFor && (
+        <DeleteSellerDialog
+          seller={deleteFor}
+          storeId={storeId}
+          open={deleteFor !== null}
+          onOpenChange={(open) => {
+            if (!open) setDeleteFor(null);
+          }}
+        />
       )}
 
       {inviteFor && (
