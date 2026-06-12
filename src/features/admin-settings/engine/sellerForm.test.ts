@@ -19,6 +19,10 @@ describe("sellerFormSchema", () => {
     expect(sellerFormSchema.safeParse({ ...valid, fullName: "Jo" }).success).toBe(false);
   });
 
+  it("rejects whitespace-only fullName", () => {
+    expect(sellerFormSchema.safeParse({ ...valid, fullName: "   " }).success).toBe(false);
+  });
+
   it("rejects an invalid email", () => {
     expect(sellerFormSchema.safeParse({ ...valid, email: "nao-eh-email" }).success).toBe(false);
   });

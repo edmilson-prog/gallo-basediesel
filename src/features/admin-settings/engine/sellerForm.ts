@@ -5,16 +5,17 @@ import type { ISeller } from "@/shared/types";
 export const sellerFormSchema = z.object({
   fullName: z.string().trim().min(3, "Informe o nome completo (mínimo 3 letras)."),
   email: z.string().trim().toLowerCase().email("Informe um e-mail válido."),
-  phone: z.string().trim().optional().or(z.literal("")),
+  // RHF sends "" for empty inputs; callers map "" to undefined before persisting.
+  phone: z.string().trim().optional(),
   type: z.enum(["internal", "external", "representative"], {
     message: "Selecione o tipo do usuário.",
   }),
-  region: z.string().trim().optional().or(z.literal("")),
+  region: z.string().trim().optional(),
 });
 
 export type SellerFormValues = z.infer<typeof sellerFormSchema>;
 
-/** Region only applies to field roles (PRD model: reserved for external). */
+/** Region field is shown for field roles: external sellers and representatives. */
 export function showRegionField(type: ISeller["type"]): boolean {
   return type !== "internal";
 }
