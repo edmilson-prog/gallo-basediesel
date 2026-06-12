@@ -40,9 +40,11 @@ function makeDb(state: IFakeState): IImportDb {
       return { id: conversation.id as string };
     },
     filterKnownProviderMessageIds: async (ids) => new Set(ids.filter((id) => state.known.has(id))),
-    insertImportedMessage: async (input) => {
-      state.messages.push(input);
-      state.known.add(input.providerMessageId);
+    insertImportedMessages: async (rows) => {
+      for (const row of rows) {
+        state.messages.push(row);
+        state.known.add(row.providerMessageId);
+      }
     },
     advanceConversationActivity: async (conversationId, lastMessageAt) => {
       state.advances.push({ conversationId, lastMessageAt });
@@ -106,6 +108,14 @@ describe("processImportBatch", () => {
     expect(directions).toContainEqual(["M2", "out", "read"]);
     const inbound = state.messages.find((m) => m.providerMessageId === "M1");
     expect(inbound?.authorId).toBe(state.customers[0]?.id);
+    const outbound = state.messages.find((m) => m.providerMessageId === "M2");
+    expect(outbound?.authorId).toBeNull();
+    expect(state.advances).toEqual([
+      {
+        conversationId: state.conversations[0]?.id,
+        lastMessageAt: new Date(1765400100 * 1000).toISOString(),
+      },
+    ]);
   });
 
   it("skips group/broadcast/newsletter/lid chats (counted, never imported)", async () => {
@@ -135,6 +145,24 @@ describe("processImportBatch", () => {
     expect(result.stats.messagesSkipped).toBe(1);
     expect(result.stats.conversationsCreated).toBe(0);
     expect(state.conversations).toHaveLength(0);
+  });
+
+  it("dedups partially overlapping pages within the same batch (sliding window)", async () => {
+    const state = emptyState();
+    const pages: Record<number, IEvolutionStoredMessage[]> = {
+      1: [storedText("A", false, 1765400000), storedText("B", false, 1765400001)],
+      2: [storedText("B", false, 1765400001), storedText("C", false, 1765400002)],
+      3: [],
+    };
+    const source: IImportSource = {
+      listChats: async () => ["5555988887777@s.whatsapp.net"],
+      listMessages: async (_jid, page) => ({ records: pages[page] ?? [] }),
+    };
+    const result = await processImportBatch({ account: ACCOUNT, source, db: makeDb(state) });
+    expect(result.stats.messagesImported).toBe(3);
+    expect(result.stats.messagesSkipped).toBe(1); // the repeated B
+    const ids = state.messages.map((m) => m.providerMessageId).sort();
+    expect(ids).toEqual(["A", "B", "C"]);
   });
 
   it("paginates chats with a stable cursor (sorted jids) and reports done only at the end", async () => {
@@ -169,10 +197,12 @@ describe("processImportBatch", () => {
         {
           key: { remoteJid: "5555988887777@s.whatsapp.net", fromMe: false },
           message: { conversation: "sem id" },
+          messageTimestamp: 1765400000,
         },
         {
           key: { id: "PROTO", remoteJid: "5555988887777@s.whatsapp.net", fromMe: false },
           message: {},
+          messageTimestamp: 1765400000,
         },
         storedText("OK1", false, 1765400000),
       ],
@@ -180,6 +210,43 @@ describe("processImportBatch", () => {
     const result = await processImportBatch({ account: ACCOUNT, source, db: makeDb(state) });
     expect(result.stats.messagesImported).toBe(1);
     expect(result.stats.messagesSkipped).toBe(2);
+  });
+
+  it("skips records without a valid second-epoch timestamp (missing or ms-epoch)", async () => {
+    const state = emptyState();
+    const jid = "5555988887777@s.whatsapp.net";
+    const source = makeSource([jid], {
+      [jid]: [
+        {
+          key: { id: "NOTS", remoteJid: jid, fromMe: false },
+          message: { conversation: "sem relógio" },
+        },
+        storedText("MSEPOCH", false, 1765400000000), // ms epoch → decades in the future
+        storedText("OK1", false, 1765400000),
+      ],
+    });
+    const result = await processImportBatch({ account: ACCOUNT, source, db: makeDb(state) });
+    expect(result.stats.messagesImported).toBe(1);
+    expect(result.stats.messagesSkipped).toBe(2);
+    expect(state.messages.map((m) => m.providerMessageId)).toEqual(["OK1"]);
+  });
+
+  it("advances past a poisoned chat: failure is counted, the rest still imports", async () => {
+    const state = emptyState();
+    const source: IImportSource = {
+      listChats: async () => ["551111@s.whatsapp.net", "552222@s.whatsapp.net"],
+      listMessages: async (remoteJid, page) => {
+        if (remoteJid === "551111@s.whatsapp.net") throw new Error("boom");
+        return page === 1
+          ? { records: [storedText("G1", false, 1765400000)], pages: 1 }
+          : { records: [], pages: 1 };
+      },
+    };
+    const result = await processImportBatch({ account: ACCOUNT, source, db: makeDb(state) });
+    expect(result.done).toBe(true);
+    expect(result.stats.chatsFailed).toBe(1);
+    expect(result.stats.chatsProcessed).toBe(1);
+    expect(result.stats.messagesImported).toBe(1);
   });
 
   it("stops paging when a non-paginating server repeats the same page", async () => {
@@ -198,10 +265,28 @@ describe("processImportBatch", () => {
     expect(result.stats.messagesImported).toBe(2); // R1/R2 only once
   });
 
+  it("clamps batchSize to at least 1 so the cursor always progresses", async () => {
+    const state = emptyState();
+    const jids = ["551199@s.whatsapp.net", "552299@s.whatsapp.net"];
+    const source = makeSource(
+      jids,
+      Object.fromEntries(jids.map((j, i) => [j, [storedText(`B${i}`, false, 1765400000 + i)]])),
+    );
+    const result = await processImportBatch({
+      account: ACCOUNT,
+      source,
+      db: makeDb(state),
+      batchSize: 0,
+    });
+    expect(result.nextCursor).toBeGreaterThan(0);
+    expect(result.done).toBe(false);
+  });
+
   it("accumulates stats helpers (emptyImportStats baseline)", () => {
     expect(emptyImportStats()).toEqual({
       chatsProcessed: 0,
       chatsSkippedGroup: 0,
+      chatsFailed: 0,
       customersCreated: 0,
       conversationsCreated: 0,
       messagesImported: 0,

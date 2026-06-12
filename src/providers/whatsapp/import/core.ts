@@ -13,12 +13,7 @@
  * Runtime-agnostic file: relative imports only, Web APIs only.
  */
 
-import {
-  EVOLUTION_ACK_STATUS_MAP,
-  extractEvolutionContent,
-  jidToE164,
-  timestampToIso,
-} from "../evolution/parser";
+import { EVOLUTION_ACK_STATUS_MAP, extractEvolutionContent, jidToE164 } from "../evolution/parser";
 import type { IEvolutionStoredMessage } from "../evolution/instance";
 
 // ===== Stats =================================================================
@@ -26,6 +21,8 @@ import type { IEvolutionStoredMessage } from "../evolution/instance";
 export interface IImportStats {
   chatsProcessed: number;
   chatsSkippedGroup: number;
+  /** Chats whose import threw — the cursor advances past them (resilience). */
+  chatsFailed: number;
   customersCreated: number;
   conversationsCreated: number;
   messagesImported: number;
@@ -36,6 +33,7 @@ export function emptyImportStats(): IImportStats {
   return {
     chatsProcessed: 0,
     chatsSkippedGroup: 0,
+    chatsFailed: 0,
     customersCreated: 0,
     conversationsCreated: 0,
     messagesImported: 0,
@@ -91,17 +89,20 @@ export interface IImportDb {
   }): Promise<{ id: string }>;
   /** Returns the subset of `ids` that ALREADY exist in messages (dedup). */
   filterKnownProviderMessageIds(ids: string[]): Promise<Set<string>>;
-  insertImportedMessage(input: {
-    conversationId: string;
-    direction: "in" | "out";
-    /** customerId for inbound; null for outbound (author unknown on phone). */
-    authorId: string | null;
-    text: string;
-    mediaType: string | null;
-    status: "sent" | "delivered" | "read" | "failed";
-    providerMessageId: string;
-    sentAt: string;
-  }): Promise<void>;
+  /** Bulk insert — the adapter chunks (~500/insert) and ignores conflicts. */
+  insertImportedMessages(
+    rows: Array<{
+      conversationId: string;
+      direction: "in" | "out";
+      /** customerId for inbound; null for outbound (author unknown on phone). */
+      authorId: string | null;
+      text: string;
+      mediaType: string | null;
+      status: "sent" | "delivered" | "read" | "failed";
+      providerMessageId: string;
+      sentAt: string;
+    }>,
+  ): Promise<void>;
   /** Moves conversations.last_message_at forward only (never backwards). */
   advanceConversationActivity(conversationId: string, lastMessageAt: string): Promise<void>;
 }
@@ -134,11 +135,20 @@ const MEDIA_TYPES = ["image", "audio", "video", "document"] as const;
 /**
  * Stored record → flat normalized row; returns null for un-importable records:
  * - no key.id (protocol/system stubs without a stable identifier)
+ * - no valid second-epoch timestamp (missing clock or ms/µs epoch — a wrong
+ *   "now-ish"/future sentAt would pin the conversation to the top of the
+ *   inbox forever, since last_message_at only ever advances)
  * - message body is empty / unrecognised (contentType "unknown" with no text)
  */
 function normalizeRecord(record: IEvolutionStoredMessage): INormalizedRecord | null {
   const providerMessageId = record.key?.id;
   if (!providerMessageId) return null;
+
+  const tsNum = Number(record.messageTimestamp);
+  if (!Number.isFinite(tsNum) || tsNum <= 0) return null; // stored stubs have no clock
+  // ms/µs epochs (13+ digits) would land decades in the future and pin the
+  // conversation to the top of the inbox — reject anything > now + 24h.
+  if (tsNum * 1000 > Date.now() + 24 * 60 * 60 * 1000) return null;
 
   const content = extractEvolutionContent(record.message ?? {});
 
@@ -150,9 +160,10 @@ function normalizeRecord(record: IEvolutionStoredMessage): INormalizedRecord | n
     ? content.contentType
     : null;
   const direction: "in" | "out" = record.key?.fromMe ? "out" : "in";
+  // Some Baileys builds store the ack as a NUMBER — String() before uppercasing.
   const status: "sent" | "delivered" | "read" | "failed" =
     direction === "out"
-      ? (EVOLUTION_ACK_STATUS_MAP[(record.status ?? "").toUpperCase()] ?? "sent")
+      ? (EVOLUTION_ACK_STATUS_MAP[String(record.status ?? "").toUpperCase()] ?? "sent")
       : "delivered";
 
   return {
@@ -161,7 +172,7 @@ function normalizeRecord(record: IEvolutionStoredMessage): INormalizedRecord | n
     text,
     mediaType,
     status,
-    sentAt: timestampToIso(record.messageTimestamp),
+    sentAt: new Date(tsNum * 1000).toISOString(),
   };
 }
 
@@ -189,8 +200,8 @@ export async function processImportBatch(args: {
 
   // Sort for a stable cursor across calls (Evolution ordering is not guaranteed stable).
   const allChats = (await source.listChats()).slice().sort();
-  const cursor = Math.max(0, Math.floor(args.cursor ?? 0));
-  const batchSize = args.batchSize ?? BATCH_CHATS_DEFAULT;
+  const cursor = Number.isFinite(args.cursor) ? Math.max(0, Math.floor(args.cursor as number)) : 0;
+  const batchSize = Math.max(1, Math.floor(args.batchSize ?? BATCH_CHATS_DEFAULT));
   const batch = allChats.slice(cursor, cursor + batchSize);
 
   for (const remoteJid of batch) {
@@ -198,8 +209,18 @@ export async function processImportBatch(args: {
       stats.chatsSkippedGroup++;
       continue;
     }
-    await importChat(remoteJid, account, source, db, stats, warn);
-    stats.chatsProcessed++;
+    // A poisoned chat (malformed records, transient REST failure) must never
+    // wedge the cursor — count it, warn, and move on; a re-run picks it up.
+    try {
+      await importChat(remoteJid, account, source, db, stats, warn);
+      stats.chatsProcessed++;
+    } catch (error) {
+      stats.chatsFailed++;
+      warn("import chat failed — cursor advances past it", {
+        remoteJid,
+        detail: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   const nextCursor = cursor + batch.length;
@@ -254,15 +275,24 @@ async function importChat(
   }
 
   // 2. Normalize + deduplicate (idempotency: provider_message_id is the key).
-  const normalized: INormalizedRecord[] = [];
+  //    The Map also dedups IN-MEMORY: partially overlapping pages (sliding
+  //    windows) slip past the identical-page guard and repeat ids within the
+  //    same batch — the DB filter below only sees what already landed.
+  const byId = new Map<string, INormalizedRecord>();
   for (const record of records) {
     const row = normalizeRecord(record);
-    if (row) {
-      normalized.push(row);
-    } else {
+    if (!row) {
       stats.messagesSkipped++;
+      continue;
     }
+    if (byId.has(row.providerMessageId)) {
+      stats.messagesSkipped++;
+      continue;
+    }
+    byId.set(row.providerMessageId, row);
   }
+  const normalized = [...byId.values()];
+  if (normalized.length === 0) return; // nothing renderable — also avoids filterKnown([])
 
   const known = await db.filterKnownProviderMessageIds(normalized.map((r) => r.providerMessageId));
   const fresh = normalized.filter((r) => !known.has(r.providerMessageId));
@@ -301,21 +331,23 @@ async function importChat(
     stats.conversationsCreated++;
   }
 
-  // 5. Land the messages. Media is NOT downloaded during import (spec §3):
-  //    the import only stores the text/caption; a separate job can fetch media.
-  for (const row of fresh) {
-    await db.insertImportedMessage({
-      conversationId: conversation.id,
-      direction: row.direction,
-      authorId: row.direction === "in" ? customer.id : null,
-      text: row.text,
-      mediaType: row.mediaType,
-      status: row.status,
-      providerMessageId: row.providerMessageId,
-      sentAt: row.sentAt,
-    });
-    stats.messagesImported++;
-  }
+  // 5. Land the messages in ONE bulk call — sequential per-row inserts blow
+  //    the Edge Function wall-clock on large histories; the adapter chunks.
+  //    Media is NOT downloaded during import (spec §3): the import only
+  //    stores the text/caption; a separate job can fetch media.
+  const conversationId = conversation.id;
+  const rows = fresh.map((row) => ({
+    conversationId,
+    direction: row.direction,
+    authorId: row.direction === "in" ? customer.id : null,
+    text: row.text,
+    mediaType: row.mediaType,
+    status: row.status,
+    providerMessageId: row.providerMessageId,
+    sentAt: row.sentAt,
+  }));
+  await db.insertImportedMessages(rows);
+  stats.messagesImported += rows.length;
 
-  await db.advanceConversationActivity(conversation.id, newest);
+  await db.advanceConversationActivity(conversationId, newest);
 }
