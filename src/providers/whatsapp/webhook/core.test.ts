@@ -251,6 +251,17 @@ describe("processWebhookEvent — inbound messages (RF-040/050)", () => {
     expect(warn).toHaveBeenCalledTimes(1); // still 1 — echo silently ignored
     expect(state.messages).toHaveLength(0);
   });
+
+  it("ignores upsert payloads without data.key.id (empty provider message id)", async () => {
+    const state = emptyState();
+    const event = evolutionTextEvent();
+    (event.data.key as { id?: string }).id = undefined;
+    const result = await run(state, event);
+    expect(result).toMatchObject({ outcome: "ignored", detail: "missing provider message id" });
+    expect(state.messages).toHaveLength(0);
+    expect(state.processed.size).toBe(0);
+    expect(state.audits).toHaveLength(0);
+  });
 });
 
 describe("processWebhookEvent — statuses (RF-060/061)", () => {

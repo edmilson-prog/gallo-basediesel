@@ -8,16 +8,12 @@
  *   app-sent messages also echo — consumers dedup by providerMessageId;
  * - `messages.update` with `data.status` → delivery status.
  * JIDs matching `@g.us`, `@broadcast`, or `@newsletter` throw (group /
- * broadcast / newsletter — ignored upstream, no 1:1 customer mapping).
+ * broadcast / newsletter — ignored upstream, no 1:1 customer mapping);
+ * `@lid` jids also throw (individual chat but no resolvable phone).
  */
 
 import { toE164 } from "../phone";
-import type {
-  IInboundMessage,
-  IInboundStatus,
-  InboundContentType,
-  IOutboundEcho,
-} from "../types";
+import type { IInboundMessage, IInboundStatus, InboundContentType, IOutboundEcho } from "../types";
 
 interface IEvolutionEvent {
   event?: string;
@@ -50,7 +46,7 @@ interface IEvolutionMessageData {
 
 export function jidToE164(jid: string | undefined): string {
   if (!jid) return "";
-  return toE164(jid.split("@")[0] ?? "");
+  return toE164(jid.split("@")[0]?.split(":")[0] ?? "");
 }
 
 export function timestampToIso(value: number | string | undefined): string {
@@ -80,16 +76,20 @@ export function extractEvolutionContent(message: IEvolutionRawMessage): IEvoluti
   if (message.conversation !== undefined || message.extendedTextMessage) {
     return { contentType: "text", text: message.conversation ?? message.extendedTextMessage?.text };
   }
-  if (message.imageMessage) return { contentType: "image", mediaCaption: message.imageMessage.caption };
+  if (message.imageMessage)
+    return { contentType: "image", mediaCaption: message.imageMessage.caption };
   if (message.audioMessage) return { contentType: "audio" };
-  if (message.videoMessage) return { contentType: "video", mediaCaption: message.videoMessage.caption };
+  if (message.videoMessage)
+    return { contentType: "video", mediaCaption: message.videoMessage.caption };
   if (message.documentMessage)
     return { contentType: "document", mediaCaption: message.documentMessage.caption };
   if (message.locationMessage) {
     const { name, degreesLatitude, degreesLongitude } = message.locationMessage;
     return {
       contentType: "location",
-      text: [name, `${degreesLatitude ?? "?"},${degreesLongitude ?? "?"}`].filter(Boolean).join(" — "),
+      text: [name, `${degreesLatitude ?? "?"},${degreesLongitude ?? "?"}`]
+        .filter(Boolean)
+        .join(" — "),
     };
   }
   if (message.contactMessage)
@@ -135,6 +135,15 @@ export function parseEvolutionInbound(
   if (NON_INDIVIDUAL_JID.test(remoteJid)) {
     throw new Error(
       "EvolutionProvider: messages.upsert de grupo/broadcast/newsletter — ignorar (sem cliente 1:1)",
+    );
+  }
+
+  // @lid = WhatsApp privacy "linked id": an individual chat, but with no
+  // resolvable phone number — minting an E.164 from it would create junk
+  // customers. Ignored until Evolution exposes the real number (senderPn).
+  if (remoteJid.endsWith("@lid")) {
+    throw new Error(
+      "EvolutionProvider: messages.upsert com jid @lid (sem telefone resolvível) — ignorar",
     );
   }
 

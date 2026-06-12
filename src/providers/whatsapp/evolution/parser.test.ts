@@ -50,6 +50,18 @@ describe("parseEvolutionInbound — outbound echo (fromMe)", () => {
       mediaCaption: "orçamento",
     });
   });
+
+  it("parses fromMe echo carried as extendedTextMessage", () => {
+    const parsed = parseEvolutionInbound(
+      upsertEvent({ fromMe: true, message: { extendedTextMessage: { text: "segue o link" } } }),
+      "",
+    );
+    expect(parsed).toMatchObject({
+      type: "outbound-echo",
+      contentType: "text",
+      text: "segue o link",
+    });
+  });
 });
 
 describe("parseEvolutionInbound — group/broadcast guard", () => {
@@ -65,6 +77,15 @@ describe("parseEvolutionInbound — group/broadcast guard", () => {
     expect(() =>
       parseEvolutionInbound(upsertEvent({ fromMe: true, remoteJid: "1203630@g.us" }), ""),
     ).toThrow(/grupo|broadcast/i);
+  });
+
+  it.each([
+    ["inbound", false],
+    ["fromMe", true],
+  ])("throws for @lid jids (no resolvable phone), %s", (_label, fromMe) => {
+    expect(() =>
+      parseEvolutionInbound(upsertEvent({ fromMe, remoteJid: "20363041234567890@lid" }), ""),
+    ).toThrow(/@lid/);
   });
 });
 

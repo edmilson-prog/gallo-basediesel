@@ -246,8 +246,8 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
   }
 
   // 1. Defensive parse FIRST (pure, cheap). Unparseable payloads — including
-  //    Evolution own-message echoes and non-message events — are ignorable by
-  //    design (RNF-007): the webhook answers 200 and moves on.
+  //    Evolution group/broadcast/lid events and non-message events — are
+  //    ignorable by design (RNF-007): the webhook answers 200 and moves on.
   let parsed: IInboundMessage | IInboundStatus | IOutboundEcho;
   try {
     parsed =
@@ -258,6 +258,12 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
     const detail = error instanceof Error ? error.message : String(error);
     warn("webhook payload ignored", { provider, detail });
     return { outcome: "ignored", detail };
+  }
+
+  // A missing provider id would collapse distinct events into the same
+  // eventKey ("whatsapp:<provider>:") — refuse early.
+  if (!parsed.providerMessageId) {
+    return { outcome: "ignored", detail: "missing provider message id" };
   }
 
   // 2. Idempotency (RF-020..022): Meta retries the same event 2-3×.
