@@ -23,7 +23,18 @@ import type { IEvolutionStoredMessage } from "../evolution/instance.ts";
 
 export interface IImportStats {
   chatsProcessed: number;
+  /** Real WhatsApp groups (`@g.us`) — never a 1:1 customer. */
   chatsSkippedGroup: number;
+  /** Broadcast lists / status (`@broadcast`) and channels (`@newsletter`). */
+  chatsSkippedBroadcast: number;
+  /**
+   * `@lid` privacy contacts: individual 1:1 chats whose phone number WhatsApp
+   * hides. Counted apart from groups on purpose — these are REAL conversations
+   * we cannot yet import (no resolvable number), not groups.
+   */
+  chatsSkippedLid: number;
+  /** Any other non-individual JID suffix (forward-compat catch-all). */
+  chatsSkippedOther: number;
   /** Chats whose import threw — the cursor advances past them (resilience). */
   chatsFailed: number;
   customersCreated: number;
@@ -36,6 +47,9 @@ export function emptyImportStats(): IImportStats {
   return {
     chatsProcessed: 0,
     chatsSkippedGroup: 0,
+    chatsSkippedBroadcast: 0,
+    chatsSkippedLid: 0,
+    chatsSkippedOther: 0,
     chatsFailed: 0,
     customersCreated: 0,
     conversationsCreated: 0,
@@ -126,6 +140,18 @@ interface INormalizedRecord {
 /** Only 1:1 individual chats — groups, broadcasts, newsletters, lids are skipped. */
 const INDIVIDUAL_JID = /@s\.whatsapp\.net$/;
 
+/**
+ * Bucket a non-individual chat JID by its WhatsApp address type. Reported
+ * separately in the import summary so `@lid` (real contacts WhatsApp hides
+ * behind a privacy id) are never miscounted as "groups".
+ */
+function classifyChatJid(remoteJid: string): "group" | "broadcast" | "lid" | "other" {
+  if (remoteJid.endsWith("@g.us")) return "group";
+  if (remoteJid.endsWith("@broadcast") || remoteJid.endsWith("@newsletter")) return "broadcast";
+  if (remoteJid.endsWith("@lid")) return "lid";
+  return "other";
+}
+
 const BATCH_CHATS_DEFAULT = 10;
 
 /** Runaway guard: 50 pages × ~100 records ≈ 5 k messages per chat. */
@@ -209,7 +235,20 @@ export async function processImportBatch(args: {
 
   for (const remoteJid of batch) {
     if (!INDIVIDUAL_JID.test(remoteJid)) {
-      stats.chatsSkippedGroup++;
+      switch (classifyChatJid(remoteJid)) {
+        case "group":
+          stats.chatsSkippedGroup++;
+          break;
+        case "broadcast":
+          stats.chatsSkippedBroadcast++;
+          break;
+        case "lid":
+          stats.chatsSkippedLid++;
+          break;
+        case "other":
+          stats.chatsSkippedOther++;
+          break;
+      }
       continue;
     }
     // A poisoned chat (malformed records, transient REST failure) must never

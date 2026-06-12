@@ -8,7 +8,14 @@ import { getSupabaseClient } from "@/shared/lib/supabase";
 
 export interface IImportStats {
   chatsProcessed: number;
+  /** Real groups (`@g.us`). */
   chatsSkippedGroup: number;
+  /** Broadcast lists / status + channels (`@broadcast` / `@newsletter`). */
+  chatsSkippedBroadcast: number;
+  /** `@lid` privacy contacts — real 1:1 chats with no resolvable number. */
+  chatsSkippedLid: number;
+  /** Any other non-individual JID suffix. */
+  chatsSkippedOther: number;
   chatsFailed: number;
   customersCreated: number;
   conversationsCreated: number;
@@ -66,6 +73,9 @@ export function emptyImportStats(): IImportStats {
   return {
     chatsProcessed: 0,
     chatsSkippedGroup: 0,
+    chatsSkippedBroadcast: 0,
+    chatsSkippedLid: 0,
+    chatsSkippedOther: 0,
     chatsFailed: 0,
     customersCreated: 0,
     conversationsCreated: 0,

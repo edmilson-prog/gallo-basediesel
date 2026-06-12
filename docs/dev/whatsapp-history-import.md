@@ -121,6 +121,9 @@ Resposta (`200 OK`):
   "stats": {
     "chatsProcessed": 9,
     "chatsSkippedGroup": 1,
+    "chatsSkippedBroadcast": 0,
+    "chatsSkippedLid": 4,
+    "chatsSkippedOther": 0,
     "chatsFailed": 0,
     "customersCreated": 3,
     "conversationsCreated": 7,
@@ -165,8 +168,20 @@ de sync (ver §5).
 
 1. Lista todos os JIDs de chat do servidor e ordena (cursor estável).
 2. Faz slice `[cursor, cursor + batchSize]` (default 10 chats por lote).
-3. Para cada chat individual (`@s.whatsapp.net`): chama `importChat`. Grupos,
-   broadcasts e demais JIDs incrementam `chatsSkippedGroup`.
+3. Para cada chat individual (`@s.whatsapp.net`): chama `importChat`. JIDs não
+   individuais são **classificados por tipo** (`classifyChatJid`) e contados
+   separadamente — nunca amontoados como "grupos":
+
+   | Sufixo | Contador | Rótulo na UI |
+   | --- | --- | --- |
+   | `@g.us` | `chatsSkippedGroup` | Grupos ignorados |
+   | `@broadcast` / `@newsletter` | `chatsSkippedBroadcast` | Listas e canais ignorados |
+   | `@lid` | `chatsSkippedLid` | Contatos com número oculto |
+   | qualquer outro | `chatsSkippedOther` | Outros ignorados |
+
+   O `@lid` é uma conversa 1:1 **real** cujo número o WhatsApp esconde
+   (privacidade) — separá-lo de "grupos" evita o engano de reportar centenas de
+   "grupos" que na verdade são contatos individuais não importáveis.
 4. Retorna `{ done, nextCursor, stats }`.
 
 **Algoritmo por chat (`importChat`):**

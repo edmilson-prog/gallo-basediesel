@@ -99,7 +99,10 @@ export function ImportConversationsDialog({
               Números que ainda não são clientes entram como <strong>clientes pendentes</strong>{" "}
               (tag <code className="font-mono text-xs">pending_review</code>) para revisão depois.
             </p>
-            <p>Grupos e listas de transmissão são ignorados. Mídias antigas não são baixadas.</p>
+            <p>
+              Grupos, listas, canais e contatos com número oculto pelo WhatsApp são ignorados.
+              Mídias antigas não são baixadas.
+            </p>
             <p>Pode rodar mais de uma vez: nada é duplicado.</p>
           </div>
         )}
@@ -125,6 +128,30 @@ export function ImportConversationsDialog({
               <dd className="text-right font-medium text-foreground">{stats.customersCreated}</dd>
               <dt className="text-muted-foreground">Grupos ignorados</dt>
               <dd className="text-right font-medium text-foreground">{stats.chatsSkippedGroup}</dd>
+              {stats.chatsSkippedLid > 0 && (
+                <>
+                  <dt className="text-muted-foreground">Contatos com número oculto</dt>
+                  <dd className="text-right font-medium text-foreground">
+                    {stats.chatsSkippedLid}
+                  </dd>
+                </>
+              )}
+              {stats.chatsSkippedBroadcast > 0 && (
+                <>
+                  <dt className="text-muted-foreground">Listas e canais ignorados</dt>
+                  <dd className="text-right font-medium text-foreground">
+                    {stats.chatsSkippedBroadcast}
+                  </dd>
+                </>
+              )}
+              {stats.chatsSkippedOther > 0 && (
+                <>
+                  <dt className="text-muted-foreground">Outros ignorados</dt>
+                  <dd className="text-right font-medium text-foreground">
+                    {stats.chatsSkippedOther}
+                  </dd>
+                </>
+              )}
               <dt className="text-muted-foreground">Já existiam (puladas)</dt>
               <dd className="text-right font-medium text-foreground">{stats.messagesSkipped}</dd>
               {stats.chatsFailed > 0 && (
@@ -151,6 +178,12 @@ export function ImportConversationsDialog({
                 {stats.chatsFailed > 0
                   ? `Importação concluída — ${stats.chatsFailed} conversa(s) falharam e podem ser reimportadas (tente de novo).`
                   : "Importação concluída — as conversas já estão no Inbox."}
+              </p>
+            )}
+            {phase === "done" && stats.chatsSkippedLid > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Contatos com número oculto são conversas individuais cujo número o WhatsApp não
+                revela (privacidade). Ainda não entram no Inbox — não são grupos.
               </p>
             )}
           </div>

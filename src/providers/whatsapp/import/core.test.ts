@@ -118,20 +118,24 @@ describe("processImportBatch", () => {
     ]);
   });
 
-  it("skips group/broadcast/newsletter/lid chats (counted, never imported)", async () => {
+  it("classifies skipped chats by JID type (group / list-channel / hidden-number / other)", async () => {
     const state = emptyState();
     const source = makeSource(
       [
-        "1203630@g.us",
-        "status@broadcast",
-        "99@newsletter",
-        "123456789@lid",
-        "5555988887777@s.whatsapp.net",
+        "1203630@g.us", // group
+        "status@broadcast", // broadcast list / status
+        "99@newsletter", // channel / newsletter
+        "123456789@lid", // hidden-number privacy contact (a REAL 1:1, not a group)
+        "weird@unknown", // any other non-individual suffix
+        "5555988887777@s.whatsapp.net", // importable individual chat
       ],
       { "5555988887777@s.whatsapp.net": [storedText("M1", false, 1765400000)] },
     );
     const result = await processImportBatch({ account: ACCOUNT, source, db: makeDb(state) });
-    expect(result.stats.chatsSkippedGroup).toBe(4);
+    expect(result.stats.chatsSkippedGroup).toBe(1); // @g.us only
+    expect(result.stats.chatsSkippedBroadcast).toBe(2); // @broadcast + @newsletter
+    expect(result.stats.chatsSkippedLid).toBe(1); // @lid
+    expect(result.stats.chatsSkippedOther).toBe(1); // unknown suffix
     expect(result.stats.chatsProcessed).toBe(1);
   });
 
@@ -286,6 +290,9 @@ describe("processImportBatch", () => {
     expect(emptyImportStats()).toEqual({
       chatsProcessed: 0,
       chatsSkippedGroup: 0,
+      chatsSkippedBroadcast: 0,
+      chatsSkippedLid: 0,
+      chatsSkippedOther: 0,
       chatsFailed: 0,
       customersCreated: 0,
       conversationsCreated: 0,
