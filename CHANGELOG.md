@@ -6,6 +6,15 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.89.1] — Roster · 2026-06-12
+
+**Áudios e mídias do WhatsApp agora tocam e abrem de verdade** — corrige a reprodução de áudio e a abertura de fotos e documentos recebidos nas conversas.
+
+### Fixed
+
+- **Reprodução de áudio nas conversas** — os áudios recebidos pelo WhatsApp agora tocam de verdade ao apertar play; antes a barrinha andava mas não saía som. Dá para pausar, retomar e arrastar para um trecho específico do áudio.
+- **Fotos, documentos e vídeos recebidos** — passam a abrir e baixar normalmente nas conversas. Quando o arquivo não está mais disponível no servidor, a mensagem mostra "indisponível" em vez de um item quebrado.
+
 ## [0.89.0] — Roster · 2026-06-12
 
 **Gestão completa da equipe numa tela só** — agora dá para cadastrar, editar e desligar usuários direto na plataforma, ver quem está online e quando cada um acessou pela última vez.
