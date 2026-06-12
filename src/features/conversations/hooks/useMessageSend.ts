@@ -115,9 +115,12 @@ export function useMessageSend(
       retryOfMessageId,
     }: ISendOptions) => {
       const now = new Date().toISOString();
-      const tempId: ID = `tmp-${crypto.randomUUID()}`;
+      // Client-generated id: the optimistic bubble and the Realtime INSERT
+      // share ONE id, so the bubble never duplicates during the send window —
+      // the supabase pipeline inserts the row with this id (PRD-115).
+      const messageId: ID = crypto.randomUUID();
       const optimistic: IMessage = {
-        id: tempId,
+        id: messageId,
         conversationId: conversation.id,
         direction: "out",
         authorType: "seller",
@@ -132,7 +135,9 @@ export function useMessageSend(
         text: template ? `${TEMPLATE_PREFIX}${text}` : text,
         mediaType,
         mediaUrl,
-        status: "sent",
+        // Starts "queued" (🕐) and becomes "sent" (✓) on commit, then
+        // delivered/read (✓✓) via Realtime — one bubble, honest lifecycle.
+        status: "queued",
         sentAt: now,
       };
 
@@ -145,6 +150,7 @@ export function useMessageSend(
       if (getActiveDataSource() === "supabase") {
         try {
           const flags = {
+            messageId,
             ...(overrideInvalid ? { overrideInvalid: true } : {}),
             ...(retryOfMessageId ? { retryOfMessageId } : {}),
           };

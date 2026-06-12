@@ -161,9 +161,15 @@ function makeSendDb(admin: SupabaseClient, traceId: string): ISendDb {
       return Boolean(data);
     },
     async insertQueuedMessage(input) {
+      // Honor a client-provided UUID (optimistic dedup) only when well-formed —
+      // a bad id would otherwise fail the whole send on the uuid column.
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const useId =
+        input.messageId && UUID_RE.test(input.messageId) ? input.messageId : undefined;
       const { data, error } = await admin
         .from("messages")
         .insert({
+          ...(useId ? { id: useId } : {}),
           conversation_id: input.conversationId,
           direction: "out",
           author_type: "seller",

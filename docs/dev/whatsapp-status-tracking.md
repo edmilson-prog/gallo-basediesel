@@ -44,8 +44,13 @@ server-side) e faz upsert na conversa aberta:
 - INSERT inbound → mensagem aparece sem reload (e a janela 24h do PRD-117
   reabre na hora);
 - UPDATE → badge transiciona ao vivo; **status nunca regride** (ranking
-  queued<sent<delivered<read; failed terminal) — um INSERT atrasado de
-  `queued` não rebaixa uma bolha `sent`.
+  queued<sent<**failed**<delivered<read) — um INSERT atrasado de `queued` não
+  rebaixa uma bolha `sent`. ⚠️ `failed` é **recuperável**, não terminal: o
+  Evolution/Baileys dispara um ack `ERROR` espúrio no meio do ciclo (mensagens
+  na verdade entregues/lidas); por isso um `delivered`/`read` posterior
+  **supera** o `failed` — evita o falso negativo (bolha presa no vermelho).
+  Fonte única do ranking: `src/providers/whatsapp/messageStatus.ts`
+  (`statusAdvances`), espelhada no webhook via sync.
 - Duplicação com a bolha otimista: o `commit` do envio remove a cópia que o
   Realtime tenha inserido antes (mesmo id real).
 
