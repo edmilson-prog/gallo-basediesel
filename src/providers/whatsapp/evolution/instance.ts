@@ -218,6 +218,9 @@ export interface IFindMessagesPage {
   pages?: number;
 }
 
+/** Evolution page-size param (`offset` doubles as records per page on v2). */
+export const EVOLUTION_HISTORY_PAGE_SIZE = 100;
+
 /**
  * POST /chat/findChats — every chat the instance has stored. Response shapes
  * vary across builds (flat array | {chats} | {records}); jid-less entries are
@@ -245,6 +248,18 @@ export async function findChats(
       : Array.isArray(body?.records)
         ? body.records
         : [];
+  if (list.length === 0 && body !== null && !Array.isArray(body)) {
+    // Surface unknown response shapes in integration_logs — the payload itself
+    // is omitted (PII), so the key list is the only diagnosable trace.
+    await deps.logIntegration?.({
+      integrationName: "whatsapp_evolution",
+      direction: "outbound",
+      endpoint: `/chat/findChats/${target.instanceName}`,
+      latencyMs: 0,
+      traceId,
+      errorMessage: `findChats: unrecognised response shape — keys: ${Object.keys(body as object).join(", ")}`,
+    });
+  }
   const out: IEvolutionChatSummary[] = [];
   for (const raw of list) {
     const candidate = raw as { remoteJid?: string; id?: string } | null;
@@ -270,7 +285,7 @@ export async function findMessages(
   const response = await evolutionRequest(apiKey, deps, {
     baseUrl: target.baseUrl,
     path: `/chat/findMessages/${target.instanceName}`,
-    json: { where: { key: { remoteJid } }, page, offset: 100 },
+    json: { where: { key: { remoteJid } }, page, offset: EVOLUTION_HISTORY_PAGE_SIZE },
     timeoutMs: 30_000,
     omitResponsePayload: true,
     traceId,
