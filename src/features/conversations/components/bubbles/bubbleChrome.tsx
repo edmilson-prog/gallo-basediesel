@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { Icon } from "@/components/Icon";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { formatTime, statusVisual } from "../../utils/messageDisplay";
+import { formatTime, isReprocessable, statusVisual } from "../../utils/messageDisplay";
 import { CONVERSATION_STRINGS } from "../../i18n/pt-BR";
 
 export interface IBubbleChromeProps {
@@ -33,6 +33,9 @@ export function BubbleChrome({
   const isOut = message.direction === "out";
   const isSdr = message.authorType === "sdr";
   const isFailed = message.status === "failed";
+  // Failed → "Tentar novamente" (PRD-118). Stuck `queued` → "Reprocessar":
+  // the edge persisted the row but the dispatch never settled.
+  const reprocessable = isReprocessable(message);
 
   const align = isOut ? "items-end" : "items-start";
   const bubbleColor = !isOut
@@ -98,15 +101,20 @@ export function BubbleChrome({
 
       {footer}
 
-      {isOut && isFailed && (
+      {reprocessable && (
         <Button
           variant="ghost"
           size="sm"
-          className="h-7 gap-1 px-2 text-[11px] text-destructive hover:bg-destructive/10"
+          className={cn(
+            "h-7 gap-1 px-2 text-[11px]",
+            isFailed
+              ? "text-destructive hover:bg-destructive/10"
+              : "text-muted-foreground hover:bg-muted",
+          )}
           onClick={onRetry}
         >
           <Icon icon="mdi:refresh" size={12} />
-          {CONVERSATION_STRINGS.retry}
+          {isFailed ? CONVERSATION_STRINGS.retry : CONVERSATION_STRINGS.reprocess}
         </Button>
       )}
     </div>

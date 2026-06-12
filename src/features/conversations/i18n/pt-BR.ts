@@ -221,6 +221,7 @@ export const CONVERSATION_STRINGS = {
   sdrBubbleTooltip: "Mensagem enviada pelo agente SDR",
   templateBadge: "Template",
   retry: "Tentar novamente",
+  reprocess: "Reprocessar",
   download: "Baixar",
   audioTranscription: "Transcrição em breve",
   imageCaption: (caption: string) => caption || "Foto",
