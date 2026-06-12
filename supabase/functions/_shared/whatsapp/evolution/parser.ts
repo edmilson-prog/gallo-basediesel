@@ -116,7 +116,8 @@ export function parseEvolutionInbound(
   }
 
   if (event.event === "messages.update") {
-    const status = EVOLUTION_ACK_STATUS_MAP[(data.status ?? "").toUpperCase()];
+    // Some Baileys builds report the ack as a NUMBER — String() before uppercasing.
+    const status = EVOLUTION_ACK_STATUS_MAP[String(data.status ?? "").toUpperCase()];
     if (!status) {
       throw new Error(`EvolutionProvider: messages.update com status desconhecido: ${data.status}`);
     }
