@@ -1403,6 +1403,201 @@ Expected: PR criada. **NÃO mergear** — o merge e o bump de versão dependem d
 
 ---
 
+## Adendo — Tasks 10–12: último login + presença online (aprovado 2026-06-11)
+
+### Task 10: RPC `seller_access_info` + cliente
+
+**Files:**
+- Create: `supabase/migrations/20260611230000_seller_access_info_rpc.sql`
+- Modify: `src/features/admin-settings/api/sellerAccess.ts`
+- Modify: `src/features/admin-settings/pages/UsersPage.tsx` (troca da query)
+
+- [ ] **Step 1: Aplicar a migration via MCP** (`name: "seller_access_info_rpc"`):
+
+```sql
+-- Staff-scoped access info for the users screen: role + last login per seller.
+-- SECURITY DEFINER so it can read auth.users.last_sign_in_at; scoped by the
+-- same identity helpers as RLS (store + staff-only), like the PRD-108 MV RPCs.
+create or replace function public.seller_access_info()
+returns table (seller_id uuid, role text, last_sign_in_at timestamptz)
+language sql stable security definer set search_path = public as $$
+  select p.seller_id, p.role, u.last_sign_in_at
+  from public.profiles p
+  join auth.users u on u.id = p.auth_user_id
+  where p.store_id = public.current_store_id()
+    and p.seller_id is not null
+    and public.is_staff();
+$$;
+
+revoke execute on function public.seller_access_info() from public, anon;
+grant execute on function public.seller_access_info() to authenticated;
+```
+
+- [ ] **Step 2: Espelhar a migration no Git** (mesmo SQL).
+
+- [ ] **Step 3: Cliente** — em `src/features/admin-settings/api/sellerAccess.ts`, SUBSTITUIR `listSellerAccessRoles` (grep antes: a UsersPage deve ser o único consumidor; se houver outro, manter ambas e reportar) por:
+
+```typescript
+export interface ISellerAccessInfo {
+  role: string;
+  /** Last Supabase sign-in (null = invited but never logged in). */
+  lastSignInAt: string | null;
+}
+
+/**
+ * Maps `sellerId → access info` (role + last login) for every seller with a
+ * platform profile, via the staff-scoped RPC `seller_access_info`. Empty in
+ * mock auth mode.
+ */
+export async function listSellerAccessInfo(): Promise<Map<string, ISellerAccessInfo>> {
+  if (AUTH_SOURCE !== "supabase") return new Map();
+  const { data, error } = await getSupabaseClient().rpc("seller_access_info");
+  if (error) throw new Error(`Não foi possível carregar os acessos: ${error.message}`);
+  const map = new Map<string, ISellerAccessInfo>();
+  for (const row of data ?? []) {
+    const r = row as { seller_id: string; role: string; last_sign_in_at: string | null };
+    map.set(r.seller_id, { role: r.role, lastSignInAt: r.last_sign_in_at });
+  }
+  return map;
+}
+```
+
+- [ ] **Step 4: Trocar a query na página** — `queryFn: () => listSellerAccessInfo()` (queryKey continua `["seller-access", storeId]`); derivar `accessRole = accessInfo.get(s.id)?.role` e ajustar TODOS os usos (`hasAccess`, `isOwnerAccess`, badge Gestor, `hasAccess` do SellerFormDialog, `currentRole` do ChangeRoleDialog).
+
+- [ ] **Step 5:** `bun run build` verde; `bunx tsc` sem erro novo nos arquivos tocados; commit `feat(admin-settings): seller_access_info RPC with role + last sign-in` (somente migration espelho + sellerAccess.ts + UsersPage.tsx).
+
+### Task 11: Hooks de presença (tracker no shell + leitura)
+
+**Files:**
+- Create: `src/features/shell/hooks/useStorePresence.ts`
+- Modify: `src/features/shell/layouts/AppLayout.tsx` (montar o tracker; ler o arquivo antes)
+
+- [ ] **Step 1: Hook** — criar `useStorePresence.ts` com tracker + leitor:
+
+```typescript
+import { useEffect, useState } from "react";
+import { getSupabaseClient } from "@/shared/lib/supabase";
+import { AUTH_SOURCE } from "@/features/auth/authSource";
+import { useAuth } from "@/features/auth/useAuth";
+import { useCurrentStore } from "@/features/multistore";
+
+/**
+ * Realtime Presence per store (users CRUD addendum): "online" means the app is
+ * open in some browser. The shell tracks the signed-in seller; the users screen
+ * reads the set of online seller ids. Supabase auth mode only — in mock mode
+ * the reader returns null and callers derive a seeded status instead.
+ */
+
+const channelTopic = (storeId: string) => `presence:store:${storeId}`;
+
+/** Mounted once in AppLayout — announces the signed-in seller as online. */
+export function usePresenceTracker(): void {
+  const { currentUser } = useAuth();
+  const { currentStoreId } = useCurrentStore();
+  const sellerId = currentUser?.sellerId;
+
+  useEffect(() => {
+    if (AUTH_SOURCE !== "supabase" || !sellerId || !currentStoreId) return;
+    const client = getSupabaseClient();
+    const channel = client.channel(channelTopic(currentStoreId), {
+      config: { presence: { key: sellerId } },
+    });
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED") void channel.track({ sellerId });
+    });
+    return () => {
+      void client.removeChannel(channel);
+    };
+  }, [sellerId, currentStoreId]);
+}
+
+/** Set of seller ids currently online in the store; null in mock auth mode. */
+export function useStorePresence(storeId: string): Set<string> | null {
+  const [online, setOnline] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (AUTH_SOURCE !== "supabase") return;
+    const client = getSupabaseClient();
+    const channel = client.channel(`${channelTopic(storeId)}:reader:${Math.random().toString(36).slice(2)}`);
+    // NOTE: presence state lives per TOPIC server-side; readers must join the
+    // SAME topic. Verify with supabase-js v2 docs/types: client.channel() with
+    // an identical topic returns a new channel instance — if joining the same
+    // topic twice from one client errors, reuse the topic WITHOUT the reader
+    // suffix and confirm behavior. Adjust so reader + tracker share the topic.
+    const sync = () => setOnline(new Set(Object.keys(channel.presenceState())));
+    channel
+      .on("presence", { event: "sync" }, sync)
+      .on("presence", { event: "join" }, sync)
+      .on("presence", { event: "leave" }, sync)
+      .subscribe();
+    return () => {
+      void client.removeChannel(channel);
+    };
+  }, [storeId]);
+
+  return AUTH_SOURCE === "supabase" ? online : null;
+}
+```
+
+⚠️ O comentário NOTE acima é uma instrução de implementação: presence é por tópico — o leitor PRECISA assinar o MESMO tópico `presence:store:<id>` do tracker (sem sufixo). Implementar com o mesmo tópico; o sufixo só seria fallback se o client reclamar de tópico duplicado (não deve — instâncias de canal são independentes). Testar e remover o NOTE do código final.
+
+- [ ] **Step 2: Montar o tracker** — em `AppLayout.tsx`, chamar `usePresenceTracker()` no topo do componente (hook sem retorno).
+
+- [ ] **Step 3:** `bun run build` verde; commit `feat(shell): store presence tracking via Supabase Realtime Presence`.
+
+### Task 12: UI — bolinha online + último acesso
+
+**Files:**
+- Modify: `src/features/admin-settings/pages/UsersPage.tsx`
+
+- [ ] **Step 1: Presença na página** — `const presence = useStorePresence(storeId);` e por linha:
+
+```tsx
+const isOnline = presence ? presence.has(s.id) : s.availability !== "offline";
+```
+
+- [ ] **Step 2: Bolinha no avatar** — envolver o avatar em `relative` e adicionar:
+
+```tsx
+<div className="relative">
+  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+    {s.fullName.slice(0, 2).toUpperCase()}
+  </div>
+  <span
+    aria-hidden
+    className={cn(
+      "absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-card",
+      isOnline ? "bg-severity-success" : "bg-muted-foreground/40",
+    )}
+  />
+</div>
+```
+
+(import `cn` de `@/lib/utils`.) Ao lado do nome, quando online: `<span className="text-[10px] font-semibold uppercase tracking-wide text-severity-success">Online</span>`.
+
+- [ ] **Step 3: Último acesso sob o e-mail** — helper local no topo do arquivo:
+
+```tsx
+const LAST_SIGN_IN_FORMAT = new Intl.DateTimeFormat("pt-BR", {
+  dateStyle: "short",
+  timeStyle: "short",
+});
+
+function lastAccessLabel(info: ISellerAccessInfo | undefined, supabaseAuth: boolean): string | null {
+  if (!supabaseAuth) return "Último acesso: —";
+  if (!info) return null; // no access yet — nothing to show
+  if (!info.lastSignInAt) return "Nunca acessou";
+  return `Último acesso: ${LAST_SIGN_IN_FORMAT.format(new Date(info.lastSignInAt))}`;
+}
+```
+
+Renderizar sob o e-mail quando o label não for null:
+```tsx
+<p className="text-[11px] text-muted-foreground/80">{label}</p>
+```
+
+- [ ] **Step 4:** `bun run build` + `bun run test` verdes; commit `feat(admin-settings): online presence dot and last sign-in on users screen`; push (a PR #68 atualiza sozinha).
+
 ## Self-review (feito na escrita)
 
 - **Cobertura da spec:** §1 migration+tipo → Task 1; §2 contrato/mock/supabase+filtros → Tasks 2-3; §3 edge function → Task 4; §4 UI (form dialog, delete dialog, página, avisos, mock mode, invalidations) → Tasks 5-8; §5 testes/gate/PR → Tasks 2, 5, 9. Fora de escopo respeitado (sem sync de e-mail de login, sem reatribuição).

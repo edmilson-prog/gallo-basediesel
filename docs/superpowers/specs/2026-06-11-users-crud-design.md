@@ -88,3 +88,20 @@ Defaults na criação: `divisions: ['parts']`, `availability: 'offline'`, `activ
 - Sincronização do e-mail de login ao editar o e-mail do cadastro.
 - Reatribuição de carteira/clientes na exclusão (o vínculo histórico permanece com o vendedor excluído).
 - Mudanças nos fluxos de acesso existentes (criar acesso, reset de senha, papel, desligar/reativar).
+
+---
+
+## Adendo (2026-06-11, aprovado) — Último login + presença online
+
+Incremento na mesma tela/PR. Decisão do dono: **online = está com o app aberto** (presença real), não o toggle de disponibilidade nem aproximação por login.
+
+### 1. Último login (data e hora)
+- Fonte: `auth.users.last_sign_in_at`. Acesso via RPC **`seller_access_info()`** (SECURITY DEFINER, `language sql stable`, mesmo idioma das RPCs de MV do PRD-108): retorna `seller_id`, `role`, `last_sign_in_at` de `profiles` join `auth.users`, escopado por `current_store_id()` + `is_staff()`; revoke de `public`/`anon`, grant `authenticated`. Migration aplicada e espelhada.
+- O cliente `listSellerAccessInfo()` substitui `listSellerAccessRoles()` (a tela é o único consumidor) devolvendo `Map<sellerId, { role, lastSignInAt }>`.
+- UI: linha discreta sob o e-mail — "Último acesso: dd/mm/aaaa hh:mm" (Intl pt-BR); "Nunca acessou" quando tem acesso e `last_sign_in_at` null; nada para quem não tem acesso; em modo demonstração, "Último acesso: —".
+
+### 2. Online/offline (presença real)
+- **Supabase Realtime Presence**, canal `presence:store:<storeId>`, presence key = `sellerId`.
+- Tracker no shell logado (`AppLayout`): hook `usePresenceTracker()` — gates `AUTH_SOURCE === "supabase"` + sessão com `sellerId` + loja corrente; `track({ sellerId })` no SUBSCRIBED; cleanup `removeChannel`.
+- Leitura na tela: hook `useStorePresence(storeId)` retorna `Set<sellerId>` online (eventos `sync`/`join`/`leave`); em modo mock retorna `null` e a tela deriva online de `availability !== "offline"` (seed).
+- UI: bolinha no avatar (verde `severity-success` online / cinza offline, borda da cor do card) + rótulo "Online" ao lado do nome quando online. Sem dado sensível no canal (só `sellerId`); auth/RLS inalterados.
