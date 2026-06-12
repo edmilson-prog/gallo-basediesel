@@ -211,4 +211,21 @@ export const supabaseMessagesProvider: IMessagesProvider = {
     if (error || !data?.signedUrl) return null;
     return data.signedUrl;
   },
+
+  async listConversationMedia(conversationId: ID): Promise<IMessage[]> {
+    // `media_url IS NOT NULL` already excludes failed/expired inbound media
+    // (the webhook stores a null url on download failure), so a status filter
+    // is unnecessary and would wrongly drop outbound media (null status).
+    const { data, error } = await getSupabaseClient()
+      .from(TABLE)
+      .select(COLUMNS)
+      .eq("conversation_id", conversationId)
+      .not("media_type", "is", null)
+      .not("media_url", "is", null)
+      .order("sent_at", { ascending: false })
+      .limit(500);
+    if (error)
+      throw new Error(`[supabase] messages.listConversationMedia failed: ${error.message}`);
+    return (data as unknown as MessageRow[]).map(rowToMessage);
+  },
 };

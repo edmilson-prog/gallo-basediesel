@@ -67,4 +67,11 @@ export interface IMessagesProvider {
    * unavailable instead of a broken element.
    */
   resolveMediaUrl(mediaUrl: string | undefined): Promise<string | null>;
+  /**
+   * Messages of a conversation that carry displayable media (image/audio/video/
+   * document) WITH bytes available (non-null `mediaUrl`), newest first. Feeds
+   * the conversation media side panel. Inbound media whose download failed or
+   * expired has a null url and is therefore excluded.
+   */
+  listConversationMedia(conversationId: ID): Promise<IMessage[]>;
 }

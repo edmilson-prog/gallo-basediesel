@@ -26,4 +26,13 @@ export const mockMessagesProvider: IMessagesProvider = {
     const ref = classifyMediaRef(mediaUrl);
     return ref.kind === "absolute" ? ref.url : null;
   },
+  listConversationMedia: async (conversationId) => {
+    const result = await messagesApi.list({
+      conversationId,
+      page: 1,
+      pageSize: 1000,
+      orderDir: "desc",
+    });
+    return result.data.filter((m) => Boolean(m.mediaType) && Boolean(m.mediaUrl));
+  },
 };

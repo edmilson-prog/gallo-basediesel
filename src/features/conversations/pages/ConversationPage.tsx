@@ -19,12 +19,8 @@ import { useMessages } from "../hooks/useMessages";
 import { useRealtimeMessages } from "../hooks/useRealtimeMessages";
 import { ConversationProvider } from "../hooks/ConversationContext";
 import { CopilotStrip, CopilotCard, CopilotFicheTab, useCopilotPanel } from "@/features/copilot";
-import {
-  ConversationMediaGallery,
-  useMediaGallery,
-  useConversationMedia,
-  useEnsureInboundMedia,
-} from "@/features/media";
+import { useMediaGallery, useConversationMedia, useEnsureInboundMedia } from "@/features/media";
+import { ConversationMediaPanel } from "../components/media/ConversationMediaPanel";
 import {
   useScheduledSendRunner,
   useTrackableLinkSimulation,
@@ -232,7 +228,7 @@ export function ConversationPage() {
                 }
               />
             )}
-            <ConversationMediaGallery
+            <ConversationMediaPanel
               conversationId={conversationId}
               open={media.open}
               onOpenChange={media.setOpen}
