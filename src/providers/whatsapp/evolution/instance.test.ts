@@ -3,6 +3,8 @@ import { WhatsAppProviderError } from "../errors";
 import type { IEngineDeps } from "../types";
 import {
   fetchInstanceProfile,
+  findChats,
+  findMessages,
   getConnectionState,
   getInstanceQr,
   logoutInstance,
@@ -182,5 +184,53 @@ describe("logout / restart / webhook", () => {
       "MESSAGES_UPDATE",
       "CONNECTION_UPDATE",
     ]);
+  });
+});
+
+describe("findChats", () => {
+  it("parses the flat v2 array and keeps only jid-like entries", async () => {
+    const { deps } = makeDeps(200, [
+      { remoteJid: "5555988887777@s.whatsapp.net" },
+      { remoteJid: "1203630@g.us" },
+      { id: "not-a-jid-uuid" },
+    ]);
+    const chats = await findChats("key", deps, TARGET);
+    expect(chats.map((c) => c.remoteJid)).toEqual(["5555988887777@s.whatsapp.net", "1203630@g.us"]);
+  });
+
+  it("parses nested {chats:[...]} shapes", async () => {
+    const { deps } = makeDeps(200, { chats: [{ remoteJid: "5511911112222@s.whatsapp.net" }] });
+    const chats = await findChats("key", deps, TARGET);
+    expect(chats).toEqual([{ remoteJid: "5511911112222@s.whatsapp.net" }]);
+  });
+});
+
+describe("findMessages", () => {
+  it("parses the nested v2 page shape", async () => {
+    const { deps } = makeDeps(200, {
+      messages: {
+        total: 2,
+        pages: 1,
+        currentPage: 1,
+        records: [
+          {
+            key: { id: "M1", remoteJid: "5555988887777@s.whatsapp.net", fromMe: false },
+            message: { conversation: "oi" },
+            messageTimestamp: 1765400000,
+            status: "READ",
+          },
+        ],
+      },
+    });
+    const page = await findMessages("key", deps, TARGET, "5555988887777@s.whatsapp.net", 1);
+    expect(page.pages).toBe(1);
+    expect(page.records[0]).toMatchObject({ key: { id: "M1" } });
+  });
+
+  it("accepts a bare array response (older builds)", async () => {
+    const { deps } = makeDeps(200, [{ key: { id: "M2" }, message: { conversation: "x" } }]);
+    const page = await findMessages("key", deps, TARGET, "jid", 1);
+    expect(page.records).toHaveLength(1);
+    expect(page.pages).toBeUndefined();
   });
 });
