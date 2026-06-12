@@ -14,6 +14,7 @@ versioning follows [SemVer](https://semver.org/).
 
 - **Reprodução de áudio nas conversas** — os áudios recebidos pelo WhatsApp agora tocam de verdade ao apertar play; antes a barrinha andava mas não saía som. Dá para pausar, retomar e arrastar para um trecho específico do áudio.
 - **Fotos, documentos e vídeos recebidos** — passam a abrir e baixar normalmente nas conversas. Quando o arquivo não está mais disponível no servidor, a mensagem mostra "indisponível" em vez de um item quebrado.
+- **Recuperação de áudios e fotos recentes** — áudios e imagens recebidos nas últimas semanas que apareciam como indisponíveis foram baixados e agora tocam e abrem normalmente. Mídias com mais de algumas semanas não puderam ser recuperadas porque o WhatsApp as remove de seus servidores depois desse período.
 
 ## [0.89.0] — Roster · 2026-06-12
 
