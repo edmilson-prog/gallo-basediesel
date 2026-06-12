@@ -80,7 +80,14 @@ export function UsersPage() {
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Equipe atual da loja
           </p>
-          <Button size="sm" className="gap-1.5" onClick={() => setCreating(true)}>
+          <Button
+            size="sm"
+            className="gap-1.5"
+            onClick={() => {
+              setEditFor(null);
+              setCreating(true);
+            }}
+          >
             <Icon icon="mdi:account-plus" size={16} />
             Novo usuário
           </Button>
