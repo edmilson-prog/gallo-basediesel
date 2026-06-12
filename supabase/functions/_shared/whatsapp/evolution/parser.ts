@@ -6,13 +6,17 @@
  *
  * Evolution (v2) posts `{ event, instance, data, sender?, ... }`:
  * - `messages.upsert` with `data.key.fromMe=false` → inbound message;
+ * - `messages.upsert` with `data.key.fromMe=true` → outbound echo, mirrored
+ *   into the conversation by the webhook (spec 2026-06-11-whatsapp-real-inbox);
+ *   app-sent messages also echo — consumers dedup by providerMessageId;
  * - `messages.update` with `data.status` → delivery status.
- * Own-message echoes (`fromMe=true`) and other events throw — PRD-114's
- * webhook decides to ignore them (parse errors on known-own events ≠ failures).
+ * JIDs matching `@g.us`, `@broadcast`, or `@newsletter` throw (group /
+ * broadcast / newsletter — ignored upstream, no 1:1 customer mapping);
+ * `@lid` jids also throw (individual chat but no resolvable phone).
  */
 
 import { toE164 } from "../phone.ts";
-import type { IInboundMessage, IInboundStatus, InboundContentType } from "../types.ts";
+import type { IInboundMessage, IInboundStatus, InboundContentType, IOutboundEcho } from "../types.ts";
 
 interface IEvolutionEvent {
   event?: string;
@@ -22,38 +26,41 @@ interface IEvolutionEvent {
   data?: IEvolutionMessageData;
 }
 
+/** Raw Evolution/Baileys message body — shared with the history import core. */
+export interface IEvolutionRawMessage {
+  conversation?: string;
+  extendedTextMessage?: { text?: string };
+  imageMessage?: { caption?: string; mimetype?: string };
+  audioMessage?: { mimetype?: string };
+  videoMessage?: { caption?: string; mimetype?: string };
+  documentMessage?: { caption?: string; fileName?: string; mimetype?: string };
+  locationMessage?: { degreesLatitude?: number; degreesLongitude?: number; name?: string };
+  contactMessage?: { displayName?: string };
+}
+
 interface IEvolutionMessageData {
   key?: { id?: string; remoteJid?: string; fromMe?: boolean };
   keyId?: string;
   pushName?: string;
   status?: string;
-  message?: {
-    conversation?: string;
-    extendedTextMessage?: { text?: string };
-    imageMessage?: { caption?: string; mimetype?: string };
-    audioMessage?: { mimetype?: string };
-    videoMessage?: { caption?: string; mimetype?: string };
-    documentMessage?: { caption?: string; fileName?: string; mimetype?: string };
-    locationMessage?: { degreesLatitude?: number; degreesLongitude?: number; name?: string };
-    contactMessage?: { displayName?: string };
-  };
+  message?: IEvolutionRawMessage;
   messageTimestamp?: number | string;
 }
 
-function jidToE164(jid: string | undefined): string {
+export function jidToE164(jid: string | undefined): string {
   if (!jid) return "";
-  return toE164(jid.split("@")[0] ?? "");
+  return toE164(jid.split("@")[0]?.split(":")[0] ?? "");
 }
 
-function timestampToIso(value: number | string | undefined): string {
+export function timestampToIso(value: number | string | undefined): string {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0
     ? new Date(parsed * 1000).toISOString()
     : new Date().toISOString();
 }
 
-/** Baileys ack states → normalized status. */
-const STATUS_MAP: Record<string, IInboundStatus["status"]> = {
+/** Baileys ack states → normalized status (shared with the import core). */
+export const EVOLUTION_ACK_STATUS_MAP: Record<string, IInboundStatus["status"]> = {
   SERVER_ACK: "sent",
   DELIVERY_ACK: "delivered",
   READ: "read",
@@ -61,10 +68,45 @@ const STATUS_MAP: Record<string, IInboundStatus["status"]> = {
   ERROR: "failed",
 };
 
+export interface IEvolutionContent {
+  contentType: InboundContentType;
+  text?: string;
+  mediaCaption?: string;
+}
+
+/** Normalizes the raw message body into contentType/text/caption. */
+export function extractEvolutionContent(message: IEvolutionRawMessage): IEvolutionContent {
+  if (message.conversation !== undefined || message.extendedTextMessage) {
+    return { contentType: "text", text: message.conversation ?? message.extendedTextMessage?.text };
+  }
+  if (message.imageMessage)
+    return { contentType: "image", mediaCaption: message.imageMessage.caption };
+  if (message.audioMessage) return { contentType: "audio" };
+  if (message.videoMessage)
+    return { contentType: "video", mediaCaption: message.videoMessage.caption };
+  if (message.documentMessage)
+    return { contentType: "document", mediaCaption: message.documentMessage.caption };
+  if (message.locationMessage) {
+    const { name, degreesLatitude, degreesLongitude } = message.locationMessage;
+    return {
+      contentType: "location",
+      text: [name, `${degreesLatitude ?? "?"},${degreesLongitude ?? "?"}`]
+        .filter(Boolean)
+        .join(" — "),
+    };
+  }
+  if (message.contactMessage)
+    return { contentType: "contact", text: message.contactMessage.displayName };
+  return { contentType: "unknown" };
+}
+
+/** JIDs that are NOT individual 1:1 chats (groups, broadcast lists, newsletters). */
+const NON_INDIVIDUAL_JID = /@(g\.us|broadcast|newsletter)$/;
+
 export function parseEvolutionInbound(
   rawPayload: unknown,
   accountId: string,
-): IInboundMessage | IInboundStatus {
+): IInboundMessage | IInboundStatus | IOutboundEcho {
   const event = rawPayload as IEvolutionEvent | null;
   const data = event?.data;
   if (!event?.event || !data) {
@@ -74,7 +116,7 @@ export function parseEvolutionInbound(
   }
 
   if (event.event === "messages.update") {
-    const status = STATUS_MAP[(data.status ?? "").toUpperCase()];
+    const status = EVOLUTION_ACK_STATUS_MAP[(data.status ?? "").toUpperCase()];
     if (!status) {
       throw new Error(`EvolutionProvider: messages.update com status desconhecido: ${data.status}`);
     }
@@ -91,57 +133,53 @@ export function parseEvolutionInbound(
   if (event.event !== "messages.upsert") {
     throw new Error(`EvolutionProvider: evento não suportado pelo parser: ${event.event}`);
   }
-  if (data.key?.fromMe) {
+
+  const remoteJid = data.key?.remoteJid ?? "";
+  if (NON_INDIVIDUAL_JID.test(remoteJid)) {
     throw new Error(
-      "EvolutionProvider: messages.upsert com fromMe=true (eco da própria conta) — ignorar",
+      "EvolutionProvider: messages.upsert de grupo/broadcast/newsletter — ignorar (sem cliente 1:1)",
     );
   }
 
-  const message = data.message ?? {};
-  let contentType: InboundContentType = "unknown";
-  let text: string | undefined;
-  let mediaCaption: string | undefined;
-
-  if (message.conversation !== undefined || message.extendedTextMessage) {
-    contentType = "text";
-    text = message.conversation ?? message.extendedTextMessage?.text;
-  } else if (message.imageMessage) {
-    contentType = "image";
-    mediaCaption = message.imageMessage.caption;
-  } else if (message.audioMessage) {
-    contentType = "audio";
-  } else if (message.videoMessage) {
-    contentType = "video";
-    mediaCaption = message.videoMessage.caption;
-  } else if (message.documentMessage) {
-    contentType = "document";
-    mediaCaption = message.documentMessage.caption;
-  } else if (message.locationMessage) {
-    contentType = "location";
-    const { name, degreesLatitude, degreesLongitude } = message.locationMessage;
-    text = [name, `${degreesLatitude ?? "?"},${degreesLongitude ?? "?"}`]
-      .filter(Boolean)
-      .join(" — ");
-  } else if (message.contactMessage) {
-    contentType = "contact";
-    text = message.contactMessage.displayName;
+  // @lid = WhatsApp privacy "linked id": an individual chat, but with no
+  // resolvable phone number — minting an E.164 from it would create junk
+  // customers. Ignored until Evolution exposes the real number (senderPn).
+  if (remoteJid.endsWith("@lid")) {
+    throw new Error(
+      "EvolutionProvider: messages.upsert com jid @lid (sem telefone resolvível) — ignorar",
+    );
   }
 
-  const hasMedia = ["image", "audio", "video", "document"].includes(contentType);
+  const content = extractEvolutionContent(data.message ?? {});
+
+  if (data.key?.fromMe) {
+    return {
+      type: "outbound-echo",
+      providerMessageId: data.key?.id ?? "",
+      toPhone: jidToE164(remoteJid),
+      contentType: content.contentType,
+      text: content.text,
+      mediaCaption: content.mediaCaption,
+      timestamp: timestampToIso(data.messageTimestamp),
+      rawPayload,
+    };
+  }
+
+  const hasMedia = ["image", "audio", "video", "document"].includes(content.contentType);
   return {
     type: "message",
     providerMessageId: data.key?.id ?? "",
-    fromPhone: jidToE164(data.key?.remoteJid),
+    fromPhone: jidToE164(remoteJid),
     // Evolution does not echo the receiving number per message; `sender` (the
     // instance's own jid) covers it on v2. PRD-114 resolves the account by
     // instance name anyway — accountId below is the authoritative link.
     toAccountPhone: jidToE164(event.sender),
     accountId,
-    contentType,
-    text,
+    contentType: content.contentType,
+    text: content.text,
     // Evolution media downloads by MESSAGE key id (getBase64FromMediaMessage).
     mediaId: hasMedia ? data.key?.id : undefined,
-    mediaCaption,
+    mediaCaption: content.mediaCaption,
     timestamp: timestampToIso(data.messageTimestamp),
     rawPayload,
   };

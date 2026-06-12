@@ -182,7 +182,7 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
           whatsapp_account_id: input.accountId,
           assigned_seller_id: input.assignedSellerId,
           channel: "whatsapp",
-          status: "aguardando",
+          status: input.status,
           last_message_at: input.lastMessageAt,
           unread_count: 0,
         })
@@ -211,6 +211,33 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
         .single();
       if (error) throw new Error(`insertInboundMessage: ${error.message}`);
       return { id: data.id as string };
+    },
+    async insertOutboundEchoMessage(input) {
+      const { data, error } = await admin
+        .from("messages")
+        .insert({
+          conversation_id: input.conversationId,
+          direction: "out",
+          author_type: "seller",
+          author_id: null,
+          provider: input.provider,
+          text: input.text,
+          media_type: input.mediaType,
+          status: "sent",
+          sent_at: input.sentAt,
+          provider_message_id: input.providerMessageId,
+          webhook_event_ids: [input.eventKey],
+        })
+        .select("id")
+        .single();
+      if (error) throw new Error(`insertOutboundEchoMessage: ${error.message}`);
+      return { id: data.id as string };
+    },
+    async touchConversation(conversationId, lastMessageAt) {
+      await admin
+        .from("conversations")
+        .update({ last_message_at: lastMessageAt, updated_at: new Date().toISOString() })
+        .eq("id", conversationId);
     },
     async bumpConversation(conversationId, lastMessageAt) {
       const { data } = await admin
