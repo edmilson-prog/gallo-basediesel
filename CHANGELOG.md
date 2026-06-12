@@ -6,6 +6,21 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.88.0] — Chronicle · 2026-06-12
+
+**As conversas reais do WhatsApp agora aparecem na plataforma** — incluindo o histórico importado do número conectado. E o envio ficou mais confiável: um balão só por mensagem, com status que reflete a verdade da entrega.
+
+### Added
+
+- **Conversas reais no Atendimento** — as mensagens do número de WhatsApp conectado passam a aparecer direto na tela de Conversas, com cliente, histórico e status. As conversas de demonstração ficam guardadas para consulta, sem se misturar com as de verdade.
+- **Importação do histórico de conversas** — em Configurações → WhatsApp dá para importar as conversas antigas do número (mensagens e contatos), trazendo o histórico para dentro da plataforma. O resumo da importação mostra de forma honesta o que entrou e o que foi ignorado, separando grupos, listas, canais e contatos com número oculto pelo WhatsApp.
+- **Mensagens enviadas pelo celular aparecem aqui** — se alguém responder um cliente direto pelo aparelho, a mensagem também surge na conversa da plataforma, mantendo o atendimento completo.
+
+### Fixed
+
+- **Fim do falso "não enviado"** — algumas mensagens apareciam com o ícone vermelho de falha mesmo tendo sido entregues e lidas. Agora o status reflete a realidade: quando a entrega é confirmada depois, o balão se recupera sozinho.
+- **Um balão só por mensagem** — ao enviar, não aparece mais um balão duplicado. A mensagem mostra um único balão que vai de "enviando" para "enviado" e "entregue/lida".
+
 ## [0.87.0] — Socket · 2026-06-11
 
 **Conectar o WhatsApp agora é coisa de dentro da plataforma**: leia um QR code e pronto, sem painéis técnicos. E as telas de lista ganharam um pacote de produtividade — visual de vidro, linha de progresso, busca mais esperta e colunas sob seu controle.
