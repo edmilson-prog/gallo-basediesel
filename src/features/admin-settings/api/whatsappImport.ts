@@ -49,6 +49,8 @@ const IMPORT_ERROR_MESSAGES: Partial<Record<ImportErrorCode, string>> & { DEFAUL
   VALIDATION_ERROR: "A importação está disponível apenas para contas Evolution.",
   CONFIG_MISSING: "Configure a URL do servidor e a instância antes de importar.",
   MISSING_API_KEY: "Salve a chave de API no cofre antes de importar.",
+  INTEGRATION_ERROR:
+    "Erro ao comunicar com o servidor Evolution durante a importação. Tente de novo — a importação retoma de onde parou.",
   DEFAULT:
     "Não conseguimos importar agora. Verifique a conexão com o servidor Evolution e tente de novo — a importação retoma de onde parou.",
 };
@@ -97,7 +99,10 @@ async function invokeImportBatch(accountId: string, cursor: number): Promise<IIm
     { body: { accountId, cursor } },
   );
   if (error) throw await toImportError(error);
-  return data as IImportBatchResponse;
+  // A 2xx with no/invalid body leaves data null — guard so the loop never
+  // dereferences undefined stats (surfaces as the pt-BR DEFAULT message).
+  if (!data) throw new WhatsAppImportError("resposta vazia do servidor");
+  return data;
 }
 
 /**
