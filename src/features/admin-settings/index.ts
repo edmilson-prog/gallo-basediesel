@@ -5,7 +5,7 @@ export { VehicleCadastroModeSettingsPage } from "./pages/VehicleCadastroModeSett
 export { BusinessHoursSettingsPage } from "./pages/BusinessHoursSettingsPage";
 export { PipelineSettingsPage } from "./pages/PipelineSettingsPage";
 export { TagsSettingsPage } from "./pages/TagsSettingsPage";
-export { UsersPlaceholderPage } from "./pages/UsersPlaceholderPage";
+export { UsersPage } from "./pages/UsersPage";
 export { WhatsAppAccountsPage } from "./pages/WhatsAppAccountsPage";
 export { IntegrationKeysPage } from "./pages/IntegrationKeysPage";
 export { EnvironmentModePage } from "./pages/EnvironmentModePage";

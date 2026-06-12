@@ -5,6 +5,17 @@ export interface IListSellersParams {
   active?: boolean;
 }
 
+/** Input to register a brand-new seller (no platform access yet — PRD-107
+ *  two-step flow: access is granted later via the invite Edge Functions). */
+export interface ICreateSellerInput {
+  storeId: ID;
+  fullName: string;
+  email: string;
+  phone?: string;
+  type: ISeller["type"];
+  region?: string;
+}
+
 /**
  * Contract for seller (vendedor) access.
  *
@@ -12,14 +23,18 @@ export interface IListSellersParams {
  * @see ../../../../docs/provider-pattern.md
  */
 export interface ISellersProvider {
+  /** Lists live sellers only — soft-deleted rows (deletedAt set) are hidden. */
   list(params?: IListSellersParams): Promise<ISeller[]>;
+  /** Resolves any seller, including soft-deleted ones (historical references). */
   get(id: ID): Promise<ISeller>;
   setAvailability(id: ID, availability: ISeller["availability"]): Promise<ISeller>;
   /**
-   * Patch arbitrary seller fields (PRD-019 — user editing their own profile).
-   *
-   * The mock layer enforces no scope check; callers (the profile page) are
-   * expected to limit the patch to the currently signed-in user.
+   * Patch arbitrary seller fields (PRD-019 — user editing their own profile;
+   * users CRUD — Owner editing team members).
    */
   update(id: ID, patch: Partial<ISeller>): Promise<ISeller>;
+  /** Creates a new seller with defaults (offline, parts, active). */
+  create(input: ICreateSellerInput): Promise<ISeller>;
+  /** Soft delete — sets deletedAt, deactivates and revokes login (if any). */
+  remove(id: ID): Promise<void>;
 }

@@ -1,11 +1,21 @@
 import type { ID, ISeller } from "@/shared/types";
 import { selectAllSellers, selectSellerById } from "../store/selectors";
 import { useMockStore } from "../store/mockStore";
-import { MockNotFoundError, runApi } from "./utils";
+import { patchById, upsert } from "../store/mutations";
+import { MockNotFoundError, MockValidationError, runApi } from "./utils";
 
 export interface IListSellersParams {
   storeId?: ID;
   active?: boolean;
+}
+
+export interface ICreateSellerInput {
+  storeId: ID;
+  fullName: string;
+  email: string;
+  phone?: string;
+  type: ISeller["type"];
+  region?: string;
 }
 
 export const sellersApi = {
@@ -15,6 +25,7 @@ export const sellersApi = {
       "list",
       () => {
         let all = selectAllSellers();
+        all = all.filter((s) => !s.deletedAt);
         if (params.storeId) all = all.filter((s) => s.storeId === params.storeId);
         if (typeof params.active === "boolean") all = all.filter((s) => s.active === params.active);
         return [...all].sort((a, b) => a.fullName.localeCompare(b.fullName, "pt-BR"));
@@ -70,6 +81,49 @@ export const sellersApi = {
         return updated;
       },
       { payload: { id, patch } },
+    );
+  },
+
+  async create(input: ICreateSellerInput): Promise<ISeller> {
+    return runApi(
+      "sellersApi",
+      "create",
+      () => {
+        if (!input.fullName.trim())
+          throw new MockValidationError("fullName is required", "fullName");
+        if (!input.email.trim()) throw new MockValidationError("email is required", "email");
+        const created: ISeller = {
+          id: `seller-${crypto.randomUUID()}`,
+          storeId: input.storeId,
+          fullName: input.fullName.trim(),
+          email: input.email.trim().toLowerCase(),
+          phone: input.phone?.trim() || undefined,
+          type: input.type,
+          region: input.region?.trim() || undefined,
+          availability: "offline",
+          divisions: ["parts"],
+          active: true,
+          createdAt: new Date().toISOString(),
+        };
+        upsert("sellers", created);
+        return created;
+      },
+      { payload: input },
+    );
+  },
+
+  async remove(id: ID): Promise<void> {
+    return runApi(
+      "sellersApi",
+      "remove",
+      () => {
+        const patched = patchById("sellers", id, {
+          deletedAt: new Date().toISOString(),
+          active: false,
+        });
+        if (!patched) throw new MockNotFoundError("seller", id);
+      },
+      { payload: { id } },
     );
   },
 };

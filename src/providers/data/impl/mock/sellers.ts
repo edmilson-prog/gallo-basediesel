@@ -7,4 +7,6 @@ export const mockSellersProvider: ISellersProvider = {
   get: (id) => sellersApi.get(id),
   setAvailability: (id, availability) => sellersApi.setAvailability(id, availability),
   update: (id, patch) => sellersApi.update(id, patch),
+  create: (input) => sellersApi.create(input),
+  remove: (id) => sellersApi.remove(id),
 };

@@ -65,6 +65,7 @@ export type {
   IListSegmentsParams,
   ISellersProvider,
   IListSellersParams,
+  ICreateSellerInput,
   IStoresProvider,
   ISettingsProvider,
   IAuditsProvider,

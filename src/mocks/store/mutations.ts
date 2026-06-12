@@ -25,6 +25,7 @@ import type {
   IRecommendation,
   ISdrEscalation,
   ISdrSession,
+  ISeller,
   IVehicle,
   IWhatsAppAccount,
   ID,
@@ -34,6 +35,7 @@ import { useMockStore } from "./mockStore";
 type CollectionKey =
   | "customers"
   | "leads"
+  | "sellers"
   | "vehicles"
   | "orders"
   | "quotes"
@@ -62,6 +64,7 @@ type CollectionKey =
 type CollectionMap = {
   customers: ICustomer;
   leads: ILead;
+  sellers: ISeller;
   vehicles: IVehicle;
   orders: IOrder;
   quotes: IQuote;
