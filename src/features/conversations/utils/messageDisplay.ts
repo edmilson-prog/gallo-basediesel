@@ -55,6 +55,33 @@ export interface IStatusVisual {
   label: string;
 }
 
+/**
+ * A queued outbound message is treated as "stuck" (and therefore manually
+ * reprocessable) only once it is older than this. The in-flight optimistic
+ * bubble lives at `queued` for ~1s before committing to `sent`, so the gate
+ * keeps the reprocess affordance from flashing during a normal send — which
+ * would risk a duplicate WhatsApp message to the customer.
+ */
+export const STUCK_QUEUED_THRESHOLD_MS = 60_000;
+
+/**
+ * Whether the bubble should expose a manual "reprocess" affordance. True for
+ * any failed outbound message (existing PRD-118 retry) and for outbound
+ * messages stuck at `queued` past `STUCK_QUEUED_THRESHOLD_MS` — the edge
+ * inserted the row but the dispatch never settled. Inbound and healthy
+ * outbound statuses (sent/delivered/read) are never reprocessable.
+ *
+ * `now` is injectable for deterministic tests; defaults to wall-clock.
+ */
+export function isReprocessable(message: IMessage, now: number = Date.now()): boolean {
+  if (message.direction !== "out") return false;
+  if (message.status === "failed") return true;
+  if (message.status === "queued") {
+    return now - new Date(message.sentAt).getTime() >= STUCK_QUEUED_THRESHOLD_MS;
+  }
+  return false;
+}
+
 export function statusVisual(status: MessageStatus): IStatusVisual {
   switch (status) {
     case "queued":
