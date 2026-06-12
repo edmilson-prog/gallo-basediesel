@@ -30,6 +30,9 @@ import type { IEngineDeps, IIntegrationLogEntry } from "../_shared/whatsapp/type
 const FILTER_CHUNK = 200;
 const INSERT_CHUNK = 500;
 
+/** Closed conversations are never reused — keep in sync with whatsapp-webhook. */
+const CLOSED_CONVERSATION_STATUSES = ["resolvida", "arquivada"];
+
 interface IAccountRow {
   id: string;
   store_id: string;
@@ -116,7 +119,7 @@ function makeImportDb(admin: SupabaseClient): IImportDb {
         .select("id")
         .eq("customer_id", customerId)
         .eq("whatsapp_account_id", accountId)
-        .not("status", "in", "(resolvida,arquivada)")
+        .not("status", "in", `(${CLOSED_CONVERSATION_STATUSES.join(",")})`)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -169,6 +172,8 @@ function makeImportDb(admin: SupabaseClient): IImportDb {
           status: row.status,
           sent_at: row.sentAt,
           provider_message_id: row.providerMessageId,
+          // webhook_event_ids omitted on purpose — DB default '{}' applies;
+          // imported rows carry no webhook event key.
         }));
         // ignoreDuplicates → ON CONFLICT (provider_message_id) DO NOTHING: the
         // unique index closes the race against the live webhook.
