@@ -329,7 +329,11 @@ export async function fetchProfilePictureUrl(
     traceId,
   }).catch(() => null);
   if (!response) return null;
-  const body = response.body as { profilePicUrl?: string | null } | null;
-  const url = body?.profilePicUrl;
+  // Evolution v2 returns `profilePictureUrl`; some builds use `profilePicUrl`.
+  const body = response.body as {
+    profilePictureUrl?: string | null;
+    profilePicUrl?: string | null;
+  } | null;
+  const url = body?.profilePictureUrl ?? body?.profilePicUrl;
   return typeof url === "string" && url.length > 0 ? url : null;
 }
