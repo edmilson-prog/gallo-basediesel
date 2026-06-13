@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { IMessage } from "@/shared/types";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Icon } from "@/components/Icon";
 import { BubbleChrome } from "./bubbleChrome";
 import { useResolvedMediaUrl } from "../../hooks/useResolvedMediaUrl";
@@ -8,11 +8,20 @@ import { useResolvedMediaUrl } from "../../hooks/useResolvedMediaUrl";
 export function ImageBubble({ message, onRetry }: { message: IMessage; onRetry?: () => void }) {
   const [open, setOpen] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [errored, setErrored] = useState(false);
   // Inbound images are private storage paths; resolve to a signed URL on demand.
   const { data: url, isLoading } = useResolvedMediaUrl(message.mediaUrl);
 
-  // No ref at all, or the ref resolved to nothing (failed download / forbidden).
-  if (!message.mediaUrl || (!isLoading && !url)) {
+  // A freshly resolved URL (cache refresh / re-sign) must re-arm the <img>:
+  // clear the previous load/error so it retries instead of staying stuck.
+  useEffect(() => {
+    setLoaded(false);
+    setErrored(false);
+  }, [url]);
+
+  // No ref at all, the ref resolved to nothing (failed download / forbidden),
+  // or the <img> itself failed to load (e.g. an expired/absent object).
+  if (!message.mediaUrl || (!isLoading && !url) || errored) {
     return (
       <BubbleChrome message={message} onRetry={onRetry}>
         <div className="flex items-center gap-2 text-muted-foreground">
@@ -45,6 +54,7 @@ export function ImageBubble({ message, onRetry }: { message: IMessage; onRetry?:
                 className="h-full w-full object-cover"
                 loading="lazy"
                 onLoad={() => setLoaded(true)}
+                onError={() => setErrored(true)}
               />
             )}
           </div>
@@ -54,6 +64,10 @@ export function ImageBubble({ message, onRetry }: { message: IMessage; onRetry?:
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-3xl p-0">
+          <DialogTitle className="sr-only">{message.text || "Imagem"}</DialogTitle>
+          <DialogDescription className="sr-only">
+            Visualização da imagem em tamanho maior
+          </DialogDescription>
           {url && <img src={url} alt={message.text || "Foto"} className="w-full" />}
         </DialogContent>
       </Dialog>

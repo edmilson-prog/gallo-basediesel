@@ -15,6 +15,31 @@ const MEDIA_BUCKET = "whatsapp-media";
 const MEDIA_SIGNED_URL_TTL_SECONDS = 3600;
 
 /**
+ * If a stored media ref is itself a signed/public URL of OUR `whatsapp-media`
+ * bucket, pull the object path back out so it can be re-signed fresh on display.
+ * Outbound media historically persisted a short-lived signed URL minted at send
+ * time (~5 min), which renders as a dead link once expired; re-signing from the
+ * path fixes both already-sent and future messages. Returns null for any other
+ * URL (external seed/mock assets), which the caller then uses verbatim.
+ * Tolerant of sign/public/authenticated URL shapes.
+ */
+function whatsappMediaObjectPath(rawUrl: string): string | null {
+  try {
+    const { pathname } = new URL(rawUrl);
+    const marker = "/storage/v1/object/";
+    const at = pathname.indexOf(marker);
+    if (at === -1) return null;
+    // e.g. "sign/whatsapp-media/<store>/<uuid>.jpg" → ["sign","whatsapp-media",…]
+    const [, bucket, ...rest] = pathname.slice(at + marker.length).split("/");
+    if (bucket !== MEDIA_BUCKET || rest.length === 0) return null;
+    const objectPath = rest.join("/");
+    return objectPath ? decodeURIComponent(objectPath) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Supabase implementation of {@link IMessagesProvider} (PRD-100+).
  *
  * snake_case `messages` table ↔ camelCase {@link IMessage} via `rowToMessage`.
@@ -199,15 +224,19 @@ export const supabaseMessagesProvider: IMessagesProvider = {
   async resolveMediaUrl(mediaUrl: string | undefined): Promise<string | null> {
     const ref = classifyMediaRef(mediaUrl);
     if (ref.kind === "none") return null;
-    // Seed/outbound media already carries a navigable URL — use it as-is.
-    if (ref.kind === "absolute") return ref.url;
-    // Inbound media is a private `whatsapp-media` object path: sign it. The
-    // `storage_whatsapp_media_select_inbound` policy gates signing to the
+    // Resolve the object path to sign: a bare `whatsapp-media` path (inbound,
+    // written by the webhook) or one recovered from a previously persisted
+    // signed URL of our own bucket (outbound media stored a short-lived signed
+    // URL at send time — re-sign it fresh so it doesn't render as a dead link).
+    const objectPath = ref.kind === "storage" ? ref.path : whatsappMediaObjectPath(ref.url);
+    // A genuinely external URL (seed/mock assets) — use it verbatim.
+    if (!objectPath) return ref.kind === "absolute" ? ref.url : null;
+    // Sign it. The `storage_whatsapp_media_select*` policies gate signing to the
     // conversation's store; a forbidden/absent object resolves to null so the
     // bubble degrades to an "unavailable" state instead of throwing.
     const { data, error } = await getSupabaseClient()
       .storage.from(MEDIA_BUCKET)
-      .createSignedUrl(ref.path, MEDIA_SIGNED_URL_TTL_SECONDS);
+      .createSignedUrl(objectPath, MEDIA_SIGNED_URL_TTL_SECONDS);
     if (error || !data?.signedUrl) return null;
     return data.signedUrl;
   },
