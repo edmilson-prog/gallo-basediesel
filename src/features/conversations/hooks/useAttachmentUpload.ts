@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { toast } from "sonner";
-import type { IConversation } from "@/shared/types";
+import type { IConversation, IMediaUploadInput } from "@/shared/types";
 import { getActiveDataSource, useMediaStorageProvider } from "@/providers/data";
 import type { ISendOptions } from "./useMessageSend";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
@@ -61,6 +61,11 @@ export function useAttachmentUpload(conversation: IConversation): IUseAttachment
         toast.error(CONVERSATION_STRINGS.attachTooLarge(Math.round(maxBytes / 1024 / 1024)));
         return null;
       }
+      // The Supabase media provider requires the owning store (the mock injects
+      // it via withCreateStoreId). A conversation's store always equals
+      // current_store_id() under RLS, so it satisfies the Storage INSERT policy
+      // (path = <storeId>/…). Without it, media.upload throws "missing storeId"
+      // and the attachment silently never sends. Cast mirrors useMediaActions.
       const uploaded = await media.upload({
         kind,
         mimeType: file.type || FALLBACK_MIME[kind],
@@ -71,7 +76,8 @@ export function useAttachmentUpload(conversation: IConversation): IUseAttachment
         authorType: "seller",
         direction: "out",
         file,
-      });
+        storeId: conversation.storeId,
+      } as IMediaUploadInput);
       const mediaUrl =
         getActiveDataSource() === "supabase"
           ? await media.getSignedUrl(uploaded.id)
@@ -80,7 +86,7 @@ export function useAttachmentUpload(conversation: IConversation): IUseAttachment
       // the recipient side (Meta/Evolution); ignored for image/audio/video.
       return { text: caption, mediaType: kind, mediaUrl, fileName: file.name };
     },
-    [conversation.customerId, conversation.id, media],
+    [conversation.customerId, conversation.id, conversation.storeId, media],
   );
 
   return { prepareAttachment };
