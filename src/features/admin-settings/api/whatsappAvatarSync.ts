@@ -98,6 +98,28 @@ async function invokeBatch(accountId: string): Promise<IAvatarSyncBatchResponse>
   return data;
 }
 
+export type ContactAvatarSyncOutcome = "with-photo" | "without-photo" | "failed";
+
+/**
+ * Forced re-sync of ONE contact's photo (conversation kebab action). Unlike the
+ * batch drain, this re-attempts even contacts already stamped — it's an explicit
+ * user retry (e.g. the automatic fetch ran too early and got null).
+ */
+export async function runContactAvatarSync(
+  accountId: string,
+  customerId: string,
+): Promise<ContactAvatarSyncOutcome> {
+  const { data, error } = await getSupabaseClient().functions.invoke<IAvatarSyncBatchResponse>(
+    "whatsapp-avatar-sync",
+    { body: { accountId, customerId } },
+  );
+  if (error) throw await toSyncError(error);
+  if (!data) throw new WhatsAppAvatarSyncError("resposta vazia do servidor");
+  if (data.withPhoto > 0) return "with-photo";
+  if (data.failed > 0) return "failed";
+  return "without-photo";
+}
+
 /**
  * Drives the batched avatar sync until done, reporting progress per batch.
  * Throwing mid-run is safe: re-running resumes (only pending contacts are

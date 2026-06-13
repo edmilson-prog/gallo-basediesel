@@ -11,9 +11,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/useAuth";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
 import {
+  avatarSyncErrorMessage,
+  runContactAvatarSync,
+} from "@/features/admin-settings/api/whatsappAvatarSync";
+import {
+  getActiveDataSource,
   recordAuditLog,
   useConversationsProvider,
   useCustomersProvider,
@@ -59,10 +65,19 @@ export function ConversationMenu({ conversation, customer, onMutated }: IConvers
 
   const [transferOpen, setTransferOpen] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
+  const [syncingPhoto, setSyncingPhoto] = useState(false);
   const { markViewed } = useUnreadTracking(currentUser?.id ?? null);
 
   const isResolved = conversation.status === "resolvida";
   const isArchived = conversation.status === "arquivada";
+
+  // Per-contact photo re-sync (this conversation's contact ONLY) — real
+  // WhatsApp data + a customers row + a bound account; hidden in demo mode.
+  const canSyncPhoto =
+    getActiveDataSource() !== "mock" &&
+    conversation.channel === "whatsapp" &&
+    Boolean(customer) &&
+    Boolean(conversation.whatsappAccountId);
 
   const updateAndAudit = async (
     patch: Partial<IConversation>,
@@ -213,6 +228,26 @@ export function ConversationMenu({ conversation, customer, onMutated }: IConvers
     }
   };
 
+  const handleSyncPhoto = async () => {
+    if (!customer || !conversation.whatsappAccountId || syncingPhoto) return;
+    setSyncingPhoto(true);
+    try {
+      const outcome = await runContactAvatarSync(conversation.whatsappAccountId, customer.id);
+      if (outcome === "with-photo") {
+        toast.success(CONVERSATION_STRINGS.photoUpdated);
+        onMutated?.();
+      } else if (outcome === "without-photo") {
+        toast.info(CONVERSATION_STRINGS.photoUnavailable);
+      } else {
+        toast.error(CONVERSATION_STRINGS.photoSyncFailed);
+      }
+    } catch (error) {
+      toast.error(avatarSyncErrorMessage(error));
+    } finally {
+      setSyncingPhoto(false);
+    }
+  };
+
   const handleAddNote = async (content: string) => {
     if (!customer) {
       toast.error(CONVERSATION_STRINGS.actionFailed);
@@ -308,6 +343,19 @@ export function ConversationMenu({ conversation, customer, onMutated }: IConvers
               <DropdownMenuItem onSelect={() => setNoteOpen(true)}>
                 <Icon icon="mdi:note-plus-outline" size={14} className="mr-2" />
                 {CONVERSATION_STRINGS.menu.addNote}
+              </DropdownMenuItem>
+            </>
+          )}
+          {canSyncPhoto && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => void handleSyncPhoto()} disabled={syncingPhoto}>
+                <Icon
+                  icon={syncingPhoto ? "mdi:loading" : "mdi:account-sync-outline"}
+                  size={14}
+                  className={cn("mr-2", syncingPhoto && "animate-spin")}
+                />
+                {CONVERSATION_STRINGS.menu.syncPhoto}
               </DropdownMenuItem>
             </>
           )}

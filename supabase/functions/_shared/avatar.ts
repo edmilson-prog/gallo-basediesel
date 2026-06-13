@@ -80,9 +80,13 @@ export async function syncContactAvatar(
       .upload(path, bytes, { contentType, upsert: true });
     if (uploadError) throw new Error(`upload: ${uploadError.message}`);
     const publicUrl = admin.storage.from(AVATARS_BUCKET).getPublicUrl(path).data.publicUrl;
+    // Cache-buster: the Storage path is stable (<storeId>/<customerId>.jpg), so a
+    // contact who CHANGES their photo would otherwise keep serving the cached
+    // image. A fresh ?v= on every successful sync forces the browser to refetch.
+    const versionedUrl = `${publicUrl}?v=${Date.now()}`;
     await admin
       .from("customers")
-      .update({ avatar_url: publicUrl, avatar_synced_at: new Date().toISOString() })
+      .update({ avatar_url: versionedUrl, avatar_synced_at: new Date().toISOString() })
       .eq("id", contact.id);
     return "with-photo";
   } catch (caught) {
