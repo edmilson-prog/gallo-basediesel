@@ -1,7 +1,11 @@
 import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { ID, IConversation, IScheduledSend, IWhatsAppAccount } from "@/shared/types";
-import { useScheduledSendProvider, useAssetLibraryProvider } from "@/providers/data";
+import {
+  useScheduledSendProvider,
+  useAssetLibraryProvider,
+  getActiveDataSource,
+} from "@/providers/data";
 import { useMessageSend } from "@/features/conversations/hooks/useMessageSend";
 import { useAuth } from "@/features/auth/useAuth";
 import { isDue } from "../engine/scheduledSend";
@@ -21,6 +25,11 @@ const POLL_INTERVAL_MS = 10_000;
  * Products are sent as DEGRADED TEXT via useMessageSend (MVP choice per spec
  * §11 — full product re-hydration requires the live catalog IPart, a Plan B
  * composer concern not available at fire time).
+ *
+ * MOCK-ONLY: in `supabase` the server-side worker (`scheduled-send-worker` +
+ * pg_cron) owns dispatch — it fires due sends even with no browser open, so
+ * running this poller too would risk double-dispatch. The mock data source has
+ * no server, so it keeps this in-browser simulation.
  */
 export function useScheduledSendRunner(
   conversation: IConversation,
@@ -36,6 +45,8 @@ export function useScheduledSendRunner(
   const inFlightRef = useRef<Set<ID>>(new Set());
 
   useEffect(() => {
+    // Server-authoritative in supabase (see file header) — skip the poller.
+    if (getActiveDataSource() === "supabase") return;
     let cancelled = false;
     const viewer = userRole ? { role: userRole } : null;
 

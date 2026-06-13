@@ -18,24 +18,17 @@
  */
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.107.0";
-import { bestEffortAudit } from "../_shared/audit.ts";
 import { requiredEnv } from "../_shared/env.ts";
 import { HttpError, json, parseJsonBody } from "../_shared/http.ts";
-import { createSecretResolver } from "../_shared/secrets.ts";
 import { servePost } from "../_shared/serve.ts";
+import { makeSendDb, makeEngineDeps } from "../_shared/whatsappSendAdapter.ts";
 import { buildWhatsAppEngine } from "../_shared/whatsapp/build.ts";
 import { WhatsAppProviderError } from "../_shared/whatsapp/errors.ts";
 import {
   processSendRequest,
-  type ISendDb,
   type ISender,
   type ISendRequest,
 } from "../_shared/whatsapp/send/core.ts";
-import type { IAccountRecord } from "../_shared/whatsapp/webhook/core.ts";
-import type { IFailoverAwareAccount } from "../_shared/whatsapp/failover.ts";
-import type { IEngineDeps, IIntegrationLogEntry } from "../_shared/whatsapp/types.ts";
-
-const SIGNED_URL_TTL_SECONDS = 300; // 5min — provider fetches immediately
 
 /** Resolves the caller's profile INCLUDING seller_id (requireCaller omits it). */
 async function resolveSender(req: Request): Promise<{ sender: ISender; admin: SupabaseClient }> {
@@ -70,190 +63,6 @@ async function resolveSender(req: Request): Promise<{ sender: ISender; admin: Su
       storeId: profile.store_id as string,
     },
     admin,
-  };
-}
-
-function makeSendDb(admin: SupabaseClient, traceId: string): ISendDb {
-  return {
-    async getSendContext(conversationId) {
-      const { data: conv } = await admin
-        .from("conversations")
-        .select("id, store_id, status, assigned_seller_id, whatsapp_account_id, customer_id")
-        .eq("id", conversationId)
-        .maybeSingle();
-      if (!conv) return null;
-
-      let account: IFailoverAwareAccount | null = null;
-      if (conv.whatsapp_account_id) {
-        const { data: row } = await admin
-          .from("whatsapp_accounts")
-          .select(
-            "id, store_id, provider, phone_number, credentials_ref, provider_config, " +
-              "current_state, state_changed_at, failover_policy, failover_account_id, is_failover_active",
-          )
-          .eq("id", conv.whatsapp_account_id)
-          .neq("status", "disconnected")
-          .maybeSingle();
-        if (row) {
-          account = {
-            id: row.id as string,
-            storeId: row.store_id as string,
-            provider: row.provider as "meta" | "evolution",
-            phoneNumber: row.phone_number as string,
-            credentialsRef: row.credentials_ref as string,
-            providerConfig: (row.provider_config as Record<string, unknown> | null) ?? null,
-            currentState: row.current_state as IFailoverAwareAccount["currentState"],
-            stateChangedAt: (row.state_changed_at as string | null) ?? null,
-            failoverPolicy: row.failover_policy as IFailoverAwareAccount["failoverPolicy"],
-            failoverAccountId: (row.failover_account_id as string | null) ?? null,
-            isFailoverActive: Boolean(row.is_failover_active),
-          };
-        }
-      }
-
-      let customerPhone: string | null = null;
-      let customerWhatsappStatus: string | null = null;
-      if (conv.customer_id) {
-        const { data: customer } = await admin
-          .from("customers")
-          .select("phone, whatsapp_status")
-          .eq("id", conv.customer_id)
-          .maybeSingle();
-        customerPhone = (customer?.phone as string | undefined) ?? null;
-        customerWhatsappStatus = (customer?.whatsapp_status as string | undefined) ?? null;
-      }
-
-      return {
-        conversation: {
-          id: conv.id as string,
-          storeId: conv.store_id as string,
-          status: conv.status as string,
-          assignedSellerId: (conv.assigned_seller_id as string | null) ?? null,
-        },
-        account,
-        customerId: (conv.customer_id as string | null) ?? null,
-        customerPhone,
-        customerWhatsappStatus,
-      };
-    },
-    // PRD-120: failover (backup) account row for resolveEffectiveAccount.
-    async getAccountRecord(accountId) {
-      const { data: row } = await admin
-        .from("whatsapp_accounts")
-        .select("id, store_id, provider, phone_number, credentials_ref, provider_config")
-        .eq("id", accountId)
-        .maybeSingle();
-      if (!row) return null;
-      return {
-        id: row.id as string,
-        storeId: row.store_id as string,
-        provider: row.provider as "meta" | "evolution",
-        phoneNumber: row.phone_number as string,
-        credentialsRef: row.credentials_ref as string,
-        providerConfig: (row.provider_config as Record<string, unknown> | null) ?? null,
-      } satisfies IAccountRecord;
-    },
-    async isWithin24hWindow(conversationId) {
-      const { data, error } = await admin.rpc("is_within_24h_window", {
-        p_conversation_id: conversationId,
-      });
-      if (error) throw new Error(`is_within_24h_window: ${error.message}`);
-      return Boolean(data);
-    },
-    async insertQueuedMessage(input) {
-      // Honor a client-provided UUID (optimistic dedup) only when well-formed —
-      // a bad id would otherwise fail the whole send on the uuid column.
-      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      const useId =
-        input.messageId && UUID_RE.test(input.messageId) ? input.messageId : undefined;
-      const { data, error } = await admin
-        .from("messages")
-        .insert({
-          ...(useId ? { id: useId } : {}),
-          conversation_id: input.conversationId,
-          direction: "out",
-          author_type: "seller",
-          author_id: input.sellerId,
-          provider: input.provider,
-          text: input.text,
-          media_type: input.mediaType,
-          media_url: input.mediaUrl,
-          status: "queued",
-          sent_at: new Date().toISOString(),
-        })
-        .select("id")
-        .single();
-      if (error) throw new Error(`insertQueuedMessage: ${error.message}`);
-      return { id: data.id as string };
-    },
-    async markMessageSent(messageId, providerMessageId) {
-      await admin
-        .from("messages")
-        .update({ status: "sent", provider_message_id: providerMessageId })
-        .eq("id", messageId);
-    },
-    async markMessageFailed(messageId, failureReason, failureCode) {
-      await admin
-        .from("messages")
-        .update({
-          status: "failed",
-          failure_reason: failureReason,
-          ...(failureCode ? { failure_code: failureCode } : {}),
-        })
-        .eq("id", messageId);
-    },
-    async markCustomerWhatsappInvalid(customerId) {
-      await admin.from("customers").update({ whatsapp_status: "invalid" }).eq("id", customerId);
-    },
-    async touchConversation(conversationId, lastMessageAt) {
-      await admin
-        .from("conversations")
-        .update({ last_message_at: lastMessageAt, updated_at: lastMessageAt })
-        .eq("id", conversationId);
-    },
-    async createSignedMediaUrl(path) {
-      const { data, error } = await admin.storage
-        .from("whatsapp-media")
-        .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
-      if (error || !data?.signedUrl) {
-        throw new WhatsAppProviderError(
-          "VALIDATION_ERROR",
-          422,
-          `Mídia não encontrada no Storage: ${path}`,
-        );
-      }
-      return data.signedUrl;
-    },
-    async audit(input) {
-      await bestEffortAudit(admin, {
-        store_id: input.storeId,
-        actor_id: input.actorId,
-        action: input.action,
-        resource: input.resource,
-        resource_id: input.resourceId,
-        after: input.after,
-      });
-    },
-  };
-}
-
-function makeEngineDeps(admin: SupabaseClient, traceId: string): IEngineDeps {
-  return {
-    // Vault-first ("Integrações & Chaves"), env secret as fallback.
-    resolveSecret: createSecretResolver(admin),
-    logIntegration: async (entry: IIntegrationLogEntry) => {
-      await admin.from("integration_logs").insert({
-        integration_name: entry.integrationName,
-        direction: entry.direction,
-        endpoint: entry.endpoint,
-        http_status: entry.httpStatus,
-        latency_ms: entry.latencyMs,
-        trace_id: entry.traceId ?? traceId,
-        request_payload: entry.requestPayload,
-        response_payload: entry.responsePayload,
-        error_message: entry.errorMessage,
-      });
-    },
   };
 }
 
