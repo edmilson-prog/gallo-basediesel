@@ -6,6 +6,19 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.91.0] — Portrait · 2026-06-12
+
+**As fotos de perfil dos contatos do WhatsApp agora aparecem nas Conversas.** Cada contato exibe a própria foto na lista e no topo da conversa; contatos novos recebem a foto automaticamente e há um botão para atualizar manualmente. Os áudios ganharam controle de velocidade e marca de "ouvido", e mensagens presas "na fila" agora podem ser reprocessadas.
+
+### Added
+
+- **Fotos de perfil nas Conversas** — a lista de conversas e o cabeçalho de cada conversa passam a mostrar a foto de perfil do WhatsApp de cada contato. Quem não tem foto pública aparece com um ícone de pessoa (contatos só com número) ou com as iniciais do nome, em vez de um espaço vazio.
+- **Sincronização de fotos em lote** — em Configurações → WhatsApp, o botão "Sincronizar fotos" busca de uma vez as fotos de todos os contatos. Pode rodar quantas vezes quiser: ele só busca as que ainda faltam e continua de onde parou.
+- **Foto automática para contatos novos** — quando um contato novo manda mensagem (ou você inicia a conversa pelo celular), a foto dele é buscada sozinha e aparece logo em seguida, sem precisar sincronizar manualmente.
+- **Atualizar a foto de um contato** — no menu (⋮) da conversa, a opção "Atualizar foto do contato" rebusca a foto apenas daquele contato — útil quando ele troca de foto ou quando ela não veio na primeira tentativa.
+- **Velocidade e "ouvido" nos áudios** — nos áudios das conversas, dá para alternar a velocidade de reprodução entre 1×, 1,5× e 2×, e o balão passa a indicar quando o áudio já foi ouvido.
+- **Reprocessar mensagem presa "na fila"** — quando uma mensagem enviada fica parada no status "na fila" por mais de um minuto, aparece um botão "Reprocessar" para reenviá-la, sem precisar digitar tudo de novo.
+
 ## [0.90.1] — Mosaic · 2026-06-12
 
 **Correções no envio de mídias pelo clipe.** Áudios anexados agora chegam como mensagem de voz tocável e documentos chegam com o nome de arquivo correto.

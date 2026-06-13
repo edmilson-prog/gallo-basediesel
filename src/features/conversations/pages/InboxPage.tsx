@@ -2,7 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import type { ICustomer, ID, ILead, IMessage, IConversation } from "@/shared/types";
 import { useAuth } from "@/features/auth/useAuth";
-import { useCustomersProvider, useLeadsProvider, useMessagesProvider } from "@/providers/data";
+import {
+  useConversationsProvider,
+  useCustomersProvider,
+  useLeadsProvider,
+  useMessagesProvider,
+} from "@/providers/data";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -161,7 +166,9 @@ export function InboxPage() {
     error,
     loadMore,
     refetch,
+    markItemRead,
   } = useConversationsList(listParams, { refreshKey: realtime.tick });
+  const conversationsProvider = useConversationsProvider();
 
   const escalationsByConversation = useEscalationsByConversation();
   const items = useMemo(() => {
@@ -193,6 +200,26 @@ export function InboxPage() {
       markViewed(selectedId);
     }
   }, [selectedId, setLastId, markViewed]);
+
+  // Zero the unread counter (the numeric red badge) when a conversation with
+  // unread messages is opened. `markViewed` above only drives the bold row
+  // (localStorage); the badge reads conversation.unreadCount — a materialized
+  // column reset only via the provider. We clear it optimistically so the badge
+  // disappears instantly, then persist with markRead (best-effort; this also
+  // syncs the count across devices). Idempotent: zeroing the local count makes
+  // this effect re-run and exit early, and markRead is a no-op when already 0.
+  // A fresh inbound bumps the count again, so badges still reappear for new
+  // messages — including while the conversation stays open.
+  useEffect(() => {
+    if (!selectedId) return;
+    const conv = rawItems.find((c) => c.id === selectedId);
+    if (!conv || conv.unreadCount <= 0) return;
+    markItemRead(selectedId);
+    void conversationsProvider.markRead(selectedId).catch(() => {
+      // Best-effort: a failed reset is re-resolved on the next list refetch;
+      // reopening the conversation retries.
+    });
+  }, [selectedId, rawItems, markItemRead, conversationsProvider]);
 
   // Infinite scroll sentinel.
   const sentinelRef = useRef<HTMLDivElement | null>(null);
