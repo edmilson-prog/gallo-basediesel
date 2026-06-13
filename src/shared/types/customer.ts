@@ -89,6 +89,13 @@ interface ICustomerBase {
   hasB2BPortal?: boolean;
   /** Negotiated commercial contract applied in the B2B portal (PRD-071). */
   portalContract?: IPortalContract;
+  /**
+   * Public URL of the contact's WhatsApp profile photo, mirrored into our
+   * `avatars` Storage bucket by the avatar-sync job. Absent when the contact
+   * has no photo or a private one — surfaces fall back to initials / a generic
+   * person icon. Never written from the app; populated server-side only.
+   */
+  avatarUrl?: string;
   createdAt: ISO8601;
 }
 

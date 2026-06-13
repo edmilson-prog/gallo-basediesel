@@ -1,10 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { IMessage } from "@/shared/types";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import { getActiveDataSource } from "@/providers/data";
 import { BubbleChrome } from "./bubbleChrome";
 import { fakeAudioSeconds, formatDuration } from "../../utils/messageDisplay";
+import {
+  PLAYBACK_RATE_STORAGE_KEY,
+  formatPlaybackRate,
+  nextPlaybackRate,
+  sanitizePlaybackRate,
+} from "../../utils/audioPlayback";
 import { CONVERSATION_STRINGS } from "../../i18n/pt-BR";
 import { useResolvedMediaUrl } from "../../hooks/useResolvedMediaUrl";
 
@@ -44,18 +51,61 @@ export function AudioBubble({ message, onRetry }: { message: IMessage; onRetry?:
   return <AudioStub message={message} onRetry={onRetry} />;
 }
 
-/** Shared play/pause control. */
-function PlayPauseButton({ playing, onClick }: { playing: boolean; onClick: () => void }) {
+/**
+ * Shared play/pause control. When `heard` is set (outbound voice note the
+ * recipient already played → status `read`), the icon turns sky-blue, mirroring
+ * WhatsApp's "voice note listened" cue without inventing a second status system.
+ */
+function PlayPauseButton({
+  playing,
+  onClick,
+  heard = false,
+}: {
+  playing: boolean;
+  onClick: () => void;
+  heard?: boolean;
+}) {
   return (
     <Button
       variant="ghost"
       size="sm"
-      className="h-9 w-9 shrink-0 rounded-full p-0"
+      className="h-9 w-9 shrink-0 rounded-full p-0 transition-transform active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100"
       onClick={onClick}
       aria-label={playing ? "Pausar áudio" : "Reproduzir áudio"}
     >
-      <Icon icon={playing ? "mdi:pause" : "mdi:play"} size={18} />
+      <Icon
+        icon={playing ? "mdi:pause" : "mdi:play"}
+        size={18}
+        className={cn(heard && "text-sky-500 dark:text-sky-400")}
+      />
     </Button>
+  );
+}
+
+/**
+ * Cyclic playback-speed chip (1× → 1,5× → 2×). The label is the state, so no
+ * separate "active" indicator is needed; dimmed at 1× to avoid competing with
+ * the play button. A pseudo-element extends the hit-area to ≥44px (WCAG 2.5.8)
+ * without inflating the visual height.
+ */
+function PlaybackRateChip({ rate, onCycle }: { rate: number; onCycle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onCycle}
+      aria-label={`Velocidade de reprodução ${formatPlaybackRate(rate)}. Toque para alterar.`}
+      className={cn(
+        "relative shrink-0 select-none rounded-full border px-1.5 text-[11px] font-semibold tabular-nums",
+        "h-6 min-w-[34px] transition-colors",
+        "before:absolute before:inset-[-9px] before:content-['']",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
+        rate === 1
+          ? "border-transparent bg-muted-foreground/10 text-muted-foreground opacity-70 hover:bg-muted-foreground/20 hover:opacity-100"
+          : "border-primary/30 bg-primary/10 text-primary hover:bg-primary/15",
+      )}
+    >
+      {formatPlaybackRate(rate)}
+    </button>
   );
 }
 
@@ -112,6 +162,13 @@ function RealAudioPlayer({
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
   const [errored, setErrored] = useState(false);
+  const [rate, setRate] = useState<number>(() =>
+    sanitizePlaybackRate(
+      typeof window !== "undefined"
+        ? window.localStorage.getItem(PLAYBACK_RATE_STORAGE_KEY)
+        : null,
+    ),
+  );
   const bars = useMemo(() => generateWave(message.id), [message.id]);
 
   // Opus voice notes occasionally report a non-finite duration until a seek
@@ -119,12 +176,33 @@ function RealAudioPlayer({
   const fallbackDuration = fakeAudioSeconds(message);
   const effDuration = duration > 0 && Number.isFinite(duration) ? duration : fallbackDuration;
   const playedRatio = effDuration > 0 ? Math.min(1, current / effDuration) : 0;
+  // Outbound voice note the customer already listened to (PLAYED → read).
+  const heard = message.direction === "out" && message.status === "read";
+
+  // Keep the <audio> element's rate in sync (also re-applied on src/metadata
+  // load below, since some browsers reset playbackRate on load).
+  useEffect(() => {
+    const el = audioRef.current;
+    if (el) el.playbackRate = rate;
+  }, [rate, url]);
 
   function toggle() {
     const el = audioRef.current;
     if (!el) return;
     if (el.paused) void el.play().catch(() => setErrored(true));
     else el.pause();
+  }
+
+  function cycleRate() {
+    setRate((prev) => {
+      const next = nextPlaybackRate(prev);
+      try {
+        window.localStorage.setItem(PLAYBACK_RATE_STORAGE_KEY, String(next));
+      } catch {
+        // Storage unavailable (private mode / quota) — preference is best-effort.
+      }
+      return next;
+    });
   }
 
   function seek(ratio: number) {
@@ -152,19 +230,22 @@ function RealAudioPlayer({
         }}
         onTimeUpdate={(e) => setCurrent(e.currentTarget.currentTime)}
         onLoadedMetadata={(e) => {
+          // Re-apply the rate: browsers reset playbackRate to 1 on load.
+          e.currentTarget.playbackRate = rate;
           const d = e.currentTarget.duration;
           if (Number.isFinite(d) && d > 0) setDuration(d);
         }}
         onError={() => setErrored(true)}
       />
-      <div className="flex items-center gap-3">
-        <PlayPauseButton playing={playing} onClick={toggle} />
+      <div className="flex items-center gap-2.5">
+        <PlayPauseButton playing={playing} onClick={toggle} heard={heard} />
         <WaveBars bars={bars} playedRatio={playedRatio} onSeek={seek} />
-        <span className="shrink-0 text-[11px] font-medium text-muted-foreground tabular-nums">
+        <span className="shrink-0 min-w-[34px] text-right text-[11px] font-medium leading-none text-muted-foreground tabular-nums">
           {formatDuration(playing || current > 0 ? current : effDuration)}
         </span>
+        <PlaybackRateChip rate={rate} onCycle={cycleRate} />
       </div>
-      <p className="mt-1 text-[10px] text-muted-foreground">
+      <p className="mt-1.5 text-[10px] text-muted-foreground">
         {CONVERSATION_STRINGS.audioTranscription}
       </p>
     </BubbleChrome>
@@ -201,23 +282,25 @@ function SimulatedAudioPlayer({ message, onRetry }: { message: IMessage; onRetry
   }, [playing, totalSeconds, progress]);
 
   const playedRatio = Math.min(1, progress / totalSeconds);
+  const heard = message.direction === "out" && message.status === "read";
 
   return (
     <BubbleChrome message={message} onRetry={onRetry}>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5">
         <PlayPauseButton
           playing={playing}
+          heard={heard}
           onClick={() => {
             if (progress >= totalSeconds) setProgress(0);
             setPlaying((p) => !p);
           }}
         />
         <WaveBars bars={bars} playedRatio={playedRatio} />
-        <span className="shrink-0 text-[11px] font-medium text-muted-foreground tabular-nums">
+        <span className="shrink-0 min-w-[34px] text-right text-[11px] font-medium leading-none text-muted-foreground tabular-nums">
           {formatDuration(playing ? progress : totalSeconds - progress)}
         </span>
       </div>
-      <p className="mt-1 text-[10px] text-muted-foreground">
+      <p className="mt-1.5 text-[10px] text-muted-foreground">
         {CONVERSATION_STRINGS.audioTranscription}
       </p>
     </BubbleChrome>

@@ -23,6 +23,7 @@
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.107.0";
 import { bestEffortAudit } from "../_shared/audit.ts";
+import { syncContactAvatar } from "../_shared/avatar.ts";
 import { requiredEnv } from "../_shared/env.ts";
 import { json } from "../_shared/http.ts";
 import { createSecretResolver, type VaultSecretResolver } from "../_shared/secrets.ts";
@@ -441,6 +442,61 @@ async function evolutionGate(
   return json({ error: "webhook not configured" }, 403);
 }
 
+// ===== Background avatar fetch ==============================================
+
+/**
+ * Keeps best-effort work alive past the 200 response. Supabase Edge exposes
+ * `EdgeRuntime.waitUntil`; locally (no runtime) the promise just runs detached.
+ * Either way the webhook has already answered — this never blocks it.
+ */
+function runInBackground(promise: Promise<unknown>): void {
+  const runtime = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } })
+    .EdgeRuntime;
+  if (runtime?.waitUntil) runtime.waitUntil(promise);
+  else void promise;
+}
+
+/**
+ * Fire-and-forget profile-photo fetch for a brand-new auto-created contact.
+ * Evolution-only (Meta has no equivalent here); silently no-ops when the
+ * account isn't configured or the photo can't be resolved.
+ */
+function scheduleAvatarFetch(
+  admin: SupabaseClient,
+  deps: IEngineDeps,
+  log: Logger,
+  traceId: string,
+  input: { customerId: string; phone: string; account: IAccountRecord },
+): void {
+  const { account } = input;
+  if (account.provider !== "evolution") return;
+  const config = account.providerConfig as { baseUrl?: string; instanceName?: string } | null;
+  const baseUrl = config?.baseUrl;
+  const instanceName = config?.instanceName;
+  if (!baseUrl || !instanceName) return;
+  runInBackground(
+    (async () => {
+      try {
+        const apiKey = await deps.resolveSecret(`${account.credentialsRef}_API_KEY`);
+        if (!apiKey) return;
+        await syncContactAvatar(
+          admin,
+          deps,
+          { baseUrl, instanceName },
+          apiKey,
+          { id: input.customerId, phone: input.phone, storeId: account.storeId },
+          { traceId, warn: (msg, fields) => log.warn(msg, fields) },
+        );
+      } catch (err) {
+        log.warn("auto avatar fetch failed", {
+          customerId: input.customerId,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    })(),
+  );
+}
+
 // ===== Server ===============================================================
 
 Deno.serve(async (req) => {
@@ -494,6 +550,7 @@ Deno.serve(async (req) => {
   }
 
   // From here on: always 200 (RF-090) — Meta must never retry-storm us.
+  const deps = makeEngineDeps(admin, traceId);
   try {
     const result = await processWebhookEvent({
       provider,
@@ -505,8 +562,12 @@ Deno.serve(async (req) => {
           accountId: account.id,
           providerConfig: account.providerConfig,
           credentialsRef: account.credentialsRef,
-          deps: makeEngineDeps(admin, traceId),
+          deps,
         }),
+      // Background, best-effort: pull the photo of a freshly auto-created
+      // contact. Never awaited — the webhook still answers 200 immediately.
+      onCustomerAutoCreated: (created) =>
+        scheduleAvatarFetch(admin, deps, log, traceId, created),
       traceId,
       warn: (msg, fields) => log.warn(msg, fields),
     });

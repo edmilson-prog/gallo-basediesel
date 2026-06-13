@@ -31,6 +31,7 @@ import { INVALID_CREDENTIALS_REF_MESSAGE, isValidCredentialsRef } from "../api/w
 import { useEvolutionStatusSync } from "../hooks/useEvolutionStatusSync";
 import { ConnectWhatsAppDialog, type ConnectDialogStep } from "../components/ConnectWhatsAppDialog";
 import { ImportConversationsDialog } from "../components/ImportConversationsDialog";
+import { SyncAvatarsDialog } from "../components/SyncAvatarsDialog";
 import { TestMessageDialog } from "../components/TestMessageDialog";
 
 const STATUS_VISUAL: Record<
@@ -183,6 +184,7 @@ export function WhatsAppAccountsPage() {
   const [metrics, setMetrics] = useState<Record<string, IWhatsAppAccountMetrics>>({});
   const [testTarget, setTestTarget] = useState<IWhatsAppAccount | null>(null);
   const [importTarget, setImportTarget] = useState<IWhatsAppAccount | null>(null);
+  const [syncAvatarsTarget, setSyncAvatarsTarget] = useState<IWhatsAppAccount | null>(null);
   const [checking, setChecking] = useState(false);
 
   const loadMetrics = useCallback(
@@ -543,6 +545,22 @@ export function WhatsAppAccountsPage() {
                                 Importar conversas
                               </Button>
                             )}
+                            {!isMock && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={account.status !== "connected"}
+                                onClick={() => setSyncAvatarsTarget(account)}
+                                title={
+                                  account.status === "connected"
+                                    ? "Busca no WhatsApp a foto de perfil dos contatos e exibe nas Conversas"
+                                    : "Disponível com a conta conectada"
+                                }
+                              >
+                                <Icon icon="mdi:image-sync-outline" size={14} className="mr-1.5" />
+                                Sincronizar fotos
+                              </Button>
+                            )}
                             <Button
                               variant="outline"
                               size="sm"
@@ -804,6 +822,7 @@ export function WhatsAppAccountsPage() {
       />
       <TestMessageDialog account={testTarget} onClose={() => setTestTarget(null)} />
       <ImportConversationsDialog account={importTarget} onClose={() => setImportTarget(null)} />
+      <SyncAvatarsDialog account={syncAvatarsTarget} onClose={() => setSyncAvatarsTarget(null)} />
     </div>
   );
 }

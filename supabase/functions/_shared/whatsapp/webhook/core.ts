@@ -155,6 +155,17 @@ export interface IProcessArgs {
   warn?: (msg: string, fields?: Record<string, unknown>) => void;
   /** PRD-114 RNF-006: media must land within this budget or be marked failed. */
   mediaTimeoutMs?: number;
+  /**
+   * Fire-and-forget hook invoked when an inbound message auto-creates a
+   * brand-new contact. The Edge wiring uses it to pull the contact's WhatsApp
+   * profile photo in the background (best-effort). It MUST NOT block or throw:
+   * the webhook stays fail-closed and answers 200 fast regardless.
+   */
+  onCustomerAutoCreated?: (input: {
+    customerId: string;
+    phone: string;
+    account: IAccountRecord;
+  }) => void;
 }
 
 const DEFAULT_MEDIA_TIMEOUT_MS = 15_000;
@@ -373,6 +384,12 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
         sellerId,
       });
       customerCreated = true;
+      // Same background photo fetch when WE start the chat from the phone.
+      args.onCustomerAutoCreated?.({
+        customerId: customer.id,
+        phone: parsed.toPhone,
+        account,
+      });
     }
     let conversation = await db.findOpenConversation(customer.id, account.id);
     if (!conversation) {
@@ -443,6 +460,13 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
       sellerId,
     });
     customerCreated = true;
+    // Best-effort, fire-and-forget: pull this brand-new contact's WhatsApp
+    // profile photo in the background. Never awaited, never throws here.
+    args.onCustomerAutoCreated?.({
+      customerId: customer.id,
+      phone: parsed.fromPhone,
+      account,
+    });
   }
 
   // 6. Conversation resolution (RF-040.3) — closed (resolvida/arquivada)

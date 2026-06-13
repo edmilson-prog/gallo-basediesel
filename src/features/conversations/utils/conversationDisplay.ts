@@ -7,12 +7,19 @@ import type {
   IMessage,
   LeadTemperature,
 } from "@/shared/types";
-import { hashHue, initialsFrom } from "@/shared/utils/avatar";
+import { hashHue, initialsFrom, isPhoneLikeName } from "@/shared/utils/avatar";
 import { INBOX_STRINGS } from "../i18n/pt-BR";
 
 export interface IConversationDisplay {
   name: string;
   initials: string;
+  /** Public URL of the contact's synced WhatsApp photo, when available. */
+  avatarUrl?: string;
+  /**
+   * The display name is really just a phone number (unsaved WhatsApp contact) —
+   * surfaces render a generic person icon instead of a useless `"+5"`.
+   */
+  isPhoneName: boolean;
   /** Stable color seed for the avatar fallback (0-360 hue). */
   hue: number;
   phone: string;
@@ -30,6 +37,8 @@ export function getConversationDisplay(
     return {
       name,
       initials: initialsFrom(name),
+      avatarUrl: customer.avatarUrl,
+      isPhoneName: isPhoneLikeName(name),
       hue: hashHue(customer.id),
       phone: customer.phone,
       isLead: false,
@@ -40,6 +49,7 @@ export function getConversationDisplay(
     return {
       name: lead.name,
       initials: initialsFrom(lead.name),
+      isPhoneName: isPhoneLikeName(lead.name),
       hue: hashHue(lead.id),
       phone: lead.phone,
       isLead: true,
@@ -49,6 +59,7 @@ export function getConversationDisplay(
   return {
     name: INBOX_STRINGS.unknownParticipant,
     initials: "?",
+    isPhoneName: false,
     hue: hashHue(conversation.id),
     phone: "",
     isLead: true,

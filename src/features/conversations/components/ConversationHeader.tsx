@@ -6,7 +6,6 @@ import type {
   ISdrEscalation,
   IWhatsAppAccount,
 } from "@/shared/types";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
@@ -16,6 +15,7 @@ import { toast } from "sonner";
 import { useCustomersProvider } from "@/providers/data";
 import { useAuth } from "@/features/auth/useAuth";
 import { CHANNEL_META, getConversationDisplay } from "../utils/conversationDisplay";
+import { ContactAvatar } from "./ContactAvatar";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
 import { EscalationBadge } from "@/features/sdr-escalation/components/EscalationBadge";
 import { TemperatureChip } from "@/features/quick-send/components/TemperatureChip";
@@ -98,21 +98,10 @@ export function ConversationHeader({
     void navigate({ to: target });
   };
 
-  const avatarBg = `hsl(${display.hue} 70% 88%)`;
-  const avatarFg = `hsl(${display.hue} 60% 28%)`;
-
   return (
     <header className="shrink-0 border-b border-border bg-card">
       <div className="flex h-16 items-center gap-3 px-4">
-        <Avatar className="h-10 w-10">
-          <AvatarFallback
-            className="font-semibold"
-            style={{ backgroundColor: avatarBg, color: avatarFg }}
-            aria-hidden
-          >
-            {display.initials}
-          </AvatarFallback>
-        </Avatar>
+        <ContactAvatar display={display} />
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
