@@ -6,6 +6,26 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.93.0] — Almanac · 2026-06-13
+
+**Agendar mensagens ficou completo: uma Central dedicada e envio automático pelo servidor.** Agora há um lugar próprio para agendar mensagens (texto e mídia), com rascunhos e quatro formas de visualização, e as mensagens agendadas são enviadas sozinhas na hora marcada — mesmo com o navegador fechado.
+
+### Added
+
+- **Central de Agendamento de Mensagens** — um ícone de relógio (⏰) no campo de mensagem abre uma central onde você escreve, agenda, revisa, edita e cancela mensagens agendadas. Oferece quatro formas de exibição — janela, painel lateral, painel embutido e linha do tempo — e o sistema lembra a sua preferida.
+- **Envio automático no horário** — as mensagens agendadas passam a ser enviadas pelo servidor na hora marcada, mesmo que você esteja com o navegador ou o computador desligados. Antes, o envio dependia de deixar o sistema aberto.
+- **Agendar fotos, vídeos, áudios e documentos** — além de texto, é possível anexar um arquivo à mensagem que será enviada no horário escolhido.
+- **Rascunhos de agendamento** — salve uma mensagem sem definir o horário e volte depois para escolher quando enviar.
+- **Fila de agendamentos da loja (Dono e Gestor)** — Dono e Gestor passam a ver uma aba "Todos" com os agendamentos de toda a loja e o destinatário de cada um; vendedores continuam vendo apenas os da conversa atual.
+
+### Changed
+
+- **Botão "Enviar" voltou a ser único** — o agendamento saiu de perto do botão "Enviar" e ganhou o próprio ícone, acabando com o envio acidental ao tentar agendar. Um selo no ícone mostra quantas mensagens estão agendadas naquela conversa.
+
+### Fixed
+
+- **Agendamento no ambiente de produção** — corrigido um problema que impedia salvar agendamentos no ambiente real (a tentativa retornava erro de permissão).
+
 ## [0.92.0] — Unfold · 2026-06-13
 
 **As mensagens recebidas agora mostram quando o cliente enviou e quando elas chegaram ao sistema.** Cada mensagem recebida ganhou um detalhe que se abre com dois horários — útil para entender atrasos e mensagens trazidas do histórico. Também voltou a funcionar o envio de arquivos avulsos pelo clipe, as mídias das conversas voltaram a carregar normalmente e atualizar a foto de um contato passou a avisar na hora.
