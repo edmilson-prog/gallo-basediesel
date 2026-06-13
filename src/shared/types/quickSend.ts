@@ -79,23 +79,42 @@ export interface IAssetCombo {
   updatedAt: ISO8601;
 }
 
-export type ScheduledSendStatus = "pending" | "sent" | "cancelled" | "failed";
+export type ScheduledSendStatus = "draft" | "pending" | "sent" | "cancelled" | "failed";
+
+/** Media kinds a scheduled message can carry (1 attachment per message in Fase 1). */
+export type ScheduledMediaType = "image" | "video" | "audio" | "document";
+
 export interface IScheduledSend {
   id: ID;
   storeId: ID;
   conversationId: ID;
-  scheduledFor: ISO8601;
+  /** Null only for drafts; pending/sent/failed always carry a time. */
+  scheduledFor: ISO8601 | null;
   payload: {
-    type: "asset" | "snippet" | "combo" | "product";
+    type: "snippet" | "media" | "asset" | "combo" | "product";
+    /** Plain text (snippet) OR caption (media). */
+    contextMessage?: string;
+    // media fields (type === "media"):
+    /** Object path in the whatsapp-media bucket (IMediaAsset.storageRef). */
+    mediaPath?: string;
+    mediaType?: ScheduledMediaType;
+    /** Original filename — labels documents on the recipient side. */
+    fileName?: string;
+    // legacy kinds (unchanged):
     assetIds?: ID[];
     quickReplyId?: ID;
     productId?: ID;
-    contextMessage?: string;
   };
   status: ScheduledSendStatus;
   failureReason?: string;
   createdBy: ID;
   createdAt: ISO8601;
+}
+
+/** Scheduled row enriched with its recipient — used by the global queue. */
+export interface IScheduledSendWithContext extends IScheduledSend {
+  customerName: string | null;
+  customerPhone: string | null;
 }
 
 // ---- Provider contracts (co-located here so contracts/* re-export them) ----
@@ -167,9 +186,26 @@ export interface ITrackableLinkProvider {
 export interface IScheduledSendProvider {
   list(conversationId: ID): Promise<IScheduledSend[]>;
   listDue(now: ISO8601): Promise<IScheduledSend[]>;
-  create(input: Omit<IScheduledSend, "id" | "storeId" | "status" | "createdAt">): Promise<IScheduledSend>;
+  create(
+    input: Omit<IScheduledSend, "id" | "storeId" | "status" | "createdAt"> & {
+      /** Default "pending"; pass "draft" to save without a time. */
+      status?: Extract<ScheduledSendStatus, "draft" | "pending">;
+      /**
+       * Active store. Required by the supabase RLS WITH CHECK
+       * (store_id = current_store_id()); the mock's withCreateStoreId injects it
+       * when omitted, but the supabase impl does not — callers thread it.
+       */
+      storeId?: ID;
+    },
+  ): Promise<IScheduledSend>;
   update(id: ID, patch: Partial<IScheduledSend>): Promise<IScheduledSend>;
   cancel(id: ID): Promise<IScheduledSend>;
   markSent(id: ID): Promise<IScheduledSend>;
   markFailed(id: ID, reason: string): Promise<IScheduledSend>;
+  /**
+   * Store-wide scheduled queue with recipient context (Owner/Gestor only — the
+   * role gate is in the UI). Store-scoped by RLS, so no extra security boundary.
+   * Defaults to pending rows.
+   */
+  listStore(params?: { status?: ScheduledSendStatus[] }): Promise<IScheduledSendWithContext[]>;
 }
