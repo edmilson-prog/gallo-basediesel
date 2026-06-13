@@ -6,6 +6,14 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.94.0] — Recall · 2026-06-13
+
+**A tela de login agora lembra o seu e-mail.** Marque "Lembrar-me" ao entrar e, na próxima vez, o e-mail já vem preenchido — sem precisar digitar de novo. A senha nunca é guardada.
+
+### Added
+
+- **Opção "Lembrar-me" no login** — uma caixa de seleção "Lembrar-me" na tela de entrada guarda o e-mail digitado neste navegador e o preenche automaticamente na próxima visita. Por segurança, apenas o e-mail é lembrado — a senha nunca é salva; desmarcar a opção apaga o e-mail guardado.
+
 ## [0.93.0] — Almanac · 2026-06-13
 
 **Agendar mensagens ficou completo: uma Central dedicada e envio automático pelo servidor.** Agora há um lugar próprio para agendar mensagens (texto e mídia), com rascunhos e quatro formas de visualização, e as mensagens agendadas são enviadas sozinhas na hora marcada — mesmo com o navegador fechado.
