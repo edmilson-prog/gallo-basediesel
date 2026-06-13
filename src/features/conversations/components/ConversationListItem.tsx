@@ -4,9 +4,9 @@ import type { IConversation, IMessage, ISdrEscalation } from "@/shared/types";
 import { EscalationBadge } from "@/features/sdr-escalation/components/EscalationBadge";
 import { EcommerceBadge } from "@/features/ecommerce-integration/components/EcommerceBadge";
 import { Icon } from "@/components/Icon";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { ContactAvatar } from "./ContactAvatar";
 import { useTimeTick } from "../hooks/useTimeTick";
 import { formatRelativeTime, isFresh } from "../utils/formatRelativeTime";
 import {
@@ -15,7 +15,6 @@ import {
   TEMPERATURE_META,
   getConversationDisplay,
   getMessagePreview,
-  type IConversationDisplay,
 } from "../utils/conversationDisplay";
 import { statusVisual } from "../utils/messageDisplay";
 import { INBOX_STRINGS } from "../i18n/pt-BR";
@@ -51,22 +50,6 @@ function highlight(text: string, term?: string): React.ReactNode {
       <mark className={HIGHLIGHT_CLASS}>{text.slice(at, at + needle.length)}</mark>
       {text.slice(at + needle.length)}
     </>
-  );
-}
-
-function Avatar64({ display }: { display: IConversationDisplay }) {
-  const bg = `hsl(${display.hue} 70% 88%)`;
-  const fg = `hsl(${display.hue} 60% 28%)`;
-  return (
-    <Avatar className="h-10 w-10">
-      <AvatarFallback
-        className="font-semibold"
-        style={{ backgroundColor: bg, color: fg }}
-        aria-hidden
-      >
-        {display.initials}
-      </AvatarFallback>
-    </Avatar>
   );
 }
 
@@ -136,7 +119,7 @@ function ConversationListItemInner({
         )}
         aria-hidden
       />
-      <Avatar64 display={display} />
+      <ContactAvatar display={display} />
 
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">

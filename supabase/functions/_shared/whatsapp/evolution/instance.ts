@@ -304,3 +304,32 @@ export async function findMessages(
     pages: typeof nested?.pages === "number" ? nested.pages : undefined,
   };
 }
+
+// ===== Contact profile photo (avatar sync) =================================
+
+/**
+ * POST /chat/fetchProfilePictureUrl — the contact's WhatsApp profile photo URL,
+ * or null when the contact has no public photo (privacy), isn't on WhatsApp, or
+ * the build can't resolve it. Best-effort by design: any non-2xx, network error
+ * or unrecognised shape resolves to null so a bulk avatar sync never aborts on a
+ * single contact. `number` is wire format (E.164 without the leading +).
+ */
+export async function fetchProfilePictureUrl(
+  apiKey: string,
+  deps: IEngineDeps,
+  target: IEvolutionInstanceTarget,
+  number: string,
+  traceId?: string,
+): Promise<string | null> {
+  const response = await evolutionRequest(apiKey, deps, {
+    baseUrl: target.baseUrl,
+    path: `/chat/fetchProfilePictureUrl/${target.instanceName}`,
+    json: { number },
+    timeoutMs: 15_000,
+    traceId,
+  }).catch(() => null);
+  if (!response) return null;
+  const body = response.body as { profilePicUrl?: string | null } | null;
+  const url = body?.profilePicUrl;
+  return typeof url === "string" && url.length > 0 ? url : null;
+}

@@ -30,6 +30,18 @@ export function initialsFrom(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+/**
+ * True when a display name is really just a phone number (no letters, at least
+ * one digit) — e.g. `"+5511916327394"`. WhatsApp contacts that were never saved
+ * fall back to their number as the name, and `initialsFrom` would turn that into
+ * a useless `"+5"`. Surfaces let these render a generic person icon instead.
+ */
+export function isPhoneLikeName(name: string): boolean {
+  const trimmed = name.trim();
+  if (!trimmed) return false;
+  return !/\p{L}/u.test(trimmed) && /\d/.test(trimmed);
+}
+
 /** Background / foreground HSL pair derived from a hue — used by `<Avatar>` fallbacks. */
 export function avatarColors(hue: number): { bg: string; fg: string } {
   return {
