@@ -1,4 +1,10 @@
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { QUICK_SEND_STRINGS } from "../../../i18n/pt-BR";
 import { ScheduleModeSwitcher } from "../ScheduleModeSwitcher";
 import { SchedulingPanels } from "../SchedulingPanels";
@@ -16,9 +22,9 @@ export function SchedulingDrawerShell(props: ISchedulingShellProps) {
                 <span aria-hidden>⏰</span>
                 {s.centerTitle}
               </SheetTitle>
-              <p className="mt-0.5 text-xs text-muted-foreground">
+              <SheetDescription className="mt-0.5 text-xs text-muted-foreground">
                 {s.centerContext(props.customerName, props.customerPhone)}
-              </p>
+              </SheetDescription>
             </div>
             <ScheduleModeSwitcher mode={props.mode} onModeChange={props.onModeChange} />
           </div>

@@ -190,6 +190,12 @@ export interface IScheduledSendProvider {
     input: Omit<IScheduledSend, "id" | "storeId" | "status" | "createdAt"> & {
       /** Default "pending"; pass "draft" to save without a time. */
       status?: Extract<ScheduledSendStatus, "draft" | "pending">;
+      /**
+       * Active store. Required by the supabase RLS WITH CHECK
+       * (store_id = current_store_id()); the mock's withCreateStoreId injects it
+       * when omitted, but the supabase impl does not — callers thread it.
+       */
+      storeId?: ID;
     },
   ): Promise<IScheduledSend>;
   update(id: ID, patch: Partial<IScheduledSend>): Promise<IScheduledSend>;

@@ -102,12 +102,16 @@ export function useSchedulingComposer(
             payload,
             createdBy,
             status,
+            // Supabase RLS requires store_id = current_store_id(); the conversation's
+            // store is the active store, so thread it explicitly (the mock's
+            // withCreateStoreId would inject it, but the supabase impl does not).
+            storeId: conversation.storeId,
           });
       invalidate();
       reset();
       return saved;
     },
-    [form, editingId, provider, conversation.id, createdBy, invalidate, reset],
+    [form, editingId, provider, conversation.id, conversation.storeId, createdBy, invalidate, reset],
   );
 
   const schedule = useCallback(() => persist("pending", form.scheduledFor), [persist, form.scheduledFor]);

@@ -1,4 +1,10 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { QUICK_SEND_STRINGS } from "../../../i18n/pt-BR";
 import { ScheduleModeSwitcher } from "../ScheduleModeSwitcher";
 import { SchedulingPanels } from "../SchedulingPanels";
@@ -16,9 +22,9 @@ export function SchedulingModalShell(props: ISchedulingShellProps) {
                 <span aria-hidden>⏰</span>
                 {s.centerTitle}
               </DialogTitle>
-              <p className="mt-0.5 text-xs text-muted-foreground">
+              <DialogDescription className="mt-0.5 text-xs text-muted-foreground">
                 {s.centerContext(props.customerName, props.customerPhone)}
-              </p>
+              </DialogDescription>
             </div>
             <ScheduleModeSwitcher mode={props.mode} onModeChange={props.onModeChange} />
           </div>
