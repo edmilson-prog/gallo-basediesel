@@ -6,9 +6,9 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
-## [0.91.0] — Portrait · 2026-06-12
+## [0.91.0] — Portrait · 2026-06-13
 
-**As fotos de perfil dos contatos do WhatsApp agora aparecem nas Conversas.** Cada contato exibe a própria foto na lista e no topo da conversa; contatos novos recebem a foto automaticamente e há um botão para atualizar manualmente. Os áudios ganharam controle de velocidade e marca de "ouvido", e mensagens presas "na fila" agora podem ser reprocessadas.
+**As fotos de perfil dos contatos do WhatsApp agora aparecem nas Conversas.** Cada contato exibe a própria foto na lista e no topo da conversa; contatos novos recebem a foto automaticamente e há um botão para atualizar manualmente. Os áudios ganharam controle de velocidade e marca de "ouvido", mensagens presas "na fila" agora podem ser reprocessadas, e o contador de mensagens não lidas voltou a zerar quando você abre a conversa.
 
 ### Added
 
@@ -18,6 +18,10 @@ versioning follows [SemVer](https://semver.org/).
 - **Atualizar a foto de um contato** — no menu (⋮) da conversa, a opção "Atualizar foto do contato" rebusca a foto apenas daquele contato — útil quando ele troca de foto ou quando ela não veio na primeira tentativa.
 - **Velocidade e "ouvido" nos áudios** — nos áudios das conversas, dá para alternar a velocidade de reprodução entre 1×, 1,5× e 2×, e o balão passa a indicar quando o áudio já foi ouvido.
 - **Reprocessar mensagem presa "na fila"** — quando uma mensagem enviada fica parada no status "na fila" por mais de um minuto, aparece um botão "Reprocessar" para reenviá-la, sem precisar digitar tudo de novo.
+
+### Fixed
+
+- **Contador de mensagens não lidas** — o número vermelho de não lidas em cada conversa volta a zero assim que você abre a conversa. Antes, ele continuava marcando mesmo depois de as mensagens já terem sido lidas.
 
 ## [0.90.1] — Mosaic · 2026-06-12
 
