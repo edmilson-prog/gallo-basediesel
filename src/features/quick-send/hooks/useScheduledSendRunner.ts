@@ -59,6 +59,12 @@ export function useScheduledSendRunner(
           // Snippet body was resolved at schedule time → contextMessage carries it.
           if (!ctx || !ctx.trim()) throw new Error("snippet vazio");
           await send.send({ text: ctx });
+        } else if (item.payload.type === "media") {
+          // Mock has no real bucket dispatch (mediaPath is a simulated path), so
+          // degrade to the caption as text. In supabase the server worker sends
+          // the actual media — this poller never runs there (file header).
+          const caption = ctx?.trim();
+          await send.send({ text: caption || "📎 (mídia agendada)" });
         } else if (item.payload.type === "asset" || item.payload.type === "combo") {
           const ids = item.payload.assetIds ?? [];
           if (ids.length === 0) throw new Error("sem ativos");
