@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Icon } from "@/components/Icon";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { validateFuture } from "../engine/scheduledSend";
+import { validateFuture, formatScheduleLabel } from "../engine/scheduledSend";
 import { QUICK_SEND_STRINGS } from "../i18n/pt-BR";
 
 export interface IScheduleSendMenuProps {
@@ -69,7 +69,7 @@ export function ScheduleSendMenu({ onSchedule, disabled = false }: IScheduleSend
       return;
     }
     onSchedule(iso);
-    toast.success(s.scheduledToast);
+    toast.success(s.scheduledToast(formatScheduleLabel(iso)));
     setOpen(false);
   };
 

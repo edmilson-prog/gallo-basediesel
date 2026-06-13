@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
 import { useConversationScheduled } from "../hooks/useConversationScheduled";
+import { formatScheduleLabel } from "../engine/scheduledSend";
 import { ScheduleSendMenu } from "./ScheduleSendMenu";
 import { QUICK_SEND_STRINGS } from "../i18n/pt-BR";
 
@@ -81,7 +82,7 @@ export function ScheduledList({ conversationId }: IScheduledListProps) {
 
   const handleReschedule = (item: IScheduledSend, scheduledFor: ISO8601) => {
     update(item.id, { scheduledFor });
-    toast.success(s.scheduledToast);
+    toast.success(s.scheduledToast(formatScheduleLabel(scheduledFor)));
   };
 
   return (

@@ -24,3 +24,10 @@ export function validateFuture(
   }
   return { ok: true };
 }
+
+/** Human label of a scheduled time in the viewer's local zone — "13/06 às 14:29". */
+export function formatScheduleLabel(scheduledFor: ISO8601): string {
+  const d = new Date(scheduledFor);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)} às ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}

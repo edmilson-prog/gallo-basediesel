@@ -73,7 +73,7 @@ export const QUICK_SEND_STRINGS = {
     cancel: "Cancelar",
     undo: "Desfazer",
     // Plan C additions (Task 2)
-    scheduledToast: "Envio agendado.",
+    scheduledToast: (when: string) => `Agendado para ${when} ✓ — não precisa clicar em "Enviar".`,
     pastRejected: "Escolha uma data e hora no futuro.",
     cancelled: "Agendamento cancelado.",
     emptyList: "Nenhum envio agendado para esta conversa.",
