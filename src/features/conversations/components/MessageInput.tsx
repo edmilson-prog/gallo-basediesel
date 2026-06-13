@@ -40,15 +40,16 @@ import {
   AssetPicker,
   ComposerStagedAsset,
   ProductSearchDialog,
+  ScheduleButton,
+  SchedulingCenter,
   SlashMenu,
   SnippetField,
   useSendAsset,
   useSendProductCard,
   useQuickSendBus,
   useQuickReplies,
+  type SchedulingTab,
 } from "@/features/quick-send";
-import { ScheduleSendMenu } from "@/features/quick-send/components/ScheduleSendMenu";
-import { useScheduleSend } from "@/features/quick-send/hooks/useScheduleSend";
 import { parseSlash } from "@/features/quick-send/engine/slashParser";
 import { filterAssets } from "@/features/quick-send/engine/assetFiltering";
 import {
@@ -156,6 +157,8 @@ export function MessageInput(props: IMessageInputProps) {
   const setValue = onDraftChange ?? setInternalValue;
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [templateOpen, setTemplateOpen] = useState(false);
+  const [schedulingOpen, setSchedulingOpen] = useState(false);
+  const [schedulingTab, setSchedulingTab] = useState<SchedulingTab>("new");
   // PRD-118 RF-051: payload held while the staff confirmation dialog is open.
   const [invalidPending, setInvalidPending] = useState<ISendOptions | null>(null);
   const { hasRole } = useAuth();
@@ -168,7 +171,6 @@ export function MessageInput(props: IMessageInputProps) {
   const attachKindRef = useRef<AttachmentKind>("image");
   const { sendAsset } = useSendAsset(conversation, whatsappAccount);
   const { sendProductCard } = useSendProductCard(conversation, whatsappAccount);
-  const { schedule } = useScheduleSend(conversation);
   const quickReplies = useQuickReplies();
 
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -434,23 +436,6 @@ export function MessageInput(props: IMessageInputProps) {
     }
   };
 
-  const handleSchedule = async (scheduledFor: string) => {
-    const text = value.trim();
-    if (!text) return;
-    if (hasUnresolved(value)) {
-      toast.warning(QUICK_SEND_STRINGS.snippet.sendBlockedHint);
-      return;
-    }
-    try {
-      // Snippet payload carries the already-typed text as contextMessage so the
-      // runner can re-send it verbatim at the simulated time (RF-023).
-      await schedule(scheduledFor, { type: "snippet", contextMessage: text });
-      setValue("");
-    } catch {
-      toast.error(CONVERSATION_STRINGS.actionFailed);
-    }
-  };
-
   const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K")) {
       e.preventDefault();
@@ -663,6 +648,16 @@ export function MessageInput(props: IMessageInputProps) {
           </PopoverContent>
         </Popover>
 
+        {/* Agendar mensagem (abre a Central) */}
+        <ScheduleButton
+          conversationId={conversation.id}
+          onOpen={(tab) => {
+            setSchedulingTab(tab);
+            setSchedulingOpen(true);
+          }}
+          disabled={readOnly}
+        />
+
         {/* Textarea + overlays */}
         <div className="relative flex-1">
           {slashOpen && (
@@ -736,31 +731,25 @@ export function MessageInput(props: IMessageInputProps) {
           </TooltipContent>
         </Tooltip>
 
-        {/* Enviar (split: enviar agora + agendar) */}
-        <div className="flex shrink-0">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span>
-                <Button
-                  type="button"
-                  size="sm"
-                  className="h-9 gap-1.5 rounded-r-none px-3"
-                  onClick={handleSend}
-                  disabled={sendDisabled}
-                  aria-disabled={sendDisabled}
-                >
-                  <Icon icon="mdi:send" size={14} />
-                  <span className="hidden lg:inline">{CONVERSATION_STRINGS.send}</span>
-                </Button>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>{sendDisabledReason ?? CONVERSATION_STRINGS.send}</TooltipContent>
-          </Tooltip>
-          <ScheduleSendMenu
-            onSchedule={(iso) => void handleSchedule(iso)}
-            disabled={sendDisabled}
-          />
-        </div>
+        {/* Enviar (único) */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="shrink-0">
+              <Button
+                type="button"
+                size="sm"
+                className="h-9 gap-1.5 px-3"
+                onClick={handleSend}
+                disabled={sendDisabled}
+                aria-disabled={sendDisabled}
+              >
+                <Icon icon="mdi:send" size={14} />
+                <span className="hidden lg:inline">{CONVERSATION_STRINGS.send}</span>
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{sendDisabledReason ?? CONVERSATION_STRINGS.send}</TooltipContent>
+        </Tooltip>
       </div>
 
       {getActiveDataSource() === "supabase" ? (
@@ -813,6 +802,17 @@ export function MessageInput(props: IMessageInputProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <SchedulingCenter
+        conversation={conversation}
+        whatsappAccount={whatsappAccount}
+        open={schedulingOpen}
+        onOpenChange={setSchedulingOpen}
+        initialTab={schedulingTab}
+        onUseTemplate={() => {
+          setSchedulingOpen(false);
+          setTemplateOpen(true);
+        }}
+      />
     </footer>
   );
 }

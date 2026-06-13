@@ -24,7 +24,6 @@ import { ConversationMediaPanel } from "../components/media/ConversationMediaPan
 import {
   useScheduledSendRunner,
   useTrackableLinkSimulation,
-  ScheduledList,
   ComboTray,
   useComboSend,
   useQuickSendBus,
@@ -203,7 +202,6 @@ export function ConversationPage() {
                 conversation={conversation}
                 whatsappAccount={whatsappAccount}
               />
-              <ScheduledList conversationId={conversationId} />
               <MessageInput
                 conversation={conversation}
                 whatsappAccount={whatsappAccount}
