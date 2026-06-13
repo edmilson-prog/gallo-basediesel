@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { IConversation } from "@/shared/types";
+import type { ID, IConversation } from "@/shared/types";
 import { useConversationsProvider, type IListConversationsParams } from "@/providers/data";
 
 /** Conversations pulled per page from the provider. */
@@ -14,6 +14,13 @@ export interface IConversationsListState {
   error: Error | null;
   loadMore: () => void;
   refetch: () => void;
+  /**
+   * Optimistically zero an item's unread counter (the red badge) in place,
+   * without a refetch. Used when a conversation is opened so the badge clears
+   * instantly; the authoritative reset is persisted by the caller via the
+   * provider's `markRead`. No-ops if the item is absent or already at 0.
+   */
+  markItemRead: (id: ID) => void;
 }
 
 export interface IUseConversationsListOptions {
@@ -120,6 +127,12 @@ export function useConversationsList(
     void fetchPage(1, "replace");
   }, [fetchPage]);
 
+  const markItemRead = useCallback((id: ID) => {
+    setItems((prev) =>
+      prev.map((c) => (c.id === id && c.unreadCount > 0 ? { ...c, unreadCount: 0 } : c)),
+    );
+  }, []);
+
   return {
     items,
     total,
@@ -129,5 +142,6 @@ export function useConversationsList(
     error,
     loadMore,
     refetch,
+    markItemRead,
   };
 }
