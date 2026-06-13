@@ -4,14 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Icon } from "@/components/Icon";
 import { toast } from "sonner";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { validateFuture } from "../engine/scheduledSend";
 import { QUICK_SEND_STRINGS } from "../i18n/pt-BR";
@@ -55,13 +47,16 @@ function toLocalInputValue(d: Date): string {
 }
 
 /**
- * Split-button menu attached to "Enviar". Presets + custom datetime; every
- * choice is re-validated by `validateFuture` before bubbling `onSchedule`
- * with an ISO8601 string (D-11). Past datetimes are rejected with a toast.
+ * Split-button menu attached to "Enviar". A SINGLE Popover (no nested overlay):
+ * presets + an always-visible custom datetime field live in one panel, so
+ * interacting with the date input or the confirm button never tears the panel
+ * down — the previous DropdownMenu+nested-Popover combo closed the moment the
+ * pointer reached the portaled popover. Every choice is re-validated by
+ * `validateFuture` before bubbling `onSchedule` with an ISO8601 string (D-11).
  */
 export function ScheduleSendMenu({ onSchedule, disabled = false }: IScheduleSendMenuProps) {
   const s = QUICK_SEND_STRINGS.schedule;
-  const [customOpen, setCustomOpen] = useState(false);
+  const [open, setOpen] = useState(false);
   const [customValue, setCustomValue] = useState<string>(() =>
     toLocalInputValue(presetTomorrowMorning(new Date())),
   );
@@ -75,6 +70,7 @@ export function ScheduleSendMenu({ onSchedule, disabled = false }: IScheduleSend
     }
     onSchedule(iso);
     toast.success(s.scheduledToast);
+    setOpen(false);
   };
 
   const handleCustom = () => {
@@ -85,12 +81,17 @@ export function ScheduleSendMenu({ onSchedule, disabled = false }: IScheduleSend
       return;
     }
     emit(date);
-    setCustomOpen(false);
   };
 
+  const presets = [
+    { icon: "mdi:weather-sunset", label: s.presetTodayEvening, get: presetTodayEvening },
+    { icon: "mdi:weather-sunny", label: s.presetTomorrowMorning, get: presetTomorrowMorning },
+    { icon: "mdi:calendar-week-begin", label: s.presetMonday, get: presetNextMonday },
+  ] as const;
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
         <Button
           type="button"
           size="sm"
@@ -102,51 +103,46 @@ export function ScheduleSendMenu({ onSchedule, disabled = false }: IScheduleSend
         >
           <Icon icon="mdi:chevron-down" size={16} />
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>{s.scheduleSend}</DropdownMenuLabel>
-        <DropdownMenuItem onSelect={() => emit(presetTodayEvening(new Date()))}>
-          <Icon icon="mdi:weather-sunset" size={14} className="mr-2" />
-          {s.presetTodayEvening}
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => emit(presetTomorrowMorning(new Date()))}>
-          <Icon icon="mdi:weather-sunny" size={14} className="mr-2" />
-          {s.presetTomorrowMorning}
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => emit(presetNextMonday(new Date()))}>
-          <Icon icon="mdi:calendar-week-begin" size={14} className="mr-2" />
-          {s.presetMonday}
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <Popover open={customOpen} onOpenChange={setCustomOpen}>
-          <PopoverTrigger asChild>
-            <DropdownMenuItem
-              onSelect={(e) => {
-                e.preventDefault();
-                setCustomOpen(true);
-              }}
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-64 p-2">
+        <p className="px-1 pb-1 text-xs font-semibold text-muted-foreground">{s.scheduleSend}</p>
+
+        <div className="flex flex-col">
+          {presets.map((p) => (
+            <Button
+              key={p.label}
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-9 justify-start gap-2 font-normal"
+              onClick={() => emit(p.get(new Date()))}
             >
-              <Icon icon="mdi:calendar-clock" size={14} className="mr-2" />
-              {s.custom}
-            </DropdownMenuItem>
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-64 space-y-2">
-            <label className="text-xs font-medium text-foreground" htmlFor="schedule-custom-dt">
-              {s.custom}
-            </label>
-            <Input
-              id="schedule-custom-dt"
-              type="datetime-local"
-              value={customValue}
-              min={toLocalInputValue(new Date())}
-              onChange={(e) => setCustomValue(e.target.value)}
-            />
-            <Button type="button" size="sm" className="w-full" onClick={handleCustom}>
-              {s.scheduleSend}
+              <Icon icon={p.icon} size={15} className="text-muted-foreground" />
+              {p.label}
             </Button>
-          </PopoverContent>
-        </Popover>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          ))}
+        </div>
+
+        <div className="my-2 border-t border-border" />
+
+        <label
+          className="flex items-center gap-2 px-1 pb-1.5 text-xs font-medium text-foreground"
+          htmlFor="schedule-custom-dt"
+        >
+          <Icon icon="mdi:calendar-clock" size={14} className="text-muted-foreground" />
+          {s.custom}
+        </label>
+        <Input
+          id="schedule-custom-dt"
+          type="datetime-local"
+          value={customValue}
+          min={toLocalInputValue(new Date())}
+          onChange={(e) => setCustomValue(e.target.value)}
+        />
+        <Button type="button" size="sm" className="mt-2 w-full" onClick={handleCustom}>
+          {s.scheduleSend}
+        </Button>
+      </PopoverContent>
+    </Popover>
   );
 }

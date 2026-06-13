@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ID, IScheduledSend } from "@/shared/types";
-import { useScheduledSendProvider } from "@/providers/data";
+import { useScheduledSendProvider, getActiveDataSource } from "@/providers/data";
 
 /** Query key factory so the runner (Task 5) and the list stay in sync. */
 export function scheduledSendsQueryKey(conversationId: ID): readonly unknown[] {
@@ -31,6 +31,15 @@ export function useConversationScheduled(conversationId: ID): IUseConversationSc
     queryFn: () => provider.list(conversationId),
     // Pending sends rarely change outside our own mutations; keep it cheap.
     staleTime: 5_000,
+    // In supabase the server worker (scheduled-send-worker) owns dispatch, so
+    // nothing client-side invalidates when a send fires. Poll lightly while
+    // something is still pending so the bar/badge reflect sent/failed; stop once
+    // none are pending. Mock keeps no polling (its runner invalidates directly).
+    refetchInterval:
+      getActiveDataSource() === "supabase"
+        ? (q) =>
+            (q.state.data ?? []).some((s) => s.status === "pending") ? 30_000 : false
+        : false,
   });
 
   const invalidate = useCallback(() => {
