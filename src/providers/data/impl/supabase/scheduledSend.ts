@@ -27,7 +27,7 @@ interface ScheduledSendRow {
   id: string;
   store_id: string;
   conversation_id: string;
-  scheduled_for: string;
+  scheduled_for: string | null;
   payload: IScheduledSend["payload"];
   status: ScheduledSendStatus;
   failure_reason: string | null;

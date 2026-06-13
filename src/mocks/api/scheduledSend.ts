@@ -27,7 +27,7 @@ export const scheduledSendApi = {
       "listDue",
       () =>
         selectAllScheduledSends().filter(
-          (s) => s.status === "pending" && isDue(s.scheduledFor, now),
+          (s) => s.status === "pending" && !!s.scheduledFor && isDue(s.scheduledFor, now),
         ),
       { payload: { now } },
     );

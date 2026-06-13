@@ -22,6 +22,7 @@ const PAYLOAD_LABEL: Record<
   snippet: "payloadSnippet",
   combo: "payloadCombo",
   product: "payloadProduct",
+  media: "payloadMedia",
 };
 
 function formatWhen(iso: ISO8601): string {
@@ -117,7 +118,7 @@ export function ScheduledList({ conversationId }: IScheduledListProps) {
                     {item.payload.contextMessage ? ` — ${item.payload.contextMessage}` : ""}
                   </p>
                   <p className="text-[11px] text-muted-foreground">
-                    {formatWhen(item.scheduledFor)}
+                    {item.scheduledFor ? formatWhen(item.scheduledFor) : "—"}
                   </p>
                 </div>
                 {item.status === "failed" && (

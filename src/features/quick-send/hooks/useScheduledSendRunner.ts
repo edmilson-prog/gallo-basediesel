@@ -113,7 +113,7 @@ export function useScheduledSendRunner(
         if (item.conversationId !== conversation.id) continue;
         if (item.status !== "pending") continue;
         // Engine-level due re-check (defensive; provider already filtered).
-        if (!isDue(item.scheduledFor, new Date().toISOString())) continue;
+        if (!item.scheduledFor || !isDue(item.scheduledFor, new Date().toISOString())) continue;
         void dispatchOne(item);
       }
     };
