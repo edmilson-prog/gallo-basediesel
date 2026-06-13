@@ -7,9 +7,9 @@
  * reuses the full send pipeline (24h window, failover, persist-before-send,
  * status tracking, audit) — no send logic is duplicated.
  *
- * Only the `snippet` payload (plain text — the only kind the composer schedules
- * today) is dispatchable server-side. asset/combo/product re-hydration depends
- * on the asset library + per-role sensitivity checks that live in the frontend
+ * The `snippet` (plain text) and `media` (image/video/audio/document) payloads
+ * are dispatchable server-side. asset/combo/product re-hydration depends on the
+ * asset library + per-role sensitivity checks that live in the frontend
  * (useSendAsset); the worker rejects them with NOT_SUPPORTED so the row fails
  * loudly with a reason instead of being silently dropped.
  *
@@ -21,11 +21,15 @@ import type { ISendRequest, ISender } from "../send/core";
 
 /** Persisted payload shape — mirror of `IScheduledSend["payload"]`. */
 export interface IScheduledPayload {
-  type: "asset" | "snippet" | "combo" | "product";
+  type: "asset" | "snippet" | "combo" | "product" | "media";
   assetIds?: string[];
   quickReplyId?: string;
   productId?: string;
   contextMessage?: string;
+  // media fields (type === "media"):
+  mediaPath?: string;
+  mediaType?: "image" | "video" | "audio" | "document";
+  fileName?: string;
 }
 
 /**
@@ -41,11 +45,25 @@ export function buildScheduledSendRequest(
   if (!conversationId) {
     throw new WhatsAppProviderError("VALIDATION_ERROR", 422, "conversationId é obrigatório");
   }
+  if (payload.type === "media") {
+    const mediaPath = (payload.mediaPath ?? "").trim();
+    if (!mediaPath) {
+      throw new WhatsAppProviderError("VALIDATION_ERROR", 422, "Mídia agendada sem arquivo.");
+    }
+    return {
+      conversationId,
+      kind: "media",
+      mediaPath,
+      mediaType: payload.mediaType,
+      fileName: payload.fileName,
+      text: (payload.contextMessage ?? "").trim(),
+    };
+  }
   if (payload.type !== "snippet") {
     throw new WhatsAppProviderError(
       "NOT_SUPPORTED",
       422,
-      `Agendamento do tipo "${payload.type}" não é enviado automaticamente pelo servidor (apenas texto).`,
+      `Agendamento do tipo "${payload.type}" não é enviado automaticamente pelo servidor (apenas texto e mídia).`,
     );
   }
   const text = (payload.contextMessage ?? "").trim();

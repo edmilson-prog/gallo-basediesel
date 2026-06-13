@@ -68,3 +68,44 @@ describe("buildSystemSender", () => {
     });
   });
 });
+
+describe("buildScheduledSendRequest — media (image/video/audio/document)", () => {
+  it("maps a media payload to a media send request with path, type, filename and caption", () => {
+    const req = buildScheduledSendRequest("conv-1", {
+      type: "media",
+      mediaPath: "store-1/2026/06/turbo-scania.jpg",
+      mediaType: "image",
+      fileName: "turbo-scania.jpg",
+      contextMessage: "Segue o orçamento do turbo.",
+    });
+    expect(req).toEqual({
+      conversationId: "conv-1",
+      kind: "media",
+      mediaPath: "store-1/2026/06/turbo-scania.jpg",
+      mediaType: "image",
+      fileName: "turbo-scania.jpg",
+      text: "Segue o orçamento do turbo.",
+    });
+  });
+
+  it("allows media with no caption (empty text)", () => {
+    const req = buildScheduledSendRequest("conv-1", {
+      type: "media",
+      mediaPath: "store-1/a.pdf",
+      mediaType: "document",
+      fileName: "a.pdf",
+    });
+    expect(req.text).toBe("");
+    expect(req.kind).toBe("media");
+  });
+
+  it("rejects media without a mediaPath with VALIDATION_ERROR", () => {
+    try {
+      buildScheduledSendRequest("conv-1", { type: "media", mediaType: "image" });
+      expect.unreachable("should have thrown");
+    } catch (err) {
+      expect(err).toBeInstanceOf(WhatsAppProviderError);
+      expect((err as WhatsAppProviderError).code).toBe("VALIDATION_ERROR");
+    }
+  });
+});
