@@ -6,6 +6,23 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.92.0] — Unfold · 2026-06-13
+
+**As mensagens recebidas agora mostram quando o cliente enviou e quando elas chegaram ao sistema.** Cada mensagem recebida ganhou um detalhe que se abre com dois horários — útil para entender atrasos e mensagens trazidas do histórico. Também voltou a funcionar o envio de arquivos avulsos pelo clipe, as mídias das conversas voltaram a carregar normalmente e atualizar a foto de um contato passou a avisar na hora.
+
+### Added
+
+- **Horários de envio e recebimento nas mensagens recebidas** — cada mensagem recebida mostra um único horário (quando o cliente enviou) e, ao tocar na setinha ao lado dele, abre um detalhe com os dois horários completos: quando o cliente enviou e quando a mensagem chegou ao sistema. Em conversas em tempo real os dois ficam praticamente iguais; em mensagens trazidas do histórico ou recebidas após uma reconexão, a diferença fica visível.
+
+### Changed
+
+- **Aviso ao atualizar a foto de um contato** — ao usar "Atualizar foto do contato" no menu (⋮) da conversa, aparece na hora um aviso "Atualizando foto do contato…", que se transforma no resultado (foto atualizada, sem foto disponível ou erro). Antes, o clique não dava retorno imediato e parecia que nada havia acontecido.
+
+### Fixed
+
+- **Envio de arquivos avulsos pelo clipe** — anexar uma imagem, documento ou áudio pelo clipe da conversa voltou a funcionar; antes, o arquivo era preparado mas o envio não se concluía.
+- **Mídias que sumiam depois de um tempo** — fotos, áudios e documentos das conversas que voltavam a aparecer como indisponíveis após alguns minutos agora carregam normalmente, porque o acesso ao arquivo é renovado automaticamente ao abrir a conversa. Abrir uma foto em tamanho maior também deixou de gerar um erro técnico em segundo plano.
+
 ## [0.91.0] — Portrait · 2026-06-13
 
 **As fotos de perfil dos contatos do WhatsApp agora aparecem nas Conversas.** Cada contato exibe a própria foto na lista e no topo da conversa; contatos novos recebem a foto automaticamente e há um botão para atualizar manualmente. Os áudios ganharam controle de velocidade e marca de "ouvido", mensagens presas "na fila" agora podem ser reprocessadas, e o contador de mensagens não lidas voltou a zerar quando você abre a conversa.
