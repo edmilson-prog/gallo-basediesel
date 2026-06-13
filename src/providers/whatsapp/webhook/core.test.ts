@@ -191,6 +191,33 @@ describe("processWebhookEvent — inbound messages (RF-040/050)", () => {
     });
   });
 
+  it("fires onCustomerAutoCreated once for a brand-new contact (background photo)", async () => {
+    const state = emptyState();
+    const onCustomerAutoCreated = vi.fn();
+    await run(state, evolutionTextEvent(), { onCustomerAutoCreated });
+
+    expect(onCustomerAutoCreated).toHaveBeenCalledTimes(1);
+    expect(onCustomerAutoCreated).toHaveBeenCalledWith({
+      customerId: state.customers[0]?.id,
+      phone: "+5555988887777",
+      account: ACCOUNT,
+    });
+  });
+
+  it("does NOT fire onCustomerAutoCreated when the contact already exists", async () => {
+    const state = emptyState();
+    state.customers.push({
+      id: "cust-old",
+      storeId: "store-1",
+      phoneDigits: "5555988887777",
+      sellerId: "seller-lucas",
+    });
+    const onCustomerAutoCreated = vi.fn();
+    await run(state, evolutionTextEvent("oi de novo", "EVOKEY9"), { onCustomerAutoCreated });
+
+    expect(onCustomerAutoCreated).not.toHaveBeenCalled();
+  });
+
   it("reuses existing customer and open conversation (no duplication)", async () => {
     const state = emptyState();
     state.customers.push({

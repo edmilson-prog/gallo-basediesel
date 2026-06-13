@@ -19,17 +19,13 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.107.0";
 import { bestEffortAudit } from "../_shared/audit.ts";
 import { requireCaller } from "../_shared/auth.ts";
+import { syncContactAvatar } from "../_shared/avatar.ts";
 import { HttpError, json, parseJsonBody } from "../_shared/http.ts";
 import { createSecretResolver } from "../_shared/secrets.ts";
 import { servePost } from "../_shared/serve.ts";
-import {
-  fetchProfilePictureUrl,
-  type IEvolutionInstanceTarget,
-} from "../_shared/whatsapp/evolution/instance.ts";
-import { E164_REGEX, toE164 } from "../_shared/whatsapp/phone.ts";
+import { type IEvolutionInstanceTarget } from "../_shared/whatsapp/evolution/instance.ts";
 import type { IEngineDeps, IIntegrationLogEntry } from "../_shared/whatsapp/types.ts";
 
-const AVATARS_BUCKET = "avatars";
 const DEFAULT_LIMIT = 15;
 const MAX_LIMIT = 50;
 /** Gap between contacts — keeps the bulk run gentle on the Evolution server. */
@@ -134,60 +130,23 @@ servePost(async (req, { log, traceId }) => {
   if (error) throw new Error(`select customers: ${error.message}`);
 
   const rows = (customers ?? []) as ICustomerRow[];
-  const nowIso = () => new Date().toISOString();
-  const markAttempted = (id: string) =>
-    admin.from("customers").update({ avatar_synced_at: nowIso() }).eq("id", id);
 
   let withPhoto = 0;
   let withoutPhoto = 0;
   let failed = 0;
 
   for (const contact of rows) {
-    try {
-      const e164 = toE164(contact.phone);
-      if (!E164_REGEX.test(e164)) {
-        await markAttempted(contact.id);
-        withoutPhoto += 1;
-        continue;
-      }
-      const wire = e164.slice(1);
-      const picUrl = await fetchProfilePictureUrl(apiKey, deps, target, wire, traceId);
-      if (!picUrl) {
-        await markAttempted(contact.id);
-        withoutPhoto += 1;
-        continue;
-      }
-      const downloaded = await fetch(picUrl).catch(() => null);
-      if (!downloaded || !downloaded.ok) {
-        await markAttempted(contact.id);
-        withoutPhoto += 1;
-        continue;
-      }
-      const bytes = new Uint8Array(await downloaded.arrayBuffer());
-      const contentType = downloaded.headers.get("content-type") ?? "image/jpeg";
-      const path = `${account.store_id}/${contact.id}.jpg`;
-      const { error: uploadError } = await admin.storage
-        .from(AVATARS_BUCKET)
-        .upload(path, bytes, { contentType, upsert: true });
-      if (uploadError) throw new Error(`upload: ${uploadError.message}`);
-      const publicUrl = admin.storage.from(AVATARS_BUCKET).getPublicUrl(path).data.publicUrl;
-      await admin
-        .from("customers")
-        .update({ avatar_url: publicUrl, avatar_synced_at: nowIso() })
-        .eq("id", contact.id);
-      withPhoto += 1;
-    } catch (caught) {
-      failed += 1;
-      log.warn("avatar sync failed for contact", {
-        customerId: contact.id,
-        error: caught instanceof Error ? caught.message : String(caught),
-      });
-      // Stamp so a re-run drains forward instead of hot-looping a bad row.
-      await markAttempted(contact.id).then(
-        () => {},
-        () => {},
-      );
-    }
+    const result = await syncContactAvatar(
+      admin,
+      deps,
+      target,
+      apiKey,
+      { id: contact.id, phone: contact.phone, storeId: account.store_id },
+      { traceId, warn: (msg, fields) => log.warn(msg, fields) },
+    );
+    if (result === "with-photo") withPhoto += 1;
+    else if (result === "without-photo") withoutPhoto += 1;
+    else failed += 1;
     await sleep(THROTTLE_MS);
   }
 
