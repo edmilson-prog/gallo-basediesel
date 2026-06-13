@@ -3,7 +3,16 @@ import type { IMessagesProvider } from "../../contracts/messages";
 import { classifyMediaRef } from "@/shared/utils/mediaRef";
 
 export const mockMessagesProvider: IMessagesProvider = {
-  list: (params) => messagesApi.list(params),
+  list: async (params) => {
+    const result = await messagesApi.list(params);
+    // Mock has no genuine processing lag — mirror sentAt into receivedAt so the
+    // inbound bubble's dual-timestamp affordance stays consistent in demo mode
+    // (gap ~zero). Real backends populate receivedAt from the row's created_at.
+    return {
+      ...result,
+      data: result.data.map((m) => (m.receivedAt ? m : { ...m, receivedAt: m.sentAt })),
+    };
+  },
   send: (conversationId, input) => messagesApi.send(conversationId, input),
   markStatus: (messageId, status) => messagesApi.markStatus(messageId, status),
   simulateIncoming: (conversationId, text, mediaType) =>

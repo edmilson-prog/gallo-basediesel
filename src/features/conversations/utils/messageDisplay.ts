@@ -8,6 +8,22 @@ export function formatTime(iso: string): string {
   return `${h}:${m}`;
 }
 
+/**
+ * Full local timestamp `YYYY-MM-DD HH:mm:ss` — the technical, seconds-precise
+ * form shown inside the inbound receive-times disclosure (send vs received).
+ */
+export function formatFullTimestamp(iso: string): string {
+  const d = new Date(iso);
+  const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate(),
+  ).padStart(2, "0")}`;
+  const t = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(
+    2,
+    "0",
+  )}:${String(d.getSeconds()).padStart(2, "0")}`;
+  return `${date} ${t}`;
+}
+
 /** Pretty `mm:ss` for audio durations. */
 export function formatDuration(totalSeconds: number): string {
   const total = Math.max(0, Math.floor(totalSeconds));

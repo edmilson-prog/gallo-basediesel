@@ -6,6 +6,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Button } from "@/components/ui/button";
 import { formatTime, isReprocessable, statusVisual } from "../../utils/messageDisplay";
 import { CONVERSATION_STRINGS } from "../../i18n/pt-BR";
+import { ReceiveTimesDisclosure } from "./ReceiveTimesDisclosure";
 
 export interface IBubbleChromeProps {
   message: IMessage;
@@ -63,9 +64,9 @@ export function BubbleChrome({
       >
         {children}
 
-        <div className="mt-1 flex items-center justify-end gap-1 text-[11px] text-muted-foreground">
-          <span>{time}</span>
-          {isOut && (
+        {isOut ? (
+          <div className="mt-1 flex items-center justify-end gap-1 text-[11px] text-muted-foreground">
+            <span>{time}</span>
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className={cn("inline-flex", status.className)} aria-label={statusLabel}>
@@ -89,8 +90,12 @@ export function BubbleChrome({
                           : CONVERSATION_STRINGS.statusTooltip.read(time)}
               </TooltipContent>
             </Tooltip>
-          )}
-        </div>
+          </div>
+        ) : (
+          // Inbound: single send-time by default; a chevron expands a receipt
+          // with BOTH timestamps (customer send time + our receive/stored time).
+          <ReceiveTimesDisclosure message={message} />
+        )}
 
         {isSdr && isOut && (
           <Tooltip>
