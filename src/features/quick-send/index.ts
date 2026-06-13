@@ -73,13 +73,11 @@ export {
 export { SchedulingCenter, type ISchedulingCenterProps } from "./components/scheduling/SchedulingCenter";
 export { ScheduleButton, type IScheduleButtonProps } from "./components/scheduling/ScheduleButton";
 export type { SchedulingTab } from "./components/scheduling/types";
-export { ScheduleSendMenu, type IScheduleSendMenuProps } from "./components/ScheduleSendMenu";
 export {
   useScheduleSend,
   type IUseScheduleSendResult,
   type IScheduleSendPayload,
 } from "./hooks/useScheduleSend";
-export { ScheduledList, type IScheduledListProps } from "./components/ScheduledList";
 export { useScheduledSendRunner } from "./hooks/useScheduledSendRunner";
 export { TemperatureChip, type ITemperatureChipProps } from "./components/TemperatureChip";
 export { LinkOpenIndicator, type ILinkOpenIndicatorProps } from "./components/LinkOpenIndicator";
