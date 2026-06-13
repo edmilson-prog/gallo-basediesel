@@ -70,6 +70,9 @@ export {
   scheduledSendsQueryKey,
   type IUseConversationScheduledResult,
 } from "./hooks/useConversationScheduled";
+export { SchedulingCenter, type ISchedulingCenterProps } from "./components/scheduling/SchedulingCenter";
+export { ScheduleButton, type IScheduleButtonProps } from "./components/scheduling/ScheduleButton";
+export type { SchedulingTab } from "./components/scheduling/types";
 export { ScheduleSendMenu, type IScheduleSendMenuProps } from "./components/ScheduleSendMenu";
 export {
   useScheduleSend,
