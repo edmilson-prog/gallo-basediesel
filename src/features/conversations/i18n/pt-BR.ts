@@ -233,9 +233,14 @@ export const CONVERSATION_STRINGS = {
     sent: (time: string) => `Enviada às ${time}`,
     delivered: (time: string) => `Entregue às ${time}`,
     read: (time: string) => `Lida às ${time}`,
+    // Audio voice notes: WhatsApp reports PLAYED → read, so "read" means the
+    // recipient actually listened. Surface that semantics, not "visualizada".
+    heard: (time: string) => `Ouvido às ${time}`,
     failed: "Falha no envio",
     failedWithReason: (reason: string) => `Falha no envio — ${reason}`,
   },
+  /** aria-label for the played/heard status icon on outbound audio bubbles. */
+  heardLabel: "Ouvido",
 
   // 24h window
   windowOpen: (h: number) => `Janela aberta — ${h}h restantes`,

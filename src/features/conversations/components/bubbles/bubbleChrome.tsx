@@ -47,6 +47,9 @@ export function BubbleChrome({
 
   const status = statusVisual(message.status);
   const time = formatTime(message.sentAt);
+  // Audio voice notes: `read` means PLAYED — surface "Ouvido" instead of "Lida".
+  const isHeardAudio = message.mediaType === "audio" && message.status === "read";
+  const statusLabel = isHeardAudio ? CONVERSATION_STRINGS.heardLabel : status.label;
 
   return (
     <div className={cn("flex w-full flex-col gap-0.5", align)}>
@@ -65,7 +68,7 @@ export function BubbleChrome({
           {isOut && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className={cn("inline-flex", status.className)} aria-label={status.label}>
+                <span className={cn("inline-flex", status.className)} aria-label={statusLabel}>
                   <Icon icon={status.icon} size={13} />
                 </span>
               </TooltipTrigger>
@@ -81,7 +84,9 @@ export function BubbleChrome({
                       ? CONVERSATION_STRINGS.statusTooltip.sent(time)
                       : message.status === "delivered"
                         ? CONVERSATION_STRINGS.statusTooltip.delivered(time)
-                        : CONVERSATION_STRINGS.statusTooltip.read(time)}
+                        : isHeardAudio
+                          ? CONVERSATION_STRINGS.statusTooltip.heard(time)
+                          : CONVERSATION_STRINGS.statusTooltip.read(time)}
               </TooltipContent>
             </Tooltip>
           )}
