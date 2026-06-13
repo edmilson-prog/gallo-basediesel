@@ -91,6 +91,10 @@ function rowToMessage(row: MessageRow): IMessage {
     mediaUrl: row.media_url ?? undefined,
     status: row.status,
     sentAt: row.sent_at,
+    // `created_at` (DEFAULT now()) is when our server persisted the row — i.e.
+    // when we received/processed it. For inbound it can lag `sent_at` (the
+    // original WhatsApp timestamp); surfaced as the second time in the bubble.
+    receivedAt: row.created_at,
     deliveredAt: row.delivered_at ?? undefined,
     readAt: row.read_at ?? undefined,
     failureReason: row.failure_reason ?? undefined,

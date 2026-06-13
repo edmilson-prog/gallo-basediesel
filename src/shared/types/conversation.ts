@@ -83,7 +83,18 @@ export interface IMessage {
   mediaType?: MessageMediaType;
   mediaUrl?: string;
   status: MessageStatus;
+  /**
+   * When the customer actually sent the message — the original WhatsApp
+   * `messageTimestamp` for inbound. For outbound it is our send time.
+   */
   sentAt: ISO8601;
+  /**
+   * When our server received/persisted the message (the row's `created_at`).
+   * For inbound this can lag `sentAt` (reconnection backlog, history import);
+   * for outbound it is written alongside `sentAt`, so the gap is ~zero.
+   * Optional: legacy/mock rows may omit it, and the UI degrades gracefully.
+   */
+  receivedAt?: ISO8601;
   deliveredAt?: ISO8601;
   readAt?: ISO8601;
   /** Human-readable reason of a failed dispatch (PRD-114/118). */

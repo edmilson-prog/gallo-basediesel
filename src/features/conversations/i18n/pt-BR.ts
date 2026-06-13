@@ -242,6 +242,17 @@ export const CONVERSATION_STRINGS = {
   /** aria-label for the played/heard status icon on outbound audio bubbles. */
   heardLabel: "Ouvido",
 
+  // Inbound receive-times disclosure — the bubble shows a single time by
+  // default and reveals BOTH timestamps on expand: when the customer sent it
+  // (sentAt, the WhatsApp time) and when our server received/stored it
+  // (receivedAt, the row's created_at).
+  receiveTimes: {
+    expand: "Ver horários de envio e recebimento",
+    collapse: "Ocultar horários",
+    sentLabel: "Enviada pelo cliente",
+    receivedLabel: "Recebida no sistema",
+  },
+
   // 24h window
   windowOpen: (h: number) => `Janela aberta — ${h}h restantes`,
   windowClosing: (m: number) => `Janela fechando — ${m} min restantes`,
@@ -286,6 +297,7 @@ export const CONVERSATION_STRINGS = {
     resumeSdr: "Retomar SDR",
     syncPhoto: "Atualizar foto do contato",
   },
+  photoSyncing: "Atualizando foto do contato…",
   photoUpdated: "Foto do contato atualizada",
   photoUnavailable: "O WhatsApp não retornou foto para este contato (sem foto ou perfil privado)",
   photoSyncFailed: "Não foi possível buscar a foto agora. Tente novamente.",

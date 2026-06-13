@@ -231,18 +231,23 @@ export function ConversationMenu({ conversation, customer, onMutated }: IConvers
   const handleSyncPhoto = async () => {
     if (!customer || !conversation.whatsappAccountId || syncingPhoto) return;
     setSyncingPhoto(true);
+    // Immediate feedback: the menu item (and its inline spinner) unmounts when
+    // the dropdown closes on select, so without a toast the action feels like
+    // nothing happened. A loading toast acknowledges the command right away and
+    // is then swapped in place (same id) for the outcome.
+    const toastId = toast.loading(CONVERSATION_STRINGS.photoSyncing);
     try {
       const outcome = await runContactAvatarSync(conversation.whatsappAccountId, customer.id);
       if (outcome === "with-photo") {
-        toast.success(CONVERSATION_STRINGS.photoUpdated);
+        toast.success(CONVERSATION_STRINGS.photoUpdated, { id: toastId });
         onMutated?.();
       } else if (outcome === "without-photo") {
-        toast.info(CONVERSATION_STRINGS.photoUnavailable);
+        toast.info(CONVERSATION_STRINGS.photoUnavailable, { id: toastId });
       } else {
-        toast.error(CONVERSATION_STRINGS.photoSyncFailed);
+        toast.error(CONVERSATION_STRINGS.photoSyncFailed, { id: toastId });
       }
     } catch (error) {
-      toast.error(avatarSyncErrorMessage(error));
+      toast.error(avatarSyncErrorMessage(error), { id: toastId });
     } finally {
       setSyncingPhoto(false);
     }
