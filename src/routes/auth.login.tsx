@@ -4,11 +4,17 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/useAuth";
 import { MOCK_USERS } from "@/features/auth/mock-users";
 import { AUTH_SOURCE } from "@/features/auth/authSource";
+import {
+  clearRememberedEmail,
+  readRememberedEmail,
+  saveRememberedEmail,
+} from "@/features/auth/rememberEmail";
 import { BrandPanel, type BrandPanelVariant } from "@/features/auth/BrandPanel";
 import { ProfileCard } from "@/features/auth/ProfileCard";
 
@@ -30,8 +36,9 @@ function LoginPage() {
   const isSupabase = AUTH_SOURCE === "supabase";
   const [bg, setBg] = useState<BrandPanelVariant>("embers");
   const [pendingId, setPendingId] = useState<string | null>(null);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => readRememberedEmail() ?? "");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(() => readRememberedEmail() !== null);
   const [error, setError] = useState<string | null>(null);
 
   const enter = (id: string) => {
@@ -60,6 +67,8 @@ function LoginPage() {
         setPendingId(null);
         return;
       }
+      if (rememberMe) saveRememberedEmail(email);
+      else clearRememberedEmail();
       const target = next ?? result.profile.defaultRedirect;
       void navigate({ to: target });
     });
@@ -129,6 +138,19 @@ function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="login-remember"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) => setRememberMe(checked === true)}
+                />
+                <Label
+                  htmlFor="login-remember"
+                  className="cursor-pointer text-sm font-normal text-muted-foreground"
+                >
+                  Lembrar-me
+                </Label>
               </div>
               {error && (
                 <div
