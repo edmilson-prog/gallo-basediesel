@@ -1,7 +1,9 @@
-import type { ID, ISO8601, IScheduledSend } from "@/shared/types";
+import type { ID, ISO8601, IScheduledSend, IScheduledSendWithContext, ICustomer } from "@/shared/types";
 import {
   selectAllScheduledSends,
   selectScheduledSendsByConversation,
+  selectConversationById,
+  selectCustomerById,
 } from "../store/selectors";
 import { patchById, upsert } from "../store/mutations";
 import { isDue } from "@/features/quick-send/engine/scheduledSend";
@@ -9,6 +11,16 @@ import { MockNotFoundError, runApi } from "./utils";
 
 function getById(id: ID): IScheduledSend | null {
   return selectAllScheduledSends().find((s) => s.id === id) ?? null;
+}
+
+/** Recipient name/phone for the global queue. B2B → trade/legal name; B2C → full name. */
+function resolveCustomerContext(c: ICustomer | null): { name: string | null; phone: string | null } {
+  if (!c) return { name: null, phone: null };
+  const name =
+    c.type === "B2B"
+      ? c.nomeFantasia || c.razaoSocial || c.contactName || null
+      : c.fullName || null;
+  return { name, phone: c.phone ?? null };
 }
 
 export const scheduledSendApi = {
@@ -33,7 +45,11 @@ export const scheduledSendApi = {
     );
   },
 
-  create(input: Omit<IScheduledSend, "id" | "status" | "createdAt">): Promise<IScheduledSend> {
+  create(
+    input: Omit<IScheduledSend, "id" | "createdAt" | "status"> & {
+      status?: IScheduledSend["status"];
+    },
+  ): Promise<IScheduledSend> {
     return runApi(
       "scheduledSendApi",
       "create",
@@ -41,7 +57,7 @@ export const scheduledSendApi = {
         const send: IScheduledSend = {
           ...input,
           id: `sched-${crypto.randomUUID()}`,
-          status: "pending",
+          status: input.status ?? "pending",
           createdAt: new Date().toISOString(),
         };
         upsert("scheduledSends", send);
@@ -103,6 +119,25 @@ export const scheduledSendApi = {
         return updated;
       },
       { payload: { id, reason } },
+    );
+  },
+
+  listStore(params?: { status?: IScheduledSend["status"][] }): Promise<IScheduledSendWithContext[]> {
+    const statuses = params?.status ?? ["pending"];
+    return runApi(
+      "scheduledSendApi",
+      "listStore",
+      () =>
+        selectAllScheduledSends()
+          .filter((s) => statuses.includes(s.status))
+          .sort((a, b) => (a.scheduledFor ?? "").localeCompare(b.scheduledFor ?? ""))
+          .map((s) => {
+            const conv = selectConversationById(s.conversationId);
+            const customer = conv?.customerId ? selectCustomerById(conv.customerId) : null;
+            const ctx = resolveCustomerContext(customer ?? null);
+            return { ...s, customerName: ctx.name, customerPhone: ctx.phone };
+          }),
+      { payload: { statuses } },
     );
   },
 

@@ -196,4 +196,10 @@ export interface IScheduledSendProvider {
   cancel(id: ID): Promise<IScheduledSend>;
   markSent(id: ID): Promise<IScheduledSend>;
   markFailed(id: ID, reason: string): Promise<IScheduledSend>;
+  /**
+   * Store-wide scheduled queue with recipient context (Owner/Gestor only — the
+   * role gate is in the UI). Store-scoped by RLS, so no extra security boundary.
+   * Defaults to pending rows.
+   */
+  listStore(params?: { status?: ScheduledSendStatus[] }): Promise<IScheduledSendWithContext[]>;
 }

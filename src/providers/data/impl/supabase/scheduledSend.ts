@@ -1,4 +1,10 @@
-import type { ID, ISO8601, IScheduledSend, ScheduledSendStatus } from "@/shared/types";
+import type {
+  ID,
+  ISO8601,
+  IScheduledSend,
+  IScheduledSendWithContext,
+  ScheduledSendStatus,
+} from "@/shared/types";
 import type { IScheduledSendProvider } from "../../contracts/scheduledSend";
 import { getSupabaseClient } from "@/shared/lib/supabase";
 
@@ -33,6 +39,16 @@ interface ScheduledSendRow {
   failure_reason: string | null;
   created_by: string;
   created_at: string;
+}
+
+interface CustomerContextRow {
+  id: string;
+  type: "B2B" | "B2C";
+  full_name: string | null;
+  nome_fantasia: string | null;
+  razao_social: string | null;
+  contact_name: string | null;
+  phone: string | null;
 }
 
 const TABLE = "scheduled_sends";
@@ -102,9 +118,9 @@ export const supabaseScheduledSendProvider: IScheduledSendProvider = {
       id,
       store_id: storeId,
       conversation_id: input.conversationId,
-      scheduled_for: input.scheduledFor,
+      scheduled_for: input.scheduledFor ?? null,
       payload: input.payload,
-      status: "pending" as ScheduledSendStatus,
+      status: ((input as { status?: ScheduledSendStatus }).status ?? "pending") as ScheduledSendStatus,
       failure_reason: input.failureReason ?? null,
       created_by: input.createdBy,
     };
@@ -160,5 +176,57 @@ export const supabaseScheduledSendProvider: IScheduledSendProvider = {
     if (error)
       throw new Error(`[supabase] scheduledSend.markFailed(${id}) failed: ${error.message}`);
     return rowToScheduledSend(data as unknown as ScheduledSendRow);
+  },
+
+  async listStore(params?: {
+    status?: ScheduledSendStatus[];
+  }): Promise<IScheduledSendWithContext[]> {
+    const statuses = params?.status ?? (["pending"] as ScheduledSendStatus[]);
+    const client = getSupabaseClient();
+    // (1) store-wide scheduled rows — RLS already limits to current_store_id().
+    const { data: rows, error } = await client
+      .from(TABLE)
+      .select(COLUMNS)
+      .in("status", statuses)
+      .order("scheduled_for", { ascending: true, nullsFirst: false });
+    if (error) throw new Error(`[supabase] scheduledSend.listStore failed: ${error.message}`);
+    const sends = (rows as unknown as ScheduledSendRow[]).map(rowToScheduledSend);
+    if (sends.length === 0) return [];
+
+    // (2) conversation → customer_id
+    const convIds = [...new Set(sends.map((s) => s.conversationId))];
+    const { data: convs } = await client
+      .from("conversations")
+      .select("id, customer_id")
+      .in("id", convIds);
+    const convToCustomer = new Map<string, string | null>(
+      ((convs as { id: string; customer_id: string | null }[] | null) ?? []).map((c) => [
+        c.id,
+        c.customer_id,
+      ]),
+    );
+
+    // (3) customer → name/phone
+    const custIds = [...new Set([...convToCustomer.values()].filter((v): v is string => !!v))];
+    const customerCtx = new Map<string, { name: string | null; phone: string | null }>();
+    if (custIds.length > 0) {
+      const { data: custs } = await client
+        .from("customers")
+        .select("id, type, full_name, nome_fantasia, razao_social, contact_name, phone")
+        .in("id", custIds);
+      for (const c of (custs as CustomerContextRow[] | null) ?? []) {
+        const name =
+          c.type === "B2B"
+            ? c.nome_fantasia || c.razao_social || c.contact_name || null
+            : c.full_name || null;
+        customerCtx.set(c.id, { name, phone: c.phone ?? null });
+      }
+    }
+
+    return sends.map((s) => {
+      const customerId = convToCustomer.get(s.conversationId) ?? null;
+      const ctx = (customerId && customerCtx.get(customerId)) || { name: null, phone: null };
+      return { ...s, customerName: ctx.name, customerPhone: ctx.phone };
+    });
   },
 };

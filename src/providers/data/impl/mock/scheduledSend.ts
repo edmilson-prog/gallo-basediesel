@@ -1,4 +1,4 @@
-import type { ID, IScheduledSend } from "@/shared/types";
+import type { ID, IScheduledSend, IScheduledSendWithContext, ScheduledSendStatus } from "@/shared/types";
 import { scheduledSendApi } from "@/mocks";
 import type { IScheduledSendProvider } from "../../contracts/scheduledSend";
 import { logMockMutation } from "./_audit";
@@ -39,4 +39,7 @@ export const mockScheduledSendProvider: IScheduledSendProvider = {
   markSent: (id) => scheduledSendApi.markSent(id),
 
   markFailed: (id, reason) => scheduledSendApi.markFailed(id, reason),
+
+  listStore: (params?: { status?: ScheduledSendStatus[] }): Promise<IScheduledSendWithContext[]> =>
+    scheduledSendApi.listStore(params),
 };
