@@ -89,7 +89,12 @@ export function CustomerProfile({
         aria-label={`Ficha de ${customer.type === "B2B" ? customer.nomeFantasia : customer.fullName}`}
       >
         <ProfileHeader customer={customer} conversation={conversation} variant={variant} />
-        <ProfileTabs customer={customer} conversation={conversation} copilotTab={copilotTab} />
+        <ProfileTabs
+          customer={customer}
+          conversation={conversation}
+          iconOnlyTabs={variant === "column"}
+          copilotTab={copilotTab}
+        />
       </div>
     </TooltipProvider>
   );
