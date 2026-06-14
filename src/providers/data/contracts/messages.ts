@@ -74,4 +74,10 @@ export interface IMessagesProvider {
    * expired has a null url and is therefore excluded.
    */
   listConversationMedia(conversationId: ID): Promise<IMessage[]>;
+  /**
+   * Like {@link listConversationMedia} but across ALL of a customer's
+   * conversations — feeds the customer fiche "Mídias" tab. Newest first, only
+   * media with bytes available.
+   */
+  listCustomerMedia(customerId: ID): Promise<IMessage[]>;
 }
