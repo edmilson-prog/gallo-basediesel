@@ -11,7 +11,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Can } from "@/features/rbac/components/Can";
 import { useAuth } from "@/features/auth/useAuth";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { recordAuditLog, useConversationsProvider, useSellersProvider } from "@/providers/data";
@@ -42,7 +41,13 @@ export function QuickActions({ conversation, onMutated }: IQuickActionsProps) {
   const conversationsProvider = useConversationsProvider();
   const sellersProvider = useSellersProvider();
 
-  const canTransferOrArchive = usePermission("conversation", "edit", "store");
+  const canEditStore = usePermission("conversation", "edit", "store");
+  const canEditOwn = usePermission("conversation", "edit", "own");
+  // Managers act on any store conversation; a seller can transfer/archive the
+  // conversation currently assigned to them (own scope) — mirrors the RLS.
+  const isOwnConversation =
+    currentUser?.sellerId != null && conversation.assignedSellerId === currentUser.sellerId;
+  const canTransferOrArchive = canEditStore || (canEditOwn && isOwnConversation);
   // A seller can claim an unassigned conversation. Requires a seller identity
   // (admin-style users without a seller_id cannot self-assign).
   const canSelfAssign = currentUser?.sellerId != null && !conversation.assignedSellerId;
@@ -167,69 +172,71 @@ export function QuickActions({ conversation, onMutated }: IQuickActionsProps) {
         </Tooltip>
       )}
 
-      <Can resource="conversation" action="edit" scope="store">
-        <DropdownMenu open={transferOpen} onOpenChange={setTransferOpen}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0"
-                  aria-label={INBOX_STRINGS.transfer}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
+      {canTransferOrArchive && (
+        <>
+          <DropdownMenu open={transferOpen} onOpenChange={setTransferOpen}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    aria-label={INBOX_STRINGS.transfer}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                  >
+                    <Icon icon="mdi:account-switch" size={14} />
+                  </Button>
+                </DropdownMenuTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="left">{INBOX_STRINGS.transfer}</TooltipContent>
+            </Tooltip>
+            <DropdownMenuContent
+              align="end"
+              className="max-h-72 w-56 overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <DropdownMenuLabel>{INBOX_STRINGS.transferTo}</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {sellers.map((s) => (
+                <DropdownMenuItem
+                  key={s.id}
+                  onSelect={() => {
+                    setTransferOpen(false);
+                    void handleTransferTo(s.id, s.fullName);
                   }}
                 >
-                  <Icon icon="mdi:account-switch" size={14} />
-                </Button>
-              </DropdownMenuTrigger>
-            </TooltipTrigger>
-            <TooltipContent side="left">{INBOX_STRINGS.transfer}</TooltipContent>
-          </Tooltip>
-          <DropdownMenuContent
-            align="end"
-            className="max-h-72 w-56 overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <DropdownMenuLabel>{INBOX_STRINGS.transferTo}</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {sellers.map((s) => (
-              <DropdownMenuItem
-                key={s.id}
-                onSelect={() => {
-                  setTransferOpen(false);
-                  void handleTransferTo(s.id, s.fullName);
+                  {s.fullName}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                aria-label={INBOX_STRINGS.archive}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  void handleArchive();
                 }}
               >
-                {s.fullName}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-7 w-7 p-0"
-              aria-label={INBOX_STRINGS.archive}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                void handleArchive();
-              }}
-            >
-              <Icon icon="mdi:archive-arrow-down-outline" size={14} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="left">{INBOX_STRINGS.archive}</TooltipContent>
-        </Tooltip>
-      </Can>
+                <Icon icon="mdi:archive-arrow-down-outline" size={14} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">{INBOX_STRINGS.archive}</TooltipContent>
+          </Tooltip>
+        </>
+      )}
     </div>
   );
 }
