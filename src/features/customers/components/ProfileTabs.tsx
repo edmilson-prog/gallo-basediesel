@@ -1,8 +1,10 @@
 import { useState } from "react";
 import type { IConversation, ICustomer } from "@/shared/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Icon } from "@/components/Icon";
+import { cn } from "@/lib/utils";
 import { CUSTOMER_STRINGS } from "../i18n/pt-BR";
 import { OverviewTab } from "./tabs/OverviewTab";
 import { OrdersTab } from "./tabs/OrdersTab";
@@ -21,6 +23,11 @@ export interface IProfileTabsProps {
   onActiveTabChange?: (tab: TabKey) => void;
   /** Layout density of the Overview tab. */
   overviewVariant?: "column" | "page";
+  /**
+   * Render the tab bar as icon-only triggers with tooltips, for the narrow
+   * lateral fiche where the text labels overflow. Defaults to text labels.
+   */
+  iconOnlyTabs?: boolean;
   /** Optional "Copiloto" tab content injected by the conversation screen (PRD-025). */
   copilotTab?: React.ReactNode;
 }
@@ -46,6 +53,62 @@ const TAB_ORDER: TabKey[] = [
   "recommendations",
 ];
 
+/** Iconify glyph per tab — used by the icon-only lateral fiche. */
+const TAB_ICONS: Record<TabKey, string> = {
+  overview: "mdi:account-details-outline",
+  orders: "mdi:package-variant-closed",
+  quotes: "mdi:file-document-outline",
+  vehicles: "mdi:truck-outline",
+  conversations: "mdi:chat-outline",
+  midias: "mdi:image-multiple-outline",
+  notes: "mdi:note-text-outline",
+  recommendations: "mdi:lightbulb-outline",
+};
+
+const COPILOT_ICON = "mdi:robot-outline";
+
+const TRIGGER_BASE =
+  "rounded-none border-b-2 border-transparent py-1 text-xs font-medium text-muted-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none";
+
+/**
+ * A single tab trigger. In `iconOnly` mode it shows just the icon with a
+ * tooltip (plus a pt-BR `aria-label` for screen readers, since tooltips aren't
+ * announced); otherwise the text label, exactly as before.
+ */
+function ProfileTabTrigger({
+  value,
+  label,
+  icon,
+  iconOnly,
+}: {
+  value: string;
+  label: string;
+  icon: string;
+  iconOnly: boolean;
+}) {
+  if (!iconOnly) {
+    return (
+      <TabsTrigger value={value} className={cn(TRIGGER_BASE, "px-3")}>
+        {label}
+      </TabsTrigger>
+    );
+  }
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <TabsTrigger
+          value={value}
+          aria-label={label}
+          className={cn(TRIGGER_BASE, "flex flex-1 items-center justify-center px-0")}
+        >
+          <Icon icon={icon} size={17} />
+        </TabsTrigger>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 /**
  * Tabbed content container. Renders only the active tab body (lazy load —
  * RNF-002): switching to Pedidos kicks off `useOrdersProvider().listByCustomer`
@@ -60,6 +123,7 @@ export function ProfileTabs({
   activeTab,
   onActiveTabChange,
   overviewVariant = "column",
+  iconOnlyTabs = false,
   copilotTab,
 }: IProfileTabsProps) {
   // `activeString` accepts any tab value including the dynamic "copilot" extra tab.
@@ -76,24 +140,28 @@ export function ProfileTabs({
     <Tabs value={activeString} onValueChange={setActive} className="flex min-h-0 flex-1 flex-col">
       <div className="shrink-0 border-b border-border bg-card px-2">
         <ScrollArea className="w-full">
-          <TabsList className="inline-flex h-9 w-max gap-0 rounded-none bg-transparent p-0">
+          <TabsList
+            className={cn(
+              "h-9 gap-0 rounded-none bg-transparent p-0",
+              iconOnlyTabs ? "flex w-full" : "inline-flex w-max",
+            )}
+          >
             {TAB_ORDER.map((key) => (
-              <TabsTrigger
+              <ProfileTabTrigger
                 key={key}
                 value={key}
-                className="rounded-none border-b-2 border-transparent px-3 py-1 text-xs font-medium text-muted-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
-              >
-                {CUSTOMER_STRINGS.tabs[key]}
-              </TabsTrigger>
+                label={CUSTOMER_STRINGS.tabs[key]}
+                icon={TAB_ICONS[key]}
+                iconOnly={iconOnlyTabs}
+              />
             ))}
             {copilotTab != null && (
-              <TabsTrigger
+              <ProfileTabTrigger
                 value="copilot"
-                className="rounded-none border-b-2 border-transparent px-3 py-1 text-xs font-medium text-muted-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
-              >
-                <Icon icon="mdi:robot-outline" size={13} className="mr-1 inline-block" />
-                Copiloto
-              </TabsTrigger>
+                label="Copiloto"
+                icon={COPILOT_ICON}
+                iconOnly={iconOnlyTabs}
+              />
             )}
           </TabsList>
           <ScrollBar orientation="horizontal" className="h-1" />
