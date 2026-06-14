@@ -103,13 +103,63 @@ export const CHANNEL_META: Record<
   },
 };
 
-/** Vertical status indicator (3px border) color per status. */
-export const STATUS_BORDER: Record<ConversationStatus, string> = {
-  aguardando: "bg-orange-500",
-  em_andamento: "bg-emerald-500",
-  aguardando_cliente: "bg-sky-400",
-  resolvida: "bg-muted-foreground/40",
-  arquivada: "bg-transparent",
+/** Indicator shape for a status dot: solid = "our turn", ring = "waiting on client". */
+export type StatusShape = "filled" | "outline" | "check";
+
+/**
+ * Single source of truth for status visuals (icon, pill classes, list border,
+ * dot shape). Text labels live in CONVERSATION_STRINGS.statusLabel /
+ * statusAriaLabel — this map is visuals only. Colors come from semantic tokens
+ * (severity-*, primary, muted); em_andamento uses `primary` (gold) to avoid
+ * clashing with the WhatsApp channel green.
+ */
+export interface IStatusMeta {
+  icon: string;
+  /** Header pill (bg + text + border). */
+  pillClass: string;
+  /** 3px list border bar. */
+  barClass: string;
+  shape: StatusShape;
+  /** Dot color/treatment used inside pills and segments. */
+  dotClass: string;
+}
+
+export const STATUS_META: Record<ConversationStatus, IStatusMeta> = {
+  aguardando: {
+    icon: "mdi:account-clock-outline",
+    pillClass: "bg-severity-warning/15 text-severity-warning border border-severity-warning/30",
+    barClass: "bg-severity-warning",
+    shape: "filled",
+    dotClass: "bg-severity-warning",
+  },
+  em_andamento: {
+    icon: "mdi:message-processing-outline",
+    pillClass: "bg-primary/15 text-primary border border-primary/30",
+    barClass: "bg-primary",
+    shape: "filled",
+    dotClass: "bg-primary",
+  },
+  aguardando_cliente: {
+    icon: "mdi:account-arrow-left-outline",
+    pillClass: "bg-severity-info/15 text-severity-info border border-severity-info/30",
+    barClass: "bg-severity-info",
+    shape: "outline",
+    dotClass: "border-2 border-severity-info",
+  },
+  resolvida: {
+    icon: "mdi:check-circle-outline",
+    pillClass: "bg-severity-success/15 text-severity-success border border-severity-success/30",
+    barClass: "bg-severity-success/50",
+    shape: "check",
+    dotClass: "bg-severity-success",
+  },
+  arquivada: {
+    icon: "mdi:archive-outline",
+    pillClass: "bg-muted text-muted-foreground border border-border",
+    barClass: "bg-transparent",
+    shape: "filled",
+    dotClass: "bg-muted-foreground/40",
+  },
 };
 
 export const TEMPERATURE_META: Record<
