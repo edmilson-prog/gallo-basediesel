@@ -54,6 +54,29 @@ export const messagesApi = {
     );
   },
 
+  /**
+   * Media across ALL of a customer's conversations (the fiche "Mídias" tab),
+   * newest first. Mirrors the Supabase customer-scoped media read.
+   */
+  listCustomerMedia(customerId: ID): Promise<IMessage[]> {
+    return runApi(
+      "messagesApi",
+      "listCustomerMedia",
+      () => {
+        const state = getMockState();
+        const convIds = new Set(
+          state.conversations.filter((c) => c.customerId === customerId).map((c) => c.id),
+        );
+        return state.messages
+          .filter(
+            (m) => convIds.has(m.conversationId) && Boolean(m.mediaType) && Boolean(m.mediaUrl),
+          )
+          .sort((a, b) => b.sentAt.localeCompare(a.sentAt));
+      },
+      { payload: { customerId } },
+    );
+  },
+
   list(params: IListMessagesParams): Promise<IPaginatedResult<IMessage>> {
     return runApi(
       "messagesApi",

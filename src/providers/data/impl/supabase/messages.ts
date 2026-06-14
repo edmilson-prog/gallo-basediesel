@@ -261,4 +261,21 @@ export const supabaseMessagesProvider: IMessagesProvider = {
       throw new Error(`[supabase] messages.listConversationMedia failed: ${error.message}`);
     return (data as unknown as MessageRow[]).map(rowToMessage);
   },
+
+  async listCustomerMedia(customerId: ID): Promise<IMessage[]> {
+    // Inner-join conversations so we can filter by the owning customer across
+    // ALL of their conversations (the fiche "Mídias" tab). Same media filters
+    // as listConversationMedia; the embedded `conversations` field is ignored
+    // by rowToMessage.
+    const { data, error } = await getSupabaseClient()
+      .from(TABLE)
+      .select(`${COLUMNS}, conversations!inner(customer_id)`)
+      .eq("conversations.customer_id", customerId)
+      .not("media_type", "is", null)
+      .not("media_url", "is", null)
+      .order("sent_at", { ascending: false })
+      .limit(500);
+    if (error) throw new Error(`[supabase] messages.listCustomerMedia failed: ${error.message}`);
+    return (data as unknown as MessageRow[]).map(rowToMessage);
+  },
 };

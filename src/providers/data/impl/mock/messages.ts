@@ -44,4 +44,5 @@ export const mockMessagesProvider: IMessagesProvider = {
     });
     return result.data.filter((m) => Boolean(m.mediaType) && Boolean(m.mediaUrl));
   },
+  listCustomerMedia: (customerId) => messagesApi.listCustomerMedia(customerId),
 };
