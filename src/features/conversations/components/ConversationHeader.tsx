@@ -9,6 +9,7 @@ import type {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
+import { AvatarLightbox } from "@/components/AvatarLightbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -93,7 +94,9 @@ export function ConversationHeader({
   return (
     <header className="shrink-0 border-b border-border bg-card">
       <div className="flex h-16 items-center gap-3 px-4">
-        <ContactAvatar display={display} />
+        <AvatarLightbox src={display.avatarUrl} name={display.name}>
+          <ContactAvatar display={display} />
+        </AvatarLightbox>
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">

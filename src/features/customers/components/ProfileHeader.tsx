@@ -4,6 +4,7 @@ import { CustomerAvatar } from "./CustomerAvatar";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Icon } from "@/components/Icon";
+import { AvatarLightbox } from "@/components/AvatarLightbox";
 import { cn } from "@/lib/utils";
 import { formatPhone } from "@/shared/utils/format";
 import { CUSTOMER_STRINGS } from "../i18n/pt-BR";
@@ -37,14 +38,16 @@ export function ProfileHeader({ customer, conversation, variant }: IProfileHeade
       )}
     >
       <div className="flex items-start gap-3">
-        <CustomerAvatar
-          display={display}
-          className={cn(
-            "shrink-0",
-            variant === "page" ? "h-16 w-16 text-lg" : "h-12 w-12 text-base",
-          )}
-          iconSize={variant === "page" ? 30 : 24}
-        />
+        <AvatarLightbox src={display.avatarUrl} name={display.name} className="shrink-0">
+          <CustomerAvatar
+            display={display}
+            className={cn(
+              "shrink-0",
+              variant === "page" ? "h-16 w-16 text-lg" : "h-12 w-12 text-base",
+            )}
+            iconSize={variant === "page" ? 30 : 24}
+          />
+        </AvatarLightbox>
         <div className="min-w-0 flex-1 space-y-1.5">
           <h2
             className={cn(
