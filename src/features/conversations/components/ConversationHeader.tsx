@@ -17,6 +17,9 @@ import { useAuth } from "@/features/auth/useAuth";
 import { CHANNEL_META, getConversationDisplay } from "../utils/conversationDisplay";
 import { ContactAvatar } from "./ContactAvatar";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
+import { StatusControl } from "./status/StatusControl";
+import { StatusControlModeSwitcher } from "./status/StatusControlModeSwitcher";
+import { useStatusControlMode } from "../hooks/useStatusControlMode";
 import { EscalationBadge } from "@/features/sdr-escalation/components/EscalationBadge";
 import { TemperatureChip } from "@/features/quick-send/components/TemperatureChip";
 import { useConversationScheduled } from "@/features/quick-send/hooks/useConversationScheduled";
@@ -39,16 +42,10 @@ export interface IConversationHeaderProps {
   escalation?: ISdrEscalation | null;
   /** Called after a customer mutation done from the header (PRD-118). */
   onCustomerUpdated?: () => void;
+  /** Called after the conversation status changes from the header control. */
+  onConversationUpdated?: () => void;
 }
 
-const STATUS_TONE: Record<IConversation["status"], string> = {
-  aguardando: "bg-orange-500/15 text-orange-700 dark:text-orange-300 border border-orange-500/30",
-  em_andamento:
-    "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30",
-  aguardando_cliente: "bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30",
-  resolvida: "bg-muted text-muted-foreground border border-border",
-  arquivada: "bg-muted text-muted-foreground border border-border opacity-70",
-};
 
 export function ConversationHeader({
   conversation,
@@ -62,12 +59,14 @@ export function ConversationHeader({
   menuSlot,
   escalation,
   onCustomerUpdated,
+  onConversationUpdated,
 }: IConversationHeaderProps) {
   const display = getConversationDisplay(conversation, customer, lead);
   const channel = CHANNEL_META[conversation.channel];
   const navigate = useNavigate();
   const customersProvider = useCustomersProvider();
   const { hasRole } = useAuth();
+  const { mode: statusControlMode, setMode: setStatusControlMode } = useStatusControlMode();
 
   // PRD-118 RF-052: back to 'valid' is a MANUAL staff action — never automatic.
   const handleMarkWhatsappValid = async () => {
@@ -158,18 +157,17 @@ export function ConversationHeader({
               <Icon icon={channel.icon} size={12} />
               <span className="truncate">{channelSubtitle}</span>
             </span>
-            <span
-              className={cn(
-                "rounded-full px-2 py-0.5 text-[11px] font-medium",
-                STATUS_TONE[conversation.status],
-              )}
-            >
-              {CONVERSATION_STRINGS.statusLabel[conversation.status]}
-            </span>
           </div>
         </div>
 
         <div className="flex items-center gap-1">
+          <StatusControl
+            conversation={conversation}
+            mode={statusControlMode}
+            onChanged={onConversationUpdated}
+          />
+          <StatusControlModeSwitcher value={statusControlMode} onChange={setStatusControlMode} />
+          <span className="mx-1 h-6 w-px bg-border" aria-hidden />
           <Button variant="default" size="sm" className="gap-1.5" onClick={handleCreateQuote}>
             <Icon icon="mdi:file-document-plus-outline" size={14} />
             <span className="hidden md:inline">{CONVERSATION_STRINGS.createQuote}</span>
