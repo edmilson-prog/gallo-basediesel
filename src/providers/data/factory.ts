@@ -33,6 +33,7 @@ import { mockAssetLibraryProvider } from "./impl/mock/assetLibrary";
 import { mockQuickReplyProvider } from "./impl/mock/quickReply";
 import { mockTrackableLinkProvider } from "./impl/mock/trackableLink";
 import { mockScheduledSendProvider } from "./impl/mock/scheduledSend";
+import { mockConversationNotesProvider } from "./impl/mock/conversationNotes";
 import { mockStorefrontProvider } from "./impl/mock/storefront";
 import { mockSystemHealthProvider } from "./impl/mock/systemHealth";
 import { mockMessageTemplatesProvider } from "./impl/mock/messageTemplates";
@@ -70,6 +71,7 @@ import { supabaseAssetLibraryProvider } from "./impl/supabase/assetLibrary";
 import { supabaseQuickReplyProvider } from "./impl/supabase/quickReply";
 import { supabaseTrackableLinkProvider } from "./impl/supabase/trackableLink";
 import { supabaseScheduledSendProvider } from "./impl/supabase/scheduledSend";
+import { supabaseConversationNotesProvider } from "./impl/supabase/conversationNotes";
 import { supabaseStorefrontProvider } from "./impl/supabase/storefront";
 import { supabaseSystemHealthProvider } from "./impl/supabase/systemHealth";
 import { supabaseMessageTemplatesProvider } from "./impl/supabase/messageTemplates";
@@ -140,6 +142,7 @@ const mockProviders: IDataProviders = {
   quickReply: mockQuickReplyProvider,
   trackableLink: mockTrackableLinkProvider,
   scheduledSend: mockScheduledSendProvider,
+  conversationNotes: mockConversationNotesProvider,
   storefront: mockStorefrontProvider,
   systemHealth: mockSystemHealthProvider,
   messageTemplates: mockMessageTemplatesProvider,
@@ -179,6 +182,7 @@ const supabaseProviders: IDataProviders = {
   quickReply: supabaseQuickReplyProvider,
   trackableLink: supabaseTrackableLinkProvider,
   scheduledSend: supabaseScheduledSendProvider,
+  conversationNotes: supabaseConversationNotesProvider,
   storefront: supabaseStorefrontProvider,
   systemHealth: supabaseSystemHealthProvider,
   messageTemplates: supabaseMessageTemplatesProvider,

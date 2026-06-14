@@ -129,6 +129,9 @@ export type {
   WhatsAppFailoverPolicy,
 } from "./conversation";
 
+// Conversation notes (internal attendant board)
+export type { IConversationNote, IConversationNotesProvider } from "./conversationNote";
+
 // Catalog
 export type {
   IPart,

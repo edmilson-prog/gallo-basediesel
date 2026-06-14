@@ -1,4 +1,4 @@
-import type { IMessage } from "@/shared/types";
+import type { IMessage, IConversationNote } from "@/shared/types";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
 
 const MS_PER_DAY = 86_400_000;
@@ -89,6 +89,56 @@ export function groupMessagesWithDaySeparators(
       lastKey = key;
     }
     rows.push({ kind: "message", id: message.id, message });
+  }
+  return rows;
+}
+
+export interface INoteRow {
+  kind: "note";
+  id: string;
+  note: IConversationNote;
+}
+
+/** A message, an internal note, or a day separator — the unified thread. */
+export type ThreadRow = IDaySeparator | IMessageRow | INoteRow;
+
+/**
+ * Merge messages (sorted ascending by `sentAt`) with internal notes (by
+ * `createdAt`) into one chronological thread, inserting day separators when the
+ * local-time day changes. Notes render inline in the chat but never leave for
+ * the customer — they live in `conversation_notes`, not `messages`.
+ */
+export function buildThreadRows(
+  messages: IMessage[],
+  notes: IConversationNote[],
+  now: Date = new Date(),
+): ThreadRow[] {
+  const items: { ts: number; iso: string; row: IMessageRow | INoteRow }[] = [];
+  for (const message of messages) {
+    items.push({
+      ts: new Date(message.sentAt).getTime(),
+      iso: message.sentAt,
+      row: { kind: "message", id: message.id, message },
+    });
+  }
+  for (const note of notes) {
+    items.push({
+      ts: new Date(note.createdAt).getTime(),
+      iso: note.createdAt,
+      row: { kind: "note", id: `note-${note.id}`, note },
+    });
+  }
+  items.sort((a, b) => a.ts - b.ts);
+
+  const rows: ThreadRow[] = [];
+  let lastKey = "";
+  for (const item of items) {
+    const key = dayKey(new Date(item.iso));
+    if (key !== lastKey) {
+      rows.push({ kind: "day", id: `day-${key}`, label: dayLabel(item.iso, now) });
+      lastKey = key;
+    }
+    rows.push(item.row);
   }
   return rows;
 }

@@ -1,9 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { IConversation, IMessage, IWhatsAppAccount } from "@/shared/types";
 import { Icon } from "@/components/Icon";
-import { getActiveDataSource } from "@/providers/data";
-import { groupMessagesWithDaySeparators } from "../utils/dayGroups";
+import { useQuery } from "@tanstack/react-query";
+import { getActiveDataSource, useSellersProvider } from "@/providers/data";
+import { buildThreadRows } from "../utils/dayGroups";
+import { useConversationNotes } from "../hooks/useConversationNotes";
+import {
+  filterNotes,
+  DEFAULT_NOTES_CONSULT,
+  type NotesConsultMode,
+} from "../engine/notesConsult";
+import { NoteChatItem } from "./notes/NoteChatItem";
+import { NotesConsultBar } from "./notes/NotesConsultBar";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
 import { MessageBubble } from "./bubbles/MessageBubble";
 import { TypingIndicator } from "./TypingIndicator";
@@ -27,8 +36,32 @@ export function MessageList({ conversation, whatsappAccount = null }: IMessageLi
   const lastIdRef = useRef<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const typing = useTypingSimulation(conversation);
+  const notesState = useConversationNotes(conversation.id, conversation.storeId);
+  const sellersProvider = useSellersProvider();
+  const { data: sellers = [] } = useQuery({
+    queryKey: ["sellers", "mention", conversation.storeId],
+    queryFn: () => sellersProvider.list({ storeId: conversation.storeId, active: true }),
+    staleTime: 5 * 60_000,
+  });
 
-  const rows = useMemo(() => groupMessagesWithDaySeparators(messages), [messages]);
+  // --- Notes consult bar (3 switchable modes: index / only / highlight) ---
+  const [consultOpen, setConsultOpen] = useState(false);
+  const [consultMode, setConsultMode] = useState<NotesConsultMode>("index");
+  const [consultState, setConsultState] = useState(DEFAULT_NOTES_CONSULT);
+  const [flashNoteId, setFlashNoteId] = useState<string | null>(null);
+  const [highlightCursor, setHighlightCursor] = useState(0);
+
+  const matched = useMemo(
+    () => filterNotes(notesState.notes, consultState, notesState.currentSellerId),
+    [notesState.notes, consultState, notesState.currentSellerId],
+  );
+  const matchedIds = useMemo(() => new Set(matched.map((n) => n.id)), [matched]);
+  const isFiltering = consultState.query.trim() !== "" || consultState.scope !== "all";
+
+  const rows = useMemo(() => {
+    if (consultOpen && consultMode === "only") return buildThreadRows([], matched);
+    return buildThreadRows(messages, notesState.notes);
+  }, [consultOpen, consultMode, matched, messages, notesState.notes]);
 
   // Scroll-to-bottom on first load and whenever a new message arrives
   // while the user is already pinned at the bottom.
@@ -45,6 +78,17 @@ export function MessageList({ conversation, whatsappAccount = null }: IMessageLi
       });
     }
   }, [messages, isAtBottom]);
+
+  // A freshly created note lands at the bottom (newest); keep it in view when
+  // the user is already pinned to the bottom — mirrors the message behavior.
+  const noteCount = notesState.notes.length;
+  useEffect(() => {
+    if (!isAtBottom) return;
+    requestAnimationFrame(() => {
+      const node = containerRef.current;
+      if (node) node.scrollTop = node.scrollHeight;
+    });
+  }, [noteCount, isAtBottom]);
 
   // Scroll-up sentinel to fetch older messages.
   useEffect(() => {
@@ -75,6 +119,31 @@ export function MessageList({ conversation, whatsappAccount = null }: IMessageLi
     const distance = target.scrollHeight - target.scrollTop - target.clientHeight;
     setIsAtBottom(distance <= SCROLL_BOTTOM_THRESHOLD);
   };
+
+  // Scroll a note into view (index jump / highlight nav) and flash it briefly.
+  const jumpToNote = useCallback((noteId: string) => {
+    const el = containerRef.current?.querySelector<HTMLElement>(`[data-note-id="${noteId}"]`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    setFlashNoteId(noteId);
+  }, []);
+
+  useEffect(() => {
+    if (!flashNoteId) return;
+    const t = setTimeout(() => setFlashNoteId(null), 1600);
+    return () => clearTimeout(t);
+  }, [flashNoteId]);
+
+  const goToMatch = useCallback(
+    (index: number) => {
+      if (matched.length === 0) return;
+      const next = ((index % matched.length) + matched.length) % matched.length;
+      const target = matched[next];
+      if (!target) return;
+      setHighlightCursor(next);
+      jumpToNote(target.id);
+    },
+    [matched, jumpToNote],
+  );
 
   const handleRetry = (message: IMessage) => {
     // PRD-118 RF-040 (supabase): retry = NEW message through the real send
@@ -109,7 +178,7 @@ export function MessageList({ conversation, whatsappAccount = null }: IMessageLi
     );
   }
 
-  if (!isLoading && messages.length === 0) {
+  if (!isLoading && messages.length === 0 && notesState.notes.length === 0) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-2 px-6 py-12 text-center">
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
@@ -126,41 +195,84 @@ export function MessageList({ conversation, whatsappAccount = null }: IMessageLi
   }
 
   return (
-    <div
-      ref={containerRef}
-      onScroll={handleScroll}
-      className="flex h-full flex-col gap-1 overflow-y-auto px-4 py-4"
-      role="log"
-      aria-live="polite"
-      aria-label="Histórico de mensagens"
-    >
-      <div ref={sentinelRef} aria-hidden="true" />
-      {isLoadingMore && (
-        <div className="flex items-center justify-center py-2 text-[11px] text-muted-foreground">
-          <Icon icon="mdi:loading" className="mr-1.5 animate-spin" size={12} />
-          {CONVERSATION_STRINGS.loading}
-        </div>
+    <div className="flex h-full flex-col">
+      {notesState.notes.length > 0 && (
+        <NotesConsultBar
+          total={notesState.notes.length}
+          matched={matched}
+          sellers={sellers}
+          open={consultOpen}
+          onOpenChange={setConsultOpen}
+          mode={consultMode}
+          onModeChange={setConsultMode}
+          query={consultState.query}
+          onQueryChange={(query) => {
+            setConsultState((s) => ({ ...s, query }));
+            setHighlightCursor(0);
+          }}
+          scope={consultState.scope}
+          onScopeChange={(scope) => {
+            setConsultState((s) => ({ ...s, scope }));
+            setHighlightCursor(0);
+          }}
+          cursor={highlightCursor}
+          onPrev={() => goToMatch(highlightCursor - 1)}
+          onNext={() => goToMatch(highlightCursor + 1)}
+          onJump={jumpToNote}
+        />
       )}
-      {rows.map((row) => {
-        if (row.kind === "day") {
+      <div
+        ref={containerRef}
+        onScroll={handleScroll}
+        className="flex flex-1 flex-col gap-1 overflow-y-auto px-4 py-4"
+        role="log"
+        aria-live="polite"
+        aria-label="Histórico de mensagens"
+      >
+        <div ref={sentinelRef} aria-hidden="true" />
+        {isLoadingMore && (
+          <div className="flex items-center justify-center py-2 text-[11px] text-muted-foreground">
+            <Icon icon="mdi:loading" className="mr-1.5 animate-spin" size={12} />
+            {CONVERSATION_STRINGS.loading}
+          </div>
+        )}
+        {rows.map((row) => {
+          if (row.kind === "day") {
+            return (
+              <div key={row.id} className="my-2 flex items-center justify-center">
+                <span className="rounded-full border border-border bg-card px-3 py-1 text-[11px] font-medium text-muted-foreground">
+                  {row.label}
+                </span>
+              </div>
+            );
+          }
+          if (row.kind === "note") {
+            return (
+              <NoteChatItem
+                key={row.id}
+                note={row.note}
+                sellers={sellers}
+                currentSellerId={notesState.currentSellerId}
+                isStaff={notesState.isStaff}
+                busy={notesState.isMutating}
+                flash={flashNoteId === row.note.id}
+                matched={consultMode === "highlight" && isFiltering && matchedIds.has(row.note.id)}
+                onUpdate={notesState.updateNote}
+                onRemove={notesState.removeNote}
+              />
+            );
+          }
           return (
-            <div key={row.id} className="my-2 flex items-center justify-center">
-              <span className="rounded-full border border-border bg-card px-3 py-1 text-[11px] font-medium text-muted-foreground">
-                {row.label}
-              </span>
-            </div>
+            <MessageBubble
+              key={row.id}
+              message={row.message}
+              onRetry={() => handleRetry(row.message)}
+            />
           );
-        }
-        return (
-          <MessageBubble
-            key={row.id}
-            message={row.message}
-            onRetry={() => handleRetry(row.message)}
-          />
-        );
-      })}
-      {typing && <TypingIndicator />}
-      <div aria-hidden="true" />
+        })}
+        {typing && <TypingIndicator />}
+        <div aria-hidden="true" />
+      </div>
     </div>
   );
 }
