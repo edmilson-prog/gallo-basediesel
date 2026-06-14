@@ -73,6 +73,11 @@ export function ConversationMenu({
   const canEditStore = usePermission("conversation", "edit", "store");
   const canEditOwn = usePermission("conversation", "edit", "own");
   const canAddNote = usePermission("customer", "edit", "own");
+  // A seller can transfer/archive the conversation assigned to them (own scope);
+  // managers act on any store conversation. Mirrors the conversations RLS.
+  const isOwnConversation =
+    currentUser?.sellerId != null && conversation.assignedSellerId === currentUser.sellerId;
+  const canManageThis = canEditStore || (canEditOwn && isOwnConversation);
 
   const [transferOpen, setTransferOpen] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
@@ -316,13 +321,17 @@ export function ConversationMenu({
               {CONVERSATION_STRINGS.menu.markUnread}
             </DropdownMenuItem>
           )}
-          {canEditStore && (
+          {canManageThis && (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => setTransferOpen(true)}>
                 <Icon icon="mdi:account-switch" size={14} className="mr-2" />
                 {CONVERSATION_STRINGS.menu.transfer}
               </DropdownMenuItem>
+            </>
+          )}
+          {canEditStore && (
+            <>
               {conversation.isSdrActive && (
                 <DropdownMenuItem onSelect={handleEscalate}>
                   <Icon icon="mdi:account-arrow-up-outline" size={14} className="mr-2" />
@@ -339,19 +348,19 @@ export function ConversationMenu({
                   ? CONVERSATION_STRINGS.menu.pauseSdr
                   : CONVERSATION_STRINGS.menu.resumeSdr}
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={handleArchiveToggle}>
-                <Icon
-                  icon={
-                    isArchived ? "mdi:archive-arrow-up-outline" : "mdi:archive-arrow-down-outline"
-                  }
-                  size={14}
-                  className="mr-2"
-                />
-                {isArchived
-                  ? CONVERSATION_STRINGS.menu.unarchive
-                  : CONVERSATION_STRINGS.menu.archive}
-              </DropdownMenuItem>
             </>
+          )}
+          {canManageThis && (
+            <DropdownMenuItem onSelect={handleArchiveToggle}>
+              <Icon
+                icon={
+                  isArchived ? "mdi:archive-arrow-up-outline" : "mdi:archive-arrow-down-outline"
+                }
+                size={14}
+                className="mr-2"
+              />
+              {isArchived ? CONVERSATION_STRINGS.menu.unarchive : CONVERSATION_STRINGS.menu.archive}
+            </DropdownMenuItem>
           )}
           {canAddNote && customer && (
             <>

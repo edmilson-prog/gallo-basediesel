@@ -182,15 +182,17 @@ export const supabaseConversationsProvider: IConversationsProvider = {
   },
 
   async assignSeller(id: ID, sellerId: ID): Promise<IConversation> {
+    // Routed through the SECURITY DEFINER `transfer_conversation` RPC: a non-staff
+    // seller reassigning a conversation to ANOTHER seller would otherwise be
+    // rejected by RLS (the new row leaves their read scope). The RPC authorizes
+    // the caller (staff, or the conversation is theirs/unassigned), reassigns with
+    // elevated privileges, and returns the updated row — covering self-assign,
+    // manager transfer and seller transfer alike.
     const { data, error } = await getSupabaseClient()
-      .from(TABLE)
-      .update({
-        assigned_seller_id: sellerId,
-        is_sdr_active: false,
-        updated_at: new Date().toISOString(),
+      .rpc("transfer_conversation", {
+        p_conversation_id: id,
+        p_to_seller_id: sellerId,
       })
-      .eq("id", id)
-      .select(COLUMNS)
       .single();
     if (error)
       throw new Error(`[supabase] conversations.assignSeller(${id}) failed: ${error.message}`);
