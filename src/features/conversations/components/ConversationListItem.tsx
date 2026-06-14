@@ -11,13 +11,13 @@ import { useTimeTick } from "../hooks/useTimeTick";
 import { formatRelativeTime, isFresh } from "../utils/formatRelativeTime";
 import {
   CHANNEL_META,
-  STATUS_BORDER,
+  STATUS_META,
   TEMPERATURE_META,
   getConversationDisplay,
   getMessagePreview,
 } from "../utils/conversationDisplay";
 import { statusVisual } from "../utils/messageDisplay";
-import { INBOX_STRINGS } from "../i18n/pt-BR";
+import { INBOX_STRINGS, CONVERSATION_STRINGS } from "../i18n/pt-BR";
 import type { ICustomer, ILead } from "@/shared/types";
 
 export interface IConversationListItemProps {
@@ -79,7 +79,7 @@ function ConversationListItemInner({
   const fresh = isFresh(conversation.lastMessageAt, now);
   const channel = CHANNEL_META[conversation.channel];
   const temperature = display.temperature ? TEMPERATURE_META[display.temperature] : null;
-  const statusBar = STATUS_BORDER[conversation.status];
+  const statusBar = STATUS_META[conversation.status].barClass;
   const unread = conversation.unreadCount;
   const isFreshEscalation = useMemo(() => {
     if (!escalation) return false;
@@ -103,6 +103,7 @@ function ConversationListItemInner({
         name: display.name,
         when: relative,
         unread,
+        status: CONVERSATION_STRINGS.statusLabel[conversation.status],
       })}
       aria-current={isSelected ? "true" : undefined}
       data-conversation-id={conversation.id}
