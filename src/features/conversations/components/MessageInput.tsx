@@ -38,6 +38,8 @@ import { VoiceRecorderBar } from "./VoiceRecorderBar";
 import { MIN_RECORDING_SECONDS } from "../utils/audioRecording";
 import { TemplateDialog } from "./dialogs/TemplateDialog";
 import { TemplatePicker, type ITemplatePickerSelection } from "@/features/templates";
+import { NotesButton } from "./notes/NotesButton";
+import { InlineNoteComposer } from "./notes/InlineNoteComposer";
 import { getActiveDataSource } from "@/providers/data";
 import {
   AssetPicker,
@@ -161,6 +163,7 @@ export function MessageInput(props: IMessageInputProps) {
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [templateOpen, setTemplateOpen] = useState(false);
   const [schedulingOpen, setSchedulingOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
   const [schedulingTab, setSchedulingTab] = useState<SchedulingTab>("new");
   // PRD-118 RF-051: payload held while the staff confirmation dialog is open.
   const [invalidPending, setInvalidPending] = useState<ISendOptions | null>(null);
@@ -597,6 +600,14 @@ export function MessageInput(props: IMessageInputProps) {
         />
       )}
 
+      {notesOpen && (
+        <InlineNoteComposer
+          conversationId={conversation.id}
+          storeId={conversation.storeId}
+          onClose={() => setNotesOpen(false)}
+        />
+      )}
+
       <div className="flex items-end gap-2 px-3 py-2">
         {recorder.status !== "idle" ? (
           <VoiceRecorderBar
@@ -745,6 +756,15 @@ export function MessageInput(props: IMessageInputProps) {
                 setSchedulingTab(tab);
                 setSchedulingOpen(true);
               }}
+              disabled={readOnly}
+            />
+
+            {/* Anotações internas da conversa (desdobra acima do campo) */}
+            <NotesButton
+              conversationId={conversation.id}
+              storeId={conversation.storeId}
+              active={notesOpen}
+              onToggle={() => setNotesOpen((v) => !v)}
               disabled={readOnly}
             />
 

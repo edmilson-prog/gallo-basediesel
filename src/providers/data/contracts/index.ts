@@ -38,6 +38,7 @@ import type { IAssetLibraryProvider } from "./assetLibrary";
 import type { IQuickReplyProvider } from "./quickReply";
 import type { ITrackableLinkProvider } from "./trackableLink";
 import type { IScheduledSendProvider } from "./scheduledSend";
+import type { IConversationNotesProvider } from "./conversationNotes";
 import type { IStorefrontProvider } from "./storefront";
 import type { ISystemHealthProvider } from "./systemHealth";
 import type { IMessageTemplatesProvider } from "./messageTemplates";
@@ -127,6 +128,7 @@ export type { IAssetLibraryProvider, IAssetLibraryListParams } from "./assetLibr
 export type { IQuickReplyProvider } from "./quickReply";
 export type { ITrackableLinkProvider } from "./trackableLink";
 export type { IScheduledSendProvider } from "./scheduledSend";
+export type { IConversationNotesProvider } from "./conversationNotes";
 export type { IStorefrontProvider } from "./storefront";
 export type { ISystemHealthProvider } from "./systemHealth";
 export type {
@@ -175,6 +177,7 @@ export interface IDataProviders {
   quickReply: IQuickReplyProvider;
   trackableLink: ITrackableLinkProvider;
   scheduledSend: IScheduledSendProvider;
+  conversationNotes: IConversationNotesProvider;
   storefront: IStorefrontProvider;
   systemHealth: ISystemHealthProvider;
   messageTemplates: IMessageTemplatesProvider;

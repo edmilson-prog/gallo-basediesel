@@ -100,6 +100,7 @@ export type {
   IQuickReplyProvider,
   ITrackableLinkProvider,
   IScheduledSendProvider,
+  IConversationNotesProvider,
   IStorefrontProvider,
   ISystemHealthProvider,
   IMessageTemplatesProvider,
@@ -142,6 +143,7 @@ export { useAssetLibraryProvider } from "./hooks/useAssetLibraryProvider";
 export { useQuickReplyProvider } from "./hooks/useQuickReplyProvider";
 export { useTrackableLinkProvider } from "./hooks/useTrackableLinkProvider";
 export { useScheduledSendProvider } from "./hooks/useScheduledSendProvider";
+export { useConversationNotesProvider } from "./hooks/useConversationNotesProvider";
 export { useStorefrontProvider } from "./hooks/useStorefrontProvider";
 export { useSystemHealthProvider } from "./hooks/useSystemHealthProvider";
 export { useMessageTemplatesProvider } from "./hooks/useMessageTemplatesProvider";
