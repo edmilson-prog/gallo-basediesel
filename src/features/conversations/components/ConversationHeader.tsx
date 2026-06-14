@@ -91,13 +91,6 @@ export function ConversationHeader({
     return display.phone ? `${channel.label} • ${display.phone}` : channel.label;
   })();
 
-  const handleCreateQuote = () => {
-    const target = conversation.customerId
-      ? `/app/orcamentos?customerId=${conversation.customerId}&conversationId=${conversation.id}`
-      : `/app/orcamentos?conversationId=${conversation.id}`;
-    void navigate({ to: target });
-  };
-
   return (
     <header className="shrink-0 border-b border-border bg-card">
       <div className="flex h-16 items-center gap-3 px-4">
@@ -168,10 +161,6 @@ export function ConversationHeader({
             onChanged={onConversationUpdated}
           />
           <span className="mx-1 h-6 w-px bg-border" aria-hidden />
-          <Button variant="default" size="sm" className="gap-1.5" onClick={handleCreateQuote}>
-            <Icon icon="mdi:file-document-plus-outline" size={14} />
-            <span className="hidden md:inline">{CONVERSATION_STRINGS.createQuote}</span>
-          </Button>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button

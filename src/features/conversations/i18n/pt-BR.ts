@@ -196,7 +196,6 @@ export const CONVERSATION_STRINGS = {
       segmented: "Segmentado",
     },
   },
-  createQuote: "Criar orçamento",
   toggleFiche: "Ficha",
   toggleMedia: "Mídias",
   moreActions: "Mais ações",
