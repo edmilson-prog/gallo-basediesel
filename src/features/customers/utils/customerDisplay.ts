@@ -1,10 +1,17 @@
 import type { ICustomer, CustomerStatus, ABCClass } from "@/shared/types";
-import { hashHue, initialsFrom, avatarColors } from "@/shared/utils/avatar";
+import { hashHue, initialsFrom, avatarColors, isPhoneLikeName } from "@/shared/utils/avatar";
 
 /** Visual descriptor of a customer used by the profile header & related surfaces. */
 export interface ICustomerDisplay {
   name: string;
   initials: string;
+  /** Public URL of the contact's synced WhatsApp photo, when available. */
+  avatarUrl?: string;
+  /**
+   * The display name is really just a phone number (unsaved WhatsApp contact) —
+   * surfaces render a generic person icon instead of a useless `"+5"`.
+   */
+  isPhoneName: boolean;
   hue: number;
   bg: string;
   fg: string;
@@ -25,6 +32,8 @@ export function getCustomerDisplay(customer: ICustomer): ICustomerDisplay {
   return {
     name,
     initials: initialsFrom(name),
+    avatarUrl: customer.avatarUrl,
+    isPhoneName: isPhoneLikeName(name),
     hue,
     bg: colors.bg,
     fg: colors.fg,

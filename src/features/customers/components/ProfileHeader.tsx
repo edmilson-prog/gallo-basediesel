@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { IConversation, ICustomer } from "@/shared/types";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { CustomerAvatar } from "./CustomerAvatar";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Icon } from "@/components/Icon";
@@ -37,20 +37,14 @@ export function ProfileHeader({ customer, conversation, variant }: IProfileHeade
       )}
     >
       <div className="flex items-start gap-3">
-        <Avatar
+        <CustomerAvatar
+          display={display}
           className={cn(
             "shrink-0",
             variant === "page" ? "h-16 w-16 text-lg" : "h-12 w-12 text-base",
           )}
-        >
-          <AvatarFallback
-            className="font-semibold"
-            style={{ backgroundColor: display.bg, color: display.fg }}
-            aria-hidden
-          >
-            {display.initials}
-          </AvatarFallback>
-        </Avatar>
+          iconSize={variant === "page" ? 30 : 24}
+        />
         <div className="min-w-0 flex-1 space-y-1.5">
           <h2
             className={cn(

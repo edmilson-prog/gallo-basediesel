@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu";
+import { CustomerAvatar } from "../CustomerAvatar";
 import { CustomersColumnsContextContent, CustomersColumnsDropdown } from "./CustomersColumnsMenu";
 import {
   daysSince,
@@ -321,13 +322,11 @@ function renderCell(col: ColumnId, ctx: ICellContext) {
     case "name":
       return (
         <div className="flex items-center gap-3">
-          <span
-            aria-hidden
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[11px] font-semibold"
-            style={{ background: display.bg, color: display.fg }}
-          >
-            {display.initials}
-          </span>
+          <CustomerAvatar
+            display={display}
+            className="h-8 w-8 shrink-0 text-[11px]"
+            iconSize={16}
+          />
           <div className="min-w-0">
             <button
               type="button"

@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { ICustomer } from "@/shared/types";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { CustomerAvatar } from "../CustomerAvatar";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import { CoverageBanner } from "@/features/carteira/components/CoverageBanner";
@@ -43,15 +43,7 @@ export function CustomerDetailHeader({ customer }: ICustomerDetailHeaderProps) {
         </nav>
 
         <div className="flex items-start gap-3">
-          <Avatar className="h-16 w-16 shrink-0 text-lg">
-            <AvatarFallback
-              className="font-semibold"
-              style={{ backgroundColor: display.bg, color: display.fg }}
-              aria-hidden
-            >
-              {display.initials}
-            </AvatarFallback>
-          </Avatar>
+          <CustomerAvatar display={display} className="h-16 w-16 shrink-0 text-lg" iconSize={30} />
           <div className="min-w-0 flex-1 space-y-1.5">
             <h1
               className="text-xl font-semibold uppercase leading-tight text-foreground"
