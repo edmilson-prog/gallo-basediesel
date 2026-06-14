@@ -173,6 +173,7 @@ export function ConversationPage() {
                 }
                 escalation={escalation}
                 onCustomerUpdated={detail.refresh}
+                onConversationUpdated={detail.refresh}
               />
 
               {copilot.placement === "card" && conversation.customerId && !copilot.error && (
