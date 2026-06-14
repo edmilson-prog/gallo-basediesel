@@ -14,6 +14,8 @@ export interface ICreateSellerInput {
   phone?: string;
   type: ISeller["type"];
   region?: string;
+  /** Optional attendant display name signed onto outbound messages. */
+  attendantName?: string;
 }
 
 /**

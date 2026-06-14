@@ -68,6 +68,7 @@ export function SellerFormDialog({
     resolver: zodResolver(sellerFormSchema),
     defaultValues: {
       fullName: seller?.fullName ?? "",
+      attendantName: seller?.attendantName ?? "",
       email: seller?.email ?? "",
       phone: seller?.phone ?? "",
       type: seller?.type ?? "internal",
@@ -80,6 +81,7 @@ export function SellerFormDialog({
     if (!open) return;
     form.reset({
       fullName: seller?.fullName ?? "",
+      attendantName: seller?.attendantName ?? "",
       email: seller?.email ?? "",
       phone: seller?.phone ?? "",
       type: seller?.type ?? "internal",
@@ -91,7 +93,9 @@ export function SellerFormDialog({
   const watchedType = form.watch("type");
   const watchedEmail = form.watch("email");
   const emailChanged =
-    isEdit && hasAccess && watchedEmail.trim().toLowerCase() !== (seller?.email ?? "").toLowerCase();
+    isEdit &&
+    hasAccess &&
+    watchedEmail.trim().toLowerCase() !== (seller?.email ?? "").toLowerCase();
 
   const mutation = useMutation({
     mutationFn: async (values: SellerFormValues) => {
@@ -104,6 +108,7 @@ export function SellerFormDialog({
           phone: values.phone?.trim() || undefined,
           type: values.type,
           region,
+          attendantName: values.attendantName?.trim() || undefined,
         });
       }
       return provider.create({
@@ -113,6 +118,7 @@ export function SellerFormDialog({
         phone: values.phone?.trim() || undefined,
         type: values.type,
         region,
+        attendantName: values.attendantName?.trim() || undefined,
       });
     },
     onSuccess: async (saved) => {
@@ -125,6 +131,8 @@ export function SellerFormDialog({
         },
       );
       await queryClient.invalidateQueries({ queryKey: ["sellers", storeId] });
+      // Refresh single-seller caches so the attendant signature updates live.
+      await queryClient.invalidateQueries({ queryKey: ["seller"] });
       onOpenChange(false);
     },
     onError: (err: Error) =>
@@ -168,6 +176,25 @@ export function SellerFormDialog({
 
             <FormField
               control={form.control}
+              name="attendantName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nome de exibição nos atendimentos (opcional)</FormLabel>
+                  <FormControl>
+                    <Input autoComplete="off" placeholder="Ex.: Edmilson" {...field} />
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground">
+                    Se preenchido, vai na frente das mensagens enviadas — ex.:{" "}
+                    <span className="font-medium text-foreground">Edmilson:</span> Bom dia. Deixe em
+                    branco para não assinar.
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="email"
               render={({ field }) => (
                 <FormItem>
@@ -177,8 +204,8 @@ export function SellerFormDialog({
                   </FormControl>
                   {emailChanged && (
                     <p className="flex items-start gap-1.5 rounded-md border border-severity-warning/30 bg-severity-warning/10 px-2.5 py-1.5 text-xs text-severity-warning">
-                      <Icon icon="mdi:alert-outline" size={14} className="mt-0.5 shrink-0" />
-                      O acesso continua pelo e-mail antigo. O e-mail de login não é alterado.
+                      <Icon icon="mdi:alert-outline" size={14} className="mt-0.5 shrink-0" />O
+                      acesso continua pelo e-mail antigo. O e-mail de login não é alterado.
                     </p>
                   )}
                   <FormMessage />

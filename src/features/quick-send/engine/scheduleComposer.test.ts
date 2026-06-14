@@ -11,7 +11,12 @@ const future = new Date(2026, 5, 13, 18, 0).toISOString();
 const past = new Date(2026, 5, 13, 6, 0).toISOString();
 
 const base: IScheduleFormState = { text: "", media: null, scheduledFor: null };
-const media = { mediaPath: "store/a.jpg", mediaType: "image" as const, fileName: "a.jpg", previewUrl: "blob:x" };
+const media = {
+  mediaPath: "store/a.jpg",
+  mediaType: "image" as const,
+  fileName: "a.jpg",
+  previewUrl: "blob:x",
+};
 
 describe("scheduleBlock", () => {
   it("blocks 'empty' when there is no text and no media", () => {
@@ -56,6 +61,27 @@ describe("buildSchedulePayload", () => {
   });
   it("omits the caption when empty on a media payload", () => {
     expect(buildSchedulePayload({ ...base, media })).toEqual({
+      type: "media",
+      mediaPath: "store/a.jpg",
+      mediaType: "image",
+      fileName: "a.jpg",
+    });
+  });
+  it("signs the snippet caption with the attendant name when provided", () => {
+    expect(buildSchedulePayload({ ...base, text: "Bom dia!" }, "Edmilson")).toEqual({
+      type: "snippet",
+      contextMessage: "*Edmilson:* Bom dia!",
+    });
+  });
+  it("signs a media caption but never an empty one", () => {
+    expect(buildSchedulePayload({ ...base, text: "legenda", media }, "Edmilson")).toEqual({
+      type: "media",
+      contextMessage: "*Edmilson:* legenda",
+      mediaPath: "store/a.jpg",
+      mediaType: "image",
+      fileName: "a.jpg",
+    });
+    expect(buildSchedulePayload({ ...base, media }, "Edmilson")).toEqual({
       type: "media",
       mediaPath: "store/a.jpg",
       mediaType: "image",

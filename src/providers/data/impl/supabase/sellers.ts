@@ -1,5 +1,9 @@
 import type { Division, ID, ISeller } from "@/shared/types";
-import type { ICreateSellerInput, IListSellersParams, ISellersProvider } from "../../contracts/sellers";
+import type {
+  ICreateSellerInput,
+  IListSellersParams,
+  ISellersProvider,
+} from "../../contracts/sellers";
 import { getSupabaseClient } from "@/shared/lib/supabase";
 
 /**
@@ -14,6 +18,7 @@ interface SellerRow {
   id: string;
   store_id: string;
   full_name: string;
+  attendant_name: string | null;
   email: string;
   phone: string | null;
   type: ISeller["type"];
@@ -32,13 +37,14 @@ interface SellerRow {
 
 const TABLE = "sellers";
 const COLUMNS =
-  "id, store_id, full_name, email, phone, type, availability, divisions, theme_preference, region, commission_tier, parent_seller_id, commission_rule, vehicle_cadastro_mode, active, created_at, deleted_at";
+  "id, store_id, full_name, attendant_name, email, phone, type, availability, divisions, theme_preference, region, commission_tier, parent_seller_id, commission_rule, vehicle_cadastro_mode, active, created_at, deleted_at";
 
 function rowToSeller(row: SellerRow): ISeller {
   return {
     id: row.id,
     storeId: row.store_id,
     fullName: row.full_name,
+    attendantName: row.attendant_name ?? undefined,
     email: row.email,
     phone: row.phone ?? undefined,
     type: row.type,
@@ -61,6 +67,7 @@ function rowToSeller(row: SellerRow): ISeller {
 function sellerPatchToRow(patch: Partial<ISeller>): Record<string, unknown> {
   const row: Record<string, unknown> = {};
   if (patch.fullName !== undefined) row.full_name = patch.fullName;
+  if (patch.attendantName !== undefined) row.attendant_name = patch.attendantName;
   if (patch.email !== undefined) row.email = patch.email;
   if (patch.phone !== undefined) row.phone = patch.phone;
   if (patch.type !== undefined) row.type = patch.type;
@@ -134,6 +141,7 @@ export const supabaseSellersProvider: ISellersProvider = {
         phone: input.phone?.trim() || null,
         type: input.type,
         region: input.region?.trim() || null,
+        attendant_name: input.attendantName?.trim() || null,
       })
       .select(COLUMNS)
       .single();

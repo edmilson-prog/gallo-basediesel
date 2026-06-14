@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { ID, IConversation, ISO8601, IScheduledSend } from "@/shared/types";
 import { useScheduledSendProvider } from "@/providers/data";
 import { useAuth } from "@/features/auth/useAuth";
+import { useCurrentAttendantName } from "@/features/conversations/hooks/useCurrentAttendantName";
 import {
   buildSchedulePayload,
   canSaveDraft as canSaveDraftFn,
@@ -38,12 +39,11 @@ export interface IUseSchedulingComposerResult {
  * shells) so switching display modes never loses the in-progress message.
  * Pure validation/payload logic is delegated to engine/scheduleComposer.
  */
-export function useSchedulingComposer(
-  conversation: IConversation,
-): IUseSchedulingComposerResult {
+export function useSchedulingComposer(conversation: IConversation): IUseSchedulingComposerResult {
   const provider = useScheduledSendProvider();
   const queryClient = useQueryClient();
   const { currentUser } = useAuth();
+  const attendantName = useCurrentAttendantName();
   const [form, setForm] = useState<IScheduleFormState>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<ID | null>(null);
 
@@ -93,7 +93,7 @@ export function useSchedulingComposer(
 
   const persist = useCallback(
     async (status: "pending" | "draft", scheduledFor: ISO8601 | null) => {
-      const payload = buildSchedulePayload(form);
+      const payload = buildSchedulePayload(form, attendantName);
       const saved = editingId
         ? await provider.update(editingId, { payload, scheduledFor, status })
         : await provider.create({
@@ -111,10 +111,23 @@ export function useSchedulingComposer(
       reset();
       return saved;
     },
-    [form, editingId, provider, conversation.id, conversation.storeId, createdBy, invalidate, reset],
+    [
+      form,
+      editingId,
+      provider,
+      conversation.id,
+      conversation.storeId,
+      createdBy,
+      attendantName,
+      invalidate,
+      reset,
+    ],
   );
 
-  const schedule = useCallback(() => persist("pending", form.scheduledFor), [persist, form.scheduledFor]);
+  const schedule = useCallback(
+    () => persist("pending", form.scheduledFor),
+    [persist, form.scheduledFor],
+  );
   const saveDraft = useCallback(() => persist("draft", null), [persist]);
 
   return useMemo(
@@ -131,6 +144,18 @@ export function useSchedulingComposer(
       schedule,
       saveDraft,
     }),
-    [form, editingId, setText, setMedia, setScheduledFor, reset, loadForEdit, block, canSaveDraft, schedule, saveDraft],
+    [
+      form,
+      editingId,
+      setText,
+      setMedia,
+      setScheduledFor,
+      reset,
+      loadForEdit,
+      block,
+      canSaveDraft,
+      schedule,
+      saveDraft,
+    ],
   );
 }
