@@ -31,8 +31,11 @@ import {
   type AttachmentKind,
 } from "../hooks/useAttachmentUpload";
 import { useMetaWindow } from "../hooks/useMetaWindow";
+import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import { useConversationContext } from "../hooks/ConversationContext";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
+import { VoiceRecorderBar } from "./VoiceRecorderBar";
+import { MIN_RECORDING_SECONDS } from "../utils/audioRecording";
 import { TemplateDialog } from "./dialogs/TemplateDialog";
 import { TemplatePicker, type ITemplatePickerSelection } from "@/features/templates";
 import { getActiveDataSource } from "@/providers/data";
@@ -165,6 +168,9 @@ export function MessageInput(props: IMessageInputProps) {
 
   const bus = useQuickSendBus();
   const { prepareAttachment } = useAttachmentUpload(conversation);
+  // Voice-note recording (in-browser capture → reuses the attachment pipeline).
+  const recorder = useAudioRecorder({ onError: (m) => toast.error(m) });
+  const [sendingVoice, setSendingVoice] = useState(false);
   const attachInputRef = useRef<HTMLInputElement | null>(null);
   // Kind picked in the dropdown — a ref because the file dialog opens
   // synchronously after the menu select (no re-render in between).
@@ -338,6 +344,58 @@ export function MessageInput(props: IMessageInputProps) {
       if (getActiveDataSource() !== "supabase") {
         toast.error(CONVERSATION_STRINGS.actionFailed);
       }
+    }
+  };
+
+  // Send the recorded voice note through the same attachment pipeline used by
+  // ad-hoc files: upload (PRD-026) → real dispatch (PRD-115). Evolution routes
+  // audio to its dedicated voice-note endpoint; the recorded bubble plays via
+  // the existing AudioBubble. The 24h-window gate already blocked recording.
+  const handleSendVoice = async () => {
+    if (recorder.elapsedSeconds < MIN_RECORDING_SECONDS) {
+      toast.info(CONVERSATION_STRINGS.voice.tooShort);
+      return;
+    }
+    const file = recorder.getRecordedFile();
+    if (!file) return;
+    const caption = value.trim();
+    setSendingVoice(true);
+    let payload: ISendOptions | null = null;
+    try {
+      payload = await prepareAttachment(file, "audio", caption);
+    } catch {
+      toast.error(CONVERSATION_STRINGS.attachUploadFailed);
+      setSendingVoice(false);
+      return;
+    }
+    if (!payload) {
+      // Rejected by the size cap (already toasted) — keep the preview.
+      setSendingVoice(false);
+      return;
+    }
+    try {
+      await sendHook.send(payload);
+      recorder.reset();
+      setValue("");
+      onSent?.();
+    } catch (err) {
+      if (err instanceof Error && err.message === "TEMPLATE_REQUIRED") {
+        // Window closed mid-recording — free-form audio can't be sent; drop it.
+        recorder.reset();
+        setTemplateOpen(true);
+        return;
+      }
+      if (handleInvalidNumberBounce(err, payload)) {
+        // Payload (with the uploaded audio) is held for the staff confirmation.
+        recorder.reset();
+        return;
+      }
+      if (getActiveDataSource() !== "supabase") {
+        toast.error(CONVERSATION_STRINGS.actionFailed);
+      }
+      // Otherwise keep the preview so the user can retry the send.
+    } finally {
+      setSendingVoice(false);
     }
   };
 
@@ -540,216 +598,250 @@ export function MessageInput(props: IMessageInputProps) {
       )}
 
       <div className="flex items-end gap-2 px-3 py-2">
-        {/* Anexo */}
-        <DropdownMenu>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 w-9 shrink-0 p-0"
-                  aria-label={CONVERSATION_STRINGS.attach}
-                >
-                  <Icon icon="mdi:paperclip" size={18} />
-                </Button>
-              </DropdownMenuTrigger>
-            </TooltipTrigger>
-            <TooltipContent>{CONVERSATION_STRINGS.attach}</TooltipContent>
-          </Tooltip>
-          <DropdownMenuContent align="start" className="w-56">
-            <DropdownMenuLabel className="text-[11px] uppercase text-muted-foreground">
-              {CONVERSATION_STRINGS.attachSectionLibrary}
-            </DropdownMenuLabel>
-            <DropdownMenuItem onSelect={() => setPickerOpen(true)}>
-              <Icon icon="mdi:bookshelf" size={14} className="mr-2" />
-              {CONVERSATION_STRINGS.openLibrary}
-              <span className="ml-auto text-[10px] text-muted-foreground">
-                {CONVERSATION_STRINGS.openLibraryShortcut}
-              </span>
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={() => {
-                // Resposta rápida: open the library focused on the all tab; snippets
-                // are also reachable via the "/" slash. (Reuses the same picker.)
-                setPickerOpen(true);
-              }}
-            >
-              <Icon icon="mdi:lightning-bolt-outline" size={14} className="mr-2" />
-              {CONVERSATION_STRINGS.quickReply}
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setProductSearchOpen(true)}>
-              <Icon icon="mdi:cog-outline" size={14} className="mr-2" />
-              {CONVERSATION_STRINGS.sendProduct}
-            </DropdownMenuItem>
-
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-[11px] uppercase text-muted-foreground">
-              {CONVERSATION_STRINGS.attachSectionFile}
-            </DropdownMenuLabel>
-            <DropdownMenuItem onSelect={() => openAttachPicker("image")}>
-              <Icon icon="mdi:image-outline" size={14} className="mr-2" />
-              {CONVERSATION_STRINGS.attachImage}
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => openAttachPicker("document")}>
-              <Icon icon="mdi:file-document-outline" size={14} className="mr-2" />
-              {CONVERSATION_STRINGS.attachDocument}
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => openAttachPicker("audio")}>
-              <Icon icon="mdi:microphone-outline" size={14} className="mr-2" />
-              {CONVERSATION_STRINGS.attachAudio}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <input
-          ref={attachInputRef}
-          type="file"
-          className="hidden"
-          aria-hidden="true"
-          tabIndex={-1}
-          onChange={(e) => void handleAttachSelected(e)}
-        />
-
-        {/* Emoji */}
-        <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <PopoverTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 w-9 shrink-0 p-0"
-                  aria-label={CONVERSATION_STRINGS.emoji}
-                >
-                  <Icon icon="mdi:emoticon-outline" size={18} />
-                </Button>
-              </PopoverTrigger>
-            </TooltipTrigger>
-            <TooltipContent>{CONVERSATION_STRINGS.emoji}</TooltipContent>
-          </Tooltip>
-          <PopoverContent align="start" className="w-56 p-2">
-            <div className="grid grid-cols-8 gap-1 text-lg">
-              {EMOJI_SET.map((e) => (
-                <button
-                  key={e}
-                  type="button"
-                  className="rounded hover:bg-muted"
-                  onClick={() => {
-                    insertEmoji(e);
-                    setEmojiOpen(false);
+        {recorder.status !== "idle" ? (
+          <VoiceRecorderBar
+            status={recorder.status}
+            elapsedSeconds={recorder.elapsedSeconds}
+            recordedUrl={recorder.recordedUrl}
+            sending={sendingVoice}
+            onStop={recorder.stop}
+            onCancel={recorder.cancel}
+            onSend={() => void handleSendVoice()}
+          />
+        ) : (
+          <>
+            {/* Anexo */}
+            <DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 w-9 shrink-0 p-0"
+                      aria-label={CONVERSATION_STRINGS.attach}
+                    >
+                      <Icon icon="mdi:paperclip" size={18} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent>{CONVERSATION_STRINGS.attach}</TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuLabel className="text-[11px] uppercase text-muted-foreground">
+                  {CONVERSATION_STRINGS.attachSectionLibrary}
+                </DropdownMenuLabel>
+                <DropdownMenuItem onSelect={() => setPickerOpen(true)}>
+                  <Icon icon="mdi:bookshelf" size={14} className="mr-2" />
+                  {CONVERSATION_STRINGS.openLibrary}
+                  <span className="ml-auto text-[10px] text-muted-foreground">
+                    {CONVERSATION_STRINGS.openLibraryShortcut}
+                  </span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => {
+                    // Resposta rápida: open the library focused on the all tab; snippets
+                    // are also reachable via the "/" slash. (Reuses the same picker.)
+                    setPickerOpen(true);
                   }}
                 >
-                  {e}
-                </button>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
+                  <Icon icon="mdi:lightning-bolt-outline" size={14} className="mr-2" />
+                  {CONVERSATION_STRINGS.quickReply}
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setProductSearchOpen(true)}>
+                  <Icon icon="mdi:cog-outline" size={14} className="mr-2" />
+                  {CONVERSATION_STRINGS.sendProduct}
+                </DropdownMenuItem>
 
-        {/* Agendar mensagem (abre a Central) */}
-        <ScheduleButton
-          conversationId={conversation.id}
-          onOpen={(tab) => {
-            setSchedulingTab(tab);
-            setSchedulingOpen(true);
-          }}
-          disabled={readOnly}
-        />
-
-        {/* Textarea + overlays */}
-        <div className="relative flex-1">
-          {slashOpen && (
-            <SlashMenu
-              state={slash}
-              items={slashAssets}
-              replies={slashReplies}
-              activeIndex={slashIndex}
-              onPickAsset={pickSlashAsset}
-              onPickReply={(r) => insertSnippetBody(r.body)}
-              onClose={() => setValue(value + " ")}
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-[11px] uppercase text-muted-foreground">
+                  {CONVERSATION_STRINGS.attachSectionFile}
+                </DropdownMenuLabel>
+                <DropdownMenuItem onSelect={() => openAttachPicker("image")}>
+                  <Icon icon="mdi:image-outline" size={14} className="mr-2" />
+                  {CONVERSATION_STRINGS.attachImage}
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => openAttachPicker("document")}>
+                  <Icon icon="mdi:file-document-outline" size={14} className="mr-2" />
+                  {CONVERSATION_STRINGS.attachDocument}
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => openAttachPicker("audio")}>
+                  <Icon icon="mdi:file-music-outline" size={14} className="mr-2" />
+                  {CONVERSATION_STRINGS.attachAudio}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <input
+              ref={attachInputRef}
+              type="file"
+              className="hidden"
+              aria-hidden="true"
+              tabIndex={-1}
+              onChange={(e) => void handleAttachSelected(e)}
             />
-          )}
-          <SnippetField
-            value={value}
-            gaps={snippetGaps}
-            onChange={setValue}
-            textareaRef={textareaRef as React.RefObject<HTMLTextAreaElement>}
-          />
-          <Textarea
-            ref={textareaRef}
-            value={value}
-            onChange={(e) => {
-              setValue(e.target.value);
-              setCaret(e.target.selectionStart ?? e.target.value.length);
-            }}
-            onKeyDown={handleKey}
-            onKeyUp={syncCaret}
-            onSelect={syncCaret}
-            onClick={syncCaret}
-            placeholder={placeholder}
-            rows={1}
-            disabled={!canSendFreeText}
-            role="combobox"
-            aria-expanded={slashOpen}
-            aria-controls={slashOpen ? "slash-listbox" : undefined}
-            aria-autocomplete="list"
-            aria-activedescendant={slashOpen ? `slash-opt-${slashIndex}` : undefined}
-            className={cn(
-              // Mirror ui/textarea defaults (px-3 py-2, text-base md:text-sm) so the
-              // SnippetField overlay aligns pixel-for-pixel with the real text (D-6).
-              "relative min-h-[40px] w-full resize-none bg-transparent px-3 py-2 text-base leading-normal md:text-sm",
-              snippetGaps.length > 0 && "caret-foreground",
-              !canSendFreeText && "cursor-not-allowed bg-muted/40",
+
+            {/* Emoji */}
+            <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 w-9 shrink-0 p-0"
+                      aria-label={CONVERSATION_STRINGS.emoji}
+                    >
+                      <Icon icon="mdi:emoticon-outline" size={18} />
+                    </Button>
+                  </PopoverTrigger>
+                </TooltipTrigger>
+                <TooltipContent>{CONVERSATION_STRINGS.emoji}</TooltipContent>
+              </Tooltip>
+              <PopoverContent align="start" className="w-56 p-2">
+                <div className="grid grid-cols-8 gap-1 text-lg">
+                  {EMOJI_SET.map((e) => (
+                    <button
+                      key={e}
+                      type="button"
+                      className="rounded hover:bg-muted"
+                      onClick={() => {
+                        insertEmoji(e);
+                        setEmojiOpen(false);
+                      }}
+                    >
+                      {e}
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* Gravar nota de voz */}
+            {recorder.isSupported && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 w-9 shrink-0 p-0"
+                    onClick={() => void recorder.start()}
+                    disabled={!canSendFreeText}
+                    aria-label={CONVERSATION_STRINGS.voice.record}
+                  >
+                    <Icon icon="mdi:microphone" size={18} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{CONVERSATION_STRINGS.voice.record}</TooltipContent>
+              </Tooltip>
             )}
-            aria-label="Mensagem"
-          />
-        </div>
 
-        {/* Templates */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span>
-              <Button
-                type="button"
-                variant={!canSendFreeText ? "default" : "outline"}
-                size="sm"
-                className="h-9 gap-1.5 px-3"
-                onClick={() => setTemplateOpen(true)}
-                disabled={!isMeta || !supportsTemplates}
-              >
-                <Icon icon="mdi:certificate-outline" size={14} />
-                <span className="hidden lg:inline">{CONVERSATION_STRINGS.templatesButton}</span>
-              </Button>
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>
-            {!isMeta || !supportsTemplates
-              ? CONVERSATION_STRINGS.templatesUnavailable
-              : CONVERSATION_STRINGS.templatesButton}
-          </TooltipContent>
-        </Tooltip>
+            {/* Agendar mensagem (abre a Central) */}
+            <ScheduleButton
+              conversationId={conversation.id}
+              onOpen={(tab) => {
+                setSchedulingTab(tab);
+                setSchedulingOpen(true);
+              }}
+              disabled={readOnly}
+            />
 
-        {/* Enviar (único) */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="shrink-0">
-              <Button
-                type="button"
-                size="sm"
-                className="h-9 gap-1.5 px-3"
-                onClick={handleSend}
-                disabled={sendDisabled}
-                aria-disabled={sendDisabled}
-              >
-                <Icon icon="mdi:send" size={14} />
-                <span className="hidden lg:inline">{CONVERSATION_STRINGS.send}</span>
-              </Button>
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>{sendDisabledReason ?? CONVERSATION_STRINGS.send}</TooltipContent>
-        </Tooltip>
+            {/* Textarea + overlays */}
+            <div className="relative flex-1">
+              {slashOpen && (
+                <SlashMenu
+                  state={slash}
+                  items={slashAssets}
+                  replies={slashReplies}
+                  activeIndex={slashIndex}
+                  onPickAsset={pickSlashAsset}
+                  onPickReply={(r) => insertSnippetBody(r.body)}
+                  onClose={() => setValue(value + " ")}
+                />
+              )}
+              <SnippetField
+                value={value}
+                gaps={snippetGaps}
+                onChange={setValue}
+                textareaRef={textareaRef as React.RefObject<HTMLTextAreaElement>}
+              />
+              <Textarea
+                ref={textareaRef}
+                value={value}
+                onChange={(e) => {
+                  setValue(e.target.value);
+                  setCaret(e.target.selectionStart ?? e.target.value.length);
+                }}
+                onKeyDown={handleKey}
+                onKeyUp={syncCaret}
+                onSelect={syncCaret}
+                onClick={syncCaret}
+                placeholder={placeholder}
+                rows={1}
+                disabled={!canSendFreeText}
+                role="combobox"
+                aria-expanded={slashOpen}
+                aria-controls={slashOpen ? "slash-listbox" : undefined}
+                aria-autocomplete="list"
+                aria-activedescendant={slashOpen ? `slash-opt-${slashIndex}` : undefined}
+                className={cn(
+                  // Mirror ui/textarea defaults (px-3 py-2, text-base md:text-sm) so the
+                  // SnippetField overlay aligns pixel-for-pixel with the real text (D-6).
+                  "relative min-h-[40px] w-full resize-none bg-transparent px-3 py-2 text-base leading-normal md:text-sm",
+                  snippetGaps.length > 0 && "caret-foreground",
+                  !canSendFreeText && "cursor-not-allowed bg-muted/40",
+                )}
+                aria-label="Mensagem"
+              />
+            </div>
+
+            {/* Templates */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    type="button"
+                    variant={!canSendFreeText ? "default" : "outline"}
+                    size="sm"
+                    className="h-9 gap-1.5 px-3"
+                    onClick={() => setTemplateOpen(true)}
+                    disabled={!isMeta || !supportsTemplates}
+                  >
+                    <Icon icon="mdi:certificate-outline" size={14} />
+                    <span className="hidden lg:inline">{CONVERSATION_STRINGS.templatesButton}</span>
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                {!isMeta || !supportsTemplates
+                  ? CONVERSATION_STRINGS.templatesUnavailable
+                  : CONVERSATION_STRINGS.templatesButton}
+              </TooltipContent>
+            </Tooltip>
+
+            {/* Enviar (único) */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="shrink-0">
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-9 gap-1.5 px-3"
+                    onClick={handleSend}
+                    disabled={sendDisabled}
+                    aria-disabled={sendDisabled}
+                  >
+                    <Icon icon="mdi:send" size={14} />
+                    <span className="hidden lg:inline">{CONVERSATION_STRINGS.send}</span>
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{sendDisabledReason ?? CONVERSATION_STRINGS.send}</TooltipContent>
+            </Tooltip>
+          </>
+        )}
       </div>
 
       {getActiveDataSource() === "supabase" ? (
