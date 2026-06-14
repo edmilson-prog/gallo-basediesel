@@ -281,6 +281,23 @@ export const CONVERSATION_STRINGS = {
   templatesUnavailable: "Disponível no provider Meta",
   aiSuggestionsLabel: "Sugestões IA",
 
+  // Voice note recording (composer)
+  voice: {
+    record: "Gravar áudio",
+    recording: "Gravando…",
+    stop: "Parar",
+    cancel: "Cancelar gravação",
+    discard: "Descartar",
+    send: "Enviar áudio",
+    preview: "Pré-visualização da nota de voz",
+    play: "Reproduzir",
+    pause: "Pausar",
+    permissionDenied:
+      "Permissão de microfone negada. Habilite o acesso ao microfone nas configurações do navegador.",
+    unavailable: "Não foi possível acessar o microfone. Verifique se há um dispositivo conectado.",
+    tooShort: "Gravação muito curta — segure por mais tempo.",
+  },
+
   // Typing indicator
   typing: "Cliente está digitando…",
 
