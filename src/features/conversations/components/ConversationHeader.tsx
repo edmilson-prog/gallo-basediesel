@@ -52,7 +52,6 @@ export function ConversationHeader({
   conversation,
   customer,
   lead,
-  whatsappAccount,
   ficheOpen,
   onToggleFiche,
   mediaOpen,
@@ -83,13 +82,13 @@ export function ConversationHeader({
   const scheduled = useConversationScheduled(conversation.id);
   const pendingScheduled = scheduled.items.filter((i) => i.status === "pending").length;
 
-  const channelSubtitle = (() => {
-    if (conversation.channel === "whatsapp") {
-      const phone = display.phone || whatsappAccount?.phoneNumber || "";
-      return phone ? `${channel.label} • ${phone}` : channel.label;
-    }
-    return display.phone ? `${channel.label} • ${display.phone}` : channel.label;
-  })();
+  // Subtitle shows ONLY the contact's own phone. Never fall back to
+  // whatsappAccount.phoneNumber — that is the GALLO line itself, and surfacing it
+  // here mislabels our own number as the contact's (e.g. when RLS hides the
+  // customer for a seller handling a transferred conversation).
+  const channelSubtitle = display.phone
+    ? `${channel.label} • ${display.phone}`
+    : channel.label;
 
   return (
     <header className="shrink-0 border-b border-border bg-card">
