@@ -39,6 +39,12 @@ export interface ISeller {
    */
   accessibleStoreIds?: ID[];
   fullName: string;
+  /**
+   * Short display name shown to customers on outbound WhatsApp messages
+   * ("nome de exibição nos atendimentos"). When set, it is prepended as a bold
+   * signature (`*Name:* ...`). Empty/undefined = messages are not signed.
+   */
+  attendantName?: string;
   email: string;
   phone?: string;
   type: SellerType;

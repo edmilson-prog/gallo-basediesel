@@ -16,6 +16,7 @@ export interface ICreateSellerInput {
   phone?: string;
   type: ISeller["type"];
   region?: string;
+  attendantName?: string;
 }
 
 export const sellersApi = {
@@ -100,6 +101,7 @@ export const sellersApi = {
           phone: input.phone?.trim() || undefined,
           type: input.type,
           region: input.region?.trim() || undefined,
+          attendantName: input.attendantName?.trim() || undefined,
           availability: "offline",
           divisions: ["parts"],
           active: true,

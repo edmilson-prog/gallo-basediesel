@@ -1,5 +1,6 @@
 import type { ISO8601, IScheduledSend, ScheduledMediaType } from "@/shared/types";
 import { validateFuture } from "./scheduledSend";
+import { applyAttendantSignature } from "@/features/conversations/engine/attendantSignature";
 
 /** A media attachment staged in the composer (already uploaded → path known). */
 export interface IScheduledMediaDraft {
@@ -37,8 +38,13 @@ export function canSaveDraft(form: IScheduleFormState): boolean {
 }
 
 /** Maps the form to the persisted `scheduled_sends.payload` (media or snippet). */
-export function buildSchedulePayload(form: IScheduleFormState): IScheduledSend["payload"] {
-  const caption = form.text.trim();
+export function buildSchedulePayload(
+  form: IScheduleFormState,
+  attendantName?: string | null,
+): IScheduledSend["payload"] {
+  // Sign the caption now (at creation), so the worker dispatches it already
+  // prefixed. Idempotent — re-saving an edited item won't double the prefix.
+  const caption = applyAttendantSignature(form.text.trim(), attendantName);
   if (form.media) {
     return {
       type: "media",

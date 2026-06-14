@@ -12,6 +12,8 @@ import { getSupabaseClient } from "@/shared/lib/supabase";
 import { SEND_FAILURE_RATE, SEND_READ_RATE } from "../utils/sendSimulation";
 import { useConversationContext } from "./ConversationContext";
 import { useAuth } from "@/features/auth/useAuth";
+import { applyAttendantSignature } from "../engine/attendantSignature";
+import { useCurrentAttendantName } from "./useCurrentAttendantName";
 
 /** Friendly pt-BR feedback per whatsapp-send error code (PRD-115 RF-073..075). */
 export const SEND_ERROR_MESSAGES: Record<string, string> = {
@@ -105,6 +107,7 @@ export function useMessageSend(
   const provider = useMessagesProvider();
   const { messages } = useConversationContext();
   const { currentUser } = useAuth();
+  const attendantName = useCurrentAttendantName();
 
   const send = useCallback(
     async ({
@@ -122,6 +125,12 @@ export function useMessageSend(
       // share ONE id, so the bubble never duplicates during the send window —
       // the supabase pipeline inserts the row with this id (PRD-115).
       const messageId: ID = crypto.randomUUID();
+      // Prepend the attendant's signature (`*Name:* ...`) on NEW text/caption
+      // sends. Skipped for templates (Meta-approved body) and retries (the
+      // persisted text is already signed). The helper also leaves structured
+      // markers (product/link) and empty captions (media w/o caption) untouched.
+      const signedText =
+        template || retryOfMessageId ? text : applyAttendantSignature(text, attendantName);
       const optimistic: IMessage = {
         id: messageId,
         conversationId: conversation.id,
@@ -135,7 +144,7 @@ export function useMessageSend(
             : conversation.channel === "whatsapp"
               ? "meta"
               : "mock",
-        text: template ? `${TEMPLATE_PREFIX}${text}` : text,
+        text: template ? `${TEMPLATE_PREFIX}${signedText}` : signedText,
         mediaType,
         mediaUrl,
         // Starts "queued" (🕐) and becomes "sent" (✓) on commit, then
@@ -231,7 +240,7 @@ export function useMessageSend(
         handle.fail();
       }
     },
-    [conversation, currentUser?.id, messages, provider, whatsappAccount?.provider],
+    [conversation, currentUser?.id, attendantName, messages, provider, whatsappAccount?.provider],
   );
 
   return { send };

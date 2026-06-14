@@ -3,6 +3,7 @@ import type { IMessage } from "@/shared/types";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Icon } from "@/components/Icon";
 import { BubbleChrome } from "./bubbleChrome";
+import { WhatsAppText } from "./WhatsAppText";
 import { useResolvedMediaUrl } from "../../hooks/useResolvedMediaUrl";
 
 export function ImageBubble({ message, onRetry }: { message: IMessage; onRetry?: () => void }) {
@@ -59,7 +60,12 @@ export function ImageBubble({ message, onRetry }: { message: IMessage; onRetry?:
             )}
           </div>
         </button>
-        {message.text && <p className="px-3 py-2 text-sm">{message.text}</p>}
+        {message.text && (
+          <WhatsAppText
+            text={message.text}
+            className="whitespace-pre-wrap break-words px-3 py-2 text-sm"
+          />
+        )}
       </BubbleChrome>
 
       <Dialog open={open} onOpenChange={setOpen}>

@@ -2,6 +2,7 @@ import type { IMessage } from "@/shared/types";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import { BubbleChrome } from "./bubbleChrome";
+import { WhatsAppText } from "./WhatsAppText";
 import { fileNameFromUrl, formatFileSize, mediaIcon } from "../../utils/messageDisplay";
 import { CONVERSATION_STRINGS } from "../../i18n/pt-BR";
 import { useResolvedMediaUrl } from "../../hooks/useResolvedMediaUrl";
@@ -44,7 +45,12 @@ export function DocumentBubble({ message, onRetry }: { message: IMessage; onRetr
           </Button>
         )}
       </div>
-      {message.text && <p className="mt-2 text-sm">{message.text}</p>}
+      {message.text && (
+        <WhatsAppText
+          text={message.text}
+          className="whitespace-pre-wrap break-words mt-2 text-sm"
+        />
+      )}
     </BubbleChrome>
   );
 }

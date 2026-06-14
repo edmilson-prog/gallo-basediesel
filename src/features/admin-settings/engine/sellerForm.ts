@@ -11,6 +11,8 @@ export const sellerFormSchema = z.object({
     message: "Selecione o tipo do usuário.",
   }),
   region: z.string().trim().optional(),
+  // Short signature prepended to outbound messages; kept short for readability.
+  attendantName: z.string().trim().max(40, "Use no máximo 40 caracteres.").optional(),
 });
 
 export type SellerFormValues = z.infer<typeof sellerFormSchema>;
