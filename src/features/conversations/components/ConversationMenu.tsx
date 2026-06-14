@@ -28,14 +28,19 @@ import {
 } from "@/providers/data";
 import { TransferDialog } from "./dialogs/TransferDialog";
 import { NoteDialog } from "./dialogs/NoteDialog";
+import { StatusControlModeSubmenu } from "./status/StatusControlModeSubmenu";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
 import { useUnreadTracking } from "../hooks/useUnreadTracking";
+import type { StatusControlMode } from "../engine/statusControlMode";
 
 export interface IConversationMenuProps {
   conversation: IConversation;
   customer: ICustomer | null;
   lead: ILead | null;
   onMutated?: () => void;
+  /** Status-control display mode (lifted to the page; shared with the header). */
+  statusControlMode: StatusControlMode;
+  onStatusControlModeChange: (mode: StatusControlMode) => void;
 }
 
 function showUndoableToast(message: string, undo: () => Promise<void> | void) {
@@ -52,7 +57,13 @@ function showUndoableToast(message: string, undo: () => Promise<void> | void) {
   });
 }
 
-export function ConversationMenu({ conversation, customer, onMutated }: IConversationMenuProps) {
+export function ConversationMenu({
+  conversation,
+  customer,
+  onMutated,
+  statusControlMode,
+  onStatusControlModeChange,
+}: IConversationMenuProps) {
   const { currentUser } = useAuth();
   const conversationsProvider = useConversationsProvider();
   const customersProvider = useCustomersProvider();
@@ -362,6 +373,15 @@ export function ConversationMenu({ conversation, customer, onMutated }: IConvers
                 />
                 {CONVERSATION_STRINGS.menu.syncPhoto}
               </DropdownMenuItem>
+            </>
+          )}
+          {canEditOwn && (
+            <>
+              <DropdownMenuSeparator />
+              <StatusControlModeSubmenu
+                value={statusControlMode}
+                onChange={onStatusControlModeChange}
+              />
             </>
           )}
         </DropdownMenuContent>

@@ -15,6 +15,7 @@ import { MessageInput } from "../components/MessageInput";
 import { MetaWindowIndicator } from "../components/MetaWindowIndicator";
 import { ConversationMenu } from "../components/ConversationMenu";
 import { useConversationFiche } from "../hooks/useConversationFiche";
+import { useStatusControlMode } from "../hooks/useStatusControlMode";
 import { useMessages } from "../hooks/useMessages";
 import { useRealtimeMessages } from "../hooks/useRealtimeMessages";
 import { ConversationProvider } from "../hooks/ConversationContext";
@@ -79,6 +80,9 @@ export function ConversationPage() {
   useRealtimeMessages(conversationId, messages.applyRealtimeRow);
   const escalation = useConversationEscalation(conversationId);
   const copilot = useCopilotPanel(conversationId);
+  // Status-control display mode (per-device). Lifted here so the header's
+  // StatusControl and the kebab's mode sub-menu share one source of truth.
+  const { mode: statusControlMode, setMode: setStatusControlMode } = useStatusControlMode();
   const [draft, setDraft] = useState("");
   // SessionBanner CTA → template picker bridge (PRD-117): each click bumps the
   // counter and the MessageInput effect opens its dialog.
@@ -169,11 +173,14 @@ export function ConversationPage() {
                     customer={customer}
                     lead={lead}
                     onMutated={detail.refresh}
+                    statusControlMode={statusControlMode}
+                    onStatusControlModeChange={setStatusControlMode}
                   />
                 }
                 escalation={escalation}
                 onCustomerUpdated={detail.refresh}
                 onConversationUpdated={detail.refresh}
+                statusControlMode={statusControlMode}
               />
 
               {copilot.placement === "card" && conversation.customerId && !copilot.error && (

@@ -18,8 +18,7 @@ import { CHANNEL_META, getConversationDisplay } from "../utils/conversationDispl
 import { ContactAvatar } from "./ContactAvatar";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
 import { StatusControl } from "./status/StatusControl";
-import { StatusControlModeSwitcher } from "./status/StatusControlModeSwitcher";
-import { useStatusControlMode } from "../hooks/useStatusControlMode";
+import type { StatusControlMode } from "../engine/statusControlMode";
 import { EscalationBadge } from "@/features/sdr-escalation/components/EscalationBadge";
 import { TemperatureChip } from "@/features/quick-send/components/TemperatureChip";
 import { useConversationScheduled } from "@/features/quick-send/hooks/useConversationScheduled";
@@ -44,6 +43,8 @@ export interface IConversationHeaderProps {
   onCustomerUpdated?: () => void;
   /** Called after the conversation status changes from the header control. */
   onConversationUpdated?: () => void;
+  /** Status-control display mode (lifted to the page; shared with the kebab). */
+  statusControlMode: StatusControlMode;
 }
 
 
@@ -60,13 +61,13 @@ export function ConversationHeader({
   escalation,
   onCustomerUpdated,
   onConversationUpdated,
+  statusControlMode,
 }: IConversationHeaderProps) {
   const display = getConversationDisplay(conversation, customer, lead);
   const channel = CHANNEL_META[conversation.channel];
   const navigate = useNavigate();
   const customersProvider = useCustomersProvider();
   const { hasRole } = useAuth();
-  const { mode: statusControlMode, setMode: setStatusControlMode } = useStatusControlMode();
 
   // PRD-118 RF-052: back to 'valid' is a MANUAL staff action — never automatic.
   const handleMarkWhatsappValid = async () => {
@@ -166,7 +167,6 @@ export function ConversationHeader({
             mode={statusControlMode}
             onChanged={onConversationUpdated}
           />
-          <StatusControlModeSwitcher value={statusControlMode} onChange={setStatusControlMode} />
           <span className="mx-1 h-6 w-px bg-border" aria-hidden />
           <Button variant="default" size="sm" className="gap-1.5" onClick={handleCreateQuote}>
             <Icon icon="mdi:file-document-plus-outline" size={14} />
