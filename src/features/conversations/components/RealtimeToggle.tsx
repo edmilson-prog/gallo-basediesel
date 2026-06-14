@@ -28,13 +28,19 @@ export function RealtimeToggle({ enabled, onToggle, connected = true }: IRealtim
           aria-label={INBOX_STRINGS.realtimeToggleLabel}
           onClick={() => onToggle(!enabled)}
           className={cn(
-            "h-8 w-8 p-0",
+            "relative h-8 w-8 p-0",
             !enabled && "text-muted-foreground",
             enabled && !connecting && "text-emerald-600 dark:text-emerald-400",
             connecting && "text-amber-500 dark:text-amber-400",
           )}
         >
           <Icon icon={enabled ? "mdi:radio-tower" : "mdi:radio-tower-off"} size={16} />
+          {enabled && !connecting && (
+            <span className="pointer-events-none absolute right-0.5 top-0.5 flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75 motion-reduce:animate-none" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            </span>
+          )}
         </Button>
       </TooltipTrigger>
       <TooltipContent side="bottom">

@@ -5,6 +5,9 @@ import { useConversationsProvider, type IListConversationsParams } from "@/provi
 /** Conversations pulled per page from the provider. */
 export const PAGE_SIZE = 30;
 
+/** Debounce window collapsing a burst of realtime ticks into a single refetch. */
+const REALTIME_REFETCH_DEBOUNCE_MS = 300;
+
 export interface IConversationsListState {
   items: IConversation[];
   total: number;
@@ -97,20 +100,25 @@ export function useConversationsList(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersKey]);
 
-  // External refresh signal — fetch back up to the current page so the
-  // user doesn't lose pagination progress while real-time pulls in new rows.
+  // External refresh signal — debounced so a burst of realtime events collapses
+  // into a single refetch (~300ms after the last one) instead of N sequential
+  // reloads. Fetches back up to the current page so the user doesn't lose
+  // pagination progress while real-time pulls in new rows.
   useEffect(() => {
     if (refreshKey === 0) return;
-    const target = pageRef.current;
-    void fetchPage(1, "replace").then(() => {
-      // Re-hydrate higher pages sequentially.
-      let chain: Promise<void> = Promise.resolve();
-      for (let p = 2; p <= target; p += 1) {
-        const captured = p;
-        chain = chain.then(() => fetchPage(captured, "append"));
-      }
-      return chain;
-    });
+    const handle = window.setTimeout(() => {
+      const target = pageRef.current;
+      void fetchPage(1, "replace").then(() => {
+        // Re-hydrate higher pages sequentially.
+        let chain: Promise<void> = Promise.resolve();
+        for (let p = 2; p <= target; p += 1) {
+          const captured = p;
+          chain = chain.then(() => fetchPage(captured, "append"));
+        }
+        return chain;
+      });
+    }, REALTIME_REFETCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey]);
 
