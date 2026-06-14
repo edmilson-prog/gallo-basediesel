@@ -38,7 +38,7 @@ export const INBOX_STRINGS = {
   statusOptions: {
     all: "Todas (exceto arquivadas)",
     aguardando: "Aguardando",
-    em_andamento: "Em andamento",
+    em_andamento: "Em atendimento",
     aguardando_cliente: "Aguardando cliente",
     resolvida: "Resolvidas",
     arquivada: "Arquivadas",
@@ -142,10 +142,10 @@ export const INBOX_STRINGS = {
   },
 
   // Accessibility
-  ariaListItem: (params: { name: string; when: string; unread: number }) =>
+  ariaListItem: (params: { name: string; when: string; unread: number; status?: string }) =>
     `Conversa com ${params.name}, última mensagem ${params.when}${
       params.unread > 0 ? `, ${params.unread} não lida${params.unread === 1 ? "" : "s"}` : ""
-    }`,
+    }${params.status ? `, status: ${params.status}` : ""}`,
   ariaList: "Lista de conversas",
   ariaLoadMore: "Carregando mais conversas",
 
@@ -171,11 +171,31 @@ export const CONVERSATION_STRINGS = {
   } as const,
   statusLabel: {
     aguardando: "Aguardando",
-    em_andamento: "Em andamento",
+    em_andamento: "Em atendimento",
     aguardando_cliente: "Aguardando cliente",
     resolvida: "Resolvida",
     arquivada: "Arquivada",
   } as const,
+  statusAriaLabel: {
+    aguardando: "Aguardando atendimento",
+    em_andamento: "Em atendimento",
+    aguardando_cliente: "Aguardando resposta do cliente",
+    resolvida: "Resolvida",
+    arquivada: "Arquivada",
+  } as const,
+  statusControl: {
+    triggerLabel: "Alterar status da conversa",
+    resolve: "Resolver",
+    reopen: "Reabrir",
+    statusChanged: (label: string) => `Status alterado para "${label}"`,
+    actionFailed: "Não foi possível alterar o status",
+    modeSwitchLabel: "Modo de exibição do status",
+    modes: {
+      pill: "Pílula",
+      menu: "Menu",
+      segmented: "Segmentado",
+    },
+  },
   createQuote: "Criar orçamento",
   toggleFiche: "Ficha",
   toggleMedia: "Mídias",
