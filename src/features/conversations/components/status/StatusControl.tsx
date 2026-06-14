@@ -27,7 +27,7 @@ function StatusDot({ status }: { status: ConversationStatus }) {
       aria-hidden
       className={cn(
         "inline-block h-2 w-2 rounded-full",
-        meta.shape === "outline" ? meta.dotClass : meta.dotClass,
+        meta.dotClass,
       )}
     />
   );

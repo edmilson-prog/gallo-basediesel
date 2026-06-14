@@ -103,7 +103,7 @@ function ConversationListItemInner({
         name: display.name,
         when: relative,
         unread,
-        status: CONVERSATION_STRINGS.statusLabel[conversation.status],
+        status: CONVERSATION_STRINGS.statusAriaLabel[conversation.status],
       })}
       aria-current={isSelected ? "true" : undefined}
       data-conversation-id={conversation.id}
