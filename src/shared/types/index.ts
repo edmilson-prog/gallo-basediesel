@@ -127,6 +127,9 @@ export type {
   WhatsAppAccountStatus,
   WhatsAppAccountHealthState,
   WhatsAppFailoverPolicy,
+  WhatsAppAccountPurpose,
+  IWhatsAppAccountAccessRule,
+  IConversationParticipant,
 } from "./conversation";
 
 // Conversation notes (internal attendant board)

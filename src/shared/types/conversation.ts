@@ -115,6 +115,27 @@ export type WhatsAppAccountHealthState = "healthy" | "degraded" | "down" | "paus
 /** Failover policy of an account (PRD-120). */
 export type WhatsAppFailoverPolicy = "disabled" | "manual" | "automatic";
 
+/** Finalidade de uma instância: caixa de atendimento, disparo de campanha, ou ambos. */
+export type WhatsAppAccountPurpose = "atendimento" | "campanha" | "ambos";
+
+/** Regra OU de acesso a uma instância (Camada 1, multi-instância). */
+export interface IWhatsAppAccountAccessRule {
+  id: ID;
+  whatsappAccountId: ID;
+  kind: "seller" | "role" | "store";
+  /** seller uuid | role claim cru (ex. 'seller_internal') | store uuid */
+  targetValue: string;
+  createdAt: ISO8601;
+}
+
+/** Co-responsável de uma conversa (Camada 2, multi-instância). */
+export interface IConversationParticipant {
+  conversationId: ID;
+  sellerId: ID;
+  addedBy?: ID;
+  addedAt: ISO8601;
+}
+
 /**
  * Capability matrix advertised by a WhatsApp provider.
  * UI adapts based on these flags (e.g. hide HSM templates when Evolution is selected).
@@ -176,4 +197,6 @@ export interface IWhatsAppAccount {
   /** True while outbound is being routed through the backup account. */
   isFailoverActive: boolean;
   createdAt: ISO8601;
+  /** Finalidade da instância (multi-instância). Default 'atendimento'. */
+  purpose: WhatsAppAccountPurpose;
 }
