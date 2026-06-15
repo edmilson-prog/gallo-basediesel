@@ -26,6 +26,7 @@ import { servePost } from "../_shared/serve.ts";
 import { buildWhatsAppEngine } from "../_shared/whatsapp/build.ts";
 import { EVOLUTION_SECRET_SUFFIXES } from "../_shared/whatsapp/evolution/constants.ts";
 import {
+  createInstance,
   fetchInstanceProfile,
   getConnectionState,
   getInstanceQr,
@@ -236,6 +237,10 @@ servePost(async (req, ctx) => {
       }
 
       case "qr": {
+        // Multi-instance: ensure the instance exists on the server before
+        // pairing. Idempotent — an existing instance ("already in use") is a
+        // no-op; a real create failure propagates to the outer catch.
+        await createInstance(apiKey, deps, target, ctx.traceId);
         // Point the instance at our unified webhook before pairing (idempotent;
         // best-effort — a failure here must not block the QR).
         const webhookUrl = `${requiredEnv("SUPABASE_URL")}/functions/v1/whatsapp-webhook/evolution`;

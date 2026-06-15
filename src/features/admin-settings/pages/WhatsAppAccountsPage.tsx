@@ -38,6 +38,7 @@ import { ImportConversationsDialog } from "../components/ImportConversationsDial
 import { SyncAvatarsDialog } from "../components/SyncAvatarsDialog";
 import { TestMessageDialog } from "../components/TestMessageDialog";
 import { InstanceAccessSheet } from "../components/InstanceAccessSheet";
+import { AddInstanceWizard } from "../components/AddInstanceWizard";
 import { resolveAccessRecipients } from "../utils/accessRecipients";
 
 const STATUS_VISUAL: Record<
@@ -202,6 +203,7 @@ export function WhatsAppAccountsPage() {
   const [sellers, setSellers] = useState<ISeller[]>([]);
   const [accessRules, setAccessRules] = useState<Record<string, IWhatsAppAccountAccessRule[]>>({});
   const [accessAccount, setAccessAccount] = useState<IWhatsAppAccount | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   const loadMetrics = useCallback(
     async (list: IWhatsAppAccount[]) => {
@@ -280,6 +282,14 @@ export function WhatsAppAccountsPage() {
   }, [sellersProvider, storeId]);
 
   const isMock = useMemo(() => getActiveDataSource() === "mock", []);
+
+  // Multi-instance: a new Evolution number inherits server config (baseUrl +
+  // credentialsRef = same apikey) from an existing configured instance.
+  const templateAccount = useMemo(
+    () =>
+      (accounts ?? []).find((a) => a.provider === "evolution" && a.providerConfig?.baseUrl) ?? null,
+    [accounts],
+  );
 
   // SIGPRO-style live status: 30s polling (visible tab) + focus + manual.
   const { checkNow } = useEvolutionStatusSync(accounts, () => void refresh(), !isMock);
@@ -406,10 +416,24 @@ export function WhatsAppAccountsPage() {
 
   return (
     <div className="space-y-6">
-      <SectionHeader
-        title="WhatsApp"
-        description="Contas conectadas à Central de Atendimento. O envio e a recepção reais usam estas configurações (PRDs 111–118)."
-      />
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <SectionHeader
+          title="WhatsApp"
+          description="Contas conectadas à Central de Atendimento. O envio e a recepção reais usam estas configurações (PRDs 111–118)."
+        />
+        <Button
+          onClick={() => setWizardOpen(true)}
+          disabled={!templateAccount}
+          title={
+            templateAccount
+              ? "Adiciona um novo número no mesmo servidor Evolution"
+              : "Conecte uma instância Evolution primeiro"
+          }
+        >
+          <Icon icon="lucide:plus" size={14} className="mr-1.5" />
+          Adicionar número
+        </Button>
+      </div>
 
       <div className="rounded-md border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
         <div className="flex items-start gap-2">
@@ -914,6 +938,27 @@ export function WhatsAppAccountsPage() {
           onClose={(changed) => {
             setAccessAccount(null);
             if (changed) void refresh();
+          }}
+        />
+      )}
+      {wizardOpen && (
+        <AddInstanceWizard
+          storeId={storeId}
+          templateAccount={templateAccount}
+          onClose={() => {
+            setWizardOpen(false);
+            void refresh();
+          }}
+          onCreated={(newId) => {
+            setWizardOpen(false);
+            void (async () => {
+              await refresh();
+              try {
+                setAccessAccount(await provider.get(newId));
+              } catch {
+                /* the new card still shows "configurar acesso" */
+              }
+            })();
           }}
         />
       )}
