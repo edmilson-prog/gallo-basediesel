@@ -78,6 +78,7 @@ export function makeSendDb(admin: SupabaseClient, _traceId: string): ISendDb {
           storeId: conv.store_id as string,
           status: conv.status as string,
           assignedSellerId: (conv.assigned_seller_id as string | null) ?? null,
+          whatsappAccountId: (conv.whatsapp_account_id as string | null) ?? null,
         },
         account,
         customerId: (conv.customer_id as string | null) ?? null,
@@ -182,6 +183,30 @@ export function makeSendDb(admin: SupabaseClient, _traceId: string): ISendDb {
         resource_id: input.resourceId,
         after: input.after,
       });
+    },
+    // Camada 2 (multi-instância): co-responsável da conversa.
+    async isConversationParticipant(conversationId, sellerId) {
+      const { data } = await admin
+        .from("conversation_participants")
+        .select("seller_id")
+        .eq("conversation_id", conversationId)
+        .eq("seller_id", sellerId)
+        .maybeSingle();
+      return Boolean(data);
+    },
+    // Camada 1 (multi-instância): regras OR seller/role/store da instância.
+    async sellerAccessesAccount(accountId, sellerId, role, storeId) {
+      const { data } = await admin
+        .from("whatsapp_account_access_rules")
+        .select("kind, target_value")
+        .eq("whatsapp_account_id", accountId);
+      const rules = data ?? [];
+      return rules.some(
+        (r) =>
+          (r.kind === "seller" && r.target_value === sellerId) ||
+          (r.kind === "role" && r.target_value === role) ||
+          (r.kind === "store" && r.target_value === storeId),
+      );
     },
   };
 }
