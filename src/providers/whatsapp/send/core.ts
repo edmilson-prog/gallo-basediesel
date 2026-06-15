@@ -68,6 +68,8 @@ export interface ISendConversationContext {
     storeId: string;
     status: string;
     assignedSellerId: string | null;
+    /** Instância de origem da conversa (null em canais não-WhatsApp). */
+    whatsappAccountId: string | null;
   };
   /** Primary account of the conversation, with the PRD-120 failover columns. */
   account: IFailoverAwareAccount | null;
@@ -79,6 +81,15 @@ export interface ISendConversationContext {
 
 export interface ISendDb {
   getSendContext(conversationId: string): Promise<ISendConversationContext | null>;
+  /** Camada 2: o seller é co-responsável (participante) desta conversa? */
+  isConversationParticipant(conversationId: string, sellerId: string): Promise<boolean>;
+  /** Camada 1: o seller acessa a instância (regras seller/role/store)? */
+  sellerAccessesAccount(
+    accountId: string,
+    sellerId: string,
+    role: string,
+    storeId: string,
+  ): Promise<boolean>;
   /** PRD-120: loads the failover (backup) account row. Null when missing. */
   getAccountRecord(accountId: string): Promise<IAccountRecord | null>;
   isWithin24hWindow(conversationId: string): Promise<boolean>;
@@ -164,15 +175,29 @@ export async function processSendRequest(args: {
   }
   const { conversation, account, customerId, customerPhone, customerWhatsappStatus } = context;
 
-  // Permission (RF-010/011) — staff of the store, the assigned seller, or any
-  // seller of the store when the conversation sits in the pool (assigned null,
-  // mirroring the RLS claim model).
+  // Permission (RF-010/011 + multi-instância) — defense-in-depth sobre a RLS:
+  // staff da loja, o responsável, um participante (co-responsável, Camada 2), ou
+  // o pool de uma instância que o seller acessa (Camada 1). Canal sem instância
+  // mantém o pool aberto da loja.
   const sameStore = conversation.storeId === sender.storeId;
   const isStaff = STAFF_ROLES.includes(sender.role);
   const isAssignee =
+    sender.sellerId !== null && conversation.assignedSellerId === sender.sellerId;
+  const isParticipant =
     sender.sellerId !== null &&
-    (conversation.assignedSellerId === sender.sellerId || conversation.assignedSellerId === null);
-  if (!sameStore || (!isStaff && !isAssignee)) {
+    (await db.isConversationParticipant(conversation.id, sender.sellerId));
+  const isPoolAccessible =
+    conversation.assignedSellerId === null &&
+    (isStaff ||
+      conversation.whatsappAccountId === null ||
+      (sender.sellerId !== null &&
+        (await db.sellerAccessesAccount(
+          conversation.whatsappAccountId,
+          sender.sellerId,
+          sender.role,
+          sender.storeId,
+        ))));
+  if (!sameStore || (!isStaff && !isAssignee && !isParticipant && !isPoolAccessible)) {
     throw new WhatsAppProviderError("FORBIDDEN", 403, "Sem permissão para enviar nesta conversa");
   }
 
