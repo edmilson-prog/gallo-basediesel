@@ -59,15 +59,19 @@ export interface IWebhookDb {
     storeId: string;
     phone: string;
     sellerId: string;
-    /** Contact's WhatsApp profile name; falls back to the phone when absent. */
+    /** Contact's WhatsApp profile name; seeds full_name (falls back to the phone
+     *  when absent) AND whatsapp_name when present. */
     name?: string;
   }): Promise<ICustomerRecord>;
   /**
-   * Best-effort: set the customer's name to `name` ONLY when the stored name is
-   * still the phone-number placeholder (or empty) — a real, manually-set name is
-   * never overwritten. Heals existing contacts as they message in.
+   * Best-effort, called on every inbound message carrying a pushName:
+   *  1. ALWAYS records `name` in whatsapp_name (the live WhatsApp profile name),
+   *     even when the display name was renamed by hand.
+   *  2. Heals the display name (full_name / nome_fantasia) to `name` ONLY when it
+   *     is still the phone-number placeholder (or empty) — a manually-set name is
+   *     never overwritten.
    */
-  fillCustomerNameIfPlaceholder(customerId: string, name: string): Promise<void>;
+  applyInboundContactName(customerId: string, name: string): Promise<void>;
   findOpenConversation(customerId: string, accountId: string): Promise<{ id: string } | null>;
   createConversation(input: {
     storeId: string;
@@ -480,10 +484,10 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
       account,
     });
   } else if (contactName) {
-    // Existing contact still named after its phone → heal it from the inbound
-    // pushName. Best-effort: must never break the webhook.
+    // Existing contact: always refresh whatsapp_name, and heal the display name
+    // if it's still the phone placeholder. Best-effort: must never break the webhook.
     try {
-      await db.fillCustomerNameIfPlaceholder(customer.id, contactName);
+      await db.applyInboundContactName(customer.id, contactName);
     } catch (error) {
       warn("failed to fill customer name", {
         customerId: customer.id,

@@ -26,6 +26,7 @@ import {
   useSdrSessionsProvider,
   useSellersProvider,
 } from "@/providers/data";
+import { RenameContactDialog } from "@/features/customers/components/RenameContactDialog";
 import { TransferDialog } from "./dialogs/TransferDialog";
 import { NoteDialog } from "./dialogs/NoteDialog";
 import { StatusControlModeSubmenu } from "./status/StatusControlModeSubmenu";
@@ -81,6 +82,7 @@ export function ConversationMenu({
 
   const [transferOpen, setTransferOpen] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
   const [syncingPhoto, setSyncingPhoto] = useState(false);
   const { markViewed } = useUnreadTracking(currentUser?.id ?? null);
 
@@ -365,6 +367,11 @@ export function ConversationMenu({
           {canAddNote && customer && (
             <>
               <DropdownMenuSeparator />
+              {/* Renaming the contact edits the customer — same own-scope permission. */}
+              <DropdownMenuItem onSelect={() => setRenameOpen(true)}>
+                <Icon icon="mdi:rename-outline" size={14} className="mr-2" />
+                {CONVERSATION_STRINGS.menu.renameContact}
+              </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => setNoteOpen(true)}>
                 <Icon icon="mdi:note-plus-outline" size={14} className="mr-2" />
                 {CONVERSATION_STRINGS.menu.addNote}
@@ -405,6 +412,15 @@ export function ConversationMenu({
       />
 
       <NoteDialog open={noteOpen} onOpenChange={setNoteOpen} onConfirm={handleAddNote} />
+
+      {customer && (
+        <RenameContactDialog
+          customer={customer}
+          open={renameOpen}
+          onOpenChange={setRenameOpen}
+          onRenamed={() => onMutated?.()}
+        />
+      )}
     </>
   );
 }

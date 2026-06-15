@@ -96,6 +96,14 @@ interface ICustomerBase {
    * person icon. Never written from the app; populated server-side only.
    */
   avatarUrl?: string;
+  /**
+   * The contact's most recent WhatsApp profile name (pushName), persisted by the
+   * webhook on every inbound message — independent of the editable display name
+   * (fullName / nomeFantasia). Powers the "Nome no WhatsApp" reference and the
+   * "use it" action on the rename dialog. Read-only in the app (the webhook is
+   * the only writer); absent for non-WhatsApp customers.
+   */
+  whatsappName?: string;
   createdAt: ISO8601;
 }
 

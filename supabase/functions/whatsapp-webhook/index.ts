@@ -157,6 +157,8 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
           // Name the contact from its WhatsApp profile when known; the phone is
           // only a last-resort placeholder.
           full_name: name ?? phone,
+          // whatsapp_name holds the live profile name only (no phone fallback).
+          whatsapp_name: name ?? null,
           seller_id: sellerId,
           status: "ativo",
           tags: ["pending_review"],
@@ -166,23 +168,27 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
       if (error) throw new Error(`createPendingCustomer: ${error.message}`);
       return { id: data.id as string, sellerId: data.seller_id as string };
     },
-    async fillCustomerNameIfPlaceholder(customerId, name) {
-      // Read first so a real, manually-entered name is never overwritten: only
-      // replace the phone placeholder (full_name == phone) or an empty name.
+    async applyInboundContactName(customerId, name) {
+      // Read first so a manually-entered display name is never overwritten.
       // Best-effort — callers swallow errors.
       const { data } = await admin
         .from("customers")
-        .select("full_name, phone")
+        .select("full_name, phone, whatsapp_name")
         .eq("id", customerId)
         .maybeSingle();
       if (!data) return;
+      const patch: Record<string, unknown> = {};
+      // 1) Always keep whatsapp_name in sync with the live WhatsApp profile name.
+      if (String(data.whatsapp_name ?? "") !== name) patch.whatsapp_name = name;
+      // 2) Heal the display name only while it's still the phone placeholder.
       const fullName = String(data.full_name ?? "").trim();
       const nameDigits = fullName.replace(/\D/g, "");
       const phoneDigits = String(data.phone ?? "").replace(/\D/g, "");
       const isPlaceholder =
         fullName === "" || (!/\p{L}/u.test(fullName) && nameDigits === phoneDigits);
-      if (!isPlaceholder) return;
-      await admin.from("customers").update({ full_name: name }).eq("id", customerId);
+      if (isPlaceholder) patch.full_name = name;
+      if (Object.keys(patch).length === 0) return;
+      await admin.from("customers").update(patch).eq("id", customerId);
     },
     async findOpenConversation(customerId, accountId) {
       const { data } = await admin

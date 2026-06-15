@@ -332,6 +332,7 @@ export const CONVERSATION_STRINGS = {
     pauseSdr: "Pausar SDR",
     resumeSdr: "Retomar SDR",
     syncPhoto: "Atualizar foto do contato",
+    renameContact: "Renomear contato",
   },
   photoSyncing: "Atualizando foto do contato…",
   photoUpdated: "Foto do contato atualizada",

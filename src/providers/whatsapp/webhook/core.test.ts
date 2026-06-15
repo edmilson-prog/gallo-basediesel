@@ -20,8 +20,9 @@ interface IFakeState {
     phoneDigits: string;
     sellerId: string;
     name?: string;
+    whatsappName?: string;
   }>;
-  /** Records of fillCustomerNameIfPlaceholder calls (heal path). */
+  /** Records of applyInboundContactName calls (whatsapp_name + heal path). */
   nameFills: Array<{ customerId: string; name: string }>;
   conversations: Array<{
     id: string;
@@ -72,12 +73,20 @@ function makeFakeDb(state: IFakeState, opts?: { knownOutboundId?: string }): IWe
         phoneDigits: phone.replace(/\D/g, ""),
         sellerId,
         name,
+        whatsappName: name,
       };
       state.customers.push(customer);
       return { id: customer.id, sellerId };
     },
-    fillCustomerNameIfPlaceholder: async (customerId, name) => {
+    applyInboundContactName: async (customerId, name) => {
       state.nameFills.push({ customerId, name });
+      const customer = state.customers.find((c) => c.id === customerId);
+      if (!customer) return;
+      // Always refresh the live WhatsApp name.
+      customer.whatsappName = name;
+      // Heal the display name only while it's empty / phone-like (no letter).
+      const current = customer.name ?? "";
+      if (current === "" || !/\p{L}/u.test(current)) customer.name = name;
     },
     findOpenConversation: async (customerId, accountId) => {
       const found = state.conversations.find(
@@ -339,6 +348,21 @@ describe("processWebhookEvent — inbound messages (RF-040/050)", () => {
     });
     await run(state, evolutionTextEvent("oi de novo", "EVONAME4", "Maria Peças"));
     expect(state.nameFills).toEqual([{ customerId: "cust-old", name: "Maria Peças" }]);
+  });
+
+  it("refreshes whatsapp_name but never overwrites a hand-edited display name", async () => {
+    const state = emptyState();
+    state.customers.push({
+      id: "cust-renamed",
+      storeId: "store-1",
+      phoneDigits: "5555988887777",
+      sellerId: "seller-lucas",
+      name: "Oficina do Zé", // a manually-set name (has letters)
+    });
+    await run(state, evolutionTextEvent("oi", "EVONAME5", "José Carlos"));
+    const customer = state.customers.find((c) => c.id === "cust-renamed");
+    expect(customer?.whatsappName).toBe("José Carlos"); // live name refreshed…
+    expect(customer?.name).toBe("Oficina do Zé"); // …display name preserved
   });
 });
 

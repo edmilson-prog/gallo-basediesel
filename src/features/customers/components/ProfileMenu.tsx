@@ -30,6 +30,7 @@ import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { useAuth } from "@/features/auth/useAuth";
 import { auditLog } from "@/features/rbac/utils/auditLog";
 import { CUSTOMER_STRINGS } from "../i18n/pt-BR";
+import { RenameContactDialog } from "./RenameContactDialog";
 
 export interface IProfileMenuProps {
   customer: ICustomer;
@@ -52,6 +53,7 @@ export function ProfileMenu({ customer, onMutated }: IProfileMenuProps) {
   const queryClient = useQueryClient();
   const [blockOpen, setBlockOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
 
   // The detail screen reads from TanStack Query — refetch after every mutation
   // (the mock store mutated shared objects in place, which masked this need).
@@ -127,6 +129,12 @@ export function ProfileMenu({ customer, onMutated }: IProfileMenuProps) {
           <TooltipContent>{CUSTOMER_STRINGS.header.menuLabel}</TooltipContent>
         </Tooltip>
         <DropdownMenuContent align="end" className="w-56">
+          {canEdit && (
+            <DropdownMenuItem onSelect={() => setRenameOpen(true)}>
+              <Icon icon="mdi:rename-outline" size={14} />
+              {CUSTOMER_STRINGS.menu.rename}
+            </DropdownMenuItem>
+          )}
           {canEdit && (
             <DropdownMenuItem
               onSelect={() => toast.info("Edição de dados será detalhada em PRD-019.")}
@@ -207,6 +215,16 @@ export function ProfileMenu({ customer, onMutated }: IProfileMenuProps) {
         onClose={() => setTransferOpen(false)}
         onCreated={() => {
           setTransferOpen(false);
+          refreshCustomer();
+          onMutated?.();
+        }}
+      />
+
+      <RenameContactDialog
+        customer={customer}
+        open={renameOpen}
+        onOpenChange={setRenameOpen}
+        onRenamed={() => {
           refreshCustomer();
           onMutated?.();
         }}
