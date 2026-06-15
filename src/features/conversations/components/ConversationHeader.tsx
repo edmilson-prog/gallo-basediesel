@@ -17,6 +17,7 @@ import { useCustomersProvider } from "@/providers/data";
 import { useAuth } from "@/features/auth/useAuth";
 import { CHANNEL_META, getConversationDisplay } from "../utils/conversationDisplay";
 import { ContactAvatar } from "./ContactAvatar";
+import { OriginChip } from "./OriginChip";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
 import { StatusControl } from "./status/StatusControl";
 import type { StatusControlMode } from "../engine/statusControlMode";
@@ -53,6 +54,7 @@ export function ConversationHeader({
   conversation,
   customer,
   lead,
+  whatsappAccount,
   ficheOpen,
   onToggleFiche,
   mediaOpen,
@@ -157,6 +159,13 @@ export function ConversationHeader({
         </div>
 
         <div className="flex items-center gap-1">
+          {whatsappAccount && (
+            <OriginChip
+              account={whatsappAccount}
+              variant="label"
+              className="mr-1 hidden lg:inline-flex"
+            />
+          )}
           <StatusControl
             conversation={conversation}
             mode={statusControlMode}
