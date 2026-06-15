@@ -53,6 +53,7 @@ interface CustomerRow {
   has_b2b_portal: boolean | null;
   portal_contract: IPortalContract | null;
   avatar_url: string | null;
+  whatsapp_name: string | null;
   // B2B variant fields (null on B2C).
   cnpj: string | null;
   razao_social: string | null;
@@ -78,7 +79,7 @@ const COLUMNS =
   "id, store_id, type, email, phone, whatsapp_status, address, seller_id, status, tags, first_purchase_at, " +
   "last_purchase_at, converted_from_lead_id, converted_from_lead_at, converted_by_seller_id, " +
   "purchase_stats, abc_class, abc_share, overdue_titles_count, portal, is_guest_checkout, " +
-  "has_b2b_portal, portal_contract, avatar_url, cnpj, razao_social, nome_fantasia, contact_name, cpf, " +
+  "has_b2b_portal, portal_contract, avatar_url, whatsapp_name, cnpj, razao_social, nome_fantasia, contact_name, cpf, " +
   "full_name, created_at";
 const NOTE_COLUMNS = "id, customer_id, author_id, content, created_at";
 
@@ -117,6 +118,7 @@ function rowToCustomerBase(row: CustomerRow): Omit<ICustomer, "type" | "id"> {
     hasB2BPortal: row.has_b2b_portal ?? undefined,
     portalContract: row.portal_contract ?? undefined,
     avatarUrl: row.avatar_url ?? undefined,
+    whatsappName: row.whatsapp_name ?? undefined,
     createdAt: row.created_at,
   } as Omit<ICustomer, "type" | "id">;
 }

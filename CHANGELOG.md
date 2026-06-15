@@ -6,6 +6,15 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.96.0] — Alias · 2026-06-15
+
+**Agora dá para renomear um contato direto na plataforma — e o nome do WhatsApp fica guardado.** Renomeie pelo menu (⋮) da conversa ou da ficha do cliente. O nome do perfil do WhatsApp continua sendo registrado a cada mensagem recebida, então você sempre pode consultá-lo (ou voltar a usá-lo) mesmo depois de ter dado outro nome ao contato.
+
+### Added
+
+- **Renomear contato** — uma opção "Renomear contato" no menu (⋮) tanto da conversa quanto da ficha do cliente abre uma janela para ajustar o nome que aparece na plataforma. O nome que você digita tem prioridade e nunca é substituído automaticamente.
+- **Nome do WhatsApp sempre à mão** — o nome do perfil do WhatsApp do contato passa a ser guardado separadamente e atualizado a cada mensagem recebida. Na janela de renomear, ele aparece como referência ("Nome no WhatsApp: …") com um atalho para reutilizá-lo.
+
 ## [0.95.0] — Nameplate · 2026-06-14
 
 **Os contatos do WhatsApp agora aparecem com o nome, não mais com o número.** Quando um número novo manda mensagem, o contato já entra com o nome do perfil do WhatsApp; e os contatos antigos que apareciam só como número vão sendo corrigidos sozinhos assim que voltam a escrever.

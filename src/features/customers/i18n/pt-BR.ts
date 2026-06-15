@@ -199,6 +199,7 @@ export const CUSTOMER_STRINGS = {
   },
   menu: {
     edit: "Editar dados",
+    rename: "Renomear contato",
     markDormant: "Marcar como dormente",
     transferWallet: "Transferir carteira",
     blockCustomer: "Bloquear cliente",
@@ -212,6 +213,19 @@ export const CUSTOMER_STRINGS = {
     blockConfirmCta: "Bloquear cliente",
     blockedToast: "Cliente bloqueado.",
     markedDormantToast: "Cliente marcado como dormente.",
+  },
+  rename: {
+    title: "Renomear contato",
+    description: "Defina o nome que aparece para este contato na plataforma.",
+    label: "Nome do contato",
+    placeholder: "Ex.: João da Oficina Silva",
+    whatsappNameLabel: "Nome no WhatsApp",
+    useWhatsappName: "Usar o nome do WhatsApp",
+    empty: "Informe um nome.",
+    success: "Nome do contato atualizado.",
+    failed: "Não foi possível renomear o contato.",
+    cancel: "Cancelar",
+    confirm: "Salvar",
   },
   detail: {
     breadcrumb: "Clientes",
