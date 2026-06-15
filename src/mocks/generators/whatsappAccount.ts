@@ -28,6 +28,7 @@ export const SEED_WHATSAPP_ACCOUNTS: IWhatsAppAccount[] = [
       supportsReadStatusInGroups: false,
     },
     createdAt: "2026-02-01T10:00:00.000Z",
+    purpose: "ambos",
   },
   {
     id: "wa-evo-campanhas",
@@ -49,6 +50,7 @@ export const SEED_WHATSAPP_ACCOUNTS: IWhatsAppAccount[] = [
       supportsReadStatusInGroups: true,
     },
     createdAt: "2026-02-15T10:00:00.000Z",
+    purpose: "campanha",
   },
 ];
 
