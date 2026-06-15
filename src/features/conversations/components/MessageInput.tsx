@@ -40,6 +40,7 @@ import { TemplateDialog } from "./dialogs/TemplateDialog";
 import { TemplatePicker, type ITemplatePickerSelection } from "@/features/templates";
 import { NotesButton } from "./notes/NotesButton";
 import { InlineNoteComposer } from "./notes/InlineNoteComposer";
+import { OriginChip } from "./OriginChip";
 import { getActiveDataSource } from "@/providers/data";
 import {
   AssetPicker,
@@ -608,6 +609,12 @@ export function MessageInput(props: IMessageInputProps) {
         />
       )}
 
+      {whatsappAccount && (
+        <div className="flex items-center gap-1.5 px-3 pt-2 text-[11px] text-muted-foreground">
+          <span>Respondendo por</span>
+          <OriginChip account={whatsappAccount} variant="label" />
+        </div>
+      )}
       <div className="flex items-end gap-2 px-3 py-2">
         {recorder.status !== "idle" ? (
           <VoiceRecorderBar
