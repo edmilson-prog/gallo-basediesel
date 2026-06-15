@@ -181,6 +181,8 @@ export function parseEvolutionInbound(
     // Evolution media downloads by MESSAGE key id (getBase64FromMediaMessage).
     mediaId: hasMedia ? data.key?.id : undefined,
     mediaCaption: content.mediaCaption,
+    // Contact's WhatsApp profile name — used to name auto-created customers.
+    senderName: data.pushName,
     timestamp: timestampToIso(data.messageTimestamp),
     rawPayload,
   };

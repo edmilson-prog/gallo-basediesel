@@ -146,7 +146,7 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
       if (!seller) throw new Error(`store ${storeId} has no active seller for auto-assignment`);
       return seller.id as string;
     },
-    async createPendingCustomer({ storeId, phone, sellerId }) {
+    async createPendingCustomer({ storeId, phone, sellerId, name }) {
       const { data, error } = await admin
         .from("customers")
         .insert({
@@ -154,7 +154,9 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
           // customers_type_check requires uppercase 'B2C' (matches the app/seed).
           type: "B2C",
           phone,
-          full_name: phone,
+          // Name the contact from its WhatsApp profile when known; the phone is
+          // only a last-resort placeholder.
+          full_name: name ?? phone,
           seller_id: sellerId,
           status: "ativo",
           tags: ["pending_review"],
@@ -163,6 +165,24 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
         .single();
       if (error) throw new Error(`createPendingCustomer: ${error.message}`);
       return { id: data.id as string, sellerId: data.seller_id as string };
+    },
+    async fillCustomerNameIfPlaceholder(customerId, name) {
+      // Read first so a real, manually-entered name is never overwritten: only
+      // replace the phone placeholder (full_name == phone) or an empty name.
+      // Best-effort — callers swallow errors.
+      const { data } = await admin
+        .from("customers")
+        .select("full_name, phone")
+        .eq("id", customerId)
+        .maybeSingle();
+      if (!data) return;
+      const fullName = String(data.full_name ?? "").trim();
+      const nameDigits = fullName.replace(/\D/g, "");
+      const phoneDigits = String(data.phone ?? "").replace(/\D/g, "");
+      const isPlaceholder =
+        fullName === "" || (!/\p{L}/u.test(fullName) && nameDigits === phoneDigits);
+      if (!isPlaceholder) return;
+      await admin.from("customers").update({ full_name: name }).eq("id", customerId);
     },
     async findOpenConversation(customerId, accountId) {
       const { data } = await admin

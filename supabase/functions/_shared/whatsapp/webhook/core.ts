@@ -62,7 +62,15 @@ export interface IWebhookDb {
     storeId: string;
     phone: string;
     sellerId: string;
+    /** Contact's WhatsApp profile name; falls back to the phone when absent. */
+    name?: string;
   }): Promise<ICustomerRecord>;
+  /**
+   * Best-effort: set the customer's name to `name` ONLY when the stored name is
+   * still the phone-number placeholder (or empty) — a real, manually-set name is
+   * never overwritten. Heals existing contacts as they message in.
+   */
+  fillCustomerNameIfPlaceholder(customerId: string, name: string): Promise<void>;
   findOpenConversation(customerId: string, accountId: string): Promise<{ id: string } | null>;
   createConversation(input: {
     storeId: string;
@@ -183,6 +191,11 @@ const MIME_EXTENSIONS: Record<string, string> = {
 
 function digits(phone: string): string {
   return phone.replace(/\D/g, "");
+}
+
+/** A usable contact name has at least one letter (rejects empty / phone-like). */
+function looksLikeName(value: string | undefined): value is string {
+  return value !== undefined && /\p{L}/u.test(value);
 }
 
 /** Normalized inbound contentType → messages.media_type column value. */
@@ -450,6 +463,7 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
   //    seller_id=null is impossible here: customers.seller_id is NOT NULL by
   //    schema (recorded deviation).
   const fromDigits = digits(parsed.fromPhone);
+  const contactName = looksLikeName(parsed.senderName) ? parsed.senderName : undefined;
   let customer = await db.findCustomerByPhone(account.storeId, fromDigits);
   let customerCreated = false;
   if (!customer) {
@@ -458,6 +472,7 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
       storeId: account.storeId,
       phone: parsed.fromPhone,
       sellerId,
+      name: contactName,
     });
     customerCreated = true;
     // Best-effort, fire-and-forget: pull this brand-new contact's WhatsApp
@@ -467,6 +482,17 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
       phone: parsed.fromPhone,
       account,
     });
+  } else if (contactName) {
+    // Existing contact still named after its phone → heal it from the inbound
+    // pushName. Best-effort: must never break the webhook.
+    try {
+      await db.fillCustomerNameIfPlaceholder(customer.id, contactName);
+    } catch (error) {
+      warn("failed to fill customer name", {
+        customerId: customer.id,
+        detail: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   // 6. Conversation resolution (RF-040.3) — closed (resolvida/arquivada)
