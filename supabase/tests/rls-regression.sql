@@ -729,6 +729,59 @@ end $$;
 
 reset role;
 
+-- ---------------------------------------------------------------------------
+-- Multi-instância (2026-06-15): estruturas presentes; can_access fecha o pool
+-- por instância e impede um seller de ler mensagens de conversa de OUTRO seller.
+-- ---------------------------------------------------------------------------
+do $$
+begin
+  if to_regprocedure('public.can_access_conversation(uuid)') is null then
+    raise exception 'multi-instance: can_access_conversation(uuid) is missing';
+  end if;
+  if not exists (select 1 from information_schema.tables
+    where table_schema='public' and table_name='whatsapp_account_access_rules') then
+    raise exception 'multi-instance: whatsapp_account_access_rules table is missing';
+  end if;
+  if not exists (select 1 from information_schema.tables
+    where table_schema='public' and table_name='conversation_participants') then
+    raise exception 'multi-instance: conversation_participants table is missing';
+  end if;
+end $$;
+
+-- Captura (como admin) uma conversa atribuída a OUTRO seller, com mensagens.
+select set_config('test.other_conv', coalesce((
+  select c.id::text
+  from public.conversations c
+  where c.assigned_seller_id is not null
+    and c.assigned_seller_id <> '5a6400ed-5aec-4bf1-b641-31635f15c887'
+    and c.store_id = '00000000-0000-0000-0000-000000000001'
+    and exists (select 1 from public.messages m where m.conversation_id = c.id)
+  limit 1
+), ''), true);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+
+do $$
+declare
+  probe text := current_setting('test.other_conv', true);
+  leaked int;
+begin
+  if probe is null or probe = '' then
+    return; -- seed sem conversa de outro seller: nada a provar
+  end if;
+  select count(*) into leaked from public.messages where conversation_id = probe::uuid;
+  if leaked <> 0 then
+    raise exception 'multi-instance: seller leaked % messages of another seller conversation', leaked;
+  end if;
+end $$;
+
+reset role;
+
 select 'ALL RLS REGRESSION TESTS PASSED' as result;
 
 rollback;
