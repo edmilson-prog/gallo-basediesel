@@ -6,6 +6,14 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.95.0] — Nameplate · 2026-06-14
+
+**Os contatos do WhatsApp agora aparecem com o nome, não mais com o número.** Quando um número novo manda mensagem, o contato já entra com o nome do perfil do WhatsApp; e os contatos antigos que apareciam só como número vão sendo corrigidos sozinhos assim que voltam a escrever.
+
+### Fixed
+
+- **Contatos do WhatsApp identificados pelo nome** — corrigido o problema que fazia os contatos aparecerem como o número de telefone em vez do nome. Agora cada mensagem recebida traz o nome do perfil do contato: os novos já entram nomeados e os antigos têm o nome preenchido automaticamente na próxima mensagem que enviarem. Um nome digitado à mão nunca é substituído.
+
 ## [0.94.0] — Recall · 2026-06-13
 
 **A tela de login agora lembra o seu e-mail.** Marque "Lembrar-me" ao entrar e, na próxima vez, o e-mail já vem preenchido — sem precisar digitar de novo. A senha nunca é guardada.
