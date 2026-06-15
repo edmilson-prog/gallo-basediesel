@@ -36,6 +36,6 @@ describe("mockWhatsAppAccountsProvider.create", () => {
     ]);
     expect(rules).toHaveLength(1);
     const read = await mockWhatsAppAccountsProvider.getAccessRules("wa-evo-campanhas");
-    expect(read[0].targetValue).toBe("seller_internal");
+    expect(read[0]?.targetValue).toBe("seller_internal");
   });
 });
