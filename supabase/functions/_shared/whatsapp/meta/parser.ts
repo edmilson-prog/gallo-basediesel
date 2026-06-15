@@ -17,6 +17,8 @@ interface IMetaWebhookValue {
   metadata?: { display_phone_number?: string; phone_number_id?: string };
   messages?: IMetaInboundMessage[];
   statuses?: IMetaInboundStatus[];
+  /** Inbound contact profiles — `contacts[].profile.name` is the display name. */
+  contacts?: Array<{ wa_id?: string; profile?: { name?: string } }>;
 }
 
 interface IMetaInboundMessage {
@@ -112,6 +114,7 @@ export function parseMetaInbound(
     fromPhone: toE164(message.from ?? ""),
     toAccountPhone: toE164(value.metadata?.display_phone_number ?? ""),
     accountId,
+    senderName: value.contacts?.[0]?.profile?.name,
     timestamp: unixToIso(message.timestamp),
     rawPayload,
   };

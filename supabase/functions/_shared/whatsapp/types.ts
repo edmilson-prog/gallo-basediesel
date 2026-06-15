@@ -125,6 +125,12 @@ export interface IInboundMessage {
   /** Provider media id, downloadable via `downloadInboundMedia`. */
   mediaId?: string;
   mediaCaption?: string;
+  /**
+   * Contact's WhatsApp profile name (Evolution `pushName` / Meta
+   * `contacts[].profile.name`), when present. Lets auto-created customers be
+   * named instead of falling back to the bare phone number.
+   */
+  senderName?: string;
   timestamp: ISO8601;
   /** Original provider payload, kept verbatim for audit (PRD-110). */
   rawPayload: unknown;

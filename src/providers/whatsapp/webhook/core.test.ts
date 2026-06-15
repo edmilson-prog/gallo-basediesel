@@ -14,7 +14,15 @@ const ACCOUNT: IAccountRecord = {
 
 interface IFakeState {
   processed: Set<string>;
-  customers: Array<{ id: string; storeId: string; phoneDigits: string; sellerId: string }>;
+  customers: Array<{
+    id: string;
+    storeId: string;
+    phoneDigits: string;
+    sellerId: string;
+    name?: string;
+  }>;
+  /** Records of fillCustomerNameIfPlaceholder calls (heal path). */
+  nameFills: Array<{ customerId: string; name: string }>;
   conversations: Array<{
     id: string;
     customerId: string;
@@ -57,15 +65,19 @@ function makeFakeDb(state: IFakeState, opts?: { knownOutboundId?: string }): IWe
       return found ? { id: found.id, sellerId: found.sellerId } : null;
     },
     resolveDefaultSellerId: async () => "seller-manager",
-    createPendingCustomer: async ({ storeId, phone, sellerId }) => {
+    createPendingCustomer: async ({ storeId, phone, sellerId, name }) => {
       const customer = {
         id: nextId("cust"),
         storeId,
         phoneDigits: phone.replace(/\D/g, ""),
         sellerId,
+        name,
       };
       state.customers.push(customer);
       return { id: customer.id, sellerId };
+    },
+    fillCustomerNameIfPlaceholder: async (customerId, name) => {
+      state.nameFills.push({ customerId, name });
     },
     findOpenConversation: async (customerId, accountId) => {
       const found = state.conversations.find(
@@ -125,6 +137,7 @@ function emptyState(): IFakeState {
   return {
     processed: new Set(),
     customers: [],
+    nameFills: [],
     conversations: [],
     messages: [],
     statusApplied: [],
@@ -138,13 +151,14 @@ function emptyState(): IFakeState {
   };
 }
 
-function evolutionTextEvent(text = "preciso de um filtro", keyId = "EVOKEY1") {
+function evolutionTextEvent(text = "preciso de um filtro", keyId = "EVOKEY1", pushName?: string) {
   return {
     event: "messages.upsert",
     instance: "gallo-matriz",
     sender: "5555911111111@s.whatsapp.net",
     data: {
       key: { id: keyId, remoteJid: "5555988887777@s.whatsapp.net", fromMe: false },
+      pushName,
       message: { conversation: text },
       messageTimestamp: 1765400000,
     },
@@ -297,6 +311,34 @@ describe("processWebhookEvent — inbound messages (RF-040/050)", () => {
     expect(state.messages).toHaveLength(0);
     expect(state.processed.size).toBe(0);
     expect(state.audits).toHaveLength(0);
+  });
+
+  it("names a brand-new contact from the inbound pushName", async () => {
+    const state = emptyState();
+    await run(state, evolutionTextEvent("oi", "EVONAME1", "João da Oficina"));
+    expect(state.customers[0]?.name).toBe("João da Oficina");
+  });
+
+  it("creates without a name (phone fallback) when pushName is absent or phone-like", async () => {
+    const state = emptyState();
+    await run(state, evolutionTextEvent("oi", "EVONAME2")); // no pushName
+    expect(state.customers[0]?.name).toBeUndefined();
+
+    const state2 = emptyState();
+    await run(state2, evolutionTextEvent("oi", "EVONAME3", "+55 55 98888-7777")); // digits only
+    expect(state2.customers[0]?.name).toBeUndefined();
+  });
+
+  it("heals an existing phone-named contact from the inbound pushName", async () => {
+    const state = emptyState();
+    state.customers.push({
+      id: "cust-old",
+      storeId: "store-1",
+      phoneDigits: "5555988887777",
+      sellerId: "seller-lucas",
+    });
+    await run(state, evolutionTextEvent("oi de novo", "EVONAME4", "Maria Peças"));
+    expect(state.nameFills).toEqual([{ customerId: "cust-old", name: "Maria Peças" }]);
   });
 });
 
