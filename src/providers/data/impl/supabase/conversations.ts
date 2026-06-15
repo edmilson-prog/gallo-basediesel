@@ -3,6 +3,7 @@ import type {
   IConversationsProvider,
   ICreateConversationInput,
   ICreateConversationResult,
+  ICreateOutboundConversationInput,
   IListConversationsParams,
 } from "../../contracts/conversations";
 import type { IPaginatedResult } from "../../contracts/_shared";
@@ -205,6 +206,33 @@ export const supabaseConversationsProvider: IConversationsProvider = {
       .update({ status: "arquivada", updated_at: new Date().toISOString() })
       .eq("id", id);
     if (error) throw new Error(`[supabase] conversations.archive(${id}) failed: ${error.message}`);
+  },
+
+  async createOutbound(input: ICreateOutboundConversationInput): Promise<IConversation> {
+    const now = new Date().toISOString();
+    // Direct insert (no distribution): the conversations_insert RLS WITH CHECK
+    // allows a non-staff seller to create a row in their store assigned to
+    // themselves — exactly this outbound case. The first message is sent later
+    // from the composer (provider-aware).
+    const { data, error } = await getSupabaseClient()
+      .from(TABLE)
+      .insert({
+        store_id: input.storeId,
+        customer_id: input.customerId,
+        assigned_seller_id: input.assignedSellerId,
+        channel: "whatsapp",
+        whatsapp_account_id: input.whatsappAccountId,
+        status: "em_andamento",
+        is_sdr_active: false,
+        tags: [],
+        last_message_at: now,
+        unread_count: 0,
+      })
+      .select(COLUMNS)
+      .single();
+    if (error)
+      throw new Error(`[supabase] conversations.createOutbound failed: ${error.message}`);
+    return rowToConversation(data as unknown as ConversationRow);
   },
 
   async create(input: ICreateConversationInput): Promise<ICreateConversationResult> {

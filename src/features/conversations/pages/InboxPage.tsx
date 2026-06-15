@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import type { ICustomer, ID, ILead, IMessage, IConversation } from "@/shared/types";
+import type { ICustomer, ID, ILead, IMessage, IConversation, IWhatsAppAccount } from "@/shared/types";
 import { useAuth } from "@/features/auth/useAuth";
+import { useCurrentStore } from "@/features/multistore";
 import {
   useConversationsProvider,
   useCustomersProvider,
   useLeadsProvider,
   useMessagesProvider,
+  useWhatsAppAccountsProvider,
 } from "@/providers/data";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
@@ -23,6 +25,7 @@ import { InboxHeader } from "../components/InboxHeader";
 import { InboxEmptyState } from "../components/InboxEmptyState";
 import { QuickActions } from "../components/QuickActions";
 import { SearchInput } from "../components/SearchInput";
+import { NewConversationDialog } from "../components/NewConversationDialog";
 import { INBOX_STRINGS } from "../i18n/pt-BR";
 
 interface IRelatedEntities {
@@ -133,6 +136,35 @@ export function InboxPage() {
   // so it matches conversation.assignedSellerId. `userId` stays for unread tracking.
   const sellerId: ID | null = currentUser?.sellerId ?? null;
   const navigate = useNavigate();
+  const { currentStoreId } = useCurrentStore();
+  const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
+  const whatsappAccountsProvider = useWhatsAppAccountsProvider();
+  const [accounts, setAccounts] = useState<IWhatsAppAccount[]>([]);
+  const [newConvOpen, setNewConvOpen] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    void whatsappAccountsProvider
+      .list({ storeId })
+      .then((list) => {
+        if (!cancelled) setAccounts(list);
+      })
+      .catch(() => {
+        if (!cancelled) setAccounts([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [whatsappAccountsProvider, storeId]);
+  const accountsById = useMemo(() => {
+    const map = new Map<ID, IWhatsAppAccount>();
+    for (const a of accounts) map.set(a.id, a);
+    return map;
+  }, [accounts]);
+  const showOrigin = accounts.length > 1;
+  const connectedAccounts = useMemo(
+    () => accounts.filter((a) => a.status === "connected"),
+    [accounts],
+  );
 
   const selectedId = (useParams({ strict: false }) as { id?: ID }).id ?? null;
 
@@ -311,6 +343,7 @@ export function InboxPage() {
           onToggleRealtime={realtime.setEnabled}
           realtimeConnected={realtime.connected}
           sortDescription={sortDescription}
+          onNewConversation={sellerId ? () => setNewConvOpen(true) : undefined}
         />
         <div className="border-b border-border px-3 py-2">
           <SearchInput inputRef={searchInputRef} value={filters.search} onChange={setSearch} />
@@ -380,6 +413,12 @@ export function InboxPage() {
                 onSelect={() => handleSelect(conversation.id)}
                 trailing={<QuickActions conversation={conversation} onMutated={refetch} />}
                 escalation={escalationsByConversation.get(conversation.id) ?? null}
+                originAccount={
+                  conversation.whatsappAccountId
+                    ? (accountsById.get(conversation.whatsappAccountId) ?? null)
+                    : null
+                }
+                showOrigin={showOrigin}
               />
             ))}
 
@@ -405,6 +444,23 @@ export function InboxPage() {
           )}
         </div>
       </div>
+      {newConvOpen && sellerId && (
+        <NewConversationDialog
+          storeId={storeId}
+          sellerId={sellerId}
+          accounts={connectedAccounts}
+          onClose={() => setNewConvOpen(false)}
+          onCreated={(conversationId) => {
+            setNewConvOpen(false);
+            refetch();
+            void navigate({
+              to: "/app/atendimento/$id",
+              params: { id: conversationId },
+              search: (prev) => prev,
+            });
+          }}
+        />
+      )}
     </TooltipProvider>
   );
 }

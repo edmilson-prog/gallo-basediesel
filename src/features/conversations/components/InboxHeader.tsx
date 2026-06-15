@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import { RealtimeToggle } from "./RealtimeToggle";
 import { INBOX_STRINGS } from "../i18n/pt-BR";
@@ -11,6 +12,8 @@ export interface IInboxHeaderProps {
   sortDescription?: string;
   /** Realtime channel health (PRD-105) — undefined keeps the mock behaviour. */
   realtimeConnected?: boolean;
+  /** Opens the "Nova conversa" dialog (multi-instância). Hidden when absent. */
+  onNewConversation?: () => void;
 }
 
 export function InboxHeader({
@@ -20,6 +23,7 @@ export function InboxHeader({
   onToggleRealtime,
   sortDescription,
   realtimeConnected,
+  onNewConversation,
 }: IInboxHeaderProps) {
   return (
     <div className="flex flex-col gap-1 border-b border-border px-3 py-2">
@@ -35,6 +39,12 @@ export function InboxHeader({
           )}
         </div>
         <div className="flex items-center gap-1">
+          {onNewConversation && (
+            <Button size="sm" className="h-7 gap-1 px-2 text-xs" onClick={onNewConversation}>
+              <Icon icon="lucide:plus" size={14} />
+              <span className="hidden sm:inline">Nova conversa</span>
+            </Button>
+          )}
           <RealtimeToggle
             enabled={realtimeEnabled}
             onToggle={onToggleRealtime}

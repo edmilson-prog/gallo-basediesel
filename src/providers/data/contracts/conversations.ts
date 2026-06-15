@@ -52,6 +52,21 @@ export interface ICreateConversationResult {
 }
 
 /**
+ * Outbound conversation creation (multi-instância — "Nova conversa"): a seller
+ * opens a WhatsApp thread from a chosen instance. Unlike {@link ICreateConversationInput},
+ * this skips the distribution engine — the conversation is assigned to the
+ * CREATOR and starts empty (the first message is sent from the composer).
+ * `assignedSellerId` MUST be the caller's own seller id (conversations_insert
+ * RLS WITH CHECK: store + self-assignment).
+ */
+export interface ICreateOutboundConversationInput {
+  storeId: ID;
+  whatsappAccountId: ID;
+  assignedSellerId: ID;
+  customerId: ID;
+}
+
+/**
  * Contract for WhatsApp / multichannel conversation access.
  *
  * @see ../../../mocks/api/conversations.ts
@@ -70,4 +85,9 @@ export interface IConversationsProvider {
    * + system messages.
    */
   create(input: ICreateConversationInput): Promise<ICreateConversationResult>;
+  /**
+   * Create an OUTBOUND conversation (multi-instância). Assigned to the creator,
+   * bound to the chosen instance, no distribution / no inbound bubble.
+   */
+  createOutbound(input: ICreateOutboundConversationInput): Promise<IConversation>;
 }

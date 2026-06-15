@@ -186,6 +186,33 @@ export const conversationsApi = {
     });
   },
 
+  async createOutbound(input: {
+    storeId: ID;
+    whatsappAccountId: ID;
+    assignedSellerId: ID;
+    customerId: ID;
+  }): Promise<IConversation> {
+    return runApi("conversationsApi", "createOutbound", () => {
+      const now = new Date().toISOString();
+      const conversation: IConversation = {
+        id: `conv-${crypto.randomUUID()}`,
+        storeId: input.storeId,
+        customerId: input.customerId,
+        assignedSellerId: input.assignedSellerId,
+        channel: "whatsapp",
+        whatsappAccountId: input.whatsappAccountId,
+        status: "em_andamento",
+        isSdrActive: false,
+        tags: [],
+        lastMessageAt: now,
+        unreadCount: 0,
+        createdAt: now,
+      };
+      upsert("conversations", conversation);
+      return conversation;
+    });
+  },
+
   async create(input: ICreateInbound): Promise<ICreateInboundResult> {
     return runApi(
       "conversationsApi",
