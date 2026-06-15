@@ -4,6 +4,8 @@ import type { IEngineDeps } from "../types";
 import {
   fetchInstanceProfile,
   findChats,
+  findContacts,
+  findContactsFromChats,
   findMessages,
   getConnectionState,
   getInstanceQr,
@@ -212,6 +214,20 @@ describe("findChats", () => {
     expect(chats).toEqual([{ remoteJid: "5511922223333@s.whatsapp.net" }]);
   });
 
+  it("captures the chat's pushName/name when present", async () => {
+    const { deps } = makeDeps(200, [
+      { remoteJid: "5555988887777@s.whatsapp.net", pushName: "Cliente A" },
+      { id: "5511911112222@s.whatsapp.net", name: "Cliente B" },
+      { remoteJid: "5511933334444@s.whatsapp.net" },
+    ]);
+    const chats = await findChats("key", deps, TARGET);
+    expect(chats).toEqual([
+      { remoteJid: "5555988887777@s.whatsapp.net", name: "Cliente A" },
+      { remoteJid: "5511911112222@s.whatsapp.net", name: "Cliente B" },
+      { remoteJid: "5511933334444@s.whatsapp.net", name: undefined },
+    ]);
+  });
+
   it("logs a diagnostic entry when the response shape is unrecognised", async () => {
     const errors: (string | undefined)[] = [];
     const deps: IEngineDeps = {
@@ -258,5 +274,76 @@ describe("findMessages", () => {
     const page = await findMessages("key", deps, TARGET, "jid", 1);
     expect(page.records).toHaveLength(1);
     expect(page.pages).toBeUndefined();
+  });
+});
+
+describe("findContacts", () => {
+  it("pairs individual contacts with their name and drops groups/non-jids", async () => {
+    const { deps, calls } = makeDeps(200, [
+      { id: "5549999998888@s.whatsapp.net", pushName: "João Silva" },
+      { remoteJid: "120363000@g.us", pushName: "Grupo X" },
+      { id: "5511888887777@s.whatsapp.net", name: "Maria (agenda)" },
+      { id: "not-a-jid" },
+    ]);
+    const contacts = await findContacts("key", deps, TARGET);
+    expect(contacts).toEqual([
+      { phone: "+5549999998888", name: "João Silva" },
+      { phone: "+5511888887777", name: "Maria (agenda)" },
+    ]);
+    expect(calls[0]!.url).toBe("https://evo.test/chat/findContacts/inst1");
+    expect(calls[0]!.init.method).toBe("POST");
+  });
+
+  it("parses nested {contacts:[...]} and {records:[...]} shapes", async () => {
+    const nested = makeDeps(200, {
+      contacts: [{ id: "5511911112222@s.whatsapp.net", pushName: "Ana" }],
+    });
+    expect(await findContacts("key", nested.deps, TARGET)).toEqual([
+      { phone: "+5511911112222", name: "Ana" },
+    ]);
+    const records = makeDeps(200, { records: [{ id: "5511922223333@s.whatsapp.net" }] });
+    expect(await findContacts("key", records.deps, TARGET)).toEqual([
+      { phone: "+5511922223333", name: undefined },
+    ]);
+  });
+
+  it("strips the device suffix and skips @lid jids", async () => {
+    const { deps } = makeDeps(200, [
+      { id: "5549999998888:12@s.whatsapp.net", pushName: "Zé" },
+      { id: "99999999@lid", pushName: "Oculto" },
+    ]);
+    expect(await findContacts("key", deps, TARGET)).toEqual([{ phone: "+5549999998888", name: "Zé" }]);
+  });
+
+  it("logs a diagnostic entry on an unrecognised response shape", async () => {
+    const errors: (string | undefined)[] = [];
+    const deps: IEngineDeps = {
+      resolveSecret: async () => undefined,
+      logIntegration: (entry) => {
+        errors.push(entry.errorMessage);
+      },
+      fetchFn: (async () =>
+        new Response(JSON.stringify({ foo: 1 }), { status: 200 })) as typeof fetch,
+    };
+    expect(await findContacts("key", deps, TARGET)).toEqual([]);
+    expect(errors.some((m) => m?.includes("unrecognised response shape"))).toBe(true);
+  });
+});
+
+describe("findContactsFromChats", () => {
+  it("derives named contacts from individual chats, dropping groups", async () => {
+    const { deps, calls } = makeDeps(200, [
+      { remoteJid: "5549999998888@s.whatsapp.net", pushName: "João Silva" },
+      { remoteJid: "120363000@g.us", pushName: "Grupo X" },
+      { remoteJid: "5511888887777:9@s.whatsapp.net", name: "Maria" },
+      { remoteJid: "5511933334444@s.whatsapp.net" },
+    ]);
+    const contacts = await findContactsFromChats("key", deps, TARGET);
+    expect(contacts).toEqual([
+      { phone: "+5549999998888", name: "João Silva" },
+      { phone: "+5511888887777", name: "Maria" },
+      { phone: "+5511933334444", name: undefined },
+    ]);
+    expect(calls[0]!.url).toBe("https://evo.test/chat/findChats/inst1");
   });
 });

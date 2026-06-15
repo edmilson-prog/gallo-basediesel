@@ -201,6 +201,8 @@ export async function setInstanceWebhook(
 
 export interface IEvolutionChatSummary {
   remoteJid: string;
+  /** Chat counterpart's WhatsApp profile name (pushName), when the build sends it. */
+  name?: string;
 }
 
 /** One message as stored by the Evolution instance DB. */
@@ -262,9 +264,17 @@ export async function findChats(
   }
   const out: IEvolutionChatSummary[] = [];
   for (const raw of list) {
-    const candidate = raw as { remoteJid?: string; id?: string } | null;
+    const candidate = raw as {
+      remoteJid?: string;
+      id?: string;
+      pushName?: string;
+      name?: string;
+    } | null;
     const jid = candidate?.remoteJid ?? candidate?.id;
-    if (typeof jid === "string" && jid.includes("@")) out.push({ remoteJid: jid });
+    if (typeof jid !== "string" || !jid.includes("@")) continue;
+    const rawName = candidate?.pushName ?? candidate?.name;
+    const name = typeof rawName === "string" && rawName.trim().length > 0 ? rawName.trim() : undefined;
+    out.push({ remoteJid: jid, name });
   }
   return out;
 }
@@ -333,4 +343,101 @@ export async function fetchProfilePictureUrl(
   } | null;
   const url = body?.profilePictureUrl ?? body?.profilePicUrl;
   return typeof url === "string" && url.length > 0 ? url : null;
+}
+
+// ===== Contacts (name backfill — heal phone-named customers) ================
+
+export interface IEvolutionContact {
+  /** E.164 of the contact (device suffix stripped), derived from the jid. */
+  phone: string;
+  /** WhatsApp profile name (pushName / name / verifiedName), when present. */
+  name?: string;
+}
+
+/** Individual-chat jids only — group, broadcast, newsletter and @lid excluded. */
+const INDIVIDUAL_CONTACT_JID = /@(s\.whatsapp\.net|c\.us)$/;
+
+/**
+ * POST /chat/findContacts — every contact the instance has stored, paired with
+ * its WhatsApp profile name (pushName). Used to backfill customers that were
+ * auto-created named after their bare phone number. Response shapes vary across
+ * builds (flat array | {contacts} | {records}); non-individual jids (group /
+ * broadcast / newsletter / @lid) are dropped. Payload logging is omitted
+ * (PII: the full contact list).
+ */
+export async function findContacts(
+  apiKey: string,
+  deps: IEngineDeps,
+  target: IEvolutionInstanceTarget,
+  traceId?: string,
+): Promise<IEvolutionContact[]> {
+  const response = await evolutionRequest(apiKey, deps, {
+    baseUrl: target.baseUrl,
+    path: `/chat/findContacts/${target.instanceName}`,
+    json: { where: {} },
+    timeoutMs: 30_000,
+    omitResponsePayload: true,
+    traceId,
+  });
+  const body = response.body as unknown[] | { contacts?: unknown[]; records?: unknown[] } | null;
+  const list = Array.isArray(body)
+    ? body
+    : Array.isArray(body?.contacts)
+      ? body.contacts
+      : Array.isArray(body?.records)
+        ? body.records
+        : [];
+  if (list.length === 0 && body !== null && !Array.isArray(body)) {
+    await deps.logIntegration?.({
+      integrationName: "whatsapp_evolution",
+      direction: "outbound",
+      endpoint: `/chat/findContacts/${target.instanceName}`,
+      latencyMs: 0,
+      traceId,
+      errorMessage: `findContacts: unrecognised response shape — keys: ${Object.keys(body as object).join(", ")}`,
+    });
+  }
+  const out: IEvolutionContact[] = [];
+  for (const raw of list) {
+    const candidate = raw as {
+      id?: string;
+      remoteJid?: string;
+      pushName?: string;
+      name?: string;
+      verifiedName?: string;
+    } | null;
+    const jid = candidate?.remoteJid ?? candidate?.id;
+    if (typeof jid !== "string" || !INDIVIDUAL_CONTACT_JID.test(jid)) continue;
+    const phone = jidToPhone(jid);
+    if (!phone) continue;
+    const rawName = candidate?.pushName ?? candidate?.name ?? candidate?.verifiedName;
+    const name =
+      typeof rawName === "string" && rawName.trim().length > 0 ? rawName.trim() : undefined;
+    out.push({ phone, name });
+  }
+  return out;
+}
+
+/**
+ * Contacts derived from the instance's CHAT list (not the Contact table). The
+ * chat list covers everyone the instance has a conversation with — far broader
+ * than findContacts on builds that don't persist the Contact table — and each
+ * chat usually carries the counterpart's pushName. Non-individual jids (group /
+ * broadcast / newsletter / @lid) are dropped.
+ */
+export async function findContactsFromChats(
+  apiKey: string,
+  deps: IEngineDeps,
+  target: IEvolutionInstanceTarget,
+  traceId?: string,
+): Promise<IEvolutionContact[]> {
+  const chats = await findChats(apiKey, deps, target, traceId);
+  const out: IEvolutionContact[] = [];
+  for (const chat of chats) {
+    if (!INDIVIDUAL_CONTACT_JID.test(chat.remoteJid)) continue;
+    const phone = jidToPhone(chat.remoteJid);
+    if (!phone) continue;
+    out.push({ phone, name: chat.name });
+  }
+  return out;
 }
