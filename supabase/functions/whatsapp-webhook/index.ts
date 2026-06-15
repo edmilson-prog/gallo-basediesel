@@ -42,6 +42,9 @@ import type { IEngineDeps, IIntegrationLogEntry } from "../_shared/whatsapp/type
 
 const CLOSED_CONVERSATION_STATUSES = ["resolvida", "arquivada"];
 
+// Columns selected when resolving an account from an inbound event.
+const ACCT_COLS = "id, store_id, provider, phone_number, credentials_ref, provider_config, status";
+
 // ===== Supabase-backed adapter for the shared core ==========================
 
 function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
@@ -60,50 +63,94 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
         .upsert({ event_key: eventKey, trace_id: traceId }, { onConflict: "event_key" });
     },
     async findMetaAccount(phoneNumberId, accountPhoneDigits) {
+      if (phoneNumberId) {
+        const { data } = await admin
+          .from("whatsapp_accounts")
+          .select(ACCT_COLS)
+          .eq("provider", "meta")
+          .neq("status", "disconnected")
+          .eq("provider_config->>phoneNumberId", phoneNumberId);
+        const rows = data ?? [];
+        if (rows.length > 1) {
+          console.warn(
+            JSON.stringify({
+              level: "warn",
+              msg: "ambiguous meta phoneNumberId — refusing to route",
+              phoneNumberId,
+              count: rows.length,
+            }),
+          );
+          return null; // fail-closed: ambíguo não roteia
+        }
+        const [match] = rows;
+        if (match) return toAccountRecord(match);
+        // 0 matches por phoneNumberId → cai no fallback legado por telefone
+      }
+      // Fallback legado: por dígitos do telefone (contas sem phoneNumberId no config).
       const { data } = await admin
         .from("whatsapp_accounts")
-        .select("id, store_id, provider, phone_number, credentials_ref, provider_config, status")
+        .select(ACCT_COLS)
         .eq("provider", "meta")
         .neq("status", "disconnected");
-      const rows = data ?? [];
-      const byConfig = phoneNumberId
-        ? rows.find(
-            (row) =>
-              (row.provider_config as { phoneNumberId?: string } | null)?.phoneNumberId ===
-              phoneNumberId,
-          )
-        : undefined;
-      const byPhone = rows.find(
+      const matches = (data ?? []).filter(
         (row) => String(row.phone_number).replace(/\D/g, "") === accountPhoneDigits,
       );
-      const row = byConfig ?? byPhone;
-      return row ? toAccountRecord(row) : null;
+      if (matches.length > 1) {
+        console.warn(
+          JSON.stringify({
+            level: "warn",
+            msg: "ambiguous meta phone fallback — refusing to route",
+            count: matches.length,
+          }),
+        );
+        return null;
+      }
+      const [only] = matches;
+      return only ? toAccountRecord(only) : null;
     },
     async findEvolutionAccount(instanceName) {
       if (!instanceName) return null;
       const { data } = await admin
         .from("whatsapp_accounts")
-        .select("id, store_id, provider, phone_number, credentials_ref, provider_config, status")
+        .select(ACCT_COLS)
         .eq("provider", "evolution")
-        .neq("status", "disconnected");
-      const row = (data ?? []).find(
-        (candidate) =>
-          (candidate.provider_config as { instanceName?: string } | null)?.instanceName ===
-          instanceName,
-      );
+        .neq("status", "disconnected")
+        .eq("provider_config->>instanceName", instanceName);
+      const rows = data ?? [];
+      if (rows.length > 1) {
+        console.warn(
+          JSON.stringify({
+            level: "warn",
+            msg: "ambiguous evolution instanceName — refusing to route",
+            instanceName,
+            count: rows.length,
+          }),
+        );
+        return null; // fail-closed: ambíguo não roteia
+      }
+      const row = rows[0];
       return row ? toAccountRecord(row) : null;
     },
     async findEvolutionAccountAnyStatus(instanceName) {
       if (!instanceName) return null;
       const { data } = await admin
         .from("whatsapp_accounts")
-        .select("id, store_id, provider, phone_number, credentials_ref, provider_config, status")
-        .eq("provider", "evolution");
-      const row = (data ?? []).find(
-        (candidate) =>
-          (candidate.provider_config as { instanceName?: string } | null)?.instanceName ===
-          instanceName,
-      );
+        .select(ACCT_COLS)
+        .eq("provider", "evolution")
+        .eq("provider_config->>instanceName", instanceName);
+      const rows = data ?? [];
+      if (rows.length > 1) {
+        console.warn(
+          JSON.stringify({
+            level: "warn",
+            msg: "ambiguous evolution instanceName (any status) — refusing to route",
+            instanceName,
+            count: rows.length,
+          }),
+        );
+        return null; // fail-closed: ambíguo não roteia
+      }
+      const row = rows[0];
       return row ? toAccountRecord(row) : null;
     },
     async setAccountConnectionStatus(accountId, status) {
