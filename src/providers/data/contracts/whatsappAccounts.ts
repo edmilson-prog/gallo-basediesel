@@ -2,6 +2,7 @@ import type {
   ID,
   ISO8601,
   IWhatsAppAccount,
+  IWhatsAppAccountAccessRule,
   IWhatsAppProviderConfig,
   WhatsAppFailoverPolicy,
 } from "@/shared/types";
@@ -58,6 +59,15 @@ export interface IWhatsAppAccountPatch {
 export interface IWhatsAppAccountsProvider {
   list(params?: IListWhatsAppAccountsParams): Promise<IWhatsAppAccount[]>;
   get(id: ID): Promise<IWhatsAppAccount>;
+  /** Cria uma nova instância (multi-instância). storeId vem no input (RLS). */
+  create(input: Omit<IWhatsAppAccount, "id" | "createdAt">): Promise<IWhatsAppAccount>;
+  /** Regras de acesso (Camada 1) da instância. Staff-only no RLS. */
+  getAccessRules(accountId: ID): Promise<IWhatsAppAccountAccessRule[]>;
+  /** Substitui o conjunto de regras de acesso da instância (replace-all). */
+  replaceAccessRules(
+    accountId: ID,
+    rules: Array<Pick<IWhatsAppAccountAccessRule, "kind" | "targetValue">>,
+  ): Promise<IWhatsAppAccountAccessRule[]>;
   update(id: ID, patch: IWhatsAppAccountPatch): Promise<IWhatsAppAccount>;
   /** Outbound delivery metrics for the accounts screen (staff-only data). */
   getMetrics(id: ID, days?: number): Promise<IWhatsAppAccountMetrics>;
