@@ -10,6 +10,8 @@ export interface IInboxFiltersState {
   status: ConversationStatus | "all";
   channel: ConversationChannel | "all";
   assignment: AssignmentFilter;
+  /** Origin WhatsApp instance (multi-instância), or "all". */
+  instance: ID | "all";
   tags: string[];
   period: PeriodFilter;
   search: string;
@@ -22,6 +24,7 @@ export interface IInboxFiltersSearch {
   status?: string;
   channel?: string;
   assignment?: string;
+  instance?: string;
   tags?: string;
   period?: string;
   q?: string;
@@ -53,6 +56,7 @@ const DEFAULT_FILTERS: IInboxFiltersState = {
   status: "all",
   channel: "all",
   assignment: "me",
+  instance: "all",
   tags: [],
   period: "all",
   search: "",
@@ -76,6 +80,7 @@ export function validateInboxSearch(raw: Record<string, unknown>): IInboxFilters
   )
     out.channel = raw.channel;
   if (typeof raw.assignment === "string") out.assignment = raw.assignment;
+  if (typeof raw.instance === "string" && raw.instance.length > 0) out.instance = raw.instance;
   if (typeof raw.tags === "string" && raw.tags.length > 0) out.tags = raw.tags;
   if (typeof raw.period === "string" && VALID_PERIOD.has(raw.period as PeriodFilter))
     out.period = raw.period;
@@ -99,6 +104,7 @@ function readState(search: IInboxFiltersSearch, currentSellerId: ID | null): IIn
     channel:
       (search.channel as IInboxFiltersState["channel"] | undefined) ?? DEFAULT_FILTERS.channel,
     assignment: search.assignment ?? (currentSellerId ? DEFAULT_FILTERS.assignment : "all"),
+    instance: search.instance ?? DEFAULT_FILTERS.instance,
     tags: parseTags(search.tags),
     period: (search.period as IInboxFiltersState["period"] | undefined) ?? DEFAULT_FILTERS.period,
     search: search.q ?? DEFAULT_FILTERS.search,
@@ -120,6 +126,7 @@ export function useInboxFilters(currentSellerId: ID | null): {
   setStatus: (status: IInboxFiltersState["status"]) => void;
   setChannel: (channel: IInboxFiltersState["channel"]) => void;
   setAssignment: (assignment: AssignmentFilter) => void;
+  setInstance: (instance: ID | "all") => void;
   setTags: (tags: string[]) => void;
   setPeriod: (period: PeriodFilter) => void;
   setSearch: (q: string) => void;
@@ -166,6 +173,7 @@ export function useInboxFilters(currentSellerId: ID | null): {
       apply({
         assignment: v === DEFAULT_FILTERS.assignment ? undefined : v,
       }),
+    setInstance: (v) => apply({ instance: v === "all" ? undefined : v }),
     setTags: (tags) => apply({ tags: tags.length === 0 ? undefined : tags.join(",") }),
     setPeriod: (v) => apply({ period: v === "all" ? undefined : v }),
     setSearch: (q) => apply({ q: q.length === 0 ? undefined : q }),
@@ -185,6 +193,7 @@ function countActive(filters: IInboxFiltersState): number {
   if (filters.status !== DEFAULT_FILTERS.status) n += 1;
   if (filters.channel !== DEFAULT_FILTERS.channel) n += 1;
   if (filters.assignment !== DEFAULT_FILTERS.assignment) n += 1;
+  if (filters.instance !== DEFAULT_FILTERS.instance) n += 1;
   if (filters.tags.length > 0) n += 1;
   if (filters.period !== DEFAULT_FILTERS.period) n += 1;
   if (filters.search.length > 0) n += 1;
@@ -214,6 +223,7 @@ export function filtersToListParams(
   }
 
   if (filters.channel !== "all") params.channel = filters.channel;
+  if (filters.instance !== "all") params.whatsappAccountId = filters.instance;
   if (filters.tags.length > 0) params.tags = filters.tags;
   if (filters.search.length > 0) params.search = filters.search;
 

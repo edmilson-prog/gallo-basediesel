@@ -47,12 +47,22 @@ export function formatCNPJ(cnpj: string): string {
 
 /**
  * Format a Brazilian phone number with DDD.
+ * 13 digits w/ 55 prefix → `+55 (XX) XXXXX-XXXX` (E.164 mobile)
+ * 12 digits w/ 55 prefix → `+55 (XX) XXXX-XXXX` (E.164 landline)
  * 11 digits → `(XX) XXXXX-XXXX` (mobile)
  * 10 digits → `(XX) XXXX-XXXX` (landline)
  * Anything else → input unchanged.
  */
 export function formatPhone(phone: string): string {
   const digits = phone.replace(/\D/g, "");
+  if (digits.length === 13 && digits.startsWith("55")) {
+    const d = digits.slice(2);
+    return `+55 (${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  }
+  if (digits.length === 12 && digits.startsWith("55")) {
+    const d = digits.slice(2);
+    return `+55 (${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  }
   if (digits.length === 11) {
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
   }

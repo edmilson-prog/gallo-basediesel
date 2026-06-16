@@ -14,8 +14,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type {
+  ISeller,
   IWhatsAppAccount,
+  IWhatsAppAccountAccessRule,
   IWhatsAppProviderConfig,
+  WhatsAppAccountPurpose,
   WhatsAppFailoverPolicy,
 } from "@/shared/types";
 import { useAuth } from "@/features/auth/useAuth";
@@ -23,6 +26,7 @@ import { useCurrentStore } from "@/features/multistore";
 import {
   getActiveDataSource,
   recordAuditLogSync,
+  useSellersProvider,
   useWhatsAppAccountsProvider,
   type IWhatsAppAccountMetrics,
 } from "@/providers/data";
@@ -33,6 +37,10 @@ import { ConnectWhatsAppDialog, type ConnectDialogStep } from "../components/Con
 import { ImportConversationsDialog } from "../components/ImportConversationsDialog";
 import { SyncAvatarsDialog } from "../components/SyncAvatarsDialog";
 import { TestMessageDialog } from "../components/TestMessageDialog";
+import { InstanceAccessSheet } from "../components/InstanceAccessSheet";
+import { AddInstanceWizard } from "../components/AddInstanceWizard";
+import { resolveAccessRecipients } from "../utils/accessRecipients";
+import { INSTANCE_PALETTE } from "@/features/conversations/utils/instanceAccent";
 
 const STATUS_VISUAL: Record<
   IWhatsAppAccount["status"],
@@ -40,17 +48,17 @@ const STATUS_VISUAL: Record<
 > = {
   connected: {
     label: "Conectada",
-    className: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    className: "border-severity-success/40 bg-severity-success/10 text-severity-success",
     icon: "mdi:check-circle-outline",
   },
   disconnected: {
     label: "Desconectada",
-    className: "border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300",
+    className: "border-severity-critical/40 bg-severity-critical/10 text-severity-critical",
     icon: "mdi:close-circle-outline",
   },
   pending: {
     label: "Pendente",
-    className: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+    className: "border-severity-warning/40 bg-severity-warning/10 text-severity-warning",
     icon: "mdi:clock-outline",
   },
 };
@@ -60,6 +68,12 @@ const PROVIDER_LABEL: Record<IWhatsAppAccount["provider"], string> = {
   evolution: "Evolution API",
 };
 
+const PURPOSE_LABEL: Record<WhatsAppAccountPurpose, string> = {
+  atendimento: "Atendimento",
+  campanha: "Campanha",
+  ambos: "Atendimento + Campanha",
+};
+
 /** Health state visuals (PRD-120) — mirrors the dashboard badges. */
 const HEALTH_VISUAL: Record<
   IWhatsAppAccount["currentState"],
@@ -67,22 +81,22 @@ const HEALTH_VISUAL: Record<
 > = {
   healthy: {
     label: "Saudável",
-    className: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    className: "border-severity-success/40 bg-severity-success/10 text-severity-success",
     icon: "mdi:heart-pulse",
   },
   degraded: {
     label: "Degradada",
-    className: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+    className: "border-severity-warning/40 bg-severity-warning/10 text-severity-warning",
     icon: "mdi:alert-outline",
   },
   down: {
     label: "Indisponível",
-    className: "border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300",
+    className: "border-severity-critical/40 bg-severity-critical/10 text-severity-critical",
     icon: "mdi:close-circle-outline",
   },
   paused: {
     label: "Pausada",
-    className: "border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300",
+    className: "border-border bg-muted text-muted-foreground",
     icon: "mdi:pause-circle-outline",
   },
 };
@@ -172,6 +186,7 @@ export function WhatsAppAccountsPage() {
   const { currentStoreId } = useCurrentStore();
   const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
   const provider = useWhatsAppAccountsProvider();
+  const sellersProvider = useSellersProvider();
   const { currentUser } = useAuth();
   const [accounts, setAccounts] = useState<IWhatsAppAccount[] | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -186,6 +201,10 @@ export function WhatsAppAccountsPage() {
   const [importTarget, setImportTarget] = useState<IWhatsAppAccount | null>(null);
   const [syncAvatarsTarget, setSyncAvatarsTarget] = useState<IWhatsAppAccount | null>(null);
   const [checking, setChecking] = useState(false);
+  const [sellers, setSellers] = useState<ISeller[]>([]);
+  const [accessRules, setAccessRules] = useState<Record<string, IWhatsAppAccountAccessRule[]>>({});
+  const [accessAccount, setAccessAccount] = useState<IWhatsAppAccount | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   const loadMetrics = useCallback(
     async (list: IWhatsAppAccount[]) => {
@@ -205,11 +224,30 @@ export function WhatsAppAccountsPage() {
     [provider],
   );
 
+  const loadAccessRules = useCallback(
+    async (list: IWhatsAppAccount[]) => {
+      const entries = await Promise.all(
+        list.map(async (account) => {
+          try {
+            return [account.id, await provider.getAccessRules(account.id)] as const;
+          } catch {
+            return null; // access summary is decorative — never block the screen
+          }
+        }),
+      );
+      const loaded: Record<string, IWhatsAppAccountAccessRule[]> = {};
+      for (const entry of entries) if (entry) loaded[entry[0]] = entry[1];
+      setAccessRules(loaded);
+    },
+    [provider],
+  );
+
   const refresh = useCallback(async () => {
     const list = await provider.list({ storeId });
     setAccounts(list);
     void loadMetrics(list);
-  }, [provider, storeId, loadMetrics]);
+    void loadAccessRules(list);
+  }, [provider, storeId, loadMetrics, loadAccessRules]);
 
   useEffect(() => {
     let cancelled = false;
@@ -219,6 +257,7 @@ export function WhatsAppAccountsPage() {
         if (cancelled) return;
         setAccounts(list);
         void loadMetrics(list);
+        void loadAccessRules(list);
       })
       .catch(() => {
         if (!cancelled) setAccounts([]);
@@ -226,9 +265,32 @@ export function WhatsAppAccountsPage() {
     return () => {
       cancelled = true;
     };
-  }, [provider, storeId, loadMetrics]);
+  }, [provider, storeId, loadMetrics, loadAccessRules]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void sellersProvider
+      .list({ storeId, active: true })
+      .then((list) => {
+        if (!cancelled) setSellers(list);
+      })
+      .catch(() => {
+        /* sellers feed the access summary only — never block the screen */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sellersProvider, storeId]);
 
   const isMock = useMemo(() => getActiveDataSource() === "mock", []);
+
+  // Multi-instance: a new Evolution number inherits server config (baseUrl +
+  // credentialsRef = same apikey) from an existing configured instance.
+  const templateAccount = useMemo(
+    () =>
+      (accounts ?? []).find((a) => a.provider === "evolution" && a.providerConfig?.baseUrl) ?? null,
+    [accounts],
+  );
 
   // SIGPRO-style live status: 30s polling (visible tab) + focus + manual.
   const { checkNow } = useEvolutionStatusSync(accounts, () => void refresh(), !isMock);
@@ -296,7 +358,10 @@ export function WhatsAppAccountsPage() {
       await provider.update(account.id, {
         label: draft.label.trim(),
         credentialsRef: draft.credentialsRef.trim(),
-        providerConfig: config.config,
+        providerConfig:
+          config.config && account.providerConfig?.accentColor
+            ? { ...config.config, accentColor: account.providerConfig.accentColor }
+            : config.config,
         failoverPolicy: draft.failoverPolicy,
         failoverAccountId: draft.failoverAccountId || null,
         // Disabling the policy also clears an active failover.
@@ -322,6 +387,21 @@ export function WhatsAppAccountsPage() {
       toast.error("Não foi possível salvar a conta.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Per-instance identity color (multi-instância): persisted in provider_config
+  // (jsonb) so it survives without a schema change. Spreads the existing config
+  // so baseUrl/instanceName/profileName are preserved; null clears (→ auto/hash).
+  const setAccentColor = async (account: IWhatsAppAccount, hex: string | null) => {
+    const nextConfig: IWhatsAppProviderConfig = { ...(account.providerConfig ?? {}) };
+    if (hex) nextConfig.accentColor = hex;
+    else delete nextConfig.accentColor;
+    try {
+      await provider.update(account.id, { providerConfig: nextConfig });
+      await refresh();
+    } catch {
+      toast.error("Não foi possível salvar a cor da instância.");
     }
   };
 
@@ -355,10 +435,24 @@ export function WhatsAppAccountsPage() {
 
   return (
     <div className="space-y-6">
-      <SectionHeader
-        title="WhatsApp"
-        description="Contas conectadas à Central de Atendimento. O envio e a recepção reais usam estas configurações (PRDs 111–118)."
-      />
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <SectionHeader
+          title="WhatsApp"
+          description="Contas conectadas à Central de Atendimento. O envio e a recepção reais usam estas configurações (PRDs 111–118)."
+        />
+        <Button
+          onClick={() => setWizardOpen(true)}
+          disabled={!templateAccount}
+          title={
+            templateAccount
+              ? "Adiciona um novo número no mesmo servidor Evolution"
+              : "Conecte uma instância Evolution primeiro"
+          }
+        >
+          <Icon icon="lucide:plus" size={14} className="mr-1.5" />
+          Adicionar número
+        </Button>
+      </div>
 
       <div className="rounded-md border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
         <div className="flex items-start gap-2">
@@ -396,7 +490,12 @@ export function WhatsAppAccountsPage() {
                       <Icon icon="mdi:whatsapp" size={20} className="text-emerald-600" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-foreground">{account.label}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-semibold text-foreground">{account.label}</p>
+                        <span className="rounded-full border border-border px-2 py-0.5 text-[10px] text-muted-foreground">
+                          {PURPOSE_LABEL[account.purpose]}
+                        </span>
+                      </div>
                       <p className="text-xs text-muted-foreground">{account.phoneNumber}</p>
                     </div>
                   </div>
@@ -425,7 +524,7 @@ export function WhatsAppAccountsPage() {
                     {account.isFailoverActive && (
                       <Badge
                         variant="outline"
-                        className="border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300"
+                        className="border-severity-critical/40 bg-severity-critical/10 text-severity-critical"
                       >
                         <Icon icon="mdi:swap-horizontal" size={12} className="mr-1" />
                         Failover ativo
@@ -445,6 +544,69 @@ export function WhatsAppAccountsPage() {
                       </span>
                     ),
                   )}
+                </div>
+
+                <div className="mt-3">
+                  {(() => {
+                    const recipients = resolveAccessRecipients(
+                      accessRules[account.id] ?? [],
+                      sellers.map((s) => ({ id: s.id, role: "", storeId: s.storeId })),
+                    );
+                    const none = recipients.size === 0;
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => setAccessAccount(account)}
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors ${
+                          none
+                            ? "border-severity-warning/40 bg-severity-warning/10 text-severity-warning"
+                            : "border-border text-muted-foreground hover:text-foreground"
+                        }`}
+                        title="Configurar quem acessa esta instância"
+                      >
+                        <Icon icon="mdi:account-group-outline" size={13} />
+                        {none
+                          ? "Ninguém vê — configurar acesso"
+                          : `${recipients.size} ${recipients.size === 1 ? "pessoa" : "pessoas"} • configurar acesso`}
+                      </button>
+                    );
+                  })()}
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Cor da instância</span>
+                  <div className="flex items-center gap-1.5">
+                    {INSTANCE_PALETTE.map((hex) => {
+                      const active = account.providerConfig?.accentColor === hex;
+                      return (
+                        <button
+                          key={hex}
+                          type="button"
+                          onClick={() => void setAccentColor(account, hex)}
+                          aria-label={`Usar a cor ${hex}`}
+                          aria-pressed={active}
+                          className={`size-5 cursor-pointer rounded-full transition-transform hover:scale-110 ${
+                            active ? "ring-2 ring-foreground ring-offset-2 ring-offset-card" : ""
+                          }`}
+                          style={{ backgroundColor: hex }}
+                        />
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => void setAccentColor(account, null)}
+                      aria-label="Cor automática"
+                      aria-pressed={!account.providerConfig?.accentColor}
+                      title="Automático (cor pelo identificador)"
+                      className={`flex size-5 cursor-pointer items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:text-foreground ${
+                        !account.providerConfig?.accentColor
+                          ? "ring-2 ring-foreground ring-offset-2 ring-offset-card"
+                          : ""
+                      }`}
+                    >
+                      <Icon icon="mdi:auto-fix" size={12} />
+                    </button>
+                  </div>
                 </div>
 
                 {!isEditing ? (
@@ -823,6 +985,38 @@ export function WhatsAppAccountsPage() {
       <TestMessageDialog account={testTarget} onClose={() => setTestTarget(null)} />
       <ImportConversationsDialog account={importTarget} onClose={() => setImportTarget(null)} />
       <SyncAvatarsDialog account={syncAvatarsTarget} onClose={() => setSyncAvatarsTarget(null)} />
+      {accessAccount && (
+        <InstanceAccessSheet
+          account={accessAccount}
+          storeId={storeId}
+          sellers={sellers}
+          onClose={(changed) => {
+            setAccessAccount(null);
+            if (changed) void refresh();
+          }}
+        />
+      )}
+      {wizardOpen && (
+        <AddInstanceWizard
+          storeId={storeId}
+          templateAccount={templateAccount}
+          onClose={() => {
+            setWizardOpen(false);
+            void refresh();
+          }}
+          onCreated={(newId) => {
+            setWizardOpen(false);
+            void (async () => {
+              await refresh();
+              try {
+                setAccessAccount(await provider.get(newId));
+              } catch {
+                /* the new card still shows "configurar acesso" */
+              }
+            })();
+          }}
+        />
+      )}
     </div>
   );
 }

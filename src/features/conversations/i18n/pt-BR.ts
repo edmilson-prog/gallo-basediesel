@@ -64,6 +64,10 @@ export const INBOX_STRINGS = {
     seller: "Por vendedor",
   },
 
+  // Instance filter (multi-instância) — only shown when the store has 2+ numbers
+  instanceLabel: "Instância",
+  instanceAllOption: "Todas",
+
   // Tags filter
   tagsLabel: "Tags",
   tagsEmpty: "Nenhuma tag disponível",
@@ -163,6 +167,8 @@ export const INBOX_STRINGS = {
 export const CONVERSATION_STRINGS = {
   // Header
   backToInbox: "Voltar à inbox",
+  /** Label for the assigned-seller chip (list + header). */
+  assignee: "Responsável",
   channelLabel: {
     whatsapp: "WhatsApp",
     ecommerce: "E-commerce",

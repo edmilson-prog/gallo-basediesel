@@ -35,6 +35,7 @@ export interface IListConversationsParams extends IPaginationParams {
   assignedSellerId?: ID;
   status?: IConversation["status"] | IConversation["status"][];
   channel?: IConversation["channel"];
+  whatsappAccountId?: ID;
   isSdrActive?: boolean;
   customerId?: ID;
   leadId?: ID;
@@ -117,6 +118,8 @@ export const conversationsApi = {
           all = all.filter((c) => allowed.has(c.status));
         }
         if (params.channel) all = all.filter((c) => c.channel === params.channel);
+        if (params.whatsappAccountId)
+          all = all.filter((c) => c.whatsappAccountId === params.whatsappAccountId);
         if (typeof params.isSdrActive === "boolean")
           all = all.filter((c) => c.isSdrActive === params.isSdrActive);
         if (params.customerId) all = all.filter((c) => c.customerId === params.customerId);
@@ -183,6 +186,33 @@ export const conversationsApi = {
   async archive(id: ID): Promise<void> {
     return runApi("conversationsApi", "archive", () => {
       patchById("conversations", id, { status: "arquivada" });
+    });
+  },
+
+  async createOutbound(input: {
+    storeId: ID;
+    whatsappAccountId: ID;
+    assignedSellerId: ID;
+    customerId: ID;
+  }): Promise<IConversation> {
+    return runApi("conversationsApi", "createOutbound", () => {
+      const now = new Date().toISOString();
+      const conversation: IConversation = {
+        id: `conv-${crypto.randomUUID()}`,
+        storeId: input.storeId,
+        customerId: input.customerId,
+        assignedSellerId: input.assignedSellerId,
+        channel: "whatsapp",
+        whatsappAccountId: input.whatsappAccountId,
+        status: "em_andamento",
+        isSdrActive: false,
+        tags: [],
+        lastMessageAt: now,
+        unreadCount: 0,
+        createdAt: now,
+      };
+      upsert("conversations", conversation);
+      return conversation;
     });
   },
 

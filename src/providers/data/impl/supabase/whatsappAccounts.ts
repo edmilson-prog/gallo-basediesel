@@ -1,4 +1,9 @@
-import type { ID, IWhatsAppAccount, IWhatsAppCapabilities } from "@/shared/types";
+import type {
+  ID,
+  IWhatsAppAccount,
+  IWhatsAppAccountAccessRule,
+  IWhatsAppCapabilities,
+} from "@/shared/types";
 import type {
   IListWhatsAppAccountsParams,
   IWhatsAppAccountMetrics,
@@ -34,13 +39,14 @@ interface WhatsAppAccountRow {
   failover_account_id: string | null;
   is_failover_active: boolean;
   created_at: string;
+  purpose: IWhatsAppAccount["purpose"];
 }
 
 const TABLE = "whatsapp_accounts";
 const COLUMNS =
   "id, store_id, label, phone_number, provider, credentials_ref, status, capabilities, " +
   "provider_config, current_state, state_changed_at, failover_policy, failover_account_id, " +
-  "is_failover_active, created_at";
+  "is_failover_active, created_at, purpose";
 
 function rowToWhatsAppAccount(row: WhatsAppAccountRow): IWhatsAppAccount {
   return {
@@ -59,6 +65,7 @@ function rowToWhatsAppAccount(row: WhatsAppAccountRow): IWhatsAppAccount {
     failoverAccountId: row.failover_account_id ?? undefined,
     isFailoverActive: row.is_failover_active,
     createdAt: row.created_at,
+    purpose: row.purpose ?? "atendimento",
   };
 }
 
@@ -80,6 +87,83 @@ export const supabaseWhatsAppAccountsProvider: IWhatsAppAccountsProvider = {
       .single();
     if (error) throw new Error(`[supabase] whatsappAccounts.get(${id}) failed: ${error.message}`);
     return rowToWhatsAppAccount(data as unknown as WhatsAppAccountRow);
+  },
+
+  async create(input: Omit<IWhatsAppAccount, "id" | "createdAt">): Promise<IWhatsAppAccount> {
+    const id: ID = crypto.randomUUID();
+    const row = {
+      id,
+      store_id: input.storeId,
+      label: input.label,
+      phone_number: input.phoneNumber,
+      provider: input.provider,
+      credentials_ref: input.credentialsRef,
+      status: input.status,
+      capabilities: input.capabilities,
+      provider_config: input.providerConfig ?? null,
+      current_state: input.currentState,
+      state_changed_at: input.stateChangedAt ?? null,
+      failover_policy: input.failoverPolicy,
+      failover_account_id: input.failoverAccountId ?? null,
+      is_failover_active: input.isFailoverActive,
+      purpose: input.purpose,
+    };
+    const { data, error } = await getSupabaseClient()
+      .from(TABLE)
+      .insert(row)
+      .select(COLUMNS)
+      .single();
+    if (error) throw new Error(`[supabase] whatsappAccounts.create failed: ${error.message}`);
+    return rowToWhatsAppAccount(data as unknown as WhatsAppAccountRow);
+  },
+
+  async getAccessRules(accountId: ID): Promise<IWhatsAppAccountAccessRule[]> {
+    const { data, error } = await getSupabaseClient()
+      .from("whatsapp_account_access_rules")
+      .select("id, whatsapp_account_id, kind, target_value, created_at")
+      .eq("whatsapp_account_id", accountId);
+    if (error)
+      throw new Error(`[supabase] getAccessRules(${accountId}) failed: ${error.message}`);
+    return (data ?? []).map((r) => ({
+      id: r.id as string,
+      whatsappAccountId: r.whatsapp_account_id as string,
+      kind: r.kind as IWhatsAppAccountAccessRule["kind"],
+      targetValue: r.target_value as string,
+      createdAt: r.created_at as string,
+    }));
+  },
+
+  async replaceAccessRules(
+    accountId: ID,
+    rules: Array<Pick<IWhatsAppAccountAccessRule, "kind" | "targetValue">>,
+  ): Promise<IWhatsAppAccountAccessRule[]> {
+    const client = getSupabaseClient();
+    const del = await client
+      .from("whatsapp_account_access_rules")
+      .delete()
+      .eq("whatsapp_account_id", accountId);
+    if (del.error)
+      throw new Error(`[supabase] replaceAccessRules delete failed: ${del.error.message}`);
+    if (rules.length === 0) return [];
+    const { data, error } = await client
+      .from("whatsapp_account_access_rules")
+      .insert(
+        rules.map((r) => ({
+          whatsapp_account_id: accountId,
+          kind: r.kind,
+          target_value: r.targetValue,
+        })),
+      )
+      .select("id, whatsapp_account_id, kind, target_value, created_at");
+    if (error)
+      throw new Error(`[supabase] replaceAccessRules insert failed: ${error.message}`);
+    return (data ?? []).map((r) => ({
+      id: r.id as string,
+      whatsappAccountId: r.whatsapp_account_id as string,
+      kind: r.kind as IWhatsAppAccountAccessRule["kind"],
+      targetValue: r.target_value as string,
+      createdAt: r.created_at as string,
+    }));
   },
 
   async update(id: ID, patch: IWhatsAppAccountPatch): Promise<IWhatsAppAccount> {

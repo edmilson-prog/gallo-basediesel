@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import type { ICustomer, ID, IConversation, ILead, IWhatsAppAccount } from "@/shared/types";
+import type { ICustomer, ID, IConversation, ILead, ISeller, IWhatsAppAccount } from "@/shared/types";
 import {
   useConversationsProvider,
   useCustomersProvider,
   useLeadsProvider,
+  useSellersProvider,
   useWhatsAppAccountsProvider,
 } from "@/providers/data";
 
@@ -12,6 +13,8 @@ export interface IConversationDetail {
   customer: ICustomer | null;
   lead: ILead | null;
   whatsappAccount: IWhatsAppAccount | null;
+  /** Seller the conversation is assigned to (null when unassigned/unreadable). */
+  assignedSeller: ISeller | null;
   isLoading: boolean;
   notFound: boolean;
   error: Error | null;
@@ -31,11 +34,13 @@ export function useConversationDetail(conversationId: ID | null): IConversationD
   const customersProvider = useCustomersProvider();
   const leadsProvider = useLeadsProvider();
   const whatsappProvider = useWhatsAppAccountsProvider();
+  const sellersProvider = useSellersProvider();
 
   const [conversation, setConversation] = useState<IConversation | null>(null);
   const [customer, setCustomer] = useState<ICustomer | null>(null);
   const [lead, setLead] = useState<ILead | null>(null);
   const [whatsappAccount, setWhatsappAccount] = useState<IWhatsAppAccount | null>(null);
+  const [assignedSeller, setAssignedSeller] = useState<ISeller | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -47,6 +52,7 @@ export function useConversationDetail(conversationId: ID | null): IConversationD
       setCustomer(null);
       setLead(null);
       setWhatsappAccount(null);
+      setAssignedSeller(null);
       setIsLoading(false);
       setNotFound(false);
       return;
@@ -106,6 +112,21 @@ export function useConversationDetail(conversationId: ID | null): IConversationD
         } else {
           setWhatsappAccount(null);
         }
+        if (conv.assignedSellerId) {
+          tasks.push(
+            sellersProvider
+              .get(conv.assignedSellerId)
+              .then((s) => {
+                if (!cancelled) setAssignedSeller(s);
+              })
+              .catch(() => {
+                // Non-staff may not read other sellers under RLS — fail soft.
+                if (!cancelled) setAssignedSeller(null);
+              }),
+          );
+        } else {
+          setAssignedSeller(null);
+        }
         await Promise.all(tasks);
       })
       .catch((err: unknown) => {
@@ -131,6 +152,7 @@ export function useConversationDetail(conversationId: ID | null): IConversationD
     customersProvider,
     leadsProvider,
     whatsappProvider,
+    sellersProvider,
   ]);
 
   return {
@@ -138,6 +160,7 @@ export function useConversationDetail(conversationId: ID | null): IConversationD
     customer,
     lead,
     whatsappAccount,
+    assignedSeller,
     isLoading,
     notFound,
     error,

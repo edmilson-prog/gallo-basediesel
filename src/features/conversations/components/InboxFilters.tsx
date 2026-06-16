@@ -18,7 +18,8 @@ import { useAuth } from "@/features/auth/useAuth";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { useSellersProvider } from "@/providers/data";
 import { useEffect, useState } from "react";
-import type { ISeller } from "@/shared/types";
+import type { ID, ISeller, IWhatsAppAccount } from "@/shared/types";
+import { accountAccent } from "../utils/instanceAccent";
 import { useInboxFiltersCollapsed } from "../hooks/useInboxFiltersCollapsed";
 import type {
   AssignmentFilter,
@@ -31,9 +32,12 @@ import { INBOX_STRINGS } from "../i18n/pt-BR";
 export interface IInboxFiltersProps {
   state: IInboxFiltersState;
   availableTags: string[];
+  /** WhatsApp instances of the store — the "Instância" filter only renders with 2+. */
+  instances: IWhatsAppAccount[];
   onStatus: (status: IInboxFiltersState["status"]) => void;
   onChannel: (channel: IInboxFiltersState["channel"]) => void;
   onAssignment: (assignment: AssignmentFilter) => void;
+  onInstance: (instance: ID | "all") => void;
   onTags: (tags: string[]) => void;
   onPeriod: (period: PeriodFilter) => void;
   onSort: (sort: SortMode) => void;
@@ -89,9 +93,11 @@ function useSellersForAssignment(canSeeAllAssignments: boolean): ISeller[] {
 export function InboxFilters({
   state,
   availableTags,
+  instances,
   onStatus,
   onChannel,
   onAssignment,
+  onInstance,
   onTags,
   onPeriod,
   onSort,
@@ -108,6 +114,10 @@ export function InboxFilters({
   const channelLabel = INBOX_STRINGS.channelOptions[state.channel];
   const periodLabel = INBOX_STRINGS.periodOptions[state.period];
   const sortLabel = INBOX_STRINGS.sortOptions[state.sort];
+
+  const selectedInstance =
+    state.instance === "all" ? null : (instances.find((a) => a.id === state.instance) ?? null);
+  const instanceValueLabel = selectedInstance?.label ?? INBOX_STRINGS.instanceAllOption;
 
   const assignmentLabel = useMemo(() => {
     if (state.assignment === "me") return INBOX_STRINGS.assignmentOptions.me;
@@ -237,6 +247,54 @@ export function InboxFilters({
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Instance (multi-instância) — only when the store has 2+ numbers. */}
+          {instances.length > 1 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <span>
+                  <Button
+                    type="button"
+                    variant={state.instance !== "all" ? "secondary" : "outline"}
+                    size="sm"
+                    className="h-8 gap-1.5 text-xs"
+                  >
+                    <span className="text-muted-foreground">{INBOX_STRINGS.instanceLabel}:</span>
+                    {selectedInstance && (
+                      <span
+                        aria-hidden
+                        className="size-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: accountAccent(selectedInstance) }}
+                      />
+                    )}
+                    <span className="font-medium">{instanceValueLabel}</span>
+                    <Icon icon="mdi:chevron-down" size={12} className="text-muted-foreground" />
+                  </Button>
+                </span>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="max-h-80 w-56 overflow-y-auto">
+                <DropdownMenuLabel>{INBOX_STRINGS.instanceLabel}</DropdownMenuLabel>
+                <DropdownMenuRadioGroup
+                  value={state.instance}
+                  onValueChange={(v) => onInstance(v as ID | "all")}
+                >
+                  <DropdownMenuRadioItem value="all">
+                    {INBOX_STRINGS.instanceAllOption}
+                  </DropdownMenuRadioItem>
+                  {instances.map((acc) => (
+                    <DropdownMenuRadioItem key={acc.id} value={acc.id} className="gap-2">
+                      <span
+                        aria-hidden
+                        className="size-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: accountAccent(acc) }}
+                      />
+                      <span className="truncate">{acc.label}</span>
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
 
           {/* Assignment */}
           <DropdownMenu>

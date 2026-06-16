@@ -3,7 +3,9 @@ import type {
   IConversationsProvider,
   ICreateConversationInput,
   ICreateConversationResult,
+  ICreateOutboundConversationInput,
 } from "../../contracts/conversations";
+import type { IConversation } from "@/shared/types";
 import { auditLog } from "@/features/rbac/utils/auditLog";
 import { assertImmutableStoreId, scopedListParams, withOwnSellerScope } from "./_storeScope";
 
@@ -37,5 +39,20 @@ export const mockConversationsProvider: IConversationsProvider = {
       },
     });
     return result;
+  },
+  createOutbound: async (input: ICreateOutboundConversationInput): Promise<IConversation> => {
+    const conversation = await conversationsApi.createOutbound(input);
+    auditLog({
+      action: "conversation.create_outbound",
+      resource: "conversation",
+      resourceId: conversation.id,
+      storeId: input.storeId,
+      after: {
+        whatsappAccountId: input.whatsappAccountId,
+        assignedSellerId: input.assignedSellerId,
+        customerId: input.customerId,
+      },
+    });
+    return conversation;
   },
 };

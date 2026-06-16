@@ -1,14 +1,22 @@
 import { memo, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import type { IConversation, IMessage, ISdrEscalation } from "@/shared/types";
+import type {
+  IConversation,
+  IMessage,
+  ISdrEscalation,
+  ISeller,
+  IWhatsAppAccount,
+} from "@/shared/types";
 import { EscalationBadge } from "@/features/sdr-escalation/components/EscalationBadge";
 import { EcommerceBadge } from "@/features/ecommerce-integration/components/EcommerceBadge";
 import { Icon } from "@/components/Icon";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { ContactAvatar } from "./ContactAvatar";
+import { AssigneeChip } from "./AssigneeChip";
 import { useTimeTick } from "../hooks/useTimeTick";
 import { formatRelativeTime, isFresh } from "../utils/formatRelativeTime";
+import { accountAccent } from "../utils/instanceAccent";
 import {
   CHANNEL_META,
   STATUS_META,
@@ -33,6 +41,14 @@ export interface IConversationListItemProps {
   /** SDR escalation record bound to this conversation, when present. */
   escalation?: ISdrEscalation | null;
   onSelect?: () => void;
+  /** Origin instance of the conversation (multi-instância) — drives the color bar. */
+  originAccount?: IWhatsAppAccount | null;
+  /** Show the origin color bar (only when the store has 2+ instances). */
+  showOrigin?: boolean;
+  /** Seller the conversation is assigned to (for the responsible chip). */
+  assignedSeller?: ISeller | null;
+  /** Show the assignee chip (staff/manager oversight). */
+  showAssignee?: boolean;
 }
 
 const HIGHLIGHT_CLASS = "bg-amber-200/60 text-foreground dark:bg-amber-400/30";
@@ -64,6 +80,10 @@ function ConversationListItemInner({
   trailing,
   escalation,
   onSelect,
+  originAccount,
+  showOrigin,
+  assignedSeller,
+  showAssignee,
 }: IConversationListItemProps) {
   // Bump every minute so relative times stay fresh without per-item state.
   const now = useTimeTick(60_000);
@@ -113,9 +133,18 @@ function ConversationListItemInner({
         isSelected && "bg-accent/60 hover:bg-accent/60",
       )}
     >
+      {showOrigin && originAccount && (
+        <span
+          aria-hidden
+          className="absolute left-0 top-0 h-full w-[3px]"
+          style={{ backgroundColor: accountAccent(originAccount) }}
+          title={`Origem: ${originAccount.label}`}
+        />
+      )}
       <span
         className={cn(
-          "absolute left-0 top-0 h-full w-[3px]",
+          "absolute top-0 h-full w-[3px]",
+          showOrigin && originAccount ? "left-[3px]" : "left-0",
           isFreshEscalation ? "bg-[var(--brand-parts,theme(colors.emerald.500))]" : statusBar,
         )}
         aria-hidden
@@ -226,6 +255,10 @@ function ConversationListItemInner({
                 <TooltipContent side="top">Conversa aguardando distribuição manual</TooltipContent>
               </Tooltip>
             )}
+
+          {showAssignee && assignedSeller && (
+            <AssigneeChip seller={assignedSeller} variant="compact" className="ml-auto shrink-0" />
+          )}
         </div>
       </div>
 

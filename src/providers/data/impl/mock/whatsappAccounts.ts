@@ -23,6 +23,9 @@ function mockMetrics(id: string, days: number): IWhatsAppAccountMetrics {
 export const mockWhatsAppAccountsProvider: IWhatsAppAccountsProvider = {
   list: (params = {}) => whatsappAccountsApi.list(params),
   get: (id) => whatsappAccountsApi.get(id),
+  create: (input) => whatsappAccountsApi.create(input),
+  getAccessRules: (id) => whatsappAccountsApi.getAccessRules(id),
+  replaceAccessRules: (id, rules) => whatsappAccountsApi.replaceAccessRules(id, rules),
   update: (id, patch) =>
     whatsappAccountsApi.update(id, {
       ...(patch.label !== undefined ? { label: patch.label } : {}),

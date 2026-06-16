@@ -1,12 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import type { ICustomer, ID, ILead, IMessage, IConversation } from "@/shared/types";
+import type {
+  ICustomer,
+  ID,
+  ILead,
+  IMessage,
+  IConversation,
+  ISeller,
+  IWhatsAppAccount,
+} from "@/shared/types";
 import { useAuth } from "@/features/auth/useAuth";
+import { usePermission } from "@/features/rbac/hooks/usePermission";
+import { useCurrentStore } from "@/features/multistore";
 import {
   useConversationsProvider,
   useCustomersProvider,
   useLeadsProvider,
   useMessagesProvider,
+  useSellersProvider,
+  useWhatsAppAccountsProvider,
 } from "@/providers/data";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
@@ -23,6 +35,7 @@ import { InboxHeader } from "../components/InboxHeader";
 import { InboxEmptyState } from "../components/InboxEmptyState";
 import { QuickActions } from "../components/QuickActions";
 import { SearchInput } from "../components/SearchInput";
+import { NewConversationDialog } from "../components/NewConversationDialog";
 import { INBOX_STRINGS } from "../i18n/pt-BR";
 
 interface IRelatedEntities {
@@ -133,6 +146,63 @@ export function InboxPage() {
   // so it matches conversation.assignedSellerId. `userId` stays for unread tracking.
   const sellerId: ID | null = currentUser?.sellerId ?? null;
   const navigate = useNavigate();
+  const { currentStoreId } = useCurrentStore();
+  const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
+  const whatsappAccountsProvider = useWhatsAppAccountsProvider();
+  const [accounts, setAccounts] = useState<IWhatsAppAccount[]>([]);
+  const [newConvOpen, setNewConvOpen] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    void whatsappAccountsProvider
+      .list({ storeId })
+      .then((list) => {
+        if (!cancelled) setAccounts(list);
+      })
+      .catch(() => {
+        if (!cancelled) setAccounts([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [whatsappAccountsProvider, storeId]);
+  const accountsById = useMemo(() => {
+    const map = new Map<ID, IWhatsAppAccount>();
+    for (const a of accounts) map.set(a.id, a);
+    return map;
+  }, [accounts]);
+  const showOrigin = accounts.length > 1;
+  const connectedAccounts = useMemo(
+    () => accounts.filter((a) => a.status === "connected"),
+    [accounts],
+  );
+
+  // Assignee oversight: staff (Owner/Gestor) see store-wide conversations and
+  // need to know who is handling each. Load the store's sellers once to resolve
+  // names per row; skipped entirely for non-staff (the chip never renders).
+  const showAssignee = usePermission("conversation", "view", "store");
+  const sellersProvider = useSellersProvider();
+  const [sellersById, setSellersById] = useState<Map<ID, ISeller>>(new Map());
+  useEffect(() => {
+    if (!showAssignee) {
+      setSellersById(new Map());
+      return;
+    }
+    let cancelled = false;
+    void sellersProvider
+      .list({ storeId })
+      .then((list) => {
+        if (cancelled) return;
+        const map = new Map<ID, ISeller>();
+        for (const s of list) map.set(s.id, s);
+        setSellersById(map);
+      })
+      .catch(() => {
+        if (!cancelled) setSellersById(new Map());
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sellersProvider, storeId, showAssignee]);
 
   const selectedId = (useParams({ strict: false }) as { id?: ID }).id ?? null;
 
@@ -141,6 +211,7 @@ export function InboxPage() {
     setStatus,
     setChannel,
     setAssignment,
+    setInstance,
     setTags,
     setPeriod,
     setSearch,
@@ -305,12 +376,13 @@ export function InboxPage() {
     <TooltipProvider delayDuration={200}>
       <div className="flex h-full flex-col bg-card">
         <InboxHeader
-          totalLabel={INBOX_STRINGS.totalLabel(total)}
+          totalLabel={String(total)}
           unreadGlobal={unreadGlobal}
           realtimeEnabled={realtime.enabled}
           onToggleRealtime={realtime.setEnabled}
           realtimeConnected={realtime.connected}
           sortDescription={sortDescription}
+          onNewConversation={sellerId ? () => setNewConvOpen(true) : undefined}
         />
         <div className="border-b border-border px-3 py-2">
           <SearchInput inputRef={searchInputRef} value={filters.search} onChange={setSearch} />
@@ -318,9 +390,11 @@ export function InboxPage() {
         <InboxFilters
           state={filters}
           availableTags={availableTags}
+          instances={accounts}
           onStatus={setStatus}
           onChannel={setChannel}
           onAssignment={setAssignment}
+          onInstance={setInstance}
           onTags={setTags}
           onPeriod={setPeriod}
           onSort={setSort}
@@ -380,6 +454,18 @@ export function InboxPage() {
                 onSelect={() => handleSelect(conversation.id)}
                 trailing={<QuickActions conversation={conversation} onMutated={refetch} />}
                 escalation={escalationsByConversation.get(conversation.id) ?? null}
+                originAccount={
+                  conversation.whatsappAccountId
+                    ? (accountsById.get(conversation.whatsappAccountId) ?? null)
+                    : null
+                }
+                showOrigin={showOrigin}
+                assignedSeller={
+                  conversation.assignedSellerId
+                    ? (sellersById.get(conversation.assignedSellerId) ?? null)
+                    : null
+                }
+                showAssignee={showAssignee}
               />
             ))}
 
@@ -405,6 +491,23 @@ export function InboxPage() {
           )}
         </div>
       </div>
+      {newConvOpen && sellerId && (
+        <NewConversationDialog
+          storeId={storeId}
+          sellerId={sellerId}
+          accounts={connectedAccounts}
+          onClose={() => setNewConvOpen(false)}
+          onCreated={(conversationId) => {
+            setNewConvOpen(false);
+            refetch();
+            void navigate({
+              to: "/app/atendimento/$id",
+              params: { id: conversationId },
+              search: (prev) => prev,
+            });
+          }}
+        />
+      )}
     </TooltipProvider>
   );
 }

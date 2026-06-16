@@ -42,6 +42,12 @@ interface IFakeOpts {
   failover?: Partial<IFailoverAwareAccount>;
   /** PRD-120: row returned by getAccountRecord (default: Evolution backup). */
   failoverRow?: IAccountRecord | null;
+  /** Multi-instância: instância de origem da conversa (default "acc-1"). */
+  whatsappAccountId?: string | null;
+  /** Camada 2: sender é co-responsável (participante). */
+  isParticipant?: boolean;
+  /** Camada 1: sender acessa a instância de origem. */
+  accessesAccount?: boolean;
 }
 
 function makeDb(opts: IFakeOpts = {}) {
@@ -61,6 +67,8 @@ function makeDb(opts: IFakeOpts = {}) {
         storeId: "store-1",
         status: opts.status ?? "em_andamento",
         assignedSellerId: opts.assignedSellerId === undefined ? "seller-1" : opts.assignedSellerId,
+        whatsappAccountId:
+          opts.whatsappAccountId === undefined ? "acc-1" : opts.whatsappAccountId,
       },
       account: { ...ACCOUNT, provider: opts.provider ?? "meta", ...(opts.failover ?? {}) },
       customerId: "cust-1",
@@ -93,6 +101,8 @@ function makeDb(opts: IFakeOpts = {}) {
     audit: async (input) => {
       calls.audits.push(input);
     },
+    isConversationParticipant: async () => opts.isParticipant ?? false,
+    sellerAccessesAccount: async () => opts.accessesAccount ?? false,
   };
   return { db, calls };
 }
@@ -190,12 +200,9 @@ describe("processSendRequest — permission and state gates (RF-010..012)", () =
     expect(calls.queued).toHaveLength(0);
   });
 
-  it("allows staff in any conversation and sellers in pool conversations", async () => {
+  it("allows staff in any conversation", async () => {
     const staff = makeDb({ assignedSellerId: "seller-other" });
     await expect(send({}, staff.db, MANAGER)).resolves.toMatchObject({ dispatchStatus: "sent" });
-
-    const pool = makeDb({ assignedSellerId: null });
-    await expect(send({}, pool.db)).resolves.toMatchObject({ dispatchStatus: "sent" });
   });
 
   it("rejects closed conversations (RF-012)", async () => {
@@ -374,6 +381,25 @@ describe("processSendRequest — failover (PRD-120 RF-040/041)", () => {
     await send({}, db);
     expect(calls.queued[0]).toMatchObject({ provider: "meta" });
     expect(calls.audits.some((a) => a.action === "failover_used")).toBe(false);
+  });
+});
+
+describe("processSendRequest — multi-instance access (Camada 1/2)", () => {
+  it("blocks a non-staff seller on a pool conversation of an instance they cannot access", async () => {
+    const { db } = makeDb({ assignedSellerId: null, accessesAccount: false });
+    await expect(send({}, db, SELLER)).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("allows a participant (co-responsible) to send", async () => {
+    const { db, calls } = makeDb({ assignedSellerId: "seller-OTHER", isParticipant: true });
+    await send({}, db, SELLER);
+    expect(calls.sent.length).toBe(1);
+  });
+
+  it("allows pool send when the seller accesses the instance", async () => {
+    const { db, calls } = makeDb({ assignedSellerId: null, accessesAccount: true });
+    await send({}, db, SELLER);
+    expect(calls.sent.length).toBe(1);
   });
 });
 
