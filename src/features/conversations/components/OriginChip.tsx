@@ -1,6 +1,6 @@
 import type { IWhatsAppAccount } from "@/shared/types";
 import { formatPhone } from "@/shared/utils/format";
-import { instanceAccent } from "../utils/instanceAccent";
+import { accountAccent } from "../utils/instanceAccent";
 
 export interface IOriginChipProps {
   account: IWhatsAppAccount | null;
@@ -11,13 +11,24 @@ export interface IOriginChipProps {
 
 export function OriginChip({ account, variant = "label", className }: IOriginChipProps) {
   if (!account) return null;
-  const color = instanceAccent(account.id);
+  const color = accountAccent(account);
+  // `full` variant appends the origin phone (smaller, muted) beside the name.
+  // Drop the "+55" country code here — it's noise for a single-country UI.
+  const phone =
+    variant === "full" && account.phoneNumber
+      ? formatPhone(account.phoneNumber).replace(/^\+55\s/, "")
+      : null;
   const dot = (
-    <span
-      aria-hidden
-      className="inline-block size-2 shrink-0 rounded-full"
-      style={{ backgroundColor: color }}
-    />
+    <span aria-hidden className="relative inline-flex size-2 shrink-0">
+      <span
+        className="absolute inline-flex h-full w-full rounded-full opacity-60 motion-safe:animate-ping"
+        style={{ backgroundColor: color }}
+      />
+      <span
+        className="relative inline-flex size-2 rounded-full"
+        style={{ backgroundColor: color }}
+      />
+    </span>
   );
   if (variant === "dot") {
     return (
@@ -33,12 +44,17 @@ export function OriginChip({ account, variant = "label", className }: IOriginChi
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-0.5 text-xs text-foreground ${className ?? ""}`}
-      title={`Origem: ${account.label}`}
+      title={phone ? `Origem: ${account.label} · ${phone}` : `Origem: ${account.label}`}
     >
       {dot}
       <span className="truncate">{account.label}</span>
-      {variant === "full" && account.phoneNumber ? (
-        <span className="text-muted-foreground">· {formatPhone(account.phoneNumber)}</span>
+      {phone ? (
+        <>
+          <span aria-hidden className="h-3 w-px shrink-0 bg-border" />
+          <span className="shrink-0 whitespace-nowrap text-[11px] tabular-nums text-muted-foreground">
+            {phone}
+          </span>
+        </>
       ) : null}
     </span>
   );

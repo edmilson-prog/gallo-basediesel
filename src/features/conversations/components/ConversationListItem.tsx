@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { ContactAvatar } from "./ContactAvatar";
 import { useTimeTick } from "../hooks/useTimeTick";
 import { formatRelativeTime, isFresh } from "../utils/formatRelativeTime";
-import { instanceAccent } from "../utils/instanceAccent";
+import { accountAccent } from "../utils/instanceAccent";
 import {
   CHANNEL_META,
   STATUS_META,
@@ -124,7 +124,7 @@ function ConversationListItemInner({
         <span
           aria-hidden
           className="absolute left-0 top-0 h-full w-[3px]"
-          style={{ backgroundColor: instanceAccent(originAccount.id) }}
+          style={{ backgroundColor: accountAccent(originAccount) }}
           title={`Origem: ${originAccount.label}`}
         />
       )}

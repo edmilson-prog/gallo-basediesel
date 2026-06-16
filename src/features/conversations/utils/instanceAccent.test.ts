@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { instanceAccent } from "./instanceAccent";
+import { instanceAccent, accountAccent } from "./instanceAccent";
 
 describe("instanceAccent", () => {
   it("is deterministic for the same id", () => {
@@ -11,5 +11,19 @@ describe("instanceAccent", () => {
   it("does not collide with severity colors", () => {
     const severity = ["#22c55e", "#f59e0b", "#f87171", "#ef4444"];
     expect(severity).not.toContain(instanceAccent("any-id"));
+  });
+});
+
+describe("accountAccent", () => {
+  it("uses the explicit accentColor when set", () => {
+    expect(accountAccent({ id: "x", providerConfig: { accentColor: "#ff00aa" } })).toBe("#ff00aa");
+  });
+  it("falls back to the id hash when accentColor is absent", () => {
+    expect(accountAccent({ id: "wa-evo-campanhas", providerConfig: {} })).toBe(
+      instanceAccent("wa-evo-campanhas"),
+    );
+  });
+  it("falls back when providerConfig is undefined", () => {
+    expect(accountAccent({ id: "wa-evo-campanhas" })).toBe(instanceAccent("wa-evo-campanhas"));
   });
 });

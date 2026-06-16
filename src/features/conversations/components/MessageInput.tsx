@@ -611,8 +611,8 @@ export function MessageInput(props: IMessageInputProps) {
 
       {whatsappAccount && (
         <div className="flex items-center gap-1.5 px-3 pt-2 text-[11px] text-muted-foreground">
-          <span>Respondendo por</span>
-          <OriginChip account={whatsappAccount} variant="label" />
+          <span>Origem:</span>
+          <OriginChip account={whatsappAccount} variant="full" />
         </div>
       )}
       <div className="flex items-end gap-2 px-3 py-2">

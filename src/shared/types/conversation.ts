@@ -167,6 +167,8 @@ export interface IWhatsAppProviderConfig {
   baseUrl?: string;
   /** Evolution — instance name within the host. */
   instanceName?: string;
+  /** Per-instance identity color (hex) for the origin dot/bar — falls back to a hash of the id. */
+  accentColor?: string;
 }
 
 /**

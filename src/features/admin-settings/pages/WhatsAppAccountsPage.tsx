@@ -40,6 +40,7 @@ import { TestMessageDialog } from "../components/TestMessageDialog";
 import { InstanceAccessSheet } from "../components/InstanceAccessSheet";
 import { AddInstanceWizard } from "../components/AddInstanceWizard";
 import { resolveAccessRecipients } from "../utils/accessRecipients";
+import { INSTANCE_PALETTE } from "@/features/conversations/utils/instanceAccent";
 
 const STATUS_VISUAL: Record<
   IWhatsAppAccount["status"],
@@ -357,7 +358,10 @@ export function WhatsAppAccountsPage() {
       await provider.update(account.id, {
         label: draft.label.trim(),
         credentialsRef: draft.credentialsRef.trim(),
-        providerConfig: config.config,
+        providerConfig:
+          config.config && account.providerConfig?.accentColor
+            ? { ...config.config, accentColor: account.providerConfig.accentColor }
+            : config.config,
         failoverPolicy: draft.failoverPolicy,
         failoverAccountId: draft.failoverAccountId || null,
         // Disabling the policy also clears an active failover.
@@ -383,6 +387,21 @@ export function WhatsAppAccountsPage() {
       toast.error("Não foi possível salvar a conta.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Per-instance identity color (multi-instância): persisted in provider_config
+  // (jsonb) so it survives without a schema change. Spreads the existing config
+  // so baseUrl/instanceName/profileName are preserved; null clears (→ auto/hash).
+  const setAccentColor = async (account: IWhatsAppAccount, hex: string | null) => {
+    const nextConfig: IWhatsAppProviderConfig = { ...(account.providerConfig ?? {}) };
+    if (hex) nextConfig.accentColor = hex;
+    else delete nextConfig.accentColor;
+    try {
+      await provider.update(account.id, { providerConfig: nextConfig });
+      await refresh();
+    } catch {
+      toast.error("Não foi possível salvar a cor da instância.");
     }
   };
 
@@ -552,6 +571,42 @@ export function WhatsAppAccountsPage() {
                       </button>
                     );
                   })()}
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Cor da instância</span>
+                  <div className="flex items-center gap-1.5">
+                    {INSTANCE_PALETTE.map((hex) => {
+                      const active = account.providerConfig?.accentColor === hex;
+                      return (
+                        <button
+                          key={hex}
+                          type="button"
+                          onClick={() => void setAccentColor(account, hex)}
+                          aria-label={`Usar a cor ${hex}`}
+                          aria-pressed={active}
+                          className={`size-5 cursor-pointer rounded-full transition-transform hover:scale-110 ${
+                            active ? "ring-2 ring-foreground ring-offset-2 ring-offset-card" : ""
+                          }`}
+                          style={{ backgroundColor: hex }}
+                        />
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => void setAccentColor(account, null)}
+                      aria-label="Cor automática"
+                      aria-pressed={!account.providerConfig?.accentColor}
+                      title="Automático (cor pelo identificador)"
+                      className={`flex size-5 cursor-pointer items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:text-foreground ${
+                        !account.providerConfig?.accentColor
+                          ? "ring-2 ring-foreground ring-offset-2 ring-offset-card"
+                          : ""
+                      }`}
+                    >
+                      <Icon icon="mdi:auto-fix" size={12} />
+                    </button>
+                  </div>
                 </div>
 
                 {!isEditing ? (
