@@ -24,6 +24,7 @@ export type {
 export type {
   IStore,
   ITeam,
+  IDepartment,
   IPlatformSettings,
   ILifecycleThresholds,
   IABCCurveSettings,
@@ -68,6 +69,7 @@ export type {
 export type {
   ISeller,
   IRole,
+  IRbacResource,
   IPermission,
   IAuditLog,
   IThemePreference,

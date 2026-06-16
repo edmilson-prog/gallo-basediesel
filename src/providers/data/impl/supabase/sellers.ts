@@ -30,6 +30,7 @@ interface SellerRow {
   parent_seller_id: string | null;
   commission_rule: ISeller["commissionRule"] | null;
   vehicle_cadastro_mode: ISeller["vehicleCadastroMode"] | null;
+  department_id: string | null;
   active: boolean;
   created_at: string;
   deleted_at: string | null;
@@ -37,7 +38,7 @@ interface SellerRow {
 
 const TABLE = "sellers";
 const COLUMNS =
-  "id, store_id, full_name, attendant_name, email, phone, type, availability, divisions, theme_preference, region, commission_tier, parent_seller_id, commission_rule, vehicle_cadastro_mode, active, created_at, deleted_at";
+  "id, store_id, full_name, attendant_name, email, phone, type, availability, divisions, theme_preference, region, commission_tier, parent_seller_id, commission_rule, vehicle_cadastro_mode, department_id, active, created_at, deleted_at";
 
 function rowToSeller(row: SellerRow): ISeller {
   return {
@@ -56,6 +57,7 @@ function rowToSeller(row: SellerRow): ISeller {
     parentSellerId: row.parent_seller_id ?? undefined,
     commissionRule: row.commission_rule ?? undefined,
     vehicleCadastroMode: row.vehicle_cadastro_mode ?? undefined,
+    departmentId: row.department_id ?? null,
     active: row.active,
     createdAt: row.created_at,
     deletedAt: row.deleted_at ?? undefined,
@@ -80,6 +82,8 @@ function sellerPatchToRow(patch: Partial<ISeller>): Record<string, unknown> {
   if (patch.commissionRule !== undefined) row.commission_rule = patch.commissionRule;
   if (patch.vehicleCadastroMode !== undefined)
     row.vehicle_cadastro_mode = patch.vehicleCadastroMode;
+  // Nullable: `null` clears the assignment; `undefined` leaves it untouched.
+  if (patch.departmentId !== undefined) row.department_id = patch.departmentId ?? null;
   if (patch.active !== undefined) row.active = patch.active;
   return row;
 }
@@ -142,6 +146,7 @@ export const supabaseSellersProvider: ISellersProvider = {
         type: input.type,
         region: input.region?.trim() || null,
         attendant_name: input.attendantName?.trim() || null,
+        department_id: input.departmentId ?? null,
       })
       .select(COLUMNS)
       .single();

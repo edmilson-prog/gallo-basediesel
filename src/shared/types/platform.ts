@@ -316,3 +316,9 @@ export interface ITeam {
   sellerIds: ID[];
   createdAt: ISO8601;
 }
+
+/**
+ * Department (PRD-211). Alias of ITeam — the dormant team entity is revived and
+ * repositioned as "Departamento". Use IDepartment in new code for intent.
+ */
+export type IDepartment = ITeam;

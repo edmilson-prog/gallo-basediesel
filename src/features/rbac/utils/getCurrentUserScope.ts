@@ -4,9 +4,14 @@ import type { ResourceName } from "../permissions/resources";
 import type { IRoleBearer } from "./hasPermission";
 
 /**
- * Returns the broadest scope the user holds on the given resource, or `null`
- * if the user has no entry for it. Consumed by list hooks to know how much
- * data to fetch (own / team / store / all).
+ * Canonical scope resolver: returns the broadest scope the user holds on the
+ * given resource (`own` / `team` / `store` / `all`), or `null` if the user has
+ * no entry for it.
+ *
+ * This is foundational public API (PRD-006). When a `team` scope needs to be
+ * expanded into concrete seller ids, use `resolveTeamMemberIds` with the user's
+ * department members. Data isolation itself is enforced by Supabase RLS
+ * governed by `base_role`; UI scope filtering is not yet wired into list hooks.
  */
 export function getCurrentUserScope(
   user: IRoleBearer | null | undefined,

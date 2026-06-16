@@ -45,6 +45,11 @@ export const RESOURCES = [
   "quick_reply",
   "trackable_link",
   "scheduled_send",
+  // Role administration & monitoring (PRD-211 Task 16). `manage_roles` gates the
+  // role editor's write actions; `monitor` is the base for a future "spy mode"
+  // (born here as data; behavior is a later DELTA).
+  "manage_roles",
+  "monitor",
 ] as const;
 
 export type ResourceName = (typeof RESOURCES)[number];

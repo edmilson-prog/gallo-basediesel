@@ -24,6 +24,14 @@ Três dimensões compõem cada checagem de permissão:
 Hierarquia de scope: quem tem `store` implicitamente tem `team` e `own`; quem
 tem `all` tem tudo. O helper `compareScopes()` impõe essa ordem.
 
+Desde o PRD-211, o scope `team` corresponde aos **membros do departamento** do
+usuário: o resolver puro `resolveTeamMemberIds(currentSellerId, departmentMembers)`
+devolve o próprio usuário mais os demais sellers que compartilham o mesmo
+`departmentId` (um usuário sem colegas de departamento degrada para `own`). O
+isolamento real de dados é garantido pelo **RLS do Supabase governado pelo
+`base_role`** — a filtragem de scope na UI ainda não está plugada nos list hooks
+(`getCurrentUserScope` é o resolver canônico, fundação para futura adoção).
+
 Apenas dois tipos de "user" interessam à camada: `null` (anônimo) e qualquer
 objeto que carregue um campo `role: RoleName`. As helpers não conhecem o
 restante da identidade — Supabase e mock convivem porque ambos atendem essa
@@ -71,6 +79,18 @@ Legenda: `C`=create · `V`=view · `E`=edit · `D`=delete · `A`=approve · `:sc
 > **Nota:** `audit_log` jamais aparece com `delete` para nenhum papel — o log
 > é append-only por desenho. No Supabase isso é enforcado por `REVOKE DELETE`
 > e por trigger anti-`UPDATE` na tabela.
+
+---
+
+## Propagação do enforcement (PRD-211)
+
+A partir do PRD-211 os papéis e permissões deixaram de ser apenas constantes e passaram a viver em tabelas (`public.roles`, `public.role_permissions`, `public.rbac_resources`). A propagação funciona assim:
+
+- **Fonte da verdade:** as tabelas acima. A UI lê uma cópia em memória (cache `rbacConfig`) que é **re-hidratada ao salvar** o editor de papéis (`rehydrateRbac`), então mudanças de permissão refletem na navegação sem recarregar a página.
+- **Enforcement real:** continua na **RLS do Supabase**, governada pelo **`base_role`** do usuário (claim no JWT). A matriz fina refina UI/navegação; ela nunca concede além do que a RLS permite.
+- **Papéis customizados:** todo papel customizado carrega um `base_role` (um dos 7 de sistema). Como ele nunca excede o papel-base, **não há janela "a UI concede o que a API nega"**.
+- **Troca de papel-base:** quando o `base_role` de um usuário muda, é preciso um **refresh de claims** (re-login ou refresh do token) para a RLS reconhecer o novo papel.
+- **`manage_roles`:** editar a matriz de papéis exige o recurso `manage_roles` (Owner); apenas visualizar a tela continua sob `role:view`. O recurso `monitor` nasce aqui como dado (base de um futuro "modo monitoramento"), sem comportamento ativo ainda.
 
 ---
 

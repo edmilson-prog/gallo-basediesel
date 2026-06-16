@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { ISeller } from "@/shared/types";
 import { useCurrentStore } from "@/features/multistore";
-import { useSellersProvider } from "@/providers/data";
+import { useDepartmentsProvider, useSellersProvider } from "@/providers/data";
 import { AUTH_SOURCE } from "@/features/auth/authSource";
 import { useAuth } from "@/features/auth/useAuth";
 import { useStorePresence } from "@/features/shell/hooks/useStorePresence";
@@ -59,6 +59,7 @@ export function UsersPage() {
   const { currentStoreId } = useCurrentStore();
   const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
   const provider = useSellersProvider();
+  const departmentsProvider = useDepartmentsProvider();
   const [inviteFor, setInviteFor] = useState<ISeller | null>(null);
   const [resetFor, setResetFor] = useState<ISeller | null>(null);
   const [roleFor, setRoleFor] = useState<ISeller | null>(null);
@@ -81,8 +82,16 @@ export function UsersPage() {
     enabled: SUPABASE_AUTH,
   });
 
+  const departmentsQuery = useQuery({
+    queryKey: ["departments", storeId],
+    queryFn: () => departmentsProvider.list({ storeId }),
+  });
+
   const sellers = sellersQuery.data;
   const accessInfo = accessQuery.data ?? new Map<string, ISellerAccessInfo>();
+  const departmentNameById = new Map(
+    (departmentsQuery.data ?? []).map((d) => [d.id, d.name] as const),
+  );
 
   return (
     <div className="space-y-6">
@@ -127,6 +136,9 @@ export function UsersPage() {
               const isSelf = currentUser?.sellerId === s.id;
               const isOnline = presence ? presence.has(s.id) : s.availability !== "offline";
               const accessLabel = lastAccessLabel(accessInfo.get(s.id), SUPABASE_AUTH);
+              const departmentName = s.departmentId
+                ? departmentNameById.get(s.departmentId)
+                : undefined;
               return (
                 <li
                   key={s.id}
@@ -155,6 +167,10 @@ export function UsersPage() {
                         )}
                       </p>
                       <p className="text-xs text-muted-foreground">{s.email}</p>
+                      <p className="flex items-center gap-1 text-[11px] text-muted-foreground/80">
+                        <Icon icon="mdi:office-building-outline" size={12} />
+                        {departmentName ?? "Sem departamento"}
+                      </p>
                       {accessLabel && (
                         <p className="text-[11px] text-muted-foreground/80">{accessLabel}</p>
                       )}

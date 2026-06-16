@@ -63,7 +63,12 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         icon: "mdi:account-group-outline",
         to: "/app/configuracoes/usuarios",
         roles: ["Owner"],
-        upcoming: true,
+      },
+      {
+        label: "Departamentos",
+        icon: "mdi:account-group-outline",
+        to: "/app/configuracoes/departamentos",
+        permission: { resource: "seller", action: "edit" },
       },
       {
         label: "Papéis",
@@ -401,7 +406,9 @@ export function SettingsLayout({ children }: { children?: ReactNode }) {
             </SheetContent>
           </Sheet>
         </div>
-        <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-8">{children}</div>
+        {/* Uniform wide content width across all settings pages (reclaims side
+            space on large monitors). */}
+        <div className="mx-auto w-full max-w-[1600px] px-4 py-6 md:px-8">{children}</div>
       </main>
     </div>
   );

@@ -6,6 +6,7 @@ export {
   SEED_VENDEDOR_SELLER_IDS,
 } from "./seedSellers";
 export { SEED_ROLES, SEED_ROLE_BY_NAME } from "./seedRoles";
+export { SEED_RBAC_RESOURCES, SEED_DEPARTMENTS } from "./rbac";
 export { SEED_PIPELINE_STAGES } from "./seedPipelineStages";
 export { SEED_LOSS_REASONS } from "./seedLossReasons";
 export { SEED_TAGS } from "./seedTags";
