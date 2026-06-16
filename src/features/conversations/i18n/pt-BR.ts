@@ -167,6 +167,8 @@ export const INBOX_STRINGS = {
 export const CONVERSATION_STRINGS = {
   // Header
   backToInbox: "Voltar à inbox",
+  /** Label for the assigned-seller chip (list + header). */
+  assignee: "Responsável",
   channelLabel: {
     whatsapp: "WhatsApp",
     ecommerce: "E-commerce",

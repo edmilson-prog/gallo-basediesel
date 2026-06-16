@@ -1,13 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import type { ICustomer, ID, ILead, IMessage, IConversation, IWhatsAppAccount } from "@/shared/types";
+import type {
+  ICustomer,
+  ID,
+  ILead,
+  IMessage,
+  IConversation,
+  ISeller,
+  IWhatsAppAccount,
+} from "@/shared/types";
 import { useAuth } from "@/features/auth/useAuth";
+import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { useCurrentStore } from "@/features/multistore";
 import {
   useConversationsProvider,
   useCustomersProvider,
   useLeadsProvider,
   useMessagesProvider,
+  useSellersProvider,
   useWhatsAppAccountsProvider,
 } from "@/providers/data";
 import { Button } from "@/components/ui/button";
@@ -165,6 +175,34 @@ export function InboxPage() {
     () => accounts.filter((a) => a.status === "connected"),
     [accounts],
   );
+
+  // Assignee oversight: staff (Owner/Gestor) see store-wide conversations and
+  // need to know who is handling each. Load the store's sellers once to resolve
+  // names per row; skipped entirely for non-staff (the chip never renders).
+  const showAssignee = usePermission("conversation", "view", "store");
+  const sellersProvider = useSellersProvider();
+  const [sellersById, setSellersById] = useState<Map<ID, ISeller>>(new Map());
+  useEffect(() => {
+    if (!showAssignee) {
+      setSellersById(new Map());
+      return;
+    }
+    let cancelled = false;
+    void sellersProvider
+      .list({ storeId })
+      .then((list) => {
+        if (cancelled) return;
+        const map = new Map<ID, ISeller>();
+        for (const s of list) map.set(s.id, s);
+        setSellersById(map);
+      })
+      .catch(() => {
+        if (!cancelled) setSellersById(new Map());
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sellersProvider, storeId, showAssignee]);
 
   const selectedId = (useParams({ strict: false }) as { id?: ID }).id ?? null;
 
@@ -422,6 +460,12 @@ export function InboxPage() {
                     : null
                 }
                 showOrigin={showOrigin}
+                assignedSeller={
+                  conversation.assignedSellerId
+                    ? (sellersById.get(conversation.assignedSellerId) ?? null)
+                    : null
+                }
+                showAssignee={showAssignee}
               />
             ))}
 
