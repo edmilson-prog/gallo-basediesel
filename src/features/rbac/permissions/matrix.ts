@@ -72,6 +72,9 @@ const OWNER_ENTRIES: ScopedActions[] = [
   p("quick_reply", CRUD, "all"),
   p("trackable_link", CRUD, "all"),
   p("scheduled_send", CRUD, "all"),
+  // Role administration & monitoring (PRD-211 Task 16) — Owner only.
+  p("manage_roles", CRUD, "all"),
+  p("monitor", ["view"], "all"),
 ];
 
 const GESTOR_ENTRIES: ScopedActions[] = [

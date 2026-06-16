@@ -75,6 +75,9 @@ const RESOURCE_LABELS: Record<ResourceName, string> = {
   quick_reply: "Respostas Rápidas",
   trackable_link: "Links Rastreáveis",
   scheduled_send: "Envios Agendados",
+  // Role administration & monitoring (PRD-211 Task 16).
+  manage_roles: "Gerir papéis",
+  monitor: "Monitoramento",
 };
 
 /** Editorial grouping of resources into UI areas (PRD-211). */
@@ -121,6 +124,8 @@ const RESOURCE_GROUPS: Record<ResourceName, string> = {
   // Configuração
   settings: "Configuração",
   role: "Configuração",
+  manage_roles: "Configuração",
+  monitor: "Configuração",
 };
 
 /**

@@ -82,6 +82,18 @@ Legenda: `C`=create · `V`=view · `E`=edit · `D`=delete · `A`=approve · `:sc
 
 ---
 
+## Propagação do enforcement (PRD-211)
+
+A partir do PRD-211 os papéis e permissões deixaram de ser apenas constantes e passaram a viver em tabelas (`public.roles`, `public.role_permissions`, `public.rbac_resources`). A propagação funciona assim:
+
+- **Fonte da verdade:** as tabelas acima. A UI lê uma cópia em memória (cache `rbacConfig`) que é **re-hidratada ao salvar** o editor de papéis (`rehydrateRbac`), então mudanças de permissão refletem na navegação sem recarregar a página.
+- **Enforcement real:** continua na **RLS do Supabase**, governada pelo **`base_role`** do usuário (claim no JWT). A matriz fina refina UI/navegação; ela nunca concede além do que a RLS permite.
+- **Papéis customizados:** todo papel customizado carrega um `base_role` (um dos 7 de sistema). Como ele nunca excede o papel-base, **não há janela "a UI concede o que a API nega"**.
+- **Troca de papel-base:** quando o `base_role` de um usuário muda, é preciso um **refresh de claims** (re-login ou refresh do token) para a RLS reconhecer o novo papel.
+- **`manage_roles`:** editar a matriz de papéis exige o recurso `manage_roles` (Owner); apenas visualizar a tela continua sob `role:view`. O recurso `monitor` nasce aqui como dado (base de um futuro "modo monitoramento"), sem comportamento ativo ainda.
+
+---
+
 ## API pública
 
 Tudo deve ser importado do barrel `@/features/rbac`:

@@ -44,7 +44,9 @@ function pickDefaultRole(roles: IRole[]): IRole | undefined {
 export function RolesPage() {
   const provider = useRolesProvider();
   const queryClient = useQueryClient();
-  const canEditRoles = usePermission("role", "edit");
+  // Editing roles requires the dedicated `manage_roles` capability (PRD-211
+  // Task 16); viewing the matrix stays governed by the route's `role:view` guard.
+  const canEditRoles = usePermission("manage_roles", "edit");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // Session-wide opt-out of the system-role first-edit warning ("Não avisar
   // novamente nesta sessão"). Lives at the page level so it spans role switches.
