@@ -66,6 +66,12 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         upcoming: true,
       },
       {
+        label: "Departamentos",
+        icon: "mdi:account-group-outline",
+        to: "/app/configuracoes/departamentos",
+        permission: { resource: "seller", action: "edit" },
+      },
+      {
         label: "Papéis",
         icon: "mdi:shield-account-outline",
         to: "/app/configuracoes/papeis",

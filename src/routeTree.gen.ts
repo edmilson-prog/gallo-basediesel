@@ -137,6 +137,7 @@ import { Route as AppConfiguracoesEstoqueAnaliseRouteImport } from './routes/app
 import { Route as AppConfiguracoesEcommerceIntegracaoRouteImport } from './routes/app.configuracoes.ecommerce-integracao'
 import { Route as AppConfiguracoesDivisoesRouteImport } from './routes/app.configuracoes.divisoes'
 import { Route as AppConfiguracoesDistribuicaoRouteImport } from './routes/app.configuracoes.distribuicao'
+import { Route as AppConfiguracoesDepartamentosRouteImport } from './routes/app.configuracoes.departamentos'
 import { Route as AppConfiguracoesCurvaAbcRouteImport } from './routes/app.configuracoes.curva-abc'
 import { Route as AppConfiguracoesCopilotoAnaliticoRouteImport } from './routes/app.configuracoes.copiloto-analitico'
 import { Route as AppConfiguracoesCopilotoRouteImport } from './routes/app.configuracoes.copiloto'
@@ -844,6 +845,12 @@ const AppConfiguracoesDistribuicaoRoute =
     path: '/configuracoes/distribuicao',
     getParentRoute: () => AppRoute,
   } as any)
+const AppConfiguracoesDepartamentosRoute =
+  AppConfiguracoesDepartamentosRouteImport.update({
+    id: '/configuracoes/departamentos',
+    path: '/configuracoes/departamentos',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppConfiguracoesCurvaAbcRoute =
   AppConfiguracoesCurvaAbcRouteImport.update({
     id: '/configuracoes/curva-abc',
@@ -1186,6 +1193,7 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/copiloto': typeof AppConfiguracoesCopilotoRoute
   '/app/configuracoes/copiloto-analitico': typeof AppConfiguracoesCopilotoAnaliticoRoute
   '/app/configuracoes/curva-abc': typeof AppConfiguracoesCurvaAbcRoute
+  '/app/configuracoes/departamentos': typeof AppConfiguracoesDepartamentosRoute
   '/app/configuracoes/distribuicao': typeof AppConfiguracoesDistribuicaoRoute
   '/app/configuracoes/divisoes': typeof AppConfiguracoesDivisoesRoute
   '/app/configuracoes/ecommerce-integracao': typeof AppConfiguracoesEcommerceIntegracaoRoute
@@ -1348,6 +1356,7 @@ export interface FileRoutesByTo {
   '/app/configuracoes/copiloto': typeof AppConfiguracoesCopilotoRoute
   '/app/configuracoes/copiloto-analitico': typeof AppConfiguracoesCopilotoAnaliticoRoute
   '/app/configuracoes/curva-abc': typeof AppConfiguracoesCurvaAbcRoute
+  '/app/configuracoes/departamentos': typeof AppConfiguracoesDepartamentosRoute
   '/app/configuracoes/distribuicao': typeof AppConfiguracoesDistribuicaoRoute
   '/app/configuracoes/divisoes': typeof AppConfiguracoesDivisoesRoute
   '/app/configuracoes/ecommerce-integracao': typeof AppConfiguracoesEcommerceIntegracaoRoute
@@ -1521,6 +1530,7 @@ export interface FileRoutesById {
   '/app/configuracoes/copiloto': typeof AppConfiguracoesCopilotoRoute
   '/app/configuracoes/copiloto-analitico': typeof AppConfiguracoesCopilotoAnaliticoRoute
   '/app/configuracoes/curva-abc': typeof AppConfiguracoesCurvaAbcRoute
+  '/app/configuracoes/departamentos': typeof AppConfiguracoesDepartamentosRoute
   '/app/configuracoes/distribuicao': typeof AppConfiguracoesDistribuicaoRoute
   '/app/configuracoes/divisoes': typeof AppConfiguracoesDivisoesRoute
   '/app/configuracoes/ecommerce-integracao': typeof AppConfiguracoesEcommerceIntegracaoRoute
@@ -1702,6 +1712,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/copiloto'
     | '/app/configuracoes/copiloto-analitico'
     | '/app/configuracoes/curva-abc'
+    | '/app/configuracoes/departamentos'
     | '/app/configuracoes/distribuicao'
     | '/app/configuracoes/divisoes'
     | '/app/configuracoes/ecommerce-integracao'
@@ -1864,6 +1875,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/copiloto'
     | '/app/configuracoes/copiloto-analitico'
     | '/app/configuracoes/curva-abc'
+    | '/app/configuracoes/departamentos'
     | '/app/configuracoes/distribuicao'
     | '/app/configuracoes/divisoes'
     | '/app/configuracoes/ecommerce-integracao'
@@ -2036,6 +2048,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/copiloto'
     | '/app/configuracoes/copiloto-analitico'
     | '/app/configuracoes/curva-abc'
+    | '/app/configuracoes/departamentos'
     | '/app/configuracoes/distribuicao'
     | '/app/configuracoes/divisoes'
     | '/app/configuracoes/ecommerce-integracao'
@@ -3059,6 +3072,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesDistribuicaoRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/configuracoes/departamentos': {
+      id: '/app/configuracoes/departamentos'
+      path: '/configuracoes/departamentos'
+      fullPath: '/app/configuracoes/departamentos'
+      preLoaderRoute: typeof AppConfiguracoesDepartamentosRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/configuracoes/curva-abc': {
       id: '/app/configuracoes/curva-abc'
       path: '/configuracoes/curva-abc'
@@ -3691,6 +3711,7 @@ interface AppRouteChildren {
   AppConfiguracoesCopilotoRoute: typeof AppConfiguracoesCopilotoRoute
   AppConfiguracoesCopilotoAnaliticoRoute: typeof AppConfiguracoesCopilotoAnaliticoRoute
   AppConfiguracoesCurvaAbcRoute: typeof AppConfiguracoesCurvaAbcRoute
+  AppConfiguracoesDepartamentosRoute: typeof AppConfiguracoesDepartamentosRoute
   AppConfiguracoesDistribuicaoRoute: typeof AppConfiguracoesDistribuicaoRoute
   AppConfiguracoesDivisoesRoute: typeof AppConfiguracoesDivisoesRoute
   AppConfiguracoesEcommerceIntegracaoRoute: typeof AppConfiguracoesEcommerceIntegracaoRoute
@@ -3768,6 +3789,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesCopilotoAnaliticoRoute:
     AppConfiguracoesCopilotoAnaliticoRoute,
   AppConfiguracoesCurvaAbcRoute: AppConfiguracoesCurvaAbcRoute,
+  AppConfiguracoesDepartamentosRoute: AppConfiguracoesDepartamentosRoute,
   AppConfiguracoesDistribuicaoRoute: AppConfiguracoesDistribuicaoRoute,
   AppConfiguracoesDivisoesRoute: AppConfiguracoesDivisoesRoute,
   AppConfiguracoesEcommerceIntegracaoRoute:
