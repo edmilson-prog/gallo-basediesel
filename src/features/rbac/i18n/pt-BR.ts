@@ -96,6 +96,68 @@ export const ROLE_EDITOR_LABELS = {
   unsavedBody: "Você tem alterações não salvas neste papel. Se sair agora, elas serão perdidas.",
   unsavedConfirm: "Descartar e sair",
   unsavedKeepEditing: "Continuar editando",
+  // --- Task 11: custom role CRUD (create / duplicate / rename / delete) ---
+  // Per-role kebab actions.
+  roleActionsLabel: "Ações do papel",
+  actionDuplicate: "Duplicar",
+  actionRename: "Renomear",
+  actionDelete: "Excluir",
+  actionRenameSystemDisabled: "Papéis de sistema não podem ser renomeados",
+  // Create / duplicate dialog.
+  createTitle: "Novo papel",
+  createDescription:
+    "Crie um papel personalizado a partir de um papel base. A matriz de permissões fica disponível depois de criar.",
+  duplicateTitle: "Duplicar papel",
+  duplicateDescription:
+    "Cria um novo papel personalizado com as permissões copiadas do papel selecionado. Ajuste a matriz depois de criar.",
+  // Edit-meta (rename) dialog.
+  renameTitle: "Renomear papel",
+  renameDescription: "Atualize o nome e a descrição deste papel personalizado.",
+  // Form fields.
+  fieldName: "Nome",
+  fieldNamePlaceholder: "Ex.: Vendedor júnior",
+  fieldDescription: "Descrição (opcional)",
+  fieldDescriptionPlaceholder: "Para que serve este papel?",
+  fieldBaseRole: "Papel base",
+  fieldBaseRolePlaceholder: "Selecione o papel base",
+  baseRoleHelp:
+    "O papel base define o teto de acesso real (RLS); a matriz de permissões apenas refina a navegação dentro desse teto.",
+  fieldInitialPermissions: "Permissões iniciais",
+  initialBlank: "Em branco",
+  initialDuplicate: "Duplicar de…",
+  fieldDuplicateSource: "Copiar permissões de",
+  fieldDuplicateSourcePlaceholder: "Selecione um papel",
+  // Validation.
+  nameRequired: "Informe um nome para o papel.",
+  nameTooLong: "O nome deve ter no máximo 60 caracteres.",
+  nameDuplicate: "Já existe um papel com este nome.",
+  baseRoleRequired: "Selecione um papel base.",
+  duplicateSourceRequired: "Selecione o papel a duplicar.",
+  // Submit buttons.
+  createSubmit: "Criar papel",
+  duplicateSubmit: "Duplicar papel",
+  renameSubmit: "Salvar alterações",
+  creating: "Criando...",
+  saving2: "Salvando...",
+  // Toasts.
+  createSuccess: "Papel criado.",
+  createError: "Não foi possível criar o papel.",
+  duplicateSuccess: "Papel duplicado.",
+  renameSuccess: "Papel atualizado.",
+  renameError: "Não foi possível atualizar o papel.",
+  deleteSuccess: "Papel excluído.",
+  deleteError: "Não foi possível excluir o papel.",
+  // Delete confirmation.
+  deleteTitle: "Excluir papel?",
+  deleteBody: (name: string) =>
+    `O papel "${name}" será excluído permanentemente. Esta ação não pode ser desfeita.`,
+  deleteConfirm: "Excluir",
+  deleteCancel: "Cancelar",
+  /** Shown when the provider blocks deletion because users still reference the role. */
+  deleteInUse: (count: number) =>
+    `${count} usuário(s) precisam ser remanejados antes de excluir este papel.`,
+  /** Suffix appended to a duplicated role's default name. */
+  copySuffix: (name: string) => `${name} (cópia)`,
 } as const;
 
 /**

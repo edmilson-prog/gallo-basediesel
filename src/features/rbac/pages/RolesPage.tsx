@@ -106,6 +106,13 @@ export function RolesPage() {
   const isLoading = rolesQuery.isLoading || resourcesQuery.isLoading;
   const isError = rolesQuery.isError || resourcesQuery.isError;
 
+  // Refetch roles + re-hydrate the in-memory RBAC cache from the fresh set.
+  // Shared by the editor (Task 10) and the rail's CRUD actions (Task 11).
+  const refreshRoles = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ["rbac", "roles"] });
+    await rehydrateRbac(provider.list());
+  }, [queryClient, provider]);
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* Glassmorphism page header */}
@@ -128,7 +135,23 @@ export function RolesPage() {
         ) : (
           <div className="grid grid-cols-1 gap-5 md:grid-cols-[16rem_1fr]">
             <aside className="md:sticky md:top-24 md:self-start">
-              <RoleRail roles={roles} selectedId={selectedId} onSelect={handleSelect} />
+              <RoleRail
+                roles={roles}
+                selectedId={selectedId}
+                onSelect={handleSelect}
+                onRoleCreated={async (role) => {
+                  // A create/duplicate is a fresh role with no dirty draft.
+                  dirtyRef.current = false;
+                  await refreshRoles();
+                  setSelectedId(role.id); // jump to the new role
+                }}
+                onRolesChanged={refreshRoles}
+                onRoleDeleted={async () => {
+                  // The default-selection effect re-picks a valid role once the
+                  // deleted one disappears from the refetched list.
+                  await refreshRoles();
+                }}
+              />
             </aside>
             <section className="min-w-0">
               {selectedRole ? (
@@ -140,11 +163,7 @@ export function RolesPage() {
                   systemWarningAcknowledged={systemWarningAcknowledged}
                   onAcknowledgeSystemWarning={() => setSystemWarningAcknowledged(true)}
                   onDirtyChange={handleDirtyChange}
-                  onPersisted={async () => {
-                    // Refetch roles, re-hydrate the RBAC cache from the fresh set.
-                    await queryClient.invalidateQueries({ queryKey: ["rbac", "roles"] });
-                    await rehydrateRbac(provider.list());
-                  }}
+                  onPersisted={refreshRoles}
                 />
               ) : (
                 <EmptyState />
