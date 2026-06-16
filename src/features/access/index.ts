@@ -1,4 +1,6 @@
 export { WorkScheduleTab } from "./components/WorkScheduleTab";
+export { AccessBlockedNotice } from "./components/AccessBlockedNotice";
+export { useAccessGate } from "./hooks/useAccessGate";
 export {
   evaluateAccess,
   canGrantAccess,

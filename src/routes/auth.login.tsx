@@ -17,6 +17,7 @@ import {
 } from "@/features/auth/rememberEmail";
 import { BrandPanel, type BrandPanelVariant } from "@/features/auth/BrandPanel";
 import { ProfileCard } from "@/features/auth/ProfileCard";
+import { useAccessGate, AccessBlockedNotice } from "@/features/access";
 
 const searchSchema = z.object({
   next: z.string().optional(),
@@ -30,7 +31,8 @@ export const Route = createFileRoute("/auth/login")({
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function LoginPage() {
-  const { signIn, signInWithPassword } = useAuth();
+  const { signIn, signInWithPassword, signOut } = useAuth();
+  const { evaluateForProfile } = useAccessGate();
   const navigate = useNavigate();
   const { next } = Route.useSearch();
   const isSupabase = AUTH_SOURCE === "supabase";
@@ -40,8 +42,11 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(() => readRememberedEmail() !== null);
   const [error, setError] = useState<string | null>(null);
+  const [blocked, setBlocked] = useState<{ nextOpenAt?: string | null } | null>(null);
 
   const enter = (id: string) => {
+    setError(null);
+    setBlocked(null);
     setPendingId(id);
     const profile = signIn(id);
     if (!profile) {
@@ -49,13 +54,22 @@ function LoginPage() {
       setPendingId(null);
       return;
     }
-    const target = next ?? profile.defaultRedirect;
-    void navigate({ to: target });
+    void evaluateForProfile(profile).then((decision) => {
+      if (!decision.allowed) {
+        signOut();
+        setBlocked({ nextOpenAt: decision.nextOpenAt });
+        setPendingId(null);
+        return;
+      }
+      const target = next ?? profile.defaultRedirect;
+      void navigate({ to: target });
+    });
   };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
+    setBlocked(null);
     if (!EMAIL_REGEX.test(email.trim())) {
       setError("Informe um e-mail válido.");
       return;
@@ -69,8 +83,16 @@ function LoginPage() {
       }
       if (rememberMe) saveRememberedEmail(email);
       else clearRememberedEmail();
-      const target = next ?? result.profile.defaultRedirect;
-      void navigate({ to: target });
+      void evaluateForProfile(result.profile).then((decision) => {
+        if (!decision.allowed) {
+          signOut();
+          setBlocked({ nextOpenAt: decision.nextOpenAt });
+          setPendingId(null);
+          return;
+        }
+        const target = next ?? result.profile!.defaultRedirect;
+        void navigate({ to: target });
+      });
     });
   };
 
@@ -160,6 +182,7 @@ function LoginPage() {
                   {error}
                 </div>
               )}
+              {blocked && <AccessBlockedNotice nextOpenAt={blocked.nextOpenAt} />}
               <Button type="submit" size="lg" className="w-full" disabled={pendingId !== null}>
                 Entrar
                 <Icon icon="lucide:log-in" size={16} className="ml-2" />

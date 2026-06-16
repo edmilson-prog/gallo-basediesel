@@ -9,6 +9,9 @@ export interface IAuthResult {
   error?: string;
   /** Resolved profile on success — the caller navigates to `profile.defaultRedirect`. */
   profile?: IUserProfile | null;
+  /** Set by the login route's access gate when a successful auth is then
+   *  blocked by the work-schedule rule (PRD-212). */
+  blocked?: { reason: "outside_hours" | "suspended"; nextOpenAt?: string | null };
 }
 
 /**
