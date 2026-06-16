@@ -31,6 +31,9 @@ interface SellerRow {
   commission_rule: ISeller["commissionRule"] | null;
   vehicle_cadastro_mode: ISeller["vehicleCadastroMode"] | null;
   department_id: string | null;
+  work_schedule: ISeller["workSchedule"] | null;
+  schedule_overrides: ISeller["scheduleOverrides"] | null;
+  access_grant: ISeller["accessGrant"] | null;
   active: boolean;
   created_at: string;
   deleted_at: string | null;
@@ -38,7 +41,7 @@ interface SellerRow {
 
 const TABLE = "sellers";
 const COLUMNS =
-  "id, store_id, full_name, attendant_name, email, phone, type, availability, divisions, theme_preference, region, commission_tier, parent_seller_id, commission_rule, vehicle_cadastro_mode, department_id, active, created_at, deleted_at";
+  "id, store_id, full_name, attendant_name, email, phone, type, availability, divisions, theme_preference, region, commission_tier, parent_seller_id, commission_rule, vehicle_cadastro_mode, department_id, work_schedule, schedule_overrides, access_grant, active, created_at, deleted_at";
 
 function rowToSeller(row: SellerRow): ISeller {
   return {
@@ -58,6 +61,9 @@ function rowToSeller(row: SellerRow): ISeller {
     commissionRule: row.commission_rule ?? undefined,
     vehicleCadastroMode: row.vehicle_cadastro_mode ?? undefined,
     departmentId: row.department_id ?? null,
+    workSchedule: row.work_schedule ?? undefined,
+    scheduleOverrides: row.schedule_overrides ?? undefined,
+    accessGrant: row.access_grant ?? null,
     active: row.active,
     createdAt: row.created_at,
     deletedAt: row.deleted_at ?? undefined,
@@ -84,6 +90,10 @@ function sellerPatchToRow(patch: Partial<ISeller>): Record<string, unknown> {
     row.vehicle_cadastro_mode = patch.vehicleCadastroMode;
   // Nullable: `null` clears the assignment; `undefined` leaves it untouched.
   if (patch.departmentId !== undefined) row.department_id = patch.departmentId ?? null;
+  if (patch.workSchedule !== undefined) row.work_schedule = patch.workSchedule;
+  if (patch.scheduleOverrides !== undefined) row.schedule_overrides = patch.scheduleOverrides;
+  // Nullable: `null` clears the grant; `undefined` leaves it untouched.
+  if (patch.accessGrant !== undefined) row.access_grant = patch.accessGrant ?? null;
   if (patch.active !== undefined) row.active = patch.active;
   return row;
 }

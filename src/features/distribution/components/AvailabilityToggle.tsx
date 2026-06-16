@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useSellersProvider } from "@/providers/data";
 import { auditLog } from "@/features/rbac/utils/auditLog";
+import { isWithinWorkSchedule } from "@/features/access";
 
 const OPTIONS: {
   value: SellerAvailability;
@@ -86,6 +87,17 @@ export function AvailabilityToggle({ sellerId }: IAvailabilityToggleProps) {
     );
   }
 
+  // RF-012 — flag offline driven by an out-of-hours window. We only annotate
+  // the offline option; the seller stays free to pick any state manually.
+  const outsideHours =
+    availability === "offline" &&
+    Boolean(seller) &&
+    (seller!.workSchedule?.length ?? 0) > 0 &&
+    !isWithinWorkSchedule(
+      { workSchedule: seller!.workSchedule, scheduleOverrides: seller!.scheduleOverrides },
+      new Date(),
+    );
+
   return (
     <div>
       <DropdownMenuLabel className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
@@ -103,7 +115,7 @@ export function AvailabilityToggle({ sellerId }: IAvailabilityToggleProps) {
             className="gap-2 text-sm"
           >
             <Icon icon={opt.icon} size={10} className={opt.dotClass} />
-            {opt.label}
+            {opt.value === "offline" && outsideHours ? `${opt.label} — fora do horário` : opt.label}
           </DropdownMenuRadioItem>
         ))}
       </DropdownMenuRadioGroup>

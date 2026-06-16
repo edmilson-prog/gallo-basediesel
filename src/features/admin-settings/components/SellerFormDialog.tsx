@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,8 +35,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Icon } from "@/components/Icon";
-import type { ISeller } from "@/shared/types";
-import { useDepartmentsProvider, useSellersProvider } from "@/providers/data";
+import type { ISeller, IScheduleOverride, IWorkScheduleWindow } from "@/shared/types";
+import { WorkScheduleTab, buildWorkScheduleRows, validateWorkSchedule } from "@/features/access";
+import { useAuth } from "@/features/auth/useAuth";
+import { recordAuditLogSync, useDepartmentsProvider, useSellersProvider } from "@/providers/data";
 import {
   SELLER_TYPE_OPTIONS,
   sellerFormSchema,
@@ -76,6 +78,19 @@ export function SellerFormDialog({
   const provider = useSellersProvider();
   const departmentsProvider = useDepartmentsProvider();
   const queryClient = useQueryClient();
+  const { currentUser } = useAuth();
+
+  // Tab is controlled so an invalid schedule can pull the user to the Horário tab.
+  const [tab, setTab] = useState("geral");
+  // Work schedule (PRD-212) is owned here and saved together with the rest of
+  // the form via the single footer button — no separate save inside the tab.
+  const [scheduleRows, setScheduleRows] = useState<IWorkScheduleWindow[]>(() =>
+    buildWorkScheduleRows(seller),
+  );
+  const [scheduleOverrides, setScheduleOverrides] = useState<IScheduleOverride[]>(
+    seller?.scheduleOverrides ?? [],
+  );
+  const scheduleErrors = validateWorkSchedule(scheduleRows.filter((r) => r.enabled));
 
   const departmentsQuery = useQuery({
     queryKey: ["departments", storeId],
@@ -108,6 +123,9 @@ export function SellerFormDialog({
       region: seller?.region ?? "",
       departmentId: seller?.departmentId ?? undefined,
     });
+    setTab("geral");
+    setScheduleRows(buildWorkScheduleRows(seller));
+    setScheduleOverrides(seller?.scheduleOverrides ?? []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, seller?.id]);
 
@@ -125,7 +143,10 @@ export function SellerFormDialog({
       // Empty department => clear the assignment (null on edit, undefined on create).
       const departmentId = values.departmentId?.trim() || null;
       if (isEdit && seller) {
-        return provider.update(seller.id, {
+        // Persist only enabled days; drop blank-date exceptions.
+        const enabledRows = scheduleRows.filter((r) => r.enabled);
+        const cleanedOverrides = scheduleOverrides.filter((o) => o.date.trim() !== "");
+        const saved = await provider.update(seller.id, {
           fullName: values.fullName,
           email: values.email,
           phone: values.phone?.trim() || undefined,
@@ -133,7 +154,27 @@ export function SellerFormDialog({
           region,
           attendantName: values.attendantName?.trim() || undefined,
           departmentId,
+          workSchedule: enabledRows,
+          scheduleOverrides: cleanedOverrides,
         });
+        const scheduleChanged =
+          JSON.stringify(seller.workSchedule ?? []) !== JSON.stringify(enabledRows) ||
+          JSON.stringify(seller.scheduleOverrides ?? []) !== JSON.stringify(cleanedOverrides);
+        if (scheduleChanged) {
+          recordAuditLogSync({
+            storeId,
+            actorId: currentUser?.sellerId ?? currentUser?.id ?? "system",
+            action: "work_schedule_updated",
+            resource: "seller",
+            resourceId: seller.id,
+            before: {
+              workSchedule: seller.workSchedule ?? [],
+              scheduleOverrides: seller.scheduleOverrides ?? [],
+            },
+            after: { workSchedule: enabledRows, scheduleOverrides: cleanedOverrides },
+          });
+        }
+        return saved;
       }
       return provider.create({
         storeId,
@@ -184,25 +225,29 @@ export function SellerFormDialog({
 
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit((values) => mutation.mutate(values))}
+            onSubmit={form.handleSubmit((values) => {
+              // Block the save and surface the schedule error in its tab.
+              if (isEdit && scheduleErrors.length > 0) {
+                setTab("horario");
+                toast.error("Corrija o horário de atendimento antes de salvar.");
+                return;
+              }
+              mutation.mutate(values);
+            })}
             className="flex min-h-0 flex-1 flex-col"
           >
             <TooltipProvider>
-              <Tabs defaultValue="geral" className="flex min-h-0 flex-1 flex-col py-4">
+              <Tabs
+                value={tab}
+                onValueChange={setTab}
+                className="flex min-h-0 flex-1 flex-col py-4"
+              >
                 <TabsList className="w-full justify-start">
                   <TabsTrigger value="geral">Geral</TabsTrigger>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      {/* Span wrapper keeps the tooltip reachable on a disabled trigger. */}
-                      <span tabIndex={0}>
-                        <TabsTrigger value="horario" disabled className="gap-1">
-                          <Icon icon="mdi:lock-outline" size={13} />
-                          Horário
-                        </TabsTrigger>
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>Disponível após PRD-212/213</TooltipContent>
-                  </Tooltip>
+                  <TabsTrigger value="horario" className="gap-1">
+                    <Icon icon="mdi:clock-outline" size={13} />
+                    Horário
+                  </TabsTrigger>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span tabIndex={0}>
@@ -370,7 +415,21 @@ export function SellerFormDialog({
                   </TabsContent>
 
                   <TabsContent value="horario">
-                    <LockedTabPlaceholder />
+                    {isEdit && seller ? (
+                      <WorkScheduleTab
+                        seller={seller}
+                        storeId={storeId}
+                        rows={scheduleRows}
+                        onRowsChange={setScheduleRows}
+                        overrides={scheduleOverrides}
+                        onOverridesChange={setScheduleOverrides}
+                        errors={scheduleErrors}
+                      />
+                    ) : (
+                      <div className="rounded-md border border-dashed border-border bg-muted/30 px-6 py-10 text-center text-sm text-muted-foreground">
+                        Cadastre e salve o usuário primeiro para definir o horário de atendimento.
+                      </div>
+                    )}
                   </TabsContent>
 
                   <TabsContent value="rodizio">
