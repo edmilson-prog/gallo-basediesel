@@ -6,6 +6,22 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.98.0] — Steward · 2026-06-16
+
+**Os papéis de acesso agora são editáveis, ganhamos Departamentos e o cadastro de usuários foi renovado.** O Dono passa a ajustar, numa tela própria, exatamente o que cada papel pode ver e fazer; é possível criar papéis personalizados; organizar a equipe em departamentos; e o cadastro de cada usuário virou um painel lateral mais organizado.
+
+### Added
+
+- **Editor de Papéis** — em Configurações → Papéis, o Dono marca numa tabela o que cada papel pode ver e fazer (visualizar, criar, editar, excluir) por área do sistema. As mudanças são salvas e passam a valer na hora. O papel "Dono" é protegido e não pode ser limitado.
+- **Papéis personalizados** — além dos papéis padrão, dá para criar, duplicar, renomear e excluir papéis sob medida. Um papel em uso não pode ser excluído por engano.
+- **Departamentos** — uma nova tela (Configurações → Departamentos) permite criar departamentos e definir quais pessoas pertencem a cada um.
+- **Departamento no cadastro de usuário** — ao cadastrar ou editar um usuário, escolha o departamento dele; o departamento também passa a aparecer na lista de usuários.
+- **Cadastro de usuário renovado** — o formulário de usuário virou um painel lateral com abas (Geral, além de Horário e Rodízio já reservadas para os próximos recursos de atendimento), mantendo convite, redefinição de senha, troca de papel e desativação.
+
+### Changed
+
+- **Telas de Configurações mais largas** — todas as telas de Configurações passam a usar a largura ampla, aproveitando melhor o espaço em monitores grandes.
+
 ## [0.97.0] — Switchboard · 2026-06-16
 
 **Agora dá para conectar vários números de WhatsApp na mesma plataforma e organizar quem responde por cada um.** Cada número (instância) ganha cor e identificação própria, você filtra a caixa de entrada por número, vê por qual linha está respondendo e define o acesso de cada número por atendente, papel ou loja.
