@@ -9,7 +9,7 @@ export const rolesApi = {
 
   async getByName(name: RoleName): Promise<IRole> {
     return runApi("rolesApi", "getByName", () => {
-      const found = selectAllRoles().find((r) => r.name === name);
+      const found = selectAllRoles().find((r) => r.slug === name);
       if (!found) throw new MockNotFoundError("role", name);
       return found;
     });
