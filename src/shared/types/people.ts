@@ -66,6 +66,10 @@ export interface ISeller {
    * for actions performed by this seller.
    */
   vehicleCadastroMode?: VehicleCadastroMode;
+  /** Department the user belongs to (PRD-211 — at most one in MVP). */
+  departmentId?: ID | null;
+  /** Rotation participation toggle (PRD-213 placeholder — created here). */
+  rotation?: { enabled: boolean };
   active: boolean;
   /** Soft delete (users CRUD) — set means hidden from lists; login revoked. */
   deletedAt?: ISO8601;
@@ -96,12 +100,41 @@ export interface IPermission {
   scope: PermissionScope;
 }
 
-/** Role aggregating a set of permissions. */
+/** Persisted, editable role (PRD-211). `slug` is stable and referenced by code/RLS. */
 export interface IRole {
   id: ID;
-  name: RoleName;
+  /** Stable identifier referenced by code and RLS — immutable for system roles. */
+  slug: string;
+  /** Human label shown in the UI. */
+  name: string;
   description?: string;
+  /** System roles are protected against rename/delete; permissions still editable. */
+  isSystem: boolean;
+  /** Owner only: permission set is immutable (prevents self-lockout). */
+  isOwnerImmutable: boolean;
+  /**
+   * One of the 7 system role slugs. Governs RLS enforcement for custom roles:
+   * a custom role can never grant beyond its base system role. For system roles,
+   * baseRole === slug.
+   */
+  baseRole: RoleName;
+  /** null = global role (MVP default); future: per-store custom roles. */
+  storeId?: ID | null;
   permissions: IPermission[];
+  createdAt: ISO8601;
+  updatedAt: ISO8601;
+}
+
+/** RBAC resource catalog entry — resources become data, not a code union (PRD-211). */
+export interface IRbacResource {
+  /** Stable key matching the ResourceName union (e.g. "customer"). */
+  key: string;
+  /** Friendly label (e.g. "Clientes"). */
+  label: string;
+  /** Area/group for collapsible UI grouping (e.g. "Comercial"). */
+  group: string;
+  /** Display order within the group. */
+  sortOrder: number;
 }
 
 /**
