@@ -61,6 +61,41 @@ export const ROLE_EDITOR_LABELS = {
   noResults: "Nenhum recurso encontrado.",
   readOnlyBadge: "Somente leitura",
   areaSummary: (withEdit: number, total: number) => `${withEdit}/${total} com edição`,
+  // --- Task 10: editing, guards, save/restore ---
+  /** Per-area aria-live summary, e.g. "Comercial: 3 de 8 recursos com acesso". */
+  areaLiveSummary: (area: string, withAccess: number, total: number) =>
+    `${area}: ${withAccess} de ${total} recursos com acesso`,
+  unsavedIndicator: "Alterações não salvas",
+  save: "Salvar",
+  saving: "Salvando...",
+  discard: "Descartar",
+  saveSuccess: "Permissões atualizadas.",
+  saveError: "Não foi possível salvar as permissões.",
+  noEditPermissionHint: "Você não tem permissão para editar papéis.",
+  ownerImmutableBanner: "O papel Owner tem acesso total e não pode ser editado.",
+  systemEditingBanner:
+    "Você está editando um papel de sistema. Alterações afetam todos os usuários com este papel.",
+  // System-role first-edit warning dialog.
+  systemWarningTitle: "Editar papel de sistema?",
+  systemWarningBody:
+    "Este é um papel de sistema usado por todos os usuários com este perfil. Alterar suas permissões afeta o que essas pessoas podem fazer na plataforma. Você pode restaurar o padrão de fábrica a qualquer momento.",
+  systemWarningDontAskAgain: "Não avisar novamente nesta sessão",
+  systemWarningConfirm: "Entendi, continuar",
+  systemWarningCancel: "Cancelar",
+  // Restore-to-defaults.
+  restoreDefaults: "Restaurar padrão",
+  restoreTitle: "Restaurar permissões de fábrica?",
+  restoreBody:
+    "As permissões deste papel voltarão ao padrão original de fábrica. Esta ação substitui as permissões atuais.",
+  restoreConfirm: "Restaurar padrão",
+  restoreCancel: "Cancelar",
+  restoreSuccess: "Permissões restauradas ao padrão.",
+  restoreError: "Não foi possível restaurar as permissões.",
+  // Unsaved-changes navigation guard.
+  unsavedTitle: "Descartar alterações não salvas?",
+  unsavedBody: "Você tem alterações não salvas neste papel. Se sair agora, elas serão perdidas.",
+  unsavedConfirm: "Descartar e sair",
+  unsavedKeepEditing: "Continuar editando",
 } as const;
 
 /**

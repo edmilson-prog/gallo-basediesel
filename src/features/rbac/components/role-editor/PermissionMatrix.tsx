@@ -1,15 +1,30 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { IPermission, IRbacResource, IRole } from "@/shared/types";
+import type { IRbacResource, IRole, PermissionAction, PermissionScope } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ACTIONS } from "../../permissions/actions";
 import { ACTION_LABELS, ROLE_EDITOR_LABELS } from "../../i18n/pt-BR";
 import { ResourceAreaGroup } from "./ResourceAreaGroup";
+import { MATRIX_GRID_COLS } from "./matrixGrid";
+import type { DraftMatrix } from "./usePermissionDraft";
 
 export interface IPermissionMatrixProps {
   role: IRole;
   resources: IRbacResource[];
+  /** Editable draft matrix keyed by resource (from `usePermissionDraft`). */
+  draft: DraftMatrix;
+  /** Resource keys whose entry changed vs. the baseline (highlighted rows). */
+  changedResources: Set<string>;
+  /**
+   * When false, the whole matrix is read-only: Owner immutable, or the user
+   * lacks `role:edit`. Cells become non-interactive but stay focusable.
+   */
+  editable: boolean;
+  /** Toggles one action on a resource. */
+  onToggle: (resource: string, action: PermissionAction) => void;
+  /** Changes a resource's scope. */
+  onScopeChange: (resource: string, scope: PermissionScope) => void;
 }
 
 interface IArea {
@@ -33,15 +48,27 @@ function groupByArea(resources: IRbacResource[]): IArea[] {
 }
 
 /**
- * Read-only permission matrix for a single role (PRD-211 Task 9 — scaffold).
+ * Editable permission matrix for a single role (PRD-211 Task 10).
  *
  * Collapsible areas derived from `listResources()` grouped by `group`; a sticky
- * column header carries the 5 action labels; a resource search box (focus with
- * "/") filters the rows. Editing lands in the editable task.
+ * column header carries the 5 action labels (aligned to the rows via the shared
+ * `MATRIX_GRID_COLS`); a resource search box (focus with "/") filters the rows.
+ * The Owner role renders disabled with an info banner; system roles surface a
+ * warning banner while there are unsaved edits.
  */
-export function PermissionMatrix({ role, resources }: IPermissionMatrixProps) {
+export function PermissionMatrix({
+  role,
+  resources,
+  draft,
+  changedResources,
+  editable,
+  onToggle,
+  onScopeChange,
+}: IPermissionMatrixProps) {
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
+
+  const readOnly = !editable;
 
   // Global "/" shortcut focuses the resource search, mirroring the list-screen
   // UX (do not steal typing from inputs / textareas / contentEditable).
@@ -58,12 +85,6 @@ export function PermissionMatrix({ role, resources }: IPermissionMatrixProps) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  const permissionByResource = useMemo(() => {
-    const map = new Map<string, IPermission>();
-    role.permissions.forEach((p) => map.set(p.resource, p));
-    return map;
-  }, [role.permissions]);
-
   const filteredAreas = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("pt-BR");
     const matching = normalized
@@ -75,6 +96,8 @@ export function PermissionMatrix({ role, resources }: IPermissionMatrixProps) {
       : resources;
     return groupByArea(matching);
   }, [resources, query]);
+
+  const showSystemBanner = role.isSystem && !role.isOwnerImmutable && changedResources.size > 0;
 
   return (
     <div className="flex min-h-0 flex-col rounded-lg border border-border bg-card">
@@ -89,10 +112,12 @@ export function PermissionMatrix({ role, resources }: IPermissionMatrixProps) {
                 {ROLE_EDITOR_LABELS.systemRoleBadge}
               </Badge>
             )}
-            <Badge variant="secondary" className="gap-1 px-1.5 py-0.5 text-[10px]">
-              <Icon icon="mdi:lock-outline" size={11} />
-              {ROLE_EDITOR_LABELS.readOnlyBadge}
-            </Badge>
+            {readOnly && !role.isOwnerImmutable && (
+              <Badge variant="secondary" className="gap-1 px-1.5 py-0.5 text-[10px]">
+                <Icon icon="mdi:lock-outline" size={11} />
+                {ROLE_EDITOR_LABELS.readOnlyBadge}
+              </Badge>
+            )}
           </div>
           {role.description && (
             <p className="mt-0.5 truncate text-xs text-muted-foreground">{role.description}</p>
@@ -126,8 +151,32 @@ export function PermissionMatrix({ role, resources }: IPermissionMatrixProps) {
         </div>
       </div>
 
+      {/* Owner immutable banner (matrix stays visible but disabled). */}
+      {role.isOwnerImmutable && (
+        <div
+          role="status"
+          className="flex items-center gap-2 border-b border-border bg-severity-info/10 px-4 py-2.5 text-sm text-severity-info"
+        >
+          <Icon icon="mdi:crown" size={16} className="shrink-0" />
+          <span>{ROLE_EDITOR_LABELS.ownerImmutableBanner}</span>
+        </div>
+      )}
+
+      {/* System-role editing banner — shown while there are unsaved edits. */}
+      {showSystemBanner && (
+        <div
+          role="status"
+          className="flex items-center gap-2 border-b border-border bg-severity-warning/10 px-4 py-2.5 text-sm text-severity-warning"
+        >
+          <Icon icon="mdi:alert" size={16} className="shrink-0" />
+          <span>{ROLE_EDITOR_LABELS.systemEditingBanner}</span>
+        </div>
+      )}
+
       {/* Sticky action header */}
-      <div className="sticky top-0 z-10 grid grid-cols-[minmax(8rem,1fr)_repeat(5,3rem)_6rem] items-center gap-1 border-b border-border bg-background/95 px-4 py-2 backdrop-blur">
+      <div
+        className={`sticky top-0 z-10 grid ${MATRIX_GRID_COLS} items-center gap-1 border-b border-border bg-background/95 px-4 py-2 backdrop-blur`}
+      >
         <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {ROLE_EDITOR_LABELS.resourceColumn}
         </span>
@@ -156,7 +205,11 @@ export function PermissionMatrix({ role, resources }: IPermissionMatrixProps) {
               key={group.area}
               area={group.area}
               resources={group.resources}
-              permissionByResource={permissionByResource}
+              draft={draft}
+              changedResources={changedResources}
+              readOnly={readOnly}
+              onToggle={onToggle}
+              onScopeChange={onScopeChange}
             />
           ))}
         </div>
