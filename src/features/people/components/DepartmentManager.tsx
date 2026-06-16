@@ -15,7 +15,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -500,51 +499,51 @@ function DepartmentFormDialog({
                 <FormItem>
                   <FormLabel>{L.membersSelectLabel}</FormLabel>
                   <Popover open={memberPopoverOpen} onOpenChange={setMemberPopoverOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={memberPopoverOpen}
-                        className="w-full justify-between font-normal"
-                      >
-                        <span className={cn(field.value.length === 0 && "text-muted-foreground")}>
-                          {L.membersTrigger(field.value.length)}
-                        </span>
-                        <Icon
-                          icon="mdi:unfold-more-horizontal"
-                          size={16}
-                          className="ml-2 shrink-0 opacity-50"
-                        />
-                      </Button>
-                    </PopoverTrigger>
+                    <FormControl>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={memberPopoverOpen}
+                          className="w-full justify-between font-normal"
+                        >
+                          <span className={cn(field.value.length === 0 && "text-muted-foreground")}>
+                            {L.membersTrigger(field.value.length)}
+                          </span>
+                          <Icon
+                            icon="mdi:unfold-more-horizontal"
+                            size={16}
+                            className="ml-2 shrink-0 opacity-50"
+                          />
+                        </Button>
+                      </PopoverTrigger>
+                    </FormControl>
                     <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                       <Command>
                         <CommandInput placeholder={L.membersSearchPlaceholder} />
                         <CommandList>
                           <CommandEmpty>{L.membersEmpty}</CommandEmpty>
                           <CommandGroup>
-                            <ScrollArea className="max-h-60">
-                              {sortedSellers.map((s) => {
-                                const checked = field.value.includes(s.id);
-                                return (
-                                  <CommandItem
-                                    key={s.id}
-                                    value={`${s.fullName} ${s.id}`}
-                                    onSelect={() => {
-                                      const next = checked
-                                        ? field.value.filter((id) => id !== s.id)
-                                        : [...field.value, s.id];
-                                      field.onChange(next);
-                                    }}
-                                    className="gap-2"
-                                  >
-                                    <Checkbox checked={checked} className="pointer-events-none" />
-                                    <span className="truncate">{s.fullName}</span>
-                                  </CommandItem>
-                                );
-                              })}
-                            </ScrollArea>
+                            {sortedSellers.map((s) => {
+                              const checked = field.value.includes(s.id);
+                              return (
+                                <CommandItem
+                                  key={s.id}
+                                  value={`${s.fullName} ${s.id}`}
+                                  onSelect={() => {
+                                    const next = checked
+                                      ? field.value.filter((id) => id !== s.id)
+                                      : [...field.value, s.id];
+                                    field.onChange(next);
+                                  }}
+                                  className="gap-2"
+                                >
+                                  <Checkbox checked={checked} className="pointer-events-none" />
+                                  <span className="truncate">{s.fullName}</span>
+                                </CommandItem>
+                              );
+                            })}
                           </CommandGroup>
                         </CommandList>
                       </Command>

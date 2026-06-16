@@ -10,7 +10,6 @@ export const DEPARTMENTS_LABELS = {
   pageDescription:
     "Agrupe a equipe em departamentos. Cada departamento tem um gestor responsável e os membros que o compõem.",
   searchPlaceholder: "Buscar departamento...",
-  searchHint: 'Pressione "/" para buscar',
   newDepartment: "Novo departamento",
   newDepartmentForbidden: "Você não tem permissão para criar departamentos.",
   // List / cards
