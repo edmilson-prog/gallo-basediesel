@@ -200,6 +200,9 @@ export async function setInstanceWebhook(
 /**
  * POST /instance/create — provisions a new Evolution instance on the server
  * (multi-instance: same server, one apikey — see the multi-instance design).
+ * `syncFullHistory: true` is set by default so the instance pulls its complete
+ * chat history at QR-scan time (the flag must be on BEFORE pairing — create runs
+ * before the QR is issued, so this is the right moment to set it).
  * Idempotent for the pairing flow: a "name already in use" response means the
  * instance already exists, which we treat as success so re-running the QR flow
  * never fails. Any other error (bad apikey, server down) propagates.
@@ -218,6 +221,7 @@ export async function createInstance(
         instanceName: target.instanceName,
         qrcode: false,
         integration: "WHATSAPP-BAILEYS",
+        syncFullHistory: true,
       },
       traceId,
     });
