@@ -10,6 +10,7 @@ import type {
   ICustomer,
   ICustomerNote,
   ICustomerSegment,
+  IDepartment,
   IDistributionTrace,
   IExpense,
   IGamificationBadge,
@@ -25,6 +26,7 @@ import type {
   IQuickReply,
   IQuote,
   IRanking,
+  IRbacResource,
   IRecommendation,
   IRole,
   IScheduledSend,
@@ -41,7 +43,9 @@ import type {
 import { DEFAULT_SEED, STORE_MONTHLY_REVENUE_TARGET, VOLUMES } from "../config";
 import {
   PART_CATEGORIES,
+  SEED_DEPARTMENTS,
   SEED_OWNER_ID,
+  SEED_RBAC_RESOURCES,
   SEED_ROLES,
   SEED_STORE,
   SEED_VENDEDOR_SELLER_IDS,
@@ -94,6 +98,8 @@ export interface IBootstrappedDataset {
   generatedAt: string;
   stores: IStore[];
   roles: IRole[];
+  rbacResources: IRbacResource[];
+  departments: IDepartment[];
   sellers: ISeller[];
   audits: IAuditLog[];
   customers: ICustomer[];
@@ -147,6 +153,11 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
   const roles: IRole[] = SEED_ROLES.map((r) => ({
     ...r,
     permissions: r.permissions.map((p) => ({ ...p })),
+  }));
+  const rbacResources: IRbacResource[] = SEED_RBAC_RESOURCES.map((r) => ({ ...r }));
+  const departments: IDepartment[] = SEED_DEPARTMENTS.map((d) => ({
+    ...d,
+    sellerIds: [...d.sellerIds],
   }));
   const sellers = generateSellers();
   const whatsappAccounts = generateWhatsAppAccounts();
@@ -560,6 +571,8 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
     generatedAt: now.toISOString(),
     stores,
     roles,
+    rbacResources,
+    departments,
     sellers,
     audits,
     customers,

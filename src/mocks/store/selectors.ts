@@ -168,6 +168,14 @@ export function selectAllRoles() {
   return getMockState().roles;
 }
 
+export function selectAllRbacResources() {
+  return getMockState().rbacResources;
+}
+
+export function selectAllDepartments() {
+  return getMockState().departments;
+}
+
 export function selectAllDistributionTraces() {
   return getMockState().distributionTraces;
 }
