@@ -6,6 +6,25 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.97.0] — Switchboard · 2026-06-16
+
+**Agora dá para conectar vários números de WhatsApp na mesma plataforma e organizar quem responde por cada um.** Cada número (instância) ganha cor e identificação própria, você filtra a caixa de entrada por número, vê por qual linha está respondendo e define o acesso de cada número por atendente, papel ou loja.
+
+### Added
+
+- **Vários números de WhatsApp** — conecte mais de uma linha de WhatsApp na plataforma. Um assistente adiciona um número novo lendo o QR code, e cada número passa a funcionar de forma independente.
+- **Acesso por número** — defina quem atende cada linha (por atendente, por papel ou por loja inteira) e quem são os participantes co-responsáveis. Um resumo mostra, para cada número, quantas pessoas têm acesso.
+- **Identificação visual por linha** — cada número recebe uma cor e um indicador próprios. Uma faixa "Respondendo por" sobre o campo de mensagem e no topo da conversa deixa claro por qual número você está falando, com o telefone de origem à vista.
+- **Filtro por número na caixa de entrada** — veja apenas as conversas de uma linha específica quando precisar focar em um número.
+- **Iniciar nova conversa** — comece uma conversa nova (saída) escolhendo de qual número ela parte.
+- **Histórico completo ao conectar** — ao parear um número novo via Evolution, o histórico recente das conversas é trazido automaticamente.
+- **Responsável visível na lista e na conversa** — o vendedor responsável passa a aparecer tanto na lista da caixa de entrada quanto no topo da conversa.
+
+### Changed
+
+- **Busca de conversas mais rápida** — a busca por texto na caixa de entrada passou a ser feita no servidor, ficando mais ágil e abrangente.
+- **Cabeçalho da caixa de entrada mais enxuto** — contagem de não lidas em uma linha e ações compactadas, sobrando mais espaço para as conversas.
+
 ## [0.96.0] — Alias · 2026-06-15
 
 **Agora dá para renomear um contato direto na plataforma — e o nome do WhatsApp fica guardado.** Renomeie pelo menu (⋮) da conversa ou da ficha do cliente. O nome do perfil do WhatsApp continua sendo registrado a cada mensagem recebida, então você sempre pode consultá-lo (ou voltar a usá-lo) mesmo depois de ter dado outro nome ao contato.
