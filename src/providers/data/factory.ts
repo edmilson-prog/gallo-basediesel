@@ -37,6 +37,8 @@ import { mockConversationNotesProvider } from "./impl/mock/conversationNotes";
 import { mockStorefrontProvider } from "./impl/mock/storefront";
 import { mockSystemHealthProvider } from "./impl/mock/systemHealth";
 import { mockMessageTemplatesProvider } from "./impl/mock/messageTemplates";
+import { mockRolesProvider } from "./impl/mock/roles";
+import { mockDepartmentsProvider } from "./impl/mock/departments";
 
 import { supabaseCustomersProvider } from "./impl/supabase/customers";
 import { supabaseVehiclesProvider } from "./impl/supabase/vehicles";
@@ -75,6 +77,8 @@ import { supabaseConversationNotesProvider } from "./impl/supabase/conversationN
 import { supabaseStorefrontProvider } from "./impl/supabase/storefront";
 import { supabaseSystemHealthProvider } from "./impl/supabase/systemHealth";
 import { supabaseMessageTemplatesProvider } from "./impl/supabase/messageTemplates";
+import { supabaseRolesProvider } from "./impl/supabase/roles";
+import { supabaseDepartmentsProvider } from "./impl/supabase/departments";
 
 import {
   DATA_SOURCE_OVERRIDE_KEY,
@@ -146,6 +150,8 @@ const mockProviders: IDataProviders = {
   storefront: mockStorefrontProvider,
   systemHealth: mockSystemHealthProvider,
   messageTemplates: mockMessageTemplatesProvider,
+  roles: mockRolesProvider,
+  departments: mockDepartmentsProvider,
 };
 
 const supabaseProviders: IDataProviders = {
@@ -186,6 +192,8 @@ const supabaseProviders: IDataProviders = {
   storefront: supabaseStorefrontProvider,
   systemHealth: supabaseSystemHealthProvider,
   messageTemplates: supabaseMessageTemplatesProvider,
+  roles: supabaseRolesProvider,
+  departments: supabaseDepartmentsProvider,
 };
 
 /**

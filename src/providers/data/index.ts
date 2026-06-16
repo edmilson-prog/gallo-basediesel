@@ -107,6 +107,10 @@ export type {
   IListMessageTemplatesParams,
   ICreateMessageTemplateInput,
   IUpdateMessageTemplateInput,
+  IRolesProvider,
+  ICreateRoleInput,
+  IDepartmentsProvider,
+  ICreateDepartmentInput,
 } from "./contracts";
 export { computeFailureRate } from "./contracts";
 
@@ -147,3 +151,5 @@ export { useConversationNotesProvider } from "./hooks/useConversationNotesProvid
 export { useStorefrontProvider } from "./hooks/useStorefrontProvider";
 export { useSystemHealthProvider } from "./hooks/useSystemHealthProvider";
 export { useMessageTemplatesProvider } from "./hooks/useMessageTemplatesProvider";
+export { useRolesProvider } from "./hooks/useRolesProvider";
+export { useDepartmentsProvider } from "./hooks/useDepartmentsProvider";
