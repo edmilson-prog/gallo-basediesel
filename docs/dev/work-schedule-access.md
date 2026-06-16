@@ -82,7 +82,7 @@ src/features/access/
 ├── engine/accessGate.test.ts
 ├── hooks/useAccessGate.ts        # orquestra a decisão na rota de login (busca o seller)
 ├── hooks/useOutsideHoursWatcher.ts  # timer de sessão + auto-offline
-├── components/WorkScheduleTab.tsx   # editor da aba "Horário" (agenda + exceções + grant)
+├── components/WorkScheduleTab.tsx   # editor da aba "Horário" (CONTROLADO — agenda/exceções salvas pelo form pai; grant à parte)
 ├── components/AccessBlockedNotice.tsx
 ├── components/OutsideHoursBanner.tsx
 ├── components/GrantAccessDialog.tsx

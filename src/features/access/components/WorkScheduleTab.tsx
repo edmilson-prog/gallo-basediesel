@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Switch } from "@/components/ui/switch";
@@ -16,18 +16,7 @@ import { Icon } from "@/components/Icon";
 import type { ISeller, IScheduleOverride, IWorkScheduleWindow } from "@/shared/types";
 import { useSellersProvider, recordAuditLogSync } from "@/providers/data";
 import { useAuth } from "@/features/auth/useAuth";
-import { validateWorkSchedule } from "../engine/workSchedule";
 import { GrantAccessDialog } from "./GrantAccessDialog";
-
-/** Formats an ISO instant as a Brasília weekday + time, in pt-BR. */
-function formatGrantExpiry(iso: string): string {
-  return new Intl.DateTimeFormat("pt-BR", {
-    timeZone: "America/Sao_Paulo",
-    weekday: "long",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(iso));
-}
 
 const WEEKDAY_LABELS = [
   "Domingo",
@@ -43,14 +32,14 @@ const WEEKDAY_LABELS = [
 const DEFAULT_OPEN = "08:00";
 const DEFAULT_CLOSE = "18:00";
 
-interface IWorkScheduleTabProps {
-  seller: ISeller;
-  storeId: string;
-}
-
-/** Builds the 7-row weekly draft, seeding each day from the seller's schedule. */
-function buildInitialRows(seller: ISeller): IWorkScheduleWindow[] {
-  const stored = seller.workSchedule ?? [];
+/**
+ * Builds the 7-row weekly draft (one row per weekday), seeding each day from
+ * the seller's stored schedule. Disabled rows carry a sensible default window.
+ * Exported so the parent editor can own the draft state and save it together
+ * with the rest of the form (single "Salvar alterações" action).
+ */
+export function buildWorkScheduleRows(seller: ISeller | null | undefined): IWorkScheduleWindow[] {
+  const stored = seller?.workSchedule ?? [];
   return WEEKDAY_LABELS.map((_, weekday) => {
     const existing = stored.find((w) => w.weekday === weekday);
     if (existing) return { ...existing };
@@ -63,23 +52,49 @@ function buildInitialRows(seller: ISeller): IWorkScheduleWindow[] {
   });
 }
 
+/** Formats an ISO instant as a Brasília weekday + time, in pt-BR. */
+function formatGrantExpiry(iso: string): string {
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    weekday: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(iso));
+}
+
+interface IWorkScheduleTabProps {
+  seller: ISeller;
+  storeId: string;
+  /** Controlled weekly draft — persisted by the parent form's single save. */
+  rows: IWorkScheduleWindow[];
+  onRowsChange: (next: IWorkScheduleWindow[]) => void;
+  overrides: IScheduleOverride[];
+  onOverridesChange: (next: IScheduleOverride[]) => void;
+  /** Validation messages computed by the parent (closeAt<=openAt, overlaps). */
+  errors: string[];
+}
+
 /**
- * "Horário" tab of the user editor (PRD-212, Task 5). Edits the per-user weekly
- * attendance schedule and one-off date exceptions, with its OWN save action —
- * it lives inside the parent "Geral" form, so every button MUST be
- * `type="button"` to avoid triggering that form's submit (which closes the
- * Sheet). Persists via `provider.update`, audits the change and invalidates the
- * relevant query caches.
+ * "Horário" tab of the user editor (PRD-212). It is now a CONTROLLED editor:
+ * the weekly schedule and date exceptions are owned by the parent
+ * (SellerFormDialog) and saved together with the rest of the form via the
+ * single footer "Salvar alterações" button — there is no separate save here,
+ * which removes the earlier two-button confusion. The emergency access grant
+ * stays a self-contained action (it is a one-off operation, not part of the
+ * cadastro).
  */
-export function WorkScheduleTab({ seller, storeId }: IWorkScheduleTabProps) {
+export function WorkScheduleTab({
+  seller,
+  storeId,
+  rows,
+  onRowsChange,
+  overrides,
+  onOverridesChange,
+  errors,
+}: IWorkScheduleTabProps) {
   const provider = useSellersProvider();
   const { currentUser } = useAuth();
   const queryClient = useQueryClient();
-
-  const [rows, setRows] = useState<IWorkScheduleWindow[]>(() => buildInitialRows(seller));
-  const [overrides, setOverrides] = useState<IScheduleOverride[]>(
-    () => (seller.scheduleOverrides ?? []).map((o) => ({ ...o })),
-  );
   const [grantOpen, setGrantOpen] = useState(false);
 
   // Emergency access grant currently in effect (RF-013/014/015).
@@ -110,51 +125,9 @@ export function WorkScheduleTab({ seller, storeId }: IWorkScheduleTabProps) {
       toast.error("Não foi possível revogar a liberação.", { description: err.message }),
   });
 
-  // Validate only the rows that are enabled — disabled days are ignored.
-  const errors = useMemo(
-    () => validateWorkSchedule(rows.filter((r) => r.enabled)),
-    [rows],
-  );
-
   const updateRow = (weekday: number, patch: Partial<IWorkScheduleWindow>) => {
-    setRows((prev) => prev.map((row) => (row.weekday === weekday ? { ...row, ...patch } : row)));
+    onRowsChange(rows.map((row) => (row.weekday === weekday ? { ...row, ...patch } : row)));
   };
-
-  const mutation = useMutation({
-    mutationFn: async () => {
-      const enabledRows = rows.filter((r) => r.enabled);
-      const cleanedOverrides = overrides.filter((o) => o.date.trim() !== "");
-      const before = {
-        workSchedule: seller.workSchedule ?? [],
-        scheduleOverrides: seller.scheduleOverrides ?? [],
-      };
-      const after = {
-        workSchedule: enabledRows,
-        scheduleOverrides: cleanedOverrides,
-      };
-      const saved = await provider.update(seller.id, {
-        workSchedule: enabledRows,
-        scheduleOverrides: cleanedOverrides,
-      });
-      recordAuditLogSync({
-        storeId,
-        actorId: currentUser?.sellerId ?? currentUser?.id ?? "system",
-        action: "work_schedule_updated",
-        resource: "seller",
-        resourceId: seller.id,
-        before,
-        after,
-      });
-      return saved;
-    },
-    onSuccess: async () => {
-      toast.success("Horário de atendimento atualizado.");
-      await queryClient.invalidateQueries({ queryKey: ["sellers", storeId] });
-      await queryClient.invalidateQueries({ queryKey: ["seller"] });
-    },
-    onError: (err: Error) =>
-      toast.error("Não foi possível salvar o horário.", { description: err.message }),
-  });
 
   return (
     <div className="space-y-4">
@@ -207,7 +180,7 @@ export function WorkScheduleTab({ seller, storeId }: IWorkScheduleTabProps) {
         </CardContent>
       </Card>
 
-      <ScheduleOverridesEditor overrides={overrides} onChange={setOverrides} />
+      <ScheduleOverridesEditor overrides={overrides} onChange={onOverridesChange} />
 
       <section aria-labelledby="emergency-access" className="space-y-2">
         <h3 id="emergency-access" className="text-sm font-medium">
@@ -261,15 +234,10 @@ export function WorkScheduleTab({ seller, storeId }: IWorkScheduleTabProps) {
         </div>
       )}
 
-      <div className="flex justify-end">
-        <Button
-          type="button"
-          onClick={() => mutation.mutate()}
-          disabled={mutation.isPending || errors.length > 0}
-        >
-          {mutation.isPending ? "Salvando…" : "Salvar horário"}
-        </Button>
-      </div>
+      <p className="text-xs text-muted-foreground">
+        As alterações de horário são salvas junto com o botão{" "}
+        <strong className="text-foreground">Salvar alterações</strong>, no rodapé.
+      </p>
 
       <GrantAccessDialog
         target={seller}

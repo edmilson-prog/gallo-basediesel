@@ -1,4 +1,4 @@
-export { WorkScheduleTab } from "./components/WorkScheduleTab";
+export { WorkScheduleTab, buildWorkScheduleRows } from "./components/WorkScheduleTab";
 export { GrantAccessDialog } from "./components/GrantAccessDialog";
 export { AccessBlockedNotice } from "./components/AccessBlockedNotice";
 export { OutsideHoursBanner } from "./components/OutsideHoursBanner";
