@@ -1,5 +1,6 @@
 export { WorkScheduleTab } from "./components/WorkScheduleTab";
 export { AccessBlockedNotice } from "./components/AccessBlockedNotice";
+export { OutsideHoursBanner } from "./components/OutsideHoursBanner";
 export { useAccessGate } from "./hooks/useAccessGate";
 export {
   evaluateAccess,

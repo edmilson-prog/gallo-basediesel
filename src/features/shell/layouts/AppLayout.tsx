@@ -7,6 +7,7 @@ import { AppFooter } from "@/features/shell/components/AppFooter";
 import { DataSourceBanner } from "@/features/shell/components/DataSourceBanner";
 import { DemoModeBanner } from "@/features/shell/components/DemoModeBanner";
 import { WhatsAppDisconnectedBanner } from "@/features/shell/components/WhatsAppDisconnectedBanner";
+import { OutsideHoursBanner } from "@/features/access";
 import { useDistributionToasts } from "@/features/distribution/hooks/useDistributionToasts";
 import { useAutoRevertTimer } from "@/features/carteira/hooks/useAutoRevertTimer";
 import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
@@ -57,6 +58,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
             {/* Critical operational alert — sticky right under the TopBar
                 (top-16) so it survives scrolling, unlike the banners above. */}
             <WhatsAppDisconnectedBanner />
+            <OutsideHoursBanner />
             {children ?? <Outlet />}
           </main>
           {/* Status bar pinned to the bottom of the content column (desktop). */}
