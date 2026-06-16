@@ -1,11 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import type {
-  IConversation,
-  ICustomer,
-  ILead,
-  ISdrEscalation,
-  IWhatsAppAccount,
-} from "@/shared/types";
+import type { IConversation, ICustomer, ILead, ISdrEscalation, ISeller } from "@/shared/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
@@ -17,7 +11,7 @@ import { useCustomersProvider } from "@/providers/data";
 import { useAuth } from "@/features/auth/useAuth";
 import { CHANNEL_META, getConversationDisplay } from "../utils/conversationDisplay";
 import { ContactAvatar } from "./ContactAvatar";
-import { OriginChip } from "./OriginChip";
+import { AssigneeChip } from "./AssigneeChip";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
 import { StatusControl } from "./status/StatusControl";
 import type { StatusControlMode } from "../engine/statusControlMode";
@@ -30,7 +24,10 @@ export interface IConversationHeaderProps {
   conversation: IConversation;
   customer: ICustomer | null;
   lead: ILead | null;
-  whatsappAccount: IWhatsAppAccount | null;
+  /** Seller the conversation is assigned to (for the responsible chip). */
+  assignedSeller?: ISeller | null;
+  /** Whether to surface the assignee chip (staff/manager oversight). */
+  showAssignee?: boolean;
   ficheOpen: boolean;
   onToggleFiche: () => void;
   /** Whether the media gallery sheet is open. */
@@ -54,7 +51,8 @@ export function ConversationHeader({
   conversation,
   customer,
   lead,
-  whatsappAccount,
+  assignedSeller,
+  showAssignee,
   ficheOpen,
   onToggleFiche,
   mediaOpen,
@@ -85,9 +83,8 @@ export function ConversationHeader({
   const scheduled = useConversationScheduled(conversation.id);
   const pendingScheduled = scheduled.items.filter((i) => i.status === "pending").length;
 
-  // Subtitle shows ONLY the contact's own phone. Never fall back to
-  // whatsappAccount.phoneNumber — that is the GALLO line itself, and surfacing it
-  // here mislabels our own number as the contact's (e.g. when RLS hides the
+  // Subtitle shows ONLY the contact's own phone — never our own GALLO line,
+  // which would mislabel our number as the contact's (e.g. when RLS hides the
   // customer for a seller handling a transferred conversation).
   const channelSubtitle = display.phone
     ? `${channel.label} • ${display.phone}`
@@ -159,10 +156,10 @@ export function ConversationHeader({
         </div>
 
         <div className="flex items-center gap-1">
-          {whatsappAccount && (
-            <OriginChip
-              account={whatsappAccount}
-              variant="label"
+          {showAssignee && assignedSeller && (
+            <AssigneeChip
+              seller={assignedSeller}
+              variant="full"
               className="mr-1 hidden lg:inline-flex"
             />
           )}

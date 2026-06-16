@@ -7,6 +7,7 @@ import { EmptyState } from "@/features/shell/components/EmptyState";
 import { CustomerProfileFiche } from "@/features/customers/components/CustomerProfileFiche";
 import { useFicheButtonHandler } from "@/features/customers/hooks/useFicheLayout";
 import { useConversationDetail } from "../hooks/useConversationDetail";
+import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { useConversationEscalation } from "@/features/sdr-escalation/hooks/useConversationEscalation";
 import { ConversationHeader } from "../components/ConversationHeader";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
@@ -73,6 +74,8 @@ export function ConversationPage() {
   const { id } = useParams({ from: "/app/atendimento/$id" });
   const conversationId: ID = id;
   const detail = useConversationDetail(conversationId);
+  // Staff (Owner/Gestor) see store-wide conversations → surface who's handling each.
+  const showAssignee = usePermission("conversation", "view", "store");
   const fiche = useConversationFiche();
   const media = useMediaGallery();
   const messages = useMessages(conversationId);
@@ -150,7 +153,7 @@ export function ConversationPage() {
     );
   }
 
-  const { conversation, customer, lead, whatsappAccount } = detail;
+  const { conversation, customer, lead, whatsappAccount, assignedSeller } = detail;
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -162,7 +165,8 @@ export function ConversationPage() {
                 conversation={conversation}
                 customer={customer}
                 lead={lead}
-                whatsappAccount={whatsappAccount}
+                assignedSeller={assignedSeller}
+                showAssignee={showAssignee}
                 ficheOpen={fiche.open}
                 onToggleFiche={ficheButtonClick}
                 mediaOpen={media.open}
