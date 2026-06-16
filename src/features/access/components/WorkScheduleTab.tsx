@@ -17,6 +17,17 @@ import type { ISeller, IScheduleOverride, IWorkScheduleWindow } from "@/shared/t
 import { useSellersProvider, recordAuditLogSync } from "@/providers/data";
 import { useAuth } from "@/features/auth/useAuth";
 import { validateWorkSchedule } from "../engine/workSchedule";
+import { GrantAccessDialog } from "./GrantAccessDialog";
+
+/** Formats an ISO instant as a Brasília weekday + time, in pt-BR. */
+function formatGrantExpiry(iso: string): string {
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    weekday: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(iso));
+}
 
 const WEEKDAY_LABELS = [
   "Domingo",
@@ -69,6 +80,35 @@ export function WorkScheduleTab({ seller, storeId }: IWorkScheduleTabProps) {
   const [overrides, setOverrides] = useState<IScheduleOverride[]>(
     () => (seller.scheduleOverrides ?? []).map((o) => ({ ...o })),
   );
+  const [grantOpen, setGrantOpen] = useState(false);
+
+  // Emergency access grant currently in effect (RF-013/014/015).
+  const activeGrant =
+    seller.accessGrant && Date.parse(seller.accessGrant.expiresAt) > Date.now()
+      ? seller.accessGrant
+      : null;
+
+  const revokeMutation = useMutation({
+    mutationFn: async () => {
+      const saved = await provider.update(seller.id, { accessGrant: null });
+      recordAuditLogSync({
+        storeId,
+        actorId: currentUser?.sellerId ?? currentUser?.id ?? "system",
+        action: "access_grant_revoked",
+        resource: "seller",
+        resourceId: seller.id,
+        before: { expiresAt: seller.accessGrant?.expiresAt ?? null },
+      });
+      return saved;
+    },
+    onSuccess: async () => {
+      toast.success("Liberação de acesso revogada.");
+      await queryClient.invalidateQueries({ queryKey: ["sellers", storeId] });
+      await queryClient.invalidateQueries({ queryKey: ["seller"] });
+    },
+    onError: (err: Error) =>
+      toast.error("Não foi possível revogar a liberação.", { description: err.message }),
+  });
 
   // Validate only the rows that are enabled — disabled days are ignored.
   const errors = useMemo(
@@ -169,6 +209,47 @@ export function WorkScheduleTab({ seller, storeId }: IWorkScheduleTabProps) {
 
       <ScheduleOverridesEditor overrides={overrides} onChange={setOverrides} />
 
+      <section aria-labelledby="emergency-access" className="space-y-2">
+        <h3 id="emergency-access" className="text-sm font-medium">
+          Liberação de emergência
+        </h3>
+        {activeGrant ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-severity-success/30 bg-severity-success/10 px-3 py-2 text-sm text-severity-success">
+            <span className="flex items-start gap-1.5">
+              <Icon icon="mdi:lock-open-check-outline" size={16} className="mt-0.5 shrink-0" />
+              Liberação ativa até {formatGrantExpiry(activeGrant.expiresAt)}.
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => revokeMutation.mutate()}
+              disabled={revokeMutation.isPending}
+            >
+              {revokeMutation.isPending ? "Revogando…" : "Revogar"}
+            </Button>
+          </div>
+        ) : currentUser?.role === "Owner" ? (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-muted-foreground">
+              Concede acesso fora do horário até expirar (override de emergência).
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setGrantOpen(true)}
+              className="gap-1"
+            >
+              <Icon icon="mdi:lock-open-variant-outline" size={14} />
+              Liberar acesso temporário
+            </Button>
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">Nenhuma liberação ativa.</p>
+        )}
+      </section>
+
       {errors.length > 0 && (
         <div className="space-y-1 rounded-md border border-severity-warning/30 bg-severity-warning/10 px-3 py-2 text-sm text-severity-warning">
           {errors.map((err, i) => (
@@ -189,6 +270,13 @@ export function WorkScheduleTab({ seller, storeId }: IWorkScheduleTabProps) {
           {mutation.isPending ? "Salvando…" : "Salvar horário"}
         </Button>
       </div>
+
+      <GrantAccessDialog
+        target={seller}
+        storeId={storeId}
+        open={grantOpen}
+        onOpenChange={setGrantOpen}
+      />
     </div>
   );
 }
