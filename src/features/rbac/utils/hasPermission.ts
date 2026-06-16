@@ -1,6 +1,6 @@
 import type { PermissionAction, PermissionScope, RoleName } from "@/shared/types";
-import { EFFECTIVE_PERMISSIONS_INDEX } from "../permissions/matrix";
 import type { ResourceName } from "../permissions/resources";
+import { getRbacSnapshot } from "../store/rbacConfig";
 import { scopeSatisfies } from "./compareScopes";
 
 /**
@@ -22,6 +22,10 @@ export interface IRoleBearer {
  *
  * @returns true when the user holds an `(action)` permission on `(resource)`
  *          whose scope is ≥ `requiredScope` (defaults to `own`).
+ *
+ * Reads from the in-memory RBAC cache (`getRbacSnapshot()`). Before the cache is
+ * hydrated from the persisted matrix it falls back to the static
+ * `EFFECTIVE_PERMISSIONS_INDEX`, so the result is identical to the legacy path.
  */
 export function hasPermission(
   user: IRoleBearer | null | undefined,
@@ -30,7 +34,7 @@ export function hasPermission(
   requiredScope: PermissionScope = "own",
 ): boolean {
   if (!user) return false;
-  const index = EFFECTIVE_PERMISSIONS_INDEX[user.role];
+  const index = getRbacSnapshot().byRole[user.role];
   if (!index) return false;
   const entry = index[resource];
   if (!entry) return false;

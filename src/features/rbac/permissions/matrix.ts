@@ -229,7 +229,7 @@ export const PERMISSIONS_MATRIX: Record<RoleName, IPermission[]> = {
  *
  * Built once at import time so `hasPermission()` is O(1) on every call.
  */
-type ResourceIndex = Partial<
+export type ResourceIndex = Partial<
   Record<ResourceName, { actions: ReadonlySet<PermissionAction>; scope: IPermission["scope"] }>
 >;
 

@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { CopilotSettingsProvider } from "@/features/copilot";
 import { AuthProvider } from "@/features/auth/AuthProvider";
 import { MultistoreProvider } from "@/features/multistore";
+import { RbacHydrator } from "@/features/rbac";
 import { DataProvidersProvider } from "@/providers/data";
 import { NotificationProvidersProvider } from "@/providers/notifications";
 
@@ -77,6 +78,7 @@ function RootComponent() {
       <ThemeProvider>
         <CopilotSettingsProvider>
           <DataProvidersProvider>
+            <RbacHydrator />
             <NotificationProvidersProvider>
               <AuthProvider>
                 <MultistoreProvider>

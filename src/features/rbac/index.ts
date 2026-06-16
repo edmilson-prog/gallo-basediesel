@@ -26,6 +26,16 @@ export { auditLog, type IAuditLogParams } from "./utils/auditLog";
 export { usePermission } from "./hooks/usePermission";
 export { useCurrentRole } from "./hooks/useCurrentRole";
 
+// Permission cache (PRD-211 Task 8) — persisted matrix with static fallback.
+export {
+  getRbacSnapshot,
+  hydrateRbac,
+  invalidateRbac,
+  type RbacSnapshot,
+} from "./store/rbacConfig";
+export { useRbacHydration, rehydrateRbac } from "./store/useRbacHydration";
+export { RbacHydrator } from "./store/RbacHydrator";
+
 // Components
 export { Can, type ICanProps } from "./components/Can";
 export { Forbidden, type IForbiddenProps } from "./components/Forbidden";
