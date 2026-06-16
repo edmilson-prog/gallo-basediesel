@@ -50,6 +50,33 @@ export function RolesPage() {
   // novamente nesta sessão"). Lives at the page level so it spans role switches.
   const [systemWarningAcknowledged, setSystemWarningAcknowledged] = useState(false);
 
+  // Whether the active role's draft has unsaved edits — reported up by the
+  // editor so the rail can guard switches (a rail click is a React state change,
+  // not a route navigation, so `useBlocker` would never catch it).
+  const dirtyRef = useRef(false);
+  // A role-switch the user attempted while the active draft was dirty; held back
+  // until they confirm discarding the edits.
+  const [pendingSwitchId, setPendingSwitchId] = useState<string | null>(null);
+
+  // Intercepts rail / mobile-select role switches. Same role or a clean draft
+  // switches instantly; a dirty draft opens the discard-confirm dialog first.
+  const handleSelect = useCallback(
+    (nextId: string) => {
+      if (nextId === selectedId) return; // same role — no-op
+      if (!dirtyRef.current) {
+        setSelectedId(nextId); // clean — switch instantly
+        return;
+      }
+      setPendingSwitchId(nextId); // dirty — defer behind the confirm dialog
+    },
+    [selectedId],
+  );
+
+  // Stable so the editor's dirty-sync effect only fires on real dirty changes.
+  const handleDirtyChange = useCallback((dirty: boolean) => {
+    dirtyRef.current = dirty;
+  }, []);
+
   const rolesQuery = useQuery({
     queryKey: ["rbac", "roles"],
     queryFn: () => provider.list(),
@@ -101,7 +128,7 @@ export function RolesPage() {
         ) : (
           <div className="grid grid-cols-1 gap-5 md:grid-cols-[16rem_1fr]">
             <aside className="md:sticky md:top-24 md:self-start">
-              <RoleRail roles={roles} selectedId={selectedId} onSelect={setSelectedId} />
+              <RoleRail roles={roles} selectedId={selectedId} onSelect={handleSelect} />
             </aside>
             <section className="min-w-0">
               {selectedRole ? (
@@ -112,6 +139,7 @@ export function RolesPage() {
                   canEditRoles={canEditRoles}
                   systemWarningAcknowledged={systemWarningAcknowledged}
                   onAcknowledgeSystemWarning={() => setSystemWarningAcknowledged(true)}
+                  onDirtyChange={handleDirtyChange}
                   onPersisted={async () => {
                     // Refetch roles, re-hydrate the RBAC cache from the fresh set.
                     await queryClient.invalidateQueries({ queryKey: ["rbac", "roles"] });
@@ -125,6 +153,40 @@ export function RolesPage() {
           </div>
         )}
       </div>
+
+      {/* Rail-switch guard — confirm discarding unsaved edits before switching
+          roles (a rail click is a React state change `useBlocker` cannot see). */}
+      <AlertDialog
+        open={pendingSwitchId !== null}
+        onOpenChange={(next) => {
+          if (!next) setPendingSwitchId(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{ROLE_EDITOR_LABELS.unsavedTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{ROLE_EDITOR_LABELS.unsavedBody}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingSwitchId(null)}>
+              {ROLE_EDITOR_LABELS.unsavedKeepEditing}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingSwitchId !== null) {
+                  // The editor remounts (key change) with a fresh draft, so the
+                  // dirty edits are discarded by switching.
+                  dirtyRef.current = false;
+                  setSelectedId(pendingSwitchId);
+                  setPendingSwitchId(null);
+                }
+              }}
+            >
+              {ROLE_EDITOR_LABELS.unsavedConfirm}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -137,6 +199,8 @@ interface IRoleEditorProps {
   systemWarningAcknowledged: boolean;
   /** Propagates a session-wide opt-out up to the page. */
   onAcknowledgeSystemWarning: () => void;
+  /** Reports the active draft's dirty flag up so the page can guard rail switches. */
+  onDirtyChange: (dirty: boolean) => void;
   onPersisted: () => Promise<void>;
 }
 
@@ -150,11 +214,19 @@ function RoleEditor({
   canEditRoles,
   systemWarningAcknowledged,
   onAcknowledgeSystemWarning,
+  onDirtyChange,
   onPersisted,
 }: IRoleEditorProps) {
   const provider = useRolesProvider();
   const draft = usePermissionDraft(role);
   const { dirty } = draft;
+
+  // Keep the page-level dirty mirror in sync so the rail can guard switches; on
+  // unmount, clear it (a remount switch starts clean).
+  useEffect(() => {
+    onDirtyChange(dirty);
+    return () => onDirtyChange(false);
+  }, [dirty, onDirtyChange]);
 
   // The matrix is editable only when the user may edit roles and the role is not
   // the immutable Owner.
