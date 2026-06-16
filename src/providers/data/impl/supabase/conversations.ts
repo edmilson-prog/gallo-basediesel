@@ -34,7 +34,9 @@ import { supabaseDistributionTracesProvider } from "./distributionTraces";
  *
  * Filter caveats vs. the mock provider:
  *  - `search` (cross-entity full text over customer/lead name + phone + recent
- *    message bodies) requires joins and is NOT applied server-side here.
+ *    message bodies) is applied server-side via the `search_conversations` RPC
+ *    (SECURITY INVOKER — RLS-scoped). When `search` is present, `list` routes
+ *    through that RPC; ABC ordering degrades to `lastMessageAt` there.
  *  - `tags` matches the conversation's OWN tags only; the mock additionally
  *    folds in customer/lead tags via joins, which is not expressible in a single
  *    PostgREST query.
@@ -100,8 +102,55 @@ function conversationPatchToRow(patch: Partial<IConversation>): Record<string, u
   return row;
 }
 
+/**
+ * Cross-entity text search via the `search_conversations` RPC. Honors the same
+ * filters as the table query (status/channel/instance/assignment/SDR/tags/period)
+ * plus ordering + pagination, and reads the window `total_count` off the rows.
+ */
+async function searchConversations(
+  params: IListConversationsParams,
+): Promise<IPaginatedResult<IConversation>> {
+  const page = Math.max(1, Math.floor(params.page ?? 1));
+  const pageSize = Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20)));
+  const status =
+    params.status === undefined ? null : Array.isArray(params.status) ? params.status : [params.status];
+
+  const { data, error } = await getSupabaseClient().rpc("search_conversations", {
+    p_search: params.search,
+    p_store_id: params.storeId ?? null,
+    p_status: status,
+    p_channel: params.channel ?? null,
+    p_whatsapp_account_id: params.whatsappAccountId ?? null,
+    p_assigned_seller_id: params.assignedSellerId ?? null,
+    p_unassigned: params.unassigned ?? false,
+    p_is_sdr_active: typeof params.isSdrActive === "boolean" ? params.isSdrActive : null,
+    p_tags: params.tags && params.tags.length > 0 ? params.tags : null,
+    p_from_date: params.fromDate ?? null,
+    p_to_date: params.toDate ?? null,
+    p_order_dir: params.orderDir === "asc" ? "asc" : "desc",
+    p_limit: pageSize,
+    p_offset: (page - 1) * pageSize,
+  });
+
+  if (error) throw new Error(`[supabase] conversations.search failed: ${error.message}`);
+
+  const rows = (data ?? []) as unknown as (ConversationRow & { total_count: number })[];
+  return {
+    data: rows.map(rowToConversation),
+    total: Number(rows[0]?.total_count ?? 0),
+    page,
+    pageSize,
+  };
+}
+
 export const supabaseConversationsProvider: IConversationsProvider = {
   async list(params: IListConversationsParams = {}): Promise<IPaginatedResult<IConversation>> {
+    // Cross-entity text search needs joins → dedicated RPC. Everything else
+    // stays on the plain table query below.
+    if (params.search && params.search.trim().length > 0) {
+      return searchConversations(params);
+    }
+
     let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
 
     if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
@@ -118,6 +167,8 @@ export const supabaseConversationsProvider: IConversationsProvider = {
     }
 
     if (params.channel !== undefined) query = query.eq("channel", params.channel);
+    if (params.whatsappAccountId !== undefined)
+      query = query.eq("whatsapp_account_id", params.whatsappAccountId);
     if (typeof params.isSdrActive === "boolean")
       query = query.eq("is_sdr_active", params.isSdrActive);
     if (params.customerId !== undefined) query = query.eq("customer_id", params.customerId);
@@ -127,7 +178,7 @@ export const supabaseConversationsProvider: IConversationsProvider = {
     // `tags` matches the conversation's own tags only (mock also folds in
     // customer/lead tags via joins, which a single PostgREST query cannot do).
     if (params.tags && params.tags.length > 0) query = query.overlaps("tags", params.tags);
-    // NOTE: `search` (cross-entity full text) is intentionally not applied here.
+    // `search` never reaches here — it is routed to `searchConversations` above.
 
     const page = Math.max(1, Math.floor(params.page ?? 1));
     const pageSize = Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20)));
