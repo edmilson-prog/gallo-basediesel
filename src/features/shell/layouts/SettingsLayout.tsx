@@ -170,6 +170,12 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
     label: "Integrações",
     items: [
       {
+        label: "Inteligência artificial",
+        icon: "mdi:robot-happy-outline",
+        to: "/app/configuracoes/ia",
+        roles: ["Owner"],
+      },
+      {
         label: "WhatsApp",
         icon: "mdi:whatsapp",
         to: "/app/configuracoes/whatsapp",
