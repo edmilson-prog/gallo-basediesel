@@ -16,6 +16,8 @@ export interface ICreateSellerInput {
   region?: string;
   /** Optional attendant display name signed onto outbound messages. */
   attendantName?: string;
+  /** Department the seller belongs to (PRD-211 — at most one in MVP). */
+  departmentId?: ID | null;
 }
 
 /**
