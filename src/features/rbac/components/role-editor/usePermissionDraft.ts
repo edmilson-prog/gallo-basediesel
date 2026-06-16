@@ -1,8 +1,13 @@
 import { useCallback, useMemo, useState } from "react";
 import type { IPermission, IRole, PermissionAction, PermissionScope } from "@/shared/types";
 
-/** Default scope assigned when a resource gains its first action. */
-const DEFAULT_SCOPE: PermissionScope = "own";
+/**
+ * Default scope assigned when a resource gains its first action.
+ *
+ * Exported so the row-render fallback (`ResourceAreaGroup`) can reuse it and
+ * never drift from the draft default.
+ */
+export const DEFAULT_SCOPE: PermissionScope = "own";
 
 /** Draft entry per resource: the set of granted actions + the chosen scope. */
 export interface IDraftEntry {
@@ -13,7 +18,8 @@ export interface IDraftEntry {
 /** Draft matrix keyed by resource key. */
 export type DraftMatrix = Map<string, IDraftEntry>;
 
-function buildDraft(role: IRole): DraftMatrix {
+/** Builds a fresh draft matrix from a role's persisted permissions. */
+export function buildDraft(role: IRole): DraftMatrix {
   const map: DraftMatrix = new Map();
   for (const perm of role.permissions) {
     map.set(perm.resource, {
@@ -22,6 +28,83 @@ function buildDraft(role: IRole): DraftMatrix {
     });
   }
   return map;
+}
+
+/**
+ * Pure toggle: returns a NEW draft with `action` flipped on `resource`.
+ *
+ * Enabling the first action on a resource that had none creates the entry with
+ * {@link DEFAULT_SCOPE}; removing the last action drops the entry entirely.
+ */
+export function toggleActionInDraft(
+  prev: DraftMatrix,
+  resource: string,
+  action: PermissionAction,
+): DraftMatrix {
+  const next = new Map(prev);
+  const entry = next.get(resource);
+  if (!entry) {
+    next.set(resource, { actions: new Set([action]), scope: DEFAULT_SCOPE });
+    return next;
+  }
+  const actions = new Set(entry.actions);
+  if (actions.has(action)) {
+    actions.delete(action);
+  } else {
+    actions.add(action);
+  }
+  if (actions.size === 0) {
+    next.delete(resource);
+  } else {
+    next.set(resource, { actions, scope: entry.scope });
+  }
+  return next;
+}
+
+/** Pure scope change: returns a NEW draft with `resource`'s scope updated. */
+export function setScopeInDraft(
+  prev: DraftMatrix,
+  resource: string,
+  scope: PermissionScope,
+): DraftMatrix {
+  const entry = prev.get(resource);
+  if (!entry) return prev;
+  const next = new Map(prev);
+  next.set(resource, { actions: new Set(entry.actions), scope });
+  return next;
+}
+
+/**
+ * Computes the set of resource keys whose entry differs from a baseline
+ * signature — covers added, removed, and action/scope-changed rows.
+ */
+export function computeChangedResources(
+  baseline: string,
+  currentSignature: string,
+): Set<string> {
+  const tokenResource = (token: string) => token.slice(0, token.indexOf(":"));
+  const baselineByResource = new Map(
+    baseline
+      ? baseline
+          .split("|")
+          .filter(Boolean)
+          .map((token) => [tokenResource(token), token] as const)
+      : [],
+  );
+  const changed = new Set<string>();
+  const currentTokens = currentSignature.split("|").filter(Boolean);
+  const currentByResource = new Map(
+    currentTokens.map((token) => [tokenResource(token), token] as const),
+  );
+  // Rows present now whose token changed, or that appeared.
+  for (const [resource, token] of currentByResource) {
+    if (baselineByResource.get(resource) !== token) changed.add(resource);
+  }
+  // Rows that disappeared.
+  for (const resource of baselineByResource.keys()) {
+    if (!currentByResource.has(resource)) changed.add(resource);
+  }
+  return changed;
 }
 
 /**
@@ -44,7 +127,7 @@ export function serializeDraft(draft: DraftMatrix): IPermission[] {
 }
 
 /** Stable string signature of a draft, for cheap dirty comparison. */
-function signature(draft: DraftMatrix): string {
+export function computeSignature(draft: DraftMatrix): string {
   return serializeDraft(draft)
     .map((p) => `${p.resource}:${[...p.actions].sort().join(",")}:${p.scope}`)
     .sort()
@@ -79,82 +162,33 @@ export interface IPermissionDraft {
  */
 export function usePermissionDraft(role: IRole): IPermissionDraft {
   const [draft, setDraft] = useState<DraftMatrix>(() => buildDraft(role));
-  const [baseline, setBaseline] = useState<string>(() => signature(buildDraft(role)));
+  const [baseline, setBaseline] = useState<string>(() => computeSignature(buildDraft(role)));
 
   const reset = useCallback((nextRole: IRole) => {
     const fresh = buildDraft(nextRole);
     setDraft(fresh);
-    setBaseline(signature(fresh));
+    setBaseline(computeSignature(fresh));
   }, []);
 
-  const rebase = useCallback((nextRole: IRole) => {
-    const fresh = buildDraft(nextRole);
-    setDraft(fresh);
-    setBaseline(signature(fresh));
-  }, []);
+  // `rebase` (post save/restore) is operationally identical to `reset`: both
+  // drop the working copy and re-baseline onto the given role.
+  const rebase = reset;
 
   const toggleAction = useCallback((resource: string, action: PermissionAction) => {
-    setDraft((prev) => {
-      const next = new Map(prev);
-      const entry = next.get(resource);
-      if (!entry) {
-        // First action on a resource that had none — create with default scope.
-        next.set(resource, { actions: new Set([action]), scope: DEFAULT_SCOPE });
-        return next;
-      }
-      const actions = new Set(entry.actions);
-      if (actions.has(action)) {
-        actions.delete(action);
-      } else {
-        actions.add(action);
-      }
-      if (actions.size === 0) {
-        // Last action removed — drop the entry entirely.
-        next.delete(resource);
-      } else {
-        next.set(resource, { actions, scope: entry.scope });
-      }
-      return next;
-    });
+    setDraft((prev) => toggleActionInDraft(prev, resource, action));
   }, []);
 
   const setScope = useCallback((resource: string, scope: PermissionScope) => {
-    setDraft((prev) => {
-      const entry = prev.get(resource);
-      if (!entry) return prev;
-      const next = new Map(prev);
-      next.set(resource, { actions: new Set(entry.actions), scope });
-      return next;
-    });
+    setDraft((prev) => setScopeInDraft(prev, resource, scope));
   }, []);
 
-  const currentSignature = useMemo(() => signature(draft), [draft]);
+  const currentSignature = useMemo(() => computeSignature(draft), [draft]);
   const dirty = currentSignature !== baseline;
 
-  const changedResources = useMemo(() => {
-    const baselineByResource = new Map(
-      baseline
-        ? baseline.split("|").filter(Boolean).map((token) => {
-            const resource = token.slice(0, token.indexOf(":"));
-            return [resource, token] as const;
-          })
-        : [],
-    );
-    const changed = new Set<string>();
-    const currentTokens = currentSignature.split("|").filter(Boolean);
-    const currentByResource = new Map(
-      currentTokens.map((token) => [token.slice(0, token.indexOf(":")), token] as const),
-    );
-    // Rows present now whose token changed, or that appeared.
-    for (const [resource, token] of currentByResource) {
-      if (baselineByResource.get(resource) !== token) changed.add(resource);
-    }
-    // Rows that disappeared.
-    for (const resource of baselineByResource.keys()) {
-      if (!currentByResource.has(resource)) changed.add(resource);
-    }
-    return changed;
-  }, [baseline, currentSignature]);
+  const changedResources = useMemo(
+    () => computeChangedResources(baseline, currentSignature),
+    [baseline, currentSignature],
+  );
 
   const serialize = useCallback(() => serializeDraft(draft), [draft]);
 

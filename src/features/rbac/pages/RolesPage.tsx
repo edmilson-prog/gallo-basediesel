@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useBlocker } from "@tanstack/react-router";
 import { toast } from "sonner";
-import type { IRole, PermissionAction, PermissionScope } from "@/shared/types";
+import type { IRbacResource, IRole, PermissionAction, PermissionScope } from "@/shared/types";
 import { useRolesProvider } from "@/providers/data";
+import { useUnsavedChanges } from "@/features/admin-settings/hooks/useUnsavedChanges";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -193,7 +193,7 @@ export function RolesPage() {
 
 interface IRoleEditorProps {
   role: IRole;
-  resources: import("@/shared/types").IRbacResource[];
+  resources: IRbacResource[];
   canEditRoles: boolean;
   /** True once the user opted out of the system-role warning for the session. */
   systemWarningAcknowledged: boolean;
@@ -328,28 +328,10 @@ function RoleEditor({
     }
   }, [restoring, provider, role.id, onPersisted]);
 
-  // Block in-app navigation while there are unsaved edits.
-  const dirtyRef = useRef(dirty);
-  useEffect(() => {
-    dirtyRef.current = dirty;
-  }, [dirty]);
-
-  const blocker = useBlocker({
-    shouldBlockFn: () => dirtyRef.current,
-    enableBeforeUnload: () => dirtyRef.current,
-    withResolver: true,
-  });
-
-  // Guard hard reloads / tab close too.
-  useEffect(() => {
-    function onBeforeUnload(e: BeforeUnloadEvent) {
-      if (!dirtyRef.current) return;
-      e.preventDefault();
-      e.returnValue = "";
-    }
-    window.addEventListener("beforeunload", onBeforeUnload);
-    return () => window.removeEventListener("beforeunload", onBeforeUnload);
-  }, []);
+  // Block in-app route navigation (and hard reload / tab close) while there are
+  // unsaved edits — shared with the rest of Configurações via this hook. The
+  // separate rail-switch guard in `RolesPage` covers the non-route path.
+  const routeGuard = useUnsavedChanges(dirty);
 
   const showActionBar = editable;
 
@@ -455,25 +437,18 @@ function RoleEditor({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Unsaved-changes navigation guard */}
-      <AlertDialog open={blocker.status === "blocked"}>
+      {/* Unsaved-changes route-navigation guard (driven by useUnsavedChanges) */}
+      <AlertDialog open={routeGuard.promptOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{ROLE_EDITOR_LABELS.unsavedTitle}</AlertDialogTitle>
             <AlertDialogDescription>{ROLE_EDITOR_LABELS.unsavedBody}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => blocker.status === "blocked" && blocker.reset()}>
+            <AlertDialogCancel onClick={routeGuard.cancel}>
               {ROLE_EDITOR_LABELS.unsavedKeepEditing}
             </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (blocker.status === "blocked") {
-                  dirtyRef.current = false;
-                  blocker.proceed();
-                }
-              }}
-            >
+            <AlertDialogAction onClick={routeGuard.confirmDiscard}>
               {ROLE_EDITOR_LABELS.unsavedConfirm}
             </AlertDialogAction>
           </AlertDialogFooter>

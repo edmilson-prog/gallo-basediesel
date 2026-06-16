@@ -12,9 +12,7 @@ import { ROLE_EDITOR_LABELS } from "../../i18n/pt-BR";
 import { PermissionCell } from "./PermissionCell";
 import { ScopeSelect } from "./ScopeSelect";
 import { MATRIX_GRID_COLS } from "./matrixGrid";
-import type { DraftMatrix } from "./usePermissionDraft";
-
-const DEFAULT_SCOPE: PermissionScope = "own";
+import { DEFAULT_SCOPE, type DraftMatrix } from "./usePermissionDraft";
 
 export interface IResourceAreaGroupProps {
   /** Area name (e.g. "Comercial") shown in the header. */
