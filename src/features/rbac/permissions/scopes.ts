@@ -6,8 +6,10 @@ import type { PermissionScope } from "@/shared/types";
  * Whoever has `store` implicitly has `team` and `own`; whoever has `all`
  * has everything. The `compareScopes()` helper uses this ordering.
  *
- * `team` is reserved for the post-MVP Equipes feature — until then a holder
- * of `team` behaves exactly like a holder of `own`.
+ * `team` resolves to the members of the user's department (PRD-211) via
+ * `resolveTeamMemberIds` (a user without department peers degrades to `own`).
+ * Actual data isolation is enforced by Supabase RLS governed by the user's
+ * `base_role`; this ordering only governs the permission hierarchy.
  */
 export const SCOPE_ORDER = [
   "own",

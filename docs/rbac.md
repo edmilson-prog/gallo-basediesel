@@ -24,6 +24,14 @@ Três dimensões compõem cada checagem de permissão:
 Hierarquia de scope: quem tem `store` implicitamente tem `team` e `own`; quem
 tem `all` tem tudo. O helper `compareScopes()` impõe essa ordem.
 
+Desde o PRD-211, o scope `team` corresponde aos **membros do departamento** do
+usuário: o resolver puro `resolveTeamMemberIds(currentSellerId, departmentMembers)`
+devolve o próprio usuário mais os demais sellers que compartilham o mesmo
+`departmentId` (um usuário sem colegas de departamento degrada para `own`). O
+isolamento real de dados é garantido pelo **RLS do Supabase governado pelo
+`base_role`** — a filtragem de scope na UI ainda não está plugada nos list hooks
+(`getCurrentUserScope` é o resolver canônico, fundação para futura adoção).
+
 Apenas dois tipos de "user" interessam à camada: `null` (anônimo) e qualquer
 objeto que carregue um campo `role: RoleName`. As helpers não conhecem o
 restante da identidade — Supabase e mock convivem porque ambos atendem essa
