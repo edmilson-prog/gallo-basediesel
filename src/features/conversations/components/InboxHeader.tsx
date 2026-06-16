@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Icon } from "@/components/Icon";
 import { RealtimeToggle } from "./RealtimeToggle";
 import { INBOX_STRINGS } from "../i18n/pt-BR";
@@ -31,19 +32,33 @@ export function InboxHeader({
         <div className="flex items-center gap-2">
           <Icon icon="mdi:inbox" size={18} className="text-muted-foreground" />
           <h1 className="text-sm font-semibold text-foreground">{INBOX_STRINGS.pageTitle}</h1>
-          <span className="text-xs text-muted-foreground">{totalLabel}</span>
+          <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">
+            {totalLabel}
+          </span>
           {unreadGlobal > 0 && (
-            <Badge variant="default" className="h-5 px-1.5 text-[10px]">
+            <Badge
+              variant="default"
+              className="h-5 shrink-0 whitespace-nowrap px-1.5 text-[10px]"
+            >
               {INBOX_STRINGS.unreadGlobal(unreadGlobal)}
             </Badge>
           )}
         </div>
         <div className="flex items-center gap-1">
           {onNewConversation && (
-            <Button size="sm" className="h-7 gap-1 px-2 text-xs" onClick={onNewConversation}>
-              <Icon icon="lucide:plus" size={14} />
-              <span className="hidden sm:inline">Nova conversa</span>
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={onNewConversation}
+                  aria-label="Nova conversa"
+                >
+                  <Icon icon="lucide:message-square-plus" size={16} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Nova conversa</TooltipContent>
+            </Tooltip>
           )}
           <RealtimeToggle
             enabled={realtimeEnabled}

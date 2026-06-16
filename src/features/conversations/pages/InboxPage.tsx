@@ -337,7 +337,7 @@ export function InboxPage() {
     <TooltipProvider delayDuration={200}>
       <div className="flex h-full flex-col bg-card">
         <InboxHeader
-          totalLabel={INBOX_STRINGS.totalLabel(total)}
+          totalLabel={String(total)}
           unreadGlobal={unreadGlobal}
           realtimeEnabled={realtime.enabled}
           onToggleRealtime={realtime.setEnabled}
