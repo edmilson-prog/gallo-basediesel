@@ -30,6 +30,14 @@ describe("sellerFormSchema", () => {
   it("rejects an unknown type", () => {
     expect(sellerFormSchema.safeParse({ ...valid, type: "gerente" }).success).toBe(false);
   });
+
+  it("accepts an optional departmentId and keeps it absent when omitted", () => {
+    const withoutDept = sellerFormSchema.parse(valid);
+    expect(withoutDept.departmentId).toBeUndefined();
+
+    const withDept = sellerFormSchema.parse({ ...valid, departmentId: "dept-123" });
+    expect(withDept.departmentId).toBe("dept-123");
+  });
 });
 
 describe("showRegionField", () => {

@@ -13,6 +13,8 @@ export const sellerFormSchema = z.object({
   region: z.string().trim().optional(),
   // Short signature prepended to outbound messages; kept short for readability.
   attendantName: z.string().trim().max(40, "Use no máximo 40 caracteres.").optional(),
+  // Department assignment (PRD-211); "" / undefined means "Sem departamento".
+  departmentId: z.string().optional(),
 });
 
 export type SellerFormValues = z.infer<typeof sellerFormSchema>;
