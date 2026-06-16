@@ -93,6 +93,8 @@ export function summarizeUsage(
       const growthPct = prevCost > 0 ? ((v.costBRL - prevCost) / prevCost) * 100 : 0;
       return { feature, calls: v.calls, costBRL: v.costBRL, growthPct };
     }),
-    series: [...seriesMap.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, v]) => ({ date, ...v })),
+    series: [...seriesMap.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, v]) => ({ date, ...v })),
   };
 }

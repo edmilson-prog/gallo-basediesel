@@ -8,7 +8,12 @@ import { setIntegrationSecret } from "@/features/admin-settings/api/integrationS
 import { AI_PROVIDER_LABELS, type IAiProviderConfig } from "@/shared/types";
 import { useAiProvider } from "@/providers/data";
 
-const INITIALS: Record<string, string> = { anthropic: "AN", openai: "OA", openrouter: "OR", google: "GE" };
+const INITIALS: Record<string, string> = {
+  anthropic: "AN",
+  openai: "OA",
+  openrouter: "OR",
+  google: "GE",
+};
 
 export function ProviderCard({
   config,
@@ -68,7 +73,9 @@ export function ProviderCard({
   };
 
   return (
-    <section className={`rounded-xl border border-border bg-card p-4 ${configured ? "" : "opacity-80"}`}>
+    <section
+      className={`rounded-xl border border-border bg-card p-4 ${configured ? "" : "opacity-80"}`}
+    >
       <header className="mb-3 flex items-center gap-3">
         <span className="flex size-9 items-center justify-center rounded-lg bg-primary/15 text-xs font-semibold text-primary">
           {INITIALS[config.provider]}
@@ -124,7 +131,12 @@ export function ProviderCard({
               </Button>
             </div>
           ) : (
-            <Button size="sm" variant="outline" disabled={!canEditKey} onClick={() => setEditingKey(true)}>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!canEditKey}
+              onClick={() => setEditingKey(true)}
+            >
               <Icon icon="mdi:key-plus" className="mr-1 size-4" />
               {configured ? "Substituir chave" : "Definir chave"}
             </Button>

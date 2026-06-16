@@ -82,7 +82,9 @@ export function FeatureRoutingRow({
               <select
                 value={route.fallbackProviderId ?? ""}
                 onChange={(e) =>
-                  patch({ fallbackProviderId: (e.target.value || undefined) as AiProviderId | undefined })
+                  patch({
+                    fallbackProviderId: (e.target.value || undefined) as AiProviderId | undefined,
+                  })
                 }
                 className="mt-1 w-full rounded-lg border border-border bg-background px-2 py-1.5 text-sm text-foreground"
               >
@@ -102,7 +104,9 @@ export function FeatureRoutingRow({
                 min="0"
                 max="2"
                 defaultValue={route.params.temperature}
-                onBlur={(e) => patch({ params: { ...route.params, temperature: Number(e.target.value) } })}
+                onBlur={(e) =>
+                  patch({ params: { ...route.params, temperature: Number(e.target.value) } })
+                }
                 className="mt-1 w-full rounded-lg border border-border bg-background px-2 py-1.5 text-sm text-foreground"
               />
             </label>

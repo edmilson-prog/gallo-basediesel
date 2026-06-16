@@ -14,7 +14,10 @@ function providerAvailable(settings: IAiSettings, providerId: AiProviderId): boo
 }
 
 /** Returns the effective {provider, model, params, prompt} for a feature, or null when AI is off. */
-export function resolveEffectiveModel(settings: IAiSettings, feature: AiFeatureKey): IResolvedModel | null {
+export function resolveEffectiveModel(
+  settings: IAiSettings,
+  feature: AiFeatureKey,
+): IResolvedModel | null {
   if (!settings.masterEnabled) return null;
   const route = settings.routing.find((r) => r.feature === feature);
   if (!route || !route.enabled) return null;
@@ -28,7 +31,11 @@ export function resolveEffectiveModel(settings: IAiSettings, feature: AiFeatureK
       usedFallback: false,
     };
   }
-  if (route.fallbackProviderId && route.fallbackModel && providerAvailable(settings, route.fallbackProviderId)) {
+  if (
+    route.fallbackProviderId &&
+    route.fallbackModel &&
+    providerAvailable(settings, route.fallbackProviderId)
+  ) {
     return {
       providerId: route.fallbackProviderId,
       model: route.fallbackModel,

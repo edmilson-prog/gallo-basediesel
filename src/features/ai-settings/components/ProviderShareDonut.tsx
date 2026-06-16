@@ -5,7 +5,10 @@ import { AI_PROVIDER_LABELS, type IAiUsageSummary } from "@/shared/types";
 const COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)"];
 
 export function ProviderShareDonut({ byProvider }: { byProvider: IAiUsageSummary["byProvider"] }) {
-  const data = byProvider.map((p) => ({ name: AI_PROVIDER_LABELS[p.providerId], value: p.costBRL }));
+  const data = byProvider.map((p) => ({
+    name: AI_PROVIDER_LABELS[p.providerId],
+    value: p.costBRL,
+  }));
   return (
     <ResponsiveContainer width="100%" height={180}>
       <PieChart>

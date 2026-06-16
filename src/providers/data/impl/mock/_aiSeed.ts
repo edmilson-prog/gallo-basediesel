@@ -10,22 +10,67 @@ import type {
 
 const MODELS: Record<AiProviderId, IAiModelOption[]> = {
   anthropic: [
-    { id: "claude-opus-4-8", label: "Claude Opus 4.8", inputPricePer1kUsd: 0.015, outputPricePer1kUsd: 0.075 },
-    { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6", inputPricePer1kUsd: 0.003, outputPricePer1kUsd: 0.015 },
-    { id: "claude-haiku-4-5", label: "Claude Haiku 4.5", inputPricePer1kUsd: 0.0008, outputPricePer1kUsd: 0.004 },
+    {
+      id: "claude-opus-4-8",
+      label: "Claude Opus 4.8",
+      inputPricePer1kUsd: 0.015,
+      outputPricePer1kUsd: 0.075,
+    },
+    {
+      id: "claude-sonnet-4-6",
+      label: "Claude Sonnet 4.6",
+      inputPricePer1kUsd: 0.003,
+      outputPricePer1kUsd: 0.015,
+    },
+    {
+      id: "claude-haiku-4-5",
+      label: "Claude Haiku 4.5",
+      inputPricePer1kUsd: 0.0008,
+      outputPricePer1kUsd: 0.004,
+    },
   ],
   openai: [
     { id: "gpt-5.2", label: "GPT-5.2", inputPricePer1kUsd: 0.01, outputPricePer1kUsd: 0.03 },
-    { id: "gpt-5-mini", label: "GPT-5 mini", inputPricePer1kUsd: 0.0006, outputPricePer1kUsd: 0.0024 },
+    {
+      id: "gpt-5-mini",
+      label: "GPT-5 mini",
+      inputPricePer1kUsd: 0.0006,
+      outputPricePer1kUsd: 0.0024,
+    },
   ],
   openrouter: [
-    { id: "auto", label: "Auto (melhor custo)", inputPricePer1kUsd: 0.005, outputPricePer1kUsd: 0.02 },
-    { id: "anthropic/claude-opus-4.8", label: "Anthropic: Claude Opus 4.8", inputPricePer1kUsd: 0.015, outputPricePer1kUsd: 0.075 },
-    { id: "google/gemini-2.5-pro", label: "Google: Gemini 2.5 Pro", inputPricePer1kUsd: 0.0035, outputPricePer1kUsd: 0.0105 },
+    {
+      id: "auto",
+      label: "Auto (melhor custo)",
+      inputPricePer1kUsd: 0.005,
+      outputPricePer1kUsd: 0.02,
+    },
+    {
+      id: "anthropic/claude-opus-4.8",
+      label: "Anthropic: Claude Opus 4.8",
+      inputPricePer1kUsd: 0.015,
+      outputPricePer1kUsd: 0.075,
+    },
+    {
+      id: "google/gemini-2.5-pro",
+      label: "Google: Gemini 2.5 Pro",
+      inputPricePer1kUsd: 0.0035,
+      outputPricePer1kUsd: 0.0105,
+    },
   ],
   google: [
-    { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro", inputPricePer1kUsd: 0.0035, outputPricePer1kUsd: 0.0105 },
-    { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash", inputPricePer1kUsd: 0.0003, outputPricePer1kUsd: 0.0012 },
+    {
+      id: "gemini-2.5-pro",
+      label: "Gemini 2.5 Pro",
+      inputPricePer1kUsd: 0.0035,
+      outputPricePer1kUsd: 0.0105,
+    },
+    {
+      id: "gemini-2.5-flash",
+      label: "Gemini 2.5 Flash",
+      inputPricePer1kUsd: 0.0003,
+      outputPricePer1kUsd: 0.0012,
+    },
   ],
 };
 
@@ -82,7 +127,8 @@ export function defaultAiSettings(): IAiSettings {
         fallbackProviderId: "anthropic",
         fallbackModel: "claude-sonnet-4-6",
         params: { temperature: 0.4, maxTokens: 1024 },
-        systemPrompt: "Você é o copiloto de atendimento da GALLO. Sugira respostas claras e comerciais.",
+        systemPrompt:
+          "Você é o copiloto de atendimento da GALLO. Sugira respostas claras e comerciais.",
       },
       {
         feature: "analytics_copilot",
@@ -92,7 +138,8 @@ export function defaultAiSettings(): IAiSettings {
         fallbackProviderId: "openai",
         fallbackModel: "gpt-5-mini",
         params: { temperature: 0.2, maxTokens: 800 },
-        systemPrompt: "Responda perguntas sobre os indicadores comerciais com números e comparações verificáveis.",
+        systemPrompt:
+          "Responda perguntas sobre os indicadores comerciais com números e comparações verificáveis.",
       },
       {
         feature: "sdr",
@@ -112,7 +159,8 @@ export function defaultAiSettings(): IAiSettings {
         fallbackProviderId: "openai",
         fallbackModel: "gpt-5.2",
         params: { temperature: 0.1, maxTokens: 512 },
-        systemPrompt: "Extraia a peça (código, aplicação, montadora) a partir do texto/imagem do cliente.",
+        systemPrompt:
+          "Extraia a peça (código, aplicação, montadora) a partir do texto/imagem do cliente.",
       },
       {
         feature: "insights",
@@ -153,7 +201,8 @@ export function seedUsageEvents(referenceIso: string): IAiUsageEvent[] {
       const route = routingByFeature.get(feature)!;
       if (!route.enabled) continue;
       const usedFallback = rng() < 0.05;
-      const providerId = usedFallback && route.fallbackProviderId ? route.fallbackProviderId : route.providerId;
+      const providerId =
+        usedFallback && route.fallbackProviderId ? route.fallbackProviderId : route.providerId;
       const model = usedFallback && route.fallbackModel ? route.fallbackModel : route.model;
       const inputTokens = 200 + Math.floor(rng() * 800);
       const outputTokens = 80 + Math.floor(rng() * 400);

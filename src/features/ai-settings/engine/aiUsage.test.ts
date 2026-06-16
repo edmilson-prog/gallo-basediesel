@@ -26,7 +26,12 @@ describe("summarizeUsage", () => {
       ev({ costBRL: 2, inputTokens: 1000, outputTokens: 0 }),
       ev({ costBRL: 3, inputTokens: 500, outputTokens: 500 }),
     ];
-    const s = summarizeUsage(events, "last_30d", { monthlyCapBRL: 100, alertThresholdPct: 80, usdToBrl: 5 }, now);
+    const s = summarizeUsage(
+      events,
+      "last_30d",
+      { monthlyCapBRL: 100, alertThresholdPct: 80, usdToBrl: 5 },
+      now,
+    );
     expect(s.calls).toBe(2);
     expect(s.tokens).toBe(2000);
     expect(s.costBRL).toBeCloseTo(5, 5);
@@ -35,15 +40,30 @@ describe("summarizeUsage", () => {
   });
 
   it("calcula taxa de erro e de fallback", () => {
-    const events = [ev({ status: "ok" }), ev({ status: "error" }), ev({ status: "fallback" }), ev({ status: "ok" })];
-    const s = summarizeUsage(events, "last_30d", { monthlyCapBRL: 100, alertThresholdPct: 80, usdToBrl: 5 }, now);
+    const events = [
+      ev({ status: "ok" }),
+      ev({ status: "error" }),
+      ev({ status: "fallback" }),
+      ev({ status: "ok" }),
+    ];
+    const s = summarizeUsage(
+      events,
+      "last_30d",
+      { monthlyCapBRL: 100, alertThresholdPct: 80, usdToBrl: 5 },
+      now,
+    );
     expect(s.errorRate).toBeCloseTo(0.25, 5);
     expect(s.fallbackRate).toBeCloseTo(0.25, 5);
   });
 
   it("ignora eventos fora do período (last_7d)", () => {
     const events = [ev({ ts: "2026-06-12T10:00:00.000Z" }), ev({ ts: "2026-05-01T10:00:00.000Z" })];
-    const s = summarizeUsage(events, "last_7d", { monthlyCapBRL: 100, alertThresholdPct: 80, usdToBrl: 5 }, now);
+    const s = summarizeUsage(
+      events,
+      "last_7d",
+      { monthlyCapBRL: 100, alertThresholdPct: 80, usdToBrl: 5 },
+      now,
+    );
     expect(s.calls).toBe(1);
   });
 });

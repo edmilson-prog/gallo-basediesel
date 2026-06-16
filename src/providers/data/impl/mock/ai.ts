@@ -20,13 +20,16 @@ const delay = () => new Promise<void>((r) => setTimeout(r, LATENCY_MS));
 // Fixed "now" anchor keeps the mock dataset deterministic across reloads.
 const NOW_ISO = "2026-06-13T12:00:00.000Z";
 
-let settings: IAiSettings = defaultAiSettings();
+const settings: IAiSettings = defaultAiSettings();
 let events: IAiUsageEvent[] | null = null;
 
 function pricingFor(providerId: AiProviderId, model: string) {
   const list = modelsFor(providerId);
   const opt = list.find((m) => m.id === model) ?? list[0]!;
-  return { inputPricePer1kUsd: opt.inputPricePer1kUsd, outputPricePer1kUsd: opt.outputPricePer1kUsd };
+  return {
+    inputPricePer1kUsd: opt.inputPricePer1kUsd,
+    outputPricePer1kUsd: opt.outputPricePer1kUsd,
+  };
 }
 
 function ensureEvents(): IAiUsageEvent[] {

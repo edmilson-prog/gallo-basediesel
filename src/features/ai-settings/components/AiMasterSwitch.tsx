@@ -3,7 +3,13 @@ import { Switch } from "@/components/ui/switch";
 import { useAiProvider } from "@/providers/data";
 import { AI_STRINGS } from "../i18n/pt-BR";
 
-export function AiMasterSwitch({ enabled, onChanged }: { enabled: boolean; onChanged: () => void }) {
+export function AiMasterSwitch({
+  enabled,
+  onChanged,
+}: {
+  enabled: boolean;
+  onChanged: () => void;
+}) {
   const provider = useAiProvider();
   const toggle = async (v: boolean) => {
     try {
