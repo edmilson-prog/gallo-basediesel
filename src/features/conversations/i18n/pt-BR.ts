@@ -64,6 +64,10 @@ export const INBOX_STRINGS = {
     seller: "Por vendedor",
   },
 
+  // Instance filter (multi-instância) — only shown when the store has 2+ numbers
+  instanceLabel: "Instância",
+  instanceAllOption: "Todas",
+
   // Tags filter
   tagsLabel: "Tags",
   tagsEmpty: "Nenhuma tag disponível",

@@ -173,6 +173,7 @@ export function InboxPage() {
     setStatus,
     setChannel,
     setAssignment,
+    setInstance,
     setTags,
     setPeriod,
     setSearch,
@@ -351,9 +352,11 @@ export function InboxPage() {
         <InboxFilters
           state={filters}
           availableTags={availableTags}
+          instances={accounts}
           onStatus={setStatus}
           onChannel={setChannel}
           onAssignment={setAssignment}
+          onInstance={setInstance}
           onTags={setTags}
           onPeriod={setPeriod}
           onSort={setSort}

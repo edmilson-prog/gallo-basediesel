@@ -35,6 +35,7 @@ export interface IListConversationsParams extends IPaginationParams {
   assignedSellerId?: ID;
   status?: IConversation["status"] | IConversation["status"][];
   channel?: IConversation["channel"];
+  whatsappAccountId?: ID;
   isSdrActive?: boolean;
   customerId?: ID;
   leadId?: ID;
@@ -117,6 +118,8 @@ export const conversationsApi = {
           all = all.filter((c) => allowed.has(c.status));
         }
         if (params.channel) all = all.filter((c) => c.channel === params.channel);
+        if (params.whatsappAccountId)
+          all = all.filter((c) => c.whatsappAccountId === params.whatsappAccountId);
         if (typeof params.isSdrActive === "boolean")
           all = all.filter((c) => c.isSdrActive === params.isSdrActive);
         if (params.customerId) all = all.filter((c) => c.customerId === params.customerId);

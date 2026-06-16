@@ -10,6 +10,8 @@ export interface IListConversationsParams extends IPaginationParams {
   /** Filter by a specific status, or by a set of allowed statuses. */
   status?: IConversation["status"] | IConversation["status"][];
   channel?: IConversation["channel"];
+  /** Filter by the WhatsApp instance (account) the conversation belongs to. */
+  whatsappAccountId?: ID;
   isSdrActive?: boolean;
   customerId?: ID;
   leadId?: ID;
