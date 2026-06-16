@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/select";
 import { Icon } from "@/components/Icon";
 import type { ISeller } from "@/shared/types";
+import { WorkScheduleTab } from "@/features/access";
 import { useDepartmentsProvider, useSellersProvider } from "@/providers/data";
 import {
   SELLER_TYPE_OPTIONS,
@@ -191,18 +192,10 @@ export function SellerFormDialog({
               <Tabs defaultValue="geral" className="flex min-h-0 flex-1 flex-col py-4">
                 <TabsList className="w-full justify-start">
                   <TabsTrigger value="geral">Geral</TabsTrigger>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      {/* Span wrapper keeps the tooltip reachable on a disabled trigger. */}
-                      <span tabIndex={0}>
-                        <TabsTrigger value="horario" disabled className="gap-1">
-                          <Icon icon="mdi:lock-outline" size={13} />
-                          Horário
-                        </TabsTrigger>
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>Disponível após PRD-212/213</TooltipContent>
-                  </Tooltip>
+                  <TabsTrigger value="horario" className="gap-1">
+                    <Icon icon="mdi:clock-outline" size={13} />
+                    Horário
+                  </TabsTrigger>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span tabIndex={0}>
@@ -370,7 +363,13 @@ export function SellerFormDialog({
                   </TabsContent>
 
                   <TabsContent value="horario">
-                    <LockedTabPlaceholder />
+                    {isEdit && seller ? (
+                      <WorkScheduleTab seller={seller} storeId={storeId} />
+                    ) : (
+                      <div className="rounded-md border border-dashed border-border bg-muted/30 px-6 py-10 text-center text-sm text-muted-foreground">
+                        Cadastre e salve o usuário primeiro para definir o horário de atendimento.
+                      </div>
+                    )}
                   </TabsContent>
 
                   <TabsContent value="rodizio">
