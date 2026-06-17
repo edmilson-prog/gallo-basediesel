@@ -130,19 +130,24 @@ Content-Type: application/json
 ### Fluxo `generate`
 
 1. `requireCaller(req, ["owner"])` — defesa em profundidade sobre `verify_jwt`.
-2. **Validação de limites**: `prompt.length <= MAX_PROMPT_LENGTH` (≈ 50.000 chars), `params.maxTokens` ≤ 4096 (capado server-side), `temperature ∈ [0, 2]`. Fora → `400`.
+2. **Validação de limites**: `prompt.length <= MAX_PROMPT_LENGTH` (≈ 50.000 chars), `params.maxTokens` ≤ 4096 (capado server-side), `temperature ∈ [0, 2]`. Fora → `400` com `{ error: "prompt ou parâmetros inválidos" }`.
 3. Carrega `ai_settings` (linha singleton `id=1`) via cliente `admin`.
-4. **Adaptador habilitado?** Apenas `anthropic` e `openrouter` no v1; outro → `400 PROVIDER_UNSUPPORTED`.
-5. **Teto best-effort**: `SUM(cost_brl)` do mês corrente (UTC) em `ai_usage_events` — se ≥ `budget.monthlyCapBRL` → `402 BUDGET_EXCEEDED`. *(Ver §Riscos aceitos — TOCTOU conhecida.)*
-6. **Chave do Vault** via `createSecretResolver` — `ANTHROPIC_API_KEY` ou `OPENROUTER_API_KEY`. Ausente → `400 KEY_MISSING` (nunca chamar o provedor sem autenticação).
+4. **Adaptador habilitado?** Apenas `anthropic` e `openrouter` no v1; outro → `400` com `{ error: "provedor não suportado" }`.
+5. **Teto best-effort**: `SUM(cost_brl)` do mês corrente (UTC) em `ai_usage_events` — se ≥ `budget.monthlyCapBRL` → `402` com `{ error: "orçamento mensal esgotado" }`. *(Ver §Riscos aceitos — TOCTOU conhecida.)*
+6. **Chave do Vault** via `createSecretResolver` — `ANTHROPIC_API_KEY` ou `OPENROUTER_API_KEY`. Ausente → `400` com `{ error: "chave de API não configurada" }` (nunca chamar o provedor sem autenticação).
 7. **Chamada ao adaptador** com `AbortSignal.timeout(LLM_TIMEOUT_MS ≈ 60 s)`:
    - **Anthropic** (`POST https://api.anthropic.com/v1/messages`, `anthropic-version` pinada): custo = `usage.input_tokens/output_tokens` × preço da linha persistida em `providers[].models[].inputPricePer1kUsd` × `budget.usdToBrl`.
    - **OpenRouter** (`POST https://openrouter.ai/api/v1/chat/completions`, usage accounting habilitado): custo = `usage.cost` (USD real) × `budget.usdToBrl`; fallback se `cost` ausente: tokens × preço da linha + flag de imprecisão no log.
-   - Timeout/erro de rede (`AbortError`): grava `ai_usage_events` com `status='error'`, `latency_ms` medido, retorna `504 LLM_TIMEOUT`.
+   - **Timeout** (`AbortError` cujo `name === "TimeoutError"`): grava `ai_usage_events` com `status='error'`, `latency_ms` medido, retorna `504` com `{ error: "tempo limite da chamada ao LLM excedido" }`.
+   - **Qualquer outro erro de chamada** (falha de rede, HTTP 4xx/5xx do provedor, etc.): grava `ai_usage_events` com `status='error'`, retorna `502` com `{ error: "falha na chamada ao provedor LLM" }`.
 8. **Grava `ai_usage_events`** via `admin` — `source='playground'`, `feature=null`, `caller_id`, custo/tokens/latência/status.
 9. Retorna `{ text, inputTokens, outputTokens, costBRL, latencyMs }`.
 
 > **Importante:** o campo `model` da linha persistida é a fonte de preço — sem tabela própria no Edge, sem drift, sem script de sincronização. O Edge nunca usa `cost_brl = 0` silencioso para modelos fora do catálogo: usa o custo real do provedor (OpenRouter) ou registra com custo conservador + log.
+
+> **`source` fixo no v1:** o Edge sempre grava `source='playground'` (e `feature=null`) em `ai_usage_events`. Quando consumidores automáticos forem adicionados, passarão `source='routed'` + o `feature` correspondente (`AiFeatureKey`) — a coluna e o check constraint já estão preparados.
+
+> **`master_enabled` não é verificado pelo Edge:** o Playground contorna intencionalmente esse flag — a guarda é feita client-side pelo provider antes de habilitar o Playground. Consumidores automáticos também devem fazer a guarda client-side via `resolveEffectiveModel`. A única proteção de gasto server-side garantida pelo Edge é o teto mensal de orçamento (`budget.monthlyCapBRL`).
 
 ### Fluxo `test`
 
