@@ -149,7 +149,9 @@ export function NewConversationDialog({
     // Evolution pre-validates; Meta / offline / errors resolve to `skipped`.
     if (!forced) {
       setCheckState("checking");
-      const check = await checkWhatsAppNumber(origin.id, norm.digits);
+      const check = await checkWhatsAppNumber(origin.id, norm.digits).catch(
+        () => ({ status: "skipped" as const }),
+      );
       setCheckState("idle");
       if (check.status === "no_whatsapp") {
         setCheckState("no_whatsapp");
@@ -371,6 +373,7 @@ export function NewConversationDialog({
                           setNewNumberMode(false);
                           setNewNumberName("");
                           setNewNumberPhone("");
+                          setCheckState("idle");
                         }}
                         className="text-xs text-muted-foreground hover:text-foreground"
                       >
