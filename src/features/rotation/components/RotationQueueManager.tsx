@@ -2,8 +2,6 @@ import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -11,7 +9,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Icon } from "@/components/Icon";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { useCurrentStore } from "@/features/multistore";
 import {
   useRotationParticipantsProvider,
@@ -20,6 +32,7 @@ import {
 } from "@/providers/data";
 import type { RotationTargetMode } from "@/shared/types";
 import { useRotationQueueState } from "../hooks/useRotationQueueState";
+import { SortableParticipantRow } from "./SortableParticipantRow";
 
 /**
  * Owner/Gestor screen to manage the per-store attendance rotation (PRD-213).
@@ -80,6 +93,28 @@ export function RotationQueueManager() {
     onError: (e: Error) => toast.error("Não foi possível remover", { description: e.message }),
   });
 
+  const reorder = useMutation({
+    mutationFn: (ids: string[]) => participantsProvider.reorder(ids),
+    onSuccess: () => invalidate(),
+    onError: (e: Error) => toast.error("Não foi possível reordenar", { description: e.message }),
+  });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  function handleDragEnd(event: DragEndEvent) {
+    if (!state) return;
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const ids = state.topParticipants.map((p) => p.id);
+    const oldIndex = ids.indexOf(String(active.id));
+    const newIndex = ids.indexOf(String(over.id));
+    if (oldIndex === -1 || newIndex === -1) return;
+    reorder.mutate(arrayMove(ids, oldIndex, newIndex));
+  }
+
   const presentIds = new Set((state?.topParticipants ?? []).map((p) => p.refId));
   const addable = sellers.filter((s) => !presentIds.has(s.id));
 
@@ -133,37 +168,30 @@ export function RotationQueueManager() {
       {state.queue.targetMode === "direct" && (
         <section className="space-y-3">
           <h2 className="text-sm font-medium text-foreground">Participantes</h2>
-          <ul className="space-y-2">
-            {state.topParticipants.map((p) => (
-              <li
-                key={p.id}
-                className="flex items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2"
-              >
-                <span className="text-sm text-foreground">{nameById[p.refId] ?? p.refId}</span>
-                <span className="flex items-center gap-3">
-                  <Switch
-                    checked={p.enabled}
-                    onCheckedChange={(enabled) => setEnabled.mutate({ id: p.id, enabled })}
-                    aria-label={`Participação de ${nameById[p.refId] ?? p.refId}`}
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext
+              items={state.topParticipants.map((p) => p.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <ul className="space-y-2">
+                {state.topParticipants.map((p) => (
+                  <SortableParticipantRow
+                    key={p.id}
+                    id={p.id}
+                    label={nameById[p.refId] ?? p.refId}
+                    enabled={p.enabled}
+                    onToggle={(enabled) => setEnabled.mutate({ id: p.id, enabled })}
+                    onRemove={() => removeParticipant.mutate(p.id)}
                   />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    aria-label={`Remover ${nameById[p.refId] ?? p.refId} do rodízio`}
-                    onClick={() => removeParticipant.mutate(p.id)}
-                  >
-                    <Icon icon="mdi:close" size={16} />
-                  </Button>
-                </span>
-              </li>
-            ))}
-            {state.topParticipants.length === 0 && (
-              <li className="rounded-md border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">
-                Nenhum participante. Adicione usuários abaixo.
-              </li>
-            )}
-          </ul>
+                ))}
+                {state.topParticipants.length === 0 && (
+                  <li className="rounded-md border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">
+                    Nenhum participante. Adicione usuários abaixo.
+                  </li>
+                )}
+              </ul>
+            </SortableContext>
+          </DndContext>
 
           {addable.length > 0 && (
             <div className="flex items-center gap-2">
