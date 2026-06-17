@@ -15,3 +15,12 @@ export function budgetLevel(pct: number, alertThresholdPct: number): BudgetLevel
   if (pct >= alertThresholdPct) return "warning";
   return "ok";
 }
+
+/**
+ * Hard-cap predicate. A cap of 0 (or less) means "no cap configured" → never blocks.
+ * Mirrored in the ai-generate Edge Function (Deno cannot import @/).
+ */
+export function isOverBudget(spentBRL: number, monthlyCapBRL: number): boolean {
+  if (monthlyCapBRL <= 0) return false;
+  return spentBRL >= monthlyCapBRL;
+}

@@ -1,10 +1,15 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAiProvider } from "@/providers/data";
-import type { AiProviderId, IAiPlaygroundResult } from "@/shared/types";
+import {
+  AI_PROVIDER_LABELS,
+  AI_SUPPORTED_PROVIDERS,
+  type AiProviderId,
+  type IAiPlaygroundResult,
+} from "@/shared/types";
 import { useAiSettings } from "../hooks/useAiSettings";
 
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -12,28 +17,55 @@ const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" 
 export function AiPlaygroundTab() {
   const { settings, loading } = useAiSettings();
   const provider = useAiProvider();
-  const [providerId, setProviderId] = useState<AiProviderId>("anthropic");
-  const [model, setModel] = useState("claude-opus-4-8");
-  const [prompt, setPrompt] = useState(
-    "Resuma em 3 bullets as últimas conversas do cliente e sugira a próxima ação.",
-  );
+  const [providerId, setProviderId] = useState<AiProviderId | null>(null);
+  const [model, setModel] = useState("");
+  const [prompt, setPrompt] = useState("Explique em 3 bullets como funciona um turbo de motor diesel.");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<IAiPlaygroundResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Only configured AND supported providers can actually be called.
+  // Unsupported providers (e.g. OpenAI, Google) have no real edge adapter in v1 and would
+  // return HTTP 400 "provider não suportado" — filter them out regardless of stored status.
+  const configured = useMemo(
+    () =>
+      (settings?.providers ?? []).filter(
+        (p) => p.status === "configured" && AI_SUPPORTED_PROVIDERS.includes(p.provider),
+      ),
+    [settings],
+  );
 
   if (loading || !settings) return <Skeleton className="h-96 w-full" />;
-  const models = settings.providers.find((p) => p.provider === providerId)?.models ?? [];
+
+  if (configured.length === 0) {
+    return (
+      <Card className="p-6 text-center text-sm text-muted-foreground">
+        <Icon icon="mdi:key-alert-outline" className="mx-auto mb-2 size-6" />
+        Nenhum provedor configurado. Defina uma chave de API em <b>Provedores &amp; chaves</b> e
+        teste a conexão para liberar o Playground.
+      </Card>
+    );
+  }
+
+  const effectiveProviderId = providerId ?? configured[0]!.provider;
+  const providerModels = configured.find((p) => p.provider === effectiveProviderId)?.models ?? [];
+  const effectiveModel = model || providerModels[0]?.id || "";
 
   const run = async () => {
     setBusy(true);
+    setError(null);
     try {
       setResult(
         await provider.runPlayground({
-          providerId,
-          model,
+          providerId: effectiveProviderId,
+          model: effectiveModel,
           params: { temperature: 0.4, maxTokens: 1024 },
           prompt,
         }),
       );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Falha ao executar.");
+      setResult(null);
     } finally {
       setBusy(false);
     }
@@ -41,22 +73,31 @@ export function AiPlaygroundTab() {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-start gap-3 rounded-lg border border-severity-warning/40 bg-severity-warning/10 p-3 text-xs text-severity-warning">
+        <Icon icon="mdi:shield-alert-outline" className="mt-0.5 size-4 shrink-0" />
+        <p>
+          O conteúdo enviado é processado pelo provedor externo selecionado. Não cole dados
+          sensíveis de clientes (LGPD). Evite o OpenRouter para dados pessoais — ele repassa a
+          terceiros.
+        </p>
+      </div>
+
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-xs text-muted-foreground">
           Provedor
           <select
-            value={providerId}
+            value={effectiveProviderId}
             onChange={(e) => {
               const next = e.target.value as AiProviderId;
               setProviderId(next);
-              const ms = settings.providers.find((p) => p.provider === next)?.models ?? [];
+              const ms = configured.find((p) => p.provider === next)?.models ?? [];
               setModel(ms[0]?.id ?? "");
             }}
             className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
           >
-            {settings.providers.map((p) => (
+            {configured.map((p) => (
               <option key={p.provider} value={p.provider}>
-                {p.provider}
+                {AI_PROVIDER_LABELS[p.provider]}
               </option>
             ))}
           </select>
@@ -64,11 +105,11 @@ export function AiPlaygroundTab() {
         <label className="text-xs text-muted-foreground">
           Modelo
           <select
-            value={model}
+            value={effectiveModel}
             onChange={(e) => setModel(e.target.value)}
             className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
           >
-            {models.map((m) => (
+            {providerModels.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.label}
               </option>
@@ -86,11 +127,13 @@ export function AiPlaygroundTab() {
         />
       </label>
       <div className="flex justify-end">
-        <Button onClick={run} disabled={busy}>
+        <Button onClick={run} disabled={busy || !effectiveModel}>
           <Icon icon="mdi:play" className="mr-1 size-4" />
           {busy ? "Executando…" : "Executar"}
         </Button>
       </div>
+
+      {error && <p className="text-sm text-severity-critical">{error}</p>}
 
       {result && (
         <Card className="p-4">
@@ -99,18 +142,10 @@ export function AiPlaygroundTab() {
             {result.text}
           </pre>
           <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground">
-            <span>
-              entrada <b className="text-foreground">{result.inputTokens}</b> tokens
-            </span>
-            <span>
-              saída <b className="text-foreground">{result.outputTokens}</b> tokens
-            </span>
-            <span>
-              custo <b className="text-foreground">{brl.format(result.costBRL)}</b>
-            </span>
-            <span>
-              latência <b className="text-foreground">{(result.latencyMs / 1000).toFixed(1)}s</b>
-            </span>
+            <span>entrada <b className="text-foreground">{result.inputTokens}</b> tokens</span>
+            <span>saída <b className="text-foreground">{result.outputTokens}</b> tokens</span>
+            <span>custo <b className="text-foreground">{brl.format(result.costBRL)}</b></span>
+            <span>latência <b className="text-foreground">{(result.latencyMs / 1000).toFixed(1)}s</b></span>
           </div>
         </Card>
       )}

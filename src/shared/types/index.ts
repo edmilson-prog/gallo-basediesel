@@ -498,4 +498,4 @@ export type {
   IAiPlaygroundResult,
   IAiTestConnectionResult,
 } from "./ai";
-export { AI_FEATURE_LABELS, AI_PROVIDER_LABELS } from "./ai";
+export { AI_FEATURE_LABELS, AI_PROVIDER_LABELS, AI_SUPPORTED_PROVIDERS } from "./ai";

@@ -6,6 +6,25 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.102.0] — Cortex · 2026-06-17
+
+**A área de Inteligência artificial sai do modo Demonstração e passa a operar em produção.** O Edge `ai-generate` faz a chamada real ao Anthropic ou ao OpenRouter com a chave do Vault, mede tokens e custo, aplica o teto de orçamento e grava o histórico. O Playground e o teste de conexão agora são reais. Os consumidores (copiloto, SDR, identificação de peça, insights) continuam deferidos para sub-projetos seguintes.
+
+### Added
+
+- **Integração LLM real (Sub-projeto 1):** Edge Function `ai-generate` (a 11ª) — proxy Owner-only que faz a chamada real ao provedor LLM com a chave do Vault, aplica teto de orçamento best-effort (soma mensal em `ai_usage_events`), AbortSignal de timeout (~60 s) e grava o evento de uso. Provedores no v1: Anthropic e OpenRouter.
+- **Tabela `ai_settings`** — configuração global singleton (`id=1`, schema-garantido). RLS Owner-only. Chaves **não** vivem aqui — ficam no Vault.
+- **Tabela `ai_usage_events`** — histórico append-only. Uma linha por chamada real ao LLM. INSERT exclusivo pelo service_role (Edge); Owner lê via RLS. Índices em `ts desc` (teto mensal) e `feature` parcial (agrupamento por funcionalidade).
+- **`supabaseAiProvider` real** — substitui o stub `NotImplementedError`; CRUD de settings via cliente direto (RLS Owner), Playground e teste de conexão via Edge `ai-generate`.
+- **Playground real** — chama Anthropic ou OpenRouter de verdade, exibe tokens, custo e latência reais; estado-zero quando nenhum provedor está configurado.
+- **Teste de conexão real** — `testConnection` faz ping de 1 token ao provedor; bloqueado quando o teto mensal já estourou.
+
+### Changed
+
+- **Área de *Inteligência artificial*** — gate demo-only removido; o item aparece para o Owner em produção (`supabase`). Em modo mock, o comportamento permanece idêntico ao v0.100.0.
+- **Catálogo de modelos e preços** — extraído de `src/providers/data/impl/mock/_aiSeed.ts` para `src/providers/data/engine/aiCatalog.ts` (módulo compartilhado fora de `mock/`); `_aiSeed.ts` passa a re-exportar o catálogo. `buildDefaultAiSettings` diferencia `mock` de `supabase`.
+- **`IAiUsageEvent`** — campo `source: "playground" | "routed"` agora obrigatório; campo `feature` agora opcional (playground não tem funcionalidade associada). `summarizeUsage` filtra eventos sem `feature` no agrupamento por funcionalidade.
+
 ## [0.101.0] — Carousel · 2026-06-17
 
 **A loja agora tem uma fila de rodízio de atendimento, configurável e visível.** Em vez de depender só do revezamento automático, o Dono/Gestor monta uma fila própria: arrasta para definir a ordem, liga ou desliga quem participa, e quem está offline ou fora do horário é pulado na hora. A fila pode revezar diretamente entre usuários ou entre departamentos (e, dentro de cada um, entre seus membros). Conversas de rotina passam a ser distribuídas por essa fila — clientes já com vendedor (carteira) e os encaixes por especialidade continuam com prioridade.

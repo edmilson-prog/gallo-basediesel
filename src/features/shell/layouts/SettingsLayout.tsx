@@ -177,7 +177,6 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         icon: "mdi:robot-happy-outline",
         to: "/app/configuracoes/ia",
         roles: ["Owner"],
-        demoOnly: true,
       },
       {
         label: "WhatsApp",

@@ -6,6 +6,7 @@ function ev(partial: Partial<IAiUsageEvent>): IAiUsageEvent {
   return {
     id: "x",
     ts: "2026-06-10T10:00:00.000Z",
+    source: "routed",
     feature: "sdr",
     providerId: "anthropic",
     model: "claude-opus-4-8",
@@ -65,5 +66,46 @@ describe("summarizeUsage", () => {
       now,
     );
     expect(s.calls).toBe(1);
+  });
+
+  it("eventos source='playground' (sem feature) entram nos totais mas não no byFeature", () => {
+    const now2 = new Date("2026-06-15T12:00:00.000Z");
+    const events: IAiUsageEvent[] = [
+      {
+        id: "1",
+        ts: "2026-06-10T10:00:00.000Z",
+        source: "routed",
+        feature: "sdr",
+        providerId: "anthropic",
+        model: "claude-opus-4-8",
+        inputTokens: 100,
+        outputTokens: 50,
+        costBRL: 2,
+        latencyMs: 500,
+        status: "ok",
+      },
+      {
+        id: "2",
+        ts: "2026-06-11T10:00:00.000Z",
+        source: "playground",
+        providerId: "anthropic",
+        model: "claude-opus-4-8",
+        inputTokens: 200,
+        outputTokens: 80,
+        costBRL: 3,
+        latencyMs: 600,
+        status: "ok",
+      },
+    ];
+    const s = summarizeUsage(
+      events,
+      "current_month",
+      { monthlyCapBRL: 1000, alertThresholdPct: 80, usdToBrl: 5.4 },
+      now2,
+    );
+    expect(s.calls).toBe(2); // total inclui o playground
+    expect(s.costBRL).toBe(5);
+    expect(s.byFeature).toHaveLength(1); // só o routed/sdr
+    expect(s.byFeature[0]?.feature).toBe("sdr");
   });
 });

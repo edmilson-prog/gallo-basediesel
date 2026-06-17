@@ -55,11 +55,13 @@ export function summarizeUsage(
   const prev = events.filter((e) => new Date(e.ts) >= prevStart && new Date(e.ts) < start);
   const prevCostByFeature = new Map<AiFeatureKey, number>();
   for (const e of prev) {
+    if (!e.feature) continue;
     prevCostByFeature.set(e.feature, (prevCostByFeature.get(e.feature) ?? 0) + e.costBRL);
   }
 
   const byFeatureMap = new Map<AiFeatureKey, { calls: number; costBRL: number }>();
   for (const e of inPeriod) {
+    if (!e.feature) continue;
     const cur = byFeatureMap.get(e.feature) ?? { calls: 0, costBRL: 0 };
     cur.calls += 1;
     cur.costBRL += e.costBRL;
