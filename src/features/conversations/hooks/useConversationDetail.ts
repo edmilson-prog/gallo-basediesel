@@ -9,33 +9,22 @@ import {
   useWhatsAppAccountsProvider,
 } from "@/providers/data";
 
-export interface IConversationDetail {
+/** The conversation plus the directly-related entities, cached per id. */
+interface IConversationDetailData {
   conversation: IConversation | null;
   customer: ICustomer | null;
   lead: ILead | null;
   whatsappAccount: IWhatsAppAccount | null;
   /** Seller the conversation is assigned to (null when unassigned/unreadable). */
   assignedSeller: ISeller | null;
-  isLoading: boolean;
-  /**
-   * True while a previous conversation's cached detail is shown during a switch
-   * (`keepPreviousData`) — the new conversation hasn't loaded yet.
-   */
-  isPlaceholder: boolean;
-  notFound: boolean;
-  error: Error | null;
-  refresh: () => void;
-}
-
-/** Shape cached per conversation by the detail query. */
-interface IConversationDetailData {
-  conversation: IConversation | null;
-  customer: ICustomer | null;
-  lead: ILead | null;
-  whatsappAccount: IWhatsAppAccount | null;
-  assignedSeller: ISeller | null;
   /** True when the id resolved to a missing row (a soft "not found", not an error). */
   notFound: boolean;
+}
+
+export interface IConversationDetail extends IConversationDetailData {
+  isLoading: boolean;
+  error: Error | null;
+  refresh: () => void;
 }
 
 const EMPTY_DETAIL: IConversationDetailData = {
@@ -80,8 +69,10 @@ export function useConversationDetail(conversationId: ID | null): IConversationD
       try {
         conversation = await conversationsProvider.get(id);
       } catch (err) {
-        // A missing row is a soft "not found" (renders the empty state); any
-        // other failure propagates as `error`. Mirrors the previous catch.
+        // The mock provider throws a "not found" for a missing row, modeled here
+        // as soft notFound DATA. Real backends (supabase) throw an opaque error
+        // for a missing/forbidden row, which propagates below; the page renders
+        // the same empty state via its `!conversation` guard.
         if (err instanceof Error && /not found/i.test(err.message)) {
           return { ...EMPTY_DETAIL, notFound: true };
         }
@@ -105,7 +96,7 @@ export function useConversationDetail(conversationId: ID | null): IConversationD
 
       return { conversation, customer, lead, whatsappAccount, assignedSeller, notFound: false };
     },
-    enabled: conversationId != null,
+    enabled: !!conversationId,
     // Keep the previous conversation's header during a switch instead of a
     // spinner-flash; revisited conversations come straight from cache.
     placeholderData: keepPreviousData,
@@ -116,8 +107,8 @@ export function useConversationDetail(conversationId: ID | null): IConversationD
     staleTime: 0,
     gcTime: 10 * 60_000,
     refetchOnWindowFocus: false,
-    // A missing conversation is modeled as `notFound` data, so a thrown error is
-    // a genuine failure to surface immediately rather than retry.
+    // No retry: a failure (missing/forbidden conversation, or a transient error)
+    // surfaces immediately as the empty state, mirroring the old single fetch.
     retry: false,
   });
 
@@ -126,23 +117,16 @@ export function useConversationDetail(conversationId: ID | null): IConversationD
     void refetch();
   }, [refetch]);
 
-  // A null id resets to the empty record. Done after the (unconditional) hooks
-  // and explicitly, so `keepPreviousData` can't leak the prior conversation's
-  // cached detail into the disabled state.
-  if (conversationId == null) {
-    return { ...EMPTY_DETAIL, isLoading: false, isPlaceholder: false, error: null, refresh };
+  // An empty/null id resets to the empty record. Done after the (unconditional)
+  // hooks and explicitly, so `keepPreviousData` can't leak the prior
+  // conversation's cached detail into the disabled state.
+  if (!conversationId) {
+    return { ...EMPTY_DETAIL, isLoading: false, error: null, refresh };
   }
 
-  const data = query.data;
   return {
-    conversation: data?.conversation ?? null,
-    customer: data?.customer ?? null,
-    lead: data?.lead ?? null,
-    whatsappAccount: data?.whatsappAccount ?? null,
-    assignedSeller: data?.assignedSeller ?? null,
+    ...(query.data ?? EMPTY_DETAIL),
     isLoading: query.isLoading,
-    isPlaceholder: query.isPlaceholderData,
-    notFound: data?.notFound ?? false,
     error: query.error,
     refresh,
   };
