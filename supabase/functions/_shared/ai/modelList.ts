@@ -63,8 +63,8 @@ export async function listOpenRouterModels(apiKey: string, signal: AbortSignal):
   };
   return (data.data ?? []).flatMap((m) => {
     if (!m.id) return [];
-    const prompt = Number(m.pricing?.prompt);
-    const completion = Number(m.pricing?.completion);
+    const prompt = m.pricing?.prompt ? Number(m.pricing.prompt) : NaN;
+    const completion = m.pricing?.completion ? Number(m.pricing.completion) : NaN;
     const priced = Number.isFinite(prompt) && Number.isFinite(completion);
     const base: RawModel = { id: m.id, label: m.name ?? m.id };
     return [priced ? { ...base, pricePromptPerToken: prompt, priceCompletionPerToken: completion } : base];
@@ -78,5 +78,6 @@ export async function listModels(
 ): Promise<RawModel[]> {
   if (providerId === "anthropic") return listAnthropicModels(apiKey, signal);
   if (providerId === "openai") return listOpenAIModels(apiKey, signal);
-  return listOpenRouterModels(apiKey, signal);
+  if (providerId === "openrouter") return listOpenRouterModels(apiKey, signal);
+  throw new Error(`unsupported provider: ${providerId}`);
 }
