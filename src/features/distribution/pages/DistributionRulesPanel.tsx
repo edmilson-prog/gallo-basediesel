@@ -1,5 +1,7 @@
+import { Link } from "@tanstack/react-router";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import { Icon } from "@/components/Icon";
 import { useCurrentStore } from "@/features/multistore";
 import { ModeSection } from "../components/ModeSection";
 import { CriteriaSection } from "../components/CriteriaSection";
@@ -47,6 +49,13 @@ export function DistributionRulesPanel() {
           Regras que governam quem atende cada conversa nova. Cada alteração gera registro de
           auditoria.
         </p>
+        <Link
+          to="/app/configuracoes/rodizio"
+          className="mt-2 inline-flex items-center gap-1 text-sm text-primary hover:underline"
+        >
+          <Icon icon="mdi:account-switch-outline" size={16} />
+          Gerenciar a fila de rodízio
+        </Link>
       </div>
 
       {error && (

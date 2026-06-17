@@ -6,6 +6,23 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.100.0] — Carousel · 2026-06-17
+
+**A loja agora tem uma fila de rodízio de atendimento, configurável e visível.** Em vez de depender só do revezamento automático, o Dono/Gestor monta uma fila própria: arrasta para definir a ordem, liga ou desliga quem participa, e quem está offline ou fora do horário é pulado na hora. A fila pode revezar diretamente entre usuários ou entre departamentos (e, dentro de cada um, entre seus membros). Conversas de rotina passam a ser distribuídas por essa fila — clientes já com vendedor (carteira) e os encaixes por especialidade continuam com prioridade.
+
+### Added
+
+- **Fila de rodízio por loja** — em Configurações → Rodízio, uma tela própria para montar a fila de atendimento. Escolha revezar **por usuário** ou **por departamento**.
+- **Ordem por arrastar** — defina a ordem do rodízio arrastando os participantes (com alternativa por teclado).
+- **Participação liga/desliga** — ative ou desative cada participante; quem está desligado fica visível mas fora da vez. Também dá para ligar/desligar pela aba "Rodízio" no cadastro do usuário.
+- **Pulo automático** — quem está offline, inativo ou fora do horário de atendimento é pulado automaticamente, sem travar a fila.
+- **Modo por departamento (dois níveis)** — a fila reveza entre departamentos e, dentro do departamento escolhido, entre seus membros — cada nível com sua própria ordem.
+- **Visão ao vivo** — o painel "Agora" mostra quem é o próximo a receber e o estado de cada participante (online, offline, desligado, fora do horário).
+
+### Changed
+
+- **Distribuição de conversas de rotina** — conversas novas sem vendedor definido passam a ser direcionadas pela fila de rodízio. Clientes já com vendedor (carteira) e os encaixes por especialidade mantêm prioridade, como antes.
+
 ## [0.99.0] — Shift · 2026-06-16
 
 **Cada usuário pode ter um horário de atendimento que controla o acesso à plataforma.** No cadastro de cada pessoa, o Dono define os dias e horários em que ela pode entrar. Fora desse turno, vendedores e atendentes não conseguem fazer login e ficam offline — sem interromper atendimentos em andamento. Dono e gestores nunca são bloqueados, e há liberação temporária para emergências.
