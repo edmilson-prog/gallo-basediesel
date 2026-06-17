@@ -130,3 +130,10 @@ export const AI_PROVIDER_LABELS: Record<AiProviderId, string> = {
   openrouter: "OpenRouter",
   google: "Google",
 };
+
+/**
+ * Providers that have a real Edge adapter in v1 — mirror of the SUPPORTED set in
+ * supabase/functions/ai-generate/index.ts. OpenAI/Google are shown as "adaptador
+ * em breve" (cannot be configured/run) until their adapters land.
+ */
+export const AI_SUPPORTED_PROVIDERS: AiProviderId[] = ["anthropic", "openrouter"];

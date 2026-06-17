@@ -4,7 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAiProvider } from "@/providers/data";
-import { AI_PROVIDER_LABELS, type AiProviderId, type IAiPlaygroundResult } from "@/shared/types";
+import {
+  AI_PROVIDER_LABELS,
+  AI_SUPPORTED_PROVIDERS,
+  type AiProviderId,
+  type IAiPlaygroundResult,
+} from "@/shared/types";
 import { useAiSettings } from "../hooks/useAiSettings";
 
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -19,9 +24,14 @@ export function AiPlaygroundTab() {
   const [result, setResult] = useState<IAiPlaygroundResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Only configured providers can actually be called.
+  // Only configured AND supported providers can actually be called.
+  // Unsupported providers (e.g. OpenAI, Google) have no real edge adapter in v1 and would
+  // return HTTP 400 "provider não suportado" — filter them out regardless of stored status.
   const configured = useMemo(
-    () => (settings?.providers ?? []).filter((p) => p.status === "configured"),
+    () =>
+      (settings?.providers ?? []).filter(
+        (p) => p.status === "configured" && AI_SUPPORTED_PROVIDERS.includes(p.provider),
+      ),
     [settings],
   );
 

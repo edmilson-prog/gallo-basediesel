@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { setIntegrationSecret } from "@/features/admin-settings/api/integrationSecrets";
-import { AI_PROVIDER_LABELS, type IAiProviderConfig } from "@/shared/types";
+import { AI_PROVIDER_LABELS, AI_SUPPORTED_PROVIDERS, type IAiProviderConfig } from "@/shared/types";
 import { useAiProvider } from "@/providers/data";
 
 const INITIALS: Record<string, string> = {
@@ -30,6 +30,7 @@ export function ProviderCard({
   const [busy, setBusy] = useState(false);
 
   const configured = config.status === "configured";
+  const supported = AI_SUPPORTED_PROVIDERS.includes(config.provider);
 
   const saveKey = async () => {
     if (!keyValue.trim()) {
@@ -84,7 +85,11 @@ export function ProviderCard({
           <p className="text-sm font-semibold">{AI_PROVIDER_LABELS[config.provider]}</p>
           <p className="text-xs text-muted-foreground">{config.models.length} modelos</p>
         </div>
-        {configured ? (
+        {!supported ? (
+          <Badge variant="outline" className="text-muted-foreground">
+            Adaptador em breve
+          </Badge>
+        ) : configured ? (
           <Badge
             variant="outline"
             className="border-severity-success/40 bg-severity-success/10 text-severity-success"
@@ -134,12 +139,19 @@ export function ProviderCard({
             <Button
               size="sm"
               variant="outline"
-              disabled={!canEditKey}
-              onClick={() => setEditingKey(true)}
+              disabled={!canEditKey || !supported}
+              onClick={() => {
+                if (supported) setEditingKey(true);
+              }}
             >
               <Icon icon="mdi:key-plus" className="mr-1 size-4" />
               {configured ? "Substituir chave" : "Definir chave"}
             </Button>
+          )}
+          {!supported && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Sem adaptador disponível nesta versão.
+            </p>
           )}
         </div>
 
@@ -159,7 +171,7 @@ export function ProviderCard({
         </div>
 
         <div className="flex items-center justify-between border-t border-border pt-3">
-          <Button size="sm" variant="outline" onClick={test} disabled={busy}>
+          <Button size="sm" variant="outline" onClick={test} disabled={busy || !supported}>
             <Icon icon="mdi:connection" className="mr-1 size-4" />
             Testar conexão
           </Button>
