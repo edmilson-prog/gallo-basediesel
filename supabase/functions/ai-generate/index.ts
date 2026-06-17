@@ -34,7 +34,6 @@ const KEY_BY_PROVIDER: Record<string, string> = {
 };
 
 interface AiSettingsRow {
-  master_enabled: boolean;
   budget: { monthlyCapBRL: number; alertThresholdPct: number; usdToBrl: number };
   providers: Array<{
     provider: string;
@@ -83,9 +82,11 @@ servePost(async (req, { log }) => {
   }
 
   // Settings (single row).
+  // Playground intentionally bypasses master_enabled (spec §7): the manual test must work before
+  // the feature is switched on; routed consumers gate masterEnabled client-side.
   const { data: settings, error: sErr } = await admin
     .from("ai_settings")
-    .select("master_enabled, budget, providers")
+    .select("budget, providers")
     .eq("id", 1)
     .maybeSingle<AiSettingsRow>();
   if (sErr) throw new HttpError(500, `settings read failed: ${sErr.message}`);
@@ -107,6 +108,7 @@ servePost(async (req, { log }) => {
 
   if (mode === "test") {
     const model = String(body.model ?? settings.providers.find((p) => p.provider === providerId)?.defaultModel ?? "");
+    if (!model) return json({ ok: false, latencyMs: 0, message: "nenhum modelo configurado para este provedor" }, 200);
     try {
       await dispatch(providerId, apiKey, { model, prompt: "ping", maxTokens: 1, temperature: 0 }, controller);
       return json({ ok: true, latencyMs: Date.now() - started, message: "Conexão OK." });
@@ -122,8 +124,10 @@ servePost(async (req, { log }) => {
   if (!prompt || !model) throw new HttpError(400, "model e prompt são obrigatórios");
   if (prompt.length > MAX_PROMPT_LENGTH) throw new HttpError(400, "prompt muito longo");
   const params = (body.params ?? {}) as { temperature?: number; maxTokens?: number; topP?: number };
-  const temperature = Math.min(2, Math.max(0, Number(params.temperature ?? 0.4)));
-  const maxTokens = Math.min(MAX_TOKENS_CAP, Math.max(1, Number(params.maxTokens ?? 1024)));
+  let temperature = Math.min(2, Math.max(0, Number(params.temperature ?? 0.4)));
+  let maxTokens = Math.min(MAX_TOKENS_CAP, Math.max(1, Number(params.maxTokens ?? 1024)));
+  if (!Number.isFinite(temperature)) temperature = 0.4;
+  if (!Number.isFinite(maxTokens)) maxTokens = 1024;
 
   const llmReq: LlmRequest = {
     model,
@@ -141,7 +145,7 @@ servePost(async (req, { log }) => {
     const latencyMs = Date.now() - started;
     const aborted = err instanceof DOMException && err.name === "TimeoutError";
     // Record the failed call so cost/latency analytics stay honest.
-    await admin.from("ai_usage_events").insert({
+    const { error: insertErr } = await admin.from("ai_usage_events").insert({
       source: "playground",
       provider_id: providerId,
       model,
@@ -153,6 +157,7 @@ servePost(async (req, { log }) => {
       caller_id: callerId,
       store_id: profile.store_id,
     });
+    if (insertErr) log.error("ai-generate error-usage insert failed", { error: insertErr.message });
     log.error("ai-generate llm call failed", { providerId, model, aborted });
     throw new HttpError(aborted ? 504 : 502, aborted ? "tempo de resposta do LLM esgotado" : "falha na chamada ao LLM");
   }
@@ -170,7 +175,7 @@ servePost(async (req, { log }) => {
     log.error("ai-generate unknown model pricing", { providerId, model });
   }
 
-  await admin.from("ai_usage_events").insert({
+  const { error: insertErr } = await admin.from("ai_usage_events").insert({
     source: "playground",
     provider_id: providerId,
     model,
@@ -182,6 +187,7 @@ servePost(async (req, { log }) => {
     caller_id: callerId,
     store_id: profile.store_id,
   });
+  if (insertErr) log.error("ai-generate usage insert failed", { error: insertErr.message, costBRL });
 
   return json({
     text: result.text,
