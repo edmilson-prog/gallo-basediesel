@@ -121,10 +121,11 @@ export function NewConversationDialog({
 
   /** Reuse an already-open conversation for this contact on this instance. */
   async function findOpenConversationId(customerId: ID): Promise<ID | null> {
+    if (!origin) return null;
     const res = await conversationsProvider.list({
       storeId,
       customerId,
-      whatsappAccountId: origin?.id,
+      whatsappAccountId: origin.id,
       status: ["aguardando", "em_andamento", "aguardando_cliente"],
       pageSize: 1,
     });
