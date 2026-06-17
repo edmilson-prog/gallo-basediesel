@@ -92,13 +92,7 @@ servePost(async (req, { log }) => {
   if (sErr) throw new HttpError(500, `settings read failed: ${sErr.message}`);
   if (!settings) throw new HttpError(409, "configuração de IA ainda não inicializada");
 
-  // Budget hard cap (best-effort; see spec §9). Blocks both generate and test.
-  const spent = await monthSpendBRL(admin);
-  if (settings.budget.monthlyCapBRL > 0 && spent >= settings.budget.monthlyCapBRL) {
-    throw new HttpError(402, "orçamento de IA do mês esgotado");
-  }
-
-  // Resolve key (Vault-first).
+  // Resolve key (Vault-first). Required for both test and generate.
   const resolveSecret = createSecretResolver(admin);
   const apiKey = await resolveSecret(KEY_BY_PROVIDER[providerId]!);
   if (!apiKey) throw new HttpError(400, "chave de API do provedor não configurada");
@@ -106,6 +100,7 @@ servePost(async (req, { log }) => {
   const controller = AbortSignal.timeout(LLM_TIMEOUT_MS);
   const started = Date.now();
 
+  // Test mode: ping the provider with a single token — must not be blocked by budget cap.
   if (mode === "test") {
     const model = String(body.model ?? settings.providers.find((p) => p.provider === providerId)?.defaultModel ?? "");
     if (!model) return json({ ok: false, latencyMs: 0, message: "nenhum modelo configurado para este provedor" }, 200);
@@ -118,7 +113,18 @@ servePost(async (req, { log }) => {
     }
   }
 
+  // Budget hard cap (best-effort; see spec §9). Only enforced on the generate path.
+  const spent = await monthSpendBRL(admin);
+  if (settings.budget.monthlyCapBRL > 0 && spent >= settings.budget.monthlyCapBRL) {
+    throw new HttpError(402, "orçamento de IA do mês esgotado");
+  }
+
   // mode === "generate"
+  // Read call-site classification fields so future routed consumers are tracked correctly.
+  // Defaults: playground (UI Playground sends neither), null feature.
+  const source = body.source === "routed" ? "routed" : "playground";
+  const feature = typeof body.feature === "string" ? body.feature : null;
+
   const prompt = String(body.prompt ?? "");
   const model = String(body.model ?? "");
   if (!prompt || !model) throw new HttpError(400, "model e prompt são obrigatórios");
@@ -146,7 +152,8 @@ servePost(async (req, { log }) => {
     const aborted = err instanceof DOMException && err.name === "TimeoutError";
     // Record the failed call so cost/latency analytics stay honest.
     const { error: insertErr } = await admin.from("ai_usage_events").insert({
-      source: "playground",
+      source,
+      feature,
       provider_id: providerId,
       model,
       input_tokens: 0,
@@ -176,7 +183,8 @@ servePost(async (req, { log }) => {
   }
 
   const { error: insertErr } = await admin.from("ai_usage_events").insert({
-    source: "playground",
+    source,
+    feature,
     provider_id: providerId,
     model,
     input_tokens: result.inputTokens,

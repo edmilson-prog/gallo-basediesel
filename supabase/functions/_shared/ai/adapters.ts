@@ -32,8 +32,9 @@ const ANTHROPIC_VERSION = "2023-06-01";
 
 /**
  * BRL cost. Prefers a provider-reported USD cost (usdCostOverride, e.g. OpenRouter
- * usage.cost) over token×price. NEVER silently returns 0 for an unknown model:
- * callers must pass a pricing fallback or the override.
+ * usage.cost) — including zero for free/promo models — over token×price. Only
+ * undefined falls through to token-based pricing. NEVER silently returns 0 for an
+ * unknown model: callers must pass a pricing fallback or the override.
  */
 export function computeCostBRL(
   inputTokens: number,
@@ -42,7 +43,7 @@ export function computeCostBRL(
   usdToBrl: number,
   usdCostOverride?: number,
 ): number {
-  if (typeof usdCostOverride === "number" && usdCostOverride > 0) {
+  if (typeof usdCostOverride === "number") {
     return usdCostOverride * usdToBrl;
   }
   const usd =
