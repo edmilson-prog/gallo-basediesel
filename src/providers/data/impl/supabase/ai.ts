@@ -114,9 +114,18 @@ async function loadSettingsRow(): Promise<AiSettingsRow> {
 async function writeSettings(next: IAiSettings): Promise<void> {
   const client = getSupabaseClient();
   const { data: auth } = await client.auth.getUser();
+  const row = settingsToRow(next, auth.user?.id ?? null);
   const { error } = await client
     .from("ai_settings")
-    .update({ ...settingsToRow(next, auth.user?.id ?? null), updated_at: new Date().toISOString() })
+    .update({
+      master_enabled: row.master_enabled,
+      default_provider_id: row.default_provider_id,
+      budget: row.budget,
+      providers: row.providers,
+      routing: row.routing,
+      updated_by: row.updated_by,
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", 1);
   if (error) throw new Error(`[supabase] ai write failed: ${error.message}`);
 }
