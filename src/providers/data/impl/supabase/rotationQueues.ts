@@ -82,7 +82,16 @@ async function ensureQueue(storeId: ID): Promise<IRotationQueue> {
     .insert({ store_id: storeId })
     .select(Q_COLUMNS)
     .single();
-  if (insErr) throw new Error(`[supabase] rotationQueues.create failed: ${insErr.message}`);
+  if (insErr) {
+    // A concurrent create may have won the unique(store_id) race — re-read (RNF-001).
+    const { data: existing } = await client
+      .from("rotation_queues")
+      .select(Q_COLUMNS)
+      .eq("store_id", storeId)
+      .maybeSingle();
+    if (existing) return rowToQueue(existing as QueueRow);
+    throw new Error(`[supabase] rotationQueues.create failed: ${insErr.message}`);
+  }
   return rowToQueue(created as QueueRow);
 }
 

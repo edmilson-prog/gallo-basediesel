@@ -116,7 +116,8 @@ export const supabaseRotationParticipantsProvider: IRotationParticipantsProvider
       .update({ last_assigned_member_id: memberRefId })
       .eq("queue_id", queueId)
       .eq("ref_type", "department")
-      .eq("ref_id", departmentId);
+      .eq("ref_id", departmentId)
+      .is("scope_department_id", null);
     if (error)
       throw new Error(`[supabase] rotationParticipants.setMemberPointer failed: ${error.message}`);
   },

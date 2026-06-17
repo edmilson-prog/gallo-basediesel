@@ -40,7 +40,9 @@ export function applyRotationOverride(
   sellersById: Record<ID, ISeller>,
   now: Date,
 ): IRotationOverrideResult {
-  if (!ROTATION_GOVERNS.has(decision.criterionMatched)) {
+  // Manual mode defers distribution by design ("gestor distribui depois") — even
+  // though it yields fallback_fila, the queue must NOT auto-assign there.
+  if (decision.mode === "manual" || !ROTATION_GOVERNS.has(decision.criterionMatched)) {
     return { decision, pointers: null };
   }
 

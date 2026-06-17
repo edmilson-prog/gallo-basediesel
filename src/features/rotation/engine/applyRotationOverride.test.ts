@@ -36,6 +36,18 @@ describe("applyRotationOverride", () => {
     expect(r.pointers).toBeNull();
   });
 
+  it("does NOT override in manual distribution mode (operator distributes later)", () => {
+    const decision = baseDecision({
+      mode: "manual",
+      criterionMatched: "fallback_fila",
+      selectedSellerId: null,
+      status: "aguardando",
+    });
+    const r = applyRotationOverride(decision, directState(), { a: seller("a"), b: seller("b") }, now);
+    expect(r.decision).toEqual(decision);
+    expect(r.pointers).toBeNull();
+  });
+
   it("keeps the 013 fallback when the queue has nobody eligible", () => {
     const decision = baseDecision({ criterionMatched: "fallback_fila", selectedSellerId: null });
     const offlineState = directState();
