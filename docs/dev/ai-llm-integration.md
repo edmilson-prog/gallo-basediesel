@@ -1,6 +1,6 @@
 # Integração LLM real — `ai-generate` (Sub-projeto 1)
 
-> **Versão:** v0.102.0 `Conduit` · 2026-06-17
+> **Versão:** v0.102.0 `Cortex` · 2026-06-17
 > **Spec de referência:** `docs/superpowers/specs/2026-06-17-ai-llm-real-integration-design.md`
 > **Predecessores:** v0.100.0 `Synapse` (área de IA mock-first).
 

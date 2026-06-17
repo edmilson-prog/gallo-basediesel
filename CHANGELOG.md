@@ -6,7 +6,7 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
-## [0.102.0] — Conduit · 2026-06-17
+## [0.102.0] — Cortex · 2026-06-17
 
 **A área de Inteligência artificial sai do modo Demonstração e passa a operar em produção.** O Edge `ai-generate` faz a chamada real ao Anthropic ou ao OpenRouter com a chave do Vault, mede tokens e custo, aplica o teto de orçamento e grava o histórico. O Playground e o teste de conexão agora são reais. Os consumidores (copiloto, SDR, identificação de peça, insights) continuam deferidos para sub-projetos seguintes.
 
