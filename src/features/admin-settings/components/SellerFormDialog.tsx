@@ -13,12 +13,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import {
   Form,
   FormControl,
@@ -37,6 +32,7 @@ import {
 import { Icon } from "@/components/Icon";
 import type { ISeller, IScheduleOverride, IWorkScheduleWindow } from "@/shared/types";
 import { WorkScheduleTab, buildWorkScheduleRows, validateWorkSchedule } from "@/features/access";
+import { RotationTab } from "@/features/rotation";
 import { useAuth } from "@/features/auth/useAuth";
 import { recordAuditLogSync, useDepartmentsProvider, useSellersProvider } from "@/providers/data";
 import {
@@ -91,6 +87,9 @@ export function SellerFormDialog({
     seller?.scheduleOverrides ?? [],
   );
   const scheduleErrors = validateWorkSchedule(scheduleRows.filter((r) => r.enabled));
+  const [rotationEnabled, setRotationEnabled] = useState<boolean>(
+    seller?.rotation?.enabled ?? true,
+  );
 
   const departmentsQuery = useQuery({
     queryKey: ["departments", storeId],
@@ -126,6 +125,7 @@ export function SellerFormDialog({
     setTab("geral");
     setScheduleRows(buildWorkScheduleRows(seller));
     setScheduleOverrides(seller?.scheduleOverrides ?? []);
+    setRotationEnabled(seller?.rotation?.enabled ?? true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, seller?.id]);
 
@@ -156,6 +156,7 @@ export function SellerFormDialog({
           departmentId,
           workSchedule: enabledRows,
           scheduleOverrides: cleanedOverrides,
+          rotation: { enabled: rotationEnabled },
         });
         const scheduleChanged =
           JSON.stringify(seller.workSchedule ?? []) !== JSON.stringify(enabledRows) ||
@@ -172,6 +173,17 @@ export function SellerFormDialog({
               scheduleOverrides: seller.scheduleOverrides ?? [],
             },
             after: { workSchedule: enabledRows, scheduleOverrides: cleanedOverrides },
+          });
+        }
+        if ((seller.rotation?.enabled ?? true) !== rotationEnabled) {
+          recordAuditLogSync({
+            storeId,
+            actorId: currentUser?.sellerId ?? currentUser?.id ?? "system",
+            action: "rotation_participation_updated",
+            resource: "seller",
+            resourceId: seller.id,
+            before: { rotationEnabled: seller.rotation?.enabled ?? true },
+            after: { rotationEnabled },
           });
         }
         return saved;
@@ -248,17 +260,10 @@ export function SellerFormDialog({
                     <Icon icon="mdi:clock-outline" size={13} />
                     Horário
                   </TabsTrigger>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span tabIndex={0}>
-                        <TabsTrigger value="rodizio" disabled className="gap-1">
-                          <Icon icon="mdi:lock-outline" size={13} />
-                          Rodízio
-                        </TabsTrigger>
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>Disponível após PRD-212/213</TooltipContent>
-                  </Tooltip>
+                  <TabsTrigger value="rodizio" className="gap-1">
+                    <Icon icon="mdi:account-switch-outline" size={13} />
+                    Rodízio
+                  </TabsTrigger>
                 </TabsList>
 
                 <div className="min-h-0 flex-1 overflow-y-auto">
@@ -433,7 +438,17 @@ export function SellerFormDialog({
                   </TabsContent>
 
                   <TabsContent value="rodizio">
-                    <LockedTabPlaceholder />
+                    {isEdit && seller ? (
+                      <RotationTab
+                        seller={seller}
+                        enabled={rotationEnabled}
+                        onEnabledChange={setRotationEnabled}
+                      />
+                    ) : (
+                      <div className="rounded-md border border-dashed border-border bg-muted/30 px-6 py-10 text-center text-sm text-muted-foreground">
+                        Cadastre e salve o usuário primeiro para configurar o rodízio.
+                      </div>
+                    )}
                   </TabsContent>
                 </div>
               </Tabs>
@@ -457,18 +472,5 @@ export function SellerFormDialog({
         </Form>
       </SheetContent>
     </Sheet>
-  );
-}
-
-/** Reserved-but-disabled empty state for the locked Horário/Rodízio tabs. */
-function LockedTabPlaceholder() {
-  return (
-    <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted/30 px-6 py-10 text-center">
-      <Icon icon="mdi:lock-outline" size={24} className="text-muted-foreground" />
-      <p className="text-sm font-medium text-foreground">Disponível em breve</p>
-      <p className="text-xs text-muted-foreground">
-        Horários e rodízio de atendimento chegam com os PRD-212/213.
-      </p>
-    </div>
   );
 }
