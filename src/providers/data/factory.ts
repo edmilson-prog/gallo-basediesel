@@ -81,6 +81,8 @@ import { supabaseSystemHealthProvider } from "./impl/supabase/systemHealth";
 import { supabaseMessageTemplatesProvider } from "./impl/supabase/messageTemplates";
 import { supabaseRolesProvider } from "./impl/supabase/roles";
 import { supabaseDepartmentsProvider } from "./impl/supabase/departments";
+import { supabaseRotationQueuesProvider } from "./impl/supabase/rotationQueues";
+import { supabaseRotationParticipantsProvider } from "./impl/supabase/rotationParticipants";
 
 import {
   DATA_SOURCE_OVERRIDE_KEY,
@@ -198,6 +200,8 @@ const supabaseProviders: IDataProviders = {
   messageTemplates: supabaseMessageTemplatesProvider,
   roles: supabaseRolesProvider,
   departments: supabaseDepartmentsProvider,
+  rotationQueues: supabaseRotationQueuesProvider,
+  rotationParticipants: supabaseRotationParticipantsProvider,
 };
 
 /**
