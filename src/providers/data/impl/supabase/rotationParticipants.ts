@@ -47,6 +47,8 @@ async function listScoped(queueId: ID, departmentId: ID | null): Promise<IRotati
     departmentId === null
       ? query.is("scope_department_id", null)
       : query.eq("scope_department_id", departmentId);
+  // PostgREST takes the bare column name in `order=` — no SQL quoting needed
+  // here (unlike the quoted "order" in the select list).
   const { data, error } = await query.order("order", { ascending: true });
   if (error) throw new Error(`[supabase] rotationParticipants.list failed: ${error.message}`);
   return (data as PartRow[]).map(rowToParticipant);

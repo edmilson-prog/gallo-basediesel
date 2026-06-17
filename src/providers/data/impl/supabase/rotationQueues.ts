@@ -95,6 +95,8 @@ export const supabaseRotationQueuesProvider: IRotationQueuesProvider = {
       .from("rotation_participants")
       .select(P_COLUMNS)
       .eq("queue_id", queue.id)
+      // PostgREST takes the bare column name in `order=` — no SQL quoting needed
+      // here (unlike the quoted "order" in the select list).
       .order("order", { ascending: true });
     if (error) throw new Error(`[supabase] rotationQueues.getState failed: ${error.message}`);
     const all = (data as PartRow[]).map(rowToParticipant);
