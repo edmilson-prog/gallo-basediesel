@@ -46,6 +46,7 @@ import type { IRolesProvider } from "./roles";
 import type { IDepartmentsProvider } from "./departments";
 import type { IRotationQueuesProvider } from "./rotationQueues";
 import type { IRotationParticipantsProvider } from "./rotationParticipants";
+import type { IAiProvider } from "./ai";
 
 export type { IPaginatedResult, IPaginationParams } from "./_shared";
 
@@ -148,6 +149,7 @@ export type {
   IRotationParticipantsProvider,
   IAddRotationParticipantInput,
 } from "./rotationParticipants";
+export type { IAiProvider } from "./ai";
 
 /**
  * Aggregate of every data provider returned by `getDataProviders()`. The factory
@@ -196,4 +198,5 @@ export interface IDataProviders {
   departments: IDepartmentsProvider;
   rotationQueues: IRotationQueuesProvider;
   rotationParticipants: IRotationParticipantsProvider;
+  ai: IAiProvider;
 }

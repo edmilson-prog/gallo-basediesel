@@ -6,7 +6,7 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
-## [0.100.0] — Carousel · 2026-06-17
+## [0.101.0] — Carousel · 2026-06-17
 
 **A loja agora tem uma fila de rodízio de atendimento, configurável e visível.** Em vez de depender só do revezamento automático, o Dono/Gestor monta uma fila própria: arrasta para definir a ordem, liga ou desliga quem participa, e quem está offline ou fora do horário é pulado na hora. A fila pode revezar diretamente entre usuários ou entre departamentos (e, dentro de cada um, entre seus membros). Conversas de rotina passam a ser distribuídas por essa fila — clientes já com vendedor (carteira) e os encaixes por especialidade continuam com prioridade.
 
@@ -22,6 +22,22 @@ versioning follows [SemVer](https://semver.org/).
 ### Changed
 
 - **Distribuição de conversas de rotina** — conversas novas sem vendedor definido passam a ser direcionadas pela fila de rodízio. Clientes já com vendedor (carteira) e os encaixes por especialidade mantêm prioridade, como antes.
+
+## [0.100.0] — Synapse · 2026-06-16
+
+**Uma nova área de Inteligência artificial nas Configurações para configurar provedores de IA, escolher qual modelo cada funcionalidade usa e acompanhar consumo e custos — por enquanto em modo Demonstração.**
+
+### Added
+
+- **Área "Inteligência artificial"** (Configurações → Integrações, só o Dono) — um painel com quatro abas: Visão geral, Provedores & chaves, Funcionalidades e Playground.
+- **Provedores & chaves** — configure Anthropic, OpenAI, OpenRouter e Google; a chave de API é guardada com segurança (cofre), com modelo padrão por provedor e botão de testar conexão.
+- **Modelo por funcionalidade** — escolha qual provedor e modelo cada recurso usa (copiloto de conversa, copiloto analítico, SDR, identificação de peça, insights), com um modelo de reserva (fallback) caso o principal fique indisponível.
+- **Visão geral de consumo** — indicadores de chamadas, tokens, custo estimado e orçamento do mês, com gráficos por período e por provedor, custo por funcionalidade e métricas de confiabilidade.
+- **Playground** — teste rápido de um prompt, com estimativa de tokens, custo e tempo de resposta.
+
+### Notes
+
+- A área aparece apenas no modo **Demonstração**; a integração real com os provedores de IA chega numa próxima fase.
 
 ## [0.99.0] — Shift · 2026-06-16
 

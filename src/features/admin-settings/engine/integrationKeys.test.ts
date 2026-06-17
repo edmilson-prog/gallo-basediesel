@@ -34,13 +34,26 @@ describe("buildIntegrationKeyCatalog", () => {
   it("always includes the Resend and webhook app-level groups", () => {
     const groups = buildIntegrationKeyCatalog([]);
     const ids = groups.map((group) => group.id);
-    expect(ids).toEqual(["resend", "whatsapp-webhook"]);
+    expect(ids).toEqual(["resend", "whatsapp-webhook", "llm-providers"]);
 
     const resend = groups[0];
     expect(resend?.keys.map((key) => key.name)).toEqual([
       "RESEND_API_KEY",
       "RESEND_FROM",
       "INVITE_REDIRECT_URL",
+    ]);
+  });
+
+  it("inclui o grupo de Provedores LLM com as 4 chaves", () => {
+    const groups = buildIntegrationKeyCatalog([]);
+    const llm = groups.find((group) => group.id === "llm-providers");
+    expect(llm).toBeDefined();
+    const names = llm!.keys.map((key) => key.name).sort();
+    expect(names).toEqual([
+      "ANTHROPIC_API_KEY",
+      "GOOGLE_AI_API_KEY",
+      "OPENAI_API_KEY",
+      "OPENROUTER_API_KEY",
     ]);
   });
 
@@ -69,7 +82,7 @@ describe("buildIntegrationKeyCatalog", () => {
       { ...META_ACCOUNT, credentialsRef: "" },
       { ...EVOLUTION_ACCOUNT, credentialsRef: "lower case ref" },
     ]);
-    expect(groups.map((group) => group.id)).toEqual(["resend", "whatsapp-webhook"]);
+    expect(groups.map((group) => group.id)).toEqual(["resend", "whatsapp-webhook", "llm-providers"]);
   });
 
   it("every generated name passes the server-side validation", () => {

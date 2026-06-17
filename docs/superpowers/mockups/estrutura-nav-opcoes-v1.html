@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="diesel" class="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GALLO · Estrutura de navegação da IA</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css" />
+<style>
+  :root{
+    --bg:#0e0e0e; --bg2:#121212; --card:#1a1a1a; --fg:#fafafa; --muted:#a1a1aa; --muted2:#71717a;
+    --primary:#c9a24a; --green:#22c55e; --crit:#f87171; --info:#60a5fa;
+    --border:rgba(255,255,255,0.08); --border2:rgba(255,255,255,0.16);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--bg);color:var(--fg);font-family:'Segoe UI',-apple-system,Roboto,system-ui,sans-serif;font-size:14px;line-height:1.5;}
+  .wrap{max-width:1080px;margin:0 auto;padding:34px 26px 40px;}
+  .h1{font-size:23px;font-weight:600;margin:0;letter-spacing:-.01em;}
+  .sub{font-size:14px;color:var(--muted);margin:6px 0 26px;}
+  .opts{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  .opt{background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:16px;cursor:pointer;position:relative;transition:border-color .15s;}
+  .opt:hover{border-color:var(--border2);}
+  .opt.recommended{border-color:rgba(201,162,74,0.45);}
+  .opt.selected{border-color:var(--primary);border-width:2px;}
+  .opt .check{position:absolute;top:13px;right:13px;color:var(--primary);font-size:21px;opacity:0;transition:opacity .15s;}
+  .opt.selected .check{opacity:1;}
+  .opt-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:13px;}
+  .opt-t{font-size:15px;font-weight:600;margin:0;}
+  .badge-rec{font-size:10.5px;color:var(--primary);background:rgba(201,162,74,0.16);padding:3px 9px;border-radius:999px;white-space:nowrap;}
+  .opt-trade{font-size:12px;color:var(--muted);margin:12px 0 0;line-height:1.45;}
+  .pc{margin-top:13px;font-size:11.5px;border-top:1px solid var(--border);padding-top:11px;}
+  .pc div{display:flex;align-items:flex-start;gap:7px;margin-bottom:4px;}
+  .pc .p{color:var(--green);} .pc .c{color:var(--crit);}
+  .pc i{font-size:14px;margin-top:1px;}
+  .wf{display:flex;gap:7px;height:150px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px;}
+  .wf-side{width:44%;display:flex;flex-direction:column;gap:4px;}
+  .wf-grp{font-size:8px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted2);padding:2px 5px 0;}
+  .wf-item{font-size:9.5px;color:var(--muted);background:rgba(255,255,255,0.045);border-radius:5px;padding:4px 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .wf-item.active{background:rgba(201,162,74,0.18);color:var(--primary);}
+  .wf-main{flex:1;display:flex;flex-direction:column;gap:5px;}
+  .wf-title{height:9px;width:55%;background:var(--border2);border-radius:3px;}
+  .wf-kpis{display:flex;gap:4px;}
+  .wf-kpis i{flex:1;height:24px;background:rgba(255,255,255,0.06);border-radius:4px;display:block;}
+  .wf-block{flex:1;background:rgba(255,255,255,0.06);border-radius:5px;}
+  .wf-block.sm{flex:none;height:15px;}
+  .wf-tabs{display:flex;gap:3px;}
+  .wf-tabs span{flex:1;height:12px;background:rgba(255,255,255,0.07);border-radius:3px;}
+  .wf-tabs span.on{background:rgba(201,162,74,0.5);}
+  .wf-scroll{text-align:center;color:var(--muted2);font-size:14px;line-height:1;margin-top:1px;}
+  .foot{margin-top:24px;font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:8px;}
+  .foot i{color:var(--primary);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 class="h1">Estrutura de navegação — área de Inteligência artificial</h1>
+  <p class="sub">Como organizar Visão geral, Provedores &amp; chaves, Funcionalidades e Playground. Clique na opção que você prefere.</p>
+
+  <div class="opts">
+
+    <div class="opt recommended" data-choice="a" onclick="pick(this)">
+      <i class="ti ti-circle-check check"></i>
+      <div class="opt-h"><p class="opt-t">A · subtelas na sidebar</p><span class="badge-rec">recomendada</span></div>
+      <div class="wf">
+        <div class="wf-side">
+          <div class="wf-grp">Inteligência artificial</div>
+          <div class="wf-item active">Visão geral</div>
+          <div class="wf-item">Provedores &amp; chaves</div>
+          <div class="wf-item">Funcionalidades</div>
+          <div class="wf-item">Playground</div>
+        </div>
+        <div class="wf-main">
+          <div class="wf-title"></div>
+          <div class="wf-kpis"><i></i><i></i><i></i><i></i></div>
+          <div class="wf-block"></div>
+        </div>
+      </div>
+      <p class="opt-trade">Um grupo na sidebar com 4 subtelas, cada uma com URL própria.</p>
+      <div class="pc">
+        <div class="p"><i class="ti ti-check"></i> Igual ao resto das Configurações do GALLO</div>
+        <div class="p"><i class="ti ti-check"></i> Deep-link e active state por subtela</div>
+        <div class="p"><i class="ti ti-check"></i> Cada tela leve e focada</div>
+        <div class="c"><i class="ti ti-minus"></i> Adiciona um grupo à sidebar</div>
+      </div>
+    </div>
+
+    <div class="opt" data-choice="b" onclick="pick(this)">
+      <i class="ti ti-circle-check check"></i>
+      <div class="opt-h"><p class="opt-t">B · hub com abas</p></div>
+      <div class="wf">
+        <div class="wf-side">
+          <div class="wf-grp">Integrações</div>
+          <div class="wf-item">WhatsApp</div>
+          <div class="wf-item active">Inteligência artificial</div>
+          <div class="wf-item">Chaves &amp; API</div>
+        </div>
+        <div class="wf-main">
+          <div class="wf-tabs"><span class="on"></span><span></span><span></span><span></span></div>
+          <div class="wf-block"></div>
+          <div class="wf-block"></div>
+        </div>
+      </div>
+      <p class="opt-trade">Um único item que abre uma página com abas internas.</p>
+      <div class="pc">
+        <div class="p"><i class="ti ti-check"></i> Sidebar enxuta, tudo num lugar</div>
+        <div class="c"><i class="ti ti-minus"></i> Padrão de abas inédito nas Configurações</div>
+        <div class="c"><i class="ti ti-minus"></i> Deep-link só via hash/query</div>
+      </div>
+    </div>
+
+    <div class="opt" data-choice="c" onclick="pick(this)">
+      <i class="ti ti-circle-check check"></i>
+      <div class="opt-h"><p class="opt-t">C · página única</p></div>
+      <div class="wf">
+        <div class="wf-side">
+          <div class="wf-grp">Integrações</div>
+          <div class="wf-item">WhatsApp</div>
+          <div class="wf-item active">Inteligência artificial</div>
+          <div class="wf-item">Chaves &amp; API</div>
+        </div>
+        <div class="wf-main">
+          <div class="wf-title"></div>
+          <div class="wf-block sm"></div>
+          <div class="wf-block sm"></div>
+          <div class="wf-block sm"></div>
+          <div class="wf-scroll"><i class="ti ti-chevron-down"></i></div>
+        </div>
+      </div>
+      <p class="opt-trade">Tudo numa rota só, em seções empilhadas com scroll.</p>
+      <div class="pc">
+        <div class="p"><i class="ti ti-check"></i> Mais simples de construir</div>
+        <div class="c"><i class="ti ti-minus"></i> Vira uma página muito longa</div>
+        <div class="c"><i class="ti ti-minus"></i> Mistura dashboard com configuração</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="foot"><i class="ti ti-info-circle"></i> Recomendo a A. Clique para selecionar ou me diga no terminal — depois volto a abrir o mockup navegável da tela escolhida.</div>
+</div>
+
+<script>
+  function pick(el){
+    document.querySelectorAll('.opt').forEach(function(o){ o.classList.remove('selected'); });
+    el.classList.add('selected');
+  }
+</script>
+</body>
+</html>
