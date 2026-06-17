@@ -66,7 +66,8 @@ export type AiUsageStatus = "ok" | "error" | "fallback";
 export interface IAiUsageEvent {
   id: ID;
   ts: ISO8601;
-  feature: AiFeatureKey;
+  source: "playground" | "routed";
+  feature?: AiFeatureKey;
   providerId: AiProviderId;
   model: string;
   inputTokens: number;

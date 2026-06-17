@@ -39,6 +39,7 @@ export function seedUsageEvents(referenceIso: string): IAiUsageEvent[] {
       events.push({
         id: `aiu-${dayOffset}-${i}`,
         ts: ts.toISOString(),
+        source: "routed",
         feature,
         providerId,
         model,
