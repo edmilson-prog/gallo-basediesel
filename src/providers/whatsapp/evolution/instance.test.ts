@@ -10,6 +10,7 @@ import {
   getConnectionState,
   getInstanceQr,
   logoutInstance,
+  parseWhatsAppNumbers,
   restartInstance,
   setInstanceWebhook,
 } from "./instance";
@@ -345,5 +346,30 @@ describe("findContactsFromChats", () => {
       { phone: "+5511933334444", name: undefined },
     ]);
     expect(calls[0]!.url).toBe("https://evo.test/chat/findChats/inst1");
+  });
+});
+
+describe("parseWhatsAppNumbers", () => {
+  it("maps a flat array of OnWhatsAppDto, reading the jid as canonical", () => {
+    const body = [
+      { jid: "5554999998888@s.whatsapp.net", exists: true, number: "5554999998888" },
+      { jid: "5511000000000@s.whatsapp.net", exists: false, number: "5511000000000" },
+    ];
+    expect(parseWhatsAppNumbers(body)).toEqual([
+      { input: "5554999998888", exists: true, e164: "+5554999998888" },
+      { input: "5511000000000", exists: false, e164: undefined },
+    ]);
+  });
+  it("unwraps the nested { onWhatsapp: [...] } shape", () => {
+    const body = { onWhatsapp: [{ jid: "5599@s.whatsapp.net", exists: true, number: "5599" }] };
+    expect(parseWhatsAppNumbers(body)[0].exists).toBe(true);
+  });
+  it("treats a missing `exists` as false", () => {
+    expect(parseWhatsAppNumbers([{ number: "5599" }])).toEqual([
+      { input: "5599", exists: false, e164: undefined },
+    ]);
+  });
+  it("returns [] for an unrecognised shape", () => {
+    expect(parseWhatsAppNumbers({ unexpected: true })).toEqual([]);
   });
 });
