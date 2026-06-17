@@ -152,11 +152,14 @@ export async function callOpenAI(
       Authorization: `Bearer ${apiKey}`,
       "content-type": "application/json",
     },
+    // The catalog ships GPT-5-family models. On /chat/completions those (and the
+    // o-series) REQUIRE `max_completion_tokens` (they 400 on `max_tokens`) and
+    // accept only the default `temperature`. We therefore send neither
+    // `temperature` nor `top_p` — broad compatibility over per-call tuning in v1.
+    // Cost is driven by the persisted per-model price, not these params.
     body: JSON.stringify({
       model: req.model,
-      max_tokens: req.maxTokens,
-      temperature: req.temperature,
-      ...(req.topP !== undefined ? { top_p: req.topP } : {}),
+      max_completion_tokens: req.maxTokens,
       messages,
     }),
   });
