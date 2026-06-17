@@ -22,6 +22,7 @@ import {
 import type { ICustomer, ID, IWhatsAppAccount } from "@/shared/types";
 import { OriginChip } from "./OriginChip";
 import { instanceAccent } from "../utils/instanceAccent";
+import { checkWhatsAppNumber } from "../api/checkWhatsAppNumber";
 
 function customerName(c: ICustomer): string {
   return c.type === "B2B" ? c.nomeFantasia : c.fullName;
@@ -58,6 +59,7 @@ export function NewConversationDialog({
   const [newNumberMode, setNewNumberMode] = useState(false);
   const [newNumberName, setNewNumberName] = useState("");
   const [newNumberPhone, setNewNumberPhone] = useState("");
+  const [checkState, setCheckState] = useState<"idle" | "checking" | "no_whatsapp">("idle");
 
   useEffect(() => {
     const q = query.trim();
@@ -132,18 +134,40 @@ export function NewConversationDialog({
     return res.data[0]?.id ?? null;
   }
 
-  /** Orchestrates the new-number flow. `forced` is wired in Task 7 (validation). */
-  async function startNewNumber(_forced: boolean) {
+  /** Orchestrates the new-number flow. `forced` skips WhatsApp pre-check. */
+  async function startNewNumber(forced: boolean) {
     if (!origin) return;
     const norm = normalizeBrPhone(newNumberPhone);
     if (!norm.ok) {
       toast.error("Informe DDD + número (ex.: 54 99999-8888).");
       return;
     }
+
+    let phoneFinal = norm.digits;
+    let markValid = false;
+
+    // Evolution pre-validates; Meta / offline / errors resolve to `skipped`.
+    if (!forced) {
+      setCheckState("checking");
+      const check = await checkWhatsAppNumber(origin.id, norm.digits);
+      setCheckState("idle");
+      if (check.status === "no_whatsapp") {
+        setCheckState("no_whatsapp");
+        return; // D6: block, but the UI offers "Iniciar mesmo assim".
+      }
+      if (check.status === "has_whatsapp") {
+        phoneFinal = check.canonicalPhone ?? norm.digits; // jid is canonical (D7).
+        markValid = true;
+      }
+    }
+
     setCreating(true);
     try {
-      const phoneFinal = norm.digits;
       const customer = await resolveOrCreateCustomer(phoneFinal);
+      // Only ever PROMOTE to valid; never downgrade to invalid here (§7 / RF-052).
+      if (markValid && customer.whatsappStatus !== "valid") {
+        await customersProvider.update(customer.id, { whatsappStatus: "valid" });
+      }
       const openId = await findOpenConversationId(customer.id);
       if (openId) {
         onCreated(openId);
@@ -310,11 +334,37 @@ export function NewConversationDialog({
                           id="new-conv-newphone"
                           inputMode="tel"
                           value={newNumberPhone}
-                          onChange={(e) => setNewNumberPhone(e.target.value)}
+                          onChange={(e) => {
+                            setNewNumberPhone(e.target.value);
+                            if (checkState === "no_whatsapp") setCheckState("idle");
+                          }}
                           placeholder="(55) 54 99999-8888"
                           autoComplete="off"
                         />
                       </div>
+                      {checkState === "checking" && (
+                        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Icon icon="mdi:loading" size={14} className="animate-spin" />
+                          Verificando se o número tem WhatsApp…
+                        </p>
+                      )}
+                      {checkState === "no_whatsapp" && (
+                        <div className="space-y-2 rounded-md border border-severity-warning/40 bg-severity-warning/10 p-2 text-xs text-severity-warning">
+                          <p className="flex items-center gap-1.5">
+                            <Icon icon="mdi:alert-outline" size={14} />
+                            Este número não parece ter uma conta de WhatsApp.
+                          </p>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            disabled={creating}
+                            onClick={() => void startNewNumber(true)}
+                          >
+                            Iniciar mesmo assim
+                          </Button>
+                        </div>
+                      )}
                       <button
                         type="button"
                         onClick={() => {
@@ -370,6 +420,7 @@ export function NewConversationDialog({
                   disabled={
                     !origin ||
                     creating ||
+                    checkState === "checking" ||
                     (newNumberMode ? !looksLikePhone(newNumberPhone) : !selected)
                   }
                 >
