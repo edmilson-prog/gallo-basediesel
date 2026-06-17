@@ -13,6 +13,8 @@ describe("buildCustomerSearchOr", () => {
     );
   });
   it("neutralizes PostgREST or() delimiters in the term", () => {
-    expect(buildCustomerSearchOr("a,b(c)")).toContain("full_name.ilike.*a b c *");
+    const result = buildCustomerSearchOr("a,b(c)");
+    expect(result).not.toBeNull();
+    expect(result!.split(",").every((col) => col.includes("*a b c *"))).toBe(true);
   });
 });
