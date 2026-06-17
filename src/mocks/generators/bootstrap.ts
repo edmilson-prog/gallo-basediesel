@@ -29,6 +29,8 @@ import type {
   IRbacResource,
   IRecommendation,
   IRole,
+  IRotationParticipant,
+  IRotationQueue,
   IScheduledSend,
   ISdrEscalation,
   ISdrSession,
@@ -52,6 +54,7 @@ import {
 } from "../data";
 import { createSeededContext } from "./utils";
 import { generateSellers } from "./seller";
+import { buildRotationSeed } from "../data/seedRotation";
 import { generateAudit } from "./audit";
 import { generatePart, linkEquivalentParts } from "./part";
 import { buildUfiParts } from "./ufiPart";
@@ -101,6 +104,8 @@ export interface IBootstrappedDataset {
   rbacResources: IRbacResource[];
   departments: IDepartment[];
   sellers: ISeller[];
+  rotationQueues: IRotationQueue[];
+  rotationParticipants: IRotationParticipant[];
   audits: IAuditLog[];
   customers: ICustomer[];
   customerNotes: ICustomerNote[];
@@ -160,6 +165,11 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
     sellerIds: [...d.sellerIds],
   }));
   const sellers = generateSellers();
+  const { queues: rotationQueues, participants: rotationParticipants } = buildRotationSeed(
+    stores[0].id,
+    sellers,
+    now,
+  );
   const whatsappAccounts = generateWhatsAppAccounts();
 
   // 2. Catalog — purely independent. Synthetic generator covers every category
@@ -574,6 +584,8 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
     rbacResources,
     departments,
     sellers,
+    rotationQueues,
+    rotationParticipants,
     audits,
     customers,
     customerNotes,
