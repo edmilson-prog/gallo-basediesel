@@ -39,6 +39,8 @@ import { mockSystemHealthProvider } from "./impl/mock/systemHealth";
 import { mockMessageTemplatesProvider } from "./impl/mock/messageTemplates";
 import { mockRolesProvider } from "./impl/mock/roles";
 import { mockDepartmentsProvider } from "./impl/mock/departments";
+import { mockRotationQueuesProvider } from "./impl/mock/rotationQueues";
+import { mockRotationParticipantsProvider } from "./impl/mock/rotationParticipants";
 
 import { supabaseCustomersProvider } from "./impl/supabase/customers";
 import { supabaseVehiclesProvider } from "./impl/supabase/vehicles";
@@ -152,6 +154,8 @@ const mockProviders: IDataProviders = {
   messageTemplates: mockMessageTemplatesProvider,
   roles: mockRolesProvider,
   departments: mockDepartmentsProvider,
+  rotationQueues: mockRotationQueuesProvider,
+  rotationParticipants: mockRotationParticipantsProvider,
 };
 
 const supabaseProviders: IDataProviders = {
