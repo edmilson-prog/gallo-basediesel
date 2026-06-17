@@ -10,15 +10,22 @@ interface ISortableParticipantRowProps {
   enabled: boolean;
   onToggle: (enabled: boolean) => void;
   onRemove: () => void;
+  /** Optional secondary action (department rows: open the internal members list). */
+  onManage?: () => void;
+  manageActive?: boolean;
 }
 
-/** A drag-reorderable participant row (keyboard-accessible via the dnd-kit handle). */
+/** A drag-reorderable row (keyboard-accessible via the dnd-kit handle). Reused
+ *  for both seller participants and department participants (the latter pass
+ *  `onManage` to expand their internal members list). */
 export function SortableParticipantRow({
   id,
   label,
   enabled,
   onToggle,
   onRemove,
+  onManage,
+  manageActive = false,
 }: ISortableParticipantRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
@@ -47,6 +54,16 @@ export function SortableParticipantRow({
         <span className="text-sm text-foreground">{label}</span>
       </span>
       <span className="flex items-center gap-3">
+        {onManage && (
+          <Button
+            type="button"
+            variant={manageActive ? "secondary" : "ghost"}
+            size="sm"
+            onClick={onManage}
+          >
+            Membros
+          </Button>
+        )}
         <Switch
           checked={enabled}
           onCheckedChange={onToggle}
