@@ -23,6 +23,8 @@ export const MODELS: Record<AiProviderId, IAiModelOption[]> = {
   openai: [
     { id: "gpt-5.2", label: "GPT-5.2", inputPricePer1kUsd: 0.01, outputPricePer1kUsd: 0.03 },
     { id: "gpt-5-mini", label: "GPT-5 mini", inputPricePer1kUsd: 0.0006, outputPricePer1kUsd: 0.0024 },
+    { id: "gpt-4o", label: "GPT-4o", inputPricePer1kUsd: 0.0025, outputPricePer1kUsd: 0.01 },
+    { id: "gpt-4o-mini", label: "GPT-4o mini", inputPricePer1kUsd: 0.00015, outputPricePer1kUsd: 0.0006 },
   ],
   openrouter: [
     { id: "anthropic/claude-opus-4.8", label: "Anthropic: Claude Opus 4.8", inputPricePer1kUsd: 0.015, outputPricePer1kUsd: 0.075 },
@@ -56,6 +58,93 @@ export const FEATURES: AiFeatureKey[] = [
 
 export function modelsFor(provider: AiProviderId): IAiModelOption[] {
   return MODELS[provider]!;
+}
+
+export function priceForModel(
+  provider: AiProviderId,
+  id: string,
+): { inputPricePer1kUsd: number; outputPricePer1kUsd: number } | null {
+  const m = MODELS[provider]?.find((x) => x.id === id);
+  return m
+    ? { inputPricePer1kUsd: m.inputPricePer1kUsd, outputPricePer1kUsd: m.outputPricePer1kUsd }
+    : null;
+}
+
+const OPENAI_CHAT_PREFIXES = ["gpt", "o1", "o3", "o4", "chatgpt"];
+const OPENAI_NON_CHAT =
+  /embedding|whisper|tts|audio|realtime|image|dall-e|moderation|transcribe|search|computer-use|codex/;
+
+/** Heuristic: keep OpenAI text-chat models, drop embeddings/audio/image/etc. */
+export function isOpenAiChatModel(id: string): boolean {
+  const low = id.toLowerCase();
+  if (OPENAI_NON_CHAT.test(low)) return false;
+  return OPENAI_CHAT_PREFIXES.some((p) => low.startsWith(p));
+}
+
+/** Raw model entry as returned by the Edge "list-models" action (front-side mirror). */
+export interface RawProviderModel {
+  id: string;
+  label: string;
+  /** OpenRouter only — USD per single token; multiplied by 1000 for per-1k. */
+  pricePromptPerToken?: number;
+  priceCompletionPerToken?: number;
+}
+
+/**
+ * Turn the raw provider list into priced IAiModelOption[]:
+ * - OpenAI: drop non-chat ids.
+ * - OpenRouter (per-token price present & numeric): convert to per-1k.
+ * - Otherwise: inherit price from the catalog map; unknown → 0/0 ("preço a definir").
+ * Dedupes by id and sorts by label.
+ */
+export function normalizeProviderModels(
+  provider: AiProviderId,
+  raw: RawProviderModel[],
+): IAiModelOption[] {
+  const seen = new Set<string>();
+  const out: IAiModelOption[] = [];
+  for (const r of raw) {
+    if (!r.id || seen.has(r.id)) continue;
+    // For OpenAI: exclude known non-chat model types (embeddings, audio, etc.);
+    // allow unknown ids through so future chat models aren't silently dropped.
+    if (provider === "openai" && OPENAI_NON_CHAT.test(r.id.toLowerCase())) continue;
+    seen.add(r.id);
+
+    let inputPricePer1kUsd = 0;
+    let outputPricePer1kUsd = 0;
+    if (
+      typeof r.pricePromptPerToken === "number" &&
+      Number.isFinite(r.pricePromptPerToken) &&
+      typeof r.priceCompletionPerToken === "number" &&
+      Number.isFinite(r.priceCompletionPerToken)
+    ) {
+      inputPricePer1kUsd = r.pricePromptPerToken * 1000;
+      outputPricePer1kUsd = r.priceCompletionPerToken * 1000;
+    } else {
+      const mapped = priceForModel(provider, r.id);
+      if (mapped) {
+        inputPricePer1kUsd = mapped.inputPricePer1kUsd;
+        outputPricePer1kUsd = mapped.outputPricePer1kUsd;
+      }
+    }
+    out.push({ id: r.id, label: r.label || r.id, inputPricePer1kUsd, outputPricePer1kUsd });
+  }
+  out.sort((a, b) => a.label.localeCompare(b.label));
+  return out;
+}
+
+/** A model with both prices at 0 is "preço a definir" (no known pricing). */
+export function isModelPriceUndefined(m: IAiModelOption): boolean {
+  return m.inputPricePer1kUsd === 0 && m.outputPricePer1kUsd === 0;
+}
+
+/** True when `models` is still exactly the static catalog seed for `provider`. */
+export function modelsAreStaticSeed(provider: AiProviderId, models: IAiModelOption[]): boolean {
+  const seedIds = modelsFor(provider)
+    .map((m) => m.id)
+    .sort();
+  const curIds = models.map((m) => m.id).sort();
+  return seedIds.length === curIds.length && seedIds.every((id, i) => id === curIds[i]);
 }
 
 function providerConfig(
