@@ -25,11 +25,12 @@ export function classifyNumberCheck(
   errorCode: string | null,
 ): INumberCheckResult {
   if (errorCode !== null) return { status: "skipped" };
-  if (data?.exists) {
+  // Malformed / empty 200 body ⇒ fail-open (never block on ambiguity).
+  if (typeof data?.exists !== "boolean") return { status: "skipped" };
+  if (data.exists) {
     return { status: "has_whatsapp", canonicalPhone: data.canonicalPhone ?? undefined };
   }
-  if (data) return { status: "no_whatsapp" };
-  return { status: "skipped" };
+  return { status: "no_whatsapp" };
 }
 
 /** Reads the `{ code }` from a functions.invoke error envelope, when present. */

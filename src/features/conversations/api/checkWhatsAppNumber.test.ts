@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifyNumberCheck } from "./checkWhatsAppNumber";
+import { classifyNumberCheck, type IEdgeResponse } from "./checkWhatsAppNumber";
 
 describe("classifyNumberCheck", () => {
   it("maps exists=true to has_whatsapp with the canonical phone", () => {
@@ -20,5 +20,10 @@ describe("classifyNumberCheck", () => {
   });
   it("no data and no error is a skip", () => {
     expect(classifyNumberCheck(null, null)).toEqual({ status: "skipped" });
+  });
+  it("fails open to skipped on a malformed 200 body (no boolean exists)", () => {
+    expect(classifyNumberCheck({ canonicalPhone: null } as unknown as IEdgeResponse, null)).toEqual({
+      status: "skipped",
+    });
   });
 });
