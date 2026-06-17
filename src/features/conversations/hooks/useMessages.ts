@@ -94,7 +94,11 @@ export function useMessages(conversationId: ID): IUseMessagesResult {
     // spinner-flash while a never-seen conversation loads; revisited ones come
     // straight from cache.
     placeholderData: keepPreviousData,
-    staleTime: 15_000,
+    // Realtime only patches the OPEN conversation's cache, so a conversation
+    // left and re-entered must revalidate to catch messages that arrived while
+    // away — keep it always-stale. keepPreviousData + the cached pages keep the
+    // revisit instant; the refetch runs invisibly in the background.
+    staleTime: 0,
     gcTime: 10 * 60_000,
     refetchOnWindowFocus: false,
   });
@@ -182,32 +186,27 @@ export function useMessages(conversationId: ID): IUseMessagesResult {
 
   const applyRealtimeRow = useCallback(
     (incoming: IMessage) => {
-      queryClient.setQueryData<MessagesCache>(messagesKey(conversationId), (old) => {
-        const seededPage: MessagePage = { data: [incoming], total: 1, page: 1, pageSize: PAGE_SIZE };
-        if (!old) return { pages: [seededPage], pageParams: [1] };
-        const exists = old.pages.some((p) => p.data.some((m) => m.id === incoming.id));
-        if (exists) {
-          // Status never regresses; `failed` is recoverable (a transient ERROR
-          // ack can be superseded by a later delivered/read) — see statusAdvances.
-          return {
-            ...old,
-            pages: old.pages.map((p) => ({
-              ...p,
-              data: p.data.map((m) => {
-                if (m.id !== incoming.id) return m;
-                const advances = statusAdvances(m.status, incoming.status);
-                return { ...m, ...incoming, status: advances ? incoming.status : m.status };
-              }),
-            })),
-          };
-        }
-        // New live row → prepend to the newest page.
-        const [first, ...rest] = old.pages;
-        const merged: MessagePage = first ? { ...first, data: [incoming, ...first.data] } : seededPage;
-        return { ...old, pages: [merged, ...rest] };
-      });
+      // Read-then-write is safe here: this runs synchronously from the Realtime
+      // callback, so no concurrent mutation lands between the lookup and write.
+      const cache = queryClient.getQueryData<MessagesCache>(messagesKey(conversationId));
+      const exists = cache?.pages.some((p) => p.data.some((m) => m.id === incoming.id)) ?? false;
+      if (!exists) {
+        // New live row → same prepend path as an optimistic send.
+        prependNewest(incoming);
+        return;
+      }
+      // Existing row (status transition). Status never regresses; `failed` is
+      // recoverable (a transient ERROR ack can be superseded by a later
+      // delivered/read) — see statusAdvances.
+      mapPages((data) =>
+        data.map((m) => {
+          if (m.id !== incoming.id) return m;
+          const advances = statusAdvances(m.status, incoming.status);
+          return { ...m, ...incoming, status: advances ? incoming.status : m.status };
+        }),
+      );
     },
-    [queryClient, conversationId],
+    [queryClient, conversationId, prependNewest, mapPages],
   );
 
   const { fetchNextPage, refetch, hasNextPage, isFetchingNextPage } = query;
