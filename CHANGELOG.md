@@ -6,6 +6,18 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.103.0] — Polyglot · 2026-06-17
+
+**A OpenAI passa a ser um provedor de IA utilizável.** Antes travada como "adaptador em breve", agora tem adaptador real no Edge `ai-generate`: dá para cadastrar a chave, testar a conexão e usar no Playground como já acontecia com o Anthropic e o OpenRouter. O Google segue como "adaptador em breve".
+
+### Added
+
+- **Adaptador OpenAI no Edge `ai-generate`** — `callOpenAI` chama `https://api.openai.com/v1/chat/completions` (autenticação Bearer) com a chave do Vault (`OPENAI_API_KEY`). Como a OpenAI não reporta custo monetário, o custo sai do preço por token persistido em `ai_settings` (mesmo caminho do Anthropic). Para a família GPT-5 do catálogo, o corpo usa `max_completion_tokens` e omite `temperature`/`top_p` (compatibilidade ampla).
+
+### Changed
+
+- **OpenAI destravada na UI** — `AI_SUPPORTED_PROVIDERS` passa a incluir `openai` (espelho do conjunto `SUPPORTED` do Edge); o card de provedor libera o cadastro da chave e o teste, e o Playground passa a listar a OpenAI quando configurada.
+
 ## [0.102.0] — Cortex · 2026-06-17
 
 **A área de Inteligência artificial sai do modo Demonstração e passa a operar em produção.** O Edge `ai-generate` faz a chamada real ao Anthropic ou ao OpenRouter com a chave do Vault, mede tokens e custo, aplica o teto de orçamento e grava o histórico. O Playground e o teste de conexão agora são reais. Os consumidores (copiloto, SDR, identificação de peça, insights) continuam deferidos para sub-projetos seguintes.

@@ -15,14 +15,14 @@ O Sub-projeto 1 remove esse gate com segurança, entregando a **fundação míni
 1. **Persistência real**: 2 tabelas Supabase com RLS (`ai_settings` + `ai_usage_events`).
 2. **Edge proxy** `ai-generate` (a 11ª Edge Function): faz a chamada real ao LLM com a chave do Vault, mede tokens/custo/latência, aplica o teto de orçamento best-effort e grava o evento de uso.
 3. **`supabaseAiProvider` real**: substitui o stub, implementa os 10 métodos de `IAiProvider`.
-4. **Playground e teste de conexão reais**: passam a chamar Anthropic ou OpenRouter de verdade.
+4. **Playground e teste de conexão reais**: passam a chamar Anthropic, OpenAI ou OpenRouter de verdade.
 5. **Gate demo removido**: a área aparece para o Owner em produção.
 
 **O que NÃO entra neste sub-projeto (deferido):**
 - Consumidores reais (copiloto de conversa, copiloto analítico, SDR, identificação de peça, insights) — cada um será um sub-projeto próprio.
 - Teto de orçamento atômico (advisory lock) — necessário apenas quando consumidores automáticos dispararem sem humano no loop.
 - Streaming de resposta.
-- Adaptadores OpenAI e Google (visíveis na UI como "adaptador em breve").
+- Adaptador Google (visível na UI como "adaptador em breve"). *(OpenAI passou a ser suportada num incremento posterior — ver "Como adicionar um novo adaptador".)*
 - PII scrub server-side.
 
 ---
@@ -132,11 +132,12 @@ Content-Type: application/json
 1. `requireCaller(req, ["owner"])` — defesa em profundidade sobre `verify_jwt`.
 2. **Validação de limites**: `prompt.length <= MAX_PROMPT_LENGTH` (≈ 50.000 chars), `params.maxTokens` ≤ 4096 (capado server-side), `temperature ∈ [0, 2]`. Fora → `400` com `{ error: "prompt ou parâmetros inválidos" }`.
 3. Carrega `ai_settings` (linha singleton `id=1`) via cliente `admin`.
-4. **Adaptador habilitado?** Apenas `anthropic` e `openrouter` no v1; outro → `400` com `{ error: "provedor não suportado" }`.
+4. **Adaptador habilitado?** `anthropic`, `openai` e `openrouter`; outro (ex.: `google`) → `400` com `{ error: "provedor não suportado" }`.
 5. **Teto best-effort**: `SUM(cost_brl)` do mês corrente (UTC) em `ai_usage_events` — se ≥ `budget.monthlyCapBRL` → `402` com `{ error: "orçamento mensal esgotado" }`. *(Ver §Riscos aceitos — TOCTOU conhecida.)*
-6. **Chave do Vault** via `createSecretResolver` — `ANTHROPIC_API_KEY` ou `OPENROUTER_API_KEY`. Ausente → `400` com `{ error: "chave de API não configurada" }` (nunca chamar o provedor sem autenticação).
+6. **Chave do Vault** via `createSecretResolver` — `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` ou `OPENROUTER_API_KEY`. Ausente → `400` com `{ error: "chave de API não configurada" }` (nunca chamar o provedor sem autenticação).
 7. **Chamada ao adaptador** com `AbortSignal.timeout(LLM_TIMEOUT_MS ≈ 60 s)`:
    - **Anthropic** (`POST https://api.anthropic.com/v1/messages`, `anthropic-version` pinada): custo = `usage.input_tokens/output_tokens` × preço da linha persistida em `providers[].models[].inputPricePer1kUsd` × `budget.usdToBrl`.
+   - **OpenAI** (`POST https://api.openai.com/v1/chat/completions`, `Authorization: Bearer`): a OpenAI **não** reporta custo monetário (só tokens) → custo = `usage.prompt_tokens/completion_tokens` × preço da linha persistida × `budget.usdToBrl` (mesmo caminho do Anthropic). Como o catálogo usa modelos da família GPT-5 (e a o-series se comporta igual), o corpo envia **`max_completion_tokens`** (não `max_tokens`, que esses modelos rejeitam) e **omite `temperature`/`top_p`** (esses modelos só aceitam a temperatura padrão) — compatibilidade ampla acima de tuning por chamada no v1.
    - **OpenRouter** (`POST https://openrouter.ai/api/v1/chat/completions`, usage accounting habilitado): custo = `usage.cost` (USD real) × `budget.usdToBrl`; fallback se `cost` ausente: tokens × preço da linha + flag de imprecisão no log.
    - **Timeout** (`AbortError` cujo `name === "TimeoutError"`): grava `ai_usage_events` com `status='error'`, `latency_ms` medido, retorna `504` com `{ error: "tempo limite da chamada ao LLM excedido" }`.
    - **Qualquer outro erro de chamada** (falha de rede, HTTP 4xx/5xx do provedor, etc.): grava `ai_usage_events` com `status='error'`, retorna `502` com `{ error: "falha na chamada ao provedor LLM" }`.
@@ -189,14 +190,17 @@ Runtime Deno — somente Web APIs, zero dependências externas. O Edge importa o
 
 ---
 
-## Como adicionar um novo adaptador (OpenAI / Google)
+## Como adicionar um novo adaptador (resta: Google)
 
-1. **Criar** `supabase/functions/_shared/ai/adapters/<provider>.ts` implementando `LlmAdapter`.
-2. **Registrar** em `supabase/functions/_shared/ai/adapters.ts` — adicionar o caso no switch de seleção de adaptador.
-3. **Catálogo** — adicionar o provedor e seus modelos em `src/providers/data/engine/aiCatalog.ts` (nome, `inputPricePer1kUsd`, `outputPricePer1kUsd`, `defaultModel`). Esse arquivo é a única fonte de verdade de preço em tempo de execução.
-4. **Habilitar na UI** — remover o estado `disabled` / "adaptador em breve" do provedor em `AiProvidersTab.tsx`.
-5. **Segredo no Vault** — documentar o nome da variável de ambiente (`OPENAI_API_KEY`, `GOOGLE_AI_API_KEY`) e orientar o Owner a cadastrá-la em *Configurações → Integrações → Chaves & API*.
-6. **Testes**: adicionar sanidade no catálogo (faixas de preço plausíveis para o novo provedor) e smoke manual via `testConnection`.
+> **OpenAI já foi adicionada** seguindo exatamente este roteiro — use-a como referência. O `callOpenAI` em `adapters.ts` é o padrão para um provedor sem custo reportado (cai no preço por token do catálogo); o `callOpenRouter` é o padrão para um provedor que reporta `usage.cost`.
+
+1. **Criar a função** `call<Provider>(apiKey, req, signal): Promise<LlmResult>` em `supabase/functions/_shared/ai/adapters.ts` (espelhar `callOpenAI`/`callOpenRouter`). Web APIs apenas — runtime Deno.
+2. **Registrar** em `supabase/functions/ai-generate/index.ts`: adicionar o id ao `SUPPORTED`, o nome da chave ao `KEY_BY_PROVIDER` e o caso no `dispatch()`.
+3. **Catálogo** — adicionar o provedor e seus modelos em `src/providers/data/engine/aiCatalog.ts` (nome, `inputPricePer1kUsd`, `outputPricePer1kUsd`, `defaultModel`, `credentialsRef`). Esse arquivo é a única fonte de verdade de preço em tempo de execução.
+4. **Habilitar na UI** — adicionar o id a `AI_SUPPORTED_PROVIDERS` em `src/shared/types/ai.ts` (espelho do `SUPPORTED` do Edge). O `ProviderCard` destrava chave+teste e o Playground passa a listar o provedor automaticamente.
+5. **Segredo no Vault** — documentar o nome da variável de ambiente (`GOOGLE_AI_API_KEY`) e orientar o Owner a cadastrá-la em *Configurações → Inteligência artificial → Provedores & chaves*.
+6. **Redeploy do Edge** — `npx supabase functions deploy ai-generate --project-ref njizaasajkdqptlxddqn`.
+7. **Testes**: sem teste Vitest na camada de adaptadores (Deno, fora do Vitest) — validar por smoke manual via `testConnection` + uma geração no Playground.
 
 > Nenhuma migration nova é necessária — `ai_settings.providers` é jsonb e aceita o novo item sem alteração de schema.
 
@@ -221,7 +225,7 @@ A remoção do gate **só pode entrar em produção após o backend estar ativo*
 | Severidade | Risco | Postura no v1 |
 |------------|-------|---------------|
 | Alta | **Teto não-atômico (TOCTOU)** — dois Playgrounds em paralelo podem furar o orçamento pelo check-then-act não atômico. | Aceito *best-effort*: humano no loop + botão desabilitado durante a chamada em voo. **Endurecer (advisory lock por mês ou contador `UPDATE ... RETURNING`) é pré-requisito antes de religar consumidores automáticos.** |
-| Alta | **LGPD** — o conteúdo enviado vai para o provedor externo selecionado (Anthropic ou OpenRouter). OpenRouter repassa para sub-processadores opacos. | Consumidores deferidos ⇒ exposição real adiada. v1: banner explícito no Playground + recomendação de não usar OpenRouter para dado sensível de cliente + prompt padrão neutro. PII scrub fica para o sub-projeto que religar o primeiro consumidor. |
+| Alta | **LGPD** — o conteúdo enviado vai para o provedor externo selecionado (Anthropic, OpenAI ou OpenRouter). OpenRouter repassa para sub-processadores opacos. | Consumidores deferidos ⇒ exposição real adiada. v1: banner explícito no Playground + recomendação de não usar OpenRouter para dado sensível de cliente + prompt padrão neutro. PII scrub fica para o sub-projeto que religar o primeiro consumidor. |
 | Média | **`testConnection` custa e não respeita teto.** | Ping de 1 token, **bloqueado quando o teto já estourou**. Rate-limit por chamador fica deferido (Owner-only já limita a superfície). |
 | Média | **Sem rate-limit no `ai-generate`.** | Owner-only + `MAX_PROMPT_LENGTH` + cap de `maxTokens` server-side. Rate-limit por chamador fica para a fase de consumidores. |
 | Baixa | **Divergência de casing do papel** — front usa `'Owner'` (PascalCase em `requireAuth`) × Edge usa `'owner'` (base_role). | Já existia em *Chaves & API*. Documentado: a área de IA exige o papel-base `owner` (papel "Dono"). Padronizar para `base_role` em todo o front fica deferido. |
