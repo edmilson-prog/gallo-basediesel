@@ -6,6 +6,7 @@ import { Icon } from "@/components/Icon";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { getActiveDataSource } from "@/providers/data";
 import { useAuth } from "@/features/auth/useAuth";
 import { hasPermission } from "@/features/rbac/utils/hasPermission";
 import type { ResourceName } from "@/features/rbac/permissions/resources";
@@ -18,6 +19,8 @@ interface ISettingsItem {
   roles?: RoleName[];
   /** Marker used to display a small "Em breve" pill in the sidebar. */
   upcoming?: boolean;
+  /** Only shown in Demonstração (mock) data source — mock-first areas not yet wired to Supabase. */
+  demoOnly?: boolean;
 }
 
 interface ISettingsGroup {
@@ -174,6 +177,7 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         icon: "mdi:robot-happy-outline",
         to: "/app/configuracoes/ia",
         roles: ["Owner"],
+        demoOnly: true,
       },
       {
         label: "WhatsApp",
@@ -297,9 +301,11 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
 function useVisibleGroups() {
   const { currentUser, userRole } = useAuth();
   return useMemo(() => {
+    const isDemo = getActiveDataSource() === "mock";
     return SETTINGS_GROUPS.map((group) => ({
       ...group,
       items: group.items.filter((item) => {
+        if (item.demoOnly && !isDemo) return false;
         if (item.permission) {
           return hasPermission(currentUser, item.permission.resource, item.permission.action);
         }
