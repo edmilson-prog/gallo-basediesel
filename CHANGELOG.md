@@ -6,6 +6,22 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.99.0] — Shift · 2026-06-16
+
+**Cada usuário pode ter um horário de atendimento que controla o acesso à plataforma.** No cadastro de cada pessoa, o Dono define os dias e horários em que ela pode entrar. Fora desse turno, vendedores e atendentes não conseguem fazer login e ficam offline — sem interromper atendimentos em andamento. Dono e gestores nunca são bloqueados, e há liberação temporária para emergências.
+
+### Added
+
+- **Horário de atendimento por usuário** — no cadastro do usuário (aba Horário), defina os dias da semana e os horários de trabalho de cada pessoa, no fuso de Brasília. Sem nenhum dia ativo, o acesso é livre.
+- **Bloqueio de acesso fora do turno** — fora do horário, vendedores, vendedores externos, SDR e financeiro não conseguem entrar; a tela de login informa a partir de que horário o acesso é liberado. Dono e gestores entram a qualquer hora.
+- **Aviso ao fechar o turno** — se o horário termina enquanto a pessoa está usando o sistema, aparece um aviso e a disponibilidade passa a "offline" automaticamente, sem deslogar nem interromper o atendimento em andamento.
+- **Exceções por data** — feche um dia específico (feriado/folga) ou libere um dia fora da regra semanal.
+- **Liberação de emergência** — o Dono pode conceder acesso temporário a um usuário fora do horário (por algumas horas ou até um horário do dia), e revogar quando quiser.
+
+### Changed
+
+- **Cadastro de usuário** — a aba "Horário" foi ativada; o botão "Salvar alterações" passa a salvar tudo de uma vez (dados, horário e exceções).
+
 ## [0.98.0] — Steward · 2026-06-16
 
 **Os papéis de acesso agora são editáveis, ganhamos Departamentos e o cadastro de usuários foi renovado.** O Dono passa a ajustar, numa tela própria, exatamente o que cada papel pode ver e fazer; é possível criar papéis personalizados; organizar a equipe em departamentos; e o cadastro de cada usuário virou um painel lateral mais organizado.

@@ -7,6 +7,44 @@ export type SellerType = "internal" | "external" | "representative";
 /** Real-time availability of a seller for chat distribution. */
 export type SellerAvailability = "online" | "ausente" | "ocupado" | "offline";
 
+/**
+ * One attendance window within a weekday (PRD-212). Mirrors the shape of
+ * IBusinessHoursWindow (PRD-013) but applies PER USER and governs ACCESS,
+ * not store distribution. Times are São Paulo wall-clock ("HH:mm").
+ */
+export interface IWorkScheduleWindow {
+  /** 0=Sunday … 6=Saturday (JS getDay convention, São Paulo calendar). */
+  weekday: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  openAt: string; // "08:00"
+  closeAt: string; // "18:00"
+  enabled: boolean;
+}
+
+/** Weekly attendance schedule. Absent/empty = NO restriction (free access). */
+export type IWorkSchedule = IWorkScheduleWindow[];
+
+/** One-off date exception that overrides the weekly rule on that day. */
+export interface IScheduleOverride {
+  /** São Paulo calendar day, "YYYY-MM-DD". */
+  date: string;
+  /** `block` = closed that day; `allow` = open (optionally a partial window). */
+  type: "block" | "allow";
+  reason?: string;
+  /** For `allow`: optional window; omitted = the whole day is allowed. */
+  openAt?: string;
+  closeAt?: string;
+}
+
+/** Temporary emergency access grant (override de emergência, PRD-212). */
+export interface IAccessGrant {
+  /** Seller id of the granter (Owner/Gestor). */
+  grantedBy: ID;
+  grantedAt: ISO8601;
+  /** While `now < expiresAt`, login is allowed regardless of schedule. */
+  expiresAt: ISO8601;
+  reason?: string;
+}
+
 /** Commission tier reserved for external sellers and representatives. */
 export type CommissionTier = "junior" | "pleno" | "senior" | "master";
 
@@ -70,6 +108,12 @@ export interface ISeller {
   departmentId?: ID | null;
   /** Rotation participation toggle (PRD-213 placeholder — created here). */
   rotation?: { enabled: boolean };
+  /** Per-user attendance schedule governing access (PRD-212). */
+  workSchedule?: IWorkSchedule;
+  /** One-off date exceptions to the weekly schedule (PRD-212). */
+  scheduleOverrides?: IScheduleOverride[];
+  /** Active temporary emergency access grant; null/absent = none (PRD-212). */
+  accessGrant?: IAccessGrant | null;
   active: boolean;
   /** Soft delete (users CRUD) — set means hidden from lists; login revoked. */
   deletedAt?: ISO8601;
