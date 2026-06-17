@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { IDistributionResult, IRotationQueueState, ISeller } from "@/shared/types";
+import type { IRotationQueueState, ISeller } from "@/shared/types";
+import type { IDistributionResult } from "@/features/distribution/engine";
 import { applyRotationOverride } from "./applyRotationOverride";
 
 const now = new Date("2026-06-16T12:00:00Z");
@@ -25,7 +26,7 @@ describe("applyRotationOverride", () => {
     expect(r.decision.status).toBe("em_andamento");
     expect(r.decision.isSdrActive).toBe(false);
     expect(r.decision.criterionMatched).toBe("round_robin");
-    expect(r.pointers.topRefId).toBe("a");
+    expect(r.pointers?.topRefId).toBe("a");
   });
 
   it("does NOT touch a carteira decision (upstream precedence)", () => {

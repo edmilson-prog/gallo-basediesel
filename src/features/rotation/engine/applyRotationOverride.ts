@@ -2,10 +2,10 @@ import type {
   DistributionMatchedCriterion,
   ID,
   IDistributionCandidate,
-  IDistributionResult,
   IRotationQueueState,
   ISeller,
 } from "@/shared/types";
+import type { IDistributionResult } from "@/features/distribution/engine";
 import { selectNextFromRotation } from "./selectNextFromRotation";
 
 /** Criteria where the queue may take over (the 013 "revezamento" zone). */
