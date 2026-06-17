@@ -1,6 +1,6 @@
 /**
  * LLM adapters for the ai-generate Edge Function (Sub-projeto 1).
- * Only Anthropic + OpenRouter in v1. Runtime: Deno, Web APIs only.
+ * Anthropic + OpenAI + OpenRouter. Runtime: Deno, Web APIs only.
  *
  * Pricing/cost mirrors the app engine (src/features/ai-settings/engine/aiPricing.ts);
  * the runtime source of truth for per-model price is the persisted ai_settings row.
@@ -133,5 +133,46 @@ export async function callOpenRouter(
     inputTokens: data.usage?.prompt_tokens ?? 0,
     outputTokens: data.usage?.completion_tokens ?? 0,
     usdCost: data.usage?.cost,
+  };
+}
+
+export async function callOpenAI(
+  apiKey: string,
+  req: LlmRequest,
+  signal: AbortSignal,
+): Promise<LlmResult> {
+  const messages: Array<{ role: string; content: string }> = [];
+  if (req.systemPrompt) messages.push({ role: "system", content: req.systemPrompt });
+  messages.push({ role: "user", content: req.prompt });
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    signal,
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model: req.model,
+      max_tokens: req.maxTokens,
+      temperature: req.temperature,
+      ...(req.topP !== undefined ? { top_p: req.topP } : {}),
+      messages,
+    }),
+  });
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(`openai ${res.status}: ${detail.slice(0, 300)}`);
+  }
+  // OpenAI does not report monetary cost — leave usdCost undefined so the caller
+  // falls back to token×price from the persisted ai_settings row.
+  const data = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+    usage?: { prompt_tokens?: number; completion_tokens?: number };
+  };
+  return {
+    text: data.choices?.[0]?.message?.content ?? "",
+    inputTokens: data.usage?.prompt_tokens ?? 0,
+    outputTokens: data.usage?.completion_tokens ?? 0,
   };
 }

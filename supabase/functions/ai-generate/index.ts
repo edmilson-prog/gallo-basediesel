@@ -17,6 +17,7 @@ import { HttpError, json, parseJsonBody } from "../_shared/http.ts";
 import { servePost } from "../_shared/serve.ts";
 import {
   callAnthropic,
+  callOpenAI,
   callOpenRouter,
   computeCostBRL,
   type LlmRequest,
@@ -27,9 +28,10 @@ import {
 const LLM_TIMEOUT_MS = 60_000;
 const MAX_PROMPT_LENGTH = 50_000;
 const MAX_TOKENS_CAP = 4096;
-const SUPPORTED = new Set(["anthropic", "openrouter"]);
+const SUPPORTED = new Set(["anthropic", "openai", "openrouter"]);
 const KEY_BY_PROVIDER: Record<string, string> = {
   anthropic: "ANTHROPIC_API_KEY",
+  openai: "OPENAI_API_KEY",
   openrouter: "OPENROUTER_API_KEY",
 };
 
@@ -68,6 +70,7 @@ async function dispatch(
   signal: AbortSignal,
 ): Promise<LlmResult> {
   if (providerId === "anthropic") return callAnthropic(apiKey, req, signal);
+  if (providerId === "openai") return callOpenAI(apiKey, req, signal);
   return callOpenRouter(apiKey, req, signal);
 }
 
