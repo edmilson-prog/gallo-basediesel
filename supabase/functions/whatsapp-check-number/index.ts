@@ -61,12 +61,13 @@ servePost(async (req, { traceId }) => {
   const body = await parseJsonBody(req);
   const accountId = typeof body.accountId === "string" ? body.accountId : "";
   const phone = (typeof body.phone === "string" ? body.phone : "").replace(DIGITS, "");
+
+  const { admin, profile } = await requireCaller(req, CHECK_ROLES);
+
   if (!accountId) throw new HttpError(400, "accountId is required");
   if (phone.length < 12 || phone.length > 13) {
     return jsonError("telefone inválido — informe DDI + DDD + número", "VALIDATION_ERROR", 422);
   }
-
-  const { admin, profile } = await requireCaller(req, CHECK_ROLES);
 
   const { data: account } = await admin
     .from("whatsapp_accounts")
