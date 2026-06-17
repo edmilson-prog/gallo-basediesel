@@ -58,11 +58,17 @@ export function ModelSelect({
         <Button
           variant="outline"
           role="combobox"
+          aria-expanded={open}
           disabled={disabled}
           className="w-full justify-between font-normal"
         >
-          <span className="truncate">{current ? current.label : value || "Selecione o modelo"}</span>
-          <Icon icon="mdi:unfold-more-horizontal" className="size-4 shrink-0 opacity-60" />
+          <span className="truncate">
+            {current ? current.label : value || "Selecione o modelo"}
+          </span>
+          <Icon
+            icon="mdi:unfold-more-horizontal"
+            className="size-4 shrink-0 text-muted-foreground"
+          />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[min(28rem,90vw)] p-0" align="start">

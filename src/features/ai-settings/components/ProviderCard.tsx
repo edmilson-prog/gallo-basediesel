@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Icon } from "@/components/Icon";
 import { Badge } from "@/components/ui/badge";
@@ -37,20 +37,25 @@ export function ProviderCard({
   const [refreshing, setRefreshing] = useState(false);
   const didAutoFetch = useRef(false);
 
-  const refreshModels = async (silent = false) => {
-    setRefreshing(true);
-    try {
-      const list = await provider.listProviderModels(config.provider);
-      if (!silent) toast.success(`${list.length} modelos encontrados.`);
-      onChanged();
-    } catch (e) {
-      if (!silent) {
-        toast.error(e instanceof Error ? `Falha ao listar modelos: ${e.message}` : "Falha ao listar modelos.");
+  const refreshModels = useCallback(
+    async (silent = false) => {
+      setRefreshing(true);
+      try {
+        const list = await provider.listProviderModels(config.provider);
+        if (!silent) toast.success(`${list.length} modelos encontrados.`);
+        onChanged();
+      } catch (e) {
+        if (!silent) {
+          toast.error(
+            e instanceof Error ? `Falha ao listar modelos: ${e.message}` : "Falha ao listar modelos.",
+          );
+        }
+      } finally {
+        setRefreshing(false);
       }
-    } finally {
-      setRefreshing(false);
-    }
-  };
+    },
+    [provider, config.provider, onChanged],
+  );
 
   useEffect(() => {
     if (didAutoFetch.current) return;
@@ -59,8 +64,7 @@ export function ProviderCard({
     if (!modelsAreStaticSeed(config.provider, config.models)) return;
     didAutoFetch.current = true;
     void refreshModels(true); // silent first-time fetch
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [supported, configured, config.provider, config.modelsRefreshedAt]);
+  }, [supported, configured, config.provider, config.modelsRefreshedAt, config.models, refreshModels]);
 
   const saveKey = async () => {
     if (!keyValue.trim()) {
@@ -99,8 +103,12 @@ export function ProviderCard({
   };
 
   const setModel = async (model: string) => {
-    await provider.updateProviderConfig(config.provider, { defaultModel: model });
-    onChanged();
+    try {
+      await provider.updateProviderConfig(config.provider, { defaultModel: model });
+      onChanged();
+    } catch {
+      toast.error("Falha ao atualizar o modelo padrão.");
+    }
   };
 
   return (
