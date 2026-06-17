@@ -13,6 +13,12 @@ import { Icon } from "@/components/Icon";
 import { toast } from "sonner";
 import { useConversationsProvider, useCustomersProvider } from "@/providers/data";
 import { formatPhone } from "@/shared/utils/format";
+import {
+  formatBrPhoneDisplay,
+  looksLikePhone,
+  normalizeBrPhone,
+  samePhone,
+} from "../engine/phoneBR";
 import type { ICustomer, ID, IWhatsAppAccount } from "@/shared/types";
 import { OriginChip } from "./OriginChip";
 import { instanceAccent } from "../utils/instanceAccent";
@@ -49,6 +55,9 @@ export function NewConversationDialog({
   const [results, setResults] = useState<ICustomer[]>([]);
   const [selected, setSelected] = useState<ICustomer | null>(null);
   const [creating, setCreating] = useState(false);
+  const [newNumberMode, setNewNumberMode] = useState(false);
+  const [newNumberName, setNewNumberName] = useState("");
+  const [newNumberPhone, setNewNumberPhone] = useState("");
 
   useEffect(() => {
     const q = query.trim();
@@ -87,6 +96,67 @@ export function NewConversationDialog({
       toast.error(
         e instanceof Error ? e.message : "Não foi possível iniciar a conversa.",
       );
+      setCreating(false);
+    }
+  }
+
+  /** Dedupe by phone (the Supabase search now filters — Task 2), else create a
+   *  minimal B2C contact (no CPF; name falls back to the number, healed later). */
+  async function resolveOrCreateCustomer(phoneFinal: string): Promise<ICustomer> {
+    const suffix = phoneFinal.slice(-8);
+    const res = await customersProvider.list({ storeId, search: suffix, pageSize: 20 });
+    const match = res.data.find((c) => samePhone(c.phone, phoneFinal));
+    if (match) return match;
+    return customersProvider.create({
+      type: "B2C",
+      cpf: "",
+      fullName: newNumberName.trim() || phoneFinal,
+      phone: phoneFinal,
+      sellerId,
+      storeId,
+      status: "ativo",
+      tags: [],
+    });
+  }
+
+  /** Reuse an already-open conversation for this contact on this instance. */
+  async function findOpenConversationId(customerId: ID): Promise<ID | null> {
+    const res = await conversationsProvider.list({
+      storeId,
+      customerId,
+      whatsappAccountId: origin?.id,
+      status: ["aguardando", "em_andamento", "aguardando_cliente"],
+      pageSize: 1,
+    });
+    return res.data[0]?.id ?? null;
+  }
+
+  /** Orchestrates the new-number flow. `forced` is wired in Task 7 (validation). */
+  async function startNewNumber(_forced: boolean) {
+    if (!origin) return;
+    const norm = normalizeBrPhone(newNumberPhone);
+    if (!norm.ok) {
+      toast.error("Informe DDD + número (ex.: 54 99999-8888).");
+      return;
+    }
+    setCreating(true);
+    try {
+      const phoneFinal = norm.digits;
+      const customer = await resolveOrCreateCustomer(phoneFinal);
+      const openId = await findOpenConversationId(customer.id);
+      if (openId) {
+        onCreated(openId);
+        return;
+      }
+      const conversation = await conversationsProvider.createOutbound({
+        storeId,
+        whatsappAccountId: origin.id,
+        assignedSellerId: sellerId,
+        customerId: customer.id,
+      });
+      onCreated(conversation.id);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível iniciar a conversa.");
       setCreating(false);
     }
   }
@@ -191,11 +261,71 @@ export function NewConversationDialog({
                       ))}
                     </ul>
                   )}
-                  {query.trim().length >= 2 && results.length === 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      Nenhum cliente encontrado. Cadastre o contato em Clientes para iniciar a
-                      conversa.
-                    </p>
+                  {query.trim().length >= 2 && results.length === 0 && !newNumberMode && (
+                    looksLikePhone(query) ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewNumberMode(true);
+                          setNewNumberPhone(query);
+                        }}
+                        className="flex w-full items-center gap-2 rounded-lg border border-primary/40 bg-primary/5 px-3 py-2 text-left text-sm hover:bg-primary/10"
+                      >
+                        <Icon icon="mdi:plus-circle-outline" size={16} className="text-primary" />
+                        <span>
+                          Falar com{" "}
+                          <span className="font-medium text-foreground">
+                            {(() => {
+                              const n = normalizeBrPhone(query);
+                              return n.ok ? formatBrPhoneDisplay(n.digits) : query;
+                            })()}
+                          </span>{" "}
+                          — número novo
+                        </span>
+                      </button>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Nenhum cliente encontrado. Cadastre o contato em Clientes para iniciar a
+                        conversa.
+                      </p>
+                    )
+                  )}
+
+                  {newNumberMode && (
+                    <div className="space-y-2 rounded-lg border border-border p-3">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="new-conv-newname">Nome (opcional)</Label>
+                        <Input
+                          id="new-conv-newname"
+                          value={newNumberName}
+                          onChange={(e) => setNewNumberName(e.target.value)}
+                          placeholder="Sem nome"
+                          autoComplete="off"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="new-conv-newphone">Telefone</Label>
+                        <Input
+                          id="new-conv-newphone"
+                          inputMode="tel"
+                          value={newNumberPhone}
+                          onChange={(e) => setNewNumberPhone(e.target.value)}
+                          placeholder="(55) 54 99999-8888"
+                          autoComplete="off"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewNumberMode(false);
+                          setNewNumberName("");
+                          setNewNumberPhone("");
+                        }}
+                        className="text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        Voltar à busca
+                      </button>
+                    </div>
                   )}
                 </>
               )}
@@ -234,7 +364,14 @@ export function NewConversationDialog({
                 <Button variant="outline" onClick={onClose} disabled={creating}>
                   Cancelar
                 </Button>
-                <Button onClick={() => void handleStart()} disabled={!origin || !selected || creating}>
+                <Button
+                  onClick={() => void (newNumberMode ? startNewNumber(false) : handleStart())}
+                  disabled={
+                    !origin ||
+                    creating ||
+                    (newNumberMode ? !looksLikePhone(newNumberPhone) : !selected)
+                  }
+                >
                   {creating ? "Iniciando…" : "Iniciar conversa"}
                 </Button>
               </div>
