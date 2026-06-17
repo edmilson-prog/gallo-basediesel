@@ -476,3 +476,61 @@ export async function findContactsFromChats(
   }
   return out;
 }
+
+// ===== Number check (does this number have a WhatsApp account?) =============
+
+export interface IWhatsAppNumberCheck {
+  /** Wire-format number queried (E.164 without the leading +). */
+  input: string;
+  /** Whether the number has a WhatsApp account. */
+  exists: boolean;
+  /** Canonical E.164 the WhatsApp network reports (from the jid), when exists. */
+  e164?: string;
+}
+
+/**
+ * Parses POST /chat/whatsappNumbers defensively. Builds return either a flat
+ * array of OnWhatsAppDto ({ jid, exists, number }) or a nested { onWhatsapp:[…] }.
+ * When `exists`, the canonical number is read from the `jid` (it carries the
+ * WhatsApp-corrected 9th digit — the input may differ).
+ */
+export function parseWhatsAppNumbers(body: unknown): IWhatsAppNumberCheck[] {
+  const list = Array.isArray(body)
+    ? body
+    : Array.isArray((body as { onWhatsapp?: unknown[] })?.onWhatsapp)
+      ? (body as { onWhatsapp: unknown[] }).onWhatsapp
+      : [];
+  const out: IWhatsAppNumberCheck[] = [];
+  for (const raw of list) {
+    const c = raw as { jid?: string; exists?: boolean; number?: string } | null;
+    const exists = c?.exists === true;
+    out.push({
+      input: typeof c?.number === "string" ? c.number : "",
+      exists,
+      e164: exists ? jidToPhone(c?.jid) : undefined,
+    });
+  }
+  return out;
+}
+
+/**
+ * POST /chat/whatsappNumbers — asks the instance which of `numbers` (wire format)
+ * have a WhatsApp account. ON-DEMAND ONLY: bulk scanning risks an account ban
+ * (Evolution issue #2228). Errors propagate (caller decides whether to skip).
+ */
+export async function checkWhatsAppNumbers(
+  apiKey: string,
+  deps: IEngineDeps,
+  target: IEvolutionInstanceTarget,
+  numbers: string[],
+  traceId?: string,
+): Promise<IWhatsAppNumberCheck[]> {
+  const response = await evolutionRequest(apiKey, deps, {
+    baseUrl: target.baseUrl,
+    path: `/chat/whatsappNumbers/${target.instanceName}`,
+    json: { numbers },
+    timeoutMs: 15_000,
+    traceId,
+  });
+  return parseWhatsAppNumbers(response.body);
+}

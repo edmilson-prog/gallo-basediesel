@@ -235,6 +235,30 @@ function createInputToRow(
   return row;
 }
 
+/** Columns the free-text customer search scans (paridade com o mock haystack). */
+const SEARCH_COLUMNS = [
+  "full_name",
+  "razao_social",
+  "nome_fantasia",
+  "contact_name",
+  "email",
+  "phone",
+  "cnpj",
+  "cpf",
+] as const;
+
+/**
+ * Builds the PostgREST `.or()` expression for a free-text customer search, or
+ * `null` when the term is blank. `,` `(` `)` are PostgREST or()-delimiters and
+ * are neutralized to spaces. `*` is the ilike wildcard in the string filter form.
+ */
+export function buildCustomerSearchOr(search: string): string | null {
+  const term = search.trim();
+  if (!term) return null;
+  const safe = term.replace(/[,()]/g, " ");
+  return SEARCH_COLUMNS.map((c) => `${c}.ilike.*${safe}*`).join(",");
+}
+
 export const supabaseCustomersProvider: ICustomersProvider = {
   async list(params: IListCustomersParams = {}): Promise<IPaginatedResult<ICustomer>> {
     let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
@@ -260,6 +284,9 @@ export const supabaseCustomersProvider: ICustomersProvider = {
     }
 
     if (params.hasB2BPortal) query = query.eq("has_b2b_portal", true);
+
+    const searchOr = params.search ? buildCustomerSearchOr(params.search) : null;
+    if (searchOr) query = query.or(searchOr);
 
     const page = Math.max(1, Math.floor(params.page ?? 1));
     const pageSize = Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20)));
