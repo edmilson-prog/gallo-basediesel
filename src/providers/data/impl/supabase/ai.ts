@@ -96,12 +96,13 @@ async function loadSettingsRow(): Promise<AiSettingsRow> {
 
   // Seed the singleton default on first read (race-safe via ON CONFLICT DO NOTHING).
   const { data: auth } = await client.auth.getUser();
-  await client
+  const { error: seedErr } = await client
     .from("ai_settings")
     .upsert(settingsToRow(buildDefaultAiSettings("supabase"), auth.user?.id ?? null), {
       onConflict: "id",
       ignoreDuplicates: true,
     });
+  if (seedErr) throw new Error(`[supabase] ai.getSettings seed failed: ${seedErr.message}`);
   const { data: seeded, error: reErr } = await client
     .from("ai_settings")
     .select(SETTINGS_COLUMNS)
@@ -189,10 +190,25 @@ export const supabaseAiProvider: IAiProvider = {
     const { data, error } = await getSupabaseClient().functions.invoke("ai-generate", {
       body: { mode: "test", providerId, model: cfg?.defaultModel },
     });
-    if (error) {
-      return { ok: false, latencyMs: 0, message: await extractFunctionError(error) };
+    // `error` means a non-2xx / infra-level failure (undeployed function, project paused, etc.)
+    // The Edge returns HTTP 200 with { ok: false, message } for actual key/connection failures.
+    const result: IAiTestConnectionResult = error
+      ? {
+          ok: false,
+          latencyMs: 0,
+          message: `Falha ao acessar o serviço de IA: ${await extractFunctionError(error)}`,
+        }
+      : (data as IAiTestConnectionResult);
+    // Persist the test stamp as a best-effort side-effect; never let it fail the test itself.
+    try {
+      await supabaseAiProvider.updateProviderConfig(providerId, {
+        lastTestedAt: new Date().toISOString(),
+        lastTestResult: result.ok ? "ok" : "error",
+      });
+    } catch {
+      /* persisting the test stamp is best-effort; never fail the test itself */
     }
-    return data as IAiTestConnectionResult;
+    return result;
   },
 
   async getUsageSummary(period: AiUsagePeriod): Promise<IAiUsageSummary> {
