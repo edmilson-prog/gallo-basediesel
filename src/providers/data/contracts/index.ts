@@ -44,6 +44,8 @@ import type { ISystemHealthProvider } from "./systemHealth";
 import type { IMessageTemplatesProvider } from "./messageTemplates";
 import type { IRolesProvider } from "./roles";
 import type { IDepartmentsProvider } from "./departments";
+import type { IRotationQueuesProvider } from "./rotationQueues";
+import type { IRotationParticipantsProvider } from "./rotationParticipants";
 import type { IAiProvider } from "./ai";
 
 export type { IPaginatedResult, IPaginationParams } from "./_shared";
@@ -142,6 +144,11 @@ export type {
 } from "./messageTemplates";
 export type { IRolesProvider, ICreateRoleInput } from "./roles";
 export type { IDepartmentsProvider, ICreateDepartmentInput } from "./departments";
+export type { IRotationQueuesProvider } from "./rotationQueues";
+export type {
+  IRotationParticipantsProvider,
+  IAddRotationParticipantInput,
+} from "./rotationParticipants";
 export type { IAiProvider } from "./ai";
 
 /**
@@ -189,5 +196,7 @@ export interface IDataProviders {
   messageTemplates: IMessageTemplatesProvider;
   roles: IRolesProvider;
   departments: IDepartmentsProvider;
+  rotationQueues: IRotationQueuesProvider;
+  rotationParticipants: IRotationParticipantsProvider;
   ai: IAiProvider;
 }

@@ -39,6 +39,8 @@ import { mockSystemHealthProvider } from "./impl/mock/systemHealth";
 import { mockMessageTemplatesProvider } from "./impl/mock/messageTemplates";
 import { mockRolesProvider } from "./impl/mock/roles";
 import { mockDepartmentsProvider } from "./impl/mock/departments";
+import { mockRotationQueuesProvider } from "./impl/mock/rotationQueues";
+import { mockRotationParticipantsProvider } from "./impl/mock/rotationParticipants";
 import { mockAiProvider } from "./impl/mock/ai";
 
 import { supabaseCustomersProvider } from "./impl/supabase/customers";
@@ -80,6 +82,8 @@ import { supabaseSystemHealthProvider } from "./impl/supabase/systemHealth";
 import { supabaseMessageTemplatesProvider } from "./impl/supabase/messageTemplates";
 import { supabaseRolesProvider } from "./impl/supabase/roles";
 import { supabaseDepartmentsProvider } from "./impl/supabase/departments";
+import { supabaseRotationQueuesProvider } from "./impl/supabase/rotationQueues";
+import { supabaseRotationParticipantsProvider } from "./impl/supabase/rotationParticipants";
 import { supabaseAiProvider } from "./impl/supabase/ai";
 
 import {
@@ -154,6 +158,8 @@ const mockProviders: IDataProviders = {
   messageTemplates: mockMessageTemplatesProvider,
   roles: mockRolesProvider,
   departments: mockDepartmentsProvider,
+  rotationQueues: mockRotationQueuesProvider,
+  rotationParticipants: mockRotationParticipantsProvider,
   ai: mockAiProvider,
 };
 
@@ -197,6 +203,8 @@ const supabaseProviders: IDataProviders = {
   messageTemplates: supabaseMessageTemplatesProvider,
   roles: supabaseRolesProvider,
   departments: supabaseDepartmentsProvider,
+  rotationQueues: supabaseRotationQueuesProvider,
+  rotationParticipants: supabaseRotationParticipantsProvider,
   ai: supabaseAiProvider,
 };
 

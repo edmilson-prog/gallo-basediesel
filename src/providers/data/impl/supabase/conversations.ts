@@ -9,11 +9,14 @@ import type {
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
 import { distributeConversation, type IDistributionInput } from "@/features/distribution/engine";
+import { applyRotationOverride } from "@/features/rotation/engine/applyRotationOverride";
 import { supabaseSettingsProvider } from "./settings";
 import { supabaseSellersProvider } from "./sellers";
 import { supabaseCustomersProvider } from "./customers";
 import { supabaseLeadsProvider } from "./leads";
 import { supabaseDistributionTracesProvider } from "./distributionTraces";
+import { supabaseRotationQueuesProvider } from "./rotationQueues";
+import { supabaseRotationParticipantsProvider } from "./rotationParticipants";
 
 /**
  * Supabase implementation of {@link IConversationsProvider} (PRD-100+).
@@ -336,6 +339,21 @@ export const supabaseConversationsProvider: IConversationsProvider = {
       { settings, sellers, loadBySeller },
     );
 
+    // PRD-213: the rotation queue is the source of the routine revezamento
+    // (boundary contract w/ PRD-013). Carteira/especialidade keep upstream
+    // precedence; an empty queue keeps the 013 fallback. One assignment per
+    // conversation. The real webhook path is intentionally untouched.
+    const rotationState = await supabaseRotationQueuesProvider.getState(input.storeId);
+    const sellersById = Object.fromEntries(sellers.map((s) => [s.id, s]));
+    const override = applyRotationOverride(
+      decision,
+      rotationState,
+      sellersById,
+      new Date(occurredAt),
+    );
+    const effective = override.decision;
+    const rotationPointers = override.pointers;
+
     // --- Persist (ordered, best-effort — see file header on atomicity) ---------
     const { data: convData, error: convError } = await client
       .from(TABLE)
@@ -344,11 +362,11 @@ export const supabaseConversationsProvider: IConversationsProvider = {
         store_id: input.storeId,
         customer_id: input.customerId ?? null,
         lead_id: input.leadId ?? null,
-        assigned_seller_id: decision.selectedSellerId,
+        assigned_seller_id: effective.selectedSellerId,
         channel: input.channel,
         whatsapp_account_id: input.whatsappAccountId ?? null,
-        status: decision.status,
-        is_sdr_active: decision.isSdrActive,
+        status: effective.status,
+        is_sdr_active: effective.isSdrActive,
         tags: [],
         linked_order_id: null,
         last_message_at: occurredAt,
@@ -390,7 +408,7 @@ export const supabaseConversationsProvider: IConversationsProvider = {
       delivered_at: occurredAt,
     });
 
-    if (decision.systemMessage) {
+    if (effective.systemMessage) {
       const systemSentAt = new Date(new Date(occurredAt).getTime() + 1000).toISOString();
       const system: IMessage = {
         id: crypto.randomUUID(),
@@ -399,7 +417,7 @@ export const supabaseConversationsProvider: IConversationsProvider = {
         authorType: "system",
         authorId: "sdr-agent",
         provider,
-        text: decision.systemMessage,
+        text: effective.systemMessage,
         status: "sent",
         sentAt: systemSentAt,
       };
@@ -428,17 +446,29 @@ export const supabaseConversationsProvider: IConversationsProvider = {
       leadId: input.leadId,
       storeId: input.storeId,
       timestamp: occurredAt,
-      selectedSellerId: decision.selectedSellerId,
-      criterionMatched: decision.criterionMatched,
-      candidatesEvaluated: decision.candidatesEvaluated,
-      mode: decision.mode,
+      selectedSellerId: effective.selectedSellerId,
+      criterionMatched: effective.criterionMatched,
+      candidatesEvaluated: effective.candidatesEvaluated,
+      mode: effective.mode,
     };
     await supabaseDistributionTracesProvider.create(trace);
 
-    // Advance the round-robin cursor when applicable (mirrors the mock).
-    if (decision.criterionMatched === "round_robin" && decision.selectedSellerId) {
+    // Advance the rotation pointers when the queue took over; otherwise keep the
+    // legacy round-robin cursor advance for non-governed cases (mirrors the mock).
+    if (rotationPointers) {
+      await supabaseRotationQueuesProvider.update(input.storeId, {
+        lastAssignedRefId: rotationPointers.topRefId,
+      });
+      for (const [deptId, memberId] of Object.entries(rotationPointers.memberByDept)) {
+        await supabaseRotationParticipantsProvider.setMemberPointer(
+          rotationState.queue.id,
+          deptId,
+          memberId,
+        );
+      }
+    } else if (effective.criterionMatched === "round_robin" && effective.selectedSellerId) {
       await supabaseSettingsProvider.update(input.storeId, {
-        distribution: { ...settings, lastAssignedSellerId: decision.selectedSellerId },
+        distribution: { ...settings, lastAssignedSellerId: effective.selectedSellerId },
       });
     }
 

@@ -176,6 +176,14 @@ export function selectAllDepartments() {
   return getMockState().departments;
 }
 
+export function selectAllRotationQueues() {
+  return getMockState().rotationQueues;
+}
+
+export function selectAllRotationParticipants() {
+  return getMockState().rotationParticipants;
+}
+
 export function selectAllDistributionTraces() {
   return getMockState().distributionTraces;
 }

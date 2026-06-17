@@ -31,6 +31,7 @@ interface SellerRow {
   commission_rule: ISeller["commissionRule"] | null;
   vehicle_cadastro_mode: ISeller["vehicleCadastroMode"] | null;
   department_id: string | null;
+  rotation: ISeller["rotation"] | null;
   work_schedule: ISeller["workSchedule"] | null;
   schedule_overrides: ISeller["scheduleOverrides"] | null;
   access_grant: ISeller["accessGrant"] | null;
@@ -41,7 +42,7 @@ interface SellerRow {
 
 const TABLE = "sellers";
 const COLUMNS =
-  "id, store_id, full_name, attendant_name, email, phone, type, availability, divisions, theme_preference, region, commission_tier, parent_seller_id, commission_rule, vehicle_cadastro_mode, department_id, work_schedule, schedule_overrides, access_grant, active, created_at, deleted_at";
+  "id, store_id, full_name, attendant_name, email, phone, type, availability, divisions, theme_preference, region, commission_tier, parent_seller_id, commission_rule, vehicle_cadastro_mode, department_id, rotation, work_schedule, schedule_overrides, access_grant, active, created_at, deleted_at";
 
 function rowToSeller(row: SellerRow): ISeller {
   return {
@@ -61,6 +62,7 @@ function rowToSeller(row: SellerRow): ISeller {
     commissionRule: row.commission_rule ?? undefined,
     vehicleCadastroMode: row.vehicle_cadastro_mode ?? undefined,
     departmentId: row.department_id ?? null,
+    rotation: row.rotation ?? undefined,
     workSchedule: row.work_schedule ?? undefined,
     scheduleOverrides: row.schedule_overrides ?? undefined,
     accessGrant: row.access_grant ?? null,
@@ -90,6 +92,7 @@ function sellerPatchToRow(patch: Partial<ISeller>): Record<string, unknown> {
     row.vehicle_cadastro_mode = patch.vehicleCadastroMode;
   // Nullable: `null` clears the assignment; `undefined` leaves it untouched.
   if (patch.departmentId !== undefined) row.department_id = patch.departmentId ?? null;
+  if (patch.rotation !== undefined) row.rotation = patch.rotation;
   if (patch.workSchedule !== undefined) row.work_schedule = patch.workSchedule;
   if (patch.scheduleOverrides !== undefined) row.schedule_overrides = patch.scheduleOverrides;
   // Nullable: `null` clears the grant; `undefined` leaves it untouched.

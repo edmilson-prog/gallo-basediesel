@@ -18,8 +18,11 @@ import {
 import { getMockState } from "../store/mockStore";
 import { patchById, upsert } from "../store/mutations";
 import { distributeConversation, type IDistributionInput } from "@/features/distribution/engine";
+import { applyRotationOverride } from "@/features/rotation/engine/applyRotationOverride";
 import { distributionTracesApi } from "./distributionTraces";
 import { settingsApi } from "./settings";
+import { rotationQueuesApi } from "./rotationQueues";
+import { rotationParticipantsApi } from "./rotationParticipants";
 import {
   MockNotFoundError,
   paginate,
@@ -266,16 +269,31 @@ export const conversationsApi = {
           { settings, sellers, loadBySeller },
         );
 
+        // PRD-213: the rotation queue is the source of the routine revezamento
+        // (boundary contract w/ PRD-013). Carteira/especialidade keep upstream
+        // precedence; an empty queue keeps the 013 fallback. One assignment per
+        // conversation.
+        const rotationState = await rotationQueuesApi.getState(input.storeId);
+        const sellersById = Object.fromEntries(sellers.map((s) => [s.id, s]));
+        const override = applyRotationOverride(
+          decision,
+          rotationState,
+          sellersById,
+          new Date(occurredAt),
+        );
+        const effective = override.decision;
+        const rotationPointers = override.pointers;
+
         const conversation: IConversation = {
           id: conversationId,
           storeId: input.storeId,
           customerId: input.customerId,
           leadId: input.leadId,
-          assignedSellerId: decision.selectedSellerId ?? undefined,
+          assignedSellerId: effective.selectedSellerId ?? undefined,
           channel: input.channel,
           whatsappAccountId: input.whatsappAccountId,
-          status: decision.status,
-          isSdrActive: decision.isSdrActive,
+          status: effective.status,
+          isSdrActive: effective.isSdrActive,
           tags: [],
           lastMessageAt: occurredAt,
           unreadCount: 1,
@@ -300,7 +318,7 @@ export const conversationsApi = {
         upsert("messages", incoming);
         messages.push(incoming);
 
-        if (decision.systemMessage) {
+        if (effective.systemMessage) {
           const systemId = `msg-${crypto.randomUUID()}`;
           const system: IMessage = {
             id: systemId,
@@ -309,7 +327,7 @@ export const conversationsApi = {
             authorType: "system",
             authorId: "sdr-agent",
             provider: input.channel === "whatsapp" ? "meta" : "mock",
-            text: decision.systemMessage,
+            text: effective.systemMessage,
             status: "sent",
             sentAt: new Date(new Date(occurredAt).getTime() + 1000).toISOString(),
           };
@@ -324,20 +342,25 @@ export const conversationsApi = {
           leadId: input.leadId,
           storeId: input.storeId,
           timestamp: occurredAt,
-          selectedSellerId: decision.selectedSellerId,
-          criterionMatched: decision.criterionMatched,
-          candidatesEvaluated: decision.candidatesEvaluated,
-          mode: decision.mode,
+          selectedSellerId: effective.selectedSellerId,
+          criterionMatched: effective.criterionMatched,
+          candidatesEvaluated: effective.candidatesEvaluated,
+          mode: effective.mode,
         };
         await distributionTracesApi.create(trace);
 
-        // Advance the round-robin cursor when applicable.
-        if (decision.criterionMatched === "round_robin" && decision.selectedSellerId) {
+        // Advance the rotation pointers when the queue took over; otherwise keep
+        // the legacy round-robin cursor advance for non-governed cases.
+        if (rotationPointers) {
+          await rotationQueuesApi.update(input.storeId, {
+            lastAssignedRefId: rotationPointers.topRefId,
+          });
+          for (const [deptId, memberId] of Object.entries(rotationPointers.memberByDept)) {
+            await rotationParticipantsApi.setMemberPointer(rotationState.queue.id, deptId, memberId);
+          }
+        } else if (effective.criterionMatched === "round_robin" && effective.selectedSellerId) {
           await settingsApi.update(input.storeId, {
-            distribution: {
-              ...settings,
-              lastAssignedSellerId: decision.selectedSellerId,
-            },
+            distribution: { ...settings, lastAssignedSellerId: effective.selectedSellerId },
           });
         }
 

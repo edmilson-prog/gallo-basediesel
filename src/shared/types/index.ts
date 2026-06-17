@@ -86,6 +86,18 @@ export type {
   PermissionScope,
 } from "./people";
 
+// Rotation queue (PRD-213)
+export type {
+  RotationTargetMode,
+  IRotationQueue,
+  IRotationParticipant,
+  RotationSkipReason,
+  IRotationCandidate,
+  IRotationSelectionInput,
+  IRotationSelectionResult,
+  IRotationQueueState,
+} from "./rotation";
+
 // Customer, vehicle, segment, portal
 export type {
   ICustomer,
