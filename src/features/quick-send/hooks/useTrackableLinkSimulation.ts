@@ -25,8 +25,9 @@ const OPEN_PROBABILITY = 0.5;
  * and drops a single SystemBubble cause→effect line. Idempotent per
  * (linkId,temperature) so re-opens at the same level never re-escalate.
  *
- * Live updates do NOT use TanStack invalidation for messages/leads (those are
- * LOCAL useState in useMessages/useConversationDetail). Instead:
+ * Live updates don't invalidate a shared messages/leads query key: those live
+ * in useMessages/useConversationDetail's own per-conversation query caches,
+ * mutated directly rather than through an invalidatable key. Instead:
  *  - the SystemBubble is appended via the conversation context's
  *    `messages.appendOptimistic(...)` (the same path useMessageSend uses) AND
  *    persisted through `messagesProvider.send({ authorType: "system" })`;
@@ -71,7 +72,7 @@ export function useTrackableLinkSimulation(
       // System bubble cause→effect (D-9).
       const note = QUICK_SEND_STRINGS.temperature.roseUpTo(next, link.utm?.campaign ?? "o link");
       // Append the bubble LIVE through the conversation context so it shows
-      // immediately (useMessages is local state, not a query).
+      // immediately (appendOptimistic prepends synchronously to useMessages' query cache).
       const now = new Date().toISOString();
       const optimistic: IMessage = {
         id: `tmp-sys-${crypto.randomUUID()}`,
