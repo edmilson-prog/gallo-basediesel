@@ -150,7 +150,7 @@ export function RotationQueueManager() {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    aria-label="Remover do rodízio"
+                    aria-label={`Remover ${nameById[p.refId] ?? p.refId} do rodízio`}
                     onClick={() => removeParticipant.mutate(p.id)}
                   >
                     <Icon icon="mdi:close" size={16} />
@@ -167,7 +167,10 @@ export function RotationQueueManager() {
 
           {addable.length > 0 && (
             <div className="flex items-center gap-2">
-              <Select onValueChange={(refId) => addParticipant.mutate(refId)}>
+              <Select
+                key={state.topParticipants.length}
+                onValueChange={(refId) => addParticipant.mutate(refId)}
+              >
                 <SelectTrigger className="w-72">
                   <SelectValue placeholder="Adicionar usuário ao rodízio" />
                 </SelectTrigger>
