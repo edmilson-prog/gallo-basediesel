@@ -24,8 +24,10 @@ import {
   type LlmResult,
   type ModelPricing,
 } from "../_shared/ai/adapters.ts";
+import { listModels } from "../_shared/ai/modelList.ts";
 
 const LLM_TIMEOUT_MS = 60_000;
+const LIST_TIMEOUT_MS = 15_000;
 const MAX_PROMPT_LENGTH = 50_000;
 const MAX_TOKENS_CAP = 4096;
 const SUPPORTED = new Set(["anthropic", "openai", "openrouter"]);
@@ -78,10 +80,31 @@ servePost(async (req, { log }) => {
   const { admin, callerId, profile } = await requireCaller(req, ["owner"]);
   const body = await parseJsonBody(req);
 
-  const mode = body.mode === "test" ? "test" : "generate";
+  const mode =
+    body.mode === "test" ? "test" : body.mode === "list-models" ? "list-models" : "generate";
   const providerId = String(body.providerId ?? "");
   if (!SUPPORTED.has(providerId)) {
     throw new HttpError(400, "provider não suportado neste momento (adaptador em breve)");
+  }
+
+  // list-models: thin proxy — fetch the provider's model list with the Vault key.
+  // No settings/budget needed; the front prices + persists the result.
+  if (mode === "list-models") {
+    const resolveSecret = createSecretResolver(admin);
+    const apiKey = await resolveSecret(KEY_BY_PROVIDER[providerId]!);
+    if (!apiKey) throw new HttpError(400, "chave de API do provedor não configurada");
+    const controller = AbortSignal.timeout(LIST_TIMEOUT_MS);
+    try {
+      const models = await listModels(providerId, apiKey, controller);
+      return json({ models });
+    } catch (err) {
+      const aborted = err instanceof DOMException && err.name === "TimeoutError";
+      const detail = err instanceof Error ? err.message : "erro";
+      throw new HttpError(
+        aborted ? 504 : 502,
+        aborted ? "tempo de resposta do provedor esgotado" : `falha ao listar modelos: ${detail}`,
+      );
+    }
   }
 
   // Settings (single row).

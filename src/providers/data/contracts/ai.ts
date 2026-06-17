@@ -4,6 +4,7 @@ import type {
   AiUsagePeriod,
   IAiBudget,
   IAiFeatureRouting,
+  IAiModelOption,
   IAiPlaygroundInput,
   IAiPlaygroundResult,
   IAiProviderConfig,
@@ -35,4 +36,6 @@ export interface IAiProvider {
   getUsageSummary(period: AiUsagePeriod): Promise<IAiUsageSummary>;
   listUsageEvents(): Promise<IAiUsageEvent[]>;
   runPlayground(input: IAiPlaygroundInput): Promise<IAiPlaygroundResult>;
+  /** Fetch the provider's model list live (mock: static catalog). */
+  listProviderModels(providerId: AiProviderId): Promise<IAiModelOption[]>;
 }

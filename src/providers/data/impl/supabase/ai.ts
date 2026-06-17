@@ -1,5 +1,9 @@
 import { getSupabaseClient } from "@/shared/lib/supabase";
-import { buildDefaultAiSettings } from "@/providers/data/engine/aiCatalog";
+import {
+  buildDefaultAiSettings,
+  normalizeProviderModels,
+  type RawProviderModel,
+} from "@/providers/data/engine/aiCatalog";
 import { summarizeUsage } from "@/features/ai-settings/engine/aiUsage";
 import { projectMonthlySpend } from "@/features/ai-settings/engine/aiBudget";
 import type {
@@ -8,6 +12,7 @@ import type {
   AiUsagePeriod,
   IAiBudget,
   IAiFeatureRouting,
+  IAiModelOption,
   IAiPlaygroundInput,
   IAiPlaygroundResult,
   IAiProviderConfig,
@@ -240,5 +245,28 @@ export const supabaseAiProvider: IAiProvider = {
     });
     if (error) throw new Error(await extractFunctionError(error));
     return data as IAiPlaygroundResult;
+  },
+
+  async listProviderModels(providerId): Promise<IAiModelOption[]> {
+    const { data, error } = await getSupabaseClient().functions.invoke("ai-generate", {
+      body: { mode: "list-models", providerId },
+    });
+    if (error) throw new Error(await extractFunctionError(error));
+    const raw = (data as { models?: RawProviderModel[] }).models ?? [];
+    const models = normalizeProviderModels(providerId, raw);
+    if (models.length === 0) {
+      // Empty result (e.g. provider hiccup): keep the current list rather than wiping it.
+      const cur = rowToSettings(await loadSettingsRow()).providers.find(
+        (p) => p.provider === providerId,
+      );
+      return cur?.models ?? [];
+    }
+    // Persist so the Edge cost path (price from ai_settings) keeps working.
+    // updateProviderConfig only patches models + timestamp → defaultModel is preserved as-is.
+    await supabaseAiProvider.updateProviderConfig(providerId, {
+      models,
+      modelsRefreshedAt: new Date().toISOString(),
+    });
+    return models;
   },
 };

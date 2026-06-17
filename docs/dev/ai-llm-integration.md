@@ -204,6 +204,18 @@ Runtime Deno — somente Web APIs, zero dependências externas. O Edge importa o
 
 > Nenhuma migration nova é necessária — `ai_settings.providers` é jsonb e aceita o novo item sem alteração de schema.
 
+### Lista de modelos dinâmica (v0.104.0 `Manifest`)
+
+A partir do v0.104.0, a lista de modelos de cada provedor é **dinâmica** — não mais fixada no catálogo estático. O fluxo completo:
+
+1. O `ProviderCard` dispara **"Atualizar modelos"** (botão explícito ou auto-busca única no primeiro acesso com chave configurada), chamando `listProviderModels(providerId)` do `IAiProvider`.
+2. O `supabaseAiProvider` invoca a **ação `list-models`** no Edge `ai-generate` (`_shared/ai/modelList.ts`): o Edge chama a API do provedor com a chave do Vault e retorna a lista bruta de modelos.
+3. O front executa `normalizeProviderModels(provider, raw)` (em `aiCatalog.ts`): mescla preço do mapa `priceForModel` (Anthropic/OpenAI) ou da própria API (OpenRouter, que retorna `pricing` por modelo); modelos sem preço no mapa ficam com `inputPricePer1kUsd: 0` e são exibidos com o badge **"preço a definir"** na UI.
+4. A lista normalizada é **persistida em `ai_settings.providers[].models`** (jsonb, sem migration) com `modelsRefreshedAt` atualizando o timestamp da última busca.
+5. O seletor de modelo usa um `<select>` nativo para listas ≤ 20 modelos e um **combobox com busca** para listas maiores (tipicamente OpenRouter, que lista centenas de modelos). O mock segue retornando o catálogo estático para modo Demonstração.
+
+> Ao adicionar o Google: além dos passos 1–7 acima, criar o adaptador de listagem `listGoogle` em `_shared/ai/modelList.ts` (seguir `listAnthropic`/`listOpenAI`/`listOpenRouter` como referência).
+
 ---
 
 ## Ordem de deploy (crítico)

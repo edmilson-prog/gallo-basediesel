@@ -27,6 +27,8 @@ export interface IAiProviderConfig {
   status: AiProviderStatus;
   lastTestedAt?: ISO8601;
   lastTestResult?: "ok" | "error";
+  /** When the model list was last fetched live from the provider. */
+  modelsRefreshedAt?: ISO8601;
 }
 
 export interface IAiGenerationParams {

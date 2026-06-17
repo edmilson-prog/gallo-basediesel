@@ -6,6 +6,20 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.104.0] — Manifest · 2026-06-17
+
+**A lista de modelos de cada provedor de IA agora é dinâmica.** Em vez de dois modelos fixos, o card do provedor busca os modelos disponíveis ao vivo (Anthropic, OpenAI e OpenRouter) com a chave do Vault, via uma nova ação no Edge `ai-generate`. O preço vem da API (OpenRouter) ou de um mapa no catálogo (OpenAI/Anthropic); modelos sem preço conhecido ficam selecionáveis, marcados "preço a definir".
+
+### Added
+
+- **Ação `list-models` no Edge `ai-generate`** + adaptadores de listagem por provedor (`_shared/ai/modelList.ts`).
+- **Botão "Atualizar modelos"** no `ProviderCard`, com auto-busca única no primeiro acesso e seletor com busca (combobox) quando a lista é grande (> 20 modelos).
+- **`listProviderModels`** em `IAiProvider` (mock = catálogo estático; supabase = Edge + merge de preço + persistência).
+
+### Changed
+
+- **Lista de modelos dinâmica** — `normalizeProviderModels`/`priceForModel`/`isOpenAiChatModel` no `aiCatalog`; `IAiProviderConfig.modelsRefreshedAt` registra a última busca. Sem migration (`providers` é jsonb).
+
 ## [0.103.0] — Polyglot · 2026-06-17
 
 **A OpenAI passa a ser um provedor de IA utilizável.** Antes travada como "adaptador em breve", agora tem adaptador real no Edge `ai-generate`: dá para cadastrar a chave, testar a conexão e usar no Playground como já acontecia com o Anthropic e o OpenRouter. O Google segue como "adaptador em breve".

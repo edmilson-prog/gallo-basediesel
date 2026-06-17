@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Icon } from "@/components/Icon";
 import { Badge } from "@/components/ui/badge";
@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { setIntegrationSecret } from "@/features/admin-settings/api/integrationSecrets";
 import { AI_PROVIDER_LABELS, AI_SUPPORTED_PROVIDERS, type IAiProviderConfig } from "@/shared/types";
+import { modelsAreStaticSeed } from "@/providers/data/engine/aiCatalog";
 import { useAiProvider } from "@/providers/data";
+import { ModelSelect } from "./ModelSelect";
 
 const INITIALS: Record<string, string> = {
   anthropic: "AN",
@@ -31,6 +33,38 @@ export function ProviderCard({
 
   const configured = config.status === "configured";
   const supported = AI_SUPPORTED_PROVIDERS.includes(config.provider);
+
+  const [refreshing, setRefreshing] = useState(false);
+  const didAutoFetch = useRef(false);
+
+  const refreshModels = useCallback(
+    async (silent = false) => {
+      setRefreshing(true);
+      try {
+        const list = await provider.listProviderModels(config.provider);
+        if (!silent) toast.success(`${list.length} modelos encontrados.`);
+        onChanged();
+      } catch (e) {
+        if (!silent) {
+          toast.error(
+            e instanceof Error ? `Falha ao listar modelos: ${e.message}` : "Falha ao listar modelos.",
+          );
+        }
+      } finally {
+        setRefreshing(false);
+      }
+    },
+    [provider, config.provider, onChanged],
+  );
+
+  useEffect(() => {
+    if (didAutoFetch.current) return;
+    if (!supported || !configured) return;
+    if (config.modelsRefreshedAt) return;
+    if (!modelsAreStaticSeed(config.provider, config.models)) return;
+    didAutoFetch.current = true;
+    void refreshModels(true); // silent first-time fetch
+  }, [supported, configured, config.provider, config.modelsRefreshedAt, config.models, refreshModels]);
 
   const saveKey = async () => {
     if (!keyValue.trim()) {
@@ -69,8 +103,12 @@ export function ProviderCard({
   };
 
   const setModel = async (model: string) => {
-    await provider.updateProviderConfig(config.provider, { defaultModel: model });
-    onChanged();
+    try {
+      await provider.updateProviderConfig(config.provider, { defaultModel: model });
+      onChanged();
+    } catch {
+      toast.error("Falha ao atualizar o modelo padrão.");
+    }
   };
 
   return (
@@ -156,18 +194,34 @@ export function ProviderCard({
         </div>
 
         <div>
-          <label className="mb-1 block text-xs text-muted-foreground">Modelo padrão</label>
-          <select
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <label className="block text-xs text-muted-foreground">Modelo padrão</label>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 px-2 text-xs"
+              disabled={!supported || !configured || refreshing}
+              onClick={() => refreshModels(false)}
+            >
+              <Icon
+                icon="mdi:refresh"
+                className={`mr-1 size-3.5 ${refreshing ? "animate-spin" : ""}`}
+              />
+              Atualizar modelos
+            </Button>
+          </div>
+          <ModelSelect
+            models={config.models}
             value={config.defaultModel}
-            onChange={(e) => setModel(e.target.value)}
-            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-          >
-            {config.models.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.label} — entrada ${m.inputPricePer1kUsd}/1k · saída ${m.outputPricePer1kUsd}/1k
-              </option>
-            ))}
-          </select>
+            onChange={setModel}
+            disabled={!supported}
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            {config.models.length} modelos
+            {config.modelsRefreshedAt
+              ? ` · atualizado ${new Date(config.modelsRefreshedAt).toLocaleString("pt-BR")}`
+              : ""}
+          </p>
         </div>
 
         <div className="flex items-center justify-between border-t border-border pt-3">

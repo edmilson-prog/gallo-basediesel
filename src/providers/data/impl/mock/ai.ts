@@ -140,4 +140,9 @@ export const mockAiProvider: IAiProvider = {
       latencyMs: 1400,
     };
   },
+
+  async listProviderModels(providerId) {
+    await delay();
+    return structuredClone(modelsFor(providerId));
+  },
 };
