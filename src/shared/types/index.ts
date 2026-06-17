@@ -466,3 +466,24 @@ export type {
   ITrackableLinkProvider,
   IScheduledSendProvider,
 } from "./quickSend";
+
+// AI / LLM settings (Configurações → Inteligência artificial)
+export type {
+  AiProviderId,
+  AiFeatureKey,
+  AiProviderStatus,
+  AiUsageStatus,
+  AiUsagePeriod,
+  IAiModelOption,
+  IAiProviderConfig,
+  IAiGenerationParams,
+  IAiFeatureRouting,
+  IAiBudget,
+  IAiSettings,
+  IAiUsageEvent,
+  IAiUsageSummary,
+  IAiPlaygroundInput,
+  IAiPlaygroundResult,
+  IAiTestConnectionResult,
+} from "./ai";
+export { AI_FEATURE_LABELS, AI_PROVIDER_LABELS } from "./ai";

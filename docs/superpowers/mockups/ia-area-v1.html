@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="diesel" class="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GALLO · Inteligência artificial</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css" />
+<style>
+  :root{
+    --bg:#0e0e0e; --bg2:#121212; --card:#1a1a1a; --fg:#fafafa; --muted:#a1a1aa; --muted2:#71717a;
+    --primary:#c9a24a; --primary-dark:#8c6e25; --green:#22c55e; --warn:#f59e0b; --crit:#f87171; --info:#60a5fa;
+    --border:rgba(255,255,255,0.08); --border2:rgba(255,255,255,0.16);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--bg);color:var(--fg);font-family:'Segoe UI',-apple-system,Roboto,system-ui,sans-serif;font-size:14px;line-height:1.5;}
+  .app{display:flex;min-height:100vh;}
+  .sidebar{width:236px;flex-shrink:0;border-right:1px solid var(--border);padding:16px 10px;background:var(--bg2);}
+  .side-title{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted2);padding:0 10px 12px;}
+  .side-group{margin-bottom:16px;}
+  .side-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted2);padding:0 10px;margin-bottom:5px;}
+  .side-item{display:flex;align-items:center;gap:11px;padding:8px 10px;border-radius:9px;color:var(--muted);cursor:pointer;font-size:13px;transition:background .15s,color .15s;}
+  .side-item i{font-size:17px;}
+  .side-item:hover{background:rgba(255,255,255,0.05);color:var(--fg);}
+  .side-item.active{background:rgba(201,162,74,0.14);color:var(--primary);font-weight:500;}
+  .content{flex:1;min-width:0;}
+  .topbar{position:sticky;top:0;z-index:5;backdrop-filter:blur(10px);background:rgba(14,14,14,0.78);border-bottom:1px solid var(--border);padding:13px 26px;display:flex;align-items:center;justify-content:space-between;}
+  .crumb{font-size:12.5px;color:var(--muted);}
+  .crumb b{color:var(--fg);font-weight:500;}
+  .pill-owner{font-size:11px;color:var(--primary);background:rgba(201,162,74,0.14);padding:4px 10px;border-radius:999px;}
+  .page{padding:24px 26px;max-width:1080px;}
+  .phead{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:20px;}
+  .h1{font-size:21px;font-weight:600;margin:0;letter-spacing:-.01em;}
+  .sub{font-size:13px;color:var(--muted);margin:4px 0 0;}
+  .row{display:flex;gap:16px;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;}
+  .card-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .card-t{font-size:14px;font-weight:600;margin:0;}
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px;}
+  .kpi{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:15px 16px;}
+  .kpi .label{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:6px;}
+  .kpi .val{font-size:25px;font-weight:600;margin-top:7px;line-height:1;}
+  .kpi .delta{font-size:11.5px;margin-top:8px;display:flex;align-items:center;gap:4px;}
+  .pos{color:var(--green);} .neg{color:var(--crit);}
+  .track{height:6px;border-radius:999px;background:rgba(255,255,255,0.08);overflow:hidden;margin-top:10px;}
+  .track>span{display:block;height:100%;background:var(--primary);}
+  .toggle{width:42px;height:24px;border-radius:999px;background:var(--primary);position:relative;cursor:pointer;flex-shrink:0;transition:background .15s;}
+  .toggle::after{content:'';position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:50%;background:#0e0e0e;transition:all .15s;}
+  .toggle.off{background:#3a3a3a;}
+  .toggle.off::after{left:3px;right:auto;background:#888;}
+  .badge-ok{background:rgba(34,197,94,0.14);color:var(--green);border:1px solid rgba(34,197,94,0.32);padding:3px 9px;border-radius:8px;font-size:11px;display:inline-flex;align-items:center;gap:4px;}
+  .badge-off{background:rgba(255,255,255,0.06);color:var(--muted);padding:3px 9px;border-radius:8px;font-size:11px;}
+  .badge-soft{background:rgba(96,165,250,0.14);color:var(--info);padding:3px 9px;border-radius:8px;font-size:11px;}
+  select.sel{background:var(--bg2);border:1px solid var(--border2);border-radius:9px;padding:8px 11px;color:var(--fg);font-size:13px;font-family:inherit;cursor:pointer;outline:none;}
+  select.sel:focus{border-color:var(--primary);}
+  .ipt{background:var(--bg2);border:1px solid var(--border2);border-radius:9px;padding:9px 11px;color:var(--fg);font-size:13px;font-family:inherit;width:100%;}
+  .ipt:focus{outline:none;border-color:var(--primary);}
+  .mono{font-family:'Cascadia Code',Consolas,monospace;}
+  .btn{background:transparent;border:1px solid var(--border2);border-radius:9px;padding:8px 13px;color:var(--fg);font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;font-family:inherit;transition:background .15s;}
+  .btn:hover{background:rgba(255,255,255,0.05);}
+  .btn-primary{background:var(--primary);color:#0e0e0e;border:none;font-weight:600;}
+  .btn-primary:hover{background:#d9b25c;}
+  .switch-pill{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;color:var(--green);background:rgba(34,197,94,0.12);padding:6px 12px;border-radius:999px;white-space:nowrap;}
+  .donut{width:128px;height:128px;border-radius:50%;position:relative;flex-shrink:0;
+    background:conic-gradient(var(--primary) 0 45%, var(--info) 45% 72%, var(--green) 72% 90%, var(--muted) 90% 100%);}
+  .donut::after{content:'';position:absolute;inset:24px;border-radius:50%;background:var(--card);}
+  .legend{display:flex;flex-direction:column;gap:9px;font-size:12.5px;}
+  .legend .it{display:flex;align-items:center;gap:8px;}
+  .dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+  .bar-row{display:flex;align-items:center;gap:12px;margin-bottom:11px;font-size:12.5px;}
+  .bar-row .nm{width:150px;color:var(--fg);}
+  .bar-track{flex:1;height:9px;background:rgba(255,255,255,0.07);border-radius:999px;overflow:hidden;}
+  .bar-fill{height:100%;background:var(--primary);}
+  .bar-row .vl{width:62px;text-align:right;color:var(--muted);}
+  .prov{display:flex;flex-direction:column;gap:13px;}
+  .pcard{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;}
+  .pcard.dim{opacity:.72;}
+  .pc-head{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+  .pc-ico{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;flex-shrink:0;}
+  .pc-name{font-size:14.5px;font-weight:600;margin:0;}
+  .pc-desc{font-size:12px;color:var(--muted);margin:1px 0 0;}
+  .field{margin-bottom:12px;}
+  .field .fl{font-size:12px;color:var(--muted);margin-bottom:5px;}
+  .pc-foot{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);padding-top:12px;margin-top:4px;}
+  .feat{display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--border);border-radius:13px;background:var(--card);margin-bottom:11px;flex-wrap:wrap;}
+  .feat .fico{width:36px;height:36px;border-radius:10px;background:rgba(201,162,74,0.13);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+  .feat .fmeta{flex:1;min-width:150px;}
+  .feat .fnm{font-size:13.5px;font-weight:600;margin:0;}
+  .feat .fds{font-size:11.5px;color:var(--muted);margin:1px 0 0;}
+  .feat .froute{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .feat .fcost{font-size:12px;color:var(--muted);width:74px;text-align:right;}
+  .arrow{color:var(--muted2);font-size:13px;}
+  .note{font-size:12px;color:var(--muted);background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:11px 13px;display:flex;gap:9px;align-items:flex-start;margin-bottom:16px;}
+  .note i{color:var(--primary);font-size:16px;margin-top:1px;}
+  .resp{background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:14px;font-size:13px;color:#e6e6e6;line-height:1.65;min-height:90px;}
+  .metrics{display:flex;gap:18px;margin-top:13px;font-size:12px;color:var(--muted);flex-wrap:wrap;}
+  .metrics b{color:var(--fg);font-weight:600;}
+  .foot{padding:18px 26px;color:var(--muted2);font-size:11.5px;border-top:1px solid var(--border);}
+  [hidden]{display:none !important;}
+  @media(max-width:760px){.kpi-grid{grid-template-columns:repeat(2,1fr);}.row{flex-direction:column;}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="side-title">Configurações</div>
+    <div class="side-group">
+      <div class="side-label">Pessoal</div>
+      <div class="side-item"><i class="ti ti-user"></i> Perfil</div>
+      <div class="side-item"><i class="ti ti-palette"></i> Aparência</div>
+    </div>
+    <div class="side-group">
+      <div class="side-label">Inteligência artificial</div>
+      <div class="side-item active" onclick="showScreen('overview',this)"><i class="ti ti-chart-bar"></i> Visão geral</div>
+      <div class="side-item" onclick="showScreen('providers',this)"><i class="ti ti-key"></i> Provedores &amp; chaves</div>
+      <div class="side-item" onclick="showScreen('features',this)"><i class="ti ti-adjustments-horizontal"></i> Funcionalidades</div>
+      <div class="side-item" onclick="showScreen('playground',this)"><i class="ti ti-player-play"></i> Playground</div>
+    </div>
+    <div class="side-group">
+      <div class="side-label">Integrações</div>
+      <div class="side-item"><i class="ti ti-brand-whatsapp"></i> WhatsApp</div>
+      <div class="side-item"><i class="ti ti-key-off"></i> Chaves &amp; API</div>
+    </div>
+  </aside>
+
+  <div class="content">
+    <div class="topbar" id="content-top">
+      <div class="crumb"><i class="ti ti-settings" style="vertical-align:-2px"></i> Configurações <span style="color:var(--muted2)">›</span> <b>Inteligência artificial</b></div>
+      <span class="pill-owner">Owner</span>
+    </div>
+
+    <!-- ============ VISÃO GERAL ============ -->
+    <section class="page" data-screen="overview">
+      <div class="phead">
+        <div>
+          <h1 class="h1">Inteligência artificial</h1>
+          <p class="sub">Consumo do mês · junho 2026 · provedor padrão: <span style="color:var(--primary)">Anthropic</span></p>
+        </div>
+        <span class="switch-pill">IA ativa <span class="toggle" onclick="tog(this)"></span></span>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi">
+          <div class="label"><i class="ti ti-bolt"></i> Chamadas</div>
+          <div class="val">1.284</div>
+          <div class="delta pos"><i class="ti ti-trending-up"></i> 12% vs. mês anterior</div>
+        </div>
+        <div class="kpi">
+          <div class="label"><i class="ti ti-coins"></i> Tokens</div>
+          <div class="val">5,24 M</div>
+          <div class="delta pos"><i class="ti ti-trending-up"></i> 8%</div>
+        </div>
+        <div class="kpi">
+          <div class="label"><i class="ti ti-currency-real"></i> Custo est.</div>
+          <div class="val">R$ 312</div>
+          <div class="delta pos"><i class="ti ti-trending-down"></i> R$ 14</div>
+        </div>
+        <div class="kpi">
+          <div class="label"><i class="ti ti-gauge"></i> Budget mensal</div>
+          <div class="val">31%</div>
+          <div class="track"><span style="width:31%"></span></div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-bottom:16px;">
+        <div class="card" style="flex:1.7;">
+          <div class="card-h"><p class="card-t">Consumo nos últimos 30 dias</p><span style="font-size:11.5px;color:var(--muted)">chamadas / dia</span></div>
+          <svg id="area" viewBox="0 0 620 180" width="100%" height="180" preserveAspectRatio="none" role="img" aria-label="Gráfico de área de chamadas por dia, tendência de alta de 22 para 78."></svg>
+        </div>
+        <div class="card" style="flex:1;">
+          <div class="card-h"><p class="card-t">Por provedor</p></div>
+          <div style="display:flex;align-items:center;gap:18px;">
+            <div class="donut"></div>
+            <div class="legend">
+              <div class="it"><span class="dot" style="background:var(--primary)"></span> Anthropic <b style="margin-left:auto;color:var(--fg)">45%</b></div>
+              <div class="it"><span class="dot" style="background:var(--info)"></span> OpenAI <b style="margin-left:auto;color:var(--fg)">27%</b></div>
+              <div class="it"><span class="dot" style="background:var(--green)"></span> OpenRouter <b style="margin-left:auto;color:var(--fg)">18%</b></div>
+              <div class="it"><span class="dot" style="background:var(--muted)"></span> Google <b style="margin-left:auto;color:var(--fg)">10%</b></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><p class="card-t">Custo por funcionalidade</p><span style="font-size:11.5px;color:var(--muted)">mês atual</span></div>
+        <div class="bar-row"><span class="nm">SDR (qualificação)</span><span class="bar-track"><span class="bar-fill" style="width:82%"></span></span><span class="vl">R$ 128</span></div>
+        <div class="bar-row"><span class="nm">Copiloto de conversa</span><span class="bar-track"><span class="bar-fill" style="width:59%"></span></span><span class="vl">R$ 92</span></div>
+        <div class="bar-row"><span class="nm">Identificação de peça</span><span class="bar-track"><span class="bar-fill" style="width:35%"></span></span><span class="vl">R$ 54</span></div>
+        <div class="bar-row"><span class="nm">Insights</span><span class="bar-track"><span class="bar-fill" style="width:24%"></span></span><span class="vl">R$ 38</span></div>
+      </div>
+    </section>
+
+    <!-- ============ PROVEDORES ============ -->
+    <section class="page" data-screen="providers" hidden>
+      <div class="phead">
+        <div>
+          <h1 class="h1">Provedores &amp; chaves</h1>
+          <p class="sub">Chaves guardadas criptografadas no cofre · nunca exibidas de volta</p>
+        </div>
+        <button class="btn btn-primary"><i class="ti ti-device-floppy"></i> Salvar</button>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;">
+        <div><p class="card-t">Provedor padrão</p><p class="sub" style="margin-top:3px">Usado quando a funcionalidade não especifica outro</p></div>
+        <select class="sel"><option>Anthropic · claude-opus-4.8</option><option>OpenAI · gpt-5.2</option><option>OpenRouter · auto</option></select>
+      </div>
+
+      <div class="prov">
+        <div class="pcard">
+          <div class="pc-head">
+            <div class="pc-ico" style="background:rgba(201,162,74,0.16);color:var(--primary)">AN</div>
+            <div style="flex:1"><p class="pc-name">Anthropic</p><p class="pc-desc">Família Claude · Opus / Sonnet / Haiku</p></div>
+            <span class="badge-ok"><i class="ti ti-circle-check"></i> Configurado</span>
+          </div>
+          <div class="field"><div class="fl">Chave de API</div><input class="ipt mono" value="sk-ant••••••••••••GgAA" readonly></div>
+          <div class="row">
+            <div class="field" style="flex:1"><div class="fl">Modelo padrão</div><select class="sel" style="width:100%"><option>claude-opus-4.8</option><option>claude-sonnet-4.6</option><option>claude-haiku-4.5</option></select></div>
+            <div class="field" style="flex:1"><div class="fl">Preço (1k tokens)</div><input class="ipt" value="entrada $0,015 · saída $0,075" readonly></div>
+          </div>
+          <div class="pc-foot"><button class="btn"><i class="ti ti-plug-connected"></i> Testar conexão</button><span style="font-size:11.5px;color:var(--muted)">Último teste: 12/06 às 09:40 · OK</span></div>
+        </div>
+
+        <div class="pcard">
+          <div class="pc-head">
+            <div class="pc-ico" style="background:rgba(34,197,94,0.16);color:var(--green)">OA</div>
+            <div style="flex:1"><p class="pc-name">OpenAI</p><p class="pc-desc">Família GPT · gpt-5.2, gpt-5-mini</p></div>
+            <span class="badge-ok"><i class="ti ti-circle-check"></i> Configurado</span>
+          </div>
+          <div class="field"><div class="fl">Chave de API</div><input class="ipt mono" value="sk-proj••••••••••rs4A" readonly></div>
+          <div class="row">
+            <div class="field" style="flex:1"><div class="fl">Modelo padrão</div><select class="sel" style="width:100%"><option>gpt-5.2</option><option>gpt-5-mini</option></select></div>
+            <div class="field" style="flex:1"><div class="fl">Preço (1k tokens)</div><input class="ipt" value="entrada $0,010 · saída $0,030" readonly></div>
+          </div>
+          <div class="pc-foot"><button class="btn"><i class="ti ti-plug-connected"></i> Testar conexão</button><span style="font-size:11.5px;color:var(--muted)">Último teste: 11/06 às 22:20 · OK</span></div>
+        </div>
+
+        <div class="pcard">
+          <div class="pc-head">
+            <div class="pc-ico" style="background:rgba(96,165,250,0.16);color:var(--info)">OR</div>
+            <div style="flex:1"><p class="pc-name">OpenRouter</p><p class="pc-desc">Multi-provider · 1 chave → 300+ modelos</p></div>
+            <span class="badge-ok"><i class="ti ti-circle-check"></i> Configurado</span>
+          </div>
+          <div class="field"><div class="fl">Chave de API</div><input class="ipt mono" value="sk-or••••••••••••9fK2" readonly></div>
+          <div class="row">
+            <div class="field" style="flex:1"><div class="fl">Modelo padrão</div><select class="sel" style="width:100%"><option>auto (melhor custo)</option><option>anthropic/claude-opus-4.8</option><option>google/gemini-2.5-pro</option></select></div>
+            <div class="field" style="flex:1"><div class="fl">Disponíveis</div><input class="ipt" value="315 modelos" readonly></div>
+          </div>
+          <div class="pc-foot"><button class="btn"><i class="ti ti-plug-connected"></i> Testar conexão</button><span style="font-size:11.5px;color:var(--muted)">Último teste: 10/06 às 23:10 · OK</span></div>
+        </div>
+
+        <div class="pcard dim">
+          <div class="pc-head">
+            <div class="pc-ico" style="background:rgba(255,255,255,0.08);color:var(--muted)">GE</div>
+            <div style="flex:1"><p class="pc-name">Google</p><p class="pc-desc">Família Gemini · 2.5 Pro / Flash</p></div>
+            <span class="badge-off">Não configurado</span>
+          </div>
+          <div class="field"><div class="fl">Chave de API</div><input class="ipt" placeholder="Cole a chave do Google AI Studio"></div>
+          <div class="pc-foot"><button class="btn"><i class="ti ti-key-plus"></i> Definir chave</button><span style="font-size:11.5px;color:var(--muted)">Ainda não testado</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FUNCIONALIDADES ============ -->
+    <section class="page" data-screen="features" hidden>
+      <div class="phead">
+        <div>
+          <h1 class="h1">Funcionalidades de IA</h1>
+          <p class="sub">Qual modelo controla cada cérebro da plataforma · com fallback e custo</p>
+        </div>
+        <span class="switch-pill">IA global ativa <span class="toggle" onclick="tog(this)"></span></span>
+      </div>
+
+      <div class="note"><i class="ti ti-route"></i><div>Cada funcionalidade roteia para o provedor/modelo escolhido. Se ele falhar ou estourar o budget, cai para o <b>fallback</b> — reaproveitando o mesmo padrão de failover já usado no WhatsApp.</div></div>
+
+      <div class="feat">
+        <div class="fico"><i class="ti ti-message-chatbot"></i></div>
+        <div class="fmeta"><p class="fnm">Copiloto de conversa</p><p class="fds">Sugestões de resposta no atendimento</p></div>
+        <div class="froute">
+          <select class="sel"><option>OpenAI</option><option>Anthropic</option><option>OpenRouter</option><option>Google</option></select>
+          <select class="sel"><option>gpt-5.2</option><option>gpt-5-mini</option></select>
+          <span class="arrow"><i class="ti ti-arrow-fork"></i></span>
+          <span class="badge-soft">fallback: Claude Sonnet</span>
+        </div>
+        <div class="fcost">R$ 92</div>
+        <span class="toggle" onclick="tog(this)"></span>
+      </div>
+
+      <div class="feat">
+        <div class="fico"><i class="ti ti-chart-dots"></i></div>
+        <div class="fmeta"><p class="fnm">Copiloto analítico</p><p class="fds">Perguntas em linguagem natural sobre os dados</p></div>
+        <div class="froute">
+          <select class="sel"><option>Anthropic</option><option>OpenAI</option><option>OpenRouter</option></select>
+          <select class="sel"><option>claude-haiku-4.5</option><option>claude-sonnet-4.6</option></select>
+          <span class="arrow"><i class="ti ti-arrow-fork"></i></span>
+          <span class="badge-soft">fallback: gpt-5-mini</span>
+        </div>
+        <div class="fcost">R$ 0</div>
+        <span class="toggle" onclick="tog(this)"></span>
+      </div>
+
+      <div class="feat">
+        <div class="fico"><i class="ti ti-robot"></i></div>
+        <div class="fmeta"><p class="fnm">SDR (qualificação automática)</p><p class="fds">Qualifica e responde leads no WhatsApp</p></div>
+        <div class="froute">
+          <select class="sel"><option>Anthropic</option><option>OpenAI</option><option>OpenRouter</option></select>
+          <select class="sel"><option>claude-opus-4.8</option><option>claude-sonnet-4.6</option></select>
+          <span class="arrow"><i class="ti ti-arrow-fork"></i></span>
+          <span class="badge-soft">fallback: gpt-5.2</span>
+        </div>
+        <div class="fcost">R$ 128</div>
+        <span class="toggle" onclick="tog(this)"></span>
+      </div>
+
+      <div class="feat">
+        <div class="fico"><i class="ti ti-search"></i></div>
+        <div class="fmeta"><p class="fnm">Identificação de peça</p><p class="fds">Extrai a peça de texto/foto do cliente</p></div>
+        <div class="froute">
+          <select class="sel"><option>Google</option><option>OpenAI</option><option>Anthropic</option></select>
+          <select class="sel"><option>gemini-2.5-flash</option><option>gemini-2.5-pro</option></select>
+          <span class="arrow"><i class="ti ti-arrow-fork"></i></span>
+          <span class="badge-soft">fallback: gpt-5.2</span>
+        </div>
+        <div class="fcost">R$ 54</div>
+        <span class="toggle" onclick="tog(this)"></span>
+      </div>
+
+      <div class="feat" style="opacity:.7">
+        <div class="fico"><i class="ti ti-bulb"></i></div>
+        <div class="fmeta"><p class="fnm">Insights</p><p class="fds">Geração de insights comerciais</p></div>
+        <div class="froute">
+          <select class="sel"><option>OpenRouter</option><option>Anthropic</option></select>
+          <select class="sel"><option>auto (econômico)</option></select>
+          <span class="arrow"><i class="ti ti-arrow-fork"></i></span>
+          <span class="badge-off">desligado</span>
+        </div>
+        <div class="fcost">R$ 0</div>
+        <span class="toggle off" onclick="tog(this)"></span>
+      </div>
+    </section>
+
+    <!-- ============ PLAYGROUND ============ -->
+    <section class="page" data-screen="playground" hidden>
+      <div class="phead">
+        <div>
+          <h1 class="h1">Playground</h1>
+          <p class="sub">Teste um prompt contra qualquer modelo · veja resposta, tokens e custo</p>
+        </div>
+      </div>
+
+      <div class="row" style="margin-bottom:14px;">
+        <div class="field" style="flex:1;margin:0"><div class="fl">Provedor</div><select class="sel" style="width:100%"><option>Anthropic</option><option>OpenAI</option><option>OpenRouter</option><option>Google</option></select></div>
+        <div class="field" style="flex:1;margin:0"><div class="fl">Modelo</div><select class="sel" style="width:100%"><option>claude-opus-4.8</option><option>claude-sonnet-4.6</option></select></div>
+        <div class="field" style="flex:1;margin:0"><div class="fl">Temperatura</div><input class="ipt" value="0.4" readonly></div>
+      </div>
+
+      <div class="field"><div class="fl">Prompt</div><textarea class="ipt" rows="3" style="resize:vertical;font-family:inherit">Resuma em 3 bullets as últimas conversas do cliente Transportes Silva e sugira a próxima ação.</textarea></div>
+      <div style="display:flex;justify-content:flex-end;margin:8px 0 16px;"><button class="btn btn-primary"><i class="ti ti-player-play"></i> Executar</button></div>
+
+      <div class="card">
+        <div class="card-h"><p class="card-t">Resposta</p><span class="badge-soft">claude-opus-4.8</span></div>
+        <div class="resp">• Cliente pediu cotação de 4 jogos de pastilha de freio (Scania R450) — aguardando aprovação.<br>• Reclamou de prazo na última compra; ofereça frete prioritário.<br>• Histórico de R$ 38k/ano — candidato a condição especial.<br><br><b style="color:var(--primary)">Próxima ação sugerida:</b> enviar proposta com 5% de desconto e prazo de 2 dias úteis.</div>
+        <div class="metrics">
+          <span><i class="ti ti-arrow-down-left"></i> entrada <b>312</b> tokens</span>
+          <span><i class="ti ti-arrow-up-right"></i> saída <b>148</b> tokens</span>
+          <span><i class="ti ti-currency-real"></i> custo <b>R$ 0,02</b></span>
+          <span><i class="ti ti-clock"></i> latência <b>1,4s</b></span>
+        </div>
+      </div>
+    </section>
+
+    <div class="foot">Mockup navegável · dados ilustrativos · GALLO Base Diesel — clique nas subtelas de “Inteligência artificial” na barra lateral.</div>
+  </div>
+</div>
+
+<script>
+  function showScreen(name, el){
+    document.querySelectorAll('[data-screen]').forEach(function(s){ s.hidden = (s.getAttribute('data-screen') !== name); });
+    document.querySelectorAll('.side-item').forEach(function(i){ i.classList.remove('active'); });
+    if(el) el.classList.add('active');
+    var t = document.getElementById('content-top'); if(t) t.scrollIntoView({block:'start'});
+  }
+  function tog(el){ el.classList.toggle('off'); }
+  (function(){
+    var data=[22,28,25,34,30,41,38,33,45,52,48,40,55,60,57,49,62,58,66,61,54,68,72,69,63,70,75,71,78,74];
+    var W=620,H=180,pad=10, max=Math.max.apply(null,data);
+    var sx=(W-pad*2)/(data.length-1);
+    var y=function(v){ return (H-pad) - (v/max)*(H-pad*2); };
+    var d='M '+pad+' '+y(data[0]).toFixed(1);
+    for(var i=1;i<data.length;i++){ d+=' L '+(pad+i*sx).toFixed(1)+' '+y(data[i]).toFixed(1); }
+    var area=d+' L '+(pad+(data.length-1)*sx).toFixed(1)+' '+(H-pad)+' L '+pad+' '+(H-pad)+' Z';
+    var svg=document.getElementById('area');
+    if(svg){
+      svg.innerHTML='<path d="'+area+'" fill="rgba(201,162,74,0.16)" stroke="none"></path>'+
+                    '<path d="'+d+'" fill="none" stroke="#c9a24a" stroke-width="2" stroke-linejoin="round"></path>';
+    }
+  })();
+</script>
+</body>
+</html>

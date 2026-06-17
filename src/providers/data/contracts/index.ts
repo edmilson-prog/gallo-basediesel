@@ -44,6 +44,7 @@ import type { ISystemHealthProvider } from "./systemHealth";
 import type { IMessageTemplatesProvider } from "./messageTemplates";
 import type { IRolesProvider } from "./roles";
 import type { IDepartmentsProvider } from "./departments";
+import type { IAiProvider } from "./ai";
 
 export type { IPaginatedResult, IPaginationParams } from "./_shared";
 
@@ -141,6 +142,7 @@ export type {
 } from "./messageTemplates";
 export type { IRolesProvider, ICreateRoleInput } from "./roles";
 export type { IDepartmentsProvider, ICreateDepartmentInput } from "./departments";
+export type { IAiProvider } from "./ai";
 
 /**
  * Aggregate of every data provider returned by `getDataProviders()`. The factory
@@ -187,4 +189,5 @@ export interface IDataProviders {
   messageTemplates: IMessageTemplatesProvider;
   roles: IRolesProvider;
   departments: IDepartmentsProvider;
+  ai: IAiProvider;
 }

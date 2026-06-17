@@ -6,6 +6,22 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.100.0] — Synapse · 2026-06-16
+
+**Uma nova área de Inteligência artificial nas Configurações para configurar provedores de IA, escolher qual modelo cada funcionalidade usa e acompanhar consumo e custos — por enquanto em modo Demonstração.**
+
+### Added
+
+- **Área "Inteligência artificial"** (Configurações → Integrações, só o Dono) — um painel com quatro abas: Visão geral, Provedores & chaves, Funcionalidades e Playground.
+- **Provedores & chaves** — configure Anthropic, OpenAI, OpenRouter e Google; a chave de API é guardada com segurança (cofre), com modelo padrão por provedor e botão de testar conexão.
+- **Modelo por funcionalidade** — escolha qual provedor e modelo cada recurso usa (copiloto de conversa, copiloto analítico, SDR, identificação de peça, insights), com um modelo de reserva (fallback) caso o principal fique indisponível.
+- **Visão geral de consumo** — indicadores de chamadas, tokens, custo estimado e orçamento do mês, com gráficos por período e por provedor, custo por funcionalidade e métricas de confiabilidade.
+- **Playground** — teste rápido de um prompt, com estimativa de tokens, custo e tempo de resposta.
+
+### Notes
+
+- A área aparece apenas no modo **Demonstração**; a integração real com os provedores de IA chega numa próxima fase.
+
 ## [0.99.0] — Shift · 2026-06-16
 
 **Cada usuário pode ter um horário de atendimento que controla o acesso à plataforma.** No cadastro de cada pessoa, o Dono define os dias e horários em que ela pode entrar. Fora desse turno, vendedores e atendentes não conseguem fazer login e ficam offline — sem interromper atendimentos em andamento. Dono e gestores nunca são bloqueados, e há liberação temporária para emergências.

@@ -129,6 +129,7 @@ import { Route as AppConfiguracoesNotificacoesRouteImport } from './routes/app.c
 import { Route as AppConfiguracoesMidiasRouteImport } from './routes/app.configuracoes.midias'
 import { Route as AppConfiguracoesLojasRouteImport } from './routes/app.configuracoes.lojas'
 import { Route as AppConfiguracoesInsightsRouteImport } from './routes/app.configuracoes.insights'
+import { Route as AppConfiguracoesIaRouteImport } from './routes/app.configuracoes.ia'
 import { Route as AppConfiguracoesGamificacaoRouteImport } from './routes/app.configuracoes.gamificacao'
 import { Route as AppConfiguracoesFreteRouteImport } from './routes/app.configuracoes.frete'
 import { Route as AppConfiguracoesForecastRouteImport } from './routes/app.configuracoes.forecast'
@@ -798,6 +799,11 @@ const AppConfiguracoesInsightsRoute =
     path: '/configuracoes/insights',
     getParentRoute: () => AppRoute,
   } as any)
+const AppConfiguracoesIaRoute = AppConfiguracoesIaRouteImport.update({
+  id: '/configuracoes/ia',
+  path: '/configuracoes/ia',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppConfiguracoesGamificacaoRoute =
   AppConfiguracoesGamificacaoRouteImport.update({
     id: '/configuracoes/gamificacao',
@@ -1202,6 +1208,7 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/forecast': typeof AppConfiguracoesForecastRoute
   '/app/configuracoes/frete': typeof AppConfiguracoesFreteRoute
   '/app/configuracoes/gamificacao': typeof AppConfiguracoesGamificacaoRoute
+  '/app/configuracoes/ia': typeof AppConfiguracoesIaRoute
   '/app/configuracoes/insights': typeof AppConfiguracoesInsightsRoute
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
   '/app/configuracoes/midias': typeof AppConfiguracoesMidiasRoute
@@ -1365,6 +1372,7 @@ export interface FileRoutesByTo {
   '/app/configuracoes/forecast': typeof AppConfiguracoesForecastRoute
   '/app/configuracoes/frete': typeof AppConfiguracoesFreteRoute
   '/app/configuracoes/gamificacao': typeof AppConfiguracoesGamificacaoRoute
+  '/app/configuracoes/ia': typeof AppConfiguracoesIaRoute
   '/app/configuracoes/insights': typeof AppConfiguracoesInsightsRoute
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
   '/app/configuracoes/midias': typeof AppConfiguracoesMidiasRoute
@@ -1539,6 +1547,7 @@ export interface FileRoutesById {
   '/app/configuracoes/forecast': typeof AppConfiguracoesForecastRoute
   '/app/configuracoes/frete': typeof AppConfiguracoesFreteRoute
   '/app/configuracoes/gamificacao': typeof AppConfiguracoesGamificacaoRoute
+  '/app/configuracoes/ia': typeof AppConfiguracoesIaRoute
   '/app/configuracoes/insights': typeof AppConfiguracoesInsightsRoute
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
   '/app/configuracoes/midias': typeof AppConfiguracoesMidiasRoute
@@ -1721,6 +1730,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/forecast'
     | '/app/configuracoes/frete'
     | '/app/configuracoes/gamificacao'
+    | '/app/configuracoes/ia'
     | '/app/configuracoes/insights'
     | '/app/configuracoes/lojas'
     | '/app/configuracoes/midias'
@@ -1884,6 +1894,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/forecast'
     | '/app/configuracoes/frete'
     | '/app/configuracoes/gamificacao'
+    | '/app/configuracoes/ia'
     | '/app/configuracoes/insights'
     | '/app/configuracoes/lojas'
     | '/app/configuracoes/midias'
@@ -2057,6 +2068,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/forecast'
     | '/app/configuracoes/frete'
     | '/app/configuracoes/gamificacao'
+    | '/app/configuracoes/ia'
     | '/app/configuracoes/insights'
     | '/app/configuracoes/lojas'
     | '/app/configuracoes/midias'
@@ -3016,6 +3028,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesInsightsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/configuracoes/ia': {
+      id: '/app/configuracoes/ia'
+      path: '/configuracoes/ia'
+      fullPath: '/app/configuracoes/ia'
+      preLoaderRoute: typeof AppConfiguracoesIaRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/configuracoes/gamificacao': {
       id: '/app/configuracoes/gamificacao'
       path: '/configuracoes/gamificacao'
@@ -3720,6 +3739,7 @@ interface AppRouteChildren {
   AppConfiguracoesForecastRoute: typeof AppConfiguracoesForecastRoute
   AppConfiguracoesFreteRoute: typeof AppConfiguracoesFreteRoute
   AppConfiguracoesGamificacaoRoute: typeof AppConfiguracoesGamificacaoRoute
+  AppConfiguracoesIaRoute: typeof AppConfiguracoesIaRoute
   AppConfiguracoesInsightsRoute: typeof AppConfiguracoesInsightsRoute
   AppConfiguracoesLojasRoute: typeof AppConfiguracoesLojasRoute
   AppConfiguracoesMidiasRoute: typeof AppConfiguracoesMidiasRoute
@@ -3799,6 +3819,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesForecastRoute: AppConfiguracoesForecastRoute,
   AppConfiguracoesFreteRoute: AppConfiguracoesFreteRoute,
   AppConfiguracoesGamificacaoRoute: AppConfiguracoesGamificacaoRoute,
+  AppConfiguracoesIaRoute: AppConfiguracoesIaRoute,
   AppConfiguracoesInsightsRoute: AppConfiguracoesInsightsRoute,
   AppConfiguracoesLojasRoute: AppConfiguracoesLojasRoute,
   AppConfiguracoesMidiasRoute: AppConfiguracoesMidiasRoute,

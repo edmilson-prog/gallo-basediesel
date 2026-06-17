@@ -135,6 +135,38 @@ export function buildIntegrationKeyCatalog(accounts: AccountForCatalog[]): IInte
         },
       ],
     },
+    {
+      id: "llm-providers",
+      title: "Provedores LLM",
+      description: "Chaves de API dos provedores de Inteligência Artificial.",
+      icon: "mdi:robot-happy-outline",
+      keys: [
+        {
+          name: "ANTHROPIC_API_KEY",
+          label: "Anthropic — Chave da API",
+          kind: "secret",
+          help: "Criada em console.anthropic.com.",
+        },
+        {
+          name: "OPENAI_API_KEY",
+          label: "OpenAI — Chave da API",
+          kind: "secret",
+          help: "Criada em platform.openai.com.",
+        },
+        {
+          name: "OPENROUTER_API_KEY",
+          label: "OpenRouter — Chave da API",
+          kind: "secret",
+          help: "Uma chave para múltiplos provedores (openrouter.ai).",
+        },
+        {
+          name: "GOOGLE_AI_API_KEY",
+          label: "Google — Chave da API",
+          kind: "secret",
+          help: "Criada no Google AI Studio.",
+        },
+      ],
+    },
   ];
 
   for (const account of accounts) {
