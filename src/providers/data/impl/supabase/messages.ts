@@ -109,9 +109,13 @@ type MessageSendInput = Omit<
 
 export const supabaseMessagesProvider: IMessagesProvider = {
   async list(params: IListMessagesParams): Promise<IPaginatedResult<IMessage>> {
+    // `estimated` resolves the count from the planner stats instead of a full
+    // `COUNT(*)` over the conversation's messages — the exact count was the
+    // expensive part of opening a long thread, and no caller depends on an
+    // exact `total` (pagination drives off a full-vs-short page; see useMessages).
     const query = getSupabaseClient()
       .from(TABLE)
-      .select(COLUMNS, { count: "exact" })
+      .select(COLUMNS, { count: "estimated" })
       .eq("conversation_id", params.conversationId);
 
     const page = Math.max(1, Math.floor(params.page ?? 1));

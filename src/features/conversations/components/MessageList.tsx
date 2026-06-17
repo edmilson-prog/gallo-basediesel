@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { IConversation, IMessage, IWhatsAppAccount } from "@/shared/types";
 import { Icon } from "@/components/Icon";
+import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { getActiveDataSource, useSellersProvider } from "@/providers/data";
 import { buildThreadRows } from "../utils/dayGroups";
@@ -29,7 +30,7 @@ const SCROLL_BOTTOM_THRESHOLD = 80;
 
 export function MessageList({ conversation, whatsappAccount = null }: IMessageListProps) {
   const { messages: msg } = useConversationContext();
-  const { messages, isLoading, hasMore, loadMore, isLoadingMore, retry } = msg;
+  const { messages, isLoading, hasMore, loadMore, isLoadingMore, retry, isPlaceholder } = msg;
   const sendHook = useMessageSend(conversation, whatsappAccount);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
@@ -224,10 +225,16 @@ export function MessageList({ conversation, whatsappAccount = null }: IMessageLi
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="flex flex-1 flex-col gap-1 overflow-y-auto px-4 py-4"
+        className={cn(
+          "flex flex-1 flex-col gap-1 overflow-y-auto px-4 py-4 transition-opacity",
+          // While the previous conversation's cache is shown during a switch,
+          // dim it so it doesn't read as the current thread (keepPreviousData).
+          isPlaceholder && "pointer-events-none opacity-50",
+        )}
         role="log"
         aria-live="polite"
         aria-label="Histórico de mensagens"
+        aria-busy={isPlaceholder}
       >
         <div ref={sentinelRef} aria-hidden="true" />
         {isLoadingMore && (
