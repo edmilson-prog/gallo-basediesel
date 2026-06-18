@@ -6,7 +6,7 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
-## [0.105.0] — Freight · 2026-06-17
+## [0.106.0] — Freight · 2026-06-17
 
 **O frete agora é cotado automaticamente no orçamento pelo CEP do cliente, via Melhor Envio.** Ao escolher um cliente com CEP, a plataforma cota o frete em tempo real (caixa padrão da loja + peso somado dos itens), aplica markup e a regra de frete grátis, escolhe a opção mais barata e preenche o valor — o vendedor pode trocar de transportadora ou editar à mão. Sem cobertura, erro ou integração desligada, cai nas regras por região (PRD-033). O token OAuth vive no Vault e a cotação roda server-side. **Fase A do épico "Melhor Envio"; o cutover de produção (migration + deploy das Edge Functions + conexão OAuth) é passo de rollout pendente.**
 
@@ -26,7 +26,19 @@ versioning follows [SemVer](https://semver.org/).
 ### Notes
 
 - 3 migrations versionadas e **não aplicadas** (rollout gated, espelha o cutover do AI/LLM): `integration_secret_delete`, `add_shipping_quote_snapshot` (coluna jsonb em quotes/orders) e `integration_logs_melhor_envio` (CHECK do audit). Robustez da Edge endurecida (validação da resposta de token, timeout de 15 s, checagem de erro nas RPCs do Vault, jitter de 60 s no refresh). Scopes ampliados e o e2e real (conta + app sandbox do ME) seguem documentados em `docs/dev/melhor-envio-cotacao.md`.
+## [0.105.0] — Insignia · 2026-06-17
 
+**O card de cada provedor de IA agora mostra a marca, uma prévia da chave configurada e os parâmetros de geração.** Antes o card identificava o provedor só pelas iniciais, não dava pista de qual chave estava cadastrada e rodava o Playground com parâmetros fixos. Agora o cabeçalho traz o logotipo da marca (Anthropic, OpenAI, OpenRouter, Google), a chave configurada aparece como prévia dos 4 últimos caracteres (`••••XXXX`, vindos do hint do Vault — a chave em si nunca chega ao frontend) e cada provedor tem um bloco editável de parâmetros padrão de geração (temperatura, máximo de tokens, top P) que o Playground passa a respeitar.
+
+### Added
+
+- **Logotipos de marca no cabeçalho do card** — `ProviderCard` renderiza o glifo do provedor via Iconify (`simple-icons`: Anthropic, OpenAI, OpenRouter, Google), com as iniciais como fallback quando não há ícone mapeado.
+- **Prévia da chave configurada** — quando há chave no Vault, o card exibe `••••` + os 4 últimos caracteres (hint retornado por `listIntegrationSecrets`, mapeado por `credentialsRef`); a prévia atualiza na hora ao salvar uma nova chave. O valor da chave nunca trafega para o frontend.
+- **Parâmetros de geração por provedor** — bloco sempre visível no card com temperatura (0–2), máximo de tokens e top P (0–1), persistidos em `IAiProviderConfig.params` (jsonb, sem migration) e usados como padrão de geração no Playground (cada funcionalidade ainda pode sobrepor). `DEFAULT_PROVIDER_PARAMS = { temperature: 0.4, maxTokens: 1024 }` semeia todo provider config.
+
+### Changed
+
+- **Playground usa os parâmetros do provedor** — `AiPlaygroundTab` passa os `params` do provedor efetivo (com fallback no padrão) em vez dos valores fixos `{ temperature: 0.4, maxTokens: 1024 }`.
 ## [0.104.0] — Manifest · 2026-06-17
 
 **A lista de modelos de cada provedor de IA agora é dinâmica.** Em vez de dois modelos fixos, o card do provedor busca os modelos disponíveis ao vivo (Anthropic, OpenAI e OpenRouter) com a chave do Vault, via uma nova ação no Edge `ai-generate`. O preço vem da API (OpenRouter) ou de um mapa no catálogo (OpenAI/Anthropic); modelos sem preço conhecido ficam selecionáveis, marcados "preço a definir".

@@ -1,6 +1,7 @@
 import type {
   AiFeatureKey,
   AiProviderId,
+  IAiGenerationParams,
   IAiModelOption,
   IAiProviderConfig,
   IAiSettings,
@@ -55,6 +56,9 @@ export const FEATURES: AiFeatureKey[] = [
   "part_identification",
   "insights",
 ];
+
+/** Default per-provider generation params, seeded into every provider config. */
+export const DEFAULT_PROVIDER_PARAMS: IAiGenerationParams = { temperature: 0.4, maxTokens: 1024 };
 
 export function modelsFor(provider: AiProviderId): IAiModelOption[] {
   return MODELS[provider]!;
@@ -161,6 +165,7 @@ function providerConfig(
     status,
     lastTestedAt: status === "configured" ? "2026-06-12T09:40:00.000Z" : undefined,
     lastTestResult: status === "configured" ? "ok" : undefined,
+    params: { ...DEFAULT_PROVIDER_PARAMS },
   };
 }
 
