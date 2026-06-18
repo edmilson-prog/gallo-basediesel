@@ -5,6 +5,7 @@ import type {
   ID,
   IOrder,
   IOrderItem,
+  IShippingQuoteSnapshot,
   OrderFulfillmentStatus,
   OrderOrigin,
   OrderPaymentMethod,
@@ -83,6 +84,7 @@ interface OrderRow {
   customer_notes: string | null;
   commission_preview: ICommissionPreview | null;
   notes: string | null;
+  shipping_quote: IShippingQuoteSnapshot | null;
   created_at: string;
   updated_at: string;
   order_items?: OrderItemRow[];
@@ -98,8 +100,8 @@ const COLUMNS =
   "shipping, total, payment_condition, payment_method, payment_terms, payment_status, paid_at, " +
   "fulfillment_status, delivery_address, carrier, tracking_code, shipped_at, delivered_at, " +
   "returned_at, return_reason, origin, division, nf_number, nf_date, canceled_at, canceled_by, " +
-  "cancel_reason, internal_notes, customer_notes, commission_preview, notes, created_at, " +
-  `updated_at, order_items(${ITEM_COLUMNS})`;
+  "cancel_reason, internal_notes, customer_notes, commission_preview, notes, shipping_quote, " +
+  `created_at, updated_at, order_items(${ITEM_COLUMNS})`;
 
 function rowToOrderItem(row: OrderItemRow): IOrderItem {
   return {
@@ -158,6 +160,7 @@ function rowToOrder(row: OrderRow): IOrder {
     customerNotes: row.customer_notes ?? undefined,
     commissionPreview: row.commission_preview ?? undefined,
     notes: row.notes ?? undefined,
+    shippingQuote: row.shipping_quote ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -220,6 +223,7 @@ function orderPatchToRow(patch: Partial<IOrder>): Record<string, unknown> {
   if (patch.customerNotes !== undefined) row.customer_notes = patch.customerNotes;
   if (patch.commissionPreview !== undefined) row.commission_preview = patch.commissionPreview;
   if (patch.notes !== undefined) row.notes = patch.notes;
+  if (patch.shippingQuote !== undefined) row.shipping_quote = patch.shippingQuote;
   return row;
 }
 
@@ -264,6 +268,7 @@ function createInputToRow(
     customer_notes: input.customerNotes ?? null,
     commission_preview: input.commissionPreview ?? null,
     notes: input.notes ?? null,
+    shipping_quote: input.shippingQuote ?? null,
   };
 }
 

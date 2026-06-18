@@ -235,7 +235,7 @@ export type {
   QuoteResponseIntent,
 } from "./sdr-quote";
 
-// Shipping (PRD-033)
+// Shipping (PRD-033 + Melhor Envio Fase A)
 export type {
   IShippingConfig,
   IShippingRate,
@@ -244,6 +244,11 @@ export type {
   ShippingScope,
   ShippingDefaultAction,
   ShippingResultReason,
+  IMelhorEnvioConfig,
+  IShippingQuoteOption,
+  ShippingQuoteSource,
+  IShippingQuoteResult,
+  IShippingQuoteSnapshot,
 } from "./shipping";
 
 // SDR Escalation (PRD-023)

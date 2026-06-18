@@ -112,6 +112,8 @@ export async function createOrderFromQuote(
     paymentStatus: "pendente",
     fulfillmentStatus: "pendente",
     deliveryAddress: extras.deliveryAddress ?? quote.deliveryAddress,
+    // Carry over the shipping-quote snapshot (Melhor Envio Fase A → reused by Fase B).
+    ...(quote.shippingQuote ? { shippingQuote: quote.shippingQuote } : {}),
     origin,
     division: quote.division,
     internalNotes: extras.internalNotes ?? quote.notes,

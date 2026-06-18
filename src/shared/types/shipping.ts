@@ -67,6 +67,13 @@ export interface IShippingConfig {
   defaultWhenNoMatch: ShippingDefaultAction;
   /** Required when `defaultWhenNoMatch === 'fixed_value'`. */
   defaultFallbackValue?: Money;
+  /**
+   * Optional Melhor Envio integration (Épico "Melhor Envio" — Fase A).
+   * When enabled, the quote screen fetches real shipping options by CEP and
+   * the region `rates` above become the fallback. Stored in the JSONB
+   * `stores.settings`, so it is fully backward-compatible (no schema migration).
+   */
+  melhorEnvio?: IMelhorEnvioConfig;
 }
 
 /** Outcome of a `calculateShipping()` call. */
@@ -81,4 +88,99 @@ export interface IShippingResult {
   notes?: string;
   /** Trace bit consumed by the inspector and tests. */
   reason: ShippingResultReason;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Melhor Envio — real-time quote (Épico "Melhor Envio" · Fase A)             */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Per-store Melhor Envio configuration. Lives inside `IShippingConfig` (JSONB
+ * `stores.settings`). Holds only non-secret data — OAuth credentials/tokens
+ * live exclusively in the Supabase Vault, never here.
+ */
+export interface IMelhorEnvioConfig {
+  /** Turns the automatic CEP-based quote on. When false, behaviour = PRD-033. */
+  enabled: boolean;
+  /** Selects the API base URL and which OAuth app the Edge talks to. */
+  environment: "sandbox" | "production";
+  /** Origin postal code of the store (Melhor Envio `from.postal_code`). */
+  originZip: string;
+  /** Default outer box used for the aggregated `package` (centimetres). */
+  defaultBox: { heightCm: number; widthCm: number; lengthCm: number };
+  /** Allowed service IDs (PAC=1, SEDEX=2, Jadlog .Package=3, .Com=4). Empty = all. */
+  enabledServices: number[];
+  /** Selection criterion. Fixed to `cheapest` in Fase A; reserved for evolution. */
+  selectionCriterion: "cheapest";
+  /** Commercial markup applied on top of the carrier price. `value: 0` = none. */
+  markup: { type: "percent" | "fixed"; value: number };
+  /** When the order subtotal reaches this amount, shipping is zeroed. */
+  freeAboveSubtotal?: number;
+  /** Contact e-mail for the mandatory `User-Agent` header (fallback to secret). */
+  userAgentContact?: string;
+}
+
+/** A single carrier option returned by a quote (one row of the ME response). */
+export interface IShippingQuoteOption {
+  /** Numeric Melhor Envio service id (stable; names change). */
+  serviceId: number;
+  /** Human-readable service name ("PAC", "SEDEX", "Jadlog .Package"). */
+  serviceName: string;
+  companyId: number;
+  companyName: string;
+  /** Optional carrier logo URL provided by the API. */
+  companyPicture?: string;
+  /** Raw carrier price in BRL (before markup). */
+  basePrice: number;
+  /** Price after the configured markup — filled by the engine. */
+  finalPrice: number;
+  /** Estimated delivery time in business days. */
+  deliveryDays: number;
+  /** Optional delivery window when the API exposes a range. */
+  deliveryRange?: { min: number; max: number };
+}
+
+/** Where a resolved shipping value came from. */
+export type ShippingQuoteSource = "melhor_envio" | "region_rules" | "to_negotiate";
+
+/**
+ * Resolved quote applied to a quote/order. Produced by the engine
+ * (`buildQuoteResult`) for Melhor Envio results, or mapped from
+ * `calculateShipping` for the region-rules / to-negotiate fallback.
+ */
+export interface IShippingQuoteResult {
+  source: ShippingQuoteSource;
+  /** Carrier options — non-empty only when `source === "melhor_envio"`. */
+  options: IShippingQuoteOption[];
+  /** The chosen option (cheapest, post-markup) when available. */
+  selected?: IShippingQuoteOption;
+  /** Final value applied to the quote (BRL). `0` when `isToNegotiate`. */
+  value: number;
+  isToNegotiate: boolean;
+  /** True when the free-shipping threshold zeroed the value. */
+  freeShippingApplied?: boolean;
+  /** ISO timestamp of when the quote was produced (stamped by the hook). */
+  quotedAt?: string;
+  notes?: string;
+  error?: string;
+}
+
+/**
+ * Lightweight snapshot persisted on the quote/order for traceability and reuse
+ * by the deferred Fase B (label purchase).
+ */
+export interface IShippingQuoteSnapshot {
+  source: ShippingQuoteSource;
+  serviceId?: number;
+  serviceName?: string;
+  companyName?: string;
+  /** Value applied to the quote (BRL). `0` when free shipping was applied. */
+  price: number;
+  /** Raw carrier price before markup/free-shipping — lets Fase B reconcile when `price` is 0. */
+  basePrice?: number;
+  /** True when the store's free-shipping rule zeroed `price` (vs a manual 0). */
+  freeShippingApplied?: boolean;
+  deliveryDays?: number;
+  /** ISO timestamp of when the quote was produced. */
+  quotedAt: string;
 }

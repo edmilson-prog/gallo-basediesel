@@ -3,6 +3,7 @@ import type {
   ID,
   IQuote,
   IQuoteItem,
+  IShippingQuoteSnapshot,
   Money,
   QuoteOrigin,
   QuotePaymentMethod,
@@ -60,6 +61,7 @@ interface QuoteRow {
   converted_at: string | null;
   notes: string | null;
   applied_kit_ids: string[] | null;
+  shipping_quote: IShippingQuoteSnapshot | null;
   created_at: string;
   updated_at: string;
 }
@@ -83,7 +85,7 @@ const COLUMNS =
   "discount_reason, shipping, total, payment_condition, payment_method, payment_terms, " +
   "delivery_address, valid_until, status, origin, division, requires_approval, approved_by, " +
   "approved_at, rejected_reason, converted_to_order_id, converted_at, notes, applied_kit_ids, " +
-  "created_at, updated_at";
+  "shipping_quote, created_at, updated_at";
 const ITEM_COLUMNS =
   "id, quote_id, part_id, part_sku, part_name, quantity, unit_price, discount, total";
 
@@ -131,6 +133,7 @@ function rowToQuote(row: QuoteRow, items: IQuoteItem[] = []): IQuote {
     convertedAt: row.converted_at ?? undefined,
     notes: row.notes ?? undefined,
     appliedKitIds: row.applied_kit_ids ?? undefined,
+    shippingQuote: row.shipping_quote ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -182,6 +185,7 @@ function quotePatchToRow(patch: Partial<IQuote>): Record<string, unknown> {
   if (patch.convertedAt !== undefined) row.converted_at = patch.convertedAt;
   if (patch.notes !== undefined) row.notes = patch.notes;
   if (patch.appliedKitIds !== undefined) row.applied_kit_ids = patch.appliedKitIds;
+  if (patch.shippingQuote !== undefined) row.shipping_quote = patch.shippingQuote;
   return row;
 }
 
@@ -220,6 +224,7 @@ function createInputToRow(
     converted_at: input.convertedAt ?? null,
     notes: input.notes ?? null,
     applied_kit_ids: input.appliedKitIds ?? null,
+    shipping_quote: input.shippingQuote ?? null,
   };
 }
 

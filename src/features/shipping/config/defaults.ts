@@ -1,4 +1,18 @@
-import type { IShippingConfig } from "@/shared/types";
+import type { IMelhorEnvioConfig, IShippingConfig } from "@/shared/types";
+
+/**
+ * Default Melhor Envio block — disabled by default, so a store behaves exactly
+ * like PRD-033 (region rules only) until the Owner turns it on.
+ */
+export const DEFAULT_MELHOR_ENVIO_CONFIG: IMelhorEnvioConfig = {
+  enabled: false,
+  environment: "sandbox",
+  originZip: "",
+  defaultBox: { heightCm: 20, widthCm: 30, lengthCm: 40 },
+  enabledServices: [1, 2, 3, 4],
+  selectionCriterion: "cheapest",
+  markup: { type: "percent", value: 0 },
+};
 
 /**
  * Default shipping configuration shipped to every store (PRD-033 RF-003).
@@ -38,4 +52,7 @@ export const DEFAULT_SHIPPING_CONFIG: IShippingConfig = {
     },
   ],
   defaultWhenNoMatch: "to_negotiate",
+  // Melhor Envio is opt-in. While disabled the store behaves exactly like
+  // PRD-033 (region rules only). Owners turn it on in /app/configuracoes/frete.
+  melhorEnvio: DEFAULT_MELHOR_ENVIO_CONFIG,
 };

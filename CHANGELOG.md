@@ -6,6 +6,26 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.106.0] — Freight · 2026-06-17
+
+**O frete agora é cotado automaticamente no orçamento pelo CEP do cliente, via Melhor Envio.** Ao escolher um cliente com CEP, a plataforma cota o frete em tempo real (caixa padrão da loja + peso somado dos itens), aplica markup e a regra de frete grátis, escolhe a opção mais barata e preenche o valor — o vendedor pode trocar de transportadora ou editar à mão. Sem cobertura, erro ou integração desligada, cai nas regras por região (PRD-033). O token OAuth vive no Vault e a cotação roda server-side. **Fase A do épico "Melhor Envio"; o cutover de produção (migration + deploy das Edge Functions + conexão OAuth) é passo de rollout pendente.**
+
+### Added
+
+- **Cotação automática no orçamento** — hook `useShippingQuote` (debounce) consome o provider de frete e o engine puro (markup → mais barata → frete grátis), com fallback transparente nas regras por região; badge de fonte e troca de transportadora no resumo (`QuoteSummaryPanel`).
+- **Camada `src/providers/shipping/`** (mock determinístico + Edge), fora de `providers/data`; engine `quoteEngine` testado (TDD).
+- **Edge Functions `melhor-envio-quote` e `melhor-envio-oauth`** — cotação (token Vault, refresh proativo/reativo, normalização, auditoria em `integration_logs`) e ciclo OAuth (authorize-url/exchange/status/disconnect, Owner-only).
+- **Seção "Melhor Envio"** em Configurações → Frete (conexão OAuth + parâmetros por loja: ambiente, CEP de origem, caixa padrão, serviços, markup, frete grátis) e rota de callback OAuth.
+- **Grupo "Frete — Melhor Envio"** no catálogo de Chaves & API (client_id/secret/redirect/user-agent).
+- **Snapshot `shippingQuote`** persistido em `quotes.shipping_quote`/`orders.shipping_quote` (jsonb) — inclui `basePrice` e `freeShippingApplied` para reconciliação na Fase B.
+
+### Changed
+
+- **Tela de Frete** — a seção de regras passou a se chamar "Fallback por região"; o simulador e o orçamento usam a cotação real quando habilitada. `melhorEnvio.enabled = false` mantém o comportamento PRD-033 intacto.
+
+### Notes
+
+- 3 migrations versionadas e **não aplicadas** (rollout gated, espelha o cutover do AI/LLM): `integration_secret_delete`, `add_shipping_quote_snapshot` (coluna jsonb em quotes/orders) e `integration_logs_melhor_envio` (CHECK do audit). Robustez da Edge endurecida (validação da resposta de token, timeout de 15 s, checagem de erro nas RPCs do Vault, jitter de 60 s no refresh). Scopes ampliados e o e2e real (conta + app sandbox do ME) seguem documentados em `docs/dev/melhor-envio-cotacao.md`.
 ## [0.105.0] — Insignia · 2026-06-17
 
 **O card de cada provedor de IA agora mostra a marca, uma prévia da chave configurada e os parâmetros de geração.** Antes o card identificava o provedor só pelas iniciais, não dava pista de qual chave estava cadastrada e rodava o Playground com parâmetros fixos. Agora o cabeçalho traz o logotipo da marca (Anthropic, OpenAI, OpenRouter, Google), a chave configurada aparece como prévia dos 4 últimos caracteres (`••••XXXX`, vindos do hint do Vault — a chave em si nunca chega ao frontend) e cada provedor tem um bloco editável de parâmetros padrão de geração (temperatura, máximo de tokens, top P) que o Playground passa a respeitar.
@@ -19,7 +39,6 @@ versioning follows [SemVer](https://semver.org/).
 ### Changed
 
 - **Playground usa os parâmetros do provedor** — `AiPlaygroundTab` passa os `params` do provedor efetivo (com fallback no padrão) em vez dos valores fixos `{ temperature: 0.4, maxTokens: 1024 }`.
-
 ## [0.104.0] — Manifest · 2026-06-17
 
 **A lista de modelos de cada provedor de IA agora é dinâmica.** Em vez de dois modelos fixos, o card do provedor busca os modelos disponíveis ao vivo (Anthropic, OpenAI e OpenRouter) com a chave do Vault, via uma nova ação no Edge `ai-generate`. O preço vem da API (OpenRouter) ou de um mapa no catálogo (OpenAI/Anthropic); modelos sem preço conhecido ficam selecionáveis, marcados "preço a definir".
