@@ -135,8 +135,10 @@ npx supabase functions deploy melhor-envio-quote melhor-envio-oauth --project-re
 > **Notas técnicas (multi-ambiente):**
 > - O front **sempre** envia `environment`; quando ausente, as Edges caem em `sandbox`
 >   (seguro — modo inerte se não há token, caindo no fallback por região PRD-033).
-> - O env atravessa o redirect OAuth via `sessionStorage` na **mesma aba** (não há corrida
->   entre abas: `sessionStorage` é por aba e o round-trip volta para a aba de origem).
+> - O `state` CSRF + o env atravessam o redirect OAuth via **`localStorage`** (compartilhado
+>   por origem entre abas), não `sessionStorage` (por aba): o consentimento do Melhor Envio
+>   pode retornar em **outra aba**, e um store por aba perderia o `state` lá → o callback
+>   rejeitaria como "state divergente" antes de trocar o `code` (v0.107.1).
 > - O env só é amarrado ao `state` CSRF no cliente; o `exchange` (owner-only) confia no
 >   `environment` do corpo. Resíduo aceito: trocar o env exigiria XSS, e o ME rejeita um
 >   `code` trocado com credenciais de outro ambiente (pior caso = token no env errado,

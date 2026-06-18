@@ -45,10 +45,13 @@ function MelhorEnvioCallback() {
 
     const goBack = () => void navigate({ to: "/app/configuracoes/frete" });
 
-    const expectedState = sessionStorage.getItem(MELHOR_ENVIO_OAUTH_STATE_KEY);
-    const env = (sessionStorage.getItem(MELHOR_ENVIO_OAUTH_ENV_KEY) as MelhorEnvioEnv) ?? "sandbox";
-    sessionStorage.removeItem(MELHOR_ENVIO_OAUTH_STATE_KEY);
-    sessionStorage.removeItem(MELHOR_ENVIO_OAUTH_ENV_KEY);
+    // localStorage (shared per-origin across tabs), not sessionStorage (per-tab):
+    // the Melhor Envio consent can return on a different tab than the one that
+    // started the flow, and a per-tab store would lose the CSRF state there.
+    const expectedState = localStorage.getItem(MELHOR_ENVIO_OAUTH_STATE_KEY);
+    const env = (localStorage.getItem(MELHOR_ENVIO_OAUTH_ENV_KEY) as MelhorEnvioEnv) ?? "sandbox";
+    localStorage.removeItem(MELHOR_ENVIO_OAUTH_STATE_KEY);
+    localStorage.removeItem(MELHOR_ENVIO_OAUTH_ENV_KEY);
 
     if (error) {
       toast.error("Conexão cancelada ou negada pelo Melhor Envio.");

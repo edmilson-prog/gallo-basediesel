@@ -6,6 +6,12 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.107.1] — Tandem · 2026-06-18
+
+### Fixed
+
+- **Conexão OAuth do Melhor Envio falhava silenciosamente ("Desconectado" mesmo após autorizar).** O `state` CSRF e o ambiente do fluxo OAuth eram guardados em `sessionStorage` (escopo por aba); quando o consentimento do Melhor Envio retornava em **outra aba**, o callback não encontrava o `state` e abortava antes de trocar o `code` pelo token. Agora usam `localStorage` (compartilhado por origem entre abas), espelhando como a sessão do Supabase já persiste. Correção só de frontend — sem mudança nas Edge Functions.
+
 ## [0.107.0] — Tandem · 2026-06-18
 
 **O Melhor Envio agora suporta Sandbox e Produção lado a lado.** Antes a plataforma guardava um único conjunto de credenciais, então alternar o ambiente no orçamento exigiria trocar as chaves na mão (e o `client_id` de produção não funciona no sandbox). Agora cada ambiente tem o seu próprio app OAuth e o seu próprio token: virar o seletor "Ambiente" troca de app na hora, e dá para ficar conectado em sandbox e produção ao mesmo tempo. **Incremento da Fase A do épico "Melhor Envio"; só exige o redeploy das duas Edge Functions (sem migration nova).**
