@@ -75,36 +75,75 @@ supabase.functions.invoke              calculateShipping (regras PRD-033)
 
 ## Segredos no Vault (tela Chaves & API)
 
+As credenciais são **por ambiente**: o `client_id`/`secret` de produção usa o nome
+"nu" (`MELHOR_ENVIO_*`) e o de sandbox o prefixo `MELHOR_ENVIO_SANDBOX_*`. O
+`REDIRECT_URI` e o `USER_AGENT` são **compartilhados** (iguais nos dois apps). Assim
+o seletor "Ambiente" alterna de app em runtime e dá para ficar conectado em sandbox
+e produção ao mesmo tempo. A resolução é centralizada em `meSecrets(env)`
+(`_shared/melhorEnvio.ts`).
+
 | Secret | kind | Observação |
 |--------|------|-----------|
-| `MELHOR_ENVIO_CLIENT_ID` | config | do app OAuth (app.melhorenvio.com.br → Área dev) |
-| `MELHOR_ENVIO_CLIENT_SECRET` | secret | |
-| `MELHOR_ENVIO_REDIRECT_URI` | config | **idêntica** à cadastrada no painel do ME |
-| `MELHOR_ENVIO_USER_AGENT` | config | ex.: `GALLO BASE DIESEL (contato@dominio)` — exigido pela API |
+| `MELHOR_ENVIO_CLIENT_ID` | config | app OAuth de **produção** (app.melhorenvio.com.br → Área dev) |
+| `MELHOR_ENVIO_CLIENT_SECRET` | secret | segredo do app de produção |
+| `MELHOR_ENVIO_SANDBOX_CLIENT_ID` | config | app OAuth de **sandbox** (sandbox.melhorenvio.com.br) |
+| `MELHOR_ENVIO_SANDBOX_CLIENT_SECRET` | secret | segredo do app de sandbox |
+| `MELHOR_ENVIO_REDIRECT_URI` | config | **compartilhada** — idêntica à cadastrada nos dois apps |
+| `MELHOR_ENVIO_USER_AGENT` | config | **compartilhada** — ex.: `GALLO BASE DIESEL (contato@dominio)` (exigido pela API) |
 
-Os tokens `MELHOR_ENVIO_ACCESS_TOKEN` / `REFRESH_TOKEN` / `TOKEN_EXPIRES_AT` são
-**gravados/renovados pela Edge OAuth** — não entram no catálogo manual.
+Os tokens `[…]ACCESS_TOKEN` / `[…]REFRESH_TOKEN` / `[…]TOKEN_EXPIRES_AT` (com o mesmo
+prefixo por ambiente) são **gravados/renovados pela Edge OAuth** — não entram no
+catálogo manual.
 
-## Ordem de deploy (rollout — pendente de decisão do dono)
+## Ordem de deploy (rollout)
 
-> Nada disto foi aplicado em produção nesta branch (espelha o cutover gated do AI/LLM).
+> **Estado em produção (2026-06-18):** a v0.106.0 já foi entregue — as **3 migrations
+> abaixo estão APLICADAS em produção** e as **2 Edge Functions estão DEPLOYADAS**. As
+> partes do dono (apps OAuth + secrets + Conectar) seguem pendentes.
 
-1. **Aplicar as 3 migrations** (via MCP `apply_migration` ou CLI), em ordem:
-   `20260617120000_integration_secret_delete.sql` (RPC de delete),
-   `20260617130000_add_shipping_quote_snapshot.sql` (coluna `shipping_quote`),
-   `20260617140000_integration_logs_melhor_envio.sql` (CHECK do audit).
-   ⚠️ A migration da coluna deve ser aplicada **antes** do deploy do app, senão o `create` de orçamento quebra (o provider passa a gravar `shipping_quote`).
-2. **Deploy das Edge Functions** (CLI Supabase autenticada):
-   ```bash
-   npx supabase functions deploy melhor-envio-quote melhor-envio-oauth --project-ref njizaasajkdqptlxddqn
-   ```
-3. **Criar o app OAuth** no Melhor Envio (sandbox e/ou produção) e cadastrar a
-   `redirect_uri` exata: `https://crm.gallobasediesel.com.br/app/configuracoes/frete/callback`.
-4. **Cadastrar os 4 secrets** (`CLIENT_ID/SECRET/REDIRECT_URI/USER_AGENT`) em
-   *Configurações → Integrações → Chaves & API*.
-5. Em *Configurações → Frete → Melhor Envio*: selecionar o ambiente, **Conectar** (OAuth),
+**Migrations da v0.106.0 (já aplicadas em prod — referência para DR / ambiente novo):**
+`20260617120000_integration_secret_delete.sql` (RPC de delete),
+`20260617130000_add_shipping_quote_snapshot.sql` (coluna `shipping_quote` em quotes/orders),
+`20260617140000_integration_logs_melhor_envio.sql` (CHECK do audit).
+⚠️ Num ambiente do zero, a migration da coluna `shipping_quote` deve ser aplicada **antes**
+do deploy do app, senão o `create` de orçamento quebra.
+
+**Esta entrega (incremento multi-ambiente):** as credenciais passaram a ser resolvidas por
+ambiente em `meSecrets(env)`. **NÃO há migration nova** — o único passo técnico é o
+**redeploy das 2 Edge Functions**:
+
+```bash
+npx supabase functions deploy melhor-envio-quote melhor-envio-oauth --project-ref njizaasajkdqptlxddqn
+```
+
+**Partes do dono (conta Melhor Envio):**
+
+1. **Criar o app OAuth** para cada ambiente que for usar (sandbox e/ou produção — são
+   contas/apps **separados**, `client_id`/`secret` distintos) e cadastrar em **ambos** a
+   mesma `redirect_uri` exata:
+   `https://crm.gallobasediesel.com.br/app/configuracoes/frete/callback`.
+2. **Cadastrar os secrets por ambiente** em *Configurações → Integrações → Chaves & API*:
+   produção em `MELHOR_ENVIO_CLIENT_ID/SECRET`, sandbox em
+   `MELHOR_ENVIO_SANDBOX_CLIENT_ID/SECRET`, mais os compartilhados `MELHOR_ENVIO_REDIRECT_URI`
+   e `MELHOR_ENVIO_USER_AGENT`.
+3. Em *Configurações → Frete → Melhor Envio*: selecionar o ambiente, **Conectar** (OAuth),
    preencher CEP de origem / caixa padrão / serviços / markup / frete grátis, ligar
-   "Ativar cotação automática" e **Salvar alterações**.
+   "Ativar cotação automática" e **Salvar alterações**. Trocar o seletor "Ambiente" alterna
+   o app e a conexão — cada ambiente tem o seu token, dá para ficar conectado nos dois (a
+   seção mostra o estado de Sandbox e Produção lado a lado).
+
+> **Notas técnicas (multi-ambiente):**
+> - O front **sempre** envia `environment`; quando ausente, as Edges caem em `sandbox`
+>   (seguro — modo inerte se não há token, caindo no fallback por região PRD-033).
+> - O env atravessa o redirect OAuth via `sessionStorage` na **mesma aba** (não há corrida
+>   entre abas: `sessionStorage` é por aba e o round-trip volta para a aba de origem).
+> - O env só é amarrado ao `state` CSRF no cliente; o `exchange` (owner-only) confia no
+>   `environment` do corpo. Resíduo aceito: trocar o env exigiria XSS, e o ME rejeita um
+>   `code` trocado com credenciais de outro ambiente (pior caso = token no env errado,
+>   reversível por reconectar).
+> - **Tokens órfãos da v0.106.0:** se alguém conectou em **dev/staging** na v0.106.0 (nomes
+>   "nus"), após este incremento o ambiente *sandbox* procura `MELHOR_ENVIO_SANDBOX_*` e não
+>   acha o token antigo → basta reconectar. Produção mantém os nomes nus (retrocompatível).
 
 ## Verificação
 

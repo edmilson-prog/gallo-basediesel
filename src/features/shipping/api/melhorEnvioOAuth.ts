@@ -41,6 +41,8 @@ export function exchangeMelhorEnvioCode(
   return invokeOAuth<{ connected: boolean }>({ action: "exchange", code, environment });
 }
 
-export function disconnectMelhorEnvio(): Promise<{ connected: boolean }> {
-  return invokeOAuth<{ connected: boolean }>({ action: "disconnect" });
+export function disconnectMelhorEnvio(
+  environment: MelhorEnvioEnv,
+): Promise<{ connected: boolean }> {
+  return invokeOAuth<{ connected: boolean }>({ action: "disconnect", environment });
 }

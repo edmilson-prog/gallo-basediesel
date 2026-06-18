@@ -23,8 +23,8 @@ import {
   clearMeTokens,
   DEFAULT_USER_AGENT,
   ME_DEFAULT_SCOPE,
-  ME_SECRETS,
   meBaseUrl,
+  meSecrets,
   persistMeTokens,
   requestMeToken,
 } from "../_shared/melhorEnvio.ts";
@@ -38,11 +38,12 @@ servePost(async (req, { log }) => {
   const action = String(body.action ?? "");
   const env = body.environment === "production" ? "production" : "sandbox";
   const base = meBaseUrl(env);
+  const secrets = meSecrets(env);
 
   if (action === "authorize-url") {
     const [clientId, redirectUri] = await Promise.all([
-      resolveSecret(ME_SECRETS.clientId),
-      resolveSecret(ME_SECRETS.redirectUri),
+      resolveSecret(secrets.clientId),
+      resolveSecret(secrets.redirectUri),
     ]);
     if (!clientId || !redirectUri) {
       throw new HttpError(400, "missing client_id/redirect_uri — configure them in Chaves & API");
@@ -61,10 +62,10 @@ servePost(async (req, { log }) => {
     const code = typeof body.code === "string" ? body.code : "";
     if (!code) throw new HttpError(400, "missing authorization code");
     const [clientId, clientSecret, redirectUri, userAgent] = await Promise.all([
-      resolveSecret(ME_SECRETS.clientId),
-      resolveSecret(ME_SECRETS.clientSecret),
-      resolveSecret(ME_SECRETS.redirectUri),
-      resolveSecret(ME_SECRETS.userAgent),
+      resolveSecret(secrets.clientId),
+      resolveSecret(secrets.clientSecret),
+      resolveSecret(secrets.redirectUri),
+      resolveSecret(secrets.userAgent),
     ]);
     if (!clientId || !clientSecret || !redirectUri) {
       throw new HttpError(400, "missing client credentials — configure them in Chaves & API");
@@ -80,7 +81,7 @@ servePost(async (req, { log }) => {
       },
       userAgent || DEFAULT_USER_AGENT,
     );
-    await persistMeTokens(admin, tokens);
+    await persistMeTokens(admin, tokens, secrets);
     await bestEffortAudit(admin, {
       store_id: profile.store_id,
       actor_id: callerId,
@@ -95,11 +96,11 @@ servePost(async (req, { log }) => {
 
   if (action === "status") {
     const [accessToken, expiresAt, clientId, clientSecret, redirectUri] = await Promise.all([
-      resolveSecret(ME_SECRETS.accessToken),
-      resolveSecret(ME_SECRETS.tokenExpiresAt),
-      resolveSecret(ME_SECRETS.clientId),
-      resolveSecret(ME_SECRETS.clientSecret),
-      resolveSecret(ME_SECRETS.redirectUri),
+      resolveSecret(secrets.accessToken),
+      resolveSecret(secrets.tokenExpiresAt),
+      resolveSecret(secrets.clientId),
+      resolveSecret(secrets.clientSecret),
+      resolveSecret(secrets.redirectUri),
     ]);
     return json(
       {
@@ -112,15 +113,16 @@ servePost(async (req, { log }) => {
   }
 
   if (action === "disconnect") {
-    await clearMeTokens(admin);
+    await clearMeTokens(admin, secrets);
     await bestEffortAudit(admin, {
       store_id: profile.store_id,
       actor_id: callerId,
       action: "melhor_envio_disconnected",
       resource: "shipping_integration",
       resource_id: "melhor_envio",
+      after: { environment: env },
     });
-    log.info("melhor envio disconnected");
+    log.info("melhor envio disconnected", { environment: env });
     return json({ connected: false }, 200);
   }
 

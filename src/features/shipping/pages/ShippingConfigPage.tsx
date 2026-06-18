@@ -59,6 +59,7 @@ import {
   MELHOR_ENVIO_OAUTH_ENV_KEY,
   MELHOR_ENVIO_OAUTH_STATE_KEY,
   type IMelhorEnvioStatus,
+  type MelhorEnvioEnv,
 } from "../api/melhorEnvioOAuth";
 
 const STRATEGY_OPTIONS: Array<{
@@ -869,26 +870,34 @@ interface IMelhorEnvioSectionProps {
 }
 
 function MelhorEnvioSection({ config, onChange, disabled, isOwner }: IMelhorEnvioSectionProps) {
-  const [status, setStatus] = useState<IMelhorEnvioStatus | null>(null);
+  // Each environment keeps its own OAuth token, so we track both at once — the
+  // seller can be connected to sandbox and production simultaneously and the
+  // active selector just decides which one the connect/disconnect buttons act on.
+  const [statuses, setStatuses] = useState<Record<MelhorEnvioEnv, IMelhorEnvioStatus | null>>({
+    sandbox: null,
+    production: null,
+  });
   const [statusLoading, setStatusLoading] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const status = statuses[config.environment];
 
-  const loadStatus = useCallback(async () => {
+  const loadStatuses = useCallback(async () => {
     if (!isOwner) return;
     setStatusLoading(true);
     try {
-      setStatus(await getMelhorEnvioStatus(config.environment));
-    } catch {
-      // Edge not deployed / credentials missing — keep a neutral "unknown" state.
-      setStatus(null);
+      const [sandbox, production] = await Promise.all([
+        getMelhorEnvioStatus("sandbox").catch(() => null),
+        getMelhorEnvioStatus("production").catch(() => null),
+      ]);
+      setStatuses({ sandbox, production });
     } finally {
       setStatusLoading(false);
     }
-  }, [config.environment, isOwner]);
+  }, [isOwner]);
 
   useEffect(() => {
-    void loadStatus();
-  }, [loadStatus]);
+    void loadStatuses();
+  }, [loadStatuses]);
 
   const handleConnect = async () => {
     setConnecting(true);
@@ -907,9 +916,9 @@ function MelhorEnvioSection({ config, onChange, disabled, isOwner }: IMelhorEnvi
 
   const handleDisconnect = async () => {
     try {
-      await disconnectMelhorEnvio();
+      await disconnectMelhorEnvio(config.environment);
       toast.success("Melhor Envio desconectado.");
-      void loadStatus();
+      void loadStatuses();
     } catch {
       toast.error("Não foi possível desconectar.");
     }
@@ -975,6 +984,28 @@ function MelhorEnvioSection({ config, onChange, disabled, isOwner }: IMelhorEnvi
               </div>
             )}
           </div>
+          {isOwner && (
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+              {(["production", "sandbox"] as const).map((env) => {
+                const envStatus = statuses[env];
+                const connected = Boolean(envStatus?.connected);
+                const isActive = env === config.environment;
+                return (
+                  <span
+                    key={env}
+                    className={`flex items-center gap-1 ${isActive ? "font-medium text-foreground" : ""}`}
+                  >
+                    <Icon
+                      icon={connected ? "mdi:circle" : "mdi:circle-outline"}
+                      className={`size-2.5 ${connected ? "text-severity-success" : "text-muted-foreground"}`}
+                    />
+                    {env === "production" ? "Produção" : "Sandbox"}: {connected ? "conectado" : "desconectado"}
+                    {isActive ? " (ativo)" : ""}
+                  </span>
+                );
+              })}
+            </div>
+          )}
           {isOwner && status && !status.hasCredentials && (
             <p className="mt-2 text-xs text-amber-600 dark:text-amber-300">
               <Icon icon="mdi:alert-outline" className="mr-1 inline size-3.5" />
@@ -1019,6 +1050,10 @@ function MelhorEnvioSection({ config, onChange, disabled, isOwner }: IMelhorEnvi
                 <SelectItem value="production">Produção</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-[11px] text-muted-foreground">
+              Sandbox e Produção usam apps (chaves) distintos — cadastre cada um em Chaves &amp; API.
+              Trocar aqui alterna o app e a conexão.
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label className="text-sm">CEP de origem (loja)</Label>
