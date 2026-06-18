@@ -37,11 +37,32 @@ describe("buildReplyPrompt", () => {
     const messages = Array.from({ length: 40 }, (_, i) => msg({ text: `linha${i}` }));
     const out = buildReplyPrompt({ messages, maxMessages: 5 });
     expect(out).toContain("linha39");
+    expect(out).toContain("linha35"); // first message of the last-5 slice (guards off-by-one)
     expect(out).not.toContain("linha34");
   });
 
   it("inclui o nome do cliente quando fornecido", () => {
     const out = buildReplyPrompt({ messages: [msg({ text: "oi" })], customer: { name: "João", type: "B2C" } });
     expect(out).toContain("Cliente: João");
+  });
+
+  it("trunca por maxChars descartando a primeira linha parcial", () => {
+    const messages = [
+      msg({ text: "A".repeat(120) }),
+      msg({ direction: "out", authorType: "seller", text: "resposta recente" }),
+    ];
+    const out = buildReplyPrompt({ messages, maxChars: 40 });
+    expect(out).toContain("Vendedor: resposta recente");
+    expect(out).not.toContain("AAAA"); // a linha longa parcial foi removida
+  });
+
+  it("rotula SDR quando authorType é sdr", () => {
+    const out = buildReplyPrompt({
+      messages: [
+        msg({ text: "tenho interesse" }),
+        msg({ direction: "out", authorType: "sdr", text: "posso te ajudar" }),
+      ],
+    });
+    expect(out).toContain("SDR: posso te ajudar");
   });
 });

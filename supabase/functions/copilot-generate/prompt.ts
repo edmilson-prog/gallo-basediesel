@@ -49,7 +49,11 @@ export function buildReplyPrompt(opts: {
 
   const recent = usable.slice(-maxMessages);
   let transcript = recent.map((m) => `${speaker(m)}: ${m.text.trim()}`).join("\n");
-  if (transcript.length > maxChars) transcript = transcript.slice(transcript.length - maxChars);
+  if (transcript.length > maxChars) {
+    // Keep the most recent chars, then drop the (likely partial) leading line
+    // so the LLM never sees a fragment with no valid speaker label.
+    transcript = transcript.slice(transcript.length - maxChars).replace(/^[^\n]*\n/, "");
+  }
 
   const header: string[] = [];
   if (opts.customer?.name) {
