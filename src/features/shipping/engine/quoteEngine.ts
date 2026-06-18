@@ -83,6 +83,8 @@ export function buildQuoteResult(
     selected,
     value: freeShipping.value,
     isToNegotiate: false,
-    freeShippingApplied: freeShipping.applied || undefined,
+    // Always an explicit boolean — `false` must survive into the snapshot so
+    // Fase B can tell "rule evaluated, not applied" from "rule not configured".
+    freeShippingApplied: freeShipping.applied,
   };
 }

@@ -116,6 +116,13 @@ describe("buildQuoteResult", () => {
     expect(result!.selected?.serviceId).toBe(1);
   });
 
+  it("marks freeShippingApplied as explicit false below the threshold", () => {
+    const rows = [opt({ serviceId: 1, basePrice: 40 })];
+    const result = buildQuoteResult(rows, cfg({ freeAboveSubtotal: 500 }), 100);
+    expect(result!.freeShippingApplied).toBe(false);
+    expect(result!.value).toBe(40);
+  });
+
   it("honours enabledServices, ignoring options outside the allow-list", () => {
     const rows = [
       opt({ serviceId: 1, basePrice: 40 }),

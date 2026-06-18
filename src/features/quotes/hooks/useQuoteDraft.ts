@@ -11,6 +11,10 @@ export interface IQuoteDraft {
   items: IQuoteItem[];
   discountInput: string;
   shipping: number;
+  /** True when the seller manually set the freight (auto-quote must not override). */
+  shippingManual: boolean;
+  /** Carrier chosen from the quote options, preserved across restore. */
+  selectedServiceId: number | null;
   paymentMethod: string;
   paymentTerms: string;
   notes: string;

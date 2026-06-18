@@ -131,11 +131,23 @@ export function QuoteEditor() {
       items,
       discountInput,
       shipping,
+      shippingManual,
+      selectedServiceId,
       paymentMethod,
       paymentTerms,
       notes,
     }),
-    [customer?.id, items, discountInput, shipping, paymentMethod, paymentTerms, notes],
+    [
+      customer?.id,
+      items,
+      discountInput,
+      shipping,
+      shippingManual,
+      selectedServiceId,
+      paymentMethod,
+      paymentTerms,
+      notes,
+    ],
   );
   const draftEnabled = items.length > 0 || customer !== null;
   const { savedAt, loadDraft, clearDraft } = useQuoteDraft(draftInput, draftEnabled);
@@ -488,7 +500,11 @@ export function QuoteEditor() {
                 setItems(draftOffer.items);
                 setDiscountInput(draftOffer.discountInput);
                 setShipping(draftOffer.shipping);
-                setShippingManual(true);
+                // Restore the real freight state: only keep the auto-quote frozen
+                // if the seller had manually set it (old drafts default to false,
+                // so a now-enabled Melhor Envio re-quotes instead of going stale).
+                setShippingManual(draftOffer.shippingManual ?? false);
+                setSelectedServiceId(draftOffer.selectedServiceId ?? null);
                 setPaymentMethod(draftOffer.paymentMethod as QuotePaymentMethod);
                 setPaymentTerms(draftOffer.paymentTerms);
                 setNotes(draftOffer.notes);
