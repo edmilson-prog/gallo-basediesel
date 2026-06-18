@@ -903,8 +903,11 @@ function MelhorEnvioSection({ config, onChange, disabled, isOwner }: IMelhorEnvi
     setConnecting(true);
     try {
       const { url, state } = await getMelhorEnvioAuthorizeUrl(config.environment);
-      sessionStorage.setItem(MELHOR_ENVIO_OAUTH_STATE_KEY, state);
-      sessionStorage.setItem(MELHOR_ENVIO_OAUTH_ENV_KEY, config.environment);
+      // localStorage (shared across tabs), not sessionStorage (per-tab): the ME
+      // consent may return on a new tab, where a per-tab store would be empty and
+      // the callback would reject the flow as "state divergente" before exchanging.
+      localStorage.setItem(MELHOR_ENVIO_OAUTH_STATE_KEY, state);
+      localStorage.setItem(MELHOR_ENVIO_OAUTH_ENV_KEY, config.environment);
       window.location.href = url;
     } catch {
       toast.error(
