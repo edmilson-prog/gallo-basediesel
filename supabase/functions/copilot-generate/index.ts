@@ -189,6 +189,7 @@ servePost(async (req, { log }) => {
     systemPrompt: typeof route.systemPrompt === "string" ? route.systemPrompt : undefined,
     maxTokens,
     temperature,
+    topP: typeof params.topP === "number" ? params.topP : undefined,
   };
   const controller = AbortSignal.timeout(LLM_TIMEOUT_MS);
   const started = Date.now();

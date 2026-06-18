@@ -312,7 +312,9 @@ export const supabaseCopilotProvider: ICopilotProvider = {
       body: { conversationId },
     });
     if (error) throw new Error(await extractFunctionError(error));
-    return (data as { text: string }).text;
+    const text = (data as { text?: string } | null)?.text;
+    if (typeof text !== "string") throw new Error("resposta inválida do servidor de IA");
+    return text;
   },
 
   async isReplyGenerationEnabled(): Promise<boolean> {
