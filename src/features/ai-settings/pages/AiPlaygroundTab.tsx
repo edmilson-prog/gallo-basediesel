@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DEFAULT_PROVIDER_PARAMS } from "@/providers/data/engine/aiCatalog";
 import { useAiProvider } from "@/providers/data";
 import {
   AI_PROVIDER_LABELS,
@@ -48,8 +49,10 @@ export function AiPlaygroundTab() {
   }
 
   const effectiveProviderId = providerId ?? configured[0]!.provider;
-  const providerModels = configured.find((p) => p.provider === effectiveProviderId)?.models ?? [];
+  const effectiveProvider = configured.find((p) => p.provider === effectiveProviderId);
+  const providerModels = effectiveProvider?.models ?? [];
   const effectiveModel = model || providerModels[0]?.id || "";
+  const effectiveParams = effectiveProvider?.params ?? DEFAULT_PROVIDER_PARAMS;
 
   const run = async () => {
     setBusy(true);
@@ -59,7 +62,7 @@ export function AiPlaygroundTab() {
         await provider.runPlayground({
           providerId: effectiveProviderId,
           model: effectiveModel,
-          params: { temperature: 0.4, maxTokens: 1024 },
+          params: effectiveParams,
           prompt,
         }),
       );

@@ -5,8 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { setIntegrationSecret } from "@/features/admin-settings/api/integrationSecrets";
-import { AI_PROVIDER_LABELS, AI_SUPPORTED_PROVIDERS, type IAiProviderConfig } from "@/shared/types";
-import { modelsAreStaticSeed } from "@/providers/data/engine/aiCatalog";
+import {
+  AI_PROVIDER_LABELS,
+  AI_SUPPORTED_PROVIDERS,
+  type IAiGenerationParams,
+  type IAiProviderConfig,
+} from "@/shared/types";
+import { DEFAULT_PROVIDER_PARAMS, modelsAreStaticSeed } from "@/providers/data/engine/aiCatalog";
 import { useAiProvider } from "@/providers/data";
 import { ModelSelect } from "./ModelSelect";
 
@@ -17,14 +22,28 @@ const INITIALS: Record<string, string> = {
   google: "GE",
 };
 
+/** Brand glyphs (Iconify simple-icons). Monochrome — tinted by the chip's text color. */
+const PROVIDER_ICON: Record<string, string> = {
+  anthropic: "simple-icons:anthropic",
+  openai: "simple-icons:openai",
+  openrouter: "simple-icons:openrouter",
+  google: "simple-icons:googlegemini",
+};
+
 export function ProviderCard({
   config,
   canEditKey,
+  keyHint,
   onChanged,
+  onKeySaved,
 }: {
   config: IAiProviderConfig;
   canEditKey: boolean;
+  /** Last 4 chars of the stored key (from the Vault), for recognition only. */
+  keyHint?: string | null;
   onChanged: () => void;
+  /** Called after a key is saved, with the secret name and its last 4 chars. */
+  onKeySaved?: (credentialsRef: string, last4: string) => void;
 }) {
   const provider = useAiProvider();
   const [editingKey, setEditingKey] = useState(false);
@@ -33,6 +52,26 @@ export function ProviderCard({
 
   const configured = config.status === "configured";
   const supported = AI_SUPPORTED_PROVIDERS.includes(config.provider);
+  const params = config.params ?? DEFAULT_PROVIDER_PARAMS;
+  // Each input owns one field but we persist the whole params object — merge against a ref
+  // so two quick field edits (before a reload lands) don't clobber each other.
+  const paramsRef = useRef(params);
+  useEffect(() => {
+    paramsRef.current = config.params ?? DEFAULT_PROVIDER_PARAMS;
+  }, [config.params]);
+
+  const saveParams = async (patch: Partial<IAiGenerationParams>) => {
+    const next = { ...paramsRef.current, ...patch };
+    paramsRef.current = next;
+    try {
+      await provider.updateProviderConfig(config.provider, { params: next });
+      // No onChanged() here on purpose: the inputs are uncontrolled and already show the
+      // committed value, so we skip the full settings reload (which flashes the whole grid
+      // to a skeleton). The persisted value is re-synced on the next reload / remount.
+    } catch {
+      toast.error("Falha ao salvar os parâmetros.");
+    }
+  };
 
   const [refreshing, setRefreshing] = useState(false);
   const didAutoFetch = useRef(false);
@@ -80,6 +119,7 @@ export function ProviderCard({
       );
       await provider.updateProviderConfig(config.provider, { status: "configured", enabled: true });
       toast.success("Chave salva com segurança.");
+      onKeySaved?.(config.credentialsRef, keyValue.trim().slice(-4));
       setEditingKey(false);
       setKeyValue("");
       onChanged();
@@ -116,8 +156,12 @@ export function ProviderCard({
       className={`rounded-xl border border-border bg-card p-4 ${configured ? "" : "opacity-80"}`}
     >
       <header className="mb-3 flex items-center gap-3">
-        <span className="flex size-9 items-center justify-center rounded-lg bg-primary/15 text-xs font-semibold text-primary">
-          {INITIALS[config.provider]}
+        <span className="flex size-9 items-center justify-center rounded-lg bg-primary/15 text-primary">
+          {PROVIDER_ICON[config.provider] ? (
+            <Icon icon={PROVIDER_ICON[config.provider]!} className="size-5" />
+          ) : (
+            <span className="text-xs font-semibold">{INITIALS[config.provider]}</span>
+          )}
         </span>
         <div className="flex-1">
           <p className="text-sm font-semibold">{AI_PROVIDER_LABELS[config.provider]}</p>
@@ -174,17 +218,24 @@ export function ProviderCard({
               </Button>
             </div>
           ) : (
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={!canEditKey || !supported}
-              onClick={() => {
-                if (supported) setEditingKey(true);
-              }}
-            >
-              <Icon icon="mdi:key-plus" className="mr-1 size-4" />
-              {configured ? "Substituir chave" : "Definir chave"}
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!canEditKey || !supported}
+                onClick={() => {
+                  if (supported) setEditingKey(true);
+                }}
+              >
+                <Icon icon="mdi:key-plus" className="mr-1 size-4" />
+                {configured ? "Substituir chave" : "Definir chave"}
+              </Button>
+              {configured && keyHint && (
+                <code className="font-mono text-xs text-muted-foreground" title="Chave atual">
+                  ••••{keyHint}
+                </code>
+              )}
+            </div>
           )}
           {!supported && (
             <p className="mt-1 text-xs text-muted-foreground">
@@ -221,6 +272,68 @@ export function ProviderCard({
             {config.modelsRefreshedAt
               ? ` · atualizado ${new Date(config.modelsRefreshedAt).toLocaleString("pt-BR")}`
               : ""}
+          </p>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-xs text-muted-foreground">Parâmetros de geração</label>
+          <div className="grid grid-cols-3 gap-2">
+            <label className="text-xs text-muted-foreground">
+              Temperatura
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                max="2"
+                defaultValue={params.temperature}
+                disabled={!supported}
+                onBlur={(e) => {
+                  const v = Number(e.target.value);
+                  if (Number.isFinite(v)) void saveParams({ temperature: Math.min(2, Math.max(0, v)) });
+                }}
+                className="mt-1 w-full rounded-lg border border-border bg-background px-2 py-1.5 text-sm text-foreground"
+              />
+            </label>
+            <label className="text-xs text-muted-foreground">
+              Máx. tokens
+              <input
+                type="number"
+                step="64"
+                min="1"
+                defaultValue={params.maxTokens}
+                disabled={!supported}
+                onBlur={(e) => {
+                  const v = Math.floor(Number(e.target.value));
+                  if (Number.isFinite(v) && v > 0) void saveParams({ maxTokens: v });
+                }}
+                className="mt-1 w-full rounded-lg border border-border bg-background px-2 py-1.5 text-sm text-foreground"
+              />
+            </label>
+            <label className="text-xs text-muted-foreground">
+              Top P
+              <input
+                type="number"
+                step="0.05"
+                min="0"
+                max="1"
+                placeholder="—"
+                defaultValue={params.topP ?? ""}
+                disabled={!supported}
+                onBlur={(e) => {
+                  const raw = e.target.value.trim();
+                  if (raw === "") {
+                    void saveParams({ topP: undefined });
+                    return;
+                  }
+                  const v = Number(raw);
+                  if (Number.isFinite(v)) void saveParams({ topP: Math.min(1, Math.max(0, v)) });
+                }}
+                className="mt-1 w-full rounded-lg border border-border bg-background px-2 py-1.5 text-sm text-foreground"
+              />
+            </label>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Padrão de geração deste provedor (usado no Playground; cada funcionalidade pode sobrepor).
           </p>
         </div>
 

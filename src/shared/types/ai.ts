@@ -29,6 +29,8 @@ export interface IAiProviderConfig {
   lastTestResult?: "ok" | "error";
   /** When the model list was last fetched live from the provider. */
   modelsRefreshedAt?: ISO8601;
+  /** Default generation params for this provider. Optional: rows persisted before this field lack it. */
+  params?: IAiGenerationParams;
 }
 
 export interface IAiGenerationParams {
