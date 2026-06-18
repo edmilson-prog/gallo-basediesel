@@ -6,6 +6,18 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.108.0] — Quill · 2026-06-18
+
+**Copiloto de vendas agora gera rascunhos de resposta com IA, sob demanda.** O atendente clica em "Gerar resposta com IA" e a plataforma monta o contexto da conversa, chama o provedor LLM configurado pelo Owner e devolve um rascunho editável — disponível nos três posicionamentos do copiloto (faixa, card e aba da ficha). Resumo e sugestões permanecem determinísticos (deferidos para os sub-projetos 2 e 3).
+
+### Added
+
+- **Botão "Gerar resposta com IA"** — ativado nos três posicionamentos do copiloto (faixa, card e aba da ficha). O atendente clica → a IA gera um rascunho em pt-BR → o botão "Inserir" copia para o composer. O disparo é sempre sob demanda; nada ocorre automaticamente.
+- **Edge Function `copilot-generate`** (a 12ª) — proxy de produção (`verify_jwt = true`) consumível por qualquer atendente autenticado. Valida o acesso à conversa por RLS (`can_access_conversation`), resolve provider/modelo/prompt do routing administrado pelo Owner (`ai_settings.routing['conversation_copilot']`), aplica o teto de orçamento mensal (best-effort) e grava o uso em `ai_usage_events` (`source='routed'`, `feature='conversation_copilot'`). O atendente não escolhe modelo nem injeta prompt.
+- **RPC `ai_feature_enabled(feature)`** — expõe ao frontend apenas um booleano (master ativo + feature habilitada + provider configurado); nunca trafega chaves ou detalhes de routing. Gating do botão no front.
+- **`requireAnyCaller`** em `_shared/auth.ts` — helper que resolve caller + profile sem exigir papel de Owner; as funções existentes (`requireCaller`) ficam inalteradas.
+- **Mock determinístico de `generateReply`** — mantém o modo Demonstração funcional e os testes estáveis sem custo de LLM.
+
 ## [0.107.1] — Tandem · 2026-06-18
 
 ### Fixed
