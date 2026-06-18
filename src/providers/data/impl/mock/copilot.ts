@@ -105,4 +105,22 @@ export const mockCopilotProvider: ICopilotProvider = {
     // Fase 1: o estado de dispensa é local na sessão (useCopilotPanel).
     // Gancho para auditoria visual (PRD-006) / persistência na Fase 2.
   },
+
+  async generateReply(conversationId: ID): Promise<string> {
+    // Mock has no LLM: fabricate a deterministic draft from the last customer line.
+    const messages = (
+      await mockMessagesProvider.list({ conversationId, pageSize: 500, orderDir: "asc" })
+    ).data;
+    const lastInbound = [...messages]
+      .reverse()
+      .find((m) => m.direction === "in" && m.authorType === "customer" && m.text.trim());
+    if (!lastInbound) return "Olá! Como posso ajudar você hoje?";
+    const topic = lastInbound.text.trim().slice(0, 60);
+    return `Claro! Sobre "${topic}", já verifico aqui e retorno com a melhor condição. 👍`;
+  },
+
+  async isReplyGenerationEnabled(): Promise<boolean> {
+    // Demo sempre disponível (sem custo): o mock não chama LLM.
+    return true;
+  },
 };

@@ -12,5 +12,11 @@ export interface ICopilotProvider {
   getPanelData(conversationId: ID): Promise<ICopilotPanelData>;
   /** Marca uma sugestão como dispensada (Fase 1: no-op + gancho de auditoria). */
   dismissSuggestion(id: ID): Promise<void>;
-  // Fase 2: generateReply(conversationId: ID): Promise<string>;
+  /**
+   * Gera um rascunho de resposta com IA a partir do contexto da conversa
+   * (sob demanda). Lança em erro de geração — o consumidor degrada na UI.
+   */
+  generateReply(conversationId: ID): Promise<string>;
+  /** Se a geração de resposta com IA está habilitada (gating do botão). */
+  isReplyGenerationEnabled(): Promise<boolean>;
 }
