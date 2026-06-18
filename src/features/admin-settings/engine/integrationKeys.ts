@@ -170,30 +170,43 @@ export function buildIntegrationKeyCatalog(accounts: AccountForCatalog[]): IInte
     {
       id: "melhor-envio",
       title: "Frete — Melhor Envio",
-      description: "App OAuth para a cotação automática de fretes (client_id/secret + redirect).",
+      description:
+        "Apps OAuth para a cotação automática de fretes. Produção e Sandbox têm client_id/secret próprios; redirect e User-Agent são compartilhados.",
       icon: "mdi:truck-outline",
       keys: [
         {
           name: "MELHOR_ENVIO_CLIENT_ID",
-          label: "Client ID",
+          label: "Client ID (Produção)",
           kind: "config",
-          help: "Gerado em app.melhorenvio.com.br → Integrações → Área de desenvolvedor.",
+          help: "App de produção em app.melhorenvio.com.br → Integrações → Área de desenvolvedor.",
         },
         {
           name: "MELHOR_ENVIO_CLIENT_SECRET",
-          label: "Client secret",
+          label: "Client secret (Produção)",
           kind: "secret",
-          help: "Segredo do app OAuth do Melhor Envio.",
+          help: "Segredo do app OAuth de produção do Melhor Envio.",
+        },
+        {
+          name: "MELHOR_ENVIO_SANDBOX_CLIENT_ID",
+          label: "Client ID (Sandbox)",
+          kind: "config",
+          help: "App separado, criado em sandbox.melhorenvio.com.br (ambiente de testes).",
+        },
+        {
+          name: "MELHOR_ENVIO_SANDBOX_CLIENT_SECRET",
+          label: "Client secret (Sandbox)",
+          kind: "secret",
+          help: "Segredo do app OAuth de sandbox do Melhor Envio.",
         },
         {
           name: "MELHOR_ENVIO_REDIRECT_URI",
-          label: "Redirect URI",
+          label: "Redirect URI (ambos)",
           kind: "config",
-          help: "Idêntica à cadastrada no painel do Melhor Envio (ex.: https://crm.gallobasediesel.com.br/app/configuracoes/frete/callback).",
+          help: "Idêntica à cadastrada nos dois apps do Melhor Envio (ex.: https://crm.gallobasediesel.com.br/app/configuracoes/frete/callback).",
         },
         {
           name: "MELHOR_ENVIO_USER_AGENT",
-          label: "User-Agent (contato)",
+          label: "User-Agent (ambos · contato)",
           kind: "config",
           help: "Ex.: GALLO BASE DIESEL (contato@dominio) — exigido pela API do Melhor Envio.",
         },

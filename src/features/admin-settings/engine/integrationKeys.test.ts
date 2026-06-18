@@ -57,19 +57,24 @@ describe("buildIntegrationKeyCatalog", () => {
     ]);
   });
 
-  it("inclui o grupo Frete — Melhor Envio com as 4 chaves do app OAuth", () => {
+  it("inclui o grupo Frete — Melhor Envio com chaves por ambiente (produção + sandbox)", () => {
     const groups = buildIntegrationKeyCatalog([]);
     const me = groups.find((group) => group.id === "melhor-envio");
     expect(me).toBeDefined();
     expect(me!.keys.map((key) => key.name)).toEqual([
       "MELHOR_ENVIO_CLIENT_ID",
       "MELHOR_ENVIO_CLIENT_SECRET",
+      "MELHOR_ENVIO_SANDBOX_CLIENT_ID",
+      "MELHOR_ENVIO_SANDBOX_CLIENT_SECRET",
       "MELHOR_ENVIO_REDIRECT_URI",
       "MELHOR_ENVIO_USER_AGENT",
     ]);
-    // client_secret is the only true secret; the rest are plain config.
+    // Both client secrets are the true secrets; redirect/user-agent are plain config.
     const secretNames = me!.keys.filter((key) => key.kind === "secret").map((key) => key.name);
-    expect(secretNames).toEqual(["MELHOR_ENVIO_CLIENT_SECRET"]);
+    expect(secretNames).toEqual([
+      "MELHOR_ENVIO_CLIENT_SECRET",
+      "MELHOR_ENVIO_SANDBOX_CLIENT_SECRET",
+    ]);
   });
 
   it("derives Meta account keys from credentials_ref (engine convention)", () => {

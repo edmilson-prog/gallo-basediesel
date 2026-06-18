@@ -6,6 +6,24 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.107.0] — Tandem · 2026-06-18
+
+**O Melhor Envio agora suporta Sandbox e Produção lado a lado.** Antes a plataforma guardava um único conjunto de credenciais, então alternar o ambiente no orçamento exigiria trocar as chaves na mão (e o `client_id` de produção não funciona no sandbox). Agora cada ambiente tem o seu próprio app OAuth e o seu próprio token: virar o seletor "Ambiente" troca de app na hora, e dá para ficar conectado em sandbox e produção ao mesmo tempo. **Incremento da Fase A do épico "Melhor Envio"; só exige o redeploy das duas Edge Functions (sem migration nova).**
+
+### Added
+
+- **Credenciais por ambiente** — `meSecrets(env)` resolve os nomes no Vault por ambiente: produção mantém os nomes "nus" (`MELHOR_ENVIO_CLIENT_ID/SECRET` + token triple), o sandbox ganha o prefixo `MELHOR_ENVIO_SANDBOX_*`. `REDIRECT_URI` e `USER_AGENT` são compartilhados (iguais nos dois apps).
+- **Catálogo de Chaves & API** — o grupo "Frete — Melhor Envio" passou a expor os campos de produção e de sandbox separadamente (4 client_id/secret + 2 compartilhados).
+- **Estado dos dois ambientes na tela de Frete** — a seção mostra Sandbox e Produção lado a lado (conectado/desconectado), destacando o ativo, e uma dica esclarece que cada ambiente usa um app próprio.
+
+### Changed
+
+- **Edge Functions `melhor-envio-quote` e `melhor-envio-oauth`** — resolvem os segredos por ambiente; o `disconnect` agora limpa o token do ambiente selecionado (e audita o ambiente).
+
+### Notes
+
+- **Sem migration nova** — só nomes de secret no Vault. Rollout = redeploy das 2 Edge Functions. Produção mantém os nomes "nus" ⇒ retrocompatível. O dono cadastra um app OAuth por ambiente que for usar (sandbox e/ou produção são contas separadas). Detalhes em `docs/dev/melhor-envio-cotacao.md`.
+
 ## [0.106.0] — Freight · 2026-06-17
 
 **O frete agora é cotado automaticamente no orçamento pelo CEP do cliente, via Melhor Envio.** Ao escolher um cliente com CEP, a plataforma cota o frete em tempo real (caixa padrão da loja + peso somado dos itens), aplica markup e a regra de frete grátis, escolhe a opção mais barata e preenche o valor — o vendedor pode trocar de transportadora ou editar à mão. Sem cobertura, erro ou integração desligada, cai nas regras por região (PRD-033). O token OAuth vive no Vault e a cotação roda server-side. **Fase A do épico "Melhor Envio"; o cutover de produção (migration + deploy das Edge Functions + conexão OAuth) é passo de rollout pendente.**

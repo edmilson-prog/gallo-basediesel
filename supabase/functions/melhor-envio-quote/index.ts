@@ -25,8 +25,9 @@ import { servePost } from "../_shared/serve.ts";
 import type { Logger } from "../_shared/logger.ts";
 import {
   DEFAULT_USER_AGENT,
-  ME_SECRETS,
+  type MeSecretNames,
   meBaseUrl,
+  meSecrets,
   normalizeMeOptions,
   persistMeTokens,
   requestMeToken,
@@ -54,11 +55,12 @@ async function refreshAccessToken(
   base: string,
   userAgent: string,
   log: Logger,
+  secrets: MeSecretNames,
 ): Promise<string | null> {
   const [refreshToken, clientId, clientSecret] = await Promise.all([
-    resolveSecret(ME_SECRETS.refreshToken),
-    resolveSecret(ME_SECRETS.clientId),
-    resolveSecret(ME_SECRETS.clientSecret),
+    resolveSecret(secrets.refreshToken),
+    resolveSecret(secrets.clientId),
+    resolveSecret(secrets.clientSecret),
   ]);
   if (!refreshToken || !clientId || !clientSecret) return null;
   try {
@@ -72,7 +74,7 @@ async function refreshAccessToken(
       },
       userAgent,
     );
-    await persistMeTokens(admin, tokens);
+    await persistMeTokens(admin, tokens, secrets);
     log.info("melhor envio token refreshed");
     return tokens.access_token;
   } catch (err) {
@@ -94,13 +96,15 @@ servePost(async (req, { log, traceId }) => {
     throw new HttpError(400, "originZip and destZip must be 8-digit CEPs");
   }
 
-  let accessToken = await resolveSecret(ME_SECRETS.accessToken);
+  const env = body.environment === "production" ? "production" : "sandbox";
+  const base = meBaseUrl(env);
+  const secrets = meSecrets(env);
+
+  let accessToken = await resolveSecret(secrets.accessToken);
   // Inert mode: not connected → the hook falls back to region rules.
   if (!accessToken) return json({ scaffold: true }, 200);
 
-  const env = body.environment === "production" ? "production" : "sandbox";
-  const base = meBaseUrl(env);
-  const userAgent = (await resolveSecret(ME_SECRETS.userAgent)) || DEFAULT_USER_AGENT;
+  const userAgent = (await resolveSecret(secrets.userAgent)) || DEFAULT_USER_AGENT;
 
   const box = body.box ?? {};
   const services = Array.isArray(body.services)
@@ -125,10 +129,10 @@ servePost(async (req, { log, traceId }) => {
 
   // Proactive refresh when the stored expiry is within 60s (jitter buffer
   // avoids clock-skew thrashing on the boundary).
-  const expiresAtRaw = await resolveSecret(ME_SECRETS.tokenExpiresAt);
+  const expiresAtRaw = await resolveSecret(secrets.tokenExpiresAt);
   const expiresAt = expiresAtRaw ? Date.parse(expiresAtRaw) : Number.NaN;
   if (Number.isFinite(expiresAt) && expiresAt <= Date.now() + 60_000) {
-    accessToken = (await refreshAccessToken(admin, resolveSecret, base, userAgent, log)) ?? accessToken;
+    accessToken = (await refreshAccessToken(admin, resolveSecret, base, userAgent, log, secrets)) ?? accessToken;
   }
 
   const callCalculate = (token: string): Promise<Response> =>
@@ -150,7 +154,7 @@ servePost(async (req, { log, traceId }) => {
     res = await callCalculate(accessToken);
     // Reactive refresh on 401 → retry once.
     if (res.status === 401) {
-      const refreshed = await refreshAccessToken(admin, resolveSecret, base, userAgent, log);
+      const refreshed = await refreshAccessToken(admin, resolveSecret, base, userAgent, log, secrets);
       if (refreshed) {
         accessToken = refreshed;
         res = await callCalculate(accessToken);

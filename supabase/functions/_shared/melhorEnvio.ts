@@ -20,16 +20,37 @@ export const ME_BASE = {
 
 export type MeEnvironment = keyof typeof ME_BASE;
 
-/** Vault secret names. The token triple is written by the OAuth Edge, not the catalog. */
-export const ME_SECRETS = {
-  accessToken: "MELHOR_ENVIO_ACCESS_TOKEN",
-  refreshToken: "MELHOR_ENVIO_REFRESH_TOKEN",
-  tokenExpiresAt: "MELHOR_ENVIO_TOKEN_EXPIRES_AT",
-  clientId: "MELHOR_ENVIO_CLIENT_ID",
-  clientSecret: "MELHOR_ENVIO_CLIENT_SECRET",
-  redirectUri: "MELHOR_ENVIO_REDIRECT_URI",
-  userAgent: "MELHOR_ENVIO_USER_AGENT",
-} as const;
+export interface MeSecretNames {
+  accessToken: string;
+  refreshToken: string;
+  tokenExpiresAt: string;
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+  userAgent: string;
+}
+
+/**
+ * Vault secret names, resolved per environment so sandbox and production can be
+ * configured and connected independently (flipping the "Ambiente" toggle just
+ * switches apps). The OAuth app identity (client_id/secret) and the auto-managed
+ * token triple are env-scoped — sandbox carries the `MELHOR_ENVIO_SANDBOX_`
+ * prefix, production keeps the bare `MELHOR_ENVIO_` names. The redirect URI and
+ * the User-Agent contact are shared (identical for both apps). The token triple
+ * is written by the OAuth Edge, never by the key catalog.
+ */
+export function meSecrets(env: MeEnvironment): MeSecretNames {
+  const prefix = env === "production" ? "MELHOR_ENVIO_" : "MELHOR_ENVIO_SANDBOX_";
+  return {
+    accessToken: `${prefix}ACCESS_TOKEN`,
+    refreshToken: `${prefix}REFRESH_TOKEN`,
+    tokenExpiresAt: `${prefix}TOKEN_EXPIRES_AT`,
+    clientId: `${prefix}CLIENT_ID`,
+    clientSecret: `${prefix}CLIENT_SECRET`,
+    redirectUri: "MELHOR_ENVIO_REDIRECT_URI",
+    userAgent: "MELHOR_ENVIO_USER_AGENT",
+  };
+}
 
 /** Mandatory by the ME API — overridable via the MELHOR_ENVIO_USER_AGENT secret. */
 export const DEFAULT_USER_AGENT = "GALLO BASE DIESEL (contato@gallobasediesel.com.br)";
@@ -85,16 +106,21 @@ export async function requestMeToken(
   return data as MeTokenResponse;
 }
 
-/** Persists the auto-managed token triple in the Vault (overwrites in place). */
+/**
+ * Persists the auto-managed token triple in the Vault (overwrites in place).
+ * `secrets` carries the env-scoped names so sandbox and production tokens never
+ * clobber each other.
+ */
 export async function persistMeTokens(
   admin: SupabaseClient,
   tokens: MeTokenResponse,
+  secrets: MeSecretNames,
 ): Promise<void> {
   const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
   const writes: Array<{ name: string; value: string; description: string }> = [
-    { name: ME_SECRETS.accessToken, value: tokens.access_token, description: "Melhor Envio OAuth access token (auto-managed)" },
-    { name: ME_SECRETS.refreshToken, value: tokens.refresh_token, description: "Melhor Envio OAuth refresh token (auto-managed)" },
-    { name: ME_SECRETS.tokenExpiresAt, value: expiresAt, description: "Melhor Envio token expiry ISO (auto-managed)" },
+    { name: secrets.accessToken, value: tokens.access_token, description: "Melhor Envio OAuth access token (auto-managed)" },
+    { name: secrets.refreshToken, value: tokens.refresh_token, description: "Melhor Envio OAuth refresh token (auto-managed)" },
+    { name: secrets.tokenExpiresAt, value: expiresAt, description: "Melhor Envio token expiry ISO (auto-managed)" },
   ];
   // Check each RPC — Supabase returns { error } (does not throw). A silent
   // partial write would leave stale tokens and trigger repeated refreshes.
@@ -108,9 +134,9 @@ export async function persistMeTokens(
   }
 }
 
-/** Removes the auto-managed token triple (OAuth disconnect). */
-export async function clearMeTokens(admin: SupabaseClient): Promise<void> {
-  for (const name of [ME_SECRETS.accessToken, ME_SECRETS.refreshToken, ME_SECRETS.tokenExpiresAt]) {
+/** Removes the auto-managed token triple for one environment (OAuth disconnect). */
+export async function clearMeTokens(admin: SupabaseClient, secrets: MeSecretNames): Promise<void> {
+  for (const name of [secrets.accessToken, secrets.refreshToken, secrets.tokenExpiresAt]) {
     const { error } = await admin.rpc("integration_secret_delete", { p_name: name });
     if (error) throw new Error(`failed to delete ${name}: ${error.message}`);
   }
