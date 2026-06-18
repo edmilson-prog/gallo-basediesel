@@ -54,16 +54,18 @@
 
 ### Task 1: `requireAnyCaller` no `_shared/auth.ts`
 
-Permite que qualquer atendente autenticado (não só owner) chame a edge, e expõe o `callerClient` para validar acesso por RLS. **Não altera `requireCaller`** (zero regressão nas 6 funções existentes); aceita uma pequena duplicação consciente em troca de segurança.
+Permite que qualquer atendente autenticado (não só owner) chame a edge, e expõe o `callerClient` para validar acesso por RLS. Para evitar duplicação, extrai um helper interno `resolveCaller` que **`requireCaller` passa a reusar preservando exatamente o comportamento atual** (mesmos checks, mesmas mensagens de erro) — zero regressão nas 6 funções existentes.
 
 **Files:**
 - Modify: `supabase/functions/_shared/auth.ts`
 
 **Interfaces:**
 - Produces: `requireAnyCaller(req: Request): Promise<{ callerId: string; admin: SupabaseClient; callerClient: SupabaseClient; profile: CallerProfile }>`
+- Preserves: `requireCaller(req, allowedRoles)` com a MESMA assinatura, retorno e mensagens (401 "missing authorization" / "invalid session"; 403 "forbidden: requires …").
 
-- [ ] **Step 1: Adicionar a interface e a função** (após `requireCaller`, fim do arquivo)
+- [ ] **Step 1: Extrair `resolveCaller` e adicionar `requireAnyCaller`; refatorar `requireCaller` para delegar**
 
+Substituir a função `requireCaller` existente por este bloco (helper interno + as duas funções públicas):
 ```ts
 export interface AnyCallerContext {
   /** The authenticated auth.users id of the caller. */
@@ -77,13 +79,17 @@ export interface AnyCallerContext {
 }
 
 /**
- * Resolves the caller and their profile WITHOUT enforcing any role — for
- * production proxies consumed by attendants (e.g. the conversation copilot).
- * Authorization is delegated downstream to RLS (the caller can only act on
- * conversations their policies let them read). Returns the caller-scoped
- * client so the handler can validate access via RLS instead of replicating it.
+ * Shared caller resolution (no authorization): caller-scoped client + getUser +
+ * service_role client + profile lookup. `profile` is null when the authenticated
+ * user has no profiles row. Used by both requireCaller (role-gated) and
+ * requireAnyCaller (any authenticated caller).
  */
-export async function requireAnyCaller(req: Request): Promise<AnyCallerContext> {
+async function resolveCaller(req: Request): Promise<{
+  callerId: string;
+  admin: SupabaseClient;
+  callerClient: SupabaseClient;
+  profile: CallerProfile | null;
+}> {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) throw new HttpError(401, "missing authorization");
 
@@ -100,16 +106,44 @@ export async function requireAnyCaller(req: Request): Promise<AnyCallerContext> 
     .select("role, store_id")
     .eq("auth_user_id", callerData.user.id)
     .maybeSingle();
-  if (!profile) throw new HttpError(403, "forbidden: no profile");
 
-  return { callerId: callerData.user.id, admin, callerClient, profile };
+  return { callerId: callerData.user.id, admin, callerClient, profile: profile ?? null };
+}
+
+/**
+ * Resolves the caller and their profile, enforcing `allowedRoles`.
+ * Throws HttpError(401/403) with the exact messages the clients already handle.
+ */
+export async function requireCaller(
+  req: Request,
+  allowedRoles: readonly string[],
+): Promise<CallerContext> {
+  const { callerId, admin, profile } = await resolveCaller(req);
+  if (!profile || !allowedRoles.includes(profile.role)) {
+    const label = allowedRoles.length === 1 ? allowedRoles[0] : "owner or manager";
+    throw new HttpError(403, `forbidden: requires ${label}`);
+  }
+  return { callerId, admin, profile };
+}
+
+/**
+ * Resolves the caller WITHOUT enforcing any role — for production proxies
+ * consumed by attendants (e.g. the conversation copilot). Authorization is
+ * delegated downstream to RLS (the caller can only act on conversations their
+ * policies let them read). Returns the caller-scoped client so the handler can
+ * validate access via RLS instead of replicating it.
+ */
+export async function requireAnyCaller(req: Request): Promise<AnyCallerContext> {
+  const { callerId, admin, callerClient, profile } = await resolveCaller(req);
+  if (!profile) throw new HttpError(403, "forbidden: no profile");
+  return { callerId, admin, callerClient, profile };
 }
 ```
 
-- [ ] **Step 2: Verificar que `requireCaller` permanece inalterado**
+- [ ] **Step 2: Verificar que o comportamento de `requireCaller` foi preservado**
 
 Run: `git diff supabase/functions/_shared/auth.ts`
-Expected: apenas adições (interface + função novas); o bloco `requireCaller` original intacto.
+Expected: `requireCaller` agora delega a `resolveCaller`, mas mantém assinatura, retorno e as mensagens 401/403 idênticas; `resolveCaller` (privado) e `requireAnyCaller` (público) adicionados.
 
 - [ ] **Step 3: Commit**
 
