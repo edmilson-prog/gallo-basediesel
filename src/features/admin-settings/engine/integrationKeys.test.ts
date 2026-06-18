@@ -34,7 +34,7 @@ describe("buildIntegrationKeyCatalog", () => {
   it("always includes the Resend and webhook app-level groups", () => {
     const groups = buildIntegrationKeyCatalog([]);
     const ids = groups.map((group) => group.id);
-    expect(ids).toEqual(["resend", "whatsapp-webhook", "llm-providers"]);
+    expect(ids).toEqual(["resend", "whatsapp-webhook", "llm-providers", "melhor-envio"]);
 
     const resend = groups[0];
     expect(resend?.keys.map((key) => key.name)).toEqual([
@@ -55,6 +55,21 @@ describe("buildIntegrationKeyCatalog", () => {
       "OPENAI_API_KEY",
       "OPENROUTER_API_KEY",
     ]);
+  });
+
+  it("inclui o grupo Frete — Melhor Envio com as 4 chaves do app OAuth", () => {
+    const groups = buildIntegrationKeyCatalog([]);
+    const me = groups.find((group) => group.id === "melhor-envio");
+    expect(me).toBeDefined();
+    expect(me!.keys.map((key) => key.name)).toEqual([
+      "MELHOR_ENVIO_CLIENT_ID",
+      "MELHOR_ENVIO_CLIENT_SECRET",
+      "MELHOR_ENVIO_REDIRECT_URI",
+      "MELHOR_ENVIO_USER_AGENT",
+    ]);
+    // client_secret is the only true secret; the rest are plain config.
+    const secretNames = me!.keys.filter((key) => key.kind === "secret").map((key) => key.name);
+    expect(secretNames).toEqual(["MELHOR_ENVIO_CLIENT_SECRET"]);
   });
 
   it("derives Meta account keys from credentials_ref (engine convention)", () => {
@@ -82,7 +97,12 @@ describe("buildIntegrationKeyCatalog", () => {
       { ...META_ACCOUNT, credentialsRef: "" },
       { ...EVOLUTION_ACCOUNT, credentialsRef: "lower case ref" },
     ]);
-    expect(groups.map((group) => group.id)).toEqual(["resend", "whatsapp-webhook", "llm-providers"]);
+    expect(groups.map((group) => group.id)).toEqual([
+      "resend",
+      "whatsapp-webhook",
+      "llm-providers",
+      "melhor-envio",
+    ]);
   });
 
   it("every generated name passes the server-side validation", () => {

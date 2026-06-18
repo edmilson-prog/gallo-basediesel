@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type {
   ICustomerAddress,
+  IMelhorEnvioConfig,
   IShippingConfig,
   IShippingRate,
   IShippingResult,
@@ -50,6 +51,15 @@ import { usePlatformSettings } from "@/features/admin-settings/hooks/usePlatform
 import { UnsavedChangesDialog } from "@/features/admin-settings/components/UnsavedChangesDialog";
 import { useUnsavedChanges } from "@/features/admin-settings/hooks/useUnsavedChanges";
 import { calculateShipping } from "../api/calculate";
+import { DEFAULT_MELHOR_ENVIO_CONFIG } from "../config/defaults";
+import {
+  disconnectMelhorEnvio,
+  getMelhorEnvioAuthorizeUrl,
+  getMelhorEnvioStatus,
+  MELHOR_ENVIO_OAUTH_ENV_KEY,
+  MELHOR_ENVIO_OAUTH_STATE_KEY,
+  type IMelhorEnvioStatus,
+} from "../api/melhorEnvioOAuth";
 
 const STRATEGY_OPTIONS: Array<{
   value: ShippingStrategy;
@@ -147,6 +157,11 @@ export function ShippingConfigPage() {
   const activeRules = draft.rates.filter((r) => r.isActive);
   const hasActiveRules = activeRules.length > 0;
   const showRatesSection = draft.strategy !== "to_negotiate_default";
+
+  const melhorEnvio = draft.melhorEnvio ?? DEFAULT_MELHOR_ENVIO_CONFIG;
+  const handleMelhorEnvioChange = (patch: Partial<IMelhorEnvioConfig>) => {
+    setDraft({ ...draft, melhorEnvio: { ...melhorEnvio, ...patch } });
+  };
 
   const handleSave = async () => {
     if (!canEdit) return;
@@ -281,6 +296,13 @@ export function ShippingConfigPage() {
         </div>
       )}
 
+      <MelhorEnvioSection
+        config={melhorEnvio}
+        onChange={handleMelhorEnvioChange}
+        disabled={!canEdit}
+        isOwner={role === "Owner"}
+      />
+
       <StrategySection
         strategy={draft.strategy}
         onChange={handleSetStrategy}
@@ -304,8 +326,6 @@ export function ShippingConfigPage() {
       )}
 
       <SimulatorSection config={draft} />
-
-      <Phase2PlaceholderCard />
 
       {canEdit && (
         <div className="sticky bottom-0 flex flex-wrap justify-end gap-2 border-t border-border bg-background/95 py-3 backdrop-blur">
@@ -464,7 +484,7 @@ function RatesSection({
       <CardHeader className="flex flex-row items-center justify-between gap-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Icon icon="mdi:format-list-checks" className="size-5 text-primary" />
-          Regras de frete
+          Fallback por região
         </CardTitle>
         <Button size="sm" onClick={onAdd} disabled={disabled} className="gap-2">
           <Icon icon="mdi:plus" className="size-4" />
@@ -834,21 +854,298 @@ function SimulatorSection({ config }: { config: IShippingConfig }) {
   );
 }
 
-function Phase2PlaceholderCard() {
+const ME_SERVICE_OPTIONS: Array<{ id: number; label: string }> = [
+  { id: 1, label: "PAC" },
+  { id: 2, label: "SEDEX" },
+  { id: 3, label: "Jadlog .Package" },
+  { id: 4, label: "Jadlog .Com" },
+];
+
+interface IMelhorEnvioSectionProps {
+  config: IMelhorEnvioConfig;
+  onChange: (patch: Partial<IMelhorEnvioConfig>) => void;
+  disabled?: boolean;
+  isOwner: boolean;
+}
+
+function MelhorEnvioSection({ config, onChange, disabled, isOwner }: IMelhorEnvioSectionProps) {
+  const [status, setStatus] = useState<IMelhorEnvioStatus | null>(null);
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+
+  const loadStatus = useCallback(async () => {
+    if (!isOwner) return;
+    setStatusLoading(true);
+    try {
+      setStatus(await getMelhorEnvioStatus(config.environment));
+    } catch {
+      // Edge not deployed / credentials missing — keep a neutral "unknown" state.
+      setStatus(null);
+    } finally {
+      setStatusLoading(false);
+    }
+  }, [config.environment, isOwner]);
+
+  useEffect(() => {
+    void loadStatus();
+  }, [loadStatus]);
+
+  const handleConnect = async () => {
+    setConnecting(true);
+    try {
+      const { url, state } = await getMelhorEnvioAuthorizeUrl(config.environment);
+      sessionStorage.setItem(MELHOR_ENVIO_OAUTH_STATE_KEY, state);
+      sessionStorage.setItem(MELHOR_ENVIO_OAUTH_ENV_KEY, config.environment);
+      window.location.href = url;
+    } catch {
+      toast.error(
+        "Não foi possível iniciar a conexão. Cadastre client_id e redirect URI em Chaves & API.",
+      );
+      setConnecting(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    try {
+      await disconnectMelhorEnvio();
+      toast.success("Melhor Envio desconectado.");
+      void loadStatus();
+    } catch {
+      toast.error("Não foi possível desconectar.");
+    }
+  };
+
+  const toggleService = (id: number) => {
+    const set = new Set(config.enabledServices);
+    if (set.has(id)) set.delete(id);
+    else set.add(id);
+    onChange({ enabledServices: [...set].sort((a, b) => a - b) });
+  };
+
+  const expiresLabel = status?.expiresAt
+    ? new Date(status.expiresAt).toLocaleDateString("pt-BR")
+    : null;
+
   return (
-    <Card className="border-dashed">
-      <CardContent className="flex flex-col gap-3 py-6 sm:flex-row sm:items-center">
-        <div className="rounded-full bg-primary/10 p-3 text-primary">
-          <Icon icon="mdi:rocket-launch-outline" className="size-6" />
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Icon icon="mdi:truck-fast-outline" className="size-5 text-primary" />
+          Melhor Envio
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <p className="text-xs text-muted-foreground">
+          Cotação automática de frete pelo CEP do cliente no orçamento. Quando indisponível ou sem
+          cobertura, cai no <strong>fallback por região</strong> abaixo.
+        </p>
+
+        {/* Conexão (OAuth) */}
+        <div className="rounded-md border border-border p-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm">
+              {statusLoading ? (
+                <span className="flex items-center gap-1.5 text-muted-foreground">
+                  <Icon icon="mdi:loading" className="size-4 animate-spin" />
+                  Verificando conexão…
+                </span>
+              ) : status?.connected ? (
+                <span className="flex items-center gap-1.5 text-severity-success">
+                  <Icon icon="mdi:check-circle-outline" className="size-4" />
+                  Conectado{expiresLabel ? ` · token expira em ${expiresLabel}` : ""}
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5 text-muted-foreground">
+                  <Icon icon="mdi:link-off" className="size-4" />
+                  Desconectado
+                </span>
+              )}
+            </div>
+            {isOwner && (
+              <div className="flex gap-2">
+                <Button size="sm" onClick={handleConnect} disabled={connecting} className="gap-1">
+                  <Icon icon="mdi:link-variant" className="size-4" />
+                  {status?.connected ? "Reconectar" : "Conectar"}
+                </Button>
+                {status?.connected && (
+                  <Button size="sm" variant="outline" onClick={handleDisconnect}>
+                    Desconectar
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+          {isOwner && status && !status.hasCredentials && (
+            <p className="mt-2 text-xs text-amber-600 dark:text-amber-300">
+              <Icon icon="mdi:alert-outline" className="mr-1 inline size-3.5" />
+              Credenciais ausentes — cadastre client_id, client_secret e redirect URI em{" "}
+              <a href="/app/configuracoes/chaves" className="underline">
+                Chaves &amp; API
+              </a>
+              .
+            </p>
+          )}
         </div>
-        <div className="flex-1">
-          <p className="text-sm font-semibold">Próxima fase — Integração com transportadoras</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            A integração com transportadoras (Correios, Mercúrio, JadLog) chega na Fase 2 e
-            permitirá cálculo real por CEP origem/destino, dimensões, peso e múltiplas opções de
-            envio (expresso vs normal). A interface de chamada permanece a mesma — apenas a fonte do
-            cálculo muda.
+
+        {/* Parâmetros (salvos com o botão "Salvar alterações") */}
+        <div className="flex items-center justify-between rounded-md border border-border p-3">
+          <div>
+            <p className="text-sm font-medium">Ativar cotação automática</p>
+            <p className="text-xs text-muted-foreground">
+              Quando ligado, o orçamento cota o frete em tempo real pelo CEP do cliente.
+            </p>
+          </div>
+          <Switch
+            checked={config.enabled}
+            onCheckedChange={(v) => onChange({ enabled: v })}
+            disabled={disabled}
+            aria-label="Ativar cotação automática do Melhor Envio"
+          />
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label className="text-sm">Ambiente</Label>
+            <Select
+              value={config.environment}
+              onValueChange={(v) => onChange({ environment: v as IMelhorEnvioConfig["environment"] })}
+              disabled={disabled}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sandbox">Sandbox (testes)</SelectItem>
+                <SelectItem value="production">Produção</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-sm">CEP de origem (loja)</Label>
+            <Input
+              value={config.originZip}
+              onChange={(e) => onChange({ originZip: e.target.value })}
+              placeholder="Ex.: 98400-000"
+              disabled={disabled}
+            />
+            {config.enabled && config.originZip.trim().length === 0 && (
+              <p className="text-[11px] text-amber-600 dark:text-amber-300">
+                <Icon icon="mdi:alert-outline" className="mr-1 inline size-3" />
+                Informe o CEP de origem — sem ele a cotação cai direto no fallback por região.
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-sm">Caixa padrão (cm)</Label>
+          <div className="grid grid-cols-3 gap-2">
+            {(["heightCm", "widthCm", "lengthCm"] as const).map((dim) => (
+              <Input
+                key={dim}
+                type="number"
+                min={1}
+                step={1}
+                value={config.defaultBox[dim]}
+                onChange={(e) =>
+                  onChange({
+                    defaultBox: {
+                      ...config.defaultBox,
+                      [dim]: Math.max(1, Number(e.target.value) || 0),
+                    },
+                  })
+                }
+                disabled={disabled}
+                aria-label={
+                  dim === "heightCm" ? "Altura (cm)" : dim === "widthCm" ? "Largura (cm)" : "Comprimento (cm)"
+                }
+                placeholder={dim === "heightCm" ? "Altura" : dim === "widthCm" ? "Largura" : "Compr."}
+              />
+            ))}
+          </div>
+          <p className="text-[11px] text-muted-foreground">Altura · Largura · Comprimento</p>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-sm">Serviços habilitados</Label>
+          <div className="flex flex-wrap gap-2">
+            {ME_SERVICE_OPTIONS.map((svc) => {
+              const active = config.enabledServices.includes(svc.id);
+              return (
+                <button
+                  key={svc.id}
+                  type="button"
+                  onClick={() => !disabled && toggleService(svc.id)}
+                  disabled={disabled}
+                  className={`rounded-full border px-3 py-1 text-xs transition ${
+                    active
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:border-primary/40"
+                  } ${disabled ? "cursor-not-allowed opacity-70" : ""}`}
+                  aria-pressed={active}
+                >
+                  {svc.label}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Vazio = todos os serviços retornados pela cotação.
           </p>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label className="text-sm">Markup</Label>
+            <div className="flex gap-2">
+              <Select
+                value={config.markup.type}
+                onValueChange={(v) =>
+                  onChange({ markup: { ...config.markup, type: v as "percent" | "fixed" } })
+                }
+                disabled={disabled}
+              >
+                <SelectTrigger className="w-28">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="percent">%</SelectItem>
+                  <SelectItem value="fixed">R$</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input
+                type="number"
+                min={0}
+                step={config.markup.type === "percent" ? 1 : 0.5}
+                value={config.markup.value}
+                onChange={(e) =>
+                  onChange({
+                    markup: { ...config.markup, value: Math.max(0, Number(e.target.value) || 0) },
+                  })
+                }
+                disabled={disabled}
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground">0 = sem markup.</p>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-sm">Frete grátis acima de (R$)</Label>
+            <Input
+              type="number"
+              min={0}
+              step={10}
+              value={config.freeAboveSubtotal ?? ""}
+              onChange={(e) => {
+                const raw = e.target.value;
+                onChange({
+                  freeAboveSubtotal: raw === "" ? undefined : Math.max(0, Number(raw) || 0),
+                });
+              }}
+              placeholder="Sem frete grátis"
+              disabled={disabled}
+            />
+            <p className="text-[11px] text-muted-foreground">Vazio = nunca zera o frete.</p>
+          </div>
         </div>
       </CardContent>
     </Card>

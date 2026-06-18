@@ -9,6 +9,7 @@ import type {
   IQuote,
   IQuoteItem,
   IPart,
+  IShippingQuoteSnapshot,
   IVehicle,
   IVehicleModelKit,
   QuotePaymentMethod,
@@ -46,6 +47,7 @@ import { recordAuditLogSync } from "@/providers/data";
 import { readCurrentUserSync } from "@/features/auth/guards";
 import { usePartsIndex } from "../../hooks/usePartsIndex";
 import { useQuoteDraft } from "../../hooks/useQuoteDraft";
+import { useShippingQuote } from "../../hooks/useShippingQuote";
 import { quoteLayoutClasses } from "../../utils/layoutClasses";
 import { useQuoteEditorPrefs } from "../../hooks/useQuoteEditorPrefs";
 import { QuoteActionBar } from "./layout/QuoteActionBar";
@@ -108,6 +110,13 @@ export function QuoteEditor() {
   const [discountInput, setDiscountInput] = useState<string>("0");
   const [discountReason, setDiscountReason] = useState("");
   const [shipping, setShipping] = useState<number>(0);
+  // Shipping quote control (Melhor Envio Fase A):
+  // - `shippingManual` true once the seller types a value → auto-quote stops overriding.
+  // - `selectedServiceId` keeps the chosen carrier across re-quotes.
+  // - `shippingSnapshot` is persisted on the quote.
+  const [shippingManual, setShippingManual] = useState(false);
+  const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null);
+  const [shippingSnapshot, setShippingSnapshot] = useState<IShippingQuoteSnapshot | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<QuotePaymentMethod>("pix");
   const [paymentTerms, setPaymentTerms] = useState("à vista");
   const [validUntil, setValidUntil] = useState(() =>
@@ -156,6 +165,68 @@ export function QuoteEditor() {
     thresholdPct,
   );
   const justificationMissing = needsJustification && discountReason.trim().length === 0;
+
+  // --- Automatic shipping quote (Melhor Envio Fase A) ---
+  const meEnabled = Boolean(settings?.shipping?.melhorEnvio?.enabled);
+  const autoShipping = useShippingQuote({
+    customer,
+    config: settings?.shipping,
+    totalWeightKg: aggregates.totalWeightKg,
+    subtotal: totals.subtotal,
+  });
+  const quoteResult = autoShipping.result;
+
+  // Option currently applied: the seller's pick, else the cheapest.
+  const effectiveOption = useMemo(() => {
+    if (!quoteResult || quoteResult.source !== "melhor_envio") return undefined;
+    if (selectedServiceId != null) {
+      return (
+        quoteResult.options.find((o) => o.serviceId === selectedServiceId) ?? quoteResult.selected
+      );
+    }
+    return quoteResult.selected;
+  }, [quoteResult, selectedServiceId]);
+
+  // Apply the auto quote unless the seller typed a manual value.
+  useEffect(() => {
+    if (!quoteResult || shippingManual) return;
+    let value: number;
+    let snapshot: IShippingQuoteSnapshot;
+    const quotedAt = quoteResult.quotedAt ?? new Date().toISOString();
+    if (quoteResult.source === "melhor_envio") {
+      value = quoteResult.freeShippingApplied
+        ? 0
+        : (effectiveOption?.finalPrice ?? quoteResult.value);
+      snapshot = {
+        source: quoteResult.source,
+        serviceId: effectiveOption?.serviceId,
+        serviceName: effectiveOption?.serviceName,
+        companyName: effectiveOption?.companyName,
+        price: value,
+        basePrice: effectiveOption?.basePrice,
+        freeShippingApplied: quoteResult.freeShippingApplied,
+        deliveryDays: effectiveOption?.deliveryDays,
+        quotedAt,
+      };
+    } else {
+      value = quoteResult.value;
+      snapshot = { source: quoteResult.source, price: value, quotedAt };
+    }
+    setShipping(value);
+    setShippingSnapshot(snapshot);
+  }, [quoteResult, effectiveOption, shippingManual]);
+
+  const handleManualShipping = (value: number) => {
+    setShippingManual(true);
+    setSelectedServiceId(null);
+    setShipping(value);
+    setShippingSnapshot(null);
+  };
+
+  const handleSelectShippingOption = (serviceId: number) => {
+    setShippingManual(false);
+    setSelectedServiceId(serviceId);
+  };
 
   // --- Vehicles (all of them) for item search hints ---
   const vehiclesQuery = useQuery({
@@ -297,6 +368,14 @@ export function QuoteEditor() {
 
   // --- Shipping ---
   const handleCalcShipping = () => {
+    // Melhor Envio on → re-quote (clears manual override + carrier pick).
+    if (meEnabled) {
+      setShippingManual(false);
+      setSelectedServiceId(null);
+      autoShipping.refetch();
+      return;
+    }
+    // Otherwise keep the PRD-033 manual region calculation.
     if (!customer?.address) {
       toast.error("Selecione um cliente com endereço para calcular o frete.");
       return;
@@ -346,6 +425,7 @@ export function QuoteEditor() {
         paymentMethod,
         paymentTerms,
         deliveryAddress: customer.address,
+        ...(shippingSnapshot ? { shippingQuote: shippingSnapshot } : {}),
         validUntil: new Date(`${validUntil}T23:59:59`).toISOString(),
         status,
         origin: "vendedor",
@@ -408,6 +488,7 @@ export function QuoteEditor() {
                 setItems(draftOffer.items);
                 setDiscountInput(draftOffer.discountInput);
                 setShipping(draftOffer.shipping);
+                setShippingManual(true);
                 setPaymentMethod(draftOffer.paymentMethod as QuotePaymentMethod);
                 setPaymentTerms(draftOffer.paymentTerms);
                 setNotes(draftOffer.notes);
@@ -567,7 +648,7 @@ export function QuoteEditor() {
             discountPct={discountPct}
             thresholdPct={thresholdPct}
             shipping={shipping}
-            onShipping={setShipping}
+            onShipping={handleManualShipping}
             onCalcShipping={handleCalcShipping}
             discountTotal={totals.discount}
             shippingTotal={totals.shipping}
@@ -580,6 +661,19 @@ export function QuoteEditor() {
             totalMargin={aggregates.totalMargin}
             marginPct={aggregates.marginPct}
             showMargin={isManagerOrOwner}
+            quote={
+              meEnabled
+                ? {
+                    enabled: true,
+                    loading: autoShipping.loading,
+                    source: quoteResult?.source,
+                    options: quoteResult?.source === "melhor_envio" ? quoteResult.options : [],
+                    selectedServiceId: effectiveOption?.serviceId ?? null,
+                    freeShippingApplied: quoteResult?.freeShippingApplied,
+                    onSelectOption: handleSelectShippingOption,
+                  }
+                : undefined
+            }
           />
         </div>
       </div>

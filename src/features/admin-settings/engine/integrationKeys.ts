@@ -167,6 +167,38 @@ export function buildIntegrationKeyCatalog(accounts: AccountForCatalog[]): IInte
         },
       ],
     },
+    {
+      id: "melhor-envio",
+      title: "Frete — Melhor Envio",
+      description: "App OAuth para a cotação automática de fretes (client_id/secret + redirect).",
+      icon: "mdi:truck-outline",
+      keys: [
+        {
+          name: "MELHOR_ENVIO_CLIENT_ID",
+          label: "Client ID",
+          kind: "config",
+          help: "Gerado em app.melhorenvio.com.br → Integrações → Área de desenvolvedor.",
+        },
+        {
+          name: "MELHOR_ENVIO_CLIENT_SECRET",
+          label: "Client secret",
+          kind: "secret",
+          help: "Segredo do app OAuth do Melhor Envio.",
+        },
+        {
+          name: "MELHOR_ENVIO_REDIRECT_URI",
+          label: "Redirect URI",
+          kind: "config",
+          help: "Idêntica à cadastrada no painel do Melhor Envio (ex.: https://crm.gallobasediesel.com.br/app/configuracoes/frete/callback).",
+        },
+        {
+          name: "MELHOR_ENVIO_USER_AGENT",
+          label: "User-Agent (contato)",
+          kind: "config",
+          help: "Ex.: GALLO BASE DIESEL (contato@dominio) — exigido pela API do Melhor Envio.",
+        },
+      ],
+    },
   ];
 
   for (const account of accounts) {

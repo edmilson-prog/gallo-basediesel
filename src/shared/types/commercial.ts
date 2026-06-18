@@ -1,6 +1,7 @@
 import type { ICustomerAddress } from "./customer";
 import type { Division, ID, ISO8601, Money } from "./common";
 import type { PartCategory } from "./part-identification";
+import type { IShippingQuoteSnapshot } from "./shipping";
 
 /** Lifecycle status of a quote. */
 export type QuoteStatus =
@@ -75,6 +76,8 @@ export interface IQuote {
   paymentTerms?: string;
   /** Delivery address override — defaults to the customer's registered address. */
   deliveryAddress?: ICustomerAddress;
+  /** Snapshot of the resolved shipping quote (Melhor Envio / region rules). */
+  shippingQuote?: IShippingQuoteSnapshot;
   validUntil: ISO8601;
   status: QuoteStatus;
   origin: QuoteOrigin;
@@ -223,6 +226,8 @@ export interface IOrder {
   fulfillmentStatus: OrderFulfillmentStatus;
   /** Delivery address (snapshot at creation; editable until shipped). PRD-032. */
   deliveryAddress?: ICustomerAddress;
+  /** Snapshot of the resolved shipping quote, carried over from the quote. */
+  shippingQuote?: IShippingQuoteSnapshot;
   /** Carrier / transportadora — free text on MVP. PRD-032. */
   carrier?: string;
   /** Tracking code stored as text on MVP (no integration). PRD-032. */

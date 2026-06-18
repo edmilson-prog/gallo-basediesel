@@ -181,6 +181,7 @@ import { Route as AppConfiguracoesStorefrontCategoriasRouteImport } from './rout
 import { Route as AppConfiguracoesSdrTemplatesRouteImport } from './routes/app.configuracoes.sdr.templates'
 import { Route as AppConfiguracoesSdrSimuladorRouteImport } from './routes/app.configuracoes.sdr.simulador'
 import { Route as AppConfiguracoesSdrOrcamentoRouteImport } from './routes/app.configuracoes.sdr.orcamento'
+import { Route as AppConfiguracoesFreteCallbackRouteImport } from './routes/app.configuracoes.frete.callback'
 import { Route as AppConfiguracoesAtendimentoTagsRouteImport } from './routes/app.configuracoes.atendimento.tags'
 import { Route as AppConfiguracoesAtendimentoPipelineRouteImport } from './routes/app.configuracoes.atendimento.pipeline'
 import { Route as AppConfiguracoesAtendimentoMotivosPerdaRouteImport } from './routes/app.configuracoes.atendimento.motivos-perda'
@@ -1091,6 +1092,12 @@ const AppConfiguracoesSdrOrcamentoRoute =
     path: '/configuracoes/sdr/orcamento',
     getParentRoute: () => AppRoute,
   } as any)
+const AppConfiguracoesFreteCallbackRoute =
+  AppConfiguracoesFreteCallbackRouteImport.update({
+    id: '/callback',
+    path: '/callback',
+    getParentRoute: () => AppConfiguracoesFreteRoute,
+  } as any)
 const AppConfiguracoesAtendimentoTagsRoute =
   AppConfiguracoesAtendimentoTagsRouteImport.update({
     id: '/configuracoes/atendimento/tags',
@@ -1212,7 +1219,7 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/estoque-analise': typeof AppConfiguracoesEstoqueAnaliseRoute
   '/app/configuracoes/financeiro': typeof AppConfiguracoesFinanceiroRoute
   '/app/configuracoes/forecast': typeof AppConfiguracoesForecastRoute
-  '/app/configuracoes/frete': typeof AppConfiguracoesFreteRoute
+  '/app/configuracoes/frete': typeof AppConfiguracoesFreteRouteWithChildren
   '/app/configuracoes/gamificacao': typeof AppConfiguracoesGamificacaoRoute
   '/app/configuracoes/ia': typeof AppConfiguracoesIaRoute
   '/app/configuracoes/insights': typeof AppConfiguracoesInsightsRoute
@@ -1290,6 +1297,7 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/atendimento/motivos-perda': typeof AppConfiguracoesAtendimentoMotivosPerdaRoute
   '/app/configuracoes/atendimento/pipeline': typeof AppConfiguracoesAtendimentoPipelineRoute
   '/app/configuracoes/atendimento/tags': typeof AppConfiguracoesAtendimentoTagsRoute
+  '/app/configuracoes/frete/callback': typeof AppConfiguracoesFreteCallbackRoute
   '/app/configuracoes/sdr/orcamento': typeof AppConfiguracoesSdrOrcamentoRoute
   '/app/configuracoes/sdr/simulador': typeof AppConfiguracoesSdrSimuladorRoute
   '/app/configuracoes/sdr/templates': typeof AppConfiguracoesSdrTemplatesRoute
@@ -1377,7 +1385,7 @@ export interface FileRoutesByTo {
   '/app/configuracoes/estoque-analise': typeof AppConfiguracoesEstoqueAnaliseRoute
   '/app/configuracoes/financeiro': typeof AppConfiguracoesFinanceiroRoute
   '/app/configuracoes/forecast': typeof AppConfiguracoesForecastRoute
-  '/app/configuracoes/frete': typeof AppConfiguracoesFreteRoute
+  '/app/configuracoes/frete': typeof AppConfiguracoesFreteRouteWithChildren
   '/app/configuracoes/gamificacao': typeof AppConfiguracoesGamificacaoRoute
   '/app/configuracoes/ia': typeof AppConfiguracoesIaRoute
   '/app/configuracoes/insights': typeof AppConfiguracoesInsightsRoute
@@ -1448,6 +1456,7 @@ export interface FileRoutesByTo {
   '/app/configuracoes/atendimento/motivos-perda': typeof AppConfiguracoesAtendimentoMotivosPerdaRoute
   '/app/configuracoes/atendimento/pipeline': typeof AppConfiguracoesAtendimentoPipelineRoute
   '/app/configuracoes/atendimento/tags': typeof AppConfiguracoesAtendimentoTagsRoute
+  '/app/configuracoes/frete/callback': typeof AppConfiguracoesFreteCallbackRoute
   '/app/configuracoes/sdr/orcamento': typeof AppConfiguracoesSdrOrcamentoRoute
   '/app/configuracoes/sdr/simulador': typeof AppConfiguracoesSdrSimuladorRoute
   '/app/configuracoes/sdr/templates': typeof AppConfiguracoesSdrTemplatesRoute
@@ -1553,7 +1562,7 @@ export interface FileRoutesById {
   '/app/configuracoes/estoque-analise': typeof AppConfiguracoesEstoqueAnaliseRoute
   '/app/configuracoes/financeiro': typeof AppConfiguracoesFinanceiroRoute
   '/app/configuracoes/forecast': typeof AppConfiguracoesForecastRoute
-  '/app/configuracoes/frete': typeof AppConfiguracoesFreteRoute
+  '/app/configuracoes/frete': typeof AppConfiguracoesFreteRouteWithChildren
   '/app/configuracoes/gamificacao': typeof AppConfiguracoesGamificacaoRoute
   '/app/configuracoes/ia': typeof AppConfiguracoesIaRoute
   '/app/configuracoes/insights': typeof AppConfiguracoesInsightsRoute
@@ -1631,6 +1640,7 @@ export interface FileRoutesById {
   '/app/configuracoes/atendimento/motivos-perda': typeof AppConfiguracoesAtendimentoMotivosPerdaRoute
   '/app/configuracoes/atendimento/pipeline': typeof AppConfiguracoesAtendimentoPipelineRoute
   '/app/configuracoes/atendimento/tags': typeof AppConfiguracoesAtendimentoTagsRoute
+  '/app/configuracoes/frete/callback': typeof AppConfiguracoesFreteCallbackRoute
   '/app/configuracoes/sdr/orcamento': typeof AppConfiguracoesSdrOrcamentoRoute
   '/app/configuracoes/sdr/simulador': typeof AppConfiguracoesSdrSimuladorRoute
   '/app/configuracoes/sdr/templates': typeof AppConfiguracoesSdrTemplatesRoute
@@ -1815,6 +1825,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/atendimento/motivos-perda'
     | '/app/configuracoes/atendimento/pipeline'
     | '/app/configuracoes/atendimento/tags'
+    | '/app/configuracoes/frete/callback'
     | '/app/configuracoes/sdr/orcamento'
     | '/app/configuracoes/sdr/simulador'
     | '/app/configuracoes/sdr/templates'
@@ -1973,6 +1984,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/atendimento/motivos-perda'
     | '/app/configuracoes/atendimento/pipeline'
     | '/app/configuracoes/atendimento/tags'
+    | '/app/configuracoes/frete/callback'
     | '/app/configuracoes/sdr/orcamento'
     | '/app/configuracoes/sdr/simulador'
     | '/app/configuracoes/sdr/templates'
@@ -2155,6 +2167,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/atendimento/motivos-perda'
     | '/app/configuracoes/atendimento/pipeline'
     | '/app/configuracoes/atendimento/tags'
+    | '/app/configuracoes/frete/callback'
     | '/app/configuracoes/sdr/orcamento'
     | '/app/configuracoes/sdr/simulador'
     | '/app/configuracoes/sdr/templates'
@@ -3404,6 +3417,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesSdrOrcamentoRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/configuracoes/frete/callback': {
+      id: '/app/configuracoes/frete/callback'
+      path: '/callback'
+      fullPath: '/app/configuracoes/frete/callback'
+      preLoaderRoute: typeof AppConfiguracoesFreteCallbackRouteImport
+      parentRoute: typeof AppConfiguracoesFreteRoute
+    }
     '/app/configuracoes/atendimento/tags': {
       id: '/app/configuracoes/atendimento/tags'
       path: '/configuracoes/atendimento/tags'
@@ -3610,6 +3630,19 @@ const AppVeiculosRouteWithChildren = AppVeiculosRoute._addFileChildren(
   AppVeiculosRouteChildren,
 )
 
+interface AppConfiguracoesFreteRouteChildren {
+  AppConfiguracoesFreteCallbackRoute: typeof AppConfiguracoesFreteCallbackRoute
+}
+
+const AppConfiguracoesFreteRouteChildren: AppConfiguracoesFreteRouteChildren = {
+  AppConfiguracoesFreteCallbackRoute: AppConfiguracoesFreteCallbackRoute,
+}
+
+const AppConfiguracoesFreteRouteWithChildren =
+  AppConfiguracoesFreteRoute._addFileChildren(
+    AppConfiguracoesFreteRouteChildren,
+  )
+
 interface AppGestaoAbcRouteChildren {
   AppGestaoAbcClassRoute: typeof AppGestaoAbcClassRoute
 }
@@ -3756,7 +3789,7 @@ interface AppRouteChildren {
   AppConfiguracoesEstoqueAnaliseRoute: typeof AppConfiguracoesEstoqueAnaliseRoute
   AppConfiguracoesFinanceiroRoute: typeof AppConfiguracoesFinanceiroRoute
   AppConfiguracoesForecastRoute: typeof AppConfiguracoesForecastRoute
-  AppConfiguracoesFreteRoute: typeof AppConfiguracoesFreteRoute
+  AppConfiguracoesFreteRoute: typeof AppConfiguracoesFreteRouteWithChildren
   AppConfiguracoesGamificacaoRoute: typeof AppConfiguracoesGamificacaoRoute
   AppConfiguracoesIaRoute: typeof AppConfiguracoesIaRoute
   AppConfiguracoesInsightsRoute: typeof AppConfiguracoesInsightsRoute
@@ -3837,7 +3870,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesEstoqueAnaliseRoute: AppConfiguracoesEstoqueAnaliseRoute,
   AppConfiguracoesFinanceiroRoute: AppConfiguracoesFinanceiroRoute,
   AppConfiguracoesForecastRoute: AppConfiguracoesForecastRoute,
-  AppConfiguracoesFreteRoute: AppConfiguracoesFreteRoute,
+  AppConfiguracoesFreteRoute: AppConfiguracoesFreteRouteWithChildren,
   AppConfiguracoesGamificacaoRoute: AppConfiguracoesGamificacaoRoute,
   AppConfiguracoesIaRoute: AppConfiguracoesIaRoute,
   AppConfiguracoesInsightsRoute: AppConfiguracoesInsightsRoute,

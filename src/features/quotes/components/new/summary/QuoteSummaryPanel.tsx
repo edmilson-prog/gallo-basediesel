@@ -3,8 +3,108 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { IShippingQuoteOption, ShippingQuoteSource } from "@/shared/types";
 
 const moneyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+/** Shipping-quote UI state passed down from the editor (Melhor Envio Fase A). */
+export interface IShippingQuoteUi {
+  /** Whether the Melhor Envio integration is enabled for this store. */
+  enabled: boolean;
+  loading: boolean;
+  source?: ShippingQuoteSource;
+  options: IShippingQuoteOption[];
+  /** Service id currently applied (controls the option select). */
+  selectedServiceId?: number | null;
+  freeShippingApplied?: boolean;
+  onSelectOption: (serviceId: number) => void;
+}
+
+const SOURCE_META: Record<
+  ShippingQuoteSource,
+  { label: string; icon: string; className: string }
+> = {
+  melhor_envio: {
+    label: "Melhor Envio",
+    icon: "mdi:truck-fast-outline",
+    className: "text-primary",
+  },
+  region_rules: {
+    label: "Regra regional",
+    icon: "mdi:map-marker-radius-outline",
+    className: "text-muted-foreground",
+  },
+  to_negotiate: {
+    label: "A combinar",
+    icon: "mdi:handshake-outline",
+    className: "text-amber-600 dark:text-amber-300",
+  },
+};
+
+/**
+ * Source badge + carrier-option switcher rendered below the "Frete (R$)" input.
+ * Hidden entirely when the integration is off (PRD-033 manual mode).
+ */
+function ShippingQuoteInfo({ quote }: { quote?: IShippingQuoteUi }) {
+  if (!quote?.enabled) return null;
+
+  if (quote.loading) {
+    return (
+      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Icon icon="mdi:loading" size={12} className="animate-spin" />
+        Cotando frete…
+      </p>
+    );
+  }
+  if (!quote.source) return null;
+
+  const meta = SOURCE_META[quote.source];
+  const selected =
+    quote.selectedServiceId != null
+      ? String(quote.selectedServiceId)
+      : quote.options[0]
+        ? String(quote.options[0].serviceId)
+        : "";
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+        <span className={`inline-flex items-center gap-1 ${meta.className}`}>
+          <Icon icon={meta.icon} size={13} />
+          {meta.label}
+        </span>
+        {quote.freeShippingApplied && (
+          <span className="inline-flex items-center gap-1 text-severity-success">
+            <Icon icon="mdi:gift-outline" size={13} />
+            Frete grátis aplicado
+          </span>
+        )}
+      </div>
+      {quote.source === "melhor_envio" && quote.options.length > 0 && (
+        <Select value={selected} onValueChange={(v) => quote.onSelectOption(Number(v))}>
+          <SelectTrigger className="h-8 text-xs" aria-label="Escolher transportadora">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {quote.options.map((option) => (
+              <SelectItem key={option.serviceId} value={String(option.serviceId)}>
+                {option.serviceName} · {option.companyName} · {option.deliveryDays} d ·{" "}
+                {moneyFormatter.format(option.finalPrice)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+    </div>
+  );
+}
 
 export interface IQuoteSummaryPanelProps {
   itemCount: number;
@@ -33,6 +133,8 @@ export interface IQuoteSummaryPanelProps {
   marginPct: number;
   /** Whether to surface margin figures (Owner/Gestor only). */
   showMargin: boolean;
+  /** Automatic shipping-quote state (Melhor Envio Fase A). Absent = manual only. */
+  quote?: IShippingQuoteUi;
 }
 
 function ApprovalBlock({
@@ -155,6 +257,7 @@ export function QuoteSummaryPanel(props: IQuoteSummaryPanelProps) {
             </span>
           </div>
         </div>
+        <ShippingQuoteInfo quote={props.quote} />
       </div>
     );
   }
@@ -197,6 +300,9 @@ export function QuoteSummaryPanel(props: IQuoteSummaryPanelProps) {
             <Icon icon="mdi:truck-fast-outline" size={14} />
             Calcular
           </Button>
+        </div>
+        <div className="mt-1.5">
+          <ShippingQuoteInfo quote={props.quote} />
         </div>
       </div>
 
