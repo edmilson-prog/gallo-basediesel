@@ -90,9 +90,6 @@ export function ConversationPage() {
   // SessionBanner CTA → template picker bridge (PRD-117): each click bumps the
   // counter and the MessageInput effect opens its dialog.
   const [templateSignal, setTemplateSignal] = useState(0);
-  // Ready reply for the strip variant — reuses the boleto/NF heuristic from buildAiSuggestions
-  const stripReply =
-    copilot.placement === "strip" ? "Te envio o boleto e a NF ainda hoje." : undefined;
   const ficheButtonClick = useFicheButtonHandler({
     customerId: detail.conversation?.customerId ?? null,
     toggle: fiche.toggle,
@@ -188,7 +185,11 @@ export function ConversationPage() {
               />
 
               {copilot.placement === "card" && conversation.customerId && !copilot.error && (
-                <CopilotCard panel={copilot} />
+                <CopilotCard
+                  panel={copilot}
+                  conversationId={conversation.id}
+                  onInsertReply={setDraft}
+                />
               )}
 
               <div className="min-h-0 flex-1">
@@ -202,7 +203,11 @@ export function ConversationPage() {
               />
 
               {copilot.placement === "strip" && conversation.customerId && !copilot.error && (
-                <CopilotStrip panel={copilot} reply={stripReply} onInsertReply={setDraft} />
+                <CopilotStrip
+                  panel={copilot}
+                  conversationId={conversation.id}
+                  onInsertReply={setDraft}
+                />
               )}
 
               <ConversationRunners
@@ -233,7 +238,11 @@ export function ConversationPage() {
                 onOpenChange={fiche.setOpen}
                 copilotTab={
                   copilot.placement === "tab" && !copilot.error ? (
-                    <CopilotFicheTab panel={copilot} />
+                    <CopilotFicheTab
+                      panel={copilot}
+                      conversationId={conversation.id}
+                      onInsertReply={setDraft}
+                    />
                   ) : undefined
                 }
               />

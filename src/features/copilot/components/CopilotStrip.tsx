@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
+import type { ID } from "@/shared/types";
 import type { ICopilotPanelState } from "../hooks/useCopilotPanel";
 import { COPILOT_STRINGS } from "../i18n/pt-BR";
 import { CopilotHeader } from "./CopilotHeader";
@@ -10,8 +11,7 @@ import { CopilotReply } from "./CopilotReply";
 
 export interface ICopilotStripProps {
   panel: ICopilotPanelState;
-  /** Texto da resposta pronta (vem do composer, ex.: buildAiSuggestions[0]). */
-  reply?: string;
+  conversationId: ID;
   onInsertReply: (text: string) => void;
 }
 
@@ -27,7 +27,7 @@ const KIND_COLOR = {
   opportunity: "text-success",
 } as const;
 
-export function CopilotStrip({ panel, reply, onInsertReply }: ICopilotStripProps) {
+export function CopilotStrip({ panel, conversationId, onInsertReply }: ICopilotStripProps) {
   const { briefing, summary, suggestions, loading, dismiss } = panel;
   // Sempre inicia fechado; abre apenas por ação do usuário (sem auto-expand).
   const [expanded, setExpanded] = useState(false);
@@ -114,7 +114,7 @@ export function CopilotStrip({ panel, reply, onInsertReply }: ICopilotStripProps
           ) : (
             <p className="mt-3 text-sm text-muted-foreground">{COPILOT_STRINGS.empty}</p>
           )}
-          {reply && <CopilotReply reply={reply} onInsert={onInsertReply} />}
+          <CopilotReply conversationId={conversationId} onInsert={onInsertReply} />
         </div>
       )}
     </section>

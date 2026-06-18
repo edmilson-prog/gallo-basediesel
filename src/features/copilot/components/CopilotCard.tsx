@@ -1,10 +1,20 @@
 import { useState } from "react";
 import { Icon } from "@/components/Icon";
+import type { ID } from "@/shared/types";
 import type { ICopilotPanelState } from "../hooks/useCopilotPanel";
 import { COPILOT_STRINGS } from "../i18n/pt-BR";
 import { CopilotSuggestionItem } from "./CopilotSuggestionItem";
+import { CopilotReply } from "./CopilotReply";
 
-export function CopilotCard({ panel }: { panel: ICopilotPanelState }) {
+export function CopilotCard({
+  panel,
+  conversationId,
+  onInsertReply,
+}: {
+  panel: ICopilotPanelState;
+  conversationId: ID;
+  onInsertReply: (text: string) => void;
+}) {
   const { suggestions, dismiss, loading } = panel;
   // Sempre inicia fechado; abre apenas por ação do usuário.
   const [open, setOpen] = useState(false);
@@ -39,12 +49,17 @@ export function CopilotCard({ panel }: { panel: ICopilotPanelState }) {
           className="text-muted-foreground"
         />
       </button>
-      {open && suggestions.length > 0 && (
-        <ul className="flex flex-col gap-2.5 px-3.5 pb-3.5">
-          {suggestions.map((s) => (
-            <CopilotSuggestionItem key={s.id} suggestion={s} onDismiss={dismiss} />
-          ))}
-        </ul>
+      {open && (
+        <div className="px-3.5 pb-3.5">
+          {suggestions.length > 0 && (
+            <ul className="flex flex-col gap-2.5">
+              {suggestions.map((s) => (
+                <CopilotSuggestionItem key={s.id} suggestion={s} onDismiss={dismiss} />
+              ))}
+            </ul>
+          )}
+          <CopilotReply conversationId={conversationId} onInsert={onInsertReply} />
+        </div>
       )}
     </section>
   );
