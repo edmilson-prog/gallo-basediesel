@@ -6,6 +6,16 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.109.0] - 2026-06-19 - Lexicon
+
+### Added
+- Copiloto analítico com NLU por LLM: a pergunta é interpretada pela LLM
+  (escolhe métrica + filtros, inclusive várias métricas → vários cards), e o
+  número segue determinístico (executeQuery). Edge `analytics-resolve` (13ª),
+  gated por `ai_feature_enabled('analytics_copilot')`; fallback para o motor de
+  regras quando a IA está desligada/falha. Nenhum dado financeiro é enviado ao
+  provedor (só a pergunta + o catálogo).
+
 ## [0.108.0] — Quill · 2026-06-18
 
 **Copiloto de vendas agora gera rascunhos de resposta com IA, sob demanda.** O atendente clica em "Gerar resposta com IA" e a plataforma monta o contexto da conversa, chama o provedor LLM configurado pelo Owner e devolve um rascunho editável — disponível nos três posicionamentos do copiloto (faixa, card e aba da ficha). Resumo e sugestões permanecem determinísticos (deferidos para os sub-projetos 2 e 3).
