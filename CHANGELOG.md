@@ -6,6 +6,31 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.109.0] — Mandate · 2026-06-19
+
+**Papéis agora são atribuíveis por usuário — qualquer papel, de sistema ou customizado.** O Owner abre Configurações → Usuários → "Alterar papel" e escolhe entre todos os papéis (os 7 de sistema + os customizados criados no Editor de Papéis), não só os três básicos. O **papel-base** continua governando a RLS (isolamento de dados intacto); um novo vínculo `profiles.role_id` resolve o **conjunto de permissões efetivo** na interface. Fecha o épico Pessoas & Acesso na ponta da atribuição.
+
+### Added
+
+- **Atribuição de papel customizado** — `ChangeRoleDialog` lista todos os papéis atribuíveis (sistema + customizados da loja; Owner e papéis-base de cliente ficam de fora). A sessão passa a carregar `roleKey` (= `profiles.role_id` ou o slug do papel-base) e `hasPermission` resolve por ele, com **fallback ao papel-base** (cobre a janela de hidratação e papéis excluídos). **SDR e Financeiro** também passaram a ser atribuíveis (antes só Vendedor interno/externo/Gestor).
+- **Coluna `profiles.role_id`** (FK `roles.id`, `ON DELETE SET NULL`) — aponta o papel efetivo; `NULL` = roda no papel-base (comportamento anterior). Migration **aditiva**, sem mudança de RLS. Papéis de sistema gravam `NULL`; só os customizados fixam o `role_id`.
+- **RPC `role_assignment_count`** — contagem real de usuários por papel, alimentando o guard de exclusão de papel em uso no Editor de Papéis.
+
+### Changed
+
+- **Edge `set-seller-role`** — o contrato passou a receber `roleId` (um papel do catálogo). A função deriva o papel-base, grava `profiles.role` (a base, para a RLS) e fixa `profiles.role_id` (NULL para papéis de sistema). `seller_access_info` passou a devolver `role_id`, e `_shared/auth.ts` expõe o `seller_id` do chamador.
+
+### Fixed
+
+- **Auditoria de troca de papel não era registrada** — `set-seller-role` gravava `audit_logs.actor_id` com o id do `auth.users` do chamador, que viola o FK para `sellers` e era silenciosamente descartado pela auditoria best-effort. Agora usa o `seller_id` do chamador (e pula a auditoria quando não há seller vinculado).
+- **Inbox exibia "Lead anônimo" de forma intermitente na lista** sob atualização em tempo real — corrida de reatividade resolvida com cache acumulado e guarda de recência das prévias de mensagem.
+
+### Notes
+
+- **Limitação conhecida:** o **menu lateral principal filtra por papel-base** (lista fixa em `navigation.ts`), não pela matriz de permissões — atribuir um papel customizado (ou promover a Gestor) **não altera a visibilidade do menu**. As rotas de Configurações e as checagens em componente usam `hasPermission`; alinhar o menu principal à matriz do Editor de Papéis é trabalho à parte.
+- **Ordem de rollout** (contrato da Edge mudou): migration aplicada → deploy da Edge `set-seller-role` → publicação do front. Migration aditiva, zero-risco.
+- **Débito registrado:** ~7 outras Edge Functions repetem o mesmo padrão de FK de auditoria (`actor_id` = id do `auth.users`) e ficam sem registro; a infra (`profile.seller_id`) já existe para corrigi-las.
+
 ## [0.108.0] — Quill · 2026-06-18
 
 **Copiloto de vendas agora gera rascunhos de resposta com IA, sob demanda.** O atendente clica em "Gerar resposta com IA" e a plataforma monta o contexto da conversa, chama o provedor LLM configurado pelo Owner e devolve um rascunho editável — disponível nos três posicionamentos do copiloto (faixa, card e aba da ficha). Resumo e sugestões permanecem determinísticos (deferidos para os sub-projetos 2 e 3).
