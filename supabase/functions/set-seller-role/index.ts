@@ -1,18 +1,25 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 /**
- * set-seller-role (PRD-107 Fase 3) — changes a seller's platform access role
- * (profiles.role), server-side, with the service_role key.
+ * set-seller-role (PRD-107 Fase 3 + custom role assignment) — assigns a role to
+ * a seller, server-side, with the service_role key.
  *
  * The role drives RLS (is_staff / carteira isolation), so changing it is a
- * privileged action: owner-only. The new role lands in the target's JWT on
- * their next token refresh (the custom access token hook reads profiles.role).
+ * privileged action: owner-only. The caller picks a role from the catalog (a
+ * `roles.id` — system, e.g. "Vendedor"/"SDR", or custom, e.g. "role-<uuid>").
+ * The function resolves that role's `base_role`, writes the matching DB role into
+ * `profiles.role` (so RLS stays governed by the base role) and pins the effective
+ * role into `profiles.role_id` (NULL for system roles — the base role already
+ * resolves them; the custom id only for custom roles). Both land in the target's
+ * session on their next token refresh (the custom access token hook reads
+ * profiles.role).
  *
  * sellers.type is kept in sync for the two seller roles (internal/external);
- * promoting to manager keeps the underlying business type as-is.
+ * other base roles keep the underlying business type as-is.
  *
  * Guards: caller must be the Owner; nobody may change their own role, change an
- * Owner's role, or target a seller outside their store / without access.
+ * Owner's role, assign the Owner role, or target a seller / role outside their
+ * store.
  *
  * Shared lifecycle/auth/error patterns: supabase/functions/_shared (PRD-102).
  */
@@ -22,16 +29,24 @@ import { requireCaller } from "../_shared/auth.ts";
 import { HttpError, json, parseJsonBody } from "../_shared/http.ts";
 import { servePost } from "../_shared/serve.ts";
 
-const ALLOWED_ROLES = ["seller_internal", "seller_external", "manager", "sdr", "financeiro"];
-// profiles.role -> sellers.type. manager/sdr/financeiro are not seller business
-// types (sellers.type is internal|external|representative), so they keep whatever
-// type the seller already had (null = no type change).
-const TYPE_BY_ROLE: Record<string, string | null> = {
+// roles.base_role uses the frontend RoleName vocabulary; profiles.role / RLS use
+// the DB role vocabulary. This is the inverse of the frontend roleMap.ts.
+const DB_ROLE_BY_BASE_ROLE: Record<string, string> = {
+  Owner: "owner",
+  Gestor: "manager",
+  Vendedor: "seller_internal",
+  VendedorExterno: "seller_external",
+  SDR: "sdr",
+  Financeiro: "financeiro",
+  Cliente: "b2c_customer",
+};
+
+// profiles.role -> sellers.type sync. Only the two seller business roles map to a
+// concrete sellers.type (internal|external); everything else keeps the seller's
+// existing type (null = no type change).
+const TYPE_BY_DB_ROLE: Record<string, string | null> = {
   seller_internal: "internal",
   seller_external: "external",
-  manager: null,
-  sdr: null,
-  financeiro: null,
 };
 
 servePost(async (req, { log }) => {
@@ -41,21 +56,36 @@ servePost(async (req, { log }) => {
   // 2) Parse + validate the input.
   const body = await parseJsonBody(req);
   const sellerId = String(body.sellerId ?? "");
-  const role = String(body.role ?? "");
-  if (!sellerId || !role) throw new HttpError(400, "missing sellerId or role");
-  if (!ALLOWED_ROLES.includes(role)) throw new HttpError(400, "invalid role");
+  const roleId = String(body.roleId ?? "");
+  if (!sellerId || !roleId) throw new HttpError(400, "missing sellerId or roleId");
 
-  // 3) Resolve the target seller's access profile (within the caller's store).
+  // 3) Resolve the chosen role (system or custom) from the catalog.
+  const { data: role } = await admin
+    .from("roles")
+    .select("id, base_role, is_system, is_owner_immutable, store_id")
+    .eq("id", roleId)
+    .maybeSingle();
+  if (!role) throw new HttpError(404, "role not found");
+  if (role.is_owner_immutable) throw new HttpError(403, "this role cannot be assigned");
+  if (role.store_id && role.store_id !== profile.store_id) {
+    throw new HttpError(403, "role belongs to another store");
+  }
+
+  const dbRole = DB_ROLE_BY_BASE_ROLE[role.base_role as string];
+  if (!dbRole) throw new HttpError(400, `unsupported base role: ${role.base_role}`);
+  if (dbRole === "owner") throw new HttpError(403, "cannot assign the owner role");
+
+  // 4) Resolve the target seller's access profile (within the caller's store).
   const { data: target } = await admin
     .from("profiles")
-    .select("auth_user_id, role, store_id")
+    .select("auth_user_id, role, role_id, store_id")
     .eq("seller_id", sellerId)
     .maybeSingle();
   if (!target || target.store_id !== profile.store_id) {
     throw new HttpError(404, "seller has no access in your store");
   }
 
-  // 4) Guards: never change your own role, nor an Owner's.
+  // 5) Guards: never change your own role, nor an Owner's.
   if (target.auth_user_id === callerId) {
     throw new HttpError(403, "you cannot change your own role");
   }
@@ -63,14 +93,19 @@ servePost(async (req, { log }) => {
     throw new HttpError(403, "an owner's role cannot be changed");
   }
 
-  // 5) Update the access role.
-  const { error: roleErr } = await admin.from("profiles").update({ role }).eq("seller_id", sellerId);
+  // 6) Update the access role. System roles need no override (the base role
+  // resolves them); only custom roles pin role_id.
+  const nextRoleId = role.is_system ? null : (role.id as string);
+  const { error: roleErr } = await admin
+    .from("profiles")
+    .update({ role: dbRole, role_id: nextRoleId })
+    .eq("seller_id", sellerId);
   if (roleErr) {
     throw new HttpError(400, `could not update role: ${roleErr.message}`);
   }
 
-  // 6) Keep the business type in sync (skipped for manager).
-  const nextType = TYPE_BY_ROLE[role];
+  // 7) Keep the business type in sync for the two seller roles.
+  const nextType = TYPE_BY_DB_ROLE[dbRole];
   if (nextType) {
     const { error: typeErr } = await admin
       .from("sellers")
@@ -81,17 +116,17 @@ servePost(async (req, { log }) => {
     }
   }
 
-  // 7) Audit — best-effort.
+  // 8) Audit — best-effort.
   await bestEffortAudit(admin, {
     store_id: profile.store_id,
     actor_id: callerId,
     action: "seller.role_changed",
     resource: "seller",
     resource_id: sellerId,
-    before: { role: target.role },
-    after: { role },
+    before: { role: target.role, role_id: target.role_id ?? null },
+    after: { role: dbRole, role_id: nextRoleId, assigned_role: roleId },
   });
 
-  log.info("seller role changed", { sellerId, role });
-  return json({ sellerId, role }, 200);
+  log.info("seller role changed", { sellerId, roleId, dbRole });
+  return json({ sellerId, roleId, role: dbRole, roleIdPinned: nextRoleId }, 200);
 });
