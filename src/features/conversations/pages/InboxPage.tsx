@@ -1,22 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import type {
-  ICustomer,
-  ID,
-  ILead,
-  IMessage,
-  IConversation,
-  ISeller,
-  IWhatsAppAccount,
-} from "@/shared/types";
+import type { ID, ISeller, IWhatsAppAccount } from "@/shared/types";
 import { useAuth } from "@/features/auth/useAuth";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { useCurrentStore } from "@/features/multistore";
 import {
   useConversationsProvider,
   useCustomersProvider,
-  useLeadsProvider,
-  useMessagesProvider,
   useSellersProvider,
   useWhatsAppAccountsProvider,
 } from "@/providers/data";
@@ -25,6 +15,7 @@ import { Icon } from "@/components/Icon";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useEscalationsByConversation } from "@/features/sdr-escalation";
 import { useConversationsList } from "../hooks/useConversationsList";
+import { useRelatedEntities } from "../hooks/useRelatedEntities";
 import { useInboxFilters, filtersToListParams } from "../hooks/useInboxFilters";
 import { useRealtimeConversations } from "../hooks/useRealtimeConversations";
 import { useLastSelectedConversation } from "../hooks/useLastSelectedConversation";
@@ -37,82 +28,6 @@ import { QuickActions } from "../components/QuickActions";
 import { SearchInput } from "../components/SearchInput";
 import { NewConversationDialog } from "../components/NewConversationDialog";
 import { INBOX_STRINGS } from "../i18n/pt-BR";
-
-interface IRelatedEntities {
-  customers: Map<ID, ICustomer>;
-  leads: Map<ID, ILead>;
-  lastMessages: Map<ID, IMessage>;
-}
-
-const EMPTY_RELATED: IRelatedEntities = {
-  customers: new Map(),
-  leads: new Map(),
-  lastMessages: new Map(),
-};
-
-function useRelatedEntities(conversations: IConversation[]): IRelatedEntities {
-  const customersProvider = useCustomersProvider();
-  const leadsProvider = useLeadsProvider();
-  const messagesProvider = useMessagesProvider();
-  const [related, setRelated] = useState<IRelatedEntities>(EMPTY_RELATED);
-  const idsKey = useMemo(() => conversations.map((c) => c.id).join(","), [conversations]);
-  useEffect(() => {
-    if (conversations.length === 0) {
-      setRelated(EMPTY_RELATED);
-      return;
-    }
-    let cancelled = false;
-    const customerIds = Array.from(
-      new Set(conversations.map((c) => c.customerId).filter((id): id is ID => Boolean(id))),
-    );
-    const leadIds = Array.from(
-      new Set(conversations.map((c) => c.leadId).filter((id): id is ID => Boolean(id))),
-    );
-
-    const customers = new Map<ID, ICustomer>();
-    const leads = new Map<ID, ILead>();
-    const lastMessages = new Map<ID, IMessage>();
-
-    Promise.all([
-      Promise.all(
-        customerIds.map((id) =>
-          customersProvider
-            .get(id)
-            .then((c) => customers.set(id, c))
-            .catch(() => undefined),
-        ),
-      ),
-      Promise.all(
-        leadIds.map((id) =>
-          leadsProvider
-            .get(id)
-            .then((l) => leads.set(id, l))
-            .catch(() => undefined),
-        ),
-      ),
-      Promise.all(
-        conversations.map((c) =>
-          messagesProvider
-            .list({ conversationId: c.id, page: 1, pageSize: 1, orderDir: "desc" })
-            .then((res) => {
-              if (res.data[0]) lastMessages.set(c.id, res.data[0]);
-            })
-            .catch(() => undefined),
-        ),
-      ),
-    ]).then(() => {
-      if (cancelled) return;
-      setRelated({ customers, leads, lastMessages });
-    });
-
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idsKey]);
-
-  return related;
-}
 
 function useAvailableTags(): string[] {
   const customersProvider = useCustomersProvider();
