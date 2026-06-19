@@ -21,6 +21,13 @@ export interface IStoreUpdateInput {
   activeDivisions?: Division[];
 }
 
+/** Per-store member counts (sellers/customers) for the stores listing. */
+export interface IStoreMemberCounts {
+  storeId: ID;
+  sellersCount: number;
+  customersCount: number;
+}
+
 /**
  * Contract for store (loja) access. The multi-store substrate of the platform.
  *
@@ -37,4 +44,10 @@ export interface IStoresProvider {
   create(input: IStoreCreateInput): Promise<IStore>;
   update(id: ID, patch: IStoreUpdateInput): Promise<IStore>;
   setActive(id: ID, active: boolean): Promise<IStore>;
+  /**
+   * Per-store seller/customer counts. Owner sees all stores; other staff see
+   * only their own store. Backed by the owner-aware `store_member_counts` RPC
+   * (the per-store RLS would otherwise zero out counts for non-active stores).
+   */
+  getMemberCounts(): Promise<IStoreMemberCounts[]>;
 }

@@ -819,6 +819,28 @@ end $$;
 
 reset role;
 
+-- Fail-CLOSED: um JWT sem app_metadata.role NAO pode criar/editar lojas. O gate
+-- usa `current_app_role() is distinct from 'owner'`, tratando role NULL como
+-- nao-owner (a forma `<> 'owner'` deixaria passar: NULL <> 'owner' = NULL).
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-0000000000bb","role":"authenticated","app_metadata":{"store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+do $chk$
+begin
+  begin
+    perform public.create_store(
+      gen_random_uuid(), 'Probe', 'filial', '00.000.000/0001-00', 'Rua',
+      null, array['parts']::text[], '{}'::jsonb
+    );
+    raise exception 'null-role: create_store should be denied (fail-closed)';
+  exception when insufficient_privilege then null; -- esperado (42501)
+  end;
+end $chk$;
+reset role;
+
 select 'ALL RLS REGRESSION TESTS PASSED' as result;
 
 rollback;

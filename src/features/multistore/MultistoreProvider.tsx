@@ -76,6 +76,9 @@ export function MultistoreProvider({ children }: { children: React.ReactNode }) 
   const [allStores, setAllStores] = useState<IStore[]>([]);
   const [currentStoreId, setCurrentStoreIdState] = useState<ID | null>(null);
   const [isHydrating, setIsHydrating] = useState(true);
+  // Whether loadRoster has resolved/rejected at least once. Distinguishes a
+  // still-loading empty roster from a terminal empty roster (load failed).
+  const [rosterLoaded, setRosterLoaded] = useState(false);
 
   // Load the full store roster from the provider. Called on mount and by
   // refreshStores() after a store is created/edited/deactivated (Fase 2 —
@@ -89,6 +92,8 @@ export function MultistoreProvider({ children }: { children: React.ReactNode }) 
       multistoreStore.setAccessibleStores(stores);
     } catch {
       setAllStores([]);
+    } finally {
+      setRosterLoaded(true);
     }
   }, [storesProvider]);
 
@@ -121,7 +126,10 @@ export function MultistoreProvider({ children }: { children: React.ReactNode }) 
       return;
     }
     if (accessibleStores.length === 0) {
-      // Roster may still be loading; keep hydrating flag on.
+      // Empty roster is "still loading" only until loadRoster resolves/rejects
+      // once. After that it's terminal — stop hydrating so consumers degrade
+      // (e.g. StoreSwitcher) instead of showing a skeleton forever on a failed load.
+      if (rosterLoaded) setIsHydrating(false);
       return;
     }
     const accessibleIds = new Set(accessibleStores.map((s) => s.id));
@@ -143,7 +151,7 @@ export function MultistoreProvider({ children }: { children: React.ReactNode }) 
     setCurrentStoreIdState(resolved);
     multistoreStore.setCurrentStoreId(resolved);
     setIsHydrating(false);
-  }, [currentUser, accessibleStores]);
+  }, [currentUser, accessibleStores, rosterLoaded]);
 
   const setCurrentStore = useCallback(
     async (storeId: ID): Promise<void> => {

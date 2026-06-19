@@ -1,16 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import type { ICustomer, ID, ISeller, IStore } from "@/shared/types";
+import type { ID, IStore } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  recordAuditLogSync,
-  useCustomersProvider,
-  useSellersProvider,
-  useStoresProvider,
-} from "@/providers/data";
+import { recordAuditLogSync, useStoresProvider } from "@/providers/data";
 import { Can } from "@/features/rbac/components/Can";
 import { useAuth } from "@/features/auth/useAuth";
 import { StoreBadge } from "../components/StoreBadge";
@@ -129,8 +124,6 @@ function StoreCard({
  */
 export function StoresPage() {
   const storesProvider = useStoresProvider();
-  const sellersProvider = useSellersProvider();
-  const customersProvider = useCustomersProvider();
   const { currentStoreId, refreshStores } = useCurrentStore();
   const { currentUser } = useAuth();
   const [rows, setRows] = useState<IStoreRow[] | null>(null);
@@ -140,27 +133,21 @@ export function StoresPage() {
   });
 
   const load = useCallback(async () => {
-    const stores = await storesProvider.list();
-    const enriched = await Promise.all(
-      stores.map(async (store): Promise<IStoreRow> => {
-        const [sellers, customersResult] = await Promise.all([
-          sellersProvider.list({ storeId: store.id }).catch(() => [] as ISeller[]),
-          customersProvider.list({ storeId: store.id, pageSize: 1 }).catch(() => ({
-            data: [] as ICustomer[],
-            total: 0,
-            page: 1,
-            pageSize: 1,
-          })),
-        ]);
-        return {
-          store,
-          sellersCount: sellers.filter((s) => s.storeId === store.id).length,
-          customersCount: customersResult.total,
-        };
-      }),
+    // One owner-aware RPC for all stores' counts (the per-store RLS would zero
+    // out counts for any store other than the active one), instead of N+1 lists.
+    const [stores, counts] = await Promise.all([
+      storesProvider.list(),
+      storesProvider.getMemberCounts().catch(() => []),
+    ]);
+    const countByStore = new Map(counts.map((c) => [c.storeId, c] as const));
+    setRows(
+      stores.map((store) => ({
+        store,
+        sellersCount: countByStore.get(store.id)?.sellersCount ?? 0,
+        customersCount: countByStore.get(store.id)?.customersCount ?? 0,
+      })),
     );
-    setRows(enriched);
-  }, [storesProvider, sellersProvider, customersProvider]);
+  }, [storesProvider]);
 
   useEffect(() => {
     let cancelled = false;

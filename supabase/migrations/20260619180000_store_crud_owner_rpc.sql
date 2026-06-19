@@ -25,9 +25,27 @@ create policy stores_select on public.stores
   for select to authenticated
   using (id = public.current_store_id() or public.current_app_role() = 'owner');
 
+-- 2b. Guarda interno reutilizado pelas RPCs: o gestor (manager_id) precisa ser
+--     um vendedor ativo DA PRÓPRIA loja. Evita atribuir um seller de outra loja
+--     como gestor (que o webhook usaria para auto-atribuir conversas — quebra de
+--     isolamento). NULL é permitido (loja sem gestor — ex.: filial recém-criada).
+create or replace function public.assert_store_manager(p_store_id uuid, p_manager_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if p_manager_id is null then return; end if;
+  if not exists (
+    select 1 from public.sellers s
+    where s.id = p_manager_id and s.store_id = p_store_id and s.deleted_at is null
+  ) then
+    raise exception 'O gestor deve ser um vendedor ativo desta loja' using errcode = '22023';
+  end if;
+end;
+$$;
+
 -- 3. RPC: criar loja (filial/parceira). Owner-only.
 --    O id é fornecido pelo cliente (crypto.randomUUID) para que settings.storeId
 --    case com o id real da loja — espelha o padrão de createInputToRow do customers.
+--    Gate fail-CLOSED: `is distinct from 'owner'` trata role NULL como não-owner.
 create or replace function public.create_store(
   p_id uuid,
   p_name text,
@@ -45,12 +63,13 @@ as $$
 declare
   v_row public.stores;
 begin
-  if public.current_app_role() <> 'owner' then
+  if public.current_app_role() is distinct from 'owner' then
     raise exception 'Apenas o proprietario pode criar lojas' using errcode = '42501';
   end if;
   if p_type not in ('filial', 'parceira') then
     raise exception 'Tipo de loja invalido para criacao: %', p_type using errcode = '22023';
   end if;
+  perform public.assert_store_manager(p_id, p_manager_id);
   insert into public.stores (id, name, type, cnpj, address, manager_id, active_divisions, settings, is_active, created_at)
   values (p_id, p_name, p_type, p_cnpj, p_address, p_manager_id,
           coalesce(p_active_divisions, array['parts']), p_settings, true, now())
@@ -75,9 +94,10 @@ as $$
 declare
   v_row public.stores;
 begin
-  if public.current_app_role() <> 'owner' then
+  if public.current_app_role() is distinct from 'owner' then
     raise exception 'Apenas o proprietario pode editar lojas' using errcode = '42501';
   end if;
+  perform public.assert_store_manager(p_id, p_manager_id);
   update public.stores set
     name = coalesce(p_name, name),
     cnpj = coalesce(p_cnpj, cnpj),
@@ -94,6 +114,8 @@ end;
 $$;
 
 -- 5. RPC: ativar/desativar loja. Owner-only. Guarda matriz e última ativa.
+--    Advisory lock serializa as chamadas para que o guard "última loja ativa"
+--    não sofra TOCTOU (duas desativações concorrentes não podem zerar as ativas).
 create or replace function public.set_store_active(
   p_id uuid,
   p_active boolean
@@ -106,10 +128,11 @@ declare
   v_row public.stores;
   v_active_count int;
 begin
-  if public.current_app_role() <> 'owner' then
+  if public.current_app_role() is distinct from 'owner' then
     raise exception 'Apenas o proprietario pode ativar/desativar lojas' using errcode = '42501';
   end if;
   if p_active = false then
+    perform pg_advisory_xact_lock(hashtext('public.stores:active_guard'));
     if exists (select 1 from public.stores where id = p_id and type = 'matriz') then
       raise exception 'A matriz nao pode ser desativada' using errcode = '22023';
     end if;
@@ -126,10 +149,31 @@ begin
 end;
 $$;
 
--- 6. Bloquear execução por anon; liberar para authenticated (gate owner é interno).
+-- 6. RPC: contagem de vendedores/clientes por loja (owner-aware).
+--    A RLS de sellers/customers é hard-scoped a current_store_id(), então o
+--    Owner não conseguiria contar membros de outras lojas pela leitura normal.
+--    Esta função SECURITY DEFINER retorna a contagem das lojas que o caller pode
+--    ver (Owner = todas; demais = apenas a própria loja). Resolve a contagem
+--    cross-store da tela de Lojas e elimina o N+1 (uma chamada para todas).
+create or replace function public.store_member_counts()
+returns table(store_id uuid, sellers_count bigint, customers_count bigint)
+language sql
+security definer
+set search_path = public
+as $$
+  select s.id,
+    (select count(*) from public.sellers se where se.store_id = s.id and se.deleted_at is null),
+    (select count(*) from public.customers c where c.store_id = s.id)
+  from public.stores s
+  where public.current_app_role() = 'owner' or s.id = public.current_store_id();
+$$;
+
+-- 7. Bloquear execução por anon; liberar para authenticated (gate owner é interno).
 revoke all on function public.create_store(uuid,text,text,text,text,uuid,text[],jsonb) from anon;
 revoke all on function public.update_store(uuid,text,text,text,uuid,text[]) from anon;
 revoke all on function public.set_store_active(uuid,boolean) from anon;
+revoke all on function public.store_member_counts() from anon;
 grant execute on function public.create_store(uuid,text,text,text,text,uuid,text[],jsonb) to authenticated;
 grant execute on function public.update_store(uuid,text,text,text,uuid,text[]) to authenticated;
 grant execute on function public.set_store_active(uuid,boolean) to authenticated;
+grant execute on function public.store_member_counts() to authenticated;

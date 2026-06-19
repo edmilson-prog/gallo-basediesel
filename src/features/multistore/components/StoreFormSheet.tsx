@@ -69,10 +69,15 @@ export function StoreFormSheet({ store, open, onOpenChange, onSaved }: IStoreFor
   const { currentUser } = useAuth();
   const { currentStoreId, refreshStores } = useCurrentStore();
 
+  // Manager options are scoped to the store being EDITED (not the active store).
+  // A brand-new store has no sellers yet, so the manager field only shows in edit
+  // mode; the manager is assigned afterwards. The RPC also enforces that the
+  // chosen seller belongs to the store (defense in depth).
+  const managerScopeStoreId = store?.id ?? null;
   const sellersQuery = useQuery({
-    queryKey: ["sellers", currentStoreId],
-    queryFn: () => sellersProvider.list({ storeId: currentStoreId ?? undefined }),
-    enabled: open,
+    queryKey: ["sellers", managerScopeStoreId],
+    queryFn: () => sellersProvider.list({ storeId: managerScopeStoreId ?? undefined }),
+    enabled: open && Boolean(managerScopeStoreId),
   });
   const sellers = sellersQuery.data ?? [];
 
@@ -241,37 +246,41 @@ export function StoreFormSheet({ store, open, onOpenChange, onSaved }: IStoreFor
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="managerId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Gestor (opcional)</FormLabel>
-                    <Select
-                      value={field.value ? field.value : NO_MANAGER}
-                      onValueChange={(value) =>
-                        field.onChange(value === NO_MANAGER ? undefined : value)
-                      }
-                      disabled={sellersQuery.isLoading}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Sem gestor" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={NO_MANAGER}>Sem gestor</SelectItem>
-                        {sellers.map((s) => (
-                          <SelectItem key={s.id} value={s.id}>
-                            {s.fullName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Manager only in edit mode: a new store has no sellers yet, and the
+                  manager must belong to the store (enforced by the RPC). */}
+              {isEdit && (
+                <FormField
+                  control={form.control}
+                  name="managerId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Gestor (opcional)</FormLabel>
+                      <Select
+                        value={field.value ? field.value : NO_MANAGER}
+                        onValueChange={(value) =>
+                          field.onChange(value === NO_MANAGER ? undefined : value)
+                        }
+                        disabled={sellersQuery.isLoading}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sem gestor" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value={NO_MANAGER}>Sem gestor</SelectItem>
+                          {sellers.map((s) => (
+                            <SelectItem key={s.id} value={s.id}>
+                              {s.fullName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               <FormField
                 control={form.control}

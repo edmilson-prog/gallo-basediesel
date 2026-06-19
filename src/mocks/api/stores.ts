@@ -1,5 +1,9 @@
 import type { ID, IStore } from "@/shared/types";
-import type { IStoreCreateInput, IStoreUpdateInput } from "@/providers/data/contracts/stores";
+import type {
+  IStoreCreateInput,
+  IStoreMemberCounts,
+  IStoreUpdateInput,
+} from "@/providers/data/contracts/stores";
 import { buildDefaultSettings } from "@/providers/data/engine/buildDefaultSettings";
 import { selectAllStores } from "../store/selectors";
 import { useMockStore } from "../store/mockStore";
@@ -111,5 +115,16 @@ export const storesApi = {
       },
       { payload: { id, active } },
     );
+  },
+
+  getMemberCounts(): Promise<IStoreMemberCounts[]> {
+    return runApi("storesApi", "getMemberCounts", () => {
+      const { sellers, customers } = useMockStore.getState();
+      return selectAllStores().map((s) => ({
+        storeId: s.id,
+        sellersCount: sellers.filter((se) => se.storeId === s.id).length,
+        customersCount: customers.filter((c) => c.storeId === s.id).length,
+      }));
+    });
   },
 };

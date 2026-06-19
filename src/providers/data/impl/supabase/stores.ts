@@ -107,4 +107,19 @@ export const supabaseStoresProvider: IStoresProvider = {
     if (error) throw new Error(`[supabase] stores.setActive(${id}) failed: ${error.message}`);
     return rowToStore(data as StoreRow);
   },
+
+  async getMemberCounts() {
+    const { data, error } = await getSupabaseClient().rpc("store_member_counts");
+    if (error) throw new Error(`[supabase] stores.getMemberCounts failed: ${error.message}`);
+    const rows = (data ?? []) as Array<{
+      store_id: string;
+      sellers_count: number | string;
+      customers_count: number | string;
+    }>;
+    return rows.map((r) => ({
+      storeId: r.store_id,
+      sellersCount: Number(r.sellers_count),
+      customersCount: Number(r.customers_count),
+    }));
+  },
 };

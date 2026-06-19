@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Division } from "@/shared/types";
+import { isValidCnpj } from "@/features/customers/utils/cnpjCpf";
 
 /** Store types creatable from the UI (matriz is seed-only). */
 export const STORE_TYPE_OPTIONS = [
@@ -14,13 +15,12 @@ export const DIVISION_OPTIONS: { value: Division; label: string }[] = [
   { value: "industrial", label: "Industrial" },
 ];
 
-// 14 digits, with or without the usual CNPJ mask.
-const CNPJ_REGEX = /^\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}$/;
-
 export const storeFormSchema = z.object({
   name: z.string().trim().min(2, "Informe o nome da loja"),
   type: z.enum(["filial", "parceira"]),
-  cnpj: z.string().trim().regex(CNPJ_REGEX, "CNPJ inválido"),
+  // Real check-digit validation (reuses the shared validator used on customers)
+  // — accepts masked or unmasked input, rejects shape-only typos.
+  cnpj: z.string().trim().refine(isValidCnpj, "CNPJ inválido"),
   address: z.string().trim().min(3, "Informe o endereço"),
   managerId: z.string().optional(),
   activeDivisions: z
