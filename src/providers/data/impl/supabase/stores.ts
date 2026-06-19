@@ -1,6 +1,7 @@
 import type { Division, ID, IPlatformSettings, IStore } from "@/shared/types";
 import type { IStoresProvider } from "../../contracts/stores";
 import { getSupabaseClient } from "@/shared/lib/supabase";
+import { buildDefaultSettings } from "../../engine/buildDefaultSettings";
 
 /**
  * Supabase implementation of {@link IStoresProvider} — the first Fase 2
@@ -64,6 +65,46 @@ export const supabaseStoresProvider: IStoresProvider = {
     if (error) {
       throw new Error(`[supabase] stores.get(${id}) failed: ${error.message}`);
     }
+    return rowToStore(data as StoreRow);
+  },
+
+  async create(input) {
+    // Client generates the id so settings.storeId matches the real store id.
+    const id = crypto.randomUUID();
+    const settings = input.settings ?? buildDefaultSettings(id);
+    const { data, error } = await getSupabaseClient().rpc("create_store", {
+      p_id: id,
+      p_name: input.name,
+      p_type: input.type,
+      p_cnpj: input.cnpj,
+      p_address: input.address,
+      p_manager_id: input.managerId ?? null,
+      p_active_divisions: input.activeDivisions,
+      p_settings: settings,
+    });
+    if (error) throw new Error(`[supabase] stores.create failed: ${error.message}`);
+    return rowToStore(data as StoreRow);
+  },
+
+  async update(id, patch) {
+    const { data, error } = await getSupabaseClient().rpc("update_store", {
+      p_id: id,
+      p_name: patch.name ?? null,
+      p_cnpj: patch.cnpj ?? null,
+      p_address: patch.address ?? null,
+      p_manager_id: patch.managerId ?? null,
+      p_active_divisions: patch.activeDivisions ?? null,
+    });
+    if (error) throw new Error(`[supabase] stores.update(${id}) failed: ${error.message}`);
+    return rowToStore(data as StoreRow);
+  },
+
+  async setActive(id, active) {
+    const { data, error } = await getSupabaseClient().rpc("set_store_active", {
+      p_id: id,
+      p_active: active,
+    });
+    if (error) throw new Error(`[supabase] stores.setActive(${id}) failed: ${error.message}`);
     return rowToStore(data as StoreRow);
   },
 };
