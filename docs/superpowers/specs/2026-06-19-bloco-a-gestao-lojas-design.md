@@ -87,13 +87,13 @@ ENTÃO o comportamento dos 807 clientes / 7 vendedores é idêntico
 **`parts` e `model_kits` (tabelas com RLS) — mecanismo uniforme:**
 - `parts_select` (authenticated) passa a: `USING (store_id = current_store_id() OR is_resource_shared('parts'))`.
 - `model_kits_select`: `USING (store_id = current_store_id() OR is_resource_shared('model_kits'))`.
-- **Escrita permanece store-scoped** (insert/update/delete seguem `current_store_id()`): cada loja gerencia as peças/kits que criou; o compartilhamento é de **leitura** (pool de visibilidade bidirecional). Isso entrega "a filial vê o catálogo da matriz e vice-versa" sem o risco de uma loja sobrescrever o catálogo da outra. *(Trade-off explícito; se o dono quiser escrita compartilhada, é um delta posterior.)*
+- **Escrita permanece store-scoped** (insert/update/delete seguem `current_store_id()`): cada loja gerencia as peças/kits que criou; o compartilhamento é de **leitura** (pool de visibilidade bidirecional). Isso entrega "a filial vê o catálogo da matriz e vice-versa" sem o risco de uma loja sobrescrever o catálogo da outra. ✅ **Decidido pelo dono (2026-06-19):** só leitura compartilhada.
 - `parts_select_anon` (`active = true`) é mantida intacta (storefront público).
 
 **Tags do catálogo (`settings.tagSuggestions`, jsonb por loja) — mecanismo diferente:**
 - Tags **não** são tabela e não passam por RLS. Quando `catalog_tags` está `shared = true`, a resolução de `tagSuggestions` é feita **em app**: a loja lê as tags da **matriz** (loja-fonte) em vez das próprias.
 - Implementação: um resolver em `settingsProvider`/hook que, se `is_resource_shared('catalog_tags')`, retorna `tagSuggestions` da matriz. Sem migração de tags para tabela (evita escopo extra).
-- ⚠️ **Ponto de review:** se o dono preferir tags com o mesmo mecanismo de pool de parts, isso exige **promover tags a tabela** (`catalog_tags` com `store_id` + RLS) — escopo maior. A spec assume o tratamento leve (resolução em app) salvo decisão contrária.
+- ✅ **Decidido pelo dono (2026-06-19):** tratamento leve (resolução em app). Tags **não** serão promovidas a tabela neste bloco.
 
 ### A2.3 UI
 
