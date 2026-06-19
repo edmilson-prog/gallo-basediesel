@@ -95,10 +95,11 @@ export function validateQueries(parsed: unknown, digest: ResolveDigest): Resolve
 
     const filters: Record<string, string> = {};
     const rawFilters = rec.filters;
-    if (rawFilters && typeof rawFilters === "object") {
-      for (const [k, v] of Object.entries(rawFilters as Record<string, unknown>)) {
-        if (!LLM_FILTER_KEYS.has(k) || !supported.has(k)) continue;
-        const val = String(v ?? "").trim();
+    if (rawFilters && typeof rawFilters === "object" && !Array.isArray(rawFilters)) {
+      const rf = rawFilters as Record<string, unknown>;
+      for (const k of LLM_FILTER_KEYS) {
+        if (!supported.has(k)) continue;
+        const val = String(rf[k] ?? "").trim();
         if (!val) continue;
         if (k === "marca" && !brands.has(val)) continue;
         if (k === "categoria" && !categories.has(val)) continue;

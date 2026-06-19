@@ -78,6 +78,7 @@ export const CopilotComposer = forwardRef<ICopilotComposerHandle, ICopilotCompos
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={handleKeyDown}
               rows={1}
+              maxLength={2000}
               placeholder="Pergunte sobre faturamento, margem, clientes…"
               aria-label="Pergunte ao copiloto"
               autoComplete="off"

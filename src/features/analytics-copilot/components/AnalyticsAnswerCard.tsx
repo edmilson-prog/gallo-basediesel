@@ -70,9 +70,12 @@ export function AnalyticsAnswerCard({
   if (!answer.resolved) {
     if (answer.errorText) {
       return (
-        <div className="flex items-start gap-2 text-sm text-severity-critical">
-          <Icon icon="mdi:alert-circle-outline" size={18} className="mt-0.5 shrink-0" />
-          <span>{answer.errorText}</span>
+        <div className="text-sm">
+          <div className="flex items-start gap-2 text-severity-critical">
+            <Icon icon="mdi:alert-circle-outline" size={18} className="mt-0.5 shrink-0" />
+            <span>{answer.errorText}</span>
+          </div>
+          <SuggestionChips questions={answer.suggestions ?? []} onSuggestion={onSuggestion} />
         </div>
       );
     }

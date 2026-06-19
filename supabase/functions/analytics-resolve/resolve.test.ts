@@ -62,4 +62,22 @@ describe("validateQueries", () => {
     expect(validateQueries({}, digest)).toEqual([]);
     expect(validateQueries(null, digest)).toEqual([]);
   });
+  it("order-independent dedup: same metricId+filters with keys in different order collapse to one entry", () => {
+    // Both queries target faturamento (supports marca + categoria) with identical filter values
+    // but the object keys are in different order — the stable iteration over LLM_FILTER_KEYS
+    // ensures the serialised key is identical and the second entry is dropped.
+    const q1 = { metricId: "faturamento", filters: { marca: "Volvo", categoria: "filtro" } };
+    const q2 = { metricId: "faturamento", filters: { categoria: "filtro", marca: "Volvo" } };
+    const out = validateQueries({ queries: [q1, q2] }, digest);
+    expect(out).toHaveLength(1);
+    expect(out[0]).toEqual({ metricId: "faturamento", filters: { marca: "Volvo", categoria: "filtro" } });
+  });
+  it("array-shaped filters are rejected (not treated as an object)", () => {
+    const out = validateQueries(
+      { queries: [{ metricId: "faturamento", filters: ["Volvo", "filtro"] }] },
+      digest,
+    );
+    // filters is an array → must be ignored, resulting in empty filters
+    expect(out).toEqual([{ metricId: "faturamento", filters: {} }]);
+  });
 });
