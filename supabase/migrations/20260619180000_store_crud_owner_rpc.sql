@@ -51,9 +51,9 @@ begin
   if p_type not in ('filial', 'parceira') then
     raise exception 'Tipo de loja invalido para criacao: %', p_type using errcode = '22023';
   end if;
-  insert into public.stores (id, name, type, cnpj, address, manager_id, active_divisions, settings, is_active)
+  insert into public.stores (id, name, type, cnpj, address, manager_id, active_divisions, settings, is_active, created_at)
   values (p_id, p_name, p_type, p_cnpj, p_address, p_manager_id,
-          coalesce(p_active_divisions, array['parts']), p_settings, true)
+          coalesce(p_active_divisions, array['parts']), p_settings, true, now())
   returning * into v_row;
   return v_row;
 end;
