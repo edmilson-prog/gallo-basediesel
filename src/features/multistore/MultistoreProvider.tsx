@@ -73,26 +73,24 @@ export function MultistoreProvider({ children }: { children: React.ReactNode }) 
   const [currentStoreId, setCurrentStoreIdState] = useState<ID | null>(null);
   const [isHydrating, setIsHydrating] = useState(true);
 
-  // Load the full store roster once on mount. The roster is tiny on the MVP
-  // (a single matriz) so eager loading is fine; Fase 2 may add a refresh
-  // hook once filiais and parceiras come online.
-  useEffect(() => {
-    let cancelled = false;
-    void storesProvider
-      .list()
-      .then((stores) => {
-        if (cancelled) return;
-        setAllStores(stores);
-        multistoreStore.setAccessibleStores(stores);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setAllStores([]);
-      });
-    return () => {
-      cancelled = true;
-    };
+  // Load the full store roster from the provider. Called on mount and by
+  // refreshStores() after a store is created/edited/deactivated (Fase 2 —
+  // gestão multi-loja), so the switcher and listings reflect changes without
+  // a full page reload. Re-resolution of the active store is handled by the
+  // effect below, which preserves the persisted/primary store when still valid.
+  const loadRoster = useCallback(async () => {
+    try {
+      const stores = await storesProvider.list();
+      setAllStores(stores);
+      multistoreStore.setAccessibleStores(stores);
+    } catch {
+      setAllStores([]);
+    }
   }, [storesProvider]);
+
+  useEffect(() => {
+    void loadRoster();
+  }, [loadRoster]);
 
   const accessibleStores = useMemo(
     () => computeAccessibleStores(allStores, currentUser),
@@ -179,8 +177,9 @@ export function MultistoreProvider({ children }: { children: React.ReactNode }) 
       isHydrating,
       setCurrentStore,
       canSwitchStore: accessibleStores.length > 1,
+      refreshStores: loadRoster,
     }),
-    [currentStore, currentStoreId, accessibleStores, isHydrating, setCurrentStore],
+    [currentStore, currentStoreId, accessibleStores, isHydrating, setCurrentStore, loadRoster],
   );
 
   return <MultistoreContext.Provider value={value}>{children}</MultistoreContext.Provider>;

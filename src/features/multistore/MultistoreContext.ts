@@ -18,6 +18,13 @@ export interface IMultistoreContextValue {
   setCurrentStore: (storeId: ID) => Promise<void>;
   /** False when only a single store is accessible — disables the dropdown. */
   canSwitchStore: boolean;
+  /**
+   * Reload the store roster from the provider (Fase 2 — gestão multi-loja).
+   * Called after a store is created/edited/deactivated so the switcher and
+   * listings reflect the change without a full page reload. Preserves the
+   * active store when it is still accessible.
+   */
+  refreshStores: () => Promise<void>;
 }
 
 export const MultistoreContext = createContext<IMultistoreContextValue | null>(null);
