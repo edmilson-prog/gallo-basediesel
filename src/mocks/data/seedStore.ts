@@ -27,6 +27,7 @@ export const SEED_STORE: IStore = {
   // to avoid a circular import (seedSellers imports SEED_STORE_ID from here).
   managerId: "seller-joao-gallo",
   activeDivisions: ["parts"],
+  isActive: true,
   createdAt: "2026-01-01T00:00:00.000Z",
   settings: {
     storeId: "00000000-0000-0000-0000-000000000001",

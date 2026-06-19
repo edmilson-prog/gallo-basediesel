@@ -23,6 +23,7 @@ interface StoreRow {
   // POC seed stores a faithful subset of IPlatformSettings; trusted via cast.
   settings: IPlatformSettings;
   active_divisions: Division[];
+  is_active: boolean | null;
   created_at: string;
 }
 
@@ -38,6 +39,8 @@ function rowToStore(row: StoreRow): IStore {
     managerId: row.manager_id ?? undefined,
     settings: row.settings,
     activeDivisions: row.active_divisions,
+    // Fallback `true` tolerates rows read before the is_active migration lands.
+    isActive: row.is_active ?? true,
     createdAt: row.created_at,
   };
 }
