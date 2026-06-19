@@ -9,7 +9,12 @@ import { AUTH_SOURCE } from "@/features/auth/authSource";
  * reaches the browser.
  */
 
-export type InviteSellerRole = "seller_internal" | "seller_external" | "manager";
+export type InviteSellerRole =
+  | "seller_internal"
+  | "seller_external"
+  | "manager"
+  | "sdr"
+  | "financeiro";
 
 export interface IInviteSellerInput {
   sellerId: string;

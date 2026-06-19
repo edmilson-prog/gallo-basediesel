@@ -25,6 +25,8 @@ const ROLE_OPTIONS: { value: InviteSellerRole; label: string }[] = [
   { value: "seller_internal", label: "Vendedor interno" },
   { value: "seller_external", label: "Vendedor externo" },
   { value: "manager", label: "Gestor" },
+  { value: "sdr", label: "SDR" },
+  { value: "financeiro", label: "Financeiro" },
 ];
 
 interface IChangeRoleDialogProps {

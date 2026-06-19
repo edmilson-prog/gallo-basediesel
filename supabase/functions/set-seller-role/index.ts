@@ -22,12 +22,16 @@ import { requireCaller } from "../_shared/auth.ts";
 import { HttpError, json, parseJsonBody } from "../_shared/http.ts";
 import { servePost } from "../_shared/serve.ts";
 
-const ALLOWED_ROLES = ["seller_internal", "seller_external", "manager"];
-// profiles.role -> sellers.type. `manager` keeps whatever type the seller had.
+const ALLOWED_ROLES = ["seller_internal", "seller_external", "manager", "sdr", "financeiro"];
+// profiles.role -> sellers.type. manager/sdr/financeiro are not seller business
+// types (sellers.type is internal|external|representative), so they keep whatever
+// type the seller already had (null = no type change).
 const TYPE_BY_ROLE: Record<string, string | null> = {
   seller_internal: "internal",
   seller_external: "external",
   manager: null,
+  sdr: null,
+  financeiro: null,
 };
 
 servePost(async (req, { log }) => {

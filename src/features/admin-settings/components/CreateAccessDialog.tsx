@@ -31,6 +31,10 @@ const ROLE_LABEL: Record<InviteSellerRole, string> = {
   seller_internal: "Vendedor interno",
   seller_external: "Vendedor externo",
   manager: "Gestor",
+  // Not reachable from the type-driven invite flow (ROLE_BY_TYPE), but the
+  // Record must stay total — SDR/Financeiro are assigned via ChangeRoleDialog.
+  sdr: "SDR",
+  financeiro: "Financeiro",
 };
 
 interface ICreateAccessDialogProps {
