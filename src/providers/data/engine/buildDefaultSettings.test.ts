@@ -10,7 +10,7 @@ describe("buildDefaultSettings", () => {
   it("zera os valores monetários específicos da loja (padrões limpos)", () => {
     const s = buildDefaultSettings("loja-x");
     expect(s.financialSettings.fixedExpenses).toEqual({ payroll: 0, rentInfra: 0, other: 0 });
-    expect(s.cashflowSettings.openingBalance).toBe(0);
+    expect(s.cashflowSettings?.openingBalance).toBe(0);
   });
 
   it("mantém defaults de negócio (pipeline e divisão padrão)", () => {
