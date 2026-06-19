@@ -153,7 +153,9 @@ export const DEFAULT_STOREFRONT_CONFIG: IStorefrontConfig = {
   },
   footer: {
     phone: "(55) 2010-2700",
-    whatsapp: "(55) 99999-0000",
+    // No real WhatsApp number on the CNPJ card; left empty so the footer hides
+    // the link instead of pointing at a fake number. Owner can fill it later.
+    whatsapp: "",
     email: "turbodieselrs@gmail.com",
     address: "Rod. BR 158/386, KM 37, Pavilhão 03 — São Cristóvão, Frederico Westphalen / RS — CEP 98400-000",
     social: {
