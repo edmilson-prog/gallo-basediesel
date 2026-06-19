@@ -29,7 +29,7 @@ const MAX_VALUE_LENGTH = 8192;
 
 servePost(async (req, { log }) => {
   // Managing API keys is the most privilege-sensitive surface: owner-only.
-  const { callerId, admin, profile } = await requireCaller(req, ["owner"]);
+  const { admin, profile } = await requireCaller(req, ["owner"]);
 
   const body = await parseJsonBody(req);
   const action = String(body.action ?? "");

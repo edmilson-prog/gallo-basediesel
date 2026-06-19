@@ -31,7 +31,7 @@ import {
 
 servePost(async (req, { log }) => {
   // OAuth lifecycle is the most privilege-sensitive surface: owner-only.
-  const { callerId, admin, profile } = await requireCaller(req, ["owner"]);
+  const { admin, profile } = await requireCaller(req, ["owner"]);
   const resolveSecret = createSecretResolver(admin);
 
   const body = await parseJsonBody(req);
