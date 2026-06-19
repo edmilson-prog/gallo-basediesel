@@ -21,8 +21,8 @@ export const SEED_STORE: IStore = {
   id: SEED_STORE_ID,
   name: "GALLO BASE DIESEL — Matriz",
   type: "matriz",
-  address: "Av. Brasil, 1500 — Centro, Frederico Westphalen / RS — CEP 98400-000",
-  cnpj: "12.345.678/0001-90",
+  address: "Rod. BR 158/386, KM 37, Pavilhão 03 — São Cristóvão, Frederico Westphalen / RS — CEP 98400-000",
+  cnpj: "32.990.725/0001-60",
   // The Owner (Fernando) — SEED_OWNER_ID in seedSellers.ts. Inlined as a literal
   // to avoid a circular import (seedSellers imports SEED_STORE_ID from here).
   managerId: "seller-joao-gallo",
