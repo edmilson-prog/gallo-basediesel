@@ -29,6 +29,9 @@ describe("extractJson", () => {
   it("texto sem JSON → null", () => {
     expect(extractJson("sem json aqui")).toBeNull();
   });
+  it("prosa com '}' extra após o JSON não confunde o parser (balanced-brace)", () => {
+    expect(extractJson('{"queries":[]} (note: nada mais })')).toEqual({ queries: [] });
+  });
 });
 
 describe("validateQueries", () => {

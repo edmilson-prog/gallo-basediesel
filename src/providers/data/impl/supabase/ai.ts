@@ -252,7 +252,8 @@ export const supabaseAiProvider: IAiProvider = {
       body: { question, digest },
     });
     if (error) throw new Error(await extractFunctionError(error));
-    return (data as { queries?: IResolvedQuery[] }).queries ?? [];
+    const payload = data as { queries?: IResolvedQuery[] } | null;
+    return payload?.queries ?? [];
   },
 
   async listProviderModels(providerId): Promise<IAiModelOption[]> {

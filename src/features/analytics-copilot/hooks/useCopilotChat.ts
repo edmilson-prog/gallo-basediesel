@@ -68,7 +68,7 @@ export function useCopilotChat(): IUseCopilotChat {
     appendToActive,
   } = useCopilotSessions();
 
-  const resolver = useAnalyticsResolver();
+  const resolver = useAnalyticsResolver(aiActive);
   const ai = useAiProvider();
   const [aiActive, setAiActive] = useState(false);
 
@@ -99,37 +99,40 @@ export function useCopilotChat(): IUseCopilotChat {
       appendToActive([makeMessage({ role: "user", text: trimmed })]);
       setIsThinking(true);
 
-      const effectiveRole = role ?? "Vendedor";
-      const sellerId = effectiveRole === "Vendedor" ? currentUser?.sellerId : undefined;
-      const { answers, errorText } = await runCopilotQuery(
-        trimmed,
-        {
-          role: effectiveRole,
-          storeId: currentStoreId ?? undefined,
-          sellerId,
-          period: monthBounds(new Date()),
-          fallbackSuggestions: suggestionsForRole(role),
-        },
-        { dataAccess, catalog: metricCatalog, resolver },
-      );
-
-      for (const a of answers) {
-        if (a.resolved && a.query) {
-          auditLog({
-            action: "analytics_copilot_query",
-            resource: "insight",
-            resourceId: a.query.metricId,
+      try {
+        const effectiveRole = role ?? "Vendedor";
+        const sellerId = effectiveRole === "Vendedor" ? currentUser?.sellerId : undefined;
+        const { answers, errorText } = await runCopilotQuery(
+          trimmed,
+          {
+            role: effectiveRole,
             storeId: currentStoreId ?? undefined,
-          });
-        }
-      }
+            sellerId,
+            period: monthBounds(new Date()),
+            fallbackSuggestions: suggestionsForRole(role),
+          },
+          { dataAccess, catalog: metricCatalog, resolver },
+        );
 
-      appendToActive(
-        answers.map((a, i) =>
-          makeMessage({ role: "assistant", answer: a, text: i === 0 ? errorText : undefined }),
-        ),
-      );
-      setIsThinking(false);
+        for (const a of answers) {
+          if (a.resolved && a.query) {
+            auditLog({
+              action: "analytics_copilot_query",
+              resource: "insight",
+              resourceId: a.query.metricId,
+              storeId: currentStoreId ?? undefined,
+            });
+          }
+        }
+
+        appendToActive(
+          answers.map((a, i) =>
+            makeMessage({ role: "assistant", answer: a, text: i === 0 ? errorText : undefined }),
+          ),
+        );
+      } finally {
+        setIsThinking(false);
+      }
     },
     [appendToActive, dataAccess, role, currentStoreId, currentUser, resolver],
   );

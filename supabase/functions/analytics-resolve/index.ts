@@ -89,6 +89,7 @@ function asDigest(raw: unknown): ResolveDigest | null {
   if (!Array.isArray(d.catalog) || !Array.isArray(d.brands) || !Array.isArray(d.categories)) {
     return null;
   }
+  if (d.catalog.length > 50 || d.brands.length > 200 || d.categories.length > 200) return null;
   return d as unknown as ResolveDigest;
 }
 

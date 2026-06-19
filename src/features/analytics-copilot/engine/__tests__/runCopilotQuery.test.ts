@@ -101,6 +101,7 @@ describe("runCopilotQuery", () => {
       catalog,
     });
     expect(answers[0]!.resolved).toBe(true);
+    expect(answers[0]!.value).toBe(1000);
     expect(answers[0]!.query?.scope?.role).toBe("Vendedor");
     expect(answers[0]!.query?.scope?.sellerId).toBe("seller-1");
   });
@@ -132,5 +133,25 @@ describe("runCopilotQuery", () => {
     expect(answers.every((a) => a.resolved)).toBe(true);
     expect(da.getSalesMetric).toHaveBeenCalledOnce();
     expect(da.getMargin).toHaveBeenCalledOnce();
+  });
+
+  it("erro parcial do dataAccess → answers[0] resolvido, answers[1] não, errorText truthy", async () => {
+    const da = makeDataAccess(750);
+    (da.getMargin as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("margin boom"));
+    const { answers, errorText } = await runCopilotQuery("faturamento e margem", baseCtx, {
+      dataAccess: da,
+      catalog,
+      resolver: () => ({
+        queries: [
+          { metricId: "faturamento", dimensions: [], filters: {}, period },
+          { metricId: "margem", dimensions: [], filters: {}, period },
+        ],
+      }),
+    });
+    expect(answers).toHaveLength(2);
+    expect(answers[0]!.resolved).toBe(true);
+    expect(answers[0]!.value).toBe(750);
+    expect(answers[1]!.resolved).toBe(false);
+    expect(errorText).toBeTruthy();
   });
 });

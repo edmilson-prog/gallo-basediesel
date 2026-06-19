@@ -69,6 +69,7 @@ export async function runCopilotQuery(
     }
 
     const answers: IAnalyticsAnswer[] = [];
+    let anyError = false;
     for (const q of intent.queries) {
       const clamp = scopeClamp(q, { role: ctx.role, storeId: ctx.storeId, sellerId: ctx.sellerId });
       if (clamp.refusedByScope) {
@@ -80,9 +81,19 @@ export async function runCopilotQuery(
         answers.push(unresolvedAnswer(ctx.fallbackSuggestions));
         continue;
       }
-      answers.push(await executeQuery(def, clamp.query, deps.dataAccess));
+      try {
+        answers.push(await executeQuery(def, clamp.query, deps.dataAccess));
+      } catch {
+        anyError = true;
+        answers.push({ resolved: false, query: clamp.query, suggestions: ctx.fallbackSuggestions });
+      }
     }
-    return { answers };
+    return {
+      answers,
+      errorText: anyError
+        ? "Não consegui calcular uma ou mais métricas. Tente novamente."
+        : undefined,
+    };
   } catch {
     return {
       answers: [{ resolved: false, suggestions: ctx.fallbackSuggestions }],
