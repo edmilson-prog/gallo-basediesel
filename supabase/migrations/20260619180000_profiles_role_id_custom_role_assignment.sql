@@ -42,6 +42,9 @@ as $$
     and public.is_staff();
 $$;
 
+-- Recreate drops the original grants; restore the locked-down posture (the
+-- bare CREATE would otherwise leave EXECUTE granted to PUBLIC).
+revoke execute on function public.seller_access_info() from public, anon;
 grant execute on function public.seller_access_info() to authenticated;
 
 -- Real usage count for the role editor's delete guard (PRD-211 T15/T16). Counts
@@ -66,4 +69,5 @@ as $$
   end;
 $$;
 
+revoke execute on function public.role_assignment_count(text) from public, anon;
 grant execute on function public.role_assignment_count(text) to authenticated;

@@ -75,9 +75,10 @@ servePost(async (req, { log }) => {
   if (!dbRole) throw new HttpError(400, `unsupported base role: ${role.base_role}`);
   if (dbRole === "owner") throw new HttpError(403, "cannot assign the owner role");
   // Customer-base roles are not platform access for staff — assigning one would
-  // turn a seller into a B2C/B2B customer and brick their access. The dialog
-  // already filters these out; the Edge is the trust boundary, so enforce it.
-  if (dbRole === "b2c_customer" || dbRole === "b2b_customer") {
+  // turn a seller into a customer and brick their access. The dialog already
+  // filters these out; the Edge is the trust boundary, so enforce it. (Cliente
+  // is the only customer base role, mapping to b2c_customer.)
+  if (dbRole === "b2c_customer") {
     throw new HttpError(403, "cannot assign a customer role to a seller");
   }
 
@@ -122,10 +123,11 @@ servePost(async (req, { log }) => {
     }
   }
 
-  // 8) Audit — best-effort.
+  // 8) Audit — best-effort. actor_id is an FK to sellers(id), so use the
+  // caller's seller_id (not their auth.users id, which would violate the FK).
   await bestEffortAudit(admin, {
     store_id: profile.store_id,
-    actor_id: callerId,
+    actor_id: profile.seller_id ?? callerId,
     action: "seller.role_changed",
     resource: "seller",
     resource_id: sellerId,
