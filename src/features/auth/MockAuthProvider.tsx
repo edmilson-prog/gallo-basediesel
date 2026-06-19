@@ -50,6 +50,7 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
         writeAuthSyncMirror({
           id: profile.id,
           role: profile.role,
+          roleKey: profile.roleKey,
           sellerId: profile.sellerId ?? null,
         });
     }
@@ -58,7 +59,12 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
 
   const applySession = useCallback((profile: IUserProfile) => {
     persistUserId(profile.id);
-    writeAuthSyncMirror({ id: profile.id, role: profile.role, sellerId: profile.sellerId ?? null });
+    writeAuthSyncMirror({
+      id: profile.id,
+      role: profile.role,
+      roleKey: profile.roleKey,
+      sellerId: profile.sellerId ?? null,
+    });
     setCurrentUser(profile);
     auditLog({
       actorId: profile.id,
