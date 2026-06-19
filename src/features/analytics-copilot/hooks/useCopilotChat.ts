@@ -68,9 +68,9 @@ export function useCopilotChat(): IUseCopilotChat {
     appendToActive,
   } = useCopilotSessions();
 
-  const resolver = useAnalyticsResolver(aiActive);
-  const ai = useAiProvider();
   const [aiActive, setAiActive] = useState(false);
+  const ai = useAiProvider();
+  const resolver = useAnalyticsResolver(aiActive);
 
   useEffect(() => {
     let cancelled = false;
