@@ -61,7 +61,7 @@ servePost(async (req, { log }) => {
     // Audit the rotation — the value itself never leaves the Vault.
     await bestEffortAudit(admin, {
       store_id: profile.store_id,
-      actor_id: callerId,
+      actor_id: profile.seller_id,
       action: "integration_secret_set",
       resource: "integration_secret",
       resource_id: name,

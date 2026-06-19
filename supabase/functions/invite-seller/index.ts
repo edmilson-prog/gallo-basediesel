@@ -88,7 +88,7 @@ servePost(async (req, { log }) => {
   // 7) Audit — best-effort, never fails the request.
   await bestEffortAudit(admin, {
     store_id: profile.store_id,
-    actor_id: callerId,
+    actor_id: profile.seller_id,
     action: "seller.access_created",
     resource: "seller",
     resource_id: sellerId,

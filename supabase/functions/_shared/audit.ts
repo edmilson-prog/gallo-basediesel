@@ -4,7 +4,12 @@ import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.107.
 
 export interface AuditEntry {
   store_id: string;
-  actor_id: string;
+  /**
+   * The acting seller's id — an FK to sellers(id). Pass the caller's
+   * `profile.seller_id` (NOT their auth.users id). Null when the caller has no
+   * linked seller; the audit is then skipped rather than violating the FK.
+   */
+  actor_id: string | null;
   action: string;
   resource: string;
   resource_id: string;
@@ -13,6 +18,9 @@ export interface AuditEntry {
 }
 
 export async function bestEffortAudit(admin: SupabaseClient, entry: AuditEntry): Promise<void> {
+  // actor_id is a NOT NULL FK to sellers(id); skip cleanly when absent instead of
+  // attempting an FK-violating insert that would just be swallowed below.
+  if (!entry.actor_id) return;
   try {
     await admin.from("audit_logs").insert(entry);
   } catch (_) {

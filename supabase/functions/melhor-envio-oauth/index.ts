@@ -84,7 +84,7 @@ servePost(async (req, { log }) => {
     await persistMeTokens(admin, tokens, secrets);
     await bestEffortAudit(admin, {
       store_id: profile.store_id,
-      actor_id: callerId,
+      actor_id: profile.seller_id,
       action: "melhor_envio_connected",
       resource: "shipping_integration",
       resource_id: "melhor_envio",
@@ -116,7 +116,7 @@ servePost(async (req, { log }) => {
     await clearMeTokens(admin, secrets);
     await bestEffortAudit(admin, {
       store_id: profile.store_id,
-      actor_id: callerId,
+      actor_id: profile.seller_id,
       action: "melhor_envio_disconnected",
       resource: "shipping_integration",
       resource_id: "melhor_envio",

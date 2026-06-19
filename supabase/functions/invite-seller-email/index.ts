@@ -205,7 +205,7 @@ servePost(async (req, { log }) => {
   // 9) Audit — best-effort, never fails the request.
   await bestEffortAudit(admin, {
     store_id: profile.store_id,
-    actor_id: callerId,
+    actor_id: profile.seller_id,
     action: "seller.invited_email",
     resource: "seller",
     resource_id: sellerId,
