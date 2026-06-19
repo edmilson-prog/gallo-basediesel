@@ -73,7 +73,7 @@ servePost(async (req, { log }) => {
   // 7) Audit — best-effort.
   await bestEffortAudit(admin, {
     store_id: profile.store_id,
-    actor_id: callerId,
+    actor_id: profile.seller_id,
     action: active ? "seller.access_reactivated" : "seller.access_deactivated",
     resource: "seller",
     resource_id: sellerId,
