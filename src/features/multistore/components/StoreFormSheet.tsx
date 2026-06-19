@@ -45,6 +45,8 @@ interface IStoreFormSheetProps {
   store?: IStore | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Called after a successful create/edit so the host list can reload. */
+  onSaved?: () => void;
 }
 
 /** Sentinel option value — Radix Select forbids empty-string item values. */
@@ -58,7 +60,7 @@ const NO_MANAGER = "__none__";
  *
  * @see docs/superpowers/specs/2026-06-19-bloco-a-gestao-lojas-design.md
  */
-export function StoreFormSheet({ store, open, onOpenChange }: IStoreFormSheetProps) {
+export function StoreFormSheet({ store, open, onOpenChange, onSaved }: IStoreFormSheetProps) {
   const isEdit = Boolean(store);
   const isMatriz = store?.type === "matriz";
   const provider = useStoresProvider();
@@ -129,6 +131,7 @@ export function StoreFormSheet({ store, open, onOpenChange }: IStoreFormSheetPro
       toast.success(isEdit ? `Loja "${saved.name}" atualizada.` : `Loja "${saved.name}" criada.`);
       await refreshStores();
       await queryClient.invalidateQueries({ queryKey: ["stores"] });
+      onSaved?.();
       onOpenChange(false);
     },
     onError: (err: Error) =>
