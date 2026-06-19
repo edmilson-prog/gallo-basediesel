@@ -145,4 +145,14 @@ export const mockAiProvider: IAiProvider = {
     await delay();
     return structuredClone(modelsFor(providerId));
   },
+
+  async isAiFeatureEnabled() {
+    // Demo não tem LLM: o copiloto analítico usa o motor de regras.
+    return false;
+  },
+
+  async resolveAnalyticsQueries() {
+    // null → o adapter cai no resolvedor de regras.
+    return null;
+  },
 };

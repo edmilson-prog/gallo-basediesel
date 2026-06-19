@@ -23,6 +23,7 @@ import type {
   IAiUsageSummary,
 } from "@/shared/types";
 import type { IAiProvider } from "../../contracts/ai";
+import type { IAnalyticsDigest, IResolvedQuery } from "@/shared/types/analytics-copilot";
 
 const SETTINGS_COLUMNS =
   "id, master_enabled, default_provider_id, budget, providers, routing, updated_at, updated_by";
@@ -233,6 +234,25 @@ export const supabaseAiProvider: IAiProvider = {
     });
     if (error) throw new Error(await extractFunctionError(error));
     return data as IAiPlaygroundResult;
+  },
+
+  async isAiFeatureEnabled(feature: AiFeatureKey): Promise<boolean> {
+    const { data, error } = await getSupabaseClient().rpc("ai_feature_enabled", {
+      p_feature: feature,
+    });
+    if (error) return false; // fail-closed
+    return data === true;
+  },
+
+  async resolveAnalyticsQueries(
+    question: string,
+    digest: IAnalyticsDigest,
+  ): Promise<IResolvedQuery[] | null> {
+    const { data, error } = await getSupabaseClient().functions.invoke("analytics-resolve", {
+      body: { question, digest },
+    });
+    if (error) throw new Error(await extractFunctionError(error));
+    return (data as { queries?: IResolvedQuery[] }).queries ?? [];
   },
 
   async listProviderModels(providerId): Promise<IAiModelOption[]> {
