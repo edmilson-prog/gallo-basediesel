@@ -3,7 +3,12 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/useAuth";
-import { APP_NAV_GROUPS, BOTTOM_NAV, type INavItem } from "@/features/shell/config/navigation";
+import {
+  APP_NAV_GROUPS,
+  BOTTOM_NAV,
+  isNavItemVisible,
+  type INavItem,
+} from "@/features/shell/config/navigation";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 function pickItemsForRole(role: string | null): INavItem[] {
@@ -13,7 +18,7 @@ function pickItemsForRole(role: string | null): INavItem[] {
 }
 
 export function BottomNav() {
-  const { userRole } = useAuth();
+  const { currentUser, userRole } = useAuth();
   const location = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
   const items = pickItemsForRole(userRole);
@@ -21,7 +26,7 @@ export function BottomNav() {
   if (items.length === 0) return null;
 
   const allItemsFlat = APP_NAV_GROUPS.flatMap((g) => g.items).filter((item) =>
-    item.roles.includes(userRole as never),
+    isNavItemVisible(item, currentUser),
   );
 
   return (
