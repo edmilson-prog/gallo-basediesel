@@ -7,6 +7,7 @@ interface ICopilotHeaderProps {
   mode: CopilotViewMode;
   onModeChange: (mode: CopilotViewMode) => void;
   onNewSession: () => void;
+  aiActive?: boolean;
   /** Mobile drawer openers (rendered only when relevant). */
   onOpenSessions?: () => void;
   onOpenDetail?: () => void;
@@ -18,6 +19,7 @@ export function CopilotHeader({
   mode,
   onModeChange,
   onNewSession,
+  aiActive,
   onOpenSessions,
   onOpenDetail,
 }: ICopilotHeaderProps) {
@@ -34,7 +36,7 @@ export function CopilotHeader({
                 Copiloto analítico
               </h1>
               <span className="hidden rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground sm:inline">
-                Beta · baseado em regras
+                {aiActive ? "Beta · IA" : "Beta · baseado em regras"}
               </span>
             </div>
             <p className="hidden truncate text-xs text-muted-foreground sm:block">
