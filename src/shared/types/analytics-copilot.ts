@@ -97,6 +97,8 @@ export interface IAnalyticsAnswer {
   refusedByScope?: boolean;
   ambiguous?: boolean;
   suggestions?: string[];
+  /** Set when this specific metric failed to compute (execution error / resolver failure). */
+  errorText?: string;
 }
 
 export interface IAnalyticsMessage {

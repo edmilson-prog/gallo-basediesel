@@ -106,15 +106,15 @@ describe("runCopilotQuery", () => {
     expect(answers[0]!.query?.scope?.sellerId).toBe("seller-1");
   });
 
-  it("erro do dataAccess não propaga — devolve errorText", async () => {
+  it("erro do dataAccess não propaga — devolve errorText no answer", async () => {
     const da = makeDataAccess(1);
     (da.getSalesMetric as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("boom"));
-    const { answers, errorText } = await runCopilotQuery("Quanto faturei?", baseCtx, {
+    const { answers } = await runCopilotQuery("Quanto faturei?", baseCtx, {
       dataAccess: da,
       catalog,
     });
     expect(answers[0]!.resolved).toBe(false);
-    expect(errorText).toBeTruthy();
+    expect(answers[0]!.errorText).toBeTruthy();
   });
 
   it("resolver injetado multi-métrica → vários answers", async () => {
@@ -135,10 +135,10 @@ describe("runCopilotQuery", () => {
     expect(da.getMargin).toHaveBeenCalledOnce();
   });
 
-  it("erro parcial do dataAccess → answers[0] resolvido, answers[1] não, errorText truthy", async () => {
+  it("erro parcial do dataAccess → answers[0] resolvido, answers[1] não, errorText no answer falho", async () => {
     const da = makeDataAccess(750);
     (da.getMargin as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("margin boom"));
-    const { answers, errorText } = await runCopilotQuery("faturamento e margem", baseCtx, {
+    const { answers } = await runCopilotQuery("faturamento e margem", baseCtx, {
       dataAccess: da,
       catalog,
       resolver: () => ({
@@ -152,6 +152,6 @@ describe("runCopilotQuery", () => {
     expect(answers[0]!.resolved).toBe(true);
     expect(answers[0]!.value).toBe(750);
     expect(answers[1]!.resolved).toBe(false);
-    expect(errorText).toBeTruthy();
+    expect(answers[1]!.errorText).toBeTruthy();
   });
 });

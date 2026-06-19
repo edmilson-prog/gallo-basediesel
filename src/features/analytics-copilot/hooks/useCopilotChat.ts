@@ -102,7 +102,7 @@ export function useCopilotChat(): IUseCopilotChat {
       try {
         const effectiveRole = role ?? "Vendedor";
         const sellerId = effectiveRole === "Vendedor" ? currentUser?.sellerId : undefined;
-        const { answers, errorText } = await runCopilotQuery(
+        const { answers } = await runCopilotQuery(
           trimmed,
           {
             role: effectiveRole,
@@ -125,11 +125,7 @@ export function useCopilotChat(): IUseCopilotChat {
           }
         }
 
-        appendToActive(
-          answers.map((a, i) =>
-            makeMessage({ role: "assistant", answer: a, text: i === 0 ? errorText : undefined }),
-          ),
-        );
+        appendToActive(answers.map((a) => makeMessage({ role: "assistant", answer: a })));
       } finally {
         setIsThinking(false);
       }

@@ -90,6 +90,23 @@ function asDigest(raw: unknown): ResolveDigest | null {
     return null;
   }
   if (d.catalog.length > 50 || d.brands.length > 200 || d.categories.length > 200) return null;
+  for (const m of d.catalog as unknown[]) {
+    if (!m || typeof m !== "object") return null;
+    const item = m as Record<string, unknown>;
+    if (
+      typeof item.id !== "string" ||
+      typeof item.label !== "string" ||
+      typeof item.description !== "string" ||
+      !Array.isArray(item.supportedFilters)
+    ) {
+      return null;
+    }
+    if (item.id.length > 100 || item.label.length > 200 || item.description.length > 500) {
+      return null;
+    }
+  }
+  if ((d.brands as unknown[]).some((b) => typeof b !== "string" || b.length > 100)) return null;
+  if ((d.categories as unknown[]).some((c) => typeof c !== "string" || c.length > 100)) return null;
   return d as unknown as ResolveDigest;
 }
 
@@ -99,6 +116,7 @@ servePost(async (req, { log }) => {
   const question = String(body.question ?? "").trim();
   const digest = asDigest(body.digest);
   if (!question) throw new HttpError(400, "question é obrigatória");
+  if (question.length > 2000) throw new HttpError(400, "pergunta muito longa");
   if (!digest) throw new HttpError(400, "digest inválido");
 
   // Settings + gate (inline, como na copilot-generate).

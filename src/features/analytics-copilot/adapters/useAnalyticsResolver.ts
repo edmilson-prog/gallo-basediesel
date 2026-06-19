@@ -21,7 +21,9 @@ export function useAnalyticsResolver(aiEnabled: boolean): IQueryResolver {
       try {
         const resolved = await ai.resolveAnalyticsQueries(question, buildDigest(catalog));
         if (!resolved || resolved.length === 0) return rulesResolver(question, ctx, catalog);
-        return { queries: toMetricQueries(resolved, ctx.period, catalog) };
+        const mapped = toMetricQueries(resolved, ctx.period, catalog);
+        if (mapped.length === 0) return rulesResolver(question, ctx, catalog);
+        return { queries: mapped };
       } catch {
         return rulesResolver(question, ctx, catalog);
       }

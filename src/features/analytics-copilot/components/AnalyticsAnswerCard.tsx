@@ -68,6 +68,14 @@ export function AnalyticsAnswerCard({
 
   // Unresolved (honest "I don't know") — chips, never a number (RF-016).
   if (!answer.resolved) {
+    if (answer.errorText) {
+      return (
+        <div className="flex items-start gap-2 text-sm text-severity-critical">
+          <Icon icon="mdi:alert-circle-outline" size={18} className="mt-0.5 shrink-0" />
+          <span>{answer.errorText}</span>
+        </div>
+      );
+    }
     const isAmbiguous = answer.ambiguous === true;
     return (
       <div className="text-sm">

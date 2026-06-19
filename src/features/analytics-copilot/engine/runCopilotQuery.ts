@@ -30,7 +30,6 @@ export interface IRunCopilotDeps {
 
 export interface IRunCopilotResult {
   answers: IAnalyticsAnswer[];
-  errorText?: string;
 }
 
 /**
@@ -69,7 +68,6 @@ export async function runCopilotQuery(
     }
 
     const answers: IAnalyticsAnswer[] = [];
-    let anyError = false;
     for (const q of intent.queries) {
       const clamp = scopeClamp(q, { role: ctx.role, storeId: ctx.storeId, sellerId: ctx.sellerId });
       if (clamp.refusedByScope) {
@@ -84,20 +82,23 @@ export async function runCopilotQuery(
       try {
         answers.push(await executeQuery(def, clamp.query, deps.dataAccess));
       } catch {
-        anyError = true;
-        answers.push({ resolved: false, query: clamp.query, suggestions: ctx.fallbackSuggestions });
+        answers.push({
+          resolved: false,
+          query: clamp.query,
+          errorText: "Não consegui calcular esta métrica. Tente novamente.",
+        });
       }
     }
-    return {
-      answers,
-      errorText: anyError
-        ? "Não consegui calcular uma ou mais métricas. Tente novamente."
-        : undefined,
-    };
+    return { answers };
   } catch {
     return {
-      answers: [{ resolved: false, suggestions: ctx.fallbackSuggestions }],
-      errorText: "Não consegui responder agora. Tente novamente.",
+      answers: [
+        {
+          resolved: false,
+          suggestions: ctx.fallbackSuggestions,
+          errorText: "Não consegui responder agora. Tente novamente.",
+        },
+      ],
     };
   }
 }
