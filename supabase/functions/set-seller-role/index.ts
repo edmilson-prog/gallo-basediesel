@@ -123,17 +123,20 @@ servePost(async (req, { log }) => {
     }
   }
 
-  // 8) Audit — best-effort. actor_id is an FK to sellers(id), so use the
-  // caller's seller_id (not their auth.users id, which would violate the FK).
-  await bestEffortAudit(admin, {
-    store_id: profile.store_id,
-    actor_id: profile.seller_id ?? callerId,
-    action: "seller.role_changed",
-    resource: "seller",
-    resource_id: sellerId,
-    before: { role: target.role, role_id: target.role_id ?? null },
-    after: { role: dbRole, role_id: nextRoleId, assigned_role: roleId },
-  });
+  // 8) Audit — best-effort. actor_id is an FK to sellers(id), so skip the audit
+  // when the caller has no linked seller rather than write the caller's
+  // auth.users id (which would just violate the FK and be dropped).
+  if (profile.seller_id) {
+    await bestEffortAudit(admin, {
+      store_id: profile.store_id,
+      actor_id: profile.seller_id,
+      action: "seller.role_changed",
+      resource: "seller",
+      resource_id: sellerId,
+      before: { role: target.role, role_id: target.role_id ?? null },
+      after: { role: dbRole, role_id: nextRoleId, assigned_role: roleId },
+    });
+  }
 
   log.info("seller role changed", { sellerId, roleId, dbRole });
   return json({ sellerId, roleId, role: dbRole, roleIdPinned: nextRoleId }, 200);

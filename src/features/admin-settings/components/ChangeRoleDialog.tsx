@@ -56,9 +56,16 @@ export function ChangeRoleDialog({
   });
 
   // Owner is immutable (never assignable); customer-base roles aren't platform
-  // access for staff. Everything else (system + custom) can be assigned.
+  // access for staff; store-scoped roles only apply to their own store (mirrors
+  // the Edge guard). Everything else (system + this store's custom roles) is
+  // assignable.
   const assignable = (rolesQuery.data ?? [])
-    .filter((r) => !r.isOwnerImmutable && r.baseRole !== "Cliente")
+    .filter(
+      (r) =>
+        !r.isOwnerImmutable &&
+        r.baseRole !== "Cliente" &&
+        (r.storeId == null || r.storeId === storeId),
+    )
     .sort((a, b) =>
       a.isSystem === b.isSystem ? a.name.localeCompare(b.name) : a.isSystem ? -1 : 1,
     );
