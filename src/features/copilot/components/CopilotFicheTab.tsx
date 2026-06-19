@@ -1,10 +1,20 @@
 import { Icon } from "@/components/Icon";
+import type { ID } from "@/shared/types";
 import type { ICopilotPanelState } from "../hooks/useCopilotPanel";
 import { COPILOT_STRINGS } from "../i18n/pt-BR";
 import { CopilotSummary } from "./CopilotSummary";
 import { CopilotSuggestionItem } from "./CopilotSuggestionItem";
+import { CopilotReply } from "./CopilotReply";
 
-export function CopilotFicheTab({ panel }: { panel: ICopilotPanelState }) {
+export function CopilotFicheTab({
+  panel,
+  conversationId,
+  onInsertReply,
+}: {
+  panel: ICopilotPanelState;
+  conversationId: ID;
+  onInsertReply: (text: string) => void;
+}) {
   const { summary, suggestions, dismiss, loading, error } = panel;
   if (loading) return <p className="text-sm text-muted-foreground">{COPILOT_STRINGS.loading}</p>;
   if (error) return <p className="text-sm text-muted-foreground">{COPILOT_STRINGS.empty}</p>;
@@ -35,6 +45,7 @@ export function CopilotFicheTab({ panel }: { panel: ICopilotPanelState }) {
       ) : (
         <p className="text-sm text-muted-foreground">{COPILOT_STRINGS.empty}</p>
       )}
+      <CopilotReply conversationId={conversationId} onInsert={onInsertReply} />
     </div>
   );
 }

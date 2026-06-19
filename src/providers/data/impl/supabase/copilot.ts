@@ -1,3 +1,5 @@
+import { getSupabaseClient } from "@/shared/lib/supabase";
+import { extractFunctionError } from "./_functionError";
 import type {
   CopilotSuggestionKind,
   CopilotSuggestionSeverity,
@@ -303,5 +305,25 @@ export const supabaseCopilotProvider: ICopilotProvider = {
   async dismissSuggestion(_id: ID): Promise<void> {
     // Fase 1/2 (mock-parity): dismissal is session-local in `useCopilotPanel`.
     // Persisting it (and the audit hook) lands with the Fase 2 AICopilotProvider.
+  },
+
+  async generateReply(conversationId: ID): Promise<string> {
+    const { data, error } = await getSupabaseClient().functions.invoke("copilot-generate", {
+      body: { conversationId },
+    });
+    if (error) throw new Error(await extractFunctionError(error));
+    const text = (data as { text?: string } | null)?.text;
+    if (typeof text !== "string") throw new Error("resposta inválida do servidor de IA");
+    return text;
+  },
+
+  async isReplyGenerationEnabled(): Promise<boolean> {
+    // Attendants cannot read ai_settings (owner-only RLS) → ask the SECURITY
+    // DEFINER RPC. Fail-closed: any error hides the button.
+    const { data, error } = await getSupabaseClient().rpc("ai_feature_enabled", {
+      p_feature: "conversation_copilot",
+    });
+    if (error) return false;
+    return data === true;
   },
 };

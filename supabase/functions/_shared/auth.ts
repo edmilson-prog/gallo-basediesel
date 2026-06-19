@@ -32,14 +32,29 @@ export interface CallerContext {
   profile: CallerProfile;
 }
 
+export interface AnyCallerContext {
+  /** The authenticated auth.users id of the caller. */
+  callerId: string;
+  /** service_role client — bypasses RLS; never expose its key to the browser. */
+  admin: SupabaseClient;
+  /** Caller-scoped client (anon + caller JWT): reads obey the caller's RLS. */
+  callerClient: SupabaseClient;
+  /** The caller's profiles row (role + store). */
+  profile: CallerProfile;
+}
+
 /**
- * Resolves the caller and their profile, enforcing `allowedRoles`.
- * Throws HttpError(401/403) with the exact messages the clients already handle.
+ * Shared caller resolution (no authorization): caller-scoped client + getUser +
+ * service_role client + profile lookup. `profile` is null when the authenticated
+ * user has no profiles row. Used by both requireCaller (role-gated) and
+ * requireAnyCaller (any authenticated caller).
  */
-export async function requireCaller(
-  req: Request,
-  allowedRoles: readonly string[],
-): Promise<CallerContext> {
+async function resolveCaller(req: Request): Promise<{
+  callerId: string;
+  admin: SupabaseClient;
+  callerClient: SupabaseClient;
+  profile: CallerProfile | null;
+}> {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) throw new HttpError(401, "missing authorization");
 
@@ -57,10 +72,34 @@ export async function requireCaller(
     .eq("auth_user_id", callerData.user.id)
     .maybeSingle();
 
+  return { callerId: callerData.user.id, admin, callerClient, profile: profile ?? null };
+}
+
+/**
+ * Resolves the caller and their profile, enforcing `allowedRoles`.
+ * Throws HttpError(401/403) with the exact messages the clients already handle.
+ */
+export async function requireCaller(
+  req: Request,
+  allowedRoles: readonly string[],
+): Promise<CallerContext> {
+  const { callerId, admin, profile } = await resolveCaller(req);
   if (!profile || !allowedRoles.includes(profile.role)) {
     const label = allowedRoles.length === 1 ? allowedRoles[0] : "owner or manager";
     throw new HttpError(403, `forbidden: requires ${label}`);
   }
+  return { callerId, admin, profile };
+}
 
-  return { callerId: callerData.user.id, admin, profile };
+/**
+ * Resolves the caller WITHOUT enforcing any role — for production proxies
+ * consumed by attendants (e.g. the conversation copilot). Authorization is
+ * delegated downstream to RLS (the caller can only act on conversations their
+ * policies let them read). Returns the caller-scoped client so the handler can
+ * validate access via RLS instead of replicating it.
+ */
+export async function requireAnyCaller(req: Request): Promise<AnyCallerContext> {
+  const { callerId, admin, callerClient, profile } = await resolveCaller(req);
+  if (!profile) throw new HttpError(403, "forbidden: no profile");
+  return { callerId, admin, callerClient, profile };
 }

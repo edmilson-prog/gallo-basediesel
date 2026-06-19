@@ -1,4 +1,5 @@
 import { getSupabaseClient } from "@/shared/lib/supabase";
+import { extractFunctionError } from "./_functionError";
 import {
   buildDefaultAiSettings,
   normalizeProviderModels,
@@ -134,19 +135,6 @@ async function writeSettings(next: IAiSettings): Promise<void> {
     })
     .eq("id", 1);
   if (error) throw new Error(`[supabase] ai write failed: ${error.message}`);
-}
-
-async function extractFunctionError(error: unknown): Promise<string> {
-  const ctx = (error as { context?: Response }).context;
-  if (ctx && typeof ctx.json === "function") {
-    try {
-      const body = (await ctx.json()) as { error?: string };
-      if (body?.error) return body.error;
-    } catch {
-      /* fall through */
-    }
-  }
-  return error instanceof Error ? error.message : "[supabase] ai operation failed";
 }
 
 export const supabaseAiProvider: IAiProvider = {

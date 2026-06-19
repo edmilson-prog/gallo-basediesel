@@ -8,3 +8,5 @@ export { useCopilotPlacement } from "./hooks/useCopilotPlacement";
 export { useCopilotSettings } from "./hooks/useCopilotSettings";
 export type { ICopilotSettingsContext } from "./hooks/useCopilotSettings";
 export type { ICopilotPanelState } from "./hooks/useCopilotPanel";
+export { useCopilotReply } from "./hooks/useCopilotReply";
+export type { ICopilotReplyState } from "./hooks/useCopilotReply";
