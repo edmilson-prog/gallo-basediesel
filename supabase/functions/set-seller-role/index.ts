@@ -74,6 +74,12 @@ servePost(async (req, { log }) => {
   const dbRole = DB_ROLE_BY_BASE_ROLE[role.base_role as string];
   if (!dbRole) throw new HttpError(400, `unsupported base role: ${role.base_role}`);
   if (dbRole === "owner") throw new HttpError(403, "cannot assign the owner role");
+  // Customer-base roles are not platform access for staff — assigning one would
+  // turn a seller into a B2C/B2B customer and brick their access. The dialog
+  // already filters these out; the Edge is the trust boundary, so enforce it.
+  if (dbRole === "b2c_customer" || dbRole === "b2b_customer") {
+    throw new HttpError(403, "cannot assign a customer role to a seller");
+  }
 
   // 4) Resolve the target seller's access profile (within the caller's store).
   const { data: target } = await admin
