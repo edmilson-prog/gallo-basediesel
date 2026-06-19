@@ -5,9 +5,10 @@ import type {
   IAnalyticsAnswer,
   IAnalyticsDataAccess,
   IMetricDefinition,
+  IQueryResolver,
 } from "@/shared/types/analytics-copilot";
 
-import { resolveQuery } from "./resolveQuery";
+import { rulesResolver } from "./rulesResolver";
 import { scopeClamp } from "./scopeClamp";
 import { executeQuery, refusalAnswer, unresolvedAnswer } from "./executeQuery";
 
@@ -23,17 +24,19 @@ export interface IRunCopilotContext {
 export interface IRunCopilotDeps {
   dataAccess: IAnalyticsDataAccess;
   catalog: IMetricDefinition[];
+  /** Pluggable resolver (default: rule-based). The LLM path is injected by the hook. */
+  resolver?: IQueryResolver;
 }
 
 export interface IRunCopilotResult {
-  answer: IAnalyticsAnswer;
+  answers: IAnalyticsAnswer[];
   errorText?: string;
 }
 
 /**
- * Pure orchestration of a copilot question (PRD-057): resolveQuery → scopeClamp → executeQuery.
- * RNF-001: the number always comes from `deps.dataAccess`; the resolver only selects
- * metric + filters. Never throws — failures become a friendly, retryable answer.
+ * Orchestrates a copilot question (PRD-057): resolver → scopeClamp → executeQuery, per metric.
+ * RNF-001: the number always comes from dataAccess; the resolver only selects metric + filters.
+ * Returns one answer per resolved metric (multi-card). Never throws.
  */
 export async function runCopilotQuery(
   question: string,
@@ -41,47 +44,48 @@ export async function runCopilotQuery(
   deps: IRunCopilotDeps,
 ): Promise<IRunCopilotResult> {
   const trimmed = question.trim();
-  if (!trimmed) {
-    return { answer: unresolvedAnswer(ctx.fallbackSuggestions) };
-  }
+  if (!trimmed) return { answers: [unresolvedAnswer(ctx.fallbackSuggestions)] };
 
   const findById = (id: string): IMetricDefinition | undefined =>
     deps.catalog.find((m) => m.id === id);
+  const resolver = deps.resolver ?? rulesResolver;
 
   try {
-    const r = resolveQuery(trimmed, { period: ctx.period }, deps.catalog);
+    const intent = await resolver(trimmed, { period: ctx.period }, deps.catalog);
 
-    if (r.query === null) {
-      if (r.ambiguous) {
+    if (intent.queries.length === 0) {
+      if (intent.ambiguous) {
         return {
-          answer: {
-            resolved: false,
-            ambiguous: true,
-            suggestions: r.candidates.map((id) => findById(id)?.label ?? id),
-          },
+          answers: [
+            {
+              resolved: false,
+              ambiguous: true,
+              suggestions: (intent.candidates ?? []).map((id) => findById(id)?.label ?? id),
+            },
+          ],
         };
       }
-      return { answer: unresolvedAnswer(ctx.fallbackSuggestions) };
+      return { answers: [unresolvedAnswer(ctx.fallbackSuggestions)] };
     }
 
-    const clamp = scopeClamp(r.query, {
-      role: ctx.role,
-      storeId: ctx.storeId,
-      sellerId: ctx.sellerId,
-    });
-    if (clamp.refusedByScope) {
-      return { answer: refusalAnswer(clamp.query) };
+    const answers: IAnalyticsAnswer[] = [];
+    for (const q of intent.queries) {
+      const clamp = scopeClamp(q, { role: ctx.role, storeId: ctx.storeId, sellerId: ctx.sellerId });
+      if (clamp.refusedByScope) {
+        answers.push(refusalAnswer(clamp.query));
+        continue;
+      }
+      const def = findById(clamp.query.metricId);
+      if (!def) {
+        answers.push(unresolvedAnswer(ctx.fallbackSuggestions));
+        continue;
+      }
+      answers.push(await executeQuery(def, clamp.query, deps.dataAccess));
     }
-
-    const def = findById(clamp.query.metricId);
-    if (!def) {
-      return { answer: unresolvedAnswer(ctx.fallbackSuggestions) };
-    }
-    const answer = await executeQuery(def, clamp.query, deps.dataAccess);
-    return { answer };
+    return { answers };
   } catch {
     return {
-      answer: { resolved: false, suggestions: ctx.fallbackSuggestions },
+      answers: [{ resolved: false, suggestions: ctx.fallbackSuggestions }],
       errorText: "Não consegui responder agora. Tente novamente.",
     };
   }
