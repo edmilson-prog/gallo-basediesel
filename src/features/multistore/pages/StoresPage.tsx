@@ -81,7 +81,10 @@ function StoreCard({
                 aria-label={inactive ? `Ativar ${store.name}` : `Desativar ${store.name}`}
                 onClick={() => onToggleActive(store)}
               >
-                <Icon icon={inactive ? "mdi:store-check-outline" : "mdi:store-off-outline"} size={18} />
+                <Icon
+                  icon={inactive ? "mdi:store-check-outline" : "mdi:store-off-outline"}
+                  size={18}
+                />
               </Button>
             )}
           </Can>

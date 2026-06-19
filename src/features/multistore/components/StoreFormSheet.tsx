@@ -175,7 +175,11 @@ export function StoreFormSheet({ store, open, onOpenChange, onSaved }: IStoreFor
               {isEdit ? (
                 <FormItem>
                   <FormLabel>Tipo</FormLabel>
-                  <Input value={isMatriz ? "Matriz" : store?.type === "parceira" ? "Parceira" : "Filial"} disabled readOnly />
+                  <Input
+                    value={isMatriz ? "Matriz" : store?.type === "parceira" ? "Parceira" : "Filial"}
+                    disabled
+                    readOnly
+                  />
                 </FormItem>
               ) : (
                 <FormField

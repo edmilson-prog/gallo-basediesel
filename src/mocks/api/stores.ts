@@ -89,7 +89,10 @@ export const storesApi = {
           }
           const activeCount = all.filter((s) => s.isActive).length;
           if (activeCount <= 1) {
-            throw new MockValidationError("Não é possível desativar a última loja ativa", "isActive");
+            throw new MockValidationError(
+              "Não é possível desativar a última loja ativa",
+              "isActive",
+            );
           }
         }
         let updated: IStore | null = null;
