@@ -6,6 +6,18 @@
 alter table public.stores
   add column if not exists is_active boolean not null default true;
 
+-- 1b. Trancar a escrita DIRETA de colunas de identidade da loja.
+--     A policy pré-existente stores_update usa is_staff() (= owner OU manager),
+--     então sem isto um Gestor faria PATCH /rest/v1/stores e burlaria o gate
+--     Owner-only das RPCs (inclusive desativar a matriz via is_active).
+--     Solução cirúrgica por COLUNA: authenticated só pode atualizar `settings`
+--     (edição de configurações pelo Gestor, ainda governada por stores_update +
+--     is_staff). As demais colunas (name/cnpj/address/type/manager_id/
+--     active_divisions/is_active) mudam APENAS via as RPCs SECURITY DEFINER
+--     owner-only abaixo (que rodam como definer e ignoram o column grant).
+revoke update on public.stores from authenticated;
+grant update (settings) on public.stores to authenticated;
+
 -- 2. Owner pode LER todas as lojas (necessário para gerenciar filiais).
 --    Aditivo: com 1 loja o resultado é idêntico ao atual.
 drop policy if exists stores_select on public.stores;

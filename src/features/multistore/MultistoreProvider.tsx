@@ -42,13 +42,17 @@ function computeAccessibleStores(
   user: { role: string; storeId?: ID; accessibleStoreIds?: ID[] } | null,
 ): IStore[] {
   if (!user) return [];
+  // Inactive (soft-deleted) stores are not switchable — they stay visible only
+  // on the management page (StoresPage). Keeping them out here keeps the
+  // StoreSwitcher and scoped listings off soft-deleted stores.
+  const active = allStores.filter((s) => s.isActive !== false);
   if (hasPermission(user as { role: never }, "store", "view", "all")) {
-    return allStores;
+    return active;
   }
   const ids = user.accessibleStoreIds ?? (user.storeId ? [user.storeId] : []);
   if (ids.length === 0) return [];
   const idSet = new Set(ids);
-  return allStores.filter((s) => idSet.has(s.id));
+  return active.filter((s) => idSet.has(s.id));
 }
 
 /**

@@ -52,4 +52,21 @@ describe("storesApi mutations", () => {
     const disabled = await storesApi.setActive(created.id, false);
     expect(disabled.isActive).toBe(false);
   });
+
+  it("limpa o gestor ao atualizar sem managerId (paridade com supabase)", async () => {
+    const created = await storesApi.create({
+      name: "GALLO Erechim",
+      type: "filial",
+      cnpj: "00.000.000/0001-00",
+      address: "Erechim/RS",
+      managerId: "seller-x",
+      activeDivisions: ["parts"],
+    });
+    expect(created.managerId).toBe("seller-x");
+    const updated = await storesApi.update(created.id, {
+      name: "GALLO Erechim",
+      managerId: undefined,
+    });
+    expect(updated.managerId).toBeUndefined();
+  });
 });

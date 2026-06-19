@@ -58,7 +58,9 @@ export const storesApi = {
               ...(patch.name !== undefined ? { name: patch.name } : {}),
               ...(patch.cnpj !== undefined ? { cnpj: patch.cnpj } : {}),
               ...(patch.address !== undefined ? { address: patch.address } : {}),
-              ...(patch.managerId !== undefined ? { managerId: patch.managerId } : {}),
+              // managerId is explicit-set (mirrors update_store's non-coalesced
+              // manager_id) so "Sem gestor" (undefined) clears it in both backends.
+              managerId: patch.managerId,
               ...(patch.activeDivisions !== undefined
                 ? { activeDivisions: [...patch.activeDivisions] }
                 : {}),

@@ -780,6 +780,43 @@ begin
   end if;
 end $$;
 
+-- ---------------------------------------------------------------------------
+-- Bloco A1 (gestão multi-loja): escrita de IDENTIDADE da loja é Owner-only.
+-- A policy stores_update usa is_staff() (= owner OU manager), então a defesa
+-- contra um Gestor alterar/desativar lojas via PATCH direto é o GRANT por
+-- coluna: authenticated só pode atualizar `settings`; as demais colunas mudam
+-- apenas pelas RPCs SECURITY DEFINER owner-only.
+-- ---------------------------------------------------------------------------
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"manager","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+
+do $$
+begin
+  -- (a) Coluna de identidade: UPDATE direto deve ser NEGADO (column grant).
+  begin
+    update public.stores set name = name
+      where id = '00000000-0000-0000-0000-000000000001';
+    raise exception 'manager: direct UPDATE of stores.name should be denied';
+  exception
+    when insufficient_privilege then null; -- esperado
+  end;
+  -- (b) is_active: também negado (impede burlar a guarda da matriz).
+  begin
+    update public.stores set is_active = false
+      where id = '00000000-0000-0000-0000-000000000001';
+    raise exception 'manager: direct UPDATE of stores.is_active should be denied';
+  exception
+    when insufficient_privilege then null; -- esperado
+  end;
+  -- (c) settings: PERMITIDO (edição de configurações pelo Gestor).
+  update public.stores set settings = settings
+    where id = '00000000-0000-0000-0000-000000000001';
+end $$;
+
 reset role;
 
 select 'ALL RLS REGRESSION TESTS PASSED' as result;
