@@ -18,11 +18,13 @@ export interface ICustomerProfileQuery {
 }
 
 /**
- * @param conversationId When the fiche is opened FROM a conversation, the read
- *   falls back to the conversation-gated path (`getViaConversation`) if the
- *   direct `get` is RLS-blocked — so a non-staff seller can see the fiche of a
- *   POOL conversation's customer (Portão A) without the global customers policy
- *   being widened (which tripped statement_timeout in #120). Omit it on the
+ * @param conversationId When the fiche is opened FROM a conversation, the
+ *   customer is read gated-once by the CONVERSATION (`getViaConversation`)
+ *   instead of the per-carteira customers policy — so a non-staff seller sees
+ *   the fiche of a POOL conversation's customer (Portão A) WITHOUT the noisy
+ *   direct-get 406, and without widening the global customers policy (which
+ *   tripped statement_timeout in #120). Notes are fetched separately
+ *   (best-effort: empty when the customer_notes RLS hides them). Omit it on the
  *   standalone `/app/clientes/:id` route, where only the carteira/staff read
  *   applies.
  */
@@ -40,15 +42,19 @@ export function useCustomerProfile(
     queryFn: async ({ queryKey }) => {
       const [, id, convId] = queryKey;
       if (!id) return null;
+      // Opened FROM a conversation: read gated-once by the conversation (no 406
+      // for a POOL customer), then notes best-effort. Falls through to the
+      // direct get only if the conversation path yields nothing.
+      if (convId) {
+        const viaConv = await provider.getViaConversation(convId).catch(() => null);
+        if (viaConv) {
+          const notes = await provider.listNotes(id).catch(() => []);
+          return { ...viaConv, notes } as ICustomer;
+        }
+      }
       try {
         return await provider.get(id);
       } catch {
-        // Pool customer: the per-carteira customers RLS hides it (406). When the
-        // fiche was opened from a conversation, fall back to the
-        // conversation-gated read so it still renders; otherwise soft notFound.
-        if (convId) {
-          return await provider.getViaConversation(convId).catch(() => null);
-        }
         return null;
       }
     },
