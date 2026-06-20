@@ -6,6 +6,30 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.110.0] — Turnstile · 2026-06-20
+
+**Modelo de acesso a conversas reescrito em "2 portões" — a instância (número de origem) governa o atendimento.** A leitura para papéis não-staff resolve em dois portões independentes: **Atendimento** (conversas/mensagens/ficha) pela **instância** e **Carteira** (clientes/orçamentos/pedidos) pelo **dono**. Um vendedor que perde o acesso a um número deixa de ver as conversas daquele número, inclusive as já atribuídas. Junto vão a correção do "Lead anônimo" na fila, o fim das falhas ao abrir conversas grandes da fila e o menu lateral que se adapta ao papel de cada usuário.
+
+### Added
+
+- **Modelo de acesso "2 portões"** — `can_access_conversation` é o portão único do atendimento, com a **instância como portão-mestre** (atribuídas inclusas). Novo parâmetro por loja **"Convidados acessam conversas de outras instâncias"** (Configurações → WhatsApp, Owner-only; padrão desligado), que decide se um co-responsável convidado para uma conversa transita entre números. Documentação completa do modelo em `docs/dev/conversation-access-model.md`.
+- **Menu lateral dirigido por permissões** — os itens operacionais da barra lateral aparecem conforme a matriz de permissões do papel do usuário.
+
+### Changed
+
+- **Leituras escopadas por conversa via funções de servidor (performance):** a página de mensagens, a ficha aberta da conversa e o contato passam a ser resolvidos por funções `SECURITY DEFINER` que checam o acesso **uma única vez** — em vez da política por-linha, que ficava lenta em conversas grandes. Abrir uma conversa de ~600 mensagens caiu de ~640 ms para ~8 ms.
+
+### Fixed
+
+- **"Lead anônimo" na fila** — atendentes voltam a ver o nome e o telefone reais dos contatos das conversas da fila, sem afrouxar o isolamento da carteira de clientes.
+- **Falha ao abrir conversas grandes da fila** — corrigido o esgotamento de tempo (erro 500) que travava o carregamento das mensagens ao alternar rápido entre conversas não atribuídas.
+- **Erros no console (406) ao abrir conversas do pool** — todos os leitores do cliente da conversa (cabeçalho, ficha, copiloto e agendador) passam pelo caminho com permissão correta. Também corrigido o contexto do copiloto, que vinha truncado em conversas grandes.
+- **Auditoria** — o registro de ações administrativas passa a gravar corretamente o autor (vendedor) de cada ação.
+
+### Security
+
+- **Isolamento de atendimento por número de origem** — perder o acesso a um número agora remove o acesso às conversas daquele número (inclusive atribuídas), fechando a brecha em que conversas atribuídas continuavam visíveis após a perda do número.
+
 ## [0.109.0] — Mandate · 2026-06-19
 
 **Papéis agora são atribuíveis por usuário — qualquer papel, de sistema ou customizado.** O Owner abre Configurações → Usuários → "Alterar papel" e escolhe entre todos os papéis (os 7 de sistema + os customizados criados no Editor de Papéis), não só os três básicos. O **papel-base** continua governando a RLS (isolamento de dados intacto); um novo vínculo `profiles.role_id` resolve o **conjunto de permissões efetivo** na interface. Fecha o épico Pessoas & Acesso na ponta da atribuição.
