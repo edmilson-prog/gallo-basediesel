@@ -6,7 +6,7 @@ import type {
 } from "../../contracts/messages";
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
-import { classifyMediaRef, whatsappMediaObjectPath } from "@/shared/utils/mediaRef";
+import { classifyMediaRef, partitionMediaRefs, whatsappMediaObjectPath } from "@/shared/utils/mediaRef";
 
 /** Storage bucket holding conversation media bytes (PRD-106). */
 const MEDIA_BUCKET = "whatsapp-media";
@@ -224,6 +224,32 @@ export const supabaseMessagesProvider: IMessagesProvider = {
       .createSignedUrl(objectPath, MEDIA_SIGNED_URL_TTL_SECONDS);
     if (error || !data?.signedUrl) return null;
     return data.signedUrl;
+  },
+
+  async resolveMediaUrls(refs: string[]): Promise<Record<string, string | null>> {
+    const plan = partitionMediaRefs(refs);
+    const out: Record<string, string | null> = {};
+    for (const { ref, url } of plan.passthrough) out[ref] = url;
+    for (const ref of plan.unavailable) out[ref] = null;
+    if (plan.toSign.length === 0) return out;
+
+    // Sign every private object in one request. Dedup object paths (two refs
+    // could point at the same object) so the batch stays minimal; map results
+    // back to each ref by its object path.
+    const uniquePaths = Array.from(new Set(plan.toSign.map((s) => s.objectPath)));
+    const { data, error } = await getSupabaseClient()
+      .storage.from(MEDIA_BUCKET)
+      .createSignedUrls(uniquePaths, MEDIA_SIGNED_URL_TTL_SECONDS);
+    const urlByPath = new Map<string, string | null>();
+    if (!error && data) {
+      for (const row of data) {
+        if (row.path) urlByPath.set(row.path, row.error ? null : (row.signedUrl ?? null));
+      }
+    }
+    for (const { ref, objectPath } of plan.toSign) {
+      out[ref] = urlByPath.has(objectPath) ? (urlByPath.get(objectPath) ?? null) : null;
+    }
+    return out;
   },
 
   async listConversationMedia(conversationId: ID): Promise<IMessage[]> {
