@@ -36,6 +36,12 @@ begin
 end;
 $$;
 
+-- Lock the SECURITY DEFINER helper to authenticated callers (mirrors the
+-- hardening of the other access-control helpers). The storage policy evaluates
+-- it in its own context regardless, so this only removes a needless RPC oracle.
+revoke all on function public.can_read_conversation_media(text) from public, anon;
+grant execute on function public.can_read_conversation_media(text) to authenticated;
+
 -- Same authorized set as before ("read media iff you can access its
 -- conversation"), evaluated O(1) instead of O(conversations). No widening.
 drop policy if exists "storage_whatsapp_media_select_inbound" on storage.objects;
