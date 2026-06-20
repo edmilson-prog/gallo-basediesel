@@ -1,4 +1,4 @@
-import { customersApi } from "@/mocks";
+import { conversationsApi, customersApi } from "@/mocks";
 import type { ICustomersProvider } from "../../contracts/customers";
 import { logMockMutation } from "./_audit";
 import { assertImmutableStoreId, scopedListParams, withCreateStoreId } from "./_storeScope";
@@ -44,4 +44,12 @@ export const mockCustomersProvider: ICustomersProvider = {
   },
   addNote: (customerId, content, authorId) => customersApi.addNote(customerId, content, authorId),
   listNotes: (customerId) => customersApi.listNotes(customerId),
+  getViaConversation: async (conversationId) => {
+    // No RLS in the mock store — resolve conversation → its customer directly,
+    // mirroring the supabase conversation-gated RPC. Null when the conversation
+    // is missing or has no linked customer (e.g. a lead-only conversation).
+    const conv = await conversationsApi.get(conversationId).catch(() => null);
+    if (!conv?.customerId) return null;
+    return customersApi.get(conv.customerId).catch(() => null);
+  },
 };

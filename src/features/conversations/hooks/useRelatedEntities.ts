@@ -114,20 +114,26 @@ export function useRelatedEntities(conversations: IConversation[]): IRelatedEnti
       );
     }
 
-    // Volatile preview → refresh the last message for the current set. The write
-    // is recency-guarded: overlapping ticks can resolve out of order, so a slow
-    // older lookup must not stomp a newer preview already in the cache.
-    for (const c of conversations) {
-      tasks.push(
-        messagesProvider
-          .list({ conversationId: c.id, page: 1, pageSize: 1, orderDir: "desc" })
-          .then((res) => {
-            const next = res.data[0];
-            if (next) messagesRef.current.set(c.id, newerMessage(messagesRef.current.get(c.id), next));
-          })
-          .catch(() => undefined),
-      );
-    }
+    // Volatile preview → ONE batched RPC for the whole page's last messages
+    // (supabase: `last_messages_for_conversations`, gated by can_access). This
+    // replaces the ~50 concurrent per-conversation reads that — for a non-staff
+    // seller, each re-evaluating the RLS access gate — saturated the backend
+    // (statement_timeout → 500 on /messages). The merge is recency-guarded:
+    // overlapping ticks can resolve out of order, so a slow older lookup must
+    // not stomp a newer preview already in the cache.
+    tasks.push(
+      messagesProvider
+        .listLastMessages(conversations.map((c) => c.id))
+        .then((msgs) => {
+          for (const m of msgs) {
+            messagesRef.current.set(
+              m.conversationId,
+              newerMessage(messagesRef.current.get(m.conversationId), m),
+            );
+          }
+        })
+        .catch(() => undefined),
+    );
 
     // Paint whatever is already cached immediately, then republish as the batch
     // settles. NOT gated on a cancellation flag: the caches are monotonic, so a
