@@ -40,12 +40,17 @@ stable
 security definer
 set search_path to ''
 as $function$
+  -- Compare the extracted TEXT to 'true' rather than ::boolean: the settings jsonb
+  -- is app-written and unvalidated, and a non-canonical value (e.g. "yes") would
+  -- make ::boolean RAISE inside can_access_conversation — erroring the whole
+  -- conversations/messages SELECT instead of failing closed. `= 'true'` never
+  -- throws: missing key / any non-"true" value → false.
   select coalesce(
     (
-      select (s.settings ->> 'participantCrossInstance')::boolean
+      select s.settings ->> 'participantCrossInstance'
       from public.stores s
       where s.id = store
-    ),
+    ) = 'true',
     false
   );
 $function$;
