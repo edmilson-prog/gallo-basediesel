@@ -21,17 +21,17 @@ import {
   CHANNEL_META,
   STATUS_META,
   TEMPERATURE_META,
-  getConversationDisplay,
+  displayFromContact,
   getMessagePreview,
 } from "../utils/conversationDisplay";
 import { statusVisual } from "../utils/messageDisplay";
 import { INBOX_STRINGS, CONVERSATION_STRINGS } from "../i18n/pt-BR";
-import type { ICustomer, ILead } from "@/shared/types";
+import type { IConversationContact } from "@/shared/types";
 
 export interface IConversationListItemProps {
   conversation: IConversation;
-  customer: ICustomer | null;
-  lead: ILead | null;
+  /** Display-ready contact resolved server-side (pool-safe — see useRelatedEntities). */
+  contact: IConversationContact | null;
   lastMessage: IMessage | null;
   isSelected: boolean;
   isUnread: boolean;
@@ -71,8 +71,7 @@ function highlight(text: string, term?: string): React.ReactNode {
 
 function ConversationListItemInner({
   conversation,
-  customer,
-  lead,
+  contact,
   lastMessage,
   isSelected,
   isUnread,
@@ -90,8 +89,8 @@ function ConversationListItemInner({
   const [hover, setHover] = useState(false);
 
   const display = useMemo(
-    () => getConversationDisplay(conversation, customer, lead),
-    [conversation, customer, lead],
+    () => displayFromContact(conversation, contact),
+    [conversation, contact],
   );
 
   const preview = getMessagePreview(lastMessage);

@@ -1,4 +1,11 @@
-import type { ID, IConversation, IDistributionTrace, IMessage } from "@/shared/types";
+import type {
+  ID,
+  IConversation,
+  IConversationContact,
+  IDistributionTrace,
+  IMessage,
+  LeadTemperature,
+} from "@/shared/types";
 import type {
   IConversationsProvider,
   ICreateConversationInput,
@@ -62,6 +69,17 @@ interface ConversationRow {
   last_message_at: string;
   unread_count: number;
   created_at: string;
+}
+
+/** Shape returned by the `conversation_contacts` RPC (see migration). */
+interface ConversationContactRow {
+  conversation_id: string;
+  ref_id: string | null;
+  is_lead: boolean;
+  name: string | null;
+  phone: string | null;
+  avatar_url: string | null;
+  temperature: string | null;
 }
 
 const TABLE = "conversations";
@@ -202,6 +220,30 @@ export const supabaseConversationsProvider: IConversationsProvider = {
       page,
       pageSize,
     };
+  },
+
+  async listContacts(conversationIds: ID[]): Promise<IConversationContact[]> {
+    if (conversationIds.length === 0) return [];
+    // SECURITY DEFINER RPC gated by can_access_conversation: returns the contact
+    // for any of these conversations the caller can access (POOL included),
+    // bypassing the customers RLS that would hide an unassigned conversation's
+    // customer. The access check runs only over this bounded id list — never a
+    // full-table customers scan (that is what tripped statement_timeout in #120).
+    const { data, error } = await getSupabaseClient().rpc("conversation_contacts", {
+      p_ids: conversationIds,
+    });
+    if (error)
+      throw new Error(`[supabase] conversations.listContacts failed: ${error.message}`);
+    const rows = (data ?? []) as unknown as ConversationContactRow[];
+    return rows.map((r) => ({
+      conversationId: r.conversation_id,
+      refId: r.ref_id ?? r.conversation_id,
+      isLead: r.is_lead,
+      name: r.name ?? "",
+      phone: r.phone ?? "",
+      avatarUrl: r.avatar_url ?? undefined,
+      temperature: (r.temperature as LeadTemperature | null) ?? null,
+    }));
   },
 
   async get(id: ID): Promise<IConversation> {

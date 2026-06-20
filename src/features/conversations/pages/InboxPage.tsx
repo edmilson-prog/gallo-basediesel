@@ -356,12 +356,7 @@ export function InboxPage() {
               <ConversationListItem
                 key={conversation.id}
                 conversation={conversation}
-                customer={
-                  conversation.customerId
-                    ? (related.customers.get(conversation.customerId) ?? null)
-                    : null
-                }
-                lead={conversation.leadId ? (related.leads.get(conversation.leadId) ?? null) : null}
+                contact={related.contacts.get(conversation.id) ?? null}
                 lastMessage={related.lastMessages.get(conversation.id) ?? null}
                 isSelected={conversation.id === selectedId}
                 isUnread={isUnread(conversation)}

@@ -150,7 +150,7 @@ export function ConversationPage() {
     );
   }
 
-  const { conversation, customer, lead, whatsappAccount, assignedSeller } = detail;
+  const { conversation, customer, lead, contact, whatsappAccount, assignedSeller } = detail;
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -162,6 +162,7 @@ export function ConversationPage() {
                 conversation={conversation}
                 customer={customer}
                 lead={lead}
+                contact={contact}
                 assignedSeller={assignedSeller}
                 showAssignee={showAssignee}
                 ficheOpen={fiche.open}

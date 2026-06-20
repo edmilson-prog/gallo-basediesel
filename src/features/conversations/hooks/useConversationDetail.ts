@@ -1,6 +1,14 @@
 import { useCallback } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import type { ICustomer, ID, IConversation, ILead, ISeller, IWhatsAppAccount } from "@/shared/types";
+import type {
+  ICustomer,
+  ID,
+  IConversation,
+  IConversationContact,
+  ILead,
+  ISeller,
+  IWhatsAppAccount,
+} from "@/shared/types";
 import {
   useConversationsProvider,
   useCustomersProvider,
@@ -14,6 +22,12 @@ interface IConversationDetailData {
   conversation: IConversation | null;
   customer: ICustomer | null;
   lead: ILead | null;
+  /**
+   * Display-ready contact resolved server-side (pool-safe). Reliably carries the
+   * name/phone/avatar even when `customer`/`lead` are RLS-hidden for a seller
+   * handling a POOL conversation — the header falls back to it for the title.
+   */
+  contact: IConversationContact | null;
   whatsappAccount: IWhatsAppAccount | null;
   /** Seller the conversation is assigned to (null when unassigned/unreadable). */
   assignedSeller: ISeller | null;
@@ -31,6 +45,7 @@ const EMPTY_DETAIL: IConversationDetailData = {
   conversation: null,
   customer: null,
   lead: null,
+  contact: null,
   whatsappAccount: null,
   assignedSeller: null,
   notFound: false,
@@ -80,8 +95,10 @@ export function useConversationDetail(conversationId: ID | null): IConversationD
       }
 
       // Related entities load in parallel; each fails soft to null so a missing
-      // customer or an RLS-hidden seller never blocks the header.
-      const [customer, lead, whatsappAccount, assignedSeller] = await Promise.all([
+      // customer or an RLS-hidden seller never blocks the header. `contact` is the
+      // pool-safe display source: it resolves the name even when `customer`/`lead`
+      // are RLS-hidden for a seller handling an unassigned conversation.
+      const [customer, lead, whatsappAccount, assignedSeller, contacts] = await Promise.all([
         conversation.customerId
           ? customersProvider.get(conversation.customerId).catch(() => null)
           : null,
@@ -92,9 +109,19 @@ export function useConversationDetail(conversationId: ID | null): IConversationD
         conversation.assignedSellerId
           ? sellersProvider.get(conversation.assignedSellerId).catch(() => null)
           : null,
+        conversationsProvider.listContacts([id]).catch(() => []),
       ]);
+      const contact = contacts.find((c) => c.conversationId === id) ?? null;
 
-      return { conversation, customer, lead, whatsappAccount, assignedSeller, notFound: false };
+      return {
+        conversation,
+        customer,
+        lead,
+        contact,
+        whatsappAccount,
+        assignedSeller,
+        notFound: false,
+      };
     },
     enabled: !!conversationId,
     // Keep the previous conversation's header during a switch instead of a

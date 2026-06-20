@@ -1,39 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ICustomer, ID, ILead, IMessage, IConversation } from "@/shared/types";
-import { useCustomersProvider, useLeadsProvider, useMessagesProvider } from "@/providers/data";
+import type { ID, IConversationContact, IMessage, IConversation } from "@/shared/types";
+import { useConversationsProvider, useMessagesProvider } from "@/providers/data";
 
 /** Directly-related entities the inbox list rows render, resolved per conversation. */
 export interface IRelatedEntities {
-  customers: Map<ID, ICustomer>;
-  leads: Map<ID, ILead>;
+  /** Display-ready contact (name/phone/avatar) keyed by conversation id. */
+  contacts: Map<ID, IConversationContact>;
   lastMessages: Map<ID, IMessage>;
 }
 
 const EMPTY_RELATED: IRelatedEntities = {
-  customers: new Map(),
-  leads: new Map(),
+  contacts: new Map(),
   lastMessages: new Map(),
 };
 
-/** Unique, defined customer/lead ids referenced by the given conversations. */
-export function collectRelatedIds(conversations: IConversation[]): {
-  customerIds: ID[];
-  leadIds: ID[];
-} {
-  const customerIds = Array.from(
-    new Set(conversations.map((c) => c.customerId).filter((id): id is ID => Boolean(id))),
-  );
-  const leadIds = Array.from(
-    new Set(conversations.map((c) => c.leadId).filter((id): id is ID => Boolean(id))),
-  );
-  return { customerIds, leadIds };
-}
-
 /**
  * The subset of `ids` not yet resolved in `cache`. This is what makes a reorder
- * cheap: once a contact is cached it is never re-fetched, so the recency churn
- * that constantly replaces the conversation array can no longer restart (and
- * blank) the whole resolution batch.
+ * cheap: once a conversation's contact is cached it is never re-requested, so the
+ * recency churn that constantly replaces the conversation array can no longer
+ * restart (and blank) the whole resolution batch.
  */
 export function missingIds<T>(ids: ID[], cache: ReadonlyMap<ID, T>): ID[] {
   return ids.filter((id) => !cache.has(id));
@@ -53,39 +38,38 @@ export function newerMessage(prev: IMessage | undefined, next: IMessage): IMessa
 }
 
 /**
- * Resolves the customer / lead / last-message each conversation row needs.
+ * Resolves the contact + last-message each conversation row needs.
+ *
+ * Contacts come from a single `conversations.listContacts` call (supabase: the
+ * SECURITY DEFINER `conversation_contacts` RPC). This is what lets a non-staff
+ * seller see the real name of a POOL conversation: the per-entity
+ * `customers.get()` it replaces was RLS-blocked for unassigned conversations and
+ * silently fell back to "Lead anônimo". Resolving by conversation also collapses
+ * the old N per-customer reads into ONE bounded round-trip.
  *
  * The inbox is sorted by recency and kept live by `useRealtimeConversations`,
- * which bumps a refetch tick on every messages/conversations event (including
- * every delivery/read receipt on a busy campaign instance). Each tick re-pulls
- * page 1 and a new inbound reorders the list, so the `conversations` array — and
- * its id order — churns constantly.
+ * which bumps a refetch tick on every messages/conversations event, so the
+ * `conversations` array — and its id order — churns constantly. Contacts resolve
+ * into a PERSISTENT cache keyed by conversation id that accumulates across
+ * renders and is never wiped: each conversation's contact is requested once and
+ * reused, so a superseded batch can only ever ADD resolved contacts, never blank
+ * them. Results publish immediately (cached entries paint at once) and again as
+ * the batch settles. Last messages stay volatile — refreshed for the current set
+ * every run so the preview tracks new traffic.
  *
- * The previous implementation rebuilt a fresh result map per run and only
- * committed it once the WHOLE batch (≈30 customers + 30 last-message lookups)
- * settled, gated on a `cancelled` flag. On a busy inbox each reorder cancelled
- * the in-flight batch before it could finish, so for slower (non-staff) callers
- * the map never committed and every row fell back to "Lead anônimo" — while
- * faster (staff) callers won the race and resolved fine. RLS was a red herring:
- * the rows are readable; the resolver just never published.
- *
- * Fix: resolve into PERSISTENT caches that accumulate across renders and are
- * never wiped. Customer/lead identity is stable, so each id is fetched once and
- * reused forever; a superseded batch can only ever ADD resolved contacts, never
- * blank them. Results are published immediately (cached entries paint at once)
- * and again as the batch settles. Last messages stay volatile — they are
- * refreshed for the current set every run so the preview tracks new traffic.
- *
- * Trade-off: a customer renamed mid-session keeps its cached list label until
- * the page reloads; the detail/ficha refetches fresh, so this is cosmetic.
+ * Trade-off: a contact renamed mid-session keeps its cached list label until the
+ * page reloads; the detail/ficha refetches fresh, so this is cosmetic.
  */
 export function useRelatedEntities(conversations: IConversation[]): IRelatedEntities {
-  const customersProvider = useCustomersProvider();
-  const leadsProvider = useLeadsProvider();
+  const conversationsProvider = useConversationsProvider();
   const messagesProvider = useMessagesProvider();
 
-  const customersRef = useRef<Map<ID, ICustomer>>(new Map());
-  const leadsRef = useRef<Map<ID, ILead>>(new Map());
+  const contactsRef = useRef<Map<ID, IConversationContact>>(new Map());
+  // Conversations the RPC returned NO contact for (e.g. link-less). Remembered so
+  // they are not re-requested on every realtime tick (the inbox churns its id
+  // order constantly). Only populated on a SUCCESSFUL call, so a transient
+  // failure still retries.
+  const emptyRef = useRef<Set<ID>>(new Set());
   const messagesRef = useRef<Map<ID, IMessage>>(new Map());
   const mountedRef = useRef(true);
   useEffect(() => {
@@ -101,8 +85,7 @@ export function useRelatedEntities(conversations: IConversation[]): IRelatedEnti
   const publish = useCallback(() => {
     if (!mountedRef.current) return;
     setRelated({
-      customers: new Map(customersRef.current),
-      leads: new Map(leadsRef.current),
+      contacts: new Map(contactsRef.current),
       lastMessages: new Map(messagesRef.current),
     });
   }, []);
@@ -112,31 +95,33 @@ export function useRelatedEntities(conversations: IConversation[]): IRelatedEnti
   useEffect(() => {
     if (conversations.length === 0) return;
 
-    const { customerIds, leadIds } = collectRelatedIds(conversations);
-
+    const convIds = conversations.map((c) => c.id);
     const tasks: Promise<unknown>[] = [];
 
-    // Stable identity → fetch each customer/lead once, then reuse from cache.
-    for (const id of missingIds(customerIds, customersRef.current)) {
+    // Contacts: one bounded RPC for the not-yet-resolved conversations. Stable
+    // identity → each conversation's contact is requested once and reused, so a
+    // superseded run only ADDS contacts (never blanks an already-resolved row).
+    const missing = missingIds(convIds, contactsRef.current).filter(
+      (id) => !emptyRef.current.has(id),
+    );
+    if (missing.length > 0) {
       tasks.push(
-        customersProvider
-          .get(id)
-          .then((c) => {
-            customersRef.current.set(id, c);
+        conversationsProvider
+          .listContacts(missing)
+          .then((rows) => {
+            const returned = new Set<ID>();
+            for (const r of rows) {
+              contactsRef.current.set(r.conversationId, r);
+              returned.add(r.conversationId);
+            }
+            // Remember misses (success only) so an unresolvable conversation is not
+            // re-requested every tick; a transient failure (.catch) retries.
+            for (const id of missing) if (!returned.has(id)) emptyRef.current.add(id);
           })
           .catch(() => undefined),
       );
     }
-    for (const id of missingIds(leadIds, leadsRef.current)) {
-      tasks.push(
-        leadsProvider
-          .get(id)
-          .then((l) => {
-            leadsRef.current.set(id, l);
-          })
-          .catch(() => undefined),
-      );
-    }
+
     // Volatile preview → refresh the last message for the current set. The write
     // is recency-guarded: overlapping ticks can resolve out of order, so a slow
     // older lookup must not stomp a newer preview already in the cache.
