@@ -1,4 +1,5 @@
 import type { ID, ISO8601 } from "./common";
+import type { LeadTemperature } from "./lead";
 
 /** Communication channel of a conversation. */
 export type ConversationChannel = "whatsapp" | "ecommerce" | "phone" | "site";
@@ -44,6 +45,27 @@ export interface IConversation {
   lastMessageAt: ISO8601;
   unreadCount: number;
   createdAt: ISO8601;
+}
+
+/**
+ * Display-ready contact info for a conversation, resolved server-side for the
+ * Inbox list + header. Sourced from the `conversation_contacts` RPC (SECURITY
+ * DEFINER, gated by can_access_conversation) so a non-staff seller sees the real
+ * name of a POOL conversation they can access — WITHOUT widening the customers
+ * RLS (the per-row widening was reverted for tripping statement_timeout on bulk
+ * customer scans). The mock resolves it directly from the in-memory store.
+ */
+export interface IConversationContact {
+  conversationId: ID;
+  /** Customer or lead id — seeds the avatar's stable hue. */
+  refId: ID;
+  isLead: boolean;
+  /** Resolved display name (B2B nomeFantasia / B2C fullName / lead name). */
+  name: string;
+  phone: string;
+  avatarUrl?: string;
+  /** Lead temperature when the contact is a lead; null/absent for customers. */
+  temperature?: LeadTemperature | null;
 }
 
 /** Direction of a message relative to the company. */

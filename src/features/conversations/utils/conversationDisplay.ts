@@ -2,6 +2,7 @@ import type {
   ConversationChannel,
   ConversationStatus,
   IConversation,
+  IConversationContact,
   ICustomer,
   ILead,
   IMessage,
@@ -25,6 +26,19 @@ export interface IConversationDisplay {
   phone: string;
   isLead: boolean;
   temperature: LeadTemperature | null;
+}
+
+/** The "Lead anônimo" fallback — used when no contact could be resolved. */
+function unknownDisplay(conversation: IConversation): IConversationDisplay {
+  return {
+    name: INBOX_STRINGS.unknownParticipant,
+    initials: "?",
+    isPhoneName: false,
+    hue: hashHue(conversation.id),
+    phone: "",
+    isLead: true,
+    temperature: null,
+  };
 }
 
 export function getConversationDisplay(
@@ -56,14 +70,32 @@ export function getConversationDisplay(
       temperature: lead.temperature,
     };
   }
+  return unknownDisplay(conversation);
+}
+
+/**
+ * Display for a conversation from a server-resolved {@link IConversationContact}
+ * — the pool-safe path. The `conversation_contacts` RPC returns a contact for any
+ * conversation the caller can access (POOL included), so this reliably renders
+ * the real name where the per-entity `customers.get()` would be RLS-blocked and
+ * fall back to "Lead anônimo". A missing/empty contact still degrades to the
+ * unknown fallback.
+ */
+export function displayFromContact(
+  conversation: IConversation,
+  contact: IConversationContact | null,
+): IConversationDisplay {
+  const name = contact?.name?.trim();
+  if (!contact || !name) return unknownDisplay(conversation);
   return {
-    name: INBOX_STRINGS.unknownParticipant,
-    initials: "?",
-    isPhoneName: false,
-    hue: hashHue(conversation.id),
-    phone: "",
-    isLead: true,
-    temperature: null,
+    name,
+    initials: initialsFrom(name),
+    avatarUrl: contact.avatarUrl,
+    isPhoneName: isPhoneLikeName(name),
+    hue: hashHue(contact.refId),
+    phone: contact.phone,
+    isLead: contact.isLead,
+    temperature: contact.temperature ?? null,
   };
 }
 

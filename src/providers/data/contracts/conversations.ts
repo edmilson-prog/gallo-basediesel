@@ -1,4 +1,11 @@
-import type { IConversation, IDistributionTrace, IMessage, ID, ISO8601 } from "@/shared/types";
+import type {
+  IConversation,
+  IConversationContact,
+  IDistributionTrace,
+  IMessage,
+  ID,
+  ISO8601,
+} from "@/shared/types";
 import type { IPaginatedResult, IPaginationParams } from "./_shared";
 
 /** Ordering modes supported by `IConversationsProvider.list`. */
@@ -92,4 +99,13 @@ export interface IConversationsProvider {
    * bound to the chosen instance, no distribution / no inbound bubble.
    */
   createOutbound(input: ICreateOutboundConversationInput): Promise<IConversation>;
+  /**
+   * Resolve display-ready contact info (name/phone/avatar) for the given
+   * conversations — for the Inbox list + the conversation header. Returns a row
+   * only for conversations the caller can access; POOL conversations included
+   * (supabase: the SECURITY DEFINER `conversation_contacts` RPC gated by
+   * can_access_conversation, so the contact name is visible even when the
+   * customers RLS would hide the row for an unassigned conversation).
+   */
+  listContacts(conversationIds: ID[]): Promise<IConversationContact[]>;
 }
