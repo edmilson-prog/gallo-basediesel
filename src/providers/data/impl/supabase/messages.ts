@@ -6,38 +6,13 @@ import type {
 } from "../../contracts/messages";
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
-import { classifyMediaRef } from "@/shared/utils/mediaRef";
+import { classifyMediaRef, whatsappMediaObjectPath } from "@/shared/utils/mediaRef";
 
 /** Storage bucket holding conversation media bytes (PRD-106). */
 const MEDIA_BUCKET = "whatsapp-media";
 /** Signed-URL lifetime for in-app playback/preview — comfortably long so a
  *  conversation left open doesn't expire mid-listen (Storage RLS still gates). */
 const MEDIA_SIGNED_URL_TTL_SECONDS = 3600;
-
-/**
- * If a stored media ref is itself a signed/public URL of OUR `whatsapp-media`
- * bucket, pull the object path back out so it can be re-signed fresh on display.
- * Outbound media historically persisted a short-lived signed URL minted at send
- * time (~5 min), which renders as a dead link once expired; re-signing from the
- * path fixes both already-sent and future messages. Returns null for any other
- * URL (external seed/mock assets), which the caller then uses verbatim.
- * Tolerant of sign/public/authenticated URL shapes.
- */
-function whatsappMediaObjectPath(rawUrl: string): string | null {
-  try {
-    const { pathname } = new URL(rawUrl);
-    const marker = "/storage/v1/object/";
-    const at = pathname.indexOf(marker);
-    if (at === -1) return null;
-    // e.g. "sign/whatsapp-media/<store>/<uuid>.jpg" → ["sign","whatsapp-media",…]
-    const [, bucket, ...rest] = pathname.slice(at + marker.length).split("/");
-    if (bucket !== MEDIA_BUCKET || rest.length === 0) return null;
-    const objectPath = rest.join("/");
-    return objectPath ? decodeURIComponent(objectPath) : null;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Supabase implementation of {@link IMessagesProvider} (PRD-100+).
