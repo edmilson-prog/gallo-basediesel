@@ -109,29 +109,31 @@ type MessageSendInput = Omit<
 
 export const supabaseMessagesProvider: IMessagesProvider = {
   async list(params: IListMessagesParams): Promise<IPaginatedResult<IMessage>> {
-    // `estimated` resolves the count from the planner stats instead of a full
-    // `COUNT(*)` over the conversation's messages — the exact count was the
-    // expensive part of opening a long thread, and no caller depends on an
-    // exact `total` (pagination drives off a full-vs-short page; see useMessages).
-    const query = getSupabaseClient()
-      .from(TABLE)
-      .select(COLUMNS, { count: "estimated" })
-      .eq("conversation_id", params.conversationId);
-
     const page = Math.max(1, Math.floor(params.page ?? 1));
     const pageSize = Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20)));
-    const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
 
-    const { data, error, count } = await query
-      .order("sent_at", { ascending: params.orderDir !== "desc" })
-      .range(from, to);
+    // Read the page via the SECURITY DEFINER `conversation_messages` RPC, which
+    // checks `can_access_conversation` ONCE (constant arg) instead of the
+    // `messages_select` RLS evaluating it PER ROW. The per-row evaluation cost
+    // ~3ms × up to 200 rows ≈ 640ms for a large conversation (EXPLAIN: SubPlan
+    // loops=200), and under rapid conversation switching it piled up past the 8s
+    // statement_timeout → 500 on /messages. Gating once + the
+    // (conversation_id, sent_at) index brings a page to ~8ms. Same rows, order
+    // and pagination as the old table query; no caller depends on an exact
+    // `total` (pagination drives off full-vs-short page — see useMessages).
+    const { data, error } = await getSupabaseClient().rpc("conversation_messages", {
+      p_conversation_id: params.conversationId,
+      p_limit: pageSize,
+      p_offset: (page - 1) * pageSize,
+      p_order_dir: params.orderDir === "desc" ? "desc" : "asc",
+    });
 
     if (error) throw new Error(`[supabase] messages.list failed: ${error.message}`);
 
+    const rows = (data ?? []) as unknown as MessageRow[];
     return {
-      data: (data as unknown as MessageRow[]).map(rowToMessage),
-      total: count ?? 0,
+      data: rows.map(rowToMessage),
+      total: (page - 1) * pageSize + rows.length,
       page,
       pageSize,
     };

@@ -99,8 +99,12 @@ export function useConversationDetail(conversationId: ID | null): IConversationD
       // pool-safe display source: it resolves the name even when `customer`/`lead`
       // are RLS-hidden for a seller handling an unassigned conversation.
       const [customer, lead, whatsappAccount, assignedSeller, contacts] = await Promise.all([
+        // Resolve the customer gated-once by the CONVERSATION (can_access), not by
+        // the per-carteira customers RLS: a POOL conversation's customer would
+        // otherwise 406 on the direct `get` (noisy console; null customer). This
+        // returns the real customer for any conversation the seller can access.
         conversation.customerId
-          ? customersProvider.get(conversation.customerId).catch(() => null)
+          ? customersProvider.getViaConversation(id).catch(() => null)
           : null,
         conversation.leadId ? leadsProvider.get(conversation.leadId).catch(() => null) : null,
         conversation.whatsappAccountId
