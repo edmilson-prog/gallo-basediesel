@@ -17,20 +17,38 @@ export interface ICustomerProfileQuery {
   refetch: () => void;
 }
 
-export function useCustomerProfile(customerId: ID | null | undefined): ICustomerProfileQuery {
+/**
+ * @param conversationId When the fiche is opened FROM a conversation, the read
+ *   falls back to the conversation-gated path (`getViaConversation`) if the
+ *   direct `get` is RLS-blocked — so a non-staff seller can see the fiche of a
+ *   POOL conversation's customer (Portão A) without the global customers policy
+ *   being widened (which tripped statement_timeout in #120). Omit it on the
+ *   standalone `/app/clientes/:id` route, where only the carteira/staff read
+ *   applies.
+ */
+export function useCustomerProfile(
+  customerId: ID | null | undefined,
+  conversationId?: ID | null,
+): ICustomerProfileQuery {
   const provider = useCustomersProvider();
   const query = useQuery({
-    queryKey: ["customer-profile", customerId] as const,
+    queryKey: ["customer-profile", customerId, conversationId ?? null] as const,
     enabled: Boolean(customerId),
     staleTime: TWO_MINUTES_MS,
     gcTime: TWO_MINUTES_MS,
     retry: 1,
     queryFn: async ({ queryKey }) => {
-      const [, id] = queryKey;
+      const [, id, convId] = queryKey;
       if (!id) return null;
       try {
         return await provider.get(id);
       } catch {
+        // Pool customer: the per-carteira customers RLS hides it (406). When the
+        // fiche was opened from a conversation, fall back to the
+        // conversation-gated read so it still renders; otherwise soft notFound.
+        if (convId) {
+          return await provider.getViaConversation(convId).catch(() => null);
+        }
         return null;
       }
     },

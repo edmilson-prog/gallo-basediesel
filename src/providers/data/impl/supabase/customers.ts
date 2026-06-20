@@ -370,4 +370,22 @@ export const supabaseCustomersProvider: ICustomersProvider = {
       throw new Error(`[supabase] customers.listNotes(${customerId}) failed: ${error.message}`);
     return (data as CustomerNoteRow[]).map(rowToCustomerNote);
   },
+
+  async getViaConversation(conversationId: ID): Promise<ICustomer | null> {
+    // SECURITY DEFINER RPC gated by can_access_conversation: returns the
+    // conversation's customer (0/1 row) bypassing the per-carteira customers RLS
+    // that would 406 a POOL conversation's customer for a non-owner seller —
+    // WITHOUT touching the global customers policy. Notes are not embedded here
+    // (the pool fiche shows an empty Notes tab); the owner/carteira/staff path
+    // still goes through `get` with notes.
+    const { data, error } = await getSupabaseClient()
+      .rpc("conversation_customer", { conv: conversationId })
+      .maybeSingle();
+    if (error)
+      throw new Error(
+        `[supabase] customers.getViaConversation(${conversationId}) failed: ${error.message}`,
+      );
+    if (!data) return null;
+    return rowToCustomer(data as unknown as CustomerRow, []);
+  },
 };

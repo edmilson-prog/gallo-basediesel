@@ -282,4 +282,17 @@ export const supabaseMessagesProvider: IMessagesProvider = {
     if (error) throw new Error(`[supabase] messages.listCustomerMedia failed: ${error.message}`);
     return (data as unknown as MessageRow[]).map(rowToMessage);
   },
+
+  async listLastMessages(conversationIds: ID[]): Promise<IMessage[]> {
+    if (conversationIds.length === 0) return [];
+    // SECURITY DEFINER RPC: one LATERAL limit-1 per conversation (rides the
+    // (conversation_id, sent_at) index), gated by can_access_conversation over
+    // the bounded id list. Replaces ~50 concurrent per-conversation reads that
+    // each re-evaluated the access gate and saturated the backend for a seller.
+    const { data, error } = await getSupabaseClient().rpc("last_messages_for_conversations", {
+      p_ids: conversationIds,
+    });
+    if (error) throw new Error(`[supabase] messages.listLastMessages failed: ${error.message}`);
+    return (data as unknown as MessageRow[]).map(rowToMessage);
+  },
 };

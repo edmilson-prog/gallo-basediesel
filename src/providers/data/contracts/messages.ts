@@ -80,4 +80,15 @@ export interface IMessagesProvider {
    * media with bytes available.
    */
   listCustomerMedia(customerId: ID): Promise<IMessage[]>;
+  /**
+   * The most recent message of each given conversation, for the conversations
+   * the caller can access — in ONE round-trip. Backs the Inbox list preview:
+   * replaces the ~50 concurrent `list({ pageSize: 1 })` calls (each
+   * re-evaluating the RLS access gate) that saturated the backend (500s) for a
+   * non-staff seller. Supabase resolves via the SECURITY DEFINER
+   * `last_messages_for_conversations` RPC gated by `can_access_conversation`
+   * over the bounded id list (never a per-message access check). Conversations
+   * the caller can't access are simply absent from the result.
+   */
+  listLastMessages(conversationIds: ID[]): Promise<IMessage[]>;
 }

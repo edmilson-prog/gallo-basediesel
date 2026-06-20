@@ -43,7 +43,13 @@ export function CustomerProfile({
   className,
   copilotTab,
 }: ICustomerProfileProps) {
-  const { customer, isLoading, isError, notFound, refetch } = useCustomerProfile(customerId);
+  // Pass the conversation id so a POOL conversation's customer resolves via the
+  // conversation-gated read when the per-carteira customers RLS would hide it
+  // (Portão A) — the fiche opened from the Inbox no longer 406s for a seller.
+  const { customer, isLoading, isError, notFound, refetch } = useCustomerProfile(
+    customerId,
+    conversation?.id,
+  );
 
   if (isLoading) {
     return <ProfileSkeleton variant={variant} className={className} />;
