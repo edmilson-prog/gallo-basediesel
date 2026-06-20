@@ -54,7 +54,10 @@ async function listAllMessages(conversationId: ID): Promise<IMessage[]> {
       orderDir: "asc",
     });
     all.push(...result.data);
-    if (all.length >= result.total || result.data.length === 0) break;
+    // A short page means the end. Don't rely on `result.total`: the
+    // conversation_messages RPC returns it only as a best-effort lower bound
+    // (it equals all.length on a full page and would stop pagination early).
+    if (result.data.length < MESSAGES_PAGE_SIZE) break;
     page += 1;
   }
   return all;
@@ -289,8 +292,12 @@ export const supabaseCopilotProvider: ICopilotProvider = {
   async getPanelData(conversationId: ID): Promise<ICopilotPanelData> {
     const conversation = await supabaseConversationsProvider.get(conversationId);
     const messages = await listAllMessages(conversationId);
+    // Read the customer gated-once by the CONVERSATION (can_access), not the
+    // per-carteira customers RLS: a POOL conversation's customer would otherwise
+    // 406 on the direct get — noisy in the console on every conversation open
+    // (this panel auto-fetches on open).
     const customer = conversation.customerId
-      ? await supabaseCustomersProvider.get(conversation.customerId)
+      ? ((await supabaseCustomersProvider.getViaConversation(conversationId)) ?? undefined)
       : undefined;
     const sdrContext = await tryGetEscalation(conversationId);
     const now = new Date();

@@ -71,8 +71,10 @@ export function SchedulingCenter({
 
   const customersProvider = useCustomersProvider();
   const customerQuery = useQuery({
-    queryKey: ["customers", "detail", conversation.customerId],
-    queryFn: () => customersProvider.get(conversation.customerId as string),
+    queryKey: ["customers", "via-conversation", conversation.id],
+    // Gated-once by the conversation (can_access) so a POOL conversation's
+    // customer resolves without the noisy direct-get 406.
+    queryFn: () => customersProvider.getViaConversation(conversation.id),
     enabled: open && !!conversation.customerId,
     staleTime: 60_000,
   });
