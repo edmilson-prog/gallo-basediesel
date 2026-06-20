@@ -20,6 +20,7 @@ import { TypingIndicator } from "./TypingIndicator";
 import { useTypingSimulation } from "../hooks/useTypingSimulation";
 import { useConversationContext } from "../hooks/ConversationContext";
 import { SEND_ERROR_MESSAGES, useMessageSend } from "../hooks/useMessageSend";
+import { useSeedSignedMediaUrls } from "../hooks/useSeedSignedMediaUrls";
 
 export interface IMessageListProps {
   conversation: IConversation;
@@ -31,6 +32,9 @@ const SCROLL_BOTTOM_THRESHOLD = 80;
 export function MessageList({ conversation, whatsappAccount = null }: IMessageListProps) {
   const { messages: msg } = useConversationContext();
   const { messages, isLoading, hasMore, loadMore, isLoadingMore, retry, isPlaceholder } = msg;
+  // Batch-sign all media of the loaded thread in one request and seed the
+  // per-bubble cache, so images/audio/docs render without N separate signs.
+  useSeedSignedMediaUrls(messages.map((m) => m.mediaUrl));
   const sendHook = useMessageSend(conversation, whatsappAccount);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);

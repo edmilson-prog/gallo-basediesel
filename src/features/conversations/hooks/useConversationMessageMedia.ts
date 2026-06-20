@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { ID } from "@/shared/types";
 import { useMessagesProvider } from "@/providers/data";
 import { messageToMediaItem, type IConversationMediaItem } from "../engine/conversationMedia";
+import { useSeedSignedMediaUrls } from "./useSeedSignedMediaUrls";
 
 export interface IUseConversationMessageMedia {
   items: IConversationMediaItem[];
@@ -28,6 +29,8 @@ export function useConversationMessageMedia(
   const items = (query.data ?? [])
     .map(messageToMediaItem)
     .filter((item): item is IConversationMediaItem => item !== null);
+  // Pre-sign the gallery's media in one batch (same cache the thumbs read).
+  useSeedSignedMediaUrls(items.map((i) => i.mediaUrl));
   return {
     items,
     isLoading: query.isLoading,
