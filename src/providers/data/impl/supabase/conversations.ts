@@ -71,6 +71,10 @@ interface ConversationRow {
   created_at: string;
 }
 
+/** Valid lead temperatures — the RPC returns a raw text column (no DB enum/check),
+ *  so coerce any unexpected value to null instead of trusting it into the UI. */
+const LEAD_TEMPERATURES = new Set<LeadTemperature>(["frio", "morno", "quente"]);
+
 /** Shape returned by the `conversation_contacts` RPC (see migration). */
 interface ConversationContactRow {
   conversation_id: string;
@@ -242,7 +246,9 @@ export const supabaseConversationsProvider: IConversationsProvider = {
       name: r.name ?? "",
       phone: r.phone ?? "",
       avatarUrl: r.avatar_url ?? undefined,
-      temperature: (r.temperature as LeadTemperature | null) ?? null,
+      temperature: LEAD_TEMPERATURES.has(r.temperature as LeadTemperature)
+        ? (r.temperature as LeadTemperature)
+        : null,
     }));
   },
 

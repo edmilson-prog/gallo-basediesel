@@ -65,11 +65,6 @@ export function useRelatedEntities(conversations: IConversation[]): IRelatedEnti
   const messagesProvider = useMessagesProvider();
 
   const contactsRef = useRef<Map<ID, IConversationContact>>(new Map());
-  // Conversations the RPC returned NO contact for (e.g. link-less). Remembered so
-  // they are not re-requested on every realtime tick (the inbox churns its id
-  // order constantly). Only populated on a SUCCESSFUL call, so a transient
-  // failure still retries.
-  const emptyRef = useRef<Set<ID>>(new Set());
   const messagesRef = useRef<Map<ID, IMessage>>(new Map());
   const mountedRef = useRef(true);
   useEffect(() => {
@@ -95,28 +90,25 @@ export function useRelatedEntities(conversations: IConversation[]): IRelatedEnti
   useEffect(() => {
     if (conversations.length === 0) return;
 
-    const convIds = conversations.map((c) => c.id);
     const tasks: Promise<unknown>[] = [];
 
-    // Contacts: one bounded RPC for the not-yet-resolved conversations. Stable
-    // identity → each conversation's contact is requested once and reused, so a
-    // superseded run only ADDS contacts (never blanks an already-resolved row).
-    const missing = missingIds(convIds, contactsRef.current).filter(
-      (id) => !emptyRef.current.has(id),
-    );
+    // Contacts: one bounded RPC for the not-yet-resolved conversations. Only
+    // conversations that actually LINK a customer/lead need a lookup — a link-less
+    // conversation renders the unknown fallback with no request. Stable identity →
+    // each contact is requested once and reused (a superseded run only ADDS, never
+    // blanks). A conversation that LATER gains a link (webhook) re-enters `missing`
+    // on the next tick — its refreshed row now carries the id — and resolves, so
+    // there is no stale "Lead anônimo" and no negative cache to invalidate.
+    const linkableIds = conversations
+      .filter((c) => c.customerId || c.leadId)
+      .map((c) => c.id);
+    const missing = missingIds(linkableIds, contactsRef.current);
     if (missing.length > 0) {
       tasks.push(
         conversationsProvider
           .listContacts(missing)
           .then((rows) => {
-            const returned = new Set<ID>();
-            for (const r of rows) {
-              contactsRef.current.set(r.conversationId, r);
-              returned.add(r.conversationId);
-            }
-            // Remember misses (success only) so an unresolvable conversation is not
-            // re-requested every tick; a transient failure (.catch) retries.
-            for (const id of missing) if (!returned.has(id)) emptyRef.current.add(id);
+            for (const r of rows) contactsRef.current.set(r.conversationId, r);
           })
           .catch(() => undefined),
       );

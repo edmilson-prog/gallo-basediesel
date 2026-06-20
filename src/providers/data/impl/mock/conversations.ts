@@ -25,43 +25,45 @@ export const mockConversationsProvider: IConversationsProvider = {
   assignSeller: (id, sellerId) => conversationsApi.assignSeller(id, sellerId),
   archive: (id) => conversationsApi.archive(id),
   listContacts: async (conversationIds: ID[]): Promise<IConversationContact[]> => {
-    // No RLS in the mock store — resolve the contact for every conversation
-    // directly (raw, unscoped apis), mirroring what the supabase RPC exposes for
-    // any conversation the caller can access.
-    const out: IConversationContact[] = [];
-    for (const id of conversationIds) {
-      const conv = await conversationsApi.get(id).catch(() => null);
-      if (!conv) continue;
-      if (conv.customerId) {
-        const customer = await customersApi.get(conv.customerId).catch(() => null);
-        if (customer) {
-          out.push({
-            conversationId: id,
-            refId: customer.id,
-            isLead: false,
-            name: customer.type === "B2B" ? customer.nomeFantasia : customer.fullName,
-            phone: customer.phone,
-            avatarUrl: customer.avatarUrl,
-            temperature: null,
-          });
-          continue;
+    // No RLS in the mock store — resolve each conversation's contact directly
+    // (raw, unscoped apis), mirroring what the supabase RPC exposes for any
+    // conversation the caller can access. The lookups are independent, so resolve
+    // them concurrently (matches the parallel batch the per-customer path used).
+    const resolved = await Promise.all(
+      conversationIds.map(async (id): Promise<IConversationContact | null> => {
+        const conv = await conversationsApi.get(id).catch(() => null);
+        if (!conv) return null;
+        if (conv.customerId) {
+          const customer = await customersApi.get(conv.customerId).catch(() => null);
+          if (customer) {
+            return {
+              conversationId: id,
+              refId: customer.id,
+              isLead: false,
+              name: customer.type === "B2B" ? customer.nomeFantasia : customer.fullName,
+              phone: customer.phone,
+              avatarUrl: customer.avatarUrl,
+              temperature: null,
+            };
+          }
         }
-      }
-      if (conv.leadId) {
-        const lead = await leadsApi.get(conv.leadId).catch(() => null);
-        if (lead) {
-          out.push({
-            conversationId: id,
-            refId: lead.id,
-            isLead: true,
-            name: lead.name,
-            phone: lead.phone,
-            temperature: lead.temperature,
-          });
+        if (conv.leadId) {
+          const lead = await leadsApi.get(conv.leadId).catch(() => null);
+          if (lead) {
+            return {
+              conversationId: id,
+              refId: lead.id,
+              isLead: true,
+              name: lead.name,
+              phone: lead.phone,
+              temperature: lead.temperature,
+            };
+          }
         }
-      }
-    }
-    return out;
+        return null;
+      }),
+    );
+    return resolved.filter((c): c is IConversationContact => c !== null);
   },
   create: async (input: ICreateConversationInput): Promise<ICreateConversationResult> => {
     const result = await conversationsApi.create(input);
