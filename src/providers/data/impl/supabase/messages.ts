@@ -6,10 +6,13 @@ import type {
 } from "../../contracts/messages";
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
-import { classifyMediaRef, partitionMediaRefs, whatsappMediaObjectPath } from "@/shared/utils/mediaRef";
+import {
+  classifyMediaRef,
+  MEDIA_BUCKET,
+  partitionMediaRefs,
+  whatsappMediaObjectPath,
+} from "@/shared/utils/mediaRef";
 
-/** Storage bucket holding conversation media bytes (PRD-106). */
-const MEDIA_BUCKET = "whatsapp-media";
 /** Signed-URL lifetime for in-app playback/preview — comfortably long so a
  *  conversation left open doesn't expire mid-listen (Storage RLS still gates). */
 const MEDIA_SIGNED_URL_TTL_SECONDS = 3600;

@@ -27,7 +27,8 @@ export function classifyMediaRef(ref: string | undefined | null): MediaRef {
   return { kind: "storage", path: trimmed };
 }
 
-const MEDIA_BUCKET = "whatsapp-media";
+/** Storage bucket holding conversation media bytes (PRD-106). */
+export const MEDIA_BUCKET = "whatsapp-media";
 
 /**
  * If a stored media ref is itself a signed/public URL of OUR `whatsapp-media`
