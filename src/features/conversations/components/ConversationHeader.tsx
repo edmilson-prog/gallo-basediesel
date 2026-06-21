@@ -1,5 +1,12 @@
 import { useNavigate } from "@tanstack/react-router";
-import type { IConversation, ICustomer, ILead, ISdrEscalation, ISeller } from "@/shared/types";
+import type {
+  IConversation,
+  IConversationContact,
+  ICustomer,
+  ILead,
+  ISdrEscalation,
+  ISeller,
+} from "@/shared/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
@@ -9,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useCustomersProvider } from "@/providers/data";
 import { useAuth } from "@/features/auth/useAuth";
-import { CHANNEL_META, getConversationDisplay } from "../utils/conversationDisplay";
+import { CHANNEL_META, displayFromContact, getConversationDisplay } from "../utils/conversationDisplay";
 import { ContactAvatar } from "./ContactAvatar";
 import { AssigneeChip } from "./AssigneeChip";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
@@ -24,6 +31,12 @@ export interface IConversationHeaderProps {
   conversation: IConversation;
   customer: ICustomer | null;
   lead: ILead | null;
+  /**
+   * Pool-safe display contact (name/phone/avatar). Preferred for the title so a
+   * seller handling an unassigned conversation sees the real name even when
+   * `customer`/`lead` are RLS-hidden. Rich actions still use `customer`/`lead`.
+   */
+  contact?: IConversationContact | null;
   /** Seller the conversation is assigned to (for the responsible chip). */
   assignedSeller?: ISeller | null;
   /** Whether to surface the assignee chip (staff/manager oversight). */
@@ -51,6 +64,7 @@ export function ConversationHeader({
   conversation,
   customer,
   lead,
+  contact,
   assignedSeller,
   showAssignee,
   ficheOpen,
@@ -63,7 +77,11 @@ export function ConversationHeader({
   onConversationUpdated,
   statusControlMode,
 }: IConversationHeaderProps) {
-  const display = getConversationDisplay(conversation, customer, lead);
+  // Prefer the pool-safe contact for the title; fall back to the rich
+  // customer/lead objects (e.g. mock, or before the contact resolves).
+  const display = contact
+    ? displayFromContact(conversation, contact)
+    : getConversationDisplay(conversation, customer, lead);
   const channel = CHANNEL_META[conversation.channel];
   const navigate = useNavigate();
   const customersProvider = useCustomersProvider();
@@ -113,7 +131,9 @@ export function ConversationHeader({
                 <TooltipContent>{CONVERSATION_STRINGS.sdrActiveTooltip}</TooltipContent>
               </Tooltip>
             )}
-            {lead && <TemperatureChip temperature={lead.temperature} />}
+            {/* Use the resolved display temperature so a pool seller (whose rich
+                `lead` is RLS-hidden) still sees the chip, matching the list row. */}
+            {display.temperature && <TemperatureChip temperature={display.temperature} />}
             {customer?.whatsappStatus === "invalid" && (
               <>
                 <Tooltip>

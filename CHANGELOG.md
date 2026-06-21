@@ -6,7 +6,7 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
-## [0.109.0] - 2026-06-19 - Lexicon
+## [0.112.0] — Lexicon · 2026-06-21
 
 ### Added
 - Copiloto analítico com NLU por LLM: a pergunta é interpretada pela LLM
@@ -15,6 +15,68 @@ versioning follows [SemVer](https://semver.org/).
   gated por `ai_feature_enabled('analytics_copilot')`; fallback para o motor de
   regras quando a IA está desligada/falha. Nenhum dado financeiro é enviado ao
   provedor (só a pergunta + o catálogo).
+
+## [0.111.0] — Aperture · 2026-06-21
+
+**As mídias das conversas agora carregam muito mais rápido — para todos os papéis.** Fotos, áudios e documentos recebidos pelo WhatsApp passam a abrir quase instantaneamente ao entrar numa conversa, em vez de levarem alguns segundos (e, sob carga, às vezes aparecerem como "indisponível"). A diferença é mais sentida pelos vendedores, que antes esperavam bem mais que o dono ou o gestor pela mesma conversa.
+
+### Changed
+
+- **Liberação de acesso à mídia em uma verificação única (performance):** preparar cada arquivo de mídia recebido deixou de varrer todas as conversas da loja a cada item. Como o caminho do arquivo já carrega a conversa de origem, a permissão passa a ser checada **uma só vez** por uma função de servidor (`can_read_conversation_media`) — o tempo por arquivo caiu de ~2.375 ms para ~7 ms para um vendedor, igualando-o ao dono/gestor (que já checava mais rápido). É a mesma assimetria de acesso que afetava as mensagens, agora resolvida também no caminho dos arquivos.
+- **Mídias de uma conversa preparadas em lote:** ao abrir uma conversa — e na galeria da aba "Mídias" — todos os arquivos passam a ser preparados em uma única requisição, em vez de uma por mídia. Os balões continuam reaproveitando o que já foi preparado, então não há trabalho repetido.
+
+### Security
+
+- **Verificação de mídia restrita a usuários autenticados** — a nova checagem de permissão de mídia (`can_read_conversation_media`) só pode ser executada por quem está logado, alinhada às demais funções de acesso da plataforma.
+
+## [0.110.0] — Turnstile · 2026-06-20
+
+**Modelo de acesso a conversas reescrito em "2 portões" — a instância (número de origem) governa o atendimento.** A leitura para papéis não-staff resolve em dois portões independentes: **Atendimento** (conversas/mensagens/ficha) pela **instância** e **Carteira** (clientes/orçamentos/pedidos) pelo **dono**. Um vendedor que perde o acesso a um número deixa de ver as conversas daquele número, inclusive as já atribuídas. Junto vão a correção do "Lead anônimo" na fila, o fim das falhas ao abrir conversas grandes da fila e o menu lateral que se adapta ao papel de cada usuário.
+
+### Added
+
+- **Modelo de acesso "2 portões"** — `can_access_conversation` é o portão único do atendimento, com a **instância como portão-mestre** (atribuídas inclusas). Novo parâmetro por loja **"Convidados acessam conversas de outras instâncias"** (Configurações → WhatsApp, Owner-only; padrão desligado), que decide se um co-responsável convidado para uma conversa transita entre números. Documentação completa do modelo em `docs/dev/conversation-access-model.md`.
+- **Menu lateral dirigido por permissões** — os itens operacionais da barra lateral aparecem conforme a matriz de permissões do papel do usuário.
+
+### Changed
+
+- **Leituras escopadas por conversa via funções de servidor (performance):** a página de mensagens, a ficha aberta da conversa e o contato passam a ser resolvidos por funções `SECURITY DEFINER` que checam o acesso **uma única vez** — em vez da política por-linha, que ficava lenta em conversas grandes. Abrir uma conversa de ~600 mensagens caiu de ~640 ms para ~8 ms.
+
+### Fixed
+
+- **"Lead anônimo" na fila** — atendentes voltam a ver o nome e o telefone reais dos contatos das conversas da fila, sem afrouxar o isolamento da carteira de clientes.
+- **Falha ao abrir conversas grandes da fila** — corrigido o esgotamento de tempo (erro 500) que travava o carregamento das mensagens ao alternar rápido entre conversas não atribuídas.
+- **Erros no console (406) ao abrir conversas do pool** — todos os leitores do cliente da conversa (cabeçalho, ficha, copiloto e agendador) passam pelo caminho com permissão correta. Também corrigido o contexto do copiloto, que vinha truncado em conversas grandes.
+- **Auditoria** — o registro de ações administrativas passa a gravar corretamente o autor (vendedor) de cada ação.
+
+### Security
+
+- **Isolamento de atendimento por número de origem** — perder o acesso a um número agora remove o acesso às conversas daquele número (inclusive atribuídas), fechando a brecha em que conversas atribuídas continuavam visíveis após a perda do número.
+
+## [0.109.0] — Mandate · 2026-06-19
+
+**Papéis agora são atribuíveis por usuário — qualquer papel, de sistema ou customizado.** O Owner abre Configurações → Usuários → "Alterar papel" e escolhe entre todos os papéis (os 7 de sistema + os customizados criados no Editor de Papéis), não só os três básicos. O **papel-base** continua governando a RLS (isolamento de dados intacto); um novo vínculo `profiles.role_id` resolve o **conjunto de permissões efetivo** na interface. Fecha o épico Pessoas & Acesso na ponta da atribuição.
+
+### Added
+
+- **Atribuição de papel customizado** — `ChangeRoleDialog` lista todos os papéis atribuíveis (sistema + customizados da loja; Owner e papéis-base de cliente ficam de fora). A sessão passa a carregar `roleKey` (= `profiles.role_id` ou o slug do papel-base) e `hasPermission` resolve por ele, com **fallback ao papel-base** (cobre a janela de hidratação e papéis excluídos). **SDR e Financeiro** também passaram a ser atribuíveis (antes só Vendedor interno/externo/Gestor).
+- **Coluna `profiles.role_id`** (FK `roles.id`, `ON DELETE SET NULL`) — aponta o papel efetivo; `NULL` = roda no papel-base (comportamento anterior). Migration **aditiva**, sem mudança de RLS. Papéis de sistema gravam `NULL`; só os customizados fixam o `role_id`.
+- **RPC `role_assignment_count`** — contagem real de usuários por papel, alimentando o guard de exclusão de papel em uso no Editor de Papéis.
+
+### Changed
+
+- **Edge `set-seller-role`** — o contrato passou a receber `roleId` (um papel do catálogo). A função deriva o papel-base, grava `profiles.role` (a base, para a RLS) e fixa `profiles.role_id` (NULL para papéis de sistema). `seller_access_info` passou a devolver `role_id`, e `_shared/auth.ts` expõe o `seller_id` do chamador.
+
+### Fixed
+
+- **Auditoria de troca de papel não era registrada** — `set-seller-role` gravava `audit_logs.actor_id` com o id do `auth.users` do chamador, que viola o FK para `sellers` e era silenciosamente descartado pela auditoria best-effort. Agora usa o `seller_id` do chamador (e pula a auditoria quando não há seller vinculado).
+- **Inbox exibia "Lead anônimo" de forma intermitente na lista** sob atualização em tempo real — corrida de reatividade resolvida com cache acumulado e guarda de recência das prévias de mensagem.
+
+### Notes
+
+- **Limitação conhecida:** o **menu lateral principal filtra por papel-base** (lista fixa em `navigation.ts`), não pela matriz de permissões — atribuir um papel customizado (ou promover a Gestor) **não altera a visibilidade do menu**. As rotas de Configurações e as checagens em componente usam `hasPermission`; alinhar o menu principal à matriz do Editor de Papéis é trabalho à parte.
+- **Ordem de rollout** (contrato da Edge mudou): migration aplicada → deploy da Edge `set-seller-role` → publicação do front. Migration aditiva, zero-risco.
+- **Débito registrado:** ~7 outras Edge Functions repetem o mesmo padrão de FK de auditoria (`actor_id` = id do `auth.users`) e ficam sem registro; a infra (`profile.seller_id`) já existe para corrigi-las.
 
 ## [0.108.0] — Quill · 2026-06-18
 

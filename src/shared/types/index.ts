@@ -130,6 +130,7 @@ export type {
 // Conversation, messaging, WhatsApp
 export type {
   IConversation,
+  IConversationContact,
   IMessage,
   IWhatsAppAccount,
   IWhatsAppCapabilities,

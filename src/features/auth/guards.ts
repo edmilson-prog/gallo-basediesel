@@ -16,6 +16,7 @@ import { readAuthSyncMirror } from "./authSession";
 export function readCurrentUserSync(): {
   id: string;
   role: RoleName;
+  roleKey?: string;
   sellerId?: string | null;
 } | null {
   if (typeof window === "undefined") return null;
@@ -27,7 +28,12 @@ export function readCurrentUserSync(): {
     if (!legacyId) return null;
     const profile = MOCK_USER_BY_ID.get(legacyId);
     if (!profile) return null;
-    return { id: profile.id, role: profile.role, sellerId: profile.sellerId ?? null };
+    return {
+      id: profile.id,
+      role: profile.role,
+      roleKey: profile.roleKey,
+      sellerId: profile.sellerId ?? null,
+    };
   } catch {
     return null;
   }

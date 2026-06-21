@@ -26,9 +26,8 @@ import type { ICreateRoleInput, IRolesProvider } from "../../contracts/roles";
  * as a follow-up; the screens (Task 11) gate writes to Owner so the blast
  * radius is contained.
  *
- * FOLLOW-UP (Tasks 15/16): `remove()` blocks on assigned users, but the
- * seller→role link does not exist yet (no `sellers.role_id`), so the usage
- * count is currently always 0. Mirror the mock note when wiring assignment.
+ * The user→role link is `profiles.role_id` (custom role assignment); `remove()`
+ * blocks on assigned users via the `role_assignment_count` RPC.
  */
 
 const ROLES_TABLE = "roles";
@@ -262,7 +261,8 @@ export const supabaseRolesProvider: IRolesProvider = {
 
   async remove(id: ID): Promise<void> {
     const before = await this.get(id);
-    // Usage check FOLLOW-UP (T15/T16): no seller→role link yet, so count is 0.
+    // Block deletion while users are still assigned (profiles.role_id). Even so,
+    // the FK ON DELETE SET NULL would make a forced delete non-destructive.
     const assignedCount = await countRoleUsage(id);
     if (assignedCount > 0) {
       throw new Error(`Não é possível excluir: ${assignedCount} usuário(s) ainda usam este papel.`);
@@ -281,13 +281,15 @@ export const supabaseRolesProvider: IRolesProvider = {
 };
 
 /**
- * Counts users assigned to a role.
- *
- * FOLLOW-UP (Tasks 15/16): the seller→role link is not cabled yet (no
- * `sellers.role_id` column), so there is no signal to query. Returns 0 — once
- * assignment lands, run `select count(*) from sellers where role_id = id and
- * deleted_at is null` here.
+ * Counts users (in the caller's store) assigned to a role via the staff-only
+ * SECURITY DEFINER RPC `role_assignment_count` — profiles RLS is select-self, so
+ * the count must run server-side. Best-effort: a failure returns 0 (deletion is
+ * still safe via the FK's ON DELETE SET NULL on profiles.role_id).
  */
-async function countRoleUsage(_roleId: ID): Promise<number> {
-  return 0;
+async function countRoleUsage(roleId: ID): Promise<number> {
+  const { data, error } = await getSupabaseClient().rpc("role_assignment_count", {
+    p_role_id: roleId,
+  });
+  if (error) return 0;
+  return typeof data === "number" ? data : 0;
 }

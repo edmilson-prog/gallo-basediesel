@@ -186,6 +186,15 @@ export interface IPlatformSettings {
   defaultDivision: Division;
   /** Conversation distribution / routing rules (PRD-013). */
   distribution: IDistributionSettings;
+  /**
+   * Access model (Portão A) — may a co-responsible (conversation participant)
+   * see a conversation on an instance they don't otherwise access? `false`
+   * (default): the explicit invite still respects the origin number — the
+   * instance is the master gate. `true`: the invite lets the guest transit
+   * across instances. Governs only the participant branch of
+   * `can_access_conversation`; never widens pool/assignment visibility.
+   */
+  participantCrossInstance?: boolean;
   /** Manager-dashboard alert configuration (PRD-014). */
   managerDashboard: IManagerDashboardSettings;
   /** Whether the SDR agent is enabled for this store (PRD-020). */

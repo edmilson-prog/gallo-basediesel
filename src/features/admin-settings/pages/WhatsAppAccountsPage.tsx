@@ -38,6 +38,7 @@ import { ImportConversationsDialog } from "../components/ImportConversationsDial
 import { SyncAvatarsDialog } from "../components/SyncAvatarsDialog";
 import { TestMessageDialog } from "../components/TestMessageDialog";
 import { InstanceAccessSheet } from "../components/InstanceAccessSheet";
+import { ParticipantCrossInstanceCard } from "../components/ParticipantCrossInstanceCard";
 import { AddInstanceWizard } from "../components/AddInstanceWizard";
 import { resolveAccessRecipients } from "../utils/accessRecipients";
 import { INSTANCE_PALETTE } from "@/features/conversations/utils/instanceAccent";
@@ -470,6 +471,8 @@ export function WhatsAppAccountsPage() {
           </p>
         )}
       </div>
+
+      <ParticipantCrossInstanceCard storeId={storeId} />
 
       {!accounts ? (
         <Skeleton className="h-48 w-full" />

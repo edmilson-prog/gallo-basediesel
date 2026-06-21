@@ -58,6 +58,8 @@ export const SEED_STORE: IStore = {
     ],
     defaultDivision: "parts",
     distribution: DEFAULT_DISTRIBUTION_SETTINGS,
+    // Default OFF: a co-responsible respects the origin number (Portão A).
+    participantCrossInstance: false,
     managerDashboard: DEFAULT_MANAGER_DASHBOARD_SETTINGS,
     sdrEnabled: true,
     sdrTemplates: DEFAULT_SDR_TEMPLATES,

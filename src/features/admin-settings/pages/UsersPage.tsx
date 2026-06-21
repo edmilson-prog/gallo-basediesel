@@ -10,13 +10,10 @@ import { useCurrentStore } from "@/features/multistore";
 import { useDepartmentsProvider, useSellersProvider } from "@/providers/data";
 import { AUTH_SOURCE } from "@/features/auth/authSource";
 import { useAuth } from "@/features/auth/useAuth";
+import { mapDbRoleToRoleName } from "@/features/auth/roleMap";
 import { useStorePresence } from "@/features/shell/hooks/useStorePresence";
 import { SectionHeader } from "../components/SectionHeader";
-import {
-  listSellerAccessInfo,
-  type ISellerAccessInfo,
-  type InviteSellerRole,
-} from "../api/sellerAccess";
+import { listSellerAccessInfo, type ISellerAccessInfo } from "../api/sellerAccess";
 import { CreateAccessDialog } from "../components/CreateAccessDialog";
 import { ChangeRoleDialog } from "../components/ChangeRoleDialog";
 import { ResetPasswordDialog } from "../components/ResetPasswordDialog";
@@ -326,17 +323,24 @@ export function UsersPage() {
         />
       )}
 
-      {roleFor && (
-        <ChangeRoleDialog
-          seller={roleFor}
-          storeId={storeId}
-          currentRole={(accessInfo.get(roleFor.id)?.role ?? "seller_internal") as InviteSellerRole}
-          open={roleFor !== null}
-          onOpenChange={(open) => {
-            if (!open) setRoleFor(null);
-          }}
-        />
-      )}
+      {roleFor &&
+        (() => {
+          const info = accessInfo.get(roleFor.id);
+          // Effective role id: the custom override if pinned, else the system
+          // role id (=== RoleName) derived from the base role.
+          const currentRoleId = info?.roleId ?? mapDbRoleToRoleName(info?.role ?? "seller_internal");
+          return (
+            <ChangeRoleDialog
+              seller={roleFor}
+              storeId={storeId}
+              currentRoleId={currentRoleId}
+              open={roleFor !== null}
+              onOpenChange={(open) => {
+                if (!open) setRoleFor(null);
+              }}
+            />
+          );
+        })()}
     </div>
   );
 }

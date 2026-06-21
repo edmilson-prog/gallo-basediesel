@@ -10,7 +10,15 @@ import { scopeSatisfies } from "./compareScopes";
  * user representation.
  */
 export interface IRoleBearer {
+  /** Coarse base role (RoleName). Drives RLS, redirects, menu groups, hasRole. */
   role: RoleName;
+  /**
+   * Effective RBAC key — the slug of the user's *assigned* role (system or
+   * custom). Custom-role users carry the custom slug so the matrix resolves
+   * their bespoke permission set; base-role users leave it undefined and the
+   * lookup keys by `role` (for system roles, slug === RoleName).
+   */
+  roleKey?: string;
 }
 
 /**
@@ -34,7 +42,11 @@ export function hasPermission(
   requiredScope: PermissionScope = "own",
 ): boolean {
   if (!user) return false;
-  const index = getRbacSnapshot().byRole[user.role];
+  const snapshot = getRbacSnapshot().byRole;
+  // Custom roles resolve by their slug; fall back to the base role so the result
+  // is never worse than the base — covers the pre-hydration window (custom slugs
+  // aren't in the static fallback) and roles deleted out from under a user.
+  const index = snapshot[user.roleKey ?? user.role] ?? snapshot[user.role];
   if (!index) return false;
   const entry = index[resource];
   if (!entry) return false;

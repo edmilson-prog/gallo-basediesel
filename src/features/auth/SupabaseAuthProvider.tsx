@@ -13,6 +13,8 @@ interface ProfileRow {
   seller_id: string | null;
   store_id: string;
   role: string;
+  /** Effective role override (custom role slug). NULL = run on the base role. */
+  role_id: string | null;
   display_name: string;
   email: string | null;
 }
@@ -30,6 +32,10 @@ function buildProfile(row: ProfileRow, user: User): IUserProfile {
   return {
     id: row.auth_user_id,
     role,
+    // Custom-role override resolves the bespoke permission set; falling back to
+    // the base role slug (=== RoleName) preserves today's behavior for everyone
+    // without a custom role.
+    roleKey: row.role_id ?? role,
     group: roleGroup(role),
     email: row.email ?? user.email ?? "",
     displayName: row.display_name,
@@ -53,7 +59,7 @@ function buildProfile(row: ProfileRow, user: User): IUserProfile {
 async function resolveProfile(supabase: SupabaseClient, user: User): Promise<IUserProfile | null> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("auth_user_id, seller_id, store_id, role, display_name, email")
+    .select("auth_user_id, seller_id, store_id, role, role_id, display_name, email")
     .eq("auth_user_id", user.id)
     .single();
   if (error || !data) return null;
@@ -91,7 +97,14 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       if (!active) return;
       setCurrentUser(profile);
       writeAuthSyncMirror(
-        profile ? { id: profile.id, role: profile.role, sellerId: profile.sellerId ?? null } : null,
+        profile
+          ? {
+              id: profile.id,
+              role: profile.role,
+              roleKey: profile.roleKey,
+              sellerId: profile.sellerId ?? null,
+            }
+          : null,
       );
     };
 
@@ -136,6 +149,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       writeAuthSyncMirror({
         id: profile.id,
         role: profile.role,
+        roleKey: profile.roleKey,
         sellerId: profile.sellerId ?? null,
       });
       return { ok: true, profile };
