@@ -2,9 +2,9 @@ export type IdlePhase = "active" | "warning" | "expired";
 
 export interface IIdleStatus {
   phase: IdlePhase;
-  /** ms até abrir o aviso (0 quando já está em warning/expired). */
+  /** ms until the warning opens (0 once in warning/expired). */
   msUntilWarning: number;
-  /** ms até o logout (0 quando expirado). */
+  /** ms until logout (0 when expired). */
   msUntilLogout: number;
 }
 
