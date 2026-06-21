@@ -1,1 +1,1 @@
-export * from "./engine";
+export { SessionTimeoutGuard } from "./components/SessionTimeoutGuard";
