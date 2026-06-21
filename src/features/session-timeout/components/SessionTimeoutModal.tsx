@@ -20,8 +20,8 @@ interface ISessionTimeoutModalProps {
   onLogoutNow: () => void;
 }
 
-function formatClock(totalSeconds: number): string {
-  const s = Math.max(0, totalSeconds);
+function formatClock(seconds: number): string {
+  const s = Math.max(0, seconds);
   const mm = Math.floor(s / 60);
   const ss = s % 60;
   return `${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;

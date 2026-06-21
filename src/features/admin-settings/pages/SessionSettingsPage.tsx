@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ export function SessionSettingsPage() {
   const { currentStoreId } = useCurrentStore();
   const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
   const { settings, loading, saving, update } = usePlatformSettings(storeId);
+  const queryClient = useQueryClient();
 
   const [draft, setDraft] = useState<ISessionTimeoutSettings>(DEFAULT_SESSION_TIMEOUT);
   const beeperRef = useRef(createBeeper());
@@ -40,6 +42,7 @@ export function SessionSettingsPage() {
     }
     try {
       await update({ sessionTimeout: draft }, "settings.session_timeout.update");
+      await queryClient.invalidateQueries({ queryKey: ["settings", storeId] });
       toast.success("Configuração salva", { icon: <Icon icon="mdi:check" size={16} /> });
     } catch {
       toast.error("Não foi possível salvar.");

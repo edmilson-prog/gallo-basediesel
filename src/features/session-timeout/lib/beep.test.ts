@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createBeeper } from "./beep";
 
-// jsdom não expõe AudioContext → o beeper deve virar no-op sem lançar.
+// jsdom does not expose AudioContext → the beeper must become a no-op without throwing.
 describe("createBeeper", () => {
   it("returns a no-op beeper when Web Audio is unavailable", () => {
     const beeper = createBeeper();

@@ -144,6 +144,7 @@ export function useSessionTimeout(): ISessionTimeoutState {
       window.clearInterval(id);
       document.removeEventListener("visibilitychange", onVisible);
     };
+    // navigate, beeperRef and the *Ref values are stable; only resolved.* drive re-subscription.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, resolved.idleMs, resolved.warningMs, resolved.soundEnabled, resolved.soundVolume]);
 

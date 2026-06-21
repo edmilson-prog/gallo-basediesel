@@ -147,7 +147,8 @@ O `DEFAULT_SESSION_TIMEOUT` tem `enabled: true`. Isso significa que **ao fazer d
 **Ações recomendadas antes do rollout:**
 1. Comunicar a equipe com antecedência.
 2. Considerar aumentar `warningSeconds` na config global para dar mais tempo de reação na largada.
-3. Aplicar a migration `20260621120000_seller_session_timeout_override.sql` em produção antes ou junto com o deploy do frontend (necessário para que o override por usuário funcione em `supabase`).
+3. **⚠️ Aplicar a migration `20260621120000_seller_session_timeout_override.sql` em produção ANTES (ou atomicamente junto com) o deploy do frontend.**
+   O provider supabase de sellers (`src/providers/data/impl/supabase/sellers.ts`) seleciona a coluna `session_timeout_override` em **todas** as operações — `list`, `get`, `update`, `create` e `setAvailability`. Se o frontend for deployado antes da migration ser aplicada, **TODAS as leituras e escritas de sellers falham app-wide** em modo supabase: tela de Usuários, assinatura do atendente, distribuição, presença e resolução de perfil no login. O impacto não é limitado ao override — é um erro de query que derruba a feature de sellers inteira. O override por usuário funciona em modo `mock` sem a migration, mas em produção a coluna deve existir antes do código chegar ao ar.
 
 ---
 
