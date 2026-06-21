@@ -120,7 +120,7 @@ markSeen(userId, key): void
 isSeen(userId, key): boolean
 getOptOut(userId): boolean
 setOptOut(userId, value): void
-resetAll(userId): void                 // limpa seen (e mantém/!opt-out conforme decisão de UX)
+resetAll(userId): void                 // limpa APENAS o seen (tours voltam a aparecer); NÃO altera o opt-out
 ```
 
 Defensivo: parse de JSON inválido cai em conjunto vazio (nunca lança). Sem `userId` (não autenticado) o tour não dispara.
@@ -205,7 +205,7 @@ Cada tela dispara um card único (centralizado) na 1ª visita. Copy de uma frase
 
 - **Pular** — botão `Pular` em todo passo + tecla `Esc`. Ambos marcam o tour como visto e fecham.
 - **"?" para rever (context-aware, global)** — `TourHelpButton` no **TopBar**, que resolve a rota atual → tour registrado e o reabre ignorando o "visto". Refinamento sobre o brainstorming ("? no header de cada tela"): um único botão global context-aware entrega a mesma UX por tela sem editar ~40 headers. Se a rota atual não tem tour, o botão fica oculto/desabilitado.
-- **Central em Configurações** — nova rota `/app/configuracoes/tours` (item de nav "Tours & Ajuda", visível a todos os papéis logados): lista os tours do registro, com "rever" por tour, **"Resetar todos os tours"** e o **toggle de opt-out global**.
+- **Central em Configurações** — nova rota `/app/configuracoes/tours` (item de nav "Tours & Ajuda", visível a todos os papéis logados): lista os tours do registro, com "rever" por tour, **"Resetar todos os tours"** (limpa o histórico de vistos; faz tudo reaparecer) e o **toggle de opt-out global** (controle à parte, não é tocado pelo reset).
 - **Opt-out global** — boolean por usuário (`tourStorage`); desliga apenas o **auto-start**. O "?" e a central continuam funcionando.
 
 ## 9. Visual, acessibilidade e movimento
