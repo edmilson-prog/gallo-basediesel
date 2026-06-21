@@ -13,6 +13,7 @@ import type {
   IAiUsageEvent,
   IAiUsageSummary,
 } from "@/shared/types";
+import type { IAnalyticsDigest, IResolvedQuery } from "@/shared/types/analytics-copilot";
 
 /**
  * AI configuration + usage provider (37th provider).
@@ -38,4 +39,11 @@ export interface IAiProvider {
   runPlayground(input: IAiPlaygroundInput): Promise<IAiPlaygroundResult>;
   /** Fetch the provider's model list live (mock: static catalog). */
   listProviderModels(providerId: AiProviderId): Promise<IAiModelOption[]>;
+  /** Whether a given AI feature is enabled (master + routing + provider configured). */
+  isAiFeatureEnabled(feature: AiFeatureKey): Promise<boolean>;
+  /** LLM NLU for the analytics copilot: question + digest → resolved intents (null = no LLM). */
+  resolveAnalyticsQueries(
+    question: string,
+    digest: IAnalyticsDigest,
+  ): Promise<IResolvedQuery[] | null>;
 }

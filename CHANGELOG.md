@@ -6,6 +6,16 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.112.0] — Lexicon · 2026-06-21
+
+### Added
+- Copiloto analítico com NLU por LLM: a pergunta é interpretada pela LLM
+  (escolhe métrica + filtros, inclusive várias métricas → vários cards), e o
+  número segue determinístico (executeQuery). Edge `analytics-resolve` (13ª),
+  gated por `ai_feature_enabled('analytics_copilot')`; fallback para o motor de
+  regras quando a IA está desligada/falha. Nenhum dado financeiro é enviado ao
+  provedor (só a pergunta + o catálogo).
+
 ## [0.111.0] — Aperture · 2026-06-21
 
 **As mídias das conversas agora carregam muito mais rápido — para todos os papéis.** Fotos, áudios e documentos recebidos pelo WhatsApp passam a abrir quase instantaneamente ao entrar numa conversa, em vez de levarem alguns segundos (e, sob carga, às vezes aparecerem como "indisponível"). A diferença é mais sentida pelos vendedores, que antes esperavam bem mais que o dono ou o gestor pela mesma conversa.

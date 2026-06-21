@@ -59,66 +59,99 @@ const baseCtx = {
 describe("runCopilotQuery", () => {
   it("resolve e devolve o número vindo do dataAccess (RNF-001)", async () => {
     const da = makeDataAccess(487200);
-    const { answer } = await runCopilotQuery("Quanto faturei esse mês?", baseCtx, {
+    const { answers } = await runCopilotQuery("Quanto faturei esse mês?", baseCtx, {
       dataAccess: da,
       catalog,
     });
-    expect(answer.resolved).toBe(true);
-    expect(answer.value).toBe(487200);
-    expect(answer.citation?.source.label).toBe("Vendas");
+    expect(answers).toHaveLength(1);
+    expect(answers[0]!.resolved).toBe(true);
+    expect(answers[0]!.value).toBe(487200);
+    expect(answers[0]!.citation?.source.label).toBe("Vendas");
     expect(da.getSalesMetric).toHaveBeenCalledOnce();
   });
 
-  it("ambíguo → sugestões com os rótulos das métricas candidatas", async () => {
+  it("ambíguo (regras) → sugestões com os rótulos candidatos", async () => {
     const da = makeDataAccess(1);
-    // "faturamento margem" casa as duas métricas → ambíguo
-    const { answer } = await runCopilotQuery("faturamento e margem", baseCtx, {
+    const { answers } = await runCopilotQuery("faturamento e margem", baseCtx, {
       dataAccess: da,
       catalog,
     });
-    expect(answer.resolved).toBe(false);
-    expect(answer.ambiguous).toBe(true);
-    expect(answer.suggestions).toEqual(expect.arrayContaining(["Faturamento", "Margem"]));
+    expect(answers).toHaveLength(1);
+    expect(answers[0]!.resolved).toBe(false);
+    expect(answers[0]!.ambiguous).toBe(true);
+    expect(answers[0]!.suggestions).toEqual(expect.arrayContaining(["Faturamento", "Margem"]));
   });
 
   it("fora do catálogo → não resolvido com fallback", async () => {
     const da = makeDataAccess(1);
-    const { answer } = await runCopilotQuery("qual a previsão do tempo?", baseCtx, {
+    const { answers } = await runCopilotQuery("qual a previsão do tempo?", baseCtx, {
       dataAccess: da,
       catalog,
     });
-    expect(answer.resolved).toBe(false);
-    expect(answer.ambiguous).toBeFalsy();
-    expect(answer.suggestions).toEqual(["Quanto faturei?"]);
+    expect(answers[0]!.resolved).toBe(false);
+    expect(answers[0]!.ambiguous).toBeFalsy();
+    expect(answers[0]!.suggestions).toEqual(["Quanto faturei?"]);
   });
 
-  it("Vendedor: pergunta resolve no próprio escopo (sellerId aplicado pelo scopeClamp)", async () => {
+  it("Vendedor: resolve no próprio escopo (scopeClamp)", async () => {
     const da = makeDataAccess(1000);
-    const ctx = {
-      ...baseCtx,
-      role: "Vendedor" as const,
-      sellerId: "seller-1",
-    };
-    const { answer } = await runCopilotQuery("Quanto faturei esse mês?", ctx, {
+    const ctx = { ...baseCtx, role: "Vendedor" as const, sellerId: "seller-1" };
+    const { answers } = await runCopilotQuery("Quanto faturei esse mês?", ctx, {
       dataAccess: da,
       catalog,
     });
-    // O resolver não extrai filtro de vendedor do texto, então a pergunta resolve e o
-    // scopeClamp aplica o escopo do próprio vendedor (RNF-001: valor vem do mock).
-    expect(answer.resolved).toBe(true);
-    expect(answer.value).toBe(1000);
-    expect(answer.query?.scope?.role).toBe("Vendedor");
-    expect(answer.query?.scope?.sellerId).toBe("seller-1");
+    expect(answers[0]!.resolved).toBe(true);
+    expect(answers[0]!.value).toBe(1000);
+    expect(answers[0]!.query?.scope?.role).toBe("Vendedor");
+    expect(answers[0]!.query?.scope?.sellerId).toBe("seller-1");
   });
 
-  it("erro do dataAccess não propaga — devolve errorText", async () => {
+  it("erro do dataAccess não propaga — devolve errorText no answer", async () => {
     const da = makeDataAccess(1);
     (da.getSalesMetric as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("boom"));
-    const { answer, errorText } = await runCopilotQuery("Quanto faturei?", baseCtx, {
+    const { answers } = await runCopilotQuery("Quanto faturei?", baseCtx, {
       dataAccess: da,
       catalog,
     });
-    expect(answer.resolved).toBe(false);
-    expect(errorText).toBeTruthy();
+    expect(answers[0]!.resolved).toBe(false);
+    expect(answers[0]!.errorText).toBeTruthy();
+  });
+
+  it("resolver injetado multi-métrica → vários answers", async () => {
+    const da = makeDataAccess(500);
+    const { answers } = await runCopilotQuery("faturamento e margem", baseCtx, {
+      dataAccess: da,
+      catalog,
+      resolver: () => ({
+        queries: [
+          { metricId: "faturamento", dimensions: [], filters: {}, period },
+          { metricId: "margem", dimensions: [], filters: {}, period },
+        ],
+      }),
+    });
+    expect(answers).toHaveLength(2);
+    expect(answers.every((a) => a.resolved)).toBe(true);
+    expect(da.getSalesMetric).toHaveBeenCalledOnce();
+    expect(da.getMargin).toHaveBeenCalledOnce();
+  });
+
+  it("erro parcial do dataAccess → answers[0] resolvido, answers[1] não, errorText no answer falho", async () => {
+    const da = makeDataAccess(750);
+    (da.getMargin as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("margin boom"));
+    const { answers } = await runCopilotQuery("faturamento e margem", baseCtx, {
+      dataAccess: da,
+      catalog,
+      resolver: () => ({
+        queries: [
+          { metricId: "faturamento", dimensions: [], filters: {}, period },
+          { metricId: "margem", dimensions: [], filters: {}, period },
+        ],
+      }),
+    });
+    expect(answers).toHaveLength(2);
+    expect(answers[0]!.resolved).toBe(true);
+    expect(answers[0]!.value).toBe(750);
+    expect(answers[1]!.resolved).toBe(false);
+    expect(answers[1]!.errorText).toBeTruthy();
   });
 });
