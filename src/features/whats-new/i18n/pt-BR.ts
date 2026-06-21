@@ -9,8 +9,6 @@ export const WHATS_NEW_I18N = {
     minor: "Novidades",
     major: "Grande atualização",
   } satisfies Record<Exclude<ReleaseKind, "patch">, string>,
-  codenamePrefix: "Codinome",
-  addedHeading: "Novidades desta versão",
   /** {{count}} replaced at render time. */
   overflowTemplate: "e mais {{count}} versão(ões) — toque em \"Ver tudo\" para o histórico completo",
   escHint: "Esc também fecha",

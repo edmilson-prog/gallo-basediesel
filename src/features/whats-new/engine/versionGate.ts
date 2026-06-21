@@ -49,9 +49,8 @@ export function selectNewReleases(
 
 /** Version to persist as "seen" — the highest absolute release (patch included). */
 export function latestVersionToMark(releases: IRelease[]): string | null {
-  if (releases.length === 0) return null;
-  return releases.reduce(
-    (max, r) => (compareSemver(r.version, max) > 0 ? r.version : max),
-    releases[0].version,
+  return releases.reduce<string | null>(
+    (max, r) => (max === null || compareSemver(r.version, max) > 0 ? r.version : max),
+    null,
   );
 }

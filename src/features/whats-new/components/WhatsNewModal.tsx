@@ -20,7 +20,6 @@ export function WhatsNewModal() {
   if (releases.length === 0) return null;
 
   const subtitle = WHATS_NEW_I18N.subtitleTemplate.replace("{{count}}", String(releases.length));
-  const overflowNote = WHATS_NEW_I18N.overflowTemplate.replace("{{count}}", String(overflowCount));
 
   return (
     <Dialog
@@ -49,7 +48,9 @@ export function WhatsNewModal() {
             <WhatsNewReleaseCard key={release.version} release={release} highlighted={i === 0} />
           ))}
           {overflowCount > 0 && (
-            <p className="pt-1 text-center text-xs text-muted-foreground">{overflowNote}</p>
+            <p className="pt-1 text-center text-xs text-muted-foreground">
+              {WHATS_NEW_I18N.overflowTemplate.replace("{{count}}", String(overflowCount))}
+            </p>
           )}
         </div>
 
