@@ -37,11 +37,13 @@ export type {
   ICommissionSettings,
   IEcommerceIntegrationSettings,
   IEcommerceNotificationTemplates,
+  ISessionTimeoutSettings,
   CommissionSplitPolicy,
   EcommerceAssignmentMode,
   StoreType,
   VehicleCadastroMode,
 } from "./platform";
+export { DEFAULT_SESSION_TIMEOUT } from "./platform";
 
 // System health & observability (PRD-110)
 export type {
