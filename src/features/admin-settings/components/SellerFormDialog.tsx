@@ -33,6 +33,8 @@ import { Icon } from "@/components/Icon";
 import type { ISeller, IScheduleOverride, IWorkScheduleWindow } from "@/shared/types";
 import { WorkScheduleTab, buildWorkScheduleRows, validateWorkSchedule } from "@/features/access";
 import { RotationTab } from "@/features/rotation";
+import { SessionOverrideSection } from "@/features/session-timeout";
+import type { ISessionTimeoutSettings } from "@/shared/types";
 import { useAuth } from "@/features/auth/useAuth";
 import { recordAuditLogSync, useDepartmentsProvider, useSellersProvider } from "@/providers/data";
 import {
@@ -90,6 +92,9 @@ export function SellerFormDialog({
   const [rotationEnabled, setRotationEnabled] = useState<boolean>(
     seller?.rotation?.enabled ?? true,
   );
+  const [sessionOverride, setSessionOverride] = useState<ISessionTimeoutSettings | null>(
+    seller?.sessionTimeoutOverride ?? null,
+  );
 
   const departmentsQuery = useQuery({
     queryKey: ["departments", storeId],
@@ -126,6 +131,7 @@ export function SellerFormDialog({
     setScheduleRows(buildWorkScheduleRows(seller));
     setScheduleOverrides(seller?.scheduleOverrides ?? []);
     setRotationEnabled(seller?.rotation?.enabled ?? true);
+    setSessionOverride(seller?.sessionTimeoutOverride ?? null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, seller?.id]);
 
@@ -157,6 +163,7 @@ export function SellerFormDialog({
           workSchedule: enabledRows,
           scheduleOverrides: cleanedOverrides,
           rotation: { enabled: rotationEnabled },
+          sessionTimeoutOverride: sessionOverride,
         });
         const scheduleChanged =
           JSON.stringify(seller.workSchedule ?? []) !== JSON.stringify(enabledRows) ||
@@ -415,6 +422,13 @@ export function SellerFormDialog({
                             <FormMessage />
                           </FormItem>
                         )}
+                      />
+                    )}
+
+                    {isEdit && seller && (
+                      <SessionOverrideSection
+                        value={sessionOverride}
+                        onChange={setSessionOverride}
                       />
                     )}
                   </TabsContent>
