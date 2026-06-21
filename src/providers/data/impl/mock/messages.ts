@@ -1,7 +1,7 @@
 import { messagesApi } from "@/mocks";
 import type { IMessage } from "@/shared/types";
 import type { IMessagesProvider } from "../../contracts/messages";
-import { classifyMediaRef } from "@/shared/utils/mediaRef";
+import { classifyMediaRef, partitionMediaRefs } from "@/shared/utils/mediaRef";
 
 export const mockMessagesProvider: IMessagesProvider = {
   list: async (params) => {
@@ -35,6 +35,15 @@ export const mockMessagesProvider: IMessagesProvider = {
     // bare placeholder name with no real bytes — only the former is navigable.
     const ref = classifyMediaRef(mediaUrl);
     return ref.kind === "absolute" ? ref.url : null;
+  },
+  resolveMediaUrls: async (refs) => {
+    // Mock has no private bucket — only external absolutes are navigable.
+    const plan = partitionMediaRefs(refs);
+    const out: Record<string, string | null> = {};
+    for (const { ref, url } of plan.passthrough) out[ref] = url;
+    for (const { ref } of plan.toSign) out[ref] = null;
+    for (const ref of plan.unavailable) out[ref] = null;
+    return out;
   },
   listConversationMedia: async (conversationId) => {
     const result = await messagesApi.list({

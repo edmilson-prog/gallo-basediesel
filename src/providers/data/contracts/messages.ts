@@ -68,6 +68,14 @@ export interface IMessagesProvider {
    */
   resolveMediaUrl(mediaUrl: string | undefined): Promise<string | null>;
   /**
+   * Batch variant of {@link resolveMediaUrl}: resolve many refs in one go so a
+   * conversation's media signs in a single round-trip instead of N. Returns a
+   * map keyed by the ORIGINAL ref (the value passed in), so callers can seed the
+   * per-item `useResolvedMediaUrl` cache directly. Refs absent from the map were
+   * not requested; a present `null` means unavailable.
+   */
+  resolveMediaUrls(refs: string[]): Promise<Record<string, string | null>>;
+  /**
    * Messages of a conversation that carry displayable media (image/audio/video/
    * document) WITH bytes available (non-null `mediaUrl`), newest first. Feeds
    * the conversation media side panel. Inbound media whose download failed or
