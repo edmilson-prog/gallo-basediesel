@@ -282,6 +282,12 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         to: "/app/configuracoes/ambiente",
         roles: ["Owner"],
       },
+      {
+        label: "Segurança da sessão",
+        icon: "mdi:timer-lock-outline",
+        to: "/app/configuracoes/sessao",
+        roles: ["Owner"],
+      },
     ],
   },
   {
