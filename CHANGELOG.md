@@ -6,6 +6,10 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **Encerramento de sessão por inatividade** — ao ficar ocioso por tempo configurável, o usuário interno recebe um modal de contagem regressiva com beeps que escalam (cadência crescente), podendo clicar "Continuar conectado" para reiniciar o timer ou aguardar o logout automático. Configurável globalmente em Configurações → Segurança da sessão (Owner-only) e com override por usuário no cadastro (aba Geral). Sincronizado entre abas: só encerra quando ocioso em **todas** as abas abertas. Padrão: ligado, 30 min de inatividade, 60 s de aviso. ⚠️ Comunicar a equipe antes do deploy — o default está ligado.
+
 ## [0.110.0] — Turnstile · 2026-06-20
 
 **Modelo de acesso a conversas reescrito em "2 portões" — a instância (número de origem) governa o atendimento.** A leitura para papéis não-staff resolve em dois portões independentes: **Atendimento** (conversas/mensagens/ficha) pela **instância** e **Carteira** (clientes/orçamentos/pedidos) pelo **dono**. Um vendedor que perde o acesso a um número deixa de ver as conversas daquele número, inclusive as já atribuídas. Junto vão a correção do "Lead anônimo" na fila, o fim das falhas ao abrir conversas grandes da fila e o menu lateral que se adapta ao papel de cada usuário.
