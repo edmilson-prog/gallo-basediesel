@@ -6,6 +6,19 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.111.0] — Aperture · 2026-06-21
+
+**As mídias das conversas agora carregam muito mais rápido — para todos os papéis.** Fotos, áudios e documentos recebidos pelo WhatsApp passam a abrir quase instantaneamente ao entrar numa conversa, em vez de levarem alguns segundos (e, sob carga, às vezes aparecerem como "indisponível"). A diferença é mais sentida pelos vendedores, que antes esperavam bem mais que o dono ou o gestor pela mesma conversa.
+
+### Changed
+
+- **Liberação de acesso à mídia em uma verificação única (performance):** preparar cada arquivo de mídia recebido deixou de varrer todas as conversas da loja a cada item. Como o caminho do arquivo já carrega a conversa de origem, a permissão passa a ser checada **uma só vez** por uma função de servidor (`can_read_conversation_media`) — o tempo por arquivo caiu de ~2.375 ms para ~7 ms para um vendedor, igualando-o ao dono/gestor (que já checava mais rápido). É a mesma assimetria de acesso que afetava as mensagens, agora resolvida também no caminho dos arquivos.
+- **Mídias de uma conversa preparadas em lote:** ao abrir uma conversa — e na galeria da aba "Mídias" — todos os arquivos passam a ser preparados em uma única requisição, em vez de uma por mídia. Os balões continuam reaproveitando o que já foi preparado, então não há trabalho repetido.
+
+### Security
+
+- **Verificação de mídia restrita a usuários autenticados** — a nova checagem de permissão de mídia (`can_read_conversation_media`) só pode ser executada por quem está logado, alinhada às demais funções de acesso da plataforma.
+
 ## [0.110.0] — Turnstile · 2026-06-20
 
 **Modelo de acesso a conversas reescrito em "2 portões" — a instância (número de origem) governa o atendimento.** A leitura para papéis não-staff resolve em dois portões independentes: **Atendimento** (conversas/mensagens/ficha) pela **instância** e **Carteira** (clientes/orçamentos/pedidos) pelo **dono**. Um vendedor que perde o acesso a um número deixa de ver as conversas daquele número, inclusive as já atribuídas. Junto vão a correção do "Lead anônimo" na fila, o fim das falhas ao abrir conversas grandes da fila e o menu lateral que se adapta ao papel de cada usuário.
