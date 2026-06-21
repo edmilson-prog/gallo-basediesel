@@ -53,22 +53,32 @@ export function useWhatsNew(): UseWhatsNewResult {
 
   useEffect(() => {
     if (!data || data.length === 0 || evaluatedRef.current) return;
-    evaluatedRef.current = true;
 
     const lastSeen = readLastSeen();
 
     // First visit → silent baseline: record current version, do not open.
     if (lastSeen === null) {
+      evaluatedRef.current = true;
       const mark = latestVersionToMark(data);
       if (mark) writeLastSeen(mark);
       return;
     }
 
     const result = selectNewReleases(data, lastSeen);
-    if (!result.shouldOpen) return;
+    if (!result.shouldOpen) {
+      evaluatedRef.current = true;
+      return;
+    }
 
     setGate({ releases: result.newReleases, overflowCount: result.overflowCount });
-    const timer = setTimeout(() => setOpen(true), OPEN_DELAY_MS);
+    // Mark evaluated only when the open actually fires. Under React StrictMode
+    // the effect runs mount→cleanup→remount; clearing the timer in cleanup and
+    // setting the ref here (not at the top) lets the remount reschedule it.
+    // In production (single mount) this still opens exactly once.
+    const timer = setTimeout(() => {
+      evaluatedRef.current = true;
+      setOpen(true);
+    }, OPEN_DELAY_MS);
     return () => clearTimeout(timer);
   }, [data]);
 
