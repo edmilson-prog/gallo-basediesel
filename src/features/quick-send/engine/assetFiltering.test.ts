@@ -55,4 +55,11 @@ describe("filterAssets", () => {
   it("returns empty when nothing matches", () => {
     expect(filterAssets(items, { query: "zzz" })).toEqual([]);
   });
+  it("sensitiveOnly keeps sensitive assets (flag or tabela_preco) and drops normal ones", () => {
+    const normal = { ...items[0], id: "n", sensitivity: "normal" as const, category: "catalogo" as const };
+    const flagged = { ...items[0], id: "f", sensitivity: "sensitive" as const };
+    const priceTable = { ...items[0], id: "p", category: "tabela_preco" as const, sensitivity: "normal" as const };
+    const out = filterAssets([normal, flagged, priceTable], { sensitiveOnly: true });
+    expect(out.map((i) => i.id)).toEqual(["f", "p"]);
+  });
 });
