@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Icon } from "@/components/Icon";
 import { Badge } from "@/components/ui/badge";
@@ -33,7 +33,14 @@ import {
 import { SectionHeader } from "../components/SectionHeader";
 import { INVALID_CREDENTIALS_REF_MESSAGE, isValidCredentialsRef } from "../api/whatsappConnect";
 import { useEvolutionStatusSync } from "../hooks/useEvolutionStatusSync";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ConnectWhatsAppDialog, type ConnectDialogStep } from "../components/ConnectWhatsAppDialog";
+import { DeleteInstanceDialog } from "../components/DeleteInstanceDialog";
 import { ImportConversationsDialog } from "../components/ImportConversationsDialog";
 import { SyncAvatarsDialog } from "../components/SyncAvatarsDialog";
 import { TestMessageDialog } from "../components/TestMessageDialog";
@@ -206,6 +213,9 @@ export function WhatsAppAccountsPage() {
   const [accessRules, setAccessRules] = useState<Record<string, IWhatsAppAccountAccessRule[]>>({});
   const [accessAccount, setAccessAccount] = useState<IWhatsAppAccount | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<IWhatsAppAccount | null>(null);
+  // Focus lands here after a delete removes the card the kebab lived in.
+  const pageRef = useRef<HTMLDivElement>(null);
 
   const loadMetrics = useCallback(
     async (list: IWhatsAppAccount[]) => {
@@ -435,7 +445,7 @@ export function WhatsAppAccountsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div ref={pageRef} tabIndex={-1} className="space-y-6 outline-none">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <SectionHeader
           title="WhatsApp"
@@ -532,6 +542,30 @@ export function WhatsAppAccountsPage() {
                         <Icon icon="mdi:swap-horizontal" size={12} className="mr-1" />
                         Failover ativo
                       </Badge>
+                    )}
+                    {!isMock && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            aria-label="Mais ações"
+                            title="Mais ações"
+                          >
+                            <Icon icon="mdi:dots-vertical" size={18} />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onSelect={() => setDeleteTarget(account)}
+                            className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                          >
+                            <Icon icon="mdi:trash-can-outline" size={15} className="mr-2" />
+                            Excluir instância
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     )}
                   </div>
                 </div>
@@ -988,6 +1022,13 @@ export function WhatsAppAccountsPage() {
       <TestMessageDialog account={testTarget} onClose={() => setTestTarget(null)} />
       <ImportConversationsDialog account={importTarget} onClose={() => setImportTarget(null)} />
       <SyncAvatarsDialog account={syncAvatarsTarget} onClose={() => setSyncAvatarsTarget(null)} />
+      <DeleteInstanceDialog
+        account={deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onDeleted={() => void refresh()}
+        onDisconnect={(account) => openConnect(account)}
+        restoreFocusRef={pageRef}
+      />
       {accessAccount && (
         <InstanceAccessSheet
           account={accessAccount}

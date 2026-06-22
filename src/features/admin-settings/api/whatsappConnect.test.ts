@@ -29,6 +29,13 @@ describe("connectErrorMessage", () => {
     );
     expect(connectErrorMessage(new Error("boom"))).toBe(CONNECT_ERROR_MESSAGES.DEFAULT);
   });
+
+  it("maps HAS_LINKED_DATA to its pt-BR copy mentioning the linked-data reason", () => {
+    expect(connectErrorMessage(new EvolutionConnectError("x", "HAS_LINKED_DATA"))).toBe(
+      CONNECT_ERROR_MESSAGES.HAS_LINKED_DATA,
+    );
+    expect(CONNECT_ERROR_MESSAGES.HAS_LINKED_DATA).toMatch(/vinculad|conversa|hist|dados/i);
+  });
 });
 
 describe("formatTestPhoneMask", () => {
