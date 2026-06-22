@@ -194,6 +194,7 @@ export const QUICK_SEND_STRINGS = {
     actionFailed: "Não foi possível concluir a ação.",
     publishedToast: "Ativo publicado.",
     unpublishedToast: "Ativo despublicado.",
+    deletedToast: "Ativo excluído.",
     versionBumpedToast: "Nova versão criada.",
     permissionUpdatedToast: "Permissão atualizada.",
     // Screen A — asset management (P1)

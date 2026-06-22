@@ -83,11 +83,11 @@ function SkeletonGrid() {
  * and a responsive grid of AssetManageCard items.
  *
  * Filter reconciliation:
- *   - category / brand / productLine / status / query → forwarded to the provider
+ *   - category / brand / productLine / query → forwarded to the provider
  *     via `useAssetLibrary` (server-side, single TanStack Query path).
- *   - sensitiveOnly → applied CLIENT-SIDE via `filterAssets` after the query
- *     result arrives (the provider interface does not expose a `sensitiveOnly`
- *     parameter).
+ *   - status / sensitiveOnly → applied CLIENT-SIDE via `filterAssets` after the query
+ *     result arrives (the provider interface does not expose a `status` or `sensitiveOnly`
+ *     parameter), bounded by the hook's `pageSize: 200` cap.
  * This avoids a secondary manual-refresh state that could desync with the query.
  */
 export function AssetLibraryManagerPage() {
@@ -180,7 +180,6 @@ export function AssetLibraryManagerPage() {
       productLine: filters.productLine,
       query: debouncedQuery || undefined,
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [filters.category, filters.brand, filters.productLine, debouncedQuery],
   );
 
@@ -241,7 +240,7 @@ export function AssetLibraryManagerPage() {
     const item = deleteState.item;
     if (!item) return;
     setDeleteState({ open: false, item: null });
-    await runMutation(item.id, () => deleteAsset(item.id), s.unpublishedToast);
+    await runMutation(item.id, () => deleteAsset(item.id), s.deletedToast);
   }
 
   function handleTogglePublish(item: IAssetLibraryItem) {
