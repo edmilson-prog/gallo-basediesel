@@ -247,6 +247,13 @@ export const QUICK_SEND_STRINGS = {
     fileRequired: "Selecione um arquivo.",
     urlInvalid: "A URL deve começar com http:// ou https://",
     fieldBrandPlaceholder: "Volvo, Scania, Mercedes-Benz…",
+    // AssetPreviewDialog (Task 9) additions
+    previewUnavailable: "Pré-visualização indisponível neste modo.",
+    openInNewTab: "Abrir em nova aba",
+    open: "Abrir",
+    metaCategory: "Categoria",
+    metaBrand: "Marca",
+    metaLine: "Linha",
   },
   stats: {
     title: "Estatística de uso da biblioteca",
