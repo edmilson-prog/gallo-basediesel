@@ -320,6 +320,7 @@ export const QUICK_SEND_STRINGS = {
     saved: "Resposta salva.",
     deleted: "Resposta excluída.",
     duplicated: "Resposta duplicada para as suas.",
+    duplicateShortcutExists: "Você já tem uma resposta rápida com esse atalho.",
     saveError: "Não foi possível salvar. Tente de novo.",
     deleteTitle: "Excluir resposta",
     deleteDesc: (title: string) => `Excluir "${title}"? Esta ação não pode ser desfeita.`,

@@ -367,8 +367,12 @@ export function QuickRepliesPage() {
     try {
       await duplicateToMine(item);
       toast.success(s.duplicated);
-    } catch {
-      toast.error(s.saveError);
+    } catch (error) {
+      if (error instanceof Error && error.message === "shortcut-exists") {
+        toast.error(s.duplicateShortcutExists);
+      } else {
+        toast.error(s.saveError);
+      }
     }
   }
 

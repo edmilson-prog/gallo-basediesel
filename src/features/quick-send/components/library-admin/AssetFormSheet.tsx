@@ -288,20 +288,19 @@ export function AssetFormSheet({
   const watchedCategory = form.watch("category");
   const watchedSourceMode = form.watch("sourceMode");
 
-  // Price tables are always sensitive — force the toggle and disable it.
+  // Price tables are always sensitive. We force the toggle VISUALLY (checked +
+  // disabled) without mutating the field, and compute the persisted value
+  // synchronously at submit time — this avoids clobbering a manual choice on
+  // category changes and the effect-vs-submit race.
   const isPriceTable = watchedCategory === "tabela_preco";
-
-  useEffect(() => {
-    if (isPriceTable) {
-      form.setValue("sensitive", true);
-    }
-  }, [isPriceTable, form]);
 
   // Re-sync when the sheet opens for a different asset or mode.
   useEffect(() => {
     if (!open) return;
     form.reset(buildDefaultValues(asset, mode));
-    setSourceMode("file");
+    // Mirror what buildDefaultValues computes for sourceMode so a link asset in
+    // edit mode keeps watchedSourceMode === "link" (hides Kind, shows link).
+    setSourceMode(asset?.kind === "link" ? "link" : "file");
     setFile(null);
     setUrlValue(asset?.url ?? "");
     setUrlError(null);
@@ -389,6 +388,14 @@ export function AssetFormSheet({
       }
     }
 
+    // Compute the persisted sensitivity synchronously from the submitted values:
+    // price tables are always sensitive, but a manual "sensitive" choice on any
+    // other category is preserved. Derived here — not from the effect/watch — to
+    // avoid the stale-on-category-change + submit race.
+    const submittedIsPriceTable = values.category === "tabela_preco";
+    const sensitivity: IAssetLibraryItem["sensitivity"] =
+      values.sensitive || submittedIsPriceTable ? "sensitive" : "normal";
+
     setSubmitting(true);
     try {
       if (mode === "create") {
@@ -399,7 +406,7 @@ export function AssetFormSheet({
           productLine: values.productLine?.trim() || undefined,
           division: values.division,
           kind: values.kind,
-          sensitivity: values.sensitive ? "sensitive" : "normal",
+          sensitivity,
           allowedRoleIds: values.allowedRoleIds.length > 0 ? values.allowedRoleIds : undefined,
           file: sourceMode === "file" ? (file ?? undefined) : undefined,
           url: sourceMode === "link" ? urlValue.trim() : undefined,
@@ -413,7 +420,7 @@ export function AssetFormSheet({
           productLine: values.productLine?.trim() || undefined,
           division: values.division,
           kind: values.kind,
-          sensitivity: values.sensitive ? "sensitive" : "normal",
+          sensitivity,
           allowedRoleIds: values.allowedRoleIds.length > 0 ? values.allowedRoleIds : undefined,
         });
         toast.success(L.savedEdit);
@@ -665,7 +672,7 @@ export function AssetFormSheet({
                       <FormControl>
                         <Switch
                           id="asset-sensitive-switch"
-                          checked={field.value}
+                          checked={isPriceTable ? true : field.value}
                           onCheckedChange={field.onChange}
                           disabled={busy || isPriceTable}
                           aria-label={L.sensitiveToggle}

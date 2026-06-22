@@ -152,16 +152,25 @@ export function useAssetLibraryAdmin() {
       setUploading(!!source.file);
       try {
         let storageRef: string | undefined;
-        let url = source.url;
+        let mediaAssetId: ID | undefined;
+        const url = source.url;
 
         if (source.file) {
-          // file path: upload → storageRef; url remains undefined
+          // file path: upload → storageRef + mediaAssetId; url remains undefined
           const up = await uploadFile(source.file);
           storageRef = up.storageRef;
+          mediaAssetId = up.mediaAssetId;
         }
         // link path: storageRef stays undefined; url carries the value set above
 
-        const r = await provider.bumpVersion(id, { storageRef, url });
+        let r = await provider.bumpVersion(id, { storageRef, url });
+        // bumpVersion only accepts storageRef/url, but resolvePreviewUrl signs via
+        // mediaAssetId — repoint it to the freshly uploaded media asset so the
+        // preview resolves to the new file (otherwise it would keep signing the
+        // OLD media asset, or null).
+        if (mediaAssetId) {
+          r = await provider.update(id, { mediaAssetId });
+        }
         invalidate();
         return r;
       } finally {

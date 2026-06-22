@@ -38,6 +38,7 @@ export function useAssetLibrary(filter: IAssetFilter): {
         category: effectiveFilter.category,
         brand: effectiveFilter.brand,
         productLine: effectiveFilter.productLine,
+        status: effectiveFilter.status,
         search: effectiveFilter.query,
         pageSize: 200,
       }),

@@ -113,6 +113,11 @@ export function useQuickReplyAdmin(): IUseQuickReplyAdmin {
 
   const duplicateToMine = useCallback(
     async (source: IQuickReply): Promise<void> => {
+      // Guard against silently creating a duplicate shortcut among the seller's
+      // own replies — the page surfaces a specific toast on this error.
+      if (mine.some((r) => r.shortcut === source.shortcut)) {
+        throw new Error("shortcut-exists");
+      }
       const storeId = getCurrentContext().currentStoreId;
       await provider.create({
         shortcut: source.shortcut,
@@ -124,7 +129,7 @@ export function useQuickReplyAdmin(): IUseQuickReplyAdmin {
       } as Parameters<typeof provider.create>[0]);
       invalidate();
     },
-    [provider, sellerId, invalidate],
+    [provider, sellerId, invalidate, mine],
   );
 
   return {

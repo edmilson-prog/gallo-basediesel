@@ -83,10 +83,11 @@ function SkeletonGrid() {
  * and a responsive grid of AssetManageCard items.
  *
  * Filter reconciliation:
- *   - category / brand / productLine / query → forwarded to the provider
- *     via `useAssetLibrary` (server-side, single TanStack Query path).
- *   - status / sensitiveOnly → applied CLIENT-SIDE via `filterAssets` after the query
- *     result arrives (the provider interface does not expose a `status` or `sensitiveOnly`
+ *   - category / brand / productLine / query / status → forwarded to the provider
+ *     via `useAssetLibrary` (server-side, single TanStack Query path). `status`
+ *     is applied server-side, so it is not bounded by the `pageSize: 200` cap.
+ *   - sensitiveOnly → applied CLIENT-SIDE via `filterAssets` after the query
+ *     result arrives (the provider interface does not expose a `sensitiveOnly`
  *     parameter), bounded by the hook's `pageSize: 200` cap.
  * This avoids a secondary manual-refresh state that could desync with the query.
  */
@@ -171,35 +172,40 @@ export function AssetLibraryManagerPage() {
   // ── Data ──────────────────────────────────────────────────────────────────
 
   // Build the provider filter from state.
-  // IAssetFilter (used by useAssetLibrary) supports: category, brand, productLine, query.
-  // It does NOT have status or sensitiveOnly — both are applied CLIENT-SIDE below.
+  // IAssetFilter (used by useAssetLibrary) supports: category, brand, productLine, status.
+  // `query` is driven separately via the hook's `search()` API (see effect below);
+  // it is intentionally NOT included here. `sensitiveOnly` is applied CLIENT-SIDE below.
   const providerFilter = useMemo(
     () => ({
       category: filters.category,
       brand: filters.brand,
       productLine: filters.productLine,
-      query: debouncedQuery || undefined,
+      status: filters.status,
     }),
-    [filters.category, filters.brand, filters.productLine, debouncedQuery],
+    [filters.category, filters.brand, filters.productLine, filters.status],
   );
 
-  const { items: rawItems, favorites, isLoading, isError, refetch, toggleFavorite } =
+  const { items: rawItems, favorites, isLoading, isError, search, refetch, toggleFavorite } =
     useAssetLibrary(providerFilter);
+
+  // Drive the hook's internal query state via its `search()` API. The hook
+  // overrides `filter.query` with its internal `query`, so the debounced term
+  // must be pushed through `search()` for the provider to receive it.
+  useEffect(() => {
+    search(debouncedQuery);
+  }, [debouncedQuery, search]);
 
   const { setPublished, setSensitive, deleteAsset } = useAssetLibraryAdmin();
 
-  // Client-side passes: status filter + sensitiveOnly (single filter chain,
-  // no secondary query path — avoids desync with the TanStack Query result).
+  // Client-side pass: sensitiveOnly only (status is forwarded server-side via
+  // providerFilter). Single filter chain — no secondary query path that could
+  // desync with the TanStack Query result.
   const items = useMemo(() => {
-    let result = rawItems;
-    if (filters.status) {
-      result = result.filter((i) => i.status === filters.status);
-    }
     if (filters.sensitiveOnly) {
-      result = filterAssets(result, { sensitiveOnly: true });
+      return filterAssets(rawItems, { sensitiveOnly: true });
     }
-    return result;
-  }, [rawItems, filters.status, filters.sensitiveOnly]);
+    return rawItems;
+  }, [rawItems, filters.sensitiveOnly]);
 
   // Derive brand/productLine lists from loaded items (distinct, sorted)
   const brands = useMemo(
@@ -228,7 +234,9 @@ export function AssetLibraryManagerPage() {
     try {
       await op();
       toast.success(successMsg);
-      refetch();
+      // Mutations in useAssetLibraryAdmin already invalidate the
+      // ["quick-send","assets"] query family, so the list re-fetches itself —
+      // no redundant manual refetch here.
     } catch {
       toast.error(s.actionFailed);
     } finally {
@@ -376,8 +384,9 @@ export function AssetLibraryManagerPage() {
         asset={formSheet.asset}
         onOpenChange={(open) => setFormSheet((prev) => ({ ...prev, open }))}
         onSaved={() => {
+          // The create/update/newVersion mutations invalidate the
+          // ["quick-send","assets"] query family, so the list re-fetches itself.
           setFormSheet((prev) => ({ ...prev, open: false }));
-          refetch();
         }}
       />
 
