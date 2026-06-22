@@ -22,6 +22,8 @@ function extractMessage(body: unknown): string {
 }
 
 const DISCONNECTED_PATTERN = /not connected|connection closed|session|disconnected/i;
+/** Evolution reports a name conflict on /instance/create as 403 "already in use". */
+const ALREADY_EXISTS_PATTERN = /already in use|already exists/i;
 
 export function mapEvolutionError(
   httpStatus: number,
@@ -31,6 +33,13 @@ export function mapEvolutionError(
   const message = extractMessage(body);
   const details: Record<string, unknown> = { endpoint, evolutionMessage: message };
 
+  // A name conflict (Evolution answers /instance/create with 403 "already in
+  // use") is NOT an auth failure — classifying it as UNAUTHORIZED both masks
+  // the cause from the user ("chave de API recusada") and erases the original
+  // text the idempotent createInstance guard relies on. Keep the message intact.
+  if (ALREADY_EXISTS_PATTERN.test(message)) {
+    return new WhatsAppProviderError("INTEGRATION_ERROR", httpStatus, message, details);
+  }
   if (httpStatus === 401 || httpStatus === 403) {
     return new WhatsAppProviderError(
       "UNAUTHORIZED",
