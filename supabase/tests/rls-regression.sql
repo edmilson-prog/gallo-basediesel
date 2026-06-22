@@ -73,12 +73,22 @@ begin
     raise exception 'lucas: is_staff() must be false';
   end if;
 
-  -- Per-seller carteira: sees own, never another seller's rows.
+  -- Per-seller carteira + Atendimento ("2 portões" / Turnstile, v0.110.0): o
+  -- atendente vê os clientes da PRÓPRIA carteira E os clientes vinculados a uma
+  -- conversa que ele acessa (can_access_conversation) — mesmo sem ser dono da
+  -- carteira. O leak PROIBIDO é um cliente de outro seller/pool SEM nenhuma
+  -- conversa acessível que o justifique. @see docs/dev/conversation-access-model.md
   if (select count(*) from public.customers) = 0 then
     raise exception 'lucas: should see his own customers';
   end if;
-  if (select count(*) from public.customers where seller_id <> lucas) <> 0 then
-    raise exception 'lucas: must not see other sellers'' customers (cross-leak)';
+  if (select count(*) from public.customers cu
+        where cu.seller_id is distinct from lucas
+          and not exists (
+            select 1 from public.conversations c
+            where c.customer_id = cu.id
+              and public.can_access_conversation(c.id)
+          )) <> 0 then
+    raise exception 'lucas: must not see other sellers'' customers without an accessible conversation (cross-leak)';
   end if;
   if (select count(*) from public.orders) = 0 then
     raise exception 'lucas: should see his own orders';
@@ -796,6 +806,14 @@ set local role authenticated;
 
 do $$
 begin
+  -- Guard: o Bloco A1 só existe após a migration 20260622130000_store_crud_owner_rpc.
+  -- O CI roda contra prod e o workflow "DB deploy" aplica a migration apenas no
+  -- merge, então pré-merge este bloco é PULADO (será validado no 1º run pós-deploy).
+  -- Espelha o guard de objeto-ausente da seção multi-instância acima.
+  if not exists (select 1 from information_schema.columns
+       where table_schema = 'public' and table_name = 'stores' and column_name = 'is_active') then
+    return;
+  end if;
   -- (a) Coluna de identidade: UPDATE direto deve ser NEGADO (column grant).
   begin
     update public.stores set name = name
@@ -830,6 +848,10 @@ select set_config(
 set local role authenticated;
 do $chk$
 begin
+  -- Guard: pula até a migration A1 estar aplicada em prod (ver nota acima).
+  if to_regprocedure('public.create_store(uuid,text,text,text,text,uuid,text[],jsonb)') is null then
+    return;
+  end if;
   begin
     perform public.create_store(
       gen_random_uuid(), 'Probe', 'filial', '00.000.000/0001-00', 'Rua',
