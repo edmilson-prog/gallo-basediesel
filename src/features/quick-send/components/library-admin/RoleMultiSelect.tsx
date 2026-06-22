@@ -89,14 +89,13 @@ export function RoleMultiSelect({ value, onChange, disabled = false }: IRoleMult
       )}
 
       {/* Popover + Command (searchable list) */}
-      <Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
+      <Popover open={open} onOpenChange={(v) => !disabled && setOpen(v)}>
         <PopoverTrigger asChild>
           <Button
             type="button"
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            aria-label={L.fieldRoles}
             disabled={disabled || isLoading}
             className={cn(
               "w-full justify-between font-normal",
@@ -105,7 +104,7 @@ export function RoleMultiSelect({ value, onChange, disabled = false }: IRoleMult
           >
             <span>
               {hasSelection
-                ? `${value.length} papel${value.length === 1 ? "" : "s"} selecionado${value.length === 1 ? "" : "s"}`
+                ? L.rolesCountLabel(value.length)
                 : L.fieldRoles}
             </span>
             <Icon icon="mdi:unfold-more-horizontal" size={16} className="ml-2 shrink-0 opacity-50" />
@@ -114,9 +113,9 @@ export function RoleMultiSelect({ value, onChange, disabled = false }: IRoleMult
 
         <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
           <Command>
-            <CommandInput placeholder="Buscar papel…" />
+            <CommandInput placeholder={L.rolesSearchPlaceholder} />
             <CommandList>
-              <CommandEmpty>Nenhum papel encontrado.</CommandEmpty>
+              <CommandEmpty>{L.rolesEmpty}</CommandEmpty>
               <CommandGroup>
                 {roles.map((role) => {
                   const checked = value.includes(role.id);
@@ -147,7 +146,7 @@ export function RoleMultiSelect({ value, onChange, disabled = false }: IRoleMult
                     setOpen(false);
                   }}
                 >
-                  Limpar seleção
+                  {L.rolesClearSelection}
                 </Button>
               </div>
             )}

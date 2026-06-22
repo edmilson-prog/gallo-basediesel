@@ -189,7 +189,6 @@ export const QUICK_SEND_STRINGS = {
     tabAssets: "Ativos",
     tabSnippets: "Respostas rápidas",
     tabUsage: "Uso",
-    searchAssets: "Buscar ativo…",
     assetsEmpty: "Nenhum ativo encontrado.",
     statusPublished: "Publicado",
     actionFailed: "Não foi possível concluir a ação.",
@@ -230,6 +229,10 @@ export const QUICK_SEND_STRINGS = {
     unfavorite: "Remover dos favoritos",
     uploadTooLarge: (mb: number) => `Arquivo muito grande. Limite de ${mb} MB.`,
     saveError: "Não foi possível salvar. Tente de novo.",
+    rolesSearchPlaceholder: "Buscar papel…",
+    rolesEmpty: "Nenhum papel encontrado.",
+    rolesClearSelection: "Limpar seleção",
+    rolesCountLabel: (n: number) => `${n} ${n === 1 ? "papel" : "papéis"} selecionado${n === 1 ? "" : "s"}`,
   },
   stats: {
     title: "Estatística de uso da biblioteca",
