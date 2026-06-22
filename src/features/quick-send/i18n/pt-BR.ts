@@ -5,7 +5,7 @@
  * existing groups (append-only — never rename or remove). All copy in
  * Brazilian Portuguese with correct accents.
  */
-import type { LeadTemperature } from "@/shared/types";
+import type { LeadTemperature, AssetCategory } from "@/shared/types";
 
 export const QUICK_SEND_STRINGS = {
   picker: {
@@ -256,6 +256,15 @@ export const QUICK_SEND_STRINGS = {
     metaLine: "Linha",
     loadingPreview: "Carregando pré-visualização",
     metadataAside: "Metadados do ativo",
+    categoryLabels: {
+      catalogo: "Catálogo",
+      ficha_tecnica: "Ficha técnica",
+      tabela_preco: "Tabela de preço",
+      garantia: "Garantia",
+      video: "Vídeo",
+      link: "Link",
+    } as Record<AssetCategory, string>,
+    filterGroupLabel: "Filtros da biblioteca",
   },
   stats: {
     title: "Estatística de uso da biblioteca",

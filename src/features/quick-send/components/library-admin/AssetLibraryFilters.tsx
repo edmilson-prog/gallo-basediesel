@@ -32,17 +32,8 @@ export interface IAssetLibraryFiltersProps {
 }
 
 // ---------------------------------------------------------------------------
-// Label maps (pt-BR) — appended to library group (categoryLabels)
+// Label maps (pt-BR)
 // ---------------------------------------------------------------------------
-
-const CATEGORY_LABELS: Record<AssetCategory, string> = {
-  catalogo: "Catálogo",
-  ficha_tecnica: "Ficha técnica",
-  tabela_preco: "Tabela de preço",
-  garantia: "Garantia",
-  video: "Vídeo",
-  link: "Link",
-};
 
 const STATUS_LABELS: Record<AssetStatus, string> = {
   published: QUICK_SEND_STRINGS.library.statusPublished,
@@ -107,7 +98,13 @@ export function AssetLibraryFilters({
       delete next[key];
       onChange(next);
     } else {
-      set(key, raw as never);
+      if (key === "category") {
+        set(key, raw as AssetCategory);
+      } else if (key === "status") {
+        set(key, raw as AssetStatus);
+      } else {
+        set(key, raw);
+      }
     }
   }
 
@@ -115,7 +112,7 @@ export function AssetLibraryFilters({
     <div
       className="flex flex-wrap items-center gap-2 border-b border-border bg-card px-3 py-2"
       role="group"
-      aria-label={s.filterCategory}
+      aria-label={s.filterGroupLabel}
     >
       {/* Categoria */}
       <Select
@@ -132,7 +129,7 @@ export function AssetLibraryFilters({
           <SelectItem value={ALL}>{s.filterCategory}</SelectItem>
           {CATEGORIES.map((c) => (
             <SelectItem key={c} value={c}>
-              {CATEGORY_LABELS[c]}
+              {s.categoryLabels[c]}
             </SelectItem>
           ))}
         </SelectContent>
