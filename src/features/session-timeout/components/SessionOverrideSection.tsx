@@ -59,7 +59,11 @@ export function SessionOverrideSection({ value, onChange }: ISessionOverrideSect
             política própria para este usuário.
           </p>
           {!settingsReady && !custom && (
-            <p className="text-xs text-muted-foreground">Carregando a configuração global…</p>
+            <p className="text-xs text-muted-foreground">
+              {settingsQuery.isError
+                ? "Não foi possível carregar a configuração global — recarregue para criar um override."
+                : "Carregando a configuração global…"}
+            </p>
           )}
         </div>
         <Switch
