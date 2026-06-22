@@ -38,10 +38,9 @@ export interface IAssetPreviewDialogProps {
 interface IResolveState {
   url: string | null;
   loading: boolean;
-  error: boolean;
 }
 
-const INITIAL_STATE: IResolveState = { url: null, loading: false, error: false };
+const INITIAL_STATE: IResolveState = { url: null, loading: false };
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -84,22 +83,22 @@ export function AssetPreviewDialog({ open, item, onOpenChange }: IAssetPreviewDi
 
     // Avoid resolving for link kind (item.url is the URL directly)
     if (item.kind === "link") {
-      setState({ url: item.url ?? null, loading: false, error: false });
+      setState({ url: item.url ?? null, loading: false });
       return;
     }
 
     let cancelled = false;
-    setState({ url: null, loading: true, error: false });
+    setState({ url: null, loading: true });
 
     resolvePreviewUrl(item)
       .then((url) => {
         if (!cancelled) {
-          setState({ url, loading: false, error: false });
+          setState({ url, loading: false });
         }
       })
       .catch(() => {
         if (!cancelled) {
-          setState({ url: null, loading: false, error: true });
+          setState({ url: null, loading: false });
         }
       });
 
@@ -144,7 +143,7 @@ export function AssetPreviewDialog({ open, item, onOpenChange }: IAssetPreviewDi
               <div
                 className="flex h-full w-full flex-col items-center justify-center gap-3"
                 aria-busy="true"
-                aria-label="Carregando pré-visualização"
+                aria-label={s.loadingPreview}
               >
                 <Skeleton className="h-64 w-full rounded-md" />
                 <Skeleton className="h-4 w-48 rounded" />
@@ -164,7 +163,7 @@ export function AssetPreviewDialog({ open, item, onOpenChange }: IAssetPreviewDi
           {item && (
             <aside
               className="flex w-52 shrink-0 flex-col gap-3 overflow-y-auto border-l border-border bg-card px-4 py-4 text-sm"
-              aria-label="Metadados do ativo"
+              aria-label={s.metadataAside}
             >
               <MetadataSection item={item} sensitive={sensitive} />
             </aside>

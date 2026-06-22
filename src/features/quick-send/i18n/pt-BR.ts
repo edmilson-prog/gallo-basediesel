@@ -254,6 +254,8 @@ export const QUICK_SEND_STRINGS = {
     metaCategory: "Categoria",
     metaBrand: "Marca",
     metaLine: "Linha",
+    loadingPreview: "Carregando pré-visualização",
+    metadataAside: "Metadados do ativo",
   },
   stats: {
     title: "Estatística de uso da biblioteca",
