@@ -153,6 +153,23 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
     ],
   },
   {
+    label: "Conteúdo",
+    items: [
+      {
+        label: "Biblioteca de ativos",
+        icon: "mdi:bookshelf",
+        to: "/app/configuracoes/biblioteca",
+        roles: ["Owner", "Gestor"],
+      },
+      {
+        label: "Mídias (retenção)",
+        icon: "mdi:database-clock-outline",
+        to: "/app/configuracoes/midias",
+        roles: ["Owner", "Gestor"],
+      },
+    ],
+  },
+  {
     label: "Agente SDR",
     items: [
       {
@@ -263,18 +280,6 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         to: "/app/configuracoes/divisoes",
         roles: ["Owner"],
         upcoming: true,
-      },
-      {
-        label: "Mídias (retenção)",
-        icon: "mdi:database-clock-outline",
-        to: "/app/configuracoes/midias",
-        roles: ["Owner", "Gestor"],
-      },
-      {
-        label: "Biblioteca de ativos",
-        icon: "mdi:bookshelf",
-        to: "/app/configuracoes/biblioteca",
-        roles: ["Owner", "Gestor"],
       },
       {
         label: "Auditoria",
