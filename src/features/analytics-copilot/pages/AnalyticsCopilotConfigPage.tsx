@@ -94,8 +94,10 @@ export function AnalyticsCopilotConfigPage() {
         <div className="flex items-start gap-2 text-sm text-muted-foreground">
           <Icon icon="mdi:information-outline" className="mt-0.5 size-4 shrink-0" />
           <span>
-            NLU por IA real (LLM) disponível na Fase 2 — atualmente baseado em interpretação por
-            regras sobre o catálogo de métricas.
+            NLU por IA real (LLM) disponível: quando a funcionalidade "Copiloto analítico" está
+            habilitada em Configurações → Inteligência artificial, as perguntas são interpretadas
+            por LLM (com retorno determinístico dos números). Sem a IA, o copiloto usa
+            interpretação por regras sobre o catálogo de métricas.
           </span>
         </div>
       </div>
