@@ -23,6 +23,7 @@ export const LOCALSTORAGE_KEYS = {
   theme: "gallo-theme",
   mode: "gallo-mode",
   schedulingViewMode: "gallo-scheduling-view-mode",
+  lastSeenVersion: "gallo-last-seen-version",
 } as const;
 
 export interface IThemeMeta {

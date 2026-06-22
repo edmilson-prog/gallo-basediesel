@@ -8,6 +8,7 @@ import { DataSourceBanner } from "@/features/shell/components/DataSourceBanner";
 import { DemoModeBanner } from "@/features/shell/components/DemoModeBanner";
 import { WhatsAppDisconnectedBanner } from "@/features/shell/components/WhatsAppDisconnectedBanner";
 import { OutsideHoursBanner } from "@/features/access";
+import { WhatsNewModal } from "@/features/whats-new";
 import { useDistributionToasts } from "@/features/distribution/hooks/useDistributionToasts";
 import { useAutoRevertTimer } from "@/features/carteira/hooks/useAutoRevertTimer";
 import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
@@ -68,6 +69,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
         <BottomNav />
         <SessionTimeoutGuard />
         <UrgentBroadcastClaim />
+        <WhatsNewModal />
       </div>
     </TooltipProvider>
   );
