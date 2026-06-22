@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import type { ID, IAssetLibraryItem } from "@/shared/types";
 import { useAssetLibraryProvider } from "@/providers/data";
 import { useAuth } from "@/features/auth/useAuth";
@@ -63,13 +64,20 @@ export function useAssetLibrary(filter: IAssetFilter): {
   const toggleFavorite = useCallback(
     (id: ID) => {
       // Favorites are keyed by the real seller id (asset_favorites.seller_id FK to
-      // sellers.id). A logged-in user with no linked seller has sellerId === "anon",
-      // which would violate the FK — skip the write instead of throwing an unhandled
-      // rejection (mirrors the useSendAsset → recordSend guard).
-      if (!currentUser?.sellerId) return;
-      void provider.toggleFavorite(sellerId, id).then(() => {
-        void queryClient.invalidateQueries({ queryKey: ["quick-send", "favorites", sellerId] });
-      });
+      // sellers.id). A logged-in user with no linked seller can't favorite — tell
+      // them instead of silently no-oping (an "anon" write would violate the FK).
+      if (!currentUser?.sellerId) {
+        toast.error("Favoritos indisponíveis: seu usuário não tem um vendedor associado.");
+        return;
+      }
+      void provider
+        .toggleFavorite(sellerId, id)
+        .then(() => {
+          void queryClient.invalidateQueries({ queryKey: ["quick-send", "favorites", sellerId] });
+        })
+        .catch(() => {
+          toast.error("Não foi possível atualizar o favorito.");
+        });
     },
     [provider, queryClient, sellerId, currentUser?.sellerId],
   );
