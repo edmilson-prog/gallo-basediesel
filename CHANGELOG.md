@@ -6,9 +6,16 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.113.0] — Vigil · 2026-06-21
+
+**Sessão mais segura e novidades à vista.** A plataforma passa a encerrar a sessão sozinha após um período de inatividade — com aviso e contagem regressiva antes do logout — e a anunciar automaticamente as novidades a cada nova versão, num aviso que aparece ao entrar.
+
 ### Added
 
 - **Encerramento de sessão por inatividade** — ao ficar ocioso por tempo configurável, o usuário interno recebe um modal de contagem regressiva com beeps que escalam (cadência crescente), podendo clicar "Continuar conectado" para reiniciar o timer ou aguardar o logout automático. Configurável globalmente em Configurações → Segurança da sessão (Owner-only) e com override por usuário no cadastro (aba Geral). Sincronizado entre abas: só encerra quando ocioso em **todas** as abas abertas. Padrão: ligado, 30 min de inatividade, 60 s de aviso. ⚠️ Comunicar a equipe antes do deploy — o default está ligado.
+- **Aviso de novidades por versão** — ao entrar na plataforma, um aviso destaca automaticamente as funcionalidades novas publicadas desde a sua última visita, com a versão mais recente em destaque, o codinome e um resumo de cada novidade.
+- **Atalho "Ver tudo"** — botão no aviso de novidades que leva direto à página Sobre, com o histórico completo de versões.
+- **Aviso de novidades aparece uma única vez por versão** — só reabre quando há uma versão realmente nova com funcionalidades; correções pontuais não interrompem, e quem já viu aquela versão não a vê novamente.
 
 ## [0.112.0] — Lexicon · 2026-06-21
 
