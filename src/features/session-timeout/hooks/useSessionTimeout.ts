@@ -9,6 +9,7 @@ import { computeIdlePhase } from "../engine/idlePhases";
 import { shouldBeepAtTick } from "../engine/beepSchedule";
 import { createBeeper, type IBeeper } from "../lib/beep";
 import { useActivityTracker } from "./useActivityTracker";
+import { useAudioUnlock } from "./useAudioUnlock";
 import { useCrossTabActivity } from "./useCrossTabActivity";
 
 export interface ISessionTimeoutState {
@@ -79,14 +80,18 @@ export function useSessionTimeout(): ISessionTimeoutState {
     const now = Date.now();
     lastActivityRef.current = now;
     publish(now);
-    // Any activity unlocks audio and clears the warning state.
+    // Any activity clears the warning state.
     // setWarningOpen(false) is a no-op when already closed (stable callback).
-    beeperRef.current?.unlock();
     setWarningOpen(false);
     lastBeepRemainingRef.current = null;
   }, [publish]);
 
   useActivityTracker(markActivity, active);
+
+  // Unlock audio only on qualifying gestures (not mousemove/scroll/wheel), so
+  // AudioContext.resume() never trips the browser autoplay-policy warning.
+  const unlockAudio = useCallback(() => beeperRef.current?.unlock(), []);
+  useAudioUnlock(unlockAudio, active);
 
   // Reset the clock whenever the feature (re)activates.
   useEffect(() => {
