@@ -203,10 +203,19 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     };
     document.addEventListener("visibilitychange", onVisible);
 
+    // A tab kept continuously in focus never fires visibilitychange, and
+    // supabase-js silently swallows a refresh failure on a revoked token (no
+    // SIGNED_OUT), so without this a session revoked externally would leave the
+    // tab in the ghost-session limbo indefinitely. Poll only while visible.
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === "visible") void revalidate();
+    }, 120_000);
+
     return () => {
       active = false;
       sub.subscription.unsubscribe();
       document.removeEventListener("visibilitychange", onVisible);
+      window.clearInterval(intervalId);
     };
   }, []);
 
@@ -234,6 +243,11 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
         };
       }
       const profile = res.profile;
+      // Clear the expiry signal synchronously on an explicit login so a re-login
+      // right after a confirmed ghost session can't be bounced back to /auth/login
+      // by AuthSessionGuard reading a stale `true` before onAuthStateChange→apply
+      // commits the reset.
+      setSessionExpired(false);
       setCurrentUser(profile);
       writeAuthSyncMirror({
         id: profile.id,
