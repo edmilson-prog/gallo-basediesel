@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import type { RoleName } from "@/shared/types";
 import { getSupabaseClient } from "@/shared/lib/supabase";
@@ -100,6 +100,17 @@ function translateAuthError(message: string): string {
 export function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<IUserProfile | null>(null);
   const [isHydrating, setIsHydrating] = useState(true);
+  // Set only when the server session is confirmed revoked mid-use (ghost
+  // session) — AuthSessionGuard watches this, NOT currentUser, so a transient
+  // profile-read failure or an intentional signOut never bounces to login.
+  const [sessionExpired, setSessionExpired] = useState(false);
+  // Mirror of currentUser readable inside async callbacks without re-subscribing
+  // the effect — lets revalidate() recover a boot-blip (valid session, profile
+  // failed to load) without staleness.
+  const currentUserRef = useRef<IUserProfile | null>(null);
+  useEffect(() => {
+    currentUserRef.current = currentUser;
+  }, [currentUser]);
 
   useEffect(() => {
     const supabase = getSupabaseClient();
@@ -117,11 +128,13 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       if (!active) return;
       // Transient profile-read failure on a VALID auth session: keep whatever we
       // had. Zeroing here would let a hiccup (e.g. on the hourly TOKEN_REFRESHED)
-      // log out a working user via AuthSessionGuard. Never do that.
+      // log out a working user. Never do that. revalidate() recovers it.
       if (res.status === "error") return;
       // "ok" → set the profile; "absent" → authenticated with no profiles row,
       // so the user cannot use the app and must be cleared (guard → login).
       const profile = res.status === "ok" ? res.profile : null;
+      // A valid session was just (re)established → clear any prior expiry signal.
+      if (profile) setSessionExpired(false);
       setCurrentUser(profile);
       writeAuthSyncMirror(
         profile
@@ -147,10 +160,19 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     const revalidate = async () => {
       if (!readAuthSyncMirror()) return; // nothing to validate (already logged out)
       try {
-        const { error } = await supabase.auth.getUser();
-        if (!active || !isInvalidSessionError(error)) return;
-        void supabase.auth.signOut({ scope: "local" });
-        await apply(null);
+        const { data, error } = await supabase.auth.getUser();
+        if (!active) return;
+        if (isInvalidSessionError(error)) {
+          // Confirmed ghost session → signal the guard, drop local tokens, clear.
+          setSessionExpired(true);
+          void supabase.auth.signOut({ scope: "local" });
+          await apply(null);
+          return;
+        }
+        // Session is valid. If the profile failed to load earlier (a boot-blip
+        // left currentUser null on a live session), re-resolve it now instead of
+        // leaving the app profileless — never strand a valid session.
+        if (data?.user && !currentUserRef.current) await apply(data.user);
       } catch {
         // getUser normally resolves with { error }; guard against an unexpected
         // SDK throw becoming an unhandled rejection. Never log out on this path.
@@ -181,10 +203,19 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     };
     document.addEventListener("visibilitychange", onVisible);
 
+    // A tab kept continuously in focus never fires visibilitychange, and
+    // supabase-js silently swallows a refresh failure on a revoked token (no
+    // SIGNED_OUT), so without this a session revoked externally would leave the
+    // tab in the ghost-session limbo indefinitely. Poll only while visible.
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === "visible") void revalidate();
+    }, 120_000);
+
     return () => {
       active = false;
       sub.subscription.unsubscribe();
       document.removeEventListener("visibilitychange", onVisible);
+      window.clearInterval(intervalId);
     };
   }, []);
 
@@ -212,6 +243,11 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
         };
       }
       const profile = res.profile;
+      // Clear the expiry signal synchronously on an explicit login so a re-login
+      // right after a confirmed ghost session can't be bounced back to /auth/login
+      // by AuthSessionGuard reading a stale `true` before onAuthStateChange→apply
+      // commits the reset.
+      setSessionExpired(false);
       setCurrentUser(profile);
       writeAuthSyncMirror({
         id: profile.id,
@@ -248,12 +284,13 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       userRole: currentUser?.role ?? null,
       isAuthenticated: currentUser !== null,
       isHydrating,
+      sessionExpired,
       signIn,
       signInWithPassword,
       signOut,
       hasRole,
     }),
-    [currentUser, isHydrating, signIn, signInWithPassword, signOut, hasRole],
+    [currentUser, isHydrating, sessionExpired, signIn, signInWithPassword, signOut, hasRole],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

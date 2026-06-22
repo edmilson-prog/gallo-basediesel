@@ -3,26 +3,27 @@ import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "./useAuth";
 
 /**
- * Redirects to /auth/login the moment the session becomes invalid while the user
- * is sitting on an already-mounted authenticated route.
+ * Redirects to /auth/login when the server session is confirmed revoked while
+ * the user sits on an already-mounted authenticated route.
  *
- * The `beforeLoad` route guard only runs on navigation, so a session that dies
- * mid-use — a "ghost token" the SupabaseAuthProvider's revalidation detects and
- * clears (currentUser → null) — would otherwise leave the user staring at a
- * screen whose every API call 401s. This watches the auth state reactively and
- * bounces to login (preserving `next`) so the dead session can never strand the
- * user. Mounted once inside AppLayout.
+ * It watches `sessionExpired` — set ONLY by the provider's revalidation when
+ * getUser() confirms the session is dead — NOT `!isAuthenticated`. That
+ * distinction matters: `currentUser` can be null for benign reasons (a
+ * transient profiles-read blip on a valid session, or the brief boot window),
+ * and an intentional signOut already navigates on its own. Reacting to those
+ * would log out a working user or race the explicit logout/switch-profile
+ * navigation. The `beforeLoad` route guard only runs on navigation, so this
+ * covers the dies-mid-session case it can't. Mounted once inside AppLayout.
  */
 export function AuthSessionGuard() {
-  const { isAuthenticated, isHydrating } = useAuth();
+  const { sessionExpired } = useAuth();
   const navigate = useNavigate();
   const pathname = useLocation({ select: (l) => l.pathname });
 
   useEffect(() => {
-    // Wait until hydration settles so we never redirect on the boot frame.
-    if (isHydrating || isAuthenticated) return;
+    if (!sessionExpired) return;
     void navigate({ to: "/auth/login", search: { next: pathname }, replace: true });
-  }, [isAuthenticated, isHydrating, navigate, pathname]);
+  }, [sessionExpired, navigate, pathname]);
 
   return null;
 }
