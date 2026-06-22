@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ID, IAssetLibraryItem } from "@/shared/types";
 import { useAssetLibraryProvider } from "@/providers/data";
-import { getCurrentContext } from "@/features/multistore/utils/getCurrentContext";
+import { useAuth } from "@/features/auth/useAuth";
 import type { IAssetFilter } from "../engine/assetFiltering";
 
 /**
@@ -23,7 +23,12 @@ export function useAssetLibrary(filter: IAssetFilter): {
 } {
   const provider = useAssetLibraryProvider();
   const queryClient = useQueryClient();
-  const sellerId = getCurrentContext().user?.id ?? "anon";
+  // Identity must be the REAL seller id (sellers.id), not the auth profile id:
+  // asset_favorites / asset_send_log are keyed by seller_id (FK to sellers.id) and
+  // the write side (useSendAsset → recordSend) already uses currentUser.sellerId —
+  // the read must match or favorites/recents are invisible in production.
+  const { currentUser } = useAuth();
+  const sellerId = currentUser?.sellerId ?? "anon";
   const [query, setQuery] = useState(filter.query ?? "");
 
   const effectiveFilter = useMemo<IAssetFilter>(
