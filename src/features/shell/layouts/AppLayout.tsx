@@ -20,6 +20,7 @@ import { useEcommerceSellerNotifier } from "@/features/ecommerce-integration";
 import { usePresenceTracker } from "@/features/shell/hooks/useStorePresence";
 import { TourProvider } from "@/features/tour";
 import { SessionTimeoutGuard } from "@/features/session-timeout";
+import { AuthSessionGuard } from "@/features/auth/AuthSessionGuard";
 
 /**
  * Default layout of the internal app (`/app/*`).
@@ -69,6 +70,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
           <AppFooter />
         </div>
         <BottomNav />
+        <AuthSessionGuard />
         <SessionTimeoutGuard />
         <UrgentBroadcastClaim />
         <WhatsNewModal />
