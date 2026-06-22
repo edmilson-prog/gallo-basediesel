@@ -68,7 +68,8 @@ const STATUS_TONE: Record<IAssetLibraryItem["status"], string> = {
  * status/sensitive/version badges, a favourite toggle and a ⋮ action menu.
  *
  * Clicking the thumbnail or the title triggers `onPreview`.
- * All callbacks are no-ops when `busy` is true.
+ * When `busy` is true, the favorite toggle and action menu are disabled;
+ * preview remains active (previewing during a save is harmless).
  */
 export function AssetManageCard({
   item,
@@ -198,7 +199,7 @@ export function AssetManageCard({
               variant="ghost"
               size="sm"
               className="h-6 w-6 shrink-0 p-0"
-              aria-label="Ações do ativo"
+              aria-label={s.actionsMenu}
               disabled={busy}
               onClick={(e) => e.stopPropagation()}
             >

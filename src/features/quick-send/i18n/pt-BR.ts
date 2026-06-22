@@ -233,6 +233,7 @@ export const QUICK_SEND_STRINGS = {
     rolesEmpty: "Nenhum papel encontrado.",
     rolesClearSelection: "Limpar seleção",
     rolesCountLabel: (n: number) => `${n} ${n === 1 ? "papel" : "papéis"} selecionado${n === 1 ? "" : "s"}`,
+    actionsMenu: "Ações do ativo",
   },
   stats: {
     title: "Estatística de uso da biblioteca",
