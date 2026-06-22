@@ -6,7 +6,11 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
-## [0.111.0] — Compass · 2026-06-21
+### Added
+
+- **Encerramento de sessão por inatividade** — ao ficar ocioso por tempo configurável, o usuário interno recebe um modal de contagem regressiva com beeps que escalam (cadência crescente), podendo clicar "Continuar conectado" para reiniciar o timer ou aguardar o logout automático. Configurável globalmente em Configurações → Segurança da sessão (Owner-only) e com override por usuário no cadastro (aba Geral). Sincronizado entre abas: só encerra quando ocioso em **todas** as abas abertas. Padrão: ligado, 30 min de inatividade, 60 s de aviso. ⚠️ Comunicar a equipe antes do deploy — o default está ligado.
+
+## [0.113.0] — Compass · 2026-06-21
 
 **Tour guiado pela plataforma, com ênfase no Atendimento.** Na primeira vez que cada tela do menu é aberta, um tour explica o que fazer ali. O Atendimento ganha um tour passo a passo com holofote (caixa de conversas, filtros e lista; ao abrir uma conversa: cabeçalho, mensagens e composer) e as demais telas recebem um card de boas-vindas. Tudo pode ser revisto pelo ícone "?" no topo ou desligado em Configurações → Tours & Ajuda.
 
@@ -14,6 +18,29 @@ versioning follows [SemVer](https://semver.org/).
 
 - **Tour guiado (on-boarding)** — dispara automaticamente na primeira visita de cada item do menu, por usuário (memória no navegador). Tour rico com holofote no Atendimento (Inbox e Conversa) e card de boas-vindas nas demais ~33 telas.
 - **Controles do tour** — botão "Pular" e navegação por teclado (Esc, setas, Enter); ícone "?" no topo para rever o tour da tela atual; central em **Configurações → Tours & Ajuda** para rever qualquer tour, resetar todos ou desligar os avisos automáticos.
+
+## [0.112.0] — Lexicon · 2026-06-21
+
+### Added
+- Copiloto analítico com NLU por LLM: a pergunta é interpretada pela LLM
+  (escolhe métrica + filtros, inclusive várias métricas → vários cards), e o
+  número segue determinístico (executeQuery). Edge `analytics-resolve` (13ª),
+  gated por `ai_feature_enabled('analytics_copilot')`; fallback para o motor de
+  regras quando a IA está desligada/falha. Nenhum dado financeiro é enviado ao
+  provedor (só a pergunta + o catálogo).
+
+## [0.111.0] — Aperture · 2026-06-21
+
+**As mídias das conversas agora carregam muito mais rápido — para todos os papéis.** Fotos, áudios e documentos recebidos pelo WhatsApp passam a abrir quase instantaneamente ao entrar numa conversa, em vez de levarem alguns segundos (e, sob carga, às vezes aparecerem como "indisponível"). A diferença é mais sentida pelos vendedores, que antes esperavam bem mais que o dono ou o gestor pela mesma conversa.
+
+### Changed
+
+- **Liberação de acesso à mídia em uma verificação única (performance):** preparar cada arquivo de mídia recebido deixou de varrer todas as conversas da loja a cada item. Como o caminho do arquivo já carrega a conversa de origem, a permissão passa a ser checada **uma só vez** por uma função de servidor (`can_read_conversation_media`) — o tempo por arquivo caiu de ~2.375 ms para ~7 ms para um vendedor, igualando-o ao dono/gestor (que já checava mais rápido). É a mesma assimetria de acesso que afetava as mensagens, agora resolvida também no caminho dos arquivos.
+- **Mídias de uma conversa preparadas em lote:** ao abrir uma conversa — e na galeria da aba "Mídias" — todos os arquivos passam a ser preparados em uma única requisição, em vez de uma por mídia. Os balões continuam reaproveitando o que já foi preparado, então não há trabalho repetido.
+
+### Security
+
+- **Verificação de mídia restrita a usuários autenticados** — a nova checagem de permissão de mídia (`can_read_conversation_media`) só pode ser executada por quem está logado, alinhada às demais funções de acesso da plataforma.
 
 ## [0.110.0] — Turnstile · 2026-06-20
 

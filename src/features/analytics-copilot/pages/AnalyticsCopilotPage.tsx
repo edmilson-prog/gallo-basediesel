@@ -50,6 +50,7 @@ export function AnalyticsCopilotPage() {
         mode={mode}
         onModeChange={setMode}
         onNewSession={chat.newSession}
+        aiActive={chat.aiActive}
         onOpenSessions={showSessions ? () => setSessionsSheetOpen(true) : undefined}
         onOpenDetail={showDetail ? () => setDetailSheetOpen(true) : undefined}
       />
