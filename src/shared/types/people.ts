@@ -115,10 +115,10 @@ export interface ISeller {
   /** Active temporary emergency access grant; null/absent = none (PRD-212). */
   accessGrant?: IAccessGrant | null;
   /**
-   * Override completo da política de sessão para este usuário (idle timeout).
-   * null/undefined ⇒ herda o global. Quando presente, é autoritativo (pode
-   * inclusive ligar mesmo com o global desligado). É um snapshot: não acompanha
-   * mudanças posteriores do global.
+   * Full per-user override of the session policy (idle timeout). null/undefined
+   * ⇒ inherits the global. When present, it is authoritative (can even enable the
+   * timeout while the global is off). It is a snapshot: it does NOT track later
+   * changes to the global.
    */
   sessionTimeoutOverride?: ISessionTimeoutSettings | null;
   active: boolean;

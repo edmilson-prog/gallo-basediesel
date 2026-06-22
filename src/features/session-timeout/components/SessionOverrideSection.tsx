@@ -28,6 +28,10 @@ export function SessionOverrideSection({ value, onChange }: ISessionOverrideSect
     queryFn: () => settingsProvider.get(storeId),
     staleTime: 5 * 60_000,
   });
+  // Only seed an override once the global settings have actually loaded —
+  // otherwise toggling on would snapshot DEFAULT_SESSION_TIMEOUT instead of the
+  // store's real policy and persist it verbatim.
+  const settingsReady = settingsQuery.data !== undefined;
   const globalCfg = settingsQuery.data?.sessionTimeout ?? DEFAULT_SESSION_TIMEOUT;
 
   // Whether a custom override is currently active.
@@ -54,8 +58,16 @@ export function SessionOverrideSection({ value, onChange }: ISessionOverrideSect
             Por padrão, herda a configuração global. Ligue para definir uma
             política própria para este usuário.
           </p>
+          {!settingsReady && !custom && (
+            <p className="text-xs text-muted-foreground">Carregando a configuração global…</p>
+          )}
         </div>
-        <Switch checked={custom} onCheckedChange={toggleCustom} aria-label="Usar configuração própria" />
+        <Switch
+          checked={custom}
+          onCheckedChange={toggleCustom}
+          disabled={!settingsReady && !custom}
+          aria-label="Usar configuração própria"
+        />
       </div>
 
       {custom && (

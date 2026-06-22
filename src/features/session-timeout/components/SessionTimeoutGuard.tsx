@@ -6,12 +6,13 @@ import { SessionTimeoutModal } from "./SessionTimeoutModal";
  * inside the authenticated app layout (AppLayout). Renders nothing while active.
  */
 export function SessionTimeoutGuard() {
-  const { warningOpen, secondsLeft, stayConnected, logoutNow } = useSessionTimeout();
+  const { warningOpen, secondsLeft, warningTotalSeconds, stayConnected, logoutNow } =
+    useSessionTimeout();
   return (
     <SessionTimeoutModal
       open={warningOpen}
       secondsLeft={secondsLeft}
-      totalSeconds={Math.max(secondsLeft, 1)}
+      totalSeconds={warningTotalSeconds}
       onStayConnected={stayConnected}
       onLogoutNow={logoutNow}
     />
