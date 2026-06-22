@@ -45,6 +45,12 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         roles: ["Owner", "Gestor", "Vendedor", "SDR", "VendedorExterno", "Financeiro"],
       },
       {
+        label: "Tours & Ajuda",
+        icon: "mdi:help-circle-outline",
+        to: "/app/configuracoes/tours",
+        roles: ["Owner", "Gestor", "Vendedor", "SDR", "VendedorExterno", "Financeiro"],
+      },
+      {
         label: "Notificações",
         icon: "mdi:bell-outline",
         to: "/app/configuracoes/notificacoes",

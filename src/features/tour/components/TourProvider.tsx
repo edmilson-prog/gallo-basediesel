@@ -48,8 +48,22 @@ export function TourProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!activeTour) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
-      else if (e.key === "ArrowRight" || e.key === "Enter") next();
+      if (e.key === "Escape") {
+        close();
+        return;
+      }
+      // Don't hijack typing/selection in a form control focused behind the tour.
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.isContentEditable ||
+          target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT")
+      ) {
+        return;
+      }
+      if (e.key === "ArrowRight" || e.key === "Enter") next();
       else if (e.key === "ArrowLeft") prev();
     };
     window.addEventListener("keydown", onKey);
@@ -80,11 +94,12 @@ function TourLayer({ def, stepIndex, onNext, onPrev, onClose }: TourLayerProps) 
   // useTargetRect must run unconditionally (hooks rule); it returns null for
   // welcome tours / centered steps.
   const step = def.steps[stepIndex];
-  const rect = useTargetRect(def.kind === "rich" ? step.target : undefined, def.kind === "rich");
+  const rect = useTargetRect(def.kind === "rich" ? step?.target : undefined, def.kind === "rich");
 
   if (def.kind === "welcome") {
     return <WelcomeCard def={def} onClose={onClose} />;
   }
+  if (!step) return null;
   return (
     <>
       <Spotlight rect={rect} />

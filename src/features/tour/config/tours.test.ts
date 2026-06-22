@@ -9,6 +9,12 @@ describe("TOURS registry", () => {
     expect(new Set(keys).size).toBe(keys.length);
   });
 
+  it("has 35 tours (2 rich + 33 welcome)", () => {
+    expect(TOURS.length).toBe(35);
+    expect(TOURS.filter((t) => t.kind === "rich").length).toBe(2);
+    expect(TOURS.filter((t) => t.kind === "welcome").length).toBe(33);
+  });
+
   it("welcome tours have exactly one step and an exact route", () => {
     for (const t of TOURS.filter((x) => x.kind === "welcome")) {
       expect(t.steps.length, t.key).toBe(1);
