@@ -566,7 +566,7 @@ export function MessageInput(props: IMessageInputProps) {
   };
 
   return (
-    <footer className="border-t border-border bg-card">
+    <footer data-tour="composer" className="border-t border-border bg-card">
       {!hideAiSuggestions && suggestions.length > 0 && canSendFreeText && (
         <div
           className="flex items-center gap-1.5 overflow-x-auto border-b border-border px-3 py-2 text-[11px]"

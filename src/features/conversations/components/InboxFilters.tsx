@@ -129,7 +129,7 @@ export function InboxFilters({
   }, [state.assignment, sellers]);
 
   return (
-    <Collapsible open={!collapsed} onOpenChange={(open) => setCollapsed(!open)}>
+    <Collapsible data-tour="inbox-filters" open={!collapsed} onOpenChange={(open) => setCollapsed(!open)}>
       {/* Trigger row — always visible so the user can re-open and still sees
           how many filters are active while collapsed. */}
       <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-1.5">

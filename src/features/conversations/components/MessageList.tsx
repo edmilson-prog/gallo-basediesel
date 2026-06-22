@@ -200,7 +200,7 @@ export function MessageList({ conversation, whatsappAccount = null }: IMessageLi
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div data-tour="message-list" className="flex h-full flex-col">
       {notesState.notes.length > 0 && (
         <NotesConsultBar
           total={notesState.notes.length}
