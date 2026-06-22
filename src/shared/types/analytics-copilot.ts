@@ -97,6 +97,8 @@ export interface IAnalyticsAnswer {
   refusedByScope?: boolean;
   ambiguous?: boolean;
   suggestions?: string[];
+  /** Set when this specific metric failed to compute (execution error / resolver failure). */
+  errorText?: string;
 }
 
 export interface IAnalyticsMessage {
@@ -118,6 +120,39 @@ export interface IAnalyticsCopilotContext {
   role: RoleName;
   now: ISO8601;
 }
+
+/** A metric intent resolved from a question (period is added later by the caller). */
+export interface IResolvedQuery {
+  metricId: string;
+  filters: Partial<Record<MetricDimension, string>>;
+  comparison?: ComparisonMode;
+}
+
+/** Public catalog metadata sent to the LLM resolver (NO numbers / PII). */
+export interface IAnalyticsDigest {
+  catalog: Array<{
+    id: string;
+    label: string;
+    description: string;
+    supportedFilters: MetricDimension[];
+  }>;
+  brands: string[];
+  categories: string[];
+}
+
+/** Output of a query resolver: 0+ executable queries, plus the rules-only ambiguous case. */
+export interface IResolvedIntent {
+  queries: IMetricQuery[];
+  ambiguous?: boolean;
+  candidates?: string[];
+}
+
+/** Pluggable resolver (rules or LLM). Sync (rules) or async (LLM). */
+export type IQueryResolver = (
+  question: string,
+  ctx: { period: IGoalPeriod },
+  catalog: IMetricDefinition[],
+) => Promise<IResolvedIntent> | IResolvedIntent;
 
 /** Provider contract (mock in Fase 1; LLM resolver swap in Fase 2). Implemented in the surface phase. */
 export interface IAnalyticsCopilotProvider {

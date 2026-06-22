@@ -24,6 +24,14 @@ export interface IAuthContextValue {
   isAuthenticated: boolean;
   /** True until the first session read completes. */
   isHydrating: boolean;
+  /**
+   * Set true ONLY when the server session was confirmed revoked mid-use (the
+   * ghost-session case the revalidation detects) — never on a transient
+   * profile-read failure or an intentional signOut. AuthSessionGuard watches
+   * this (not `!isAuthenticated`, which is ambiguous) to bounce to login.
+   * Always false in the mock backend (no server session to expire).
+   */
+  sessionExpired: boolean;
   /** Pick-a-profile sign-in (mock card picker). No-op in the supabase backend. */
   signIn: (profileId: string) => IUserProfile | null;
   /** Email/password sign-in. Implemented by both backends. */

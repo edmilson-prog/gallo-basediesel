@@ -9,7 +9,12 @@ import { AUTH_SOURCE } from "@/features/auth/authSource";
  * reaches the browser.
  */
 
-export type InviteSellerRole = "seller_internal" | "seller_external" | "manager";
+export type InviteSellerRole =
+  | "seller_internal"
+  | "seller_external"
+  | "manager"
+  | "sdr"
+  | "financeiro";
 
 export interface IInviteSellerInput {
   sellerId: string;
@@ -26,7 +31,10 @@ export interface IInviteSellerResult {
 }
 
 export interface ISellerAccessInfo {
+  /** Base role (profiles.role) — drives RLS and the coarse role badge. */
   role: string;
+  /** Effective role override (custom role id). NULL = runs on the base role. */
+  roleId: string | null;
   /** Last Supabase sign-in (null = invited but never logged in). */
   lastSignInAt: string | null;
 }
@@ -42,8 +50,17 @@ export async function listSellerAccessInfo(): Promise<Map<string, ISellerAccessI
   if (error) throw new Error(`Não foi possível carregar os acessos: ${error.message}`);
   const map = new Map<string, ISellerAccessInfo>();
   for (const row of data ?? []) {
-    const r = row as { seller_id: string; role: string; last_sign_in_at: string | null };
-    map.set(r.seller_id, { role: r.role, lastSignInAt: r.last_sign_in_at });
+    const r = row as {
+      seller_id: string;
+      role: string;
+      role_id: string | null;
+      last_sign_in_at: string | null;
+    };
+    map.set(r.seller_id, {
+      role: r.role,
+      roleId: r.role_id ?? null,
+      lastSignInAt: r.last_sign_in_at,
+    });
   }
   return map;
 }
@@ -111,13 +128,14 @@ export async function resetSellerPassword(sellerId: string, password: string): P
 }
 
 /**
- * Changes a seller's platform access role (profiles.role) via the
- * `set-seller-role` function. Owner-only on the server; the new role only
- * reaches the seller's session on their next token refresh.
+ * Assigns a role to a seller via the `set-seller-role` function. `roleId` is a
+ * `roles.id` (system, e.g. "Vendedor", or custom, e.g. "role-<uuid>"); the
+ * server derives the base role and pins the custom override. Owner-only; the new
+ * role only reaches the seller's session on their next token refresh.
  */
-export async function setSellerRole(sellerId: string, role: InviteSellerRole): Promise<void> {
+export async function setSellerRole(sellerId: string, roleId: string): Promise<void> {
   const { error } = await getSupabaseClient().functions.invoke("set-seller-role", {
-    body: { sellerId, role },
+    body: { sellerId, roleId },
   });
   if (error) throw new Error(await extractFunctionError(error));
 }

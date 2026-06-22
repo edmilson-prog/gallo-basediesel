@@ -8,6 +8,7 @@ import { DataSourceBanner } from "@/features/shell/components/DataSourceBanner";
 import { DemoModeBanner } from "@/features/shell/components/DemoModeBanner";
 import { WhatsAppDisconnectedBanner } from "@/features/shell/components/WhatsAppDisconnectedBanner";
 import { OutsideHoursBanner } from "@/features/access";
+import { WhatsNewModal } from "@/features/whats-new";
 import { useDistributionToasts } from "@/features/distribution/hooks/useDistributionToasts";
 import { useAutoRevertTimer } from "@/features/carteira/hooks/useAutoRevertTimer";
 import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
@@ -17,6 +18,9 @@ import { useUrgentBroadcastTimer } from "@/features/sdr-escalation/hooks/useUrge
 import { useQuoteExpirationTimer } from "@/features/quotes/hooks/useQuoteExpirationTimer";
 import { useEcommerceSellerNotifier } from "@/features/ecommerce-integration";
 import { usePresenceTracker } from "@/features/shell/hooks/useStorePresence";
+import { TourProvider } from "@/features/tour";
+import { SessionTimeoutGuard } from "@/features/session-timeout";
+import { AuthSessionGuard } from "@/features/auth/AuthSessionGuard";
 
 /**
  * Default layout of the internal app (`/app/*`).
@@ -42,6 +46,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
   useEcommerceSellerNotifier();
   return (
     <TooltipProvider delayDuration={200}>
+      <TourProvider>
       <div className="flex h-screen overflow-hidden bg-background text-foreground">
         <Sidebar />
         <div className="flex min-w-0 flex-1 flex-col">
@@ -65,8 +70,12 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
           <AppFooter />
         </div>
         <BottomNav />
+        <AuthSessionGuard />
+        <SessionTimeoutGuard />
         <UrgentBroadcastClaim />
+        <WhatsNewModal />
       </div>
+      </TourProvider>
     </TooltipProvider>
   );
 }

@@ -21,6 +21,8 @@ export const STAFF_ROLES = ["owner", "manager"] as const;
 export interface CallerProfile {
   role: string;
   store_id: string;
+  /** Linked seller id — the identity audit trails reference (FK → sellers). */
+  seller_id: string | null;
 }
 
 export interface CallerContext {
@@ -68,7 +70,7 @@ async function resolveCaller(req: Request): Promise<{
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
   const { data: profile } = await admin
     .from("profiles")
-    .select("role, store_id")
+    .select("role, store_id, seller_id")
     .eq("auth_user_id", callerData.user.id)
     .maybeSingle();
 

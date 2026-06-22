@@ -37,7 +37,8 @@ export type EvolutionConnectErrorCode =
   | "CONFIG_MISSING"
   | "PROVIDER_DISCONNECTED"
   | "VALIDATION_ERROR"
-  | "INTEGRATION_ERROR";
+  | "INTEGRATION_ERROR"
+  | "HAS_LINKED_DATA";
 
 export class EvolutionConnectError extends Error {
   readonly code?: EvolutionConnectErrorCode;
@@ -59,6 +60,8 @@ export const CONNECT_ERROR_MESSAGES: Partial<Record<EvolutionConnectErrorCode, s
   PROVIDER_DISCONNECTED:
     "O servidor respondeu, mas o WhatsApp desta instância está desconectado. Gere o QR para reconectar.",
   VALIDATION_ERROR: "Número inválido — informe DDI + DDD + número (ex.: 5554999887766).",
+  HAS_LINKED_DATA:
+    "A instância recebeu novos dados e não pode mais ser excluída. Atualizamos a lista.",
   DEFAULT:
     "Não conseguimos falar com o servidor Evolution. Verifique se a URL está correta e se o servidor está no ar.",
 };
@@ -165,6 +168,7 @@ async function invokeConnect<T>(body: {
   accountId: string;
   action: string;
   to?: string;
+  dryRun?: boolean;
 }): Promise<T> {
   const { data, error } = await getSupabaseClient().functions.invoke<T>("whatsapp-connect", {
     body,
@@ -226,4 +230,29 @@ export async function sendEvolutionTestMessage(accountId: string, toDigits: stri
     return;
   }
   await invokeConnect<{ ok: boolean }>({ accountId, action: "test-message", to: toDigits });
+}
+
+export interface IDeletePreflight {
+  deletable: boolean;
+  conversationCount: number;
+  templateCount: number;
+  failoverDependents: Array<{ id: string; label: string }>;
+}
+
+/** Server preflight: can this instance be deleted, and what links/deps exist. */
+export async function preflightDeleteEvolution(accountId: string): Promise<IDeletePreflight> {
+  if (isMock()) {
+    return { deletable: true, conversationCount: 0, templateCount: 0, failoverDependents: [] };
+  }
+  return invokeConnect<IDeletePreflight>({ accountId, action: "delete", dryRun: true });
+}
+
+/**
+ * Deletes the instance (Evolution teardown + account row). Guarded server-side
+ * (escopo A). On the race path the edge returns HAS_LINKED_DATA, surfaced here
+ * as an {@link EvolutionConnectError} the caller can branch on.
+ */
+export async function deleteEvolutionInstance(accountId: string): Promise<void> {
+  if (isMock()) return;
+  await invokeConnect<{ ok: boolean }>({ accountId, action: "delete" });
 }

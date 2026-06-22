@@ -27,7 +27,7 @@ const ALLOWED_ROLES = ["seller_internal", "seller_external", "manager"];
 
 servePost(async (req, { log }) => {
   // 1) Identify the caller and require staff.
-  const { callerId, admin, profile } = await requireCaller(req, STAFF_ROLES);
+  const { admin, profile } = await requireCaller(req, STAFF_ROLES);
 
   // 2) Parse + validate the input.
   const body = await parseJsonBody(req);
@@ -88,7 +88,7 @@ servePost(async (req, { log }) => {
   // 7) Audit — best-effort, never fails the request.
   await bestEffortAudit(admin, {
     store_id: profile.store_id,
-    actor_id: callerId,
+    actor_id: profile.seller_id,
     action: "seller.access_created",
     resource: "seller",
     resource_id: sellerId,

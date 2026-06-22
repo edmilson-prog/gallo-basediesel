@@ -4,7 +4,12 @@ import { Icon } from "@/components/Icon";
 import { Logo } from "@/components/Logo";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/useAuth";
-import { APP_NAV_GROUPS, type INavGroup } from "@/features/shell/config/navigation";
+import {
+  APP_NAV_GROUPS,
+  isNavItemVisible,
+  type INavGroup,
+} from "@/features/shell/config/navigation";
+import type { IRoleBearer } from "@/features/rbac/utils/hasPermission";
 import { ROUTES } from "@/features/shell/config/routes";
 import { useCurrentStore } from "@/features/multistore";
 import { usePlatformSettings } from "@/features/admin-settings/hooks/usePlatformSettings";
@@ -54,12 +59,12 @@ function writeCollapsedGroups(groups: Set<string>): void {
   }
 }
 
-function filterGroupsByRole(groups: INavGroup[], role: string | null): INavGroup[] {
-  if (!role) return [];
+function filterVisibleGroups(groups: INavGroup[], user: IRoleBearer | null): INavGroup[] {
+  if (!user) return [];
   return groups
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) => item.roles.includes(role as never)),
+      items: group.items.filter((item) => isNavItemVisible(item, user)),
     }))
     .filter((group) => group.items.length > 0);
 }
@@ -83,7 +88,7 @@ function pickActiveTo(pathname: string, tos: string[]): string | null {
 }
 
 export function Sidebar() {
-  const { userRole } = useAuth();
+  const { currentUser } = useAuth();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(() => readCollapsedPref());
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => readCollapsedGroups());
@@ -111,7 +116,7 @@ export function Sidebar() {
   );
   const copilotEnabled = settings?.analyticsCopilotEnabled !== false;
 
-  const roleGroups = filterGroupsByRole(APP_NAV_GROUPS, userRole);
+  const roleGroups = filterVisibleGroups(APP_NAV_GROUPS, currentUser);
   const groups = copilotEnabled
     ? roleGroups
     : roleGroups

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { WhatsAppProviderError } from "../errors";
 import type { IEngineDeps } from "../types";
 import {
+  createInstance,
+  deleteInstance,
   fetchInstanceProfile,
   findChats,
   findContacts,
@@ -98,6 +100,37 @@ describe("getInstanceQr", () => {
   });
 });
 
+describe("createInstance", () => {
+  it("posts the create payload with syncFullHistory on a fresh instance", async () => {
+    const { deps, calls } = makeDeps(201, { instance: { instanceName: "inst1" } });
+    await createInstance("key", deps, TARGET);
+    expect(calls[0]!.url).toBe("https://evo.test/instance/create");
+    expect(calls[0]!.init.method).toBe("POST");
+    const sent = JSON.parse(String(calls[0]!.init.body));
+    expect(sent.instanceName).toBe("inst1");
+    expect(sent.syncFullHistory).toBe(true);
+  });
+
+  it("is idempotent: a 403 'already in use' resolves as success (re-pair flow)", async () => {
+    // Evolution returns 403 Forbidden when the instance already exists. The
+    // QR flow re-runs create on every pairing, so this MUST be a no-op — the
+    // bug was it re-threw as UNAUTHORIZED ("chave de API recusada").
+    const { deps } = makeDeps(403, {
+      error: "Forbidden",
+      status: 403,
+      response: { message: ['This name "inst1" is already in use.'] },
+    });
+    await expect(createInstance("key", deps, TARGET)).resolves.toBeUndefined();
+  });
+
+  it("propagates a genuine 401 (bad apikey) instead of swallowing it", async () => {
+    const { deps } = makeDeps(401, { message: "invalid apikey" });
+    await expect(createInstance("key", deps, TARGET)).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+    });
+  });
+});
+
 describe("getConnectionState", () => {
   it("parses the nested v2 shape", async () => {
     const { deps, calls } = makeDeps(200, { instance: { state: "connecting" } });
@@ -167,6 +200,13 @@ describe("logout / restart / webhook", () => {
     await restartInstance("key", deps, TARGET);
     expect(calls[0]!.url).toBe("https://evo.test/instance/restart/inst1");
     expect(calls[0]!.init.method).toBe("POST");
+  });
+
+  it("deleteInstance issues DELETE on the delete path", async () => {
+    const { deps, calls } = makeDeps(200, { status: "SUCCESS" });
+    await deleteInstance("key", deps, TARGET);
+    expect(calls[0]!.url).toBe("https://evo.test/instance/delete/inst1");
+    expect(calls[0]!.init.method).toBe("DELETE");
   });
 
   it("setInstanceWebhook posts the v2 webhook payload", async () => {

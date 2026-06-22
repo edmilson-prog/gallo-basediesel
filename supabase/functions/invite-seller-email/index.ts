@@ -106,7 +106,7 @@ async function sendViaResend(params: {
 
 servePost(async (req, { log }) => {
   // 1) Identify the caller and require staff.
-  const { callerId, admin, profile } = await requireCaller(req, STAFF_ROLES);
+  const { admin, profile } = await requireCaller(req, STAFF_ROLES);
 
   // Resend settings: Vault-first (Integrações & Chaves), env fallback.
   // Their absence is what keeps this function inert.
@@ -205,7 +205,7 @@ servePost(async (req, { log }) => {
   // 9) Audit — best-effort, never fails the request.
   await bestEffortAudit(admin, {
     store_id: profile.store_id,
-    actor_id: callerId,
+    actor_id: profile.seller_id,
     action: "seller.invited_email",
     resource: "seller",
     resource_id: sellerId,

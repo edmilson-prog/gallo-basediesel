@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { classifyMediaRef } from "./mediaRef";
+import { classifyMediaRef, partitionMediaRefs, whatsappMediaObjectPath } from "./mediaRef";
 
 describe("classifyMediaRef", () => {
   it("treats empty / whitespace / nullish as none", () => {
@@ -45,5 +45,52 @@ describe("classifyMediaRef", () => {
       kind: "storage",
       path: "conversations/c/m/media.ogg",
     });
+  });
+});
+
+describe("whatsappMediaObjectPath", () => {
+  it("extracts the object path from a signed URL of our bucket", () => {
+    expect(
+      whatsappMediaObjectPath(
+        "https://x.supabase.co/storage/v1/object/sign/whatsapp-media/conversations/c1/m1/media.ogg?token=abc",
+      ),
+    ).toBe("conversations/c1/m1/media.ogg");
+  });
+  it("returns null for an external URL", () => {
+    expect(whatsappMediaObjectPath("https://picsum.photos/seed/x/600/400")).toBeNull();
+  });
+  it("returns null for a URL of another bucket", () => {
+    expect(
+      whatsappMediaObjectPath("https://x.supabase.co/storage/v1/object/public/avatars/a.png"),
+    ).toBeNull();
+  });
+});
+
+describe("partitionMediaRefs", () => {
+  it("buckets storage paths, our-bucket absolutes (sign), external absolutes (passthrough), none", () => {
+    const signedOwn =
+      "https://x.supabase.co/storage/v1/object/sign/whatsapp-media/conversations/c/m/x.jpg?token=t";
+    const plan = partitionMediaRefs([
+      "conversations/c1/m1/media.ogg",
+      signedOwn,
+      "https://picsum.photos/seed/y/1/1",
+      "",
+      undefined as unknown as string,
+    ]);
+    expect(plan.toSign).toEqual([
+      { ref: "conversations/c1/m1/media.ogg", objectPath: "conversations/c1/m1/media.ogg" },
+      { ref: signedOwn, objectPath: "conversations/c/m/x.jpg" },
+    ]);
+    expect(plan.passthrough).toEqual([
+      { ref: "https://picsum.photos/seed/y/1/1", url: "https://picsum.photos/seed/y/1/1" },
+    ]);
+    // "" classifies as none → unavailable (→ null downstream); undefined is not
+    // a ref and is ignored entirely.
+    expect(plan.unavailable).toEqual([""]);
+  });
+
+  it("dedups repeated refs", () => {
+    const plan = partitionMediaRefs(["conversations/a/b/c.bin", "conversations/a/b/c.bin"]);
+    expect(plan.toSign).toHaveLength(1);
   });
 });

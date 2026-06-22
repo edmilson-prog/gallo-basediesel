@@ -35,6 +35,7 @@ interface SellerRow {
   work_schedule: ISeller["workSchedule"] | null;
   schedule_overrides: ISeller["scheduleOverrides"] | null;
   access_grant: ISeller["accessGrant"] | null;
+  session_timeout_override: ISeller["sessionTimeoutOverride"] | null;
   active: boolean;
   created_at: string;
   deleted_at: string | null;
@@ -42,7 +43,7 @@ interface SellerRow {
 
 const TABLE = "sellers";
 const COLUMNS =
-  "id, store_id, full_name, attendant_name, email, phone, type, availability, divisions, theme_preference, region, commission_tier, parent_seller_id, commission_rule, vehicle_cadastro_mode, department_id, rotation, work_schedule, schedule_overrides, access_grant, active, created_at, deleted_at";
+  "id, store_id, full_name, attendant_name, email, phone, type, availability, divisions, theme_preference, region, commission_tier, parent_seller_id, commission_rule, vehicle_cadastro_mode, department_id, rotation, work_schedule, schedule_overrides, access_grant, session_timeout_override, active, created_at, deleted_at";
 
 function rowToSeller(row: SellerRow): ISeller {
   return {
@@ -66,6 +67,7 @@ function rowToSeller(row: SellerRow): ISeller {
     workSchedule: row.work_schedule ?? undefined,
     scheduleOverrides: row.schedule_overrides ?? undefined,
     accessGrant: row.access_grant ?? null,
+    sessionTimeoutOverride: row.session_timeout_override ?? null,
     active: row.active,
     createdAt: row.created_at,
     deletedAt: row.deleted_at ?? undefined,
@@ -97,6 +99,9 @@ function sellerPatchToRow(patch: Partial<ISeller>): Record<string, unknown> {
   if (patch.scheduleOverrides !== undefined) row.schedule_overrides = patch.scheduleOverrides;
   // Nullable: `null` clears the grant; `undefined` leaves it untouched.
   if (patch.accessGrant !== undefined) row.access_grant = patch.accessGrant ?? null;
+  // Nullable: `null` clears the override; `undefined` leaves it untouched.
+  if (patch.sessionTimeoutOverride !== undefined)
+    row.session_timeout_override = patch.sessionTimeoutOverride ?? null;
   if (patch.active !== undefined) row.active = patch.active;
   return row;
 }

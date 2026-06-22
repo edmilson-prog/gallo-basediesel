@@ -68,6 +68,14 @@ export interface IMessagesProvider {
    */
   resolveMediaUrl(mediaUrl: string | undefined): Promise<string | null>;
   /**
+   * Batch variant of {@link resolveMediaUrl}: resolve many refs in one go so a
+   * conversation's media signs in a single round-trip instead of N. Returns a
+   * map keyed by the ORIGINAL ref (the value passed in), so callers can seed the
+   * per-item `useResolvedMediaUrl` cache directly. Refs absent from the map were
+   * not requested; a present `null` means unavailable.
+   */
+  resolveMediaUrls(refs: string[]): Promise<Record<string, string | null>>;
+  /**
    * Messages of a conversation that carry displayable media (image/audio/video/
    * document) WITH bytes available (non-null `mediaUrl`), newest first. Feeds
    * the conversation media side panel. Inbound media whose download failed or
@@ -80,4 +88,15 @@ export interface IMessagesProvider {
    * media with bytes available.
    */
   listCustomerMedia(customerId: ID): Promise<IMessage[]>;
+  /**
+   * The most recent message of each given conversation, for the conversations
+   * the caller can access — in ONE round-trip. Backs the Inbox list preview:
+   * replaces the ~50 concurrent `list({ pageSize: 1 })` calls (each
+   * re-evaluating the RLS access gate) that saturated the backend (500s) for a
+   * non-staff seller. Supabase resolves via the SECURITY DEFINER
+   * `last_messages_for_conversations` RPC gated by `can_access_conversation`
+   * over the bounded id list (never a per-message access check). Conversations
+   * the caller can't access are simply absent from the result.
+   */
+  listLastMessages(conversationIds: ID[]): Promise<IMessage[]>;
 }

@@ -11,6 +11,12 @@ import type { RoleName } from "@/shared/types";
 export interface IAuthSyncMirror {
   id: string;
   role: RoleName;
+  /**
+   * Effective RBAC key (assigned role slug — system or custom). Mirrored so the
+   * synchronous route guards resolve custom-role permissions, not just the base.
+   * Undefined for base-role users (the lookup keys by `role`).
+   */
+  roleKey?: string;
   /** Linked seller id — the identity audit trails reference (FK → sellers). */
   sellerId?: string | null;
 }
@@ -37,6 +43,7 @@ export function readAuthSyncMirror(): IAuthSyncMirror | null {
       return {
         id: parsed.id,
         role: parsed.role as RoleName,
+        roleKey: typeof parsed.roleKey === "string" ? parsed.roleKey : undefined,
         sellerId: typeof parsed.sellerId === "string" ? parsed.sellerId : null,
       };
     }

@@ -1,5 +1,5 @@
 // src/features/analytics-copilot/hooks/useCopilotChat.ts
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/features/auth/useAuth";
 import { useCurrentStore } from "@/features/multistore";
@@ -10,6 +10,8 @@ import type { IAnalyticsAnswer, IAnalyticsMessage } from "@/shared/types/analyti
 import { metricCatalog } from "../catalog/metricCatalog";
 import { runCopilotQuery } from "../engine/runCopilotQuery";
 import { useAnalyticsDataAccess } from "../adapters/useAnalyticsDataAccess";
+import { useAnalyticsResolver } from "../adapters/useAnalyticsResolver";
+import { useAiProvider } from "@/providers/data";
 import { suggestionsForRole } from "../i18n/suggestions";
 import { useCopilotSessions } from "./useCopilotSessions";
 import type { ICopilotSessionRecord } from "../engine/sessionStore";
@@ -40,6 +42,7 @@ export interface IUseCopilotChat {
   messages: IAnalyticsMessage[];
   isThinking: boolean;
   lastResolvedAnswer: IAnalyticsAnswer | null;
+  aiActive: boolean;
   ask: (question: string) => Promise<void>;
   newSession: () => void;
   selectSession: (id: string) => void;
@@ -65,46 +68,87 @@ export function useCopilotChat(): IUseCopilotChat {
     appendToActive,
   } = useCopilotSessions();
 
-  const [isThinking, setIsThinking] = useState(false);
+  const [aiActive, setAiActive] = useState(false);
+  const ai = useAiProvider();
+  const resolver = useAnalyticsResolver(aiActive);
+
+  useEffect(() => {
+    let cancelled = false;
+    ai.isAiFeatureEnabled("analytics_copilot")
+      .then((v) => {
+        if (!cancelled) setAiActive(v);
+      })
+      .catch(() => {
+        if (!cancelled) setAiActive(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [ai]);
+
+  // Per-session pending flag. A slow request in session A must not show a phantom
+  // typing indicator (or lock the composer) once the user switches to session B —
+  // so we track which sessions have an in-flight request, not a single global bool.
+  const [thinkingSessionIds, setThinkingSessionIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
 
   const messages = activeSession.messages;
   const lastResolvedAnswer = useMemo(() => lastResolved(messages), [messages]);
+  const isThinking = thinkingSessionIds.has(activeSessionId);
 
   const ask = useCallback(
     async (question: string): Promise<void> => {
       const trimmed = question.trim();
       if (!trimmed) return;
 
+      // Bind this request to the session it was asked in, so the pending state
+      // (and the appended answer) stay with that session even if the user switches.
+      const askSessionId = activeSessionId;
       appendToActive([makeMessage({ role: "user", text: trimmed })]);
-      setIsThinking(true);
+      setThinkingSessionIds((prev) => {
+        const next = new Set(prev);
+        next.add(askSessionId);
+        return next;
+      });
 
-      const effectiveRole = role ?? "Vendedor";
-      const sellerId = effectiveRole === "Vendedor" ? currentUser?.sellerId : undefined;
-      const { answer, errorText } = await runCopilotQuery(
-        trimmed,
-        {
-          role: effectiveRole,
-          storeId: currentStoreId ?? undefined,
-          sellerId,
-          period: monthBounds(new Date()),
-          fallbackSuggestions: suggestionsForRole(role),
-        },
-        { dataAccess, catalog: metricCatalog },
-      );
+      try {
+        const effectiveRole = role ?? "Vendedor";
+        const sellerId = effectiveRole === "Vendedor" ? currentUser?.sellerId : undefined;
+        const { answers } = await runCopilotQuery(
+          trimmed,
+          {
+            role: effectiveRole,
+            storeId: currentStoreId ?? undefined,
+            sellerId,
+            period: monthBounds(new Date()),
+            fallbackSuggestions: suggestionsForRole(role),
+          },
+          { dataAccess, catalog: metricCatalog, resolver },
+        );
 
-      if (answer.resolved && answer.query) {
-        auditLog({
-          action: "analytics_copilot_query",
-          resource: "insight",
-          resourceId: answer.query.metricId,
-          storeId: currentStoreId ?? undefined,
+        for (const a of answers) {
+          if (a.resolved && a.query) {
+            auditLog({
+              action: "analytics_copilot_query",
+              resource: "insight",
+              resourceId: a.query.metricId,
+              storeId: currentStoreId ?? undefined,
+            });
+          }
+        }
+
+        appendToActive(answers.map((a) => makeMessage({ role: "assistant", answer: a })));
+      } finally {
+        setThinkingSessionIds((prev) => {
+          if (!prev.has(askSessionId)) return prev;
+          const next = new Set(prev);
+          next.delete(askSessionId);
+          return next;
         });
       }
-
-      appendToActive([makeMessage({ role: "assistant", answer, text: errorText })]);
-      setIsThinking(false);
     },
-    [appendToActive, dataAccess, role, currentStoreId, currentUser],
+    [appendToActive, dataAccess, role, currentStoreId, currentUser, resolver, activeSessionId],
   );
 
   return {
@@ -113,6 +157,7 @@ export function useCopilotChat(): IUseCopilotChat {
     messages,
     isThinking,
     lastResolvedAnswer,
+    aiActive,
     ask,
     newSession,
     selectSession,

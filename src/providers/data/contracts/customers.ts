@@ -78,4 +78,15 @@ export interface ICustomersProvider {
   delete(id: ID): Promise<void>;
   addNote(customerId: ID, content: string, authorId: ID): Promise<ICustomerNote>;
   listNotes(customerId: ID): Promise<ICustomerNote[]>;
+  /**
+   * The customer linked to a conversation, resolved server-side gated by the
+   * CONVERSATION access (`can_access_conversation`) rather than the per-carteira
+   * customers policy — for the fiche opened FROM a conversation. Returns the
+   * customer even when {@link get} would be RLS-blocked (the 406 a POOL
+   * conversation's customer throws for a non-owner seller), WITHOUT widening the
+   * global customers policy (Portão B intact). `null` when the conversation has
+   * no customer or the caller can't access it. Supabase: the SECURITY DEFINER
+   * `conversation_customer` RPC. Notes are not embedded on this pool path.
+   */
+  getViaConversation(conversationId: ID): Promise<ICustomer | null>;
 }

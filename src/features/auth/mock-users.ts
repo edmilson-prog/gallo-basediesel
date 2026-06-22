@@ -22,6 +22,12 @@ export interface IMockUserProfile {
   id: ID;
   role: RoleName;
   /**
+   * Effective RBAC key (slug of the assigned role — system or custom). Drives
+   * the permission matrix lookup in `hasPermission`. Undefined for mock users
+   * and base-role users, so the lookup keys by `role` (slug === RoleName).
+   */
+  roleKey?: string;
+  /**
    * Optional display-only label that overrides `role` on the login card.
    * Used for profiles whose RBAC role doesn't match their shown title — e.g.
    * the AILA admin runs with `Owner` permissions but is labeled "Admin · AILA".

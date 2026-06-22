@@ -11,6 +11,29 @@ import type { IInsightThresholds } from "./insights";
 import type { IStorefrontConfig } from "./storefront";
 import type { IForecastConfig } from "./forecast";
 
+/** Configuração de encerramento de sessão por inatividade (idle timeout). */
+export interface ISessionTimeoutSettings {
+  /** Master switch — quando false, nenhum rastreamento ocorre. */
+  enabled: boolean;
+  /** Minutos de inatividade até encerrar (a janela de aviso está incluída neste total). */
+  idleMinutes: number;
+  /** Segundos do modal de contagem antes do logout. Deve ser < idleMinutes·60. */
+  warningSeconds: number;
+  /** Emite beeps audíveis durante o aviso. */
+  soundEnabled: boolean;
+  /** Intensidade do beep, 0..1 (ganho do oscilador). */
+  soundVolume: number;
+}
+
+/** Default aplicado quando `IPlatformSettings.sessionTimeout` está ausente. */
+export const DEFAULT_SESSION_TIMEOUT: ISessionTimeoutSettings = {
+  enabled: true,
+  idleMinutes: 30,
+  warningSeconds: 60,
+  soundEnabled: true,
+  soundVolume: 0.5,
+};
+
 /** Store type. Matriz is the headquarters, filial is a branch, parceira is a partner store. */
 export type StoreType = "matriz" | "filial" | "parceira";
 
@@ -186,6 +209,17 @@ export interface IPlatformSettings {
   defaultDivision: Division;
   /** Conversation distribution / routing rules (PRD-013). */
   distribution: IDistributionSettings;
+  /**
+   * Access model (Portão A) — may a co-responsible (conversation participant)
+   * see a conversation on an instance they don't otherwise access? `false`
+   * (default): the explicit invite still respects the origin number — the
+   * instance is the master gate. `true`: the invite lets the guest transit
+   * across instances. Governs only the participant branch of
+   * `can_access_conversation`; never widens pool/assignment visibility.
+   */
+  participantCrossInstance?: boolean;
+  /** Política de encerramento de sessão por inatividade. Ausente ⇒ DEFAULT_SESSION_TIMEOUT. */
+  sessionTimeout?: ISessionTimeoutSettings;
   /** Manager-dashboard alert configuration (PRD-014). */
   managerDashboard: IManagerDashboardSettings;
   /** Whether the SDR agent is enabled for this store (PRD-020). */

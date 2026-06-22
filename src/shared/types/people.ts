@@ -1,5 +1,5 @@
 import type { Division, ID, ISO8601, ThemeMode, ThemeName } from "./common";
-import type { VehicleCadastroMode } from "./platform";
+import type { ISessionTimeoutSettings, VehicleCadastroMode } from "./platform";
 
 /** Internal sellers are employees; external are field reps with no salary; representative is a contractor brand rep. */
 export type SellerType = "internal" | "external" | "representative";
@@ -114,6 +114,13 @@ export interface ISeller {
   scheduleOverrides?: IScheduleOverride[];
   /** Active temporary emergency access grant; null/absent = none (PRD-212). */
   accessGrant?: IAccessGrant | null;
+  /**
+   * Override completo da política de sessão para este usuário (idle timeout).
+   * null/undefined ⇒ herda o global. Quando presente, é autoritativo (pode
+   * inclusive ligar mesmo com o global desligado). É um snapshot: não acompanha
+   * mudanças posteriores do global.
+   */
+  sessionTimeoutOverride?: ISessionTimeoutSettings | null;
   active: boolean;
   /** Soft delete (users CRUD) — set means hidden from lists; login revoked. */
   deletedAt?: ISO8601;
