@@ -266,9 +266,10 @@ export function SellerFormDialog({
                 return;
               }
               // Block an inconsistent session override (warning must be < idle),
-              // mirroring the global settings page's validation.
+              // mirroring the global settings page, which validates regardless of
+              // the enabled flag (a disabled override must not persist warning >= idle).
               if (
-                sessionOverride?.enabled &&
+                sessionOverride &&
                 sessionOverride.warningSeconds >= sessionOverride.idleMinutes * 60
               ) {
                 setTab("geral");

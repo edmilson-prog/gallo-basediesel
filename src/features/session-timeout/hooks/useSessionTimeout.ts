@@ -87,6 +87,10 @@ export function useSessionTimeout(): ISessionTimeoutState {
   const { publish } = useCrossTabActivity(onRemoteActivity, active);
 
   const markActivity = useCallback(() => {
+    // Once logout has been triggered, stop registering activity — a stray input
+    // during the in-flight navigation would publish(now) and reset sibling tabs
+    // that are themselves idle and about to log out.
+    if (loggedOutRef.current) return;
     const now = Date.now();
     lastActivityRef.current = now;
     publish(now);
