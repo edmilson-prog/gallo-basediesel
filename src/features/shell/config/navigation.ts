@@ -296,6 +296,12 @@ export const APP_NAV_GROUPS: INavGroup[] = [
         to: ROUTES.CONFIG_APARENCIA,
         roles: ["Owner", "Vendedor"],
       },
+      {
+        label: "Tours & Ajuda",
+        icon: "mdi:help-circle-outline",
+        to: ROUTES.CONFIG_TOURS,
+        roles: ["Owner", "Gestor", "Vendedor", "VendedorExterno", "SDR", "Financeiro"],
+      },
     ],
   },
 ];

@@ -319,6 +319,7 @@ export function InboxPage() {
         />
 
         <div
+          data-tour="inbox-list"
           ref={listContainerRef}
           className="min-h-0 flex-1 overflow-y-auto"
           role="listbox"

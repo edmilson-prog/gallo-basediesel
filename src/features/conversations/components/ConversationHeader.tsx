@@ -109,7 +109,7 @@ export function ConversationHeader({
     : channel.label;
 
   return (
-    <header className="shrink-0 border-b border-border bg-card">
+    <header data-tour="conversation-header" className="shrink-0 border-b border-border bg-card">
       <div className="flex h-16 items-center gap-3 px-4">
         <AvatarLightbox src={display.avatarUrl} name={display.name}>
           <ContactAvatar display={display} />

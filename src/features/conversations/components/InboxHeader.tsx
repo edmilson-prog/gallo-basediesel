@@ -27,7 +27,7 @@ export function InboxHeader({
   onNewConversation,
 }: IInboxHeaderProps) {
   return (
-    <div className="flex flex-col gap-1 border-b border-border px-3 py-2">
+    <div data-tour="inbox-header" className="flex flex-col gap-1 border-b border-border px-3 py-2">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Icon icon="mdi:inbox" size={18} className="text-muted-foreground" />

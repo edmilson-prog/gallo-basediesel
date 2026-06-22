@@ -18,6 +18,7 @@ import { useUrgentBroadcastTimer } from "@/features/sdr-escalation/hooks/useUrge
 import { useQuoteExpirationTimer } from "@/features/quotes/hooks/useQuoteExpirationTimer";
 import { useEcommerceSellerNotifier } from "@/features/ecommerce-integration";
 import { usePresenceTracker } from "@/features/shell/hooks/useStorePresence";
+import { TourProvider } from "@/features/tour";
 import { SessionTimeoutGuard } from "@/features/session-timeout";
 
 /**
@@ -44,6 +45,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
   useEcommerceSellerNotifier();
   return (
     <TooltipProvider delayDuration={200}>
+      <TourProvider>
       <div className="flex h-screen overflow-hidden bg-background text-foreground">
         <Sidebar />
         <div className="flex min-w-0 flex-1 flex-col">
@@ -71,6 +73,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
         <UrgentBroadcastClaim />
         <WhatsNewModal />
       </div>
+      </TourProvider>
     </TooltipProvider>
   );
 }

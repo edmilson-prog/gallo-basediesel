@@ -10,6 +10,15 @@ versioning follows [SemVer](https://semver.org/).
 
 - **Encerramento de sessão por inatividade** — ao ficar ocioso por tempo configurável, o usuário interno recebe um modal de contagem regressiva com beeps que escalam (cadência crescente), podendo clicar "Continuar conectado" para reiniciar o timer ou aguardar o logout automático. Configurável globalmente em Configurações → Segurança da sessão (Owner-only) e com override por usuário no cadastro (aba Geral). Sincronizado entre abas: só encerra quando ocioso em **todas** as abas abertas. Padrão: ligado, 30 min de inatividade, 60 s de aviso. ⚠️ Comunicar a equipe antes do deploy — o default está ligado.
 
+## [0.113.0] — Compass · 2026-06-21
+
+**Tour guiado pela plataforma, com ênfase no Atendimento.** Na primeira vez que cada tela do menu é aberta, um tour explica o que fazer ali. O Atendimento ganha um tour passo a passo com holofote (caixa de conversas, filtros e lista; ao abrir uma conversa: cabeçalho, mensagens e composer) e as demais telas recebem um card de boas-vindas. Tudo pode ser revisto pelo ícone "?" no topo ou desligado em Configurações → Tours & Ajuda.
+
+### Added
+
+- **Tour guiado (on-boarding)** — dispara automaticamente na primeira visita de cada item do menu, por usuário (memória no navegador). Tour rico com holofote no Atendimento (Inbox e Conversa) e card de boas-vindas nas demais ~33 telas.
+- **Controles do tour** — botão "Pular" e navegação por teclado (Esc, setas, Enter); ícone "?" no topo para rever o tour da tela atual; central em **Configurações → Tours & Ajuda** para rever qualquer tour, resetar todos ou desligar os avisos automáticos.
+
 ## [0.112.0] — Lexicon · 2026-06-21
 
 ### Added
