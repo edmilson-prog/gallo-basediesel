@@ -26,6 +26,8 @@ A plataforma já consome **ativos da biblioteca** (catálogos, fichas técnicas,
 3. **Navegação:** **dois itens separados** em Configurações, sob um grupo novo **"Conteúdo"** (decisão cravada — antiga D5).
 4. **Funcionalidades da 1ª entrega:** upload + prévia visual; sensibilidade + RBAC por ativo; prévia de placeholders. **2ª fase:** combos de ativos, categorias/pastas de respostas, e modo lista (alternador grade⇄lista) da biblioteca.
 5. **Storage (cravado — antiga D1):** Fase 1 reusa o bucket `whatsapp-media` (path `<storeId>/<uuid>`); bucket dedicado `asset-library` é **hardening pós-MVP**, não decisão de início.
+6. **RLS da Biblioteca (decidido — D2):** aplicar migration de hardening (`is_staff()` no write de `asset_library_items`) em P1; o apply em produção é confirmado com o dono na hora.
+7. **Placeholders (decidido — D3):** vocabulário canônico `{{nome}}` (cliente), `{{loja}}`, `{{vendedor}}`, `{{peca}}`, `{{prazo}}`.
 
 ---
 
@@ -160,7 +162,7 @@ Criar **`useAssetLibraryAdmin`** (hook novo, separado) com mutations (create/upd
 - Campos: atalho `/xxx` (mono; validação de início/espaço; **aviso não-bloqueante de colisão** contra o conjunto visível Minhas+Da loja — não há unique constraint, §8.8), título, corpo.
 - **Chips de placeholder** clicáveis que inserem no cursor. Reaproveitar o destaque visual de `SnippetField` (pílulas) no corpo; os chips de inserção são UI nova.
 - **Prévia ao vivo** num balão estilo WhatsApp (referência visual `TextBubble`/`MessageBubble`): chama `resolvePlaceholders(body, sampleCtx)` com **dados de exemplo**. É **ilustrativa** (o composer real passa contexto `undefined`).
-- **Vocabulário canônico de placeholders** (engine novo, testado): conjunto + builder de contexto de exemplo. → decisão **D3**, §10 (a confirmar).
+- **Vocabulário canônico de placeholders** (engine novo, testado): `{{nome}}` (cliente), `{{loja}}`, `{{vendedor}}`, `{{peca}}`, `{{prazo}}` + builder de contexto de exemplo (ex.: `nome='Carlos'`, `loja`=nome da loja ativa, `vendedor`=nome do usuário, `peca='pastilha de freio'`, `prazo='3 dias úteis'`). Atualizar `placeholderResolver.test.ts` e a dica i18n.
 
 ### 5.4 Dados / hook
 
@@ -178,8 +180,8 @@ Criar **`useQuickReplyAdmin`** (hook novo, separado) com mutations + invalidaç�
 - **RLS `asset_library_items`:** SELECT/INSERT/UPDATE/DELETE **store-scoped** (`store_id = current_store_id()`). A policy POC `using(true)` de `20260608154323_create_asset_library_tables_v2.sql` foi **dropada e substituída** pelo store-scoping em `20260608220448_rls_policies_store_direct.sql` (já versionado no Git — não há migration de correção a aplicar). Não há gate de papel no banco — o "Owner/Gestor only" é só UI/rota.
 - `asset_combos` / `asset_favorites` / `asset_send_log`: RLS per-seller já aplicada.
 
-**Migrations futuras:**
-- (Opcional — D2) Hardening: `AND (SELECT public.is_staff())` no INSERT/UPDATE/DELETE de `asset_library_items` (defense-in-depth, espelha o padrão `#48` de `media_assets`). **Requer confirmação do dono** e exportar para `supabase/migrations/`.
+**Migrations:**
+- (Fase 1 / P1 — decidido D2) Hardening: `AND (SELECT public.is_staff())` no INSERT/UPDATE/DELETE de `asset_library_items` (defense-in-depth, espelha o padrão `#48` de `media_assets`). Versionada em `supabase/migrations/`; o **apply em produção é confirmado com o dono na hora** (não automático).
 - (2ª fase) `quick_replies.category` (coluna + índice + tipo + provider) para pastas/categorias.
 
 ---
@@ -221,12 +223,15 @@ Render de bytes: `MediaViewerDialog` é referência só de `<img>`/`<video>` (se
 
 ---
 
-## 10. Decisões em aberto (a confirmar na revisão)
+## 10. Decisões resolvidas
 
-> D1, D4 e D5 foram **cravadas** (§1.5, §3) e saíram desta lista.
+Todas fechadas — nada bloqueia o plano.
 
-- **D2 — RLS defense-in-depth em `asset_library_items`:** aplicar migration de `is_staff()` no write (alinha backend à intenção "Owner/Gestor curam") ou aceitar gate só de UI (padrão do projeto). Recomendação: aplicar (barato e correto), **com confirmação do dono** para o apply em prod. Isolada — não bloqueia o início (a Tela A já é Owner/Gestor por rota).
-- **D3 — Vocabulário de placeholders:** confirmar o conjunto canônico (proposta: `{{nome}}` cliente, `{{loja}}`, `{{vendedor}}`, `{{peca}}`, `{{prazo}}`) e os dados de exemplo da prévia. Hoje o resolver documenta `{{nome}}/{{peca}}/{{prazo}}` mas aceita qualquer chave.
+- **D1 (storage):** Fase 1 usa `whatsapp-media`; bucket dedicado = hardening pós-MVP (§1.5).
+- **D2 (RLS):** **aplicar** o hardening `is_staff()` no write de `asset_library_items`, versionado, com apply em prod confirmado com o dono (§6).
+- **D3 (placeholders):** vocabulário `{{nome}}/{{loja}}/{{vendedor}}/{{peca}}/{{prazo}}` (§5.3).
+- **D4 (aba snippets):** removida da Biblioteca em P0 (§3).
+- **D5 (menu):** grupo novo "Conteúdo" (§3).
 
 ---
 
@@ -238,7 +243,7 @@ Render de bytes: `MediaViewerDialog` é referência só de `<img>`/`<video>` (se
 
 **Tela B:** Vendedor cria/edita/exclui as **suas**; vê as **Da loja** com cadeado e **duplica** uma para as suas; **não vê** a opção de criar "Da loja". Owner/Gestor cria/edita as **Da loja**. O editor mostra **prévia ao vivo** com placeholders resolvidos por dados de exemplo; aviso de colisão de atalho aparece contra o conjunto visível.
 
-**Transversal:** funciona em **mock e Supabase**; em produção, `storeId`/`sellerId` corretos (sem 403). `bun run build` + `bun run test` verdes; sem novos erros de tipo no código novo (delta). *Nota: se D2 for aplicada, validar que o gate de rota Owner/Gestor da Tela A já impede o write de não-staff (a migration vira redundância de segurança, não regressão funcional).*
+**Transversal:** funciona em **mock e Supabase**; em produção, `storeId`/`sellerId` corretos (sem 403). `bun run build` + `bun run test` verdes; sem novos erros de tipo no código novo (delta). A migration de hardening (D2) está versionada e o write de `asset_library_items` passa a exigir `is_staff()`; validar que o gate de rota Owner/Gestor da Tela A continua funcional (a migration é redundância de segurança, não regressão).
 
 ---
 
