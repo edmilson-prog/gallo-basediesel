@@ -265,6 +265,7 @@ export const QUICK_SEND_STRINGS = {
       link: "Link",
     } as Record<AssetCategory, string>,
     filterGroupLabel: "Filtros da biblioteca",
+    retryAction: "Tentar de novo",
   },
   stats: {
     title: "Estatística de uso da biblioteca",
