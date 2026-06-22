@@ -8,6 +8,8 @@
  * Input (JSON body):
  *   { accountId, action: 'test'|'qr'|'state'|'logout'|'restart' }
  *   { accountId, action: 'test-message', to } — ad-hoc validation send
+ *   { accountId, action: 'delete', dryRun? } — guarded hard delete (escopo A:
+ *     only empty instances; dryRun returns the preflight without mutating)
  *
  * Side effects: updates whatsapp_accounts (status/phone/profile) and audits
  * connect/disconnect/restart/webhook-set. Errors keep the house `{ error }`
@@ -27,6 +29,7 @@ import { buildWhatsAppEngine } from "../_shared/whatsapp/build.ts";
 import { EVOLUTION_SECRET_SUFFIXES } from "../_shared/whatsapp/evolution/constants.ts";
 import {
   createInstance,
+  deleteInstance,
   fetchInstanceProfile,
   getConnectionState,
   getInstanceQr,
@@ -41,12 +44,13 @@ import type { IEngineDeps, IIntegrationLogEntry } from "../_shared/whatsapp/type
 /** Client-side QR rotation window (Evolution rotates ~30-40s; we renew at 30). */
 const QR_EXPIRES_IN_SECONDS = 30;
 
-const ACTIONS = ["test", "qr", "state", "logout", "restart", "test-message"] as const;
+const ACTIONS = ["test", "qr", "state", "logout", "restart", "test-message", "delete"] as const;
 type ConnectAction = (typeof ACTIONS)[number];
 
 interface IAccountRow {
   id: string;
   store_id: string;
+  label: string;
   provider: string;
   status: string;
   phone_number: string | null;
@@ -157,32 +161,174 @@ async function markDisconnected(
   }
 }
 
+interface IFailoverDependent {
+  id: string;
+  label: string;
+}
+
+/** Counts the rows that would FK-block a hard delete (the escopo-A guard). */
+async function countLinkedData(
+  admin: SupabaseClient,
+  accountId: string,
+): Promise<{ conversationCount: number; templateCount: number }> {
+  const [conv, tpl] = await Promise.all([
+    admin
+      .from("conversations")
+      .select("id", { count: "exact", head: true })
+      .eq("whatsapp_account_id", accountId),
+    admin
+      .from("message_templates")
+      .select("id", { count: "exact", head: true })
+      .eq("whatsapp_account_id", accountId),
+  ]);
+  return { conversationCount: conv.count ?? 0, templateCount: tpl.count ?? 0 };
+}
+
+/** Other accounts that fail over TO this one (their failover breaks on delete). */
+async function findFailoverDependents(
+  admin: SupabaseClient,
+  accountId: string,
+): Promise<IFailoverDependent[]> {
+  const { data } = await admin
+    .from("whatsapp_accounts")
+    .select("id, label")
+    .eq("failover_account_id", accountId);
+  return (data ?? []).map((r) => ({ id: r.id as string, label: r.label as string }));
+}
+
 servePost(async (req, ctx) => {
   const { callerId, admin, profile: caller } = await requireCaller(req, STAFF_ROLES);
-  const body = (await parseJsonBody(req)) as { accountId?: string; action?: string; to?: string };
+  const body = (await parseJsonBody(req)) as {
+    accountId?: string;
+    action?: string;
+    to?: string;
+    dryRun?: boolean;
+  };
 
   const action = body.action as ConnectAction;
   if (!body.accountId || !ACTIONS.includes(action)) {
     throw new HttpError(
       422,
-      "accountId e action (test|qr|state|logout|restart|test-message) são obrigatórios",
+      "accountId e action (test|qr|state|logout|restart|test-message|delete) são obrigatórios",
     );
   }
 
   const { data: row } = await admin
     .from("whatsapp_accounts")
-    .select("id, store_id, provider, status, phone_number, credentials_ref, provider_config")
+    .select("id, store_id, label, provider, status, phone_number, credentials_ref, provider_config")
     .eq("id", body.accountId)
     .maybeSingle();
   if (!row) throw new HttpError(404, "Conta WhatsApp não encontrada");
   const account = row as IAccountRow;
 
-  if (account.provider !== "evolution") {
-    throw new HttpError(422, "Conexão por QR é exclusiva de contas Evolution");
-  }
   // Owner is cross-store; managers only manage their own store's accounts.
   if (caller.role !== "owner" && caller.store_id !== account.store_id) {
     throw new HttpError(403, "forbidden: account belongs to another store");
+  }
+
+  const deps = makeEngineDeps(admin, ctx.traceId);
+  const actorId = await resolveActorSellerId(admin, callerId);
+
+  // DELETE — runs before the Evolution-specific guards so a misconfigured
+  // Evolution account (or a Meta account, which has no Evolution side) is still
+  // deletable. Guarded (escopo A): only empty instances (0 conversas/templates).
+  if (action === "delete") {
+    const { conversationCount, templateCount } = await countLinkedData(admin, account.id);
+    const failoverDependents = await findFailoverDependents(admin, account.id);
+    const deletable = conversationCount === 0 && templateCount === 0;
+
+    if (body.dryRun === true) {
+      return json(
+        { deletable, conversationCount, templateCount, failoverDependents, traceId: ctx.traceId },
+        200,
+      );
+    }
+    if (!deletable) {
+      // Race-safe re-check: something linked arrived after the UI preflight.
+      return json(
+        {
+          error: "Esta instância tem dados vinculados e não pode ser excluída.",
+          code: "HAS_LINKED_DATA",
+          conversationCount,
+          templateCount,
+          traceId: ctx.traceId,
+        },
+        422,
+      );
+    }
+
+    // 1. Disable failover on dependents FIRST — the CHECK
+    // whatsapp_accounts_failover_policy_requires_target would otherwise reject
+    // the ON DELETE SET NULL that fires on their failover_account_id.
+    if (failoverDependents.length > 0) {
+      await admin
+        .from("whatsapp_accounts")
+        .update({
+          failover_policy: "disabled",
+          failover_account_id: null,
+          is_failover_active: false,
+        })
+        .eq("failover_account_id", account.id);
+    }
+
+    // 2. Evolution teardown (best-effort; Evolution accounts with config+apikey).
+    if (account.provider === "evolution") {
+      const cfg = account.provider_config ?? {};
+      const teardownTarget: IEvolutionInstanceTarget = {
+        baseUrl: String(cfg.baseUrl ?? ""),
+        instanceName: String(cfg.instanceName ?? ""),
+      };
+      if (teardownTarget.baseUrl && teardownTarget.instanceName) {
+        const teardownKey = await deps.resolveSecret(
+          `${account.credentials_ref}${EVOLUTION_SECRET_SUFFIXES.apiKey}`,
+        );
+        if (teardownKey) {
+          try {
+            await logoutInstance(teardownKey, deps, teardownTarget, ctx.traceId);
+          } catch (_err) {
+            // Logout is best-effort: an already-unpaired instance errors here.
+          }
+          try {
+            await deleteInstance(teardownKey, deps, teardownTarget, ctx.traceId);
+          } catch (err) {
+            // Already gone (404/not-found) → proceed to drop the row. Any other
+            // server error → abort, so we never orphan a live Evolution instance.
+            const msg = err instanceof Error ? err.message.toLowerCase() : "";
+            const isGone =
+              (err instanceof WhatsAppProviderError && err.httpStatus === 404) ||
+              msg.includes("does not exist") ||
+              msg.includes("not found");
+            if (!isGone) throw err;
+          }
+        }
+      }
+    }
+
+    // 3. Delete the row (service_role: access_rules cascade; self failover SET NULL).
+    const { error: delError } = await admin.from("whatsapp_accounts").delete().eq("id", account.id);
+    if (delError) throw new HttpError(500, `Falha ao excluir a conta: ${delError.message}`);
+
+    // 4. Audit (snapshot in `before` — most audit-worthy action on this screen).
+    if (actorId) {
+      await bestEffortAudit(admin, {
+        store_id: account.store_id,
+        actor_id: actorId,
+        action: "whatsapp_account_deleted",
+        resource: "whatsapp_account",
+        resource_id: account.id,
+        before: {
+          label: account.label,
+          provider: account.provider,
+          instanceName: account.provider_config?.instanceName ?? null,
+          phoneNumber: account.phone_number,
+        },
+      });
+    }
+    return json({ ok: true, traceId: ctx.traceId }, 200);
+  }
+
+  if (account.provider !== "evolution") {
+    throw new HttpError(422, "Conexão por QR é exclusiva de contas Evolution");
   }
 
   const config = account.provider_config ?? {};
@@ -201,7 +347,6 @@ servePost(async (req, ctx) => {
     );
   }
 
-  const deps = makeEngineDeps(admin, ctx.traceId);
   const apiKey = await deps.resolveSecret(
     `${account.credentials_ref}${EVOLUTION_SECRET_SUFFIXES.apiKey}`,
   );
@@ -215,8 +360,6 @@ servePost(async (req, ctx) => {
       422,
     );
   }
-
-  const actorId = await resolveActorSellerId(admin, callerId);
 
   try {
     switch (action) {
