@@ -95,7 +95,7 @@ const DIVISION_OPTIONS: { value: IAssetLibraryItem["division"]; label: string }[
 // ─── Zod Schemas ─────────────────────────────────────────────────────────────
 
 /** URL validation: must start with http:// or https:// */
-const urlSchema = z.string().regex(/^https?:\/\/.+/, "URL deve começar com http:// ou https://");
+const urlSchema = z.string().regex(/^https?:\/\/.+/);
 
 /**
  * Full create/edit schema.
@@ -243,7 +243,7 @@ function SourcePicker({
           {isUploading && (
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground">{L.uploading}</p>
-              <Progress value={undefined} aria-label={L.uploading} />
+              <Progress value={null} aria-label={L.uploading} />
             </div>
           )}
         </div>
@@ -347,16 +347,15 @@ export function AssetFormSheet({
     if (effectiveMode === "link") {
       const parsed = urlSchema.safeParse(urlValue.trim());
       if (!parsed.success) {
-        const msg = parsed.error.errors[0]?.message ?? "URL inválida";
-        setUrlError(msg);
-        return msg;
+        setUrlError(L.urlInvalid);
+        return L.urlInvalid;
       }
       setUrlError(null);
     } else if (effectiveMode === "file") {
       if (!file) {
         setUrlError(null);
         // For create/newVersion with file mode, a file is required
-        return "Selecione um arquivo.";
+        return L.fileRequired;
       }
       setUrlError(null);
     }
@@ -577,7 +576,7 @@ export function AssetFormSheet({
                     <FormControl>
                       <Input
                         autoComplete="off"
-                        placeholder="Volvo, Scania, Mercedes-Benz…"
+                        placeholder={L.fieldBrandPlaceholder}
                         disabled={busy}
                         {...field}
                       />

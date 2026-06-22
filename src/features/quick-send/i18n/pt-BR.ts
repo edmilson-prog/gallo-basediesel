@@ -244,7 +244,9 @@ export const QUICK_SEND_STRINGS = {
     savedNewVersion: "Nova versão salva.",
     selectFile: "Selecionar arquivo",
     fileSelected: (name: string) => `Arquivo: ${name}`,
-    fileTooLarge: (mb: number) => `Arquivo muito grande. Limite de ${mb} MB.`,
+    fileRequired: "Selecione um arquivo.",
+    urlInvalid: "A URL deve começar com http:// ou https://",
+    fieldBrandPlaceholder: "Volvo, Scania, Mercedes-Benz…",
   },
   stats: {
     title: "Estatística de uso da biblioteca",
