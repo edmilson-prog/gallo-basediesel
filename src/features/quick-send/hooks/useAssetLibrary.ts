@@ -62,11 +62,16 @@ export function useAssetLibrary(filter: IAssetFilter): {
 
   const toggleFavorite = useCallback(
     (id: ID) => {
+      // Favorites are keyed by the real seller id (asset_favorites.seller_id FK to
+      // sellers.id). A logged-in user with no linked seller has sellerId === "anon",
+      // which would violate the FK — skip the write instead of throwing an unhandled
+      // rejection (mirrors the useSendAsset → recordSend guard).
+      if (!currentUser?.sellerId) return;
       void provider.toggleFavorite(sellerId, id).then(() => {
         void queryClient.invalidateQueries({ queryKey: ["quick-send", "favorites", sellerId] });
       });
     },
-    [provider, queryClient, sellerId],
+    [provider, queryClient, sellerId, currentUser?.sellerId],
   );
 
   const refetch = useCallback(() => {
