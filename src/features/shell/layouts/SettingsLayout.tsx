@@ -162,6 +162,12 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         roles: ["Owner", "Gestor"],
       },
       {
+        label: "Respostas rápidas",
+        icon: "mdi:message-flash-outline",
+        to: "/app/configuracoes/respostas-rapidas",
+        roles: ["Owner", "Gestor", "Vendedor", "SDR"],
+      },
+      {
         label: "Mídias (retenção)",
         icon: "mdi:database-clock-outline",
         to: "/app/configuracoes/midias",
