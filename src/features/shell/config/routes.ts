@@ -53,6 +53,7 @@ export const ROUTES = {
   CONFIG_INICIO: "/app/configuracoes",
   CONFIG_PERFIL: "/app/configuracoes/perfil",
   CONFIG_APARENCIA: "/app/configuracoes/aparencia",
+  CONFIG_TOURS: "/app/configuracoes/tours",
   CONFIG_COMISSOES: "/app/configuracoes/comissoes",
   CONFIG_FINANCEIRO: "/app/configuracoes/financeiro",
   CONFIG_ESTOQUE_ANALISE: "/app/configuracoes/estoque-analise",
