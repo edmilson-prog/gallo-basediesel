@@ -79,7 +79,7 @@ interface IReplyRowProps {
   onDelete: () => void;
   onDuplicate?: () => void;
   isSelected: boolean;
-  onSelect: () => void;
+  onSelect?: () => void;
 }
 
 function ReplyRow({
@@ -100,21 +100,33 @@ function ReplyRow({
       )}
     >
       {/* Left: shortcut + title + body preview */}
-      <button
-        type="button"
-        className="min-w-0 flex-1 cursor-pointer text-left"
-        onClick={onSelect}
-        aria-pressed={isSelected}
-        aria-label={`${item.title} — ${item.shortcut}`}
-      >
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="shrink-0 font-mono text-[11px]">
-            {item.shortcut}
-          </Badge>
-          <span className="truncate text-sm font-medium text-foreground">{item.title}</span>
+      {onSelect ? (
+        <button
+          type="button"
+          className="min-w-0 flex-1 cursor-pointer text-left"
+          onClick={onSelect}
+          aria-pressed={isSelected}
+          aria-label={`${item.title} — ${item.shortcut}`}
+        >
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="shrink-0 font-mono text-[11px]">
+              {item.shortcut}
+            </Badge>
+            <span className="truncate text-sm font-medium text-foreground">{item.title}</span>
+          </div>
+          <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">{item.body}</p>
+        </button>
+      ) : (
+        <div className="min-w-0 flex-1 text-left">
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="shrink-0 font-mono text-[11px]">
+              {item.shortcut}
+            </Badge>
+            <span className="truncate text-sm font-medium text-foreground">{item.title}</span>
+          </div>
+          <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">{item.body}</p>
         </div>
-        <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">{item.body}</p>
-      </button>
+      )}
 
       {/* Right: action buttons */}
       <div className="flex shrink-0 items-center gap-0.5">
@@ -146,7 +158,7 @@ function ReplyRow({
               icon="mdi:lock-outline"
               size={14}
               className="mr-1 text-muted-foreground"
-              aria-label={s.lockedHint}
+              aria-hidden
             />
             {onDuplicate && (
               <Button
@@ -403,7 +415,7 @@ export function QuickRepliesPage() {
             item={item}
             canEdit={canEdit}
             isSelected={editorState?.item?.id === item.id}
-            onSelect={() => openEdit(item)}
+            onSelect={canEdit ? () => openEdit(item) : undefined}
             onEdit={() => openEdit(item)}
             onDelete={() => setDeleteTarget(item)}
             onDuplicate={!canEdit ? () => void handleDuplicate(item) : undefined}
@@ -474,18 +486,18 @@ export function QuickRepliesPage() {
           </kbd>
         </div>
 
-        <Button
-          size="sm"
-          className="shrink-0 cursor-pointer"
-          onClick={() =>
-            openCreate(activeTab === "mine" ? "private" : "shared")
-          }
-          // Only show "Nova (Da loja)" when canEditStore; for store tab + non-staff this button won't show
-          hidden={activeTab === "store" && !canEditStore}
-        >
-          <Icon icon="mdi:plus" size={16} aria-hidden />
-          {s.newReply}
-        </Button>
+        {(activeTab !== "store" || canEditStore) && (
+          <Button
+            size="sm"
+            className="shrink-0 cursor-pointer"
+            onClick={() =>
+              openCreate(activeTab === "mine" ? "private" : "shared")
+            }
+          >
+            <Icon icon="mdi:plus" size={16} aria-hidden />
+            {s.newReply}
+          </Button>
+        )}
       </div>
 
       {/* Tabs */}
@@ -519,7 +531,7 @@ export function QuickRepliesPage() {
           <div className="grid gap-6 lg:grid-cols-2">
             {/* List column */}
             <div>
-              {!canEditStore && activeItems.length > 0 && (
+              {!canEditStore && store.length > 0 && (
                 <p className="mb-3 flex items-center gap-1.5 text-xs text-muted-foreground">
                   <Icon icon="mdi:lock-outline" size={13} aria-hidden />
                   {s.lockedHint}
@@ -537,7 +549,7 @@ export function QuickRepliesPage() {
       </Tabs>
 
       {/* Mobile Sheet (editor) */}
-      <Sheet open={sheetOpen && !isDesktop()} onOpenChange={(open) => !open && closeEditor()}>
+      <Sheet open={sheetOpen && !isDesktop() && (activeTab === "mine" || canEditStore)} onOpenChange={(open) => !open && closeEditor()}>
         <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto p-5">
           <SheetTitle className="sr-only">
             {editorState?.item
