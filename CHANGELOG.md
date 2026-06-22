@@ -6,6 +6,16 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.111.0] — Herald · 2026-06-21
+
+**Avisos de novidades por versão.** Ao entrar na plataforma, um aviso passa a destacar automaticamente as funcionalidades novas publicadas desde a sua última visita — com a versão e o codinome em evidência e um atalho para o histórico completo. O aviso aparece uma única vez por versão e não interrompe quem já está em dia.
+
+### Added
+
+- **Aviso de novidades ao entrar** — quando uma nova versão com funcionalidades é publicada, um aviso surge automaticamente destacando o que mudou desde a sua última visita, com a versão mais recente em destaque, o codinome e um resumo de cada novidade.
+- **Atalho "Ver tudo"** — botão que leva direto à página Sobre, com o histórico completo de versões.
+- **Aparece uma única vez por versão** — o aviso só reabre quando há uma versão realmente nova com funcionalidades; correções pontuais não interrompem, e quem já viu aquela versão não a vê novamente.
+
 ## [0.110.0] — Turnstile · 2026-06-20
 
 **Modelo de acesso a conversas reescrito em "2 portões" — a instância (número de origem) governa o atendimento.** A leitura para papéis não-staff resolve em dois portões independentes: **Atendimento** (conversas/mensagens/ficha) pela **instância** e **Carteira** (clientes/orçamentos/pedidos) pelo **dono**. Um vendedor que perde o acesso a um número deixa de ver as conversas daquele número, inclusive as já atribuídas. Junto vão a correção do "Lead anônimo" na fila, o fim das falhas ao abrir conversas grandes da fila e o menu lateral que se adapta ao papel de cada usuário.
