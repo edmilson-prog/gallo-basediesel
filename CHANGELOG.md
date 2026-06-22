@@ -6,6 +6,9 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- **Aviso de áudio no console (sessão por inatividade)** — o navegador registrava repetidamente "The AudioContext was not allowed to start" ao apenas mover o mouse ou rolar a página. O desbloqueio do som de aviso passou a ocorrer somente em interações que o navegador reconhece como gesto do usuário (clique, tecla ou toque), eliminando os avisos sem alterar o comportamento do alerta sonoro de inatividade.
+
 ## [0.114.0] — Vigil · 2026-06-22
 
 **Sessão mais segura e novidades à vista.** A plataforma passa a encerrar a sessão sozinha após um período de inatividade — com aviso e contagem regressiva antes do logout — e a anunciar automaticamente as novidades a cada nova versão, num aviso que aparece ao entrar.
