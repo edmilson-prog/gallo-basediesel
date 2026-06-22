@@ -6,6 +6,15 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.111.0] — Compass · 2026-06-21
+
+**Tour guiado pela plataforma, com ênfase no Atendimento.** Na primeira vez que cada tela do menu é aberta, um tour explica o que fazer ali. O Atendimento ganha um tour passo a passo com holofote (caixa de conversas, filtros e lista; ao abrir uma conversa: cabeçalho, mensagens e composer) e as demais telas recebem um card de boas-vindas. Tudo pode ser revisto pelo ícone "?" no topo ou desligado em Configurações → Tours & Ajuda.
+
+### Added
+
+- **Tour guiado (on-boarding)** — dispara automaticamente na primeira visita de cada item do menu, por usuário (memória no navegador). Tour rico com holofote no Atendimento (Inbox e Conversa) e card de boas-vindas nas demais ~33 telas.
+- **Controles do tour** — botão "Pular" e navegação por teclado (Esc, setas, Enter); ícone "?" no topo para rever o tour da tela atual; central em **Configurações → Tours & Ajuda** para rever qualquer tour, resetar todos ou desligar os avisos automáticos.
+
 ## [0.110.0] — Turnstile · 2026-06-20
 
 **Modelo de acesso a conversas reescrito em "2 portões" — a instância (número de origem) governa o atendimento.** A leitura para papéis não-staff resolve em dois portões independentes: **Atendimento** (conversas/mensagens/ficha) pela **instância** e **Carteira** (clientes/orçamentos/pedidos) pelo **dono**. Um vendedor que perde o acesso a um número deixa de ver as conversas daquele número, inclusive as já atribuídas. Junto vão a correção do "Lead anônimo" na fila, o fim das falhas ao abrir conversas grandes da fila e o menu lateral que se adapta ao papel de cada usuário.
