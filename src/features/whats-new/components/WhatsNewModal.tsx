@@ -19,7 +19,10 @@ export function WhatsNewModal() {
 
   if (releases.length === 0) return null;
 
-  const subtitle = WHATS_NEW_I18N.subtitleTemplate.replace("{{count}}", String(releases.length));
+  const subtitle = WHATS_NEW_I18N.subtitleTemplate.replace(
+    "{{count}}",
+    String(releases.length + overflowCount),
+  );
 
   return (
     <Dialog
