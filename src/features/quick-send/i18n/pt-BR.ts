@@ -311,5 +311,6 @@ export const QUICK_SEND_STRINGS = {
     deleteDesc: (title: string) => `Excluir "${title}"? Esta ação não pode ser desfeita.`,
     emptyMine: "Você ainda não tem respostas. Crie a primeira.",
     emptyStore: "Nenhuma resposta compartilhada da loja.",
+    previewNote: "Valores de exemplo — os reais são preenchidos no envio.",
   },
 } as const;
