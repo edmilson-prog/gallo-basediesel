@@ -25,6 +25,7 @@ import { NotificationDropdown } from "@/features/notifications/components/Notifi
 import { WhatsAppStatusButton } from "@/features/shell/components/WhatsAppStatusButton";
 import { ScrollProgressBar } from "@/features/shell/components/ScrollProgressBar";
 import { ROUTES } from "@/features/shell/config/routes";
+import { TourHelpButton } from "@/features/tour";
 
 export function TopBar() {
   const { currentUser, signOut } = useAuth();
@@ -84,6 +85,8 @@ export function TopBar() {
 
         {/* TODO(PRD-067 ↔ PRD-008): live e-commerce orders (triggerEcommerceOrder → useEcommerceNotificationStore) aren't emitted onto notificationBus yet, so only seeded order notifications appear here. They still toast via useEcommerceSellerNotifier. */}
         <NotificationDropdown />
+
+        <TourHelpButton />
 
         <ThemeSwitcher />
 
