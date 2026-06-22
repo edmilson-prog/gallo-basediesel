@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Division, IStore } from "@/shared/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -178,14 +179,16 @@ export function StoreFormSheet({ store, open, onOpenChange, onSaved }: IStoreFor
               />
 
               {isEdit ? (
-                <FormItem>
-                  <FormLabel>Tipo</FormLabel>
+                // Display-only: o tipo não muda na edição. Não usa Form* (que
+                // exigem <FormField>) — apenas um Label simples sobre o Input.
+                <div className="space-y-2">
+                  <Label>Tipo</Label>
                   <Input
                     value={isMatriz ? "Matriz" : store?.type === "parceira" ? "Parceira" : "Filial"}
                     disabled
                     readOnly
                   />
-                </FormItem>
+                </div>
               ) : (
                 <FormField
                   control={form.control}
