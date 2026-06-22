@@ -67,10 +67,15 @@ export function useQuickReplyAdmin(): IUseQuickReplyAdmin {
   const mine = all.filter((r) => r.scope === "private" && r.ownerId === sellerId);
   const store = all.filter((r) => r.scope === "shared");
 
-  const invalidate = useCallback(
-    () => void qc.invalidateQueries({ queryKey: ["quick-send", "replies-admin", sellerId] }),
-    [qc, sellerId],
-  );
+  const invalidate = useCallback(() => {
+    // Admin's own partitioned list.
+    void qc.invalidateQueries({ queryKey: ["quick-send", "replies-admin", sellerId] });
+    // Also bust the composer's read list — useQuickReplies caches under
+    // ["quick-send","replies", <id>], so without this the slash-picker stays
+    // stale after a create/edit/delete here. Prefix-match (no id) so it busts
+    // regardless of which identity the composer keys on.
+    void qc.invalidateQueries({ queryKey: ["quick-send", "replies"] });
+  }, [qc, sellerId]);
 
   const create = useCallback(
     async (input: {
