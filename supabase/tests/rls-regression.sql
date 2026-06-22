@@ -73,12 +73,22 @@ begin
     raise exception 'lucas: is_staff() must be false';
   end if;
 
-  -- Per-seller carteira: sees own, never another seller's rows.
+  -- Per-seller carteira + Atendimento ("2 portões" / Turnstile, v0.110.0): o
+  -- atendente vê os clientes da PRÓPRIA carteira E os clientes vinculados a uma
+  -- conversa que ele acessa (can_access_conversation) — mesmo sem ser dono da
+  -- carteira. O leak PROIBIDO é um cliente de outro seller/pool SEM nenhuma
+  -- conversa acessível que o justifique. @see docs/dev/conversation-access-model.md
   if (select count(*) from public.customers) = 0 then
     raise exception 'lucas: should see his own customers';
   end if;
-  if (select count(*) from public.customers where seller_id <> lucas) <> 0 then
-    raise exception 'lucas: must not see other sellers'' customers (cross-leak)';
+  if (select count(*) from public.customers cu
+        where cu.seller_id is distinct from lucas
+          and not exists (
+            select 1 from public.conversations c
+            where c.customer_id = cu.id
+              and public.can_access_conversation(c.id)
+          )) <> 0 then
+    raise exception 'lucas: must not see other sellers'' customers without an accessible conversation (cross-leak)';
   end if;
   if (select count(*) from public.orders) = 0 then
     raise exception 'lucas: should see his own orders';
@@ -162,8 +172,13 @@ begin
     join public.conversations c on c.id = m.conversation_id
     where c.assigned_seller_id = '5a6400ed-5aec-4bf1-b641-31635f15c887' limit 1;
 
-  if own_conv is null or own_media is null or other_conv is null or other_media is null then
-    raise exception '#48: missing seed fixtures for the media write test';
+  -- Seed-robust: os fixtures de conversa (own/pool/other) são esperados sempre;
+  -- sem eles não há o que exercer no teste de escrita. As mídias específicas
+  -- (own_media/other_media) podem não existir em todo seed (ex.: prod sem mídia
+  -- vinculada a conversa de outro vendedor) — cada bloco abaixo é guardado pela
+  -- presença do seu próprio fixture.
+  if own_conv is null or pool_conv is null or other_conv is null then
+    raise exception '#48: missing conversation fixtures for the media write test';
   end if;
 
   -- INSERT into own conversation -> allowed.
@@ -195,19 +210,24 @@ begin
     raise exception '#48: INSERT into another seller''s conversation must be blocked';
   end if;
 
-  -- UPDATE own media -> 1 row; another seller's -> 0 rows (RLS filters it out).
-  update public.media_assets set ocr_text = 'rls' where id = own_media;
-  get diagnostics n = row_count;
-  if n <> 1 then raise exception '#48: UPDATE of own media affected % rows (want 1)', n; end if;
+  -- UPDATE own media -> 1 row (guardado pela presença de mídia própria no seed).
+  if own_media is not null then
+    update public.media_assets set ocr_text = 'rls' where id = own_media;
+    get diagnostics n = row_count;
+    if n <> 1 then raise exception '#48: UPDATE of own media affected % rows (want 1)', n; end if;
+  end if;
 
-  update public.media_assets set ocr_text = 'rls' where id = other_media;
-  get diagnostics n = row_count;
-  if n <> 0 then raise exception '#48: UPDATE of another seller media affected % rows (want 0)', n; end if;
+  -- Outro vendedor: UPDATE/DELETE não devem atingir linhas (RLS filtra).
+  -- Guardado pela presença de mídia alheia no seed.
+  if other_media is not null then
+    update public.media_assets set ocr_text = 'rls' where id = other_media;
+    get diagnostics n = row_count;
+    if n <> 0 then raise exception '#48: UPDATE of another seller media affected % rows (want 0)', n; end if;
 
-  -- DELETE another seller's media -> 0 rows.
-  delete from public.media_assets where id = other_media;
-  get diagnostics n = row_count;
-  if n <> 0 then raise exception '#48: DELETE of another seller media affected % rows (want 0)', n; end if;
+    delete from public.media_assets where id = other_media;
+    get diagnostics n = row_count;
+    if n <> 0 then raise exception '#48: DELETE of another seller media affected % rows (want 0)', n; end if;
+  end if;
 end $$;
 
 reset role;
@@ -780,6 +800,77 @@ begin
   end if;
 end $$;
 
+-- ---------------------------------------------------------------------------
+-- Bloco A1 (gestão multi-loja): escrita de IDENTIDADE da loja é Owner-only.
+-- A policy stores_update usa is_staff() (= owner OU manager), então a defesa
+-- contra um Gestor alterar/desativar lojas via PATCH direto é o GRANT por
+-- coluna: authenticated só pode atualizar `settings`; as demais colunas mudam
+-- apenas pelas RPCs SECURITY DEFINER owner-only.
+-- ---------------------------------------------------------------------------
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"manager","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+
+do $$
+begin
+  -- Guard: o Bloco A1 só existe após a migration 20260622130000_store_crud_owner_rpc.
+  -- O CI roda contra prod e o workflow "DB deploy" aplica a migration apenas no
+  -- merge, então pré-merge este bloco é PULADO (será validado no 1º run pós-deploy).
+  -- Espelha o guard de objeto-ausente da seção multi-instância acima.
+  if not exists (select 1 from information_schema.columns
+       where table_schema = 'public' and table_name = 'stores' and column_name = 'is_active') then
+    return;
+  end if;
+  -- (a) Coluna de identidade: UPDATE direto deve ser NEGADO (column grant).
+  begin
+    update public.stores set name = name
+      where id = '00000000-0000-0000-0000-000000000001';
+    raise exception 'manager: direct UPDATE of stores.name should be denied';
+  exception
+    when insufficient_privilege then null; -- esperado
+  end;
+  -- (b) is_active: também negado (impede burlar a guarda da matriz).
+  begin
+    update public.stores set is_active = false
+      where id = '00000000-0000-0000-0000-000000000001';
+    raise exception 'manager: direct UPDATE of stores.is_active should be denied';
+  exception
+    when insufficient_privilege then null; -- esperado
+  end;
+  -- (c) settings: PERMITIDO (edição de configurações pelo Gestor).
+  update public.stores set settings = settings
+    where id = '00000000-0000-0000-0000-000000000001';
+end $$;
+
+reset role;
+
+-- Fail-CLOSED: um JWT sem app_metadata.role NAO pode criar/editar lojas. O gate
+-- usa `current_app_role() is distinct from 'owner'`, tratando role NULL como
+-- nao-owner (a forma `<> 'owner'` deixaria passar: NULL <> 'owner' = NULL).
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-0000000000bb","role":"authenticated","app_metadata":{"store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+do $chk$
+begin
+  -- Guard: pula até a migration A1 estar aplicada em prod (ver nota acima).
+  if to_regprocedure('public.create_store(uuid,text,text,text,text,uuid,text[],jsonb)') is null then
+    return;
+  end if;
+  begin
+    perform public.create_store(
+      gen_random_uuid(), 'Probe', 'filial', '00.000.000/0001-00', 'Rua',
+      null, array['parts']::text[], '{}'::jsonb
+    );
+    raise exception 'null-role: create_store should be denied (fail-closed)';
+  exception when insufficient_privilege then null; -- esperado (42501)
+  end;
+end $chk$;
 reset role;
 
 select 'ALL RLS REGRESSION TESTS PASSED' as result;

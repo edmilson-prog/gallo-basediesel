@@ -42,13 +42,17 @@ function computeAccessibleStores(
   user: { role: string; storeId?: ID; accessibleStoreIds?: ID[] } | null,
 ): IStore[] {
   if (!user) return [];
+  // Inactive (soft-deleted) stores are not switchable — they stay visible only
+  // on the management page (StoresPage). Keeping them out here keeps the
+  // StoreSwitcher and scoped listings off soft-deleted stores.
+  const active = allStores.filter((s) => s.isActive !== false);
   if (hasPermission(user as { role: never }, "store", "view", "all")) {
-    return allStores;
+    return active;
   }
   const ids = user.accessibleStoreIds ?? (user.storeId ? [user.storeId] : []);
   if (ids.length === 0) return [];
   const idSet = new Set(ids);
-  return allStores.filter((s) => idSet.has(s.id));
+  return active.filter((s) => idSet.has(s.id));
 }
 
 /**
@@ -72,27 +76,30 @@ export function MultistoreProvider({ children }: { children: React.ReactNode }) 
   const [allStores, setAllStores] = useState<IStore[]>([]);
   const [currentStoreId, setCurrentStoreIdState] = useState<ID | null>(null);
   const [isHydrating, setIsHydrating] = useState(true);
+  // Whether loadRoster has resolved/rejected at least once. Distinguishes a
+  // still-loading empty roster from a terminal empty roster (load failed).
+  const [rosterLoaded, setRosterLoaded] = useState(false);
 
-  // Load the full store roster once on mount. The roster is tiny on the MVP
-  // (a single matriz) so eager loading is fine; Fase 2 may add a refresh
-  // hook once filiais and parceiras come online.
-  useEffect(() => {
-    let cancelled = false;
-    void storesProvider
-      .list()
-      .then((stores) => {
-        if (cancelled) return;
-        setAllStores(stores);
-        multistoreStore.setAccessibleStores(stores);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setAllStores([]);
-      });
-    return () => {
-      cancelled = true;
-    };
+  // Load the full store roster from the provider. Called on mount and by
+  // refreshStores() after a store is created/edited/deactivated (Fase 2 —
+  // gestão multi-loja), so the switcher and listings reflect changes without
+  // a full page reload. Re-resolution of the active store is handled by the
+  // effect below, which preserves the persisted/primary store when still valid.
+  const loadRoster = useCallback(async () => {
+    try {
+      const stores = await storesProvider.list();
+      setAllStores(stores);
+      multistoreStore.setAccessibleStores(stores);
+    } catch {
+      setAllStores([]);
+    } finally {
+      setRosterLoaded(true);
+    }
   }, [storesProvider]);
+
+  useEffect(() => {
+    void loadRoster();
+  }, [loadRoster]);
 
   const accessibleStores = useMemo(
     () => computeAccessibleStores(allStores, currentUser),
@@ -119,7 +126,10 @@ export function MultistoreProvider({ children }: { children: React.ReactNode }) 
       return;
     }
     if (accessibleStores.length === 0) {
-      // Roster may still be loading; keep hydrating flag on.
+      // Empty roster is "still loading" only until loadRoster resolves/rejects
+      // once. After that it's terminal — stop hydrating so consumers degrade
+      // (e.g. StoreSwitcher) instead of showing a skeleton forever on a failed load.
+      if (rosterLoaded) setIsHydrating(false);
       return;
     }
     const accessibleIds = new Set(accessibleStores.map((s) => s.id));
@@ -141,7 +151,7 @@ export function MultistoreProvider({ children }: { children: React.ReactNode }) 
     setCurrentStoreIdState(resolved);
     multistoreStore.setCurrentStoreId(resolved);
     setIsHydrating(false);
-  }, [currentUser, accessibleStores]);
+  }, [currentUser, accessibleStores, rosterLoaded]);
 
   const setCurrentStore = useCallback(
     async (storeId: ID): Promise<void> => {
@@ -179,8 +189,9 @@ export function MultistoreProvider({ children }: { children: React.ReactNode }) 
       isHydrating,
       setCurrentStore,
       canSwitchStore: accessibleStores.length > 1,
+      refreshStores: loadRoster,
     }),
-    [currentStore, currentStoreId, accessibleStores, isHydrating, setCurrentStore],
+    [currentStore, currentStoreId, accessibleStores, isHydrating, setCurrentStore, loadRoster],
   );
 
   return <MultistoreContext.Provider value={value}>{children}</MultistoreContext.Provider>;

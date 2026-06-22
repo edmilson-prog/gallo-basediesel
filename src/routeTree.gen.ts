@@ -120,6 +120,7 @@ import { Route as AppGestaoAtendimentoAnaliseRouteImport } from './routes/app.ge
 import { Route as AppGestaoAbcRouteImport } from './routes/app.gestao.abc'
 import { Route as AppConfiguracoesWhatsappRouteImport } from './routes/app.configuracoes.whatsapp'
 import { Route as AppConfiguracoesUsuariosRouteImport } from './routes/app.configuracoes.usuarios'
+import { Route as AppConfiguracoesToursRouteImport } from './routes/app.configuracoes.tours'
 import { Route as AppConfiguracoesTemplatesWhatsappRouteImport } from './routes/app.configuracoes.templates-whatsapp'
 import { Route as AppConfiguracoesSobreRouteImport } from './routes/app.configuracoes.sobre'
 import { Route as AppConfiguracoesSessaoRouteImport } from './routes/app.configuracoes.sessao'
@@ -753,6 +754,11 @@ const AppConfiguracoesUsuariosRoute =
     path: '/configuracoes/usuarios',
     getParentRoute: () => AppRoute,
   } as any)
+const AppConfiguracoesToursRoute = AppConfiguracoesToursRouteImport.update({
+  id: '/configuracoes/tours',
+  path: '/configuracoes/tours',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppConfiguracoesTemplatesWhatsappRoute =
   AppConfiguracoesTemplatesWhatsappRouteImport.update({
     id: '/configuracoes/templates-whatsapp',
@@ -1239,6 +1245,7 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/sessao': typeof AppConfiguracoesSessaoRoute
   '/app/configuracoes/sobre': typeof AppConfiguracoesSobreRoute
   '/app/configuracoes/templates-whatsapp': typeof AppConfiguracoesTemplatesWhatsappRoute
+  '/app/configuracoes/tours': typeof AppConfiguracoesToursRoute
   '/app/configuracoes/usuarios': typeof AppConfiguracoesUsuariosRoute
   '/app/configuracoes/whatsapp': typeof AppConfiguracoesWhatsappRoute
   '/app/gestao/abc': typeof AppGestaoAbcRouteWithChildren
@@ -1406,6 +1413,7 @@ export interface FileRoutesByTo {
   '/app/configuracoes/sessao': typeof AppConfiguracoesSessaoRoute
   '/app/configuracoes/sobre': typeof AppConfiguracoesSobreRoute
   '/app/configuracoes/templates-whatsapp': typeof AppConfiguracoesTemplatesWhatsappRoute
+  '/app/configuracoes/tours': typeof AppConfiguracoesToursRoute
   '/app/configuracoes/usuarios': typeof AppConfiguracoesUsuariosRoute
   '/app/configuracoes/whatsapp': typeof AppConfiguracoesWhatsappRoute
   '/app/gestao/abc': typeof AppGestaoAbcRouteWithChildren
@@ -1584,6 +1592,7 @@ export interface FileRoutesById {
   '/app/configuracoes/sessao': typeof AppConfiguracoesSessaoRoute
   '/app/configuracoes/sobre': typeof AppConfiguracoesSobreRoute
   '/app/configuracoes/templates-whatsapp': typeof AppConfiguracoesTemplatesWhatsappRoute
+  '/app/configuracoes/tours': typeof AppConfiguracoesToursRoute
   '/app/configuracoes/usuarios': typeof AppConfiguracoesUsuariosRoute
   '/app/configuracoes/whatsapp': typeof AppConfiguracoesWhatsappRoute
   '/app/gestao/abc': typeof AppGestaoAbcRouteWithChildren
@@ -1770,6 +1779,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/sessao'
     | '/app/configuracoes/sobre'
     | '/app/configuracoes/templates-whatsapp'
+    | '/app/configuracoes/tours'
     | '/app/configuracoes/usuarios'
     | '/app/configuracoes/whatsapp'
     | '/app/gestao/abc'
@@ -1937,6 +1947,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/sessao'
     | '/app/configuracoes/sobre'
     | '/app/configuracoes/templates-whatsapp'
+    | '/app/configuracoes/tours'
     | '/app/configuracoes/usuarios'
     | '/app/configuracoes/whatsapp'
     | '/app/gestao/abc'
@@ -2114,6 +2125,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/sessao'
     | '/app/configuracoes/sobre'
     | '/app/configuracoes/templates-whatsapp'
+    | '/app/configuracoes/tours'
     | '/app/configuracoes/usuarios'
     | '/app/configuracoes/whatsapp'
     | '/app/gestao/abc'
@@ -3002,6 +3014,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesUsuariosRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/configuracoes/tours': {
+      id: '/app/configuracoes/tours'
+      path: '/configuracoes/tours'
+      fullPath: '/app/configuracoes/tours'
+      preLoaderRoute: typeof AppConfiguracoesToursRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/configuracoes/templates-whatsapp': {
       id: '/app/configuracoes/templates-whatsapp'
       path: '/configuracoes/templates-whatsapp'
@@ -3822,6 +3841,7 @@ interface AppRouteChildren {
   AppConfiguracoesSessaoRoute: typeof AppConfiguracoesSessaoRoute
   AppConfiguracoesSobreRoute: typeof AppConfiguracoesSobreRoute
   AppConfiguracoesTemplatesWhatsappRoute: typeof AppConfiguracoesTemplatesWhatsappRoute
+  AppConfiguracoesToursRoute: typeof AppConfiguracoesToursRoute
   AppConfiguracoesUsuariosRoute: typeof AppConfiguracoesUsuariosRoute
   AppConfiguracoesWhatsappRoute: typeof AppConfiguracoesWhatsappRoute
   AppGestaoAbcRoute: typeof AppGestaoAbcRouteWithChildren
@@ -3905,6 +3925,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesSobreRoute: AppConfiguracoesSobreRoute,
   AppConfiguracoesTemplatesWhatsappRoute:
     AppConfiguracoesTemplatesWhatsappRoute,
+  AppConfiguracoesToursRoute: AppConfiguracoesToursRoute,
   AppConfiguracoesUsuariosRoute: AppConfiguracoesUsuariosRoute,
   AppConfiguracoesWhatsappRoute: AppConfiguracoesWhatsappRoute,
   AppGestaoAbcRoute: AppGestaoAbcRouteWithChildren,

@@ -1,6 +1,7 @@
 import type { Division, ID, IPlatformSettings, IStore } from "@/shared/types";
 import type { IStoresProvider } from "../../contracts/stores";
 import { getSupabaseClient } from "@/shared/lib/supabase";
+import { buildDefaultSettings } from "../../engine/buildDefaultSettings";
 
 /**
  * Supabase implementation of {@link IStoresProvider} — the first Fase 2
@@ -23,6 +24,7 @@ interface StoreRow {
   // POC seed stores a faithful subset of IPlatformSettings; trusted via cast.
   settings: IPlatformSettings;
   active_divisions: Division[];
+  is_active: boolean | null;
   created_at: string;
 }
 
@@ -38,6 +40,8 @@ function rowToStore(row: StoreRow): IStore {
     managerId: row.manager_id ?? undefined,
     settings: row.settings,
     activeDivisions: row.active_divisions,
+    // Fallback `true` tolerates rows read before the is_active migration lands.
+    isActive: row.is_active ?? true,
     createdAt: row.created_at,
   };
 }
@@ -62,5 +66,60 @@ export const supabaseStoresProvider: IStoresProvider = {
       throw new Error(`[supabase] stores.get(${id}) failed: ${error.message}`);
     }
     return rowToStore(data as StoreRow);
+  },
+
+  async create(input) {
+    // Client generates the id so settings.storeId matches the real store id.
+    const id = crypto.randomUUID();
+    const settings = input.settings ?? buildDefaultSettings(id);
+    const { data, error } = await getSupabaseClient().rpc("create_store", {
+      p_id: id,
+      p_name: input.name,
+      p_type: input.type,
+      p_cnpj: input.cnpj,
+      p_address: input.address,
+      p_manager_id: input.managerId ?? null,
+      p_active_divisions: input.activeDivisions,
+      p_settings: settings,
+    });
+    if (error) throw new Error(`[supabase] stores.create failed: ${error.message}`);
+    return rowToStore(data as StoreRow);
+  },
+
+  async update(id, patch) {
+    const { data, error } = await getSupabaseClient().rpc("update_store", {
+      p_id: id,
+      p_name: patch.name ?? null,
+      p_cnpj: patch.cnpj ?? null,
+      p_address: patch.address ?? null,
+      p_manager_id: patch.managerId ?? null,
+      p_active_divisions: patch.activeDivisions ?? null,
+    });
+    if (error) throw new Error(`[supabase] stores.update(${id}) failed: ${error.message}`);
+    return rowToStore(data as StoreRow);
+  },
+
+  async setActive(id, active) {
+    const { data, error } = await getSupabaseClient().rpc("set_store_active", {
+      p_id: id,
+      p_active: active,
+    });
+    if (error) throw new Error(`[supabase] stores.setActive(${id}) failed: ${error.message}`);
+    return rowToStore(data as StoreRow);
+  },
+
+  async getMemberCounts() {
+    const { data, error } = await getSupabaseClient().rpc("store_member_counts");
+    if (error) throw new Error(`[supabase] stores.getMemberCounts failed: ${error.message}`);
+    const rows = (data ?? []) as Array<{
+      store_id: string;
+      sellers_count: number | string;
+      customers_count: number | string;
+    }>;
+    return rows.map((r) => ({
+      storeId: r.store_id,
+      sellersCount: Number(r.sellers_count),
+      customersCount: Number(r.customers_count),
+    }));
   },
 };

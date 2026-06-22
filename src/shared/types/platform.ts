@@ -335,6 +335,11 @@ export interface IStore {
   settings: IPlatformSettings;
   /** Divisions active for this store. On the MVP always `['parts']`. */
   activeDivisions: Division[];
+  /**
+   * Soft-delete flag (Fase 2 — gestão multi-loja). Inactive stores are hidden
+   * from operational listings but preserved for history/FK integrity.
+   */
+  isActive: boolean;
   createdAt: ISO8601;
 }
 
