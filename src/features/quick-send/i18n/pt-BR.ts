@@ -5,7 +5,7 @@
  * existing groups (append-only — never rename or remove). All copy in
  * Brazilian Portuguese with correct accents.
  */
-import type { LeadTemperature, AssetCategory } from "@/shared/types";
+import type { LeadTemperature, AssetCategory, AssetKind } from "@/shared/types";
 
 export const QUICK_SEND_STRINGS = {
   picker: {
@@ -267,6 +267,19 @@ export const QUICK_SEND_STRINGS = {
     } as Record<AssetCategory, string>,
     filterGroupLabel: "Filtros da biblioteca",
     retryAction: "Tentar de novo",
+    // AssetFormSheet option labels — moved from inline constants to i18n
+    kindLabels: {
+      document: "Documento",
+      image: "Imagem",
+      video: "Vídeo",
+      link: "Link",
+    } as Record<AssetKind, string>,
+    divisionLabels: {
+      parts: "Parts",
+      service: "Service",
+      industrial: "Industrial",
+    } as Record<"parts" | "service" | "industrial", string>,
+    titleRequired: "Título é obrigatório",
   },
   stats: {
     title: "Estatística de uso da biblioteca",

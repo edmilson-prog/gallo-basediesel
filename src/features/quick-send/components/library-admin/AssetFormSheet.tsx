@@ -70,27 +70,17 @@ const MAX_UPLOAD_MB = 25;
 
 const ACCEPTED_MIME = ".pdf,.png,.jpg,.jpeg,.mp4,.webm";
 
-const CATEGORY_OPTIONS: { value: AssetCategory; label: string }[] = [
-  { value: "catalogo", label: "Catálogo" },
-  { value: "ficha_tecnica", label: "Ficha técnica" },
-  { value: "tabela_preco", label: "Tabela de preço" },
-  { value: "garantia", label: "Garantia" },
-  { value: "video", label: "Vídeo" },
-  { value: "link", label: "Link" },
-];
+const CATEGORY_OPTIONS: { value: AssetCategory; label: string }[] = (
+  Object.keys(QUICK_SEND_STRINGS.library.categoryLabels) as AssetCategory[]
+).map((value) => ({ value, label: QUICK_SEND_STRINGS.library.categoryLabels[value] }));
 
-const KIND_OPTIONS: { value: AssetKind; label: string }[] = [
-  { value: "document", label: "Documento" },
-  { value: "image", label: "Imagem" },
-  { value: "video", label: "Vídeo" },
-  { value: "link", label: "Link" },
-];
+const KIND_OPTIONS: { value: AssetKind; label: string }[] = (
+  Object.keys(QUICK_SEND_STRINGS.library.kindLabels) as AssetKind[]
+).map((value) => ({ value, label: QUICK_SEND_STRINGS.library.kindLabels[value] }));
 
-const DIVISION_OPTIONS: { value: IAssetLibraryItem["division"]; label: string }[] = [
-  { value: "parts", label: "Parts" },
-  { value: "service", label: "Service" },
-  { value: "industrial", label: "Industrial" },
-];
+const DIVISION_OPTIONS: { value: IAssetLibraryItem["division"]; label: string }[] = (
+  Object.keys(QUICK_SEND_STRINGS.library.divisionLabels) as IAssetLibraryItem["division"][]
+).map((value) => ({ value, label: QUICK_SEND_STRINGS.library.divisionLabels[value] }));
 
 // ─── Zod Schemas ─────────────────────────────────────────────────────────────
 
@@ -102,7 +92,7 @@ const urlSchema = z.string().regex(/^https?:\/\/.+/);
  * The source (file vs url) is validated at submit time since File isn't zod-friendly.
  */
 const fullFormSchema = z.object({
-  title: z.string().min(1, "Título é obrigatório"),
+  title: z.string().min(1, QUICK_SEND_STRINGS.library.titleRequired),
   category: z.enum([
     "catalogo",
     "ficha_tecnica",
