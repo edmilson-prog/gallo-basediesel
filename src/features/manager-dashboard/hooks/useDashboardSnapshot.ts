@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   useManagerDashboardProvider,
   type IManagerDashboardSnapshot,
@@ -6,6 +6,10 @@ import {
 } from "@/providers/data";
 import type { ID } from "@/shared/types";
 import type { IDashboardFiltersState, IDashboardWindow } from "./useDashboardFilters";
+
+/** Trailing-debounce window for realtime-tick refetches — coalesces bursts of
+ *  Realtime events (each bumps `refreshKey`) into a single dashboard refetch. */
+const REFRESH_DEBOUNCE_MS = 1500;
 
 const EMPTY_SNAPSHOT: IManagerDashboardSnapshot = {
   openConversations: [],
@@ -103,6 +107,12 @@ export function useDashboardSnapshot(
     [provider, paramsKey],
   );
 
+  // Always-fresh handle to fetchSnapshot so a debounced refresh that fires after
+  // a filter change still runs with the current params (no stale-closure refetch).
+  const fetchRef = useRef(fetchSnapshot);
+  fetchRef.current = fetchSnapshot;
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Reset to initial fetch whenever filters change.
   useEffect(() => {
     if (!enabled) return;
@@ -110,13 +120,20 @@ export function useDashboardSnapshot(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paramsKey, enabled]);
 
-  // Background refresh on refreshKey bump.
+  // Background refresh on refreshKey bump — trailing-debounced so a burst of
+  // realtime ticks coalesces into a single refetch, and always with fresh params.
   useEffect(() => {
     if (!enabled) return;
     if (refreshKey === 0) return;
-    void fetchSnapshot("refresh");
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      void fetchRef.current("refresh");
+    }, REFRESH_DEBOUNCE_MS);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshKey]);
+  }, [refreshKey, enabled]);
 
   const refetch = useCallback(() => {
     void fetchSnapshot("refresh");
