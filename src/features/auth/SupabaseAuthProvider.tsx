@@ -4,7 +4,8 @@ import type { RoleName } from "@/shared/types";
 import { getSupabaseClient } from "@/shared/lib/supabase";
 import { AuthContext, type IAuthContextValue, type IAuthResult } from "./authContext";
 import type { IUserProfile } from "./mock-users";
-import { writeAuthSyncMirror } from "./authSession";
+import { readAuthSyncMirror, writeAuthSyncMirror } from "./authSession";
+import { isInvalidSessionError } from "./sessionValidity";
 import { defaultRedirectForRole, mapDbRoleToRoleName, roleGroup } from "./roleMap";
 
 /** Row shape of `public.profiles` (PRD-107 slice). */
@@ -108,9 +109,31 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       );
     };
 
+    /**
+     * Confirms the persisted session still exists server-side. A "ghost" token
+     * survives in localStorage after the session is revoked elsewhere (e.g. a
+     * global signOut on another device, or the idle-timeout firing in another
+     * tab): getSession() returns it happily, but every Edge Function 401s with
+     * "invalid session". getUser() round-trips to the auth server, so it detects
+     * the revocation. Transient/network errors are ignored (isInvalidSessionError)
+     * so a hiccup never logs anyone out.
+     */
+    const revalidate = async () => {
+      if (!readAuthSyncMirror()) return; // nothing to validate (already logged out)
+      const { error } = await supabase.auth.getUser();
+      if (!active || !isInvalidSessionError(error)) return;
+      void supabase.auth.signOut({ scope: "local" });
+      await apply(null);
+    };
+
     supabase.auth
       .getSession()
-      .then(({ data }) => apply(data.session?.user))
+      .then(async ({ data }) => {
+        await apply(data.session?.user);
+        // Booting with a locally-persisted token: confirm it is still live so a
+        // ghost session redirects to login instead of trapping the user.
+        if (data.session?.user) await revalidate();
+      })
       .finally(() => {
         if (active) setIsHydrating(false);
       });
@@ -119,9 +142,17 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       void apply(session?.user);
     });
 
+    // Re-confirm the session whenever the tab regains focus — that is exactly
+    // when a session revoked while the tab was idle needs to be caught.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void revalidate();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
     return () => {
       active = false;
       sub.subscription.unsubscribe();
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
 
@@ -158,7 +189,10 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
   );
 
   const signOut = useCallback(() => {
-    void getSupabaseClient().auth.signOut();
+    // scope: "local" revokes only THIS device's session. The default (global)
+    // revoked every device, so the idle-timeout firing on one device/tab killed
+    // the session everywhere and stranded the others with a ghost token.
+    void getSupabaseClient().auth.signOut({ scope: "local" });
     writeAuthSyncMirror(null);
     setCurrentUser(null);
   }, []);
