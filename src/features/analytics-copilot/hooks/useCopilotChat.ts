@@ -86,18 +86,31 @@ export function useCopilotChat(): IUseCopilotChat {
     };
   }, [ai]);
 
-  const [isThinking, setIsThinking] = useState(false);
+  // Per-session pending flag. A slow request in session A must not show a phantom
+  // typing indicator (or lock the composer) once the user switches to session B —
+  // so we track which sessions have an in-flight request, not a single global bool.
+  const [thinkingSessionIds, setThinkingSessionIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
 
   const messages = activeSession.messages;
   const lastResolvedAnswer = useMemo(() => lastResolved(messages), [messages]);
+  const isThinking = thinkingSessionIds.has(activeSessionId);
 
   const ask = useCallback(
     async (question: string): Promise<void> => {
       const trimmed = question.trim();
       if (!trimmed) return;
 
+      // Bind this request to the session it was asked in, so the pending state
+      // (and the appended answer) stay with that session even if the user switches.
+      const askSessionId = activeSessionId;
       appendToActive([makeMessage({ role: "user", text: trimmed })]);
-      setIsThinking(true);
+      setThinkingSessionIds((prev) => {
+        const next = new Set(prev);
+        next.add(askSessionId);
+        return next;
+      });
 
       try {
         const effectiveRole = role ?? "Vendedor";
@@ -127,10 +140,15 @@ export function useCopilotChat(): IUseCopilotChat {
 
         appendToActive(answers.map((a) => makeMessage({ role: "assistant", answer: a })));
       } finally {
-        setIsThinking(false);
+        setThinkingSessionIds((prev) => {
+          if (!prev.has(askSessionId)) return prev;
+          const next = new Set(prev);
+          next.delete(askSessionId);
+          return next;
+        });
       }
     },
-    [appendToActive, dataAccess, role, currentStoreId, currentUser, resolver],
+    [appendToActive, dataAccess, role, currentStoreId, currentUser, resolver, activeSessionId],
   );
 
   return {
