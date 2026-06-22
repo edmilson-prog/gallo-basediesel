@@ -289,6 +289,7 @@ export const QUICK_SEND_STRINGS = {
     search: "Buscar por atalho, título ou texto…",
     newReply: "Nova resposta",
     shortcut: "Atalho",
+    shortcutPlaceholder: "/garantia",
     title: "Título",
     body: "Mensagem",
     save: "Salvar",

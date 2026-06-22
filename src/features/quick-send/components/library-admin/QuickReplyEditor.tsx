@@ -127,7 +127,7 @@ export function QuickReplyEditor({
             id="qr-shortcut"
             value={shortcut}
             onChange={(e) => setShortcut(e.target.value)}
-            placeholder="/garantia"
+            placeholder={s.shortcutPlaceholder}
             className={cn(
               "font-mono",
               shortcutInvalid && "border-severity-warning ring-1 ring-severity-warning/50",
