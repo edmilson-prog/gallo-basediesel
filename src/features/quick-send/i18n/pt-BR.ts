@@ -234,6 +234,17 @@ export const QUICK_SEND_STRINGS = {
     rolesClearSelection: "Limpar seleção",
     rolesCountLabel: (n: number) => `${n} ${n === 1 ? "papel" : "papéis"} selecionado${n === 1 ? "" : "s"}`,
     actionsMenu: "Ações do ativo",
+    // AssetFormSheet (Task 8) additions
+    fieldKind: "Tipo de arquivo",
+    submitCreate: "Criar ativo",
+    submitEdit: "Salvar alterações",
+    submitNewVersion: "Salvar nova versão",
+    savedCreate: "Ativo criado.",
+    savedEdit: "Ativo atualizado.",
+    savedNewVersion: "Nova versão salva.",
+    selectFile: "Selecionar arquivo",
+    fileSelected: (name: string) => `Arquivo: ${name}`,
+    fileTooLarge: (mb: number) => `Arquivo muito grande. Limite de ${mb} MB.`,
   },
   stats: {
     title: "Estatística de uso da biblioteca",
