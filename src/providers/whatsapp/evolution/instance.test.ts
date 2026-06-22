@@ -3,6 +3,7 @@ import { WhatsAppProviderError } from "../errors";
 import type { IEngineDeps } from "../types";
 import {
   createInstance,
+  deleteInstance,
   fetchInstanceProfile,
   findChats,
   findContacts,
@@ -199,6 +200,13 @@ describe("logout / restart / webhook", () => {
     await restartInstance("key", deps, TARGET);
     expect(calls[0]!.url).toBe("https://evo.test/instance/restart/inst1");
     expect(calls[0]!.init.method).toBe("POST");
+  });
+
+  it("deleteInstance issues DELETE on the delete path", async () => {
+    const { deps, calls } = makeDeps(200, { status: "SUCCESS" });
+    await deleteInstance("key", deps, TARGET);
+    expect(calls[0]!.url).toBe("https://evo.test/instance/delete/inst1");
+    expect(calls[0]!.init.method).toBe("DELETE");
   });
 
   it("setInstanceWebhook posts the v2 webhook payload", async () => {

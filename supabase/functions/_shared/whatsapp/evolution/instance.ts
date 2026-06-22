@@ -159,6 +159,21 @@ export async function logoutInstance(
   });
 }
 
+/** DELETE /instance/delete — removes the instance from the Evolution server. */
+export async function deleteInstance(
+  apiKey: string,
+  deps: IEngineDeps,
+  target: IEvolutionInstanceTarget,
+  traceId?: string,
+): Promise<void> {
+  await evolutionRequest(apiKey, deps, {
+    baseUrl: target.baseUrl,
+    path: `/instance/delete/${target.instanceName}`,
+    method: "DELETE",
+    traceId,
+  });
+}
+
 /** POST /instance/restart — restarts the instance process on the server. */
 export async function restartInstance(
   apiKey: string,
