@@ -77,7 +77,7 @@ export function useAssetLibraryAdmin() {
         storeId,
       } as IMediaUploadInput & { storeId?: ID });
 
-      return { mediaAssetId: uploaded.id, storageRef: uploaded.storageRef ?? "" };
+      return { mediaAssetId: uploaded.id, storageRef: uploaded.storageRef };
     },
     [media],
   );
