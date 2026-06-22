@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { toast } from "sonner";
 import { Icon } from "@/components/Icon";
 import {
@@ -31,6 +31,9 @@ interface IDeleteInstanceDialogProps {
   onDeleted: () => void;
   /** Opens the connection/disconnect flow for a blocked instance. */
   onDisconnect: (account: IWhatsAppAccount) => void;
+  /** Stable element to focus after a successful delete (the card that opened the
+   *  dialog is gone, so Radix would otherwise drop focus to <body>). */
+  restoreFocusRef?: RefObject<HTMLElement | null>;
 }
 
 /**
@@ -44,6 +47,7 @@ export function DeleteInstanceDialog({
   onClose,
   onDeleted,
   onDisconnect,
+  restoreFocusRef,
 }: IDeleteInstanceDialogProps) {
   const [preflight, setPreflight] = useState<IDeletePreflight | null>(null);
   const [loading, setLoading] = useState(false);
@@ -92,6 +96,9 @@ export function DeleteInstanceDialog({
       toast.success(`Instância "${account.label}" excluída.`);
       onDeleted();
       onClose();
+      // The card that opened this dialog is now removed; move focus to a stable
+      // landmark after Radix's unmount restore (which would land on <body>).
+      setTimeout(() => restoreFocusRef?.current?.focus(), 0);
     } catch (err) {
       // Race: linked data arrived after preflight → refresh + close (retry is futile).
       const code = (err as { code?: string }).code;
@@ -161,16 +168,22 @@ export function DeleteInstanceDialog({
             </div>
             <AlertDialogFooter>
               <AlertDialogCancel>Fechar</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => {
-                  const target = account;
-                  onClose();
-                  onDisconnect(target);
-                }}
-              >
-                <Icon icon="mdi:logout-variant" size={15} className="mr-1.5" />
-                Desconectar
-              </AlertDialogAction>
+              {/* "Desconectar" only helps a CONNECTED Evolution instance — for a
+                  Meta account (no QR flow) or an already-disconnected one it would
+                  route to a dead-end connect/QR screen, so it's hidden there. */}
+              {account.provider === "evolution" && account.status === "connected" && (
+                <AlertDialogAction
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const target = account;
+                    onClose();
+                    onDisconnect(target);
+                  }}
+                >
+                  <Icon icon="mdi:logout-variant" size={15} className="mr-1.5" />
+                  Desconectar
+                </AlertDialogAction>
+              )}
             </AlertDialogFooter>
           </>
         ) : (

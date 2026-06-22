@@ -145,7 +145,49 @@ autorização é garantida pelo gate `requireCaller` + checagem de loja).
 
 ## Deploy
 
-- **Frontend + fonte da Edge** num PR (sem merge sem autorização do dono).
-- **Redeploy da Edge `whatsapp-connect` em produção** — passo separado, executado
-  **somente com OK explícito** do dono (regra: confirmar deploy em prod).
-- **Sem migration** — nada a aplicar no banco.
+- **Frontend + fonte da Edge + migration** num PR (sem merge sem autorização do dono).
+- **Aplicar a migration `20260622120000_whatsapp_delete_account_rpc.sql` em produção**
+  e **redeploy da Edge `whatsapp-connect`** — passos separados, executados **somente
+  com OK explícito** do dono (regra: confirmar migration/deploy em prod). Os dois
+  vão juntos: a Edge chama o RPC `delete_whatsapp_account`, que só existe após a migration.
+
+---
+
+## Revisão adversarial (2026-06-22) — mudanças sobre o design original
+
+Uma revisão multi-agente encontrou bugs reais de correção no primeiro recorte
+(handler `delete` multi-passo na Edge). As correções aplicadas:
+
+- **Atomicidade (era o ponto mais grave):** a exclusão virou um **RPC
+  `delete_whatsapp_account(uuid)` SECURITY DEFINER** que, em **uma transação**,
+  re-checa vínculos → desabilita o failover das dependentes → deleta a linha. Isso
+  elimina três defeitos do recorte inline: (a) `countLinkedData`/`findFailoverDependents`
+  **falhavam ABERTO** (query transitória → `count null ?? 0` → `deletable=true`); (b)
+  o failover das dependentes ficava **órfão sem rollback** se um passo posterior
+  falhasse; (c) a ordem teardown-antes-do-DELETE permitia **conta meio-excluída**
+  (instância Evolution destruída, linha presa por FK numa corrida com o webhook).
+- **Ordem invertida:** o **DELETE (RPC) roda ANTES** do teardown Evolution. O teardown
+  virou **best-effort puro** (loga e segue): com a linha já removida, o pior caso é
+  uma instância órfã no servidor Evolution (logada), nunca uma conta quebrada.
+- **Fail-closed no preflight:** `countLinkedData` lança em erro de query (não mascara
+  como 0). Dependentes seguem cosméticos (só o aviso do dryRun).
+- **Owner-only:** o handler `delete` exige `caller.role === "owner"` (a rota da tela
+  já é Owner-only). Isso também fecha os achados cross-store (um gestor não alcança
+  mais o delete).
+- **Auditoria exata:** o RPC retorna `boolean` (linha removida?); a auditoria só grava
+  quando `true` (evita duplicata em corrida de exclusão concorrente).
+- **UI:** o CTA "Desconectar" do estado bloqueado só aparece para conta **Evolution
+  conectada** (Meta e desconectada levariam a um dead-end de QR); foco a11y restaurado
+  para o container da página após a exclusão.
+
+### Lows conhecidos e aceitos (documentados, não corrigidos)
+
+- **Failover cross-store** no RPC (UPDATE sem filtro de loja): **latente** — hoje há
+  loja única e o delete é owner-only (owner é cross-store por design). Reavaliar ao
+  habilitar multi-loja real.
+- **Auditoria sem `actorId`:** se o caller staff não tiver `seller_id` vinculado, a
+  exclusão ocorre sem trilha (padrão herdado de `bestEffortAudit`, que pula em
+  `actor_id` nulo por causa do FK NOT NULL → sellers). O owner real tem seller.
+- **Snapshot de `deleteTarget`:** o dialog mostra label/instanceName capturados na
+  abertura; a exclusão é por `id` (sempre correta), só o texto pode ficar defasado se
+  a conta for renomeada em outra aba enquanto o dialog está aberto.

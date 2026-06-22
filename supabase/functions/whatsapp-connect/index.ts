@@ -166,7 +166,12 @@ interface IFailoverDependent {
   label: string;
 }
 
-/** Counts the rows that would FK-block a hard delete (the escopo-A guard). */
+/**
+ * Counts the rows that would FK-block a hard delete (drives the dryRun preflight
+ * the UI shows). Fails CLOSED: a query error throws rather than coalescing the
+ * null count to 0, which would otherwise make an instance look deletable when it
+ * is not. The authoritative guard is the atomic RPC, not these counts.
+ */
 async function countLinkedData(
   admin: SupabaseClient,
   accountId: string,
@@ -181,10 +186,17 @@ async function countLinkedData(
       .select("id", { count: "exact", head: true })
       .eq("whatsapp_account_id", accountId),
   ]);
+  if (conv.error || tpl.error) {
+    throw new HttpError(500, "Não foi possível verificar os vínculos da instância. Tente novamente.");
+  }
   return { conversationCount: conv.count ?? 0, templateCount: tpl.count ?? 0 };
 }
 
-/** Other accounts that fail over TO this one (their failover breaks on delete). */
+/**
+ * Other accounts that fail over TO this one — display-only (the dryRun warning).
+ * Best-effort: a query error yields [] (the atomic RPC reconciles dependents
+ * regardless, so this list is cosmetic, never the source of truth).
+ */
 async function findFailoverDependents(
   admin: SupabaseClient,
   accountId: string,
@@ -231,47 +243,56 @@ servePost(async (req, ctx) => {
 
   // DELETE — runs before the Evolution-specific guards so a misconfigured
   // Evolution account (or a Meta account, which has no Evolution side) is still
-  // deletable. Guarded (escopo A): only empty instances (0 conversas/templates).
+  // deletable. Owner-only: the screen route is Owner-gated, so the edge mirrors
+  // that intent (a manager must not delete via a direct POST). Guarded (escopo
+  // A): only empty instances (0 conversas/templates), enforced atomically by the
+  // delete_whatsapp_account RPC.
   if (action === "delete") {
-    const { conversationCount, templateCount } = await countLinkedData(admin, account.id);
-    const failoverDependents = await findFailoverDependents(admin, account.id);
-    const deletable = conversationCount === 0 && templateCount === 0;
+    if (caller.role !== "owner") {
+      throw new HttpError(403, "forbidden: apenas o dono pode excluir uma instância");
+    }
 
     if (body.dryRun === true) {
+      // Preflight for the UI. countLinkedData fails CLOSED (throws on a query
+      // error); dependents are display-only. The RPC is the real guard.
+      const { conversationCount, templateCount } = await countLinkedData(admin, account.id);
+      const failoverDependents = await findFailoverDependents(admin, account.id);
+      const deletable = conversationCount === 0 && templateCount === 0;
       return json(
         { deletable, conversationCount, templateCount, failoverDependents, traceId: ctx.traceId },
         200,
       );
     }
-    if (!deletable) {
-      // Race-safe re-check: something linked arrived after the UI preflight.
-      return json(
-        {
-          error: "Esta instância tem dados vinculados e não pode ser excluída.",
-          code: "HAS_LINKED_DATA",
-          conversationCount,
-          templateCount,
-          traceId: ctx.traceId,
-        },
-        422,
-      );
+
+    // Atomic, guarded delete in ONE transaction: re-checks linked data, disables
+    // dependents' failover, deletes the row — all-or-nothing. Runs BEFORE the
+    // irreversible Evolution teardown so a race/FK failure leaves the live
+    // instance intact (recoverable), never half-deleted.
+    const { data: deleted, error: rpcError } = await admin.rpc("delete_whatsapp_account", {
+      p_account_id: account.id,
+    });
+    if (rpcError) {
+      if ((rpcError.message ?? "").includes("WHATSAPP_ACCOUNT_HAS_LINKED_DATA")) {
+        const counts = await countLinkedData(admin, account.id).catch(() => ({
+          conversationCount: 0,
+          templateCount: 0,
+        }));
+        return json(
+          {
+            error: "Esta instância tem dados vinculados e não pode ser excluída.",
+            code: "HAS_LINKED_DATA",
+            ...counts,
+            traceId: ctx.traceId,
+          },
+          422,
+        );
+      }
+      throw new HttpError(500, `Falha ao excluir a conta: ${rpcError.message}`);
     }
 
-    // 1. Disable failover on dependents FIRST — the CHECK
-    // whatsapp_accounts_failover_policy_requires_target would otherwise reject
-    // the ON DELETE SET NULL that fires on their failover_account_id.
-    if (failoverDependents.length > 0) {
-      await admin
-        .from("whatsapp_accounts")
-        .update({
-          failover_policy: "disabled",
-          failover_account_id: null,
-          is_failover_active: false,
-        })
-        .eq("failover_account_id", account.id);
-    }
-
-    // 2. Evolution teardown (best-effort; Evolution accounts with config+apikey).
+    // The row is gone. Evolution teardown is now pure best-effort cleanup: a
+    // failure here can only orphan a stray instance on the server (logged), never
+    // half-delete the account. Catch everything; never fail the request.
     if (account.provider === "evolution") {
       const cfg = account.provider_config ?? {};
       const teardownTarget: IEvolutionInstanceTarget = {
@@ -279,37 +300,30 @@ servePost(async (req, ctx) => {
         instanceName: String(cfg.instanceName ?? ""),
       };
       if (teardownTarget.baseUrl && teardownTarget.instanceName) {
-        const teardownKey = await deps.resolveSecret(
-          `${account.credentials_ref}${EVOLUTION_SECRET_SUFFIXES.apiKey}`,
-        );
-        if (teardownKey) {
-          try {
-            await logoutInstance(teardownKey, deps, teardownTarget, ctx.traceId);
-          } catch (_err) {
-            // Logout is best-effort: an already-unpaired instance errors here.
-          }
-          try {
+        try {
+          const teardownKey = await deps.resolveSecret(
+            `${account.credentials_ref}${EVOLUTION_SECRET_SUFFIXES.apiKey}`,
+          );
+          if (teardownKey) {
+            await logoutInstance(teardownKey, deps, teardownTarget, ctx.traceId).catch(() => {});
             await deleteInstance(teardownKey, deps, teardownTarget, ctx.traceId);
-          } catch (err) {
-            // Already gone (404/not-found) → proceed to drop the row. Any other
-            // server error → abort, so we never orphan a live Evolution instance.
-            const msg = err instanceof Error ? err.message.toLowerCase() : "";
-            const isGone =
-              (err instanceof WhatsAppProviderError && err.httpStatus === 404) ||
-              msg.includes("does not exist") ||
-              msg.includes("not found");
-            if (!isGone) throw err;
+          } else {
+            ctx.log.warn("evolution teardown skipped: no apikey (instance may be orphaned)", {
+              instanceName: teardownTarget.instanceName,
+            });
           }
+        } catch (err) {
+          ctx.log.warn("evolution teardown failed (row already deleted; instance may be orphaned)", {
+            instanceName: teardownTarget.instanceName,
+            error: err instanceof Error ? err.message : String(err),
+          });
         }
       }
     }
 
-    // 3. Delete the row (service_role: access_rules cascade; self failover SET NULL).
-    const { error: delError } = await admin.from("whatsapp_accounts").delete().eq("id", account.id);
-    if (delError) throw new HttpError(500, `Falha ao excluir a conta: ${delError.message}`);
-
-    // 4. Audit (snapshot in `before` — most audit-worthy action on this screen).
-    if (actorId) {
+    // Audit only when the RPC actually removed a row (false = concurrent delete
+    // already happened) — avoids a duplicate whatsapp_account_deleted entry.
+    if (deleted === true && actorId) {
       await bestEffortAudit(admin, {
         store_id: account.store_id,
         actor_id: actorId,

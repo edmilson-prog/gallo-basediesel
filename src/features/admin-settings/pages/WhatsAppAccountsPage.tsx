@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Icon } from "@/components/Icon";
 import { Badge } from "@/components/ui/badge";
@@ -214,6 +214,8 @@ export function WhatsAppAccountsPage() {
   const [accessAccount, setAccessAccount] = useState<IWhatsAppAccount | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<IWhatsAppAccount | null>(null);
+  // Focus lands here after a delete removes the card the kebab lived in.
+  const pageRef = useRef<HTMLDivElement>(null);
 
   const loadMetrics = useCallback(
     async (list: IWhatsAppAccount[]) => {
@@ -443,7 +445,7 @@ export function WhatsAppAccountsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div ref={pageRef} tabIndex={-1} className="space-y-6 outline-none">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <SectionHeader
           title="WhatsApp"
@@ -1025,6 +1027,7 @@ export function WhatsAppAccountsPage() {
         onClose={() => setDeleteTarget(null)}
         onDeleted={() => void refresh()}
         onDisconnect={(account) => openConnect(account)}
+        restoreFocusRef={pageRef}
       />
       {accessAccount && (
         <InstanceAccessSheet
