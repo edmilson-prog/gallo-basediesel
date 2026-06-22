@@ -3,7 +3,7 @@
 **Spec de referência:** `docs/superpowers/specs/2026-06-21-session-timeout-design.md`
 **Feature dir:** `src/features/session-timeout/`
 **Versão que entregou:** pendente (MINOR + codinome a definir com o dono)
-**Status migration:** arquivo versionado (`supabase/migrations/20260621120000_seller_session_timeout_override.sql`) — **ainda não aplicado em produção** (passo owner-gated).
+**Status migration:** arquivo versionado (`supabase/migrations/20260621120000_seller_session_timeout_override.sql`) — **aplicada em produção em 2026-06-21**. O frontend ainda não foi deployado (PR aberto).
 
 ---
 
@@ -114,7 +114,7 @@ alter table public.sellers
 ```
 
 - Sem default (null = herda). Sem mudança de RLS.
-- **Status:** versionada no Git, **ainda não aplicada em produção** — aplicar é passo separado, confirmado com o dono.
+- **Status:** versionada no Git e **aplicada em produção em 2026-06-21** (coluna `session_timeout_override jsonb` nullable confirmada).
 - Mapper supabase: `session_timeout_override` ↔ `sessionTimeoutOverride` em `src/providers/data/impl/supabase/sellers.ts`.
 - Em modo `mock` (`VITE_DATA_SOURCE=mock`) o override já funciona sem a migration.
 
@@ -147,8 +147,8 @@ O `DEFAULT_SESSION_TIMEOUT` tem `enabled: true`. Isso significa que **ao fazer d
 **Ações recomendadas antes do rollout:**
 1. Comunicar a equipe com antecedência.
 2. Considerar aumentar `warningSeconds` na config global para dar mais tempo de reação na largada.
-3. **⚠️ Aplicar a migration `20260621120000_seller_session_timeout_override.sql` em produção ANTES (ou atomicamente junto com) o deploy do frontend.**
-   O provider supabase de sellers (`src/providers/data/impl/supabase/sellers.ts`) seleciona a coluna `session_timeout_override` em **todas** as operações — `list`, `get`, `update`, `create` e `setAvailability`. Se o frontend for deployado antes da migration ser aplicada, **TODAS as leituras e escritas de sellers falham app-wide** em modo supabase: tela de Usuários, assinatura do atendente, distribuição, presença e resolução de perfil no login. O impacto não é limitado ao override — é um erro de query que derruba a feature de sellers inteira. O override por usuário funciona em modo `mock` sem a migration, mas em produção a coluna deve existir antes do código chegar ao ar.
+3. **✅ Migration aplicada em produção em 2026-06-21**, ANTES do deploy do frontend — ordem correta.
+   Contexto de por que a ordem importa: o provider supabase de sellers (`src/providers/data/impl/supabase/sellers.ts`) seleciona a coluna `session_timeout_override` em **todas** as operações — `list`, `get`, `update`, `create` e `setAvailability`. Se o frontend tivesse sido deployado antes da migration, **TODAS as leituras e escritas de sellers falhariam app-wide** em modo supabase (tela de Usuários, assinatura do atendente, distribuição, presença, resolução de perfil no login). Como a coluna já existe em produção, o deploy do frontend (no merge do PR) é seguro.
 
 ---
 
