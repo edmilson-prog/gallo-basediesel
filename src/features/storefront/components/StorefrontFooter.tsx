@@ -110,7 +110,7 @@ export function StorefrontFooter({ footer }: IStorefrontFooterProps) {
       <div className="border-t border-border">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-4 text-xs text-muted-foreground sm:flex-row">
           <p>{S.footerCopyright}</p>
-          <p className="opacity-60">CNPJ 12.345.678/0001-90</p>
+          <p className="opacity-60">CNPJ 32.990.725/0001-60</p>
         </div>
       </div>
     </footer>

@@ -152,10 +152,12 @@ export const DEFAULT_STOREFRONT_CONFIG: IStorefrontConfig = {
     body: "A GALLO BASE DIESEL nasceu em Frederico Westphalen/RS e cresceu junto com a frota brasileira de transporte. Nosso compromisso é manter o caminhão rodando — com peças certificadas, suporte técnico e entrega que acompanha o ritmo do seu negócio.",
   },
   footer: {
-    phone: "(55) 3333-0000",
-    whatsapp: "(55) 99999-0000",
-    email: "comercial@gallobasediesel.com.br",
-    address: "Av. Brasil, 1500 — Centro, Frederico Westphalen / RS — CEP 98400-000",
+    phone: "(55) 2010-2700",
+    // No real WhatsApp number on the CNPJ card; left empty so the footer hides
+    // the link instead of pointing at a fake number. Owner can fill it later.
+    whatsapp: "",
+    email: "turbodieselrs@gmail.com",
+    address: "Rod. BR 158/386, KM 37, Pavilhão 03 — São Cristóvão, Frederico Westphalen / RS — CEP 98400-000",
     social: {
       instagram: "https://instagram.com/gallobasediesel",
       facebook: "https://facebook.com/gallobasediesel",
