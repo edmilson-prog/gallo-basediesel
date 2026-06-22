@@ -130,6 +130,8 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
       userRole: currentUser?.role ?? null,
       isAuthenticated: currentUser !== null,
       isHydrating,
+      // Mock has no server session, so it can never be revoked mid-use.
+      sessionExpired: false,
       signIn,
       signInWithPassword,
       signOut,
