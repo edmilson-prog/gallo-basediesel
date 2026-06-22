@@ -51,20 +51,39 @@ function buildProfile(row: ProfileRow, user: User): IUserProfile {
 }
 
 /**
+ * Outcome of resolving a profile. CRITICAL distinction: a transient read
+ * failure (`error`) must NEVER be treated like a genuine missing profile
+ * (`absent`) — collapsing both to null let a profiles-query hiccup during a
+ * valid, refreshed session zero the user and bounce them to login.
+ */
+type ProfileResolution =
+  | { status: "ok"; profile: IUserProfile }
+  | { status: "absent" } // authenticated, but no profiles row (deterministic)
+  | { status: "error" }; // network / 5xx / RLS timeout — inconclusive, keep the session
+
+/**
  * Resolves the profile for an authenticated user from the `profiles` table.
+ *
+ * Uses maybeSingle() so "no row" is data:null/error:null (→ absent), cleanly
+ * separated from a query error (→ error). One short retry absorbs a transient
+ * blip (e.g. a cold start or an RLS statement_timeout) before concluding.
  *
  * The slice queries the table directly (RLS: select-self). Once the Custom
  * Access Token Hook (PRD-107) is enabled and RLS (PRD-103) lands, this can read
  * the claims straight off `user.app_metadata` and skip the round-trip.
  */
-async function resolveProfile(supabase: SupabaseClient, user: User): Promise<IUserProfile | null> {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("auth_user_id, seller_id, store_id, role, role_id, display_name, email")
-    .eq("auth_user_id", user.id)
-    .single();
-  if (error || !data) return null;
-  return buildProfile(data as ProfileRow, user);
+async function resolveProfile(supabase: SupabaseClient, user: User): Promise<ProfileResolution> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("auth_user_id, seller_id, store_id, role, role_id, display_name, email")
+      .eq("auth_user_id", user.id)
+      .maybeSingle();
+    if (data) return { status: "ok", profile: buildProfile(data as ProfileRow, user) };
+    if (!error) return { status: "absent" }; // no row, no error → genuinely no profile
+    if (attempt === 0) await new Promise((r) => setTimeout(r, 400)); // transient → retry once
+  }
+  return { status: "error" };
 }
 
 function translateAuthError(message: string): string {
@@ -94,8 +113,15 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
         }
         return;
       }
-      const profile = await resolveProfile(supabase, user);
+      const res = await resolveProfile(supabase, user);
       if (!active) return;
+      // Transient profile-read failure on a VALID auth session: keep whatever we
+      // had. Zeroing here would let a hiccup (e.g. on the hourly TOKEN_REFRESHED)
+      // log out a working user via AuthSessionGuard. Never do that.
+      if (res.status === "error") return;
+      // "ok" → set the profile; "absent" → authenticated with no profiles row,
+      // so the user cannot use the app and must be cleared (guard → login).
+      const profile = res.status === "ok" ? res.profile : null;
       setCurrentUser(profile);
       writeAuthSyncMirror(
         profile
@@ -120,10 +146,15 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
      */
     const revalidate = async () => {
       if (!readAuthSyncMirror()) return; // nothing to validate (already logged out)
-      const { error } = await supabase.auth.getUser();
-      if (!active || !isInvalidSessionError(error)) return;
-      void supabase.auth.signOut({ scope: "local" });
-      await apply(null);
+      try {
+        const { error } = await supabase.auth.getUser();
+        if (!active || !isInvalidSessionError(error)) return;
+        void supabase.auth.signOut({ scope: "local" });
+        await apply(null);
+      } catch {
+        // getUser normally resolves with { error }; guard against an unexpected
+        // SDK throw becoming an unhandled rejection. Never log out on this path.
+      }
     };
 
     supabase.auth
@@ -131,8 +162,9 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       .then(async ({ data }) => {
         await apply(data.session?.user);
         // Booting with a locally-persisted token: confirm it is still live so a
-        // ghost session redirects to login instead of trapping the user.
-        if (data.session?.user) await revalidate();
+        // ghost session redirects to login instead of trapping the user. Fire and
+        // forget — don't delay hydration behind a getUser() round-trip.
+        if (data.session?.user) void revalidate();
       })
       .finally(() => {
         if (active) setIsHydrating(false);
@@ -169,13 +201,17 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       if (error || !data.user) {
         return { ok: false, error: translateAuthError(error?.message ?? "") };
       }
-      const profile = await resolveProfile(supabase, data.user);
-      if (!profile) {
+      const res = await resolveProfile(supabase, data.user);
+      if (res.status !== "ok") {
         return {
           ok: false,
-          error: "Login efetuado, mas não há perfil vinculado a este usuário. Contate o suporte.",
+          error:
+            res.status === "absent"
+              ? "Login efetuado, mas não há perfil vinculado a este usuário. Contate o suporte."
+              : "Login efetuado, mas não conseguimos carregar seu perfil. Tente novamente.",
         };
       }
+      const profile = res.profile;
       setCurrentUser(profile);
       writeAuthSyncMirror({
         id: profile.id,

@@ -18,6 +18,14 @@ describe("isInvalidSessionError", () => {
     expect(isInvalidSessionError({ code: "refresh_token_not_found" })).toBe(true);
   });
 
+  it("treats AuthSessionMissingError as a dead session", () => {
+    // This is the EXACT error getUser() resolves with for a revoked session
+    // (session_not_found): name AuthSessionMissingError, status 400, no code.
+    expect(
+      isInvalidSessionError({ name: "AuthSessionMissingError", status: 400, code: undefined }),
+    ).toBe(true);
+  });
+
   it("does NOT log out on a transient network error (must keep the user in)", () => {
     expect(isInvalidSessionError({ name: "AuthRetryableFetchError", status: 0 })).toBe(false);
     expect(isInvalidSessionError({ name: "AuthRetryableFetchError" })).toBe(false);

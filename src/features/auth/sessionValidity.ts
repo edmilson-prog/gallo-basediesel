@@ -27,6 +27,9 @@ export function isInvalidSessionError(error: IAuthErrorLike | null | undefined):
   // A transient/network failure is NEVER a reason to log out — the retryable
   // name is authoritative even if it carries a misleading status.
   if (error.name === "AuthRetryableFetchError") return false;
+  // getUser() resolves with AuthSessionMissingError (name set, status 400, no
+  // code) when the server session was revoked — the exact ghost-session shape.
+  if (error.name === "AuthSessionMissingError") return true;
   if (error.code && DEAD_SESSION_CODES.has(error.code)) return true;
   if (error.status === 401 || error.status === 403) return true;
   return false;
