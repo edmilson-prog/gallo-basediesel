@@ -6,6 +6,10 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **Encerramento de sessão por inatividade** — ao ficar ocioso por tempo configurável, o usuário interno recebe um modal de contagem regressiva com beeps que escalam (cadência crescente), podendo clicar "Continuar conectado" para reiniciar o timer ou aguardar o logout automático. Configurável globalmente em Configurações → Segurança da sessão (Owner-only) e com override por usuário no cadastro (aba Geral). Sincronizado entre abas: só encerra quando ocioso em **todas** as abas abertas. Padrão: ligado, 30 min de inatividade, 60 s de aviso. ⚠️ Comunicar a equipe antes do deploy — o default está ligado.
+
 ## [0.112.0] — Lexicon · 2026-06-21
 
 ### Added

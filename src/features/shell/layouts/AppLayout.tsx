@@ -17,6 +17,7 @@ import { useUrgentBroadcastTimer } from "@/features/sdr-escalation/hooks/useUrge
 import { useQuoteExpirationTimer } from "@/features/quotes/hooks/useQuoteExpirationTimer";
 import { useEcommerceSellerNotifier } from "@/features/ecommerce-integration";
 import { usePresenceTracker } from "@/features/shell/hooks/useStorePresence";
+import { SessionTimeoutGuard } from "@/features/session-timeout";
 
 /**
  * Default layout of the internal app (`/app/*`).
@@ -65,6 +66,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
           <AppFooter />
         </div>
         <BottomNav />
+        <SessionTimeoutGuard />
         <UrgentBroadcastClaim />
       </div>
     </TooltipProvider>

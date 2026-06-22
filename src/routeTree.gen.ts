@@ -122,6 +122,7 @@ import { Route as AppConfiguracoesWhatsappRouteImport } from './routes/app.confi
 import { Route as AppConfiguracoesUsuariosRouteImport } from './routes/app.configuracoes.usuarios'
 import { Route as AppConfiguracoesTemplatesWhatsappRouteImport } from './routes/app.configuracoes.templates-whatsapp'
 import { Route as AppConfiguracoesSobreRouteImport } from './routes/app.configuracoes.sobre'
+import { Route as AppConfiguracoesSessaoRouteImport } from './routes/app.configuracoes.sessao'
 import { Route as AppConfiguracoesRodizioRouteImport } from './routes/app.configuracoes.rodizio'
 import { Route as AppConfiguracoesPortalClienteRouteImport } from './routes/app.configuracoes.portal-cliente'
 import { Route as AppConfiguracoesPerfilRouteImport } from './routes/app.configuracoes.perfil'
@@ -763,6 +764,11 @@ const AppConfiguracoesSobreRoute = AppConfiguracoesSobreRouteImport.update({
   path: '/configuracoes/sobre',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConfiguracoesSessaoRoute = AppConfiguracoesSessaoRouteImport.update({
+  id: '/configuracoes/sessao',
+  path: '/configuracoes/sessao',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppConfiguracoesRodizioRoute = AppConfiguracoesRodizioRouteImport.update({
   id: '/configuracoes/rodizio',
   path: '/configuracoes/rodizio',
@@ -1230,6 +1236,7 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
   '/app/configuracoes/portal-cliente': typeof AppConfiguracoesPortalClienteRoute
   '/app/configuracoes/rodizio': typeof AppConfiguracoesRodizioRoute
+  '/app/configuracoes/sessao': typeof AppConfiguracoesSessaoRoute
   '/app/configuracoes/sobre': typeof AppConfiguracoesSobreRoute
   '/app/configuracoes/templates-whatsapp': typeof AppConfiguracoesTemplatesWhatsappRoute
   '/app/configuracoes/usuarios': typeof AppConfiguracoesUsuariosRoute
@@ -1396,6 +1403,7 @@ export interface FileRoutesByTo {
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
   '/app/configuracoes/portal-cliente': typeof AppConfiguracoesPortalClienteRoute
   '/app/configuracoes/rodizio': typeof AppConfiguracoesRodizioRoute
+  '/app/configuracoes/sessao': typeof AppConfiguracoesSessaoRoute
   '/app/configuracoes/sobre': typeof AppConfiguracoesSobreRoute
   '/app/configuracoes/templates-whatsapp': typeof AppConfiguracoesTemplatesWhatsappRoute
   '/app/configuracoes/usuarios': typeof AppConfiguracoesUsuariosRoute
@@ -1573,6 +1581,7 @@ export interface FileRoutesById {
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
   '/app/configuracoes/portal-cliente': typeof AppConfiguracoesPortalClienteRoute
   '/app/configuracoes/rodizio': typeof AppConfiguracoesRodizioRoute
+  '/app/configuracoes/sessao': typeof AppConfiguracoesSessaoRoute
   '/app/configuracoes/sobre': typeof AppConfiguracoesSobreRoute
   '/app/configuracoes/templates-whatsapp': typeof AppConfiguracoesTemplatesWhatsappRoute
   '/app/configuracoes/usuarios': typeof AppConfiguracoesUsuariosRoute
@@ -1758,6 +1767,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/perfil'
     | '/app/configuracoes/portal-cliente'
     | '/app/configuracoes/rodizio'
+    | '/app/configuracoes/sessao'
     | '/app/configuracoes/sobre'
     | '/app/configuracoes/templates-whatsapp'
     | '/app/configuracoes/usuarios'
@@ -1924,6 +1934,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/perfil'
     | '/app/configuracoes/portal-cliente'
     | '/app/configuracoes/rodizio'
+    | '/app/configuracoes/sessao'
     | '/app/configuracoes/sobre'
     | '/app/configuracoes/templates-whatsapp'
     | '/app/configuracoes/usuarios'
@@ -2100,6 +2111,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/perfil'
     | '/app/configuracoes/portal-cliente'
     | '/app/configuracoes/rodizio'
+    | '/app/configuracoes/sessao'
     | '/app/configuracoes/sobre'
     | '/app/configuracoes/templates-whatsapp'
     | '/app/configuracoes/usuarios'
@@ -3004,6 +3016,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesSobreRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/configuracoes/sessao': {
+      id: '/app/configuracoes/sessao'
+      path: '/configuracoes/sessao'
+      fullPath: '/app/configuracoes/sessao'
+      preLoaderRoute: typeof AppConfiguracoesSessaoRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/configuracoes/rodizio': {
       id: '/app/configuracoes/rodizio'
       path: '/configuracoes/rodizio'
@@ -3800,6 +3819,7 @@ interface AppRouteChildren {
   AppConfiguracoesPerfilRoute: typeof AppConfiguracoesPerfilRoute
   AppConfiguracoesPortalClienteRoute: typeof AppConfiguracoesPortalClienteRoute
   AppConfiguracoesRodizioRoute: typeof AppConfiguracoesRodizioRoute
+  AppConfiguracoesSessaoRoute: typeof AppConfiguracoesSessaoRoute
   AppConfiguracoesSobreRoute: typeof AppConfiguracoesSobreRoute
   AppConfiguracoesTemplatesWhatsappRoute: typeof AppConfiguracoesTemplatesWhatsappRoute
   AppConfiguracoesUsuariosRoute: typeof AppConfiguracoesUsuariosRoute
@@ -3881,6 +3901,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesPerfilRoute: AppConfiguracoesPerfilRoute,
   AppConfiguracoesPortalClienteRoute: AppConfiguracoesPortalClienteRoute,
   AppConfiguracoesRodizioRoute: AppConfiguracoesRodizioRoute,
+  AppConfiguracoesSessaoRoute: AppConfiguracoesSessaoRoute,
   AppConfiguracoesSobreRoute: AppConfiguracoesSobreRoute,
   AppConfiguracoesTemplatesWhatsappRoute:
     AppConfiguracoesTemplatesWhatsappRoute,
