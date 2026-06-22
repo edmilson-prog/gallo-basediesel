@@ -189,36 +189,40 @@ export const supabaseMessagesProvider: IMessagesProvider = {
   async listForAnalytics(params: IListMessagesForAnalyticsParams = {}): Promise<IMessage[]> {
     const ids = params.conversationIds ?? [];
 
-    // No conversation filter → single windowed query (preserves prior behavior:
-    // an empty id set scans all messages in the window, not zero rows).
-    if (ids.length === 0) {
+    // Run one windowed analytics query. `batch` scopes by conversation_id
+    // (null = no conversation filter); `order` lets the DB sort, which is only
+    // worthwhile when no cross-batch merge follows. Shared by both paths so a
+    // future filter can't diverge between them.
+    const fetchRows = async (batch: string[] | null, order: boolean): Promise<MessageRow[]> => {
       let query = getSupabaseClient().from(TABLE).select(COLUMNS);
+      if (batch) query = query.in("conversation_id", batch);
       if (params.since) query = query.gte("sent_at", params.since);
       if (params.until) query = query.lte("sent_at", params.until);
-      const { data, error } = await query.order("sent_at", { ascending: true });
+      const { data, error } = await (order
+        ? query.order("sent_at", { ascending: true })
+        : query);
       if (error) throw new Error(`[supabase] messages.listForAnalytics failed: ${error.message}`);
-      return (data as unknown as MessageRow[]).map(rowToMessage);
+      return data as unknown as MessageRow[];
+    };
+
+    // No conversation filter → single windowed query (preserves prior behavior:
+    // an empty id set scans all messages in the window, not zero rows). The DB
+    // orders here since there is no cross-batch merge to follow.
+    if (ids.length === 0) {
+      return (await fetchRows(null, true)).map(rowToMessage);
     }
 
     // Chunk the `.in("conversation_id", …)` so a store-wide id set never overflows
     // the request-line length (a single oversized `.in()` is rejected at the edge
     // with 400 before RLS). Chunks are disjoint by conversation_id ⇒ no dup / no
-    // loss; we re-sort the union to restore the ascending-by-sent_at contract.
+    // loss. Per-batch ordering is skipped (the cross-batch sort below is the only
+    // ordering that matters); the comparison is byte-wise — ISO 8601 is monotonic
+    // — rather than locale-sensitive.
     const batches = chunk(ids, ANALYTICS_IN_CHUNK_SIZE);
-    const results = await Promise.all(
-      batches.map(async (batch) => {
-        let query = getSupabaseClient().from(TABLE).select(COLUMNS).in("conversation_id", batch);
-        if (params.since) query = query.gte("sent_at", params.since);
-        if (params.until) query = query.lte("sent_at", params.until);
-        const { data, error } = await query.order("sent_at", { ascending: true });
-        if (error) throw new Error(`[supabase] messages.listForAnalytics failed: ${error.message}`);
-        return data as unknown as MessageRow[];
-      }),
-    );
-
+    const results = await Promise.all(batches.map((batch) => fetchRows(batch, false)));
     return results
       .flat()
-      .sort((a, b) => a.sent_at.localeCompare(b.sent_at))
+      .sort((a, b) => (a.sent_at < b.sent_at ? -1 : a.sent_at > b.sent_at ? 1 : 0))
       .map(rowToMessage);
   },
 

@@ -22,16 +22,19 @@ describe("chunk", () => {
     expect(chunk(["a", "b", "c"], 1)).toEqual([["a"], ["b"], ["c"]]);
   });
 
-  it("throws when size <= 0", () => {
-    expect(() => chunk([1, 2], 0)).toThrow("chunk: size must be > 0");
-    expect(() => chunk([1, 2], -1)).toThrow("chunk: size must be > 0");
+  it("throws for any non-positive-integer size", () => {
+    expect(() => chunk([1, 2], 0)).toThrow("chunk: size must be a positive integer");
+    expect(() => chunk([1, 2], -1)).toThrow("chunk: size must be a positive integer");
+    expect(() => chunk([1, 2], 1.5)).toThrow("chunk: size must be a positive integer");
+    expect(() => chunk([1, 2], NaN)).toThrow("chunk: size must be a positive integer");
+    expect(() => chunk([1, 2], Infinity)).toThrow("chunk: size must be a positive integer");
   });
 
   it("preserves element identity (no element copies)", () => {
     const a = { id: 1 };
     const b = { id: 2 };
     const out = chunk([a, b], 1);
-    expect(out[0][0]).toBe(a);
-    expect(out[1][0]).toBe(b);
+    expect(out[0]?.[0]).toBe(a);
+    expect(out[1]?.[0]).toBe(b);
   });
 });

@@ -111,6 +111,11 @@ export function useDashboardSnapshot(
   // a filter change still runs with the current params (no stale-closure refetch).
   const fetchRef = useRef(fetchSnapshot);
   fetchRef.current = fetchSnapshot;
+  // Mirror `enabled` into a ref so the debounce effect can gate on it without
+  // making `enabled` an effect dependency — otherwise flipping it true would
+  // schedule a ghost refetch for a tick the dashboard already consumed.
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Reset to initial fetch whenever filters change.
@@ -120,20 +125,25 @@ export function useDashboardSnapshot(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paramsKey, enabled]);
 
-  // Background refresh on refreshKey bump — trailing-debounced so a burst of
-  // realtime ticks coalesces into a single refetch, and always with fresh params.
+  // Background refresh on a real realtime tick (refreshKey bump) — trailing-
+  // debounced so a burst coalesces into a single refetch, always with fresh
+  // params. Depends ONLY on refreshKey; `enabled` is read via enabledRef (and
+  // re-checked when the timer fires) so flipping enabled true never schedules a
+  // refetch for an already-consumed tick — the initial-fetch effect handles the
+  // load on enable.
   useEffect(() => {
-    if (!enabled) return;
     if (refreshKey === 0) return;
+    if (!enabledRef.current) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      void fetchRef.current("refresh");
+      debounceRef.current = null;
+      if (enabledRef.current) void fetchRef.current("refresh");
     }, REFRESH_DEBOUNCE_MS);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshKey, enabled]);
+  }, [refreshKey]);
 
   const refetch = useCallback(() => {
     void fetchSnapshot("refresh");
