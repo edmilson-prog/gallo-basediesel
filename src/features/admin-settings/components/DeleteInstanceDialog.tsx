@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Icon } from "@/components/Icon";
 import {
@@ -49,6 +49,15 @@ export function DeleteInstanceDialog({
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // onClose is an inline arrow in the parent (new identity each render). Keep it
+  // in a ref so the preflight effect keys on `account` alone — otherwise every
+  // parent re-render (30s status polling, metrics) would re-run the preflight
+  // and flash the dialog back to its loading state.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
   useEffect(() => {
     if (!account) {
       setPreflight(null);
@@ -64,7 +73,7 @@ export function DeleteInstanceDialog({
       .catch((err) => {
         if (cancelled) return;
         toast.error(connectErrorMessage(err));
-        onClose();
+        onCloseRef.current();
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -72,7 +81,7 @@ export function DeleteInstanceDialog({
     return () => {
       cancelled = true;
     };
-  }, [account, onClose]);
+  }, [account]);
 
   if (!account) return null;
 
