@@ -1,8 +1,9 @@
 import { useCallback, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import type { ID, IAssetLibraryItem } from "@/shared/types";
 import { useAssetLibraryProvider } from "@/providers/data";
-import { getCurrentContext } from "@/features/multistore/utils/getCurrentContext";
+import { useAuth } from "@/features/auth/useAuth";
 import type { IAssetFilter } from "../engine/assetFiltering";
 
 /**
@@ -23,7 +24,12 @@ export function useAssetLibrary(filter: IAssetFilter): {
 } {
   const provider = useAssetLibraryProvider();
   const queryClient = useQueryClient();
-  const sellerId = getCurrentContext().user?.id ?? "anon";
+  // Identity must be the REAL seller id (sellers.id), not the auth profile id:
+  // asset_favorites / asset_send_log are keyed by seller_id (FK to sellers.id) and
+  // the write side (useSendAsset → recordSend) already uses currentUser.sellerId —
+  // the read must match or favorites/recents are invisible in production.
+  const { currentUser } = useAuth();
+  const sellerId = currentUser?.sellerId ?? "anon";
   const [query, setQuery] = useState(filter.query ?? "");
 
   const effectiveFilter = useMemo<IAssetFilter>(
@@ -58,11 +64,23 @@ export function useAssetLibrary(filter: IAssetFilter): {
 
   const toggleFavorite = useCallback(
     (id: ID) => {
-      void provider.toggleFavorite(sellerId, id).then(() => {
-        void queryClient.invalidateQueries({ queryKey: ["quick-send", "favorites", sellerId] });
-      });
+      // Favorites are keyed by the real seller id (asset_favorites.seller_id FK to
+      // sellers.id). A logged-in user with no linked seller can't favorite — tell
+      // them instead of silently no-oping (an "anon" write would violate the FK).
+      if (!currentUser?.sellerId) {
+        toast.error("Favoritos indisponíveis: seu usuário não tem um vendedor associado.");
+        return;
+      }
+      void provider
+        .toggleFavorite(sellerId, id)
+        .then(() => {
+          void queryClient.invalidateQueries({ queryKey: ["quick-send", "favorites", sellerId] });
+        })
+        .catch(() => {
+          toast.error("Não foi possível atualizar o favorito.");
+        });
     },
-    [provider, queryClient, sellerId],
+    [provider, queryClient, sellerId, currentUser?.sellerId],
   );
 
   const refetch = useCallback(() => {
