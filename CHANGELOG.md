@@ -6,6 +6,21 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.116.0] — Chorus · 2026-06-23
+
+**Inbox com filtros mais flexíveis e estabilidade no Atendimento.** O filtro de Atribuição agora aceita múltiplos critérios ao mesmo tempo — "Eu + Sem atribuição", por exemplo — e o resultado combina tudo numa lista unificada. O filtro de Instância passou a mostrar apenas os números que o usuário realmente acessa. Quatro correções adicionais fecham comportamentos inesperados no Atendimento e na Análise de Atendimento.
+
+### Added
+
+- **Filtro Atribuição com múltipla seleção** — na Inbox, é possível marcar mais de um critério de Atribuição ao mesmo tempo (ex.: "Eu" + "Sem atribuição" + um vendedor), e as conversas de todos os critérios aparecem juntas na lista. Antes só era possível escolher um por vez. Vale para todos os papéis; as opções "Por vendedor" e "Todas" continuam disponíveis apenas para Owner e Gestor.
+
+### Fixed
+
+- **Filtro e seletor de Instância mostravam números sem acesso** — o filtro "Instância" na Inbox e o seletor de número ao abrir uma nova conversa listavam todos os números conectados, mesmo aqueles que o usuário não tem acesso. Agora só aparecem os números realmente acessíveis ao usuário logado.
+- **Conversas novas chegavam atribuídas ao dono da carteira** — ao receber uma conversa pelo WhatsApp, o sistema atribuía automaticamente ao dono da carteira do contato em vez de deixar sem atribuição na fila. Agora chegam sem atribuição, como esperado.
+- **Número do WhatsApp conectado não aparecia no chip de origem** — ao adicionar um número pela plataforma, o chip que exibe o telefone ficava em branco. O sistema agora busca e preenche o número automaticamente após a conexão.
+- **Análise de Atendimento com erro ou dados cortados** — filtros com muitas conversas podiam retornar erro (400) por lista muito longa; além disso, a análise considerava no máximo 1.000 conversas, distorcendo os números para lojas maiores. Ambos foram corrigidos: a consulta é feita em partes e todos os dados do período são processados.
+
 ## [0.115.0] — Curator · 2026-06-22
 
 **Central de conteúdo: a biblioteca de ativos e as respostas rápidas ganharam telas próprias de gestão.** Em Configurações → Conteúdo, Owner e Gestor organizam catálogos, fichas técnicas, tabelas de preço, vídeos e links num só lugar, e cada vendedor cuida das suas respostas rápidas. Junto vão a opção de excluir um número de WhatsApp conectado e vários acertos de estabilidade em sessão, login e edição de loja.
