@@ -24,7 +24,7 @@ import { supabaseLeadsProvider } from "./leads";
 import { supabaseDistributionTracesProvider } from "./distributionTraces";
 import { supabaseRotationQueuesProvider } from "./rotationQueues";
 import { supabaseRotationParticipantsProvider } from "./rotationParticipants";
-import { buildAssignmentOrFilter } from "./assignmentFilter";
+import { buildAssignmentOrFilter, sanitizeSellerIds } from "./assignmentFilter";
 
 /**
  * Supabase implementation of {@link IConversationsProvider} (PRD-100+).
@@ -140,6 +140,9 @@ async function searchConversations(
   const pageSize = Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20)));
   const status =
     params.status === undefined ? null : Array.isArray(params.status) ? params.status : [params.status];
+  // Drop crafted non-UUID tokens before the `uuid[]` RPC arg (parity with the
+  // table path's buildAssignmentOrFilter guard).
+  const searchSellerIds = sanitizeSellerIds(params.assignmentAny?.sellerIds);
 
   const { data, error } = await getSupabaseClient().rpc("search_conversations", {
     p_search: params.search,
@@ -149,10 +152,7 @@ async function searchConversations(
     p_whatsapp_account_id: params.whatsappAccountId ?? null,
     p_assigned_seller_id: params.assignedSellerId ?? null,
     p_unassigned: params.unassigned ?? params.assignmentAny?.unassigned ?? false,
-    p_assigned_seller_ids:
-      params.assignmentAny?.sellerIds && params.assignmentAny.sellerIds.length > 0
-        ? params.assignmentAny.sellerIds
-        : null,
+    p_assigned_seller_ids: searchSellerIds.length > 0 ? searchSellerIds : null,
     p_include_queue: params.assignmentAny?.queue ?? false,
     p_is_sdr_active: typeof params.isSdrActive === "boolean" ? params.isSdrActive : null,
     p_tags: params.tags && params.tags.length > 0 ? params.tags : null,

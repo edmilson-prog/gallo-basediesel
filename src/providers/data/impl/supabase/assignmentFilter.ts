@@ -6,6 +6,21 @@ export interface IAssignmentAny {
   queue?: boolean;
 }
 
+/** Canonical Postgres UUID. Seller ids are UUIDs in production. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Keep only well-formed UUIDs. The token chain feeds the PostgREST `.or()`
+ * expression (and the RPC `uuid[]` arg) directly from URL query params, which
+ * any authenticated user can hand-edit. Dropping non-UUID tokens prevents a
+ * crafted token from breaking out of the `in.(...)` list and injecting sibling
+ * filter terms.
+ */
+export function sanitizeSellerIds(ids: ID[] | undefined): ID[] {
+  if (!ids) return [];
+  return ids.filter((id) => UUID_RE.test(id));
+}
+
 /**
  * Compose a PostgREST `.or()` argument for the Inbox combined assignment filter.
  * Each selected criterion becomes one OR term; the queue is a nested `and(...)`
@@ -16,8 +31,9 @@ export interface IAssignmentAny {
 export function buildAssignmentOrFilter(assignmentAny: IAssignmentAny | undefined): string | null {
   if (!assignmentAny) return null;
   const terms: string[] = [];
-  if (assignmentAny.sellerIds && assignmentAny.sellerIds.length > 0) {
-    terms.push(`assigned_seller_id.in.(${assignmentAny.sellerIds.join(",")})`);
+  const sellerIds = sanitizeSellerIds(assignmentAny.sellerIds);
+  if (sellerIds.length > 0) {
+    terms.push(`assigned_seller_id.in.(${sellerIds.join(",")})`);
   }
   if (assignmentAny.unassigned) terms.push("assigned_seller_id.is.null");
   if (assignmentAny.queue) {
