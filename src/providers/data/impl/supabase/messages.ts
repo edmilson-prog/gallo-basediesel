@@ -13,6 +13,7 @@ import {
   whatsappMediaObjectPath,
 } from "@/shared/utils/mediaRef";
 import { chunk } from "@/shared/utils/chunk";
+import { drainPaged } from "@/shared/utils/paginate";
 
 /** Signed-URL lifetime for in-app playback/preview — comfortably long so a
  *  conversation left open doesn't expire mid-listen (Storage RLS still gates). */
@@ -59,6 +60,11 @@ const COLUMNS =
 /** Cap on ids per `.in("conversation_id", …)` so the request-line length stays
  *  well under the edge's URL limit (~39 chars/id encoded → 120 ids ≈ 4.7 KB). */
 const ANALYTICS_IN_CHUNK_SIZE = 120;
+
+/** Rows per `.range()` page when draining a batch. Must stay ≤ the PostgREST
+ *  `Max rows` cap (Supabase default 1000) — a page that comes back capped below
+ *  this size would be mistaken for the last page and silently under-fetch. */
+const ANALYTICS_PAGE_SIZE = 1000;
 
 function rowToMessage(row: MessageRow): IMessage {
   return {
@@ -189,18 +195,26 @@ export const supabaseMessagesProvider: IMessagesProvider = {
   async listForAnalytics(params: IListMessagesForAnalyticsParams = {}): Promise<IMessage[]> {
     const ids = params.conversationIds ?? [];
 
-    // Run one windowed analytics query. `batch` scopes by conversation_id
-    // (null = no conversation filter). Shared by both paths so a future filter
-    // can't diverge between them; ordering is always applied in memory below.
-    const fetchRows = async (batch: string[] | null): Promise<MessageRow[]> => {
-      let query = getSupabaseClient().from(TABLE).select(COLUMNS);
-      if (batch) query = query.in("conversation_id", batch);
-      if (params.since) query = query.gte("sent_at", params.since);
-      if (params.until) query = query.lte("sent_at", params.until);
-      const { data, error } = await query;
-      if (error) throw new Error(`[supabase] messages.listForAnalytics failed: ${error.message}`);
-      return (data ?? []) as unknown as MessageRow[];
-    };
+    // Run a windowed analytics query, draining every page so a batch with more
+    // than the PostgREST `Max rows` cap (default 1000) isn't silently truncated.
+    // `batch` scopes by conversation_id (null = no conversation filter). A stable
+    // TOTAL order `(sent_at, id)` is REQUIRED for `.range()` to page correctly —
+    // without a unique tiebreak, row order across pages is undefined and the
+    // boundaries could dup/skip. Shared by both paths so a future filter can't
+    // diverge between them; the cross-batch merge order is re-applied in memory.
+    const fetchRows = (batch: string[] | null): Promise<MessageRow[]> =>
+      drainPaged<MessageRow>(async (offset, limit) => {
+        let query = getSupabaseClient().from(TABLE).select(COLUMNS);
+        if (batch) query = query.in("conversation_id", batch);
+        if (params.since) query = query.gte("sent_at", params.since);
+        if (params.until) query = query.lte("sent_at", params.until);
+        const { data, error } = await query
+          .order("sent_at", { ascending: true })
+          .order("id", { ascending: true })
+          .range(offset, offset + limit - 1);
+        if (error) throw new Error(`[supabase] messages.listForAnalytics failed: ${error.message}`);
+        return (data ?? []) as unknown as MessageRow[];
+      }, ANALYTICS_PAGE_SIZE);
 
     // Sort ascending by sent_at, in memory, for BOTH paths — one ordering source
     // of truth. Sorts a copy (the empty-ids path would otherwise mutate the live
