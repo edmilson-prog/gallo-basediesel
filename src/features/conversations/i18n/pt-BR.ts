@@ -62,6 +62,7 @@ export const INBOX_STRINGS = {
     queue: "Em fila",
     all: "Todas",
     seller: "Por vendedor",
+    selectedCount: (n: number) => `${n} selecionados`,
   },
 
   // Instance filter (multi-instância) — only shown when the store has 2+ numbers

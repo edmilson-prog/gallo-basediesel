@@ -21,12 +21,9 @@ import { useEffect, useState } from "react";
 import type { ID, ISeller, IWhatsAppAccount } from "@/shared/types";
 import { accountAccent } from "../utils/instanceAccent";
 import { useInboxFiltersCollapsed } from "../hooks/useInboxFiltersCollapsed";
-import type {
-  AssignmentFilter,
-  IInboxFiltersState,
-  PeriodFilter,
-  SortMode,
-} from "../hooks/useInboxFilters";
+import type { IInboxFiltersState, PeriodFilter, SortMode } from "../hooks/useInboxFilters";
+import { serializeAssignmentTokens } from "../hooks/useInboxFilters";
+import { assignmentTriggerLabel } from "../utils/assignmentLabel";
 import { INBOX_STRINGS } from "../i18n/pt-BR";
 
 export interface IInboxFiltersProps {
@@ -36,7 +33,7 @@ export interface IInboxFiltersProps {
   instances: IWhatsAppAccount[];
   onStatus: (status: IInboxFiltersState["status"]) => void;
   onChannel: (channel: IInboxFiltersState["channel"]) => void;
-  onAssignment: (assignment: AssignmentFilter) => void;
+  onAssignment: (assignment: string[]) => void;
   onInstance: (instance: ID | "all") => void;
   onTags: (tags: string[]) => void;
   onPeriod: (period: PeriodFilter) => void;
@@ -119,14 +116,20 @@ export function InboxFilters({
     state.instance === "all" ? null : (instances.find((a) => a.id === state.instance) ?? null);
   const instanceValueLabel = selectedInstance?.label ?? INBOX_STRINGS.instanceAllOption;
 
-  const assignmentLabel = useMemo(() => {
-    if (state.assignment === "me") return INBOX_STRINGS.assignmentOptions.me;
-    if (state.assignment === "unassigned") return INBOX_STRINGS.assignmentOptions.unassigned;
-    if (state.assignment === "queue") return INBOX_STRINGS.assignmentOptions.queue;
-    if (state.assignment === "all") return INBOX_STRINGS.assignmentOptions.all;
-    const seller = sellers.find((s) => s.id === state.assignment);
-    return seller?.fullName ?? INBOX_STRINGS.assignmentOptions.seller;
-  }, [state.assignment, sellers]);
+  const assignmentLabel = useMemo(
+    () => assignmentTriggerLabel(state.assignment, sellers, INBOX_STRINGS.assignmentOptions),
+    [state.assignment, sellers],
+  );
+
+  const currentSellerId = currentUser?.sellerId ?? null;
+  const assignmentActive =
+    serializeAssignmentTokens(state.assignment, currentSellerId) !== undefined;
+  const toggleAssignment = (token: string) => {
+    const set = new Set(state.assignment);
+    if (set.has(token)) set.delete(token);
+    else set.add(token);
+    onAssignment(Array.from(set));
+  };
 
   return (
     <Collapsible data-tour="inbox-filters" open={!collapsed} onOpenChange={(open) => setCollapsed(!open)}>
@@ -296,54 +299,71 @@ export function InboxFilters({
             </DropdownMenu>
           )}
 
-          {/* Assignment */}
+          {/* Assignment — multi-select (OR). Combinable by every user; the
+              per-seller list + "Todas" stay staff-only (canSeeAllAssignments). */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <span>
                 <TriggerButton
                   label={INBOX_STRINGS.assignmentLabel}
                   value={assignmentLabel}
-                  active={state.assignment !== "me"}
+                  active={assignmentActive}
                 />
               </span>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="max-h-80 w-56 overflow-y-auto">
-              <DropdownMenuRadioGroup
-                value={state.assignment}
-                onValueChange={(v) => onAssignment(v)}
+              {currentUser && (
+                <DropdownMenuCheckboxItem
+                  checked={state.assignment.includes("me")}
+                  onSelect={(e) => e.preventDefault()}
+                  onCheckedChange={() => toggleAssignment("me")}
+                >
+                  {INBOX_STRINGS.assignmentOptions.me}
+                </DropdownMenuCheckboxItem>
+              )}
+              {/* Pool — visible to any inbox user. Non-staff sellers can view
+                  and claim unassigned conversations per RLS (rls_conversations_pool),
+                  so the pool filters must not be gated behind store scope. */}
+              <DropdownMenuCheckboxItem
+                checked={state.assignment.includes("unassigned")}
+                onSelect={(e) => e.preventDefault()}
+                onCheckedChange={() => toggleAssignment("unassigned")}
               >
-                {currentUser && (
-                  <DropdownMenuRadioItem value="me">
-                    {INBOX_STRINGS.assignmentOptions.me}
-                  </DropdownMenuRadioItem>
-                )}
-                {/* Pool — visible to any inbox user. Non-staff sellers can view
-                    and claim unassigned conversations per RLS (rls_conversations_pool),
-                    so the pool filters must not be gated behind store scope. */}
-                <DropdownMenuRadioItem value="unassigned">
-                  {INBOX_STRINGS.assignmentOptions.unassigned}
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="queue">
-                  {INBOX_STRINGS.assignmentOptions.queue}
-                </DropdownMenuRadioItem>
-                {/* Staff-only: see every conversation + filter by a specific seller. */}
-                {canSeeAllAssignments && (
-                  <>
-                    <DropdownMenuRadioItem value="all">
-                      {INBOX_STRINGS.assignmentOptions.all}
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel className="text-xs">
-                      {INBOX_STRINGS.assignmentOptions.seller}
-                    </DropdownMenuLabel>
-                    {sellers.map((s) => (
-                      <DropdownMenuRadioItem key={s.id} value={s.id}>
-                        {s.fullName}
-                      </DropdownMenuRadioItem>
-                    ))}
-                  </>
-                )}
-              </DropdownMenuRadioGroup>
+                {INBOX_STRINGS.assignmentOptions.unassigned}
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={state.assignment.includes("queue")}
+                onSelect={(e) => e.preventDefault()}
+                onCheckedChange={() => toggleAssignment("queue")}
+              >
+                {INBOX_STRINGS.assignmentOptions.queue}
+              </DropdownMenuCheckboxItem>
+              {/* Staff-only: "Todas" (clears the set) + filter by specific sellers. */}
+              {canSeeAllAssignments && (
+                <>
+                  <DropdownMenuCheckboxItem
+                    checked={state.assignment.length === 0}
+                    onSelect={(e) => e.preventDefault()}
+                    onCheckedChange={() => onAssignment([])}
+                  >
+                    {INBOX_STRINGS.assignmentOptions.all}
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-xs">
+                    {INBOX_STRINGS.assignmentOptions.seller}
+                  </DropdownMenuLabel>
+                  {sellers.map((s) => (
+                    <DropdownMenuCheckboxItem
+                      key={s.id}
+                      checked={state.assignment.includes(s.id)}
+                      onSelect={(e) => e.preventDefault()}
+                      onCheckedChange={() => toggleAssignment(s.id)}
+                    >
+                      {s.fullName}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
 
