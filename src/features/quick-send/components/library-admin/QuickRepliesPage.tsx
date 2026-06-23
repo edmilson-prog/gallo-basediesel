@@ -257,6 +257,7 @@ export function QuickRepliesPage() {
 
   // Mobile sheet
   const [sheetOpen, setSheetOpen] = useState(false);
+  const isDesktop = useIsDesktop();
 
   // Delete confirmation dialog
   const [deleteTarget, setDeleteTarget] = useState<IQuickReply | null>(null);
@@ -553,7 +554,7 @@ export function QuickRepliesPage() {
       </Tabs>
 
       {/* Mobile Sheet (editor) */}
-      <Sheet open={sheetOpen && !isDesktop() && (activeTab === "mine" || canEditStore)} onOpenChange={(open) => !open && closeEditor()}>
+      <Sheet open={sheetOpen && !isDesktop && (activeTab === "mine" || canEditStore)} onOpenChange={(open) => !open && closeEditor()}>
         <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto p-5">
           <SheetTitle className="sr-only">
             {editorState?.item
@@ -592,11 +593,22 @@ export function QuickRepliesPage() {
 }
 
 // ---------------------------------------------------------------------------
-// Helper: detect desktop (lg breakpoint ≥ 1024 px).
-// Called at render time to decide whether the Sheet should open.
+// Reactive desktop check at the lg breakpoint (>= 1024 px). Subscribes to the
+// media query so the layout (whether the mobile Sheet should be open) re-renders
+// when the viewport crosses the boundary — e.g. rotating a tablet — instead of
+// reading matchMedia non-reactively at render time.
 // ---------------------------------------------------------------------------
 
-function isDesktop(): boolean {
-  if (typeof window === "undefined") return false;
-  return window.matchMedia("(min-width: 1024px)").matches;
+function useIsDesktop(): boolean {
+  const [isDesktop, setIsDesktop] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches,
+  );
+  useEffect(() => {
+    const mql = window.matchMedia("(min-width: 1024px)");
+    const onChange = () => setIsDesktop(mql.matches);
+    mql.addEventListener("change", onChange);
+    onChange();
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+  return isDesktop;
 }

@@ -188,6 +188,17 @@ export function AssetLibraryManagerPage() {
   const { items: rawItems, favorites, isLoading, isError, search, refetch, toggleFavorite } =
     useAssetLibrary(providerFilter);
 
+  // Facet options must NOT collapse when the user picks a brand/productLine, so
+  // derive them from a parallel query scoped only by category/status (never by the
+  // brand/productLine being chosen). Otherwise the dropdown self-narrows to the
+  // current selection and you cannot switch brands directly. (Bounded by the same
+  // 200-row cap as the list.)
+  const facetFilter = useMemo(
+    () => ({ category: filters.category, status: filters.status }),
+    [filters.category, filters.status],
+  );
+  const { items: facetItems } = useAssetLibrary(facetFilter);
+
   // Drive the hook's internal query state via its `search()` API. The hook
   // overrides `filter.query` with its internal `query`, so the debounced term
   // must be pushed through `search()` for the provider to receive it.
@@ -211,17 +222,17 @@ export function AssetLibraryManagerPage() {
   const brands = useMemo(
     () =>
       Array.from(
-        new Set(rawItems.map((i) => i.brand).filter((b): b is string => Boolean(b))),
+        new Set(facetItems.map((i) => i.brand).filter((b): b is string => Boolean(b))),
       ).sort(),
-    [rawItems],
+    [facetItems],
   );
 
   const productLines = useMemo(
     () =>
       Array.from(
-        new Set(rawItems.map((i) => i.productLine).filter((l): l is string => Boolean(l))),
+        new Set(facetItems.map((i) => i.productLine).filter((l): l is string => Boolean(l))),
       ).sort(),
-    [rawItems],
+    [facetItems],
   );
 
   // Build favorite-id set for O(1) lookup in card props

@@ -4,6 +4,11 @@ import type { IQuickReply } from "@/shared/types";
 import { useQuickReplyProvider } from "@/providers/data";
 import { useAuth } from "@/features/auth/useAuth";
 
+// Valid-uuid sentinel for a logged-in user with no linked seller. It matches no
+// real owner row, so the read returns shared-only replies instead of casting the
+// literal "anon" to uuid (prod owner_id is uuid) and 400-ing the whole query.
+const NO_SELLER_ID = "00000000-0000-0000-0000-000000000000";
+
 /**
  * Foundation data hook for quick replies / snippets (PRD-027). Lists the
  * seller's visible snippets (own private + store shared) and resolves a
@@ -20,7 +25,7 @@ export function useQuickReplies(): {
   // `ownerId = currentUser.sellerId`, so a profile id here makes private replies
   // invisible. The matching write-side identity lives in useSendAsset.
   const { currentUser } = useAuth();
-  const sellerId = currentUser?.sellerId ?? "anon";
+  const sellerId = currentUser?.sellerId ?? NO_SELLER_ID;
 
   const repliesQuery = useQuery({
     queryKey: ["quick-send", "replies", sellerId],

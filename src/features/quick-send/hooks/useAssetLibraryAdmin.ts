@@ -47,6 +47,11 @@ export function useAssetLibraryAdmin() {
 
   const invalidate = useCallback(() => {
     void qc.invalidateQueries({ queryKey: ["quick-send", "assets"] });
+    // Also bust the composer's recents/favorites (useAssetLibrary keys them under
+    // ["quick-send","recents"/"favorites", sellerId]) so a withdrawn/unpublished/
+    // edited asset doesn't linger as still-sendable in an open conversation.
+    void qc.invalidateQueries({ queryKey: ["quick-send", "recents"] });
+    void qc.invalidateQueries({ queryKey: ["quick-send", "favorites"] });
   }, [qc]);
 
   // ---------------------------------------------------------------------------
@@ -164,12 +169,21 @@ export function useAssetLibraryAdmin() {
         // link path: storageRef stays undefined; url carries the value set above
 
         let r = await provider.bumpVersion(id, { storageRef, url });
-        // bumpVersion only accepts storageRef/url, but resolvePreviewUrl signs via
-        // mediaAssetId — repoint it to the freshly uploaded media asset so the
-        // preview resolves to the new file (otherwise it would keep signing the
-        // OLD media asset, or null).
-        if (mediaAssetId) {
-          r = await provider.update(id, { mediaAssetId });
+        // A new version can change the source — the file type may differ (PDF ->
+        // image) or it may switch file <-> link. bumpVersion only writes version/
+        // storageRef/url, so normalize `kind` (and repoint the media reference on
+        // the file path); otherwise preview/send branch on a stale `kind` and read
+        // the wrong field. On the link path kind="link" makes the (now-stale)
+        // media_asset_id unread, so it needn't be cleared.
+        if (source.file && mediaAssetId) {
+          const fileKind: AssetKind = source.file.type.startsWith("image/")
+            ? "image"
+            : source.file.type.startsWith("video/")
+              ? "video"
+              : "document";
+          r = await provider.update(id, { kind: fileKind, mediaAssetId });
+        } else if (source.url) {
+          r = await provider.update(id, { kind: "link" });
         }
         invalidate();
         return r;
