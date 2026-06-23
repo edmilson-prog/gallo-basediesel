@@ -47,6 +47,11 @@ export interface IListConversationsParams extends IPaginationParams {
   fromDate?: string;
   toDate?: string;
   unassigned?: boolean;
+  assignmentAny?: {
+    sellerIds?: ID[];
+    unassigned?: boolean;
+    queue?: boolean;
+  };
   orderBy?: ConversationsOrderBy;
   orderDir?: "asc" | "desc";
 }
@@ -105,6 +110,34 @@ function abcRank(customerId: ID | undefined): number {
   return 2;
 }
 
+/**
+ * OR predicate for the Inbox multi-select assignment filter. A conversation
+ * matches when it satisfies ANY provided criterion (specific seller, pool, or
+ * queue). An empty/criterion-less object matches nothing — callers must skip the
+ * filter entirely in that case (no criteria === "Todas" === no constraint).
+ */
+export function matchesAssignmentAny(
+  conversation: IConversation,
+  assignmentAny: { sellerIds?: ID[]; unassigned?: boolean; queue?: boolean },
+): boolean {
+  const { sellerIds, unassigned, queue } = assignmentAny;
+  if (
+    sellerIds &&
+    conversation.assignedSellerId &&
+    sellerIds.includes(conversation.assignedSellerId)
+  )
+    return true;
+  if (unassigned && !conversation.assignedSellerId) return true;
+  if (
+    queue &&
+    !conversation.assignedSellerId &&
+    !conversation.isSdrActive &&
+    conversation.status === "aguardando"
+  )
+    return true;
+  return false;
+}
+
 export const conversationsApi = {
   list(params: IListConversationsParams = {}): Promise<IPaginatedResult<IConversation>> {
     return runApi(
@@ -116,6 +149,13 @@ export const conversationsApi = {
         if (params.assignedSellerId)
           all = all.filter((c) => c.assignedSellerId === params.assignedSellerId);
         if (params.unassigned) all = all.filter((c) => !c.assignedSellerId);
+        if (
+          params.assignmentAny &&
+          (params.assignmentAny.sellerIds?.length ||
+            params.assignmentAny.unassigned ||
+            params.assignmentAny.queue)
+        )
+          all = all.filter((c) => matchesAssignmentAny(c, params.assignmentAny!));
         if (params.status) {
           const allowed = new Set(Array.isArray(params.status) ? params.status : [params.status]);
           all = all.filter((c) => allowed.has(c.status));

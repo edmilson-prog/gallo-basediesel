@@ -9,7 +9,8 @@ export type SortMode = "lastMessage" | "waiting" | "abc";
 export interface IInboxFiltersState {
   status: ConversationStatus | "all";
   channel: ConversationChannel | "all";
-  assignment: AssignmentFilter;
+  /** Assignment tokens (multi-select, OR). [] === "Todas" (no constraint). */
+  assignment: string[];
   /** Origin WhatsApp instance (multi-instância), or "all". */
   instance: ID | "all";
   tags: string[];
@@ -52,10 +53,52 @@ const VALID_CHANNEL = new Set<ConversationChannel | "all">([
 const VALID_PERIOD = new Set<PeriodFilter>(["all", "24h", "7d", "30d"]);
 const VALID_SORT = new Set<SortMode>(["lastMessage", "waiting", "abc"]);
 
+/** URL sentinel for the explicit empty set ("Todas") so it is distinguishable
+ *  from the default in the query string. */
+const ASSIGNMENT_ALL = "all";
+
+function defaultAssignmentTokens(currentSellerId: ID | null): string[] {
+  return currentSellerId ? ["me"] : [];
+}
+
+/** Parse the URL `assignment` value (CSV) into the token set. Handles the `all`
+ *  sentinel (empty set), de-dups, preserves order, and falls back to the
+ *  seller-relative default when absent. */
+export function parseAssignmentTokens(
+  raw: string | undefined,
+  currentSellerId: ID | null,
+): string[] {
+  if (raw === undefined) return defaultAssignmentTokens(currentSellerId);
+  if (raw === ASSIGNMENT_ALL) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const part of raw.split(",")) {
+    const token = part.trim();
+    if (token.length > 0 && !seen.has(token)) {
+      seen.add(token);
+      out.push(token);
+    }
+  }
+  return out;
+}
+
+/** Serialize the token set for the URL: default → undefined (omitted), empty
+ *  set → the `all` sentinel, otherwise CSV. */
+export function serializeAssignmentTokens(
+  tokens: string[],
+  currentSellerId: ID | null,
+): string | undefined {
+  const uniq = Array.from(new Set(tokens));
+  const def = defaultAssignmentTokens(currentSellerId);
+  if (uniq.length === def.length && uniq.every((t, i) => t === def[i])) return undefined;
+  if (uniq.length === 0) return ASSIGNMENT_ALL;
+  return uniq.join(",");
+}
+
 const DEFAULT_FILTERS: IInboxFiltersState = {
   status: "all",
   channel: "all",
-  assignment: "me",
+  assignment: ["me"],
   instance: "all",
   tags: [],
   period: "all",
@@ -103,7 +146,7 @@ function readState(search: IInboxFiltersSearch, currentSellerId: ID | null): IIn
     status: (search.status as IInboxFiltersState["status"] | undefined) ?? DEFAULT_FILTERS.status,
     channel:
       (search.channel as IInboxFiltersState["channel"] | undefined) ?? DEFAULT_FILTERS.channel,
-    assignment: search.assignment ?? (currentSellerId ? DEFAULT_FILTERS.assignment : "all"),
+    assignment: parseAssignmentTokens(search.assignment, currentSellerId),
     instance: search.instance ?? DEFAULT_FILTERS.instance,
     tags: parseTags(search.tags),
     period: (search.period as IInboxFiltersState["period"] | undefined) ?? DEFAULT_FILTERS.period,
@@ -125,7 +168,7 @@ export function useInboxFilters(currentSellerId: ID | null): {
   filters: IInboxFiltersState;
   setStatus: (status: IInboxFiltersState["status"]) => void;
   setChannel: (channel: IInboxFiltersState["channel"]) => void;
-  setAssignment: (assignment: AssignmentFilter) => void;
+  setAssignment: (tokens: string[]) => void;
   setInstance: (instance: ID | "all") => void;
   setTags: (tags: string[]) => void;
   setPeriod: (period: PeriodFilter) => void;
@@ -169,10 +212,8 @@ export function useInboxFilters(currentSellerId: ID | null): {
     filters,
     setStatus: (v) => apply({ status: v === "all" ? undefined : v }),
     setChannel: (v) => apply({ channel: v === "all" ? undefined : v }),
-    setAssignment: (v) =>
-      apply({
-        assignment: v === DEFAULT_FILTERS.assignment ? undefined : v,
-      }),
+    setAssignment: (tokens) =>
+      apply({ assignment: serializeAssignmentTokens(tokens, currentSellerId) }),
     setInstance: (v) => apply({ instance: v === "all" ? undefined : v }),
     setTags: (tags) => apply({ tags: tags.length === 0 ? undefined : tags.join(",") }),
     setPeriod: (v) => apply({ period: v === "all" ? undefined : v }),
@@ -184,15 +225,15 @@ export function useInboxFilters(currentSellerId: ID | null): {
         to: ".",
         search: () => ({}),
       }),
-    activeCount: countActive(filters),
+    activeCount: countActive(filters, currentSellerId),
   };
 }
 
-function countActive(filters: IInboxFiltersState): number {
+function countActive(filters: IInboxFiltersState, currentSellerId: ID | null): number {
   let n = 0;
   if (filters.status !== DEFAULT_FILTERS.status) n += 1;
   if (filters.channel !== DEFAULT_FILTERS.channel) n += 1;
-  if (filters.assignment !== DEFAULT_FILTERS.assignment) n += 1;
+  if (serializeAssignmentTokens(filters.assignment, currentSellerId) !== undefined) n += 1;
   if (filters.instance !== DEFAULT_FILTERS.instance) n += 1;
   if (filters.tags.length > 0) n += 1;
   if (filters.period !== DEFAULT_FILTERS.period) n += 1;
@@ -227,19 +268,30 @@ export function filtersToListParams(
   if (filters.tags.length > 0) params.tags = filters.tags;
   if (filters.search.length > 0) params.search = filters.search;
 
-  // Assignment.
-  if (filters.assignment === "me" && ctx.currentSellerId) {
-    params.assignedSellerId = ctx.currentSellerId;
-  } else if (filters.assignment === "unassigned") {
-    params.unassigned = true;
-  } else if (filters.assignment === "queue") {
-    // Em fila: sem vendedor atribuído E SDR inativo E status "aguardando".
-    params.unassigned = true;
-    params.isSdrActive = false;
-    params.status = "aguardando";
-  } else if (filters.assignment !== "all" && filters.assignment !== "me") {
-    // A specific seller id (Owner/Gestor picked someone from the dropdown).
-    params.assignedSellerId = filters.assignment;
+  // Assignment — multi-select OR. Resolve "me" → the current seller id; the
+  // queue's status/SDR constraints ride INSIDE the OR term (assignmentAny.queue),
+  // so they never pin the global status filter. Empty set === "Todas" (no
+  // assignment constraint at all).
+  if (filters.assignment.length > 0) {
+    const sellerIds: ID[] = [];
+    let unassigned = false;
+    let queue = false;
+    for (const token of filters.assignment) {
+      if (token === "me") {
+        if (ctx.currentSellerId) sellerIds.push(ctx.currentSellerId);
+      } else if (token === "unassigned") {
+        unassigned = true;
+      } else if (token === "queue") {
+        queue = true;
+      } else {
+        sellerIds.push(token);
+      }
+    }
+    const assignmentAny: { sellerIds?: ID[]; unassigned?: boolean; queue?: boolean } = {};
+    if (sellerIds.length > 0) assignmentAny.sellerIds = Array.from(new Set(sellerIds));
+    if (unassigned) assignmentAny.unassigned = true;
+    if (queue) assignmentAny.queue = true;
+    if (Object.keys(assignmentAny).length > 0) params.assignmentAny = assignmentAny;
   }
 
   // Period → fromDate.
