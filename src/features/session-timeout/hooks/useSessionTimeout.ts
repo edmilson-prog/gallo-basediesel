@@ -15,6 +15,8 @@ import { useCrossTabActivity } from "./useCrossTabActivity";
 export interface ISessionTimeoutState {
   warningOpen: boolean;
   secondsLeft: number;
+  /** Fixed warning-window length in seconds — stable base for the countdown bar. */
+  warningTotalSeconds: number;
   soundEnabled: boolean;
   stayConnected: () => void;
   logoutNow: () => void;
@@ -72,11 +74,24 @@ export function useSessionTimeout(): ISessionTimeoutState {
   const [warningOpen, setWarningOpen] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(0);
 
-  const { publish } = useCrossTabActivity((ts) => {
-    if (ts > lastActivityRef.current) lastActivityRef.current = ts;
-  }, active);
+  // Stable identity: useCrossTabActivity lists this in its subscribe-effect deps,
+  // and the hook re-renders every second during the warning. An inline arrow would
+  // tear down and recreate the BroadcastChannel each render, dropping in-flight
+  // cross-tab messages. Activity in a sibling tab also clears the warning here
+  // (logout fires only when EVERY tab is idle) instead of waiting up to one tick.
+  const onRemoteActivity = useCallback((ts: number) => {
+    if (ts <= lastActivityRef.current) return;
+    lastActivityRef.current = ts;
+    setWarningOpen(false);
+    lastBeepRemainingRef.current = null;
+  }, []);
+  const { publish } = useCrossTabActivity(onRemoteActivity, active);
 
   const markActivity = useCallback(() => {
+    // Once logout has been triggered, stop registering activity — a stray input
+    // during the in-flight navigation would publish(now) and reset sibling tabs
+    // that are themselves idle and about to log out.
+    if (loggedOutRef.current) return;
     const now = Date.now();
     lastActivityRef.current = now;
     publish(now);
@@ -107,6 +122,10 @@ export function useSessionTimeout(): ISessionTimeoutState {
       return;
     }
     const tick = () => {
+      // Once logout has been triggered (expiry or "Sair agora"), stop all work —
+      // otherwise the warning branch keeps re-opening the modal and beeping while
+      // the navigation to /auth/logout is still in flight.
+      if (loggedOutRef.current) return;
       const status = computeIdlePhase(
         lastActivityRef.current,
         Date.now(),
@@ -114,10 +133,9 @@ export function useSessionTimeout(): ISessionTimeoutState {
         resolved.warningMs,
       );
       if (status.phase === "expired") {
-        if (!loggedOutRef.current) {
-          loggedOutRef.current = true;
-          void navigate({ to: "/auth/logout" });
-        }
+        loggedOutRef.current = true;
+        setWarningOpen(false);
+        void navigate({ to: "/auth/logout" });
         return;
       }
       if (status.phase === "warning") {
@@ -160,12 +178,14 @@ export function useSessionTimeout(): ISessionTimeoutState {
   const logoutNow = useCallback(() => {
     if (loggedOutRef.current) return;
     loggedOutRef.current = true;
+    setWarningOpen(false);
     void navigate({ to: "/auth/logout" });
   }, [navigate]);
 
   return {
     warningOpen: warningOpen && active,
     secondsLeft,
+    warningTotalSeconds: Math.max(1, Math.ceil(resolved.warningMs / 1_000)),
     soundEnabled: resolved.soundEnabled,
     stayConnected,
     logoutNow,

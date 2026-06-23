@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DEFAULT_SESSION_TIMEOUT, type ISessionTimeoutSettings } from "@/shared/types";
 import { useCurrentStore } from "@/features/multistore";
-import { createBeeper } from "@/features/session-timeout/lib/beep";
+import { createBeeper, type IBeeper } from "@/features/session-timeout/lib/beep";
 import { SectionHeader } from "../components/SectionHeader";
 import { usePlatformSettings } from "../hooks/usePlatformSettings";
 
@@ -21,7 +21,10 @@ export function SessionSettingsPage() {
   const queryClient = useQueryClient();
 
   const [draft, setDraft] = useState<ISessionTimeoutSettings>(DEFAULT_SESSION_TIMEOUT);
-  const beeperRef = useRef(createBeeper());
+  // Lazy init: useRef evaluates its argument on every render, so passing
+  // createBeeper() directly would allocate a throwaway beeper per render.
+  const beeperRef = useRef<IBeeper | null>(null);
+  if (!beeperRef.current) beeperRef.current = createBeeper();
 
   useEffect(() => {
     if (settings) setDraft(settings.sessionTimeout ?? DEFAULT_SESSION_TIMEOUT);
@@ -54,8 +57,8 @@ export function SessionSettingsPage() {
   };
 
   const testBeep = () => {
-    beeperRef.current.unlock();
-    beeperRef.current.beep(draft.soundVolume, 0.6);
+    beeperRef.current?.unlock();
+    beeperRef.current?.beep(draft.soundVolume, 0.6);
   };
 
   if (loading || !settings) {

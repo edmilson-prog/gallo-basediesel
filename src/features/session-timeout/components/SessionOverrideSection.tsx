@@ -28,6 +28,10 @@ export function SessionOverrideSection({ value, onChange }: ISessionOverrideSect
     queryFn: () => settingsProvider.get(storeId),
     staleTime: 5 * 60_000,
   });
+  // Only seed an override once the global settings have actually loaded —
+  // otherwise toggling on would snapshot DEFAULT_SESSION_TIMEOUT instead of the
+  // store's real policy and persist it verbatim.
+  const settingsReady = settingsQuery.data !== undefined;
   const globalCfg = settingsQuery.data?.sessionTimeout ?? DEFAULT_SESSION_TIMEOUT;
 
   // Whether a custom override is currently active.
@@ -54,8 +58,20 @@ export function SessionOverrideSection({ value, onChange }: ISessionOverrideSect
             Por padrão, herda a configuração global. Ligue para definir uma
             política própria para este usuário.
           </p>
+          {!settingsReady && !custom && (
+            <p className="text-xs text-muted-foreground">
+              {settingsQuery.isError
+                ? "Não foi possível carregar a configuração global — recarregue para criar um override."
+                : "Carregando a configuração global…"}
+            </p>
+          )}
         </div>
-        <Switch checked={custom} onCheckedChange={toggleCustom} aria-label="Usar configuração própria" />
+        <Switch
+          checked={custom}
+          onCheckedChange={toggleCustom}
+          disabled={!settingsReady && !custom}
+          aria-label="Usar configuração própria"
+        />
       </div>
 
       {custom && (
@@ -79,6 +95,7 @@ export function SessionOverrideSection({ value, onChange }: ISessionOverrideSect
                 max={480}
                 value={cfg.idleMinutes}
                 onChange={(e) => patch({ idleMinutes: Number(e.target.value) })}
+                disabled={!cfg.enabled}
               />
             </div>
             <div className="space-y-1">
@@ -90,6 +107,7 @@ export function SessionOverrideSection({ value, onChange }: ISessionOverrideSect
                 max={300}
                 value={cfg.warningSeconds}
                 onChange={(e) => patch({ warningSeconds: Number(e.target.value) })}
+                disabled={!cfg.enabled}
               />
             </div>
           </div>
@@ -100,6 +118,7 @@ export function SessionOverrideSection({ value, onChange }: ISessionOverrideSect
               id="ov-sound"
               checked={cfg.soundEnabled}
               onCheckedChange={(v) => patch({ soundEnabled: v })}
+              disabled={!cfg.enabled}
             />
           </div>
 
@@ -112,6 +131,7 @@ export function SessionOverrideSection({ value, onChange }: ISessionOverrideSect
               step={0.05}
               onValueChange={(v) => patch({ soundVolume: v[0] ?? cfg.soundVolume })}
               aria-label="Intensidade do som"
+              disabled={!cfg.enabled}
             />
           </div>
         </div>

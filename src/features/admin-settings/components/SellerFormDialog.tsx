@@ -193,6 +193,20 @@ export function SellerFormDialog({
             after: { rotationEnabled },
           });
         }
+        if (
+          JSON.stringify(seller.sessionTimeoutOverride ?? null) !==
+          JSON.stringify(sessionOverride)
+        ) {
+          recordAuditLogSync({
+            storeId,
+            actorId: currentUser?.sellerId ?? currentUser?.id ?? "system",
+            action: "session_timeout_override_updated",
+            resource: "seller",
+            resourceId: seller.id,
+            before: { sessionTimeoutOverride: seller.sessionTimeoutOverride ?? null },
+            after: { sessionTimeoutOverride: sessionOverride },
+          });
+        }
         return saved;
       }
       return provider.create({
@@ -249,6 +263,19 @@ export function SellerFormDialog({
               if (isEdit && scheduleErrors.length > 0) {
                 setTab("horario");
                 toast.error("Corrija o horário de atendimento antes de salvar.");
+                return;
+              }
+              // Block an inconsistent session override (warning must be < idle).
+              // Skip when idle is blank/0 (Number("") === 0) so clearing the field
+              // doesn't trap the save with a misleading message — the resolver
+              // sanitizes a non-positive idle to the default at read time.
+              if (
+                sessionOverride &&
+                sessionOverride.idleMinutes >= 1 &&
+                sessionOverride.warningSeconds >= sessionOverride.idleMinutes * 60
+              ) {
+                setTab("geral");
+                toast.error("O aviso da sessão precisa ser menor que o tempo total de inatividade.");
                 return;
               }
               mutation.mutate(values);

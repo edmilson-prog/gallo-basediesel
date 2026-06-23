@@ -11,21 +11,21 @@ import type { IInsightThresholds } from "./insights";
 import type { IStorefrontConfig } from "./storefront";
 import type { IForecastConfig } from "./forecast";
 
-/** Configuração de encerramento de sessão por inatividade (idle timeout). */
+/** Idle-timeout (inactivity session-termination) configuration. */
 export interface ISessionTimeoutSettings {
-  /** Master switch — quando false, nenhum rastreamento ocorre. */
+  /** Master switch — when false, no tracking occurs. */
   enabled: boolean;
-  /** Minutos de inatividade até encerrar (a janela de aviso está incluída neste total). */
+  /** Minutes of inactivity before termination (the warning window is included in this total). */
   idleMinutes: number;
-  /** Segundos do modal de contagem antes do logout. Deve ser < idleMinutes·60. */
+  /** Countdown-modal seconds before logout. Must be < idleMinutes * 60. */
   warningSeconds: number;
-  /** Emite beeps audíveis durante o aviso. */
+  /** Emits audible beeps during the warning. */
   soundEnabled: boolean;
-  /** Intensidade do beep, 0..1 (ganho do oscilador). */
+  /** Beep intensity, 0..1 (oscillator gain). */
   soundVolume: number;
 }
 
-/** Default aplicado quando `IPlatformSettings.sessionTimeout` está ausente. */
+/** Default applied when `IPlatformSettings.sessionTimeout` is absent. */
 export const DEFAULT_SESSION_TIMEOUT: ISessionTimeoutSettings = {
   enabled: true,
   idleMinutes: 30,
