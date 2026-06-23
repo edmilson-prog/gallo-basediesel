@@ -17,3 +17,18 @@ export function mustAssignToReply(
   if (ctx.isStaff) return false;
   return conversation.assignedSellerId == null;
 }
+
+/**
+ * Whether staff may return an assigned conversation to the pool/queue
+ * (unassign). Offered only when the user is staff AND the conversation currently
+ * has an assignee. A pool conversation has nothing to return. Mirrors the RLS:
+ * only staff (`is_staff()`) can null the `assigned_seller_id` column. Inverse of
+ * the read side covered by {@link mustAssignToReply}.
+ */
+export function canReturnToQueue(
+  conversation: Pick<IConversation, "assignedSellerId">,
+  ctx: { isStaff: boolean },
+): boolean {
+  if (!ctx.isStaff) return false;
+  return conversation.assignedSellerId != null;
+}
