@@ -153,6 +153,29 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
     ],
   },
   {
+    label: "Conteúdo",
+    items: [
+      {
+        label: "Biblioteca de ativos",
+        icon: "mdi:bookshelf",
+        to: "/app/configuracoes/biblioteca",
+        roles: ["Owner", "Gestor"],
+      },
+      {
+        label: "Respostas rápidas",
+        icon: "mdi:message-flash-outline",
+        to: "/app/configuracoes/respostas-rapidas",
+        roles: ["Owner", "Gestor", "Vendedor", "SDR"],
+      },
+      {
+        label: "Mídias (retenção)",
+        icon: "mdi:database-clock-outline",
+        to: "/app/configuracoes/midias",
+        roles: ["Owner", "Gestor"],
+      },
+    ],
+  },
+  {
     label: "Agente SDR",
     items: [
       {
@@ -265,18 +288,6 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         upcoming: true,
       },
       {
-        label: "Mídias (retenção)",
-        icon: "mdi:database-clock-outline",
-        to: "/app/configuracoes/midias",
-        roles: ["Owner", "Gestor"],
-      },
-      {
-        label: "Biblioteca de ativos",
-        icon: "mdi:bookshelf",
-        to: "/app/configuracoes/biblioteca",
-        roles: ["Owner", "Gestor"],
-      },
-      {
         label: "Auditoria",
         icon: "mdi:history",
         to: "/app/configuracoes/auditoria",
@@ -376,9 +387,10 @@ function SidebarContent({ groups, activePath, onNavigate }: ISidebarContentProps
 
 /**
  * Inner sub-sidebar + content layout for /app/configuracoes/*.
- * Sidebar is grouped in 5 categories (Pessoal / Administração / Operação /
- * Integrações / Avançado). Items filter themselves out when the current user
- * lacks the required role or permission (PRD-019 RF-003).
+ * Sidebar is grouped in 8 categories (Pessoal / Administração / Operação /
+ * Conteúdo / Agente SDR / Integrações / Avançado / Plataforma). Items filter
+ * themselves out when the current user lacks the required role or permission
+ * (PRD-019 RF-003).
  */
 export function SettingsLayout({ children }: { children?: ReactNode }) {
   const location = useLocation();

@@ -104,3 +104,5 @@ export {
   LibraryManagerPage,
   type ILibraryManagerPageProps,
 } from "./components/library-admin/LibraryManagerPage";
+export { AssetLibraryManagerPage } from "./components/library-admin/AssetLibraryManagerPage";
+export { QuickRepliesPage } from "./components/library-admin/QuickRepliesPage";

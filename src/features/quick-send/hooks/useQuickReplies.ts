@@ -2,7 +2,12 @@ import { useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { IQuickReply } from "@/shared/types";
 import { useQuickReplyProvider } from "@/providers/data";
-import { getCurrentContext } from "@/features/multistore/utils/getCurrentContext";
+import { useAuth } from "@/features/auth/useAuth";
+
+// Valid-uuid sentinel for a logged-in user with no linked seller. It matches no
+// real owner row, so the read returns shared-only replies instead of casting the
+// literal "anon" to uuid (prod owner_id is uuid) and 400-ing the whole query.
+const NO_SELLER_ID = "00000000-0000-0000-0000-000000000000";
 
 /**
  * Foundation data hook for quick replies / snippets (PRD-027). Lists the
@@ -15,7 +20,12 @@ export function useQuickReplies(): {
   findByShortcut: (shortcut: string) => IQuickReply | null;
 } {
   const provider = useQuickReplyProvider();
-  const sellerId = getCurrentContext().user?.id ?? "anon";
+  // Identity must be the REAL seller id (sellers.id), not the auth profile id.
+  // The provider filters `owner_id = sellerId` and the write path stores
+  // `ownerId = currentUser.sellerId`, so a profile id here makes private replies
+  // invisible. The matching write-side identity lives in useSendAsset.
+  const { currentUser } = useAuth();
+  const sellerId = currentUser?.sellerId ?? NO_SELLER_ID;
 
   const repliesQuery = useQuery({
     queryKey: ["quick-send", "replies", sellerId],
