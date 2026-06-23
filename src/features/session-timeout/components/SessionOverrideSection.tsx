@@ -95,6 +95,7 @@ export function SessionOverrideSection({ value, onChange }: ISessionOverrideSect
                 max={480}
                 value={cfg.idleMinutes}
                 onChange={(e) => patch({ idleMinutes: Number(e.target.value) })}
+                disabled={!cfg.enabled}
               />
             </div>
             <div className="space-y-1">
@@ -106,6 +107,7 @@ export function SessionOverrideSection({ value, onChange }: ISessionOverrideSect
                 max={300}
                 value={cfg.warningSeconds}
                 onChange={(e) => patch({ warningSeconds: Number(e.target.value) })}
+                disabled={!cfg.enabled}
               />
             </div>
           </div>
@@ -116,6 +118,7 @@ export function SessionOverrideSection({ value, onChange }: ISessionOverrideSect
               id="ov-sound"
               checked={cfg.soundEnabled}
               onCheckedChange={(v) => patch({ soundEnabled: v })}
+              disabled={!cfg.enabled}
             />
           </div>
 
@@ -128,6 +131,7 @@ export function SessionOverrideSection({ value, onChange }: ISessionOverrideSect
               step={0.05}
               onValueChange={(v) => patch({ soundVolume: v[0] ?? cfg.soundVolume })}
               aria-label="Intensidade do som"
+              disabled={!cfg.enabled}
             />
           </div>
         </div>

@@ -265,11 +265,13 @@ export function SellerFormDialog({
                 toast.error("Corrija o horário de atendimento antes de salvar.");
                 return;
               }
-              // Block an inconsistent session override (warning must be < idle),
-              // mirroring the global settings page, which validates regardless of
-              // the enabled flag (a disabled override must not persist warning >= idle).
+              // Block an inconsistent session override (warning must be < idle).
+              // Skip when idle is blank/0 (Number("") === 0) so clearing the field
+              // doesn't trap the save with a misleading message — the resolver
+              // sanitizes a non-positive idle to the default at read time.
               if (
                 sessionOverride &&
+                sessionOverride.idleMinutes >= 1 &&
                 sessionOverride.warningSeconds >= sessionOverride.idleMinutes * 60
               ) {
                 setTab("geral");
