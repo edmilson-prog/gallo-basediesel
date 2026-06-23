@@ -133,6 +133,44 @@ async function markConnected(
 }
 
 /**
+ * Self-heals a connected account whose own number wasn't resolvable at pairing
+ * time. The Evolution owner/profile can lag the `open` transition by a few
+ * seconds, and markConnected runs ONLY ONCE (on the not-connected→connected
+ * edge) — so a number missed then would otherwise stay empty until a manual
+ * logout+reconnect. This runs on steady-state polling, but ONLY while the number
+ * is still missing: one extra fetchInstances per poll until it lands, then it
+ * stops. Gating on the phone (not the profile name) bounds the extra call to
+ * genuinely-empty accounts — some builds never return a profileName, so we must
+ * not poll forever chasing it. No audit (no state change) and no status guard.
+ */
+async function backfillMissingProfile(
+  admin: SupabaseClient,
+  row: IAccountRow,
+  apiKey: string,
+  deps: IEngineDeps,
+  target: IEvolutionInstanceTarget,
+  traceId: string,
+): Promise<{ phoneNumber?: string; profileName?: string }> {
+  if ((row.phone_number ?? "").trim().length > 0) return {};
+  let profile: { phoneNumber?: string; profileName?: string } = {};
+  try {
+    profile = await fetchInstanceProfile(apiKey, deps, target, traceId);
+  } catch (_err) {
+    // Best-effort — a profile lookup must never fail a status poll.
+    return {};
+  }
+  const patch: Record<string, unknown> = {};
+  if (profile.phoneNumber) patch.phone_number = profile.phoneNumber;
+  if (profile.profileName && !row.provider_config?.profileName) {
+    patch.provider_config = { ...(row.provider_config ?? {}), profileName: profile.profileName };
+  }
+  if (Object.keys(patch).length > 0) {
+    await admin.from("whatsapp_accounts").update(patch).eq("id", row.id);
+  }
+  return profile;
+}
+
+/**
  * Flips a stale `connected` row to disconnected when the live Evolution state
  * says the session is not open (seed rows, phone unlinked outside the app…).
  * Conditional update + audit guard: concurrent polls won't double-audit.
@@ -386,6 +424,9 @@ servePost(async (req, ctx) => {
         if (result.state === "open") {
           if (account.status !== "connected") {
             await markConnected(admin, account, apiKey, deps, target, actorId, ctx.traceId);
+          } else {
+            // Already connected: self-heal a number that wasn't ready at pairing.
+            await backfillMissingProfile(admin, account, apiKey, deps, target, ctx.traceId);
           }
         } else {
           await markDisconnected(admin, account, actorId, result.state);
@@ -463,7 +504,16 @@ servePost(async (req, ctx) => {
             );
             return json({ state: "open", ...profile, traceId: ctx.traceId }, 200);
           }
-          return json({ state: "open", traceId: ctx.traceId }, 200);
+          // Already connected: self-heal a profile captured empty at pairing time.
+          const profile = await backfillMissingProfile(
+            admin,
+            account,
+            apiKey,
+            deps,
+            target,
+            ctx.traceId,
+          );
+          return json({ state: "open", ...profile, traceId: ctx.traceId }, 200);
         }
         // `close` during pairing is normal (pre-scan), but it also means the
         // stored status must not read `connected` — keep the row truthful.
