@@ -190,40 +190,37 @@ export const supabaseMessagesProvider: IMessagesProvider = {
     const ids = params.conversationIds ?? [];
 
     // Run one windowed analytics query. `batch` scopes by conversation_id
-    // (null = no conversation filter); `order` lets the DB sort, which is only
-    // worthwhile when no cross-batch merge follows. Shared by both paths so a
-    // future filter can't diverge between them.
-    const fetchRows = async (batch: string[] | null, order: boolean): Promise<MessageRow[]> => {
+    // (null = no conversation filter). Shared by both paths so a future filter
+    // can't diverge between them; ordering is always applied in memory below.
+    const fetchRows = async (batch: string[] | null): Promise<MessageRow[]> => {
       let query = getSupabaseClient().from(TABLE).select(COLUMNS);
       if (batch) query = query.in("conversation_id", batch);
       if (params.since) query = query.gte("sent_at", params.since);
       if (params.until) query = query.lte("sent_at", params.until);
-      const { data, error } = await (order
-        ? query.order("sent_at", { ascending: true })
-        : query);
+      const { data, error } = await query;
       if (error) throw new Error(`[supabase] messages.listForAnalytics failed: ${error.message}`);
-      return data as unknown as MessageRow[];
+      return (data ?? []) as unknown as MessageRow[];
     };
 
+    // Sort ascending by sent_at, in memory, for BOTH paths — one ordering source
+    // of truth. Byte-wise comparison (ISO 8601 is monotonic) rather than
+    // locale-sensitive.
+    const sortBySentAt = (rows: MessageRow[]): MessageRow[] =>
+      rows.sort((a, b) => (a.sent_at < b.sent_at ? -1 : a.sent_at > b.sent_at ? 1 : 0));
+
     // No conversation filter → single windowed query (preserves prior behavior:
-    // an empty id set scans all messages in the window, not zero rows). The DB
-    // orders here since there is no cross-batch merge to follow.
+    // an empty id set scans all messages in the window, not zero rows).
     if (ids.length === 0) {
-      return (await fetchRows(null, true)).map(rowToMessage);
+      return sortBySentAt(await fetchRows(null)).map(rowToMessage);
     }
 
     // Chunk the `.in("conversation_id", …)` so a store-wide id set never overflows
     // the request-line length (a single oversized `.in()` is rejected at the edge
     // with 400 before RLS). Chunks are disjoint by conversation_id ⇒ no dup / no
-    // loss. Per-batch ordering is skipped (the cross-batch sort below is the only
-    // ordering that matters); the comparison is byte-wise — ISO 8601 is monotonic
-    // — rather than locale-sensitive.
+    // loss. The in-memory sort above re-orders the merged cross-batch union.
     const batches = chunk(ids, ANALYTICS_IN_CHUNK_SIZE);
-    const results = await Promise.all(batches.map((batch) => fetchRows(batch, false)));
-    return results
-      .flat()
-      .sort((a, b) => (a.sent_at < b.sent_at ? -1 : a.sent_at > b.sent_at ? 1 : 0))
-      .map(rowToMessage);
+    const results = await Promise.all(batches.map((batch) => fetchRows(batch)));
+    return sortBySentAt(results.flat()).map(rowToMessage);
   },
 
   async getLastInboundAt(conversationId: ID): Promise<string | null> {

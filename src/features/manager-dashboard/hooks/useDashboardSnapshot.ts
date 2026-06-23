@@ -145,7 +145,13 @@ export function useDashboardSnapshot(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey]);
 
+  // Manual refetch fires immediately and cancels any pending debounced tick so a
+  // burst already in flight doesn't double-fetch right after the manual one.
   const refetch = useCallback(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
     void fetchSnapshot("refresh");
   }, [fetchSnapshot]);
 
