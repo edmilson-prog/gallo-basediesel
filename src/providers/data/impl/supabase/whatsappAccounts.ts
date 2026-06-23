@@ -92,10 +92,13 @@ export const supabaseWhatsAppAccountsProvider: IWhatsAppAccountsProvider = {
     }
     // PostgREST may return a `setof uuid` either as a scalar array (string[]) or
     // as single-column rows ([{ <col>: string }]). Tolerate both without assuming
-    // the column name: take the row's first value when it is an object.
-    return ((data ?? []) as unknown[]).map((row) =>
-      typeof row === "string" ? row : (Object.values(row as object)[0] as ID),
-    );
+    // the column name (take the row's first value when it is an object), and skip
+    // any null / non-object row defensively (typeof null === "object").
+    return ((data ?? []) as unknown[]).flatMap((row) => {
+      if (typeof row === "string") return [row as ID];
+      if (row && typeof row === "object") return [Object.values(row)[0] as ID];
+      return [];
+    });
   },
 
   async get(id: ID): Promise<IWhatsAppAccount> {

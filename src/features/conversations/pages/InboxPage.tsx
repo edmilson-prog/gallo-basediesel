@@ -169,6 +169,20 @@ export function InboxPage() {
     activeCount,
   } = useInboxFilters(sellerId);
 
+  // Self-heal a stale instance filter: a non-staff user may carry a persisted
+  // `?instance=<id>` (e.g. selected before their access narrowed) pointing at an
+  // instance they can no longer access. Without this, `filtersToListParams` would
+  // keep filtering the list by a hidden instance the dropdown no longer offers.
+  // Reset to "all" once the accessible set has resolved (staff are never scoped).
+  useEffect(() => {
+    if (isStaffView || accessibleIds === null) return;
+    if (filters.instance !== "all" && !accessibleIds.has(filters.instance)) {
+      setInstance("all");
+    }
+    // setInstance is a stable navigate-based setter; omit it to avoid re-running every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isStaffView, accessibleIds, filters.instance]);
+
   const availableTags = useAvailableTags();
   const realtime = useRealtimeConversations();
 
@@ -330,7 +344,13 @@ export function InboxPage() {
           onToggleRealtime={realtime.setEnabled}
           realtimeConnected={realtime.connected}
           sortDescription={sortDescription}
-          onNewConversation={sellerId ? () => setNewConvOpen(true) : undefined}
+          onNewConversation={
+            // Non-staff: wait for the accessible set to resolve so the dialog
+            // never shows a false "no instances" state during the RPC window.
+            sellerId && (isStaffView || accessibleIds !== null)
+              ? () => setNewConvOpen(true)
+              : undefined
+          }
         />
         <div className="border-b border-border px-3 py-2">
           <SearchInput inputRef={searchInputRef} value={filters.search} onChange={setSearch} />
