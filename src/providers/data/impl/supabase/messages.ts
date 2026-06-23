@@ -200,8 +200,12 @@ export const supabaseMessagesProvider: IMessagesProvider = {
     // `batch` scopes by conversation_id (null = no conversation filter). A stable
     // TOTAL order `(sent_at, id)` is REQUIRED for `.range()` to page correctly —
     // without a unique tiebreak, row order across pages is undefined and the
-    // boundaries could dup/skip. Shared by both paths so a future filter can't
-    // diverge between them; the cross-batch merge order is re-applied in memory.
+    // boundaries could dup/skip. NOTE: offset paging is not snapshot-consistent —
+    // a DELETE of an earlier-ordered row mid-drain shifts later offsets and can
+    // skip one boundary row. Accepted here: analytics is an approximate read,
+    // message deletes are rare, and a batch must exceed 1000 rows to page at all.
+    // Shared by both paths so a future filter can't diverge between them; the same
+    // `(sent_at, id)` total order is re-applied across batches by `sortBySentAt`.
     const fetchRows = (batch: string[] | null): Promise<MessageRow[]> =>
       drainPaged<MessageRow>(async (offset, limit) => {
         let query = getSupabaseClient().from(TABLE).select(COLUMNS);
@@ -216,15 +220,26 @@ export const supabaseMessagesProvider: IMessagesProvider = {
         return (data ?? []) as unknown as MessageRow[];
       }, ANALYTICS_PAGE_SIZE);
 
-    // Sort ascending by sent_at, in memory, for BOTH paths — one ordering source
-    // of truth. Sorts a copy (the empty-ids path would otherwise mutate the live
-    // supabase-js response array in place). Byte-wise comparison (ISO 8601 is
-    // monotonic) rather than locale-sensitive.
+    // Sort by the SAME total order the DB pages use — `sent_at` then `id` as the
+    // tiebreak — so the cross-batch/cross-page merge reproduces the per-page
+    // `(sent_at, id)` order deterministically (rows sharing a sent_at would
+    // otherwise land in concat/page order). One ordering source of truth for BOTH
+    // paths. Sorts a copy (the empty-ids path would otherwise mutate the live
+    // supabase-js response array in place). Byte-wise comparison (ISO 8601 and
+    // uuid are monotonic) rather than locale-sensitive.
     const sortBySentAt = (rows: MessageRow[]): MessageRow[] =>
-      [...rows].sort((a, b) => (a.sent_at < b.sent_at ? -1 : a.sent_at > b.sent_at ? 1 : 0));
+      [...rows].sort((a, b) => {
+        if (a.sent_at !== b.sent_at) return a.sent_at < b.sent_at ? -1 : 1;
+        if (a.id !== b.id) return a.id < b.id ? -1 : 1;
+        return 0;
+      });
 
-    // No conversation filter → single windowed query (preserves prior behavior:
-    // an empty id set scans all messages in the window, not zero rows).
+    // No conversation filter → drain the whole window with no `.in()` scope (an
+    // empty id set scans all messages in the window, not zero rows). NOTE: unlike
+    // the pre-pagination code (which the edge silently capped at `Max rows`), this
+    // now FULLY drains an unscoped window. Both current callers guard against it
+    // (they only call with a non-empty id set), so the unbounded scan is unreachable
+    // today — keep that guard if you add a caller.
     if (ids.length === 0) {
       return sortBySentAt(await fetchRows(null)).map(rowToMessage);
     }
