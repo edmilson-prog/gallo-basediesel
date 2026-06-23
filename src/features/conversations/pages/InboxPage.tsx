@@ -87,6 +87,9 @@ export function InboxPage() {
     return map;
   }, [accounts]);
   const showOrigin = accounts.length > 1;
+  // Staff (Owner/Gestor) see store-wide conversations, hence every instance of the
+  // currently selected store. Non-staff are scoped to the instances they operate.
+  const isStaffView = usePermission("conversation", "view", "store");
   // Instances the current user may operate (PRD-011 multi-access). The instance
   // filter and the new-conversation origin picker must show only these — not the
   // full store-wide account list (`accounts`/`accountsById` keep all instances so
@@ -96,6 +99,9 @@ export function InboxPage() {
   // is enforced in the DB (can_access_conversation).
   const [accessibleIds, setAccessibleIds] = useState<Set<ID> | null>(null);
   useEffect(() => {
+    // Staff bypass the RPC: it is scoped by the JWT's store and cannot follow a
+    // client-side store switch, so staff just use the (store-scoped) accounts.
+    if (isStaffView) return;
     let cancelled = false;
     void whatsappAccountsProvider
       .listAccessibleAccountIds()
@@ -108,10 +114,10 @@ export function InboxPage() {
     return () => {
       cancelled = true;
     };
-  }, [whatsappAccountsProvider]);
+  }, [whatsappAccountsProvider, isStaffView]);
   const accessibleAccounts = useMemo(
-    () => selectAccessibleAccounts(accounts, accessibleIds),
-    [accounts, accessibleIds],
+    () => (isStaffView ? accounts : selectAccessibleAccounts(accounts, accessibleIds)),
+    [isStaffView, accounts, accessibleIds],
   );
   const accessibleConnectedAccounts = useMemo(
     () => accessibleAccounts.filter((a) => a.status === "connected"),
@@ -121,7 +127,7 @@ export function InboxPage() {
   // Assignee oversight: staff (Owner/Gestor) see store-wide conversations and
   // need to know who is handling each. Load the store's sellers once to resolve
   // names per row; skipped entirely for non-staff (the chip never renders).
-  const showAssignee = usePermission("conversation", "view", "store");
+  const showAssignee = isStaffView;
   const sellersProvider = useSellersProvider();
   const [sellersById, setSellersById] = useState<Map<ID, ISeller>>(new Map());
   useEffect(() => {
