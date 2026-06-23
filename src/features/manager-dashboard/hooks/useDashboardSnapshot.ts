@@ -118,8 +118,16 @@ export function useDashboardSnapshot(
   enabledRef.current = enabled;
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Reset to initial fetch whenever filters change.
+  // Reset to initial fetch whenever filters change (or `enabled` flips). A fresh
+  // initial fetch supersedes any pending debounced refresh, so cancel the stray
+  // timer first — the debounce effect is keyed on [refreshKey] only, so neither a
+  // filter change nor an enable flip would otherwise clear an armed timer, and it
+  // would fire a redundant "refresh" ~1.5s later on top of this load.
   useEffect(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
     if (!enabled) return;
     void fetchSnapshot("initial");
     // eslint-disable-next-line react-hooks/exhaustive-deps

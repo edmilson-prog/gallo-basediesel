@@ -203,10 +203,11 @@ export const supabaseMessagesProvider: IMessagesProvider = {
     };
 
     // Sort ascending by sent_at, in memory, for BOTH paths — one ordering source
-    // of truth. Byte-wise comparison (ISO 8601 is monotonic) rather than
-    // locale-sensitive.
+    // of truth. Sorts a copy (the empty-ids path would otherwise mutate the live
+    // supabase-js response array in place). Byte-wise comparison (ISO 8601 is
+    // monotonic) rather than locale-sensitive.
     const sortBySentAt = (rows: MessageRow[]): MessageRow[] =>
-      rows.sort((a, b) => (a.sent_at < b.sent_at ? -1 : a.sent_at > b.sent_at ? 1 : 0));
+      [...rows].sort((a, b) => (a.sent_at < b.sent_at ? -1 : a.sent_at > b.sent_at ? 1 : 0));
 
     // No conversation filter → single windowed query (preserves prior behavior:
     // an empty id set scans all messages in the window, not zero rows).
@@ -216,9 +217,11 @@ export const supabaseMessagesProvider: IMessagesProvider = {
 
     // Chunk the `.in("conversation_id", …)` so a store-wide id set never overflows
     // the request-line length (a single oversized `.in()` is rejected at the edge
-    // with 400 before RLS). Chunks are disjoint by conversation_id ⇒ no dup / no
-    // loss. The in-memory sort above re-orders the merged cross-batch union.
-    const batches = chunk(ids, ANALYTICS_IN_CHUNK_SIZE);
+    // with 400 before RLS). Dedup first so chunks are provably disjoint by
+    // conversation_id (a duplicate id straddling a chunk boundary would otherwise
+    // dup that conversation's rows — SQL `IN` only dedups within one query, not
+    // across batches). The in-memory sort above re-orders the merged union.
+    const batches = chunk([...new Set(ids)], ANALYTICS_IN_CHUNK_SIZE);
     const results = await Promise.all(batches.map((batch) => fetchRows(batch)));
     return sortBySentAt(results.flat()).map(rowToMessage);
   },
