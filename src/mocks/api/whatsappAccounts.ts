@@ -15,6 +15,15 @@ export const whatsappAccountsApi = {
     });
   },
 
+  listAccessibleAccountIds(): Promise<ID[]> {
+    // Demo mode does not model per-instance access gating: every instance is
+    // "accessible". The InboxPage intersects this with the store-scoped accounts
+    // list, so the demo keeps showing exactly what it shows today.
+    return runApi("whatsappAccountsApi", "listAccessibleAccountIds", () =>
+      selectAllWhatsAppAccounts().map((a) => a.id),
+    );
+  },
+
   async get(id: ID): Promise<IWhatsAppAccount> {
     return runApi("whatsappAccountsApi", "get", () => {
       const found = selectAllWhatsAppAccounts().find((a) => a.id === id);
