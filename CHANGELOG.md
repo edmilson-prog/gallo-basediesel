@@ -6,8 +6,32 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.115.0] — Curator · 2026-06-22
+
+**Central de conteúdo: a biblioteca de ativos e as respostas rápidas ganharam telas próprias de gestão.** Em Configurações → Conteúdo, Owner e Gestor organizam catálogos, fichas técnicas, tabelas de preço, vídeos e links num só lugar, e cada vendedor cuida das suas respostas rápidas. Junto vão a opção de excluir um número de WhatsApp conectado e vários acertos de estabilidade em sessão, login e edição de loja.
+
+### Added
+
+- **Biblioteca de ativos (gestão)** — nova tela em Configurações → Conteúdo para organizar os materiais da loja (catálogos, fichas técnicas, tabelas de preço, vídeos e links): adicionar por upload de arquivo ou por link externo, editar, publicar uma nova versão mantendo o histórico, publicar/despublicar, marcar como sensível e restringir a determinados papéis, e favoritar. Inclui prévia em tela cheia (imagem, PDF, vídeo ou link) e filtros por categoria, marca, linha e situação.
+- **Respostas rápidas (gestão)** — nova tela para organizar os atalhos de mensagem (ex.: /garantia, /prazo, /frete): cada vendedor gerencia as suas particulares e o Owner/Gestor as compartilhadas da loja. O editor mostra a prévia de como a mensagem fica preenchida (com os campos automáticos como {{nome}} e {{loja}}) e permite duplicar uma resposta da loja para as suas.
+- **Grupo "Conteúdo" nas Configurações** — reúne a Biblioteca de ativos, as Respostas rápidas e as Mídias (retenção) num mesmo lugar.
+- **Excluir número de WhatsApp** — agora é possível remover um número conectado pelo menu (⋮) na tela de números, com confirmação; a conexão é desfeita e o número sai da lista.
+
+### Changed
+
+- **Sessão por inatividade mais consistente** — a contagem regressiva do aviso agora diminui de verdade ao longo do tempo; atividade em uma aba não deixa mais as outras abas se encerrarem sozinhas; e o aviso (e os beeps) não reaparecem depois de você clicar em "Sair agora".
+
 ### Fixed
-- **Aviso de áudio no console (sessão por inatividade)** — o navegador registrava repetidamente "The AudioContext was not allowed to start" ao apenas mover o mouse ou rolar a página. O desbloqueio do som de aviso passou a ocorrer somente em interações que o navegador reconhece como gesto do usuário (clique, tecla ou toque), eliminando os avisos sem alterar o comportamento do alerta sonoro de inatividade.
+
+- **Respostas rápidas particulares e favoritos** — as respostas particulares criadas na nova tela voltam a aparecer no atalho "/" da conversa, e os favoritos e recentes da biblioteca de ativos funcionam corretamente.
+- **Filtro de marca na biblioteca** — escolher uma marca não "tranca" mais o seletor naquela marca; dá para alternar direto entre marcas.
+- **Login e sessão mais confiáveis** — corrigido um caso em que, após o encerramento por inatividade, a sessão podia ficar inconsistente (pedindo login de novo ou derrubando outros dispositivos); e uma sessão válida não é mais encerrada por uma falha momentânea ao carregar o perfil.
+- **Aviso de áudio no console (sessão por inatividade)** — o desbloqueio do som de aviso passou a ocorrer somente em interações reconhecidas como gesto do usuário (clique, tecla ou toque), eliminando os avisos repetidos no console sem alterar o alerta sonoro de inatividade.
+- **Edição de loja** — corrigido um erro que quebrava a tela ao editar os dados de uma loja.
+
+### Security
+
+- **Escrita da biblioteca de ativos restrita à gestão** — apenas Owner e Gestor podem criar, editar ou excluir itens da biblioteca de ativos; a leitura continua disponível para a equipe da loja.
 
 ## [0.114.0] — Vigil · 2026-06-22
 
