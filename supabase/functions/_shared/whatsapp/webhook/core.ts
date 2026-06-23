@@ -414,7 +414,10 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
         storeId: account.storeId,
         customerId: customer.id,
         accountId: account.id,
-        assignedSellerId: customer.sellerId,
+        // UNASSIGNED (pool): the webhook cannot know which seller sent from the
+        // phone, so it never pins the chat to the customer's wallet owner.
+        // Visibility comes from instance access (can_access_conversation).
+        assignedSellerId: null,
         lastMessageAt: parsed.timestamp,
         status: "em_andamento",
       });
@@ -507,7 +510,12 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
       storeId: account.storeId,
       customerId: customer.id,
       accountId: account.id,
-      assignedSellerId: customer.sellerId,
+      // New inbound conversations land UNASSIGNED (queue), never auto-assigned
+      // to the customer's wallet owner — they drop into the pool for whoever
+      // operates the instance to pick up. Visibility comes from instance access
+      // (the unassigned branch of can_access_conversation); the wallet
+      // (customer.seller_id) is untouched.
+      assignedSellerId: null,
       lastMessageAt: parsed.timestamp,
       status: "aguardando",
     });

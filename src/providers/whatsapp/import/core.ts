@@ -362,7 +362,14 @@ async function importChat(
       storeId: account.storeId,
       customerId: customer.id,
       accountId: account.id,
-      assignedSellerId: customer.sellerId,
+      // Imported conversations land UNASSIGNED (pool), never auto-assigned to
+      // the customer's wallet owner. Connecting an instance must drop its
+      // history into the queue for whoever operates that number to pick up —
+      // not pin hundreds of chats to the wallet owner (usually the store owner,
+      // who does not staff the inbox). Visibility comes from instance access
+      // (the unassigned branch of can_access_conversation); the wallet (the
+      // customer's seller_id, set on customer creation) is untouched.
+      assignedSellerId: null,
       status: "em_andamento",
       createdAt: oldest,
       lastMessageAt: newest,

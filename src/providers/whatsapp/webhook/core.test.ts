@@ -94,8 +94,15 @@ function makeFakeDb(state: IFakeState, opts?: { knownOutboundId?: string }): IWe
       );
       return found ? { id: found.id } : null;
     },
-    createConversation: async ({ customerId, accountId, status }) => {
-      const conversation = { id: nextId("conv"), customerId, accountId, open: true, status };
+    createConversation: async ({ customerId, accountId, status, assignedSellerId }) => {
+      const conversation = {
+        id: nextId("conv"),
+        customerId,
+        accountId,
+        open: true,
+        status,
+        assignedSellerId,
+      };
       state.conversations.push(conversation);
       return { id: conversation.id };
     },
@@ -200,6 +207,9 @@ describe("processWebhookEvent — inbound messages (RF-040/050)", () => {
     expect(state.customers).toHaveLength(1);
     expect(state.customers[0]?.sellerId).toBe("seller-manager");
     expect(state.conversations).toHaveLength(1);
+    // New inbound conversations land UNASSIGNED (queue), never auto-assigned to
+    // the customer's wallet owner — visibility is by instance access.
+    expect(state.conversations[0]).toMatchObject({ assignedSellerId: null });
     expect(state.messages).toHaveLength(1);
     expect(state.messages[0]).toMatchObject({
       provider: "evolution",
@@ -672,7 +682,9 @@ describe("processWebhookEvent — outbound echoes (real inbox spec)", () => {
 
     expect(result.outcome).toBe("echo-created");
     expect(state.customers).toHaveLength(1); // pending customer for the new number
-    expect(state.conversations[0]).toMatchObject({ status: "em_andamento" });
+    // Echo conversations also land UNASSIGNED (pool) — the webhook cannot know
+    // which seller sent from the phone, so it never pins the chat to the wallet owner.
+    expect(state.conversations[0]).toMatchObject({ status: "em_andamento", assignedSellerId: null });
     expect(state.messages[0]).toMatchObject({
       provider: "evolution",
       text: "te envio o boleto",
