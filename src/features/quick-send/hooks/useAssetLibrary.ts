@@ -6,6 +6,11 @@ import { useAssetLibraryProvider } from "@/providers/data";
 import { useAuth } from "@/features/auth/useAuth";
 import type { IAssetFilter } from "../engine/assetFiltering";
 
+// Valid-uuid sentinel for a logged-in user with no linked seller. It matches no
+// real seller row, so favorites/recents read empty instead of casting the literal
+// "anon" to uuid (prod seller_id is uuid) and 400-ing the query.
+const NO_SELLER_ID = "00000000-0000-0000-0000-000000000000";
+
 /**
  * Foundation data hook for the asset library (PRD-027). Wraps the provider in
  * TanStack Query: lists by filter, plus the seller's recents and favorites.
@@ -29,7 +34,7 @@ export function useAssetLibrary(filter: IAssetFilter): {
   // the write side (useSendAsset → recordSend) already uses currentUser.sellerId —
   // the read must match or favorites/recents are invisible in production.
   const { currentUser } = useAuth();
-  const sellerId = currentUser?.sellerId ?? "anon";
+  const sellerId = currentUser?.sellerId ?? NO_SELLER_ID;
   const [query, setQuery] = useState(filter.query ?? "");
 
   const effectiveFilter = useMemo<IAssetFilter>(
