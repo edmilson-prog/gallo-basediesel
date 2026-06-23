@@ -24,6 +24,7 @@ import { supabaseLeadsProvider } from "./leads";
 import { supabaseDistributionTracesProvider } from "./distributionTraces";
 import { supabaseRotationQueuesProvider } from "./rotationQueues";
 import { supabaseRotationParticipantsProvider } from "./rotationParticipants";
+import { buildAssignmentOrFilter } from "./assignmentFilter";
 
 /**
  * Supabase implementation of {@link IConversationsProvider} (PRD-100+).
@@ -147,7 +148,12 @@ async function searchConversations(
     p_channel: params.channel ?? null,
     p_whatsapp_account_id: params.whatsappAccountId ?? null,
     p_assigned_seller_id: params.assignedSellerId ?? null,
-    p_unassigned: params.unassigned ?? false,
+    p_unassigned: params.unassigned ?? params.assignmentAny?.unassigned ?? false,
+    p_assigned_seller_ids:
+      params.assignmentAny?.sellerIds && params.assignmentAny.sellerIds.length > 0
+        ? params.assignmentAny.sellerIds
+        : null,
+    p_include_queue: params.assignmentAny?.queue ?? false,
     p_is_sdr_active: typeof params.isSdrActive === "boolean" ? params.isSdrActive : null,
     p_tags: params.tags && params.tags.length > 0 ? params.tags : null,
     p_from_date: params.fromDate ?? null,
@@ -182,6 +188,8 @@ export const supabaseConversationsProvider: IConversationsProvider = {
     if (params.assignedSellerId !== undefined)
       query = query.eq("assigned_seller_id", params.assignedSellerId);
     if (params.unassigned) query = query.is("assigned_seller_id", null);
+    const assignmentOr = buildAssignmentOrFilter(params.assignmentAny);
+    if (assignmentOr) query = query.or(assignmentOr);
 
     if (params.status !== undefined) {
       if (Array.isArray(params.status)) {
