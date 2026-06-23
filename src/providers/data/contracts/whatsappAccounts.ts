@@ -58,6 +58,15 @@ export interface IWhatsAppAccountPatch {
  */
 export interface IWhatsAppAccountsProvider {
   list(params?: IListWhatsAppAccountsParams): Promise<IWhatsAppAccount[]>;
+  /**
+   * IDs of the WhatsApp accounts the current user may OPERATE (atendimento).
+   * - Supabase: resolved from the JWT via the `current_seller_accessible_account_ids`
+   *   RPC (same source of truth as `can_access_conversation`). Staff → all store
+   *   accounts; non-staff → only those with a rule in `whatsapp_account_access_rules`.
+   * - Mock: demo mode does NOT model the access gate → returns all (the consumer's
+   *   intersection preserves current behavior).
+   */
+  listAccessibleAccountIds(): Promise<ID[]>;
   get(id: ID): Promise<IWhatsAppAccount>;
   /** Cria uma nova instância (multi-instância). storeId vem no input (RLS). */
   create(input: Omit<IWhatsAppAccount, "id" | "createdAt">): Promise<IWhatsAppAccount>;

@@ -27,6 +27,7 @@ import { InboxEmptyState } from "../components/InboxEmptyState";
 import { QuickActions } from "../components/QuickActions";
 import { SearchInput } from "../components/SearchInput";
 import { NewConversationDialog } from "../components/NewConversationDialog";
+import { selectAccessibleAccounts } from "../utils/selectAccessibleAccounts";
 import { INBOX_STRINGS } from "../i18n/pt-BR";
 
 function useAvailableTags(): string[] {
@@ -86,15 +87,47 @@ export function InboxPage() {
     return map;
   }, [accounts]);
   const showOrigin = accounts.length > 1;
-  const connectedAccounts = useMemo(
-    () => accounts.filter((a) => a.status === "connected"),
-    [accounts],
+  // Staff (Owner/Gestor) see store-wide conversations, hence every instance of the
+  // currently selected store. Non-staff are scoped to the instances they operate.
+  const isStaffView = usePermission("conversation", "view", "store");
+  // Instances the current user may operate (PRD-011 multi-access). The instance
+  // filter and the new-conversation origin picker must show only these — not the
+  // full store-wide account list (`accounts`/`accountsById` keep all instances so
+  // wallet conversations from a non-staffed instance still resolve origin label).
+  // `null` = still loading (no instances shown yet, avoids flashing unauthorized
+  // ones). On error we fail closed (empty set). UX gate only — conversation access
+  // is enforced in the DB (can_access_conversation).
+  const [accessibleIds, setAccessibleIds] = useState<Set<ID> | null>(null);
+  useEffect(() => {
+    // Staff bypass the RPC: it is scoped by the JWT's store and cannot follow a
+    // client-side store switch, so staff just use the (store-scoped) accounts.
+    if (isStaffView) return;
+    let cancelled = false;
+    void whatsappAccountsProvider
+      .listAccessibleAccountIds()
+      .then((ids) => {
+        if (!cancelled) setAccessibleIds(new Set(ids));
+      })
+      .catch(() => {
+        if (!cancelled) setAccessibleIds(new Set());
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [whatsappAccountsProvider, isStaffView]);
+  const accessibleAccounts = useMemo(
+    () => (isStaffView ? accounts : selectAccessibleAccounts(accounts, accessibleIds)),
+    [isStaffView, accounts, accessibleIds],
+  );
+  const accessibleConnectedAccounts = useMemo(
+    () => accessibleAccounts.filter((a) => a.status === "connected"),
+    [accessibleAccounts],
   );
 
   // Assignee oversight: staff (Owner/Gestor) see store-wide conversations and
   // need to know who is handling each. Load the store's sellers once to resolve
   // names per row; skipped entirely for non-staff (the chip never renders).
-  const showAssignee = usePermission("conversation", "view", "store");
+  const showAssignee = isStaffView;
   const sellersProvider = useSellersProvider();
   const [sellersById, setSellersById] = useState<Map<ID, ISeller>>(new Map());
   useEffect(() => {
@@ -135,6 +168,20 @@ export function InboxPage() {
     reset,
     activeCount,
   } = useInboxFilters(sellerId);
+
+  // Self-heal a stale instance filter: a non-staff user may carry a persisted
+  // `?instance=<id>` (e.g. selected before their access narrowed) pointing at an
+  // instance they can no longer access. Without this, `filtersToListParams` would
+  // keep filtering the list by a hidden instance the dropdown no longer offers.
+  // Reset to "all" once the accessible set has resolved (staff are never scoped).
+  useEffect(() => {
+    if (isStaffView || accessibleIds === null) return;
+    if (filters.instance !== "all" && !accessibleIds.has(filters.instance)) {
+      setInstance("all");
+    }
+    // setInstance is a stable navigate-based setter; omit it to avoid re-running every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isStaffView, accessibleIds, filters.instance]);
 
   const availableTags = useAvailableTags();
   const realtime = useRealtimeConversations();
@@ -297,7 +344,13 @@ export function InboxPage() {
           onToggleRealtime={realtime.setEnabled}
           realtimeConnected={realtime.connected}
           sortDescription={sortDescription}
-          onNewConversation={sellerId ? () => setNewConvOpen(true) : undefined}
+          onNewConversation={
+            // Non-staff: wait for the accessible set to resolve so the dialog
+            // never shows a false "no instances" state during the RPC window.
+            sellerId && (isStaffView || accessibleIds !== null)
+              ? () => setNewConvOpen(true)
+              : undefined
+          }
         />
         <div className="border-b border-border px-3 py-2">
           <SearchInput inputRef={searchInputRef} value={filters.search} onChange={setSearch} />
@@ -305,7 +358,7 @@ export function InboxPage() {
         <InboxFilters
           state={filters}
           availableTags={availableTags}
-          instances={accounts}
+          instances={accessibleAccounts}
           onStatus={setStatus}
           onChannel={setChannel}
           onAssignment={setAssignment}
@@ -406,7 +459,7 @@ export function InboxPage() {
         <NewConversationDialog
           storeId={storeId}
           sellerId={sellerId}
-          accounts={connectedAccounts}
+          accounts={accessibleConnectedAccounts}
           onClose={() => setNewConvOpen(false)}
           onCreated={(conversationId) => {
             setNewConvOpen(false);

@@ -79,6 +79,28 @@ export const supabaseWhatsAppAccountsProvider: IWhatsAppAccountsProvider = {
     return (data as unknown as WhatsAppAccountRow[]).map(rowToWhatsAppAccount);
   },
 
+  async listAccessibleAccountIds(): Promise<ID[]> {
+    // Reuse the existing SECURITY DEFINER helper (same source of truth as
+    // can_access_conversation). It takes no args — the viewer comes from the JWT
+    // (current_seller_id / current_app_role / current_store_id). EXECUTE is
+    // already granted to `authenticated`, so no migration is needed.
+    const { data, error } = await getSupabaseClient().rpc("current_seller_accessible_account_ids");
+    if (error) {
+      throw new Error(
+        `[supabase] whatsappAccounts.listAccessibleAccountIds failed: ${error.message}`,
+      );
+    }
+    // PostgREST may return a `setof uuid` either as a scalar array (string[]) or
+    // as single-column rows ([{ <col>: string }]). Tolerate both without assuming
+    // the column name (take the row's first value when it is an object), and skip
+    // any null / non-object row defensively (typeof null === "object").
+    return ((data ?? []) as unknown[]).flatMap((row) => {
+      if (typeof row === "string") return [row as ID];
+      if (row && typeof row === "object") return [Object.values(row)[0] as ID];
+      return [];
+    });
+  },
+
   async get(id: ID): Promise<IWhatsAppAccount> {
     const { data, error } = await getSupabaseClient()
       .from(TABLE)
