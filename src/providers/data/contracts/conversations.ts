@@ -32,6 +32,20 @@ export interface IListConversationsParams extends IPaginationParams {
   toDate?: string;
   /** Conversations with no `assignedSellerId`. */
   unassigned?: boolean;
+  /**
+   * Combined assignment filter (Inbox multi-select). OR across the provided
+   * criteria; when omitted/empty, NO assignment constraint is applied. Coexists
+   * with the scalar `assignedSellerId`/`unassigned`/`isSdrActive` used by other
+   * callers (customer detail, dashboards) — the Inbox uses this instead.
+   */
+  assignmentAny?: {
+    /** Specific assigned sellers (already includes "me" resolved to an id). */
+    sellerIds?: ID[];
+    /** Pool: `assigned_seller_id IS NULL`. */
+    unassigned?: boolean;
+    /** Queue: pool + `is_sdr_active=false` + `status='aguardando'`. */
+    queue?: boolean;
+  };
   orderBy?: ConversationsOrderBy;
   orderDir?: "asc" | "desc";
 }
