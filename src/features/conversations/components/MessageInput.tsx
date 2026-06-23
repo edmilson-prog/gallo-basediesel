@@ -41,6 +41,8 @@ import { TemplatePicker, type ITemplatePickerSelection } from "@/features/templa
 import { NotesButton } from "./notes/NotesButton";
 import { InlineNoteComposer } from "./notes/InlineNoteComposer";
 import { OriginChip } from "./OriginChip";
+import { AssignToReplyBanner } from "./AssignToReplyBanner";
+import { useSelfAssign } from "../hooks/useSelfAssign";
 import { getActiveDataSource } from "@/providers/data";
 import {
   AssetPicker,
@@ -86,6 +88,10 @@ export interface IMessageInputProps {
    * the whole dialog state out of this component.
    */
   openTemplateSignal?: number;
+  /** Pool gate (assign-before-reply): block sending until the user self-assigns. */
+  mustAssignToReply?: boolean;
+  /** Called after a successful self-assign so the parent can refresh the conversation. */
+  onAssigned?: () => void;
 }
 
 const EMOJI_SET = [
@@ -153,10 +159,13 @@ export function MessageInput(props: IMessageInputProps) {
     onDraftChange,
     hideAiSuggestions = false,
     openTemplateSignal = 0,
+    mustAssignToReply = false,
+    onAssigned,
   } = props;
   const { messages } = useConversationContext();
   const window = useMetaWindow(conversation, whatsappAccount);
   const sendHook = useMessageSend(conversation, whatsappAccount);
+  const selfAssign = useSelfAssign(conversation, { onDone: onAssigned });
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [internalValue, setInternalValue] = useState("");
   const value = draft ?? internalValue;
@@ -277,6 +286,29 @@ export function MessageInput(props: IMessageInputProps) {
     return (
       <footer className="border-t border-border bg-muted/40 px-4 py-3 text-center text-xs text-muted-foreground">
         {readOnlyMessage ?? CONVERSATION_STRINGS.readOnlyAssign}
+      </footer>
+    );
+  }
+
+  // Pool gate (assign-before-reply): non-staff on an unassigned conversation.
+  // Reading stays intact upstream; here we block every send path but keep the
+  // internal-note composer reachable.
+  if (mustAssignToReply) {
+    return (
+      <footer data-tour="composer" className="border-t border-border bg-card">
+        {notesOpen && (
+          <InlineNoteComposer
+            conversationId={conversation.id}
+            storeId={conversation.storeId}
+            onClose={() => setNotesOpen(false)}
+          />
+        )}
+        <AssignToReplyBanner
+          canAssign={selfAssign.canSelfAssign}
+          assigning={selfAssign.assigning}
+          onAssign={() => void selfAssign.selfAssign()}
+          onToggleNote={() => setNotesOpen((v) => !v)}
+        />
       </footer>
     );
   }

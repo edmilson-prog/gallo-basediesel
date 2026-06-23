@@ -16,6 +16,7 @@ import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { recordAuditLog, useConversationsProvider, useSellersProvider } from "@/providers/data";
 import type { IConversation, ISeller } from "@/shared/types";
 import { INBOX_STRINGS } from "../i18n/pt-BR";
+import { useSelfAssign } from "../hooks/useSelfAssign";
 
 export interface IQuickActionsProps {
   conversation: IConversation;
@@ -40,6 +41,7 @@ export function QuickActions({ conversation, onMutated }: IQuickActionsProps) {
   const { currentUser } = useAuth();
   const conversationsProvider = useConversationsProvider();
   const sellersProvider = useSellersProvider();
+  const { selfAssign, canSelfAssign } = useSelfAssign(conversation, { onDone: onMutated });
 
   const canEditStore = usePermission("conversation", "edit", "store");
   const canEditOwn = usePermission("conversation", "edit", "own");
@@ -48,9 +50,6 @@ export function QuickActions({ conversation, onMutated }: IQuickActionsProps) {
   const isOwnConversation =
     currentUser?.sellerId != null && conversation.assignedSellerId === currentUser.sellerId;
   const canTransferOrArchive = canEditStore || (canEditOwn && isOwnConversation);
-  // A seller can claim an unassigned conversation. Requires a seller identity
-  // (admin-style users without a seller_id cannot self-assign).
-  const canSelfAssign = currentUser?.sellerId != null && !conversation.assignedSellerId;
 
   const [transferOpen, setTransferOpen] = useState(false);
   const [sellers, setSellers] = useState<ISeller[]>([]);
@@ -70,33 +69,6 @@ export function QuickActions({ conversation, onMutated }: IQuickActionsProps) {
       cancelled = true;
     };
   }, [transferOpen, canTransferOrArchive, sellersProvider, conversation.storeId]);
-
-  const handleAssignToMe = async () => {
-    if (!currentUser?.sellerId) return;
-    const sellerId = currentUser.sellerId;
-    const before = conversation.assignedSellerId;
-    try {
-      await conversationsProvider.assignSeller(conversation.id, sellerId);
-      onMutated?.();
-      showUndoableToast(INBOX_STRINGS.assignedToYou, async () => {
-        await conversationsProvider.update(conversation.id, {
-          assignedSellerId: before,
-        });
-        onMutated?.();
-      });
-      void recordAuditLog({
-        actorId: currentUser.id,
-        storeId: conversation.storeId,
-        action: "conversation.self_assign",
-        resource: "conversation",
-        resourceId: conversation.id,
-        before: { assignedSellerId: before },
-        after: { assignedSellerId: sellerId },
-      });
-    } catch {
-      toast.error(INBOX_STRINGS.actionFailed);
-    }
-  };
 
   const handleTransferTo = async (sellerId: string, sellerName: string) => {
     if (!currentUser) return;
@@ -161,7 +133,7 @@ export function QuickActions({ conversation, onMutated }: IQuickActionsProps) {
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                void handleAssignToMe();
+                void selfAssign();
               }}
               aria-label={INBOX_STRINGS.assignToMe}
             >

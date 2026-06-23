@@ -220,6 +220,13 @@ export const CONVERSATION_STRINGS = {
     description: "Envie a primeira mensagem para abrir o atendimento.",
   },
   readOnlyAssign: "Esta conversa não está atribuída a você.",
+  assignGate: {
+    title: "Conversa na fila, sem responsável",
+    description: "Assuma a conversa para responder ao cliente.",
+    assignCta: "Assumir e responder",
+    note: "Nota interna",
+    noSellerHint: "Peça a um gestor para atribuir esta conversa a você.",
+  },
 
   // Day separators
   today: "Hoje",

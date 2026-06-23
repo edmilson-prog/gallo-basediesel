@@ -8,6 +8,7 @@ import { CustomerProfileFiche } from "@/features/customers/components/CustomerPr
 import { useFicheButtonHandler } from "@/features/customers/hooks/useFicheLayout";
 import { useConversationDetail } from "../hooks/useConversationDetail";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
+import { mustAssignToReply } from "../engine/assignmentGate";
 import { useConversationEscalation } from "@/features/sdr-escalation/hooks/useConversationEscalation";
 import { ConversationHeader } from "../components/ConversationHeader";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
@@ -49,13 +50,15 @@ function ConversationRunners({
 function ConversationComboTray({
   conversation,
   whatsappAccount,
+  disabled = false,
 }: {
   conversation: IConversation;
   whatsappAccount: IWhatsAppAccount | null;
+  disabled?: boolean;
 }) {
   const { comboItems, reorderCombo, removeFromCombo, clearCombo } = useQuickSendBus();
   const { sendCombo, progress } = useComboSend(conversation, whatsappAccount);
-  if (comboItems.length === 0) return null;
+  if (disabled || comboItems.length === 0) return null;
   return (
     <ComboTray
       items={comboItems}
@@ -152,6 +155,10 @@ export function ConversationPage() {
 
   const { conversation, customer, lead, contact, whatsappAccount, assignedSeller } = detail;
 
+  // Pool gate: non-staff must self-assign before replying. Staff (store-wide
+  // viewers) are exempt — same predicate as showAssignee.
+  const mustAssign = mustAssignToReply(conversation, { isStaff: showAssignee });
+
   return (
     <TooltipProvider delayDuration={200}>
       <QuickSendBusProvider>
@@ -219,6 +226,7 @@ export function ConversationPage() {
               <ConversationComboTray
                 conversation={conversation}
                 whatsappAccount={whatsappAccount}
+                disabled={mustAssign}
               />
               <MessageInput
                 conversation={conversation}
@@ -228,6 +236,8 @@ export function ConversationPage() {
                 onDraftChange={setDraft}
                 hideAiSuggestions={copilot.placement === "strip"}
                 openTemplateSignal={templateSignal}
+                mustAssignToReply={mustAssign}
+                onAssigned={detail.refresh}
               />
             </div>
 
