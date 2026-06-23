@@ -27,6 +27,7 @@ import { InboxEmptyState } from "../components/InboxEmptyState";
 import { QuickActions } from "../components/QuickActions";
 import { SearchInput } from "../components/SearchInput";
 import { NewConversationDialog } from "../components/NewConversationDialog";
+import { selectAccessibleAccounts } from "../utils/selectAccessibleAccounts";
 import { INBOX_STRINGS } from "../i18n/pt-BR";
 
 function useAvailableTags(): string[] {
@@ -86,9 +87,35 @@ export function InboxPage() {
     return map;
   }, [accounts]);
   const showOrigin = accounts.length > 1;
-  const connectedAccounts = useMemo(
-    () => accounts.filter((a) => a.status === "connected"),
-    [accounts],
+  // Instances the current user may operate (PRD-011 multi-access). The instance
+  // filter and the new-conversation origin picker must show only these — not the
+  // full store-wide account list (`accounts`/`accountsById` keep all instances so
+  // wallet conversations from a non-staffed instance still resolve origin label).
+  // `null` = still loading (no instances shown yet, avoids flashing unauthorized
+  // ones). On error we fail closed (empty set). UX gate only — conversation access
+  // is enforced in the DB (can_access_conversation).
+  const [accessibleIds, setAccessibleIds] = useState<Set<ID> | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void whatsappAccountsProvider
+      .listAccessibleAccountIds()
+      .then((ids) => {
+        if (!cancelled) setAccessibleIds(new Set(ids));
+      })
+      .catch(() => {
+        if (!cancelled) setAccessibleIds(new Set());
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [whatsappAccountsProvider]);
+  const accessibleAccounts = useMemo(
+    () => selectAccessibleAccounts(accounts, accessibleIds),
+    [accounts, accessibleIds],
+  );
+  const accessibleConnectedAccounts = useMemo(
+    () => accessibleAccounts.filter((a) => a.status === "connected"),
+    [accessibleAccounts],
   );
 
   // Assignee oversight: staff (Owner/Gestor) see store-wide conversations and
@@ -305,7 +332,7 @@ export function InboxPage() {
         <InboxFilters
           state={filters}
           availableTags={availableTags}
-          instances={accounts}
+          instances={accessibleAccounts}
           onStatus={setStatus}
           onChannel={setChannel}
           onAssignment={setAssignment}
@@ -406,7 +433,7 @@ export function InboxPage() {
         <NewConversationDialog
           storeId={storeId}
           sellerId={sellerId}
-          accounts={connectedAccounts}
+          accounts={accessibleConnectedAccounts}
           onClose={() => setNewConvOpen(false)}
           onCreated={(conversationId) => {
             setNewConvOpen(false);
