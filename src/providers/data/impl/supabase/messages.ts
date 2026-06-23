@@ -12,6 +12,7 @@ import {
   partitionMediaRefs,
   whatsappMediaObjectPath,
 } from "@/shared/utils/mediaRef";
+import { chunk } from "@/shared/utils/chunk";
 
 /** Signed-URL lifetime for in-app playback/preview — comfortably long so a
  *  conversation left open doesn't expire mid-listen (Storage RLS still gates). */
@@ -55,6 +56,9 @@ const TABLE = "messages";
 const COLUMNS =
   "id, conversation_id, direction, author_type, author_id, provider, text, media_type, " +
   "media_url, status, sent_at, delivered_at, read_at, failure_reason, failure_code, created_at";
+/** Cap on ids per `.in("conversation_id", …)` so the request-line length stays
+ *  well under the edge's URL limit (~39 chars/id encoded → 120 ids ≈ 4.7 KB). */
+const ANALYTICS_IN_CHUNK_SIZE = 120;
 
 function rowToMessage(row: MessageRow): IMessage {
   return {
@@ -183,17 +187,43 @@ export const supabaseMessagesProvider: IMessagesProvider = {
   },
 
   async listForAnalytics(params: IListMessagesForAnalyticsParams = {}): Promise<IMessage[]> {
-    let query = getSupabaseClient().from(TABLE).select(COLUMNS);
+    const ids = params.conversationIds ?? [];
 
-    if (params.conversationIds && params.conversationIds.length > 0) {
-      query = query.in("conversation_id", params.conversationIds);
+    // Run one windowed analytics query. `batch` scopes by conversation_id
+    // (null = no conversation filter). Shared by both paths so a future filter
+    // can't diverge between them; ordering is always applied in memory below.
+    const fetchRows = async (batch: string[] | null): Promise<MessageRow[]> => {
+      let query = getSupabaseClient().from(TABLE).select(COLUMNS);
+      if (batch) query = query.in("conversation_id", batch);
+      if (params.since) query = query.gte("sent_at", params.since);
+      if (params.until) query = query.lte("sent_at", params.until);
+      const { data, error } = await query;
+      if (error) throw new Error(`[supabase] messages.listForAnalytics failed: ${error.message}`);
+      return (data ?? []) as unknown as MessageRow[];
+    };
+
+    // Sort ascending by sent_at, in memory, for BOTH paths — one ordering source
+    // of truth. Sorts a copy (the empty-ids path would otherwise mutate the live
+    // supabase-js response array in place). Byte-wise comparison (ISO 8601 is
+    // monotonic) rather than locale-sensitive.
+    const sortBySentAt = (rows: MessageRow[]): MessageRow[] =>
+      [...rows].sort((a, b) => (a.sent_at < b.sent_at ? -1 : a.sent_at > b.sent_at ? 1 : 0));
+
+    // No conversation filter → single windowed query (preserves prior behavior:
+    // an empty id set scans all messages in the window, not zero rows).
+    if (ids.length === 0) {
+      return sortBySentAt(await fetchRows(null)).map(rowToMessage);
     }
-    if (params.since) query = query.gte("sent_at", params.since);
-    if (params.until) query = query.lte("sent_at", params.until);
 
-    const { data, error } = await query.order("sent_at", { ascending: true });
-    if (error) throw new Error(`[supabase] messages.listForAnalytics failed: ${error.message}`);
-    return (data as unknown as MessageRow[]).map(rowToMessage);
+    // Chunk the `.in("conversation_id", …)` so a store-wide id set never overflows
+    // the request-line length (a single oversized `.in()` is rejected at the edge
+    // with 400 before RLS). Dedup first so chunks are provably disjoint by
+    // conversation_id (a duplicate id straddling a chunk boundary would otherwise
+    // dup that conversation's rows — SQL `IN` only dedups within one query, not
+    // across batches). The in-memory sort above re-orders the merged union.
+    const batches = chunk([...new Set(ids)], ANALYTICS_IN_CHUNK_SIZE);
+    const results = await Promise.all(batches.map((batch) => fetchRows(batch)));
+    return sortBySentAt(results.flat()).map(rowToMessage);
   },
 
   async getLastInboundAt(conversationId: ID): Promise<string | null> {

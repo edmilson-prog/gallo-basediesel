@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   useManagerDashboardProvider,
   type IManagerDashboardSnapshot,
@@ -6,6 +6,10 @@ import {
 } from "@/providers/data";
 import type { ID } from "@/shared/types";
 import type { IDashboardFiltersState, IDashboardWindow } from "./useDashboardFilters";
+
+/** Trailing-debounce window for realtime-tick refetches — coalesces bursts of
+ *  Realtime events (each bumps `refreshKey`) into a single dashboard refetch. */
+const REFRESH_DEBOUNCE_MS = 1500;
 
 const EMPTY_SNAPSHOT: IManagerDashboardSnapshot = {
   openConversations: [],
@@ -103,22 +107,59 @@ export function useDashboardSnapshot(
     [provider, paramsKey],
   );
 
-  // Reset to initial fetch whenever filters change.
+  // Always-fresh handle to fetchSnapshot so a debounced refresh that fires after
+  // a filter change still runs with the current params (no stale-closure refetch).
+  const fetchRef = useRef(fetchSnapshot);
+  fetchRef.current = fetchSnapshot;
+  // Mirror `enabled` into a ref so the debounce effect can gate on it without
+  // making `enabled` an effect dependency — otherwise flipping it true would
+  // schedule a ghost refetch for a tick the dashboard already consumed.
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Reset to initial fetch whenever filters change (or `enabled` flips). A fresh
+  // initial fetch supersedes any pending debounced refresh, so cancel the stray
+  // timer first — the debounce effect is keyed on [refreshKey] only, so neither a
+  // filter change nor an enable flip would otherwise clear an armed timer, and it
+  // would fire a redundant "refresh" ~1.5s later on top of this load.
   useEffect(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
     if (!enabled) return;
     void fetchSnapshot("initial");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paramsKey, enabled]);
 
-  // Background refresh on refreshKey bump.
+  // Background refresh on a real realtime tick (refreshKey bump) — trailing-
+  // debounced so a burst coalesces into a single refetch, always with fresh
+  // params. Depends ONLY on refreshKey; `enabled` is read via enabledRef (and
+  // re-checked when the timer fires) so flipping enabled true never schedules a
+  // refetch for an already-consumed tick — the initial-fetch effect handles the
+  // load on enable.
   useEffect(() => {
-    if (!enabled) return;
     if (refreshKey === 0) return;
-    void fetchSnapshot("refresh");
+    if (!enabledRef.current) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      debounceRef.current = null;
+      if (enabledRef.current) void fetchRef.current("refresh");
+    }, REFRESH_DEBOUNCE_MS);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey]);
 
+  // Manual refetch fires immediately and cancels any pending debounced tick so a
+  // burst already in flight doesn't double-fetch right after the manual one.
   const refetch = useCallback(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
     void fetchSnapshot("refresh");
   }, [fetchSnapshot]);
 
