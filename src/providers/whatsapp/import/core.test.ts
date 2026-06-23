@@ -100,6 +100,10 @@ describe("processImportBatch", () => {
     expect(state.conversations[0]).toMatchObject({
       status: "em_andamento",
       accountId: "acc-1",
+      // Imported conversations land in the pool, never auto-assigned to the
+      // customer's wallet owner — connecting an instance drops its history to
+      // whoever operates that number to pick up.
+      assignedSellerId: null,
       createdAt: new Date(1765400000 * 1000).toISOString(),
       lastMessageAt: new Date(1765400100 * 1000).toISOString(),
     });
