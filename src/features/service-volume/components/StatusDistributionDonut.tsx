@@ -87,10 +87,13 @@ export function StatusDistributionDonut({ data, compact = false }: IStatusDistri
   );
 
   if (compact) {
+    if (empty) {
+      return <p className="text-xs text-muted-foreground">{S.empty}</p>;
+    }
     return (
       <div className="flex items-center gap-3">
-        <div className="h-24 w-24 shrink-0">{empty ? null : chart}</div>
-        {empty ? <p className="text-xs text-muted-foreground">{S.empty}</p> : legend}
+        <div className="h-24 w-24 shrink-0">{chart}</div>
+        {legend}
       </div>
     );
   }
