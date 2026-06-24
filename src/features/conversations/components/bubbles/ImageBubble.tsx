@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import type { IMessage } from "@/shared/types";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Icon } from "@/components/Icon";
 import { BubbleChrome } from "./bubbleChrome";
 import { WhatsAppText } from "./WhatsAppText";
 import { useResolvedMediaUrl } from "../../hooks/useResolvedMediaUrl";
+import { messageToMediaItem } from "../../engine/conversationMedia";
+import { MediaViewerDialog } from "../media/MediaViewerDialog";
+import { downloadFileName, triggerMediaDownload } from "../../utils/mediaDownload";
+import { CONVERSATION_STRINGS } from "../../i18n/pt-BR";
 
 export function ImageBubble({ message, onRetry }: { message: IMessage; onRetry?: () => void }) {
   const [open, setOpen] = useState(false);
@@ -33,33 +36,53 @@ export function ImageBubble({ message, onRetry }: { message: IMessage; onRetry?:
     );
   }
 
+  function handleDownload() {
+    if (!url) return;
+    triggerMediaDownload(
+      url,
+      downloadFileName({ mediaType: message.mediaType, id: message.id, caption: message.text }),
+    );
+  }
+
   return (
     <>
       <BubbleChrome message={message} onRetry={onRetry} unpadded>
-        <button
-          type="button"
-          onClick={() => url && setOpen(true)}
-          className="block w-full overflow-hidden text-left"
-          aria-label="Abrir imagem em tamanho maior"
-        >
-          <div className="relative aspect-[4/3] w-[260px] max-w-full bg-muted">
-            {(!loaded || !url) && (
-              <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                <Icon icon="mdi:loading" className="animate-spin" size={20} />
-              </div>
-            )}
-            {url && (
-              <img
-                src={url}
-                alt={message.text || "Foto enviada"}
-                className="h-full w-full object-cover"
-                loading="lazy"
-                onLoad={() => setLoaded(true)}
-                onError={() => setErrored(true)}
-              />
-            )}
-          </div>
-        </button>
+        <div className="group relative w-full">
+          <button
+            type="button"
+            onClick={() => url && setOpen(true)}
+            className="block w-full overflow-hidden text-left"
+            aria-label="Abrir imagem em tamanho maior"
+          >
+            <div className="relative aspect-[4/3] w-[260px] max-w-full bg-muted">
+              {(!loaded || !url) && (
+                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                  <Icon icon="mdi:loading" className="animate-spin" size={20} />
+                </div>
+              )}
+              {url && (
+                <img
+                  src={url}
+                  alt={message.text || "Foto enviada"}
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                  onLoad={() => setLoaded(true)}
+                  onError={() => setErrored(true)}
+                />
+              )}
+            </div>
+          </button>
+          {url && (
+            <button
+              type="button"
+              onClick={handleDownload}
+              aria-label={CONVERSATION_STRINGS.downloadImage}
+              className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-background/80 text-foreground opacity-0 backdrop-blur transition-opacity hover:bg-background focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover:opacity-100"
+            >
+              <Icon icon="mdi:download" size={16} />
+            </button>
+          )}
+        </div>
         {message.text && (
           <WhatsAppText
             text={message.text}
@@ -68,15 +91,10 @@ export function ImageBubble({ message, onRetry }: { message: IMessage; onRetry?:
         )}
       </BubbleChrome>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-3xl p-0">
-          <DialogTitle className="sr-only">{message.text || "Imagem"}</DialogTitle>
-          <DialogDescription className="sr-only">
-            Visualização da imagem em tamanho maior
-          </DialogDescription>
-          {url && <img src={url} alt={message.text || "Foto"} className="w-full" />}
-        </DialogContent>
-      </Dialog>
+      <MediaViewerDialog
+        item={open ? messageToMediaItem(message) : null}
+        onClose={() => setOpen(false)}
+      />
     </>
   );
 }
