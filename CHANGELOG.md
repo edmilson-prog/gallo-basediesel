@@ -6,6 +6,15 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.117.0] — Custody · 2026-06-23
+
+**Controle de quem atende: assumir antes de responder e devolver para a fila.** Conversas sem responsável na fila agora pedem que o atendente assuma a conversa antes de enviar a primeira mensagem ao cliente — a leitura continua livre, só o envio espera a atribuição. E Owner e Gestor ganharam a opção de devolver uma conversa já atribuída de volta para a fila, sem precisar escolher outro atendente.
+
+### Added
+
+- **Assumir antes de responder** — quando uma conversa está na fila (sem responsável), o atendente ou vendedor passa a ver tudo normalmente, mas, no lugar do campo de mensagem, aparece um aviso "Assumir e responder". Um clique atribui a conversa a ele e libera o envio. Owner e Gestor continuam respondendo direto, sem precisar assumir. As notas internas seguem disponíveis mesmo sem assumir a conversa.
+- **Devolver para a fila** — Owner e Gestor podem tirar uma conversa de um atendente e devolvê-la para a fila (sem responsável), sem precisar escolher outro atendente. A ação fica disponível tanto na barra de ações rápidas da lista de conversas quanto no menu da conversa aberta, e tem "Desfazer" para reverter na hora. O botão só aparece quando há um responsável para remover.
+
 ## [0.116.0] — Chorus · 2026-06-23
 
 **Inbox com filtros mais flexíveis e estabilidade no Atendimento.** O filtro de Atribuição agora aceita múltiplos critérios ao mesmo tempo — "Eu + Sem atribuição", por exemplo — e o resultado combina tudo numa lista unificada. O filtro de Instância passou a mostrar apenas os números que o usuário realmente acessa. Quatro correções adicionais fecham comportamentos inesperados no Atendimento e na Análise de Atendimento.
