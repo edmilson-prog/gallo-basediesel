@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { mockAtendimentoMetricsProvider as p } from "./atendimentoMetrics";
+import { getMockState } from "@/mocks/store/mockStore";
 
 const params = {
   from: "2000-01-01T00:00:00Z",
@@ -21,6 +22,7 @@ describe("mockAtendimentoMetricsProvider", () => {
     expect(a.total).toBe(b.total);
     expect(a.total).toBeGreaterThan(0);
     expect(a.series.length).toBeGreaterThan(0);
+    expect(a.total).toBeGreaterThanOrEqual(getMockState().conversations.length);
   });
 
   it("getMessageVolume: totais batem com a soma das séries", async () => {

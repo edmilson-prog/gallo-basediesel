@@ -34,10 +34,15 @@ export const mockAtendimentoMetricsProvider: IAtendimentoMetricsProvider = {
     );
     const within = all.filter((ts) => inRange(ts, from, to));
     const series = bucketize(within, granularity);
-    // previous period of the same length, for delta
-    const span = new Date(to).getTime() - new Date(from).getTime();
-    const prevFrom = new Date(new Date(from).getTime() - span).toISOString();
-    const prevWithin = all.filter((ts) => inRange(ts, prevFrom, from));
+    // previous period of the same length, half-open [prevFrom, from) so the
+    // boundary instant `from` is not double-counted (it belongs to `within`).
+    const fromMs = new Date(from).getTime();
+    const span = new Date(to).getTime() - fromMs;
+    const prevFromMs = fromMs - span;
+    const prevWithin = all.filter((ts) => {
+      const t = new Date(ts).getTime();
+      return t >= prevFromMs && t < fromMs;
+    });
     return {
       series,
       total: within.length,
