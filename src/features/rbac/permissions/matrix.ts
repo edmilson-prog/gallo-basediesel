@@ -64,6 +64,7 @@ const OWNER_ENTRIES: ScopedActions[] = [
   p("profitability", ["view"], "all"),
   p("inventory", ["view", "edit"], "all"),
   p("customer_service_analytics", ["view"], "all"),
+  p("service_volume", ["view"], "all"),
   p("insight", ["view", "edit", "delete"], "all"),
   p("storefront_admin", ["view", "edit"], "all"),
   p("ecommerce_integration", ["view", "edit"], "all"),
@@ -107,6 +108,7 @@ const GESTOR_ENTRIES: ScopedActions[] = [
   p("profitability", ["view"], "store"),
   p("inventory", ["view"], "store"),
   p("customer_service_analytics", ["view"], "store"),
+  p("service_volume", ["view"], "store"),
   p("insight", ["view", "edit"], "store"),
   // Gestor: read-only on the storefront admin dashboard/analysis (PRD-066 RF-023).
   p("storefront_admin", ["view"], "store"),
