@@ -26,6 +26,12 @@ export interface IDashboardFiltersSearch {
   vendedor?: string;
   loja?: string;
   canal?: string;
+  aba?: string;
+  vg?: string;   // granularidade do volume: day|week|month
+  vper?: string; // período do volume: 24h|7d|30d|custom
+  vde?: string;  // custom from (ISO date)
+  vate?: string; // custom to (ISO date)
+  vloja?: string;
 }
 
 const VALID_PERIOD = new Set<PeriodPreset>(["today", "yesterday", "7d", "30d", "custom"]);
@@ -130,6 +136,12 @@ export function validateDashboardSearch(raw: Record<string, unknown>): IDashboar
   ) {
     out.canal = raw.canal;
   }
+  if (typeof raw.aba === "string" && (raw.aba === "operacao" || raw.aba === "atendimento")) out.aba = raw.aba;
+  if (typeof raw.vg === "string" && ["day", "week", "month"].includes(raw.vg)) out.vg = raw.vg;
+  if (typeof raw.vper === "string" && ["24h", "7d", "30d", "custom"].includes(raw.vper)) out.vper = raw.vper;
+  if (typeof raw.vde === "string" && raw.vde.length > 0) out.vde = raw.vde;
+  if (typeof raw.vate === "string" && raw.vate.length > 0) out.vate = raw.vate;
+  if (typeof raw.vloja === "string" && raw.vloja.length > 0) out.vloja = raw.vloja;
   return out;
 }
 

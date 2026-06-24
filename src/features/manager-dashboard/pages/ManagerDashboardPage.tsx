@@ -5,6 +5,11 @@ import { useCurrentStore } from "@/features/multistore";
 import { DashboardLayout } from "@/features/shell/layouts";
 import { EmptyState } from "@/features/shell/components/EmptyState";
 import { Icon } from "@/components/Icon";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { usePermission } from "@/features/rbac/hooks/usePermission";
+import { ServiceVolumePage } from "@/features/service-volume";
+import { useServiceVolumeFilters } from "@/features/service-volume/hooks/useServiceVolumeFilters";
+import { SERVICE_VOLUME_STRINGS as SV } from "@/features/service-volume/i18n/pt-BR";
 import { useRealtimeConversations } from "@/features/conversations/hooks/useRealtimeConversations";
 import { useDashboardFilters } from "../hooks/useDashboardFilters";
 import { useDashboardSnapshot } from "../hooks/useDashboardSnapshot";
@@ -77,6 +82,8 @@ export function ManagerDashboardPage() {
   const carteira = useCarteiraHealth(snapshot);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const canEditSettings = userRole === "Owner";
+  const canViewVolume = usePermission("service_volume", "view");
+  const volume = useServiceVolumeFilters();
 
   const goToInbox = (params: Record<string, string>) => {
     const search: Record<string, string> = {};
@@ -100,175 +107,188 @@ export function ManagerDashboardPage() {
 
   return (
     <DashboardLayout>
-      <header className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex flex-col gap-1">
-          <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-foreground">
-            <Icon icon="mdi:view-dashboard-outline" size={26} className="text-primary" />
-            {MANAGER_DASHBOARD_STRINGS.pageTitle}
-          </h1>
-          <p className="text-sm text-muted-foreground">{MANAGER_DASHBOARD_STRINGS.pageSubtitle}</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => realtime.setEnabled(!realtime.enabled)}
-          className="inline-flex items-center gap-2 self-start rounded-full border bg-card px-3 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/60 sm:self-auto"
-          aria-label={
-            realtime.enabled
-              ? "Pausar atualização em tempo real"
-              : "Retomar atualização em tempo real"
-          }
-        >
-          <span
-            className={`h-2 w-2 rounded-full ${realtime.enabled ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/40"}`}
-            aria-hidden="true"
-          />
-          {realtime.enabled ? "Tempo real ativo" : "Atualização pausada"}
-        </button>
-      </header>
+      <Tabs value={volume.state.tab} onValueChange={(v) => volume.setTab(v as "operacao" | "atendimento")}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="operacao">{SV.tabOperacao}</TabsTrigger>
+          {canViewVolume && <TabsTrigger value="atendimento">{SV.tabAtendimento}</TabsTrigger>}
+        </TabsList>
+        <TabsContent value="operacao">
+          <header className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex flex-col gap-1">
+              <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-foreground">
+                <Icon icon="mdi:view-dashboard-outline" size={26} className="text-primary" />
+                {MANAGER_DASHBOARD_STRINGS.pageTitle}
+              </h1>
+              <p className="text-sm text-muted-foreground">{MANAGER_DASHBOARD_STRINGS.pageSubtitle}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => realtime.setEnabled(!realtime.enabled)}
+              className="inline-flex items-center gap-2 self-start rounded-full border bg-card px-3 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/60 sm:self-auto"
+              aria-label={
+                realtime.enabled
+                  ? "Pausar atualização em tempo real"
+                  : "Retomar atualização em tempo real"
+              }
+            >
+              <span
+                className={`h-2 w-2 rounded-full ${realtime.enabled ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/40"}`}
+                aria-hidden="true"
+              />
+              {realtime.enabled ? "Tempo real ativo" : "Atualização pausada"}
+            </button>
+          </header>
 
-      <div className="mb-6">
-        <DashboardFilters
-          state={filters.filters}
-          storeLocked={storeLocked}
-          onPeriod={filters.setPeriod}
-          onSeller={filters.setSeller}
-          onStore={filters.setStore}
-          onChannel={filters.setChannel}
-          onReset={filters.reset}
-          activeCount={filters.activeCount}
-          onOpenSettings={canEditSettings ? () => setSettingsOpen(true) : undefined}
-        />
-      </div>
+          <div className="mb-6">
+            <DashboardFilters
+              state={filters.filters}
+              storeLocked={storeLocked}
+              onPeriod={filters.setPeriod}
+              onSeller={filters.setSeller}
+              onStore={filters.setStore}
+              onChannel={filters.setChannel}
+              onReset={filters.reset}
+              activeCount={filters.activeCount}
+              onOpenSettings={canEditSettings ? () => setSettingsOpen(true) : undefined}
+            />
+          </div>
 
-      <section
-        className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
-        aria-label="Indicadores principais"
-      >
-        <KpiCard
-          icon="mdi:timer-sand"
-          label={MANAGER_DASHBOARD_STRINGS.kpiTmaLabel}
-          shortLabel={MANAGER_DASHBOARD_STRINGS.kpiTmaShort}
-          helpText={MANAGER_DASHBOARD_STRINGS.kpiTmaHelp}
-          value={kpis.tmaMinutes.current}
-          formatValue={formatMinutes}
-          trend={kpis.tmaMinutes.trend}
-          isLoading={isLoading}
-          hasError={Boolean(error) && !isLoading}
-          onRetry={refetch}
-          onClick={() => goToInbox({ status: "resolvida" })}
-        />
-        <KpiCard
-          icon="mdi:reply-outline"
-          label={MANAGER_DASHBOARD_STRINGS.kpiTmrLabel}
-          shortLabel={MANAGER_DASHBOARD_STRINGS.kpiTmrShort}
-          helpText={MANAGER_DASHBOARD_STRINGS.kpiTmrHelp}
-          value={kpis.tmrMinutes.current}
-          formatValue={formatMinutes}
-          trend={kpis.tmrMinutes.trend}
-          isLoading={isLoading}
-          hasError={Boolean(error) && !isLoading}
-          onRetry={refetch}
-          onClick={() => goToInbox({ status: "em_andamento" })}
-        />
-        <KpiCard
-          icon="mdi:check-circle-outline"
-          label={MANAGER_DASHBOARD_STRINGS.kpiResolutionLabel}
-          shortLabel={MANAGER_DASHBOARD_STRINGS.kpiResolutionShort}
-          helpText={MANAGER_DASHBOARD_STRINGS.kpiResolutionHelp}
-          value={kpis.resolutionRatePct.current}
-          formatValue={formatPercent}
-          trend={kpis.resolutionRatePct.trend}
-          isLoading={isLoading}
-          hasError={Boolean(error) && !isLoading}
-          onRetry={refetch}
-          onClick={() => goToInbox({ status: "resolvida" })}
-        />
-        <KpiCard
-          icon="mdi:inbox-arrow-down-outline"
-          label={MANAGER_DASHBOARD_STRINGS.kpiBacklogLabel}
-          shortLabel={MANAGER_DASHBOARD_STRINGS.kpiBacklogShort}
-          helpText={MANAGER_DASHBOARD_STRINGS.kpiBacklogHelp}
-          value={kpis.backlog.current}
-          isLoading={isLoading}
-          hasError={Boolean(error) && !isLoading}
-          onRetry={refetch}
-          onClick={() => goToInbox({ status: "aguardando" })}
-        />
-      </section>
+          <section
+            className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+            aria-label="Indicadores principais"
+          >
+            <KpiCard
+              icon="mdi:timer-sand"
+              label={MANAGER_DASHBOARD_STRINGS.kpiTmaLabel}
+              shortLabel={MANAGER_DASHBOARD_STRINGS.kpiTmaShort}
+              helpText={MANAGER_DASHBOARD_STRINGS.kpiTmaHelp}
+              value={kpis.tmaMinutes.current}
+              formatValue={formatMinutes}
+              trend={kpis.tmaMinutes.trend}
+              isLoading={isLoading}
+              hasError={Boolean(error) && !isLoading}
+              onRetry={refetch}
+              onClick={() => goToInbox({ status: "resolvida" })}
+            />
+            <KpiCard
+              icon="mdi:reply-outline"
+              label={MANAGER_DASHBOARD_STRINGS.kpiTmrLabel}
+              shortLabel={MANAGER_DASHBOARD_STRINGS.kpiTmrShort}
+              helpText={MANAGER_DASHBOARD_STRINGS.kpiTmrHelp}
+              value={kpis.tmrMinutes.current}
+              formatValue={formatMinutes}
+              trend={kpis.tmrMinutes.trend}
+              isLoading={isLoading}
+              hasError={Boolean(error) && !isLoading}
+              onRetry={refetch}
+              onClick={() => goToInbox({ status: "em_andamento" })}
+            />
+            <KpiCard
+              icon="mdi:check-circle-outline"
+              label={MANAGER_DASHBOARD_STRINGS.kpiResolutionLabel}
+              shortLabel={MANAGER_DASHBOARD_STRINGS.kpiResolutionShort}
+              helpText={MANAGER_DASHBOARD_STRINGS.kpiResolutionHelp}
+              value={kpis.resolutionRatePct.current}
+              formatValue={formatPercent}
+              trend={kpis.resolutionRatePct.trend}
+              isLoading={isLoading}
+              hasError={Boolean(error) && !isLoading}
+              onRetry={refetch}
+              onClick={() => goToInbox({ status: "resolvida" })}
+            />
+            <KpiCard
+              icon="mdi:inbox-arrow-down-outline"
+              label={MANAGER_DASHBOARD_STRINGS.kpiBacklogLabel}
+              shortLabel={MANAGER_DASHBOARD_STRINGS.kpiBacklogShort}
+              helpText={MANAGER_DASHBOARD_STRINGS.kpiBacklogHelp}
+              value={kpis.backlog.current}
+              isLoading={isLoading}
+              hasError={Boolean(error) && !isLoading}
+              onRetry={refetch}
+              onClick={() => goToInbox({ status: "aguardando" })}
+            />
+          </section>
 
-      <section className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2" aria-label="Carga e volume">
-        <SellerLoadList
-          entries={sellerLoad}
-          overloadThreshold={settings.settings.sellerOverloadThreshold}
-          isLoading={isLoading}
-          onSellerClick={(sellerId) => goToInbox({ assignment: sellerId, status: "em_andamento" })}
-        />
-        <VolumeHeatmap
-          data={heatmap}
-          isLoading={isLoading}
-          onCellClick={(day, hour) => {
-            const now = new Date();
-            const offsetToTarget = day - now.getDay();
-            const target = new Date(now);
-            target.setDate(now.getDate() + offsetToTarget);
-            target.setHours(hour, 0, 0, 0);
-            const end = new Date(target.getTime() + 3600_000 - 1);
-            void navigate({
-              to: "/app/atendimento",
-              search: {
-                period: "30d",
-                q: `${target.toISOString().slice(0, 10)} ${hour}h-${hour + 1}h`,
-              },
-            });
-            // The inbox filter doesn't natively accept a time range; we land on
-            // the recent-period view and the query reminds the user of the slice.
-            void end;
-          }}
-        />
-      </section>
+          <section className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2" aria-label="Carga e volume">
+            <SellerLoadList
+              entries={sellerLoad}
+              overloadThreshold={settings.settings.sellerOverloadThreshold}
+              isLoading={isLoading}
+              onSellerClick={(sellerId) => goToInbox({ assignment: sellerId, status: "em_andamento" })}
+            />
+            <VolumeHeatmap
+              data={heatmap}
+              isLoading={isLoading}
+              onCellClick={(day, hour) => {
+                const now = new Date();
+                const offsetToTarget = day - now.getDay();
+                const target = new Date(now);
+                target.setDate(now.getDate() + offsetToTarget);
+                target.setHours(hour, 0, 0, 0);
+                const end = new Date(target.getTime() + 3600_000 - 1);
+                void navigate({
+                  to: "/app/atendimento",
+                  search: {
+                    period: "30d",
+                    q: `${target.toISOString().slice(0, 10)} ${hour}h-${hour + 1}h`,
+                  },
+                });
+                // The inbox filter doesn't natively accept a time range; we land on
+                // the recent-period view and the query reminds the user of the slice.
+                void end;
+              }}
+            />
+          </section>
 
-      <section
-        className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
-        aria-label="Metas, positivação, saúde da carteira, top performers e indicadores"
-      >
-        <GoalsWidget storeId={currentStore?.id ?? "00000000-0000-0000-0000-000000000001"} />
-        <PositivationWidget storeId={currentStore?.id ?? "00000000-0000-0000-0000-000000000001"} />
-        <PortfolioHealthWidget storeId={currentStore?.id ?? "00000000-0000-0000-0000-000000000001"} />
-        <TopPerformersWidget storeId={currentStore?.id ?? "00000000-0000-0000-0000-000000000001"} />
-        <div className="sm:col-span-2 lg:col-span-4">
-          <IndicatorsWidget storeId={currentStore?.id ?? "00000000-0000-0000-0000-000000000001"} />
-        </div>
-      </section>
+          <section
+            className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+            aria-label="Metas, positivação, saúde da carteira, top performers e indicadores"
+          >
+            <GoalsWidget storeId={currentStore?.id ?? "00000000-0000-0000-0000-000000000001"} />
+            <PositivationWidget storeId={currentStore?.id ?? "00000000-0000-0000-0000-000000000001"} />
+            <PortfolioHealthWidget storeId={currentStore?.id ?? "00000000-0000-0000-0000-000000000001"} />
+            <TopPerformersWidget storeId={currentStore?.id ?? "00000000-0000-0000-0000-000000000001"} />
+            <div className="sm:col-span-2 lg:col-span-4">
+              <IndicatorsWidget storeId={currentStore?.id ?? "00000000-0000-0000-0000-000000000001"} />
+            </div>
+          </section>
 
-      <section
-        className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2"
-        aria-label="Insights e e-commerce"
-      >
-        <CriticalInsightsWidget storeId={currentStore?.id ?? "00000000-0000-0000-0000-000000000001"} />
-        <EcommerceOrdersWidget storeId={currentStore?.id ?? "00000000-0000-0000-0000-000000000001"} />
-      </section>
+          <section
+            className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2"
+            aria-label="Insights e e-commerce"
+          >
+            <CriticalInsightsWidget storeId={currentStore?.id ?? "00000000-0000-0000-0000-000000000001"} />
+            <EcommerceOrdersWidget storeId={currentStore?.id ?? "00000000-0000-0000-0000-000000000001"} />
+          </section>
 
-      <section
-        className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2"
-        aria-label="Saúde da carteira e alertas"
-      >
-        <CarteiraHealthDonut
-          data={carteira}
-          isLoading={isLoading}
-          onSliceClick={(status) => void navigate({ to: "/app/clientes", search: { status } })}
-        />
-        <ActiveAlertsList />
-      </section>
+          <section
+            className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2"
+            aria-label="Saúde da carteira e alertas"
+          >
+            <CarteiraHealthDonut
+              data={carteira}
+              isLoading={isLoading}
+              onSliceClick={(status) => void navigate({ to: "/app/clientes", search: { status } })}
+            />
+            <ActiveAlertsList />
+          </section>
 
-      {canEditSettings && (
-        <AlertSettingsModal
-          open={settingsOpen}
-          onOpenChange={setSettingsOpen}
-          initial={settings.settings}
-          onSave={(next) => settings.update(next)}
-          saving={settings.saving}
-        />
-      )}
+          {canEditSettings && (
+            <AlertSettingsModal
+              open={settingsOpen}
+              onOpenChange={setSettingsOpen}
+              initial={settings.settings}
+              onSave={(next) => settings.update(next)}
+              saving={settings.saving}
+            />
+          )}
+        </TabsContent>
+        {canViewVolume && (
+          <TabsContent value="atendimento">
+            <ServiceVolumePage />
+          </TabsContent>
+        )}
+      </Tabs>
     </DashboardLayout>
   );
 }
