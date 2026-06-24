@@ -6,6 +6,19 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.118.0] — Lens · 2026-06-24
+
+**Visualizador de imagens que cabe na tela e download de mídias no atendimento.** As imagens ampliadas, principalmente as em pé (como comprovantes), deixaram de estourar os limites da tela, e agora é possível baixar imagens, áudios, vídeos e documentos das conversas — tanto na própria conversa quanto no painel de Mídias.
+
+### Added
+
+- **Download de mídias no atendimento** — agora dá para baixar imagens, áudios, vídeos e documentos das conversas direto para o computador ou o celular, tanto na própria conversa quanto no painel de Mídias. Nas miniaturas, o botão de baixar aparece ao passar o mouse; ao ampliar uma imagem ou vídeo, o botão fica sempre visível na barra de cima, ao lado do botão de fechar.
+
+### Fixed
+
+- **Imagem ampliada estourava a tela** — ao clicar numa imagem para ver maior (especialmente fotos em pé, como comprovantes), ela passava dos limites da tela e escondia o restante das informações e o próprio botão de fechar. Agora a imagem sempre se ajusta à tela, com os botões de baixar e fechar sempre acessíveis.
+- **Documentos abriam em vez de baixar** — o botão de baixar documentos às vezes apenas abria o arquivo numa nova aba em vez de salvá-lo. Agora o download salva o arquivo de fato no dispositivo.
+
 ## [0.117.0] — Custody · 2026-06-23
 
 **Controle de quem atende: assumir antes de responder e devolver para a fila.** Conversas sem responsável na fila agora pedem que o atendente assuma a conversa antes de enviar a primeira mensagem ao cliente — a leitura continua livre, só o envio espera a atribuição. E Owner e Gestor ganharam a opção de devolver uma conversa já atribuída de volta para a fila, sem precisar escolher outro atendente.
