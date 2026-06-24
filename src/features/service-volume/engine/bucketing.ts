@@ -38,6 +38,6 @@ export function bucketize(timestamps: string[], g: Granularity): MetricBucket[] 
 export function averagePerDay(timestamps: string[], fromIso: string, toIso: string): number {
   const from = new Date(fromIso).getTime();
   const to = new Date(toIso).getTime();
-  const days = Math.max(1, Math.ceil((to - from) / 86_400_000));
+  const days = Math.max(1, Math.floor((to - from) / 86_400_000) + 1);
   return Math.round((timestamps.length / days) * 10) / 10;
 }

@@ -40,4 +40,19 @@ describe("averagePerDay", () => {
     );
     expect(avg).toBe(2);
   });
+  it("mesmo dia (intervalo sub-24h) → 1 dia", () => {
+    expect(
+      averagePerDay(["2026-06-15T10:00:00Z"], "2026-06-15T00:00:00Z", "2026-06-15T23:59:59Z"),
+    ).toBe(1);
+  });
+  it("intervalo custom meia-noite a meia-noite conta dias inclusivos (jun 1→30 = 30 dias)", () => {
+    // 2 eventos / 30 dias = 0.0667 → arredonda para 0.1
+    expect(
+      averagePerDay(
+        ["2026-06-02T10:00:00Z", "2026-06-20T10:00:00Z"],
+        "2026-06-01T00:00:00Z",
+        "2026-06-30T00:00:00Z",
+      ),
+    ).toBe(0.1);
+  });
 });
