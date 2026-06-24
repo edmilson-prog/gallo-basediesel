@@ -14,6 +14,7 @@ import {
 } from "../../utils/audioPlayback";
 import { CONVERSATION_STRINGS } from "../../i18n/pt-BR";
 import { useResolvedMediaUrl } from "../../hooks/useResolvedMediaUrl";
+import { downloadFileName, triggerMediaDownload } from "../../utils/mediaDownload";
 
 const BAR_COUNT = 32;
 
@@ -244,6 +245,19 @@ function RealAudioPlayer({
           {formatDuration(playing || current > 0 ? current : effDuration)}
         </span>
         <PlaybackRateChip rate={rate} onCycle={cycleRate} />
+        <button
+          type="button"
+          onClick={() =>
+            triggerMediaDownload(
+              url,
+              downloadFileName({ mediaType: message.mediaType, id: message.id, caption: message.text }),
+            )
+          }
+          aria-label={CONVERSATION_STRINGS.downloadAudio}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Icon icon="mdi:download" size={15} />
+        </button>
       </div>
       <p className="mt-1.5 text-[10px] text-muted-foreground">
         {CONVERSATION_STRINGS.audioTranscription}
