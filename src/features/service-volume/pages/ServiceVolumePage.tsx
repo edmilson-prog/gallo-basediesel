@@ -44,7 +44,7 @@ export function ServiceVolumePage() {
       />
       {isEmptyEverywhere && (
         <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-          {SERVICE_VOLUME_STRINGS.prodPlaceholder}
+          {SERVICE_VOLUME_STRINGS.emptyAll}
         </div>
       )}
       <NovosAtendimentosChart data={m.novos.data} />
