@@ -226,6 +226,18 @@ export const conversationsApi = {
     });
   },
 
+  async unassign(id: ID): Promise<IConversation> {
+    return runApi("conversationsApi", "unassign", () => {
+      // Spread-merge in patchById sets the field to `undefined`, which the store
+      // reads back as "no assignee" (pool) — the mock equivalent of NULL.
+      const updated = patchById("conversations", id, {
+        assignedSellerId: undefined,
+      });
+      if (!updated) throw new MockNotFoundError("conversation", id);
+      return updated;
+    });
+  },
+
   async archive(id: ID): Promise<void> {
     return runApi("conversationsApi", "archive", () => {
       patchById("conversations", id, { status: "arquivada" });

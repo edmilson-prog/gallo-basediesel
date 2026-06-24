@@ -310,6 +310,24 @@ export const supabaseConversationsProvider: IConversationsProvider = {
     return rowToConversation(data as ConversationRow);
   },
 
+  async unassign(id: ID): Promise<IConversation> {
+    // Direct table UPDATE to null the assignee — returns the conversation to the
+    // pool/queue. Unlike assignSeller (which must hand a row OUT of a seller's
+    // read scope, hence the SECURITY DEFINER RPC), nulling the column is
+    // authorized directly by the conversations_update policy whenever is_staff()
+    // (USING + WITH CHECK). A non-staff caller is rejected by RLS; the UI gates
+    // the action to staff, so this never runs for them.
+    const { data, error } = await getSupabaseClient()
+      .from(TABLE)
+      .update({ assigned_seller_id: null, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select(COLUMNS)
+      .single();
+    if (error)
+      throw new Error(`[supabase] conversations.unassign(${id}) failed: ${error.message}`);
+    return rowToConversation(data as ConversationRow);
+  },
+
   async archive(id: ID): Promise<void> {
     const { error } = await getSupabaseClient()
       .from(TABLE)

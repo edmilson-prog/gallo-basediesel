@@ -31,6 +31,8 @@ import { TransferDialog } from "./dialogs/TransferDialog";
 import { NoteDialog } from "./dialogs/NoteDialog";
 import { StatusControlModeSubmenu } from "./status/StatusControlModeSubmenu";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
+import { useReturnToQueue } from "../hooks/useReturnToQueue";
+import { canReturnToQueue } from "../engine/assignmentGate";
 import { useUnreadTracking } from "../hooks/useUnreadTracking";
 import type { StatusControlMode } from "../engine/statusControlMode";
 
@@ -79,6 +81,9 @@ export function ConversationMenu({
   const isOwnConversation =
     currentUser?.sellerId != null && conversation.assignedSellerId === currentUser.sellerId;
   const canManageThis = canEditStore || (canEditOwn && isOwnConversation);
+  // Staff-only return-to-queue (RLS), only when there is an assignee to remove.
+  const showReturnToQueue = canReturnToQueue(conversation, { isStaff: canEditStore });
+  const { returnToQueue } = useReturnToQueue(conversation, { onDone: onMutated });
 
   const [transferOpen, setTransferOpen] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
@@ -331,6 +336,15 @@ export function ConversationMenu({
                 {CONVERSATION_STRINGS.menu.transfer}
               </DropdownMenuItem>
             </>
+          )}
+          {showReturnToQueue && (
+            <DropdownMenuItem
+              onSelect={() => void returnToQueue()}
+              className="text-severity-warning focus:text-severity-warning"
+            >
+              <Icon icon="mdi:account-arrow-left-outline" size={14} className="mr-2" />
+              {CONVERSATION_STRINGS.menu.returnToQueue}
+            </DropdownMenuItem>
           )}
           {canEditStore && (
             <>

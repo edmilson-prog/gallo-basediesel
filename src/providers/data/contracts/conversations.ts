@@ -101,6 +101,13 @@ export interface IConversationsProvider {
   update(id: ID, patch: Partial<IConversation>): Promise<IConversation>;
   markRead(id: ID): Promise<IConversation>;
   assignSeller(id: ID, sellerId: ID): Promise<IConversation>;
+  /**
+   * Remove the assignee — return the conversation to the pool/queue
+   * (`assigned_seller_id = null`). Allowed only to staff at the RLS layer
+   * (`conversations_update` WITH CHECK requires `is_staff()` to null the
+   * column); the UI hides the action for non-staff. Symmetric with assignSeller.
+   */
+  unassign(id: ID): Promise<IConversation>;
   archive(id: ID): Promise<void>;
   /**
    * Create a new inbound conversation. Runs the distribution engine (PRD-013)

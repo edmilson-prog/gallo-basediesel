@@ -30,6 +30,7 @@ export const mockConversationsProvider: IConversationsProvider = {
   },
   markRead: (id) => conversationsApi.markRead(id),
   assignSeller: (id, sellerId) => conversationsApi.assignSeller(id, sellerId),
+  unassign: (id) => conversationsApi.unassign(id),
   archive: (id) => conversationsApi.archive(id),
   listContacts: async (conversationIds: ID[]): Promise<IConversationContact[]> => {
     // No RLS in the mock store — resolve each conversation's contact directly
