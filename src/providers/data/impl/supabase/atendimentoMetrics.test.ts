@@ -24,8 +24,9 @@ describe("supabaseAtendimentoMetricsProvider", () => {
 
   it("maps undefined storeId/sellerId to null params", async () => {
     rpc.mockResolvedValue({ data: { slices: [], total: 0 }, error: null });
-    await P.getStatusDistribution({ ...PARAMS, storeId: undefined });
+    const out = await P.getStatusDistribution({ ...PARAMS, storeId: undefined });
     expect(rpc).toHaveBeenCalledWith("service_volume_status_distribution", { p_store_id: null, p_seller_id: null });
+    expect(out).toEqual({ slices: [], total: 0 });
   });
 
   it("passes audience to messages_by_user", async () => {
@@ -40,6 +41,15 @@ describe("supabaseAtendimentoMetricsProvider", () => {
     rpc.mockResolvedValue({ data: null, error: null });
     const out = await P.getMessageVolume(PARAMS);
     expect(out).toEqual({ series: [], totalSent: 0, totalReceived: 0 });
+  });
+
+  it("getAccumulatedChats passes granularity and returns the fallback on null", async () => {
+    rpc.mockResolvedValue({ data: null, error: null });
+    const out = await P.getAccumulatedChats(PARAMS);
+    expect(rpc).toHaveBeenCalledWith("service_volume_accumulated_chats", {
+      p_store_id: "store-1", p_from: PARAMS.from, p_to: PARAMS.to, p_granularity: "day", p_seller_id: null,
+    });
+    expect(out).toEqual({ series: [], total: 0 });
   });
 
   it("throws when the RPC returns an error", async () => {
