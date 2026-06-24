@@ -84,6 +84,7 @@ export function ManagerDashboardPage() {
   const canEditSettings = userRole === "Owner";
   const canViewVolume = usePermission("service_volume", "view");
   const volume = useServiceVolumeFilters();
+  const activeTab = canViewVolume ? volume.state.tab : "operacao";
 
   const goToInbox = (params: Record<string, string>) => {
     const search: Record<string, string> = {};
@@ -107,7 +108,7 @@ export function ManagerDashboardPage() {
 
   return (
     <DashboardLayout>
-      <Tabs value={volume.state.tab} onValueChange={(v) => volume.setTab(v as "operacao" | "atendimento")}>
+      <Tabs value={activeTab} onValueChange={(v) => volume.setTab(v as "operacao" | "atendimento")}>
         <TabsList className="mb-4">
           <TabsTrigger value="operacao">{SV.tabOperacao}</TabsTrigger>
           {canViewVolume && <TabsTrigger value="atendimento">{SV.tabAtendimento}</TabsTrigger>}
