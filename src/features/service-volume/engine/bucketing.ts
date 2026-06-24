@@ -1,8 +1,5 @@
-export type Granularity = "day" | "week" | "month";
-export interface MetricBucket {
-  bucket: string;
-  value: number;
-}
+import type { Granularity, MetricBucket } from "@/shared/types/service-volume";
+export type { Granularity, MetricBucket };
 
 function pad(n: number): string {
   return String(n).padStart(2, "0");
