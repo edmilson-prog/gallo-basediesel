@@ -208,8 +208,8 @@ as $function$
     'series', coalesce((
       select jsonb_agg(jsonb_build_object('bucket', bucket, 'sent', sent, 'received', received) order by bucket)
       from series), '[]'::jsonb),
-    'totalSent', (select count(*)::int from base where direction = 'out'),
-    'totalReceived', (select count(*)::int from base where direction = 'in')
+    'totalSent', coalesce((select sum(sent) from series), 0)::int,
+    'totalReceived', coalesce((select sum(received) from series), 0)::int
   );
 $function$;
 
