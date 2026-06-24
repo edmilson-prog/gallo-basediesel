@@ -9,6 +9,9 @@ describe("formatHandleTime", () => {
   it("menos de 1 min → segundos", () => {
     expect(formatHandleTime(45_000)).toBe("45s");
   });
+  it("limite superior do sub-minuto → 59s", () => {
+    expect(formatHandleTime(59_999)).toBe("59s");
+  });
   it("minutos", () => {
     expect(formatHandleTime(12 * 60_000)).toBe("12m");
   });
@@ -17,5 +20,8 @@ describe("formatHandleTime", () => {
   });
   it("horas exatas omitem minutos", () => {
     expect(formatHandleTime(2 * 3_600_000)).toBe("2h");
+  });
+  it("exatamente 1 minuto → 1m", () => {
+    expect(formatHandleTime(60_000)).toBe("1m");
   });
 });
