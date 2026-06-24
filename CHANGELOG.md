@@ -6,6 +6,24 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.119.0] — Cadence · 2026-06-24
+
+**Painel de Atendimento: o volume e o fluxo das conversas em gráficos.** A tela inicial ganhou uma nova aba "Atendimento", ao lado de "Operação", com uma visão de quanto se atende ao longo do tempo — quantos atendimentos novos surgem por dia, semana ou mês, quantas mensagens entram e saem, quem mais atende e como as conversas se distribuem entre os status. E a Caixa de entrada ganhou, no topo, um cartão-resumo de status que leva direto a esse painel num clique. Disponível para Dono e Gestor.
+
+### Added
+
+- **Aba "Atendimento" na tela inicial** — ao lado de "Operação", reúne os números do atendimento no período escolhido: novos atendimentos (com média por dia), total de conversas acumuladas, tempo médio de atendimento por ciclo e total de mensagens enviadas e recebidas. Dá para escolher a granularidade (dia, semana ou mês), o período (24 horas, 7 dias, 30 dias ou personalizado) e, para o Dono, a loja.
+- **Gráfico de novos atendimentos por período** — o destaque do painel: mostra quantos atendimentos novos surgiram em cada dia, semana ou mês, com linha de média e o total no topo, para enxergar picos e quedas de demanda de relance.
+- **Mensagens enviadas × recebidas ao longo do tempo** — duas linhas que comparam o volume de mensagens que saem e que chegam, período a período.
+- **Mensagens por atendente** — barras com quanto cada pessoa atendeu, alternando entre atendimento humano, automação ou os dois somados.
+- **Distribuição de status (rosca)** — a fatia de conversas em cada status no momento; clicar numa fatia abre a Caixa já filtrada por aquele status.
+- **Conversas acumuladas** — linha que mostra o total de conversas crescendo ao longo do tempo.
+- **Cartão-resumo de status na Caixa de entrada** — no topo da lista de conversas, um resumo compacto da distribuição de status que abre o Painel de Atendimento num clique.
+
+### Changed
+
+- Nesta primeira entrega, o painel já vem montado com todos os gráficos sobre dados de demonstração. Em produção, os números reais entram em seguida — enquanto isso, o painel exibe uma faixa de "métricas em implantação" e os gráficos aparecem vazios.
+
 ## [0.118.0] — Lens · 2026-06-24
 
 **Visualizador de imagens que cabe na tela e download de mídias no atendimento.** As imagens ampliadas, principalmente as em pé (como comprovantes), deixaram de estourar os limites da tela, e agora é possível baixar imagens, áudios, vídeos e documentos das conversas — tanto na própria conversa quanto no painel de Mídias.
