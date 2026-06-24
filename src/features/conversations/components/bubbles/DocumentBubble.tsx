@@ -6,6 +6,7 @@ import { WhatsAppText } from "./WhatsAppText";
 import { fileNameFromUrl, formatFileSize, mediaIcon } from "../../utils/messageDisplay";
 import { CONVERSATION_STRINGS } from "../../i18n/pt-BR";
 import { useResolvedMediaUrl } from "../../hooks/useResolvedMediaUrl";
+import { downloadFileName, triggerMediaDownload } from "../../utils/mediaDownload";
 
 function deterministicSize(id: string): number {
   let h = 0;
@@ -33,15 +34,23 @@ export function DocumentBubble({ message, onRetry }: { message: IMessage; onRetr
         </div>
         {url && (
           <Button
-            asChild
             variant="ghost"
             size="sm"
             className="h-8 w-8 p-0"
             aria-label={CONVERSATION_STRINGS.download}
+            onClick={() =>
+              triggerMediaDownload(
+                url,
+                downloadFileName({
+                  mediaType: message.mediaType,
+                  id: message.id,
+                  caption: message.text,
+                  existingName: fileName,
+                }),
+              )
+            }
           >
-            <a href={url} target="_blank" rel="noreferrer" download>
-              <Icon icon="mdi:download" size={16} />
-            </a>
+            <Icon icon="mdi:download" size={16} />
           </Button>
         )}
       </div>
