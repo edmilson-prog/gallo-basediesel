@@ -17,6 +17,8 @@ import { recordAuditLog, useConversationsProvider, useSellersProvider } from "@/
 import type { IConversation, ISeller } from "@/shared/types";
 import { INBOX_STRINGS } from "../i18n/pt-BR";
 import { useSelfAssign } from "../hooks/useSelfAssign";
+import { useReturnToQueue } from "../hooks/useReturnToQueue";
+import { canReturnToQueue } from "../engine/assignmentGate";
 
 export interface IQuickActionsProps {
   conversation: IConversation;
@@ -42,6 +44,7 @@ export function QuickActions({ conversation, onMutated }: IQuickActionsProps) {
   const conversationsProvider = useConversationsProvider();
   const sellersProvider = useSellersProvider();
   const { selfAssign, canSelfAssign } = useSelfAssign(conversation, { onDone: onMutated });
+  const { returnToQueue, returning } = useReturnToQueue(conversation, { onDone: onMutated });
 
   const canEditStore = usePermission("conversation", "edit", "store");
   const canEditOwn = usePermission("conversation", "edit", "own");
@@ -50,6 +53,9 @@ export function QuickActions({ conversation, onMutated }: IQuickActionsProps) {
   const isOwnConversation =
     currentUser?.sellerId != null && conversation.assignedSellerId === currentUser.sellerId;
   const canTransferOrArchive = canEditStore || (canEditOwn && isOwnConversation);
+  // Return-to-queue is STAFF-ONLY (the RLS only lets is_staff() null the column)
+  // and only when there is an assignee to remove — a tighter gate than transfer.
+  const showReturnToQueue = canReturnToQueue(conversation, { isStaff: canEditStore });
 
   const [transferOpen, setTransferOpen] = useState(false);
   const [sellers, setSellers] = useState<ISeller[]>([]);
@@ -187,6 +193,29 @@ export function QuickActions({ conversation, onMutated }: IQuickActionsProps) {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {showReturnToQueue && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 text-severity-warning hover:bg-severity-warning/10 hover:text-severity-warning"
+                  aria-label={INBOX_STRINGS.returnToQueue}
+                  disabled={returning}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    void returnToQueue();
+                  }}
+                >
+                  <Icon icon="mdi:account-arrow-left-outline" size={14} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left">{INBOX_STRINGS.returnToQueue}</TooltipContent>
+            </Tooltip>
+          )}
 
           <Tooltip>
             <TooltipTrigger asChild>
