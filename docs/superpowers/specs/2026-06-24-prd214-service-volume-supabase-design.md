@@ -112,7 +112,7 @@ opcional.
 
 | RPC | Método | Lógica |
 |---|---|---|
-| `service_volume_novos_atendimentos(p_store_id, p_from, p_to, p_granularity, p_seller_id)` | `getNovosAtendimentos` | Bucketiza `created_at ∈ [from,to]` (1º contato). Retorna `{series, total, deltaPct, historyStartsAt:null}`. `deltaPct` vs `[from-span, from)`. `averagePerDay` **não** vem do RPC — provider calcula de `total`+janela. |
+| `service_volume_novos_atendimentos(p_store_id, p_from, p_to, p_granularity, p_seller_id)` | `getNovosAtendimentos` | Bucketiza `created_at ∈ [from,to]` (1º contato). Retorna o shape **completo** `{series, total, averagePerDay, deltaPct, historyStartsAt:null}`. `deltaPct` vs `[from-span, from)`. `averagePerDay = round(total / dias_inclusivos_SP, 1)` (calculado no RPC). |
 | `service_volume_message_volume(p_store_id, p_from, p_to, p_granularity, p_seller_id)` | `getMessageVolume` | Join `messages→conversations`. Por bucket de `sent_at`: `sent = count filter(direction='out')`, `received = count filter(direction='in')`. `{series:[{bucket,sent,received}], totalSent, totalReceived}`. |
 | `service_volume_messages_by_user(p_store_id, p_from, p_to, p_seller_id, p_audience)` | `getMessagesByUser` | `direction='out'`, `sent_at ∈ [from,to]`. **Humano** (`author_type ∉ {sdr,customer}`) agrupado por `c.assigned_seller_id` (nome de `sellers.full_name`; null → "Sem responsável"). **Automação** (`author_type='sdr'`) numa linha única `{sellerId:null, name:"SDR (automação)", authorType:"sdr"}`. `p_audience` ∈ `{human,automation,all}` filtra. Ordena por `count` desc. |
 | `service_volume_status_distribution(p_store_id, p_seller_id)` | `getStatusDistribution` | Snapshot atual (ignora janela): `count group by status`. `{slices:[{status,count}], total}`. |
@@ -138,9 +138,10 @@ opcional.
 ## 7. Swap do frontend
 
 - `src/providers/data/impl/supabase/atendimentoMetrics.ts`: placeholder → 6
-  `await supabase.rpc('service_volume_…', {...})`. Como o RPC devolve o shape do
-  contrato, o mapeamento é quase identidade. O provider calcula `averagePerDay`
-  a partir de `total` + janela (contagem inclusiva de dias, igual ao engine).
+  `await supabase.rpc('service_volume_…', {...})`. Como o RPC devolve o shape
+  **completo** do contrato (incl. `averagePerDay`), o provider é **passthrough
+  identidade** (cast tipado + fallback vazio em `data == null`). Sem aritmética
+  no provider.
 - **Desligar o aviso "métricas em implantação"** (introduzido na Task 12 do
   215) — agora flui dado real. Localizar o ponto (página/componente da feature
   `service-volume`) e remover/suprimir.
