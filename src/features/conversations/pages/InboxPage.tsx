@@ -29,6 +29,7 @@ import { SearchInput } from "../components/SearchInput";
 import { NewConversationDialog } from "../components/NewConversationDialog";
 import { selectAccessibleAccounts } from "../utils/selectAccessibleAccounts";
 import { INBOX_STRINGS } from "../i18n/pt-BR";
+import { InboxStatusSummaryCard } from "@/features/service-volume";
 
 function useAvailableTags(): string[] {
   const customersProvider = useCustomersProvider();
@@ -352,6 +353,7 @@ export function InboxPage() {
               : undefined
           }
         />
+        <InboxStatusSummaryCard />
         <div className="border-b border-border px-3 py-2">
           <SearchInput inputRef={searchInputRef} value={filters.search} onChange={setSearch} />
         </div>
