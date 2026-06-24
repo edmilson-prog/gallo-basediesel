@@ -38,6 +38,7 @@ export const RESOURCES = [
   "profitability",
   "inventory",
   "customer_service_analytics",
+  "service_volume",
   "insight",
   "storefront_admin",
   "ecommerce_integration",

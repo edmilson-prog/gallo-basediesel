@@ -487,6 +487,23 @@ export type {
   IScheduledSendProvider,
 } from "./quickSend";
 
+// Service volume / atendimento metrics (PRD-214)
+export type {
+  Granularity,
+  MetricBucket,
+  ServiceMetricParams,
+  INovosAtendimentosResult,
+  IMessageVolumePoint,
+  IMessageVolumeResult,
+  MetricAudience,
+  IMessagesByUserRow,
+  IMessagesByUserResult,
+  IStatusDistributionSlice,
+  IStatusDistributionResult,
+  IAccumulatedChatsResult,
+  IHandleTimeStatsResult,
+} from "./service-volume";
+
 // AI / LLM settings (Configurações → Inteligência artificial)
 export type {
   AiProviderId,

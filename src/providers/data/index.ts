@@ -115,6 +115,7 @@ export type {
   IRotationParticipantsProvider,
   IAddRotationParticipantInput,
   IAiProvider,
+  IAtendimentoMetricsProvider,
 } from "./contracts";
 export { computeFailureRate } from "./contracts";
 
@@ -160,3 +161,4 @@ export { useDepartmentsProvider } from "./hooks/useDepartmentsProvider";
 export { useRotationQueuesProvider } from "./hooks/useRotationQueuesProvider";
 export { useRotationParticipantsProvider } from "./hooks/useRotationParticipantsProvider";
 export { useAiProvider } from "./hooks/useAiProvider";
+export { useAtendimentoMetricsProvider } from "./hooks/useAtendimentoMetricsProvider";

@@ -42,6 +42,7 @@ import { mockDepartmentsProvider } from "./impl/mock/departments";
 import { mockRotationQueuesProvider } from "./impl/mock/rotationQueues";
 import { mockRotationParticipantsProvider } from "./impl/mock/rotationParticipants";
 import { mockAiProvider } from "./impl/mock/ai";
+import { mockAtendimentoMetricsProvider } from "./impl/mock/atendimentoMetrics";
 
 import { supabaseCustomersProvider } from "./impl/supabase/customers";
 import { supabaseVehiclesProvider } from "./impl/supabase/vehicles";
@@ -85,6 +86,7 @@ import { supabaseDepartmentsProvider } from "./impl/supabase/departments";
 import { supabaseRotationQueuesProvider } from "./impl/supabase/rotationQueues";
 import { supabaseRotationParticipantsProvider } from "./impl/supabase/rotationParticipants";
 import { supabaseAiProvider } from "./impl/supabase/ai";
+import { supabaseAtendimentoMetricsProvider } from "./impl/supabase/atendimentoMetrics";
 
 import {
   DATA_SOURCE_OVERRIDE_KEY,
@@ -161,6 +163,7 @@ const mockProviders: IDataProviders = {
   rotationQueues: mockRotationQueuesProvider,
   rotationParticipants: mockRotationParticipantsProvider,
   ai: mockAiProvider,
+  atendimentoMetrics: mockAtendimentoMetricsProvider,
 };
 
 const supabaseProviders: IDataProviders = {
@@ -206,6 +209,7 @@ const supabaseProviders: IDataProviders = {
   rotationQueues: supabaseRotationQueuesProvider,
   rotationParticipants: supabaseRotationParticipantsProvider,
   ai: supabaseAiProvider,
+  atendimentoMetrics: supabaseAtendimentoMetricsProvider,
 };
 
 /**
