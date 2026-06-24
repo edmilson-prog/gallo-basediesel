@@ -47,6 +47,7 @@ import type { IDepartmentsProvider } from "./departments";
 import type { IRotationQueuesProvider } from "./rotationQueues";
 import type { IRotationParticipantsProvider } from "./rotationParticipants";
 import type { IAiProvider } from "./ai";
+import type { IAtendimentoMetricsProvider } from "./atendimentoMetrics";
 
 export type { IPaginatedResult, IPaginationParams } from "./_shared";
 
@@ -150,6 +151,7 @@ export type {
   IAddRotationParticipantInput,
 } from "./rotationParticipants";
 export type { IAiProvider } from "./ai";
+export type { IAtendimentoMetricsProvider } from "./atendimentoMetrics";
 
 /**
  * Aggregate of every data provider returned by `getDataProviders()`. The factory
@@ -199,4 +201,5 @@ export interface IDataProviders {
   rotationQueues: IRotationQueuesProvider;
   rotationParticipants: IRotationParticipantsProvider;
   ai: IAiProvider;
+  atendimentoMetrics: IAtendimentoMetricsProvider;
 }
