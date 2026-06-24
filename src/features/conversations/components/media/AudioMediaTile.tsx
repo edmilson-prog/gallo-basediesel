@@ -3,6 +3,8 @@ import { Icon } from "@/components/Icon";
 import { useResolvedMediaUrl } from "../../hooks/useResolvedMediaUrl";
 import { formatDuration, estimateAudioSeconds } from "../../utils/messageDisplay";
 import { generateWaveBars } from "../../utils/audioWaveform";
+import { downloadFileName, triggerMediaDownload } from "../../utils/mediaDownload";
+import { CONVERSATION_STRINGS } from "../../i18n/pt-BR";
 import type { IConversationMediaItem } from "../../engine/conversationMedia";
 
 const BAR_COUNT = 20;
@@ -113,6 +115,21 @@ export function AudioMediaTile({ item }: { item: IConversationMediaItem }) {
             );
           })}
         </div>
+        {url && (
+          <button
+            type="button"
+            onClick={() =>
+              triggerMediaDownload(
+                url,
+                downloadFileName({ mediaType: "audio", id: item.id, caption: item.caption }),
+              )
+            }
+            aria-label={CONVERSATION_STRINGS.downloadAudio}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Icon icon="mdi:download" size={14} />
+          </button>
+        )}
       </div>
 
       {/* Direction + duration */}
