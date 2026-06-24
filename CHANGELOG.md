@@ -6,6 +6,19 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.120.0] — Wellspring · 2026-06-24
+
+**Os números reais do Painel de Atendimento agora aparecem em produção.** O Painel de Atendimento (a aba "Atendimento" na tela inicial) deixou de mostrar gráficos vazios em produção e passou a exibir os dados reais das conversas: quantos atendimentos novos surgem por período, o volume de mensagens enviadas e recebidas, quem mais atende, a distribuição de status e as conversas acumuladas — tudo calculado direto a partir do histórico real.
+
+### Added
+
+- **Painel de Atendimento com dados reais** — os gráficos e indicadores da aba "Atendimento" agora são calculados a partir das conversas e mensagens reais (antes só apareciam sobre dados de demonstração; em produção mostravam a faixa "métricas em implantação"). Disponível para Dono e Gestor — o Dono vê todas as lojas (ou filtra uma), o Gestor vê a própria loja. Granularidade (dia/semana/mês) e período (24 horas, 7 dias, 30 dias ou personalizado) seguem funcionando.
+
+### Changed
+
+- **"Novos atendimentos" conta o primeiro contato de cada conversa.** Nesta entrega, o indicador de novos atendimentos considera o primeiro contato de cada conversa no período; a contagem de reaberturas (conversas resolvidas que voltam a ser atendidas) fica para uma evolução futura. O texto de ajuda foi ajustado para refletir isso.
+- **"Mensagens por atendente" usa o responsável da conversa.** A contagem de mensagens por atendente é atribuída ao vendedor responsável pela conversa. Conversas sem responsável aparecem agrupadas como "Sem responsável".
+
 ## [0.119.0] — Cadence · 2026-06-24
 
 **Painel de Atendimento: o volume e o fluxo das conversas em gráficos.** A tela inicial ganhou uma nova aba "Atendimento", ao lado de "Operação", com uma visão de quanto se atende ao longo do tempo — quantos atendimentos novos surgem por dia, semana ou mês, quantas mensagens entram e saem, quem mais atende e como as conversas se distribuem entre os status. E a Caixa de entrada ganhou, no topo, um cartão-resumo de status que leva direto a esse painel num clique. Disponível para Dono e Gestor.
