@@ -1,6 +1,5 @@
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Card } from "@/components/ui/card";
-import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
 import type { IMessagesByUserResult, MetricAudience } from "@/shared/types";
 import { SERVICE_VOLUME_STRINGS as S } from "../i18n/pt-BR";
