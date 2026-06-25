@@ -9,6 +9,11 @@ import { WhatsAppProviderError } from "../errors";
 import type { IEngineDeps } from "../types";
 import { goRequest } from "./client";
 
+/** Server-level target (before an instance exists) — e.g. /instance/create. */
+export interface IGoServerTarget {
+  baseUrl: string;
+}
+
 export interface IGoInstanceTarget {
   baseUrl: string;
   instanceId: string;
