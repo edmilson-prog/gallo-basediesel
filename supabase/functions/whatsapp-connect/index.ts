@@ -523,10 +523,11 @@ servePost(async (req, ctx) => {
             );
             instanceId = created.instanceId;
             instanceToken = created.token;
-            await admin
-              .from("whatsapp_accounts")
-              .update({ provider_config: { ...goConfig, instanceId } })
-              .eq("id", account.id);
+            // Token-first: the per-instance token is issued ONCE by /instance/create
+            // and cannot be re-fetched (a re-create 403s "already in use"). Persist it
+            // to the Vault BEFORE the instanceId so a failure here leaves no local row
+            // claiming an instance we have no token for. Both writes are checked so
+            // they cannot diverge.
             const { error: secErr } = await admin.rpc("integration_secret_set", {
               p_name: instanceTokenSecretName,
               p_value: instanceToken,
@@ -538,6 +539,18 @@ servePost(async (req, ctx) => {
                 `Falha ao gravar o token da instância no Vault: ${secErr.message}`,
               );
             }
+            const { error: cfgErr } = await admin
+              .from("whatsapp_accounts")
+              .update({ provider_config: { ...goConfig, instanceId } })
+              .eq("id", account.id);
+            if (cfgErr) {
+              throw new HttpError(
+                500,
+                `Falha ao persistir o instanceId da Evolution Go: ${cfgErr.message}`,
+              );
+            }
+            // Full recovery from a half-create (token in Vault, instanceId not
+            // persisted) via find-by-name is deferred to Phase 3 — out of scope here.
           }
           if (!instanceToken) {
             return json(
@@ -644,18 +657,21 @@ servePost(async (req, ctx) => {
         case "restart": {
           const instanceId = String(goConfig.instanceId ?? "");
           const instanceToken = await deps.resolveSecret(instanceTokenSecretName);
+          // Audit only when the restart actually reached the server — an unpaired
+          // account (no instanceId/token) skips the Go call, so it must not claim
+          // a restart that never ran.
           if (instanceId && instanceToken) {
             await restartGoInstance(instanceToken, deps, { baseUrl: goBaseUrl, instanceId }, ctx.traceId);
-          }
-          if (actorId) {
-            await bestEffortAudit(admin, {
-              store_id: account.store_id,
-              actor_id: actorId,
-              action: "whatsapp_instance_restarted",
-              resource: "whatsapp_account",
-              resource_id: account.id,
-              after: {},
-            });
+            if (actorId) {
+              await bestEffortAudit(admin, {
+                store_id: account.store_id,
+                actor_id: actorId,
+                action: "whatsapp_instance_restarted",
+                resource: "whatsapp_account",
+                resource_id: account.id,
+                after: {},
+              });
+            }
           }
           return json({ ok: true, traceId: ctx.traceId }, 200);
         }
