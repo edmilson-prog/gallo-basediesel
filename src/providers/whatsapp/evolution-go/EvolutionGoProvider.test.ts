@@ -101,4 +101,30 @@ describe("EvolutionGoProvider", () => {
     expect(provider.providerName).toBe("evolution-go");
     expect(provider.capabilities).toMatchObject({ supportsTemplates: false, supportsInteractive: false, supportsMediaUpload: false });
   });
+
+  it("sendMedia rejects a non-https (http://) URL", async () => {
+    const { provider } = makeProvider(vi.fn() as unknown as typeof fetch);
+    await expect(
+      provider.sendMedia({ accountId: "a", to: "+5555912345678", mediaType: "image", mediaIdOrUrl: "http://insecure/x.jpg" }),
+    ).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+  });
+
+  it("downloadInboundMedia throws INTEGRATION_ERROR on malformed base64", async () => {
+    const ref = encodeGoMediaRef({ url: "https://m/x.enc", mimetype: "image/jpeg" });
+    const fetchFn = vi.fn(async () => jsonResponse({ success: true, image: "!!!not-base64!!!" })) as unknown as typeof fetch;
+    const { provider } = makeProvider(fetchFn);
+    await expect(provider.downloadInboundMedia(ref)).rejects.toMatchObject({ code: "INTEGRATION_ERROR" });
+  });
+
+  it("healthCheck returns unhealthy when the status call fails", async () => {
+    const fetchFn = vi.fn(async () => { throw new Error("network down"); }) as unknown as typeof fetch;
+    const { provider } = makeProvider(fetchFn);
+    const h = await provider.healthCheck();
+    expect(h.healthy).toBe(false);
+  });
+
+  it("verifyWebhookSignature returns false when the instance token secret is missing", async () => {
+    const { provider } = makeProvider(vi.fn() as unknown as typeof fetch, {});
+    expect(await provider.verifyWebhookSignature("{}", "anything")).toBe(false);
+  });
 });

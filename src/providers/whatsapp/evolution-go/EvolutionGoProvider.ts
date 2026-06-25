@@ -92,7 +92,7 @@ export class EvolutionGoProvider implements IWhatsAppProvider {
 
   async sendMedia(input: ISendMediaInput): Promise<ISendResult> {
     assertE164(input.to);
-    if (!input.mediaIdOrUrl.startsWith("http")) {
+    if (!input.mediaIdOrUrl.startsWith("https://")) {
       throw new WhatsAppProviderError(
         "VALIDATION_ERROR",
         422,
@@ -180,7 +180,12 @@ export class EvolutionGoProvider implements IWhatsAppProvider {
     if (!body?.image) {
       throw new WhatsAppProviderError("NOT_FOUND", 404, "Mídia Evolution Go não encontrada");
     }
-    const data = base64ToBytes(body.image);
+    let data: Uint8Array;
+    try {
+      data = base64ToBytes(body.image);
+    } catch {
+      throw new WhatsAppProviderError("INTEGRATION_ERROR", 502, "Mídia da Evolution Go retornou base64 inválido");
+    }
     return {
       data,
       mimeType: ref.mimetype ?? "application/octet-stream",
