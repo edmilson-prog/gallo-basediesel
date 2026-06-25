@@ -22,4 +22,11 @@ describe("mapEvolutionGoError", () => {
     const err = mapEvolutionGoError(500, { message: "x" }, "/send/text");
     expect(err.details).toMatchObject({ endpoint: "/send/text" });
   });
+
+  it("maps a 403 'already in use' name conflict to INTEGRATION_ERROR with the message intact", () => {
+    const err = mapEvolutionGoError(403, { message: "instance already in use" }, "/instance/create");
+    expect(err.code).toBe("INTEGRATION_ERROR");
+    expect(err.message).toBe("instance already in use");
+    expect(err.details).toMatchObject({ endpoint: "/instance/create" });
+  });
 });

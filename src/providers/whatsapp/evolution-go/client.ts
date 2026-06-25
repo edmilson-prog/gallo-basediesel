@@ -21,6 +21,7 @@ export interface IGoRequestOptions {
   traceId?: string;
   timeoutMs?: number;
   omitResponsePayload?: boolean;
+  /** Forwarded to engineFetch for parity; Go returns media as base64 in JSON, so callers stay on the "json" default. */
   expect?: "json" | "bytes";
 }
 

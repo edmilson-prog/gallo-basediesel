@@ -12,6 +12,8 @@ function extractMessage(body: unknown): string {
 }
 
 const DISCONNECTED_PATTERN = /not connected|not logged in|connection closed|session|disconnected/i;
+/** Go answers /instance/create for an existing instance with 403 "already in use". */
+const ALREADY_EXISTS_PATTERN = /already in use|already exists/i;
 
 export function mapEvolutionGoError(
   httpStatus: number,
@@ -21,6 +23,13 @@ export function mapEvolutionGoError(
   const message = extractMessage(body);
   const details: Record<string, unknown> = { endpoint, goMessage: message };
 
+  // A name conflict (403 "already in use" on /instance/create) is NOT an auth
+  // failure — classifying it as UNAUTHORIZED both masks the cause ("chave
+  // recusada") and erases the original text an idempotent-create guard relies
+  // on (parity with mapEvolutionError, PR #147). Keep the message intact.
+  if (ALREADY_EXISTS_PATTERN.test(message)) {
+    return new WhatsAppProviderError("INTEGRATION_ERROR", httpStatus, message, details);
+  }
   if (httpStatus === 401 || httpStatus === 403) {
     return new WhatsAppProviderError(
       "UNAUTHORIZED",
