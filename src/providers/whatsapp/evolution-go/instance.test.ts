@@ -5,8 +5,11 @@ import {
   getGoInstanceQr,
   getGoInstanceStatus,
   deleteGoInstance,
+  logoutGoInstance,
+  restartGoInstance,
 } from "./instance";
 import type { IEngineDeps } from "../types";
+import { WhatsAppProviderError } from "../errors";
 
 function deps(fetchImpl: typeof fetch): IEngineDeps {
   return { resolveSecret: async () => undefined, fetchFn: fetchImpl };
@@ -89,5 +92,33 @@ describe("evolution-go instance management", () => {
     }) as unknown as typeof fetch;
     await deleteGoInstance("global-key", deps(fetchFn), { baseUrl: "https://go.test", instanceId: "inst-uuid-9" });
     expect(fetchFn).toHaveBeenCalledOnce();
+  });
+
+  it("restartGoInstance targets POST /instance/reconnect (Go has no /instance/restart)", async () => {
+    const fetchFn = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(url)).toBe("https://go.test/instance/reconnect");
+      expect(init?.method).toBe("POST");
+      expect((init?.headers as Record<string, string>).instanceId).toBe("inst-uuid-9");
+      return jsonResponse({ message: "success" });
+    }) as unknown as typeof fetch;
+    await restartGoInstance("global-key", deps(fetchFn), { baseUrl: "https://go.test", instanceId: "inst-uuid-9" });
+    expect(fetchFn).toHaveBeenCalledOnce();
+  });
+
+  it("logoutGoInstance targets DELETE /instance/logout", async () => {
+    const fetchFn = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(url)).toBe("https://go.test/instance/logout");
+      expect(init?.method).toBe("DELETE");
+      return jsonResponse({ message: "success" });
+    }) as unknown as typeof fetch;
+    await logoutGoInstance("global-key", deps(fetchFn), { baseUrl: "https://go.test", instanceId: "inst-uuid-9" });
+    expect(fetchFn).toHaveBeenCalledOnce();
+  });
+
+  it("createGoInstance throws when the response has no id", async () => {
+    const fetchFn = vi.fn(async () => jsonResponse({ data: {}, message: "success" })) as unknown as typeof fetch;
+    await expect(
+      createGoInstance("global-key", deps(fetchFn), { baseUrl: "https://go.test", name: "x" }),
+    ).rejects.toBeInstanceOf(WhatsAppProviderError);
   });
 });
