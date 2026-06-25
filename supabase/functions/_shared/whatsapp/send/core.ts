@@ -101,7 +101,7 @@ export interface ISendDb {
     messageId?: string;
     conversationId: string;
     sellerId: string | null;
-    provider: "meta" | "evolution";
+    provider: "meta" | "evolution" | "evolution-go";
     text: string;
     mediaType: string | null;
     mediaUrl: string | null;

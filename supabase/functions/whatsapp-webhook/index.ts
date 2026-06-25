@@ -418,7 +418,7 @@ function toAccountRecord(row: Record<string, unknown>): IAccountRecord {
   return {
     id: row.id as string,
     storeId: row.store_id as string,
-    provider: row.provider as "meta" | "evolution",
+    provider: row.provider as "meta" | "evolution" | "evolution-go",
     phoneNumber: row.phone_number as string,
     credentialsRef: row.credentials_ref as string,
     providerConfig: (row.provider_config as Record<string, unknown> | null) ?? null,

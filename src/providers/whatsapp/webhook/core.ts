@@ -19,7 +19,7 @@ import type { IInboundMessage, IInboundStatus, IOutboundEcho } from "../types";
 export interface IAccountRecord {
   id: string;
   storeId: string;
-  provider: "meta" | "evolution";
+  provider: "meta" | "evolution" | "evolution-go";
   phoneNumber: string;
   credentialsRef: string;
   providerConfig: Record<string, unknown> | null;
@@ -85,7 +85,7 @@ export interface IWebhookDb {
   insertInboundMessage(input: {
     conversationId: string;
     customerId: string;
-    provider: "meta" | "evolution";
+    provider: "meta" | "evolution" | "evolution-go";
     text: string;
     mediaType: string | null;
     providerMessageId: string;
@@ -96,7 +96,7 @@ export interface IWebhookDb {
   /** Mirrored phone-sent message (outbound echo) — direction out, status sent. */
   insertOutboundEchoMessage(input: {
     conversationId: string;
-    provider: "meta" | "evolution";
+    provider: "meta" | "evolution" | "evolution-go";
     text: string;
     mediaType: string | null;
     providerMessageId: string;
@@ -155,7 +155,7 @@ export interface IProcessResult {
 }
 
 export interface IProcessArgs {
-  provider: "meta" | "evolution";
+  provider: "meta" | "evolution" | "evolution-go";
   rawPayload: unknown;
   db: IWebhookDb;
   /** Builds the concrete engine for the resolved account (media download). */
