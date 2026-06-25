@@ -20,6 +20,7 @@ import { getSupabaseClient } from "@/shared/lib/supabase";
 import { WhatsAppProviderError } from "./errors";
 import type { IWhatsAppProvider } from "./IWhatsAppProvider";
 import type { IProviderCapabilities, WhatsAppProviderEngine } from "./types";
+import { EVOLUTION_GO_CAPABILITIES } from "./evolution-go/constants";
 import { EVOLUTION_CAPABILITIES } from "./evolution/constants";
 import { META_CAPABILITIES } from "./meta/constants";
 import { MockWhatsAppProvider } from "./mock/MockWhatsAppProvider";
@@ -72,6 +73,7 @@ export async function getWhatsAppProvider(accountId: string): Promise<IWhatsAppP
   switch (data.provider) {
     case "meta":
     case "evolution":
+    case "evolution-go":
       // The real engines (PRDs 112/113) exist but require Edge Function
       // secrets — they run SERVER-SIDE only (webhook PRD-114, send PRD-115,
       // via `buildWhatsAppEngine`). In the app, use the mock engine or the
@@ -96,6 +98,8 @@ export function getEngineCapabilities(engine: WhatsAppProviderEngine): IProvider
       return META_CAPABILITIES;
     case "evolution":
       return EVOLUTION_CAPABILITIES;
+    case "evolution-go":
+      return EVOLUTION_GO_CAPABILITIES;
     case "mock":
       return new MockWhatsAppProvider().capabilities;
   }
