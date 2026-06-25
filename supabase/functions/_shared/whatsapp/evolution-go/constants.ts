@@ -15,8 +15,11 @@ export const EVOLUTION_GO_INTEGRATION_NAME = "whatsapp_evolution_go" as const;
 
 /**
  * Secret-name suffixes appended to `whatsapp_accounts.credentials_ref`.
- * `_API_KEY` = the server-wide global apikey (shared by instances on the same
- * server); `_INSTANCE_TOKEN` = the per-instance token (also the webhook auth).
+ * `_API_KEY` = the server-wide global apikey — used ONLY for admin endpoints
+ * (/instance/create, /instance/all) by the edge, NOT by the messaging provider.
+ * `_INSTANCE_TOKEN` = the per-instance token — used as the `apikey` for every
+ * instance-scoped call (send/status/download/connect/…) AND as the webhook auth
+ * (smoke-confirmed 2026-06-25: the Go server authorizes instances by this token).
  */
 export const EVOLUTION_GO_SECRET_SUFFIXES = {
   apiKey: "_API_KEY",

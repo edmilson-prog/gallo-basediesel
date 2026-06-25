@@ -210,7 +210,7 @@ export class EvolutionGoProvider implements IWhatsAppProvider {
       const response = await goRequest(await this.instanceToken(), this.deps, {
         baseUrl: this.config.baseUrl,
         path: "/instance/status",
-          method: "GET",
+        method: "GET",
         timeoutMs: 5_000,
       });
       const body = response.body as { data?: { Connected?: boolean; LoggedIn?: boolean } } | null;

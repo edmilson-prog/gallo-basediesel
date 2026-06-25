@@ -63,25 +63,30 @@ describe("evolution-go instance management", () => {
     const fetchFn = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
       expect(String(url)).toBe("https://go.test/instance/qr");
       expect(init?.method).toBe("GET");
+      expect(init?.headers).toMatchObject({ apikey: "inst-token" });
+      expect((init?.headers as Record<string, string>).instanceId).toBeUndefined();
       return jsonResponse({ data: { Qrcode: "data:image/png;base64,iVBOR", Code: "2@abc" }, message: "success" });
     }) as unknown as typeof fetch;
 
-    const qr = await getGoInstanceQr("global-key", deps(fetchFn), { baseUrl: "https://go.test", instanceId: "inst-uuid-9" });
+    const qr = await getGoInstanceQr("inst-token", deps(fetchFn), { baseUrl: "https://go.test", instanceId: "inst-uuid-9" });
     expect(qr).toEqual({ state: "qr", qrBase64: "data:image/png;base64,iVBOR", pairingCode: "2@abc" });
   });
 
   it("getGoInstanceStatus maps Connected/LoggedIn booleans", async () => {
-    const fetchFn = vi.fn(async () =>
-      jsonResponse({ data: { Connected: true, LoggedIn: true, Name: "" }, message: "success" }),
-    ) as unknown as typeof fetch;
+    const fetchFn = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(url)).toBe("https://go.test/instance/status");
+      expect(init?.headers).toMatchObject({ apikey: "inst-token" });
+      expect((init?.headers as Record<string, string>).instanceId).toBeUndefined();
+      return jsonResponse({ data: { Connected: true, LoggedIn: true, Name: "" }, message: "success" });
+    }) as unknown as typeof fetch;
 
-    const status = await getGoInstanceStatus("global-key", deps(fetchFn), { baseUrl: "https://go.test", instanceId: "inst-uuid-9" });
+    const status = await getGoInstanceStatus("inst-token", deps(fetchFn), { baseUrl: "https://go.test", instanceId: "inst-uuid-9" });
     expect(status).toEqual({ connected: true, loggedIn: true });
   });
 
   it("getGoInstanceQr returns state=open when the instance reports no QR but logged in", async () => {
     const fetchFn = vi.fn(async () => jsonResponse({ data: { Code: "" }, message: "already connected" }, 200)) as unknown as typeof fetch;
-    const qr = await getGoInstanceQr("global-key", deps(fetchFn), { baseUrl: "https://go.test", instanceId: "i" });
+    const qr = await getGoInstanceQr("inst-token", deps(fetchFn), { baseUrl: "https://go.test", instanceId: "i" });
     expect(qr.state).toBe("open");
   });
 
@@ -89,9 +94,11 @@ describe("evolution-go instance management", () => {
     const fetchFn = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
       expect(String(url)).toBe("https://go.test/instance/delete/inst-uuid-9");
       expect(init?.method).toBe("DELETE");
+      expect(init?.headers).toMatchObject({ apikey: "inst-token" });
+      expect((init?.headers as Record<string, string>).instanceId).toBeUndefined();
       return jsonResponse({ message: "success" });
     }) as unknown as typeof fetch;
-    await deleteGoInstance("global-key", deps(fetchFn), { baseUrl: "https://go.test", instanceId: "inst-uuid-9" });
+    await deleteGoInstance("inst-token", deps(fetchFn), { baseUrl: "https://go.test", instanceId: "inst-uuid-9" });
     expect(fetchFn).toHaveBeenCalledOnce();
   });
 
@@ -99,10 +106,11 @@ describe("evolution-go instance management", () => {
     const fetchFn = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
       expect(String(url)).toBe("https://go.test/instance/reconnect");
       expect(init?.method).toBe("POST");
+      expect(init?.headers).toMatchObject({ apikey: "inst-token" });
       expect((init?.headers as Record<string, string>).instanceId).toBeUndefined();
       return jsonResponse({ message: "success" });
     }) as unknown as typeof fetch;
-    await restartGoInstance("global-key", deps(fetchFn), { baseUrl: "https://go.test", instanceId: "inst-uuid-9" });
+    await restartGoInstance("inst-token", deps(fetchFn), { baseUrl: "https://go.test", instanceId: "inst-uuid-9" });
     expect(fetchFn).toHaveBeenCalledOnce();
   });
 
@@ -110,9 +118,11 @@ describe("evolution-go instance management", () => {
     const fetchFn = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
       expect(String(url)).toBe("https://go.test/instance/logout");
       expect(init?.method).toBe("DELETE");
+      expect(init?.headers).toMatchObject({ apikey: "inst-token" });
+      expect((init?.headers as Record<string, string>).instanceId).toBeUndefined();
       return jsonResponse({ message: "success" });
     }) as unknown as typeof fetch;
-    await logoutGoInstance("global-key", deps(fetchFn), { baseUrl: "https://go.test", instanceId: "inst-uuid-9" });
+    await logoutGoInstance("inst-token", deps(fetchFn), { baseUrl: "https://go.test", instanceId: "inst-uuid-9" });
     expect(fetchFn).toHaveBeenCalledOnce();
   });
 
