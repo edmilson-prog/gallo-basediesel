@@ -126,6 +126,9 @@ export function parseEvolutionGoInbound(
     if (!status) {
       throw new Error(`EvolutionGoProvider: Receipt com estado desconhecido: ${ev.state ?? ev.data?.Type}`);
     }
+    if (!id) {
+      throw new Error("EvolutionGoProvider: Receipt sem MessageID");
+    }
     return {
       type: "status",
       providerMessageId: id,

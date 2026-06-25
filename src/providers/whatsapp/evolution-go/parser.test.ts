@@ -81,6 +81,14 @@ describe("parseEvolutionGoInbound", () => {
     expect(read).toMatchObject({ type: "status", providerMessageId: "GOMSG2", status: "read" });
   });
 
+  it("parses a unix-seconds Timestamp into ISO", () => {
+    const parsed = parseEvolutionGoInbound(
+      { event: "Receipt", state: "Delivered", instanceId: "i", data: { MessageIDs: ["GOMSG9"], Timestamp: 1750845600 } },
+      "acc",
+    ) as { timestamp: string };
+    expect(parsed.timestamp).toBe(new Date(1750845600 * 1000).toISOString());
+  });
+
   it("throws on group/@lid chats and on non-message events", () => {
     expect(() =>
       parseEvolutionGoInbound(messageEvent({ conversation: "x" }, { Chat: "123@g.us" }), "acc"),
