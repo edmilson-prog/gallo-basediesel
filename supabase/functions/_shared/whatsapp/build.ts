@@ -16,6 +16,7 @@
 import { WhatsAppProviderError } from "./errors.ts";
 import type { IWhatsAppProvider } from "./IWhatsAppProvider.ts";
 import type { IEngineDeps, WhatsAppProviderEngine } from "./types.ts";
+import { EvolutionGoProvider } from "./evolution-go/EvolutionGoProvider.ts";
 import { EvolutionProvider } from "./evolution/EvolutionProvider.ts";
 import { MetaCloudProvider } from "./meta/MetaCloudProvider.ts";
 import { MockWhatsAppProvider } from "./mock/MockWhatsAppProvider.ts";
@@ -76,6 +77,17 @@ export function buildWhatsAppEngine(input: IBuildEngineInput): IWhatsAppProvider
         accountId: input.accountId,
         baseUrl: requireString(input.providerConfig, "baseUrl", "evolution"),
         instanceName: requireString(input.providerConfig, "instanceName", "evolution"),
+        credentialsRef,
+      },
+      input.deps,
+    );
+  }
+  if (input.engine === "evolution-go") {
+    return new EvolutionGoProvider(
+      {
+        accountId: input.accountId,
+        baseUrl: requireString(input.providerConfig, "baseUrl", "evolution-go"),
+        instanceId: requireString(input.providerConfig, "instanceId", "evolution-go"),
         credentialsRef,
       },
       input.deps,

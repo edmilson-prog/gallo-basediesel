@@ -23,7 +23,7 @@
 type ISO8601 = string;
 
 /** Provider engines supported today. Extending = widening this union (PRD-111 RF-003). */
-export type WhatsAppProviderEngine = "meta" | "evolution" | "mock";
+export type WhatsAppProviderEngine = "meta" | "evolution" | "evolution-go" | "mock";
 
 /** Content kinds a normalized inbound message can carry. */
 export type InboundContentType =
@@ -220,7 +220,7 @@ export type SecretResolver = (secretName: string) => Promise<string | undefined>
 
 /** One sanitized record of an outbound provider call (PRD-112 RF-120). */
 export interface IIntegrationLogEntry {
-  integrationName: "whatsapp_meta" | "whatsapp_evolution";
+  integrationName: "whatsapp_meta" | "whatsapp_evolution" | "whatsapp_evolution_go";
   direction: "outbound" | "inbound";
   endpoint: string;
   httpStatus?: number;
@@ -266,5 +266,22 @@ export interface IEvolutionAccountConfig {
   baseUrl: string;
   instanceName: string;
   /** Prefix for `<ref>_API_KEY` and optional `<ref>_WEBHOOK_SECRET`. */
+  credentialsRef: string;
+}
+
+/**
+ * Non-secret Evolution Go account config (`whatsapp_accounts.provider_config`).
+ * Unlike v2 (which keys by instance NAME in the path), Go identifies the
+ * instance by `instanceId` (the uuid returned by `POST /instance/create`),
+ * passed as the `instanceId` header. The global server key and the per-instance
+ * token are secrets resolved from the Vault via `credentialsRef`.
+ */
+export interface IEvolutionGoAccountConfig {
+  accountId: string;
+  /** Base URL of the Evolution Go server (e.g. https://evogo.ailainteligente.com.br). */
+  baseUrl: string;
+  /** Instance uuid returned by /instance/create (provider_config.instanceId). */
+  instanceId: string;
+  /** Prefix for `<ref>_API_KEY` (global) and `<ref>_INSTANCE_TOKEN`. */
   credentialsRef: string;
 }
