@@ -87,14 +87,14 @@ INSERT INTO public.whatsapp_accounts (
   'evolution-go',
   'Número Principal (Evolution Go)',
   'WA_GALLO_GO',                          -- MAIÚSCULO, igual ao prefixo da chave no Vault
-  '{"baseUrl": "https://evogo.ailainteligente.com.br"}'::jsonb,
+  '{"baseUrl": "https://evogo.ailainteligente.com.br", "instanceId": ""}'::jsonb,
   'disconnected'
 );
 ```
 
-> **ATENÇÃO — check constraint:** A migration `20260625120000` requer que `provider_config` contenha **AMBOS** `baseUrl` E `instanceId` para o provider `evolution-go`. Na inserção inicial, o `instanceId` ainda não existe. **Resolução:** o check constraint aceita `provider_config IS NULL` como condição alternativa — insira com `provider_config = NULL` e atualize para `{"baseUrl":"..."}` APÓS a criação da instância pelo primeiro `qr` (que preenche o `instanceId`), OU insira com um placeholder, ex.: `'{"baseUrl":"...","instanceId":""}'::jsonb` (string vazia passa o operador `?` do jsonb). O fluxo `qr` da edge preenche o `instanceId` real no primeiro pareamento e sobrescreve o provider_config.
+> **ATENÇÃO — check constraint:** A migration `20260625120000` requer que `provider_config` contenha **AMBOS** `baseUrl` E `instanceId` para o provider `evolution-go` (ou que seja `NULL`). Por isso o INSERT acima já inclui o placeholder `"instanceId": ""`: o operador `?` do jsonb testa **existência da chave**, não o valor, então `"instanceId": ""` satisfaz a constraint. O fluxo `qr` da edge trata o valor vazio como "instância ainda não criada" (`if (!instanceId)`), chama `/instance/create`, captura o `instanceId` real e sobrescreve o `provider_config` automaticamente.
 >
-> **Opção mais simples:** inserir com `'{"baseUrl":"...","instanceId":""}'::jsonb` — a edge detecta `instanceId` vazio e faz o `createGoInstance`, captura o ID real e atualiza a linha automaticamente.
+> **Alternativa:** inserir com `provider_config = NULL` (a constraint também aceita `provider_config IS NULL`) e deixar o `qr` preencher tudo — mas o placeholder acima é o caminho recomendado por ser um único INSERT copy-paste válido.
 
 ### 3. Token da instância (`{CREDENTIALS_REF}_INSTANCE_TOKEN`)
 
@@ -185,7 +185,7 @@ json: {
 // Depois (se o servidor espera []int):
 mediaKey: ref.mediaKey ? Array.from(base64ToBytes(ref.mediaKey)) : undefined,
 ```
-Aplicar o fix, redeploy da edge `whatsapp-send` (que contém o provider via `_shared/`) + `whatsapp-webhook`, e retestar.
+`EvolutionGoProvider.downloadInboundMedia` roda no caminho **inbound**, executado pela edge `whatsapp-webhook` (não `whatsapp-send`, que é só outbound). Aplicar o fix e redeployar `whatsapp-webhook`; como as 3 edges compartilham o mirror `_shared/`, vale a regra da §a — redeployar as três juntas. Retestar.
 
 ---
 
