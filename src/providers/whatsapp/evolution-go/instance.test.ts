@@ -36,10 +36,11 @@ describe("evolution-go instance management", () => {
     expect(out).toEqual({ instanceId: "inst-uuid-9", token: "tok-xyz" });
   });
 
-  it("connectGoInstance posts webhookUrl + subscribe with the instanceId header", async () => {
+  it("connectGoInstance posts webhookUrl + subscribe, authed by the instance token (no instanceId header)", async () => {
     const fetchFn = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
       expect(String(url)).toBe("https://go.test/instance/connect");
-      expect(init?.headers).toMatchObject({ apikey: "global-key", instanceId: "inst-uuid-9" });
+      expect(init?.headers).toMatchObject({ apikey: "inst-token-1" });
+      expect((init?.headers as Record<string, string>).instanceId).toBeUndefined();
       expect(JSON.parse(String(init?.body))).toMatchObject({
         immediate: true,
         webhookUrl: "https://app/functions/v1/whatsapp-webhook/evolution-go",
@@ -49,7 +50,7 @@ describe("evolution-go instance management", () => {
     }) as unknown as typeof fetch;
 
     await connectGoInstance(
-      "global-key",
+      "inst-token-1",
       deps(fetchFn),
       { baseUrl: "https://go.test", instanceId: "inst-uuid-9" },
       "https://app/functions/v1/whatsapp-webhook/evolution-go",
@@ -98,7 +99,7 @@ describe("evolution-go instance management", () => {
     const fetchFn = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
       expect(String(url)).toBe("https://go.test/instance/reconnect");
       expect(init?.method).toBe("POST");
-      expect((init?.headers as Record<string, string>).instanceId).toBe("inst-uuid-9");
+      expect((init?.headers as Record<string, string>).instanceId).toBeUndefined();
       return jsonResponse({ message: "success" });
     }) as unknown as typeof fetch;
     await restartGoInstance("global-key", deps(fetchFn), { baseUrl: "https://go.test", instanceId: "inst-uuid-9" });

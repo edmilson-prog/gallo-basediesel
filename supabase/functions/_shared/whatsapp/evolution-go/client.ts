@@ -2,9 +2,11 @@
 // Source: src/providers/whatsapp/evolution-go/client.ts (sync: bun run scripts/sync-whatsapp-shared.ts)
 
 /**
- * HTTP client for the Evolution Go API. Auth = global `apikey` header + the
- * per-instance `instanceId` header (omitted for /instance/create, which is
- * global-only). Paths are FIXED (the instance is not in the path, unlike v2).
+ * HTTP client for the Evolution Go API. Auth = a single `apikey` header whose
+ * value is the GLOBAL key for admin endpoints (/instance/create, /instance/all)
+ * or the per-instance TOKEN for instance-scoped calls (send/status/download/…)
+ * — confirmed by smoke 2026-06-25; there is NO instanceId header (the server
+ * ignores it). Paths are FIXED (the instance is not in the path, unlike v2).
  * Shares the engine HTTP lifecycle (timeout, sanitized log, error normalize).
  */
 
@@ -17,8 +19,6 @@ export interface IGoRequestOptions {
   baseUrl: string;
   /** Fixed path, e.g. `/send/text`. */
   path: string;
-  /** Instance uuid header. Omitted only for global calls (/instance/create). */
-  instanceId?: string;
   method?: "GET" | "POST" | "DELETE";
   json?: unknown;
   traceId?: string;
@@ -34,7 +34,6 @@ export async function goRequest(
   options: IGoRequestOptions,
 ): Promise<IEngineFetchResult> {
   const headers: Record<string, string> = { apikey: apiKey };
-  if (options.instanceId) headers.instanceId = options.instanceId;
   if (options.traceId) headers["X-Trace-Id"] = options.traceId;
   let body: BodyInit | undefined;
   if (options.json !== undefined) {

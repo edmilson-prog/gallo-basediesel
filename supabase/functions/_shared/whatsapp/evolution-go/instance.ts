@@ -6,6 +6,12 @@
  * IWhatsAppProvider (messaging-only). Consumed server-side by the
  * `whatsapp-connect` Edge Function (Fase 2) through the `_shared` mirror.
  * Runtime-agnostic: relative imports, Web APIs only.
+ *
+ * Auth model (smoke 2026-06-25): pass the GLOBAL key as `apiKey` to
+ * `createGoInstance` (admin endpoint); pass the per-instance TOKEN as `apiKey`
+ * to every instance-scoped function below (connect/qr/status/logout/delete/
+ * restart) — the Go server authorizes those by the instance token, not by an
+ * instanceId header.
  */
 
 import { WhatsAppProviderError } from "../errors.ts";
@@ -72,7 +78,6 @@ export async function connectGoInstance(
   await goRequest(apiKey, deps, {
     baseUrl: target.baseUrl,
     path: "/instance/connect",
-    instanceId: target.instanceId,
     json: { immediate: true, webhookUrl, subscribe },
     traceId,
   });
@@ -88,7 +93,6 @@ export async function getGoInstanceQr(
   const response = await goRequest(apiKey, deps, {
     baseUrl: target.baseUrl,
     path: "/instance/qr",
-    instanceId: target.instanceId,
     method: "GET",
     omitResponsePayload: true,
     traceId,
@@ -111,7 +115,6 @@ export async function getGoInstanceStatus(
   const response = await goRequest(apiKey, deps, {
     baseUrl: target.baseUrl,
     path: "/instance/status",
-    instanceId: target.instanceId,
     method: "GET",
     timeoutMs: 10_000,
     traceId,
@@ -130,7 +133,6 @@ export async function logoutGoInstance(
   await goRequest(apiKey, deps, {
     baseUrl: target.baseUrl,
     path: "/instance/logout",
-    instanceId: target.instanceId,
     method: "DELETE",
     traceId,
   });
@@ -146,7 +148,6 @@ export async function deleteGoInstance(
   await goRequest(apiKey, deps, {
     baseUrl: target.baseUrl,
     path: `/instance/delete/${target.instanceId}`,
-    instanceId: target.instanceId,
     method: "DELETE",
     traceId,
   });
@@ -162,7 +163,6 @@ export async function restartGoInstance(
   await goRequest(apiKey, deps, {
     baseUrl: target.baseUrl,
     path: "/instance/reconnect",
-    instanceId: target.instanceId,
     traceId,
   });
 }

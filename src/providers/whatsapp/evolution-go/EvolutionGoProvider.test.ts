@@ -27,10 +27,11 @@ function makeProvider(fetchImpl: typeof fetch, secrets = SECRETS) {
 }
 
 describe("EvolutionGoProvider", () => {
-  it("sendText posts to /send/text with apikey+instanceId and returns messageId", async () => {
+  it("sendText posts to /send/text authed by the instance token (no instanceId header) and returns messageId", async () => {
     const fetchFn = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
       expect(String(url)).toBe("https://go.test/send/text");
-      expect(init?.headers).toMatchObject({ apikey: "global-key", instanceId: "inst-uuid-9" });
+      expect(init?.headers).toMatchObject({ apikey: "inst-token" });
+      expect((init?.headers as Record<string, string>).instanceId).toBeUndefined();
       expect(JSON.parse(String(init?.body))).toMatchObject({ number: "5555912345678", text: "Olá" });
       return jsonResponse({ success: true, messageId: "GOOUT1", data: { Info: { ID: "GOOUT1" } } });
     }) as unknown as typeof fetch;
@@ -38,7 +39,7 @@ describe("EvolutionGoProvider", () => {
 
     const result = await provider.sendText({ accountId: "acc-go-1", to: "+5555912345678", text: "Olá", traceId: "t1" });
     expect(result).toEqual({ providerMessageId: "GOOUT1", status: "sent" });
-    expect(JSON.stringify(logs)).not.toContain("global-key");
+    expect(JSON.stringify(logs)).not.toContain("inst-token");
   });
 
   it("sendMedia posts URL + type (no separate upload)", async () => {

@@ -2,7 +2,9 @@
  * EvolutionGoProvider — IWhatsAppProvider against a self-hosted Evolution Go
  * (whatsmeow) server. Honest reduced capabilities (no templates/interactive,
  * media by URL). Secrets resolved on demand and cached 60s; never logged.
- * The instance is addressed by `instanceId` header (config), paths are fixed.
+ * Instance-scoped calls authenticate with the per-instance token as the
+ * `apikey` header (no instanceId header) — confirmed by smoke 2026-06-25; the
+ * global key only authorizes admin endpoints. Paths are fixed.
  */
 
 import { timingSafeEqualStrings } from "../crypto";
@@ -65,8 +67,15 @@ export class EvolutionGoProvider implements IWhatsAppProvider {
     return value;
   }
 
-  private async apiKey(): Promise<string> {
-    return (await this.secret(EVOLUTION_GO_SECRET_SUFFIXES.apiKey, true)) as string;
+  /**
+   * Per-instance token (`<credentialsRef>_INSTANCE_TOKEN`) used as the `apikey`
+   * header for ALL instance-scoped calls. Smoke (2026-06-25) confirmed the Go
+   * server authorizes instance endpoints by the instance token, NOT the global
+   * key + an instanceId header. The global `_API_KEY` is only for admin/global
+   * endpoints (e.g. /instance/create, in instance.ts called by the edge).
+   */
+  private async instanceToken(): Promise<string> {
+    return (await this.secret(EVOLUTION_GO_SECRET_SUFFIXES.instanceToken, true)) as string;
   }
 
   // ===== Sending ============================================================
@@ -76,10 +85,9 @@ export class EvolutionGoProvider implements IWhatsAppProvider {
     if (input.text.length === 0) {
       throw new WhatsAppProviderError("VALIDATION_ERROR", 422, "Texto não pode ser vazio");
     }
-    const response = await goRequest(await this.apiKey(), this.deps, {
+    const response = await goRequest(await this.instanceToken(), this.deps, {
       baseUrl: this.config.baseUrl,
       path: "/send/text",
-      instanceId: this.config.instanceId,
       json: {
         number: toWireNumber(input.to),
         text: input.text,
@@ -99,10 +107,9 @@ export class EvolutionGoProvider implements IWhatsAppProvider {
         "Provider Evolution Go envia mídia por URL — passe uma URL pública/assinada",
       );
     }
-    const response = await goRequest(await this.apiKey(), this.deps, {
+    const response = await goRequest(await this.instanceToken(), this.deps, {
       baseUrl: this.config.baseUrl,
       path: "/send/media",
-      instanceId: this.config.instanceId,
       json: {
         number: toWireNumber(input.to),
         type: input.mediaType,
@@ -139,8 +146,8 @@ export class EvolutionGoProvider implements IWhatsAppProvider {
     // payload. The edge passes it here as `signature`; we compare it (constant
     // time) to the per-instance token stored in the Vault.
     try {
-      const token = await this.secret(EVOLUTION_GO_SECRET_SUFFIXES.instanceToken, true);
-      return token !== undefined && timingSafeEqualStrings(signature, token);
+      const token = await this.instanceToken();
+      return timingSafeEqualStrings(signature, token);
     } catch {
       return false;
     }
@@ -162,10 +169,9 @@ export class EvolutionGoProvider implements IWhatsAppProvider {
 
   async downloadInboundMedia(mediaId: string): Promise<IMediaDownloadResult> {
     const ref = decodeGoMediaRef(mediaId);
-    const response = await goRequest(await this.apiKey(), this.deps, {
+    const response = await goRequest(await this.instanceToken(), this.deps, {
       baseUrl: this.config.baseUrl,
       path: "/message/downloadimage",
-      instanceId: this.config.instanceId,
       json: {
         url: ref.url,
         directPath: ref.directPath,
@@ -198,11 +204,10 @@ export class EvolutionGoProvider implements IWhatsAppProvider {
   async healthCheck(): Promise<IHealthCheckResult> {
     const startedAt = Date.now();
     try {
-      const response = await goRequest(await this.apiKey(), this.deps, {
+      const response = await goRequest(await this.instanceToken(), this.deps, {
         baseUrl: this.config.baseUrl,
         path: "/instance/status",
-        instanceId: this.config.instanceId,
-        method: "GET",
+          method: "GET",
         timeoutMs: 5_000,
       });
       const body = response.body as { data?: { Connected?: boolean; LoggedIn?: boolean } } | null;
