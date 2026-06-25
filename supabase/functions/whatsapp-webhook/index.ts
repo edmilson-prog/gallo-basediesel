@@ -33,6 +33,7 @@ import { buildWhatsAppEngine } from "../_shared/whatsapp/build.ts";
 import { statusAdvances, type DeliveryStatus } from "../_shared/whatsapp/messageStatus.ts";
 import { hmacSha256Hex, timingSafeEqualStrings } from "../_shared/whatsapp/crypto.ts";
 import { verifyMetaWebhookSignature } from "../_shared/whatsapp/meta/signature.ts";
+import { EvolutionGoProvider } from "../_shared/whatsapp/evolution-go/EvolutionGoProvider.ts";
 import {
   processWebhookEvent,
   type IAccountRecord,
@@ -145,6 +146,51 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
             level: "warn",
             msg: "ambiguous evolution instanceName (any status) — refusing to route",
             instanceName,
+            count: rows.length,
+          }),
+        );
+        return null; // fail-closed: ambíguo não roteia
+      }
+      const row = rows[0];
+      return row ? toAccountRecord(row) : null;
+    },
+    async findEvolutionGoAccount(instanceId) {
+      if (!instanceId) return null;
+      const { data } = await admin
+        .from("whatsapp_accounts")
+        .select(ACCT_COLS)
+        .eq("provider", "evolution-go")
+        .neq("status", "disconnected")
+        .eq("provider_config->>instanceId", instanceId);
+      const rows = data ?? [];
+      if (rows.length > 1) {
+        console.warn(
+          JSON.stringify({
+            level: "warn",
+            msg: "ambiguous evolution-go instanceId — refusing to route",
+            instanceId,
+            count: rows.length,
+          }),
+        );
+        return null; // fail-closed: ambíguo não roteia
+      }
+      const row = rows[0];
+      return row ? toAccountRecord(row) : null;
+    },
+    async findEvolutionGoAccountAnyStatus(instanceId) {
+      if (!instanceId) return null;
+      const { data } = await admin
+        .from("whatsapp_accounts")
+        .select(ACCT_COLS)
+        .eq("provider", "evolution-go")
+        .eq("provider_config->>instanceId", instanceId);
+      const rows = data ?? [];
+      if (rows.length > 1) {
+        console.warn(
+          JSON.stringify({
+            level: "warn",
+            msg: "ambiguous evolution-go instanceId (any status) — refusing to route",
+            instanceId,
             count: rows.length,
           }),
         );
@@ -515,6 +561,42 @@ async function evolutionGate(
   return json({ error: "webhook not configured" }, 403);
 }
 
+/**
+ * Evolution Go has no HMAC: the webhook payload carries the per-instance
+ * `instanceToken`. We authenticate by comparing it (constant-time) to the
+ * Vault token via EvolutionGoProvider.verifyWebhookSignature. Fail-closed:
+ * unknown account or missing/mismatched token → 401.
+ */
+async function evolutionGoGate(
+  rawBody: string,
+  payload: unknown,
+  account: IAccountRecord | null,
+  log: Logger,
+  resolveSecret: VaultSecretResolver,
+): Promise<Response | null> {
+  if (!account) {
+    log.warn("evolution-go webhook: conta não encontrada para o instanceId");
+    return json({ error: "unknown instance" }, 401);
+  }
+  const token = (payload as { instanceToken?: string } | null)?.instanceToken ?? "";
+  const config = account.providerConfig as { baseUrl?: string; instanceId?: string } | null;
+  const provider = new EvolutionGoProvider(
+    {
+      accountId: account.id,
+      baseUrl: String(config?.baseUrl ?? ""),
+      instanceId: String(config?.instanceId ?? ""),
+      credentialsRef: account.credentialsRef ?? "",
+    },
+    { resolveSecret },
+  );
+  const ok = await provider.verifyWebhookSignature(rawBody, token);
+  if (!ok) {
+    log.warn("evolution-go webhook: instanceToken inválido");
+    return json({ error: "invalid token" }, 401);
+  }
+  return null;
+}
+
 // ===== Background avatar fetch ==============================================
 
 /**
@@ -542,6 +624,7 @@ function scheduleAvatarFetch(
   input: { customerId: string; phone: string; account: IAccountRecord },
 ): void {
   const { account } = input;
+  // evolution-go avatar fetch is deferred to Phase 3 (no Go avatar fn yet).
   if (account.provider !== "evolution") return;
   const config = account.providerConfig as { baseUrl?: string; instanceName?: string } | null;
   const baseUrl = config?.baseUrl;
@@ -584,7 +667,7 @@ Deno.serve(async (req) => {
     return res;
   };
 
-  if (provider !== "meta" && provider !== "evolution") {
+  if (provider !== "meta" && provider !== "evolution" && provider !== "evolution-go") {
     return respond(json({ error: "unknown provider" }, 400));
   }
 
@@ -612,6 +695,13 @@ Deno.serve(async (req) => {
   // Auth gates (fail closed) — the ONLY paths that answer 4xx on POST.
   if (provider === "meta") {
     const rejection = await metaGate(req, rawBody, log, resolveSecret);
+    if (rejection) return respond(rejection);
+  } else if (provider === "evolution-go") {
+    // Any-status lookup: the gate is about AUTH (instanceToken), and
+    // connection.update events must also reach disconnected accounts.
+    const instanceId = (payload as { instanceId?: string } | null)?.instanceId ?? "";
+    const account = await db.findEvolutionGoAccountAnyStatus(instanceId);
+    const rejection = await evolutionGoGate(rawBody, payload, account, log, resolveSecret);
     if (rejection) return respond(rejection);
   } else {
     // Any-status lookup: the gate is about AUTH (per-account secret), and
