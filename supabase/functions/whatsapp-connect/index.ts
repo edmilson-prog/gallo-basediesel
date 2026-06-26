@@ -514,20 +514,24 @@ servePost(async (req, ctx) => {
           let instanceId = String(goConfig.instanceId ?? "");
           let instanceToken = await deps.resolveSecret(instanceTokenSecretName);
           if (!instanceId) {
-            // First pairing: create the instance (global key), capture the token.
+            // First pairing: this Go server REQUIRES the caller to supply the
+            // per-instance token to /instance/create (it returns 400 "token is
+            // required" otherwise) — unlike Evolution v2 it does not mint one for
+            // us. Generate it, send it, and persist exactly what we sent
+            // (createGoInstance returns data.token ?? the token we passed in).
+            const desiredToken = crypto.randomUUID();
             const created = await createGoInstance(
               globalKey,
               deps,
-              { baseUrl: goBaseUrl, name: account.id },
+              { baseUrl: goBaseUrl, name: account.id, token: desiredToken },
               ctx.traceId,
             );
             instanceId = created.instanceId;
             instanceToken = created.token;
-            // Token-first: the per-instance token is issued ONCE by /instance/create
-            // and cannot be re-fetched (a re-create 403s "already in use"). Persist it
-            // to the Vault BEFORE the instanceId so a failure here leaves no local row
-            // claiming an instance we have no token for. Both writes are checked so
-            // they cannot diverge.
+            // Token-first: the per-instance token is the instance's auth key for
+            // every scoped call. Persist it to the Vault BEFORE the instanceId so a
+            // failure here leaves no local row claiming an instance we have no token
+            // for. Both writes are checked so they cannot diverge.
             const { error: secErr } = await admin.rpc("integration_secret_set", {
               p_name: instanceTokenSecretName,
               p_value: instanceToken,
