@@ -255,14 +255,6 @@ export function WhatsAppAccountsPage() {
 
   const isMock = useMemo(() => getActiveDataSource() === "mock", []);
 
-  // Multi-instance: a new Evolution number inherits server config (baseUrl +
-  // credentialsRef = same apikey) from an existing configured instance.
-  const templateAccount = useMemo(
-    () =>
-      (accounts ?? []).find((a) => a.provider === "evolution" && a.providerConfig?.baseUrl) ?? null,
-    [accounts],
-  );
-
   // SIGPRO-style live status: 30s polling (visible tab) + focus + manual.
   const { checkNow } = useEvolutionStatusSync(accounts, () => void refresh(), !isMock);
 
@@ -1032,7 +1024,7 @@ export function WhatsAppAccountsPage() {
       {wizardOpen && (
         <AddInstanceWizard
           storeId={storeId}
-          templateAccount={templateAccount}
+          accounts={accounts ?? []}
           onClose={() => {
             setWizardOpen(false);
             void refresh();
