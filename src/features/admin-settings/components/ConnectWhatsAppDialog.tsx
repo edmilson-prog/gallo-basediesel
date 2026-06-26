@@ -60,6 +60,7 @@ export function ConnectWhatsAppDialog({
   onMutated,
 }: IConnectWhatsAppDialogProps) {
   const provider = useWhatsAppAccountsProvider();
+  const isGo = account?.provider === "evolution-go";
   const isMock = useMemo(() => getActiveDataSource() === "mock", []);
 
   const [step, setStep] = useState<ConnectDialogStep>(initialStep);
@@ -228,11 +229,13 @@ export function ConnectWhatsAppDialog({
             <DialogDescription>
               {step === "form"
                 ? "Evolution API — a instância já deve existir no servidor."
-                : "Escaneie o código com o WhatsApp do número da loja."}
+                : isGo
+                  ? "Escaneie o código com o WhatsApp do número (Evolution Go)."
+                  : "Escaneie o código com o WhatsApp do número da loja."}
             </DialogDescription>
           </DialogHeader>
 
-          {step === "form" && account && (
+          {step === "form" && account && !isGo && (
             <div className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="connect-label">Nome da conta</Label>
@@ -338,7 +341,7 @@ export function ConnectWhatsAppDialog({
           {step === "qr" && account && pairing.phase !== "open" && (
             <div className="space-y-2">
               <QrPairingStep pairing={pairing} />
-              {pairing.phase === "error" && (
+              {pairing.phase === "error" && !isGo && (
                 <div className="flex justify-start">
                   <Button variant="ghost" size="sm" onClick={() => setStep("form")}>
                     <Icon icon="mdi:arrow-left" size={14} className="mr-1.5" />
