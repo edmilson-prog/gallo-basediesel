@@ -1,0 +1,3350 @@
+[
+{
+"table_name": "ai_settings",
+"ctype": "CHECK",
+"constraint_name": "2200_158866_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "ai_settings",
+"ctype": "CHECK",
+"constraint_name": "2200_158866_2_not_null",
+"check_clause": "master_enabled IS NOT NULL"
+},
+{
+"table_name": "ai_settings",
+"ctype": "CHECK",
+"constraint_name": "2200_158866_3_not_null",
+"check_clause": "default_provider_id IS NOT NULL"
+},
+{
+"table_name": "ai_settings",
+"ctype": "CHECK",
+"constraint_name": "2200_158866_4_not_null",
+"check_clause": "budget IS NOT NULL"
+},
+{
+"table_name": "ai_settings",
+"ctype": "CHECK",
+"constraint_name": "2200_158866_5_not_null",
+"check_clause": "providers IS NOT NULL"
+},
+{
+"table_name": "ai_settings",
+"ctype": "CHECK",
+"constraint_name": "2200_158866_6_not_null",
+"check_clause": "routing IS NOT NULL"
+},
+{
+"table_name": "ai_settings",
+"ctype": "CHECK",
+"constraint_name": "2200_158866_7_not_null",
+"check_clause": "updated_at IS NOT NULL"
+},
+{
+"table_name": "ai_settings",
+"ctype": "CHECK",
+"constraint_name": "ai_settings_id_check",
+"check_clause": "(id = 1)"
+},
+{
+"table_name": "ai_settings",
+"ctype": "PRIMARY KEY",
+"constraint_name": "ai_settings_pkey",
+"check_clause": null
+},
+{
+"table_name": "ai_usage_events",
+"ctype": "CHECK",
+"constraint_name": "2200_158885_10_not_null",
+"check_clause": "latency_ms IS NOT NULL"
+},
+{
+"table_name": "ai_usage_events",
+"ctype": "CHECK",
+"constraint_name": "2200_158885_11_not_null",
+"check_clause": "status IS NOT NULL"
+},
+{
+"table_name": "ai_usage_events",
+"ctype": "CHECK",
+"constraint_name": "2200_158885_14_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "ai_usage_events",
+"ctype": "CHECK",
+"constraint_name": "2200_158885_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "ai_usage_events",
+"ctype": "CHECK",
+"constraint_name": "2200_158885_2_not_null",
+"check_clause": "ts IS NOT NULL"
+},
+{
+"table_name": "ai_usage_events",
+"ctype": "CHECK",
+"constraint_name": "2200_158885_3_not_null",
+"check_clause": "source IS NOT NULL"
+},
+{
+"table_name": "ai_usage_events",
+"ctype": "CHECK",
+"constraint_name": "2200_158885_5_not_null",
+"check_clause": "provider_id IS NOT NULL"
+},
+{
+"table_name": "ai_usage_events",
+"ctype": "CHECK",
+"constraint_name": "2200_158885_6_not_null",
+"check_clause": "model IS NOT NULL"
+},
+{
+"table_name": "ai_usage_events",
+"ctype": "CHECK",
+"constraint_name": "2200_158885_7_not_null",
+"check_clause": "input_tokens IS NOT NULL"
+},
+{
+"table_name": "ai_usage_events",
+"ctype": "CHECK",
+"constraint_name": "2200_158885_8_not_null",
+"check_clause": "output_tokens IS NOT NULL"
+},
+{
+"table_name": "ai_usage_events",
+"ctype": "CHECK",
+"constraint_name": "2200_158885_9_not_null",
+"check_clause": "cost_brl IS NOT NULL"
+},
+{
+"table_name": "ai_usage_events",
+"ctype": "CHECK",
+"constraint_name": "ai_usage_events_source_check",
+"check_clause": "(source = ANY (ARRAY['playground'::text, 'routed'::text]))"
+},
+{
+"table_name": "ai_usage_events",
+"ctype": "CHECK",
+"constraint_name": "ai_usage_events_status_check",
+"check_clause": "(status = ANY (ARRAY['ok'::text, 'error'::text, 'fallback'::text]))"
+},
+{
+"table_name": "ai_usage_events",
+"ctype": "PRIMARY KEY",
+"constraint_name": "ai_usage_events_pkey",
+"check_clause": null
+},
+{
+"table_name": "asset_combos",
+"ctype": "CHECK",
+"constraint_name": "2200_18505_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "asset_combos",
+"ctype": "CHECK",
+"constraint_name": "2200_18505_2_not_null",
+"check_clause": "store_id IS NOT NULL"
+},
+{
+"table_name": "asset_combos",
+"ctype": "CHECK",
+"constraint_name": "2200_18505_3_not_null",
+"check_clause": "title IS NOT NULL"
+},
+{
+"table_name": "asset_combos",
+"ctype": "CHECK",
+"constraint_name": "2200_18505_4_not_null",
+"check_clause": "asset_ids IS NOT NULL"
+},
+{
+"table_name": "asset_combos",
+"ctype": "CHECK",
+"constraint_name": "2200_18505_5_not_null",
+"check_clause": "owner_id IS NOT NULL"
+},
+{
+"table_name": "asset_combos",
+"ctype": "CHECK",
+"constraint_name": "2200_18505_6_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "asset_combos",
+"ctype": "CHECK",
+"constraint_name": "2200_18505_7_not_null",
+"check_clause": "updated_at IS NOT NULL"
+},
+{
+"table_name": "asset_combos",
+"ctype": "PRIMARY KEY",
+"constraint_name": "asset_combos_pkey",
+"check_clause": null
+},
+{
+"table_name": "asset_favorites",
+"ctype": "CHECK",
+"constraint_name": "2200_18526_1_not_null",
+"check_clause": "seller_id IS NOT NULL"
+},
+{
+"table_name": "asset_favorites",
+"ctype": "CHECK",
+"constraint_name": "2200_18526_2_not_null",
+"check_clause": "asset_id IS NOT NULL"
+},
+{
+"table_name": "asset_favorites",
+"ctype": "CHECK",
+"constraint_name": "2200_18526_3_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "asset_favorites",
+"ctype": "PRIMARY KEY",
+"constraint_name": "asset_favorites_pkey",
+"check_clause": null
+},
+{
+"table_name": "asset_library_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18483_12_not_null",
+"check_clause": "version IS NOT NULL"
+},
+{
+"table_name": "asset_library_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18483_14_not_null",
+"check_clause": "status IS NOT NULL"
+},
+{
+"table_name": "asset_library_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18483_15_not_null",
+"check_clause": "sensitivity IS NOT NULL"
+},
+{
+"table_name": "asset_library_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18483_17_not_null",
+"check_clause": "created_by IS NOT NULL"
+},
+{
+"table_name": "asset_library_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18483_18_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "asset_library_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18483_19_not_null",
+"check_clause": "updated_at IS NOT NULL"
+},
+{
+"table_name": "asset_library_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18483_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "asset_library_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18483_2_not_null",
+"check_clause": "store_id IS NOT NULL"
+},
+{
+"table_name": "asset_library_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18483_3_not_null",
+"check_clause": "division IS NOT NULL"
+},
+{
+"table_name": "asset_library_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18483_4_not_null",
+"check_clause": "title IS NOT NULL"
+},
+{
+"table_name": "asset_library_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18483_5_not_null",
+"check_clause": "category IS NOT NULL"
+},
+{
+"table_name": "asset_library_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18483_8_not_null",
+"check_clause": "kind IS NOT NULL"
+},
+{
+"table_name": "asset_library_items",
+"ctype": "PRIMARY KEY",
+"constraint_name": "asset_library_items_pkey",
+"check_clause": null
+},
+{
+"table_name": "asset_send_log",
+"ctype": "CHECK",
+"constraint_name": "2200_18545_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "asset_send_log",
+"ctype": "CHECK",
+"constraint_name": "2200_18545_2_not_null",
+"check_clause": "seller_id IS NOT NULL"
+},
+{
+"table_name": "asset_send_log",
+"ctype": "CHECK",
+"constraint_name": "2200_18545_3_not_null",
+"check_clause": "asset_id IS NOT NULL"
+},
+{
+"table_name": "asset_send_log",
+"ctype": "CHECK",
+"constraint_name": "2200_18545_4_not_null",
+"check_clause": "sent_at IS NOT NULL"
+},
+{
+"table_name": "asset_send_log",
+"ctype": "PRIMARY KEY",
+"constraint_name": "asset_send_log_pkey",
+"check_clause": null
+},
+{
+"table_name": "audit_logs",
+"ctype": "CHECK",
+"constraint_name": "2200_18262_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "audit_logs",
+"ctype": "CHECK",
+"constraint_name": "2200_18262_2_not_null",
+"check_clause": "store_id IS NOT NULL"
+},
+{
+"table_name": "audit_logs",
+"ctype": "CHECK",
+"constraint_name": "2200_18262_3_not_null",
+"check_clause": "actor_id IS NOT NULL"
+},
+{
+"table_name": "audit_logs",
+"ctype": "CHECK",
+"constraint_name": "2200_18262_4_not_null",
+"check_clause": "action IS NOT NULL"
+},
+{
+"table_name": "audit_logs",
+"ctype": "CHECK",
+"constraint_name": "2200_18262_5_not_null",
+"check_clause": "resource IS NOT NULL"
+},
+{
+"table_name": "audit_logs",
+"ctype": "CHECK",
+"constraint_name": "2200_18262_6_not_null",
+"check_clause": "resource_id IS NOT NULL"
+},
+{
+"table_name": "audit_logs",
+"ctype": "CHECK",
+"constraint_name": "2200_18262_9_not_null",
+"check_clause": "timestamp IS NOT NULL"
+},
+{
+"table_name": "audit_logs",
+"ctype": "PRIMARY KEY",
+"constraint_name": "audit_logs_pkey",
+"check_clause": null
+},
+{
+"table_name": "carteira_transfers",
+"ctype": "CHECK",
+"constraint_name": "2200_17929_11_not_null",
+"check_clause": "status IS NOT NULL"
+},
+{
+"table_name": "carteira_transfers",
+"ctype": "CHECK",
+"constraint_name": "2200_17929_12_not_null",
+"check_clause": "created_by IS NOT NULL"
+},
+{
+"table_name": "carteira_transfers",
+"ctype": "CHECK",
+"constraint_name": "2200_17929_13_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "carteira_transfers",
+"ctype": "CHECK",
+"constraint_name": "2200_17929_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "carteira_transfers",
+"ctype": "CHECK",
+"constraint_name": "2200_17929_2_not_null",
+"check_clause": "store_id IS NOT NULL"
+},
+{
+"table_name": "carteira_transfers",
+"ctype": "CHECK",
+"constraint_name": "2200_17929_3_not_null",
+"check_clause": "type IS NOT NULL"
+},
+{
+"table_name": "carteira_transfers",
+"ctype": "CHECK",
+"constraint_name": "2200_17929_4_not_null",
+"check_clause": "from_seller_id IS NOT NULL"
+},
+{
+"table_name": "carteira_transfers",
+"ctype": "CHECK",
+"constraint_name": "2200_17929_5_not_null",
+"check_clause": "to_seller_id IS NOT NULL"
+},
+{
+"table_name": "carteira_transfers",
+"ctype": "CHECK",
+"constraint_name": "2200_17929_6_not_null",
+"check_clause": "customer_ids IS NOT NULL"
+},
+{
+"table_name": "carteira_transfers",
+"ctype": "CHECK",
+"constraint_name": "2200_17929_7_not_null",
+"check_clause": "reason IS NOT NULL"
+},
+{
+"table_name": "carteira_transfers",
+"ctype": "CHECK",
+"constraint_name": "2200_17929_8_not_null",
+"check_clause": "start_date IS NOT NULL"
+},
+{
+"table_name": "carteira_transfers",
+"ctype": "PRIMARY KEY",
+"constraint_name": "carteira_transfers_pkey",
+"check_clause": null
+},
+{
+"table_name": "cash_flow_entries",
+"ctype": "CHECK",
+"constraint_name": "2200_18207_11_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "cash_flow_entries",
+"ctype": "CHECK",
+"constraint_name": "2200_18207_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "cash_flow_entries",
+"ctype": "CHECK",
+"constraint_name": "2200_18207_2_not_null",
+"check_clause": "type IS NOT NULL"
+},
+{
+"table_name": "cash_flow_entries",
+"ctype": "CHECK",
+"constraint_name": "2200_18207_3_not_null",
+"check_clause": "source IS NOT NULL"
+},
+{
+"table_name": "cash_flow_entries",
+"ctype": "CHECK",
+"constraint_name": "2200_18207_5_not_null",
+"check_clause": "description IS NOT NULL"
+},
+{
+"table_name": "cash_flow_entries",
+"ctype": "CHECK",
+"constraint_name": "2200_18207_6_not_null",
+"check_clause": "amount IS NOT NULL"
+},
+{
+"table_name": "cash_flow_entries",
+"ctype": "CHECK",
+"constraint_name": "2200_18207_7_not_null",
+"check_clause": "date IS NOT NULL"
+},
+{
+"table_name": "cash_flow_entries",
+"ctype": "CHECK",
+"constraint_name": "2200_18207_8_not_null",
+"check_clause": "status IS NOT NULL"
+},
+{
+"table_name": "cash_flow_entries",
+"ctype": "CHECK",
+"constraint_name": "2200_18207_9_not_null",
+"check_clause": "store_id IS NOT NULL"
+},
+{
+"table_name": "cash_flow_entries",
+"ctype": "PRIMARY KEY",
+"constraint_name": "cash_flow_entries_pkey",
+"check_clause": null
+},
+{
+"table_name": "commissions",
+"ctype": "CHECK",
+"constraint_name": "2200_18138_10_not_null",
+"check_clause": "total_commission IS NOT NULL"
+},
+{
+"table_name": "commissions",
+"ctype": "CHECK",
+"constraint_name": "2200_18138_11_not_null",
+"check_clause": "value IS NOT NULL"
+},
+{
+"table_name": "commissions",
+"ctype": "CHECK",
+"constraint_name": "2200_18138_12_not_null",
+"check_clause": "is_split IS NOT NULL"
+},
+{
+"table_name": "commissions",
+"ctype": "CHECK",
+"constraint_name": "2200_18138_16_not_null",
+"check_clause": "period IS NOT NULL"
+},
+{
+"table_name": "commissions",
+"ctype": "CHECK",
+"constraint_name": "2200_18138_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "commissions",
+"ctype": "CHECK",
+"constraint_name": "2200_18138_27_not_null",
+"check_clause": "status IS NOT NULL"
+},
+{
+"table_name": "commissions",
+"ctype": "CHECK",
+"constraint_name": "2200_18138_29_not_null",
+"check_clause": "calculated_at IS NOT NULL"
+},
+{
+"table_name": "commissions",
+"ctype": "CHECK",
+"constraint_name": "2200_18138_2_not_null",
+"check_clause": "store_id IS NOT NULL"
+},
+{
+"table_name": "commissions",
+"ctype": "CHECK",
+"constraint_name": "2200_18138_30_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "commissions",
+"ctype": "CHECK",
+"constraint_name": "2200_18138_31_not_null",
+"check_clause": "updated_at IS NOT NULL"
+},
+{
+"table_name": "commissions",
+"ctype": "CHECK",
+"constraint_name": "2200_18138_3_not_null",
+"check_clause": "seller_id IS NOT NULL"
+},
+{
+"table_name": "commissions",
+"ctype": "CHECK",
+"constraint_name": "2200_18138_4_not_null",
+"check_clause": "order_id IS NOT NULL"
+},
+{
+"table_name": "commissions",
+"ctype": "CHECK",
+"constraint_name": "2200_18138_5_not_null",
+"check_clause": "base_value IS NOT NULL"
+},
+{
+"table_name": "commissions",
+"ctype": "CHECK",
+"constraint_name": "2200_18138_6_not_null",
+"check_clause": "rate IS NOT NULL"
+},
+{
+"table_name": "commissions",
+"ctype": "CHECK",
+"constraint_name": "2200_18138_7_not_null",
+"check_clause": "base_rate IS NOT NULL"
+},
+{
+"table_name": "commissions",
+"ctype": "CHECK",
+"constraint_name": "2200_18138_8_not_null",
+"check_clause": "base_commission IS NOT NULL"
+},
+{
+"table_name": "commissions",
+"ctype": "CHECK",
+"constraint_name": "2200_18138_9_not_null",
+"check_clause": "goal_bonus IS NOT NULL"
+},
+{
+"table_name": "commissions",
+"ctype": "PRIMARY KEY",
+"constraint_name": "commissions_pkey",
+"check_clause": null
+},
+{
+"table_name": "conversation_notes",
+"ctype": "CHECK",
+"constraint_name": "2200_103941_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "conversation_notes",
+"ctype": "CHECK",
+"constraint_name": "2200_103941_2_not_null",
+"check_clause": "conversation_id IS NOT NULL"
+},
+{
+"table_name": "conversation_notes",
+"ctype": "CHECK",
+"constraint_name": "2200_103941_3_not_null",
+"check_clause": "store_id IS NOT NULL"
+},
+{
+"table_name": "conversation_notes",
+"ctype": "CHECK",
+"constraint_name": "2200_103941_4_not_null",
+"check_clause": "author_id IS NOT NULL"
+},
+{
+"table_name": "conversation_notes",
+"ctype": "CHECK",
+"constraint_name": "2200_103941_5_not_null",
+"check_clause": "content IS NOT NULL"
+},
+{
+"table_name": "conversation_notes",
+"ctype": "CHECK",
+"constraint_name": "2200_103941_6_not_null",
+"check_clause": "mentions IS NOT NULL"
+},
+{
+"table_name": "conversation_notes",
+"ctype": "CHECK",
+"constraint_name": "2200_103941_7_not_null",
+"check_clause": "pinned IS NOT NULL"
+},
+{
+"table_name": "conversation_notes",
+"ctype": "CHECK",
+"constraint_name": "2200_103941_8_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "conversation_notes",
+"ctype": "CHECK",
+"constraint_name": "2200_103941_9_not_null",
+"check_clause": "updated_at IS NOT NULL"
+},
+{
+"table_name": "conversation_notes",
+"ctype": "PRIMARY KEY",
+"constraint_name": "conversation_notes_pkey",
+"check_clause": null
+},
+{
+"table_name": "conversation_participants",
+"ctype": "CHECK",
+"constraint_name": "2200_125261_1_not_null",
+"check_clause": "conversation_id IS NOT NULL"
+},
+{
+"table_name": "conversation_participants",
+"ctype": "CHECK",
+"constraint_name": "2200_125261_2_not_null",
+"check_clause": "seller_id IS NOT NULL"
+},
+{
+"table_name": "conversation_participants",
+"ctype": "CHECK",
+"constraint_name": "2200_125261_4_not_null",
+"check_clause": "added_at IS NOT NULL"
+},
+{
+"table_name": "conversation_participants",
+"ctype": "PRIMARY KEY",
+"constraint_name": "conversation_participants_pkey",
+"check_clause": null
+},
+{
+"table_name": "conversations",
+"ctype": "CHECK",
+"constraint_name": "2200_17870_10_not_null",
+"check_clause": "tags IS NOT NULL"
+},
+{
+"table_name": "conversations",
+"ctype": "CHECK",
+"constraint_name": "2200_17870_12_not_null",
+"check_clause": "last_message_at IS NOT NULL"
+},
+{
+"table_name": "conversations",
+"ctype": "CHECK",
+"constraint_name": "2200_17870_13_not_null",
+"check_clause": "unread_count IS NOT NULL"
+},
+{
+"table_name": "conversations",
+"ctype": "CHECK",
+"constraint_name": "2200_17870_14_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "conversations",
+"ctype": "CHECK",
+"constraint_name": "2200_17870_15_not_null",
+"check_clause": "updated_at IS NOT NULL"
+},
+{
+"table_name": "conversations",
+"ctype": "CHECK",
+"constraint_name": "2200_17870_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "conversations",
+"ctype": "CHECK",
+"constraint_name": "2200_17870_2_not_null",
+"check_clause": "store_id IS NOT NULL"
+},
+{
+"table_name": "conversations",
+"ctype": "CHECK",
+"constraint_name": "2200_17870_6_not_null",
+"check_clause": "channel IS NOT NULL"
+},
+{
+"table_name": "conversations",
+"ctype": "CHECK",
+"constraint_name": "2200_17870_8_not_null",
+"check_clause": "status IS NOT NULL"
+},
+{
+"table_name": "conversations",
+"ctype": "CHECK",
+"constraint_name": "2200_17870_9_not_null",
+"check_clause": "is_sdr_active IS NOT NULL"
+},
+{
+"table_name": "conversations",
+"ctype": "PRIMARY KEY",
+"constraint_name": "conversations_pkey",
+"check_clause": null
+},
+{
+"table_name": "customer_notes",
+"ctype": "CHECK",
+"constraint_name": "2200_17764_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "customer_notes",
+"ctype": "CHECK",
+"constraint_name": "2200_17764_2_not_null",
+"check_clause": "customer_id IS NOT NULL"
+},
+{
+"table_name": "customer_notes",
+"ctype": "CHECK",
+"constraint_name": "2200_17764_3_not_null",
+"check_clause": "author_id IS NOT NULL"
+},
+{
+"table_name": "customer_notes",
+"ctype": "CHECK",
+"constraint_name": "2200_17764_4_not_null",
+"check_clause": "content IS NOT NULL"
+},
+{
+"table_name": "customer_notes",
+"ctype": "CHECK",
+"constraint_name": "2200_17764_5_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "customer_notes",
+"ctype": "PRIMARY KEY",
+"constraint_name": "customer_notes_pkey",
+"check_clause": null
+},
+{
+"table_name": "customer_segments",
+"ctype": "CHECK",
+"constraint_name": "2200_17911_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "customer_segments",
+"ctype": "CHECK",
+"constraint_name": "2200_17911_2_not_null",
+"check_clause": "owner_id IS NOT NULL"
+},
+{
+"table_name": "customer_segments",
+"ctype": "CHECK",
+"constraint_name": "2200_17911_3_not_null",
+"check_clause": "name IS NOT NULL"
+},
+{
+"table_name": "customer_segments",
+"ctype": "CHECK",
+"constraint_name": "2200_17911_5_not_null",
+"check_clause": "scope IS NOT NULL"
+},
+{
+"table_name": "customer_segments",
+"ctype": "CHECK",
+"constraint_name": "2200_17911_6_not_null",
+"check_clause": "filters IS NOT NULL"
+},
+{
+"table_name": "customer_segments",
+"ctype": "CHECK",
+"constraint_name": "2200_17911_8_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "customer_segments",
+"ctype": "PRIMARY KEY",
+"constraint_name": "customer_segments_pkey",
+"check_clause": null
+},
+{
+"table_name": "customers",
+"ctype": "CHECK",
+"constraint_name": "2200_17730_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "customers",
+"ctype": "CHECK",
+"constraint_name": "2200_17730_29_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "customers",
+"ctype": "CHECK",
+"constraint_name": "2200_17730_2_not_null",
+"check_clause": "store_id IS NOT NULL"
+},
+{
+"table_name": "customers",
+"ctype": "CHECK",
+"constraint_name": "2200_17730_30_not_null",
+"check_clause": "whatsapp_status IS NOT NULL"
+},
+{
+"table_name": "customers",
+"ctype": "CHECK",
+"constraint_name": "2200_17730_3_not_null",
+"check_clause": "type IS NOT NULL"
+},
+{
+"table_name": "customers",
+"ctype": "CHECK",
+"constraint_name": "2200_17730_5_not_null",
+"check_clause": "phone IS NOT NULL"
+},
+{
+"table_name": "customers",
+"ctype": "CHECK",
+"constraint_name": "2200_17730_7_not_null",
+"check_clause": "seller_id IS NOT NULL"
+},
+{
+"table_name": "customers",
+"ctype": "CHECK",
+"constraint_name": "2200_17730_8_not_null",
+"check_clause": "status IS NOT NULL"
+},
+{
+"table_name": "customers",
+"ctype": "CHECK",
+"constraint_name": "2200_17730_9_not_null",
+"check_clause": "tags IS NOT NULL"
+},
+{
+"table_name": "customers",
+"ctype": "CHECK",
+"constraint_name": "customers_abc_class_check",
+"check_clause": "(abc_class = ANY (ARRAY['A'::text, 'B'::text, 'C'::text]))"
+},
+{
+"table_name": "customers",
+"ctype": "CHECK",
+"constraint_name": "customers_status_check",
+"check_clause": "(status = ANY (ARRAY['ativo'::text, 'dormente'::text, 'recuperacao'::text, 'perdido'::text]))"
+},
+{
+"table_name": "customers",
+"ctype": "CHECK",
+"constraint_name": "customers_type_check",
+"check_clause": "(type = ANY (ARRAY['B2B'::text, 'B2C'::text]))"
+},
+{
+"table_name": "customers",
+"ctype": "CHECK",
+"constraint_name": "customers_whatsapp_status_check",
+"check_clause": "(whatsapp_status = ANY (ARRAY['unknown'::text, 'valid'::text, 'invalid'::text, 'blocked'::text]))"
+},
+{
+"table_name": "customers",
+"ctype": "PRIMARY KEY",
+"constraint_name": "customers_pkey",
+"check_clause": null
+},
+{
+"table_name": "departments",
+"ctype": "CHECK",
+"constraint_name": "2200_138866_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "departments",
+"ctype": "CHECK",
+"constraint_name": "2200_138866_2_not_null",
+"check_clause": "name IS NOT NULL"
+},
+{
+"table_name": "departments",
+"ctype": "CHECK",
+"constraint_name": "2200_138866_3_not_null",
+"check_clause": "store_id IS NOT NULL"
+},
+{
+"table_name": "departments",
+"ctype": "CHECK",
+"constraint_name": "2200_138866_5_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "departments",
+"ctype": "PRIMARY KEY",
+"constraint_name": "departments_pkey",
+"check_clause": null
+},
+{
+"table_name": "distribution_traces",
+"ctype": "CHECK",
+"constraint_name": "2200_18662_10_not_null",
+"check_clause": "mode IS NOT NULL"
+},
+{
+"table_name": "distribution_traces",
+"ctype": "CHECK",
+"constraint_name": "2200_18662_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "distribution_traces",
+"ctype": "CHECK",
+"constraint_name": "2200_18662_2_not_null",
+"check_clause": "conversation_id IS NOT NULL"
+},
+{
+"table_name": "distribution_traces",
+"ctype": "CHECK",
+"constraint_name": "2200_18662_5_not_null",
+"check_clause": "store_id IS NOT NULL"
+},
+{
+"table_name": "distribution_traces",
+"ctype": "CHECK",
+"constraint_name": "2200_18662_6_not_null",
+"check_clause": "timestamp IS NOT NULL"
+},
+{
+"table_name": "distribution_traces",
+"ctype": "CHECK",
+"constraint_name": "2200_18662_8_not_null",
+"check_clause": "criterion_matched IS NOT NULL"
+},
+{
+"table_name": "distribution_traces",
+"ctype": "CHECK",
+"constraint_name": "2200_18662_9_not_null",
+"check_clause": "candidates_evaluated IS NOT NULL"
+},
+{
+"table_name": "distribution_traces",
+"ctype": "PRIMARY KEY",
+"constraint_name": "distribution_traces_pkey",
+"check_clause": null
+},
+{
+"table_name": "expenses",
+"ctype": "CHECK",
+"constraint_name": "2200_18174_16_not_null",
+"check_clause": "store_id IS NOT NULL"
+},
+{
+"table_name": "expenses",
+"ctype": "CHECK",
+"constraint_name": "2200_18174_17_not_null",
+"check_clause": "created_by IS NOT NULL"
+},
+{
+"table_name": "expenses",
+"ctype": "CHECK",
+"constraint_name": "2200_18174_18_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "expenses",
+"ctype": "CHECK",
+"constraint_name": "2200_18174_19_not_null",
+"check_clause": "updated_at IS NOT NULL"
+},
+{
+"table_name": "expenses",
+"ctype": "CHECK",
+"constraint_name": "2200_18174_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "expenses",
+"ctype": "CHECK",
+"constraint_name": "2200_18174_2_not_null",
+"check_clause": "description IS NOT NULL"
+},
+{
+"table_name": "expenses",
+"ctype": "CHECK",
+"constraint_name": "2200_18174_3_not_null",
+"check_clause": "category IS NOT NULL"
+},
+{
+"table_name": "expenses",
+"ctype": "CHECK",
+"constraint_name": "2200_18174_4_not_null",
+"check_clause": "amount IS NOT NULL"
+},
+{
+"table_name": "expenses",
+"ctype": "CHECK",
+"constraint_name": "2200_18174_5_not_null",
+"check_clause": "competence_date IS NOT NULL"
+},
+{
+"table_name": "expenses",
+"ctype": "CHECK",
+"constraint_name": "2200_18174_7_not_null",
+"check_clause": "status IS NOT NULL"
+},
+{
+"table_name": "expenses",
+"ctype": "CHECK",
+"constraint_name": "2200_18174_9_not_null",
+"check_clause": "is_recurring IS NOT NULL"
+},
+{
+"table_name": "expenses",
+"ctype": "CHECK",
+"constraint_name": "expenses_category_check",
+"check_clause": "(category = ANY (ARRAY['folha'::text, 'aluguel'::text, 'infraestrutura'::text, 'marketing'::text, 'impostos'::text, 'fornecedores'::text, 'logistica'::text, 'manutencao'::text, 'outros'::text]))"
+},
+{
+"table_name": "expenses",
+"ctype": "CHECK",
+"constraint_name": "expenses_payment_method_check",
+"check_clause": "((payment_method IS NULL) OR (payment_method = ANY (ARRAY['pix'::text, 'boleto'::text, 'transferencia'::text, 'dinheiro'::text, 'cartao'::text, 'debito_automatico'::text])))"
+},
+{
+"table_name": "expenses",
+"ctype": "CHECK",
+"constraint_name": "expenses_status_check",
+"check_clause": "(status = ANY (ARRAY['pendente'::text, 'pago'::text, 'atrasado'::text, 'cancelado'::text]))"
+},
+{
+"table_name": "expenses",
+"ctype": "PRIMARY KEY",
+"constraint_name": "expenses_pkey",
+"check_clause": null
+},
+{
+"table_name": "goals",
+"ctype": "CHECK",
+"constraint_name": "2200_18229_10_not_null",
+"check_clause": "progress_percent IS NOT NULL"
+},
+{
+"table_name": "goals",
+"ctype": "CHECK",
+"constraint_name": "2200_18229_17_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "goals",
+"ctype": "CHECK",
+"constraint_name": "2200_18229_18_not_null",
+"check_clause": "updated_at IS NOT NULL"
+},
+{
+"table_name": "goals",
+"ctype": "CHECK",
+"constraint_name": "2200_18229_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "goals",
+"ctype": "CHECK",
+"constraint_name": "2200_18229_2_not_null",
+"check_clause": "store_id IS NOT NULL"
+},
+{
+"table_name": "goals",
+"ctype": "CHECK",
+"constraint_name": "2200_18229_3_not_null",
+"check_clause": "level IS NOT NULL"
+},
+{
+"table_name": "goals",
+"ctype": "CHECK",
+"constraint_name": "2200_18229_4_not_null",
+"check_clause": "target_id IS NOT NULL"
+},
+{
+"table_name": "goals",
+"ctype": "CHECK",
+"constraint_name": "2200_18229_6_not_null",
+"check_clause": "period IS NOT NULL"
+},
+{
+"table_name": "goals",
+"ctype": "CHECK",
+"constraint_name": "2200_18229_7_not_null",
+"check_clause": "metric IS NOT NULL"
+},
+{
+"table_name": "goals",
+"ctype": "CHECK",
+"constraint_name": "2200_18229_8_not_null",
+"check_clause": "target_value IS NOT NULL"
+},
+{
+"table_name": "goals",
+"ctype": "CHECK",
+"constraint_name": "2200_18229_9_not_null",
+"check_clause": "current_value IS NOT NULL"
+},
+{
+"table_name": "goals",
+"ctype": "PRIMARY KEY",
+"constraint_name": "goals_pkey",
+"check_clause": null
+},
+{
+"table_name": "integration_logs",
+"ctype": "CHECK",
+"constraint_name": "2200_32234_11_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "integration_logs",
+"ctype": "CHECK",
+"constraint_name": "2200_32234_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "integration_logs",
+"ctype": "CHECK",
+"constraint_name": "2200_32234_2_not_null",
+"check_clause": "integration_name IS NOT NULL"
+},
+{
+"table_name": "integration_logs",
+"ctype": "CHECK",
+"constraint_name": "2200_32234_3_not_null",
+"check_clause": "direction IS NOT NULL"
+},
+{
+"table_name": "integration_logs",
+"ctype": "CHECK",
+"constraint_name": "2200_32234_4_not_null",
+"check_clause": "endpoint IS NOT NULL"
+},
+{
+"table_name": "integration_logs",
+"ctype": "CHECK",
+"constraint_name": "integration_logs_direction_check",
+"check_clause": "(direction = ANY (ARRAY['outbound'::text, 'inbound'::text]))"
+},
+{
+"table_name": "integration_logs",
+"ctype": "CHECK",
+"constraint_name": "integration_logs_integration_name_check",
+"check_clause": "(integration_name = ANY (ARRAY['whatsapp_meta'::text, 'whatsapp_evolution'::text]))"
+},
+{
+"table_name": "integration_logs",
+"ctype": "PRIMARY KEY",
+"constraint_name": "integration_logs_pkey",
+"check_clause": null
+},
+{
+"table_name": "leads",
+"ctype": "CHECK",
+"constraint_name": "2200_17837_15_not_null",
+"check_clause": "conversations IS NOT NULL"
+},
+{
+"table_name": "leads",
+"ctype": "CHECK",
+"constraint_name": "2200_17837_16_not_null",
+"check_clause": "tags IS NOT NULL"
+},
+{
+"table_name": "leads",
+"ctype": "CHECK",
+"constraint_name": "2200_17837_17_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "leads",
+"ctype": "CHECK",
+"constraint_name": "2200_17837_18_not_null",
+"check_clause": "updated_at IS NOT NULL"
+},
+{
+"table_name": "leads",
+"ctype": "CHECK",
+"constraint_name": "2200_17837_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "leads",
+"ctype": "CHECK",
+"constraint_name": "2200_17837_2_not_null",
+"check_clause": "store_id IS NOT NULL"
+},
+{
+"table_name": "leads",
+"ctype": "CHECK",
+"constraint_name": "2200_17837_3_not_null",
+"check_clause": "seller_id IS NOT NULL"
+},
+{
+"table_name": "leads",
+"ctype": "CHECK",
+"constraint_name": "2200_17837_4_not_null",
+"check_clause": "name IS NOT NULL"
+},
+{
+"table_name": "leads",
+"ctype": "CHECK",
+"constraint_name": "2200_17837_5_not_null",
+"check_clause": "phone IS NOT NULL"
+},
+{
+"table_name": "leads",
+"ctype": "CHECK",
+"constraint_name": "2200_17837_7_not_null",
+"check_clause": "stage IS NOT NULL"
+},
+{
+"table_name": "leads",
+"ctype": "CHECK",
+"constraint_name": "2200_17837_8_not_null",
+"check_clause": "temperature IS NOT NULL"
+},
+{
+"table_name": "leads",
+"ctype": "CHECK",
+"constraint_name": "2200_17837_9_not_null",
+"check_clause": "origin IS NOT NULL"
+},
+{
+"table_name": "leads",
+"ctype": "PRIMARY KEY",
+"constraint_name": "leads_pkey",
+"check_clause": null
+},
+{
+"table_name": "media_assets",
+"ctype": "CHECK",
+"constraint_name": "2200_18287_10_not_null",
+"check_clause": "author_type IS NOT NULL"
+},
+{
+"table_name": "media_assets",
+"ctype": "CHECK",
+"constraint_name": "2200_18287_11_not_null",
+"check_clause": "direction IS NOT NULL"
+},
+{
+"table_name": "media_assets",
+"ctype": "CHECK",
+"constraint_name": "2200_18287_12_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "media_assets",
+"ctype": "CHECK",
+"constraint_name": "2200_18287_13_not_null",
+"check_clause": "storage_ref IS NOT NULL"
+},
+{
+"table_name": "media_assets",
+"ctype": "CHECK",
+"constraint_name": "2200_18287_14_not_null",
+"check_clause": "persisted IS NOT NULL"
+},
+{
+"table_name": "media_assets",
+"ctype": "CHECK",
+"constraint_name": "2200_18287_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "media_assets",
+"ctype": "CHECK",
+"constraint_name": "2200_18287_23_not_null",
+"check_clause": "sensitivity IS NOT NULL"
+},
+{
+"table_name": "media_assets",
+"ctype": "CHECK",
+"constraint_name": "2200_18287_2_not_null",
+"check_clause": "store_id IS NOT NULL"
+},
+{
+"table_name": "media_assets",
+"ctype": "CHECK",
+"constraint_name": "2200_18287_6_not_null",
+"check_clause": "kind IS NOT NULL"
+},
+{
+"table_name": "media_assets",
+"ctype": "CHECK",
+"constraint_name": "2200_18287_7_not_null",
+"check_clause": "mime_type IS NOT NULL"
+},
+{
+"table_name": "media_assets",
+"ctype": "CHECK",
+"constraint_name": "2200_18287_8_not_null",
+"check_clause": "size_bytes IS NOT NULL"
+},
+{
+"table_name": "media_assets",
+"ctype": "CHECK",
+"constraint_name": "media_assets_author_type_check",
+"check_clause": "(author_type = ANY (ARRAY['customer'::text, 'seller'::text, 'sdr'::text, 'system'::text]))"
+},
+{
+"table_name": "media_assets",
+"ctype": "CHECK",
+"constraint_name": "media_assets_classification_check",
+"check_clause": "(classification = ANY (ARRAY['nota_fiscal'::text, 'peca'::text, 'chassi_placa'::text, 'comprovante'::text, 'catalogo'::text, 'outro'::text]))"
+},
+{
+"table_name": "media_assets",
+"ctype": "CHECK",
+"constraint_name": "media_assets_direction_check",
+"check_clause": "(direction = ANY (ARRAY['in'::text, 'out'::text]))"
+},
+{
+"table_name": "media_assets",
+"ctype": "CHECK",
+"constraint_name": "media_assets_kind_check",
+"check_clause": "(kind = ANY (ARRAY['image'::text, 'audio'::text, 'document'::text, 'video'::text]))"
+},
+{
+"table_name": "media_assets",
+"ctype": "CHECK",
+"constraint_name": "media_assets_sensitivity_check",
+"check_clause": "(sensitivity = ANY (ARRAY['normal'::text, 'sensitive'::text]))"
+},
+{
+"table_name": "media_assets",
+"ctype": "PRIMARY KEY",
+"constraint_name": "media_assets_pkey",
+"check_clause": null
+},
+{
+"table_name": "message_templates",
+"ctype": "CHECK",
+"constraint_name": "2200_33294_10_not_null",
+"check_clause": "is_active IS NOT NULL"
+},
+{
+"table_name": "message_templates",
+"ctype": "CHECK",
+"constraint_name": "2200_33294_11_not_null",
+"check_clause": "body_template IS NOT NULL"
+},
+{
+"table_name": "message_templates",
+"ctype": "CHECK",
+"constraint_name": "2200_33294_12_not_null",
+"check_clause": "variable_count IS NOT NULL"
+},
+{
+"table_name": "message_templates",
+"ctype": "CHECK",
+"constraint_name": "2200_33294_13_not_null",
+"check_clause": "variable_labels IS NOT NULL"
+},
+{
+"table_name": "message_templates",
+"ctype": "CHECK",
+"constraint_name": "2200_33294_18_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "message_templates",
+"ctype": "CHECK",
+"constraint_name": "2200_33294_19_not_null",
+"check_clause": "updated_at IS NOT NULL"
+},
+{
+"table_name": "message_templates",
+"ctype": "CHECK",
+"constraint_name": "2200_33294_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "message_templates",
+"ctype": "CHECK",
+"constraint_name": "2200_33294_4_not_null",
+"check_clause": "meta_template_name IS NOT NULL"
+},
+{
+"table_name": "message_templates",
+"ctype": "CHECK",
+"constraint_name": "2200_33294_5_not_null",
+"check_clause": "meta_language_code IS NOT NULL"
+},
+{
+"table_name": "message_templates",
+"ctype": "CHECK",
+"constraint_name": "2200_33294_6_not_null",
+"check_clause": "meta_category IS NOT NULL"
+},
+{
+"table_name": "message_templates",
+"ctype": "CHECK",
+"constraint_name": "2200_33294_7_not_null",
+"check_clause": "meta_status IS NOT NULL"
+},
+{
+"table_name": "message_templates",
+"ctype": "CHECK",
+"constraint_name": "2200_33294_8_not_null",
+"check_clause": "display_name IS NOT NULL"
+},
+{
+"table_name": "message_templates",
+"ctype": "CHECK",
+"constraint_name": "message_templates_header_type_check",
+"check_clause": "(header_type = ANY (ARRAY['none'::text, 'text'::text, 'image'::text, 'document'::text, 'video'::text]))"
+},
+{
+"table_name": "message_templates",
+"ctype": "CHECK",
+"constraint_name": "message_templates_meta_category_check",
+"check_clause": "(meta_category = ANY (ARRAY['utility'::text, 'marketing'::text, 'authentication'::text]))"
+},
+{
+"table_name": "message_templates",
+"ctype": "CHECK",
+"constraint_name": "message_templates_meta_status_check",
+"check_clause": "(meta_status = ANY (ARRAY['approved'::text, 'pending'::text, 'rejected'::text, 'paused'::text, 'unknown'::text]))"
+},
+{
+"table_name": "message_templates",
+"ctype": "PRIMARY KEY",
+"constraint_name": "message_templates_pkey",
+"check_clause": null
+},
+{
+"table_name": "message_templates",
+"ctype": "UNIQUE",
+"constraint_name": "message_templates_whatsapp_account_id_meta_template_name_me_key",
+"check_clause": null
+},
+{
+"table_name": "messages",
+"ctype": "CHECK",
+"constraint_name": "2200_17967_10_not_null",
+"check_clause": "status IS NOT NULL"
+},
+{
+"table_name": "messages",
+"ctype": "CHECK",
+"constraint_name": "2200_17967_11_not_null",
+"check_clause": "sent_at IS NOT NULL"
+},
+{
+"table_name": "messages",
+"ctype": "CHECK",
+"constraint_name": "2200_17967_14_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "messages",
+"ctype": "CHECK",
+"constraint_name": "2200_17967_16_not_null",
+"check_clause": "webhook_event_ids IS NOT NULL"
+},
+{
+"table_name": "messages",
+"ctype": "CHECK",
+"constraint_name": "2200_17967_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "messages",
+"ctype": "CHECK",
+"constraint_name": "2200_17967_2_not_null",
+"check_clause": "conversation_id IS NOT NULL"
+},
+{
+"table_name": "messages",
+"ctype": "CHECK",
+"constraint_name": "2200_17967_3_not_null",
+"check_clause": "direction IS NOT NULL"
+},
+{
+"table_name": "messages",
+"ctype": "CHECK",
+"constraint_name": "2200_17967_4_not_null",
+"check_clause": "author_type IS NOT NULL"
+},
+{
+"table_name": "messages",
+"ctype": "CHECK",
+"constraint_name": "2200_17967_6_not_null",
+"check_clause": "provider IS NOT NULL"
+},
+{
+"table_name": "messages",
+"ctype": "CHECK",
+"constraint_name": "2200_17967_7_not_null",
+"check_clause": "text IS NOT NULL"
+},
+{
+"table_name": "messages",
+"ctype": "CHECK",
+"constraint_name": "messages_media_download_status_check",
+"check_clause": "(media_download_status = ANY (ARRAY['ok'::text, 'failed'::text, 'expired'::text]))"
+},
+{
+"table_name": "messages",
+"ctype": "PRIMARY KEY",
+"constraint_name": "messages_pkey",
+"check_clause": null
+},
+{
+"table_name": "model_kit_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18459_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "model_kit_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18459_2_not_null",
+"check_clause": "kit_id IS NOT NULL"
+},
+{
+"table_name": "model_kit_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18459_3_not_null",
+"check_clause": "part_id IS NOT NULL"
+},
+{
+"table_name": "model_kit_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18459_4_not_null",
+"check_clause": "default_quantity IS NOT NULL"
+},
+{
+"table_name": "model_kit_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18459_5_not_null",
+"check_clause": "is_optional IS NOT NULL"
+},
+{
+"table_name": "model_kit_items",
+"ctype": "PRIMARY KEY",
+"constraint_name": "model_kit_items_pkey",
+"check_clause": null
+},
+{
+"table_name": "model_kits",
+"ctype": "CHECK",
+"constraint_name": "2200_18436_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "model_kits",
+"ctype": "CHECK",
+"constraint_name": "2200_18436_2_not_null",
+"check_clause": "model_id IS NOT NULL"
+},
+{
+"table_name": "model_kits",
+"ctype": "CHECK",
+"constraint_name": "2200_18436_3_not_null",
+"check_clause": "store_id IS NOT NULL"
+},
+{
+"table_name": "model_kits",
+"ctype": "CHECK",
+"constraint_name": "2200_18436_4_not_null",
+"check_clause": "name IS NOT NULL"
+},
+{
+"table_name": "model_kits",
+"ctype": "CHECK",
+"constraint_name": "2200_18436_5_not_null",
+"check_clause": "category IS NOT NULL"
+},
+{
+"table_name": "model_kits",
+"ctype": "CHECK",
+"constraint_name": "2200_18436_6_not_null",
+"check_clause": "status IS NOT NULL"
+},
+{
+"table_name": "model_kits",
+"ctype": "CHECK",
+"constraint_name": "2200_18436_7_not_null",
+"check_clause": "created_by IS NOT NULL"
+},
+{
+"table_name": "model_kits",
+"ctype": "CHECK",
+"constraint_name": "2200_18436_8_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "model_kits",
+"ctype": "CHECK",
+"constraint_name": "2200_18436_9_not_null",
+"check_clause": "updated_at IS NOT NULL"
+},
+{
+"table_name": "model_kits",
+"ctype": "PRIMARY KEY",
+"constraint_name": "model_kits_pkey",
+"check_clause": null
+},
+{
+"table_name": "notification_preferences",
+"ctype": "CHECK",
+"constraint_name": "2200_22582_1_not_null",
+"check_clause": "recipient_id IS NOT NULL"
+},
+{
+"table_name": "notification_preferences",
+"ctype": "CHECK",
+"constraint_name": "2200_22582_2_not_null",
+"check_clause": "recipient_type IS NOT NULL"
+},
+{
+"table_name": "notification_preferences",
+"ctype": "CHECK",
+"constraint_name": "2200_22582_3_not_null",
+"check_clause": "matrix IS NOT NULL"
+},
+{
+"table_name": "notification_preferences",
+"ctype": "CHECK",
+"constraint_name": "2200_22582_5_not_null",
+"check_clause": "updated_at IS NOT NULL"
+},
+{
+"table_name": "notification_preferences",
+"ctype": "PRIMARY KEY",
+"constraint_name": "notification_preferences_pkey",
+"check_clause": null
+},
+{
+"table_name": "notifications",
+"ctype": "CHECK",
+"constraint_name": "2200_22557_10_not_null",
+"check_clause": "title IS NOT NULL"
+},
+{
+"table_name": "notifications",
+"ctype": "CHECK",
+"constraint_name": "2200_22557_14_not_null",
+"check_clause": "status IS NOT NULL"
+},
+{
+"table_name": "notifications",
+"ctype": "CHECK",
+"constraint_name": "2200_22557_15_not_null",
+"check_clause": "channels IS NOT NULL"
+},
+{
+"table_name": "notifications",
+"ctype": "CHECK",
+"constraint_name": "2200_22557_18_not_null",
+"check_clause": "source IS NOT NULL"
+},
+{
+"table_name": "notifications",
+"ctype": "CHECK",
+"constraint_name": "2200_22557_19_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "notifications",
+"ctype": "CHECK",
+"constraint_name": "2200_22557_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "notifications",
+"ctype": "CHECK",
+"constraint_name": "2200_22557_2_not_null",
+"check_clause": "dedupe_key IS NOT NULL"
+},
+{
+"table_name": "notifications",
+"ctype": "CHECK",
+"constraint_name": "2200_22557_3_not_null",
+"check_clause": "lifecycle IS NOT NULL"
+},
+{
+"table_name": "notifications",
+"ctype": "CHECK",
+"constraint_name": "2200_22557_4_not_null",
+"check_clause": "type IS NOT NULL"
+},
+{
+"table_name": "notifications",
+"ctype": "CHECK",
+"constraint_name": "2200_22557_5_not_null",
+"check_clause": "category IS NOT NULL"
+},
+{
+"table_name": "notifications",
+"ctype": "CHECK",
+"constraint_name": "2200_22557_6_not_null",
+"check_clause": "severity IS NOT NULL"
+},
+{
+"table_name": "notifications",
+"ctype": "CHECK",
+"constraint_name": "2200_22557_7_not_null",
+"check_clause": "recipient_id IS NOT NULL"
+},
+{
+"table_name": "notifications",
+"ctype": "CHECK",
+"constraint_name": "2200_22557_8_not_null",
+"check_clause": "recipient_type IS NOT NULL"
+},
+{
+"table_name": "notifications",
+"ctype": "PRIMARY KEY",
+"constraint_name": "notifications_pkey",
+"check_clause": null
+},
+{
+"table_name": "order_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18111_10_not_null",
+"check_clause": "total IS NOT NULL"
+},
+{
+"table_name": "order_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18111_11_not_null",
+"check_clause": "margin_value IS NOT NULL"
+},
+{
+"table_name": "order_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18111_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "order_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18111_2_not_null",
+"check_clause": "order_id IS NOT NULL"
+},
+{
+"table_name": "order_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18111_3_not_null",
+"check_clause": "part_id IS NOT NULL"
+},
+{
+"table_name": "order_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18111_4_not_null",
+"check_clause": "part_sku IS NOT NULL"
+},
+{
+"table_name": "order_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18111_5_not_null",
+"check_clause": "part_name IS NOT NULL"
+},
+{
+"table_name": "order_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18111_6_not_null",
+"check_clause": "quantity IS NOT NULL"
+},
+{
+"table_name": "order_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18111_7_not_null",
+"check_clause": "unit_price IS NOT NULL"
+},
+{
+"table_name": "order_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18111_8_not_null",
+"check_clause": "unit_cost IS NOT NULL"
+},
+{
+"table_name": "order_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18111_9_not_null",
+"check_clause": "discount IS NOT NULL"
+},
+{
+"table_name": "order_items",
+"ctype": "PRIMARY KEY",
+"constraint_name": "order_items_pkey",
+"check_clause": null
+},
+{
+"table_name": "orders",
+"ctype": "CHECK",
+"constraint_name": "2200_18063_10_not_null",
+"check_clause": "shipping IS NOT NULL"
+},
+{
+"table_name": "orders",
+"ctype": "CHECK",
+"constraint_name": "2200_18063_11_not_null",
+"check_clause": "total IS NOT NULL"
+},
+{
+"table_name": "orders",
+"ctype": "CHECK",
+"constraint_name": "2200_18063_12_not_null",
+"check_clause": "payment_condition IS NOT NULL"
+},
+{
+"table_name": "orders",
+"ctype": "CHECK",
+"constraint_name": "2200_18063_15_not_null",
+"check_clause": "payment_status IS NOT NULL"
+},
+{
+"table_name": "orders",
+"ctype": "CHECK",
+"constraint_name": "2200_18063_17_not_null",
+"check_clause": "fulfillment_status IS NOT NULL"
+},
+{
+"table_name": "orders",
+"ctype": "CHECK",
+"constraint_name": "2200_18063_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "orders",
+"ctype": "CHECK",
+"constraint_name": "2200_18063_25_not_null",
+"check_clause": "origin IS NOT NULL"
+},
+{
+"table_name": "orders",
+"ctype": "CHECK",
+"constraint_name": "2200_18063_26_not_null",
+"check_clause": "division IS NOT NULL"
+},
+{
+"table_name": "orders",
+"ctype": "CHECK",
+"constraint_name": "2200_18063_2_not_null",
+"check_clause": "store_id IS NOT NULL"
+},
+{
+"table_name": "orders",
+"ctype": "CHECK",
+"constraint_name": "2200_18063_36_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "orders",
+"ctype": "CHECK",
+"constraint_name": "2200_18063_37_not_null",
+"check_clause": "updated_at IS NOT NULL"
+},
+{
+"table_name": "orders",
+"ctype": "CHECK",
+"constraint_name": "2200_18063_3_not_null",
+"check_clause": "customer_id IS NOT NULL"
+},
+{
+"table_name": "orders",
+"ctype": "CHECK",
+"constraint_name": "2200_18063_4_not_null",
+"check_clause": "seller_id IS NOT NULL"
+},
+{
+"table_name": "orders",
+"ctype": "CHECK",
+"constraint_name": "2200_18063_8_not_null",
+"check_clause": "subtotal IS NOT NULL"
+},
+{
+"table_name": "orders",
+"ctype": "CHECK",
+"constraint_name": "2200_18063_9_not_null",
+"check_clause": "discount IS NOT NULL"
+},
+{
+"table_name": "orders",
+"ctype": "PRIMARY KEY",
+"constraint_name": "orders_pkey",
+"check_clause": null
+},
+{
+"table_name": "parts",
+"ctype": "CHECK",
+"constraint_name": "2200_17785_10_not_null",
+"check_clause": "applications IS NOT NULL"
+},
+{
+"table_name": "parts",
+"ctype": "CHECK",
+"constraint_name": "2200_17785_11_not_null",
+"check_clause": "brand IS NOT NULL"
+},
+{
+"table_name": "parts",
+"ctype": "CHECK",
+"constraint_name": "2200_17785_12_not_null",
+"check_clause": "supplier IS NOT NULL"
+},
+{
+"table_name": "parts",
+"ctype": "CHECK",
+"constraint_name": "2200_17785_17_not_null",
+"check_clause": "unit_cost IS NOT NULL"
+},
+{
+"table_name": "parts",
+"ctype": "CHECK",
+"constraint_name": "2200_17785_18_not_null",
+"check_clause": "unit_price IS NOT NULL"
+},
+{
+"table_name": "parts",
+"ctype": "CHECK",
+"constraint_name": "2200_17785_19_not_null",
+"check_clause": "margin_percent IS NOT NULL"
+},
+{
+"table_name": "parts",
+"ctype": "CHECK",
+"constraint_name": "2200_17785_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "parts",
+"ctype": "CHECK",
+"constraint_name": "2200_17785_2_not_null",
+"check_clause": "sku IS NOT NULL"
+},
+{
+"table_name": "parts",
+"ctype": "CHECK",
+"constraint_name": "2200_17785_36_not_null",
+"check_clause": "stock_available IS NOT NULL"
+},
+{
+"table_name": "parts",
+"ctype": "CHECK",
+"constraint_name": "2200_17785_37_not_null",
+"check_clause": "stock_minimum IS NOT NULL"
+},
+{
+"table_name": "parts",
+"ctype": "CHECK",
+"constraint_name": "2200_17785_38_not_null",
+"check_clause": "division IS NOT NULL"
+},
+{
+"table_name": "parts",
+"ctype": "CHECK",
+"constraint_name": "2200_17785_39_not_null",
+"check_clause": "active IS NOT NULL"
+},
+{
+"table_name": "parts",
+"ctype": "CHECK",
+"constraint_name": "2200_17785_3_not_null",
+"check_clause": "name IS NOT NULL"
+},
+{
+"table_name": "parts",
+"ctype": "CHECK",
+"constraint_name": "2200_17785_41_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "parts",
+"ctype": "CHECK",
+"constraint_name": "2200_17785_42_not_null",
+"check_clause": "updated_at IS NOT NULL"
+},
+{
+"table_name": "parts",
+"ctype": "CHECK",
+"constraint_name": "2200_17785_5_not_null",
+"check_clause": "oem_codes IS NOT NULL"
+},
+{
+"table_name": "parts",
+"ctype": "CHECK",
+"constraint_name": "2200_17785_6_not_null",
+"check_clause": "equivalent_part_ids IS NOT NULL"
+},
+{
+"table_name": "parts",
+"ctype": "PRIMARY KEY",
+"constraint_name": "parts_pkey",
+"check_clause": null
+},
+{
+"table_name": "processed_events",
+"ctype": "CHECK",
+"constraint_name": "2200_32584_1_not_null",
+"check_clause": "event_key IS NOT NULL"
+},
+{
+"table_name": "processed_events",
+"ctype": "CHECK",
+"constraint_name": "2200_32584_3_not_null",
+"check_clause": "processed_at IS NOT NULL"
+},
+{
+"table_name": "processed_events",
+"ctype": "PRIMARY KEY",
+"constraint_name": "processed_events_pkey",
+"check_clause": null
+},
+{
+"table_name": "product_indicators",
+"ctype": "CHECK",
+"constraint_name": "2200_18700_10_not_null",
+"check_clause": "status IS NOT NULL"
+},
+{
+"table_name": "product_indicators",
+"ctype": "CHECK",
+"constraint_name": "2200_18700_13_not_null",
+"check_clause": "created_by IS NOT NULL"
+},
+{
+"table_name": "product_indicators",
+"ctype": "CHECK",
+"constraint_name": "2200_18700_15_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "product_indicators",
+"ctype": "CHECK",
+"constraint_name": "2200_18700_16_not_null",
+"check_clause": "updated_at IS NOT NULL"
+},
+{
+"table_name": "product_indicators",
+"ctype": "CHECK",
+"constraint_name": "2200_18700_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "product_indicators",
+"ctype": "CHECK",
+"constraint_name": "2200_18700_2_not_null",
+"check_clause": "store_id IS NOT NULL"
+},
+{
+"table_name": "product_indicators",
+"ctype": "CHECK",
+"constraint_name": "2200_18700_3_not_null",
+"check_clause": "name IS NOT NULL"
+},
+{
+"table_name": "product_indicators",
+"ctype": "CHECK",
+"constraint_name": "2200_18700_4_not_null",
+"check_clause": "selector IS NOT NULL"
+},
+{
+"table_name": "product_indicators",
+"ctype": "CHECK",
+"constraint_name": "2200_18700_5_not_null",
+"check_clause": "metric IS NOT NULL"
+},
+{
+"table_name": "product_indicators",
+"ctype": "CHECK",
+"constraint_name": "2200_18700_6_not_null",
+"check_clause": "scope_level IS NOT NULL"
+},
+{
+"table_name": "product_indicators",
+"ctype": "CHECK",
+"constraint_name": "2200_18700_8_not_null",
+"check_clause": "period IS NOT NULL"
+},
+{
+"table_name": "product_indicators",
+"ctype": "CHECK",
+"constraint_name": "2200_18700_9_not_null",
+"check_clause": "target_value IS NOT NULL"
+},
+{
+"table_name": "product_indicators",
+"ctype": "PRIMARY KEY",
+"constraint_name": "product_indicators_pkey",
+"check_clause": null
+},
+{
+"table_name": "profiles",
+"ctype": "CHECK",
+"constraint_name": "2200_17581_1_not_null",
+"check_clause": "auth_user_id IS NOT NULL"
+},
+{
+"table_name": "profiles",
+"ctype": "CHECK",
+"constraint_name": "2200_17581_3_not_null",
+"check_clause": "store_id IS NOT NULL"
+},
+{
+"table_name": "profiles",
+"ctype": "CHECK",
+"constraint_name": "2200_17581_4_not_null",
+"check_clause": "role IS NOT NULL"
+},
+{
+"table_name": "profiles",
+"ctype": "CHECK",
+"constraint_name": "2200_17581_5_not_null",
+"check_clause": "display_name IS NOT NULL"
+},
+{
+"table_name": "profiles",
+"ctype": "CHECK",
+"constraint_name": "2200_17581_7_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "profiles",
+"ctype": "CHECK",
+"constraint_name": "profiles_role_check",
+"check_clause": "(role = ANY (ARRAY['owner'::text, 'manager'::text, 'seller_internal'::text, 'seller_external'::text, 'sdr'::text, 'financeiro'::text, 'b2b_customer'::text, 'b2c_customer'::text]))"
+},
+{
+"table_name": "profiles",
+"ctype": "PRIMARY KEY",
+"constraint_name": "profiles_pkey",
+"check_clause": null
+},
+{
+"table_name": "quick_replies",
+"ctype": "CHECK",
+"constraint_name": "2200_18362_10_not_null",
+"check_clause": "updated_at IS NOT NULL"
+},
+{
+"table_name": "quick_replies",
+"ctype": "CHECK",
+"constraint_name": "2200_18362_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "quick_replies",
+"ctype": "CHECK",
+"constraint_name": "2200_18362_2_not_null",
+"check_clause": "store_id IS NOT NULL"
+},
+{
+"table_name": "quick_replies",
+"ctype": "CHECK",
+"constraint_name": "2200_18362_3_not_null",
+"check_clause": "shortcut IS NOT NULL"
+},
+{
+"table_name": "quick_replies",
+"ctype": "CHECK",
+"constraint_name": "2200_18362_4_not_null",
+"check_clause": "title IS NOT NULL"
+},
+{
+"table_name": "quick_replies",
+"ctype": "CHECK",
+"constraint_name": "2200_18362_5_not_null",
+"check_clause": "body IS NOT NULL"
+},
+{
+"table_name": "quick_replies",
+"ctype": "CHECK",
+"constraint_name": "2200_18362_6_not_null",
+"check_clause": "scope IS NOT NULL"
+},
+{
+"table_name": "quick_replies",
+"ctype": "CHECK",
+"constraint_name": "2200_18362_7_not_null",
+"check_clause": "owner_id IS NOT NULL"
+},
+{
+"table_name": "quick_replies",
+"ctype": "CHECK",
+"constraint_name": "2200_18362_9_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "quick_replies",
+"ctype": "PRIMARY KEY",
+"constraint_name": "quick_replies_pkey",
+"check_clause": null
+},
+{
+"table_name": "quote_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18038_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "quote_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18038_2_not_null",
+"check_clause": "quote_id IS NOT NULL"
+},
+{
+"table_name": "quote_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18038_3_not_null",
+"check_clause": "part_id IS NOT NULL"
+},
+{
+"table_name": "quote_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18038_4_not_null",
+"check_clause": "part_sku IS NOT NULL"
+},
+{
+"table_name": "quote_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18038_5_not_null",
+"check_clause": "part_name IS NOT NULL"
+},
+{
+"table_name": "quote_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18038_6_not_null",
+"check_clause": "quantity IS NOT NULL"
+},
+{
+"table_name": "quote_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18038_7_not_null",
+"check_clause": "unit_price IS NOT NULL"
+},
+{
+"table_name": "quote_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18038_8_not_null",
+"check_clause": "discount IS NOT NULL"
+},
+{
+"table_name": "quote_items",
+"ctype": "CHECK",
+"constraint_name": "2200_18038_9_not_null",
+"check_clause": "total IS NOT NULL"
+},
+{
+"table_name": "quote_items",
+"ctype": "PRIMARY KEY",
+"constraint_name": "quote_items_pkey",
+"check_clause": null
+},
+{
+"table_name": "quotes",
+"ctype": "CHECK",
+"constraint_name": "2200_17985_11_not_null",
+"check_clause": "shipping IS NOT NULL"
+},
+{
+"table_name": "quotes",
+"ctype": "CHECK",
+"constraint_name": "2200_17985_12_not_null",
+"check_clause": "total IS NOT NULL"
+},
+{
+"table_name": "quotes",
+"ctype": "CHECK",
+"constraint_name": "2200_17985_13_not_null",
+"check_clause": "payment_condition IS NOT NULL"
+},
+{
+"table_name": "quotes",
+"ctype": "CHECK",
+"constraint_name": "2200_17985_17_not_null",
+"check_clause": "valid_until IS NOT NULL"
+},
+{
+"table_name": "quotes",
+"ctype": "CHECK",
+"constraint_name": "2200_17985_18_not_null",
+"check_clause": "status IS NOT NULL"
+},
+{
+"table_name": "quotes",
+"ctype": "CHECK",
+"constraint_name": "2200_17985_19_not_null",
+"check_clause": "origin IS NOT NULL"
+},
+{
+"table_name": "quotes",
+"ctype": "CHECK",
+"constraint_name": "2200_17985_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "quotes",
+"ctype": "CHECK",
+"constraint_name": "2200_17985_20_not_null",
+"check_clause": "division IS NOT NULL"
+},
+{
+"table_name": "quotes",
+"ctype": "CHECK",
+"constraint_name": "2200_17985_29_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "quotes",
+"ctype": "CHECK",
+"constraint_name": "2200_17985_2_not_null",
+"check_clause": "store_id IS NOT NULL"
+},
+{
+"table_name": "quotes",
+"ctype": "CHECK",
+"constraint_name": "2200_17985_30_not_null",
+"check_clause": "updated_at IS NOT NULL"
+},
+{
+"table_name": "quotes",
+"ctype": "CHECK",
+"constraint_name": "2200_17985_3_not_null",
+"check_clause": "number IS NOT NULL"
+},
+{
+"table_name": "quotes",
+"ctype": "CHECK",
+"constraint_name": "2200_17985_7_not_null",
+"check_clause": "seller_id IS NOT NULL"
+},
+{
+"table_name": "quotes",
+"ctype": "CHECK",
+"constraint_name": "2200_17985_8_not_null",
+"check_clause": "subtotal IS NOT NULL"
+},
+{
+"table_name": "quotes",
+"ctype": "CHECK",
+"constraint_name": "2200_17985_9_not_null",
+"check_clause": "discount IS NOT NULL"
+},
+{
+"table_name": "quotes",
+"ctype": "PRIMARY KEY",
+"constraint_name": "quotes_pkey",
+"check_clause": null
+},
+{
+"table_name": "rbac_resources",
+"ctype": "CHECK",
+"constraint_name": "2200_138808_1_not_null",
+"check_clause": "key IS NOT NULL"
+},
+{
+"table_name": "rbac_resources",
+"ctype": "CHECK",
+"constraint_name": "2200_138808_2_not_null",
+"check_clause": "label IS NOT NULL"
+},
+{
+"table_name": "rbac_resources",
+"ctype": "CHECK",
+"constraint_name": "2200_138808_3_not_null",
+"check_clause": "group IS NOT NULL"
+},
+{
+"table_name": "rbac_resources",
+"ctype": "CHECK",
+"constraint_name": "2200_138808_4_not_null",
+"check_clause": "sort_order IS NOT NULL"
+},
+{
+"table_name": "rbac_resources",
+"ctype": "PRIMARY KEY",
+"constraint_name": "rbac_resources_pkey",
+"check_clause": null
+},
+{
+"table_name": "recommendations",
+"ctype": "CHECK",
+"constraint_name": "2200_18632_10_not_null",
+"check_clause": "resolved IS NOT NULL"
+},
+{
+"table_name": "recommendations",
+"ctype": "CHECK",
+"constraint_name": "2200_18632_11_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "recommendations",
+"ctype": "CHECK",
+"constraint_name": "2200_18632_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "recommendations",
+"ctype": "CHECK",
+"constraint_name": "2200_18632_2_not_null",
+"check_clause": "store_id IS NOT NULL"
+},
+{
+"table_name": "recommendations",
+"ctype": "CHECK",
+"constraint_name": "2200_18632_3_not_null",
+"check_clause": "seller_id IS NOT NULL"
+},
+{
+"table_name": "recommendations",
+"ctype": "CHECK",
+"constraint_name": "2200_18632_4_not_null",
+"check_clause": "subject_id IS NOT NULL"
+},
+{
+"table_name": "recommendations",
+"ctype": "CHECK",
+"constraint_name": "2200_18632_5_not_null",
+"check_clause": "type IS NOT NULL"
+},
+{
+"table_name": "recommendations",
+"ctype": "CHECK",
+"constraint_name": "2200_18632_6_not_null",
+"check_clause": "priority IS NOT NULL"
+},
+{
+"table_name": "recommendations",
+"ctype": "CHECK",
+"constraint_name": "2200_18632_7_not_null",
+"check_clause": "title IS NOT NULL"
+},
+{
+"table_name": "recommendations",
+"ctype": "CHECK",
+"constraint_name": "2200_18632_8_not_null",
+"check_clause": "description IS NOT NULL"
+},
+{
+"table_name": "recommendations",
+"ctype": "PRIMARY KEY",
+"constraint_name": "recommendations_pkey",
+"check_clause": null
+},
+{
+"table_name": "role_permissions",
+"ctype": "CHECK",
+"constraint_name": "2200_138834_1_not_null",
+"check_clause": "role_id IS NOT NULL"
+},
+{
+"table_name": "role_permissions",
+"ctype": "CHECK",
+"constraint_name": "2200_138834_2_not_null",
+"check_clause": "resource IS NOT NULL"
+},
+{
+"table_name": "role_permissions",
+"ctype": "CHECK",
+"constraint_name": "2200_138834_3_not_null",
+"check_clause": "actions IS NOT NULL"
+},
+{
+"table_name": "role_permissions",
+"ctype": "CHECK",
+"constraint_name": "2200_138834_4_not_null",
+"check_clause": "scope IS NOT NULL"
+},
+{
+"table_name": "role_permissions",
+"ctype": "PRIMARY KEY",
+"constraint_name": "role_permissions_pkey",
+"check_clause": null
+},
+{
+"table_name": "roles",
+"ctype": "CHECK",
+"constraint_name": "2200_138816_10_not_null",
+"check_clause": "updated_at IS NOT NULL"
+},
+{
+"table_name": "roles",
+"ctype": "CHECK",
+"constraint_name": "2200_138816_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "roles",
+"ctype": "CHECK",
+"constraint_name": "2200_138816_2_not_null",
+"check_clause": "slug IS NOT NULL"
+},
+{
+"table_name": "roles",
+"ctype": "CHECK",
+"constraint_name": "2200_138816_3_not_null",
+"check_clause": "name IS NOT NULL"
+},
+{
+"table_name": "roles",
+"ctype": "CHECK",
+"constraint_name": "2200_138816_5_not_null",
+"check_clause": "is_system IS NOT NULL"
+},
+{
+"table_name": "roles",
+"ctype": "CHECK",
+"constraint_name": "2200_138816_6_not_null",
+"check_clause": "is_owner_immutable IS NOT NULL"
+},
+{
+"table_name": "roles",
+"ctype": "CHECK",
+"constraint_name": "2200_138816_7_not_null",
+"check_clause": "base_role IS NOT NULL"
+},
+{
+"table_name": "roles",
+"ctype": "CHECK",
+"constraint_name": "2200_138816_9_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "roles",
+"ctype": "PRIMARY KEY",
+"constraint_name": "roles_pkey",
+"check_clause": null
+},
+{
+"table_name": "roles",
+"ctype": "UNIQUE",
+"constraint_name": "roles_slug_key",
+"check_clause": null
+},
+{
+"table_name": "rotation_participants",
+"ctype": "CHECK",
+"constraint_name": "2200_154914_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "rotation_participants",
+"ctype": "CHECK",
+"constraint_name": "2200_154914_2_not_null",
+"check_clause": "queue_id IS NOT NULL"
+},
+{
+"table_name": "rotation_participants",
+"ctype": "CHECK",
+"constraint_name": "2200_154914_4_not_null",
+"check_clause": "ref_type IS NOT NULL"
+},
+{
+"table_name": "rotation_participants",
+"ctype": "CHECK",
+"constraint_name": "2200_154914_5_not_null",
+"check_clause": "ref_id IS NOT NULL"
+},
+{
+"table_name": "rotation_participants",
+"ctype": "CHECK",
+"constraint_name": "2200_154914_6_not_null",
+"check_clause": "order IS NOT NULL"
+},
+{
+"table_name": "rotation_participants",
+"ctype": "CHECK",
+"constraint_name": "2200_154914_7_not_null",
+"check_clause": "enabled IS NOT NULL"
+},
+{
+"table_name": "rotation_participants",
+"ctype": "CHECK",
+"constraint_name": "rotation_participants_ref_type_check",
+"check_clause": "(ref_type = ANY (ARRAY['seller'::text, 'department'::text]))"
+},
+{
+"table_name": "rotation_participants",
+"ctype": "PRIMARY KEY",
+"constraint_name": "rotation_participants_pkey",
+"check_clause": null
+},
+{
+"table_name": "rotation_queues",
+"ctype": "CHECK",
+"constraint_name": "2200_154894_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "rotation_queues",
+"ctype": "CHECK",
+"constraint_name": "2200_154894_2_not_null",
+"check_clause": "store_id IS NOT NULL"
+},
+{
+"table_name": "rotation_queues",
+"ctype": "CHECK",
+"constraint_name": "2200_154894_3_not_null",
+"check_clause": "target_mode IS NOT NULL"
+},
+{
+"table_name": "rotation_queues",
+"ctype": "CHECK",
+"constraint_name": "2200_154894_5_not_null",
+"check_clause": "skip_offline IS NOT NULL"
+},
+{
+"table_name": "rotation_queues",
+"ctype": "CHECK",
+"constraint_name": "2200_154894_6_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "rotation_queues",
+"ctype": "CHECK",
+"constraint_name": "2200_154894_7_not_null",
+"check_clause": "updated_at IS NOT NULL"
+},
+{
+"table_name": "rotation_queues",
+"ctype": "CHECK",
+"constraint_name": "rotation_queues_target_mode_check",
+"check_clause": "(target_mode = ANY (ARRAY['direct'::text, 'department'::text]))"
+},
+{
+"table_name": "rotation_queues",
+"ctype": "PRIMARY KEY",
+"constraint_name": "rotation_queues_pkey",
+"check_clause": null
+},
+{
+"table_name": "rotation_queues",
+"ctype": "UNIQUE",
+"constraint_name": "rotation_queues_store_id_key",
+"check_clause": null
+},
+{
+"table_name": "scheduled_sends",
+"ctype": "CHECK",
+"constraint_name": "2200_18413_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "scheduled_sends",
+"ctype": "CHECK",
+"constraint_name": "2200_18413_2_not_null",
+"check_clause": "store_id IS NOT NULL"
+},
+{
+"table_name": "scheduled_sends",
+"ctype": "CHECK",
+"constraint_name": "2200_18413_3_not_null",
+"check_clause": "conversation_id IS NOT NULL"
+},
+{
+"table_name": "scheduled_sends",
+"ctype": "CHECK",
+"constraint_name": "2200_18413_5_not_null",
+"check_clause": "payload IS NOT NULL"
+},
+{
+"table_name": "scheduled_sends",
+"ctype": "CHECK",
+"constraint_name": "2200_18413_6_not_null",
+"check_clause": "status IS NOT NULL"
+},
+{
+"table_name": "scheduled_sends",
+"ctype": "CHECK",
+"constraint_name": "2200_18413_8_not_null",
+"check_clause": "created_by IS NOT NULL"
+},
+{
+"table_name": "scheduled_sends",
+"ctype": "CHECK",
+"constraint_name": "2200_18413_9_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "scheduled_sends",
+"ctype": "CHECK",
+"constraint_name": "scheduled_sends_pending_needs_time",
+"check_clause": "((status <> 'pending'::text) OR (scheduled_for IS NOT NULL))"
+},
+{
+"table_name": "scheduled_sends",
+"ctype": "CHECK",
+"constraint_name": "scheduled_sends_status_check",
+"check_clause": "(status = ANY (ARRAY['draft'::text, 'pending'::text, 'sent'::text, 'cancelled'::text, 'failed'::text]))"
+},
+{
+"table_name": "scheduled_sends",
+"ctype": "PRIMARY KEY",
+"constraint_name": "scheduled_sends_pkey",
+"check_clause": null
+},
+{
+"table_name": "sdr_escalations",
+"ctype": "CHECK",
+"constraint_name": "2200_18586_10_not_null",
+"check_clause": "context_summary IS NOT NULL"
+},
+{
+"table_name": "sdr_escalations",
+"ctype": "CHECK",
+"constraint_name": "2200_18586_14_not_null",
+"check_clause": "status IS NOT NULL"
+},
+{
+"table_name": "sdr_escalations",
+"ctype": "CHECK",
+"constraint_name": "2200_18586_19_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "sdr_escalations",
+"ctype": "CHECK",
+"constraint_name": "2200_18586_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "sdr_escalations",
+"ctype": "CHECK",
+"constraint_name": "2200_18586_2_not_null",
+"check_clause": "session_id IS NOT NULL"
+},
+{
+"table_name": "sdr_escalations",
+"ctype": "CHECK",
+"constraint_name": "2200_18586_3_not_null",
+"check_clause": "conversation_id IS NOT NULL"
+},
+{
+"table_name": "sdr_escalations",
+"ctype": "CHECK",
+"constraint_name": "2200_18586_6_not_null",
+"check_clause": "store_id IS NOT NULL"
+},
+{
+"table_name": "sdr_escalations",
+"ctype": "CHECK",
+"constraint_name": "2200_18586_7_not_null",
+"check_clause": "reason IS NOT NULL"
+},
+{
+"table_name": "sdr_escalations",
+"ctype": "CHECK",
+"constraint_name": "2200_18586_9_not_null",
+"check_clause": "mode IS NOT NULL"
+},
+{
+"table_name": "sdr_escalations",
+"ctype": "PRIMARY KEY",
+"constraint_name": "sdr_escalations_pkey",
+"check_clause": null
+},
+{
+"table_name": "sdr_sessions",
+"ctype": "CHECK",
+"constraint_name": "2200_18569_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "sdr_sessions",
+"ctype": "CHECK",
+"constraint_name": "2200_18569_2_not_null",
+"check_clause": "conversation_id IS NOT NULL"
+},
+{
+"table_name": "sdr_sessions",
+"ctype": "CHECK",
+"constraint_name": "2200_18569_3_not_null",
+"check_clause": "state IS NOT NULL"
+},
+{
+"table_name": "sdr_sessions",
+"ctype": "CHECK",
+"constraint_name": "2200_18569_4_not_null",
+"check_clause": "collected_data IS NOT NULL"
+},
+{
+"table_name": "sdr_sessions",
+"ctype": "CHECK",
+"constraint_name": "2200_18569_5_not_null",
+"check_clause": "last_activity_at IS NOT NULL"
+},
+{
+"table_name": "sdr_sessions",
+"ctype": "CHECK",
+"constraint_name": "2200_18569_6_not_null",
+"check_clause": "started_at IS NOT NULL"
+},
+{
+"table_name": "sdr_sessions",
+"ctype": "PRIMARY KEY",
+"constraint_name": "sdr_sessions_pkey",
+"check_clause": null
+},
+{
+"table_name": "sellers",
+"ctype": "CHECK",
+"constraint_name": "2200_17630_16_not_null",
+"check_clause": "active IS NOT NULL"
+},
+{
+"table_name": "sellers",
+"ctype": "CHECK",
+"constraint_name": "2200_17630_17_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "sellers",
+"ctype": "CHECK",
+"constraint_name": "2200_17630_18_not_null",
+"check_clause": "updated_at IS NOT NULL"
+},
+{
+"table_name": "sellers",
+"ctype": "CHECK",
+"constraint_name": "2200_17630_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "sellers",
+"ctype": "CHECK",
+"constraint_name": "2200_17630_22_not_null",
+"check_clause": "rotation IS NOT NULL"
+},
+{
+"table_name": "sellers",
+"ctype": "CHECK",
+"constraint_name": "2200_17630_2_not_null",
+"check_clause": "store_id IS NOT NULL"
+},
+{
+"table_name": "sellers",
+"ctype": "CHECK",
+"constraint_name": "2200_17630_4_not_null",
+"check_clause": "full_name IS NOT NULL"
+},
+{
+"table_name": "sellers",
+"ctype": "CHECK",
+"constraint_name": "2200_17630_5_not_null",
+"check_clause": "email IS NOT NULL"
+},
+{
+"table_name": "sellers",
+"ctype": "CHECK",
+"constraint_name": "2200_17630_7_not_null",
+"check_clause": "type IS NOT NULL"
+},
+{
+"table_name": "sellers",
+"ctype": "CHECK",
+"constraint_name": "2200_17630_8_not_null",
+"check_clause": "availability IS NOT NULL"
+},
+{
+"table_name": "sellers",
+"ctype": "CHECK",
+"constraint_name": "2200_17630_9_not_null",
+"check_clause": "divisions IS NOT NULL"
+},
+{
+"table_name": "sellers",
+"ctype": "CHECK",
+"constraint_name": "sellers_availability_check",
+"check_clause": "(availability = ANY (ARRAY['online'::text, 'ausente'::text, 'ocupado'::text, 'offline'::text]))"
+},
+{
+"table_name": "sellers",
+"ctype": "CHECK",
+"constraint_name": "sellers_commission_tier_check",
+"check_clause": "((commission_tier IS NULL) OR (commission_tier = ANY (ARRAY['junior'::text, 'pleno'::text, 'senior'::text, 'master'::text])))"
+},
+{
+"table_name": "sellers",
+"ctype": "CHECK",
+"constraint_name": "sellers_type_check",
+"check_clause": "(type = ANY (ARRAY['internal'::text, 'external'::text, 'representative'::text]))"
+},
+{
+"table_name": "sellers",
+"ctype": "PRIMARY KEY",
+"constraint_name": "sellers_pkey",
+"check_clause": null
+},
+{
+"table_name": "sellers",
+"ctype": "UNIQUE",
+"constraint_name": "sellers_auth_user_id_key",
+"check_clause": null
+},
+{
+"table_name": "sellers",
+"ctype": "UNIQUE",
+"constraint_name": "sellers_email_key",
+"check_clause": null
+},
+{
+"table_name": "stores",
+"ctype": "CHECK",
+"constraint_name": "2200_17570_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "stores",
+"ctype": "CHECK",
+"constraint_name": "2200_17570_2_not_null",
+"check_clause": "name IS NOT NULL"
+},
+{
+"table_name": "stores",
+"ctype": "CHECK",
+"constraint_name": "2200_17570_3_not_null",
+"check_clause": "type IS NOT NULL"
+},
+{
+"table_name": "stores",
+"ctype": "CHECK",
+"constraint_name": "2200_17570_4_not_null",
+"check_clause": "address IS NOT NULL"
+},
+{
+"table_name": "stores",
+"ctype": "CHECK",
+"constraint_name": "2200_17570_5_not_null",
+"check_clause": "cnpj IS NOT NULL"
+},
+{
+"table_name": "stores",
+"ctype": "CHECK",
+"constraint_name": "2200_17570_6_not_null",
+"check_clause": "settings IS NOT NULL"
+},
+{
+"table_name": "stores",
+"ctype": "CHECK",
+"constraint_name": "2200_17570_7_not_null",
+"check_clause": "active_divisions IS NOT NULL"
+},
+{
+"table_name": "stores",
+"ctype": "CHECK",
+"constraint_name": "2200_17570_8_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "stores",
+"ctype": "CHECK",
+"constraint_name": "stores_type_check",
+"check_clause": "(type = ANY (ARRAY['matriz'::text, 'filial'::text, 'parceira'::text]))"
+},
+{
+"table_name": "stores",
+"ctype": "PRIMARY KEY",
+"constraint_name": "stores_pkey",
+"check_clause": null
+},
+{
+"table_name": "trackable_links",
+"ctype": "CHECK",
+"constraint_name": "2200_18385_10_not_null",
+"check_clause": "opens IS NOT NULL"
+},
+{
+"table_name": "trackable_links",
+"ctype": "CHECK",
+"constraint_name": "2200_18385_12_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "trackable_links",
+"ctype": "CHECK",
+"constraint_name": "2200_18385_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "trackable_links",
+"ctype": "CHECK",
+"constraint_name": "2200_18385_2_not_null",
+"check_clause": "store_id IS NOT NULL"
+},
+{
+"table_name": "trackable_links",
+"ctype": "CHECK",
+"constraint_name": "2200_18385_6_not_null",
+"check_clause": "target_url IS NOT NULL"
+},
+{
+"table_name": "trackable_links",
+"ctype": "CHECK",
+"constraint_name": "2200_18385_7_not_null",
+"check_clause": "short_ref IS NOT NULL"
+},
+{
+"table_name": "trackable_links",
+"ctype": "CHECK",
+"constraint_name": "2200_18385_9_not_null",
+"check_clause": "created_by IS NOT NULL"
+},
+{
+"table_name": "trackable_links",
+"ctype": "PRIMARY KEY",
+"constraint_name": "trackable_links_pkey",
+"check_clause": null
+},
+{
+"table_name": "vehicle_models",
+"ctype": "CHECK",
+"constraint_name": "2200_17715_10_not_null",
+"check_clause": "updated_at IS NOT NULL"
+},
+{
+"table_name": "vehicle_models",
+"ctype": "CHECK",
+"constraint_name": "2200_17715_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "vehicle_models",
+"ctype": "CHECK",
+"constraint_name": "2200_17715_2_not_null",
+"check_clause": "brand IS NOT NULL"
+},
+{
+"table_name": "vehicle_models",
+"ctype": "CHECK",
+"constraint_name": "2200_17715_3_not_null",
+"check_clause": "model IS NOT NULL"
+},
+{
+"table_name": "vehicle_models",
+"ctype": "CHECK",
+"constraint_name": "2200_17715_4_not_null",
+"check_clause": "engine IS NOT NULL"
+},
+{
+"table_name": "vehicle_models",
+"ctype": "CHECK",
+"constraint_name": "2200_17715_7_not_null",
+"check_clause": "status IS NOT NULL"
+},
+{
+"table_name": "vehicle_models",
+"ctype": "CHECK",
+"constraint_name": "2200_17715_8_not_null",
+"check_clause": "created_by IS NOT NULL"
+},
+{
+"table_name": "vehicle_models",
+"ctype": "CHECK",
+"constraint_name": "2200_17715_9_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "vehicle_models",
+"ctype": "CHECK",
+"constraint_name": "vehicle_models_status_check",
+"check_clause": "(status = ANY (ARRAY['ativo'::text, 'inativo'::text]))"
+},
+{
+"table_name": "vehicle_models",
+"ctype": "PRIMARY KEY",
+"constraint_name": "vehicle_models_pkey",
+"check_clause": null
+},
+{
+"table_name": "vehicles",
+"ctype": "CHECK",
+"constraint_name": "2200_17818_11_not_null",
+"check_clause": "service_history IS NOT NULL"
+},
+{
+"table_name": "vehicles",
+"ctype": "CHECK",
+"constraint_name": "2200_17818_12_not_null",
+"check_clause": "cadastro_status IS NOT NULL"
+},
+{
+"table_name": "vehicles",
+"ctype": "CHECK",
+"constraint_name": "2200_17818_13_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "vehicles",
+"ctype": "CHECK",
+"constraint_name": "2200_17818_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "vehicles",
+"ctype": "CHECK",
+"constraint_name": "2200_17818_2_not_null",
+"check_clause": "customer_id IS NOT NULL"
+},
+{
+"table_name": "vehicles",
+"ctype": "CHECK",
+"constraint_name": "2200_17818_3_not_null",
+"check_clause": "brand IS NOT NULL"
+},
+{
+"table_name": "vehicles",
+"ctype": "CHECK",
+"constraint_name": "2200_17818_4_not_null",
+"check_clause": "model IS NOT NULL"
+},
+{
+"table_name": "vehicles",
+"ctype": "CHECK",
+"constraint_name": "2200_17818_5_not_null",
+"check_clause": "year IS NOT NULL"
+},
+{
+"table_name": "vehicles",
+"ctype": "CHECK",
+"constraint_name": "2200_17818_6_not_null",
+"check_clause": "engine IS NOT NULL"
+},
+{
+"table_name": "vehicles",
+"ctype": "PRIMARY KEY",
+"constraint_name": "vehicles_pkey",
+"check_clause": null
+},
+{
+"table_name": "whatsapp_account_access_rules",
+"ctype": "CHECK",
+"constraint_name": "2200_125241_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "whatsapp_account_access_rules",
+"ctype": "CHECK",
+"constraint_name": "2200_125241_2_not_null",
+"check_clause": "whatsapp_account_id IS NOT NULL"
+},
+{
+"table_name": "whatsapp_account_access_rules",
+"ctype": "CHECK",
+"constraint_name": "2200_125241_3_not_null",
+"check_clause": "kind IS NOT NULL"
+},
+{
+"table_name": "whatsapp_account_access_rules",
+"ctype": "CHECK",
+"constraint_name": "2200_125241_4_not_null",
+"check_clause": "target_value IS NOT NULL"
+},
+{
+"table_name": "whatsapp_account_access_rules",
+"ctype": "CHECK",
+"constraint_name": "2200_125241_5_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "whatsapp_account_access_rules",
+"ctype": "CHECK",
+"constraint_name": "whatsapp_account_access_rules_kind_check",
+"check_clause": "(kind = ANY (ARRAY['seller'::text, 'role'::text, 'store'::text]))"
+},
+{
+"table_name": "whatsapp_account_access_rules",
+"ctype": "PRIMARY KEY",
+"constraint_name": "whatsapp_account_access_rules_pkey",
+"check_clause": null
+},
+{
+"table_name": "whatsapp_account_access_rules",
+"ctype": "UNIQUE",
+"constraint_name": "whatsapp_account_access_rules_whatsapp_account_id_kind_targ_key",
+"check_clause": null
+},
+{
+"table_name": "whatsapp_accounts",
+"ctype": "CHECK",
+"constraint_name": "2200_17699_12_not_null",
+"check_clause": "failover_policy IS NOT NULL"
+},
+{
+"table_name": "whatsapp_accounts",
+"ctype": "CHECK",
+"constraint_name": "2200_17699_13_not_null",
+"check_clause": "current_state IS NOT NULL"
+},
+{
+"table_name": "whatsapp_accounts",
+"ctype": "CHECK",
+"constraint_name": "2200_17699_15_not_null",
+"check_clause": "is_failover_active IS NOT NULL"
+},
+{
+"table_name": "whatsapp_accounts",
+"ctype": "CHECK",
+"constraint_name": "2200_17699_16_not_null",
+"check_clause": "purpose IS NOT NULL"
+},
+{
+"table_name": "whatsapp_accounts",
+"ctype": "CHECK",
+"constraint_name": "2200_17699_1_not_null",
+"check_clause": "id IS NOT NULL"
+},
+{
+"table_name": "whatsapp_accounts",
+"ctype": "CHECK",
+"constraint_name": "2200_17699_2_not_null",
+"check_clause": "store_id IS NOT NULL"
+},
+{
+"table_name": "whatsapp_accounts",
+"ctype": "CHECK",
+"constraint_name": "2200_17699_3_not_null",
+"check_clause": "label IS NOT NULL"
+},
+{
+"table_name": "whatsapp_accounts",
+"ctype": "CHECK",
+"constraint_name": "2200_17699_4_not_null",
+"check_clause": "phone_number IS NOT NULL"
+},
+{
+"table_name": "whatsapp_accounts",
+"ctype": "CHECK",
+"constraint_name": "2200_17699_5_not_null",
+"check_clause": "provider IS NOT NULL"
+},
+{
+"table_name": "whatsapp_accounts",
+"ctype": "CHECK",
+"constraint_name": "2200_17699_6_not_null",
+"check_clause": "credentials_ref IS NOT NULL"
+},
+{
+"table_name": "whatsapp_accounts",
+"ctype": "CHECK",
+"constraint_name": "2200_17699_7_not_null",
+"check_clause": "status IS NOT NULL"
+},
+{
+"table_name": "whatsapp_accounts",
+"ctype": "CHECK",
+"constraint_name": "2200_17699_8_not_null",
+"check_clause": "capabilities IS NOT NULL"
+},
+{
+"table_name": "whatsapp_accounts",
+"ctype": "CHECK",
+"constraint_name": "2200_17699_9_not_null",
+"check_clause": "created_at IS NOT NULL"
+},
+{
+"table_name": "whatsapp_accounts",
+"ctype": "CHECK",
+"constraint_name": "whatsapp_accounts_current_state_check",
+"check_clause": "(current_state = ANY (ARRAY['healthy'::text, 'degraded'::text, 'down'::text, 'paused'::text]))"
+},
+{
+"table_name": "whatsapp_accounts",
+"ctype": "CHECK",
+"constraint_name": "whatsapp_accounts_failover_not_self",
+"check_clause": "((failover_account_id IS NULL) OR (failover_account_id <> id))"
+},
+{
+"table_name": "whatsapp_accounts",
+"ctype": "CHECK",
+"constraint_name": "whatsapp_accounts_failover_policy_check",
+"check_clause": "(failover_policy = ANY (ARRAY['disabled'::text, 'manual'::text, 'automatic'::text]))"
+},
+{
+"table_name": "whatsapp_accounts",
+"ctype": "CHECK",
+"constraint_name": "whatsapp_accounts_failover_policy_requires_target",
+"check_clause": "((failover_policy = 'disabled'::text) OR (failover_account_id IS NOT NULL))"
+},
+{
+"table_name": "whatsapp_accounts",
+"ctype": "CHECK",
+"constraint_name": "whatsapp_accounts_provider_config_shape",
+"check_clause": "((provider_config IS NULL) OR ((provider = 'meta'::text) AND (provider_config ? 'phoneNumberId'::text) AND (provider_config ? 'businessAccountId'::text)) OR ((provider = 'evolution'::text) AND (provider_config ? 'baseUrl'::text) AND (provider_config ? 'instanceName'::text)))"
+},
+{
+"table_name": "whatsapp_accounts",
+"ctype": "CHECK",
+"constraint_name": "whatsapp_accounts_purpose_check",
+"check_clause": "(purpose = ANY (ARRAY['atendimento'::text, 'campanha'::text, 'ambos'::text]))"
+},
+{
+"table_name": "whatsapp_accounts",
+"ctype": "PRIMARY KEY",
+"constraint_name": "whatsapp_accounts_pkey",
+"check_clause": null
+}
+]
