@@ -21,7 +21,7 @@ export function generateGoCredentialsRef(
   existingRefs: string[],
   suffix: string,
 ): string {
-  const suf = suffix.toUpperCase().replace(/[^A-Z0-9]/g, "") || "X";
+  const suf = suffix.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 16) || "X";
   const base = `WA_EVO_GO_${slugUpper(label)}_${suf}`;
   let candidate = base;
   let n = 1;

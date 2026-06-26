@@ -19,6 +19,12 @@ describe("generateGoCredentialsRef", () => {
     expect(generateGoCredentialsRef("!!!", [], "q2")).toBe("WA_EVO_GO_INSTANCIA_Q2");
   });
 
+  it("falls back to X when the suffix has no alphanumerics", () => {
+    const ref = generateGoCredentialsRef("Loja", [], "--");
+    expect(ref).toBe("WA_EVO_GO_LOJA_X");
+    expect(isValidCredentialsRef(ref)).toBe(true);
+  });
+
   it("avoids collisions with existing refs by appending a counter", () => {
     const existing = ["WA_EVO_GO_LOJA_AB"];
     const ref = generateGoCredentialsRef("Loja", existing, "ab");
