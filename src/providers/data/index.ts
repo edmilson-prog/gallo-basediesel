@@ -116,6 +116,9 @@ export type {
   IAddRotationParticipantInput,
   IAiProvider,
   IAtendimentoMetricsProvider,
+  IWhatsAppGoServersProvider,
+  ICreateGoServerInput,
+  IGoServerPatch,
 } from "./contracts";
 export { computeFailureRate } from "./contracts";
 
@@ -162,3 +165,4 @@ export { useRotationQueuesProvider } from "./hooks/useRotationQueuesProvider";
 export { useRotationParticipantsProvider } from "./hooks/useRotationParticipantsProvider";
 export { useAiProvider } from "./hooks/useAiProvider";
 export { useAtendimentoMetricsProvider } from "./hooks/useAtendimentoMetricsProvider";
+export { useWhatsAppGoServersProvider } from "./hooks/useWhatsAppGoServersProvider";

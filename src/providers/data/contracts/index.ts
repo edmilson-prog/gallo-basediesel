@@ -48,6 +48,7 @@ import type { IRotationQueuesProvider } from "./rotationQueues";
 import type { IRotationParticipantsProvider } from "./rotationParticipants";
 import type { IAiProvider } from "./ai";
 import type { IAtendimentoMetricsProvider } from "./atendimentoMetrics";
+import type { IWhatsAppGoServersProvider } from "./whatsappGoServers";
 
 export type { IPaginatedResult, IPaginationParams } from "./_shared";
 
@@ -152,6 +153,11 @@ export type {
 } from "./rotationParticipants";
 export type { IAiProvider } from "./ai";
 export type { IAtendimentoMetricsProvider } from "./atendimentoMetrics";
+export type {
+  IWhatsAppGoServersProvider,
+  ICreateGoServerInput,
+  IGoServerPatch,
+} from "./whatsappGoServers";
 
 /**
  * Aggregate of every data provider returned by `getDataProviders()`. The factory
@@ -202,4 +208,5 @@ export interface IDataProviders {
   rotationParticipants: IRotationParticipantsProvider;
   ai: IAiProvider;
   atendimentoMetrics: IAtendimentoMetricsProvider;
+  whatsappGoServers: IWhatsAppGoServersProvider;
 }
