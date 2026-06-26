@@ -612,7 +612,11 @@ servePost(async (req, ctx) => {
           }
           const goTarget = { baseUrl: goBaseUrl, instanceId };
           const status = await getGoInstanceStatus(instanceToken, deps, goTarget, ctx.traceId);
-          if (status.connected) {
+          // `Connected` only means whatsmeow's socket is up (which it must be to
+          // render the QR); the session is PAIRED only when `LoggedIn` is true.
+          // Gating on `connected` here falsely flipped to "open" ~2s after the QR
+          // appeared — before the user could scan it.
+          if (status.loggedIn) {
             if (account.status !== "connected") {
               await admin
                 .from("whatsapp_accounts")
