@@ -592,7 +592,13 @@ servePost(async (req, ctx) => {
           }
           const goTarget = { baseUrl: goBaseUrl, instanceId };
           const status = await getGoInstanceStatus(instanceToken, deps, goTarget, ctx.traceId);
-          if (status.connected) {
+          // "Connected" is just the websocket (a fresh Go instance reports it
+          // ~1s after /instance/create, before any QR scan); "logged in" is the
+          // real pairing signal. Gating on `connected` here false-positived the
+          // pairing dialog to "Conectado" before the user could scan. While the
+          // socket is up but unauthenticated we return "close" — the dialog poll
+          // ignores it and keeps the QR (countdown + auto-renew) on screen.
+          if (status.loggedIn) {
             if (account.status !== "connected") {
               await admin
                 .from("whatsapp_accounts")
