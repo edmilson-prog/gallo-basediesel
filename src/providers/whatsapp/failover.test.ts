@@ -234,4 +234,41 @@ describe("resolveEffectiveAccount (RF-040/041)", () => {
     expect(result.account.id).toBe("acc-meta");
     expect(result.usedFailover).toBe(false);
   });
+
+  it("active failover routes text to an evolution-go backup", () => {
+    const primary = account({
+      failoverAccountId: "acc-go",
+      failoverPolicy: "automatic",
+      isFailoverActive: true,
+      currentState: "down",
+    });
+    const result = resolveEffectiveAccount({
+      primary,
+      failover: backup({ id: "acc-go", provider: "evolution-go" }),
+      kind: "text",
+    });
+    expect(result.usedFailover).toBe(true);
+    expect(result.account.provider).toBe("evolution-go");
+  });
+
+  it("template over an evolution-go backup bounces FAILOVER_INCOMPATIBLE 422", () => {
+    const primary = account({
+      failoverAccountId: "acc-go",
+      failoverPolicy: "automatic",
+      isFailoverActive: true,
+      currentState: "down",
+    });
+    try {
+      resolveEffectiveAccount({
+        primary,
+        failover: backup({ id: "acc-go", provider: "evolution-go" }),
+        kind: "template",
+      });
+      expect.unreachable("should have thrown");
+    } catch (error) {
+      expect(error).toBeInstanceOf(WhatsAppProviderError);
+      expect((error as WhatsAppProviderError).code).toBe("FAILOVER_INCOMPATIBLE");
+      expect((error as WhatsAppProviderError).httpStatus).toBe(422);
+    }
+  });
 });

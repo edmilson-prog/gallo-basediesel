@@ -75,7 +75,7 @@ export type MessageDirection = "in" | "out";
 export type MessageAuthorType = "customer" | "seller" | "sdr" | "system";
 
 /** Provider that delivered or originated a message. */
-export type MessageProvider = "meta" | "evolution" | "mock";
+export type MessageProvider = "meta" | "evolution" | "evolution-go" | "mock";
 
 /**
  * Delivery status reported by the provider.
@@ -126,7 +126,7 @@ export interface IMessage {
 }
 
 /** WhatsApp provider engine. */
-export type WhatsAppProviderName = "meta" | "evolution";
+export type WhatsAppProviderName = "meta" | "evolution" | "evolution-go";
 
 /** Connection status of a WhatsApp account. */
 export type WhatsAppAccountStatus = "connected" | "disconnected" | "pending";
@@ -189,6 +189,8 @@ export interface IWhatsAppProviderConfig {
   baseUrl?: string;
   /** Evolution — instance name within the host. */
   instanceName?: string;
+  /** Evolution Go — server-generated instance id. Empty until first pairing. */
+  instanceId?: string;
   /** Per-instance identity color (hex) for the origin dot/bar — falls back to a hash of the id. */
   accentColor?: string;
 }

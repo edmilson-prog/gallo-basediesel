@@ -14,6 +14,7 @@ import { useConversationContext } from "./ConversationContext";
 import { useAuth } from "@/features/auth/useAuth";
 import { applyAttendantSignature } from "../engine/attendantSignature";
 import { useCurrentAttendantName } from "./useCurrentAttendantName";
+import { isEvolutionFamily } from "@/shared/utils/whatsappProvider";
 
 /** Friendly pt-BR feedback per whatsapp-send error code (PRD-115 RF-073..075). */
 export const SEND_ERROR_MESSAGES: Record<string, string> = {
@@ -139,8 +140,8 @@ export function useMessageSend(
         authorId: currentUser?.id,
         provider: template
           ? "meta"
-          : whatsappAccount?.provider === "evolution"
-            ? "evolution"
+          : whatsappAccount && isEvolutionFamily(whatsappAccount.provider)
+            ? whatsappAccount.provider
             : conversation.channel === "whatsapp"
               ? "meta"
               : "mock",

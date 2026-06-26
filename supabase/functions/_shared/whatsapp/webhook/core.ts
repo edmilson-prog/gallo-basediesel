@@ -15,6 +15,7 @@
  */
 
 import { parseEvolutionInbound } from "../evolution/parser.ts";
+import { parseEvolutionGoInbound } from "../evolution-go/parser.ts";
 import { parseMetaInbound } from "../meta/parser.ts";
 import type { IWhatsAppProvider } from "../IWhatsAppProvider.ts";
 import type { IInboundMessage, IInboundStatus, IOutboundEcho } from "../types.ts";
@@ -22,7 +23,7 @@ import type { IInboundMessage, IInboundStatus, IOutboundEcho } from "../types.ts
 export interface IAccountRecord {
   id: string;
   storeId: string;
-  provider: "meta" | "evolution";
+  provider: "meta" | "evolution" | "evolution-go";
   phoneNumber: string;
   credentialsRef: string;
   providerConfig: Record<string, unknown> | null;
@@ -50,6 +51,10 @@ export interface IWebhookDb {
    * (a reconnect done straight on the Evolution server flips them back).
    */
   findEvolutionAccountAnyStatus(instanceName: string): Promise<IAccountRecord | null>;
+  /** Resolve a connected evolution-go account by the whatsmeow payload instanceId (provider_config.instanceId). */
+  findEvolutionGoAccount(instanceId: string): Promise<IAccountRecord | null>;
+  /** Like findEvolutionGoAccount but INCLUDING disconnected rows (used by the edge auth gate). */
+  findEvolutionGoAccountAnyStatus(instanceId: string): Promise<IAccountRecord | null>;
   /** Conditional status write; returns true when the row actually changed. */
   setAccountConnectionStatus(
     accountId: string,
@@ -88,7 +93,7 @@ export interface IWebhookDb {
   insertInboundMessage(input: {
     conversationId: string;
     customerId: string;
-    provider: "meta" | "evolution";
+    provider: "meta" | "evolution" | "evolution-go";
     text: string;
     mediaType: string | null;
     providerMessageId: string;
@@ -99,7 +104,7 @@ export interface IWebhookDb {
   /** Mirrored phone-sent message (outbound echo) — direction out, status sent. */
   insertOutboundEchoMessage(input: {
     conversationId: string;
-    provider: "meta" | "evolution";
+    provider: "meta" | "evolution" | "evolution-go";
     text: string;
     mediaType: string | null;
     providerMessageId: string;
@@ -158,7 +163,7 @@ export interface IProcessResult {
 }
 
 export interface IProcessArgs {
-  provider: "meta" | "evolution";
+  provider: "meta" | "evolution" | "evolution-go";
   rawPayload: unknown;
   db: IWebhookDb;
   /** Builds the concrete engine for the resolved account (media download). */
@@ -216,6 +221,10 @@ function extractMetaPhoneNumberId(rawPayload: unknown): string {
 
 function extractEvolutionInstance(rawPayload: unknown): string {
   return (rawPayload as { instance?: string } | null)?.instance ?? "";
+}
+
+function extractEvolutionGoInstance(rawPayload: unknown): string {
+  return String((rawPayload as { instanceId?: string } | null)?.instanceId ?? "");
 }
 
 /**
@@ -291,6 +300,17 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
     }
   }
 
+  // Evolution Go connection lifecycle (whatsmeow `Connection` event, PascalCase
+  // with data.State). No message to persist; account status sync is handled by
+  // the whatsapp-connect poll, not the webhook. Return early before the parser,
+  // which throws on non-Message events.
+  if (provider === "evolution-go") {
+    const ev = rawPayload as { event?: string; data?: { State?: string } } | null;
+    if (ev?.event === "Connection") {
+      return { outcome: "ignored", detail: `Connection: ${ev?.data?.State ?? ""}` };
+    }
+  }
+
   // 1. Defensive parse FIRST (pure, cheap). Unparseable payloads — including
   //    Evolution group/broadcast/lid events and non-message events — are
   //    ignorable by design (RNF-007): the webhook answers 200 and moves on.
@@ -299,7 +319,9 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
     parsed =
       provider === "meta"
         ? parseMetaInbound(rawPayload, "")
-        : parseEvolutionInbound(rawPayload, "");
+        : provider === "evolution-go"
+          ? parseEvolutionGoInbound(rawPayload, "")
+          : parseEvolutionInbound(rawPayload, "");
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     warn("webhook payload ignored", { provider, detail });
@@ -385,7 +407,10 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
       await db.markProcessed(eventKey, traceId);
       return { outcome: "duplicate", detail: "app-send echo" };
     }
-    const account = await db.findEvolutionAccount(extractEvolutionInstance(rawPayload));
+    const account =
+      provider === "evolution-go"
+        ? await db.findEvolutionGoAccount(extractEvolutionGoInstance(rawPayload))
+        : await db.findEvolutionAccount(extractEvolutionInstance(rawPayload));
     if (!account) {
       warn("echo for unknown account", { provider });
       return { outcome: "account-not-found" };
@@ -459,7 +484,9 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
           extractMetaPhoneNumberId(rawPayload),
           digits(parsed.toAccountPhone),
         )
-      : await db.findEvolutionAccount(extractEvolutionInstance(rawPayload));
+      : provider === "evolution-go"
+        ? await db.findEvolutionGoAccount(extractEvolutionGoInstance(rawPayload))
+        : await db.findEvolutionAccount(extractEvolutionInstance(rawPayload));
   if (!account) {
     warn("webhook for unknown account", { provider, toAccountPhone: parsed.toAccountPhone });
     return { outcome: "account-not-found" };

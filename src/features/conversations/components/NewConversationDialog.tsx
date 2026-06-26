@@ -23,6 +23,7 @@ import type { ICustomer, ID, IWhatsAppAccount } from "@/shared/types";
 import { OriginChip } from "./OriginChip";
 import { instanceAccent } from "../utils/instanceAccent";
 import { checkWhatsAppNumber } from "../api/checkWhatsAppNumber";
+import { isEvolutionFamily } from "@/shared/utils/whatsappProvider";
 
 function customerName(c: ICustomer): string {
   return c.type === "B2B" ? c.nomeFantasia : c.fullName;
@@ -81,7 +82,7 @@ export function NewConversationDialog({
     };
   }, [query, customersProvider, storeId]);
 
-  const isEvolution = origin?.provider === "evolution";
+  const isEvolution = origin ? isEvolutionFamily(origin.provider) : false;
 
   async function handleStart() {
     if (!origin || !selected) return;

@@ -10,13 +10,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Icon } from "@/components/Icon";
-import { useWhatsAppAccountsProvider } from "@/providers/data";
+import { getActiveDataSource, useWhatsAppAccountsProvider } from "@/providers/data";
 import { useEvolutionPairing } from "../hooks/useEvolutionPairing";
 import type { IWhatsAppAccount, WhatsAppAccountPurpose } from "@/shared/types";
+import { setIntegrationSecret } from "../api/integrationSecrets";
+import { isValidCredentialsRef, INVALID_CREDENTIALS_REF_MESSAGE } from "../api/whatsappConnect";
+import { generateGoCredentialsRef } from "../utils/goCredentials";
 
 type Phase = "form" | "creating" | "qr" | "done";
+type WizardProvider = "evolution-go" | "evolution";
 
-const EVOLUTION_CAPS: IWhatsAppAccount["capabilities"] = {
+const EVOLUTION_FAMILY_CAPS: IWhatsAppAccount["capabilities"] = {
   supportsTemplatesHsm: false,
   supportsInteractiveButtons: false,
   supportsLists: false,
@@ -42,20 +46,20 @@ function slugify(label: string): string {
 }
 
 /**
- * Cria uma NOVA instância Evolution pela UI (multi-instância). Reusa a config
- * de servidor (baseUrl + credentialsRef = mesma apikey) de uma instância
- * existente — a spec assume um único servidor Evolution. A instância é criada
- * no servidor pela ação `qr` da edge `whatsapp-connect` (idempotente) ao parear.
+ * Cria uma NOVA instância pela UI (multi-instância). Suporta Evolution Go
+ * (padrão) e Evolution v2 (legado — requer instância existente). A instância é
+ * criada no servidor pela ação `qr` da edge `whatsapp-connect` (idempotente) ao parear.
  */
 export function AddInstanceWizard({
   storeId,
-  templateAccount,
+  accounts,
   onClose,
   onCreated,
 }: {
   storeId: string;
-  /** Instância Evolution existente de onde herdar baseUrl + credentialsRef. */
-  templateAccount: IWhatsAppAccount | null;
+  /** All accounts of the store — used to derive per-provider templates and to
+   *  guarantee a unique Go credentialsRef. */
+  accounts: IWhatsAppAccount[];
   onClose: () => void;
   /** Chamado ao concluir — recebe o id da nova conta (para configurar acesso). */
   onCreated: (accountId: string) => void;
@@ -73,6 +77,27 @@ export function AddInstanceWizard({
     [label, suffix],
   );
 
+  const [wizardProvider, setWizardProvider] = useState<WizardProvider>("evolution-go");
+  const [goBaseUrl, setGoBaseUrl] = useState("");
+  const [goApiKey, setGoApiKey] = useState("");
+
+  const isMock = useMemo(() => getActiveDataSource() === "mock", []);
+  const evolutionTemplate = useMemo(
+    () => accounts.find((a) => a.provider === "evolution" && a.providerConfig?.baseUrl) ?? null,
+    [accounts],
+  );
+  const goTemplate = useMemo(
+    () => accounts.find((a) => a.provider === "evolution-go" && a.providerConfig?.baseUrl) ?? null,
+    [accounts],
+  );
+  const existingRefs = useMemo(() => accounts.map((a) => a.credentialsRef), [accounts]);
+  // Stable suffix so the generated Go credentialsRef preview is steady per keystroke.
+  const [goSuffix] = useState(() => Math.random().toString(36).slice(2, 5));
+  const goCredentialsRef = useMemo(
+    () => (label.trim() ? generateGoCredentialsRef(label, existingRefs, goSuffix) : ""),
+    [label, existingRefs, goSuffix],
+  );
+
   const pairing = useEvolutionPairing(
     (phase === "qr" || phase === "done") && accountId ? accountId : null,
   );
@@ -82,9 +107,61 @@ export function AddInstanceWizard({
     if (phase === "qr" && pairing.phase === "open") setPhase("done");
   }, [phase, pairing.phase]);
 
+  // Pre-fill Go URL from existing Go template when the wizard opens.
+  useEffect(() => {
+    if (goTemplate?.providerConfig?.baseUrl) setGoBaseUrl(goTemplate.providerConfig.baseUrl);
+  }, [goTemplate]);
+
   async function handleCreate() {
-    if (!templateAccount) return;
     setError(null);
+    if (wizardProvider === "evolution-go") {
+      const base = goBaseUrl.trim().replace(/\/$/, "");
+      if (!base) {
+        setError("Informe a URL do servidor Evolution Go.");
+        return;
+      }
+      if (!isMock && !goApiKey.trim()) {
+        setError("Cole a chave global da API do servidor Evolution Go.");
+        return;
+      }
+      if (!isMock && !isValidCredentialsRef(goCredentialsRef)) {
+        setError(INVALID_CREDENTIALS_REF_MESSAGE);
+        return;
+      }
+      setPhase("creating");
+      try {
+        const created = await provider.create({
+          storeId,
+          label: label.trim(),
+          phoneNumber: "",
+          provider: "evolution-go",
+          credentialsRef: goCredentialsRef,
+          status: "pending",
+          capabilities: EVOLUTION_FAMILY_CAPS,
+          providerConfig: { baseUrl: base, instanceId: "" },
+          currentState: "healthy",
+          failoverPolicy: "disabled",
+          isFailoverActive: false,
+          purpose,
+        });
+        if (!isMock) {
+          await setIntegrationSecret(
+            `${goCredentialsRef}_API_KEY`,
+            goApiKey.trim(),
+            `Chave global Evolution Go — ${label.trim()}`,
+          );
+        }
+        setAccountId(created.id);
+        setPhase("qr");
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Falha ao criar a instância Evolution Go.");
+        setPhase("form");
+      }
+      return;
+    }
+
+    // ----- Evolution v2 (legado) — comportamento atual -----
+    if (!evolutionTemplate) return;
     setPhase("creating");
     try {
       const created = await provider.create({
@@ -92,11 +169,11 @@ export function AddInstanceWizard({
         label: label.trim(),
         phoneNumber: "",
         provider: "evolution",
-        credentialsRef: templateAccount.credentialsRef,
+        credentialsRef: evolutionTemplate.credentialsRef,
         status: "pending",
-        capabilities: EVOLUTION_CAPS,
+        capabilities: EVOLUTION_FAMILY_CAPS,
         providerConfig: {
-          baseUrl: templateAccount.providerConfig?.baseUrl ?? "",
+          baseUrl: evolutionTemplate.providerConfig?.baseUrl ?? "",
           instanceName,
         },
         currentState: "healthy",
@@ -118,17 +195,47 @@ export function AddInstanceWizard({
         <DialogHeader>
           <DialogTitle>Adicionar número</DialogTitle>
           <DialogDescription>
-            Cria uma nova instância no mesmo servidor Evolution e conecta por QR code.
+            {wizardProvider === "evolution-go"
+              ? "Cria um novo número no servidor Evolution Go e conecta por QR code."
+              : "Cria um novo número no servidor Evolution e conecta por QR code."}
           </DialogDescription>
         </DialogHeader>
 
-        {!templateAccount ? (
-          <div className="rounded-lg border border-severity-warning/40 bg-severity-warning/10 p-4 text-sm text-severity-warning">
-            Conecte ao menos uma instância Evolution antes de adicionar números — o servidor e a
-            chave são herdados de uma instância existente.
-          </div>
-        ) : phase === "form" ? (
+        {phase === "form" ? (
           <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Provedor</Label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setWizardProvider("evolution-go")}
+                  className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                    wizardProvider === "evolution-go"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Evolution Go
+                </button>
+                <button
+                  type="button"
+                  disabled={!evolutionTemplate}
+                  onClick={() => setWizardProvider("evolution")}
+                  title={
+                    evolutionTemplate
+                      ? "Cria um número no servidor Evolution v2 existente"
+                      : "Conecte uma instância Evolution v2 primeiro"
+                  }
+                  className={`rounded-full border px-3 py-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                    wizardProvider === "evolution"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Evolution v2 (legado)
+                </button>
+              </div>
+            </div>
             <div className="space-y-1.5">
               <Label htmlFor="add-instance-label">Apelido da instância</Label>
               <Input
@@ -158,9 +265,46 @@ export function AddInstanceWizard({
                 ))}
               </div>
             </div>
+            {wizardProvider === "evolution-go" && (
+              <>
+                <div className="space-y-1.5">
+                  <Label htmlFor="add-go-url">URL do servidor Evolution Go</Label>
+                  <Input
+                    id="add-go-url"
+                    className="font-mono"
+                    inputMode="url"
+                    placeholder="https://evogo.ailainteligente.com.br"
+                    value={goBaseUrl}
+                    onChange={(e) => setGoBaseUrl(e.target.value)}
+                  />
+                </div>
+                {!isMock && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="add-go-key">Chave global da API</Label>
+                    <Input
+                      id="add-go-key"
+                      type="password"
+                      autoComplete="new-password"
+                      className="font-mono"
+                      placeholder="Chave global do servidor (admin)"
+                      value={goApiKey}
+                      onChange={(e) => setGoApiKey(e.target.value)}
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      A mesma chave global do servidor Go, por número. Gravada criptografada no
+                      cofre — nunca exibida de volta.
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
             <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs">
-              <span className="text-muted-foreground">ID técnico (gerado): </span>
-              <span className="font-mono text-foreground">{instanceName || "—"}</span>
+              <span className="text-muted-foreground">
+                {wizardProvider === "evolution-go" ? "Prefixo de credenciais (gerado): " : "ID técnico (gerado): "}
+              </span>
+              <span className="font-mono text-foreground">
+                {wizardProvider === "evolution-go" ? goCredentialsRef || "—" : instanceName || "—"}
+              </span>
             </div>
             {error && <p className="text-xs text-severity-critical">{error}</p>}
             <div className="flex justify-end gap-2">
@@ -175,7 +319,9 @@ export function AddInstanceWizard({
         ) : phase === "creating" ? (
           <p className="py-10 text-center text-sm text-primary">
             <Icon icon="mdi:loading" className="mr-1.5 inline animate-spin" size={16} />
-            Criando a instância no servidor Evolution…
+            {wizardProvider === "evolution-go"
+              ? "Criando a instância no servidor Evolution Go…"
+              : "Criando a instância no servidor Evolution…"}
           </p>
         ) : phase === "qr" ? (
           <div className="space-y-3 py-2 text-center">

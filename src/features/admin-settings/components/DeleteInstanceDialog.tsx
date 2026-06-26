@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { IWhatsAppAccount } from "@/shared/types";
+import { isEvolutionFamily } from "@/shared/utils/whatsappProvider";
 import {
   connectErrorMessage,
   deleteEvolutionInstance,
@@ -22,6 +23,7 @@ import {
 
 const PROVIDER_LABEL: Record<IWhatsAppAccount["provider"], string> = {
   evolution: "Evolution API",
+  "evolution-go": "Evolution Go",
   meta: "Meta Cloud API",
 };
 
@@ -171,7 +173,7 @@ export function DeleteInstanceDialog({
               {/* "Desconectar" only helps a CONNECTED Evolution instance — for a
                   Meta account (no QR flow) or an already-disconnected one it would
                   route to a dead-end connect/QR screen, so it's hidden there. */}
-              {account.provider === "evolution" && account.status === "connected" && (
+              {isEvolutionFamily(account.provider) && account.status === "connected" && (
                 <AlertDialogAction
                   onClick={(e) => {
                     e.preventDefault();
@@ -197,14 +199,18 @@ export function DeleteInstanceDialog({
 
             <div className="space-y-3 text-sm">
               <ul className="space-y-1.5 text-muted-foreground">
-                {account.provider === "evolution" && (
+                {isEvolutionFamily(account.provider) && (
                   <li className="flex items-start gap-2">
                     <Icon icon="mdi:server-off" size={15} className="mt-0.5 shrink-0" />
                     <span>
-                      A instância no servidor Evolution
-                      {account.providerConfig?.instanceName
-                        ? ` (${account.providerConfig.instanceName})`
-                        : ""}{" "}
+                      A instância no servidor
+                      {account.provider === "evolution-go"
+                        ? account.providerConfig?.instanceId
+                          ? ` Go (${account.providerConfig.instanceId})`
+                          : " Go"
+                        : account.providerConfig?.instanceName
+                          ? ` Evolution (${account.providerConfig.instanceName})`
+                          : " Evolution"}{" "}
                       será desconectada e apagada.
                     </span>
                   </li>

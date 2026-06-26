@@ -15,6 +15,7 @@ import type {
 } from "@/shared/types";
 import { useSystemHealth } from "../hooks/useSystemHealth";
 import { SYSTEM_HEALTH_STRINGS as S } from "../i18n/pt-BR";
+import { isEvolutionFamily } from "@/shared/utils/whatsappProvider";
 
 const IS_MOCK = getActiveDataSource() === "mock";
 
@@ -222,7 +223,7 @@ function WhatsAppDeliveryCard({
                       </td>
                       <td className="px-2 py-2 text-right tabular-nums">
                         {/* Evolution has no read receipts surface on this MVP. */}
-                        {acc.provider === "evolution" && acc.read === 0
+                        {isEvolutionFamily(acc.provider) && acc.read === 0
                           ? S.whatsappReadNa
                           : pct(acc.read, acc.total)}
                       </td>

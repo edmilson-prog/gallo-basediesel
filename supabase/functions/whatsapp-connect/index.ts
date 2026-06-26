@@ -40,6 +40,16 @@ import {
 } from "../_shared/whatsapp/evolution/instance.ts";
 import { WhatsAppProviderError } from "../_shared/whatsapp/errors.ts";
 import type { IEngineDeps, IIntegrationLogEntry } from "../_shared/whatsapp/types.ts";
+import { EVOLUTION_GO_SECRET_SUFFIXES, EVOLUTION_GO_DEFAULT_SUBSCRIBE } from "../_shared/whatsapp/evolution-go/constants.ts";
+import {
+  createGoInstance,
+  connectGoInstance,
+  getGoInstanceQr,
+  getGoInstanceStatus,
+  logoutGoInstance,
+  restartGoInstance,
+  deleteGoInstance,
+} from "../_shared/whatsapp/evolution-go/instance.ts";
 
 /** Client-side QR rotation window (Evolution rotates ~30-40s; we renew at 30). */
 const QR_EXPIRES_IN_SECONDS = 30;
@@ -246,6 +256,59 @@ async function findFailoverDependents(
   return (data ?? []).map((r) => ({ id: r.id as string, label: r.label as string }));
 }
 
+/**
+ * Ad-hoc validation send through the real engine — NEVER persisted (no Inbox/metrics
+ * pollution). Engine-agnostic (evolution / evolution-go).
+ */
+async function sendAdHocTestMessage(
+  admin: SupabaseClient,
+  deps: IEngineDeps,
+  account: IAccountRow,
+  engineName: "evolution" | "evolution-go",
+  toRaw: unknown,
+  actorId: string | null,
+  ctx: { traceId: string },
+): Promise<Response> {
+  const digits = String(toRaw ?? "").replace(/\D/g, "");
+  if (digits.length < 12 || digits.length > 13) {
+    return json(
+      {
+        error: "Informe o número com DDI e DDD (ex.: 5554999887766).",
+        code: "VALIDATION_ERROR",
+        traceId: ctx.traceId,
+      },
+      422,
+    );
+  }
+  const engine = buildWhatsAppEngine({
+    engine: engineName,
+    accountId: account.id,
+    providerConfig: account.provider_config,
+    credentialsRef: account.credentials_ref,
+    deps,
+  });
+  const result = await engine.sendText({
+    accountId: account.id,
+    to: `+${digits}`,
+    text: "✅ Mensagem de teste — GALLO Base Diesel. A conexão WhatsApp desta conta está funcionando.",
+    traceId: ctx.traceId,
+  });
+  if (actorId) {
+    await bestEffortAudit(admin, {
+      store_id: account.store_id,
+      actor_id: actorId,
+      action: "whatsapp_test_message_sent",
+      resource: "whatsapp_account",
+      resource_id: account.id,
+      after: {
+        toMasked: `***${digits.slice(-4)}`,
+        providerMessageId: result.providerMessageId,
+      },
+    });
+  }
+  return json({ ok: true, providerMessageId: result.providerMessageId, traceId: ctx.traceId }, 200);
+}
+
 servePost(async (req, ctx) => {
   const { callerId, admin, profile: caller } = await requireCaller(req, STAFF_ROLES);
   const body = (await parseJsonBody(req)) as {
@@ -357,6 +420,32 @@ servePost(async (req, ctx) => {
           });
         }
       }
+    } else if (account.provider === "evolution-go") {
+      const cfg = account.provider_config ?? {};
+      const goTarget = {
+        baseUrl: String(cfg.baseUrl ?? ""),
+        instanceId: String(cfg.instanceId ?? ""),
+      };
+      if (goTarget.baseUrl && goTarget.instanceId) {
+        try {
+          const token = await deps.resolveSecret(
+            `${account.credentials_ref}${EVOLUTION_GO_SECRET_SUFFIXES.instanceToken}`,
+          );
+          if (token) {
+            await logoutGoInstance(token, deps, goTarget, ctx.traceId).catch(() => {});
+            await deleteGoInstance(token, deps, goTarget, ctx.traceId);
+          } else {
+            ctx.log.warn("evolution-go teardown skipped: no instance token (instance may be orphaned)", {
+              instanceId: goTarget.instanceId,
+            });
+          }
+        } catch (err) {
+          ctx.log.warn("evolution-go teardown failed (row already deleted; instance may be orphaned)", {
+            instanceId: goTarget.instanceId,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
     }
 
     // Audit only when the RPC actually removed a row (false = concurrent delete
@@ -379,8 +468,222 @@ servePost(async (req, ctx) => {
     return json({ ok: true, traceId: ctx.traceId }, 200);
   }
 
-  if (account.provider !== "evolution") {
-    throw new HttpError(422, "Conexão por QR é exclusiva de contas Evolution");
+  if (account.provider !== "evolution" && account.provider !== "evolution-go") {
+    throw new HttpError(422, "Conexão por QR é exclusiva de contas Evolution / Evolution Go");
+  }
+
+  // ===== Evolution Go (whatsmeow) — self-contained branch ===================
+  // Auth diverges from v2: the GLOBAL key (_API_KEY) authorizes /instance/create
+  // ONLY; every instance-scoped call uses the per-instance TOKEN (_INSTANCE_TOKEN),
+  // captured from /instance/create on first pairing and persisted to the Vault.
+  // Profile/phone capture is deferred to Phase 3 (status sync only here).
+  if (account.provider === "evolution-go") {
+    const goConfig = account.provider_config ?? {};
+    const goBaseUrl = String(goConfig.baseUrl ?? "");
+    if (!goBaseUrl) {
+      return json(
+        {
+          error: "Configure a URL do servidor Evolution Go antes de conectar.",
+          code: "CONFIG_MISSING",
+          traceId: ctx.traceId,
+        },
+        422,
+      );
+    }
+    const credsRef = account.credentials_ref ?? "";
+    const instanceTokenSecretName = `${credsRef}${EVOLUTION_GO_SECRET_SUFFIXES.instanceToken}`;
+    try {
+      switch (action) {
+        case "test-message":
+          return await sendAdHocTestMessage(admin, deps, account, "evolution-go", body.to, actorId, ctx);
+
+        case "qr": {
+          const globalKey = await deps.resolveSecret(
+            `${credsRef}${EVOLUTION_GO_SECRET_SUFFIXES.apiKey}`,
+          );
+          if (!globalKey) {
+            return json(
+              {
+                error: "Chave global da Evolution Go não configurada — salve a chave no cofre primeiro.",
+                code: "MISSING_API_KEY",
+                traceId: ctx.traceId,
+              },
+              422,
+            );
+          }
+          let instanceId = String(goConfig.instanceId ?? "");
+          let instanceToken = await deps.resolveSecret(instanceTokenSecretName);
+          if (!instanceId) {
+            // First pairing: create the instance (global key), capture the token.
+            const created = await createGoInstance(
+              globalKey,
+              deps,
+              { baseUrl: goBaseUrl, name: account.id },
+              ctx.traceId,
+            );
+            instanceId = created.instanceId;
+            instanceToken = created.token;
+            // Token-first: the per-instance token is issued ONCE by /instance/create
+            // and cannot be re-fetched (a re-create 403s "already in use"). Persist it
+            // to the Vault BEFORE the instanceId so a failure here leaves no local row
+            // claiming an instance we have no token for. Both writes are checked so
+            // they cannot diverge.
+            const { error: secErr } = await admin.rpc("integration_secret_set", {
+              p_name: instanceTokenSecretName,
+              p_value: instanceToken,
+              p_description: `Evolution Go instance token (conta ${account.id})`,
+            });
+            if (secErr) {
+              throw new HttpError(
+                500,
+                `Falha ao gravar o token da instância no Vault: ${secErr.message}`,
+              );
+            }
+            const { error: cfgErr } = await admin
+              .from("whatsapp_accounts")
+              .update({ provider_config: { ...goConfig, instanceId } })
+              .eq("id", account.id);
+            if (cfgErr) {
+              throw new HttpError(
+                500,
+                `Falha ao persistir o instanceId da Evolution Go: ${cfgErr.message}`,
+              );
+            }
+            // Full recovery from a half-create (token in Vault, instanceId not
+            // persisted) via find-by-name is deferred to Phase 3 — out of scope here.
+          }
+          if (!instanceToken) {
+            return json(
+              {
+                error: "Token da instância Evolution Go ausente — refaça o pareamento.",
+                code: "MISSING_INSTANCE_TOKEN",
+                traceId: ctx.traceId,
+              },
+              422,
+            );
+          }
+          const goTarget = { baseUrl: goBaseUrl, instanceId };
+          const webhookUrl = `${requiredEnv("SUPABASE_URL")}/functions/v1/whatsapp-webhook/evolution-go`;
+          await connectGoInstance(instanceToken, deps, goTarget, webhookUrl, EVOLUTION_GO_DEFAULT_SUBSCRIBE, ctx.traceId);
+          const qr = await getGoInstanceQr(instanceToken, deps, goTarget, ctx.traceId);
+          if (qr.state === "open") {
+            if (account.status !== "connected") {
+              await admin
+                .from("whatsapp_accounts")
+                .update({ status: "connected" })
+                .eq("id", account.id);
+              if (actorId) {
+                await bestEffortAudit(admin, {
+                  store_id: account.store_id,
+                  actor_id: actorId,
+                  action: "whatsapp_instance_connected",
+                  resource: "whatsapp_account",
+                  resource_id: account.id,
+                  after: { provider: "evolution-go" },
+                });
+              }
+            }
+            return json({ state: "open", traceId: ctx.traceId }, 200);
+          }
+          await markDisconnected(admin, account, actorId, "close");
+          return json(
+            {
+              state: "qr",
+              qrBase64: qr.qrBase64,
+              pairingCode: qr.pairingCode,
+              expiresInSeconds: QR_EXPIRES_IN_SECONDS,
+              traceId: ctx.traceId,
+            },
+            200,
+          );
+        }
+
+        case "test":
+        case "state": {
+          const instanceId = String(goConfig.instanceId ?? "");
+          const instanceToken = await deps.resolveSecret(instanceTokenSecretName);
+          if (!instanceId || !instanceToken) {
+            await markDisconnected(admin, account, actorId, "close");
+            return json({ state: "close", traceId: ctx.traceId }, 200);
+          }
+          const goTarget = { baseUrl: goBaseUrl, instanceId };
+          const status = await getGoInstanceStatus(instanceToken, deps, goTarget, ctx.traceId);
+          if (status.connected) {
+            if (account.status !== "connected") {
+              await admin
+                .from("whatsapp_accounts")
+                .update({ status: "connected" })
+                .eq("id", account.id);
+              if (actorId) {
+                await bestEffortAudit(admin, {
+                  store_id: account.store_id,
+                  actor_id: actorId,
+                  action: "whatsapp_instance_connected",
+                  resource: "whatsapp_account",
+                  resource_id: account.id,
+                  after: { provider: "evolution-go" },
+                });
+              }
+            }
+            return json({ state: "open", traceId: ctx.traceId }, 200);
+          }
+          await markDisconnected(admin, account, actorId, "close");
+          return json({ state: "close", traceId: ctx.traceId }, 200);
+        }
+
+        case "logout": {
+          const instanceId = String(goConfig.instanceId ?? "");
+          const instanceToken = await deps.resolveSecret(instanceTokenSecretName);
+          if (instanceId && instanceToken) {
+            await logoutGoInstance(instanceToken, deps, { baseUrl: goBaseUrl, instanceId }, ctx.traceId);
+          }
+          await admin
+            .from("whatsapp_accounts")
+            .update({ status: "disconnected" })
+            .eq("id", account.id);
+          if (actorId) {
+            await bestEffortAudit(admin, {
+              store_id: account.store_id,
+              actor_id: actorId,
+              action: "whatsapp_instance_disconnected",
+              resource: "whatsapp_account",
+              resource_id: account.id,
+              after: { state: "close" },
+            });
+          }
+          return json({ ok: true, traceId: ctx.traceId }, 200);
+        }
+
+        case "restart": {
+          const instanceId = String(goConfig.instanceId ?? "");
+          const instanceToken = await deps.resolveSecret(instanceTokenSecretName);
+          // Audit only when the restart actually reached the server — an unpaired
+          // account (no instanceId/token) skips the Go call, so it must not claim
+          // a restart that never ran.
+          if (instanceId && instanceToken) {
+            await restartGoInstance(instanceToken, deps, { baseUrl: goBaseUrl, instanceId }, ctx.traceId);
+            if (actorId) {
+              await bestEffortAudit(admin, {
+                store_id: account.store_id,
+                actor_id: actorId,
+                action: "whatsapp_instance_restarted",
+                resource: "whatsapp_account",
+                resource_id: account.id,
+                after: {},
+              });
+            }
+          }
+          return json({ ok: true, traceId: ctx.traceId }, 200);
+        }
+      }
+    } catch (err) {
+      if (err instanceof WhatsAppProviderError) {
+        ctx.log.warn("connect action rejected", { action, code: err.code, message: err.message });
+        return json({ error: err.message, code: err.code, traceId: ctx.traceId }, err.httpStatus);
+      }
+      throw err;
+    }
+    throw new HttpError(422, "ação inválida");
   }
 
   const config = account.provider_config ?? {};
@@ -556,49 +859,14 @@ servePost(async (req, ctx) => {
       }
 
       case "test-message": {
-        // Ad-hoc validation send (SIGPRO-style): goes out through the real
-        // engine but is NEVER persisted as a conversation message, so it does
-        // not pollute the Inbox nor the delivery metrics.
-        const digits = String(body.to ?? "").replace(/\D/g, "");
-        if (digits.length < 12 || digits.length > 13) {
-          return json(
-            {
-              error: "Informe o número com DDI e DDD (ex.: 5554999887766).",
-              code: "VALIDATION_ERROR",
-              traceId: ctx.traceId,
-            },
-            422,
-          );
-        }
-        const engine = buildWhatsAppEngine({
-          engine: "evolution",
-          accountId: account.id,
-          providerConfig: account.provider_config,
-          credentialsRef: account.credentials_ref,
+        return await sendAdHocTestMessage(
+          admin,
           deps,
-        });
-        const result = await engine.sendText({
-          accountId: account.id,
-          to: `+${digits}`,
-          text: "✅ Mensagem de teste — GALLO Base Diesel. A conexão WhatsApp desta conta está funcionando.",
-          traceId: ctx.traceId,
-        });
-        if (actorId) {
-          await bestEffortAudit(admin, {
-            store_id: account.store_id,
-            actor_id: actorId,
-            action: "whatsapp_test_message_sent",
-            resource: "whatsapp_account",
-            resource_id: account.id,
-            after: {
-              toMasked: `***${digits.slice(-4)}`,
-              providerMessageId: result.providerMessageId,
-            },
-          });
-        }
-        return json(
-          { ok: true, providerMessageId: result.providerMessageId, traceId: ctx.traceId },
-          200,
+          account,
+          account.provider as "evolution" | "evolution-go",
+          body.to,
+          actorId,
+          ctx,
         );
       }
     }

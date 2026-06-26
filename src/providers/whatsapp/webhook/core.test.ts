@@ -56,6 +56,12 @@ function makeFakeDb(state: IFakeState, opts?: { knownOutboundId?: string }): IWe
       instanceName === "gallo-matriz" && state.accountStatus !== "disconnected" ? ACCOUNT : null,
     findEvolutionAccountAnyStatus: async (instanceName) =>
       instanceName === "gallo-matriz" ? ACCOUNT : null,
+    findEvolutionGoAccount: async (instanceId) =>
+      instanceId === "inst-9" && state.accountStatus !== "disconnected"
+        ? { ...ACCOUNT, provider: "evolution-go" as const }
+        : null,
+    findEvolutionGoAccountAnyStatus: async (instanceId) =>
+      instanceId === "inst-9" ? { ...ACCOUNT, provider: "evolution-go" as const } : null,
     setAccountConnectionStatus: async (_accountId, status) => {
       if (state.accountStatus === status) return false;
       state.accountStatus = status;
@@ -793,5 +799,47 @@ describe("processWebhookEvent — status keys (echo/ack share the provider messa
     const echo = await run(state, evolutionEchoEvent("x", "SEQ2"));
     expect(echo.outcome).toBe("echo-created"); // bare key was never marked
     expect(state.messages).toHaveLength(1);
+  });
+});
+
+describe("processWebhookEvent — evolution-go", () => {
+  it("normalizes a whatsmeow inbound text message via the go parser", async () => {
+    const state = emptyState();
+    const payload = {
+      event: "Message",
+      instanceId: "inst-9",
+      data: {
+        Info: {
+          Chat: "5555988887777@s.whatsapp.net",
+          Sender: "5555988887777@s.whatsapp.net",
+          IsFromMe: false,
+          Type: "text",
+          PushName: "Cliente",
+          ID: "GOIN1",
+          Timestamp: "2026-06-25T10:00:00Z",
+        },
+        Message: { conversation: "olá go" },
+      },
+    };
+    const result = await run(state, payload, { provider: "evolution-go" });
+    expect(result.outcome).toBe("message-created");
+    expect(state.messages).toHaveLength(1);
+    expect(state.messages[0]).toMatchObject({
+      provider: "evolution-go",
+      providerMessageId: "GOIN1",
+      text: "olá go",
+    });
+  });
+
+  it("treats a whatsmeow Connection event as a lifecycle signal (no message insert)", async () => {
+    const state = emptyState();
+    const payload = {
+      event: "Connection",
+      instanceId: "inst-9",
+      data: { State: "open" },
+    };
+    const result = await run(state, payload, { provider: "evolution-go" });
+    expect(result.outcome).toBe("ignored");
+    expect(state.messages).toHaveLength(0);
   });
 });
