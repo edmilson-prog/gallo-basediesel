@@ -4,11 +4,13 @@
  * `whatsapp-connect` Edge Function (Fase 2) through the `_shared` mirror.
  * Runtime-agnostic: relative imports, Web APIs only.
  *
- * Auth model (smoke 2026-06-25): pass the GLOBAL key as `apiKey` to
- * `createGoInstance` (admin endpoint); pass the per-instance TOKEN as `apiKey`
- * to every instance-scoped function below (connect/qr/status/logout/delete/
- * restart) — the Go server authorizes those by the instance token, not by an
- * instanceId header.
+ * Auth model (smoke 2026-06-25; delete corrected 2026-06-26): pass the GLOBAL
+ * key as `apiKey` to the ADMIN endpoints — `createGoInstance` AND
+ * `deleteGoInstance` (`/instance/delete/{id}` returns 401 with the instance
+ * token; the 2026-06-26 smoke proved it is authorized by the global key, the
+ * same one that mints the instance). Pass the per-instance TOKEN as `apiKey` to
+ * the instance-scoped functions below (connect/qr/status/logout/restart) — the
+ * Go server authorizes those by the instance token, not by an instanceId header.
  */
 
 import { WhatsAppProviderError } from "../errors";

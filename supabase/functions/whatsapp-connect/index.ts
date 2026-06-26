@@ -428,14 +428,25 @@ servePost(async (req, ctx) => {
       };
       if (goTarget.baseUrl && goTarget.instanceId) {
         try {
+          // Two different credentials are needed here. `logout` is instance-scoped
+          // (the per-instance token authorizes it — proven 200 in the smoke), but
+          // `/instance/delete/{id}` is an ADMIN endpoint: the 2026-06-26 smoke
+          // proved it returns 401 with the instance token and is authorized by the
+          // GLOBAL key instead (the same key that mints the instance via
+          // /instance/create). Resolve both and use each where it belongs.
           const token = await deps.resolveSecret(
             `${account.credentials_ref}${EVOLUTION_GO_SECRET_SUFFIXES.instanceToken}`,
           );
+          const globalKey = await deps.resolveSecret(
+            `${account.credentials_ref}${EVOLUTION_GO_SECRET_SUFFIXES.apiKey}`,
+          );
           if (token) {
             await logoutGoInstance(token, deps, goTarget, ctx.traceId).catch(() => {});
-            await deleteGoInstance(token, deps, goTarget, ctx.traceId);
+          }
+          if (globalKey) {
+            await deleteGoInstance(globalKey, deps, goTarget, ctx.traceId);
           } else {
-            ctx.log.warn("evolution-go teardown skipped: no instance token (instance may be orphaned)", {
+            ctx.log.warn("evolution-go teardown skipped: no global key (instance may be orphaned)", {
               instanceId: goTarget.instanceId,
             });
           }
