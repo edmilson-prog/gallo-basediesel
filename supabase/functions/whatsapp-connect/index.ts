@@ -50,6 +50,7 @@ import {
   restartGoInstance,
   deleteGoInstance,
 } from "../_shared/whatsapp/evolution-go/instance.ts";
+import { resolveGoServer } from "./goServer.ts";
 
 /** Client-side QR rotation window (Evolution rotates ~30-40s; we renew at 30). */
 const QR_EXPIRES_IN_SECONDS = 30;
@@ -66,6 +67,7 @@ interface IAccountRow {
   phone_number: string | null;
   credentials_ref: string;
   provider_config: Record<string, unknown> | null;
+  go_server_id: string | null;
 }
 
 function makeEngineDeps(admin: SupabaseClient, traceId: string): IEngineDeps {
@@ -280,10 +282,17 @@ async function sendAdHocTestMessage(
       422,
     );
   }
+  // For evolution-go registry accounts, base_url lives on the server (whatsapp_go_servers),
+  // NOT in provider_config. Resolve it here so buildWhatsAppEngine receives a complete config.
+  let providerConfig: Record<string, unknown> | null = account.provider_config;
+  if (engineName === "evolution-go") {
+    const { baseUrl } = await resolveGoServer(admin, deps.resolveSecret, account);
+    providerConfig = { ...account.provider_config, baseUrl };
+  }
   const engine = buildWhatsAppEngine({
     engine: engineName,
     accountId: account.id,
-    providerConfig: account.provider_config,
+    providerConfig,
     credentialsRef: account.credentials_ref,
     deps,
   });
@@ -328,7 +337,7 @@ servePost(async (req, ctx) => {
 
   const { data: row } = await admin
     .from("whatsapp_accounts")
-    .select("id, store_id, label, provider, status, phone_number, credentials_ref, provider_config")
+    .select("id, store_id, label, provider, status, phone_number, credentials_ref, provider_config, go_server_id")
     .eq("id", body.accountId)
     .maybeSingle();
   if (!row) throw new HttpError(404, "Conta WhatsApp não encontrada");
@@ -421,30 +430,23 @@ servePost(async (req, ctx) => {
         }
       }
     } else if (account.provider === "evolution-go") {
-      const cfg = account.provider_config ?? {};
-      const goTarget = {
-        baseUrl: String(cfg.baseUrl ?? ""),
-        instanceId: String(cfg.instanceId ?? ""),
-      };
-      if (goTarget.baseUrl && goTarget.instanceId) {
-        try {
+      try {
+        const { baseUrl, globalKey } = await resolveGoServer(admin, deps.resolveSecret, account);
+        const instanceId = String((account.provider_config ?? {}).instanceId ?? "");
+        if (baseUrl && instanceId) {
+          const goTarget = { baseUrl, instanceId };
           const token = await deps.resolveSecret(
             `${account.credentials_ref}${EVOLUTION_GO_SECRET_SUFFIXES.instanceToken}`,
           );
-          if (token) {
-            await logoutGoInstance(token, deps, goTarget, ctx.traceId).catch(() => {});
-            await deleteGoInstance(token, deps, goTarget, ctx.traceId);
-          } else {
-            ctx.log.warn("evolution-go teardown skipped: no instance token (instance may be orphaned)", {
-              instanceId: goTarget.instanceId,
-            });
-          }
-        } catch (err) {
-          ctx.log.warn("evolution-go teardown failed (row already deleted; instance may be orphaned)", {
-            instanceId: goTarget.instanceId,
-            error: err instanceof Error ? err.message : String(err),
-          });
+          // logout is instance-scoped (token); delete is an ADMIN endpoint (global key).
+          if (token) await logoutGoInstance(token, deps, goTarget, ctx.traceId).catch(() => {});
+          await deleteGoInstance(globalKey, deps, goTarget, ctx.traceId);
         }
+      } catch (err) {
+        ctx.log.warn("evolution-go teardown skipped/failed (instance may be orphaned)", {
+          accountId: account.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
     }
 
@@ -479,17 +481,6 @@ servePost(async (req, ctx) => {
   // Profile/phone capture is deferred to Phase 3 (status sync only here).
   if (account.provider === "evolution-go") {
     const goConfig = account.provider_config ?? {};
-    const goBaseUrl = String(goConfig.baseUrl ?? "");
-    if (!goBaseUrl) {
-      return json(
-        {
-          error: "Configure a URL do servidor Evolution Go antes de conectar.",
-          code: "CONFIG_MISSING",
-          traceId: ctx.traceId,
-        },
-        422,
-      );
-    }
     const credsRef = account.credentials_ref ?? "";
     const instanceTokenSecretName = `${credsRef}${EVOLUTION_GO_SECRET_SUFFIXES.instanceToken}`;
     try {
@@ -498,19 +489,11 @@ servePost(async (req, ctx) => {
           return await sendAdHocTestMessage(admin, deps, account, "evolution-go", body.to, actorId, ctx);
 
         case "qr": {
-          const globalKey = await deps.resolveSecret(
-            `${credsRef}${EVOLUTION_GO_SECRET_SUFFIXES.apiKey}`,
+          const { baseUrl: goBaseUrl, globalKey } = await resolveGoServer(
+            admin,
+            deps.resolveSecret,
+            account,
           );
-          if (!globalKey) {
-            return json(
-              {
-                error: "Chave global da Evolution Go não configurada — salve a chave no cofre primeiro.",
-                code: "MISSING_API_KEY",
-                traceId: ctx.traceId,
-              },
-              422,
-            );
-          }
           let instanceId = String(goConfig.instanceId ?? "");
           let instanceToken = await deps.resolveSecret(instanceTokenSecretName);
           if (!instanceId) {
@@ -600,6 +583,7 @@ servePost(async (req, ctx) => {
 
         case "test":
         case "state": {
+          const { baseUrl: goBaseUrl } = await resolveGoServer(admin, deps.resolveSecret, account);
           const instanceId = String(goConfig.instanceId ?? "");
           const instanceToken = await deps.resolveSecret(instanceTokenSecretName);
           if (!instanceId || !instanceToken) {
@@ -632,6 +616,7 @@ servePost(async (req, ctx) => {
         }
 
         case "logout": {
+          const { baseUrl: goBaseUrl } = await resolveGoServer(admin, deps.resolveSecret, account);
           const instanceId = String(goConfig.instanceId ?? "");
           const instanceToken = await deps.resolveSecret(instanceTokenSecretName);
           if (instanceId && instanceToken) {
@@ -655,6 +640,7 @@ servePost(async (req, ctx) => {
         }
 
         case "restart": {
+          const { baseUrl: goBaseUrl } = await resolveGoServer(admin, deps.resolveSecret, account);
           const instanceId = String(goConfig.instanceId ?? "");
           const instanceToken = await deps.resolveSecret(instanceTokenSecretName);
           // Audit only when the restart actually reached the server — an unpaired

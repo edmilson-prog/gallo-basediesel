@@ -30,6 +30,31 @@ describe("mockWhatsAppAccountsProvider.create", () => {
     expect(list.some((a) => a.id === created.id)).toBe(true);
   });
 
+  it("preserves goServerId on create (evolution-go path)", async () => {
+    const created = await mockWhatsAppAccountsProvider.create({
+      storeId: "00000000-0000-0000-0000-000000000001",
+      label: "Go Test",
+      phoneNumber: "",
+      provider: "evolution-go",
+      credentialsRef: "evo-go-test",
+      status: "pending",
+      capabilities: {
+        supportsTemplatesHsm: false,
+        supportsInteractiveButtons: false,
+        supportsLists: false,
+        supportsReactions: true,
+        supportsProactiveMessaging: true,
+        supportsReadStatusInGroups: true,
+      },
+      currentState: "healthy",
+      failoverPolicy: "disabled",
+      isFailoverActive: false,
+      purpose: "atendimento",
+      goServerId: "srv-abc123",
+    });
+    expect(created.goServerId).toBe("srv-abc123");
+  });
+
   it("replaceAccessRules round-trips", async () => {
     const rules = await mockWhatsAppAccountsProvider.replaceAccessRules("wa-evo-campanhas", [
       { kind: "role", targetValue: "seller_internal" },

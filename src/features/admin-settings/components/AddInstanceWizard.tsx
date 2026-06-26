@@ -10,10 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Icon } from "@/components/Icon";
-import { getActiveDataSource, useWhatsAppAccountsProvider } from "@/providers/data";
+import { getActiveDataSource, useWhatsAppAccountsProvider, useWhatsAppGoServersProvider } from "@/providers/data";
 import { useEvolutionPairing } from "../hooks/useEvolutionPairing";
-import type { IWhatsAppAccount, WhatsAppAccountPurpose } from "@/shared/types";
-import { setIntegrationSecret } from "../api/integrationSecrets";
+import type { IWhatsAppAccount, IWhatsAppGoServer, WhatsAppAccountPurpose } from "@/shared/types";
 import { isValidCredentialsRef, INVALID_CREDENTIALS_REF_MESSAGE } from "../api/whatsappConnect";
 import { generateGoCredentialsRef } from "../utils/goCredentials";
 
@@ -65,6 +64,27 @@ export function AddInstanceWizard({
   onCreated: (accountId: string) => void;
 }) {
   const provider = useWhatsAppAccountsProvider();
+  const goServersProvider = useWhatsAppGoServersProvider();
+  const [goServers, setGoServers] = useState<IWhatsAppGoServer[]>([]);
+  const [goServerId, setGoServerId] = useState<string>("");
+
+  useEffect(() => {
+    let cancelled = false;
+    goServersProvider
+      .list()
+      .then((list) => {
+        if (cancelled) return;
+        setGoServers(list);
+        if (list.length === 1) setGoServerId(list[0]!.id); // auto-select the only one
+      })
+      .catch(() => {
+        if (!cancelled) setGoServers([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [goServersProvider]);
+
   const [phase, setPhase] = useState<Phase>("form");
   const [label, setLabel] = useState("");
   const [purpose, setPurpose] = useState<WhatsAppAccountPurpose>("atendimento");
@@ -78,16 +98,10 @@ export function AddInstanceWizard({
   );
 
   const [wizardProvider, setWizardProvider] = useState<WizardProvider>("evolution-go");
-  const [goBaseUrl, setGoBaseUrl] = useState("");
-  const [goApiKey, setGoApiKey] = useState("");
 
   const isMock = useMemo(() => getActiveDataSource() === "mock", []);
   const evolutionTemplate = useMemo(
     () => accounts.find((a) => a.provider === "evolution" && a.providerConfig?.baseUrl) ?? null,
-    [accounts],
-  );
-  const goTemplate = useMemo(
-    () => accounts.find((a) => a.provider === "evolution-go" && a.providerConfig?.baseUrl) ?? null,
     [accounts],
   );
   const existingRefs = useMemo(() => accounts.map((a) => a.credentialsRef), [accounts]);
@@ -107,21 +121,11 @@ export function AddInstanceWizard({
     if (phase === "qr" && pairing.phase === "open") setPhase("done");
   }, [phase, pairing.phase]);
 
-  // Pre-fill Go URL from existing Go template when the wizard opens.
-  useEffect(() => {
-    if (goTemplate?.providerConfig?.baseUrl) setGoBaseUrl(goTemplate.providerConfig.baseUrl);
-  }, [goTemplate]);
-
   async function handleCreate() {
     setError(null);
     if (wizardProvider === "evolution-go") {
-      const base = goBaseUrl.trim().replace(/\/$/, "");
-      if (!base) {
-        setError("Informe a URL do servidor Evolution Go.");
-        return;
-      }
-      if (!isMock && !goApiKey.trim()) {
-        setError("Cole a chave global da API do servidor Evolution Go.");
+      if (!goServerId) {
+        setError("Selecione o servidor Evolution Go.");
         return;
       }
       if (!isMock && !isValidCredentialsRef(goCredentialsRef)) {
@@ -138,19 +142,13 @@ export function AddInstanceWizard({
           credentialsRef: goCredentialsRef,
           status: "pending",
           capabilities: EVOLUTION_FAMILY_CAPS,
-          providerConfig: { baseUrl: base, instanceId: "" },
+          providerConfig: { instanceId: "" },
+          goServerId,
           currentState: "healthy",
           failoverPolicy: "disabled",
           isFailoverActive: false,
           purpose,
         });
-        if (!isMock) {
-          await setIntegrationSecret(
-            `${goCredentialsRef}_API_KEY`,
-            goApiKey.trim(),
-            `Chave global Evolution Go — ${label.trim()}`,
-          );
-        }
         setAccountId(created.id);
         setPhase("qr");
       } catch (e) {
@@ -266,37 +264,32 @@ export function AddInstanceWizard({
               </div>
             </div>
             {wizardProvider === "evolution-go" && (
-              <>
-                <div className="space-y-1.5">
-                  <Label htmlFor="add-go-url">URL do servidor Evolution Go</Label>
-                  <Input
-                    id="add-go-url"
-                    className="font-mono"
-                    inputMode="url"
-                    placeholder="https://evogo.ailainteligente.com.br"
-                    value={goBaseUrl}
-                    onChange={(e) => setGoBaseUrl(e.target.value)}
-                  />
-                </div>
-                {!isMock && (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="add-go-key">Chave global da API</Label>
-                    <Input
-                      id="add-go-key"
-                      type="password"
-                      autoComplete="new-password"
-                      className="font-mono"
-                      placeholder="Chave global do servidor (admin)"
-                      value={goApiKey}
-                      onChange={(e) => setGoApiKey(e.target.value)}
-                    />
-                    <p className="text-[11px] text-muted-foreground">
-                      A mesma chave global do servidor Go, por número. Gravada criptografada no
-                      cofre — nunca exibida de volta.
-                    </p>
+              <div className="space-y-1.5">
+                <Label htmlFor="add-go-server">Servidor Evolution Go</Label>
+                {goServers.length === 0 ? (
+                  <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+                    Nenhum servidor cadastrado. Cadastre um em{" "}
+                    <strong>Configurações → Integrações &amp; Chaves</strong> antes de adicionar um
+                    número.
                   </div>
+                ) : (
+                  <select
+                    id="add-go-server"
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    value={goServerId}
+                    onChange={(e) => setGoServerId(e.target.value)}
+                  >
+                    <option value="" disabled>
+                      Selecione o servidor…
+                    </option>
+                    {goServers.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
                 )}
-              </>
+              </div>
             )}
             <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs">
               <span className="text-muted-foreground">
@@ -311,7 +304,13 @@ export function AddInstanceWizard({
               <Button variant="outline" onClick={onClose}>
                 Cancelar
               </Button>
-              <Button disabled={!label.trim()} onClick={() => void handleCreate()}>
+              <Button
+                disabled={
+                  !label.trim() ||
+                  (wizardProvider === "evolution-go" && (goServers.length === 0 || !goServerId))
+                }
+                onClick={() => void handleCreate()}
+              >
                 Criar e conectar
               </Button>
             </div>

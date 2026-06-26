@@ -18,6 +18,7 @@ import {
   type IIntegrationKeyDef,
   type IIntegrationKeyGroup,
 } from "../engine/integrationKeys";
+import { GoServersSection } from "../components/GoServersSection";
 import { SectionHeader } from "../components/SectionHeader";
 
 const DATE_FORMAT = new Intl.DateTimeFormat("pt-BR", {
@@ -106,6 +107,8 @@ export function IntegrationKeysPage() {
         title="Integrações & Chaves"
         description="Chaves de API e parâmetros das integrações, guardados criptografados no cofre da plataforma."
       />
+
+      <GoServersSection canEdit={isSupabase} />
 
       <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
         <Icon icon="mdi:shield-lock-outline" className="mt-0.5 size-4 shrink-0" />

@@ -43,6 +43,7 @@ import { mockRotationQueuesProvider } from "./impl/mock/rotationQueues";
 import { mockRotationParticipantsProvider } from "./impl/mock/rotationParticipants";
 import { mockAiProvider } from "./impl/mock/ai";
 import { mockAtendimentoMetricsProvider } from "./impl/mock/atendimentoMetrics";
+import { mockWhatsAppGoServersProvider } from "./impl/mock/whatsappGoServers";
 
 import { supabaseCustomersProvider } from "./impl/supabase/customers";
 import { supabaseVehiclesProvider } from "./impl/supabase/vehicles";
@@ -87,6 +88,7 @@ import { supabaseRotationQueuesProvider } from "./impl/supabase/rotationQueues";
 import { supabaseRotationParticipantsProvider } from "./impl/supabase/rotationParticipants";
 import { supabaseAiProvider } from "./impl/supabase/ai";
 import { supabaseAtendimentoMetricsProvider } from "./impl/supabase/atendimentoMetrics";
+import { supabaseWhatsAppGoServersProvider } from "./impl/supabase/whatsappGoServers";
 
 import {
   DATA_SOURCE_OVERRIDE_KEY,
@@ -164,6 +166,7 @@ const mockProviders: IDataProviders = {
   rotationParticipants: mockRotationParticipantsProvider,
   ai: mockAiProvider,
   atendimentoMetrics: mockAtendimentoMetricsProvider,
+  whatsappGoServers: mockWhatsAppGoServersProvider,
 };
 
 const supabaseProviders: IDataProviders = {
@@ -210,6 +213,7 @@ const supabaseProviders: IDataProviders = {
   rotationParticipants: supabaseRotationParticipantsProvider,
   ai: supabaseAiProvider,
   atendimentoMetrics: supabaseAtendimentoMetricsProvider,
+  whatsappGoServers: supabaseWhatsAppGoServersProvider,
 };
 
 /**

@@ -37,6 +37,15 @@ export async function setIntegrationSecret(
   if (error) throw new Error(await extractFunctionError(error, "Não foi possível salvar a chave."));
 }
 
+/** Removes a secret from the Vault (used when a Go server is deleted). */
+export async function deleteIntegrationSecret(name: string): Promise<void> {
+  const { error } = await getSupabaseClient().functions.invoke("integration-secrets", {
+    body: { action: "delete", name },
+  });
+  if (error)
+    throw new Error(await extractFunctionError(error, "Não foi possível remover a chave."));
+}
+
 /** Pulls the JSON `error` field out of a non-2xx Edge Function response. */
 async function extractFunctionError(error: unknown, fallback: string): Promise<string> {
   const ctx = (error as { context?: Response }).context;

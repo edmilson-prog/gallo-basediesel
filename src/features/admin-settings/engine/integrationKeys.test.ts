@@ -118,4 +118,16 @@ describe("buildIntegrationKeyCatalog", () => {
       }
     }
   });
+
+  it("does not emit a key group for evolution-go accounts (key is on the server)", () => {
+    const groups = buildIntegrationKeyCatalog([
+      {
+        id: "acc-go",
+        label: "Comercial Volvo",
+        provider: "evolution-go" as const,
+        credentialsRef: "WA_EVO_GO_COMERCIAL_VOLVO_AB",
+      },
+    ]);
+    expect(groups.some((g) => g.id === "account-acc-go")).toBe(false);
+  });
 });

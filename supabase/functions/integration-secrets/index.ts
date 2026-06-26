@@ -72,5 +72,25 @@ servePost(async (req, { log }) => {
     return json({ ok: true, name }, 200);
   }
 
+  if (action === "delete") {
+    const name = String(body.name ?? "");
+    if (!NAME_PATTERN.test(name)) throw new HttpError(400, "invalid secret name");
+
+    const { error } = await admin.rpc("integration_secret_delete", { p_name: name });
+    if (error) throw new HttpError(400, `could not delete secret: ${error.message}`);
+
+    await bestEffortAudit(admin, {
+      store_id: profile.store_id,
+      actor_id: profile.seller_id,
+      action: "integration_secret_deleted",
+      resource: "integration_secret",
+      resource_id: name,
+      after: { name },
+    });
+
+    log.info("integration secret deleted", { name });
+    return json({ ok: true, name }, 200);
+  }
+
   throw new HttpError(400, "invalid action");
 });
