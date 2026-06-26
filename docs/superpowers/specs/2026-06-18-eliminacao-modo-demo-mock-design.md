@@ -3,6 +3,8 @@
 > **Data:** 2026-06-18 · **Branch:** `chore/eliminate-demo-mock-mode` (rebaseada sobre `origin/main` @ `6770707`, v0.104.0 Manifest) · **PR:** [#110](https://github.com/edmilson-prog/gallo-basediesel/pull/110) (DRAFT)
 > **Origem:** decisão do dono (2026-06-17) — "não tenho o mínimo interesse em manter o modo de demonstração". Gatilho técnico: o `/code-review` xhigh do PR #109 expôs a divergência mock↔supabase no tratamento de "não encontrado".
 
+> ⚠️ **Re-validado em 2026-06-26 contra `origin/main` @ `758ccf0` (v0.121.0).** As decisões fechadas (§3) seguem válidas, mas **os números deste documento dataram de v0.104.0 e sofreram drift** (mock 47→54, providers 37→44, testes ~103→160, call-sites 31→35), e há superfícies novas que o mapa não previa. Leia a **errata e o adendo** em [`2026-06-26-eliminacao-modo-demo-mock-auditoria.md`](2026-06-26-eliminacao-modo-demo-mock-auditoria.md) **antes de executar as fases**.
+
 ---
 
 ## 1. Objetivo e contexto
