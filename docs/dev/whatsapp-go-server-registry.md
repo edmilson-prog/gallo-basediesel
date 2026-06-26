@@ -128,19 +128,21 @@ O `api_key_ref` nunca muda; só o valor no Vault é trocado.
 ## 6. Cutover
 
 1. **Aplicar migration** (manual via MCP, idempotente): `20260626190000_whatsapp_go_servers`
-2. **Deploy das Edge Functions**: `whatsapp-connect` e `whatsapp-send`
+2. **Deploy das Edge Functions**: `whatsapp-connect`, `whatsapp-send`, `whatsapp-webhook` e `scheduled-send-worker`
 3. **Cadastrar o servidor real** na tela de Chaves (nome + endpoint + chave global)
 4. **Smoke** (dono): adicionar número Go pelo wizard → parear → confirmar `LoggedIn: true` em `integration_logs`
 
 ---
 
-## 7. Call sites fora do escopo desta tarefa
+## 7. Cobertura dos call sites Go
 
-Os seguintes call sites também chamam `buildWhatsAppEngine` com `account.providerConfig` e sofrem o mesmo problema para contas Go do novo modelo. Foram deixados fora do escopo por estarem fora das fronteiras da Task 8; devem ser corrigidos antes de ativar contas Go nesses fluxos:
+Todos os quatro call sites que constroem o engine WhatsApp Evolution Go enriquecem o `base_url` a partir do registro `whatsapp_go_servers`:
 
-| Arquivo | Uso | Impacto |
+| Arquivo | Uso | Padrão de resolução |
 |---|---|---|
-| `supabase/functions/whatsapp-webhook/index.ts` (linha ~723) | Echos outbound e respostas via webhook | Envios de eco falham para contas Go do registro |
-| `supabase/functions/scheduled-send-worker/index.ts` (linha ~95) | Envios agendados | Envios agendados falham para contas Go do registro |
+| `supabase/functions/whatsapp-connect/index.ts` | QR / test-message / state / logout / restart / delete | `resolveGoServer` (helper dedicado em `goServer.ts`) |
+| `supabase/functions/whatsapp-send/index.ts` | Envio outbound | `resolveGoBaseUrls` (pré-resolve por `conversationId`) |
+| `supabase/functions/whatsapp-webhook/index.ts` | Echos outbound e download de mídia inbound | `goBaseUrls` Map pré-populado no gate block (antes de `processWebhookEvent`) |
+| `supabase/functions/scheduled-send-worker/index.ts` | Envios agendados | Lookup inline por `go_server_id` antes do `buildProvider` |
 
-A correção segue o mesmo padrão do `whatsapp-send`: pre-resolver `base_url` via `whatsapp_go_servers` antes de construir o engine. O `_shared/whatsappSendAdapter.ts` é outra opção (enriquecer `providerConfig` no `getSendContext`/`getAccountRecord`), já que não é um arquivo espelhado.
+Nenhum desses sites depende de `provider_config.baseUrl`; contas Go do registro funcionam corretamente em todos os fluxos. O token por instância (`{credentials_ref}_INSTANCE_TOKEN`) permanece resolvido por-conta em todos eles.
