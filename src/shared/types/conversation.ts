@@ -225,4 +225,24 @@ export interface IWhatsAppAccount {
   createdAt: ISO8601;
   /** Finalidade da instância (multi-instância). Default 'atendimento'. */
   purpose: WhatsAppAccountPurpose;
+  /** Evolution Go — server this instance belongs to (registry). Null for v2/Meta. */
+  goServerId?: ID;
+}
+
+/**
+ * Evolution Go server (whatsmeow). Platform-level infra registered once by the
+ * Owner. Holds the friendly name, endpoint and a Vault POINTER to the global
+ * key (`apiKeyRef`) — never the key itself. Go accounts reference it via
+ * `IWhatsAppAccount.goServerId`.
+ */
+export interface IWhatsAppGoServer {
+  id: ID;
+  /** Friendly name (unique). */
+  name: string;
+  /** Endpoint, normalized (no trailing slash). */
+  baseUrl: string;
+  /** Vault secret name holding the server-wide global key. Matches `^[A-Z][A-Z0-9_]{2,64}$`. */
+  apiKeyRef: string;
+  createdAt: ISO8601;
+  updatedAt?: ISO8601;
 }
