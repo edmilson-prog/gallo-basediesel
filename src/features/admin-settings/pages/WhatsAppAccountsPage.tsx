@@ -32,6 +32,11 @@ import {
 } from "@/providers/data";
 import { SectionHeader } from "../components/SectionHeader";
 import { INVALID_CREDENTIALS_REF_MESSAGE, isValidCredentialsRef } from "../api/whatsappConnect";
+import {
+  configFromDraft,
+  draftFromAccount,
+  type IAccountDraft,
+} from "../utils/accountDraft";
 import { useEvolutionStatusSync } from "../hooks/useEvolutionStatusSync";
 import {
   DropdownMenu,
@@ -126,31 +131,6 @@ const CAPABILITY_LABELS: Array<{
   { key: "supportsProactiveMessaging", label: "Mensagem proativa" },
 ];
 
-interface IAccountDraft {
-  label: string;
-  credentialsRef: string;
-  phoneNumberId: string;
-  businessAccountId: string;
-  baseUrl: string;
-  instanceName: string;
-  failoverPolicy: WhatsAppFailoverPolicy;
-  /** Empty string = no backup account selected. */
-  failoverAccountId: string;
-}
-
-function draftFromAccount(account: IWhatsAppAccount): IAccountDraft {
-  return {
-    label: account.label,
-    credentialsRef: account.credentialsRef,
-    phoneNumberId: account.providerConfig?.phoneNumberId ?? "",
-    businessAccountId: account.providerConfig?.businessAccountId ?? "",
-    baseUrl: account.providerConfig?.baseUrl ?? "",
-    instanceName: account.providerConfig?.instanceName ?? "",
-    failoverPolicy: account.failoverPolicy,
-    failoverAccountId: account.failoverAccountId ?? "",
-  };
-}
-
 function formatLastOutbound(iso?: string): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleString("pt-BR", {
@@ -159,28 +139,6 @@ function formatLastOutbound(iso?: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-/**
- * Builds the providerConfig patch from the draft, honoring the DB shape guard
- * (PRD-111 RF-032): the engine's minimum keys must BOTH be present — partial
- * configs are rejected before hitting the network; both fields empty = clear.
- */
-function configFromDraft(
-  provider: IWhatsAppAccount["provider"],
-  draft: IAccountDraft,
-): { ok: true; config: IWhatsAppProviderConfig | null } | { ok: false } {
-  const a = (provider === "meta" ? draft.phoneNumberId : draft.baseUrl).trim();
-  const b = (provider === "meta" ? draft.businessAccountId : draft.instanceName).trim();
-  if (!a && !b) return { ok: true, config: null };
-  if (!a || !b) return { ok: false };
-  return {
-    ok: true,
-    config:
-      provider === "meta"
-        ? { phoneNumberId: a, businessAccountId: b }
-        : { baseUrl: a, instanceName: b },
-  };
 }
 
 /**
