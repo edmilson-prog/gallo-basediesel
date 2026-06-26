@@ -18,6 +18,7 @@ import { isValidCredentialsRef, INVALID_CREDENTIALS_REF_MESSAGE } from "../api/w
 import { generateGoCredentialsRef } from "../utils/goCredentials";
 
 type Phase = "form" | "creating" | "qr" | "done";
+type WizardProvider = "evolution-go" | "evolution";
 
 const EVOLUTION_FAMILY_CAPS: IWhatsAppAccount["capabilities"] = {
   supportsTemplatesHsm: false,
@@ -76,7 +77,6 @@ export function AddInstanceWizard({
     [label, suffix],
   );
 
-  type WizardProvider = "evolution-go" | "evolution";
   const [wizardProvider, setWizardProvider] = useState<WizardProvider>("evolution-go");
   const [goBaseUrl, setGoBaseUrl] = useState("");
   const [goApiKey, setGoApiKey] = useState("");
@@ -195,7 +195,9 @@ export function AddInstanceWizard({
         <DialogHeader>
           <DialogTitle>Adicionar número</DialogTitle>
           <DialogDescription>
-            Cria uma nova instância no mesmo servidor Evolution e conecta por QR code.
+            {wizardProvider === "evolution-go"
+              ? "Cria um novo número no servidor Evolution Go e conecta por QR code."
+              : "Cria um novo número no servidor Evolution e conecta por QR code."}
           </DialogDescription>
         </DialogHeader>
 

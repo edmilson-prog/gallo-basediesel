@@ -4,7 +4,7 @@ import { isEvolutionFamily } from "@/shared/utils/whatsappProvider";
 import { getEvolutionState } from "../api/whatsappConnect";
 
 /**
- * Silent connection-status polling for Evolution accounts (SIGPRO-style).
+ * Silent connection-status polling for Evolution-family accounts (v2 + Go) (SIGPRO-style).
  *
  * Every 30s while the tab is visible — plus on window focus and via the
  * manual `checkNow` trigger — asks the whatsapp-connect edge for the live
