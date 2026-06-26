@@ -692,6 +692,14 @@ Deno.serve(async (req) => {
 
   const db = makeDb(admin, traceId);
 
+  // Pre-resolved Go server base_url map (accountId → baseUrl). Populated in the
+  // evolution-go gate block below so the synchronous buildProvider callback can
+  // enrich providerConfig.baseUrl without an async lookup inside the call.
+  // Registry-based Go accounts store base_url on whatsapp_go_servers, NOT in
+  // provider_config. Old accounts that still carry it in provider_config are
+  // detected in buildProvider and skip the map lookup.
+  const goBaseUrls = new Map<string, string>();
+
   // Auth gates (fail closed) — the ONLY paths that answer 4xx on POST.
   if (provider === "meta") {
     const rejection = await metaGate(req, rawBody, log, resolveSecret);
@@ -703,6 +711,26 @@ Deno.serve(async (req) => {
     const account = await db.findEvolutionGoAccountAnyStatus(instanceId);
     const rejection = await evolutionGoGate(rawBody, payload, account, log, resolveSecret);
     if (rejection) return respond(rejection);
+    // Pre-resolve the Go server base_url for this account (needed by buildProvider
+    // for inbound media download). The account is known here; doing it before
+    // processWebhookEvent keeps buildProvider synchronous.
+    if (account) {
+      const { data: acctRow } = await admin
+        .from("whatsapp_accounts")
+        .select("go_server_id")
+        .eq("id", account.id)
+        .maybeSingle();
+      if (acctRow?.go_server_id) {
+        const { data: server } = await admin
+          .from("whatsapp_go_servers")
+          .select("base_url")
+          .eq("id", acctRow.go_server_id as string)
+          .maybeSingle();
+        if (server?.base_url) {
+          goBaseUrls.set(account.id, String(server.base_url).replace(/\/+$/, ""));
+        }
+      }
+    }
   } else {
     // Any-status lookup: the gate is about AUTH (per-account secret), and
     // connection.update events must also reach disconnected accounts.
@@ -719,14 +747,22 @@ Deno.serve(async (req) => {
       provider,
       rawPayload: payload,
       db,
-      buildProvider: (account) =>
-        buildWhatsAppEngine({
+      buildProvider: (account) => {
+        // Inject base_url from the server registry when the account is evolution-go
+        // and providerConfig does not already have it (old accounts may still carry it).
+        let providerConfig = account.providerConfig;
+        if (account.provider === "evolution-go" && !providerConfig?.baseUrl) {
+          const serverBaseUrl = goBaseUrls.get(account.id);
+          if (serverBaseUrl) providerConfig = { ...providerConfig, baseUrl: serverBaseUrl };
+        }
+        return buildWhatsAppEngine({
           engine: account.provider,
           accountId: account.id,
-          providerConfig: account.providerConfig,
+          providerConfig,
           credentialsRef: account.credentialsRef,
           deps,
-        }),
+        });
+      },
       // Background, best-effort: pull the photo of a freshly auto-created
       // contact. Never awaited — the webhook still answers 200 immediately.
       onCustomerAutoCreated: (created) =>

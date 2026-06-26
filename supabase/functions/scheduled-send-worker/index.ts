@@ -22,7 +22,7 @@
  * dispatchable; other payloads fail loudly (NOT_SUPPORTED) — see scheduled/core.
  */
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.107.0";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.107.0";
 import { requiredEnv } from "../_shared/env.ts";
 import { HttpError, json } from "../_shared/http.ts";
 import { servePost } from "../_shared/serve.ts";
@@ -35,6 +35,75 @@ import {
   buildSystemSender,
   type IScheduledPayload,
 } from "../_shared/whatsapp/scheduled/core.ts";
+
+/**
+ * Pre-resolves the Evolution Go server `base_url` for accounts involved in
+ * a scheduled send (primary + optional failover). Returns a Map<accountId, baseUrl>.
+ *
+ * Registry-based Go accounts store `base_url` on `whatsapp_go_servers`, NOT in
+ * `provider_config` — so `buildWhatsAppEngine` would receive an empty `baseUrl`
+ * and throw VALIDATION_ERROR. Fast-exits for non-Go conversations (most sends).
+ */
+async function resolveGoBaseUrls(
+  admin: SupabaseClient,
+  conversationId: string,
+): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+
+  // Step 1: conversation → primary account ID
+  const { data: conv } = await admin
+    .from("conversations")
+    .select("whatsapp_account_id")
+    .eq("id", conversationId)
+    .maybeSingle();
+  if (!conv?.whatsapp_account_id) return map;
+
+  // Step 2: load the primary account
+  const { data: primary } = await admin
+    .from("whatsapp_accounts")
+    .select("id, provider, go_server_id, failover_account_id, provider_config")
+    .eq("id", conv.whatsapp_account_id as string)
+    .maybeSingle();
+  if (!primary || primary.provider !== "evolution-go") return map; // Fast exit for non-Go
+
+  // Step 3: collect primary + failover (both may be evolution-go and need base_url)
+  const accountsToCheck: Array<{
+    id: string;
+    provider: string;
+    go_server_id: string | null;
+    provider_config: Record<string, unknown> | null;
+  }> = [primary as typeof primary & { id: string; provider: string }];
+  if (primary.failover_account_id) {
+    const { data: failover } = await admin
+      .from("whatsapp_accounts")
+      .select("id, provider, go_server_id, provider_config")
+      .eq("id", primary.failover_account_id as string)
+      .maybeSingle();
+    if (failover) {
+      accountsToCheck.push(
+        failover as typeof failover & { id: string; provider: string },
+      );
+    }
+  }
+
+  // Step 4: for each Go account lacking base_url in provider_config, fetch it
+  // from whatsapp_go_servers (the server registry).
+  for (const acc of accountsToCheck) {
+    if (acc.provider !== "evolution-go") continue;
+    if ((acc.provider_config as Record<string, unknown> | null)?.baseUrl) continue; // Already populated
+    if (!acc.go_server_id) continue;
+    const { data: server } = await admin
+      .from("whatsapp_go_servers")
+      .select("base_url")
+      .eq("id", acc.go_server_id as string)
+      .maybeSingle();
+    if (server?.base_url) {
+      map.set(acc.id as string, String(server.base_url).replace(/\/+$/, ""));
+    }
+  }
+
+  return map;
+}
 
 const WORKER_SECRET_NAME = "SCHEDULED_WORKER_SECRET";
 const BATCH_LIMIT = 50;
@@ -87,18 +156,30 @@ servePost(async (req, ctx) => {
   for (const row of rows) {
     try {
       const request = buildScheduledSendRequest(row.conversation_id, row.payload);
+      // Pre-resolve Go server base_url for evolution-go accounts involved in this send.
+      // Registry-based Go accounts don't store base_url in provider_config; it lives on
+      // whatsapp_go_servers. Fast-exits for non-Go conversations (no overhead for most rows).
+      const goBaseUrls = await resolveGoBaseUrls(admin, row.conversation_id);
       await processSendRequest({
         input: request,
         sender: buildSystemSender(row.store_id),
         db,
-        buildProvider: (account) =>
-          buildWhatsAppEngine({
+        buildProvider: (account) => {
+          // Inject base_url from the server registry when the account is evolution-go
+          // and providerConfig does not already have it (old accounts may still carry it).
+          let providerConfig = account.providerConfig;
+          if (account.provider === "evolution-go" && !providerConfig?.baseUrl) {
+            const serverBaseUrl = goBaseUrls.get(account.id);
+            if (serverBaseUrl) providerConfig = { ...providerConfig, baseUrl: serverBaseUrl };
+          }
+          return buildWhatsAppEngine({
             engine: account.provider,
             accountId: account.id,
-            providerConfig: account.providerConfig,
+            providerConfig,
             credentialsRef: account.credentialsRef,
             deps,
-          }),
+          });
+        },
         traceId: ctx.traceId,
       });
       await admin.from("scheduled_sends").update({ status: "sent" }).eq("id", row.id);
