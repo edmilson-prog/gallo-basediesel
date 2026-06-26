@@ -21,6 +21,7 @@ import type {
   WhatsAppAccountPurpose,
   WhatsAppFailoverPolicy,
 } from "@/shared/types";
+import { isEvolutionFamily } from "@/shared/utils/whatsappProvider";
 import { useAuth } from "@/features/auth/useAuth";
 import { useCurrentStore } from "@/features/multistore";
 import {
@@ -79,6 +80,7 @@ const STATUS_VISUAL: Record<
 const PROVIDER_LABEL: Record<IWhatsAppAccount["provider"], string> = {
   meta: "Meta Cloud API",
   evolution: "Evolution API",
+  "evolution-go": "Evolution Go",
 };
 
 const PURPOSE_LABEL: Record<WhatsAppAccountPurpose, string> = {
@@ -286,9 +288,10 @@ export function WhatsAppAccountsPage() {
 
   /** Opens the connect dialog — straight to QR when the config is complete. */
   const openConnect = (account: IWhatsAppAccount) => {
-    const configured = Boolean(
-      account.providerConfig?.baseUrl && account.providerConfig?.instanceName,
-    );
+    const configured =
+      account.provider === "evolution-go"
+        ? Boolean(account.providerConfig?.baseUrl)
+        : Boolean(account.providerConfig?.baseUrl && account.providerConfig?.instanceName);
     setConnectTarget({ account, step: configured ? "qr" : "form" });
   };
 
@@ -303,7 +306,9 @@ export function WhatsAppAccountsPage() {
       toast.error(
         account.provider === "meta"
           ? "Preencha Phone Number ID e Business Account ID (ou deixe ambos vazios)."
-          : "Preencha URL base e nome da instância (ou deixe ambos vazios).",
+          : account.provider === "evolution-go"
+            ? "Informe a URL do servidor Evolution Go."
+            : "Preencha URL base e nome da instância (ou deixe ambos vazios).",
       );
       return;
     }
@@ -409,15 +414,7 @@ export function WhatsAppAccountsPage() {
           title="WhatsApp"
           description="Contas conectadas à Central de Atendimento. O envio e a recepção reais usam estas configurações (PRDs 111–118)."
         />
-        <Button
-          onClick={() => setWizardOpen(true)}
-          disabled={!templateAccount}
-          title={
-            templateAccount
-              ? "Adiciona um novo número no mesmo servidor Evolution"
-              : "Conecte uma instância Evolution primeiro"
-          }
-        >
+        <Button onClick={() => setWizardOpen(true)} title="Adiciona um novo número de WhatsApp">
           <Icon icon="lucide:plus" size={14} className="mr-1.5" />
           Adicionar número
         </Button>
@@ -616,16 +613,22 @@ export function WhatsAppAccountsPage() {
                           <dt className="text-muted-foreground">
                             {account.provider === "meta"
                               ? "Phone Number ID / WABA ID"
-                              : "Instância Evolution"}
+                              : account.provider === "evolution-go"
+                                ? "Instância Evolution Go"
+                                : "Instância Evolution"}
                           </dt>
                           <dd className="font-mono text-foreground">
                             {account.provider === "meta"
                               ? account.providerConfig?.phoneNumberId
                                 ? `${account.providerConfig.phoneNumberId} / ${account.providerConfig.businessAccountId ?? "—"}`
                                 : "Não configurado"
-                              : account.providerConfig?.instanceName
-                                ? `${account.providerConfig.instanceName} @ ${account.providerConfig.baseUrl ?? "—"}`
-                                : "Não configurado"}
+                              : account.provider === "evolution-go"
+                                ? account.providerConfig?.instanceId
+                                  ? `${account.providerConfig.instanceId} @ ${account.providerConfig.baseUrl ?? "—"}`
+                                  : `Não pareado @ ${account.providerConfig?.baseUrl ?? "—"}`
+                                : account.providerConfig?.instanceName
+                                  ? `${account.providerConfig.instanceName} @ ${account.providerConfig.baseUrl ?? "—"}`
+                                  : "Não configurado"}
                           </dd>
                         </div>
                         <div>
@@ -656,7 +659,7 @@ export function WhatsAppAccountsPage() {
                               : "Ativar failover agora"}
                           </Button>
                         )}
-                        {account.provider === "evolution" && (
+                        {isEvolutionFamily(account.provider) && (
                           <>
                             <Button
                               variant="outline"
@@ -778,7 +781,7 @@ export function WhatsAppAccountsPage() {
                     )}
 
                     {/* Lost connection: inline call to action (SIGPRO-style) */}
-                    {account.provider === "evolution" && account.status === "disconnected" && (
+                    {isEvolutionFamily(account.provider) && account.status === "disconnected" && (
                       <div className="mt-3 flex flex-wrap items-center gap-2 rounded-md border border-severity-critical/40 bg-severity-critical/10 px-3 py-2">
                         <Icon
                           icon="mdi:alert-circle-outline"
@@ -847,6 +850,34 @@ export function WhatsAppAccountsPage() {
                                 )
                               }
                             />
+                          </div>
+                        </>
+                      ) : account.provider === "evolution-go" ? (
+                        <>
+                          <div className="space-y-1.5">
+                            <Label htmlFor={`url-${account.id}`}>URL do servidor Evolution Go</Label>
+                            <Input
+                              id={`url-${account.id}`}
+                              className="font-mono"
+                              placeholder="https://evogo.ailainteligente.com.br"
+                              value={draft?.baseUrl ?? ""}
+                              onChange={(e) =>
+                                setDraft((d) => (d ? { ...d, baseUrl: e.target.value } : d))
+                              }
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor={`iid-${account.id}`}>ID da instância (servidor)</Label>
+                            <Input
+                              id={`iid-${account.id}`}
+                              className="font-mono"
+                              value={draft?.instanceId || "—"}
+                              readOnly
+                              disabled
+                            />
+                            <p className="text-[11px] text-muted-foreground">
+                              Gerado pelo servidor ao parear. Não editável.
+                            </p>
                           </div>
                         </>
                       ) : (
@@ -959,7 +990,7 @@ export function WhatsAppAccountsPage() {
             </p>
           </div>
           {(() => {
-            const evolutionAccounts = (accounts ?? []).filter((a) => a.provider === "evolution");
+            const evolutionAccounts = (accounts ?? []).filter((a) => isEvolutionFamily(a.provider));
             const evolution =
               evolutionAccounts.find((a) => a.status !== "connected") ?? evolutionAccounts[0];
             return evolution ? (
