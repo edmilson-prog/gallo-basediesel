@@ -36,23 +36,32 @@ export interface IGoStatusResult {
   loggedIn: boolean;
 }
 
-/** POST /instance/create — global apikey only (no instance yet). */
+/** POST /instance/create — global apikey only; mints the instance id + token. */
 export async function createGoInstance(
   apiKey: string,
   deps: IEngineDeps,
-  input: { baseUrl: string; name: string; token?: string },
+  input: { baseUrl: string; name: string; instanceId?: string; token?: string },
   traceId?: string,
 ): Promise<{ instanceId: string; token: string }> {
+  // The Go server requires the client to provide BOTH a unique token and the
+  // instance id (its uuid primary key) — it does NOT generate them, and rejects
+  // a payload missing `token` with 400 "token is required". Mint both here when
+  // the caller does not supply them so the id is always a valid uuid.
+  const requestedId = input.instanceId ?? crypto.randomUUID();
+  const requestedToken = input.token ?? crypto.randomUUID();
   const response = await goRequest(apiKey, deps, {
     baseUrl: input.baseUrl,
     path: "/instance/create",
-    json: { name: input.name, ...(input.token ? { token: input.token } : {}) },
+    json: { instanceId: requestedId, name: input.name, token: requestedToken },
     omitResponsePayload: true,
     traceId,
   });
+  // A 2xx means the instance was created with the id/token we sent; the server
+  // echoes them back ({ data: { id, token } }). Prefer the echo, fall back to
+  // what we sent (goRequest already threw on any non-2xx).
   const body = response.body as { data?: { id?: string; token?: string } } | null;
-  const instanceId = body?.data?.id;
-  const token = body?.data?.token ?? input.token;
+  const instanceId = body?.data?.id ?? requestedId;
+  const token = body?.data?.token ?? requestedToken;
   if (!instanceId || !token) {
     throw new WhatsAppProviderError(
       "INTEGRATION_ERROR",

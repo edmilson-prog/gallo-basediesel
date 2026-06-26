@@ -9,7 +9,6 @@ import {
   restartGoInstance,
 } from "./instance";
 import type { IEngineDeps } from "../types";
-import { WhatsAppProviderError } from "../errors";
 
 function deps(fetchImpl: typeof fetch): IEngineDeps {
   return { resolveSecret: async () => undefined, fetchFn: fetchImpl };
@@ -19,12 +18,16 @@ function jsonResponse(body: unknown, status = 200) {
 }
 
 describe("evolution-go instance management", () => {
-  it("createGoInstance posts name+token (global apikey, no instanceId header) and returns id+token", async () => {
+  it("createGoInstance posts instanceId+name+token (global apikey, no instanceId header) and returns the echoed id+token", async () => {
     const fetchFn = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
       expect(String(url)).toBe("https://go.test/instance/create");
       expect(init?.headers).toMatchObject({ apikey: "global-key" });
       expect((init?.headers as Record<string, string>).instanceId).toBeUndefined();
-      expect(JSON.parse(String(init?.body))).toMatchObject({ name: "comercial-volvo", token: "tok-xyz" });
+      const sent = JSON.parse(String(init?.body));
+      expect(sent).toMatchObject({ name: "comercial-volvo", token: "tok-xyz" });
+      // The Go server requires a client-provided uuid id; it is minted when absent.
+      expect(typeof sent.instanceId).toBe("string");
+      expect(sent.instanceId.length).toBeGreaterThan(0);
       return jsonResponse({ data: { id: "inst-uuid-9", name: "comercial-volvo", token: "tok-xyz", connected: false }, message: "success" });
     }) as unknown as typeof fetch;
 
@@ -34,6 +37,21 @@ describe("evolution-go instance management", () => {
       token: "tok-xyz",
     });
     expect(out).toEqual({ instanceId: "inst-uuid-9", token: "tok-xyz" });
+  });
+
+  it("createGoInstance mints a token (server requires it) and falls back to sent values when the response omits them", async () => {
+    let sent: { instanceId?: string; token?: string } = {};
+    const fetchFn = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+      sent = JSON.parse(String(init?.body));
+      expect(typeof sent.token).toBe("string");
+      expect(String(sent.token).length).toBeGreaterThan(0);
+      expect(typeof sent.instanceId).toBe("string");
+      expect(String(sent.instanceId).length).toBeGreaterThan(0);
+      return jsonResponse({ data: {}, message: "success" });
+    }) as unknown as typeof fetch;
+
+    const out = await createGoInstance("global-key", deps(fetchFn), { baseUrl: "https://go.test", name: "x" });
+    expect(out).toEqual({ instanceId: sent.instanceId, token: sent.token });
   });
 
   it("connectGoInstance posts webhookUrl + subscribe, authed by the instance token (no instanceId header)", async () => {
@@ -124,12 +142,5 @@ describe("evolution-go instance management", () => {
     }) as unknown as typeof fetch;
     await logoutGoInstance("inst-token", deps(fetchFn), { baseUrl: "https://go.test", instanceId: "inst-uuid-9" });
     expect(fetchFn).toHaveBeenCalledOnce();
-  });
-
-  it("createGoInstance throws when the response has no id", async () => {
-    const fetchFn = vi.fn(async () => jsonResponse({ data: {}, message: "success" })) as unknown as typeof fetch;
-    await expect(
-      createGoInstance("global-key", deps(fetchFn), { baseUrl: "https://go.test", name: "x" }),
-    ).rejects.toBeInstanceOf(WhatsAppProviderError);
   });
 });
