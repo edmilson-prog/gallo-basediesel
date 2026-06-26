@@ -6,6 +6,20 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.121.0] — Conduit · 2026-06-25
+
+**Um novo motor de conexão do WhatsApp: o Evolution Go.** A plataforma passa a oferecer um segundo motor para conectar números de WhatsApp — o Evolution Go —, ao lado do motor que já existia. Ao adicionar um número em Configurações → WhatsApp, o assistente agora pergunta por qual motor conectar (o Evolution Go já vem escolhido) e o pareamento segue igual ao de sempre: leitura do QR code pelo celular. Os números já conectados continuam funcionando exatamente como antes — nada muda para eles.
+
+### Added
+
+- **Conectar números de WhatsApp pelo motor Evolution Go** — em Configurações → WhatsApp, dá para criar um número novo no Evolution Go e conectá-lo lendo o QR code, sem sair da plataforma. O envio e o recebimento de mensagens, mídias e o acompanhamento de status funcionam da mesma forma que nos números atuais.
+- **Escolha do motor no assistente "Adicionar número"** — o assistente ganhou um seletor de motor (Evolution Go ou o motor anterior). Para o Evolution Go, basta informar o endereço do servidor e a chave de acesso uma vez por número; a identificação técnica do número é montada automaticamente e exibida para conferência antes de criar.
+
+### Changed
+
+- **O botão "Adicionar número" fica sempre disponível** — não é mais preciso ter um número já configurado para criar o primeiro pelo Evolution Go; dá para começar do zero.
+- As telas de conexão, edição e exclusão de números passaram a reconhecer o novo motor, mantendo o comportamento dos números do motor anterior inalterado.
+
 ## [0.120.0] — Wellspring · 2026-06-24
 
 **Os números reais do Painel de Atendimento agora aparecem em produção.** O Painel de Atendimento (a aba "Atendimento" na tela inicial) deixou de mostrar gráficos vazios em produção e passou a exibir os dados reais das conversas: quantos atendimentos novos surgem por período, o volume de mensagens enviadas e recebidas, quem mais atende, a distribuição de status e as conversas acumuladas — tudo calculado direto a partir do histórico real.
