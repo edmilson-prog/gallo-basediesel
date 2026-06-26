@@ -282,10 +282,17 @@ async function sendAdHocTestMessage(
       422,
     );
   }
+  // For evolution-go registry accounts, base_url lives on the server (whatsapp_go_servers),
+  // NOT in provider_config. Resolve it here so buildWhatsAppEngine receives a complete config.
+  let providerConfig: Record<string, unknown> | null = account.provider_config;
+  if (engineName === "evolution-go") {
+    const { baseUrl } = await resolveGoServer(admin, deps.resolveSecret, account);
+    providerConfig = { ...account.provider_config, baseUrl };
+  }
   const engine = buildWhatsAppEngine({
     engine: engineName,
     accountId: account.id,
-    providerConfig: account.provider_config,
+    providerConfig,
     credentialsRef: account.credentials_ref,
     deps,
   });
