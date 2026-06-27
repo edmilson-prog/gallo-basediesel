@@ -40,6 +40,11 @@ export interface ISyncContactAvatarOptions {
  * Syncs one contact's WhatsApp profile photo into the `avatars` bucket.
  * Always stamps avatar_synced_at (idempotency), sets avatar_url only on a hit.
  * Never throws — returns a coarse result the caller can count or ignore.
+ *
+ * `fetchPicUrl` lets a caller inject an engine-specific picture-URL resolver
+ * (e.g. Evolution Go's `/user/avatar`). When omitted, it falls back to the
+ * classic Evolution fetch using `(apiKey, target)` — so existing callers stay
+ * byte-compatible; only Go callers pass the override.
  */
 export async function syncContactAvatar(
   admin: SupabaseClient,
@@ -48,6 +53,7 @@ export async function syncContactAvatar(
   apiKey: string,
   contact: IAvatarContact,
   opts?: ISyncContactAvatarOptions,
+  fetchPicUrl?: (wireNumber: string, traceId?: string) => Promise<string | null>,
 ): Promise<AvatarSyncResult> {
   const stamp = () =>
     admin
@@ -62,7 +68,9 @@ export async function syncContactAvatar(
       return "without-photo";
     }
     const wire = e164.slice(1);
-    const picUrl = await fetchProfilePictureUrl(apiKey, deps, target, wire, opts?.traceId);
+    const picUrl = fetchPicUrl
+      ? await fetchPicUrl(wire, opts?.traceId)
+      : await fetchProfilePictureUrl(apiKey, deps, target, wire, opts?.traceId);
     if (!picUrl) {
       await stamp();
       return "without-photo";

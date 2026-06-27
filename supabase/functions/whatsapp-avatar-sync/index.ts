@@ -31,7 +31,13 @@ import { HttpError, json, parseJsonBody } from "../_shared/http.ts";
 import { createSecretResolver } from "../_shared/secrets.ts";
 import { servePost } from "../_shared/serve.ts";
 import { type IEvolutionInstanceTarget } from "../_shared/whatsapp/evolution/instance.ts";
+import {
+  fetchGoProfilePictureUrl,
+  type IGoInstanceTarget,
+} from "../_shared/whatsapp/evolution-go/instance.ts";
+import { EVOLUTION_GO_SECRET_SUFFIXES } from "../_shared/whatsapp/evolution-go/constants.ts";
 import type { IEngineDeps, IIntegrationLogEntry } from "../_shared/whatsapp/types.ts";
+import { resolveGoServer } from "./goServer.ts";
 
 const DEFAULT_LIMIT = 15;
 const MAX_LIMIT = 50;
@@ -52,7 +58,8 @@ interface IAccountRow {
   store_id: string;
   provider: string;
   credentials_ref: string;
-  provider_config: { baseUrl?: string; instanceName?: string } | null;
+  go_server_id: string | null;
+  provider_config: { baseUrl?: string; instanceName?: string; instanceId?: string } | null;
 }
 
 interface ICustomerRow {
@@ -119,27 +126,55 @@ servePost(async (req, { log, traceId }) => {
 
   const { data: account } = await admin
     .from("whatsapp_accounts")
-    .select("id, store_id, provider, credentials_ref, provider_config")
+    .select("id, store_id, provider, credentials_ref, go_server_id, provider_config")
     .eq("id", accountId)
     .eq("store_id", profile.store_id)
     .maybeSingle<IAccountRow>();
   if (!account) return jsonError("conta não encontrada nesta loja", "NOT_FOUND", 404);
-  if (account.provider !== "evolution") {
+  if (account.provider !== "evolution" && account.provider !== "evolution-go") {
     return jsonError("sincronização disponível apenas para contas Evolution", "VALIDATION_ERROR", 422);
-  }
-  const baseUrl = account.provider_config?.baseUrl;
-  const instanceName = account.provider_config?.instanceName;
-  if (!baseUrl || !instanceName) {
-    return jsonError("configure URL base e instância antes de sincronizar", "CONFIG_MISSING", 422);
   }
 
   const deps = makeEngineDeps(admin, traceId);
-  const apiKey = await deps.resolveSecret(`${account.credentials_ref}_API_KEY`);
-  if (!apiKey) {
-    return jsonError("chave de API da instância não cadastrada", "MISSING_API_KEY", 422);
-  }
 
-  const target: IEvolutionInstanceTarget = { baseUrl, instanceName };
+  // Resolve the engine-specific picture-URL fetcher (+ the classic target/apiKey
+  // syncContactAvatar still expects). Evolution Go keeps its base URL in the
+  // server registry (whatsapp_go_servers) and authorizes by the per-instance
+  // TOKEN; classic Evolution uses provider_config.baseUrl + the instance API key.
+  let target: IEvolutionInstanceTarget;
+  let apiKey: string;
+  let fetchPicUrl: ((wire: string, traceId?: string) => Promise<string | null>) | undefined;
+
+  if (account.provider === "evolution-go") {
+    const instanceId = account.provider_config?.instanceId ?? "";
+    if (!instanceId) {
+      return jsonError("conta Evolution Go ainda não pareada", "CONFIG_MISSING", 422);
+    }
+    const { baseUrl } = await resolveGoServer(admin, deps.resolveSecret, account);
+    const instanceToken = await deps.resolveSecret(
+      `${account.credentials_ref}${EVOLUTION_GO_SECRET_SUFFIXES.instanceToken}`,
+    );
+    if (!instanceToken) {
+      return jsonError("token da instância Go não cadastrado", "MISSING_API_KEY", 422);
+    }
+    const goTarget: IGoInstanceTarget = { baseUrl, instanceId };
+    apiKey = instanceToken;
+    target = { baseUrl, instanceName: instanceId }; // unused by the Go path; fetchPicUrl drives it
+    fetchPicUrl = (wire, t) => fetchGoProfilePictureUrl(instanceToken, deps, goTarget, wire, t);
+  } else {
+    const baseUrl = account.provider_config?.baseUrl;
+    const instanceName = account.provider_config?.instanceName;
+    if (!baseUrl || !instanceName) {
+      return jsonError("configure URL base e instância antes de sincronizar", "CONFIG_MISSING", 422);
+    }
+    const key = await deps.resolveSecret(`${account.credentials_ref}_API_KEY`);
+    if (!key) {
+      return jsonError("chave de API da instância não cadastrada", "MISSING_API_KEY", 422);
+    }
+    apiKey = key;
+    target = { baseUrl, instanceName };
+    fetchPicUrl = undefined; // default: classic Evolution fetch inside syncContactAvatar
+  }
 
   let rows: ICustomerRow[];
   if (customerId) {
@@ -178,6 +213,7 @@ servePost(async (req, { log, traceId }) => {
       apiKey,
       { id: contact.id, phone: contact.phone, storeId: account.store_id },
       { traceId, warn: (msg, fields) => log.warn(msg, fields) },
+      fetchPicUrl,
     );
     if (result === "with-photo") withPhoto += 1;
     else if (result === "without-photo") withoutPhoto += 1;

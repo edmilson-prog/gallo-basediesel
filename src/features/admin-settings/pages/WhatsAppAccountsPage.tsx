@@ -681,7 +681,7 @@ export function WhatsAppAccountsPage() {
                               <Icon icon="mdi:message-check-outline" size={14} className="mr-1.5" />
                               Mensagem de teste
                             </Button>
-                            {!isMock && (
+                            {!isMock && account.provider === "evolution" && (
                               <Button
                                 variant="outline"
                                 size="sm"
