@@ -183,6 +183,17 @@ export interface IProcessArgs {
     phone: string;
     account: IAccountRecord;
   }) => void;
+  /**
+   * Optional sink for raw Evolution Go events we don't yet ingest but want to
+   * inspect — the HistorySync ingestion spike (Phase 2, Etapa A). Best-effort:
+   * a failure here must never break the fail-closed webhook. The Edge wires it
+   * to integration_logs; unit tests pass a spy.
+   */
+  captureRawEvent?: (input: {
+    kind: string;
+    instanceId: string;
+    payload: unknown;
+  }) => Promise<void>;
 }
 
 const DEFAULT_MEDIA_TIMEOUT_MS = 15_000;
@@ -306,8 +317,29 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
   // which throws on non-Message events.
   if (provider === "evolution-go") {
     const ev = rawPayload as { event?: string; data?: { State?: string } } | null;
-    if (ev?.event === "Connection") {
+    const goEvent = ev?.event ?? "";
+    if (goEvent === "Connection") {
       return { outcome: "ignored", detail: `Connection: ${ev?.data?.State ?? ""}` };
+    }
+    // Phase 2 spike (Etapa A): HistorySync — and any other not-yet-ingested Go
+    // event — is captured RAW so the ingestion can be designed against the real
+    // payload shape, then acknowledged. Message/Receipt fall through to the
+    // parser below (unchanged). Capture is best-effort: a logging failure must
+    // not turn the event into a 500/retry.
+    if (goEvent && goEvent !== "Message" && goEvent !== "Receipt") {
+      try {
+        await args.captureRawEvent?.({
+          kind: goEvent,
+          instanceId: extractEvolutionGoInstance(rawPayload),
+          payload: rawPayload,
+        });
+      } catch (error) {
+        warn("failed to capture raw evolution-go event", {
+          event: goEvent,
+          detail: error instanceof Error ? error.message : String(error),
+        });
+      }
+      return { outcome: "ignored", detail: `captured: ${goEvent}` };
     }
   }
 

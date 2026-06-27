@@ -32,6 +32,10 @@ export const EVOLUTION_GO_DEFAULT_SUBSCRIBE: string[] = [
   "SEND_MESSAGE",
   "READ_RECEIPT",
   "CONNECTION",
+  // Phase 2: whatsmeow pushes the linked device's chat/message history as
+  // HistorySync notifications right after pairing. Subscribing here makes the
+  // Go server forward them to our webhook (captured raw in Etapa A).
+  "HISTORY_SYNC",
 ];
 
 export const EVOLUTION_GO_CAPABILITIES: IProviderCapabilities = {

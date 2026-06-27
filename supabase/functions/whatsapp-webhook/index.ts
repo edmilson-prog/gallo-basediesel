@@ -767,6 +767,22 @@ Deno.serve(async (req) => {
       // contact. Never awaited — the webhook still answers 200 immediately.
       onCustomerAutoCreated: (created) =>
         scheduleAvatarFetch(admin, deps, log, traceId, created),
+      // Phase 2 spike (Etapa A): persist raw Evolution Go HistorySync — and any
+      // other not-yet-ingested Go event — to integration_logs so the ingestion
+      // (Etapa B) can be designed against the real payload shape. The core wraps
+      // this in try/catch, so a logging failure never breaks the webhook.
+      captureRawEvent: async ({ kind, instanceId, payload }) => {
+        await deps.logIntegration({
+          integrationName: "whatsapp_evolution_go",
+          direction: "inbound",
+          endpoint: `/whatsapp-webhook/evolution-go#${kind}`,
+          httpStatus: 200,
+          latencyMs: 0,
+          traceId,
+          requestPayload: payload,
+          responsePayload: { instanceId, captured: kind },
+        });
+      },
       traceId,
       warn: (msg, fields) => log.warn(msg, fields),
     });

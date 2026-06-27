@@ -842,4 +842,66 @@ describe("processWebhookEvent — evolution-go", () => {
     expect(result.outcome).toBe("ignored");
     expect(state.messages).toHaveLength(0);
   });
+
+  it("captures a whatsmeow HistorySync event raw (Phase 2 spike) without inserting a message", async () => {
+    const state = emptyState();
+    const captureRawEvent = vi.fn();
+    const payload = {
+      event: "HistorySync",
+      instanceId: "inst-9",
+      data: { Data: { conversations: [{ ID: "5555988887777@s.whatsapp.net" }] } },
+    };
+    const result = await run(state, payload, { provider: "evolution-go", captureRawEvent });
+
+    expect(result.outcome).toBe("ignored");
+    expect(result.detail).toBe("captured: HistorySync");
+    expect(captureRawEvent).toHaveBeenCalledTimes(1);
+    expect(captureRawEvent).toHaveBeenCalledWith({
+      kind: "HistorySync",
+      instanceId: "inst-9",
+      payload,
+    });
+    expect(state.messages).toHaveLength(0);
+  });
+
+  it("does NOT capture a normal Message event — it still flows to the parser", async () => {
+    const state = emptyState();
+    const captureRawEvent = vi.fn();
+    const payload = {
+      event: "Message",
+      instanceId: "inst-9",
+      data: {
+        Info: {
+          Chat: "5555988887777@s.whatsapp.net",
+          Sender: "5555988887777@s.whatsapp.net",
+          IsFromMe: false,
+          ID: "GOIN2",
+          Timestamp: "2026-06-25T10:00:00Z",
+        },
+        Message: { conversation: "oi" },
+      },
+    };
+    const result = await run(state, payload, { provider: "evolution-go", captureRawEvent });
+
+    expect(result.outcome).toBe("message-created");
+    expect(captureRawEvent).not.toHaveBeenCalled();
+  });
+
+  it("capture is best-effort: a captureRawEvent failure still answers ignored", async () => {
+    const state = emptyState();
+    const warn = vi.fn();
+    const captureRawEvent = vi.fn().mockRejectedValue(new Error("db down"));
+    const payload = { event: "HistorySync", instanceId: "inst-9", data: {} };
+    const result = await run(state, payload, {
+      provider: "evolution-go",
+      captureRawEvent,
+      warn,
+    });
+
+    expect(result.outcome).toBe("ignored");
+    expect(warn).toHaveBeenCalledWith(
+      "failed to capture raw evolution-go event",
+      expect.anything(),
+    );
+  });
 });
