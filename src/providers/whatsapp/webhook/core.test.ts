@@ -831,16 +831,61 @@ describe("processWebhookEvent — evolution-go", () => {
     });
   });
 
-  it("treats a whatsmeow Connection event as a lifecycle signal (no message insert)", async () => {
+  it("LoggedOut flips a connected Go account to disconnected (with audit)", async () => {
     const state = emptyState();
     const payload = {
-      event: "Connection",
+      event: "LoggedOut",
       instanceId: "inst-9",
-      data: { State: "open" },
+      data: { Reason: 401, reason: "401: logged out from another device", OnConnect: false },
     };
     const result = await run(state, payload, { provider: "evolution-go" });
-    expect(result.outcome).toBe("ignored");
+
+    expect(result.outcome).toBe("connection-synced");
+    expect(state.accountStatus).toBe("disconnected");
+    expect(state.audits[0]).toMatchObject({
+      action: "whatsapp_instance_disconnected",
+      after: expect.objectContaining({ event: "LoggedOut", reason: "evolution_go_webhook" }),
+    });
     expect(state.messages).toHaveLength(0);
+  });
+
+  it("Connection close flips a connected Go account to disconnected", async () => {
+    const state = emptyState();
+    const payload = { event: "Connection", instanceId: "inst-9", data: { State: "close" } };
+    const result = await run(state, payload, { provider: "evolution-go" });
+
+    expect(result.outcome).toBe("connection-synced");
+    expect(state.accountStatus).toBe("disconnected");
+    expect(state.audits[0]).toMatchObject({ action: "whatsapp_instance_disconnected" });
+  });
+
+  it("Connection open flips a disconnected Go account back to connected", async () => {
+    const state = emptyState();
+    state.accountStatus = "disconnected";
+    const payload = { event: "Connection", instanceId: "inst-9", data: { State: "open" } };
+    const result = await run(state, payload, { provider: "evolution-go" });
+
+    expect(result.outcome).toBe("connection-synced");
+    expect(state.accountStatus).toBe("connected");
+    expect(state.audits[0]).toMatchObject({ action: "whatsapp_instance_connected" });
+  });
+
+  it("Connection connecting is transient — ignored, status untouched", async () => {
+    const state = emptyState();
+    const payload = { event: "Connection", instanceId: "inst-9", data: { State: "connecting" } };
+    const result = await run(state, payload, { provider: "evolution-go" });
+
+    expect(result.outcome).toBe("ignored");
+    expect(state.accountStatus).toBe("connected");
+  });
+
+  it("LoggedOut for an unknown instance returns account-not-found", async () => {
+    const state = emptyState();
+    const payload = { event: "LoggedOut", instanceId: "unknown-instance", data: { Reason: 401 } };
+    const result = await run(state, payload, { provider: "evolution-go" });
+
+    expect(result.outcome).toBe("account-not-found");
+    expect(state.audits).toHaveLength(0);
   });
 
   it("captures a whatsmeow HistorySync event raw (Phase 2 spike) without inserting a message", async () => {

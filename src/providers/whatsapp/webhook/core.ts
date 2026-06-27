@@ -236,6 +236,29 @@ function extractEvolutionGoInstance(rawPayload: unknown): string {
 }
 
 /**
+ * Maps an Evolution Go lifecycle event to a connection status, or null when it
+ * carries no status signal. whatsmeow emits `LoggedOut` when the device is
+ * unlinked (Reason 401) and `Connection` (State open/close) on session changes.
+ * The webhook is the authoritative status signal — the active /instance/status
+ * poll is unreliable (it 400s on this build and only runs while the app's
+ * WhatsApp page is open). `connecting` is transient → no status.
+ */
+function goConnectionTransition(
+  event: string,
+  state: string | undefined,
+): "connected" | "disconnected" | null {
+  if (event === "LoggedOut") return "disconnected";
+  if (event === "Connection") {
+    const s = String(state ?? "").toLowerCase();
+    if (s === "open" || s === "connected") return "connected";
+    if (s === "close" || s === "closed" || s === "disconnected" || s === "loggedout") {
+      return "disconnected";
+    }
+  }
+  return null;
+}
+
+/**
  * Detects an Evolution `connection.update` lifecycle event (the subscription
  * uses CONNECTION_UPDATE; payloads arrive dot-lowercase — both accepted).
  * State key varies across builds: data.state (v2) / data.connection (Baileys).
@@ -315,9 +338,46 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
   if (provider === "evolution-go") {
     const ev = rawPayload as { event?: string; data?: { State?: string } } | null;
     const goEvent = ev?.event ?? "";
+
+    // Connection lifecycle → keep whatsapp_accounts.status truthful. whatsmeow
+    // pushes `LoggedOut` when the device is unlinked and `Connection` (open/close)
+    // on session changes; this webhook is the authoritative signal (the active
+    // /instance/status poll 400s on this build). Conditional write + audit-on-
+    // change keeps redeliveries idempotent. Mirrors the classic Evolution path.
+    const goStatus = goConnectionTransition(goEvent, ev?.data?.State);
+    if (goStatus) {
+      const instanceId = extractEvolutionGoInstance(rawPayload);
+      const account = await db.findEvolutionGoAccountAnyStatus(instanceId);
+      if (!account) {
+        warn("evolution-go connection event for unknown instance", { instanceId, goEvent });
+        return { outcome: "account-not-found" };
+      }
+      const changed = await db.setAccountConnectionStatus(account.id, goStatus);
+      if (changed) {
+        await db.audit({
+          storeId: account.storeId,
+          action:
+            goStatus === "connected"
+              ? "whatsapp_instance_connected"
+              : "whatsapp_instance_disconnected",
+          resource: "whatsapp_account",
+          resourceId: account.id,
+          after: {
+            event: goEvent,
+            state: ev?.data?.State ?? null,
+            reason: "evolution_go_webhook",
+            traceId,
+          },
+        });
+      }
+      return { outcome: "connection-synced", detail: `${goEvent}:${goStatus}` };
+    }
+
+    // Transient `Connection` (connecting) carries no status — ignore quietly.
     if (goEvent === "Connection") {
       return { outcome: "ignored", detail: `Connection: ${ev?.data?.State ?? ""}` };
     }
+
     // Phase 2 spike (Etapa A): HistorySync — and any other not-yet-ingested Go
     // event — is captured RAW so the ingestion can be designed against the real
     // payload shape, then acknowledged. Message/Receipt fall through to the
