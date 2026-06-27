@@ -180,6 +180,17 @@ export interface IProcessArgs {
     phone: string;
     account: IAccountRecord;
   }) => void;
+  /**
+   * Optional sink for raw Evolution Go events we don't yet ingest but want to
+   * inspect — the HistorySync ingestion spike (Phase 2, Etapa A). Best-effort:
+   * a failure here must never break the fail-closed webhook. The Edge wires it
+   * to integration_logs; unit tests pass a spy.
+   */
+  captureRawEvent?: (input: {
+    kind: string;
+    instanceId: string;
+    payload: unknown;
+  }) => Promise<void>;
 }
 
 const DEFAULT_MEDIA_TIMEOUT_MS = 15_000;
@@ -222,6 +233,29 @@ function extractEvolutionInstance(rawPayload: unknown): string {
 
 function extractEvolutionGoInstance(rawPayload: unknown): string {
   return String((rawPayload as { instanceId?: string } | null)?.instanceId ?? "");
+}
+
+/**
+ * Maps an Evolution Go lifecycle event to a connection status, or null when it
+ * carries no status signal. whatsmeow emits `LoggedOut` when the device is
+ * unlinked (Reason 401) and `Connection` (State open/close) on session changes.
+ * The webhook is the authoritative status signal — the active /instance/status
+ * poll is unreliable (it 400s on this build and only runs while the app's
+ * WhatsApp page is open). `connecting` is transient → no status.
+ */
+function goConnectionTransition(
+  event: string,
+  state: string | undefined,
+): "connected" | "disconnected" | null {
+  if (event === "LoggedOut") return "disconnected";
+  if (event === "Connection") {
+    const s = String(state ?? "").toLowerCase();
+    if (s === "open" || s === "connected") return "connected";
+    if (s === "close" || s === "closed" || s === "disconnected" || s === "loggedout") {
+      return "disconnected";
+    }
+  }
+  return null;
 }
 
 /**
@@ -303,8 +337,66 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
   // which throws on non-Message events.
   if (provider === "evolution-go") {
     const ev = rawPayload as { event?: string; data?: { State?: string } } | null;
-    if (ev?.event === "Connection") {
+    const goEvent = ev?.event ?? "";
+
+    // Connection lifecycle → keep whatsapp_accounts.status truthful. whatsmeow
+    // pushes `LoggedOut` when the device is unlinked and `Connection` (open/close)
+    // on session changes; this webhook is the authoritative signal (the active
+    // /instance/status poll 400s on this build). Conditional write + audit-on-
+    // change keeps redeliveries idempotent. Mirrors the classic Evolution path.
+    const goStatus = goConnectionTransition(goEvent, ev?.data?.State);
+    if (goStatus) {
+      const instanceId = extractEvolutionGoInstance(rawPayload);
+      const account = await db.findEvolutionGoAccountAnyStatus(instanceId);
+      if (!account) {
+        warn("evolution-go connection event for unknown instance", { instanceId, goEvent });
+        return { outcome: "account-not-found" };
+      }
+      const changed = await db.setAccountConnectionStatus(account.id, goStatus);
+      if (changed) {
+        await db.audit({
+          storeId: account.storeId,
+          action:
+            goStatus === "connected"
+              ? "whatsapp_instance_connected"
+              : "whatsapp_instance_disconnected",
+          resource: "whatsapp_account",
+          resourceId: account.id,
+          after: {
+            event: goEvent,
+            state: ev?.data?.State ?? null,
+            reason: "evolution_go_webhook",
+            traceId,
+          },
+        });
+      }
+      return { outcome: "connection-synced", detail: `${goEvent}:${goStatus}` };
+    }
+
+    // Transient `Connection` (connecting) carries no status — ignore quietly.
+    if (goEvent === "Connection") {
       return { outcome: "ignored", detail: `Connection: ${ev?.data?.State ?? ""}` };
+    }
+
+    // Phase 2 spike (Etapa A): HistorySync — and any other not-yet-ingested Go
+    // event — is captured RAW so the ingestion can be designed against the real
+    // payload shape, then acknowledged. Message/Receipt fall through to the
+    // parser below (unchanged). Capture is best-effort: a logging failure must
+    // not turn the event into a 500/retry.
+    if (goEvent && goEvent !== "Message" && goEvent !== "Receipt") {
+      try {
+        await args.captureRawEvent?.({
+          kind: goEvent,
+          instanceId: extractEvolutionGoInstance(rawPayload),
+          payload: rawPayload,
+        });
+      } catch (error) {
+        warn("failed to capture raw evolution-go event", {
+          event: goEvent,
+          detail: error instanceof Error ? error.message : String(error),
+        });
+      }
+      return { outcome: "ignored", detail: `captured: ${goEvent}` };
     }
   }
 

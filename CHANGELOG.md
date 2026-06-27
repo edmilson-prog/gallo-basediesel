@@ -6,6 +6,22 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.123.0] — Tether · 2026-06-27
+
+**Conexão do Evolution Go mais honesta e fácil de recuperar — e importação da agenda de contatos.** Quando um número Evolution Go é desligado no celular, a plataforma agora mostra "Desconectado" na hora (antes podia continuar exibindo "Conectado"). Reconectar um número que caiu ficou direto: o botão "Conectar" abre o QR code imediatamente, sem passar por um formulário que não se aplicava a esses números. E foi adicionada a importação da **lista de contatos** de um número Evolution Go para a base de Clientes.
+
+### Added
+
+- **Importar contatos do Evolution Go** — em Configurações → WhatsApp, um número Evolution Go conectado ganha o botão "Importar contatos", que traz a agenda do WhatsApp para a base de Clientes (cada contato novo entra como cliente pendente, para revisão depois). Grupos, listas, canais e números ocultos são ignorados; rodar de novo não duplica nada.
+
+### Changed
+
+- **Status do número Evolution Go reflete a realidade na hora** — quando o aparelho é desconectado (removido em "Aparelhos conectados" no celular), a plataforma marca o número como "Desconectado" imediatamente, sem depender de uma verificação manual.
+
+### Fixed
+
+- **Reconectar um número Evolution Go que caiu** — o botão "Conectar" do número Go agora abre direto a leitura do QR code, em vez de um formulário de servidor que não se aplicava a números já cadastrados (esse formulário travava a reconexão).
+
 ## [0.122.0] — Registry · 2026-06-26
 
 **A chave do servidor Evolution Go agora é cadastrada uma única vez.** Antes era preciso informar o endereço e a chave de acesso do servidor a cada número Go criado. Agora a plataforma tem um **cadastro de servidores Evolution Go** (em Configurações → Integrações → Chaves & API): você registra o servidor uma vez (nome, endereço e chave) e, ao adicionar um número, basta escolhê-lo na lista. Rotacionar a chave passa a ser feito num lugar só, sem mexer número por número.
