@@ -195,14 +195,19 @@ describe("evolution-go instance management", () => {
     ).toBeNull();
   });
 
-  it("fetchGoOwnNumber GETs /instance/get/{instanceId} (global key) and parses the owner jid → E.164", async () => {
+  it("fetchGoOwnNumber GETs /instance/all (global key) and picks OUR instance's owner jid → E.164", async () => {
+    // This Go build does not serve GET /instance/get/{id} (404), so the own
+    // number is read from the list endpoint and matched by id — never the first.
     const fetchFn = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
-      expect(String(url)).toBe("https://go.test/instance/get/inst-uuid-9");
+      expect(String(url)).toBe("https://go.test/instance/all");
       expect(init?.method).toBe("GET");
       expect(init?.headers).toMatchObject({ apikey: "global-key" });
       expect((init?.headers as Record<string, string>).instanceId).toBeUndefined();
       return jsonResponse({
-        data: { id: "inst-uuid-9", jid: "5554999998888:12@s.whatsapp.net", connected: true },
+        data: [
+          { id: "other-uuid", jid: "5511888887777@s.whatsapp.net", connected: true },
+          { id: "inst-uuid-9", jid: "5554999998888:12@s.whatsapp.net", connected: true },
+        ],
         message: "success",
       });
     }) as unknown as typeof fetch;
@@ -213,18 +218,41 @@ describe("evolution-go instance management", () => {
     expect(out).toEqual({ phoneNumber: "+5554999998888" });
   });
 
-  it("fetchGoOwnNumber parses a jid without a device suffix", async () => {
-    const fetchFn = vi.fn(async () =>
-      jsonResponse({ data: { jid: "5554999998888@s.whatsapp.net" } }),
+  it("fetchGoOwnNumber parses a jid without a device suffix and tolerates the bare-array / instances shapes", async () => {
+    const withoutSuffix = vi.fn(async () =>
+      jsonResponse({ data: [{ id: "i", jid: "5554999998888@s.whatsapp.net" }] }),
     ) as unknown as typeof fetch;
     expect(
-      await fetchGoOwnNumber("global-key", deps(fetchFn), { baseUrl: "https://go.test", instanceId: "i" }),
+      await fetchGoOwnNumber("global-key", deps(withoutSuffix), { baseUrl: "https://go.test", instanceId: "i" }),
     ).toEqual({ phoneNumber: "+5554999998888" });
+
+    const bareArray = vi.fn(async () =>
+      jsonResponse([{ id: "i", jid: "5511999990000@s.whatsapp.net" }]),
+    ) as unknown as typeof fetch;
+    expect(
+      await fetchGoOwnNumber("global-key", deps(bareArray), { baseUrl: "https://go.test", instanceId: "i" }),
+    ).toEqual({ phoneNumber: "+5511999990000" });
+
+    const instancesKey = vi.fn(async () =>
+      jsonResponse({ instances: [{ id: "i", jid: "5511777778888@s.whatsapp.net" }] }),
+    ) as unknown as typeof fetch;
+    expect(
+      await fetchGoOwnNumber("global-key", deps(instancesKey), { baseUrl: "https://go.test", instanceId: "i" }),
+    ).toEqual({ phoneNumber: "+5511777778888" });
   });
 
-  it("fetchGoOwnNumber returns an empty profile when the jid is empty (not yet paired)", async () => {
+  it("fetchGoOwnNumber returns an empty profile when our instance is absent from the list", async () => {
     const fetchFn = vi.fn(async () =>
-      jsonResponse({ data: { jid: "", connected: false } }),
+      jsonResponse({ data: [{ id: "someone-else", jid: "5511888887777@s.whatsapp.net" }] }),
+    ) as unknown as typeof fetch;
+    expect(
+      await fetchGoOwnNumber("global-key", deps(fetchFn), { baseUrl: "https://go.test", instanceId: "inst-uuid-9" }),
+    ).toEqual({ phoneNumber: undefined });
+  });
+
+  it("fetchGoOwnNumber returns an empty profile when the matched jid is empty (not yet paired)", async () => {
+    const fetchFn = vi.fn(async () =>
+      jsonResponse({ data: [{ id: "i", jid: "", connected: false }] }),
     ) as unknown as typeof fetch;
     expect(
       await fetchGoOwnNumber("global-key", deps(fetchFn), { baseUrl: "https://go.test", instanceId: "i" }),
@@ -233,7 +261,7 @@ describe("evolution-go instance management", () => {
 
   it("fetchGoOwnNumber is best-effort: a non-2xx status resolves to an empty profile", async () => {
     const fetchFn = vi.fn(async () =>
-      jsonResponse({ error: "not found" }, 404),
+      jsonResponse({ error: "boom" }, 500),
     ) as unknown as typeof fetch;
     expect(
       await fetchGoOwnNumber("global-key", deps(fetchFn), { baseUrl: "https://go.test", instanceId: "i" }),
