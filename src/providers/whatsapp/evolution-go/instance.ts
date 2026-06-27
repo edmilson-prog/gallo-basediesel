@@ -219,17 +219,36 @@ function goJidToPhone(jid: string | undefined): string | undefined {
   return E164_REGEX.test(phone) ? phone : undefined;
 }
 
+/** Minimal shape of a Go instance record returned by GET /instance/all. */
+interface IGoInstanceRecord {
+  id?: string;
+  Id?: string;
+  instanceId?: string;
+  jid?: string;
+  Jid?: string;
+}
+
+/** id of a Go instance record, tolerating Go's occasional PascalCase serialization. */
+function goRecordId(record: IGoInstanceRecord): string | undefined {
+  return record.id ?? record.Id ?? record.instanceId;
+}
+
 /**
- * GET /instance/get/{instanceId} — the instance record, read for the paired
- * account's OWN number. Admin endpoint: authed by the GLOBAL key (passed as
- * `apiKey`), like /instance/delete/{instanceId}. The whatsmeow `jid` field
- * carries the owner's WID once logged in (empty before pairing). The record
- * also embeds the instance `token` (a secret), so `omitResponsePayload` keeps it
- * out of the integration log (the parsed body is still returned to us). The
- * instance id lives on `target` — the path is /instance/get/{instanceId}.
+ * Read the paired account's OWN number (E.164) from the Go server.
  *
- * Best-effort by design: any non-2xx, a network error, or an unparseable jid
- * resolves to an empty profile so a status poll never aborts on this lookup.
+ * This build does NOT serve GET /instance/get/{instanceId} — it returns 404
+ * (confirmed in production: /instance/status answers 200 while /instance/get
+ * 404s in the same trace). So we read the instance record from GET /instance/all
+ * and pick ours by id. That is an admin route, authed by the GLOBAL key (passed
+ * as `apiKey`) — the same key class that authorizes /instance/delete/{instanceId}.
+ * whatsmeow's `jid` field carries the owner's WID once logged in (empty before
+ * pairing). The list embeds every instance's `token` (a secret), so
+ * `omitResponsePayload` keeps it out of the integration log (the parsed body is
+ * still returned to us).
+ *
+ * Best-effort by design: any non-2xx, a network error, our instance missing from
+ * the list, or an unparseable jid resolves to an empty profile so a status poll
+ * never aborts on this lookup.
  */
 export async function fetchGoOwnNumber(
   apiKey: string,
@@ -239,13 +258,20 @@ export async function fetchGoOwnNumber(
 ): Promise<{ phoneNumber?: string }> {
   const response = await goRequest(apiKey, deps, {
     baseUrl: target.baseUrl,
-    path: `/instance/get/${target.instanceId}`,
+    path: "/instance/all",
     method: "GET",
-    omitResponsePayload: true, // the record embeds the instance token — never log it
+    omitResponsePayload: true, // the list embeds every instance token — never log it
     timeoutMs: 10_000,
     traceId,
   }).catch(() => null);
   if (!response) return {};
-  const data = (response.body as { data?: { jid?: string } } | null)?.data ?? null;
-  return { phoneNumber: goJidToPhone(data?.jid) };
+  const body = response.body as
+    | { data?: IGoInstanceRecord[]; instances?: IGoInstanceRecord[] }
+    | IGoInstanceRecord[]
+    | null;
+  const list: IGoInstanceRecord[] = Array.isArray(body)
+    ? body
+    : (body?.data ?? body?.instances ?? []);
+  const own = list.find((record) => goRecordId(record) === target.instanceId);
+  return { phoneNumber: goJidToPhone(own?.jid ?? own?.Jid) };
 }
