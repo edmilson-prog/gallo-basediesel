@@ -15,6 +15,7 @@
  */
 
 import { WhatsAppProviderError } from "../errors.ts";
+import { E164_REGEX, toE164 } from "../phone.ts";
 import type { IEngineDeps } from "../types.ts";
 import { goRequest } from "./client.ts";
 
@@ -212,4 +213,42 @@ export async function fetchGoProfilePictureUrl(
     (data?.profilePictureURL as string | undefined) ??
     (data?.profilePictureUrl as string | undefined);
   return typeof candidate === "string" && candidate.length > 0 ? candidate : null;
+}
+
+/** Owner jid → E.164, stripping the optional device suffix (":12") and server. */
+function goJidToPhone(jid: string | undefined): string | undefined {
+  if (!jid) return undefined;
+  const phone = toE164(jid.split("@")[0]?.split(":")[0] ?? "");
+  return E164_REGEX.test(phone) ? phone : undefined;
+}
+
+/**
+ * GET /instance/get/{instanceId} — the instance record, read for the paired
+ * account's OWN number. Admin endpoint: authed by the GLOBAL key (passed as
+ * `apiKey`), like /instance/delete/{instanceId}. The whatsmeow `jid` field
+ * carries the owner's WID once logged in (empty before pairing). The record
+ * also embeds the instance `token` (a secret), so `omitResponsePayload` keeps it
+ * out of the integration log (the parsed body is still returned to us). The
+ * instance id lives on `target` — the path is /instance/get/{instanceId}.
+ *
+ * Best-effort by design: any non-2xx, a network error, or an unparseable jid
+ * resolves to an empty profile so a status poll never aborts on this lookup.
+ */
+export async function fetchGoOwnNumber(
+  apiKey: string,
+  deps: IEngineDeps,
+  target: IGoInstanceTarget,
+  traceId?: string,
+): Promise<{ phoneNumber?: string }> {
+  const response = await goRequest(apiKey, deps, {
+    baseUrl: target.baseUrl,
+    path: `/instance/get/${target.instanceId}`,
+    method: "GET",
+    omitResponsePayload: true, // the record embeds the instance token — never log it
+    timeoutMs: 10_000,
+    traceId,
+  }).catch(() => null);
+  if (!response) return {};
+  const data = (response.body as { data?: { jid?: string } } | null)?.data ?? null;
+  return { phoneNumber: goJidToPhone(data?.jid) };
 }

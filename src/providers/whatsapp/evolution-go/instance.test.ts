@@ -5,6 +5,7 @@ import {
   getGoInstanceQr,
   getGoInstanceStatus,
   deleteGoInstance,
+  fetchGoOwnNumber,
   fetchGoProfilePictureUrl,
   logoutGoInstance,
   restartGoInstance,
@@ -192,5 +193,50 @@ describe("evolution-go instance management", () => {
     expect(
       await fetchGoProfilePictureUrl("t", deps(emptyUrl), { baseUrl: "https://go.test", instanceId: "i" }, "5511"),
     ).toBeNull();
+  });
+
+  it("fetchGoOwnNumber GETs /instance/get/{instanceId} (global key) and parses the owner jid → E.164", async () => {
+    const fetchFn = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(url)).toBe("https://go.test/instance/get/inst-uuid-9");
+      expect(init?.method).toBe("GET");
+      expect(init?.headers).toMatchObject({ apikey: "global-key" });
+      expect((init?.headers as Record<string, string>).instanceId).toBeUndefined();
+      return jsonResponse({
+        data: { id: "inst-uuid-9", jid: "5554999998888:12@s.whatsapp.net", connected: true },
+        message: "success",
+      });
+    }) as unknown as typeof fetch;
+    const out = await fetchGoOwnNumber("global-key", deps(fetchFn), {
+      baseUrl: "https://go.test",
+      instanceId: "inst-uuid-9",
+    });
+    expect(out).toEqual({ phoneNumber: "+5554999998888" });
+  });
+
+  it("fetchGoOwnNumber parses a jid without a device suffix", async () => {
+    const fetchFn = vi.fn(async () =>
+      jsonResponse({ data: { jid: "5554999998888@s.whatsapp.net" } }),
+    ) as unknown as typeof fetch;
+    expect(
+      await fetchGoOwnNumber("global-key", deps(fetchFn), { baseUrl: "https://go.test", instanceId: "i" }),
+    ).toEqual({ phoneNumber: "+5554999998888" });
+  });
+
+  it("fetchGoOwnNumber returns an empty profile when the jid is empty (not yet paired)", async () => {
+    const fetchFn = vi.fn(async () =>
+      jsonResponse({ data: { jid: "", connected: false } }),
+    ) as unknown as typeof fetch;
+    expect(
+      await fetchGoOwnNumber("global-key", deps(fetchFn), { baseUrl: "https://go.test", instanceId: "i" }),
+    ).toEqual({ phoneNumber: undefined });
+  });
+
+  it("fetchGoOwnNumber is best-effort: a non-2xx status resolves to an empty profile", async () => {
+    const fetchFn = vi.fn(async () =>
+      jsonResponse({ error: "not found" }, 404),
+    ) as unknown as typeof fetch;
+    expect(
+      await fetchGoOwnNumber("global-key", deps(fetchFn), { baseUrl: "https://go.test", instanceId: "i" }),
+    ).toEqual({});
   });
 });
