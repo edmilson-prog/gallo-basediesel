@@ -282,10 +282,18 @@ export function WhatsAppAccountsPage() {
 
   /** Opens the connect dialog — straight to QR when the config is complete. */
   const openConnect = (account: IWhatsAppAccount) => {
-    const configured =
-      account.provider === "evolution-go"
-        ? Boolean(account.providerConfig?.baseUrl)
-        : Boolean(account.providerConfig?.baseUrl && account.providerConfig?.instanceName);
+    // Evolution Go is registry-based: the server (base URL + global key) lives on
+    // whatsapp_go_servers, NOT in provider_config, so there is no per-account form
+    // to fill. The backend `qr` action resolves the server from the registry and
+    // creates/connects the instance — go straight to QR pairing. (Routing Go to
+    // the "form" step on an empty provider_config.baseUrl blocked re-pairing.)
+    if (account.provider === "evolution-go") {
+      setConnectTarget({ account, step: "qr" });
+      return;
+    }
+    const configured = Boolean(
+      account.providerConfig?.baseUrl && account.providerConfig?.instanceName,
+    );
     setConnectTarget({ account, step: configured ? "qr" : "form" });
   };
 
