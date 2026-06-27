@@ -175,3 +175,37 @@ export async function restartGoInstance(
     traceId,
   });
 }
+
+/**
+ * POST /user/avatar — profile-picture URL for a contact (whatsmeow GetAvatar).
+ * Instance-scoped: authed by the per-instance TOKEN (passed as `apiKey`). The
+ * Go contract wraps whatsmeow's ProfilePictureInfo in `data`, but field casing
+ * varies across builds (URL / url / profilePictureURL) — accept any non-empty
+ * string. Best-effort by design: any non-2xx (no public photo / privacy), a
+ * network error, or an unrecognised shape resolves to null so a bulk avatar
+ * sync never aborts on a single contact. `number` is wire format (E.164 without
+ * the leading +).
+ */
+export async function fetchGoProfilePictureUrl(
+  apiKey: string,
+  deps: IEngineDeps,
+  target: IGoInstanceTarget,
+  number: string,
+  traceId?: string,
+): Promise<string | null> {
+  const response = await goRequest(apiKey, deps, {
+    baseUrl: target.baseUrl,
+    path: "/user/avatar",
+    json: { number, preview: false },
+    timeoutMs: 15_000,
+    traceId,
+  }).catch(() => null);
+  if (!response) return null;
+  const data = (response.body as { data?: Record<string, unknown> } | null)?.data ?? null;
+  const candidate =
+    (data?.URL as string | undefined) ??
+    (data?.url as string | undefined) ??
+    (data?.profilePictureURL as string | undefined) ??
+    (data?.profilePictureUrl as string | undefined);
+  return typeof candidate === "string" && candidate.length > 0 ? candidate : null;
+}

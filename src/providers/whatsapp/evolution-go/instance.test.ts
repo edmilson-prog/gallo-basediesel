@@ -5,6 +5,7 @@ import {
   getGoInstanceQr,
   getGoInstanceStatus,
   deleteGoInstance,
+  fetchGoProfilePictureUrl,
   logoutGoInstance,
   restartGoInstance,
 } from "./instance";
@@ -142,5 +143,54 @@ describe("evolution-go instance management", () => {
     }) as unknown as typeof fetch;
     await logoutGoInstance("inst-token", deps(fetchFn), { baseUrl: "https://go.test", instanceId: "inst-uuid-9" });
     expect(fetchFn).toHaveBeenCalledOnce();
+  });
+
+  it("fetchGoProfilePictureUrl posts {number, preview:false} to /user/avatar (instance token) and returns the URL", async () => {
+    const fetchFn = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(url)).toBe("https://go.test/user/avatar");
+      expect(init?.method).toBe("POST");
+      expect(init?.headers).toMatchObject({ apikey: "inst-token" });
+      expect((init?.headers as Record<string, string>).instanceId).toBeUndefined();
+      expect(JSON.parse(String(init?.body))).toEqual({ number: "5554999998888", preview: false });
+      return jsonResponse({ data: { URL: "https://cdn.wa/pic.jpg", ID: "1" }, message: "success" });
+    }) as unknown as typeof fetch;
+    const url = await fetchGoProfilePictureUrl("inst-token", deps(fetchFn), {
+      baseUrl: "https://go.test",
+      instanceId: "inst-uuid-9",
+    }, "5554999998888");
+    expect(url).toBe("https://cdn.wa/pic.jpg");
+  });
+
+  it("fetchGoProfilePictureUrl tolerates field-casing variants (url / profilePictureURL)", async () => {
+    const lower = vi.fn(async () =>
+      jsonResponse({ data: { url: "https://cdn.wa/lower.jpg" } }),
+    ) as unknown as typeof fetch;
+    expect(
+      await fetchGoProfilePictureUrl("t", deps(lower), { baseUrl: "https://go.test", instanceId: "i" }, "5511"),
+    ).toBe("https://cdn.wa/lower.jpg");
+
+    const camel = vi.fn(async () =>
+      jsonResponse({ data: { profilePictureURL: "https://cdn.wa/camel.jpg" } }),
+    ) as unknown as typeof fetch;
+    expect(
+      await fetchGoProfilePictureUrl("t", deps(camel), { baseUrl: "https://go.test", instanceId: "i" }, "5511"),
+    ).toBe("https://cdn.wa/camel.jpg");
+  });
+
+  it("fetchGoProfilePictureUrl returns null on no photo, an error status, or an empty url (best-effort)", async () => {
+    const noField = vi.fn(async () => jsonResponse({ data: {}, message: "ok" })) as unknown as typeof fetch;
+    expect(
+      await fetchGoProfilePictureUrl("t", deps(noField), { baseUrl: "https://go.test", instanceId: "i" }, "5511"),
+    ).toBeNull();
+
+    const errorStatus = vi.fn(async () => jsonResponse({ error: "not found" }, 404)) as unknown as typeof fetch;
+    expect(
+      await fetchGoProfilePictureUrl("t", deps(errorStatus), { baseUrl: "https://go.test", instanceId: "i" }, "5511"),
+    ).toBeNull();
+
+    const emptyUrl = vi.fn(async () => jsonResponse({ data: { URL: "" } })) as unknown as typeof fetch;
+    expect(
+      await fetchGoProfilePictureUrl("t", deps(emptyUrl), { baseUrl: "https://go.test", instanceId: "i" }, "5511"),
+    ).toBeNull();
   });
 });

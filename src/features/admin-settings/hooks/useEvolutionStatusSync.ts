@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import type { IWhatsAppAccount } from "@/shared/types";
-import { isEvolutionFamily } from "@/shared/utils/whatsappProvider";
+import { isEvolutionAccountConfigured } from "@/shared/utils/whatsappProvider";
 import { getEvolutionState } from "../api/whatsappConnect";
 
 /**
@@ -33,8 +33,11 @@ export function useEvolutionStatusSync(
   const checkNow = useCallback(async () => {
     if (!enabled || inFlightRef.current) return;
     if (typeof document !== "undefined" && document.hidden) return;
-    const targets = (accountsRef.current ?? []).filter(
-      (account) => isEvolutionFamily(account.provider) && Boolean(account.providerConfig?.baseUrl),
+    // A classic Evolution account is pollable once it has a baseUrl; a Go account
+    // once it is paired (instanceId) — its baseUrl lives in the server registry,
+    // NOT in providerConfig, so the old `baseUrl` gate silently excluded Go.
+    const targets = (accountsRef.current ?? []).filter((account) =>
+      isEvolutionAccountConfigured(account),
     );
     if (targets.length === 0) return;
     inFlightRef.current = true;
