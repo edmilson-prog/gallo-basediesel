@@ -46,6 +46,7 @@ import {
   connectGoInstance,
   getGoInstanceQr,
   getGoInstanceStatus,
+  fetchGoOwnNumber,
   logoutGoInstance,
   restartGoInstance,
   deleteGoInstance,
@@ -583,7 +584,7 @@ servePost(async (req, ctx) => {
 
         case "test":
         case "state": {
-          const { baseUrl: goBaseUrl } = await resolveGoServer(admin, deps.resolveSecret, account);
+          const { baseUrl: goBaseUrl, globalKey } = await resolveGoServer(admin, deps.resolveSecret, account);
           const instanceId = String(goConfig.instanceId ?? "");
           const instanceToken = await deps.resolveSecret(instanceTokenSecretName);
           if (!instanceId || !instanceToken) {
@@ -599,6 +600,24 @@ servePost(async (req, ctx) => {
           // socket is up but unauthenticated we return "close" — the dialog poll
           // ignores it and keeps the QR (countdown + auto-renew) on screen.
           if (status.loggedIn) {
+            // Self-heal the account's OWN number (the chip under its name in the
+            // accounts list). Go's /instance/status carries no number; the owner
+            // WID lives on the instance record (/instance/get → jid). Run it only
+            // while the number is still missing — best-effort: the extra admin
+            // call stops once the number lands and never fails the status poll.
+            if ((account.phone_number ?? "").trim().length === 0) {
+              try {
+                const own = await fetchGoOwnNumber(globalKey, deps, goTarget, ctx.traceId);
+                if (own.phoneNumber) {
+                  await admin
+                    .from("whatsapp_accounts")
+                    .update({ phone_number: own.phoneNumber })
+                    .eq("id", account.id);
+                }
+              } catch (_err) {
+                // Best-effort — a profile lookup must never fail a status poll.
+              }
+            }
             if (account.status !== "connected") {
               await admin
                 .from("whatsapp_accounts")
