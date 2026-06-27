@@ -6,6 +6,24 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.122.0] — Registry · 2026-06-26
+
+**A chave do servidor Evolution Go agora é cadastrada uma única vez.** Antes era preciso informar o endereço e a chave de acesso do servidor a cada número Go criado. Agora a plataforma tem um **cadastro de servidores Evolution Go** (em Configurações → Integrações → Chaves & API): você registra o servidor uma vez (nome, endereço e chave) e, ao adicionar um número, basta escolhê-lo na lista. Rotacionar a chave passa a ser feito num lugar só, sem mexer número por número.
+
+### Added
+
+- **Cadastro de servidores Evolution Go** — uma seção em Configurações → Integrações → Chaves & API permite registrar servidores Evolution Go (nome, endereço e chave de acesso). A chave fica guardada com segurança no cofre e nunca é exibida de volta.
+- **Assistente "Adicionar número" simplificado para o Evolution Go** — ao criar um número Go, o assistente agora só pede para escolher um servidor já cadastrado, sem redigitar endereço e chave a cada número.
+
+### Changed
+
+- **Endereço do servidor centralizado no cadastro** — o endereço deixou de ser guardado por número e passou a vir do servidor cadastrado, permitindo trocar a chave de um servidor inteiro num único lugar.
+
+### Fixed
+
+- **Pareamento do Evolution Go mais confiável** — ao conectar um número Go, o QR code permanece na tela até a leitura ser efetivamente concluída no celular (antes, em alguns casos, a tela declarava "Conectado" alguns segundos antes do pareamento real). A exclusão de um número Go também passou a remover corretamente a instância no servidor.
+- **Registro de diagnóstico do Evolution Go** — os eventos de integração do Evolution Go passaram a ser gravados corretamente no diário técnico (antes eram descartados silenciosamente), facilitando a investigação de problemas de conexão.
+
 ## [0.121.0] — Conduit · 2026-06-25
 
 **Um novo motor de conexão do WhatsApp: o Evolution Go.** A plataforma passa a oferecer um segundo motor para conectar números de WhatsApp — o Evolution Go —, ao lado do motor que já existia. Ao adicionar um número em Configurações → WhatsApp, o assistente agora pergunta por qual motor conectar (o Evolution Go já vem escolhido) e o pareamento segue igual ao de sempre: leitura do QR code pelo celular. Os números já conectados continuam funcionando exatamente como antes — nada muda para eles.
