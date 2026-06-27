@@ -192,8 +192,12 @@ export async function fetchGoProfilePictureUrl(
 ): Promise<string | null> {
   const response = await goRequest(apiKey, deps, {
     baseUrl: target.baseUrl,
+    // `preview: true` = the low-res thumbnail (fast + near-always available);
+    // full-res (preview:false) makes the server fetch the whole image, which is
+    // slower and was observed to hang past the 15s timeout. A thumbnail is
+    // exactly what the inbox avatar needs.
     path: "/user/avatar",
-    json: { number, preview: false },
+    json: { number, preview: true },
     timeoutMs: 15_000,
     traceId,
   }).catch(() => null);

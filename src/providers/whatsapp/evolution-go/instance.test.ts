@@ -151,7 +151,7 @@ describe("evolution-go instance management", () => {
       expect(init?.method).toBe("POST");
       expect(init?.headers).toMatchObject({ apikey: "inst-token" });
       expect((init?.headers as Record<string, string>).instanceId).toBeUndefined();
-      expect(JSON.parse(String(init?.body))).toEqual({ number: "5554999998888", preview: false });
+      expect(JSON.parse(String(init?.body))).toEqual({ number: "5554999998888", preview: true });
       return jsonResponse({ data: { URL: "https://cdn.wa/pic.jpg", ID: "1" }, message: "success" });
     }) as unknown as typeof fetch;
     const url = await fetchGoProfilePictureUrl("inst-token", deps(fetchFn), {
