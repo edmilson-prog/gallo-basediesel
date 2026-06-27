@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ConnectWhatsAppDialog, type ConnectDialogStep } from "../components/ConnectWhatsAppDialog";
 import { DeleteInstanceDialog } from "../components/DeleteInstanceDialog";
+import { ImportContactsDialog } from "../components/ImportContactsDialog";
 import { ImportConversationsDialog } from "../components/ImportConversationsDialog";
 import { SyncAvatarsDialog } from "../components/SyncAvatarsDialog";
 import { TestMessageDialog } from "../components/TestMessageDialog";
@@ -167,6 +168,7 @@ export function WhatsAppAccountsPage() {
   const [metrics, setMetrics] = useState<Record<string, IWhatsAppAccountMetrics>>({});
   const [testTarget, setTestTarget] = useState<IWhatsAppAccount | null>(null);
   const [importTarget, setImportTarget] = useState<IWhatsAppAccount | null>(null);
+  const [importContactsTarget, setImportContactsTarget] = useState<IWhatsAppAccount | null>(null);
   const [syncAvatarsTarget, setSyncAvatarsTarget] = useState<IWhatsAppAccount | null>(null);
   const [checking, setChecking] = useState(false);
   const [sellers, setSellers] = useState<ISeller[]>([]);
@@ -697,6 +699,26 @@ export function WhatsAppAccountsPage() {
                                 Importar conversas
                               </Button>
                             )}
+                            {!isMock && account.provider === "evolution-go" && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={account.status !== "connected"}
+                                onClick={() => setImportContactsTarget(account)}
+                                title={
+                                  account.status === "connected"
+                                    ? "Traz a lista de contatos do WhatsApp desta conta para a base de Clientes"
+                                    : "Disponível com a conta conectada"
+                                }
+                              >
+                                <Icon
+                                  icon="mdi:account-multiple-plus-outline"
+                                  size={14}
+                                  className="mr-1.5"
+                                />
+                                Importar contatos
+                              </Button>
+                            )}
                             {!isMock && (
                               <Button
                                 variant="outline"
@@ -1002,6 +1024,10 @@ export function WhatsAppAccountsPage() {
       />
       <TestMessageDialog account={testTarget} onClose={() => setTestTarget(null)} />
       <ImportConversationsDialog account={importTarget} onClose={() => setImportTarget(null)} />
+      <ImportContactsDialog
+        account={importContactsTarget}
+        onClose={() => setImportContactsTarget(null)}
+      />
       <SyncAvatarsDialog account={syncAvatarsTarget} onClose={() => setSyncAvatarsTarget(null)} />
       <DeleteInstanceDialog
         account={deleteTarget}
