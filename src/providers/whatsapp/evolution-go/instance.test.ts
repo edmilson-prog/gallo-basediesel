@@ -146,53 +146,108 @@ describe("evolution-go instance management", () => {
     expect(fetchFn).toHaveBeenCalledOnce();
   });
 
-  it("fetchGoProfilePictureUrl posts {number, preview:false} to /user/avatar (instance token) and returns the URL", async () => {
+  it("fetchGoProfilePictureUrl resolves the canonical WhatsApp number via /user/check, then fetches the avatar with it", async () => {
+    // A dialed Brazilian mobile is often stored without the 9th digit
+    // (556581420027); /user/check (IsOnWhatsApp) returns the REGISTERED jid
+    // (5565981420027) so the avatar query targets the JID that actually exists,
+    // avoiding the GetProfilePictureInfo stall observed in prod.
+    const calls: Array<{ url: string; method?: string; apikey?: string; body: unknown }> = [];
     const fetchFn = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
-      expect(String(url)).toBe("https://go.test/user/avatar");
-      expect(init?.method).toBe("POST");
-      expect(init?.headers).toMatchObject({ apikey: "inst-token" });
-      expect((init?.headers as Record<string, string>).instanceId).toBeUndefined();
-      expect(JSON.parse(String(init?.body))).toEqual({ number: "5554999998888", preview: true });
+      const u = String(url);
+      calls.push({
+        url: u,
+        method: init?.method,
+        apikey: (init?.headers as Record<string, string>)?.apikey,
+        body: init?.body ? JSON.parse(String(init.body)) : undefined,
+      });
+      if (u.endsWith("/user/check")) {
+        return jsonResponse({ data: [{ JID: "5565981420027@s.whatsapp.net", IsIn: true }], message: "success" });
+      }
       return jsonResponse({ data: { URL: "https://cdn.wa/pic.jpg", ID: "1" }, message: "success" });
     }) as unknown as typeof fetch;
-    const url = await fetchGoProfilePictureUrl("inst-token", deps(fetchFn), {
-      baseUrl: "https://go.test",
-      instanceId: "inst-uuid-9",
-    }, "5554999998888");
+
+    const url = await fetchGoProfilePictureUrl(
+      "inst-token",
+      deps(fetchFn),
+      { baseUrl: "https://go.test", instanceId: "inst-uuid-9" },
+      "556581420027",
+    );
     expect(url).toBe("https://cdn.wa/pic.jpg");
+    expect(calls).toHaveLength(2);
+    expect(calls[0]).toMatchObject({
+      url: "https://go.test/user/check",
+      method: "POST",
+      apikey: "inst-token",
+      body: { number: ["556581420027"], formatJid: true },
+    });
+    expect(calls[1]).toMatchObject({
+      url: "https://go.test/user/avatar",
+      method: "POST",
+      apikey: "inst-token",
+      body: { number: "5565981420027", preview: true }, // the RESOLVED 9-digit number
+    });
   });
 
-  it("fetchGoProfilePictureUrl tolerates field-casing variants (url / profilePictureURL)", async () => {
-    const lower = vi.fn(async () =>
-      jsonResponse({ data: { url: "https://cdn.wa/lower.jpg" } }),
-    ) as unknown as typeof fetch;
+  it("fetchGoProfilePictureUrl falls back to the dialed number when /user/check is inconclusive (tolerates url casing)", async () => {
+    // /user/check non-2xx → inconclusive → use the dialed number as-is.
+    const seenLower: string[] = [];
+    const lower = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      const u = String(url);
+      if (u.endsWith("/user/check")) return jsonResponse({ error: "boom" }, 500);
+      seenLower.push(JSON.parse(String(init?.body)).number);
+      return jsonResponse({ data: { url: "https://cdn.wa/lower.jpg" } });
+    }) as unknown as typeof fetch;
     expect(
-      await fetchGoProfilePictureUrl("t", deps(lower), { baseUrl: "https://go.test", instanceId: "i" }, "5511"),
+      await fetchGoProfilePictureUrl("t", deps(lower), { baseUrl: "https://go.test", instanceId: "i" }, "5511999990000"),
     ).toBe("https://cdn.wa/lower.jpg");
+    expect(seenLower).toEqual(["5511999990000"]); // dialed number, unchanged
 
-    const camel = vi.fn(async () =>
-      jsonResponse({ data: { profilePictureURL: "https://cdn.wa/camel.jpg" } }),
-    ) as unknown as typeof fetch;
+    // /user/check returns an empty list → inconclusive → fall back; camelCase URL.
+    const camel = vi.fn(async (url: RequestInfo | URL) => {
+      const u = String(url);
+      if (u.endsWith("/user/check")) return jsonResponse({ data: [] });
+      return jsonResponse({ data: { profilePictureURL: "https://cdn.wa/camel.jpg" } });
+    }) as unknown as typeof fetch;
     expect(
       await fetchGoProfilePictureUrl("t", deps(camel), { baseUrl: "https://go.test", instanceId: "i" }, "5511"),
     ).toBe("https://cdn.wa/camel.jpg");
   });
 
-  it("fetchGoProfilePictureUrl returns null on no photo, an error status, or an empty url (best-effort)", async () => {
-    const noField = vi.fn(async () => jsonResponse({ data: {}, message: "ok" })) as unknown as typeof fetch;
+  it("fetchGoProfilePictureUrl skips the avatar call and returns null when /user/check says the number is not on WhatsApp", async () => {
+    let avatarCalled = false;
+    const fetchFn = vi.fn(async (url: RequestInfo | URL) => {
+      const u = String(url);
+      if (u.endsWith("/user/check")) {
+        return jsonResponse({ data: [{ JID: "556581420027@s.whatsapp.net", IsIn: false }] });
+      }
+      avatarCalled = true;
+      return jsonResponse({ data: { URL: "https://cdn.wa/should-not.jpg" } });
+    }) as unknown as typeof fetch;
     expect(
-      await fetchGoProfilePictureUrl("t", deps(noField), { baseUrl: "https://go.test", instanceId: "i" }, "5511"),
+      await fetchGoProfilePictureUrl("t", deps(fetchFn), { baseUrl: "https://go.test", instanceId: "i" }, "556581420027"),
     ).toBeNull();
+    expect(avatarCalled).toBe(false); // the stall-prone /user/avatar was never hit
+  });
 
-    const errorStatus = vi.fn(async () => jsonResponse({ error: "not found" }, 404)) as unknown as typeof fetch;
-    expect(
-      await fetchGoProfilePictureUrl("t", deps(errorStatus), { baseUrl: "https://go.test", instanceId: "i" }, "5511"),
-    ).toBeNull();
+  it("fetchGoProfilePictureUrl is best-effort on the avatar call: no photo, an error status, or an empty url → null", async () => {
+    const make = (avatar: () => Response) =>
+      vi.fn(async (url: RequestInfo | URL) => {
+        const u = String(url);
+        if (u.endsWith("/user/check")) {
+          return jsonResponse({ data: [{ JID: "5511999990000@s.whatsapp.net", IsIn: true }] });
+        }
+        return avatar();
+      }) as unknown as typeof fetch;
+    const target = { baseUrl: "https://go.test", instanceId: "i" };
 
-    const emptyUrl = vi.fn(async () => jsonResponse({ data: { URL: "" } })) as unknown as typeof fetch;
-    expect(
-      await fetchGoProfilePictureUrl("t", deps(emptyUrl), { baseUrl: "https://go.test", instanceId: "i" }, "5511"),
-    ).toBeNull();
+    const noField = make(() => jsonResponse({ data: {}, message: "ok" }));
+    expect(await fetchGoProfilePictureUrl("t", deps(noField), target, "5511999990000")).toBeNull();
+
+    const errorStatus = make(() => jsonResponse({ error: "not found" }, 404));
+    expect(await fetchGoProfilePictureUrl("t", deps(errorStatus), target, "5511999990000")).toBeNull();
+
+    const emptyUrl = make(() => jsonResponse({ data: { URL: "" } }));
+    expect(await fetchGoProfilePictureUrl("t", deps(emptyUrl), target, "5511999990000")).toBeNull();
   });
 
   it("fetchGoOwnNumber GETs /instance/all (global key) and picks OUR instance's owner jid → E.164", async () => {

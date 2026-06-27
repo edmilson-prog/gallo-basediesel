@@ -174,15 +174,77 @@ export async function restartGoInstance(
   });
 }
 
+/** One /user/check result (whatsmeow IsOnWhatsApp), tolerant of Go's casing. */
+interface IGoCheckResult {
+  JID?: string;
+  jid?: string;
+  Jid?: string;
+  IsIn?: boolean;
+  isIn?: boolean;
+  exists?: boolean;
+}
+
+/**
+ * Resolve a dialed number to the contact's CANONICAL WhatsApp wire number via
+ * POST /user/check (whatsmeow IsOnWhatsApp). Brazilian mobiles are routinely
+ * stored without the mandatory 9th digit (e.g. 556581420027 vs. the registered
+ * 5565981420027); GetProfilePictureInfo on a JID that doesn't match the
+ * registered one stalls — the >15s /user/avatar hang this resolver exists to
+ * avoid. usync returns the registered JID, whose user part is the number
+ * /user/avatar actually needs.
+ *
+ * Returns: the canonical wire number when resolved; `null` when WhatsApp says
+ * the number is NOT registered (skip the avatar call — there is no photo and it
+ * would only stall); `undefined` when inconclusive (check failed / unparseable
+ * shape) so the caller falls back to the dialed number. Best-effort: never
+ * throws. Instance-scoped: authed by the per-instance TOKEN (passed as `apiKey`).
+ * The response is NOT omitted from the log on purpose — it carries no secret and
+ * lets us confirm the live shape against this build.
+ */
+async function resolveGoCanonicalNumber(
+  apiKey: string,
+  deps: IEngineDeps,
+  target: IGoInstanceTarget,
+  wireNumber: string,
+  traceId?: string,
+): Promise<string | null | undefined> {
+  const response = await goRequest(apiKey, deps, {
+    baseUrl: target.baseUrl,
+    path: "/user/check",
+    json: { number: [wireNumber], formatJid: true },
+    timeoutMs: 8_000,
+    traceId,
+  }).catch(() => null);
+  if (!response) return undefined;
+  const body = response.body as
+    | { data?: IGoCheckResult[]; users?: IGoCheckResult[] }
+    | IGoCheckResult[]
+    | null;
+  const raw = Array.isArray(body) ? body : (body?.data ?? body?.users);
+  const entry = Array.isArray(raw) ? raw[0] : undefined;
+  if (!entry) return undefined;
+  const isIn = entry.IsIn ?? entry.isIn ?? entry.exists;
+  if (isIn === false) return null; // not on WhatsApp → no avatar; skip the stall-prone call
+  const phone = goJidToPhone(entry.JID ?? entry.jid ?? entry.Jid);
+  return phone ? phone.slice(1) : undefined;
+}
+
 /**
  * POST /user/avatar — profile-picture URL for a contact (whatsmeow GetAvatar).
- * Instance-scoped: authed by the per-instance TOKEN (passed as `apiKey`). The
- * Go contract wraps whatsmeow's ProfilePictureInfo in `data`, but field casing
- * varies across builds (URL / url / profilePictureURL) — accept any non-empty
- * string. Best-effort by design: any non-2xx (no public photo / privacy), a
- * network error, or an unrecognised shape resolves to null so a bulk avatar
- * sync never aborts on a single contact. `number` is wire format (E.164 without
- * the leading +).
+ * Instance-scoped: authed by the per-instance TOKEN (passed as `apiKey`).
+ *
+ * Resolves the contact's canonical WhatsApp number FIRST (see
+ * resolveGoCanonicalNumber): a dialed Brazilian mobile is often missing the 9th
+ * digit, and querying the avatar for a JID that doesn't match the registered one
+ * stalls whatsmeow's GetProfilePictureInfo (the >15s timeout seen in prod).
+ * usync also reports when a number isn't on WhatsApp at all, so we skip the
+ * stall-prone call entirely for those.
+ *
+ * The Go contract wraps ProfilePictureInfo in `data`, but field casing varies
+ * across builds (URL / url / profilePictureURL) — accept any non-empty string.
+ * Best-effort by design: any non-2xx (no public photo / privacy), a network
+ * error, or an unrecognised shape resolves to null so a bulk avatar sync never
+ * aborts on a single contact. `number` is wire format (E.164 without the +).
  */
 export async function fetchGoProfilePictureUrl(
   apiKey: string,
@@ -191,15 +253,15 @@ export async function fetchGoProfilePictureUrl(
   number: string,
   traceId?: string,
 ): Promise<string | null> {
+  const canonical = await resolveGoCanonicalNumber(apiKey, deps, target, number, traceId);
+  if (canonical === null) return null; // usync says not on WhatsApp → no photo
   const response = await goRequest(apiKey, deps, {
     baseUrl: target.baseUrl,
     // `preview: true` = the low-res thumbnail (fast + near-always available);
-    // full-res (preview:false) makes the server fetch the whole image, which is
-    // slower and was observed to hang past the 15s timeout. A thumbnail is
-    // exactly what the inbox avatar needs.
+    // the inbox avatar needs nothing more.
     path: "/user/avatar",
-    json: { number, preview: true },
-    timeoutMs: 15_000,
+    json: { number: canonical ?? number, preview: true },
+    timeoutMs: 12_000,
     traceId,
   }).catch(() => null);
   if (!response) return null;
