@@ -39,7 +39,9 @@ describe("normalizeWhatsmeowRecord", () => {
     expect(normalizeWhatsmeowRecord({ key: {}, messageTimestamp: 1765400000 })).toBeNull();
     expect(normalizeWhatsmeowRecord({ key: { id: "x" }, messageTimestamp: 0 })).toBeNull();
     // ms epoch → decades in the future → reject
-    expect(normalizeWhatsmeowRecord({ key: { id: "x" }, messageTimestamp: 1765400000000 })).toBeNull();
+    expect(
+      normalizeWhatsmeowRecord({ key: { id: "x" }, messageTimestamp: 1765400000000 }),
+    ).toBeNull();
   });
 
   it("rejects an unrenderable stub (unknown content, no text)", () => {
@@ -55,8 +57,16 @@ describe("createHistoryAggregator", () => {
     agg.addChunk({
       syncType: 2,
       conversations: [
-        { ID: "5551988880001@s.whatsapp.net", name: "Cliente A", messages: [wmText("a1", false, "oi", 1765400000)] },
-        { ID: "111@lid", name: "Cliente B", messages: [wmText("b1", false, "lid msg", 1765400001)] },
+        {
+          ID: "5551988880001@s.whatsapp.net",
+          name: "Cliente A",
+          messages: [wmText("a1", false, "oi", 1765400000)],
+        },
+        {
+          ID: "111@lid",
+          name: "Cliente B",
+          messages: [wmText("b1", false, "lid msg", 1765400001)],
+        },
         { ID: "999@g.us", name: "Grupo", messages: [wmText("g1", false, "grupo", 1765400002)] },
         { ID: "status@broadcast", messages: [wmText("s1", false, "bc", 1765400003)] },
       ],
@@ -106,15 +116,19 @@ describe("createHistoryAggregator", () => {
     const agg = createHistoryAggregator();
     agg.addChunk({
       conversations: [
-        { ID: "5551988880003@s.whatsapp.net", messages: [wmText("d1", false, "direto", 1765400000)] },
+        {
+          ID: "5551988880003@s.whatsapp.net",
+          messages: [wmText("d1", false, "direto", 1765400000)],
+        },
         { ID: "333@lid", messages: [wmText("d2", false, "via lid", 1765400001)] },
       ],
       phoneNumberToLidMappings: [{ lidJID: "333@lid", pnJID: "5551988880003@s.whatsapp.net" }],
     });
     const { items } = agg.finalize();
     expect(items).toHaveLength(1);
-    expect(items[0].phone.startsWith("+")).toBe(true);
-    expect(items[0].messages.map((m) => m.providerMessageId).sort()).toEqual(["d1", "d2"]);
+    const item = items[0]!;
+    expect(item.phone.startsWith("+")).toBe(true);
+    expect(item.messages.map((m) => m.providerMessageId).sort()).toEqual(["d1", "d2"]);
   });
 
   it("drops conversations with no renderable messages (no empty item)", () => {

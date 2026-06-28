@@ -45,7 +45,11 @@ export interface IGoHistoryUndoResult {
   removedConversations: number;
 }
 
-export type GoHistoryErrorCode = "NOT_FOUND" | "VALIDATION_ERROR" | "CONFIG_MISSING" | "UNDO_FAILED";
+export type GoHistoryErrorCode =
+  | "NOT_FOUND"
+  | "VALIDATION_ERROR"
+  | "CONFIG_MISSING"
+  | "UNDO_FAILED";
 
 export class WhatsAppGoHistoryError extends Error {
   readonly code?: GoHistoryErrorCode;
