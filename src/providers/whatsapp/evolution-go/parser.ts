@@ -32,7 +32,7 @@ interface IGoMediaNode {
   fileLength?: number;
 }
 
-interface IGoMessageBody {
+export interface IGoMessageBody {
   conversation?: string;
   extendedTextMessage?: { text?: string };
   imageMessage?: IGoMediaNode;
@@ -56,12 +56,12 @@ interface IGoEvent {
 
 const NON_INDIVIDUAL_JID = /@(g\.us|broadcast|newsletter|lid)$/;
 
-function jidToE164(jid: string | undefined): string {
+export function jidToE164(jid: string | undefined): string {
   if (!jid) return "";
   return toE164(jid.split("@")[0]?.split(":")[0] ?? "");
 }
 
-function tsToIso(value: string | number | undefined): string {
+export function tsToIso(value: string | number | undefined): string {
   if (typeof value === "string" && value.length > 0) {
     const d = new Date(value);
     if (!Number.isNaN(d.getTime())) return d.toISOString();
@@ -83,14 +83,14 @@ function mediaRefFrom(node: IGoMediaNode): string {
   return encodeGoMediaRef(ref);
 }
 
-interface IGoContent {
+export interface IGoContent {
   contentType: InboundContentType;
   text?: string;
   mediaCaption?: string;
   mediaId?: string;
 }
 
-function extractContent(msg: IGoMessageBody): IGoContent {
+export function extractContent(msg: IGoMessageBody): IGoContent {
   if (msg.conversation !== undefined || msg.extendedTextMessage) {
     return { contentType: "text", text: msg.conversation ?? msg.extendedTextMessage?.text };
   }

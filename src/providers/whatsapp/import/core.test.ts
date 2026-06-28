@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { emptyImportStats, processImportBatch, type IImportDb, type IImportSource } from "./core";
+import {
+  emptyImportStats,
+  landNormalizedChat,
+  processImportBatch,
+  type IImportDb,
+  type IImportSource,
+  type INormalizedRecord,
+} from "./core";
 import type { IEvolutionStoredMessage } from "../evolution/instance";
 
 const ACCOUNT = { id: "acc-1", storeId: "store-1" };
@@ -303,5 +310,92 @@ describe("processImportBatch", () => {
       messagesImported: 0,
       messagesSkipped: 0,
     });
+  });
+});
+
+const isoOf = (sec: number) => new Date(sec * 1000).toISOString();
+const normRec = (
+  providerMessageId: string,
+  direction: "in" | "out",
+  ts: number,
+  text = "msg",
+): INormalizedRecord => ({
+  providerMessageId,
+  direction,
+  text,
+  mediaType: null,
+  status: direction === "out" ? "sent" : "delivered",
+  sentAt: isoOf(ts),
+});
+
+describe("landNormalizedChat", () => {
+  it("creates a pool conversation, dedups by id in-memory, lands in/out rows", async () => {
+    const state = emptyState();
+    const stats = emptyImportStats();
+    await landNormalizedChat({
+      account: ACCOUNT,
+      db: makeDb(state),
+      phone: "+5555988887777",
+      normalized: [
+        normRec("X1", "in", 1765400000, "pergunta"),
+        normRec("X1", "in", 1765400000, "duplicada"), // same id → dedup
+        normRec("X2", "out", 1765400100, "resposta"),
+      ],
+      stats,
+    });
+
+    expect(stats).toMatchObject({
+      customersCreated: 1,
+      conversationsCreated: 1,
+      messagesImported: 2,
+      messagesSkipped: 1, // the duplicate X1
+    });
+    expect(state.conversations[0]).toMatchObject({
+      status: "em_andamento",
+      accountId: "acc-1",
+      assignedSellerId: null,
+      createdAt: isoOf(1765400000),
+      lastMessageAt: isoOf(1765400100),
+    });
+    const inbound = state.messages.find((m) => m.providerMessageId === "X1");
+    expect(inbound?.authorId).toBe(state.customers[0]?.id);
+    const outbound = state.messages.find((m) => m.providerMessageId === "X2");
+    expect(outbound?.authorId).toBeNull();
+    expect(state.advances).toEqual([
+      { conversationId: state.conversations[0]?.id, lastMessageAt: isoOf(1765400100) },
+    ]);
+  });
+
+  it("reuses an existing customer and open conversation (no duplicate creation)", async () => {
+    const state = emptyState();
+    state.customers.push({ id: "cust-existing", phoneDigits: "5555988887777", sellerId: "s1" });
+    state.conversations.push({ id: "conv-existing", customerId: "cust-existing" });
+    const stats = emptyImportStats();
+    await landNormalizedChat({
+      account: ACCOUNT,
+      db: makeDb(state),
+      phone: "+5555988887777",
+      normalized: [normRec("Y1", "in", 1765400000)],
+      stats,
+    });
+    expect(stats.customersCreated).toBe(0);
+    expect(stats.conversationsCreated).toBe(0);
+    expect(state.messages.map((m) => m.providerMessageId)).toEqual(["Y1"]);
+  });
+
+  it("creates nothing when every record is already known (idempotent re-run)", async () => {
+    const state = emptyState();
+    state.known.add("K1");
+    const stats = emptyImportStats();
+    await landNormalizedChat({
+      account: ACCOUNT,
+      db: makeDb(state),
+      phone: "+5555988887777",
+      normalized: [normRec("K1", "in", 1765400000)],
+      stats,
+    });
+    expect(state.conversations).toHaveLength(0);
+    expect(state.customers).toHaveLength(0);
+    expect(stats.conversationsCreated).toBe(0);
   });
 });

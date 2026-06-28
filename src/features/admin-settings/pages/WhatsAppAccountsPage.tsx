@@ -33,11 +33,7 @@ import {
 } from "@/providers/data";
 import { SectionHeader } from "../components/SectionHeader";
 import { INVALID_CREDENTIALS_REF_MESSAGE, isValidCredentialsRef } from "../api/whatsappConnect";
-import {
-  configFromDraft,
-  draftFromAccount,
-  type IAccountDraft,
-} from "../utils/accountDraft";
+import { configFromDraft, draftFromAccount, type IAccountDraft } from "../utils/accountDraft";
 import { useEvolutionStatusSync } from "../hooks/useEvolutionStatusSync";
 import {
   DropdownMenu,
@@ -48,6 +44,7 @@ import {
 import { ConnectWhatsAppDialog, type ConnectDialogStep } from "../components/ConnectWhatsAppDialog";
 import { DeleteInstanceDialog } from "../components/DeleteInstanceDialog";
 import { ImportContactsDialog } from "../components/ImportContactsDialog";
+import { ImportHistoryDialog, type HistoryDialogMode } from "../components/ImportHistoryDialog";
 import { ImportConversationsDialog } from "../components/ImportConversationsDialog";
 import { SyncAvatarsDialog } from "../components/SyncAvatarsDialog";
 import { TestMessageDialog } from "../components/TestMessageDialog";
@@ -169,6 +166,10 @@ export function WhatsAppAccountsPage() {
   const [testTarget, setTestTarget] = useState<IWhatsAppAccount | null>(null);
   const [importTarget, setImportTarget] = useState<IWhatsAppAccount | null>(null);
   const [importContactsTarget, setImportContactsTarget] = useState<IWhatsAppAccount | null>(null);
+  const [historyTarget, setHistoryTarget] = useState<{
+    account: IWhatsAppAccount;
+    mode: HistoryDialogMode;
+  } | null>(null);
   const [syncAvatarsTarget, setSyncAvatarsTarget] = useState<IWhatsAppAccount | null>(null);
   const [checking, setChecking] = useState(false);
   const [sellers, setSellers] = useState<ISeller[]>([]);
@@ -727,6 +728,28 @@ export function WhatsAppAccountsPage() {
                                 Importar contatos
                               </Button>
                             )}
+                            {!isMock && account.provider === "evolution-go" && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setHistoryTarget({ account, mode: "import" })}
+                                title="Traz as conversas do histórico capturado no pareamento para o Inbox (resgata @lid)"
+                              >
+                                <Icon icon="mdi:history" size={14} className="mr-1.5" />
+                                Importar histórico
+                              </Button>
+                            )}
+                            {!isMock && account.provider === "evolution-go" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setHistoryTarget({ account, mode: "undo" })}
+                                title="Remove o que a importação de histórico criou para esta conta"
+                              >
+                                <Icon icon="mdi:undo-variant" size={14} className="mr-1.5" />
+                                Desfazer
+                              </Button>
+                            )}
                             {!isMock && (
                               <Button
                                 variant="outline"
@@ -877,7 +900,9 @@ export function WhatsAppAccountsPage() {
                       ) : account.provider === "evolution-go" ? (
                         <>
                           <div className="space-y-1.5">
-                            <Label htmlFor={`url-${account.id}`}>URL do servidor Evolution Go</Label>
+                            <Label htmlFor={`url-${account.id}`}>
+                              URL do servidor Evolution Go
+                            </Label>
                             <Input
                               id={`url-${account.id}`}
                               className="font-mono"
@@ -1035,6 +1060,11 @@ export function WhatsAppAccountsPage() {
       <ImportContactsDialog
         account={importContactsTarget}
         onClose={() => setImportContactsTarget(null)}
+      />
+      <ImportHistoryDialog
+        account={historyTarget?.account ?? null}
+        mode={historyTarget?.mode ?? "import"}
+        onClose={() => setHistoryTarget(null)}
       />
       <SyncAvatarsDialog account={syncAvatarsTarget} onClose={() => setSyncAvatarsTarget(null)} />
       <DeleteInstanceDialog
