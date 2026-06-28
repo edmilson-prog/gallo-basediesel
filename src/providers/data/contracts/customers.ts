@@ -27,6 +27,13 @@ export interface IListCustomersParams extends IPaginationParams {
   /** Legacy single-tag filter. */
   tag?: string;
   tags?: string[];
+  /**
+   * Hide customers carrying ANY of these tags (PostgREST array overlap, negated).
+   * The Clientes screen uses it to keep imported `pending_review` contacts out of
+   * the list — they only anchor a conversation in the Inbox, and become a real
+   * customer through a manual conversion. Independent of {@link tags}.
+   */
+  excludeTags?: string[];
   abcClasses?: (ABCClass | "none")[];
   recencyBuckets?: RecencyBucket[];
   recencyCustom?: { minDays?: number; maxDays?: number };

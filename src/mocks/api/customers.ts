@@ -33,6 +33,8 @@ export interface IListCustomersParams extends IPaginationParams {
   search?: string;
   tag?: string;
   tags?: string[];
+  /** Hide customers carrying ANY of these tags (mirror of the supabase overlap). */
+  excludeTags?: string[];
   abcClasses?: (ABCClass | "none")[];
   recencyBuckets?: RecencyBucket[];
   recencyCustom?: { minDays?: number; maxDays?: number };
@@ -151,6 +153,10 @@ function matches(
   if (params.tags && params.tags.length > 0) {
     const has = params.tags.every((t) => customer.tags.includes(t));
     if (!has) return false;
+  }
+  if (params.excludeTags && params.excludeTags.length > 0) {
+    const excluded = params.excludeTags;
+    if (customer.tags.some((t) => excluded.includes(t))) return false;
   }
 
   if (params.abcClasses && params.abcClasses.length > 0) {

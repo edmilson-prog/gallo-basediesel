@@ -82,7 +82,7 @@ export function ImportContactsDialog({
           <DialogTitle>Importar contatos do WhatsApp</DialogTitle>
           <DialogDescription>
             {account
-              ? `Conta ${account.label} — traz a lista de contatos do WhatsApp para a base de Clientes.`
+              ? `Conta ${account.label} — importa a lista de contatos do WhatsApp para uso no Atendimento.`
               : ""}
           </DialogDescription>
         </DialogHeader>
@@ -90,8 +90,9 @@ export function ImportContactsDialog({
         {phase === "confirm" && (
           <div className="space-y-2 text-sm text-muted-foreground">
             <p>
-              Cada contato que ainda não é cliente entra como <strong>cliente pendente</strong> (tag{" "}
-              <code className="font-mono text-xs">pending_review</code>) para revisão depois.
+              Cada contato que ainda não é cliente fica como <strong>contato pendente</strong> (tag{" "}
+              <code className="font-mono text-xs">pending_review</code>) e <strong>não aparece na
+              lista de Clientes</strong> até você revisá-lo e convertê-lo manualmente.
             </p>
             <p>
               Grupos, listas, canais e contatos com número oculto são ignorados. Isto traz a{" "}
@@ -112,7 +113,7 @@ export function ImportContactsDialog({
             <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
               <dt className="text-muted-foreground">Contatos encontrados</dt>
               <dd className="text-right font-medium text-foreground">{stats.contactsFound}</dd>
-              <dt className="text-muted-foreground">Clientes novos (revisar)</dt>
+              <dt className="text-muted-foreground">Contatos novos (pendentes)</dt>
               <dd className="text-right font-medium text-foreground">{stats.customersCreated}</dd>
               <dt className="text-muted-foreground">Já existiam</dt>
               <dd className="text-right font-medium text-foreground">{stats.customersExisting}</dd>
@@ -134,7 +135,7 @@ export function ImportContactsDialog({
                   size={16}
                 />
                 {stats.customersCreated > 0
-                  ? `Importação concluída — ${stats.customersCreated} novo(s) cliente(s) em Clientes (tag pending_review).`
+                  ? `Importação concluída — ${stats.customersCreated} contato(s) pendente(s) importado(s). Não aparecem em Clientes até a revisão.`
                   : "Importação concluída — nenhum contato novo (todos já eram clientes)."}
               </p>
             )}
