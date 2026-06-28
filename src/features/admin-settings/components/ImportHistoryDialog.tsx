@@ -178,8 +178,9 @@ export function ImportHistoryDialog({
             </p>
             <p>
               Só o <strong>texto/legenda</strong> é importado (mídia não é baixada). Cada contato
-              novo entra como cliente <code className="font-mono text-xs">pending_review</code>.
-              Pode rodar mais de uma vez: nada é duplicado.
+              novo entra como contato <code className="font-mono text-xs">pending_review</code> — não
+              aparece em Clientes até revisão; a conversa vai para o Inbox. Pode rodar mais de uma
+              vez: nada é duplicado.
             </p>
           </div>
         )}
@@ -191,8 +192,8 @@ export function ImportHistoryDialog({
               para esta conta. Conversas e mensagens que chegaram ao vivo não são tocadas.
             </p>
             <p>
-              Os clientes criados (<code className="font-mono text-xs">pending_review</code>)
-              permanecem — revise ou exclua em Clientes, se quiser.
+              Os contatos criados (<code className="font-mono text-xs">pending_review</code>)
+              permanecem como pendentes (fora da lista de Clientes até a revisão).
             </p>
           </div>
         )}
@@ -237,7 +238,7 @@ export function ImportHistoryDialog({
               <dd className="text-right font-medium text-foreground">
                 {landStats.messagesImported}
               </dd>
-              <dt className="text-muted-foreground">Clientes novos (revisar)</dt>
+              <dt className="text-muted-foreground">Contatos novos (pendentes)</dt>
               <dd className="text-right font-medium text-foreground">
                 {landStats.customersCreated}
               </dd>

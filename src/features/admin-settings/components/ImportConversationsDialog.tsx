@@ -96,8 +96,9 @@ export function ImportConversationsDialog({
         {phase === "confirm" && (
           <div className="space-y-2 text-sm text-muted-foreground">
             <p>
-              Números que ainda não são clientes entram como <strong>clientes pendentes</strong>{" "}
-              (tag <code className="font-mono text-xs">pending_review</code>) para revisão depois.
+              Números que ainda não são clientes entram como <strong>contatos pendentes</strong>{" "}
+              (tag <code className="font-mono text-xs">pending_review</code>) — não aparecem em
+              Clientes até revisão; a conversa vai para o Inbox.
             </p>
             <p>
               Grupos, listas, canais e contatos com número oculto pelo WhatsApp são ignorados.
@@ -124,7 +125,7 @@ export function ImportConversationsDialog({
               </dd>
               <dt className="text-muted-foreground">Mensagens importadas</dt>
               <dd className="text-right font-medium text-foreground">{stats.messagesImported}</dd>
-              <dt className="text-muted-foreground">Clientes novos (revisar)</dt>
+              <dt className="text-muted-foreground">Contatos novos (pendentes)</dt>
               <dd className="text-right font-medium text-foreground">{stats.customersCreated}</dd>
               <dt className="text-muted-foreground">Grupos ignorados</dt>
               <dd className="text-right font-medium text-foreground">{stats.chatsSkippedGroup}</dd>

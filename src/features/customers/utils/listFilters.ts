@@ -19,6 +19,14 @@ export type PageSize = (typeof PAGE_SIZES)[number];
 export const DEFAULT_PAGE_SIZE: PageSize = 50;
 
 /**
+ * Tags that mark a customer as "not yet a real client" — imported WhatsApp
+ * contacts (`pending_review`) that exist only to anchor a conversation in the
+ * Inbox. The Clientes list hides them until a manual conversion promotes them.
+ * Applied unconditionally via {@link toListParams} (`excludeTags`).
+ */
+export const HIDDEN_CUSTOMER_TAGS = ["pending_review"] as const;
+
+/**
  * Strongly-typed filter state owned by the customers list page.
  *
  * Stored in URL query params (string-encoded) and translated to provider
@@ -80,6 +88,9 @@ export function toListParams(
   return {
     page,
     pageSize,
+    // Imported `pending_review` contacts never surface in the Clientes list —
+    // they only anchor a conversation in the Inbox until manually converted.
+    excludeTags: [...HIDDEN_CUSTOMER_TAGS],
     statuses: filters.statuses.length > 0 ? filters.statuses : undefined,
     type: filters.type === "all" ? undefined : filters.type,
     abcClasses: filters.abcClasses.length > 0 ? filters.abcClasses : undefined,

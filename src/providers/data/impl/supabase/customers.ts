@@ -285,6 +285,12 @@ export const supabaseCustomersProvider: ICustomersProvider = {
 
     if (params.hasB2BPortal) query = query.eq("has_b2b_portal", true);
 
+    // Hide imported `pending_review` contacts (array overlap, negated): drop any
+    // row whose tags intersect excludeTags. Server-side so count/pagination match.
+    if (params.excludeTags && params.excludeTags.length > 0) {
+      query = query.not("tags", "ov", `{${params.excludeTags.join(",")}}`);
+    }
+
     const searchOr = params.search ? buildCustomerSearchOr(params.search) : null;
     if (searchOr) query = query.or(searchOr);
 
