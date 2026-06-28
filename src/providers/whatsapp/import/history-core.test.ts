@@ -2,12 +2,13 @@ import { describe, expect, it } from "vitest";
 import { createHistoryAggregator, normalizeWhatsmeowRecord } from "./history-core";
 
 // Wrapper shape mirrors the captured payload: conversations[].messages[] = { message: WebMessageInfo }.
+// whatsmeow keys real messages with a capital `ID` (verified in prod payloads).
 const wmText = (id: string, fromMe: boolean, text: string, tsSec: number) => ({
-  message: { key: { id, fromMe }, messageTimestamp: tsSec, message: { conversation: text } },
+  message: { key: { ID: id, fromMe }, messageTimestamp: tsSec, message: { conversation: text } },
 });
 const wmImage = (id: string, tsSec: number, caption: string) => ({
   message: {
-    key: { id, fromMe: false },
+    key: { ID: id, fromMe: false },
     messageTimestamp: tsSec,
     message: { imageMessage: { caption, url: "u", mimetype: "image/jpeg" } },
   },

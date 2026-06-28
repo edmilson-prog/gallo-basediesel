@@ -28,7 +28,9 @@ import type { INormalizedRecord } from "./core.ts";
 // ===== Captured payload shapes (subset we consume) ===========================
 
 interface IGoWebMessageInfo {
-  key?: { id?: string; fromMe?: boolean; remoteJid?: string };
+  // whatsmeow serializes the message key with a capital `ID` (and `remoteJID`),
+  // while `fromMe` stays camelCase. Accept both casings defensively.
+  key?: { ID?: string; id?: string; fromMe?: boolean; remoteJID?: string; remoteJid?: string };
   messageTimestamp?: string | number;
   message?: IGoMessageBody;
 }
@@ -88,7 +90,7 @@ const ONE_DAY_MS = 24 * 60 * 60 * 1000;
  */
 export function normalizeWhatsmeowRecord(webMessageInfo: unknown): INormalizedRecord | null {
   const wmi = webMessageInfo as IGoWebMessageInfo | null;
-  const providerMessageId = wmi?.key?.id;
+  const providerMessageId = wmi?.key?.ID ?? wmi?.key?.id;
   if (!providerMessageId) return null;
 
   const tsNum = Number(wmi?.messageTimestamp);
