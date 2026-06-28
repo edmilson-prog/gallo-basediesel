@@ -6,6 +6,14 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.124.1] — Salvage · 2026-06-28
+
+**As fotos de perfil dos contatos do Evolution Go voltaram a sincronizar.** O botão "Sincronizar fotos" de um número Evolution Go ficava travando e terminava em erro, sem trazer as fotos. Corrigido: agora as fotos aparecem nas Conversas em segundos.
+
+### Fixed
+
+- **Sincronizar fotos dos contatos (Evolution Go)** — a busca da foto de perfil falhava em todos os contatos (tempo esgotado), e a sincronização em lote terminava em erro depois de travar. A causa era o formato do identificador do contato enviado ao servidor; ajustado, as fotos voltam a ser baixadas e exibidas nas Conversas rapidamente. Contatos sem foto pública continuam sem foto, como esperado.
+
 ## [0.124.0] — Salvage · 2026-06-27
 
 **Importação do histórico de conversas do Evolution Go — com resgate de contatos ocultos (@lid).** Um número Evolution Go ganhou o botão "Importar histórico" em Configurações → WhatsApp: ele traz para o Inbox as conversas do histórico que o WhatsApp envia no pareamento, inclusive a maioria dos contatos que aparecem com número oculto (@lid), resolvidos pelo mapeamento que o próprio WhatsApp fornece. As conversas entram na fila (sem responsável) para quem opera o número assumir, e nada é duplicado ao rodar de novo. Há também um "Desfazer importação" que remove exatamente o que foi importado.

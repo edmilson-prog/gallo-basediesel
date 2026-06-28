@@ -146,13 +146,14 @@ describe("evolution-go instance management", () => {
     expect(fetchFn).toHaveBeenCalledOnce();
   });
 
-  it("fetchGoProfilePictureUrl posts {number, preview:false} to /user/avatar (instance token) and returns the URL", async () => {
+  it("fetchGoProfilePictureUrl sends the number as a jid (<digits>@s.whatsapp.net) to /user/avatar and returns the URL", async () => {
     const fetchFn = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
       expect(String(url)).toBe("https://go.test/user/avatar");
       expect(init?.method).toBe("POST");
       expect(init?.headers).toMatchObject({ apikey: "inst-token" });
       expect((init?.headers as Record<string, string>).instanceId).toBeUndefined();
-      expect(JSON.parse(String(init?.body))).toEqual({ number: "5554999998888", preview: true });
+      // Bare digits make this Go build prepend an invalid `+`; a full jid is used verbatim.
+      expect(JSON.parse(String(init?.body))).toEqual({ number: "5554999998888@s.whatsapp.net", preview: true });
       return jsonResponse({ data: { URL: "https://cdn.wa/pic.jpg", ID: "1" }, message: "success" });
     }) as unknown as typeof fetch;
     const url = await fetchGoProfilePictureUrl("inst-token", deps(fetchFn), {
@@ -193,6 +194,21 @@ describe("evolution-go instance management", () => {
     expect(
       await fetchGoProfilePictureUrl("t", deps(emptyUrl), { baseUrl: "https://go.test", instanceId: "i" }, "5511"),
     ).toBeNull();
+  });
+
+  it("fetchGoProfilePictureUrl passes an already-jid number through unchanged (no double suffix)", async () => {
+    const fetchFn = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+      expect(JSON.parse(String(init?.body))).toEqual({ number: "5511@s.whatsapp.net", preview: true });
+      return jsonResponse({ data: { url: "https://cdn.wa/x.jpg" } });
+    }) as unknown as typeof fetch;
+    expect(
+      await fetchGoProfilePictureUrl(
+        "t",
+        deps(fetchFn),
+        { baseUrl: "https://go.test", instanceId: "i" },
+        "5511@s.whatsapp.net",
+      ),
+    ).toBe("https://cdn.wa/x.jpg");
   });
 
   it("fetchGoOwnNumber GETs /instance/all (global key) and picks OUR instance's owner jid → E.164", async () => {
