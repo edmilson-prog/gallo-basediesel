@@ -126,7 +126,7 @@ export interface IImportDb {
 
 // ===== Internal types ========================================================
 
-interface INormalizedRecord {
+export interface INormalizedRecord {
   providerMessageId: string;
   direction: "in" | "out";
   text: string;
@@ -316,17 +316,43 @@ async function importChat(
     }
   }
 
-  // 2. Normalize + deduplicate (idempotency: provider_message_id is the key).
-  //    The Map also dedups IN-MEMORY: partially overlapping pages (sliding
-  //    windows) slip past the identical-page guard and repeat ids within the
-  //    same batch — the DB filter below only sees what already landed.
-  const byId = new Map<string, INormalizedRecord>();
+  // 2. Normalize (nulls are unrenderable stubs — count and drop). Dedup,
+  //    DB-known filtering, and landing are shared with the Evolution Go
+  //    HistorySync import via landNormalizedChat.
+  const normalized: INormalizedRecord[] = [];
   for (const record of records) {
     const row = normalizeRecord(record);
     if (!row) {
       stats.messagesSkipped++;
       continue;
     }
+    normalized.push(row);
+  }
+  if (normalized.length === 0) return;
+
+  await landNormalizedChat({ account, db, phone: jidToE164(remoteJid), normalized, stats });
+}
+
+/**
+ * Land a single chat's already-normalized records: in-memory dedup by
+ * provider_message_id, DB-known filtering (idempotency), customer/conversation
+ * resolution (pool, never auto-assigned), and one bulk insert. Shared by the
+ * Evolution REST import (importChat) and the Evolution Go HistorySync import.
+ */
+export async function landNormalizedChat(args: {
+  account: IImportAccount;
+  db: IImportDb;
+  /** E.164 phone of the 1:1 contact (already resolved from the chat JID). */
+  phone: string;
+  normalized: INormalizedRecord[];
+  stats: IImportStats;
+}): Promise<void> {
+  const { account, db, phone, stats } = args;
+
+  // In-memory dedup: overlapping pages / cross-chunk repeats share ids; the DB
+  // filter below only sees what already landed, so collapse here first.
+  const byId = new Map<string, INormalizedRecord>();
+  for (const row of args.normalized) {
     if (byId.has(row.providerMessageId)) {
       stats.messagesSkipped++;
       continue;
@@ -334,7 +360,7 @@ async function importChat(
     byId.set(row.providerMessageId, row);
   }
   const normalized = [...byId.values()];
-  if (normalized.length === 0) return; // nothing renderable — also avoids filterKnown([])
+  if (normalized.length === 0) return; // also avoids filterKnown([])
 
   const known = await db.filterKnownProviderMessageIds(normalized.map((r) => r.providerMessageId));
   const fresh = normalized.filter((r) => !known.has(r.providerMessageId));
@@ -343,8 +369,7 @@ async function importChat(
   // Nothing new — never create empty conversations or phantom customers.
   if (fresh.length === 0) return;
 
-  // 3. Resolve customer (same phone-matching rules as the webhook core).
-  const phone = jidToE164(remoteJid);
+  // Resolve customer (same phone-matching rules as the webhook core).
   const phoneDigits = phone.replace(/\D/g, "");
   let customer = await db.findCustomerByPhone(account.storeId, phoneDigits);
   if (!customer) {
@@ -353,8 +378,8 @@ async function importChat(
     stats.customersCreated++;
   }
 
-  // 4. Resolve conversation; created ones span the full imported window.
-  //    ISO 8601 lexicographic sort is correct for UTC timestamps.
+  // Resolve conversation; created ones span the full imported window.
+  // ISO 8601 lexicographic sort is correct for UTC timestamps.
   const timestamps = fresh.map((r) => r.sentAt).sort();
   const oldest = timestamps[0] as string;
   const newest = timestamps[timestamps.length - 1] as string;
@@ -380,10 +405,9 @@ async function importChat(
     stats.conversationsCreated++;
   }
 
-  // 5. Land the messages in ONE bulk call — sequential per-row inserts blow
-  //    the Edge Function wall-clock on large histories; the adapter chunks.
-  //    Media is NOT downloaded during import (spec §3): the import only
-  //    stores the text/caption; a separate job can fetch media.
+  // Land the messages in ONE bulk call — sequential per-row inserts blow the
+  // Edge Function wall-clock on large histories; the adapter chunks. Media is
+  // NOT downloaded during import: only text/caption is stored.
   const conversationId = conversation.id;
   const rows = fresh.map((row) => ({
     conversationId,
