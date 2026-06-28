@@ -6,6 +6,15 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.124.0] — Salvage · 2026-06-27
+
+**Importação do histórico de conversas do Evolution Go — com resgate de contatos ocultos (@lid).** Um número Evolution Go ganhou o botão "Importar histórico" em Configurações → WhatsApp: ele traz para o Inbox as conversas do histórico que o WhatsApp envia no pareamento, inclusive a maioria dos contatos que aparecem com número oculto (@lid), resolvidos pelo mapeamento que o próprio WhatsApp fornece. As conversas entram na fila (sem responsável) para quem opera o número assumir, e nada é duplicado ao rodar de novo. Há também um "Desfazer importação" que remove exatamente o que foi importado.
+
+### Added
+
+- **Importar histórico de conversas (Evolution Go)** — em Configurações → WhatsApp, o botão "Importar histórico" de um número Go traz para o Inbox as conversas capturadas no pareamento. Contatos com número oculto (`@lid`) são resgatados quando o WhatsApp fornece o mapeamento; grupos, listas e contatos sem número resolvível são ignorados. Só o texto/legenda é importado (mídia não é baixada) e cada contato novo entra como cliente pendente para revisão. A importação roda em lotes com barra de progresso e pode ser repetida sem duplicar nada.
+- **Desfazer importação** — um botão "Desfazer" remove exatamente as mensagens e conversas que a importação criou para aquele número, sem tocar no que chegou ao vivo. Os clientes criados permanecem (marcados como pendentes) para revisão em Clientes.
+
 ## [0.123.0] — Tether · 2026-06-27
 
 **Conexão do Evolution Go mais honesta e fácil de recuperar — e importação da agenda de contatos.** Quando um número Evolution Go é desligado no celular, a plataforma agora mostra "Desconectado" na hora (antes podia continuar exibindo "Conectado"). Reconectar um número que caiu ficou direto: o botão "Conectar" abre o QR code imediatamente, sem passar por um formulário que não se aplicava a esses números. E foi adicionada a importação da **lista de contatos** de um número Evolution Go para a base de Clientes.
