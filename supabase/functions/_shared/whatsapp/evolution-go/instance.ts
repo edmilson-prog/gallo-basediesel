@@ -194,6 +194,12 @@ export async function fetchGoProfilePictureUrl(
   number: string,
   traceId?: string,
 ): Promise<string | null> {
+  // This Go build (≤0.7.1) prepends a literal `+` when it receives bare digits
+  // (`+<digits>@s.whatsapp.net`) — an INVALID jid that WhatsApp silently drops,
+  // so the IQ hangs to whatsmeow's 1m15s internal timeout (proven server-side).
+  // Sending a full jid makes the handler use it verbatim. Keep the digits exactly
+  // as stored — do NOT inject the BR 9th digit; the 12-digit msisdn IS the real jid.
+  const jid = number.includes("@") ? number : `${number}@s.whatsapp.net`;
   const response = await goRequest(apiKey, deps, {
     baseUrl: target.baseUrl,
     // `preview: true` = the low-res thumbnail (fast + near-always available);
@@ -201,7 +207,7 @@ export async function fetchGoProfilePictureUrl(
     // slower and was observed to hang past the 15s timeout. A thumbnail is
     // exactly what the inbox avatar needs.
     path: "/user/avatar",
-    json: { number, preview: true },
+    json: { number: jid, preview: true },
     timeoutMs: 15_000,
     traceId,
   }).catch(() => null);
