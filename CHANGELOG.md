@@ -6,6 +6,14 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.124.2] — Salvage · 2026-06-28
+
+**Os contatos importados do WhatsApp não aparecem mais na lista de Clientes.** Eles ficam apenas no Atendimento, onde devem estar — a tela de Clientes volta a mostrar só os clientes de fato.
+
+### Fixed
+
+- **Contatos importados fora da lista de Clientes** — ao importar o histórico ou a agenda de contatos de um número de WhatsApp, cada contato entrava direto na tela de Clientes (marcado como pendente) e se misturava aos clientes reais, inflando a lista. Agora esses contatos ficam apenas no Atendimento; a lista de Clientes mostra só quem é cliente de fato. Os contatos importados continuam acessíveis nas Conversas e, no futuro, poderão ser convertidos em clientes por um processo de revisão.
+
 ## [0.124.1] — Salvage · 2026-06-28
 
 **As fotos de perfil dos contatos do Evolution Go voltaram a sincronizar.** O botão "Sincronizar fotos" de um número Evolution Go ficava travando e terminava em erro, sem trazer as fotos. Corrigido: agora as fotos aparecem nas Conversas em segundos.
