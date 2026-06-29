@@ -15,6 +15,7 @@ export const ROUTES = {
   // App interno
   APP_INICIO: "/app/inicio",
   APP_ATENDIMENTO: "/app/atendimento",
+  APP_CONTATOS_PENDENTES: "/app/atendimento/contatos-pendentes",
   APP_CLIENTES: "/app/clientes",
   APP_LEADS: "/app/leads",
   APP_VEICULOS: "/app/veiculos",
