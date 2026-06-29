@@ -6,6 +6,15 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.124.3] — Salvage · 2026-06-29
+
+**Os contatos importados do WhatsApp não entram mais na carteira de nenhum vendedor.** Eles continuam disponíveis apenas no Atendimento, sem responsável de carteira, até que sejam convertidos em clientes por uma revisão futura.
+
+### Fixed
+
+- **Contato importado não fica mais na carteira de um vendedor** — ao importar o histórico ou a agenda de um número de WhatsApp, cada contato entrava na carteira do gestor da loja, como se já fosse um cliente atribuído a ele. Agora os contatos importados entram sem vendedor responsável: aparecem no Atendimento, mas não pesam na carteira nem nos números de ninguém. Os contatos que já haviam sido importados também foram desvinculados.
+- **Relatórios por vendedor mais fiéis** — como os contatos importados não têm dono, deixaram de ser contados nos totais de carteira e de positivação por vendedor (o total geral e a soma por vendedor agora batem). A opção de transferir a carteira de um contato sem responsável também foi escondida, evitando erro.
+
 ## [0.124.2] — Salvage · 2026-06-28
 
 **Os contatos importados do WhatsApp não aparecem mais na lista de Clientes.** Eles ficam apenas no Atendimento, onde devem estar — a tela de Clientes volta a mostrar só os clientes de fato.
