@@ -1245,16 +1245,13 @@ export function PendingContactBanner({ customer, conversation }: IPendingContact
 }
 ```
 
-- [ ] **Step 2: Criar o barrel** `src/features/contact-review/index.ts`:
+- [ ] **Step 2: Criar o barrel** `src/features/contact-review/index.ts` (só o que já existe nesta task; `PendingContactsPage` é adicionada na Task 15):
 
 ```ts
 export { PendingContactBanner } from "./components/PendingContactBanner";
 export { ConvertContactDialog } from "./components/ConvertContactDialog";
 export { MarkNotCustomerDialog } from "./components/MarkNotCustomerDialog";
-export { PendingContactsPage } from "./pages/PendingContactsPage";
 ```
-
-(`PendingContactsPage` é criada na Task 15; se o build rodar antes dela, comente essa linha e reative na Task 15.)
 
 - [ ] **Step 3: Inserir a faixa na ficha** — em `src/features/customers/components/ProfileHeader.tsx`, dentro do `<header>`, logo após `<ProfileContactRow customer={customer} />` (e antes do bloco de botões de ação):
 
@@ -1282,6 +1279,8 @@ git commit -m "feat(contact-review): faixa de contato pendente na ficha do Atend
 ---
 
 ## FASE E — Fila de revisão (staff)
+
+> **Ordem de execução desta fase (dependências de import):** Task 13 → criar `PendingContactsTable` (define `IPendingContactsViewProps`) → Task 16 (Cards) → Task 17 (Split) → criar `PendingContactsPage` + adicionar `export { PendingContactsPage }` ao barrel → Task 14 (rota, que importa a página do barrel). Por isso a Task 15 é dividida em 15a (Tabela) e 15b (Página + barrel), e a Task 14 roda por último. Nenhum stub temporário nem import quebrado em ponto algum.
 
 ### Task 13: Hook `usePendingContacts`
 
