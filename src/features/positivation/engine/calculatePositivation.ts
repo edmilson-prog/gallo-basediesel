@@ -176,6 +176,7 @@ export function calculatePositivation(
 
   const grouped = new Map<ID, ICustomer[]>();
   for (const customer of eligible) {
+    if (!customer.sellerId) continue; // unowned imported anchors aren't in any wallet
     const bucket = grouped.get(customer.sellerId) ?? [];
     bucket.push(customer);
     grouped.set(customer.sellerId, bucket);

@@ -34,7 +34,11 @@ export function StatusWalletCard({ customer }: IStatusWalletCardProps) {
   const sellerQuery = useQuery({
     queryKey: ["seller", customer.sellerId] as const,
     staleTime: 5 * 60 * 1000,
-    queryFn: () => sellersProvider.get(customer.sellerId).catch(() => null),
+    // Imported pending_review anchors have no wallet owner (seller_id null) —
+    // skip the lookup and render the "—" placeholder below.
+    enabled: customer.sellerId !== null,
+    queryFn: () =>
+      customer.sellerId ? sellersProvider.get(customer.sellerId).catch(() => null) : null,
   });
 
   const sellersListQuery = useQuery({
@@ -52,7 +56,7 @@ export function StatusWalletCard({ customer }: IStatusWalletCardProps) {
 
   const seller = sellerQuery.data;
   const store = storeQuery.data;
-  const sellerHue = hashHue(customer.sellerId);
+  const sellerHue = hashHue(customer.sellerId ?? "");
   const sellerColors = avatarColors(sellerHue);
 
   return (

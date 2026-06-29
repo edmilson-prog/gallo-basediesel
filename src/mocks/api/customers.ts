@@ -145,7 +145,7 @@ function matches(
   if (
     params.sellerIds &&
     params.sellerIds.length > 0 &&
-    !params.sellerIds.includes(customer.sellerId)
+    !params.sellerIds.includes(customer.sellerId ?? "")
   )
     return false;
 
@@ -239,7 +239,7 @@ function compareCustomers(
     case "document":
       return compareStr(documentDigits(a), documentDigits(b));
     case "seller":
-      return compareStr(sellerNames.get(a.sellerId) ?? "", sellerNames.get(b.sellerId) ?? "");
+      return compareStr(sellerNames.get(a.sellerId ?? "") ?? "", sellerNames.get(b.sellerId ?? "") ?? "");
     case "tags":
       return compareStr(a.tags[0] ?? "", b.tags[0] ?? "");
     case "city":

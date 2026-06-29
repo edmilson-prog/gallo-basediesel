@@ -69,7 +69,7 @@ export function generateQuote(ctx: ISeededContext, input: IGenerateQuoteInput): 
       origin === "sdr"
         ? SDR_SELLER_ID
         : input.participant.kind === "customer"
-          ? input.participant.entity.sellerId
+          ? (input.participant.entity.sellerId ?? "")
           : ctx.pick(input.sellerIds),
     items,
     subtotal,

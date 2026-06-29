@@ -213,33 +213,15 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
       // formatting in the base varies: +55..., (55) 9..., etc.).
       const { data } = await admin
         .from("customers")
-        .select("id, seller_id, phone")
+        .select("id, phone")
         .eq("store_id", storeId)
         .like("phone", `%${phoneDigits.slice(-8)}`);
       const row = (data ?? []).find(
         (candidate) => String(candidate.phone).replace(/\D/g, "") === phoneDigits,
       );
-      return row ? { id: row.id as string, sellerId: row.seller_id as string } : null;
+      return row ? { id: row.id as string } : null;
     },
-    async resolveDefaultSellerId(storeId) {
-      const { data: store } = await admin
-        .from("stores")
-        .select("manager_id")
-        .eq("id", storeId)
-        .maybeSingle();
-      if (store?.manager_id) return store.manager_id as string;
-      const { data: seller } = await admin
-        .from("sellers")
-        .select("id")
-        .eq("store_id", storeId)
-        .eq("active", true)
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      if (!seller) throw new Error(`store ${storeId} has no active seller for auto-assignment`);
-      return seller.id as string;
-    },
-    async createPendingCustomer({ storeId, phone, sellerId, name }) {
+    async createPendingCustomer({ storeId, phone, name }) {
       const { data, error } = await admin
         .from("customers")
         .insert({
@@ -252,14 +234,15 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
           full_name: name ?? phone,
           // whatsapp_name holds the live profile name only (no phone fallback).
           whatsapp_name: name ?? null,
-          seller_id: sellerId,
+          // No wallet owner: imported anchors carry seller_id null until a manual
+          // conversion assigns a real seller (customers.seller_id is nullable).
           status: "ativo",
           tags: ["pending_review"],
         })
-        .select("id, seller_id")
+        .select("id")
         .single();
       if (error) throw new Error(`createPendingCustomer: ${error.message}`);
-      return { id: data.id as string, sellerId: data.seller_id as string };
+      return { id: data.id as string };
     },
     async applyInboundContactName(customerId, name) {
       // Read first so a manually-entered display name is never overwritten.

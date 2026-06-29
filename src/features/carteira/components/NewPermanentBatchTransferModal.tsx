@@ -68,6 +68,7 @@ export function NewPermanentBatchTransferModal({
   const groupsByFrom = useMemo(() => {
     const map = new Map<ID, ID[]>();
     customers.forEach((c) => {
+      if (!c.sellerId) return; // unowned imported anchors aren't in any wallet
       const arr = map.get(c.sellerId) ?? [];
       arr.push(c.id);
       map.set(c.sellerId, arr);

@@ -12,7 +12,7 @@ import type { IEvolutionStoredMessage } from "../evolution/instance";
 const ACCOUNT = { id: "acc-1", storeId: "store-1" };
 
 interface IFakeState {
-  customers: Array<{ id: string; phoneDigits: string; sellerId: string }>;
+  customers: Array<{ id: string; phoneDigits: string }>;
   conversations: Array<Record<string, unknown>>;
   messages: Array<Record<string, unknown>>;
   known: Set<string>;
@@ -29,13 +29,12 @@ function makeDb(state: IFakeState): IImportDb {
   return {
     findCustomerByPhone: async (_storeId, digits) => {
       const found = state.customers.find((c) => c.phoneDigits === digits);
-      return found ? { id: found.id, sellerId: found.sellerId } : null;
+      return found ? { id: found.id } : null;
     },
-    resolveDefaultSellerId: async () => "seller-manager",
-    createPendingCustomer: async ({ phone, sellerId }) => {
-      const customer = { id: nextId("cust"), phoneDigits: phone.replace(/\D/g, ""), sellerId };
+    createPendingCustomer: async ({ phone }) => {
+      const customer = { id: nextId("cust"), phoneDigits: phone.replace(/\D/g, "") };
       state.customers.push(customer);
-      return { id: customer.id, sellerId };
+      return { id: customer.id };
     },
     findOpenConversation: async (customerId) => {
       const found = state.conversations.find((c) => c.customerId === customerId);
@@ -368,7 +367,7 @@ describe("landNormalizedChat", () => {
 
   it("reuses an existing customer and open conversation (no duplicate creation)", async () => {
     const state = emptyState();
-    state.customers.push({ id: "cust-existing", phoneDigits: "5555988887777", sellerId: "s1" });
+    state.customers.push({ id: "cust-existing", phoneDigits: "5555988887777" });
     state.conversations.push({ id: "conv-existing", customerId: "cust-existing" });
     const stats = emptyImportStats();
     await landNormalizedChat({

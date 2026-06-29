@@ -90,7 +90,7 @@ export function PortfolioRiskList({
             </TableHeader>
             <TableBody>
               {rows.map(({ customer, daysRemaining }) => {
-                const seller = sellersById.get(customer.sellerId);
+                const seller = sellersById.get(customer.sellerId ?? "");
                 return (
                   <TableRow key={customer.id}>
                     <TableCell>

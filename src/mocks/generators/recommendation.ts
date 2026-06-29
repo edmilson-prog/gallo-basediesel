@@ -47,7 +47,7 @@ export function generateRecommendation(
   return {
     id,
     storeId: SEED_STORE_ID,
-    sellerId: options.customer.sellerId,
+    sellerId: options.customer.sellerId ?? "",
     subjectId: options.customer.id,
     type,
     priority: pickWeighted(ctx, PRIORITY_WEIGHTS),

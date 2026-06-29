@@ -1,0 +1,15 @@
+-- Imported WhatsApp contacts (pending_review anchors) must not be pinned to a
+-- wallet owner. Make customers.seller_id nullable so the import/webhook can
+-- create the conversation anchor with NO seller; a real seller is assigned only
+-- through a future manual conversion.
+--
+-- RLS is unchanged and stays safe with NULL (no policy rewrite needed):
+--   - SELECT: `seller_id = current_seller_id()` is NULL (never true) for an
+--     unowned row, so a non-staff seller can't see it by wallet — visibility
+--     comes only from instance access (seller_handles_customer ->
+--     can_access_conversation) or is_staff().
+--   - INSERT/UPDATE/DELETE: the same predicate never holds for NULL, so a
+--     non-staff seller still can't create, take over, or delete an unowned row.
+--     The Edge Functions write with service_role (RLS bypassed) on purpose.
+-- The existing FK customers.seller_id -> sellers(id) already permits NULL.
+alter table public.customers alter column seller_id drop not null;

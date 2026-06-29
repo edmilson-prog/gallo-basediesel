@@ -84,16 +84,13 @@ export interface IImportSource {
 
 /** Injected persistence surface — service_role adapter in the Edge Function. */
 export interface IImportDb {
-  findCustomerByPhone(
-    storeId: string,
-    phoneDigits: string,
-  ): Promise<{ id: string; sellerId: string } | null>;
-  resolveDefaultSellerId(storeId: string): Promise<string>;
-  createPendingCustomer(input: {
-    storeId: string;
-    phone: string;
-    sellerId: string;
-  }): Promise<{ id: string; sellerId: string }>;
+  findCustomerByPhone(storeId: string, phoneDigits: string): Promise<{ id: string } | null>;
+  /**
+   * Create the contact anchor for an imported chat. Imported customers carry NO
+   * wallet owner (seller_id null) — they only anchor a pool conversation in the
+   * Inbox and become a real, owned customer through a manual conversion.
+   */
+  createPendingCustomer(input: { storeId: string; phone: string }): Promise<{ id: string }>;
   findOpenConversation(customerId: string, accountId: string): Promise<{ id: string } | null>;
   createConversation(input: {
     storeId: string;
@@ -373,8 +370,7 @@ export async function landNormalizedChat(args: {
   const phoneDigits = phone.replace(/\D/g, "");
   let customer = await db.findCustomerByPhone(account.storeId, phoneDigits);
   if (!customer) {
-    const sellerId = await db.resolveDefaultSellerId(account.storeId);
-    customer = await db.createPendingCustomer({ storeId: account.storeId, phone, sellerId });
+    customer = await db.createPendingCustomer({ storeId: account.storeId, phone });
     stats.customersCreated++;
   }
 
@@ -390,13 +386,12 @@ export async function landNormalizedChat(args: {
       storeId: account.storeId,
       customerId: customer.id,
       accountId: account.id,
-      // Imported conversations land UNASSIGNED (pool), never auto-assigned to
-      // the customer's wallet owner. Connecting an instance must drop its
-      // history into the queue for whoever operates that number to pick up —
-      // not pin hundreds of chats to the wallet owner (usually the store owner,
-      // who does not staff the inbox). Visibility comes from instance access
-      // (the unassigned branch of can_access_conversation); the wallet (the
-      // customer's seller_id, set on customer creation) is untouched.
+      // Imported conversations land UNASSIGNED (pool), never auto-assigned to a
+      // seller. Connecting an instance must drop its history into the queue for
+      // whoever operates that number to pick up — not pin hundreds of chats to
+      // anyone. Visibility comes from instance access (the unassigned branch of
+      // can_access_conversation); the imported customer carries NO wallet owner
+      // (seller_id null) until manually converted.
       assignedSellerId: null,
       status: "em_andamento",
       createdAt: oldest,

@@ -31,19 +31,21 @@ export function emptyContactsImportStats(): IContactsImportStats {
 export interface IContactsImportDb {
   /** Same suffix-narrow + exact-digit match the webhook/history import use. */
   findCustomerByPhone(storeId: string, phoneDigits: string): Promise<{ id: string } | null>;
-  resolveDefaultSellerId(storeId: string): Promise<string>;
+  /**
+   * Create the contact anchor. Imported contacts carry NO wallet owner
+   * (seller_id null) — owned only after a manual conversion.
+   */
   createPendingContact(input: {
     storeId: string;
     phone: string;
     name?: string;
-    sellerId: string;
   }): Promise<{ id: string }>;
 }
 
 /**
  * Land a contact list as customers. New contacts become `pending_review`
- * customers owned by the store's default seller; already-known phones are
- * counted but untouched.
+ * customers with NO wallet owner (seller_id null) — owned only after a manual
+ * conversion; already-known phones are counted but untouched.
  */
 export async function processContactsImport(args: {
   storeId: string;
@@ -56,10 +58,6 @@ export async function processContactsImport(args: {
   const stats = emptyContactsImportStats();
   stats.contactsFound = contacts.length;
 
-  // Resolve the default seller once, lazily on the first create — avoids the
-  // "no active seller" throw when every contact already exists.
-  let defaultSellerId: string | null = null;
-
   for (const contact of contacts) {
     const phoneDigits = contact.phone.replace(/\D/g, "");
     try {
@@ -68,12 +66,10 @@ export async function processContactsImport(args: {
         stats.customersExisting++;
         continue;
       }
-      if (defaultSellerId === null) defaultSellerId = await db.resolveDefaultSellerId(storeId);
       await db.createPendingContact({
         storeId,
         phone: contact.phone,
         name: contact.name,
-        sellerId: defaultSellerId,
       });
       stats.customersCreated++;
     } catch (error) {

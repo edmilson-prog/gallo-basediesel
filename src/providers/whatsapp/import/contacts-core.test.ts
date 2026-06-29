@@ -4,7 +4,6 @@ import { processContactsImport, type IContactsImportDb } from "./contacts-core";
 function makeDb(overrides: Partial<IContactsImportDb> = {}): IContactsImportDb {
   return {
     findCustomerByPhone: vi.fn(async () => null),
-    resolveDefaultSellerId: vi.fn(async () => "seller-1"),
     createPendingContact: vi.fn(async () => ({ id: "new" })),
     ...overrides,
   };
@@ -32,40 +31,30 @@ describe("processContactsImport", () => {
       storeId: "store-1",
       phone: "+5554999998888",
       name: "Maria",
-      sellerId: "seller-1",
     });
     expect(db.createPendingContact).toHaveBeenCalledWith({
       storeId: "store-1",
       phone: "+5511777776666",
       name: undefined,
-      sellerId: "seller-1",
     });
   });
 
-  it("resolves the default seller lazily — never when all contacts already exist", async () => {
-    const resolveDefaultSellerId = vi.fn(async () => "seller-1");
-    const db = makeDb({
-      findCustomerByPhone: vi.fn(async () => ({ id: "existing" })),
-      resolveDefaultSellerId,
-    });
-    const stats = await processContactsImport({
-      storeId: "store-1",
-      contacts: [{ phone: "+5554999998888" }, { phone: "+5511888887777" }],
-      db,
-    });
-    expect(stats).toMatchObject({ contactsFound: 2, customersCreated: 0, customersExisting: 2 });
-    expect(resolveDefaultSellerId).not.toHaveBeenCalled();
-  });
-
-  it("resolves the default seller only once across many creates", async () => {
-    const resolveDefaultSellerId = vi.fn(async () => "seller-1");
-    const db = makeDb({ resolveDefaultSellerId });
+  it("imported contacts carry no wallet owner — never assigns a seller", async () => {
+    const createPendingContact = vi.fn(async () => ({ id: "new" }));
+    const db = makeDb({ createPendingContact });
     await processContactsImport({
       storeId: "store-1",
-      contacts: [{ phone: "+5554999998888" }, { phone: "+5511888887777" }],
+      contacts: [{ phone: "+5554999998888" }],
       db,
     });
-    expect(resolveDefaultSellerId).toHaveBeenCalledTimes(1);
+    // The import never passes a sellerId — the anchor's seller_id stays null
+    // (DB default), so the contact is unowned until a manual conversion.
+    expect(createPendingContact).toHaveBeenCalledWith({
+      storeId: "store-1",
+      phone: "+5554999998888",
+      name: undefined,
+    });
+    expect(createPendingContact.mock.calls[0]?.[0]).not.toHaveProperty("sellerId");
   });
 
   it("counts a failed contact and keeps going (never aborts the run)", async () => {

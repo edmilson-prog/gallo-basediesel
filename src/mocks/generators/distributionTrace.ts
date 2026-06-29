@@ -66,10 +66,10 @@ export function generateDistributionTrace(
   let candidates: IDistributionTrace["candidatesEvaluated"] = [];
 
   if (matched === "carteira" && customer) {
-    selectedSellerId = customer.sellerId;
+    selectedSellerId = customer.sellerId ?? "";
     candidates = [
       {
-        sellerId: customer.sellerId,
+        sellerId: customer.sellerId ?? "",
         reason: "carteira existente do cliente",
         selected: true,
       },

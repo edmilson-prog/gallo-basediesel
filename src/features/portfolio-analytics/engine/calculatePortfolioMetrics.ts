@@ -342,6 +342,7 @@ export function calculatePortfolioMetrics(
 
   const customersBySeller = new Map<ID, ICustomer[]>();
   for (const customer of context.customers) {
+    if (!customer.sellerId) continue; // unowned imported anchors aren't in any wallet
     const bucket = customersBySeller.get(customer.sellerId) ?? [];
     bucket.push(customer);
     customersBySeller.set(customer.sellerId, bucket);

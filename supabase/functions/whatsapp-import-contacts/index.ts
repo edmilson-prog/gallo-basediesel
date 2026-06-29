@@ -90,25 +90,7 @@ function makeContactsDb(admin: SupabaseClient): IContactsImportDb {
       );
       return row ? { id: row.id as string } : null;
     },
-    async resolveDefaultSellerId(storeId) {
-      const { data: store } = await admin
-        .from("stores")
-        .select("manager_id")
-        .eq("id", storeId)
-        .maybeSingle();
-      if (store?.manager_id) return store.manager_id as string;
-      const { data: seller } = await admin
-        .from("sellers")
-        .select("id")
-        .eq("store_id", storeId)
-        .eq("active", true)
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      if (!seller) throw new Error(`store ${storeId} has no active seller for auto-assignment`);
-      return seller.id as string;
-    },
-    async createPendingContact({ storeId, phone, name, sellerId }) {
+    async createPendingContact({ storeId, phone, name }) {
       const display = name && name.length > 0 ? name : phone;
       const { data, error } = await admin
         .from("customers")
@@ -119,7 +101,8 @@ function makeContactsDb(admin: SupabaseClient): IContactsImportDb {
           phone,
           full_name: display,
           whatsapp_name: name ?? null,
-          seller_id: sellerId,
+          // No wallet owner: imported anchors carry seller_id null until a manual
+          // conversion assigns a real seller (customers.seller_id is nullable).
           status: "ativo",
           tags: ["pending_review"],
         })
