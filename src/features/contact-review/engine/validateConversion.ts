@@ -1,3 +1,4 @@
+import { isValidCpf, isValidCnpj, onlyDigits } from "@/features/customers/utils/cnpjCpf";
 import type { ID } from "@/shared/types";
 import type { IConvertPendingContactInput } from "@/providers/data";
 
@@ -16,22 +17,20 @@ export interface IConversionValidationResult {
   errors: Partial<Record<keyof IConversionFormValues, string>>;
 }
 
-const digits = (v: string): string => (v ?? "").replace(/\D/g, "");
-
-/** Validate the quick-conversion form. Document is optional; when present it must be well-formed. */
+/** Validate the quick-conversion form. Document is optional; when present it must pass check-digit validation. */
 export function validateConversion(values: IConversionFormValues): IConversionValidationResult {
   const errors: IConversionValidationResult["errors"] = {};
   if (values.type === "B2C") {
     if (!values.fullName.trim()) errors.fullName = "Informe o nome completo.";
-    if (values.cpf.trim() && digits(values.cpf).length !== 11) errors.cpf = "CPF inválido.";
+    if (values.cpf.trim() && !isValidCpf(values.cpf)) errors.cpf = "CPF inválido.";
   } else {
     if (!values.nomeFantasia.trim()) errors.nomeFantasia = "Informe o nome fantasia.";
-    if (values.cnpj.trim() && digits(values.cnpj).length !== 14) errors.cnpj = "CNPJ inválido.";
+    if (values.cnpj.trim() && !isValidCnpj(values.cnpj)) errors.cnpj = "CNPJ inválido.";
   }
   return { valid: Object.keys(errors).length === 0, errors };
 }
 
-/** Map validated form values to the provider input (only the chosen type's fields). */
+/** Map validated form values to the provider input (only the chosen type's fields). Normalizes document to digits-only. */
 export function toConvertInput(
   customerId: ID,
   values: IConversionFormValues,
@@ -44,7 +43,7 @@ export function toConvertInput(
       type: "B2B",
       razaoSocial: values.razaoSocial.trim() || undefined,
       nomeFantasia: values.nomeFantasia.trim(),
-      cnpj: values.cnpj.trim() || undefined,
+      cnpj: values.cnpj.trim() ? onlyDigits(values.cnpj) : undefined,
       contactName: values.contactName.trim() || undefined,
       ...owner,
     };
@@ -53,7 +52,7 @@ export function toConvertInput(
     customerId,
     type: "B2C",
     fullName: values.fullName.trim(),
-    cpf: values.cpf.trim() || undefined,
+    cpf: values.cpf.trim() ? onlyDigits(values.cpf) : undefined,
     ...owner,
   };
 }
