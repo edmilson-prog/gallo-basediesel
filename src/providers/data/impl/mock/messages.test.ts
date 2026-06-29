@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { mockMessagesProvider } from "./messages";
+import { resetMockStorePerFile } from "@/mocks/test-setup";
+
+resetMockStorePerFile();
 
 describe("mockMessagesProvider.resolveMediaUrls", () => {
   it("passes through absolute refs and nulls non-navigable ones", async () => {

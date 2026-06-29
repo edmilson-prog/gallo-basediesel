@@ -52,7 +52,9 @@ export function PendingContactsSplit({ customers, onConvert, onDiscard, onRestor
             </div>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">{S.queue.empty}</p>
+          <p className="text-sm text-muted-foreground">
+            {onRestore ? S.queue.emptyDiscarded : S.queue.empty}
+          </p>
         )}
       </div>
     </div>

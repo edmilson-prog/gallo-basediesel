@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { mockCopilotProvider } from "./copilot";
 import { conversationsApi } from "@/mocks";
+import { resetMockStorePerFile } from "@/mocks/test-setup";
+
+resetMockStorePerFile();
 
 // SEED_STORE_ID = "00000000-0000-0000-0000-000000000001" (mirrors seedStore.ts).
 // We call conversationsApi directly (bypassing scopedListParams) because tests

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { IMessage } from "@/shared/types";
 import { mediaApi } from "../media";
+import { resetMockStorePerFile } from "@/mocks/test-setup";
+
+resetMockStorePerFile();
 
 function inbound(over: Partial<IMessage>): IMessage {
   return {

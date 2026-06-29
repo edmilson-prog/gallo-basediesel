@@ -70,7 +70,9 @@ export function ConvertContactDialog({
     queryFn: () => sellersProvider.list({ storeId: currentStoreId ?? undefined }),
     enabled: open && isStaff && Boolean(currentStoreId),
   });
-  const sellers = sellersQuery.data ?? [];
+  // Only active sellers can own a customer; an inactive (or soft-deleted) one
+  // would be rejected opaquely by the RPC, so don't offer it in the picker.
+  const sellers = (sellersQuery.data ?? []).filter((s) => s.active);
 
   const set = (patch: Partial<IConversionFormValues>) => setValues((v) => ({ ...v, ...patch }));
 

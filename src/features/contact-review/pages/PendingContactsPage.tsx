@@ -34,9 +34,12 @@ const STATUS_TABS: { id: StatusTab; label: string }[] = [
 export function PendingContactsPage() {
   const { currentStoreId } = useCurrentStore();
   const [search, setSearch] = useState("");
-  const [view, setView] = useState<ViewMode>(
-    () => (localStorage.getItem(VIEW_KEY) as ViewMode) || "table",
-  );
+  const [view, setView] = useState<ViewMode>(() => {
+    // Validate against known view ids — a stale/garbage localStorage value must
+    // not flow into the render switch (would fall through to an unintended view).
+    const stored = localStorage.getItem(VIEW_KEY);
+    return VIEWS.some((v) => v.id === stored) ? (stored as ViewMode) : "table";
+  });
   const [status, setStatus] = useState<StatusTab>("pending_review");
   const [convertTarget, setConvertTarget] = useState<ICustomer | null>(null);
   const [discardTarget, setDiscardTarget] = useState<ICustomer | null>(null);

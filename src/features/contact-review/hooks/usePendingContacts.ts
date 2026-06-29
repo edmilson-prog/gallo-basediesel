@@ -26,7 +26,11 @@ export function usePendingContacts(params: IUsePendingContactsParams) {
       }),
     enabled: Boolean(params.storeId),
     // Keep previous data while refetching (e.g. on search) so the list/count
-    // don't blank on every keystroke (TanStack Query v5 equivalent of keepPreviousData).
-    placeholderData: (prev) => prev,
+    // don't blank on every keystroke — but ONLY within the same status bucket.
+    // Crossing tabs (pending ↔ discarded) swaps the row set AND the action
+    // buttons, so carrying the other tab's rows over would briefly render the
+    // wrong actions (and a click would fire the wrong RPC). queryKey[5] = statusTag.
+    placeholderData: (prev, prevQuery) =>
+      prevQuery?.queryKey[5] === statusTag ? prev : undefined,
   });
 }

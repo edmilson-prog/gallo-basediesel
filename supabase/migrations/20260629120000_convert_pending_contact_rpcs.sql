@@ -1,8 +1,8 @@
--- Conversão manual de contato importado (pending_review) → cliente, e descarte.
--- Duas RPCs SECURITY DEFINER, gated por is_staff() OU acesso à conversa
--- (can_access_conversation), espelhando o padrão de public.transfer_conversation.
--- São a única porta que muta um contato sem dono; a RLS de customers_update
--- permanece intocada. Tudo numa transação atômica + trilha em audit_logs.
+-- Manual conversion of an imported contact (pending_review) → customer, plus discard.
+-- Two SECURITY DEFINER RPCs, gated by is_staff() OR conversation access
+-- (can_access_conversation), mirroring the public.transfer_conversation pattern.
+-- They are the only door that mutates an owner-less contact; the customers_update
+-- RLS stays untouched. Everything in one atomic transaction + an audit_logs trail.
 
 create or replace function public.convert_pending_contact(
   p_customer_id uuid,

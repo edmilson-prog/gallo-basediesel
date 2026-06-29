@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { mockAtendimentoMetricsProvider as p } from "./atendimentoMetrics";
 import { getMockState } from "@/mocks/store/mockStore";
+import { resetMockStorePerFile } from "@/mocks/test-setup";
+
+resetMockStorePerFile();
 
 const params = {
   from: "2000-01-01T00:00:00Z",
