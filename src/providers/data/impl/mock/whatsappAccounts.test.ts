@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { mockWhatsAppAccountsProvider } from "./whatsappAccounts";
+import { resetMockStorePerFile } from "@/mocks/test-setup";
+
+resetMockStorePerFile();
 
 describe("mockWhatsAppAccountsProvider.create", () => {
   it("persists a new instance and returns it with id/createdAt", async () => {

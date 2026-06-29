@@ -22,9 +22,10 @@ export const DEFAULT_PAGE_SIZE: PageSize = 50;
  * Tags that mark a customer as "not yet a real client" — imported WhatsApp
  * contacts (`pending_review`) that exist only to anchor a conversation in the
  * Inbox. The Clientes list hides them until a manual conversion promotes them.
+ * Also hides discarded contacts (`reviewed_not_customer`).
  * Applied unconditionally via {@link toListParams} (`excludeTags`).
  */
-export const HIDDEN_CUSTOMER_TAGS = ["pending_review"] as const;
+export const HIDDEN_CUSTOMER_TAGS = ["pending_review", "reviewed_not_customer"] as const;
 
 /**
  * Strongly-typed filter state owned by the customers list page.

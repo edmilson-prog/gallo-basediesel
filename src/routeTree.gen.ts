@@ -156,6 +156,7 @@ import { Route as AppClientesIdRouteImport } from './routes/app.clientes.$id'
 import { Route as AppCatalogoNovoRouteImport } from './routes/app.catalogo.novo'
 import { Route as AppCatalogoKitsRouteImport } from './routes/app.catalogo.kits'
 import { Route as AppCatalogoIdRouteImport } from './routes/app.catalogo.$id'
+import { Route as AppAtendimentoContatosPendentesRouteImport } from './routes/app.atendimento_.contatos-pendentes'
 import { Route as AppAtendimentoIdRouteImport } from './routes/app.atendimento.$id'
 import { Route as LojaContaPedidosIndexRouteImport } from './routes/loja.conta.pedidos.index'
 import { Route as LojaContaOrcamentosIndexRouteImport } from './routes/loja.conta.orcamentos.index'
@@ -956,6 +957,12 @@ const AppCatalogoIdRoute = AppCatalogoIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AppCatalogoRoute,
 } as any)
+const AppAtendimentoContatosPendentesRoute =
+  AppAtendimentoContatosPendentesRouteImport.update({
+    id: '/atendimento_/contatos-pendentes',
+    path: '/atendimento/contatos-pendentes',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppAtendimentoIdRoute = AppAtendimentoIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -1218,6 +1225,7 @@ export interface FileRoutesByFullPath {
   '/portal/': typeof PortalIndexRoute
   '/pwa/': typeof PwaIndexRoute
   '/app/atendimento/$id': typeof AppAtendimentoIdRoute
+  '/app/atendimento/contatos-pendentes': typeof AppAtendimentoContatosPendentesRoute
   '/app/catalogo/$id': typeof AppCatalogoIdRouteWithChildren
   '/app/catalogo/kits': typeof AppCatalogoKitsRoute
   '/app/catalogo/novo': typeof AppCatalogoNovoRoute
@@ -1387,6 +1395,7 @@ export interface FileRoutesByTo {
   '/portal': typeof PortalIndexRoute
   '/pwa': typeof PwaIndexRoute
   '/app/atendimento/$id': typeof AppAtendimentoIdRoute
+  '/app/atendimento/contatos-pendentes': typeof AppAtendimentoContatosPendentesRoute
   '/app/catalogo/$id': typeof AppCatalogoIdRouteWithChildren
   '/app/catalogo/kits': typeof AppCatalogoKitsRoute
   '/app/catalogo/novo': typeof AppCatalogoNovoRoute
@@ -1567,6 +1576,7 @@ export interface FileRoutesById {
   '/portal/': typeof PortalIndexRoute
   '/pwa/': typeof PwaIndexRoute
   '/app/atendimento/$id': typeof AppAtendimentoIdRoute
+  '/app/atendimento_/contatos-pendentes': typeof AppAtendimentoContatosPendentesRoute
   '/app/catalogo/$id': typeof AppCatalogoIdRouteWithChildren
   '/app/catalogo/kits': typeof AppCatalogoKitsRoute
   '/app/catalogo/novo': typeof AppCatalogoNovoRoute
@@ -1755,6 +1765,7 @@ export interface FileRouteTypes {
     | '/portal/'
     | '/pwa/'
     | '/app/atendimento/$id'
+    | '/app/atendimento/contatos-pendentes'
     | '/app/catalogo/$id'
     | '/app/catalogo/kits'
     | '/app/catalogo/novo'
@@ -1924,6 +1935,7 @@ export interface FileRouteTypes {
     | '/portal'
     | '/pwa'
     | '/app/atendimento/$id'
+    | '/app/atendimento/contatos-pendentes'
     | '/app/catalogo/$id'
     | '/app/catalogo/kits'
     | '/app/catalogo/novo'
@@ -2103,6 +2115,7 @@ export interface FileRouteTypes {
     | '/portal/'
     | '/pwa/'
     | '/app/atendimento/$id'
+    | '/app/atendimento_/contatos-pendentes'
     | '/app/catalogo/$id'
     | '/app/catalogo/kits'
     | '/app/catalogo/novo'
@@ -3279,6 +3292,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCatalogoIdRouteImport
       parentRoute: typeof AppCatalogoRoute
     }
+    '/app/atendimento_/contatos-pendentes': {
+      id: '/app/atendimento_/contatos-pendentes'
+      path: '/atendimento/contatos-pendentes'
+      fullPath: '/app/atendimento/contatos-pendentes'
+      preLoaderRoute: typeof AppAtendimentoContatosPendentesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/atendimento/$id': {
       id: '/app/atendimento/$id'
       path: '/$id'
@@ -3831,6 +3851,7 @@ interface AppRouteChildren {
   AppSdrRoute: typeof AppSdrRoute
   AppStorefrontAdminRoute: typeof AppStorefrontAdminRoute
   AppVeiculosRoute: typeof AppVeiculosRouteWithChildren
+  AppAtendimentoContatosPendentesRoute: typeof AppAtendimentoContatosPendentesRoute
   AppConfiguracoesAmbienteRoute: typeof AppConfiguracoesAmbienteRoute
   AppConfiguracoesAparenciaRoute: typeof AppConfiguracoesAparenciaRoute
   AppConfiguracoesAuditoriaRoute: typeof AppConfiguracoesAuditoriaRoute
@@ -3913,6 +3934,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSdrRoute: AppSdrRoute,
   AppStorefrontAdminRoute: AppStorefrontAdminRoute,
   AppVeiculosRoute: AppVeiculosRouteWithChildren,
+  AppAtendimentoContatosPendentesRoute: AppAtendimentoContatosPendentesRoute,
   AppConfiguracoesAmbienteRoute: AppConfiguracoesAmbienteRoute,
   AppConfiguracoesAparenciaRoute: AppConfiguracoesAparenciaRoute,
   AppConfiguracoesAuditoriaRoute: AppConfiguracoesAuditoriaRoute,

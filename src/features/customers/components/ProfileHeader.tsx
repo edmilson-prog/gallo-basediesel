@@ -13,6 +13,7 @@ import { ProfileBadges } from "./ProfileBadges";
 import { PreConversionBadge } from "./PreConversionBadge";
 import { ProfileMenu } from "./ProfileMenu";
 import { CoverageBanner } from "@/features/carteira/components/CoverageBanner";
+import { PendingContactBanner } from "@/features/contact-review";
 
 export interface IProfileHeaderProps {
   customer: ICustomer;
@@ -66,6 +67,10 @@ export function ProfileHeader({ customer, conversation, variant }: IProfileHeade
       </div>
 
       <ProfileContactRow customer={customer} />
+
+      {(customer.tags.includes("pending_review") || customer.tags.includes("reviewed_not_customer")) && (
+        <PendingContactBanner customer={customer} conversation={conversation} />
+      )}
 
       <CoverageBanner customer={customer} />
 

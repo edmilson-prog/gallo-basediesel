@@ -52,7 +52,7 @@ import type { IWhatsAppGoServersProvider } from "./whatsappGoServers";
 
 export type { IPaginatedResult, IPaginationParams } from "./_shared";
 
-export type { ICustomersProvider, IListCustomersParams } from "./customers";
+export type { ICustomersProvider, IListCustomersParams, IConvertPendingContactInput } from "./customers";
 export type {
   IVehiclesProvider,
   IListVehiclesParams,

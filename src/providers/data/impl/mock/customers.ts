@@ -52,4 +52,37 @@ export const mockCustomersProvider: ICustomersProvider = {
     if (!conv?.customerId) return null;
     return customersApi.get(conv.customerId).catch(() => null);
   },
+  convertPendingContact: async (input) => {
+    const updated = await customersApi.convertPendingContact(input);
+    logMockMutation({
+      action: "convert_pending_contact",
+      resource: "customer",
+      resourceId: updated.id,
+      after: updated,
+      storeId: updated.storeId,
+    });
+    return updated;
+  },
+  markContactNotCustomer: async (customerId) => {
+    const updated = await customersApi.markContactNotCustomer(customerId);
+    logMockMutation({
+      action: "mark_contact_not_customer",
+      resource: "customer",
+      resourceId: updated.id,
+      after: updated,
+      storeId: updated.storeId,
+    });
+    return updated;
+  },
+  restorePendingContact: async (customerId) => {
+    const updated = await customersApi.restorePendingContact(customerId);
+    logMockMutation({
+      action: "restore_pending_contact",
+      resource: "customer",
+      resourceId: updated.id,
+      after: updated,
+      storeId: updated.storeId,
+    });
+    return updated;
+  },
 };

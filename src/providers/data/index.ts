@@ -21,6 +21,7 @@ export type {
   IPaginationParams,
   ICustomersProvider,
   IListCustomersParams,
+  IConvertPendingContactInput,
   IVehiclesProvider,
   IListVehiclesParams,
   IAddServiceEntryInput,

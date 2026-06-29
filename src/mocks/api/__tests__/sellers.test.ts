@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { sellersApi } from "../sellers";
+import { resetMockStorePerFile } from "@/mocks/test-setup";
+
+resetMockStorePerFile();
 
 const STORE = "00000000-0000-0000-0000-000000000001";
 

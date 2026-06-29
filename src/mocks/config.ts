@@ -105,13 +105,16 @@ export const LATENCY_MAX_MS = 180;
 
 /**
  * Probability (0..1) that any given API call rejects with a `MockNetworkError`.
- * Zero in demo/preview builds; small in dev so loading & error states are
- * naturally exercised.
+ * ON only on the Vite dev server (DEV=true, MODE≠'test'). OFF for:
+ *   - Vitest (DEV=true, MODE='test') → deterministic test results
+ *   - any build incl. `bun run build:dev` (DEV=false) → clean bundle
+ *   - preview / production → no surprises in shipped code
  */
-export const ERROR_RATE = import.meta.env.DEV ? 0.005 : 0;
+export const ERROR_RATE = import.meta.env.DEV && import.meta.env.MODE !== "test" ? 0.005 : 0;
 
-/** When true, each API call prints a compact line to the console. */
-export const MOCK_LOGS_ENABLED = import.meta.env.DEV;
+/** When true, each API call prints a compact line to the console.
+ *  Active on dev server only (not vitest, not any build). */
+export const MOCK_LOGS_ENABLED = import.meta.env.DEV && import.meta.env.MODE !== "test";
 
 /** localStorage key holding the last seed actively used (debug aid; never required). */
 export const LOCALSTORAGE_SEED_KEY = "gallo-mock-seed";
