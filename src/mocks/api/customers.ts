@@ -1,4 +1,5 @@
 import type { ABCClass, ICustomer, ICustomerNote, ID } from "@/shared/types";
+import type { IConvertPendingContactInput } from "@/providers/data/contracts/customers";
 import {
   selectAllVehicles,
   selectCustomerById,
@@ -387,6 +388,64 @@ export const customersApi = {
         const customer = selectCustomerById(customerId);
         if (!customer) throw new MockNotFoundError("customer", customerId);
         return [...customer.notes].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      },
+      { payload: { customerId } },
+    );
+  },
+
+  async convertPendingContact(input: IConvertPendingContactInput): Promise<ICustomer> {
+    return runApi(
+      "customersApi",
+      "convertPendingContact",
+      () => {
+        const existing = selectCustomerById(input.customerId);
+        if (!existing) throw new MockNotFoundError("customer", input.customerId);
+        if (!existing.tags.includes("pending_review")) {
+          throw new MockValidationError("contact is not pending review", "tags");
+        }
+        const tags = existing.tags.filter((t) => t !== "pending_review");
+        const sellerId = input.sellerId ?? existing.sellerId ?? null;
+        const patch =
+          input.type === "B2B"
+            ? {
+                type: "B2B" as const,
+                sellerId,
+                tags,
+                razaoSocial: input.razaoSocial ?? "",
+                nomeFantasia: input.nomeFantasia ?? "",
+                cnpj: input.cnpj ?? "",
+                contactName: input.contactName ?? "",
+              }
+            : {
+                type: "B2C" as const,
+                sellerId,
+                tags,
+                fullName: input.fullName ?? "",
+                cpf: input.cpf ?? "",
+              };
+        const updated = patchById("customers", input.customerId, patch as Partial<ICustomer>);
+        if (!updated) throw new MockNotFoundError("customer", input.customerId);
+        return updated;
+      },
+      { payload: input },
+    );
+  },
+
+  async markContactNotCustomer(customerId: ID): Promise<ICustomer> {
+    return runApi(
+      "customersApi",
+      "markContactNotCustomer",
+      () => {
+        const existing = selectCustomerById(customerId);
+        if (!existing) throw new MockNotFoundError("customer", customerId);
+        if (!existing.tags.includes("pending_review")) {
+          throw new MockValidationError("contact is not pending review", "tags");
+        }
+        const tags = existing.tags.filter((t) => t !== "pending_review");
+        if (!tags.includes("reviewed_not_customer")) tags.push("reviewed_not_customer");
+        const updated = patchById("customers", customerId, { tags } as Partial<ICustomer>);
+        if (!updated) throw new MockNotFoundError("customer", customerId);
+        return updated;
       },
       { payload: { customerId } },
     );
