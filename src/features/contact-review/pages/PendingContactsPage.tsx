@@ -34,6 +34,7 @@ export function PendingContactsPage() {
 
   const query = usePendingContacts({ storeId: currentStoreId, search, page: 1, pageSize: 200 });
   const customers = useMemo(() => query.data?.data ?? [], [query.data]);
+  const total = query.data?.total ?? 0;
 
   const viewProps = {
     customers,
@@ -93,6 +94,9 @@ export function PendingContactsPage() {
           <PendingContactsCards {...viewProps} />
         ) : (
           <PendingContactsSplit {...viewProps} />
+        )}
+        {customers.length > 0 && total > customers.length && (
+          <p className="mt-3 text-center text-xs text-muted-foreground">{S.queue.truncatedHint}</p>
         )}
       </div>
 

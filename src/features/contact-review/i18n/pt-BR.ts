@@ -44,5 +44,6 @@ export const CONTACT_REVIEW_STRINGS = {
     columns: { contact: "Contato", phone: "Telefone", origin: "Origem", received: "Recebido", actions: "" },
     views: { table: "Tabela", cards: "Cards", split: "Lista" },
     noName: "(sem nome)",
+    truncatedHint: "Mostrando os primeiros 200 contatos. Use a busca para encontrar um específico.",
   },
 } as const;
