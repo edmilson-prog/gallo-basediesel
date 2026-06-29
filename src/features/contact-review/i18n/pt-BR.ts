@@ -37,6 +37,13 @@ export const CONTACT_REVIEW_STRINGS = {
     success: "Contato marcado como não-cliente.",
     failure: "Não foi possível atualizar o contato.",
   },
+  discarded: {
+    title: "Contato marcado como “não é cliente”",
+    restore: "Devolver à fila",
+    submitting: "Devolvendo…",
+    success: "Contato devolvido à fila de pendentes.",
+    failure: "Não foi possível devolver o contato.",
+  },
   queue: {
     title: "Contatos pendentes",
     search: "Buscar nome ou telefone…",

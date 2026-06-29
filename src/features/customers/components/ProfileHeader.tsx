@@ -68,7 +68,7 @@ export function ProfileHeader({ customer, conversation, variant }: IProfileHeade
 
       <ProfileContactRow customer={customer} />
 
-      {customer.tags.includes("pending_review") && (
+      {(customer.tags.includes("pending_review") || customer.tags.includes("reviewed_not_customer")) && (
         <PendingContactBanner customer={customer} conversation={conversation} />
       )}
 
