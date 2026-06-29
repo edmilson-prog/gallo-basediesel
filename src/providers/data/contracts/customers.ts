@@ -113,4 +113,6 @@ export interface ICustomersProvider {
   convertPendingContact(input: IConvertPendingContactInput): Promise<ICustomer>;
   /** Mark a pending_review contact as reviewed-and-not-a-customer (archived). */
   markContactNotCustomer(customerId: ID): Promise<ICustomer>;
+  /** Undo a discard — swaps reviewed_not_customer back to pending_review. */
+  restorePendingContact(customerId: ID): Promise<ICustomer>;
 }

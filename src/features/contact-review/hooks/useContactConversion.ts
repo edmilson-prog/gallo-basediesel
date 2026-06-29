@@ -7,6 +7,7 @@ export interface IUseContactConversionResult {
   saving: boolean;
   convert: (input: IConvertPendingContactInput, conversationId?: ID | null) => Promise<ICustomer>;
   discard: (customerId: ID, conversationId?: ID | null) => Promise<ICustomer>;
+  restore: (customerId: ID, conversationId?: ID | null) => Promise<ICustomer>;
 }
 
 export function useContactConversion(): IUseContactConversionResult {
@@ -56,5 +57,19 @@ export function useContactConversion(): IUseContactConversionResult {
     [provider, invalidate],
   );
 
-  return { saving, convert, discard };
+  const restore = useCallback(
+    async (customerId: ID, conversationId?: ID | null) => {
+      setSaving(true);
+      try {
+        const result = await provider.restorePendingContact(customerId);
+        invalidate(customerId, conversationId);
+        return result;
+      } finally {
+        setSaving(false);
+      }
+    },
+    [provider, invalidate],
+  );
+
+  return { saving, convert, discard, restore };
 }

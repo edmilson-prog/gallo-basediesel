@@ -74,4 +74,15 @@ export const mockCustomersProvider: ICustomersProvider = {
     });
     return updated;
   },
+  restorePendingContact: async (customerId) => {
+    const updated = await customersApi.restorePendingContact(customerId);
+    logMockMutation({
+      action: "restore_pending_contact",
+      resource: "customer",
+      resourceId: updated.id,
+      after: updated,
+      storeId: updated.storeId,
+    });
+    return updated;
+  },
 };

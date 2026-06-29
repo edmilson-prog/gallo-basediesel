@@ -432,4 +432,14 @@ export const supabaseCustomersProvider: ICustomersProvider = {
     if (!data) throw new Error("[supabase] customers.markContactNotCustomer returned no row");
     return rowToCustomer(data as unknown as CustomerRow, []);
   },
+
+  async restorePendingContact(customerId: ID): Promise<ICustomer> {
+    const { data, error } = await getSupabaseClient()
+      .rpc("restore_pending_contact", { p_customer_id: customerId })
+      .maybeSingle();
+    if (error)
+      throw new Error(`[supabase] customers.restorePendingContact(${customerId}) failed: ${error.message}`);
+    if (!data) throw new Error("[supabase] customers.restorePendingContact returned no row");
+    return rowToCustomer(data as unknown as CustomerRow, []);
+  },
 };

@@ -450,4 +450,24 @@ export const customersApi = {
       { payload: { customerId } },
     );
   },
+
+  async restorePendingContact(customerId: ID): Promise<ICustomer> {
+    return runApi(
+      "customersApi",
+      "restorePendingContact",
+      () => {
+        const existing = selectCustomerById(customerId);
+        if (!existing) throw new MockNotFoundError("customer", customerId);
+        if (!existing.tags.includes("reviewed_not_customer")) {
+          throw new MockValidationError("contact is not a reviewed non-customer", "tags");
+        }
+        const tags = existing.tags.filter((t) => t !== "reviewed_not_customer");
+        if (!tags.includes("pending_review")) tags.push("pending_review");
+        const updated = patchById("customers", customerId, { tags } as Partial<ICustomer>);
+        if (!updated) throw new MockNotFoundError("customer", customerId);
+        return updated;
+      },
+      { payload: { customerId } },
+    );
+  },
 };
