@@ -999,6 +999,80 @@ begin
 end $conv$;
 reset role;
 
+-- ---------------------------------------------------------------------------
+-- Fix 20260629130000: mark_contact_not_customer audit correto + restore_pending_contact
+-- (undo de descarte: reviewed_not_customer → pending_review).
+-- Guard: pula até a migration existir (restore_pending_contact presente).
+-- Fixtures criados como owner; operações como lucas (não-staff COM conversa). Rolled back com a suíte.
+-- ---------------------------------------------------------------------------
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"9a418578-2671-4141-a15a-d39b2fd13af7","role":"authenticated","app_metadata":{"role":"owner","seller_id":"57706ecc-01b5-4a96-b403-0359a4bb767f","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+do $mark$
+declare
+  anchor_mark uuid := gen_random_uuid();
+  conv_mark uuid := gen_random_uuid();
+begin
+  if to_regprocedure('public.restore_pending_contact(uuid)') is null then
+    return; -- migration ainda não aplicada em prod; pula.
+  end if;
+  insert into public.customers (id, store_id, type, phone, full_name, seller_id, status, tags)
+    values (anchor_mark, '00000000-0000-0000-0000-000000000001', 'B2C', '+550000000293', '+550000000293', null, 'ativo', array['pending_review']);
+  -- Conversa atribuída ao lucas, sem número (whatsapp_account_id null) → can_access_conversation = true para ele.
+  insert into public.conversations (id, store_id, customer_id, assigned_seller_id, whatsapp_account_id, channel, status, last_message_at)
+    values (conv_mark, '00000000-0000-0000-0000-000000000001', anchor_mark, '5a6400ed-5aec-4bf1-b641-31635f15c887', null, 'whatsapp', 'aguardando', now());
+  perform set_config('mark.anchor_mark', anchor_mark::text, true);
+end $mark$;
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+do $mark$
+declare
+  anchor_mark uuid := nullif(current_setting('mark.anchor_mark', true), '')::uuid;
+  v_tags text[];
+begin
+  if anchor_mark is null then
+    return; -- migration não aplicada (fixtures não criados); pula.
+  end if;
+
+  -- (1) Não-staff COM acesso à conversa: descarta o contato.
+  perform public.mark_contact_not_customer(anchor_mark);
+  select tags into v_tags from public.customers where id = anchor_mark;
+  if not (v_tags @> array['reviewed_not_customer']) then
+    raise exception 'mark: tag reviewed_not_customer must be present after mark';
+  end if;
+  if v_tags @> array['pending_review'] then
+    raise exception 'mark: tag pending_review must be removed after mark';
+  end if;
+
+  -- (2) Restaura o contato (undo discard): pending_review retorna.
+  perform public.restore_pending_contact(anchor_mark);
+  select tags into v_tags from public.customers where id = anchor_mark;
+  if not (v_tags @> array['pending_review']) then
+    raise exception 'restore: tag pending_review must be present after restore';
+  end if;
+  if v_tags @> array['reviewed_not_customer'] then
+    raise exception 'restore: tag reviewed_not_customer must be removed after restore';
+  end if;
+
+  -- (3) Idempotência: restaurar de novo deve falhar (já não é reviewed_not_customer).
+  begin
+    perform public.restore_pending_contact(anchor_mark);
+    raise exception 'restore: second restore should be rejected (not reviewed_not_customer)';
+  exception when others then
+    if sqlstate <> '22023' then raise; end if; -- esperado: 22023
+  end;
+end $mark$;
+reset role;
+
 select 'ALL RLS REGRESSION TESTS PASSED' as result;
 
 rollback;
