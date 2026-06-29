@@ -1,6 +1,19 @@
 import type { ABCClass, ICustomer, ICustomerNote, ID } from "@/shared/types";
 import type { IPaginatedResult, IPaginationParams } from "./_shared";
 
+export interface IConvertPendingContactInput {
+  customerId: ID;
+  type: ICustomer["type"];
+  fullName?: string;
+  cpf?: string;
+  razaoSocial?: string;
+  nomeFantasia?: string;
+  cnpj?: string;
+  contactName?: string;
+  /** Wallet owner. Ignored for non-staff callers (RPC forces the caller). */
+  sellerId?: ID | null;
+}
+
 /** Recency bucket — days since last purchase. */
 export type RecencyBucket = "0-30" | "31-90" | "91-180" | "180+";
 
@@ -96,4 +109,8 @@ export interface ICustomersProvider {
    * `conversation_customer` RPC. Notes are not embedded on this pool path.
    */
   getViaConversation(conversationId: ID): Promise<ICustomer | null>;
+  /** Promote an imported pending_review contact to a real customer. */
+  convertPendingContact(input: IConvertPendingContactInput): Promise<ICustomer>;
+  /** Mark a pending_review contact as reviewed-and-not-a-customer (archived). */
+  markContactNotCustomer(customerId: ID): Promise<ICustomer>;
 }
