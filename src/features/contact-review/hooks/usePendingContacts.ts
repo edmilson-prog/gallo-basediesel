@@ -22,5 +22,8 @@ export function usePendingContacts(params: IUsePendingContactsParams) {
         pageSize: params.pageSize,
       }),
     enabled: Boolean(params.storeId),
+    // Keep previous data while refetching (e.g. on search) so the list/count
+    // don't blank on every keystroke (TanStack Query v5 equivalent of keepPreviousData).
+    placeholderData: (prev) => prev,
   });
 }
