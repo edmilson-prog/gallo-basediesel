@@ -10,7 +10,7 @@ import type {
   IPortalContract,
   IPortalSettings,
 } from "@/shared/types";
-import type { IListCustomersParams, ICustomersProvider } from "../../contracts/customers";
+import type { IListCustomersParams, ICustomersProvider, IConvertPendingContactInput } from "../../contracts/customers";
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
 
@@ -291,6 +291,14 @@ export const supabaseCustomersProvider: ICustomersProvider = {
       query = query.not("tags", "ov", `{${params.excludeTags.join(",")}}`);
     }
 
+    // Include filters (mirror the mock's AND semantics — customer must carry ALL).
+    if (params.tag) {
+      query = query.contains("tags", [params.tag]);
+    }
+    if (params.tags && params.tags.length > 0) {
+      query = query.contains("tags", params.tags);
+    }
+
     const searchOr = params.search ? buildCustomerSearchOr(params.search) : null;
     if (searchOr) query = query.or(searchOr);
 
@@ -392,6 +400,36 @@ export const supabaseCustomersProvider: ICustomersProvider = {
         `[supabase] customers.getViaConversation(${conversationId}) failed: ${error.message}`,
       );
     if (!data) return null;
+    return rowToCustomer(data as unknown as CustomerRow, []);
+  },
+
+  async convertPendingContact(input: IConvertPendingContactInput): Promise<ICustomer> {
+    const { data, error } = await getSupabaseClient()
+      .rpc("convert_pending_contact", {
+        p_customer_id: input.customerId,
+        p_type: input.type,
+        p_full_name: input.fullName ?? null,
+        p_cpf: input.cpf ?? null,
+        p_razao_social: input.razaoSocial ?? null,
+        p_nome_fantasia: input.nomeFantasia ?? null,
+        p_cnpj: input.cnpj ?? null,
+        p_contact_name: input.contactName ?? null,
+        p_seller_id: input.sellerId ?? null,
+      })
+      .maybeSingle();
+    if (error)
+      throw new Error(`[supabase] customers.convertPendingContact failed: ${error.message}`);
+    if (!data) throw new Error("[supabase] customers.convertPendingContact returned no row");
+    return rowToCustomer(data as unknown as CustomerRow, []);
+  },
+
+  async markContactNotCustomer(customerId: ID): Promise<ICustomer> {
+    const { data, error } = await getSupabaseClient()
+      .rpc("mark_contact_not_customer", { p_customer_id: customerId })
+      .maybeSingle();
+    if (error)
+      throw new Error(`[supabase] customers.markContactNotCustomer(${customerId}) failed: ${error.message}`);
+    if (!data) throw new Error("[supabase] customers.markContactNotCustomer returned no row");
     return rowToCustomer(data as unknown as CustomerRow, []);
   },
 };
