@@ -12,6 +12,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useSellersProvider } from "@/providers/data";
+import { useAuth } from "@/features/auth/useAuth";
 import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
 import { useCurrentStore } from "@/features/multistore/hooks/useCurrentStore";
 import { CONTACT_REVIEW_STRINGS as S } from "../i18n/pt-BR";
@@ -49,18 +50,19 @@ export function ConvertContactDialog({
   const { currentStoreId } = useCurrentStore();
   const sellersProvider = useSellersProvider();
   const { saving, convert } = useContactConversion();
+  const { currentUser } = useAuth();
 
   const [values, setValues] = useState<IConversionFormValues>(() => initialValues(customer));
-  const [sellerId, setSellerId] = useState<ID | "">("");
+  const [sellerId, setSellerId] = useState<ID | "">(() => currentUser?.sellerId ?? "");
   const [errors, setErrors] = useState<ReturnType<typeof validateConversion>["errors"]>({});
 
   useEffect(() => {
     if (open) {
       setValues(initialValues(customer));
-      setSellerId("");
+      setSellerId(currentUser?.sellerId ?? "");
       setErrors({});
     }
-  }, [open, customer]);
+  }, [open, customer.id, currentUser?.sellerId]);
 
   // list() returns ISeller[] directly (not IPaginatedResult)
   const sellersQuery = useQuery({
@@ -83,7 +85,7 @@ export function ConvertContactDialog({
       const input = toConvertInput(
         customer.id,
         values,
-        isStaff ? (sellerId || undefined) : undefined,
+        sellerId || undefined,
       );
       await convert(input, conversation?.id ?? null);
       toast.success(S.convert.success);
