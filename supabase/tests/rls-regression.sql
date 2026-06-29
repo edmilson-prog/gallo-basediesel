@@ -924,6 +924,81 @@ begin
 end $pr194$;
 reset role;
 
+-- ---------------------------------------------------------------------------
+-- Conversão manual de contato pendente (convert_pending_contact / mark_contact_not_customer).
+-- Gated por is_staff() OU acesso à conversa. Guard: pula até a migration existir.
+-- Fixtures criados como owner; convertidos como lucas (não-staff). Rolled back com a suíte.
+-- ---------------------------------------------------------------------------
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"9a418578-2671-4141-a15a-d39b2fd13af7","role":"authenticated","app_metadata":{"role":"owner","seller_id":"57706ecc-01b5-4a96-b403-0359a4bb767f","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+do $conv$
+declare
+  anchor_ok uuid := gen_random_uuid();   -- tem conversa acessível ao lucas
+  anchor_no uuid := gen_random_uuid();   -- sem conversa → lucas não acessa
+  conv_ok uuid := gen_random_uuid();
+begin
+  if to_regprocedure('public.convert_pending_contact(uuid,text,text,text,text,text,text,text,uuid)') is null then
+    return; -- migration ainda não aplicada em prod; pula (ver Rollout).
+  end if;
+  insert into public.customers (id, store_id, type, phone, full_name, seller_id, status, tags)
+    values (anchor_ok, '00000000-0000-0000-0000-000000000001', 'B2C', '+550000000291', '+550000000291', null, 'ativo', array['pending_review']),
+           (anchor_no, '00000000-0000-0000-0000-000000000001', 'B2C', '+550000000292', '+550000000292', null, 'ativo', array['pending_review']);
+  -- Conversa atribuída ao lucas, sem número (whatsapp_account_id null) → can_access_conversation = true para ele.
+  insert into public.conversations (id, store_id, customer_id, assigned_seller_id, whatsapp_account_id, channel, status, last_message_at)
+    values (conv_ok, '00000000-0000-0000-0000-000000000001', anchor_ok, '5a6400ed-5aec-4bf1-b641-31635f15c887', null, 'whatsapp', 'aguardando', now());
+  perform set_config('conv.anchor_ok', anchor_ok::text, true);
+  perform set_config('conv.anchor_no', anchor_no::text, true);
+end $conv$;
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+do $conv$
+declare
+  anchor_ok uuid := nullif(current_setting('conv.anchor_ok', true), '')::uuid;
+  anchor_no uuid := nullif(current_setting('conv.anchor_no', true), '')::uuid;
+  v_seller uuid;
+  v_tags text[];
+begin
+  if anchor_ok is null then
+    return; -- migration não aplicada (fixtures não criados); pula.
+  end if;
+
+  -- (1) Não-staff COM acesso à conversa: converte com sucesso e vira o dono.
+  perform public.convert_pending_contact(anchor_ok, 'B2C', 'Cliente Convertido', null, null, null, null, null, null);
+  select seller_id, tags into v_seller, v_tags from public.customers where id = anchor_ok;
+  if v_seller is distinct from '5a6400ed-5aec-4bf1-b641-31635f15c887'::uuid then
+    raise exception 'convert: non-staff converter must become the wallet owner';
+  end if;
+  if v_tags @> array['pending_review'] then
+    raise exception 'convert: pending_review tag must be removed after conversion';
+  end if;
+
+  -- (2) Idempotência: converter de novo deve falhar (já não é pendente).
+  begin
+    perform public.convert_pending_contact(anchor_ok, 'B2C', 'X', null, null, null, null, null, null);
+    raise exception 'convert: second conversion should be rejected (not pending)';
+  exception when others then
+    if sqlstate <> '22023' then raise; end if; -- esperado: 22023
+  end;
+
+  -- (3) Não-staff SEM conversa acessível: negado (42501).
+  begin
+    perform public.convert_pending_contact(anchor_no, 'B2C', 'Y', null, null, null, null, null, null);
+    raise exception 'convert: non-staff without an accessible conversation must be denied';
+  exception when insufficient_privilege then null; -- esperado: 42501
+  end;
+end $conv$;
+reset role;
+
 select 'ALL RLS REGRESSION TESTS PASSED' as result;
 
 rollback;
