@@ -376,7 +376,7 @@ function renderCell(col: ColumnId, ctx: ICellContext) {
       );
     }
     case "seller": {
-      const entry = sellersById.get(customer.sellerId);
+      const entry = customer.sellerId ? sellersById.get(customer.sellerId) : undefined;
       if (!entry) return <span className="text-xs text-muted-foreground">—</span>;
       return (
         <div className="flex items-center gap-2">

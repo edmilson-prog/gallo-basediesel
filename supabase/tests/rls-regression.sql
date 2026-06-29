@@ -873,6 +873,57 @@ begin
 end $chk$;
 reset role;
 
+-- ---------------------------------------------------------------------------
+-- PR #194 — customers.seller_id is now nullable. Imported pending_review
+-- anchors have NO wallet owner; the load-bearing invariant is that a NULL owner
+-- stays invisible-by-wallet to a non-staff seller (`seller_id = current_seller_id()`
+-- is never true for NULL) — visibility comes only from instance access
+-- (can_access_conversation) or is_staff(). Insert one ownerless anchor as the
+-- owner, then assert lucas (non-staff, no conversation to it) cannot see it
+-- while the owner can. Rolled back with the suite.
+-- ---------------------------------------------------------------------------
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"9a418578-2671-4141-a15a-d39b2fd13af7","role":"authenticated","app_metadata":{"role":"owner","seller_id":"57706ecc-01b5-4a96-b403-0359a4bb767f","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+do $pr194$
+declare
+  anchor uuid := gen_random_uuid();
+begin
+  -- Owner (is_staff) may create an ownerless anchor: INSERT with_check passes on is_staff().
+  insert into public.customers (id, store_id, type, phone, full_name, seller_id, status, tags)
+    values (anchor, '00000000-0000-0000-0000-000000000001', 'B2C', '+550000000194',
+            '+550000000194', null, 'ativo', array['pending_review']);
+  if (select count(*) from public.customers where id = anchor) <> 1 then
+    raise exception 'pr194: owner (staff) should see the ownerless anchor it just created';
+  end if;
+  perform set_config('pr194.anchor', anchor::text, true);
+end $pr194$;
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+do $pr194$
+declare
+  anchor uuid := nullif(current_setting('pr194.anchor', true), '')::uuid;
+begin
+  if anchor is null then
+    raise exception 'pr194: ownerless anchor fixture missing (owner block did not run)';
+  end if;
+  -- No conversation exists for the anchor, so neither wallet (NULL = me is never
+  -- true) nor instance access (can_access_conversation) can reveal it.
+  if (select count(*) from public.customers where id = anchor) <> 0 then
+    raise exception 'pr194: non-staff seller must NOT see an ownerless (seller_id null) customer by wallet';
+  end if;
+end $pr194$;
+reset role;
+
 select 'ALL RLS REGRESSION TESTS PASSED' as result;
 
 rollback;

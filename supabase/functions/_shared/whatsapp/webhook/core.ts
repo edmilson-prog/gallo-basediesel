@@ -31,7 +31,6 @@ export interface IAccountRecord {
 
 export interface ICustomerRecord {
   id: string;
-  sellerId: string;
 }
 
 /** Injected persistence surface — the Edge Function backs it with service_role. */
@@ -61,12 +60,14 @@ export interface IWebhookDb {
     status: "connected" | "disconnected",
   ): Promise<boolean>;
   findCustomerByPhone(storeId: string, phoneDigits: string): Promise<ICustomerRecord | null>;
-  /** Store default owner for auto-created customers (manager → fallback staff). */
-  resolveDefaultSellerId(storeId: string): Promise<string>;
+  /**
+   * Create the contact anchor for an inbound/echo message. Auto-created customers
+   * carry NO wallet owner (seller_id null) — they only anchor a pool conversation
+   * and become a real, owned customer through a manual conversion.
+   */
   createPendingCustomer(input: {
     storeId: string;
     phone: string;
-    sellerId: string;
     /** Contact's WhatsApp profile name; seeds full_name (falls back to the phone
      *  when absent) AND whatsapp_name when present. */
     name?: string;
@@ -511,11 +512,9 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
     let customer = await db.findCustomerByPhone(account.storeId, toDigits);
     let customerCreated = false;
     if (!customer) {
-      const sellerId = await db.resolveDefaultSellerId(account.storeId);
       customer = await db.createPendingCustomer({
         storeId: account.storeId,
         phone: parsed.toPhone,
-        sellerId,
       });
       customerCreated = true;
       // Same background photo fetch when WE start the chat from the phone.
@@ -584,20 +583,17 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
     return { outcome: "account-not-found" };
   }
 
-  // 5. Customer resolution (RF-040.2) — auto-created customers go to the
-  //    store's default seller (manager) with a pending_review tag. The PRD's
-  //    seller_id=null is impossible here: customers.seller_id is NOT NULL by
-  //    schema (recorded deviation).
+  // 5. Customer resolution (RF-040.2) — auto-created customers carry NO wallet
+  //    owner (seller_id null) with a pending_review tag; they only anchor a pool
+  //    conversation in the Inbox until manually converted to a real customer.
   const fromDigits = digits(parsed.fromPhone);
   const contactName = looksLikeName(parsed.senderName) ? parsed.senderName : undefined;
   let customer = await db.findCustomerByPhone(account.storeId, fromDigits);
   let customerCreated = false;
   if (!customer) {
-    const sellerId = await db.resolveDefaultSellerId(account.storeId);
     customer = await db.createPendingCustomer({
       storeId: account.storeId,
       phone: parsed.fromPhone,
-      sellerId,
       name: contactName,
     });
     customerCreated = true;
@@ -630,10 +626,10 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
       customerId: customer.id,
       accountId: account.id,
       // New inbound conversations land UNASSIGNED (queue), never auto-assigned
-      // to the customer's wallet owner — they drop into the pool for whoever
-      // operates the instance to pick up. Visibility comes from instance access
-      // (the unassigned branch of can_access_conversation); the wallet
-      // (customer.seller_id) is untouched.
+      // to a seller — they drop into the pool for whoever operates the instance
+      // to pick up. Visibility comes from instance access (the unassigned branch
+      // of can_access_conversation); the imported customer carries NO wallet
+      // owner (seller_id null) until manually converted.
       assignedSellerId: null,
       lastMessageAt: parsed.timestamp,
       status: "aguardando",

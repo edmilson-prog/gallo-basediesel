@@ -149,7 +149,7 @@ export function generateOrder(ctx: ISeededContext, input: IGenerateOrderInput): 
     id,
     storeId: SEED_STORE_ID,
     customerId: input.customer.id,
-    sellerId: input.customer.sellerId,
+    sellerId: input.customer.sellerId ?? "",
     number,
     quoteId: input.sourceQuote?.id,
     conversationId: input.conversationId,

@@ -272,13 +272,13 @@ export function profitabilityByCustomer(
         ? customer.nomeFantasia || customer.razaoSocial
         : customer.fullName
       : "(cliente removido)";
-    const seller = customer ? ctx.sellersById.get(customer.sellerId) : undefined;
+    const seller = customer?.sellerId ? ctx.sellersById.get(customer.sellerId) : undefined;
     const base = buildBase(customerId, label, buf);
     rows.push({
       ...base,
       customerId,
       abcClass: customer?.abcClass,
-      sellerId: customer?.sellerId,
+      sellerId: customer?.sellerId ?? undefined,
       sellerName: seller?.fullName,
     });
   }

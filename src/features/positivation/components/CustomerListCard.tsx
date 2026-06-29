@@ -95,7 +95,7 @@ export function CustomerListCard({
             {current.map((row) => {
               const customer = row.customer;
               const name = displayCustomerName(customer);
-              const seller = sellersById.get(customer.sellerId);
+              const seller = sellersById.get(customer.sellerId ?? "");
               return (
                 <li
                   key={customer.id}

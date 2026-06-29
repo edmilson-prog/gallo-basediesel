@@ -53,7 +53,7 @@ export function generateConversation(
     assignedSellerId: isSdrActive
       ? undefined
       : input.participant.kind === "customer"
-        ? input.participant.entity.sellerId
+        ? (input.participant.entity.sellerId ?? undefined)
         : ctx.pick(input.sellerIds),
     channel,
     whatsappAccountId: channel === "whatsapp" ? ctx.pick(input.whatsappAccountIds) : undefined,

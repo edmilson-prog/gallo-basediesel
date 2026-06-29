@@ -116,7 +116,7 @@ export function ABCCustomersTable({
               </thead>
               <tbody className="divide-y divide-border/40">
                 {current.map((row) => {
-                  const seller = sellersById.get(row.customer.sellerId);
+                  const seller = sellersById.get(row.customer.sellerId ?? "");
                   return (
                     <tr key={row.customerId} className="text-foreground">
                       <td className="py-2 pr-3 text-muted-foreground tabular-nums">{row.rank}</td>

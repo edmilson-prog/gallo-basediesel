@@ -18,7 +18,8 @@ interface IFakeState {
     id: string;
     storeId: string;
     phoneDigits: string;
-    sellerId: string;
+    /** Real customers carry an owner; auto-created (imported) anchors do not. */
+    sellerId?: string;
     name?: string;
     whatsappName?: string;
   }>;
@@ -69,20 +70,18 @@ function makeFakeDb(state: IFakeState, opts?: { knownOutboundId?: string }): IWe
     },
     findCustomerByPhone: async (storeId, digits) => {
       const found = state.customers.find((c) => c.storeId === storeId && c.phoneDigits === digits);
-      return found ? { id: found.id, sellerId: found.sellerId } : null;
+      return found ? { id: found.id } : null;
     },
-    resolveDefaultSellerId: async () => "seller-manager",
-    createPendingCustomer: async ({ storeId, phone, sellerId, name }) => {
+    createPendingCustomer: async ({ storeId, phone, name }) => {
       const customer = {
         id: nextId("cust"),
         storeId,
         phoneDigits: phone.replace(/\D/g, ""),
-        sellerId,
         name,
         whatsappName: name,
       };
       state.customers.push(customer);
-      return { id: customer.id, sellerId };
+      return { id: customer.id };
     },
     applyInboundContactName: async (customerId, name) => {
       state.nameFills.push({ customerId, name });
@@ -205,13 +204,15 @@ function run(
 }
 
 describe("processWebhookEvent — inbound messages (RF-040/050)", () => {
-  it("creates customer (pending, default seller), conversation and message for a new contact", async () => {
+  it("creates customer (pending, no wallet owner), conversation and message for a new contact", async () => {
     const state = emptyState();
     const result = await run(state, evolutionTextEvent());
 
     expect(result.outcome).toBe("message-created");
     expect(state.customers).toHaveLength(1);
-    expect(state.customers[0]?.sellerId).toBe("seller-manager");
+    // Imported/auto-created anchors carry NO wallet owner (seller_id null) until
+    // manually converted — the webhook never assigns a seller.
+    expect(state.customers[0]?.sellerId).toBeUndefined();
     expect(state.conversations).toHaveLength(1);
     // New inbound conversations land UNASSIGNED (queue), never auto-assigned to
     // the customer's wallet owner — visibility is by instance access.

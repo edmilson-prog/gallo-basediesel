@@ -272,8 +272,15 @@ export function calculatePortfolioMetrics(
   const endDate = new Date(endIso);
   const atRiskWindow = context.atRiskWindowDays ?? 15;
 
+  // Imported pending_review anchors carry no wallet owner (seller_id null) and
+  // no purchases — they are not portfolio customers. Exclude them from BOTH the
+  // store-level tallies and the per-seller breakdown so the two reconcile.
+  const customers = context.customers.filter(
+    (c): c is ICustomer & { sellerId: ID } => c.sellerId !== null,
+  );
+
   const byStatus = emptyByStatus();
-  for (const customer of context.customers) {
+  for (const customer of customers) {
     const status = deriveStatusNow(customer);
     if (status === "ativo") byStatus.ativo += 1;
     else if (status === "dormente") byStatus.dormente += 1;
@@ -282,7 +289,7 @@ export function calculatePortfolioMetrics(
   }
 
   const tally = tallyTransitions(
-    context.customers,
+    customers,
     context.ordersInPeriod,
     startDate,
     endDate,
@@ -316,7 +323,7 @@ export function calculatePortfolioMetrics(
   // to be actionable now.
   const activeAtRisk: IAtRiskCustomer[] = [];
   const dormantAtRisk: IAtRiskCustomer[] = [];
-  for (const customer of context.customers) {
+  for (const customer of customers) {
     const last = customer.lastPurchaseAt;
     if (!last) continue;
     const daysSince = daysBetween(last, now);
@@ -341,7 +348,7 @@ export function calculatePortfolioMetrics(
   for (const s of context.sellers) sellerNameById.set(s.id, s.fullName);
 
   const customersBySeller = new Map<ID, ICustomer[]>();
-  for (const customer of context.customers) {
+  for (const customer of customers) {
     const bucket = customersBySeller.get(customer.sellerId) ?? [];
     bucket.push(customer);
     customersBySeller.set(customer.sellerId, bucket);
@@ -418,7 +425,7 @@ export function calculatePortfolioMetrics(
 
   return {
     period: { startIso, endIso },
-    totalCustomers: context.customers.length,
+    totalCustomers: customers.length,
     byStatus,
     churn,
     recovery,

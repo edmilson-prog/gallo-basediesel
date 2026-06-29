@@ -48,8 +48,12 @@ interface ICustomerBase {
    */
   whatsappStatus?: CustomerWhatsappStatus;
   address?: ICustomerAddress;
-  /** Primary seller responsible for this customer (1:1 wallet rule). */
-  sellerId: ID;
+  /**
+   * Primary seller responsible for this customer (1:1 wallet rule). `null` for
+   * imported `pending_review` anchors that have no wallet owner until a manual
+   * conversion assigns a real seller.
+   */
+  sellerId: ID | null;
   status: CustomerStatus;
   tags: string[];
   notes: ICustomerNote[];

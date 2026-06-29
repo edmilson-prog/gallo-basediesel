@@ -126,9 +126,14 @@ export function calculatePositivation(
   const period = describePositivationPeriod(startIso, endIso, now);
   const atRiskWindow = context.atRiskWindowDays ?? 15;
 
-  // Eligible base = active customers in scope. Dormant/perdido are out of the
-  // positivation race — they belong to the recovery KPIs (PRD-046).
-  const eligible = context.customers.filter((c) => c.status === "ativo");
+  // Eligible base = active customers in scope WITH a wallet owner. Dormant/
+  // perdido belong to the recovery KPIs (PRD-046); imported pending_review
+  // anchors carry no seller_id (not a real wallet customer yet), so they're
+  // excluded from BOTH the headline base and the per-seller rollup — keeping
+  // `totalCustomers` and the sum of `bySeller` reconciled.
+  const eligible = context.customers.filter(
+    (c): c is ICustomer & { sellerId: ID } => c.status === "ativo" && c.sellerId !== null,
+  );
 
   // Distinct customer IDs with at least one paid order in the period.
   const positivatedIds = new Set<ID>();

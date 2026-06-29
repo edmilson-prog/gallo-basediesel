@@ -152,7 +152,7 @@ export function generateCustomerNotes(
   for (let i = 0; i < count; i += 1) {
     out.push({
       id: `note-${customer.id}-${i + 1}`,
-      authorId: customer.sellerId,
+      authorId: customer.sellerId ?? "",
       content: pickNoteText(ctx),
       createdAt: randomISO(ctx, daysAgo(90), new Date()),
     });

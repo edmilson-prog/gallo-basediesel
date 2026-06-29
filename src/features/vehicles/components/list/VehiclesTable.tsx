@@ -251,7 +251,7 @@ export function VehiclesTable({
               customer={customersById.get(vehicle.customerId) ?? null}
               seller={
                 (customersById.get(vehicle.customerId)?.sellerId &&
-                  sellersById.get(customersById.get(vehicle.customerId)!.sellerId)) ||
+                  sellersById.get(customersById.get(vehicle.customerId)!.sellerId ?? "")) ||
                 null
               }
               canSelect={canSelect}

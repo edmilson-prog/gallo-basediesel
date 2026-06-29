@@ -731,6 +731,7 @@ function detectRecoverySuccess(ctx: IInsightsContext): IInsight[] {
 
   const bySeller = new Map<ID, ICustomer[]>();
   for (const c of recovered) {
+    if (!c.sellerId) continue; // unowned imported anchors aren't in any wallet
     const list = bySeller.get(c.sellerId) ?? [];
     list.push(c);
     bySeller.set(c.sellerId, list);

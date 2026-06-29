@@ -103,7 +103,7 @@ export function useSdrEscalation() {
           sellers: args.sellers,
           loadBySeller: args.loadBySeller,
           specialtiesBySeller: args.specialtiesBySeller,
-          carteiraSellerId: args.customer?.sellerId,
+          carteiraSellerId: args.customer?.sellerId ?? undefined,
           excludeSellerIds: [SDR_AUTHOR_ID],
         },
       });

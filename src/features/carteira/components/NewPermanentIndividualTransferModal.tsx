@@ -56,7 +56,7 @@ export function NewPermanentIndividualTransferModal({
 
   const customerName = customer ? getCustomerName(customer) : "";
   const currentSeller = customer
-    ? (sellers.find((s) => s.id === customer.sellerId)?.fullName ?? customer.sellerId)
+    ? (sellers.find((s) => s.id === customer.sellerId)?.fullName ?? customer.sellerId ?? "—")
     : "—";
   const toName = sellers.find((s) => s.id === toSellerId)?.fullName ?? "";
 
@@ -77,7 +77,7 @@ export function NewPermanentIndividualTransferModal({
       await mutation.mutateAsync({
         storeId: customer.storeId,
         type: "permanent_individual",
-        fromSellerId: customer.sellerId,
+        fromSellerId: customer.sellerId ?? "",
         toSellerId: toSellerId as ID,
         customerIds: [customer.id],
         reason: reason.trim(),

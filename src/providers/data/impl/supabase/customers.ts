@@ -36,7 +36,7 @@ interface CustomerRow {
   phone: string;
   whatsapp_status: ICustomer["whatsappStatus"] | null;
   address: ICustomerAddress | null;
-  seller_id: string;
+  seller_id: string | null;
   status: ICustomer["status"];
   tags: string[];
   first_purchase_at: string | null;
