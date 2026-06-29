@@ -6,6 +6,17 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.125.0] — Intake · 2026-06-29
+
+**Agora é possível transformar um contato importado do WhatsApp em cliente de verdade — ou descartá-lo — direto do Atendimento.** Os contatos que chegam pela importação ou pelas conversas ficavam só no Atendimento, sem nunca virar cliente. Esta versão entrega o processo de revisão que faltava: promover a contato a cliente (com um vendedor responsável), marcar como "não é cliente", desfazer um descarte, e uma fila para a equipe cuidar disso em lote.
+
+### Added
+
+- **Converter um contato em cliente** — na ficha de um contato pendente, dentro do Atendimento, uma faixa de aviso traz o botão "Converter em cliente". Ao converter, você escolhe se é pessoa física ou empresa, confirma o nome (CPF/CNPJ são opcionais) e define o vendedor responsável pela carteira. O contato passa a ser cliente de fato e aparece na tela de Clientes. Quem não é gestor assume automaticamente a carteira do contato; gestores podem escolher o vendedor.
+- **Marcar como "não é cliente"** — a mesma faixa permite descartar um contato que não é cliente (engano, número errado, divulgação). Ele sai da fila de pendentes sem ser apagado e deixa de poluir a revisão.
+- **Devolver à fila** — um contato descartado por engano pode voltar à revisão a qualquer momento, tanto pela ficha quanto pela fila.
+- **Fila de contatos pendentes (equipe)** — uma nova tela em Atendimento → Contatos pendentes reúne todos os contatos a revisar, com busca, atalho de teclado e três formas de visualizar à escolha de cada um (tabela, cartões ou lista com painel). Inclui a aba "Descartados" para rever o que foi marcado como "não é cliente".
+
 ## [0.124.3] — Salvage · 2026-06-29
 
 **Os contatos importados do WhatsApp não entram mais na carteira de nenhum vendedor.** Eles continuam disponíveis apenas no Atendimento, sem responsável de carteira, até que sejam convertidos em clientes por uma revisão futura.
