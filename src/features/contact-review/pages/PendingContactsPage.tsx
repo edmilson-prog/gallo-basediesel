@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import type { ICustomer } from "@/shared/types";
 import { cn } from "@/lib/utils";
 import { Icon } from "@/components/Icon";
@@ -8,6 +9,7 @@ import { useDebounce } from "@/shared/hooks/useDebounce";
 import { ScrollProgressBar } from "@/features/shell/components/ScrollProgressBar";
 import { CONTACT_REVIEW_STRINGS as S } from "../i18n/pt-BR";
 import { usePendingContacts } from "../hooks/usePendingContacts";
+import { useContactConversion } from "../hooks/useContactConversion";
 import { ConvertContactDialog } from "../components/ConvertContactDialog";
 import { MarkNotCustomerDialog } from "../components/MarkNotCustomerDialog";
 import { PendingContactsTable } from "../components/PendingContactsTable";
@@ -15,11 +17,18 @@ import { PendingContactsCards } from "../components/PendingContactsCards";
 import { PendingContactsSplit } from "../components/PendingContactsSplit";
 
 type ViewMode = "table" | "cards" | "split";
+type StatusTab = "pending_review" | "reviewed_not_customer";
+
 const VIEW_KEY = "gallo-pending-contacts-view";
 const VIEWS: { id: ViewMode; label: string; icon: string }[] = [
   { id: "table", label: S.queue.views.table, icon: "mdi:table" },
   { id: "cards", label: S.queue.views.cards, icon: "mdi:view-grid-outline" },
   { id: "split", label: S.queue.views.split, icon: "mdi:view-split-vertical" },
+];
+
+const STATUS_TABS: { id: StatusTab; label: string }[] = [
+  { id: "pending_review", label: S.queue.status.pending },
+  { id: "reviewed_not_customer", label: S.queue.status.discarded },
 ];
 
 export function PendingContactsPage() {
@@ -28,8 +37,11 @@ export function PendingContactsPage() {
   const [view, setView] = useState<ViewMode>(
     () => (localStorage.getItem(VIEW_KEY) as ViewMode) || "table",
   );
+  const [status, setStatus] = useState<StatusTab>("pending_review");
   const [convertTarget, setConvertTarget] = useState<ICustomer | null>(null);
   const [discardTarget, setDiscardTarget] = useState<ICustomer | null>(null);
+
+  const { restore } = useContactConversion();
 
   // Search field expand/collapse state
   const searchRef = useRef<HTMLInputElement | null>(null);
@@ -65,6 +77,7 @@ export function PendingContactsPage() {
     search: debouncedSearch,
     page: 1,
     pageSize: 200,
+    statusTag: status,
   });
   const customers = useMemo(() => query.data?.data ?? [], [query.data]);
   // While placeholderData keeps the previous total visible during search,
@@ -75,11 +88,32 @@ export function PendingContactsPage() {
   const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
   const contentRef = useCallback((el: HTMLDivElement | null) => setScrollEl(el), []);
 
-  const viewProps = {
-    customers,
-    onConvert: (c: ICustomer) => setConvertTarget(c),
-    onDiscard: (c: ICustomer) => setDiscardTarget(c),
-  };
+  const handleRestore = useCallback(
+    async (c: ICustomer) => {
+      try {
+        await restore(c.id);
+        toast.success(S.discarded.success);
+      } catch {
+        toast.error(S.discarded.failure);
+      }
+    },
+    [restore],
+  );
+
+  const isPending = status === "pending_review";
+
+  const viewProps = isPending
+    ? {
+        customers,
+        onConvert: (c: ICustomer) => setConvertTarget(c),
+        onDiscard: (c: ICustomer) => setDiscardTarget(c),
+      }
+    : {
+        customers,
+        onRestore: handleRestore,
+      };
+
+  const emptyText = isPending ? S.queue.empty : S.queue.emptyDiscarded;
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -129,6 +163,25 @@ export function PendingContactsPage() {
               </kbd>
             </div>
 
+            {/* Status toggle: Pendentes / Descartados */}
+            <div className="flex shrink-0 gap-0.5 rounded-lg border border-border bg-muted/40 p-1">
+              {STATUS_TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setStatus(tab.id)}
+                  className={
+                    "rounded-md px-2.5 py-1 text-xs font-medium transition-colors " +
+                    (status === tab.id
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground")
+                  }
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
             <div className="flex shrink-0 gap-0.5 rounded-lg border border-border bg-muted/40 p-1">
               {VIEWS.map((v) => (
                 <button
@@ -159,7 +212,7 @@ export function PendingContactsPage() {
         {query.isPending ? (
           <p className="py-12 text-center text-sm text-muted-foreground">Carregando…</p>
         ) : customers.length === 0 ? (
-          <p className="py-12 text-center text-sm text-muted-foreground">{S.queue.empty}</p>
+          <p className="py-12 text-center text-sm text-muted-foreground">{emptyText}</p>
         ) : view === "table" ? (
           <PendingContactsTable {...viewProps} />
         ) : view === "cards" ? (
@@ -172,7 +225,7 @@ export function PendingContactsPage() {
         )}
       </div>
 
-      {convertTarget && (
+      {isPending && convertTarget && (
         <ConvertContactDialog
           customer={convertTarget}
           open={Boolean(convertTarget)}
@@ -180,7 +233,7 @@ export function PendingContactsPage() {
           onConverted={() => setConvertTarget(null)}
         />
       )}
-      {discardTarget && (
+      {isPending && discardTarget && (
         <MarkNotCustomerDialog
           customerId={discardTarget.id}
           open={Boolean(discardTarget)}

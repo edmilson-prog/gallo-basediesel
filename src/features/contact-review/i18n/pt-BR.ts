@@ -48,6 +48,8 @@ export const CONTACT_REVIEW_STRINGS = {
     title: "Contatos pendentes",
     search: "Buscar nome ou telefone…",
     empty: "Nenhum contato pendente.",
+    emptyDiscarded: "Nenhum contato descartado.",
+    status: { pending: "Pendentes", discarded: "Descartados" },
     columns: { contact: "Contato", phone: "Telefone", origin: "Origem", received: "Recebido", actions: "" },
     views: { table: "Tabela", cards: "Cards", split: "Lista" },
     noName: "(sem nome)",

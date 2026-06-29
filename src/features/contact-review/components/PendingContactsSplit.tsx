@@ -5,7 +5,7 @@ import { getCustomerName } from "@/features/customers/utils/customerDisplay";
 import { CONTACT_REVIEW_STRINGS as S } from "../i18n/pt-BR";
 import type { IPendingContactsViewProps } from "./PendingContactsTable";
 
-export function PendingContactsSplit({ customers, onConvert, onDiscard }: IPendingContactsViewProps) {
+export function PendingContactsSplit({ customers, onConvert, onDiscard, onRestore }: IPendingContactsViewProps) {
   const [selectedId, setSelectedId] = useState<string | null>(customers[0]?.id ?? null);
   useEffect(() => {
     if (!customers.some((c) => c.id === selectedId)) setSelectedId(customers[0]?.id ?? null);
@@ -41,8 +41,14 @@ export function PendingContactsSplit({ customers, onConvert, onDiscard }: IPendi
               <p className="text-sm text-muted-foreground">{selected.phone}</p>
             </div>
             <div className="flex gap-2">
-              <Button size="sm" onClick={() => onConvert(selected)}>{S.banner.convert}</Button>
-              <Button size="sm" variant="outline" onClick={() => onDiscard(selected)}>{S.banner.discard}</Button>
+              {onRestore ? (
+                <Button size="sm" variant="outline" onClick={() => onRestore(selected)}>{S.discarded.restore}</Button>
+              ) : (
+                <>
+                  {onConvert && <Button size="sm" onClick={() => onConvert(selected)}>{S.banner.convert}</Button>}
+                  {onDiscard && <Button size="sm" variant="outline" onClick={() => onDiscard(selected)}>{S.banner.discard}</Button>}
+                </>
+              )}
             </div>
           </div>
         ) : (

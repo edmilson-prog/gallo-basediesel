@@ -4,7 +4,7 @@ import { getCustomerName } from "@/features/customers/utils/customerDisplay";
 import { CONTACT_REVIEW_STRINGS as S } from "../i18n/pt-BR";
 import type { IPendingContactsViewProps } from "./PendingContactsTable";
 
-export function PendingContactsCards({ customers, onConvert, onDiscard }: IPendingContactsViewProps) {
+export function PendingContactsCards({ customers, onConvert, onDiscard, onRestore }: IPendingContactsViewProps) {
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {customers.map((c) => (
@@ -14,8 +14,14 @@ export function PendingContactsCards({ customers, onConvert, onDiscard }: IPendi
             <p className="text-sm text-muted-foreground">{c.phone}</p>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" onClick={() => onConvert(c)}>{S.banner.convert}</Button>
-            <Button size="sm" variant="outline" onClick={() => onDiscard(c)}>{S.banner.discard}</Button>
+            {onRestore ? (
+              <Button size="sm" variant="outline" onClick={() => onRestore(c)}>{S.discarded.restore}</Button>
+            ) : (
+              <>
+                {onConvert && <Button size="sm" onClick={() => onConvert(c)}>{S.banner.convert}</Button>}
+                {onDiscard && <Button size="sm" variant="outline" onClick={() => onDiscard(c)}>{S.banner.discard}</Button>}
+              </>
+            )}
           </div>
         </div>
       ))}

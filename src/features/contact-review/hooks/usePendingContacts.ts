@@ -7,16 +7,19 @@ export interface IUsePendingContactsParams {
   search: string;
   page: number;
   pageSize: number;
+  /** Which tag bucket to load. Defaults to "pending_review". */
+  statusTag?: "pending_review" | "reviewed_not_customer";
 }
 
 export function usePendingContacts(params: IUsePendingContactsParams) {
   const provider = useCustomersProvider();
+  const statusTag = params.statusTag ?? "pending_review";
   return useQuery({
-    queryKey: ["pending-contacts", params.storeId, params.search, params.page, params.pageSize],
+    queryKey: ["pending-contacts", params.storeId, params.search, params.page, params.pageSize, statusTag],
     queryFn: () =>
       provider.list({
         storeId: params.storeId ?? undefined,
-        tags: ["pending_review"],
+        tags: [statusTag],
         search: params.search.trim() || undefined,
         page: params.page,
         pageSize: params.pageSize,

@@ -35,8 +35,10 @@ function ResizeHandle({ onPointerDown }: { onPointerDown: (e: ReactPointerEvent)
 
 export interface IPendingContactsViewProps {
   customers: ICustomer[];
-  onConvert: (customer: ICustomer) => void;
-  onDiscard: (customer: ICustomer) => void;
+  onConvert?: (customer: ICustomer) => void;
+  onDiscard?: (customer: ICustomer) => void;
+  /** Provided in discarded mode — renders a single "Devolver à fila" button. */
+  onRestore?: (customer: ICustomer) => void;
   /** Exposes the inner scroll container for the page-level ScrollProgressBar. */
   scrollRef?: (el: HTMLDivElement | null) => void;
 }
@@ -45,6 +47,7 @@ export function PendingContactsTable({
   customers,
   onConvert,
   onDiscard,
+  onRestore,
   scrollRef,
 }: IPendingContactsViewProps) {
   const { widths, startResize } = useResizableColumns(COLUMNS, COLUMN_WIDTHS_KEY);
@@ -86,12 +89,24 @@ export function PendingContactsTable({
             <TableCell className="truncate px-3 py-2 text-muted-foreground">{c.phone}</TableCell>
             <TableCell className="px-3 py-2">
               <div className="flex justify-end gap-2">
-                <Button size="sm" onClick={() => onConvert(c)}>
-                  {S.banner.convert}
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => onDiscard(c)}>
-                  {S.banner.discard}
-                </Button>
+                {onRestore ? (
+                  <Button size="sm" variant="outline" onClick={() => onRestore(c)}>
+                    {S.discarded.restore}
+                  </Button>
+                ) : (
+                  <>
+                    {onConvert && (
+                      <Button size="sm" onClick={() => onConvert(c)}>
+                        {S.banner.convert}
+                      </Button>
+                    )}
+                    {onDiscard && (
+                      <Button size="sm" variant="outline" onClick={() => onDiscard(c)}>
+                        {S.banner.discard}
+                      </Button>
+                    )}
+                  </>
+                )}
               </div>
             </TableCell>
           </TableRow>
