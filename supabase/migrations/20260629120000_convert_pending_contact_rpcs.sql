@@ -26,7 +26,7 @@ declare
   v_cust public.customers;
   v_target uuid;
 begin
-  select * into v_cust from public.customers where id = p_customer_id;
+  select * into v_cust from public.customers where id = p_customer_id for update;
   if not found then
     raise exception 'customer % not found', p_customer_id using errcode = 'P0002';
   end if;
@@ -48,7 +48,7 @@ begin
   end if;
 
   -- Idempotency / race guard: must still be a pending contact.
-  if not (v_cust.tags @> array['pending_review']) then
+  if not coalesce(v_cust.tags @> array['pending_review'], false) then
     raise exception 'contact is not pending review' using errcode = '22023';
   end if;
 
@@ -93,7 +93,7 @@ begin
       gen_random_uuid(), v_store, v_seller,
       'convert_pending_contact', 'customer', p_customer_id::text,
       jsonb_build_object('tags', v_cust.tags, 'seller_id', v_cust.seller_id, 'type', v_cust.type),
-      jsonb_build_object('seller_id', v_target, 'type', p_type)
+      jsonb_build_object('seller_id', v_target, 'type', p_type, 'tags', array_remove(v_cust.tags, 'pending_review'))
     );
   end if;
 end;
@@ -110,7 +110,7 @@ declare
   v_seller uuid := public.current_seller_id();
   v_cust public.customers;
 begin
-  select * into v_cust from public.customers where id = p_customer_id;
+  select * into v_cust from public.customers where id = p_customer_id for update;
   if not found then
     raise exception 'customer % not found', p_customer_id using errcode = 'P0002';
   end if;
@@ -130,7 +130,7 @@ begin
     raise exception 'not allowed' using errcode = '42501';
   end if;
 
-  if not (v_cust.tags @> array['pending_review']) then
+  if not coalesce(v_cust.tags @> array['pending_review'], false) then
     raise exception 'contact is not pending review' using errcode = '22023';
   end if;
 
@@ -151,7 +151,7 @@ begin
       gen_random_uuid(), v_store, v_seller,
       'mark_contact_not_customer', 'customer', p_customer_id::text,
       jsonb_build_object('tags', v_cust.tags),
-      jsonb_build_object('tags', 'reviewed_not_customer')
+      jsonb_build_object('tags', array['reviewed_not_customer'])
     );
   end if;
 end;
