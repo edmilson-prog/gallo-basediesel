@@ -144,9 +144,9 @@ Implementar o param `tags` no `customers.list` supabase como **array-overlap** (
 
 A ficha do cliente já vive no Atendimento (`ConversationPage` → `CustomerProfileFiche` → `CustomerProfile`), resolvida de forma pool-safe por `useConversationDetail` (`getViaConversation`).
 
-- Quando o customer da conversa tem `pending_review`, exibir uma **faixa de destaque** no topo da ficha (componente novo, ex. `PendingContactBanner`): texto "Contato pendente de revisão" + botões **Converter em cliente** e **Não é cliente**.
+- Quando o customer da conversa tem `pending_review`, exibir uma **faixa de alerta** no topo da ficha (componente novo `PendingContactBanner` — **layout A do companion**: barra âmbar fina entre o header e o corpo, botões logo abaixo): texto "Contato pendente de revisão" + botões **Converter em cliente** e **Não é cliente**.
 - Os mesmos itens entram no menu ⋮ (`ProfileMenu`), **substituindo** o placeholder atual "Editar dados → PRD-019".
-- **Converter** abre `ConvertContactDialog` (modal novo) — formulário rápido:
+- **Converter** abre `ConvertContactDialog` (modal novo) — formulário rápido em **coluna única** (**layout A do companion**: campos empilhados, sem seções nem wizard; escolher "Empresa" revela os campos B2B logo abaixo):
   - nome **pré-preenchido** com `whatsappName`/`fullName`;
   - seletor **B2C/B2B** (B2B revela razão social, nome fantasia, CNPJ, contato);
   - **documento opcional** (CPF/CNPJ conforme tipo);
@@ -161,6 +161,7 @@ A validação do formulário roda num **engine puro testável** (ver §9).
 
 - Rota nova **`/app/atendimento/contatos-pendentes`**, feature `src/features/contact-review/` (nome a confirmar no plano).
 - Gated por **staff** (Owner/Gestor). Lista os `pending_review` da loja — que o staff enxerga por `is_staff()` — com busca, e **reusa o mesmo `ConvertContactDialog`** + a ação de descarte.
+- **Seletor de visualização (decisão do dono, 2026-06-29):** a fila oferece os **3 modelos** vistos no companion — **Tabela** (densa, default), **Cards** (grade) e **Lista + painel** (estilo inbox) — e o usuário **alterna pela UI** por um seletor no topo. A preferência é **persistida por navegador** (`localStorage`, padrão `gallo-<feature>-…` como nas larguras de coluna). Os 3 modos compartilham os mesmos dados, ações e o `ConvertContactDialog`; a busca e a paginação valem para qualquer modo.
 - **Não-staff:** por construção da RLS de `customers_select` (`is_staff() OR seller_id = current_seller_id()`), um vendedor **não vê** contatos sem dono numa listagem direta de customers → a fila apareceria **vazia**. Portanto **não** colocamos o link no menu dele (ele usa a ficha, no contexto da conversa). **Sem caminho morto.**
 
 ---
