@@ -100,7 +100,7 @@ export function StatusWalletCard({ customer }: IStatusWalletCardProps) {
               ) : (
                 <span className="italic text-muted-foreground">—</span>
               )}
-              {canTransfer && (
+              {canTransfer && customer.sellerId !== null && (
                 <Button
                   variant="ghost"
                   size="icon"

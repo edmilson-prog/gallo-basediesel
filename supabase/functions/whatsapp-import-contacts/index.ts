@@ -9,8 +9,9 @@
  *
  * Single shot (the contact list is bounded): no pagination/cursor. Idempotent —
  * a re-run never duplicates a customer (matched by phone). New contacts land as
- * `pending_review` B2C customers owned by the store's default seller; the wallet
- * (seller_id) is just the default — contacts carry no conversation yet.
+ * `pending_review` B2C customers with NO wallet owner (seller_id null) — a real
+ * seller is assigned only through a manual conversion; contacts carry no
+ * conversation yet.
  *
  * Secrets: {credentials_ref}_INSTANCE_TOKEN (Vault-first, env fallback).
  */

@@ -57,7 +57,14 @@ export function NewPermanentBatchTransferModal({
     }
   }, [open]);
 
-  const count = customers.length;
+  // Only customers with a wallet owner can be transferred; imported pending_review
+  // anchors (seller_id null) belong to no carteira. Filter once so count, the
+  // preview list, the grouping and the success toast all agree.
+  const transferableCustomers = useMemo(
+    () => customers.filter((c): c is ICustomer & { sellerId: ID } => c.sellerId !== null),
+    [customers],
+  );
+  const count = transferableCustomers.length;
   const toName = sellers.find((s) => s.id === toSellerId)?.fullName ?? "";
   const missingReason = !reason.trim();
 
@@ -67,14 +74,13 @@ export function NewPermanentBatchTransferModal({
    */
   const groupsByFrom = useMemo(() => {
     const map = new Map<ID, ID[]>();
-    customers.forEach((c) => {
-      if (!c.sellerId) return; // unowned imported anchors aren't in any wallet
+    transferableCustomers.forEach((c) => {
       const arr = map.get(c.sellerId) ?? [];
       arr.push(c.id);
       map.set(c.sellerId, arr);
     });
     return map;
-  }, [customers]);
+  }, [transferableCustomers]);
 
   const canSubmit = Boolean(toSellerId) && !missingReason && count > 0 && !mutation.isPending;
 
@@ -127,7 +133,7 @@ export function NewPermanentBatchTransferModal({
             </button>
             {showList && (
               <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto pr-1 text-xs text-foreground">
-                {customers.map((c) => (
+                {transferableCustomers.map((c) => (
                   <li key={c.id} className="truncate">
                     {getCustomerName(c)}
                   </li>
