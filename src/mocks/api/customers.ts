@@ -152,7 +152,7 @@ function matches(
 
   if (params.tag && !customer.tags.includes(params.tag)) return false;
   if (params.tags && params.tags.length > 0) {
-    const has = params.tags.every((t) => customer.tags.includes(t));
+    const has = params.tags.some((t) => customer.tags.includes(t));
     if (!has) return false;
   }
   if (params.excludeTags && params.excludeTags.length > 0) {

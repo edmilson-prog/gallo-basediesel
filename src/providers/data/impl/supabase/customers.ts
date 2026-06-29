@@ -291,12 +291,12 @@ export const supabaseCustomersProvider: ICustomersProvider = {
       query = query.not("tags", "ov", `{${params.excludeTags.join(",")}}`);
     }
 
-    // Include filters (mirror the mock's AND semantics — customer must carry ALL).
+    // Include filters: OR semantics — customer must carry ANY of the selected tags.
     if (params.tag) {
-      query = query.contains("tags", [params.tag]);
+      query = query.overlaps("tags", [params.tag]);
     }
     if (params.tags && params.tags.length > 0) {
-      query = query.contains("tags", params.tags);
+      query = query.overlaps("tags", params.tags);
     }
 
     const searchOr = params.search ? buildCustomerSearchOr(params.search) : null;
