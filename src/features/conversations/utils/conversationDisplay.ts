@@ -9,6 +9,7 @@ import type {
   LeadTemperature,
 } from "@/shared/types";
 import { hashHue, initialsFrom, isPhoneLikeName } from "@/shared/utils/avatar";
+import { decodeContact, decodeLocation } from "@/providers/whatsapp/contentFormat";
 import { INBOX_STRINGS } from "../i18n/pt-BR";
 
 export interface IConversationDisplay {
@@ -102,6 +103,17 @@ export function displayFromContact(
 /** Short preview of the last message — handles media. */
 export function getMessagePreview(message: IMessage | null): string {
   if (!message) return "";
+  // Structured shares: decode the name from the canonical text so the list shows
+  // WHO/WHERE (e.g. "👤 João Silva" / "📍 Oficina Central"), not a bare "👤 Contato"
+  // — falls back to the generic label when no name was attached.
+  if (message.mediaType === "contact") {
+    const { name } = decodeContact(message.text);
+    return name ? `👤 ${name}` : INBOX_STRINGS.mediaPreview.contact;
+  }
+  if (message.mediaType === "location") {
+    const { name } = decodeLocation(message.text);
+    return name ? `📍 ${name}` : INBOX_STRINGS.mediaPreview.location;
+  }
   if (message.mediaType) {
     return INBOX_STRINGS.mediaPreview[message.mediaType] ?? "📎 Anexo";
   }

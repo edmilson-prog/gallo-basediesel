@@ -1,6 +1,6 @@
 import type { IMessage } from "@/shared/types";
 import { Icon } from "@/components/Icon";
-import { decodeLocation } from "@/providers/whatsapp/contentFormat";
+import { coordStr, decodeLocation } from "@/providers/whatsapp/contentFormat";
 import { BubbleChrome } from "./bubbleChrome";
 import { CONVERSATION_STRINGS } from "../../i18n/pt-BR";
 
@@ -14,7 +14,10 @@ import { CONVERSATION_STRINGS } from "../../i18n/pt-BR";
 export function LocationBubble({ message, onRetry }: { message: IMessage; onRetry?: () => void }) {
   const { name, lat, lng } = decodeLocation(message.text);
   const hasCoords = typeof lat === "number" && typeof lng === "number";
-  const mapHref = hasCoords ? `https://www.google.com/maps?q=${lat},${lng}` : null;
+  // coordStr (not `${lat}`) so sub-1e-6 coords don't render as `5e-7` in the
+  // Maps link or on screen — mirrors the no-exponential invariant of the encode.
+  const coords = hasCoords ? `${coordStr(lat)},${coordStr(lng)}` : null;
+  const mapHref = coords ? `https://www.google.com/maps?q=${coords}` : null;
 
   return (
     <BubbleChrome message={message} onRetry={onRetry}>
@@ -27,7 +30,7 @@ export function LocationBubble({ message, onRetry }: { message: IMessage; onRetr
             {CONVERSATION_STRINGS.location.label}
           </p>
           <p className="truncate text-sm font-medium text-foreground">
-            {name || (hasCoords ? `${lat}, ${lng}` : CONVERSATION_STRINGS.location.noCoords)}
+            {name || (coords ? coords.replace(",", ", ") : CONVERSATION_STRINGS.location.noCoords)}
           </p>
           {mapHref && (
             <a

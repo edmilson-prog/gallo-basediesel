@@ -118,9 +118,9 @@ export function ConversationPage() {
     }
     for (const message of inboundMessages) {
       if (message.direction !== "in" || !message.mediaType) continue;
-      // location/contact reuse media_type as a render discriminator but carry no
-      // binary payload — never route them through the inbound media archival.
-      if (message.mediaType === "location" || message.mediaType === "contact") continue;
+      // No-byte structured shares (location/contact) are filtered inside the
+      // shared gate (resolveInboundAsset / NON_ARCHIVABLE_MEDIA_TYPES), so ensure()
+      // below is a safe no-op for them — single source of truth, no inline list.
       const existing = assetByMessageId.get(message.id) ?? null;
       if (existing) {
         // Keep the guard in sync so we never re-fire for an already-archived msg.

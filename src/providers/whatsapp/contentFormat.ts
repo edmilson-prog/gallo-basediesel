@@ -45,8 +45,11 @@ const PHONE_RE = /^\+?\d[\d().\s-]{4,}\d$/;
  * yields exponential notation for |n| < 1e-6 (e.g. `5e-7`) — coordinates very
  * close to the equator/prime meridian — which the regex would reject, dropping
  * the coords. Expand those to fixed notation; everything else stays exact.
+ * Exported so the DISPLAY side (LocationBubble: map href + on-screen text)
+ * honors the same no-exponential invariant when it re-stringifies the decoded
+ * numbers — otherwise `${lat}` reintroduces `5e-7` at the consumption boundary.
  */
-function coordStr(n: number): string {
+export function coordStr(n: number): string {
   const s = String(n);
   if (!s.includes("e") && !s.includes("E")) return s;
   return n.toFixed(20).replace(/0+$/, "").replace(/\.$/, "");
@@ -130,7 +133,9 @@ export function phoneFromVCard(vcard: string | undefined | null): string | undef
   if (!vcard) return undefined;
   const waid = vcard.match(/waid=(\d{6,})/i);
   if (waid) return toE164(waid[1] as string);
-  const tel = vcard.match(/TEL[^:]*:(\+?\d[\d().\s-]{4,}\d)/i);
+  // `[ \t]` (not `\s`) so the capture can't bleed across the vCard's CRLF lines
+  // into a following digit-led line (e.g. a NOTE), which would corrupt the number.
+  const tel = vcard.match(/TEL[^:]*:(\+?\d[\d().\t -]{4,}\d)/i);
   // toE164 strips the vCard's separators ("+55 54 9..." → "+5554 9...") so the
   // copied number is clean E.164, matching the waid branch.
   if (tel) return toE164(tel[1] as string);

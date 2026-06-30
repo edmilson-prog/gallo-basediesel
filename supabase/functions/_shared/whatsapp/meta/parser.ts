@@ -155,7 +155,11 @@ export function parseMetaInbound(
   if (type === "contacts") {
     const card = message.contacts?.[0];
     const firstPhone = card?.phones?.[0];
-    const phone = firstPhone?.phone ?? (firstPhone?.wa_id ? `+${firstPhone.wa_id}` : undefined);
+    // `||` (not `??`) so an empty-string `phone` still falls back to wa_id; and
+    // normalize through toE164 so the stored/copied number is clean E.164,
+    // matching the Evolution vCard path (phoneFromVCard → toE164).
+    const rawPhone = firstPhone?.phone || (firstPhone?.wa_id ? `+${firstPhone.wa_id}` : "");
+    const phone = rawPhone ? toE164(rawPhone) : undefined;
     return {
       ...base,
       contentType: "contact",

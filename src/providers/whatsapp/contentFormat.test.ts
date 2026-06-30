@@ -88,4 +88,11 @@ describe("phoneFromVCard", () => {
     expect(phoneFromVCard("BEGIN:VCARD\nFN:Sem telefone\nEND:VCARD")).toBeUndefined();
     expect(phoneFromVCard(undefined)).toBeUndefined();
   });
+
+  it("does not let the TEL capture bleed across lines into a following digit-led line", () => {
+    // No waid → TEL fallback. The next line starts with a digit; the capture
+    // must stop at the newline, not absorb "0NOTE...".
+    const vcard = "BEGIN:VCARD\nTEL:+5554 98888-1111\n0NOTE:algo\nEND:VCARD";
+    expect(phoneFromVCard(vcard)).toBe("+5554988881111");
+  });
 });
