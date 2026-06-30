@@ -6,6 +6,23 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.126.0] — Waypoint · 2026-06-30
+
+**O WhatsApp ficou mais confiável para receber mensagens — e os compartilhamentos de localização e de contato agora aparecem como cartões.** Esta versão reúne correções na recepção de mensagens (Evolution e Evolution Go) e duas novidades no Atendimento: silenciar os alertas de um número desconectado e exibir, como cartões, as localizações e os contatos que os clientes enviam.
+
+### Added
+
+- **Localização e contato aparecem como cartões** — quando um cliente compartilha uma localização ou um contato pelo WhatsApp, a conversa agora mostra um cartão claro (nome do local com link para o mapa, ou nome e telefone do contato com botão de copiar) no lugar de uma caixa vazia. Vale para os números Meta, Evolution e Evolution Go, inclusive nos históricos importados.
+- **Silenciar alertas de um número desconectado** — no menu (⋮) de um número de WhatsApp, a opção de silenciar alertas deixa de exibir os avisos de desconexão daquele número (no cartão, no topo e no sino de notificações). Útil para um chip que você sabe que está fora do ar. O número volta a funcionar normalmente quando reconectar.
+
+### Fixed
+
+- **Recepção do Evolution voltou a funcionar mesmo quando o servidor troca de IP** — um número Evolution podia parar de receber mensagens novas quando o endereço do servidor mudava. A recepção passou a ser validada de outra forma, imune à troca de IP.
+- **Botão de conexão de um número Evolution Go pareado não acusa mais erro** — ao reabrir um número Go que já estava conectado, a conexão exibia um erro (503) em vez de simplesmente mostrar "Conectado". Corrigido.
+- **Mídia recebida pelo Evolution Go volta a baixar** — imagens, áudios e documentos recebidos por um número Evolution Go não abriam (download indisponível). Agora baixam e abrem normalmente, inclusive áudios de voz.
+- **A conversa aberta atualiza ao vivo** — com uma conversa aberta, mensagens novas e mudanças de status (enviado/entregue/lido) às vezes só apareciam ao sair e voltar. Agora a conversa aberta se atualiza sozinha, na hora.
+- **A prévia da conversa na lista não fica mais atrasada** — na lista de conversas, a prévia da última mensagem podia ficar uma mensagem para trás. Agora mostra sempre a mensagem mais recente.
+
 ## [0.125.0] — Intake · 2026-06-29
 
 **Agora é possível transformar um contato importado do WhatsApp em cliente de verdade — ou descartá-lo — direto do Atendimento.** Os contatos que chegam pela importação ou pelas conversas ficavam só no Atendimento, sem nunca virar cliente. Esta versão entrega o processo de revisão que faltava: promover a contato a cliente (com um vendedor responsável), marcar como "não é cliente", desfazer um descarte, e uma fila para a equipe cuidar disso em lote.
