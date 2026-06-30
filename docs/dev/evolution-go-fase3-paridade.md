@@ -13,6 +13,28 @@
 
 ---
 
+## 0. Atualização de status — 2026-06-30
+
+> ⚠️ **Este documento é um retrato de 2026-06-25.** Parte da Fase 3 e o smoke e2e já
+> foram entregues nas sessões seguintes (PRs #178–#201). Leia o quadro abaixo **antes**
+> de seguir o plano: itens marcados ✅/🟡 NÃO devem ser reimplementados do zero.
+
+| Item | Status em 2026-06-25 (este doc) | Estado real na `main` em 2026-06-30 |
+|---|---|---|
+| **Smoke e2e** | pendente (gate do dono) | ✅ **Exercitado em produção** — pareamento Go real (número próprio capturado, fotos sincronizadas em massa). Os contratos 1–3 do §3 foram resolvidos via hotfixes pontuais de Edge. |
+| **B — número próprio** | gap: poll só grava status | ✅ **Feito** — `fetchGoOwnNumber` + self-heal no poll do `whatsapp-connect` (PR #184). O comentário "deferred to Phase 3" na action `qr` permanece, mas o backfill do poll cobre o caso funcionalmente. |
+| **A — avatar Go** | "engine não tem função de avatar" | 🟡 **Parcial** — `fetchGoProfilePictureUrl` **já existe** no engine (`evolution-go/instance.ts`) e o bug do JID `+` foi corrigido (PR #189, "Sincronizar fotos" em massa funciona). **Resta apenas** destravar o auto-fetch-on-inbound: `scheduleAvatarFetch` (`whatsapp-webhook`) ainda gateia `provider !== "evolution"`. |
+| **C — half-create recovery** | deferido | ⏳ **Ainda aberto** (`whatsapp-connect` ainda marca "deferred to Phase 3"). |
+| **D — Connection lifecycle + audit** | deferido | ⏳ **Ainda aberto**. |
+| **E — Realtime de status** | opcional | ⏳ **Ainda aberto**. |
+
+> **Resumo:** o plano segue válido como referência para **C**, **D**, **E** e o
+> **auto-wire do A** (o item mais difícil de A — a função de engine + o contrato de JID —
+> já está resolvido). As seções 1–4 abaixo preservam o plano original como foi escrito;
+> consulte sempre este §0 para o que já saiu.
+
+---
+
 ## 1. Sumário executivo
 
 A migração do motor WhatsApp de **Evolution API v2.3.7 (Baileys)** para **Evolution Go
