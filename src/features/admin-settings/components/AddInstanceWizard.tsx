@@ -10,7 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Icon } from "@/components/Icon";
-import { getActiveDataSource, useWhatsAppAccountsProvider, useWhatsAppGoServersProvider } from "@/providers/data";
+import {
+  getActiveDataSource,
+  useWhatsAppAccountsProvider,
+  useWhatsAppGoServersProvider,
+} from "@/providers/data";
 import { useEvolutionPairing } from "../hooks/useEvolutionPairing";
 import type { IWhatsAppAccount, IWhatsAppGoServer, WhatsAppAccountPurpose } from "@/shared/types";
 import { isValidCredentialsRef, INVALID_CREDENTIALS_REF_MESSAGE } from "../api/whatsappConnect";
@@ -148,6 +152,7 @@ export function AddInstanceWizard({
           failoverPolicy: "disabled",
           isFailoverActive: false,
           purpose,
+          alertsMuted: false,
         });
         setAccountId(created.id);
         setPhase("qr");
@@ -178,6 +183,7 @@ export function AddInstanceWizard({
         failoverPolicy: "disabled",
         isFailoverActive: false,
         purpose,
+        alertsMuted: false,
       });
       setAccountId(created.id);
       setPhase("qr");
@@ -293,7 +299,9 @@ export function AddInstanceWizard({
             )}
             <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs">
               <span className="text-muted-foreground">
-                {wizardProvider === "evolution-go" ? "Prefixo de credenciais (gerado): " : "ID técnico (gerado): "}
+                {wizardProvider === "evolution-go"
+                  ? "Prefixo de credenciais (gerado): "
+                  : "ID técnico (gerado): "}
               </span>
               <span className="font-mono text-foreground">
                 {wizardProvider === "evolution-go" ? goCredentialsRef || "—" : instanceName || "—"}
@@ -381,7 +389,9 @@ export function AddInstanceWizard({
               <Button variant="outline" onClick={onClose}>
                 Concluir
               </Button>
-              <Button onClick={() => accountId && onCreated(accountId)}>Configurar quem acessa</Button>
+              <Button onClick={() => accountId && onCreated(accountId)}>
+                Configurar quem acessa
+              </Button>
             </div>
           </div>
         )}

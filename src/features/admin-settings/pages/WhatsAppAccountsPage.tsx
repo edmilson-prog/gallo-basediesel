@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Icon } from "@/components/Icon";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +40,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ConnectWhatsAppDialog, type ConnectDialogStep } from "../components/ConnectWhatsAppDialog";
@@ -153,6 +155,7 @@ export function WhatsAppAccountsPage() {
   const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
   const provider = useWhatsAppAccountsProvider();
   const sellersProvider = useSellersProvider();
+  const queryClient = useQueryClient();
   const { currentUser } = useAuth();
   const [accounts, setAccounts] = useState<IWhatsAppAccount[] | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -410,6 +413,40 @@ export function WhatsAppAccountsPage() {
     }
   };
 
+  // Owner shelves an intentionally offline instance: silence its disconnection
+  // alerts (card + global banner, TopBar indicator AND the in-app notifications
+  // emitted by the connection trigger / health tick). Audited, reversible.
+  const handleToggleAlertsMuted = async (account: IWhatsAppAccount) => {
+    const next = !account.alertsMuted;
+    setSaving(true);
+    try {
+      await provider.update(account.id, { alertsMuted: next });
+      if (currentUser?.sellerId) {
+        recordAuditLogSync({
+          storeId,
+          actorId: currentUser.sellerId,
+          action: "whatsapp_alerts_muted_toggle",
+          resource: "whatsapp_account",
+          resourceId: account.id,
+          after: { alertsMuted: next },
+        });
+      }
+      toast.success(
+        next
+          ? "Alertas de desconexão silenciados para esta conta."
+          : "Alertas de desconexão reativados para esta conta.",
+      );
+      await refresh();
+      // The shell banner/TopBar read a separate 60s query — nudge it so the
+      // change reflects immediately instead of waiting for the next poll/focus.
+      void queryClient.invalidateQueries({ queryKey: ["shell", "whatsapp-connection-status"] });
+    } catch {
+      toast.error("Não foi possível alterar os alertas da conta.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div ref={pageRef} tabIndex={-1} className="space-y-6 outline-none">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -501,6 +538,16 @@ export function WhatsAppAccountsPage() {
                         Failover ativo
                       </Badge>
                     )}
+                    {account.alertsMuted && (
+                      <Badge
+                        variant="outline"
+                        className="border-border bg-muted text-muted-foreground"
+                        title="Alertas de desconexão silenciados para esta conta"
+                      >
+                        <Icon icon="mdi:bell-off-outline" size={12} className="mr-1" />
+                        Alertas silenciados
+                      </Badge>
+                    )}
                     {!isMock && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -515,6 +562,21 @@ export function WhatsAppAccountsPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onSelect={() => void handleToggleAlertsMuted(account)}>
+                            <Icon
+                              icon={
+                                account.alertsMuted
+                                  ? "mdi:bell-ring-outline"
+                                  : "mdi:bell-off-outline"
+                              }
+                              size={15}
+                              className="mr-2"
+                            />
+                            {account.alertsMuted
+                              ? "Reativar alertas de desconexão"
+                              : "Silenciar alertas de desconexão"}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onSelect={() => setDeleteTarget(account)}
                             className="text-destructive focus:bg-destructive/10 focus:text-destructive"
@@ -825,22 +887,29 @@ export function WhatsAppAccountsPage() {
                       </div>
                     )}
 
-                    {/* Lost connection: inline call to action (SIGPRO-style) */}
-                    {isEvolutionFamily(account.provider) && account.status === "disconnected" && (
-                      <div className="mt-3 flex flex-wrap items-center gap-2 rounded-md border border-severity-critical/40 bg-severity-critical/10 px-3 py-2">
-                        <Icon
-                          icon="mdi:alert-circle-outline"
-                          size={16}
-                          className="shrink-0 text-severity-critical"
-                        />
-                        <p className="text-sm text-foreground">
-                          Conexão perdida — mensagens não saem nem chegam por esta conta.
-                        </p>
-                        <Button size="sm" className="ml-auto" onClick={() => openConnect(account)}>
-                          Reconectar
-                        </Button>
-                      </div>
-                    )}
+                    {/* Lost connection: inline call to action (SIGPRO-style).
+                        Hidden when the Owner has muted this account's alerts. */}
+                    {isEvolutionFamily(account.provider) &&
+                      account.status === "disconnected" &&
+                      !account.alertsMuted && (
+                        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-md border border-severity-critical/40 bg-severity-critical/10 px-3 py-2">
+                          <Icon
+                            icon="mdi:alert-circle-outline"
+                            size={16}
+                            className="shrink-0 text-severity-critical"
+                          />
+                          <p className="text-sm text-foreground">
+                            Conexão perdida — mensagens não saem nem chegam por esta conta.
+                          </p>
+                          <Button
+                            size="sm"
+                            className="ml-auto"
+                            onClick={() => openConnect(account)}
+                          >
+                            Reconectar
+                          </Button>
+                        </div>
+                      )}
                   </>
                 ) : (
                   <div className="mt-4 space-y-4 border-t border-border pt-4">

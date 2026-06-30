@@ -227,6 +227,14 @@ export interface IWhatsAppAccount {
   purpose: WhatsAppAccountPurpose;
   /** Evolution Go — server this instance belongs to (registry). Null for v2/Meta. */
   goServerId?: ID;
+  /**
+   * When true, disconnection/health alerts for this account are silenced:
+   * the "Conexão perdida" card banner, the global disconnect banner, the
+   * TopBar indicator AND the in-app notifications (connection trigger +
+   * health tick) skip this account. Lets the Owner shelve an intentionally
+   * offline instance. Default `false`.
+   */
+  alertsMuted: boolean;
 }
 
 /**

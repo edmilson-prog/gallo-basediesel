@@ -43,6 +43,8 @@ export interface IWhatsAppAccountPatch {
   failoverPolicy?: WhatsAppFailoverPolicy;
   failoverAccountId?: ID | null;
   isFailoverActive?: boolean;
+  /** Silence disconnection/health alerts for this account (Owner action). */
+  alertsMuted?: boolean;
 }
 
 /**

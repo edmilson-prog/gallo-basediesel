@@ -50,6 +50,35 @@ export function buildDisconnectBannerCopy(labels: string[]): { headline: string;
   };
 }
 
+export interface IWhatsAppConnectionSignals {
+  total: number;
+  connectedCount: number;
+  disconnected: IWhatsAppAccount[];
+  alerting: IWhatsAppAccount[];
+  snoozed: boolean;
+}
+
+/**
+ * Pure derivation of the shell's connection signals. Accounts with
+ * `alertsMuted` are shelved by the Owner (Configurações → WhatsApp kebab):
+ * they drop out of the ENTIRE signal set — count, global banner AND TopBar
+ * color — so an intentionally offline instance never alarms. `isSessionMuted`
+ * is the per-account 30min snooze predicate, injected so this stays pure.
+ */
+export function deriveConnectionSignals(
+  accounts: IWhatsAppAccount[],
+  isSessionMuted: (accountId: string) => boolean,
+): IWhatsAppConnectionSignals {
+  const considered = accounts.filter((a) => !a.alertsMuted);
+  const total = considered.length;
+  const connectedCount = considered.filter((a) => a.status === "connected").length;
+  const disconnected = considered.filter((a) => a.status === "disconnected");
+  const alerting = disconnected.filter((a) => !isSessionMuted(a.id));
+  /** Something is down but every alert was snoozed — residual signal time. */
+  const snoozed = disconnected.length > 0 && alerting.length === 0;
+  return { total, connectedCount, disconnected, alerting, snoozed };
+}
+
 export function useWhatsAppConnectionStatus() {
   const { currentStoreId } = useCurrentStore();
   const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
@@ -80,12 +109,10 @@ export function useWhatsAppConnectionStatus() {
     }
   }, [accounts]);
 
-  const total = accounts?.length ?? 0;
-  const connectedCount = accounts?.filter((a) => a.status === "connected").length ?? 0;
-  const disconnected = (accounts ?? []).filter((a) => a.status === "disconnected");
-  const alerting = disconnected.filter((a) => !isDisconnectAlertMuted(a.id));
-  /** Something is down but every alert was snoozed — residual signal time. */
-  const snoozed = disconnected.length > 0 && alerting.length === 0;
+  const { total, connectedCount, disconnected, alerting, snoozed } = deriveConnectionSignals(
+    accounts ?? [],
+    isDisconnectAlertMuted,
+  );
 
   return {
     loading: accounts === null,
