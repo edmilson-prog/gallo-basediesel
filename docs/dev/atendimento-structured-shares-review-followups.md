@@ -6,10 +6,19 @@ na rodada de fixes (decisão: corrigir 1–8 + #12, adiar o restante). Mantido a
 para não se perder — cada item traz `arquivo:linha`, o quê, por que foi adiado e
 a correção sugerida.
 
-> Os fixes aplicados na rodada (marker-hijack, swap nome/telefone, regressão de
+> Os fixes aplicados na 1ª rodada (marker-hijack, swap nome/telefone, regressão de
 > tipo em `conversationMedia`, divergência import↔live, multi-contato no Evolution
 > clássico, `phoneFromVCard` normalizado, gate em `resolveInboundAsset`, notação
 > exponencial em `encodeLocation`, prefixo `I` nos tipos) já estão no código.
+
+> **2ª rodada (review do PR #205, 2026-06-30) — também já no código:** preview da
+> Inbox mostra o nome decodificado (👤/📍) em vez do rótulo genérico; Meta
+> `parser` normaliza o telefone do contato via `toE164` + `||` no fallback
+> `wa_id`; `phoneFromVCard` não vaza entre linhas do vCard (`[ \t]` no lugar de
+> `\s`); `LocationBubble` usa `coordStr` no link/tela; o guard inline de
+> location/contact no `ConversationPage` foi **removido** (gate único em
+> `resolveInboundAsset`); testes do parser Meta para location/contact adicionados.
+> Restam adiados os itens abaixo (A–F).
 
 ---
 
@@ -36,15 +45,22 @@ a correção sugerida.
   cada toque de `last_message_at`, **redundante** com o fast-path do INSERT em
   `messages` quando este chega; (2) `syncLatest` só puxa a página mais nova (50
   mensagens) — se um burst > 50 mensagens for perdido pelo Realtime, o miolo não
-  é recuperado até um refetch/scroll.
-- **Por que adiado:** é o tradeoff do fix do thread (PR #204) — entrega
+  é recuperado até um refetch/scroll; (3) **ordem** — `syncLatest` alimenta a
+  página em `applyRealtimeRow`, cujo caminho de inserção (`prependNewest`) coloca
+  toda linha nova no topo (mais recente) **sem checar `sentAt`**; se uma mensagem
+  perdida **não for a mais nova**, ela entra fora de ordem (renderiza no fim do
+  thread). *(2ª revisão, PR #205 — PLAUSIBLE; distinta da suspeita refutada na 1ª,
+  que era sobre o caminho fast-path.)*
+- **Por que adiado:** é o tradeoff do fix do thread (PR #204→#205) — entrega
   convergência confiável mesmo quando o canal `messages` não entrega (custo de
   RLS). Validado pelo dono ("o thread atualiza agora"). Faz parte do **cache do
   Atendimento congelado** — não tocar fora de escopo autorizado.
 - **Correção futura:** só rodar `syncLatest` quando o fast-path não aplicou nada
-  numa janela curta; e, para gaps profundos, paginar para trás até reconciliar o
-  `providerMessageId` mais antigo conhecido.
-- **Severidade:** baixa (eficiência + borda de burst-com-perda).
+  numa janela curta; para gaps profundos, paginar para trás até reconciliar o
+  `providerMessageId` mais antigo conhecido; e o merge inserir por `sentAt`
+  ordenado (não `prependNewest` cego) para fechar o item (3).
+- **Severidade:** baixa-média (eficiência + bordas de burst-com-perda e ordem;
+  ambas se auto-curam ao reabrir a conversa). A 2ª revisão **elevou** este cluster.
 
 ---
 
@@ -76,6 +92,36 @@ a correção sugerida.
   a presença de coords explicitamente (ex.: prefixo na linha) em vez de inferir
   por shape.
 - **Severidade:** desprezível.
+
+### E. `decodeContact` de uma única linha 100% numérica vira "telefone"
+- **Onde:** `src/providers/whatsapp/contentFormat.ts` (`decodeContact`, ramo de 1
+  linha). *(2ª revisão, PR #205 — PLAUSIBLE.)*
+- **O quê:** quando o contato compartilhado tem **só** o nome (sem telefone
+  resolvível) e esse nome é uma string numérica (ex.: contato não salvo), o encode
+  produz uma única linha e o decode classifica por shape → `PHONE_RE` casa → vira
+  `{ phone }`, e o card mostra o nome como número com "Copiar número".
+- **Por que adiado:** **ambiguidade inerente** de uma única linha — sem um 2º
+  campo não há como distinguir "nome numérico" de "telefone". O fix da 1ª rodada
+  resolveu o caso de 2 linhas (não troca mais nome↔telefone); este resíduo de 1
+  linha é de baixíssimo alcance.
+- **Correção futura (se incomodar):** marcar o tipo do campo no encode (prefixo)
+  quando houver só um, em vez de inferir por shape no decode.
+- **Severidade:** muito baixa.
+
+### F. O conjunto "tipo estruturado sem bytes" (`location|contact`) vive em 4+ lugares
+- **Onde:** `NON_ARCHIVABLE_MEDIA_TYPES` (`useEnsureInboundMedia.ts`), os arrays
+  `MEDIA_TYPES` (`import/core`, `import/history-core`, `webhook/core` `toMediaType`),
+  o `Exclude<MessageMediaType, …>` em `mediaDownload.ts`, ao lado de
+  `MessageMediaType` em `shared/types/conversation.ts`. *(2ª revisão — PLAUSIBLE.)*
+- **O quê:** ao adicionar um 3º tipo estruturado (enquete/reação), é preciso editar
+  cada lista; esquecer uma roteia o tipo para arquivamento/assinatura de mídia (linha
+  `media_assets` lixo / `createSignedUrl` em path nulo) ou o renderiza como texto cru.
+- **Por que adiado:** as listas estão **corretas hoje** e cobertas; é generalização,
+  não correção. (O guard inline duplicado no `ConversationPage` — antes item à parte
+  — já foi **removido** na 2ª rodada.)
+- **Correção futura:** um `const`/predicado exportado único (`isStructuredShare`)
+  ao lado de `MessageMediaType`, consumido por todos os sites.
+- **Severidade:** muito baixa (manutenção/drift).
 
 ---
 
