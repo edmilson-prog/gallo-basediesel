@@ -50,6 +50,7 @@ import {
   logoutGoInstance,
   restartGoInstance,
   deleteGoInstance,
+  type IGoQrResult,
 } from "../_shared/whatsapp/evolution-go/instance.ts";
 import { resolveGoServer } from "./goServer.ts";
 
@@ -565,7 +566,16 @@ servePost(async (req, ctx) => {
           const goTarget = { baseUrl: goBaseUrl, instanceId };
           const webhookUrl = `${requiredEnv("SUPABASE_URL")}/functions/v1/whatsapp-webhook/evolution-go`;
           await connectGoInstance(instanceToken, deps, goTarget, webhookUrl, EVOLUTION_GO_DEFAULT_SUBSCRIBE, ctx.traceId);
-          const qr = await getGoInstanceQr(instanceToken, deps, goTarget, ctx.traceId);
+          // An already-paired instance has no QR to issue: this Go build answers
+          // GET /instance/qr with HTTP 400 + a "session"-ish message, which
+          // mapEvolutionGoError classifies as PROVIDER_DISCONNECTED (503) — surfacing
+          // a misleading "WhatsApp desconectado" on a perfectly connected number.
+          // Trust the authoritative LoggedIn signal first (mirrors test/state) and
+          // only ask for a QR when the session is NOT yet paired.
+          const goStatus = await getGoInstanceStatus(instanceToken, deps, goTarget, ctx.traceId);
+          const qr: IGoQrResult = goStatus.loggedIn
+            ? { state: "open" }
+            : await getGoInstanceQr(instanceToken, deps, goTarget, ctx.traceId);
           if (qr.state === "open") {
             if (account.status !== "connected") {
               await admin
