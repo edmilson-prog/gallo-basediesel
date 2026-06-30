@@ -18,7 +18,16 @@ a correção sugerida.
 > `\s`); `LocationBubble` usa `coordStr` no link/tela; o guard inline de
 > location/contact no `ConversationPage` foi **removido** (gate único em
 > `resolveInboundAsset`); testes do parser Meta para location/contact adicionados.
-> Restam adiados os itens abaixo (A–F).
+
+> **3ª rodada (review do PR #205, 2026-06-30) — também já no código:** a faceta
+> de **ordem** do item B foi **corrigida** (`syncLatest`/`applyRealtimeRow` agora
+> inserem por `sentAt` via helper puro `insertSortedDesc`, não mais `prependNewest`
+> cego); o campo `address` da localização vira rótulo quando não há `name` (3
+> parsers); **C (DRY dos parsers Baileys) e F (`MEDIA_TYPES` triplicado) RESOLVIDOS**
+> — encoders `encodeBaileysLocation`/`encodeBaileysContact` e const único
+> `MEDIA_DISCRIMINATOR_TYPES`; emoji do preview numa fonte só (`STRUCTURED_PREVIEW_ICON`);
+> comentário do guard em `conversationMedia` corrigido. **Restam adiados: A, B
+> (facetas de eficiência), D, E.**
 
 ---
 
@@ -45,28 +54,25 @@ a correção sugerida.
   cada toque de `last_message_at`, **redundante** com o fast-path do INSERT em
   `messages` quando este chega; (2) `syncLatest` só puxa a página mais nova (50
   mensagens) — se um burst > 50 mensagens for perdido pelo Realtime, o miolo não
-  é recuperado até um refetch/scroll; (3) **ordem** — `syncLatest` alimenta a
-  página em `applyRealtimeRow`, cujo caminho de inserção (`prependNewest`) coloca
-  toda linha nova no topo (mais recente) **sem checar `sentAt`**; se uma mensagem
-  perdida **não for a mais nova**, ela entra fora de ordem (renderiza no fim do
-  thread). *(2ª revisão, PR #205 — PLAUSIBLE; distinta da suspeita refutada na 1ª,
-  que era sobre o caminho fast-path.)*
+  é recuperado até um refetch/scroll. ~~(3) ordem fora do `prependNewest`~~ →
+  **CORRIGIDO na 3ª rodada** (insere por `sentAt` via `insertSortedDesc`).
 - **Por que adiado:** é o tradeoff do fix do thread (PR #204→#205) — entrega
   convergência confiável mesmo quando o canal `messages` não entrega (custo de
   RLS). Validado pelo dono ("o thread atualiza agora"). Faz parte do **cache do
   Atendimento congelado** — não tocar fora de escopo autorizado.
 - **Correção futura:** só rodar `syncLatest` quando o fast-path não aplicou nada
   numa janela curta; para gaps profundos, paginar para trás até reconciliar o
-  `providerMessageId` mais antigo conhecido; e o merge inserir por `sentAt`
-  ordenado (não `prependNewest` cego) para fechar o item (3).
-- **Severidade:** baixa-média (eficiência + bordas de burst-com-perda e ordem;
-  ambas se auto-curam ao reabrir a conversa). A 2ª revisão **elevou** este cluster.
+  `providerMessageId` mais antigo conhecido.
+- **Severidade:** baixa (eficiência + borda de burst-com-perda; auto-cura ao
+  reabrir a conversa).
 
 ---
 
 ## Limpezas / convenção (sem impacto funcional)
 
-### C. Mapeamento Baileys de location/contact duplicado entre os parsers
+### C. Mapeamento Baileys de location/contact duplicado entre os parsers — ✅ RESOLVIDO (3ª rodada)
+> Extraídos `encodeBaileysLocation`/`encodeBaileysContact` em `contentFormat.ts`,
+> reusados pelos dois parsers. Mantido como registro histórico.
 - **Onde:** `src/providers/whatsapp/evolution-go/parser.ts` (`extractContent`,
   ~linha 117) e `src/providers/whatsapp/evolution/parser.ts`
   (`extractEvolutionContent`, ~linha 87).
@@ -108,9 +114,14 @@ a correção sugerida.
   quando houver só um, em vez de inferir por shape no decode.
 - **Severidade:** muito baixa.
 
-### F. O conjunto "tipo estruturado sem bytes" (`location|contact`) vive em 4+ lugares
-- **Onde:** `NON_ARCHIVABLE_MEDIA_TYPES` (`useEnsureInboundMedia.ts`), os arrays
-  `MEDIA_TYPES` (`import/core`, `import/history-core`, `webhook/core` `toMediaType`),
+### F. O conjunto "tipo estruturado sem bytes" (`location|contact`) vive em 4+ lugares — ✅ PARCIALMENTE RESOLVIDO (3ª rodada)
+> O `MEDIA_TYPES` triplicado (`webhook/core` `toMediaType` + os 2 importadores) virou
+> **um const único** `MEDIA_DISCRIMINATOR_TYPES` em `providers/whatsapp/types.ts`.
+> Ainda separados (não unificados): `NON_ARCHIVABLE_MEDIA_TYPES` (subconjunto
+> sem-bytes, no front) e o `Exclude<>` em `mediaDownload.ts` — propósitos distintos,
+> baixa prioridade.
+- **Onde:** `NON_ARCHIVABLE_MEDIA_TYPES` (`useEnsureInboundMedia.ts`), ~~os arrays
+  `MEDIA_TYPES` (`import/core`, `import/history-core`, `webhook/core` `toMediaType`)~~,
   o `Exclude<MessageMediaType, …>` em `mediaDownload.ts`, ao lado de
   `MessageMediaType` em `shared/types/conversation.ts`. *(2ª revisão — PLAUSIBLE.)*
 - **O quê:** ao adicionar um 3º tipo estruturado (enquete/reação), é preciso editar
