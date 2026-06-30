@@ -1,0 +1,1347 @@
+[
+{
+"tablename": "ai_settings",
+"indexname": "ai_settings_pkey",
+"indexdef": "CREATE UNIQUE INDEX ai_settings_pkey ON public.ai_settings USING btree (id)"
+},
+{
+"tablename": "ai_usage_events",
+"indexname": "ai_usage_events_pkey",
+"indexdef": "CREATE UNIQUE INDEX ai_usage_events_pkey ON public.ai_usage_events USING btree (id)"
+},
+{
+"tablename": "ai_usage_events",
+"indexname": "idx_ai_usage_events_feature",
+"indexdef": "CREATE INDEX idx_ai_usage_events_feature ON public.ai_usage_events USING btree (feature) WHERE (feature IS NOT NULL)"
+},
+{
+"tablename": "ai_usage_events",
+"indexname": "idx_ai_usage_events_ts",
+"indexdef": "CREATE INDEX idx_ai_usage_events_ts ON public.ai_usage_events USING btree (ts DESC)"
+},
+{
+"tablename": "asset_combos",
+"indexname": "asset_combos_pkey",
+"indexdef": "CREATE UNIQUE INDEX asset_combos_pkey ON public.asset_combos USING btree (id)"
+},
+{
+"tablename": "asset_combos",
+"indexname": "asset_combos_store_id_idx",
+"indexdef": "CREATE INDEX asset_combos_store_id_idx ON public.asset_combos USING btree (store_id)"
+},
+{
+"tablename": "asset_combos",
+"indexname": "idx_asset_combos_owner_id",
+"indexdef": "CREATE INDEX idx_asset_combos_owner_id ON public.asset_combos USING btree (owner_id)"
+},
+{
+"tablename": "asset_favorites",
+"indexname": "asset_favorites_pkey",
+"indexdef": "CREATE UNIQUE INDEX asset_favorites_pkey ON public.asset_favorites USING btree (seller_id, asset_id)"
+},
+{
+"tablename": "asset_favorites",
+"indexname": "asset_favorites_seller_id_idx",
+"indexdef": "CREATE INDEX asset_favorites_seller_id_idx ON public.asset_favorites USING btree (seller_id)"
+},
+{
+"tablename": "asset_favorites",
+"indexname": "idx_asset_favorites_asset_id",
+"indexdef": "CREATE INDEX idx_asset_favorites_asset_id ON public.asset_favorites USING btree (asset_id)"
+},
+{
+"tablename": "asset_library_items",
+"indexname": "asset_library_items_category_idx",
+"indexdef": "CREATE INDEX asset_library_items_category_idx ON public.asset_library_items USING btree (category)"
+},
+{
+"tablename": "asset_library_items",
+"indexname": "asset_library_items_pkey",
+"indexdef": "CREATE UNIQUE INDEX asset_library_items_pkey ON public.asset_library_items USING btree (id)"
+},
+{
+"tablename": "asset_library_items",
+"indexname": "asset_library_items_status_idx",
+"indexdef": "CREATE INDEX asset_library_items_status_idx ON public.asset_library_items USING btree (status)"
+},
+{
+"tablename": "asset_library_items",
+"indexname": "asset_library_items_store_id_idx",
+"indexdef": "CREATE INDEX asset_library_items_store_id_idx ON public.asset_library_items USING btree (store_id)"
+},
+{
+"tablename": "asset_library_items",
+"indexname": "asset_library_items_updated_at_idx",
+"indexdef": "CREATE INDEX asset_library_items_updated_at_idx ON public.asset_library_items USING btree (updated_at DESC)"
+},
+{
+"tablename": "asset_send_log",
+"indexname": "asset_send_log_asset_id_idx",
+"indexdef": "CREATE INDEX asset_send_log_asset_id_idx ON public.asset_send_log USING btree (asset_id)"
+},
+{
+"tablename": "asset_send_log",
+"indexname": "asset_send_log_pkey",
+"indexdef": "CREATE UNIQUE INDEX asset_send_log_pkey ON public.asset_send_log USING btree (id)"
+},
+{
+"tablename": "asset_send_log",
+"indexname": "asset_send_log_seller_id_idx",
+"indexdef": "CREATE INDEX asset_send_log_seller_id_idx ON public.asset_send_log USING btree (seller_id, sent_at DESC)"
+},
+{
+"tablename": "audit_logs",
+"indexname": "audit_logs_action_idx",
+"indexdef": "CREATE INDEX audit_logs_action_idx ON public.audit_logs USING btree (action)"
+},
+{
+"tablename": "audit_logs",
+"indexname": "audit_logs_actor_id_idx",
+"indexdef": "CREATE INDEX audit_logs_actor_id_idx ON public.audit_logs USING btree (actor_id)"
+},
+{
+"tablename": "audit_logs",
+"indexname": "audit_logs_pkey",
+"indexdef": "CREATE UNIQUE INDEX audit_logs_pkey ON public.audit_logs USING btree (id)"
+},
+{
+"tablename": "audit_logs",
+"indexname": "audit_logs_resource_id_idx",
+"indexdef": "CREATE INDEX audit_logs_resource_id_idx ON public.audit_logs USING btree (resource_id)"
+},
+{
+"tablename": "audit_logs",
+"indexname": "audit_logs_resource_idx",
+"indexdef": "CREATE INDEX audit_logs_resource_idx ON public.audit_logs USING btree (resource)"
+},
+{
+"tablename": "audit_logs",
+"indexname": "audit_logs_store_id_idx",
+"indexdef": "CREATE INDEX audit_logs_store_id_idx ON public.audit_logs USING btree (store_id)"
+},
+{
+"tablename": "audit_logs",
+"indexname": "audit_logs_timestamp_idx",
+"indexdef": "CREATE INDEX audit_logs_timestamp_idx ON public.audit_logs USING btree (\"timestamp\" DESC)"
+},
+{
+"tablename": "carteira_transfers",
+"indexname": "carteira_transfers_from_seller_id_idx",
+"indexdef": "CREATE INDEX carteira_transfers_from_seller_id_idx ON public.carteira_transfers USING btree (from_seller_id)"
+},
+{
+"tablename": "carteira_transfers",
+"indexname": "carteira_transfers_pkey",
+"indexdef": "CREATE UNIQUE INDEX carteira_transfers_pkey ON public.carteira_transfers USING btree (id)"
+},
+{
+"tablename": "carteira_transfers",
+"indexname": "carteira_transfers_start_date_idx",
+"indexdef": "CREATE INDEX carteira_transfers_start_date_idx ON public.carteira_transfers USING btree (start_date DESC)"
+},
+{
+"tablename": "carteira_transfers",
+"indexname": "carteira_transfers_status_idx",
+"indexdef": "CREATE INDEX carteira_transfers_status_idx ON public.carteira_transfers USING btree (status)"
+},
+{
+"tablename": "carteira_transfers",
+"indexname": "carteira_transfers_store_id_idx",
+"indexdef": "CREATE INDEX carteira_transfers_store_id_idx ON public.carteira_transfers USING btree (store_id)"
+},
+{
+"tablename": "carteira_transfers",
+"indexname": "carteira_transfers_to_seller_id_idx",
+"indexdef": "CREATE INDEX carteira_transfers_to_seller_id_idx ON public.carteira_transfers USING btree (to_seller_id)"
+},
+{
+"tablename": "carteira_transfers",
+"indexname": "carteira_transfers_type_idx",
+"indexdef": "CREATE INDEX carteira_transfers_type_idx ON public.carteira_transfers USING btree (type)"
+},
+{
+"tablename": "carteira_transfers",
+"indexname": "idx_carteira_transfers_created_by",
+"indexdef": "CREATE INDEX idx_carteira_transfers_created_by ON public.carteira_transfers USING btree (created_by)"
+},
+{
+"tablename": "cash_flow_entries",
+"indexname": "cash_flow_entries_date_idx",
+"indexdef": "CREATE INDEX cash_flow_entries_date_idx ON public.cash_flow_entries USING btree (date)"
+},
+{
+"tablename": "cash_flow_entries",
+"indexname": "cash_flow_entries_pkey",
+"indexdef": "CREATE UNIQUE INDEX cash_flow_entries_pkey ON public.cash_flow_entries USING btree (id)"
+},
+{
+"tablename": "cash_flow_entries",
+"indexname": "cash_flow_entries_store_id_idx",
+"indexdef": "CREATE INDEX cash_flow_entries_store_id_idx ON public.cash_flow_entries USING btree (store_id)"
+},
+{
+"tablename": "cash_flow_entries",
+"indexname": "idx_cash_flow_entries_created_by",
+"indexdef": "CREATE INDEX idx_cash_flow_entries_created_by ON public.cash_flow_entries USING btree (created_by)"
+},
+{
+"tablename": "commissions",
+"indexname": "commissions_created_at_idx",
+"indexdef": "CREATE INDEX commissions_created_at_idx ON public.commissions USING btree (created_at DESC)"
+},
+{
+"tablename": "commissions",
+"indexname": "commissions_order_id_idx",
+"indexdef": "CREATE INDEX commissions_order_id_idx ON public.commissions USING btree (order_id)"
+},
+{
+"tablename": "commissions",
+"indexname": "commissions_period_idx",
+"indexdef": "CREATE INDEX commissions_period_idx ON public.commissions USING btree (period)"
+},
+{
+"tablename": "commissions",
+"indexname": "commissions_pkey",
+"indexdef": "CREATE UNIQUE INDEX commissions_pkey ON public.commissions USING btree (id)"
+},
+{
+"tablename": "commissions",
+"indexname": "commissions_seller_id_idx",
+"indexdef": "CREATE INDEX commissions_seller_id_idx ON public.commissions USING btree (seller_id)"
+},
+{
+"tablename": "commissions",
+"indexname": "commissions_status_idx",
+"indexdef": "CREATE INDEX commissions_status_idx ON public.commissions USING btree (status)"
+},
+{
+"tablename": "commissions",
+"indexname": "commissions_store_id_idx",
+"indexdef": "CREATE INDEX commissions_store_id_idx ON public.commissions USING btree (store_id)"
+},
+{
+"tablename": "commissions",
+"indexname": "commissions_store_period_status_idx",
+"indexdef": "CREATE INDEX commissions_store_period_status_idx ON public.commissions USING btree (store_id, period, status)"
+},
+{
+"tablename": "conversation_notes",
+"indexname": "conversation_notes_conversation_id_idx",
+"indexdef": "CREATE INDEX conversation_notes_conversation_id_idx ON public.conversation_notes USING btree (conversation_id)"
+},
+{
+"tablename": "conversation_notes",
+"indexname": "conversation_notes_created_at_idx",
+"indexdef": "CREATE INDEX conversation_notes_created_at_idx ON public.conversation_notes USING btree (created_at)"
+},
+{
+"tablename": "conversation_notes",
+"indexname": "conversation_notes_pkey",
+"indexdef": "CREATE UNIQUE INDEX conversation_notes_pkey ON public.conversation_notes USING btree (id)"
+},
+{
+"tablename": "conversation_notes",
+"indexname": "conversation_notes_store_id_idx",
+"indexdef": "CREATE INDEX conversation_notes_store_id_idx ON public.conversation_notes USING btree (store_id)"
+},
+{
+"tablename": "conversation_participants",
+"indexname": "conversation_participants_pkey",
+"indexdef": "CREATE UNIQUE INDEX conversation_participants_pkey ON public.conversation_participants USING btree (conversation_id, seller_id)"
+},
+{
+"tablename": "conversation_participants",
+"indexname": "cp_seller_idx",
+"indexdef": "CREATE INDEX cp_seller_idx ON public.conversation_participants USING btree (seller_id)"
+},
+{
+"tablename": "conversations",
+"indexname": "conversations_assigned_seller_id_idx",
+"indexdef": "CREATE INDEX conversations_assigned_seller_id_idx ON public.conversations USING btree (assigned_seller_id)"
+},
+{
+"tablename": "conversations",
+"indexname": "conversations_channel_idx",
+"indexdef": "CREATE INDEX conversations_channel_idx ON public.conversations USING btree (channel)"
+},
+{
+"tablename": "conversations",
+"indexname": "conversations_customer_id_idx",
+"indexdef": "CREATE INDEX conversations_customer_id_idx ON public.conversations USING btree (customer_id)"
+},
+{
+"tablename": "conversations",
+"indexname": "conversations_last_message_at_idx",
+"indexdef": "CREATE INDEX conversations_last_message_at_idx ON public.conversations USING btree (last_message_at DESC)"
+},
+{
+"tablename": "conversations",
+"indexname": "conversations_lead_id_idx",
+"indexdef": "CREATE INDEX conversations_lead_id_idx ON public.conversations USING btree (lead_id)"
+},
+{
+"tablename": "conversations",
+"indexname": "conversations_pkey",
+"indexdef": "CREATE UNIQUE INDEX conversations_pkey ON public.conversations USING btree (id)"
+},
+{
+"tablename": "conversations",
+"indexname": "conversations_status_idx",
+"indexdef": "CREATE INDEX conversations_status_idx ON public.conversations USING btree (status)"
+},
+{
+"tablename": "conversations",
+"indexname": "conversations_store_id_idx",
+"indexdef": "CREATE INDEX conversations_store_id_idx ON public.conversations USING btree (store_id)"
+},
+{
+"tablename": "conversations",
+"indexname": "conversations_tags_gin_idx",
+"indexdef": "CREATE INDEX conversations_tags_gin_idx ON public.conversations USING gin (tags)"
+},
+{
+"tablename": "conversations",
+"indexname": "idx_conversations_customer_assigned",
+"indexdef": "CREATE INDEX idx_conversations_customer_assigned ON public.conversations USING btree (customer_id, assigned_seller_id)"
+},
+{
+"tablename": "conversations",
+"indexname": "idx_conversations_lead_assigned",
+"indexdef": "CREATE INDEX idx_conversations_lead_assigned ON public.conversations USING btree (lead_id, assigned_seller_id)"
+},
+{
+"tablename": "conversations",
+"indexname": "idx_conversations_whatsapp_account_id",
+"indexdef": "CREATE INDEX idx_conversations_whatsapp_account_id ON public.conversations USING btree (whatsapp_account_id)"
+},
+{
+"tablename": "customer_notes",
+"indexname": "customer_notes_created_at_idx",
+"indexdef": "CREATE INDEX customer_notes_created_at_idx ON public.customer_notes USING btree (created_at)"
+},
+{
+"tablename": "customer_notes",
+"indexname": "customer_notes_customer_id_idx",
+"indexdef": "CREATE INDEX customer_notes_customer_id_idx ON public.customer_notes USING btree (customer_id)"
+},
+{
+"tablename": "customer_notes",
+"indexname": "customer_notes_pkey",
+"indexdef": "CREATE UNIQUE INDEX customer_notes_pkey ON public.customer_notes USING btree (id)"
+},
+{
+"tablename": "customer_notes",
+"indexname": "idx_customer_notes_author_id",
+"indexdef": "CREATE INDEX idx_customer_notes_author_id ON public.customer_notes USING btree (author_id)"
+},
+{
+"tablename": "customer_segments",
+"indexname": "customer_segments_created_at_idx",
+"indexdef": "CREATE INDEX customer_segments_created_at_idx ON public.customer_segments USING btree (created_at)"
+},
+{
+"tablename": "customer_segments",
+"indexname": "customer_segments_owner_id_idx",
+"indexdef": "CREATE INDEX customer_segments_owner_id_idx ON public.customer_segments USING btree (owner_id)"
+},
+{
+"tablename": "customer_segments",
+"indexname": "customer_segments_pkey",
+"indexdef": "CREATE UNIQUE INDEX customer_segments_pkey ON public.customer_segments USING btree (id)"
+},
+{
+"tablename": "customer_segments",
+"indexname": "customer_segments_scope_idx",
+"indexdef": "CREATE INDEX customer_segments_scope_idx ON public.customer_segments USING btree (scope)"
+},
+{
+"tablename": "customers",
+"indexname": "customers_created_at_idx",
+"indexdef": "CREATE INDEX customers_created_at_idx ON public.customers USING btree (created_at)"
+},
+{
+"tablename": "customers",
+"indexname": "customers_full_name_trgm_idx",
+"indexdef": "CREATE INDEX customers_full_name_trgm_idx ON public.customers USING gin (full_name gin_trgm_ops)"
+},
+{
+"tablename": "customers",
+"indexname": "customers_has_b2b_portal_idx",
+"indexdef": "CREATE INDEX customers_has_b2b_portal_idx ON public.customers USING btree (has_b2b_portal)"
+},
+{
+"tablename": "customers",
+"indexname": "customers_nome_fantasia_trgm_idx",
+"indexdef": "CREATE INDEX customers_nome_fantasia_trgm_idx ON public.customers USING gin (nome_fantasia gin_trgm_ops)"
+},
+{
+"tablename": "customers",
+"indexname": "customers_pkey",
+"indexdef": "CREATE UNIQUE INDEX customers_pkey ON public.customers USING btree (id)"
+},
+{
+"tablename": "customers",
+"indexname": "customers_razao_social_trgm_idx",
+"indexdef": "CREATE INDEX customers_razao_social_trgm_idx ON public.customers USING gin (razao_social gin_trgm_ops)"
+},
+{
+"tablename": "customers",
+"indexname": "customers_seller_id_idx",
+"indexdef": "CREATE INDEX customers_seller_id_idx ON public.customers USING btree (seller_id)"
+},
+{
+"tablename": "customers",
+"indexname": "customers_status_idx",
+"indexdef": "CREATE INDEX customers_status_idx ON public.customers USING btree (status)"
+},
+{
+"tablename": "customers",
+"indexname": "customers_store_id_idx",
+"indexdef": "CREATE INDEX customers_store_id_idx ON public.customers USING btree (store_id)"
+},
+{
+"tablename": "customers",
+"indexname": "customers_type_idx",
+"indexdef": "CREATE INDEX customers_type_idx ON public.customers USING btree (type)"
+},
+{
+"tablename": "customers",
+"indexname": "idx_customers_converted_by_seller_id",
+"indexdef": "CREATE INDEX idx_customers_converted_by_seller_id ON public.customers USING btree (converted_by_seller_id)"
+},
+{
+"tablename": "departments",
+"indexname": "departments_pkey",
+"indexdef": "CREATE UNIQUE INDEX departments_pkey ON public.departments USING btree (id)"
+},
+{
+"tablename": "departments",
+"indexname": "idx_departments_store",
+"indexdef": "CREATE INDEX idx_departments_store ON public.departments USING btree (store_id)"
+},
+{
+"tablename": "distribution_traces",
+"indexname": "distribution_traces_conversation_id_idx",
+"indexdef": "CREATE INDEX distribution_traces_conversation_id_idx ON public.distribution_traces USING btree (conversation_id)"
+},
+{
+"tablename": "distribution_traces",
+"indexname": "distribution_traces_pkey",
+"indexdef": "CREATE UNIQUE INDEX distribution_traces_pkey ON public.distribution_traces USING btree (id)"
+},
+{
+"tablename": "distribution_traces",
+"indexname": "distribution_traces_selected_seller_id_idx",
+"indexdef": "CREATE INDEX distribution_traces_selected_seller_id_idx ON public.distribution_traces USING btree (selected_seller_id)"
+},
+{
+"tablename": "distribution_traces",
+"indexname": "distribution_traces_store_id_idx",
+"indexdef": "CREATE INDEX distribution_traces_store_id_idx ON public.distribution_traces USING btree (store_id)"
+},
+{
+"tablename": "distribution_traces",
+"indexname": "distribution_traces_timestamp_idx",
+"indexdef": "CREATE INDEX distribution_traces_timestamp_idx ON public.distribution_traces USING btree (\"timestamp\" DESC)"
+},
+{
+"tablename": "distribution_traces",
+"indexname": "idx_distribution_traces_customer_id",
+"indexdef": "CREATE INDEX idx_distribution_traces_customer_id ON public.distribution_traces USING btree (customer_id)"
+},
+{
+"tablename": "distribution_traces",
+"indexname": "idx_distribution_traces_lead_id",
+"indexdef": "CREATE INDEX idx_distribution_traces_lead_id ON public.distribution_traces USING btree (lead_id)"
+},
+{
+"tablename": "expenses",
+"indexname": "expenses_category_idx",
+"indexdef": "CREATE INDEX expenses_category_idx ON public.expenses USING btree (category)"
+},
+{
+"tablename": "expenses",
+"indexname": "expenses_competence_date_idx",
+"indexdef": "CREATE INDEX expenses_competence_date_idx ON public.expenses USING btree (competence_date)"
+},
+{
+"tablename": "expenses",
+"indexname": "expenses_due_date_idx",
+"indexdef": "CREATE INDEX expenses_due_date_idx ON public.expenses USING btree (due_date)"
+},
+{
+"tablename": "expenses",
+"indexname": "expenses_payment_date_idx",
+"indexdef": "CREATE INDEX expenses_payment_date_idx ON public.expenses USING btree (payment_date)"
+},
+{
+"tablename": "expenses",
+"indexname": "expenses_pkey",
+"indexdef": "CREATE UNIQUE INDEX expenses_pkey ON public.expenses USING btree (id)"
+},
+{
+"tablename": "expenses",
+"indexname": "expenses_recurrence_parent_id_idx",
+"indexdef": "CREATE INDEX expenses_recurrence_parent_id_idx ON public.expenses USING btree (recurrence_parent_id)"
+},
+{
+"tablename": "expenses",
+"indexname": "expenses_status_idx",
+"indexdef": "CREATE INDEX expenses_status_idx ON public.expenses USING btree (status)"
+},
+{
+"tablename": "expenses",
+"indexname": "expenses_store_id_idx",
+"indexdef": "CREATE INDEX expenses_store_id_idx ON public.expenses USING btree (store_id)"
+},
+{
+"tablename": "goals",
+"indexname": "goals_level_idx",
+"indexdef": "CREATE INDEX goals_level_idx ON public.goals USING btree (level)"
+},
+{
+"tablename": "goals",
+"indexname": "goals_metric_idx",
+"indexdef": "CREATE INDEX goals_metric_idx ON public.goals USING btree (metric)"
+},
+{
+"tablename": "goals",
+"indexname": "goals_pkey",
+"indexdef": "CREATE UNIQUE INDEX goals_pkey ON public.goals USING btree (id)"
+},
+{
+"tablename": "goals",
+"indexname": "goals_seller_id_idx",
+"indexdef": "CREATE INDEX goals_seller_id_idx ON public.goals USING btree (seller_id)"
+},
+{
+"tablename": "goals",
+"indexname": "goals_store_id_idx",
+"indexdef": "CREATE INDEX goals_store_id_idx ON public.goals USING btree (store_id)"
+},
+{
+"tablename": "goals",
+"indexname": "goals_target_id_idx",
+"indexdef": "CREATE INDEX goals_target_id_idx ON public.goals USING btree (target_id)"
+},
+{
+"tablename": "goals",
+"indexname": "idx_goals_created_by",
+"indexdef": "CREATE INDEX idx_goals_created_by ON public.goals USING btree (created_by)"
+},
+{
+"tablename": "integration_logs",
+"indexname": "integration_logs_created_at_idx",
+"indexdef": "CREATE INDEX integration_logs_created_at_idx ON public.integration_logs USING btree (created_at DESC)"
+},
+{
+"tablename": "integration_logs",
+"indexname": "integration_logs_integration_name_idx",
+"indexdef": "CREATE INDEX integration_logs_integration_name_idx ON public.integration_logs USING btree (integration_name, created_at DESC)"
+},
+{
+"tablename": "integration_logs",
+"indexname": "integration_logs_pkey",
+"indexdef": "CREATE UNIQUE INDEX integration_logs_pkey ON public.integration_logs USING btree (id)"
+},
+{
+"tablename": "integration_logs",
+"indexname": "integration_logs_trace_id_idx",
+"indexdef": "CREATE INDEX integration_logs_trace_id_idx ON public.integration_logs USING btree (trace_id) WHERE (trace_id IS NOT NULL)"
+},
+{
+"tablename": "leads",
+"indexname": "leads_converted_to_customer_id_idx",
+"indexdef": "CREATE INDEX leads_converted_to_customer_id_idx ON public.leads USING btree (converted_to_customer_id)"
+},
+{
+"tablename": "leads",
+"indexname": "leads_open_by_seller_idx",
+"indexdef": "CREATE INDEX leads_open_by_seller_idx ON public.leads USING btree (seller_id, updated_at DESC) WHERE ((converted_to_customer_id IS NULL) AND (loss_reason IS NULL))"
+},
+{
+"tablename": "leads",
+"indexname": "leads_pkey",
+"indexdef": "CREATE UNIQUE INDEX leads_pkey ON public.leads USING btree (id)"
+},
+{
+"tablename": "leads",
+"indexname": "leads_seller_id_idx",
+"indexdef": "CREATE INDEX leads_seller_id_idx ON public.leads USING btree (seller_id)"
+},
+{
+"tablename": "leads",
+"indexname": "leads_stage_gin_idx",
+"indexdef": "CREATE INDEX leads_stage_gin_idx ON public.leads USING gin (stage)"
+},
+{
+"tablename": "leads",
+"indexname": "leads_store_id_idx",
+"indexdef": "CREATE INDEX leads_store_id_idx ON public.leads USING btree (store_id)"
+},
+{
+"tablename": "leads",
+"indexname": "leads_temperature_idx",
+"indexdef": "CREATE INDEX leads_temperature_idx ON public.leads USING btree (temperature)"
+},
+{
+"tablename": "leads",
+"indexname": "leads_updated_at_idx",
+"indexdef": "CREATE INDEX leads_updated_at_idx ON public.leads USING btree (updated_at DESC)"
+},
+{
+"tablename": "media_assets",
+"indexname": "idx_media_assets_linked_order_id",
+"indexdef": "CREATE INDEX idx_media_assets_linked_order_id ON public.media_assets USING btree (linked_order_id)"
+},
+{
+"tablename": "media_assets",
+"indexname": "idx_media_assets_linked_part_id",
+"indexdef": "CREATE INDEX idx_media_assets_linked_part_id ON public.media_assets USING btree (linked_part_id)"
+},
+{
+"tablename": "media_assets",
+"indexname": "idx_media_assets_linked_vehicle_id",
+"indexdef": "CREATE INDEX idx_media_assets_linked_vehicle_id ON public.media_assets USING btree (linked_vehicle_id)"
+},
+{
+"tablename": "media_assets",
+"indexname": "media_assets_content_hash_idx",
+"indexdef": "CREATE INDEX media_assets_content_hash_idx ON public.media_assets USING btree (content_hash)"
+},
+{
+"tablename": "media_assets",
+"indexname": "media_assets_conversation_id_idx",
+"indexdef": "CREATE INDEX media_assets_conversation_id_idx ON public.media_assets USING btree (conversation_id)"
+},
+{
+"tablename": "media_assets",
+"indexname": "media_assets_created_at_idx",
+"indexdef": "CREATE INDEX media_assets_created_at_idx ON public.media_assets USING btree (created_at DESC)"
+},
+{
+"tablename": "media_assets",
+"indexname": "media_assets_customer_id_idx",
+"indexdef": "CREATE INDEX media_assets_customer_id_idx ON public.media_assets USING btree (customer_id)"
+},
+{
+"tablename": "media_assets",
+"indexname": "media_assets_message_id_idx",
+"indexdef": "CREATE INDEX media_assets_message_id_idx ON public.media_assets USING btree (message_id)"
+},
+{
+"tablename": "media_assets",
+"indexname": "media_assets_pkey",
+"indexdef": "CREATE UNIQUE INDEX media_assets_pkey ON public.media_assets USING btree (id)"
+},
+{
+"tablename": "media_assets",
+"indexname": "media_assets_store_id_idx",
+"indexdef": "CREATE INDEX media_assets_store_id_idx ON public.media_assets USING btree (store_id)"
+},
+{
+"tablename": "message_templates",
+"indexname": "message_templates_account_idx",
+"indexdef": "CREATE INDEX message_templates_account_idx ON public.message_templates USING btree (whatsapp_account_id)"
+},
+{
+"tablename": "message_templates",
+"indexname": "message_templates_pkey",
+"indexdef": "CREATE UNIQUE INDEX message_templates_pkey ON public.message_templates USING btree (id)"
+},
+{
+"tablename": "message_templates",
+"indexname": "message_templates_store_id_idx",
+"indexdef": "CREATE INDEX message_templates_store_id_idx ON public.message_templates USING btree (store_id)"
+},
+{
+"tablename": "message_templates",
+"indexname": "message_templates_whatsapp_account_id_meta_template_name_me_key",
+"indexdef": "CREATE UNIQUE INDEX message_templates_whatsapp_account_id_meta_template_name_me_key ON public.message_templates USING btree (whatsapp_account_id, meta_template_name, meta_language_code)"
+},
+{
+"tablename": "messages",
+"indexname": "idx_messages_outbound_sent_at",
+"indexdef": "CREATE INDEX idx_messages_outbound_sent_at ON public.messages USING btree (sent_at DESC) WHERE (direction = 'out'::text)"
+},
+{
+"tablename": "messages",
+"indexname": "messages_conversation_id_idx",
+"indexdef": "CREATE INDEX messages_conversation_id_idx ON public.messages USING btree (conversation_id)"
+},
+{
+"tablename": "messages",
+"indexname": "messages_conversation_sent_at_idx",
+"indexdef": "CREATE INDEX messages_conversation_sent_at_idx ON public.messages USING btree (conversation_id, sent_at)"
+},
+{
+"tablename": "messages",
+"indexname": "messages_pkey",
+"indexdef": "CREATE UNIQUE INDEX messages_pkey ON public.messages USING btree (id)"
+},
+{
+"tablename": "messages",
+"indexname": "messages_provider_message_id_key",
+"indexdef": "CREATE UNIQUE INDEX messages_provider_message_id_key ON public.messages USING btree (provider_message_id)"
+},
+{
+"tablename": "messages",
+"indexname": "messages_sent_at_idx",
+"indexdef": "CREATE INDEX messages_sent_at_idx ON public.messages USING btree (sent_at)"
+},
+{
+"tablename": "model_kit_items",
+"indexname": "model_kit_items_kit_id_idx",
+"indexdef": "CREATE INDEX model_kit_items_kit_id_idx ON public.model_kit_items USING btree (kit_id)"
+},
+{
+"tablename": "model_kit_items",
+"indexname": "model_kit_items_part_id_idx",
+"indexdef": "CREATE INDEX model_kit_items_part_id_idx ON public.model_kit_items USING btree (part_id)"
+},
+{
+"tablename": "model_kit_items",
+"indexname": "model_kit_items_pkey",
+"indexdef": "CREATE UNIQUE INDEX model_kit_items_pkey ON public.model_kit_items USING btree (id)"
+},
+{
+"tablename": "model_kits",
+"indexname": "model_kits_model_id_idx",
+"indexdef": "CREATE INDEX model_kits_model_id_idx ON public.model_kits USING btree (model_id)"
+},
+{
+"tablename": "model_kits",
+"indexname": "model_kits_pkey",
+"indexdef": "CREATE UNIQUE INDEX model_kits_pkey ON public.model_kits USING btree (id)"
+},
+{
+"tablename": "model_kits",
+"indexname": "model_kits_status_idx",
+"indexdef": "CREATE INDEX model_kits_status_idx ON public.model_kits USING btree (status)"
+},
+{
+"tablename": "model_kits",
+"indexname": "model_kits_store_id_idx",
+"indexdef": "CREATE INDEX model_kits_store_id_idx ON public.model_kits USING btree (store_id)"
+},
+{
+"tablename": "mv_commissions_by_period",
+"indexname": "mv_commissions_by_period_pk",
+"indexdef": "CREATE UNIQUE INDEX mv_commissions_by_period_pk ON public.mv_commissions_by_period USING btree (store_id, seller_id, period, status)"
+},
+{
+"tablename": "mv_executive_kpis",
+"indexname": "mv_executive_kpis_pk",
+"indexdef": "CREATE UNIQUE INDEX mv_executive_kpis_pk ON public.mv_executive_kpis USING btree (store_id, month)"
+},
+{
+"tablename": "mv_sales_by_seller_month",
+"indexname": "mv_sales_by_seller_month_pk",
+"indexdef": "CREATE UNIQUE INDEX mv_sales_by_seller_month_pk ON public.mv_sales_by_seller_month USING btree (store_id, seller_id, month)"
+},
+{
+"tablename": "notification_preferences",
+"indexname": "notification_preferences_pkey",
+"indexdef": "CREATE UNIQUE INDEX notification_preferences_pkey ON public.notification_preferences USING btree (recipient_id)"
+},
+{
+"tablename": "notifications",
+"indexname": "notifications_lifecycle_dedupe_idx",
+"indexdef": "CREATE INDEX notifications_lifecycle_dedupe_idx ON public.notifications USING btree (lifecycle, dedupe_key)"
+},
+{
+"tablename": "notifications",
+"indexname": "notifications_pkey",
+"indexdef": "CREATE UNIQUE INDEX notifications_pkey ON public.notifications USING btree (id)"
+},
+{
+"tablename": "notifications",
+"indexname": "notifications_recipient_id_idx",
+"indexdef": "CREATE INDEX notifications_recipient_id_idx ON public.notifications USING btree (recipient_id)"
+},
+{
+"tablename": "notifications",
+"indexname": "notifications_recipient_status_idx",
+"indexdef": "CREATE INDEX notifications_recipient_status_idx ON public.notifications USING btree (recipient_id, status)"
+},
+{
+"tablename": "notifications",
+"indexname": "notifications_status_idx",
+"indexdef": "CREATE INDEX notifications_status_idx ON public.notifications USING btree (status)"
+},
+{
+"tablename": "notifications",
+"indexname": "notifications_store_id_idx",
+"indexdef": "CREATE INDEX notifications_store_id_idx ON public.notifications USING btree (store_id)"
+},
+{
+"tablename": "order_items",
+"indexname": "order_items_applied_to_vehicle_id_idx",
+"indexdef": "CREATE INDEX order_items_applied_to_vehicle_id_idx ON public.order_items USING btree (applied_to_vehicle_id)"
+},
+{
+"tablename": "order_items",
+"indexname": "order_items_order_id_idx",
+"indexdef": "CREATE INDEX order_items_order_id_idx ON public.order_items USING btree (order_id)"
+},
+{
+"tablename": "order_items",
+"indexname": "order_items_part_id_idx",
+"indexdef": "CREATE INDEX order_items_part_id_idx ON public.order_items USING btree (part_id)"
+},
+{
+"tablename": "order_items",
+"indexname": "order_items_pkey",
+"indexdef": "CREATE UNIQUE INDEX order_items_pkey ON public.order_items USING btree (id)"
+},
+{
+"tablename": "orders",
+"indexname": "idx_orders_canceled_by",
+"indexdef": "CREATE INDEX idx_orders_canceled_by ON public.orders USING btree (canceled_by)"
+},
+{
+"tablename": "orders",
+"indexname": "orders_conversation_id_idx",
+"indexdef": "CREATE INDEX orders_conversation_id_idx ON public.orders USING btree (conversation_id)"
+},
+{
+"tablename": "orders",
+"indexname": "orders_created_at_idx",
+"indexdef": "CREATE INDEX orders_created_at_idx ON public.orders USING btree (created_at DESC)"
+},
+{
+"tablename": "orders",
+"indexname": "orders_customer_id_idx",
+"indexdef": "CREATE INDEX orders_customer_id_idx ON public.orders USING btree (customer_id)"
+},
+{
+"tablename": "orders",
+"indexname": "orders_fulfillment_status_idx",
+"indexdef": "CREATE INDEX orders_fulfillment_status_idx ON public.orders USING btree (fulfillment_status)"
+},
+{
+"tablename": "orders",
+"indexname": "orders_payment_status_idx",
+"indexdef": "CREATE INDEX orders_payment_status_idx ON public.orders USING btree (payment_status)"
+},
+{
+"tablename": "orders",
+"indexname": "orders_pkey",
+"indexdef": "CREATE UNIQUE INDEX orders_pkey ON public.orders USING btree (id)"
+},
+{
+"tablename": "orders",
+"indexname": "orders_quote_id_idx",
+"indexdef": "CREATE INDEX orders_quote_id_idx ON public.orders USING btree (quote_id)"
+},
+{
+"tablename": "orders",
+"indexname": "orders_seller_id_idx",
+"indexdef": "CREATE INDEX orders_seller_id_idx ON public.orders USING btree (seller_id)"
+},
+{
+"tablename": "orders",
+"indexname": "orders_store_id_idx",
+"indexdef": "CREATE INDEX orders_store_id_idx ON public.orders USING btree (store_id)"
+},
+{
+"tablename": "parts",
+"indexname": "parts_active_idx",
+"indexdef": "CREATE INDEX parts_active_idx ON public.parts USING btree (active)"
+},
+{
+"tablename": "parts",
+"indexname": "parts_brand_idx",
+"indexdef": "CREATE INDEX parts_brand_idx ON public.parts USING btree (brand)"
+},
+{
+"tablename": "parts",
+"indexname": "parts_category_idx",
+"indexdef": "CREATE INDEX parts_category_idx ON public.parts USING btree (category)"
+},
+{
+"tablename": "parts",
+"indexname": "parts_name_trgm_idx",
+"indexdef": "CREATE INDEX parts_name_trgm_idx ON public.parts USING gin (name gin_trgm_ops)"
+},
+{
+"tablename": "parts",
+"indexname": "parts_oem_codes_gin_idx",
+"indexdef": "CREATE INDEX parts_oem_codes_gin_idx ON public.parts USING gin (oem_codes)"
+},
+{
+"tablename": "parts",
+"indexname": "parts_oem_codes_text_trgm_idx",
+"indexdef": "CREATE INDEX parts_oem_codes_text_trgm_idx ON public.parts USING gin (oem_codes_text gin_trgm_ops)"
+},
+{
+"tablename": "parts",
+"indexname": "parts_pkey",
+"indexdef": "CREATE UNIQUE INDEX parts_pkey ON public.parts USING btree (id)"
+},
+{
+"tablename": "parts",
+"indexname": "parts_stock_available_idx",
+"indexdef": "CREATE INDEX parts_stock_available_idx ON public.parts USING btree (stock_available)"
+},
+{
+"tablename": "parts",
+"indexname": "parts_store_id_idx",
+"indexdef": "CREATE INDEX parts_store_id_idx ON public.parts USING btree (store_id)"
+},
+{
+"tablename": "processed_events",
+"indexname": "processed_events_pkey",
+"indexdef": "CREATE UNIQUE INDEX processed_events_pkey ON public.processed_events USING btree (event_key)"
+},
+{
+"tablename": "processed_events",
+"indexname": "processed_events_processed_at_idx",
+"indexdef": "CREATE INDEX processed_events_processed_at_idx ON public.processed_events USING btree (processed_at)"
+},
+{
+"tablename": "product_indicators",
+"indexname": "product_indicators_pkey",
+"indexdef": "CREATE UNIQUE INDEX product_indicators_pkey ON public.product_indicators USING btree (id)"
+},
+{
+"tablename": "product_indicators",
+"indexname": "product_indicators_scope_level_idx",
+"indexdef": "CREATE INDEX product_indicators_scope_level_idx ON public.product_indicators USING btree (scope_level)"
+},
+{
+"tablename": "product_indicators",
+"indexname": "product_indicators_seller_id_idx",
+"indexdef": "CREATE INDEX product_indicators_seller_id_idx ON public.product_indicators USING btree (seller_id)"
+},
+{
+"tablename": "product_indicators",
+"indexname": "product_indicators_status_idx",
+"indexdef": "CREATE INDEX product_indicators_status_idx ON public.product_indicators USING btree (status)"
+},
+{
+"tablename": "product_indicators",
+"indexname": "product_indicators_store_id_idx",
+"indexdef": "CREATE INDEX product_indicators_store_id_idx ON public.product_indicators USING btree (store_id)"
+},
+{
+"tablename": "profiles",
+"indexname": "idx_profiles_seller_id",
+"indexdef": "CREATE INDEX idx_profiles_seller_id ON public.profiles USING btree (seller_id)"
+},
+{
+"tablename": "profiles",
+"indexname": "idx_profiles_store_id",
+"indexdef": "CREATE INDEX idx_profiles_store_id ON public.profiles USING btree (store_id)"
+},
+{
+"tablename": "profiles",
+"indexname": "profiles_pkey",
+"indexdef": "CREATE UNIQUE INDEX profiles_pkey ON public.profiles USING btree (auth_user_id)"
+},
+{
+"tablename": "quick_replies",
+"indexname": "quick_replies_owner_id_idx",
+"indexdef": "CREATE INDEX quick_replies_owner_id_idx ON public.quick_replies USING btree (owner_id)"
+},
+{
+"tablename": "quick_replies",
+"indexname": "quick_replies_pkey",
+"indexdef": "CREATE UNIQUE INDEX quick_replies_pkey ON public.quick_replies USING btree (id)"
+},
+{
+"tablename": "quick_replies",
+"indexname": "quick_replies_shortcut_idx",
+"indexdef": "CREATE INDEX quick_replies_shortcut_idx ON public.quick_replies USING btree (shortcut)"
+},
+{
+"tablename": "quick_replies",
+"indexname": "quick_replies_store_id_idx",
+"indexdef": "CREATE INDEX quick_replies_store_id_idx ON public.quick_replies USING btree (store_id)"
+},
+{
+"tablename": "quote_items",
+"indexname": "quote_items_part_id_idx",
+"indexdef": "CREATE INDEX quote_items_part_id_idx ON public.quote_items USING btree (part_id)"
+},
+{
+"tablename": "quote_items",
+"indexname": "quote_items_pkey",
+"indexdef": "CREATE UNIQUE INDEX quote_items_pkey ON public.quote_items USING btree (id)"
+},
+{
+"tablename": "quote_items",
+"indexname": "quote_items_quote_id_idx",
+"indexdef": "CREATE INDEX quote_items_quote_id_idx ON public.quote_items USING btree (quote_id)"
+},
+{
+"tablename": "quotes",
+"indexname": "idx_quotes_approved_by",
+"indexdef": "CREATE INDEX idx_quotes_approved_by ON public.quotes USING btree (approved_by)"
+},
+{
+"tablename": "quotes",
+"indexname": "quotes_conversation_id_idx",
+"indexdef": "CREATE INDEX quotes_conversation_id_idx ON public.quotes USING btree (conversation_id)"
+},
+{
+"tablename": "quotes",
+"indexname": "quotes_customer_id_idx",
+"indexdef": "CREATE INDEX quotes_customer_id_idx ON public.quotes USING btree (customer_id)"
+},
+{
+"tablename": "quotes",
+"indexname": "quotes_lead_id_idx",
+"indexdef": "CREATE INDEX quotes_lead_id_idx ON public.quotes USING btree (lead_id)"
+},
+{
+"tablename": "quotes",
+"indexname": "quotes_origin_idx",
+"indexdef": "CREATE INDEX quotes_origin_idx ON public.quotes USING btree (origin)"
+},
+{
+"tablename": "quotes",
+"indexname": "quotes_pkey",
+"indexdef": "CREATE UNIQUE INDEX quotes_pkey ON public.quotes USING btree (id)"
+},
+{
+"tablename": "quotes",
+"indexname": "quotes_seller_id_idx",
+"indexdef": "CREATE INDEX quotes_seller_id_idx ON public.quotes USING btree (seller_id)"
+},
+{
+"tablename": "quotes",
+"indexname": "quotes_status_idx",
+"indexdef": "CREATE INDEX quotes_status_idx ON public.quotes USING btree (status)"
+},
+{
+"tablename": "quotes",
+"indexname": "quotes_store_id_idx",
+"indexdef": "CREATE INDEX quotes_store_id_idx ON public.quotes USING btree (store_id)"
+},
+{
+"tablename": "quotes",
+"indexname": "quotes_updated_at_idx",
+"indexdef": "CREATE INDEX quotes_updated_at_idx ON public.quotes USING btree (updated_at DESC)"
+},
+{
+"tablename": "rbac_resources",
+"indexname": "rbac_resources_pkey",
+"indexdef": "CREATE UNIQUE INDEX rbac_resources_pkey ON public.rbac_resources USING btree (key)"
+},
+{
+"tablename": "recommendations",
+"indexname": "recommendations_pkey",
+"indexdef": "CREATE UNIQUE INDEX recommendations_pkey ON public.recommendations USING btree (id)"
+},
+{
+"tablename": "recommendations",
+"indexname": "recommendations_resolved_idx",
+"indexdef": "CREATE INDEX recommendations_resolved_idx ON public.recommendations USING btree (resolved)"
+},
+{
+"tablename": "recommendations",
+"indexname": "recommendations_seller_id_idx",
+"indexdef": "CREATE INDEX recommendations_seller_id_idx ON public.recommendations USING btree (seller_id)"
+},
+{
+"tablename": "recommendations",
+"indexname": "recommendations_store_id_idx",
+"indexdef": "CREATE INDEX recommendations_store_id_idx ON public.recommendations USING btree (store_id)"
+},
+{
+"tablename": "recommendations",
+"indexname": "recommendations_subject_id_idx",
+"indexdef": "CREATE INDEX recommendations_subject_id_idx ON public.recommendations USING btree (subject_id)"
+},
+{
+"tablename": "recommendations",
+"indexname": "recommendations_type_idx",
+"indexdef": "CREATE INDEX recommendations_type_idx ON public.recommendations USING btree (type)"
+},
+{
+"tablename": "role_permissions",
+"indexname": "role_permissions_pkey",
+"indexdef": "CREATE UNIQUE INDEX role_permissions_pkey ON public.role_permissions USING btree (role_id, resource)"
+},
+{
+"tablename": "role_permissions",
+"indexname": "role_permissions_role_id_idx",
+"indexdef": "CREATE INDEX role_permissions_role_id_idx ON public.role_permissions USING btree (role_id)"
+},
+{
+"tablename": "roles",
+"indexname": "roles_pkey",
+"indexdef": "CREATE UNIQUE INDEX roles_pkey ON public.roles USING btree (id)"
+},
+{
+"tablename": "roles",
+"indexname": "roles_slug_key",
+"indexdef": "CREATE UNIQUE INDEX roles_slug_key ON public.roles USING btree (slug)"
+},
+{
+"tablename": "rotation_participants",
+"indexname": "idx_rotation_participants_queue",
+"indexdef": "CREATE INDEX idx_rotation_participants_queue ON public.rotation_participants USING btree (queue_id)"
+},
+{
+"tablename": "rotation_participants",
+"indexname": "idx_rotation_participants_scope",
+"indexdef": "CREATE INDEX idx_rotation_participants_scope ON public.rotation_participants USING btree (scope_department_id)"
+},
+{
+"tablename": "rotation_participants",
+"indexname": "rotation_participants_pkey",
+"indexdef": "CREATE UNIQUE INDEX rotation_participants_pkey ON public.rotation_participants USING btree (id)"
+},
+{
+"tablename": "rotation_queues",
+"indexname": "rotation_queues_pkey",
+"indexdef": "CREATE UNIQUE INDEX rotation_queues_pkey ON public.rotation_queues USING btree (id)"
+},
+{
+"tablename": "rotation_queues",
+"indexname": "rotation_queues_store_id_key",
+"indexdef": "CREATE UNIQUE INDEX rotation_queues_store_id_key ON public.rotation_queues USING btree (store_id)"
+},
+{
+"tablename": "scheduled_sends",
+"indexname": "scheduled_sends_conversation_id_idx",
+"indexdef": "CREATE INDEX scheduled_sends_conversation_id_idx ON public.scheduled_sends USING btree (conversation_id)"
+},
+{
+"tablename": "scheduled_sends",
+"indexname": "scheduled_sends_pkey",
+"indexdef": "CREATE UNIQUE INDEX scheduled_sends_pkey ON public.scheduled_sends USING btree (id)"
+},
+{
+"tablename": "scheduled_sends",
+"indexname": "scheduled_sends_status_scheduled_for_idx",
+"indexdef": "CREATE INDEX scheduled_sends_status_scheduled_for_idx ON public.scheduled_sends USING btree (status, scheduled_for)"
+},
+{
+"tablename": "scheduled_sends",
+"indexname": "scheduled_sends_store_id_idx",
+"indexdef": "CREATE INDEX scheduled_sends_store_id_idx ON public.scheduled_sends USING btree (store_id)"
+},
+{
+"tablename": "sdr_escalations",
+"indexname": "idx_sdr_escalations_lead_id",
+"indexdef": "CREATE INDEX idx_sdr_escalations_lead_id ON public.sdr_escalations USING btree (lead_id)"
+},
+{
+"tablename": "sdr_escalations",
+"indexname": "idx_sdr_escalations_urgent_broadcast_claimed_by_seller_id",
+"indexdef": "CREATE INDEX idx_sdr_escalations_urgent_broadcast_claimed_by_seller_id ON public.sdr_escalations USING btree (urgent_broadcast_claimed_by_seller_id)"
+},
+{
+"tablename": "sdr_escalations",
+"indexname": "sdr_escalations_assigned_seller_id_idx",
+"indexdef": "CREATE INDEX sdr_escalations_assigned_seller_id_idx ON public.sdr_escalations USING btree (assigned_seller_id)"
+},
+{
+"tablename": "sdr_escalations",
+"indexname": "sdr_escalations_conversation_id_idx",
+"indexdef": "CREATE INDEX sdr_escalations_conversation_id_idx ON public.sdr_escalations USING btree (conversation_id)"
+},
+{
+"tablename": "sdr_escalations",
+"indexname": "sdr_escalations_created_at_idx",
+"indexdef": "CREATE INDEX sdr_escalations_created_at_idx ON public.sdr_escalations USING btree (created_at DESC)"
+},
+{
+"tablename": "sdr_escalations",
+"indexname": "sdr_escalations_customer_id_idx",
+"indexdef": "CREATE INDEX sdr_escalations_customer_id_idx ON public.sdr_escalations USING btree (customer_id)"
+},
+{
+"tablename": "sdr_escalations",
+"indexname": "sdr_escalations_pkey",
+"indexdef": "CREATE UNIQUE INDEX sdr_escalations_pkey ON public.sdr_escalations USING btree (id)"
+},
+{
+"tablename": "sdr_escalations",
+"indexname": "sdr_escalations_session_id_idx",
+"indexdef": "CREATE INDEX sdr_escalations_session_id_idx ON public.sdr_escalations USING btree (session_id)"
+},
+{
+"tablename": "sdr_escalations",
+"indexname": "sdr_escalations_status_idx",
+"indexdef": "CREATE INDEX sdr_escalations_status_idx ON public.sdr_escalations USING btree (status)"
+},
+{
+"tablename": "sdr_escalations",
+"indexname": "sdr_escalations_store_id_idx",
+"indexdef": "CREATE INDEX sdr_escalations_store_id_idx ON public.sdr_escalations USING btree (store_id)"
+},
+{
+"tablename": "sdr_sessions",
+"indexname": "sdr_sessions_conversation_id_idx",
+"indexdef": "CREATE INDEX sdr_sessions_conversation_id_idx ON public.sdr_sessions USING btree (conversation_id)"
+},
+{
+"tablename": "sdr_sessions",
+"indexname": "sdr_sessions_pkey",
+"indexdef": "CREATE UNIQUE INDEX sdr_sessions_pkey ON public.sdr_sessions USING btree (id)"
+},
+{
+"tablename": "sdr_sessions",
+"indexname": "sdr_sessions_started_at_idx",
+"indexdef": "CREATE INDEX sdr_sessions_started_at_idx ON public.sdr_sessions USING btree (started_at DESC)"
+},
+{
+"tablename": "sdr_sessions",
+"indexname": "sdr_sessions_state_idx",
+"indexdef": "CREATE INDEX sdr_sessions_state_idx ON public.sdr_sessions USING btree (state)"
+},
+{
+"tablename": "sellers",
+"indexname": "idx_sellers_active",
+"indexdef": "CREATE INDEX idx_sellers_active ON public.sellers USING btree (active)"
+},
+{
+"tablename": "sellers",
+"indexname": "idx_sellers_department",
+"indexdef": "CREATE INDEX idx_sellers_department ON public.sellers USING btree (department_id)"
+},
+{
+"tablename": "sellers",
+"indexname": "idx_sellers_parent_seller_id",
+"indexdef": "CREATE INDEX idx_sellers_parent_seller_id ON public.sellers USING btree (parent_seller_id)"
+},
+{
+"tablename": "sellers",
+"indexname": "idx_sellers_store_id",
+"indexdef": "CREATE INDEX idx_sellers_store_id ON public.sellers USING btree (store_id)"
+},
+{
+"tablename": "sellers",
+"indexname": "sellers_auth_user_id_key",
+"indexdef": "CREATE UNIQUE INDEX sellers_auth_user_id_key ON public.sellers USING btree (auth_user_id)"
+},
+{
+"tablename": "sellers",
+"indexname": "sellers_email_key",
+"indexdef": "CREATE UNIQUE INDEX sellers_email_key ON public.sellers USING btree (email)"
+},
+{
+"tablename": "sellers",
+"indexname": "sellers_pkey",
+"indexdef": "CREATE UNIQUE INDEX sellers_pkey ON public.sellers USING btree (id)"
+},
+{
+"tablename": "stores",
+"indexname": "idx_stores_manager_id",
+"indexdef": "CREATE INDEX idx_stores_manager_id ON public.stores USING btree (manager_id)"
+},
+{
+"tablename": "stores",
+"indexname": "stores_pkey",
+"indexdef": "CREATE UNIQUE INDEX stores_pkey ON public.stores USING btree (id)"
+},
+{
+"tablename": "trackable_links",
+"indexname": "trackable_links_conversation_id_idx",
+"indexdef": "CREATE INDEX trackable_links_conversation_id_idx ON public.trackable_links USING btree (conversation_id)"
+},
+{
+"tablename": "trackable_links",
+"indexname": "trackable_links_lead_id_idx",
+"indexdef": "CREATE INDEX trackable_links_lead_id_idx ON public.trackable_links USING btree (lead_id)"
+},
+{
+"tablename": "trackable_links",
+"indexname": "trackable_links_pkey",
+"indexdef": "CREATE UNIQUE INDEX trackable_links_pkey ON public.trackable_links USING btree (id)"
+},
+{
+"tablename": "trackable_links",
+"indexname": "trackable_links_store_id_idx",
+"indexdef": "CREATE INDEX trackable_links_store_id_idx ON public.trackable_links USING btree (store_id)"
+},
+{
+"tablename": "vehicle_models",
+"indexname": "vehicle_models_brand_idx",
+"indexdef": "CREATE INDEX vehicle_models_brand_idx ON public.vehicle_models USING btree (brand)"
+},
+{
+"tablename": "vehicle_models",
+"indexname": "vehicle_models_brand_model_engine_key",
+"indexdef": "CREATE UNIQUE INDEX vehicle_models_brand_model_engine_key ON public.vehicle_models USING btree (lower(brand), lower(model), lower(engine))"
+},
+{
+"tablename": "vehicle_models",
+"indexname": "vehicle_models_pkey",
+"indexdef": "CREATE UNIQUE INDEX vehicle_models_pkey ON public.vehicle_models USING btree (id)"
+},
+{
+"tablename": "vehicle_models",
+"indexname": "vehicle_models_status_idx",
+"indexdef": "CREATE INDEX vehicle_models_status_idx ON public.vehicle_models USING btree (status)"
+},
+{
+"tablename": "vehicles",
+"indexname": "vehicles_brand_idx",
+"indexdef": "CREATE INDEX vehicles_brand_idx ON public.vehicles USING btree (brand)"
+},
+{
+"tablename": "vehicles",
+"indexname": "vehicles_cadastro_status_idx",
+"indexdef": "CREATE INDEX vehicles_cadastro_status_idx ON public.vehicles USING btree (cadastro_status)"
+},
+{
+"tablename": "vehicles",
+"indexname": "vehicles_created_at_idx",
+"indexdef": "CREATE INDEX vehicles_created_at_idx ON public.vehicles USING btree (created_at)"
+},
+{
+"tablename": "vehicles",
+"indexname": "vehicles_customer_id_idx",
+"indexdef": "CREATE INDEX vehicles_customer_id_idx ON public.vehicles USING btree (customer_id)"
+},
+{
+"tablename": "vehicles",
+"indexname": "vehicles_pkey",
+"indexdef": "CREATE UNIQUE INDEX vehicles_pkey ON public.vehicles USING btree (id)"
+},
+{
+"tablename": "whatsapp_account_access_rules",
+"indexname": "waar_account_idx",
+"indexdef": "CREATE INDEX waar_account_idx ON public.whatsapp_account_access_rules USING btree (whatsapp_account_id)"
+},
+{
+"tablename": "whatsapp_account_access_rules",
+"indexname": "whatsapp_account_access_rules_pkey",
+"indexdef": "CREATE UNIQUE INDEX whatsapp_account_access_rules_pkey ON public.whatsapp_account_access_rules USING btree (id)"
+},
+{
+"tablename": "whatsapp_account_access_rules",
+"indexname": "whatsapp_account_access_rules_whatsapp_account_id_kind_targ_key",
+"indexdef": "CREATE UNIQUE INDEX whatsapp_account_access_rules_whatsapp_account_id_kind_targ_key ON public.whatsapp_account_access_rules USING btree (whatsapp_account_id, kind, target_value)"
+},
+{
+"tablename": "whatsapp_accounts",
+"indexname": "idx_whatsapp_accounts_failover_account",
+"indexdef": "CREATE INDEX idx_whatsapp_accounts_failover_account ON public.whatsapp_accounts USING btree (failover_account_id) WHERE (failover_account_id IS NOT NULL)"
+},
+{
+"tablename": "whatsapp_accounts",
+"indexname": "whatsapp_accounts_evolution_instance_uq",
+"indexdef": "CREATE UNIQUE INDEX whatsapp_accounts_evolution_instance_uq ON public.whatsapp_accounts USING btree (((provider_config ->> 'instanceName'::text))) WHERE ((provider = 'evolution'::text) AND (provider_config ? 'instanceName'::text))"
+},
+{
+"tablename": "whatsapp_accounts",
+"indexname": "whatsapp_accounts_meta_phone_number_id_uq",
+"indexdef": "CREATE UNIQUE INDEX whatsapp_accounts_meta_phone_number_id_uq ON public.whatsapp_accounts USING btree (((provider_config ->> 'phoneNumberId'::text))) WHERE ((provider = 'meta'::text) AND (provider_config ? 'phoneNumberId'::text))"
+},
+{
+"tablename": "whatsapp_accounts",
+"indexname": "whatsapp_accounts_pkey",
+"indexdef": "CREATE UNIQUE INDEX whatsapp_accounts_pkey ON public.whatsapp_accounts USING btree (id)"
+},
+{
+"tablename": "whatsapp_accounts",
+"indexname": "whatsapp_accounts_store_id_idx",
+"indexdef": "CREATE INDEX whatsapp_accounts_store_id_idx ON public.whatsapp_accounts USING btree (store_id)"
+}
+]

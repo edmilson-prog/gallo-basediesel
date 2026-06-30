@@ -46,6 +46,19 @@ docs/images/*.jpeg
 docs/images/*.gif
 docs/images/*.webp
 
+# Customer PII / raw data dumps — must never reach the remote (LGPD).
+# These stay local-only; the database itself is also far over GitHub's 100MB limit.
+docs/db/*.FDB
+docs/export/
+docs/contatos-*.txt
+docs/prds/Termo_Consentimento_*.pdf
+
+# Python bytecode from the docs/database introspection tooling.
+docs/**/__pycache__/
+
+# Reference copy of the external "sigpro" project — not part of this repo's history.
+docs/sigpro/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -1,0 +1,1474 @@
+[
+{
+"tablename": "ai_settings",
+"policyname": "ai_settings_owner_write",
+"cmd": "ALL",
+"roles": "{authenticated}",
+"using_expr": "(( SELECT current_app_role() AS current_app_role) = 'owner'::text)",
+"check_expr": "(( SELECT current_app_role() AS current_app_role) = 'owner'::text)"
+},
+{
+"tablename": "ai_settings",
+"policyname": "ai_settings_owner_read",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "(( SELECT current_app_role() AS current_app_role) = 'owner'::text)",
+"check_expr": null
+},
+{
+"tablename": "ai_usage_events",
+"policyname": "ai_usage_events_owner_read",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "(( SELECT current_app_role() AS current_app_role) = 'owner'::text)",
+"check_expr": null
+},
+{
+"tablename": "asset_combos",
+"policyname": "asset_combos_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (owner_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": null
+},
+{
+"tablename": "asset_combos",
+"policyname": "asset_combos_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (owner_id = ( SELECT current_seller_id() AS current_seller_id))))"
+},
+{
+"tablename": "asset_combos",
+"policyname": "asset_combos_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (owner_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": null
+},
+{
+"tablename": "asset_combos",
+"policyname": "asset_combos_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (owner_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (owner_id = ( SELECT current_seller_id() AS current_seller_id))))"
+},
+{
+"tablename": "asset_favorites",
+"policyname": "asset_favorites_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "((seller_id IN ( SELECT sellers.id\n   FROM sellers\n  WHERE (sellers.store_id = ( SELECT current_store_id() AS current_store_id)))) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": null
+},
+{
+"tablename": "asset_favorites",
+"policyname": "asset_favorites_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "((seller_id IN ( SELECT sellers.id\n   FROM sellers\n  WHERE (sellers.store_id = ( SELECT current_store_id() AS current_store_id)))) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))"
+},
+{
+"tablename": "asset_favorites",
+"policyname": "asset_favorites_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "((seller_id IN ( SELECT sellers.id\n   FROM sellers\n  WHERE (sellers.store_id = ( SELECT current_store_id() AS current_store_id)))) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": null
+},
+{
+"tablename": "asset_favorites",
+"policyname": "asset_favorites_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "((seller_id IN ( SELECT sellers.id\n   FROM sellers\n  WHERE (sellers.store_id = ( SELECT current_store_id() AS current_store_id)))) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": "((seller_id IN ( SELECT sellers.id\n   FROM sellers\n  WHERE (sellers.store_id = ( SELECT current_store_id() AS current_store_id)))) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))"
+},
+{
+"tablename": "asset_library_items",
+"policyname": "asset_library_items_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))",
+"check_expr": null
+},
+{
+"tablename": "asset_library_items",
+"policyname": "asset_library_items_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))"
+},
+{
+"tablename": "asset_library_items",
+"policyname": "asset_library_items_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))",
+"check_expr": null
+},
+{
+"tablename": "asset_library_items",
+"policyname": "asset_library_items_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))",
+"check_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))"
+},
+{
+"tablename": "asset_send_log",
+"policyname": "asset_send_log_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "((seller_id IN ( SELECT sellers.id\n   FROM sellers\n  WHERE (sellers.store_id = ( SELECT current_store_id() AS current_store_id)))) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": null
+},
+{
+"tablename": "asset_send_log",
+"policyname": "asset_send_log_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "((seller_id IN ( SELECT sellers.id\n   FROM sellers\n  WHERE (sellers.store_id = ( SELECT current_store_id() AS current_store_id)))) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))"
+},
+{
+"tablename": "asset_send_log",
+"policyname": "asset_send_log_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "((seller_id IN ( SELECT sellers.id\n   FROM sellers\n  WHERE (sellers.store_id = ( SELECT current_store_id() AS current_store_id)))) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": null
+},
+{
+"tablename": "asset_send_log",
+"policyname": "asset_send_log_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "((seller_id IN ( SELECT sellers.id\n   FROM sellers\n  WHERE (sellers.store_id = ( SELECT current_store_id() AS current_store_id)))) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": "((seller_id IN ( SELECT sellers.id\n   FROM sellers\n  WHERE (sellers.store_id = ( SELECT current_store_id() AS current_store_id)))) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))"
+},
+{
+"tablename": "audit_logs",
+"policyname": "audit_logs_no_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "false",
+"check_expr": null
+},
+{
+"tablename": "audit_logs",
+"policyname": "audit_logs_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))"
+},
+{
+"tablename": "audit_logs",
+"policyname": "audit_logs_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (( SELECT current_app_role() AS current_app_role) = 'financeiro'::text)))",
+"check_expr": null
+},
+{
+"tablename": "audit_logs",
+"policyname": "audit_logs_no_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "false",
+"check_expr": null
+},
+{
+"tablename": "carteira_transfers",
+"policyname": "carteira_transfers_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND ( SELECT is_staff() AS is_staff))",
+"check_expr": null
+},
+{
+"tablename": "carteira_transfers",
+"policyname": "carteira_transfers_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND ( SELECT is_staff() AS is_staff))"
+},
+{
+"tablename": "carteira_transfers",
+"policyname": "carteira_transfers_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND ( SELECT is_staff() AS is_staff))",
+"check_expr": null
+},
+{
+"tablename": "carteira_transfers",
+"policyname": "carteira_transfers_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND ( SELECT is_staff() AS is_staff))",
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND ( SELECT is_staff() AS is_staff))"
+},
+{
+"tablename": "cash_flow_entries",
+"policyname": "cash_flow_entries_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND ( SELECT is_staff() AS is_staff))",
+"check_expr": null
+},
+{
+"tablename": "cash_flow_entries",
+"policyname": "cash_flow_entries_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND ( SELECT is_staff() AS is_staff))"
+},
+{
+"tablename": "cash_flow_entries",
+"policyname": "cash_flow_entries_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND ( SELECT is_staff() AS is_staff))",
+"check_expr": null
+},
+{
+"tablename": "cash_flow_entries",
+"policyname": "cash_flow_entries_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND ( SELECT is_staff() AS is_staff))",
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND ( SELECT is_staff() AS is_staff))"
+},
+{
+"tablename": "commissions",
+"policyname": "commissions_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": null
+},
+{
+"tablename": "commissions",
+"policyname": "commissions_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))"
+},
+{
+"tablename": "commissions",
+"policyname": "commissions_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": null
+},
+{
+"tablename": "commissions",
+"policyname": "commissions_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))"
+},
+{
+"tablename": "conversation_notes",
+"policyname": "conversation_notes_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND ((author_id = ( SELECT current_seller_id() AS current_seller_id)) OR ( SELECT is_staff() AS is_staff)))",
+"check_expr": null
+},
+{
+"tablename": "conversation_notes",
+"policyname": "conversation_notes_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (author_id = ( SELECT current_seller_id() AS current_seller_id)))"
+},
+{
+"tablename": "conversation_notes",
+"policyname": "conversation_notes_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))",
+"check_expr": null
+},
+{
+"tablename": "conversation_notes",
+"policyname": "conversation_notes_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND ((author_id = ( SELECT current_seller_id() AS current_seller_id)) OR ( SELECT is_staff() AS is_staff)))",
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND ((author_id = ( SELECT current_seller_id() AS current_seller_id)) OR ( SELECT is_staff() AS is_staff)))"
+},
+{
+"tablename": "conversation_participants",
+"policyname": "cp_write",
+"cmd": "ALL",
+"roles": "{authenticated}",
+"using_expr": "(( SELECT is_staff() AS is_staff) OR (EXISTS ( SELECT 1\n   FROM conversations c\n  WHERE ((c.id = conversation_participants.conversation_id) AND (c.assigned_seller_id = ( SELECT current_seller_id() AS current_seller_id))))))",
+"check_expr": "(( SELECT is_staff() AS is_staff) OR (EXISTS ( SELECT 1\n   FROM conversations c\n  WHERE ((c.id = conversation_participants.conversation_id) AND (c.assigned_seller_id = ( SELECT current_seller_id() AS current_seller_id))))))"
+},
+{
+"tablename": "conversation_participants",
+"policyname": "cp_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "(( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id)) OR (EXISTS ( SELECT 1\n   FROM conversations c\n  WHERE ((c.id = conversation_participants.conversation_id) AND (c.assigned_seller_id = ( SELECT current_seller_id() AS current_seller_id))))))",
+"check_expr": null
+},
+{
+"tablename": "conversations",
+"policyname": "conversations_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (assigned_seller_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": null
+},
+{
+"tablename": "conversations",
+"policyname": "conversations_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (assigned_seller_id = ( SELECT current_seller_id() AS current_seller_id))))"
+},
+{
+"tablename": "conversations",
+"policyname": "conversations_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "( SELECT can_access_conversation(conversations.id) AS can_access_conversation)",
+"check_expr": null
+},
+{
+"tablename": "conversations",
+"policyname": "conversations_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "( SELECT can_access_conversation(conversations.id) AS can_access_conversation)",
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (assigned_seller_id = ( SELECT current_seller_id() AS current_seller_id)) OR (assigned_seller_id IS NULL)))"
+},
+{
+"tablename": "customer_notes",
+"policyname": "customer_notes_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "(customer_id IN ( SELECT customers.id\n   FROM customers\n  WHERE (customers.store_id = ( SELECT current_store_id() AS current_store_id))))",
+"check_expr": null
+},
+{
+"tablename": "customer_notes",
+"policyname": "customer_notes_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "(customer_id IN ( SELECT customers.id\n   FROM customers\n  WHERE (customers.store_id = ( SELECT current_store_id() AS current_store_id))))"
+},
+{
+"tablename": "customer_notes",
+"policyname": "customer_notes_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "(customer_id IN ( SELECT customers.id\n   FROM customers\n  WHERE (customers.store_id = ( SELECT current_store_id() AS current_store_id))))",
+"check_expr": null
+},
+{
+"tablename": "customer_notes",
+"policyname": "customer_notes_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "(customer_id IN ( SELECT customers.id\n   FROM customers\n  WHERE (customers.store_id = ( SELECT current_store_id() AS current_store_id))))",
+"check_expr": "(customer_id IN ( SELECT customers.id\n   FROM customers\n  WHERE (customers.store_id = ( SELECT current_store_id() AS current_store_id))))"
+},
+{
+"tablename": "customer_segments",
+"policyname": "customer_segments_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "((owner_id IN ( SELECT sellers.id\n   FROM sellers\n  WHERE (sellers.store_id = ( SELECT current_store_id() AS current_store_id)))) AND (( SELECT is_staff() AS is_staff) OR (owner_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": null
+},
+{
+"tablename": "customer_segments",
+"policyname": "customer_segments_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "((owner_id IN ( SELECT sellers.id\n   FROM sellers\n  WHERE (sellers.store_id = ( SELECT current_store_id() AS current_store_id)))) AND (( SELECT is_staff() AS is_staff) OR (owner_id = ( SELECT current_seller_id() AS current_seller_id))))"
+},
+{
+"tablename": "customer_segments",
+"policyname": "customer_segments_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "((owner_id IN ( SELECT sellers.id\n   FROM sellers\n  WHERE (sellers.store_id = ( SELECT current_store_id() AS current_store_id)))) AND (( SELECT is_staff() AS is_staff) OR (scope = 'shared'::text) OR (owner_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": null
+},
+{
+"tablename": "customer_segments",
+"policyname": "customer_segments_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "((owner_id IN ( SELECT sellers.id\n   FROM sellers\n  WHERE (sellers.store_id = ( SELECT current_store_id() AS current_store_id)))) AND (( SELECT is_staff() AS is_staff) OR (owner_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": "((owner_id IN ( SELECT sellers.id\n   FROM sellers\n  WHERE (sellers.store_id = ( SELECT current_store_id() AS current_store_id)))) AND (( SELECT is_staff() AS is_staff) OR (owner_id = ( SELECT current_seller_id() AS current_seller_id))))"
+},
+{
+"tablename": "customers",
+"policyname": "customers_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": null
+},
+{
+"tablename": "customers",
+"policyname": "customers_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))"
+},
+{
+"tablename": "customers",
+"policyname": "customers_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id)) OR seller_handles_customer(id)))",
+"check_expr": null
+},
+{
+"tablename": "customers",
+"policyname": "customers_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))"
+},
+{
+"tablename": "departments",
+"policyname": "departments_write",
+"cmd": "ALL",
+"roles": "{authenticated}",
+"using_expr": "( SELECT is_staff() AS is_staff)",
+"check_expr": "( SELECT is_staff() AS is_staff)"
+},
+{
+"tablename": "departments",
+"policyname": "departments_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "true",
+"check_expr": null
+},
+{
+"tablename": "distribution_traces",
+"policyname": "distribution_traces_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND ( SELECT is_staff() AS is_staff))",
+"check_expr": null
+},
+{
+"tablename": "distribution_traces",
+"policyname": "distribution_traces_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND ( SELECT is_staff() AS is_staff))"
+},
+{
+"tablename": "distribution_traces",
+"policyname": "distribution_traces_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND ( SELECT is_staff() AS is_staff))",
+"check_expr": null
+},
+{
+"tablename": "distribution_traces",
+"policyname": "distribution_traces_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND ( SELECT is_staff() AS is_staff))",
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND ( SELECT is_staff() AS is_staff))"
+},
+{
+"tablename": "expenses",
+"policyname": "expenses_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND ( SELECT is_staff() AS is_staff))",
+"check_expr": null
+},
+{
+"tablename": "expenses",
+"policyname": "expenses_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND ( SELECT is_staff() AS is_staff))"
+},
+{
+"tablename": "expenses",
+"policyname": "expenses_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND ( SELECT is_staff() AS is_staff))",
+"check_expr": null
+},
+{
+"tablename": "expenses",
+"policyname": "expenses_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND ( SELECT is_staff() AS is_staff))",
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND ( SELECT is_staff() AS is_staff))"
+},
+{
+"tablename": "goals",
+"policyname": "goals_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": null
+},
+{
+"tablename": "goals",
+"policyname": "goals_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))"
+},
+{
+"tablename": "goals",
+"policyname": "goals_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": null
+},
+{
+"tablename": "goals",
+"policyname": "goals_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))"
+},
+{
+"tablename": "integration_logs",
+"policyname": "integration_logs_owner_read",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "(current_app_role() = 'owner'::text)",
+"check_expr": null
+},
+{
+"tablename": "leads",
+"policyname": "leads_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": null
+},
+{
+"tablename": "leads",
+"policyname": "leads_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))"
+},
+{
+"tablename": "leads",
+"policyname": "leads_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id)) OR seller_handles_lead(id)))",
+"check_expr": null
+},
+{
+"tablename": "leads",
+"policyname": "leads_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))"
+},
+{
+"tablename": "media_assets",
+"policyname": "media_assets_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR ((customer_id IS NOT NULL) AND (customer_id IN ( SELECT customers.id\n   FROM customers\n  WHERE (customers.seller_id = ( SELECT current_seller_id() AS current_seller_id))))) OR ((conversation_id IS NOT NULL) AND (conversation_id IN ( SELECT conversations.id\n   FROM conversations\n  WHERE (conversations.assigned_seller_id = ( SELECT current_seller_id() AS current_seller_id)))))))",
+"check_expr": null
+},
+{
+"tablename": "media_assets",
+"policyname": "media_assets_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR ((customer_id IS NOT NULL) AND (customer_id IN ( SELECT customers.id\n   FROM customers\n  WHERE (customers.seller_id = ( SELECT current_seller_id() AS current_seller_id))))) OR ((conversation_id IS NOT NULL) AND (conversation_id IN ( SELECT conversations.id\n   FROM conversations\n  WHERE ((conversations.store_id = ( SELECT current_store_id() AS current_store_id)) AND ((conversations.assigned_seller_id = ( SELECT current_seller_id() AS current_seller_id)) OR (conversations.assigned_seller_id IS NULL))))))))"
+},
+{
+"tablename": "media_assets",
+"policyname": "media_assets_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR ((customer_id IS NOT NULL) AND (customer_id IN ( SELECT customers.id\n   FROM customers\n  WHERE (customers.seller_id = ( SELECT current_seller_id() AS current_seller_id))))) OR ((conversation_id IS NOT NULL) AND (conversation_id IN ( SELECT conversations.id\n   FROM conversations\n  WHERE (conversations.assigned_seller_id = ( SELECT current_seller_id() AS current_seller_id)))))))",
+"check_expr": null
+},
+{
+"tablename": "media_assets",
+"policyname": "media_assets_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR ((customer_id IS NOT NULL) AND (customer_id IN ( SELECT customers.id\n   FROM customers\n  WHERE (customers.seller_id = ( SELECT current_seller_id() AS current_seller_id))))) OR ((conversation_id IS NOT NULL) AND (conversation_id IN ( SELECT conversations.id\n   FROM conversations\n  WHERE (conversations.assigned_seller_id = ( SELECT current_seller_id() AS current_seller_id)))))))",
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR ((customer_id IS NOT NULL) AND (customer_id IN ( SELECT customers.id\n   FROM customers\n  WHERE (customers.seller_id = ( SELECT current_seller_id() AS current_seller_id))))) OR ((conversation_id IS NOT NULL) AND (conversation_id IN ( SELECT conversations.id\n   FROM conversations\n  WHERE (conversations.assigned_seller_id = ( SELECT current_seller_id() AS current_seller_id)))))))"
+},
+{
+"tablename": "message_templates",
+"policyname": "message_templates_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "(( SELECT is_staff() AS is_staff) AND ((store_id IS NULL) OR (store_id = ( SELECT current_store_id() AS current_store_id))))",
+"check_expr": null
+},
+{
+"tablename": "message_templates",
+"policyname": "message_templates_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "(( SELECT is_staff() AS is_staff) AND ((store_id IS NULL) OR (store_id = ( SELECT current_store_id() AS current_store_id))))"
+},
+{
+"tablename": "message_templates",
+"policyname": "message_templates_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "((store_id IS NULL) OR (store_id = ( SELECT current_store_id() AS current_store_id)))",
+"check_expr": null
+},
+{
+"tablename": "message_templates",
+"policyname": "message_templates_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "(( SELECT is_staff() AS is_staff) AND ((store_id IS NULL) OR (store_id = ( SELECT current_store_id() AS current_store_id))))",
+"check_expr": "(( SELECT is_staff() AS is_staff) AND ((store_id IS NULL) OR (store_id = ( SELECT current_store_id() AS current_store_id))))"
+},
+{
+"tablename": "messages",
+"policyname": "messages_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "( SELECT can_access_conversation(messages.conversation_id) AS can_access_conversation)",
+"check_expr": null
+},
+{
+"tablename": "messages",
+"policyname": "messages_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "( SELECT can_access_conversation(messages.conversation_id) AS can_access_conversation)"
+},
+{
+"tablename": "messages",
+"policyname": "messages_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "( SELECT can_access_conversation(messages.conversation_id) AS can_access_conversation)",
+"check_expr": null
+},
+{
+"tablename": "messages",
+"policyname": "messages_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "( SELECT can_access_conversation(messages.conversation_id) AS can_access_conversation)",
+"check_expr": "( SELECT can_access_conversation(messages.conversation_id) AS can_access_conversation)"
+},
+{
+"tablename": "model_kit_items",
+"policyname": "model_kit_items_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "(kit_id IN ( SELECT model_kits.id\n   FROM model_kits\n  WHERE (model_kits.store_id = ( SELECT current_store_id() AS current_store_id))))",
+"check_expr": null
+},
+{
+"tablename": "model_kit_items",
+"policyname": "model_kit_items_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "(kit_id IN ( SELECT model_kits.id\n   FROM model_kits\n  WHERE (model_kits.store_id = ( SELECT current_store_id() AS current_store_id))))"
+},
+{
+"tablename": "model_kit_items",
+"policyname": "model_kit_items_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "(kit_id IN ( SELECT model_kits.id\n   FROM model_kits\n  WHERE (model_kits.store_id = ( SELECT current_store_id() AS current_store_id))))",
+"check_expr": null
+},
+{
+"tablename": "model_kit_items",
+"policyname": "model_kit_items_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "(kit_id IN ( SELECT model_kits.id\n   FROM model_kits\n  WHERE (model_kits.store_id = ( SELECT current_store_id() AS current_store_id))))",
+"check_expr": "(kit_id IN ( SELECT model_kits.id\n   FROM model_kits\n  WHERE (model_kits.store_id = ( SELECT current_store_id() AS current_store_id))))"
+},
+{
+"tablename": "model_kits",
+"policyname": "model_kits_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))",
+"check_expr": null
+},
+{
+"tablename": "model_kits",
+"policyname": "model_kits_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))"
+},
+{
+"tablename": "model_kits",
+"policyname": "model_kits_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))",
+"check_expr": null
+},
+{
+"tablename": "model_kits",
+"policyname": "model_kits_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))",
+"check_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))"
+},
+{
+"tablename": "notification_preferences",
+"policyname": "notification_preferences_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "(( SELECT is_staff() AS is_staff) OR (recipient_id = (( SELECT current_seller_id() AS current_seller_id))::text))",
+"check_expr": null
+},
+{
+"tablename": "notification_preferences",
+"policyname": "notification_preferences_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "(( SELECT is_staff() AS is_staff) OR (recipient_id = (( SELECT current_seller_id() AS current_seller_id))::text))"
+},
+{
+"tablename": "notification_preferences",
+"policyname": "notification_preferences_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "(( SELECT is_staff() AS is_staff) OR (recipient_id = (( SELECT current_seller_id() AS current_seller_id))::text))",
+"check_expr": null
+},
+{
+"tablename": "notification_preferences",
+"policyname": "notification_preferences_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "(( SELECT is_staff() AS is_staff) OR (recipient_id = (( SELECT current_seller_id() AS current_seller_id))::text))",
+"check_expr": "(( SELECT is_staff() AS is_staff) OR (recipient_id = (( SELECT current_seller_id() AS current_seller_id))::text))"
+},
+{
+"tablename": "notifications",
+"policyname": "notifications_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "(((store_id = ( SELECT current_store_id() AS current_store_id)) OR (store_id IS NULL)) AND (( SELECT is_staff() AS is_staff) OR (recipient_id = (( SELECT current_seller_id() AS current_seller_id))::text)))",
+"check_expr": null
+},
+{
+"tablename": "notifications",
+"policyname": "notifications_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "(((store_id = ( SELECT current_store_id() AS current_store_id)) OR (store_id IS NULL)) AND (( SELECT is_staff() AS is_staff) OR (recipient_id = (( SELECT current_seller_id() AS current_seller_id))::text)))"
+},
+{
+"tablename": "notifications",
+"policyname": "notifications_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "(((store_id = ( SELECT current_store_id() AS current_store_id)) OR (store_id IS NULL)) AND (( SELECT is_staff() AS is_staff) OR (recipient_id = (( SELECT current_seller_id() AS current_seller_id))::text)))",
+"check_expr": null
+},
+{
+"tablename": "notifications",
+"policyname": "notifications_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "(((store_id = ( SELECT current_store_id() AS current_store_id)) OR (store_id IS NULL)) AND (( SELECT is_staff() AS is_staff) OR (recipient_id = (( SELECT current_seller_id() AS current_seller_id))::text)))",
+"check_expr": "(((store_id = ( SELECT current_store_id() AS current_store_id)) OR (store_id IS NULL)) AND (( SELECT is_staff() AS is_staff) OR (recipient_id = (( SELECT current_seller_id() AS current_seller_id))::text)))"
+},
+{
+"tablename": "order_items",
+"policyname": "order_items_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "(order_id IN ( SELECT orders.id\n   FROM orders\n  WHERE (orders.store_id = ( SELECT current_store_id() AS current_store_id))))",
+"check_expr": null
+},
+{
+"tablename": "order_items",
+"policyname": "order_items_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "(order_id IN ( SELECT orders.id\n   FROM orders\n  WHERE (orders.store_id = ( SELECT current_store_id() AS current_store_id))))"
+},
+{
+"tablename": "order_items",
+"policyname": "order_items_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "(order_id IN ( SELECT orders.id\n   FROM orders\n  WHERE (orders.store_id = ( SELECT current_store_id() AS current_store_id))))",
+"check_expr": null
+},
+{
+"tablename": "order_items",
+"policyname": "order_items_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "(order_id IN ( SELECT orders.id\n   FROM orders\n  WHERE (orders.store_id = ( SELECT current_store_id() AS current_store_id))))",
+"check_expr": "(order_id IN ( SELECT orders.id\n   FROM orders\n  WHERE (orders.store_id = ( SELECT current_store_id() AS current_store_id))))"
+},
+{
+"tablename": "orders",
+"policyname": "orders_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": null
+},
+{
+"tablename": "orders",
+"policyname": "orders_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))"
+},
+{
+"tablename": "orders",
+"policyname": "orders_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": null
+},
+{
+"tablename": "orders",
+"policyname": "orders_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))"
+},
+{
+"tablename": "parts",
+"policyname": "parts_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))",
+"check_expr": null
+},
+{
+"tablename": "parts",
+"policyname": "parts_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))"
+},
+{
+"tablename": "parts",
+"policyname": "parts_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))",
+"check_expr": null
+},
+{
+"tablename": "parts",
+"policyname": "parts_select_anon",
+"cmd": "SELECT",
+"roles": "{anon}",
+"using_expr": "(active = true)",
+"check_expr": null
+},
+{
+"tablename": "parts",
+"policyname": "parts_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))",
+"check_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))"
+},
+{
+"tablename": "product_indicators",
+"policyname": "product_indicators_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": null
+},
+{
+"tablename": "product_indicators",
+"policyname": "product_indicators_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))"
+},
+{
+"tablename": "product_indicators",
+"policyname": "product_indicators_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": null
+},
+{
+"tablename": "product_indicators",
+"policyname": "product_indicators_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))"
+},
+{
+"tablename": "profiles",
+"policyname": "profiles_select_auth_admin",
+"cmd": "SELECT",
+"roles": "{supabase_auth_admin}",
+"using_expr": "true",
+"check_expr": null
+},
+{
+"tablename": "profiles",
+"policyname": "profiles_select_self_or_staff",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "((auth_user_id = ( SELECT auth.uid() AS uid)) OR ((COALESCE(((( SELECT auth.jwt() AS jwt) -> 'app_metadata'::text) ->> 'role'::text), ''::text) = ANY (ARRAY['owner'::text, 'manager'::text])) AND ((((( SELECT auth.jwt() AS jwt) -> 'app_metadata'::text) ->> 'store_id'::text))::uuid = store_id)))",
+"check_expr": null
+},
+{
+"tablename": "quick_replies",
+"policyname": "quick_replies_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (owner_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": null
+},
+{
+"tablename": "quick_replies",
+"policyname": "quick_replies_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (owner_id = ( SELECT current_seller_id() AS current_seller_id))))"
+},
+{
+"tablename": "quick_replies",
+"policyname": "quick_replies_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (scope = 'shared'::text) OR (owner_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": null
+},
+{
+"tablename": "quick_replies",
+"policyname": "quick_replies_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (owner_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (owner_id = ( SELECT current_seller_id() AS current_seller_id))))"
+},
+{
+"tablename": "quote_items",
+"policyname": "quote_items_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "(quote_id IN ( SELECT quotes.id\n   FROM quotes\n  WHERE (quotes.store_id = ( SELECT current_store_id() AS current_store_id))))",
+"check_expr": null
+},
+{
+"tablename": "quote_items",
+"policyname": "quote_items_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "(quote_id IN ( SELECT quotes.id\n   FROM quotes\n  WHERE (quotes.store_id = ( SELECT current_store_id() AS current_store_id))))"
+},
+{
+"tablename": "quote_items",
+"policyname": "quote_items_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "(quote_id IN ( SELECT quotes.id\n   FROM quotes\n  WHERE (quotes.store_id = ( SELECT current_store_id() AS current_store_id))))",
+"check_expr": null
+},
+{
+"tablename": "quote_items",
+"policyname": "quote_items_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "(quote_id IN ( SELECT quotes.id\n   FROM quotes\n  WHERE (quotes.store_id = ( SELECT current_store_id() AS current_store_id))))",
+"check_expr": "(quote_id IN ( SELECT quotes.id\n   FROM quotes\n  WHERE (quotes.store_id = ( SELECT current_store_id() AS current_store_id))))"
+},
+{
+"tablename": "quotes",
+"policyname": "quotes_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": null
+},
+{
+"tablename": "quotes",
+"policyname": "quotes_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))"
+},
+{
+"tablename": "quotes",
+"policyname": "quotes_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": null
+},
+{
+"tablename": "quotes",
+"policyname": "quotes_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))"
+},
+{
+"tablename": "rbac_resources",
+"policyname": "rbac_resources_write",
+"cmd": "ALL",
+"roles": "{authenticated}",
+"using_expr": "(( SELECT current_app_role() AS current_app_role) = 'owner'::text)",
+"check_expr": "(( SELECT current_app_role() AS current_app_role) = 'owner'::text)"
+},
+{
+"tablename": "rbac_resources",
+"policyname": "rbac_resources_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "true",
+"check_expr": null
+},
+{
+"tablename": "recommendations",
+"policyname": "recommendations_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": null
+},
+{
+"tablename": "recommendations",
+"policyname": "recommendations_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))"
+},
+{
+"tablename": "recommendations",
+"policyname": "recommendations_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": null
+},
+{
+"tablename": "recommendations",
+"policyname": "recommendations_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))",
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (seller_id = ( SELECT current_seller_id() AS current_seller_id))))"
+},
+{
+"tablename": "role_permissions",
+"policyname": "role_permissions_write",
+"cmd": "ALL",
+"roles": "{authenticated}",
+"using_expr": "(( SELECT current_app_role() AS current_app_role) = 'owner'::text)",
+"check_expr": "(( SELECT current_app_role() AS current_app_role) = 'owner'::text)"
+},
+{
+"tablename": "role_permissions",
+"policyname": "role_permissions_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "true",
+"check_expr": null
+},
+{
+"tablename": "roles",
+"policyname": "roles_write",
+"cmd": "ALL",
+"roles": "{authenticated}",
+"using_expr": "(( SELECT current_app_role() AS current_app_role) = 'owner'::text)",
+"check_expr": "(( SELECT current_app_role() AS current_app_role) = 'owner'::text)"
+},
+{
+"tablename": "roles",
+"policyname": "roles_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "true",
+"check_expr": null
+},
+{
+"tablename": "rotation_participants",
+"policyname": "rotation_participants_write",
+"cmd": "ALL",
+"roles": "{authenticated}",
+"using_expr": "( SELECT is_staff() AS is_staff)",
+"check_expr": "( SELECT is_staff() AS is_staff)"
+},
+{
+"tablename": "rotation_participants",
+"policyname": "rotation_participants_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "true",
+"check_expr": null
+},
+{
+"tablename": "rotation_queues",
+"policyname": "rotation_queues_write",
+"cmd": "ALL",
+"roles": "{authenticated}",
+"using_expr": "( SELECT is_staff() AS is_staff)",
+"check_expr": "( SELECT is_staff() AS is_staff)"
+},
+{
+"tablename": "rotation_queues",
+"policyname": "rotation_queues_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "true",
+"check_expr": null
+},
+{
+"tablename": "scheduled_sends",
+"policyname": "scheduled_sends_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))",
+"check_expr": null
+},
+{
+"tablename": "scheduled_sends",
+"policyname": "scheduled_sends_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))"
+},
+{
+"tablename": "scheduled_sends",
+"policyname": "scheduled_sends_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))",
+"check_expr": null
+},
+{
+"tablename": "scheduled_sends",
+"policyname": "scheduled_sends_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))",
+"check_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))"
+},
+{
+"tablename": "sdr_escalations",
+"policyname": "sdr_escalations_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))",
+"check_expr": null
+},
+{
+"tablename": "sdr_escalations",
+"policyname": "sdr_escalations_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))"
+},
+{
+"tablename": "sdr_escalations",
+"policyname": "sdr_escalations_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))",
+"check_expr": null
+},
+{
+"tablename": "sdr_escalations",
+"policyname": "sdr_escalations_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))",
+"check_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))"
+},
+{
+"tablename": "sdr_sessions",
+"policyname": "sdr_sessions_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "(conversation_id IN ( SELECT conversations.id\n   FROM conversations\n  WHERE (conversations.store_id = ( SELECT current_store_id() AS current_store_id))))",
+"check_expr": null
+},
+{
+"tablename": "sdr_sessions",
+"policyname": "sdr_sessions_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "(conversation_id IN ( SELECT conversations.id\n   FROM conversations\n  WHERE (conversations.store_id = ( SELECT current_store_id() AS current_store_id))))"
+},
+{
+"tablename": "sdr_sessions",
+"policyname": "sdr_sessions_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "(conversation_id IN ( SELECT conversations.id\n   FROM conversations\n  WHERE (conversations.store_id = ( SELECT current_store_id() AS current_store_id))))",
+"check_expr": null
+},
+{
+"tablename": "sdr_sessions",
+"policyname": "sdr_sessions_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "(conversation_id IN ( SELECT conversations.id\n   FROM conversations\n  WHERE (conversations.store_id = ( SELECT current_store_id() AS current_store_id))))",
+"check_expr": "(conversation_id IN ( SELECT conversations.id\n   FROM conversations\n  WHERE (conversations.store_id = ( SELECT current_store_id() AS current_store_id))))"
+},
+{
+"tablename": "sellers",
+"policyname": "sellers_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND ( SELECT is_staff() AS is_staff))",
+"check_expr": null
+},
+{
+"tablename": "sellers",
+"policyname": "sellers_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND ( SELECT is_staff() AS is_staff))"
+},
+{
+"tablename": "sellers",
+"policyname": "sellers_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))",
+"check_expr": null
+},
+{
+"tablename": "sellers",
+"policyname": "sellers_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND (( SELECT is_staff() AS is_staff) OR (auth_user_id = ( SELECT auth.uid() AS uid))))",
+"check_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))"
+},
+{
+"tablename": "stores",
+"policyname": "stores_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "(id = ( SELECT current_store_id() AS current_store_id))",
+"check_expr": null
+},
+{
+"tablename": "stores",
+"policyname": "stores_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "((id = ( SELECT current_store_id() AS current_store_id)) AND ( SELECT is_staff() AS is_staff))",
+"check_expr": "(id = ( SELECT current_store_id() AS current_store_id))"
+},
+{
+"tablename": "trackable_links",
+"policyname": "trackable_links_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))",
+"check_expr": null
+},
+{
+"tablename": "trackable_links",
+"policyname": "trackable_links_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))"
+},
+{
+"tablename": "trackable_links",
+"policyname": "trackable_links_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))",
+"check_expr": null
+},
+{
+"tablename": "trackable_links",
+"policyname": "trackable_links_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))",
+"check_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))"
+},
+{
+"tablename": "vehicle_models",
+"policyname": "vehicle_models_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "( SELECT is_staff() AS is_staff)",
+"check_expr": null
+},
+{
+"tablename": "vehicle_models",
+"policyname": "vehicle_models_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "( SELECT is_staff() AS is_staff)"
+},
+{
+"tablename": "vehicle_models",
+"policyname": "vehicle_models_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "true",
+"check_expr": null
+},
+{
+"tablename": "vehicle_models",
+"policyname": "vehicle_models_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "( SELECT is_staff() AS is_staff)",
+"check_expr": "( SELECT is_staff() AS is_staff)"
+},
+{
+"tablename": "vehicles",
+"policyname": "vehicles_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "(customer_id IN ( SELECT customers.id\n   FROM customers\n  WHERE (customers.store_id = ( SELECT current_store_id() AS current_store_id))))",
+"check_expr": null
+},
+{
+"tablename": "vehicles",
+"policyname": "vehicles_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "(customer_id IN ( SELECT customers.id\n   FROM customers\n  WHERE (customers.store_id = ( SELECT current_store_id() AS current_store_id))))"
+},
+{
+"tablename": "vehicles",
+"policyname": "vehicles_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "(customer_id IN ( SELECT customers.id\n   FROM customers\n  WHERE (customers.store_id = ( SELECT current_store_id() AS current_store_id))))",
+"check_expr": null
+},
+{
+"tablename": "vehicles",
+"policyname": "vehicles_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "(customer_id IN ( SELECT customers.id\n   FROM customers\n  WHERE (customers.store_id = ( SELECT current_store_id() AS current_store_id))))",
+"check_expr": "(customer_id IN ( SELECT customers.id\n   FROM customers\n  WHERE (customers.store_id = ( SELECT current_store_id() AS current_store_id))))"
+},
+{
+"tablename": "whatsapp_account_access_rules",
+"policyname": "waar_staff_all",
+"cmd": "ALL",
+"roles": "{authenticated}",
+"using_expr": "(EXISTS ( SELECT 1\n   FROM whatsapp_accounts a\n  WHERE ((a.id = whatsapp_account_access_rules.whatsapp_account_id) AND (a.store_id = ( SELECT current_store_id() AS current_store_id)) AND ( SELECT is_staff() AS is_staff))))",
+"check_expr": "(EXISTS ( SELECT 1\n   FROM whatsapp_accounts a\n  WHERE ((a.id = whatsapp_account_access_rules.whatsapp_account_id) AND (a.store_id = ( SELECT current_store_id() AS current_store_id)) AND ( SELECT is_staff() AS is_staff))))"
+},
+{
+"tablename": "whatsapp_accounts",
+"policyname": "whatsapp_accounts_delete",
+"cmd": "DELETE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND ( SELECT is_staff() AS is_staff))",
+"check_expr": null
+},
+{
+"tablename": "whatsapp_accounts",
+"policyname": "whatsapp_accounts_insert",
+"cmd": "INSERT",
+"roles": "{authenticated}",
+"using_expr": null,
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND ( SELECT is_staff() AS is_staff))"
+},
+{
+"tablename": "whatsapp_accounts",
+"policyname": "whatsapp_accounts_select",
+"cmd": "SELECT",
+"roles": "{authenticated}",
+"using_expr": "(store_id = ( SELECT current_store_id() AS current_store_id))",
+"check_expr": null
+},
+{
+"tablename": "whatsapp_accounts",
+"policyname": "whatsapp_accounts_update",
+"cmd": "UPDATE",
+"roles": "{authenticated}",
+"using_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND ( SELECT is_staff() AS is_staff))",
+"check_expr": "((store_id = ( SELECT current_store_id() AS current_store_id)) AND ( SELECT is_staff() AS is_staff))"
+}
+]

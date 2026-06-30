@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark" data-theme="diesel" data-mode="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Telefone de origem — onde exibir</title>
+<style>
+  :root{
+    --bg:#0e0e0e; --card:#1a1a1a; --fg:#fafafa; --muted:#a1a1aa;
+    --border:rgba(255,255,255,.08); --primary:#c9a24a;
+    --success:#22c55e; --warning:#f59e0b; --critical:#f87171; --info:#60a5fa;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font-family:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;line-height:1.5;padding:0 0 120px}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 24px}
+  h1{font-size:22px;margin:0 0 4px;letter-spacing:-.01em}
+  h1 .accent{color:var(--primary)}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 28px}
+  .label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:34px 0 12px;font-weight:600}
+  .tabnum{font-variant-numeric:tabular-nums}
+
+  /* ----- simulated app window ----- */
+  .win{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--bg);box-shadow:0 8px 30px rgba(0,0,0,.4)}
+  .win + .win{margin-top:16px}
+  .wincap{font-size:11px;color:var(--muted);padding:7px 12px;border-bottom:1px solid var(--border);background:#141414;display:flex;gap:6px;align-items:center}
+  .wincap .dotrow{display:flex;gap:5px;margin-right:6px}
+  .wincap .d{width:9px;height:9px;border-radius:50%}
+  .d.r{background:#f87171}.d.y{background:#f59e0b}.d.g{background:#22c55e}
+
+  /* ----- topbar ----- */
+  .topbar{display:flex;align-items:center;gap:14px;padding:10px 16px;background:linear-gradient(180deg,#161616,#101010);border-bottom:1px solid var(--border)}
+  .brand{font-weight:800;letter-spacing:.06em;font-size:14px}
+  .brand .g{color:var(--primary)}
+  .store{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:5px 9px;background:rgba(255,255,255,.02)}
+  .store .car{color:var(--muted);font-size:11px}
+  .spacer{flex:1}
+  .ico-btn{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);border:1px solid transparent}
+  .ico-btn:hover{background:rgba(255,255,255,.04)}
+  .avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#c9a24a,#8c6e25);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#0e0e0e}
+
+  /* ----- the origin chip (the star) ----- */
+  .chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);
+    background:rgba(255,255,255,.04);border-radius:999px;padding:5px 11px;font-size:12.5px}
+  .chip .wa{width:16px;height:16px;flex:none}
+  .chip .num{font-weight:600;color:var(--fg)}
+  .chip .sep{color:var(--muted)}
+  .chip .lbl{color:var(--muted)}
+  .stat-dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .stat-dot.ok{background:var(--success);box-shadow:0 0 0 3px rgba(34,197,94,.18)}
+  .stat-dot.warn{background:var(--warning);box-shadow:0 0 0 3px rgba(245,158,11,.18)}
+  .stat-dot.crit{background:var(--critical);box-shadow:0 0 0 3px rgba(248,113,113,.18)}
+  .chip.is-warn{border-color:rgba(245,158,11,.4)}
+  .chip.is-crit{border-color:rgba(248,113,113,.4)}
+  .glow{box-shadow:0 0 0 2px rgba(201,162,74,.55),0 0 18px rgba(201,162,74,.25)}
+
+  .variants{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+  .variants .vlab{font-size:11px;color:var(--muted);margin-bottom:5px}
+  .vcell{display:flex;flex-direction:column}
+
+  /* ----- inbox header strip ----- */
+  .inbox{padding:14px 16px}
+  .inbox .t{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600}
+  .inbox .count{font-size:12px;color:var(--muted);font-weight:400}
+  .inbox .row2{display:flex;align-items:center;margin-top:10px;font-size:12px;color:var(--muted)}
+  .origin-strip{margin-left:auto;display:inline-flex;align-items:center;gap:7px}
+  .origin-strip .ol{color:var(--muted)}
+  .origin-strip .on{color:var(--fg);font-weight:600}
+
+  /* ----- account card ----- */
+  .acct{display:flex;gap:14px;align-items:flex-start;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin:12px}
+  .acct .wabox{width:40px;height:40px;border-radius:10px;background:rgba(34,197,94,.12);display:flex;align-items:center;justify-content:center;flex:none}
+  .acct .nm{font-size:13px;color:var(--muted);margin:0 0 3px}
+  .acct .num{font-size:19px;font-weight:700;letter-spacing:.01em}
+  .acct .num .cc{color:var(--muted);font-weight:500;font-size:15px}
+  .acct .meta{font-size:12px;color:var(--muted);margin-top:6px}
+  .acct .right{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:9px}
+  .badge{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:999px}
+  .badge.ok{color:var(--success);background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3)}
+  .copy{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:5px 10px;background:rgba(255,255,255,.02)}
+  .acct.old .num{font-size:12px;font-weight:400;color:var(--muted);letter-spacing:0}
+  .acct.old .num .cc{display:none}
+
+  /* ----- options ----- */
+  .options{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:14px}
+  .opt{position:relative;border:1px solid var(--border);border-radius:14px;padding:16px 16px 14px;background:var(--card);cursor:pointer;transition:border-color .15s,transform .1s,box-shadow .15s}
+  .opt:hover{border-color:rgba(201,162,74,.45);transform:translateY(-1px)}
+  .opt.selected{border-color:var(--primary);box-shadow:0 0 0 2px rgba(201,162,74,.35)}
+  .opt .ohead{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .opt .letter{width:26px;height:26px;border-radius:7px;background:rgba(201,162,74,.16);color:var(--primary);font-weight:800;display:flex;align-items:center;justify-content:center;font-size:13px;flex:none}
+  .opt h3{font-size:14.5px;margin:0}
+  .opt .reco{font-size:10px;font-weight:700;color:var(--primary);border:1px solid rgba(201,162,74,.5);border-radius:999px;padding:2px 7px;margin-left:auto}
+  .opt p{font-size:12.5px;color:var(--muted);margin:0 0 10px}
+  .opt .where{display:flex;flex-wrap:wrap;gap:6px}
+  .tag{font-size:10.5px;padding:3px 8px;border-radius:6px;background:rgba(255,255,255,.05);color:var(--fg);border:1px solid var(--border)}
+  .tag.off{color:var(--muted);opacity:.6}
+  .opt .check{position:absolute;top:12px;right:12px;width:20px;height:20px;border-radius:50%;border:2px solid var(--border);display:none}
+  .opt.selected .check{display:block;border-color:var(--primary);background:var(--primary)}
+  .opt.selected .reco{display:none}
+
+  .selbar{position:fixed;left:0;right:0;bottom:0;padding:14px 24px;background:rgba(16,16,16,.96);border-top:1px solid var(--border);backdrop-filter:blur(8px);font-size:13.5px;color:var(--muted);text-align:center;transform:translateY(120%);transition:transform .2s}
+  .selbar.show{transform:none}
+  .selbar b{color:var(--primary)}
+  .hint{font-size:12px;color:var(--muted);text-align:center;margin-top:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Telefone de origem — <span class="accent">onde exibir</span></h1>
+  <p class="sub">O número conectado (<span class="tabnum">+55 (55) 99800-1000</span>) já existe nos dados. Abaixo, como cada peça ficaria — e os 4 escopos para você escolher. Clique numa opção e me avise no terminal.</p>
+
+  <!-- ============ PEÇA 1: CHIP NO TOPBAR ============ -->
+  <div class="label">Peça 1 · Chip no TopBar (visível em toda tela)</div>
+  <div class="win">
+    <div class="wincap"><span class="dotrow"><i class="d r"></i><i class="d y"></i><i class="d g"></i></span> /app · barra superior</div>
+    <div class="topbar">
+      <div class="brand"><span class="g">GALLO</span> BASE DIESEL</div>
+      <div class="store">Matriz <span class="car">▾</span></div>
+      <div class="spacer"></div>
+      <div class="chip glow">
+        <svg class="wa" viewBox="0 0 24 24" fill="#22c55e"><path d="M16.75 13.96c.25.13.41.2.46.3.06.11.04.61-.21 1.18-.2.56-1.24 1.1-1.7 1.12-.46.02-.47.36-2.96-.73-2.49-1.09-3.99-3.75-4.11-3.92-.12-.17-.96-1.38-.92-2.61.05-1.22.69-1.8.95-2.04.24-.26.51-.29.68-.29h.49c.16 0 .37-.06.56.45l.69 1.87c.05.13.08.28-.01.44l-.27.41-.39.42c-.12.12-.26.25-.12.5.12.26.62 1.09 1.32 1.78.91.88 1.71 1.21 1.95 1.34.24.13.39.11.54-.07l.81-.94c.19-.25.35-.19.58-.11l1.67.79M12 2a10 10 0 0 1 10 10 10 10 0 0 1-10 10c-1.97 0-3.8-.57-5.35-1.55L2 22l1.55-4.65A9.969 9.969 0 0 1 2 12 10 10 0 0 1 12 2m0 2a8 8 0 0 0-8 8c0 1.72.54 3.31 1.46 4.61L4.5 19.5l2.89-.96A7.95 7.95 0 0 0 12 20a8 8 0 0 0 8-8 8 8 0 0 0-8-8z"/></svg>
+        <span class="lbl">WhatsApp</span><span class="sep">·</span>
+        <span class="num tabnum">(55) 99800-1000</span>
+        <span class="stat-dot ok"></span>
+      </div>
+      <div class="ico-btn">🔔</div>
+      <div class="ico-btn">◐</div>
+      <div class="avatar">ES</div>
+    </div>
+  </div>
+
+  <div class="variants">
+    <div class="vcell"><div class="vlab">2+ linhas (agrega)</div>
+      <div class="chip"><svg class="wa" viewBox="0 0 24 24" fill="#22c55e"><path d="M16.75 13.96c.25.13.41.2.46.3.06.11.04.61-.21 1.18-.2.56-1.24 1.1-1.7 1.12-.46.02-.47.36-2.96-.73-2.49-1.09-3.99-3.75-4.11-3.92-.12-.17-.96-1.38-.92-2.61.05-1.22.69-1.8.95-2.04.24-.26.51-.29.68-.29h.49c.16 0 .37-.06.56.45l.69 1.87c.05.13.08.28-.01.44l-.27.41-.39.42c-.12.12-.26.25-.12.5.12.26.62 1.09 1.32 1.78.91.88 1.71 1.21 1.95 1.34.24.13.39.11.54-.07l.81-.94c.19-.25.35-.19.58-.11l1.67.79M12 2a10 10 0 0 1 10 10 10 10 0 0 1-10 10c-1.97 0-3.8-.57-5.35-1.55L2 22l1.55-4.65A9.969 9.969 0 0 1 2 12 10 10 0 0 1 12 2m0 2a8 8 0 0 0-8 8c0 1.72.54 3.31 1.46 4.61L4.5 19.5l2.89-.96A7.95 7.95 0 0 0 12 20a8 8 0 0 0 8-8 8 8 0 0 0-8-8z"/></svg><span class="lbl">WhatsApp</span><span class="sep">·</span><span class="num">2 linhas</span><span class="stat-dot ok"></span></div>
+    </div>
+    <div class="vcell"><div class="vlab">failover ativo</div>
+      <div class="chip is-warn"><svg class="wa" viewBox="0 0 24 24" fill="#f59e0b"><path d="M16.75 13.96c.25.13.41.2.46.3.06.11.04.61-.21 1.18-.2.56-1.24 1.1-1.7 1.12-.46.02-.47.36-2.96-.73-2.49-1.09-3.99-3.75-4.11-3.92-.12-.17-.96-1.38-.92-2.61.05-1.22.69-1.8.95-2.04.24-.26.51-.29.68-.29h.49c.16 0 .37-.06.56.45l.69 1.87c.05.13.08.28-.01.44l-.27.41-.39.42c-.12.12-.26.25-.12.5.12.26.62 1.09 1.32 1.78.91.88 1.71 1.21 1.95 1.34.24.13.39.11.54-.07l.81-.94c.19-.25.35-.19.58-.11l1.67.79M12 2a10 10 0 0 1 10 10 10 10 0 0 1-10 10c-1.97 0-3.8-.57-5.35-1.55L2 22l1.55-4.65A9.969 9.969 0 0 1 2 12 10 10 0 0 1 12 2m0 2a8 8 0 0 0-8 8c0 1.72.54 3.31 1.46 4.61L4.5 19.5l2.89-.96A7.95 7.95 0 0 0 12 20a8 8 0 0 0 8-8 8 8 0 0 0-8-8z"/></svg><span class="num tabnum">(55) 99800-1000</span><span class="lbl">⇄ reserva</span><span class="stat-dot warn"></span></div>
+    </div>
+    <div class="vcell"><div class="vlab">desconectado</div>
+      <div class="chip is-crit"><svg class="wa" viewBox="0 0 24 24" fill="#f87171"><path d="M16.75 13.96c.25.13.41.2.46.3.06.11.04.61-.21 1.18-.2.56-1.24 1.1-1.7 1.12-.46.02-.47.36-2.96-.73-2.49-1.09-3.99-3.75-4.11-3.92-.12-.17-.96-1.38-.92-2.61.05-1.22.69-1.8.95-2.04.24-.26.51-.29.68-.29h.49c.16 0 .37-.06.56.45l.69 1.87c.05.13.08.28-.01.44l-.27.41-.39.42c-.12.12-.26.25-.12.5.12.26.62 1.09 1.32 1.78.91.88 1.71 1.21 1.95 1.34.24.13.39.11.54-.07l.81-.94c.19-.25.35-.19.58-.11l1.67.79M12 2a10 10 0 0 1 10 10 10 10 0 0 1-10 10c-1.97 0-3.8-.57-5.35-1.55L2 22l1.55-4.65A9.969 9.969 0 0 1 2 12 10 10 0 0 1 12 2m0 2a8 8 0 0 0-8 8c0 1.72.54 3.31 1.46 4.61L4.5 19.5l2.89-.96A7.95 7.95 0 0 0 12 20a8 8 0 0 0 8-8 8 8 0 0 0-8-8z"/></svg><span class="lbl">WhatsApp</span><span class="sep">·</span><span class="num">desconectado</span><span class="stat-dot crit"></span></div>
+    </div>
+  </div>
+
+  <!-- ============ PEÇA 2: FAIXA NO INBOX ============ -->
+  <div class="label">Peça 2 · Faixa "Origem" no header do Inbox (opcional)</div>
+  <div class="win">
+    <div class="wincap"><span class="dotrow"><i class="d r"></i><i class="d y"></i><i class="d g"></i></span> /app/atendimento · cabeçalho da caixa de entrada</div>
+    <div class="inbox">
+      <div class="t">📥 Caixa de Entrada <span class="count">· 128 conversas</span></div>
+      <div class="row2">
+        <span>Ordenar por: recentes ▾</span>
+        <span class="origin-strip"><span class="ol">Origem:</span>
+          <svg class="wa" viewBox="0 0 24 24" fill="#22c55e" style="width:14px;height:14px"><path d="M16.75 13.96c.25.13.41.2.46.3.06.11.04.61-.21 1.18-.2.56-1.24 1.1-1.7 1.12-.46.02-.47.36-2.96-.73-2.49-1.09-3.99-3.75-4.11-3.92-.12-.17-.96-1.38-.92-2.61.05-1.22.69-1.8.95-2.04.24-.26.51-.29.68-.29h.49c.16 0 .37-.06.56.45l.69 1.87c.05.13.08.28-.01.44l-.27.41-.39.42c-.12.12-.26.25-.12.5.12.26.62 1.09 1.32 1.78.91.88 1.71 1.21 1.95 1.34.24.13.39.11.54-.07l.81-.94c.19-.25.35-.19.58-.11l1.67.79M12 2a10 10 0 0 1 10 10 10 10 0 0 1-10 10c-1.97 0-3.8-.57-5.35-1.55L2 22l1.55-4.65A9.969 9.969 0 0 1 2 12 10 10 0 0 1 12 2m0 2a8 8 0 0 0-8 8c0 1.72.54 3.31 1.46 4.61L4.5 19.5l2.89-.96A7.95 7.95 0 0 0 12 20a8 8 0 0 0 8-8 8 8 0 0 0-8-8z"/></svg>
+          <span class="on tabnum">(55) 99800-1000</span><span class="stat-dot ok"></span><span class="ol">Conectado</span>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ PEÇA 3: CARD NA TELA DE CONTAS ============ -->
+  <div class="label">Peça 3 · Destaque na tela Configurações → WhatsApp (lar canônico)</div>
+  <div class="win">
+    <div class="wincap"><span class="dotrow"><i class="d r"></i><i class="d y"></i><i class="d g"></i></span> /app/configuracoes/whatsapp</div>
+    <div class="acct">
+      <div class="wabox"><svg class="wa" viewBox="0 0 24 24" fill="#22c55e" style="width:22px;height:22px"><path d="M16.75 13.96c.25.13.41.2.46.3.06.11.04.61-.21 1.18-.2.56-1.24 1.1-1.7 1.12-.46.02-.47.36-2.96-.73-2.49-1.09-3.99-3.75-4.11-3.92-.12-.17-.96-1.38-.92-2.61.05-1.22.69-1.8.95-2.04.24-.26.51-.29.68-.29h.49c.16 0 .37-.06.56.45l.69 1.87c.05.13.08.28-.01.44l-.27.41-.39.42c-.12.12-.26.25-.12.5.12.26.62 1.09 1.32 1.78.91.88 1.71 1.21 1.95 1.34.24.13.39.11.54-.07l.81-.94c.19-.25.35-.19.58-.11l1.67.79M12 2a10 10 0 0 1 10 10 10 10 0 0 1-10 10c-1.97 0-3.8-.57-5.35-1.55L2 22l1.55-4.65A9.969 9.969 0 0 1 2 12 10 10 0 0 1 12 2m0 2a8 8 0 0 0-8 8c0 1.72.54 3.31 1.46 4.61L4.5 19.5l2.89-.96A7.95 7.95 0 0 0 12 20a8 8 0 0 0 8-8 8 8 0 0 0-8-8z"/></svg></div>
+      <div>
+        <p class="nm">Atendimento Principal</p>
+        <div class="num tabnum"><span class="cc">+55</span> (55) 99800-1000</div>
+        <div class="meta">Evolution API · instância Agent-GALLO-R9-B1 · Saudável</div>
+      </div>
+      <div class="right">
+        <span class="badge ok"><span class="stat-dot ok"></span> Conectada</span>
+        <span class="copy">⧉ Copiar número</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ OPÇÕES DE ESCOPO ============ -->
+  <div class="label">Escolha o escopo (clique para selecionar)</div>
+  <div class="options">
+    <div class="opt selected" data-choice="a" data-name="TopBar + tela de contas" data-multiselect="false" onclick="pick(this)">
+      <div class="check"></div>
+      <div class="ohead"><div class="letter">A</div><h3>TopBar + tela de contas</h3><span class="reco">Recomendado</span></div>
+      <p>Chip global (de relance em qualquer tela) + número em destaque com "Copiar" na tela de contas.</p>
+      <div class="where"><span class="tag">Peça 1 · TopBar</span><span class="tag">Peça 3 · Contas</span><span class="tag off">Inbox</span></div>
+    </div>
+    <div class="opt" data-choice="b" data-name="Só no TopBar" onclick="pick(this)">
+      <div class="check"></div>
+      <div class="ohead"><div class="letter">B</div><h3>Só no TopBar</h3></div>
+      <p>Apenas o chip global. A tela de contas segue como hoje. Menor superfície tocada.</p>
+      <div class="where"><span class="tag">Peça 1 · TopBar</span><span class="tag off">Contas (como hoje)</span><span class="tag off">Inbox</span></div>
+    </div>
+    <div class="opt" data-choice="c" data-name="Completo (+ faixa no Inbox)" onclick="pick(this)">
+      <div class="check"></div>
+      <div class="ohead"><div class="letter">C</div><h3>Completo</h3></div>
+      <p>TopBar + tela de contas + faixa "Origem" no Inbox. Máxima visibilidade; mais arquivos.</p>
+      <div class="where"><span class="tag">Peça 1 · TopBar</span><span class="tag">Peça 2 · Inbox</span><span class="tag">Peça 3 · Contas</span></div>
+    </div>
+    <div class="opt" data-choice="d" data-name="Só na tela de contas" onclick="pick(this)">
+      <div class="check"></div>
+      <div class="ohead"><div class="letter">D</div><h3>Só na tela de contas</h3></div>
+      <p>Reforça apenas Configurações → WhatsApp. Nada global novo; menor risco, menor descoberta.</p>
+      <div class="where"><span class="tag off">TopBar</span><span class="tag off">Inbox</span><span class="tag">Peça 3 · Contas</span></div>
+    </div>
+  </div>
+
+  <p class="hint">As cores de status (verde/âmbar/vermelho) usam os tokens semânticos do tema — sempre cor + ícone + texto (acessível). No mobile, o chip colapsa para só o ícone.</p>
+</div>
+
+<div class="selbar show" id="selbar">Pré-selecionado: <b>A — TopBar + tela de contas</b> (recomendado). Clique para mudar e me avise no terminal.</div>
+
+<script>
+  function pick(el){
+    document.querySelectorAll('.opt').forEach(function(o){o.classList.remove('selected')});
+    el.classList.add('selected');
+    var name = el.getAttribute('data-name');
+    var bar = document.getElementById('selbar');
+    bar.innerHTML = '✓ Selecionado: <b>'+name+'</b> — me diga no terminal para eu detalhar e implementar.';
+    bar.classList.add('show');
+  }
+</script>
+</body>
+</html>

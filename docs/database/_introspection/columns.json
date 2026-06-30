@@ -1,0 +1,6518 @@
+[
+{
+"table_name": "ai_settings",
+"pos": 1,
+"col": "id",
+"data_type": "smallint",
+"udt_name": "int2",
+"is_nullable": "NO",
+"column_default": "1"
+},
+{
+"table_name": "ai_settings",
+"pos": 2,
+"col": "master_enabled",
+"data_type": "boolean",
+"udt_name": "bool",
+"is_nullable": "NO",
+"column_default": "false"
+},
+{
+"table_name": "ai_settings",
+"pos": 3,
+"col": "default_provider_id",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": "'anthropic'::text"
+},
+{
+"table_name": "ai_settings",
+"pos": 4,
+"col": "budget",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "ai_settings",
+"pos": 5,
+"col": "providers",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "ai_settings",
+"pos": 6,
+"col": "routing",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "ai_settings",
+"pos": 7,
+"col": "updated_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "ai_settings",
+"pos": 8,
+"col": "updated_by",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "ai_usage_events",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "ai_usage_events",
+"pos": 2,
+"col": "ts",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "ai_usage_events",
+"pos": 3,
+"col": "source",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "ai_usage_events",
+"pos": 4,
+"col": "feature",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "ai_usage_events",
+"pos": 5,
+"col": "provider_id",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "ai_usage_events",
+"pos": 6,
+"col": "model",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "ai_usage_events",
+"pos": 7,
+"col": "input_tokens",
+"data_type": "integer",
+"udt_name": "int4",
+"is_nullable": "NO",
+"column_default": "0"
+},
+{
+"table_name": "ai_usage_events",
+"pos": 8,
+"col": "output_tokens",
+"data_type": "integer",
+"udt_name": "int4",
+"is_nullable": "NO",
+"column_default": "0"
+},
+{
+"table_name": "ai_usage_events",
+"pos": 9,
+"col": "cost_brl",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": "0"
+},
+{
+"table_name": "ai_usage_events",
+"pos": 10,
+"col": "latency_ms",
+"data_type": "integer",
+"udt_name": "int4",
+"is_nullable": "NO",
+"column_default": "0"
+},
+{
+"table_name": "ai_usage_events",
+"pos": 11,
+"col": "status",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "ai_usage_events",
+"pos": 12,
+"col": "caller_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "ai_usage_events",
+"pos": 13,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "ai_usage_events",
+"pos": 14,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "asset_combos",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "asset_combos",
+"pos": 2,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "asset_combos",
+"pos": 3,
+"col": "title",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "asset_combos",
+"pos": 4,
+"col": "asset_ids",
+"data_type": "ARRAY",
+"udt_name": "_text",
+"is_nullable": "NO",
+"column_default": "'{}'::text[]"
+},
+{
+"table_name": "asset_combos",
+"pos": 5,
+"col": "owner_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "asset_combos",
+"pos": 6,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "asset_combos",
+"pos": 7,
+"col": "updated_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "asset_favorites",
+"pos": 1,
+"col": "seller_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "asset_favorites",
+"pos": 2,
+"col": "asset_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "asset_favorites",
+"pos": 3,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "asset_library_items",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "asset_library_items",
+"pos": 2,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "asset_library_items",
+"pos": 3,
+"col": "division",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": "'parts'::text"
+},
+{
+"table_name": "asset_library_items",
+"pos": 4,
+"col": "title",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "asset_library_items",
+"pos": 5,
+"col": "category",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "asset_library_items",
+"pos": 6,
+"col": "brand",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "asset_library_items",
+"pos": 7,
+"col": "product_line",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "asset_library_items",
+"pos": 8,
+"col": "kind",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "asset_library_items",
+"pos": 9,
+"col": "storage_ref",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "asset_library_items",
+"pos": 10,
+"col": "media_asset_id",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "asset_library_items",
+"pos": 11,
+"col": "url",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "asset_library_items",
+"pos": 12,
+"col": "version",
+"data_type": "integer",
+"udt_name": "int4",
+"is_nullable": "NO",
+"column_default": "1"
+},
+{
+"table_name": "asset_library_items",
+"pos": 13,
+"col": "previous_version",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "asset_library_items",
+"pos": 14,
+"col": "status",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": "'draft'::text"
+},
+{
+"table_name": "asset_library_items",
+"pos": 15,
+"col": "sensitivity",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": "'normal'::text"
+},
+{
+"table_name": "asset_library_items",
+"pos": 16,
+"col": "allowed_role_ids",
+"data_type": "ARRAY",
+"udt_name": "_text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "asset_library_items",
+"pos": 17,
+"col": "created_by",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "asset_library_items",
+"pos": 18,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "asset_library_items",
+"pos": 19,
+"col": "updated_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "asset_send_log",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "asset_send_log",
+"pos": 2,
+"col": "seller_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "asset_send_log",
+"pos": 3,
+"col": "asset_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "asset_send_log",
+"pos": 4,
+"col": "sent_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "audit_logs",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "audit_logs",
+"pos": 2,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "audit_logs",
+"pos": 3,
+"col": "actor_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "audit_logs",
+"pos": 4,
+"col": "action",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "audit_logs",
+"pos": 5,
+"col": "resource",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "audit_logs",
+"pos": 6,
+"col": "resource_id",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "audit_logs",
+"pos": 7,
+"col": "before",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "audit_logs",
+"pos": 8,
+"col": "after",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "audit_logs",
+"pos": 9,
+"col": "timestamp",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "carteira_transfers",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "carteira_transfers",
+"pos": 2,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "carteira_transfers",
+"pos": 3,
+"col": "type",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "carteira_transfers",
+"pos": 4,
+"col": "from_seller_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "carteira_transfers",
+"pos": 5,
+"col": "to_seller_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "carteira_transfers",
+"pos": 6,
+"col": "customer_ids",
+"data_type": "ARRAY",
+"udt_name": "_text",
+"is_nullable": "NO",
+"column_default": "'{}'::text[]"
+},
+{
+"table_name": "carteira_transfers",
+"pos": 7,
+"col": "reason",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "carteira_transfers",
+"pos": 8,
+"col": "start_date",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "carteira_transfers",
+"pos": 9,
+"col": "end_date",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "carteira_transfers",
+"pos": 10,
+"col": "auto_revert_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "carteira_transfers",
+"pos": 11,
+"col": "status",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": "'active'::text"
+},
+{
+"table_name": "carteira_transfers",
+"pos": 12,
+"col": "created_by",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "carteira_transfers",
+"pos": 13,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "cash_flow_entries",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "cash_flow_entries",
+"pos": 2,
+"col": "type",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "cash_flow_entries",
+"pos": 3,
+"col": "source",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "cash_flow_entries",
+"pos": 4,
+"col": "source_id",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "cash_flow_entries",
+"pos": 5,
+"col": "description",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "cash_flow_entries",
+"pos": 6,
+"col": "amount",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "cash_flow_entries",
+"pos": 7,
+"col": "date",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "cash_flow_entries",
+"pos": 8,
+"col": "status",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": "'realizado'::text"
+},
+{
+"table_name": "cash_flow_entries",
+"pos": 9,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "cash_flow_entries",
+"pos": 10,
+"col": "created_by",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "cash_flow_entries",
+"pos": 11,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "commissions",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "commissions",
+"pos": 2,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "commissions",
+"pos": 3,
+"col": "seller_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "commissions",
+"pos": 4,
+"col": "order_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "commissions",
+"pos": 5,
+"col": "base_value",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "commissions",
+"pos": 6,
+"col": "rate",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "commissions",
+"pos": 7,
+"col": "base_rate",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "commissions",
+"pos": 8,
+"col": "base_commission",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "commissions",
+"pos": 9,
+"col": "goal_bonus",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "commissions",
+"pos": 10,
+"col": "total_commission",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "commissions",
+"pos": 11,
+"col": "value",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "commissions",
+"pos": 12,
+"col": "is_split",
+"data_type": "boolean",
+"udt_name": "bool",
+"is_nullable": "NO",
+"column_default": "false"
+},
+{
+"table_name": "commissions",
+"pos": 13,
+"col": "split_details",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "commissions",
+"pos": 14,
+"col": "rule_snapshot",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "commissions",
+"pos": 15,
+"col": "goal_snapshot",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "commissions",
+"pos": 16,
+"col": "period",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "commissions",
+"pos": 17,
+"col": "closed_in_period",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "commissions",
+"pos": 18,
+"col": "approved_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "commissions",
+"pos": 19,
+"col": "approved_by",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "commissions",
+"pos": 20,
+"col": "paid_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "commissions",
+"pos": 21,
+"col": "paid_by",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "commissions",
+"pos": 22,
+"col": "dispute_reason",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "commissions",
+"pos": 23,
+"col": "disputed_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "commissions",
+"pos": 24,
+"col": "dispute_resolution",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "commissions",
+"pos": 25,
+"col": "dispute_resolved_by",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "commissions",
+"pos": 26,
+"col": "dispute_resolved_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "commissions",
+"pos": 27,
+"col": "status",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "commissions",
+"pos": 28,
+"col": "notes",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "commissions",
+"pos": 29,
+"col": "calculated_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "commissions",
+"pos": 30,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "commissions",
+"pos": 31,
+"col": "updated_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "conversation_notes",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "conversation_notes",
+"pos": 2,
+"col": "conversation_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "conversation_notes",
+"pos": 3,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "conversation_notes",
+"pos": 4,
+"col": "author_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "conversation_notes",
+"pos": 5,
+"col": "content",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "conversation_notes",
+"pos": 6,
+"col": "mentions",
+"data_type": "ARRAY",
+"udt_name": "_uuid",
+"is_nullable": "NO",
+"column_default": "'{}'::uuid[]"
+},
+{
+"table_name": "conversation_notes",
+"pos": 7,
+"col": "pinned",
+"data_type": "boolean",
+"udt_name": "bool",
+"is_nullable": "NO",
+"column_default": "false"
+},
+{
+"table_name": "conversation_notes",
+"pos": 8,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "conversation_notes",
+"pos": 9,
+"col": "updated_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "conversation_participants",
+"pos": 1,
+"col": "conversation_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "conversation_participants",
+"pos": 2,
+"col": "seller_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "conversation_participants",
+"pos": 3,
+"col": "added_by",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "conversation_participants",
+"pos": 4,
+"col": "added_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "conversations",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "conversations",
+"pos": 2,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "conversations",
+"pos": 3,
+"col": "customer_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "conversations",
+"pos": 4,
+"col": "lead_id",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "conversations",
+"pos": 5,
+"col": "assigned_seller_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "conversations",
+"pos": 6,
+"col": "channel",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "conversations",
+"pos": 7,
+"col": "whatsapp_account_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "conversations",
+"pos": 8,
+"col": "status",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "conversations",
+"pos": 9,
+"col": "is_sdr_active",
+"data_type": "boolean",
+"udt_name": "bool",
+"is_nullable": "NO",
+"column_default": "false"
+},
+{
+"table_name": "conversations",
+"pos": 10,
+"col": "tags",
+"data_type": "ARRAY",
+"udt_name": "_text",
+"is_nullable": "NO",
+"column_default": "'{}'::text[]"
+},
+{
+"table_name": "conversations",
+"pos": 11,
+"col": "linked_order_id",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "conversations",
+"pos": 12,
+"col": "last_message_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "conversations",
+"pos": 13,
+"col": "unread_count",
+"data_type": "integer",
+"udt_name": "int4",
+"is_nullable": "NO",
+"column_default": "0"
+},
+{
+"table_name": "conversations",
+"pos": 14,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "conversations",
+"pos": 15,
+"col": "updated_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "customer_notes",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "customer_notes",
+"pos": 2,
+"col": "customer_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "customer_notes",
+"pos": 3,
+"col": "author_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "customer_notes",
+"pos": 4,
+"col": "content",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "customer_notes",
+"pos": 5,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "customer_segments",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "customer_segments",
+"pos": 2,
+"col": "owner_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "customer_segments",
+"pos": 3,
+"col": "name",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "customer_segments",
+"pos": 4,
+"col": "description",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "customer_segments",
+"pos": 5,
+"col": "scope",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "customer_segments",
+"pos": 6,
+"col": "filters",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "NO",
+"column_default": "'{}'::jsonb"
+},
+{
+"table_name": "customer_segments",
+"pos": 7,
+"col": "estimated_size",
+"data_type": "integer",
+"udt_name": "int4",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "customer_segments",
+"pos": 8,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "customers",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "customers",
+"pos": 2,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "customers",
+"pos": 3,
+"col": "type",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "customers",
+"pos": 4,
+"col": "email",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "customers",
+"pos": 5,
+"col": "phone",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "customers",
+"pos": 6,
+"col": "address",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "customers",
+"pos": 7,
+"col": "seller_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "customers",
+"pos": 8,
+"col": "status",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "customers",
+"pos": 9,
+"col": "tags",
+"data_type": "ARRAY",
+"udt_name": "_text",
+"is_nullable": "NO",
+"column_default": "'{}'::text[]"
+},
+{
+"table_name": "customers",
+"pos": 10,
+"col": "first_purchase_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "customers",
+"pos": 11,
+"col": "last_purchase_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "customers",
+"pos": 12,
+"col": "converted_from_lead_id",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "customers",
+"pos": 13,
+"col": "converted_from_lead_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "customers",
+"pos": 14,
+"col": "converted_by_seller_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "customers",
+"pos": 15,
+"col": "purchase_stats",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "customers",
+"pos": 16,
+"col": "abc_class",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "customers",
+"pos": 17,
+"col": "abc_share",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "customers",
+"pos": 18,
+"col": "overdue_titles_count",
+"data_type": "integer",
+"udt_name": "int4",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "customers",
+"pos": 19,
+"col": "portal",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "customers",
+"pos": 20,
+"col": "is_guest_checkout",
+"data_type": "boolean",
+"udt_name": "bool",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "customers",
+"pos": 21,
+"col": "has_b2b_portal",
+"data_type": "boolean",
+"udt_name": "bool",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "customers",
+"pos": 22,
+"col": "portal_contract",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "customers",
+"pos": 23,
+"col": "cnpj",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "customers",
+"pos": 24,
+"col": "razao_social",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "customers",
+"pos": 25,
+"col": "nome_fantasia",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "customers",
+"pos": 26,
+"col": "contact_name",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "customers",
+"pos": 27,
+"col": "cpf",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "customers",
+"pos": 28,
+"col": "full_name",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "customers",
+"pos": 29,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "customers",
+"pos": 30,
+"col": "whatsapp_status",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": "'unknown'::text"
+},
+{
+"table_name": "customers",
+"pos": 31,
+"col": "avatar_url",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "customers",
+"pos": 32,
+"col": "avatar_synced_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "customers",
+"pos": 33,
+"col": "whatsapp_name",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "departments",
+"pos": 1,
+"col": "id",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": "(gen_random_uuid())::text"
+},
+{
+"table_name": "departments",
+"pos": 2,
+"col": "name",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "departments",
+"pos": 3,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "departments",
+"pos": 4,
+"col": "manager_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "departments",
+"pos": 5,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "distribution_traces",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "distribution_traces",
+"pos": 2,
+"col": "conversation_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "distribution_traces",
+"pos": 3,
+"col": "customer_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "distribution_traces",
+"pos": 4,
+"col": "lead_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "distribution_traces",
+"pos": 5,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "distribution_traces",
+"pos": 6,
+"col": "timestamp",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "distribution_traces",
+"pos": 7,
+"col": "selected_seller_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "distribution_traces",
+"pos": 8,
+"col": "criterion_matched",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "distribution_traces",
+"pos": 9,
+"col": "candidates_evaluated",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "NO",
+"column_default": "'[]'::jsonb"
+},
+{
+"table_name": "distribution_traces",
+"pos": 10,
+"col": "mode",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "expenses",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "expenses",
+"pos": 2,
+"col": "description",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "expenses",
+"pos": 3,
+"col": "category",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "expenses",
+"pos": 4,
+"col": "amount",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": "0"
+},
+{
+"table_name": "expenses",
+"pos": 5,
+"col": "competence_date",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "expenses",
+"pos": 6,
+"col": "payment_date",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "expenses",
+"pos": 7,
+"col": "status",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": "'pendente'::text"
+},
+{
+"table_name": "expenses",
+"pos": 8,
+"col": "due_date",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "expenses",
+"pos": 9,
+"col": "is_recurring",
+"data_type": "boolean",
+"udt_name": "bool",
+"is_nullable": "NO",
+"column_default": "false"
+},
+{
+"table_name": "expenses",
+"pos": 10,
+"col": "recurrence_parent_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "expenses",
+"pos": 11,
+"col": "recurrence_config",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "expenses",
+"pos": 12,
+"col": "supplier",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "expenses",
+"pos": 13,
+"col": "payment_method",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "expenses",
+"pos": 14,
+"col": "attachment_url",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "expenses",
+"pos": 15,
+"col": "notes",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "expenses",
+"pos": 16,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "expenses",
+"pos": 17,
+"col": "created_by",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "expenses",
+"pos": 18,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "expenses",
+"pos": 19,
+"col": "updated_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "goals",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "goals",
+"pos": 2,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "goals",
+"pos": 3,
+"col": "level",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "goals",
+"pos": 4,
+"col": "target_id",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "goals",
+"pos": 5,
+"col": "seller_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "goals",
+"pos": 6,
+"col": "period",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "goals",
+"pos": 7,
+"col": "metric",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "goals",
+"pos": 8,
+"col": "target_value",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": "0"
+},
+{
+"table_name": "goals",
+"pos": 9,
+"col": "current_value",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": "0"
+},
+{
+"table_name": "goals",
+"pos": 10,
+"col": "progress_percent",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": "0"
+},
+{
+"table_name": "goals",
+"pos": 11,
+"col": "division",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "goals",
+"pos": 12,
+"col": "name",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "goals",
+"pos": 13,
+"col": "status",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "goals",
+"pos": 14,
+"col": "reward_description",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "goals",
+"pos": 15,
+"col": "created_by",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "goals",
+"pos": 16,
+"col": "cancel_reason",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "goals",
+"pos": 17,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "goals",
+"pos": 18,
+"col": "updated_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "integration_logs",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "integration_logs",
+"pos": 2,
+"col": "integration_name",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "integration_logs",
+"pos": 3,
+"col": "direction",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": "'outbound'::text"
+},
+{
+"table_name": "integration_logs",
+"pos": 4,
+"col": "endpoint",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "integration_logs",
+"pos": 5,
+"col": "http_status",
+"data_type": "integer",
+"udt_name": "int4",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "integration_logs",
+"pos": 6,
+"col": "latency_ms",
+"data_type": "integer",
+"udt_name": "int4",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "integration_logs",
+"pos": 7,
+"col": "trace_id",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "integration_logs",
+"pos": 8,
+"col": "request_payload",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "integration_logs",
+"pos": 9,
+"col": "response_payload",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "integration_logs",
+"pos": 10,
+"col": "error_message",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "integration_logs",
+"pos": 11,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "leads",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "leads",
+"pos": 2,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "leads",
+"pos": 3,
+"col": "seller_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "leads",
+"pos": 4,
+"col": "name",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "leads",
+"pos": 5,
+"col": "phone",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "leads",
+"pos": 6,
+"col": "email",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "leads",
+"pos": 7,
+"col": "stage",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "leads",
+"pos": 8,
+"col": "temperature",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "leads",
+"pos": 9,
+"col": "origin",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "leads",
+"pos": 10,
+"col": "estimated_value",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "leads",
+"pos": 11,
+"col": "next_action_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "leads",
+"pos": 12,
+"col": "loss_reason",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "leads",
+"pos": 13,
+"col": "loss_notes",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "leads",
+"pos": 14,
+"col": "converted_to_customer_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "leads",
+"pos": 15,
+"col": "conversations",
+"data_type": "ARRAY",
+"udt_name": "_text",
+"is_nullable": "NO",
+"column_default": "'{}'::text[]"
+},
+{
+"table_name": "leads",
+"pos": 16,
+"col": "tags",
+"data_type": "ARRAY",
+"udt_name": "_text",
+"is_nullable": "NO",
+"column_default": "'{}'::text[]"
+},
+{
+"table_name": "leads",
+"pos": 17,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "leads",
+"pos": 18,
+"col": "updated_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "media_assets",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "media_assets",
+"pos": 2,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "media_assets",
+"pos": 3,
+"col": "conversation_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "media_assets",
+"pos": 4,
+"col": "customer_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "media_assets",
+"pos": 5,
+"col": "message_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "media_assets",
+"pos": 6,
+"col": "kind",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "media_assets",
+"pos": 7,
+"col": "mime_type",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "media_assets",
+"pos": 8,
+"col": "size_bytes",
+"data_type": "integer",
+"udt_name": "int4",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "media_assets",
+"pos": 9,
+"col": "file_name",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "media_assets",
+"pos": 10,
+"col": "author_type",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "media_assets",
+"pos": 11,
+"col": "direction",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "media_assets",
+"pos": 12,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "media_assets",
+"pos": 13,
+"col": "storage_ref",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "media_assets",
+"pos": 14,
+"col": "persisted",
+"data_type": "boolean",
+"udt_name": "bool",
+"is_nullable": "NO",
+"column_default": "true"
+},
+{
+"table_name": "media_assets",
+"pos": 15,
+"col": "source_expires_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "media_assets",
+"pos": 16,
+"col": "content_hash",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "media_assets",
+"pos": 17,
+"col": "classification",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "media_assets",
+"pos": 18,
+"col": "linked_vehicle_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "media_assets",
+"pos": 19,
+"col": "linked_order_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "media_assets",
+"pos": 20,
+"col": "linked_part_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "media_assets",
+"pos": 21,
+"col": "ocr_text",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "media_assets",
+"pos": 22,
+"col": "transcription",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "media_assets",
+"pos": 23,
+"col": "sensitivity",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": "'normal'::text"
+},
+{
+"table_name": "media_assets",
+"pos": 24,
+"col": "annotations",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "media_assets",
+"pos": 25,
+"col": "version",
+"data_type": "integer",
+"udt_name": "int4",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "message_templates",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "message_templates",
+"pos": 2,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "message_templates",
+"pos": 3,
+"col": "whatsapp_account_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "message_templates",
+"pos": 4,
+"col": "meta_template_name",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "message_templates",
+"pos": 5,
+"col": "meta_language_code",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": "'pt_BR'::text"
+},
+{
+"table_name": "message_templates",
+"pos": 6,
+"col": "meta_category",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "message_templates",
+"pos": 7,
+"col": "meta_status",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": "'unknown'::text"
+},
+{
+"table_name": "message_templates",
+"pos": 8,
+"col": "display_name",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "message_templates",
+"pos": 9,
+"col": "description",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "message_templates",
+"pos": 10,
+"col": "is_active",
+"data_type": "boolean",
+"udt_name": "bool",
+"is_nullable": "NO",
+"column_default": "true"
+},
+{
+"table_name": "message_templates",
+"pos": 11,
+"col": "body_template",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "message_templates",
+"pos": 12,
+"col": "variable_count",
+"data_type": "integer",
+"udt_name": "int4",
+"is_nullable": "NO",
+"column_default": "0"
+},
+{
+"table_name": "message_templates",
+"pos": 13,
+"col": "variable_labels",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "NO",
+"column_default": "'[]'::jsonb"
+},
+{
+"table_name": "message_templates",
+"pos": 14,
+"col": "header_type",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "message_templates",
+"pos": 15,
+"col": "header_text_template",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "message_templates",
+"pos": 16,
+"col": "buttons",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "message_templates",
+"pos": 17,
+"col": "created_by",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "message_templates",
+"pos": 18,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "message_templates",
+"pos": 19,
+"col": "updated_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "message_templates",
+"pos": 20,
+"col": "last_synced_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "messages",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "messages",
+"pos": 2,
+"col": "conversation_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "messages",
+"pos": 3,
+"col": "direction",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "messages",
+"pos": 4,
+"col": "author_type",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "messages",
+"pos": 5,
+"col": "author_id",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "messages",
+"pos": 6,
+"col": "provider",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "messages",
+"pos": 7,
+"col": "text",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": "''::text"
+},
+{
+"table_name": "messages",
+"pos": 8,
+"col": "media_type",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "messages",
+"pos": 9,
+"col": "media_url",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "messages",
+"pos": 10,
+"col": "status",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "messages",
+"pos": 11,
+"col": "sent_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "messages",
+"pos": 12,
+"col": "delivered_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "messages",
+"pos": 13,
+"col": "read_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "messages",
+"pos": 14,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "messages",
+"pos": 15,
+"col": "provider_message_id",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "messages",
+"pos": 16,
+"col": "webhook_event_ids",
+"data_type": "ARRAY",
+"udt_name": "_text",
+"is_nullable": "NO",
+"column_default": "'{}'::text[]"
+},
+{
+"table_name": "messages",
+"pos": 17,
+"col": "media_download_status",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "messages",
+"pos": 18,
+"col": "failure_reason",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "messages",
+"pos": 19,
+"col": "failure_code",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "model_kit_items",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "model_kit_items",
+"pos": 2,
+"col": "kit_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "model_kit_items",
+"pos": 3,
+"col": "part_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "model_kit_items",
+"pos": 4,
+"col": "default_quantity",
+"data_type": "integer",
+"udt_name": "int4",
+"is_nullable": "NO",
+"column_default": "1"
+},
+{
+"table_name": "model_kit_items",
+"pos": 5,
+"col": "is_optional",
+"data_type": "boolean",
+"udt_name": "bool",
+"is_nullable": "NO",
+"column_default": "false"
+},
+{
+"table_name": "model_kit_items",
+"pos": 6,
+"col": "note",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "model_kits",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "model_kits",
+"pos": 2,
+"col": "model_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "model_kits",
+"pos": 3,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "model_kits",
+"pos": 4,
+"col": "name",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "model_kits",
+"pos": 5,
+"col": "category",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "model_kits",
+"pos": 6,
+"col": "status",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": "'rascunho'::text"
+},
+{
+"table_name": "model_kits",
+"pos": 7,
+"col": "created_by",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "model_kits",
+"pos": 8,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "model_kits",
+"pos": 9,
+"col": "updated_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "model_kits",
+"pos": 10,
+"col": "updated_by",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "notification_preferences",
+"pos": 1,
+"col": "recipient_id",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "notification_preferences",
+"pos": 2,
+"col": "recipient_type",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "notification_preferences",
+"pos": 3,
+"col": "matrix",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "notification_preferences",
+"pos": 4,
+"col": "quiet_hours",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "notification_preferences",
+"pos": 5,
+"col": "updated_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "notifications",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "notifications",
+"pos": 2,
+"col": "dedupe_key",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "notifications",
+"pos": 3,
+"col": "lifecycle",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "notifications",
+"pos": 4,
+"col": "type",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "notifications",
+"pos": 5,
+"col": "category",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "notifications",
+"pos": 6,
+"col": "severity",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "notifications",
+"pos": 7,
+"col": "recipient_id",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "notifications",
+"pos": 8,
+"col": "recipient_type",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "notifications",
+"pos": 9,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "notifications",
+"pos": 10,
+"col": "title",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "notifications",
+"pos": 11,
+"col": "body",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "notifications",
+"pos": 12,
+"col": "entity_ref",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "notifications",
+"pos": 13,
+"col": "actions",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "notifications",
+"pos": 14,
+"col": "status",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": "'unread'::text"
+},
+{
+"table_name": "notifications",
+"pos": 15,
+"col": "channels",
+"data_type": "ARRAY",
+"udt_name": "_text",
+"is_nullable": "NO",
+"column_default": "'{}'::text[]"
+},
+{
+"table_name": "notifications",
+"pos": 16,
+"col": "delivery_status",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "notifications",
+"pos": 17,
+"col": "group_key",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "notifications",
+"pos": 18,
+"col": "source",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "notifications",
+"pos": 19,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "notifications",
+"pos": 20,
+"col": "read_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "notifications",
+"pos": 21,
+"col": "expires_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "notifications",
+"pos": 22,
+"col": "metadata",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "order_items",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "order_items",
+"pos": 2,
+"col": "order_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "order_items",
+"pos": 3,
+"col": "part_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "order_items",
+"pos": 4,
+"col": "part_sku",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "order_items",
+"pos": 5,
+"col": "part_name",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "order_items",
+"pos": 6,
+"col": "quantity",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "order_items",
+"pos": 7,
+"col": "unit_price",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "order_items",
+"pos": 8,
+"col": "unit_cost",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "order_items",
+"pos": 9,
+"col": "discount",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "order_items",
+"pos": 10,
+"col": "total",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "order_items",
+"pos": 11,
+"col": "margin_value",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "order_items",
+"pos": 12,
+"col": "applied_to_vehicle_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "order_items",
+"pos": 13,
+"col": "part_category",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "order_items",
+"pos": 14,
+"col": "part_subcategory",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "orders",
+"pos": 2,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 3,
+"col": "customer_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 4,
+"col": "seller_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 5,
+"col": "number",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 6,
+"col": "quote_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 7,
+"col": "conversation_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 8,
+"col": "subtotal",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 9,
+"col": "discount",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 10,
+"col": "shipping",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 11,
+"col": "total",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 12,
+"col": "payment_condition",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 13,
+"col": "payment_method",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 14,
+"col": "payment_terms",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 15,
+"col": "payment_status",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 16,
+"col": "paid_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 17,
+"col": "fulfillment_status",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 18,
+"col": "delivery_address",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 19,
+"col": "carrier",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 20,
+"col": "tracking_code",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 21,
+"col": "shipped_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 22,
+"col": "delivered_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 23,
+"col": "returned_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 24,
+"col": "return_reason",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 25,
+"col": "origin",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 26,
+"col": "division",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": "'parts'::text"
+},
+{
+"table_name": "orders",
+"pos": 27,
+"col": "nf_number",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 28,
+"col": "nf_date",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 29,
+"col": "canceled_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 30,
+"col": "canceled_by",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 31,
+"col": "cancel_reason",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 32,
+"col": "internal_notes",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 33,
+"col": "customer_notes",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 34,
+"col": "commission_preview",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 35,
+"col": "notes",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "orders",
+"pos": 36,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "orders",
+"pos": 37,
+"col": "updated_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "parts",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "parts",
+"pos": 2,
+"col": "sku",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "parts",
+"pos": 3,
+"col": "name",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "parts",
+"pos": 4,
+"col": "description",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "parts",
+"pos": 5,
+"col": "oem_codes",
+"data_type": "ARRAY",
+"udt_name": "_text",
+"is_nullable": "NO",
+"column_default": "'{}'::text[]"
+},
+{
+"table_name": "parts",
+"pos": 6,
+"col": "equivalent_part_ids",
+"data_type": "ARRAY",
+"udt_name": "_text",
+"is_nullable": "NO",
+"column_default": "'{}'::text[]"
+},
+{
+"table_name": "parts",
+"pos": 7,
+"col": "cross_references",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "parts",
+"pos": 8,
+"col": "segment",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "parts",
+"pos": 9,
+"col": "application_notes",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "parts",
+"pos": 10,
+"col": "applications",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "NO",
+"column_default": "'[]'::jsonb"
+},
+{
+"table_name": "parts",
+"pos": 11,
+"col": "brand",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "parts",
+"pos": 12,
+"col": "supplier",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "parts",
+"pos": 13,
+"col": "category",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "parts",
+"pos": 14,
+"col": "subcategory",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "parts",
+"pos": 15,
+"col": "is_original",
+"data_type": "boolean",
+"udt_name": "bool",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "parts",
+"pos": 16,
+"col": "image_url",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "parts",
+"pos": 17,
+"col": "unit_cost",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": "0"
+},
+{
+"table_name": "parts",
+"pos": 18,
+"col": "unit_price",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": "0"
+},
+{
+"table_name": "parts",
+"pos": 19,
+"col": "margin_percent",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": "0"
+},
+{
+"table_name": "parts",
+"pos": 20,
+"col": "gtin",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "parts",
+"pos": 21,
+"col": "sefaz_status",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "parts",
+"pos": 22,
+"col": "sefaz_checked_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "parts",
+"pos": 23,
+"col": "supplier_code",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "parts",
+"pos": 24,
+"col": "reference",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "parts",
+"pos": 25,
+"col": "group_label",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "parts",
+"pos": 26,
+"col": "part_type",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "parts",
+"pos": 27,
+"col": "price_tables",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "parts",
+"pos": 28,
+"col": "fiscal",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "parts",
+"pos": 29,
+"col": "weight_kg",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "parts",
+"pos": 30,
+"col": "storage_location",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "parts",
+"pos": 31,
+"col": "box_quantity",
+"data_type": "integer",
+"udt_name": "int4",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "parts",
+"pos": 32,
+"col": "fractionable",
+"data_type": "boolean",
+"udt_name": "bool",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "parts",
+"pos": 33,
+"col": "unit_of_measure",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "parts",
+"pos": 34,
+"col": "suppliers",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "parts",
+"pos": 35,
+"col": "average_cost",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "parts",
+"pos": 36,
+"col": "stock_available",
+"data_type": "integer",
+"udt_name": "int4",
+"is_nullable": "NO",
+"column_default": "0"
+},
+{
+"table_name": "parts",
+"pos": 37,
+"col": "stock_minimum",
+"data_type": "integer",
+"udt_name": "int4",
+"is_nullable": "NO",
+"column_default": "0"
+},
+{
+"table_name": "parts",
+"pos": 38,
+"col": "division",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": "'parts'::text"
+},
+{
+"table_name": "parts",
+"pos": 39,
+"col": "active",
+"data_type": "boolean",
+"udt_name": "bool",
+"is_nullable": "NO",
+"column_default": "true"
+},
+{
+"table_name": "parts",
+"pos": 40,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "parts",
+"pos": 41,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "parts",
+"pos": 42,
+"col": "updated_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "parts",
+"pos": 43,
+"col": "oem_codes_text",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "processed_events",
+"pos": 1,
+"col": "event_key",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "processed_events",
+"pos": 2,
+"col": "trace_id",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "processed_events",
+"pos": 3,
+"col": "processed_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "product_indicators",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "product_indicators",
+"pos": 2,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "product_indicators",
+"pos": 3,
+"col": "name",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "product_indicators",
+"pos": 4,
+"col": "selector",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "product_indicators",
+"pos": 5,
+"col": "metric",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "product_indicators",
+"pos": 6,
+"col": "scope_level",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "product_indicators",
+"pos": 7,
+"col": "seller_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "product_indicators",
+"pos": 8,
+"col": "period",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "product_indicators",
+"pos": 9,
+"col": "target_value",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "product_indicators",
+"pos": 10,
+"col": "status",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "product_indicators",
+"pos": 11,
+"col": "division",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "product_indicators",
+"pos": 12,
+"col": "reward_description",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "product_indicators",
+"pos": 13,
+"col": "created_by",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "product_indicators",
+"pos": 14,
+"col": "cancel_reason",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "product_indicators",
+"pos": 15,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "product_indicators",
+"pos": 16,
+"col": "updated_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "profiles",
+"pos": 1,
+"col": "auth_user_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "profiles",
+"pos": 2,
+"col": "seller_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "profiles",
+"pos": 3,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "profiles",
+"pos": 4,
+"col": "role",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "profiles",
+"pos": 5,
+"col": "display_name",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "profiles",
+"pos": 6,
+"col": "email",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "profiles",
+"pos": 7,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "quick_replies",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "quick_replies",
+"pos": 2,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "quick_replies",
+"pos": 3,
+"col": "shortcut",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "quick_replies",
+"pos": 4,
+"col": "title",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "quick_replies",
+"pos": 5,
+"col": "body",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "quick_replies",
+"pos": 6,
+"col": "scope",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "quick_replies",
+"pos": 7,
+"col": "owner_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "quick_replies",
+"pos": 8,
+"col": "allowed_role_ids",
+"data_type": "ARRAY",
+"udt_name": "_text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "quick_replies",
+"pos": 9,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "quick_replies",
+"pos": 10,
+"col": "updated_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "quote_items",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "quote_items",
+"pos": 2,
+"col": "quote_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "quote_items",
+"pos": 3,
+"col": "part_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "quote_items",
+"pos": 4,
+"col": "part_sku",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "quote_items",
+"pos": 5,
+"col": "part_name",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "quote_items",
+"pos": 6,
+"col": "quantity",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": "0"
+},
+{
+"table_name": "quote_items",
+"pos": 7,
+"col": "unit_price",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": "0"
+},
+{
+"table_name": "quote_items",
+"pos": 8,
+"col": "discount",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": "0"
+},
+{
+"table_name": "quote_items",
+"pos": 9,
+"col": "total",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": "0"
+},
+{
+"table_name": "quotes",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "quotes",
+"pos": 2,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "quotes",
+"pos": 3,
+"col": "number",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "quotes",
+"pos": 4,
+"col": "customer_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "quotes",
+"pos": 5,
+"col": "lead_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "quotes",
+"pos": 6,
+"col": "conversation_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "quotes",
+"pos": 7,
+"col": "seller_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "quotes",
+"pos": 8,
+"col": "subtotal",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": "0"
+},
+{
+"table_name": "quotes",
+"pos": 9,
+"col": "discount",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": "0"
+},
+{
+"table_name": "quotes",
+"pos": 10,
+"col": "discount_reason",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "quotes",
+"pos": 11,
+"col": "shipping",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": "0"
+},
+{
+"table_name": "quotes",
+"pos": 12,
+"col": "total",
+"data_type": "numeric",
+"udt_name": "numeric",
+"is_nullable": "NO",
+"column_default": "0"
+},
+{
+"table_name": "quotes",
+"pos": 13,
+"col": "payment_condition",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": "''::text"
+},
+{
+"table_name": "quotes",
+"pos": 14,
+"col": "payment_method",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "quotes",
+"pos": 15,
+"col": "payment_terms",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "quotes",
+"pos": 16,
+"col": "delivery_address",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "quotes",
+"pos": 17,
+"col": "valid_until",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "quotes",
+"pos": 18,
+"col": "status",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "quotes",
+"pos": 19,
+"col": "origin",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "quotes",
+"pos": 20,
+"col": "division",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": "'parts'::text"
+},
+{
+"table_name": "quotes",
+"pos": 21,
+"col": "requires_approval",
+"data_type": "boolean",
+"udt_name": "bool",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "quotes",
+"pos": 22,
+"col": "approved_by",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "quotes",
+"pos": 23,
+"col": "approved_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "quotes",
+"pos": 24,
+"col": "rejected_reason",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "quotes",
+"pos": 25,
+"col": "converted_to_order_id",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "quotes",
+"pos": 26,
+"col": "converted_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "quotes",
+"pos": 27,
+"col": "notes",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "quotes",
+"pos": 28,
+"col": "applied_kit_ids",
+"data_type": "ARRAY",
+"udt_name": "_text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "quotes",
+"pos": 29,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "quotes",
+"pos": 30,
+"col": "updated_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "rbac_resources",
+"pos": 1,
+"col": "key",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "rbac_resources",
+"pos": 2,
+"col": "label",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "rbac_resources",
+"pos": 3,
+"col": "group",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "rbac_resources",
+"pos": 4,
+"col": "sort_order",
+"data_type": "integer",
+"udt_name": "int4",
+"is_nullable": "NO",
+"column_default": "0"
+},
+{
+"table_name": "recommendations",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "recommendations",
+"pos": 2,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "recommendations",
+"pos": 3,
+"col": "seller_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "recommendations",
+"pos": 4,
+"col": "subject_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "recommendations",
+"pos": 5,
+"col": "type",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "recommendations",
+"pos": 6,
+"col": "priority",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "recommendations",
+"pos": 7,
+"col": "title",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "recommendations",
+"pos": 8,
+"col": "description",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "recommendations",
+"pos": 9,
+"col": "action_href",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "recommendations",
+"pos": 10,
+"col": "resolved",
+"data_type": "boolean",
+"udt_name": "bool",
+"is_nullable": "NO",
+"column_default": "false"
+},
+{
+"table_name": "recommendations",
+"pos": 11,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "recommendations",
+"pos": 12,
+"col": "resolved_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "role_permissions",
+"pos": 1,
+"col": "role_id",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "role_permissions",
+"pos": 2,
+"col": "resource",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "role_permissions",
+"pos": 3,
+"col": "actions",
+"data_type": "ARRAY",
+"udt_name": "_text",
+"is_nullable": "NO",
+"column_default": "'{}'::text[]"
+},
+{
+"table_name": "role_permissions",
+"pos": 4,
+"col": "scope",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": "'own'::text"
+},
+{
+"table_name": "roles",
+"pos": 1,
+"col": "id",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "roles",
+"pos": 2,
+"col": "slug",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "roles",
+"pos": 3,
+"col": "name",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "roles",
+"pos": 4,
+"col": "description",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "roles",
+"pos": 5,
+"col": "is_system",
+"data_type": "boolean",
+"udt_name": "bool",
+"is_nullable": "NO",
+"column_default": "false"
+},
+{
+"table_name": "roles",
+"pos": 6,
+"col": "is_owner_immutable",
+"data_type": "boolean",
+"udt_name": "bool",
+"is_nullable": "NO",
+"column_default": "false"
+},
+{
+"table_name": "roles",
+"pos": 7,
+"col": "base_role",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "roles",
+"pos": 8,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "roles",
+"pos": 9,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "roles",
+"pos": 10,
+"col": "updated_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "rotation_participants",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "rotation_participants",
+"pos": 2,
+"col": "queue_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "rotation_participants",
+"pos": 3,
+"col": "scope_department_id",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "rotation_participants",
+"pos": 4,
+"col": "ref_type",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "rotation_participants",
+"pos": 5,
+"col": "ref_id",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "rotation_participants",
+"pos": 6,
+"col": "order",
+"data_type": "integer",
+"udt_name": "int4",
+"is_nullable": "NO",
+"column_default": "0"
+},
+{
+"table_name": "rotation_participants",
+"pos": 7,
+"col": "enabled",
+"data_type": "boolean",
+"udt_name": "bool",
+"is_nullable": "NO",
+"column_default": "true"
+},
+{
+"table_name": "rotation_participants",
+"pos": 8,
+"col": "last_assigned_member_id",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "rotation_queues",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "rotation_queues",
+"pos": 2,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "rotation_queues",
+"pos": 3,
+"col": "target_mode",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": "'direct'::text"
+},
+{
+"table_name": "rotation_queues",
+"pos": 4,
+"col": "last_assigned_ref_id",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "rotation_queues",
+"pos": 5,
+"col": "skip_offline",
+"data_type": "boolean",
+"udt_name": "bool",
+"is_nullable": "NO",
+"column_default": "true"
+},
+{
+"table_name": "rotation_queues",
+"pos": 6,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "rotation_queues",
+"pos": 7,
+"col": "updated_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "scheduled_sends",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "scheduled_sends",
+"pos": 2,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "scheduled_sends",
+"pos": 3,
+"col": "conversation_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "scheduled_sends",
+"pos": 4,
+"col": "scheduled_for",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "scheduled_sends",
+"pos": 5,
+"col": "payload",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "scheduled_sends",
+"pos": 6,
+"col": "status",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": "'pending'::text"
+},
+{
+"table_name": "scheduled_sends",
+"pos": 7,
+"col": "failure_reason",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "scheduled_sends",
+"pos": 8,
+"col": "created_by",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "scheduled_sends",
+"pos": 9,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "scheduled_sends",
+"pos": 10,
+"col": "dispatch_started_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "sdr_escalations",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "sdr_escalations",
+"pos": 2,
+"col": "session_id",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "sdr_escalations",
+"pos": 3,
+"col": "conversation_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "sdr_escalations",
+"pos": 4,
+"col": "customer_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "sdr_escalations",
+"pos": 5,
+"col": "lead_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "sdr_escalations",
+"pos": 6,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "sdr_escalations",
+"pos": 7,
+"col": "reason",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "sdr_escalations",
+"pos": 8,
+"col": "reason_details",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "sdr_escalations",
+"pos": 9,
+"col": "mode",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "sdr_escalations",
+"pos": 10,
+"col": "context_summary",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "sdr_escalations",
+"pos": 11,
+"col": "assigned_seller_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "sdr_escalations",
+"pos": 12,
+"col": "assigned_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "sdr_escalations",
+"pos": 13,
+"col": "first_human_response_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "sdr_escalations",
+"pos": 14,
+"col": "status",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "sdr_escalations",
+"pos": 15,
+"col": "specialty_matched",
+"data_type": "boolean",
+"udt_name": "bool",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "sdr_escalations",
+"pos": 16,
+"col": "urgent_broadcast_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "sdr_escalations",
+"pos": 17,
+"col": "urgent_broadcast_claimed_by_seller_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "sdr_escalations",
+"pos": 18,
+"col": "urgent_broadcast_claimed_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "sdr_escalations",
+"pos": 19,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "sdr_sessions",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "sdr_sessions",
+"pos": 2,
+"col": "conversation_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "sdr_sessions",
+"pos": 3,
+"col": "state",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "sdr_sessions",
+"pos": 4,
+"col": "collected_data",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "NO",
+"column_default": "'{}'::jsonb"
+},
+{
+"table_name": "sdr_sessions",
+"pos": 5,
+"col": "last_activity_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "sdr_sessions",
+"pos": 6,
+"col": "started_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "sdr_sessions",
+"pos": 7,
+"col": "finished_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "sdr_sessions",
+"pos": 8,
+"col": "finish_reason",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "sdr_sessions",
+"pos": 9,
+"col": "paused_from_state",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "sellers",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "sellers",
+"pos": 2,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "sellers",
+"pos": 3,
+"col": "auth_user_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "sellers",
+"pos": 4,
+"col": "full_name",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "sellers",
+"pos": 5,
+"col": "email",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "sellers",
+"pos": 6,
+"col": "phone",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "sellers",
+"pos": 7,
+"col": "type",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "sellers",
+"pos": 8,
+"col": "availability",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": "'offline'::text"
+},
+{
+"table_name": "sellers",
+"pos": 9,
+"col": "divisions",
+"data_type": "ARRAY",
+"udt_name": "_text",
+"is_nullable": "NO",
+"column_default": "'{parts}'::text[]"
+},
+{
+"table_name": "sellers",
+"pos": 10,
+"col": "theme_preference",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "sellers",
+"pos": 11,
+"col": "region",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "sellers",
+"pos": 12,
+"col": "commission_tier",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "sellers",
+"pos": 13,
+"col": "parent_seller_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "sellers",
+"pos": 14,
+"col": "commission_rule",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "sellers",
+"pos": 15,
+"col": "vehicle_cadastro_mode",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "sellers",
+"pos": 16,
+"col": "active",
+"data_type": "boolean",
+"udt_name": "bool",
+"is_nullable": "NO",
+"column_default": "true"
+},
+{
+"table_name": "sellers",
+"pos": 17,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "sellers",
+"pos": 18,
+"col": "updated_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "sellers",
+"pos": 19,
+"col": "deleted_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "sellers",
+"pos": 20,
+"col": "attendant_name",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "sellers",
+"pos": 21,
+"col": "department_id",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "sellers",
+"pos": 22,
+"col": "rotation",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "NO",
+"column_default": "'{\"enabled\": true}'::jsonb"
+},
+{
+"table_name": "sellers",
+"pos": 23,
+"col": "work_schedule",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "sellers",
+"pos": 24,
+"col": "schedule_overrides",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "sellers",
+"pos": 25,
+"col": "access_grant",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "stores",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "stores",
+"pos": 2,
+"col": "name",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "stores",
+"pos": 3,
+"col": "type",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "stores",
+"pos": 4,
+"col": "address",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "stores",
+"pos": 5,
+"col": "cnpj",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "stores",
+"pos": 6,
+"col": "settings",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "stores",
+"pos": 7,
+"col": "active_divisions",
+"data_type": "ARRAY",
+"udt_name": "_text",
+"is_nullable": "NO",
+"column_default": "'{parts}'::text[]"
+},
+{
+"table_name": "stores",
+"pos": 8,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "stores",
+"pos": 9,
+"col": "manager_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "trackable_links",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "trackable_links",
+"pos": 2,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "trackable_links",
+"pos": 3,
+"col": "asset_id",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "trackable_links",
+"pos": 4,
+"col": "conversation_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "trackable_links",
+"pos": 5,
+"col": "lead_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "trackable_links",
+"pos": 6,
+"col": "target_url",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "trackable_links",
+"pos": 7,
+"col": "short_ref",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "trackable_links",
+"pos": 8,
+"col": "utm",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "trackable_links",
+"pos": 9,
+"col": "created_by",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "trackable_links",
+"pos": 10,
+"col": "opens",
+"data_type": "integer",
+"udt_name": "int4",
+"is_nullable": "NO",
+"column_default": "0"
+},
+{
+"table_name": "trackable_links",
+"pos": 11,
+"col": "last_opened_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "trackable_links",
+"pos": 12,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "vehicle_models",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "vehicle_models",
+"pos": 2,
+"col": "brand",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "vehicle_models",
+"pos": 3,
+"col": "model",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "vehicle_models",
+"pos": 4,
+"col": "engine",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "vehicle_models",
+"pos": 5,
+"col": "year_start",
+"data_type": "integer",
+"udt_name": "int4",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "vehicle_models",
+"pos": 6,
+"col": "year_end",
+"data_type": "integer",
+"udt_name": "int4",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "vehicle_models",
+"pos": 7,
+"col": "status",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": "'ativo'::text"
+},
+{
+"table_name": "vehicle_models",
+"pos": 8,
+"col": "created_by",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "vehicle_models",
+"pos": 9,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "vehicle_models",
+"pos": 10,
+"col": "updated_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "vehicle_models",
+"pos": 11,
+"col": "updated_by",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "vehicles",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "vehicles",
+"pos": 2,
+"col": "customer_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "vehicles",
+"pos": 3,
+"col": "brand",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "vehicles",
+"pos": 4,
+"col": "model",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "vehicles",
+"pos": 5,
+"col": "year",
+"data_type": "integer",
+"udt_name": "int4",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "vehicles",
+"pos": 6,
+"col": "engine",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "vehicles",
+"pos": 7,
+"col": "model_id",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "vehicles",
+"pos": 8,
+"col": "plate",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "vehicles",
+"pos": 9,
+"col": "vin",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "vehicles",
+"pos": 10,
+"col": "current_km",
+"data_type": "integer",
+"udt_name": "int4",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "vehicles",
+"pos": 11,
+"col": "service_history",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "NO",
+"column_default": "'[]'::jsonb"
+},
+{
+"table_name": "vehicles",
+"pos": 12,
+"col": "cadastro_status",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "vehicles",
+"pos": 13,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "whatsapp_account_access_rules",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "whatsapp_account_access_rules",
+"pos": 2,
+"col": "whatsapp_account_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "whatsapp_account_access_rules",
+"pos": 3,
+"col": "kind",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "whatsapp_account_access_rules",
+"pos": 4,
+"col": "target_value",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "whatsapp_account_access_rules",
+"pos": 5,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "whatsapp_accounts",
+"pos": 1,
+"col": "id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": "gen_random_uuid()"
+},
+{
+"table_name": "whatsapp_accounts",
+"pos": 2,
+"col": "store_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "whatsapp_accounts",
+"pos": 3,
+"col": "label",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "whatsapp_accounts",
+"pos": 4,
+"col": "phone_number",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "whatsapp_accounts",
+"pos": 5,
+"col": "provider",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "whatsapp_accounts",
+"pos": 6,
+"col": "credentials_ref",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "whatsapp_accounts",
+"pos": 7,
+"col": "status",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": null
+},
+{
+"table_name": "whatsapp_accounts",
+"pos": 8,
+"col": "capabilities",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "NO",
+"column_default": "'{}'::jsonb"
+},
+{
+"table_name": "whatsapp_accounts",
+"pos": 9,
+"col": "created_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "NO",
+"column_default": "now()"
+},
+{
+"table_name": "whatsapp_accounts",
+"pos": 10,
+"col": "provider_config",
+"data_type": "jsonb",
+"udt_name": "jsonb",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "whatsapp_accounts",
+"pos": 11,
+"col": "failover_account_id",
+"data_type": "uuid",
+"udt_name": "uuid",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "whatsapp_accounts",
+"pos": 12,
+"col": "failover_policy",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": "'disabled'::text"
+},
+{
+"table_name": "whatsapp_accounts",
+"pos": 13,
+"col": "current_state",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": "'healthy'::text"
+},
+{
+"table_name": "whatsapp_accounts",
+"pos": 14,
+"col": "state_changed_at",
+"data_type": "timestamp with time zone",
+"udt_name": "timestamptz",
+"is_nullable": "YES",
+"column_default": null
+},
+{
+"table_name": "whatsapp_accounts",
+"pos": 15,
+"col": "is_failover_active",
+"data_type": "boolean",
+"udt_name": "bool",
+"is_nullable": "NO",
+"column_default": "false"
+},
+{
+"table_name": "whatsapp_accounts",
+"pos": 16,
+"col": "purpose",
+"data_type": "text",
+"udt_name": "text",
+"is_nullable": "NO",
+"column_default": "'atendimento'::text"
+}
+]
