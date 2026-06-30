@@ -104,6 +104,8 @@ export const INBOX_STRINGS = {
     video: "🎬 Vídeo",
     document: "📄 Documento",
     sticker: "🌟 Sticker",
+    location: "📍 Localização",
+    contact: "👤 Contato",
   },
 
   // Quick actions
@@ -265,6 +267,17 @@ export const CONVERSATION_STRINGS = {
   downloadDocument: "Baixar documento",
   audioTranscription: "Transcrição em breve",
   imageCaption: (caption: string) => caption || "Foto",
+  location: {
+    label: "Localização",
+    openMap: "Ver no mapa",
+    noCoords: "Sem coordenadas",
+  },
+  contact: {
+    label: "Contato",
+    copyNumber: "Copiar número",
+    copied: "Número copiado",
+    noPhone: "Sem telefone",
+  },
   documentMeta: (size: string) => size,
 
   // Status tooltips

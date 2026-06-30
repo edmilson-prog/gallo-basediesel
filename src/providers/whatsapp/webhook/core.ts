@@ -218,7 +218,12 @@ function looksLikeName(value: string | undefined): value is string {
 
 /** Normalized inbound contentType → messages.media_type column value. */
 function toMediaType(contentType: string): string | null {
-  return ["image", "audio", "video", "document"].includes(contentType) ? contentType : null;
+  // location/contact carry no binary (no mediaId → media download never runs),
+  // but the column still discriminates them so the UI renders the right bubble;
+  // the structured payload rides in `text` (see ../contentFormat).
+  return ["image", "audio", "video", "document", "location", "contact"].includes(contentType)
+    ? contentType
+    : null;
 }
 
 function extractMetaPhoneNumberId(rawPayload: unknown): string {

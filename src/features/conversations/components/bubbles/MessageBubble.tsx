@@ -3,6 +3,8 @@ import { TextBubble } from "./TextBubble";
 import { ImageBubble } from "./ImageBubble";
 import { AudioBubble } from "./AudioBubble";
 import { DocumentBubble } from "./DocumentBubble";
+import { LocationBubble } from "./LocationBubble";
+import { ContactBubble } from "./ContactBubble";
 import { SystemBubble } from "./SystemBubble";
 import { TemplateBubble } from "./TemplateBubble";
 import { ProductCardBubble } from "@/features/quick-send/components/ProductCardBubble";
@@ -41,6 +43,12 @@ export function MessageBubble({ message, onRetry }: IMessageBubbleProps) {
   }
   if (message.text.startsWith(TRACKABLE_LINK_MARKER)) {
     return <LinkBubbleWithLiveData message={message} onRetry={onRetry} />;
+  }
+  if (message.mediaType === "location") {
+    return <LocationBubble message={message} onRetry={onRetry} />;
+  }
+  if (message.mediaType === "contact") {
+    return <ContactBubble message={message} onRetry={onRetry} />;
   }
   if (message.mediaType === "image" || message.mediaType === "sticker") {
     return <ImageBubble message={message} onRetry={onRetry} />;

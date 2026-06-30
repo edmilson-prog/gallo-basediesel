@@ -16,6 +16,7 @@
  */
 
 import { toE164 } from "../phone.ts";
+import { encodeContact, encodeLocation, phoneFromVCard } from "../contentFormat.ts";
 import type { IInboundMessage, IInboundStatus, InboundContentType, IOutboundEcho } from "../types.ts";
 
 interface IEvolutionEvent {
@@ -35,7 +36,7 @@ export interface IEvolutionRawMessage {
   videoMessage?: { caption?: string; mimetype?: string };
   documentMessage?: { caption?: string; fileName?: string; mimetype?: string };
   locationMessage?: { degreesLatitude?: number; degreesLongitude?: number; name?: string };
-  contactMessage?: { displayName?: string };
+  contactMessage?: { displayName?: string; vcard?: string };
 }
 
 interface IEvolutionMessageData {
@@ -90,13 +91,17 @@ export function extractEvolutionContent(message: IEvolutionRawMessage): IEvoluti
     const { name, degreesLatitude, degreesLongitude } = message.locationMessage;
     return {
       contentType: "location",
-      text: [name, `${degreesLatitude ?? "?"},${degreesLongitude ?? "?"}`]
-        .filter(Boolean)
-        .join(" — "),
+      text: encodeLocation({ name, lat: degreesLatitude, lng: degreesLongitude }),
     };
   }
   if (message.contactMessage)
-    return { contentType: "contact", text: message.contactMessage.displayName };
+    return {
+      contentType: "contact",
+      text: encodeContact({
+        name: message.contactMessage.displayName,
+        phone: phoneFromVCard(message.contactMessage.vcard),
+      }),
+    };
   return { contentType: "unknown" };
 }
 

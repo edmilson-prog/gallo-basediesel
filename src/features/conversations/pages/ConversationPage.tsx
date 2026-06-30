@@ -118,6 +118,9 @@ export function ConversationPage() {
     }
     for (const message of inboundMessages) {
       if (message.direction !== "in" || !message.mediaType) continue;
+      // location/contact reuse media_type as a render discriminator but carry no
+      // binary payload — never route them through the inbound media archival.
+      if (message.mediaType === "location" || message.mediaType === "contact") continue;
       const existing = assetByMessageId.get(message.id) ?? null;
       if (existing) {
         // Keep the guard in sync so we never re-fire for an already-archived msg.

@@ -11,6 +11,7 @@
  */
 
 import { toE164 } from "../phone.ts";
+import { encodeContact, encodeLocation } from "../contentFormat.ts";
 import type { IInboundMessage, IInboundStatus, InboundContentType } from "../types.ts";
 
 interface IMetaWebhookValue {
@@ -33,7 +34,11 @@ interface IMetaInboundMessage {
   document?: IMetaMediaObject & { filename?: string };
   sticker?: IMetaMediaObject;
   location?: { latitude?: number; longitude?: number; name?: string; address?: string };
-  contacts?: unknown[];
+  /** Shared contact cards — `name.formatted_name` + `phones[].phone`/`wa_id`. */
+  contacts?: Array<{
+    name?: { formatted_name?: string };
+    phones?: Array<{ phone?: string; wa_id?: string }>;
+  }>;
   interactive?: {
     type?: string;
     button_reply?: { id?: string; title?: string };
@@ -143,12 +148,19 @@ export function parseMetaInbound(
     return {
       ...base,
       contentType: "location",
-      text: [name, `${latitude ?? "?"},${longitude ?? "?"}`].filter(Boolean).join(" — "),
+      text: encodeLocation({ name, lat: latitude, lng: longitude }),
     };
   }
 
   if (type === "contacts") {
-    return { ...base, contentType: "contact" };
+    const card = message.contacts?.[0];
+    const firstPhone = card?.phones?.[0];
+    const phone = firstPhone?.phone ?? (firstPhone?.wa_id ? `+${firstPhone.wa_id}` : undefined);
+    return {
+      ...base,
+      contentType: "contact",
+      text: encodeContact({ name: card?.name?.formatted_name, phone }),
+    };
   }
 
   // Interactive replies (button/list) normalize to text — the tapped title is
