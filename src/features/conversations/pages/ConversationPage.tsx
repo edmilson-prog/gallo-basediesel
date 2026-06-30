@@ -83,7 +83,9 @@ export function ConversationPage() {
   const media = useMediaGallery();
   const messages = useMessages(conversationId);
   // PRD-118: live INSERT/UPDATE stream of this conversation (supabase only).
-  useRealtimeMessages(conversationId, messages.applyRealtimeRow);
+  // `syncLatest` is the conversations-channel fallback for missed messages
+  // INSERTs — see useRealtimeMessages.
+  useRealtimeMessages(conversationId, messages.applyRealtimeRow, messages.syncLatest);
   const escalation = useConversationEscalation(conversationId);
   const copilot = useCopilotPanel(conversationId);
   // Status-control display mode (per-device). Lifted here so the header's
@@ -116,6 +118,9 @@ export function ConversationPage() {
     }
     for (const message of inboundMessages) {
       if (message.direction !== "in" || !message.mediaType) continue;
+      // No-byte structured shares (location/contact) are filtered inside the
+      // shared gate (resolveInboundAsset / NON_ARCHIVABLE_MEDIA_TYPES), so ensure()
+      // below is a safe no-op for them — single source of truth, no inline list.
       const existing = assetByMessageId.get(message.id) ?? null;
       if (existing) {
         // Keep the guard in sync so we never re-fire for an already-archived msg.

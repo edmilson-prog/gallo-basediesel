@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import type { IConversation, IConversationContact } from "@/shared/types";
-import { displayFromContact } from "./conversationDisplay";
+import type { IConversation, IConversationContact, IMessage } from "@/shared/types";
+import { displayFromContact, getMessagePreview } from "./conversationDisplay";
 import { INBOX_STRINGS } from "../i18n/pt-BR";
 
 /**
@@ -83,5 +83,34 @@ describe("displayFromContact", () => {
       conversationId: "totally-different-conv",
     });
     expect(d1.hue).toBe(d2.hue);
+  });
+});
+
+describe("getMessagePreview — structured shares", () => {
+  const msg = (over: Partial<IMessage>): IMessage => ({ text: "", ...over }) as IMessage;
+
+  it("shows the contact's name (not a generic label) in the list preview", () => {
+    expect(getMessagePreview(msg({ mediaType: "contact", text: "João Silva\n+5554999990000" }))).toBe(
+      "👤 João Silva",
+    );
+  });
+
+  it("shows the location's name when present", () => {
+    expect(getMessagePreview(msg({ mediaType: "location", text: "Oficina Central\n-27.39,-53.4" }))).toBe(
+      "📍 Oficina Central",
+    );
+  });
+
+  it("falls back to the generic label when the share has no name", () => {
+    expect(getMessagePreview(msg({ mediaType: "contact", text: "+5554999990000" }))).toBe(
+      INBOX_STRINGS.mediaPreview.contact,
+    );
+    expect(getMessagePreview(msg({ mediaType: "location", text: "-27.39,-53.4" }))).toBe(
+      INBOX_STRINGS.mediaPreview.location,
+    );
+  });
+
+  it("still renders plain text for non-media messages", () => {
+    expect(getMessagePreview(msg({ text: "olá, tudo bem?" }))).toBe("olá, tudo bem?");
   });
 });

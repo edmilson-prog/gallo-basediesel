@@ -36,6 +36,23 @@ export type InboundContentType =
 /** Media kinds accepted for outbound sends. */
 export type OutboundMediaType = "image" | "audio" | "video" | "document";
 
+/**
+ * Inbound content types that map to a non-null `messages.media_type`
+ * discriminator — the binary kinds plus the structured shares (location/contact,
+ * which carry no bytes but still need the column so the UI renders a card).
+ * SINGLE source of truth for the live webhook (`toMediaType`) and the history
+ * importers, so a new structured type can't be added to one site and missed in
+ * another (which would silently render the raw encoded text instead of a card).
+ */
+export const MEDIA_DISCRIMINATOR_TYPES = [
+  "image",
+  "audio",
+  "video",
+  "document",
+  "location",
+  "contact",
+] as const;
+
 // ===== Send inputs ==========================================================
 
 export interface ISendTextInput {

@@ -3,6 +3,8 @@ import { TextBubble } from "./TextBubble";
 import { ImageBubble } from "./ImageBubble";
 import { AudioBubble } from "./AudioBubble";
 import { DocumentBubble } from "./DocumentBubble";
+import { LocationBubble } from "./LocationBubble";
+import { ContactBubble } from "./ContactBubble";
 import { SystemBubble } from "./SystemBubble";
 import { TemplateBubble } from "./TemplateBubble";
 import { ProductCardBubble } from "@/features/quick-send/components/ProductCardBubble";
@@ -27,6 +29,16 @@ const TEMPLATE_PREFIX = "[template]";
 export function MessageBubble({ message, onRetry }: IMessageBubbleProps) {
   if (message.authorType === "system") {
     return <SystemBubble message={message} />;
+  }
+  // Structured shares are discriminated by `mediaType`, which is authoritative —
+  // resolve them BEFORE the text-marker heuristics below, so a contact whose
+  // name happens to start with a marker (`[produto]`, `[template]`, …) can't be
+  // hijacked into the wrong bubble.
+  if (message.mediaType === "location") {
+    return <LocationBubble message={message} onRetry={onRetry} />;
+  }
+  if (message.mediaType === "contact") {
+    return <ContactBubble message={message} onRetry={onRetry} />;
   }
   if (
     message.text.startsWith(TEMPLATE_PREFIX) ||

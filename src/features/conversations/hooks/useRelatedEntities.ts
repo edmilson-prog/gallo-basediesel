@@ -38,6 +38,23 @@ export function newerMessage(prev: IMessage | undefined, next: IMessage): IMessa
 }
 
 /**
+ * Cache key for the resolution effect — id AND last-message recency per row.
+ *
+ * The id-only key missed the case the inbox hits most: when the conversation
+ * already at the TOP of the list receives another message it keeps its position,
+ * so the id order is byte-identical and the volatile last-message batch never
+ * re-ran — freezing the preview one message behind (the "Dhfh" instead of "Oii"
+ * symptom). Folding `lastMessageAt` into the key re-runs the batch exactly when
+ * new traffic lands — inbound (webhook touch) AND outbound (send/core touch)
+ * both advance `last_message_at`. The contact lookup stays cheap regardless: it
+ * is guarded by `missingIds` (monotonic cache), so a recency-only change makes
+ * the batch re-resolve last messages without re-requesting any contact.
+ */
+export function recencyKeyOf(conversations: IConversation[]): string {
+  return conversations.map((c) => `${c.id}:${c.lastMessageAt ?? ""}`).join(",");
+}
+
+/**
  * Resolves the contact + last-message each conversation row needs.
  *
  * Contacts come from a single `conversations.listContacts` call (supabase: the
@@ -85,7 +102,7 @@ export function useRelatedEntities(conversations: IConversation[]): IRelatedEnti
     });
   }, []);
 
-  const idsKey = useMemo(() => conversations.map((c) => c.id).join(","), [conversations]);
+  const recencyKey = useMemo(() => recencyKeyOf(conversations), [conversations]);
 
   useEffect(() => {
     if (conversations.length === 0) return;
@@ -143,7 +160,7 @@ export function useRelatedEntities(conversations: IConversation[]): IRelatedEnti
       void Promise.allSettled(tasks).then(publish);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idsKey]);
+  }, [recencyKey]);
 
   return related;
 }

@@ -1,7 +1,17 @@
 import { useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { IMediaAsset, IMessage } from "@/shared/types";
+import type { IMediaAsset, IMessage, MessageMediaType } from "@/shared/types";
 import { useMediaStorageProvider } from "@/providers/data";
+
+/**
+ * Structured shares reuse `media_type` purely as a render discriminator — their
+ * payload lives in `text`, there are no bytes to archive. The gate skips them
+ * here so no call site can route them into media archival.
+ */
+const NON_ARCHIVABLE_MEDIA_TYPES: ReadonlySet<MessageMediaType> = new Set([
+  "location",
+  "contact",
+]);
 
 /** What to do with a single inbound message's potential media. */
 export type InboundAction = "skip" | "create" | "dedup" | "retry";
@@ -15,7 +25,8 @@ export interface IInboundDecision {
 /**
  * Pure decision for inbound media archival. No side effects — drives the hook
  * and is fully unit-tested. Rules (D-3, RF-006/007/008):
- *  - skip: message has no media OR is not inbound (direction !== "in").
+ *  - skip: message has no media OR is not inbound (direction !== "in") OR is a
+ *    structured share (location/contact) that carries no bytes.
  *  - dedup: an asset already exists for this message and is persisted.
  *  - retry: an asset exists but persisted === false (archival not done yet).
  *  - create: no asset yet.
@@ -24,7 +35,13 @@ export function resolveInboundAsset(
   message: IMessage,
   existing: IMediaAsset | null,
 ): IInboundDecision {
-  if (message.direction !== "in" || !message.mediaType) return { action: "skip" };
+  if (
+    message.direction !== "in" ||
+    !message.mediaType ||
+    NON_ARCHIVABLE_MEDIA_TYPES.has(message.mediaType)
+  ) {
+    return { action: "skip" };
+  }
   if (!existing) return { action: "create" };
   if (existing.persisted === false) return { action: "retry", existing };
   return { action: "dedup", existing };

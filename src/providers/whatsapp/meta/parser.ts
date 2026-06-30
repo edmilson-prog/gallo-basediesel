@@ -8,6 +8,7 @@
  */
 
 import { toE164 } from "../phone";
+import { encodeContact, encodeLocation } from "../contentFormat";
 import type { IInboundMessage, IInboundStatus, InboundContentType } from "../types";
 
 interface IMetaWebhookValue {
@@ -30,7 +31,11 @@ interface IMetaInboundMessage {
   document?: IMetaMediaObject & { filename?: string };
   sticker?: IMetaMediaObject;
   location?: { latitude?: number; longitude?: number; name?: string; address?: string };
-  contacts?: unknown[];
+  /** Shared contact cards — `name.formatted_name` + `phones[].phone`/`wa_id`. */
+  contacts?: Array<{
+    name?: { formatted_name?: string };
+    phones?: Array<{ phone?: string; wa_id?: string }>;
+  }>;
   interactive?: {
     type?: string;
     button_reply?: { id?: string; title?: string };
@@ -136,16 +141,28 @@ export function parseMetaInbound(
   }
 
   if (type === "location") {
-    const { latitude, longitude, name } = message.location ?? {};
+    const { latitude, longitude, name, address } = message.location ?? {};
     return {
       ...base,
       contentType: "location",
-      text: [name, `${latitude ?? "?"},${longitude ?? "?"}`].filter(Boolean).join(" — "),
+      // `address` is the label fallback when the pin carried no `name`.
+      text: encodeLocation({ name: name || address, lat: latitude, lng: longitude }),
     };
   }
 
   if (type === "contacts") {
-    return { ...base, contentType: "contact" };
+    const card = message.contacts?.[0];
+    const firstPhone = card?.phones?.[0];
+    // `||` (not `??`) so an empty-string `phone` still falls back to wa_id; and
+    // normalize through toE164 so the stored/copied number is clean E.164,
+    // matching the Evolution vCard path (phoneFromVCard → toE164).
+    const rawPhone = firstPhone?.phone || (firstPhone?.wa_id ? `+${firstPhone.wa_id}` : "");
+    const phone = rawPhone ? toE164(rawPhone) : undefined;
+    return {
+      ...base,
+      contentType: "contact",
+      text: encodeContact({ name: card?.name?.formatted_name, phone }),
+    };
   }
 
   // Interactive replies (button/list) normalize to text — the tapped title is

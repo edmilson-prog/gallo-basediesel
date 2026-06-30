@@ -22,6 +22,32 @@ function messagesKey(conversationId: ID): readonly [string, ID] {
   return ["messages", conversationId];
 }
 
+/**
+ * Reverse a newest-first provider page to oldest-first.
+ *
+ * `syncLatest` feeds each row to `applyRealtimeRow`, whose new-row path inserts
+ * by `sentAt` ({@link insertSortedDesc}). Feeding oldest-first keeps the cheap
+ * common case (each newer row appends at the head) while a row recovered out of
+ * order still lands correctly. Returns a fresh array (never mutates the input).
+ */
+export function toAscending(descRows: IMessage[]): IMessage[] {
+  return [...descRows].reverse();
+}
+
+/**
+ * Insert `message` into a newest-first (desc by `sentAt`) page, returning a
+ * fresh array, at the slot that keeps the page sorted: the newest row lands at
+ * the head (index 0), a row recovered out of arrival order lands in its real
+ * chronological slot. Pure — drives `insertByRecency` and is unit-tested.
+ */
+export function insertSortedDesc(descRows: IMessage[], message: IMessage): IMessage[] {
+  const data = [...descRows];
+  let idx = data.findIndex((m) => m.sentAt < message.sentAt);
+  if (idx === -1) idx = data.length;
+  data.splice(idx, 0, message);
+  return data;
+}
+
 export interface IUseMessagesResult {
   messages: IMessage[];
   isLoading: boolean;
@@ -56,6 +82,15 @@ export interface IUseMessagesResult {
    * INSERT event cannot downgrade an already `sent` bubble).
    */
   applyRealtimeRow: (incoming: IMessage) => void;
+  /**
+   * Live catch-up fallback: refetch the latest page and merge each row through
+   * `applyRealtimeRow`. Used when the `messages` Realtime channel misses an
+   * INSERT but the `conversations` channel delivers the touch (see
+   * {@link useRealtimeMessages}). Optimistic-safe — only ADDS missing rows and
+   * patches statuses forward, so an in-flight optimistic bubble is never
+   * dropped (unlike a full `refetch`).
+   */
+  syncLatest: () => Promise<void>;
 }
 
 /**
@@ -158,6 +193,27 @@ export function useMessages(conversationId: ID): IUseMessagesResult {
     [queryClient, conversationId],
   );
 
+  /**
+   * Insert a not-yet-cached row into the newest (desc) page at the slot that
+   * keeps it sorted by `sentAt` desc. For a normal live row (the newest) this is
+   * the head — identical to {@link prependNewest}; for a catch-up row recovered
+   * out of arrival order (older than the current head, e.g. the messages channel
+   * delivered a newer row but dropped this one) it lands in its real
+   * chronological slot instead of being forced to the top.
+   */
+  const insertByRecency = useCallback(
+    (message: IMessage) => {
+      queryClient.setQueryData<MessagesCache>(messagesKey(conversationId), (old) => {
+        const seededPage: MessagePage = { data: [message], total: 1, page: 1, pageSize: PAGE_SIZE };
+        if (!old) return { pages: [seededPage], pageParams: [1] };
+        const [first, ...rest] = old.pages;
+        if (!first) return { ...old, pages: [seededPage, ...rest] };
+        return { ...old, pages: [{ ...first, data: insertSortedDesc(first.data, message) }, ...rest] };
+      });
+    },
+    [queryClient, conversationId],
+  );
+
   const appendOptimistic = useCallback(
     (message: IMessage) => {
       prependNewest(message);
@@ -191,8 +247,10 @@ export function useMessages(conversationId: ID): IUseMessagesResult {
       const cache = queryClient.getQueryData<MessagesCache>(messagesKey(conversationId));
       const exists = cache?.pages.some((p) => p.data.some((m) => m.id === incoming.id)) ?? false;
       if (!exists) {
-        // New live row → same prepend path as an optimistic send.
-        prependNewest(incoming);
+        // New row → insert in its chronological slot. For a live INSERT (the
+        // newest) this is the head; for a catch-up row recovered out of order by
+        // syncLatest it lands correctly instead of jumping above newer rows.
+        insertByRecency(incoming);
         return;
       }
       // Existing row (status transition). Status never regresses; `failed` is
@@ -206,8 +264,25 @@ export function useMessages(conversationId: ID): IUseMessagesResult {
         }),
       );
     },
-    [queryClient, conversationId, prependNewest, mapPages],
+    [queryClient, conversationId, insertByRecency, mapPages],
   );
+
+  const syncLatest = useCallback(async () => {
+    try {
+      const result = await provider.list({
+        conversationId,
+        page: 1,
+        pageSize: PAGE_SIZE,
+        orderDir: "desc",
+      });
+      // Oldest-first; applyRealtimeRow inserts each missing row by sentAt, so a
+      // row recovered out of arrival order still lands in chronological position.
+      for (const row of toAscending(result.data)) applyRealtimeRow(row);
+    } catch {
+      // Best-effort live catch-up: a failed sync leaves the thread as-is —
+      // re-entering the conversation forces a full refetch (staleTime: 0).
+    }
+  }, [provider, conversationId, applyRealtimeRow]);
 
   const { fetchNextPage, refetch, hasNextPage, isFetchingNextPage } = query;
 
@@ -248,5 +323,6 @@ export function useMessages(conversationId: ID): IUseMessagesResult {
     retry,
     patchStatus,
     applyRealtimeRow,
+    syncLatest,
   };
 }

@@ -8,6 +8,7 @@
  */
 
 import { toE164 } from "../phone";
+import { encodeBaileysContact, encodeBaileysLocation } from "../contentFormat";
 import { encodeGoMediaRef, type GoMediaMessageKey } from "./media";
 import type { IInboundMessage, IInboundStatus, InboundContentType, IOutboundEcho } from "../types";
 
@@ -32,6 +33,18 @@ interface IGoMediaNode {
   fileLength?: number;
 }
 
+interface IGoLocationNode {
+  degreesLatitude?: number;
+  degreesLongitude?: number;
+  name?: string;
+  address?: string;
+}
+
+interface IGoContactNode {
+  displayName?: string;
+  vcard?: string;
+}
+
 export interface IGoMessageBody {
   conversation?: string;
   extendedTextMessage?: { text?: string };
@@ -39,6 +52,9 @@ export interface IGoMessageBody {
   audioMessage?: IGoMediaNode;
   videoMessage?: IGoMediaNode;
   documentMessage?: IGoMediaNode & { fileName?: string };
+  locationMessage?: IGoLocationNode;
+  contactMessage?: IGoContactNode;
+  contactsArrayMessage?: { contacts?: IGoContactNode[] };
 }
 
 interface IGoEvent {
@@ -98,6 +114,13 @@ export function extractContent(msg: IGoMessageBody): IGoContent {
     return { contentType: "video", mediaCaption: msg.videoMessage.caption, mediaId: mediaRefFrom("videoMessage", msg.videoMessage) };
   if (msg.documentMessage)
     return { contentType: "document", mediaCaption: msg.documentMessage.caption, mediaId: mediaRefFrom("documentMessage", msg.documentMessage) };
+  if (msg.locationMessage) {
+    return { contentType: "location", text: encodeBaileysLocation(msg.locationMessage) };
+  }
+  const contactNode = msg.contactMessage ?? msg.contactsArrayMessage?.contacts?.[0];
+  if (contactNode) {
+    return { contentType: "contact", text: encodeBaileysContact(contactNode) };
+  }
   return { contentType: "unknown" };
 }
 

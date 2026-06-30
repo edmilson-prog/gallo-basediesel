@@ -364,6 +364,83 @@ describe("parseMetaInbound (RF-090)", () => {
 
     expect(() => parseMetaInbound({ foo: "bar" }, "acc")).toThrow(/irreconhecível/);
   });
+
+  it("normalizes a shared location into the canonical location text", () => {
+    const parsed = parseMetaInbound(
+      metaEnvelope({
+        metadata: METADATA,
+        messages: [
+          {
+            id: "wamid.loc",
+            from: "5555988887777",
+            type: "location",
+            location: { latitude: -27.39, longitude: -53.4, name: "Oficina Central" },
+          },
+        ],
+      }),
+      "acc",
+    ) as { contentType: string; text: string };
+    expect(parsed.contentType).toBe("location");
+    expect(parsed.text).toBe("Oficina Central\n-27.39,-53.4");
+  });
+
+  it("uses the location address as the label when no name was attached", () => {
+    const parsed = parseMetaInbound(
+      metaEnvelope({
+        metadata: METADATA,
+        messages: [
+          {
+            id: "wamid.loc2",
+            from: "5555988887777",
+            type: "location",
+            location: { latitude: -27.39, longitude: -53.4, address: "Av. Brasil, 1000 - Centro" },
+          },
+        ],
+      }),
+      "acc",
+    ) as { text: string };
+    expect(parsed.text).toBe("Av. Brasil, 1000 - Centro\n-27.39,-53.4");
+  });
+
+  it("normalizes a shared contact, cleaning the formatted phone to E.164", () => {
+    const parsed = parseMetaInbound(
+      metaEnvelope({
+        metadata: METADATA,
+        messages: [
+          {
+            id: "wamid.contact",
+            from: "5555988887777",
+            type: "contacts",
+            // Meta returns the phone as the sender saved it — with separators.
+            contacts: [
+              { name: { formatted_name: "Fornecedor X" }, phones: [{ phone: "+55 54 99888-7777", wa_id: "5554998887777" }] },
+            ],
+          },
+        ],
+      }),
+      "acc",
+    ) as { contentType: string; text: string };
+    expect(parsed.contentType).toBe("contact");
+    expect(parsed.text).toBe("Fornecedor X\n+5554998887777");
+  });
+
+  it("falls back to wa_id when the contact phone is an empty string", () => {
+    const parsed = parseMetaInbound(
+      metaEnvelope({
+        metadata: METADATA,
+        messages: [
+          {
+            id: "wamid.contact2",
+            from: "5555988887777",
+            type: "contacts",
+            contacts: [{ name: { formatted_name: "Sem número salvo" }, phones: [{ phone: "", wa_id: "5511999990000" }] }],
+          },
+        ],
+      }),
+      "acc",
+    ) as { contentType: string; text: string };
+    expect(parsed.text).toBe("Sem número salvo\n+5511999990000");
+  });
 });
 
 // ===== Media + health =======================================================

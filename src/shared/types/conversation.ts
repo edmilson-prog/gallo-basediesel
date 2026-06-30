@@ -84,8 +84,23 @@ export type MessageProvider = "meta" | "evolution" | "evolution-go" | "mock";
  */
 export type MessageStatus = "queued" | "sent" | "delivered" | "read" | "failed";
 
-/** Media payload kind, when present. */
-export type MessageMediaType = "image" | "audio" | "video" | "document" | "sticker";
+/**
+ * Discriminator for a message's non-text content, when present.
+ *
+ * The first five are binary media (carry a `mediaUrl`). `location` and `contact`
+ * are STRUCTURED content — no binary payload, no `mediaUrl`: their data lives
+ * encoded in `text` (see `@/providers/whatsapp/contentFormat`). They reuse this
+ * column purely as a render discriminator, so anything keyed on "has binary
+ * media" (archival, signing, the media gallery) must exclude them explicitly.
+ */
+export type MessageMediaType =
+  | "image"
+  | "audio"
+  | "video"
+  | "document"
+  | "sticker"
+  | "location"
+  | "contact";
 
 /**
  * Message — a single utterance inside an `IConversation`.

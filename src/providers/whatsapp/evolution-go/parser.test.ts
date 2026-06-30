@@ -70,6 +70,35 @@ describe("parseEvolutionGoInbound", () => {
     });
   });
 
+  it("normalizes a shared location into the canonical location text", () => {
+    const parsed = parseEvolutionGoInbound(
+      messageEvent(
+        { locationMessage: { name: "Oficina Central", degreesLatitude: -27.39, degreesLongitude: -53.4 } },
+        { Type: "location" },
+      ),
+      "acc",
+    ) as { contentType: string; text: string };
+    expect(parsed.contentType).toBe("location");
+    expect(parsed.text).toBe("Oficina Central\n-27.39,-53.4");
+  });
+
+  it("normalizes a shared contact (name + phone from the vCard)", () => {
+    const parsed = parseEvolutionGoInbound(
+      messageEvent(
+        {
+          contactMessage: {
+            displayName: "Fornecedor X",
+            vcard: "BEGIN:VCARD\nFN:Fornecedor X\nTEL;waid=5554998887777:+55 54 99888-7777\nEND:VCARD",
+          },
+        },
+        { Type: "contact" },
+      ),
+      "acc",
+    ) as { contentType: string; text: string };
+    expect(parsed.contentType).toBe("contact");
+    expect(parsed.text).toBe("Fornecedor X\n+5554998887777");
+  });
+
   it("returns outbound-echo when IsFromMe=true", () => {
     const parsed = parseEvolutionGoInbound(
       messageEvent({ conversation: "eco" }, { IsFromMe: true }),
