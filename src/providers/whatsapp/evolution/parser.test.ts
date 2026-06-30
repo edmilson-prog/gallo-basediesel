@@ -89,6 +89,53 @@ describe("parseEvolutionInbound — group/broadcast guard", () => {
   });
 });
 
+describe("parseEvolutionInbound — structured shares (location/contact)", () => {
+  it("normalizes a shared location into the canonical location text", () => {
+    const parsed = parseEvolutionInbound(
+      upsertEvent({
+        message: { locationMessage: { name: "Oficina Central", degreesLatitude: -27.39, degreesLongitude: -53.4 } },
+      }),
+      "",
+    ) as { contentType: string; text: string };
+    expect(parsed.contentType).toBe("location");
+    expect(parsed.text).toBe("Oficina Central\n-27.39,-53.4");
+  });
+
+  it("normalizes a single shared contact (name + phone from the vCard)", () => {
+    const parsed = parseEvolutionInbound(
+      upsertEvent({
+        message: {
+          contactMessage: {
+            displayName: "Fornecedor X",
+            vcard: "BEGIN:VCARD\nFN:Fornecedor X\nTEL;waid=5554998887777:+55 54 99888-7777\nEND:VCARD",
+          },
+        },
+      }),
+      "",
+    ) as { contentType: string; text: string };
+    expect(parsed.contentType).toBe("contact");
+    expect(parsed.text).toBe("Fornecedor X\n+5554998887777");
+  });
+
+  it("surfaces the first card of a multi-contact (contactsArrayMessage) share", () => {
+    const parsed = parseEvolutionInbound(
+      upsertEvent({
+        message: {
+          contactsArrayMessage: {
+            contacts: [
+              { displayName: "Primeiro", vcard: "BEGIN:VCARD\nTEL;waid=5511999990000:+55 11 99999-0000\nEND:VCARD" },
+              { displayName: "Segundo", vcard: "BEGIN:VCARD\nTEL;waid=5511888880000:+55 11 88888-0000\nEND:VCARD" },
+            ],
+          },
+        },
+      }),
+      "",
+    ) as { contentType: string; text: string };
+    expect(parsed.contentType).toBe("contact");
+    expect(parsed.text).toBe("Primeiro\n+5511999990000");
+  });
+});
+
 describe("parseEvolutionInbound — regression", () => {
   it("still parses a customer text message as inbound", () => {
     const parsed = parseEvolutionInbound(upsertEvent({}), "");

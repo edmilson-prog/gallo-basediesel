@@ -70,7 +70,11 @@ export interface IGoAggregateStats {
 
 // ===== Constants =============================================================
 
-const MEDIA_TYPES = ["image", "audio", "video", "document"] as const;
+// Content types that get a non-null `media_type` discriminator. Mirrors the
+// live webhook's `toMediaType` (webhook/core.ts): "location"/"contact" carry no
+// bytes but still need the discriminator so imported shares render as cards
+// instead of raw encoded text — exactly like live ones.
+const MEDIA_TYPES = ["image", "audio", "video", "document", "location", "contact"] as const;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 // ===== Record normalization ==================================================

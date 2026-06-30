@@ -58,4 +58,13 @@ describe("resolveInboundAsset", () => {
   it("only creates for inbound (direction 'in') media", () => {
     expect(resolveInboundAsset(message({ direction: "out" }), null).action).toBe("skip");
   });
+
+  it.each(["location", "contact"] as const)(
+    "skips structured shares (%s) that carry no bytes, even though media_type is set",
+    (mediaType) => {
+      expect(
+        resolveInboundAsset(message({ mediaType, mediaUrl: undefined, text: "x\n+5554999990000" }), null).action,
+      ).toBe("skip");
+    },
+  );
 });

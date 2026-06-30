@@ -37,6 +37,13 @@ describe("location encode/decode", () => {
     const text = encodeLocation({ name: "Av. Brasil, 100", lat: -29.35, lng: -53.39 });
     expect(decodeLocation(text)).toEqual({ name: "Av. Brasil, 100", lat: -29.35, lng: -53.39 });
   });
+
+  it("encodes near-zero coordinates without exponential notation (still parseable)", () => {
+    const text = encodeLocation({ lat: 0.0000005, lng: -0.0000007 });
+    // String(5e-7) === "5e-7" — COORD_RE would reject it and drop the coords.
+    expect(text).not.toMatch(/e/i);
+    expect(decodeLocation(text)).toEqual({ lat: 0.0000005, lng: -0.0000007 });
+  });
 });
 
 describe("contact encode/decode", () => {
@@ -55,6 +62,14 @@ describe("contact encode/decode", () => {
   it("treats a phone-only payload as a phone, not a name", () => {
     expect(decodeContact("+5554999990000")).toEqual({ phone: "+5554999990000" });
   });
+
+  it("does not swap name and phone when the display name is itself a number", () => {
+    // Unsaved contact: WhatsApp uses the raw number as the display name. A
+    // "first phone-shaped line wins" decode would pick the NAME line as phone.
+    const text = encodeContact({ name: "5554999990000", phone: "+5554988887777" });
+    expect(text).toBe("5554999990000\n+5554988887777");
+    expect(decodeContact(text)).toEqual({ name: "5554999990000", phone: "+5554988887777" });
+  });
 });
 
 describe("phoneFromVCard", () => {
@@ -64,9 +79,9 @@ describe("phoneFromVCard", () => {
     expect(phoneFromVCard(vcard)).toBe("+5554999990000");
   });
 
-  it("falls back to the TEL value when there is no waid", () => {
+  it("falls back to the TEL value when there is no waid, normalized to clean E.164", () => {
     const vcard = "BEGIN:VCARD\nVERSION:3.0\nFN:Maria\nTEL:+55 54 98888-1111\nEND:VCARD";
-    expect(phoneFromVCard(vcard)).toBe("+55 54 98888-1111");
+    expect(phoneFromVCard(vcard)).toBe("+5554988881111");
   });
 
   it("returns undefined when nothing phone-like is present", () => {

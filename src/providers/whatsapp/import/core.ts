@@ -151,7 +151,11 @@ const BATCH_CHATS_DEFAULT = 10;
 /** Runaway guard: 50 pages × ~100 records ≈ 5 k messages per chat. */
 const MAX_MESSAGE_PAGES_PER_CHAT = 50;
 
-const MEDIA_TYPES = ["image", "audio", "video", "document"] as const;
+// Content types that get a non-null `media_type` discriminator. Mirrors the
+// live webhook's `toMediaType` (webhook/core.ts): "location"/"contact" carry no
+// bytes but still need the discriminator so imported shares render as cards
+// instead of raw encoded text — exactly like live ones.
+const MEDIA_TYPES = ["image", "audio", "video", "document", "location", "contact"] as const;
 
 // ===== Helpers ===============================================================
 

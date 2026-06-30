@@ -30,6 +30,16 @@ export function MessageBubble({ message, onRetry }: IMessageBubbleProps) {
   if (message.authorType === "system") {
     return <SystemBubble message={message} />;
   }
+  // Structured shares are discriminated by `mediaType`, which is authoritative —
+  // resolve them BEFORE the text-marker heuristics below, so a contact whose
+  // name happens to start with a marker (`[produto]`, `[template]`, …) can't be
+  // hijacked into the wrong bubble.
+  if (message.mediaType === "location") {
+    return <LocationBubble message={message} onRetry={onRetry} />;
+  }
+  if (message.mediaType === "contact") {
+    return <ContactBubble message={message} onRetry={onRetry} />;
+  }
   if (
     message.text.startsWith(TEMPLATE_PREFIX) ||
     (message.provider === "meta" &&
@@ -43,12 +53,6 @@ export function MessageBubble({ message, onRetry }: IMessageBubbleProps) {
   }
   if (message.text.startsWith(TRACKABLE_LINK_MARKER)) {
     return <LinkBubbleWithLiveData message={message} onRetry={onRetry} />;
-  }
-  if (message.mediaType === "location") {
-    return <LocationBubble message={message} onRetry={onRetry} />;
-  }
-  if (message.mediaType === "contact") {
-    return <ContactBubble message={message} onRetry={onRetry} />;
   }
   if (message.mediaType === "image" || message.mediaType === "sticker") {
     return <ImageBubble message={message} onRetry={onRetry} />;

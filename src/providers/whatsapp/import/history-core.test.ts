@@ -36,6 +36,26 @@ describe("normalizeWhatsmeowRecord", () => {
     expect(r).toMatchObject({ direction: "in", text: "foto", mediaType: "image" });
   });
 
+  it("maps a shared location with its discriminator so it imports as a card, not raw text", () => {
+    const r = normalizeWhatsmeowRecord({
+      key: { ID: "m4", fromMe: false },
+      messageTimestamp: 1765400000,
+      message: { locationMessage: { name: "Pátio", degreesLatitude: -27.39, degreesLongitude: -53.4 } },
+    });
+    expect(r).toMatchObject({ mediaType: "location", text: "Pátio\n-27.39,-53.4" });
+  });
+
+  it("maps a shared contact with its discriminator", () => {
+    const r = normalizeWhatsmeowRecord({
+      key: { ID: "m5", fromMe: false },
+      messageTimestamp: 1765400000,
+      message: {
+        contactMessage: { displayName: "Zé", vcard: "BEGIN:VCARD\nTEL;waid=5554999990000:x\nEND:VCARD" },
+      },
+    });
+    expect(r).toMatchObject({ mediaType: "contact", text: "Zé\n+5554999990000" });
+  });
+
   it("rejects records without key.id or with an insane timestamp", () => {
     expect(normalizeWhatsmeowRecord({ key: {}, messageTimestamp: 1765400000 })).toBeNull();
     expect(normalizeWhatsmeowRecord({ key: { id: "x" }, messageTimestamp: 0 })).toBeNull();

@@ -34,6 +34,8 @@ export interface IEvolutionRawMessage {
   documentMessage?: { caption?: string; fileName?: string; mimetype?: string };
   locationMessage?: { degreesLatitude?: number; degreesLongitude?: number; name?: string };
   contactMessage?: { displayName?: string; vcard?: string };
+  /** Multi-contact share — Baileys nests the cards under `contacts[]`. */
+  contactsArrayMessage?: { contacts?: Array<{ displayName?: string; vcard?: string }> };
 }
 
 interface IEvolutionMessageData {
@@ -91,12 +93,15 @@ export function extractEvolutionContent(message: IEvolutionRawMessage): IEvoluti
       text: encodeLocation({ name, lat: degreesLatitude, lng: degreesLongitude }),
     };
   }
-  if (message.contactMessage)
+  // Single contact OR the first card of a multi-contact share (we surface one
+  // card; the rest stay in rawPayload — multi-card rendering is out of scope).
+  const contactNode = message.contactMessage ?? message.contactsArrayMessage?.contacts?.[0];
+  if (contactNode)
     return {
       contentType: "contact",
       text: encodeContact({
-        name: message.contactMessage.displayName,
-        phone: phoneFromVCard(message.contactMessage.vcard),
+        name: contactNode.displayName,
+        phone: phoneFromVCard(contactNode.vcard),
       }),
     };
   return { contentType: "unknown" };
