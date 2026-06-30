@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
   decodeContact,
   decodeLocation,
+  encodeBaileysContact,
+  encodeBaileysLocation,
   encodeContact,
   encodeLocation,
   phoneFromVCard,
@@ -94,5 +96,25 @@ describe("phoneFromVCard", () => {
     // must stop at the newline, not absorb "0NOTE...".
     const vcard = "BEGIN:VCARD\nTEL:+5554 98888-1111\n0NOTE:algo\nEND:VCARD";
     expect(phoneFromVCard(vcard)).toBe("+5554988881111");
+  });
+});
+
+describe("Baileys structured encoders (shared by Evolution classic & Go)", () => {
+  it("encodes a location node, preferring name over address", () => {
+    expect(
+      encodeBaileysLocation({ name: "Pátio", address: "Av. Brasil, 1000", degreesLatitude: -27.39, degreesLongitude: -53.4 }),
+    ).toBe("Pátio\n-27.39,-53.4");
+  });
+
+  it("falls back to address as the label when the pin carried no name", () => {
+    expect(
+      encodeBaileysLocation({ address: "Av. Brasil, 1000 - Centro", degreesLatitude: -27.39, degreesLongitude: -53.4 }),
+    ).toBe("Av. Brasil, 1000 - Centro\n-27.39,-53.4");
+  });
+
+  it("encodes a contact node, taking the phone from the vCard", () => {
+    expect(
+      encodeBaileysContact({ displayName: "Zé", vcard: "BEGIN:VCARD\nTEL;waid=5554999990000:x\nEND:VCARD" }),
+    ).toBe("Zé\n+5554999990000");
   });
 });

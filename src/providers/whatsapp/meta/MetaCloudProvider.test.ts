@@ -384,6 +384,24 @@ describe("parseMetaInbound (RF-090)", () => {
     expect(parsed.text).toBe("Oficina Central\n-27.39,-53.4");
   });
 
+  it("uses the location address as the label when no name was attached", () => {
+    const parsed = parseMetaInbound(
+      metaEnvelope({
+        metadata: METADATA,
+        messages: [
+          {
+            id: "wamid.loc2",
+            from: "5555988887777",
+            type: "location",
+            location: { latitude: -27.39, longitude: -53.4, address: "Av. Brasil, 1000 - Centro" },
+          },
+        ],
+      }),
+      "acc",
+    ) as { text: string };
+    expect(parsed.text).toBe("Av. Brasil, 1000 - Centro\n-27.39,-53.4");
+  });
+
   it("normalizes a shared contact, cleaning the formatted phone to E.164", () => {
     const parsed = parseMetaInbound(
       metaEnvelope({

@@ -44,8 +44,8 @@ export const DEFAULT_MEDIA_FILTERS: IConversationMediaFilters = {
 export function messageToMediaItem(message: IMessage): IConversationMediaItem | null {
   if (!message.mediaType || !message.mediaUrl) return null;
   // Inferred as the full MessageMediaType union (incl. location/contact); the
-  // guard below narrows it back to ConversationMediaKind. Structured shares
-  // have no mediaUrl, so they already returned above — this only filters video.
+  // guard below narrows it back to ConversationMediaKind (it rejects nothing at
+  // runtime — structured shares have no mediaUrl and already returned above).
   const kind = message.mediaType === "sticker" ? "image" : message.mediaType;
   if (kind !== "image" && kind !== "audio" && kind !== "video" && kind !== "document") {
     return null;

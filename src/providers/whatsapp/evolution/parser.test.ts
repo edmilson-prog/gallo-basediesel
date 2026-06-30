@@ -101,6 +101,18 @@ describe("parseEvolutionInbound — structured shares (location/contact)", () =>
     expect(parsed.text).toBe("Oficina Central\n-27.39,-53.4");
   });
 
+  it("falls back to the location address when no name was attached", () => {
+    const parsed = parseEvolutionInbound(
+      upsertEvent({
+        message: {
+          locationMessage: { address: "Av. Brasil, 1000 - Centro", degreesLatitude: -27.39, degreesLongitude: -53.4 },
+        },
+      }),
+      "",
+    ) as { contentType: string; text: string };
+    expect(parsed.text).toBe("Av. Brasil, 1000 - Centro\n-27.39,-53.4");
+  });
+
   it("normalizes a single shared contact (name + phone from the vCard)", () => {
     const parsed = parseEvolutionInbound(
       upsertEvent({

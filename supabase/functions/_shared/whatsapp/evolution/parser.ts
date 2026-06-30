@@ -16,7 +16,7 @@
  */
 
 import { toE164 } from "../phone.ts";
-import { encodeContact, encodeLocation, phoneFromVCard } from "../contentFormat.ts";
+import { encodeBaileysContact, encodeBaileysLocation } from "../contentFormat.ts";
 import type { IInboundMessage, IInboundStatus, InboundContentType, IOutboundEcho } from "../types.ts";
 
 interface IEvolutionEvent {
@@ -35,7 +35,12 @@ export interface IEvolutionRawMessage {
   audioMessage?: { mimetype?: string };
   videoMessage?: { caption?: string; mimetype?: string };
   documentMessage?: { caption?: string; fileName?: string; mimetype?: string };
-  locationMessage?: { degreesLatitude?: number; degreesLongitude?: number; name?: string };
+  locationMessage?: {
+    degreesLatitude?: number;
+    degreesLongitude?: number;
+    name?: string;
+    address?: string;
+  };
   contactMessage?: { displayName?: string; vcard?: string };
   /** Multi-contact share — Baileys nests the cards under `contacts[]`. */
   contactsArrayMessage?: { contacts?: Array<{ displayName?: string; vcard?: string }> };
@@ -90,23 +95,14 @@ export function extractEvolutionContent(message: IEvolutionRawMessage): IEvoluti
   if (message.documentMessage)
     return { contentType: "document", mediaCaption: message.documentMessage.caption };
   if (message.locationMessage) {
-    const { name, degreesLatitude, degreesLongitude } = message.locationMessage;
-    return {
-      contentType: "location",
-      text: encodeLocation({ name, lat: degreesLatitude, lng: degreesLongitude }),
-    };
+    return { contentType: "location", text: encodeBaileysLocation(message.locationMessage) };
   }
   // Single contact OR the first card of a multi-contact share (we surface one
   // card; the rest stay in rawPayload — multi-card rendering is out of scope).
   const contactNode = message.contactMessage ?? message.contactsArrayMessage?.contacts?.[0];
-  if (contactNode)
-    return {
-      contentType: "contact",
-      text: encodeContact({
-        name: contactNode.displayName,
-        phone: phoneFromVCard(contactNode.vcard),
-      }),
-    };
+  if (contactNode) {
+    return { contentType: "contact", text: encodeBaileysContact(contactNode) };
+  }
   return { contentType: "unknown" };
 }
 

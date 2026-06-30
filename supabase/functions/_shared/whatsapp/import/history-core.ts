@@ -24,6 +24,7 @@
 
 import { extractContent, jidToE164, type IGoMessageBody } from "../evolution-go/parser.ts";
 import type { INormalizedRecord } from "./core.ts";
+import { MEDIA_DISCRIMINATOR_TYPES } from "../types.ts";
 
 // ===== Captured payload shapes (subset we consume) ===========================
 
@@ -73,11 +74,6 @@ export interface IGoAggregateStats {
 
 // ===== Constants =============================================================
 
-// Content types that get a non-null `media_type` discriminator. Mirrors the
-// live webhook's `toMediaType` (webhook/core.ts): "location"/"contact" carry no
-// bytes but still need the discriminator so imported shares render as cards
-// instead of raw encoded text — exactly like live ones.
-const MEDIA_TYPES = ["image", "audio", "video", "document", "location", "contact"] as const;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 // ===== Record normalization ==================================================
@@ -105,7 +101,7 @@ export function normalizeWhatsmeowRecord(webMessageInfo: unknown): INormalizedRe
   if (content.contentType === "unknown" && !content.text) return null;
 
   const text = content.text ?? content.mediaCaption ?? "";
-  const mediaType = (MEDIA_TYPES as readonly string[]).includes(content.contentType)
+  const mediaType = (MEDIA_DISCRIMINATOR_TYPES as readonly string[]).includes(content.contentType)
     ? content.contentType
     : null;
   const direction: "in" | "out" = wmi?.key?.fromMe ? "out" : "in";

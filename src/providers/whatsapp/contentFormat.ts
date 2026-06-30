@@ -141,3 +141,36 @@ export function phoneFromVCard(vcard: string | undefined | null): string | undef
   if (tel) return toE164(tel[1] as string);
   return undefined;
 }
+
+/**
+ * Baileys-shaped location/contact nodes — the proto fields shared by the
+ * Evolution classic and Evolution Go (whatsmeow) parsers. Centralizing the
+ * node → canonical-text mapping here keeps the two engines in lockstep.
+ */
+export interface IBaileysLocationNode {
+  degreesLatitude?: number;
+  degreesLongitude?: number;
+  name?: string;
+  /** Street/neighborhood label — often the most specific text the pin carries. */
+  address?: string;
+}
+
+export interface IBaileysContactNode {
+  displayName?: string;
+  vcard?: string;
+}
+
+/** Baileys location node → canonical location text. `address` is the label
+ *  fallback when the share carried no `name` (otherwise it would be dropped). */
+export function encodeBaileysLocation(node: IBaileysLocationNode): string {
+  return encodeLocation({
+    name: node.name || node.address,
+    lat: node.degreesLatitude,
+    lng: node.degreesLongitude,
+  });
+}
+
+/** Baileys contact node → canonical contact text (phone from the vCard). */
+export function encodeBaileysContact(node: IBaileysContactNode): string {
+  return encodeContact({ name: node.displayName, phone: phoneFromVCard(node.vcard) });
+}

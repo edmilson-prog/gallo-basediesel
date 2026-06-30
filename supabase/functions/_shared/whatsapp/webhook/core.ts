@@ -19,6 +19,7 @@ import { parseEvolutionGoInbound } from "../evolution-go/parser.ts";
 import { parseMetaInbound } from "../meta/parser.ts";
 import type { IWhatsAppProvider } from "../IWhatsAppProvider.ts";
 import type { IInboundMessage, IInboundStatus, IOutboundEcho } from "../types.ts";
+import { MEDIA_DISCRIMINATOR_TYPES } from "../types.ts";
 
 export interface IAccountRecord {
   id: string;
@@ -223,8 +224,9 @@ function looksLikeName(value: string | undefined): value is string {
 function toMediaType(contentType: string): string | null {
   // location/contact carry no binary (no mediaId → media download never runs),
   // but the column still discriminates them so the UI renders the right bubble;
-  // the structured payload rides in `text` (see ../contentFormat).
-  return ["image", "audio", "video", "document", "location", "contact"].includes(contentType)
+  // the structured payload rides in `text` (see ../contentFormat). The membership
+  // set is shared (MEDIA_DISCRIMINATOR_TYPES) with the history importers.
+  return (MEDIA_DISCRIMINATOR_TYPES as readonly string[]).includes(contentType)
     ? contentType
     : null;
 }

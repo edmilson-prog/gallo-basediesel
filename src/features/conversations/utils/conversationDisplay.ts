@@ -10,7 +10,7 @@ import type {
 } from "@/shared/types";
 import { hashHue, initialsFrom, isPhoneLikeName } from "@/shared/utils/avatar";
 import { decodeContact, decodeLocation } from "@/providers/whatsapp/contentFormat";
-import { INBOX_STRINGS } from "../i18n/pt-BR";
+import { INBOX_STRINGS, STRUCTURED_PREVIEW_ICON } from "../i18n/pt-BR";
 
 export interface IConversationDisplay {
   name: string;
@@ -108,11 +108,11 @@ export function getMessagePreview(message: IMessage | null): string {
   // — falls back to the generic label when no name was attached.
   if (message.mediaType === "contact") {
     const { name } = decodeContact(message.text);
-    return name ? `👤 ${name}` : INBOX_STRINGS.mediaPreview.contact;
+    return name ? `${STRUCTURED_PREVIEW_ICON.contact} ${name}` : INBOX_STRINGS.mediaPreview.contact;
   }
   if (message.mediaType === "location") {
     const { name } = decodeLocation(message.text);
-    return name ? `📍 ${name}` : INBOX_STRINGS.mediaPreview.location;
+    return name ? `${STRUCTURED_PREVIEW_ICON.location} ${name}` : INBOX_STRINGS.mediaPreview.location;
   }
   if (message.mediaType) {
     return INBOX_STRINGS.mediaPreview[message.mediaType] ?? "📎 Anexo";

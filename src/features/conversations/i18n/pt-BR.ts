@@ -6,6 +6,13 @@
  * strings outside JSX leaves the components clean and lets them be reused
  * by tests / Storybook entries without parsing UI markup.
  */
+/**
+ * Emoji prefixes for structured-share previews — single source so the named
+ * variant (`📍 <name>`) and the generic fallback label (`📍 Localização`) can
+ * never drift to different icons. Used by `getMessagePreview`.
+ */
+export const STRUCTURED_PREVIEW_ICON = { contact: "👤", location: "📍" } as const;
+
 export const INBOX_STRINGS = {
   pageTitle: "Conversas",
 
@@ -104,8 +111,8 @@ export const INBOX_STRINGS = {
     video: "🎬 Vídeo",
     document: "📄 Documento",
     sticker: "🌟 Sticker",
-    location: "📍 Localização",
-    contact: "👤 Contato",
+    location: `${STRUCTURED_PREVIEW_ICON.location} Localização`,
+    contact: `${STRUCTURED_PREVIEW_ICON.contact} Contato`,
   },
 
   // Quick actions

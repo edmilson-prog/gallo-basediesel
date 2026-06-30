@@ -15,6 +15,7 @@
 
 import { EVOLUTION_ACK_STATUS_MAP, extractEvolutionContent, jidToE164 } from "../evolution/parser";
 import type { IEvolutionStoredMessage } from "../evolution/instance";
+import { MEDIA_DISCRIMINATOR_TYPES } from "../types";
 
 // ===== Stats =================================================================
 
@@ -151,12 +152,6 @@ const BATCH_CHATS_DEFAULT = 10;
 /** Runaway guard: 50 pages × ~100 records ≈ 5 k messages per chat. */
 const MAX_MESSAGE_PAGES_PER_CHAT = 50;
 
-// Content types that get a non-null `media_type` discriminator. Mirrors the
-// live webhook's `toMediaType` (webhook/core.ts): "location"/"contact" carry no
-// bytes but still need the discriminator so imported shares render as cards
-// instead of raw encoded text — exactly like live ones.
-const MEDIA_TYPES = ["image", "audio", "video", "document", "location", "contact"] as const;
-
 // ===== Helpers ===============================================================
 
 /**
@@ -183,7 +178,7 @@ function normalizeRecord(record: IEvolutionStoredMessage): INormalizedRecord | n
   if (content.contentType === "unknown" && !content.text) return null;
 
   const text = content.text ?? content.mediaCaption ?? "";
-  const mediaType = (MEDIA_TYPES as readonly string[]).includes(content.contentType)
+  const mediaType = (MEDIA_DISCRIMINATOR_TYPES as readonly string[]).includes(content.contentType)
     ? content.contentType
     : null;
   const direction: "in" | "out" = record.key?.fromMe ? "out" : "in";

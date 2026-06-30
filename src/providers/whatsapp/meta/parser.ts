@@ -141,11 +141,12 @@ export function parseMetaInbound(
   }
 
   if (type === "location") {
-    const { latitude, longitude, name } = message.location ?? {};
+    const { latitude, longitude, name, address } = message.location ?? {};
     return {
       ...base,
       contentType: "location",
-      text: encodeLocation({ name, lat: latitude, lng: longitude }),
+      // `address` is the label fallback when the pin carried no `name`.
+      text: encodeLocation({ name: name || address, lat: latitude, lng: longitude }),
     };
   }
 
