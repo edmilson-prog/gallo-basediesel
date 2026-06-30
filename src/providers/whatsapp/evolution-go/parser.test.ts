@@ -56,7 +56,18 @@ describe("parseEvolutionGoInbound", () => {
     expect(parsed.type).toBe("message");
     expect(parsed.contentType).toBe("image");
     expect(parsed.mediaCaption).toBe("foto da peça");
-    expect(decodeGoMediaRef(parsed.mediaId)).toMatchObject({ mimetype: "image/jpeg", url: "https://m/x.enc" });
+    // The media sub-node is forwarded VERBATIM under its proto key, so the
+    // download call can POST it back as `{ message: { imageMessage: … } }`.
+    expect(decodeGoMediaRef(parsed.mediaId)).toEqual({
+      imageMessage: {
+        caption: "foto da peça",
+        mimetype: "image/jpeg",
+        url: "https://m/x.enc",
+        directPath: "/v/t",
+        mediaKey: "AAAA",
+        fileLength: 99,
+      },
+    });
   });
 
   it("returns outbound-echo when IsFromMe=true", () => {

@@ -69,12 +69,17 @@ describe("EvolutionGoProvider", () => {
     await expect(provider.uploadOutboundMedia(new Uint8Array([1]), "image/png")).rejects.toMatchObject({ code: "NOT_SUPPORTED" });
   });
 
-  it("downloadInboundMedia decodes the media ref, posts /message/downloadimage and decodes base64", async () => {
-    const ref = encodeGoMediaRef({ url: "https://m/x.enc", directPath: "/v/t", mediaKey: "AAAA", mimetype: "image/jpeg", fileLength: 3 });
+  it("downloadInboundMedia posts the message proto to /message/downloadmedia and decodes the Data URL", async () => {
+    const ref = encodeGoMediaRef({
+      imageMessage: { url: "https://m/x.enc", directPath: "/v/t", mediaKey: "AAAA", mimetype: "image/jpeg", fileLength: 3 },
+    });
     const fetchFn = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
-      expect(String(url)).toBe("https://go.test/message/downloadimage");
-      expect(JSON.parse(String(init?.body))).toMatchObject({ url: "https://m/x.enc", directPath: "/v/t", mimetype: "image/jpeg" });
-      return jsonResponse({ success: true, image: btoa("abc") });
+      expect(String(url)).toBe("https://go.test/message/downloadmedia");
+      // The body wraps the verbatim node under `message`, as DownloadMediaStruct expects.
+      expect(JSON.parse(String(init?.body))).toEqual({
+        message: { imageMessage: { url: "https://m/x.enc", directPath: "/v/t", mediaKey: "AAAA", mimetype: "image/jpeg", fileLength: 3 } },
+      });
+      return jsonResponse({ message: "success", data: { base64: `data:image/jpeg;base64,${btoa("abc")}`, timestamp: "1" } });
     }) as unknown as typeof fetch;
     const { provider } = makeProvider(fetchFn);
 
@@ -82,6 +87,31 @@ describe("EvolutionGoProvider", () => {
     expect(out.mimeType).toBe("image/jpeg");
     expect(out.sizeBytes).toBe(3);
     expect(new TextDecoder().decode(out.data)).toBe("abc");
+  });
+
+  it("downloadInboundMedia handles non-image media through the same endpoint (audio)", async () => {
+    const ref = encodeGoMediaRef({
+      audioMessage: { directPath: "/v/a", mediaKey: "BBBB", mimetype: "audio/ogg; codecs=opus", fileLength: 5 },
+    });
+    const fetchFn = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(url)).toBe("https://go.test/message/downloadmedia");
+      expect(JSON.parse(String(init?.body))).toEqual({
+        message: { audioMessage: { directPath: "/v/a", mediaKey: "BBBB", mimetype: "audio/ogg; codecs=opus", fileLength: 5 } },
+      });
+      return jsonResponse({ message: "success", data: { base64: `data:audio/ogg;base64,${btoa("audio")}`, timestamp: "1" } });
+    }) as unknown as typeof fetch;
+    const { provider } = makeProvider(fetchFn);
+
+    const out = await provider.downloadInboundMedia(ref);
+    expect(out.mimeType).toBe("audio/ogg");
+    expect(new TextDecoder().decode(out.data)).toBe("audio");
+  });
+
+  it("downloadInboundMedia throws NOT_FOUND when the response carries no media", async () => {
+    const ref = encodeGoMediaRef({ imageMessage: { url: "https://m/x.enc", mimetype: "image/jpeg" } });
+    const fetchFn = vi.fn(async () => jsonResponse({ message: "success", data: {} })) as unknown as typeof fetch;
+    const { provider } = makeProvider(fetchFn);
+    await expect(provider.downloadInboundMedia(ref)).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
   it("verifyWebhookSignature compares the payload instanceToken to the Vault token", async () => {
@@ -111,8 +141,8 @@ describe("EvolutionGoProvider", () => {
   });
 
   it("downloadInboundMedia throws INTEGRATION_ERROR on malformed base64", async () => {
-    const ref = encodeGoMediaRef({ url: "https://m/x.enc", mimetype: "image/jpeg" });
-    const fetchFn = vi.fn(async () => jsonResponse({ success: true, image: "!!!not-base64!!!" })) as unknown as typeof fetch;
+    const ref = encodeGoMediaRef({ imageMessage: { url: "https://m/x.enc", mimetype: "image/jpeg" } });
+    const fetchFn = vi.fn(async () => jsonResponse({ message: "success", data: { base64: "!!!not-base64!!!" } })) as unknown as typeof fetch;
     const { provider } = makeProvider(fetchFn);
     await expect(provider.downloadInboundMedia(ref)).rejects.toMatchObject({ code: "INTEGRATION_ERROR" });
   });
