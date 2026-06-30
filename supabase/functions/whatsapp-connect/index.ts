@@ -59,6 +59,22 @@ const QR_EXPIRES_IN_SECONDS = 30;
 const ACTIONS = ["test", "qr", "state", "logout", "restart", "test-message", "delete"] as const;
 type ConnectAction = (typeof ACTIONS)[number];
 
+/**
+ * Build the Evolution inbound-webhook URL, carrying the shared `?token=<T>` when
+ * EVOLUTION_WEBHOOK_TOKEN is configured. The Evolution server echoes the full URL
+ * (query included) back on every post, so the token authenticates the webhook
+ * independently of the server's egress IP — surviving VPS IP changes that
+ * silently break the legacy IP allowlist (the 2026-06-23 incident). When the
+ * token is unset, the bare URL is returned and the webhook still authenticates
+ * via the IP allowlist (see evolutionGate in whatsapp-webhook). Keep this in
+ * sync with that gate's token name.
+ */
+async function buildEvolutionWebhookUrl(deps: IEngineDeps): Promise<string> {
+  const base = `${requiredEnv("SUPABASE_URL")}/functions/v1/whatsapp-webhook/evolution`;
+  const token = await deps.resolveSecret("EVOLUTION_WEBHOOK_TOKEN");
+  return token ? `${base}?token=${encodeURIComponent(token)}` : base;
+}
+
 interface IAccountRow {
   id: string;
   store_id: string;
@@ -742,6 +758,25 @@ servePost(async (req, ctx) => {
             // Already connected: self-heal a number that wasn't ready at pairing.
             await backfillMissingProfile(admin, account, apiKey, deps, target, ctx.traceId);
           }
+          // Self-heal the webhook registration on every healthy poll: re-point the
+          // instance at our webhook (carrying the auth token). Mirrors evolution-go,
+          // which re-arms on every connect — so a server-side webhook wipe (e.g. an
+          // Evolution restart that drops the config, the 2026-06-23 incident) recovers
+          // on the next poll instead of needing a manual reconnect. Best-effort: a
+          // failure here must never break the status poll.
+          try {
+            await setInstanceWebhook(
+              apiKey,
+              deps,
+              target,
+              await buildEvolutionWebhookUrl(deps),
+              ctx.traceId,
+            );
+          } catch (err) {
+            ctx.log.warn("evolution webhook self-heal failed (non-fatal)", {
+              error: err instanceof Error ? err.message : String(err),
+            });
+          }
         } else {
           await markDisconnected(admin, account, actorId, result.state);
         }
@@ -755,7 +790,7 @@ servePost(async (req, ctx) => {
         await createInstance(apiKey, deps, target, ctx.traceId);
         // Point the instance at our unified webhook before pairing (idempotent;
         // best-effort — a failure here must not block the QR).
-        const webhookUrl = `${requiredEnv("SUPABASE_URL")}/functions/v1/whatsapp-webhook/evolution`;
+        const webhookUrl = await buildEvolutionWebhookUrl(deps);
         try {
           await setInstanceWebhook(apiKey, deps, target, webhookUrl, ctx.traceId);
           if (actorId) {
@@ -765,7 +800,9 @@ servePost(async (req, ctx) => {
               action: "whatsapp_instance_webhook_set",
               resource: "whatsapp_account",
               resource_id: account.id,
-              after: { url: webhookUrl },
+              // Strip the `?token=` so the shared webhook token never lands in
+              // audit_logs (broadly readable). The token's only home is the Vault.
+              after: { url: webhookUrl.split("?")[0] },
             });
           }
         } catch (err) {
