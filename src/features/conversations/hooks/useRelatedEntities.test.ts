@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { ID, IConversation, IMessage } from "@/shared/types";
-import { missingIds, newerMessage } from "./useRelatedEntities";
+import { missingIds, newerMessage, recencyKeyOf } from "./useRelatedEntities";
 
 /**
  * Unit tests for the pure core of `useRelatedEntities` (node env — no DOM, no
@@ -15,6 +15,11 @@ import { missingIds, newerMessage } from "./useRelatedEntities";
 /** Minimal conversation fixture — only the fields the resolver reads. */
 function conv(id: string, customerId?: string, leadId?: string): IConversation {
   return { id, customerId, leadId } as unknown as IConversation;
+}
+
+/** Conversation fixture carrying a last-message timestamp (recency key input). */
+function convAt(id: string, lastMessageAt: string): IConversation {
+  return { id, lastMessageAt } as unknown as IConversation;
 }
 
 describe("missingIds", () => {
@@ -53,6 +58,42 @@ describe("newerMessage", () => {
     const olderLateArrival = msg("m1", "2026-06-19T10:00:00.000Z");
     // An overlapping run's slow lookup resolves after the newer one — must keep newer.
     expect(newerMessage(newer, olderLateArrival)).toBe(newer);
+  });
+});
+
+describe("recencyKeyOf (the stale-preview fix)", () => {
+  it("is stable when the set, order and recency are unchanged", () => {
+    const list = [
+      convAt("conv-1", "2026-06-30T10:00:00.000Z"),
+      convAt("conv-2", "2026-06-30T09:00:00.000Z"),
+    ];
+    expect(recencyKeyOf(list)).toBe(recencyKeyOf([...list]));
+  });
+
+  it("changes when the TOP conversation receives a newer message (same order)", () => {
+    // The exact bug: conv-1 stays at the top, so the id order is identical, but
+    // its last message advanced — the key MUST change so the preview re-resolves.
+    const before = [
+      convAt("conv-1", "2026-06-30T10:00:00.000Z"),
+      convAt("conv-2", "2026-06-30T09:00:00.000Z"),
+    ];
+    const after = [
+      convAt("conv-1", "2026-06-30T10:05:00.000Z"),
+      convAt("conv-2", "2026-06-30T09:00:00.000Z"),
+    ];
+    expect(recencyKeyOf(after)).not.toBe(recencyKeyOf(before));
+  });
+
+  it("changes when the conversation order changes", () => {
+    const a = convAt("conv-1", "2026-06-30T10:00:00.000Z");
+    const b = convAt("conv-2", "2026-06-30T09:00:00.000Z");
+    expect(recencyKeyOf([a, b])).not.toBe(recencyKeyOf([b, a]));
+  });
+
+  it("changes when a new conversation joins the set", () => {
+    const base = [convAt("conv-1", "2026-06-30T10:00:00.000Z")];
+    const grown = [...base, convAt("conv-2", "2026-06-30T11:00:00.000Z")];
+    expect(recencyKeyOf(grown)).not.toBe(recencyKeyOf(base));
   });
 });
 
