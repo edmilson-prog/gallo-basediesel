@@ -516,6 +516,19 @@ async function evolutionGate(
   log: Logger,
   resolveSecret: VaultSecretResolver,
 ): Promise<Response | null> {
+  // Primary gate: shared URL token (IP-independent). The webhook URL we register
+  // on the Evolution server carries `?token=<T>` (see buildEvolutionWebhookUrl in
+  // whatsapp-connect), so the server echoes it back on every post. This survives
+  // VPS egress-IP changes — unlike the IP allowlist below, which silently broke
+  // when the server's IP moved on 2026-06-23. A present, matching token
+  // authenticates; an absent/mismatched token falls through to the legacy gates,
+  // so instances not yet re-armed with a token keep working (zero-downtime
+  // rollout). Keep the token name in sync with whatsapp-connect.
+  const expectedToken = await resolveSecret("EVOLUTION_WEBHOOK_TOKEN");
+  if (expectedToken) {
+    const provided = new URL(req.url).searchParams.get("token") ?? "";
+    if (provided && timingSafeEqualStrings(provided, expectedToken)) return null;
+  }
   // Per-account webhook secret (preferred when configured on the instance).
   const secret = account
     ? await resolveSecret(`${account.credentialsRef}_WEBHOOK_SECRET`)
