@@ -83,7 +83,9 @@ export function ConversationPage() {
   const media = useMediaGallery();
   const messages = useMessages(conversationId);
   // PRD-118: live INSERT/UPDATE stream of this conversation (supabase only).
-  useRealtimeMessages(conversationId, messages.applyRealtimeRow);
+  // `syncLatest` is the conversations-channel fallback for missed messages
+  // INSERTs — see useRealtimeMessages.
+  useRealtimeMessages(conversationId, messages.applyRealtimeRow, messages.syncLatest);
   const escalation = useConversationEscalation(conversationId);
   const copilot = useCopilotPanel(conversationId);
   // Status-control display mode (per-device). Lifted here so the header's

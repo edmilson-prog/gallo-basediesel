@@ -25,6 +25,23 @@ interface IMessageRealtimeRow {
   failure_code: string | null;
 }
 
+/** Debounce window collapsing a burst of conversation touches into one sync. */
+const TOUCH_REFETCH_DEBOUNCE_MS = 250;
+
+/** True when a `messages` Realtime row belongs to the open conversation. */
+export function messageRowMatches(
+  row: Partial<IMessageRealtimeRow> | null | undefined,
+  conversationId: ID,
+): boolean {
+  return Boolean(row?.id) && row?.conversation_id === conversationId;
+}
+
+/** True when a `conversations` Realtime row is the open conversation (a touch). */
+export function conversationTouchMatches(row: unknown, conversationId: ID): boolean {
+  const id = (row as { id?: string } | null | undefined)?.id;
+  return Boolean(id) && id === conversationId;
+}
+
 /**
  * Local snake_case mapper. The supabase provider has an equivalent private
  * one, but provider impls are not importable outside `providers/data`
@@ -66,15 +83,47 @@ function rowToMessage(row: IMessageRealtimeRow): IMessage {
  *
  * Takes `apply` directly (instead of the ConversationContext) so the page can
  * wire it before the provider mounts.
+ *
+ * Fallback (`syncLatest`): the `messages` postgres_changes channel can miss
+ * INSERTs on this high-volume table — its per-row RLS evaluation over
+ * `can_access_conversation` is the same cost wall the SELECT path had to
+ * optimize, and the Realtime authorizer doesn't share that optimization — while
+ * the `conversations` channel reliably delivers the touch (`last_message_at`
+ * UPDATE) the webhook performs on every message. So this hook ALSO watches
+ * `conversations` and, on a touch of THIS conversation, debounce-runs
+ * `syncLatest` to merge the latest page. The open thread then catches up live
+ * even when the messages channel drops the event, instead of forcing the user
+ * to leave and re-enter the conversation.
  */
-export function useRealtimeMessages(conversationId: ID, apply: (row: IMessage) => void): void {
+export function useRealtimeMessages(
+  conversationId: ID,
+  apply: (row: IMessage) => void,
+  syncLatest?: () => void | Promise<void>,
+): void {
   useEffect(() => {
     if (!IS_SUPABASE) return;
-    const off = subscribeToTable("messages", (payload) => {
+
+    // Fast path: live INSERT/UPDATE of this conversation straight into cache.
+    const offMessages = subscribeToTable("messages", (payload) => {
       const row = payload.new as Partial<IMessageRealtimeRow> | null;
-      if (!row?.id || row.conversation_id !== conversationId) return;
+      if (!messageRowMatches(row, conversationId)) return;
       apply(rowToMessage(row as IMessageRealtimeRow));
     });
-    return off;
-  }, [apply, conversationId]);
+
+    // Fallback: catch-up via the reliable conversations channel (debounced).
+    let handle: number | undefined;
+    const offConversations = syncLatest
+      ? subscribeToTable("conversations", (payload) => {
+          if (!conversationTouchMatches(payload.new, conversationId)) return;
+          if (handle !== undefined) window.clearTimeout(handle);
+          handle = window.setTimeout(() => void syncLatest(), TOUCH_REFETCH_DEBOUNCE_MS);
+        })
+      : undefined;
+
+    return () => {
+      offMessages();
+      offConversations?.();
+      if (handle !== undefined) window.clearTimeout(handle);
+    };
+  }, [apply, syncLatest, conversationId]);
 }

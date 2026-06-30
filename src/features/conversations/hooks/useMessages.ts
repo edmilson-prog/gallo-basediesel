@@ -22,6 +22,19 @@ function messagesKey(conversationId: ID): readonly [string, ID] {
   return ["messages", conversationId];
 }
 
+/**
+ * Reverse a newest-first provider page to oldest-first.
+ *
+ * `syncLatest` feeds each row to `applyRealtimeRow`, whose new-row path
+ * (`prependNewest`) pushes to the HEAD of the newest page. Applying the page in
+ * its native desc order would invert the head; applying oldest-first lands each
+ * newer row above the previous one, preserving the desc invariant the display
+ * memo relies on. Returns a fresh array (never mutates the input).
+ */
+export function toAscending(descRows: IMessage[]): IMessage[] {
+  return [...descRows].reverse();
+}
+
 export interface IUseMessagesResult {
   messages: IMessage[];
   isLoading: boolean;
@@ -56,6 +69,15 @@ export interface IUseMessagesResult {
    * INSERT event cannot downgrade an already `sent` bubble).
    */
   applyRealtimeRow: (incoming: IMessage) => void;
+  /**
+   * Live catch-up fallback: refetch the latest page and merge each row through
+   * `applyRealtimeRow`. Used when the `messages` Realtime channel misses an
+   * INSERT but the `conversations` channel delivers the touch (see
+   * {@link useRealtimeMessages}). Optimistic-safe — only ADDS missing rows and
+   * patches statuses forward, so an in-flight optimistic bubble is never
+   * dropped (unlike a full `refetch`).
+   */
+  syncLatest: () => Promise<void>;
 }
 
 /**
@@ -209,6 +231,22 @@ export function useMessages(conversationId: ID): IUseMessagesResult {
     [queryClient, conversationId, prependNewest, mapPages],
   );
 
+  const syncLatest = useCallback(async () => {
+    try {
+      const result = await provider.list({
+        conversationId,
+        page: 1,
+        pageSize: PAGE_SIZE,
+        orderDir: "desc",
+      });
+      // Oldest-first so each prepend lands a newer row above the previous one.
+      for (const row of toAscending(result.data)) applyRealtimeRow(row);
+    } catch {
+      // Best-effort live catch-up: a failed sync leaves the thread as-is —
+      // re-entering the conversation forces a full refetch (staleTime: 0).
+    }
+  }, [provider, conversationId, applyRealtimeRow]);
+
   const { fetchNextPage, refetch, hasNextPage, isFetchingNextPage } = query;
 
   const loadMore = useCallback(async () => {
@@ -248,5 +286,6 @@ export function useMessages(conversationId: ID): IUseMessagesResult {
     retry,
     patchStatus,
     applyRealtimeRow,
+    syncLatest,
   };
 }
