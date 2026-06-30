@@ -98,7 +98,8 @@ describe("EvolutionGoProvider", () => {
       expect(JSON.parse(String(init?.body))).toEqual({
         message: { audioMessage: { directPath: "/v/a", mediaKey: "BBBB", mimetype: "audio/ogg; codecs=opus", fileLength: 5 } },
       });
-      return jsonResponse({ message: "success", data: { base64: `data:audio/ogg;base64,${btoa("audio")}`, timestamp: "1" } });
+      // Go serializes the WhatsApp opus mimetype verbatim into the Data URL.
+      return jsonResponse({ message: "success", data: { base64: `data:audio/ogg; codecs=opus;base64,${btoa("audio")}`, timestamp: "1" } });
     }) as unknown as typeof fetch;
     const { provider } = makeProvider(fetchFn);
 

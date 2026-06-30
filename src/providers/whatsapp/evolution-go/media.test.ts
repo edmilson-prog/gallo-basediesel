@@ -27,6 +27,12 @@ describe("decodeGoMediaPayload", () => {
     expect(new TextDecoder().decode(payload.bytes)).toBe("abc");
   });
 
+  it("strips mediatype parameters (WhatsApp audio: audio/ogg; codecs=opus)", () => {
+    const payload = decodeGoMediaPayload(`data:audio/ogg; codecs=opus;base64,${btoa("voice")}`);
+    expect(payload.mimeType).toBe("audio/ogg");
+    expect(new TextDecoder().decode(payload.bytes)).toBe("voice");
+  });
+
   it("falls back to bare base64 when there is no data: prefix", () => {
     const payload = decodeGoMediaPayload(btoa("hello"));
     expect(payload.mimeType).toBe("application/octet-stream");

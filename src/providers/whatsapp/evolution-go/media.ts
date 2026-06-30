@@ -68,9 +68,18 @@ function base64ToBytes(base64: string): Uint8Array {
  * INTEGRATION_ERROR.
  */
 export function decodeGoMediaPayload(raw: string): IGoMediaPayload {
-  const dataUrl = /^data:([^;,]*);base64,([\s\S]*)$/.exec(raw);
+  // The mediatype may carry parameters — WhatsApp voice notes are
+  // `audio/ogg; codecs=opus`, and Go's dataurl lib serializes that verbatim
+  // into the mediatype (`data:audio/ogg; codecs=opus;base64,…`). Match anything
+  // up to the final `;base64,`, then strip parameters to a clean base mime so
+  // the Storage extension lookup + Content-Type stay tidy.
+  const dataUrl = /^data:([^,]*?);base64,([\s\S]*)$/.exec(raw);
   if (dataUrl) {
-    return { bytes: base64ToBytes(dataUrl[2] ?? ""), mimeType: dataUrl[1] || "application/octet-stream" };
+    const baseMime = ((dataUrl[1] ?? "").split(";")[0] ?? "").trim();
+    return {
+      bytes: base64ToBytes(dataUrl[2] ?? ""),
+      mimeType: baseMime || "application/octet-stream",
+    };
   }
   // Defensive fallback: a bare base64 string with no `data:` prefix.
   return { bytes: base64ToBytes(raw), mimeType: "application/octet-stream" };
