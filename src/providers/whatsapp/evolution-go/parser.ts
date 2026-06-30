@@ -8,7 +8,7 @@
  */
 
 import { toE164 } from "../phone";
-import { encodeGoMediaRef, type IGoMediaRef } from "./media";
+import { encodeGoMediaRef, type GoMediaMessageKey } from "./media";
 import type { IInboundMessage, IInboundStatus, InboundContentType, IOutboundEcho } from "../types";
 
 interface IGoInfo {
@@ -70,17 +70,14 @@ export function tsToIso(value: string | number | undefined): string {
   return Number.isFinite(n) && n > 0 ? new Date(n * 1000).toISOString() : new Date().toISOString();
 }
 
-function mediaRefFrom(node: IGoMediaNode): string {
-  const ref: IGoMediaRef = {
-    url: node.url,
-    directPath: node.directPath,
-    mediaKey: node.mediaKey,
-    fileEncSHA256: node.fileEncSHA256,
-    fileSHA256: node.fileSHA256,
-    fileLength: node.fileLength,
-    mimetype: node.mimetype,
-  };
-  return encodeGoMediaRef(ref);
+/**
+ * Serialize the media sub-node VERBATIM under its proto key, so the download
+ * call can POST it back as `{ message: { <key>: <node> } }`. Forwarding the raw
+ * node (not a re-picked subset) preserves every field whatsmeow needs to
+ * re-download — mediaKey / fileEncSHA256 / fileSHA256 / directPath / fileLength.
+ */
+function mediaRefFrom(key: GoMediaMessageKey, node: IGoMediaNode): string {
+  return encodeGoMediaRef({ [key]: node });
 }
 
 export interface IGoContent {
@@ -95,12 +92,12 @@ export function extractContent(msg: IGoMessageBody): IGoContent {
     return { contentType: "text", text: msg.conversation ?? msg.extendedTextMessage?.text };
   }
   if (msg.imageMessage)
-    return { contentType: "image", mediaCaption: msg.imageMessage.caption, mediaId: mediaRefFrom(msg.imageMessage) };
-  if (msg.audioMessage) return { contentType: "audio", mediaId: mediaRefFrom(msg.audioMessage) };
+    return { contentType: "image", mediaCaption: msg.imageMessage.caption, mediaId: mediaRefFrom("imageMessage", msg.imageMessage) };
+  if (msg.audioMessage) return { contentType: "audio", mediaId: mediaRefFrom("audioMessage", msg.audioMessage) };
   if (msg.videoMessage)
-    return { contentType: "video", mediaCaption: msg.videoMessage.caption, mediaId: mediaRefFrom(msg.videoMessage) };
+    return { contentType: "video", mediaCaption: msg.videoMessage.caption, mediaId: mediaRefFrom("videoMessage", msg.videoMessage) };
   if (msg.documentMessage)
-    return { contentType: "document", mediaCaption: msg.documentMessage.caption, mediaId: mediaRefFrom(msg.documentMessage) };
+    return { contentType: "document", mediaCaption: msg.documentMessage.caption, mediaId: mediaRefFrom("documentMessage", msg.documentMessage) };
   return { contentType: "unknown" };
 }
 

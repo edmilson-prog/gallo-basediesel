@@ -27,17 +27,10 @@ import type {
 } from "../types";
 import { EVOLUTION_GO_CAPABILITIES, EVOLUTION_GO_SECRET_SUFFIXES } from "./constants";
 import { goRequest } from "./client";
-import { decodeGoMediaRef } from "./media";
+import { decodeGoMediaPayload, decodeGoMediaRef } from "./media";
 import { parseEvolutionGoInbound } from "./parser";
 
 const SECRET_CACHE_TTL_MS = 60_000;
-
-function base64ToBytes(base64: string): Uint8Array {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes;
-}
 
 export class EvolutionGoProvider implements IWhatsAppProvider {
   readonly providerName = "evolution-go" as const;
@@ -168,34 +161,31 @@ export class EvolutionGoProvider implements IWhatsAppProvider {
   }
 
   async downloadInboundMedia(mediaId: string): Promise<IMediaDownloadResult> {
-    const ref = decodeGoMediaRef(mediaId);
+    // `mediaId` is the original media sub-node, keyed by its proto type. The Go
+    // server wants the whole `waE2E.Message` proto: POST `{ message: <node> }`
+    // to /message/downloadmedia and it re-downloads + decrypts via whatsmeow.
+    const message = decodeGoMediaRef(mediaId);
     const response = await goRequest(await this.instanceToken(), this.deps, {
       baseUrl: this.config.baseUrl,
-      path: "/message/downloadimage",
-      json: {
-        url: ref.url,
-        directPath: ref.directPath,
-        mediaKey: ref.mediaKey,
-        fileEncSHA256: ref.fileEncSHA256,
-        fileSHA256: ref.fileSHA256,
-        fileLength: ref.fileLength,
-        mimetype: ref.mimetype,
-      },
+      path: "/message/downloadmedia",
+      json: { message },
     });
-    const body = response.body as { image?: string } | null;
-    if (!body?.image) {
+    // Success shape: { message: "success", data: { base64: "data:<mime>;base64,<b64>", timestamp } }.
+    const body = response.body as { data?: { base64?: string } } | null;
+    const dataUrl = body?.data?.base64;
+    if (!dataUrl) {
       throw new WhatsAppProviderError("NOT_FOUND", 404, "Mídia Evolution Go não encontrada");
     }
-    let data: Uint8Array;
+    let payload: { bytes: Uint8Array; mimeType: string };
     try {
-      data = base64ToBytes(body.image);
+      payload = decodeGoMediaPayload(dataUrl);
     } catch {
       throw new WhatsAppProviderError("INTEGRATION_ERROR", 502, "Mídia da Evolution Go retornou base64 inválido");
     }
     return {
-      data,
-      mimeType: ref.mimetype ?? "application/octet-stream",
-      sizeBytes: data.byteLength,
+      data: payload.bytes,
+      mimeType: payload.mimeType,
+      sizeBytes: payload.bytes.byteLength,
     };
   }
 
