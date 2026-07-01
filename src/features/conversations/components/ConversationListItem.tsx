@@ -9,6 +9,7 @@ import type {
 } from "@/shared/types";
 import { EscalationBadge } from "@/features/sdr-escalation/components/EscalationBadge";
 import { EcommerceBadge } from "@/features/ecommerce-integration/components/EcommerceBadge";
+import { isQueuedConversation } from "@/features/inbox-alerts";
 import { Icon } from "@/components/Icon";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -273,19 +274,17 @@ function ConversationListItemInner({
             </span>
           )}
 
-          {!conversation.assignedSellerId &&
-            !conversation.isSdrActive &&
-            conversation.status === "aguardando" && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="inline-flex items-center gap-1 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">
-                    <Icon icon="mdi:timer-sand" size={11} />
-                    Em fila
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent side="top">Conversa aguardando distribuição manual</TooltipContent>
-              </Tooltip>
-            )}
+          {isQueuedConversation(conversation) && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex items-center gap-1 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">
+                  <Icon icon="mdi:timer-sand" size={11} />
+                  Em fila
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top">Conversa aguardando distribuição manual</TooltipContent>
+            </Tooltip>
+          )}
 
           {showAssignee && assignedSeller && (
             <AssigneeChip seller={assignedSeller} variant="compact" className="ml-auto shrink-0" />
