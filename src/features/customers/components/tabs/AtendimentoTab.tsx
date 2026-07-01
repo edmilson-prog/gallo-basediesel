@@ -5,6 +5,7 @@ import { AssigneeChip } from "@/features/conversations/components/AssigneeChip";
 import { OriginChip } from "@/features/conversations/components/OriginChip";
 import { StatusControl } from "@/features/conversations/components/status/StatusControl";
 import { CUSTOMER_STRINGS } from "../../i18n/pt-BR";
+import { TabEmptyState } from "../TabEmptyState";
 
 const COPY = CUSTOMER_STRINGS.atendimento;
 
@@ -40,7 +41,7 @@ export function AtendimentoTab({
     customer.tags.includes("pending_review") || customer.tags.includes("reviewed_not_customer");
 
   if (!showBanner && !conversation) {
-    return <p className="p-3 text-xs text-muted-foreground">{COPY.empty}</p>;
+    return <TabEmptyState icon="mdi:check-circle-outline" message={COPY.empty} />;
   }
 
   return (

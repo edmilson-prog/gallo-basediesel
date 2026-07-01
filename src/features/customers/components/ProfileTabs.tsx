@@ -25,6 +25,14 @@ export interface IProfileTabsProps {
   whatsappAccount?: IWhatsAppAccount | null;
   /** Bubbles a StatusControl change up to the caller's conversation refresh. */
   onConversationChanged?: () => void;
+  /**
+   * Initial tab when uncontrolled (no `activeTab` passed). Defaults to
+   * "overview" — callers that want the Atendimento-first experience (the
+   * conversation fiche, the standalone customer page) pass "atendimento"
+   * explicitly. Other callers (e.g. the customers-list preview panel) keep
+   * the pre-existing "Visão geral" default by omitting this prop.
+   */
+  defaultTab?: TabKey;
   /** Controlled active tab (optional). Falls back to internal state. */
   activeTab?: TabKey;
   onActiveTabChange?: (tab: TabKey) => void;
@@ -144,6 +152,7 @@ export function ProfileTabs({
   assignedSeller,
   whatsappAccount,
   onConversationChanged,
+  defaultTab = "overview",
   activeTab,
   onActiveTabChange,
   overviewVariant = "column",
@@ -151,7 +160,7 @@ export function ProfileTabs({
   copilotTab,
 }: IProfileTabsProps) {
   // `activeString` accepts any tab value including the dynamic "copilot" extra tab.
-  const [internalString, setInternalString] = useState<string>("atendimento");
+  const [internalString, setInternalString] = useState<string>(defaultTab);
   const activeString = activeTab ?? internalString;
   const setActive = (v: string) => {
     setInternalString(v);

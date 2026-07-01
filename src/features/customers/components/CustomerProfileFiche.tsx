@@ -62,6 +62,7 @@ export function CustomerProfileFiche({
             assignedSeller={assignedSeller}
             whatsappAccount={whatsappAccount}
             onConversationChanged={onConversationChanged}
+            defaultTab="atendimento"
             variant="column"
             className="h-full border-l-0"
             copilotTab={copilotTab}
@@ -87,6 +88,7 @@ export function CustomerProfileFiche({
           assignedSeller={assignedSeller}
           whatsappAccount={whatsappAccount}
           onConversationChanged={onConversationChanged}
+          defaultTab="atendimento"
           variant="column"
           className="h-full"
           copilotTab={copilotTab}

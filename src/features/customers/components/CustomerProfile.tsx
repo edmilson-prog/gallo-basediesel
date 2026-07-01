@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useCustomerProfile } from "../hooks/useCustomerProfile";
 import { CUSTOMER_STRINGS } from "../i18n/pt-BR";
 import { ProfileHeader } from "./ProfileHeader";
-import { ProfileTabs } from "./ProfileTabs";
+import { ProfileTabs, type TabKey } from "./ProfileTabs";
 import { ProfileSkeleton } from "./ProfileSkeleton";
 
 export interface ICustomerProfileProps {
@@ -24,6 +24,8 @@ export interface ICustomerProfileProps {
   whatsappAccount?: IWhatsAppAccount | null;
   /** Bubbles a StatusControl change up to the caller's conversation refresh. */
   onConversationChanged?: () => void;
+  /** Forwarded to ProfileTabs — omit to keep "Visão geral" as the default (e.g. the customers-list preview panel). */
+  defaultTab?: TabKey;
   /** Layout density — `column` is the lateral 360px panel; `page` is the full route. */
   variant?: "column" | "page";
   className?: string;
@@ -48,6 +50,7 @@ export function CustomerProfile({
   assignedSeller = null,
   whatsappAccount = null,
   onConversationChanged,
+  defaultTab,
   variant = "column",
   className,
   copilotTab,
@@ -110,6 +113,7 @@ export function CustomerProfile({
           assignedSeller={assignedSeller}
           whatsappAccount={whatsappAccount}
           onConversationChanged={onConversationChanged}
+          defaultTab={defaultTab}
           iconOnlyTabs={variant === "column"}
           copilotTab={copilotTab}
         />
