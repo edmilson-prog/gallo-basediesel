@@ -24,7 +24,7 @@ export interface ICustomerDetailPageProps {
 export function CustomerDetailPage({ customerId }: ICustomerDetailPageProps) {
   const { customer, isLoading, isError, notFound, refetch } = useCustomerProfile(customerId);
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<TabKey>("overview");
+  const [activeTab, setActiveTab] = useState<TabKey>("atendimento");
   const tabsRef = useRef<HTMLDivElement>(null);
 
   const goToTab = (tab: TabKey) => {
