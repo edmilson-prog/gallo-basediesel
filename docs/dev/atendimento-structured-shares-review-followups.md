@@ -26,45 +26,60 @@ a correção sugerida.
 > parsers); **C (DRY dos parsers Baileys) e F (`MEDIA_TYPES` triplicado) RESOLVIDOS**
 > — encoders `encodeBaileysLocation`/`encodeBaileysContact` e const único
 > `MEDIA_DISCRIMINATOR_TYPES`; emoji do preview numa fonte só (`STRUCTURED_PREVIEW_ICON`);
-> comentário do guard em `conversationMedia` corrigido. **Restam adiados: A, B
-> (facetas de eficiência), D, E.**
+> comentário do guard em `conversationMedia` corrigido.
+
+> **4ª rodada (2026-06-30, embutida na investigação do dashboard "Carga por
+> vendedor") — fechamento dos itens restantes:**
+> - **A RESOLVIDO** — `useRelatedEntities` agora só refaz `listLastMessages` para
+>   as conversas cuja recência realmente mudou (`changedRecencyIds` + um
+>   `useRef<Map<ID,string>>` com a última recência vista), em vez da página
+>   inteira a cada mudança.
+> - **B parcialmente RESOLVIDO** — a faceta "chamada redundante" foi corrigida:
+>   `useRealtimeMessages` rastreia o `sentAt` mais recente já aplicado pelo canal
+>   rápido (`messages`) e pula (ou cancela um `syncLatest` já agendado) quando o
+>   touch do canal `conversations` já está coberto por esse `sentAt`
+>   (`touchAlreadyCovered`). A outra faceta (só busca a página 1 / perda em
+>   rajada > 50 mensagens) **segue adiada** — ver detalhe abaixo.
+> - **E RESOLVIDO** — `PHONE_RE` em `contentFormat.ts` passou a exigir o `+`
+>   inicial. Os 3 engines (Meta via `toE164`, Evolution/Evolution Go via
+>   `phoneFromVCard` → `toE164`) sempre entregam telefone em E.164 quando
+>   presente, então a mudança não quebra nenhuma mensagem já persistida — só
+>   deixa de confundir um nome 100% numérico sem telefone resolvível com um
+>   telefone. Mudança só de decode (frontend); mirror sincronizado em
+>   `_shared/whatsapp/contentFormat.ts`, sem necessidade de redeploy de edge
+>   function (decode nunca roda no servidor).
+> - **D avaliado e MANTIDO sem mudança de código** — ver justificativa abaixo.
 
 ---
 
 ## Tradeoffs deliberados (validados pelo dono — não mexer sem motivo)
 
-### A. `recencyKey` re-dispara o `listLastMessages` da página inteira
-- **Onde:** `src/features/conversations/hooks/useRelatedEntities.ts` (efeito de
-  resolução das últimas mensagens, dep `recencyKey`).
-- **O quê:** o fix do preview da Inbox passou a incluir `lastMessageAt` na chave
-  do efeito (`recencyKey = id:lastMessageAt`). Resultado correto (o preview deixa
-  de ficar uma mensagem atrás), mas qualquer mensagem nova em **qualquer** conversa
-  visível re-dispara o RPC `listLastMessages` para a página inteira.
-- **Por que adiado:** é o tradeoff que **conserta** o bug; validado pelo dono no
-  dev server. Otimizar mexe na camada que já foi aprovada.
-- **Correção futura (se virar gargalo):** buscar a última mensagem só da conversa
-  que mudou (RPC pontual por `conversationId`) em vez de refazer a página toda;
-  ou debounce/coalescer por janela curta.
-- **Severidade:** baixa (eficiência; só pesa em páginas grandes com alto volume).
+### A. `recencyKey` re-dispara o `listLastMessages` da página inteira — ✅ RESOLVIDO (4ª rodada)
+- **Onde:** `src/features/conversations/hooks/useRelatedEntities.ts`.
+- **Fix:** novo helper puro `changedRecencyIds` (mesmo padrão de `missingIds`)
+  compara a recência atual de cada conversa contra a última vista
+  (`lastSeenRecencyRef`); só as que mudaram entram no `listLastMessages`.
+  Testado em `useRelatedEntities.test.ts`.
+- **Severidade original:** baixa (eficiência; só pesava em páginas grandes com
+  alto volume).
 
-### B. `syncLatest` dispara em todo "touch" e só busca a página 1
-- **Onde:** `src/features/conversations/hooks/useRealtimeMessages.ts` (~linha 119)
-  e `src/features/conversations/hooks/useMessages.ts` (~linha 236, `syncLatest`).
-- **O quê:** (1) o thread escuta o canal `conversations` e roda `syncLatest` a
-  cada toque de `last_message_at`, **redundante** com o fast-path do INSERT em
-  `messages` quando este chega; (2) `syncLatest` só puxa a página mais nova (50
-  mensagens) — se um burst > 50 mensagens for perdido pelo Realtime, o miolo não
-  é recuperado até um refetch/scroll. ~~(3) ordem fora do `prependNewest`~~ →
-  **CORRIGIDO na 3ª rodada** (insere por `sentAt` via `insertSortedDesc`).
-- **Por que adiado:** é o tradeoff do fix do thread (PR #204→#205) — entrega
-  convergência confiável mesmo quando o canal `messages` não entrega (custo de
-  RLS). Validado pelo dono ("o thread atualiza agora"). Faz parte do **cache do
-  Atendimento congelado** — não tocar fora de escopo autorizado.
-- **Correção futura:** só rodar `syncLatest` quando o fast-path não aplicou nada
-  numa janela curta; para gaps profundos, paginar para trás até reconciliar o
-  `providerMessageId` mais antigo conhecido.
-- **Severidade:** baixa (eficiência + borda de burst-com-perda; auto-cura ao
-  reabrir a conversa).
+### B. `syncLatest` dispara em todo "touch" e só busca a página 1 — parcialmente RESOLVIDO (4ª rodada)
+- **Onde:** `src/features/conversations/hooks/useRealtimeMessages.ts` e
+  `src/features/conversations/hooks/useMessages.ts` (`syncLatest`).
+- **O quê:** (1) ~~o thread escuta o canal `conversations` e roda `syncLatest` a
+  cada toque, redundante com o fast-path do INSERT~~ → **RESOLVIDO**:
+  `touchAlreadyCovered` compara o `last_message_at` do touch contra o `sentAt`
+  mais recente já aplicado pelo canal `messages`; um touch só dispara/mantém o
+  `syncLatest` agendado quando o fast-path ainda não cobriu aquele ponto no
+  tempo — nunca pula de forma especulativa, só quando há prova de que já
+  convergiu. (2) `syncLatest` só puxa a página mais nova (50 mensagens) — se um
+  burst > 50 mensagens for perdido pelo Realtime, o miolo não é recuperado até
+  um refetch/scroll. **Segue adiado** — teria que paginar pra trás reconciliando
+  o `providerMessageId` mais antigo conhecido, mudança bem mais invasiva na área
+  congelada do cache do Atendimento para um cenário que se autocura ao reabrir a
+  conversa. ~~(3) ordem fora do `prependNewest`~~ → já corrigido na 3ª rodada.
+- **Severidade restante:** baixa (borda de burst-com-perda; auto-cura ao reabrir
+  a conversa).
 
 ---
 
@@ -73,66 +88,51 @@ a correção sugerida.
 ### C. Mapeamento Baileys de location/contact duplicado entre os parsers — ✅ RESOLVIDO (3ª rodada)
 > Extraídos `encodeBaileysLocation`/`encodeBaileysContact` em `contentFormat.ts`,
 > reusados pelos dois parsers. Mantido como registro histórico.
-- **Onde:** `src/providers/whatsapp/evolution-go/parser.ts` (`extractContent`,
-  ~linha 117) e `src/providers/whatsapp/evolution/parser.ts`
-  (`extractEvolutionContent`, ~linha 87).
-- **O quê:** os dois parsers (whatsmeow/Go e Evolution clássico) repetem o mesmo
-  mapeamento `locationMessage`/`contactMessage`/`contactsArrayMessage` → texto
-  canônico (via `encodeLocation`/`encodeContact`/`phoneFromVCard`).
-- **Por que adiado:** funciona e está coberto por testes nos dois lados; extrair
-  um helper compartilhado é refino, não correção. O reviewer **refutou** exigir
-  um predicado compartilhado de tipos.
-- **Correção futura:** extrair um `extractBaileysStructured(node)` em
-  `contentFormat.ts` (runtime-agnostic) e reusar nos dois parsers.
-- **Severidade:** muito baixa (DRY).
 
-### D. `decodeLocation` aceita um nome com cara de `num,num` como coordenada
-- **Onde:** `src/providers/whatsapp/contentFormat.ts` (`decodeLocation`, ~linha 64).
+### D. `decodeLocation` aceita um nome com cara de `num,num` como coordenada — avaliado, mantido sem mudança (4ª rodada)
+- **Onde:** `src/providers/whatsapp/contentFormat.ts` (`decodeLocation`, ~linha 78).
 - **O quê:** o decode varre as linhas de trás pra frente e trata a primeira que
   casa `COORD_RE` como coordenada. Uma localização **sem** coords cujo nome seja
   exatamente `"-27.3,-53.4"` viraria um pin de mapa falso.
-- **Por que adiado:** **não alcançável** pelos payloads reais — `encodeLocation`
-  só emite a linha de coordenadas quando há coords de verdade, e nesse caso o nome
-  vai numa linha própria acima. Cenário contrived.
-- **Correção futura (se algum dia importar texto cru de fonte externa):** marcar
-  a presença de coords explicitamente (ex.: prefixo na linha) em vez de inferir
-  por shape.
+- **Por que NÃO foi corrigido:** reavaliado na 4ª rodada — permanece
+  **inalcançável** pelos 3 providers reais (Meta/Evolution/Evolution Go): uma
+  mensagem de localização do WhatsApp sempre carrega coordenadas verdadeiras
+  quando existe; não há como o app do usuário compartilhar uma "localização sem
+  coordenadas" pela função nativa. Diferente do item E, aqui **não existe** um
+  invariante equivalente ao `+` do E.164 que permita desambiguar sem mudar o
+  formato de wire — a única correção real exigiria marcar explicitamente a
+  presença de coordenada (ex.: prefixo na linha), o que quebra a leitura de
+  mensagens **já persistidas** sem essa marca e exige suporte permanente a dois
+  formatos no decode. Custo/risco não compensa para uma borda "desprezível" e
+  contrived.
+- **Correção futura (se algum dia importar texto cru de fonte externa que não
+  garanta essa invariante):** marcar a presença de coords explicitamente em vez
+  de inferir por shape, com decode retrocompatível para o formato antigo.
 - **Severidade:** desprezível.
 
-### E. `decodeContact` de uma única linha 100% numérica vira "telefone"
+### E. `decodeContact` de uma única linha 100% numérica vira "telefone" — ✅ RESOLVIDO (4ª rodada)
+> `PHONE_RE` passou a exigir `+` inicial — ver resumo da 4ª rodada acima. Mantido
+> como registro histórico.
 - **Onde:** `src/providers/whatsapp/contentFormat.ts` (`decodeContact`, ramo de 1
-  linha). *(2ª revisão, PR #205 — PLAUSIBLE.)*
-- **O quê:** quando o contato compartilhado tem **só** o nome (sem telefone
-  resolvível) e esse nome é uma string numérica (ex.: contato não salvo), o encode
-  produz uma única linha e o decode classifica por shape → `PHONE_RE` casa → vira
-  `{ phone }`, e o card mostra o nome como número com "Copiar número".
-- **Por que adiado:** **ambiguidade inerente** de uma única linha — sem um 2º
-  campo não há como distinguir "nome numérico" de "telefone". O fix da 1ª rodada
-  resolveu o caso de 2 linhas (não troca mais nome↔telefone); este resíduo de 1
-  linha é de baixíssimo alcance.
-- **Correção futura (se incomodar):** marcar o tipo do campo no encode (prefixo)
-  quando houver só um, em vez de inferir por shape no decode.
-- **Severidade:** muito baixa.
+  linha).
+- **O quê (antes do fix):** quando o contato compartilhado tinha **só** o nome
+  (sem telefone resolvível) e esse nome era uma string numérica (ex.: contato
+  não salvo), o encode produzia uma única linha e o decode classificava por
+  shape → `PHONE_RE` casava → virava `{ phone }`, e o card mostrava o nome como
+  número com "Copiar número".
+- **Como foi resolvido:** todo telefone que chega em `encodeContact` já é E.164
+  (com `+`) nos 3 engines — confirmado lendo `meta/parser.ts` (`toE164`) e os dois
+  parsers Baileys (`phoneFromVCard` → `toE164`). Apertar `PHONE_RE` para exigir o
+  `+` inicial resolve a ambiguidade sem tocar no formato de wire nem afetar
+  mensagens já persistidas (que, quando eram telefone de verdade, sempre tinham
+  `+`). Teste novo em `contentFormat.test.ts`.
 
 ### F. O conjunto "tipo estruturado sem bytes" (`location|contact`) vive em 4+ lugares — ✅ PARCIALMENTE RESOLVIDO (3ª rodada)
-> O `MEDIA_TYPES` triplicado (`webhook/core` `toMediaType` + os 2 importadores) virou
-> **um const único** `MEDIA_DISCRIMINATOR_TYPES` em `providers/whatsapp/types.ts`.
-> Ainda separados (não unificados): `NON_ARCHIVABLE_MEDIA_TYPES` (subconjunto
-> sem-bytes, no front) e o `Exclude<>` em `mediaDownload.ts` — propósitos distintos,
-> baixa prioridade.
-- **Onde:** `NON_ARCHIVABLE_MEDIA_TYPES` (`useEnsureInboundMedia.ts`), ~~os arrays
-  `MEDIA_TYPES` (`import/core`, `import/history-core`, `webhook/core` `toMediaType`)~~,
-  o `Exclude<MessageMediaType, …>` em `mediaDownload.ts`, ao lado de
-  `MessageMediaType` em `shared/types/conversation.ts`. *(2ª revisão — PLAUSIBLE.)*
-- **O quê:** ao adicionar um 3º tipo estruturado (enquete/reação), é preciso editar
-  cada lista; esquecer uma roteia o tipo para arquivamento/assinatura de mídia (linha
-  `media_assets` lixo / `createSignedUrl` em path nulo) ou o renderiza como texto cru.
-- **Por que adiado:** as listas estão **corretas hoje** e cobertas; é generalização,
-  não correção. (O guard inline duplicado no `ConversationPage` — antes item à parte
-  — já foi **removido** na 2ª rodada.)
-- **Correção futura:** um `const`/predicado exportado único (`isStructuredShare`)
-  ao lado de `MessageMediaType`, consumido por todos os sites.
-- **Severidade:** muito baixa (manutenção/drift).
+> O `MEDIA_TYPES` triplicado virou um const único `MEDIA_DISCRIMINATOR_TYPES` em
+> `providers/whatsapp/types.ts`. Ainda separados (não unificados):
+> `NON_ARCHIVABLE_MEDIA_TYPES` (subconjunto sem-bytes, no front) e o `Exclude<>`
+> em `mediaDownload.ts` — propósitos distintos, baixa prioridade. Mantido como
+> registro histórico.
 
 ---
 
