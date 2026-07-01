@@ -103,8 +103,15 @@ export function useConversationsList(
 
   // Reset to page 1 whenever filters change OR the fetch mode flips
   // (list ↔ messages — see Opção D's "search inside messages" toggle).
+  // Clearing `items` synchronously (not just waiting for the fetch to resolve)
+  // matters specifically for the mode flip: list-mode and messages-mode rows
+  // render differently (matchedMessage snippet vs. last-message preview), so
+  // leaving the previous mode's rows on screen during the fetch window shows
+  // them under the WRONG mode's chrome (e.g. plain rows under the "resultados
+  // em mensagens" banner).
   useEffect(() => {
     setPage(1);
+    setItems([]);
     void fetchPage(1, "replace");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersKey, mode]);

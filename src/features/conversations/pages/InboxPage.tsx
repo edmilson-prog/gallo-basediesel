@@ -222,7 +222,7 @@ export function InboxPage() {
     if (!filters.escalated) return rawItems;
     return rawItems.filter((c) => escalationsByConversation.has(c.id));
   }, [rawItems, escalationsByConversation, filters.escalated]);
-  const related = useRelatedEntities(items);
+  const related = useRelatedEntities(items, { skipLastMessages: messageSearchActive });
   const { isUnread, markViewed } = useUnreadTracking(userId);
   const { lastId, setLastId } = useLastSelectedConversation();
 

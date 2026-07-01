@@ -129,24 +129,34 @@ function conversationPatchToRow(patch: Partial<IConversation>): Record<string, u
   return row;
 }
 
+/** Shared page/pageSize clamping for the RPC-backed search paths (and the plain table query). */
+function resolvePagination(params: IListConversationsParams): { page: number; pageSize: number } {
+  return {
+    page: Math.max(1, Math.floor(params.page ?? 1)),
+    pageSize: Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20))),
+  };
+}
+
 /**
- * Cross-entity text search via the `search_conversations` RPC. Honors the same
- * filters as the table query (status/channel/instance/assignment/SDR/tags/period)
- * plus ordering + pagination, and reads the window `total_count` off the rows.
+ * Shared RPC parameter shape for `search_conversations` and
+ * `search_conversation_messages` — both take the exact same filter set (only
+ * the function name and row mapper differ), so building it once keeps the two
+ * search paths from silently diverging when a filter is added later.
  */
-async function searchConversations(
-  params: IListConversationsParams,
-): Promise<IPaginatedResult<IConversation>> {
-  const page = Math.max(1, Math.floor(params.page ?? 1));
-  const pageSize = Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20)));
+function buildSearchRpcParams(params: IListConversationsParams, page: number, pageSize: number) {
   const status =
     params.status === undefined ? null : Array.isArray(params.status) ? params.status : [params.status];
   // Drop crafted non-UUID tokens before the `uuid[]` RPC arg (parity with the
   // table path's buildAssignmentOrFilter guard).
   const searchSellerIds = sanitizeSellerIds(params.assignmentAny?.sellerIds);
 
-  const { data, error } = await getSupabaseClient().rpc("search_conversations", {
-    p_search: params.search,
+  return {
+    // `p_search` has no SQL default (unlike the other params) — PostgREST can't
+    // resolve the function overload if this key is omitted from the JSON body,
+    // which happens whenever `params.search` is `undefined` (JSON.stringify drops
+    // undefined keys). Always send a string; each RPC's own length(trim(...))>0
+    // guard already treats an empty term as "no match" (0 rows).
+    p_search: params.search ?? "",
     p_store_id: params.storeId ?? null,
     p_status: status,
     p_channel: params.channel ?? null,
@@ -162,7 +172,23 @@ async function searchConversations(
     p_order_dir: params.orderDir === "asc" ? "asc" : "desc",
     p_limit: pageSize,
     p_offset: (page - 1) * pageSize,
-  });
+  };
+}
+
+/**
+ * Cross-entity text search via the `search_conversations` RPC. Honors the same
+ * filters as the table query (status/channel/instance/assignment/SDR/tags/period)
+ * plus ordering + pagination, and reads the window `total_count` off the rows.
+ */
+async function searchConversations(
+  params: IListConversationsParams,
+): Promise<IPaginatedResult<IConversation>> {
+  const { page, pageSize } = resolvePagination(params);
+
+  const { data, error } = await getSupabaseClient().rpc(
+    "search_conversations",
+    buildSearchRpcParams(params, page, pageSize),
+  );
 
   if (error) throw new Error(`[supabase] conversations.search failed: ${error.message}`);
 
@@ -180,10 +206,18 @@ async function searchConversations(
 type ConversationMessageMatchRow = ConversationRow & {
   matched_message_text: string;
   matched_message_sent_at: string;
-  matched_message_direction: "in" | "out";
+  matched_message_direction: string;
   matched_message_extra_count: number;
   total_count: number;
 };
+
+/** `messages.direction` is a raw `text` column with no CHECK constraint — coerce
+ *  any unexpected value instead of trusting it, mirroring the `LEAD_TEMPERATURES`
+ *  guard above. Falls back to "in" (a stray value never mislabels a customer
+ *  message as ours). */
+function normalizeMessageDirection(value: string): "in" | "out" {
+  return value === "out" ? "out" : "in";
+}
 
 function rowToConversationWithMatch(row: ConversationMessageMatchRow): IConversation {
   return {
@@ -191,7 +225,7 @@ function rowToConversationWithMatch(row: ConversationMessageMatchRow): IConversa
     matchedMessage: {
       text: row.matched_message_text,
       sentAt: row.matched_message_sent_at,
-      direction: row.matched_message_direction,
+      direction: normalizeMessageDirection(row.matched_message_direction),
       extraMatchCount: row.matched_message_extra_count,
     },
   };
@@ -206,30 +240,12 @@ function rowToConversationWithMatch(row: ConversationMessageMatchRow): IConversa
 async function searchConversationMessages(
   params: IListConversationsParams,
 ): Promise<IPaginatedResult<IConversation>> {
-  const page = Math.max(1, Math.floor(params.page ?? 1));
-  const pageSize = Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20)));
-  const status =
-    params.status === undefined ? null : Array.isArray(params.status) ? params.status : [params.status];
-  const searchSellerIds = sanitizeSellerIds(params.assignmentAny?.sellerIds);
+  const { page, pageSize } = resolvePagination(params);
 
-  const { data, error } = await getSupabaseClient().rpc("search_conversation_messages", {
-    p_search: params.search,
-    p_store_id: params.storeId ?? null,
-    p_status: status,
-    p_channel: params.channel ?? null,
-    p_whatsapp_account_id: params.whatsappAccountId ?? null,
-    p_assigned_seller_id: params.assignedSellerId ?? null,
-    p_unassigned: params.unassigned ?? params.assignmentAny?.unassigned ?? false,
-    p_assigned_seller_ids: searchSellerIds.length > 0 ? searchSellerIds : null,
-    p_include_queue: params.assignmentAny?.queue ?? false,
-    p_is_sdr_active: typeof params.isSdrActive === "boolean" ? params.isSdrActive : null,
-    p_tags: params.tags && params.tags.length > 0 ? params.tags : null,
-    p_from_date: params.fromDate ?? null,
-    p_to_date: params.toDate ?? null,
-    p_order_dir: params.orderDir === "asc" ? "asc" : "desc",
-    p_limit: pageSize,
-    p_offset: (page - 1) * pageSize,
-  });
+  const { data, error } = await getSupabaseClient().rpc(
+    "search_conversation_messages",
+    buildSearchRpcParams(params, page, pageSize),
+  );
 
   if (error)
     throw new Error(`[supabase] conversations.searchMessages failed: ${error.message}`);

@@ -13,8 +13,11 @@ export interface IMessageSearchCandidate {
  * plus how many other messages in the same list also matched.
  *
  * Mirrors the `search_conversation_messages` RPC's `row_number() ... order by
- * sent_at desc` + `count(*)` logic, so the mock and supabase providers agree on
- * which message is shown as the snippet.
+ * sent_at desc, text desc` + `count(*)` logic, so the mock and supabase
+ * providers agree on which message is shown as the snippet — including the
+ * tie-break: when two matches share the exact same `sentAt` (plausible after
+ * bulk/backfilled imports), the one with the lexicographically GREATER `text`
+ * wins, same as the RPC's secondary sort key.
  *
  * Returns `null` for an empty/whitespace-only term or when nothing matches —
  * same "no match" contract as the RPC's `length(trim(...)) > 0` guard.
@@ -29,7 +32,10 @@ export function selectMessageMatch(
   const matches = messages.filter((m) => m.text.toLowerCase().includes(needle));
   if (matches.length === 0) return null;
 
-  const mostRecent = matches.reduce((latest, m) => (m.sentAt > latest.sentAt ? m : latest));
+  const mostRecent = matches.reduce((latest, m) => {
+    if (m.sentAt !== latest.sentAt) return m.sentAt > latest.sentAt ? m : latest;
+    return m.text > latest.text ? m : latest;
+  });
   return {
     text: mostRecent.text,
     sentAt: mostRecent.sentAt,

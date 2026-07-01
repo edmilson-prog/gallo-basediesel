@@ -89,7 +89,18 @@ export function SearchInput({
         <button
           type="button"
           className="mt-1.5 flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-          onClick={() => onSearchMessages(local.trim())}
+          onClick={() => {
+            const term = local.trim();
+            // Flush the term to the parent NOW instead of waiting for the
+            // debounce (line 51-58) — otherwise a click right after typing
+            // races the mode switch, and the search fetch goes out with the
+            // stale (often empty) `filters.search` for up to `debounceMs`.
+            // Both this and `onSearchMessages` run inside the same React
+            // event handler, so their state updates land in one render.
+            lastEmitted.current = term;
+            onChange(term);
+            onSearchMessages(term);
+          }}
         >
           <Icon icon="mdi:text-search" size={13} />
           {INBOX_STRINGS.messageSearch.cta(local.trim())}

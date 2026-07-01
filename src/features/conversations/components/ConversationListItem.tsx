@@ -55,6 +55,27 @@ export interface IConversationListItemProps {
 
 const HIGHLIGHT_CLASS = "bg-amber-200/60 text-foreground dark:bg-amber-400/30";
 
+/** Chars kept on each side of the match before the row's single-line `truncate` clips it. */
+const SNIPPET_RADIUS = 40;
+
+/**
+ * Extracts a window of `text` centered on `term` (with ellipses at either cut
+ * edge) so a single-line `truncate` never hides the match itself — unlike
+ * truncating the full text from the end, which cuts off a match that lands
+ * past the visible prefix (common for a message-content search hit near the
+ * end of a long message).
+ */
+function snippetAround(text: string, term: string | undefined, radius = SNIPPET_RADIUS): string {
+  if (!term) return text;
+  const needle = term.trim();
+  if (!needle) return text;
+  const at = text.toLowerCase().indexOf(needle.toLowerCase());
+  if (at === -1) return text;
+  const start = Math.max(0, at - radius);
+  const end = Math.min(text.length, at + needle.length + radius);
+  return (start > 0 ? "…" : "") + text.slice(start, end) + (end < text.length ? "…" : "");
+}
+
 function highlight(text: string, term?: string): React.ReactNode {
   if (!term) return text;
   const needle = term.trim();
@@ -218,7 +239,10 @@ function ConversationListItemInner({
                     {INBOX_STRINGS.messageSearch.outboundPrefix}
                   </span>
                 )}
-                {highlight(conversation.matchedMessage.text, highlightTerm)}
+                {highlight(
+                  snippetAround(conversation.matchedMessage.text, highlightTerm),
+                  highlightTerm,
+                )}
               </p>
               {unreadBadge}
             </div>

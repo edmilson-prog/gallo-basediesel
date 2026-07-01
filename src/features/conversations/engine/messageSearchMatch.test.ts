@@ -57,4 +57,13 @@ describe("selectMessageMatch", () => {
     const result = selectMessageMatch(messages, "ramon");
     expect(result?.direction).toBe("out");
   });
+
+  it("breaks a sentAt tie by lexicographically greater text (matches the RPC's secondary sort key)", () => {
+    const messages = [
+      msg("Ramon zebra", "2026-06-20T08:00:00.000Z"),
+      msg("Ramon abacate", "2026-06-20T08:00:00.000Z"),
+    ];
+    const result = selectMessageMatch(messages, "ramon");
+    expect(result?.text).toBe("Ramon zebra");
+  });
 });
