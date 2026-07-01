@@ -19,6 +19,7 @@ import { resolveEffectiveAccount, type IFailoverAwareAccount } from "../failover
 import type { IWhatsAppProvider } from "../IWhatsAppProvider.ts";
 import type { IAccountRecord } from "../webhook/core.ts";
 import type { OutboundMediaType } from "../types.ts";
+import { nextStatusOnOutboundHuman } from "../statusFlow.ts";
 
 export type SendKind = "text" | "media" | "template";
 
@@ -112,6 +113,8 @@ export interface ISendDb {
   markCustomerWhatsappInvalid(customerId: string): Promise<void>;
   /** Outbound touch: last_message_at only — unread_count belongs to inbound. */
   touchConversation(conversationId: string, lastMessageAt: string): Promise<void>;
+  /** Direct conversation status write (outbound auto-transition). */
+  setConversationStatus(conversationId: string, status: string): Promise<void>;
   /** Signs a whatsapp-media storage path (short TTL) for the provider to fetch. */
   createSignedMediaUrl(path: string): Promise<string>;
   audit(input: {
@@ -131,7 +134,9 @@ export interface ISendResultPayload {
 }
 
 const STAFF_ROLES = ["owner", "manager"];
-const CLOSED_STATUSES = ["resolvida", "arquivada"];
+// `resolvida` no longer blocks a send — an outbound human reply auto-reopens it
+// (nextStatusOnOutboundHuman below). `arquivada` stays a deliberate, manual-only axis.
+const CLOSED_STATUSES = ["arquivada"];
 const MAX_TEXT_LENGTH = 4096;
 
 function validationError(message: string): WhatsAppProviderError {
@@ -347,6 +352,10 @@ export async function processSendRequest(args: {
     await db.markMessageSent(message.id, providerMessageId);
     const sentAt = new Date().toISOString();
     await db.touchConversation(conversation.id, sentAt);
+    // Auto-advance: an outbound human reply claims the conversation as "our
+    // turn" — moves aguardando/aguardando_cliente/resolvida to em_andamento.
+    const nextStatus = nextStatusOnOutboundHuman(conversation.status);
+    if (nextStatus) await db.setConversationStatus(conversation.id, nextStatus);
     await db.audit({
       storeId: conversation.storeId,
       actorId: sender.sellerId ?? "staff",
@@ -360,6 +369,7 @@ export async function processSendRequest(args: {
         providerMessageId,
         ...(usedFailover ? { usedFailover: true, accountId: effectiveAccount.id } : {}),
         ...(input.retryOfMessageId ? { originalMessageId: input.retryOfMessageId } : {}),
+        ...(nextStatus ? { statusTransition: nextStatus } : {}),
         traceId,
       },
     });

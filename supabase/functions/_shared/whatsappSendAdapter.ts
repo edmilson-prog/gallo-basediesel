@@ -161,6 +161,12 @@ export function makeSendDb(admin: SupabaseClient, _traceId: string): ISendDb {
         .update({ last_message_at: lastMessageAt, updated_at: lastMessageAt })
         .eq("id", conversationId);
     },
+    async setConversationStatus(conversationId, status) {
+      await admin
+        .from("conversations")
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq("id", conversationId);
+    },
     async createSignedMediaUrl(path) {
       const { data, error } = await admin.storage
         .from("whatsapp-media")

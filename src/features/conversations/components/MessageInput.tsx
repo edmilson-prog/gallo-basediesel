@@ -234,7 +234,10 @@ export function MessageInput(props: IMessageInputProps) {
   const supportsTemplates = whatsappAccount?.capabilities.supportsTemplatesHsm ?? false;
   const isMeta = whatsappAccount?.provider === "meta";
   const canSendFreeText = readOnly ? false : window.canSendFreeText;
-  const archived = conversation.status === "arquivada";
+  // Mirrors CLOSED_STATUSES in supabase/functions/_shared/whatsapp/send/core.ts —
+  // "arquivada" is the only status the backend still rejects (422); "resolvida"
+  // is allowed and auto-reopens to "em_andamento" (nextStatusOnOutboundHuman).
+  const conversationClosed = conversation.status === "arquivada";
   const liveWhatsappAccount = useLiveInstanceStatus(whatsappAccount);
   const instanceLock = deriveInstanceLock(liveWhatsappAccount);
   const canManageInstance = hasRole(["Owner"]);
@@ -314,10 +317,13 @@ export function MessageInput(props: IMessageInputProps) {
     el.style.height = `${Math.max(40, next)}px`;
   }, [value]);
 
-  if (readOnly || archived) {
+  if (readOnly || conversationClosed) {
     return (
       <footer className="border-t border-border bg-muted/40 px-4 py-3 text-center text-xs text-muted-foreground">
-        {readOnlyMessage ?? CONVERSATION_STRINGS.readOnlyAssign}
+        {readOnlyMessage ??
+          (conversationClosed
+            ? SEND_ERROR_MESSAGES.CONVERSATION_CLOSED
+            : CONVERSATION_STRINGS.readOnlyAssign)}
       </footer>
     );
   }

@@ -59,6 +59,7 @@ function makeDb(opts: IFakeOpts = {}) {
     audits: [] as Array<Record<string, unknown>>,
     signed: [] as string[],
     invalidCustomers: [] as string[],
+    statusChanges: [] as Array<{ id: string; status: string }>,
   };
   const db: ISendDb = {
     getSendContext: async () => ({
@@ -93,6 +94,9 @@ function makeDb(opts: IFakeOpts = {}) {
     },
     touchConversation: async (id) => {
       calls.touched.push(id);
+    },
+    setConversationStatus: async (id, status) => {
+      calls.statusChanges.push({ id, status });
     },
     createSignedMediaUrl: async (path) => {
       calls.signed.push(path);
@@ -208,6 +212,26 @@ describe("processSendRequest — permission and state gates (RF-010..012)", () =
   it("rejects closed conversations (RF-012)", async () => {
     const { db } = makeDb({ status: "arquivada" });
     await expect(send({}, db)).rejects.toMatchObject({ code: "CONVERSATION_CLOSED" });
+  });
+});
+
+describe("processSendRequest — outbound status auto-transition", () => {
+  it("does not touch status when already em_andamento", async () => {
+    const { db, calls } = makeDb({ status: "em_andamento" });
+    await send({}, db);
+    expect(calls.statusChanges).toHaveLength(0);
+  });
+
+  it("claims a waiting conversation into em_andamento", async () => {
+    const { db, calls } = makeDb({ status: "aguardando" });
+    await send({}, db);
+    expect(calls.statusChanges).toEqual([{ id: "conv-1", status: "em_andamento" }]);
+  });
+
+  it("no longer rejects a resolved conversation — auto-reopens it instead", async () => {
+    const { db, calls } = makeDb({ status: "resolvida" });
+    await expect(send({}, db)).resolves.toMatchObject({ dispatchStatus: "sent" });
+    expect(calls.statusChanges).toEqual([{ id: "conv-1", status: "em_andamento" }]);
   });
 });
 
