@@ -25,7 +25,12 @@ function rangeFor(period: VolumePeriod, vde?: string, vate?: string): { fromIso:
   return { fromIso: new Date(now - days * DAY).toISOString(), toIso: new Date(now).toISOString() };
 }
 
-export function useServiceVolumeFilters() {
+export interface IServiceVolumeFiltersCtx {
+  /** Locks `store` to the Gestor's own store — `setStore` becomes a no-op. */
+  gestorLockedStoreId?: ID;
+}
+
+export function useServiceVolumeFilters(ctx: IServiceVolumeFiltersCtx = {}) {
   const search = useSearch({ from: "/app/inicio" }) as Record<string, string | undefined>;
   const navigate = useNavigate({ from: "/app/inicio" });
 
@@ -38,9 +43,9 @@ export function useServiceVolumeFilters() {
       period,
       fromIso,
       toIso,
-      store: (search.vloja as ID | undefined) ?? "all",
+      store: ctx.gestorLockedStoreId ?? (search.vloja as ID | undefined) ?? "all",
     };
-  }, [search]);
+  }, [search, ctx.gestorLockedStoreId]);
 
   const apply = useCallback(
     (patch: Record<string, string | undefined>) => {
@@ -61,6 +66,9 @@ export function useServiceVolumeFilters() {
     setGranularity: (g: Granularity) => apply({ vg: g === "day" ? undefined : g }),
     setPeriod: (p: VolumePeriod) => apply({ vper: p === "30d" ? undefined : p, vde: undefined, vate: undefined }),
     setCustomRange: (from: string, to: string) => apply({ vper: "custom", vde: from, vate: to }),
-    setStore: (id: ID | "all") => apply({ vloja: id === "all" ? undefined : id }),
+    setStore: (id: ID | "all") => {
+      if (ctx.gestorLockedStoreId) return;
+      apply({ vloja: id === "all" ? undefined : id });
+    },
   };
 }

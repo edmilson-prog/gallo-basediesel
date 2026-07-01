@@ -1,6 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useManagerDashboardProvider, type IManagerDashboardSnapshot } from "@/providers/data";
-import { useCurrentStore } from "@/features/multistore";
+import { useRealtimeConversations } from "@/features/conversations/hooks/useRealtimeConversations";
+import { useDebounce } from "@/shared/hooks/useDebounce";
+import { previousWindowOfEqualSpan } from "@/shared/utils/dateWindow";
 import type { IServiceVolumeState } from "./useServiceVolumeFilters";
 
 const EMPTY_SNAPSHOT: IManagerDashboardSnapshot = {
@@ -13,31 +15,29 @@ const EMPTY_SNAPSHOT: IManagerDashboardSnapshot = {
   messagesInPrev: [],
 };
 
-/** Previous window of the same length, immediately preceding `fromIso`. */
-function previousWindow(fromIso: string, toIso: string): { prevFromIso: string; prevToIso: string } {
-  const from = new Date(fromIso).getTime();
-  const to = new Date(toIso).getTime();
-  const span = Math.max(0, to - from);
-  return {
-    prevFromIso: new Date(from - span - 1).toISOString(),
-    prevToIso: new Date(from - 1).toISOString(),
-  };
-}
+/** Coalesces bursts of realtime events into a single refetch (mirrors useDashboardSnapshot's debounce). */
+const REALTIME_DEBOUNCE_MS = 1500;
 
 /**
  * Feeds "Carga por vendedor", "Heatmap de volume" and the TMA/TMR/Resolução/
  * Backlog KPIs from the service-volume tab's own filters (period + store)
  * instead of the manager-dashboard's "Operação" filters — everything here
- * reacts to whatever range is selected in this tab.
+ * reacts to whatever range is selected in this tab, plus live Realtime ticks.
+ *
+ * `state.store` already carries the Gestor store-lock (resolved upstream in
+ * `useServiceVolumeFilters`); "all" only ever reaches an Owner, so it maps to
+ * `undefined` (cross-store) — same resolution as the sibling
+ * `useServiceVolumeMetrics`, so every card on this tab shares one scope.
  */
 export function useCargaEVolumeSnapshot(state: IServiceVolumeState) {
   const provider = useManagerDashboardProvider();
-  const { currentStore } = useCurrentStore();
-  const storeId = state.store === "all" ? (currentStore?.id ?? undefined) : state.store;
-  const { prevFromIso, prevToIso } = previousWindow(state.fromIso, state.toIso);
+  const realtime = useRealtimeConversations();
+  const debouncedTick = useDebounce(realtime.tick, REALTIME_DEBOUNCE_MS);
+  const storeId = state.store === "all" ? undefined : state.store;
+  const { prevFromIso, prevToIso } = previousWindowOfEqualSpan(state.fromIso, state.toIso);
 
   const query = useQuery({
-    queryKey: ["sv", "cargaVolume", storeId ?? "all", state.fromIso, state.toIso],
+    queryKey: ["sv", "cargaVolume", storeId ?? "all", state.fromIso, state.toIso, debouncedTick],
     queryFn: () =>
       provider.snapshot({
         storeId,
@@ -46,6 +46,9 @@ export function useCargaEVolumeSnapshot(state: IServiceVolumeState) {
         prevFromIso,
         prevToIso,
       }),
+    placeholderData: keepPreviousData,
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 
   return {

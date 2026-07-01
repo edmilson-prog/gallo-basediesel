@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import type { ConversationChannel, ID } from "@/shared/types";
+import { previousWindowOfEqualSpan } from "@/shared/utils/dateWindow";
 
 export type PeriodPreset = "today" | "yesterday" | "7d" | "30d" | "custom";
 
@@ -66,16 +67,14 @@ export function resolveWindow(
   now: Date = new Date(),
 ): IDashboardWindow {
   if (filters.period === "custom" && filters.fromIso && filters.toIso) {
-    const from = new Date(filters.fromIso).getTime();
-    const to = new Date(filters.toIso).getTime();
-    const span = Math.max(0, to - from);
     if (scope === "current") {
-      return { fromIso: new Date(from).toISOString(), toIso: new Date(to).toISOString() };
+      return {
+        fromIso: new Date(filters.fromIso).toISOString(),
+        toIso: new Date(filters.toIso).toISOString(),
+      };
     }
-    return {
-      fromIso: new Date(from - span - 1).toISOString(),
-      toIso: new Date(from - 1).toISOString(),
-    };
+    const { prevFromIso, prevToIso } = previousWindowOfEqualSpan(filters.fromIso, filters.toIso);
+    return { fromIso: prevFromIso, toIso: prevToIso };
   }
 
   const todayStart = new Date(now);

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import type { MetricAudience } from "@/shared/types";
+import type { ID, MetricAudience } from "@/shared/types";
+import { useCurrentStore } from "@/features/multistore";
 import { useManagerDashboardSettings } from "@/features/manager-dashboard/hooks/useManagerDashboardSettings";
 import { KpiCard } from "@/features/manager-dashboard/components/KpiCard";
 import { useServiceVolumeFilters } from "../hooks/useServiceVolumeFilters";
@@ -32,13 +33,19 @@ function formatPercent(value: number): string {
   return `${value}%`;
 }
 
-export function ServiceVolumePage() {
+export interface IServiceVolumePageProps {
+  /** Locks the tab's store scope to the Gestor's own store. */
+  gestorLockedStoreId?: ID;
+}
+
+export function ServiceVolumePage({ gestorLockedStoreId }: IServiceVolumePageProps = {}) {
   const navigate = useNavigate();
-  const filters = useServiceVolumeFilters();
+  const { currentStore } = useCurrentStore();
+  const filters = useServiceVolumeFilters({ gestorLockedStoreId });
   const [audience, setAudience] = useState<MetricAudience>("all");
   const m = useServiceVolumeMetrics(filters.state, audience);
   const carga = useCargaEVolumeSnapshot(filters.state);
-  const settings = useManagerDashboardSettings(carga.storeId ?? null);
+  const settings = useManagerDashboardSettings(currentStore?.id ?? null);
   const sellerLoad = useSellerLoad(carga.snapshot, {
     overloadThreshold: settings.settings.sellerOverloadThreshold,
   });

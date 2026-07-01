@@ -60,7 +60,7 @@ export function ManagerDashboardPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const canEditSettings = userRole === "Owner";
   const canViewVolume = usePermission("service_volume", "view");
-  const volume = useServiceVolumeFilters();
+  const volume = useServiceVolumeFilters(filtersCtx);
   const activeTab = canViewVolume ? volume.state.tab : "operacao";
 
   if (userRole === "Vendedor") {
@@ -170,7 +170,7 @@ export function ManagerDashboardPage() {
         </TabsContent>
         {canViewVolume && (
           <TabsContent value="atendimento">
-            <ServiceVolumePage />
+            <ServiceVolumePage gestorLockedStoreId={filtersCtx.gestorLockedStoreId} />
           </TabsContent>
         )}
       </Tabs>
