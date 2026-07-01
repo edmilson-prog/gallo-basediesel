@@ -40,8 +40,15 @@ function oneLine(value: string | undefined | null): string {
 
 /** A line that is exactly `lat,lng` in decimal degrees. */
 const COORD_RE = /^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/;
-/** Phone-ish: optional `+`, then digits possibly broken by separators (≥6 chars). */
-const PHONE_RE = /^\+?\d[\d().\s-]{4,}\d$/;
+/**
+ * Phone-ish: a LEADING `+` is required, then digits possibly broken by
+ * separators (≥6 chars). Every phone this module ever receives is already
+ * E.164 (`toE164` in Meta/Evolution/Evolution Go parsers) — requiring the `+`
+ * disambiguates a single-line contact whose NAME happens to be all-numeric
+ * (e.g. an unsaved contact with no resolvable phone) from an actual phone,
+ * without needing a wire-format marker.
+ */
+const PHONE_RE = /^\+\d[\d().\s-]{4,}\d$/;
 
 /**
  * A coordinate as a plain decimal string `COORD_RE` can parse. `String(n)`
@@ -108,7 +115,9 @@ export function encodeContact(content: IContactContent): string {
  * phone-shaped, and everything before it is the name. This avoids the
  * name/phone swap that a "first phone-shaped line wins" heuristic causes when a
  * contact's display name is itself a number (unsaved contacts). With a single
- * line we fall back to shape: a bare number is a phone, anything else a name.
+ * line we fall back to shape: only a `+`-prefixed number is a phone (every real
+ * phone is E.164), so an all-numeric NAME with no resolvable phone decodes as
+ * a name instead of being mistaken for one.
  */
 export function decodeContact(text: string): IContactContent {
   const lines = (text ?? "")

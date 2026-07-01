@@ -72,6 +72,15 @@ describe("contact encode/decode", () => {
     expect(text).toBe("5554999990000\n+5554988887777");
     expect(decodeContact(text)).toEqual({ name: "5554999990000", phone: "+5554988887777" });
   });
+
+  it("treats a single all-numeric line with no + as a name, not a phone", () => {
+    // Contact shared with only a display name and no resolvable phone (no waid,
+    // no vCard TEL) — when that name is itself numeric (unsaved contact), the
+    // single line has no `+`, so it can't be a real E.164 phone.
+    const text = encodeContact({ name: "5554999990000" });
+    expect(text).toBe("5554999990000");
+    expect(decodeContact(text)).toEqual({ name: "5554999990000" });
+  });
 });
 
 describe("phoneFromVCard", () => {
