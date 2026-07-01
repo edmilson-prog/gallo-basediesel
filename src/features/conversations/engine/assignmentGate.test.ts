@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { mustAssignToReply, canReturnToQueue } from "./assignmentGate";
+import { mustAssignToReply, canReturnToQueue, isOwnConversation } from "./assignmentGate";
 
 describe("mustAssignToReply", () => {
   it("gates a pool conversation for a non-staff user", () => {
@@ -44,5 +44,24 @@ describe("canReturnToQueue", () => {
 
   it("never offers it to a non-staff user in the pool", () => {
     expect(canReturnToQueue({ assignedSellerId: undefined }, { isStaff: false })).toBe(false);
+  });
+});
+
+describe("isOwnConversation", () => {
+  it("is true when the seller is the conversation's assignee", () => {
+    expect(isOwnConversation({ assignedSellerId: "seller-1" }, "seller-1")).toBe(true);
+  });
+
+  it("is false when the seller is someone else's assignee", () => {
+    expect(isOwnConversation({ assignedSellerId: "seller-1" }, "seller-2")).toBe(false);
+  });
+
+  it("is false for a pool conversation (no assignee)", () => {
+    expect(isOwnConversation({ assignedSellerId: undefined }, "seller-1")).toBe(false);
+  });
+
+  it("is false when the seller id is null or undefined", () => {
+    expect(isOwnConversation({ assignedSellerId: "seller-1" }, null)).toBe(false);
+    expect(isOwnConversation({ assignedSellerId: "seller-1" }, undefined)).toBe(false);
   });
 });

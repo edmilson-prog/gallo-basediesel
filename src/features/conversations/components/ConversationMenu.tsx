@@ -32,7 +32,7 @@ import { NoteDialog } from "./dialogs/NoteDialog";
 import { StatusControlModeSubmenu } from "./status/StatusControlModeSubmenu";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
 import { useReturnToQueue } from "../hooks/useReturnToQueue";
-import { canReturnToQueue } from "../engine/assignmentGate";
+import { canReturnToQueue, isOwnConversation } from "../engine/assignmentGate";
 import { useUnreadTracking } from "../hooks/useUnreadTracking";
 import type { StatusControlMode } from "../engine/statusControlMode";
 
@@ -78,9 +78,8 @@ export function ConversationMenu({
   const canAddNote = usePermission("customer", "edit", "own");
   // A seller can transfer/archive the conversation assigned to them (own scope);
   // managers act on any store conversation. Mirrors the conversations RLS.
-  const isOwnConversation =
-    currentUser?.sellerId != null && conversation.assignedSellerId === currentUser.sellerId;
-  const canManageThis = canEditStore || (canEditOwn && isOwnConversation);
+  const canManageThis =
+    canEditStore || (canEditOwn && isOwnConversation(conversation, currentUser?.sellerId));
   // Staff-only return-to-queue (RLS), only when there is an assignee to remove.
   const showReturnToQueue = canReturnToQueue(conversation, { isStaff: canEditStore });
   const { returnToQueue } = useReturnToQueue(conversation, { onDone: onMutated });
