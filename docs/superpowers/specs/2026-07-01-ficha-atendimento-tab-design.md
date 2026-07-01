@@ -186,3 +186,28 @@ Não há engine puro novo — é composição de componentes existentes. Cobertu
   branch) — confirmado lendo o código desta worktree, que parte de `origin/main`.
   Não há conflito esperado com a branch `feat/unify-conversation-status-control`
   (trabalho anterior, não relacionado a este escopo).
+
+## 10. Addendum — terceira superfície descoberta na revisão final (pós-implementação)
+
+A revisão final da branch (após as 8 tarefas) achou uma superfície que nem este
+spec nem o plano de implementação consideraram: `CustomerProfile` (`variant="column"`)
+também é renderizado por `src/features/customers/pages/CustomersListPage.tsx`
+(painel de preview ao clicar num cliente na lista `/app/clientes`), **sem**
+`conversation` — um terceiro lugar além dos dois mapeados em §5. Como
+`ProfileTabs` decidia seu default via `useState` interno fixo, esse painel
+herdou "Atendimento" também, regredindo a experiência do caso comum (cliente
+sem pendência abrindo numa aba vazia em vez da Visão geral).
+
+**Resolução (aprovada pelo dono):** o default deixou de ser fixo dentro do
+`ProfileTabs` e virou uma prop opcional `defaultTab?: TabKey` (padrão
+`"overview"` quando omitida). Só `CustomerProfileFiche` (o único consumidor
+dentro da tela de Atendimento) passa `defaultTab="atendimento"` explicitamente
+nas suas duas chamadas de `<CustomerProfile>`. `CustomerProfile` repassa a prop
+sem valor-padrão próprio (deixa o `ProfileTabs` decidir). `CustomerDetailPage`
+não foi tocado (já controla `activeTab` por conta própria). `CustomersListPage`
+não foi tocado — ao omitir `defaultTab`, volta a cair em `"overview"`,
+restaurando o comportamento anterior a esta entrega.
+
+Também corrigido nesse mesmo commit: o estado vazio do `AtendimentoTab` passou
+a usar o componente compartilhado `TabEmptyState` (em vez de um `<p>` avulso),
+por consistência com `ConversationsTab`/`NotesTab`/`QuotesTab`/`RecommendationsTab`.
