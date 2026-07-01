@@ -24,4 +24,42 @@ export const SERVICE_VOLUME_STRINGS = {
   granularityMonth: "Mês",
   retry: "Tentar novamente",
   errorLoading: "Erro ao carregar.",
+
+  // Seller load
+  sellerLoadTitle: "Carga por vendedor",
+  sellerLoadSubtitle: "Conversas ativas — aguardando e em andamento, somando todos os números",
+  sellerLoadHelp:
+    "Quantas conversas ativas (aguardando + em andamento) cada vendedor tem agora, somando todos os números de WhatsApp que ele atende. Conversas já resolvidas não entram nessa conta — por isso o total pode ser menor do que o de 'Atribuídas a mim' na tela de Atendimento. Ajuda a identificar sobrecarga e equilibrar a distribuição da equipe.",
+  sellerLoadEmpty: "Nenhum vendedor com carga ativa no momento.",
+  sellerLoadCount: (n: number) => (n === 1 ? "1 conversa" : `${n} conversas`),
+  sellerLoadAvailabilityOnline: "Online",
+  sellerLoadAvailabilityAusente: "Ausente",
+  sellerLoadAvailabilityOcupado: "Ocupado",
+  sellerLoadAvailabilityOffline: "Offline",
+
+  // Heatmap
+  heatmapTitle: "Heatmap de volume",
+  heatmapSubtitle: "Mensagens recebidas por dia da semana × hora",
+  heatmapHelp:
+    "Concentração de mensagens recebidas por dia da semana e hora. As células mais escuras mostram os horários de pico do atendimento.",
+  heatmapEmpty: "Sem mensagens neste período.",
+  heatmapLegendMin: "Menos",
+  heatmapLegendMax: "Mais",
+  heatmapTooltip: (day: string, hour: string, n: number) =>
+    `${day} ${hour}h: ${n} mensagem${n === 1 ? "" : "s"}`,
+  heatmapDays: ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"] as const,
+
+  // Headline KPIs (TMA/TMR/Resolução/Backlog)
+  kpiTmaLabel: "Tempo Médio de Atendimento",
+  kpiTmaShort: "TMA",
+  kpiTmaHelp: "Tempo médio entre a primeira mensagem do cliente e a marcação como resolvida.",
+  kpiTmrLabel: "Tempo Médio de Resposta",
+  kpiTmrShort: "TMR",
+  kpiTmrHelp: "Tempo médio entre uma mensagem do cliente e a primeira resposta do vendedor.",
+  kpiResolutionLabel: "Taxa de Resolução",
+  kpiResolutionShort: "Taxa de Resolução",
+  kpiResolutionHelp: "Conversas resolvidas sobre conversas abertas no período.",
+  kpiBacklogLabel: "Backlog",
+  kpiBacklogShort: "Backlog",
+  kpiBacklogHelp: "Conversas aguardando atendimento neste momento.",
 } as const;

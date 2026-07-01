@@ -4,7 +4,7 @@ import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
 import { InfoHint } from "@/components/InfoHint";
 import type { SellerAvailability } from "@/shared/types";
-import { MANAGER_DASHBOARD_STRINGS } from "../i18n/pt-BR";
+import { SERVICE_VOLUME_STRINGS } from "../i18n/pt-BR";
 import type { ISellerLoadEntry } from "../hooks/useSellerLoad";
 
 export interface ISellerLoadListProps {
@@ -16,10 +16,10 @@ export interface ISellerLoadListProps {
 }
 
 const AVAILABILITY_LABEL: Record<SellerAvailability, string> = {
-  online: MANAGER_DASHBOARD_STRINGS.sellerLoadAvailabilityOnline,
-  ausente: MANAGER_DASHBOARD_STRINGS.sellerLoadAvailabilityAusente,
-  ocupado: MANAGER_DASHBOARD_STRINGS.sellerLoadAvailabilityOcupado,
-  offline: MANAGER_DASHBOARD_STRINGS.sellerLoadAvailabilityOffline,
+  online: SERVICE_VOLUME_STRINGS.sellerLoadAvailabilityOnline,
+  ausente: SERVICE_VOLUME_STRINGS.sellerLoadAvailabilityAusente,
+  ocupado: SERVICE_VOLUME_STRINGS.sellerLoadAvailabilityOcupado,
+  offline: SERVICE_VOLUME_STRINGS.sellerLoadAvailabilityOffline,
 };
 
 const AVAILABILITY_DOT: Record<SellerAvailability, string> = {
@@ -57,14 +57,14 @@ export function SellerLoadList({
       <header className="flex items-baseline justify-between">
         <div>
           <h2 className="flex items-center gap-1.5 text-base font-semibold tracking-tight text-foreground">
-            {MANAGER_DASHBOARD_STRINGS.sellerLoadTitle}
+            {SERVICE_VOLUME_STRINGS.sellerLoadTitle}
             <InfoHint
-              text={MANAGER_DASHBOARD_STRINGS.sellerLoadHelp}
-              label={MANAGER_DASHBOARD_STRINGS.sellerLoadTitle}
+              text={SERVICE_VOLUME_STRINGS.sellerLoadHelp}
+              label={SERVICE_VOLUME_STRINGS.sellerLoadTitle}
             />
           </h2>
           <p className="text-xs text-muted-foreground">
-            {MANAGER_DASHBOARD_STRINGS.sellerLoadSubtitle}
+            {SERVICE_VOLUME_STRINGS.sellerLoadSubtitle}
           </p>
         </div>
         <Icon icon="mdi:account-multiple-outline" size={20} className="text-muted-foreground" />
@@ -83,7 +83,7 @@ export function SellerLoadList({
           ))
         ) : entries.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">
-            {MANAGER_DASHBOARD_STRINGS.sellerLoadEmpty}
+            {SERVICE_VOLUME_STRINGS.sellerLoadEmpty}
           </p>
         ) : (
           entries.map(({ seller, activeCount, band }) => {
@@ -125,7 +125,7 @@ export function SellerLoadList({
                         band === "normal" && "text-muted-foreground",
                       )}
                     >
-                      {MANAGER_DASHBOARD_STRINGS.sellerLoadCount(activeCount)}
+                      {SERVICE_VOLUME_STRINGS.sellerLoadCount(activeCount)}
                     </span>
                   </div>
                   <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
