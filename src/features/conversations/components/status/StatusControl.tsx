@@ -15,21 +15,10 @@ import { STATUS_META } from "../../utils/conversationDisplay";
 import { CONVERSATION_STRINGS } from "../../i18n/pt-BR";
 import { useConversationStatusActions } from "../../hooks/useConversationStatusActions";
 import { isOwnConversation } from "../../engine/assignmentGate";
+import { actionForTransition } from "../../engine/statusAuditAction";
 import type { StatusControlMode } from "../../engine/statusControlMode";
 
 const LIFECYCLE: ConversationStatus[] = ["aguardando", "em_andamento", "aguardando_cliente"];
-
-/**
- * Audit action name for a status transition — mirrors ConversationMenu's
- * resolve/archive audit actions so picking these from the unified control
- * logs the same semantic action as the kebab shortcuts, not a generic
- * status_change, regardless of transition direction.
- */
-function actionForTransition(from: ConversationStatus, to: ConversationStatus): string | undefined {
-  if (from === "resolvida" || to === "resolvida") return "conversation.resolve";
-  if (from === "arquivada" || to === "arquivada") return "conversation.archive";
-  return undefined;
-}
 
 /** A status dot honoring the shape (filled ● / outline ○ / check ✓). */
 function StatusDot({ status }: { status: ConversationStatus }) {
@@ -84,6 +73,14 @@ export function StatusControl({
   // ownership gate as the kebab's Archive action (mirrors the RLS write
   // policy: staff manage any conversation, a seller only their own).
   const canArchive = canEditStore || isOwnConversation(conversation, currentUser?.sellerId);
+
+  // The kebab hides its Archive item entirely without canArchive, blocking
+  // both directions (archive and unarchive) since it's a single toggle. This
+  // control must match: once a conversation is archived, a user without
+  // canArchive gets a read-only pill — otherwise any other status would be a
+  // free unarchive escape hatch.
+  if (status === "arquivada" && !canArchive) return <StatusPill status={status} />;
+
   const items: ConversationStatus[] = canArchive
     ? [...LIFECYCLE, "resolvida", "arquivada"]
     : [...LIFECYCLE, "resolvida"];
