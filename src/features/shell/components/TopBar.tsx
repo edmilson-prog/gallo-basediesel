@@ -23,7 +23,7 @@ import { usePlatformSettings } from "@/features/admin-settings/hooks/usePlatform
 import { AvailabilityToggle } from "@/features/distribution/components/AvailabilityToggle";
 import { NotificationDropdown } from "@/features/notifications/components/NotificationDropdown";
 import { WhatsAppStatusButton } from "@/features/shell/components/WhatsAppStatusButton";
-import { SoundAlertToggle } from "@/features/inbox-alerts";
+import { InboxUnreadBadgeIcon, SoundAlertToggle } from "@/features/inbox-alerts";
 import { ScrollProgressBar } from "@/features/shell/components/ScrollProgressBar";
 import { ROUTES } from "@/features/shell/config/routes";
 import { TourHelpButton } from "@/features/tour";
@@ -70,6 +70,8 @@ export function TopBar() {
       <div className="ml-auto flex items-center gap-1">
         {/* WhatsApp connection indicator — online/offline status per store. */}
         <WhatsAppStatusButton />
+
+        <InboxUnreadBadgeIcon />
 
         <SoundAlertToggle />
 
