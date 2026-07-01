@@ -1,4 +1,4 @@
-import type { ID, IConversation } from "@/shared/types";
+import type { ID, IConversation, ISeller, IWhatsAppAccount } from "@/shared/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
@@ -18,6 +18,12 @@ export interface ICustomerProfileProps {
    * `conversationId` query param.
    */
   conversation?: IConversation | null;
+  /** Resolved from conversation.assignedSellerId by the caller — feeds the Atendimento tab. */
+  assignedSeller?: ISeller | null;
+  /** Resolved from conversation.whatsappAccountId by the caller — feeds the Atendimento tab. */
+  whatsappAccount?: IWhatsAppAccount | null;
+  /** Bubbles a StatusControl change up to the caller's conversation refresh. */
+  onConversationChanged?: () => void;
   /** Layout density — `column` is the lateral 360px panel; `page` is the full route. */
   variant?: "column" | "page";
   className?: string;
@@ -39,6 +45,9 @@ export interface ICustomerProfileProps {
 export function CustomerProfile({
   customerId,
   conversation = null,
+  assignedSeller = null,
+  whatsappAccount = null,
+  onConversationChanged,
   variant = "column",
   className,
   copilotTab,
@@ -98,6 +107,9 @@ export function CustomerProfile({
         <ProfileTabs
           customer={customer}
           conversation={conversation}
+          assignedSeller={assignedSeller}
+          whatsappAccount={whatsappAccount}
+          onConversationChanged={onConversationChanged}
           iconOnlyTabs={variant === "column"}
           copilotTab={copilotTab}
         />

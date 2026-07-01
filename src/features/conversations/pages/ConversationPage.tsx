@@ -250,6 +250,9 @@ export function ConversationPage() {
               <CustomerProfileFiche
                 customerId={conversation.customerId}
                 conversation={conversation}
+                assignedSeller={assignedSeller}
+                whatsappAccount={whatsappAccount}
+                onConversationChanged={detail.refresh}
                 open={fiche.open}
                 onOpenChange={fiche.setOpen}
                 copilotTab={
