@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { ID, IConversation, IMessage } from "@/shared/types";
-import { missingIds, newerMessage, recencyKeyOf } from "./useRelatedEntities";
+import { changedRecencyIds, missingIds, newerMessage, recencyKeyOf } from "./useRelatedEntities";
 
 /**
  * Unit tests for the pure core of `useRelatedEntities` (node env — no DOM, no
@@ -94,6 +94,43 @@ describe("recencyKeyOf (the stale-preview fix)", () => {
     const base = [convAt("conv-1", "2026-06-30T10:00:00.000Z")];
     const grown = [...base, convAt("conv-2", "2026-06-30T11:00:00.000Z")];
     expect(recencyKeyOf(grown)).not.toBe(recencyKeyOf(base));
+  });
+});
+
+describe("changedRecencyIds (gap A — incremental last-message fetch)", () => {
+  it("returns every conversation on the first run (nothing seen yet)", () => {
+    const list = [convAt("conv-1", "2026-06-30T10:00:00.000Z"), convAt("conv-2", "2026-06-30T09:00:00.000Z")];
+    expect(changedRecencyIds(list, new Map())).toEqual(["conv-1", "conv-2"]);
+  });
+
+  it("returns only the conversation whose last message actually advanced", () => {
+    const lastSeen = new Map<ID, string>([
+      ["conv-1", "2026-06-30T10:00:00.000Z"],
+      ["conv-2", "2026-06-30T09:00:00.000Z"],
+    ]);
+    const list = [
+      convAt("conv-1", "2026-06-30T10:05:00.000Z"), // advanced
+      convAt("conv-2", "2026-06-30T09:00:00.000Z"), // unchanged
+    ];
+    expect(changedRecencyIds(list, lastSeen)).toEqual(["conv-1"]);
+  });
+
+  it("returns nothing when no recency moved (a reorder-only run)", () => {
+    const lastSeen = new Map<ID, string>([
+      ["conv-1", "2026-06-30T10:00:00.000Z"],
+      ["conv-2", "2026-06-30T09:00:00.000Z"],
+    ]);
+    const list = [convAt("conv-2", "2026-06-30T09:00:00.000Z"), convAt("conv-1", "2026-06-30T10:00:00.000Z")];
+    expect(changedRecencyIds(list, lastSeen)).toEqual([]);
+  });
+
+  it("includes a newly-arrived conversation even when others are unchanged", () => {
+    const lastSeen = new Map<ID, string>([["conv-1", "2026-06-30T10:00:00.000Z"]]);
+    const list = [
+      convAt("conv-1", "2026-06-30T10:00:00.000Z"),
+      convAt("conv-2", "2026-06-30T11:00:00.000Z"),
+    ];
+    expect(changedRecencyIds(list, lastSeen)).toEqual(["conv-2"]);
   });
 });
 

@@ -55,6 +55,23 @@ export function recencyKeyOf(conversations: IConversation[]): string {
 }
 
 /**
+ * The subset of `conversations` whose last-message recency changed since
+ * `lastSeen` (or that are new entirely). Mirrors `missingIds` for the
+ * VOLATILE last-message cache: `recencyKeyOf` changing re-runs the resolution
+ * effect, but a single new message elsewhere in a large Inbox shouldn't force
+ * every OTHER already-resolved conversation's last message to be re-fetched —
+ * only the one(s) that actually moved.
+ */
+export function changedRecencyIds(
+  conversations: IConversation[],
+  lastSeen: ReadonlyMap<ID, string>,
+): ID[] {
+  return conversations
+    .filter((c) => lastSeen.get(c.id) !== (c.lastMessageAt ?? ""))
+    .map((c) => c.id);
+}
+
+/**
  * Resolves the contact + last-message each conversation row needs.
  *
  * Contacts come from a single `conversations.listContacts` call (supabase: the
@@ -71,8 +88,10 @@ export function recencyKeyOf(conversations: IConversation[]): string {
  * renders and is never wiped: each conversation's contact is requested once and
  * reused, so a superseded batch can only ever ADD resolved contacts, never blank
  * them. Results publish immediately (cached entries paint at once) and again as
- * the batch settles. Last messages stay volatile — refreshed for the current set
- * every run so the preview tracks new traffic.
+ * the batch settles. Last messages stay volatile — but only the conversation(s)
+ * whose recency actually changed since the last run are re-fetched
+ * (`changedRecencyIds`), so new traffic on one conversation doesn't re-ask for
+ * every other already-resolved conversation's preview.
  *
  * Trade-off: a contact renamed mid-session keeps its cached list label until the
  * page reloads; the detail/ficha refetches fresh, so this is cosmetic.
@@ -83,6 +102,7 @@ export function useRelatedEntities(conversations: IConversation[]): IRelatedEnti
 
   const contactsRef = useRef<Map<ID, IConversationContact>>(new Map());
   const messagesRef = useRef<Map<ID, IMessage>>(new Map());
+  const lastSeenRecencyRef = useRef<Map<ID, string>>(new Map());
   const mountedRef = useRef(true);
   useEffect(() => {
     mountedRef.current = true;
@@ -131,26 +151,42 @@ export function useRelatedEntities(conversations: IConversation[]): IRelatedEnti
       );
     }
 
-    // Volatile preview → ONE batched RPC for the whole page's last messages
-    // (supabase: `last_messages_for_conversations`, gated by can_access). This
-    // replaces the ~50 concurrent per-conversation reads that — for a non-staff
-    // seller, each re-evaluating the RLS access gate — saturated the backend
-    // (statement_timeout → 500 on /messages). The merge is recency-guarded:
-    // overlapping ticks can resolve out of order, so a slow older lookup must
-    // not stomp a newer preview already in the cache.
-    tasks.push(
-      messagesProvider
-        .listLastMessages(conversations.map((c) => c.id))
-        .then((msgs) => {
-          for (const m of msgs) {
-            messagesRef.current.set(
-              m.conversationId,
-              newerMessage(messagesRef.current.get(m.conversationId), m),
-            );
-          }
-        })
-        .catch(() => undefined),
-    );
+    // Volatile preview → a batched RPC (supabase: `last_messages_for_conversations`,
+    // gated by can_access) for only the conversation(s) whose recency actually
+    // moved since the last run. This replaces the ~50 concurrent per-conversation
+    // reads that — for a non-staff seller, each re-evaluating the RLS access gate —
+    // saturated the backend (statement_timeout → 500 on /messages), AND avoids
+    // re-asking for every OTHER already-resolved conversation's last message every
+    // time a single one changes (`changedRecencyIds`). The merge is
+    // recency-guarded: overlapping ticks can resolve out of order, so a slow older
+    // lookup must not stomp a newer preview already in the cache.
+    const changedIds = changedRecencyIds(conversations, lastSeenRecencyRef.current);
+    if (changedIds.length > 0) {
+      const changedIdSet = new Set(changedIds);
+      const recencyByChangedId = new Map(
+        conversations.filter((c) => changedIdSet.has(c.id)).map((c) => [c.id, c.lastMessageAt ?? ""]),
+      );
+      tasks.push(
+        messagesProvider
+          .listLastMessages(changedIds)
+          .then((msgs) => {
+            for (const m of msgs) {
+              messagesRef.current.set(
+                m.conversationId,
+                newerMessage(messagesRef.current.get(m.conversationId), m),
+              );
+            }
+            // Only mark a conversation as "seen" for THIS recency on success —
+            // a rejected fetch (e.g. a transient RPC timeout) must leave it
+            // eligible for retry on the next unrelated recency change, mirroring
+            // the success-only caching contacts already use (missingIds/contactsRef).
+            for (const [id, recency] of recencyByChangedId) {
+              lastSeenRecencyRef.current.set(id, recency);
+            }
+          })
+          .catch(() => undefined),
+      );
+    }
 
     // Paint whatever is already cached immediately, then republish as the batch
     // settles. NOT gated on a cancellation flag: the caches are monotonic, so a

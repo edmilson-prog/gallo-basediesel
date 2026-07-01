@@ -94,6 +94,15 @@ function rowToMessage(row: IMessageRealtimeRow): IMessage {
  * `syncLatest` to merge the latest page. The open thread then catches up live
  * even when the messages channel drops the event, instead of forcing the user
  * to leave and re-enter the conversation.
+ *
+ * The fallback re-arms on EVERY touch unconditionally (no "already covered by
+ * the fast path" skip): an earlier attempt at that optimization compared
+ * `last_message_at`/`sentAt` timestamps, but those are truncated to whole
+ * seconds by every provider parser, so two distinct messages in the same
+ * second are indistinguishable — and a later touch's coverage doesn't prove
+ * an earlier, still-uncovered touch's message was ever applied. Both gaps
+ * risked silently dropping a real message from the open thread, which is
+ * worse than the redundant `syncLatest` call this hook accepts instead.
  */
 export function useRealtimeMessages(
   conversationId: ID,

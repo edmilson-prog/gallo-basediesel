@@ -49,9 +49,9 @@ export const MANAGER_DASHBOARD_STRINGS = {
 
   // Seller load
   sellerLoadTitle: "Carga por vendedor",
-  sellerLoadSubtitle: "Conversas ativas — aguardando e em andamento",
+  sellerLoadSubtitle: "Conversas ativas — aguardando e em andamento, somando todos os números",
   sellerLoadHelp:
-    "Quantas conversas ativas (aguardando + em andamento) cada vendedor tem agora. Ajuda a identificar sobrecarga e equilibrar a distribuição da equipe.",
+    "Quantas conversas ativas (aguardando + em andamento) cada vendedor tem agora, somando todos os números de WhatsApp que ele atende. Conversas já resolvidas não entram nessa conta — por isso o total pode ser menor do que o de 'Atribuídas a mim' na tela de Atendimento. Ajuda a identificar sobrecarga e equilibrar a distribuição da equipe.",
   sellerLoadEmpty: "Nenhum vendedor com carga ativa no momento.",
   sellerLoadCount: (n: number) => (n === 1 ? "1 conversa" : `${n} conversas`),
   sellerLoadAvailabilityOnline: "Online",
