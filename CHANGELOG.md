@@ -6,6 +6,19 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.126.1] — Waypoint · 2026-06-30
+
+**Ajustes finos no Atendimento: um texto mais claro no Painel do Gestor, um cartão de contato corrigido e a lista de conversas ficou mais leve para atualizar.**
+
+### Fixed
+
+- **Card "Carga por vendedor" mais claro** — o texto do Painel do Gestor agora deixa explícito que a contagem soma todos os números de WhatsApp do vendedor e não inclui conversas já resolvidas, evitando a impressão de que o total estava errado.
+- **Contato compartilhado com nome numérico não é mais confundido com telefone** — quando um cliente compartilhava um contato do WhatsApp sem número salvo (nome exibido como uma sequência de dígitos), o cartão podia mostrar esse nome como se fosse o telefone. Corrigido.
+
+### Changed
+
+- **Lista de conversas atualiza de forma mais leve** — a prévia da última mensagem de cada conversa passou a ser buscada só para as conversas que realmente receberam mensagem nova, em vez de reconsultar a lista inteira a cada atualização.
+
 ## [0.126.0] — Waypoint · 2026-06-30
 
 **O WhatsApp ficou mais confiável para receber mensagens — e os compartilhamentos de localização e de contato agora aparecem como cartões.** Esta versão reúne correções na recepção de mensagens (Evolution e Evolution Go) e duas novidades no Atendimento: silenciar os alertas de um número desconectado e exibir, como cartões, as localizações e os contatos que os clientes enviam.
