@@ -6,6 +6,26 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.127.0] — Vantage · 2026-07-01
+
+**A conversa agora "sabe" de quem é a vez de responder, e a ficha do cliente ganhou uma aba dedicada ao atendimento.** Um envio do atendente já move a conversa para "Em atendimento" automaticamente — inclusive reabrindo uma conversa resolvida, sem precisar reabrir na mão. A ficha do cliente ganhou a aba "Atendimento" como padrão, reunindo o aviso de conversão de contato pendente e os dados de quem está atendendo. Números de WhatsApp desconectados agora travam a conversa para leitura, evitando respostas que nunca sairiam. E o seletor de status da conversa passou a oferecer todos os 5 estados num só lugar.
+
+### Added
+
+- **Envio automático avança o status da conversa** — ao enviar qualquer mensagem ou anexo, a conversa passa automaticamente para "Em atendimento" — inclusive uma conversa já "Resolvida", que reabre sozinha. Só uma conversa "Arquivada" continua exigindo desarquivar manualmente antes de enviar.
+- **Aba "Atendimento" na ficha do cliente** — abrir a ficha de um cliente a partir de uma conversa (ou pela tela cheia do cliente) agora mostra, por padrão, a aba "Atendimento", reunindo o aviso de "Converter em cliente" (quando é um contato pendente), o vendedor responsável, a origem do contato e o status da conversa. A pré-visualização rápida na lista de Clientes continua abrindo em "Visão geral".
+- **Conversa trava para leitura quando o número está desconectado** — se o número de WhatsApp de uma conversa está desconectado ou ainda parenado, a caixa de envio é substituída por um aviso, evitando tentar responder por um canal que não vai sair. As notas internas continuam disponíveis.
+- **Seletor de status da conversa ganha todos os 5 estados** — o mesmo lugar que já tinha Aguardando/Em atendimento/Aguardando cliente agora também oferece Resolvida e Arquivada diretamente, sem precisar abrir o menu extra.
+- **Thumbnail ao compartilhar o link da plataforma** — enviar o link do GALLO BASE DIESEL pelo WhatsApp ou redes sociais agora mostra uma imagem de capa, em vez de só texto.
+
+### Changed
+
+- **Indicadores de atendimento saíram do Painel do Gestor e foram para o painel Atendimento (Início)** — os cartões "Carga por vendedor", o mapa de calor de volume e os indicadores de Tempo Médio de Atendimento, Tempo Médio de Resposta, Taxa de Resolução e Backlog deixaram a aba Operação e passaram a viver no painel Atendimento da tela Início, respeitando o período e a loja escolhidos ali.
+
+### Fixed
+
+- **Filtros do Atendimento não resetam mais ao recarregar a página** — os filtros da lista de conversas (status, canal, instância, atribuição, tags, período) agora são lembrados entre navegações e recarregamentos, como já acontecia em Clientes/Veículos/Catálogo/Orçamentos.
+
 ## [0.126.1] — Waypoint · 2026-06-30
 
 **Ajustes finos no Atendimento: um texto mais claro no Painel do Gestor, um cartão de contato corrigido e a lista de conversas ficou mais leve para atualizar.**
