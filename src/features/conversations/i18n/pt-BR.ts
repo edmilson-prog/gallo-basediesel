@@ -203,8 +203,6 @@ export const CONVERSATION_STRINGS = {
   } as const,
   statusControl: {
     triggerLabel: "Alterar status da conversa",
-    resolve: "Resolver",
-    reopen: "Reabrir",
     statusChanged: (label: string) => `Status alterado para "${label}"`,
     actionFailed: "Não foi possível alterar o status",
     modeSwitchLabel: "Modo de exibição do status",

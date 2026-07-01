@@ -1,4 +1,4 @@
-import type { IConversation } from "@/shared/types";
+import type { ID, IConversation } from "@/shared/types";
 
 /**
  * Whether the current user must self-assign a pool conversation before they can
@@ -31,4 +31,17 @@ export function canReturnToQueue(
 ): boolean {
   if (!ctx.isStaff) return false;
   return conversation.assignedSellerId != null;
+}
+
+/**
+ * Whether `sellerId` is the conversation's own assignee — the ownership half
+ * of the "manage this conversation" gate (archive, transfer). Callers combine
+ * this with a store-wide edit permission check for the staff exemption; this
+ * function only ever answers the ownership question.
+ */
+export function isOwnConversation(
+  conversation: Pick<IConversation, "assignedSellerId">,
+  sellerId: ID | null | undefined,
+): boolean {
+  return sellerId != null && conversation.assignedSellerId === sellerId;
 }
