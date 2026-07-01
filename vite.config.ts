@@ -40,6 +40,16 @@ export default defineConfig({
     tsconfigPaths(),
   ],
   server: {
+    // Bind to IPv4 loopback explicitly. With the default "localhost", Node on
+    // Windows may bind ONLY [::1] (IPv6); Chrome's HTTP falls back to IPv6 so
+    // the page loads, but the HMR WebSocket does NOT fall back — it dies
+    // silently. Without HMR, a dep re-optimization never triggers the
+    // full-reload, and the browser mixes two optimize generations (two React
+    // copies → "Invalid hook call" / useState null).
+    host: "127.0.0.1",
+    hmr: {
+      host: "127.0.0.1",
+    },
     // Fail fast instead of silently hopping to the next port (5174, 5175…)
     // when 5173 is taken. Prevents multiple concurrent dev-server instances
     // from coexisting and corrupting the shared optimizeDeps cache, which
