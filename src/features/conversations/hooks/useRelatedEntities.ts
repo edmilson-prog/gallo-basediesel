@@ -161,10 +161,11 @@ export function useRelatedEntities(conversations: IConversation[]): IRelatedEnti
     // recency-guarded: overlapping ticks can resolve out of order, so a slow older
     // lookup must not stomp a newer preview already in the cache.
     const changedIds = changedRecencyIds(conversations, lastSeenRecencyRef.current);
-    for (const c of conversations) {
-      lastSeenRecencyRef.current.set(c.id, c.lastMessageAt ?? "");
-    }
     if (changedIds.length > 0) {
+      const changedIdSet = new Set(changedIds);
+      const recencyByChangedId = new Map(
+        conversations.filter((c) => changedIdSet.has(c.id)).map((c) => [c.id, c.lastMessageAt ?? ""]),
+      );
       tasks.push(
         messagesProvider
           .listLastMessages(changedIds)
@@ -174,6 +175,13 @@ export function useRelatedEntities(conversations: IConversation[]): IRelatedEnti
                 m.conversationId,
                 newerMessage(messagesRef.current.get(m.conversationId), m),
               );
+            }
+            // Only mark a conversation as "seen" for THIS recency on success —
+            // a rejected fetch (e.g. a transient RPC timeout) must leave it
+            // eligible for retry on the next unrelated recency change, mirroring
+            // the success-only caching contacts already use (missingIds/contactsRef).
+            for (const [id, recency] of recencyByChangedId) {
+              lastSeenRecencyRef.current.set(id, recency);
             }
           })
           .catch(() => undefined),
