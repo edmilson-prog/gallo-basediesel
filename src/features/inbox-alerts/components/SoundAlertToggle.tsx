@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -15,10 +15,12 @@ export function SoundAlertToggle() {
   const setEnabled = useSoundAlertPreferencesStore((s) => s.setEnabled);
   const setVolume = useSoundAlertPreferencesStore((s) => s.setVolume);
 
+  const tonePlayerRef = useRef<ReturnType<typeof createTonePlayer> | null>(null);
+  if (!tonePlayerRef.current) tonePlayerRef.current = createTonePlayer();
+
   const handleTest = (kind: ToneKind) => {
-    const player = createTonePlayer();
-    player.unlock();
-    player.play(kind, volume);
+    tonePlayerRef.current?.unlock();
+    tonePlayerRef.current?.play(kind, volume);
   };
 
   return (

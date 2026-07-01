@@ -168,9 +168,17 @@ ao desenho aprovado:
   antigo/novo em UPDATE exigiria `REPLICA IDENTITY FULL` em `conversations`,
   fora de escopo (YAGNI, ver §9 do spec).
 - **Multi-loja** — ambos os beeps e o ícone só consideram a loja atualmente
-  selecionada (`useCurrentStore()`). Trocar de loja limpa o cache local (ver
-  desvio #2 acima), mas não refaz o *seed* inicial sozinho — o próximo evento
-  Realtime ou uma visita à Inbox corrige.
+  selecionada (`useCurrentStore()`). Trocar de loja **re-roda os dois
+  `useEffect`s** (Seed e Live) para a loja nova — `currentStoreId` está nas
+  dependências de ambos, então o cache antigo é limpo (ver desvio #2 acima) e
+  o *seed* inicial roda de novo já escopado à loja recém-selecionada, sem
+  depender do próximo evento Realtime ou de uma visita à Inbox.
+- **Sem loja ativa selecionada** — se `currentStoreId` for `null` (ex.: um
+  Owner numa visão agregada "todas as lojas", quando existir), tanto o *Seed*
+  quanto o *Live* `useEffect` retornam cedo e não fazem nada — nem os beeps
+  nem o ponto no TopBar ficam ativos nesse modo. É consequência deliberada do
+  escopo por loja ativa (linha 4 da tabela de decisões na spec de origem), não
+  um bug — mas fica registrado aqui como limitação conhecida.
 - **Import/backfill de histórico** não dispara beep — protegido por
   `isRecentEvent` (eventos com mais de 60s de idade são ignorados).
 - **Sem migration** — nenhuma tabela/coluna nova; usa métodos de provider já

@@ -89,9 +89,17 @@ export function useInboxActivityMonitor(): void {
     let cancelled = false;
 
     void conversationsProvider
-      .list({ storeId: currentStoreId, assignmentAny: { queue: true }, pageSize: 1 })
+      .list({ storeId: currentStoreId, assignmentAny: { queue: true }, pageSize: 200 })
       .then((res) => {
-        if (!cancelled) useInboxActivityStore.getState().setHasQueueWaiting(res.total > 0);
+        if (cancelled) return;
+        for (const c of res.data) {
+          cacheRef.current.set(c.id, {
+            assignedSellerId: c.assignedSellerId ?? null,
+            status: c.status,
+            isSdrActive: c.isSdrActive,
+          });
+        }
+        useInboxActivityStore.getState().setHasQueueWaiting(res.total > 0);
       })
       .catch(() => {
         /* best-effort seed — the live channel still catches up */
@@ -168,6 +176,15 @@ export function useInboxActivityMonitor(): void {
     }
 
     const offConversations = subscribeToTable("conversations", (payload) => {
+      if (payload.eventType === "DELETE") {
+        const deletedId = (payload.old as { id?: string } | null)?.id;
+        if (deletedId) {
+          cache.delete(deletedId);
+          recomputeQueueState();
+        }
+        return;
+      }
+
       const row = payload.new as Partial<IConversationRealtimeRow> | null;
       if (!row?.id || row.store_id !== currentStoreId) return;
 
