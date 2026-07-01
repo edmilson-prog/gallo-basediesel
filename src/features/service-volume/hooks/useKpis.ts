@@ -7,7 +7,7 @@ import {
   calculateTmrMinutes,
   computeTrend,
   type ITrendInfo,
-} from "../utils/kpiMath";
+} from "@/features/manager-dashboard/utils/kpiMath";
 
 export interface IKpiValue<T = number> {
   current: T | null;

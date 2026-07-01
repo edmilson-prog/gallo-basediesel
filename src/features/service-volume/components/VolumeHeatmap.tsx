@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Icon } from "@/components/Icon";
 import { InfoHint } from "@/components/InfoHint";
-import { MANAGER_DASHBOARD_STRINGS } from "../i18n/pt-BR";
+import { SERVICE_VOLUME_STRINGS } from "../i18n/pt-BR";
 import type { IVolumeHeatmapData } from "../hooks/useVolumeHeatmap";
 
 export interface IVolumeHeatmapProps {
@@ -40,7 +40,7 @@ function legendIntensity(level: number): string {
 export function VolumeHeatmap({ data, isLoading, onCellClick }: IVolumeHeatmapProps) {
   const [hover, setHover] = useState<IHoverState | null>(null);
 
-  const labelDays = MANAGER_DASHBOARD_STRINGS.heatmapDays;
+  const labelDays = SERVICE_VOLUME_STRINGS.heatmapDays;
   const hours = useMemo(() => Array.from({ length: 24 }, (_, h) => h), []);
   // Layout constants (pixel-based, scales fine when contained in flex).
   const cellSize = 14;
@@ -55,14 +55,14 @@ export function VolumeHeatmap({ data, isLoading, onCellClick }: IVolumeHeatmapPr
       <header className="flex items-baseline justify-between">
         <div>
           <h2 className="flex items-center gap-1.5 text-base font-semibold tracking-tight text-foreground">
-            {MANAGER_DASHBOARD_STRINGS.heatmapTitle}
+            {SERVICE_VOLUME_STRINGS.heatmapTitle}
             <InfoHint
-              text={MANAGER_DASHBOARD_STRINGS.heatmapHelp}
-              label={MANAGER_DASHBOARD_STRINGS.heatmapTitle}
+              text={SERVICE_VOLUME_STRINGS.heatmapHelp}
+              label={SERVICE_VOLUME_STRINGS.heatmapTitle}
             />
           </h2>
           <p className="text-xs text-muted-foreground">
-            {MANAGER_DASHBOARD_STRINGS.heatmapSubtitle}
+            {SERVICE_VOLUME_STRINGS.heatmapSubtitle}
           </p>
         </div>
         <Icon icon="mdi:chart-timeline-variant" size={20} className="text-muted-foreground" />
@@ -72,14 +72,14 @@ export function VolumeHeatmap({ data, isLoading, onCellClick }: IVolumeHeatmapPr
         <Skeleton className="h-32 w-full" />
       ) : data.totalMessages === 0 ? (
         <p className="py-6 text-center text-sm text-muted-foreground">
-          {MANAGER_DASHBOARD_STRINGS.heatmapEmpty}
+          {SERVICE_VOLUME_STRINGS.heatmapEmpty}
         </p>
       ) : (
         <>
           <div className="overflow-x-auto">
             <svg
               role="img"
-              aria-label={MANAGER_DASHBOARD_STRINGS.heatmapTitle}
+              aria-label={SERVICE_VOLUME_STRINGS.heatmapTitle}
               viewBox={`0 0 ${gridW} ${gridH}`}
               width="100%"
               className="min-w-[420px] max-w-full"
@@ -135,7 +135,7 @@ export function VolumeHeatmap({ data, isLoading, onCellClick }: IVolumeHeatmapPr
                       tabIndex={onCellClick ? 0 : -1}
                     >
                       <title>
-                        {MANAGER_DASHBOARD_STRINGS.heatmapTooltip(
+                        {SERVICE_VOLUME_STRINGS.heatmapTooltip(
                           labelDays[day],
                           hour.toString().padStart(2, "0"),
                           value,
@@ -151,14 +151,14 @@ export function VolumeHeatmap({ data, isLoading, onCellClick }: IVolumeHeatmapPr
           <div className="mt-auto flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
             <span aria-live="polite" className="min-h-[1em]">
               {hover &&
-                MANAGER_DASHBOARD_STRINGS.heatmapTooltip(
+                SERVICE_VOLUME_STRINGS.heatmapTooltip(
                   labelDays[hover.day],
                   hover.hour.toString().padStart(2, "0"),
                   hover.count,
                 )}
             </span>
             <div className="flex items-center gap-1.5">
-              <span>{MANAGER_DASHBOARD_STRINGS.heatmapLegendMin}</span>
+              <span>{SERVICE_VOLUME_STRINGS.heatmapLegendMin}</span>
               <svg width="78" height="10" viewBox="0 0 78 10" aria-hidden="true">
                 {[0, 1, 2, 3, 4, 5].map((level) => (
                   <rect
@@ -172,7 +172,7 @@ export function VolumeHeatmap({ data, isLoading, onCellClick }: IVolumeHeatmapPr
                   />
                 ))}
               </svg>
-              <span>{MANAGER_DASHBOARD_STRINGS.heatmapLegendMax}</span>
+              <span>{SERVICE_VOLUME_STRINGS.heatmapLegendMax}</span>
             </div>
           </div>
         </>

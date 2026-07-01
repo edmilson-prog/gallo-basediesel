@@ -13,15 +13,9 @@ import { SERVICE_VOLUME_STRINGS as SV } from "@/features/service-volume/i18n/pt-
 import { useRealtimeConversations } from "@/features/conversations/hooks/useRealtimeConversations";
 import { useDashboardFilters } from "../hooks/useDashboardFilters";
 import { useDashboardSnapshot } from "../hooks/useDashboardSnapshot";
-import { useKpis } from "../hooks/useKpis";
-import { useSellerLoad } from "../hooks/useSellerLoad";
-import { useVolumeHeatmap } from "../hooks/useVolumeHeatmap";
 import { useManagerDashboardSettings } from "../hooks/useManagerDashboardSettings";
 import { useCarteiraHealth } from "../hooks/useCarteiraHealth";
 import { DashboardFilters } from "../components/DashboardFilters";
-import { KpiCard } from "../components/KpiCard";
-import { SellerLoadList } from "../components/SellerLoadList";
-import { VolumeHeatmap } from "../components/VolumeHeatmap";
 import { CarteiraHealthDonut } from "../components/CarteiraHealthDonut";
 import { ActiveAlertsList } from "../components/ActiveAlertsList";
 import { AlertSettingsModal } from "../components/AlertSettingsModal";
@@ -33,18 +27,6 @@ import { CriticalInsightsWidget } from "@/features/insights";
 import { EcommerceOrdersWidget } from "@/features/ecommerce-integration";
 import { IndicatorsWidget } from "@/features/indicators/components/IndicatorsWidget";
 import { MANAGER_DASHBOARD_STRINGS } from "../i18n/pt-BR";
-
-function formatMinutes(value: number): string {
-  if (value < 60) return `${value} min`;
-  const hours = Math.floor(value / 60);
-  const minutes = value % 60;
-  if (minutes === 0) return `${hours}h`;
-  return `${hours}h ${minutes}min`;
-}
-
-function formatPercent(value: number): string {
-  return `${value}%`;
-}
 
 /**
  * Operational dashboard for Owner / Gestor — replaces the placeholder
@@ -63,7 +45,7 @@ export function ManagerDashboardPage() {
 
   const filters = useDashboardFilters(filtersCtx);
   const realtime = useRealtimeConversations();
-  const { snapshot, isLoading, error, refetch } = useDashboardSnapshot(
+  const { snapshot, isLoading } = useDashboardSnapshot(
     filters.filters,
     filters.window,
     filters.previousWindow,
@@ -73,24 +55,13 @@ export function ManagerDashboardPage() {
       refreshKey: realtime.tick,
     },
   );
-  const kpis = useKpis(snapshot);
   const settings = useManagerDashboardSettings(currentStore?.id ?? null);
-  const sellerLoad = useSellerLoad(snapshot, {
-    overloadThreshold: settings.settings.sellerOverloadThreshold,
-  });
-  const heatmap = useVolumeHeatmap(snapshot);
   const carteira = useCarteiraHealth(snapshot);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const canEditSettings = userRole === "Owner";
   const canViewVolume = usePermission("service_volume", "view");
   const volume = useServiceVolumeFilters();
   const activeTab = canViewVolume ? volume.state.tab : "operacao";
-
-  const goToInbox = (params: Record<string, string>) => {
-    const search: Record<string, string> = {};
-    for (const [k, v] of Object.entries(params)) search[k] = v;
-    void navigate({ to: "/app/atendimento", search });
-  };
 
   if (userRole === "Vendedor") {
     return (
@@ -156,93 +127,6 @@ export function ManagerDashboardPage() {
 
           <section
             className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
-            aria-label="Indicadores principais"
-          >
-            <KpiCard
-              icon="mdi:timer-sand"
-              label={MANAGER_DASHBOARD_STRINGS.kpiTmaLabel}
-              shortLabel={MANAGER_DASHBOARD_STRINGS.kpiTmaShort}
-              helpText={MANAGER_DASHBOARD_STRINGS.kpiTmaHelp}
-              value={kpis.tmaMinutes.current}
-              formatValue={formatMinutes}
-              trend={kpis.tmaMinutes.trend}
-              isLoading={isLoading}
-              hasError={Boolean(error) && !isLoading}
-              onRetry={refetch}
-              onClick={() => goToInbox({ status: "resolvida" })}
-            />
-            <KpiCard
-              icon="mdi:reply-outline"
-              label={MANAGER_DASHBOARD_STRINGS.kpiTmrLabel}
-              shortLabel={MANAGER_DASHBOARD_STRINGS.kpiTmrShort}
-              helpText={MANAGER_DASHBOARD_STRINGS.kpiTmrHelp}
-              value={kpis.tmrMinutes.current}
-              formatValue={formatMinutes}
-              trend={kpis.tmrMinutes.trend}
-              isLoading={isLoading}
-              hasError={Boolean(error) && !isLoading}
-              onRetry={refetch}
-              onClick={() => goToInbox({ status: "em_andamento" })}
-            />
-            <KpiCard
-              icon="mdi:check-circle-outline"
-              label={MANAGER_DASHBOARD_STRINGS.kpiResolutionLabel}
-              shortLabel={MANAGER_DASHBOARD_STRINGS.kpiResolutionShort}
-              helpText={MANAGER_DASHBOARD_STRINGS.kpiResolutionHelp}
-              value={kpis.resolutionRatePct.current}
-              formatValue={formatPercent}
-              trend={kpis.resolutionRatePct.trend}
-              isLoading={isLoading}
-              hasError={Boolean(error) && !isLoading}
-              onRetry={refetch}
-              onClick={() => goToInbox({ status: "resolvida" })}
-            />
-            <KpiCard
-              icon="mdi:inbox-arrow-down-outline"
-              label={MANAGER_DASHBOARD_STRINGS.kpiBacklogLabel}
-              shortLabel={MANAGER_DASHBOARD_STRINGS.kpiBacklogShort}
-              helpText={MANAGER_DASHBOARD_STRINGS.kpiBacklogHelp}
-              value={kpis.backlog.current}
-              isLoading={isLoading}
-              hasError={Boolean(error) && !isLoading}
-              onRetry={refetch}
-              onClick={() => goToInbox({ status: "aguardando" })}
-            />
-          </section>
-
-          <section className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2" aria-label="Carga e volume">
-            <SellerLoadList
-              entries={sellerLoad}
-              overloadThreshold={settings.settings.sellerOverloadThreshold}
-              isLoading={isLoading}
-              onSellerClick={(sellerId) => goToInbox({ assignment: sellerId, status: "em_andamento" })}
-            />
-            <VolumeHeatmap
-              data={heatmap}
-              isLoading={isLoading}
-              onCellClick={(day, hour) => {
-                const now = new Date();
-                const offsetToTarget = day - now.getDay();
-                const target = new Date(now);
-                target.setDate(now.getDate() + offsetToTarget);
-                target.setHours(hour, 0, 0, 0);
-                const end = new Date(target.getTime() + 3600_000 - 1);
-                void navigate({
-                  to: "/app/atendimento",
-                  search: {
-                    period: "30d",
-                    q: `${target.toISOString().slice(0, 10)} ${hour}h-${hour + 1}h`,
-                  },
-                });
-                // The inbox filter doesn't natively accept a time range; we land on
-                // the recent-period view and the query reminds the user of the slice.
-                void end;
-              }}
-            />
-          </section>
-
-          <section
-            className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
             aria-label="Metas, positivação, saúde da carteira, top performers e indicadores"
           >
             <GoalsWidget storeId={currentStore?.id ?? "00000000-0000-0000-0000-000000000001"} />
