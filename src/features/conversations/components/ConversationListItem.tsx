@@ -17,6 +17,8 @@ import { AssigneeChip } from "./AssigneeChip";
 import { useTimeTick } from "../hooks/useTimeTick";
 import { formatRelativeTime, isFresh } from "../utils/formatRelativeTime";
 import { accountAccent } from "../utils/instanceAccent";
+import { deriveInstanceLock } from "../engine/instanceLock";
+import { useLiveInstanceStatus } from "../hooks/useLiveInstanceStatus";
 import {
   CHANNEL_META,
   STATUS_META,
@@ -92,6 +94,17 @@ function ConversationListItemInner({
     () => displayFromContact(conversation, contact),
     [conversation, contact],
   );
+  const liveOriginAccount = useLiveInstanceStatus(originAccount);
+  const instanceLock = useMemo(() => deriveInstanceLock(liveOriginAccount), [liveOriginAccount]);
+  const instanceLockLabel = instanceLock.locked
+    ? instanceLock.reason === "pending"
+      ? CONVERSATION_STRINGS.instanceLocked.listBadgePending
+      : CONVERSATION_STRINGS.instanceLocked.listBadgeDisconnected
+    : undefined;
+  const instanceLockTone =
+    instanceLock.reason === "pending"
+      ? "bg-severity-warning/15 text-severity-warning"
+      : "bg-severity-critical/15 text-severity-critical";
 
   const preview = getMessagePreview(lastMessage);
   const relative = formatRelativeTime(conversation.lastMessageAt, now);
@@ -148,7 +161,26 @@ function ConversationListItemInner({
         )}
         aria-hidden
       />
-      <ContactAvatar display={display} />
+      <div className="relative shrink-0">
+        <ContactAvatar display={display} className={cn(instanceLock.locked && "grayscale opacity-75")} />
+        {instanceLock.locked && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span
+                className={cn(
+                  "absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full ring-2 ring-background",
+                  instanceLockTone,
+                )}
+                role="img"
+                aria-label={instanceLockLabel}
+              >
+                <Icon icon="mdi:wifi-off" size={10} />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top">{instanceLockLabel}</TooltipContent>
+          </Tooltip>
+        )}
+      </div>
 
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">

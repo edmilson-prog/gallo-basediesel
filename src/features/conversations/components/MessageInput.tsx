@@ -42,7 +42,10 @@ import { NotesButton } from "./notes/NotesButton";
 import { InlineNoteComposer } from "./notes/InlineNoteComposer";
 import { OriginChip } from "./OriginChip";
 import { AssignToReplyBanner } from "./AssignToReplyBanner";
+import { InstanceLockedBanner } from "./InstanceLockedBanner";
+import { deriveInstanceLock } from "../engine/instanceLock";
 import { useSelfAssign } from "../hooks/useSelfAssign";
+import { useLiveInstanceStatus } from "../hooks/useLiveInstanceStatus";
 import { getActiveDataSource } from "@/providers/data";
 import {
   AssetPicker,
@@ -148,6 +151,32 @@ function buildAiSuggestions(conversation: IConversation, lastInboundText: string
   return list.slice(0, 3);
 }
 
+/** Shared footer chrome for the composer-replacement gates (assign/instance-down). */
+function GatedComposerFooter({
+  conversation,
+  notesOpen,
+  onCloseNotes,
+  children,
+}: {
+  conversation: IConversation;
+  notesOpen: boolean;
+  onCloseNotes: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <footer data-tour="composer" className="border-t border-border bg-card">
+      {notesOpen && (
+        <InlineNoteComposer
+          conversationId={conversation.id}
+          storeId={conversation.storeId}
+          onClose={onCloseNotes}
+        />
+      )}
+      {children}
+    </footer>
+  );
+}
+
 export function MessageInput(props: IMessageInputProps) {
   const {
     conversation,
@@ -206,6 +235,9 @@ export function MessageInput(props: IMessageInputProps) {
   const isMeta = whatsappAccount?.provider === "meta";
   const canSendFreeText = readOnly ? false : window.canSendFreeText;
   const archived = conversation.status === "arquivada";
+  const liveWhatsappAccount = useLiveInstanceStatus(whatsappAccount);
+  const instanceLock = deriveInstanceLock(liveWhatsappAccount);
+  const canManageInstance = hasRole(["Owner"]);
   const placeholder = !canSendFreeText
     ? CONVERSATION_STRINGS.inputPlaceholderClosed
     : CONVERSATION_STRINGS.inputPlaceholder;
@@ -292,24 +324,44 @@ export function MessageInput(props: IMessageInputProps) {
 
   // Pool gate (assign-before-reply): non-staff on an unassigned conversation.
   // Reading stays intact upstream; here we block every send path but keep the
-  // internal-note composer reachable.
+  // internal-note composer reachable. Checked BEFORE the instance-down gate:
+  // self-assigning still has value even while the instance is down (it claims
+  // the conversation so it isn't left in the pool, ready to reply once the
+  // instance recovers) — hiding that CTA behind the instance-down banner would
+  // strand pool conversations whenever both conditions coincide.
   if (mustAssignToReply) {
     return (
-      <footer data-tour="composer" className="border-t border-border bg-card">
-        {notesOpen && (
-          <InlineNoteComposer
-            conversationId={conversation.id}
-            storeId={conversation.storeId}
-            onClose={() => setNotesOpen(false)}
-          />
-        )}
+      <GatedComposerFooter
+        conversation={conversation}
+        notesOpen={notesOpen}
+        onCloseNotes={() => setNotesOpen(false)}
+      >
         <AssignToReplyBanner
           canAssign={selfAssign.canSelfAssign}
           assigning={selfAssign.assigning}
           onAssign={() => void selfAssign.selfAssign()}
           onToggleNote={() => setNotesOpen((v) => !v)}
         />
-      </footer>
+      </GatedComposerFooter>
+    );
+  }
+
+  // Instance-down gate: the channel itself can't send/receive right now
+  // (disconnected/pending), regardless of assignment.
+  if (instanceLock.locked) {
+    return (
+      <GatedComposerFooter
+        conversation={conversation}
+        notesOpen={notesOpen}
+        onCloseNotes={() => setNotesOpen(false)}
+      >
+        <InstanceLockedBanner
+          reason={instanceLock.reason ?? "disconnected"}
+          accountLabel={whatsappAccount?.label}
+          canManage={canManageInstance}
+          onToggleNote={() => setNotesOpen((v) => !v)}
+        />
+      </GatedComposerFooter>
     );
   }
 

@@ -238,6 +238,20 @@ export const CONVERSATION_STRINGS = {
     note: "Nota interna",
     noSellerHint: "Peça a um gestor para atribuir esta conversa a você.",
   },
+  instanceLocked: {
+    titleDisconnected: "Número desconectado",
+    titlePending: "Número conectando",
+    descriptionDisconnected: (label: string) =>
+      `${label} está desconectado — não é possível enviar nem receber por aqui.`,
+    descriptionDisconnectedGeneric: "Este número está desconectado — não é possível enviar nem receber por aqui.",
+    descriptionPending: (label: string) =>
+      `${label} ainda está conectando — aguarde para responder por aqui.`,
+    descriptionPendingGeneric: "Este número ainda está conectando — aguarde para responder por aqui.",
+    manageCta: "Ver instância",
+    manageHintNonOwner: "Peça a um dono para verificar a conexão.",
+    listBadgeDisconnected: "Número desconectado",
+    listBadgePending: "Número conectando",
+  },
 
   // Day separators
   today: "Hoje",
