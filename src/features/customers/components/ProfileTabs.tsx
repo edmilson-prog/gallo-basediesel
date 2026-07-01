@@ -1,11 +1,12 @@
 import { useState } from "react";
-import type { IConversation, ICustomer } from "@/shared/types";
+import type { IConversation, ICustomer, ISeller, IWhatsAppAccount } from "@/shared/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
 import { CUSTOMER_STRINGS } from "../i18n/pt-BR";
+import { AtendimentoTab } from "./tabs/AtendimentoTab";
 import { OverviewTab } from "./tabs/OverviewTab";
 import { OrdersTab } from "./tabs/OrdersTab";
 import { QuotesTab } from "./tabs/QuotesTab";
@@ -18,6 +19,12 @@ import { CustomerMediaTab } from "@/features/conversations/components/media/Cust
 export interface IProfileTabsProps {
   customer: ICustomer;
   conversation?: IConversation | null;
+  /** Resolved from conversation.assignedSellerId by the caller — feeds the Atendimento tab. */
+  assignedSeller?: ISeller | null;
+  /** Resolved from conversation.whatsappAccountId by the caller — feeds the Atendimento tab. */
+  whatsappAccount?: IWhatsAppAccount | null;
+  /** Bubbles a StatusControl change up to the caller's conversation refresh. */
+  onConversationChanged?: () => void;
   /** Controlled active tab (optional). Falls back to internal state. */
   activeTab?: TabKey;
   onActiveTabChange?: (tab: TabKey) => void;
@@ -33,6 +40,7 @@ export interface IProfileTabsProps {
 }
 
 export type TabKey =
+  | "atendimento"
   | "overview"
   | "orders"
   | "quotes"
@@ -43,6 +51,7 @@ export type TabKey =
   | "recommendations";
 
 const TAB_ORDER: TabKey[] = [
+  "atendimento",
   "overview",
   "orders",
   "quotes",
@@ -55,6 +64,7 @@ const TAB_ORDER: TabKey[] = [
 
 /** Iconify glyph per tab — used by the icon-only lateral fiche. */
 const TAB_ICONS: Record<TabKey, string> = {
+  atendimento: "mdi:face-agent",
   overview: "mdi:account-details-outline",
   orders: "mdi:package-variant-closed",
   quotes: "mdi:file-document-outline",
@@ -80,16 +90,26 @@ function ProfileTabTrigger({
   label,
   icon,
   iconOnly,
+  showPendingDot,
 }: {
   value: string;
   label: string;
   icon: string;
   iconOnly: boolean;
+  /** Renders a small warning dot over the icon — only ever passed for the Atendimento tab. */
+  showPendingDot?: boolean;
 }) {
+  const accessibleLabel = showPendingDot
+    ? `${label} — ${CUSTOMER_STRINGS.atendimento.pendingHint}`
+    : label;
+  const dot = showPendingDot ? (
+    <span aria-hidden className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-warning" />
+  ) : null;
   if (!iconOnly) {
     return (
-      <TabsTrigger value={value} className={cn(TRIGGER_BASE, "px-3")}>
+      <TabsTrigger value={value} className={cn(TRIGGER_BASE, "relative px-3")}>
         {label}
+        {dot}
       </TabsTrigger>
     );
   }
@@ -98,13 +118,14 @@ function ProfileTabTrigger({
       <TooltipTrigger asChild>
         <TabsTrigger
           value={value}
-          aria-label={label}
-          className={cn(TRIGGER_BASE, "flex flex-1 items-center justify-center px-0")}
+          aria-label={accessibleLabel}
+          className={cn(TRIGGER_BASE, "relative flex flex-1 items-center justify-center px-0")}
         >
           <Icon icon={icon} size={17} />
+          {dot}
         </TabsTrigger>
       </TooltipTrigger>
-      <TooltipContent side="bottom">{label}</TooltipContent>
+      <TooltipContent side="bottom">{accessibleLabel}</TooltipContent>
     </Tooltip>
   );
 }
@@ -120,6 +141,9 @@ function ProfileTabTrigger({
 export function ProfileTabs({
   customer,
   conversation,
+  assignedSeller,
+  whatsappAccount,
+  onConversationChanged,
   activeTab,
   onActiveTabChange,
   overviewVariant = "column",
@@ -127,7 +151,7 @@ export function ProfileTabs({
   copilotTab,
 }: IProfileTabsProps) {
   // `activeString` accepts any tab value including the dynamic "copilot" extra tab.
-  const [internalString, setInternalString] = useState<string>("overview");
+  const [internalString, setInternalString] = useState<string>("atendimento");
   const activeString = activeTab ?? internalString;
   const setActive = (v: string) => {
     setInternalString(v);
@@ -153,6 +177,7 @@ export function ProfileTabs({
                 label={CUSTOMER_STRINGS.tabs[key]}
                 icon={TAB_ICONS[key]}
                 iconOnly={iconOnlyTabs}
+                showPendingDot={key === "atendimento" && customer.tags.includes("pending_review")}
               />
             ))}
             {copilotTab != null && (
@@ -169,6 +194,17 @@ export function ProfileTabs({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
+        <TabsContent value="atendimento" className="m-0 p-3 focus-visible:outline-none">
+          {activeString === "atendimento" && (
+            <AtendimentoTab
+              customer={customer}
+              conversation={conversation}
+              assignedSeller={assignedSeller}
+              whatsappAccount={whatsappAccount}
+              onConversationChanged={onConversationChanged}
+            />
+          )}
+        </TabsContent>
         <TabsContent value="overview" className="m-0 p-3 focus-visible:outline-none">
           {activeString === "overview" && (
             <OverviewTab customer={customer} variant={overviewVariant} />
