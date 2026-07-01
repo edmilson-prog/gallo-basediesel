@@ -42,6 +42,8 @@ import { NotesButton } from "./notes/NotesButton";
 import { InlineNoteComposer } from "./notes/InlineNoteComposer";
 import { OriginChip } from "./OriginChip";
 import { AssignToReplyBanner } from "./AssignToReplyBanner";
+import { InstanceLockedBanner } from "./InstanceLockedBanner";
+import { deriveInstanceLock } from "../engine/instanceLock";
 import { useSelfAssign } from "../hooks/useSelfAssign";
 import { getActiveDataSource } from "@/providers/data";
 import {
@@ -206,6 +208,7 @@ export function MessageInput(props: IMessageInputProps) {
   const isMeta = whatsappAccount?.provider === "meta";
   const canSendFreeText = readOnly ? false : window.canSendFreeText;
   const archived = conversation.status === "arquivada";
+  const instanceLock = deriveInstanceLock(whatsappAccount);
   const placeholder = !canSendFreeText
     ? CONVERSATION_STRINGS.inputPlaceholderClosed
     : CONVERSATION_STRINGS.inputPlaceholder;
@@ -286,6 +289,28 @@ export function MessageInput(props: IMessageInputProps) {
     return (
       <footer className="border-t border-border bg-muted/40 px-4 py-3 text-center text-xs text-muted-foreground">
         {readOnlyMessage ?? CONVERSATION_STRINGS.readOnlyAssign}
+      </footer>
+    );
+  }
+
+  // Instance-down gate: the channel itself can't send/receive right now
+  // (disconnected/pending), regardless of assignment — checked before the pool
+  // gate below since self-assigning wouldn't fix a dead instance either way.
+  if (instanceLock.locked) {
+    return (
+      <footer data-tour="composer" className="border-t border-border bg-card">
+        {notesOpen && (
+          <InlineNoteComposer
+            conversationId={conversation.id}
+            storeId={conversation.storeId}
+            onClose={() => setNotesOpen(false)}
+          />
+        )}
+        <InstanceLockedBanner
+          reason={instanceLock.reason ?? "disconnected"}
+          accountLabel={whatsappAccount?.label}
+          onToggleNote={() => setNotesOpen((v) => !v)}
+        />
       </footer>
     );
   }

@@ -17,6 +17,7 @@ import { AssigneeChip } from "./AssigneeChip";
 import { useTimeTick } from "../hooks/useTimeTick";
 import { formatRelativeTime, isFresh } from "../utils/formatRelativeTime";
 import { accountAccent } from "../utils/instanceAccent";
+import { deriveInstanceLock } from "../engine/instanceLock";
 import {
   CHANNEL_META,
   STATUS_META,
@@ -92,6 +93,7 @@ function ConversationListItemInner({
     () => displayFromContact(conversation, contact),
     [conversation, contact],
   );
+  const instanceLock = useMemo(() => deriveInstanceLock(originAccount), [originAccount]);
 
   const preview = getMessagePreview(lastMessage);
   const relative = formatRelativeTime(conversation.lastMessageAt, now);
@@ -148,7 +150,27 @@ function ConversationListItemInner({
         )}
         aria-hidden
       />
-      <ContactAvatar display={display} />
+      <div className="relative shrink-0">
+        <ContactAvatar display={display} className={cn(instanceLock.locked && "grayscale opacity-75")} />
+        {instanceLock.locked && (
+          <span
+            className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-severity-critical/15 text-severity-critical ring-2 ring-background"
+            role="img"
+            aria-label={
+              instanceLock.reason === "pending"
+                ? CONVERSATION_STRINGS.instanceLocked.listBadgePending
+                : CONVERSATION_STRINGS.instanceLocked.listBadgeDisconnected
+            }
+            title={
+              instanceLock.reason === "pending"
+                ? CONVERSATION_STRINGS.instanceLocked.listBadgePending
+                : CONVERSATION_STRINGS.instanceLocked.listBadgeDisconnected
+            }
+          >
+            <Icon icon="mdi:wifi-off" size={10} />
+          </span>
+        )}
+      </div>
 
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
