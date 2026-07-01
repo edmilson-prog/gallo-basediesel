@@ -21,6 +21,7 @@ import { usePresenceTracker } from "@/features/shell/hooks/useStorePresence";
 import { TourProvider } from "@/features/tour";
 import { SessionTimeoutGuard } from "@/features/session-timeout";
 import { AuthSessionGuard } from "@/features/auth/AuthSessionGuard";
+import { InboxActivityGuard } from "@/features/inbox-alerts";
 
 /**
  * Default layout of the internal app (`/app/*`).
@@ -72,6 +73,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
         <BottomNav />
         <AuthSessionGuard />
         <SessionTimeoutGuard />
+        <InboxActivityGuard />
         <UrgentBroadcastClaim />
         <WhatsNewModal />
       </div>
