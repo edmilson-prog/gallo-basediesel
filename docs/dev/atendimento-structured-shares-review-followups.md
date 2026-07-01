@@ -34,12 +34,8 @@ a correção sugerida.
 >   as conversas cuja recência realmente mudou (`changedRecencyIds` + um
 >   `useRef<Map<ID,string>>` com a última recência vista), em vez da página
 >   inteira a cada mudança.
-> - **B parcialmente RESOLVIDO** — a faceta "chamada redundante" foi corrigida:
->   `useRealtimeMessages` rastreia o `sentAt` mais recente já aplicado pelo canal
->   rápido (`messages`) e pula (ou cancela um `syncLatest` já agendado) quando o
->   touch do canal `conversations` já está coberto por esse `sentAt`
->   (`touchAlreadyCovered`). A outra faceta (só busca a página 1 / perda em
->   rajada > 50 mensagens) **segue adiada** — ver detalhe abaixo.
+> - **B parcialmente RESOLVIDO (tentativa)** — a faceta "chamada redundante" foi
+>   "corrigida" com `touchAlreadyCovered`. **Revertido na 5ª rodada** — ver abaixo.
 > - **E RESOLVIDO** — `PHONE_RE` em `contentFormat.ts` passou a exigir o `+`
 >   inicial. Os 3 engines (Meta via `toE164`, Evolution/Evolution Go via
 >   `phoneFromVCard` → `toE164`) sempre entregam telefone em E.164 quando
@@ -50,36 +46,101 @@ a correção sugerida.
 >   function (decode nunca roda no servidor).
 > - **D avaliado e MANTIDO sem mudança de código** — ver justificativa abaixo.
 
+> **5ª rodada (2026-06-30, code review xhigh do PR #207) — correções pós-review:**
+> um review multi-agente encontrou 5 problemas reais na 4ª rodada, 4 CONFIRMED e
+> 1 PLAUSIBLE:
+> - **B da 4ª rodada REVERTIDO** — `touchAlreadyCovered` tinha DOIS defeitos que
+>   podiam **perder mensagem de verdade** na conversa aberta (o oposto do que a
+>   Gap B deveria fazer): (1) cancelar o timer pendente com base só no touch MAIS
+>   RECENTE, sem checar se esse timer tinha sido armado por um touch ANTERIOR
+>   ainda não coberto; (2) tratar timestamps IGUAIS como prova de cobertura,
+>   mas os 3 parsers truncam `sentAt`/`last_message_at` para o segundo inteiro —
+>   duas mensagens no mesmo segundo ficam indistinguíveis. Um review adicional
+>   também apontou (PLAUSIBLE) que `bumpConversation` no webhook não tem a
+>   guarda de avanço que `touchConversation` tem, então uma entrega fora de
+>   ordem poderia fazer `last_message_at` andar pra trás e disparar o mesmo bug
+>   por outro caminho. Correção real exigiria identificar a mensagem por id no
+>   touch (que o payload de `conversations` não carrega) — dado o risco de
+>   perder mensagem de verdade, a otimização foi **revertida por completo**:
+>   `useRealtimeMessages` voltou a rodar `syncLatest` incondicionalmente a cada
+>   touch (debounce de 250ms), sem tentar detectar cobertura pelo fast-path.
+> - **A da 4ª rodada — bug de retry corrigido.** `lastSeenRecencyRef` marcava a
+>   conversa como "vista" de forma síncrona, **antes** do `listLastMessages`
+>   resolver — se o RPC falhasse (timeout transitório, RPC com histórico de
+>   `statement_timeout` neste projeto), a conversa ficava presa como "vista" pra
+>   sempre, sem nunca mais tentar de novo. Corrigido: o `set` no
+>   `lastSeenRecencyRef` só acontece dentro do `.then()` de sucesso, mesmo padrão
+>   já usado por `missingIds`/`contactsRef` para os contatos.
+> - **Item novo (documentado, sem fix): perda do refresh incidental de status.**
+>   Antes da 4ª rodada, qualquer mudança de recência refazia a página inteira de
+>   `listLastMessages`, pegando de carona atualizações de status (delivered→read)
+>   de OUTRAS conversas que não bumpam `last_message_at`. Com o fetch escopado só
+>   às conversas que mudaram, esse refresh incidental some — o check da Inbox de
+>   uma conversa parada fica congelado até ela mesma receber mensagem nova (ou a
+>   página recarregar). **Não corrigido**: a correção real exigiria uma
+>   subscription Realtime nova em `useRelatedEntities` para status de mensagem
+>   (fora do escopo desta rodada); a severidade é cosmética (ícone de check
+>   desatualizado), não perda de dado.
+
 ---
 
 ## Tradeoffs deliberados (validados pelo dono — não mexer sem motivo)
 
-### A. `recencyKey` re-dispara o `listLastMessages` da página inteira — ✅ RESOLVIDO (4ª rodada)
+### A. `recencyKey` re-dispara o `listLastMessages` da página inteira — ✅ RESOLVIDO (4ª/5ª rodadas)
 - **Onde:** `src/features/conversations/hooks/useRelatedEntities.ts`.
-- **Fix:** novo helper puro `changedRecencyIds` (mesmo padrão de `missingIds`)
-  compara a recência atual de cada conversa contra a última vista
+- **Fix (4ª rodada):** novo helper puro `changedRecencyIds` (mesmo padrão de
+  `missingIds`) compara a recência atual de cada conversa contra a última vista
   (`lastSeenRecencyRef`); só as que mudaram entram no `listLastMessages`.
   Testado em `useRelatedEntities.test.ts`.
+- **Fix (5ª rodada, pós-review):** o `lastSeenRecencyRef.set(...)` só roda dentro
+  do `.then()` de sucesso do `listLastMessages` — na versão original da 4ª
+  rodada rodava síncrono antes do fetch resolver, então um RPC que falhasse
+  (`.catch(() => undefined)`) deixava a conversa marcada como "vista" pra sempre,
+  sem nunca mais tentar de novo. Agora, falha = fica elegível pro próximo retry
+  na próxima mudança de recência de qualquer conversa (mesma garantia de
+  retry-safety que `missingIds`/`contactsRef` já tinham para os contatos).
+- **Trade-off aceito e documentado (não corrigido):** o fetch escopado por
+  conversa também perdeu o refresh incidental de STATUS (delivered→read) de
+  outras conversas que a página inteira pegava de carona antes — ver item novo
+  na 5ª rodada acima. Severidade cosmética (ícone de check da Inbox
+  desatualizado até a própria conversa receber mensagem nova).
 - **Severidade original:** baixa (eficiência; só pesava em páginas grandes com
   alto volume).
 
-### B. `syncLatest` dispara em todo "touch" e só busca a página 1 — parcialmente RESOLVIDO (4ª rodada)
+### B. `syncLatest` dispara em todo "touch" e só busca a página 1 — tentativa de fix REVERTIDA (5ª rodada)
 - **Onde:** `src/features/conversations/hooks/useRealtimeMessages.ts` e
   `src/features/conversations/hooks/useMessages.ts` (`syncLatest`).
-- **O quê:** (1) ~~o thread escuta o canal `conversations` e roda `syncLatest` a
-  cada toque, redundante com o fast-path do INSERT~~ → **RESOLVIDO**:
-  `touchAlreadyCovered` compara o `last_message_at` do touch contra o `sentAt`
-  mais recente já aplicado pelo canal `messages`; um touch só dispara/mantém o
-  `syncLatest` agendado quando o fast-path ainda não cobriu aquele ponto no
-  tempo — nunca pula de forma especulativa, só quando há prova de que já
-  convergiu. (2) `syncLatest` só puxa a página mais nova (50 mensagens) — se um
-  burst > 50 mensagens for perdido pelo Realtime, o miolo não é recuperado até
-  um refetch/scroll. **Segue adiado** — teria que paginar pra trás reconciliando
-  o `providerMessageId` mais antigo conhecido, mudança bem mais invasiva na área
-  congelada do cache do Atendimento para um cenário que se autocura ao reabrir a
-  conversa. ~~(3) ordem fora do `prependNewest`~~ → já corrigido na 3ª rodada.
-- **Severidade restante:** baixa (borda de burst-com-perda; auto-cura ao reabrir
-  a conversa).
+- **O quê:** (1) o thread escuta o canal `conversations` e roda `syncLatest` a
+  cada toque, redundante com o fast-path do INSERT quando este já aplicou a
+  mesma linha. (2) `syncLatest` só puxa a página mais nova (50 mensagens) — se
+  um burst > 50 mensagens for perdido pelo Realtime, o miolo não é recuperado
+  até um refetch/scroll. ~~(3) ordem fora do `prependNewest`~~ → já corrigido na
+  3ª rodada.
+- **Tentativa de fix (4ª rodada) e por que foi revertida:** `touchAlreadyCovered`
+  comparava o `last_message_at` do touch contra o `sentAt` mais recente aplicado
+  pelo fast-path, pulando/cancelando o `syncLatest` quando já "coberto". O code
+  review xhigh do PR #207 confirmou DOIS jeitos de essa lógica **perder
+  mensagem de verdade** — o oposto do objetivo da Gap B: (a) cancelar o timer
+  pendente com base só no touch mais recente, sem provar que um touch ANTERIOR
+  (que armou aquele mesmo timer) já tinha sido coberto; (b) tratar timestamps
+  IGUAIS como cobertura, quando os 3 parsers truncam para o segundo inteiro —
+  duas mensagens no mesmo segundo (comum: legenda + texto, ou dois envios
+  rápidos) ficam indistinguíveis. Um achado PLAUSIBLE adicional: `bumpConversation`
+  no webhook não tem a guarda de avanço que `touchConversation` tem, então uma
+  entrega fora de ordem poderia andar `last_message_at` pra trás e disparar o
+  mesmo bug por um caminho diferente. Corrigir de verdade exigiria o touch
+  carregar o id da mensagem (que o payload de `conversations` não tem) — dado
+  que o risco (perder mensagem na conversa aberta) é pior que o ganho (evitar
+  uma chamada redundante), a otimização foi **revertida por completo**:
+  `useRealtimeMessages` voltou ao comportamento original, incondicional,
+  debounce de 250ms a cada touch, sem tentar detectar cobertura.
+- **Correção futura (se algum dia compensar o esforço):** paginar pra trás
+  reconciliando o `providerMessageId` mais antigo conhecido (item 2) e/ou incluir
+  o id da mensagem no touch para permitir uma detecção de cobertura exata (item
+  revertido) — ambas mudanças bem mais invasivas na área congelada do cache do
+  Atendimento, para bordas que se autocuram ao reabrir a conversa.
+- **Severidade:** baixa (ineficiência aceita; sem perda de dado com o
+  comportamento original restaurado).
 
 ---
 
