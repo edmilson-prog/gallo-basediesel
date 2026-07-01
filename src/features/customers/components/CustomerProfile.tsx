@@ -1,4 +1,4 @@
-import type { ID, IConversation } from "@/shared/types";
+import type { ID, IConversation, ISeller, IWhatsAppAccount } from "@/shared/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useCustomerProfile } from "../hooks/useCustomerProfile";
 import { CUSTOMER_STRINGS } from "../i18n/pt-BR";
 import { ProfileHeader } from "./ProfileHeader";
-import { ProfileTabs } from "./ProfileTabs";
+import { ProfileTabs, type TabKey } from "./ProfileTabs";
 import { ProfileSkeleton } from "./ProfileSkeleton";
 
 export interface ICustomerProfileProps {
@@ -18,6 +18,14 @@ export interface ICustomerProfileProps {
    * `conversationId` query param.
    */
   conversation?: IConversation | null;
+  /** Resolved from conversation.assignedSellerId by the caller — feeds the Atendimento tab. */
+  assignedSeller?: ISeller | null;
+  /** Resolved from conversation.whatsappAccountId by the caller — feeds the Atendimento tab. */
+  whatsappAccount?: IWhatsAppAccount | null;
+  /** Bubbles a StatusControl change up to the caller's conversation refresh. */
+  onConversationChanged?: () => void;
+  /** Forwarded to ProfileTabs — omit to keep "Visão geral" as the default (e.g. the customers-list preview panel). */
+  defaultTab?: TabKey;
   /** Layout density — `column` is the lateral 360px panel; `page` is the full route. */
   variant?: "column" | "page";
   className?: string;
@@ -39,6 +47,10 @@ export interface ICustomerProfileProps {
 export function CustomerProfile({
   customerId,
   conversation = null,
+  assignedSeller = null,
+  whatsappAccount = null,
+  onConversationChanged,
+  defaultTab,
   variant = "column",
   className,
   copilotTab,
@@ -98,6 +110,10 @@ export function CustomerProfile({
         <ProfileTabs
           customer={customer}
           conversation={conversation}
+          assignedSeller={assignedSeller}
+          whatsappAccount={whatsappAccount}
+          onConversationChanged={onConversationChanged}
+          defaultTab={defaultTab}
           iconOnlyTabs={variant === "column"}
           copilotTab={copilotTab}
         />

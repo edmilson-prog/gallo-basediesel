@@ -1,4 +1,4 @@
-import type { IConversation, ID } from "@/shared/types";
+import type { IConversation, ID, ISeller, IWhatsAppAccount } from "@/shared/types";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { CustomerProfile } from "./CustomerProfile";
@@ -7,6 +7,12 @@ import { useFicheLayout } from "../hooks/useFicheLayout";
 export interface ICustomerProfileFicheProps {
   customerId: ID;
   conversation: IConversation;
+  /** Resolved from conversation.assignedSellerId by the caller — feeds the Atendimento tab. */
+  assignedSeller?: ISeller | null;
+  /** Resolved from conversation.whatsappAccountId by the caller — feeds the Atendimento tab. */
+  whatsappAccount?: IWhatsAppAccount | null;
+  /** Bubbles a StatusControl change up to the caller's conversation refresh. */
+  onConversationChanged?: () => void;
   /** Drawer open state from `useConversationFiche()`. */
   open: boolean;
   /** Drawer close handler. */
@@ -32,6 +38,9 @@ export interface ICustomerProfileFicheProps {
 export function CustomerProfileFiche({
   customerId,
   conversation,
+  assignedSeller,
+  whatsappAccount,
+  onConversationChanged,
   open,
   onOpenChange,
   copilotTab,
@@ -50,6 +59,10 @@ export function CustomerProfileFiche({
           <CustomerProfile
             customerId={customerId}
             conversation={conversation}
+            assignedSeller={assignedSeller}
+            whatsappAccount={whatsappAccount}
+            onConversationChanged={onConversationChanged}
+            defaultTab="atendimento"
             variant="column"
             className="h-full border-l-0"
             copilotTab={copilotTab}
@@ -72,6 +85,10 @@ export function CustomerProfileFiche({
         <CustomerProfile
           customerId={customerId}
           conversation={conversation}
+          assignedSeller={assignedSeller}
+          whatsappAccount={whatsappAccount}
+          onConversationChanged={onConversationChanged}
+          defaultTab="atendimento"
           variant="column"
           className="h-full"
           copilotTab={copilotTab}

@@ -45,6 +45,7 @@ export const CUSTOMER_STRINGS = {
     noEmail: "Sem email cadastrado",
   },
   tabs: {
+    atendimento: "Atendimento",
     overview: "Visão geral",
     orders: "Pedidos",
     quotes: "Orçamentos",
@@ -53,6 +54,13 @@ export const CUSTOMER_STRINGS = {
     midias: "Mídias",
     notes: "Notas",
     recommendations: "Recomendações",
+  },
+  atendimento: {
+    status: "Status da conversa",
+    assignee: "Atendente responsável",
+    origin: "Respondendo por",
+    empty: "Nenhuma pendência de atendimento no momento.",
+    pendingHint: "pendência de revisão",
   },
   overview: {
     metrics: {
