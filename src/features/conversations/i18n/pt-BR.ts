@@ -248,7 +248,7 @@ export const CONVERSATION_STRINGS = {
       `${label} ainda está conectando — aguarde para responder por aqui.`,
     descriptionPendingGeneric: "Este número ainda está conectando — aguarde para responder por aqui.",
     manageCta: "Ver instância",
-    note: "Nota interna",
+    manageHintNonOwner: "Peça a um dono para verificar a conexão.",
     listBadgeDisconnected: "Número desconectado",
     listBadgePending: "Número conectando",
   },
