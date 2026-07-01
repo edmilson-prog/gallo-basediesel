@@ -42,25 +42,6 @@ export function conversationTouchMatches(row: unknown, conversationId: ID): bool
   return Boolean(id) && id === conversationId;
 }
 
-/** The touched conversation's `last_message_at`, when present on the row. */
-export function conversationTouchedAt(row: unknown): string | undefined {
-  return (row as { last_message_at?: string } | null | undefined)?.last_message_at ?? undefined;
-}
-
-/**
- * True when the fast `messages` path already delivered the row this touch
- * represents, so the `conversations` fallback's `syncLatest` would be
- * redundant. Compares the touch's `last_message_at` against the newest
- * `sentAt` this hook has already applied via the fast path.
- */
-export function touchAlreadyCovered(
-  touchedAt: string | undefined,
-  latestAppliedSentAt: string | undefined,
-): boolean {
-  if (!touchedAt || !latestAppliedSentAt) return false;
-  return touchedAt <= latestAppliedSentAt;
-}
-
 /**
  * Local snake_case mapper. The supabase provider has an equivalent private
  * one, but provider impls are not importable outside `providers/data`
@@ -114,10 +95,14 @@ function rowToMessage(row: IMessageRealtimeRow): IMessage {
  * even when the messages channel drops the event, instead of forcing the user
  * to leave and re-enter the conversation.
  *
- * The fallback skips (or cancels an already-armed) `syncLatest` once the fast
- * path has provably caught up (`touchAlreadyCovered`) — a touch never SKIPS
- * speculatively, only when the newest applied `sentAt` already covers it, so
- * convergence is never weakened, just the redundant re-fetch it would cause.
+ * The fallback re-arms on EVERY touch unconditionally (no "already covered by
+ * the fast path" skip): an earlier attempt at that optimization compared
+ * `last_message_at`/`sentAt` timestamps, but those are truncated to whole
+ * seconds by every provider parser, so two distinct messages in the same
+ * second are indistinguishable — and a later touch's coverage doesn't prove
+ * an earlier, still-uncovered touch's message was ever applied. Both gaps
+ * risked silently dropping a real message from the open thread, which is
+ * worse than the redundant `syncLatest` call this hook accepts instead.
  */
 export function useRealtimeMessages(
   conversationId: ID,
@@ -127,19 +112,11 @@ export function useRealtimeMessages(
   useEffect(() => {
     if (!IS_SUPABASE) return;
 
-    // Newest `sentAt` applied via the fast path — lets the `conversations`
-    // touch fallback recognize when it would be a redundant re-fetch.
-    let latestAppliedSentAt: string | undefined;
-
     // Fast path: live INSERT/UPDATE of this conversation straight into cache.
     const offMessages = subscribeToTable("messages", (payload) => {
       const row = payload.new as Partial<IMessageRealtimeRow> | null;
       if (!messageRowMatches(row, conversationId)) return;
-      const message = rowToMessage(row as IMessageRealtimeRow);
-      if (!latestAppliedSentAt || message.sentAt > latestAppliedSentAt) {
-        latestAppliedSentAt = message.sentAt;
-      }
-      apply(message);
+      apply(rowToMessage(row as IMessageRealtimeRow));
     });
 
     // Fallback: catch-up via the reliable conversations channel (debounced).
@@ -147,15 +124,6 @@ export function useRealtimeMessages(
     const offConversations = syncLatest
       ? subscribeToTable("conversations", (payload) => {
           if (!conversationTouchMatches(payload.new, conversationId)) return;
-          if (touchAlreadyCovered(conversationTouchedAt(payload.new), latestAppliedSentAt)) {
-            // Fast path already delivered this touch's row — cancel any
-            // still-pending sync from an earlier, not-yet-covered touch.
-            if (handle !== undefined) {
-              window.clearTimeout(handle);
-              handle = undefined;
-            }
-            return;
-          }
           if (handle !== undefined) window.clearTimeout(handle);
           handle = window.setTimeout(() => void syncLatest(), TOUCH_REFETCH_DEBOUNCE_MS);
         })
