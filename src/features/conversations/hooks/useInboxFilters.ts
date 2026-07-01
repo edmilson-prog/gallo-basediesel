@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import type { ConversationChannel, ConversationStatus, ID } from "@/shared/types";
+import { usePersistedListSearch } from "@/shared/hooks/usePersistedListSearch";
 
 export type PeriodFilter = "all" | "24h" | "7d" | "30d";
 export type AssignmentFilter = "me" | "unassigned" | "queue" | "all" | string;
@@ -52,6 +53,8 @@ const VALID_CHANNEL = new Set<ConversationChannel | "all">([
 
 const VALID_PERIOD = new Set<PeriodFilter>(["all", "24h", "7d", "30d"]);
 const VALID_SORT = new Set<SortMode>(["lastMessage", "waiting", "abc"]);
+
+const FILTERS_STORAGE_KEY = "gallo-inbox-filters";
 
 /** URL sentinel for the explicit empty set ("Todas") so it is distinguishable
  *  from the default in the query string. */
@@ -163,6 +166,11 @@ function readState(search: IInboxFiltersSearch, currentSellerId: ID | null): IIn
  * `navigate({ search })`. Components consume the derived state, never the
  * raw query string. Default values are omitted from the URL so the bar
  * stays clean (e.g. `?status=aguardando` not `?status=aguardando&channel=all`).
+ *
+ * A fresh visit with no query params restores the last saved filters from
+ * `localStorage` (same `usePersistedListSearch` pattern as Clientes/Veículos/
+ * Catálogo/Orçamentos) so the bar survives reloads and re-navigations instead
+ * of always resetting to default.
  */
 export function useInboxFilters(currentSellerId: ID | null): {
   filters: IInboxFiltersState;
@@ -186,6 +194,16 @@ export function useInboxFilters(currentSellerId: ID | null): {
   // wrote, making filter changes silently revert.
   const navigate = useNavigate();
   const filters = useMemo(() => readState(search, currentSellerId), [search, currentSellerId]);
+
+  usePersistedListSearch(FILTERS_STORAGE_KEY, search as Record<string, unknown>, (saved) => {
+    // Same `to: "."` requirement as `apply` below — no `from`, so the $id
+    // segment (when a conversation is open) is never dropped by the restore.
+    void navigate({
+      to: ".",
+      search: () => saved as unknown as IInboxFiltersSearch,
+      replace: true,
+    });
+  });
 
   const apply = useCallback(
     (patch: Partial<IInboxFiltersSearch>) => {
