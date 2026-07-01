@@ -6,6 +6,7 @@ import type {
   IMessage,
   ID,
 } from "@/shared/types";
+import { selectMessageMatch } from "@/features/conversations/engine/messageSearchMatch";
 import {
   selectAllConversations,
   selectAllSellers,
@@ -78,16 +79,14 @@ function getParticipantNameAndPhone(conversation: IConversation): { name: string
   return { name: "", phone: "" };
 }
 
+/** Contact identity ONLY (name/phone) — message content has its own dedicated search, see `searchMessages`. */
 function matchesSearch(conversation: IConversation, term: string): boolean {
   const needle = term.trim().toLowerCase();
   if (!needle) return true;
   const { name, phone } = getParticipantNameAndPhone(conversation);
   if (name.toLowerCase().includes(needle)) return true;
   if (phone.toLowerCase().includes(needle)) return true;
-  const recent = selectMessagesByConversation(conversation.id)
-    .slice(-20)
-    .map((m) => m.text.toLowerCase());
-  return recent.some((t) => t.includes(needle));
+  return false;
 }
 
 function matchesTags(conversation: IConversation, tags: string[]): boolean {
@@ -138,53 +137,93 @@ export function matchesAssignmentAny(
   return false;
 }
 
+/** Every Inbox filter EXCEPT the search term itself — shared by `list` and `searchMessages`. */
+function applyNonSearchFilters(
+  all: IConversation[],
+  params: IListConversationsParams,
+): IConversation[] {
+  let filtered = all;
+  if (params.storeId) filtered = filtered.filter((c) => c.storeId === params.storeId);
+  if (params.assignedSellerId)
+    filtered = filtered.filter((c) => c.assignedSellerId === params.assignedSellerId);
+  if (params.unassigned) filtered = filtered.filter((c) => !c.assignedSellerId);
+  if (
+    params.assignmentAny &&
+    (params.assignmentAny.sellerIds?.length ||
+      params.assignmentAny.unassigned ||
+      params.assignmentAny.queue)
+  )
+    filtered = filtered.filter((c) => matchesAssignmentAny(c, params.assignmentAny!));
+  if (params.status) {
+    const allowed = new Set(Array.isArray(params.status) ? params.status : [params.status]);
+    filtered = filtered.filter((c) => allowed.has(c.status));
+  }
+  if (params.channel) filtered = filtered.filter((c) => c.channel === params.channel);
+  if (params.whatsappAccountId)
+    filtered = filtered.filter((c) => c.whatsappAccountId === params.whatsappAccountId);
+  if (typeof params.isSdrActive === "boolean")
+    filtered = filtered.filter((c) => c.isSdrActive === params.isSdrActive);
+  if (params.customerId) filtered = filtered.filter((c) => c.customerId === params.customerId);
+  if (params.leadId) filtered = filtered.filter((c) => c.leadId === params.leadId);
+  if (params.fromDate) filtered = filtered.filter((c) => c.lastMessageAt >= params.fromDate!);
+  if (params.toDate) filtered = filtered.filter((c) => c.lastMessageAt <= params.toDate!);
+  if (params.tags && params.tags.length > 0)
+    filtered = filtered.filter((c) => matchesTags(c, params.tags!));
+  return filtered;
+}
+
+function sortConversations(
+  all: IConversation[],
+  params: IListConversationsParams,
+): IConversation[] {
+  const orderBy = params.orderBy ?? "lastMessageAt";
+  const dir = params.orderDir ?? "desc";
+  const sign = dir === "asc" ? 1 : -1;
+  return [...all].sort((a, b) => {
+    if (orderBy === "abcClass") {
+      const ra = abcRank(a.customerId);
+      const rb = abcRank(b.customerId);
+      if (ra !== rb) return ra - rb;
+      return b.lastMessageAt.localeCompare(a.lastMessageAt);
+    }
+    return sign * a.lastMessageAt.localeCompare(b.lastMessageAt);
+  });
+}
+
 export const conversationsApi = {
   list(params: IListConversationsParams = {}): Promise<IPaginatedResult<IConversation>> {
     return runApi(
       "conversationsApi",
       "list",
       () => {
-        let all = selectAllConversations();
-        if (params.storeId) all = all.filter((c) => c.storeId === params.storeId);
-        if (params.assignedSellerId)
-          all = all.filter((c) => c.assignedSellerId === params.assignedSellerId);
-        if (params.unassigned) all = all.filter((c) => !c.assignedSellerId);
-        if (
-          params.assignmentAny &&
-          (params.assignmentAny.sellerIds?.length ||
-            params.assignmentAny.unassigned ||
-            params.assignmentAny.queue)
-        )
-          all = all.filter((c) => matchesAssignmentAny(c, params.assignmentAny!));
-        if (params.status) {
-          const allowed = new Set(Array.isArray(params.status) ? params.status : [params.status]);
-          all = all.filter((c) => allowed.has(c.status));
-        }
-        if (params.channel) all = all.filter((c) => c.channel === params.channel);
-        if (params.whatsappAccountId)
-          all = all.filter((c) => c.whatsappAccountId === params.whatsappAccountId);
-        if (typeof params.isSdrActive === "boolean")
-          all = all.filter((c) => c.isSdrActive === params.isSdrActive);
-        if (params.customerId) all = all.filter((c) => c.customerId === params.customerId);
-        if (params.leadId) all = all.filter((c) => c.leadId === params.leadId);
-        if (params.fromDate) all = all.filter((c) => c.lastMessageAt >= params.fromDate!);
-        if (params.toDate) all = all.filter((c) => c.lastMessageAt <= params.toDate!);
-        if (params.tags && params.tags.length > 0)
-          all = all.filter((c) => matchesTags(c, params.tags!));
+        let all = applyNonSearchFilters(selectAllConversations(), params);
         if (params.search) all = all.filter((c) => matchesSearch(c, params.search!));
+        const sorted = sortConversations(all, params);
+        return paginate(sorted, params);
+      },
+      { payload: params },
+    );
+  },
 
-        const orderBy = params.orderBy ?? "lastMessageAt";
-        const dir = params.orderDir ?? "desc";
-        const sign = dir === "asc" ? 1 : -1;
-        const sorted = [...all].sort((a, b) => {
-          if (orderBy === "abcClass") {
-            const ra = abcRank(a.customerId);
-            const rb = abcRank(b.customerId);
-            if (ra !== rb) return ra - rb;
-            return b.lastMessageAt.localeCompare(a.lastMessageAt);
-          }
-          return sign * a.lastMessageAt.localeCompare(b.lastMessageAt);
-        });
+  /** Dedicated search across message text — see `IConversationsProvider.searchMessages`. */
+  searchMessages(params: IListConversationsParams = {}): Promise<IPaginatedResult<IConversation>> {
+    return runApi(
+      "conversationsApi",
+      "searchMessages",
+      () => {
+        const base = applyNonSearchFilters(selectAllConversations(), params);
+        const term = params.search ?? "";
+        const withMatch = base.reduce<IConversation[]>((acc, c) => {
+          const candidates = selectMessagesByConversation(c.id).map((m) => ({
+            text: m.text,
+            sentAt: m.sentAt,
+            direction: m.direction,
+          }));
+          const matchedMessage = selectMessageMatch(candidates, term);
+          if (matchedMessage) acc.push({ ...c, matchedMessage });
+          return acc;
+        }, []);
+        const sorted = sortConversations(withMatch, params);
         return paginate(sorted, params);
       },
       { payload: params },

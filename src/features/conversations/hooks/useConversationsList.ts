@@ -29,6 +29,12 @@ export interface IConversationsListState {
 export interface IUseConversationsListOptions {
   /** Optional bump key — when it changes, page 1 is refetched in place. */
   refreshKey?: number;
+  /**
+   * "messages" routes every fetch through `provider.searchMessages` instead of
+   * `provider.list` — the dedicated "search inside messages" action (Opção D).
+   * Defaults to "list".
+   */
+  mode?: "list" | "messages";
 }
 
 /**
@@ -58,22 +64,24 @@ export function useConversationsList(
 
   const filtersKey = useMemo(() => JSON.stringify(filters), [filters]);
   const refreshKey = options.refreshKey ?? 0;
+  const mode = options.mode ?? "list";
   const pageRef = useRef(page);
   pageRef.current = page;
 
   const fetchPage = useCallback(
-    async (pageToLoad: number, mode: "replace" | "append") => {
-      if (mode === "replace") setIsLoading(true);
+    async (pageToLoad: number, fetchMode: "replace" | "append") => {
+      if (fetchMode === "replace") setIsLoading(true);
       else setIsLoadingMore(true);
       try {
-        const result = await provider.list({
+        const fetcher = mode === "messages" ? provider.searchMessages : provider.list;
+        const result = await fetcher({
           ...filters,
           page: pageToLoad,
           pageSize: PAGE_SIZE,
         });
         setError(null);
         setTotal(result.total);
-        if (mode === "replace") {
+        if (fetchMode === "replace") {
           setItems(result.data);
         } else {
           setItems((prev) => {
@@ -84,21 +92,22 @@ export function useConversationsList(
       } catch (err) {
         setError(err instanceof Error ? err : new Error(String(err)));
       } finally {
-        if (mode === "replace") setIsLoading(false);
+        if (fetchMode === "replace") setIsLoading(false);
         else setIsLoadingMore(false);
       }
     },
     // We intentionally key on the JSON snapshot to avoid noisy re-renders.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [provider, filtersKey],
+    [provider, filtersKey, mode],
   );
 
-  // Reset to page 1 whenever filters change.
+  // Reset to page 1 whenever filters change OR the fetch mode flips
+  // (list ↔ messages — see Opção D's "search inside messages" toggle).
   useEffect(() => {
     setPage(1);
     void fetchPage(1, "replace");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtersKey]);
+  }, [filtersKey, mode]);
 
   // External refresh signal — debounced so a burst of realtime events collapses
   // into a single refetch (~300ms after the last one) instead of N sequential

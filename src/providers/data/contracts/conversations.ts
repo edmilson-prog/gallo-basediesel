@@ -24,7 +24,7 @@ export interface IListConversationsParams extends IPaginationParams {
   leadId?: ID;
   /** Customer tags — conversations match when ANY tag is present. */
   tags?: string[];
-  /** Free-text search across customer/lead name, phone, and recent messages. */
+  /** Free-text search across customer/lead name and phone ONLY — see `searchMessages` for message content. */
   search?: string;
   /** ISO8601 lower bound on `lastMessageAt` (inclusive). */
   fromDate?: string;
@@ -129,4 +129,16 @@ export interface IConversationsProvider {
    * customers RLS would hide the row for an unassigned conversation).
    */
   listContacts(conversationIds: ID[]): Promise<IConversationContact[]>;
+  /**
+   * Dedicated search across MESSAGE TEXT (not contact identity — see `list`'s
+   * `search`). An explicit, heavier action the Inbox opts into via the "Buscar
+   * nas mensagens" CTA, never mixed with the regular contact search.
+   *
+   * Honors every other `IListConversationsParams` filter (status/channel/
+   * instance/assignment/tags/period/pagination); `params.search` is required
+   * (empty/whitespace-only yields zero rows). Each result's `matchedMessage`
+   * is the most recently matching message plus a count of other matches in
+   * that same conversation.
+   */
+  searchMessages(params: IListConversationsParams): Promise<IPaginatedResult<IConversation>>;
 }

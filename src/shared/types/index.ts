@@ -133,6 +133,7 @@ export type {
 export type {
   IConversation,
   IConversationContact,
+  IConversationMessageMatch,
   IMessage,
   IWhatsAppAccount,
   IWhatsAppCapabilities,

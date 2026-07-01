@@ -22,6 +22,13 @@ export const mockConversationsProvider: IConversationsProvider = {
       : withOwnSellerScope(scoped, "conversation");
     return conversationsApi.list(owned);
   },
+  searchMessages: (params) => {
+    const scoped = scopedListParams(params, "conversation");
+    const owned = scoped.assignmentAny
+      ? scoped
+      : withOwnSellerScope(scoped, "conversation");
+    return conversationsApi.searchMessages(owned);
+  },
   get: (id) => conversationsApi.get(id),
   update: async (id, patch) => {
     const before = await conversationsApi.get(id).catch(() => null);

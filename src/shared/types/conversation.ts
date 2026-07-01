@@ -45,6 +45,22 @@ export interface IConversation {
   lastMessageAt: ISO8601;
   unreadCount: number;
   createdAt: ISO8601;
+  /**
+   * Set only when this conversation came from `IConversationsProvider.searchMessages`
+   * (the dedicated "search inside messages" action) — the representative matching
+   * message (most recent one that matched) plus how many others also matched.
+   * Absent for regular `list()` results.
+   */
+  matchedMessage?: IConversationMessageMatch;
+}
+
+/** Representative message match for the message-content search (see `IConversation.matchedMessage`). */
+export interface IConversationMessageMatch {
+  text: string;
+  sentAt: ISO8601;
+  direction: "in" | "out";
+  /** Other messages in the same conversation that also matched the search term. */
+  extraMatchCount: number;
 }
 
 /**

@@ -113,6 +113,15 @@ function ConversationListItemInner({
   const temperature = display.temperature ? TEMPERATURE_META[display.temperature] : null;
   const statusBar = STATUS_META[conversation.status].barClass;
   const unread = conversation.unreadCount;
+  const unreadBadge =
+    unread > 0 ? (
+      <span
+        className="shrink-0 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold leading-none text-primary-foreground"
+        aria-label={`${unread} mensagens não lidas`}
+      >
+        {INBOX_STRINGS.unreadBadge(unread)}
+      </span>
+    ) : null;
   const isFreshEscalation = useMemo(() => {
     if (!escalation) return false;
     const created = new Date(escalation.createdAt).getTime();
@@ -195,36 +204,60 @@ function ConversationListItemInner({
           <span className="shrink-0 text-xs text-muted-foreground">{relative}</span>
         </div>
 
-        <div className="mt-0.5 flex items-center justify-between gap-2">
-          <p
-            className={cn(
-              "truncate text-xs",
-              isUnread ? "text-foreground/90" : "text-muted-foreground",
-            )}
-          >
-            {/* PRD-118 RF-030: mini delivery badge when WE sent the last message. */}
-            {lastMessage?.direction === "out" && (
-              <span
+        {conversation.matchedMessage ? (
+          <div className="mt-0.5 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <p
                 className={cn(
-                  "mr-1 inline-flex align-middle",
-                  statusVisual(lastMessage.status).className,
+                  "truncate text-xs",
+                  isUnread ? "text-foreground/90" : "text-muted-foreground",
                 )}
-                aria-label={statusVisual(lastMessage.status).label}
               >
-                <Icon icon={statusVisual(lastMessage.status).icon} size={12} />
+                {conversation.matchedMessage.direction === "out" && (
+                  <span className="text-muted-foreground">
+                    {INBOX_STRINGS.messageSearch.outboundPrefix}
+                  </span>
+                )}
+                {highlight(conversation.matchedMessage.text, highlightTerm)}
+              </p>
+              {unreadBadge}
+            </div>
+            <p className="mt-0.5 flex items-center gap-1 truncate text-[10px] text-muted-foreground">
+              <Icon icon="mdi:text-search" size={10} className="shrink-0 text-primary" />
+              <span className="truncate">
+                {INBOX_STRINGS.messageSearch.provenanceLabel(
+                  formatRelativeTime(conversation.matchedMessage.sentAt, now),
+                )}
+                {conversation.matchedMessage.extraMatchCount > 0 &&
+                  ` · ${INBOX_STRINGS.messageSearch.extraMatches(conversation.matchedMessage.extraMatchCount)}`}
               </span>
-            )}
-            {highlight(preview, highlightTerm)}
-          </p>
-          {unread > 0 && (
-            <span
-              className="shrink-0 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold leading-none text-primary-foreground"
-              aria-label={`${unread} mensagens não lidas`}
+            </p>
+          </div>
+        ) : (
+          <div className="mt-0.5 flex items-center justify-between gap-2">
+            <p
+              className={cn(
+                "truncate text-xs",
+                isUnread ? "text-foreground/90" : "text-muted-foreground",
+              )}
             >
-              {INBOX_STRINGS.unreadBadge(unread)}
-            </span>
-          )}
-        </div>
+              {/* PRD-118 RF-030: mini delivery badge when WE sent the last message. */}
+              {lastMessage?.direction === "out" && (
+                <span
+                  className={cn(
+                    "mr-1 inline-flex align-middle",
+                    statusVisual(lastMessage.status).className,
+                  )}
+                  aria-label={statusVisual(lastMessage.status).label}
+                >
+                  <Icon icon={statusVisual(lastMessage.status).icon} size={12} />
+                </span>
+              )}
+              {highlight(preview, highlightTerm)}
+            </p>
+            {unreadBadge}
+          </div>
+        )}
 
         <div className="mt-1.5 flex items-center gap-1.5">
           <span
