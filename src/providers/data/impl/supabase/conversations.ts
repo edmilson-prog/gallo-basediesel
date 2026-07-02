@@ -25,6 +25,7 @@ import { supabaseDistributionTracesProvider } from "./distributionTraces";
 import { supabaseRotationQueuesProvider } from "./rotationQueues";
 import { supabaseRotationParticipantsProvider } from "./rotationParticipants";
 import { buildAssignmentOrFilter, sanitizeSellerIds } from "./assignmentFilter";
+import { buildCountRpcParams } from "./countRpcParams";
 
 /**
  * Supabase implementation of {@link IConversationsProvider} (PRD-100+).
@@ -271,7 +272,15 @@ export const supabaseConversationsProvider: IConversationsProvider = {
       return searchConversations(params);
     }
 
-    let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
+    // `count: "exact"` re-runs the per-row RLS gate (can_access_conversation)
+    // over the WHOLE candidate set on every page fetch — 5.3s of a 5.4s
+    // request for a non-staff seller (2026-07-02 statement-timeout incident).
+    // The Inbox opts out via `withTotal: false` and reads the total from
+    // `count()` instead; every other caller keeps the exact count.
+    const wantTotal = params.withTotal !== false;
+    let query = wantTotal
+      ? getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" })
+      : getSupabaseClient().from(TABLE).select(COLUMNS);
 
     if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
     if (params.assignedSellerId !== undefined)
@@ -317,10 +326,19 @@ export const supabaseConversationsProvider: IConversationsProvider = {
 
     return {
       data: (data as unknown as ConversationRow[]).map(rowToConversation),
-      total: count ?? 0,
+      total: wantTotal ? (count ?? 0) : -1,
       page,
       pageSize,
     };
+  },
+
+  async count(params: IListConversationsParams = {}): Promise<number> {
+    const { data, error } = await getSupabaseClient().rpc(
+      "count_conversations",
+      buildCountRpcParams(params),
+    );
+    if (error) throw new Error(`[supabase] conversations.count failed: ${error.message}`);
+    return Number(data ?? 0);
   },
 
   async listContacts(conversationIds: ID[]): Promise<IConversationContact[]> {
