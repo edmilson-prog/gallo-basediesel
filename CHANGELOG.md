@@ -4,12 +4,20 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [0.128.0] — Paperclip · 2026-07-02
+
+**Anexos com nome de verdade, envio com feedback e a Inbox finalmente 100% em tempo real.** Documentos enviados e recebidos agora exibem o nome original do arquivo em vez do código interno; anexar um arquivo mostra um aviso claro de "Enviando anexo…" enquanto o upload roda; e a atualização em tempo real do Atendimento foi consertada na raiz — mensagens novas reordenam a lista e atualizam a prévia instantaneamente, sem F5. De quebra, os alertas sonoros da Inbox chegaram ao TopBar.
 
 ### Added
 
+- **Nome original dos anexos** — documentos enviados e recebidos agora mostram o nome real do arquivo (ex.: `Catalogo-UFI-Filtros.pdf`) na conversa, na galeria "Mídias", no visualizador e no arquivo baixado — em vez do código interno de armazenamento. Vale para novos envios e recebimentos (inclusive envios agendados, pela biblioteca de ativos e importações futuras de histórico); mensagens antigas permanecem como estavam.
+- **Aviso "Enviando anexo…" no campo de mensagem** — ao anexar um arquivo, um aviso com o nome, o tamanho e um indicador de progresso aparece acima do campo até o envio concluir; os botões de envio ficam travados durante o processo. De quebra, o texto digitado durante o upload não é mais apagado.
 - **Notificações sonoras da Inbox** — um beep discreto avisa quando chega mensagem nova numa conversa já atribuída a você, e um beep diferente (mais chamativo) avisa quando um cliente novo entra na fila de atendimento. Funciona em qualquer tela do app, não só com a Inbox aberta. Liga/desliga e ajusta o volume pelo ícone de som no TopBar.
 - **Ícone de mensagens novas no TopBar** — um ponto vermelho aparece no ícone da Inbox sempre que há mensagem não lida numa conversa sua ou cliente esperando na fila. Um clique leva direto para o Atendimento.
+
+### Fixed
+
+- **Inbox atualiza em tempo real, sem F5** — quando chegava mensagem nova, o card da conversa não subia ao topo e a prévia ficava desatualizada até recarregar a página. A causa raiz estava na conexão em tempo real, que em certas condições nascia sem autenticação e tinha todos os eventos filtrados silenciosamente pelo servidor. Agora a conexão espera a sessão antes de assinar, se refaz a cada renovação de login (sessões longas não "morrem" mais em silêncio) e re-sincroniza a lista ao reconectar.
 
 ## [0.127.0] — Vantage · 2026-07-01
 
