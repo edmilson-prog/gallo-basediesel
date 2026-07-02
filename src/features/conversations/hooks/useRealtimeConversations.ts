@@ -183,8 +183,16 @@ export function useRealtimeConversations(): IRealtimeState {
       return;
     }
     const bump = () => setTick((t) => t + 1);
-    const offMessages = subscribeToTable("messages", bump, createCatchUpStatusHandler(bump, setConnected));
-    const offConversations = subscribeToTable("conversations", bump, createCatchUpStatusHandler(bump));
+    const offMessages = subscribeToTable(
+      "messages",
+      bump,
+      createCatchUpStatusHandler(bump, setConnected),
+    );
+    const offConversations = subscribeToTable(
+      "conversations",
+      bump,
+      createCatchUpStatusHandler(bump),
+    );
     return () => {
       offMessages();
       offConversations();

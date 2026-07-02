@@ -86,6 +86,15 @@ FROM realtime.subscription ORDER BY created_at DESC;
 - `fetchPage` de `useConversationsList` sem abort/versionamento (resposta
   velha pode sobrescrever a nova em rajada) — mitigado na prática pelo
   catch-up; hardening futuro.
+- **Janela do re-join para consumidores sem catch-up:** o watcher recria os
+  canais a cada troca de token (~50 min); `useRealtimeMessages` (thread
+  aberto) e `useInboxActivityMonitor` (beeps/badges) só passam `onEvent` — um
+  evento caído na janela do swap (~sub-segundo) só cura no próximo evento da
+  conversa/loja. Follow-up barato num PR próprio: status listener com o mesmo
+  `createCatchUpStatusHandler` chamando `syncLatest` (thread) /
+  `revalidateQueue`+`revalidateMine` (monitor). Nota: a entrega do canal
+  compartilhado é **at-least-once** (overlap leave/join do re-join pode
+  duplicar evento) — listeners devem ser idempotentes; os atuais são.
 
 ## Referências
 

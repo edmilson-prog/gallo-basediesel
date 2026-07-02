@@ -79,21 +79,30 @@ vi.mock("./supabase", () => ({
 
 import { __resetRealtimeForTests, subscribeToTable } from "./realtime";
 
-/** Resolves every pending `realtime.setAuth()` and lets microtasks settle. */
-async function flushAuth(): Promise<void> {
-  for (const pending of state.authResolvers.splice(0)) pending.resolve();
-  await flushAsync();
-}
-
-/** Rejects every pending `realtime.setAuth()` and lets microtasks settle. */
-async function flushAuthWithError(): Promise<void> {
-  for (const pending of state.authResolvers.splice(0)) pending.reject(new Error("boom"));
-  await flushAsync();
+/** Indexes into the created channels, failing loudly instead of returning undefined. */
+function channelAt(index: number): IFakeChannel {
+  const channel = state.channels[index];
+  if (!channel) throw new Error(`no fake channel at index ${index}`);
+  return channel;
 }
 
 /** Waits for queued microtasks AND the watcher's deferring setTimeout(0). */
 function flushAsync(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+/** Lets in-flight joins reach setAuth, resolves them all, then settles. */
+async function flushAuth(): Promise<void> {
+  await flushAsync();
+  for (const pending of state.authResolvers.splice(0)) pending.resolve();
+  await flushAsync();
+}
+
+/** Same as flushAuth, but every pending setAuth rejects. */
+async function flushAuthWithError(): Promise<void> {
+  await flushAsync();
+  for (const pending of state.authResolvers.splice(0)) pending.reject(new Error("boom"));
+  await flushAsync();
 }
 
 /** Emits an auth state change and waits for the (deferred) re-join sweep. */
@@ -116,16 +125,16 @@ describe("subscribeToTable — join waits for the auth token", () => {
   it("does not join until realtime.setAuth resolves", async () => {
     subscribeToTable("conversations", () => {});
     expect(state.channels).toHaveLength(1);
-    expect(state.channels[0].subscribeCalls).toBe(0);
+    expect(channelAt(0).subscribeCalls).toBe(0);
 
     await flushAuth();
-    expect(state.channels[0].subscribeCalls).toBe(1);
+    expect(channelAt(0).subscribeCalls).toBe(1);
   });
 
   it("still joins (best-effort) when setAuth rejects", async () => {
     subscribeToTable("conversations", () => {});
     await flushAuthWithError();
-    expect(state.channels[0].subscribeCalls).toBe(1);
+    expect(channelAt(0).subscribeCalls).toBe(1);
   });
 
   it("cancels the pending join when the last subscriber leaves first", async () => {
@@ -133,8 +142,8 @@ describe("subscribeToTable — join waits for the auth token", () => {
     off();
     await flushAuth();
 
-    expect(state.channels[0].subscribeCalls).toBe(0);
-    expect(state.removedChannels).toContain(state.channels[0]);
+    expect(channelAt(0).subscribeCalls).toBe(0);
+    expect(state.removedChannels).toContain(channelAt(0));
   });
 });
 
@@ -147,24 +156,53 @@ describe("subscribeToTable — shared ref-counted channel", () => {
     await flushAuth();
 
     expect(state.channels).toHaveLength(1);
-    state.channels[0].eventHandler?.({ eventType: "UPDATE" });
+    channelAt(0).eventHandler?.({ eventType: "UPDATE" });
     expect(seenA).toHaveLength(1);
     expect(seenB).toHaveLength(1);
 
     offA();
     expect(state.removedChannels).toHaveLength(0);
     offB();
-    expect(state.removedChannels).toContain(state.channels[0]);
+    expect(state.removedChannels).toContain(channelAt(0));
   });
 
   it("notifies status listeners with the snapshot immediately and SUBSCRIBED later", async () => {
     const statuses: boolean[] = [];
-    subscribeToTable("conversations", () => {}, (ok) => statuses.push(ok));
+    subscribeToTable(
+      "conversations",
+      () => {},
+      (ok) => statuses.push(ok),
+    );
     expect(statuses).toEqual([false]);
 
     await flushAuth();
-    state.channels[0].statusCallback?.("SUBSCRIBED");
+    channelAt(0).statusCallback?.("SUBSCRIBED");
     expect(statuses).toEqual([false, true]);
+  });
+
+  it("gives a late-arriving status listener the SUBSCRIBED snapshot immediately", async () => {
+    subscribeToTable("conversations", () => {});
+    await flushAuth();
+    channelAt(0).statusCallback?.("SUBSCRIBED");
+
+    const statuses: boolean[] = [];
+    subscribeToTable(
+      "conversations",
+      () => {},
+      (ok) => statuses.push(ok),
+    );
+    expect(statuses).toEqual([true]);
+  });
+
+  it("unsubscribe is idempotent — a double call cannot tear down a successor entry", async () => {
+    const off = subscribeToTable("conversations", () => {});
+    off();
+    subscribeToTable("conversations", () => {});
+    off(); // stale double-call — must be a no-op
+    subscribeToTable("conversations", () => {});
+
+    // The successor entry survived the stale off() and was reused.
+    expect(state.channels).toHaveLength(2);
   });
 });
 
@@ -173,17 +211,17 @@ describe("subscribeToTable — re-join on auth token change", () => {
     const seen: unknown[] = [];
     subscribeToTable("conversations", (p) => seen.push(p));
     await flushAuth();
-    state.channels[0].statusCallback?.("SUBSCRIBED");
+    channelAt(0).statusCallback?.("SUBSCRIBED");
 
     await emitAuthChange("token-b");
     await flushAuth();
 
-    expect(state.removedChannels).toContain(state.channels[0]);
+    expect(state.removedChannels).toContain(channelAt(0));
     expect(state.channels).toHaveLength(2);
-    expect(state.channels[1].subscribeCalls).toBe(1);
+    expect(channelAt(1).subscribeCalls).toBe(1);
 
     // Listeners stay wired to the replacement channel.
-    state.channels[1].eventHandler?.({ eventType: "INSERT" });
+    channelAt(1).eventHandler?.({ eventType: "INSERT" });
     expect(seen).toHaveLength(1);
   });
 
@@ -194,7 +232,7 @@ describe("subscribeToTable — re-join on auth token change", () => {
     await flushAuth();
 
     expect(state.channels).toHaveLength(2);
-    expect(state.channels[1].topic).not.toBe(state.channels[0].topic);
+    expect(channelAt(1).topic).not.toBe(channelAt(0).topic);
   });
 
   it("ignores auth events whose token matches the one used at join", async () => {
@@ -218,19 +256,23 @@ describe("subscribeToTable — re-join on auth token change", () => {
     await emitAuthChange("token-c");
     await flushAuth();
     expect(state.channels).toHaveLength(3);
-    expect(state.channels[2].subscribeCalls).toBe(1);
+    expect(channelAt(2).subscribeCalls).toBe(1);
   });
 
   it("surfaces the drop to status listeners and reports SUBSCRIBED after the re-join", async () => {
     const statuses: boolean[] = [];
-    subscribeToTable("conversations", () => {}, (ok) => statuses.push(ok));
+    subscribeToTable(
+      "conversations",
+      () => {},
+      (ok) => statuses.push(ok),
+    );
     await flushAuth();
-    state.channels[0].statusCallback?.("SUBSCRIBED");
+    channelAt(0).statusCallback?.("SUBSCRIBED");
     expect(statuses).toEqual([false, true]);
 
     await emitAuthChange("token-b");
     await flushAuth();
-    state.channels[1].statusCallback?.("SUBSCRIBED");
+    channelAt(1).statusCallback?.("SUBSCRIBED");
 
     expect(statuses).toEqual([false, true, false, true]);
   });
@@ -241,7 +283,53 @@ describe("subscribeToTable — re-join on auth token change", () => {
     await emitAuthChange("token-b");
     await flushAuth();
 
-    expect(state.channels[0].subscribeCalls).toBe(0);
-    expect(state.channels[1].subscribeCalls).toBe(1);
+    expect(channelAt(0).subscribeCalls).toBe(0);
+    expect(channelAt(1).subscribeCalls).toBe(1);
+  });
+
+  it("tears down the REPLACEMENT channel when the last subscriber leaves after a re-join", async () => {
+    const off = subscribeToTable("conversations", () => {});
+    await flushAuth();
+    await emitAuthChange("token-b");
+    await flushAuth();
+    expect(state.channels).toHaveLength(2);
+
+    off();
+    expect(state.removedChannels).toContain(channelAt(1));
+  });
+
+  it("suppresses status callbacks from a channel replaced by a re-join", async () => {
+    const statuses: boolean[] = [];
+    subscribeToTable(
+      "conversations",
+      () => {},
+      (ok) => statuses.push(ok),
+    );
+    await flushAuth();
+    channelAt(0).statusCallback?.("SUBSCRIBED");
+
+    await emitAuthChange("token-b");
+    await flushAuth();
+    channelAt(1).statusCallback?.("SUBSCRIBED");
+
+    const before = [...statuses];
+    channelAt(0).statusCallback?.("CLOSED"); // the moribund channel finally closes
+    expect(statuses).toEqual(before);
+  });
+
+  it("suppresses events from a channel replaced by a re-join", async () => {
+    const seen: unknown[] = [];
+    subscribeToTable("conversations", (p) => seen.push(p));
+    await flushAuth();
+
+    await emitAuthChange("token-b");
+    await flushAuth();
+
+    // A resurrected stale channel must never dispatch into the live listeners.
+    channelAt(0).eventHandler?.({ eventType: "INSERT" });
+    expect(seen).toHaveLength(0);
+
+    channelAt(1).eventHandler?.({ eventType: "INSERT" });
+    expect(seen).toHaveLength(1);
   });
 });

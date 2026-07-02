@@ -38,6 +38,11 @@ import { getSupabaseClient } from "./supabase";
  * listener surfaces the SUBSCRIBED/disconnected transitions for UI badges and
  * lets consumers refetch on (re)join — postgres_changes has no replay, so any
  * join may sit after events that were never delivered.
+ *
+ * Delivery contract is at-least-once: during an auth re-join the leaving
+ * channel and its replacement can overlap for a moment and both dispatch the
+ * same event — listeners must be idempotent (all current consumers are:
+ * refetch ticks, row merges by id, deduped beeps).
  */
 
 export type TableEventListener = (
@@ -61,10 +66,16 @@ interface IChannelEntry {
 
 const entries = new Map<string, IChannelEntry>();
 
-/** Monotonic topic suffix — topics are never reused across (re)creations. */
+/**
+ * Monotonic topic suffix — topics are never reused across (re)creations. The
+ * per-module-evaluation `bootId` keeps topics unique across Vite HMR reloads
+ * too (the singleton client survives the reload; a reset counter alone would
+ * collide with channels created by the previous module instance).
+ */
 let channelSeq = 0;
+const bootId = Math.random().toString(36).slice(2, 8);
 
-let authWatcherStarted = false;
+let authWatcher: { unsubscribe: () => void } | null = null;
 
 /**
  * Creates a fresh channel for the entry and joins it once the session token is
@@ -76,30 +87,35 @@ function createAndJoin(entry: IChannelEntry): void {
   const generation = ++entry.generation;
   entry.joinToken = undefined;
   const channel = client
-    .channel(`table:${entry.table}:${++channelSeq}`)
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: entry.table },
-      (payload) => {
-        for (const listener of entry.listeners) listener(payload);
-      },
-    );
+    .channel(`table:${entry.table}:${bootId}:${++channelSeq}`)
+    .on("postgres_changes", { event: "*", schema: "public", table: entry.table }, (payload) => {
+      // A channel replaced by an auth re-join could in rare paths outlive its
+      // leave (e.g. the server errors the phx_leave and phoenix re-joins it) —
+      // never let a stale generation dispatch into the live listener set.
+      if (entry.generation !== generation) return;
+      for (const listener of entry.listeners) listener(payload);
+    });
   entry.channel = channel;
 
   void (async () => {
+    let token: string | null = null;
     try {
-      // Resolve the current session token into the socket BEFORE joining —
-      // the join payload only includes a token that is already cached.
-      await client.realtime.setAuth();
+      // Snapshot the token BEFORE setAuth resolves it into the socket: if a
+      // refresh lands between the two, joinToken under-records (older token
+      // than the join actually carried) and the watcher over-recreates once —
+      // cheap. Recording AFTER could over-record and make the watcher SKIP the
+      // recreate of a channel that actually joined with the older token.
+      const { data } = await client.auth.getSession();
+      token = data.session?.access_token ?? null;
     } catch {
       // Best-effort: joining with the apikey is still better than never
       // joining; the auth watcher re-joins as soon as a session token lands.
     }
 
-    let token: string | null = null;
     try {
-      const { data } = await client.auth.getSession();
-      token = data.session?.access_token ?? null;
+      // Resolve the current session token into the socket BEFORE joining —
+      // the join payload only includes a token that is already cached.
+      await client.realtime.setAuth();
     } catch {
       // Same best-effort stance as above.
     }
@@ -138,9 +154,8 @@ function recreate(entry: IChannelEntry): void {
  * builds never instantiate the Supabase client.
  */
 function ensureAuthRejoinWatcher(): void {
-  if (authWatcherStarted) return;
-  authWatcherStarted = true;
-  getSupabaseClient().auth.onAuthStateChange((_event, session) => {
+  if (authWatcher) return;
+  const registration = getSupabaseClient().auth.onAuthStateChange((_event, session) => {
     const token = session?.access_token ?? null;
     // Deferred: onAuthStateChange callbacks must not invoke other Supabase
     // auth APIs synchronously (the auth client still holds its lock).
@@ -153,6 +168,7 @@ function ensureAuthRejoinWatcher(): void {
       }
     }, 0);
   });
+  authWatcher = registration.data.subscription;
 }
 
 /**
@@ -193,7 +209,12 @@ export function subscribeToTable(
   }
 
   const tracked = entry;
+  let released = false;
   return () => {
+    // Idempotent: a double-invoked cleanup must not decrement a ref that a
+    // NEWER entry for the same table now owns.
+    if (released) return;
+    released = true;
     tracked.refs -= 1;
     tracked.listeners.delete(onEvent);
     if (onStatus) tracked.statusListeners.delete(onStatus);
@@ -213,5 +234,6 @@ export function subscribeToTable(
 export function __resetRealtimeForTests(): void {
   entries.clear();
   channelSeq = 0;
-  authWatcherStarted = false;
+  authWatcher?.unsubscribe();
+  authWatcher = null;
 }
