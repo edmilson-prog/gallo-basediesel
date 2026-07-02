@@ -44,6 +44,7 @@ interface MessageRow {
   text: string;
   media_type: MessageMediaType | null;
   media_url: string | null;
+  media_filename: string | null;
   status: IMessage["status"];
   sent_at: string;
   delivered_at: string | null;
@@ -56,7 +57,7 @@ interface MessageRow {
 const TABLE = "messages";
 const COLUMNS =
   "id, conversation_id, direction, author_type, author_id, provider, text, media_type, " +
-  "media_url, status, sent_at, delivered_at, read_at, failure_reason, failure_code, created_at";
+  "media_url, media_filename, status, sent_at, delivered_at, read_at, failure_reason, failure_code, created_at";
 /** Cap on ids per `.in("conversation_id", …)` so the request-line length stays
  *  well under the edge's URL limit (~39 chars/id encoded → 120 ids ≈ 4.7 KB). */
 const ANALYTICS_IN_CHUNK_SIZE = 120;
@@ -77,6 +78,7 @@ function rowToMessage(row: MessageRow): IMessage {
     text: row.text,
     mediaType: row.media_type ?? undefined,
     mediaUrl: row.media_url ?? undefined,
+    mediaFilename: row.media_filename ?? undefined,
     status: row.status,
     sentAt: row.sent_at,
     // `created_at` (DEFAULT now()) is when our server persisted the row — i.e.
@@ -140,6 +142,7 @@ export const supabaseMessagesProvider: IMessagesProvider = {
       text: input.text,
       media_type: input.mediaType ?? null,
       media_url: input.mediaUrl ?? null,
+      media_filename: input.mediaFilename ?? null,
       status: "sent" as IMessage["status"],
       sent_at: now,
       delivered_at: input.deliveredAt ?? now,
