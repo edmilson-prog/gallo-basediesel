@@ -86,5 +86,6 @@ export function buildDefaultSettings(storeId: ID): IPlatformSettings {
     insightThresholds: clone(DEFAULT_INSIGHT_THRESHOLDS),
     storefront: clone(DEFAULT_STOREFRONT_CONFIG),
     ecommerceIntegration: clone(DEFAULT_ECOMMERCE_INTEGRATION_SETTINGS),
+    conversationTags: { headerMode: "readonly" },
   };
 }

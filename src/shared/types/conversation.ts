@@ -54,6 +54,23 @@ export interface IConversation {
   matchedMessage?: IConversationMessageMatch;
 }
 
+/**
+ * Owner-managed catalog entry for CONVERSATION tags (distinct from customer
+ * tags in IPlatformSettings.tagSuggestions). `conversations.tags` stores the
+ * IDs of these entries — renaming/recoloring never rewrites conversations.
+ */
+export interface IConversationTag {
+  id: ID;
+  storeId: ID;
+  label: string;
+  /** Curated palette color id (e.g. "teal") — resolved to hex at render time. */
+  color: string;
+  /** Archived tags disappear from pickers but keep rendering on old conversations. */
+  archived: boolean;
+  createdAt: ISO8601;
+  updatedAt: ISO8601;
+}
+
 /** Representative message match for the message-content search (see `IConversation.matchedMessage`). */
 export interface IConversationMessageMatch {
   text: string;
