@@ -195,6 +195,34 @@ describe("processSendRequest — happy path (RF-030/040/050)", () => {
       expect.objectContaining({ filename: "orçamento.pdf", mediaType: "document" }),
     );
   });
+
+  it("media: persists the original fileName on the queued row", async () => {
+    const { db, calls } = makeDb();
+    const engine = new MockWhatsAppProvider();
+
+    await send(
+      {
+        kind: "media",
+        mediaPath: "https://signed.test/quote.pdf",
+        mediaType: "document",
+        text: "",
+        fileName: "orçamento.pdf",
+      },
+      db,
+      SELLER,
+      engine,
+    );
+
+    expect(calls.queued[0]).toMatchObject({ fileName: "orçamento.pdf" });
+  });
+
+  it("text: persists fileName as null on the queued row", async () => {
+    const { db, calls } = makeDb();
+
+    await send({ kind: "text", text: "olá" }, db);
+
+    expect(calls.queued[0]).toMatchObject({ fileName: null });
+  });
 });
 
 describe("processSendRequest — permission and state gates (RF-010..012)", () => {
