@@ -44,6 +44,7 @@ import { mockRotationParticipantsProvider } from "./impl/mock/rotationParticipan
 import { mockAiProvider } from "./impl/mock/ai";
 import { mockAtendimentoMetricsProvider } from "./impl/mock/atendimentoMetrics";
 import { mockWhatsAppGoServersProvider } from "./impl/mock/whatsappGoServers";
+import { mockConversationTagsProvider } from "./impl/mock/conversationTags";
 
 import { supabaseCustomersProvider } from "./impl/supabase/customers";
 import { supabaseVehiclesProvider } from "./impl/supabase/vehicles";
@@ -167,6 +168,7 @@ const mockProviders: IDataProviders = {
   ai: mockAiProvider,
   atendimentoMetrics: mockAtendimentoMetricsProvider,
   whatsappGoServers: mockWhatsAppGoServersProvider,
+  conversationTags: mockConversationTagsProvider,
 };
 
 const supabaseProviders: IDataProviders = {
@@ -214,6 +216,7 @@ const supabaseProviders: IDataProviders = {
   ai: supabaseAiProvider,
   atendimentoMetrics: supabaseAtendimentoMetricsProvider,
   whatsappGoServers: supabaseWhatsAppGoServersProvider,
+  conversationTags: mockConversationTagsProvider, // TODO(Task 4): replaced by supabaseConversationTagsProvider
 };
 
 /**
