@@ -101,6 +101,8 @@ export interface IGoContent {
   text?: string;
   mediaCaption?: string;
   mediaId?: string;
+  /** documentMessage.fileName — the original document name. */
+  mediaFilename?: string;
 }
 
 export function extractContent(msg: IGoMessageBody): IGoContent {
@@ -113,7 +115,12 @@ export function extractContent(msg: IGoMessageBody): IGoContent {
   if (msg.videoMessage)
     return { contentType: "video", mediaCaption: msg.videoMessage.caption, mediaId: mediaRefFrom("videoMessage", msg.videoMessage) };
   if (msg.documentMessage)
-    return { contentType: "document", mediaCaption: msg.documentMessage.caption, mediaId: mediaRefFrom("documentMessage", msg.documentMessage) };
+    return {
+      contentType: "document",
+      mediaCaption: msg.documentMessage.caption,
+      mediaId: mediaRefFrom("documentMessage", msg.documentMessage),
+      mediaFilename: msg.documentMessage.fileName,
+    };
   if (msg.locationMessage) {
     return { contentType: "location", text: encodeBaileysLocation(msg.locationMessage) };
   }
@@ -179,6 +186,7 @@ export function parseEvolutionGoInbound(
       contentType: content.contentType,
       text: content.text,
       mediaCaption: content.mediaCaption,
+      mediaFilename: content.mediaFilename,
       timestamp,
       rawPayload,
     };
@@ -195,6 +203,7 @@ export function parseEvolutionGoInbound(
     text: content.text,
     mediaId: content.mediaId,
     mediaCaption: content.mediaCaption,
+    mediaFilename: content.mediaFilename,
     senderName: info.PushName,
     timestamp,
     rawPayload,
