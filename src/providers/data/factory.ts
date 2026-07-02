@@ -90,6 +90,7 @@ import { supabaseRotationParticipantsProvider } from "./impl/supabase/rotationPa
 import { supabaseAiProvider } from "./impl/supabase/ai";
 import { supabaseAtendimentoMetricsProvider } from "./impl/supabase/atendimentoMetrics";
 import { supabaseWhatsAppGoServersProvider } from "./impl/supabase/whatsappGoServers";
+import { supabaseConversationTagsProvider } from "./impl/supabase/conversationTags";
 
 import {
   DATA_SOURCE_OVERRIDE_KEY,
@@ -216,7 +217,7 @@ const supabaseProviders: IDataProviders = {
   ai: supabaseAiProvider,
   atendimentoMetrics: supabaseAtendimentoMetricsProvider,
   whatsappGoServers: supabaseWhatsAppGoServersProvider,
-  conversationTags: mockConversationTagsProvider, // TODO(Task 4): replaced by supabaseConversationTagsProvider
+  conversationTags: supabaseConversationTagsProvider,
 };
 
 /**
