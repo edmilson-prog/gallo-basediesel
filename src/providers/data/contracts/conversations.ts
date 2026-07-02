@@ -48,6 +48,15 @@ export interface IListConversationsParams extends IPaginationParams {
   };
   orderBy?: ConversationsOrderBy;
   orderDir?: "asc" | "desc";
+  /**
+   * When `false`, skips the exact total computation and `total` comes back as
+   * `-1` (Inbox hot path: PostgREST `count: "exact"` re-evaluates the per-row
+   * RLS gate over the WHOLE candidate set on every page — the 2026-07-02
+   * statement-timeout incident). Callers that need the real total use
+   * `count()` instead. Defaults to `true` (all other callers keep today's
+   * behavior).
+   */
+  withTotal?: boolean;
 }
 
 /**
@@ -97,6 +106,16 @@ export interface ICreateOutboundConversationInput {
  */
 export interface IConversationsProvider {
   list(params?: IListConversationsParams): Promise<IPaginatedResult<IConversation>>;
+  /**
+   * Exact count of conversations matching the Inbox NO-SEARCH list filters
+   * (status/channel/instance/isSdrActive/tags/period/assignmentAny). Cheap by
+   * construction on supabase: a SECURITY DEFINER RPC with the access model as
+   * set predicates ("gated-once"), instead of the per-row RLS count that
+   * `list`'s `count: "exact"` implies. NOT supported with `search`,
+   * `customerId`, `leadId`, or the scalar `assignedSellerId`/`unassigned`
+   * params — those callers keep using `list`'s total.
+   */
+  count(params?: IListConversationsParams): Promise<number>;
   get(id: ID): Promise<IConversation>;
   update(id: ID, patch: Partial<IConversation>): Promise<IConversation>;
   markRead(id: ID): Promise<IConversation>;
