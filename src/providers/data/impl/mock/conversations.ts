@@ -22,6 +22,16 @@ export const mockConversationsProvider: IConversationsProvider = {
       : withOwnSellerScope(scoped, "conversation");
     return conversationsApi.list(owned);
   },
+  count: async (params) => {
+    // Mock data is in-memory and cheap — reuse list()'s scoping/filtering and
+    // read its total instead of duplicating the filter logic here.
+    const result = await mockConversationsProvider.list({
+      ...(params ?? {}),
+      page: 1,
+      pageSize: 1,
+    });
+    return result.total;
+  },
   searchMessages: (params) => {
     const scoped = scopedListParams(params, "conversation");
     const owned = scoped.assignmentAny
