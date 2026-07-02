@@ -36,6 +36,7 @@ import { useConversationContext } from "../hooks/ConversationContext";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
 import { VoiceRecorderBar } from "./VoiceRecorderBar";
 import { MIN_RECORDING_SECONDS } from "../utils/audioRecording";
+import { formatFileSize, mediaIcon } from "../utils/messageDisplay";
 import { TemplateDialog } from "./dialogs/TemplateDialog";
 import { TemplatePicker, type ITemplatePickerSelection } from "@/features/templates";
 import { NotesButton } from "./notes/NotesButton";
@@ -213,6 +214,12 @@ export function MessageInput(props: IMessageInputProps) {
   // Voice-note recording (in-browser capture → reuses the attachment pipeline).
   const recorder = useAudioRecorder({ onError: (m) => toast.error(m) });
   const [sendingVoice, setSendingVoice] = useState(false);
+  // Ad-hoc attachment upload in flight — drives the composer chip + locks.
+  const [uploadingAttachment, setUploadingAttachment] = useState<{
+    name: string;
+    size: number;
+    kind: AttachmentKind;
+  } | null>(null);
   const attachInputRef = useRef<HTMLInputElement | null>(null);
   // Kind picked in the dropdown — a ref because the file dialog opens
   // synchronously after the menu select (no re-render in between).
@@ -289,14 +296,17 @@ export function MessageInput(props: IMessageInputProps) {
 
   // Why is Send/Schedule disabled? Surface a concise reason for AT (a11y) — gate
   // priority mirrors handleSend: pending fields → closed window → empty draft.
-  const sendDisabled = !value.trim() || !canSendFreeText || hasUnresolvedPlaceholders;
-  const sendDisabledReason = hasUnresolvedPlaceholders
-    ? CONVERSATION_STRINGS.sendDisabledPendingFields
-    : !canSendFreeText
-      ? CONVERSATION_STRINGS.sendDisabledWindowClosed
-      : !value.trim()
-        ? CONVERSATION_STRINGS.sendDisabledEmpty
-        : undefined;
+  const sendDisabled =
+    !value.trim() || !canSendFreeText || hasUnresolvedPlaceholders || uploadingAttachment !== null;
+  const sendDisabledReason = uploadingAttachment
+    ? CONVERSATION_STRINGS.sendDisabledUploading
+    : hasUnresolvedPlaceholders
+      ? CONVERSATION_STRINGS.sendDisabledPendingFields
+      : !canSendFreeText
+        ? CONVERSATION_STRINGS.sendDisabledWindowClosed
+        : !value.trim()
+          ? CONVERSATION_STRINGS.sendDisabledEmpty
+          : undefined;
 
   // Reset slash highlight when the candidate list changes.
   useEffect(() => {
@@ -417,27 +427,32 @@ export function MessageInput(props: IMessageInputProps) {
     e.target.value = "";
     if (!file) return;
     const caption = value.trim();
-    let payload: ISendOptions | null = null;
+    setUploadingAttachment({ name: file.name, size: file.size, kind: attachKindRef.current });
     try {
-      payload = await prepareAttachment(file, attachKindRef.current, caption);
-    } catch {
-      toast.error(CONVERSATION_STRINGS.attachUploadFailed);
-      return;
-    }
-    if (!payload) return;
-    try {
-      await sendHook.send(payload);
-      setValue("");
-      onSent?.();
-    } catch (err) {
-      if (err instanceof Error && err.message === "TEMPLATE_REQUIRED") {
-        setTemplateOpen(true);
+      let payload: ISendOptions | null = null;
+      try {
+        payload = await prepareAttachment(file, attachKindRef.current, caption);
+      } catch {
+        toast.error(CONVERSATION_STRINGS.attachUploadFailed);
         return;
       }
-      if (handleInvalidNumberBounce(err, payload)) return;
-      if (getActiveDataSource() !== "supabase") {
-        toast.error(CONVERSATION_STRINGS.actionFailed);
+      if (!payload) return;
+      try {
+        await sendHook.send(payload);
+        setValue("");
+        onSent?.();
+      } catch (err) {
+        if (err instanceof Error && err.message === "TEMPLATE_REQUIRED") {
+          setTemplateOpen(true);
+          return;
+        }
+        if (handleInvalidNumberBounce(err, payload)) return;
+        if (getActiveDataSource() !== "supabase") {
+          toast.error(CONVERSATION_STRINGS.actionFailed);
+        }
       }
+    } finally {
+      setUploadingAttachment(null);
     }
   };
 
@@ -705,6 +720,26 @@ export function MessageInput(props: IMessageInputProps) {
           <OriginChip account={whatsappAccount} variant="full" />
         </div>
       )}
+      {uploadingAttachment && (
+        <div
+          className="flex items-center gap-2.5 border-b border-border px-3 py-2"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+            <Icon icon={mediaIcon(uploadingAttachment.kind, uploadingAttachment.name)} size={18} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-foreground">
+              {uploadingAttachment.name}
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              {CONVERSATION_STRINGS.attachUploading} · {formatFileSize(uploadingAttachment.size)}
+            </p>
+          </div>
+          <Icon icon="mdi:loading" size={16} className="shrink-0 animate-spin text-primary" />
+        </div>
+      )}
       <div className="flex items-end gap-2 px-3 py-2">
         {recorder.status !== "idle" ? (
           <VoiceRecorderBar
@@ -729,6 +764,7 @@ export function MessageInput(props: IMessageInputProps) {
                       size="sm"
                       className="h-9 w-9 shrink-0 p-0"
                       aria-label={CONVERSATION_STRINGS.attach}
+                      disabled={uploadingAttachment !== null}
                     >
                       <Icon icon="mdi:paperclip" size={18} />
                     </Button>
@@ -836,7 +872,7 @@ export function MessageInput(props: IMessageInputProps) {
                     size="sm"
                     className="h-9 w-9 shrink-0 p-0"
                     onClick={() => void recorder.start()}
-                    disabled={!canSendFreeText}
+                    disabled={!canSendFreeText || uploadingAttachment !== null}
                     aria-label={CONVERSATION_STRINGS.voice.record}
                   >
                     <Icon icon="mdi:microphone" size={18} />
@@ -897,7 +933,7 @@ export function MessageInput(props: IMessageInputProps) {
                 onClick={syncCaret}
                 placeholder={placeholder}
                 rows={1}
-                disabled={!canSendFreeText}
+                disabled={!canSendFreeText || uploadingAttachment !== null}
                 role="combobox"
                 aria-expanded={slashOpen}
                 aria-controls={slashOpen ? "slash-listbox" : undefined}
@@ -908,7 +944,8 @@ export function MessageInput(props: IMessageInputProps) {
                   // SnippetField overlay aligns pixel-for-pixel with the real text (D-6).
                   "relative min-h-[40px] w-full resize-none bg-transparent px-3 py-2 text-base leading-normal md:text-sm",
                   snippetGaps.length > 0 && "caret-foreground",
-                  !canSendFreeText && "cursor-not-allowed bg-muted/40",
+                  (!canSendFreeText || uploadingAttachment !== null) &&
+                    "cursor-not-allowed bg-muted/40",
                 )}
                 aria-label="Mensagem"
               />
