@@ -4,7 +4,7 @@ import type { ConversationChannel, ConversationStatus, ID } from "@/shared/types
 import { usePersistedListSearch } from "@/shared/hooks/usePersistedListSearch";
 
 export type PeriodFilter = "all" | "24h" | "7d" | "30d";
-export type AssignmentFilter = "me" | "unassigned" | "queue" | "all" | string;
+export type AssignmentFilter = "me" | "queue" | "all" | string;
 export type SortMode = "lastMessage" | "waiting" | "abc";
 
 export interface IInboxFiltersState {
@@ -64,9 +64,17 @@ function defaultAssignmentTokens(currentSellerId: ID | null): string[] {
   return currentSellerId ? ["me"] : [];
 }
 
+/** Legacy token of the retired "Sem atribuição" option. Every pre-unification
+ *  URL, favorite and localStorage restore still carries it — fold into "queue"
+ *  here (the single point both the URL and the persisted restore flow through),
+ *  otherwise the stale token would fall into the seller-id branch and silently
+ *  degrade the filter. */
+const LEGACY_UNASSIGNED_TOKEN = "unassigned";
+
 /** Parse the URL `assignment` value (CSV) into the token set. Handles the `all`
- *  sentinel (empty set), de-dups, preserves order, and falls back to the
- *  seller-relative default when absent. */
+ *  sentinel (empty set), de-dups, preserves order, normalizes the legacy
+ *  `unassigned` token into `queue`, and falls back to the seller-relative
+ *  default when absent. */
 export function parseAssignmentTokens(
   raw: string | undefined,
   currentSellerId: ID | null,
@@ -76,7 +84,8 @@ export function parseAssignmentTokens(
   const seen = new Set<string>();
   const out: string[] = [];
   for (const part of raw.split(",")) {
-    const token = part.trim();
+    let token = part.trim();
+    if (token === LEGACY_UNASSIGNED_TOKEN) token = "queue";
     if (token.length > 0 && !seen.has(token)) {
       seen.add(token);
       out.push(token);
@@ -286,28 +295,25 @@ export function filtersToListParams(
   if (filters.tags.length > 0) params.tags = filters.tags;
   if (filters.search.length > 0) params.search = filters.search;
 
-  // Assignment — multi-select OR. Resolve "me" → the current seller id; the
-  // queue's status/SDR constraints ride INSIDE the OR term (assignmentAny.queue),
-  // so they never pin the global status filter. Empty set === "Todas" (no
-  // assignment constraint at all).
+  // Assignment — multi-select OR. Resolve "me" → the current seller id; "queue"
+  // is the single pool token (folds the retired "Sem atribuição" option — see
+  // parseAssignmentTokens) and its status/SDR constraints ride INSIDE the OR
+  // term (assignmentAny.queue), so they never pin the global status filter.
+  // Empty set === "Todas" (no assignment constraint at all).
   if (filters.assignment.length > 0) {
     const sellerIds: ID[] = [];
-    let unassigned = false;
     let queue = false;
     for (const token of filters.assignment) {
       if (token === "me") {
         if (ctx.currentSellerId) sellerIds.push(ctx.currentSellerId);
-      } else if (token === "unassigned") {
-        unassigned = true;
       } else if (token === "queue") {
         queue = true;
       } else {
         sellerIds.push(token);
       }
     }
-    const assignmentAny: { sellerIds?: ID[]; unassigned?: boolean; queue?: boolean } = {};
+    const assignmentAny: { sellerIds?: ID[]; queue?: boolean } = {};
     if (sellerIds.length > 0) assignmentAny.sellerIds = Array.from(new Set(sellerIds));
-    if (unassigned) assignmentAny.unassigned = true;
     if (queue) assignmentAny.queue = true;
     if (Object.keys(assignmentAny).length > 0) params.assignmentAny = assignmentAny;
   }
