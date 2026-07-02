@@ -17,6 +17,7 @@ import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
 import { distributeConversation, type IDistributionInput } from "@/features/distribution/engine";
 import { applyRotationOverride } from "@/features/rotation/engine/applyRotationOverride";
+import { statusOnUnassign } from "../../engine/assignmentStatusCoupling";
 import { supabaseSettingsProvider } from "./settings";
 import { supabaseSellersProvider } from "./sellers";
 import { supabaseCustomersProvider } from "./customers";
@@ -401,14 +402,27 @@ export const supabaseConversationsProvider: IConversationsProvider = {
 
   async unassign(id: ID): Promise<IConversation> {
     // Direct table UPDATE to null the assignee — returns the conversation to the
-    // pool/queue. Unlike assignSeller (which must hand a row OUT of a seller's
-    // read scope, hence the SECURITY DEFINER RPC), nulling the column is
-    // authorized directly by the conversations_update policy whenever is_staff()
-    // (USING + WITH CHECK). A non-staff caller is rejected by RLS; the UI gates
-    // the action to staff, so this never runs for them.
-    const { data, error } = await getSupabaseClient()
+    // pool/queue. The conversations_update WITH CHECK accepts the resulting
+    // unassigned row (assigned_seller_id is null arm), so staff and the current
+    // assignee alike may hand a conversation back.
+    // Coupling (spec 2026-07-02): re-queue the status too, except when archived
+    // (manual-only axis) — read the current status first to decide.
+    const client = getSupabaseClient();
+    const { data: current, error: readError } = await client
       .from(TABLE)
-      .update({ assigned_seller_id: null, updated_at: new Date().toISOString() })
+      .select("status")
+      .eq("id", id)
+      .single();
+    if (readError)
+      throw new Error(`[supabase] conversations.unassign(${id}) failed: ${readError.message}`);
+    const nextStatus = statusOnUnassign((current as { status: IConversation["status"] }).status);
+    const { data, error } = await client
+      .from(TABLE)
+      .update({
+        assigned_seller_id: null,
+        ...(nextStatus ? { status: nextStatus } : {}),
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", id)
       .select(COLUMNS)
       .single();
