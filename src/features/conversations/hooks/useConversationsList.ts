@@ -121,8 +121,12 @@ export function useConversationsList(
   );
 
   const fetchPage = useCallback(
-    async (pageToLoad: number, fetchMode: ListFetchMode) => {
-      const generation = generationRef.current;
+    async (pageToLoad: number, fetchMode: ListFetchMode, generation: number) => {
+      // Schedulers pass the generation that owned the view when the fetch was
+      // SCHEDULED. A closure invoked late (debounce timer, re-hydration chain)
+      // after a filter/mode bump therefore fails this check instead of
+      // adopting the new generation and writing old-filter data into it.
+      if (generation !== generationRef.current) return;
       if (fetchMode === "replace") setIsLoading(true);
       else setIsLoadingMore(true);
       try {
@@ -155,6 +159,8 @@ export function useConversationsList(
             }
             return;
           } catch (err) {
+            // Superseded fetches exit silently (no Sentry): their failure
+            // describes a view that no longer exists.
             if (generation !== generationRef.current) return;
             const failure = err instanceof Error ? err : new Error(String(err));
             const hasItems = itemsRef.current.length > 0;
@@ -169,6 +175,9 @@ export function useConversationsList(
               await new Promise((resolve) =>
                 window.setTimeout(resolve, INITIAL_LOAD_RETRY_DELAY_MS),
               );
+              // The view may have changed during the sleep — don't waste a
+              // request (and a timeout-prone server round-trip) on stale filters.
+              if (generation !== generationRef.current) return;
               continue;
             }
             if (resolveListFetchFailure({ fetchMode, hasItems }) === "surface") {
@@ -200,12 +209,17 @@ export function useConversationsList(
   // em mensagens" banner).
   useEffect(() => {
     generationRef.current += 1;
+    const generation = generationRef.current;
     setPage(1);
     setItems([]);
     itemsRef.current = [];
     setError(null);
     setListHasMore(false);
-    void fetchPage(1, "replace");
+    // An append in flight across the reset would otherwise leave this flag
+    // stuck true forever (its finally is generation-guarded), permanently
+    // gating loadMore and killing infinite scroll.
+    setIsLoadingMore(false);
+    void fetchPage(1, "replace", generation);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersKey, mode]);
 
@@ -215,14 +229,18 @@ export function useConversationsList(
   // pagination progress while real-time pulls in new rows.
   useEffect(() => {
     if (refreshKey === 0) return;
+    // Capture the generation NOW: if filters/mode change during the debounce
+    // window (this effect keys on refreshKey only), the timer fires a stale
+    // closure — the old generation makes fetchPage bail before any request.
+    const generation = generationRef.current;
     const handle = window.setTimeout(() => {
       const target = pageRef.current;
-      void fetchPage(1, "replace").then(() => {
+      void fetchPage(1, "replace", generation).then(() => {
         // Re-hydrate higher pages sequentially.
         let chain: Promise<void> = Promise.resolve();
         for (let p = 2; p <= target; p += 1) {
           const captured = p;
-          chain = chain.then(() => fetchPage(captured, "append"));
+          chain = chain.then(() => fetchPage(captured, "append", generation));
         }
         return chain;
       });
@@ -238,12 +256,12 @@ export function useConversationsList(
     if (!hasMore) return;
     const nextPage = page + 1;
     setPage(nextPage);
-    void fetchPage(nextPage, "append");
+    void fetchPage(nextPage, "append", generationRef.current);
   }, [isLoading, isLoadingMore, hasMore, page, fetchPage]);
 
   const refetch = useCallback(() => {
     setPage(1);
-    void fetchPage(1, "replace");
+    void fetchPage(1, "replace", generationRef.current);
   }, [fetchPage]);
 
   const markItemRead = useCallback((id: ID) => {
