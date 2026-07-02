@@ -128,6 +128,7 @@ export function makeSendDb(admin: SupabaseClient, _traceId: string): ISendDb {
           text: input.text,
           media_type: input.mediaType,
           media_url: input.mediaUrl,
+          media_filename: input.fileName ?? null,
           status: "queued",
           sent_at: new Date().toISOString(),
         })
