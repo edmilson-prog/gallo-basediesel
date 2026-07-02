@@ -193,8 +193,6 @@ do projeto); o que importa é que RPCs que **retornam dados** estejam só em
 Decisão de negócio detalhada: memória `project_access_model_decision`.
 Relacionados: [whatsapp-multi-instance / "Quem acessa"](#), `rls_seller_handoff_pattern`.
 
----
-
 ## Listagem da Inbox (2026-07-02 — fix do statement timeout)
 
 A query principal da lista era a última leitura escopada ainda em SELECT
