@@ -685,6 +685,19 @@ function evolutionEchoEvent(text = "te envio o boleto", keyId = "3EB0ECHO1") {
   };
 }
 
+function evolutionEchoMediaEvent(keyId = "3EB0ECHOMEDIA1") {
+  return {
+    event: "messages.upsert",
+    instance: "gallo-matriz",
+    sender: "5555911111111@s.whatsapp.net",
+    data: {
+      key: { id: keyId, remoteJid: "5555988887777@s.whatsapp.net", fromMe: true },
+      message: { imageMessage: { caption: "boleto foto", mimetype: "image/jpeg" } },
+      messageTimestamp: 1765400000,
+    },
+  };
+}
+
 describe("processWebhookEvent — outbound echoes (real inbox spec)", () => {
   it("ignores the echo of an app-sent message (dedup by provider_message_id)", async () => {
     const state = emptyState();
@@ -766,6 +779,42 @@ describe("processWebhookEvent — outbound echoes (real inbox spec)", () => {
     expect(result.outcome).toBe("account-not-found");
     expect(state.messages).toHaveLength(0);
     expect(state.processed.size).toBe(0);
+  });
+
+  it("downloads and stores media for a phone-sent echo (mirrors the inbound pipeline)", async () => {
+    const state = emptyState();
+    const result = await run(state, evolutionEchoMediaEvent());
+
+    expect(result.outcome).toBe("echo-created");
+    expect(state.uploads).toHaveLength(1);
+    expect(state.uploads[0]).toMatch(
+      new RegExp(`^conversations/${result.conversationId}/${result.messageId}/media\\.`),
+    );
+    expect(state.mediaSet[0]).toMatchObject({ messageId: result.messageId, status: "ok" });
+    // Audit parity with the inbound path — the echo audit gains hasMedia.
+    expect(state.audits[0]).toMatchObject({
+      action: "webhook_received",
+      after: expect.objectContaining({ direction: "out", hasMedia: true }),
+    });
+  });
+
+  it("marks echo media failed when the download rejects but keeps the echo record", async () => {
+    const state = emptyState();
+    const failing = new MockWhatsAppProvider();
+    failing.downloadInboundMedia = () => Promise.reject(new Error("boom"));
+    const warn = vi.fn();
+
+    const result = await run(state, evolutionEchoMediaEvent(), {
+      buildProvider: () => failing,
+      warn,
+    });
+
+    // Media download NEVER blocks the echo record: the message + mark happen first.
+    expect(result.outcome).toBe("echo-created");
+    expect(state.messages).toHaveLength(1);
+    expect(state.mediaSet[0]).toMatchObject({ mediaUrl: null, status: "failed" });
+    expect(state.processed.has("whatsapp:evolution:3EB0ECHOMEDIA1")).toBe(true);
+    expect(warn).toHaveBeenCalledWith("echo media download failed", expect.anything());
   });
 });
 

@@ -107,6 +107,24 @@ describe("parseEvolutionGoInbound", () => {
     expect(parsed).toMatchObject({ type: "outbound-echo", toPhone: "+5555988887777", contentType: "text", text: "eco" });
   });
 
+  it("returns outbound-echo with mediaId for a phone-sent image (same verbatim encode as inbound)", () => {
+    const parsed = parseEvolutionGoInbound(
+      messageEvent(
+        { imageMessage: { caption: "foto que mandei", mimetype: "image/jpeg", url: "https://m/e.enc", directPath: "/v/e", mediaKey: "BBBB", fileLength: 42 } },
+        { IsFromMe: true, Type: "image" },
+      ),
+      "acc",
+    ) as { type: string; contentType: string; mediaId?: string };
+    expect(parsed.type).toBe("outbound-echo");
+    expect(parsed.contentType).toBe("image");
+    // The echo carries the SAME verbatim proto ref as inbound, so
+    // downloadInboundMedia can re-fetch it and mirror the phone-sent media.
+    expect(parsed.mediaId).toBeDefined();
+    expect(decodeGoMediaRef(parsed.mediaId as string)).toMatchObject({
+      imageMessage: { caption: "foto que mandei", mimetype: "image/jpeg", mediaKey: "BBBB" },
+    });
+  });
+
   it("parses the SendMessage event kind (phone-sent) as outbound-echo", () => {
     const ev = messageEvent({ conversation: "mandei do celular" }, { IsFromMe: true });
     (ev as { event?: string }).event = "SendMessage";

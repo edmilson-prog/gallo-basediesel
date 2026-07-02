@@ -195,6 +195,9 @@ export function parseEvolutionGoInbound(
       toPhone: jidToE164(chat),
       contentType: content.contentType,
       text: content.text,
+      // Verbatim proto ref (same encode as inbound) so downloadInboundMedia can
+      // re-fetch and mirror phone-sent media into storage (spec 2026-07-02).
+      mediaId: content.mediaId,
       mediaCaption: content.mediaCaption,
       mediaFilename: content.mediaFilename,
       timestamp,

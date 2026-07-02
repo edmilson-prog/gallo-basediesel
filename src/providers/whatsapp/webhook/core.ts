@@ -559,6 +559,30 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
     });
     await db.touchConversation(conversation.id, parsed.timestamp);
     await db.markProcessed(eventKey, traceId);
+
+    // Media (spec 2026-07-02): phone-sent media mirrors the inbound pipeline —
+    // download now or mark failed; never blocks the echo record itself (the
+    // message + markProcessed above already landed).
+    if (parsed.mediaId) {
+      try {
+        const engine = args.buildProvider(account);
+        const media = await withTimeout(
+          engine.downloadInboundMedia(parsed.mediaId),
+          args.mediaTimeoutMs ?? DEFAULT_MEDIA_TIMEOUT_MS,
+        );
+        const extension = MIME_EXTENSIONS[media.mimeType] ?? "bin";
+        const path = `conversations/${conversation.id}/${message.id}/media.${extension}`;
+        await db.uploadMedia(path, media.data, media.mimeType);
+        await db.setMessageMedia(message.id, path, "ok");
+      } catch (error) {
+        warn("echo media download failed", {
+          mediaId: parsed.mediaId,
+          detail: error instanceof Error ? error.message : String(error),
+        });
+        await db.setMessageMedia(message.id, null, "failed");
+      }
+    }
+
     await db.audit({
       storeId: account.storeId,
       action: "webhook_received",
@@ -569,6 +593,7 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
         eventKey,
         direction: "out",
         contentType: parsed.contentType,
+        hasMedia: Boolean(parsed.mediaId),
         toPhoneMasked: `***${toDigits.slice(-4)}`,
         customerCreated,
         traceId,
