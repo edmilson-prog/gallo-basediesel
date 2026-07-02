@@ -6,6 +6,11 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **Notificações sonoras da Inbox** — um beep discreto avisa quando chega mensagem nova numa conversa já atribuída a você, e um beep diferente (mais chamativo) avisa quando um cliente novo entra na fila de atendimento. Funciona em qualquer tela do app, não só com a Inbox aberta. Liga/desliga e ajusta o volume pelo ícone de som no TopBar.
+- **Ícone de mensagens novas no TopBar** — um ponto vermelho aparece no ícone da Inbox sempre que há mensagem não lida numa conversa sua ou cliente esperando na fila. Um clique leva direto para o Atendimento.
+
 ## [0.127.0] — Vantage · 2026-07-01
 
 **A conversa agora "sabe" de quem é a vez de responder, e a ficha do cliente ganhou uma aba dedicada ao atendimento.** Um envio do atendente já move a conversa para "Em atendimento" automaticamente — inclusive reabrindo uma conversa resolvida, sem precisar reabrir na mão. A ficha do cliente ganhou a aba "Atendimento" como padrão, reunindo o aviso de conversão de contato pendente e os dados de quem está atendendo. Números de WhatsApp desconectados agora travam a conversa para leitura, evitando respostas que nunca sairiam. E o seletor de status da conversa passou a oferecer todos os 5 estados num só lugar.

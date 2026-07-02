@@ -329,6 +329,11 @@ export function InboxPage() {
     return () => window.removeEventListener("keydown", handleKey);
   }, [items, selectedId, navigate]);
 
+  // Header-only unread total for the CURRENT filtered view. This is NOT the
+  // global "unread mine" badge — that is owned end-to-end by
+  // useInboxActivityMonitor (turned ON by inbound, OFF by markRead). Feeding a
+  // filter-scoped count into the global badge would silence it whenever a
+  // search/tag/assignment filter excluded the seller's real unread threads.
   const unreadGlobal = useMemo(
     () => items.reduce((acc, c) => acc + (isUnread(c) ? c.unreadCount || 1 : 0), 0),
     [items, isUnread],
