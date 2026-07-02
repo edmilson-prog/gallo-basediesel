@@ -222,6 +222,7 @@ describe("processWebhookEvent — inbound messages (RF-040/050)", () => {
       provider: "evolution",
       text: "preciso de um filtro",
       providerMessageId: "EVOKEY1",
+      mediaFilename: null,
     });
     expect(state.bumps).toEqual([state.conversations[0]?.id]);
     expect(state.processed.has("whatsapp:evolution:EVOKEY1")).toBe(true);
@@ -516,6 +517,22 @@ describe("processWebhookEvent — media (RF-070, RNF-006)", () => {
     } as never;
     return event;
   }
+
+  function documentEvent(fileName = "Catalogo-UFI.pdf") {
+    const event = evolutionTextEvent("", "EVODOC1");
+    event.data.message = {
+      documentMessage: { fileName },
+    } as never;
+    return event;
+  }
+
+  it("threads the original document filename into the inbound insert (mediaFilename)", async () => {
+    const state = emptyState();
+    const result = await run(state, documentEvent());
+
+    expect(result.outcome).toBe("message-created");
+    expect(state.messages[0]).toMatchObject({ mediaFilename: "Catalogo-UFI.pdf" });
+  });
 
   it("downloads media, uploads to storage and stamps the path", async () => {
     const state = emptyState();
