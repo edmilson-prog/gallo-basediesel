@@ -43,7 +43,7 @@ stable
 security definer
 set search_path to ''
 as $$
-  with acc as (
+  with acc as materialized (
     select public.current_seller_accessible_account_ids() as id
   )
   select count(*)
@@ -60,7 +60,8 @@ as $$
     -- assignmentAny OR-combination (mirror buildAssignmentOrFilter):
     -- no criterion set = "Todas" (no assignment constraint at all)
     and (
-      (p_assigned_seller_ids is null and not p_unassigned and not p_include_queue)
+      ((p_assigned_seller_ids is null or cardinality(p_assigned_seller_ids) = 0)
+        and not p_unassigned and not p_include_queue)
       or (p_assigned_seller_ids is not null
           and c.assigned_seller_id = any(p_assigned_seller_ids))
       or (p_unassigned and c.assigned_seller_id is null)
