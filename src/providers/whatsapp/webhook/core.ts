@@ -86,8 +86,9 @@ export interface IWebhookDb {
     accountId: string;
     assignedSellerId: string | null;
     lastMessageAt: string;
-    /** aguardando = inbound awaiting staff; em_andamento = we initiated (echo). */
-    status: "aguardando" | "em_andamento";
+    /** New conversations always land queued: inbound awaits staff, and an echo
+     *  has no known author — someone claims it in the app (spec 2026-07-02). */
+    status: "aguardando";
   }): Promise<{ id: string }>;
   insertInboundMessage(input: {
     conversationId: string;
@@ -538,11 +539,12 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
         customerId: customer.id,
         accountId: account.id,
         // UNASSIGNED (pool): the webhook cannot know which seller sent from the
-        // phone, so it never pins the chat to the customer's wallet owner.
-        // Visibility comes from instance access (can_access_conversation).
+        // phone, so it never pins the chat — it lands QUEUED ('aguardando') for
+        // someone to claim in the app (spec 2026-07-02). Visibility comes from
+        // instance access (can_access_conversation).
         assignedSellerId: null,
         lastMessageAt: parsed.timestamp,
-        status: "em_andamento",
+        status: "aguardando",
       });
     }
     const message = await db.insertOutboundEchoMessage({

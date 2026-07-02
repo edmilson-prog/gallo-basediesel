@@ -700,15 +700,16 @@ describe("processWebhookEvent — outbound echoes (real inbox spec)", () => {
     expect(state.processed.has("whatsapp:evolution:APP-SENT-1")).toBe(true);
   });
 
-  it("mirrors a phone-sent message: em_andamento conversation, out message, no unread bump", async () => {
+  it("mirrors a phone-sent message: aguardando conversation, out message, no unread bump", async () => {
     const state = emptyState();
     const result = await run(state, evolutionEchoEvent());
 
     expect(result.outcome).toBe("echo-created");
     expect(state.customers).toHaveLength(1); // pending customer for the new number
-    // Echo conversations also land UNASSIGNED (pool) — the webhook cannot know
-    // which seller sent from the phone, so it never pins the chat to the wallet owner.
-    expect(state.conversations[0]).toMatchObject({ status: "em_andamento", assignedSellerId: null });
+    // Echo conversations also land QUEUED (pool) — the webhook cannot know
+    // which seller sent from the phone, so it never pins the chat; someone
+    // claims it in the app (spec 2026-07-02).
+    expect(state.conversations[0]).toMatchObject({ status: "aguardando", assignedSellerId: null });
     expect(state.messages[0]).toMatchObject({
       provider: "evolution",
       text: "te envio o boleto",
