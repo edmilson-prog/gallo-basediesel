@@ -107,6 +107,16 @@ describe("parseEvolutionGoInbound", () => {
     expect(parsed).toMatchObject({ type: "outbound-echo", toPhone: "+5555988887777", contentType: "text", text: "eco" });
   });
 
+  it("parses the SendMessage event kind (phone-sent) as outbound-echo", () => {
+    const ev = messageEvent({ conversation: "mandei do celular" }, { IsFromMe: true });
+    (ev as { event?: string }).event = "SendMessage";
+    const parsed = parseEvolutionGoInbound(ev, "acc-1");
+    expect(parsed.type).toBe("outbound-echo");
+    if (parsed.type === "outbound-echo") {
+      expect(parsed.text).toBe("mandei do celular");
+    }
+  });
+
   it("maps Receipt delivered/read to status (state at top OR data.Type)", () => {
     const delivered = parseEvolutionGoInbound(
       { event: "Receipt", instanceId: "i", data: { MessageIDs: ["GOMSG1"], Type: "delivered", Timestamp: "2026-06-25T10:01:00Z" } },

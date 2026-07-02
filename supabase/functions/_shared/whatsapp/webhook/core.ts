@@ -398,7 +398,7 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
     // payload shape, then acknowledged. Message/Receipt fall through to the
     // parser below (unchanged). Capture is best-effort: a logging failure must
     // not turn the event into a 500/retry.
-    if (goEvent && goEvent !== "Message" && goEvent !== "Receipt") {
+    if (goEvent && goEvent !== "Message" && goEvent !== "Receipt" && goEvent !== "SendMessage") {
       try {
         await args.captureRawEvent?.({
           kind: goEvent,

@@ -951,6 +951,34 @@ describe("processWebhookEvent — evolution-go", () => {
     expect(captureRawEvent).not.toHaveBeenCalled();
   });
 
+  it("does NOT capture a SendMessage event (phone-sent echo) — it flows to the parser as an echo", async () => {
+    const state = emptyState();
+    const captureRawEvent = vi.fn();
+    const payload = {
+      event: "SendMessage",
+      instanceId: "inst-9",
+      data: {
+        Info: {
+          Chat: "5555988887777@s.whatsapp.net",
+          Sender: "5555911111111@s.whatsapp.net",
+          IsFromMe: true,
+          ID: "GOOUT1",
+          Timestamp: "2026-06-25T10:00:00Z",
+        },
+        Message: { conversation: "mandei do celular" },
+      },
+    };
+    const result = await run(state, payload, { provider: "evolution-go", captureRawEvent });
+
+    expect(result.outcome).toBe("echo-created");
+    expect(captureRawEvent).not.toHaveBeenCalled();
+    expect(state.messages[0]).toMatchObject({
+      provider: "evolution-go",
+      text: "mandei do celular",
+      providerMessageId: "GOOUT1",
+    });
+  });
+
   it("capture is best-effort: a captureRawEvent failure still answers ignored", async () => {
     const state = emptyState();
     const warn = vi.fn();
