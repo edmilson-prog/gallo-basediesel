@@ -224,7 +224,7 @@ export const TAG_PALETTE: ITagPaletteEntry[] = [
   { id: "indigo", label: "Índigo", hex: "#818cf8" },
   { id: "orange", label: "Laranja", hex: "#fb923c" },
   { id: "sky", label: "Azul-céu", hex: "#38bdf8" },
-  { id: "blue", label: "Azul", hex: "#60a5fa" },
+  { id: "blue", label: "Azul", hex: "#3b82f6" },
   { id: "cyan", label: "Ciano", hex: "#22d3ee" },
   { id: "fuchsia", label: "Fúcsia", hex: "#e879f9" },
   { id: "slate", label: "Cinza-azulado", hex: "#94a3b8" },
