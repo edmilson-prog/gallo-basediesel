@@ -90,7 +90,7 @@ Componentes novos em `src/features/conversations/components/` (+ engine em `src/
 
 - Constante `TAG_PALETTE` (engine da feature): **8–10 entradas** `{ id, label pt-BR, hex }` (ex.: teal "Verde-água", violeta, âmbar-queimado, azul, rosa, índigo, laranja, ciano) no padrão `INSTANCE_PALETTE` (`src/features/conversations/utils/instanceAccent.ts` — "color encodes identity, never state").
 - **Exclui** matizes das severidades (verde-sucesso, amarelo-warning, vermelho-crítico puros) e o verde WhatsApp.
-- Persiste-se o **id** da cor; hex resolvido na render. Contraste do dot ≥ 3:1 contra `--background` em light e dark, validado com `src/lib/contrast.ts` durante o desenvolvimento (rota `/design-system`).
+- Persiste-se o **id** da cor; hex resolvido na render. Conferência de contraste do dot: **manual**, na rota `/design-system` (light e dark), como se faz com a `INSTANCE_PALETTE` — o rótulo textual sempre acompanha o dot, então a cor nunca é o único sinal (sem teste automatizado de razão de contraste).
 
 ## 4. UI — hub de gestão (Configurações → Atendimento → Tags)
 
