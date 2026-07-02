@@ -70,6 +70,15 @@ describe("normalizeWhatsmeowRecord", () => {
       normalizeWhatsmeowRecord({ key: { id: "x" }, messageTimestamp: 1765400000, message: {} }),
     ).toBeNull();
   });
+
+  it("imported document carries the original mediaFilename", () => {
+    const rec = normalizeWhatsmeowRecord({
+      key: { ID: "H-doc", fromMe: false },
+      messageTimestamp: 1750000000,
+      message: { documentMessage: { fileName: "Historico.pdf", url: "u", mediaKey: "k" } },
+    });
+    expect(rec).toMatchObject({ mediaType: "document", mediaFilename: "Historico.pdf" });
+  });
 });
 
 describe("createHistoryAggregator", () => {

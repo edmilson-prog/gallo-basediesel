@@ -108,6 +108,7 @@ export function makeImportDb(
           provider,
           text: row.text,
           media_type: row.mediaType,
+          media_filename: row.mediaFilename ?? null,
           // Historical media is NOT downloaded — eligible for manual retry.
           media_download_status: row.mediaType ? "failed" : null,
           status: row.status,
