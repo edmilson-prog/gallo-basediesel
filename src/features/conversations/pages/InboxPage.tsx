@@ -207,6 +207,7 @@ export function InboxPage() {
     isLoading,
     isLoadingMore,
     hasMore,
+    loadMoreFailed,
     error,
     loadMore,
     refetch,
@@ -463,7 +464,7 @@ export function InboxPage() {
               />
             ))}
 
-          {!error && hasMore && (
+          {hasMore && (
             <div
               ref={sentinelRef}
               className="flex items-center justify-center py-4 text-xs text-muted-foreground"
@@ -478,7 +479,16 @@ export function InboxPage() {
             </div>
           )}
 
-          {!hasMore && items.length > 0 && (
+          {!error && loadMoreFailed && (
+            <div className="flex flex-col items-center justify-center gap-2 py-4 text-center text-xs text-muted-foreground">
+              <span>{INBOX_STRINGS.loadMoreError}</span>
+              <Button size="sm" variant="outline" onClick={loadMore}>
+                {INBOX_STRINGS.error.retry}
+              </Button>
+            </div>
+          )}
+
+          {!error && !loadMoreFailed && !hasMore && items.length > 0 && (
             <div className="py-3 text-center text-[11px] text-muted-foreground">
               {INBOX_STRINGS.endOfList}
             </div>

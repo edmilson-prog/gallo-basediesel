@@ -1,5 +1,6 @@
 import type { IListConversationsParams } from "../../contracts/conversations";
-import { sanitizeSellerIds } from "./assignmentFilter";
+import { assertInboxCountParams } from "../conversationCountSupport";
+import { buildSharedConversationRpcFilters } from "./conversationRpcFilters";
 
 /** Exact argument shape of the `count_conversations` RPC (migration 20260702180000). */
 export interface ICountConversationsRpcParams {
@@ -18,46 +19,19 @@ export interface ICountConversationsRpcParams {
 /**
  * Translate Inbox list params into `count_conversations` RPC args.
  *
- * The RPC mirrors ONLY the Inbox no-search list path. Params outside that
- * path (`storeId`, `search`, `customerId`, `leadId`, scalar
- * `assignedSellerId`/`unassigned`) would be silently ignored by the RPC and
- * return a wrong total — throw instead so a future caller fails loudly at
- * dev time.
+ * The RPC mirrors ONLY the Inbox no-search list path — `assertInboxCountParams`
+ * rejects params outside it (storeId/real-search/customerId/leadId/scalar
+ * assignment) so a future caller fails loudly instead of getting a wrong total.
+ * The shared filter fields come from `buildSharedConversationRpcFilters` (the
+ * same mapping the search RPCs use); only `p_unassigned` is count-specific.
  */
 export function buildCountRpcParams(
   params: IListConversationsParams,
 ): ICountConversationsRpcParams {
-  if (
-    params.storeId !== undefined ||
-    params.search !== undefined ||
-    params.customerId !== undefined ||
-    params.leadId !== undefined ||
-    params.assignedSellerId !== undefined ||
-    params.unassigned !== undefined
-  ) {
-    throw new Error(
-      "[supabase] conversations.count supports the Inbox no-search list path only " +
-        "(got storeId/search/customerId/leadId/assignedSellerId/unassigned)",
-    );
-  }
-
-  const sellerIds = sanitizeSellerIds(params.assignmentAny?.sellerIds);
+  assertInboxCountParams(params);
 
   return {
-    p_status:
-      params.status === undefined
-        ? null
-        : Array.isArray(params.status)
-          ? params.status
-          : [params.status],
-    p_channel: params.channel ?? null,
-    p_whatsapp_account_id: params.whatsappAccountId ?? null,
-    p_is_sdr_active: typeof params.isSdrActive === "boolean" ? params.isSdrActive : null,
-    p_tags: params.tags && params.tags.length > 0 ? params.tags : null,
-    p_from_date: params.fromDate ?? null,
-    p_to_date: params.toDate ?? null,
-    p_assigned_seller_ids: sellerIds.length > 0 ? sellerIds : null,
+    ...buildSharedConversationRpcFilters(params),
     p_unassigned: params.assignmentAny?.unassigned === true,
-    p_include_queue: params.assignmentAny?.queue === true,
   };
 }

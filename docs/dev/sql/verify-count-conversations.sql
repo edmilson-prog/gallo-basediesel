@@ -5,6 +5,16 @@
 -- RPC's set-predicate count. `match` must be true for every filter shape.
 --
 -- Replace the claims below per persona (owner / seller_internal e.g. tiago).
+--
+-- ⚠️ RUN AS A SINGLE TRANSACTION. The `begin`/`rollback` below are load-bearing:
+-- `set local role` and `set_config(..., is_local => true)` are TRANSACTION-scoped.
+-- If the statements run one-by-one under autocommit (a runner that splits them,
+-- or copy-paste line by line), those SETs are discarded before the SELECT — the
+-- rls_count subquery would then run as the RLS-bypassing postgres role while the
+-- RPC sees NULL claims (current_store_id() NULL → 0), giving a meaningless
+-- parity result. Send the whole file as one statement / transaction. It is
+-- read-only, so it ends in `rollback`.
+begin;
 set local role authenticated;
 select set_config('request.jwt.claims', json_build_object(
   'sub', '5e38abb6-abcd-4e4d-838a-867078e99892',
@@ -63,3 +73,5 @@ select
     p_include_queue => s.p_queue
   ) as match
 from shapes s;
+
+rollback;

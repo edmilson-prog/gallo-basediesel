@@ -84,4 +84,12 @@ describe("buildCountRpcParams", () => {
       /no-search/,
     );
   });
+
+  it("treats whitespace-only search as no-search (parity with list()'s trim routing)", () => {
+    // list() routes only `search.trim().length > 0` to the search RPC; a
+    // whitespace term stays on the plain path (total -1) → count() is called
+    // with search="  ". It must NOT throw, and must count as if unfiltered.
+    expect(() => buildCountRpcParams({ search: "   " })).not.toThrow();
+    expect(buildCountRpcParams({ search: "   " }).p_status).toBeNull();
+  });
 });

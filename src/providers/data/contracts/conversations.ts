@@ -113,9 +113,10 @@ export interface IConversationsProvider {
    * (status/channel/instance/isSdrActive/tags/period/assignmentAny). Cheap by
    * construction on supabase: a SECURITY DEFINER RPC with the access model as
    * set predicates ("gated-once"), instead of the per-row RLS count that
-   * `list`'s `count: "exact"` implies. NOT supported with `search`,
-   * `customerId`, `leadId`, or the scalar `assignedSellerId`/`unassigned`
-   * params — those callers keep using `list`'s total.
+   * `list`'s `count: "exact"` implies. NOT supported with `storeId`, `search`
+   * (a non-blank term), `customerId`, `leadId`, or the scalar
+   * `assignedSellerId`/`unassigned` params — those callers keep using `list`'s
+   * total (the impls throw on them via `assertInboxCountParams`).
    */
   count(params?: IListConversationsParams): Promise<number>;
   get(id: ID): Promise<IConversation>;

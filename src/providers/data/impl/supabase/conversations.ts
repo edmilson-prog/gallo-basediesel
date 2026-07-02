@@ -24,8 +24,9 @@ import { supabaseLeadsProvider } from "./leads";
 import { supabaseDistributionTracesProvider } from "./distributionTraces";
 import { supabaseRotationQueuesProvider } from "./rotationQueues";
 import { supabaseRotationParticipantsProvider } from "./rotationParticipants";
-import { buildAssignmentOrFilter, sanitizeSellerIds } from "./assignmentFilter";
+import { buildAssignmentOrFilter } from "./assignmentFilter";
 import { buildCountRpcParams } from "./countRpcParams";
+import { buildSharedConversationRpcFilters } from "./conversationRpcFilters";
 
 /**
  * Supabase implementation of {@link IConversationsProvider} (PRD-100+).
@@ -145,13 +146,10 @@ function resolvePagination(params: IListConversationsParams): { page: number; pa
  * search paths from silently diverging when a filter is added later.
  */
 function buildSearchRpcParams(params: IListConversationsParams, page: number, pageSize: number) {
-  const status =
-    params.status === undefined ? null : Array.isArray(params.status) ? params.status : [params.status];
-  // Drop crafted non-UUID tokens before the `uuid[]` RPC arg (parity with the
-  // table path's buildAssignmentOrFilter guard).
-  const searchSellerIds = sanitizeSellerIds(params.assignmentAny?.sellerIds);
-
   return {
+    // Shared Inbox filter fields (status/channel/instance/SDR/tags/period/
+    // seller-ids/queue) — the same mapping count_conversations uses.
+    ...buildSharedConversationRpcFilters(params),
     // `p_search` has no SQL default (unlike the other params) — PostgREST can't
     // resolve the function overload if this key is omitted from the JSON body,
     // which happens whenever `params.search` is `undefined` (JSON.stringify drops
@@ -159,17 +157,10 @@ function buildSearchRpcParams(params: IListConversationsParams, page: number, pa
     // guard already treats an empty term as "no match" (0 rows).
     p_search: params.search ?? "",
     p_store_id: params.storeId ?? null,
-    p_status: status,
-    p_channel: params.channel ?? null,
-    p_whatsapp_account_id: params.whatsappAccountId ?? null,
+    // Search additionally folds the scalar `unassigned` param on top of
+    // assignmentAny (count derives it from assignmentAny only).
     p_assigned_seller_id: params.assignedSellerId ?? null,
     p_unassigned: params.unassigned ?? params.assignmentAny?.unassigned ?? false,
-    p_assigned_seller_ids: searchSellerIds.length > 0 ? searchSellerIds : null,
-    p_include_queue: params.assignmentAny?.queue ?? false,
-    p_is_sdr_active: typeof params.isSdrActive === "boolean" ? params.isSdrActive : null,
-    p_tags: params.tags && params.tags.length > 0 ? params.tags : null,
-    p_from_date: params.fromDate ?? null,
-    p_to_date: params.toDate ?? null,
     p_order_dir: params.orderDir === "asc" ? "asc" : "desc",
     p_limit: pageSize,
     p_offset: (page - 1) * pageSize,

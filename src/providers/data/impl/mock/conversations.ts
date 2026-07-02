@@ -8,6 +8,7 @@ import type {
 import type { ID, IConversation, IConversationContact } from "@/shared/types";
 import { auditLog } from "@/features/rbac/utils/auditLog";
 import { assertImmutableStoreId, scopedListParams, withOwnSellerScope } from "./_storeScope";
+import { assertInboxCountParams } from "../conversationCountSupport";
 
 export const mockConversationsProvider: IConversationsProvider = {
   list: (params) => {
@@ -23,6 +24,10 @@ export const mockConversationsProvider: IConversationsProvider = {
     return conversationsApi.list(owned);
   },
   count: async (params) => {
+    // Fail-fast on params the count contract does not support — parity with the
+    // supabase impl, so the guard trips at dev time (mock) instead of only in
+    // production (supabase).
+    assertInboxCountParams(params ?? {});
     // Mock data is in-memory and cheap — reuse list()'s scoping/filtering and
     // read its total instead of duplicating the filter logic here.
     const result = await mockConversationsProvider.list({
