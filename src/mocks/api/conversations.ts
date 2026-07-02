@@ -51,7 +51,6 @@ export interface IListConversationsParams extends IPaginationParams {
   unassigned?: boolean;
   assignmentAny?: {
     sellerIds?: ID[];
-    unassigned?: boolean;
     queue?: boolean;
   };
   orderBy?: ConversationsOrderBy;
@@ -118,16 +117,15 @@ function abcRank(customerId: ID | undefined): number {
  */
 export function matchesAssignmentAny(
   conversation: IConversation,
-  assignmentAny: { sellerIds?: ID[]; unassigned?: boolean; queue?: boolean },
+  assignmentAny: { sellerIds?: ID[]; queue?: boolean },
 ): boolean {
-  const { sellerIds, unassigned, queue } = assignmentAny;
+  const { sellerIds, queue } = assignmentAny;
   if (
     sellerIds &&
     conversation.assignedSellerId &&
     sellerIds.includes(conversation.assignedSellerId)
   )
     return true;
-  if (unassigned && !conversation.assignedSellerId) return true;
   if (
     queue &&
     !conversation.assignedSellerId &&
@@ -150,9 +148,7 @@ function applyNonSearchFilters(
   if (params.unassigned) filtered = filtered.filter((c) => !c.assignedSellerId);
   if (
     params.assignmentAny &&
-    (params.assignmentAny.sellerIds?.length ||
-      params.assignmentAny.unassigned ||
-      params.assignmentAny.queue)
+    (params.assignmentAny.sellerIds?.length || params.assignmentAny.queue)
   )
     filtered = filtered.filter((c) => matchesAssignmentAny(c, params.assignmentAny!));
   if (params.status) {

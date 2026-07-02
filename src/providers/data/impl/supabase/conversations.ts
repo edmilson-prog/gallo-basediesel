@@ -163,7 +163,7 @@ function buildSearchRpcParams(params: IListConversationsParams, page: number, pa
     p_channel: params.channel ?? null,
     p_whatsapp_account_id: params.whatsappAccountId ?? null,
     p_assigned_seller_id: params.assignedSellerId ?? null,
-    p_unassigned: params.unassigned ?? params.assignmentAny?.unassigned ?? false,
+    p_unassigned: params.unassigned ?? false,
     p_assigned_seller_ids: searchSellerIds.length > 0 ? searchSellerIds : null,
     p_include_queue: params.assignmentAny?.queue ?? false,
     p_is_sdr_active: typeof params.isSdrActive === "boolean" ? params.isSdrActive : null,

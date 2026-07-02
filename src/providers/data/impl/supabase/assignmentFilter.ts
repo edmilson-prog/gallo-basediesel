@@ -2,7 +2,6 @@ import type { ID } from "@/shared/types";
 
 export interface IAssignmentAny {
   sellerIds?: ID[];
-  unassigned?: boolean;
   queue?: boolean;
 }
 
@@ -35,7 +34,6 @@ export function buildAssignmentOrFilter(assignmentAny: IAssignmentAny | undefine
   if (sellerIds.length > 0) {
     terms.push(`assigned_seller_id.in.(${sellerIds.join(",")})`);
   }
-  if (assignmentAny.unassigned) terms.push("assigned_seller_id.is.null");
   if (assignmentAny.queue) {
     terms.push("and(assigned_seller_id.is.null,is_sdr_active.eq.false,status.eq.aguardando)");
   }

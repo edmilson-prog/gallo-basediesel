@@ -16,10 +16,6 @@ describe("matchesAssignmentAny", () => {
     expect(matchesAssignmentAny(conv({ assignedSellerId: "s1" }), { sellerIds: ["s1"] })).toBe(true);
     expect(matchesAssignmentAny(conv({ assignedSellerId: "s2" }), { sellerIds: ["s1"] })).toBe(false);
   });
-  it("matches the pool with unassigned", () => {
-    expect(matchesAssignmentAny(conv({ assignedSellerId: undefined }), { unassigned: true })).toBe(true);
-    expect(matchesAssignmentAny(conv({ assignedSellerId: "s1" }), { unassigned: true })).toBe(false);
-  });
   it("matches the queue (pool + sdr off + aguardando)", () => {
     expect(
       matchesAssignmentAny(conv({ assignedSellerId: undefined, isSdrActive: false, status: "aguardando" }), {
@@ -37,7 +33,9 @@ describe("matchesAssignmentAny", () => {
   });
   it("ORs criteria together", () => {
     const c = conv({ assignedSellerId: "s9" });
-    expect(matchesAssignmentAny(c, { sellerIds: ["s1"], unassigned: true })).toBe(false);
-    expect(matchesAssignmentAny(c, { sellerIds: ["s9"], unassigned: true })).toBe(true);
+    const queued = conv({ assignedSellerId: undefined, status: "aguardando", isSdrActive: false });
+    expect(matchesAssignmentAny(c, { sellerIds: ["s1"], queue: true })).toBe(false);
+    expect(matchesAssignmentAny(c, { sellerIds: ["s9"], queue: true })).toBe(true);
+    expect(matchesAssignmentAny(queued, { sellerIds: ["s1"], queue: true })).toBe(true);
   });
 });

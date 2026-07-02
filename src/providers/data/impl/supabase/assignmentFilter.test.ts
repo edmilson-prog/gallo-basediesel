@@ -15,17 +15,14 @@ describe("buildAssignmentOrFilter", () => {
       `assigned_seller_id.in.(${U1},${U2})`,
     );
   });
-  it("builds the pool term", () => {
-    expect(buildAssignmentOrFilter({ unassigned: true })).toBe("assigned_seller_id.is.null");
-  });
   it("builds the queue term as a nested and()", () => {
     expect(buildAssignmentOrFilter({ queue: true })).toBe(
       "and(assigned_seller_id.is.null,is_sdr_active.eq.false,status.eq.aguardando)",
     );
   });
-  it("joins multiple criteria with commas (OR)", () => {
-    expect(buildAssignmentOrFilter({ sellerIds: [U1], unassigned: true, queue: true })).toBe(
-      `assigned_seller_id.in.(${U1}),assigned_seller_id.is.null,and(assigned_seller_id.is.null,is_sdr_active.eq.false,status.eq.aguardando)`,
+  it("composes seller ids + queue", () => {
+    expect(buildAssignmentOrFilter({ sellerIds: [U1], queue: true })).toBe(
+      `assigned_seller_id.in.(${U1}),and(assigned_seller_id.is.null,is_sdr_active.eq.false,status.eq.aguardando)`,
     );
   });
   it("drops crafted non-UUID tokens (filter injection guard)", () => {
