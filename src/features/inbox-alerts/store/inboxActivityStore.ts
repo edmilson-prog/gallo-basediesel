@@ -1,9 +1,9 @@
 import { create } from "zustand";
 
 interface IInboxActivityState {
-  /** Há mensagem não lida numa conversa atribuída ao usuário logado. */
+  /** There is an unread message in a conversation assigned to the signed-in user. */
   hasUnreadMine: boolean;
-  /** Há pelo menos um cliente esperando na fila (sem atendente). */
+  /** There is at least one customer waiting in the queue (no assignee). */
   hasQueueWaiting: boolean;
   setHasUnreadMine: (value: boolean) => void;
   setHasQueueWaiting: (value: boolean) => void;

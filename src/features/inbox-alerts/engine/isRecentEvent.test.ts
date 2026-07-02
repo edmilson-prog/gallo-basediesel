@@ -14,9 +14,14 @@ describe("isRecentEvent", () => {
     expect(isRecentEvent(eventIso, now, 60_000)).toBe(false);
   });
 
-  it("treats a future timestamp (clock skew) as recent", () => {
-    const eventIso = "2026-07-01T12:00:10.000Z"; // 10s after now
+  it("treats a small future timestamp (clock skew) as recent", () => {
+    const eventIso = "2026-07-01T12:00:10.000Z"; // 10s after now, within skew tolerance
     expect(isRecentEvent(eventIso, now, 60_000)).toBe(true);
+  });
+
+  it("rejects an implausible far-future timestamp", () => {
+    const eventIso = "2026-07-01T12:02:00.000Z"; // 2min after now, beyond skew tolerance
+    expect(isRecentEvent(eventIso, now, 60_000)).toBe(false);
   });
 
   it("is not recent for an invalid timestamp", () => {

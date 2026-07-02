@@ -73,6 +73,41 @@ src/features/inbox-alerts/
   `getActiveDataSource() !== "supabase"` (modo mock/Demonstração não tem
   Realtime — mesmo gate de `useRealtimeMessages`).
 
+### O badge é derivado de forma **autoritativa** (não de um cache/filtro)
+
+Os dois sinais do TopBar são re-consultados da fonte de verdade a cada evento
+Realtime relevante (com debounce de 250 ms), em vez de derivados de um cache
+local ou da lista filtrada da Inbox:
+
+- **`hasQueueWaiting`** = "esta loja tem *alguma* conversa na fila?" — lido da
+  **contagem exata** (`count: 'exact'`) de `conversations.list({ assignmentAny:
+  { queue: true }, pageSize: 1 })`. Como usa `total` e não os dados da página,
+  um backlog maior que qualquer `pageSize` ainda acende o sinal (uma varredura
+  de cache limitada a N linhas apagaria o ponto sob backlog).
+- **`hasUnreadMine`** = "o atendente tem *alguma* conversa própria não lida?" —
+  `conversations.list({ assignedSellerId, pageSize: 200 })` + `some(unreadCount
+  > 0)`. Conversas não lidas têm o `last_message_at` mais recente e sobem ao
+  topo dessa janela, então o atendente não fica realisticamente além do teto nas
+  próprias threads não lidas. É **ligado** por mensagem inbound e **desligado**
+  por `markRead` — ambos são UPDATEs em `conversations`, então o badge é fonte
+  única de verdade aqui (a `InboxPage` **não** escreve nesse estado).
+
+Uma **guarda de geração** por sinal garante que uma resposta lenta nunca
+sobrescreva um valor mais novo (de uma re-consulta posterior ou de um evento ao
+vivo tratado no meio). Ao **trocar de loja ativa** (runtime, sem reload), o
+efeito reseta *tudo* — flags do badge, throttle de beep, cache e dedupe — e
+re-consulta do zero para a loja recém-selecionada.
+
+### Cache **mine-only** e RPC de fallback só quando há mensagem nova
+
+O cache local guarda **apenas as conversas do próprio atendente**
+(`assignedSellerId === sellerId`), usado só para o caminho rápido do `messages`
+resolver "esta mensagem é de uma conversa minha?". Fica limitado à carteira do
+atendente (não cresce com toda conversa da loja tocada na sessão). O fallback
+confiável (`getLastInboundAt`) só é disparado quando o UPDATE de fato
+**avançou** `last_message_at` numa conversa minha — `markRead`/tag/status/SDR
+mexem só em `updated_at` e não geram mais RPC desperdiçado.
+
 ## A confiabilidade do canal `messages` (por que existem dois caminhos)
 
 `src/features/conversations/hooks/useRealtimeMessages.ts` documenta um
@@ -91,8 +126,8 @@ então `useInboxActivityMonitor` replica o mesmo padrão:
   conversa já está no cache local como "minha" (`assignedSellerId ===
   sellerId` do usuário logado), beepa direto.
 - **Canal de fallback (confiável):** UPDATE em `conversations` (o touch que
-  toda mensagem nova provoca) numa conversa "minha" — debounce de 250 ms
-  (mesma janela do `useRealtimeMessages`) e chama
+  toda mensagem nova provoca) numa conversa "minha" **cujo `last_message_at`
+  avançou** — debounce de 250 ms (mesma janela do `useRealtimeMessages`) e chama
   `messagesProvider.getLastInboundAt(conversationId)` (método já existente,
   RPC `last_inbound_at`) para confirmar se há mensagem inbound mais nova que a
   última já alertada.
@@ -120,31 +155,31 @@ O beep de **fila** não sofre desse problema: depende só de INSERT em
   importa `isQueuedConversation` de `@/features/inbox-alerts` no lugar da
   regra que antes estava inline, para a badge "Em fila" da lista usar
   exatamente a mesma regra do beep.
-- **`src/features/conversations/pages/InboxPage.tsx`** — um `useEffect`
-  espelha `unreadGlobal` (contagem real, já calculada ali) em
-  `useInboxActivityStore.getState().setHasUnreadMine(unreadGlobal > 0)` toda
-  vez que muda. É o mecanismo de reconciliação: ver "Bordas conhecidas"
-  abaixo.
+- **`src/features/conversations/pages/InboxPage.tsx`** — **não** escreve mais no
+  `inboxActivityStore`. Continua calculando `unreadGlobal` (contagem da view
+  filtrada) só para o header da própria Inbox. O badge global do TopBar é
+  derivado inteiramente pelo `useInboxActivityMonitor` (ver "O badge é derivado
+  de forma autoritativa" acima) — a leitura de `markRead` ao abrir a conversa
+  já dispara o UPDATE em `conversations` que desliga o ponto.
 
-## Desvios do desenho original (implementados, revisados)
+## Notas de implementação
 
-O plano de implementação (Task 7) refinou o rascunho de código do spec em 3
-pontos pequenos, todos verificados em revisão — não são regressão em relação
-ao desenho aprovado:
-
-1. **Debounce por conversa, não um único timer** — `touchDebounceHandles` é um
-   `Map<conversationId, handle>` em vez de uma única referência de timeout.
-   Várias conversas "minhas" podem receber touch dentro da mesma janela de
-   250 ms; um único handle cancelaria o fallback pendente de uma conversa
-   anterior em vez de apenas agrupar repetições da **mesma** conversa.
-2. **Limpeza do cache ao trocar de loja ativa** — `cache` e
-   `lastAlertedInbound` são zerados no início do efeito Realtime, porque
-   `currentStoreId` pode mudar em runtime (sem reload — ver
-   `MultistoreProvider.setCurrentStore`) enquanto o hook permanece montado
-   pela sessão inteira; sem isso, uma conversa cacheada da loja anterior
-   vazaria para `recomputeQueueState()` da loja nova.
-3. **`unlockTonePlayer` envolvido em `useCallback`** — evita recriar a
-   referência passada para `useAudioUnlock` a cada render.
+- **Um único `useEffect` de dados** (chaveado por `currentStoreId`/`sellerId` +
+  os providers) faz seed inicial, assina os canais e limpa tudo no cleanup —
+  não há mais um par Seed/Live separado (que abria brecha para uma resposta de
+  seed sobrescrever um valor mais novo do canal ao vivo). A guarda de geração
+  fecha a corrida definitivamente.
+- **Debounce por conversa, não um único timer** — `touchDebounceHandles` é um
+  `Map<conversationId, handle>`. Várias conversas "minhas" podem receber touch
+  dentro da mesma janela de 250 ms; um único handle cancelaria o fallback
+  pendente de uma conversa anterior em vez de apenas agrupar repetições da
+  **mesma** conversa.
+- **`unlockTonePlayer` envolvido em `useCallback`** — evita recriar a
+  referência passada para `useAudioUnlock` a cada render.
+- **`AudioContext` fechado no unmount** — `tonePlayer.dispose()` roda no cleanup
+  do monitor e do `SoundAlertToggle`, para que ciclos de logout/login na mesma
+  aba (troca de estado SPA, sem reload) não vazem contextos além do teto
+  por-aba do navegador.
 
 ## Bordas conhecidas / limitações
 
@@ -154,33 +189,34 @@ ao desenho aprovado:
   continua funcionando independente do som.
 - **Sem supressão entre abas** — cada aba aberta assina os canais e toca beep
   de forma independente. Fora de escopo no MVP.
-- **`hasUnreadMine` é *best-effort*, não uma contagem exata** — o monitor só
-  **liga** o estado de forma otimista a partir de eventos Realtime; quem
-  **desliga** de fato é a visita à Inbox (`InboxPage` reconciliando com
-  `unreadGlobal`, a fonte de verdade real). Entre visitas, o ponto pode
-  continuar aceso mesmo depois de uma mensagem já ter sido lida em outro
-  lugar — mesma dualidade que `unreadCount`/`isUnread` já têm hoje no resto da
-  Inbox.
+- **`hasUnreadMine` é derivado por re-consulta, não um contador exato ao vivo**
+  — o beep marca o ponto de forma otimista, mas o valor final vem sempre de uma
+  re-consulta `assignedSellerId` + `some(unreadCount > 0)` disparada por
+  inbound e por `markRead`. Se um evento Realtime for perdido, o próximo evento
+  (ou a troca de loja) re-consulta e corrige. A janela de 200 conversas é
+  praticamente exata porque não lidas sobem ao topo do `last_message_at`.
 - **"Devolvida à fila" não re-beepa, por design** — o beep de fila só dispara
   no INSERT (criação) de uma conversa não atribuída. Uma conversa que volta
-  para a fila depois de já ter sido atribuída (UPDATE) não dispara novo beep
-  nem some do `hasQueueWaiting` incorretamente — comparar estado
-  antigo/novo em UPDATE exigiria `REPLICA IDENTITY FULL` em `conversations`,
-  fora de escopo (YAGNI, ver §9 do spec).
+  para a fila depois de já ter sido atribuída (UPDATE) não dispara novo beep —
+  comparar estado antigo/novo em UPDATE exigiria `REPLICA IDENTITY FULL` em
+  `conversations`, fora de escopo (YAGNI, ver §9 do spec). O **ponto** de fila,
+  no entanto, é correto mesmo nesse caso: a re-consulta autoritativa de
+  `hasQueueWaiting` reflete a devolução.
 - **Multi-loja** — ambos os beeps e o ícone só consideram a loja atualmente
-  selecionada (`useCurrentStore()`). Trocar de loja **re-roda os dois
-  `useEffect`s** (Seed e Live) para a loja nova — `currentStoreId` está nas
-  dependências de ambos, então o cache antigo é limpo (ver desvio #2 acima) e
-  o *seed* inicial roda de novo já escopado à loja recém-selecionada, sem
-  depender do próximo evento Realtime ou de uma visita à Inbox.
+  selecionada (`useCurrentStore()`). Trocar de loja **re-roda o `useEffect`** de
+  dados para a loja nova (`currentStoreId` está nas dependências), resetando
+  flags do badge, throttle de beep, cache e dedupe, e re-consultando do zero já
+  escopado à loja recém-selecionada, sem depender do próximo evento Realtime.
 - **Sem loja ativa selecionada** — se `currentStoreId` for `null` (ex.: um
-  Owner numa visão agregada "todas as lojas", quando existir), tanto o *Seed*
-  quanto o *Live* `useEffect` retornam cedo e não fazem nada — nem os beeps
-  nem o ponto no TopBar ficam ativos nesse modo. É consequência deliberada do
-  escopo por loja ativa (linha 4 da tabela de decisões na spec de origem), não
-  um bug — mas fica registrado aqui como limitação conhecida.
+  Owner numa visão agregada "todas as lojas", quando existir), o `useEffect`
+  retorna cedo e não faz nada — nem os beeps nem o ponto no TopBar ficam ativos
+  nesse modo. É consequência deliberada do escopo por loja ativa (linha 4 da
+  tabela de decisões na spec de origem), não um bug — mas fica registrado aqui
+  como limitação conhecida.
 - **Import/backfill de histórico** não dispara beep — protegido por
-  `isRecentEvent` (eventos com mais de 60s de idade são ignorados).
+  `isRecentEvent`, que ignora eventos com mais de 60s de idade **e** timestamps
+  implausíveis mais de 60s no futuro (payload malformado / relógio errado),
+  tolerando só um desvio de relógio modesto.
 - **Sem migration** — nenhuma tabela/coluna nova; usa métodos de provider já
   existentes (`conversations.list`, `messages.getLastInboundAt`) e o canal
   Realtime já habilitado em `conversations`/`messages`.

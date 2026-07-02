@@ -5,6 +5,13 @@ export interface ITonePlayer {
   unlock(): void;
   /** Play a named tone pattern. `volume` 0..1. Best-effort — never throws. */
   play(kind: ToneKind, volume: number): void;
+  /**
+   * Close the backing AudioContext and release it. Call on unmount so repeated
+   * mount/unmount cycles (e.g. sign-out then sign-in in the same tab, which is a
+   * pure SPA state change with no page reload) don't leak AudioContexts past the
+   * browser's per-tab cap. Idempotent and best-effort — never throws.
+   */
+  dispose(): void;
 }
 
 interface ITone {
@@ -47,7 +54,7 @@ function resolveAudioContextCtor(): AudioContextCtor | undefined {
 export function createTonePlayer(): ITonePlayer {
   const Ctx = resolveAudioContextCtor();
   if (!Ctx) {
-    return { unlock: () => {}, play: () => {} };
+    return { unlock: () => {}, play: () => {}, dispose: () => {} };
   }
 
   let ctx: AudioContext | null = null;
@@ -93,6 +100,15 @@ export function createTonePlayer(): ITonePlayer {
       } catch {
         /* best-effort — ignore audio failures */
       }
+    },
+    dispose() {
+      if (!ctx) return;
+      try {
+        void ctx.close();
+      } catch {
+        /* best-effort — ignore close failures */
+      }
+      ctx = null;
     },
   };
 }

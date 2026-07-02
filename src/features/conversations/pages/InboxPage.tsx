@@ -30,7 +30,6 @@ import { NewConversationDialog } from "../components/NewConversationDialog";
 import { selectAccessibleAccounts } from "../utils/selectAccessibleAccounts";
 import { INBOX_STRINGS } from "../i18n/pt-BR";
 import { InboxStatusSummaryCard } from "@/features/service-volume";
-import { useInboxActivityStore } from "@/features/inbox-alerts";
 
 function useAvailableTags(): string[] {
   const customersProvider = useCustomersProvider();
@@ -317,17 +316,15 @@ export function InboxPage() {
     return () => window.removeEventListener("keydown", handleKey);
   }, [items, selectedId, navigate]);
 
+  // Header-only unread total for the CURRENT filtered view. This is NOT the
+  // global "unread mine" badge — that is owned end-to-end by
+  // useInboxActivityMonitor (turned ON by inbound, OFF by markRead). Feeding a
+  // filter-scoped count into the global badge would silence it whenever a
+  // search/tag/assignment filter excluded the seller's real unread threads.
   const unreadGlobal = useMemo(
     () => items.reduce((acc, c) => acc + (isUnread(c) ? c.unreadCount || 1 : 0), 0),
     [items, isUnread],
   );
-
-  // Reconcile the TopBar's optimistic dot with ground truth every time the
-  // Inbox recomputes its own (accurate) unread total — the global monitor
-  // only ever turns the dot ON; visiting the Inbox is what turns it OFF.
-  useEffect(() => {
-    useInboxActivityStore.getState().setHasUnreadMine(unreadGlobal > 0);
-  }, [unreadGlobal]);
 
   const sortDescription = INBOX_STRINGS.sortOptions[filters.sort];
 

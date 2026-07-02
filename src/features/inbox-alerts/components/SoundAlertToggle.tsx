@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -7,7 +7,7 @@ import { Icon } from "@/components/Icon";
 import { useSoundAlertPreferencesStore } from "../store/soundAlertPreferencesStore";
 import { createTonePlayer, type ToneKind } from "../lib/tonePlayer";
 
-/** TopBar control: liga/desliga os beeps da Inbox e ajusta o volume. */
+/** TopBar control: toggles the Inbox beeps on/off and adjusts the volume. */
 export function SoundAlertToggle() {
   const [open, setOpen] = useState(false);
   const enabled = useSoundAlertPreferencesStore((s) => s.enabled);
@@ -17,6 +17,10 @@ export function SoundAlertToggle() {
 
   const tonePlayerRef = useRef<ReturnType<typeof createTonePlayer> | null>(null);
   if (!tonePlayerRef.current) tonePlayerRef.current = createTonePlayer();
+
+  // Close this toggle's own AudioContext on unmount so repeated
+  // sign-out/sign-in cycles don't leak contexts past the browser's per-tab cap.
+  useEffect(() => () => tonePlayerRef.current?.dispose(), []);
 
   const handleTest = (kind: ToneKind) => {
     tonePlayerRef.current?.unlock();
