@@ -24,6 +24,7 @@ import { ConversationListItem } from "../components/ConversationListItem";
 import { InboxFilters } from "../components/InboxFilters";
 import { InboxHeader } from "../components/InboxHeader";
 import { InboxEmptyState } from "../components/InboxEmptyState";
+import { MessageSearchBanner } from "../components/MessageSearchBanner";
 import { QuickActions } from "../components/QuickActions";
 import { SearchInput } from "../components/SearchInput";
 import { NewConversationDialog } from "../components/NewConversationDialog";
@@ -187,6 +188,15 @@ export function InboxPage() {
   const availableTags = useAvailableTags();
   const realtime = useRealtimeConversations();
 
+  // Opção D: dedicated "search inside messages" mode — a transient UI action,
+  // not a durable filter, so it lives as local state (never in the URL/
+  // localStorage-persisted filters).
+  const [messageSearchActive, setMessageSearchActive] = useState(false);
+  const exitMessageSearch = useCallback(() => setMessageSearchActive(false), []);
+  useEffect(() => {
+    if (filters.search.trim().length === 0) setMessageSearchActive(false);
+  }, [filters.search]);
+
   const listParams = useMemo(
     () => filtersToListParams(filters, { currentSellerId: sellerId }),
     [filters, sellerId],
@@ -201,7 +211,10 @@ export function InboxPage() {
     loadMore,
     refetch,
     markItemRead,
-  } = useConversationsList(listParams, { refreshKey: realtime.tick });
+  } = useConversationsList(listParams, {
+    refreshKey: realtime.tick,
+    mode: messageSearchActive ? "messages" : "list",
+  });
   const conversationsProvider = useConversationsProvider();
 
   const escalationsByConversation = useEscalationsByConversation();
@@ -209,7 +222,7 @@ export function InboxPage() {
     if (!filters.escalated) return rawItems;
     return rawItems.filter((c) => escalationsByConversation.has(c.id));
   }, [rawItems, escalationsByConversation, filters.escalated]);
-  const related = useRelatedEntities(items);
+  const related = useRelatedEntities(items, { skipLastMessages: messageSearchActive });
   const { isUnread, markViewed } = useUnreadTracking(userId);
   const { lastId, setLastId } = useLastSelectedConversation();
 
@@ -355,8 +368,17 @@ export function InboxPage() {
         />
         <InboxStatusSummaryCard />
         <div className="border-b border-border px-3 py-2">
-          <SearchInput inputRef={searchInputRef} value={filters.search} onChange={setSearch} />
+          <SearchInput
+            inputRef={searchInputRef}
+            value={filters.search}
+            onChange={setSearch}
+            onSearchMessages={() => setMessageSearchActive(true)}
+            messageSearchActive={messageSearchActive}
+          />
         </div>
+        {messageSearchActive && (
+          <MessageSearchBanner term={filters.search} onBack={exitMessageSearch} />
+        )}
         <InboxFilters
           state={filters}
           availableTags={availableTags}
@@ -404,6 +426,7 @@ export function InboxPage() {
               hasFilters={activeCount > 0}
               searchTerm={filters.search}
               onClearFilters={handleClearFilters}
+              messageSearchActive={messageSearchActive}
             />
           )}
 

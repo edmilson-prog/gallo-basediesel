@@ -24,10 +24,22 @@ export const INBOX_STRINGS = {
   realtimeConnecting: "Conectando ao tempo real…",
   realtimeToggleLabel: "Alternar atualização em tempo real",
 
-  // Search
-  searchPlaceholder: "Buscar nome, telefone ou mensagem…",
+  // Search (contact identity only — see messageSearch below for message content)
+  searchPlaceholder: "Buscar nome ou telefone…",
   searchLabel: "Buscar conversas",
   clearSearch: "Limpar busca",
+
+  // Message content search (dedicated action — Opção D)
+  messageSearch: {
+    cta: (term: string) => `Buscar "${term}" nas mensagens →`,
+    bannerTitle: (term: string) => `Resultados em mensagens de "${term}"`,
+    bannerBack: "← Voltar aos contatos",
+    provenanceLabel: (date: string) => `trecho de mensagem · ${date}`,
+    extraMatches: (n: number) => `+${n} outra${n === 1 ? "" : "s"}`,
+    outboundPrefix: "Você: ",
+    emptyTitle: "Nenhuma mensagem encontrada",
+    emptyDescription: (term: string) => `Nenhuma conversa tem "${term}" no texto das mensagens.`,
+  },
 
   // Filters
   filtersTitle: "Filtros",

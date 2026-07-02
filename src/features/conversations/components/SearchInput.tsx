@@ -10,6 +10,15 @@ export interface ISearchInputProps {
   /** Debounce in ms; defaults to 300. */
   debounceMs?: number;
   inputRef?: React.RefObject<HTMLInputElement | null>;
+  /**
+   * Renders a "Buscar '{termo}' nas mensagens →" CTA below the input whenever
+   * there's a non-empty typed term (Opção D) — an explicit, separate action
+   * for searching MESSAGE content, never mixed with the contact-only filter
+   * this input itself drives.
+   */
+  onSearchMessages?: (term: string) => void;
+  /** Hides the CTA while message-search results are already showing (the banner takes over). */
+  messageSearchActive?: boolean;
 }
 
 /**
@@ -23,6 +32,8 @@ export function SearchInput({
   onChange,
   debounceMs = 300,
   inputRef: forwardedRef,
+  onSearchMessages,
+  messageSearchActive = false,
 }: ISearchInputProps) {
   const [local, setLocal] = useState(value);
   const lastEmitted = useRef(value);
@@ -73,6 +84,27 @@ export function SearchInput({
         >
           <Icon icon="mdi:close" size={14} />
         </Button>
+      )}
+      {onSearchMessages && !messageSearchActive && local.trim().length > 0 && (
+        <button
+          type="button"
+          className="mt-1.5 flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+          onClick={() => {
+            const term = local.trim();
+            // Flush the term to the parent NOW instead of waiting for the
+            // debounce (line 51-58) — otherwise a click right after typing
+            // races the mode switch, and the search fetch goes out with the
+            // stale (often empty) `filters.search` for up to `debounceMs`.
+            // Both this and `onSearchMessages` run inside the same React
+            // event handler, so their state updates land in one render.
+            lastEmitted.current = term;
+            onChange(term);
+            onSearchMessages(term);
+          }}
+        >
+          <Icon icon="mdi:text-search" size={13} />
+          {INBOX_STRINGS.messageSearch.cta(local.trim())}
+        </button>
       )}
     </div>
   );

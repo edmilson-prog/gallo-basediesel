@@ -44,10 +44,11 @@ import { buildAssignmentOrFilter, sanitizeSellerIds } from "./assignmentFilter";
  * mirror the mock's own non-atomic flow.
  *
  * Filter caveats vs. the mock provider:
- *  - `search` (cross-entity full text over customer/lead name + phone + recent
- *    message bodies) is applied server-side via the `search_conversations` RPC
- *    (SECURITY INVOKER — RLS-scoped). When `search` is present, `list` routes
- *    through that RPC; ABC ordering degrades to `lastMessageAt` there.
+ *  - `search` (customer/lead name + phone ONLY) is applied server-side via the
+ *    `search_conversations` RPC (SECURITY DEFINER, `can_access_conversation`
+ *    gated). When `search` is present, `list` routes through that RPC; ABC
+ *    ordering degrades to `lastMessageAt` there. Message CONTENT search is a
+ *    separate action — see `searchMessages` / `search_conversation_messages`.
  *  - `tags` matches the conversation's OWN tags only; the mock additionally
  *    folds in customer/lead tags via joins, which is not expressible in a single
  *    PostgREST query.
@@ -128,24 +129,34 @@ function conversationPatchToRow(patch: Partial<IConversation>): Record<string, u
   return row;
 }
 
+/** Shared page/pageSize clamping for the RPC-backed search paths (and the plain table query). */
+function resolvePagination(params: IListConversationsParams): { page: number; pageSize: number } {
+  return {
+    page: Math.max(1, Math.floor(params.page ?? 1)),
+    pageSize: Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20))),
+  };
+}
+
 /**
- * Cross-entity text search via the `search_conversations` RPC. Honors the same
- * filters as the table query (status/channel/instance/assignment/SDR/tags/period)
- * plus ordering + pagination, and reads the window `total_count` off the rows.
+ * Shared RPC parameter shape for `search_conversations` and
+ * `search_conversation_messages` — both take the exact same filter set (only
+ * the function name and row mapper differ), so building it once keeps the two
+ * search paths from silently diverging when a filter is added later.
  */
-async function searchConversations(
-  params: IListConversationsParams,
-): Promise<IPaginatedResult<IConversation>> {
-  const page = Math.max(1, Math.floor(params.page ?? 1));
-  const pageSize = Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20)));
+function buildSearchRpcParams(params: IListConversationsParams, page: number, pageSize: number) {
   const status =
     params.status === undefined ? null : Array.isArray(params.status) ? params.status : [params.status];
   // Drop crafted non-UUID tokens before the `uuid[]` RPC arg (parity with the
   // table path's buildAssignmentOrFilter guard).
   const searchSellerIds = sanitizeSellerIds(params.assignmentAny?.sellerIds);
 
-  const { data, error } = await getSupabaseClient().rpc("search_conversations", {
-    p_search: params.search,
+  return {
+    // `p_search` has no SQL default (unlike the other params) — PostgREST can't
+    // resolve the function overload if this key is omitted from the JSON body,
+    // which happens whenever `params.search` is `undefined` (JSON.stringify drops
+    // undefined keys). Always send a string; each RPC's own length(trim(...))>0
+    // guard already treats an empty term as "no match" (0 rows).
+    p_search: params.search ?? "",
     p_store_id: params.storeId ?? null,
     p_status: status,
     p_channel: params.channel ?? null,
@@ -161,7 +172,23 @@ async function searchConversations(
     p_order_dir: params.orderDir === "asc" ? "asc" : "desc",
     p_limit: pageSize,
     p_offset: (page - 1) * pageSize,
-  });
+  };
+}
+
+/**
+ * Cross-entity text search via the `search_conversations` RPC. Honors the same
+ * filters as the table query (status/channel/instance/assignment/SDR/tags/period)
+ * plus ordering + pagination, and reads the window `total_count` off the rows.
+ */
+async function searchConversations(
+  params: IListConversationsParams,
+): Promise<IPaginatedResult<IConversation>> {
+  const { page, pageSize } = resolvePagination(params);
+
+  const { data, error } = await getSupabaseClient().rpc(
+    "search_conversations",
+    buildSearchRpcParams(params, page, pageSize),
+  );
 
   if (error) throw new Error(`[supabase] conversations.search failed: ${error.message}`);
 
@@ -174,7 +201,69 @@ async function searchConversations(
   };
 }
 
+/** Row shape returned by `search_conversation_messages` — base conversation columns
+ *  plus the representative matched message. */
+type ConversationMessageMatchRow = ConversationRow & {
+  matched_message_text: string;
+  matched_message_sent_at: string;
+  matched_message_direction: string;
+  matched_message_extra_count: number;
+  total_count: number;
+};
+
+/** `messages.direction` is a raw `text` column with no CHECK constraint — coerce
+ *  any unexpected value instead of trusting it, mirroring the `LEAD_TEMPERATURES`
+ *  guard above. Falls back to "in" (a stray value never mislabels a customer
+ *  message as ours). */
+function normalizeMessageDirection(value: string): "in" | "out" {
+  return value === "out" ? "out" : "in";
+}
+
+function rowToConversationWithMatch(row: ConversationMessageMatchRow): IConversation {
+  return {
+    ...rowToConversation(row),
+    matchedMessage: {
+      text: row.matched_message_text,
+      sentAt: row.matched_message_sent_at,
+      direction: normalizeMessageDirection(row.matched_message_direction),
+      extraMatchCount: row.matched_message_extra_count,
+    },
+  };
+}
+
+/**
+ * Dedicated search across MESSAGE TEXT via the `search_conversation_messages`
+ * RPC — same filters/pagination as `searchConversations`, but the match scope
+ * is message content only, and each row carries the representative matching
+ * message (see `rowToConversationWithMatch`).
+ */
+async function searchConversationMessages(
+  params: IListConversationsParams,
+): Promise<IPaginatedResult<IConversation>> {
+  const { page, pageSize } = resolvePagination(params);
+
+  const { data, error } = await getSupabaseClient().rpc(
+    "search_conversation_messages",
+    buildSearchRpcParams(params, page, pageSize),
+  );
+
+  if (error)
+    throw new Error(`[supabase] conversations.searchMessages failed: ${error.message}`);
+
+  const rows = (data ?? []) as unknown as ConversationMessageMatchRow[];
+  return {
+    data: rows.map(rowToConversationWithMatch),
+    total: Number(rows[0]?.total_count ?? 0),
+    page,
+    pageSize,
+  };
+}
+
 export const supabaseConversationsProvider: IConversationsProvider = {
+  async searchMessages(params: IListConversationsParams = {}): Promise<IPaginatedResult<IConversation>> {
+    return searchConversationMessages(params);
+  },
+
   async list(params: IListConversationsParams = {}): Promise<IPaginatedResult<IConversation>> {
     // Cross-entity text search needs joins → dedicated RPC. Everything else
     // stays on the plain table query below.

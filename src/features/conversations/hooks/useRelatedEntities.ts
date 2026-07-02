@@ -96,7 +96,23 @@ export function changedRecencyIds(
  * Trade-off: a contact renamed mid-session keeps its cached list label until the
  * page reloads; the detail/ficha refetches fresh, so this is cosmetic.
  */
-export function useRelatedEntities(conversations: IConversation[]): IRelatedEntities {
+export interface IUseRelatedEntitiesOptions {
+  /**
+   * Skip the volatile last-message batch fetch. Set while the Inbox is in
+   * "search inside messages" mode (Opção D): `ConversationListItem` renders
+   * `conversation.matchedMessage` instead of `lastMessage` there, so fetching
+   * and caching last messages would be pure waste — a network round trip on
+   * every search with nothing ever reading the result. Contacts still resolve
+   * (the avatar/name always render regardless of mode).
+   */
+  skipLastMessages?: boolean;
+}
+
+export function useRelatedEntities(
+  conversations: IConversation[],
+  options: IUseRelatedEntitiesOptions = {},
+): IRelatedEntities {
+  const skipLastMessages = options.skipLastMessages ?? false;
   const conversationsProvider = useConversationsProvider();
   const messagesProvider = useMessagesProvider();
 
@@ -160,7 +176,9 @@ export function useRelatedEntities(conversations: IConversation[]): IRelatedEnti
     // time a single one changes (`changedRecencyIds`). The merge is
     // recency-guarded: overlapping ticks can resolve out of order, so a slow older
     // lookup must not stomp a newer preview already in the cache.
-    const changedIds = changedRecencyIds(conversations, lastSeenRecencyRef.current);
+    const changedIds = skipLastMessages
+      ? []
+      : changedRecencyIds(conversations, lastSeenRecencyRef.current);
     if (changedIds.length > 0) {
       const changedIdSet = new Set(changedIds);
       const recencyByChangedId = new Map(
@@ -196,7 +214,7 @@ export function useRelatedEntities(conversations: IConversation[]): IRelatedEnti
       void Promise.allSettled(tasks).then(publish);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recencyKey]);
+  }, [recencyKey, skipLastMessages]);
 
   return related;
 }

@@ -6,12 +6,22 @@ export interface IInboxEmptyStateProps {
   hasFilters: boolean;
   searchTerm: string;
   onClearFilters?: () => void;
+  /** True while showing "search inside messages" results (Opção D) with zero matches. */
+  messageSearchActive?: boolean;
 }
 
-export function InboxEmptyState({ hasFilters, searchTerm, onClearFilters }: IInboxEmptyStateProps) {
-  let title = INBOX_STRINGS.emptyDefault.title;
+export function InboxEmptyState({
+  hasFilters,
+  searchTerm,
+  onClearFilters,
+  messageSearchActive = false,
+}: IInboxEmptyStateProps) {
+  let title: string = INBOX_STRINGS.emptyDefault.title;
   let description: string = INBOX_STRINGS.emptyDefault.description;
-  if (searchTerm.length > 0) {
+  if (messageSearchActive) {
+    title = INBOX_STRINGS.messageSearch.emptyTitle;
+    description = INBOX_STRINGS.messageSearch.emptyDescription(searchTerm);
+  } else if (searchTerm.length > 0) {
     const s = INBOX_STRINGS.emptySearch(searchTerm);
     title = s.title;
     description = s.description;
@@ -26,7 +36,7 @@ export function InboxEmptyState({ hasFilters, searchTerm, onClearFilters }: IInb
       </div>
       <p className="text-sm font-medium text-foreground">{title}</p>
       <p className="max-w-[18rem] text-xs text-muted-foreground">{description}</p>
-      {hasFilters && onClearFilters && (
+      {!messageSearchActive && hasFilters && onClearFilters && (
         <Button type="button" variant="outline" size="sm" onClick={onClearFilters} className="mt-2">
           {INBOX_STRINGS.clearAll}
         </Button>
