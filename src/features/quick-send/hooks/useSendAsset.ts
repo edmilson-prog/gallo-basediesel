@@ -143,6 +143,7 @@ export function useSendAsset(
             text,
             mediaType: assetKindToMediaType(sendable),
             mediaUrl,
+            fileName: sendable.title,
           });
         }
 
