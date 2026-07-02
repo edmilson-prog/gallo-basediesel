@@ -1182,13 +1182,13 @@ Expected: nenhuma mudança pendente (espelho já sincronizado na Task 12).
 
 ## Fase de Rollout (manual — CADA passo gated no OK do dono)
 
-Ordem obrigatória (edge gravando coluna inexistente = INSERT falha):
+Ordem obrigatória (edge gravando coluna inexistente = INSERT falha; front novo seleciona a coluna via `COLUMNS` = merge só APÓS a migration):
 
 1. **Aplicar a migration em prod** via MCP `apply_migration` (name: `messages_media_filename`, mesmo SQL do arquivo) — SÓ com OK explícito do dono.
 2. **Deploy dos 3 edges:**
    - `npx supabase functions deploy whatsapp-webhook --project-ref njizaasajkdqptlxddqn --no-verify-jwt`
    - `npx supabase functions deploy whatsapp-send --project-ref njizaasajkdqptlxddqn`
    - `npx supabase functions deploy scheduled-send-worker --project-ref njizaasajkdqptlxddqn`
-3. **Push + PR** (`gh pr create` com `--body-file`; nunca mergear sem OK).
+3. **Push + PR** (`gh pr create` com `--body-file`; nunca mergear sem OK). O merge (deploy automático do front na Vercel) só após a migration aplicada.
 4. **Smoke do dono:** enviar um PDF pelo composer (chip aparece → bolha com nome original); receber um documento (nome original na bolha); galeria "Mídias" e download com nome certo.
 5. **Bump MINOR + codinome** ao final, com OK do dono (checar versão real na main antes — corrida de versão).

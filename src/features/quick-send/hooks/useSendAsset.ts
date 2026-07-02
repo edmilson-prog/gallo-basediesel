@@ -139,11 +139,22 @@ export function useSendAsset(
             direction: "out",
           });
           const mediaUrl = await media.getSignedUrl(uploaded.id);
+          // Curated titles rarely carry an extension — append one by kind so the
+          // recipient label and the download filename stay double-click friendly.
+          const ext =
+            assetKindToMediaType(sendable) === "image"
+              ? "jpg"
+              : sendable.kind === "video"
+                ? "mp4"
+                : "pdf";
+          const fileName = /\.[a-z0-9]{2,5}$/i.test(sendable.title)
+            ? sendable.title
+            : `${sendable.title}.${ext}`;
           await send({
             text,
             mediaType: assetKindToMediaType(sendable),
             mediaUrl,
-            fileName: sendable.title,
+            fileName,
           });
         }
 

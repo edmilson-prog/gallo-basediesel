@@ -181,7 +181,11 @@
   no mapper local do realtime; RPCs intactas; nenhum query key/cache alterado).
 - **Ordem de deploy:** o edge novo gravando `media_filename` exige a migration
   aplicada antes do redeploy (senão INSERT falha em coluna inexistente).
-  Ordem: migration → deploy dos 3 edges → merge/deploy do front (front antigo
-  ignora a coluna; front novo tolera `null`).
+  Ordem: migration → deploy dos 3 edges → merge/deploy do front. **A migration
+  precisa estar aplicada ANTES do merge**: o front novo seleciona
+  `media_filename` diretamente (constante `COLUMNS` —
+  `listConversationMedia`/`listCustomerMedia`/`listForAnalytics`), então um
+  front deployado sem a coluna quebra a aba "Mídias" e analytics com 400 (o
+  front antigo ignora a coluna; `null` é tolerado normalmente).
 - Payloads sem filename (imagem/áudio/sticker, provedores que omitem) →
   coluna `null`, fallback preserva o comportamento atual.
