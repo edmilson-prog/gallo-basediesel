@@ -77,7 +77,6 @@ export const INBOX_STRINGS = {
   assignmentLabel: "Atribuição",
   assignmentOptions: {
     me: "Atribuídas a mim",
-    unassigned: "Sem atribuição",
     queue: "Em fila",
     all: "Todas",
     seller: "Por vendedor",

@@ -2,7 +2,6 @@ import type { ISeller } from "@/shared/types";
 
 export interface IAssignmentLabelStrings {
   me: string;
-  unassigned: string;
   queue: string;
   all: string;
   seller: string;
@@ -19,7 +18,6 @@ export function assignmentTriggerLabel(
   if (tokens.length === 1) {
     const token = tokens[0];
     if (token === "me") return strings.me;
-    if (token === "unassigned") return strings.unassigned;
     if (token === "queue") return strings.queue;
     return sellers.find((s) => s.id === token)?.fullName ?? strings.seller;
   }
