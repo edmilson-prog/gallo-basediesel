@@ -40,7 +40,7 @@ function ViewerBody({ item, onClose }: { item: IConversationMediaItem; onClose: 
     mediaType: item.kind,
     id: item.id,
     caption: item.caption,
-    existingName: item.kind === "document" ? fileNameFromUrl(item.mediaUrl) : undefined,
+    existingName: item.kind === "document" ? (item.fileName ?? fileNameFromUrl(item.mediaUrl)) : undefined,
   });
 
   function handleDownload() {

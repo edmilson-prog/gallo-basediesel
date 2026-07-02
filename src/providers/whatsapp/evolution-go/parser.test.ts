@@ -129,6 +129,32 @@ describe("parseEvolutionGoInbound", () => {
     expect(parsed.timestamp).toBe(new Date(1750845600 * 1000).toISOString());
   });
 
+  it("inbound document exposes the original fileName as mediaFilename", () => {
+    const parsed = parseEvolutionGoInbound(
+      {
+        event: "Message",
+        data: {
+          Info: {
+            Chat: "5555988887777@s.whatsapp.net",
+            Sender: "5555988887777@s.whatsapp.net",
+            IsFromMe: false,
+            ID: "G-doc",
+            Timestamp: 1750000000,
+          },
+          Message: {
+            documentMessage: { fileName: "NF-4321.pdf", caption: "nota", url: "u", mediaKey: "k" },
+          },
+        },
+      },
+      "acc-1",
+    );
+    expect(parsed).toMatchObject({
+      type: "message",
+      contentType: "document",
+      mediaFilename: "NF-4321.pdf",
+    });
+  });
+
   it("throws on group/@lid chats and on non-message events", () => {
     expect(() =>
       parseEvolutionGoInbound(messageEvent({ conversation: "x" }, { Chat: "123@g.us" }), "acc"),

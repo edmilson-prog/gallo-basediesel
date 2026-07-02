@@ -67,16 +67,16 @@ function VisualThumb({
               mediaType: "document",
               id: item.id,
               caption: item.caption,
-              existingName: fileNameFromUrl(item.mediaUrl),
+              existingName: item.fileName ?? fileNameFromUrl(item.mediaUrl),
             }),
           )
         }
         className={`${frame} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50`}
-        aria-label={`${CONVERSATION_STRINGS.downloadDocument}: ${item.caption || "documento"}`}
+        aria-label={`${CONVERSATION_STRINGS.downloadDocument}: ${item.fileName || item.caption || "documento"}`}
       >
         <Icon icon={KIND_ICON.document} size={30} />
         <span className="absolute inset-x-0 bottom-0 truncate bg-background/80 px-1 py-0.5 text-center text-[10px]">
-          {item.caption || "Documento"}
+          {item.fileName || item.caption || "Documento"}
         </span>
       </button>
     );

@@ -103,6 +103,8 @@ export interface ISendDb {
     text: string;
     mediaType: string | null;
     mediaUrl: string | null;
+    /** Original filename (documents) persisted as messages.media_filename. */
+    fileName?: string | null;
   }): Promise<{ id: string }>;
   markMessageSent(messageId: string, providerMessageId: string): Promise<void>;
   markMessageFailed(messageId: string, failureReason: string, failureCode?: string): Promise<void>;
@@ -305,6 +307,7 @@ export async function processSendRequest(args: {
     text: input.text ?? "",
     mediaType: input.kind === "media" ? (input.mediaType ?? null) : null,
     mediaUrl: input.kind === "media" ? (input.mediaPath ?? null) : null,
+    fileName: input.kind === "media" ? (input.fileName ?? null) : null,
   });
 
   const engine = args.buildProvider(effectiveAccount);

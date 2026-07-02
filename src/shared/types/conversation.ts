@@ -135,6 +135,8 @@ export interface IMessage {
   text: string;
   mediaType?: MessageMediaType;
   mediaUrl?: string;
+  /** Original filename of the media (documents) — falls back to the storage path tail when absent. */
+  mediaFilename?: string;
   status: MessageStatus;
   /**
    * When the customer actually sent the message — the original WhatsApp

@@ -148,6 +148,43 @@ describe("parseEvolutionInbound — structured shares (location/contact)", () =>
   });
 });
 
+describe("parseEvolutionInbound — document filename (mediaFilename)", () => {
+  it("inbound document exposes the original fileName as mediaFilename", () => {
+    const parsed = parseEvolutionInbound(
+      {
+        event: "messages.upsert",
+        sender: "5555911111111@s.whatsapp.net",
+        data: {
+          key: { id: "M-doc", remoteJid: "5555988887777@s.whatsapp.net", fromMe: false },
+          message: { documentMessage: { fileName: "Catalogo-UFI.pdf", caption: "segue" } },
+          messageTimestamp: 1750000000,
+        },
+      },
+      "acc-1",
+    );
+    expect(parsed).toMatchObject({
+      type: "message",
+      contentType: "document",
+      mediaFilename: "Catalogo-UFI.pdf",
+    });
+  });
+
+  it("outbound-echo document also carries mediaFilename", () => {
+    const parsed = parseEvolutionInbound(
+      {
+        event: "messages.upsert",
+        data: {
+          key: { id: "M-echo", remoteJid: "5555988887777@s.whatsapp.net", fromMe: true },
+          message: { documentMessage: { fileName: "Tabela-precos.xlsx" } },
+          messageTimestamp: 1750000000,
+        },
+      },
+      "acc-1",
+    );
+    expect(parsed).toMatchObject({ type: "outbound-echo", mediaFilename: "Tabela-precos.xlsx" });
+  });
+});
+
 describe("parseEvolutionInbound — regression", () => {
   it("still parses a customer text message as inbound", () => {
     const parsed = parseEvolutionInbound(upsertEvent({}), "");

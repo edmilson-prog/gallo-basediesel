@@ -148,6 +148,7 @@ export function useMessageSend(
         text: template ? `${TEMPLATE_PREFIX}${signedText}` : signedText,
         mediaType,
         mediaUrl,
+        mediaFilename: fileName,
         // Starts "queued" (🕐) and becomes "sent" (✓) on commit, then
         // delivered/read (✓✓) via Realtime — one bubble, honest lifecycle.
         status: "queued",
@@ -205,6 +206,7 @@ export function useMessageSend(
           text: optimistic.text,
           mediaType,
           mediaUrl,
+          mediaFilename: fileName,
         });
         handle.commit({ ...real, status: "sent" });
 

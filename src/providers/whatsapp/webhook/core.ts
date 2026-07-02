@@ -95,6 +95,8 @@ export interface IWebhookDb {
     provider: "meta" | "evolution" | "evolution-go";
     text: string;
     mediaType: string | null;
+    /** Original document filename (messages.media_filename). */
+    mediaFilename?: string | null;
     providerMessageId: string;
     eventKey: string;
     sentAt: string;
@@ -106,6 +108,7 @@ export interface IWebhookDb {
     provider: "meta" | "evolution" | "evolution-go";
     text: string;
     mediaType: string | null;
+    mediaFilename?: string | null;
     providerMessageId: string;
     eventKey: string;
     sentAt: string;
@@ -547,6 +550,7 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
       provider,
       text: parsed.text ?? parsed.mediaCaption ?? "",
       mediaType: toMediaType(parsed.contentType),
+      mediaFilename: parsed.mediaFilename ?? null,
       providerMessageId: parsed.providerMessageId,
       eventKey,
       sentAt: parsed.timestamp,
@@ -648,6 +652,7 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
     provider,
     text: parsed.text ?? parsed.mediaCaption ?? "",
     mediaType: toMediaType(parsed.contentType),
+    mediaFilename: parsed.mediaFilename ?? null,
     providerMessageId: parsed.providerMessageId,
     eventKey,
     sentAt: parsed.timestamp,

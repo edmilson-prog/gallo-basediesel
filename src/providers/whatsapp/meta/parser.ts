@@ -137,6 +137,7 @@ export function parseMetaInbound(
       contentType,
       mediaId: media?.id,
       mediaCaption: media?.caption,
+      mediaFilename: type === "document" ? message.document?.filename : undefined,
     };
   }
 

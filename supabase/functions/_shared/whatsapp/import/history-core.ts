@@ -112,6 +112,7 @@ export function normalizeWhatsmeowRecord(webMessageInfo: unknown): INormalizedRe
     direction,
     text,
     mediaType,
+    mediaFilename: content.mediaFilename,
     status,
     sentAt: new Date(tsNum * 1000).toISOString(),
   };

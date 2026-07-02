@@ -288,6 +288,39 @@ describe("parseMetaInbound (RF-090)", () => {
     });
   });
 
+  it("inbound document exposes the original filename as mediaFilename", () => {
+    const parsed = parseMetaInbound(
+      {
+        entry: [
+          {
+            changes: [
+              {
+                value: {
+                  metadata: { display_phone_number: "5555911111111" },
+                  messages: [
+                    {
+                      id: "wamid.doc",
+                      from: "5555988887777",
+                      timestamp: "1750000000",
+                      type: "document",
+                      document: { id: "med-1", caption: "segue", filename: "Orcamento-123.pdf" },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      },
+      "acc-1",
+    );
+    expect(parsed).toMatchObject({
+      type: "message",
+      contentType: "document",
+      mediaFilename: "Orcamento-123.pdf",
+    });
+  });
+
   it("normalizes button and list replies to text", () => {
     const button = parseMetaInbound(
       metaEnvelope({

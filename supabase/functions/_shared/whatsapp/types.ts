@@ -142,6 +142,8 @@ export interface IInboundMessage {
   /** Provider media id, downloadable via `downloadInboundMedia`. */
   mediaId?: string;
   mediaCaption?: string;
+  /** Original filename of an inbound document (Meta `document.filename`, Baileys `documentMessage.fileName`). */
+  mediaFilename?: string;
   /**
    * Contact's WhatsApp profile name (Evolution `pushName` / Meta
    * `contacts[].profile.name`), when present. Lets auto-created customers be
@@ -180,6 +182,7 @@ export interface IOutboundEcho {
   contentType: InboundContentType;
   text?: string;
   mediaCaption?: string;
+  mediaFilename?: string;
   timestamp: ISO8601;
   rawPayload: unknown;
 }

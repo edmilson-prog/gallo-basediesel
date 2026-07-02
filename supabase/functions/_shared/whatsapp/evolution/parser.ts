@@ -80,6 +80,8 @@ export interface IEvolutionContent {
   contentType: InboundContentType;
   text?: string;
   mediaCaption?: string;
+  /** documentMessage.fileName — the original document name. */
+  mediaFilename?: string;
 }
 
 /** Normalizes the raw message body into contentType/text/caption. */
@@ -93,7 +95,11 @@ export function extractEvolutionContent(message: IEvolutionRawMessage): IEvoluti
   if (message.videoMessage)
     return { contentType: "video", mediaCaption: message.videoMessage.caption };
   if (message.documentMessage)
-    return { contentType: "document", mediaCaption: message.documentMessage.caption };
+    return {
+      contentType: "document",
+      mediaCaption: message.documentMessage.caption,
+      mediaFilename: message.documentMessage.fileName,
+    };
   if (message.locationMessage) {
     return { contentType: "location", text: encodeBaileysLocation(message.locationMessage) };
   }
@@ -167,6 +173,7 @@ export function parseEvolutionInbound(
       contentType: content.contentType,
       text: content.text,
       mediaCaption: content.mediaCaption,
+      mediaFilename: content.mediaFilename,
       timestamp: timestampToIso(data.messageTimestamp),
       rawPayload,
     };
@@ -187,6 +194,7 @@ export function parseEvolutionInbound(
     // Evolution media downloads by MESSAGE key id (getBase64FromMediaMessage).
     mediaId: hasMedia ? data.key?.id : undefined,
     mediaCaption: content.mediaCaption,
+    mediaFilename: content.mediaFilename,
     // Contact's WhatsApp profile name — used to name auto-created customers.
     senderName: data.pushName,
     timestamp: timestampToIso(data.messageTimestamp),

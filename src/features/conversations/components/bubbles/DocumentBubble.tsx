@@ -18,7 +18,7 @@ export function DocumentBubble({ message, onRetry }: { message: IMessage; onRetr
   // Inbound documents/videos are private storage paths; sign on demand for the
   // download link. When unresolved (failed download), the link is hidden.
   const { data: url } = useResolvedMediaUrl(message.mediaUrl);
-  const fileName = fileNameFromUrl(message.mediaUrl) || "anexo.pdf";
+  const fileName = message.mediaFilename || fileNameFromUrl(message.mediaUrl) || "anexo.pdf";
   const size = formatFileSize(deterministicSize(message.id));
   const icon = mediaIcon(message.mediaType, fileName);
 

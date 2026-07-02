@@ -13,6 +13,8 @@ export interface IConversationMediaItem {
   mediaUrl: string;
   /** Message text used as caption, when present. */
   caption?: string;
+  /** Original filename (documents) — preferred over deriving from mediaUrl. */
+  fileName?: string;
   authorType: MessageAuthorType;
   direction: MessageDirection;
   sentAt: ISO8601;
@@ -56,6 +58,7 @@ export function messageToMediaItem(message: IMessage): IConversationMediaItem | 
     kind,
     mediaUrl: message.mediaUrl,
     caption: message.text ? message.text : undefined,
+    fileName: message.mediaFilename,
     authorType: message.authorType,
     direction: message.direction,
     sentAt: message.sentAt,

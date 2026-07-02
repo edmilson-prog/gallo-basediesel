@@ -110,6 +110,7 @@ export interface IImportDb {
       authorId: string | null;
       text: string;
       mediaType: string | null;
+      mediaFilename?: string | null;
       status: "sent" | "delivered" | "read" | "failed";
       providerMessageId: string;
       sentAt: string;
@@ -126,6 +127,8 @@ export interface INormalizedRecord {
   direction: "in" | "out";
   text: string;
   mediaType: string | null;
+  /** Original document filename, when the raw record carried one. */
+  mediaFilename?: string;
   status: "sent" | "delivered" | "read" | "failed";
   sentAt: string;
 }
@@ -193,6 +196,7 @@ function normalizeRecord(record: IEvolutionStoredMessage): INormalizedRecord | n
     direction,
     text,
     mediaType,
+    mediaFilename: content.mediaFilename,
     status,
     sentAt: new Date(tsNum * 1000).toISOString(),
   };
@@ -406,6 +410,7 @@ export async function landNormalizedChat(args: {
     authorId: row.direction === "in" ? customer.id : null,
     text: row.text,
     mediaType: row.mediaType,
+    mediaFilename: row.mediaFilename ?? null,
     status: row.status,
     providerMessageId: row.providerMessageId,
     sentAt: row.sentAt,

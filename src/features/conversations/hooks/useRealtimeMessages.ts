@@ -17,6 +17,7 @@ interface IMessageRealtimeRow {
   text: string;
   media_type: IMessage["mediaType"] | null;
   media_url: string | null;
+  media_filename: string | null;
   status: IMessage["status"];
   sent_at: string;
   delivered_at: string | null;
@@ -59,6 +60,7 @@ function rowToMessage(row: IMessageRealtimeRow): IMessage {
     text: row.text,
     mediaType: row.media_type ?? undefined,
     mediaUrl: row.media_url ?? undefined,
+    mediaFilename: row.media_filename ?? undefined,
     status: row.status,
     sentAt: row.sent_at,
     deliveredAt: row.delivered_at ?? undefined,

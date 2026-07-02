@@ -59,6 +59,17 @@ describe("messageToMediaItem", () => {
   it("leaves caption undefined when text is empty", () => {
     expect(messageToMediaItem(msg({ mediaType: "image", mediaUrl: "u" }))?.caption).toBeUndefined();
   });
+
+  it("propagates the original mediaFilename to the media item", () => {
+    const item = messageToMediaItem(
+      msg({
+        mediaType: "document",
+        mediaUrl: "conversations/c1/m1/media.pdf",
+        mediaFilename: "Catalogo-UFI.pdf",
+      }),
+    );
+    expect(item?.fileName).toBe("Catalogo-UFI.pdf");
+  });
 });
 
 const item = (over: Partial<IConversationMediaItem>): IConversationMediaItem => ({

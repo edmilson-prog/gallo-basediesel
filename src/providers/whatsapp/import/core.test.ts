@@ -397,4 +397,27 @@ describe("landNormalizedChat", () => {
     expect(state.customers).toHaveLength(0);
     expect(stats.conversationsCreated).toBe(0);
   });
+
+  it("carries the original mediaFilename through to the inserted row (document import)", async () => {
+    const state = emptyState();
+    const stats = emptyImportStats();
+    const doc: INormalizedRecord = {
+      providerMessageId: "D1",
+      direction: "in",
+      text: "",
+      mediaType: "document",
+      mediaFilename: "Historico.pdf",
+      status: "delivered",
+      sentAt: isoOf(1765400000),
+    };
+    await landNormalizedChat({
+      account: ACCOUNT,
+      db: makeDb(state),
+      phone: "+5555988887777",
+      normalized: [doc],
+      stats,
+    });
+    const inserted = state.messages.find((m) => m.providerMessageId === "D1");
+    expect(inserted).toMatchObject({ mediaType: "document", mediaFilename: "Historico.pdf" });
+  });
 });
