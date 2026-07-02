@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ID, IConversation } from "@/shared/types";
 import { useConversationsProvider, type IListConversationsParams } from "@/providers/data";
+import { captureObservabilityException } from "@/shared/lib/observability";
+import {
+  INITIAL_LOAD_RETRY_DELAY_MS,
+  nextHasMore,
+  resolveListFetchFailure,
+  shouldRetryListFetch,
+  type ListFetchMode,
+} from "../engine/listFetchPolicy";
 
 /** Conversations pulled per page from the provider. */
 export const PAGE_SIZE = 30;
@@ -42,8 +50,21 @@ export interface IUseConversationsListOptions {
  *
  * Re-fetches the first page whenever filters change or `refreshKey` bumps
  * (the latter is driven by `useRealtimeConversations` to keep the list in
- * sync with simulated inbound traffic). On filter change, both pagination
- * state and the items array reset.
+ * sync with inbound traffic). On filter change, both pagination state and the
+ * items array reset.
+ *
+ * Error/pagination policy lives in `../engine/listFetchPolicy` (2026-07-02
+ * statement-timeout incident): the error panel is reserved for a failed
+ * replace with an EMPTY list — background failures keep the stale rows and
+ * are reported to Sentry; the first load retries once. In list mode the
+ * fetch opts out of the exact count (`withTotal: false` — the expensive
+ * per-row-RLS count) and the header total comes from `provider.count`
+ * asynchronously; hasMore derives from page fullness. Message-search mode
+ * keeps the RPC-provided total.
+ *
+ * A generation token (bumped on filter/mode change) discards responses from
+ * superseded fetches, so a slow orphan can no longer overwrite the state of
+ * the current view.
  *
  * Loaded pages are concatenated; duplicates are de-deduped by id so a slow
  * real-time refresh that races with `loadMore` cannot show the same row
@@ -61,6 +82,7 @@ export function useConversationsList(
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [listHasMore, setListHasMore] = useState(false);
 
   const filtersKey = useMemo(() => JSON.stringify(filters), [filters]);
   const refreshKey = options.refreshKey ?? 0;
@@ -68,37 +90,104 @@ export function useConversationsList(
   const pageRef = useRef(page);
   pageRef.current = page;
 
+  // Mirrors `items` for reads inside async callbacks without re-creating them.
+  const itemsRef = useRef<IConversation[]>([]);
+  itemsRef.current = items;
+
+  // Bumped on every filter/mode change; fetches launched under an older
+  // generation discard their response instead of touching state.
+  const generationRef = useRef(0);
+
+  /**
+   * Refresh the header total via the cheap gated-once count RPC. Fire-and-
+   * forget: the total is cosmetic, so a failure must never surface — it is
+   * logged and the previous value stays.
+   */
+  const refreshTotal = useCallback(
+    (generation: number) => {
+      provider
+        .count(filters)
+        .then((value) => {
+          if (generation !== generationRef.current) return;
+          setTotal(value);
+        })
+        .catch((err) => {
+          captureObservabilityException(err, { source: "useConversationsList.count" });
+        });
+    },
+    // We intentionally key on the JSON snapshot to avoid noisy re-renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [provider, filtersKey],
+  );
+
   const fetchPage = useCallback(
-    async (pageToLoad: number, fetchMode: "replace" | "append") => {
+    async (pageToLoad: number, fetchMode: ListFetchMode) => {
+      const generation = generationRef.current;
       if (fetchMode === "replace") setIsLoading(true);
       else setIsLoadingMore(true);
       try {
-        const fetcher = mode === "messages" ? provider.searchMessages : provider.list;
-        const result = await fetcher({
-          ...filters,
-          page: pageToLoad,
-          pageSize: PAGE_SIZE,
-        });
-        setError(null);
-        setTotal(result.total);
-        if (fetchMode === "replace") {
-          setItems(result.data);
-        } else {
-          setItems((prev) => {
-            const seen = new Set(prev.map((c) => c.id));
-            return [...prev, ...result.data.filter((c) => !seen.has(c.id))];
-          });
+        for (let attempt = 1; ; attempt += 1) {
+          try {
+            const fetcher = mode === "messages" ? provider.searchMessages : provider.list;
+            const result = await fetcher({
+              ...filters,
+              page: pageToLoad,
+              pageSize: PAGE_SIZE,
+              // List mode skips the exact count — the per-row-RLS total was
+              // the 5.3s/8s statement-timeout component of the incident.
+              ...(mode === "list" ? { withTotal: false } : {}),
+            });
+            if (generation !== generationRef.current) return;
+            setError(null);
+            if (mode === "messages") {
+              setTotal(result.total);
+            } else {
+              setListHasMore(nextHasMore(result.data.length, PAGE_SIZE));
+              if (fetchMode === "replace" && pageToLoad === 1) refreshTotal(generation);
+            }
+            if (fetchMode === "replace") {
+              setItems(result.data);
+            } else {
+              setItems((prev) => {
+                const seen = new Set(prev.map((c) => c.id));
+                return [...prev, ...result.data.filter((c) => !seen.has(c.id))];
+              });
+            }
+            return;
+          } catch (err) {
+            if (generation !== generationRef.current) return;
+            const failure = err instanceof Error ? err : new Error(String(err));
+            const hasItems = itemsRef.current.length > 0;
+            captureObservabilityException(failure, {
+              source: "useConversationsList",
+              mode,
+              fetchMode,
+              page: pageToLoad,
+              attempt,
+            });
+            if (shouldRetryListFetch({ fetchMode, hasItems, attempt })) {
+              await new Promise((resolve) =>
+                window.setTimeout(resolve, INITIAL_LOAD_RETRY_DELAY_MS),
+              );
+              continue;
+            }
+            if (resolveListFetchFailure({ fetchMode, hasItems }) === "surface") {
+              setError(failure);
+            }
+            return;
+          }
         }
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error(String(err)));
       } finally {
-        if (fetchMode === "replace") setIsLoading(false);
-        else setIsLoadingMore(false);
+        // A newer generation owns the loading flags now — don't clobber them.
+        if (generation === generationRef.current) {
+          if (fetchMode === "replace") setIsLoading(false);
+          else setIsLoadingMore(false);
+        }
       }
     },
     // We intentionally key on the JSON snapshot to avoid noisy re-renders.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [provider, filtersKey, mode],
+    [provider, filtersKey, mode, refreshTotal],
   );
 
   // Reset to page 1 whenever filters change OR the fetch mode flips
@@ -110,8 +199,12 @@ export function useConversationsList(
   // them under the WRONG mode's chrome (e.g. plain rows under the "resultados
   // em mensagens" banner).
   useEffect(() => {
+    generationRef.current += 1;
     setPage(1);
     setItems([]);
+    itemsRef.current = [];
+    setError(null);
+    setListHasMore(false);
     void fetchPage(1, "replace");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersKey, mode]);
@@ -138,13 +231,15 @@ export function useConversationsList(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey]);
 
+  const hasMore = mode === "messages" ? items.length < total : listHasMore;
+
   const loadMore = useCallback(() => {
     if (isLoading || isLoadingMore) return;
-    if (items.length >= total) return;
+    if (!hasMore) return;
     const nextPage = page + 1;
     setPage(nextPage);
     void fetchPage(nextPage, "append");
-  }, [isLoading, isLoadingMore, items.length, total, page, fetchPage]);
+  }, [isLoading, isLoadingMore, hasMore, page, fetchPage]);
 
   const refetch = useCallback(() => {
     setPage(1);
@@ -162,7 +257,7 @@ export function useConversationsList(
     total,
     isLoading,
     isLoadingMore,
-    hasMore: items.length < total,
+    hasMore,
     error,
     loadMore,
     refetch,
