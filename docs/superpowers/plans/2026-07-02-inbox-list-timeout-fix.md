@@ -1140,11 +1140,11 @@ EOF
 
 ## Rollout order (owner gates — NOT executor steps)
 
-1. PR review + merge (owner decides).
-2. Apply migration `20260702180000` via MCP (owner OK required).
-3. Run `docs/dev/sql/verify-count-conversations.sql` via MCP — all `match = true`.
+1. Apply migration `20260702180000` via MCP (owner OK required — additive and inert: no caller exists until the frontend deploys).
+2. Run `docs/dev/sql/verify-count-conversations.sql` via MCP — all `match = true`.
+3. PR review + merge (owner decides). Merging deploys via Vercel — the RPC must already exist (step 1), otherwise every Inbox page-1 load logs a Sentry error and the header total sticks at 0 until the migration lands.
 4. `EXPLAIN ANALYZE` the old list query impersonating tiago (before/after comparison).
-5. Deploy (Vercel picks up main) → owner smoke as non-staff seller.
+5. Owner smoke as non-staff seller (Inbox with "minhas + sem atribuição + fila" during peak).
 6. Watch `get_logs(postgres)` for `canceling statement due to statement timeout` — expected to drop to ~zero for the list path.
 
 ## Explicit non-goals (follow-ups, own PRs)

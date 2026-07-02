@@ -6,6 +6,8 @@ import {
   INITIAL_LOAD_RETRY_DELAY_MS,
   nextHasMore,
   resolveListFetchFailure,
+  shouldAdoptResultTotal,
+  shouldRefreshTotalViaCount,
   shouldRetryListFetch,
   type ListFetchMode,
 } from "../engine/listFetchPolicy";
@@ -147,7 +149,17 @@ export function useConversationsList(
               setTotal(result.total);
             } else {
               setListHasMore(nextHasMore(result.data.length, PAGE_SIZE));
-              if (fetchMode === "replace" && pageToLoad === 1) refreshTotal(generation);
+              // Search-mode list fetches (name/phone → search_conversations RPC)
+              // already return the real total; adopt it instead of count(),
+              // which does not support `search` (regression caught in the
+              // final branch review: stale header + Sentry noise per search).
+              if (shouldAdoptResultTotal(result.total)) {
+                setTotal(result.total);
+              } else if (
+                shouldRefreshTotalViaCount({ resultTotal: result.total, fetchMode, pageToLoad })
+              ) {
+                refreshTotal(generation);
+              }
             }
             if (fetchMode === "replace") {
               setItems(result.data);

@@ -19,14 +19,16 @@ export interface ICountConversationsRpcParams {
  * Translate Inbox list params into `count_conversations` RPC args.
  *
  * The RPC mirrors ONLY the Inbox no-search list path. Params outside that
- * path (`search`, `customerId`, `leadId`, scalar `assignedSellerId`/
- * `unassigned`) would be silently ignored by the RPC and return a wrong
- * total — throw instead so a future caller fails loudly at dev time.
+ * path (`storeId`, `search`, `customerId`, `leadId`, scalar
+ * `assignedSellerId`/`unassigned`) would be silently ignored by the RPC and
+ * return a wrong total — throw instead so a future caller fails loudly at
+ * dev time.
  */
 export function buildCountRpcParams(
   params: IListConversationsParams,
 ): ICountConversationsRpcParams {
   if (
+    params.storeId !== undefined ||
     params.search !== undefined ||
     params.customerId !== undefined ||
     params.leadId !== undefined ||
@@ -35,7 +37,7 @@ export function buildCountRpcParams(
   ) {
     throw new Error(
       "[supabase] conversations.count supports the Inbox no-search list path only " +
-        "(got search/customerId/leadId/assignedSellerId/unassigned)",
+        "(got storeId/search/customerId/leadId/assignedSellerId/unassigned)",
     );
   }
 

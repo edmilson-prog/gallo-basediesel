@@ -54,7 +54,9 @@ export interface IListConversationsParams extends IPaginationParams {
    * RLS gate over the WHOLE candidate set on every page — the 2026-07-02
    * statement-timeout incident). Callers that need the real total use
    * `count()` instead. Defaults to `true` (all other callers keep today's
-   * behavior).
+   * behavior). The mock impl may still return the real total (its data is
+   * in-memory and cheap); only the supabase path returns the -1 sentinel —
+   * never rely on it.
    */
   withTotal?: boolean;
 }

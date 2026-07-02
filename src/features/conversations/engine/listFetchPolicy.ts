@@ -56,3 +56,27 @@ export function shouldRetryListFetch(input: {
 export function nextHasMore(rawPageLength: number, pageSize: number): boolean {
   return rawPageLength >= pageSize;
 }
+
+/**
+ * List-mode fetches that routed through a search RPC already carry the real
+ * total (>= 0); the plain no-search path returns the -1 sentinel
+ * (withTotal: false). Adopting a non-negative total directly avoids calling
+ * count() with `search` set — buildCountRpcParams throws on it by design
+ * (the count RPC mirrors the no-search path only).
+ */
+export function shouldAdoptResultTotal(resultTotal: number): boolean {
+  return resultTotal >= 0;
+}
+
+/**
+ * The async count RPC refresh runs only when the fetch could not supply a
+ * total (the -1 sentinel) and this is the page-1 replace that anchors the
+ * view — appends and re-hydrations never re-count.
+ */
+export function shouldRefreshTotalViaCount(input: {
+  resultTotal: number;
+  fetchMode: ListFetchMode;
+  pageToLoad: number;
+}): boolean {
+  return input.resultTotal < 0 && input.fetchMode === "replace" && input.pageToLoad === 1;
+}

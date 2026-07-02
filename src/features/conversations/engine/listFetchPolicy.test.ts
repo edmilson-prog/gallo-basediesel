@@ -3,6 +3,8 @@ import {
   INITIAL_LOAD_MAX_ATTEMPTS,
   nextHasMore,
   resolveListFetchFailure,
+  shouldAdoptResultTotal,
+  shouldRefreshTotalViaCount,
   shouldRetryListFetch,
 } from "./listFetchPolicy";
 
@@ -55,5 +57,39 @@ describe("nextHasMore", () => {
   it("a short page means the end was reached", () => {
     expect(nextHasMore(12, 30)).toBe(false);
     expect(nextHasMore(0, 30)).toBe(false);
+  });
+});
+
+describe("shouldAdoptResultTotal", () => {
+  it("adopts a real total from a search-routed list fetch", () => {
+    expect(shouldAdoptResultTotal(42)).toBe(true);
+    expect(shouldAdoptResultTotal(0)).toBe(true);
+  });
+
+  it("rejects the -1 sentinel of the no-search withTotal:false path", () => {
+    expect(shouldAdoptResultTotal(-1)).toBe(false);
+  });
+});
+
+describe("shouldRefreshTotalViaCount", () => {
+  it("refreshes via count RPC only on a page-1 replace without a supplied total", () => {
+    expect(
+      shouldRefreshTotalViaCount({ resultTotal: -1, fetchMode: "replace", pageToLoad: 1 }),
+    ).toBe(true);
+  });
+
+  it("never counts when the fetch already supplied the total (search path)", () => {
+    expect(
+      shouldRefreshTotalViaCount({ resultTotal: 42, fetchMode: "replace", pageToLoad: 1 }),
+    ).toBe(false);
+  });
+
+  it("never counts on appends or re-hydrations", () => {
+    expect(
+      shouldRefreshTotalViaCount({ resultTotal: -1, fetchMode: "append", pageToLoad: 2 }),
+    ).toBe(false);
+    expect(
+      shouldRefreshTotalViaCount({ resultTotal: -1, fetchMode: "replace", pageToLoad: 2 }),
+    ).toBe(false);
   });
 });

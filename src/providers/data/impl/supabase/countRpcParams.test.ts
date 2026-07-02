@@ -80,5 +80,8 @@ describe("buildCountRpcParams", () => {
     expect(() => buildCountRpcParams({ leadId: "l1" })).toThrow(/no-search/);
     expect(() => buildCountRpcParams({ assignedSellerId: "s1" })).toThrow(/no-search/);
     expect(() => buildCountRpcParams({ unassigned: true })).toThrow(/no-search/);
+    expect(() => buildCountRpcParams({ storeId: "00000000-0000-0000-0000-000000000001" })).toThrow(
+      /no-search/,
+    );
   });
 });
