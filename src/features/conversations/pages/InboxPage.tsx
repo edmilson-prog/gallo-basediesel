@@ -463,7 +463,7 @@ export function InboxPage() {
               />
             ))}
 
-          {hasMore && (
+          {!error && hasMore && (
             <div
               ref={sentinelRef}
               className="flex items-center justify-center py-4 text-xs text-muted-foreground"
