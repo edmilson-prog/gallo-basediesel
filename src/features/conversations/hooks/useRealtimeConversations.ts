@@ -73,6 +73,27 @@ function pickIntervalMs(): number {
   return MIN_INTERVAL_MS + Math.floor(Math.random() * (MAX_INTERVAL_MS - MIN_INTERVAL_MS));
 }
 
+/**
+ * Builds a channel-status handler that fires `onCatchUp` exactly once per
+ * down→SUBSCRIBED transition, forwarding every status to `forward` unchanged.
+ *
+ * postgres_changes has no replay: any join transition (boot, auth re-join,
+ * socket reconnect) may land AFTER events the channel never delivered, so each
+ * (re)join refetches once via the same tick the live events feed. Pure factory
+ * — unit tested in `useRealtimeConversations.test.ts`.
+ */
+export function createCatchUpStatusHandler(
+  onCatchUp: () => void,
+  forward?: (connected: boolean) => void,
+): (connected: boolean) => void {
+  let wasUp = false;
+  return (connected: boolean) => {
+    if (connected && !wasUp) onCatchUp();
+    wasUp = connected;
+    forward?.(connected);
+  };
+}
+
 export interface IRealtimeState {
   enabled: boolean;
   setEnabled: (next: boolean) => void;
@@ -162,8 +183,16 @@ export function useRealtimeConversations(): IRealtimeState {
       return;
     }
     const bump = () => setTick((t) => t + 1);
-    const offMessages = subscribeToTable("messages", bump, setConnected);
-    const offConversations = subscribeToTable("conversations", bump);
+    const offMessages = subscribeToTable(
+      "messages",
+      bump,
+      createCatchUpStatusHandler(bump, setConnected),
+    );
+    const offConversations = subscribeToTable(
+      "conversations",
+      bump,
+      createCatchUpStatusHandler(bump),
+    );
     return () => {
       offMessages();
       offConversations();
