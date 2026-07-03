@@ -15,6 +15,7 @@ import { ConversationsTab } from "./tabs/ConversationsTab";
 import { NotesTab } from "./tabs/NotesTab";
 import { RecommendationsTab } from "./tabs/RecommendationsTab";
 import { CustomerMediaTab } from "@/features/conversations/components/media/CustomerMediaTab";
+import { AttendanceHistoryPanel } from "@/features/attendance-history";
 
 export interface IProfileTabsProps {
   customer: ICustomer;
@@ -49,6 +50,7 @@ export interface IProfileTabsProps {
 
 export type TabKey =
   | "atendimento"
+  | "historico"
   | "overview"
   | "orders"
   | "quotes"
@@ -60,6 +62,7 @@ export type TabKey =
 
 const TAB_ORDER: TabKey[] = [
   "atendimento",
+  "historico",
   "overview",
   "orders",
   "quotes",
@@ -73,6 +76,7 @@ const TAB_ORDER: TabKey[] = [
 /** Iconify glyph per tab — used by the icon-only lateral fiche. */
 const TAB_ICONS: Record<TabKey, string> = {
   atendimento: "mdi:face-agent",
+  historico: "mdi:history",
   overview: "mdi:account-details-outline",
   orders: "mdi:package-variant-closed",
   quotes: "mdi:file-document-outline",
@@ -235,6 +239,9 @@ export function ProfileTabs({
         </TabsContent>
         <TabsContent value="midias" className="m-0 p-0 focus-visible:outline-none">
           {activeString === "midias" && <CustomerMediaTab customerId={customer.id} />}
+        </TabsContent>
+        <TabsContent value="historico" className="m-0 p-0 focus-visible:outline-none">
+          {activeString === "historico" && <AttendanceHistoryPanel customerId={customer.id} />}
         </TabsContent>
         <TabsContent value="notes" className="m-0 p-3 focus-visible:outline-none">
           {activeString === "notes" && <NotesTab customer={customer} />}
