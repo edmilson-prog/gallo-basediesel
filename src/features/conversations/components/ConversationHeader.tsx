@@ -16,7 +16,11 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useCustomersProvider } from "@/providers/data";
 import { useAuth } from "@/features/auth/useAuth";
-import { CHANNEL_META, displayFromContact, getConversationDisplay } from "../utils/conversationDisplay";
+import {
+  CHANNEL_META,
+  displayFromContact,
+  getConversationDisplay,
+} from "../utils/conversationDisplay";
 import { ContactAvatar } from "./ContactAvatar";
 import { AssigneeChip } from "./AssigneeChip";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
@@ -26,6 +30,7 @@ import { EscalationBadge } from "@/features/sdr-escalation/components/Escalation
 import { TemperatureChip } from "@/features/quick-send/components/TemperatureChip";
 import { useConversationScheduled } from "@/features/quick-send/hooks/useConversationScheduled";
 import { QUICK_SEND_STRINGS } from "@/features/quick-send/i18n/pt-BR";
+import { PART_LOOKUP_STRINGS } from "@/features/part-lookup";
 
 export interface IConversationHeaderProps {
   conversation: IConversation;
@@ -47,6 +52,10 @@ export interface IConversationHeaderProps {
   mediaOpen?: boolean;
   /** Toggles the media gallery sheet. */
   onToggleMedia?: () => void;
+  /** Whether the part-lookup consultor panel is open. */
+  consultorOpen?: boolean;
+  /** Toggles the part-lookup consultor panel. */
+  onToggleConsultor?: () => void;
   /** Action menu rendered as a popover trigger (kebab). */
   menuSlot?: React.ReactNode;
   /** SDR escalation record bound to this conversation (PRD-023), when any. */
@@ -59,7 +68,6 @@ export interface IConversationHeaderProps {
   statusControlMode: StatusControlMode;
 }
 
-
 export function ConversationHeader({
   conversation,
   customer,
@@ -71,6 +79,8 @@ export function ConversationHeader({
   onToggleFiche,
   mediaOpen,
   onToggleMedia,
+  consultorOpen,
+  onToggleConsultor,
   menuSlot,
   escalation,
   onCustomerUpdated,
@@ -104,9 +114,7 @@ export function ConversationHeader({
   // Subtitle shows ONLY the contact's own phone — never our own GALLO line,
   // which would mislabel our number as the contact's (e.g. when RLS hides the
   // customer for a seller handling a transferred conversation).
-  const channelSubtitle = display.phone
-    ? `${channel.label} • ${display.phone}`
-    : channel.label;
+  const channelSubtitle = display.phone ? `${channel.label} • ${display.phone}` : channel.label;
 
   return (
     <header data-tour="conversation-header" className="shrink-0 border-b border-border bg-card">
@@ -219,6 +227,23 @@ export function ConversationHeader({
                 </Button>
               </TooltipTrigger>
               <TooltipContent>{CONVERSATION_STRINGS.toggleMedia}</TooltipContent>
+            </Tooltip>
+          )}
+          {onToggleConsultor && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={consultorOpen ? "secondary" : "ghost"}
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={onToggleConsultor}
+                  aria-pressed={consultorOpen}
+                >
+                  <Icon icon="mdi:magnify-scan" size={14} />
+                  <span className="hidden md:inline">{PART_LOOKUP_STRINGS.toggle}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{PART_LOOKUP_STRINGS.panelTitle}</TooltipContent>
             </Tooltip>
           )}
           {pendingScheduled > 0 && (
