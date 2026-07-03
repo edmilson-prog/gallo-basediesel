@@ -26,6 +26,7 @@ import type { ISettingsProvider } from "./settings";
 import type { IAuditsProvider } from "./audits";
 import type { IWhatsAppAccountsProvider } from "./whatsappAccounts";
 import type { IDistributionTracesProvider } from "./distributionTraces";
+import type { IActivityProvider } from "./activity";
 import type { IManagerDashboardProvider } from "./managerDashboard";
 import type { ISdrSessionsProvider } from "./sdrSessions";
 import type { ISdrEscalationsProvider } from "./sdrEscalations";
@@ -110,6 +111,7 @@ export type {
   IDistributionTracesProvider,
   IListDistributionTracesParams,
 } from "./distributionTraces";
+export type { IActivityProvider } from "./activity";
 export type {
   IManagerDashboardProvider,
   IManagerDashboardSnapshotParams,
@@ -193,6 +195,7 @@ export interface IDataProviders {
   audits: IAuditsProvider;
   whatsappAccounts: IWhatsAppAccountsProvider;
   distributionTraces: IDistributionTracesProvider;
+  activity: IActivityProvider;
   managerDashboard: IManagerDashboardProvider;
   sdrSessions: ISdrSessionsProvider;
   sdrEscalations: ISdrEscalationsProvider;
