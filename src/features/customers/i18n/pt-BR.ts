@@ -61,6 +61,8 @@ export const CUSTOMER_STRINGS = {
     origin: "Respondendo por",
     empty: "Nenhuma pendência de atendimento no momento.",
     pendingHint: "pendência de revisão",
+    tags: "Tags da conversa",
+    tagsEmpty: "Nenhuma tag aplicada",
   },
   overview: {
     metrics: {
