@@ -14,7 +14,7 @@ export function useConversationTagsHeaderMode(): ConversationTagsHeaderMode {
   const { currentStoreId } = useCurrentStore();
   const { data } = useQuery({
     queryKey: ["platform-settings", currentStoreId],
-    queryFn: () => settingsProvider.get(currentStoreId!),
+    queryFn: () => settingsProvider.get(currentStoreId!).catch(() => null),
     enabled: !!currentStoreId,
     staleTime: STALE_MS,
   });
