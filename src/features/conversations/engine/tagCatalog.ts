@@ -26,10 +26,24 @@ export const TAG_PALETTE: ITagPaletteEntry[] = [
   { id: "slate", label: "Cinza-azulado", hex: "#94a3b8" },
 ];
 
-/** Unknown color ids resolve to the last (neutral slate) entry. */
-export function tagColorHex(colorId: string): string {
-  const found = TAG_PALETTE.find((p) => p.id === colorId);
-  return (found ?? TAG_PALETTE[TAG_PALETTE.length - 1]!).hex;
+/** 6-digit hex — exactly what `<input type="color">` emits for a custom color. */
+const HEX_COLOR_RE = /^#[0-9a-f]{6}$/i;
+
+/** True when `color` is a custom hex rather than a curated palette id. */
+export function isCustomTagColor(color: string): boolean {
+  return HEX_COLOR_RE.test(color) && !TAG_PALETTE.some((p) => p.id === color);
+}
+
+/**
+ * Resolves a stored tag color to a hex string. Accepts a curated palette id
+ * (e.g. "teal"), a raw 6-digit hex (custom colors chosen by the Owner), and
+ * falls back to the neutral slate entry for anything unrecognized.
+ */
+export function tagColorHex(color: string): string {
+  const found = TAG_PALETTE.find((p) => p.id === color);
+  if (found) return found.hex;
+  if (HEX_COLOR_RE.test(color)) return color;
+  return TAG_PALETTE[TAG_PALETTE.length - 1]!.hex;
 }
 
 export const TAG_LABEL_MAX = 24;

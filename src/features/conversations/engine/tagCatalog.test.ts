@@ -35,8 +35,12 @@ describe("TAG_PALETTE", () => {
     }
   });
 
-  it("resolves a known color id and falls back for unknown ids", () => {
+  it("resolves a known color id, passes through valid 6-digit hex, and falls back otherwise", () => {
     expect(tagColorHex("teal")).toBe(TAG_PALETTE.find((p) => p.id === "teal")!.hex);
+    expect(tagColorHex("#ff5733")).toBe("#ff5733");
+    expect(tagColorHex("#FF5733")).toBe("#FF5733");
+    // 3-digit shorthand is not what <input type="color"> emits → treated as unknown.
+    expect(tagColorHex("#fff")).toBe(TAG_PALETTE[TAG_PALETTE.length - 1]!.hex);
     expect(tagColorHex("nope")).toBe(TAG_PALETTE[TAG_PALETTE.length - 1]!.hex);
   });
 });

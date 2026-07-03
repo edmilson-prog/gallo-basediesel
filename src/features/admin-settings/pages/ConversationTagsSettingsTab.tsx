@@ -31,6 +31,7 @@ import { recordAuditLog, useConversationTagsProvider } from "@/providers/data";
 import {
   TAG_PALETTE,
   TAG_LABEL_MAX,
+  isCustomTagColor,
   normalizeTagLabel,
   validateTagLabel,
 } from "@/features/conversations/engine/tagCatalog";
@@ -56,7 +57,11 @@ const HEADER_MODES: { value: ConversationTagsHeaderMode; label: string; descript
   },
 ];
 
+const RAINBOW_GRADIENT =
+  "conic-gradient(from 0deg, #f472b6, #fb923c, #facc15, #34d399, #38bdf8, #a78bfa, #f472b6)";
+
 function SwatchGrid({ value, onChange }: { value: string; onChange: (id: string) => void }) {
+  const isCustom = isCustomTagColor(value);
   return (
     <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Cor da tag">
       {TAG_PALETTE.map((entry) => (
@@ -75,6 +80,29 @@ function SwatchGrid({ value, onChange }: { value: string; onChange: (id: string)
           onClick={() => onChange(entry.id)}
         />
       ))}
+      {/* Custom color — native picker; stores the raw hex (isCustomTagColor + tagColorHex handle it). */}
+      <label
+        title="Cor personalizada"
+        aria-label="Cor personalizada"
+        className={cn(
+          "relative flex size-8 cursor-pointer items-center justify-center rounded-full border border-border transition-shadow motion-reduce:transition-none",
+          isCustom && "ring-2 ring-ring ring-offset-2 ring-offset-background",
+        )}
+        style={{ background: isCustom ? value : RAINBOW_GRADIENT }}
+      >
+        <Icon
+          icon="mdi:eyedropper-variant"
+          size={14}
+          className="text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.7)]"
+        />
+        <input
+          type="color"
+          value={isCustom ? value : "#3b82f6"}
+          onChange={(e) => onChange(e.target.value)}
+          className="absolute inset-0 cursor-pointer opacity-0"
+          aria-label="Escolher cor personalizada"
+        />
+      </label>
     </div>
   );
 }
