@@ -105,12 +105,27 @@ export function QuickActions({ conversation, onMutated }: IQuickActionsProps) {
   const handleArchive = async () => {
     if (!currentUser) return;
     const beforeStatus = conversation.status;
+    const beforeAssignee = conversation.assignedSellerId ?? null;
     try {
-      await conversationsProvider.update(conversation.id, { status: "arquivada" });
+      // Atomic close: terminal status + unassign + SDR reset in one server op
+      // (spec 2026-07-03-attendance-close) — no transitional "aguardando".
+      await conversationsProvider.close(conversation.id, "arquivada");
       onMutated?.();
       showUndoableToast(INBOX_STRINGS.archived, async () => {
+        if (beforeAssignee) {
+          await conversationsProvider.assignSeller(conversation.id, beforeAssignee);
+        }
         await conversationsProvider.update(conversation.id, { status: beforeStatus });
         onMutated?.();
+        void recordAuditLog({
+          actorId: currentUser.id,
+          storeId: conversation.storeId,
+          action: "conversation.archive_undo",
+          resource: "conversation",
+          resourceId: conversation.id,
+          before: { status: "arquivada", assignedSellerId: null },
+          after: { status: beforeStatus, assignedSellerId: beforeAssignee },
+        });
       });
       void recordAuditLog({
         actorId: currentUser.id,
@@ -118,8 +133,8 @@ export function QuickActions({ conversation, onMutated }: IQuickActionsProps) {
         action: "conversation.archive",
         resource: "conversation",
         resourceId: conversation.id,
-        before: { status: beforeStatus },
-        after: { status: "arquivada" },
+        before: { status: beforeStatus, assignedSellerId: beforeAssignee },
+        after: { status: "arquivada", assignedSellerId: null },
       });
     } catch {
       toast.error(INBOX_STRINGS.actionFailed);

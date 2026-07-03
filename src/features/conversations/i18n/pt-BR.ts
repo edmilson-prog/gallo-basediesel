@@ -220,6 +220,7 @@ export const CONVERSATION_STRINGS = {
     actionFailed: "Não foi possível alterar o status",
     autoAssignedToYou: "Conversa atribuída a você",
     autoReturnedToQueue: "Conversa devolvida à fila",
+    closedAndRemoved: "Conversa encerrada e removida da lista.",
     modeSwitchLabel: "Modo de exibição do status",
     modes: {
       pill: "Pílula",

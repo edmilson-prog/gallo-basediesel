@@ -124,53 +124,111 @@ export function ConversationMenu({
     }
   };
 
+  // Closing an owned conversation (→ resolvida/arquivada) is an atomic server
+  // op: terminal status + unassign + SDR reset in one call, no transitional
+  // "aguardando" (spec 2026-07-03-attendance-close). Reopening (terminal →
+  // em_andamento) must land a valid owned state, so it claims the conversation
+  // for the acting seller first.
+  const closeAndAudit = async (
+    status: "resolvida" | "arquivada",
+    action: string,
+  ): Promise<void> => {
+    if (!currentUser) return;
+    const before = conversation.status;
+    const beforeAssignee = conversation.assignedSellerId ?? null;
+    await conversationsProvider.close(conversation.id, status);
+    onMutated?.();
+    void recordAuditLog({
+      actorId: currentUser.id,
+      storeId: conversation.storeId,
+      action,
+      resource: "conversation",
+      resourceId: conversation.id,
+      before: { status: before, assignedSellerId: beforeAssignee },
+      after: { status, assignedSellerId: null },
+    });
+  };
+
+  const reopenAndAudit = async (action: string): Promise<void> => {
+    if (!currentUser?.sellerId) return;
+    const before = conversation.status;
+    await conversationsProvider.assignSeller(conversation.id, currentUser.sellerId);
+    await conversationsProvider.update(conversation.id, { status: "em_andamento" });
+    onMutated?.();
+    void recordAuditLog({
+      actorId: currentUser.id,
+      storeId: conversation.storeId,
+      action,
+      resource: "conversation",
+      resourceId: conversation.id,
+      before: { status: before, assignedSellerId: conversation.assignedSellerId ?? null },
+      after: { status: "em_andamento", assignedSellerId: currentUser.sellerId },
+    });
+  };
+
   const handleResolveToggle = async () => {
     const before = conversation.status;
-    const next = isResolved ? "em_andamento" : "resolvida";
+    const beforeAssignee = conversation.assignedSellerId ?? null;
     try {
-      await updateAndAudit(
-        { status: next },
-        { action: "conversation.resolve", before: { status: before }, after: { status: next } },
-      );
-      showUndoableToast(
-        isResolved ? CONVERSATION_STRINGS.reopened : CONVERSATION_STRINGS.resolved,
-        () =>
-          updateAndAudit(
-            { status: before },
-            {
-              action: "conversation.resolve_undo",
-              before: { status: next },
-              after: { status: before },
-            },
-          ),
-      );
+      if (isResolved) {
+        await reopenAndAudit("conversation.resolve");
+        showUndoableToast(CONVERSATION_STRINGS.reopened, () =>
+          closeAndAudit("resolvida", "conversation.resolve_undo"),
+        );
+      } else {
+        await closeAndAudit("resolvida", "conversation.resolve");
+        showUndoableToast(CONVERSATION_STRINGS.resolved, async () => {
+          if (beforeAssignee) {
+            await conversationsProvider.assignSeller(conversation.id, beforeAssignee);
+          }
+          await conversationsProvider.update(conversation.id, { status: before });
+          onMutated?.();
+          void recordAuditLog({
+            actorId: currentUser!.id,
+            storeId: conversation.storeId,
+            action: "conversation.resolve_undo",
+            resource: "conversation",
+            resourceId: conversation.id,
+            before: { status: "resolvida", assignedSellerId: null },
+            after: { status: before, assignedSellerId: beforeAssignee },
+          });
+        });
+      }
     } catch {
-      /* toast already raised */
+      toast.error(CONVERSATION_STRINGS.actionFailed);
     }
   };
 
   const handleArchiveToggle = async () => {
     const before = conversation.status;
-    const next = isArchived ? "em_andamento" : "arquivada";
+    const beforeAssignee = conversation.assignedSellerId ?? null;
     try {
-      await updateAndAudit(
-        { status: next },
-        { action: "conversation.archive", before: { status: before }, after: { status: next } },
-      );
-      showUndoableToast(
-        isArchived ? CONVERSATION_STRINGS.unarchived : CONVERSATION_STRINGS.archived,
-        () =>
-          updateAndAudit(
-            { status: before },
-            {
-              action: "conversation.archive_undo",
-              before: { status: next },
-              after: { status: before },
-            },
-          ),
-      );
+      if (isArchived) {
+        await reopenAndAudit("conversation.archive");
+        showUndoableToast(CONVERSATION_STRINGS.unarchived, () =>
+          closeAndAudit("arquivada", "conversation.archive_undo"),
+        );
+      } else {
+        await closeAndAudit("arquivada", "conversation.archive");
+        showUndoableToast(CONVERSATION_STRINGS.archived, async () => {
+          if (beforeAssignee) {
+            await conversationsProvider.assignSeller(conversation.id, beforeAssignee);
+          }
+          await conversationsProvider.update(conversation.id, { status: before });
+          onMutated?.();
+          void recordAuditLog({
+            actorId: currentUser!.id,
+            storeId: conversation.storeId,
+            action: "conversation.archive_undo",
+            resource: "conversation",
+            resourceId: conversation.id,
+            before: { status: "arquivada", assignedSellerId: null },
+            after: { status: before, assignedSellerId: beforeAssignee },
+          });
+        });
+      }
     } catch {
-      /* toast already raised */
+      toast.error(CONVERSATION_STRINGS.actionFailed);
     }
   };
 
