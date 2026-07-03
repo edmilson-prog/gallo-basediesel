@@ -17,6 +17,7 @@ import { ContactAvatar } from "./ContactAvatar";
 import { AssigneeChip } from "./AssigneeChip";
 import { useTimeTick } from "../hooks/useTimeTick";
 import { formatRelativeTime, isFresh } from "../utils/formatRelativeTime";
+import { formatWaitTime, waitSeverity, type WaitSeverity } from "../engine/waitTime";
 import { accountAccent } from "../utils/instanceAccent";
 import { deriveInstanceLock } from "../engine/instanceLock";
 import { useLiveInstanceStatus } from "../hooks/useLiveInstanceStatus";
@@ -58,6 +59,13 @@ export interface IConversationListItemProps {
 }
 
 const HIGHLIGHT_CLASS = "bg-amber-200/60 text-foreground dark:bg-amber-400/30";
+
+/** Traffic-light color for the queue wait counter, using severity tokens. */
+const WAIT_TONE: Record<WaitSeverity, string> = {
+  neutral: "text-muted-foreground",
+  warning: "text-severity-warning",
+  critical: "text-severity-critical",
+};
 
 /** Chars kept on each side of the match before the row's single-line `truncate` clips it. */
 const SNIPPET_RADIUS = 40;
@@ -134,6 +142,14 @@ function ConversationListItemInner({
   const preview = getMessagePreview(lastMessage);
   const relative = formatRelativeTime(conversation.lastMessageAt, now);
   const fresh = isFresh(conversation.lastMessageAt, now);
+
+  // Wait counter — only while the conversation sits in the manual queue.
+  // Falls back to lastMessageAt for rows created before the queued_at backfill.
+  const isQueued = isQueuedConversation(conversation);
+  const waitBase = conversation.queuedAt ?? conversation.lastMessageAt;
+  const waitMs = isQueued ? now.getTime() - Date.parse(waitBase) : 0;
+  const waitTone = WAIT_TONE[waitSeverity(waitMs)];
+
   const channel = CHANNEL_META[conversation.channel];
   const temperature = display.temperature ? TEMPERATURE_META[display.temperature] : null;
   const statusBar = STATUS_META[conversation.status].barClass;
@@ -228,7 +244,21 @@ function ConversationListItemInner({
           >
             {highlight(display.name, highlightTerm)}
           </span>
-          <span className="shrink-0 text-xs text-muted-foreground">{relative}</span>
+          <div className="flex shrink-0 flex-col items-end gap-0.5">
+            <span className="text-xs text-muted-foreground">{relative}</span>
+            {isQueued && waitMs >= 0 && (
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 text-[10px] font-semibold tabular-nums",
+                  waitTone,
+                )}
+                aria-label={`Aguardando há ${formatWaitTime(waitMs)}`}
+              >
+                <Icon icon="mdi:timer-outline" size={11} />
+                {formatWaitTime(waitMs)}
+              </span>
+            )}
+          </div>
         </div>
 
         {conversation.matchedMessage ? (

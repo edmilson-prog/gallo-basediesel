@@ -46,6 +46,13 @@ export interface IConversation {
   unreadCount: number;
   createdAt: ISO8601;
   /**
+   * Instant the conversation entered (or re-entered) the manual-distribution
+   * queue. Set/cleared by a DB trigger (migration 20260703140000) mirroring
+   * `isQueuedConversation`; absent/null when the conversation is not queued.
+   * Drives the Inbox wait-time counter.
+   */
+  queuedAt?: ISO8601;
+  /**
    * Set only when this conversation came from `IConversationsProvider.searchMessages`
    * (the dedicated "search inside messages" action) — the representative matching
    * message (most recent one that matched) plus how many others also matched.
