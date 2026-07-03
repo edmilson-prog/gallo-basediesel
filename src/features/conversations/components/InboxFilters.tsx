@@ -18,17 +18,18 @@ import { useAuth } from "@/features/auth/useAuth";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { useSellersProvider } from "@/providers/data";
 import { useEffect, useState } from "react";
-import type { ID, ISeller, IWhatsAppAccount } from "@/shared/types";
+import type { ID, ISeller, IWhatsAppAccount, IConversationTag } from "@/shared/types";
 import { accountAccent } from "../utils/instanceAccent";
 import { useInboxFiltersCollapsed } from "../hooks/useInboxFiltersCollapsed";
 import type { IInboxFiltersState, PeriodFilter, SortMode } from "../hooks/useInboxFilters";
 import { serializeAssignmentTokens } from "../hooks/useInboxFilters";
 import { assignmentTriggerLabel } from "../utils/assignmentLabel";
 import { INBOX_STRINGS } from "../i18n/pt-BR";
+import { tagColorHex } from "../engine/tagCatalog";
 
 export interface IInboxFiltersProps {
   state: IInboxFiltersState;
-  availableTags: string[];
+  availableTags: IConversationTag[];
   /** WhatsApp instances of the store — the "Instância" filter only renders with 2+. */
   instances: IWhatsAppAccount[];
   onStatus: (status: IInboxFiltersState["status"]) => void;
@@ -367,7 +368,7 @@ export function InboxFilters({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Tags */}
+          {/* Tags (conversation tags — catalog ids; OR semantics) */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <span>
@@ -386,17 +387,31 @@ export function InboxFilters({
                 </p>
               )}
               {availableTags.map((tag) => {
-                const checked = state.tags.includes(tag);
+                const checked = state.tags.includes(tag.id);
                 return (
                   <DropdownMenuCheckboxItem
-                    key={tag}
+                    key={tag.id}
                     checked={checked}
+                    onSelect={(e) => e.preventDefault()}
                     onCheckedChange={(next) => {
-                      if (next) onTags([...state.tags, tag]);
-                      else onTags(state.tags.filter((t) => t !== tag));
+                      if (next) onTags([...state.tags, tag.id]);
+                      else onTags(state.tags.filter((t) => t !== tag.id));
                     }}
+                    className="gap-2"
                   >
-                    {tag}
+                    <span
+                      aria-hidden
+                      className="size-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: tagColorHex(tag.color) }}
+                    />
+                    <span className="truncate">
+                      {tag.label}
+                      {tag.archived && (
+                        <span className="ml-1 text-muted-foreground">
+                          {INBOX_STRINGS.tagsArchivedSuffix}
+                        </span>
+                      )}
+                    </span>
                   </DropdownMenuCheckboxItem>
                 );
               })}

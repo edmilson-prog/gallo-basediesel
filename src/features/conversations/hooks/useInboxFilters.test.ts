@@ -78,3 +78,17 @@ describe("filtersToListParams — assignment", () => {
     expect(p.assignmentAny).toBeUndefined();
   });
 });
+
+describe("filtersToListParams — tags", () => {
+  it("omits tags when none are selected", () => {
+    const params = filtersToListParams(baseState({ tags: [] }), { currentSellerId: null });
+    expect(params.tags).toBeUndefined();
+  });
+
+  it("passes selected tag ids straight through (OR semantics downstream)", () => {
+    const params = filtersToListParams(baseState({ tags: ["ctag-a", "ctag-b"] }), {
+      currentSellerId: null,
+    });
+    expect(params.tags).toEqual(["ctag-a", "ctag-b"]);
+  });
+});

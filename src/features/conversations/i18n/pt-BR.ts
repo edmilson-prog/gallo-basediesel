@@ -92,6 +92,7 @@ export const INBOX_STRINGS = {
   tagsLabel: "Tags",
   tagsEmpty: "Nenhuma tag disponível",
   tagsCounter: (n: number) => (n === 0 ? "Tags" : `Tags (${n})`),
+  tagsArchivedSuffix: "(arquivada)",
 
   // Period filter
   periodLabel: "Período",
