@@ -120,6 +120,10 @@ export type {
   IWhatsAppGoServersProvider,
   ICreateGoServerInput,
   IGoServerPatch,
+  IConversationTagsProvider,
+  IListConversationTagsParams,
+  ICreateConversationTagInput,
+  IUpdateConversationTagInput,
 } from "./contracts";
 export { computeFailureRate } from "./contracts";
 
@@ -167,6 +171,7 @@ export { useRotationParticipantsProvider } from "./hooks/useRotationParticipants
 export { useAiProvider } from "./hooks/useAiProvider";
 export { useAtendimentoMetricsProvider } from "./hooks/useAtendimentoMetricsProvider";
 export { useWhatsAppGoServersProvider } from "./hooks/useWhatsAppGoServersProvider";
+export { useConversationTagsProvider } from "./hooks/useConversationTagsProvider";
 
 export {
   statusOnAssign,

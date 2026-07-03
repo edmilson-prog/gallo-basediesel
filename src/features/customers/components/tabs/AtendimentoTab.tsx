@@ -4,6 +4,11 @@ import { PendingContactBanner } from "@/features/contact-review";
 import { AssigneeChip } from "@/features/conversations/components/AssigneeChip";
 import { OriginChip } from "@/features/conversations/components/OriginChip";
 import { StatusControl } from "@/features/conversations/components/status/StatusControl";
+import { usePermission } from "@/features/rbac/hooks/usePermission";
+import { ConversationTagChip } from "@/features/conversations/components/tags/ConversationTagChip";
+import { ConversationTagPicker } from "@/features/conversations/components/tags/ConversationTagPicker";
+import { useConversationTags } from "@/features/conversations/hooks/useConversationTags";
+import { resolveConversationTags } from "@/features/conversations/engine/tagCatalog";
 import { CUSTOMER_STRINGS } from "../../i18n/pt-BR";
 import { TabEmptyState } from "../TabEmptyState";
 
@@ -39,6 +44,9 @@ export function AtendimentoTab({
 }: IAtendimentoTabProps) {
   const showBanner =
     customer.tags.includes("pending_review") || customer.tags.includes("reviewed_not_customer");
+  const canEditTags = usePermission("conversation", "edit", "own");
+  const { tags: catalog } = useConversationTags();
+  const conversationTags = conversation ? resolveConversationTags(conversation.tags, catalog) : [];
 
   if (!showBanner && !conversation) {
     return <TabEmptyState icon="mdi:check-circle-outline" message={COPY.empty} />;
@@ -66,6 +74,29 @@ export function AtendimentoTab({
             <ContextRow label={COPY.origin}>
               <OriginChip account={whatsappAccount} variant="label" />
             </ContextRow>
+          )}
+          {conversation && (
+            <div className="py-2 text-xs">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">{COPY.tags}</span>
+                {canEditTags && (
+                  <ConversationTagPicker
+                    conversation={conversation}
+                    onChanged={onConversationChanged}
+                  />
+                )}
+              </div>
+              <ul className="mt-1.5 flex flex-wrap gap-1.5" aria-label={COPY.tags}>
+                {conversationTags.length === 0 && (
+                  <li className="text-muted-foreground">{COPY.tagsEmpty}</li>
+                )}
+                {conversationTags.map((tag) => (
+                  <li key={tag.id}>
+                    <ConversationTagChip tag={tag} />
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </section>
       )}

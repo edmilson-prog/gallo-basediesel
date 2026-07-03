@@ -91,6 +91,7 @@ export const INBOX_STRINGS = {
   tagsLabel: "Tags",
   tagsEmpty: "Nenhuma tag disponível",
   tagsCounter: (n: number) => (n === 0 ? "Tags" : `Tags (${n})`),
+  tagsArchivedSuffix: "(arquivada)",
 
   // Period filter
   periodLabel: "Período",
@@ -404,6 +405,23 @@ export const CONVERSATION_STRINGS = {
     syncPhoto: "Atualizar foto do contato",
     renameContact: "Renomear contato",
   },
+
+  // Conversation tags (chip + picker)
+  tags: {
+    sectionLabel: "Tags da conversa",
+    add: "Adicionar",
+    addShort: "+ Tag",
+    searchPlaceholder: "Buscar tag…",
+    empty: "Nenhuma tag encontrada",
+    createInline: (query: string) => `Criar tag "${query}"`,
+    updateFailed: "Não foi possível atualizar as tags.",
+    createFailed: "Não foi possível criar a tag.",
+    archivedSuffix: "(arquivada)",
+    removeAria: (label: string) => `Remover ${label}`,
+    overflowAria: (n: number) => `Mais ${n} tag(s)`,
+    pickerAria: "Gerenciar tags da conversa",
+  },
+
   photoSyncing: "Atualizando foto do contato…",
   photoUpdated: "Foto do contato atualizada",
   photoUnavailable: "O WhatsApp não retornou foto para este contato (sem foto ou perfil privado)",
