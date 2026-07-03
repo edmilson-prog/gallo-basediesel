@@ -37,7 +37,7 @@ set search_path to ''
 as $$
 declare
   v_actor uuid := public.current_seller_id();
-  v_kind text := case when public.current_seller_id() is null then 'system' else 'seller' end;
+  v_kind text := case when v_actor is null then 'system' else 'seller' end;
   v_status_changed boolean;
   v_seller_changed boolean;
   v_type text;
