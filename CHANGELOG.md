@@ -4,6 +4,19 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.131.0] — Ledger · 2026-07-03
+
+**Consulte o preço de uma peça sem sair da conversa.** No Atendimento, um novo painel deixa o atendente buscar uma peça — por nome, código ou referência — e ver na hora o valor, a disponibilidade em estoque, em quais veículos ela serve e os códigos equivalentes, tudo ao lado da conversa aberta. Achou a peça? Dá para inserir os dados direto na mensagem, enviar o card do produto ou copiar o valor — sem ir e voltar do catálogo.
+
+### Added
+
+- **Consultor de peças no Atendimento** — um painel lateral que abre pelo botão "Consultor" no topo da conversa (ou pelo menu de anexos "+" → "Consultar peça"). A conversa continua visível ao lado enquanto você pesquisa, e o painel ocupa o mesmo espaço da ficha do cliente e das mídias (só um deles fica aberto por vez).
+- **Busca rápida de peças** — encontre por nome, código interno, referência do fabricante ou código OEM (aquele que o cliente costuma mandar). Filtre por montadora (Volvo, Scania, Mercedes-Benz, Ford, Iveco) e por "em estoque".
+- **Ficha da peça com preço em destaque** — ao abrir uma peça, o valor e a disponibilidade aparecem em destaque, junto com os preços por canal (padrão, e-commerce, oficina, varejo, atacado), em quais veículos e anos ela se aplica, e as referências e equivalências.
+- **Três modos de visualização** — cada atendente escolhe como prefere ver a ficha (resumida, completa ou em abas); a preferência fica guardada no próprio navegador.
+- **Agir sem sair da conversa** — inserir os dados da peça direto no campo da mensagem (sem apagar o que já estava escrito), enviar o card do produto ao cliente, ou copiar valor, código ou a ficha completa.
+- **Custo e margem protegidos** — o custo e a margem só ficam disponíveis para o proprietário e gestores, e permanecem ocultos até clicar em "mostrar", evitando exposição acidental numa tela compartilhada. O valor "Sob consulta" aparece quando uma peça está sem preço (nunca "R$ 0,00").
+
 ## [0.130.0] — Marker · 2026-07-03
 
 **Etiquetas para organizar as conversas do Atendimento.** Agora dá para marcar cada conversa com etiquetas coloridas — como "Garantia", "Aguardando peça" ou "Orçamento enviado" — e filtrar a lista por elas. O proprietário monta o catálogo de etiquetas numa tela nova (com cores à escolha, inclusive personalizadas), e os atendentes aplicam nas conversas. As etiquetas aparecem na ficha da conversa, no topo do atendimento e na linha da lista, e a gestão de etiquetas de conversa e de cliente ficou reunida numa tela só, com duas abas.
