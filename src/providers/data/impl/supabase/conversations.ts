@@ -449,6 +449,14 @@ export const supabaseConversationsProvider: IConversationsProvider = {
     if (error) throw new Error(`[supabase] conversations.archive(${id}) failed: ${error.message}`);
   },
 
+  async close(id: ID, status: "resolvida" | "arquivada"): Promise<IConversation> {
+    const { data, error } = await getSupabaseClient()
+      .rpc("close_conversation", { p_conversation_id: id, p_status: status })
+      .single();
+    if (error) throw new Error(`[supabase] conversations.close(${id}) failed: ${error.message}`);
+    return rowToConversation(data as ConversationRow);
+  },
+
   async createOutbound(input: ICreateOutboundConversationInput): Promise<IConversation> {
     const now = new Date().toISOString();
     // Direct insert (no distribution): the conversations_insert RLS WITH CHECK

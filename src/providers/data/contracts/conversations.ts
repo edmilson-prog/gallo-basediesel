@@ -130,6 +130,9 @@ export interface IConversationsProvider {
    */
   unassign(id: ID): Promise<IConversation>;
   archive(id: ID): Promise<void>;
+  /** Close a conversation atomically: set the terminal status AND unassign +
+   *  clear SDR, in one server op (no transitional aguardando). */
+  close(id: ID, status: "resolvida" | "arquivada"): Promise<IConversation>;
   /**
    * Create a new inbound conversation. Runs the distribution engine (PRD-013)
    * to assign a seller / SDR / queue and emits the corresponding audit trace

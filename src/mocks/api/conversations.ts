@@ -32,6 +32,7 @@ import {
   type IPaginationParams,
 } from "./utils";
 import { statusOnAssign, statusOnUnassign } from "@/providers/data/engine/assignmentStatusCoupling";
+import { emitConversationActivity, getCurrentMockSellerId } from "./_emitConversationActivity";
 
 export type ConversationsOrderBy = "lastMessageAt" | "abcClass";
 
@@ -286,6 +287,21 @@ export const conversationsApi = {
   async archive(id: ID): Promise<void> {
     return runApi("conversationsApi", "archive", () => {
       patchById("conversations", id, { status: "arquivada" });
+    });
+  },
+
+  async close(id: ID, status: "resolvida" | "arquivada"): Promise<IConversation> {
+    return runApi("conversationsApi", "close", () => {
+      const before = getMockState().conversations.find((c) => c.id === id);
+      if (!before) throw new MockNotFoundError("conversation", id);
+      const updated = patchById("conversations", id, {
+        status,
+        assignedSellerId: undefined,
+        isSdrActive: false,
+      });
+      if (!updated) throw new MockNotFoundError("conversation", id);
+      emitConversationActivity(before, updated, getCurrentMockSellerId());
+      return updated;
     });
   },
 
