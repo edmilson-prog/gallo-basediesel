@@ -42,8 +42,9 @@ describe("TAG_PALETTE", () => {
 });
 
 describe("normalizeTagLabel / validateTagLabel", () => {
-  it("trims and collapses internal whitespace", () => {
-    expect(normalizeTagLabel("  Aguardando   peça  ")).toBe("Aguardando peça");
+  it("trims, collapses internal whitespace, and uppercases (pt-BR)", () => {
+    expect(normalizeTagLabel("  Aguardando   peça  ")).toBe("AGUARDANDO PEÇA");
+    expect(normalizeTagLabel("garantia")).toBe("GARANTIA");
   });
 
   it("rejects empty labels", () => {
@@ -61,8 +62,8 @@ describe("normalizeTagLabel / validateTagLabel", () => {
     expect(validateTagLabel("garantia", ["Garantia"])).toEqual({ ok: false, error: "duplicate" });
   });
 
-  it("accepts a valid label and returns it normalized", () => {
-    expect(validateTagLabel(" Pós-venda ", ["Garantia"])).toEqual({ ok: true, label: "Pós-venda" });
+  it("accepts a valid label and returns it normalized (uppercased)", () => {
+    expect(validateTagLabel(" Pós-venda ", ["Garantia"])).toEqual({ ok: true, label: "PÓS-VENDA" });
   });
 });
 

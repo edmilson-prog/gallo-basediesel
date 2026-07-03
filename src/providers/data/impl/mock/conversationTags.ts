@@ -36,12 +36,12 @@ function seedTag(id: string, label: string, color: string): IConversationTag {
 
 function buildSeeds(): IConversationTag[] {
   return [
-    seedTag("ctag-garantia", "Garantia", "teal"),
-    seedTag("ctag-orcamento", "Orçamento enviado", "violet"),
-    seedTag("ctag-aguardando-peca", "Aguardando peça", "orange"),
-    seedTag("ctag-revenda", "Revenda", "blue"),
-    seedTag("ctag-pos-venda", "Pós-venda", "pink"),
-    seedTag("ctag-negociacao", "Em negociação", "indigo"),
+    seedTag("ctag-garantia", "GARANTIA", "teal"),
+    seedTag("ctag-orcamento", "ORÇAMENTO ENVIADO", "violet"),
+    seedTag("ctag-aguardando-peca", "AGUARDANDO PEÇA", "orange"),
+    seedTag("ctag-revenda", "REVENDA", "blue"),
+    seedTag("ctag-pos-venda", "PÓS-VENDA", "pink"),
+    seedTag("ctag-negociacao", "EM NEGOCIAÇÃO", "indigo"),
   ];
 }
 

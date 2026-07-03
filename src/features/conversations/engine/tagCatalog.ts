@@ -34,8 +34,14 @@ export function tagColorHex(colorId: string): string {
 
 export const TAG_LABEL_MAX = 24;
 
+/**
+ * Canonical form of a conversation-tag label: trimmed, internal whitespace
+ * collapsed, and UPPERCASED (pt-BR). Conversation tags are always stored and
+ * displayed uppercase — normalization here is the single source of truth for
+ * every create/rename path, so the DB value and every rendered chip agree.
+ */
 export function normalizeTagLabel(raw: string): string {
-  return raw.trim().replace(/\s+/g, " ");
+  return raw.trim().replace(/\s+/g, " ").toLocaleUpperCase("pt-BR");
 }
 
 export type TagLabelValidation =

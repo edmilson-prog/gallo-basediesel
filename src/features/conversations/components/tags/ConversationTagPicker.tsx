@@ -16,7 +16,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { tagColorHex, validateTagLabel } from "../../engine/tagCatalog";
+import { normalizeTagLabel, tagColorHex, validateTagLabel } from "../../engine/tagCatalog";
 import { useConversationTags } from "../../hooks/useConversationTags";
 import { useConversationTagsMutation } from "../../hooks/useConversationTagsMutation";
 import { CONVERSATION_STRINGS } from "../../i18n/pt-BR";
@@ -67,7 +67,11 @@ export function ConversationTagPicker({
   async function handleCreateInline() {
     if (!currentStoreId || !canCreateInline) return;
     try {
-      const created = await provider.create({ storeId: currentStoreId, label: trimmed, color: "slate" });
+      const created = await provider.create({
+        storeId: currentStoreId,
+        label: normalizeTagLabel(trimmed),
+        color: "slate",
+      });
       await queryClient.invalidateQueries({ queryKey: ["conversation-tags"] });
       await toggleTag(created.id);
       setSearch("");

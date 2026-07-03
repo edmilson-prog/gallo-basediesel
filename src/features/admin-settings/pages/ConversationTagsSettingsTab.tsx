@@ -31,6 +31,7 @@ import { recordAuditLog, useConversationTagsProvider } from "@/providers/data";
 import {
   TAG_PALETTE,
   TAG_LABEL_MAX,
+  normalizeTagLabel,
   validateTagLabel,
 } from "@/features/conversations/engine/tagCatalog";
 import { ConversationTagChip } from "@/features/conversations/components/tags/ConversationTagChip";
@@ -260,6 +261,7 @@ export function ConversationTagsSettingsTab() {
               onChange={(e) => setNewLabel(e.target.value)}
               placeholder="Ex.: Aguardando peça"
               maxLength={TAG_LABEL_MAX}
+              autoCapitalize="characters"
               disabled={busy || !canManage}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
@@ -267,7 +269,7 @@ export function ConversationTagsSettingsTab() {
                   void handleCreate();
                 }
               }}
-              className="min-w-[12rem] flex-1"
+              className="min-w-[12rem] flex-1 uppercase placeholder:normal-case"
             />
             <Button disabled={busy || !canManage || !newLabel.trim()} onClick={() => void handleCreate()}>
               <Icon icon="mdi:plus" size={16} />
@@ -282,7 +284,7 @@ export function ConversationTagsSettingsTab() {
                 tag={{
                   id: "preview",
                   storeId,
-                  label: newLabel.trim(),
+                  label: normalizeTagLabel(newLabel),
                   color: newColor,
                   archived: false,
                   createdAt: "",
@@ -415,6 +417,8 @@ export function ConversationTagsSettingsTab() {
             value={renameValue}
             onChange={(e) => setRenameValue(e.target.value)}
             maxLength={TAG_LABEL_MAX}
+            autoCapitalize="characters"
+            className="uppercase"
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
