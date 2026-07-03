@@ -39,9 +39,8 @@ export function useReturnToQueue(
           onClick: () => {
             // Nothing to restore if it was already in the pool.
             if (before == null) return;
-            void Promise.resolve(
-              conversationsProvider.update(conversation.id, { assignedSellerId: before }),
-            )
+            // assignSeller (transfer RPC) re-advances the re-queued status too.
+            void Promise.resolve(conversationsProvider.assignSeller(conversation.id, before))
               .then(() => {
                 opts?.onDone?.();
                 toast.success(INBOX_STRINGS.undone);

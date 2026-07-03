@@ -4,6 +4,29 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.129.0] — Unison · 2026-07-03
+
+**"Sem atribuição" e "Em fila" viraram uma coisa só, o status acompanha o atendimento sozinho, e mensagens enviadas pelo celular voltam a aparecer.** O filtro de atribuição do Atendimento tinha dois conceitos que se confundiam — "Sem atribuição" e "Em fila" — e agora são um só: **Em fila**, o pool de conversas abertas esperando alguém assumir. Assumir uma conversa passa a movê-la para "Em atendimento" automaticamente, e devolvê-la à fila volta o status para "Aguardando", sem precisar mexer no status na mão. E quando alguém da equipe responde um cliente direto pelo aparelho, essa mensagem agora aparece na conversa da plataforma — texto e mídia — em vez de sumir.
+
+### Changed
+
+- **"Sem atribuição" foi unificada em "Em fila"** — o filtro de atribuição da Inbox tinha dois itens que, na prática, apontavam para quase a mesma coisa. Agora existe só **Em fila**: toda conversa aberta e sem dono aguardando atendimento. Filtros e links salvos com o valor antigo continuam funcionando — são convertidos automaticamente para "Em fila".
+- **O status acompanha a atribuição automaticamente** — assumir uma conversa da fila move o status para "Em atendimento"; devolvê-la à fila volta para "Aguardando". Escolher "Em atendimento" ou "Aguardando cliente" numa conversa sem dono também passa a atribuí-la a você. A regra ficou simples: conversa aberta sem dono fica sempre "Em fila"; conversa com dono nunca fica "Aguardando". Conversas antigas sem dono que estavam "em atendimento" foram consolidadas na fila — por isso o número de "Em fila" cresce de uma vez nesta atualização.
+- **Conversas importadas entram na fila** — ao conectar uma instância e importar o histórico, as conversas sem dono passam a chegar em "Em fila" (antes caíam como "Em atendimento").
+
+### Fixed
+
+- **Mensagens enviadas pelo celular voltam a aparecer** — quando um atendente respondia um cliente direto pelo aplicativo do WhatsApp no aparelho (e não pela plataforma), essa mensagem não era registrada na conversa. Agora ela aparece normalmente na plataforma, com texto e mídia (foto, áudio, documento), mantendo o histórico completo do atendimento.
+
+## [0.128.1] — Paperclip · 2026-07-03
+
+**A lista de conversas do Atendimento não trava mais.** Alguns atendentes viam, de forma intermitente, o erro "Não foi possível carregar conversas" — e às vezes a lista sumia sozinha por um instante. A causa era a contagem de conversas, que ficava lenta demais no servidor para quem tinha acesso a um volume grande, estourando o tempo limite. Agora a lista carrega instantaneamente (nesse caso, de ~5,4 s para ~0,15 s) e o carregamento ficou muito mais resistente: uma falha pontual não esconde mais a lista inteira, o scroll infinito não pula conversas e há um "Tentar novamente" claro quando algo falha.
+
+### Fixed
+
+- **Erro intermitente "Não foi possível carregar conversas"** — a lista do Atendimento estourava o tempo limite do servidor ao contar as conversas de atendentes com acesso a um volume grande (a contagem sozinha levava ~5,4 s e cruzava o teto de 8 s sob carga). A contagem passou a ser calculada de uma vez só no banco, respeitando exatamente as mesmas regras de acesso — o mesmo caso caiu para ~0,15 s. O erro era do nosso lado, não da rede do usuário.
+- **A lista não some mais por uma falha pontual** — antes, qualquer falha de atualização em segundo plano (inclusive as disparadas por mensagens novas chegando) escondia a lista inteira atrás do erro. Agora uma falha de fundo mantém as conversas na tela, o scroll infinito não pula uma página quando uma carga falha, e o contador "Conversas N" nunca mostra o número do filtro anterior.
+
 ## [0.128.0] — Paperclip · 2026-07-02
 
 **Anexos com nome de verdade, envio com feedback e a Inbox finalmente 100% em tempo real.** Documentos enviados e recebidos agora exibem o nome original do arquivo em vez do código interno; anexar um arquivo mostra um aviso claro de "Enviando anexo…" enquanto o upload roda; e a atualização em tempo real do Atendimento foi consertada na raiz — mensagens novas reordenam a lista e atualizam a prévia instantaneamente, sem F5. De quebra, os alertas sonoros da Inbox chegaram ao TopBar.

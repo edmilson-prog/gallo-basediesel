@@ -17,6 +17,7 @@ import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
 import { distributeConversation, type IDistributionInput } from "@/features/distribution/engine";
 import { applyRotationOverride } from "@/features/rotation/engine/applyRotationOverride";
+import { statusOnUnassign } from "../../engine/assignmentStatusCoupling";
 import { supabaseSettingsProvider } from "./settings";
 import { supabaseSellersProvider } from "./sellers";
 import { supabaseCustomersProvider } from "./customers";
@@ -24,7 +25,9 @@ import { supabaseLeadsProvider } from "./leads";
 import { supabaseDistributionTracesProvider } from "./distributionTraces";
 import { supabaseRotationQueuesProvider } from "./rotationQueues";
 import { supabaseRotationParticipantsProvider } from "./rotationParticipants";
-import { buildAssignmentOrFilter, sanitizeSellerIds } from "./assignmentFilter";
+import { buildAssignmentOrFilter } from "./assignmentFilter";
+import { buildCountRpcParams } from "./countRpcParams";
+import { buildSharedConversationRpcFilters } from "./conversationRpcFilters";
 
 /**
  * Supabase implementation of {@link IConversationsProvider} (PRD-100+).
@@ -144,13 +147,10 @@ function resolvePagination(params: IListConversationsParams): { page: number; pa
  * search paths from silently diverging when a filter is added later.
  */
 function buildSearchRpcParams(params: IListConversationsParams, page: number, pageSize: number) {
-  const status =
-    params.status === undefined ? null : Array.isArray(params.status) ? params.status : [params.status];
-  // Drop crafted non-UUID tokens before the `uuid[]` RPC arg (parity with the
-  // table path's buildAssignmentOrFilter guard).
-  const searchSellerIds = sanitizeSellerIds(params.assignmentAny?.sellerIds);
-
   return {
+    // Shared Inbox filter fields (status/channel/instance/SDR/tags/period/
+    // seller-ids/queue) — the same mapping count_conversations uses.
+    ...buildSharedConversationRpcFilters(params),
     // `p_search` has no SQL default (unlike the other params) — PostgREST can't
     // resolve the function overload if this key is omitted from the JSON body,
     // which happens whenever `params.search` is `undefined` (JSON.stringify drops
@@ -158,17 +158,11 @@ function buildSearchRpcParams(params: IListConversationsParams, page: number, pa
     // guard already treats an empty term as "no match" (0 rows).
     p_search: params.search ?? "",
     p_store_id: params.storeId ?? null,
-    p_status: status,
-    p_channel: params.channel ?? null,
-    p_whatsapp_account_id: params.whatsappAccountId ?? null,
+    // Search keeps the scalar `unassigned` param for non-Inbox callers. The
+    // Inbox "Sem atribuição" filter was unified into "Em fila" (queue), so
+    // assignmentAny no longer carries an unassigned flag (2026-07-02).
     p_assigned_seller_id: params.assignedSellerId ?? null,
-    p_unassigned: params.unassigned ?? params.assignmentAny?.unassigned ?? false,
-    p_assigned_seller_ids: searchSellerIds.length > 0 ? searchSellerIds : null,
-    p_include_queue: params.assignmentAny?.queue ?? false,
-    p_is_sdr_active: typeof params.isSdrActive === "boolean" ? params.isSdrActive : null,
-    p_tags: params.tags && params.tags.length > 0 ? params.tags : null,
-    p_from_date: params.fromDate ?? null,
-    p_to_date: params.toDate ?? null,
+    p_unassigned: params.unassigned ?? false,
     p_order_dir: params.orderDir === "asc" ? "asc" : "desc",
     p_limit: pageSize,
     p_offset: (page - 1) * pageSize,
@@ -271,7 +265,15 @@ export const supabaseConversationsProvider: IConversationsProvider = {
       return searchConversations(params);
     }
 
-    let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
+    // `count: "exact"` re-runs the per-row RLS gate (can_access_conversation)
+    // over the WHOLE candidate set on every page fetch — 5.3s of a 5.4s
+    // request for a non-staff seller (2026-07-02 statement-timeout incident).
+    // The Inbox opts out via `withTotal: false` and reads the total from
+    // `count()` instead; every other caller keeps the exact count.
+    const wantTotal = params.withTotal !== false;
+    let query = wantTotal
+      ? getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" })
+      : getSupabaseClient().from(TABLE).select(COLUMNS);
 
     if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
     if (params.assignedSellerId !== undefined)
@@ -317,10 +319,19 @@ export const supabaseConversationsProvider: IConversationsProvider = {
 
     return {
       data: (data as unknown as ConversationRow[]).map(rowToConversation),
-      total: count ?? 0,
+      total: wantTotal ? (count ?? 0) : -1,
       page,
       pageSize,
     };
+  },
+
+  async count(params: IListConversationsParams = {}): Promise<number> {
+    const { data, error } = await getSupabaseClient().rpc(
+      "count_conversations",
+      buildCountRpcParams(params),
+    );
+    if (error) throw new Error(`[supabase] conversations.count failed: ${error.message}`);
+    return Number(data ?? 0);
   },
 
   async listContacts(conversationIds: ID[]): Promise<IConversationContact[]> {
@@ -401,14 +412,27 @@ export const supabaseConversationsProvider: IConversationsProvider = {
 
   async unassign(id: ID): Promise<IConversation> {
     // Direct table UPDATE to null the assignee — returns the conversation to the
-    // pool/queue. Unlike assignSeller (which must hand a row OUT of a seller's
-    // read scope, hence the SECURITY DEFINER RPC), nulling the column is
-    // authorized directly by the conversations_update policy whenever is_staff()
-    // (USING + WITH CHECK). A non-staff caller is rejected by RLS; the UI gates
-    // the action to staff, so this never runs for them.
-    const { data, error } = await getSupabaseClient()
+    // pool/queue. The conversations_update WITH CHECK accepts the resulting
+    // unassigned row (assigned_seller_id is null arm), so staff and the current
+    // assignee alike may hand a conversation back.
+    // Coupling (spec 2026-07-02): re-queue the status too, except when archived
+    // (manual-only axis) — read the current status first to decide.
+    const client = getSupabaseClient();
+    const { data: current, error: readError } = await client
       .from(TABLE)
-      .update({ assigned_seller_id: null, updated_at: new Date().toISOString() })
+      .select("status")
+      .eq("id", id)
+      .single();
+    if (readError)
+      throw new Error(`[supabase] conversations.unassign(${id}) failed: ${readError.message}`);
+    const nextStatus = statusOnUnassign((current as { status: IConversation["status"] }).status);
+    const { data, error } = await client
+      .from(TABLE)
+      .update({
+        assigned_seller_id: null,
+        ...(nextStatus ? { status: nextStatus } : {}),
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", id)
       .select(COLUMNS)
       .single();

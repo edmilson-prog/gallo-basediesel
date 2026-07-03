@@ -322,16 +322,9 @@ export function InboxFilters({
                   {INBOX_STRINGS.assignmentOptions.me}
                 </DropdownMenuCheckboxItem>
               )}
-              {/* Pool — visible to any inbox user. Non-staff sellers can view
-                  and claim unassigned conversations per RLS (rls_conversations_pool),
-                  so the pool filters must not be gated behind store scope. */}
-              <DropdownMenuCheckboxItem
-                checked={state.assignment.includes("unassigned")}
-                onSelect={(e) => e.preventDefault()}
-                onCheckedChange={() => toggleAssignment("unassigned")}
-              >
-                {INBOX_STRINGS.assignmentOptions.unassigned}
-              </DropdownMenuCheckboxItem>
+              {/* Queue — visible to any inbox user. Non-staff sellers can view
+                  and claim pool conversations per RLS, so this filter must not
+                  be gated behind store scope. */}
               <DropdownMenuCheckboxItem
                 checked={state.assignment.includes("queue")}
                 onSelect={(e) => e.preventDefault()}

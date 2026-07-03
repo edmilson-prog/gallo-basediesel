@@ -192,3 +192,23 @@ do projeto); o que importa é que RPCs que **retornam dados** estejam só em
 
 Decisão de negócio detalhada: memória `project_access_model_decision`.
 Relacionados: [whatsapp-multi-instance / "Quem acessa"](#), `rls_seller_handoff_pattern`.
+
+## Listagem da Inbox (2026-07-02 — fix do statement timeout)
+
+A query principal da lista era a última leitura escopada ainda em SELECT
+direto com `count: "exact"` sob a RLS por-linha — o count reavaliava
+`can_access_conversation(id)` sobre TODO o conjunto candidato a cada página
+(medido: 5,3s dos 5,4s da request de um não-staff; teto de 8s do papel
+`authenticated`). O caminho quente agora usa `withTotal: false` (sem count) e
+o total do header vem da RPC `count_conversations` (migration
+`20260702180000`), que expressa os 5 ramos do `can_access_conversation` como
+predicados de conjunto — contas acessíveis materializadas 1x (padrão
+gated-once aplicado à contagem). ⚠️ Se os ramos da função mudarem, a RPC de
+count PRECISA acompanhar (paridade verificável com
+`docs/dev/sql/verify-count-conversations.sql`).
+
+No frontend (`useConversationsList` + `engine/listFetchPolicy.ts`): o painel
+de erro ficou reservado para "replace falhou com lista vazia"; falhas de
+background mantêm a lista stale e vão para o Sentry; primeira carga tem 1
+retry; `hasMore` deriva de página cheia; um token de geração descarta
+respostas órfãs de filtros antigos.

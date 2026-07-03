@@ -172,3 +172,10 @@ export { useAiProvider } from "./hooks/useAiProvider";
 export { useAtendimentoMetricsProvider } from "./hooks/useAtendimentoMetricsProvider";
 export { useWhatsAppGoServersProvider } from "./hooks/useWhatsAppGoServersProvider";
 export { useConversationTagsProvider } from "./hooks/useConversationTagsProvider";
+
+export {
+  statusOnAssign,
+  statusOnUnassign,
+  coupleManualStatusChange,
+  type ManualStatusCoupling,
+} from "./engine/assignmentStatusCoupling";

@@ -31,6 +31,7 @@ import {
   type IPaginatedResult,
   type IPaginationParams,
 } from "./utils";
+import { statusOnAssign, statusOnUnassign } from "@/providers/data/engine/assignmentStatusCoupling";
 
 export type ConversationsOrderBy = "lastMessageAt" | "abcClass";
 
@@ -50,7 +51,6 @@ export interface IListConversationsParams extends IPaginationParams {
   unassigned?: boolean;
   assignmentAny?: {
     sellerIds?: ID[];
-    unassigned?: boolean;
     queue?: boolean;
   };
   orderBy?: ConversationsOrderBy;
@@ -115,16 +115,15 @@ function abcRank(customerId: ID | undefined): number {
  */
 export function matchesAssignmentAny(
   conversation: IConversation,
-  assignmentAny: { sellerIds?: ID[]; unassigned?: boolean; queue?: boolean },
+  assignmentAny: { sellerIds?: ID[]; queue?: boolean },
 ): boolean {
-  const { sellerIds, unassigned, queue } = assignmentAny;
+  const { sellerIds, queue } = assignmentAny;
   if (
     sellerIds &&
     conversation.assignedSellerId &&
     sellerIds.includes(conversation.assignedSellerId)
   )
     return true;
-  if (unassigned && !conversation.assignedSellerId) return true;
   if (
     queue &&
     !conversation.assignedSellerId &&
@@ -147,9 +146,7 @@ function applyNonSearchFilters(
   if (params.unassigned) filtered = filtered.filter((c) => !c.assignedSellerId);
   if (
     params.assignmentAny &&
-    (params.assignmentAny.sellerIds?.length ||
-      params.assignmentAny.unassigned ||
-      params.assignmentAny.queue)
+    (params.assignmentAny.sellerIds?.length || params.assignmentAny.queue)
   )
     filtered = filtered.filter((c) => matchesAssignmentAny(c, params.assignmentAny!));
   if (params.status) {
@@ -254,9 +251,14 @@ export const conversationsApi = {
 
   async assignSeller(id: ID, sellerId: ID): Promise<IConversation> {
     return runApi("conversationsApi", "assignSeller", () => {
+      const current = getMockState().conversations.find((c) => c.id === id);
+      if (!current) throw new MockNotFoundError("conversation", id);
+      // Coupling: assigning pulls a queued conversation into em_andamento.
+      const nextStatus = statusOnAssign(current.status);
       const updated = patchById("conversations", id, {
         assignedSellerId: sellerId,
         isSdrActive: false,
+        ...(nextStatus ? { status: nextStatus } : {}),
       });
       if (!updated) throw new MockNotFoundError("conversation", id);
       return updated;
@@ -265,10 +267,16 @@ export const conversationsApi = {
 
   async unassign(id: ID): Promise<IConversation> {
     return runApi("conversationsApi", "unassign", () => {
+      const current = getMockState().conversations.find((c) => c.id === id);
+      if (!current) throw new MockNotFoundError("conversation", id);
       // Spread-merge in patchById sets the field to `undefined`, which the store
       // reads back as "no assignee" (pool) — the mock equivalent of NULL.
+      // Coupling: returning to the pool re-queues the conversation (aguardando),
+      // except on the manual-only archive axis.
+      const nextStatus = statusOnUnassign(current.status);
       const updated = patchById("conversations", id, {
         assignedSellerId: undefined,
+        ...(nextStatus ? { status: nextStatus } : {}),
       });
       if (!updated) throw new MockNotFoundError("conversation", id);
       return updated;

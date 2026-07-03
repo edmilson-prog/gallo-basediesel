@@ -161,6 +161,7 @@ export function parseEvolutionInbound(
   }
 
   const content = extractEvolutionContent(data.message ?? {});
+  const hasMedia = ["image", "audio", "video", "document"].includes(content.contentType);
 
   if (data.key?.fromMe) {
     return {
@@ -169,6 +170,9 @@ export function parseEvolutionInbound(
       toPhone: jidToE164(remoteJid),
       contentType: content.contentType,
       text: content.text,
+      // Evolution downloads media by the MESSAGE key id (getBase64FromMediaMessage);
+      // the echo carries it so phone-sent media mirrors into storage (spec 2026-07-02).
+      mediaId: hasMedia ? data.key?.id : undefined,
       mediaCaption: content.mediaCaption,
       mediaFilename: content.mediaFilename,
       timestamp: timestampToIso(data.messageTimestamp),
@@ -176,7 +180,6 @@ export function parseEvolutionInbound(
     };
   }
 
-  const hasMedia = ["image", "audio", "video", "document"].includes(content.contentType);
   return {
     type: "message",
     providerMessageId: data.key?.id ?? "",

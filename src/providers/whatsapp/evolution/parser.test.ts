@@ -43,12 +43,15 @@ describe("parseEvolutionInbound — outbound echo (fromMe)", () => {
     const parsed = parseEvolutionInbound(
       upsertEvent({ fromMe: true, message: { imageMessage: { caption: "orçamento" } } }),
       "",
-    );
+    ) as { type: string; contentType: string; mediaCaption?: string; mediaId?: string };
     expect(parsed).toMatchObject({
       type: "outbound-echo",
       contentType: "image",
       mediaCaption: "orçamento",
     });
+    // Evolution downloads media by the MESSAGE key id — the echo must carry it
+    // so phone-sent media can mirror into storage (spec 2026-07-02).
+    expect(parsed.mediaId).toBe("KEY1");
   });
 
   it("parses fromMe echo carried as extendedTextMessage", () => {

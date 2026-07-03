@@ -77,7 +77,6 @@ export const INBOX_STRINGS = {
   assignmentLabel: "Atribuição",
   assignmentOptions: {
     me: "Atribuídas a mim",
-    unassigned: "Sem atribuição",
     queue: "Em fila",
     all: "Todas",
     seller: "Por vendedor",
@@ -181,6 +180,7 @@ export const INBOX_STRINGS = {
   // Pagination
   loadingMore: "Carregando mais…",
   endOfList: "Você chegou ao fim da lista.",
+  loadMoreError: "Não foi possível carregar mais conversas.",
 } as const;
 
 /**
@@ -218,6 +218,8 @@ export const CONVERSATION_STRINGS = {
     triggerLabel: "Alterar status da conversa",
     statusChanged: (label: string) => `Status alterado para "${label}"`,
     actionFailed: "Não foi possível alterar o status",
+    autoAssignedToYou: "Conversa atribuída a você",
+    autoReturnedToQueue: "Conversa devolvida à fila",
     modeSwitchLabel: "Modo de exibição do status",
     modes: {
       pill: "Pílula",
