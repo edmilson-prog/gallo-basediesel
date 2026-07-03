@@ -89,8 +89,9 @@ export interface IWebhookDb {
     accountId: string;
     assignedSellerId: string | null;
     lastMessageAt: string;
-    /** aguardando = inbound awaiting staff; em_andamento = we initiated (echo). */
-    status: "aguardando" | "em_andamento";
+    /** New conversations always land queued: inbound awaits staff, and an echo
+     *  has no known author — someone claims it in the app (spec 2026-07-02). */
+    status: "aguardando";
   }): Promise<{ id: string }>;
   insertInboundMessage(input: {
     conversationId: string;
@@ -397,7 +398,7 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
     // payload shape, then acknowledged. Message/Receipt fall through to the
     // parser below (unchanged). Capture is best-effort: a logging failure must
     // not turn the event into a 500/retry.
-    if (goEvent && goEvent !== "Message" && goEvent !== "Receipt") {
+    if (goEvent && goEvent !== "Message" && goEvent !== "Receipt" && goEvent !== "SendMessage") {
       try {
         await args.captureRawEvent?.({
           kind: goEvent,
@@ -541,11 +542,12 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
         customerId: customer.id,
         accountId: account.id,
         // UNASSIGNED (pool): the webhook cannot know which seller sent from the
-        // phone, so it never pins the chat to the customer's wallet owner.
-        // Visibility comes from instance access (can_access_conversation).
+        // phone, so it never pins the chat — it lands QUEUED ('aguardando') for
+        // someone to claim in the app (spec 2026-07-02). Visibility comes from
+        // instance access (can_access_conversation).
         assignedSellerId: null,
         lastMessageAt: parsed.timestamp,
-        status: "em_andamento",
+        status: "aguardando",
       });
     }
     const message = await db.insertOutboundEchoMessage({
@@ -560,6 +562,30 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
     });
     await db.touchConversation(conversation.id, parsed.timestamp);
     await db.markProcessed(eventKey, traceId);
+
+    // Media (spec 2026-07-02): phone-sent media mirrors the inbound pipeline —
+    // download now or mark failed; never blocks the echo record itself (the
+    // message + markProcessed above already landed).
+    if (parsed.mediaId) {
+      try {
+        const engine = args.buildProvider(account);
+        const media = await withTimeout(
+          engine.downloadInboundMedia(parsed.mediaId),
+          args.mediaTimeoutMs ?? DEFAULT_MEDIA_TIMEOUT_MS,
+        );
+        const extension = MIME_EXTENSIONS[media.mimeType] ?? "bin";
+        const path = `conversations/${conversation.id}/${message.id}/media.${extension}`;
+        await db.uploadMedia(path, media.data, media.mimeType);
+        await db.setMessageMedia(message.id, path, "ok");
+      } catch (error) {
+        warn("echo media download failed", {
+          mediaId: parsed.mediaId,
+          detail: error instanceof Error ? error.message : String(error),
+        });
+        await db.setMessageMedia(message.id, null, "failed");
+      }
+    }
+
     await db.audit({
       storeId: account.storeId,
       action: "webhook_received",
@@ -570,6 +596,7 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
         eventKey,
         direction: "out",
         contentType: parsed.contentType,
+        hasMedia: Boolean(parsed.mediaId),
         toPhoneMasked: `***${toDigits.slice(-4)}`,
         customerCreated,
         traceId,

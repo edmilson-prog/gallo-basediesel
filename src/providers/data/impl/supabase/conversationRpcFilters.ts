@@ -9,9 +9,11 @@ import { sanitizeSellerIds } from "./assignmentFilter";
  * diverging when a filter is added later (they had drifted into hand-maintained
  * copies of the same code; the next Inbox filter would only reach one of them).
  *
- * The `p_unassigned` field is intentionally NOT here: the count path derives it
- * from `assignmentAny` only, while the search path also folds the scalar
- * `unassigned` param — each builder adds its own.
+ * The `p_unassigned` field is intentionally NOT here — each builder adds its
+ * own: the search path folds the scalar `unassigned` param, while the count
+ * path always sends false (the Inbox "Sem atribuição" filter was unified into
+ * "Em fila"/queue on 2026-07-02, so no Inbox filter yields an unassigned-only
+ * count).
  */
 export function buildSharedConversationRpcFilters(params: IListConversationsParams) {
   const status =

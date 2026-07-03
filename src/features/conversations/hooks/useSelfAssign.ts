@@ -43,9 +43,9 @@ export function useSelfAssign(
         action: {
           label: INBOX_STRINGS.undo,
           onClick: () => {
-            void Promise.resolve(
-              conversationsProvider.update(conversation.id, { assignedSellerId: before }),
-            )
+            // canSelfAssign implies the conversation came from the pool —
+            // undo returns it there (unassign also re-queues the status).
+            void Promise.resolve(conversationsProvider.unassign(conversation.id))
               .then(() => {
                 opts?.onDone?.();
                 toast.success(INBOX_STRINGS.undone);

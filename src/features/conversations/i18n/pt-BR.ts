@@ -77,7 +77,6 @@ export const INBOX_STRINGS = {
   assignmentLabel: "Atribuição",
   assignmentOptions: {
     me: "Atribuídas a mim",
-    unassigned: "Sem atribuição",
     queue: "Em fila",
     all: "Todas",
     seller: "Por vendedor",
@@ -218,6 +217,8 @@ export const CONVERSATION_STRINGS = {
     triggerLabel: "Alterar status da conversa",
     statusChanged: (label: string) => `Status alterado para "${label}"`,
     actionFailed: "Não foi possível alterar o status",
+    autoAssignedToYou: "Conversa atribuída a você",
+    autoReturnedToQueue: "Conversa devolvida à fila",
     modeSwitchLabel: "Modo de exibição do status",
     modes: {
       pill: "Pílula",

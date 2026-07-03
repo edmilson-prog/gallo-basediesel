@@ -34,7 +34,7 @@ describe("buildSharedConversationRpcFilters", () => {
   });
 
   it("does NOT emit p_unassigned (each builder owns its own derivation)", () => {
-    expect(buildSharedConversationRpcFilters({ assignmentAny: { unassigned: true } })).not.toHaveProperty(
+    expect(buildSharedConversationRpcFilters({ assignmentAny: { queue: true } })).not.toHaveProperty(
       "p_unassigned",
     );
   });

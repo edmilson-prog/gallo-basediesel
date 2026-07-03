@@ -4,7 +4,6 @@ import type { ISeller } from "@/shared/types";
 
 const STRINGS = {
   me: "Atribuídas a mim",
-  unassigned: "Sem atribuição",
   queue: "Em fila",
   all: "Todas",
   seller: "Por vendedor",
@@ -25,6 +24,6 @@ describe("assignmentTriggerLabel", () => {
     expect(assignmentTriggerLabel(["s9"], SELLERS, STRINGS)).toBe("Por vendedor");
   });
   it("shows the count for 2+", () => {
-    expect(assignmentTriggerLabel(["me", "unassigned"], SELLERS, STRINGS)).toBe("2 selecionados");
+    expect(assignmentTriggerLabel(["me", "queue"], SELLERS, STRINGS)).toBe("2 selecionados");
   });
 });

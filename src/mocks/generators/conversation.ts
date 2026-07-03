@@ -1,16 +1,8 @@
-import type { IConversation, ICustomer, ILead, ID } from "@/shared/types";
+import type { ConversationStatus, IConversation, ICustomer, ILead, ID } from "@/shared/types";
 import { SEED_STORE_ID, SEED_TAGS } from "../data";
 import { daysAgo, pickWeighted, randomISO, type ISeededContext } from "./utils";
 
 const TAG_LABELS = SEED_TAGS.map((t) => t.label);
-
-const STATUS_WEIGHTS = [
-  { value: "aguardando" as const, weight: 15 },
-  { value: "em_andamento" as const, weight: 30 },
-  { value: "aguardando_cliente" as const, weight: 10 },
-  { value: "resolvida" as const, weight: 20 },
-  { value: "arquivada" as const, weight: 5 },
-];
 
 interface IGenerateConversationInput {
   sequence: number;
@@ -32,8 +24,27 @@ export function generateConversation(
     { value: "phone" as const, weight: 1 },
     { value: "site" as const, weight: 1 },
   ]);
-  const status = pickWeighted(ctx, STATUS_WEIGHTS);
-  const isSdrActive = ctx.bool(0.25) && status !== "resolvida" && status !== "arquivada";
+  const isSdrActive = ctx.bool(0.25);
+  const assignedSellerId = isSdrActive
+    ? undefined
+    : input.participant.kind === "customer"
+      ? (input.participant.entity.sellerId ?? undefined)
+      : ctx.pick(input.sellerIds);
+  // Invariant (spec 2026-07-02): unowned open conversation = 'aguardando';
+  // owned = attended statuses; SDR-driven = em_andamento without an owner.
+  const status: ConversationStatus = isSdrActive
+    ? "em_andamento"
+    : assignedSellerId === undefined
+      ? pickWeighted(ctx, [
+          { value: "aguardando" as const, weight: 8 },
+          { value: "arquivada" as const, weight: 2 },
+        ])
+      : pickWeighted(ctx, [
+          { value: "em_andamento" as const, weight: 5 },
+          { value: "aguardando_cliente" as const, weight: 3 },
+          { value: "resolvida" as const, weight: 3 },
+          { value: "arquivada" as const, weight: 1 },
+        ]);
   // Anchor the conversation start at the most recent of the entity's birth and
   // the 30-day window. Clamp to `now` defensively so a participant with a
   // future-dated `createdAt` (shouldn't happen but possible in seeds) doesn't
@@ -50,11 +61,7 @@ export function generateConversation(
     storeId: SEED_STORE_ID,
     customerId: input.participant.kind === "customer" ? input.participant.entity.id : undefined,
     leadId: input.participant.kind === "lead" ? input.participant.entity.id : undefined,
-    assignedSellerId: isSdrActive
-      ? undefined
-      : input.participant.kind === "customer"
-        ? (input.participant.entity.sellerId ?? undefined)
-        : ctx.pick(input.sellerIds),
+    assignedSellerId,
     channel,
     whatsappAccountId: channel === "whatsapp" ? ctx.pick(input.whatsappAccountIds) : undefined,
     status,

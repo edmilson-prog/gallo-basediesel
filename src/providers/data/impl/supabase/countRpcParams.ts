@@ -32,6 +32,10 @@ export function buildCountRpcParams(
 
   return {
     ...buildSharedConversationRpcFilters(params),
-    p_unassigned: params.assignmentAny?.unassigned === true,
+    // Unified 2026-07-02: the Inbox "Sem atribuição" filter merged into "Em
+    // fila" (queue), so no Inbox filter produces an unassigned-only count —
+    // the queue count rides `p_include_queue`. Kept in the RPC signature
+    // (PostgREST overload resolution needs the key); always false now.
+    p_unassigned: false,
   };
 }

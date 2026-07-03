@@ -29,17 +29,20 @@ describe("buildCountRpcParams", () => {
     ).toEqual(["aguardando", "em_andamento", "aguardando_cliente", "resolvida"]);
   });
 
-  it("maps the Inbox incident filter shape (me + unassigned + queue)", () => {
+  it("maps the Inbox incident filter shape (me + queue)", () => {
+    // The "Sem atribuição" filter was unified into "Em fila" (queue) on
+    // 2026-07-02 — assignmentAny no longer carries an `unassigned` flag and the
+    // count always sends p_unassigned=false (the queue count rides
+    // p_include_queue).
     const params = buildCountRpcParams({
       status: ["aguardando", "em_andamento", "aguardando_cliente", "resolvida"],
       assignmentAny: {
         sellerIds: ["97834e8d-e1b5-4bb7-9f25-2e58e641fdab"],
-        unassigned: true,
         queue: true,
       },
     });
     expect(params.p_assigned_seller_ids).toEqual(["97834e8d-e1b5-4bb7-9f25-2e58e641fdab"]);
-    expect(params.p_unassigned).toBe(true);
+    expect(params.p_unassigned).toBe(false);
     expect(params.p_include_queue).toBe(true);
   });
 

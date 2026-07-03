@@ -85,7 +85,7 @@ function makeSource(
 }
 
 describe("processImportBatch", () => {
-  it("imports an individual chat end-to-end: pending customer, em_andamento conversation, in/out messages", async () => {
+  it("imports an individual chat end-to-end: pending customer, aguardando conversation, in/out messages", async () => {
     const state = emptyState();
     const source = makeSource(["5555988887777@s.whatsapp.net"], {
       "5555988887777@s.whatsapp.net": [
@@ -104,7 +104,7 @@ describe("processImportBatch", () => {
       messagesSkipped: 0,
     });
     expect(state.conversations[0]).toMatchObject({
-      status: "em_andamento",
+      status: "aguardando",
       accountId: "acc-1",
       // Imported conversations land in the pool, never auto-assigned to the
       // customer's wallet owner — connecting an instance drops its history to
@@ -350,7 +350,7 @@ describe("landNormalizedChat", () => {
       messagesSkipped: 1, // the duplicate X1
     });
     expect(state.conversations[0]).toMatchObject({
-      status: "em_andamento",
+      status: "aguardando",
       accountId: "acc-1",
       assignedSellerId: null,
       createdAt: isoOf(1765400000),

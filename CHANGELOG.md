@@ -4,6 +4,20 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.129.0] — Unison · 2026-07-03
+
+**"Sem atribuição" e "Em fila" viraram uma coisa só, o status acompanha o atendimento sozinho, e mensagens enviadas pelo celular voltam a aparecer.** O filtro de atribuição do Atendimento tinha dois conceitos que se confundiam — "Sem atribuição" e "Em fila" — e agora são um só: **Em fila**, o pool de conversas abertas esperando alguém assumir. Assumir uma conversa passa a movê-la para "Em atendimento" automaticamente, e devolvê-la à fila volta o status para "Aguardando", sem precisar mexer no status na mão. E quando alguém da equipe responde um cliente direto pelo aparelho, essa mensagem agora aparece na conversa da plataforma — texto e mídia — em vez de sumir.
+
+### Changed
+
+- **"Sem atribuição" foi unificada em "Em fila"** — o filtro de atribuição da Inbox tinha dois itens que, na prática, apontavam para quase a mesma coisa. Agora existe só **Em fila**: toda conversa aberta e sem dono aguardando atendimento. Filtros e links salvos com o valor antigo continuam funcionando — são convertidos automaticamente para "Em fila".
+- **O status acompanha a atribuição automaticamente** — assumir uma conversa da fila move o status para "Em atendimento"; devolvê-la à fila volta para "Aguardando". Escolher "Em atendimento" ou "Aguardando cliente" numa conversa sem dono também passa a atribuí-la a você. A regra ficou simples: conversa aberta sem dono fica sempre "Em fila"; conversa com dono nunca fica "Aguardando". Conversas antigas sem dono que estavam "em atendimento" foram consolidadas na fila — por isso o número de "Em fila" cresce de uma vez nesta atualização.
+- **Conversas importadas entram na fila** — ao conectar uma instância e importar o histórico, as conversas sem dono passam a chegar em "Em fila" (antes caíam como "Em atendimento").
+
+### Fixed
+
+- **Mensagens enviadas pelo celular voltam a aparecer** — quando um atendente respondia um cliente direto pelo aplicativo do WhatsApp no aparelho (e não pela plataforma), essa mensagem não era registrada na conversa. Agora ela aparece normalmente na plataforma, com texto e mídia (foto, áudio, documento), mantendo o histórico completo do atendimento.
+
 ## [0.128.1] — Paperclip · 2026-07-03
 
 **A lista de conversas do Atendimento não trava mais.** Alguns atendentes viam, de forma intermitente, o erro "Não foi possível carregar conversas" — e às vezes a lista sumia sozinha por um instante. A causa era a contagem de conversas, que ficava lenta demais no servidor para quem tinha acesso a um volume grande, estourando o tempo limite. Agora a lista carrega instantaneamente (nesse caso, de ~5,4 s para ~0,15 s) e o carregamento ficou muito mais resistente: uma falha pontual não esconde mais a lista inteira, o scroll infinito não pula conversas e há um "Tentar novamente" claro quando algo falha.

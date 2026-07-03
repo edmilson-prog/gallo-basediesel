@@ -181,6 +181,8 @@ export interface IOutboundEcho {
   toPhone: string;
   contentType: InboundContentType;
   text?: string;
+  /** Provider media handle for download — same semantics as IInboundMessage.mediaId. */
+  mediaId?: string;
   mediaCaption?: string;
   mediaFilename?: string;
   timestamp: ISO8601;
