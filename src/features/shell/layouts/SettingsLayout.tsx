@@ -121,7 +121,7 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         permission: { resource: "settings", action: "view" },
       },
       {
-        label: "Tags do catálogo",
+        label: "Tags",
         icon: "mdi:tag-multiple-outline",
         to: "/app/configuracoes/atendimento/tags",
         permission: { resource: "settings", action: "view" },
