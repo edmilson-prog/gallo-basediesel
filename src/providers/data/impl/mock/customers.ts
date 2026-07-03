@@ -85,4 +85,23 @@ export const mockCustomersProvider: ICustomersProvider = {
     });
     return updated;
   },
+  renameContact: async (customerId, name) => {
+    // No RLS in the mock store — mirror the supabase RPC by resolving the variant
+    // field from the current row's type and writing only the display name.
+    const before = await customersApi.get(customerId);
+    const patch =
+      before.type === "B2B"
+        ? ({ type: "B2B", nomeFantasia: name } as const)
+        : ({ type: "B2C", fullName: name } as const);
+    const updated = await customersApi.update(customerId, patch);
+    logMockMutation({
+      action: "customer.rename",
+      resource: "customer",
+      resourceId: updated.id,
+      before,
+      after: updated,
+      storeId: updated.storeId,
+    });
+    return updated;
+  },
 };

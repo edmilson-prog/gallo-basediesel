@@ -4,6 +4,19 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.131.1] — Ledger · 2026-07-03
+
+**Vendedores voltam a conseguir renomear contatos, e o nome do contato fica igual nos três lugares da tela de Atendimento.** Renomear um contato falhava com "Não foi possível renomear o contato" para quem não é proprietário/gestor quando o contato ainda estava na fila (sem dono) — só o dono da carteira ou o gestor conseguiam. Agora qualquer atendente que atende aquele número pode renomear. E o nome do contato, que aparecia de formas diferentes (a ficha em MAIÚSCULAS, a lista e o topo em minúsculas), passou a aparecer em MAIÚSCULAS nos três lugares, alinhado ao padrão já usado nas etiquetas.
+
+### Fixed
+
+- **Renomear contato voltou a funcionar para os atendentes** — renomear um contato que está na fila do Atendimento (ainda sem dono) falhava para vendedores e SDRs; só o proprietário, o gestor ou o dono da carteira conseguiam. Agora qualquer atendente com acesso ao número (a instância da conversa) pode renomear o contato — a permissão de renomear passou a acompanhar quem atende, não só quem é dono. Renomear continua alterando apenas o nome de exibição na plataforma; o nome capturado do WhatsApp não é tocado.
+
+### Changed
+
+- **Nome do contato uniforme na tela de Atendimento** — o nome do contato aparecia em MAIÚSCULAS na ficha (à direita) mas em minúsculas na lista de conversas e no topo da conversa. Agora aparece em MAIÚSCULAS nos três lugares, alinhado ao padrão já usado nas etiquetas de conversa.
+- **Campo de renomear já força MAIÚSCULAS** — ao renomear um contato, o que é digitado no campo já entra em caixa alta automaticamente (inclusive ao usar o nome do WhatsApp), garantindo que o nome salvo fique no mesmo padrão exibido na tela.
+
 ## [0.131.0] — Ledger · 2026-07-03
 
 **Consulte o preço de uma peça sem sair da conversa.** No Atendimento, um novo painel deixa o atendente buscar uma peça — por nome, código ou referência — e ver na hora o valor, a disponibilidade em estoque, em quais veículos ela serve e os códigos equivalentes, tudo ao lado da conversa aberta. Achou a peça? Dá para inserir os dados direto na mensagem, enviar o card do produto ou copiar o valor — sem ir e voltar do catálogo.

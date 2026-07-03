@@ -222,7 +222,7 @@ function ConversationListItemInner({
         <div className="flex items-baseline justify-between gap-2">
           <span
             className={cn(
-              "truncate text-sm",
+              "truncate text-sm uppercase",
               isUnread ? "font-semibold text-foreground" : "font-medium text-foreground",
             )}
           >

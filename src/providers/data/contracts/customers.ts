@@ -115,4 +115,16 @@ export interface ICustomersProvider {
   markContactNotCustomer(customerId: ID): Promise<ICustomer>;
   /** Undo a discard — swaps reviewed_not_customer back to pending_review. */
   restorePendingContact(customerId: ID): Promise<ICustomer>;
+  /**
+   * Rename the contact's DISPLAY name (`fullName` B2C / `nomeFantasia` B2B),
+   * gated server-side so a non-staff seller who ATTENDS the contact (pool /
+   * instance) can rename it. The direct customers UPDATE is RLS-blocked off the
+   * caller's carteira (`customers_update` lacks the `seller_handles_customer`
+   * branch that `customers_select` has), so a pool contact can be seen but not
+   * renamed via {@link update}. Supabase: the SECURITY DEFINER
+   * `rename_customer_contact` RPC, gated by `can_access_conversation`. The RPC
+   * resolves the variant field from the row's `type` and never touches
+   * `whatsappName` (webhook-owned).
+   */
+  renameContact(customerId: ID, name: string): Promise<ICustomer>;
 }
