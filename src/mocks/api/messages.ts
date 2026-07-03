@@ -158,9 +158,10 @@ export const messagesApi = {
       };
       upsert("messages", message);
       // Terminal (resolvida/arquivada) reopens to the queue on a customer
-      // inbound; otherwise preserve today's behavior (non-terminal → aguandando).
+      // inbound; non-terminal conversations keep today's behavior of
+      // requeuing to aguardando so the agent gets a "needs attention" signal.
       const reopened = reopenOnInbound(conversation.status);
-      const nextStatus = reopened ?? (conversation.status === "aguardando" ? "aguardando" : conversation.status);
+      const nextStatus = reopened ?? "aguardando";
       const updated = patchById("conversations", conversationId, {
         lastMessageAt: now,
         status: nextStatus,

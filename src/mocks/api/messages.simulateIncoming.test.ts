@@ -37,7 +37,7 @@ describe("messagesApi.simulateIncoming", () => {
     expect(event.actorKind).toBe("system");
   });
 
-  it("leaves an em_andamento conversation's owner untouched with no reopen event", async () => {
+  it("leaves an em_andamento conversation's owner untouched, requeues to aguardando, with no reopen event", async () => {
     const seed = getMockState().conversations.find((c) => c.assignedSellerId);
     if (!seed) throw new Error("seed dataset has no assigned conversation to test against");
     const convId = seed.id;
@@ -51,6 +51,7 @@ describe("messagesApi.simulateIncoming", () => {
 
     const updated = getMockState().conversations.find((c) => c.id === convId)!;
     expect(updated.assignedSellerId).toBe(seed.assignedSellerId);
+    expect(updated.status).toBe("aguardando");
 
     // No reopen ⇒ no emission. Wait past the mock API's simulated latency
     // window (LATENCY_MAX_MS=180ms) to be sure nothing lands late.
