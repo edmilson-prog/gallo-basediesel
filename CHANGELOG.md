@@ -15,6 +15,7 @@ versioning follows [SemVer](https://semver.org/).
 ### Changed
 
 - **Nome do contato uniforme na tela de Atendimento** — o nome do contato aparecia em MAIÚSCULAS na ficha (à direita) mas em minúsculas na lista de conversas e no topo da conversa. Agora aparece em MAIÚSCULAS nos três lugares, alinhado ao padrão já usado nas etiquetas de conversa.
+- **Campo de renomear já força MAIÚSCULAS** — ao renomear um contato, o que é digitado no campo já entra em caixa alta automaticamente (inclusive ao usar o nome do WhatsApp), garantindo que o nome salvo fique no mesmo padrão exibido na tela.
 
 ## [0.131.0] — Ledger · 2026-07-03
 

@@ -17,6 +17,13 @@ import { useCustomersProvider } from "@/providers/data/hooks/useCustomersProvide
 import { getCustomerName } from "../utils/customerDisplay";
 import { CUSTOMER_STRINGS } from "../i18n/pt-BR";
 
+/**
+ * Force the display name to uppercase (pt-BR aware). Contact names render in
+ * uppercase across every Atendimento surface (list, header, fiche), so the editor
+ * enforces it at the source — what the user types is persisted in caps.
+ */
+const toUpperName = (value: string) => value.toLocaleUpperCase("pt-BR");
+
 export interface IRenameContactDialogProps {
   customer: ICustomer;
   open: boolean;
@@ -44,7 +51,7 @@ export function RenameContactDialog({
   const queryClient = useQueryClient();
   const currentName = getCustomerName(customer);
   const whatsappName = customer.whatsappName;
-  const [name, setName] = useState(currentName);
+  const [name, setName] = useState(() => toUpperName(currentName));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,7 +59,7 @@ export function RenameContactDialog({
   // contact changes — the component instance is reused across conversations.
   useEffect(() => {
     if (open) {
-      setName(currentName);
+      setName(toUpperName(currentName));
       setError(null);
     }
   }, [open, currentName]);
@@ -63,7 +70,7 @@ export function RenameContactDialog({
       setError(CUSTOMER_STRINGS.rename.empty);
       return;
     }
-    if (trimmed === currentName) {
+    if (trimmed === toUpperName(currentName).trim()) {
       onOpenChange(false);
       return;
     }
@@ -100,7 +107,7 @@ export function RenameContactDialog({
           <Input
             id="rename-contact-input"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => setName(toUpperName(e.target.value))}
             placeholder={CUSTOMER_STRINGS.rename.placeholder}
             autoFocus
             onKeyDown={(e) => {
@@ -118,10 +125,10 @@ export function RenameContactDialog({
                 {CUSTOMER_STRINGS.rename.whatsappNameLabel}:{" "}
                 <span className="font-medium text-foreground">{whatsappName}</span>
               </span>
-              {whatsappName !== name.trim() && (
+              {toUpperName(whatsappName) !== name.trim() && (
                 <button
                   type="button"
-                  onClick={() => setName(whatsappName)}
+                  onClick={() => setName(toUpperName(whatsappName))}
                   className="shrink-0 font-medium text-primary hover:underline"
                 >
                   {CUSTOMER_STRINGS.rename.useWhatsappName}
