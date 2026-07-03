@@ -131,13 +131,31 @@ export function shouldRefreshTotalViaCount(input: {
  */
 
 /**
- * A user fetch (load-more / refetch) may start only when no other user fetch is
- * in flight — the SAME gate for both so they can never interleave (an asymmetric
- * guard let a refetch race a load-more and gap the list). A user fetch does NOT
- * wait for a background re-hydration: it supersedes it.
+ * A load-more (infinite-scroll append) may start only when no user fetch is in
+ * flight — an append must never start mid-replace (it would append onto a list
+ * about to be wiped) nor stack on another append. A refetch, by contrast, is a
+ * discrete user action / mutation refresh that must always run; it does NOT wait
+ * — it SUPERSEDES an in-flight load-more (which then bails via
+ * `isUserFetchSuperseded`), so the two never interleave into a gapped list even
+ * though the gate is asymmetric. Neither waits for a background re-hydration.
  */
-export function canStartUserFetch(input: { userFetchInFlight: boolean }): boolean {
+export function canStartLoadMore(input: { userFetchInFlight: boolean }): boolean {
   return !input.userFetchInFlight;
+}
+
+/**
+ * A user fetch discards its commit if a NEWER user fetch started meanwhile
+ * (seq bumped) or the view changed (generation). This is what lets a refetch
+ * supersede an in-flight load-more without interleaving: the load-more resolves,
+ * sees the bumped seq, and bails instead of appending onto the refetch's list.
+ */
+export function isUserFetchSuperseded(input: {
+  generation: number;
+  currentGeneration: number;
+  seqAtStart: number;
+  currentSeq: number;
+}): boolean {
+  return input.generation !== input.currentGeneration || input.seqAtStart !== input.currentSeq;
 }
 
 /**

@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
-  canStartUserFetch,
+  canStartLoadMore,
   INITIAL_LOAD_MAX_ATTEMPTS,
   isLoadMoreFailure,
   isRehydrateSuperseded,
+  isUserFetchSuperseded,
   nextHasMore,
   placementForIntent,
   resolveListFetchFailure,
@@ -123,13 +124,29 @@ describe("shouldRefreshTotalViaCount", () => {
   });
 });
 
-describe("canStartUserFetch", () => {
+describe("canStartLoadMore", () => {
   it("starts when no user fetch is in flight", () => {
-    expect(canStartUserFetch({ userFetchInFlight: false })).toBe(true);
+    expect(canStartLoadMore({ userFetchInFlight: false })).toBe(true);
   });
 
-  it("blocks while another user fetch is in flight (load-more and refetch share this gate)", () => {
-    expect(canStartUserFetch({ userFetchInFlight: true })).toBe(false);
+  it("blocks a load-more while any user fetch is in flight (append must not start mid-fetch)", () => {
+    expect(canStartLoadMore({ userFetchInFlight: true })).toBe(false);
+  });
+});
+
+describe("isUserFetchSuperseded", () => {
+  const base = { generation: 5, currentGeneration: 5, seqAtStart: 10, currentSeq: 10 };
+
+  it("commits when it is still the newest user fetch", () => {
+    expect(isUserFetchSuperseded(base)).toBe(false);
+  });
+
+  it("bails when a newer user fetch started (seq bumped) — a refetch superseding a load-more", () => {
+    expect(isUserFetchSuperseded({ ...base, currentSeq: 11 })).toBe(true);
+  });
+
+  it("bails when the filter/mode changed (generation bumped)", () => {
+    expect(isUserFetchSuperseded({ ...base, currentGeneration: 6 })).toBe(true);
   });
 });
 

@@ -7,10 +7,11 @@ import {
 } from "@/providers/data";
 import { captureObservabilityException } from "@/shared/lib/observability";
 import {
-  canStartUserFetch,
+  canStartLoadMore,
   INITIAL_LOAD_RETRY_DELAY_MS,
   isLoadMoreFailure,
   isRehydrateSuperseded,
+  isUserFetchSuperseded,
   nextHasMore,
   placementForIntent,
   resolveListFetchFailure,
@@ -140,6 +141,24 @@ export function useConversationsList(
   const userFetchInFlightRef = useRef(0);
   const userFetchSeqRef = useRef(0);
   const rehydrateInFlightRef = useRef(false);
+  // A realtime tick that arrives while the list is busy is remembered here and
+  // drained the moment the list goes idle — so a tick is never silently lost
+  // (re-hydration is the only path new rows enter the list).
+  const pendingRehydrateRef = useRef(false);
+  // Late-bound to the `rehydrate` callback below so the drain (called from
+  // fetch finallys defined earlier) can invoke the latest instance.
+  const rehydrateRef = useRef<(target: number, generation: number) => void>(() => {});
+
+  /**
+   * Fire a deferred re-hydration once the list is idle again. Called from every
+   * fetch's finally; a no-op unless a realtime tick was dropped while busy.
+   */
+  const drainPendingRehydrate = useCallback(() => {
+    if (!pendingRehydrateRef.current) return;
+    if (userFetchInFlightRef.current > 0 || rehydrateInFlightRef.current) return;
+    pendingRehydrateRef.current = false;
+    rehydrateRef.current(pageRef.current, generationRef.current);
+  }, []);
 
   /**
    * Refresh the header total via the cheap gated-once count RPC. Fire-and-
@@ -193,6 +212,16 @@ export function useConversationsList(
       // it can never commit over a page this fetch is about to load.
       userFetchInFlightRef.current += 1;
       userFetchSeqRef.current += 1;
+      const mySeq = userFetchSeqRef.current;
+      // A newer generation OR a newer user fetch (e.g. a refetch superseding this
+      // load-more) means we no longer own the list — bail before committing.
+      const superseded = () =>
+        isUserFetchSuperseded({
+          generation,
+          currentGeneration: generationRef.current,
+          seqAtStart: mySeq,
+          currentSeq: userFetchSeqRef.current,
+        });
       const placement = placementForIntent(intent);
       if (placement === "replace") setIsLoading(true);
       else setIsLoadingMore(true);
@@ -200,7 +229,7 @@ export function useConversationsList(
         for (let attempt = 1; ; attempt += 1) {
           try {
             const result = await fetchOnePage(pageToLoad);
-            if (generation !== generationRef.current) return;
+            if (superseded()) return;
             setError(null);
             setLoadMoreFailed(false);
             if (mode === "messages") {
@@ -238,7 +267,7 @@ export function useConversationsList(
           } catch (err) {
             // Superseded fetches exit silently (no Sentry): their failure
             // describes a view that no longer exists.
-            if (generation !== generationRef.current) return;
+            if (superseded()) return;
             const failure = err instanceof Error ? err : new Error(String(err));
             const hasItems = itemsRef.current.length > 0;
             if (shouldRetryListFetch({ intent, hasItems, attempt })) {
@@ -247,7 +276,7 @@ export function useConversationsList(
               );
               // The view may have changed during the sleep — don't waste a
               // request (and a timeout-prone round-trip) on stale filters.
-              if (generation !== generationRef.current) return;
+              if (superseded()) return;
               // Transient blip we are about to retry — no Sentry yet; only the
               // FINAL outcome (below) is reported, so a self-healing first load
               // does not emit a false error event.
@@ -271,16 +300,23 @@ export function useConversationsList(
         }
       } finally {
         userFetchInFlightRef.current -= 1;
-        // A newer generation owns the loading flags now — don't clobber them.
-        if (generation === generationRef.current) {
-          if (placement === "replace") setIsLoading(false);
-          else setIsLoadingMore(false);
+        // Release our own spinner flag. A load-more never overlaps another
+        // load-more (canStartLoadMore gates it) and a superseding refetch owns a
+        // DIFFERENT flag (isLoading), so an append always clears isLoadingMore as
+        // long as the view itself hasn't moved on. A replace defers to a newer
+        // replace that superseded it (that one owns isLoading now).
+        if (placement === "append") {
+          if (generation === generationRef.current) setIsLoadingMore(false);
+        } else if (!superseded()) {
+          setIsLoading(false);
         }
+        // A realtime tick dropped while we were busy runs now that we're idle.
+        drainPendingRehydrate();
       }
     },
     // We intentionally key on the JSON snapshot to avoid noisy re-renders.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [fetchOnePage, filtersKey, mode, refreshTotal],
+    [fetchOnePage, filtersKey, mode, refreshTotal, drainPendingRehydrate],
   );
 
   /**
@@ -301,8 +337,13 @@ export function useConversationsList(
           rehydrateInFlight: rehydrateInFlightRef.current,
         })
       ) {
+        // Busy — remember the tick and run it the moment the list goes idle,
+        // so a realtime refresh is never silently dropped.
+        pendingRehydrateRef.current = true;
         return;
       }
+      // Taking the tick now; a fresh tick during this run re-marks pending.
+      pendingRehydrateRef.current = false;
       const userFetchSeqAtStart = userFetchSeqRef.current;
       const superseded = () =>
         isRehydrateSuperseded({
@@ -313,6 +354,13 @@ export function useConversationsList(
           currentUserFetchSeq: userFetchSeqRef.current,
         });
       rehydrateInFlightRef.current = true;
+      // With NO rows on screen, show the honest spinner (not the "Nenhuma
+      // conversa" empty state) while the tick's page 1 loads. With rows already
+      // present the re-hydration stays invisible/background. This is a
+      // render-only flag; concurrency is governed by the refs above, so setting
+      // it does NOT block a user action (unlike round 1).
+      const showSpinner = itemsRef.current.length === 0;
+      if (showSpinner) setIsLoading(true);
       try {
         const buffer: IConversation[] = [];
         const seen = new Set<ID>();
@@ -361,12 +409,23 @@ export function useConversationsList(
         });
       } finally {
         rehydrateInFlightRef.current = false;
+        // Release the spinner flag only if WE own it: a user fetch that
+        // superseded us (or a filter change) owns isLoading now and will clear it.
+        if (showSpinner && userFetchInFlightRef.current === 0 && generation === generationRef.current) {
+          setIsLoading(false);
+        }
+        // Chain a tick that landed while we were running.
+        drainPendingRehydrate();
       }
     },
     // We intentionally key on the JSON snapshot to avoid noisy re-renders.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [fetchOnePage, filtersKey, mode, refreshTotal],
+    [fetchOnePage, filtersKey, mode, refreshTotal, drainPendingRehydrate],
   );
+
+  // Late-bind the ref so the drain (defined above the fetch callbacks) always
+  // calls the current rehydrate closure.
+  rehydrateRef.current = rehydrate;
 
   // Reset to page 1 whenever filters change OR the fetch mode flips
   // (list ↔ messages — see Opção D's "search inside messages" toggle).
@@ -392,6 +451,8 @@ export function useConversationsList(
     // Reset the render-only spinner flag; the in-flight COUNTER is left alone
     // (balanced by each fetch's finally) so it never goes negative.
     setIsLoadingMore(false);
+    // A tick pending from the previous filter is moot — this fetch supersedes it.
+    pendingRehydrateRef.current = false;
     void fetchPage(1, "initial", generation);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersKey, mode]);
@@ -420,22 +481,22 @@ export function useConversationsList(
 
   const loadMore = useCallback(() => {
     // Concurrency is governed by the in-flight COUNTER ref, not the render flags
-    // (which lag a tick). This is also the manual retry entry point (the failed-
-    // load footer button), so it checks raw availability (`moreAvailable`), not
-    // the folded `hasMore` (false while `loadMoreFailed`), and clears the flag.
-    if (!canStartUserFetch({ userFetchInFlight: userFetchInFlightRef.current > 0 })) return;
+    // (which lag a tick). An append must not start while any user fetch is in
+    // flight. This is also the manual retry entry point (the failed-load footer
+    // button), so it checks raw availability (`moreAvailable`), not the folded
+    // `hasMore` (false while `loadMoreFailed`), and clears the flag.
+    if (!canStartLoadMore({ userFetchInFlight: userFetchInFlightRef.current > 0 })) return;
     if (!moreAvailable) return;
     setLoadMoreFailed(false);
     void fetchPage(page + 1, "load-more", generationRef.current);
   }, [moreAvailable, page, fetchPage]);
 
   const refetch = useCallback(() => {
-    // Same in-flight gate as loadMore (symmetric — an asymmetric guard let a
-    // refetch race a load-more and gap the list). A background rehydrate holds no
-    // loading flag, so the error-panel "Tentar novamente" is never a no-op.
-    if (!canStartUserFetch({ userFetchInFlight: userFetchInFlightRef.current > 0 })) return;
-    // Clearing the panel (and showing the spinner) is what the retry button
-    // needs; on a populated list this is a no-op.
+    // No in-flight gate: a refetch is a discrete user action / mutation refresh
+    // that must always run. If a load-more is in flight it is SUPERSEDED (bails
+    // via the seq check) rather than interleaving — so no gapped list, and the
+    // mutation is never silently dropped. A background rehydrate holds no user
+    // flag, so the error-panel "Tentar novamente" is never a no-op.
     setError(null);
     setLoadMoreFailed(false);
     // With rows on screen this is a re-anchor (retry once, keep rows on failure);
