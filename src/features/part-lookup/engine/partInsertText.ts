@@ -4,9 +4,10 @@ const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" 
 
 /** Price text — never "R$ 0,00"; missing/zero price degrades to a consult label. */
 export function priceText(part: Pick<IPart, "unitPrice">): string {
+  // Guard also covers negative values (treated as unpriced, never rendered).
   if (part.unitPrice <= 0) return "Sob consulta";
-  // Intl.NumberFormat uses non-breaking space; normalize to regular space
-  return BRL.format(part.unitPrice).replace(/ /g, " ");
+  // Intl.NumberFormat pt-BR inserts a non-breaking space (U+00A0); normalize it.
+  return BRL.format(part.unitPrice).replace(/\u00A0/g, " ");
 }
 
 /** Stock phrase used in the inserted text. */
