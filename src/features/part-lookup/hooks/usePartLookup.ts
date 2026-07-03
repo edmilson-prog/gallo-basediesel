@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { IPart } from "@/shared/types";
+import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useCatalogList } from "@/features/catalog/hooks/useCatalogList";
 import {
   EMPTY_FILTERS,
@@ -7,20 +8,11 @@ import {
   DEFAULT_PAGE_SIZE,
 } from "@/features/catalog/utils/listFilters";
 
-function useDebounced<T>(value: T, delay = 250): T {
-  const [d, setD] = useState(value);
-  useEffect(() => {
-    const t = window.setTimeout(() => setD(value), delay);
-    return () => window.clearTimeout(t);
-  }, [value, delay]);
-  return d;
-}
-
 export function usePartLookup() {
   const [query, setQuery] = useState("");
   const [vehicleBrand, setVehicleBrand] = useState<string | null>(null);
   const [inStockOnly, setInStockOnly] = useState(false);
-  const debounced = useDebounced(query);
+  const debounced = useDebounce(query, 250);
 
   const filters = useMemo(
     () => ({
