@@ -32,6 +32,7 @@ import {
   useQuickSendBus,
   QuickSendBusProvider,
 } from "@/features/quick-send";
+import { PartLookupPanel, useConsultorPanel, appendToDraft } from "@/features/part-lookup";
 
 function ConversationRunners({
   conversation,
@@ -99,6 +100,29 @@ export function ConversationPage() {
     customerId: detail.conversation?.customerId ?? null,
     toggle: fiche.toggle,
   });
+  const consultor = useConsultorPanel();
+
+  // The right rail is mutually exclusive: opening one panel closes the others.
+  const openConsultor = () => {
+    fiche.setOpen(false);
+    media.setOpen(false);
+    consultor.setOpen(true);
+  };
+  const toggleConsultor = () => (consultor.open ? consultor.setOpen(false) : openConsultor());
+  const toggleFicheExclusive = () => {
+    if (!fiche.open) {
+      media.setOpen(false);
+      consultor.setOpen(false);
+    }
+    ficheButtonClick();
+  };
+  const toggleMediaExclusive = () => {
+    if (!media.open) {
+      fiche.setOpen(false);
+      consultor.setOpen(false);
+    }
+    media.toggle();
+  };
 
   // RF-006/007/008: archive inbound media without blocking render/send. For
   // every INBOUND message carrying media, resolve any already-archived asset
@@ -178,9 +202,11 @@ export function ConversationPage() {
                 assignedSeller={assignedSeller}
                 showAssignee={showAssignee}
                 ficheOpen={fiche.open}
-                onToggleFiche={ficheButtonClick}
+                onToggleFiche={toggleFicheExclusive}
                 mediaOpen={media.open}
-                onToggleMedia={media.toggle}
+                onToggleMedia={toggleMediaExclusive}
+                consultorOpen={consultor.open}
+                onToggleConsultor={toggleConsultor}
                 menuSlot={
                   <ConversationMenu
                     conversation={conversation}
@@ -243,6 +269,7 @@ export function ConversationPage() {
                 openTemplateSignal={templateSignal}
                 mustAssignToReply={mustAssign}
                 onAssigned={detail.refresh}
+                onOpenPartLookup={openConsultor}
               />
             </div>
 
@@ -270,6 +297,13 @@ export function ConversationPage() {
               conversationId={conversationId}
               open={media.open}
               onOpenChange={media.setOpen}
+            />
+            <PartLookupPanel
+              open={consultor.open}
+              onOpenChange={consultor.setOpen}
+              conversation={conversation}
+              whatsappAccount={whatsappAccount}
+              onInsertText={(text) => setDraft((prev) => appendToDraft(prev, text))}
             />
           </div>
         </ConversationProvider>
