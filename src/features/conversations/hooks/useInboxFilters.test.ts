@@ -75,11 +75,22 @@ describe("filtersToListParams — assignment", () => {
     const p = filtersToListParams(baseState({ assignment: ["queue"] }), { currentSellerId: SELLER });
     expect(p.assignmentAny).toEqual({ queue: true });
     // status stays the default 'all' expansion, not pinned to 'aguardando'
-    expect(p.status).toEqual(["aguardando", "em_andamento", "aguardando_cliente", "resolvida"]);
+    expect(p.status).toEqual(["aguardando", "em_andamento", "aguardando_cliente"]);
   });
   it("empty set (Todas) applies no assignment constraint", () => {
     const p = filtersToListParams(baseState({ assignment: [] }), { currentSellerId: SELLER });
     expect(p.assignmentAny).toBeUndefined();
+  });
+});
+
+describe("filtersToListParams — status default", () => {
+  it("'all' excludes closed conversations (resolvida + arquivada)", () => {
+    const p = filtersToListParams(baseState({ status: "all" }), { currentSellerId: null });
+    expect(p.status).toEqual(["aguardando", "em_andamento", "aguardando_cliente"]);
+  });
+  it("an explicit status (e.g. 'resolvida') passes through unchanged", () => {
+    const p = filtersToListParams(baseState({ status: "resolvida" }), { currentSellerId: null });
+    expect(p.status).toBe("resolvida");
   });
 });
 
