@@ -179,6 +179,7 @@ export const INBOX_STRINGS = {
   // Pagination
   loadingMore: "Carregando mais…",
   endOfList: "Você chegou ao fim da lista.",
+  loadMoreError: "Não foi possível carregar mais conversas.",
 } as const;
 
 /**
