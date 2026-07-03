@@ -30,6 +30,9 @@ import {
 import { statusVisual } from "../utils/messageDisplay";
 import { INBOX_STRINGS, CONVERSATION_STRINGS } from "../i18n/pt-BR";
 import type { IConversationContact } from "@/shared/types";
+import { resolveConversationTags, splitVisibleTags } from "../engine/tagCatalog";
+import { useConversationTags } from "../hooks/useConversationTags";
+import { ConversationTagChip, TagOverflowChip } from "./tags/ConversationTagChip";
 
 export interface IConversationListItemProps {
   conversation: IConversation;
@@ -149,6 +152,8 @@ function ConversationListItemInner({
     const created = new Date(escalation.createdAt).getTime();
     return now - created < 60_000;
   }, [escalation, now]);
+  const { tags: tagCatalog } = useConversationTags();
+  const rowTags = splitVisibleTags(resolveConversationTags(conversation.tags, tagCatalog), 2);
 
   return (
     <Link
@@ -324,6 +329,11 @@ function ConversationListItemInner({
               {temperature.label}
             </span>
           )}
+
+          {rowTags.visible.map((tag) => (
+            <ConversationTagChip key={tag.id} tag={tag} size="xs" />
+          ))}
+          <TagOverflowChip tags={rowTags.overflow} size="xs" />
 
           {fresh && (
             <span className="inline-flex items-center rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">

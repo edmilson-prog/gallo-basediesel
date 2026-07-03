@@ -98,7 +98,7 @@ export interface IImportDb {
     customerId: string;
     accountId: string;
     assignedSellerId: string | null;
-    status: "em_andamento";
+    status: "aguardando";
     createdAt: string;
     lastMessageAt: string;
   }): Promise<{ id: string }>;
@@ -389,14 +389,13 @@ export async function landNormalizedChat(args: {
       storeId: account.storeId,
       customerId: customer.id,
       accountId: account.id,
-      // Imported conversations land UNASSIGNED (pool), never auto-assigned to a
-      // seller. Connecting an instance must drop its history into the queue for
-      // whoever operates that number to pick up — not pin hundreds of chats to
-      // anyone. Visibility comes from instance access (the unassigned branch of
-      // can_access_conversation); the imported customer carries NO wallet owner
-      // (seller_id null) until manually converted.
+      // Imported conversations land UNASSIGNED and QUEUED ('aguardando' — spec
+      // 2026-07-02): connecting an instance drops its history into "Em fila"
+      // for whoever operates that number to claim — never pinned to anyone.
+      // Visibility comes from instance access (can_access_conversation); the
+      // imported customer carries NO wallet owner until manually converted.
       assignedSellerId: null,
-      status: "em_andamento",
+      status: "aguardando",
       createdAt: oldest,
       lastMessageAt: newest,
     });

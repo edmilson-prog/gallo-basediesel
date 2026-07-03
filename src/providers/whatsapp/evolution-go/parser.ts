@@ -2,6 +2,9 @@
  * Evolution Go (whatsmeow) webhook parser. Events are PascalCase:
  * - `Message` + Info.IsFromMe=false → inbound message;
  * - `Message` + Info.IsFromMe=true  → outbound echo (mirrored by the webhook);
+ * - `SendMessage` → own sends emitted by the Go server for phone/companion-sent
+ *   messages (evidence: integration_logs 2026-06-30 — IsFromMe always true; API
+ *   sends do NOT emit it); same payload shape as `Message`, parsed identically;
  * - `Receipt` (state Delivered/Read, or data.Type) → delivery status.
  * Group/broadcast/newsletter/@lid chats throw (no 1:1 customer). `Connection`
  * and any other event throw — the webhook core handles connection lifecycle.
@@ -165,7 +168,11 @@ export function parseEvolutionGoInbound(
     };
   }
 
-  if (ev.event !== "Message") {
+  // `Message` = messages from others; `SendMessage` = own sends emitted by the
+  // Go server for phone/companion-sent messages (evidence: integration_logs
+  // 2026-06-30 — IsFromMe always true; API sends do NOT emit it). Same payload
+  // shape, so both flow through the same parsing below.
+  if (ev.event !== "Message" && ev.event !== "SendMessage") {
     throw new Error(`EvolutionGoProvider: evento não suportado pelo parser: ${ev.event}`);
   }
 
@@ -185,6 +192,9 @@ export function parseEvolutionGoInbound(
       toPhone: jidToE164(chat),
       contentType: content.contentType,
       text: content.text,
+      // Verbatim proto ref (same encode as inbound) so downloadInboundMedia can
+      // re-fetch and mirror phone-sent media into storage (spec 2026-07-02).
+      mediaId: content.mediaId,
       mediaCaption: content.mediaCaption,
       mediaFilename: content.mediaFilename,
       timestamp,

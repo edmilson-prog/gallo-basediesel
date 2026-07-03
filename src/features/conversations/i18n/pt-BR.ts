@@ -77,7 +77,6 @@ export const INBOX_STRINGS = {
   assignmentLabel: "Atribuição",
   assignmentOptions: {
     me: "Atribuídas a mim",
-    unassigned: "Sem atribuição",
     queue: "Em fila",
     all: "Todas",
     seller: "Por vendedor",
@@ -92,6 +91,7 @@ export const INBOX_STRINGS = {
   tagsLabel: "Tags",
   tagsEmpty: "Nenhuma tag disponível",
   tagsCounter: (n: number) => (n === 0 ? "Tags" : `Tags (${n})`),
+  tagsArchivedSuffix: "(arquivada)",
 
   // Period filter
   periodLabel: "Período",
@@ -180,6 +180,7 @@ export const INBOX_STRINGS = {
   // Pagination
   loadingMore: "Carregando mais…",
   endOfList: "Você chegou ao fim da lista.",
+  loadMoreError: "Não foi possível carregar mais conversas.",
 } as const;
 
 /**
@@ -217,6 +218,8 @@ export const CONVERSATION_STRINGS = {
     triggerLabel: "Alterar status da conversa",
     statusChanged: (label: string) => `Status alterado para "${label}"`,
     actionFailed: "Não foi possível alterar o status",
+    autoAssignedToYou: "Conversa atribuída a você",
+    autoReturnedToQueue: "Conversa devolvida à fila",
     modeSwitchLabel: "Modo de exibição do status",
     modes: {
       pill: "Pílula",
@@ -402,6 +405,23 @@ export const CONVERSATION_STRINGS = {
     syncPhoto: "Atualizar foto do contato",
     renameContact: "Renomear contato",
   },
+
+  // Conversation tags (chip + picker)
+  tags: {
+    sectionLabel: "Tags da conversa",
+    add: "Adicionar",
+    addShort: "+ Tag",
+    searchPlaceholder: "Buscar tag…",
+    empty: "Nenhuma tag encontrada",
+    createInline: (query: string) => `Criar tag "${query}"`,
+    updateFailed: "Não foi possível atualizar as tags.",
+    createFailed: "Não foi possível criar a tag.",
+    archivedSuffix: "(arquivada)",
+    removeAria: (label: string) => `Remover ${label}`,
+    overflowAria: (n: number) => `Mais ${n} tag(s)`,
+    pickerAria: "Gerenciar tags da conversa",
+  },
+
   photoSyncing: "Atualizando foto do contato…",
   photoUpdated: "Foto do contato atualizada",
   photoUnavailable: "O WhatsApp não retornou foto para este contato (sem foto ou perfil privado)",

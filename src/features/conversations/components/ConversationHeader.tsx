@@ -31,6 +31,7 @@ import { TemperatureChip } from "@/features/quick-send/components/TemperatureChi
 import { useConversationScheduled } from "@/features/quick-send/hooks/useConversationScheduled";
 import { QUICK_SEND_STRINGS } from "@/features/quick-send/i18n/pt-BR";
 import { PART_LOOKUP_STRINGS } from "@/features/part-lookup";
+import { ConversationHeaderTags } from "./tags/ConversationHeaderTags";
 
 export interface IConversationHeaderProps {
   conversation: IConversation;
@@ -142,6 +143,11 @@ export function ConversationHeader({
             {/* Use the resolved display temperature so a pool seller (whose rich
                 `lead` is RLS-hidden) still sees the chip, matching the list row. */}
             {display.temperature && <TemperatureChip temperature={display.temperature} />}
+            <ConversationHeaderTags
+              conversation={conversation}
+              area="title"
+              onChanged={onConversationUpdated}
+            />
             {customer?.whatsappStatus === "invalid" && (
               <>
                 <Tooltip>
@@ -281,6 +287,11 @@ export function ConversationHeader({
           </button>
         </div>
       )}
+      <ConversationHeaderTags
+        conversation={conversation}
+        area="band"
+        onChanged={onConversationUpdated}
+      />
     </header>
   );
 }

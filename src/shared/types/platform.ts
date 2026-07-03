@@ -72,6 +72,14 @@ export interface ITagSuggestion {
   promoted: boolean;
 }
 
+/** Where the conversation-tag chips render in the conversation header. */
+export type ConversationTagsHeaderMode = "readonly" | "quick-add" | "band";
+
+/** Display settings for conversation tags (association always lives in the fiche). */
+export interface IConversationTagsSettings {
+  headerMode: ConversationTagsHeaderMode;
+}
+
 /** Lifecycle threshold configuration (days). */
 export interface ILifecycleThresholds {
   /** Days without purchase to move customer from `ativo` to `dormente`. */
@@ -284,6 +292,8 @@ export interface IPlatformSettings {
   storefront: IStorefrontConfig;
   /** E-commerce ↔ Central integration settings (PRD-067). */
   ecommerceIntegration: IEcommerceIntegrationSettings;
+  /** Conversation tags display settings. Undefined → { headerMode: "readonly" }. */
+  conversationTags?: IConversationTagsSettings;
 }
 
 /**

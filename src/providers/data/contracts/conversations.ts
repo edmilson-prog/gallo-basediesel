@@ -34,20 +34,30 @@ export interface IListConversationsParams extends IPaginationParams {
   unassigned?: boolean;
   /**
    * Combined assignment filter (Inbox multi-select). OR across the provided
-   * criteria; when omitted/empty, NO assignment constraint is applied. Coexists
-   * with the scalar `assignedSellerId`/`unassigned`/`isSdrActive` used by other
-   * callers (customer detail, dashboards) — the Inbox uses this instead.
+   * criteria (sellerIds, queue); when omitted/empty, NO assignment constraint
+   * is applied. Coexists with the scalar `assignedSellerId`/`unassigned`/
+   * `isSdrActive` used by other callers (customer detail, dashboards) — the
+   * Inbox uses this instead.
    */
   assignmentAny?: {
     /** Specific assigned sellers (already includes "me" resolved to an id). */
     sellerIds?: ID[];
-    /** Pool: `assigned_seller_id IS NULL`. */
-    unassigned?: boolean;
     /** Queue: pool + `is_sdr_active=false` + `status='aguardando'`. */
     queue?: boolean;
   };
   orderBy?: ConversationsOrderBy;
   orderDir?: "asc" | "desc";
+  /**
+   * When `false`, skips the exact total computation and `total` comes back as
+   * `-1` (Inbox hot path: PostgREST `count: "exact"` re-evaluates the per-row
+   * RLS gate over the WHOLE candidate set on every page — the 2026-07-02
+   * statement-timeout incident). Callers that need the real total use
+   * `count()` instead. Defaults to `true` (all other callers keep today's
+   * behavior). The mock impl may still return the real total (its data is
+   * in-memory and cheap); only the supabase path returns the -1 sentinel —
+   * never rely on it.
+   */
+  withTotal?: boolean;
 }
 
 /**
@@ -97,6 +107,17 @@ export interface ICreateOutboundConversationInput {
  */
 export interface IConversationsProvider {
   list(params?: IListConversationsParams): Promise<IPaginatedResult<IConversation>>;
+  /**
+   * Exact count of conversations matching the Inbox NO-SEARCH list filters
+   * (status/channel/instance/isSdrActive/tags/period/assignmentAny). Cheap by
+   * construction on supabase: a SECURITY DEFINER RPC with the access model as
+   * set predicates ("gated-once"), instead of the per-row RLS count that
+   * `list`'s `count: "exact"` implies. NOT supported with `storeId`, `search`
+   * (a non-blank term), `customerId`, `leadId`, or the scalar
+   * `assignedSellerId`/`unassigned` params — those callers keep using `list`'s
+   * total (the impls throw on them via `assertInboxCountParams`).
+   */
+  count(params?: IListConversationsParams): Promise<number>;
   get(id: ID): Promise<IConversation>;
   update(id: ID, patch: Partial<IConversation>): Promise<IConversation>;
   markRead(id: ID): Promise<IConversation>;

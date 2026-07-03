@@ -6,7 +6,6 @@ import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { useCurrentStore } from "@/features/multistore";
 import {
   useConversationsProvider,
-  useCustomersProvider,
   useSellersProvider,
   useWhatsAppAccountsProvider,
 } from "@/providers/data";
@@ -15,6 +14,7 @@ import { Icon } from "@/components/Icon";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useEscalationsByConversation } from "@/features/sdr-escalation";
 import { useConversationsList } from "../hooks/useConversationsList";
+import { useConversationTags } from "../hooks/useConversationTags";
 import { useRelatedEntities } from "../hooks/useRelatedEntities";
 import { useInboxFilters, filtersToListParams } from "../hooks/useInboxFilters";
 import { useRealtimeConversations } from "../hooks/useRealtimeConversations";
@@ -31,29 +31,6 @@ import { NewConversationDialog } from "../components/NewConversationDialog";
 import { selectAccessibleAccounts } from "../utils/selectAccessibleAccounts";
 import { INBOX_STRINGS } from "../i18n/pt-BR";
 import { InboxStatusSummaryCard } from "@/features/service-volume";
-
-function useAvailableTags(): string[] {
-  const customersProvider = useCustomersProvider();
-  const [tags, setTags] = useState<string[]>([]);
-  useEffect(() => {
-    let cancelled = false;
-    void customersProvider
-      .list({ pageSize: 500 })
-      .then((res) => {
-        if (cancelled) return;
-        const set = new Set<string>();
-        res.data.forEach((c) => c.tags.forEach((t) => set.add(t)));
-        setTags(Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR")));
-      })
-      .catch(() => {
-        if (!cancelled) setTags([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [customersProvider]);
-  return tags;
-}
 
 export function InboxPage() {
   const { currentUser } = useAuth();
@@ -185,7 +162,14 @@ export function InboxPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isStaffView, accessibleIds, filters.instance]);
 
-  const availableTags = useAvailableTags();
+  const { tags: tagCatalog } = useConversationTags();
+  // Active tags + archived ones still selected in the URL (so saved links keep
+  // rendering a removable filter). Spec simplification v1: archived tags with
+  // remaining usage are NOT offered unless already selected.
+  const availableTags = useMemo(() => {
+    const selected = new Set(filters.tags);
+    return tagCatalog.filter((t) => !t.archived || selected.has(t.id));
+  }, [tagCatalog, filters.tags]);
   const realtime = useRealtimeConversations();
 
   // Opção D: dedicated "search inside messages" mode — a transient UI action,
@@ -207,6 +191,7 @@ export function InboxPage() {
     isLoading,
     isLoadingMore,
     hasMore,
+    loadMoreFailed,
     error,
     loadMore,
     refetch,
@@ -478,7 +463,16 @@ export function InboxPage() {
             </div>
           )}
 
-          {!hasMore && items.length > 0 && (
+          {!error && loadMoreFailed && (
+            <div className="flex flex-col items-center justify-center gap-2 py-4 text-center text-xs text-muted-foreground">
+              <span>{INBOX_STRINGS.loadMoreError}</span>
+              <Button size="sm" variant="outline" onClick={loadMore}>
+                {INBOX_STRINGS.error.retry}
+              </Button>
+            </div>
+          )}
+
+          {!error && !loadMoreFailed && !hasMore && items.length > 0 && (
             <div className="py-3 text-center text-[11px] text-muted-foreground">
               {INBOX_STRINGS.endOfList}
             </div>

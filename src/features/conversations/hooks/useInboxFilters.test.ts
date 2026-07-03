@@ -32,14 +32,18 @@ describe("parseAssignmentTokens", () => {
     expect(parseAssignmentTokens("all", SELLER)).toEqual([]);
   });
   it("splits CSV, trims, de-dups, preserves order", () => {
-    expect(parseAssignmentTokens("me, unassigned ,me,queue", SELLER)).toEqual([
+    expect(parseAssignmentTokens("me, queue ,me,seller-9", SELLER)).toEqual([
       "me",
-      "unassigned",
       "queue",
+      "seller-9",
     ]);
   });
   it("accepts a legacy single value", () => {
     expect(parseAssignmentTokens("queue", SELLER)).toEqual(["queue"]);
+  });
+  it("normalizes the legacy 'unassigned' token (pre-unification URLs/localStorage) to 'queue'", () => {
+    expect(parseAssignmentTokens("unassigned", SELLER)).toEqual(["queue"]);
+    expect(parseAssignmentTokens("me,unassigned,queue", SELLER)).toEqual(["me", "queue"]);
   });
 });
 
@@ -52,7 +56,7 @@ describe("serializeAssignmentTokens", () => {
     expect(serializeAssignmentTokens([], SELLER)).toBe("all");
   });
   it("joins multiple tokens as CSV", () => {
-    expect(serializeAssignmentTokens(["me", "unassigned"], SELLER)).toBe("me,unassigned");
+    expect(serializeAssignmentTokens(["me", "queue"], SELLER)).toBe("me,queue");
   });
 });
 
@@ -61,11 +65,11 @@ describe("filtersToListParams — assignment", () => {
     const p = filtersToListParams(baseState({ assignment: ["me"] }), { currentSellerId: SELLER });
     expect(p.assignmentAny).toEqual({ sellerIds: [SELLER] });
   });
-  it("ORs me + unassigned + a specific seller", () => {
-    const p = filtersToListParams(baseState({ assignment: ["me", "unassigned", "seller-9"] }), {
+  it("ORs me + queue + a specific seller", () => {
+    const p = filtersToListParams(baseState({ assignment: ["me", "queue", "seller-9"] }), {
       currentSellerId: SELLER,
     });
-    expect(p.assignmentAny).toEqual({ sellerIds: [SELLER, "seller-9"], unassigned: true });
+    expect(p.assignmentAny).toEqual({ sellerIds: [SELLER, "seller-9"], queue: true });
   });
   it("queue does NOT force the global status filter", () => {
     const p = filtersToListParams(baseState({ assignment: ["queue"] }), { currentSellerId: SELLER });
@@ -76,5 +80,19 @@ describe("filtersToListParams — assignment", () => {
   it("empty set (Todas) applies no assignment constraint", () => {
     const p = filtersToListParams(baseState({ assignment: [] }), { currentSellerId: SELLER });
     expect(p.assignmentAny).toBeUndefined();
+  });
+});
+
+describe("filtersToListParams — tags", () => {
+  it("omits tags when none are selected", () => {
+    const params = filtersToListParams(baseState({ tags: [] }), { currentSellerId: null });
+    expect(params.tags).toBeUndefined();
+  });
+
+  it("passes selected tag ids straight through (OR semantics downstream)", () => {
+    const params = filtersToListParams(baseState({ tags: ["ctag-a", "ctag-b"] }), {
+      currentSellerId: null,
+    });
+    expect(params.tags).toEqual(["ctag-a", "ctag-b"]);
   });
 });
