@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
+  canStartUserFetch,
   INITIAL_LOAD_MAX_ATTEMPTS,
   isLoadMoreFailure,
+  isRehydrateSuperseded,
   nextHasMore,
   placementForIntent,
   resolveListFetchFailure,
   shouldAdoptResultTotal,
   shouldRefreshTotalViaCount,
   shouldRetryListFetch,
+  shouldStartRehydrate,
 } from "./listFetchPolicy";
 
 describe("placementForIntent", () => {
@@ -117,5 +120,55 @@ describe("shouldRefreshTotalViaCount", () => {
     expect(
       shouldRefreshTotalViaCount({ resultTotal: -1, placement: "replace", pageToLoad: 2 }),
     ).toBe(false);
+  });
+});
+
+describe("canStartUserFetch", () => {
+  it("starts when no user fetch is in flight", () => {
+    expect(canStartUserFetch({ userFetchInFlight: false })).toBe(true);
+  });
+
+  it("blocks while another user fetch is in flight (load-more and refetch share this gate)", () => {
+    expect(canStartUserFetch({ userFetchInFlight: true })).toBe(false);
+  });
+});
+
+describe("shouldStartRehydrate", () => {
+  it("starts only when the list is fully idle", () => {
+    expect(shouldStartRehydrate({ userFetchInFlight: false, rehydrateInFlight: false })).toBe(true);
+  });
+
+  it("does not start while a user fetch is in flight (it would clobber pagination)", () => {
+    expect(shouldStartRehydrate({ userFetchInFlight: true, rehydrateInFlight: false })).toBe(false);
+  });
+
+  it("does not stack a second re-hydration", () => {
+    expect(shouldStartRehydrate({ userFetchInFlight: false, rehydrateInFlight: true })).toBe(false);
+  });
+});
+
+describe("isRehydrateSuperseded", () => {
+  const base = {
+    generation: 5,
+    currentGeneration: 5,
+    userFetchInFlight: false,
+    userFetchSeqAtStart: 10,
+    currentUserFetchSeq: 10,
+  };
+
+  it("commits when nothing changed during the run", () => {
+    expect(isRehydrateSuperseded(base)).toBe(false);
+  });
+
+  it("discards when the filter/mode changed (generation bumped)", () => {
+    expect(isRehydrateSuperseded({ ...base, currentGeneration: 6 })).toBe(true);
+  });
+
+  it("discards when a user fetch is in flight at commit (ref-timing-immune)", () => {
+    expect(isRehydrateSuperseded({ ...base, userFetchInFlight: true })).toBe(true);
+  });
+
+  it("discards when a user fetch started-and-settled during the run (seq changed)", () => {
+    expect(isRehydrateSuperseded({ ...base, currentUserFetchSeq: 11 })).toBe(true);
   });
 });

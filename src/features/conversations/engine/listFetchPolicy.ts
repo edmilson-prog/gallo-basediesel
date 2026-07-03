@@ -113,3 +113,62 @@ export function shouldRefreshTotalViaCount(input: {
 }): boolean {
   return input.resultTotal < 0 && input.placement === "replace" && input.pageToLoad === 1;
 }
+
+/**
+ * Concurrency model (2026-07-02 review round 2). The list has two fetch drivers
+ * that must never corrupt each other's commits:
+ *   - USER fetches (initial / load-more / refetch) — mutually exclusive, and
+ *   - a BACKGROUND realtime re-hydration — SUBORDINATE: it runs only when the
+ *     list is idle and discards its commit the moment a user fetch touches state.
+ *
+ * The first fix used React STATE flags (isLoading/isLoadingMore) to gate these,
+ * but state lags a render — a load-more that had just called setIsLoadingMore(true)
+ * was still invisible to a re-hydration firing in the same tick, so both committed
+ * and one clobbered the other. These predicates are driven by synchronous REFS in
+ * the hook instead (an in-flight COUNTER incremented before the first await, and a
+ * monotonic SEQ bumped on every user-fetch start), so the decision never races a
+ * pending render. State flags are now used only for rendering (spinners).
+ */
+
+/**
+ * A user fetch (load-more / refetch) may start only when no other user fetch is
+ * in flight — the SAME gate for both so they can never interleave (an asymmetric
+ * guard let a refetch race a load-more and gap the list). A user fetch does NOT
+ * wait for a background re-hydration: it supersedes it.
+ */
+export function canStartUserFetch(input: { userFetchInFlight: boolean }): boolean {
+  return !input.userFetchInFlight;
+}
+
+/**
+ * The background re-hydration starts only when the list is fully idle: no user
+ * fetch in flight (so it cannot clobber pagination) and no other re-hydration (so
+ * bursts don't stack N sequential fetches). It never sets the loading flags, so it
+ * never blocks a user action.
+ */
+export function shouldStartRehydrate(input: {
+  userFetchInFlight: boolean;
+  rehydrateInFlight: boolean;
+}): boolean {
+  return !input.userFetchInFlight && !input.rehydrateInFlight;
+}
+
+/**
+ * A re-hydration discards its buffered commit if the view moved on during its
+ * run: a filter/mode change (generation), a user fetch currently in flight, or a
+ * user fetch that started-and-settled since it began (seq changed). Any of these
+ * means a user fetch owns the list now — the re-hydration must not overwrite it.
+ */
+export function isRehydrateSuperseded(input: {
+  generation: number;
+  currentGeneration: number;
+  userFetchInFlight: boolean;
+  userFetchSeqAtStart: number;
+  currentUserFetchSeq: number;
+}): boolean {
+  return (
+    input.generation !== input.currentGeneration ||
+    input.userFetchInFlight ||
+    input.userFetchSeqAtStart !== input.currentUserFetchSeq
+  );
+}

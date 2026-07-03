@@ -1,16 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ID, IConversation } from "@/shared/types";
-import { useConversationsProvider, type IListConversationsParams } from "@/providers/data";
+import {
+  useConversationsProvider,
+  type IListConversationsParams,
+  type IPaginatedResult,
+} from "@/providers/data";
 import { captureObservabilityException } from "@/shared/lib/observability";
 import {
+  canStartUserFetch,
   INITIAL_LOAD_RETRY_DELAY_MS,
   isLoadMoreFailure,
+  isRehydrateSuperseded,
   nextHasMore,
   placementForIntent,
   resolveListFetchFailure,
   shouldAdoptResultTotal,
   shouldRefreshTotalViaCount,
   shouldRetryListFetch,
+  shouldStartRehydrate,
   type ListFetchIntent,
 } from "../engine/listFetchPolicy";
 
@@ -77,6 +84,14 @@ export interface IUseConversationsListOptions {
  *   - realtime re-hydration is non-destructive: it buffers pages 1..N and commits
  *     once, so a mid-window failure keeps the current rows instead of truncating.
  *
+ * CONCURRENCY (review round 2): user fetches and the background re-hydration are
+ * coordinated by synchronous REFS, not React state — an in-flight COUNTER
+ * (`userFetchInFlightRef`, incremented before the first await) and a monotonic
+ * SEQ (`userFetchSeqRef`). User fetches are mutually exclusive; the re-hydration
+ * is subordinate (starts only when idle, discards its commit the moment a user
+ * fetch touches state, never sets a loading flag). The `isLoading`/`isLoadingMore`
+ * state exists only to drive spinners. See the engine's concurrency predicates.
+ *
  * In list mode the fetch opts out of the exact count (`withTotal: false` — the
  * expensive per-row-RLS count) and the header total comes from `provider.count`
  * asynchronously; hasMore derives from page fullness. Message-search mode keeps
@@ -117,6 +132,15 @@ export function useConversationsList(
   // generation discard their response instead of touching state.
   const generationRef = useRef(0);
 
+  // --- Concurrency refs (synchronous — never lag a render; see engine model) ---
+  // Number of user fetches (initial/load-more/refetch) currently in flight,
+  // incremented BEFORE the first await so a re-hydration firing in the same tick
+  // already sees it. Monotonic seq bumped on every user-fetch start, so a
+  // re-hydration can also detect a user fetch that started-and-settled during it.
+  const userFetchInFlightRef = useRef(0);
+  const userFetchSeqRef = useRef(0);
+  const rehydrateInFlightRef = useRef(false);
+
   /**
    * Refresh the header total via the cheap gated-once count RPC. Fire-and-
    * forget: the total is cosmetic, so a failure never surfaces — it is logged
@@ -142,28 +166,40 @@ export function useConversationsList(
     [provider, filtersKey],
   );
 
+  /** Single-page fetch — the one place that knows the fetcher + list-mode count
+   *  opt-out. Shared by fetchPage (commit-per-call) and rehydrate (buffered). */
+  const fetchOnePage = useCallback(
+    (pageToLoad: number): Promise<IPaginatedResult<IConversation>> =>
+      (mode === "messages" ? provider.searchMessages : provider.list)({
+        ...filters,
+        page: pageToLoad,
+        pageSize: PAGE_SIZE,
+        // List mode skips the exact count — the per-row-RLS total was the
+        // 5.3s/8s statement-timeout component of the incident.
+        ...(mode === "list" ? { withTotal: false } : {}),
+      }),
+    // We intentionally key on the JSON snapshot to avoid noisy re-renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [provider, filtersKey, mode],
+  );
+
   const fetchPage = useCallback(
     async (pageToLoad: number, intent: ListFetchIntent, generation: number) => {
       // Schedulers pass the generation that owned the view when the fetch was
-      // SCHEDULED. A closure invoked late (debounce timer, retry sleep) after a
-      // filter/mode bump therefore fails this check instead of adopting the new
-      // generation and writing old-filter data into it.
+      // SCHEDULED. A closure invoked late (retry sleep) after a filter/mode bump
+      // therefore fails this check instead of adopting the new generation.
       if (generation !== generationRef.current) return;
+      // Signal activity to any in-flight re-hydration BEFORE the first await, so
+      // it can never commit over a page this fetch is about to load.
+      userFetchInFlightRef.current += 1;
+      userFetchSeqRef.current += 1;
       const placement = placementForIntent(intent);
       if (placement === "replace") setIsLoading(true);
       else setIsLoadingMore(true);
       try {
         for (let attempt = 1; ; attempt += 1) {
           try {
-            const fetcher = mode === "messages" ? provider.searchMessages : provider.list;
-            const result = await fetcher({
-              ...filters,
-              page: pageToLoad,
-              pageSize: PAGE_SIZE,
-              // List mode skips the exact count — the per-row-RLS total was the
-              // 5.3s/8s statement-timeout component of the incident.
-              ...(mode === "list" ? { withTotal: false } : {}),
-            });
+            const result = await fetchOnePage(pageToLoad);
             if (generation !== generationRef.current) return;
             setError(null);
             setLoadMoreFailed(false);
@@ -234,6 +270,7 @@ export function useConversationsList(
           }
         }
       } finally {
+        userFetchInFlightRef.current -= 1;
         // A newer generation owns the loading flags now — don't clobber them.
         if (generation === generationRef.current) {
           if (placement === "replace") setIsLoading(false);
@@ -243,34 +280,49 @@ export function useConversationsList(
     },
     // We intentionally key on the JSON snapshot to avoid noisy re-renders.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [provider, filtersKey, mode, refreshTotal],
+    [fetchOnePage, filtersKey, mode, refreshTotal],
   );
 
   /**
-   * Non-destructive realtime re-hydration: build the full 1..target window in a
-   * local buffer and commit it ONCE. A mid-window failure keeps the rows already
-   * on screen (the next tick retries) instead of leaving a truncated list — and
-   * it never flashes a 1-page list on the way. Single attempt per page:
-   * re-hydration must not amplify load during the timeouts it rides on.
+   * Non-destructive, SUBORDINATE realtime re-hydration: build the full 1..target
+   * window in a local buffer and commit it ONCE, only if no user fetch touched
+   * state meanwhile. A mid-window failure keeps the rows already on screen (the
+   * next tick retries) instead of leaving a truncated list — and it never flashes
+   * a 1-page list on the way. It sets NO loading flag (so it never blocks a user
+   * action) and runs one-at-a-time. Single attempt per page: re-hydration must
+   * not amplify load during the timeouts it rides on.
    */
   const rehydrate = useCallback(
     async (target: number, generation: number) => {
       if (generation !== generationRef.current) return;
-      setIsLoading(true);
+      if (
+        !shouldStartRehydrate({
+          userFetchInFlight: userFetchInFlightRef.current > 0,
+          rehydrateInFlight: rehydrateInFlightRef.current,
+        })
+      ) {
+        return;
+      }
+      const userFetchSeqAtStart = userFetchSeqRef.current;
+      const superseded = () =>
+        isRehydrateSuperseded({
+          generation,
+          currentGeneration: generationRef.current,
+          userFetchInFlight: userFetchInFlightRef.current > 0,
+          userFetchSeqAtStart,
+          currentUserFetchSeq: userFetchSeqRef.current,
+        });
+      rehydrateInFlightRef.current = true;
       try {
         const buffer: IConversation[] = [];
         const seen = new Set<ID>();
         let lastRawLen = 0;
         let anchorTotal = TOTAL_UNKNOWN;
         for (let p = 1; p <= target; p += 1) {
-          const fetcher = mode === "messages" ? provider.searchMessages : provider.list;
-          const result = await fetcher({
-            ...filters,
-            page: p,
-            pageSize: PAGE_SIZE,
-            ...(mode === "list" ? { withTotal: false } : {}),
-          });
-          if (generation !== generationRef.current) return;
+          const result = await fetchOnePage(p);
+          // Bail the moment a user fetch intervened — don't keep hitting the
+          // server, and never commit over the user's list.
+          if (superseded()) return;
           lastRawLen = result.data.length;
           if (p === 1) anchorTotal = result.total;
           for (const c of result.data) {
@@ -283,7 +335,7 @@ export function useConversationsList(
           // requesting empty higher pages.
           if (result.data.length < PAGE_SIZE) break;
         }
-        if (generation !== generationRef.current) return;
+        if (superseded()) return;
         // Commit the whole window atomically.
         setItems(buffer);
         itemsRef.current = buffer;
@@ -299,21 +351,21 @@ export function useConversationsList(
         }
       } catch (err) {
         // A background re-hydration failure is silent and non-destructive: keep
-        // the rows already on screen; the next tick retries. Report once (not
-        // per page) so the incident signal is not drowned.
-        if (generation !== generationRef.current) return;
+        // the rows already on screen; the next tick retries. Report once (not per
+        // page), and only if it was not superseded (a user fetch owns the error UI).
+        if (superseded()) return;
         captureObservabilityException(err, {
           source: "useConversationsList.rehydrate",
           mode,
           target,
         });
       } finally {
-        if (generation === generationRef.current) setIsLoading(false);
+        rehydrateInFlightRef.current = false;
       }
     },
     // We intentionally key on the JSON snapshot to avoid noisy re-renders.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [provider, filtersKey, mode, refreshTotal],
+    [fetchOnePage, filtersKey, mode, refreshTotal],
   );
 
   // Reset to page 1 whenever filters change OR the fetch mode flips
@@ -337,9 +389,8 @@ export function useConversationsList(
     setError(null);
     setListHasMore(false);
     setLoadMoreFailed(false);
-    // An append in flight across the reset would otherwise leave this flag
-    // stuck true forever (its finally is generation-guarded), permanently
-    // gating loadMore and killing infinite scroll.
+    // Reset the render-only spinner flag; the in-flight COUNTER is left alone
+    // (balanced by each fetch's finally) so it never goes negative.
     setIsLoadingMore(false);
     void fetchPage(1, "initial", generation);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -368,26 +419,30 @@ export function useConversationsList(
   const hasMore = error === null && !loadMoreFailed && moreAvailable;
 
   const loadMore = useCallback(() => {
-    if (isLoading || isLoadingMore) return;
-    // Check raw availability, not the folded `hasMore`: this is also the manual
-    // retry entry point (the failed-load footer button), which must fire while
-    // `loadMoreFailed` is still true. It clears the flag before retrying.
+    // Concurrency is governed by the in-flight COUNTER ref, not the render flags
+    // (which lag a tick). This is also the manual retry entry point (the failed-
+    // load footer button), so it checks raw availability (`moreAvailable`), not
+    // the folded `hasMore` (false while `loadMoreFailed`), and clears the flag.
+    if (!canStartUserFetch({ userFetchInFlight: userFetchInFlightRef.current > 0 })) return;
     if (!moreAvailable) return;
     setLoadMoreFailed(false);
     void fetchPage(page + 1, "load-more", generationRef.current);
-  }, [isLoading, isLoadingMore, moreAvailable, page, fetchPage]);
+  }, [moreAvailable, page, fetchPage]);
 
   const refetch = useCallback(() => {
-    if (isLoading) return;
-    // Clearing the panel (and showing the spinner) is what the "Tentar novamente"
-    // button needs; on a populated list this is a no-op.
+    // Same in-flight gate as loadMore (symmetric — an asymmetric guard let a
+    // refetch race a load-more and gap the list). A background rehydrate holds no
+    // loading flag, so the error-panel "Tentar novamente" is never a no-op.
+    if (!canStartUserFetch({ userFetchInFlight: userFetchInFlightRef.current > 0 })) return;
+    // Clearing the panel (and showing the spinner) is what the retry button
+    // needs; on a populated list this is a no-op.
     setError(null);
     setLoadMoreFailed(false);
     // With rows on screen this is a re-anchor (retry once, keep rows on failure);
     // from a blank/error screen it behaves like the initial load (surface again).
     const intent: ListFetchIntent = itemsRef.current.length === 0 ? "initial" : "refetch";
     void fetchPage(1, intent, generationRef.current);
-  }, [isLoading, fetchPage]);
+  }, [fetchPage]);
 
   const markItemRead = useCallback((id: ID) => {
     setItems((prev) =>
