@@ -17,7 +17,7 @@ export const THEME_NAMES: ThemeName[] = ["diesel", "parts", "service", "industri
 export const MODES: ThemeMode[] = ["light", "dark", "auto"];
 
 export const DEFAULT_THEME: ThemeName = "diesel";
-export const DEFAULT_MODE: ThemeMode = "auto";
+export const DEFAULT_MODE: ThemeMode = "dark";
 
 export const LOCALSTORAGE_KEYS = {
   theme: "gallo-theme",
