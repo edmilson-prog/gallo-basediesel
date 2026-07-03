@@ -31,7 +31,6 @@ import { recordAuditLog, useConversationTagsProvider } from "@/providers/data";
 import {
   TAG_PALETTE,
   TAG_LABEL_MAX,
-  tagColorHex,
   validateTagLabel,
 } from "@/features/conversations/engine/tagCatalog";
 import { ConversationTagChip } from "@/features/conversations/components/tags/ConversationTagChip";
@@ -187,7 +186,7 @@ export function ConversationTagsSettingsTab() {
     }
   }
 
-  async function handleArchiveToggle(tag: IConversationTag) {
+  async function handleArchiveToggle(tag: IConversationTag): Promise<boolean> {
     try {
       await provider.update(tag.id, { archived: !tag.archived });
       audit(
@@ -197,8 +196,10 @@ export function ConversationTagsSettingsTab() {
         { archived: !tag.archived },
       );
       await refresh();
+      return true;
     } catch {
       toast.error("Não foi possível atualizar a tag.");
+      return false;
     }
   }
 
@@ -219,8 +220,12 @@ export function ConversationTagsSettingsTab() {
   }
 
   async function handleHeaderMode(mode: ConversationTagsHeaderMode) {
-    await updateSettings({ conversationTags: { headerMode: mode } }, "settings.conversation_tags.header_mode");
-    await queryClient.invalidateQueries({ queryKey: ["platform-settings", storeId] });
+    try {
+      await updateSettings({ conversationTags: { headerMode: mode } }, "settings.conversation_tags.header_mode");
+      await queryClient.invalidateQueries({ queryKey: ["platform-settings", storeId] });
+    } catch {
+      toast.error("Não foi possível salvar a exibição do cabeçalho.");
+    }
   }
 
   if (tagsQuery.isLoading || !settings) {
@@ -460,9 +465,8 @@ export function ConversationTagsSettingsTab() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             {confirmDelete && (usage[confirmDelete.id] ?? 0) > 0 ? (
               <AlertDialogAction
-                onClick={() => {
-                  void handleArchiveToggle(confirmDelete);
-                  setConfirmDelete(null);
+                onClick={async () => {
+                  if (await handleArchiveToggle(confirmDelete)) setConfirmDelete(null);
                 }}
               >
                 Arquivar
