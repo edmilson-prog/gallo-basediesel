@@ -81,10 +81,11 @@ Estende a invariante do unify (v0.129.0). Definir o conjunto **terminal** `TERMI
 
 Encerrar (pelo `StatusControl`, pelo kebab "Resolver/Arquivar" ou por `QuickActions`) deve, **numa só operação**, gravar o status terminal **e** zerar `assigned_seller_id` — sem passar por um `aguardando` transitório (que poluiria a timeline com um evento espúrio).
 
-- **Supabase:** novo RPC `close_conversation(p_conversation_id, p_status)` `SECURITY DEFINER`, espelhando o padrão de `transfer_conversation`/`unassign` (o dono não-staff perde a linha do próprio SELECT ao desatribuir → precisa de DEFINER). Valida `p_status ∈ TERMINAL`, checa `can_access_conversation`, seta `status=p_status, assigned_seller_id=NULL, is_sdr_active=false`, **emite os eventos de atividade** (ver Frente 2) e devolve a linha.
-- **Mock:** `MockConversationsProvider.close(id, status)` faz o equivalente in-memory + emite eventos.
+- **Supabase:** novo RPC `close_conversation(p_conversation_id, p_status)` `SECURITY DEFINER`, espelhando o padrão de `transfer_conversation` (o dono não-staff perde a linha do próprio SELECT ao desatribuir → precisa de DEFINER; **não** serve o UPDATE direto de `unassign`). Valida `p_status ∈ TERMINAL`, checa `can_access_conversation`, seta `status=p_status, assigned_seller_id=NULL, is_sdr_active=false` e devolve a linha. O evento de atividade é gravado pelo **trigger** (Frente 2), não pelo RPC.
+- **Mock:** `MockConversationsProvider.close(id, status)` faz o equivalente in-memory + emite o evento (o mock não tem trigger).
 - **Contrato:** `IConversationsProvider.close(id, status: 'resolvida' | 'arquivada'): Promise<IConversation>`.
 - `useConversationStatusActions`: quando `coupleManualStatusChange` = `'close'`, chamar `close(id, next)` em vez de `update`/`unassign`. Toast de encerramento + "removida da lista".
+- **Reabertura manual** (kebab "Reabrir"/"Desarquivar" numa conversa terminal, que é sem dono): trata-se de **assumir** — vai para `em_andamento` **com o autor como dono** (acoplamento `assign-self`), estado válido pela invariante. Difere da reabertura automática (§1.5), que devolve à **fila** (`aguardando`, sem dono) porque ninguém está ativamente no atendimento.
 
 ### 1.4 Some da lista por padrão (mas visível por filtro)
 
@@ -97,8 +98,8 @@ Encerrar (pelo `StatusControl`, pelo kebab "Resolver/Arquivar" ou por `QuickActi
 
 Ao chegar um **inbound** (mensagem do cliente) numa conversa **terminal**: `status → aguardando`, `assigned_seller_id → NULL` (já nulo), `lastMessageAt → agora` (sobe ao topo), `unreadCount++`, e **emite evento `reopen` com ator = Sistema**.
 
-- **Prod (webhook):** `whatsapp-webhook` → `whatsapp/webhook/core.ts` aplica `reopenOnInbound(current)` antes de anexar a mensagem. Núcleo runtime-agnostic espelhado em `_shared/` via `scripts/sync-whatsapp-shared.ts` ⇒ **redeploy** da Edge (owner-gated). Passo idempotente: só reabre se terminal.
-- **Mock:** o caminho de inbound/**eco** (`SendMessage`) do mock aplica o mesmo engine.
+- **Prod (webhook):** na resolução de conversa (`whatsapp/webhook/core.ts`, passo 6), a conversa **terminal** deixa de ser ignorada — passa a ser reaproveitada e reaberta via `reopenOnInbound(current)` antes de anexar a mensagem. Como `core.ts` é runtime-agnostic (só imports relativos dentro de `src/providers/whatsapp/`) e o sync (`scripts/sync-whatsapp-shared.ts`) só espelha essa árvore, o predicado `TERMINAL_STATUSES`/`reopenOnInbound` é **duplicado localmente** em `core.ts` (mesmo estilo dos predicados puros locais já existentes — `goConnectionTransition` etc.), **não** importado de `providers/data/engine`. O adapter da Edge (`whatsapp-webhook/index.ts`, fora do sync) ganha `findOpenConversation` sem o filtro que exclui terminais + um `reopenConversation` (UPDATE único: `status='aguardando', assigned_seller_id=NULL, last_message_at, unread_count+1`). ⇒ **redeploy** da Edge (owner-gated). Idempotente: só reabre se terminal.
+- **Mock:** só o **inbound do cliente** reabre — `messagesApi.simulateIncoming` (`direction: "in"`), trocando o ternário que hoje preserva terminais por `reopenOnInbound(status)`. O **eco do celular** (mensagem enviada do próprio aparelho = `SendMessage`/outbound) **não** reabre (é ação do lado do atendente, não contato novo do cliente).
 - SDR: conversa terminal tem SDR off; reabertura não liga SDR. Sem interação nova.
 
 ### 1.6 Onde muda (Frente 1)
@@ -124,7 +125,7 @@ Ao chegar um **inbound** (mensagem do cliente) numa conversa **terminal**: `stat
 | `customer_id` | uuid null | denormalizado p/ query "cliente inteiro" (nulo se lead) |
 | `lead_id` | text null | idem para leads (`lead_id` é TEXT no projeto) |
 | `store_id` | uuid | escopo de RLS |
-| `type` | text | `status` · `assignment` · `reopen` (CHECK) |
+| `type` | text | `created` · `status` · `assignment` · `reopen` (CHECK); derivado no trigger |
 | `from_status` | text null | quando `type` toca status |
 | `to_status` | text null | idem |
 | `from_seller_id` | uuid null | quando `type=assignment` |
@@ -135,24 +136,24 @@ Ao chegar um **inbound** (mensagem do cliente) numa conversa **terminal**: `stat
 
 Índices: `(customer_id, created_at)`, `(conversation_id, created_at)`.
 
-**Semântica dos eventos** (a UI deriva o rótulo; sem enum de rótulo no banco):
-- **Encerrar** (`close_conversation`) emite **um** evento `status` com `to_status ∈ TERMINAL` **e** um evento `assignment` com `to_seller_id=NULL` — a UI funde numa linha "Resolvida — encerrada · sem dono".
-- **Assumir da fila / desatribuir / transferir** → `assignment` (`from_seller_id`→`to_seller_id`); ator = quem executou.
-- **Reabrir no inbound** → `reopen` (`to_status='aguardando'`, `actor_kind='system'`, `actor_id=NULL`).
-- Troca manual de status "aberta↔aberta" (ex.: `em_andamento`→`aguardando_cliente`) → `status`.
+**Uma linha por transição** — cada `UPDATE`/`INSERT` em `conversations` que mexa em status e/ou dono gera **uma** linha carregando os dois deltas (`from/to_status` + `from/to_seller_id`); o `type` é **derivado**, e a UI compõe o rótulo:
+- `created` — criação da conversa (`INSERT`): `to_status` inicial (tipicamente `aguardando`). Abre a timeline.
+- `reopen` — `status` terminal → `aguardando` **por Sistema** (`actor_id IS NULL`): a reabertura automática no inbound.
+- `status` — qualquer outra mudança de status (inclui **encerrar**: `to_status ∈ TERMINAL` já com `to_seller_id=NULL` na mesma linha → a UI mostra "Resolvida — encerrada · sem dono"; e trocas aberta↔aberta).
+- `assignment` — só o dono mudou, sem troca de status (assumir/devolver/transferir).
 
 **Duração** por linha = diferença entre o `created_at` do evento e o do próximo evento **da mesma conversa** — calculada no cliente, não persistida.
 
-### 2.2 Emissão (explícita, ator conhecido no call-site)
+### 2.2 Emissão via trigger (server) + mock explícito
 
-Escrita **explícita** em cada caminho (não trigger — o ator é conhecido no ponto de mutação; trigger não sabe distinguir seller vs Sistema):
+No Supabase, a emissão é feita por um **trigger** `AFTER INSERT OR UPDATE` em `conversations` (`conversation_activity_capture`, `SECURITY DEFINER` — padrão já usado no projeto, ex.: @menção das notas). Vantagem decisiva: captura **todos** os caminhos de forma uniforme — RPC `close_conversation`, RPC `transfer_conversation`, o **UPDATE direto de `unassign`** (que, sendo client-side numa tabela de escrita negada, **não conseguiria** inserir de outro jeito), a reabertura do webhook e o `update` manual de status.
 
-- RPCs `transfer_conversation` (assign/transfer), `close_conversation` (close), e o caminho de `unassign` → inserem `assignment`/`status` com `actor_id = auth.uid()→seller`.
-- Troca manual de status (`update` de `status`) → `status`.
-- Webhook (`reopenOnInbound`, service_role) → `reopen` com `actor_kind='system'`.
-- Mock: cada op equivalente insere no store in-memory.
+- Dispara só quando `status` **ou** `assigned_seller_id` mudou (`IS DISTINCT FROM`); `markRead`/bump não geram evento.
+- **Ator** resolvido no trigger por `public.current_seller_id()` → `actor_kind='seller'` quando há JWT de atendente; **`NULL`/`system`** quando a mudança vem do webhook (service_role, sem claim de seller). É isso que dá o "Sistema" limpo, sem `actor_id` sujo.
+- Denormaliza `customer_id`/`lead_id`/`store_id` de `NEW`.
+- INSERT na tabela só pelo trigger (função dona = postgres, bypassa a RLS de escrita negada); o cliente nunca escreve direto.
 
-INSERT restrito a `service_role` / funções `SECURITY DEFINER` (o cliente nunca escreve direto).
+**Mock:** sem trigger — cada op equivalente insere no store in-memory explicitamente (`close`, `assignSeller`, `unassign`, `simulateIncoming`/reopen, `create`), com o ator resolvido da sessão mock (nulo = Sistema).
 
 ### 2.3 RLS & leitura
 
@@ -182,7 +183,7 @@ Layout aprovado:
 
 ### 2.6 Onde muda (Frente 2)
 
-- Migration: tabela `conversation_activity` + índices + RLS (deny direto) + `get_customer_activity` RPC + emissão nos RPCs `transfer_conversation`/`close_conversation`/unassign path + backfill.
+- Migration: tabela `conversation_activity` + índices + RLS (deny direto) + trigger `conversation_activity_capture` + `get_customer_activity` RPC + `close_conversation` RPC + backfill.
 - `src/shared/types/conversation.ts` — `IConversationActivityEvent`, `AttendanceActivityType`.
 - `src/providers/data/contracts` + `impl/{mock,supabase}` — provider `activity` com `getCustomerActivity`.
 - `src/features/attendance-history/` — `AttendanceHistoryPanel`, `engine/attendanceTimeline.ts` (+ test), `hooks/useCustomerActivity.ts`, `i18n/pt-BR.ts`.
@@ -215,10 +216,10 @@ Layout aprovado:
 
 Ordem sugerida (o plano detalha as fases):
 
-1. Migration `conversation_activity` + RLS + `get_customer_activity` (schema; inócuo sozinho).
-2. Migration `close_conversation` + emissão nos RPCs existentes.
-3. Frontend Frente 1 (default de filtro, engine, `close()`, UI de encerrar).
-4. Redeploy `whatsapp-webhook` (reabertura) — sync `_shared/` + deploy.
+1. Migration `conversation_activity` + índices + RLS deny-direto + trigger `conversation_activity_capture` + `get_customer_activity` (schema; inócuo sozinho — a tabela começa a registrar assim que o trigger existe).
+2. Migration `close_conversation` RPC.
+3. Frontend Frente 1 (default de filtro, engine, `close()`, UI de encerrar/reabrir).
+4. Redeploy `whatsapp-webhook` (reabertura) — editar `core.ts` + adapter `index.ts`, `bun run scripts/sync-whatsapp-shared.ts`, deploy.
 5. Backfill (idempotente) + UI do painel (Frente 2).
 
 Cada `apply_migration`/deploy em prod: **confirmar com o dono** e espelhar a migration em `supabase/migrations/`.
