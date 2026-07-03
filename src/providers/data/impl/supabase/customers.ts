@@ -442,4 +442,19 @@ export const supabaseCustomersProvider: ICustomersProvider = {
     if (!data) throw new Error("[supabase] customers.restorePendingContact returned no row");
     return rowToCustomer(data as unknown as CustomerRow, []);
   },
+
+  async renameContact(customerId: ID, name: string): Promise<ICustomer> {
+    // SECURITY DEFINER RPC gated by can_access_conversation: renames the display
+    // name for a contact the caller can ACT on (staff, carteira owner, or a
+    // conversation they attend — pool/instance included), bypassing the
+    // `customers_update` policy that lacks the `seller_handles_customer` branch.
+    // The RPC picks full_name/nome_fantasia from the row's own `type`.
+    const { data, error } = await getSupabaseClient()
+      .rpc("rename_customer_contact", { p_customer_id: customerId, p_name: name })
+      .maybeSingle();
+    if (error)
+      throw new Error(`[supabase] customers.renameContact(${customerId}) failed: ${error.message}`);
+    if (!data) throw new Error("[supabase] customers.renameContact returned no row");
+    return rowToCustomer(data as unknown as CustomerRow, []);
+  },
 };

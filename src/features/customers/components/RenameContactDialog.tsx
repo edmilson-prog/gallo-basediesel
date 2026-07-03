@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCustomersProvider } from "@/providers/data/hooks/useCustomersProvider";
-import { auditLog } from "@/features/rbac/utils/auditLog";
 import { getCustomerName } from "../utils/customerDisplay";
 import { CUSTOMER_STRINGS } from "../i18n/pt-BR";
 
@@ -28,10 +27,12 @@ export interface IRenameContactDialogProps {
 
 /**
  * Renames the customer's DISPLAY name in the platform — `fullName` (B2C) or
- * `nomeFantasia` (B2B), the same field `getCustomerName` reads. The patch carries
- * `type` because the Supabase mapper only writes the variant field when the
- * discriminant is present. Self-contained: it runs the update, audit, cache
- * invalidation and toast, so callers only open it.
+ * `nomeFantasia` (B2B), the same field `getCustomerName` reads. Persists through
+ * `provider.renameContact`, which resolves the variant field from the row's own
+ * `type` server-side and is gated (SECURITY DEFINER RPC) so a non-staff seller
+ * attending a POOL contact can rename it — and writes the audit trail there.
+ * Self-contained: it runs the rename, cache invalidation and toast, so callers
+ * only open it.
  */
 export function RenameContactDialog({
   customer,
@@ -68,19 +69,12 @@ export function RenameContactDialog({
     }
     setSaving(true);
     setError(null);
-    const patch: Partial<ICustomer> =
-      customer.type === "B2B"
-        ? { type: "B2B", nomeFantasia: trimmed }
-        : { type: "B2C", fullName: trimmed };
     try {
-      await provider.update(customer.id, patch);
-      auditLog({
-        action: "customer.rename",
-        resource: "customer",
-        resourceId: customer.id,
-        before: { name: currentName },
-        after: { name: trimmed },
-      });
+      // Gated server-side (SECURITY DEFINER RPC) so a non-staff seller attending
+      // a POOL contact can rename it — the direct customers UPDATE is RLS-blocked
+      // off their carteira. The RPC resolves fullName/nomeFantasia from the row
+      // and writes the audit trail server-side (bypasses RLS, may act cross-carteira).
+      await provider.renameContact(customer.id, trimmed);
       void queryClient.invalidateQueries({ queryKey: ["customer-profile", customer.id] });
       void queryClient.invalidateQueries({ queryKey: ["customers-list"] });
       toast.success(CUSTOMER_STRINGS.rename.success);

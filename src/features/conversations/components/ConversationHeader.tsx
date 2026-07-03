@@ -126,7 +126,7 @@ export function ConversationHeader({
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h2 className="truncate text-sm font-semibold text-foreground">{display.name}</h2>
+            <h2 className="truncate text-sm font-semibold uppercase text-foreground">{display.name}</h2>
             {conversation.isSdrActive && (
               <Tooltip>
                 <TooltipTrigger asChild>
