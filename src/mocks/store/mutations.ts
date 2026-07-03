@@ -4,6 +4,7 @@ import type {
   ICashFlowEntry,
   ICommission,
   IConversation,
+  IConversationActivityEvent,
   ICustomer,
   ICustomerNote,
   IDistributionTrace,
@@ -49,6 +50,7 @@ type CollectionKey =
   | "recommendations"
   | "audits"
   | "distributionTraces"
+  | "conversationActivity"
   | "sdrSessions"
   | "sdrEscalations"
   | "notifications"
@@ -78,6 +80,7 @@ type CollectionMap = {
   recommendations: IRecommendation;
   audits: IAuditLog;
   distributionTraces: IDistributionTrace;
+  conversationActivity: IConversationActivityEvent;
   sdrSessions: ISdrSession;
   sdrEscalations: ISdrEscalation;
   notifications: INotification;

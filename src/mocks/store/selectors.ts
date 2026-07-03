@@ -192,6 +192,10 @@ export function selectDistributionTraceById(id: ID) {
   return getMockState().distributionTraces.find((t) => t.id === id) ?? null;
 }
 
+export function selectAllConversationActivity() {
+  return getMockState().conversationActivity;
+}
+
 export function selectAllSdrSessions() {
   return getMockState().sdrSessions;
 }
