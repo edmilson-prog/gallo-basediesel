@@ -4,6 +4,23 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.130.0] — Marker · 2026-07-03
+
+**Etiquetas para organizar as conversas do Atendimento.** Agora dá para marcar cada conversa com etiquetas coloridas — como "Garantia", "Aguardando peça" ou "Orçamento enviado" — e filtrar a lista por elas. O proprietário monta o catálogo de etiquetas numa tela nova (com cores à escolha, inclusive personalizadas), e os atendentes aplicam nas conversas. As etiquetas aparecem na ficha da conversa, no topo do atendimento e na linha da lista, e a gestão de etiquetas de conversa e de cliente ficou reunida numa tela só, com duas abas.
+
+### Added
+
+- **Etiquetas de conversa** — cada conversa do Atendimento pode receber etiquetas coloridas, aplicadas pelos atendentes na ficha (aba "Atendimento"). Elas também aparecem no topo da conversa e na linha da lista, para bater o olho e já saber do que se trata.
+- **Catálogo de etiquetas (Configurações → Atendimento → Tags)** — o proprietário cria, renomeia, troca a cor, arquiva e exclui as etiquetas de conversa numa tela dedicada. Cada etiqueta mostra em quantas conversas está em uso; excluir uma etiqueta que ainda está em uso é bloqueado — a opção é arquivar, que a esconde das listas sem apagar o histórico.
+- **Cores à escolha** — além de uma paleta de 10 cores prontas, há um seletor de cor personalizada para quem quiser um tom específico.
+- **Filtro por etiqueta na Inbox** — a lista de conversas do Atendimento pode ser filtrada pelas etiquetas de conversa (várias ao mesmo tempo).
+- **Tela de tags unificada** — a tela de tags virou um hub com duas abas: "Tags de conversa" (nova) e "Tags de cliente" (a de sempre, sem mudanças).
+
+### Changed
+
+- **Etiquetas de conversa sempre em MAIÚSCULAS** — ao criar ou renomear uma etiqueta de conversa, o nome é padronizado em maiúsculas, na tela e no armazenamento, para manter o catálogo uniforme.
+- **Filtro "Tags" do Atendimento** — passou a filtrar pelas etiquetas de conversa (antes usava as etiquetas de cliente) e o menu não fecha mais a cada seleção, facilitando marcar várias de uma vez.
+
 ## [0.129.0] — Unison · 2026-07-03
 
 **"Sem atribuição" e "Em fila" viraram uma coisa só, o status acompanha o atendimento sozinho, e mensagens enviadas pelo celular voltam a aparecer.** O filtro de atribuição do Atendimento tinha dois conceitos que se confundiam — "Sem atribuição" e "Em fila" — e agora são um só: **Em fila**, o pool de conversas abertas esperando alguém assumir. Assumir uma conversa passa a movê-la para "Em atendimento" automaticamente, e devolvê-la à fila volta o status para "Aguardando", sem precisar mexer no status na mão. E quando alguém da equipe responde um cliente direto pelo aparelho, essa mensagem agora aparece na conversa da plataforma — texto e mídia — em vez de sumir.
