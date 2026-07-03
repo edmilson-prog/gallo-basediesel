@@ -47,7 +47,7 @@ export function ConversationTagPicker({
   const [search, setSearch] = useState("");
   const { activeTags, tags: allTags } = useConversationTags();
   const { toggleTag, saving } = useConversationTagsMutation(conversation, { onDone: onChanged });
-  const { hasRole, currentUser } = useAuth();
+  const { hasRole } = useAuth();
   const provider = useConversationTagsProvider();
   const { currentStoreId } = useCurrentStore();
   const queryClient = useQueryClient();

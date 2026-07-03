@@ -28,7 +28,7 @@ create policy conversation_tags_select
   on public.conversation_tags for select to authenticated
   using (store_id = (select public.current_store_id()));
 
--- Writes: Owner only (strict — fail-closed via IS DISTINCT FROM pattern).
+-- Writes: Owner only (strict — fail-closed via NULL semantics of `= 'owner'`).
 create policy conversation_tags_insert
   on public.conversation_tags for insert to authenticated
   with check (
