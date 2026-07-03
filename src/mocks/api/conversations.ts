@@ -89,14 +89,12 @@ function matchesSearch(conversation: IConversation, term: string): boolean {
   return false;
 }
 
+// Mirrors the supabase provider's `.overlaps("tags", ...)`: conversation tags
+// are CONVERSATION-tag ids only — customer/lead tags are filtered on the
+// Clientes screen, not here (2026-07-02 conversation-tags spec, decision 4).
 function matchesTags(conversation: IConversation, tags: string[]): boolean {
   if (tags.length === 0) return true;
-  const { customer, lead } = getCustomerOrLead(conversation);
-  const owned = new Set<string>([
-    ...conversation.tags,
-    ...(customer?.tags ?? []),
-    ...(lead?.tags ?? []),
-  ]);
+  const owned = new Set<string>(conversation.tags);
   return tags.some((t) => owned.has(t));
 }
 

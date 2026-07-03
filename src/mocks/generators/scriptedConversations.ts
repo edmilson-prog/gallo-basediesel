@@ -55,7 +55,7 @@ interface IScriptedScenario {
   /** Seller resolution — by deterministic id when known, or by "round-robin" fallback. */
   assignedSellerId: ID | "round-robin" | "none";
   participant: ParticipantPicker;
-  /** Tags applied to the conversation. Should match labels in seedTags.ts when possible. */
+  /** Conversation-tag IDs from the mock catalog (impl/mock/conversationTags.ts). */
   tags: string[];
   /** Days ago the conversation started (1 = yesterday). */
   daysAgo: number;
@@ -82,7 +82,7 @@ const SCENARIOS: IScriptedScenario[] = [
     isSdrActive: false, // SDR já transferiu
     assignedSellerId: "seller-marina-cardoso",
     participant: { kind: "leadByStage", stage: "new" },
-    tags: ["Volvo", "Frota pesada"],
+    tags: ["ctag-orcamento", "ctag-negociacao"],
     daysAgo: 1,
     turns: [
       {
@@ -145,7 +145,7 @@ const SCENARIOS: IScriptedScenario[] = [
     isSdrActive: false,
     assignedSellerId: "seller-carlos-santos",
     participant: { kind: "customerByTier", tier: "vip" },
-    tags: ["Cliente recorrente", "VIP", "Pagador em dia"],
+    tags: ["ctag-revenda"],
     daysAgo: 3,
     turns: [
       {
@@ -183,7 +183,7 @@ const SCENARIOS: IScriptedScenario[] = [
     isSdrActive: false,
     assignedSellerId: "seller-marina-cardoso",
     participant: { kind: "customerByTier", tier: "first-b2b" },
-    tags: ["Frota pesada", "Scania", "VIP"],
+    tags: ["ctag-orcamento", "ctag-negociacao"],
     daysAgo: 2,
     turns: [
       {
@@ -238,7 +238,7 @@ const SCENARIOS: IScriptedScenario[] = [
     isSdrActive: false,
     assignedSellerId: "none",
     participant: { kind: "customerByTier", tier: "first-b2b" },
-    tags: ["Frota pesada", "Mercedes-Benz"],
+    tags: ["ctag-aguardando-peca"],
     daysAgo: 0,
     turns: [
       {
@@ -264,7 +264,7 @@ const SCENARIOS: IScriptedScenario[] = [
     isSdrActive: false,
     assignedSellerId: "seller-rafael-lima",
     participant: { kind: "customerByTier", tier: "first-b2b" },
-    tags: ["Iveco"],
+    tags: ["ctag-negociacao"],
     daysAgo: 1,
     turns: [
       {
@@ -305,7 +305,7 @@ const SCENARIOS: IScriptedScenario[] = [
     isSdrActive: false,
     assignedSellerId: "seller-carlos-santos",
     participant: { kind: "customerByTier", tier: "first-b2b" },
-    tags: ["Ford Cargo", "Oficina parceira"],
+    tags: ["ctag-garantia", "ctag-pos-venda"],
     daysAgo: 4,
     turns: [
       {
@@ -354,7 +354,7 @@ const SCENARIOS: IScriptedScenario[] = [
     isSdrActive: false,
     assignedSellerId: "seller-rafael-lima",
     participant: { kind: "customerByTier", tier: "first-b2c" },
-    tags: ["Volvo"],
+    tags: ["ctag-orcamento"],
     daysAgo: 7,
     turns: [
       {
@@ -375,7 +375,7 @@ const SCENARIOS: IScriptedScenario[] = [
     isSdrActive: false,
     assignedSellerId: "seller-marina-cardoso",
     participant: { kind: "customerByTier", tier: "first-b2b" },
-    tags: ["Mercedes-Benz", "Cliente recorrente", "Pagador em dia"],
+    tags: ["ctag-pos-venda"],
     daysAgo: 5,
     turns: [
       {
@@ -418,7 +418,7 @@ const SCENARIOS: IScriptedScenario[] = [
     isSdrActive: false,
     assignedSellerId: "seller-rafael-lima",
     participant: { kind: "customerByTier", tier: "first-b2c" },
-    tags: ["Scania"],
+    tags: [],
     daysAgo: 1,
     turns: [
       {
@@ -454,7 +454,7 @@ const SCENARIOS: IScriptedScenario[] = [
     isSdrActive: false,
     assignedSellerId: "seller-carlos-santos",
     participant: { kind: "customerByTier", tier: "dormant" },
-    tags: ["Em recuperação", "Volvo"],
+    tags: ["ctag-negociacao"],
     daysAgo: 0,
     turns: [
       {
@@ -494,7 +494,7 @@ const SCENARIOS: IScriptedScenario[] = [
     isSdrActive: true,
     assignedSellerId: "none",
     participant: { kind: "leadByStage", stage: "qualified" },
-    tags: ["Iveco"],
+    tags: ["ctag-orcamento"],
     daysAgo: 0,
     turns: [
       {
@@ -536,7 +536,7 @@ const SCENARIOS: IScriptedScenario[] = [
     isSdrActive: false,
     assignedSellerId: "seller-rafael-lima",
     participant: { kind: "customerByTier", tier: "first-b2c" },
-    tags: ["Ford Cargo"],
+    tags: [],
     daysAgo: 6,
     turns: [
       {
@@ -574,7 +574,7 @@ const SCENARIOS: IScriptedScenario[] = [
     isSdrActive: false,
     assignedSellerId: "seller-marina-cardoso",
     participant: { kind: "customerByTier", tier: "first-b2b" },
-    tags: ["Scania", "Frota pesada"],
+    tags: ["ctag-aguardando-peca"],
     daysAgo: 0,
     turns: [
       {
@@ -609,7 +609,7 @@ const SCENARIOS: IScriptedScenario[] = [
     isSdrActive: false,
     assignedSellerId: "seller-rafael-lima",
     participant: { kind: "customerByTier", tier: "first-b2c" },
-    tags: ["Ford Cargo"],
+    tags: [],
     daysAgo: 0,
     turns: [
       {
@@ -639,7 +639,7 @@ const SCENARIOS: IScriptedScenario[] = [
     isSdrActive: false,
     assignedSellerId: "seller-carlos-santos",
     participant: { kind: "customerByTier", tier: "dormant" },
-    tags: ["Em recuperação", "Volvo"],
+    tags: ["ctag-orcamento"],
     daysAgo: 0,
     turns: [
       {
@@ -664,7 +664,7 @@ const SCENARIOS: IScriptedScenario[] = [
     isSdrActive: false,
     assignedSellerId: "seller-rafael-lima",
     participant: { kind: "customerByTier", tier: "dormant-b2c" },
-    tags: ["Em recuperação", "Iveco"],
+    tags: ["ctag-negociacao", "ctag-aguardando-peca"],
     daysAgo: 0,
     turns: [
       {
