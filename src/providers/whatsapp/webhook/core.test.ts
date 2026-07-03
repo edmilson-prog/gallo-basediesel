@@ -37,6 +37,7 @@ interface IFakeState {
   uploads: string[];
   audits: Array<Record<string, unknown>>;
   bumps: string[];
+  reopens: Array<{ conversationId: string; lastMessageAt: string }>;
   touches: Array<{ conversationId: string; lastMessageAt: string }>;
   mediaSet: Array<{ messageId: string; mediaUrl: string | null; status: string }>;
   invalidCustomers: string[];
@@ -94,10 +95,12 @@ function makeFakeDb(state: IFakeState, opts?: { knownOutboundId?: string }): IWe
       if (current === "" || !/\p{L}/u.test(current)) customer.name = name;
     },
     findOpenConversation: async (customerId, accountId) => {
+      // Reuses the latest conversation regardless of status (open flag is
+      // vestigial here) — the caller decides whether to reopen it.
       const found = state.conversations.find(
-        (c) => c.customerId === customerId && c.accountId === accountId && c.open,
+        (c) => c.customerId === customerId && c.accountId === accountId,
       );
-      return found ? { id: found.id } : null;
+      return found ? { id: found.id, status: found.status ?? "aguardando" } : null;
     },
     createConversation: async ({ customerId, accountId, status, assignedSellerId }) => {
       const conversation = {
@@ -126,6 +129,14 @@ function makeFakeDb(state: IFakeState, opts?: { knownOutboundId?: string }): IWe
     },
     bumpConversation: async (conversationId) => {
       state.bumps.push(conversationId);
+    },
+    reopenConversation: async (conversationId, lastMessageAt) => {
+      state.reopens.push({ conversationId, lastMessageAt });
+      const conversation = state.conversations.find((c) => c.id === conversationId);
+      if (conversation) {
+        conversation.status = "aguardando";
+        conversation.open = true;
+      }
     },
     findOutboundMessageByProviderMessageId: async (pmid) =>
       pmid === opts?.knownOutboundId
@@ -165,6 +176,7 @@ function emptyState(): IFakeState {
     uploads: [],
     audits: [],
     bumps: [],
+    reopens: [],
     touches: [],
     mediaSet: [],
     invalidCustomers: [],
@@ -281,7 +293,7 @@ describe("processWebhookEvent — inbound messages (RF-040/050)", () => {
     expect(state.conversations).toHaveLength(1);
   });
 
-  it("does NOT reuse a closed conversation — opens a new one", async () => {
+  it("REOPENS a resolvida conversation on inbound instead of opening a new one", async () => {
     const state = emptyState();
     state.customers.push({
       id: "cust-old",
@@ -294,12 +306,42 @@ describe("processWebhookEvent — inbound messages (RF-040/050)", () => {
       customerId: "cust-old",
       accountId: "acc-1",
       open: false,
+      status: "resolvida",
     });
 
     const result = await run(state, evolutionTextEvent());
-    expect(result.outcome).toBe("message-created");
-    expect(result.conversationId).not.toBe("conv-closed");
-    expect(state.conversations).toHaveLength(2);
+    expect(result).toMatchObject({ outcome: "message-created", conversationId: "conv-closed" });
+    // No duplicate conversation created — the closed one is reused/reopened.
+    expect(state.conversations).toHaveLength(1);
+    expect(state.reopens).toEqual([
+      { conversationId: "conv-closed", lastMessageAt: expect.any(String) },
+    ]);
+    // reopenConversation folds the bump in — bumpConversation must NOT also run.
+    expect(state.bumps).toEqual([]);
+    expect(state.conversations[0]?.status).toBe("aguardando");
+  });
+
+  it("reuses (without reopening) an already-open conversation whose status is not terminal", async () => {
+    const state = emptyState();
+    state.customers.push({
+      id: "cust-old",
+      storeId: "store-1",
+      phoneDigits: "5555988887777",
+      sellerId: "seller-lucas",
+    });
+    state.conversations.push({
+      id: "conv-active",
+      customerId: "cust-old",
+      accountId: "acc-1",
+      open: true,
+      status: "em_andamento",
+    });
+
+    const result = await run(state, evolutionTextEvent());
+    expect(result).toMatchObject({ outcome: "message-created", conversationId: "conv-active" });
+    expect(state.conversations).toHaveLength(1);
+    expect(state.reopens).toEqual([]);
+    expect(state.bumps).toEqual(["conv-active"]);
   });
 
   it("is idempotent — the same event never creates a second message (RNF-002)", async () => {

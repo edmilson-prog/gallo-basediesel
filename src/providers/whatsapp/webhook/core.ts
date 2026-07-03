@@ -79,7 +79,10 @@ export interface IWebhookDb {
    *     never overwritten.
    */
   applyInboundContactName(customerId: string, name: string): Promise<void>;
-  findOpenConversation(customerId: string, accountId: string): Promise<{ id: string } | null>;
+  findOpenConversation(
+    customerId: string,
+    accountId: string,
+  ): Promise<{ id: string; status: string } | null>;
   createConversation(input: {
     storeId: string;
     customerId: string;
@@ -103,6 +106,13 @@ export interface IWebhookDb {
     sentAt: string;
   }): Promise<{ id: string }>;
   bumpConversation(conversationId: string, lastMessageAt: string): Promise<void>;
+  /**
+   * Reopens a closed (resolvida/arquivada) conversation on customer inbound
+   * (spec 2026-07-03 §1.5): status→'aguardando', unassigns the owner, bumps
+   * last_message_at + unread_count. Folds the bumpConversation effect in —
+   * callers must NOT also call bumpConversation for the same event.
+   */
+  reopenConversation(conversationId: string, lastMessageAt: string): Promise<void>;
   /** Mirrored phone-sent message (outbound echo) — direction out, status sent. */
   insertOutboundEchoMessage(input: {
     conversationId: string;
@@ -211,6 +221,14 @@ const MIME_EXTENSIONS: Record<string, string> = {
   "video/mp4": "mp4",
   "application/pdf": "pdf",
 };
+
+// Local terminal-axis predicate (runtime-agnostic file: no cross-import from
+// providers/data/engine — see assignmentStatusCoupling.ts for the mock/
+// Supabase-side twin of this rule).
+const TERMINAL_STATUSES = new Set(["resolvida", "arquivada"]);
+function reopenOnInbound(current: string): "aguardando" | null {
+  return TERMINAL_STATUSES.has(current) ? "aguardando" : null;
+}
 
 function digits(phone: string): string {
   return phone.replace(/\D/g, "");
@@ -532,7 +550,10 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
         account,
       });
     }
-    let conversation = await db.findOpenConversation(customer.id, account.id);
+    let conversation: { id: string } | null = await db.findOpenConversation(
+      customer.id,
+      account.id,
+    );
     if (!conversation) {
       conversation = await db.createConversation({
         storeId: account.storeId,
@@ -652,11 +673,16 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
     }
   }
 
-  // 6. Conversation resolution (RF-040.3) — closed (resolvida/arquivada)
-  //    conversations are never reused.
-  let conversation = await db.findOpenConversation(customer.id, account.id);
+  // 6. Conversation resolution (RF-040.3) — reuse the latest conversation
+  //    regardless of status; a closed one (resolvida/arquivada) is REOPENED
+  //    on customer inbound instead of spawning a duplicate (spec 2026-07-03 §1.5).
+  let conversation: { id: string; status: string } | null = await db.findOpenConversation(
+    customer.id,
+    account.id,
+  );
+  let didReopen = false;
   if (!conversation) {
-    conversation = await db.createConversation({
+    const created = await db.createConversation({
       storeId: account.storeId,
       customerId: customer.id,
       accountId: account.id,
@@ -669,6 +695,10 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
       lastMessageAt: parsed.timestamp,
       status: "aguardando",
     });
+    conversation = { id: created.id, status: "aguardando" };
+  } else if (reopenOnInbound(conversation.status)) {
+    await db.reopenConversation(conversation.id, parsed.timestamp);
+    didReopen = true;
   }
 
   // 7. Persist message (RF-050) BEFORE any media work — media now or never,
@@ -684,7 +714,11 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
     eventKey,
     sentAt: parsed.timestamp,
   });
-  await db.bumpConversation(conversation.id, parsed.timestamp);
+  // Skip the separate bump when we already reopened — reopenConversation
+  // folds the last_message_at/unread_count bump in for that event.
+  if (!didReopen) {
+    await db.bumpConversation(conversation.id, parsed.timestamp);
+  }
 
   // Idempotency mark RIGHT AFTER the message lands (RNF-002): a provider
   // retry from here on can never duplicate it. Media/audit below are

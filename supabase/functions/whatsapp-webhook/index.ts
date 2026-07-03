@@ -41,8 +41,6 @@ import {
 } from "../_shared/whatsapp/webhook/core.ts";
 import type { IEngineDeps, IIntegrationLogEntry } from "../_shared/whatsapp/types.ts";
 
-const CLOSED_CONVERSATION_STATUSES = ["resolvida", "arquivada"];
-
 // Columns selected when resolving an account from an inbound event.
 const ACCT_COLS = "id, store_id, provider, phone_number, credentials_ref, provider_config, status";
 
@@ -267,16 +265,18 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
       await admin.from("customers").update(patch).eq("id", customerId);
     },
     async findOpenConversation(customerId, accountId) {
+      // Reuses the latest conversation regardless of status — a closed one
+      // (resolvida/arquivada) is REOPENED by reopenConversation below rather
+      // than filtered out here (spec 2026-07-03 §1.5).
       const { data } = await admin
         .from("conversations")
-        .select("id")
+        .select("id, status")
         .eq("customer_id", customerId)
         .eq("whatsapp_account_id", accountId)
-        .not("status", "in", `(${CLOSED_CONVERSATION_STATUSES.join(",")})`)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      return data ? { id: data.id as string } : null;
+      return data ? { id: data.id as string, status: data.status as string } : null;
     },
     async createConversation(input) {
       const { data, error } = await admin
@@ -357,6 +357,27 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
       await admin
         .from("conversations")
         .update({
+          last_message_at: lastMessageAt,
+          unread_count: ((data?.unread_count as number | undefined) ?? 0) + 1,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", conversationId);
+    },
+    async reopenConversation(conversationId, lastMessageAt) {
+      // Reopen a closed conversation on customer inbound: back to the queue
+      // (status='aguardando'), unassigned (previous owner loses the closed
+      // chat), unread bumped. The conversation_status_activity trigger emits
+      // the 'reopen' activity row (service_role ⇒ actor_kind='system').
+      const { data } = await admin
+        .from("conversations")
+        .select("unread_count")
+        .eq("id", conversationId)
+        .maybeSingle();
+      await admin
+        .from("conversations")
+        .update({
+          status: "aguardando",
+          assigned_seller_id: null,
           last_message_at: lastMessageAt,
           unread_count: ((data?.unread_count as number | undefined) ?? 0) + 1,
           updated_at: new Date().toISOString(),
