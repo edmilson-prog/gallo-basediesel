@@ -122,10 +122,11 @@ export function useConversationsList(
   const filtersKey = useMemo(() => JSON.stringify(filters), [filters]);
   const refreshKey = options.refreshKey ?? 0;
   const mode = options.mode ?? "list";
-  const pageRef = useRef(page);
-  pageRef.current = page;
 
   // Mirrors `items` for reads inside async callbacks without re-creating them.
+  // Kept in sync SYNCHRONOUSLY at every commit (not just at render), so the
+  // re-hydration derives its page-window from the true loaded-row count rather
+  // than a render-lagged `page` state (a stale page dropped just-loaded rows).
   const itemsRef = useRef<IConversation[]>([]);
   itemsRef.current = items;
 
@@ -145,9 +146,9 @@ export function useConversationsList(
   // drained the moment the list goes idle — so a tick is never silently lost
   // (re-hydration is the only path new rows enter the list).
   const pendingRehydrateRef = useRef(false);
-  // Late-bound to the `rehydrate` callback below so the drain (called from
-  // fetch finallys defined earlier) can invoke the latest instance.
-  const rehydrateRef = useRef<(target: number, generation: number) => void>(() => {});
+  // Late-bound (in an effect, below) to the `rehydrate` callback so the drain
+  // (called from fetch finallys defined earlier) can invoke the latest instance.
+  const rehydrateRef = useRef<(generation: number) => void>(() => {});
 
   /**
    * Fire a deferred re-hydration once the list is idle again. Called from every
@@ -157,7 +158,7 @@ export function useConversationsList(
     if (!pendingRehydrateRef.current) return;
     if (userFetchInFlightRef.current > 0 || rehydrateInFlightRef.current) return;
     pendingRehydrateRef.current = false;
-    rehydrateRef.current(pageRef.current, generationRef.current);
+    rehydrateRef.current(generationRef.current);
   }, []);
 
   /**
@@ -329,7 +330,7 @@ export function useConversationsList(
    * not amplify load during the timeouts it rides on.
    */
   const rehydrate = useCallback(
-    async (target: number, generation: number) => {
+    async (generation: number) => {
       if (generation !== generationRef.current) return;
       if (
         !shouldStartRehydrate({
@@ -345,22 +346,31 @@ export function useConversationsList(
       // Taking the tick now; a fresh tick during this run re-marks pending.
       pendingRehydrateRef.current = false;
       const userFetchSeqAtStart = userFetchSeqRef.current;
-      const superseded = () =>
-        isRehydrateSuperseded({
-          generation,
-          currentGeneration: generationRef.current,
-          userFetchInFlight: userFetchInFlightRef.current > 0,
-          userFetchSeqAtStart,
-          currentUserFetchSeq: userFetchSeqRef.current,
-        });
+      // Re-hydrate exactly as many pages as are currently loaded, derived from the
+      // SYNCHRONOUS itemsRef — NOT a render-lagged `page` (a load-more that just
+      // called setPage but hasn't re-rendered would otherwise make us rebuild fewer
+      // pages and drop its just-loaded rows, permanently gapping the list).
+      const target = Math.max(1, Math.ceil(itemsRef.current.length / PAGE_SIZE));
+      // A user fetch that intervenes owns the list; bail AND re-arm the tick (unless
+      // the whole view changed) so the drain re-runs it once idle — otherwise a
+      // superseding load-more, which only appends, would swallow the tick's new
+      // page-1 rows.
+      const bailSuperseded = () => {
+        if (
+          !isRehydrateSuperseded({
+            generation,
+            currentGeneration: generationRef.current,
+            userFetchInFlight: userFetchInFlightRef.current > 0,
+            userFetchSeqAtStart,
+            currentUserFetchSeq: userFetchSeqRef.current,
+          })
+        ) {
+          return false;
+        }
+        if (generation === generationRef.current) pendingRehydrateRef.current = true;
+        return true;
+      };
       rehydrateInFlightRef.current = true;
-      // With NO rows on screen, show the honest spinner (not the "Nenhuma
-      // conversa" empty state) while the tick's page 1 loads. With rows already
-      // present the re-hydration stays invisible/background. This is a
-      // render-only flag; concurrency is governed by the refs above, so setting
-      // it does NOT block a user action (unlike round 1).
-      const showSpinner = itemsRef.current.length === 0;
-      if (showSpinner) setIsLoading(true);
       try {
         const buffer: IConversation[] = [];
         const seen = new Set<ID>();
@@ -370,7 +380,7 @@ export function useConversationsList(
           const result = await fetchOnePage(p);
           // Bail the moment a user fetch intervened — don't keep hitting the
           // server, and never commit over the user's list.
-          if (superseded()) return;
+          if (bailSuperseded()) return;
           lastRawLen = result.data.length;
           if (p === 1) anchorTotal = result.total;
           for (const c of result.data) {
@@ -383,7 +393,7 @@ export function useConversationsList(
           // requesting empty higher pages.
           if (result.data.length < PAGE_SIZE) break;
         }
-        if (superseded()) return;
+        if (bailSuperseded()) return;
         // Commit the whole window atomically.
         setItems(buffer);
         itemsRef.current = buffer;
@@ -401,20 +411,14 @@ export function useConversationsList(
         // A background re-hydration failure is silent and non-destructive: keep
         // the rows already on screen; the next tick retries. Report once (not per
         // page), and only if it was not superseded (a user fetch owns the error UI).
-        if (superseded()) return;
+        if (bailSuperseded()) return;
         captureObservabilityException(err, {
           source: "useConversationsList.rehydrate",
           mode,
-          target,
         });
       } finally {
         rehydrateInFlightRef.current = false;
-        // Release the spinner flag only if WE own it: a user fetch that
-        // superseded us (or a filter change) owns isLoading now and will clear it.
-        if (showSpinner && userFetchInFlightRef.current === 0 && generation === generationRef.current) {
-          setIsLoading(false);
-        }
-        // Chain a tick that landed while we were running.
+        // Chain a tick that landed (or was re-armed) while we were running.
         drainPendingRehydrate();
       }
     },
@@ -423,9 +427,12 @@ export function useConversationsList(
     [fetchOnePage, filtersKey, mode, refreshTotal, drainPendingRehydrate],
   );
 
-  // Late-bind the ref so the drain (defined above the fetch callbacks) always
-  // calls the current rehydrate closure.
-  rehydrateRef.current = rehydrate;
+  // Late-bind the ref in an effect (NOT during render — a render-phase ref
+  // mutation can point at a closure from a discarded concurrent render) so the
+  // drain, defined above the fetch callbacks, always calls the current rehydrate.
+  useEffect(() => {
+    rehydrateRef.current = rehydrate;
+  }, [rehydrate]);
 
   // Reset to page 1 whenever filters change OR the fetch mode flips
   // (list ↔ messages — see Opção D's "search inside messages" toggle).
@@ -468,7 +475,7 @@ export function useConversationsList(
     // closure — the old generation makes rehydrate bail before any request.
     const generation = generationRef.current;
     const handle = window.setTimeout(() => {
-      void rehydrate(pageRef.current, generation);
+      void rehydrate(generation);
     }, REALTIME_REFETCH_DEBOUNCE_MS);
     return () => window.clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
