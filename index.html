@@ -55,7 +55,7 @@
           var theme = localStorage.getItem("gallo-theme");
           if (!["diesel", "parts", "service", "industrial"].includes(theme)) theme = "diesel";
           var mode = localStorage.getItem("gallo-mode");
-          if (!["light", "dark", "auto"].includes(mode)) mode = "auto";
+          if (!["light", "dark", "auto"].includes(mode)) mode = "dark";
           var resolved = mode;
           if (mode === "auto") {
             resolved = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
