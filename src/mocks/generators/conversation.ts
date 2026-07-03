@@ -55,6 +55,12 @@ export function generateConversation(
   const safeLowerBound = lowerBound > now ? now : lowerBound;
   const createdAt = randomISO(ctx, safeLowerBound, now);
   const lastMessageAt = randomISO(ctx, new Date(createdAt), now);
+  // The mock has no DB trigger, so mirror `isQueuedConversation` here and
+  // approximate the queue-entry instant with lastMessageAt for demo mode.
+  const queuedAt =
+    status === "aguardando" && !isSdrActive && assignedSellerId === undefined
+      ? lastMessageAt
+      : undefined;
 
   return {
     id,
@@ -70,6 +76,7 @@ export function generateConversation(
     lastMessageAt,
     unreadCount: status === "aguardando" ? ctx.int(1, 4) : 0,
     createdAt,
+    queuedAt,
   };
 }
 

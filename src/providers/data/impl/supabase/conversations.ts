@@ -74,6 +74,7 @@ interface ConversationRow {
   last_message_at: string;
   unread_count: number;
   created_at: string;
+  queued_at: string | null;
 }
 
 /** Valid lead temperatures — the RPC returns a raw text column (no DB enum/check),
@@ -93,7 +94,7 @@ interface ConversationContactRow {
 
 const TABLE = "conversations";
 const COLUMNS =
-  "id, store_id, customer_id, lead_id, assigned_seller_id, channel, whatsapp_account_id, status, is_sdr_active, tags, linked_order_id, last_message_at, unread_count, created_at";
+  "id, store_id, customer_id, lead_id, assigned_seller_id, channel, whatsapp_account_id, status, is_sdr_active, tags, linked_order_id, last_message_at, unread_count, created_at, queued_at";
 
 function rowToConversation(row: ConversationRow): IConversation {
   return {
@@ -111,6 +112,7 @@ function rowToConversation(row: ConversationRow): IConversation {
     lastMessageAt: row.last_message_at,
     unreadCount: row.unread_count,
     createdAt: row.created_at,
+    queuedAt: row.queued_at ?? undefined,
   };
 }
 
