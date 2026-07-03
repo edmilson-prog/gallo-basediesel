@@ -68,7 +68,7 @@ describe("buildAttendanceTimeline", () => {
     expect(n3.durationMs).toBeNull();
   });
 
-  it("summary.transferCount counts assignment events with a non-null toSellerId", () => {
+  it("summary.transferCount counts genuine reassignments only, excluding the initial self-assign", () => {
     const events = [
       event({ id: "e1", conversationId: "conv-1", type: "created", createdAt: "2026-07-01T10:00:00.000Z" }),
       event({
@@ -94,7 +94,9 @@ describe("buildAttendanceTimeline", () => {
       }),
     ];
     const timeline = buildAttendanceTimeline(events);
-    expect(timeline[0]!.summary.transferCount).toBe(2);
+    // e2 is the first owner acquisition (not a transfer); only e4 hands the
+    // conversation off from a prior owner.
+    expect(timeline[0]!.summary.transferCount).toBe(1);
     expect(timeline[0]!.summary.eventCount).toBe(4);
   });
 
@@ -132,6 +134,32 @@ describe("buildAttendanceTimeline", () => {
         id: "e2",
         conversationId: "conv-1",
         type: "assignment",
+        fromSellerId: "seller-1",
+        toSellerId: null,
+        createdAt: "2026-07-01T11:00:00.000Z",
+      }),
+    ];
+    const timeline = buildAttendanceTimeline(events);
+    expect(timeline[0]!.summary.finalSellerId).toBeNull();
+  });
+
+  it("summary.finalSellerId is null when a CLOSE carries the owner drop on a 'status' row", () => {
+    const events = [
+      event({
+        id: "e1",
+        conversationId: "conv-1",
+        type: "assignment",
+        fromSellerId: null,
+        toSellerId: "seller-1",
+        createdAt: "2026-07-01T10:00:00.000Z",
+      }),
+      event({
+        id: "e2",
+        conversationId: "conv-1",
+        type: "status",
+        fromStatus: "aguardando",
+        toStatus: "resolvida",
+        fromSellerId: "seller-1",
         toSellerId: null,
         createdAt: "2026-07-01T11:00:00.000Z",
       }),

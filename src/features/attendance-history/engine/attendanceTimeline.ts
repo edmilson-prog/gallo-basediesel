@@ -88,11 +88,23 @@ export function buildAttendanceTimeline(events: IConversationActivityEvent[]): I
 function summarize(sortedEvents: IConversationActivityEvent[]): ITimelineSummary {
   let finalSellerId: ID | null = null;
   let transferCount = 0;
+  let hasOwner = false;
 
   for (const event of sortedEvents) {
-    if (event.type === "assignment") {
+    // Any event carrying an owner delta (not just `assignment` rows) updates the
+    // final owner — a `status` row can drop the owner too (e.g. a CLOSE event
+    // clearing `toSellerId` alongside the status change). No-op events (no
+    // seller change) have both `fromSellerId` and `toSellerId` set to `null`
+    // by the engine, so require at least one side to be non-null to count as
+    // a real delta.
+    if (event.fromSellerId != null || event.toSellerId != null) {
       finalSellerId = event.toSellerId ?? null;
-      if (event.toSellerId) transferCount += 1;
+    }
+    if (event.type === "assignment" && event.toSellerId) {
+      // The first owner acquisition is not a reassignment — only count transfers
+      // that hand the conversation off from a prior owner.
+      if (hasOwner) transferCount += 1;
+      hasOwner = true;
     }
   }
 
