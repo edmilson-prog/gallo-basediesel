@@ -236,8 +236,10 @@ export const conversationsApi = {
 
   async update(id: ID, patch: Partial<IConversation>): Promise<IConversation> {
     return runApi("conversationsApi", "update", () => {
+      const before = getMockState().conversations.find((c) => c.id === id) ?? null;
       const updated = patchById("conversations", id, patch);
       if (!updated) throw new MockNotFoundError("conversation", id);
+      emitConversationActivity(before, updated, getCurrentMockSellerId());
       return updated;
     });
   },
