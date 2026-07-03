@@ -156,6 +156,8 @@ export type {
   IWhatsAppAccountAccessRule,
   IConversationParticipant,
   IWhatsAppGoServer,
+  IConversationActivityEvent,
+  AttendanceActivityType,
 } from "./conversation";
 
 // Conversation notes (internal attendant board)
