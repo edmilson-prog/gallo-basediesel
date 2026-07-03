@@ -41,6 +41,8 @@ import {
 } from "../_shared/whatsapp/webhook/core.ts";
 import type { IEngineDeps, IIntegrationLogEntry } from "../_shared/whatsapp/types.ts";
 
+const CLOSED_CONVERSATION_STATUSES = ["resolvida", "arquivada"];
+
 // Columns selected when resolving an account from an inbound event.
 const ACCT_COLS = "id, store_id, provider, phone_number, credentials_ref, provider_config, status";
 
@@ -264,18 +266,21 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
       if (Object.keys(patch).length === 0) return;
       await admin.from("customers").update(patch).eq("id", customerId);
     },
-    async findOpenConversation(customerId, accountId) {
-      // Reuses the latest conversation regardless of status — a closed one
-      // (resolvida/arquivada) is REOPENED by reopenConversation below rather
-      // than filtered out here (spec 2026-07-03 §1.5).
-      const { data } = await admin
+    async findOpenConversation(customerId, accountId, includeTerminal) {
+      // Default: OPEN-ONLY (excludes resolvida/arquivada) — used by the
+      // outbound echo path, which must never reuse/reopen a closed
+      // conversation (spec 2026-07-03 §1.5). Customer-inbound passes
+      // includeTerminal:true to also see closed ones so it can reopen them
+      // via reopenConversation below rather than filtering them out here.
+      let query = admin
         .from("conversations")
         .select("id, status")
         .eq("customer_id", customerId)
-        .eq("whatsapp_account_id", accountId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .eq("whatsapp_account_id", accountId);
+      if (!includeTerminal) {
+        query = query.not("status", "in", `(${CLOSED_CONVERSATION_STATUSES.join(",")})`);
+      }
+      const { data } = await query.order("created_at", { ascending: false }).limit(1).maybeSingle();
       return data ? { id: data.id as string, status: data.status as string } : null;
     },
     async createConversation(input) {

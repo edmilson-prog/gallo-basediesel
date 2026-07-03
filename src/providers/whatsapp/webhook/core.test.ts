@@ -94,11 +94,16 @@ function makeFakeDb(state: IFakeState, opts?: { knownOutboundId?: string }): IWe
       const current = customer.name ?? "";
       if (current === "" || !/\p{L}/u.test(current)) customer.name = name;
     },
-    findOpenConversation: async (customerId, accountId) => {
-      // Reuses the latest conversation regardless of status (open flag is
-      // vestigial here) — the caller decides whether to reopen it.
+    findOpenConversation: async (customerId, accountId, includeTerminal) => {
+      // Default (includeTerminal falsy): OPEN-ONLY — excludes resolvida/
+      // arquivada, mirroring the real echo-path adapter. includeTerminal:true
+      // (customer-inbound) also sees closed ones — the caller decides whether
+      // to reopen it.
       const found = state.conversations.find(
-        (c) => c.customerId === customerId && c.accountId === accountId,
+        (c) =>
+          c.customerId === customerId &&
+          c.accountId === accountId &&
+          (includeTerminal || !["resolvida", "arquivada"].includes(c.status ?? "")),
       );
       return found ? { id: found.id, status: found.status ?? "aguardando" } : null;
     },
@@ -803,6 +808,35 @@ describe("processWebhookEvent — outbound echoes (real inbox spec)", () => {
     expect(state.conversations).toHaveLength(1);
     // Reuse never rewrites the pre-existing conversation status.
     expect(state.conversations[0]?.status).toBeUndefined();
+  });
+
+  it("does NOT reuse/reopen a resolvida conversation — spawns a fresh one instead (spec §1.5)", async () => {
+    const state = emptyState();
+    state.customers.push({
+      id: "cust-old",
+      storeId: "store-1",
+      phoneDigits: "5555988887777",
+      sellerId: "seller-lucas",
+    });
+    state.conversations.push({
+      id: "conv-closed",
+      customerId: "cust-old",
+      accountId: "acc-1",
+      open: false,
+      status: "resolvida",
+    });
+
+    const result = await run(state, evolutionEchoEvent("terceira", "3EB0ECHO3"));
+
+    expect(result.outcome).toBe("echo-created");
+    // A brand-new conversation is spawned — the closed one is left untouched.
+    expect(state.conversations).toHaveLength(2);
+    expect(result.conversationId).not.toBe("conv-closed");
+    const fresh = state.conversations.find((c) => c.id === result.conversationId);
+    expect(fresh).toMatchObject({ status: "aguardando", assignedSellerId: null });
+    // The echo path never calls reopenConversation.
+    expect(state.reopens).toEqual([]);
+    expect(state.conversations.find((c) => c.id === "conv-closed")?.status).toBe("resolvida");
   });
 
   it("is idempotent across redeliveries (processed_events)", async () => {

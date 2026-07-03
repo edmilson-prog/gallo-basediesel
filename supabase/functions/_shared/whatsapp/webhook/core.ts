@@ -82,9 +82,19 @@ export interface IWebhookDb {
    *     never overwritten.
    */
   applyInboundContactName(customerId: string, name: string): Promise<void>;
+  /**
+   * Looks up the latest conversation for this customer+account. By default
+   * (`includeTerminal` omitted/false) it's OPEN-ONLY — excludes resolvida/
+   * arquivada — used by the outbound echo path, which must NEVER reopen a
+   * closed conversation (spec 2026-07-03 §1.5: echo spawns a fresh one
+   * instead). Customer-inbound (step 6) passes `includeTerminal: true` to
+   * also see closed conversations so it can reopen them via
+   * reopenConversation.
+   */
   findOpenConversation(
     customerId: string,
     accountId: string,
+    includeTerminal?: boolean,
   ): Promise<{ id: string; status: string } | null>;
   createConversation(input: {
     storeId: string;
@@ -553,6 +563,9 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
         account,
       });
     }
+    // OPEN-ONLY lookup (includeTerminal omitted): the echo is business-sent,
+    // never reopens a closed conversation — spawns a fresh one instead
+    // (spec 2026-07-03 §1.5).
     let conversation: { id: string } | null = await db.findOpenConversation(
       customer.id,
       account.id,
@@ -676,12 +689,14 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
     }
   }
 
-  // 6. Conversation resolution (RF-040.3) — reuse the latest conversation
-  //    regardless of status; a closed one (resolvida/arquivada) is REOPENED
-  //    on customer inbound instead of spawning a duplicate (spec 2026-07-03 §1.5).
+  // 6. Conversation resolution (RF-040.3) — includeTerminal:true reuses the
+  //    latest conversation regardless of status; a closed one (resolvida/
+  //    arquivada) is REOPENED on customer inbound instead of spawning a
+  //    duplicate (spec 2026-07-03 §1.5).
   let conversation: { id: string; status: string } | null = await db.findOpenConversation(
     customer.id,
     account.id,
+    true,
   );
   let didReopen = false;
   if (!conversation) {
