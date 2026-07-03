@@ -72,6 +72,7 @@ import { useAssetLibrary } from "@/features/quick-send/hooks/useAssetLibrary";
 import type { IAssetLibraryItem, IPart } from "@/shared/types";
 import { DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { QUICK_SEND_STRINGS } from "@/features/quick-send/i18n/pt-BR";
+import { PART_LOOKUP_STRINGS } from "@/features/part-lookup";
 
 export interface IMessageInputProps {
   conversation: IConversation;
@@ -96,6 +97,8 @@ export interface IMessageInputProps {
   mustAssignToReply?: boolean;
   /** Called after a successful self-assign so the parent can refresh the conversation. */
   onAssigned?: () => void;
+  /** Opens the part-lookup consultor panel (lifted to the page). */
+  onOpenPartLookup?: () => void;
 }
 
 const EMOJI_SET = [
@@ -191,6 +194,7 @@ export function MessageInput(props: IMessageInputProps) {
     openTemplateSignal = 0,
     mustAssignToReply = false,
     onAssigned,
+    onOpenPartLookup,
   } = props;
   const { messages } = useConversationContext();
   const window = useMetaWindow(conversation, whatsappAccount);
@@ -797,6 +801,12 @@ export function MessageInput(props: IMessageInputProps) {
                   <Icon icon="mdi:cog-outline" size={14} className="mr-2" />
                   {CONVERSATION_STRINGS.sendProduct}
                 </DropdownMenuItem>
+                {onOpenPartLookup && (
+                  <DropdownMenuItem onSelect={() => onOpenPartLookup()}>
+                    <Icon icon="mdi:magnify-scan" size={14} className="mr-2" />
+                    {PART_LOOKUP_STRINGS.panelTitle}
+                  </DropdownMenuItem>
+                )}
 
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-[11px] uppercase text-muted-foreground">
