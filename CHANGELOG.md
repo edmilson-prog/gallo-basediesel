@@ -4,6 +4,23 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.133.0] — Herald · 2026-07-04
+
+**A plataforma agora avisa quando recebe uma atualização e recarrega sozinha na versão nova, sem interromper o seu trabalho.** Quando sai uma nova versão, um aviso discreto aparece no canto inferior da tela. Você pode atualizar na hora ou deixar para depois — nesse caso o aviso encolhe para um selo que continua ali e volta a lembrar de tempos em tempos, sem travar nada. Ao atualizar, a plataforma recarrega já na versão nova e mostra as novidades. E se você abrir uma tela logo depois de uma atualização, no lugar da antiga mensagem "Algo deu errado" aparece um aviso claro de "Nova versão disponível" com um botão para recarregar.
+
+### Added
+
+- **Aviso de nova versão:** quando a plataforma recebe uma atualização, um aviso aparece no canto inferior da tela. Dá para atualizar na hora ou dispensar — ao dispensar, ele encolhe para um selo discreto e volta a lembrar sozinho de tempos em tempos, sem interromper o que você está fazendo. Ao confirmar, a plataforma recarrega já na versão nova.
+- **Recuperação automática após atualização:** se você abrir uma tela logo depois de uma nova versão, no lugar da antiga tela "Algo deu errado" aparece um aviso de "Nova versão disponível" com um botão que recarrega para a versão correta.
+
+### Changed
+
+- O contador de tempo de espera na fila passou a aparecer também nos resultados de busca de conversas — antes só aparecia na lista.
+
+### Fixed
+
+- Corrigido um aviso de acessibilidade no painel de Histórico de Atendimento, sem qualquer mudança visual.
+
 ## [0.132.0] — Epilogue · 2026-07-04
 
 **Conversas encerradas saem da lista automaticamente, e agora dá para ver o histórico completo de atendimento de cada cliente.** Resolver ou arquivar uma conversa passou a ser um único gesto de "encerrar": ela some da lista do Atendimento (mas continua visível se você filtrar por encerradas), fica sem atribuição e volta para o topo da fila assim que o cliente responder de novo. Um novo histórico de atendimento — disponível no painel do Atendimento e na ficha do cliente — mostra a linha do tempo de status, atribuições, transferências e reaberturas de cada conversa.
