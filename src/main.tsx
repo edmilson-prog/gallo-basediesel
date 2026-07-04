@@ -3,11 +3,16 @@ import ReactDOM from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
 import { getRouter } from "@/router";
 import { initObservability } from "@/shared/lib/observability";
+import { initPreloadErrorHandler } from "@/features/version-update";
 import "@/styles.css";
 
 // PRD-110: error tracking boots before the first render so early crashes are
 // captured. No-op (zero overhead) when VITE_SENTRY_DSN is not configured.
 initObservability();
+
+// Recover a failed lazy-chunk load (removed by a newer deploy) by reloading onto
+// the new build instead of throwing — see src/features/version-update.
+initPreloadErrorHandler();
 
 // QueryClientProvider e ThemeProvider são injetados pelo RootComponent
 // em src/routes/__root.tsx — o queryClient sai do router context.
