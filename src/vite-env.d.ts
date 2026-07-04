@@ -112,6 +112,10 @@ interface ImportMeta {
  *   Empty string when git is unavailable (e.g. some CI environments).
  * - `__APP_VERSION__` — version field from package.json, used as a fallback
  *   while the CHANGELOG-derived version is still loading.
+ * - `__BUILD_ID__` — unique id per build (git sha + timestamp). Injected into
+ *   the bundle and mirrored in /version.json; the deploy watcher compares them
+ *   at runtime to detect a new production deploy.
  */
 declare const __GIT_BRANCH__: string;
 declare const __APP_VERSION__: string;
+declare const __BUILD_ID__: string;

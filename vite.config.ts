@@ -1,7 +1,7 @@
 import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import tsconfigPaths from "vite-tsconfig-paths";
@@ -23,12 +23,41 @@ const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), 
   version: string;
 };
 
+// Unique id per build (git sha for readability + timestamp for uniqueness even
+// on a redeploy of the same commit). Injected into the bundle AND emitted as
+// /version.json in the SAME build process, so the two always match. The deploy
+// watcher compares them at runtime to detect a new production deploy.
+const BUILD_TIMESTAMP = Date.now();
+function resolveBuildId(): string {
+  const sha = process.env.VERCEL_GIT_COMMIT_SHA;
+  const shaShort = sha ? sha.slice(0, 7) : "local";
+  return `${shaShort}.${BUILD_TIMESTAMP}`;
+}
+const BUILD_ID = resolveBuildId();
+
+// Emits version.json into the build output (dist/). Build-only: in `vite dev`
+// the file is absent, which the watcher treats as "no info" (no false positive).
+function versionManifestPlugin(): Plugin {
+  return {
+    name: "gallo-version-manifest",
+    apply: "build",
+    generateBundle() {
+      this.emitFile({
+        type: "asset",
+        fileName: "version.json",
+        source: JSON.stringify({ buildId: BUILD_ID, version: pkg.version }),
+      });
+    },
+  };
+}
+
 // SPA estática — sem SSR. Gera `dist/` com `index.html` + assets,
 // pronto para a Vercel (ou qualquer host estático) servir como SPA.
 export default defineConfig({
   define: {
     __GIT_BRANCH__: JSON.stringify(resolveGitBranch()),
     __APP_VERSION__: JSON.stringify(pkg.version),
+    __BUILD_ID__: JSON.stringify(BUILD_ID),
   },
   plugins: [
     tanstackRouter({
@@ -38,6 +67,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     tsconfigPaths(),
+    versionManifestPlugin(),
   ],
   server: {
     // Bind to IPv4 loopback explicitly. With the default "localhost", Node on
