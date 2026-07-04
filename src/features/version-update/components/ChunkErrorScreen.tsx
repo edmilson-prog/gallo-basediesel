@@ -32,6 +32,7 @@ export function ChunkErrorScreen() {
         <p className="mt-2 text-sm text-muted-foreground">{i18n.body}</p>
         <div className="mt-6">
           <button
+            type="button"
             onClick={() => void hardReload()}
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
