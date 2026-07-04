@@ -52,7 +52,11 @@ O que **já existe** e será reaproveitado:
 
 ## 3. Não-objetivos (YAGNI)
 
-- **Service Worker / PWA offline** — não há SW hoje; não será introduzido.
+- **Mexer no Service Worker** — já existe um SW (`public/sw.js`, PRD-070) que faz
+  cache-first apenas de assets (`style`/`script`/`image`/`font`) e **nunca intercepta
+  navegação/HTML** (`request.mode === "navigate"` sempre vai à rede). Ele não será
+  alterado. O `hardReload` limpa o Cache Storage dele por robustez (remove chunks
+  órfãos do build anterior). PWA offline/queue segue fora de escopo.
 - **Persistir o estado "ignorado" entre reloads** — o `AppLayout` não desmonta durante
   a navegação SPA, então o estado em memória basta. Um F5 manual que já pega a versão
   nova zera o aviso naturalmente.
@@ -156,16 +160,18 @@ padrões conhecidos (case-insensitive):
 ### 4.5 Hard reload (`hardReload()`)
 
 ```
-1. Se `caches` existir (Cache Storage API): apagar todas as chaves. (Defensivo —
-   não há SW hoje, mas cobre futuro/extensões.)
+1. Se `caches` existir (Cache Storage API): apagar todas as chaves. (O SW
+   `gallo-static-v1` faz cache-first de assets por URL; limpar remove os chunks órfãos
+   do build anterior.)
 2. window.location.reload();
 ```
 
 Não se usa `location.reload(true)` (o argumento `forceGet` é obsoleto e ignorado). O
-efeito que importa — baixar o build novo — é garantido porque a Vercel serve o
-`index.html` com `must-revalidate` (sempre revalida) e ele aponta para os chunks com
-hash novo. Documentar no spec: o browser não permite forçar Ctrl+Shift+R por script; a
-combinação acima é o equivalente prático e suficiente (todo asset tem hash).
+efeito que importa — baixar o build novo — é garantido porque (a) o SW **nunca cacheia
+navegação/HTML**, então o reload sempre busca o `index.html` fresco na rede, e (b) a
+Vercel serve o `index.html` com `must-revalidate`; ele aponta para os chunks com hash
+novo. O browser não permite forçar Ctrl+Shift+R por script; a combinação acima é o
+equivalente prático e suficiente (todo asset tem hash).
 
 ### 4.6 Guarda anti-loop
 
@@ -260,6 +266,7 @@ Caminho de exceção (usuário clicou antes do aviso):
 | localStorage/sessionStorage indisponível | try/catch → degrada para "sem guarda"/"sem persistência"; nunca quebra. |
 | Primeiro deploy que introduz a feature | Quem já está no build anterior não tem o watcher; passa a funcionar a partir do deploy seguinte (intrínseco, documentado). |
 | Erro comum (não-chunk) no boundary | Segue exibindo "Algo deu errado" (inalterado). |
+| SW servindo chunk velho do cache | Cache-first por URL; chunks novos têm hash novo → cache miss → rede. `hardReload` limpa o cache por robustez. SW não intercepta HTML. |
 
 ## 9. Testes (Vitest, TDD nos engines)
 
