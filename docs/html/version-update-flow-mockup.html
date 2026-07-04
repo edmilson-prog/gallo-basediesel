@@ -1,0 +1,436 @@
+<title>Fluxo de atualização de versão — mockups</title>
+<style>
+  :root {
+    --ground: #0b0b0d;
+    --surface: #161719;
+    --surface-2: #1e1f22;
+    --border: #2a2b30;
+    --border-soft: #232428;
+    --fg: #f4f4f2;
+    --muted: #9a9aa2;
+    --primary: #d0a94f;
+    --primary-fg: #17130a;
+    --info: #4c8dff;
+    --info-soft: rgba(76, 141, 255, 0.14);
+    --success: #12a67a;
+    --success-soft: rgba(18, 166, 122, 0.16);
+    --warning: #e0a63c;
+    --danger: #e5533d;
+    --shadow: 0 18px 50px -12px rgba(0, 0, 0, 0.7);
+    --radius: 14px;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(208, 169, 79, 0.06), transparent 60%),
+      var(--ground);
+    color: var(--fg);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 56px 28px 96px; }
+
+  .kicker {
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--primary); font-weight: 700; margin: 0 0 10px;
+  }
+  h1 { font-size: clamp(26px, 4vw, 38px); margin: 0 0 14px; letter-spacing: -0.02em; text-wrap: balance; }
+  .lede { color: var(--muted); max-width: 62ch; font-size: 15.5px; margin: 0; }
+
+  h2 {
+    font-size: 20px; margin: 0 0 6px; letter-spacing: -0.01em;
+    display: flex; align-items: baseline; gap: 12px;
+  }
+  h2 .num {
+    font-size: 12px; font-weight: 700; color: var(--primary);
+    font-variant-numeric: tabular-nums; letter-spacing: 0.04em;
+    border: 1px solid var(--border); border-radius: 6px; padding: 2px 7px;
+  }
+  .section { margin-top: 64px; }
+  .section > .sub { color: var(--muted); font-size: 14px; margin: 0 0 22px; max-width: 66ch; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 860px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .opt-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 12px; }
+  .opt-title { font-size: 14px; font-weight: 650; }
+  .tag {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 999px; white-space: nowrap;
+  }
+  .tag.rec { background: var(--success-soft); color: var(--success); }
+  .tag.alt { background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }
+
+  /* ---- mini app frame ---- */
+  .frame {
+    position: relative; height: 320px; border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden; background: var(--surface);
+    display: grid; grid-template-columns: 52px 1fr;
+  }
+  .rail { background: #101113; border-right: 1px solid var(--border-soft); padding: 12px 0; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .rail .logo { width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(160deg, var(--primary), #8a6c25); }
+  .rail .dot { width: 22px; height: 22px; border-radius: 7px; background: var(--surface-2); }
+  .rail .dot.active { background: rgba(208,169,79,0.18); box-shadow: inset 0 0 0 1px rgba(208,169,79,0.4); }
+  .panel { position: relative; display: flex; flex-direction: column; min-width: 0; }
+  .topbar { height: 46px; border-bottom: 1px solid var(--border-soft); display: flex; align-items: center; gap: 10px; padding: 0 14px; background: rgba(22,23,25,0.7); }
+  .tb-title { font-size: 12.5px; font-weight: 600; }
+  .tb-spacer { flex: 1; }
+  .tb-pill { height: 22px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border-soft); width: 120px; }
+  .tb-av { width: 24px; height: 24px; border-radius: 999px; background: var(--surface-2); }
+  .content { flex: 1; padding: 16px; overflow: hidden; }
+  .skel { height: 11px; border-radius: 5px; background: var(--surface-2); margin-bottom: 9px; }
+  .skel.w1 { width: 42%; } .skel.w2 { width: 78%; } .skel.w3 { width: 64%; } .skel.w4 { width: 88%; } .skel.w5 { width: 55%; }
+  .cards-row { display: flex; gap: 10px; margin-top: 14px; }
+  .mini-card { flex: 1; height: 64px; border: 1px solid var(--border-soft); border-radius: 10px; background: var(--surface-2); }
+
+  /* ---- Variant 1: top banner ---- */
+  .top-banner {
+    display: flex; align-items: center; gap: 10px; padding: 9px 14px;
+    background: linear-gradient(90deg, var(--info-soft), transparent 70%);
+    border-bottom: 1px solid rgba(76,141,255,0.3);
+    font-size: 12.5px;
+  }
+  .top-banner .ic { color: var(--info); flex: none; }
+  .top-banner .msg { flex: 1; min-width: 0; }
+  .top-banner .msg b { font-weight: 650; }
+  .top-banner .msg span { color: var(--muted); }
+
+  /* ---- Variant 2: floating card ---- */
+  .float {
+    position: absolute; right: 16px; bottom: 16px; width: 300px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 12px; box-shadow: var(--shadow); padding: 14px; z-index: 5;
+  }
+  .float .row { display: flex; gap: 11px; }
+  .float .badge {
+    width: 34px; height: 34px; flex: none; border-radius: 9px;
+    background: var(--info-soft); color: var(--info);
+    display: grid; place-items: center;
+  }
+  .float h4 { margin: 0 0 2px; font-size: 13.5px; }
+  .float p { margin: 0; font-size: 12px; color: var(--muted); }
+  .float .acts { display: flex; gap: 8px; margin-top: 13px; }
+
+  .btn {
+    font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+    border-radius: 8px; padding: 7px 13px; border: 1px solid transparent;
+    display: inline-flex; align-items: center; gap: 6px; transition: filter .15s, background .15s;
+  }
+  .btn:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+  .btn-primary { background: var(--primary); color: var(--primary-fg); }
+  .btn-primary:hover { filter: brightness(1.06); }
+  .btn-ghost { background: transparent; color: var(--muted); border-color: var(--border); }
+  .btn-ghost:hover { color: var(--fg); background: var(--surface); }
+  .btn-sm { padding: 6px 11px; font-size: 12px; }
+
+  /* ---- minimized pill ---- */
+  .pill {
+    position: absolute; right: 16px; bottom: 16px; z-index: 5;
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 999px; padding: 7px 13px 7px 11px; box-shadow: var(--shadow);
+    font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  .pill .glow { position: relative; width: 9px; height: 9px; }
+  .pill .glow::before { content:""; position:absolute; inset:0; border-radius:999px; background: var(--info); }
+  .pill .glow::after { content:""; position:absolute; inset:-4px; border-radius:999px; background: var(--info); opacity:.35; animation: ping 1.8s cubic-bezier(0,0,.2,1) infinite; }
+  @keyframes ping { 75%,100% { transform: scale(2); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .pill .glow::after { animation: none; } }
+  .pill .count { color: var(--muted); font-weight: 500; }
+
+  .hint { font-size: 12px; color: var(--muted); margin: 10px 2px 0; display: flex; align-items: center; gap: 7px; }
+  .hint .k { border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; font-size: 11px; font-family: ui-monospace, monospace; color: var(--fg); }
+
+  /* ---- error boundary compare ---- */
+  .eb {
+    height: 260px; border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--ground); display: grid; place-items: center; text-align: center; padding: 24px;
+  }
+  .eb .ic-wrap { width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; margin: 0 auto 14px; }
+  .eb.before .ic-wrap { background: rgba(229,83,61,0.12); color: var(--danger); }
+  .eb.after .ic-wrap { background: var(--info-soft); color: var(--info); }
+  .eb h3 { margin: 0 0 6px; font-size: 17px; letter-spacing: -0.01em; }
+  .eb p { margin: 0 auto 16px; font-size: 13px; color: var(--muted); max-width: 34ch; }
+  .eb .acts { display: flex; gap: 8px; justify-content: center; }
+  .eb .meta { margin-top: 14px; font-size: 11px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+
+  /* ---- flow strip ---- */
+  .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin-top: 4px; }
+  @media (max-width: 780px) { .flow { grid-template-columns: 1fr 1fr; row-gap: 22px; } }
+  .step { position: relative; padding: 18px 18px 18px 0; }
+  .step .n {
+    width: 26px; height: 26px; border-radius: 999px; background: var(--surface-2);
+    border: 1px solid var(--border); display: grid; place-items: center;
+    font-size: 12px; font-weight: 700; color: var(--primary); margin-bottom: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+  .step h4 { margin: 0 0 5px; font-size: 13.5px; }
+  .step p { margin: 0; font-size: 12px; color: var(--muted); }
+  .step::after {
+    content: ""; position: absolute; top: 30px; right: 14px; left: 34px; height: 1px;
+    background: linear-gradient(90deg, var(--border), transparent);
+  }
+  .step:last-child::after { display: none; }
+  .step .tagline { display: inline-block; margin-top: 8px; font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--primary); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+  .chip { font-size: 11.5px; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 5px 11px; background: var(--surface); }
+  .chip b { color: var(--fg); font-weight: 600; }
+
+  .note { margin-top: 22px; border-left: 2px solid var(--primary); padding: 4px 0 4px 16px; color: var(--muted); font-size: 13px; max-width: 72ch; }
+  .note b { color: var(--fg); }
+</style>
+
+<div class="wrap">
+  <p class="kicker">GALLO Base Diesel · Design</p>
+  <h1>Quando a plataforma recebe um deploy</h1>
+  <p class="lede">
+    Mockups para decidir <b style="color:var(--fg)">como avisar</b> um usuário logado de que saiu uma nova versão,
+    <b style="color:var(--fg)">sem interromper</b> o que ele está fazendo, e como transformar o erro seco de "chunk quebrado"
+    numa ação de atualizar. Tema escuro — espelha o app real.
+  </p>
+
+  <!-- ========================= SECTION 1 ========================= -->
+  <section class="section">
+    <h2><span class="num">01</span> O aviso proativo</h2>
+    <p class="sub">
+      Duas formas de dizer "há uma atualização". Ambas são dispensáveis; a diferença é onde vivem e como insistem.
+    </p>
+
+    <div class="grid-2">
+      <!-- Variant A -->
+      <div>
+        <div class="opt-head">
+          <span class="opt-title">A · Banner no topo</span>
+          <span class="tag alt">Consistente com o shell</span>
+        </div>
+        <div class="frame">
+          <div class="rail">
+            <div class="logo"></div>
+            <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          </div>
+          <div class="panel">
+            <div class="top-banner">
+              <span class="ic">✦</span>
+              <span class="msg"><b>Nova versão disponível.</b> <span>Atualize para aplicar as melhorias.</span></span>
+              <button class="btn btn-primary btn-sm">Atualizar agora</button>
+              <button class="btn btn-ghost btn-sm">Agora não</button>
+            </div>
+            <div class="topbar">
+              <span class="tb-title">Atendimento</span>
+              <span class="tb-spacer"></span>
+              <span class="tb-pill"></span>
+              <span class="tb-av"></span>
+            </div>
+            <div class="content">
+              <div class="skel w1"></div><div class="skel w4"></div><div class="skel w3"></div>
+              <div class="cards-row"><div class="mini-card"></div><div class="mini-card"></div><div class="mini-card"></div></div>
+            </div>
+          </div>
+        </div>
+        <p class="hint">Vive junto dos banners de sistema (dados, WhatsApp, horário). Empurra o conteúdo ~1 linha.</p>
+      </div>
+
+      <!-- Variant B -->
+      <div>
+        <div class="opt-head">
+          <span class="opt-title">B · Card flutuante (canto)</span>
+          <span class="tag rec">Recomendado</span>
+        </div>
+        <div class="frame">
+          <div class="rail">
+            <div class="logo"></div>
+            <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          </div>
+          <div class="panel">
+            <div class="topbar">
+              <span class="tb-title">Atendimento</span>
+              <span class="tb-spacer"></span>
+              <span class="tb-pill"></span>
+              <span class="tb-av"></span>
+            </div>
+            <div class="content">
+              <div class="skel w1"></div><div class="skel w4"></div><div class="skel w3"></div>
+              <div class="cards-row"><div class="mini-card"></div><div class="mini-card"></div><div class="mini-card"></div></div>
+            </div>
+            <div class="float" id="floatCard">
+              <div class="row">
+                <div class="badge">✦</div>
+                <div>
+                  <h4>Atualização disponível</h4>
+                  <p>Uma nova versão da plataforma está pronta. Atualize quando puder.</p>
+                </div>
+              </div>
+              <div class="acts">
+                <button class="btn btn-primary btn-sm" style="flex:1">Atualizar agora</button>
+                <button class="btn btn-ghost btn-sm" onclick="minimize()">Agora não</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="hint">Não empurra conteúdo. O "Agora não" <b style="color:var(--fg)">minimiza</b> — não some (ver seção 2).</p>
+      </div>
+    </div>
+
+    <p class="note">
+      <b>Por que recomendo a B:</b> é o padrão consagrado de "nova versão disponível" em web apps. Ela resolve o seu pedido —
+      "pode ignorar, mas sempre lembrar" — de forma limpa: ao ignorar, encolhe para um selo persistente em vez de desaparecer,
+      e não disputa espaço com os banners operacionais do topo (que falam do sistema, não do app).
+    </p>
+  </section>
+
+  <!-- ========================= SECTION 2 ========================= -->
+  <section class="section">
+    <h2><span class="num">02</span> Ignorou? Continua lembrando.</h2>
+    <p class="sub">
+      Ao clicar em "Agora não", o card encolhe para este selo no mesmo canto. Ele fica sempre visível, e o card completo
+      reabre sozinho de tempos em tempos (ex.: a cada 15 min) — nunca bloqueia, nunca deixa esquecer.
+    </p>
+
+    <div class="grid-2">
+      <div>
+        <div class="opt-head"><span class="opt-title">Estado minimizado — selo persistente</span></div>
+        <div class="frame">
+          <div class="rail">
+            <div class="logo"></div>
+            <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          </div>
+          <div class="panel">
+            <div class="topbar">
+              <span class="tb-title">Orçamentos</span>
+              <span class="tb-spacer"></span>
+              <span class="tb-pill"></span>
+              <span class="tb-av"></span>
+            </div>
+            <div class="content">
+              <div class="skel w2"></div><div class="skel w5"></div><div class="skel w4"></div><div class="skel w3"></div>
+              <div class="cards-row"><div class="mini-card"></div><div class="mini-card"></div></div>
+            </div>
+            <div class="pill" onclick="expand()">
+              <span class="glow"></span>
+              Atualização pronta
+              <span class="count">· toque para ver</span>
+            </div>
+          </div>
+        </div>
+        <p class="hint">Clique no selo (ou no card acima na seção 1) para alternar os estados neste mockup.</p>
+      </div>
+
+      <div>
+        <div class="opt-head"><span class="opt-title">A régua do lembrete</span></div>
+        <div style="border:1px solid var(--border); border-radius:var(--radius); background:var(--surface); padding:22px; height:320px; display:flex; flex-direction:column; justify-content:center; gap:16px;">
+          <div class="legend" style="margin:0;">
+            <span class="chip"><b>Aparece:</b> ao detectar deploy</span>
+            <span class="chip"><b>Ignorar:</b> minimiza p/ selo</span>
+            <span class="chip"><b>Reabre:</b> a cada ~15 min</span>
+            <span class="chip"><b>Nunca:</b> bloqueia a tela</span>
+          </div>
+          <p style="margin:0; font-size:13px; color:var(--muted);">
+            O selo persiste entre trocas de rota e sobrevive ao recarregamento do app até que a versão nova seja de fato
+            carregada. Assim que o usuário atualiza, tudo some.
+          </p>
+          <p style="margin:0; font-size:13px; color:var(--muted);">
+            Intervalos e cópia são parâmetros — dá para calibrar o quanto insiste sem tocar na estrutura.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================= SECTION 3 ========================= -->
+  <section class="section">
+    <h2><span class="num">03</span> Quando o erro chega antes do aviso</h2>
+    <p class="sub">
+      Se o usuário clicar numa tela logo após o deploy, o chunk pode dar 404 antes do aviso aparecer. Hoje isso cai numa
+      tela genérica. O plano é reconhecer que é "código desatualizado" e oferecer a mesma ação de atualizar.
+    </p>
+
+    <div class="grid-2">
+      <div>
+        <div class="opt-head"><span class="opt-title">Hoje</span><span class="tag alt">Genérico</span></div>
+        <div class="eb before">
+          <div>
+            <div class="ic-wrap">⚠</div>
+            <h3>Algo deu errado</h3>
+            <p>Tente recarregar ou voltar à página inicial.</p>
+            <div class="acts">
+              <button class="btn btn-primary btn-sm">Tentar novamente</button>
+              <button class="btn btn-ghost btn-sm">Início</button>
+            </div>
+          </div>
+        </div>
+        <p class="hint">O usuário não sabe que a causa é um deploy — "tentar novamente" muitas vezes repete o erro.</p>
+      </div>
+
+      <div>
+        <div class="opt-head"><span class="opt-title">Proposto (só p/ erro de chunk)</span><span class="tag rec">Recomendado</span></div>
+        <div class="eb after">
+          <div>
+            <div class="ic-wrap">✦</div>
+            <h3>Nova versão disponível</h3>
+            <p>A plataforma foi atualizada. Recarregue para continuar de onde parou.</p>
+            <div class="acts">
+              <button class="btn btn-primary btn-sm">Atualizar agora</button>
+            </div>
+            <div class="meta">↻ recarregando automaticamente em 5s…</div>
+          </div>
+        </div>
+        <p class="hint">Detectado por assinatura do erro (<span class="k">Failed to fetch dynamically imported module</span>). Erros comuns seguem na tela genérica.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================= SECTION 4 ========================= -->
+  <section class="section">
+    <h2><span class="num">04</span> A sequência completa</h2>
+    <p class="sub">Do deploy ao modal de novidades que você já tem — encadeados.</p>
+
+    <div class="flow">
+      <div class="step">
+        <div class="n">1</div>
+        <h4>Detecta o deploy</h4>
+        <p>O app compara, de tempos em tempos, o build-id que está rodando na aba com o build-id em produção.</p>
+        <span class="tagline">Silencioso</span>
+      </div>
+      <div class="step">
+        <div class="n">2</div>
+        <h4>Avisa, sem travar</h4>
+        <p>Card flutuante "Atualização disponível". Pode ignorar → vira selo persistente que reabre sozinho.</p>
+        <span class="tagline">Dispensável</span>
+      </div>
+      <div class="step">
+        <div class="n">3</div>
+        <h4>Atualizar = hard refresh</h4>
+        <p>Limpa caches e recarrega o app, garantindo que os novos arquivos sejam baixados.</p>
+        <span class="tagline">1 clique</span>
+      </div>
+      <div class="step">
+        <div class="n">4</div>
+        <h4>Mostra as novidades</h4>
+        <p>Ao voltar, o modal "Novidades da plataforma" que já existe abre com o que mudou (quando há minor/major).</p>
+        <span class="tagline">Já existe</span>
+      </div>
+    </div>
+
+    <p class="note">
+      <b>Sobre o "hard refresh":</b> o navegador não deixa um site forçar Ctrl+Shift+R por script. Mas o efeito que importa
+      — baixar o build novo — é garantido recarregando o <b>index.html</b> (que a Vercel serve sempre fresco) e limpando o
+      <b>Cache Storage</b> antes. Como cada arquivo já tem hash no nome, isso é suficiente para o app subir 100% na versão nova.
+    </p>
+  </section>
+</div>
+
+<script>
+  function minimize() {
+    document.getElementById('floatCard').style.display = 'none';
+    document.querySelectorAll('.pill').forEach(function (p) { p.dataset.on = '1'; });
+  }
+  function expand() {
+    document.getElementById('floatCard').style.display = '';
+  }
+</script>

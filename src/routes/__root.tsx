@@ -6,6 +6,7 @@ import { CopilotSettingsProvider } from "@/features/copilot";
 import { AuthProvider } from "@/features/auth/AuthProvider";
 import { MultistoreProvider } from "@/features/multistore";
 import { RbacHydrator } from "@/features/rbac";
+import { isChunkLoadError, ChunkErrorScreen } from "@/features/version-update";
 import { DataProvidersProvider } from "@/providers/data";
 import { NotificationProvidersProvider } from "@/providers/notifications";
 
@@ -34,6 +35,10 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
+
+  if (isChunkLoadError(error)) {
+    return <ChunkErrorScreen />;
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
