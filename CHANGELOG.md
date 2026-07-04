@@ -4,6 +4,25 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.132.0] — Epilogue · 2026-07-04
+
+**Conversas encerradas saem da lista automaticamente, e agora dá para ver o histórico completo de atendimento de cada cliente.** Resolver ou arquivar uma conversa passou a ser um único gesto de "encerrar": ela some da lista do Atendimento (mas continua visível se você filtrar por encerradas), fica sem atribuição e volta para o topo da fila assim que o cliente responder de novo. Um novo histórico de atendimento — disponível no painel do Atendimento e na ficha do cliente — mostra a linha do tempo de status, atribuições, transferências e reaberturas de cada conversa.
+
+### Added
+
+- Histórico de Atendimento por cliente: linha do tempo de status, atribuições, transferências e reaberturas, disponível no painel do atendimento e na ficha do cliente (tabela `conversation_activity` alimentada por trigger, RPC `get_customer_activity`, provider `activity`).
+- RPC `close_conversation` para encerramento atômico de conversas.
+
+### Changed
+
+- `resolvida` e `arquivada` unificadas em um eixo "encerrado": somem da lista por padrão (ainda visíveis por filtro explícito), ficam sem atribuição e reabrem em "Em fila" no topo ao próximo contato do cliente.
+- Reabertura automática de conversas encerradas quando o cliente responde (webhook); a reabertura manual passa a assumir a conversa para o atendente.
+
+### Fixed
+
+- O eco de mensagens enviadas do celular deixa de reutilizar conversas encerradas (passa a criar uma nova, sem reabrir a antiga).
+- Paridade da emissão de eventos de atividade entre o modo mock e o Supabase.
+
 ## [0.131.1] — Ledger · 2026-07-03
 
 **Vendedores voltam a conseguir renomear contatos, e o nome do contato fica igual nos três lugares da tela de Atendimento.** Renomear um contato falhava com "Não foi possível renomear o contato" para quem não é proprietário/gestor quando o contato ainda estava na fila (sem dono) — só o dono da carteira ou o gestor conseguiam. Agora qualquer atendente que atende aquele número pode renomear. E o nome do contato, que aparecia de formas diferentes (a ficha em MAIÚSCULAS, a lista e o topo em minúsculas), passou a aparecer em MAIÚSCULAS nos três lugares, alinhado ao padrão já usado nas etiquetas.
