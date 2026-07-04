@@ -7,14 +7,14 @@ insert into public.conversation_activity(
 select
   al.resource_id::uuid, c.customer_id, c.lead_id, c.store_id, 'status',
   (al.before->>'status'), (al.after->>'status'),
-  al.actor_id::uuid, 'seller', al."timestamp"
+  al.actor_id, 'seller', al."timestamp"
 from public.audit_logs al
 join public.conversations c on c.id = al.resource_id::uuid
 where al.resource = 'conversation'
   and al.action in ('conversation.status_change','conversation.resolve','conversation.archive')
   and (al.after ? 'status')
+  -- resource_id is text (guard the ::uuid cast); actor_id is already uuid NOT NULL.
   and al.resource_id ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
-  and al.actor_id ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
   and not exists (
     select 1 from public.conversation_activity ca
     where ca.conversation_id = al.resource_id::uuid
