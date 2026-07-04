@@ -56,6 +56,13 @@ export function useConversationStatusActions(
         }
         afterAssignee = null;
         coupledToast = CONVERSATION_STRINGS.statusControl.autoReturnedToQueue;
+      } else if (decision === "close") {
+        // Closing an owned conversation (→ resolvida/arquivada) is an atomic
+        // server op: terminal status + unassign + SDR reset in one call, no
+        // transitional "aguardando" (spec 2026-07-03-attendance-close).
+        await conversationsProvider.close(conversation.id, next as "resolvida" | "arquivada");
+        afterAssignee = null;
+        coupledToast = CONVERSATION_STRINGS.statusControl.closedAndRemoved;
       } else {
         await conversationsProvider.update(conversation.id, { status: next });
       }

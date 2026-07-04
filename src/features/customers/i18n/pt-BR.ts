@@ -54,6 +54,7 @@ export const CUSTOMER_STRINGS = {
     midias: "Mídias",
     notes: "Notas",
     recommendations: "Recomendações",
+    historico: "Histórico",
   },
   atendimento: {
     status: "Status da conversa",

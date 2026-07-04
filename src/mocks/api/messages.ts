@@ -2,6 +2,8 @@ import type { ID, IMessage, MessageMediaType } from "@/shared/types";
 import { selectMessagesByConversation } from "../store/selectors";
 import { patchById, upsert } from "../store/mutations";
 import { getMockState } from "../store/mockStore";
+import { reopenOnInbound } from "@/providers/data/engine/assignmentStatusCoupling";
+import { emitConversationActivity } from "./_emitConversationActivity";
 import {
   MockNotFoundError,
   runApi,
@@ -155,15 +157,20 @@ export const messagesApi = {
         readAt: undefined,
       };
       upsert("messages", message);
-      const nextStatus =
-        conversation.status === "arquivada" || conversation.status === "resolvida"
-          ? conversation.status
-          : "aguardando";
-      patchById("conversations", conversationId, {
+      // Terminal (resolvida/arquivada) reopens to the queue on a customer
+      // inbound; non-terminal conversations keep today's behavior of
+      // requeuing to aguardando so the agent gets a "needs attention" signal.
+      const reopened = reopenOnInbound(conversation.status);
+      const nextStatus = reopened ?? "aguardando";
+      const updated = patchById("conversations", conversationId, {
         lastMessageAt: now,
         status: nextStatus,
         unreadCount: conversation.unreadCount + 1,
+        ...(reopened ? { assignedSellerId: undefined } : {}),
       });
+      if (reopened && updated) {
+        emitConversationActivity(conversation, updated, null); // system reopen
+      }
       return message;
     });
   },

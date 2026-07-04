@@ -33,6 +33,7 @@ import {
   QuickSendBusProvider,
 } from "@/features/quick-send";
 import { PartLookupPanel, useConsultorPanel, appendToDraft } from "@/features/part-lookup";
+import { AttendanceHistoryPanel } from "@/features/attendance-history";
 
 function ConversationRunners({
   conversation,
@@ -101,11 +102,13 @@ export function ConversationPage() {
     toggle: fiche.toggle,
   });
   const consultor = useConsultorPanel();
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   // The right rail is mutually exclusive: opening one panel closes the others.
   const openConsultor = () => {
     fiche.setOpen(false);
     media.setOpen(false);
+    setHistoryOpen(false);
     consultor.setOpen(true);
   };
   const toggleConsultor = () => (consultor.open ? consultor.setOpen(false) : openConsultor());
@@ -113,6 +116,7 @@ export function ConversationPage() {
     if (!fiche.open) {
       media.setOpen(false);
       consultor.setOpen(false);
+      setHistoryOpen(false);
     }
     ficheButtonClick();
   };
@@ -120,8 +124,17 @@ export function ConversationPage() {
     if (!media.open) {
       fiche.setOpen(false);
       consultor.setOpen(false);
+      setHistoryOpen(false);
     }
     media.toggle();
+  };
+  const toggleHistoryExclusive = () => {
+    if (!historyOpen) {
+      fiche.setOpen(false);
+      media.setOpen(false);
+      consultor.setOpen(false);
+    }
+    setHistoryOpen((prev) => !prev);
   };
 
   // RF-006/007/008: archive inbound media without blocking render/send. For
@@ -207,6 +220,8 @@ export function ConversationPage() {
                 onToggleMedia={toggleMediaExclusive}
                 consultorOpen={consultor.open}
                 onToggleConsultor={toggleConsultor}
+                historyOpen={historyOpen}
+                onToggleHistory={toggleHistoryExclusive}
                 menuSlot={
                   <ConversationMenu
                     conversation={conversation}
@@ -298,6 +313,13 @@ export function ConversationPage() {
               open={media.open}
               onOpenChange={media.setOpen}
             />
+            {conversation.customerId && (
+              <AttendanceHistoryPanel
+                customerId={conversation.customerId}
+                open={historyOpen}
+                onOpenChange={setHistoryOpen}
+              />
+            )}
             <PartLookupPanel
               open={consultor.open}
               onOpenChange={consultor.setOpen}

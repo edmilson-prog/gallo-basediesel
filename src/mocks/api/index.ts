@@ -31,6 +31,7 @@ export { departmentsApi } from "./departments";
 export { rotationQueuesApi } from "./rotationQueues";
 export { rotationParticipantsApi } from "./rotationParticipants";
 export { distributionTracesApi, type IListDistributionTracesParams } from "./distributionTraces";
+export { conversationActivityApi } from "./conversationActivity";
 export { managerDashboardApi } from "./managerDashboard";
 export { sdrSessionsApi, type IListSdrSessionsParams } from "./sdrSessions";
 export { sdrEscalationsApi } from "./sdrEscalations";

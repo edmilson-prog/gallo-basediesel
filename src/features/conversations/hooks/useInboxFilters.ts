@@ -282,10 +282,10 @@ export function filtersToListParams(
 ) {
   const params: Record<string, unknown> = {};
 
-  // Status — defaulting to "all" excludes only archived conversations
-  // (PRD-010 RF-007).
+  // Status — defaulting to "all" excludes closed (resolvida + arquivada)
+  // conversations (PRD-010 RF-007).
   if (filters.status === "all") {
-    params.status = ["aguardando", "em_andamento", "aguardando_cliente", "resolvida"];
+    params.status = ["aguardando", "em_andamento", "aguardando_cliente"];
   } else {
     params.status = filters.status;
   }

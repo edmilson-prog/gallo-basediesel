@@ -61,6 +61,35 @@ export interface IConversation {
   matchedMessage?: IConversationMessageMatch;
 }
 
+/** Kind of attendance-lifecycle event (mirrors the SQL trigger derivation). */
+export type AttendanceActivityType = "created" | "status" | "assignment" | "reopen";
+
+/**
+ * One append-only entry in a conversation's attendance history
+ * (`conversation_activity`). One row per transition, carrying both the status
+ * and the owner delta; `actorId == null` (with `actorKind === 'system'`) means
+ * the system caused it (e.g. reopen-on-inbound from the webhook).
+ */
+export interface IConversationActivityEvent {
+  id: ID;
+  conversationId: ID;
+  customerId?: ID;
+  leadId?: ID;
+  storeId: ID;
+  type: AttendanceActivityType;
+  fromStatus?: ConversationStatus | null;
+  toStatus?: ConversationStatus | null;
+  fromSellerId?: ID | null;
+  toSellerId?: ID | null;
+  actorId?: ID | null;
+  actorKind: "seller" | "system";
+  createdAt: ISO8601;
+  /** Denormalized conversation metadata for the timeline card header. */
+  conversationChannel: ConversationChannel;
+  conversationStatus: ConversationStatus;
+  conversationCreatedAt: ISO8601;
+}
+
 /**
  * Owner-managed catalog entry for CONVERSATION tags (distinct from customer
  * tags in IPlatformSettings.tagSuggestions). `conversations.tags` stores the

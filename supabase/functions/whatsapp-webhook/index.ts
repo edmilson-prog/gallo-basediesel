@@ -266,17 +266,22 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
       if (Object.keys(patch).length === 0) return;
       await admin.from("customers").update(patch).eq("id", customerId);
     },
-    async findOpenConversation(customerId, accountId) {
-      const { data } = await admin
+    async findOpenConversation(customerId, accountId, includeTerminal) {
+      // Default: OPEN-ONLY (excludes resolvida/arquivada) — used by the
+      // outbound echo path, which must never reuse/reopen a closed
+      // conversation (spec 2026-07-03 §1.5). Customer-inbound passes
+      // includeTerminal:true to also see closed ones so it can reopen them
+      // via reopenConversation below rather than filtering them out here.
+      let query = admin
         .from("conversations")
-        .select("id")
+        .select("id, status")
         .eq("customer_id", customerId)
-        .eq("whatsapp_account_id", accountId)
-        .not("status", "in", `(${CLOSED_CONVERSATION_STATUSES.join(",")})`)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      return data ? { id: data.id as string } : null;
+        .eq("whatsapp_account_id", accountId);
+      if (!includeTerminal) {
+        query = query.not("status", "in", `(${CLOSED_CONVERSATION_STATUSES.join(",")})`);
+      }
+      const { data } = await query.order("created_at", { ascending: false }).limit(1).maybeSingle();
+      return data ? { id: data.id as string, status: data.status as string } : null;
     },
     async createConversation(input) {
       const { data, error } = await admin
@@ -357,6 +362,27 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
       await admin
         .from("conversations")
         .update({
+          last_message_at: lastMessageAt,
+          unread_count: ((data?.unread_count as number | undefined) ?? 0) + 1,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", conversationId);
+    },
+    async reopenConversation(conversationId, lastMessageAt) {
+      // Reopen a closed conversation on customer inbound: back to the queue
+      // (status='aguardando'), unassigned (previous owner loses the closed
+      // chat), unread bumped. The conversation_status_activity trigger emits
+      // the 'reopen' activity row (service_role ⇒ actor_kind='system').
+      const { data } = await admin
+        .from("conversations")
+        .select("unread_count")
+        .eq("id", conversationId)
+        .maybeSingle();
+      await admin
+        .from("conversations")
+        .update({
+          status: "aguardando",
+          assigned_seller_id: null,
           last_message_at: lastMessageAt,
           unread_count: ((data?.unread_count as number | undefined) ?? 0) + 1,
           updated_at: new Date().toISOString(),

@@ -57,6 +57,10 @@ export interface IConversationHeaderProps {
   consultorOpen?: boolean;
   /** Toggles the part-lookup consultor panel. */
   onToggleConsultor?: () => void;
+  /** Whether the attendance history panel is open. */
+  historyOpen?: boolean;
+  /** Toggles the attendance history panel. */
+  onToggleHistory?: () => void;
   /** Action menu rendered as a popover trigger (kebab). */
   menuSlot?: React.ReactNode;
   /** SDR escalation record bound to this conversation (PRD-023), when any. */
@@ -82,6 +86,8 @@ export function ConversationHeader({
   onToggleMedia,
   consultorOpen,
   onToggleConsultor,
+  historyOpen,
+  onToggleHistory,
   menuSlot,
   escalation,
   onCustomerUpdated,
@@ -250,6 +256,23 @@ export function ConversationHeader({
                 </Button>
               </TooltipTrigger>
               <TooltipContent>{PART_LOOKUP_STRINGS.panelTitle}</TooltipContent>
+            </Tooltip>
+          )}
+          {onToggleHistory && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={historyOpen ? "secondary" : "ghost"}
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={onToggleHistory}
+                  aria-pressed={historyOpen}
+                >
+                  <Icon icon="mdi:history" size={14} />
+                  <span className="hidden md:inline">{CONVERSATION_STRINGS.toggleHistory}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{CONVERSATION_STRINGS.toggleHistory}</TooltipContent>
             </Tooltip>
           )}
           {pendingScheduled > 0 && (

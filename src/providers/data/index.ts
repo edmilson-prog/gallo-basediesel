@@ -76,6 +76,7 @@ export type {
   IWhatsAppAccountMetrics,
   IDistributionTracesProvider,
   IListDistributionTracesParams,
+  IActivityProvider,
   IManagerDashboardProvider,
   IManagerDashboardSnapshotParams,
   IManagerDashboardSnapshot,
@@ -148,6 +149,7 @@ export { useSettingsProvider } from "./hooks/useSettingsProvider";
 export { useAuditsProvider } from "./hooks/useAuditsProvider";
 export { useWhatsAppAccountsProvider } from "./hooks/useWhatsAppAccountsProvider";
 export { useDistributionTracesProvider } from "./hooks/useDistributionTracesProvider";
+export { useActivityProvider } from "./hooks/useActivityProvider";
 export { useManagerDashboardProvider } from "./hooks/useManagerDashboardProvider";
 export { useSdrSessionsProvider } from "./hooks/useSdrSessionsProvider";
 export { useSdrEscalationsProvider } from "./hooks/useSdrEscalationsProvider";

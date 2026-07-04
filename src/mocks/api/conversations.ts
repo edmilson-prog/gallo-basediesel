@@ -32,6 +32,7 @@ import {
   type IPaginationParams,
 } from "./utils";
 import { statusOnAssign, statusOnUnassign } from "@/providers/data/engine/assignmentStatusCoupling";
+import { emitConversationActivity, getCurrentMockSellerId } from "./_emitConversationActivity";
 
 export type ConversationsOrderBy = "lastMessageAt" | "abcClass";
 
@@ -235,8 +236,10 @@ export const conversationsApi = {
 
   async update(id: ID, patch: Partial<IConversation>): Promise<IConversation> {
     return runApi("conversationsApi", "update", () => {
+      const before = getMockState().conversations.find((c) => c.id === id) ?? null;
       const updated = patchById("conversations", id, patch);
       if (!updated) throw new MockNotFoundError("conversation", id);
+      emitConversationActivity(before, updated, getCurrentMockSellerId());
       return updated;
     });
   },
@@ -251,34 +254,36 @@ export const conversationsApi = {
 
   async assignSeller(id: ID, sellerId: ID): Promise<IConversation> {
     return runApi("conversationsApi", "assignSeller", () => {
-      const current = getMockState().conversations.find((c) => c.id === id);
-      if (!current) throw new MockNotFoundError("conversation", id);
+      const before = getMockState().conversations.find((c) => c.id === id);
+      if (!before) throw new MockNotFoundError("conversation", id);
       // Coupling: assigning pulls a queued conversation into em_andamento.
-      const nextStatus = statusOnAssign(current.status);
+      const nextStatus = statusOnAssign(before.status);
       const updated = patchById("conversations", id, {
         assignedSellerId: sellerId,
         isSdrActive: false,
         ...(nextStatus ? { status: nextStatus } : {}),
       });
       if (!updated) throw new MockNotFoundError("conversation", id);
+      emitConversationActivity(before, updated, getCurrentMockSellerId());
       return updated;
     });
   },
 
   async unassign(id: ID): Promise<IConversation> {
     return runApi("conversationsApi", "unassign", () => {
-      const current = getMockState().conversations.find((c) => c.id === id);
-      if (!current) throw new MockNotFoundError("conversation", id);
+      const before = getMockState().conversations.find((c) => c.id === id);
+      if (!before) throw new MockNotFoundError("conversation", id);
       // Spread-merge in patchById sets the field to `undefined`, which the store
       // reads back as "no assignee" (pool) — the mock equivalent of NULL.
       // Coupling: returning to the pool re-queues the conversation (aguardando),
       // except on the manual-only archive axis.
-      const nextStatus = statusOnUnassign(current.status);
+      const nextStatus = statusOnUnassign(before.status);
       const updated = patchById("conversations", id, {
         assignedSellerId: undefined,
         ...(nextStatus ? { status: nextStatus } : {}),
       });
       if (!updated) throw new MockNotFoundError("conversation", id);
+      emitConversationActivity(before, updated, getCurrentMockSellerId());
       return updated;
     });
   },
@@ -286,6 +291,21 @@ export const conversationsApi = {
   async archive(id: ID): Promise<void> {
     return runApi("conversationsApi", "archive", () => {
       patchById("conversations", id, { status: "arquivada" });
+    });
+  },
+
+  async close(id: ID, status: "resolvida" | "arquivada"): Promise<IConversation> {
+    return runApi("conversationsApi", "close", () => {
+      const before = getMockState().conversations.find((c) => c.id === id);
+      if (!before) throw new MockNotFoundError("conversation", id);
+      const updated = patchById("conversations", id, {
+        status,
+        assignedSellerId: undefined,
+        isSdrActive: false,
+      });
+      if (!updated) throw new MockNotFoundError("conversation", id);
+      emitConversationActivity(before, updated, getCurrentMockSellerId());
+      return updated;
     });
   },
 
@@ -397,6 +417,7 @@ export const conversationsApi = {
           createdAt: occurredAt,
         };
         upsert("conversations", conversation);
+        emitConversationActivity(null, conversation, null);
 
         const messages: IMessage[] = [];
         const incomingId = `msg-${crypto.randomUUID()}`;

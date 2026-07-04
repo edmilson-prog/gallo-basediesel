@@ -54,6 +54,7 @@ export const mockConversationsProvider: IConversationsProvider = {
   assignSeller: (id, sellerId) => conversationsApi.assignSeller(id, sellerId),
   unassign: (id) => conversationsApi.unassign(id),
   archive: (id) => conversationsApi.archive(id),
+  close: (id, status) => conversationsApi.close(id, status),
   listContacts: async (conversationIds: ID[]): Promise<IConversationContact[]> => {
     // No RLS in the mock store — resolve each conversation's contact directly
     // (raw, unscoped apis), mirroring what the supabase RPC exposes for any
