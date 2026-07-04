@@ -1,5 +1,7 @@
 export const ATTENDANCE_HISTORY_STRINGS = {
   panelTitle: "Histórico de atendimento",
+  panelDescription:
+    "Linha do tempo de status e atribuições de todos os atendimentos deste cliente.",
   loading: "Carregando histórico…",
   error: "Não foi possível carregar o histórico.",
   empty: "Nenhum atendimento registrado ainda.",

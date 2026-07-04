@@ -2,7 +2,13 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { ID, ISeller } from "@/shared/types";
 import { Icon } from "@/components/Icon";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useSellersProvider } from "@/providers/data";
 import { STATUS_META, CHANNEL_META } from "@/features/conversations/utils/conversationDisplay";
@@ -78,6 +84,7 @@ export function AttendanceHistoryPanel({
         <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-md">
           <SheetHeader className="border-b border-border px-4 py-3">
             <SheetTitle className="text-sm font-semibold">{S.panelTitle}</SheetTitle>
+            <SheetDescription className="sr-only">{S.panelDescription}</SheetDescription>
           </SheetHeader>
           {body}
         </SheetContent>
