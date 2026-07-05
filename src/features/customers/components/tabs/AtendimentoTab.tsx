@@ -60,7 +60,7 @@ export function AtendimentoTab({
   // is never actually rendered against, since every `collab.*`/`viewing.*` use
   // below lives inside the `{conversation && (...)}` block further down.
   const collab = useConversationCollaborators(
-    conversation ?? { id: "", assignedSellerId: undefined },
+    conversation ?? { id: "", storeId: "", assignedSellerId: undefined },
     () => onConversationChanged?.(),
   );
   const viewing = useConversationPresence(conversation?.id ?? null);
