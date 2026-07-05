@@ -29,8 +29,10 @@ export async function recordAuditLog(input: ICreateAuditInput): Promise<void> {
 export function recordAuditLogSync(
   input: Omit<ICreateAuditInput, "storeId"> & { storeId?: ID },
 ): void {
+  // Spread first: callers may pass `storeId: undefined` as an own property and
+  // it must not shadow the fallback.
   void recordAuditLog({
-    storeId: input.storeId ?? "00000000-0000-0000-0000-000000000001",
     ...input,
+    storeId: input.storeId ?? "00000000-0000-0000-0000-000000000001",
   });
 }
