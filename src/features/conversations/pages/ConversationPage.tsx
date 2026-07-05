@@ -195,7 +195,8 @@ export function ConversationPage() {
     );
   }
 
-  const { conversation, customer, lead, contact, whatsappAccount, assignedSeller } = detail;
+  const { conversation, customer, lead, contact, whatsappAccount, assignedSeller, collaborators } =
+    detail;
 
   // Pool gate: non-staff must self-assign before replying. Staff (store-wide
   // viewers) are exempt — same predicate as showAssignee.
@@ -294,6 +295,7 @@ export function ConversationPage() {
                 conversation={conversation}
                 assignedSeller={assignedSeller}
                 whatsappAccount={whatsappAccount}
+                collaborators={collaborators}
                 onConversationChanged={detail.refresh}
                 open={fiche.open}
                 onOpenChange={fiche.setOpen}

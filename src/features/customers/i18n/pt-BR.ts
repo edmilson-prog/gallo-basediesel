@@ -64,6 +64,9 @@ export const CUSTOMER_STRINGS = {
     pendingHint: "pendência de revisão",
     tags: "Tags da conversa",
     tagsEmpty: "Nenhuma tag aplicada",
+    collaborators: "Colaboradores",
+    collaboratorsEmpty: "Nenhum colaborador nesta conversa.",
+    addCollaborator: "Adicionar colaborador",
   },
   overview: {
     metrics: {

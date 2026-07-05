@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { IConversation, ICustomer, ISeller, IWhatsAppAccount } from "@/shared/types";
+import type { ICollaboratorWithSeller } from "@/features/conversations/hooks/useConversationDetail";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -24,6 +25,8 @@ export interface IProfileTabsProps {
   assignedSeller?: ISeller | null;
   /** Resolved from conversation.whatsappAccountId by the caller — feeds the Atendimento tab. */
   whatsappAccount?: IWhatsAppAccount | null;
+  /** Resolved from useConversationDetail by the caller — feeds the Atendimento tab. */
+  collaborators?: ICollaboratorWithSeller[];
   /** Bubbles a StatusControl change up to the caller's conversation refresh. */
   onConversationChanged?: () => void;
   /**
@@ -155,6 +158,7 @@ export function ProfileTabs({
   conversation,
   assignedSeller,
   whatsappAccount,
+  collaborators,
   onConversationChanged,
   defaultTab = "overview",
   activeTab,
@@ -214,6 +218,7 @@ export function ProfileTabs({
               conversation={conversation}
               assignedSeller={assignedSeller}
               whatsappAccount={whatsappAccount}
+              collaborators={collaborators}
               onConversationChanged={onConversationChanged}
             />
           )}
