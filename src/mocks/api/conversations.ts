@@ -175,6 +175,25 @@ function applyNonSearchFilters(
   return filtered;
 }
 
+/** Terminal statuses that drop the owner and clear collaborators, mirroring
+ *  `clear_conversation_participants_on_close` (migration 20260704120000). */
+const TERMINAL_STATUSES = new Set(["resolvida", "arquivada"]);
+
+/**
+ * Stamps `isCollaborator` on each conversation for the CURRENT mock seller —
+ * mirrors the `is_collaborator` column the supabase RPCs (list_conversations /
+ * search_conversations) return, so the "Colaborando" tag renders in demo mode
+ * exactly like production. Bare participation check (the assignee-exclusion for
+ * the tag lives in the render, `ConversationListItem`).
+ */
+function stampIsCollaborator(list: IConversation[]): IConversation[] {
+  const sellerId = getCurrentMockSellerId();
+  if (!sellerId) return list;
+  return list.map((c) =>
+    sellerCollaboratesOnSync(c.id, [sellerId]) ? { ...c, isCollaborator: true } : c,
+  );
+}
+
 function sortConversations(
   all: IConversation[],
   params: IListConversationsParams,
@@ -201,7 +220,7 @@ export const conversationsApi = {
       () => {
         let all = applyNonSearchFilters(selectAllConversations(), params);
         if (params.search) all = all.filter((c) => matchesSearch(c, params.search!));
-        const sorted = sortConversations(all, params);
+        const sorted = sortConversations(stampIsCollaborator(all), params);
         return paginate(sorted, params);
       },
       { payload: params },
@@ -226,7 +245,7 @@ export const conversationsApi = {
           if (matchedMessage) acc.push({ ...c, matchedMessage });
           return acc;
         }, []);
-        const sorted = sortConversations(withMatch, params);
+        const sorted = sortConversations(stampIsCollaborator(withMatch), params);
         return paginate(sorted, params);
       },
       { payload: params },
@@ -246,6 +265,12 @@ export const conversationsApi = {
       const before = getMockState().conversations.find((c) => c.id === id) ?? null;
       const updated = patchById("conversations", id, patch);
       if (!updated) throw new MockNotFoundError("conversation", id);
+      // Mirrors trg_clear_participants_on_close: any status transition into a
+      // terminal state clears collaborators (the trigger fires on UPDATE OF
+      // status, not only through close()).
+      if (TERMINAL_STATUSES.has(updated.status) && before?.status !== updated.status) {
+        clearConversationParticipantsSync(id);
+      }
       emitConversationActivity(before, updated, getCurrentMockSellerId());
       return updated;
     });
@@ -297,7 +322,10 @@ export const conversationsApi = {
 
   async archive(id: ID): Promise<void> {
     return runApi("conversationsApi", "archive", () => {
-      patchById("conversations", id, { status: "arquivada" });
+      const before = getMockState().conversations.find((c) => c.id === id) ?? null;
+      const updated = patchById("conversations", id, { status: "arquivada" });
+      // Mirrors trg_clear_participants_on_close (see update()).
+      if (updated && before?.status !== "arquivada") clearConversationParticipantsSync(id);
     });
   },
 
