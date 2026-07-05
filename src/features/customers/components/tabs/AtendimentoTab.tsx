@@ -84,7 +84,11 @@ export function AtendimentoTab({
           </ContextRow>
           {assignedSeller && (
             <ContextRow label={COPY.assignee}>
-              <AssigneeChip seller={assignedSeller} variant="compact" />
+              <AssigneeChip
+                seller={assignedSeller}
+                variant="compact"
+                viewing={viewing?.has(assignedSeller.id) ?? false}
+              />
             </ContextRow>
           )}
           {whatsappAccount && (

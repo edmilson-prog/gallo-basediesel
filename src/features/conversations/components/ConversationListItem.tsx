@@ -34,6 +34,7 @@ import type { IConversationContact } from "@/shared/types";
 import { resolveConversationTags, splitVisibleTags } from "../engine/tagCatalog";
 import { useConversationTags } from "../hooks/useConversationTags";
 import { ConversationTagChip, TagOverflowChip } from "./tags/ConversationTagChip";
+import { useAuth } from "@/features/auth/useAuth";
 
 export interface IConversationListItemProps {
   conversation: IConversation;
@@ -122,6 +123,13 @@ function ConversationListItemInner({
   // Bump every minute so relative times stay fresh without per-item state.
   const now = useTimeTick(60_000);
   const [hover, setHover] = useState(false);
+  const { currentUser } = useAuth();
+  // "Colaborando" means someone ELSE owns the conversation and I collaborate on
+  // it — after a transfer a collaborator can become the assignee, and the RPC's
+  // is_collaborator is a bare EXISTS, so exclude the "I own it now" case here.
+  const showCollaboratingBadge =
+    conversation.isCollaborator &&
+    conversation.assignedSellerId !== currentUser?.sellerId;
 
   const display = useMemo(
     () => displayFromContact(conversation, contact),
@@ -344,7 +352,7 @@ function ConversationListItemInner({
             </Tooltip>
           )}
 
-          {conversation.isCollaborator && (
+          {showCollaboratingBadge && (
             <span className="inline-flex items-center gap-1 rounded bg-accent px-1.5 py-0.5 text-[10px] font-medium text-accent-foreground">
               <Icon icon="mdi:account-multiple-outline" size={11} />
               {INBOX_STRINGS.collaboratingBadge}

@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import { useSellersProvider, useSettingsProvider, useWhatsAppAccountsProvider } from "@/providers/data";
+import { useAuth } from "@/features/auth/useAuth";
 import { resolveInviteCandidates } from "../engine/collaboratorCandidates";
 
 export interface IAddCollaboratorDialogProps {
@@ -34,26 +35,40 @@ export function AddCollaboratorDialog({
   const sellersProvider = useSellersProvider();
   const settingsProvider = useSettingsProvider();
   const whatsappAccountsProvider = useWhatsAppAccountsProvider();
+  const { currentUser } = useAuth();
 
-  const { data: sellers = [], isLoading: sellersLoading } = useQuery({
+  const {
+    data: sellers = [],
+    isLoading: sellersLoading,
+    isError: sellersError,
+  } = useQuery({
     queryKey: ["sellers", "collaborator-candidates", conversation.storeId],
     queryFn: () => sellersProvider.list({ storeId: conversation.storeId, active: true }),
     enabled: open,
     staleTime: 5 * 60_000,
   });
-  const { data: settings, isLoading: settingsLoading } = useQuery({
+  const {
+    data: settings,
+    isLoading: settingsLoading,
+    isError: settingsError,
+  } = useQuery({
     queryKey: ["settings", conversation.storeId],
     queryFn: () => settingsProvider.get(conversation.storeId),
     enabled: open,
     staleTime: 5 * 60_000,
   });
-  const { data: accessRules = [], isLoading: rulesLoading } = useQuery({
+  const {
+    data: accessRules = [],
+    isLoading: rulesLoading,
+    isError: rulesError,
+  } = useQuery({
     queryKey: ["whatsapp-account-access-rules", conversation.whatsappAccountId],
     queryFn: () => whatsappAccountsProvider.getAccessRules(conversation.whatsappAccountId!),
     enabled: open && Boolean(conversation.whatsappAccountId),
     staleTime: 5 * 60_000,
   });
   const loading = sellersLoading || settingsLoading || rulesLoading;
+  const hasError = sellersError || settingsError || rulesError;
   // Mirrors the narrowing branch in resolveInviteCandidates: with the store
   // flag OFF, only sellers who already access the instance can be invited.
   const instanceGateActive =
@@ -62,6 +77,7 @@ export function AddCollaboratorDialog({
   const candidates: ISeller[] = resolveInviteCandidates(sellers, {
     assignedSellerId: conversation.assignedSellerId,
     existingCollaboratorIds,
+    currentSellerId: currentUser?.sellerId,
     whatsappAccountId: conversation.whatsappAccountId ?? null,
     crossInstanceAllowed: Boolean(settings?.participantCrossInstance),
     accessRules,
@@ -72,6 +88,11 @@ export function AddCollaboratorDialog({
     try {
       await onAdd(sellerId);
       setOpen(false);
+    } catch {
+      // The error toast is already surfaced by the mutation's onError
+      // (useConversationCollaborators). Swallow here so the rejection doesn't
+      // escape the `void handleSelect(...)` call site as an unhandledrejection
+      // (which Sentry would report in prod). Keep the dialog open on failure.
     } finally {
       setPendingId(null);
     }
@@ -99,6 +120,11 @@ export function AddCollaboratorDialog({
             <CommandEmpty>
               {loading ? (
                 "Carregando vendedores..."
+              ) : hasError ? (
+                <span className="block px-4 text-muted-foreground">
+                  Não foi possível carregar os vendedores. Feche e abra novamente para tentar de
+                  novo.
+                </span>
               ) : candidates.length === 0 && instanceGateActive ? (
                 <span className="block px-4 text-muted-foreground">
                   Nenhum vendedor com acesso a este número está disponível para convidar. Conceda

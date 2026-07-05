@@ -2,6 +2,7 @@ import type { ISeller } from "@/shared/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
+import { PresenceDot } from "./PresenceDot";
 
 function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -31,12 +32,7 @@ export function CollaboratorRow({ seller, source, viewing, canRemove, onRemove }
               {initials}
             </AvatarFallback>
           </Avatar>
-          {viewing && (
-            <span
-              aria-hidden
-              className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-background bg-severity-success"
-            />
-          )}
+          {viewing && <PresenceDot />}
         </span>
         <span className="truncate text-foreground">{seller.fullName}</span>
         {source === "mention" && (
