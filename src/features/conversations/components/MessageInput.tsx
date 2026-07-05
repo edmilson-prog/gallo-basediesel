@@ -173,6 +173,7 @@ function GatedComposerFooter({
         <InlineNoteComposer
           conversationId={conversation.id}
           storeId={conversation.storeId}
+          assignedSellerId={conversation.assignedSellerId}
           onClose={onCloseNotes}
         />
       )}
@@ -714,6 +715,7 @@ export function MessageInput(props: IMessageInputProps) {
         <InlineNoteComposer
           conversationId={conversation.id}
           storeId={conversation.storeId}
+          assignedSellerId={conversation.assignedSellerId}
           onClose={() => setNotesOpen(false)}
         />
       )}

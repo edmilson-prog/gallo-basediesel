@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { ID, IConversationNote } from "@/shared/types";
-import { useConversationNotesProvider } from "@/providers/data";
+import { useConversationNotesProvider, useConversationParticipantsProvider } from "@/providers/data";
 import { useAuth } from "@/features/auth/useAuth";
+import { resolveMentionParticipants } from "../engine/mentions";
 
 export interface IUseConversationNotes {
   notes: IConversationNote[];
@@ -27,13 +28,22 @@ export interface IUseConversationNotes {
  * create/update/delete mutations that invalidate it. The author is the logged
  * seller; `storeId` is threaded from the conversation so the supabase RLS
  * WITH CHECK (store_id = current_store_id()) passes.
+ *
+ * `assignedSellerId` (optional — omit when the caller doesn't know it, e.g.
+ * `NotesButton`/`MessageList`, which never create notes) feeds
+ * `resolveMentionParticipants`: mentioning a colleague who isn't already the
+ * assignee or a collaborator auto-adds them as one (source='mention'), but
+ * ONLY when the note's author is staff or the conversation's own assignee —
+ * mirrors the `cp_insert` RLS gate from the author's perspective.
  */
 export function useConversationNotes(
   conversationId: ID,
   storeId: ID,
+  assignedSellerId?: ID,
   enabled = true,
 ): IUseConversationNotes {
   const provider = useConversationNotesProvider();
+  const participantsProvider = useConversationParticipantsProvider();
   const { currentUser, hasRole } = useAuth();
   const queryClient = useQueryClient();
   const currentSellerId = currentUser?.sellerId;
@@ -51,17 +61,38 @@ export function useConversationNotes(
   const invalidate = () => void queryClient.invalidateQueries({ queryKey });
 
   const createMutation = useMutation({
-    mutationFn: ({ content, mentions }: { content: string; mentions: ID[] }) => {
+    mutationFn: async ({ content, mentions }: { content: string; mentions: ID[] }) => {
       if (!currentSellerId) {
         throw new Error("Sua sessão não tem um vendedor associado.");
       }
-      return provider.create({
+      const note = await provider.create({
         conversationId,
         storeId,
         authorId: currentSellerId,
         content,
         mentions,
       });
+
+      if (mentions.length > 0) {
+        const existing = await participantsProvider.list(conversationId).catch(() => []);
+        const toAdd = resolveMentionParticipants(mentions, {
+          assignedSellerId,
+          authorId: currentSellerId,
+          isAuthorStaff: isStaff,
+          existingParticipantIds: existing.map((p) => p.sellerId),
+        });
+        await Promise.all(
+          toAdd.map((sellerId) =>
+            participantsProvider.add(conversationId, sellerId, "mention").catch(() => {
+              // Best-effort: the note itself already saved successfully — a
+              // failed auto-add just means that colleague doesn't gain access,
+              // not that note creation should appear to have failed.
+            }),
+          ),
+        );
+      }
+
+      return note;
     },
     onSuccess: invalidate,
     onError: (err) =>

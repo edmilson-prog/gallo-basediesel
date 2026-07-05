@@ -12,6 +12,7 @@ const S = CONVERSATION_STRINGS.conversationNotes;
 interface IProps {
   conversationId: ID;
   storeId: ID;
+  assignedSellerId?: ID;
   onClose: () => void;
 }
 
@@ -20,8 +21,8 @@ interface IProps {
  * creates an internal note (appears in the thread, never sent to the customer).
  * Amber "sticky-note" styling matches {@link NoteChatItem}.
  */
-export function InlineNoteComposer({ conversationId, storeId, onClose }: IProps) {
-  const notes = useConversationNotes(conversationId, storeId);
+export function InlineNoteComposer({ conversationId, storeId, assignedSellerId, onClose }: IProps) {
+  const notes = useConversationNotes(conversationId, storeId, assignedSellerId);
   const sellersProvider = useSellersProvider();
   const { data: sellers = [] } = useQuery({
     queryKey: ["sellers", "mention", storeId],
