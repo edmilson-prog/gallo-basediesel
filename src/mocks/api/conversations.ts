@@ -24,6 +24,7 @@ import { distributionTracesApi } from "./distributionTraces";
 import { settingsApi } from "./settings";
 import { rotationQueuesApi } from "./rotationQueues";
 import { rotationParticipantsApi } from "./rotationParticipants";
+import { sellerCollaboratesOnSync, clearConversationParticipantsSync } from "./conversationParticipants";
 import {
   MockNotFoundError,
   paginate,
@@ -149,7 +150,13 @@ function applyNonSearchFilters(
     params.assignmentAny &&
     (params.assignmentAny.sellerIds?.length || params.assignmentAny.queue)
   )
-    filtered = filtered.filter((c) => matchesAssignmentAny(c, params.assignmentAny!));
+    filtered = filtered.filter(
+      (c) =>
+        matchesAssignmentAny(c, params.assignmentAny!) ||
+        (params.assignmentAny!.sellerIds?.length
+          ? sellerCollaboratesOnSync(c.id, params.assignmentAny!.sellerIds)
+          : false),
+    );
   if (params.status) {
     const allowed = new Set(Array.isArray(params.status) ? params.status : [params.status]);
     filtered = filtered.filter((c) => allowed.has(c.status));
@@ -304,6 +311,7 @@ export const conversationsApi = {
         isSdrActive: false,
       });
       if (!updated) throw new MockNotFoundError("conversation", id);
+      clearConversationParticipantsSync(id);
       emitConversationActivity(before, updated, getCurrentMockSellerId());
       return updated;
     });
