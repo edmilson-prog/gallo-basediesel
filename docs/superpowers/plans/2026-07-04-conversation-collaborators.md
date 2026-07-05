@@ -3580,3 +3580,331 @@ git commit -m "fix: address smoke-test findings for conversation collaborators"
 ```
 
 (Skip this step entirely if Step 4 found nothing to fix.)
+
+---
+
+## Phase 8 — Post-review fixes (whole-branch review findings)
+
+The final whole-branch review (after Task 21) found two real cross-task integration gaps that no single task's review could see in isolation, since each individual task's own widening (Tasks 3/8) was correct in isolation but the SUPABASE **no-search** Inbox list path was never updated to match. Both are fixed here.
+
+### Task 22: New `list_conversations` RPC — collaborator inclusion in the default (no-search) Inbox list
+
+**Problem found by review:** Task 3 widened `count_conversations` (badge total) and `search_conversations` (text-search results) to include conversations where the caller collaborates, and Task 8 widened the mock's plain list the same way. But the supabase **plain, no-search** `list()` (`src/providers/data/impl/supabase/conversations.ts`) builds its "Minhas conversas" filter via `buildAssignmentOrFilter` directly on a PostgREST query — a raw `.or()` string can only reference columns on `conversations` itself, so it structurally CANNOT express "or I'm a participant" (that requires an `EXISTS` against `conversation_participants`, which only a `SECURITY DEFINER` RPC can encapsulate). Net effect in production: a collaborator can't find the conversation in the default Inbox view, the "Colaborando" tag never renders there (only during a text search), and the Inbox's "Minhas conversas" count badge (from `count_conversations`, already collaborator-aware) overcounts relative to what the plain list actually shows.
+
+**Fix:** a new RPC, `list_conversations`, that reuses `count_conversations`' already-correct, already-reviewed WHERE clause (Task 3) verbatim, but projects full row data + `is_collaborator` + a window `total_count`, with pagination/ordering — mirroring exactly how `search_conversations` is structured, minus the text-match requirement (which `list_conversations` must NOT have — unlike modifying `search_conversations` to accept an empty search, a brand new RPC with no customer/lead `EXISTS` gate cannot silently drop a conversation whose customer/lead record is missing/soft-deleted, which the plain query today also never drops). `supabaseConversationsProvider.list()` routes through this RPC only when `params.assignmentAny?.sellerIds` is non-empty (the exact "Minhas conversas" case `count_conversations` already exists for) — every other caller (customer detail, dashboards, "Fila"-only, "Todas") keeps using the existing raw-query path unchanged, so this is purely additive.
+
+**Files:**
+- Create: `supabase/migrations/20260705090000_list_conversations_rpc.sql`
+- Create: `src/providers/data/impl/supabase/listRpcParams.ts`
+- Modify: `src/providers/data/impl/supabase/conversations.ts` (add a new branch in `list()`, add a new private `listConversationsViaRpc` function)
+
+**Interfaces:**
+- Consumes: `buildSharedConversationRpcFilters`, `assertInboxCountParams` (both existing, unchanged), `rowToConversation`/`ConversationRow` (existing, already has `is_collaborator?: boolean` from Task 9).
+- Produces: RPC `public.list_conversations(...)`; `buildListRpcParams(params, page, pageSize)`.
+
+- [ ] **Step 1: Write the migration**
+
+```sql
+-- Fast, collaborator-aware list for the Inbox "Minhas conversas" no-search
+-- path. Reuses count_conversations' WHERE clause verbatim (same filters,
+-- same access-model block, same participant-inclusion branch) — only the
+-- SELECT list (full row + is_collaborator + window total_count) and the
+-- ORDER BY/LIMIT/OFFSET are new. A plain PostgREST `.or()` on the base
+-- table cannot express "or I collaborate" (that needs an EXISTS against
+-- conversation_participants), hence a dedicated RPC rather than extending
+-- the existing raw-query path in conversations.ts.
+--
+-- Scope restriction mirrors count_conversations exactly (see
+-- assertInboxCountParams): callers passing storeId/search/customerId/
+-- leadId/scalar assignedSellerId/unassigned keep using the plain table
+-- query instead — this RPC is Inbox-"Minhas conversas"-only.
+
+create or replace function public.list_conversations(
+  p_status text[] default null,
+  p_channel text default null,
+  p_whatsapp_account_id uuid default null,
+  p_is_sdr_active boolean default null,
+  p_tags text[] default null,
+  p_from_date timestamptz default null,
+  p_to_date timestamptz default null,
+  p_assigned_seller_ids uuid[] default null,
+  p_unassigned boolean default false,
+  p_include_queue boolean default false,
+  p_order_dir text default 'desc',
+  p_limit integer default 20,
+  p_offset integer default 0
+)
+returns table (
+  id uuid, store_id uuid, customer_id uuid, lead_id text, assigned_seller_id uuid,
+  channel text, whatsapp_account_id uuid, status text, is_sdr_active boolean,
+  tags text[], linked_order_id text, last_message_at timestamptz, unread_count integer,
+  created_at timestamptz, queued_at timestamptz, is_collaborator boolean, total_count bigint
+)
+language sql
+stable
+security definer
+set search_path to ''
+as $$
+  with acc as materialized (
+    select public.current_seller_accessible_account_ids() as id
+  )
+  select
+    c.id, c.store_id, c.customer_id, c.lead_id, c.assigned_seller_id, c.channel,
+    c.whatsapp_account_id, c.status, c.is_sdr_active, c.tags, c.linked_order_id,
+    c.last_message_at, c.unread_count, c.created_at, c.queued_at,
+    exists (
+      select 1 from public.conversation_participants p
+      where p.conversation_id = c.id
+        and p.seller_id = public.current_seller_id()
+    ) as is_collaborator,
+    count(*) over () as total_count
+  from public.conversations c
+  where c.store_id = public.current_store_id()
+    and (p_status is null or c.status = any(p_status))
+    and (p_channel is null or c.channel = p_channel)
+    and (p_whatsapp_account_id is null or c.whatsapp_account_id = p_whatsapp_account_id)
+    and (p_is_sdr_active is null or c.is_sdr_active = p_is_sdr_active)
+    and (p_tags is null or c.tags && p_tags)
+    and (p_from_date is null or c.last_message_at >= p_from_date)
+    and (p_to_date is null or c.last_message_at <= p_to_date)
+    and (
+      ((p_assigned_seller_ids is null or cardinality(p_assigned_seller_ids) = 0)
+        and not p_unassigned and not p_include_queue)
+      or (p_assigned_seller_ids is not null
+          and c.assigned_seller_id = any(p_assigned_seller_ids))
+      or (p_assigned_seller_ids is not null
+          and exists (
+            select 1 from public.conversation_participants p
+            where p.conversation_id = c.id
+              and p.seller_id = any(p_assigned_seller_ids)
+          ))
+      or (p_unassigned and c.assigned_seller_id is null)
+      or (p_include_queue
+          and c.assigned_seller_id is null
+          and c.is_sdr_active = false
+          and c.status = 'aguardando')
+    )
+    and (
+      public.is_staff()
+      or (
+        c.assigned_seller_id = public.current_seller_id()
+        and (c.whatsapp_account_id is null
+             or c.whatsapp_account_id in (select id from acc))
+      )
+      or (
+        exists (
+          select 1 from public.conversation_participants p
+          where p.conversation_id = c.id
+            and p.seller_id = public.current_seller_id()
+        )
+        and (
+          public.store_allows_participant_cross_instance(c.store_id)
+          or c.whatsapp_account_id is null
+          or c.whatsapp_account_id in (select id from acc)
+        )
+      )
+      or (
+        c.assigned_seller_id is null
+        and c.whatsapp_account_id is not null
+        and c.whatsapp_account_id in (select id from acc)
+      )
+      or (c.assigned_seller_id is null and c.whatsapp_account_id is null)
+    )
+  order by
+    case when p_order_dir = 'asc' then c.last_message_at end asc,
+    case when p_order_dir <> 'asc' then c.last_message_at end desc
+  limit greatest(p_limit, 1)
+  offset greatest(p_offset, 0);
+$$;
+
+revoke all on function public.list_conversations(
+  text[], text, uuid, boolean, text[], timestamptz, timestamptz, uuid[], boolean, boolean, text, integer, integer
+) from public, anon;
+grant execute on function public.list_conversations(
+  text[], text, uuid, boolean, text[], timestamptz, timestamptz, uuid[], boolean, boolean, text, integer, integer
+) to authenticated;
+```
+
+- [ ] **Step 2: Write `buildListRpcParams`**
+
+Create `src/providers/data/impl/supabase/listRpcParams.ts`:
+
+```ts
+import type { IListConversationsParams } from "../../contracts/conversations";
+import { assertInboxCountParams } from "../conversationCountSupport";
+import { buildSharedConversationRpcFilters } from "./conversationRpcFilters";
+
+/** Exact argument shape of the `list_conversations` RPC (migration 20260705090000). */
+export interface IListConversationsRpcParams {
+  p_status: string[] | null;
+  p_channel: string | null;
+  p_whatsapp_account_id: string | null;
+  p_is_sdr_active: boolean | null;
+  p_tags: string[] | null;
+  p_from_date: string | null;
+  p_to_date: string | null;
+  p_assigned_seller_ids: string[] | null;
+  p_unassigned: boolean;
+  p_include_queue: boolean;
+  p_order_dir: "asc" | "desc";
+  p_limit: number;
+  p_offset: number;
+}
+
+/**
+ * Translate Inbox list params into `list_conversations` RPC args. Same scope
+ * restriction as `count_conversations` (`assertInboxCountParams`) — this RPC
+ * exists specifically for the "Minhas conversas" (assignmentAny.sellerIds)
+ * no-search case, where a plain PostgREST query cannot express the
+ * collaborator EXISTS that `count_conversations` already counts (Task 3).
+ */
+export function buildListRpcParams(
+  params: IListConversationsParams,
+  page: number,
+  pageSize: number,
+): IListConversationsRpcParams {
+  assertInboxCountParams(params);
+  return {
+    ...buildSharedConversationRpcFilters(params),
+    p_unassigned: false,
+    p_order_dir: params.orderDir === "asc" ? "asc" : "desc",
+    p_limit: pageSize,
+    p_offset: (page - 1) * pageSize,
+  };
+}
+```
+
+- [ ] **Step 3: Route `list()` through the new RPC when Inbox-shaped**
+
+In `src/providers/data/impl/supabase/conversations.ts`, add the import:
+
+```ts
+import { buildListRpcParams } from "./listRpcParams";
+```
+
+Find:
+
+```ts
+  async list(params: IListConversationsParams = {}): Promise<IPaginatedResult<IConversation>> {
+    // Cross-entity text search needs joins → dedicated RPC. Everything else
+    // stays on the plain table query below.
+    if (params.search && params.search.trim().length > 0) {
+      return searchConversations(params);
+    }
+```
+
+Replace with:
+
+```ts
+  async list(params: IListConversationsParams = {}): Promise<IPaginatedResult<IConversation>> {
+    // Cross-entity text search needs joins → dedicated RPC. Everything else
+    // stays on the plain table query below.
+    if (params.search && params.search.trim().length > 0) {
+      return searchConversations(params);
+    }
+
+    // "Minhas conversas" (a specific seller-ids filter) must also match
+    // conversations the caller only collaborates on, not just owns — a plain
+    // PostgREST `.or()` cannot express that EXISTS, so route through the same
+    // gated RPC count_conversations already uses for this exact case (Task 3).
+    // Every other shape (Todas/Fila-only/customer detail/dashboards) keeps the
+    // raw table query below, unchanged.
+    if (params.assignmentAny?.sellerIds && params.assignmentAny.sellerIds.length > 0) {
+      return listConversationsViaRpc(params);
+    }
+```
+
+Add this new private function near `searchConversations`/`searchConversationMessages` (same file, module scope, not exported):
+
+```ts
+async function listConversationsViaRpc(
+  params: IListConversationsParams,
+): Promise<IPaginatedResult<IConversation>> {
+  const page = Math.max(1, Math.floor(params.page ?? 1));
+  const pageSize = Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20)));
+  const wantTotal = params.withTotal !== false;
+
+  const { data, error } = await getSupabaseClient().rpc(
+    "list_conversations",
+    buildListRpcParams(params, page, pageSize),
+  );
+  if (error) throw new Error(`[supabase] conversations.list failed: ${error.message}`);
+
+  const rows = (data ?? []) as unknown as (ConversationRow & { total_count: number })[];
+  return {
+    data: rows.map(rowToConversation),
+    // Mirrors the plain query's own wantTotal gate just below: the Inbox opts
+    // out (withTotal: false) and reads its badge total from count() instead,
+    // so both paths keep a single canonical total source.
+    total: wantTotal ? (rows[0]?.total_count ?? 0) : -1,
+    page,
+    pageSize,
+  };
+}
+```
+
+- [ ] **Step 4: Type-check and test**
+
+Run: `bunx tsc --noEmit 2>&1 | grep -i "listRpcParams\|conversations.ts"`
+Expected: no new errors.
+
+Run: `bun run test src/providers/`
+Expected: all pass (no existing test targets `conversations.ts`'s supabase impl directly per the codebase's convention of testing engines, not thin supabase wrappers — this RPC route has no local Postgres to execute against, same constraint as every other migration in this plan).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add supabase/migrations/20260705090000_list_conversations_rpc.sql src/providers/data/impl/supabase/listRpcParams.ts src/providers/data/impl/supabase/conversations.ts
+git commit -m "feat: add list_conversations RPC for collaborator-aware Inbox no-search list"
+```
+
+---
+
+### Task 23: Mount the conversation presence tracker
+
+**Problem found by review:** Task 16 built `useConversationPresenceTracker` and Task 19 wired the READER (`useConversationPresence`) into `AtendimentoTab`/`CollaboratorRow` for the live green dot — but no task ever mounted the TRACKER anywhere, so no seller ever actually `track()`s their presence on a conversation's topic. The reader always sees an empty set; the green dot never lights for anyone. This is a UI-only signal (no correctness/security impact — mirrors `usePresenceTracker`'s own no-test-coverage precedent), but it's a decided sub-feature that silently does nothing.
+
+**Fix:** mount `useConversationPresenceTracker(conversationId)` in `ConversationPage.tsx` — the one place a conversation is actually "open" on screen.
+
+**Files:**
+- Modify: `src/features/conversations/pages/ConversationPage.tsx`
+
+**⚠️ This file also hosts `useMessages`/`useRealtimeMessages` — the project's frozen "atendimento cache" internals. Do NOT touch those two lines or anything about their wiring. This fix ONLY adds one new, fully independent hook call; it must not modify, reorder, or so much as touch `useMessages(conversationId)` or `useRealtimeMessages(...)`.**
+
+- [ ] **Step 1: Add the import and the hook call**
+
+Add the import near the other hook imports:
+
+```ts
+import { useConversationPresenceTracker } from "../hooks/useConversationPresence";
+```
+
+Find (inside `ConversationPage`, unconditional hooks section, BEFORE the `if (detail.isLoading ...)`/`if (detail.notFound ...)` early returns — placing it after those returns would violate the Rules of Hooks, since the component can return before reaching that point):
+
+```ts
+  const messages = useMessages(conversationId);
+  // PRD-118: live INSERT/UPDATE stream of this conversation (supabase only).
+  // `syncLatest` is the conversations-channel fallback for missed messages
+  // INSERTs — see useRealtimeMessages.
+  useRealtimeMessages(conversationId, messages.applyRealtimeRow, messages.syncLatest);
+```
+
+Add immediately after (do not alter the lines above):
+
+```ts
+  // Live "who's viewing this conversation now" signal — independent of the
+  // message cache above; a pure Presence broadcast, not a data read.
+  useConversationPresenceTracker(conversationId);
+```
+
+- [ ] **Step 2: Type-check**
+
+Run: `bunx tsc --noEmit 2>&1 | grep -i "ConversationPage\|useConversationPresenceTracker"`
+Expected: no new errors.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/features/conversations/pages/ConversationPage.tsx
+git commit -m "fix: mount the conversation presence tracker so the live dot actually lights"
+```
