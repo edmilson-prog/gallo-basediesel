@@ -427,83 +427,29 @@ Insert this immediately after the existing multi-instance message-leak check (th
 -- ---------------------------------------------------------------------------
 -- Colaboradores por demanda (2026-07-04): self-delete allowed, third-party
 -- delete of someone else's participant row denied for non-staff/non-assignee.
+-- Guard: this plan's migrations (source column + cp_insert/cp_delete split)
+-- are not auto-applied by merging — the DB deploy workflow applies migrations
+-- separately, so pré-merge this whole section is SKIPPED (mirrors "Bloco A1"'s
+-- guard further below, `if not exists (select 1 from information_schema.
+-- columns where ... column_name = 'is_active')`, for the identical
+-- same-plan-pending-migration situation).
 -- ---------------------------------------------------------------------------
-
--- Seed a throwaway conversation owned by lucas, with lucas himself as a
--- participant (a seller can always end up listed as their own conversation's
--- "collaborator" for this probe — the test only cares about the DELETE policy,
--- not the realistic shape of the row).
-select set_config('test.cp_conv', coalesce((
-  select c.id::text
-  from public.conversations c
-  where c.assigned_seller_id = '5a6400ed-5aec-4bf1-b641-31635f15c887'
-    and c.store_id = '00000000-0000-0000-0000-000000000001'
-  limit 1
-), ''), true);
-
-do $$
-declare
-  probe text := current_setting('test.cp_conv', true);
-begin
-  if probe is null or probe = '' then
-    return; -- seed sem conversa atribuída a lucas: nada a provar
-  end if;
-  insert into public.conversation_participants (conversation_id, seller_id, added_by, source)
-  values (probe::uuid, '5a6400ed-5aec-4bf1-b641-31635f15c887', '57706ecc-01b5-4a96-b403-0359a4bb767f', 'manual')
-  on conflict (conversation_id, seller_id) do nothing;
-end $$;
-
--- lucas (the participant himself, NOT staff, NOT the assignee of a random
--- OTHER conversation) removes his OWN participant row — must succeed.
 select set_config(
-  'request.jwt.claims',
-  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  'test.cp_ready',
+  case when exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'conversation_participants' and column_name = 'source'
+  ) then 'true' else '' end,
   true
 );
-set local role authenticated;
 
-do $$
-declare
-  probe text := current_setting('test.cp_conv', true);
-  remaining int;
-begin
-  if probe is null or probe = '' then
-    return;
-  end if;
-  delete from public.conversation_participants
-  where conversation_id = probe::uuid
-    and seller_id = '5a6400ed-5aec-4bf1-b641-31635f15c887';
-  select count(*) into remaining
-  from public.conversation_participants
-  where conversation_id = probe::uuid
-    and seller_id = '5a6400ed-5aec-4bf1-b641-31635f15c887';
-  if remaining <> 0 then
-    raise exception 'conversation_participants: self-delete did not remove the row (cp_delete regression)';
-  end if;
-end $$;
-
-reset role;
-
--- Re-seed the row (self-delete above removed it) so the next check has
--- something to try to delete.
-do $$
-declare
-  probe text := current_setting('test.cp_conv', true);
-begin
-  if probe is null or probe = '' then
-    return;
-  end if;
-  insert into public.conversation_participants (conversation_id, seller_id, added_by, source)
-  values (probe::uuid, '5a6400ed-5aec-4bf1-b641-31635f15c887', '57706ecc-01b5-4a96-b403-0359a4bb767f', 'manual')
-  on conflict (conversation_id, seller_id) do nothing;
-end $$;
-
--- A DIFFERENT, non-staff, non-assignee, non-participant seller must NOT be
--- able to delete someone ELSE's collaborator row. Use a conversation NOT
--- assigned to lucas, with a participant row for THAT conversation's own real
--- assignee (guaranteed to be a valid seller id, and guaranteed not to be
--- lucas by the query below) — so when lucas is impersonated, he is neither
--- staff, nor the row's own seller_id, nor this conversation's assignee.
+-- A conversation NOT assigned to lucas — BOTH checks below seed a row on it,
+-- so neither can be explained by the pre-existing "assignee" OR-arm: on this
+-- conversation, lucas is a mere collaborator, never the owner. This also
+-- isolates the self-delete check from the third-party check (the original
+-- design reused lucas's OWN conversation for self-delete, which confounded
+-- the new "own row" arm with the pre-existing "assignee" arm — a regression
+-- that silently dropped just the new arm would have gone undetected there).
 select set_config('test.cp_other_conv', coalesce((
   select c.id::text
   from public.conversations c
@@ -524,14 +470,72 @@ declare
   probe text := current_setting('test.cp_other_conv', true);
   other_seller text := current_setting('test.cp_other_seller', true);
 begin
-  if probe is null or probe = '' or other_seller is null or other_seller = '' then
-    return; -- seed sem outra conversa atribuída: nada a provar
+  if current_setting('test.cp_ready', true) is distinct from 'true' then
+    return; -- migration ainda não aplicada em prod: pula
   end if;
+  if probe is null or probe = '' or other_seller is null or other_seller = '' then
+    return; -- seed sem conversa atribuída a outro seller: nada a provar
+  end if;
+  -- Seed BOTH probe rows on the same conversation: lucas himself (for the
+  -- self-delete check) and that conversation's real assignee (for the
+  -- third-party-delete check).
   insert into public.conversation_participants (conversation_id, seller_id, added_by, source)
-  values (probe::uuid, other_seller::uuid, other_seller::uuid, 'manual')
+  values
+    (probe::uuid, '5a6400ed-5aec-4bf1-b641-31635f15c887', other_seller::uuid, 'manual'),
+    (probe::uuid, other_seller::uuid, other_seller::uuid, 'manual')
   on conflict (conversation_id, seller_id) do nothing;
 end $$;
 
+-- (1) Self-delete: lucas removes his OWN participant row on a conversation he
+-- does NOT own — isolates the new "seller_id = current_seller_id()" OR-arm
+-- from the pre-existing "assignee" arm (which does not apply here).
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+
+do $$
+declare
+  probe text := current_setting('test.cp_other_conv', true);
+begin
+  if current_setting('test.cp_ready', true) is distinct from 'true' then
+    return;
+  end if;
+  if probe is null or probe = '' then
+    return;
+  end if;
+  delete from public.conversation_participants
+  where conversation_id = probe::uuid
+    and seller_id = '5a6400ed-5aec-4bf1-b641-31635f15c887';
+end $$;
+
+reset role;
+
+do $$
+declare
+  probe text := current_setting('test.cp_other_conv', true);
+  remaining int;
+begin
+  if current_setting('test.cp_ready', true) is distinct from 'true' then
+    return;
+  end if;
+  if probe is null or probe = '' then
+    return;
+  end if;
+  select count(*) into remaining
+  from public.conversation_participants
+  where conversation_id = probe::uuid
+    and seller_id = '5a6400ed-5aec-4bf1-b641-31635f15c887';
+  if remaining <> 0 then
+    raise exception 'conversation_participants: self-delete did not remove the row (cp_delete regression)';
+  end if;
+end $$;
+
+-- (2) Third-party delete: lucas (non-staff, not this row's seller, not this
+-- conversation's assignee) must NOT be able to delete the OTHER seller's
+-- participant row.
 select set_config(
   'request.jwt.claims',
   '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
@@ -544,12 +548,12 @@ declare
   probe text := current_setting('test.cp_other_conv', true);
   other_seller text := current_setting('test.cp_other_seller', true);
 begin
+  if current_setting('test.cp_ready', true) is distinct from 'true' then
+    return;
+  end if;
   if probe is null or probe = '' or other_seller is null or other_seller = '' then
     return;
   end if;
-  -- lucas (non-staff, not this row's seller, not this conversation's
-  -- assignee) tries to delete it — RLS must filter the row out of his
-  -- DELETE's visible scope, leaving it in place.
   delete from public.conversation_participants
   where conversation_id = probe::uuid
     and seller_id = other_seller::uuid;
@@ -568,6 +572,9 @@ declare
   other_seller text := current_setting('test.cp_other_seller', true);
   remaining int;
 begin
+  if current_setting('test.cp_ready', true) is distinct from 'true' then
+    return;
+  end if;
   if probe is null or probe = '' or other_seller is null or other_seller = '' then
     return;
   end if;
@@ -580,34 +587,22 @@ begin
   end if;
 end $$;
 
--- Cleanup for the second probe (admin context — `test.cp_other_*` GUCs still
--- hold their values, set before impersonation).
+-- Cleanup: remove both throwaway rows (belt-and-suspenders; the whole script
+-- rolls back anyway).
 do $$
 declare
   probe text := current_setting('test.cp_other_conv', true);
   other_seller text := current_setting('test.cp_other_seller', true);
 begin
+  if current_setting('test.cp_ready', true) is distinct from 'true' then
+    return;
+  end if;
   if probe is null or probe = '' or other_seller is null or other_seller = '' then
     return;
   end if;
   delete from public.conversation_participants
   where conversation_id = probe::uuid
-    and seller_id = other_seller::uuid;
-end $$;
-
--- Cleanup: remove the throwaway participant row so this test file's
--- transaction rollback isn't the only thing preventing leftover state (belt
--- and suspenders — the whole script runs inside `begin; ... rollback;`).
-do $$
-declare
-  probe text := current_setting('test.cp_conv', true);
-begin
-  if probe is null or probe = '' then
-    return;
-  end if;
-  delete from public.conversation_participants
-  where conversation_id = probe::uuid
-    and seller_id = '5a6400ed-5aec-4bf1-b641-31635f15c887';
+    and seller_id in ('5a6400ed-5aec-4bf1-b641-31635f15c887', other_seller::uuid);
 end $$;
 ```
 
@@ -623,7 +618,7 @@ git add supabase/tests/rls-regression.sql
 git commit -m "test: add RLS regression cases for conversation_participants self-delete"
 ```
 
-Note: this suite runs against a live seeded database (`psql "$SUPABASE_DB_URL" -f supabase/tests/rls-regression.sql`), which this plan does not have access to — the CI workflow (gated on the `SUPABASE_DB_URL` secret per `docs/fase2-pendencias.md`) is what actually executes it. Treat Step 2 as the only feasible local verification.
+Note: this suite runs against a live seeded database (`psql "$SUPABASE_DB_URL" -f supabase/tests/rls-regression.sql`), which this plan does not have access to — the CI workflow (gated on the `SUPABASE_DB_URL` secret per `docs/fase2-pendencias.md`) is what actually executes it. Treat Step 2 as the only feasible local verification. The `test.cp_ready` guard means this whole section is a documented no-op until this plan's migrations (Tasks 1–3) are actually applied to that live database — CI stays green in the meantime, and the checks activate on the first run after deploy, exactly like the pre-existing "Bloco A1" section a few hundred lines below handles the same situation for its own pending migration.
 
 ---
 
