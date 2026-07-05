@@ -45,7 +45,10 @@ export function useCollaboratorAddedListener(): {
         const conversation = await conversationsProvider.get(row.conversation_id!).catch(() => null);
         if (!conversation) return;
         const [customer, addedBySeller] = await Promise.all([
-          conversation.customerId
+          // `listContacts` resolves a display name for BOTH customer and lead
+          // conversations (including pool/unassigned ones with no
+          // `customerId`) — gate on either id, not just `customerId`.
+          conversation.customerId || conversation.leadId
             ? conversationsProvider
                 .listContacts([conversation.id])
                 .then((rows) => rows.find((r) => r.conversationId === conversation.id) ?? null)
@@ -53,14 +56,23 @@ export function useCollaboratorAddedListener(): {
             : null,
           row.added_by ? sellersProvider.get(row.added_by).catch(() => null) : null,
         ]);
-        setEvents((prev) => [
-          ...prev,
-          {
-            conversationId: conversation.id,
-            customerName: customer?.name ?? "um cliente",
-            addedByName: addedBySeller?.fullName ?? "Um atendente",
-          },
-        ]);
+        // The realtime layer's delivery contract is at-least-once (see
+        // `subscribeToTable`'s docstring) — an auth-token re-join can dispatch
+        // the same INSERT twice. Dedupe on `conversationId` (this listener
+        // only ever fires for the current seller, so it's an effective
+        // per-seller-per-conversation key) before appending.
+        setEvents((prev) =>
+          prev.some((e) => e.conversationId === conversation.id)
+            ? prev
+            : [
+                ...prev,
+                {
+                  conversationId: conversation.id,
+                  customerName: customer?.name ?? "um cliente",
+                  addedByName: addedBySeller?.fullName ?? "Um atendente",
+                },
+              ],
+        );
       })();
     });
   }, [sellerId, conversationsProvider, sellersProvider]);
