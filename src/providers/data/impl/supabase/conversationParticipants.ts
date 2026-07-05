@@ -54,9 +54,14 @@ export const supabaseConversationParticipantsProvider: IConversationParticipants
       .select(COLUMNS)
       .single();
     if (error) {
-      // ignoreDuplicates + .single() on a no-op upsert returns no row (not an
-      // error) on some PostgREST versions; re-read explicitly as a fallback so
-      // a duplicate invite is idempotent instead of surfacing a confusing error.
+      if (error.code !== "PGRST116") {
+        throw new Error(`[supabase] conversationParticipants.add(${conversationId}) failed: ${error.message}`);
+      }
+      // ignoreDuplicates makes a conflicting insert a no-op `ON CONFLICT DO
+      // NOTHING`, so RETURNING yields 0 rows; `.single()` on a 0-row result
+      // surfaces as PGRST116 ("JSON object requested, multiple (or no) rows
+      // returned"), not as data:null. Re-read explicitly as a fallback so a
+      // duplicate invite is idempotent instead of surfacing a confusing error.
       const { data: existing, error: readError } = await getSupabaseClient()
         .from(TABLE)
         .select(COLUMNS)
@@ -64,7 +69,7 @@ export const supabaseConversationParticipantsProvider: IConversationParticipants
         .eq("seller_id", sellerId)
         .single();
       if (readError)
-        throw new Error(`[supabase] conversationParticipants.add(${conversationId}) failed: ${error.message}`);
+        throw new Error(`[supabase] conversationParticipants.add(${conversationId}) failed: ${readError.message}`);
       return rowToParticipant(existing as ParticipantRow);
     }
     return rowToParticipant(data as ParticipantRow);
