@@ -543,7 +543,6 @@ do $$
 declare
   probe text := current_setting('test.cp_other_conv', true);
   other_seller text := current_setting('test.cp_other_seller', true);
-  remaining int;
 begin
   if probe is null or probe = '' or other_seller is null or other_seller = '' then
     return;
@@ -554,6 +553,24 @@ begin
   delete from public.conversation_participants
   where conversation_id = probe::uuid
     and seller_id = other_seller::uuid;
+end $$;
+
+reset role;
+
+-- Verify as admin — cp_select's USING clause shares cp_delete's three OR-arms,
+-- so this row is INVISIBLE to lucas too; checking "remaining" while still
+-- impersonating him would always read 0 regardless of whether the DELETE
+-- above actually succeeded or was blocked, making the assertion vacuously
+-- fail every run. Check the row's real persistence outside his impersonation.
+do $$
+declare
+  probe text := current_setting('test.cp_other_conv', true);
+  other_seller text := current_setting('test.cp_other_seller', true);
+  remaining int;
+begin
+  if probe is null or probe = '' or other_seller is null or other_seller = '' then
+    return;
+  end if;
   select count(*) into remaining
   from public.conversation_participants
   where conversation_id = probe::uuid
@@ -562,8 +579,6 @@ begin
     raise exception 'conversation_participants: unrelated seller was able to delete someone else''s collaborator row (cp_delete regression)';
   end if;
 end $$;
-
-reset role;
 
 -- Cleanup for the second probe (admin context — `test.cp_other_*` GUCs still
 -- hold their values, set before impersonation).
