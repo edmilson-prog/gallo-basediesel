@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import type { ID } from "@/shared/types";
 import { subscribeToTable } from "@/shared/lib/realtime";
 import { useAuth } from "@/features/auth/useAuth";
-import { useConversationsProvider, useSellersProvider } from "@/providers/data";
+import { getActiveDataSource, useConversationsProvider, useSellersProvider } from "@/providers/data";
+
+const IS_SUPABASE = getActiveDataSource() === "supabase";
 
 export interface ICollaboratorAddedEvent {
   conversationId: ID;
@@ -32,7 +34,10 @@ export function useCollaboratorAddedListener(): {
   const [events, setEvents] = useState<ICollaboratorAddedEvent[]>([]);
 
   useEffect(() => {
-    if (!sellerId) return;
+    // Mock mode has no Supabase client — subscribeToTable would throw
+    // synchronously and white-screen the app (this hook is mounted in
+    // AppLayout). Same guard every other subscribeToTable consumer uses.
+    if (!IS_SUPABASE || !sellerId) return;
     // The effect re-subscribes whenever `sellerId` changes (it's a dependency
     // below), so the closure's `sellerId` is always current for this
     // subscription's lifetime — no ref needed to avoid staleness.

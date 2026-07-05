@@ -44,6 +44,20 @@ export interface IPresenceChannelEntry {
 const presenceEntries = new Map<string, IPresenceChannelEntry>();
 
 /**
+ * Monotonic wire-topic suffix — the WIRE topic passed to `client.channel()` is
+ * never reused across (re)creations, so re-acquiring a logical topic while its
+ * previous channel is still mid-`phx_leave` gets a genuinely fresh channel
+ * instead of the dedup-by-topic zombie (whose `subscribe()` would no-op because
+ * it isn't `isClosed()` yet, leaving a dead presence dot). The manager's Map
+ * stays keyed by the LOGICAL topic so ref-counting/reuse is unchanged. Same
+ * technique as `src/shared/lib/realtime.ts`; `bootId` survives Vite HMR (the
+ * singleton client outlives the module reload, so a reset counter alone would
+ * collide with channels from the previous module instance).
+ */
+let channelSeq = 0;
+const bootId = Math.random().toString(36).slice(2, 8);
+
+/**
  * Acquire (or reuse) the shared presence channel for a topic. The manager owns
  * the channel lifecycle: it subscribes exactly once and fans join/sync events
  * out to the listener sets on the returned entry. Pair with `releasePresenceChannel(topic)`.
@@ -54,7 +68,9 @@ export function acquirePresenceChannel(topic: string): IPresenceChannelEntry {
   if (!entry) {
     // No presence key config: the server assigns a per-connection UUID key;
     // identity travels in the tracked payload instead (see header note 2).
-    const channel = getSupabaseClient().channel(topic);
+    // The wire topic carries a unique suffix (see channelSeq note) while the
+    // Map key stays the logical `topic`.
+    const channel = getSupabaseClient().channel(`${topic}:${bootId}:${++channelSeq}`);
 
     const created: IPresenceChannelEntry = {
       channel,
@@ -109,4 +125,5 @@ export function releasePresenceChannel(topic: string): void {
 /** Test-only hook to reset module state between cases. Not for production code. */
 export function __resetPresenceChannelsForTests(): void {
   presenceEntries.clear();
+  channelSeq = 0;
 }
