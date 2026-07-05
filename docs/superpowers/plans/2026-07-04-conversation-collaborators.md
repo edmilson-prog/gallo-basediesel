@@ -2135,7 +2135,9 @@ export interface IUseConversationNotes {
   isLoading: boolean;
   isError: boolean;
   refetch: () => void;
+  /** Logged-in seller id (note author); undefined when the session has none. */
   currentSellerId: ID | undefined;
+  /** Owner/Gestor — may delete/pin any note. */
   isStaff: boolean;
   createNote: (content: string, mentions: ID[]) => Promise<IConversationNote>;
   updateNote: (
