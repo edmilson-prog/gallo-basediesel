@@ -17,6 +17,7 @@ alter table public.conversation_participants
 
 drop policy if exists cp_write on public.conversation_participants;
 
+drop policy if exists cp_insert on public.conversation_participants;
 create policy cp_insert on public.conversation_participants
   for insert to authenticated
   with check (
@@ -28,6 +29,7 @@ create policy cp_insert on public.conversation_participants
     )
   );
 
+drop policy if exists cp_delete on public.conversation_participants;
 create policy cp_delete on public.conversation_participants
   for delete to authenticated
   using (
