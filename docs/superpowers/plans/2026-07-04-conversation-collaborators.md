@@ -3075,7 +3075,7 @@ export function AddCollaboratorDialog({
 }
 ```
 
-Before writing this file: (a) confirm `useSettingsProvider` and its `get(storeId)` signature by grepping `useSettingsProvider` under `src/providers/data/` — `IPlatformSettings.participantCrossInstance` is read off whatever that method returns, adjust the field access if the real getter shape differs (e.g. `settings.settings.participantCrossInstance` vs `settings.participantCrossInstance`); (b) confirm `Dialog`/`Command` component import paths against an existing user (e.g. `ConversationTagPicker.tsx`, referenced in the `AtendimentoTab.tsx` imports) rather than assuming `@/components/ui/command` exists verbatim — copy the exact import path it uses.
+Both previously-open questions here are now resolved and confirmed against the real codebase: `useSettingsProvider().get(storeId)` returns `IPlatformSettings` directly (`src/providers/data/contracts/settings.ts:9-11`), so `settings?.participantCrossInstance` (not a nested `.settings.` access) is correct as written above. `Dialog`/`DialogTrigger`/`DialogContent`/`DialogHeader`/`DialogTitle` are all real named exports of `@/components/ui/dialog`, and `Command`/`CommandInput`/`CommandList`/`CommandEmpty`/`CommandGroup`/`CommandItem` are all real named exports of `@/components/ui/command` — both import paths in the code above are correct as written, no adjustment needed.
 
 - [ ] **Step 2: Type-check**
 
