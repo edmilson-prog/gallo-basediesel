@@ -13,6 +13,8 @@ interface IProps {
   conversationId: ID;
   storeId: ID;
   assignedSellerId?: ID;
+  /** Origin instance — feeds the @mention auto-add instance gate. */
+  whatsappAccountId?: ID | null;
   onClose: () => void;
 }
 
@@ -21,8 +23,14 @@ interface IProps {
  * creates an internal note (appears in the thread, never sent to the customer).
  * Amber "sticky-note" styling matches {@link NoteChatItem}.
  */
-export function InlineNoteComposer({ conversationId, storeId, assignedSellerId, onClose }: IProps) {
-  const notes = useConversationNotes(conversationId, storeId, assignedSellerId);
+export function InlineNoteComposer({
+  conversationId,
+  storeId,
+  assignedSellerId,
+  whatsappAccountId,
+  onClose,
+}: IProps) {
+  const notes = useConversationNotes(conversationId, storeId, assignedSellerId, whatsappAccountId);
   const sellersProvider = useSellersProvider();
   const { data: sellers = [] } = useQuery({
     queryKey: ["sellers", "mention", storeId],

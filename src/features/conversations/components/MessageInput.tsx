@@ -174,6 +174,7 @@ function GatedComposerFooter({
           conversationId={conversation.id}
           storeId={conversation.storeId}
           assignedSellerId={conversation.assignedSellerId}
+          whatsappAccountId={conversation.whatsappAccountId ?? null}
           onClose={onCloseNotes}
         />
       )}
@@ -716,6 +717,7 @@ export function MessageInput(props: IMessageInputProps) {
           conversationId={conversation.id}
           storeId={conversation.storeId}
           assignedSellerId={conversation.assignedSellerId}
+          whatsappAccountId={conversation.whatsappAccountId ?? null}
           onClose={() => setNotesOpen(false)}
         />
       )}
