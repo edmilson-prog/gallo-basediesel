@@ -20,6 +20,7 @@ import { useConversationFiche } from "../hooks/useConversationFiche";
 import { useStatusControlMode } from "../hooks/useStatusControlMode";
 import { useMessages } from "../hooks/useMessages";
 import { useRealtimeMessages } from "../hooks/useRealtimeMessages";
+import { useConversationPresenceTracker } from "../hooks/useConversationPresence";
 import { ConversationProvider } from "../hooks/ConversationContext";
 import { CopilotStrip, CopilotCard, CopilotFicheTab, useCopilotPanel } from "@/features/copilot";
 import { useMediaGallery, useConversationMedia, useEnsureInboundMedia } from "@/features/media";
@@ -88,6 +89,9 @@ export function ConversationPage() {
   // `syncLatest` is the conversations-channel fallback for missed messages
   // INSERTs — see useRealtimeMessages.
   useRealtimeMessages(conversationId, messages.applyRealtimeRow, messages.syncLatest);
+  // Live "who's viewing this conversation now" signal — independent of the
+  // message cache above; a pure Presence broadcast, not a data read.
+  useConversationPresenceTracker(conversationId);
   const escalation = useConversationEscalation(conversationId);
   const copilot = useCopilotPanel(conversationId);
   // Status-control display mode (per-device). Lifted here so the header's
