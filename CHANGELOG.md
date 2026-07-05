@@ -4,6 +4,22 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.134.0] — Ensemble · 2026-07-05
+
+**Agora vários atendentes podem colaborar na mesma conversa, sem mudar de quem é o cliente.** O responsável pela conversa (ou um gestor) pode convidar colegas para ajudarem em um atendimento específico: os convidados passam a ver e responder aquela conversa, mesmo que ela não seja da carteira deles — e a carteira do cliente continua intacta. Quem está com a conversa aberta naquele momento aparece com um ponto verde ao vivo, e um aviso mostra na hora quando você é adicionado, com o nome de quem convidou. As conversas em que você colabora ganham uma etiqueta "Colaborando", e a busca por conteúdo de mensagens também passa a encontrá-las.
+
+### Added
+
+- **Colaboradores na conversa:** o responsável ou um gestor pode adicionar um ou mais colegas a uma conversa específica para colaborarem no atendimento, sem transferir a carteira do cliente. Cada colaborador pode ser removido individualmente, e você pode sair de uma conversa em que apenas colabora.
+- **Presença ao vivo:** um ponto verde indica quem está com a conversa aberta naquele momento — tanto o responsável quanto cada colaborador.
+- **Aviso de convite em tempo real:** ao ser adicionado a uma conversa, você recebe na hora um cartão flutuante e uma notificação no sino, com o nome de quem convidou.
+- **@menção adiciona automaticamente:** mencionar um colega em uma nota da conversa passa a adicioná-lo como colaborador, respeitando o acesso ao número de origem.
+- **Etiqueta "Colaborando":** conversas em que você é colaborador (mas não o responsável) recebem uma etiqueta na lista, e a busca por conteúdo de mensagens também as encontra.
+
+### Changed
+
+- Ao encerrar ou arquivar uma conversa, os colaboradores são removidos automaticamente — quando o cliente voltar a escrever, a conversa recomeça sem colaboradores herdados.
+
 ## [0.133.0] — Herald · 2026-07-04
 
 **A plataforma agora avisa quando recebe uma atualização e recarrega sozinha na versão nova, sem interromper o seu trabalho.** Quando sai uma nova versão, um aviso discreto aparece no canto inferior da tela. Você pode atualizar na hora ou deixar para depois — nesse caso o aviso encolhe para um selo que continua ali e volta a lembrar de tempos em tempos, sem travar nada. Ao atualizar, a plataforma recarrega já na versão nova e mostra as novidades. E se você abrir uma tela logo depois de uma atualização, no lugar da antiga mensagem "Algo deu errado" aparece um aviso claro de "Nova versão disponível" com um botão para recarregar.
