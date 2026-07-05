@@ -1,4 +1,5 @@
 import type { ID, IConversation, ISeller, IWhatsAppAccount } from "@/shared/types";
+import type { ICollaboratorWithSeller } from "@/features/conversations/hooks/useConversationDetail";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
@@ -22,6 +23,8 @@ export interface ICustomerProfileProps {
   assignedSeller?: ISeller | null;
   /** Resolved from conversation.whatsappAccountId by the caller — feeds the Atendimento tab. */
   whatsappAccount?: IWhatsAppAccount | null;
+  /** Resolved from useConversationDetail by the caller — feeds the Atendimento tab. */
+  collaborators?: ICollaboratorWithSeller[];
   /** Bubbles a StatusControl change up to the caller's conversation refresh. */
   onConversationChanged?: () => void;
   /** Forwarded to ProfileTabs — omit to keep "Visão geral" as the default (e.g. the customers-list preview panel). */
@@ -49,6 +52,7 @@ export function CustomerProfile({
   conversation = null,
   assignedSeller = null,
   whatsappAccount = null,
+  collaborators = [],
   onConversationChanged,
   defaultTab,
   variant = "column",
@@ -112,6 +116,7 @@ export function CustomerProfile({
           conversation={conversation}
           assignedSeller={assignedSeller}
           whatsappAccount={whatsappAccount}
+          collaborators={collaborators}
           onConversationChanged={onConversationChanged}
           defaultTab={defaultTab}
           iconOnlyTabs={variant === "column"}

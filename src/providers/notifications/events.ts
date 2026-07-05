@@ -14,6 +14,7 @@ export type NotificationEventType =
   // Atendimento (conversations / SDR)
   | "conversa.atribuida"
   | "conversa.semResposta"
+  | "conversa.colaboradorAdicionado"
   | "sdr.escalonou"
   // Carteira (wallet transfers)
   | "carteira.transferenciaRecebida"

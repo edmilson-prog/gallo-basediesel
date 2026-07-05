@@ -59,6 +59,13 @@ export interface IConversation {
    * Absent for regular `list()` results.
    */
   matchedMessage?: IConversationMessageMatch;
+  /**
+   * True when the CURRENT seller is a collaborator (not the assignee) on this
+   * conversation. Populated only by `IConversationsProvider.searchMessages`/
+   * the Inbox search path (`search_conversations` RPC) — undefined elsewhere
+   * (plain `get`/`list` never compute it). Drives the "Colaborando" tag.
+   */
+  isCollaborator?: boolean;
 }
 
 /** Kind of attendance-lifecycle event (mirrors the SQL trigger derivation). */
@@ -242,6 +249,8 @@ export interface IConversationParticipant {
   sellerId: ID;
   addedBy?: ID;
   addedAt: ISO8601;
+  /** How this collaborator was added — drives the "via @menção" tag in the UI. */
+  source: "manual" | "mention";
 }
 
 /**

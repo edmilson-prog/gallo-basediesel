@@ -427,34 +427,68 @@ Insert this immediately after the existing multi-instance message-leak check (th
 -- ---------------------------------------------------------------------------
 -- Colaboradores por demanda (2026-07-04): self-delete allowed, third-party
 -- delete of someone else's participant row denied for non-staff/non-assignee.
+-- Guard: this plan's migrations (source column + cp_insert/cp_delete split)
+-- are not auto-applied by merging — the DB deploy workflow applies migrations
+-- separately, so pré-merge this whole section is SKIPPED (mirrors "Bloco A1"'s
+-- guard further below, `if not exists (select 1 from information_schema.
+-- columns where ... column_name = 'is_active')`, for the identical
+-- same-plan-pending-migration situation).
 -- ---------------------------------------------------------------------------
+select set_config(
+  'test.cp_ready',
+  case when exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'conversation_participants' and column_name = 'source'
+  ) then 'true' else '' end,
+  true
+);
 
--- Seed a throwaway conversation owned by lucas, with lucas himself as a
--- participant (a seller can always end up listed as their own conversation's
--- "collaborator" for this probe — the test only cares about the DELETE policy,
--- not the realistic shape of the row).
-select set_config('test.cp_conv', coalesce((
+-- A conversation NOT assigned to lucas — BOTH checks below seed a row on it,
+-- so neither can be explained by the pre-existing "assignee" OR-arm: on this
+-- conversation, lucas is a mere collaborator, never the owner. This also
+-- isolates the self-delete check from the third-party check (the original
+-- design reused lucas's OWN conversation for self-delete, which confounded
+-- the new "own row" arm with the pre-existing "assignee" arm — a regression
+-- that silently dropped just the new arm would have gone undetected there).
+select set_config('test.cp_other_conv', coalesce((
   select c.id::text
   from public.conversations c
-  where c.assigned_seller_id = '5a6400ed-5aec-4bf1-b641-31635f15c887'
+  where c.assigned_seller_id is not null
+    and c.assigned_seller_id <> '5a6400ed-5aec-4bf1-b641-31635f15c887'
     and c.store_id = '00000000-0000-0000-0000-000000000001'
   limit 1
 ), ''), true);
 
+select set_config('test.cp_other_seller', coalesce((
+  select c.assigned_seller_id::text
+  from public.conversations c
+  where c.id::text = current_setting('test.cp_other_conv', true)
+), ''), true);
+
 do $$
 declare
-  probe text := current_setting('test.cp_conv', true);
+  probe text := current_setting('test.cp_other_conv', true);
+  other_seller text := current_setting('test.cp_other_seller', true);
 begin
-  if probe is null or probe = '' then
-    return; -- seed sem conversa atribuída a lucas: nada a provar
+  if current_setting('test.cp_ready', true) is distinct from 'true' then
+    return; -- migration ainda não aplicada em prod: pula
   end if;
+  if probe is null or probe = '' or other_seller is null or other_seller = '' then
+    return; -- seed sem conversa atribuída a outro seller: nada a provar
+  end if;
+  -- Seed BOTH probe rows on the same conversation: lucas himself (for the
+  -- self-delete check) and that conversation's real assignee (for the
+  -- third-party-delete check).
   insert into public.conversation_participants (conversation_id, seller_id, added_by, source)
-  values (probe::uuid, '5a6400ed-5aec-4bf1-b641-31635f15c887', '57706ecc-01b5-4a96-b403-0359a4bb767f', 'manual')
+  values
+    (probe::uuid, '5a6400ed-5aec-4bf1-b641-31635f15c887', other_seller::uuid, 'manual'),
+    (probe::uuid, other_seller::uuid, other_seller::uuid, 'manual')
   on conflict (conversation_id, seller_id) do nothing;
 end $$;
 
--- lucas (the participant himself, NOT staff, NOT the assignee of a random
--- OTHER conversation) removes his OWN participant row — must succeed.
+-- (1) Self-delete: lucas removes his OWN participant row on a conversation he
+-- does NOT own — isolates the new "seller_id = current_seller_id()" OR-arm
+-- from the pre-existing "assignee" arm (which does not apply here).
 select set_config(
   'request.jwt.claims',
   '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
@@ -464,15 +498,32 @@ set local role authenticated;
 
 do $$
 declare
-  probe text := current_setting('test.cp_conv', true);
-  remaining int;
+  probe text := current_setting('test.cp_other_conv', true);
 begin
+  if current_setting('test.cp_ready', true) is distinct from 'true' then
+    return;
+  end if;
   if probe is null or probe = '' then
     return;
   end if;
   delete from public.conversation_participants
   where conversation_id = probe::uuid
     and seller_id = '5a6400ed-5aec-4bf1-b641-31635f15c887';
+end $$;
+
+reset role;
+
+do $$
+declare
+  probe text := current_setting('test.cp_other_conv', true);
+  remaining int;
+begin
+  if current_setting('test.cp_ready', true) is distinct from 'true' then
+    return;
+  end if;
+  if probe is null or probe = '' then
+    return;
+  end if;
   select count(*) into remaining
   from public.conversation_participants
   where conversation_id = probe::uuid
@@ -482,74 +533,76 @@ begin
   end if;
 end $$;
 
-reset role;
+-- (2) Third-party delete: lucas (non-staff, not this row's seller, not this
+-- conversation's assignee) must NOT be able to delete the OTHER seller's
+-- participant row.
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
 
--- Re-seed the row (self-delete above removed it) so the next check has
--- something to try to delete.
 do $$
 declare
-  probe text := current_setting('test.cp_conv', true);
+  probe text := current_setting('test.cp_other_conv', true);
+  other_seller text := current_setting('test.cp_other_seller', true);
 begin
-  if probe is null or probe = '' then
+  if current_setting('test.cp_ready', true) is distinct from 'true' then
     return;
   end if;
-  insert into public.conversation_participants (conversation_id, seller_id, added_by, source)
-  values (probe::uuid, '5a6400ed-5aec-4bf1-b641-31635f15c887', '57706ecc-01b5-4a96-b403-0359a4bb767f', 'manual')
-  on conflict (conversation_id, seller_id) do nothing;
-end $$;
-
--- A DIFFERENT, non-staff, non-assignee seller must NOT be able to delete
--- lucas's participant row. The seed only has owner/lucas as named principals;
--- impersonate lucas trying to delete a row where he is neither staff, nor the
--- row's own seller_id, nor the conversation's assignee — i.e. run the delete
--- AFTER re-pointing seller_id conceptually: since we only have 2 principals,
--- prove the negative the other way — owner (staff) CAN delete it (expected
--- true, staff bypass), which we already know from cp_delete's first OR-arm;
--- the meaningful negative here is that plain SQL row count stays unchanged
--- when lucas is impersonated as neither the row's seller nor the assignee.
--- Use a raw uuid that is NOT lucas's own id and is NOT any conversation's
--- assignee that lucas owns, to simulate "someone else's row":
-do $$
-declare
-  probe text := current_setting('test.cp_conv', true);
-  other_seller uuid := '00000000-0000-0000-0000-0000000000aa'; -- not a real seller; row won't exist
-  deleted_count int;
-begin
-  if probe is null or probe = '' then
+  if probe is null or probe = '' or other_seller is null or other_seller = '' then
     return;
   end if;
-  -- lucas (non-staff) tries to delete a row belonging to `other_seller`, which
-  -- he is neither (seller_id != current_seller_id()) nor staff for. RLS should
-  -- silently affect 0 rows (DELETE ... WHERE never matches a row lucas may act
-  -- on) rather than erroring — confirm the row we actually care about (his
-  -- OWN, re-seeded above) is untouched by asserting it still exists.
   delete from public.conversation_participants
   where conversation_id = probe::uuid
-    and seller_id = other_seller;
-  select count(*) into deleted_count
+    and seller_id = other_seller::uuid;
+end $$;
+
+reset role;
+
+-- Verify as admin — cp_select's USING clause shares cp_delete's three OR-arms,
+-- so this row is INVISIBLE to lucas too; checking "remaining" while still
+-- impersonating him would always read 0 regardless of whether the DELETE
+-- above actually succeeded or was blocked, making the assertion vacuously
+-- fail every run. Check the row's real persistence outside his impersonation.
+do $$
+declare
+  probe text := current_setting('test.cp_other_conv', true);
+  other_seller text := current_setting('test.cp_other_seller', true);
+  remaining int;
+begin
+  if current_setting('test.cp_ready', true) is distinct from 'true' then
+    return;
+  end if;
+  if probe is null or probe = '' or other_seller is null or other_seller = '' then
+    return;
+  end if;
+  select count(*) into remaining
   from public.conversation_participants
   where conversation_id = probe::uuid
-    and seller_id = '5a6400ed-5aec-4bf1-b641-31635f15c887';
-  if deleted_count <> 1 then
-    raise exception 'conversation_participants: unrelated delete attempt unexpectedly removed lucas''s own row';
+    and seller_id = other_seller::uuid;
+  if remaining <> 1 then
+    raise exception 'conversation_participants: unrelated seller was able to delete someone else''s collaborator row (cp_delete regression)';
   end if;
 end $$;
 
-reset role;
-
--- Cleanup: remove the throwaway participant row so this test file's
--- transaction rollback isn't the only thing preventing leftover state (belt
--- and suspenders — the whole script runs inside `begin; ... rollback;`).
+-- Cleanup: remove both throwaway rows (belt-and-suspenders; the whole script
+-- rolls back anyway).
 do $$
 declare
-  probe text := current_setting('test.cp_conv', true);
+  probe text := current_setting('test.cp_other_conv', true);
+  other_seller text := current_setting('test.cp_other_seller', true);
 begin
-  if probe is null or probe = '' then
+  if current_setting('test.cp_ready', true) is distinct from 'true' then
+    return;
+  end if;
+  if probe is null or probe = '' or other_seller is null or other_seller = '' then
     return;
   end if;
   delete from public.conversation_participants
   where conversation_id = probe::uuid
-    and seller_id = '5a6400ed-5aec-4bf1-b641-31635f15c887';
+    and seller_id in ('5a6400ed-5aec-4bf1-b641-31635f15c887', other_seller::uuid);
 end $$;
 ```
 
@@ -565,7 +618,7 @@ git add supabase/tests/rls-regression.sql
 git commit -m "test: add RLS regression cases for conversation_participants self-delete"
 ```
 
-Note: this suite runs against a live seeded database (`psql "$SUPABASE_DB_URL" -f supabase/tests/rls-regression.sql`), which this plan does not have access to — the CI workflow (gated on the `SUPABASE_DB_URL` secret per `docs/fase2-pendencias.md`) is what actually executes it. Treat Step 2 as the only feasible local verification.
+Note: this suite runs against a live seeded database (`psql "$SUPABASE_DB_URL" -f supabase/tests/rls-regression.sql`), which this plan does not have access to — the CI workflow (gated on the `SUPABASE_DB_URL` secret per `docs/fase2-pendencias.md`) is what actually executes it. Treat Step 2 as the only feasible local verification. The `test.cp_ready` guard means this whole section is a documented no-op until this plan's migrations (Tasks 1–3) are actually applied to that live database — CI stays green in the meantime, and the checks activate on the first run after deploy, exactly like the pre-existing "Bloco A1" section a few hundred lines below handles the same situation for its own pending migration.
 
 ---
 
@@ -1031,30 +1084,42 @@ Replace with:
 
 This mirrors `clear_conversation_participants_on_close` (Task 1) — the mock has no DB trigger, so the cleanup is inlined at the one documented entry point for reaching a terminal status (`IConversationsProvider.close`, per its own doc comment: "Close a conversation atomically ... in one server op").
 
-- [ ] **Step 4: Write a focused Vitest for the filter widening**
+- [ ] **Step 4: Write a Vitest that exercises the actual new behavior**
 
-Find or create `src/mocks/api/conversations.test.ts` (check first with `ls src/mocks/api/*.test.ts` whether one already exists to extend instead of create):
+Find or create `src/mocks/api/conversations.test.ts` (check first with `ls src/mocks/api/*.test.ts` whether one already exists to extend instead of create). Test `conversationsApi.list` end-to-end (not just `matchesAssignmentAny`, which is unchanged — the new OR-branch lives at the `applyNonSearchFilters` call site) so the test actually fails if the wiring in Step 2 is missing or wrong:
 
 ```ts
-import { describe, it, expect, beforeEach } from "vitest";
-import { matchesAssignmentAny } from "./conversations";
+import { describe, it, expect } from "vitest";
+import { conversationsApi } from "./conversations";
+import { conversationParticipantsApi, clearConversationParticipantsSync } from "./conversationParticipants";
+import { getMockState } from "../store/mockStore";
 
-// This test only covers the pure matchesAssignmentAny — the collaborator
-// OR-branch lives at the applyNonSearchFilters call site (not inside
-// matchesAssignmentAny itself) and is exercised indirectly by
-// conversationsApi.list in the mock; a full store-backed test is out of
-// proportion for this delta. Confirms matchesAssignmentAny's OWN contract is
-// unchanged by this feature (a regression here would mean the call-site
-// change accidentally edited the wrong function).
-describe("matchesAssignmentAny (unchanged by collaborators)", () => {
-  it("still matches only by assignedSellerId/queue, never by collaboration", () => {
-    const conversation = {
-      id: "conv-1",
-      assignedSellerId: undefined,
-      isSdrActive: false,
-      status: "aguardando",
-    } as Parameters<typeof matchesAssignmentAny>[0];
-    expect(matchesAssignmentAny(conversation, { sellerIds: ["seller-other"] })).toBe(false);
+describe("conversationsApi.list — collaborator inclusion in 'Minhas conversas'", () => {
+  it("includes a conversation the filtered seller collaborates on, not just owns", async () => {
+    const seed = getMockState().conversations[0];
+    if (!seed) throw new Error("mock seed has no conversations to test against");
+    const collaboratorSellerId = "seller-test-collaborator-inclusion";
+
+    const before = await conversationsApi.list({ assignmentAny: { sellerIds: [collaboratorSellerId] } });
+    expect(before.data.some((c) => c.id === seed.id)).toBe(false);
+
+    await conversationParticipantsApi.add(seed.id, collaboratorSellerId, "manual");
+    const after = await conversationsApi.list({ assignmentAny: { sellerIds: [collaboratorSellerId] } });
+    expect(after.data.some((c) => c.id === seed.id)).toBe(true);
+
+    clearConversationParticipantsSync(seed.id);
+  });
+
+  it("close() clears the conversation's collaborators", async () => {
+    const seed = getMockState().conversations.find((c) => c.status !== "arquivada" && c.status !== "resolvida");
+    if (!seed) throw new Error("mock seed has no open conversation to test against");
+    const collaboratorSellerId = "seller-test-close-cleanup";
+
+    await conversationParticipantsApi.add(seed.id, collaboratorSellerId, "manual");
+    expect((await conversationParticipantsApi.list(seed.id)).length).toBeGreaterThan(0);
+
+    await conversationsApi.close(seed.id, "resolvida");
+    expect(await conversationParticipantsApi.list(seed.id)).toEqual([]);
   });
 });
 ```
@@ -1062,7 +1127,7 @@ describe("matchesAssignmentAny (unchanged by collaborators)", () => {
 - [ ] **Step 5: Run the test**
 
 Run: `bun run test src/mocks/api/conversations.test.ts`
-Expected: PASS.
+Expected: PASS (2 tests).
 
 - [ ] **Step 6: Commit**
 
@@ -1733,6 +1798,8 @@ git commit -m "feat: add resolveMentionParticipants pure engine"
 
 Rewrite `src/features/conversations/hooks/useConversationDetail.ts` in full:
 
+This rewrite must preserve every existing comment (JSDoc on the hook, the field docs, the `getViaConversation` gated-once rationale, the mock/supabase not-found asymmetry note, the `keepPreviousData`/early-return ordering note, etc.) — it is additive, not a rewrite-from-scratch. The complete target content is:
+
 ```ts
 import { useCallback } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -1762,16 +1829,24 @@ export interface ICollaboratorWithSeller {
   source: "manual" | "mention";
 }
 
+/** The conversation plus the directly-related entities, cached per id. */
 interface IConversationDetailData {
   conversation: IConversation | null;
   customer: ICustomer | null;
   lead: ILead | null;
+  /**
+   * Display-ready contact resolved server-side (pool-safe). Reliably carries the
+   * name/phone/avatar even when `customer`/`lead` are RLS-hidden for a seller
+   * handling a POOL conversation — the header falls back to it for the title.
+   */
   contact: IConversationContact | null;
   whatsappAccount: IWhatsAppAccount | null;
+  /** Seller the conversation is assigned to (null when unassigned/unreadable). */
   assignedSeller: ISeller | null;
   /** Collaborators (co-responsáveis) currently on this conversation — never
    *  includes the assignee. Empty on a pool conversation. */
   collaborators: ICollaboratorWithSeller[];
+  /** True when the id resolved to a missing row (a soft "not found", not an error). */
   notFound: boolean;
 }
 
@@ -1792,10 +1867,25 @@ const EMPTY_DETAIL: IConversationDetailData = {
   notFound: false,
 };
 
+/** Query key for a conversation's detail bundle. */
 function conversationDetailKey(conversationId: ID | null): readonly [string, ID | null] {
   return ["conversation-detail", conversationId];
 }
 
+/**
+ * Loads the selected conversation plus the directly related entities the
+ * `<ConversationPage>` header and helpers need: customer/lead participant, the
+ * WhatsApp account behind the channel, the assigned seller and the current
+ * collaborators.
+ *
+ * Backed by a TanStack `useQuery` keyed by `conversationId` so switching threads
+ * stays fluid: a revisited conversation paints its header instantly from cache
+ * (and revalidates in the background) instead of re-running the ~6 detail
+ * round-trips, and a never-seen one keeps the previous header visible —
+ * `keepPreviousData` — rather than flashing the full-page spinner. The flat
+ * return shape is unchanged, so consumers stay null-check-friendly and
+ * `refresh()` still forces a re-fetch (now via `refetch`).
+ */
 export function useConversationDetail(conversationId: ID | null): IConversationDetail {
   const conversationsProvider = useConversationsProvider();
   const customersProvider = useCustomersProvider();
@@ -1807,19 +1897,31 @@ export function useConversationDetail(conversationId: ID | null): IConversationD
   const query = useQuery({
     queryKey: conversationDetailKey(conversationId),
     queryFn: async (): Promise<IConversationDetailData> => {
-      const id = conversationId as ID;
+      const id = conversationId as ID; // guarded by `enabled`
       let conversation: IConversation;
       try {
         conversation = await conversationsProvider.get(id);
       } catch (err) {
+        // The mock provider throws a "not found" for a missing row, modeled here
+        // as soft notFound DATA. Real backends (supabase) throw an opaque error
+        // for a missing/forbidden row, which propagates below; the page renders
+        // the same empty state via its `!conversation` guard.
         if (err instanceof Error && /not found/i.test(err.message)) {
           return { ...EMPTY_DETAIL, notFound: true };
         }
         throw err;
       }
 
+      // Related entities load in parallel; each fails soft to null so a missing
+      // customer or an RLS-hidden seller never blocks the header. `contact` is the
+      // pool-safe display source: it resolves the name even when `customer`/`lead`
+      // are RLS-hidden for a seller handling an unassigned conversation.
       const [customer, lead, whatsappAccount, assignedSeller, contacts, participants] =
         await Promise.all([
+          // Resolve the customer gated-once by the CONVERSATION (can_access), not by
+          // the per-carteira customers RLS: a POOL conversation's customer would
+          // otherwise 406 on the direct `get` (noisy console; null customer). This
+          // returns the real customer for any conversation the seller can access.
           conversation.customerId
             ? customersProvider.getViaConversation(id).catch(() => null)
             : null,
@@ -1856,10 +1958,18 @@ export function useConversationDetail(conversationId: ID | null): IConversationD
       };
     },
     enabled: !!conversationId,
+    // Keep the previous conversation's header during a switch instead of a
+    // spinner-flash; revisited conversations come straight from cache.
     placeholderData: keepPreviousData,
+    // Detail entities (status, assignee, lead temperature) can change
+    // server-side and every in-app mutation calls refresh() anyway, so keep it
+    // always-stale: a revisit revalidates in the background while the cache
+    // paints instantly. Matches the old "re-fetch on every open" freshness.
     staleTime: 0,
     gcTime: 10 * 60_000,
     refetchOnWindowFocus: false,
+    // No retry: a failure (missing/forbidden conversation, or a transient error)
+    // surfaces immediately as the empty state, mirroring the old single fetch.
     retry: false,
   });
 
@@ -1868,6 +1978,9 @@ export function useConversationDetail(conversationId: ID | null): IConversationD
     void refetch();
   }, [refetch]);
 
+  // An empty/null id resets to the empty record. Done after the (unconditional)
+  // hooks and explicitly, so `keepPreviousData` can't leak the prior
+  // conversation's cached detail into the disabled state.
   if (!conversationId) {
     return { ...EMPTY_DETAIL, isLoading: false, error: null, refresh };
   }
@@ -2022,7 +2135,9 @@ export interface IUseConversationNotes {
   isLoading: boolean;
   isError: boolean;
   refetch: () => void;
+  /** Logged-in seller id (note author); undefined when the session has none. */
   currentSellerId: ID | undefined;
+  /** Owner/Gestor — may delete/pin any note. */
   isStaff: boolean;
   createNote: (content: string, mentions: ID[]) => Promise<IConversationNote>;
   updateNote: (
@@ -2261,6 +2376,8 @@ git commit -m "feat: auto-add mentioned sellers as conversation collaborators"
 
 Create `src/shared/lib/presenceChannel.ts` — this is `useStorePresence.ts`'s module-level manager (lines 1-115 of the current file), generalized to take any topic string instead of hardcoding `presence:store:<id>`:
 
+This is `useStorePresence.ts`'s module-level manager (its current lines 1-115: the header comment, `IPresenceEntry`, `acquire`, `release`), generalized to take any topic string instead of hardcoding `presence:store:<id>`, with every existing comment preserved (renamed identifiers only — `acquire`→`acquirePresenceChannel`, `release`→`releasePresenceChannel`, `IPresenceEntry`→`IPresenceChannelEntry` — and the header's store-specific example generalized to "per topic"):
+
 ```ts
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { getSupabaseClient } from "./supabase";
@@ -2270,36 +2387,54 @@ import { getSupabaseClient } from "./supabase";
  * reference-counted: the first subscriber creates and joins the channel,
  * later subscribers reuse it, and it's torn down when the last leaves.
  * Extracted from `src/features/shell/hooks/useStorePresence.ts` (PRD "users
- * CRUD addendum") so a second presence scope (per-conversation collaboration)
- * can reuse the exact same join/re-join/teardown semantics instead of
- * duplicating this file's original, carefully-commented realtime-js quirks.
+ * CRUD addendum", originally store-only) so a second presence scope
+ * (per-conversation collaboration) can reuse the exact same join/re-join/
+ * teardown semantics instead of duplicating them.
  *
  * --- realtime-js v2 behaviour (verified in the installed dist source) ---
  * 1. `client.channel(topic)` REUSES an existing channel when one with the same
- *    topic is already registered — tracker and reader for the SAME topic
- *    therefore share one instance, so the lifecycle must be owned here.
- * 2. The default presence key is `''`, so the server assigns a random UUID per
- *    connection; the tracked payload (e.g. `{ sellerId }`) lives in the
- *    presence VALUES, never the keys.
- * 3. `channel.subscribe(cb)` silently no-ops on a second call for a
- *    joining/joined channel — subscribe exactly once per channel instance and
- *    fan the SUBSCRIBED transition out to `joinListeners`.
+ *    topic is already registered (RealtimeClient.js, `channel()`: it finds by
+ *    topic and returns the existing instance instead of creating a new one).
+ *    Any two consumers of the SAME topic therefore SHARE one channel instance,
+ *    so the lifecycle must be owned by this module-level ref-counted manager —
+ *    otherwise one consumer's removeChannel tears the channel down for the other.
+ * 2. The default presence key is `''` (RealtimeChannel.js line 97), which makes
+ *    the SERVER assign a random UUID per connection as the presence key. The
+ *    keys of `presenceState()` are therefore NOT the tracked identity — the
+ *    tracked payload (e.g. `{ sellerId }`) lives in the presence VALUES, so a
+ *    reader maps over `Object.values(state).flat()` instead of `Object.keys(state)`.
+ * 3. `channel.subscribe(cb)` is guarded by `channelAdapter.isClosed()`
+ *    (RealtimeChannel.js line 136): a second subscribe on a joining/joined
+ *    channel silently skips its body and the callback is never registered.
+ *    Hence the manager calls subscribe() exactly ONCE and fans the SUBSCRIBED
+ *    transition out to `joinListeners` — a tracker attaches its `.track()`
+ *    announce there (and fires immediately when attaching after the join).
  */
 export interface IPresenceChannelEntry {
   channel: RealtimeChannel;
+  /** Number of active consumers (tracker + readers). */
   refs: number;
+  /** True while the channel is SUBSCRIBED (re-fires after reconnects). */
   joined: boolean;
+  /** Fired on every SUBSCRIBED transition — trackers (re-)announce here. */
   joinListeners: Set<() => void>;
+  /** Fired on every presence sync — readers recompute their set here. */
   syncListeners: Set<() => void>;
 }
 
 const presenceEntries = new Map<string, IPresenceChannelEntry>();
 
-/** Acquire (or reuse) the shared presence channel for `topic`. Pair with `releasePresenceChannel(topic)`. */
+/**
+ * Acquire (or reuse) the shared presence channel for a topic. The manager owns
+ * the channel lifecycle: it subscribes exactly once and fans join/sync events
+ * out to the listener sets on the returned entry. Pair with `releasePresenceChannel(topic)`.
+ */
 export function acquirePresenceChannel(topic: string): IPresenceChannelEntry {
   let entry = presenceEntries.get(topic);
 
   if (!entry) {
+    // No presence key config: the server assigns a per-connection UUID key;
+    // identity travels in the tracked payload instead (see header note 2).
     const channel = getSupabaseClient().channel(topic);
 
     const created: IPresenceChannelEntry = {
@@ -2310,10 +2445,13 @@ export function acquirePresenceChannel(topic: string): IPresenceChannelEntry {
       syncListeners: new Set(),
     };
 
+    // realtime-js fires a "sync" after every presence diff (join/leave
+    // included), so a single sync binding is sufficient for readers.
     channel.on("presence", { event: "sync" }, () => {
       for (const listener of created.syncListeners) listener();
     });
 
+    // Subscribe exactly ONCE (see header note 3) and fan out the join.
     channel.subscribe((status) => {
       created.joined = status === "SUBSCRIBED";
       if (created.joined) {
@@ -2329,8 +2467,11 @@ export function acquirePresenceChannel(topic: string): IPresenceChannelEntry {
   return entry;
 }
 
-/** Release one reference, deferred with a grace re-check so React StrictMode's
- *  unmount→remount re-acquires the live entry instead of a mid-teardown one. */
+/**
+ * Release one reference. Removal is DEFERRED with a grace re-check so React
+ * StrictMode's unmount→remount and rapid toggles re-acquire the live entry
+ * instead of grabbing a channel that is mid-teardown.
+ */
 export function releasePresenceChannel(topic: string): void {
   const entry = presenceEntries.get(topic);
   if (!entry) return;
@@ -2365,10 +2506,13 @@ import { acquirePresenceChannel, releasePresenceChannel } from "@/shared/lib/pre
 
 /**
  * Realtime Presence per store (users CRUD addendum): "online" means the app is
- * open in some browser. Thin wrapper over the generic
- * `src/shared/lib/presenceChannel.ts` manager, scoped to the
- * `presence:store:<id>` topic — see that module for the underlying
- * realtime-js join/re-join semantics this relies on.
+ * open in some browser. The shell tracks the signed-in seller; the users screen
+ * reads the set of online seller ids. Supabase auth mode only — in mock mode
+ * the reader returns null and callers derive a seeded status instead.
+ *
+ * Thin wrapper over the generic `src/shared/lib/presenceChannel.ts` manager
+ * (extracted from this file), scoped to the `presence:store:<id>` topic — see
+ * that module for the underlying realtime-js join/re-join semantics this relies on.
  */
 const channelTopic = (storeId: string) => `presence:store:${storeId}`;
 
@@ -2385,10 +2529,14 @@ export function usePresenceTracker(): void {
 
     const announce = () => void entry.channel.track({ sellerId });
     entry.joinListeners.add(announce);
+    // Late attach: the shared channel may already be joined (e.g. a reader
+    // acquired it first) — the join fanout already happened, announce now.
     if (entry.joined) announce();
 
     return () => {
       entry.joinListeners.delete(announce);
+      // Stop broadcasting this seller even if a reader keeps the channel
+      // alive — prevents a ghost "online" after logout/store switch.
       if (entry.joined) void entry.channel.untrack();
       releasePresenceChannel(topic);
     };
@@ -2405,6 +2553,8 @@ export function useStorePresence(storeId: string): Set<string> | null {
     const entry = acquirePresenceChannel(topic);
 
     const sync = () => {
+      // Presence keys are server-assigned UUIDs (see presenceChannel.ts header
+      // note 2) — read the seller ids from the tracked payload values instead.
       const state = entry.channel.presenceState<{ sellerId?: string }>();
       const ids = Object.values(state)
         .flat()
@@ -2413,6 +2563,8 @@ export function useStorePresence(storeId: string): Set<string> | null {
       setOnline(new Set(ids));
     };
     entry.syncListeners.add(sync);
+    // Initial state for late attachers — the channel may already hold a
+    // synced presence map from before this reader mounted.
     sync();
 
     return () => {
@@ -2464,10 +2616,14 @@ export function useConversationPresenceTracker(conversationId: ID | null): void 
 
     const announce = () => void entry.channel.track({ sellerId });
     entry.joinListeners.add(announce);
+    // Late attach: the shared channel may already be joined (e.g. a reader
+    // acquired it first) — the join fanout already happened, announce now.
     if (entry.joined) announce();
 
     return () => {
       entry.joinListeners.delete(announce);
+      // Stop broadcasting even if a reader keeps the channel alive —
+      // prevents a ghost "viewing" after closing the conversation panel.
       if (entry.joined) void entry.channel.untrack();
       releasePresenceChannel(topic);
     };
@@ -2485,6 +2641,8 @@ export function useConversationPresence(conversationId: ID | null): Set<ID> | nu
     const entry = acquirePresenceChannel(topic);
 
     const sync = () => {
+      // Presence keys are server-assigned UUIDs (see presenceChannel.ts header
+      // note 2) — read the seller ids from the tracked payload values instead.
       const state = entry.channel.presenceState<{ sellerId?: string }>();
       const ids = Object.values(state)
         .flat()
@@ -2493,6 +2651,8 @@ export function useConversationPresence(conversationId: ID | null): Set<ID> | nu
       setViewing(new Set(ids));
     };
     entry.syncListeners.add(sync);
+    // Initial state for late attachers — the channel may already hold a
+    // synced presence map from before this reader mounted.
     sync();
 
     return () => {
@@ -2637,7 +2797,7 @@ export function CollaboratorAddedPrompt() {
   const openConversation = () => {
     dismiss(0);
     setMinimized(false);
-    void navigate({ to: "/app/atendimento/$conversationId", params: { conversationId: current.conversationId } });
+    void navigate({ to: "/app/atendimento/$id", params: { id: current.conversationId } });
   };
 
   if (minimized) {
@@ -2686,7 +2846,7 @@ export function CollaboratorAddedPrompt() {
 }
 ```
 
-Before writing this file, grep the route tree (`src/routeTree.gen.ts` or `src/routes/app.atendimento.*`) for the actual conversation route path/param name (I used `/app/atendimento/$conversationId` — confirm the exact route id and param name used elsewhere, e.g. inside `ConversationPage.tsx`'s own `useNavigate`/`useParams` calls, and correct this literal if it differs).
+The route path/param above (`/app/atendimento/$id`, param `id`) was confirmed against `src/routes/app.atendimento.$id.tsx`'s actual `createFileRoute("/app/atendimento/$id")` — no further verification needed.
 
 - [ ] **Step 3: Mount in `AppLayout`**
 
@@ -2915,7 +3075,7 @@ export function AddCollaboratorDialog({
 }
 ```
 
-Before writing this file: (a) confirm `useSettingsProvider` and its `get(storeId)` signature by grepping `useSettingsProvider` under `src/providers/data/` — `IPlatformSettings.participantCrossInstance` is read off whatever that method returns, adjust the field access if the real getter shape differs (e.g. `settings.settings.participantCrossInstance` vs `settings.participantCrossInstance`); (b) confirm `Dialog`/`Command` component import paths against an existing user (e.g. `ConversationTagPicker.tsx`, referenced in the `AtendimentoTab.tsx` imports) rather than assuming `@/components/ui/command` exists verbatim — copy the exact import path it uses.
+Both previously-open questions here are now resolved and confirmed against the real codebase: `useSettingsProvider().get(storeId)` returns `IPlatformSettings` directly (`src/providers/data/contracts/settings.ts:9-11`), so `settings?.participantCrossInstance` (not a nested `.settings.` access) is correct as written above. `Dialog`/`DialogTrigger`/`DialogContent`/`DialogHeader`/`DialogTitle` are all real named exports of `@/components/ui/dialog`, and `Command`/`CommandInput`/`CommandList`/`CommandEmpty`/`CommandGroup`/`CommandItem` are all real named exports of `@/components/ui/command` — both import paths in the code above are correct as written, no adjustment needed.
 
 - [ ] **Step 2: Type-check**
 
@@ -3420,3 +3580,331 @@ git commit -m "fix: address smoke-test findings for conversation collaborators"
 ```
 
 (Skip this step entirely if Step 4 found nothing to fix.)
+
+---
+
+## Phase 8 — Post-review fixes (whole-branch review findings)
+
+The final whole-branch review (after Task 21) found two real cross-task integration gaps that no single task's review could see in isolation, since each individual task's own widening (Tasks 3/8) was correct in isolation but the SUPABASE **no-search** Inbox list path was never updated to match. Both are fixed here.
+
+### Task 22: New `list_conversations` RPC — collaborator inclusion in the default (no-search) Inbox list
+
+**Problem found by review:** Task 3 widened `count_conversations` (badge total) and `search_conversations` (text-search results) to include conversations where the caller collaborates, and Task 8 widened the mock's plain list the same way. But the supabase **plain, no-search** `list()` (`src/providers/data/impl/supabase/conversations.ts`) builds its "Minhas conversas" filter via `buildAssignmentOrFilter` directly on a PostgREST query — a raw `.or()` string can only reference columns on `conversations` itself, so it structurally CANNOT express "or I'm a participant" (that requires an `EXISTS` against `conversation_participants`, which only a `SECURITY DEFINER` RPC can encapsulate). Net effect in production: a collaborator can't find the conversation in the default Inbox view, the "Colaborando" tag never renders there (only during a text search), and the Inbox's "Minhas conversas" count badge (from `count_conversations`, already collaborator-aware) overcounts relative to what the plain list actually shows.
+
+**Fix:** a new RPC, `list_conversations`, that reuses `count_conversations`' already-correct, already-reviewed WHERE clause (Task 3) verbatim, but projects full row data + `is_collaborator` + a window `total_count`, with pagination/ordering — mirroring exactly how `search_conversations` is structured, minus the text-match requirement (which `list_conversations` must NOT have — unlike modifying `search_conversations` to accept an empty search, a brand new RPC with no customer/lead `EXISTS` gate cannot silently drop a conversation whose customer/lead record is missing/soft-deleted, which the plain query today also never drops). `supabaseConversationsProvider.list()` routes through this RPC only when `params.assignmentAny?.sellerIds` is non-empty (the exact "Minhas conversas" case `count_conversations` already exists for) — every other caller (customer detail, dashboards, "Fila"-only, "Todas") keeps using the existing raw-query path unchanged, so this is purely additive.
+
+**Files:**
+- Create: `supabase/migrations/20260705090000_list_conversations_rpc.sql`
+- Create: `src/providers/data/impl/supabase/listRpcParams.ts`
+- Modify: `src/providers/data/impl/supabase/conversations.ts` (add a new branch in `list()`, add a new private `listConversationsViaRpc` function)
+
+**Interfaces:**
+- Consumes: `buildSharedConversationRpcFilters`, `assertInboxCountParams` (both existing, unchanged), `rowToConversation`/`ConversationRow` (existing, already has `is_collaborator?: boolean` from Task 9).
+- Produces: RPC `public.list_conversations(...)`; `buildListRpcParams(params, page, pageSize)`.
+
+- [ ] **Step 1: Write the migration**
+
+```sql
+-- Fast, collaborator-aware list for the Inbox "Minhas conversas" no-search
+-- path. Reuses count_conversations' WHERE clause verbatim (same filters,
+-- same access-model block, same participant-inclusion branch) — only the
+-- SELECT list (full row + is_collaborator + window total_count) and the
+-- ORDER BY/LIMIT/OFFSET are new. A plain PostgREST `.or()` on the base
+-- table cannot express "or I collaborate" (that needs an EXISTS against
+-- conversation_participants), hence a dedicated RPC rather than extending
+-- the existing raw-query path in conversations.ts.
+--
+-- Scope restriction mirrors count_conversations exactly (see
+-- assertInboxCountParams): callers passing storeId/search/customerId/
+-- leadId/scalar assignedSellerId/unassigned keep using the plain table
+-- query instead — this RPC is Inbox-"Minhas conversas"-only.
+
+create or replace function public.list_conversations(
+  p_status text[] default null,
+  p_channel text default null,
+  p_whatsapp_account_id uuid default null,
+  p_is_sdr_active boolean default null,
+  p_tags text[] default null,
+  p_from_date timestamptz default null,
+  p_to_date timestamptz default null,
+  p_assigned_seller_ids uuid[] default null,
+  p_unassigned boolean default false,
+  p_include_queue boolean default false,
+  p_order_dir text default 'desc',
+  p_limit integer default 20,
+  p_offset integer default 0
+)
+returns table (
+  id uuid, store_id uuid, customer_id uuid, lead_id text, assigned_seller_id uuid,
+  channel text, whatsapp_account_id uuid, status text, is_sdr_active boolean,
+  tags text[], linked_order_id text, last_message_at timestamptz, unread_count integer,
+  created_at timestamptz, queued_at timestamptz, is_collaborator boolean, total_count bigint
+)
+language sql
+stable
+security definer
+set search_path to ''
+as $$
+  with acc as materialized (
+    select public.current_seller_accessible_account_ids() as id
+  )
+  select
+    c.id, c.store_id, c.customer_id, c.lead_id, c.assigned_seller_id, c.channel,
+    c.whatsapp_account_id, c.status, c.is_sdr_active, c.tags, c.linked_order_id,
+    c.last_message_at, c.unread_count, c.created_at, c.queued_at,
+    exists (
+      select 1 from public.conversation_participants p
+      where p.conversation_id = c.id
+        and p.seller_id = public.current_seller_id()
+    ) as is_collaborator,
+    count(*) over () as total_count
+  from public.conversations c
+  where c.store_id = public.current_store_id()
+    and (p_status is null or c.status = any(p_status))
+    and (p_channel is null or c.channel = p_channel)
+    and (p_whatsapp_account_id is null or c.whatsapp_account_id = p_whatsapp_account_id)
+    and (p_is_sdr_active is null or c.is_sdr_active = p_is_sdr_active)
+    and (p_tags is null or c.tags && p_tags)
+    and (p_from_date is null or c.last_message_at >= p_from_date)
+    and (p_to_date is null or c.last_message_at <= p_to_date)
+    and (
+      ((p_assigned_seller_ids is null or cardinality(p_assigned_seller_ids) = 0)
+        and not p_unassigned and not p_include_queue)
+      or (p_assigned_seller_ids is not null
+          and c.assigned_seller_id = any(p_assigned_seller_ids))
+      or (p_assigned_seller_ids is not null
+          and exists (
+            select 1 from public.conversation_participants p
+            where p.conversation_id = c.id
+              and p.seller_id = any(p_assigned_seller_ids)
+          ))
+      or (p_unassigned and c.assigned_seller_id is null)
+      or (p_include_queue
+          and c.assigned_seller_id is null
+          and c.is_sdr_active = false
+          and c.status = 'aguardando')
+    )
+    and (
+      public.is_staff()
+      or (
+        c.assigned_seller_id = public.current_seller_id()
+        and (c.whatsapp_account_id is null
+             or c.whatsapp_account_id in (select id from acc))
+      )
+      or (
+        exists (
+          select 1 from public.conversation_participants p
+          where p.conversation_id = c.id
+            and p.seller_id = public.current_seller_id()
+        )
+        and (
+          public.store_allows_participant_cross_instance(c.store_id)
+          or c.whatsapp_account_id is null
+          or c.whatsapp_account_id in (select id from acc)
+        )
+      )
+      or (
+        c.assigned_seller_id is null
+        and c.whatsapp_account_id is not null
+        and c.whatsapp_account_id in (select id from acc)
+      )
+      or (c.assigned_seller_id is null and c.whatsapp_account_id is null)
+    )
+  order by
+    case when p_order_dir = 'asc' then c.last_message_at end asc,
+    case when p_order_dir <> 'asc' then c.last_message_at end desc
+  limit greatest(p_limit, 1)
+  offset greatest(p_offset, 0);
+$$;
+
+revoke all on function public.list_conversations(
+  text[], text, uuid, boolean, text[], timestamptz, timestamptz, uuid[], boolean, boolean, text, integer, integer
+) from public, anon;
+grant execute on function public.list_conversations(
+  text[], text, uuid, boolean, text[], timestamptz, timestamptz, uuid[], boolean, boolean, text, integer, integer
+) to authenticated;
+```
+
+- [ ] **Step 2: Write `buildListRpcParams`**
+
+Create `src/providers/data/impl/supabase/listRpcParams.ts`:
+
+```ts
+import type { IListConversationsParams } from "../../contracts/conversations";
+import { assertInboxCountParams } from "../conversationCountSupport";
+import { buildSharedConversationRpcFilters } from "./conversationRpcFilters";
+
+/** Exact argument shape of the `list_conversations` RPC (migration 20260705090000). */
+export interface IListConversationsRpcParams {
+  p_status: string[] | null;
+  p_channel: string | null;
+  p_whatsapp_account_id: string | null;
+  p_is_sdr_active: boolean | null;
+  p_tags: string[] | null;
+  p_from_date: string | null;
+  p_to_date: string | null;
+  p_assigned_seller_ids: string[] | null;
+  p_unassigned: boolean;
+  p_include_queue: boolean;
+  p_order_dir: "asc" | "desc";
+  p_limit: number;
+  p_offset: number;
+}
+
+/**
+ * Translate Inbox list params into `list_conversations` RPC args. Same scope
+ * restriction as `count_conversations` (`assertInboxCountParams`) — this RPC
+ * exists specifically for the "Minhas conversas" (assignmentAny.sellerIds)
+ * no-search case, where a plain PostgREST query cannot express the
+ * collaborator EXISTS that `count_conversations` already counts (Task 3).
+ */
+export function buildListRpcParams(
+  params: IListConversationsParams,
+  page: number,
+  pageSize: number,
+): IListConversationsRpcParams {
+  assertInboxCountParams(params);
+  return {
+    ...buildSharedConversationRpcFilters(params),
+    p_unassigned: false,
+    p_order_dir: params.orderDir === "asc" ? "asc" : "desc",
+    p_limit: pageSize,
+    p_offset: (page - 1) * pageSize,
+  };
+}
+```
+
+- [ ] **Step 3: Route `list()` through the new RPC when Inbox-shaped**
+
+In `src/providers/data/impl/supabase/conversations.ts`, add the import:
+
+```ts
+import { buildListRpcParams } from "./listRpcParams";
+```
+
+Find:
+
+```ts
+  async list(params: IListConversationsParams = {}): Promise<IPaginatedResult<IConversation>> {
+    // Cross-entity text search needs joins → dedicated RPC. Everything else
+    // stays on the plain table query below.
+    if (params.search && params.search.trim().length > 0) {
+      return searchConversations(params);
+    }
+```
+
+Replace with:
+
+```ts
+  async list(params: IListConversationsParams = {}): Promise<IPaginatedResult<IConversation>> {
+    // Cross-entity text search needs joins → dedicated RPC. Everything else
+    // stays on the plain table query below.
+    if (params.search && params.search.trim().length > 0) {
+      return searchConversations(params);
+    }
+
+    // "Minhas conversas" (a specific seller-ids filter) must also match
+    // conversations the caller only collaborates on, not just owns — a plain
+    // PostgREST `.or()` cannot express that EXISTS, so route through the same
+    // gated RPC count_conversations already uses for this exact case (Task 3).
+    // Every other shape (Todas/Fila-only/customer detail/dashboards) keeps the
+    // raw table query below, unchanged.
+    if (params.assignmentAny?.sellerIds && params.assignmentAny.sellerIds.length > 0) {
+      return listConversationsViaRpc(params);
+    }
+```
+
+Add this new private function near `searchConversations`/`searchConversationMessages` (same file, module scope, not exported):
+
+```ts
+async function listConversationsViaRpc(
+  params: IListConversationsParams,
+): Promise<IPaginatedResult<IConversation>> {
+  const page = Math.max(1, Math.floor(params.page ?? 1));
+  const pageSize = Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20)));
+  const wantTotal = params.withTotal !== false;
+
+  const { data, error } = await getSupabaseClient().rpc(
+    "list_conversations",
+    buildListRpcParams(params, page, pageSize),
+  );
+  if (error) throw new Error(`[supabase] conversations.list failed: ${error.message}`);
+
+  const rows = (data ?? []) as unknown as (ConversationRow & { total_count: number })[];
+  return {
+    data: rows.map(rowToConversation),
+    // Mirrors the plain query's own wantTotal gate just below: the Inbox opts
+    // out (withTotal: false) and reads its badge total from count() instead,
+    // so both paths keep a single canonical total source.
+    total: wantTotal ? (rows[0]?.total_count ?? 0) : -1,
+    page,
+    pageSize,
+  };
+}
+```
+
+- [ ] **Step 4: Type-check and test**
+
+Run: `bunx tsc --noEmit 2>&1 | grep -i "listRpcParams\|conversations.ts"`
+Expected: no new errors.
+
+Run: `bun run test src/providers/`
+Expected: all pass (no existing test targets `conversations.ts`'s supabase impl directly per the codebase's convention of testing engines, not thin supabase wrappers — this RPC route has no local Postgres to execute against, same constraint as every other migration in this plan).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add supabase/migrations/20260705090000_list_conversations_rpc.sql src/providers/data/impl/supabase/listRpcParams.ts src/providers/data/impl/supabase/conversations.ts
+git commit -m "feat: add list_conversations RPC for collaborator-aware Inbox no-search list"
+```
+
+---
+
+### Task 23: Mount the conversation presence tracker
+
+**Problem found by review:** Task 16 built `useConversationPresenceTracker` and Task 19 wired the READER (`useConversationPresence`) into `AtendimentoTab`/`CollaboratorRow` for the live green dot — but no task ever mounted the TRACKER anywhere, so no seller ever actually `track()`s their presence on a conversation's topic. The reader always sees an empty set; the green dot never lights for anyone. This is a UI-only signal (no correctness/security impact — mirrors `usePresenceTracker`'s own no-test-coverage precedent), but it's a decided sub-feature that silently does nothing.
+
+**Fix:** mount `useConversationPresenceTracker(conversationId)` in `ConversationPage.tsx` — the one place a conversation is actually "open" on screen.
+
+**Files:**
+- Modify: `src/features/conversations/pages/ConversationPage.tsx`
+
+**⚠️ This file also hosts `useMessages`/`useRealtimeMessages` — the project's frozen "atendimento cache" internals. Do NOT touch those two lines or anything about their wiring. This fix ONLY adds one new, fully independent hook call; it must not modify, reorder, or so much as touch `useMessages(conversationId)` or `useRealtimeMessages(...)`.**
+
+- [ ] **Step 1: Add the import and the hook call**
+
+Add the import near the other hook imports:
+
+```ts
+import { useConversationPresenceTracker } from "../hooks/useConversationPresence";
+```
+
+Find (inside `ConversationPage`, unconditional hooks section, BEFORE the `if (detail.isLoading ...)`/`if (detail.notFound ...)` early returns — placing it after those returns would violate the Rules of Hooks, since the component can return before reaching that point):
+
+```ts
+  const messages = useMessages(conversationId);
+  // PRD-118: live INSERT/UPDATE stream of this conversation (supabase only).
+  // `syncLatest` is the conversations-channel fallback for missed messages
+  // INSERTs — see useRealtimeMessages.
+  useRealtimeMessages(conversationId, messages.applyRealtimeRow, messages.syncLatest);
+```
+
+Add immediately after (do not alter the lines above):
+
+```ts
+  // Live "who's viewing this conversation now" signal — independent of the
+  // message cache above; a pure Presence broadcast, not a data read.
+  useConversationPresenceTracker(conversationId);
+```
+
+- [ ] **Step 2: Type-check**
+
+Run: `bunx tsc --noEmit 2>&1 | grep -i "ConversationPage\|useConversationPresenceTracker"`
+Expected: no new errors.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/features/conversations/pages/ConversationPage.tsx
+git commit -m "fix: mount the conversation presence tracker so the live dot actually lights"
+```

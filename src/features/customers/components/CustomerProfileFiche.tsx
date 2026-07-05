@@ -1,4 +1,5 @@
 import type { IConversation, ID, ISeller, IWhatsAppAccount } from "@/shared/types";
+import type { ICollaboratorWithSeller } from "@/features/conversations/hooks/useConversationDetail";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { CustomerProfile } from "./CustomerProfile";
@@ -11,6 +12,8 @@ export interface ICustomerProfileFicheProps {
   assignedSeller?: ISeller | null;
   /** Resolved from conversation.whatsappAccountId by the caller — feeds the Atendimento tab. */
   whatsappAccount?: IWhatsAppAccount | null;
+  /** Resolved from useConversationDetail by the caller — feeds the Atendimento tab. */
+  collaborators?: ICollaboratorWithSeller[];
   /** Bubbles a StatusControl change up to the caller's conversation refresh. */
   onConversationChanged?: () => void;
   /** Drawer open state from `useConversationFiche()`. */
@@ -40,6 +43,7 @@ export function CustomerProfileFiche({
   conversation,
   assignedSeller,
   whatsappAccount,
+  collaborators,
   onConversationChanged,
   open,
   onOpenChange,
@@ -61,6 +65,7 @@ export function CustomerProfileFiche({
             conversation={conversation}
             assignedSeller={assignedSeller}
             whatsappAccount={whatsappAccount}
+            collaborators={collaborators}
             onConversationChanged={onConversationChanged}
             defaultTab="atendimento"
             variant="column"
@@ -87,6 +92,7 @@ export function CustomerProfileFiche({
           conversation={conversation}
           assignedSeller={assignedSeller}
           whatsappAccount={whatsappAccount}
+          collaborators={collaborators}
           onConversationChanged={onConversationChanged}
           defaultTab="atendimento"
           variant="column"

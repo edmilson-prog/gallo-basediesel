@@ -10,6 +10,7 @@ import { WhatsAppDisconnectedBanner } from "@/features/shell/components/WhatsApp
 import { OutsideHoursBanner } from "@/features/access";
 import { WhatsNewModal } from "@/features/whats-new";
 import { VersionUpdatePrompt } from "@/features/version-update";
+import { CollaboratorAddedPrompt } from "@/features/conversations/components/CollaboratorAddedPrompt";
 import { useDistributionToasts } from "@/features/distribution/hooks/useDistributionToasts";
 import { useAutoRevertTimer } from "@/features/carteira/hooks/useAutoRevertTimer";
 import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
@@ -78,6 +79,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
         <UrgentBroadcastClaim />
         <WhatsNewModal />
         <VersionUpdatePrompt />
+        <CollaboratorAddedPrompt />
       </div>
       </TourProvider>
     </TooltipProvider>

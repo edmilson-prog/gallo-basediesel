@@ -800,6 +800,204 @@ begin
   end if;
 end $$;
 
+-- Reset role first (not in the plan doc verbatim — added while applying it).
+-- The multi-instância block just above never resets after its own last
+-- check, so this section would otherwise silently inherit LUCAS's leftover
+-- impersonation. Two concrete breakages that would cause, once the guarded
+-- checks below actually run (i.e. right after this plan's migrations are
+-- deployed): (1) the `test.cp_other_conv`/`test.cp_other_seller` capture
+-- below would run under lucas's own conversations RLS, which may not include
+-- a conversation assigned to a DIFFERENT seller, silently degrading the
+-- whole section into a permanent no-op; (2) the seed-insert immediately
+-- below targets that same conversation — one lucas has no relationship to —
+-- so cp_insert's WITH CHECK would reject it with a hard RLS-violation error
+-- instead of the graceful test.cp_ready skip this guard exists to provide.
+-- Mirrors why the multi-instância block's own "Captura (como admin) uma
+-- conversa atribuída a OUTRO seller" step (above) resets/captures as admin
+-- rather than as lucas.
+reset role;
+
+-- ---------------------------------------------------------------------------
+-- Colaboradores por demanda (2026-07-04): self-delete allowed, third-party
+-- delete of someone else's participant row denied for non-staff/non-assignee.
+-- Guard: this plan's migrations (source column + cp_insert/cp_delete split)
+-- are not auto-applied by merging — the DB deploy workflow applies migrations
+-- separately, so pré-merge this whole section is SKIPPED (mirrors "Bloco A1"'s
+-- guard further below, `if not exists (select 1 from information_schema.
+-- columns where ... column_name = 'is_active')`, for the identical
+-- same-plan-pending-migration situation).
+-- ---------------------------------------------------------------------------
+select set_config(
+  'test.cp_ready',
+  case when exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'conversation_participants' and column_name = 'source'
+  ) then 'true' else '' end,
+  true
+);
+
+-- A conversation NOT assigned to lucas — BOTH checks below seed a row on it,
+-- so neither can be explained by the pre-existing "assignee" OR-arm: on this
+-- conversation, lucas is a mere collaborator, never the owner. This also
+-- isolates the self-delete check from the third-party check (the original
+-- design reused lucas's OWN conversation for self-delete, which confounded
+-- the new "own row" arm with the pre-existing "assignee" arm — a regression
+-- that silently dropped just the new arm would have gone undetected there).
+select set_config('test.cp_other_conv', coalesce((
+  select c.id::text
+  from public.conversations c
+  where c.assigned_seller_id is not null
+    and c.assigned_seller_id <> '5a6400ed-5aec-4bf1-b641-31635f15c887'
+    and c.store_id = '00000000-0000-0000-0000-000000000001'
+  limit 1
+), ''), true);
+
+select set_config('test.cp_other_seller', coalesce((
+  select c.assigned_seller_id::text
+  from public.conversations c
+  where c.id::text = current_setting('test.cp_other_conv', true)
+), ''), true);
+
+do $$
+declare
+  probe text := current_setting('test.cp_other_conv', true);
+  other_seller text := current_setting('test.cp_other_seller', true);
+begin
+  if current_setting('test.cp_ready', true) is distinct from 'true' then
+    return; -- migration ainda não aplicada em prod: pula
+  end if;
+  if probe is null or probe = '' or other_seller is null or other_seller = '' then
+    return; -- seed sem conversa atribuída a outro seller: nada a provar
+  end if;
+  -- Seed BOTH probe rows on the same conversation: lucas himself (for the
+  -- self-delete check) and that conversation's real assignee (for the
+  -- third-party-delete check).
+  insert into public.conversation_participants (conversation_id, seller_id, added_by, source)
+  values
+    (probe::uuid, '5a6400ed-5aec-4bf1-b641-31635f15c887', other_seller::uuid, 'manual'),
+    (probe::uuid, other_seller::uuid, other_seller::uuid, 'manual')
+  on conflict (conversation_id, seller_id) do nothing;
+end $$;
+
+-- (1) Self-delete: lucas removes his OWN participant row on a conversation he
+-- does NOT own — isolates the new "seller_id = current_seller_id()" OR-arm
+-- from the pre-existing "assignee" arm (which does not apply here).
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+
+do $$
+declare
+  probe text := current_setting('test.cp_other_conv', true);
+begin
+  if current_setting('test.cp_ready', true) is distinct from 'true' then
+    return;
+  end if;
+  if probe is null or probe = '' then
+    return;
+  end if;
+  delete from public.conversation_participants
+  where conversation_id = probe::uuid
+    and seller_id = '5a6400ed-5aec-4bf1-b641-31635f15c887';
+end $$;
+
+reset role;
+
+do $$
+declare
+  probe text := current_setting('test.cp_other_conv', true);
+  remaining int;
+begin
+  if current_setting('test.cp_ready', true) is distinct from 'true' then
+    return;
+  end if;
+  if probe is null or probe = '' then
+    return;
+  end if;
+  select count(*) into remaining
+  from public.conversation_participants
+  where conversation_id = probe::uuid
+    and seller_id = '5a6400ed-5aec-4bf1-b641-31635f15c887';
+  if remaining <> 0 then
+    raise exception 'conversation_participants: self-delete did not remove the row (cp_delete regression)';
+  end if;
+end $$;
+
+-- (2) Third-party delete: lucas (non-staff, not this row's seller, not this
+-- conversation's assignee) must NOT be able to delete the OTHER seller's
+-- participant row.
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+
+do $$
+declare
+  probe text := current_setting('test.cp_other_conv', true);
+  other_seller text := current_setting('test.cp_other_seller', true);
+begin
+  if current_setting('test.cp_ready', true) is distinct from 'true' then
+    return;
+  end if;
+  if probe is null or probe = '' or other_seller is null or other_seller = '' then
+    return;
+  end if;
+  delete from public.conversation_participants
+  where conversation_id = probe::uuid
+    and seller_id = other_seller::uuid;
+end $$;
+
+reset role;
+
+-- Verify as admin — cp_select's USING clause shares cp_delete's three OR-arms,
+-- so this row is INVISIBLE to lucas too; checking "remaining" while still
+-- impersonating him would always read 0 regardless of whether the DELETE
+-- above actually succeeded or was blocked, making the assertion vacuously
+-- fail every run. Check the row's real persistence outside his impersonation.
+do $$
+declare
+  probe text := current_setting('test.cp_other_conv', true);
+  other_seller text := current_setting('test.cp_other_seller', true);
+  remaining int;
+begin
+  if current_setting('test.cp_ready', true) is distinct from 'true' then
+    return;
+  end if;
+  if probe is null or probe = '' or other_seller is null or other_seller = '' then
+    return;
+  end if;
+  select count(*) into remaining
+  from public.conversation_participants
+  where conversation_id = probe::uuid
+    and seller_id = other_seller::uuid;
+  if remaining <> 1 then
+    raise exception 'conversation_participants: unrelated seller was able to delete someone else''s collaborator row (cp_delete regression)';
+  end if;
+end $$;
+
+-- Cleanup: remove both throwaway rows (belt-and-suspenders; the whole script
+-- rolls back anyway).
+do $$
+declare
+  probe text := current_setting('test.cp_other_conv', true);
+  other_seller text := current_setting('test.cp_other_seller', true);
+begin
+  if current_setting('test.cp_ready', true) is distinct from 'true' then
+    return;
+  end if;
+  if probe is null or probe = '' or other_seller is null or other_seller = '' then
+    return;
+  end if;
+  delete from public.conversation_participants
+  where conversation_id = probe::uuid
+    and seller_id in ('5a6400ed-5aec-4bf1-b641-31635f15c887', other_seller::uuid);
+end $$;
+
 -- ---------------------------------------------------------------------------
 -- Bloco A1 (gestão multi-loja): escrita de IDENTIDADE da loja é Owner-only.
 -- A policy stores_update usa is_staff() (= owner OU manager), então a defesa

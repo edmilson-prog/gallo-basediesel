@@ -28,6 +28,7 @@ import { supabaseRotationParticipantsProvider } from "./rotationParticipants";
 import { buildAssignmentOrFilter } from "./assignmentFilter";
 import { buildCountRpcParams } from "./countRpcParams";
 import { buildSharedConversationRpcFilters } from "./conversationRpcFilters";
+import { buildListRpcParams } from "./listRpcParams";
 
 /**
  * Supabase implementation of {@link IConversationsProvider} (PRD-100+).
@@ -75,6 +76,8 @@ interface ConversationRow {
   unread_count: number;
   created_at: string;
   queued_at: string | null;
+  /** Only present on rows returned by the `search_conversations` RPC. */
+  is_collaborator?: boolean;
 }
 
 /** Valid lead temperatures — the RPC returns a raw text column (no DB enum/check),
@@ -113,6 +116,7 @@ function rowToConversation(row: ConversationRow): IConversation {
     unreadCount: row.unread_count,
     createdAt: row.created_at,
     queuedAt: row.queued_at ?? undefined,
+    isCollaborator: row.is_collaborator ?? undefined,
   };
 }
 
@@ -255,6 +259,31 @@ async function searchConversationMessages(
   };
 }
 
+async function listConversationsViaRpc(
+  params: IListConversationsParams,
+): Promise<IPaginatedResult<IConversation>> {
+  const page = Math.max(1, Math.floor(params.page ?? 1));
+  const pageSize = Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20)));
+  const wantTotal = params.withTotal !== false;
+
+  const { data, error } = await getSupabaseClient().rpc(
+    "list_conversations",
+    buildListRpcParams(params, page, pageSize),
+  );
+  if (error) throw new Error(`[supabase] conversations.list failed: ${error.message}`);
+
+  const rows = (data ?? []) as unknown as (ConversationRow & { total_count: number })[];
+  return {
+    data: rows.map(rowToConversation),
+    // Mirrors the plain query's own wantTotal gate just below: the Inbox opts
+    // out (withTotal: false) and reads its badge total from count() instead,
+    // so both paths keep a single canonical total source.
+    total: wantTotal ? (rows[0]?.total_count ?? 0) : -1,
+    page,
+    pageSize,
+  };
+}
+
 export const supabaseConversationsProvider: IConversationsProvider = {
   async searchMessages(params: IListConversationsParams = {}): Promise<IPaginatedResult<IConversation>> {
     return searchConversationMessages(params);
@@ -265,6 +294,16 @@ export const supabaseConversationsProvider: IConversationsProvider = {
     // stays on the plain table query below.
     if (params.search && params.search.trim().length > 0) {
       return searchConversations(params);
+    }
+
+    // "Minhas conversas" (a specific seller-ids filter) must also match
+    // conversations the caller only collaborates on, not just owns — a plain
+    // PostgREST `.or()` cannot express that EXISTS, so route through the same
+    // gated RPC count_conversations already uses for this exact case (Task 3).
+    // Every other shape (Todas/Fila-only/customer detail/dashboards) keeps the
+    // raw table query below, unchanged.
+    if (params.assignmentAny?.sellerIds && params.assignmentAny.sellerIds.length > 0) {
+      return listConversationsViaRpc(params);
     }
 
     // `count: "exact"` re-runs the per-row RLS gate (can_access_conversation)

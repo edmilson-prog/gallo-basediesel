@@ -3,12 +3,15 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
+import { PresenceDot } from "./PresenceDot";
 
 export interface IAssigneeChipProps {
   /** The seller the conversation is assigned to, or null (renders nothing). */
   seller: ISeller | null;
   /** compact = inbox list row (first name, muted); full = header pill (full name). */
   variant?: "compact" | "full";
+  /** True when the assignee currently has the conversation open (live presence). */
+  viewing?: boolean;
   className?: string;
 }
 
@@ -25,11 +28,13 @@ function initialsOf(name: string): string {
  * avatar (initials) keeps it distinct from the contact's colored avatar; color
  * is never the only cue — the name is always present (compact) or on hover.
  */
-export function AssigneeChip({ seller, variant = "compact", className }: IAssigneeChipProps) {
+export function AssigneeChip({ seller, variant = "compact", viewing = false, className }: IAssigneeChipProps) {
   if (!seller) return null;
   const initials = initialsOf(seller.fullName);
   const firstName = seller.fullName.trim().split(/\s+/)[0] ?? seller.fullName;
-  const title = `${CONVERSATION_STRINGS.assignee}: ${seller.fullName}`;
+  const title = viewing
+    ? `${CONVERSATION_STRINGS.assignee}: ${seller.fullName} · vendo agora`
+    : `${CONVERSATION_STRINGS.assignee}: ${seller.fullName}`;
 
   if (variant === "full") {
     return (
@@ -42,11 +47,14 @@ export function AssigneeChip({ seller, variant = "compact", className }: IAssign
         aria-label={title}
       >
         <Icon icon="mdi:account-check" size={13} className="text-muted-foreground" />
-        <Avatar className="h-4 w-4">
-          <AvatarFallback className="bg-secondary text-[8px] font-semibold text-secondary-foreground">
-            {initials}
-          </AvatarFallback>
-        </Avatar>
+        <span className="relative">
+          <Avatar className="h-4 w-4">
+            <AvatarFallback className="bg-secondary text-[8px] font-semibold text-secondary-foreground">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          {viewing && <PresenceDot />}
+        </span>
         <span className="max-w-[10rem] truncate">{seller.fullName}</span>
       </span>
     );
@@ -58,11 +66,14 @@ export function AssigneeChip({ seller, variant = "compact", className }: IAssign
       title={title}
       aria-label={title}
     >
-      <Avatar className="h-4 w-4">
-        <AvatarFallback className="bg-secondary text-[8px] font-semibold text-secondary-foreground">
-          {initials}
-        </AvatarFallback>
-      </Avatar>
+      <span className="relative">
+        <Avatar className="h-4 w-4">
+          <AvatarFallback className="bg-secondary text-[8px] font-semibold text-secondary-foreground">
+            {initials}
+          </AvatarFallback>
+        </Avatar>
+        {viewing && <PresenceDot />}
+      </span>
       <span className="max-w-[7rem] truncate">{firstName}</span>
     </span>
   );
