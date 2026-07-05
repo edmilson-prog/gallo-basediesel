@@ -116,6 +116,7 @@ export const INBOX_STRINGS = {
   unreadBadge: (n: number) => (n > 9 ? "9+" : String(n)),
   sdrBadge: "SDR",
   sdrBadgeTooltip: "Esta conversa está sendo atendida pelo agente SDR",
+  collaboratingBadge: "Colaborando",
   newBadge: "Novo!",
   mediaPreview: {
     image: "📎 Foto",
