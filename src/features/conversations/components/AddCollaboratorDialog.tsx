@@ -4,6 +4,7 @@ import type { ID, IConversation, ISeller } from "@/shared/types";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -34,24 +35,29 @@ export function AddCollaboratorDialog({
   const settingsProvider = useSettingsProvider();
   const whatsappAccountsProvider = useWhatsAppAccountsProvider();
 
-  const { data: sellers = [] } = useQuery({
+  const { data: sellers = [], isLoading: sellersLoading } = useQuery({
     queryKey: ["sellers", "collaborator-candidates", conversation.storeId],
     queryFn: () => sellersProvider.list({ storeId: conversation.storeId, active: true }),
     enabled: open,
     staleTime: 5 * 60_000,
   });
-  const { data: settings } = useQuery({
+  const { data: settings, isLoading: settingsLoading } = useQuery({
     queryKey: ["settings", conversation.storeId],
     queryFn: () => settingsProvider.get(conversation.storeId),
     enabled: open,
     staleTime: 5 * 60_000,
   });
-  const { data: accessRules = [] } = useQuery({
+  const { data: accessRules = [], isLoading: rulesLoading } = useQuery({
     queryKey: ["whatsapp-account-access-rules", conversation.whatsappAccountId],
     queryFn: () => whatsappAccountsProvider.getAccessRules(conversation.whatsappAccountId!),
     enabled: open && Boolean(conversation.whatsappAccountId),
     staleTime: 5 * 60_000,
   });
+  const loading = sellersLoading || settingsLoading || rulesLoading;
+  // Mirrors the narrowing branch in resolveInviteCandidates: with the store
+  // flag OFF, only sellers who already access the instance can be invited.
+  const instanceGateActive =
+    Boolean(conversation.whatsappAccountId) && !settings?.participantCrossInstance;
 
   const candidates: ISeller[] = resolveInviteCandidates(sellers, {
     assignedSellerId: conversation.assignedSellerId,
@@ -82,11 +88,27 @@ export function AddCollaboratorDialog({
       <DialogContent className="p-0">
         <DialogHeader className="px-4 pt-4">
           <DialogTitle>Adicionar colaborador</DialogTitle>
+          <DialogDescription>
+            O colaborador passa a ver e responder esta conversa, sem assumir a carteira do
+            cliente.
+          </DialogDescription>
         </DialogHeader>
         <Command>
           <CommandInput placeholder="Buscar vendedor..." />
           <CommandList>
-            <CommandEmpty>Nenhum vendedor disponível para convidar.</CommandEmpty>
+            <CommandEmpty>
+              {loading ? (
+                "Carregando vendedores..."
+              ) : candidates.length === 0 && instanceGateActive ? (
+                <span className="block px-4 text-muted-foreground">
+                  Nenhum vendedor com acesso a este número está disponível para convidar. Conceda
+                  acesso ao número em Configurações → WhatsApp ou ative &ldquo;Convidados acessam
+                  conversas de outras instâncias&rdquo;.
+                </span>
+              ) : (
+                "Nenhum vendedor disponível para convidar."
+              )}
+            </CommandEmpty>
             <CommandGroup>
               {candidates.map((seller) => (
                 <CommandItem
