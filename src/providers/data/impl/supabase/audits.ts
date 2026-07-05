@@ -10,10 +10,13 @@ import { getSupabaseClient } from "@/shared/lib/supabase";
  * The before/after diffs are arbitrary structured payloads stored as jsonb
  * columns and rehydrated verbatim. The log is APPEND-ONLY: there is no
  * `updated_at` and the contract exposes no update/delete — once written, an
- * entry is immutable. On Fase 2 the table is locked down with an INSERT-only
- * write policy and a DELETE-forbidding policy (PRD-103); for now only the
- * temporary permissive SELECT policy is in place, so reads work and inserts
- * succeed under the POC role.
+ * entry is immutable.
+ *
+ * RLS (issue #231): `audit_logs_insert` only accepts rows whose `store_id`
+ * equals the JWT claim (`current_store_id()`), and `audit_logs_select` is
+ * staff/financeiro-only. Because `INSERT ... RETURNING` must also satisfy the
+ * SELECT policy, `create` inserts with `return=minimal` (no `.select()`) and
+ * echoes the row locally — otherwise every seller insert 403s.
  */
 
 interface AuditLogRow {
@@ -95,22 +98,54 @@ export const supabaseAuditsProvider: IAuditsProvider = {
 
   async create(input: ICreateAuditInput): Promise<IAuditLog> {
     const id: ID = crypto.randomUUID();
-    const { data, error } = await getSupabaseClient()
-      .from(TABLE)
-      .insert({
-        id,
-        store_id: input.storeId,
-        actor_id: input.actorId,
-        action: input.action,
-        resource: input.resource,
-        resource_id: input.resourceId,
-        before: input.before ?? null,
-        after: input.after ?? null,
-        timestamp: new Date().toISOString(),
-      })
-      .select(COLUMNS)
-      .single();
+    const timestamp = new Date().toISOString();
+    // The INSERT policy only accepts the JWT-scoped store, so the claim wins
+    // over the caller-resolved store (which may be a pre-hydration fallback).
+    const storeId = (await getJwtStoreId()) ?? input.storeId;
+    const { error } = await getSupabaseClient().from(TABLE).insert({
+      id,
+      store_id: storeId,
+      actor_id: input.actorId,
+      action: input.action,
+      resource: input.resource,
+      resource_id: input.resourceId,
+      before: input.before ?? null,
+      after: input.after ?? null,
+      timestamp,
+    });
     if (error) throw new Error(`[supabase] audits.create failed: ${error.message}`);
-    return rowToAudit(data as unknown as AuditLogRow);
+    return {
+      id,
+      actorId: input.actorId,
+      action: input.action,
+      resource: input.resource,
+      resourceId: input.resourceId,
+      before: input.before,
+      after: input.after,
+      timestamp,
+      storeId,
+    };
   },
 };
+
+/**
+ * Reads the store scoped in the session JWT (`app_metadata.store_id`, minted
+ * by the Custom Access Token Hook). Returns null when there is no session or
+ * the token cannot be decoded — callers fall back to the store they resolved.
+ */
+async function getJwtStoreId(): Promise<string | null> {
+  try {
+    const { data } = await getSupabaseClient().auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) return null;
+    const segment = token.split(".")[1];
+    if (!segment) return null;
+    const base64 = segment.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+    const claims = JSON.parse(atob(padded)) as { app_metadata?: { store_id?: unknown } };
+    const storeId = claims.app_metadata?.store_id;
+    return typeof storeId === "string" && storeId.length > 0 ? storeId : null;
+  } catch {
+    return null;
+  }
+}
