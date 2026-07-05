@@ -16,7 +16,9 @@ import { getSupabaseClient } from "@/shared/lib/supabase";
  * equals the JWT claim (`current_store_id()`), and `audit_logs_select` is
  * staff/financeiro-only. Because `INSERT ... RETURNING` must also satisfy the
  * SELECT policy, `create` inserts with `return=minimal` (no `.select()`) and
- * echoes the row locally — otherwise every seller insert 403s.
+ * echoes the row locally — otherwise every seller insert 403s. The JWT claims
+ * also rescue placeholder actors: `actor_id` is a NOT NULL uuid FK to sellers,
+ * so a non-UUID actor without a seller claim fails fast instead of 22P02-ing.
  */
 
 interface AuditLogRow {
@@ -97,55 +99,89 @@ export const supabaseAuditsProvider: IAuditsProvider = {
   },
 
   async create(input: ICreateAuditInput): Promise<IAuditLog> {
-    const id: ID = crypto.randomUUID();
-    const timestamp = new Date().toISOString();
+    const claims = await getJwtAuditClaims();
     // The INSERT policy only accepts the JWT-scoped store, so the claim wins
     // over the caller-resolved store (which may be a pre-hydration fallback).
-    const storeId = (await getJwtStoreId()) ?? input.storeId;
-    const { error } = await getSupabaseClient().from(TABLE).insert({
+    // Deliberate trade-off: under the current RLS, recording under the JWT
+    // store is the only alternative to losing the entry; cross-store actions
+    // are slated to write through owner RPCs (multistore epic), not here.
+    const storeId = claims.storeId ?? input.storeId;
+    // actor_id is a NOT NULL uuid FK to sellers. Placeholder actors ("system",
+    // pre-hydration ids) can only be rescued by the seller claim; without it
+    // the insert is doomed (22P02/23503), so fail fast before the request.
+    const actorId = UUID_PATTERN.test(input.actorId) ? input.actorId : claims.sellerId;
+    if (!actorId) {
+      throw new Error(
+        `[supabase] audits.create skipped: actor "${input.actorId}" is not a seller id and no seller claim is available`,
+      );
+    }
+    const id: ID = crypto.randomUUID();
+    const row: AuditLogRow = {
       id,
       store_id: storeId,
-      actor_id: input.actorId,
+      actor_id: actorId,
       action: input.action,
       resource: input.resource,
       resource_id: input.resourceId,
       before: input.before ?? null,
       after: input.after ?? null,
-      timestamp,
-    });
-    if (error) throw new Error(`[supabase] audits.create failed: ${error.message}`);
-    return {
-      id,
-      actorId: input.actorId,
-      action: input.action,
-      resource: input.resource,
-      resourceId: input.resourceId,
-      before: input.before,
-      after: input.after,
-      timestamp,
-      storeId,
+      timestamp: new Date().toISOString(),
     };
+    const { error } = await getSupabaseClient().from(TABLE).insert(row);
+    if (error) throw new Error(`[supabase] audits.create failed: ${error.message}`);
+    return rowToAudit(row);
   },
 };
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** How long the audit path waits on the auth lock before falling back. */
+const SESSION_READ_TIMEOUT_MS = 1_500;
+
+interface IJwtAuditClaims {
+  storeId: string | null;
+  sellerId: string | null;
+}
+
+const NO_CLAIMS: IJwtAuditClaims = { storeId: null, sellerId: null };
+
 /**
- * Reads the store scoped in the session JWT (`app_metadata.store_id`, minted
- * by the Custom Access Token Hook). Returns null when there is no session or
- * the token cannot be decoded — callers fall back to the store they resolved.
+ * Reads the audit-relevant claims from the session JWT (`app_metadata.store_id`
+ * and `app_metadata.seller_id`, minted by the Custom Access Token Hook).
+ *
+ * Decodes the token locally on purpose: `auth.getClaims()` may add a network
+ * verification round-trip on HS256 projects, and a forged token dies at RLS
+ * anyway — these claims only shape the payload, they are not a security
+ * boundary. The session read is raced against a short timeout so a held
+ * supabase-js auth lock degrades to the caller fallback instead of hanging a
+ * fire-and-forget audit. Null fields mean "claim unavailable".
  */
-async function getJwtStoreId(): Promise<string | null> {
+async function getJwtAuditClaims(): Promise<IJwtAuditClaims> {
   try {
-    const { data } = await getSupabaseClient().auth.getSession();
-    const token = data.session?.access_token;
-    if (!token) return null;
+    const result = await Promise.race([
+      getSupabaseClient().auth.getSession(),
+      new Promise<null>((resolve) => {
+        setTimeout(() => resolve(null), SESSION_READ_TIMEOUT_MS);
+      }),
+    ]);
+    const token = result?.data.session?.access_token;
+    if (!token) return NO_CLAIMS;
     const segment = token.split(".")[1];
-    if (!segment) return null;
+    if (!segment) return NO_CLAIMS;
     const base64 = segment.replace(/-/g, "+").replace(/_/g, "/");
     const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
-    const claims = JSON.parse(atob(padded)) as { app_metadata?: { store_id?: unknown } };
-    const storeId = claims.app_metadata?.store_id;
-    return typeof storeId === "string" && storeId.length > 0 ? storeId : null;
+    const claims = JSON.parse(atob(padded)) as {
+      app_metadata?: { store_id?: unknown; seller_id?: unknown };
+    };
+    return {
+      storeId: asNonEmptyString(claims.app_metadata?.store_id),
+      sellerId: asNonEmptyString(claims.app_metadata?.seller_id),
+    };
   } catch {
-    return null;
+    return NO_CLAIMS;
   }
+}
+
+function asNonEmptyString(value: unknown): string | null {
+  return typeof value === "string" && value.length > 0 ? value : null;
 }

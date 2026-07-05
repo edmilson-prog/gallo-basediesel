@@ -109,6 +109,61 @@ describe("supabaseAuditsProvider.create", () => {
     expect(out.storeId).toBe("store-input");
   });
 
+  it("rescues a placeholder actor from the JWT seller claim", async () => {
+    // actor_id is a NOT NULL uuid FK to sellers — "system" (pre-hydration
+    // fallback) would die server-side as 22P02. The seller claim is the actor.
+    const sellerFromJwt = "9b2f1c04-88d1-4f2e-9a37-6f0d1c2b3a45";
+    getSession.mockResolvedValue({
+      data: { session: { access_token: fakeJwt({ store_id: "store-jwt", seller_id: sellerFromJwt }) } },
+    });
+
+    const out = await P.create({ ...INPUT, actorId: "system" });
+
+    expect((insert.mock.calls[0]![0] as Record<string, unknown>).actor_id).toBe(sellerFromJwt);
+    expect(out.actorId).toBe(sellerFromJwt);
+  });
+
+  it("keeps a valid caller actor even when the JWT carries a different seller", async () => {
+    getSession.mockResolvedValue({
+      data: {
+        session: {
+          access_token: fakeJwt({ store_id: "store-jwt", seller_id: "9b2f1c04-88d1-4f2e-9a37-6f0d1c2b3a45" }),
+        },
+      },
+    });
+
+    await P.create(INPUT);
+
+    expect((insert.mock.calls[0]![0] as Record<string, unknown>).actor_id).toBe(INPUT.actorId);
+  });
+
+  it("fails fast without hitting the network when the actor is unrecoverable", async () => {
+    // Non-UUID actor and no seller claim: the insert is doomed (22P02/23503),
+    // so create must throw a descriptive error before issuing the request.
+    getSession.mockResolvedValue({ data: { session: null } });
+
+    await expect(P.create({ ...INPUT, actorId: "system" })).rejects.toThrow(/actor/i);
+    expect(insert).not.toHaveBeenCalled();
+  });
+
+  it("gives up on a hung session read after the timeout and still records", async () => {
+    // getSession can block on the supabase-js auth lock; a fire-and-forget
+    // audit must degrade to the caller fallback instead of hanging forever.
+    vi.useFakeTimers();
+    try {
+      getSession.mockReturnValue(new Promise(() => {}));
+
+      const pending = P.create(INPUT);
+      await vi.advanceTimersByTimeAsync(5_000);
+      const out = await pending;
+
+      expect((insert.mock.calls[0]![0] as Record<string, unknown>).store_id).toBe("store-input");
+      expect(out.storeId).toBe("store-input");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("throws when the insert fails", async () => {
     getSession.mockResolvedValue({ data: { session: null } });
     insert.mockResolvedValue({ error: { message: "boom" } });
