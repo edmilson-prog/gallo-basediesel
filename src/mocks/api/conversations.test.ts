@@ -2,7 +2,10 @@ import { describe, it, expect } from "vitest";
 import { matchesAssignmentAny, conversationsApi } from "./conversations";
 import { conversationParticipantsApi, clearConversationParticipantsSync } from "./conversationParticipants";
 import { getMockState } from "../store/mockStore";
+import { resetMockStorePerFile } from "@/mocks/test-setup";
 import type { IConversation } from "@/shared/types";
+
+resetMockStorePerFile();
 
 function conv(over: Partial<IConversation>): IConversation {
   return {
@@ -48,18 +51,26 @@ describe("conversationsApi.list — collaborator inclusion in 'Minhas conversas'
     if (!seed) throw new Error("mock seed has no conversations to test against");
     const collaboratorSellerId = "seller-test-collaborator-inclusion";
 
-    const before = await conversationsApi.list({ assignmentAny: { sellerIds: [collaboratorSellerId] } });
-    expect(before.data.some((c) => c.id === seed.id)).toBe(false);
+    try {
+      const before = await conversationsApi.list({ assignmentAny: { sellerIds: [collaboratorSellerId] } });
+      expect(before.data.some((c) => c.id === seed.id)).toBe(false);
 
-    await conversationParticipantsApi.add(seed.id, collaboratorSellerId, "manual");
-    const after = await conversationsApi.list({ assignmentAny: { sellerIds: [collaboratorSellerId] } });
-    expect(after.data.some((c) => c.id === seed.id)).toBe(true);
-
-    clearConversationParticipantsSync(seed.id);
+      await conversationParticipantsApi.add(seed.id, collaboratorSellerId, "manual");
+      const after = await conversationsApi.list({ assignmentAny: { sellerIds: [collaboratorSellerId] } });
+      expect(after.data.some((c) => c.id === seed.id)).toBe(true);
+    } finally {
+      clearConversationParticipantsSync(seed.id);
+    }
   });
 
   it("close() clears the conversation's collaborators", async () => {
-    const seed = getMockState().conversations.find((c) => c.status !== "arquivada" && c.status !== "resolvida");
+    // Explicitly excludes conversations[0] (the previous test's seed) so the two
+    // tests are provably independent regardless of run order, not just
+    // incidentally distinct because `.find` happens to skip index 0 today.
+    const priorTestSeedId = getMockState().conversations[0]?.id;
+    const seed = getMockState().conversations.find(
+      (c) => c.id !== priorTestSeedId && c.status !== "arquivada" && c.status !== "resolvida",
+    );
     if (!seed) throw new Error("mock seed has no open conversation to test against");
     const collaboratorSellerId = "seller-test-close-cleanup";
 
