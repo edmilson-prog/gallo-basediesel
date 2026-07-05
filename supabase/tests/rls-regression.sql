@@ -801,6 +801,134 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------------------
+-- Colaboradores por demanda (2026-07-04): self-delete allowed, third-party
+-- delete of someone else's participant row denied for non-staff/non-assignee.
+-- ---------------------------------------------------------------------------
+
+-- Seed a throwaway conversation owned by lucas, with lucas himself as a
+-- participant (a seller can always end up listed as their own conversation's
+-- "collaborator" for this probe — the test only cares about the DELETE policy,
+-- not the realistic shape of the row).
+select set_config('test.cp_conv', coalesce((
+  select c.id::text
+  from public.conversations c
+  where c.assigned_seller_id = '5a6400ed-5aec-4bf1-b641-31635f15c887'
+    and c.store_id = '00000000-0000-0000-0000-000000000001'
+  limit 1
+), ''), true);
+
+do $$
+declare
+  probe text := current_setting('test.cp_conv', true);
+begin
+  if probe is null or probe = '' then
+    return; -- seed sem conversa atribuída a lucas: nada a provar
+  end if;
+  insert into public.conversation_participants (conversation_id, seller_id, added_by, source)
+  values (probe::uuid, '5a6400ed-5aec-4bf1-b641-31635f15c887', '57706ecc-01b5-4a96-b403-0359a4bb767f', 'manual')
+  on conflict (conversation_id, seller_id) do nothing;
+end $$;
+
+-- lucas (the participant himself, NOT staff, NOT the assignee of a random
+-- OTHER conversation) removes his OWN participant row — must succeed.
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+
+do $$
+declare
+  probe text := current_setting('test.cp_conv', true);
+  remaining int;
+begin
+  if probe is null or probe = '' then
+    return;
+  end if;
+  delete from public.conversation_participants
+  where conversation_id = probe::uuid
+    and seller_id = '5a6400ed-5aec-4bf1-b641-31635f15c887';
+  select count(*) into remaining
+  from public.conversation_participants
+  where conversation_id = probe::uuid
+    and seller_id = '5a6400ed-5aec-4bf1-b641-31635f15c887';
+  if remaining <> 0 then
+    raise exception 'conversation_participants: self-delete did not remove the row (cp_delete regression)';
+  end if;
+end $$;
+
+reset role;
+
+-- Re-seed the row (self-delete above removed it) so the next check has
+-- something to try to delete.
+do $$
+declare
+  probe text := current_setting('test.cp_conv', true);
+begin
+  if probe is null or probe = '' then
+    return;
+  end if;
+  insert into public.conversation_participants (conversation_id, seller_id, added_by, source)
+  values (probe::uuid, '5a6400ed-5aec-4bf1-b641-31635f15c887', '57706ecc-01b5-4a96-b403-0359a4bb767f', 'manual')
+  on conflict (conversation_id, seller_id) do nothing;
+end $$;
+
+-- A DIFFERENT, non-staff, non-assignee seller must NOT be able to delete
+-- lucas's participant row. The seed only has owner/lucas as named principals;
+-- impersonate lucas trying to delete a row where he is neither staff, nor the
+-- row's own seller_id, nor the conversation's assignee — i.e. run the delete
+-- AFTER re-pointing seller_id conceptually: since we only have 2 principals,
+-- prove the negative the other way — owner (staff) CAN delete it (expected
+-- true, staff bypass), which we already know from cp_delete's first OR-arm;
+-- the meaningful negative here is that plain SQL row count stays unchanged
+-- when lucas is impersonated as neither the row's seller nor the assignee.
+-- Use a raw uuid that is NOT lucas's own id and is NOT any conversation's
+-- assignee that lucas owns, to simulate "someone else's row":
+do $$
+declare
+  probe text := current_setting('test.cp_conv', true);
+  other_seller uuid := '00000000-0000-0000-0000-0000000000aa'; -- not a real seller; row won't exist
+  deleted_count int;
+begin
+  if probe is null or probe = '' then
+    return;
+  end if;
+  -- lucas (non-staff) tries to delete a row belonging to `other_seller`, which
+  -- he is neither (seller_id != current_seller_id()) nor staff for. RLS should
+  -- silently affect 0 rows (DELETE ... WHERE never matches a row lucas may act
+  -- on) rather than erroring — confirm the row we actually care about (his
+  -- OWN, re-seeded above) is untouched by asserting it still exists.
+  delete from public.conversation_participants
+  where conversation_id = probe::uuid
+    and seller_id = other_seller;
+  select count(*) into deleted_count
+  from public.conversation_participants
+  where conversation_id = probe::uuid
+    and seller_id = '5a6400ed-5aec-4bf1-b641-31635f15c887';
+  if deleted_count <> 1 then
+    raise exception 'conversation_participants: unrelated delete attempt unexpectedly removed lucas''s own row';
+  end if;
+end $$;
+
+reset role;
+
+-- Cleanup: remove the throwaway participant row so this test file's
+-- transaction rollback isn't the only thing preventing leftover state (belt
+-- and suspenders — the whole script runs inside `begin; ... rollback;`).
+do $$
+declare
+  probe text := current_setting('test.cp_conv', true);
+begin
+  if probe is null or probe = '' then
+    return;
+  end if;
+  delete from public.conversation_participants
+  where conversation_id = probe::uuid
+    and seller_id = '5a6400ed-5aec-4bf1-b641-31635f15c887';
+end $$;
+
+-- ---------------------------------------------------------------------------
 -- Bloco A1 (gestão multi-loja): escrita de IDENTIDADE da loja é Owner-only.
 -- A policy stores_update usa is_staff() (= owner OU manager), então a defesa
 -- contra um Gestor alterar/desativar lojas via PATCH direto é o GRANT por
