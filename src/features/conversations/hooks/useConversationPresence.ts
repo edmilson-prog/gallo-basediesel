@@ -1,30 +1,25 @@
 import { useEffect, useState } from "react";
+import type { ID } from "@/shared/types";
 import { AUTH_SOURCE } from "@/features/auth/authSource";
 import { useAuth } from "@/features/auth/useAuth";
-import { useCurrentStore } from "@/features/multistore";
 import { acquirePresenceChannel, releasePresenceChannel } from "@/shared/lib/presenceChannel";
 
-/**
- * Realtime Presence per store (users CRUD addendum): "online" means the app is
- * open in some browser. The shell tracks the signed-in seller; the users screen
- * reads the set of online seller ids. Supabase auth mode only — in mock mode
- * the reader returns null and callers derive a seeded status instead.
- *
- * Thin wrapper over the generic `src/shared/lib/presenceChannel.ts` manager
- * (extracted from this file), scoped to the `presence:store:<id>` topic — see
- * that module for the underlying realtime-js join/re-join semantics this relies on.
- */
-const channelTopic = (storeId: string) => `presence:store:${storeId}`;
+const channelTopic = (conversationId: ID) => `presence:conversation:${conversationId}`;
 
-/** Mounted once in AppLayout — announces the signed-in seller as online. */
-export function usePresenceTracker(): void {
+/**
+ * Announces the signed-in seller as "currently viewing this conversation".
+ * Mount only while the conversation's panel/thread is actually open — unlike
+ * `usePresenceTracker` (mounted once, store-wide, in AppLayout), this is
+ * created/destroyed per conversation view. Purely a UI signal (who's looking
+ * now); it never affects `conversation_participants`/RLS (who CAN respond).
+ */
+export function useConversationPresenceTracker(conversationId: ID | null): void {
   const { currentUser } = useAuth();
-  const { currentStoreId } = useCurrentStore();
   const sellerId = currentUser?.sellerId;
 
   useEffect(() => {
-    if (AUTH_SOURCE !== "supabase" || !sellerId || !currentStoreId) return;
-    const topic = channelTopic(currentStoreId);
+    if (AUTH_SOURCE !== "supabase" || !sellerId || !conversationId) return;
+    const topic = channelTopic(conversationId);
     const entry = acquirePresenceChannel(topic);
 
     const announce = () => void entry.channel.track({ sellerId });
@@ -35,21 +30,22 @@ export function usePresenceTracker(): void {
 
     return () => {
       entry.joinListeners.delete(announce);
-      // Stop broadcasting this seller even if a reader keeps the channel
-      // alive — prevents a ghost "online" after logout/store switch.
+      // Stop broadcasting even if a reader keeps the channel alive —
+      // prevents a ghost "viewing" after closing the conversation panel.
       if (entry.joined) void entry.channel.untrack();
       releasePresenceChannel(topic);
     };
-  }, [sellerId, currentStoreId]);
+  }, [sellerId, conversationId]);
 }
 
-/** Set of seller ids currently online in the store; null in mock auth mode. */
-export function useStorePresence(storeId: string): Set<string> | null {
-  const [online, setOnline] = useState<Set<string>>(new Set());
+/** Set of seller ids currently viewing `conversationId`; null in mock auth mode
+ *  or while `conversationId` is null. */
+export function useConversationPresence(conversationId: ID | null): Set<ID> | null {
+  const [viewing, setViewing] = useState<Set<ID>>(new Set());
 
   useEffect(() => {
-    if (AUTH_SOURCE !== "supabase") return;
-    const topic = channelTopic(storeId);
+    if (AUTH_SOURCE !== "supabase" || !conversationId) return;
+    const topic = channelTopic(conversationId);
     const entry = acquirePresenceChannel(topic);
 
     const sync = () => {
@@ -60,7 +56,7 @@ export function useStorePresence(storeId: string): Set<string> | null {
         .flat()
         .map((presence) => presence.sellerId)
         .filter((value): value is string => typeof value === "string");
-      setOnline(new Set(ids));
+      setViewing(new Set(ids));
     };
     entry.syncListeners.add(sync);
     // Initial state for late attachers — the channel may already hold a
@@ -71,7 +67,7 @@ export function useStorePresence(storeId: string): Set<string> | null {
       entry.syncListeners.delete(sync);
       releasePresenceChannel(topic);
     };
-  }, [storeId]);
+  }, [conversationId]);
 
-  return AUTH_SOURCE === "supabase" ? online : null;
+  return AUTH_SOURCE === "supabase" && conversationId ? viewing : null;
 }
