@@ -75,6 +75,8 @@ interface ConversationRow {
   unread_count: number;
   created_at: string;
   queued_at: string | null;
+  /** Only present on rows returned by the `search_conversations` RPC. */
+  is_collaborator?: boolean;
 }
 
 /** Valid lead temperatures — the RPC returns a raw text column (no DB enum/check),
@@ -113,6 +115,7 @@ function rowToConversation(row: ConversationRow): IConversation {
     unreadCount: row.unread_count,
     createdAt: row.created_at,
     queuedAt: row.queued_at ?? undefined,
+    isCollaborator: row.is_collaborator ?? undefined,
   };
 }
 

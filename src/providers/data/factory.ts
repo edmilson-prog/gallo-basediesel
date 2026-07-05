@@ -94,6 +94,7 @@ import { supabaseAiProvider } from "./impl/supabase/ai";
 import { supabaseAtendimentoMetricsProvider } from "./impl/supabase/atendimentoMetrics";
 import { supabaseWhatsAppGoServersProvider } from "./impl/supabase/whatsappGoServers";
 import { supabaseConversationTagsProvider } from "./impl/supabase/conversationTags";
+import { supabaseConversationParticipantsProvider } from "./impl/supabase/conversationParticipants";
 
 import {
   DATA_SOURCE_OVERRIDE_KEY,
@@ -224,6 +225,7 @@ const supabaseProviders: IDataProviders = {
   atendimentoMetrics: supabaseAtendimentoMetricsProvider,
   whatsappGoServers: supabaseWhatsAppGoServersProvider,
   conversationTags: supabaseConversationTagsProvider,
+  conversationParticipants: supabaseConversationParticipantsProvider,
 };
 
 /**
