@@ -46,6 +46,7 @@ import { mockAiProvider } from "./impl/mock/ai";
 import { mockAtendimentoMetricsProvider } from "./impl/mock/atendimentoMetrics";
 import { mockWhatsAppGoServersProvider } from "./impl/mock/whatsappGoServers";
 import { mockConversationTagsProvider } from "./impl/mock/conversationTags";
+import { mockConversationParticipantsProvider } from "./impl/mock/conversationParticipants";
 
 import { supabaseCustomersProvider } from "./impl/supabase/customers";
 import { supabaseVehiclesProvider } from "./impl/supabase/vehicles";
@@ -173,6 +174,7 @@ const mockProviders: IDataProviders = {
   atendimentoMetrics: mockAtendimentoMetricsProvider,
   whatsappGoServers: mockWhatsAppGoServersProvider,
   conversationTags: mockConversationTagsProvider,
+  conversationParticipants: mockConversationParticipantsProvider,
 };
 
 const supabaseProviders: IDataProviders = {

@@ -30,6 +30,7 @@ export { rolesApi } from "./roles";
 export { departmentsApi } from "./departments";
 export { rotationQueuesApi } from "./rotationQueues";
 export { rotationParticipantsApi } from "./rotationParticipants";
+export { conversationParticipantsApi } from "./conversationParticipants";
 export { distributionTracesApi, type IListDistributionTracesParams } from "./distributionTraces";
 export { conversationActivityApi } from "./conversationActivity";
 export { managerDashboardApi } from "./managerDashboard";
