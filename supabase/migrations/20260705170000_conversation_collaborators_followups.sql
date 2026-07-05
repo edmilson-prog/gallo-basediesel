@@ -17,7 +17,19 @@
 -- (a) ------------------------------------------------------------------------
 -- Realtime CDC only emits for tables enumerated in the publication (it is NOT
 -- FOR ALL TABLES — see 20260610013840, which added only conversations/messages).
-alter publication supabase_realtime add table public.conversation_participants;
+-- `alter publication ... add table` has no IF NOT EXISTS, so guard it to stay
+-- re-runnable.
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'conversation_participants'
+  ) then
+    alter publication supabase_realtime add table public.conversation_participants;
+  end if;
+end $$;
 
 -- (b) ------------------------------------------------------------------------
 -- The client upsert intentionally sends only {conversation_id, seller_id,
