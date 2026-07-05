@@ -82,7 +82,7 @@ describe("supabaseAuditsProvider.create", () => {
 
   it("omits store_id when there is no session, deferring to the DB default", async () => {
     // Without a readable claim the client cannot know the WITH CHECK value;
-    // the DB default (current_store_id(), migration 20260705120000) derives it
+    // the DB default (current_store_id(), migration 20260705144622) derives it
     // from the request JWT server-side. The echoed log keeps the caller store
     // as a display best-effort.
     getSession.mockResolvedValue({ data: { session: null } });

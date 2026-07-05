@@ -128,7 +128,7 @@ export const supabaseAuditsProvider: IAuditsProvider = {
       timestamp: new Date().toISOString(),
     };
     // When the claim is unreadable, omit store_id so the DB default
-    // (current_store_id(), migration 20260705120000) derives it from the
+    // (current_store_id(), migration 20260705144622) derives it from the
     // request JWT server-side — the only value the WITH CHECK accepts. The
     // echoed row keeps the caller store as a display best-effort.
     const payload: Partial<AuditLogRow> = { ...row };
