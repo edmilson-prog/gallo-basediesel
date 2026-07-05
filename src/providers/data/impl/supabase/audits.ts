@@ -127,7 +127,13 @@ export const supabaseAuditsProvider: IAuditsProvider = {
       after: input.after ?? null,
       timestamp: new Date().toISOString(),
     };
-    const { error } = await getSupabaseClient().from(TABLE).insert(row);
+    // When the claim is unreadable, omit store_id so the DB default
+    // (current_store_id(), migration 20260705120000) derives it from the
+    // request JWT server-side — the only value the WITH CHECK accepts. The
+    // echoed row keeps the caller store as a display best-effort.
+    const payload: Partial<AuditLogRow> = { ...row };
+    if (claims.storeId === null) delete payload.store_id;
+    const { error } = await getSupabaseClient().from(TABLE).insert(payload);
     if (error) throw new Error(`[supabase] audits.create failed: ${error.message}`);
     return rowToAudit(row);
   },

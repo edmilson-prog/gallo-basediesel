@@ -80,24 +80,28 @@ describe("supabaseAuditsProvider.create", () => {
     expect(payload.store_id).toBe("store-jwt");
   });
 
-  it("falls back to the caller store when there is no session", async () => {
+  it("omits store_id when there is no session, deferring to the DB default", async () => {
+    // Without a readable claim the client cannot know the WITH CHECK value;
+    // the DB default (current_store_id(), migration 20260705120000) derives it
+    // from the request JWT server-side. The echoed log keeps the caller store
+    // as a display best-effort.
     getSession.mockResolvedValue({ data: { session: null } });
 
     const out = await P.create(INPUT);
 
     const payload = insert.mock.calls[0]![0] as Record<string, unknown>;
-    expect(payload.store_id).toBe("store-input");
+    expect("store_id" in payload).toBe(false);
     expect(out.storeId).toBe("store-input");
   });
 
-  it("falls back to the caller store when the token is malformed or lacks the claim", async () => {
+  it("omits store_id when the token is malformed or lacks the claim", async () => {
     getSession.mockResolvedValue({ data: { session: { access_token: "not-a-jwt" } } });
     await P.create(INPUT);
-    expect((insert.mock.calls[0]![0] as Record<string, unknown>).store_id).toBe("store-input");
+    expect("store_id" in (insert.mock.calls[0]![0] as Record<string, unknown>)).toBe(false);
 
     getSession.mockResolvedValue({ data: { session: { access_token: fakeJwt({}) } } });
     await P.create(INPUT);
-    expect((insert.mock.calls[1]![0] as Record<string, unknown>).store_id).toBe("store-input");
+    expect("store_id" in (insert.mock.calls[1]![0] as Record<string, unknown>)).toBe(false);
   });
 
   it("still records even if reading the session itself blows up", async () => {
@@ -105,7 +109,7 @@ describe("supabaseAuditsProvider.create", () => {
 
     const out = await P.create(INPUT);
 
-    expect((insert.mock.calls[0]![0] as Record<string, unknown>).store_id).toBe("store-input");
+    expect("store_id" in (insert.mock.calls[0]![0] as Record<string, unknown>)).toBe(false);
     expect(out.storeId).toBe("store-input");
   });
 
@@ -157,7 +161,7 @@ describe("supabaseAuditsProvider.create", () => {
       await vi.advanceTimersByTimeAsync(5_000);
       const out = await pending;
 
-      expect((insert.mock.calls[0]![0] as Record<string, unknown>).store_id).toBe("store-input");
+      expect("store_id" in (insert.mock.calls[0]![0] as Record<string, unknown>)).toBe(false);
       expect(out.storeId).toBe("store-input");
     } finally {
       vi.useRealTimers();
