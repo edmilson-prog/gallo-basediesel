@@ -45,3 +45,31 @@ export function isOwnConversation(
 ): boolean {
   return sellerId != null && conversation.assignedSellerId === sellerId;
 }
+
+/**
+ * Whether `sellerId` may invite/remove collaborators on this conversation —
+ * mirrors the RLS `cp_insert` policy (staff, or the conversation's current
+ * assignee): `supabase/migrations/20260704120000_conversation_participants_lifecycle.sql`.
+ */
+export function canManageCollaborators(
+  conversation: Pick<IConversation, "assignedSellerId">,
+  ctx: { isStaff: boolean; sellerId: ID | null | undefined },
+): boolean {
+  if (ctx.isStaff) return true;
+  return isOwnConversation(conversation, ctx.sellerId);
+}
+
+/**
+ * Whether `sellerId` may remove `collaboratorSellerId` from a conversation's
+ * collaborator list — mirrors the RLS `cp_delete` policy: staff, the
+ * conversation's assignee, OR the collaborator removing themselves.
+ */
+export function canRemoveCollaborator(
+  conversation: Pick<IConversation, "assignedSellerId">,
+  collaboratorSellerId: ID,
+  ctx: { isStaff: boolean; sellerId: ID | null | undefined },
+): boolean {
+  if (ctx.isStaff) return true;
+  if (ctx.sellerId != null && ctx.sellerId === collaboratorSellerId) return true;
+  return isOwnConversation(conversation, ctx.sellerId);
+}
