@@ -498,44 +498,87 @@ begin
   on conflict (conversation_id, seller_id) do nothing;
 end $$;
 
--- A DIFFERENT, non-staff, non-assignee seller must NOT be able to delete
--- lucas's participant row. The seed only has owner/lucas as named principals;
--- impersonate lucas trying to delete a row where he is neither staff, nor the
--- row's own seller_id, nor the conversation's assignee — i.e. run the delete
--- AFTER re-pointing seller_id conceptually: since we only have 2 principals,
--- prove the negative the other way — owner (staff) CAN delete it (expected
--- true, staff bypass), which we already know from cp_delete's first OR-arm;
--- the meaningful negative here is that plain SQL row count stays unchanged
--- when lucas is impersonated as neither the row's seller nor the assignee.
--- Use a raw uuid that is NOT lucas's own id and is NOT any conversation's
--- assignee that lucas owns, to simulate "someone else's row":
+-- A DIFFERENT, non-staff, non-assignee, non-participant seller must NOT be
+-- able to delete someone ELSE's collaborator row. Use a conversation NOT
+-- assigned to lucas, with a participant row for THAT conversation's own real
+-- assignee (guaranteed to be a valid seller id, and guaranteed not to be
+-- lucas by the query below) — so when lucas is impersonated, he is neither
+-- staff, nor the row's own seller_id, nor this conversation's assignee.
+select set_config('test.cp_other_conv', coalesce((
+  select c.id::text
+  from public.conversations c
+  where c.assigned_seller_id is not null
+    and c.assigned_seller_id <> '5a6400ed-5aec-4bf1-b641-31635f15c887'
+    and c.store_id = '00000000-0000-0000-0000-000000000001'
+  limit 1
+), ''), true);
+
+select set_config('test.cp_other_seller', coalesce((
+  select c.assigned_seller_id::text
+  from public.conversations c
+  where c.id::text = current_setting('test.cp_other_conv', true)
+), ''), true);
+
 do $$
 declare
-  probe text := current_setting('test.cp_conv', true);
-  other_seller uuid := '00000000-0000-0000-0000-0000000000aa'; -- not a real seller; row won't exist
-  deleted_count int;
+  probe text := current_setting('test.cp_other_conv', true);
+  other_seller text := current_setting('test.cp_other_seller', true);
 begin
-  if probe is null or probe = '' then
+  if probe is null or probe = '' or other_seller is null or other_seller = '' then
+    return; -- seed sem outra conversa atribuída: nada a provar
+  end if;
+  insert into public.conversation_participants (conversation_id, seller_id, added_by, source)
+  values (probe::uuid, other_seller::uuid, other_seller::uuid, 'manual')
+  on conflict (conversation_id, seller_id) do nothing;
+end $$;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+
+do $$
+declare
+  probe text := current_setting('test.cp_other_conv', true);
+  other_seller text := current_setting('test.cp_other_seller', true);
+  remaining int;
+begin
+  if probe is null or probe = '' or other_seller is null or other_seller = '' then
     return;
   end if;
-  -- lucas (non-staff) tries to delete a row belonging to `other_seller`, which
-  -- he is neither (seller_id != current_seller_id()) nor staff for. RLS should
-  -- silently affect 0 rows (DELETE ... WHERE never matches a row lucas may act
-  -- on) rather than erroring — confirm the row we actually care about (his
-  -- OWN, re-seeded above) is untouched by asserting it still exists.
+  -- lucas (non-staff, not this row's seller, not this conversation's
+  -- assignee) tries to delete it — RLS must filter the row out of his
+  -- DELETE's visible scope, leaving it in place.
   delete from public.conversation_participants
   where conversation_id = probe::uuid
-    and seller_id = other_seller;
-  select count(*) into deleted_count
+    and seller_id = other_seller::uuid;
+  select count(*) into remaining
   from public.conversation_participants
   where conversation_id = probe::uuid
-    and seller_id = '5a6400ed-5aec-4bf1-b641-31635f15c887';
-  if deleted_count <> 1 then
-    raise exception 'conversation_participants: unrelated delete attempt unexpectedly removed lucas''s own row';
+    and seller_id = other_seller::uuid;
+  if remaining <> 1 then
+    raise exception 'conversation_participants: unrelated seller was able to delete someone else''s collaborator row (cp_delete regression)';
   end if;
 end $$;
 
 reset role;
+
+-- Cleanup for the second probe (admin context — `test.cp_other_*` GUCs still
+-- hold their values, set before impersonation).
+do $$
+declare
+  probe text := current_setting('test.cp_other_conv', true);
+  other_seller text := current_setting('test.cp_other_seller', true);
+begin
+  if probe is null or probe = '' or other_seller is null or other_seller = '' then
+    return;
+  end if;
+  delete from public.conversation_participants
+  where conversation_id = probe::uuid
+    and seller_id = other_seller::uuid;
+end $$;
 
 -- Cleanup: remove the throwaway participant row so this test file's
 -- transaction rollback isn't the only thing preventing leftover state (belt
@@ -1031,30 +1074,42 @@ Replace with:
 
 This mirrors `clear_conversation_participants_on_close` (Task 1) — the mock has no DB trigger, so the cleanup is inlined at the one documented entry point for reaching a terminal status (`IConversationsProvider.close`, per its own doc comment: "Close a conversation atomically ... in one server op").
 
-- [ ] **Step 4: Write a focused Vitest for the filter widening**
+- [ ] **Step 4: Write a Vitest that exercises the actual new behavior**
 
-Find or create `src/mocks/api/conversations.test.ts` (check first with `ls src/mocks/api/*.test.ts` whether one already exists to extend instead of create):
+Find or create `src/mocks/api/conversations.test.ts` (check first with `ls src/mocks/api/*.test.ts` whether one already exists to extend instead of create). Test `conversationsApi.list` end-to-end (not just `matchesAssignmentAny`, which is unchanged — the new OR-branch lives at the `applyNonSearchFilters` call site) so the test actually fails if the wiring in Step 2 is missing or wrong:
 
 ```ts
-import { describe, it, expect, beforeEach } from "vitest";
-import { matchesAssignmentAny } from "./conversations";
+import { describe, it, expect } from "vitest";
+import { conversationsApi } from "./conversations";
+import { conversationParticipantsApi, clearConversationParticipantsSync } from "./conversationParticipants";
+import { getMockState } from "../store/mockStore";
 
-// This test only covers the pure matchesAssignmentAny — the collaborator
-// OR-branch lives at the applyNonSearchFilters call site (not inside
-// matchesAssignmentAny itself) and is exercised indirectly by
-// conversationsApi.list in the mock; a full store-backed test is out of
-// proportion for this delta. Confirms matchesAssignmentAny's OWN contract is
-// unchanged by this feature (a regression here would mean the call-site
-// change accidentally edited the wrong function).
-describe("matchesAssignmentAny (unchanged by collaborators)", () => {
-  it("still matches only by assignedSellerId/queue, never by collaboration", () => {
-    const conversation = {
-      id: "conv-1",
-      assignedSellerId: undefined,
-      isSdrActive: false,
-      status: "aguardando",
-    } as Parameters<typeof matchesAssignmentAny>[0];
-    expect(matchesAssignmentAny(conversation, { sellerIds: ["seller-other"] })).toBe(false);
+describe("conversationsApi.list — collaborator inclusion in 'Minhas conversas'", () => {
+  it("includes a conversation the filtered seller collaborates on, not just owns", async () => {
+    const seed = getMockState().conversations[0];
+    if (!seed) throw new Error("mock seed has no conversations to test against");
+    const collaboratorSellerId = "seller-test-collaborator-inclusion";
+
+    const before = await conversationsApi.list({ assignmentAny: { sellerIds: [collaboratorSellerId] } });
+    expect(before.data.some((c) => c.id === seed.id)).toBe(false);
+
+    await conversationParticipantsApi.add(seed.id, collaboratorSellerId, "manual");
+    const after = await conversationsApi.list({ assignmentAny: { sellerIds: [collaboratorSellerId] } });
+    expect(after.data.some((c) => c.id === seed.id)).toBe(true);
+
+    clearConversationParticipantsSync(seed.id);
+  });
+
+  it("close() clears the conversation's collaborators", async () => {
+    const seed = getMockState().conversations.find((c) => c.status !== "arquivada" && c.status !== "resolvida");
+    if (!seed) throw new Error("mock seed has no open conversation to test against");
+    const collaboratorSellerId = "seller-test-close-cleanup";
+
+    await conversationParticipantsApi.add(seed.id, collaboratorSellerId, "manual");
+    expect((await conversationParticipantsApi.list(seed.id)).length).toBeGreaterThan(0);
+
+    await conversationsApi.close(seed.id, "resolvida");
+    expect(await conversationParticipantsApi.list(seed.id)).toEqual([]);
   });
 });
 ```
@@ -1062,7 +1117,7 @@ describe("matchesAssignmentAny (unchanged by collaborators)", () => {
 - [ ] **Step 5: Run the test**
 
 Run: `bun run test src/mocks/api/conversations.test.ts`
-Expected: PASS.
+Expected: PASS (2 tests).
 
 - [ ] **Step 6: Commit**
 
