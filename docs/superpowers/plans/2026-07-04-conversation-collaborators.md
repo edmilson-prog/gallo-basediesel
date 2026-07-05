@@ -2797,7 +2797,7 @@ export function CollaboratorAddedPrompt() {
   const openConversation = () => {
     dismiss(0);
     setMinimized(false);
-    void navigate({ to: "/app/atendimento/$conversationId", params: { conversationId: current.conversationId } });
+    void navigate({ to: "/app/atendimento/$id", params: { id: current.conversationId } });
   };
 
   if (minimized) {
@@ -2846,7 +2846,7 @@ export function CollaboratorAddedPrompt() {
 }
 ```
 
-Before writing this file, grep the route tree (`src/routeTree.gen.ts` or `src/routes/app.atendimento.*`) for the actual conversation route path/param name (I used `/app/atendimento/$conversationId` — confirm the exact route id and param name used elsewhere, e.g. inside `ConversationPage.tsx`'s own `useNavigate`/`useParams` calls, and correct this literal if it differs).
+The route path/param above (`/app/atendimento/$id`, param `id`) was confirmed against `src/routes/app.atendimento.$id.tsx`'s actual `createFileRoute("/app/atendimento/$id")` — no further verification needed.
 
 - [ ] **Step 3: Mount in `AppLayout`**
 
