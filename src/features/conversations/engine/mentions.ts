@@ -156,3 +156,30 @@ export function segmentNote(text: string, candidates: IMentionCandidate[]): INot
   if (cursor < text.length) out.push({ type: "text", value: text.slice(cursor) });
   return out;
 }
+
+export interface IResolveMentionParticipantsOptions {
+  assignedSellerId: ID | undefined;
+  authorId: ID;
+  isAuthorStaff: boolean;
+  existingParticipantIds: ID[];
+}
+
+/**
+ * Which of the sellers mentioned in a note should become collaborators
+ * (`conversation_participants`, source='mention'). Mirrors the `cp_insert` RLS
+ * policy from the author's perspective: only staff or the conversation's own
+ * assignee can grant new access via a mention — otherwise the mention still
+ * highlights/notifies as usual (unchanged), it just never touches
+ * `conversation_participants`. Never returns the conversation's own assignee
+ * (already has access) or a seller who already collaborates.
+ */
+export function resolveMentionParticipants(
+  mentionedIds: ID[],
+  opts: IResolveMentionParticipantsOptions,
+): ID[] {
+  const authorAuthorized = opts.isAuthorStaff || opts.authorId === opts.assignedSellerId;
+  if (!authorAuthorized) return [];
+
+  const existing = new Set(opts.existingParticipantIds);
+  return mentionedIds.filter((id) => id !== opts.assignedSellerId && !existing.has(id));
+}

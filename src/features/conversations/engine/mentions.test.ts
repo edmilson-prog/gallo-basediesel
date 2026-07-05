@@ -126,3 +126,68 @@ describe("segmentNote", () => {
     ]);
   });
 });
+
+import { resolveMentionParticipants } from "./mentions";
+
+describe("resolveMentionParticipants", () => {
+  it("resolves mentioned sellers when the author is the conversation's assignee", () => {
+    const result = resolveMentionParticipants(["s2", "s3"], {
+      assignedSellerId: "s1",
+      authorId: "s1",
+      isAuthorStaff: false,
+      existingParticipantIds: [],
+    });
+    expect(result).toEqual(["s2", "s3"]);
+  });
+
+  it("resolves mentioned sellers when the author is staff, even on someone else's conversation", () => {
+    const result = resolveMentionParticipants(["s2"], {
+      assignedSellerId: "s1",
+      authorId: "s9",
+      isAuthorStaff: true,
+      existingParticipantIds: [],
+    });
+    expect(result).toEqual(["s2"]);
+  });
+
+  it("resolves nothing when the author is neither staff nor the assignee", () => {
+    const result = resolveMentionParticipants(["s2"], {
+      assignedSellerId: "s1",
+      authorId: "s9",
+      isAuthorStaff: false,
+      existingParticipantIds: [],
+    });
+    expect(result).toEqual([]);
+  });
+
+  it("excludes the conversation's own assignee from the result", () => {
+    const result = resolveMentionParticipants(["s1", "s2"], {
+      assignedSellerId: "s1",
+      authorId: "s1",
+      isAuthorStaff: false,
+      existingParticipantIds: [],
+    });
+    expect(result).toEqual(["s2"]);
+  });
+
+  it("excludes sellers who are already collaborators", () => {
+    const result = resolveMentionParticipants(["s2", "s3"], {
+      assignedSellerId: "s1",
+      authorId: "s1",
+      isAuthorStaff: false,
+      existingParticipantIds: ["s3"],
+    });
+    expect(result).toEqual(["s2"]);
+  });
+
+  it("returns an empty array for an empty mention list", () => {
+    expect(
+      resolveMentionParticipants([], {
+        assignedSellerId: "s1",
+        authorId: "s1",
+        isAuthorStaff: false,
+        existingParticipantIds: [],
+      }),
+    ).toEqual([]);
+  });
+});
