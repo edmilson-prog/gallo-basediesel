@@ -2376,6 +2376,8 @@ git commit -m "feat: auto-add mentioned sellers as conversation collaborators"
 
 Create `src/shared/lib/presenceChannel.ts` — this is `useStorePresence.ts`'s module-level manager (lines 1-115 of the current file), generalized to take any topic string instead of hardcoding `presence:store:<id>`:
 
+This is `useStorePresence.ts`'s module-level manager (its current lines 1-115: the header comment, `IPresenceEntry`, `acquire`, `release`), generalized to take any topic string instead of hardcoding `presence:store:<id>`, with every existing comment preserved (renamed identifiers only — `acquire`→`acquirePresenceChannel`, `release`→`releasePresenceChannel`, `IPresenceEntry`→`IPresenceChannelEntry` — and the header's store-specific example generalized to "per topic"):
+
 ```ts
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { getSupabaseClient } from "./supabase";
@@ -2385,36 +2387,54 @@ import { getSupabaseClient } from "./supabase";
  * reference-counted: the first subscriber creates and joins the channel,
  * later subscribers reuse it, and it's torn down when the last leaves.
  * Extracted from `src/features/shell/hooks/useStorePresence.ts` (PRD "users
- * CRUD addendum") so a second presence scope (per-conversation collaboration)
- * can reuse the exact same join/re-join/teardown semantics instead of
- * duplicating this file's original, carefully-commented realtime-js quirks.
+ * CRUD addendum", originally store-only) so a second presence scope
+ * (per-conversation collaboration) can reuse the exact same join/re-join/
+ * teardown semantics instead of duplicating them.
  *
  * --- realtime-js v2 behaviour (verified in the installed dist source) ---
  * 1. `client.channel(topic)` REUSES an existing channel when one with the same
- *    topic is already registered — tracker and reader for the SAME topic
- *    therefore share one instance, so the lifecycle must be owned here.
- * 2. The default presence key is `''`, so the server assigns a random UUID per
- *    connection; the tracked payload (e.g. `{ sellerId }`) lives in the
- *    presence VALUES, never the keys.
- * 3. `channel.subscribe(cb)` silently no-ops on a second call for a
- *    joining/joined channel — subscribe exactly once per channel instance and
- *    fan the SUBSCRIBED transition out to `joinListeners`.
+ *    topic is already registered (RealtimeClient.js, `channel()`: it finds by
+ *    topic and returns the existing instance instead of creating a new one).
+ *    Any two consumers of the SAME topic therefore SHARE one channel instance,
+ *    so the lifecycle must be owned by this module-level ref-counted manager —
+ *    otherwise one consumer's removeChannel tears the channel down for the other.
+ * 2. The default presence key is `''` (RealtimeChannel.js line 97), which makes
+ *    the SERVER assign a random UUID per connection as the presence key. The
+ *    keys of `presenceState()` are therefore NOT the tracked identity — the
+ *    tracked payload (e.g. `{ sellerId }`) lives in the presence VALUES, so a
+ *    reader maps over `Object.values(state).flat()` instead of `Object.keys(state)`.
+ * 3. `channel.subscribe(cb)` is guarded by `channelAdapter.isClosed()`
+ *    (RealtimeChannel.js line 136): a second subscribe on a joining/joined
+ *    channel silently skips its body and the callback is never registered.
+ *    Hence the manager calls subscribe() exactly ONCE and fans the SUBSCRIBED
+ *    transition out to `joinListeners` — a tracker attaches its `.track()`
+ *    announce there (and fires immediately when attaching after the join).
  */
 export interface IPresenceChannelEntry {
   channel: RealtimeChannel;
+  /** Number of active consumers (tracker + readers). */
   refs: number;
+  /** True while the channel is SUBSCRIBED (re-fires after reconnects). */
   joined: boolean;
+  /** Fired on every SUBSCRIBED transition — trackers (re-)announce here. */
   joinListeners: Set<() => void>;
+  /** Fired on every presence sync — readers recompute their set here. */
   syncListeners: Set<() => void>;
 }
 
 const presenceEntries = new Map<string, IPresenceChannelEntry>();
 
-/** Acquire (or reuse) the shared presence channel for `topic`. Pair with `releasePresenceChannel(topic)`. */
+/**
+ * Acquire (or reuse) the shared presence channel for a topic. The manager owns
+ * the channel lifecycle: it subscribes exactly once and fans join/sync events
+ * out to the listener sets on the returned entry. Pair with `releasePresenceChannel(topic)`.
+ */
 export function acquirePresenceChannel(topic: string): IPresenceChannelEntry {
   let entry = presenceEntries.get(topic);
 
   if (!entry) {
+    // No presence key config: the server assigns a per-connection UUID key;
+    // identity travels in the tracked payload instead (see header note 2).
     const channel = getSupabaseClient().channel(topic);
 
     const created: IPresenceChannelEntry = {
@@ -2425,10 +2445,13 @@ export function acquirePresenceChannel(topic: string): IPresenceChannelEntry {
       syncListeners: new Set(),
     };
 
+    // realtime-js fires a "sync" after every presence diff (join/leave
+    // included), so a single sync binding is sufficient for readers.
     channel.on("presence", { event: "sync" }, () => {
       for (const listener of created.syncListeners) listener();
     });
 
+    // Subscribe exactly ONCE (see header note 3) and fan out the join.
     channel.subscribe((status) => {
       created.joined = status === "SUBSCRIBED";
       if (created.joined) {
@@ -2444,8 +2467,11 @@ export function acquirePresenceChannel(topic: string): IPresenceChannelEntry {
   return entry;
 }
 
-/** Release one reference, deferred with a grace re-check so React StrictMode's
- *  unmount→remount re-acquires the live entry instead of a mid-teardown one. */
+/**
+ * Release one reference. Removal is DEFERRED with a grace re-check so React
+ * StrictMode's unmount→remount and rapid toggles re-acquire the live entry
+ * instead of grabbing a channel that is mid-teardown.
+ */
 export function releasePresenceChannel(topic: string): void {
   const entry = presenceEntries.get(topic);
   if (!entry) return;
@@ -2480,10 +2506,13 @@ import { acquirePresenceChannel, releasePresenceChannel } from "@/shared/lib/pre
 
 /**
  * Realtime Presence per store (users CRUD addendum): "online" means the app is
- * open in some browser. Thin wrapper over the generic
- * `src/shared/lib/presenceChannel.ts` manager, scoped to the
- * `presence:store:<id>` topic — see that module for the underlying
- * realtime-js join/re-join semantics this relies on.
+ * open in some browser. The shell tracks the signed-in seller; the users screen
+ * reads the set of online seller ids. Supabase auth mode only — in mock mode
+ * the reader returns null and callers derive a seeded status instead.
+ *
+ * Thin wrapper over the generic `src/shared/lib/presenceChannel.ts` manager
+ * (extracted from this file), scoped to the `presence:store:<id>` topic — see
+ * that module for the underlying realtime-js join/re-join semantics this relies on.
  */
 const channelTopic = (storeId: string) => `presence:store:${storeId}`;
 
@@ -2500,10 +2529,14 @@ export function usePresenceTracker(): void {
 
     const announce = () => void entry.channel.track({ sellerId });
     entry.joinListeners.add(announce);
+    // Late attach: the shared channel may already be joined (e.g. a reader
+    // acquired it first) — the join fanout already happened, announce now.
     if (entry.joined) announce();
 
     return () => {
       entry.joinListeners.delete(announce);
+      // Stop broadcasting this seller even if a reader keeps the channel
+      // alive — prevents a ghost "online" after logout/store switch.
       if (entry.joined) void entry.channel.untrack();
       releasePresenceChannel(topic);
     };
@@ -2520,6 +2553,8 @@ export function useStorePresence(storeId: string): Set<string> | null {
     const entry = acquirePresenceChannel(topic);
 
     const sync = () => {
+      // Presence keys are server-assigned UUIDs (see presenceChannel.ts header
+      // note 2) — read the seller ids from the tracked payload values instead.
       const state = entry.channel.presenceState<{ sellerId?: string }>();
       const ids = Object.values(state)
         .flat()
@@ -2528,6 +2563,8 @@ export function useStorePresence(storeId: string): Set<string> | null {
       setOnline(new Set(ids));
     };
     entry.syncListeners.add(sync);
+    // Initial state for late attachers — the channel may already hold a
+    // synced presence map from before this reader mounted.
     sync();
 
     return () => {
@@ -2579,10 +2616,14 @@ export function useConversationPresenceTracker(conversationId: ID | null): void 
 
     const announce = () => void entry.channel.track({ sellerId });
     entry.joinListeners.add(announce);
+    // Late attach: the shared channel may already be joined (e.g. a reader
+    // acquired it first) — the join fanout already happened, announce now.
     if (entry.joined) announce();
 
     return () => {
       entry.joinListeners.delete(announce);
+      // Stop broadcasting even if a reader keeps the channel alive —
+      // prevents a ghost "viewing" after closing the conversation panel.
       if (entry.joined) void entry.channel.untrack();
       releasePresenceChannel(topic);
     };
@@ -2600,6 +2641,8 @@ export function useConversationPresence(conversationId: ID | null): Set<ID> | nu
     const entry = acquirePresenceChannel(topic);
 
     const sync = () => {
+      // Presence keys are server-assigned UUIDs (see presenceChannel.ts header
+      // note 2) — read the seller ids from the tracked payload values instead.
       const state = entry.channel.presenceState<{ sellerId?: string }>();
       const ids = Object.values(state)
         .flat()
@@ -2608,6 +2651,8 @@ export function useConversationPresence(conversationId: ID | null): Set<ID> | nu
       setViewing(new Set(ids));
     };
     entry.syncListeners.add(sync);
+    // Initial state for late attachers — the channel may already hold a
+    // synced presence map from before this reader mounted.
     sync();
 
     return () => {
