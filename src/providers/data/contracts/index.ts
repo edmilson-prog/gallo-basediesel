@@ -51,6 +51,7 @@ import type { IAiProvider } from "./ai";
 import type { IAtendimentoMetricsProvider } from "./atendimentoMetrics";
 import type { IWhatsAppGoServersProvider } from "./whatsappGoServers";
 import type { IConversationTagsProvider } from "./conversationTags";
+import type { IConversationParticipantsProvider } from "./conversationParticipants";
 
 export type { IPaginatedResult, IPaginationParams } from "./_shared";
 
@@ -153,6 +154,7 @@ export type {
   ICreateConversationTagInput,
   IUpdateConversationTagInput,
 } from "./conversationTags";
+export type { IConversationParticipantsProvider } from "./conversationParticipants";
 export type { IRolesProvider, ICreateRoleInput } from "./roles";
 export type { IDepartmentsProvider, ICreateDepartmentInput } from "./departments";
 export type { IRotationQueuesProvider } from "./rotationQueues";
@@ -220,4 +222,5 @@ export interface IDataProviders {
   atendimentoMetrics: IAtendimentoMetricsProvider;
   whatsappGoServers: IWhatsAppGoServersProvider;
   conversationTags: IConversationTagsProvider;
+  conversationParticipants: IConversationParticipantsProvider;
 }

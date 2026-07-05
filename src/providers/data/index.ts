@@ -125,6 +125,7 @@ export type {
   IListConversationTagsParams,
   ICreateConversationTagInput,
   IUpdateConversationTagInput,
+  IConversationParticipantsProvider,
 } from "./contracts";
 export { computeFailureRate } from "./contracts";
 
@@ -174,6 +175,7 @@ export { useAiProvider } from "./hooks/useAiProvider";
 export { useAtendimentoMetricsProvider } from "./hooks/useAtendimentoMetricsProvider";
 export { useWhatsAppGoServersProvider } from "./hooks/useWhatsAppGoServersProvider";
 export { useConversationTagsProvider } from "./hooks/useConversationTagsProvider";
+export { useConversationParticipantsProvider } from "./hooks/useConversationParticipantsProvider";
 
 export {
   statusOnAssign,
