@@ -4,15 +4,46 @@ import {
   type IAccessRuleLike,
 } from "@/features/admin-settings/utils/accessRecipients";
 
-export interface IResolveInviteCandidatesOptions {
-  assignedSellerId: ID | undefined;
-  existingCollaboratorIds: ID[];
+export interface IInstanceGateOptions {
   /** Null = pool/lead-anônimo conversation (no instance gate at all). */
   whatsappAccountId: ID | null;
   /** `IPlatformSettings.participantCrossInstance` for the conversation's store. */
   crossInstanceAllowed: boolean;
   /** Access rules for `whatsappAccountId` (empty when `whatsappAccountId` is null). */
   accessRules: IAccessRuleLike[];
+}
+
+export interface IResolveInviteCandidatesOptions extends IInstanceGateOptions {
+  assignedSellerId: ID | undefined;
+  existingCollaboratorIds: ID[];
+  /** Logged-in seller — excluded so nobody invites themselves. */
+  currentSellerId?: ID;
+}
+
+export interface IInstanceGateSubject {
+  id: ID;
+  storeId: ID;
+}
+
+/**
+ * Sellers allowed to become participants of a conversation bound to
+ * `whatsappAccountId`. With the store flag OFF, a participant only passes
+ * `can_access_conversation` if they also access the instance — letting anyone
+ * else through would create a participant who cannot see the conversation.
+ * Shared by the manual invite (dialog) and the @mention auto-add paths.
+ */
+export function passesInstanceGate<T extends IInstanceGateSubject>(
+  subjects: T[],
+  opts: IInstanceGateOptions,
+): T[] {
+  if (opts.whatsappAccountId === null || opts.crossInstanceAllowed) {
+    return subjects;
+  }
+  const accessible = resolveAccessRecipients(
+    opts.accessRules,
+    subjects.map((s) => ({ id: s.id, role: "", storeId: s.storeId })),
+  );
+  return subjects.filter((s) => accessible.has(s.id));
 }
 
 /**
@@ -38,17 +69,9 @@ export function resolveInviteCandidates(
 ): ISeller[] {
   const excluded = new Set<ID>([
     ...(opts.assignedSellerId ? [opts.assignedSellerId] : []),
+    ...(opts.currentSellerId ? [opts.currentSellerId] : []),
     ...opts.existingCollaboratorIds,
   ]);
   const eligible = sellers.filter((s) => !excluded.has(s.id));
-
-  if (opts.whatsappAccountId === null || opts.crossInstanceAllowed) {
-    return eligible;
-  }
-
-  const accessible = resolveAccessRecipients(
-    opts.accessRules,
-    eligible.map((s) => ({ id: s.id, role: "", storeId: s.storeId })),
-  );
-  return eligible.filter((s) => accessible.has(s.id));
+  return passesInstanceGate(eligible, opts);
 }
