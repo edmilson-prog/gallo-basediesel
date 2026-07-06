@@ -30,7 +30,15 @@ export interface IGoInstanceTarget {
 }
 
 export interface IGoQrResult {
-  state: "qr" | "open";
+  /**
+   * `qr` = a scannable code was issued; `pending` = the server answered 2xx
+   * but the QR event has not arrived yet (/instance/connect is async — the
+   * socket may still be dialing). There is NO "open" here on purpose: the
+   * paired signal is exclusively /instance/status LoggedIn. Reading a
+   * Qrcode-less 2xx as "paired" flipped the dialog to "Conectado" with no
+   * scan (incident 2026-07-06).
+   */
+  state: "qr" | "pending";
   qrBase64?: string;
   pairingCode?: string;
 }
@@ -93,7 +101,7 @@ export async function connectGoInstance(
   });
 }
 
-/** GET /instance/qr — QR data URI + pairing code, or state=open when paired. */
+/** GET /instance/qr — QR data URI + pairing code, or state=pending while the QR event has not arrived. */
 export async function getGoInstanceQr(
   apiKey: string,
   deps: IEngineDeps,
@@ -112,7 +120,7 @@ export async function getGoInstanceQr(
   if (qrBase64) {
     return { state: "qr", qrBase64, pairingCode: body?.data?.Code };
   }
-  return { state: "open" };
+  return { state: "pending" };
 }
 
 /** GET /instance/status — Connected/LoggedIn booleans. */

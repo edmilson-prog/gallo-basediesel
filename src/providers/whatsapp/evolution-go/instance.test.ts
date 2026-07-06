@@ -104,10 +104,10 @@ describe("evolution-go instance management", () => {
     expect(status).toEqual({ connected: true, loggedIn: true });
   });
 
-  it("getGoInstanceQr returns state=open when the instance reports no QR but logged in", async () => {
+  it("getGoInstanceQr returns state=pending when the 2xx body has no Qrcode (QR event not arrived — never 'paired')", async () => {
     const fetchFn = vi.fn(async () => jsonResponse({ data: { Code: "" }, message: "already connected" }, 200)) as unknown as typeof fetch;
     const qr = await getGoInstanceQr("inst-token", deps(fetchFn), { baseUrl: "https://go.test", instanceId: "i" });
-    expect(qr.state).toBe("open");
+    expect(qr.state).toBe("pending");
   });
 
   it("deleteGoInstance targets /instance/delete/{instanceId} with DELETE", async () => {

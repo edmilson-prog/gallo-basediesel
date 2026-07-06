@@ -23,6 +23,17 @@ describe("mapEvolutionGoError", () => {
     expect(err.details).toMatchObject({ endpoint: "/send/text" });
   });
 
+  it("maps a non-session 400 on /instance/qr to QR_UNAVAILABLE (pairing channel failed, server answered)", () => {
+    const err = mapEvolutionGoError(400, { error: "qr timeout" }, "/instance/qr");
+    expect(err.code).toBe("QR_UNAVAILABLE");
+    expect(err.httpStatus).toBe(503);
+  });
+
+  it("keeps a session-ish 400 on /instance/qr on the PROVIDER_DISCONNECTED path", () => {
+    const err = mapEvolutionGoError(400, { message: "instance has an active session" }, "/instance/qr");
+    expect(err.code).toBe("PROVIDER_DISCONNECTED");
+  });
+
   it("maps a 403 'already in use' name conflict to INTEGRATION_ERROR with the message intact", () => {
     const err = mapEvolutionGoError(403, { message: "instance already in use" }, "/instance/create");
     expect(err.code).toBe("INTEGRATION_ERROR");
