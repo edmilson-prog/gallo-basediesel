@@ -64,7 +64,7 @@ export const CONNECT_ERROR_MESSAGES: Partial<Record<EvolutionConnectErrorCode, s
   HAS_LINKED_DATA:
     "A instância recebeu novos dados e não pode mais ser excluída. Atualizamos a lista.",
   QR_UNAVAILABLE:
-    "O servidor não gerou o QR code desta instância. Clique em “Reiniciar instância”, aguarde ~1 minuto e tente gerar o QR novamente.",
+    "O servidor não gerou o QR code desta instância. Aguarde alguns segundos e clique em “Tentar novamente”.",
   DEFAULT:
     "Não conseguimos falar com o servidor Evolution. Verifique se a URL está correta e se o servidor está no ar.",
 };
