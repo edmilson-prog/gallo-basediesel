@@ -25,7 +25,8 @@ export type WhatsAppErrorCode =
   | "FAILOVER_INCOMPATIBLE"
   | "NOT_SUPPORTED"
   | "NOT_FOUND"
-  | "INTEGRATION_ERROR";
+  | "INTEGRATION_ERROR"
+  | "QR_UNAVAILABLE";
 
 export class WhatsAppProviderError extends Error {
   readonly code: WhatsAppErrorCode;

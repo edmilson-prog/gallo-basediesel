@@ -50,7 +50,6 @@ import {
   logoutGoInstance,
   restartGoInstance,
   deleteGoInstance,
-  type IGoQrResult,
 } from "../_shared/whatsapp/evolution-go/instance.ts";
 import { resolveGoServer } from "./goServer.ts";
 
@@ -567,16 +566,10 @@ servePost(async (req, ctx) => {
           const webhookUrl = `${requiredEnv("SUPABASE_URL")}/functions/v1/whatsapp-webhook/evolution-go`;
           await connectGoInstance(instanceToken, deps, goTarget, webhookUrl, EVOLUTION_GO_DEFAULT_SUBSCRIBE, ctx.traceId);
           // An already-paired instance has no QR to issue: this Go build answers
-          // GET /instance/qr with HTTP 400 + a "session"-ish message, which
-          // mapEvolutionGoError classifies as PROVIDER_DISCONNECTED (503) — surfacing
-          // a misleading "WhatsApp desconectado" on a perfectly connected number.
-          // Trust the authoritative LoggedIn signal first (mirrors test/state) and
-          // only ask for a QR when the session is NOT yet paired.
-          const goStatus = await getGoInstanceStatus(instanceToken, deps, goTarget, ctx.traceId);
-          const qr: IGoQrResult = goStatus.loggedIn
-            ? { state: "open" }
-            : await getGoInstanceQr(instanceToken, deps, goTarget, ctx.traceId);
-          if (qr.state === "open") {
+          // GET /instance/qr with HTTP 400 + a "session"-ish message. Trust the
+          // authoritative LoggedIn signal first (mirrors test/state) and only
+          // ask for a QR when the session is NOT yet paired.
+          const respondOpen = async () => {
             if (account.status !== "connected") {
               await admin
                 .from("whatsapp_accounts")
@@ -594,6 +587,29 @@ servePost(async (req, ctx) => {
               }
             }
             return json({ state: "open", traceId: ctx.traceId }, 200);
+          };
+          const goStatus = await getGoInstanceStatus(instanceToken, deps, goTarget, ctx.traceId);
+          if (goStatus.loggedIn) return await respondOpen();
+          // A 2xx from /instance/qr WITHOUT a Qrcode is "pending" (the QR event
+          // has not arrived yet — /instance/connect is async), NEVER "paired":
+          // reading it as open flipped the dialog to "Conectado" with no scan
+          // and poisoned status='connected' (incident 2026-07-06). Retry
+          // briefly, re-checking LoggedIn between attempts, then fail honestly
+          // — the account row must NOT be marked connected on this path.
+          let qr = await getGoInstanceQr(instanceToken, deps, goTarget, ctx.traceId);
+          for (let attempt = 0; qr.state === "pending" && attempt < 3; attempt++) {
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+            const recheck = await getGoInstanceStatus(instanceToken, deps, goTarget, ctx.traceId);
+            if (recheck.loggedIn) return await respondOpen();
+            qr = await getGoInstanceQr(instanceToken, deps, goTarget, ctx.traceId);
+          }
+          if (qr.state !== "qr") {
+            throw new WhatsAppProviderError(
+              "QR_UNAVAILABLE",
+              503,
+              "O servidor não gerou o QR code desta instância — reinicie a instância e tente novamente",
+              { endpoint: "/instance/qr", reason: "pending_after_retries" },
+            );
           }
           await markDisconnected(admin, account, actorId, "close");
           return json(

@@ -57,6 +57,19 @@ export function mapEvolutionGoError(
       details,
     );
   }
+  // GET /instance/qr answers 400 (after ~5s) when the instance cannot open a
+  // pairing channel (socket to WhatsApp down / QR event never arrived). The
+  // server DID answer — the generic 502 fallback blamed the URL/server ("fora
+  // do ar") for an instance-level pairing failure (incident 2026-07-06). A
+  // session-ish 400 ("already paired") stays on the DISCONNECTED path below.
+  if (endpoint === "/instance/qr" && httpStatus === 400 && !DISCONNECTED_PATTERN.test(message)) {
+    return new WhatsAppProviderError(
+      "QR_UNAVAILABLE",
+      503,
+      "O servidor não gerou o QR code desta instância — reinicie a instância e tente novamente",
+      details,
+    );
+  }
   if (DISCONNECTED_PATTERN.test(message)) {
     return new WhatsAppProviderError(
       "PROVIDER_DISCONNECTED",
