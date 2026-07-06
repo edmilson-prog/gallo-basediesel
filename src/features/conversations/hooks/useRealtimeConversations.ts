@@ -193,9 +193,19 @@ export function useRealtimeConversations(): IRealtimeState {
       bump,
       createCatchUpStatusHandler(bump),
     );
+    // Collaborator add/remove doesn't touch `conversations`, so without this a
+    // conversation only I collaborate on lingers in (or is missing from) my list
+    // until unrelated traffic ticks. RLS scopes delivery (cp_select); DELETE
+    // events need REPLICA IDENTITY FULL (migration 20260705200000).
+    const offParticipants = subscribeToTable(
+      "conversation_participants",
+      bump,
+      createCatchUpStatusHandler(bump),
+    );
     return () => {
       offMessages();
       offConversations();
+      offParticipants();
     };
   }, [enabled]);
 

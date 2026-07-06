@@ -34,6 +34,16 @@ export function describeEvent(
       }
       if (!event.toSellerId) return S.returnedToQueue;
       return S.eventAssignment;
+    case "participant_add":
+      // The collaborator lives in toSellerId; the actor (shown separately) is
+      // who invited them.
+      return S.participantAdded(sellerName(event.toSellerId, sellersById));
+    case "participant_remove":
+      // Self-removal (actor === the collaborator) reads "saiu da conversa";
+      // otherwise the actor removed someone else.
+      return event.actorId && event.actorId === event.toSellerId
+        ? S.participantLeft
+        : S.participantRemoved(sellerName(event.toSellerId, sellersById));
     default:
       return "";
   }

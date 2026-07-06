@@ -1,5 +1,5 @@
 import type { ID, IConversationParticipant } from "@/shared/types";
-import { getCurrentMockSellerId } from "./_emitConversationActivity";
+import { emitParticipantActivity, getCurrentMockSellerId } from "./_emitConversationActivity";
 import { notificationsApi } from "./notifications";
 import { runApi } from "./utils";
 
@@ -62,6 +62,9 @@ export const conversationParticipantsApi = {
       };
       PARTICIPANTS.push(participant);
 
+      // Mirror conversation_participant_activity_capture (attendance history).
+      emitParticipantActivity(conversationId, sellerId, "add");
+
       // Mirrors notify_conversation_participant_added: only the manual path
       // gets a fresh bell notification (mention adds ride the existing
       // note-mention notification instead — see useConversationNotes).
@@ -90,7 +93,11 @@ export const conversationParticipantsApi = {
       const idx = PARTICIPANTS.findIndex(
         (p) => p.conversationId === conversationId && p.sellerId === sellerId,
       );
-      if (idx >= 0) PARTICIPANTS.splice(idx, 1);
+      if (idx >= 0) {
+        PARTICIPANTS.splice(idx, 1);
+        // Mirror conversation_participant_activity_capture (attendance history).
+        emitParticipantActivity(conversationId, sellerId, "remove");
+      }
     });
   },
 };

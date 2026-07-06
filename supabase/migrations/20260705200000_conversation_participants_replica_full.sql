@@ -1,0 +1,12 @@
+-- Realtime propagation of collaborator REMOVAL.
+--
+-- Supabase Realtime evaluates RLS on a DELETE against the OLD row, and delivers
+-- the old row in the change payload. With the default replica identity (primary
+-- key only), the old row carries just the PK — so `cp_select` (which filters on
+-- `seller_id` / `conversation_id`) cannot be evaluated on delete and the event
+-- is dropped for every subscriber. Collaborator removals therefore never reach
+-- the inbox list or another viewer's ficha.
+--
+-- REPLICA IDENTITY FULL logs the whole old row, so DELETE events carry
+-- seller_id/conversation_id and RLS can scope delivery exactly like INSERT.
+alter table public.conversation_participants replica identity full;

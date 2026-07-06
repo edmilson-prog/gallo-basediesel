@@ -68,8 +68,16 @@ export interface IConversation {
   isCollaborator?: boolean;
 }
 
-/** Kind of attendance-lifecycle event (mirrors the SQL trigger derivation). */
-export type AttendanceActivityType = "created" | "status" | "assignment" | "reopen";
+/** Kind of attendance-lifecycle event (mirrors the SQL trigger derivation).
+ *  `participant_add`/`participant_remove` carry the collaborator in `toSellerId`
+ *  and who did it in `actorId` (see conversation_participant_activity_capture). */
+export type AttendanceActivityType =
+  | "created"
+  | "status"
+  | "assignment"
+  | "reopen"
+  | "participant_add"
+  | "participant_remove";
 
 /**
  * One append-only entry in a conversation's attendance history
