@@ -239,8 +239,8 @@ export const CONVERSATION_STRINGS = {
 
   // Empty states
   notFound: {
-    title: "Conversa não encontrada",
-    description: "Esta conversa não existe ou foi removida.",
+    title: "Conversa indisponível",
+    description: "Esta conversa não existe mais, foi removida ou você não tem mais acesso a ela.",
   },
   newConversation: {
     title: "Inicie a conversa",

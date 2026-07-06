@@ -196,6 +196,30 @@ responsável e o usuário logado).
 frágil — se **uma** delas é staff-only, o gate falha fechado para não-staff.
 Commit `faccca7c` (PR #241).
 
+### 5.5 Fix pós-go-live: 406 ao sair de uma conversa (auto-remoção)
+
+Um colaborador cujo **único** acesso à conversa era o vínculo de participante
+(não é o responsável, nem staff, nem dono da carteira) perde o acesso de leitura
+**no instante** em que se auto-remove. O `useConversationDetail` então refazia o
+fetch via `conversations.get`, que usava `.single()` → PostgREST **406** em 0
+linhas → a query `["conversation-detail", id]` ia a `error` → `useDataHealth`
+reportava o domínio **"Atendimento"** → **banner vermelho** `DataSourceBanner`
+"Não foi possível carregar". A remoção em si funcionava (a linha era deletada); o
+406 era só o efeito colateral.
+
+**Fix:** `conversations.get` passou de `.single()` para `.maybeSingle()` + um
+lançamento de "not found" explícito em 0 linhas — que o `useConversationDetail`
+**já** mapeia para o estado gracioso `notFound` (`ConversationPage` renderiza o
+`EmptyState` "Conversa indisponível · Voltar à inbox") em vez do erro/banner.
+Elimina também o 406 do console e cobre **qualquer** perda de acesso à conversa
+aberta (auto-remoção, devolução à fila por staff, transferência, remoção por
+outro). A copy do `notFound` foi ampliada para citar "você não tem mais acesso".
+Teste de regressão: `conversations.get.test.ts`. Commit `52b9f13d`.
+
+**Lição:** `.single()` transforma "0 linhas por RLS" num 406 tratado como erro
+duro; `.maybeSingle()` + not-found suave é o padrão para leituras escopadas por
+acesso que podem sumir sob os pés do usuário.
+
 ---
 
 ## 6. Decisões do dono (2026-07-05)
@@ -255,6 +279,7 @@ providers), `3b0d2909` (hook), `71e426ad` (detail), `6b378f2f` (menção),
 **Commits da revisão/correções:** `7967ee6d`, `45273f18`, `caca3cd9`,
 `4831d33d`, `fccd7302`, `d013a82a`, `aa53d2cb`, `23125596`, `9caa2681`.
 
-**Fix pós-go-live (§5.4):** `faccca7c` (PR #241).
+**Fixes pós-go-live:** `faccca7c` (PR #241, §5.4 — RLS dos candidatos);
+`52b9f13d` (§5.5 — 406 ao sair da conversa).
 
 **Arquivos-chave:** ver §2. **Regressão de RLS:** `supabase/tests/rls-regression.sql`.
