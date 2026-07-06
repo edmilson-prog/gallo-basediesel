@@ -50,6 +50,7 @@ import {
   logoutGoInstance,
   restartGoInstance,
   deleteGoInstance,
+  type IGoQrResult,
 } from "../_shared/whatsapp/evolution-go/instance.ts";
 import { resolveGoServer } from "./goServer.ts";
 
@@ -590,25 +591,46 @@ servePost(async (req, ctx) => {
           };
           const goStatus = await getGoInstanceStatus(instanceToken, deps, goTarget, ctx.traceId);
           if (goStatus.loggedIn) return await respondOpen();
-          // A 2xx from /instance/qr WITHOUT a Qrcode is "pending" (the QR event
-          // has not arrived yet — /instance/connect is async), NEVER "paired":
-          // reading it as open flipped the dialog to "Conectado" with no scan
-          // and poisoned status='connected' (incident 2026-07-06). Retry
-          // briefly, re-checking LoggedIn between attempts, then fail honestly
-          // — the account row must NOT be marked connected on this path.
-          let qr = await getGoInstanceQr(instanceToken, deps, goTarget, ctx.traceId);
-          for (let attempt = 0; qr.state === "pending" && attempt < 3; attempt++) {
-            await new Promise((resolve) => setTimeout(resolve, 1500));
-            const recheck = await getGoInstanceStatus(instanceToken, deps, goTarget, ctx.traceId);
-            if (recheck.loggedIn) return await respondOpen();
-            qr = await getGoInstanceQr(instanceToken, deps, goTarget, ctx.traceId);
+          // A 2xx from /instance/qr WITHOUT a Qrcode is "pending" (no active
+          // pairing channel), NEVER "paired": reading it as open flipped the
+          // dialog to "Conectado" with no scan (incident 2026-07-06). The Go
+          // server only streams QR codes for ~2 min after a client (re)connect
+          // — past that window /instance/qr answers empty forever, and
+          // /instance/connect on an already-up socket does NOT reopen the
+          // channel. So when the QR is pending/unavailable, force ONE client
+          // reconnect (the remedy the UI used to ask the user to do by hand)
+          // and poll briefly; then fail honestly — the account row must NOT
+          // be marked connected on this path.
+          const tryQr = async (): Promise<IGoQrResult | null> => {
+            try {
+              return await getGoInstanceQr(instanceToken, deps, goTarget, ctx.traceId);
+            } catch (err) {
+              // 400 = pairing channel down (socket dialing/unreachable) —
+              // retryable within this action's budget; anything else propagates.
+              if (err instanceof WhatsAppProviderError && err.code === "QR_UNAVAILABLE") return null;
+              throw err;
+            }
+          };
+          let qr = await tryQr();
+          if (qr?.state !== "qr") {
+            ctx.log.info("qr channel closed — forcing client reconnect", { instanceId });
+            await restartGoInstance(instanceToken, deps, goTarget, ctx.traceId);
+            let failedProbes = 0;
+            for (let attempt = 0; attempt < 5 && failedProbes < 2; attempt++) {
+              await new Promise((resolve) => setTimeout(resolve, 1500));
+              const recheck = await getGoInstanceStatus(instanceToken, deps, goTarget, ctx.traceId);
+              if (recheck.loggedIn) return await respondOpen();
+              qr = await tryQr();
+              if (qr?.state === "qr") break;
+              if (qr === null) failedProbes++;
+            }
           }
-          if (qr.state !== "qr") {
+          if (qr?.state !== "qr") {
             throw new WhatsAppProviderError(
               "QR_UNAVAILABLE",
               503,
               "O servidor não gerou o QR code desta instância — reinicie a instância e tente novamente",
-              { endpoint: "/instance/qr", reason: "pending_after_retries" },
+              { endpoint: "/instance/qr", reason: "no_qr_after_reconnect" },
             );
           }
           await markDisconnected(admin, account, actorId, "close");
