@@ -4,6 +4,14 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.134.1] — Ensemble · 2026-07-05
+
+**Correção: os colegas voltam a aparecer na lista de "Adicionar colaborador" quando quem convida não é gestor.** Um vendedor responsável por uma conversa via o aviso "Nenhum vendedor com acesso a este número está disponível para convidar", mesmo existindo colegas com acesso ao número — porque a lista de convidados ficava vazia para quem não é gestor/dono. Agora a lista aparece corretamente para o responsável, independentemente do cargo.
+
+### Fixed
+
+- O dialog "Adicionar colaborador" deixava de listar vendedores quando o responsável pela conversa não era gestor/dono, exibindo indevidamente a mensagem de "nenhum vendedor disponível". A leitura das regras de acesso por número passou a ser permitida para vendedores da mesma loja (a edição continua restrita a gestores), então a lista de convidáveis volta a aparecer para o responsável.
+
 ## [0.134.0] — Ensemble · 2026-07-05
 
 **Agora vários atendentes podem colaborar na mesma conversa, sem mudar de quem é o cliente.** O responsável pela conversa (ou um gestor) pode convidar colegas para ajudarem em um atendimento específico: os convidados passam a ver e responder aquela conversa, mesmo que ela não seja da carteira deles — e a carteira do cliente continua intacta. Quem está com a conversa aberta naquele momento aparece com um ponto verde ao vivo, e um aviso mostra na hora quando você é adicionado, com o nome de quem convidou. As conversas em que você colabora ganham uma etiqueta "Colaborando", e a busca por conteúdo de mensagens também passa a encontrá-las.
