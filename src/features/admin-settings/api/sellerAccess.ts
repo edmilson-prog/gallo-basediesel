@@ -128,6 +128,19 @@ export async function resetSellerPassword(sellerId: string, password: string): P
 }
 
 /**
+ * Syncs a seller's platform login e-mail (`auth.users.email`) via the
+ * `set-seller-email` function. `sellers.email` (contact data) is written
+ * separately by the regular provider update — this only applies when the
+ * seller already has platform access, keeping the login credential in step.
+ */
+export async function setSellerEmail(sellerId: string, email: string): Promise<void> {
+  const { error } = await getSupabaseClient().functions.invoke("set-seller-email", {
+    body: { sellerId, email },
+  });
+  if (error) throw new Error(await extractFunctionError(error));
+}
+
+/**
  * Assigns a role to a seller via the `set-seller-role` function. `roleId` is a
  * `roles.id` (system, e.g. "Vendedor", or custom, e.g. "role-<uuid>"); the
  * server derives the base role and pins the custom override. Owner-only; the new
