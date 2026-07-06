@@ -4,6 +4,14 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.134.2] — Ensemble · 2026-07-05
+
+**Correção: sair de uma conversa em que você só colabora não mostra mais um erro.** Quando um colaborador saía de uma conversa que não era dele, aparecia um aviso vermelho de "Não foi possível carregar" — apesar de a saída ter funcionado. Agora, ao sair (ou sempre que você deixa de ter acesso a uma conversa aberta), a tela mostra um aviso tranquilo de "Conversa indisponível" com um botão para voltar à lista, sem erro.
+
+### Fixed
+
+- Sair de uma conversa em que você apenas colabora deixou de exibir o banner de erro "Não foi possível carregar: Atendimento". Ao perder o acesso à conversa aberta (saída como colaborador, devolução à fila, transferência), a tela agora mostra um estado tranquilo de "Conversa indisponível · Voltar à inbox" em vez de um erro.
+
 ## [0.134.1] — Ensemble · 2026-07-05
 
 **Correção: os colegas voltam a aparecer na lista de "Adicionar colaborador" quando quem convida não é gestor.** Um vendedor responsável por uma conversa via o aviso "Nenhum vendedor com acesso a este número está disponível para convidar", mesmo existindo colegas com acesso ao número — porque a lista de convidados ficava vazia para quem não é gestor/dono. Agora a lista aparece corretamente para o responsável, independentemente do cargo.
