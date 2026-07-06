@@ -4,6 +4,14 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.135.1] — Ripple · 2026-07-06
+
+**Correção: conversas resolvidas antigas que continuavam com um atendente responsável agora estão realmente disponíveis para qualquer um assumir.** Um pequeno grupo de conversas marcadas como resolvidas antes de uma correção anterior continuava mostrando o mesmo atendente como responsável, mesmo já estando fora da fila — impedindo que outro atendente pudesse assumir aquele contato. Essas conversas foram corrigidas e já estão liberadas.
+
+### Fixed
+
+- Conversas resolvidas encerradas antes da correção que zera o responsável ao concluir o atendimento tiveram o vendedor responsável removido, ficando disponíveis para qualquer atendente assumir — igual ao que já acontecia com as conversas arquivadas.
+
 ## [0.135.0] — Ripple · 2026-07-05
 
 **Entrar e sair de uma conversa como colaborador agora atualiza tudo na hora — a lista, a ficha e o histórico.** Quando um colaborador sai de uma conversa, o card some imediatamente da lista dele; o responsável (e qualquer um vendo a conversa) deixa de ver o colaborador na ficha na mesma hora; e o histórico de atendimento passa a registrar quem entrou e quem saiu, com quem convidou.
