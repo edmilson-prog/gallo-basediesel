@@ -282,26 +282,39 @@ O gate de instância na @menção e a exclusão do próprio usuário vivem em en
 
 ## 8. Validação e gates
 
-- **Testes:** 1601 Vitest verdes (14 novos na rodada de correções).
+- **Testes:** 1607 Vitest verdes (14 na rodada de revisão + novos nos fixes
+  §5.5/§5.6).
 - **Build:** `bun run build` ok; sem novos erros de `tsc` nos arquivos tocados.
-- **Migrations:** 7 aplicadas e verificadas em prod (2 follow-up + 1 fix
-  pós-go-live #241, §5.4).
-- **PR #239:** MERGEADO na `main` (merge commit `9cd34695`) → release
-  **v0.134.0 Ensemble** (PR #240). Fix pós-go-live no **PR #241**.
+- **Migrations:** 9 aplicadas e verificadas em prod (2 follow-up da revisão + 3
+  fixes pós-go-live: §5.4 `...190000`, §5.6 `...200000`/`...210000`).
+- **Releases:**
+  - **PR #239** MERGEADO na `main` (`9cd34695`) → **v0.134.0 Ensemble** (PR #240).
+  - §5.4 — **PR #241** (`4f1be8b2`) → **v0.134.1 Ensemble** (PR #242, `55aa5be9`).
+  - §5.5 — **PR #243** (`c7ecb35a`) → **v0.134.2 Ensemble** (PR #244, `90578f64`).
+  - §5.6 — **PR #245** (`e431c192`) → **v0.135.0 Ripple** (PR #246, `5183958f`).
 
 **Pendências (com o dono):**
-1. **Smoke** dos fluxos (convite, remoção, @menção, card, sino com nome real,
-   dot de presença no responsável, lista completa de colaboradores, tag
-   "Colaborando", busca por mensagem achando colaborações). Incluir o fix §5.4:
-   como responsável **não-staff**, abrir "Adicionar colaborador" e confirmar que
-   a lista de vendedores aparece (recarregar a página primeiro).
+1. **Smoke** dos fluxos base (convite, remoção, @menção, card, sino com nome
+   real, dot de presença no responsável, lista completa de colaboradores, tag
+   "Colaborando", busca por mensagem achando colaborações).
+2. **Smoke do §5.4:** como responsável **não-staff**, abrir "Adicionar
+   colaborador" e confirmar que a lista de vendedores aparece (recarregar a
+   página primeiro).
+3. **Smoke do §5.5:** como colaborador cujo único acesso é o vínculo, **sair da
+   conversa** → estado gracioso "Conversa indisponível · Voltar à inbox" (sem
+   banner vermelho de erro nem 406 no console).
+4. **Smoke do §5.6:** ao um colaborador sair — (a) o card **some da lista dele**
+   na hora; (b) a **ficha do responsável** (com a conversa aberta) perde o
+   colaborador ao vivo; (c) o **Histórico de atendimento** mostra "adicionou X
+   como colaborador" e "X saiu da conversa".
 
 ---
 
 ## 9. Referências rápidas
 
 **Migrations:** `20260704120000`, `...120100`, `...120200`, `20260705090000`,
-`20260705170000`, `20260705180000`, `20260705190000` (+ base `20260615130200`).
+`20260705170000`, `20260705180000`, `20260705190000`, `20260705200000`,
+`20260705210000` (+ base `20260615130200`).
 
 **Commits da feature (originais):** `4635a5cd` (split RLS), `f37da330` (notify),
 `6fb7d2c7` (Inbox), `d97c7386`/`e8bed687`/`79f8f85f`/`00512150` (tipos+contrato+
