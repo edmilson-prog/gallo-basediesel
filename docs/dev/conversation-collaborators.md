@@ -103,7 +103,8 @@ próxima rodada de colaboração começa vazia.
 
 Todas versionadas em `supabase/migrations/` e **aplicadas em produção**
 (`njizaasajkdqptlxddqn`). As 4 primeiras foram aplicadas em 2026-07-05 antes da
-revisão; as 2 follow-up depois da revisão/decisões.
+revisão; as 2 follow-up depois da revisão/decisões; a 7ª é um **fix pós-go-live**
+(feature já em prod na v0.134.0 — ver §5.4).
 
 | Arquivo | O que faz |
 |---|---|
@@ -114,6 +115,7 @@ revisão; as 2 follow-up depois da revisão/decisões.
 | `20260705090000_list_conversations_rpc.sql` | RPC `list_conversations` (lista rápida do Inbox ciente de colaborador; `.or()` do PostgREST não expressa o EXISTS). |
 | **`20260705170000_conversation_collaborators_followups.sql`** | **(follow-up da revisão)** (a) publica `conversation_participants` no `supabase_realtime`; (b) trigger `set_conversation_participant_added_by` preenche `added_by`; (c) guarda de auto-adição no `notify`; (d) `search_conversation_messages` ganha braço de colaborador + `is_collaborator`. |
 | **`20260705180000_cp_select_co_participants.sql`** | **(decisão do dono)** `cp_select` ganha braço `is_conversation_participant(conversation_id)` — colaborador vê os co-participantes. |
+| **`20260705190000_waar_select_same_store.sql`** | **(fix pós-go-live)** Divide `waar_staff_all` de `whatsapp_account_access_rules` em `waar_select` (SELECT same-store) + `waar_write` (escrita staff-only). Sem isso, o responsável não-staff lia `[]` das regras e o dialog zerava os candidatos. Ver §5.4. |
 
 ---
 
@@ -161,6 +163,39 @@ elegibilidade corretamente não encontra candidatos. O dialog agora **explica o
 motivo** e aponta para Configurações → WhatsApp (commit `7967ee6d`). Para
 liberar amplamente: ligar aquele toggle **ou** conceder acesso por número.
 
+### 5.4 Fix pós-go-live: candidatos vazios para responsável não-staff (v0.134.0, 2026-07-05)
+
+**Sintoma parecido com o §5.3, causa diferente.** Já em produção (v0.134.0), o
+dialog mostrava *"Nenhum vendedor com acesso a este número está disponível para
+convidar"* numa conversa cujo **responsável não é staff** (ex.: Tiago), apesar de
+existirem candidatos válidos.
+
+**Causa raiz:** o `AddCollaboratorDialog` resolve os candidatos **no cliente**,
+lendo 3 tabelas — `sellers` (same-store ✅), `stores.settings` (same-store ✅,
+`participantCrossInstance=false`) e **`whatsapp_account_access_rules`**. Essa
+última tinha uma única policy RLS **`waar_staff_all` (`ALL`, `is_staff()`)** →
+**só staff lia as regras**. O responsável não-staff — que *pode* convidar via
+`cp_insert`/`canManageCollaborators` — lia `[]`, então `passesInstanceGate` →
+`resolveAccessRecipients([], …)` devolvia conjunto vazio e **filtrava todos** os
+candidatos. O gate falhava "fechado".
+
+**Fix:** migration `20260705190000_waar_select_same_store.sql` divide a policy —
+`waar_select` (SELECT para autenticado da mesma loja; regras de acesso são config
+interna de roteamento, mesma sensibilidade da lista de vendedores já legível
+same-store) + `waar_write` (INSERT/UPDATE/DELETE staff-only, inalterado). **Zero
+frontend** → vale em prod sem redeploy (basta recarregar a página, pois o React
+Query cacheia a lista por 5 min).
+
+**Verificação (simulação RLS real):** com `set local role authenticated` + claims
+de vendedor não-staff da loja → `is_staff=false`, `store` correta e **8 regras
+visíveis** da instância (antes: 0). Dado de prod: a instância "Vendas" tem 8
+regras `seller` (uma por vendedor ativo), então a lista fica cheia (todos menos o
+responsável e o usuário logado).
+
+**Lição:** reimplementar um gate de acesso **no cliente** lendo N tabelas RLS é
+frágil — se **uma** delas é staff-only, o gate falha fechado para não-staff.
+Commit `faccca7c` (PR #241).
+
 ---
 
 ## 6. Decisões do dono (2026-07-05)
@@ -190,28 +225,26 @@ O gate de instância na @menção e a exclusão do próprio usuário vivem em en
 
 ## 8. Validação e gates
 
-- **Testes:** 1601 Vitest verdes (14 novos nesta rodada de correções).
+- **Testes:** 1601 Vitest verdes (14 novos na rodada de correções).
 - **Build:** `bun run build` ok; sem novos erros de `tsc` nos arquivos tocados.
-- **Migrations:** 6 da feature (2 follow-up) aplicadas e verificadas em prod.
-- **PR #239:** MERGEABLE (conflito do doc de plano resolvido mantendo a versão da
-  branch).
+- **Migrations:** 7 aplicadas e verificadas em prod (2 follow-up + 1 fix
+  pós-go-live #241, §5.4).
+- **PR #239:** MERGEADO na `main` (merge commit `9cd34695`) → release
+  **v0.134.0 Ensemble** (PR #240). Fix pós-go-live no **PR #241**.
 
 **Pendências (com o dono):**
 1. **Smoke** dos fluxos (convite, remoção, @menção, card, sino com nome real,
    dot de presença no responsável, lista completa de colaboradores, tag
-   "Colaborando", busca por mensagem achando colaborações).
-2. **Merge do PR #239** (o agente não mergeia sem OK).
-
-O código de produção só passa a exercitar tudo isso após o merge + deploy do
-Vercel; as migrations já estão no banco e são **aditivas** (não quebram o app
-atual até lá).
+   "Colaborando", busca por mensagem achando colaborações). Incluir o fix §5.4:
+   como responsável **não-staff**, abrir "Adicionar colaborador" e confirmar que
+   a lista de vendedores aparece (recarregar a página primeiro).
 
 ---
 
 ## 9. Referências rápidas
 
 **Migrations:** `20260704120000`, `...120100`, `...120200`, `20260705090000`,
-`20260705170000`, `20260705180000` (+ base `20260615130200`).
+`20260705170000`, `20260705180000`, `20260705190000` (+ base `20260615130200`).
 
 **Commits da feature (originais):** `4635a5cd` (split RLS), `f37da330` (notify),
 `6fb7d2c7` (Inbox), `d97c7386`/`e8bed687`/`79f8f85f`/`00512150` (tipos+contrato+
@@ -221,5 +254,7 @@ providers), `3b0d2909` (hook), `71e426ad` (detail), `6b378f2f` (menção),
 
 **Commits da revisão/correções:** `7967ee6d`, `45273f18`, `caca3cd9`,
 `4831d33d`, `fccd7302`, `d013a82a`, `aa53d2cb`, `23125596`, `9caa2681`.
+
+**Fix pós-go-live (§5.4):** `faccca7c` (PR #241).
 
 **Arquivos-chave:** ver §2. **Regressão de RLS:** `supabase/tests/rls-regression.sql`.
