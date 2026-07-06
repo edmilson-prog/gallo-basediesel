@@ -37,6 +37,7 @@ import { SessionOverrideSection } from "@/features/session-timeout";
 import type { ISessionTimeoutSettings } from "@/shared/types";
 import { useAuth } from "@/features/auth/useAuth";
 import { recordAuditLogSync, useDepartmentsProvider, useSellersProvider } from "@/providers/data";
+import { setSellerEmail } from "../api/sellerAccess";
 import {
   SELLER_TYPE_OPTIONS,
   sellerFormSchema,
@@ -141,6 +142,9 @@ export function SellerFormDialog({
     isEdit &&
     hasAccess &&
     watchedEmail.trim().toLowerCase() !== (seller?.email ?? "").toLowerCase();
+  // Self-editing goes through "Meu perfil" instead — set-seller-email refuses
+  // the caller's own e-mail, so this dialog never attempts the sync for it.
+  const isSelfEdit = isEdit && seller?.id === (currentUser?.sellerId ?? currentUser?.id);
 
   const mutation = useMutation({
     mutationFn: async (values: SellerFormValues) => {
@@ -207,9 +211,23 @@ export function SellerFormDialog({
             after: { sessionTimeoutOverride: sessionOverride },
           });
         }
-        return saved;
+        // The login e-mail (auth.users) is a separate, privileged sync — only
+        // attempted when the target already has platform access and isn't the
+        // caller themselves (self-service lives at "Meu perfil").
+        let emailSyncError: string | undefined;
+        if (emailChanged && !isSelfEdit) {
+          try {
+            await setSellerEmail(seller.id, values.email);
+          } catch (err) {
+            emailSyncError =
+              err instanceof Error
+                ? err.message
+                : "Não foi possível sincronizar o e-mail de login.";
+          }
+        }
+        return { seller: saved, emailSyncError };
       }
-      return provider.create({
+      const created = await provider.create({
         storeId,
         fullName: values.fullName,
         email: values.email,
@@ -219,8 +237,9 @@ export function SellerFormDialog({
         attendantName: values.attendantName?.trim() || undefined,
         departmentId,
       });
+      return { seller: created, emailSyncError: undefined };
     },
-    onSuccess: async (saved) => {
+    onSuccess: async ({ seller: saved, emailSyncError }) => {
       toast.success(
         isEdit ? `Dados de ${saved.fullName} atualizados.` : `${saved.fullName} cadastrado(a).`,
         {
@@ -229,6 +248,11 @@ export function SellerFormDialog({
             : `Use “Criar acesso” quando quiser liberar o login na plataforma.`,
         },
       );
+      if (emailSyncError) {
+        toast.error("E-mail de contato salvo, mas o e-mail de login não foi sincronizado", {
+          description: emailSyncError,
+        });
+      }
       await queryClient.invalidateQueries({ queryKey: ["sellers", storeId] });
       // Refresh single-seller caches so the attendant signature updates live.
       await queryClient.invalidateQueries({ queryKey: ["seller"] });
@@ -351,8 +375,9 @@ export function SellerFormDialog({
                                 size={14}
                                 className="mt-0.5 shrink-0"
                               />
-                              O acesso continua pelo e-mail antigo. O e-mail de login não é
-                              alterado.
+                              {isSelfEdit
+                                ? "Este é o seu próprio usuário — o e-mail de login não é alterado por aqui. Use “Meu perfil” para isso."
+                                : "O e-mail de login também será atualizado ao salvar."}
                             </p>
                           )}
                           <FormMessage />
