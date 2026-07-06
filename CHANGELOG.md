@@ -4,6 +4,18 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.135.0] — Ripple · 2026-07-05
+
+**Entrar e sair de uma conversa como colaborador agora atualiza tudo na hora — a lista, a ficha e o histórico.** Quando um colaborador sai de uma conversa, o card some imediatamente da lista dele; o responsável (e qualquer um vendo a conversa) deixa de ver o colaborador na ficha na mesma hora; e o histórico de atendimento passa a registrar quem entrou e quem saiu, com quem convidou.
+
+### Added
+
+- **Histórico de entrada e saída de colaboradores:** a linha do tempo do atendimento agora registra "Fulano adicionou Beltrano como colaborador", "removeu Beltrano da conversa" e "saiu da conversa", junto dos demais eventos.
+
+### Changed
+
+- **Atualização em tempo real dos colaboradores:** ao adicionar ou remover um colaborador, a lista de conversas e a ficha do atendimento passam a refletir a mudança imediatamente, para todos que estão vendo a conversa — sem precisar recarregar.
+
 ## [0.134.2] — Ensemble · 2026-07-05
 
 **Correção: sair de uma conversa em que você só colabora não mostra mais um erro.** Quando um colaborador saía de uma conversa que não era dele, aparecia um aviso vermelho de "Não foi possível carregar" — apesar de a saída ter funcionado. Agora, ao sair (ou sempre que você deixa de ter acesso a uma conversa aberta), a tela mostra um aviso tranquilo de "Conversa indisponível" com um botão para voltar à lista, sem erro.
