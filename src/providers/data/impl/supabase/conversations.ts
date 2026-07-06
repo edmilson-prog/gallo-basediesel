@@ -406,8 +406,15 @@ export const supabaseConversationsProvider: IConversationsProvider = {
       .from(TABLE)
       .select(COLUMNS)
       .eq("id", id)
-      .single();
+      .maybeSingle();
     if (error) throw new Error(`[supabase] conversations.get(${id}) failed: ${error.message}`);
+    // No accessible row → RLS forbids it (e.g. a collaborator right after
+    // self-removing) or it simply doesn't exist. `.maybeSingle()` returns
+    // {data:null,error:null} here — no 406 — and we raise a soft "not found"
+    // that useConversationDetail's /not found/i branch maps to the graceful
+    // "voltar ao Atendimento" empty state, instead of the hard/retryable error
+    // banner that `.single()`'s 406 produced.
+    if (!data) throw new Error(`[supabase] conversations.get(${id}): conversation not found`);
     return rowToConversation(data as ConversationRow);
   },
 
