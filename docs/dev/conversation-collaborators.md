@@ -116,6 +116,8 @@ revisão; as 2 follow-up depois da revisão/decisões; a 7ª é um **fix pós-go
 | **`20260705170000_conversation_collaborators_followups.sql`** | **(follow-up da revisão)** (a) publica `conversation_participants` no `supabase_realtime`; (b) trigger `set_conversation_participant_added_by` preenche `added_by`; (c) guarda de auto-adição no `notify`; (d) `search_conversation_messages` ganha braço de colaborador + `is_collaborator`. |
 | **`20260705180000_cp_select_co_participants.sql`** | **(decisão do dono)** `cp_select` ganha braço `is_conversation_participant(conversation_id)` — colaborador vê os co-participantes. |
 | **`20260705190000_waar_select_same_store.sql`** | **(fix pós-go-live)** Divide `waar_staff_all` de `whatsapp_account_access_rules` em `waar_select` (SELECT same-store) + `waar_write` (escrita staff-only). Sem isso, o responsável não-staff lia `[]` das regras e o dialog zerava os candidatos. Ver §5.4. |
+| **`20260705200000_conversation_participants_replica_full.sql`** | **(fix pós-go-live)** `conversation_participants` → `REPLICA IDENTITY FULL`, para eventos de **DELETE** chegarem sob RLS via Realtime (propagação de remoção). Ver §5.6. |
+| **`20260705210000_conversation_activity_participants.sql`** | **(fix pós-go-live)** Estende `conversation_activity.type` com `participant_add`/`participant_remove` + trigger em `conversation_participants` (grava no histórico; pula o close-clear). Ver §5.6. |
 
 ---
 
@@ -220,6 +222,37 @@ Teste de regressão: `conversations.get.test.ts`. Commit `52b9f13d`.
 duro; `.maybeSingle()` + not-found suave é o padrão para leituras escopadas por
 acesso que podem sumir sob os pés do usuário.
 
+### 5.6 Fix pós-go-live: propagação de add/remove de participante (lista, ficha, histórico)
+
+Depois que um colaborador **saía**, três coisas não se atualizavam:
+
+1. **A lista do próprio colaborador** ainda mostrava o card. A lista
+   (`useConversationsList`) só rehidrata no `tick` do `useRealtimeConversations`,
+   que assinava `messages`+`conversations` — não `conversation_participants`.
+   Sair não muda nenhuma das duas → card fica. **Fix:** +1 subscription em
+   `conversation_participants` no `useRealtimeConversations` (bump do tick).
+2. **A ficha de outros que viam a conversa** (o responsável) ainda listava o
+   colaborador. Havia realtime só de **INSERT** (o card "você foi adicionado"),
+   nenhum de remoção. **Fix:** `useRealtimeConversationParticipants(conversationId)`
+   montado na `ConversationPage` invalida `["conversation-detail", id]` em
+   qualquer mudança de participante da conversa aberta.
+3. **O histórico** não registrava entra/sai. **Fix:** trigger
+   `conversation_participant_activity_capture` em `conversation_participants`
+   grava `participant_add`/`participant_remove` em `conversation_activity`
+   (colaborador em `to_seller_id`, autor em `actor_id`), **pulando o close-clear**
+   (status terminal — o encerramento já é seu próprio nó). Render:
+   "adicionou X como colaborador" / "removeu X da conversa" / "saiu da conversa";
+   o `summarize` do timeline **exclui** eventos de participante do cálculo do dono
+   (um colaborador não é o assignee). Paridade mock via `emitParticipantActivity`.
+
+Detalhe de infra: eventos de **DELETE** via Realtime precisam do old-row
+completo para a RLS (`cp_select` filtra por `seller_id`/`conversation_id`), então
+`conversation_participants` passou a `REPLICA IDENTITY FULL`
+(migration `20260705200000`). Commit `4275e9b3`.
+
+**Lição:** propagação por Realtime de **remoções** exige `REPLICA IDENTITY FULL`
+(o default só loga a PK → a RLS não avalia o old row → o DELETE é descartado).
+
 ---
 
 ## 6. Decisões do dono (2026-07-05)
@@ -280,6 +313,7 @@ providers), `3b0d2909` (hook), `71e426ad` (detail), `6b378f2f` (menção),
 `4831d33d`, `fccd7302`, `d013a82a`, `aa53d2cb`, `23125596`, `9caa2681`.
 
 **Fixes pós-go-live:** `faccca7c` (PR #241, §5.4 — RLS dos candidatos);
-`52b9f13d` (§5.5 — 406 ao sair da conversa).
+`52b9f13d` (§5.5 — 406 ao sair da conversa); `4275e9b3` (§5.6 — propagação de
+participantes: lista, ficha, histórico; migrations `...200000`/`...210000`).
 
 **Arquivos-chave:** ver §2. **Regressão de RLS:** `supabase/tests/rls-regression.sql`.
