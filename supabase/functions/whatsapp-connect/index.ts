@@ -629,7 +629,7 @@ servePost(async (req, ctx) => {
             throw new WhatsAppProviderError(
               "QR_UNAVAILABLE",
               503,
-              "O servidor não gerou o QR code desta instância — reinicie a instância e tente novamente",
+              "O servidor não gerou o QR code desta instância — aguarde alguns segundos e tente novamente",
               { endpoint: "/instance/qr", reason: "no_qr_after_reconnect" },
             );
           }
