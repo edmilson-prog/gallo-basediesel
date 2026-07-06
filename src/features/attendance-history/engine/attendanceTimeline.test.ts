@@ -54,6 +54,21 @@ describe("buildAttendanceTimeline", () => {
     expect(timeline[0]!.nodes.map((n) => n.event.id)).toEqual(["e2", "e3", "e1"]);
   });
 
+  it("participant add/remove never move the conversation's final owner", () => {
+    // Owner acquired by seller A; a collaborator (seller B) joins then leaves.
+    // A collaborator is NOT the assignee, so B must never become finalSellerId.
+    const events = [
+      event({ id: "e1", type: "created", toSellerId: "seller-A", createdAt: "2026-07-01T10:00:00.000Z" }),
+      event({ id: "e2", type: "assignment", fromSellerId: null, toSellerId: "seller-A", actorId: "seller-A", actorKind: "seller", createdAt: "2026-07-01T10:05:00.000Z" }),
+      event({ id: "e3", type: "participant_add", toSellerId: "seller-B", actorId: "seller-A", actorKind: "seller", createdAt: "2026-07-01T10:10:00.000Z" }),
+      event({ id: "e4", type: "participant_remove", toSellerId: "seller-B", actorId: "seller-B", actorKind: "seller", createdAt: "2026-07-01T10:20:00.000Z" }),
+    ];
+    const summary = buildAttendanceTimeline(events)[0]!.summary;
+    expect(summary.finalSellerId).toBe("seller-A");
+    expect(summary.transferCount).toBe(0);
+    expect(summary.eventCount).toBe(4);
+  });
+
   it("computes duration to next node in the same conversation; last node has null duration", () => {
     const events = [
       event({ id: "e1", conversationId: "conv-1", createdAt: "2026-07-01T10:00:00.000Z" }),

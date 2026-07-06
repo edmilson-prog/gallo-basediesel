@@ -91,13 +91,17 @@ function summarize(sortedEvents: IConversationActivityEvent[]): ITimelineSummary
   let hasOwner = false;
 
   for (const event of sortedEvents) {
-    // Any event carrying an owner delta (not just `assignment` rows) updates the
-    // final owner — a `status` row can drop the owner too (e.g. a CLOSE event
-    // clearing `toSellerId` alongside the status change). No-op events (no
-    // seller change) have both `fromSellerId` and `toSellerId` set to `null`
-    // by the engine, so require at least one side to be non-null to count as
-    // a real delta.
-    if (event.fromSellerId != null || event.toSellerId != null) {
+    // Participant add/remove carry the COLLABORATOR in toSellerId, not an owner
+    // delta — they must never move the conversation's final owner (a collaborator
+    // is not the assignee). Owner tracking is for created/status/assignment/reopen.
+    const isParticipantEvent =
+      event.type === "participant_add" || event.type === "participant_remove";
+    // Any owner-bearing event (not just `assignment` rows) updates the final
+    // owner — a `status` row can drop the owner too (e.g. a CLOSE event clearing
+    // `toSellerId` alongside the status change). No-op events (no seller change)
+    // have both `fromSellerId` and `toSellerId` null, so require at least one
+    // side to be non-null to count as a real delta.
+    if (!isParticipantEvent && (event.fromSellerId != null || event.toSellerId != null)) {
       finalSellerId = event.toSellerId ?? null;
     }
     if (event.type === "assignment" && event.toSellerId) {
