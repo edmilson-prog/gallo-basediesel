@@ -212,3 +212,32 @@ de erro ficou reservado para "replace falhou com lista vazia"; falhas de
 background mantêm a lista stale e vão para o Sentry; primeira carga tem 1
 retry; `hasMore` deriva de página cheia; um token de geração descarta
 respostas órfãs de filtros antigos.
+
+## sdr_sessions + RPCs de busca (2026-07-07 — fix do statement timeout)
+
+Incidente: storm de `statement_timeout` (~25 min) com 500 em
+`sdr_sessions`, `conversations` (fila) e `search_conversations` para
+não-staff. Causa: o mesmo anti-padrão "double RLS" da listagem — as policies
+de `sdr_sessions` faziam `conversation_id IN (SELECT id FROM conversations
+WHERE store_id = ...)`, e o subselect roda SOB a RLS de `conversations`,
+reavaliando `can_access_conversation(id)` para a tabela INTEIRA (~2,6k
+chamadas; 7,0s por SELECT). `search_conversations` e
+`search_conversation_messages` chamavam a função por linha (24,6s). Fix na
+migration `20260707140000_sdr_search_rls_gated_once.sql`: policies de
+`sdr_sessions` viram `can_access_conversation(conversation_id)` direto
+(gated-once por linha da própria tabela; semântica idêntica provada em prod
+— diferença simétrica zero em 5 personas) e as 2 RPCs de busca ganham o
+predicado inline + `acc as materialized` (7,0s→1,1s e 24,6s→0,47s).
+
+⚠️ **Cópias inline do predicado de acesso.** A lógica de
+`can_access_conversation` vive verbatim em **4 objetos**: a própria função,
+`count_conversations`, `search_conversations` e
+`search_conversation_messages`. Mudou um ramo da função canônica ⇒ atualizar
+as 3 RPCs na mesma migration, ou a visibilidade diverge silenciosamente
+entre count, lista e buscas (paridade verificável comparando, para uma
+persona não-staff, o conjunto fn-por-linha vs o retorno das RPCs).
+
+Follow-ups registrados (mesma classe, bounded, sem risco de timeout hoje):
+policies de `vehicles` (389ms) e `customer_notes` (154ms) pagam subselect
+sobre `customers` (5k linhas × `seller_handles_customer`); candidatas ao
+mesmo tratamento gated-once em PR próprio.
