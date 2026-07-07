@@ -810,6 +810,33 @@ Deno.serve(async (req) => {
       traceId,
       warn: (msg, fields) => log.warn(msg, fields),
     });
+    // Diagnostic net (2026-07-07): dropped message events (ignored/duplicate)
+    // used to vanish behind a 200 with a console-only warn — invisible in any
+    // queryable store, which hid the cross-instance eventKey collision for
+    // weeks. Persist them to integration_logs so delivery gaps stay auditable.
+    // Group/broadcast noise and transient connection updates stay out (volume);
+    // so do status-ack duplicates (benign read races). Best-effort by design.
+    const detail = result.detail ?? "";
+    const isDroppedMessageEvent =
+      (result.outcome === "ignored" &&
+        !/grupo\/broadcast|connection\.update/.test(detail)) ||
+      (result.outcome === "duplicate" && !/:(sent|delivered|read|failed)$/.test(detail));
+    if (isDroppedMessageEvent) {
+      try {
+        await deps.logIntegration({
+          integrationName: `whatsapp_${provider}`,
+          direction: "inbound",
+          endpoint: `/whatsapp-webhook#${result.outcome}`,
+          httpStatus: 200,
+          latencyMs: 0,
+          traceId,
+          requestPayload: payload,
+          errorMessage: detail,
+        });
+      } catch {
+        // Diagnostics must never break the webhook.
+      }
+    }
     log.info("webhook processed", { provider, outcome: result.outcome });
     return respond(json({ status: "ok", outcome: result.outcome, traceId }, 200));
   } catch (err) {

@@ -467,10 +467,21 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
   //    SAME provider message id flows through upsert (echo) AND every ack
   //    (sent/delivered/read/failed) — a shared key would let whichever event
   //    lands first swallow all the others.
+  //    The key is ALSO scoped by instance (2026-07-07): when two platform
+  //    numbers talk to each other, the SAME WhatsApp message id reaches us
+  //    twice — sender echo + receiver inbound, distinct sessions/accounts. An
+  //    unscoped key let whichever side landed first swallow the other (media
+  //    echoes always lost that race, so phone-sent media never mirrored).
+  const instanceScope =
+    provider === "meta"
+      ? extractMetaPhoneNumberId(rawPayload)
+      : provider === "evolution-go"
+        ? extractEvolutionGoInstance(rawPayload)
+        : extractEvolutionInstance(rawPayload);
   const eventKey =
     parsed.type === "status"
-      ? `whatsapp:${provider}:${parsed.providerMessageId}:${parsed.status}`
-      : `whatsapp:${provider}:${parsed.providerMessageId}`;
+      ? `whatsapp:${provider}:${instanceScope}:${parsed.providerMessageId}:${parsed.status}`
+      : `whatsapp:${provider}:${instanceScope}:${parsed.providerMessageId}`;
   if (await db.isProcessed(eventKey)) {
     return { outcome: "duplicate", detail: eventKey };
   }

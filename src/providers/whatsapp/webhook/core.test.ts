@@ -242,7 +242,7 @@ describe("processWebhookEvent — inbound messages (RF-040/050)", () => {
       mediaFilename: null,
     });
     expect(state.bumps).toEqual([state.conversations[0]?.id]);
-    expect(state.processed.has("whatsapp:evolution:EVOKEY1")).toBe(true);
+    expect(state.processed.has("whatsapp:evolution:gallo-matriz:EVOKEY1")).toBe(true);
     expect(state.audits[0]).toMatchObject({
       action: "webhook_received",
       after: expect.objectContaining({ fromPhoneMasked: "***7777", customerCreated: true }),
@@ -358,6 +358,53 @@ describe("processWebhookEvent — inbound messages (RF-040/050)", () => {
     expect(state.messages).toHaveLength(1);
   });
 
+  it("does NOT dedupe the same message id across instances (sender echo + receiver inbound)", async () => {
+    // Two platform numbers talking to each other: the receiver's instance sees
+    // the message as inbound and the sender's instance echoes it fromMe — same
+    // WhatsApp key id, distinct sessions. Both must persist (bug 2026-07-07:
+    // an instance-unscoped eventKey let the first arrival swallow the second).
+    const state = emptyState();
+    const SECOND: IAccountRecord = {
+      ...ACCOUNT,
+      id: "acc-2",
+      providerConfig: { baseUrl: "https://evo.test", instanceName: "second-instance" },
+    };
+    const db: IWebhookDb = {
+      ...makeFakeDb(state),
+      findEvolutionAccount: async (instanceName) =>
+        instanceName === "gallo-matriz"
+          ? ACCOUNT
+          : instanceName === "second-instance"
+            ? SECOND
+            : null,
+    };
+
+    const inbound = await run(state, evolutionTextEvent("audio de teste", "SHAREDKEY1"), { db });
+    expect(inbound.outcome).toBe("message-created");
+
+    const echo = await run(
+      state,
+      {
+        event: "messages.upsert",
+        instance: "second-instance",
+        sender: "5555988887777@s.whatsapp.net",
+        data: {
+          key: { id: "SHAREDKEY1", remoteJid: "5555988887777@s.whatsapp.net", fromMe: true },
+          message: { conversation: "audio de teste" },
+          messageTimestamp: 1765400001,
+        },
+      },
+      { db },
+    );
+    expect(echo.outcome).toBe("echo-created");
+    // One inbound on the receiver's account + one echo on the sender's account,
+    // each in its own conversation.
+    expect(state.messages).toHaveLength(2);
+    expect(state.conversations).toHaveLength(2);
+    expect(state.processed.has("whatsapp:evolution:gallo-matriz:SHAREDKEY1")).toBe(true);
+    expect(state.processed.has("whatsapp:evolution:second-instance:SHAREDKEY1")).toBe(true);
+  });
+
   it("returns account-not-found (and does not mark processed) for unknown instances", async () => {
     const state = emptyState();
     const payload = { ...evolutionTextEvent(), instance: "outra-instancia" };
@@ -453,9 +500,9 @@ describe("processWebhookEvent — statuses (RF-060/061)", () => {
     expect(result).toMatchObject({ outcome: "status-applied", messageId: "msg-outbound-1" });
     expect(state.statusApplied[0]).toMatchObject({
       status: "read",
-      eventKey: "whatsapp:evolution:OUT1:read",
+      eventKey: "whatsapp:evolution:gallo-matriz:OUT1:read",
     });
-    expect(state.processed.has("whatsapp:evolution:OUT1:read")).toBe(true);
+    expect(state.processed.has("whatsapp:evolution:gallo-matriz:OUT1:read")).toBe(true);
   });
 
   function metaFailedStatusEvent(code: number, keyId = "wamid.OUT") {
@@ -530,7 +577,7 @@ describe("processWebhookEvent — statuses (RF-060/061)", () => {
 
     expect(result.outcome).toBe("status-unmatched");
     expect(warn).toHaveBeenCalled();
-    expect(state.processed.has("whatsapp:evolution:GHOST:delivered")).toBe(true);
+    expect(state.processed.has("whatsapp:evolution:gallo-matriz:GHOST:delivered")).toBe(true);
   });
 
   it("each ack of the same message gets its own idempotency key (sent → read)", async () => {
@@ -608,7 +655,7 @@ describe("processWebhookEvent — media (RF-070, RNF-006)", () => {
     expect(result.outcome).toBe("message-created");
     expect(state.messages).toHaveLength(1);
     expect(state.mediaSet[0]).toMatchObject({ mediaUrl: null, status: "failed" });
-    expect(state.processed.has("whatsapp:evolution:EVOMEDIA1")).toBe(true);
+    expect(state.processed.has("whatsapp:evolution:gallo-matriz:EVOMEDIA1")).toBe(true);
     expect(warn).toHaveBeenCalledWith("inbound media download failed", expect.anything());
   });
 });
@@ -757,7 +804,7 @@ describe("processWebhookEvent — outbound echoes (real inbox spec)", () => {
     });
     expect(result.outcome).toBe("duplicate");
     expect(state.messages).toHaveLength(0);
-    expect(state.processed.has("whatsapp:evolution:APP-SENT-1")).toBe(true);
+    expect(state.processed.has("whatsapp:evolution:gallo-matriz:APP-SENT-1")).toBe(true);
   });
 
   it("mirrors a phone-sent message: aguardando conversation, out message, no unread bump", async () => {
@@ -889,7 +936,7 @@ describe("processWebhookEvent — outbound echoes (real inbox spec)", () => {
     expect(result.outcome).toBe("echo-created");
     expect(state.messages).toHaveLength(1);
     expect(state.mediaSet[0]).toMatchObject({ mediaUrl: null, status: "failed" });
-    expect(state.processed.has("whatsapp:evolution:3EB0ECHOMEDIA1")).toBe(true);
+    expect(state.processed.has("whatsapp:evolution:gallo-matriz:3EB0ECHOMEDIA1")).toBe(true);
     expect(warn).toHaveBeenCalledWith("echo media download failed", expect.anything());
   });
 });
