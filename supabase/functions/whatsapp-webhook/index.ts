@@ -461,7 +461,7 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
     async audit(input) {
       await bestEffortAudit(admin, {
         store_id: input.storeId,
-        actor_id: "integration:whatsapp-webhook",
+        actor_id: null,
         action: input.action,
         resource: input.resource,
         resource_id: input.resourceId,
