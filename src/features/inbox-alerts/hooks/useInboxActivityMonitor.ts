@@ -70,8 +70,8 @@ interface IMessageRealtimeRow {
  * Badge derivation is AUTHORITATIVE, not cache-derived: on every relevant
  * Realtime event (debounced) the monitor re-queries the exact state.
  *  - hasQueueWaiting = "does this store have any queued conversation?" — read
- *    from the exact row count (`count:'exact'`), so a backlog larger than any
- *    page size still lights the signal.
+ *    from count() (the gated-once count_conversations RPC), so a backlog larger
+ *    than any page size still lights the signal without paying per-row RLS.
  *  - hasUnreadMine = "does the seller have any unread conversation of their
  *    own?" — turned ON by inbound and OFF by markRead (both are `conversations`
  *    UPDATEs), so the badge is a single source of truth owned here (the Inbox
@@ -144,11 +144,18 @@ export function useInboxActivityMonitor(): void {
 
     function revalidateQueue() {
       const gen = ++queueGen;
+      // count() routes to the gated-once count_conversations RPC. The previous
+      // list({queue, pageSize: 1}) read res.total, which is PostgREST
+      // `count: "exact"` — per-row RLS over the WHOLE queue candidate set
+      // (5-20s for non-staff). Fired here on every conversations Realtime
+      // event, per connected client, it was the main driver of the 2026-07-07
+      // statement_timeout storm. count() takes no storeId by contract: the RPC
+      // scopes by the JWT's store, and this effect already resets per store.
       void conversationsProvider
-        .list({ storeId, assignmentAny: { queue: true }, pageSize: 1 })
-        .then((res) => {
+        .count({ assignmentAny: { queue: true } })
+        .then((total) => {
           if (disposed || gen !== queueGen) return;
-          useInboxActivityStore.getState().setHasQueueWaiting(res.total > 0);
+          useInboxActivityStore.getState().setHasQueueWaiting(total > 0);
         })
         .catch(() => {
           /* best-effort — the next event reschedules a re-query */
@@ -163,6 +170,9 @@ export function useInboxActivityMonitor(): void {
           storeId,
           assignedSellerId: sellerId,
           pageSize: MINE_SCAN_PAGE_SIZE,
+          // Only res.data is read below — skip the count: "exact" total, which
+          // re-runs the per-row RLS gate over the seller's whole assigned set.
+          withTotal: false,
         })
         .then((res) => {
           if (disposed) return;

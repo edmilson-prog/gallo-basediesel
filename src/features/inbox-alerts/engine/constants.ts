@@ -14,6 +14,7 @@ export const SIGNAL_REVALIDATE_DEBOUNCE_MS = 250;
  * signal. Unread conversations carry the most recent `last_message_at` and sort
  * to the top of this window, so a seller is not realistically past this cap on
  * their own actively-unread threads. The QUEUE signal never uses a windowed scan
- * — it reads the exact row count instead (see useInboxActivityMonitor).
+ * — it reads count() (the count_conversations RPC) instead (see
+ * useInboxActivityMonitor).
  */
 export const MINE_SCAN_PAGE_SIZE = 200;

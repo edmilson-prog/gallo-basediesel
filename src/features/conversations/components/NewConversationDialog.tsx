@@ -131,6 +131,8 @@ export function NewConversationDialog({
       whatsappAccountId: origin.id,
       status: ["aguardando", "em_andamento", "aguardando_cliente"],
       pageSize: 1,
+      // Only data[0] is read — skip the count: "exact" total (per-row RLS).
+      withTotal: false,
     });
     return res.data[0]?.id ?? null;
   }
