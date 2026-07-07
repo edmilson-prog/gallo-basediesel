@@ -241,3 +241,34 @@ Follow-ups registrados (mesma classe, bounded, sem risco de timeout hoje):
 policies de `vehicles` (389ms) e `customer_notes` (154ms) pagam subselect
 sobre `customers` (5k linhas × `seller_handles_customer`); candidatas ao
 mesmo tratamento gated-once em PR próprio.
+
+## media_assets (2026-07-07 — fix do 500 no envio de anexo)
+
+Incidente (parte 2 do mesmo dia): POST em `media_assets` (upload de anexo do
+composer, `useAttachmentUpload`) retornava 500 para não-staff. Dois defeitos
+empilhados nas policies da tabela — ambas anteriores ao modelo de 2 portões
+(Turnstile) e aos colaboradores (Ripple):
+
+1. **Timeout**: o ramo de conversa do `with_check` de INSERT era o mesmo
+   anti-padrão double-RLS (`conversation_id IN (SELECT id FROM conversations
+   WHERE … assigned = me OR assigned IS NULL)`), reavaliando
+   `can_access_conversation` para a loja inteira (2.665 chamadas = 11,7s
+   medidos > teto de 8s). Vendedor cujo payload carrega `customer_id` da
+   própria carteira faz short-circuit no ramo rápido e nunca percebe — por
+   isso o sintoma parecia "só um atendente" (o afetado tinha carteira vazia
+   e só conversas de pool/instância).
+2. **Semântica stale**: o ramo de conversa do SELECT só aceitava
+   `assigned = me` — quem atende pool/colabora não conseguia ler de volta a
+   linha recém-inserida (`.insert().select()` RETURNING + fetch por id do
+   signed URL), ou seja, mesmo sem o timeout o fluxo falharia (classe do
+   incidente `audit_logs` 403).
+
+Fix na migration `20260707190000_media_assets_rls_gated_once.sql`: o ramo de
+conversa das 4 policies vira `can_access_conversation(conversation_id)`
+direto (gated-once por linha de mídia). A mídia por conversa passa a seguir o
+acesso de Atendimento (2 portões + participantes), igual à policy de bytes do
+storage (`can_read_conversation_media`, migration `20260620160000`) — a
+tabela era MAIS restritiva que os próprios bytes. Superconjunto algébrico das
+policies antigas (todo ramo antigo embutia o filtro RLS de `conversations`,
+que É `can_access_conversation`) ⇒ nenhuma persona perde acesso. Ramo de
+carteira inalterado (probe indexado, 0,17ms).
