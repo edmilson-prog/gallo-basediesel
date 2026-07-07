@@ -4,6 +4,16 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.135.2] — Ripple · 2026-07-07
+
+**Correções no pareamento por QR Code das contas do WhatsApp e no eco de mídia entre números da própria loja.** O painel de conexão parava de avisar corretamente quando o QR Code expirava e reconectava sozinho quando necessário; a mensagem de erro deixou de indicar um botão que não existe na tela. Também corrigido: quando um número da loja manda mensagem para outro número da própria loja, fotos e outros arquivos agora aparecem dos dois lados da conversa. E editar o e-mail de um vendedor na tela de Usuários passou a atualizar também o e-mail de login dele.
+
+### Fixed
+
+- **Pareamento por QR Code (contas WhatsApp Evolution):** o painel de conexão não indica mais "Conectado" sem o celular realmente escanear o QR Code; quando a janela de pareamento expira, a reconexão agora acontece automaticamente em vez de exigir uma ação manual sem botão correspondente na tela.
+- **Eco de mídia entre números da própria loja:** ao trocar mensagens entre dois números WhatsApp da mesma loja, fotos, áudios e outros arquivos enviados por um número agora aparecem corretamente também na conversa do outro número (antes, só o texto era espelhado).
+- **E-mail de login sincronizado ao editar vendedor:** alterar o e-mail de um vendedor na tela de Usuários agora atualiza também o e-mail usado para fazer login na plataforma, evitando que os dois fiquem diferentes.
+
 ## [0.135.1] — Ripple · 2026-07-06
 
 **Correção: conversas resolvidas antigas que continuavam com um atendente responsável agora estão realmente disponíveis para qualquer um assumir.** Um pequeno grupo de conversas marcadas como resolvidas antes de uma correção anterior continuava mostrando o mesmo atendente como responsável, mesmo já estando fora da fila — impedindo que outro atendente pudesse assumir aquele contato. Essas conversas foram corrigidas e já estão liberadas.
