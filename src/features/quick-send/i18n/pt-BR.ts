@@ -293,6 +293,8 @@ export const QUICK_SEND_STRINGS = {
   errors: {
     loadAssetFailed: "Não foi possível carregar a biblioteca.",
     sendFailed: "Falha ao enviar. Tente novamente.",
+    assetFileUnavailable:
+      "Este ativo não possui arquivo real na biblioteca. Envie uma nova versão com o arquivo antes de compartilhá-lo.",
   },
   quickReplies: {
     pageTitle: "Respostas rápidas",
