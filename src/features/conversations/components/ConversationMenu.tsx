@@ -556,16 +556,19 @@ export function ConversationMenu({
         conversationId={conversation.id}
         initialName={contact?.name}
         initialPhone={contact?.phone}
-        onCreated={(createdLead) => {
+        initialSellerId={conversation.assignedSellerId}
+        onCreated={(createdLead, meta) => {
           setQualifyOpen(false);
           onMutated?.();
-          toast.success(CONVERSATION_STRINGS.leadQualified, {
-            action: {
-              label: CONVERSATION_STRINGS.menu.viewLead,
-              onClick: () =>
-                void navigate({ to: "/app/leads/$id", params: { id: createdLead.id } }),
-            },
-          });
+          if (meta?.linked !== false) {
+            toast.success(CONVERSATION_STRINGS.leadQualified, {
+              action: {
+                label: CONVERSATION_STRINGS.menu.viewLead,
+                onClick: () =>
+                  void navigate({ to: "/app/leads/$id", params: { id: createdLead.id } }),
+              },
+            });
+          }
         }}
       />
     </>

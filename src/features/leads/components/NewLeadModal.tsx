@@ -44,7 +44,8 @@ export interface INewLeadModalProps {
   onClose: () => void;
   stages: IPipelineStage[];
   sellers: ISeller[];
-  onCreated?: (lead: ILead) => void;
+  /** `meta.linked` is `false` only when `conversationId` was provided but the post-create link to the conversation failed — callers should skip their own "qualified" messaging in that case. */
+  onCreated?: (lead: ILead, meta?: { linked: boolean }) => void;
   /**
    * Set when the lead is being qualified FROM a conversation (conversation
    * menu → "Qualificar como lead"). On save, links `conversation.leadId` and
@@ -55,6 +56,8 @@ export interface INewLeadModalProps {
   initialName?: string;
   /** Pre-fills `phone` from the conversation's resolved contact, if any. */
   initialPhone?: string;
+  /** Pre-selects the seller from `conversation.assignedSellerId`, if present. */
+  initialSellerId?: ID;
 }
 
 export function NewLeadModal({
@@ -66,6 +69,7 @@ export function NewLeadModal({
   conversationId,
   initialName,
   initialPhone,
+  initialSellerId,
 }: INewLeadModalProps) {
   const provider = useLeadsProvider();
   const conversationsProvider = useConversationsProvider();
@@ -76,8 +80,8 @@ export function NewLeadModal({
 
   const initialStage = useMemo(() => stages[0]?.id ?? "", [stages]);
   const initialSeller: ID = useMemo(
-    () => currentUser?.sellerId ?? sellers[0]?.id ?? "",
-    [currentUser?.sellerId, sellers],
+    () => initialSellerId ?? currentUser?.sellerId ?? sellers[0]?.id ?? "",
+    [initialSellerId, currentUser?.sellerId, sellers],
   );
 
   const [name, setName] = useState("");
@@ -138,6 +142,7 @@ export function NewLeadModal({
         tags: [],
       });
 
+      let linked = true;
       if (conversationId) {
         try {
           await provider.update(lead.id, { conversations: [conversationId] });
@@ -150,7 +155,10 @@ export function NewLeadModal({
           });
         } catch {
           // The lead itself was created successfully — surface the link
-          // failure separately rather than rolling back the lead.
+          // failure separately rather than rolling back the lead. Skip the
+          // success toasts below so the user isn't told "qualified" when the
+          // conversation link didn't actually happen.
+          linked = false;
           toast.error(COPY.linkError);
         }
       } else {
@@ -162,8 +170,10 @@ export function NewLeadModal({
         });
       }
 
-      toast.success(COPY.createdToast);
-      onCreated?.(lead);
+      if (linked) {
+        toast.success(COPY.createdToast);
+      }
+      onCreated?.(lead, { linked });
     } catch {
       toast.error(COPY.createError);
     } finally {
