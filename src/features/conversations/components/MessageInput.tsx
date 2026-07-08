@@ -45,6 +45,7 @@ import { OriginChip } from "./OriginChip";
 import { AssignToReplyBanner } from "./AssignToReplyBanner";
 import { InstanceLockedBanner } from "./InstanceLockedBanner";
 import { deriveInstanceLock } from "../engine/instanceLock";
+import { inferAttachmentKind } from "../engine/attachmentKind";
 import { useSelfAssign } from "../hooks/useSelfAssign";
 import { useLiveInstanceStatus } from "../hooks/useLiveInstanceStatus";
 import { getActiveDataSource } from "@/providers/data";
@@ -230,6 +231,11 @@ export function MessageInput(props: IMessageInputProps) {
   // Kind picked in the dropdown — a ref because the file dialog opens
   // synchronously after the menu select (no re-render in between).
   const attachKindRef = useRef<AttachmentKind>("image");
+  // Drag-over overlay (drop target = the whole composer footer). Counter in a
+  // ref, not state — dragenter/dragleave bubble per child element (toolbar
+  // buttons, textarea), so only flip the visible state when it crosses zero.
+  const [dragActive, setDragActive] = useState(false);
+  const dragCounterRef = useRef(0);
   const { sendAsset } = useSendAsset(conversation, whatsappAccount);
   const { sendProductCard } = useSendProductCard(conversation, whatsappAccount);
   const quickReplies = useQuickReplies();
@@ -427,17 +433,15 @@ export function MessageInput(props: IMessageInputProps) {
     el.click();
   };
 
-  const handleAttachSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    // Reset so picking the same file twice re-triggers the change event.
-    e.target.value = "";
-    if (!file) return;
+  // Shared by the manual picker, drag-and-drop and paste — upload (PRD-026) →
+  // real dispatch (PRD-115), identical error handling regardless of entry point.
+  const runAttachmentPipeline = async (file: File, kind: AttachmentKind) => {
     const caption = value.trim();
-    setUploadingAttachment({ name: file.name, size: file.size, kind: attachKindRef.current });
+    setUploadingAttachment({ name: file.name, size: file.size, kind });
     try {
       let payload: ISendOptions | null = null;
       try {
-        payload = await prepareAttachment(file, attachKindRef.current, caption);
+        payload = await prepareAttachment(file, kind, caption);
       } catch {
         toast.error(CONVERSATION_STRINGS.attachUploadFailed);
         return;
@@ -460,6 +464,74 @@ export function MessageInput(props: IMessageInputProps) {
     } finally {
       setUploadingAttachment(null);
     }
+  };
+
+  const handleAttachSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Reset so picking the same file twice re-triggers the change event.
+    e.target.value = "";
+    if (!file) return;
+    await runAttachmentPipeline(file, attachKindRef.current);
+  };
+
+  // Common entry point for drag-and-drop and paste (PRD-119 follow-up): unlike
+  // the picker, the kind isn't chosen up front — it's inferred from the file.
+  const attachExternalFile = (file: File) => {
+    if (!canSendFreeText) {
+      toast.info(CONVERSATION_STRINGS.windowDisabledHint);
+      setTemplateOpen(true);
+      return;
+    }
+    // Composer already busy with another attachment/asset/voice note — ignore.
+    if (uploadingAttachment !== null || stagedAsset !== null || recorder.status !== "idle") return;
+    const kind = inferAttachmentKind(file);
+    if (!kind) {
+      toast.error(CONVERSATION_STRINGS.attachUnsupportedType);
+      return;
+    }
+    void runAttachmentPipeline(file, kind);
+  };
+
+  const isFileDrag = (e: React.DragEvent) => Array.from(e.dataTransfer.types).includes("Files");
+
+  const handleDragEnter = (e: React.DragEvent<HTMLElement>) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    if (uploadingAttachment !== null || stagedAsset !== null || recorder.status !== "idle") return;
+    dragCounterRef.current += 1;
+    setDragActive(true);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLElement>) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLElement>) => {
+    if (!isFileDrag(e)) return;
+    dragCounterRef.current = Math.max(0, dragCounterRef.current - 1);
+    if (dragCounterRef.current === 0) setDragActive(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLElement>) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    dragCounterRef.current = 0;
+    setDragActive(false);
+    const files = Array.from(e.dataTransfer.files);
+    const file = files[0];
+    if (!file) return;
+    if (files.length > 1) toast.info(CONVERSATION_STRINGS.attachMultipleIgnored);
+    attachExternalFile(file);
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const fileItem = Array.from(e.clipboardData.items).find((i) => i.kind === "file");
+    if (!fileItem) return; // no file on the clipboard — let normal text paste through
+    const file = fileItem.getAsFile();
+    if (!file) return;
+    e.preventDefault();
+    attachExternalFile(file);
   };
 
   // Send the recorded voice note through the same attachment pipeline used by
@@ -677,7 +749,20 @@ export function MessageInput(props: IMessageInputProps) {
   };
 
   return (
-    <footer data-tour="composer" className="border-t border-border bg-card">
+    <footer
+      data-tour="composer"
+      className="relative border-t border-border bg-card"
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {dragActive && (
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center gap-2 border-2 border-dashed border-primary bg-primary/5 text-sm font-medium text-primary">
+          <Icon icon="mdi:tray-arrow-down" size={18} />
+          {CONVERSATION_STRINGS.attachDropHint}
+        </div>
+      )}
       {!hideAiSuggestions && suggestions.length > 0 && canSendFreeText && (
         <div
           className="flex items-center gap-1.5 overflow-x-auto border-b border-border px-3 py-2 text-[11px]"
@@ -945,6 +1030,7 @@ export function MessageInput(props: IMessageInputProps) {
                 onKeyUp={syncCaret}
                 onSelect={syncCaret}
                 onClick={syncCaret}
+                onPaste={handlePaste}
                 placeholder={placeholder}
                 rows={1}
                 disabled={!canSendFreeText || uploadingAttachment !== null}

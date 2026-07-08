@@ -8,11 +8,13 @@ import type {
   MessageMediaType,
 } from "@/shared/types";
 import {
+  getActiveDataSource,
   useMediaStorageProvider,
   useAssetLibraryProvider,
   useTrackableLinkProvider,
 } from "@/providers/data";
 import { buildShortRef, buildUtm, encodeLinkMarker } from "../engine/trackableLink";
+import { resolveAssetSendSource } from "../engine/assetSendSource";
 import { useMessageSend } from "@/features/conversations/hooks/useMessageSend";
 import { useAuth } from "@/features/auth/useAuth";
 import { pickSendableVersion } from "../engine/assetVersioning";
@@ -118,27 +120,49 @@ export function useSendAsset(
             await send({ text: linkText || (sendable.url ?? sendable.title) });
           }
         } else {
-          // Materialize the file as an outbound media asset (PRD-026).
-          const uploaded = await media.upload({
-            kind:
-              assetKindToMediaType(sendable) === "image"
-                ? "image"
-                : sendable.kind === "video"
-                  ? "video"
-                  : "document",
-            mimeType:
-              sendable.kind === "image"
-                ? "image/jpeg"
-                : sendable.kind === "video"
-                  ? "video/mp4"
-                  : "application/pdf",
-            sizeBytes: 256_000,
-            fileName: sendable.title,
-            conversationId: conversation.id,
-            authorType: "seller",
-            direction: "out",
-          });
-          const mediaUrl = await media.getSignedUrl(uploaded.id);
+          let mediaUrl: string;
+          if (getActiveDataSource() === "supabase") {
+            // Real send: the bytes must already exist in the Vault — sign the
+            // media asset the library item points at (admin uploads set
+            // `mediaAssetId`). Creating a metadata-only media_assets row here
+            // would mint a `supabase-signed://ref-…` pseudo-URL the provider
+            // engines cannot fetch, and it also lacks the storeId the RLS
+            // WITH CHECK requires — so the legacy mock path never worked on
+            // this source. Seeded items carry no real file: fail with a clear
+            // message instead of dispatching a broken message.
+            const source = resolveAssetSendSource(sendable);
+            if (source.type === "unavailable") {
+              toast.error(QUICK_SEND_STRINGS.errors.assetFileUnavailable);
+              return;
+            }
+            mediaUrl =
+              source.type === "media-asset"
+                ? await media.getSignedUrl(source.mediaAssetId)
+                : source.url;
+          } else {
+            // Mock: materialize the file as an outbound media asset (PRD-026).
+            const uploaded = await media.upload({
+              kind:
+                assetKindToMediaType(sendable) === "image"
+                  ? "image"
+                  : sendable.kind === "video"
+                    ? "video"
+                    : "document",
+              mimeType:
+                sendable.kind === "image"
+                  ? "image/jpeg"
+                  : sendable.kind === "video"
+                    ? "video/mp4"
+                    : "application/pdf",
+              sizeBytes: 256_000,
+              fileName: sendable.title,
+              conversationId: conversation.id,
+              customerId: conversation.customerId,
+              authorType: "seller",
+              direction: "out",
+            });
+            mediaUrl = await media.getSignedUrl(uploaded.id);
+          }
           // Curated titles rarely carry an extension — append one by kind so the
           // recipient label and the download filename stay double-click friendly.
           const ext =
@@ -165,7 +189,16 @@ export function useSendAsset(
         toast.error(QUICK_SEND_STRINGS.errors.sendFailed);
       }
     },
-    [conversation.id, conversation.leadId, currentUser, library, media, send, trackableLinks],
+    [
+      conversation.customerId,
+      conversation.id,
+      conversation.leadId,
+      currentUser,
+      library,
+      media,
+      send,
+      trackableLinks,
+    ],
   );
 
   return { sendAsset };

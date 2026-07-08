@@ -601,16 +601,10 @@ servePost(async (req, ctx) => {
           const webhookUrl = `${requiredEnv("SUPABASE_URL")}/functions/v1/whatsapp-webhook/evolution-go`;
           await connectGoInstance(instanceToken, deps, goTarget, webhookUrl, EVOLUTION_GO_DEFAULT_SUBSCRIBE, ctx.traceId);
           // An already-paired instance has no QR to issue: this Go build answers
-          // GET /instance/qr with HTTP 400 + a "session"-ish message, which
-          // mapEvolutionGoError classifies as PROVIDER_DISCONNECTED (503) — surfacing
-          // a misleading "WhatsApp desconectado" on a perfectly connected number.
-          // Trust the authoritative LoggedIn signal first (mirrors test/state) and
-          // only ask for a QR when the session is NOT yet paired.
-          const goStatus = await getGoInstanceStatus(instanceToken, deps, goTarget, ctx.traceId);
-          const qr: IGoQrResult = goStatus.loggedIn
-            ? { state: "open" }
-            : await getGoInstanceQr(instanceToken, deps, goTarget, ctx.traceId);
-          if (qr.state === "open") {
+          // GET /instance/qr with HTTP 400 + a "session"-ish message. Trust the
+          // authoritative LoggedIn signal first (mirrors test/state) and only
+          // ask for a QR when the session is NOT yet paired.
+          const respondOpen = async () => {
             if (account.status !== "connected") {
               await admin
                 .from("whatsapp_accounts")
@@ -628,6 +622,50 @@ servePost(async (req, ctx) => {
               }
             }
             return json({ state: "open", traceId: ctx.traceId }, 200);
+          };
+          const goStatus = await getGoInstanceStatus(instanceToken, deps, goTarget, ctx.traceId);
+          if (goStatus.loggedIn) return await respondOpen();
+          // A 2xx from /instance/qr WITHOUT a Qrcode is "pending" (no active
+          // pairing channel), NEVER "paired": reading it as open flipped the
+          // dialog to "Conectado" with no scan (incident 2026-07-06). The Go
+          // server only streams QR codes for ~2 min after a client (re)connect
+          // — past that window /instance/qr answers empty forever, and
+          // /instance/connect on an already-up socket does NOT reopen the
+          // channel. So when the QR is pending/unavailable, force ONE client
+          // reconnect (the remedy the UI used to ask the user to do by hand)
+          // and poll briefly; then fail honestly — the account row must NOT
+          // be marked connected on this path.
+          const tryQr = async (): Promise<IGoQrResult | null> => {
+            try {
+              return await getGoInstanceQr(instanceToken, deps, goTarget, ctx.traceId);
+            } catch (err) {
+              // 400 = pairing channel down (socket dialing/unreachable) —
+              // retryable within this action's budget; anything else propagates.
+              if (err instanceof WhatsAppProviderError && err.code === "QR_UNAVAILABLE") return null;
+              throw err;
+            }
+          };
+          let qr = await tryQr();
+          if (qr?.state !== "qr") {
+            ctx.log.info("qr channel closed — forcing client reconnect", { instanceId });
+            await restartGoInstance(instanceToken, deps, goTarget, ctx.traceId);
+            let failedProbes = 0;
+            for (let attempt = 0; attempt < 5 && failedProbes < 2; attempt++) {
+              await new Promise((resolve) => setTimeout(resolve, 1500));
+              const recheck = await getGoInstanceStatus(instanceToken, deps, goTarget, ctx.traceId);
+              if (recheck.loggedIn) return await respondOpen();
+              qr = await tryQr();
+              if (qr?.state === "qr") break;
+              if (qr === null) failedProbes++;
+            }
+          }
+          if (qr?.state !== "qr") {
+            throw new WhatsAppProviderError(
+              "QR_UNAVAILABLE",
+              503,
+              "O servidor não gerou o QR code desta instância — aguarde alguns segundos e tente novamente",
+              { endpoint: "/instance/qr", reason: "no_qr_after_reconnect" },
+            );
           }
           await markDisconnected(admin, account, actorId, "close");
           return json(
