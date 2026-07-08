@@ -265,6 +265,7 @@ describe("OpenWaProvider downloadInboundMedia", () => {
 
 describe("OpenWaProvider healthCheck", () => {
   it.each([
+    [{ status: "ready" }, true],
     [{ status: "connected" }, true],
     [{ status: "qr_ready" }, false],
     [{ status: "disconnected" }, false],

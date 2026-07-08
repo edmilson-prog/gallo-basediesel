@@ -248,7 +248,9 @@ export class OpenWaProvider implements IWhatsAppProvider {
         timeoutMs: 5_000,
       });
       const body = response.body as IOpenWaSessionStatus | null;
-      const healthy = body?.status === "connected";
+      // CONFIRMED live 2026-07-08: a fully authenticated session reports
+      // status "ready" (whatsapp-web.js's own event name), not "connected".
+      const healthy = body?.status === "ready" || body?.status === "connected";
       return {
         healthy,
         latencyMs: Date.now() - startedAt,

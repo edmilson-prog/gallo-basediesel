@@ -65,15 +65,21 @@ describe("openwa session management", () => {
     expect(out).toEqual({ state: "open" });
   });
 
-  it("getOpenWaStatus maps status=connected + normalizes the phone to E.164", async () => {
+  it("getOpenWaStatus maps status=ready (confirmed live) + normalizes the phone to E.164", async () => {
     const fetchFn = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
       expect(String(url)).toBe("https://openwa.test/api/sessions/sess-1");
       expect(init?.method).toBe("GET");
-      return jsonResponse({ status: "connected", phone: "555481572275" });
+      return jsonResponse({ status: "ready", phone: "555481572275" });
     }) as unknown as typeof fetch;
 
     const out = await getOpenWaStatus("global-key", deps(fetchFn), TARGET);
-    expect(out).toEqual({ status: "connected", connected: true, phoneNumber: "+555481572275" });
+    expect(out).toEqual({ status: "ready", connected: true, phoneNumber: "+555481572275" });
+  });
+
+  it("getOpenWaStatus also accepts status=connected as a defensive fallback", async () => {
+    const fetchFn = vi.fn(async () => jsonResponse({ status: "connected" })) as unknown as typeof fetch;
+    const out = await getOpenWaStatus("global-key", deps(fetchFn), TARGET);
+    expect(out.connected).toBe(true);
   });
 
   it("getOpenWaStatus reports connected=false for any non-connected status", async () => {

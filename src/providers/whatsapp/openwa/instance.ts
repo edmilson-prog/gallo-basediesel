@@ -124,7 +124,12 @@ export async function getOpenWaStatus(
   const status = body?.status ?? "unknown";
   return {
     status,
-    connected: status === "connected",
+    // CONFIRMED live 2026-07-08 (real pairing): a fully authenticated session
+    // reports status "ready" — NOT "connected" as first assumed (this wrapper
+    // mirrors whatsapp-web.js's own `client.on('ready', ...)` event name).
+    // "connected" kept as a defensive fallback in case another build variant
+    // uses that word instead.
+    connected: status === "ready" || status === "connected",
     phoneNumber: sessionPhoneToE164(body?.phone),
   };
 }
