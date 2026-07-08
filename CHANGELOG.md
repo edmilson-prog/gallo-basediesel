@@ -4,6 +4,18 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.136.0] — Satchel · 2026-07-08
+
+**Agora dá para arrastar um arquivo do computador ou colar um print direto na barra de mensagem do Atendimento.** Além do menu de anexar já existente, é possível soltar uma imagem, áudio ou documento sobre o campo de mensagem, ou colar (Ctrl+V) uma imagem copiada — do "Copiar imagem" do navegador, de uma ferramenta de print ou do Explorer. Também esclarecido o rótulo do filtro de Status na fila de atendimento, que já ocultava conversas resolvidas por padrão mas não deixava isso claro.
+
+### Added
+
+- **Arrastar e soltar / colar no composer:** arraste um arquivo (imagem, áudio ou documento) direto sobre a barra de mensagem do Atendimento, ou cole uma imagem copiada com Ctrl+V — sem precisar passar pelo menu "Anexar". Reaproveita as mesmas regras de tamanho e janela de 24h já existentes; tipos não suportados (como vídeo) mostram um aviso, e soltar mais de um arquivo de uma vez anexa só o primeiro.
+
+### Changed
+
+- **Rótulo do filtro de Status na fila:** a opção "Todas" do filtro de Status agora deixa explícito que oculta conversas fechadas ("Todas (exceto fechadas)"), evitando a impressão de que tags associadas a conversas resolvidas "não funcionavam".
+
 ## [0.135.2] — Ripple · 2026-07-07
 
 **Correções no pareamento por QR Code das contas do WhatsApp e no eco de mídia entre números da própria loja.** O painel de conexão parava de avisar corretamente quando o QR Code expirava e reconectava sozinho quando necessário; a mensagem de erro deixou de indicar um botão que não existe na tela. Também corrigido: quando um número da loja manda mensagem para outro número da própria loja, fotos e outros arquivos agora aparecem dos dois lados da conversa. E editar o e-mail de um vendedor na tela de Usuários passou a atualizar também o e-mail de login dele.
