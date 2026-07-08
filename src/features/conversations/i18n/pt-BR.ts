@@ -55,7 +55,7 @@ export const INBOX_STRINGS = {
   // Status filter
   statusLabel: "Status",
   statusOptions: {
-    all: "Todas (exceto arquivadas)",
+    all: "Todas (exceto fechadas)",
     aguardando: "Aguardando",
     em_andamento: "Em atendimento",
     aguardando_cliente: "Aguardando cliente",
