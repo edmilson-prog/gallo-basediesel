@@ -173,6 +173,7 @@ export const LEADS_STRINGS = {
     invalidEmail: "Informe um e-mail válido.",
     createdToast: "Lead criado.",
     createError: "Não foi possível criar o lead.",
+    linkError: "Lead criado, mas não foi possível vinculá-lo à conversa.",
   },
   convertModal: {
     title: "Converter lead em cliente",
