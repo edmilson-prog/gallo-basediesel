@@ -20,7 +20,7 @@
 type ISO8601 = string;
 
 /** Provider engines supported today. Extending = widening this union (PRD-111 RF-003). */
-export type WhatsAppProviderEngine = "meta" | "evolution" | "evolution-go" | "mock";
+export type WhatsAppProviderEngine = "meta" | "evolution" | "evolution-go" | "openwa" | "mock";
 
 /** Content kinds a normalized inbound message can carry. */
 export type InboundContentType =
@@ -239,7 +239,11 @@ export type SecretResolver = (secretName: string) => Promise<string | undefined>
 
 /** One sanitized record of an outbound provider call (PRD-112 RF-120). */
 export interface IIntegrationLogEntry {
-  integrationName: "whatsapp_meta" | "whatsapp_evolution" | "whatsapp_evolution_go";
+  integrationName:
+    | "whatsapp_meta"
+    | "whatsapp_evolution"
+    | "whatsapp_evolution_go"
+    | "whatsapp_openwa";
   direction: "outbound" | "inbound";
   endpoint: string;
   httpStatus?: number;
@@ -303,4 +307,29 @@ export interface IEvolutionGoAccountConfig {
   instanceId: string;
   /** Prefix for `<ref>_API_KEY` (global) and `<ref>_INSTANCE_TOKEN`. */
   credentialsRef: string;
+}
+
+/**
+ * Non-secret OpenWA account config (`whatsapp_accounts.provider_config` only
+ * carries `sessionId` — see 20260707140000_whatsapp_openwa_servers.sql).
+ * Redundant/primary engine option for new stores/numbers (rmyndharis/OpenWA,
+ * whatsapp-web.js-based), same VPS as evolution/evolution-go.
+ *
+ * Architecturally like Evolution Go, NOT classic Evolution: ONE global API
+ * key authenticates an entire OpenWA SERVER for every session on it (confirmed
+ * live 2026-07-07) — there is no separate per-instance token. `baseUrl` and
+ * `apiKeySecretName` are therefore NOT stored on the account; the caller
+ * resolves them from the `whatsapp_openwa_servers` registry via
+ * `whatsapp_accounts.openwa_server_id` and merges them into providerConfig
+ * before calling `buildWhatsAppEngine` (mirrors the evolution-go base_url
+ * pre-resolution pattern in whatsapp-webhook/whatsapp-send).
+ */
+export interface IOpenWaAccountConfig {
+  accountId: string;
+  /** Resolved by the caller from `whatsapp_openwa_servers.base_url`. */
+  baseUrl: string;
+  /** Server-generated session id (`provider_config.sessionId`, from `POST /api/sessions`). */
+  sessionId: string;
+  /** Vault secret NAME (not the value) resolved by the caller from `whatsapp_openwa_servers.api_key_ref`. */
+  apiKeySecretName: string;
 }

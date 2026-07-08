@@ -81,6 +81,7 @@ const PROVIDER_LABEL: Record<IWhatsAppAccount["provider"], string> = {
   meta: "Meta Cloud API",
   evolution: "Evolution API",
   "evolution-go": "Evolution Go",
+  openwa: "OpenWA",
 };
 
 const PURPOSE_LABEL: Record<WhatsAppAccountPurpose, string> = {

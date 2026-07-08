@@ -64,6 +64,10 @@ function makeFakeDb(state: IFakeState, opts?: { knownOutboundId?: string }): IWe
         : null,
     findEvolutionGoAccountAnyStatus: async (instanceId) =>
       instanceId === "inst-9" ? { ...ACCOUNT, provider: "evolution-go" as const } : null,
+    findOpenWaAccount: async (instanceName) =>
+      instanceName === "gallo-matriz" && state.accountStatus !== "disconnected"
+        ? { ...ACCOUNT, provider: "openwa" as const }
+        : null,
     setAccountConnectionStatus: async (_accountId, status) => {
       if (state.accountStatus === status) return false;
       state.accountStatus = status;

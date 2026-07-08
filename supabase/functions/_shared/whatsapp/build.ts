@@ -20,6 +20,7 @@ import { EvolutionGoProvider } from "./evolution-go/EvolutionGoProvider.ts";
 import { EvolutionProvider } from "./evolution/EvolutionProvider.ts";
 import { MetaCloudProvider } from "./meta/MetaCloudProvider.ts";
 import { MockWhatsAppProvider } from "./mock/MockWhatsAppProvider.ts";
+import { OpenWaProvider } from "./openwa/OpenWaProvider.ts";
 
 export interface IBuildEngineInput {
   engine: WhatsAppProviderEngine;
@@ -89,6 +90,22 @@ export function buildWhatsAppEngine(input: IBuildEngineInput): IWhatsAppProvider
         baseUrl: requireString(input.providerConfig, "baseUrl", "evolution-go"),
         instanceId: requireString(input.providerConfig, "instanceId", "evolution-go"),
         credentialsRef,
+      },
+      input.deps,
+    );
+  }
+  if (input.engine === "openwa") {
+    // baseUrl/apiKeySecretName are NOT stored in provider_config — the caller
+    // (whatsapp-webhook/whatsapp-send) resolves them from whatsapp_openwa_servers
+    // via openwa_server_id and merges them in before calling buildWhatsAppEngine
+    // (mirrors the evolution-go base_url pre-resolution pattern). credentialsRef
+    // is unused by OpenWaProvider (kept only to satisfy the generic guard above).
+    return new OpenWaProvider(
+      {
+        accountId: input.accountId,
+        baseUrl: requireString(input.providerConfig, "baseUrl", "openwa"),
+        sessionId: requireString(input.providerConfig, "sessionId", "openwa"),
+        apiKeySecretName: requireString(input.providerConfig, "apiKeySecretName", "openwa"),
       },
       input.deps,
     );

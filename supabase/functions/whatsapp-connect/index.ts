@@ -53,6 +53,18 @@ import {
   type IGoQrResult,
 } from "../_shared/whatsapp/evolution-go/instance.ts";
 import { resolveGoServer } from "./goServer.ts";
+import {
+  createOpenWaSession,
+  startOpenWaSession,
+  getOpenWaQr,
+  getOpenWaStatus,
+  stopOpenWaSession,
+  restartOpenWaSession,
+  deleteOpenWaSession,
+  registerOpenWaWebhook,
+  type IOpenWaQrResult,
+} from "../_shared/whatsapp/openwa/instance.ts";
+import { resolveOpenWaServer } from "./openwaServer.ts";
 
 /** Client-side QR rotation window (Evolution rotates ~30-40s; we renew at 30). */
 const QR_EXPIRES_IN_SECONDS = 30;
@@ -86,6 +98,7 @@ interface IAccountRow {
   credentials_ref: string;
   provider_config: Record<string, unknown> | null;
   go_server_id: string | null;
+  openwa_server_id: string | null;
 }
 
 function makeEngineDeps(admin: SupabaseClient, traceId: string): IEngineDeps {
@@ -302,6 +315,10 @@ async function sendAdHocTestMessage(
   }
   // For evolution-go registry accounts, base_url lives on the server (whatsapp_go_servers),
   // NOT in provider_config. Resolve it here so buildWhatsAppEngine receives a complete config.
+  // NOTE: openwa is intentionally NOT handled here — its ad-hoc test-message
+  // action is not wired yet (see the dedicated openwa branch below, which
+  // does not list "test-message" in its switch and falls through to the
+  // generic 422 "ação inválida").
   let providerConfig: Record<string, unknown> | null = account.provider_config;
   if (engineName === "evolution-go") {
     const { baseUrl } = await resolveGoServer(admin, deps.resolveSecret, account);
@@ -355,7 +372,7 @@ servePost(async (req, ctx) => {
 
   const { data: row } = await admin
     .from("whatsapp_accounts")
-    .select("id, store_id, label, provider, status, phone_number, credentials_ref, provider_config, go_server_id")
+    .select("id, store_id, label, provider, status, phone_number, credentials_ref, provider_config, go_server_id, openwa_server_id")
     .eq("id", body.accountId)
     .maybeSingle();
   if (!row) throw new HttpError(404, "Conta WhatsApp não encontrada");
@@ -466,6 +483,19 @@ servePost(async (req, ctx) => {
           error: err instanceof Error ? err.message : String(err),
         });
       }
+    } else if (account.provider === "openwa") {
+      try {
+        const { baseUrl, globalKey } = await resolveOpenWaServer(admin, deps.resolveSecret, account);
+        const sessionId = String((account.provider_config ?? {}).sessionId ?? "");
+        if (baseUrl && sessionId) {
+          await deleteOpenWaSession(globalKey, deps, { baseUrl, sessionId }, ctx.traceId);
+        }
+      } catch (err) {
+        ctx.log.warn("openwa teardown skipped/failed (session may be orphaned)", {
+          accountId: account.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
     }
 
     // Audit only when the RPC actually removed a row (false = concurrent delete
@@ -488,8 +518,12 @@ servePost(async (req, ctx) => {
     return json({ ok: true, traceId: ctx.traceId }, 200);
   }
 
-  if (account.provider !== "evolution" && account.provider !== "evolution-go") {
-    throw new HttpError(422, "Conexão por QR é exclusiva de contas Evolution / Evolution Go");
+  if (
+    account.provider !== "evolution" &&
+    account.provider !== "evolution-go" &&
+    account.provider !== "openwa"
+  ) {
+    throw new HttpError(422, "Conexão por QR é exclusiva de contas Evolution / Evolution Go / OpenWA");
   }
 
   // ===== Evolution Go (whatsmeow) — self-contained branch ===================
@@ -699,6 +733,161 @@ servePost(async (req, ctx) => {
           // a restart that never ran.
           if (instanceId && instanceToken) {
             await restartGoInstance(instanceToken, deps, { baseUrl: goBaseUrl, instanceId }, ctx.traceId);
+            if (actorId) {
+              await bestEffortAudit(admin, {
+                store_id: account.store_id,
+                actor_id: actorId,
+                action: "whatsapp_instance_restarted",
+                resource: "whatsapp_account",
+                resource_id: account.id,
+                after: {},
+              });
+            }
+          }
+          return json({ ok: true, traceId: ctx.traceId }, 200);
+        }
+      }
+    } catch (err) {
+      if (err instanceof WhatsAppProviderError) {
+        ctx.log.warn("connect action rejected", { action, code: err.code, message: err.message });
+        return json({ error: err.message, code: err.code, traceId: ctx.traceId }, err.httpStatus);
+      }
+      throw err;
+    }
+    throw new HttpError(422, "ação inválida");
+  }
+
+  // ===== OpenWA (self-hosted whatsapp-web.js) — self-contained branch =======
+  // Auth is simpler than Go: ONE global key (registry) authorizes EVERY call —
+  // admin (create/start/stop/delete/webhook) AND messaging alike (confirmed
+  // live 2026-07-07). No per-instance token to mint/persist.
+  if (account.provider === "openwa") {
+    const owaConfig = account.provider_config ?? {};
+    try {
+      switch (action) {
+        case "qr": {
+          const { baseUrl: owaBaseUrl, globalKey } = await resolveOpenWaServer(
+            admin,
+            deps.resolveSecret,
+            account,
+          );
+          let sessionId = String(owaConfig.sessionId ?? "");
+          if (!sessionId) {
+            // First pairing: create + start the session, persist the id, register
+            // our webhook ONCE (the server has no upsert-by-url — re-registering
+            // on every poll would pile up duplicate webhooks).
+            const created = await createOpenWaSession(globalKey, deps, { baseUrl: owaBaseUrl }, account.label, ctx.traceId);
+            sessionId = created.sessionId;
+            const { error: cfgErr } = await admin
+              .from("whatsapp_accounts")
+              .update({ provider_config: { ...owaConfig, sessionId } })
+              .eq("id", account.id);
+            if (cfgErr) {
+              throw new HttpError(500, `Falha ao persistir o sessionId da OpenWA: ${cfgErr.message}`);
+            }
+            const owaTarget = { baseUrl: owaBaseUrl, sessionId };
+            const webhookUrl = `${requiredEnv("SUPABASE_URL")}/functions/v1/whatsapp-webhook/openwa`;
+            await registerOpenWaWebhook(globalKey, deps, owaTarget, webhookUrl, ctx.traceId);
+            await startOpenWaSession(globalKey, deps, owaTarget, ctx.traceId);
+          }
+          const owaTarget = { baseUrl: owaBaseUrl, sessionId };
+          const status = await getOpenWaStatus(globalKey, deps, owaTarget, ctx.traceId);
+          if (status.connected) {
+            if (account.status !== "connected") {
+              await admin
+                .from("whatsapp_accounts")
+                .update({
+                  status: "connected",
+                  ...(status.phoneNumber ? { phone_number: status.phoneNumber } : {}),
+                })
+                .eq("id", account.id);
+              if (actorId) {
+                await bestEffortAudit(admin, {
+                  store_id: account.store_id,
+                  actor_id: actorId,
+                  action: "whatsapp_instance_connected",
+                  resource: "whatsapp_account",
+                  resource_id: account.id,
+                  after: { provider: "openwa" },
+                });
+              }
+            }
+            return json({ state: "open", traceId: ctx.traceId }, 200);
+          }
+          await markDisconnected(admin, account, actorId, "close");
+          const qr: IOpenWaQrResult = await getOpenWaQr(globalKey, deps, owaTarget, ctx.traceId);
+          return json(
+            {
+              state: qr.state,
+              qrBase64: qr.qrBase64,
+              expiresInSeconds: QR_EXPIRES_IN_SECONDS,
+              traceId: ctx.traceId,
+            },
+            200,
+          );
+        }
+
+        case "test":
+        case "state": {
+          const { baseUrl: owaBaseUrl, globalKey } = await resolveOpenWaServer(admin, deps.resolveSecret, account);
+          const sessionId = String(owaConfig.sessionId ?? "");
+          if (!sessionId) {
+            await markDisconnected(admin, account, actorId, "close");
+            return json({ state: "close", traceId: ctx.traceId }, 200);
+          }
+          const owaTarget = { baseUrl: owaBaseUrl, sessionId };
+          const status = await getOpenWaStatus(globalKey, deps, owaTarget, ctx.traceId);
+          if (status.connected) {
+            if ((account.phone_number ?? "").trim().length === 0 && status.phoneNumber) {
+              await admin
+                .from("whatsapp_accounts")
+                .update({ phone_number: status.phoneNumber })
+                .eq("id", account.id);
+            }
+            if (account.status !== "connected") {
+              await admin.from("whatsapp_accounts").update({ status: "connected" }).eq("id", account.id);
+              if (actorId) {
+                await bestEffortAudit(admin, {
+                  store_id: account.store_id,
+                  actor_id: actorId,
+                  action: "whatsapp_instance_connected",
+                  resource: "whatsapp_account",
+                  resource_id: account.id,
+                  after: { provider: "openwa" },
+                });
+              }
+            }
+            return json({ state: "open", traceId: ctx.traceId }, 200);
+          }
+          await markDisconnected(admin, account, actorId, "close");
+          return json({ state: "close", traceId: ctx.traceId }, 200);
+        }
+
+        case "logout": {
+          const { baseUrl: owaBaseUrl, globalKey } = await resolveOpenWaServer(admin, deps.resolveSecret, account);
+          const sessionId = String(owaConfig.sessionId ?? "");
+          if (sessionId) {
+            await stopOpenWaSession(globalKey, deps, { baseUrl: owaBaseUrl, sessionId }, ctx.traceId);
+          }
+          await admin.from("whatsapp_accounts").update({ status: "disconnected" }).eq("id", account.id);
+          if (actorId) {
+            await bestEffortAudit(admin, {
+              store_id: account.store_id,
+              actor_id: actorId,
+              action: "whatsapp_instance_disconnected",
+              resource: "whatsapp_account",
+              resource_id: account.id,
+              after: { state: "close" },
+            });
+          }
+          return json({ ok: true, traceId: ctx.traceId }, 200);
+        }
+
+        case "restart": {
+          const { baseUrl: owaBaseUrl, globalKey } = await resolveOpenWaServer(admin, deps.resolveSecret, account);
+          const sessionId = String(owaConfig.sessionId ?? "");
+          if (sessionId) {
+            await restartOpenWaSession(globalKey, deps, { baseUrl: owaBaseUrl, sessionId }, ctx.traceId);
             if (actorId) {
               await bestEffortAudit(admin, {
                 store_id: account.store_id,

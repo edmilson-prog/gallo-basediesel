@@ -199,6 +199,29 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
       const row = rows[0];
       return row ? toAccountRecord(row) : null;
     },
+    async findOpenWaAccount(sessionId) {
+      if (!sessionId) return null;
+      const { data } = await admin
+        .from("whatsapp_accounts")
+        .select(ACCT_COLS)
+        .eq("provider", "openwa")
+        .neq("status", "disconnected")
+        .eq("provider_config->>sessionId", sessionId);
+      const rows = data ?? [];
+      if (rows.length > 1) {
+        console.warn(
+          JSON.stringify({
+            level: "warn",
+            msg: "ambiguous openwa sessionId — refusing to route",
+            sessionId,
+            count: rows.length,
+          }),
+        );
+        return null; // fail-closed: ambíguo não roteia
+      }
+      const row = rows[0];
+      return row ? toAccountRecord(row) : null;
+    },
     async setAccountConnectionStatus(accountId, status) {
       const { data } = await admin
         .from("whatsapp_accounts")
@@ -475,7 +498,7 @@ function toAccountRecord(row: Record<string, unknown>): IAccountRecord {
   return {
     id: row.id as string,
     storeId: row.store_id as string,
-    provider: row.provider as "meta" | "evolution" | "evolution-go",
+    provider: row.provider as "meta" | "evolution" | "evolution-go" | "openwa",
     phoneNumber: row.phone_number as string,
     credentialsRef: row.credentials_ref as string,
     providerConfig: (row.provider_config as Record<string, unknown> | null) ?? null,
@@ -586,6 +609,33 @@ async function evolutionGate(
 }
 
 /**
+ * OpenWA has no documented HMAC webhook secret (see
+ * OpenWaProvider.verifyWebhookSignature) — auth relies on the same IP
+ * allowlist as classic Evolution (RF-061), since the companion runs on the
+ * same VPS. There is no per-account secret at all for this provider (the
+ * server-wide key lives on whatsapp_openwa_servers, not per-account — see
+ * integrationKeys.ts's `evolution-go`/`openwa` exclusion). Fail-closed when unset.
+ */
+async function openwaGate(
+  req: Request,
+  log: Logger,
+  resolveSecret: VaultSecretResolver,
+): Promise<Response | null> {
+  const allowlist = ((await resolveSecret("EVOLUTION_ALLOWED_IPS")) ?? "")
+    .split(",")
+    .map((ip) => ip.trim())
+    .filter(Boolean);
+  const sourceIp = (req.headers.get("x-forwarded-for") ?? "").split(",")[0]?.trim() ?? "";
+  if (allowlist.length > 0) {
+    if (allowlist.includes(sourceIp)) return null;
+    log.warn("openwa webhook from non-allowlisted ip", { sourceIp });
+    return json({ error: "forbidden" }, 403);
+  }
+  log.error("openwa webhook validation not configured — rejecting (fail closed)", { sourceIp });
+  return json({ error: "webhook not configured" }, 403);
+}
+
+/**
  * Evolution Go has no HMAC: the webhook payload carries the per-instance
  * `instanceToken`. We authenticate by comparing it (constant-time) to the
  * Vault token via EvolutionGoProvider.verifyWebhookSignature. Fail-closed:
@@ -691,7 +741,12 @@ Deno.serve(async (req) => {
     return res;
   };
 
-  if (provider !== "meta" && provider !== "evolution" && provider !== "evolution-go") {
+  if (
+    provider !== "meta" &&
+    provider !== "evolution" &&
+    provider !== "evolution-go" &&
+    provider !== "openwa"
+  ) {
     return respond(json({ error: "unknown provider" }, 400));
   }
 
@@ -724,6 +779,13 @@ Deno.serve(async (req) => {
   // detected in buildProvider and skip the map lookup.
   const goBaseUrls = new Map<string, string>();
 
+  // Pre-resolved OpenWA server config (accountId → {baseUrl, apiKeySecretName}).
+  // Populated in the openwa gate block below. Unlike evolution-go, provider_config
+  // NEVER carries baseUrl/apiKeySecretName for openwa (see IOpenWaAccountConfig) —
+  // ONE global key per server authenticates every session, resolved via
+  // whatsapp_accounts.openwa_server_id → whatsapp_openwa_servers.
+  const openwaServers = new Map<string, { baseUrl: string; apiKeySecretName: string }>();
+
   // Auth gates (fail closed) — the ONLY paths that answer 4xx on POST.
   if (provider === "meta") {
     const rejection = await metaGate(req, rawBody, log, resolveSecret);
@@ -755,6 +817,34 @@ Deno.serve(async (req) => {
         }
       }
     }
+  } else if (provider === "openwa") {
+    const rejection = await openwaGate(req, log, resolveSecret);
+    if (rejection) return respond(rejection);
+    // Pre-resolve the OpenWA server's {baseUrl, apiKeySecretName} for this
+    // account (needed by buildProvider for both parsing media and any future
+    // outbound-echo handling). Doing it here keeps buildProvider synchronous.
+    const sessionId = (payload as { sessionId?: string } | null)?.sessionId ?? "";
+    const account = await db.findOpenWaAccount(sessionId);
+    if (account) {
+      const { data: acctRow } = await admin
+        .from("whatsapp_accounts")
+        .select("openwa_server_id")
+        .eq("id", account.id)
+        .maybeSingle();
+      if (acctRow?.openwa_server_id) {
+        const { data: server } = await admin
+          .from("whatsapp_openwa_servers")
+          .select("base_url, api_key_ref")
+          .eq("id", acctRow.openwa_server_id as string)
+          .maybeSingle();
+        if (server?.base_url && server?.api_key_ref) {
+          openwaServers.set(account.id, {
+            baseUrl: String(server.base_url).replace(/\/+$/, ""),
+            apiKeySecretName: String(server.api_key_ref),
+          });
+        }
+      }
+    }
   } else {
     // Any-status lookup: the gate is about AUTH (per-account secret), and
     // connection.update events must also reach disconnected accounts.
@@ -778,6 +868,10 @@ Deno.serve(async (req) => {
         if (account.provider === "evolution-go" && !providerConfig?.baseUrl) {
           const serverBaseUrl = goBaseUrls.get(account.id);
           if (serverBaseUrl) providerConfig = { ...providerConfig, baseUrl: serverBaseUrl };
+        }
+        if (account.provider === "openwa") {
+          const serverCfg = openwaServers.get(account.id);
+          if (serverCfg) providerConfig = { ...providerConfig, ...serverCfg };
         }
         return buildWhatsAppEngine({
           engine: account.provider,
