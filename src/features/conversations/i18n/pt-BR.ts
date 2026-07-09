@@ -410,6 +410,8 @@ export const CONVERSATION_STRINGS = {
     resumeSdr: "Retomar SDR",
     syncPhoto: "Atualizar foto do contato",
     renameContact: "Renomear contato",
+    qualifyAsLead: "Qualificar como lead",
+    viewLead: "Ver lead",
   },
 
   // Conversation tags (chip + picker)
@@ -449,6 +451,7 @@ export const CONVERSATION_STRINGS = {
   undo: "Desfazer",
   undone: "Ação desfeita",
   actionFailed: "Não foi possível concluir a ação",
+  leadQualified: "Lead qualificado a partir da conversa.",
 
   // Library / quick-send menu sections (PRD-027 Plano B)
   attachSectionLibrary: "Biblioteca",
