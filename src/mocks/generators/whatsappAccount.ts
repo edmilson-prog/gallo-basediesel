@@ -64,9 +64,11 @@ export const SEED_WHATSAPP_ACCOUNTS: IWhatsAppAccount[] = [
     credentialsRef: "vault://gallo/wa-openwa-filial",
     status: "connected",
     currentState: "healthy",
+    // Canonical openwa shape: ONLY the server-minted sessionId (the base URL
+    // lives in the whatsapp_openwa_servers registry, mirroring the real DB
+    // CHECK `provider_config ? 'sessionId'`). Fixed fake uuid = deterministic.
     providerConfig: {
-      baseUrl: "https://openwa.gallobasediesel.com.br",
-      instanceName: "gallo-filial",
+      sessionId: "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
     },
     failoverPolicy: "disabled",
     isFailoverActive: false,

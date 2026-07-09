@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import type { ICustomer, ID, IConversation, ILead, ISeller } from "@/shared/types";
+import type {
+  ICustomer,
+  ID,
+  IConversation,
+  ILead,
+  ISeller,
+  IWhatsAppAccount,
+} from "@/shared/types";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import {
@@ -40,6 +47,9 @@ export interface IConversationMenuProps {
   conversation: IConversation;
   customer: ICustomer | null;
   lead: ILead | null;
+  /** Account behind the conversation (null when RLS-hidden/unloaded) — gates
+   *  provider-specific actions like the photo re-sync. */
+  whatsappAccount?: IWhatsAppAccount | null;
   onMutated?: () => void;
   /** Status-control display mode (lifted to the page; shared with the header). */
   statusControlMode: StatusControlMode;
@@ -63,6 +73,7 @@ function showUndoableToast(message: string, undo: () => Promise<void> | void) {
 export function ConversationMenu({
   conversation,
   customer,
+  whatsappAccount,
   onMutated,
   statusControlMode,
   onStatusControlModeChange,
@@ -95,11 +106,19 @@ export function ConversationMenu({
 
   // Per-contact photo re-sync (this conversation's contact ONLY) — real
   // WhatsApp data + a customers row + a bound account; hidden in demo mode.
+  // The whatsapp-avatar-sync edge only speaks Evolution v2/Go (422 provider
+  // guard): hide when the account is positively another engine (openwa/meta);
+  // fail-open when the account row is unreadable to preserve the affordance.
+  const syncPhotoSupported =
+    !whatsappAccount ||
+    whatsappAccount.provider === "evolution" ||
+    whatsappAccount.provider === "evolution-go";
   const canSyncPhoto =
     getActiveDataSource() !== "mock" &&
     conversation.channel === "whatsapp" &&
     Boolean(customer) &&
-    Boolean(conversation.whatsappAccountId);
+    Boolean(conversation.whatsappAccountId) &&
+    syncPhotoSupported;
 
   const updateAndAudit = async (
     patch: Partial<IConversation>,

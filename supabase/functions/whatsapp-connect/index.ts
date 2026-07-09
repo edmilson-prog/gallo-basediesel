@@ -829,14 +829,13 @@ servePost(async (req, ctx) => {
             await startOpenWaSession(globalKey, deps, owaTarget, ctx.traceId);
           }
           const owaTarget = { baseUrl: owaBaseUrl, sessionId };
-          const status = await getOpenWaStatus(globalKey, deps, owaTarget, ctx.traceId);
-          if (status.connected) {
+          const respondOpen = async (phoneNumber?: string) => {
             if (account.status !== "connected") {
               await admin
                 .from("whatsapp_accounts")
                 .update({
                   status: "connected",
-                  ...(status.phoneNumber ? { phone_number: status.phoneNumber } : {}),
+                  ...(phoneNumber ? { phone_number: phoneNumber } : {}),
                 })
                 .eq("id", account.id);
               if (actorId) {
@@ -851,12 +850,47 @@ servePost(async (req, ctx) => {
               }
             }
             return json({ state: "open", traceId: ctx.traceId }, 200);
-          }
+          };
+          const status = await getOpenWaStatus(globalKey, deps, owaTarget, ctx.traceId);
+          if (status.connected) return await respondOpen(status.phoneNumber);
           await markDisconnected(admin, account, actorId, "close");
-          const qr: IOpenWaQrResult = await getOpenWaQr(globalKey, deps, owaTarget, ctx.traceId);
+          // A QR-less answer from /sessions/{id}/qr is "pending", NEVER "paired"
+          // (the Go 2026-07-06 incident applies 1:1) — only the authoritative
+          // connected status above may answer "open". A stopped session (the
+          // logout action stops it) never regenerates a QR on its own, so on a
+          // QR miss (re)start it best-effort (a 409 "already started" from a
+          // qr_ready session is harmless) and poll briefly; then fail honestly.
+          const tryQr = async (): Promise<IOpenWaQrResult | null> => {
+            try {
+              return await getOpenWaQr(globalKey, deps, owaTarget, ctx.traceId);
+            } catch (err) {
+              if (err instanceof WhatsAppProviderError && err.code !== "UNAUTHORIZED") return null;
+              throw err;
+            }
+          };
+          let qr = await tryQr();
+          if (qr?.state !== "qr" || !qr.qrBase64) {
+            ctx.log.info("openwa qr unavailable — (re)starting the session", { sessionId });
+            await startOpenWaSession(globalKey, deps, owaTarget, ctx.traceId).catch(() => {});
+            for (let attempt = 0; attempt < 5; attempt++) {
+              await new Promise((resolve) => setTimeout(resolve, 1500));
+              const recheck = await getOpenWaStatus(globalKey, deps, owaTarget, ctx.traceId);
+              if (recheck.connected) return await respondOpen(recheck.phoneNumber);
+              qr = await tryQr();
+              if (qr?.state === "qr" && qr.qrBase64) break;
+            }
+          }
+          if (qr?.state !== "qr" || !qr.qrBase64) {
+            throw new WhatsAppProviderError(
+              "QR_UNAVAILABLE",
+              503,
+              "O servidor não gerou o QR code desta sessão — aguarde alguns segundos e tente novamente",
+              { endpoint: "/sessions/{id}/qr", reason: "no_qr_after_start" },
+            );
+          }
           return json(
             {
-              state: qr.state,
+              state: "qr",
               qrBase64: qr.qrBase64,
               expiresInSeconds: QR_EXPIRES_IN_SECONDS,
               traceId: ctx.traceId,
