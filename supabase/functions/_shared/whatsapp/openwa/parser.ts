@@ -193,7 +193,14 @@ export function parseOpenWaInbound(
     };
   }
 
-  const remoteJid = message.direction === "outgoing" ? (message.to ?? "") : (message.from ?? "");
+  // wwebjs serialized ids carry fromMe as the FIRST token ("true_..."): trust
+  // it over the record's `direction` field — the server's history re-sync was
+  // observed live (2026-07-09) delivering fromMe messages with direction
+  // "incoming", which classified phone-sent echoes as inbound and minted a
+  // customer for the account's OWN number.
+  const fromMe =
+    (message.waMessageId ?? "").startsWith("true_") || message.direction === "outgoing";
+  const remoteJid = fromMe ? (message.to ?? "") : (message.from ?? "");
   if (NON_INDIVIDUAL_JID.test(remoteJid)) {
     throw new Error("OpenWaProvider: mensagem de grupo/broadcast/newsletter — ignorar (sem cliente 1:1)");
   }
@@ -206,7 +213,7 @@ export function parseOpenWaInbound(
   const providerMessageId = message.waMessageId ?? message.id ?? "";
   const mediaId = hasMedia ? packMediaId(message.metadata!.media!) : undefined;
 
-  if (message.direction === "outgoing") {
+  if (fromMe) {
     return {
       type: "outbound-echo",
       providerMessageId,

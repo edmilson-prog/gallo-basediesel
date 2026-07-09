@@ -71,6 +71,26 @@ describe("parseOpenWaInbound — inbound text", () => {
 });
 
 describe("parseOpenWaInbound — outbound echo (direction=outgoing)", () => {
+  it("classifies a fromMe waMessageId (true_...) as echo even when direction lies as incoming", () => {
+    // Confirmed live 2026-07-09: the server's history re-sync delivered
+    // phone-sent messages with direction "incoming" — trusting it minted a
+    // customer for the account's OWN number. The id prefix is authoritative.
+    const parsed = parseOpenWaInbound(
+      messageEvent({
+        direction: "incoming",
+        waMessageId: "true_5555911111111@c.us_AC42",
+        body: "Bom dia Filha",
+      }),
+      "acc",
+    );
+    expect(parsed).toMatchObject({
+      type: "outbound-echo",
+      providerMessageId: "true_5555911111111@c.us_AC42",
+      toPhone: "+5555911111111",
+      text: "Bom dia Filha",
+    });
+  });
+
   it("parses an outgoing message as outbound-echo with destination phone and content", () => {
     const parsed = parseOpenWaInbound(
       messageEvent({ direction: "outgoing", body: "te envio o boleto", waMessageId: "ECHO1" }),
