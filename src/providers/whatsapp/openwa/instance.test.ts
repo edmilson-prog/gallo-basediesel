@@ -8,6 +8,7 @@ import {
   deleteOpenWaSession,
   restartOpenWaSession,
   registerOpenWaWebhook,
+  resolveOpenWaContact,
 } from "./instance";
 import type { IEngineDeps } from "../types";
 
@@ -121,6 +122,42 @@ describe("openwa session management", () => {
       "https://openwa.test/api/sessions/sess-1/stop",
       "https://openwa.test/api/sessions/sess-1/start",
     ]);
+  });
+
+  it("resolveOpenWaContact resolves an @lid to the canonical @c.us jid (confirmed live shape)", async () => {
+    const fetchFn = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(url)).toBe(
+        "https://openwa.test/api/sessions/sess-1/contacts/213202294059192%40lid",
+      );
+      expect(init?.method).toBe("GET");
+      return jsonResponse({
+        id: "555481169884@c.us",
+        name: "AILA Sistemas Inteligentes",
+        pushName: "AILA - Sistemas Inteligentes",
+        // Echoes the queried lid digits — must NOT be used as the phone.
+        number: "213202294059192",
+        isMyContact: true,
+        isBlocked: false,
+      });
+    }) as unknown as typeof fetch;
+
+    const out = await resolveOpenWaContact(
+      "global-key",
+      deps(fetchFn),
+      TARGET,
+      "213202294059192@lid",
+    );
+    expect(out).toEqual({
+      jid: "555481169884@c.us",
+      name: "AILA Sistemas Inteligentes",
+      pushName: "AILA - Sistemas Inteligentes",
+    });
+  });
+
+  it("resolveOpenWaContact returns an empty result for an unknown contact body", async () => {
+    const fetchFn = vi.fn(async () => jsonResponse({})) as unknown as typeof fetch;
+    const out = await resolveOpenWaContact("global-key", deps(fetchFn), TARGET, "9@lid");
+    expect(out.jid).toBeUndefined();
   });
 
   it("registerOpenWaWebhook posts url + the confirmed event set", async () => {

@@ -1173,3 +1173,62 @@ describe("processWebhookEvent — evolution-go", () => {
     );
   });
 });
+
+describe("processWebhookEvent — openwa", () => {
+  const openwaMessage = (overrides?: Record<string, unknown>) => ({
+    event: "message.received",
+    sessionId: "gallo-matriz",
+    data: {
+      sessionId: "gallo-matriz",
+      waMessageId: "false_5555922222222@c.us_OWA1",
+      chatId: "5555922222222@c.us",
+      chatName: "Cliente OpenWA",
+      from: "5555922222222@c.us",
+      to: "5555911111111@c.us",
+      body: "olá pela openwa",
+      type: "text",
+      direction: "incoming",
+      timestamp: 1765400000,
+      metadata: null,
+      status: "sent",
+      ...overrides,
+    },
+  });
+
+  it("creates the message with an eventKey scoped by the SESSION id (not the evolution instance)", async () => {
+    const state = emptyState();
+    const result = await run(state, openwaMessage(), { provider: "openwa" });
+
+    expect(result.outcome).toBe("message-created");
+    expect(state.messages[0]).toMatchObject({
+      provider: "openwa",
+      text: "olá pela openwa",
+      providerMessageId: "false_5555922222222@c.us_OWA1",
+    });
+    // Regression: openwa used to fall into the EVOLUTION instance extractor
+    // (payload.instance = ""), collapsing eventKeys across sessions.
+    expect(
+      state.processed.has("whatsapp:openwa:gallo-matriz:false_5555922222222@c.us_OWA1"),
+    ).toBe(true);
+  });
+
+  it("resolves the account from the nested record sessionId when the envelope top level lacks it", async () => {
+    const state = emptyState();
+    const payload = openwaMessage();
+    delete (payload as { sessionId?: string }).sessionId;
+
+    const result = await run(state, payload, { provider: "openwa" });
+    expect(result.outcome).toBe("message-created");
+  });
+
+  it("still drops @lid senders the edge could not resolve (no junk customers)", async () => {
+    const state = emptyState();
+    const result = await run(
+      state,
+      openwaMessage({ from: "213202294059192@lid", chatId: "213202294059192@lid" }),
+      { provider: "openwa" },
+    );
+    expect(result.outcome).toBe("ignored");
+    expect(state.customers).toHaveLength(0);
+  });
+});

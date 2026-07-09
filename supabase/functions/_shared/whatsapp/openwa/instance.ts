@@ -206,3 +206,38 @@ function sessionPhoneToE164(phone: string | undefined | null): string | undefine
   const e164 = toE164(phone);
   return E164_REGEX.test(e164) ? e164 : undefined;
 }
+
+export interface IOpenWaContactResult {
+  /** Canonical individual JID (`<phone>@c.us`) when the server knows the contact. */
+  jid?: string;
+  name?: string;
+  pushName?: string;
+}
+
+/**
+ * GET /sessions/{id}/contacts/{contactId} — resolves a JID (INCLUDING the
+ * privacy `@lid` form) to the canonical contact. CONFIRMED live (2026-07-09):
+ * a `<digits>@lid` lookup answered `{ id: "<phone>@c.us", name, pushName,
+ * number, isMyContact, isBlocked }` — `id` carries the REAL phone JID (the
+ * `number` field just echoes the queried lid digits; never use it). This is
+ * the @lid→phone bridge Evolution v2 lacks (its parser must drop @lid): the
+ * webhook resolves the lid BEFORE parsing so the conversation lands with the
+ * customer's real number instead of being ignored.
+ */
+export async function resolveOpenWaContact(
+  apiKey: string,
+  deps: IEngineDeps,
+  target: IOpenWaSessionTarget,
+  contactId: string,
+  traceId?: string,
+): Promise<IOpenWaContactResult> {
+  const response = await openwaRequest(apiKey, deps, {
+    baseUrl: target.baseUrl,
+    path: `/sessions/${target.sessionId}/contacts/${encodeURIComponent(contactId)}`,
+    method: "GET",
+    timeoutMs: 10_000,
+    traceId,
+  });
+  const body = response.body as { id?: string; name?: string; pushName?: string } | null;
+  return { jid: body?.id, name: body?.name, pushName: body?.pushName };
+}

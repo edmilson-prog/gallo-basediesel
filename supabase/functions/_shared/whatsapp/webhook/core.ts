@@ -284,13 +284,19 @@ function extractEvolutionGoInstance(rawPayload: unknown): string {
 /**
  * openwa's webhook envelope carries the session id as `sessionId` (confirmed
  * live 2026-07-07 — matches `provider_config.sessionId`, the id `POST
- * /api/sessions` returns). No connection-lifecycle handling is implemented for
- * openwa v1 (the `session.status`/`session.qr` events are dropped by the
- * parser as unsupported — see ../openwa/parser); only message/ack events
- * resolve an account, via findOpenWaAccount below.
+ * /api/sessions` returns). Falls back to the nested message record's own
+ * `sessionId` (the record carries it too — confirmed via GET /messages), so
+ * an envelope drift or a bare-record delivery still resolves the account.
+ * No connection-lifecycle handling is implemented for openwa v1 (the
+ * `session.status`/`session.qr` events are dropped by the parser as
+ * unsupported — see ../openwa/parser); only message/ack events resolve an
+ * account, via findOpenWaAccount below.
  */
 function extractOpenWaInstance(rawPayload: unknown): string {
-  return (rawPayload as { sessionId?: string } | null)?.sessionId ?? "";
+  const payload = rawPayload as
+    | { sessionId?: string; data?: { sessionId?: string } | null }
+    | null;
+  return payload?.sessionId ?? payload?.data?.sessionId ?? "";
 }
 
 /**
@@ -497,7 +503,9 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
       ? extractMetaPhoneNumberId(rawPayload)
       : provider === "evolution-go"
         ? extractEvolutionGoInstance(rawPayload)
-        : extractEvolutionInstance(rawPayload);
+        : provider === "openwa"
+          ? extractOpenWaInstance(rawPayload)
+          : extractEvolutionInstance(rawPayload);
   const eventKey =
     parsed.type === "status"
       ? `whatsapp:${provider}:${instanceScope}:${parsed.providerMessageId}:${parsed.status}`
