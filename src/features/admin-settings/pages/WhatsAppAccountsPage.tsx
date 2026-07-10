@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type {
   ISeller,
   IWhatsAppAccount,
@@ -53,6 +54,7 @@ import { TestMessageDialog } from "../components/TestMessageDialog";
 import { InstanceAccessSheet } from "../components/InstanceAccessSheet";
 import { ParticipantCrossInstanceCard } from "../components/ParticipantCrossInstanceCard";
 import { AddInstanceWizard } from "../components/AddInstanceWizard";
+import { WahaSection } from "../components/WahaSection";
 import { resolveAccessRecipients } from "../utils/accessRecipients";
 import { INSTANCE_PALETTE } from "@/features/conversations/utils/instanceAccent";
 
@@ -449,11 +451,19 @@ export function WhatsAppAccountsPage() {
 
   return (
     <div ref={pageRef} tabIndex={-1} className="space-y-6 outline-none">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <SectionHeader
-          title="WhatsApp"
-          description="Contas conectadas à Central de Atendimento. O envio e a recepção reais usam estas configurações (PRDs 111–118)."
-        />
+      <SectionHeader
+        title="WhatsApp"
+        description="Contas conectadas à Central de Atendimento. O envio e a recepção reais usam estas configurações (PRDs 111–118)."
+      />
+
+      <Tabs defaultValue="contas" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="contas">Contas</TabsTrigger>
+          <TabsTrigger value="waha">WAHA</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="contas" className="space-y-6 focus-visible:outline-none">
+      <div className="flex flex-wrap items-center justify-end gap-3">
         <Button onClick={() => setWizardOpen(true)} title="Adiciona um novo número de WhatsApp">
           <Icon icon="lucide:plus" size={14} className="mr-1.5" />
           Adicionar número
@@ -1118,6 +1128,13 @@ export function WhatsAppAccountsPage() {
           })()}
         </div>
       </div>
+        </TabsContent>
+
+        <TabsContent value="waha" className="focus-visible:outline-none">
+          <WahaSection storeId={storeId} />
+        </TabsContent>
+      </Tabs>
+
       <ConnectWhatsAppDialog
         account={connectTarget?.account ?? null}
         initialStep={connectTarget?.step ?? "form"}

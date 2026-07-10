@@ -77,6 +77,12 @@ export const supabaseWhatsAppAccountsProvider: IWhatsAppAccountsProvider = {
   async list(params?: IListWhatsAppAccountsParams): Promise<IWhatsAppAccount[]> {
     let query = getSupabaseClient().from(TABLE).select(COLUMNS);
     if (params?.storeId) query = query.eq("store_id", params.storeId);
+    // WAHA sessions are managed exclusively from the dedicated "WAHA" tab
+    // (`WahaSection`, reading `whatsapp_accounts` directly) — they carry no
+    // `providerConfig.baseUrl`/`instanceName`, so every other consumer of this
+    // generic list (Contas tab, Inbox instance filter, connection status,
+    // failover pickers, templates screen) would break on a "waha" row.
+    query = query.neq("provider", "waha");
 
     const { data, error } = await query.order("created_at", { ascending: true });
     if (error) throw new Error(`[supabase] whatsappAccounts.list failed: ${error.message}`);
