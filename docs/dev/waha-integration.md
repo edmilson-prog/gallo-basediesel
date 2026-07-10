@@ -125,7 +125,7 @@ As 3 funções foram deployadas e confirmadas `ACTIVE`: `waha-connect` (`verify_
 
 ---
 
-## Cutover
+## 6. Cutover
 
 1. ✅ Migrations 1–2 aplicadas em produção via MCP (verificadas: tabela `waha_servers`, coluna `whatsapp_accounts.waha_server_id`, CHECK constraints, índice único por `sessionName`).
 2. ✅ Deploy das 3 Edge Functions confirmado (`waha-connect` verify_jwt=true, `waha-webhook` verify_jwt=false, `waha-send` verify_jwt=true — todas ACTIVE).
