@@ -109,6 +109,7 @@ Preenchidos **somente quando vazios** (nunca sobrescrevem edição manual ou dad
 | Sem telefone em nenhuma fonte (`CLIENTE`+`NOTAFISCAL`+`ORCAMENTO`) | ~1.180 | `phone=''` (string vazia — mantém `NOT NULL`, evita ripple de null-check em código WhatsApp que assume string) |
 | Match de telefone ambíguo (1 telefone bate em ≥2 `CODCLI`) | 30 | linka o customer existente ao `CODCLI` de **maior `dintec_ltv`** entre os candidatos; os demais `CODCLI` do grupo viram customers novos e independentes (não descartados) |
 | `CLIENTE.ATIVO='NAO'` | 13 | importado normalmente; grava em `dintec_ativo=false`; não usado para filtrar escopo nem para setar `customers.status` automaticamente (fica com o default da plataforma) |
+| `CODCLI=1` (`"***VENDA CONSUMIDOR***"`) | 1 | **Excluído da importação.** Bucket genérico de venda de balcão anônima do DINTEC — não é um cliente real; carrega 46 veículos que pertencem a compradores diferentes e sem relação entre si. Confirmado via varredura nos 3.167 `CLIENTE` completos (2026-07-10): é o **único** registro desse tipo na base — não há outro `CODCLI` sem documento com volume de veículo desproporcional (≥15), nem outro nome com padrão genérico (`CONSUMIDOR`/`DIVERSOS`/`VENDA BALCAO`/`CLIENTE PADRAO`/`GENERICO`/`AVULSO`/`BALCAO`). Um segundo candidato (`CODCLI=1729`, nome com prefixo `"* - "`) foi investigado e descartado — é uma concessionária real (`SAVARAUTO BOA VISTA VEICULOS LTDA`), o asterisco é uma convenção de nomenclatura do próprio cliente, não um marcador de sistema. |
 
 ## Veículos — normalização de marca/modelo
 
