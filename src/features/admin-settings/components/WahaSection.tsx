@@ -110,6 +110,7 @@ export function WahaSection({ storeId }: { storeId: string }) {
   const [accounts, setAccounts] = useState<IWahaAccountRow[] | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<IWahaAccountRow | null>(null);
+  const [pairingTarget, setPairingTarget] = useState<IWahaAccountRow | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -148,6 +149,27 @@ export function WahaSection({ storeId }: { storeId: string }) {
     } finally {
       setBusyId(null);
     }
+  };
+
+  /**
+   * A logged-out/disconnected session has no UI path back to a QR code
+   * otherwise — "Reiniciar" alone restarts the WAHA session but nothing in
+   * this screen ever displays the fresh QR it produces. Restart first (same
+   * action "Reiniciar" already calls) to nudge the session back towards
+   * SCAN_QR_CODE, then reopen the same QR pairing view the creation wizard
+   * uses, scoped to this existing account.
+   */
+  const handleRepair = async (row: IWahaAccountRow) => {
+    setBusyId(row.id);
+    try {
+      await invokeWaha({ accountId: row.id, action: "restart" });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível reiniciar a sessão.");
+      setBusyId(null);
+      return;
+    }
+    setBusyId(null);
+    setPairingTarget(row);
   };
 
   const handleDelete = async () => {
@@ -241,6 +263,12 @@ export function WahaSection({ storeId }: { storeId: string }) {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        {row.status !== "connected" && (
+                          <DropdownMenuItem disabled={busy} onSelect={() => void handleRepair(row)}>
+                            <Icon icon="mdi:qrcode" size={15} className="mr-2" />
+                            Parear novamente
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem disabled={busy} onSelect={() => void handleRestart(row)}>
                           <Icon icon="mdi:restart" size={15} className="mr-2" />
                           Reiniciar
@@ -313,6 +341,19 @@ export function WahaSection({ storeId }: { storeId: string }) {
           }}
         />
       )}
+
+      {pairingTarget && (
+        <WahaPairingDialog
+          accountId={pairingTarget.id}
+          label={pairingTarget.label}
+          onClose={() => setPairingTarget(null)}
+          onConnected={(phoneNumber) => {
+            toast.success(`Sessão reconectada${phoneNumber ? ` · ${phoneNumber}` : ""}.`);
+            setPairingTarget(null);
+            void refresh();
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -337,9 +378,6 @@ function WahaWizard({
   const [phase, setPhase] = useState<WizardPhase>("form");
   const [error, setError] = useState<string | null>(null);
   const [accountId, setAccountId] = useState<string | null>(null);
-  const [qrBase64, setQrBase64] = useState<string | null>(null);
-  const [qrLoading, setQrLoading] = useState(true);
-  const [pairingError, setPairingError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -390,60 +428,6 @@ function WahaWizard({
       setPhase("form");
     }
   }
-
-  // QR polling — refreshes the code every ~3s while pairing is on screen.
-  useEffect(() => {
-    if (phase !== "pairing" || !accountId) return;
-    let cancelled = false;
-    const fetchQr = async () => {
-      try {
-        const data = await invokeWaha<{ state: string; qrBase64?: string }>({
-          accountId,
-          action: "qr",
-        });
-        if (cancelled) return;
-        setQrLoading(false);
-        if (data.qrBase64) setQrBase64(data.qrBase64);
-        setPairingError(null);
-      } catch (err) {
-        if (!cancelled) {
-          setQrLoading(false);
-          setPairingError(err instanceof Error ? err.message : "Não foi possível gerar o QR code.");
-        }
-      }
-    };
-    void fetchQr();
-    const timer = setInterval(() => void fetchQr(), 3000);
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-    };
-  }, [phase, accountId]);
-
-  // State polling — closes the dialog and toasts success once connected.
-  useEffect(() => {
-    if (phase !== "pairing" || !accountId) return;
-    let cancelled = false;
-    const timer = setInterval(() => {
-      void invokeWaha<{ state: string; phoneNumber?: string }>({ accountId, action: "state" })
-        .then((data) => {
-          if (cancelled) return;
-          if (data.state === "connected") {
-            cancelled = true;
-            clearInterval(timer);
-            toast.success(`Sessão conectada${data.phoneNumber ? ` · ${data.phoneNumber}` : ""}.`);
-            onCreated();
-          }
-        })
-        .catch(() => {
-          // Transient poll failures are ignored — the next tick keeps trying.
-        });
-    }, 3000);
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-    };
-  }, [phase, accountId, onCreated]);
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -531,27 +515,16 @@ function WahaWizard({
             Criando a sessão no servidor WAHA…
           </p>
         ) : (
-          <div className="space-y-3 py-2 text-center">
-            {qrLoading && !qrBase64 && (
-              <p className="py-10 text-sm text-muted-foreground">
-                <Icon icon="mdi:loading" className="mr-1.5 inline animate-spin" size={16} />
-                Gerando o QR code…
-              </p>
+          <div className="space-y-3 py-2">
+            {accountId && (
+              <WahaQrPairingPane
+                accountId={accountId}
+                onConnected={(phoneNumber) => {
+                  toast.success(`Sessão conectada${phoneNumber ? ` · ${phoneNumber}` : ""}.`);
+                  onCreated();
+                }}
+              />
             )}
-            {qrBase64 && (
-              <>
-                <img
-                  src={qrBase64}
-                  alt="QR code para conectar o WhatsApp"
-                  className="mx-auto size-56 rounded-lg border border-border"
-                />
-                <p className="text-xs text-muted-foreground">
-                  No WhatsApp do número: <strong>Aparelhos conectados → Conectar aparelho</strong>.
-                  O código é atualizado automaticamente.
-                </p>
-              </>
-            )}
-            {pairingError && <p className="text-xs text-severity-critical">{pairingError}</p>}
             <div className="flex justify-center">
               <Button variant="outline" onClick={onClose}>
                 Fechar
@@ -559,6 +532,132 @@ function WahaWizard({
             </div>
           </div>
         )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * QR + connection-state polling, shared by the creation wizard's "pairing"
+ * phase and the standalone re-pair dialog (`WahaPairingDialog`) opened for
+ * an existing, already-created account. No Dialog chrome of its own — the
+ * caller wraps it.
+ */
+function WahaQrPairingPane({
+  accountId,
+  onConnected,
+}: {
+  accountId: string;
+  onConnected: (phoneNumber?: string) => void;
+}) {
+  const [qrBase64, setQrBase64] = useState<string | null>(null);
+  const [qrLoading, setQrLoading] = useState(true);
+  const [pairingError, setPairingError] = useState<string | null>(null);
+
+  // QR polling — refreshes the code every ~3s while this pane is on screen.
+  useEffect(() => {
+    let cancelled = false;
+    const fetchQr = async () => {
+      try {
+        const data = await invokeWaha<{ state: string; qrBase64?: string }>({
+          accountId,
+          action: "qr",
+        });
+        if (cancelled) return;
+        setQrLoading(false);
+        if (data.qrBase64) setQrBase64(data.qrBase64);
+        setPairingError(null);
+      } catch (err) {
+        if (!cancelled) {
+          setQrLoading(false);
+          setPairingError(err instanceof Error ? err.message : "Não foi possível gerar o QR code.");
+        }
+      }
+    };
+    void fetchQr();
+    const timer = setInterval(() => void fetchQr(), 3000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [accountId]);
+
+  // State polling — reports back once the session reaches "connected".
+  useEffect(() => {
+    let cancelled = false;
+    const timer = setInterval(() => {
+      void invokeWaha<{ state: string; phoneNumber?: string }>({ accountId, action: "state" })
+        .then((data) => {
+          if (cancelled) return;
+          if (data.state === "connected") {
+            cancelled = true;
+            clearInterval(timer);
+            onConnected(data.phoneNumber);
+          }
+        })
+        .catch(() => {
+          // Transient poll failures are ignored — the next tick keeps trying.
+        });
+    }, 3000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [accountId, onConnected]);
+
+  return (
+    <div className="space-y-3 text-center">
+      {qrLoading && !qrBase64 && (
+        <p className="py-10 text-sm text-muted-foreground">
+          <Icon icon="mdi:loading" className="mr-1.5 inline animate-spin" size={16} />
+          Gerando o QR code…
+        </p>
+      )}
+      {qrBase64 && (
+        <>
+          <img
+            src={qrBase64}
+            alt="QR code para conectar o WhatsApp"
+            className="mx-auto size-56 rounded-lg border border-border"
+          />
+          <p className="text-xs text-muted-foreground">
+            No WhatsApp do número: <strong>Aparelhos conectados → Conectar aparelho</strong>. O
+            código é atualizado automaticamente.
+          </p>
+        </>
+      )}
+      {pairingError && <p className="text-xs text-severity-critical">{pairingError}</p>}
+    </div>
+  );
+}
+
+/** Re-pair dialog for an existing (already-created) WAHA account — opened after "Parear novamente" restarts the session. */
+function WahaPairingDialog({
+  accountId,
+  label,
+  onClose,
+  onConnected,
+}: {
+  accountId: string;
+  label: string;
+  onClose: () => void;
+  onConnected: (phoneNumber?: string) => void;
+}) {
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Parear "{label}" novamente</DialogTitle>
+          <DialogDescription>
+            Escaneie o QR code para reconectar esta sessão ao WhatsApp.
+          </DialogDescription>
+        </DialogHeader>
+        <WahaQrPairingPane accountId={accountId} onConnected={onConnected} />
+        <div className="flex justify-center">
+          <Button variant="outline" onClick={onClose}>
+            Fechar
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
