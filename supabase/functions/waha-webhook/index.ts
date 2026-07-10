@@ -103,27 +103,56 @@ Deno.serve(async (req) => {
     return json({ error: "invalid signature" }, 401);
   }
 
-  // ===== Idempotency (scoped by account id, not just provider — the "eco de
-  // mídia" lesson: an unscoped key lets two sessions racing on the same
-  // envelope id swallow each other's event). Inserted BEFORE processing. =====
+  // ===== Idempotency — CHECK is early (read-only), MARK is deferred =========
+  // Scoped by account id, not just provider — the "eco de mídia" lesson: an
+  // unscoped key lets two sessions racing on the same envelope id swallow
+  // each other's event.
+  //
+  // The check (a SELECT) still happens here, before any processing, so a
+  // genuine WAHA retry of an event we already fully handled is rejected
+  // fast. But the MARK (the actual processed_events INSERT) is deferred to
+  // the point where the corresponding downstream write has actually landed
+  // — see markProcessed() calls below. If it were inserted here instead (as
+  // it used to be), a transient failure in the customer/conversation/message
+  // inserts further down would still leave the row in processed_events,
+  // permanently blocking any WAHA retry of that event from ever being
+  // reprocessed. Mirrors the isProcessed()/markProcessed() split in the
+  // reference `_shared/whatsapp/webhook/core.ts` (not imported here).
   const eventKey = `whatsapp:waha:${accountRow.id}:${envelope.id ?? crypto.randomUUID()}`;
-  const { error: dedupeError } = await admin
+  const { data: alreadyProcessed } = await admin
     .from("processed_events")
-    .insert({ event_key: eventKey, trace_id: null });
-  if (dedupeError) {
-    // 23505 = already processed (duplicate delivery) — ack without reprocessing.
-    if (dedupeError.code === "23505") return json({ ok: true, duplicate: true }, 200);
-    console.warn(JSON.stringify({ level: "warn", msg: "waha webhook: dedupe insert failed", error: dedupeError.message }));
+    .select("event_key")
+    .eq("event_key", eventKey)
+    .maybeSingle();
+  if (alreadyProcessed) return json({ ok: true, duplicate: true }, 200);
+
+  // Best-effort bookkeeping write — called only after the real work it
+  // guards has succeeded, so its own failure must never fail the response
+  // (the work already landed; at worst a duplicate gets reprocessed later).
+  async function markProcessed(): Promise<void> {
+    const { error } = await admin
+      .from("processed_events")
+      .upsert({ event_key: eventKey, trace_id: null }, { onConflict: "event_key" });
+    if (error) {
+      console.warn(JSON.stringify({ level: "warn", msg: "waha webhook: mark-processed failed", error: error.message }));
+    }
   }
 
   if (envelope.event === "session.status") {
     const payload = envelope.payload as { status?: string } | null;
     const accountStatus = wahaStateToAccountStatus(String(payload?.status ?? ""));
-    await admin.from("whatsapp_accounts").update({ status: accountStatus }).eq("id", accountRow.id);
+    const { error: statusErr } = await admin
+      .from("whatsapp_accounts")
+      .update({ status: accountStatus })
+      .eq("id", accountRow.id);
+    if (!statusErr) await markProcessed();
     return json({ ok: true }, 200);
   }
 
   if (envelope.event !== "message") {
+    // No persistent work happens for unknown event types — safe to mark so a
+    // WAHA retry of the same envelope doesn't repeat the (harmless) parse.
+    await markProcessed();
     return json({ ok: true, ignored: envelope.event }, 200);
   }
 
@@ -132,17 +161,22 @@ Deno.serve(async (req) => {
     parsed = parseWahaMessageEvent(envelope.payload, accountRow.id as string);
   } catch (err) {
     console.warn(JSON.stringify({ level: "warn", msg: "waha webhook: unparseable message", error: err instanceof Error ? err.message : String(err) }));
+    await markProcessed();
     return json({ ok: true, ignored: "unparseable" }, 200);
   }
 
   if (parsed.type === "outbound-echo") {
     // Phase 1: echoes from the phone/companion app are acknowledged but not
     // mirrored — mirroring is deferred (matches the design doc's phase-2 list).
+    await markProcessed();
     return json({ ok: true, ignored: "outbound-echo" }, 200);
   }
 
   const fromPhone = parsed.fromPhone;
-  if (!fromPhone) return json({ ok: true, ignored: "no-phone" }, 200);
+  if (!fromPhone) {
+    await markProcessed();
+    return json({ ok: true, ignored: "no-phone" }, 200);
+  }
   const phoneDigits = fromPhone.replace(/\D/g, "");
 
   // ===== Customer resolution (Correction 1) ==================================
@@ -249,6 +283,10 @@ Deno.serve(async (req) => {
   });
   if (messageErr) {
     console.warn(JSON.stringify({ level: "warn", msg: "waha webhook: message insert failed", error: messageErr.message }));
+  } else {
+    // Mark processed only now that the message has actually landed — a
+    // retry of this event while messageErr was set will reprocess cleanly.
+    await markProcessed();
   }
 
   // Bump last_message_at/unread_count unless the reopen above already folded
