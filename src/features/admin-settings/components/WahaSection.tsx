@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Select,
   SelectContent,
@@ -42,6 +44,7 @@ import {
 import type {
   ISeller,
   IWahaServer,
+  IWahaSessionConfig,
   IWhatsAppAccount,
   IWhatsAppAccountAccessRule,
   IWhatsAppProviderConfig,
@@ -147,6 +150,225 @@ function formatLastOutbound(iso?: string): string {
   });
 }
 
+/**
+ * All "process this chat type" filters OFF by default — a fresh WAHA session
+ * only processes ordinary 1:1 commercial conversations until someone opts in.
+ */
+const DEFAULT_WAHA_CONFIG: IWahaSessionConfig = {
+  chatFilters: { groups: false, status: false, channels: false, broadcast: false },
+  debug: false,
+};
+
+const CHAT_FILTER_OPTIONS: Array<{
+  key: keyof IWahaSessionConfig["chatFilters"];
+  label: string;
+  hint: string;
+}> = [
+  { key: "groups", label: "Grupos", hint: "Processa mensagens recebidas em grupos do WhatsApp." },
+  { key: "status", label: "Status", hint: "Processa atualizações de Status (stories)." },
+  { key: "channels", label: "Canais", hint: "Processa mensagens de Canais do WhatsApp." },
+  { key: "broadcast", label: "Broadcast", hint: "Processa mensagens de listas de transmissão." },
+];
+
+/** Derives the platform's WAHA webhook URL from the same env var the Supabase client reads. */
+function wahaWebhookUrl(): string {
+  const base = import.meta.env.VITE_SUPABASE_URL;
+  return base ? `${base}/functions/v1/waha-webhook` : "/functions/v1/waha-webhook";
+}
+
+/**
+ * Controlled form for {@link IWahaSessionConfig}, shared by the creation
+ * wizard's "Avançado" disclosure and the standalone {@link WahaParamsDialog}.
+ * `device` is always rendered disabled — v1 does not detect the underlying
+ * WAHA engine, and GOWS (the only engine in prod) ignores this per-session
+ * anyway (it is set via server env vars). Metadata/engine-store settings are
+ * intentionally not exposed here.
+ */
+function WahaParamsForm({
+  value,
+  onChange,
+}: {
+  value: IWahaSessionConfig;
+  onChange: (next: IWahaSessionConfig) => void;
+}) {
+  const setChatFilter = (key: keyof IWahaSessionConfig["chatFilters"], checked: boolean) => {
+    onChange({ ...value, chatFilters: { ...value.chatFilters, [key]: checked } });
+  };
+
+  const setProxyField = (field: "server" | "username" | "password", next: string) => {
+    if (field === "server" && !next.trim()) {
+      // Clearing the server drops the whole proxy — keeps provider_config clean.
+      const { proxy: _drop, ...rest } = value;
+      onChange(rest);
+      return;
+    }
+    onChange({
+      ...value,
+      proxy: {
+        server: value.proxy?.server ?? "",
+        username: value.proxy?.username,
+        password: value.proxy?.password,
+        [field]: next,
+      },
+    });
+  };
+
+  return (
+    <div className="space-y-5">
+      {/* Tipos de conversa ------------------------------------------------ */}
+      <div className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Tipos de conversa
+        </p>
+        <div className="space-y-3 rounded-md border border-border p-3">
+          {CHAT_FILTER_OPTIONS.map((opt) => (
+            <div key={opt.key} className="flex items-center justify-between gap-3">
+              <div>
+                <Label
+                  htmlFor={`waha-filter-${opt.key}`}
+                  className="text-sm font-normal text-foreground"
+                >
+                  {opt.label}
+                </Label>
+                <p className="text-xs text-muted-foreground">{opt.hint}</p>
+              </div>
+              <Switch
+                id={`waha-filter-${opt.key}`}
+                checked={value.chatFilters[opt.key]}
+                onCheckedChange={(checked) => setChatFilter(opt.key, checked)}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Depuração --------------------------------------------------------- */}
+      <div className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Depuração
+        </p>
+        <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
+          <div>
+            <Label htmlFor="waha-debug" className="text-sm font-normal text-foreground">
+              Modo depuração
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Registra eventos detalhados da sessão para diagnóstico.
+            </p>
+          </div>
+          <Switch
+            id="waha-debug"
+            checked={value.debug}
+            onCheckedChange={(checked) => onChange({ ...value, debug: checked })}
+          />
+        </div>
+      </div>
+
+      {/* Proxy -------------------------------------------------------------- */}
+      <div className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Proxy</p>
+        <div className="space-y-3 rounded-md border border-border p-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="waha-proxy-server" className="text-xs">
+              Servidor (opcional)
+            </Label>
+            <Input
+              id="waha-proxy-server"
+              value={value.proxy?.server ?? ""}
+              onChange={(e) => setProxyField("server", e.target.value)}
+              placeholder="http://host:porta"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="waha-proxy-username" className="text-xs">
+                Usuário (opcional)
+              </Label>
+              <Input
+                id="waha-proxy-username"
+                value={value.proxy?.username ?? ""}
+                onChange={(e) => setProxyField("username", e.target.value)}
+                disabled={!value.proxy?.server}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="waha-proxy-password" className="text-xs">
+                Senha (opcional)
+              </Label>
+              <Input
+                id="waha-proxy-password"
+                type="password"
+                value={value.proxy?.password ?? ""}
+                onChange={(e) => setProxyField("password", e.target.value)}
+                disabled={!value.proxy?.server}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Dispositivo --------------------------------------------------------- */}
+      <div className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Dispositivo
+        </p>
+        <div className="space-y-3 rounded-md border border-border p-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="waha-device-name" className="text-xs">
+                Nome
+              </Label>
+              <Input
+                id="waha-device-name"
+                value={value.device?.name ?? ""}
+                disabled
+                placeholder="—"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="waha-device-browser" className="text-xs">
+                Navegador
+              </Label>
+              <Input
+                id="waha-device-browser"
+                value={value.device?.browser ?? ""}
+                disabled
+                placeholder="—"
+              />
+            </div>
+          </div>
+          <p className="flex items-start gap-1.5 rounded-md border border-severity-warning/40 bg-severity-warning/10 px-2.5 py-2 text-xs text-severity-warning">
+            <Icon icon="mdi:alert-outline" size={14} className="mt-0.5 shrink-0" aria-hidden />
+            <span>
+              O engine GOWS aplica isto por variáveis de ambiente do servidor, não por sessão.
+            </span>
+          </p>
+        </div>
+      </div>
+
+      {/* Webhooks (read-only) -------------------------------------------- */}
+      <div className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Webhooks
+        </p>
+        <div className="space-y-1.5 rounded-md border border-border p-3">
+          <Label htmlFor="waha-webhook-url" className="text-xs">
+            URL de recebimento
+          </Label>
+          <Input
+            id="waha-webhook-url"
+            value={wahaWebhookUrl()}
+            disabled
+            readOnly
+            className="font-mono text-xs"
+          />
+          <p className="text-xs text-muted-foreground">Gerenciado pela plataforma.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function WahaSection({ storeId }: { storeId: string }) {
   const provider = useWhatsAppAccountsProvider();
   const sellersProvider = useSellersProvider();
@@ -165,6 +387,7 @@ export function WahaSection({ storeId }: { storeId: string }) {
   const [deleteTarget, setDeleteTarget] = useState<IWhatsAppAccount | null>(null);
   const [pairingTarget, setPairingTarget] = useState<IWhatsAppAccount | null>(null);
   const [accessAccount, setAccessAccount] = useState<IWhatsAppAccount | null>(null);
+  const [paramsTarget, setParamsTarget] = useState<IWhatsAppAccount | null>(null);
   const [linkedBlockedId, setLinkedBlockedId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -667,6 +890,15 @@ export function WahaSection({ storeId }: { storeId: string }) {
                           <Icon icon="mdi:restart" size={14} className="mr-1.5" aria-hidden />
                           Reiniciar
                         </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={busy}
+                          onClick={() => setParamsTarget(row)}
+                        >
+                          <Icon icon="mdi:tune-variant" size={14} className="mr-1.5" aria-hidden />
+                          Parâmetros
+                        </Button>
                         <Button variant="outline" size="sm" onClick={() => startEdit(row)}>
                           <Icon
                             icon="mdi:pencil-outline"
@@ -893,6 +1125,17 @@ export function WahaSection({ storeId }: { storeId: string }) {
           }}
         />
       )}
+
+      {paramsTarget && (
+        <WahaParamsDialog
+          account={paramsTarget}
+          onClose={() => setParamsTarget(null)}
+          onSaved={() => {
+            setParamsTarget(null);
+            void refresh();
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -917,6 +1160,8 @@ function WahaWizard({
   const [phase, setPhase] = useState<WizardPhase>("form");
   const [error, setError] = useState<string | null>(null);
   const [accountId, setAccountId] = useState<string | null>(null);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [config, setConfig] = useState<IWahaSessionConfig>(DEFAULT_WAHA_CONFIG);
 
   useEffect(() => {
     let cancelled = false;
@@ -959,6 +1204,7 @@ function WahaWizard({
         label: label.trim(),
         purpose,
         wahaServerId: serverId,
+        sessionConfig: config,
       });
       setAccountId(created.id);
       setPhase("pairing");
@@ -970,7 +1216,7 @@ function WahaWizard({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Nova sessão WAHA</DialogTitle>
           <DialogDescription>
@@ -1038,6 +1284,31 @@ function WahaWizard({
                 </Select>
               )}
             </div>
+
+            <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+              <CollapsibleTrigger asChild>
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted/50"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Icon icon="mdi:tune-variant" size={15} aria-hidden />
+                    Avançado
+                  </span>
+                  <Icon
+                    icon={advancedOpen ? "mdi:chevron-up" : "mdi:chevron-down"}
+                    size={16}
+                    aria-hidden
+                  />
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-3">
+                <div className="max-h-72 overflow-y-auto pr-1">
+                  <WahaParamsForm value={config} onChange={setConfig} />
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+
             {error && <p className="text-xs text-severity-critical">{error}</p>}
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={onClose}>
@@ -1071,6 +1342,80 @@ function WahaWizard({
             </div>
           </div>
         )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * Standalone dialog to edit an existing session's {@link IWahaSessionConfig}.
+ * Saving always restarts the WAHA session server-side (a brief disconnection,
+ * pairing preserved) — never reopens the QR pairing view; the account's own
+ * status/QR banners on the card reconcile via the next poll if needed.
+ */
+function WahaParamsDialog({
+  account,
+  onClose,
+  onSaved,
+}: {
+  account: IWhatsAppAccount;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [config, setConfig] = useState<IWahaSessionConfig>(
+    account.providerConfig?.waha ?? DEFAULT_WAHA_CONFIG,
+  );
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await invokeWaha({ accountId: account.id, action: "updateConfig", sessionConfig: config });
+      toast.success("Parâmetros salvos — reiniciando a sessão…");
+      onSaved();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível salvar os parâmetros.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && !saving && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Parâmetros de "{account.label}"</DialogTitle>
+          <DialogDescription>
+            Ajusta os filtros de conversa, depuração e proxy desta sessão WAHA.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="max-h-[60vh] space-y-4 overflow-y-auto pr-1">
+          <WahaParamsForm value={config} onChange={setConfig} />
+        </div>
+
+        <p className="flex items-start gap-1.5 rounded-md border border-severity-info/40 bg-severity-info/10 px-3 py-2 text-xs text-severity-info">
+          <Icon icon="mdi:information-outline" size={14} className="mt-0.5 shrink-0" aria-hidden />
+          <span>
+            Alterar parâmetros exige reiniciar a sessão — há uma breve desconexão, mas o pareamento
+            é preservado (não será preciso ler o QR de novo).
+          </span>
+        </p>
+
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={onClose} disabled={saving}>
+            Cancelar
+          </Button>
+          <Button onClick={() => void handleSave()} disabled={saving}>
+            <Icon
+              icon={saving ? "mdi:loading" : "mdi:content-save-outline"}
+              size={15}
+              className={`mr-1.5 ${saving ? "animate-spin" : ""}`}
+              aria-hidden
+            />
+            {saving ? "Salvando…" : "Salvar e reiniciar"}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
