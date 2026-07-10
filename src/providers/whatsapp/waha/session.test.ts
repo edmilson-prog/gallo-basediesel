@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  buildWahaConfig,
   createWahaSession,
   deleteWahaSession,
   getWahaSessionQrPng,
@@ -8,6 +9,7 @@ import {
   pingWahaServer,
   restartWahaSession,
   stopWahaSession,
+  updateWahaSessionConfig,
 } from "./session";
 
 function jsonResponse(status: number, body: unknown): Response {
@@ -107,5 +109,54 @@ describe("WAHA session lifecycle", () => {
     await expect(pingWahaServer("bad-key", fetchFn, "https://waha.example.com")).rejects.toThrow(
       "Chave da API WAHA inválida ou ausente",
     );
+  });
+});
+
+describe("WAHA session config", () => {
+  it("buildWahaConfig ignores all non-1:1 chat types by default and keeps webhooks", () => {
+    const config = buildWahaConfig("https://edge/waha-webhook", "secret");
+    expect(config.ignore).toEqual({ status: true, groups: true, channels: true, broadcast: true });
+    expect(config.debug).toBeUndefined();
+    expect((config.webhooks as Array<{ url: string }>)[0].url).toBe("https://edge/waha-webhook");
+  });
+
+  it("buildWahaConfig inverts chatFilters (process=true → ignore=false) and sets debug/proxy", () => {
+    const config = buildWahaConfig("https://edge/waha-webhook", "secret", {
+      chatFilters: { groups: true, status: false, channels: false, broadcast: false },
+      debug: true,
+      proxy: { server: "http://proxy:8080" },
+    });
+    expect(config.ignore).toEqual({ status: true, groups: false, channels: true, broadcast: true });
+    expect(config.debug).toBe(true);
+    expect(config.proxy).toEqual({ server: "http://proxy:8080" });
+  });
+
+  it("createWahaSession sends the built config with settings", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(201, { name: "s", status: "STARTING" }));
+    await createWahaSession("key", fetchFn, {
+      baseUrl: "https://waha.example.com",
+      sessionName: "loja-abc123",
+      webhookUrl: "https://edge/waha-webhook",
+      hmacKey: "secret",
+      settings: { chatFilters: { groups: true, status: true, channels: false, broadcast: false }, debug: false },
+    });
+    const body = JSON.parse(fetchFn.mock.calls[0][1].body);
+    expect(body.config.ignore).toEqual({ status: false, groups: false, channels: true, broadcast: true });
+  });
+
+  it("updateWahaSessionConfig PUTs the full config to /api/sessions/{name}", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, {}));
+    await updateWahaSessionConfig("key", fetchFn, {
+      baseUrl: "https://waha.example.com",
+      sessionName: "loja-abc123",
+      webhookUrl: "https://edge/waha-webhook",
+      hmacKey: "secret",
+      settings: { chatFilters: { groups: false, status: false, channels: false, broadcast: false }, debug: true },
+    });
+    expect(fetchFn.mock.calls[0][0]).toBe("https://waha.example.com/api/sessions/loja-abc123");
+    expect(fetchFn.mock.calls[0][1].method).toBe("PUT");
+    const body = JSON.parse(fetchFn.mock.calls[0][1].body);
+    expect(body.config.webhooks[0].hmac.key).toBe("secret");
+    expect(body.config.debug).toBe(true);
   });
 });

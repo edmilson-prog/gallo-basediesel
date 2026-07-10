@@ -15,7 +15,7 @@ import { mapWahaError } from "./errors.ts";
 export interface IWahaRequestOptions {
   baseUrl: string;
   path: string;
-  method?: "GET" | "POST" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "DELETE";
   json?: unknown;
   timeoutMs?: number;
   /** Set for binary responses (e.g. the QR PNG). */

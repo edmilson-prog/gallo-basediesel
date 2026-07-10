@@ -24,10 +24,49 @@ function meIdToE164(meId: string | undefined): string | undefined {
   return digits && digits.length > 0 ? `+${digits}` : undefined;
 }
 
+/** UI-facing per-session knobs (structurally compatible with IWahaSessionConfig). */
+export interface IWahaSessionSettings {
+  chatFilters?: { groups?: boolean; status?: boolean; channels?: boolean; broadcast?: boolean };
+  debug?: boolean;
+  proxy?: { server: string; username?: string; password?: string };
+}
+
+/**
+ * Builds the WAHA session `config`. `chatFilters` are "process this type";
+ * WAHA's `config.ignore` is "ignore this type" → inverted. With no settings,
+ * every non-1:1 type is ignored (commercial-inbox default). `debug`/`proxy`
+ * are only set when meaningful.
+ */
+export function buildWahaConfig(
+  webhookUrl: string,
+  hmacKey: string,
+  settings?: IWahaSessionSettings,
+): Record<string, unknown> {
+  const cf = settings?.chatFilters;
+  const config: Record<string, unknown> = {
+    ignore: {
+      status: !cf?.status,
+      groups: !cf?.groups,
+      channels: !cf?.channels,
+      broadcast: !cf?.broadcast,
+    },
+    webhooks: [{ url: webhookUrl, events: [...WAHA_DEFAULT_EVENTS], hmac: { key: hmacKey } }],
+  };
+  if (settings?.debug) config.debug = true;
+  if (settings?.proxy?.server) config.proxy = settings.proxy;
+  return config;
+}
+
 export async function createWahaSession(
   apiKey: string,
   fetchFn: typeof fetch,
-  input: { baseUrl: string; sessionName: string; webhookUrl: string; hmacKey: string },
+  input: {
+    baseUrl: string;
+    sessionName: string;
+    webhookUrl: string;
+    hmacKey: string;
+    settings?: IWahaSessionSettings;
+  },
 ): Promise<void> {
   await wahaRequest(apiKey, fetchFn, {
     baseUrl: input.baseUrl,
@@ -35,15 +74,35 @@ export async function createWahaSession(
     json: {
       name: input.sessionName,
       start: true,
-      config: {
-        webhooks: [
-          {
-            url: input.webhookUrl,
-            events: [...WAHA_DEFAULT_EVENTS],
-            hmac: { key: input.hmacKey },
-          },
-        ],
-      },
+      config: buildWahaConfig(input.webhookUrl, input.hmacKey, input.settings),
+    },
+  });
+}
+
+/**
+ * Updates an existing session's config. WAHA `PUT /api/sessions/{name}` requires
+ * the COMPLETE config and, when the session isn't STOPPED, stops+starts it with
+ * the new config (auth/pairing preserved — no QR re-scan). Rebuilds the same
+ * webhook block create used.
+ */
+export async function updateWahaSessionConfig(
+  apiKey: string,
+  fetchFn: typeof fetch,
+  input: {
+    baseUrl: string;
+    sessionName: string;
+    webhookUrl: string;
+    hmacKey: string;
+    settings?: IWahaSessionSettings;
+  },
+): Promise<void> {
+  await wahaRequest(apiKey, fetchFn, {
+    baseUrl: input.baseUrl,
+    path: `/api/sessions/${input.sessionName}`,
+    method: "PUT",
+    json: {
+      name: input.sessionName,
+      config: buildWahaConfig(input.webhookUrl, input.hmacKey, input.settings),
     },
   });
 }
