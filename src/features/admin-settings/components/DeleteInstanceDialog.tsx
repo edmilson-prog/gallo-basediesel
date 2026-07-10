@@ -25,6 +25,7 @@ const PROVIDER_LABEL: Record<IWhatsAppAccount["provider"], string> = {
   evolution: "Evolution API",
   "evolution-go": "Evolution Go",
   meta: "Meta Cloud API",
+  waha: "WAHA",
 };
 
 interface IDeleteInstanceDialogProps {
