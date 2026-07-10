@@ -6,12 +6,12 @@ export interface VehicleBrandModel {
 const PREFIX_RULES: Array<{ test: RegExp; brand: string }> = [
   { test: /^(FH|FM|VM)\b/, brand: "Volvo" },
   { test: /^[RPGS]\s?\d/, brand: "Scania" },
-  { test: /^(ACTROS|ATEGO|AXOR|ACCELO|ATRON)\b/, brand: "Mercedes-Benz" },
+  { test: /^(ACTROS|ATEGO|AXOR|ACCELO)\b/, brand: "Mercedes-Benz" },
   { test: /^(DAILY|STRALIS|TECTOR|HD)\b/, brand: "Iveco" },
   { test: /^CARGO\b/, brand: "Ford Cargo" },
   { test: /^(XF|CF|LF)\b/, brand: "DAF" },
   { test: /^(HILUX|COROLLA|SW4|ETIOS)\b/, brand: "Toyota" },
-  { test: /^(AMAROK|GOL|SAVEIRO)\b/, brand: "Volkswagen" },
+  { test: /^(AMAROK|GOL|SAVEIRO|ATRON)\b/, brand: "Volkswagen" },
   { test: /^(DUCATO|STRADA|FIORINO|TORO|UNO)\b/, brand: "Fiat" },
   { test: /^(MASTER|KANGOO|DUSTER|OROCH)\b/, brand: "Renault" },
 ];

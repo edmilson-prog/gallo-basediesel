@@ -23,6 +23,13 @@ describe("normalizeVehicleBrandModel", () => {
     });
   });
 
+  it("recognizes Volkswagen Atron (heavy truck)", () => {
+    expect(normalizeVehicleBrandModel("ATRON 9-160")).toEqual({
+      brand: "Volkswagen",
+      model: "ATRON 9-160",
+    });
+  });
+
   it("recognizes Toyota Hilux (light vehicle)", () => {
     expect(normalizeVehicleBrandModel("HILUX CD4X4 SRV")).toEqual({
       brand: "Toyota",
