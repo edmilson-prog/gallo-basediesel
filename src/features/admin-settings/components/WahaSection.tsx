@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Icon } from "@/components/Icon";
 import { Badge } from "@/components/ui/badge";
@@ -38,17 +39,39 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useWahaServersProvider } from "@/providers/data";
-import type { IWahaServer, WhatsAppAccountPurpose } from "@/shared/types";
-import { getSupabaseClient } from "@/shared/lib/supabase";
+import type {
+  ISeller,
+  IWahaServer,
+  IWhatsAppAccount,
+  IWhatsAppAccountAccessRule,
+  IWhatsAppProviderConfig,
+  WhatsAppAccountPurpose,
+} from "@/shared/types";
+import { useAuth } from "@/features/auth/useAuth";
+import {
+  getActiveDataSource,
+  recordAuditLogSync,
+  useSellersProvider,
+  useWahaServersProvider,
+  useWhatsAppAccountsProvider,
+  type IWhatsAppAccountMetrics,
+} from "@/providers/data";
+import { InstanceAccessSheet } from "./InstanceAccessSheet";
+import { resolveAccessRecipients } from "../utils/accessRecipients";
+import { INSTANCE_PALETTE } from "@/features/conversations/utils/instanceAccent";
 import { invokeWaha, WahaConnectError } from "../api/wahaConnect";
 
 /**
  * Dedicated WAHA tab (Configurações → WhatsApp). Fully isolated from the
- * Meta/Evolution/Evolution Go "Contas" tab — WAHA sessions are read/written
- * directly against `whatsapp_accounts` (scoped to `provider='waha'`) and
- * managed exclusively through the `waha-connect` Edge Function, mirroring the
- * edge's own isolation (see `supabase/functions/waha-connect/index.ts`).
+ * Meta/Evolution/Evolution Go "Contas" tab — WAHA sessions ARE full
+ * `whatsapp_accounts` rows (`provider='waha'`), read here via the additive
+ * `whatsappAccounts.listWaha` (the generic `list()` excludes WAHA on purpose)
+ * and managed exclusively through the `waha-connect` Edge Function, mirroring
+ * the edge's own isolation (see `supabase/functions/waha-connect/index.ts`).
+ *
+ * The card mirrors the Meta/Evolution rich card (access pill, color, metrics)
+ * minus what does not apply to WAHA — no failover, no HSM/capability chips, no
+ * Evolution-family import/test actions.
  */
 
 const PURPOSE_LABEL: Record<WhatsAppAccountPurpose, string> = {
@@ -63,70 +86,199 @@ const PURPOSE_OPTIONS: Array<{ value: WhatsAppAccountPurpose; label: string }> =
   { value: "ambos", label: "Atendimento + Campanha" },
 ];
 
-type WahaAccountStatus = "connected" | "disconnected" | "pending";
+const STATUS_VISUAL: Record<
+  IWhatsAppAccount["status"],
+  { label: string; className: string; icon: string }
+> = {
+  connected: {
+    label: "Conectada",
+    className: "border-severity-success/40 bg-severity-success/10 text-severity-success",
+    icon: "mdi:check-circle-outline",
+  },
+  disconnected: {
+    label: "Desconectada",
+    className: "border-severity-critical/40 bg-severity-critical/10 text-severity-critical",
+    icon: "mdi:close-circle-outline",
+  },
+  pending: {
+    label: "Pendente",
+    className: "border-severity-warning/40 bg-severity-warning/10 text-severity-warning",
+    icon: "mdi:clock-outline",
+  },
+};
 
-const STATUS_VISUAL: Record<WahaAccountStatus, { label: string; className: string; icon: string }> =
-  {
-    connected: {
-      label: "Conectada",
+/**
+ * Health is DERIVED from `status` — WAHA has no meaningful failover
+ * `currentState` machinery (unlike the PRD-120 Meta/Evolution health tick).
+ */
+function deriveHealth(status: IWhatsAppAccount["status"]): {
+  label: string;
+  className: string;
+  icon: string;
+} {
+  if (status === "connected") {
+    return {
+      label: "Saudável",
       className: "border-severity-success/40 bg-severity-success/10 text-severity-success",
-      icon: "mdi:check-circle-outline",
-    },
-    disconnected: {
-      label: "Desconectada",
+      icon: "mdi:heart-pulse",
+    };
+  }
+  if (status === "disconnected") {
+    return {
+      label: "Indisponível",
       className: "border-severity-critical/40 bg-severity-critical/10 text-severity-critical",
       icon: "mdi:close-circle-outline",
-    },
-    pending: {
-      label: "Pendente",
-      className: "border-severity-warning/40 bg-severity-warning/10 text-severity-warning",
-      icon: "mdi:clock-outline",
-    },
+    };
+  }
+  return {
+    label: "Conectando",
+    className: "border-border bg-muted text-muted-foreground",
+    icon: "mdi:progress-clock",
   };
-
-interface IWahaAccountRow {
-  id: string;
-  store_id: string;
-  label: string;
-  phone_number: string | null;
-  status: WahaAccountStatus;
-  purpose: WhatsAppAccountPurpose;
-  provider_config: { sessionName?: string } | null;
-  created_at: string;
 }
 
-async function fetchWahaAccounts(storeId: string): Promise<IWahaAccountRow[]> {
-  const { data, error } = await getSupabaseClient()
-    .from("whatsapp_accounts")
-    .select("id, store_id, label, phone_number, status, purpose, provider_config, created_at")
-    .eq("provider", "waha")
-    .eq("store_id", storeId)
-    .order("created_at", { ascending: true });
-  if (error) throw new Error(`[waha] list failed: ${error.message}`);
-  return (data ?? []) as unknown as IWahaAccountRow[];
+function formatLastOutbound(iso?: string): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export function WahaSection({ storeId }: { storeId: string }) {
-  const [accounts, setAccounts] = useState<IWahaAccountRow[] | null>(null);
+  const provider = useWhatsAppAccountsProvider();
+  const sellersProvider = useSellersProvider();
+  const wahaServersProvider = useWahaServersProvider();
+  const queryClient = useQueryClient();
+  const { currentUser } = useAuth();
+
+  const [accounts, setAccounts] = useState<IWhatsAppAccount[] | null>(null);
+  const [metrics, setMetrics] = useState<Record<string, IWhatsAppAccountMetrics>>({});
+  const [accessRules, setAccessRules] = useState<Record<string, IWhatsAppAccountAccessRule[]>>({});
+  const [rawStates, setRawStates] = useState<Record<string, string>>({});
+  const [sellers, setSellers] = useState<ISeller[]>([]);
+  const [servers, setServers] = useState<IWahaServer[]>([]);
+
   const [wizardOpen, setWizardOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<IWahaAccountRow | null>(null);
-  const [pairingTarget, setPairingTarget] = useState<IWahaAccountRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<IWhatsAppAccount | null>(null);
+  const [pairingTarget, setPairingTarget] = useState<IWhatsAppAccount | null>(null);
+  const [accessAccount, setAccessAccount] = useState<IWhatsAppAccount | null>(null);
+  const [linkedBlockedId, setLinkedBlockedId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // Inline "Editar" (rename label only — `update` does not patch purpose).
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draftLabel, setDraftLabel] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const loadMetrics = useCallback(
+    async (list: IWhatsAppAccount[]) => {
+      const entries = await Promise.all(
+        list.map(async (account) => {
+          try {
+            return [account.id, await provider.getMetrics(account.id)] as const;
+          } catch {
+            return null; // metrics are decorative — never block the screen
+          }
+        }),
+      );
+      const loaded: Record<string, IWhatsAppAccountMetrics> = {};
+      for (const entry of entries) if (entry) loaded[entry[0]] = entry[1];
+      setMetrics(loaded);
+    },
+    [provider],
+  );
+
+  const loadAccessRules = useCallback(
+    async (list: IWhatsAppAccount[]) => {
+      const entries = await Promise.all(
+        list.map(async (account) => {
+          try {
+            return [account.id, await provider.getAccessRules(account.id)] as const;
+          } catch {
+            return null; // access summary is decorative — never block the screen
+          }
+        }),
+      );
+      const loaded: Record<string, IWhatsAppAccountAccessRule[]> = {};
+      for (const entry of entries) if (entry) loaded[entry[0]] = entry[1];
+      setAccessRules(loaded);
+    },
+    [provider],
+  );
+
+  // Raw session state (SCAN_QR_CODE vs STARTING) — only meaningful against a
+  // real WAHA server, so skip in demo mode. Decorative: never blocks render.
+  const loadRawStates = useCallback(async (list: IWhatsAppAccount[]) => {
+    if (getActiveDataSource() === "mock") return;
+    const entries = await Promise.all(
+      list.map(async (account) => {
+        try {
+          const res = await invokeWaha<{ state: string; rawState: string }>({
+            accountId: account.id,
+            action: "state",
+          });
+          return [account.id, res.rawState] as const;
+        } catch {
+          return null; // a stopped/unreachable session just has no raw state
+        }
+      }),
+    );
+    const loaded: Record<string, string> = {};
+    for (const entry of entries) if (entry) loaded[entry[0]] = entry[1];
+    setRawStates(loaded);
+  }, []);
+
   const refresh = useCallback(async () => {
     try {
-      setAccounts(await fetchWahaAccounts(storeId));
+      const list = await provider.listWaha({ storeId });
+      setAccounts(list);
+      void loadMetrics(list);
+      void loadAccessRules(list);
+      void loadRawStates(list);
     } catch {
       setAccounts([]);
     }
-  }, [storeId]);
+  }, [provider, storeId, loadMetrics, loadAccessRules, loadRawStates]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
-  const handleRestart = async (row: IWahaAccountRow) => {
+  useEffect(() => {
+    let cancelled = false;
+    void sellersProvider
+      .list({ storeId, active: true })
+      .then((list) => {
+        if (!cancelled) setSellers(list);
+      })
+      .catch(() => {
+        /* sellers feed the access summary only — never block the screen */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sellersProvider, storeId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void wahaServersProvider
+      .list()
+      .then((list) => {
+        if (!cancelled) setServers(list);
+      })
+      .catch(() => {
+        /* server name resolution is decorative — falls back to "—" */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [wahaServersProvider]);
+
+  const handleRestart = async (row: IWhatsAppAccount) => {
     setBusyId(row.id);
     try {
       await invokeWaha({ accountId: row.id, action: "restart" });
@@ -138,28 +290,14 @@ export function WahaSection({ storeId }: { storeId: string }) {
     }
   };
 
-  const handleLogout = async (row: IWahaAccountRow) => {
-    setBusyId(row.id);
-    try {
-      await invokeWaha({ accountId: row.id, action: "logout" });
-      toast.success(`Sessão "${row.label}" desconectada.`);
-      await refresh();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Não foi possível desconectar a sessão.");
-    } finally {
-      setBusyId(null);
-    }
-  };
-
   /**
    * A logged-out/disconnected session has no UI path back to a QR code
    * otherwise — "Reiniciar" alone restarts the WAHA session but nothing in
-   * this screen ever displays the fresh QR it produces. Restart first (same
-   * action "Reiniciar" already calls) to nudge the session back towards
-   * SCAN_QR_CODE, then reopen the same QR pairing view the creation wizard
-   * uses, scoped to this existing account.
+   * this screen ever displays the fresh QR it produces. Restart first to nudge
+   * the session back towards SCAN_QR_CODE, then reopen the same QR pairing view
+   * the creation wizard uses, scoped to this existing account.
    */
-  const handleRepair = async (row: IWahaAccountRow) => {
+  const handleRepair = async (row: IWhatsAppAccount) => {
     setBusyId(row.id);
     try {
       await invokeWaha({ accountId: row.id, action: "restart" });
@@ -173,17 +311,21 @@ export function WahaSection({ storeId }: { storeId: string }) {
   };
 
   const handleDelete = async () => {
-    if (!deleteTarget) return;
+    const target = deleteTarget;
+    if (!target) return;
     setDeleting(true);
     try {
-      await invokeWaha({ accountId: deleteTarget.id, action: "delete" });
-      toast.success(`Sessão "${deleteTarget.label}" excluída.`);
+      await invokeWaha({ accountId: target.id, action: "delete" });
+      toast.success(`Sessão "${target.label}" excluída.`);
+      setLinkedBlockedId((prev) => (prev === target.id ? null : prev));
       setDeleteTarget(null);
       await refresh();
     } catch (err) {
       const code = err instanceof WahaConnectError ? err.code : undefined;
       if (code === "HAS_LINKED_DATA") {
         toast.error("Esta sessão tem conversas vinculadas e não pode ser excluída.");
+        setLinkedBlockedId(target.id);
+        setDeleteTarget(null); // close the dialog so the inline note is visible
       } else {
         toast.error(err instanceof Error ? err.message : "Não foi possível excluir a sessão.");
       }
@@ -192,11 +334,87 @@ export function WahaSection({ storeId }: { storeId: string }) {
     }
   };
 
+  // Per-instance identity color: persisted in provider_config (jsonb). Spreads
+  // the existing config so sessionName/waha settings survive; null → auto/hash.
+  const setAccentColor = async (row: IWhatsAppAccount, hex: string | null) => {
+    const nextConfig: IWhatsAppProviderConfig = { ...(row.providerConfig ?? {}) };
+    if (hex) nextConfig.accentColor = hex;
+    else delete nextConfig.accentColor;
+    try {
+      await provider.update(row.id, { providerConfig: nextConfig });
+      await refresh();
+    } catch {
+      toast.error("Não foi possível salvar a cor da sessão.");
+    }
+  };
+
+  // Owner shelves an intentionally offline session: silence its disconnection
+  // alerts (card banner + global banner/TopBar). Audited, reversible.
+  const handleToggleAlertsMuted = async (row: IWhatsAppAccount) => {
+    const next = !row.alertsMuted;
+    setBusyId(row.id);
+    try {
+      await provider.update(row.id, { alertsMuted: next });
+      if (currentUser?.sellerId) {
+        recordAuditLogSync({
+          storeId,
+          actorId: currentUser.sellerId,
+          action: "whatsapp_alerts_muted_toggle",
+          resource: "whatsapp_account",
+          resourceId: row.id,
+          after: { alertsMuted: next },
+        });
+      }
+      toast.success(
+        next
+          ? "Alertas de desconexão silenciados para esta sessão."
+          : "Alertas de desconexão reativados para esta sessão.",
+      );
+      await refresh();
+      // The shell banner/TopBar read a separate query — nudge it so the change
+      // reflects immediately instead of waiting for the next poll/focus.
+      void queryClient.invalidateQueries({ queryKey: ["shell", "whatsapp-connection-status"] });
+    } catch {
+      toast.error("Não foi possível alterar os alertas da sessão.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const startEdit = (row: IWhatsAppAccount) => {
+    setEditingId(row.id);
+    setDraftLabel(row.label);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setDraftLabel("");
+  };
+
+  const handleSaveLabel = async (row: IWhatsAppAccount) => {
+    const label = draftLabel.trim();
+    if (!label) {
+      toast.error("Informe um nome para a sessão.");
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      await provider.update(row.id, { label });
+      toast.success("Sessão atualizada.");
+      cancelEdit();
+      await refresh();
+    } catch {
+      toast.error("Não foi possível salvar a sessão.");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="rounded-md border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
         <div className="flex items-start gap-2">
-          <Icon icon="mdi:server-network" size={16} className="mt-0.5 shrink-0" />
+          <Icon icon="mdi:server-network" size={16} className="mt-0.5 shrink-0" aria-hidden />
           <p>
             Sessões WAHA conectam a um servidor cadastrado em{" "}
             <strong>Configurações → Integrações &amp; Chaves</strong>. Esta aba não interfere nas
@@ -207,7 +425,7 @@ export function WahaSection({ storeId }: { storeId: string }) {
 
       <div className="flex flex-wrap items-center justify-end">
         <Button onClick={() => setWizardOpen(true)} title="Cria uma nova sessão WAHA">
-          <Icon icon="lucide:plus" size={14} className="mr-1.5" />
+          <Icon icon="lucide:plus" size={14} className="mr-1.5" aria-hidden />
           Nova sessão WAHA
         </Button>
       </div>
@@ -216,20 +434,32 @@ export function WahaSection({ storeId }: { storeId: string }) {
         <Skeleton className="h-32 w-full" />
       ) : accounts.length === 0 ? (
         <div className="rounded-lg border border-dashed border-border bg-muted/30 p-8 text-center text-sm text-muted-foreground">
-          Nenhuma sessão WAHA cadastrada para esta loja.
+          <p>Nenhuma sessão WAHA cadastrada para esta loja.</p>
+          <Button className="mt-4" onClick={() => setWizardOpen(true)}>
+            <Icon icon="lucide:plus" size={14} className="mr-1.5" aria-hidden />
+            Nova sessão WAHA
+          </Button>
         </div>
       ) : (
-        <ul className="space-y-3">
+        <ul className="space-y-4">
           {accounts.map((row) => {
             const status = STATUS_VISUAL[row.status];
-            const sessionName = row.provider_config?.sessionName ?? "—";
+            const health = deriveHealth(row.status);
+            const sessionName = row.providerConfig?.sessionName ?? "—";
+            const serverName = servers.find((s) => s.id === row.wahaServerId)?.name ?? "—";
             const busy = busyId === row.id;
+            const isEditing = editingId === row.id;
+            const rowMetrics = metrics[row.id];
             return (
-              <li key={row.id} className="rounded-lg border border-border bg-card p-4">
+              <li key={row.id} className="rounded-lg border border-border bg-card p-5">
+                {/* Header ------------------------------------------------- */}
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/10">
-                      <Icon icon="mdi:whatsapp" size={20} className="text-emerald-600" />
+                    <div
+                      aria-hidden
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-severity-success/10"
+                    >
+                      <Icon icon="mdi:whatsapp" size={20} className="text-severity-success" />
                     </div>
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
@@ -239,16 +469,39 @@ export function WahaSection({ storeId }: { storeId: string }) {
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        {row.phone_number || "Sem número ainda"} ·{" "}
+                        {row.phoneNumber || "Sem número ainda"} ·{" "}
                         <span className="font-mono">{sessionName}</span>
                       </p>
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="outline" className={status.className}>
-                      <Icon icon={status.icon} size={12} className="mr-1" />
+                    <Badge variant="outline">WAHA</Badge>
+                    <Badge
+                      variant="outline"
+                      className={status.className}
+                      aria-label={`Status: ${status.label}`}
+                    >
+                      <Icon icon={status.icon} size={12} className="mr-1" aria-hidden />
                       {status.label}
                     </Badge>
+                    <Badge
+                      variant="outline"
+                      className={health.className}
+                      aria-label={`Saúde: ${health.label}`}
+                    >
+                      <Icon icon={health.icon} size={12} className="mr-1" aria-hidden />
+                      {health.label}
+                    </Badge>
+                    {row.alertsMuted && (
+                      <Badge
+                        variant="outline"
+                        className="border-border bg-muted text-muted-foreground"
+                        title="Alertas de desconexão silenciados para esta sessão"
+                      >
+                        <Icon icon="mdi:bell-off-outline" size={12} className="mr-1" aria-hidden />
+                        Alertas silenciados
+                      </Badge>
+                    )}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -259,23 +512,25 @@ export function WahaSection({ storeId }: { storeId: string }) {
                           aria-label="Mais ações"
                           title="Mais ações"
                         >
-                          <Icon icon="mdi:dots-vertical" size={18} />
+                          <Icon icon="mdi:dots-vertical" size={18} aria-hidden />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        {row.status !== "connected" && (
-                          <DropdownMenuItem disabled={busy} onSelect={() => void handleRepair(row)}>
-                            <Icon icon="mdi:qrcode" size={15} className="mr-2" />
-                            Parear novamente
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem disabled={busy} onSelect={() => void handleRestart(row)}>
-                          <Icon icon="mdi:restart" size={15} className="mr-2" />
-                          Reiniciar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem disabled={busy} onSelect={() => void handleLogout(row)}>
-                          <Icon icon="mdi:logout-variant" size={15} className="mr-2" />
-                          Logout
+                        <DropdownMenuItem
+                          disabled={busy}
+                          onSelect={() => void handleToggleAlertsMuted(row)}
+                        >
+                          <Icon
+                            icon={
+                              row.alertsMuted ? "mdi:bell-ring-outline" : "mdi:bell-off-outline"
+                            }
+                            size={15}
+                            className="mr-2"
+                            aria-hidden
+                          />
+                          {row.alertsMuted
+                            ? "Reativar alertas de desconexão"
+                            : "Silenciar alertas de desconexão"}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
@@ -283,13 +538,261 @@ export function WahaSection({ storeId }: { storeId: string }) {
                           onSelect={() => setDeleteTarget(row)}
                           className="text-destructive focus:bg-destructive/10 focus:text-destructive"
                         >
-                          <Icon icon="mdi:trash-can-outline" size={15} className="mr-2" />
+                          <Icon
+                            icon="mdi:trash-can-outline"
+                            size={15}
+                            className="mr-2"
+                            aria-hidden
+                          />
                           Excluir
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
                 </div>
+
+                {/* Access pill ------------------------------------------- */}
+                <div className="mt-3">
+                  {(() => {
+                    const recipients = resolveAccessRecipients(
+                      accessRules[row.id] ?? [],
+                      sellers.map((s) => ({ id: s.id, role: "", storeId: s.storeId })),
+                    );
+                    const none = recipients.size === 0;
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => setAccessAccount(row)}
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors ${
+                          none
+                            ? "border-severity-warning/40 bg-severity-warning/10 text-severity-warning"
+                            : "border-border text-muted-foreground hover:text-foreground"
+                        }`}
+                        title="Configurar quem acessa esta sessão"
+                      >
+                        <Icon icon="mdi:account-group-outline" size={13} aria-hidden />
+                        {none
+                          ? "Ninguém vê — configurar acesso"
+                          : `${recipients.size} ${recipients.size === 1 ? "pessoa" : "pessoas"} • configurar acesso`}
+                      </button>
+                    );
+                  })()}
+                </div>
+
+                {/* Color picker ------------------------------------------ */}
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Cor da sessão</span>
+                  <div className="flex items-center gap-1.5">
+                    {INSTANCE_PALETTE.map((hex) => {
+                      const active = row.providerConfig?.accentColor === hex;
+                      return (
+                        <button
+                          key={hex}
+                          type="button"
+                          onClick={() => void setAccentColor(row, hex)}
+                          aria-label={`Usar a cor ${hex}`}
+                          aria-pressed={active}
+                          className={`size-5 cursor-pointer rounded-full transition-transform motion-safe:hover:scale-110 motion-reduce:transition-none ${
+                            active ? "ring-2 ring-foreground ring-offset-2 ring-offset-card" : ""
+                          }`}
+                          style={{ backgroundColor: hex }}
+                        />
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => void setAccentColor(row, null)}
+                      aria-label="Cor automática"
+                      aria-pressed={!row.providerConfig?.accentColor}
+                      title="Automático (cor pelo identificador)"
+                      className={`flex size-5 cursor-pointer items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:text-foreground ${
+                        !row.providerConfig?.accentColor
+                          ? "ring-2 ring-foreground ring-offset-2 ring-offset-card"
+                          : ""
+                      }`}
+                    >
+                      <Icon icon="mdi:auto-fix" size={12} aria-hidden />
+                    </button>
+                  </div>
+                </div>
+
+                {!isEditing ? (
+                  <>
+                    {/* Details + actions --------------------------------- */}
+                    <div className="mt-4 flex flex-wrap items-end justify-between gap-3 border-t border-border pt-4">
+                      <dl className="grid gap-x-8 gap-y-1 text-xs sm:grid-cols-3">
+                        <div>
+                          <dt className="text-muted-foreground">Servidor WAHA</dt>
+                          <dd className="text-foreground">{serverName}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground">Sessão</dt>
+                          <dd className="font-mono text-foreground">{sessionName}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground">Número</dt>
+                          <dd className="text-foreground">{row.phoneNumber || "—"}</dd>
+                        </div>
+                      </dl>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={busy}
+                          onClick={() => void handleRestart(row)}
+                        >
+                          <Icon icon="mdi:restart" size={14} className="mr-1.5" aria-hidden />
+                          Reiniciar
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => startEdit(row)}>
+                          <Icon
+                            icon="mdi:pencil-outline"
+                            size={14}
+                            className="mr-1.5"
+                            aria-hidden
+                          />
+                          Editar
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Delivery metrics (staff-only data; absent → loading/no access) */}
+                    {rowMetrics && (
+                      <div className="mt-4 grid grid-cols-2 gap-2 border-t border-border pt-3 sm:grid-cols-4">
+                        <div className="text-center">
+                          <p className="text-lg font-bold text-severity-success">
+                            {rowMetrics.sent}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">Enviadas (30d)</p>
+                        </div>
+                        <div className="text-center">
+                          <p
+                            className={`text-lg font-bold ${
+                              rowMetrics.failed > 0
+                                ? "text-severity-critical"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            {rowMetrics.failed}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">Falhas (30d)</p>
+                        </div>
+                        <div className="text-center">
+                          <p
+                            className={`text-lg font-bold ${
+                              rowMetrics.failureRate > 0.05
+                                ? "text-severity-critical"
+                                : "text-foreground"
+                            }`}
+                          >
+                            {(rowMetrics.failureRate * 100).toFixed(1)}%
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">Taxa de falha</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-medium leading-7 text-foreground">
+                            {formatLastOutbound(rowMetrics.lastOutboundAt)}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">Último envio</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Lost connection: hero call to action. Hidden when muted. */}
+                    {row.status === "disconnected" && !row.alertsMuted && (
+                      <div
+                        role="alert"
+                        className="mt-3 flex flex-wrap items-center gap-2 rounded-md border border-severity-critical/40 bg-severity-critical/10 px-3 py-2"
+                      >
+                        <Icon
+                          icon="mdi:alert-circle-outline"
+                          size={16}
+                          className="shrink-0 text-severity-critical"
+                          aria-hidden
+                        />
+                        <p className="text-sm text-foreground">
+                          Conexão perdida — mensagens não saem nem chegam.
+                        </p>
+                        <Button
+                          size="sm"
+                          className="ml-auto"
+                          disabled={busy}
+                          onClick={() => void handleRepair(row)}
+                        >
+                          Reconectar
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Awaiting QR scan (raw SCAN_QR_CODE): actionable pairing. */}
+                    {rawStates[row.id] === "SCAN_QR_CODE" && (
+                      <div
+                        role="alert"
+                        className="mt-3 flex flex-wrap items-center gap-2 rounded-md border border-severity-warning/40 bg-severity-warning/10 px-3 py-2"
+                      >
+                        <Icon
+                          icon="mdi:qrcode-scan"
+                          size={16}
+                          className="shrink-0 text-severity-warning"
+                          aria-hidden
+                        />
+                        <p className="text-sm text-foreground">Aguardando leitura do QR.</p>
+                        <Button
+                          size="sm"
+                          className="ml-auto"
+                          disabled={busy}
+                          onClick={() => setPairingTarget(row)}
+                        >
+                          Parear
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Delete blocked by linked conversations. */}
+                    {linkedBlockedId === row.id && (
+                      <div className="mt-3 flex items-center gap-2 rounded-md border border-severity-warning/40 bg-severity-warning/10 px-3 py-2">
+                        <Icon
+                          icon="mdi:link-variant-off"
+                          size={16}
+                          className="shrink-0 text-severity-warning"
+                          aria-hidden
+                        />
+                        <p className="text-sm text-foreground">
+                          Conversas vinculadas impedem a exclusão.
+                        </p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="mt-4 space-y-4 border-t border-border pt-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor={`waha-label-${row.id}`}>Nome da sessão</Label>
+                      <Input
+                        id={`waha-label-${row.id}`}
+                        value={draftLabel}
+                        onChange={(e) => setDraftLabel(e.target.value)}
+                        autoFocus
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={cancelEdit}
+                        disabled={savingEdit}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => void handleSaveLabel(row)}
+                        disabled={savingEdit || !draftLabel.trim()}
+                      >
+                        {savingEdit ? "Salvando…" : "Salvar"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </li>
             );
           })}
@@ -324,6 +827,7 @@ export function WahaSection({ storeId }: { storeId: string }) {
                 icon={deleting ? "mdi:loading" : "mdi:trash-can-outline"}
                 size={15}
                 className={`mr-1.5 ${deleting ? "animate-spin" : ""}`}
+                aria-hidden
               />
               {deleting ? "Excluindo…" : "Excluir sessão"}
             </AlertDialogAction>
@@ -351,6 +855,18 @@ export function WahaSection({ storeId }: { storeId: string }) {
             toast.success(`Sessão reconectada${phoneNumber ? ` · ${phoneNumber}` : ""}.`);
             setPairingTarget(null);
             void refresh();
+          }}
+        />
+      )}
+
+      {accessAccount && (
+        <InstanceAccessSheet
+          account={accessAccount}
+          storeId={storeId}
+          sellers={sellers}
+          onClose={(changed) => {
+            setAccessAccount(null);
+            if (changed) void refresh();
           }}
         />
       )}
