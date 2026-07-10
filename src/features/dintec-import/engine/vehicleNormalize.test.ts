@@ -51,6 +51,41 @@ describe("normalizeVehicleBrandModel", () => {
     });
   });
 
+  it("recognizes Iveco Stralis HD even when concatenated without a space", () => {
+    expect(normalizeVehicleBrandModel("STRALISHD 19-320")).toEqual({
+      brand: "Iveco",
+      model: "STRALISHD 19-320",
+    });
+  });
+
+  it("recognizes MAN TGX", () => {
+    expect(normalizeVehicleBrandModel("TGX 29.480")).toEqual({
+      brand: "MAN",
+      model: "TGX 29.480",
+    });
+  });
+
+  it("recognizes Ford Ranger (pickup, distinct from Ford Cargo)", () => {
+    expect(normalizeVehicleBrandModel("RANGER XLSCD4A22C")).toEqual({
+      brand: "Ford",
+      model: "RANGER XLSCD4A22C",
+    });
+  });
+
+  it("recognizes Nissan Frontier", () => {
+    expect(normalizeVehicleBrandModel("FRONTIER XE 4X2")).toEqual({
+      brand: "Nissan",
+      model: "FRONTIER XE 4X2",
+    });
+  });
+
+  it("recognizes Mercedes-Benz Sprinter anywhere in the string, not just as a prefix", () => {
+    expect(normalizeVehicleBrandModel("415CDISPRINTERF")).toEqual({
+      brand: "Mercedes-Benz",
+      model: "415CDISPRINTERF",
+    });
+  });
+
   it("falls back to Outra for an unrecognized model, preserving the original text", () => {
     expect(normalizeVehicleBrandModel("ZX90 EXPERIMENTAL")).toEqual({
       brand: "Outra",

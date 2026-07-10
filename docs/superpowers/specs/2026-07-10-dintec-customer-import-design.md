@@ -121,13 +121,17 @@ Preenchidos **somente quando vazios** (nunca sobrescrevem edição manual ou dad
 | `FH`, `FM`, `VM` | Volvo |
 | `R `, `P `, `G `, `S ` seguido de número (ex. `R 440`, `P 310`) | Scania |
 | `ACTROS`, `ATEGO`, `AXOR`, `ACCELO` | Mercedes-Benz |
-| `DAILY`, `STRALIS`, `TECTOR`, `HD` | Iveco |
+| `DAILY`, `STRALISHD`, `STRALIS`, `TECTOR`, `HD` | Iveco — `STRALISHD` cobre exports do DINTEC que colam a linha `STRALIS` direto no trim `HD` sem espaço (ex. `"STRALISHD 19-320"`) |
 | número puro tipo `NN.NNN` (ex. `24.280`) ou `CARGO` | Ford Cargo (config numérica) — **atenção:** `NN.NNN` também é convenção VW/MAN; se o texto tiver `CONSTELLATION`/`DELIVERY`/`WORKER` explícito, prioriza Volkswagen |
 | `XF`, `CF`, `LF` | DAF |
+| `TGX` | MAN |
 | `HILUX`, `COROLLA`, `SW4`, `ETIOS` | Toyota |
 | `AMAROK`, `ATRON`, `CONSTELLATION`, `DELIVERY`, `GOL`, `SAVEIRO`, `WORKER` | Volkswagen |
 | `DUCATO`, `STRADA`, `FIORINO`, `TORO`, `UNO` | Fiat |
 | `MASTER`, `KANGOO`, `DUSTER`, `OROCH` | Renault |
+| `RANGER` | Ford (picape — marca separada de "Ford Cargo", que é só a linha pesada por prefixo numérico) |
+| `FRONTIER` | Nissan |
+| `SPRINTER` (em **qualquer posição** do texto, não só como prefixo) | Mercedes-Benz — exceção às demais regras desta tabela: no DINTEC a Sprinter aparece colada a código de motor/carroceria (ex. `"415CDISPRINTERF"`), sem prefixo limpo, então essa regra usa busca por substring em vez de âncora no início |
 
 Não reconhecido → `brand='Outra'`, `model=<texto original completo>` (nunca descartado, sempre marcado pra revisão manual).
 
