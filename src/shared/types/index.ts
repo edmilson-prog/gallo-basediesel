@@ -156,6 +156,7 @@ export type {
   IWhatsAppAccountAccessRule,
   IConversationParticipant,
   IWhatsAppGoServer,
+  IWahaServer,
   IConversationActivityEvent,
   AttendanceActivityType,
 } from "./conversation";
