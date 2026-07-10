@@ -101,7 +101,7 @@ Três Edge Functions próprias, **nenhuma delas importa** de `_shared/whatsapp/b
 
 ### `waha-connect` (Owner-only, POST, `verify_jwt: true`)
 
-Ações administrativas: `create` (cria sessão no WAHA + insere a linha em `whatsapp_accounts`), `qr` (proxy do QR em base64), `state` (proxy de status + backfill do `phone_number`), `logout`, `restart`, `delete` (chama a RPC `delete_whatsapp_account` — a mesma usada pelos outros engines — e só então tenta o teardown remoto no WAHA; se o teardown remoto falhar, apenas loga um warning, a linha local já foi removida).
+Ações administrativas: `create` (cria sessão no WAHA + insere a linha em `whatsapp_accounts`), `ping` (checagem de conectividade/credenciais de um servidor cadastrado — `GET /api/sessions`, que não exige nome de sessão, então valida a chave sem criar nada; usada pelo botão "Testar conexão" na tela de Chaves), `qr` (proxy do QR em base64), `state` (proxy de status + backfill do `phone_number`), `logout`, `restart`, `delete` (chama a RPC `delete_whatsapp_account` — a mesma usada pelos outros engines — e só então tenta o teardown remoto no WAHA; se o teardown remoto falhar, apenas loga um warning, a linha local já foi removida).
 
 ### `waha-webhook` (pública, POST, `verify_jwt: false`, HMAC-gated internamente)
 
