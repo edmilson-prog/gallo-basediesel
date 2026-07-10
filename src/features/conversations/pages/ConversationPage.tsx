@@ -295,6 +295,7 @@ export function ConversationPage() {
                 mustAssignToReply={mustAssign}
                 onAssigned={detail.refresh}
                 onOpenPartLookup={openConsultor}
+                contactName={contact?.name}
               />
             </div>
 
