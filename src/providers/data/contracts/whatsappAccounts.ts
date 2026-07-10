@@ -61,6 +61,11 @@ export interface IWhatsAppAccountPatch {
 export interface IWhatsAppAccountsProvider {
   list(params?: IListWhatsAppAccountsParams): Promise<IWhatsAppAccount[]>;
   /**
+   * WAHA-scoped list (provider='waha'), fora do `list()` genérico que exclui
+   * WAHA de propósito. Retorna `IWhatsAppAccount[]` para o card rico da aba WAHA.
+   */
+  listWaha(params: { storeId: ID }): Promise<IWhatsAppAccount[]>;
+  /**
    * IDs of the WhatsApp accounts the current user may OPERATE (atendimento).
    * - Supabase: resolved from the JWT via the `current_seller_accessible_account_ids`
    *   RPC (same source of truth as `can_access_conversation`). Staff → all store

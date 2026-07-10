@@ -277,6 +277,18 @@ export interface IWhatsAppCapabilities {
 }
 
 /**
+ * WAHA per-session settings surfaced in the UI (wizard "Avançado" + params
+ * dialog). `chatFilters` are "process this type" booleans — the engine inverts
+ * them into WAHA's `config.ignore`. `device` is shown read-only (no-op on GOWS).
+ */
+export interface IWahaSessionConfig {
+  chatFilters: { groups: boolean; status: boolean; channels: boolean; broadcast: boolean };
+  debug: boolean;
+  proxy?: { server: string; username?: string; password?: string };
+  device?: { name?: string; browser?: string };
+}
+
+/**
  * Non-secret engine configuration of a WhatsApp account (PRD-111/119).
  * Which fields apply depends on {@link IWhatsAppAccount.provider}: Meta uses
  * `phoneNumberId`/`businessAccountId`; Evolution uses `baseUrl`/`instanceName`.
@@ -296,6 +308,10 @@ export interface IWhatsAppProviderConfig {
   instanceId?: string;
   /** Per-instance identity color (hex) for the origin dot/bar — falls back to a hash of the id. */
   accentColor?: string;
+  /** WAHA — the created session name (provider='waha' rows). */
+  sessionName?: string;
+  /** WAHA — per-session settings (chat filters, debug, proxy). */
+  waha?: IWahaSessionConfig;
 }
 
 /**

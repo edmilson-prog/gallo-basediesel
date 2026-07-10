@@ -42,13 +42,14 @@ interface WhatsAppAccountRow {
   purpose: IWhatsAppAccount["purpose"];
   go_server_id: string | null;
   alerts_muted: boolean;
+  waha_server_id: string | null;
 }
 
 const TABLE = "whatsapp_accounts";
 const COLUMNS =
   "id, store_id, label, phone_number, provider, credentials_ref, status, capabilities, " +
   "provider_config, current_state, state_changed_at, failover_policy, failover_account_id, " +
-  "is_failover_active, created_at, purpose, go_server_id, alerts_muted";
+  "is_failover_active, created_at, purpose, go_server_id, alerts_muted, waha_server_id";
 
 function rowToWhatsAppAccount(row: WhatsAppAccountRow): IWhatsAppAccount {
   return {
@@ -70,6 +71,7 @@ function rowToWhatsAppAccount(row: WhatsAppAccountRow): IWhatsAppAccount {
     purpose: row.purpose ?? "atendimento",
     goServerId: row.go_server_id ?? undefined,
     alertsMuted: row.alerts_muted ?? false,
+    wahaServerId: row.waha_server_id ?? undefined,
   };
 }
 
@@ -86,6 +88,17 @@ export const supabaseWhatsAppAccountsProvider: IWhatsAppAccountsProvider = {
 
     const { data, error } = await query.order("created_at", { ascending: true });
     if (error) throw new Error(`[supabase] whatsappAccounts.list failed: ${error.message}`);
+    return (data as unknown as WhatsAppAccountRow[]).map(rowToWhatsAppAccount);
+  },
+
+  async listWaha(params: { storeId: ID }): Promise<IWhatsAppAccount[]> {
+    const { data, error } = await getSupabaseClient()
+      .from(TABLE)
+      .select(COLUMNS)
+      .eq("provider", "waha")
+      .eq("store_id", params.storeId)
+      .order("created_at", { ascending: true });
+    if (error) throw new Error(`[supabase] whatsappAccounts.listWaha failed: ${error.message}`);
     return (data as unknown as WhatsAppAccountRow[]).map(rowToWhatsAppAccount);
   },
 
