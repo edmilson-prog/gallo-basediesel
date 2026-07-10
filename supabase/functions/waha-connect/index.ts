@@ -9,9 +9,10 @@
  * (mirrored from src/providers/whatsapp/waha/) are used.
  *
  * Input (JSON body):
- *   { storeId, label, purpose?, wahaServerId?, action: 'create' }
+ *   { storeId, label, purpose?, wahaServerId?, sessionConfig?, action: 'create' }
  *   { wahaServerId, action: 'ping' }
  *   { accountId, action: 'qr'|'state'|'logout'|'restart'|'delete' }
+ *   { accountId, action: 'updateConfig', sessionConfig }
  *
  * Spec: docs/superpowers/specs/2026-07-10-waha-whatsapp-integration-design.md
  */
@@ -23,20 +24,32 @@ import { requiredEnv } from "../_shared/env.ts";
 import { HttpError, json, parseJsonBody } from "../_shared/http.ts";
 import { createSecretResolver } from "../_shared/secrets.ts";
 import { servePost } from "../_shared/serve.ts";
+import { wahaStateToAccountStatus } from "../_shared/whatsapp/waha/constants.ts";
 import { generateWahaSessionName } from "../_shared/whatsapp/waha/sessionName.ts";
 import {
   createWahaSession,
   deleteWahaSession,
-  getWahaAccountStatus,
   getWahaSessionQrPng,
+  getWahaSessionStatus,
   logoutWahaSession,
   pingWahaServer,
   restartWahaSession,
+  updateWahaSessionConfig,
+  type IWahaSessionSettings,
 } from "../_shared/whatsapp/waha/session.ts";
 import { WhatsAppProviderError } from "../_shared/whatsapp/errors.ts";
 import { findSoleWahaServer, resolveWahaServer, resolveWahaServerForPing } from "./wahaServer.ts";
 
-const ACTIONS = ["create", "ping", "qr", "state", "logout", "restart", "delete"] as const;
+const ACTIONS = [
+  "create",
+  "ping",
+  "qr",
+  "state",
+  "logout",
+  "restart",
+  "delete",
+  "updateConfig",
+] as const;
 type ConnectAction = (typeof ACTIONS)[number];
 
 const DEFAULT_CAPABILITIES = {
@@ -79,6 +92,7 @@ servePost(async (req, ctx) => {
     label?: string;
     purpose?: string;
     wahaServerId?: string;
+    sessionConfig?: IWahaSessionSettings;
     action?: string;
   };
 
@@ -138,7 +152,13 @@ servePost(async (req, ctx) => {
 
     const webhookUrl = `${requiredEnv("SUPABASE_URL")}/functions/v1/waha-webhook`;
     try {
-      await createWahaSession(apiKey, fetchFn, { baseUrl, sessionName, webhookUrl, hmacKey });
+      await createWahaSession(apiKey, fetchFn, {
+        baseUrl,
+        sessionName,
+        webhookUrl,
+        hmacKey,
+        settings: body.sessionConfig,
+      });
     } catch (err) {
       if (err instanceof WhatsAppProviderError) {
         return json({ error: err.message, code: err.code, traceId: ctx.traceId }, err.httpStatus);
@@ -157,7 +177,9 @@ servePost(async (req, ctx) => {
         credentials_ref: String(server.api_key_ref ?? ""),
         status: "pending",
         capabilities: DEFAULT_CAPABILITIES,
-        provider_config: { sessionName },
+        provider_config: body.sessionConfig
+          ? { sessionName, waha: body.sessionConfig }
+          : { sessionName },
         purpose: body.purpose ?? "atendimento",
         current_state: "healthy",
         failover_policy: "disabled",
@@ -222,7 +244,12 @@ servePost(async (req, ctx) => {
         return json({ state: "qr", qrBase64, traceId: ctx.traceId }, 200);
       }
       case "state": {
-        const { accountStatus, phoneNumber } = await getWahaAccountStatus(apiKey, fetchFn, target);
+        const { state: rawState, phoneNumber } = await getWahaSessionStatus(
+          apiKey,
+          fetchFn,
+          target,
+        );
+        const accountStatus = wahaStateToAccountStatus(rawState);
         const patch: Record<string, unknown> = { status: accountStatus };
         if (phoneNumber && !account.phone_number) patch.phone_number = phoneNumber;
         const wasConnected = account.status === "connected";
@@ -237,7 +264,7 @@ servePost(async (req, ctx) => {
             after: { provider: "waha" },
           });
         }
-        return json({ state: accountStatus, phoneNumber, traceId: ctx.traceId }, 200);
+        return json({ state: accountStatus, rawState, phoneNumber, traceId: ctx.traceId }, 200);
       }
       case "logout": {
         await logoutWahaSession(apiKey, fetchFn, target);
@@ -307,6 +334,44 @@ servePost(async (req, ctx) => {
             resource: "whatsapp_account",
             resource_id: account.id,
             before: { label: account.label, provider: "waha", sessionName },
+          });
+        }
+        return json({ ok: true, traceId: ctx.traceId }, 200);
+      }
+      case "updateConfig": {
+        const sessionConfig = body.sessionConfig;
+        if (!sessionConfig) throw new HttpError(422, "sessionConfig é obrigatório");
+        // Resolve o HMAC do servidor (o config completo precisa reconstruir o webhook).
+        const { data: srv } = await admin
+          .from("waha_servers")
+          .select("webhook_hmac_ref")
+          .eq("id", account.waha_server_id)
+          .maybeSingle();
+        const hmacKey = srv?.webhook_hmac_ref
+          ? await resolveSecret(String(srv.webhook_hmac_ref))
+          : "";
+        if (!hmacKey) throw new HttpError(422, "Segredo HMAC do webhook WAHA não definido.");
+        const webhookUrl = `${requiredEnv("SUPABASE_URL")}/functions/v1/waha-webhook`;
+        await updateWahaSessionConfig(apiKey, fetchFn, {
+          baseUrl,
+          sessionName,
+          webhookUrl,
+          hmacKey,
+          settings: sessionConfig,
+        });
+        const nextConfig = { ...(account.provider_config ?? {}), waha: sessionConfig };
+        await admin
+          .from("whatsapp_accounts")
+          .update({ provider_config: nextConfig, status: "pending" })
+          .eq("id", account.id);
+        if (actorId) {
+          await bestEffortAudit(admin, {
+            store_id: account.store_id,
+            actor_id: actorId,
+            action: "whatsapp_instance_config_updated",
+            resource: "whatsapp_account",
+            resource_id: account.id,
+            after: { waha: sessionConfig },
           });
         }
         return json({ ok: true, traceId: ctx.traceId }, 200);
