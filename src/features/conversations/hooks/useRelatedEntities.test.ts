@@ -1,6 +1,12 @@
 import { describe, it, expect } from "vitest";
 import type { ID, IConversation, IMessage } from "@/shared/types";
-import { changedRecencyIds, missingIds, newerMessage, recencyKeyOf } from "./useRelatedEntities";
+import {
+  applyLastMessageStatusUpdate,
+  changedRecencyIds,
+  missingIds,
+  newerMessage,
+  recencyKeyOf,
+} from "./useRelatedEntities";
 
 /**
  * Unit tests for the pure core of `useRelatedEntities` (node env — no DOM, no
@@ -131,6 +137,38 @@ describe("changedRecencyIds (gap A — incremental last-message fetch)", () => {
       convAt("conv-2", "2026-06-30T11:00:00.000Z"),
     ];
     expect(changedRecencyIds(list, lastSeen)).toEqual(["conv-2"]);
+  });
+});
+
+describe("applyLastMessageStatusUpdate (lost incidental status refresh, 5th round)", () => {
+  function statusMsg(id: string, conversationId: string, status: IMessage["status"]): IMessage {
+    return { id, conversationId, status, sentAt: "2026-07-10T10:00:00.000Z" } as unknown as IMessage;
+  }
+
+  it("returns null when the conversation has no cached preview yet", () => {
+    expect(applyLastMessageStatusUpdate(new Map(), statusMsg("m1", "conv-1", "read"))).toBeNull();
+  });
+
+  it("returns null when the update targets a different (older) message than the cached preview", () => {
+    const cache = new Map([["conv-1", statusMsg("m2", "conv-1", "sent")]]);
+    expect(applyLastMessageStatusUpdate(cache, statusMsg("m1", "conv-1", "read"))).toBeNull();
+  });
+
+  it("patches the cached preview when the update advances the same message's status", () => {
+    const cache = new Map([["conv-1", statusMsg("m1", "conv-1", "delivered")]]);
+    const update = statusMsg("m1", "conv-1", "read");
+    expect(applyLastMessageStatusUpdate(cache, update)).toBe(update);
+  });
+
+  it("returns null when the update would regress the status (out-of-order delivery ack)", () => {
+    const cache = new Map([["conv-1", statusMsg("m1", "conv-1", "read")]]);
+    expect(applyLastMessageStatusUpdate(cache, statusMsg("m1", "conv-1", "sent"))).toBeNull();
+  });
+
+  it("re-applies an equal-rank status idempotently (mirrors statusAdvances)", () => {
+    const cache = new Map([["conv-1", statusMsg("m1", "conv-1", "delivered")]]);
+    const update = statusMsg("m1", "conv-1", "delivered");
+    expect(applyLastMessageStatusUpdate(cache, update)).toBe(update);
   });
 });
 
