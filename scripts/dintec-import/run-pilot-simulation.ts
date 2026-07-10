@@ -203,9 +203,11 @@ async function main() {
     );
     const phoneFinal = existing
       ? existing.phone // 563 já vinculados: telefone da plataforma nunca muda
-      : normalizePhoneKey(cliente.celular) || normalizePhoneKey(cliente.telefone)
-        ? cliente.celular || cliente.telefone
-        : ""; // pilot "sem telefone" stratum
+      : normalizePhoneKey(cliente.celular)
+        ? cliente.celular
+        : normalizePhoneKey(cliente.telefone)
+          ? cliente.telefone
+          : ""; // pilot "sem telefone" stratum
 
     const clienteVeiculos = veiculos
       .filter((v) => v.codcli === cliente.codcli)
@@ -245,4 +247,7 @@ async function main() {
   console.log(summary);
 }
 
-main();
+main().catch((e) => {
+  console.error("SIMULAÇÃO FALHOU:", e.message);
+  process.exit(1);
+});
