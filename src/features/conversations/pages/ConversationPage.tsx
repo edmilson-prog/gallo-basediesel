@@ -236,6 +236,7 @@ export function ConversationPage() {
                     conversation={conversation}
                     customer={customer}
                     lead={lead}
+                    contact={contact}
                     whatsappAccount={whatsappAccount}
                     onMutated={detail.refresh}
                     statusControlMode={statusControlMode}
@@ -295,6 +296,7 @@ export function ConversationPage() {
                 mustAssignToReply={mustAssign}
                 onAssigned={detail.refresh}
                 onOpenPartLookup={openConsultor}
+                contactName={contact?.name}
               />
             </div>
 

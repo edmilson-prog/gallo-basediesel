@@ -1,9 +1,12 @@
 import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type {
   ICustomer,
   ID,
   IConversation,
+  IConversationContact,
   ILead,
   ISeller,
   IWhatsAppAccount,
@@ -21,6 +24,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/useAuth";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
+import { usePipelineSettings } from "@/features/leads/hooks/usePipelineSettings";
+import { NewLeadModal } from "@/features/leads/components/NewLeadModal";
 import {
   avatarSyncErrorMessage,
   runContactAvatarSync,
@@ -39,6 +44,7 @@ import { NoteDialog } from "./dialogs/NoteDialog";
 import { StatusControlModeSubmenu } from "./status/StatusControlModeSubmenu";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
 import { useReturnToQueue } from "../hooks/useReturnToQueue";
+import { getLeadMenuAction } from "../utils/leadMenuAction";
 import { canReturnToQueue, isOwnConversation } from "../engine/assignmentGate";
 import { useUnreadTracking } from "../hooks/useUnreadTracking";
 import type { StatusControlMode } from "../engine/statusControlMode";
@@ -47,11 +53,13 @@ export interface IConversationMenuProps {
   conversation: IConversation;
   customer: ICustomer | null;
   lead: ILead | null;
+  /** Pool-safe display contact — used to pre-fill name/phone when qualifying as lead. */
+  contact: IConversationContact | null;
   /** Account behind the conversation (null when RLS-hidden/unloaded) — gates
    *  provider-specific actions like the photo re-sync. */
   whatsappAccount?: IWhatsAppAccount | null;
   onMutated?: () => void;
-  /** Status-control display mode (lifted to the page; shared with the header). */
+  /** Status-control display mode (lifted to the page; shared with the kebab). */
   statusControlMode: StatusControlMode;
   onStatusControlModeChange: (mode: StatusControlMode) => void;
 }
@@ -73,12 +81,15 @@ function showUndoableToast(message: string, undo: () => Promise<void> | void) {
 export function ConversationMenu({
   conversation,
   customer,
+  lead,
+  contact,
   whatsappAccount,
   onMutated,
   statusControlMode,
   onStatusControlModeChange,
 }: IConversationMenuProps) {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const conversationsProvider = useConversationsProvider();
   const customersProvider = useCustomersProvider();
   const sellersProvider = useSellersProvider();
@@ -87,6 +98,25 @@ export function ConversationMenu({
   const canEditStore = usePermission("conversation", "edit", "store");
   const canEditOwn = usePermission("conversation", "edit", "own");
   const canAddNote = usePermission("customer", "edit", "own");
+  const canCreateLead = usePermission("lead", "create");
+  const canViewLead = usePermission("lead", "view");
+  const leadMenuAction = getLeadMenuAction(conversation, {
+    canCreate: canCreateLead,
+    canView: canViewLead,
+  });
+
+  // Only fetched (and only matters) when the qualify dialog can actually be
+  // opened — but a `useQuery` call must run unconditionally per the rules of
+  // hooks, so this stays cheap via `enabled` + the same cache key LeadsPage
+  // already uses (react-query dedupes across both call sites).
+  const { stages } = usePipelineSettings(conversation.storeId);
+  const sellersQuery = useQuery({
+    queryKey: ["sellers-list", conversation.storeId, "all"] as const,
+    queryFn: () => sellersProvider.list({ storeId: conversation.storeId }),
+    staleTime: 60_000,
+    enabled: leadMenuAction === "qualify",
+  });
+  const sellers = sellersQuery.data ?? [];
   // A seller can transfer/archive the conversation assigned to them (own scope);
   // managers act on any store conversation. Mirrors the conversations RLS.
   const canManageThis =
@@ -98,6 +128,7 @@ export function ConversationMenu({
   const [transferOpen, setTransferOpen] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
+  const [qualifyOpen, setQualifyOpen] = useState(false);
   const [syncingPhoto, setSyncingPhoto] = useState(false);
   const { markViewed } = useUnreadTracking(currentUser?.id ?? null);
 
@@ -468,6 +499,31 @@ export function ConversationMenu({
               </DropdownMenuItem>
             </>
           )}
+          {leadMenuAction === "qualify" && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => setQualifyOpen(true)}>
+                <Icon icon="mdi:account-convert-outline" size={14} className="mr-2" />
+                {CONVERSATION_STRINGS.menu.qualifyAsLead}
+              </DropdownMenuItem>
+            </>
+          )}
+          {leadMenuAction === "view" && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onSelect={() =>
+                  void navigate({
+                    to: "/app/leads/$id",
+                    params: { id: conversation.leadId as ID },
+                  })
+                }
+              >
+                <Icon icon="mdi:account-arrow-right-outline" size={14} className="mr-2" />
+                {CONVERSATION_STRINGS.menu.viewLead}
+              </DropdownMenuItem>
+            </>
+          )}
           {canSyncPhoto && (
             <>
               <DropdownMenuSeparator />
@@ -511,6 +567,30 @@ export function ConversationMenu({
           onRenamed={() => onMutated?.()}
         />
       )}
+
+      <NewLeadModal
+        open={qualifyOpen}
+        onClose={() => setQualifyOpen(false)}
+        stages={stages}
+        sellers={sellers}
+        conversationId={conversation.id}
+        initialName={contact?.name}
+        initialPhone={contact?.phone}
+        initialSellerId={conversation.assignedSellerId}
+        onCreated={(createdLead, meta) => {
+          setQualifyOpen(false);
+          onMutated?.();
+          if (meta?.linked !== false) {
+            toast.success(CONVERSATION_STRINGS.leadQualified, {
+              action: {
+                label: CONVERSATION_STRINGS.menu.viewLead,
+                onClick: () =>
+                  void navigate({ to: "/app/leads/$id", params: { id: createdLead.id } }),
+              },
+            });
+          }
+        }}
+      />
     </>
   );
 }

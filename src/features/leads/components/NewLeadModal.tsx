@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { Icon } from "@/components/Icon";
 import { useLeadsProvider } from "@/providers/data/hooks/useLeadsProvider";
+import { useConversationsProvider } from "@/providers/data";
 import { useAuth } from "@/features/auth/useAuth";
 import { useCurrentStore } from "@/features/multistore/hooks/useCurrentStore";
 import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
@@ -43,11 +44,35 @@ export interface INewLeadModalProps {
   onClose: () => void;
   stages: IPipelineStage[];
   sellers: ISeller[];
-  onCreated?: (lead: ILead) => void;
+  /** `meta.linked` is `false` only when `conversationId` was provided but the post-create link to the conversation failed — callers should skip their own "qualified" messaging in that case. */
+  onCreated?: (lead: ILead, meta?: { linked: boolean }) => void;
+  /**
+   * Set when the lead is being qualified FROM a conversation (conversation
+   * menu → "Qualificar como lead"). On save, links `conversation.leadId` and
+   * `lead.conversations` both ways instead of just creating a standalone lead.
+   */
+  conversationId?: ID;
+  /** Pre-fills `name` from the conversation's resolved contact, if any. */
+  initialName?: string;
+  /** Pre-fills `phone` from the conversation's resolved contact, if any. */
+  initialPhone?: string;
+  /** Pre-selects the seller from `conversation.assignedSellerId`, if present. */
+  initialSellerId?: ID;
 }
 
-export function NewLeadModal({ open, onClose, stages, sellers, onCreated }: INewLeadModalProps) {
+export function NewLeadModal({
+  open,
+  onClose,
+  stages,
+  sellers,
+  onCreated,
+  conversationId,
+  initialName,
+  initialPhone,
+  initialSellerId,
+}: INewLeadModalProps) {
   const provider = useLeadsProvider();
+  const conversationsProvider = useConversationsProvider();
   const { currentUser } = useAuth();
   const { currentStoreId } = useCurrentStore();
   const role = useCurrentRole();
@@ -55,8 +80,8 @@ export function NewLeadModal({ open, onClose, stages, sellers, onCreated }: INew
 
   const initialStage = useMemo(() => stages[0]?.id ?? "", [stages]);
   const initialSeller: ID = useMemo(
-    () => currentUser?.sellerId ?? sellers[0]?.id ?? "",
-    [currentUser?.sellerId, sellers],
+    () => initialSellerId ?? currentUser?.sellerId ?? sellers[0]?.id ?? "",
+    [initialSellerId, currentUser?.sellerId, sellers],
   );
 
   const [name, setName] = useState("");
@@ -73,8 +98,8 @@ export function NewLeadModal({ open, onClose, stages, sellers, onCreated }: INew
 
   useEffect(() => {
     if (!open) return;
-    setName("");
-    setPhone("");
+    setName(initialName ?? "");
+    setPhone(initialPhone ?? "");
     setEmail("");
     setOrigin("whatsapp");
     setEstimatedValue("");
@@ -83,7 +108,7 @@ export function NewLeadModal({ open, onClose, stages, sellers, onCreated }: INew
     setTemperature("morno");
     setNextActionAt("");
     setErrors({});
-  }, [open, initialSeller, initialStage]);
+  }, [open, initialSeller, initialStage, initialName, initialPhone]);
 
   const handleSave = async () => {
     const next: Record<string, string> = {};
@@ -116,19 +141,39 @@ export function NewLeadModal({ open, onClose, stages, sellers, onCreated }: INew
         nextActionAt: nextActionAt ? new Date(nextActionAt).toISOString() : undefined,
         tags: [],
       });
-      auditLog({
-        action: "lead.created",
-        resource: "lead",
-        resourceId: lead.id,
-        after: {
-          sellerId,
-          stageId: stage.id,
-          origin,
-          temperature,
-        },
-      });
-      toast.success(COPY.createdToast);
-      onCreated?.(lead);
+
+      let linked = true;
+      if (conversationId) {
+        try {
+          await provider.update(lead.id, { conversations: [conversationId] });
+          await conversationsProvider.update(conversationId, { leadId: lead.id });
+          auditLog({
+            action: "lead.qualified_from_conversation",
+            resource: "lead",
+            resourceId: lead.id,
+            after: { conversationId, sellerId, stageId: stage.id, origin, temperature },
+          });
+        } catch {
+          // The lead itself was created successfully — surface the link
+          // failure separately rather than rolling back the lead. Skip the
+          // success toasts below so the user isn't told "qualified" when the
+          // conversation link didn't actually happen.
+          linked = false;
+          toast.error(COPY.linkError);
+        }
+      } else {
+        auditLog({
+          action: "lead.created",
+          resource: "lead",
+          resourceId: lead.id,
+          after: { sellerId, stageId: stage.id, origin, temperature },
+        });
+      }
+
+      if (linked) {
+        toast.success(COPY.createdToast);
+      }
+      onCreated?.(lead, { linked });
     } catch {
       toast.error(COPY.createError);
     } finally {
