@@ -5,6 +5,7 @@ import {
   getWahaSessionQrPng,
   getWahaSessionStatus,
   logoutWahaSession,
+  pingWahaServer,
   restartWahaSession,
   stopWahaSession,
 } from "./session";
@@ -40,15 +41,13 @@ describe("WAHA session lifecycle", () => {
   });
 
   it("getWahaSessionStatus GETs /api/sessions/{name} and returns state + me", async () => {
-    const fetchFn = vi
-      .fn()
-      .mockResolvedValue(
-        jsonResponse(200, {
-          name: "loja-abc123",
-          status: "WORKING",
-          me: { id: "5511999999999@c.us" },
-        }),
-      );
+    const fetchFn = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        name: "loja-abc123",
+        status: "WORKING",
+        me: { id: "5511999999999@c.us" },
+      }),
+    );
     const status = await getWahaSessionStatus("key", fetchFn, target);
     expect(status.state).toBe("WORKING");
     expect(status.phoneNumber).toBe("+5511999999999");
@@ -93,5 +92,20 @@ describe("WAHA session lifecycle", () => {
     await deleteWahaSession("key", fetchFn, target);
     expect(fetchFn.mock.calls[3][0]).toBe("https://waha.example.com/api/sessions/loja-abc123");
     expect(fetchFn.mock.calls[3][1].method).toBe("DELETE");
+  });
+
+  it("pingWahaServer GETs /api/sessions and returns the session count", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, [{ name: "a" }, { name: "b" }]));
+    const result = await pingWahaServer("key", fetchFn, "https://waha.example.com");
+    expect(fetchFn.mock.calls[0][0]).toBe("https://waha.example.com/api/sessions");
+    expect(fetchFn.mock.calls[0][1].method).toBe("GET");
+    expect(result.sessionCount).toBe(2);
+  });
+
+  it("pingWahaServer surfaces a mapped error for an invalid API key", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(401, { message: "Unauthorized" }));
+    await expect(pingWahaServer("bad-key", fetchFn, "https://waha.example.com")).rejects.toThrow(
+      "Chave da API WAHA inválida ou ausente",
+    );
   });
 });

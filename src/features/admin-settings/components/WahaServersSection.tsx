@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useWahaServersProvider } from "@/providers/data";
 import type { IWahaServer } from "@/shared/types";
 import { setIntegrationSecret, deleteIntegrationSecret } from "../api/integrationSecrets";
+import { invokeWaha, WahaConnectError } from "../api/wahaConnect";
 
 /**
  * Generates a unique, env-style Vault secret name for a WAHA server's global
@@ -278,6 +279,28 @@ function WahaServerRow({
   const [rotatingHmac, setRotatingHmac] = useState(false);
   const [newHmac, setNewHmac] = useState("");
   const [busy, setBusy] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [lastTest, setLastTest] = useState<{ ok: boolean; label: string; at: Date } | null>(null);
+
+  const handleTestConnection = async () => {
+    setTesting(true);
+    try {
+      const result = await invokeWaha<{ sessionCount: number }>({
+        wahaServerId: server.id,
+        action: "ping",
+      });
+      const label = `Conectado — ${result.sessionCount} sessão(ões) no servidor`;
+      setLastTest({ ok: true, label, at: new Date() });
+      toast.success(label);
+    } catch (err) {
+      const message =
+        err instanceof WahaConnectError ? err.message : "Não foi possível conectar ao servidor.";
+      setLastTest({ ok: false, label: message, at: new Date() });
+      toast.error(message);
+    } finally {
+      setTesting(false);
+    }
+  };
 
   const handleSaveEdit = async () => {
     const n = name.trim();
@@ -416,6 +439,13 @@ function WahaServerRow({
             HMAC:{" "}
             {server.webhookHmacRef ? `••••${server.webhookHmacRef.slice(-6)}` : "não definido"}
           </p>
+          {lastTest && (
+            <p
+              className={`text-[11px] ${lastTest.ok ? "text-severity-success" : "text-severity-critical"}`}
+            >
+              {lastTest.ok ? "✓" : "✗"} {lastTest.label} — {lastTest.at.toLocaleTimeString("pt-BR")}
+            </p>
+          )}
         </div>
         {canEdit && (
           <div className="flex flex-wrap gap-2">
@@ -443,6 +473,18 @@ function WahaServerRow({
                 Editar
               </Button>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleTestConnection}
+              disabled={busy || testing}
+            >
+              <Icon
+                icon={testing ? "mdi:loading" : "mdi:connection"}
+                className={`mr-1 size-4 ${testing ? "animate-spin" : ""}`}
+              />
+              {testing ? "Testando…" : "Testar conexão"}
+            </Button>
             <Button
               variant="outline"
               size="sm"

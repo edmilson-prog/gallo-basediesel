@@ -59,3 +59,29 @@ export async function findSoleWahaServer(admin: Admin): Promise<{ id: string } |
   const rows = data ?? [];
   return rows.length === 1 ? { id: rows[0].id as string } : null;
 }
+
+/**
+ * Resolves a server's endpoint + API key for the `ping` action. Deliberately
+ * does NOT require the webhook HMAC (unlike `resolveWahaServer`) — testing
+ * connectivity/credentials is a step that happens before HMAC is even
+ * configured, and pinging never touches webhooks.
+ */
+export async function resolveWahaServerForPing(
+  admin: Admin,
+  resolveSecret: ResolveSecret,
+  wahaServerId: string,
+): Promise<{ baseUrl: string; apiKey: string }> {
+  const { data: server, error } = await admin
+    .from("waha_servers")
+    .select("base_url, api_key_ref")
+    .eq("id", wahaServerId)
+    .maybeSingle();
+  if (error || !server) {
+    throw new HttpError(422, "Servidor WAHA não encontrado.");
+  }
+  const baseUrl = String(server.base_url ?? "").replace(/\/+$/, "");
+  if (!baseUrl) throw new HttpError(422, "Servidor WAHA sem endpoint.");
+  const apiKey = await resolveSecret(String(server.api_key_ref ?? ""));
+  if (!apiKey) throw new HttpError(422, "Chave da API do servidor WAHA não definida.");
+  return { baseUrl, apiKey };
+}

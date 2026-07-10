@@ -10,6 +10,7 @@
  *
  * Input (JSON body):
  *   { storeId, label, purpose?, wahaServerId?, action: 'create' }
+ *   { wahaServerId, action: 'ping' }
  *   { accountId, action: 'qr'|'state'|'logout'|'restart'|'delete' }
  *
  * Spec: docs/superpowers/specs/2026-07-10-waha-whatsapp-integration-design.md
@@ -29,12 +30,13 @@ import {
   getWahaAccountStatus,
   getWahaSessionQrPng,
   logoutWahaSession,
+  pingWahaServer,
   restartWahaSession,
 } from "../_shared/whatsapp/waha/session.ts";
 import { WhatsAppProviderError } from "../_shared/whatsapp/errors.ts";
-import { findSoleWahaServer, resolveWahaServer } from "./wahaServer.ts";
+import { findSoleWahaServer, resolveWahaServer, resolveWahaServerForPing } from "./wahaServer.ts";
 
-const ACTIONS = ["create", "qr", "state", "logout", "restart", "delete"] as const;
+const ACTIONS = ["create", "ping", "qr", "state", "logout", "restart", "delete"] as const;
 type ConnectAction = (typeof ACTIONS)[number];
 
 const DEFAULT_CAPABILITIES = {
@@ -178,6 +180,24 @@ servePost(async (req, ctx) => {
       });
     }
     return json({ id: inserted.id, sessionName, traceId: ctx.traceId }, 200);
+  }
+
+  if (action === "ping") {
+    if (!body.wahaServerId) throw new HttpError(422, "wahaServerId é obrigatório");
+    try {
+      const { baseUrl, apiKey } = await resolveWahaServerForPing(
+        admin,
+        resolveSecret,
+        body.wahaServerId,
+      );
+      const { sessionCount } = await pingWahaServer(apiKey, fetchFn, baseUrl);
+      return json({ ok: true, sessionCount, traceId: ctx.traceId }, 200);
+    } catch (err) {
+      if (err instanceof WhatsAppProviderError) {
+        return json({ error: err.message, code: err.code, traceId: ctx.traceId }, err.httpStatus);
+      }
+      throw err;
+    }
   }
 
   if (!body.accountId) throw new HttpError(422, "accountId é obrigatório");

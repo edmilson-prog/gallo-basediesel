@@ -96,6 +96,31 @@ export async function getWahaSessionQrPng(
   return `data:${response.contentType ?? "image/png"};base64,${base64}`;
 }
 
+export interface IWahaPingResult {
+  sessionCount: number;
+}
+
+/**
+ * Lightweight credentials/connectivity check — `GET /api/sessions` needs no
+ * session name, so it validates the API key against the endpoint without
+ * creating or touching any session. Non-2xx (e.g. a bad key) throws via
+ * `wahaRequest`'s existing error mapping.
+ */
+export async function pingWahaServer(
+  apiKey: string,
+  fetchFn: typeof fetch,
+  baseUrl: string,
+): Promise<IWahaPingResult> {
+  const response = await wahaRequest(apiKey, fetchFn, {
+    baseUrl,
+    path: "/api/sessions",
+    method: "GET",
+    timeoutMs: 10_000,
+  });
+  const body = Array.isArray(response.body) ? response.body : [];
+  return { sessionCount: body.length };
+}
+
 export async function stopWahaSession(
   apiKey: string,
   fetchFn: typeof fetch,

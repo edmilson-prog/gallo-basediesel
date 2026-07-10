@@ -41,6 +41,7 @@ import {
 import { useWahaServersProvider } from "@/providers/data";
 import type { IWahaServer, WhatsAppAccountPurpose } from "@/shared/types";
 import { getSupabaseClient } from "@/shared/lib/supabase";
+import { invokeWaha, WahaConnectError } from "../api/wahaConnect";
 
 /**
  * Dedicated WAHA tab (Configurações → WhatsApp). Fully isolated from the
@@ -92,35 +93,6 @@ interface IWahaAccountRow {
   purpose: WhatsAppAccountPurpose;
   provider_config: { sessionName?: string } | null;
   created_at: string;
-}
-
-/** Stable machine code the edge returns for `HAS_LINKED_DATA` (Excluir guard). */
-class WahaConnectError extends Error {
-  readonly code?: string;
-  constructor(message: string, code?: string) {
-    super(message);
-    this.name = "WahaConnectError";
-    this.code = code;
-  }
-}
-
-async function toWahaError(error: unknown, fallback: string): Promise<WahaConnectError> {
-  const ctx = (error as { context?: Response }).context;
-  if (ctx && typeof ctx.json === "function") {
-    try {
-      const body = (await ctx.json()) as { error?: string; code?: string };
-      if (body?.error) return new WahaConnectError(body.error, body.code);
-    } catch {
-      /* fall through */
-    }
-  }
-  return new WahaConnectError(error instanceof Error ? error.message : fallback);
-}
-
-async function invokeWaha<T>(body: Record<string, unknown>): Promise<T> {
-  const { data, error } = await getSupabaseClient().functions.invoke<T>("waha-connect", { body });
-  if (error) throw await toWahaError(error, "Falha ao falar com o servidor WAHA.");
-  return data as T;
 }
 
 async function fetchWahaAccounts(storeId: string): Promise<IWahaAccountRow[]> {
