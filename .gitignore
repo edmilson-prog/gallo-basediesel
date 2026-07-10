@@ -13,6 +13,10 @@ dist-ssr
 
 # Supabase CLI local state
 supabase/.temp
+
+# Local scratch output (PII-bearing exports, assisted-import reports, etc.)
+# — must never be committed. See docs/superpowers/specs/2026-07-10-dintec-customer-import-design.md.
+scratchpad/
 .output
 .vinxi
 .tanstack/**
