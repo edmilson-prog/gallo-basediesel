@@ -290,6 +290,19 @@ export function WahaSection({ storeId }: { storeId: string }) {
     }
   };
 
+  const handleLogout = async (row: IWhatsAppAccount) => {
+    setBusyId(row.id);
+    try {
+      await invokeWaha({ accountId: row.id, action: "logout" });
+      toast.success(`Sessão "${row.label}" desconectada.`);
+      await refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível desconectar a sessão.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   /**
    * A logged-out/disconnected session has no UI path back to a QR code
    * otherwise — "Reiniciar" alone restarts the WAHA session but nothing in
@@ -516,6 +529,12 @@ export function WahaSection({ storeId }: { storeId: string }) {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        {row.status !== "connected" && (
+                          <DropdownMenuItem disabled={busy} onSelect={() => void handleRepair(row)}>
+                            <Icon icon="mdi:qrcode" size={15} className="mr-2" aria-hidden />
+                            Parear novamente
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
                           disabled={busy}
                           onSelect={() => void handleToggleAlertsMuted(row)}
@@ -531,6 +550,10 @@ export function WahaSection({ storeId }: { storeId: string }) {
                           {row.alertsMuted
                             ? "Reativar alertas de desconexão"
                             : "Silenciar alertas de desconexão"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem disabled={busy} onSelect={() => void handleLogout(row)}>
+                          <Icon icon="mdi:logout-variant" size={15} className="mr-2" aria-hidden />
+                          Logout
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
