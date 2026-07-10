@@ -66,6 +66,11 @@ import {
 import { parseSlash } from "@/features/quick-send/engine/slashParser";
 import { filterAssets } from "@/features/quick-send/engine/assetFiltering";
 import {
+  isKnownSlashAssetCommand,
+  matchQuickRepliesByCommand,
+  resolveSlashCommandCategory,
+} from "@/features/quick-send/engine/slashCommand";
+import {
   resolvePlaceholders,
   hasUnresolved,
 } from "@/features/quick-send/engine/placeholderResolver";
@@ -100,6 +105,12 @@ export interface IMessageInputProps {
   onAssigned?: () => void;
   /** Opens the part-lookup consultor panel (lifted to the page). */
   onOpenPartLookup?: () => void;
+  /**
+   * Resolved contact display name (B2B nomeFantasia / B2C fullName / lead
+   * name — same value shown in the header). Fills the `{{nome}}` snippet
+   * placeholder (RF-011) when a quick reply is inserted.
+   */
+  contactName?: string | null;
 }
 
 const EMOJI_SET = [
@@ -198,6 +209,7 @@ export function MessageInput(props: IMessageInputProps) {
     mustAssignToReply = false,
     onAssigned,
     onOpenPartLookup,
+    contactName,
   } = props;
   const { messages } = useConversationContext();
   const window = useMetaWindow(conversation, whatsappAccount);
@@ -283,25 +295,32 @@ export function MessageInput(props: IMessageInputProps) {
   // value didn't change (e.g. arrow keys). Clamp to the current value length.
   const safeCaret = Math.min(caret, value.length);
   const slash = parseSlash(value, safeCaret);
-  const slashLib = useAssetLibrary(slash.active ? { query: slash.query } : { query: "" });
-  const slashAssets = slash.active
-    ? filterAssets(slashLib.items, { query: slash.query }).slice(0, 5)
-    : [];
-  const slashReplies =
-    slash.active && quickReplies.replies.length > 0
-      ? quickReplies.replies
-          .filter((r) =>
-            `${r.shortcut} ${r.title}`.toLowerCase().includes(slash.query.toLowerCase()),
-          )
-          .slice(0, 5)
+  // RF-007: the command word (e.g. "catalogo") pre-filters by category; text
+  // after a space filters by title within that category. An empty command
+  // (bare "/") browses everything; an unrecognized command (e.g. "/xyz")
+  // shows no assets instead of falling back to an unfiltered list.
+  const slashCategory = resolveSlashCommandCategory(slash.command);
+  const slashLib = useAssetLibrary(
+    slash.active ? { category: slashCategory, query: slash.query } : { query: "" },
+  );
+  const slashAssets =
+    slash.active && isKnownSlashAssetCommand(slash.command)
+      ? filterAssets(slashLib.items, { category: slashCategory, query: slash.query }).slice(0, 5)
       : [];
+  // RF-011: quick replies are matched by shortcut (e.g. "/garantia"), not by title.
+  const slashReplies = slash.active
+    ? matchQuickRepliesByCommand(quickReplies.replies, slash.command).slice(0, 5)
+    : [];
   const slashTotal = slashAssets.length + slashReplies.length;
   const slashOpen = slash.active && slashTotal > 0;
 
   // --- Snippet gaps (double send-lock) ---
+  // RF-011: {{nome}} resolves from the conversation's contact; {{peca}}/{{prazo}}
+  // have no data source yet (no "part in discussion" tracker, no default lead
+  // time setting), so they stay as manual gaps until those exist.
   const placeholderCtx = useMemo(
-    () => ({ nome: undefined, peca: undefined, prazo: undefined }),
-    [],
+    () => ({ nome: contactName ?? undefined, peca: undefined, prazo: undefined }),
+    [contactName],
   );
   const snippetGaps = resolvePlaceholders(value, placeholderCtx).gaps;
   const hasUnresolvedPlaceholders = hasUnresolved(value);
@@ -323,7 +342,7 @@ export function MessageInput(props: IMessageInputProps) {
   // Reset slash highlight when the candidate list changes.
   useEffect(() => {
     setSlashIndex(0);
-  }, [slash.query, slashTotal]);
+  }, [slash.command, slash.query, slashTotal]);
 
   // External "open template picker" requests (SessionBanner CTA — PRD-117).
   useEffect(() => {
@@ -597,9 +616,23 @@ export function MessageInput(props: IMessageInputProps) {
   };
 
   const insertSnippetBody = (body: string) => {
-    // Replace the active "/shortcut..." token with the snippet body.
-    setValue(body);
-    requestAnimationFrame(() => textareaRef.current?.focus());
+    // RF-011/RF-012: resolve {{...}} from the known context first — {{nome}}
+    // fills in when known, anything still unresolved becomes a "[gap]" pill
+    // instead of the raw "{{gap}}" token.
+    const { resolved } = resolvePlaceholders(body, placeholderCtx);
+    // Replace only the active "/shortcut..." token (from the slash to the
+    // caret) with the resolved snippet body — preserves any text typed before it.
+    const start = slash.tokenStart >= 0 ? slash.tokenStart : 0;
+    const end = safeCaret;
+    const next = value.slice(0, start) + resolved + value.slice(end);
+    setValue(next);
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (!el) return;
+      el.focus();
+      const pos = start + resolved.length;
+      el.setSelectionRange(pos, pos);
+    });
   };
 
   const pickSlashAsset = (item: IAssetLibraryItem) => {

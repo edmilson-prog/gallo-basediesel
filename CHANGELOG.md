@@ -4,6 +4,19 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.137.0] — Promote · 2026-07-10
+
+**Agora dá para transformar uma conversa em lead direto do menu de atendimento, e o menu "/" de respostas rápidas no composer ficou mais inteligente.** Uma conversa sem lead vinculado ganha a opção "Qualificar como lead" no menu (⋮); quando já tem lead, o mesmo menu mostra "Ver lead" com atalho direto. Também corrigido: o aviso de sucesso ao vincular deixava de refletir quando a vinculação realmente falhava, e o vendedor responsável já vem pré-selecionado no formulário. No composer do Atendimento, o menu "/" agora filtra corretamente por categoria e por atalho (ex.: `/garantia`, `/catalogo`) em vez de misturar itens soltos, e o nome do cliente é preenchido automaticamente ao inserir uma resposta rápida.
+
+### Added
+
+- **Qualificar conversa como lead:** o menu (⋮) da conversa ganhou a ação "Qualificar como lead" para vincular a conversa a um lead novo ou existente; conversas já vinculadas mostram "Ver lead" com atalho direto para o Kanban de leads.
+
+### Fixed
+
+- **Aviso de sucesso enganoso ao vincular lead:** o formulário de vincular lead não mostra mais um aviso de sucesso quando a vinculação falha, e o vendedor responsável pela conversa já vem pré-selecionado.
+- **Menu "/" do composer de mensagens:** digitar `/catalogo`, `/tabela`, `/garantia` ou `/loja` agora filtra corretamente os materiais daquela categoria (antes mostrava uma lista solta, sem relação com o que foi digitado); respostas rápidas passam a ser encontradas pelo atalho digitado, e o nome do cliente é preenchido automaticamente ao inserir uma resposta rápida (antes ficava sempre marcado para completar manualmente).
+
 ## [0.136.0] — Satchel · 2026-07-08
 
 **Agora dá para arrastar um arquivo do computador ou colar um print direto na barra de mensagem do Atendimento.** Além do menu de anexar já existente, é possível soltar uma imagem, áudio ou documento sobre o campo de mensagem, ou colar (Ctrl+V) uma imagem copiada — do "Copiar imagem" do navegador, de uma ferramenta de print ou do Explorer. Também esclarecido o rótulo do filtro de Status na fila de atendimento, que já ocultava conversas resolvidas por padrão mas não deixava isso claro.
