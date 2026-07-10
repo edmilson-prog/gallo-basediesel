@@ -64,26 +64,24 @@ const PURPOSE_OPTIONS: Array<{ value: WhatsAppAccountPurpose; label: string }> =
 
 type WahaAccountStatus = "connected" | "disconnected" | "pending";
 
-const STATUS_VISUAL: Record<
-  WahaAccountStatus,
-  { label: string; className: string; icon: string }
-> = {
-  connected: {
-    label: "Conectada",
-    className: "border-severity-success/40 bg-severity-success/10 text-severity-success",
-    icon: "mdi:check-circle-outline",
-  },
-  disconnected: {
-    label: "Desconectada",
-    className: "border-severity-critical/40 bg-severity-critical/10 text-severity-critical",
-    icon: "mdi:close-circle-outline",
-  },
-  pending: {
-    label: "Pendente",
-    className: "border-severity-warning/40 bg-severity-warning/10 text-severity-warning",
-    icon: "mdi:clock-outline",
-  },
-};
+const STATUS_VISUAL: Record<WahaAccountStatus, { label: string; className: string; icon: string }> =
+  {
+    connected: {
+      label: "Conectada",
+      className: "border-severity-success/40 bg-severity-success/10 text-severity-success",
+      icon: "mdi:check-circle-outline",
+    },
+    disconnected: {
+      label: "Desconectada",
+      className: "border-severity-critical/40 bg-severity-critical/10 text-severity-critical",
+      icon: "mdi:close-circle-outline",
+    },
+    pending: {
+      label: "Pendente",
+      className: "border-severity-warning/40 bg-severity-warning/10 text-severity-warning",
+      icon: "mdi:clock-outline",
+    },
+  };
 
 interface IWahaAccountRow {
   id: string;
@@ -461,9 +459,7 @@ function WahaWizard({
           if (data.state === "connected") {
             cancelled = true;
             clearInterval(timer);
-            toast.success(
-              `Sessão conectada${data.phoneNumber ? ` · ${data.phoneNumber}` : ""}.`,
-            );
+            toast.success(`Sessão conectada${data.phoneNumber ? ` · ${data.phoneNumber}` : ""}.`);
             onCreated();
           }
         })

@@ -97,7 +97,10 @@ servePost(async (req, ctx) => {
     if (!serverId) {
       const sole = await findSoleWahaServer(admin);
       if (!sole) {
-        throw new HttpError(422, "Cadastre (ou escolha) um servidor WAHA em Configurações → Chaves antes de criar uma sessão.");
+        throw new HttpError(
+          422,
+          "Cadastre (ou escolha) um servidor WAHA em Configurações → Chaves antes de criar uma sessão.",
+        );
       }
       serverId = sole.id;
     }
@@ -106,7 +109,10 @@ servePost(async (req, ctx) => {
       .select("provider_config")
       .eq("provider", "waha");
     const existingNames = (existingRows ?? [])
-      .map((r) => (r.provider_config as Record<string, unknown> | null)?.sessionName as string | undefined)
+      .map(
+        (r) =>
+          (r.provider_config as Record<string, unknown> | null)?.sessionName as string | undefined,
+      )
       .filter((n): n is string => Boolean(n));
     const sessionName = generateWahaSessionName(body.label, existingNames);
 
@@ -120,7 +126,10 @@ servePost(async (req, ctx) => {
     const apiKey = await resolveSecret(String(server.api_key_ref ?? ""));
     if (!apiKey) throw new HttpError(422, "Chave da API do servidor WAHA não definida.");
     if (!server.webhook_hmac_ref) {
-      throw new HttpError(422, "Configure o segredo HMAC do webhook deste servidor antes de criar uma sessão.");
+      throw new HttpError(
+        422,
+        "Configure o segredo HMAC do webhook deste servidor antes de criar uma sessão.",
+      );
     }
     const hmacKey = await resolveSecret(String(server.webhook_hmac_ref));
     if (!hmacKey) throw new HttpError(422, "Segredo HMAC do webhook WAHA não definido no Vault.");
@@ -212,7 +221,10 @@ servePost(async (req, ctx) => {
       }
       case "logout": {
         await logoutWahaSession(apiKey, fetchFn, target);
-        await admin.from("whatsapp_accounts").update({ status: "disconnected" }).eq("id", account.id);
+        await admin
+          .from("whatsapp_accounts")
+          .update({ status: "disconnected" })
+          .eq("id", account.id);
         if (actorId) {
           await bestEffortAudit(admin, {
             store_id: account.store_id,
@@ -246,7 +258,11 @@ servePost(async (req, ctx) => {
         if (rpcError) {
           if ((rpcError.message ?? "").includes("WHATSAPP_ACCOUNT_HAS_LINKED_DATA")) {
             return json(
-              { error: "Esta sessão tem conversas vinculadas e não pode ser excluída.", code: "HAS_LINKED_DATA", traceId: ctx.traceId },
+              {
+                error: "Esta sessão tem conversas vinculadas e não pode ser excluída.",
+                code: "HAS_LINKED_DATA",
+                traceId: ctx.traceId,
+              },
               422,
             );
           }
@@ -255,10 +271,13 @@ servePost(async (req, ctx) => {
         try {
           await deleteWahaSession(apiKey, fetchFn, target);
         } catch (err) {
-          ctx.log.warn("waha session teardown failed (row already deleted; session may be orphaned)", {
-            sessionName,
-            error: err instanceof Error ? err.message : String(err),
-          });
+          ctx.log.warn(
+            "waha session teardown failed (row already deleted; session may be orphaned)",
+            {
+              sessionName,
+              error: err instanceof Error ? err.message : String(err),
+            },
+          );
         }
         if (deleted === true && actorId) {
           await bestEffortAudit(admin, {
@@ -277,7 +296,11 @@ servePost(async (req, ctx) => {
     }
   } catch (err) {
     if (err instanceof WhatsAppProviderError) {
-      ctx.log.warn("waha-connect action rejected", { action, code: err.code, message: err.message });
+      ctx.log.warn("waha-connect action rejected", {
+        action,
+        code: err.code,
+        message: err.message,
+      });
       return json({ error: err.message, code: err.code, traceId: ctx.traceId }, err.httpStatus);
     }
     throw err;

@@ -25,9 +25,7 @@ export const WAHA_SESSION_STATES = [
 export type WahaSessionState = (typeof WAHA_SESSION_STATES)[number];
 
 /** Maps a raw WAHA session state to the platform's IWhatsAppAccount status. */
-export function wahaStateToAccountStatus(
-  state: string,
-): "connected" | "disconnected" | "pending" {
+export function wahaStateToAccountStatus(state: string): "connected" | "disconnected" | "pending" {
   if (state === "WORKING") return "connected";
   if (state === "STOPPED" || state === "FAILED") return "disconnected";
   return "pending"; // STARTING | SCAN_QR_CODE | unknown

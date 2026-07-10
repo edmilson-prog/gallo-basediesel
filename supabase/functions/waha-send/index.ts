@@ -50,9 +50,13 @@ async function resolveSender(req: Request): Promise<{
   const { data, error } = await callerClient.auth.getUser();
   if (error || !data?.user) throw new HttpError(401, "invalid session");
 
-  const admin = createClient(requiredEnv("SUPABASE_URL"), requiredEnv("SUPABASE_SERVICE_ROLE_KEY"), {
-    auth: { persistSession: false },
-  });
+  const admin = createClient(
+    requiredEnv("SUPABASE_URL"),
+    requiredEnv("SUPABASE_SERVICE_ROLE_KEY"),
+    {
+      auth: { persistSession: false },
+    },
+  );
   const { data: profile } = await admin
     .from("profiles")
     .select("store_id, seller_id")
@@ -69,12 +73,17 @@ async function resolveSender(req: Request): Promise<{
 }
 
 /** Calls the frozen RPC with the CALLER's own JWT so auth.uid() resolves correctly. */
-async function callerCanAccessConversation(authHeader: string, conversationId: string): Promise<boolean> {
+async function callerCanAccessConversation(
+  authHeader: string,
+  conversationId: string,
+): Promise<boolean> {
   const callerClient = createClient(requiredEnv("SUPABASE_URL"), requiredEnv("SUPABASE_ANON_KEY"), {
     global: { headers: { Authorization: authHeader } },
     auth: { persistSession: false },
   });
-  const { data, error } = await callerClient.rpc("can_access_conversation", { conv: conversationId });
+  const { data, error } = await callerClient.rpc("can_access_conversation", {
+    conv: conversationId,
+  });
   if (error) return false;
   return data === true;
 }
@@ -109,7 +118,9 @@ servePost(async (req, ctx) => {
   if (!account || account.provider !== "waha") {
     throw new HttpError(422, "Conta associada não é uma sessão WAHA");
   }
-  const sessionName = String((account.provider_config as Record<string, unknown> | null)?.sessionName ?? "");
+  const sessionName = String(
+    (account.provider_config as Record<string, unknown> | null)?.sessionName ?? "",
+  );
   if (!sessionName) throw new HttpError(422, "Sessão WAHA sem sessionName configurado");
 
   const { data: server } = await admin
@@ -128,7 +139,8 @@ servePost(async (req, ctx) => {
     .select("customers(phone)")
     .eq("id", body.conversationId)
     .maybeSingle();
-  const toPhone = (customer as unknown as { customers?: { phone?: string } } | null)?.customers?.phone;
+  const toPhone = (customer as unknown as { customers?: { phone?: string } } | null)?.customers
+    ?.phone;
   if (!toPhone) throw new HttpError(422, "Cliente sem telefone cadastrado");
 
   const messageId = crypto.randomUUID();
@@ -180,10 +192,21 @@ servePost(async (req, ctx) => {
         after: { provider: "waha", messageId, providerMessageId: result.providerMessageId },
       });
     }
-    return json({ messageId, providerMessageId: result.providerMessageId, dispatchStatus: "sent", traceId: ctx.traceId }, 200);
+    return json(
+      {
+        messageId,
+        providerMessageId: result.providerMessageId,
+        dispatchStatus: "sent",
+        traceId: ctx.traceId,
+      },
+      200,
+    );
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
-    await admin.from("messages").update({ status: "failed", failure_reason: reason }).eq("id", messageId);
+    await admin
+      .from("messages")
+      .update({ status: "failed", failure_reason: reason })
+      .eq("id", messageId);
     if (err instanceof WhatsAppProviderError) {
       ctx.log.warn("waha-send rejected", { code: err.code, message: err.message });
       return json({ error: err.message, code: err.code, traceId: ctx.traceId }, err.httpStatus);

@@ -55,7 +55,12 @@ export async function wahaRequest(
   let result: IWahaResponse;
   if (options.expectBinary) {
     const bytes = new Uint8Array(await response.arrayBuffer());
-    result = { status: response.status, body: null, bytes, contentType: response.headers.get("content-type") ?? undefined };
+    result = {
+      status: response.status,
+      body: null,
+      bytes,
+      contentType: response.headers.get("content-type") ?? undefined,
+    };
   } else {
     const text = await response.text();
     let parsed: unknown = null;

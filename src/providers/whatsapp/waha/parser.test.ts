@@ -36,7 +36,11 @@ describe("parseWahaMessageEvent", () => {
         to: "5511999998888@c.us",
         body: "",
         hasMedia: true,
-        media: { url: "https://waha.example.com/api/files/id2.jpg", mimetype: "image/jpeg", filename: null },
+        media: {
+          url: "https://waha.example.com/api/files/id2.jpg",
+          mimetype: "image/jpeg",
+          filename: null,
+        },
       },
       accountId,
     );
@@ -55,7 +59,11 @@ describe("parseWahaMessageEvent", () => {
         to: "5511999998888@c.us",
         body: "",
         hasMedia: true,
-        media: { url: "https://waha.example.com/api/files/id3.pdf", mimetype: "application/pdf", filename: "nota.pdf" },
+        media: {
+          url: "https://waha.example.com/api/files/id3.pdf",
+          mimetype: "application/pdf",
+          filename: "nota.pdf",
+        },
       },
       accountId,
     );

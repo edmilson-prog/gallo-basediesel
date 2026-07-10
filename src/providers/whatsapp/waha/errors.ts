@@ -8,12 +8,21 @@ function extractMessage(body: unknown): string {
   return Array.isArray(raw) ? raw.join("; ") : String(raw);
 }
 
-export function mapWahaError(httpStatus: number, body: unknown, endpoint: string): WhatsAppProviderError {
+export function mapWahaError(
+  httpStatus: number,
+  body: unknown,
+  endpoint: string,
+): WhatsAppProviderError {
   const message = extractMessage(body);
   const details: Record<string, unknown> = { endpoint, wahaMessage: message };
 
   if (httpStatus === 401 || httpStatus === 403) {
-    return new WhatsAppProviderError("UNAUTHORIZED", 401, "Chave da API WAHA inválida ou ausente", details);
+    return new WhatsAppProviderError(
+      "UNAUTHORIZED",
+      401,
+      "Chave da API WAHA inválida ou ausente",
+      details,
+    );
   }
   if (httpStatus === 429) {
     return new WhatsAppProviderError(

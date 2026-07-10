@@ -24,10 +24,9 @@ describe("mockWahaServersProvider", () => {
   });
 
   it("updates name and baseUrl", async () => {
-    const updated = await mockWahaServersProvider.update(
-      "00000000-0000-0000-0000-000000wahad",
-      { name: "Renomeado" },
-    );
+    const updated = await mockWahaServersProvider.update("00000000-0000-0000-0000-000000wahad", {
+      name: "Renomeado",
+    });
     expect(updated.name).toBe("Renomeado");
     expect(updated.updatedAt).toBeTruthy();
   });

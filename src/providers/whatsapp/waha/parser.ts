@@ -36,7 +36,9 @@ export interface IWahaMessagePayload {
 }
 
 function tsToIso(value: number | undefined): string {
-  return typeof value === "number" && value > 0 ? new Date(value * 1000).toISOString() : new Date().toISOString();
+  return typeof value === "number" && value > 0
+    ? new Date(value * 1000).toISOString()
+    : new Date().toISOString();
 }
 
 function contentTypeFromMimetype(mimetype: string | undefined): InboundContentType {

@@ -54,9 +54,13 @@ function extForMimetype(mimetype: string): string {
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "method not allowed" }, 405);
 
-  const admin = createClient(requiredEnv("SUPABASE_URL"), requiredEnv("SUPABASE_SERVICE_ROLE_KEY"), {
-    auth: { persistSession: false },
-  });
+  const admin = createClient(
+    requiredEnv("SUPABASE_URL"),
+    requiredEnv("SUPABASE_SERVICE_ROLE_KEY"),
+    {
+      auth: { persistSession: false },
+    },
+  );
   const resolveSecret = createSecretResolver(admin);
 
   const rawBody = await req.text();
@@ -78,7 +82,13 @@ Deno.serve(async (req) => {
     .eq("provider_config->>sessionName", envelope.session)
     .maybeSingle();
   if (!accountRow) {
-    console.warn(JSON.stringify({ level: "warn", msg: "waha webhook: unknown session", session: envelope.session }));
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        msg: "waha webhook: unknown session",
+        session: envelope.session,
+      }),
+    );
     return json({ error: "unknown session" }, 401);
   }
 
@@ -88,7 +98,13 @@ Deno.serve(async (req) => {
     .eq("id", accountRow.waha_server_id as string)
     .maybeSingle();
   if (!server?.webhook_hmac_ref) {
-    console.warn(JSON.stringify({ level: "warn", msg: "waha webhook: server missing hmac ref", session: envelope.session }));
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        msg: "waha webhook: server missing hmac ref",
+        session: envelope.session,
+      }),
+    );
     return json({ error: "server not configured" }, 401);
   }
 
@@ -99,7 +115,13 @@ Deno.serve(async (req) => {
   const signature = req.headers.get("X-Webhook-Hmac");
   const valid = await verifyWahaHmac(rawBody, hmacKey, signature);
   if (!valid) {
-    console.warn(JSON.stringify({ level: "warn", msg: "waha webhook: invalid HMAC", session: envelope.session }));
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        msg: "waha webhook: invalid HMAC",
+        session: envelope.session,
+      }),
+    );
     return json({ error: "invalid signature" }, 401);
   }
 
@@ -134,7 +156,13 @@ Deno.serve(async (req) => {
       .from("processed_events")
       .upsert({ event_key: eventKey, trace_id: null }, { onConflict: "event_key" });
     if (error) {
-      console.warn(JSON.stringify({ level: "warn", msg: "waha webhook: mark-processed failed", error: error.message }));
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          msg: "waha webhook: mark-processed failed",
+          error: error.message,
+        }),
+      );
     }
   }
 
@@ -160,7 +188,13 @@ Deno.serve(async (req) => {
   try {
     parsed = parseWahaMessageEvent(envelope.payload, accountRow.id as string);
   } catch (err) {
-    console.warn(JSON.stringify({ level: "warn", msg: "waha webhook: unparseable message", error: err instanceof Error ? err.message : String(err) }));
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        msg: "waha webhook: unparseable message",
+        error: err instanceof Error ? err.message : String(err),
+      }),
+    );
     await markProcessed();
     return json({ ok: true, ignored: "unparseable" }, 200);
   }
@@ -210,7 +244,13 @@ Deno.serve(async (req) => {
       .select("id")
       .single();
     if (customerErr) {
-      console.warn(JSON.stringify({ level: "warn", msg: "waha webhook: customer insert failed", error: customerErr.message }));
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          msg: "waha webhook: customer insert failed",
+          error: customerErr.message,
+        }),
+      );
       return json({ ok: true, ignored: "customer-insert-failed" }, 200);
     }
     customerId = createdCustomer.id as string;
@@ -244,7 +284,13 @@ Deno.serve(async (req) => {
       .select("id")
       .single();
     if (convErr) {
-      console.warn(JSON.stringify({ level: "warn", msg: "waha webhook: conversation insert failed", error: convErr.message }));
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          msg: "waha webhook: conversation insert failed",
+          error: convErr.message,
+        }),
+      );
       return json({ ok: true, ignored: "conversation-insert-failed" }, 200);
     }
     conversationId = createdConversation.id as string;
@@ -282,7 +328,13 @@ Deno.serve(async (req) => {
     webhook_event_ids: [eventKey],
   });
   if (messageErr) {
-    console.warn(JSON.stringify({ level: "warn", msg: "waha webhook: message insert failed", error: messageErr.message }));
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        msg: "waha webhook: message insert failed",
+        error: messageErr.message,
+      }),
+    );
   } else {
     // Mark processed only now that the message has actually landed — a
     // retry of this event while messageErr was set will reprocess cleanly.
@@ -313,10 +365,22 @@ Deno.serve(async (req) => {
         .from("whatsapp-media")
         .upload(path, media.data, { contentType: media.mimeType, upsert: true });
       if (uploadError) throw new Error(uploadError.message);
-      await admin.from("messages").update({ media_url: path, media_download_status: "ok" }).eq("id", messageId);
+      await admin
+        .from("messages")
+        .update({ media_url: path, media_download_status: "ok" })
+        .eq("id", messageId);
     } catch (err) {
-      console.warn(JSON.stringify({ level: "warn", msg: "waha webhook: media download failed", error: err instanceof Error ? err.message : String(err) }));
-      await admin.from("messages").update({ media_url: null, media_download_status: "failed" }).eq("id", messageId);
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          msg: "waha webhook: media download failed",
+          error: err instanceof Error ? err.message : String(err),
+        }),
+      );
+      await admin
+        .from("messages")
+        .update({ media_url: null, media_download_status: "failed" })
+        .eq("id", messageId);
     }
   }
 

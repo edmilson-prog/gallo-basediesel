@@ -6,8 +6,14 @@ describe("downloadWahaMedia", () => {
     const bytes = new Uint8Array([1, 2, 3, 4]);
     const fetchFn = vi
       .fn()
-      .mockResolvedValue(new Response(bytes, { status: 200, headers: { "content-type": "image/jpeg" } }));
-    const result = await downloadWahaMedia("api-key", fetchFn, "https://waha.example.com/api/files/x.jpg");
+      .mockResolvedValue(
+        new Response(bytes, { status: 200, headers: { "content-type": "image/jpeg" } }),
+      );
+    const result = await downloadWahaMedia(
+      "api-key",
+      fetchFn,
+      "https://waha.example.com/api/files/x.jpg",
+    );
     expect(fetchFn).toHaveBeenCalledWith(
       "https://waha.example.com/api/files/x.jpg",
       expect.objectContaining({ headers: { "X-Api-Key": "api-key" } }),

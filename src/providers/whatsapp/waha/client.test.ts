@@ -38,9 +38,11 @@ describe("wahaRequest", () => {
 
   it("returns raw bytes when expectBinary is set", async () => {
     const bytes = new Uint8Array([1, 2, 3]);
-    const fetchFn = vi.fn().mockResolvedValue(
-      new Response(bytes, { status: 200, headers: { "content-type": "image/png" } }),
-    );
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(bytes, { status: 200, headers: { "content-type": "image/png" } }),
+      );
     const result = await wahaRequest("k", fetchFn, {
       baseUrl: "https://waha.example.com",
       path: "/api/s1/auth/qr",

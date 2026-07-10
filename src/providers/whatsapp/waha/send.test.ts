@@ -2,7 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 import { sendWahaMedia, sendWahaText } from "./send";
 
 function jsonResponse(status: number, body: unknown): Response {
-  return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
 }
 
 const target = { baseUrl: "https://waha.example.com", sessionName: "loja-abc123" };
@@ -10,7 +13,10 @@ const target = { baseUrl: "https://waha.example.com", sessionName: "loja-abc123"
 describe("sendWahaText", () => {
   it("POSTs /api/sendText with session, chatId, text", async () => {
     const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, { id: "true_123@c.us_ABC" }));
-    const result = await sendWahaText("key", fetchFn, target, { toPhone: "+5511988887777", text: "Olá!" });
+    const result = await sendWahaText("key", fetchFn, target, {
+      toPhone: "+5511988887777",
+      text: "Olá!",
+    });
     expect(result.providerMessageId).toBe("true_123@c.us_ABC");
     const [url, init] = fetchFn.mock.calls[0];
     expect(url).toBe("https://waha.example.com/api/sendText");

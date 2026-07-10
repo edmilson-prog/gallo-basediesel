@@ -15,7 +15,11 @@ function toChatId(phone: string): string {
 function extractMessageId(body: unknown): string {
   const b = body as { id?: string } | null;
   if (!b?.id) {
-    throw new WhatsAppProviderError("INTEGRATION_ERROR", 502, "Resposta do WAHA sem id de mensagem");
+    throw new WhatsAppProviderError(
+      "INTEGRATION_ERROR",
+      502,
+      "Resposta do WAHA sem id de mensagem",
+    );
   }
   return b.id;
 }

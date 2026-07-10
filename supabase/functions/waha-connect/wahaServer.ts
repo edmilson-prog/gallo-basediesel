@@ -43,7 +43,10 @@ export async function resolveWahaServer(
   const apiKey = await resolveSecret(String(server.api_key_ref ?? ""));
   if (!apiKey) throw new HttpError(422, "Chave da API do servidor WAHA não definida.");
   if (!server.webhook_hmac_ref) {
-    throw new HttpError(422, "Segredo HMAC do webhook WAHA não configurado — defina-o em Configurações → Chaves antes de criar uma sessão.");
+    throw new HttpError(
+      422,
+      "Segredo HMAC do webhook WAHA não configurado — defina-o em Configurações → Chaves antes de criar uma sessão.",
+    );
   }
   const hmacKey = await resolveSecret(String(server.webhook_hmac_ref));
   if (!hmacKey) throw new HttpError(422, "Segredo HMAC do webhook WAHA não definido no Vault.");

@@ -11,7 +11,9 @@ function slugify(label: string): string {
 
 function randomSuffix(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(3));
-  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 /** `<slug(label)>-<6 hex chars>`, retried until it avoids `existingNames`. */
