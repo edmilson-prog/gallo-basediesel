@@ -120,12 +120,12 @@ Preenchidos **somente quando vazios** (nunca sobrescrevem edição manual ou dad
 |---|---|
 | `FH`, `FM`, `VM` | Volvo |
 | `R `, `P `, `G `, `S ` seguido de número (ex. `R 440`, `P 310`) | Scania |
-| `ACTROS`, `ATEGO`, `AXOR`, `ACCELO`, `ATRON` | Mercedes-Benz |
+| `ACTROS`, `ATEGO`, `AXOR`, `ACCELO` | Mercedes-Benz |
 | `DAILY`, `STRALIS`, `TECTOR`, `HD` | Iveco |
 | número puro tipo `NN.NNN` (ex. `24.280`) ou `CARGO` | Ford Cargo (config numérica) — **atenção:** `NN.NNN` também é convenção VW/MAN; se o texto tiver `CONSTELLATION`/`DELIVERY`/`WORKER` explícito, prioriza Volkswagen |
 | `XF`, `CF`, `LF` | DAF |
 | `HILUX`, `COROLLA`, `SW4`, `ETIOS` | Toyota |
-| `AMAROK`, `CONSTELLATION`, `DELIVERY`, `GOL`, `SAVEIRO`, `WORKER` | Volkswagen |
+| `AMAROK`, `ATRON`, `CONSTELLATION`, `DELIVERY`, `GOL`, `SAVEIRO`, `WORKER` | Volkswagen |
 | `DUCATO`, `STRADA`, `FIORINO`, `TORO`, `UNO` | Fiat |
 | `MASTER`, `KANGOO`, `DUSTER`, `OROCH` | Renault |
 
