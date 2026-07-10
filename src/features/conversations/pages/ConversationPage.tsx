@@ -237,6 +237,7 @@ export function ConversationPage() {
                     customer={customer}
                     lead={lead}
                     contact={contact}
+                    whatsappAccount={whatsappAccount}
                     onMutated={detail.refresh}
                     statusControlMode={statusControlMode}
                     onStatusControlModeChange={setStatusControlMode}

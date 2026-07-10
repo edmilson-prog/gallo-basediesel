@@ -81,6 +81,7 @@ const PROVIDER_LABEL: Record<IWhatsAppAccount["provider"], string> = {
   meta: "Meta Cloud API",
   evolution: "Evolution API",
   "evolution-go": "Evolution Go",
+  openwa: "OpenWA",
 };
 
 const PURPOSE_LABEL: Record<WhatsAppAccountPurpose, string> = {
@@ -286,12 +287,13 @@ export function WhatsAppAccountsPage() {
 
   /** Opens the connect dialog — straight to QR when the config is complete. */
   const openConnect = (account: IWhatsAppAccount) => {
-    // Evolution Go is registry-based: the server (base URL + global key) lives on
-    // whatsapp_go_servers, NOT in provider_config, so there is no per-account form
-    // to fill. The backend `qr` action resolves the server from the registry and
-    // creates/connects the instance — go straight to QR pairing. (Routing Go to
-    // the "form" step on an empty provider_config.baseUrl blocked re-pairing.)
-    if (account.provider === "evolution-go") {
+    // Evolution Go and OpenWA are registry-based: the server (base URL + global
+    // key) lives on whatsapp_go_servers / whatsapp_openwa_servers, NOT in
+    // provider_config, so there is no per-account form to fill. The backend `qr`
+    // action resolves the server from the registry and creates/connects the
+    // instance — go straight to QR pairing. (Routing Go to the "form" step on an
+    // empty provider_config.baseUrl blocked re-pairing.)
+    if (account.provider === "evolution-go" || account.provider === "openwa") {
       setConnectTarget({ account, step: "qr" });
       return;
     }
@@ -307,7 +309,15 @@ export function WhatsAppAccountsPage() {
       toast.error("Informe um nome para a conta.");
       return;
     }
-    const config = configFromDraft(account.provider, draft);
+    // Server-managed ids may have been minted while the form was open (e.g. the
+    // footer "Conectar conta" pairing this same account): source them from the
+    // LIVE account row, never the draft snapshot — a stale "" here would unroute
+    // the webhook and orphan the just-paired session.
+    const config = configFromDraft(account.provider, {
+      ...draft,
+      instanceId: account.providerConfig?.instanceId ?? draft.instanceId,
+      sessionId: account.providerConfig?.sessionId ?? draft.sessionId,
+    });
     if (!config.ok) {
       toast.error(
         account.provider === "meta"
@@ -680,7 +690,9 @@ export function WhatsAppAccountsPage() {
                               ? "Phone Number ID / WABA ID"
                               : account.provider === "evolution-go"
                                 ? "Instância Evolution Go"
-                                : "Instância Evolution"}
+                                : account.provider === "openwa"
+                                  ? "Sessão OpenWA"
+                                  : "Instância Evolution"}
                           </dt>
                           <dd className="font-mono text-foreground">
                             {account.provider === "meta"
@@ -691,9 +703,11 @@ export function WhatsAppAccountsPage() {
                                 ? account.providerConfig?.instanceId
                                   ? `${account.providerConfig.instanceId} @ ${account.providerConfig.baseUrl ?? "—"}`
                                   : `Não pareado @ ${account.providerConfig?.baseUrl ?? "—"}`
-                                : account.providerConfig?.instanceName
-                                  ? `${account.providerConfig.instanceName} @ ${account.providerConfig.baseUrl ?? "—"}`
-                                  : "Não configurado"}
+                                : account.provider === "openwa"
+                                  ? account.providerConfig?.sessionId || "Não pareado"
+                                  : account.providerConfig?.instanceName
+                                    ? `${account.providerConfig.instanceName} @ ${account.providerConfig.baseUrl ?? "—"}`
+                                    : "Não configurado"}
                           </dd>
                         </div>
                         <div>
@@ -731,7 +745,7 @@ export function WhatsAppAccountsPage() {
                               size="sm"
                               disabled={checking}
                               onClick={() => void handleCheckNow()}
-                              title="Consulta o estado real da sessão no servidor Evolution"
+                              title={`Consulta o estado real da sessão no servidor ${PROVIDER_LABEL[account.provider]}`}
                             >
                               <Icon
                                 icon="mdi:refresh"
@@ -740,20 +754,28 @@ export function WhatsAppAccountsPage() {
                               />
                               Verificar agora
                             </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled={account.status !== "connected"}
-                              onClick={() => setTestTarget(account)}
-                              title={
-                                account.status === "connected"
-                                  ? "Envia um texto padrão para validar a conexão"
-                                  : "Disponível com a conta conectada"
-                              }
-                            >
-                              <Icon icon="mdi:message-check-outline" size={14} className="mr-1.5" />
-                              Mensagem de teste
-                            </Button>
+                            {/* whatsapp-connect's test-message action is not wired
+                                for openwa yet (deliberate — see the edge). */}
+                            {account.provider !== "openwa" && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={account.status !== "connected"}
+                                onClick={() => setTestTarget(account)}
+                                title={
+                                  account.status === "connected"
+                                    ? "Envia um texto padrão para validar a conexão"
+                                    : "Disponível com a conta conectada"
+                                }
+                              >
+                                <Icon
+                                  icon="mdi:message-check-outline"
+                                  size={14}
+                                  className="mr-1.5"
+                                />
+                                Mensagem de teste
+                              </Button>
+                            )}
                             {!isMock && account.provider === "evolution" && (
                               <Button
                                 variant="outline"
@@ -812,7 +834,8 @@ export function WhatsAppAccountsPage() {
                                 Desfazer
                               </Button>
                             )}
-                            {!isMock && (
+                            {/* whatsapp-avatar-sync rejects openwa (422 provider guard). */}
+                            {!isMock && account.provider !== "openwa" && (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -996,6 +1019,23 @@ export function WhatsAppAccountsPage() {
                             </p>
                           </div>
                         </>
+                      ) : account.provider === "openwa" ? (
+                        // Registry-based: server URL + key live on whatsapp_openwa_servers
+                        // (Configurações → Integrações → Chaves & API) — nothing to edit
+                        // here. Full-width cell keeps the failover pair below aligned.
+                        <div className="space-y-1.5 sm:col-span-2">
+                          <Label htmlFor={`sid-${account.id}`}>ID da sessão (servidor)</Label>
+                          <Input
+                            id={`sid-${account.id}`}
+                            className="font-mono"
+                            value={draft?.sessionId || "—"}
+                            readOnly
+                            disabled
+                          />
+                          <p className="text-[11px] text-muted-foreground">
+                            Gerado pelo servidor OpenWA ao parear. Não editável.
+                          </p>
+                        </div>
                       ) : (
                         <>
                           <div className="space-y-1.5">
@@ -1100,8 +1140,8 @@ export function WhatsAppAccountsPage() {
               Conectar uma conta
             </p>
             <p className="mt-1.5">
-              Contas Evolution conectam por QR code direto daqui. Contas Meta Cloud API seguem o
-              processo assistido (
+              Contas Evolution e OpenWA conectam por QR code direto daqui. Contas Meta Cloud API
+              seguem o processo assistido (
               <code className="font-mono">docs/dev/whatsapp-meta-provider.md</code>).
             </p>
           </div>

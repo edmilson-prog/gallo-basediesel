@@ -105,6 +105,69 @@ async function resolveGoBaseUrls(
   return map;
 }
 
+/**
+ * Pre-resolves the OpenWA server `{baseUrl, apiKeySecretName}` for accounts
+ * involved in this send (primary + optional failover). Mirrors
+ * `resolveGoBaseUrls` above — OpenWA never stores these in provider_config
+ * (ONE global key per server, resolved via `openwa_server_id` →
+ * `whatsapp_openwa_servers`), so `buildProvider` needs them pre-fetched.
+ */
+async function resolveOpenWaServerConfigs(
+  admin: SupabaseClient,
+  conversationId: string,
+): Promise<Map<string, { baseUrl: string; apiKeySecretName: string }>> {
+  const map = new Map<string, { baseUrl: string; apiKeySecretName: string }>();
+
+  const { data: conv } = await admin
+    .from("conversations")
+    .select("whatsapp_account_id")
+    .eq("id", conversationId)
+    .maybeSingle();
+  if (!conv?.whatsapp_account_id) return map;
+
+  const { data: primary } = await admin
+    .from("whatsapp_accounts")
+    .select("id, provider, openwa_server_id, failover_account_id, provider_config")
+    .eq("id", conv.whatsapp_account_id as string)
+    .maybeSingle();
+  if (!primary || primary.provider !== "openwa") return map; // Fast exit for non-OpenWA
+
+  const accountsToCheck: Array<{
+    id: string;
+    provider: string;
+    openwa_server_id: string | null;
+    provider_config: Record<string, unknown> | null;
+  }> = [primary as typeof primary & { id: string; provider: string }];
+  if (primary.failover_account_id) {
+    const { data: failover } = await admin
+      .from("whatsapp_accounts")
+      .select("id, provider, openwa_server_id, provider_config")
+      .eq("id", primary.failover_account_id as string)
+      .maybeSingle();
+    if (failover) {
+      accountsToCheck.push(failover as typeof failover & { id: string; provider: string });
+    }
+  }
+
+  for (const acc of accountsToCheck) {
+    if (acc.provider !== "openwa") continue;
+    if (!acc.openwa_server_id) continue;
+    const { data: server } = await admin
+      .from("whatsapp_openwa_servers")
+      .select("base_url, api_key_ref")
+      .eq("id", acc.openwa_server_id as string)
+      .maybeSingle();
+    if (server?.base_url && server?.api_key_ref) {
+      map.set(acc.id as string, {
+        baseUrl: String(server.base_url).replace(/\/+$/, ""),
+        apiKeySecretName: String(server.api_key_ref),
+      });
+    }
+  }
+
+  return map;
+}
+
 /** Resolves the caller's profile INCLUDING seller_id (requireCaller omits it). */
 async function resolveSender(req: Request): Promise<{ sender: ISender; admin: SupabaseClient }> {
   const authHeader = req.headers.get("Authorization");
@@ -151,6 +214,7 @@ servePost(async (req, ctx) => {
   // whatsapp_go_servers. We resolve it here so the synchronous buildProvider callback
   // can enrich providerConfig.baseUrl without performing an async lookup mid-call.
   const goBaseUrls = await resolveGoBaseUrls(admin, input.conversationId ?? "");
+  const openwaServers = await resolveOpenWaServerConfigs(admin, input.conversationId ?? "");
 
   try {
     const result = await processSendRequest({
@@ -164,6 +228,10 @@ servePost(async (req, ctx) => {
         if (account.provider === "evolution-go" && !providerConfig?.baseUrl) {
           const serverBaseUrl = goBaseUrls.get(account.id);
           if (serverBaseUrl) providerConfig = { ...providerConfig, baseUrl: serverBaseUrl };
+        }
+        if (account.provider === "openwa") {
+          const serverCfg = openwaServers.get(account.id);
+          if (serverCfg) providerConfig = { ...providerConfig, ...serverCfg };
         }
         return buildWhatsAppEngine({
           engine: account.provider,

@@ -47,7 +47,7 @@ export function makeSendDb(admin: SupabaseClient, _traceId: string): ISendDb {
           account = {
             id: row.id as string,
             storeId: row.store_id as string,
-            provider: row.provider as "meta" | "evolution" | "evolution-go",
+            provider: row.provider as "meta" | "evolution" | "evolution-go" | "openwa",
             phoneNumber: row.phone_number as string,
             credentialsRef: row.credentials_ref as string,
             providerConfig: (row.provider_config as Record<string, unknown> | null) ?? null,
@@ -97,7 +97,7 @@ export function makeSendDb(admin: SupabaseClient, _traceId: string): ISendDb {
       return {
         id: row.id as string,
         storeId: row.store_id as string,
-        provider: row.provider as "meta" | "evolution" | "evolution-go",
+        provider: row.provider as "meta" | "evolution" | "evolution-go" | "openwa",
         phoneNumber: row.phone_number as string,
         credentialsRef: row.credentials_ref as string,
         providerConfig: (row.provider_config as Record<string, unknown> | null) ?? null,

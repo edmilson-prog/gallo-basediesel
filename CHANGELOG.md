@@ -4,6 +4,18 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.138.0] — Sidecar · 2026-07-10
+
+**Novo motor de conexão WhatsApp: OpenWA, para números pareados por QR Code como o Evolution, mas rodando em servidor próprio.** É mais uma opção de conexão, ao lado de Evolution e Evolution Go — pareamento pela tela de Configurações → WhatsApp, mesma experiência de conectar/reconectar já existente. Corrige também um limite herdado do próprio WhatsApp: contatos com identificador de privacidade (que escondem o número de telefone) agora são resolvidos corretamente nas contas OpenWA, chegando ao Atendimento com o nome e telefone certos em vez de serem ignorados.
+
+### Added
+
+- **Engine WhatsApp OpenWA:** novo provedor de conexão (ao lado de Evolution e Evolution Go) — pareamento por QR Code, reconexão automática e a mesma tela de gestão de contas já usada pelos demais provedores.
+
+### Fixed
+
+- **Contatos com identificador de privacidade (OpenWA):** mensagens de contatos que escondem o número de telefone (recurso de privacidade do WhatsApp) agora chegam ao Atendimento com o nome e telefone reais, em vez de serem descartadas.
+
 ## [0.137.0] — Promote · 2026-07-10
 
 **Agora dá para transformar uma conversa em lead direto do menu de atendimento, e o menu "/" de respostas rápidas no composer ficou mais inteligente.** Uma conversa sem lead vinculado ganha a opção "Qualificar como lead" no menu (⋮); quando já tem lead, o mesmo menu mostra "Ver lead" com atalho direto. Também corrigido: o aviso de sucesso ao vincular deixava de refletir quando a vinculação realmente falhava, e o vendedor responsável já vem pré-selecionado no formulário. No composer do Atendimento, o menu "/" agora filtra corretamente por categoria e por atalho (ex.: `/garantia`, `/catalogo`) em vez de misturar itens soltos, e o nome do cliente é preenchido automaticamente ao inserir uma resposta rápida.

@@ -25,6 +25,7 @@ const PROVIDER_LABEL: Record<IWhatsAppAccount["provider"], string> = {
   evolution: "Evolution API",
   "evolution-go": "Evolution Go",
   meta: "Meta Cloud API",
+  openwa: "OpenWA",
 };
 
 interface IDeleteInstanceDialogProps {
@@ -208,9 +209,13 @@ export function DeleteInstanceDialog({
                         ? account.providerConfig?.instanceId
                           ? ` Go (${account.providerConfig.instanceId})`
                           : " Go"
-                        : account.providerConfig?.instanceName
-                          ? ` Evolution (${account.providerConfig.instanceName})`
-                          : " Evolution"}{" "}
+                        : account.provider === "openwa"
+                          ? account.providerConfig?.sessionId
+                            ? ` OpenWA (${account.providerConfig.sessionId})`
+                            : " OpenWA"
+                          : account.providerConfig?.instanceName
+                            ? ` Evolution (${account.providerConfig.instanceName})`
+                            : " Evolution"}{" "}
                       será desconectada e apagada.
                     </span>
                   </li>

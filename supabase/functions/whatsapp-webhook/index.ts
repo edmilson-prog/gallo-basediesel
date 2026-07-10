@@ -34,6 +34,7 @@ import { statusAdvances, type DeliveryStatus } from "../_shared/whatsapp/message
 import { hmacSha256Hex, timingSafeEqualStrings } from "../_shared/whatsapp/crypto.ts";
 import { verifyMetaWebhookSignature } from "../_shared/whatsapp/meta/signature.ts";
 import { EvolutionGoProvider } from "../_shared/whatsapp/evolution-go/EvolutionGoProvider.ts";
+import { resolveOpenWaContact } from "../_shared/whatsapp/openwa/instance.ts";
 import {
   processWebhookEvent,
   type IAccountRecord,
@@ -42,6 +43,26 @@ import {
 import type { IEngineDeps, IIntegrationLogEntry } from "../_shared/whatsapp/types.ts";
 
 const CLOSED_CONVERSATION_STATUSES = ["resolvida", "arquivada"];
+
+/**
+ * Deep-clones a JSON payload truncating every string longer than `max` chars
+ * (diagnostic logging only — inline base64 media would otherwise bloat
+ * integration_logs). Non-JSON-safe values pass through untouched.
+ */
+function truncateDeepStrings(value: unknown, max: number): unknown {
+  if (typeof value === "string") {
+    return value.length > max ? `${value.slice(0, max)}…[+${value.length - max} chars]` : value;
+  }
+  if (Array.isArray(value)) return value.map((v) => truncateDeepStrings(v, max));
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      out[k] = truncateDeepStrings(v, max);
+    }
+    return out;
+  }
+  return value;
+}
 
 // Columns selected when resolving an account from an inbound event.
 const ACCT_COLS = "id, store_id, provider, phone_number, credentials_ref, provider_config, status";
@@ -191,6 +212,29 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
             level: "warn",
             msg: "ambiguous evolution-go instanceId (any status) — refusing to route",
             instanceId,
+            count: rows.length,
+          }),
+        );
+        return null; // fail-closed: ambíguo não roteia
+      }
+      const row = rows[0];
+      return row ? toAccountRecord(row) : null;
+    },
+    async findOpenWaAccount(sessionId) {
+      if (!sessionId) return null;
+      const { data } = await admin
+        .from("whatsapp_accounts")
+        .select(ACCT_COLS)
+        .eq("provider", "openwa")
+        .neq("status", "disconnected")
+        .eq("provider_config->>sessionId", sessionId);
+      const rows = data ?? [];
+      if (rows.length > 1) {
+        console.warn(
+          JSON.stringify({
+            level: "warn",
+            msg: "ambiguous openwa sessionId — refusing to route",
+            sessionId,
             count: rows.length,
           }),
         );
@@ -475,7 +519,7 @@ function toAccountRecord(row: Record<string, unknown>): IAccountRecord {
   return {
     id: row.id as string,
     storeId: row.store_id as string,
-    provider: row.provider as "meta" | "evolution" | "evolution-go",
+    provider: row.provider as "meta" | "evolution" | "evolution-go" | "openwa",
     phoneNumber: row.phone_number as string,
     credentialsRef: row.credentials_ref as string,
     providerConfig: (row.provider_config as Record<string, unknown> | null) ?? null,
@@ -586,6 +630,33 @@ async function evolutionGate(
 }
 
 /**
+ * OpenWA has no documented HMAC webhook secret (see
+ * OpenWaProvider.verifyWebhookSignature) — auth relies on the same IP
+ * allowlist as classic Evolution (RF-061), since the companion runs on the
+ * same VPS. There is no per-account secret at all for this provider (the
+ * server-wide key lives on whatsapp_openwa_servers, not per-account — see
+ * integrationKeys.ts's `evolution-go`/`openwa` exclusion). Fail-closed when unset.
+ */
+async function openwaGate(
+  req: Request,
+  log: Logger,
+  resolveSecret: VaultSecretResolver,
+): Promise<Response | null> {
+  const allowlist = ((await resolveSecret("EVOLUTION_ALLOWED_IPS")) ?? "")
+    .split(",")
+    .map((ip) => ip.trim())
+    .filter(Boolean);
+  const sourceIp = (req.headers.get("x-forwarded-for") ?? "").split(",")[0]?.trim() ?? "";
+  if (allowlist.length > 0) {
+    if (allowlist.includes(sourceIp)) return null;
+    log.warn("openwa webhook from non-allowlisted ip", { sourceIp });
+    return json({ error: "forbidden" }, 403);
+  }
+  log.error("openwa webhook validation not configured — rejecting (fail closed)", { sourceIp });
+  return json({ error: "webhook not configured" }, 403);
+}
+
+/**
  * Evolution Go has no HMAC: the webhook payload carries the per-instance
  * `instanceToken`. We authenticate by comparing it (constant-time) to the
  * Vault token via EvolutionGoProvider.verifyWebhookSignature. Fail-closed:
@@ -691,7 +762,12 @@ Deno.serve(async (req) => {
     return res;
   };
 
-  if (provider !== "meta" && provider !== "evolution" && provider !== "evolution-go") {
+  if (
+    provider !== "meta" &&
+    provider !== "evolution" &&
+    provider !== "evolution-go" &&
+    provider !== "openwa"
+  ) {
     return respond(json({ error: "unknown provider" }, 400));
   }
 
@@ -715,6 +791,9 @@ Deno.serve(async (req) => {
   }
 
   const db = makeDb(admin, traceId);
+  // Created before the gates: the openwa gate block below needs HTTP deps to
+  // resolve @lid contacts pre-parse (fetch/secret resolution only — safe here).
+  const deps = makeEngineDeps(admin, traceId);
 
   // Pre-resolved Go server base_url map (accountId → baseUrl). Populated in the
   // evolution-go gate block below so the synchronous buildProvider callback can
@@ -723,6 +802,13 @@ Deno.serve(async (req) => {
   // provider_config. Old accounts that still carry it in provider_config are
   // detected in buildProvider and skip the map lookup.
   const goBaseUrls = new Map<string, string>();
+
+  // Pre-resolved OpenWA server config (accountId → {baseUrl, apiKeySecretName}).
+  // Populated in the openwa gate block below. Unlike evolution-go, provider_config
+  // NEVER carries baseUrl/apiKeySecretName for openwa (see IOpenWaAccountConfig) —
+  // ONE global key per server authenticates every session, resolved via
+  // whatsapp_accounts.openwa_server_id → whatsapp_openwa_servers.
+  const openwaServers = new Map<string, { baseUrl: string; apiKeySecretName: string }>();
 
   // Auth gates (fail closed) — the ONLY paths that answer 4xx on POST.
   if (provider === "meta") {
@@ -755,6 +841,82 @@ Deno.serve(async (req) => {
         }
       }
     }
+  } else if (provider === "openwa") {
+    const rejection = await openwaGate(req, log, resolveSecret);
+    if (rejection) return respond(rejection);
+    // Pre-resolve the OpenWA server's {baseUrl, apiKeySecretName} for this
+    // account (needed by buildProvider for both parsing media and any future
+    // outbound-echo handling). Doing it here keeps buildProvider synchronous.
+    // sessionId lives at the envelope top level (inferred) and on the nested
+    // message record itself (confirmed) — accept either.
+    const envelope = payload as
+      | { sessionId?: string; data?: Record<string, unknown> | null }
+      | null;
+    const sessionId = String(envelope?.sessionId ?? envelope?.data?.sessionId ?? "");
+    const account = await db.findOpenWaAccount(sessionId);
+    if (account) {
+      const { data: acctRow } = await admin
+        .from("whatsapp_accounts")
+        .select("openwa_server_id")
+        .eq("id", account.id)
+        .maybeSingle();
+      if (acctRow?.openwa_server_id) {
+        const { data: server } = await admin
+          .from("whatsapp_openwa_servers")
+          .select("base_url, api_key_ref")
+          .eq("id", acctRow.openwa_server_id as string)
+          .maybeSingle();
+        if (server?.base_url && server?.api_key_ref) {
+          openwaServers.set(account.id, {
+            baseUrl: String(server.base_url).replace(/\/+$/, ""),
+            apiKeySecretName: String(server.api_key_ref),
+          });
+        }
+      }
+      // @lid privacy JIDs carry no phone, so the parser must drop them — but
+      // THIS server can resolve them (GET /contacts/{lid} → { id: "<phone>@c.us" },
+      // confirmed live 2026-07-09), a bridge Evolution v2 lacks. Rewrite the
+      // record's JIDs in place BEFORE parsing so the conversation lands with
+      // the customer's real number. Best-effort: an unresolvable lid keeps the
+      // original JID and the parser's drop behavior.
+      const serverCfg = openwaServers.get(account.id);
+      const record =
+        envelope?.data && typeof envelope.data === "object"
+          ? envelope.data
+          : (payload as Record<string, unknown> | null);
+      if (serverCfg && sessionId && record) {
+        const lidCache = new Map<string, string | null>();
+        for (const field of ["from", "to", "chatId"]) {
+          const jid = record[field];
+          if (typeof jid !== "string" || !jid.endsWith("@lid")) continue;
+          try {
+            let resolved = lidCache.get(jid);
+            if (resolved === undefined) {
+              const apiKey = await resolveSecret(serverCfg.apiKeySecretName);
+              if (!apiKey) break;
+              const contact = await resolveOpenWaContact(
+                apiKey,
+                deps,
+                { baseUrl: serverCfg.baseUrl, sessionId },
+                jid,
+                traceId,
+              );
+              resolved = contact.jid?.endsWith("@c.us") ? contact.jid : null;
+              lidCache.set(jid, resolved);
+            }
+            if (resolved) {
+              record[field] = resolved;
+              log.info("openwa lid resolved", { field, lid: jid, jid: resolved });
+            }
+          } catch (err) {
+            log.warn("openwa lid resolution failed — keeping original jid", {
+              jid,
+              error: err instanceof Error ? err.message : String(err),
+            });
+          }
+        }
+      }
+    }
   } else {
     // Any-status lookup: the gate is about AUTH (per-account secret), and
     // connection.update events must also reach disconnected accounts.
@@ -765,7 +927,6 @@ Deno.serve(async (req) => {
   }
 
   // From here on: always 200 (RF-090) — Meta must never retry-storm us.
-  const deps = makeEngineDeps(admin, traceId);
   try {
     const result = await processWebhookEvent({
       provider,
@@ -778,6 +939,10 @@ Deno.serve(async (req) => {
         if (account.provider === "evolution-go" && !providerConfig?.baseUrl) {
           const serverBaseUrl = goBaseUrls.get(account.id);
           if (serverBaseUrl) providerConfig = { ...providerConfig, baseUrl: serverBaseUrl };
+        }
+        if (account.provider === "openwa") {
+          const serverCfg = openwaServers.get(account.id);
+          if (serverCfg) providerConfig = { ...providerConfig, ...serverCfg };
         }
         return buildWhatsAppEngine({
           engine: account.provider,
@@ -820,7 +985,15 @@ Deno.serve(async (req) => {
     const isDroppedMessageEvent =
       (result.outcome === "ignored" &&
         !/grupo\/broadcast|connection\.update/.test(detail)) ||
-      (result.outcome === "duplicate" && !/:(sent|delivered|read|failed)$/.test(detail));
+      (result.outcome === "duplicate" && !/:(sent|delivered|read|failed)$/.test(detail)) ||
+      // openwa is a NEW engine whose webhook envelope was inferred, never
+      // observed live: while that holds, EVERY unexplained drop must stay
+      // auditable — status-unmatched (ack for an unknown outbound) and
+      // account-not-found (sessionId not resolved) were the silent paths that
+      // hid the first real delivery (2026-07-09). Scoped to openwa: for
+      // evolution these outcomes are routine phone-sent-ack noise.
+      (provider === "openwa" &&
+        (result.outcome === "status-unmatched" || result.outcome === "account-not-found"));
     if (isDroppedMessageEvent) {
       try {
         await deps.logIntegration({
@@ -830,7 +1003,9 @@ Deno.serve(async (req) => {
           httpStatus: 200,
           latencyMs: 0,
           traceId,
-          requestPayload: payload,
+          // Inline media arrives as base64 (openwa has no download-by-id) —
+          // truncate long strings so a photo doesn't bloat integration_logs.
+          requestPayload: truncateDeepStrings(payload, 2_048),
           errorMessage: detail,
         });
       } catch {

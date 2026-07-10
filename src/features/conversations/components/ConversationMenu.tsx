@@ -2,7 +2,15 @@ import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { ICustomer, ID, IConversation, IConversationContact, ILead, ISeller } from "@/shared/types";
+import type {
+  ICustomer,
+  ID,
+  IConversation,
+  IConversationContact,
+  ILead,
+  ISeller,
+  IWhatsAppAccount,
+} from "@/shared/types";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import {
@@ -47,6 +55,9 @@ export interface IConversationMenuProps {
   lead: ILead | null;
   /** Pool-safe display contact — used to pre-fill name/phone when qualifying as lead. */
   contact: IConversationContact | null;
+  /** Account behind the conversation (null when RLS-hidden/unloaded) — gates
+   *  provider-specific actions like the photo re-sync. */
+  whatsappAccount?: IWhatsAppAccount | null;
   onMutated?: () => void;
   /** Status-control display mode (lifted to the page; shared with the kebab). */
   statusControlMode: StatusControlMode;
@@ -72,6 +83,7 @@ export function ConversationMenu({
   customer,
   lead,
   contact,
+  whatsappAccount,
   onMutated,
   statusControlMode,
   onStatusControlModeChange,
@@ -125,11 +137,19 @@ export function ConversationMenu({
 
   // Per-contact photo re-sync (this conversation's contact ONLY) — real
   // WhatsApp data + a customers row + a bound account; hidden in demo mode.
+  // The whatsapp-avatar-sync edge only speaks Evolution v2/Go (422 provider
+  // guard): hide when the account is positively another engine (openwa/meta);
+  // fail-open when the account row is unreadable to preserve the affordance.
+  const syncPhotoSupported =
+    !whatsappAccount ||
+    whatsappAccount.provider === "evolution" ||
+    whatsappAccount.provider === "evolution-go";
   const canSyncPhoto =
     getActiveDataSource() !== "mock" &&
     conversation.channel === "whatsapp" &&
     Boolean(customer) &&
-    Boolean(conversation.whatsappAccountId);
+    Boolean(conversation.whatsappAccountId) &&
+    syncPhotoSupported;
 
   const updateAndAudit = async (
     patch: Partial<IConversation>,

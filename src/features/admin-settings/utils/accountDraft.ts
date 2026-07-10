@@ -14,6 +14,8 @@ export interface IAccountDraft {
   instanceName: string;
   /** Evolution Go — server-managed; read-only in the form, preserved on save. */
   instanceId: string;
+  /** OpenWA — server-managed; read-only in the form, preserved on save. */
+  sessionId: string;
   failoverPolicy: WhatsAppFailoverPolicy;
   /** Empty string = no backup account selected. */
   failoverAccountId: string;
@@ -28,6 +30,7 @@ export function draftFromAccount(account: IWhatsAppAccount): IAccountDraft {
     baseUrl: account.providerConfig?.baseUrl ?? "",
     instanceName: account.providerConfig?.instanceName ?? "",
     instanceId: account.providerConfig?.instanceId ?? "",
+    sessionId: account.providerConfig?.sessionId ?? "",
     failoverPolicy: account.failoverPolicy,
     failoverAccountId: account.failoverAccountId ?? "",
   };
@@ -40,6 +43,9 @@ export function draftFromAccount(account: IWhatsAppAccount): IAccountDraft {
  * - evolution: baseUrl + instanceName (both, or both empty = clear).
  * - evolution-go: baseUrl required; instanceId is server-managed and preserved
  *   (may be "" before the first pairing — the CHECK only tests key presence).
+ * - openwa: nothing editable — the base URL lives in the server registry and
+ *   sessionId is server-managed; it is ALWAYS preserved (returning null here
+ *   would wipe it and orphan the paired session on the OpenWA server).
  */
 export function configFromDraft(
   provider: IWhatsAppAccount["provider"],
@@ -49,6 +55,9 @@ export function configFromDraft(
     const baseUrl = draft.baseUrl.trim();
     if (!baseUrl) return { ok: false };
     return { ok: true, config: { baseUrl, instanceId: draft.instanceId } };
+  }
+  if (provider === "openwa") {
+    return { ok: true, config: { sessionId: draft.sessionId } };
   }
   const a = (provider === "meta" ? draft.phoneNumberId : draft.baseUrl).trim();
   const b = (provider === "meta" ? draft.businessAccountId : draft.instanceName).trim();
