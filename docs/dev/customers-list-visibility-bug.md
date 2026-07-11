@@ -1,177 +1,163 @@
-# Bug de visibilidade na tela de Clientes (contas `owner`)
+# Tela de Clientes mostra 122 de 5.337 — investigação e causa raiz
 
 > Issue: [#270](https://github.com/edmilson-prog/gallo-basediesel/issues/270)
 > Descoberto: 2026-07-11, durante a validação visual da Fase 2 do import DINTEC (PR #266)
-> Status: **não corrigido** — registrado para investigação futura, fora do escopo do import DINTEC
+> Status: **causa raiz confirmada** (2026-07-11, investigação profunda multi-agente) —
+> não é bug de RLS/JWT/Auth Hook; é a soma de dois estados de dados pré-existentes.
+> ⚠️ A primeira versão deste documento levantava a hipótese de o Custom Access Token
+> Hook não estar configurado no Dashboard. **Essa hipótese foi REFUTADA** — mantida
+> aqui apenas como histórico (seção "Hipótese descartada").
 
-## Contexto em que foi descoberto
+## Resumo executivo
 
-Depois de gravar de verdade os 99 clientes do piloto DINTEC (Fase 2, ver
-`docs/superpowers/specs/2026-07-10-dintec-customer-import-design.md`), o dono
-pediu para conferir visualmente os resultados na tela de Clientes em
-produção. A tela mostrou um total muito menor do que o esperado, o que
-inicialmente pareceu (e foi tratado como hipótese) um problema na
-importação. **Não era.** A importação foi validada de ponta a ponta
-diretamente no banco (ver seção "Validação da importação" abaixo) — o bug é
-outro, pré-existente, e só ficou visível porque foi a primeira vez que
-alguém comparou o contador da tela com o total real da tabela.
+A conta `owner` (`admin@ailainteligente.com`) abre `/app/clientes` sem filtros e vê
+**122 clientes** de um total de **5.337** na tabela. Isso **não é falha de
+permissão**: a RLS libera as 5.337 linhas para o owner (verificado empiricamente).
+O 122 é o resultado exato — reproduzido linha a linha — de um **filtro de aplicação
+por design**: a tela esconde incondicionalmente customers com as tags
+`pending_review` / `reviewed_not_customer` (contatos importados do WhatsApp
+aguardando revisão, PRs #191/#197).
 
-## Sintoma
+Composição exata dos 122 visíveis:
 
-Conta `admin@ailainteligente.com` (Edmilson Souza):
-- `sellers.id = 622d1d2c-0223-4133-91cd-0264c1fc29aa`
-- `profiles.role = 'owner'`
+| Grupo | Qtde | O que é |
+|---|---|---|
+| Novos do import DINTEC (Fase 2) | 47 | corretos, vendedor Fernando |
+| **Seed/fake da Fase 1 nunca limpos** | **70** | faker, `created_at` retrodatado 2023→2026, 4 sellers de mock, tags de vocabulário mock (VIP, Inadimplente, Oficina parceira, Volvo, Scania…) |
+| Orgânicos/manuais pós-go-live | 5 | reais |
 
-Abre `/app/clientes` em produção **sem nenhum filtro ativo** e vê **122
-clientes**. A tabela `customers` tem **5.336** linhas, todas na mesma
-`store_id` (`00000000-0000-0000-0000-000000000001` — ambiente é
-single-tenant, não há confusão de loja possível).
+E o que está **escondido** (5.215 linhas): 5.211 contatos com `pending_review` +
+4 com `reviewed_not_customer` — incluindo **todos os 52 clientes vinculados pelo
+import DINTEC**, que são clientes reais confirmados no ERP mas seguem tratados como
+"contato pendente de revisão".
 
-Com o filtro "Vendedor: Fernando Mello Muniz Gallo" aplicado, a lista mostra
-corretamente **47** — batendo exatamente com os 47 clientes novos criados
-pela Fase 2 do import DINTEC. Ou seja: a busca/filtro funciona certo sobre
-os dados reais (os dados estão lá, corretos); o problema é especificamente a
-visão **sem filtro**, que deveria mostrar a loja inteira (papel `owner` ⇒
-`is_staff()` ⇒ RLS libera tudo) mas mostra só uma fração.
+## Como a investigação foi conduzida
 
-## Evidência coletada
+Workflow multi-agente (2026-07-11): 4 lentes independentes em paralelo
+(frontend/query-path, censo SQL de produção, simulação empírica de RLS,
+docs/histórico do repo), seguidas de uma fase adversarial (reprodução exata do
+contador + 2 céticos tentando refutar as conclusões). ~108 checagens, tudo
+somente-leitura (simulações em `begin/rollback`).
 
-Toda a investigação foi feita via `mcp__supabase__execute_sql` com
-service-role (bypassa RLS, permite inspecionar o que a sessão real do
-usuário não consegue).
+## Evidência 1 — o Auth Hook funciona (hipótese A refutada)
 
-**1. `profiles` do usuário está correto:**
+Simulação da RLS em produção com `set_config('request.jwt.claims', ...,
+true)` transaction-local, avaliando o predicado da policy `customers_select`
+manualmente:
 
-```sql
-select * from public.profiles where seller_id = '622d1d2c-0223-4133-91cd-0264c1fc29aa';
--- auth_user_id: 9a418578-2671-4141-a15a-d39b2fd13af7
--- seller_id:    622d1d2c-0223-4133-91cd-0264c1fc29aa
--- store_id:     00000000-0000-0000-0000-000000000001
--- role:         owner
+| Cenário | `is_staff()` | `current_store_id()` | Linhas liberadas |
+|---|---|---|---|
+| Claims de owner (o que o hook gera) | `true` | store correta | **5.337** |
+| Claims vazios (= hook morto) | `false` | `NULL` | **0** |
+
+O argumento decisivo: **se o hook estivesse quebrado, a tela mostraria 0 linhas,
+não 122** — a policy exige `store_id = current_store_id()`, que vem `NULL` sem os
+claims. Ver 122 linhas *prova* que os claims estão fluindo.
+
+Reforços:
+
+- `supabase/migrations/20260609114034_rls_helpers_drop_profiles_fallback.sql`
+  (PRD-108) tornou `current_app_role()`/`current_store_id()`/`current_seller_id()`
+  **JWT-only e fail-closed** em 2026-06-09. Sem hook ativo, a plataforma inteira
+  teria mostrado 0 linhas para todos os usuários no go-live (2026-06-10). Ela opera
+  normalmente há um mês.
+- `docs/infra/supabase-setup.md` e `docs/prds/PRD-107-auth-custom-claims_DONE.md`
+  registram o hook habilitado no Dashboard; `docs/db/rls-policies-fase2-mvp.md`
+  registra validação real de leitura staff via claims no cutover.
+- Cético adversarial dedicado não achou nenhum caminho alternativo que produzisse
+  122 com JWT sem claims: sem RPC `SECURITY DEFINER` listando customers, sem view
+  exposta, sem policy pra `anon`, sem claims persistidos em
+  `auth.users.raw_app_meta_data`, RLS habilitada na tabela. JWT "morto" simulado →
+  0; `anon` → 0; nenhum vendedor da plataforma tem conjunto visível = 122 (máx 47).
+
+## Evidência 2 — o 122 reproduzido exatamente
+
+A tela de Clientes aplica **incondicionalmente** (`HIDDEN_CUSTOMER_TAGS` em
+`src/features/customers/utils/listFilters.ts:28`, via `toListParams` linha 94):
+
+```
+excludeTags = ["pending_review", "reviewed_not_customer"]
 ```
 
-**2. A função do hook, executada diretamente, produz os claims certos:**
+que o provider supabase converte em filtro server-side
+(`src/providers/data/impl/supabase/customers.ts:290-291`):
 
-```sql
-select public.custom_access_token_hook(
-  jsonb_build_object('user_id', '9a418578-2671-4141-a15a-d39b2fd13af7', 'claims', '{}'::jsonb)
-);
--- {"claims": {"app_metadata": {"role": "owner", "store_id": "00000000-0000-0000-0000-000000000001", "seller_id": "622d1d2c-0223-4133-91cd-0264c1fc29aa"}}, ...}
+```ts
+query = query.not("tags", "ov", `{pending_review,reviewed_not_customer}`);
 ```
 
-A lógica SQL do hook (`supabase/migrations/20260608141818_poc_create_profiles_and_auth_hook.sql`,
-endurecida em `20260608141912_harden_auth_hook_search_path.sql`) está
-correta — quando chamada, ela devolve exatamente o que a RLS precisa para
-liberar a loja inteira para um `owner`.
+O contador do header é o `count: "exact"` **dessa mesma query** — ou seja, o 122 já
+é pós-RLS e pós-excludeTags, não um total geral.
 
-**3. Login genuinamente novo, mesmo assim sem efeito:**
+Reprodução em produção (claims owner simulados + predicado da policy + o filtro de
+tags): **count = 122 exato**. Excluindo só `pending_review` daria 126; as duas tags
+juntas fecham o número da tela. Distribuição real das tags:
+`pending_review` = 5.211 linhas, `reviewed_not_customer` = 4, sem tags = 65,
+restante = tags comerciais/marca em poucas linhas.
 
-```sql
-select last_sign_in_at from auth.users where id = '9a418578-2671-4141-a15a-d39b2fd13af7';
--- 2026-07-11 17:49:54+00
-```
+Esse comportamento existe desde os PRs #191 (2026-06-28, esconde `pending_review`)
+e #197 (2026-06-29, adiciona `reviewed_not_customer`) — contatos importados do
+WhatsApp entram como `pending_review` (`src/providers/whatsapp/import/contacts-core.ts`)
+e são revisados na tela própria **`/app/atendimento/contatos-pendentes`**, que
+filtra por *include* dessas mesmas tags.
 
-O dono fez logout, hard refresh e login novamente — especificamente para
-tentar resolver isso — depois da escrita da Fase 2 (17:07 UTC). O problema
-persistiu com um token recém-emitido, o que descarta a hipótese de "JWT
-antigo em cache".
+## Evidência 3 — os "sumidos" são os 52 vinculados do DINTEC
 
-**4. A RLS de `customers` está consistente com o esperado:**
+Todos os **52 customers vinculados** pelo import DINTEC (lote
+`dintec_synced_at='2026-07-11T17:07:40.676Z'`, `created_at` anterior ao lote) têm
+`tags = {pending_review}` — 52/52, uma única combinação. Eles nasceram do import de
+contatos do WhatsApp (2026-06) e nunca passaram pela revisão manual. Por isso:
 
-```sql
--- policy customers_select (SELECT, role authenticated):
--- store_id = current_store_id()
---   AND (is_staff() OR seller_id = current_seller_id() OR seller_handles_customer(id))
+- Não aparecem na tela de Clientes (nem por busca — o filtro é server-side).
+- Aparecem em **Contatos pendentes**.
+- Os 5 exemplos citados ao dono durante a validação (CODCLIs 2165, 527, 1321, 991,
+  1230 — Edson, Tecnopower, Bellenzier Pneus, Andrimar, Pawimac) estão todos nesse
+  grupo, com conversas reais na Inbox.
 
--- is_staff(): current_app_role() in ('owner','manager')
--- current_app_role(): auth.jwt() -> 'app_metadata' ->> 'role'
-```
+Estavam invisíveis na tela de Clientes **desde antes do import** — o import apenas
+tornou o estado perceptível (o dono foi procurá-los pela primeira vez).
 
-Com `role='owner'` correto (item 2), `is_staff()` deveria avaliar `true` e a
-policy deveria liberar todas as linhas com a mesma `store_id` — ou seja,
-todos os 5.336 clientes.
+## Evidência 4 — o import DINTEC não causou nem agravou nada
 
-**5. Não há hook concorrente/duplicado:**
+Cético adversarial dedicado, resultados:
 
-```sql
-select n.nspname, p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-where p.proname ilike '%access_token%' or p.proname ilike '%auth_hook%';
--- só retorna public.custom_access_token_hook
-```
+- O UPDATE dos 52 vinculados escreve apenas as 13 colunas `dintec_*` +
+  preenchimento condicional de campos vazios (`applyIfEmpty` nunca sobrescreve).
+  **Não escreve** `tags`, `status`, `seller_id`, `store_id`, `phone`, `created_at`.
+- `public.customers` tem **zero triggers** não-internos — nenhum efeito colateral
+  possível.
+- Contador hipotético pré-import: 122 − 47 = **75** (todos os 75 não-DINTEC do
+  conjunto visível têm `created_at` anterior a 2026-07-11). O import só
+  **adicionou** 47 visíveis; não escondeu ninguém.
+- Ressalva de rigor: `customers` não tem `updated_at` nem histórico por linha, então
+  não há prova pós-hoc direta de que `tags` não foi tocada — a conclusão vem de 3
+  linhas independentes convergentes (código provadamente não escreve tags; zero
+  triggers; os 52 têm `tags={pending_review}` uniforme, idêntico à convenção do
+  import WhatsApp pré-existente).
 
-**6. Todos os clientes têm a mesma `store_id`** (descarta hipótese de
-multi-loja/escopo errado — ambiente ainda é single-tenant apesar do épico de
-multi-loja em andamento):
+## Hipótese descartada (histórico)
 
-```sql
-select store_id, count(*) from public.customers group by store_id;
--- 1 linha: 00000000-0000-0000-0000-000000000001 | 5336
-```
+A primeira versão deste doc (e da issue #270) levantava: *"o
+`custom_access_token_hook` não está configurado como hook ativo no Dashboard"*. O
+raciocínio nasceu de um beco: o cadastro estava certo, a função retornava claims
+certos, relogin não mudava nada — sobrou "config de Dashboard". O furo (apontado já
+na época no item 7 do próprio doc, mas não levado à conclusão): **sem claims o
+usuário veria 0 linhas, não 122**. A simulação empírica fechou a questão.
 
-**7. Nem `seller_id` próprio nem `seller_handles_customer` explicam os 122:**
+## Follow-ups (substituem a "correção do hook", que não existe)
 
-```sql
-select count(*) from public.customers where seller_id = '622d1d2c-0223-4133-91cd-0264c1fc29aa';
--- 0
-select count(distinct customer_id) from public.conversations
-  where assigned_seller_id = '622d1d2c-0223-4133-91cd-0264c1fc29aa' and customer_id is not null;
--- 0
-```
-
-Se a sessão estivesse caindo no ramo "não-staff" da policy (por qualquer
-motivo), o resultado esperado seria **0** linhas visíveis para este usuário
-— não 122. O número 122 não bate com nenhuma das ramificações conhecidas da
-policy, o que sugere que a contagem que a tela mostra **não está vindo
-puramente da RLS avaliada como documentada** — ou o hook não está
-efetivamente no ar para essa sessão.
-
-## Hipótese mais provável (não confirmada)
-
-O código/função Postgres está correto (itens 1–2 acima provam isso), mas o
-hook provavelmente **não está configurado como o "Custom Access Token Hook"
-ativo** nas configurações de Authentication do projeto Supabase (Dashboard
-→ Authentication → Hooks → "Customize Access Token (Custom Claims) Hook"),
-ou está apontando para uma função diferente/desabilitado. Essa é uma
-configuração de **projeto** (Dashboard ou Management API), não uma migration
-— por isso não é visível nem corrigível via SQL, e não foi possível
-confirmar ou descartar via as ferramentas MCP disponíveis nesta sessão.
-
-Hipóteses descartadas pela evidência acima: JWT stale/cache (item 3), lógica
-da função do hook errada (item 2), múltiplos hooks conflitantes (item 5),
-escopo de loja errado (item 6), o usuário caindo no ramo "carteira"/"conversas"
-da RLS (item 7 — daria 0, não 122).
-
-## Como reproduzir
-
-1. Logar em produção como um usuário com `profiles.role IN ('owner','manager')`.
-2. Abrir `/app/clientes` sem nenhum filtro.
-3. Comparar o contador "N clientes" do cabeçalho com `select count(*) from customers` rodado direto no banco (via MCP ou SQL editor do Supabase).
-
-## Próximo passo sugerido
-
-Conferir no Dashboard do Supabase (Authentication → Hooks) se o hook está
-habilitado e apontando para `public.custom_access_token_hook`. Se estiver
-desligado ou apontando errado, ligar/corrigir e pedir para os usuários
-relogarem. Se estiver correto no Dashboard, a investigação precisa ir para
-o lado do PostgREST/GoTrue (versão, cache de config) ou para o
-frontend (garantir que a sessão realmente descarta o token antigo).
-
-## Validação da importação (para descartar como causa)
-
-A Fase 2 do import DINTEC foi validada diretamente no banco, independente
-da tela, e está correta:
-
-| Verificação | Resultado |
-|---|---|
-| Clientes processados | 99 (100 amostrados − CODCLI=1 excluído) |
-| CODCLI=1 presente na base | 0 (confirmado excluído) |
-| CODCLIs distintos no lote | 99 (sem duplicata) |
-| Telefone dos 52 vinculados vs. valor pré-import | 52/52 idênticos (normalizado) |
-| Tipo B2B/B2C x documento (47 novos) | 0 inconsistências |
-| `store_id`/`seller_id`/`status` dos 47 novos | 0 divergências |
-| 205 veículos: `customer_id` pertence ao lote | 0 órfãos |
-| 205 veículos: ano/engine/cadastro_status/brand/model | 0 anomalias |
-
-O filtro "Vendedor: Fernando Mello Muniz Gallo" na própria tela afetada por
-este bug mostra corretamente 47 — prova de que os dados estão certos e
-acessíveis, só a contagem "sem filtro" está errada.
+1. **Decisão de produto — promover contatos com vínculo DINTEC:** os 563 matches
+   DINTEC↔telefone identificam clientes reais confirmados no ERP (com histórico de
+   compra). O vínculo deveria remover `pending_review` (equivalente a "revisado e
+   confirmado como cliente")? Hoje 52 clientes reais ficam fora da tela de Clientes
+   e da carteira. Decisão do dono; se aprovada, a Fase 3 do import pode fazer essa
+   promoção para todos os 563.
+2. **Limpeza dos 70 seed/fake:** plano de limpeza em cascata desenhado em
+   2026-07-10 e nunca executado. Eles são a **maioria** (70 de 122) do que a tela
+   de Clientes mostra hoje — nomes faker como "XAVIER-ALBUQUERQUE MINERADORA",
+   vendedores de mock, tags de mock. Executar a limpeza deixa a tela materialmente
+   correta.
+3. **(Menor) UX do contador:** a tela mostra "122 clientes" sem indicar que 5.215
+   contatos estão ocultos por revisão pendente — um sufixo tipo "(+N aguardando
+   revisão)" com link para Contatos pendentes evitaria exatamente a confusão que
+   originou esta investigação.
