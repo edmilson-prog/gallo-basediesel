@@ -45,6 +45,7 @@ import { mockRotationParticipantsProvider } from "./impl/mock/rotationParticipan
 import { mockAiProvider } from "./impl/mock/ai";
 import { mockAtendimentoMetricsProvider } from "./impl/mock/atendimentoMetrics";
 import { mockWhatsAppGoServersProvider } from "./impl/mock/whatsappGoServers";
+import { mockWahaServersProvider } from "./impl/mock/wahaServers";
 import { mockWhatsAppOpenWaServersProvider } from "./impl/mock/whatsappOpenWaServers";
 import { mockConversationTagsProvider } from "./impl/mock/conversationTags";
 import { mockConversationParticipantsProvider } from "./impl/mock/conversationParticipants";
@@ -94,6 +95,7 @@ import { supabaseRotationParticipantsProvider } from "./impl/supabase/rotationPa
 import { supabaseAiProvider } from "./impl/supabase/ai";
 import { supabaseAtendimentoMetricsProvider } from "./impl/supabase/atendimentoMetrics";
 import { supabaseWhatsAppGoServersProvider } from "./impl/supabase/whatsappGoServers";
+import { supabaseWahaServersProvider } from "./impl/supabase/wahaServers";
 import { supabaseWhatsAppOpenWaServersProvider } from "./impl/supabase/whatsappOpenWaServers";
 import { supabaseConversationTagsProvider } from "./impl/supabase/conversationTags";
 import { supabaseConversationParticipantsProvider } from "./impl/supabase/conversationParticipants";
@@ -176,6 +178,7 @@ const mockProviders: IDataProviders = {
   ai: mockAiProvider,
   atendimentoMetrics: mockAtendimentoMetricsProvider,
   whatsappGoServers: mockWhatsAppGoServersProvider,
+  wahaServers: mockWahaServersProvider,
   whatsappOpenWaServers: mockWhatsAppOpenWaServersProvider,
   conversationTags: mockConversationTagsProvider,
   conversationParticipants: mockConversationParticipantsProvider,
@@ -227,6 +230,7 @@ const supabaseProviders: IDataProviders = {
   ai: supabaseAiProvider,
   atendimentoMetrics: supabaseAtendimentoMetricsProvider,
   whatsappGoServers: supabaseWhatsAppGoServersProvider,
+  wahaServers: supabaseWahaServersProvider,
   whatsappOpenWaServers: supabaseWhatsAppOpenWaServersProvider,
   conversationTags: supabaseConversationTagsProvider,
   conversationParticipants: supabaseConversationParticipantsProvider,

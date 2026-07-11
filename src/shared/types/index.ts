@@ -156,6 +156,8 @@ export type {
   IWhatsAppAccountAccessRule,
   IConversationParticipant,
   IWhatsAppGoServer,
+  IWahaServer,
+  IWahaSessionConfig,
   IWhatsAppOpenWaServer,
   IConversationActivityEvent,
   AttendanceActivityType,

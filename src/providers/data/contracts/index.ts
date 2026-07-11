@@ -50,6 +50,7 @@ import type { IRotationParticipantsProvider } from "./rotationParticipants";
 import type { IAiProvider } from "./ai";
 import type { IAtendimentoMetricsProvider } from "./atendimentoMetrics";
 import type { IWhatsAppGoServersProvider } from "./whatsappGoServers";
+import type { IWahaServersProvider } from "./wahaServers";
 import type { IWhatsAppOpenWaServersProvider } from "./whatsappOpenWaServers";
 import type { IConversationTagsProvider } from "./conversationTags";
 import type { IConversationParticipantsProvider } from "./conversationParticipants";
@@ -171,6 +172,11 @@ export type {
   IGoServerPatch,
 } from "./whatsappGoServers";
 export type {
+  IWahaServersProvider,
+  ICreateWahaServerInput,
+  IWahaServerPatch,
+} from "./wahaServers";
+export type {
   IWhatsAppOpenWaServersProvider,
   ICreateOpenWaServerInput,
   IOpenWaServerPatch,
@@ -227,6 +233,7 @@ export interface IDataProviders {
   ai: IAiProvider;
   atendimentoMetrics: IAtendimentoMetricsProvider;
   whatsappGoServers: IWhatsAppGoServersProvider;
+  wahaServers: IWahaServersProvider;
   whatsappOpenWaServers: IWhatsAppOpenWaServersProvider;
   conversationTags: IConversationTagsProvider;
   conversationParticipants: IConversationParticipantsProvider;

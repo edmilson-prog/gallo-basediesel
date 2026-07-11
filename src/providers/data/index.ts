@@ -177,6 +177,7 @@ export { useRotationParticipantsProvider } from "./hooks/useRotationParticipants
 export { useAiProvider } from "./hooks/useAiProvider";
 export { useAtendimentoMetricsProvider } from "./hooks/useAtendimentoMetricsProvider";
 export { useWhatsAppGoServersProvider } from "./hooks/useWhatsAppGoServersProvider";
+export { useWahaServersProvider } from "./hooks/useWahaServersProvider";
 export { useWhatsAppOpenWaServersProvider } from "./hooks/useWhatsAppOpenWaServersProvider";
 export { useConversationTagsProvider } from "./hooks/useConversationTagsProvider";
 export { useConversationParticipantsProvider } from "./hooks/useConversationParticipantsProvider";

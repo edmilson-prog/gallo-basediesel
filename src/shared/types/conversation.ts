@@ -159,7 +159,7 @@ export type MessageDirection = "in" | "out";
 export type MessageAuthorType = "customer" | "seller" | "sdr" | "system";
 
 /** Provider that delivered or originated a message. */
-export type MessageProvider = "meta" | "evolution" | "evolution-go" | "openwa" | "mock";
+export type MessageProvider = "meta" | "evolution" | "evolution-go" | "waha" | "openwa" | "mock";
 
 /**
  * Delivery status reported by the provider.
@@ -227,7 +227,7 @@ export interface IMessage {
 }
 
 /** WhatsApp provider engine. */
-export type WhatsAppProviderName = "meta" | "evolution" | "evolution-go" | "openwa";
+export type WhatsAppProviderName = "meta" | "evolution" | "evolution-go" | "waha" | "openwa";
 
 /** Connection status of a WhatsApp account. */
 export type WhatsAppAccountStatus = "connected" | "disconnected" | "pending";
@@ -277,6 +277,18 @@ export interface IWhatsAppCapabilities {
 }
 
 /**
+ * WAHA per-session settings surfaced in the UI (wizard "Avançado" + params
+ * dialog). `chatFilters` are "process this type" booleans — the engine inverts
+ * them into WAHA's `config.ignore`. `device` is shown read-only (no-op on GOWS).
+ */
+export interface IWahaSessionConfig {
+  chatFilters: { groups: boolean; status: boolean; channels: boolean; broadcast: boolean };
+  debug: boolean;
+  proxy?: { server: string; username?: string; password?: string };
+  device?: { name?: string; browser?: string };
+}
+
+/**
  * Non-secret engine configuration of a WhatsApp account (PRD-111/119).
  * Which fields apply depends on {@link IWhatsAppAccount.provider}: Meta uses
  * `phoneNumberId`/`businessAccountId`; Evolution uses `baseUrl`/`instanceName`.
@@ -298,6 +310,10 @@ export interface IWhatsAppProviderConfig {
   sessionId?: string;
   /** Per-instance identity color (hex) for the origin dot/bar — falls back to a hash of the id. */
   accentColor?: string;
+  /** WAHA — the created session name (provider='waha' rows). */
+  sessionName?: string;
+  /** WAHA — per-session settings (chat filters, debug, proxy). */
+  waha?: IWahaSessionConfig;
 }
 
 /**
@@ -332,6 +348,8 @@ export interface IWhatsAppAccount {
   purpose: WhatsAppAccountPurpose;
   /** Evolution Go — server this instance belongs to (registry). Null for v2/Meta. */
   goServerId?: ID;
+  /** WAHA — server this instance belongs to (registry). Null for v2/Meta/Evolution. */
+  wahaServerId?: ID;
   /** OpenWA — server this instance belongs to (registry). Null for outros providers. */
   openwaServerId?: ID;
   /**
@@ -358,6 +376,26 @@ export interface IWhatsAppGoServer {
   baseUrl: string;
   /** Vault secret name holding the server-wide global key. Matches `^[A-Z][A-Z0-9_]{2,64}$`. */
   apiKeyRef: string;
+  createdAt: ISO8601;
+  updatedAt?: ISO8601;
+}
+
+/**
+ * WAHA server. Platform-level infra registered once by the Owner.
+ * Holds the friendly name, endpoint and Vault POINTERs to credentials
+ * (`apiKeyRef` for API authentication, `webhookHmacRef` for webhook signature).
+ * WAHA accounts reference it via `IWhatsAppAccount.wahaServerId`.
+ */
+export interface IWahaServer {
+  id: ID;
+  /** Friendly name (unique). */
+  name: string;
+  /** Endpoint, normalized (no trailing slash). */
+  baseUrl: string;
+  /** Vault secret name holding the API key. Matches `^[A-Z][A-Z0-9_]{2,64}$`. */
+  apiKeyRef: string;
+  /** Vault secret name holding the webhook HMAC key (optional). Matches `^[A-Z][A-Z0-9_]{2,64}$`. */
+  webhookHmacRef?: string;
   createdAt: ISO8601;
   updatedAt?: ISO8601;
 }

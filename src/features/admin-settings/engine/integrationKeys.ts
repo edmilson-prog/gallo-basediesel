@@ -217,8 +217,12 @@ export function buildIntegrationKeyCatalog(accounts: AccountForCatalog[]): IInte
   for (const account of accounts) {
     const ref = account.credentialsRef?.trim();
     if (!ref || !isValidSecretName(ref)) continue;
-    if (account.provider === "evolution-go") continue; // key lives on the Go server, not the account
-    if (account.provider === "openwa") continue; // key lives on the OpenWA server, not the account
+    if (
+      account.provider === "evolution-go" ||
+      account.provider === "waha" ||
+      account.provider === "openwa"
+    )
+      continue; // key lives on the server registry, not the account
     const defs = account.provider === "meta" ? META_ACCOUNT_KEYS : EVOLUTION_ACCOUNT_KEYS;
     groups.push({
       id: `account-${account.id}`,

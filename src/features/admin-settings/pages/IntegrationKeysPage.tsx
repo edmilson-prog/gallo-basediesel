@@ -19,6 +19,7 @@ import {
   type IIntegrationKeyGroup,
 } from "../engine/integrationKeys";
 import { GoServersSection } from "../components/GoServersSection";
+import { WahaServersSection } from "../components/WahaServersSection";
 import { OpenWaServersSection } from "../components/OpenWaServersSection";
 import { SectionHeader } from "../components/SectionHeader";
 
@@ -110,6 +111,8 @@ export function IntegrationKeysPage() {
       />
 
       <GoServersSection canEdit={isSupabase} />
+
+      <WahaServersSection canEdit={isSupabase} />
 
       <OpenWaServersSection canEdit={isSupabase} />
 

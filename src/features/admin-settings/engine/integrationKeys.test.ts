@@ -130,4 +130,11 @@ describe("buildIntegrationKeyCatalog", () => {
     ]);
     expect(groups.some((g) => g.id === "account-acc-go")).toBe(false);
   });
+
+  it("skips per-account key groups for waha accounts (key lives on the server)", () => {
+    const groups = buildIntegrationKeyCatalog([
+      { id: "acc-1", label: "Loja Centro", provider: "waha" as const, credentialsRef: "WAHA_SERVER_1_API_KEY" },
+    ]);
+    expect(groups.find((g) => g.id === "account-acc-1")).toBeUndefined();
+  });
 });
