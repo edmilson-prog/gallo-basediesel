@@ -56,6 +56,7 @@ export const SEED_STORE: IStore = {
     whatsappAccounts: [
       { id: "wa-meta-matriz", label: "GALLO Matriz (Oficial)" },
       { id: "wa-evo-campanhas", label: "GALLO Campanhas" },
+      { id: "wa-openwa-filial", label: "GALLO Filial (OpenWA)" },
     ],
     defaultDivision: "parts",
     distribution: DEFAULT_DISTRIBUTION_SETTINGS,

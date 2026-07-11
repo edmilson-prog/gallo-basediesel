@@ -61,6 +61,10 @@ export function ConnectWhatsAppDialog({
 }: IConnectWhatsAppDialogProps) {
   const provider = useWhatsAppAccountsProvider();
   const isGo = account?.provider === "evolution-go";
+  const isOpenWa = account?.provider === "openwa";
+  // Registry-based engines have no per-account form (server URL + global key
+  // live in the server registry) — they always land straight on the QR step.
+  const isRegistryBased = isGo || isOpenWa;
   const isMock = useMemo(() => getActiveDataSource() === "mock", []);
 
   const [step, setStep] = useState<ConnectDialogStep>(initialStep);
@@ -231,11 +235,13 @@ export function ConnectWhatsAppDialog({
                 ? "Evolution API — a instância já deve existir no servidor."
                 : isGo
                   ? "Escaneie o código com o WhatsApp do número (Evolution Go)."
-                  : "Escaneie o código com o WhatsApp do número da loja."}
+                  : isOpenWa
+                    ? "Escaneie o código com o WhatsApp do número (OpenWA)."
+                    : "Escaneie o código com o WhatsApp do número da loja."}
             </DialogDescription>
           </DialogHeader>
 
-          {step === "form" && account && !isGo && (
+          {step === "form" && account && !isRegistryBased && (
             <div className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="connect-label">Nome da conta</Label>
@@ -341,7 +347,7 @@ export function ConnectWhatsAppDialog({
           {step === "qr" && account && pairing.phase !== "open" && (
             <div className="space-y-2">
               <QrPairingStep pairing={pairing} />
-              {pairing.phase === "error" && !isGo && (
+              {pairing.phase === "error" && !isRegistryBased && (
                 <div className="flex justify-start">
                   <Button variant="ghost" size="sm" onClick={() => setStep("form")}>
                     <Icon icon="mdi:arrow-left" size={14} className="mr-1.5" />
@@ -361,7 +367,17 @@ export function ConnectWhatsAppDialog({
                 Conectado{pairing.profile.profileName ? ` como ${pairing.profile.profileName}` : ""}
               </p>
               <p className="text-xs text-muted-foreground">
-                {pairing.profile.phoneNumber ?? account.phoneNumber} · instância {instanceName}
+                {pairing.profile.phoneNumber ?? account.phoneNumber}
+                {/* Registry engines carry a server-minted id, not the typed
+                    instanceName (empty for them) — show whichever exists. */}
+                {(() => {
+                  const instanceLabel =
+                    instanceName ||
+                    account.providerConfig?.instanceId ||
+                    account.providerConfig?.sessionId ||
+                    "";
+                  return instanceLabel ? ` · instância ${instanceLabel}` : "";
+                })()}
               </p>
               <div className="mt-3 flex gap-2">
                 <Button

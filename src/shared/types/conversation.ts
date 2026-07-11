@@ -159,7 +159,7 @@ export type MessageDirection = "in" | "out";
 export type MessageAuthorType = "customer" | "seller" | "sdr" | "system";
 
 /** Provider that delivered or originated a message. */
-export type MessageProvider = "meta" | "evolution" | "evolution-go" | "waha" | "mock";
+export type MessageProvider = "meta" | "evolution" | "evolution-go" | "waha" | "openwa" | "mock";
 
 /**
  * Delivery status reported by the provider.
@@ -227,7 +227,7 @@ export interface IMessage {
 }
 
 /** WhatsApp provider engine. */
-export type WhatsAppProviderName = "meta" | "evolution" | "evolution-go" | "waha";
+export type WhatsAppProviderName = "meta" | "evolution" | "evolution-go" | "waha" | "openwa";
 
 /** Connection status of a WhatsApp account. */
 export type WhatsAppAccountStatus = "connected" | "disconnected" | "pending";
@@ -306,6 +306,8 @@ export interface IWhatsAppProviderConfig {
   instanceName?: string;
   /** Evolution Go — server-generated instance id. Empty until first pairing. */
   instanceId?: string;
+  /** OpenWA — server-generated session id (`POST /api/sessions`). Empty until first pairing. */
+  sessionId?: string;
   /** Per-instance identity color (hex) for the origin dot/bar — falls back to a hash of the id. */
   accentColor?: string;
   /** WAHA — the created session name (provider='waha' rows). */
@@ -348,6 +350,8 @@ export interface IWhatsAppAccount {
   goServerId?: ID;
   /** WAHA — server this instance belongs to (registry). Null for v2/Meta/Evolution. */
   wahaServerId?: ID;
+  /** OpenWA — server this instance belongs to (registry). Null for outros providers. */
+  openwaServerId?: ID;
   /**
    * When true, disconnection/health alerts for this account are silenced:
    * the "Conexão perdida" card banner, the global disconnect banner, the
@@ -392,6 +396,24 @@ export interface IWahaServer {
   apiKeyRef: string;
   /** Vault secret name holding the webhook HMAC key (optional). Matches `^[A-Z][A-Z0-9_]{2,64}$`. */
   webhookHmacRef?: string;
+  createdAt: ISO8601;
+  updatedAt?: ISO8601;
+}
+
+/**
+ * OpenWA server (self-hosted whatsapp-web.js). Platform-level infra registered
+ * once by the Owner. Holds the friendly name, endpoint and a Vault POINTER to
+ * the global key (`apiKeyRef`) — never the key itself. OpenWA accounts reference
+ * it via `IWhatsAppAccount.openwaServerId`.
+ */
+export interface IWhatsAppOpenWaServer {
+  id: ID;
+  /** Friendly name (unique). */
+  name: string;
+  /** Endpoint, normalized (no trailing slash). */
+  baseUrl: string;
+  /** Vault secret name holding the server-wide global key. Matches `^[A-Z][A-Z0-9_]{2,64}$`. */
+  apiKeyRef: string;
   createdAt: ISO8601;
   updatedAt?: ISO8601;
 }

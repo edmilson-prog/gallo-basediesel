@@ -20,6 +20,7 @@ import {
 } from "../engine/integrationKeys";
 import { GoServersSection } from "../components/GoServersSection";
 import { WahaServersSection } from "../components/WahaServersSection";
+import { OpenWaServersSection } from "../components/OpenWaServersSection";
 import { SectionHeader } from "../components/SectionHeader";
 
 const DATE_FORMAT = new Intl.DateTimeFormat("pt-BR", {
@@ -112,6 +113,8 @@ export function IntegrationKeysPage() {
       <GoServersSection canEdit={isSupabase} />
 
       <WahaServersSection canEdit={isSupabase} />
+
+      <OpenWaServersSection canEdit={isSupabase} />
 
       <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
         <Icon icon="mdi:shield-lock-outline" className="mt-0.5 size-4 shrink-0" />

@@ -102,7 +102,7 @@ export interface ISendDb {
     messageId?: string;
     conversationId: string;
     sellerId: string | null;
-    provider: "meta" | "evolution" | "evolution-go";
+    provider: "meta" | "evolution" | "evolution-go" | "openwa";
     text: string;
     mediaType: string | null;
     mediaUrl: string | null;

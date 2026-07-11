@@ -2,8 +2,9 @@ import type { IWhatsAppAccount } from "@/shared/types";
 import { SEED_STORE_ID } from "../data";
 
 /**
- * Two WhatsApp accounts: one Meta Cloud (official, HSM templates) and one
- * Evolution (campaign-friendly, no HSM). IDs match the references kept inside
+ * Three WhatsApp accounts: one Meta Cloud (official, HSM templates), one
+ * Evolution (campaign-friendly, no HSM) and one OpenWA (redundant/primary
+ * engine for new stores/numbers). IDs match the references kept inside
  * `IPlatformSettings.whatsappAccounts`.
  */
 export const SEED_WHATSAPP_ACCOUNTS: IWhatsAppAccount[] = [
@@ -52,6 +53,35 @@ export const SEED_WHATSAPP_ACCOUNTS: IWhatsAppAccount[] = [
     },
     createdAt: "2026-02-15T10:00:00.000Z",
     purpose: "campanha",
+    alertsMuted: false,
+  },
+  {
+    id: "wa-openwa-filial",
+    storeId: SEED_STORE_ID,
+    label: "GALLO Filial (OpenWA)",
+    phoneNumber: "(55) 99800-3000",
+    provider: "openwa",
+    credentialsRef: "vault://gallo/wa-openwa-filial",
+    status: "connected",
+    currentState: "healthy",
+    // Canonical openwa shape: ONLY the server-minted sessionId (the base URL
+    // lives in the whatsapp_openwa_servers registry, mirroring the real DB
+    // CHECK `provider_config ? 'sessionId'`). Fixed fake uuid = deterministic.
+    providerConfig: {
+      sessionId: "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+    },
+    failoverPolicy: "disabled",
+    isFailoverActive: false,
+    capabilities: {
+      supportsTemplatesHsm: false,
+      supportsInteractiveButtons: false,
+      supportsLists: false,
+      supportsReactions: true,
+      supportsProactiveMessaging: true,
+      supportsReadStatusInGroups: true,
+    },
+    createdAt: "2026-07-06T10:00:00.000Z",
+    purpose: "atendimento",
     alertsMuted: false,
   },
 ];

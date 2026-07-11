@@ -121,6 +121,9 @@ export type {
   IWhatsAppGoServersProvider,
   ICreateGoServerInput,
   IGoServerPatch,
+  IWhatsAppOpenWaServersProvider,
+  ICreateOpenWaServerInput,
+  IOpenWaServerPatch,
   IConversationTagsProvider,
   IListConversationTagsParams,
   ICreateConversationTagInput,
@@ -175,6 +178,7 @@ export { useAiProvider } from "./hooks/useAiProvider";
 export { useAtendimentoMetricsProvider } from "./hooks/useAtendimentoMetricsProvider";
 export { useWhatsAppGoServersProvider } from "./hooks/useWhatsAppGoServersProvider";
 export { useWahaServersProvider } from "./hooks/useWahaServersProvider";
+export { useWhatsAppOpenWaServersProvider } from "./hooks/useWhatsAppOpenWaServersProvider";
 export { useConversationTagsProvider } from "./hooks/useConversationTagsProvider";
 export { useConversationParticipantsProvider } from "./hooks/useConversationParticipantsProvider";
 

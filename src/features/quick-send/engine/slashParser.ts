@@ -14,9 +14,11 @@ export interface ISlashState {
   active: boolean;
   command: string;
   query: string;
+  /** Index of the "/" in `value` — lets callers splice out just the token. */
+  tokenStart: number;
 }
 
-const INACTIVE: ISlashState = { active: false, command: "", query: "" };
+const INACTIVE: ISlashState = { active: false, command: "", query: "", tokenStart: -1 };
 
 export function parseSlash(value: string, caret: number): ISlashState {
   if (caret <= 0) return INACTIVE;
@@ -44,5 +46,6 @@ export function parseSlash(value: string, caret: number): ISlashState {
     active: true,
     command: match[1] ?? "",
     query: (match[2] ?? "").trim(),
+    tokenStart: slashIndex,
   };
 }

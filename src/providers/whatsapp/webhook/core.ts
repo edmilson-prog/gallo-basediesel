@@ -14,6 +14,7 @@
 import { parseEvolutionInbound } from "../evolution/parser";
 import { parseEvolutionGoInbound } from "../evolution-go/parser";
 import { parseMetaInbound } from "../meta/parser";
+import { parseOpenWaInbound } from "../openwa/parser";
 import type { IWhatsAppProvider } from "../IWhatsAppProvider";
 import type { IInboundMessage, IInboundStatus, IOutboundEcho } from "../types";
 import { MEDIA_DISCRIMINATOR_TYPES } from "../types";
@@ -21,7 +22,7 @@ import { MEDIA_DISCRIMINATOR_TYPES } from "../types";
 export interface IAccountRecord {
   id: string;
   storeId: string;
-  provider: "meta" | "evolution" | "evolution-go";
+  provider: "meta" | "evolution" | "evolution-go" | "openwa";
   phoneNumber: string;
   credentialsRef: string;
   providerConfig: Record<string, unknown> | null;
@@ -52,6 +53,8 @@ export interface IWebhookDb {
   findEvolutionGoAccount(instanceId: string): Promise<IAccountRecord | null>;
   /** Like findEvolutionGoAccount but INCLUDING disconnected rows (used by the edge auth gate). */
   findEvolutionGoAccountAnyStatus(instanceId: string): Promise<IAccountRecord | null>;
+  /** openwa: by provider_config.sessionId (webhook envelope carries it as `sessionId`). */
+  findOpenWaAccount(sessionId: string): Promise<IAccountRecord | null>;
   /** Conditional status write; returns true when the row actually changed. */
   setAccountConnectionStatus(
     accountId: string,
@@ -106,7 +109,7 @@ export interface IWebhookDb {
   insertInboundMessage(input: {
     conversationId: string;
     customerId: string;
-    provider: "meta" | "evolution" | "evolution-go";
+    provider: "meta" | "evolution" | "evolution-go" | "openwa";
     text: string;
     mediaType: string | null;
     /** Original document filename (messages.media_filename). */
@@ -126,7 +129,7 @@ export interface IWebhookDb {
   /** Mirrored phone-sent message (outbound echo) — direction out, status sent. */
   insertOutboundEchoMessage(input: {
     conversationId: string;
-    provider: "meta" | "evolution" | "evolution-go";
+    provider: "meta" | "evolution" | "evolution-go" | "openwa";
     text: string;
     mediaType: string | null;
     mediaFilename?: string | null;
@@ -186,7 +189,7 @@ export interface IProcessResult {
 }
 
 export interface IProcessArgs {
-  provider: "meta" | "evolution" | "evolution-go";
+  provider: "meta" | "evolution" | "evolution-go" | "openwa";
   rawPayload: unknown;
   db: IWebhookDb;
   /** Builds the concrete engine for the resolved account (media download). */
@@ -273,6 +276,24 @@ function extractEvolutionInstance(rawPayload: unknown): string {
 
 function extractEvolutionGoInstance(rawPayload: unknown): string {
   return String((rawPayload as { instanceId?: string } | null)?.instanceId ?? "");
+}
+
+/**
+ * openwa's webhook envelope carries the session id as `sessionId` (confirmed
+ * live 2026-07-07 — matches `provider_config.sessionId`, the id `POST
+ * /api/sessions` returns). Falls back to the nested message record's own
+ * `sessionId` (the record carries it too — confirmed via GET /messages), so
+ * an envelope drift or a bare-record delivery still resolves the account.
+ * No connection-lifecycle handling is implemented for openwa v1 (the
+ * `session.status`/`session.qr` events are dropped by the parser as
+ * unsupported — see ../openwa/parser); only message/ack events resolve an
+ * account, via findOpenWaAccount below.
+ */
+function extractOpenWaInstance(rawPayload: unknown): string {
+  const payload = rawPayload as
+    | { sessionId?: string; data?: { sessionId?: string } | null }
+    | null;
+  return payload?.sessionId ?? payload?.data?.sessionId ?? "";
 }
 
 /**
@@ -450,7 +471,9 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
         ? parseMetaInbound(rawPayload, "")
         : provider === "evolution-go"
           ? parseEvolutionGoInbound(rawPayload, "")
-          : parseEvolutionInbound(rawPayload, "");
+          : provider === "openwa"
+            ? parseOpenWaInbound(rawPayload, "")
+            : parseEvolutionInbound(rawPayload, "");
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     warn("webhook payload ignored", { provider, detail });
@@ -477,7 +500,9 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
       ? extractMetaPhoneNumberId(rawPayload)
       : provider === "evolution-go"
         ? extractEvolutionGoInstance(rawPayload)
-        : extractEvolutionInstance(rawPayload);
+        : provider === "openwa"
+          ? extractOpenWaInstance(rawPayload)
+          : extractEvolutionInstance(rawPayload);
   const eventKey =
     parsed.type === "status"
       ? `whatsapp:${provider}:${instanceScope}:${parsed.providerMessageId}:${parsed.status}`
@@ -550,7 +575,9 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
     const account =
       provider === "evolution-go"
         ? await db.findEvolutionGoAccount(extractEvolutionGoInstance(rawPayload))
-        : await db.findEvolutionAccount(extractEvolutionInstance(rawPayload));
+        : provider === "openwa"
+          ? await db.findOpenWaAccount(extractOpenWaInstance(rawPayload))
+          : await db.findEvolutionAccount(extractEvolutionInstance(rawPayload));
     if (!account) {
       warn("echo for unknown account", { provider });
       return { outcome: "account-not-found" };
@@ -657,7 +684,9 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
         )
       : provider === "evolution-go"
         ? await db.findEvolutionGoAccount(extractEvolutionGoInstance(rawPayload))
-        : await db.findEvolutionAccount(extractEvolutionInstance(rawPayload));
+        : provider === "openwa"
+          ? await db.findOpenWaAccount(extractOpenWaInstance(rawPayload))
+          : await db.findEvolutionAccount(extractEvolutionInstance(rawPayload));
   if (!account) {
     warn("webhook for unknown account", { provider, toAccountPhone: parsed.toAccountPhone });
     return { outcome: "account-not-found" };
