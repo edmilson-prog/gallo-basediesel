@@ -4,6 +4,18 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.139.0] — Dial · 2026-07-10
+
+**A instância WAHA agora tem um painel de gestão completo e parâmetros de sessão configuráveis.** O card do WhatsApp WAHA (Configurações → WhatsApp → aba WAHA) deixou de ser uma linha simples e passou a espelhar os cards das outras contas: quem tem acesso ao número, cor de identificação, status e saúde da conexão, estatísticas de envio (30 dias) e um aviso destacado para reconectar quando a sessão cai — inclusive o estado "aguardando leitura do QR". Além disso, dá para ajustar como cada sessão se comporta — ignorar grupos, status, canais e transmissões para manter o Atendimento limpo, ligar depuração e configurar proxy — direto na criação (seção "Avançado") ou depois, pelo botão "Parâmetros", com um único "Salvar e reiniciar" que aplica sem precisar ler o QR de novo.
+
+### Added
+
+- **Parâmetros de sessão WAHA:** filtros de tipo de conversa (grupos, status, canais, transmissões — por padrão só conversas 1:1), depuração e proxy, configuráveis na criação da sessão (seção "Avançado" do assistente) ou depois pelo botão "Parâmetros" no card; aplicar reinicia a sessão preservando o pareamento (não pede o QR de novo).
+
+### Changed
+
+- **Card de instância WAHA:** de uma linha simples para um painel completo espelhando os cards Meta/Evolution — gestão de acesso (quem vê o número), cor da instância, badges de status e saúde, estatísticas de envio (enviadas, falhas, taxa, último envio) e banner de reconexão em destaque, além das ações "Parear novamente" e "Logout" no menu da instância.
+
 ## [0.138.0] — Sidecar · 2026-07-10
 
 **Novo motor de conexão WhatsApp: OpenWA, para números pareados por QR Code como o Evolution, mas rodando em servidor próprio.** É mais uma opção de conexão, ao lado de Evolution e Evolution Go — pareamento pela tela de Configurações → WhatsApp, mesma experiência de conectar/reconectar já existente. Corrige também um limite herdado do próprio WhatsApp: contatos com identificador de privacidade (que escondem o número de telefone) agora são resolvidos corretamente nas contas OpenWA, chegando ao Atendimento com o nome e telefone certos em vez de serem ignorados.
