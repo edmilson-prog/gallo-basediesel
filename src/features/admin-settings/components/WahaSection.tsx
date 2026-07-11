@@ -1259,7 +1259,7 @@ function WahaWizard({
               {!serversLoaded ? (
                 <Skeleton className="h-9 w-full" />
               ) : servers.length === 0 ? (
-                <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+                <div className="rounded-lg border border-severity-warning/40 bg-severity-warning/10 px-3 py-2 text-xs text-severity-warning">
                   Nenhum servidor WAHA cadastrado.{" "}
                   <Link
                     to="/app/configuracoes/chaves"

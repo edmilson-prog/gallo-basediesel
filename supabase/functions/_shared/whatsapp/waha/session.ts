@@ -7,7 +7,7 @@
  * only.
  */
 
-import { WAHA_DEFAULT_EVENTS, wahaStateToAccountStatus } from "./constants.ts";
+import { WAHA_DEFAULT_EVENTS } from "./constants.ts";
 import { wahaRequest } from "./client.ts";
 
 export interface IWahaSessionTarget {
@@ -126,16 +126,6 @@ export async function getWahaSessionStatus(
     state: body?.status ?? "FAILED",
     phoneNumber: meIdToE164(body?.me?.id),
   };
-}
-
-/** Maps the raw status straight to the account status the UI/DB expect. */
-export async function getWahaAccountStatus(
-  apiKey: string,
-  fetchFn: typeof fetch,
-  target: IWahaSessionTarget,
-): Promise<{ accountStatus: "connected" | "disconnected" | "pending"; phoneNumber?: string }> {
-  const { state, phoneNumber } = await getWahaSessionStatus(apiKey, fetchFn, target);
-  return { accountStatus: wahaStateToAccountStatus(state), phoneNumber };
 }
 
 /** `GET /api/{session}/auth/qr` returns the PNG binary — base64-encode as a data URI. */

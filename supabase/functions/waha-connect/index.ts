@@ -98,7 +98,10 @@ servePost(async (req, ctx) => {
 
   const action = body.action as ConnectAction;
   if (!action || !ACTIONS.includes(action)) {
-    throw new HttpError(422, "action (create|qr|state|logout|restart|delete) é obrigatório");
+    throw new HttpError(
+      422,
+      "action (create|ping|qr|state|logout|restart|delete|updateConfig) é obrigatório",
+    );
   }
 
   const fetchFn = globalThis.fetch;
@@ -235,7 +238,7 @@ servePost(async (req, ctx) => {
   if (!sessionName) throw new HttpError(422, "Sessão WAHA sem sessionName configurado");
 
   try {
-    const { baseUrl, apiKey } = await resolveWahaServer(admin, resolveSecret, account);
+    const { baseUrl, apiKey, hmacKey } = await resolveWahaServer(admin, resolveSecret, account);
     const target = { baseUrl, sessionName };
 
     switch (action) {
@@ -341,16 +344,6 @@ servePost(async (req, ctx) => {
       case "updateConfig": {
         const sessionConfig = body.sessionConfig;
         if (!sessionConfig) throw new HttpError(422, "sessionConfig é obrigatório");
-        // Resolve o HMAC do servidor (o config completo precisa reconstruir o webhook).
-        const { data: srv } = await admin
-          .from("waha_servers")
-          .select("webhook_hmac_ref")
-          .eq("id", account.waha_server_id)
-          .maybeSingle();
-        const hmacKey = srv?.webhook_hmac_ref
-          ? await resolveSecret(String(srv.webhook_hmac_ref))
-          : "";
-        if (!hmacKey) throw new HttpError(422, "Segredo HMAC do webhook WAHA não definido.");
         const webhookUrl = `${requiredEnv("SUPABASE_URL")}/functions/v1/waha-webhook`;
         await updateWahaSessionConfig(apiKey, fetchFn, {
           baseUrl,
