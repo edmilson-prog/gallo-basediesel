@@ -90,7 +90,7 @@ Preenchidos **somente quando vazios** (nunca sobrescrevem edição manual ou dad
 
 | Coluna `customers` | Fonte DINTEC |
 |---|---|
-| `nome_fantasia` / `full_name` | `FANTASIA`, ou nome resolvido (`NOTAFISCAL.NOME` → `NFISCAL.NOMECLI` → `FANTASIA`) |
+| `nome_fantasia` / `full_name` | `FANTASIA`, ou nome resolvido (`NOTAFISCAL.NOME` → `NFISCAL.NOMECLI` → **`ORCAMENTO.NOME`** → `FANTASIA`) — `ORCAMENTO.NOME` foi adicionado à cadeia após o piloto (2026-07-11): clientes que só têm orçamentos (nunca nota) ficavam sem nome; caso real CODCLI 2435, nome recuperado do orçamento e backfillado em prod |
 | `cpf` / `cnpj` | `CPF` / `CNPJ` (zeros = vazio) |
 | `contact_name` | `CONTATO` (só B2B) |
 | `address` (jsonb) | `ENDERECO`, `BAIRRO`, `CIDADE`, `ESTADO`, `CEP` |
@@ -109,6 +109,7 @@ Preenchidos **somente quando vazios** (nunca sobrescrevem edição manual ou dad
 | Sem telefone em nenhuma fonte (`CLIENTE`+`NOTAFISCAL`+`ORCAMENTO`) | ~1.180 | `phone=''` (string vazia — mantém `NOT NULL`, evita ripple de null-check em código WhatsApp que assume string) |
 | Match de telefone ambíguo (1 telefone bate em ≥2 `CODCLI`) | 30 | linka o customer existente ao `CODCLI` de **maior `dintec_ltv`** entre os candidatos; os demais `CODCLI` do grupo viram customers novos e independentes (não descartados) |
 | `CLIENTE.ATIVO='NAO'` | 13 | importado normalmente; grava em `dintec_ativo=false`; não usado para filtrar escopo nem para setar `customers.status` automaticamente (fica com o default da plataforma) |
+| Sem nome em **nenhuma** fonte (`NOTAFISCAL`+`NFISCAL`+`ORCAMENTO`+`FANTASIA`+`NMAQ`+`CONTATO`) | 9 no piloto (CODCLIs 4, 10, 11, 16, 31, 35, 36, 133, 165) | Importado sem nome (a tela exibe "?" + documento) — são cadastros-esqueleto do ERP, sem qualquer movimento (zero notas, zero orçamentos). Nomeação manual posterior ou descarte no fechamento. A `CLIENTE` do DINTEC **não tem** coluna de razão social — o nome vive nas notas/orçamentos, daí a cadeia de resolução. |
 | `CODCLI=1` (`"***VENDA CONSUMIDOR***"`) | 1 | **Excluído da importação.** Bucket genérico de venda de balcão anônima do DINTEC — não é um cliente real; carrega 46 veículos que pertencem a compradores diferentes e sem relação entre si. Confirmado via varredura nos 3.167 `CLIENTE` completos (2026-07-10): é o **único** registro desse tipo na base — não há outro `CODCLI` sem documento com volume de veículo desproporcional (≥15), nem outro nome com padrão genérico (`CONSUMIDOR`/`DIVERSOS`/`VENDA BALCAO`/`CLIENTE PADRAO`/`GENERICO`/`AVULSO`/`BALCAO`). Um segundo candidato (`CODCLI=1729`, nome com prefixo `"* - "`) foi investigado e descartado — é uma concessionária real (`SAVARAUTO BOA VISTA VEICULOS LTDA`), o asterisco é uma convenção de nomenclatura do próprio cliente, não um marcador de sistema. |
 
 ## Veículos — normalização de marca/modelo
