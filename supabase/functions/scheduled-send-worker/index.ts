@@ -105,6 +105,71 @@ async function resolveGoBaseUrls(
   return map;
 }
 
+/**
+ * Pre-resolves the OpenWA server `{baseUrl, apiKeySecretName}` for accounts
+ * involved in a scheduled send (primary + optional failover). Mirrors
+ * `resolveGoBaseUrls` above (and `whatsapp-send`'s `resolveOpenWaServerConfigs`)
+ * — OpenWA never stores these in `provider_config` (ONE global key per server,
+ * resolved via `openwa_server_id` → `whatsapp_openwa_servers`), so
+ * `buildProvider` needs them pre-fetched. Without this, a scheduled send from
+ * an OpenWA account throws VALIDATION_ERROR (empty baseUrl/apiKeySecretName).
+ */
+async function resolveOpenWaServerConfigs(
+  admin: SupabaseClient,
+  conversationId: string,
+): Promise<Map<string, { baseUrl: string; apiKeySecretName: string }>> {
+  const map = new Map<string, { baseUrl: string; apiKeySecretName: string }>();
+
+  const { data: conv } = await admin
+    .from("conversations")
+    .select("whatsapp_account_id")
+    .eq("id", conversationId)
+    .maybeSingle();
+  if (!conv?.whatsapp_account_id) return map;
+
+  const { data: primary } = await admin
+    .from("whatsapp_accounts")
+    .select("id, provider, openwa_server_id, failover_account_id, provider_config")
+    .eq("id", conv.whatsapp_account_id as string)
+    .maybeSingle();
+  if (!primary || primary.provider !== "openwa") return map; // Fast exit for non-OpenWA
+
+  const accountsToCheck: Array<{
+    id: string;
+    provider: string;
+    openwa_server_id: string | null;
+    provider_config: Record<string, unknown> | null;
+  }> = [primary as typeof primary & { id: string; provider: string }];
+  if (primary.failover_account_id) {
+    const { data: failover } = await admin
+      .from("whatsapp_accounts")
+      .select("id, provider, openwa_server_id, provider_config")
+      .eq("id", primary.failover_account_id as string)
+      .maybeSingle();
+    if (failover) {
+      accountsToCheck.push(failover as typeof failover & { id: string; provider: string });
+    }
+  }
+
+  for (const acc of accountsToCheck) {
+    if (acc.provider !== "openwa") continue;
+    if (!acc.openwa_server_id) continue;
+    const { data: server } = await admin
+      .from("whatsapp_openwa_servers")
+      .select("base_url, api_key_ref")
+      .eq("id", acc.openwa_server_id as string)
+      .maybeSingle();
+    if (server?.base_url && server?.api_key_ref) {
+      map.set(acc.id as string, {
+        baseUrl: String(server.base_url).replace(/\/+$/, ""),
+        apiKeySecretName: String(server.api_key_ref),
+      });
+    }
+  }
+
+  return map;
+}
+
 const WORKER_SECRET_NAME = "SCHEDULED_WORKER_SECRET";
 const BATCH_LIMIT = 50;
 const MAX_REASON_LENGTH = 500;
@@ -156,10 +221,12 @@ servePost(async (req, ctx) => {
   for (const row of rows) {
     try {
       const request = buildScheduledSendRequest(row.conversation_id, row.payload);
-      // Pre-resolve Go server base_url for evolution-go accounts involved in this send.
-      // Registry-based Go accounts don't store base_url in provider_config; it lives on
-      // whatsapp_go_servers. Fast-exits for non-Go conversations (no overhead for most rows).
+      // Pre-resolve Go/OpenWA server config for accounts involved in this send.
+      // Both are registry-based and don't store their base_url (OpenWA: nor the
+      // api key secret name) in provider_config. Fast-exits for other
+      // conversations (no overhead for most rows).
       const goBaseUrls = await resolveGoBaseUrls(admin, row.conversation_id);
+      const openwaServers = await resolveOpenWaServerConfigs(admin, row.conversation_id);
       await processSendRequest({
         input: request,
         sender: buildSystemSender(row.store_id),
@@ -171,6 +238,10 @@ servePost(async (req, ctx) => {
           if (account.provider === "evolution-go" && !providerConfig?.baseUrl) {
             const serverBaseUrl = goBaseUrls.get(account.id);
             if (serverBaseUrl) providerConfig = { ...providerConfig, baseUrl: serverBaseUrl };
+          }
+          if (account.provider === "openwa") {
+            const serverCfg = openwaServers.get(account.id);
+            if (serverCfg) providerConfig = { ...providerConfig, ...serverCfg };
           }
           return buildWhatsAppEngine({
             engine: account.provider,
