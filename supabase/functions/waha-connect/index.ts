@@ -446,15 +446,29 @@ servePost(async (req, ctx) => {
       }
 
       if (!realId) {
-        const contactName = await getWahaContactName(creds.apiKey, fetchFn, {
-          baseUrl: creds.baseUrl,
-          sessionName: probeSession,
-          contactId: `${digits}@lid`,
-        });
+        // The name is only ever written when !dryRun (patch is applied below
+        // only in that branch) and is never surfaced in `entries` — skip the
+        // network round-trip entirely during a dry-run review pass.
+        const contactName = dryRun
+          ? undefined
+          : await getWahaContactName(creds.apiKey, fetchFn, {
+              baseUrl: creds.baseUrl,
+              sessionName: probeSession,
+              contactId: `${digits}@lid`,
+            });
         const patch: Record<string, unknown> = { phone: realPhone };
-        // Only replace placeholder names (name === old phone); never clobber a
-        // human-edited name.
-        if (String(cust.full_name ?? "") === String(cust.phone ?? "")) {
+        // Only replace placeholder names — the pre-fix ghost (name === old
+        // phone) or the post-fix unresolved-lid label — never clobber a
+        // human-edited name. The generic label is only overwritten when a
+        // real contact name was actually found; otherwise it stays (more
+        // informative than falling back to the just-resolved phone number).
+        const isPlaceholderName =
+          String(cust.full_name ?? "") === String(cust.phone ?? "") ||
+          cust.full_name === "Contato do WhatsApp (número oculto)";
+        if (
+          isPlaceholderName &&
+          (contactName || String(cust.full_name ?? "") === String(cust.phone ?? ""))
+        ) {
           patch.full_name = contactName ?? realPhone;
         }
         if ((cust.tags ?? []).includes("lid_unresolved")) {
