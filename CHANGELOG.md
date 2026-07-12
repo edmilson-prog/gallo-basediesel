@@ -4,6 +4,19 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.140.0] — Mirror · 2026-07-12
+
+**Resposta dada direto pelo celular pareado à conta WAHA agora aparece no Atendimento.** Até aqui, se alguém respondesse uma conversa fora da plataforma — direto no aplicativo do WhatsApp, no celular conectado à instância WAHA — essa mensagem ficava invisível no histórico: a plataforma via o evento e descartava. Agora ela é espelhada na conversa certa, sem reabrir atendimentos já encerrados e caindo na fila para alguém assumir quando for uma conversa nova.
+
+### Added
+
+- **Espelhamento de eco de saída (WAHA)** — uma resposta enviada direto do celular pareado passa a aparecer na conversa do Atendimento, com a mesma regra de nunca reabrir uma conversa já resolvida/arquivada (abre uma nova, sem dono, na fila) e sem duplicar mensagens que a própria plataforma já enviou.
+
+### Fixed
+
+- **Eco de saída da WAHA não chegava de jeito nenhum** — a WAHA só entrega mensagens enviadas direto do celular pareado por um evento de webhook (`message.any`) que a plataforma nunca assinava; corrigido para assinar também esse evento (sessões já conectadas antes do fix precisam reiniciar os parâmetros uma vez para passar a recebê-lo).
+- **Mesmo com o evento certo chegando, o destinatário do eco não era reconhecido** — a WAHA identifica o destinatário de uma mensagem autoenviada por um campo diferente do que a plataforma esperava, então a mensagem chegava mas era descartada por "sem telefone"; corrigido para ler o campo certo.
+
 ## [0.139.1] — Dial · 2026-07-12
 
 **Conversas WAHA de remetentes com o número oculto no WhatsApp deixaram de virar clientes-fantasma.** Quando o remetente tem a privacidade "número oculto" ativa, o WhatsApp entrega um identificador `@lid` em vez do telefone — a plataforma vinha convertendo os dígitos desse identificador diretamente em "+telefone", criando um cliente novo e sem sentido a cada remetente distinto. Agora a plataforma resolve o `@lid` para o telefone real na hora de receber a mensagem (e semeia o nome de contato do WhatsApp), e uma correção one-off já limpou os clientes-fantasma que tinham sido criados por esse bug antes do fix.
