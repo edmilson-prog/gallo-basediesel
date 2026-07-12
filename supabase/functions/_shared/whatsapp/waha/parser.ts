@@ -7,10 +7,11 @@
  *   { id, timestamp, from, fromMe, to, body, hasMedia, media?: {url, mimetype, filename, error}, ack }
  * `from`/`to` are `<digits>@c.us` for 1:1 chats; groups (`@g.us`), broadcasts
  * and newsletters are rejected (no 1:1 customer to attach the message to).
- * A sender with WhatsApp's privacy setting enabled arrives as `<digits>@lid`
- * instead of `@c.us` — still 1:1, but the digits are NOT a phone number. Those
- * are surfaced via `fromLid` (with `fromPhone` empty) for the webhook to
- * resolve before customer matching.
+ * A sender (or, on an outbound echo, a recipient) with WhatsApp's privacy
+ * setting enabled arrives as `<digits>@lid` instead of `@c.us` — still 1:1,
+ * but the digits are NOT a phone number. Those are surfaced via `fromLid` /
+ * `toLid` (with `fromPhone` / `toPhone` empty) for the webhook to resolve
+ * before customer matching.
  * `session.status` events are handled directly by the Edge Function, not by
  * this parser (they update `whatsapp_accounts.status`, not a message row).
  */
@@ -96,7 +97,11 @@ export function parseWahaMessageEvent(
     return {
       type: "outbound-echo",
       providerMessageId: payload.id,
-      toPhone: jidToE164(payload.to),
+      // Same @lid caveat as the inbound side, but on the destination: a
+      // recipient behind WhatsApp's privacy setting arrives as `<digits>@lid`
+      // in `to` too — never fabricate a phone from those digits.
+      toPhone: LID_JID.test(payload.to ?? "") ? "" : jidToE164(payload.to),
+      toLid: LID_JID.test(payload.to ?? "") ? payload.to : undefined,
       contentType: content.contentType,
       text: content.text,
       mediaId: content.mediaId,

@@ -184,8 +184,11 @@ export interface IInboundStatus {
 export interface IOutboundEcho {
   type: "outbound-echo";
   providerMessageId: string;
-  /** Destination phone in E.164 (the chat the message was sent to). */
+  /** Destination phone in E.164 (the chat the message was sent to). Empty when toLid is set. */
   toPhone: string;
+  /** WAHA-only: raw `<digits>@lid` destination when the recipient has WhatsApp's privacy
+   *  setting enabled — resolve before using as a phone (same contract as fromLid). */
+  toLid?: string;
   contentType: InboundContentType;
   text?: string;
   /** Provider media handle for download — same semantics as IInboundMessage.mediaId. */

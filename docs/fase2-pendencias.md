@@ -120,6 +120,22 @@ A **loja transacional** (checkout + conta B2C) foi **deferida da Fase 2 por deci
 - **Arquivos:** migration MCP; `providers/notifications/reconciler.ts`; `supabase/tests/rls-regression.sql`.
 - **Issue:** **#44** (fechado).
 
+### C4 — Corrida entre o stamping de `provider_message_id` e o eco do próprio envio {#c4-provider-message-id-race}
+- **🔴 Pendente.** Achado em revisão adversarial (2026-07-12) ao implementar o espelhamento de eco de saída da WAHA — **não é específico da WAHA**, o mesmo padrão existe em Meta/Evolution/Evolution-Go/OpenWA.
+- **O quê:** todo envio faz `INSERT` da mensagem (sem `provider_message_id`) → chama a API do provedor → só então `.update({status:'sent', provider_message_id})`, **sem checar o erro desse update**. Se o webhook de eco/entrega chegar **entre** essas duas etapas, a dedup por `provider_message_id` (que roda antes de qualquer escrita no webhook) não encontra a linha ainda não carimbada, insere uma segunda linha de mensagem — e o `update` original, ao rodar depois, colide com o índice único `messages_provider_message_id_key` (migration `20260612082548_messages_unique_provider_message_id.sql`) e falha com `23505`, que **não é tratado em nenhum lugar do código** (confirmado por busca — nenhuma referência a `23505` em `supabase/functions`). Resultado: a mensagem original fica presa em `status='queued'` para sempre, e uma duplicata (sem autor, no caso do eco da WAHA) aparece com o conteúdo real.
+- **Por quê importa:** mensagem duplicada/travada é visível pro atendente e confunde o histórico da conversa; é uma corrida rara (a resposta da API do provedor normalmente chega bem antes do eco), mas real e sistêmica.
+- **Arquivos:** `supabase/functions/_shared/whatsappSendAdapter.ts` (`markMessageSent`), `supabase/functions/_shared/whatsapp/webhook/core.ts` (dedup do eco), `supabase/functions/waha-send/index.ts`, `supabase/functions/waha-webhook/index.ts`.
+- **Direção do fix (não implementado):** checar o `update` de `provider_message_id` por erro `23505`; em caso de colisão, é prova de que o webhook já inseriu a linha autoritativa do eco — apagar/suprimir a linha `queued` órfã (ou remapear o id do lado do cliente) em vez de deixar as duas.
+- **Issue:** nenhuma aberta ainda.
+
+### C5 — Caminho de entrada do webhook não retorna cedo em falha de INSERT de mensagem {#c5-inbound-message-insert-fallthrough}
+- **🔴 Pendente.** Achado na mesma revisão (2026-07-12) — **pré-existente**, não introduzido pela leva de mudanças do dia; contraste notado porque o novo caminho de eco de saída *foi* implementado corretamente.
+- **O quê:** em `whatsapp-webhook/index.ts` (linhas ~606-636 na versão revisada) e no equivalente do `waha-webhook/index.ts`, quando o `INSERT` da mensagem de entrada falha (`messageErr`), o código **não retorna** — cai direto no passo de mídia (baixa/sobe mídia pra um `messageId` que nunca existiu, órfã no Storage) e ainda loga sucesso (200) no `integration_logs`. O caminho de eco de saída, implementado hoje, já trata isso certo (retorna cedo em `echoMessageErr`).
+- **Por quê importa:** baixa severidade — `messageErr` já é raro (mesmo padrão de insert usado em todo o resto do arquivo); o efeito é mídia órfã no Storage + um log de "sucesso" que não reflete a realidade, dificultando diagnóstico futuro.
+- **Arquivos:** `supabase/functions/whatsapp-webhook/index.ts`, `supabase/functions/waha-webhook/index.ts`.
+- **Direção do fix (não implementado):** `return json({ ok: true, ignored: "message-insert-failed" }, 200)` logo após o branch de `messageErr`, espelhando o retorno antecipado que o caminho de eco já faz.
+- **Issue:** nenhuma aberta ainda.
+
 ---
 
 ## D. DR & Observabilidade — ativação (PRD-109/110, entregues em 2026-06-10)

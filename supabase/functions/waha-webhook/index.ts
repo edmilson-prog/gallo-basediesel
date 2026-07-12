@@ -9,13 +9,16 @@
  * bad/missing HMAC signature — no DB write happens before it's verified.
  *
  * Handles two event kinds:
- *   - "message": persisted into conversations/messages (same tables the rest
- *     of the Inbox reads — this is what puts WAHA sessions in the same
- *     Atendimento screen). Reuse-or-reopen-or-create conversation semantics
- *     and a separate media download step mirror the real `whatsapp-webhook`
+ *   - "message": either an inbound customer message (persisted with
+ *     reuse-or-reopen-or-create conversation semantics) or an outbound echo
+ *     (`fromMe: true` — someone replied straight from the paired phone,
+ *     outside the platform) mirrored with open-only-lookup semantics so it
+ *     never reopens a closed conversation. Both paths land in the same
+ *     conversations/messages tables the rest of the Inbox reads, with a
+ *     separate media download step. Mirrors the real `whatsapp-webhook`
  *     function's tested contract (see _shared/whatsapp/webhook/core.ts).
  *   - "session.status": updates whatsapp_accounts.status.
- * Any other event is acknowledged (200) and ignored.
+ * Any other envelope event is acknowledged (200) and ignored.
  *
  * Spec: docs/superpowers/specs/2026-07-10-waha-whatsapp-integration-design.md
  */
@@ -180,6 +183,77 @@ Deno.serve(async (req) => {
     }
   }
 
+  // Shared phone→customer lookup (suffix pre-filter + exact digit match —
+  // phone formatting varies in the base: +55..., (55) 9..., etc.). Used by
+  // both the inbound-message and outbound-echo paths below.
+  async function findCustomerByPhone(phoneDigits: string): Promise<string | undefined> {
+    const { data: candidates } = await admin
+      .from("customers")
+      .select("id, phone")
+      .eq("store_id", accountRow.store_id as string)
+      .like("phone", `%${phoneDigits.slice(-8)}`);
+    return (candidates ?? []).find((c) => String(c.phone).replace(/\D/g, "") === phoneDigits)
+      ?.id as string | undefined;
+  }
+
+  // Shared media download+upload — best-effort, never fails the caller (only
+  // updates the message's own media_download_status). Used by both the
+  // inbound-message and outbound-echo paths below.
+  async function attachMedia(
+    mediaId: string,
+    conversationId: string,
+    messageId: string,
+  ): Promise<void> {
+    try {
+      const apiKey = await getApiKey();
+      if (!apiKey) throw new Error("missing server api key");
+      const media = await downloadWahaMedia(apiKey, globalThis.fetch, mediaId);
+      const ext = extForMimetype(media.mimeType);
+      const path = `conversations/${conversationId}/${messageId}/media.${ext}`;
+      const { error: uploadError } = await admin.storage
+        .from("whatsapp-media")
+        .upload(path, media.data, { contentType: media.mimeType, upsert: true });
+      if (uploadError) throw new Error(uploadError.message);
+      await admin
+        .from("messages")
+        .update({ media_url: path, media_download_status: "ok" })
+        .eq("id", messageId);
+    } catch (err) {
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          msg: "waha webhook: media download failed",
+          error: err instanceof Error ? err.message : String(err),
+        }),
+      );
+      await admin
+        .from("messages")
+        .update({ media_url: null, media_download_status: "failed" })
+        .eq("id", messageId);
+    }
+  }
+
+  // Shared webhook-completion marker (diagnostics only — queried by the ops
+  // path when tracing a "message never arrived" report). Used by both the
+  // inbound-message and outbound-echo paths below.
+  async function logWebhookSuccess(): Promise<void> {
+    await admin.from("integration_logs").insert({
+      integration_name: "whatsapp_waha",
+      direction: "inbound",
+      endpoint: "/waha-webhook",
+      http_status: 200,
+      trace_id: null,
+      request_payload: { event: envelope.event, session: envelope.session },
+    });
+  }
+
+  // Needed by both the inbound @lid resolution below and the outbound-echo
+  // toLid resolution — computed once, before either branch.
+  const sessionName = String(
+    (accountRow.provider_config as Record<string, unknown> | null)?.sessionName ?? "",
+  );
+  const wahaBaseUrl = String(server.base_url ?? "").replace(/\/+$/, "");
+
   if (envelope.event === "session.status") {
     const payload = envelope.payload as { status?: string } | null;
     const accountStatus = wahaStateToAccountStatus(String(payload?.status ?? ""));
@@ -214,10 +288,186 @@ Deno.serve(async (req) => {
   }
 
   if (parsed.type === "outbound-echo") {
-    // Phase 1: echoes from the phone/companion app are acknowledged but not
-    // mirrored — mirroring is deferred (matches the design doc's phase-2 list).
+    // Mirror what the team sends FROM THE PHONE (outside the platform) —
+    // otherwise a reply given directly on WhatsApp leaves an invisible gap
+    // in the Atendimento thread. App-sent messages (via waha-send) echo back
+    // too, so dedup by provider_message_id BEFORE any write: waha-send
+    // stamps the same id WAHA later reports here as payload.id.
+    const { data: existingOutbound } = await admin
+      .from("messages")
+      .select("id")
+      .eq("provider_message_id", parsed.providerMessageId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (existingOutbound) {
+      await markProcessed();
+      return json({ ok: true, duplicate: "app-send echo" }, 200);
+    }
+
+    // Same @lid caveat as the inbound path, mirrored on the destination: the
+    // team may reply to a contact whose privacy setting hides their number,
+    // so `to` also arrives as `<digits>@lid` — resolve it the same way
+    // before it can be mistaken for a phone.
+    let toPhone = parsed.toPhone;
+    let toLidUnresolved = false;
+    if (!toPhone && parsed.toLid) {
+      try {
+        const apiKey = await getApiKey();
+        if (!apiKey) throw new Error("missing server api key");
+        const { phone } = await resolveWahaLid(apiKey, globalThis.fetch, {
+          baseUrl: wahaBaseUrl,
+          sessionName,
+          lid: parsed.toLid,
+          timeoutMs: 5_000,
+        });
+        if (phone) toPhone = phone;
+      } catch (err) {
+        console.warn(
+          JSON.stringify({
+            level: "warn",
+            msg: "waha webhook: echo lid resolution failed",
+            lid: parsed.toLid,
+            error: err instanceof Error ? err.message : String(err),
+          }),
+        );
+      }
+      if (!toPhone) {
+        const lidDigits = parsed.toLid.split("@")[0]?.replace(/\D/g, "") ?? "";
+        if (!lidDigits) {
+          await markProcessed();
+          return json({ ok: true, ignored: "no-phone" }, 200);
+        }
+        toPhone = `+${lidDigits}`;
+        toLidUnresolved = true;
+      }
+    }
+    if (!toPhone) {
+      await markProcessed();
+      return json({ ok: true, ignored: "no-phone" }, 200);
+    }
+    const echoPhoneDigits = toPhone.replace(/\D/g, "");
+
+    let echoCustomerId = await findCustomerByPhone(echoPhoneDigits);
+    if (!echoCustomerId) {
+      // Same anchor-only contract as the inbound path: no seller_id (wallet
+      // owner) and tags:["pending_review"] — a human converts it manually.
+      // An unresolved lid must NEVER surface its digits as a name (spec §5
+      // risk 3) — same neutral pt-BR label as the inbound fallback.
+      const { data: createdEchoCustomer, error: echoCustomerErr } = await admin
+        .from("customers")
+        .insert({
+          store_id: accountRow.store_id,
+          type: "B2C", // customers_type_check requires UPPERCASE 'B2C'
+          phone: toPhone,
+          full_name: toLidUnresolved ? "Contato do WhatsApp (número oculto)" : toPhone,
+          status: "ativo",
+          tags: toLidUnresolved ? ["pending_review", "lid_unresolved"] : ["pending_review"],
+        })
+        .select("id")
+        .single();
+      if (echoCustomerErr) {
+        console.warn(
+          JSON.stringify({
+            level: "warn",
+            msg: "waha webhook: echo customer insert failed",
+            error: echoCustomerErr.message,
+          }),
+        );
+        return json({ ok: true, ignored: "echo-customer-insert-failed" }, 200);
+      }
+      echoCustomerId = createdEchoCustomer.id as string;
+    }
+
+    // OPEN-ONLY lookup (excludes resolvida/arquivada): an echo is
+    // business-sent and must NEVER reopen a closed conversation — it spawns
+    // a fresh one instead, same rule as the reference `whatsapp-webhook`
+    // pipeline (spec 2026-07-03 §1.5).
+    const { data: openEchoConversation } = await admin
+      .from("conversations")
+      .select("id")
+      .eq("customer_id", echoCustomerId)
+      .eq("whatsapp_account_id", accountRow.id as string)
+      .not("status", "in", `(${CLOSED_CONVERSATION_STATUSES.join(",")})`)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    let echoConversationId: string;
+    if (!openEchoConversation) {
+      const { data: createdEchoConversation, error: echoConvErr } = await admin
+        .from("conversations")
+        .insert({
+          store_id: accountRow.store_id,
+          customer_id: echoCustomerId,
+          whatsapp_account_id: accountRow.id,
+          // UNASSIGNED (pool): the webhook cannot know which staff member
+          // sent from the phone, so it never pins the chat — it lands
+          // queued ('aguardando') for someone to claim in the app.
+          assigned_seller_id: null,
+          channel: "whatsapp",
+          status: "aguardando",
+          last_message_at: parsed.timestamp,
+          unread_count: 0,
+        })
+        .select("id")
+        .single();
+      if (echoConvErr) {
+        console.warn(
+          JSON.stringify({
+            level: "warn",
+            msg: "waha webhook: echo conversation insert failed",
+            error: echoConvErr.message,
+          }),
+        );
+        return json({ ok: true, ignored: "echo-conversation-insert-failed" }, 200);
+      }
+      echoConversationId = createdEchoConversation.id as string;
+    } else {
+      echoConversationId = openEchoConversation.id as string;
+    }
+
+    const echoMessageId = crypto.randomUUID();
+    const { error: echoMessageErr } = await admin.from("messages").insert({
+      id: echoMessageId,
+      conversation_id: echoConversationId,
+      direction: "out",
+      author_type: "seller",
+      author_id: null, // unknown — no session ties a phone-sent message to a specific staff member
+      provider: "waha",
+      text: parsed.text ?? parsed.mediaCaption ?? "",
+      media_type: ["text", "unknown"].includes(parsed.contentType) ? null : parsed.contentType,
+      media_filename: parsed.mediaFilename ?? null,
+      status: "sent",
+      sent_at: parsed.timestamp,
+      provider_message_id: parsed.providerMessageId,
+      webhook_event_ids: [eventKey],
+    });
+    if (echoMessageErr) {
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          msg: "waha webhook: echo message insert failed",
+          error: echoMessageErr.message,
+        }),
+      );
+      return json({ ok: true, ignored: "echo-message-insert-failed" }, 200);
+    }
+    // Mark processed only now that the message has actually landed — a retry
+    // of this event while echoMessageErr was set will reprocess cleanly.
     await markProcessed();
-    return json({ ok: true, ignored: "outbound-echo" }, 200);
+
+    // Advance-only bump — a late-arriving echo must never walk
+    // last_message_at backwards.
+    await admin
+      .from("conversations")
+      .update({ last_message_at: parsed.timestamp })
+      .eq("id", echoConversationId)
+      .lt("last_message_at", parsed.timestamp);
+
+    if (parsed.mediaId) await attachMedia(parsed.mediaId, echoConversationId, echoMessageId);
+    await logWebhookSuccess();
+    return json({ ok: true }, 200);
   }
 
   // ===== @lid resolution (privacy id → real phone) ===========================
@@ -227,11 +477,6 @@ Deno.serve(async (req) => {
   // error degrades to the unresolved fallback below, never dropping the
   // message. Short timeout (5s): this runs before markProcessed, and a slow
   // lookup here must not outlast WAHA's own webhook-delivery timeout/retry.
-  const sessionName = String(
-    (accountRow.provider_config as Record<string, unknown> | null)?.sessionName ?? "",
-  );
-  const wahaBaseUrl = String(server.base_url ?? "").replace(/\/+$/, "");
-
   let fromPhone = parsed.fromPhone;
   let lidUnresolved = false;
   if (!fromPhone && parsed.fromLid) {
@@ -276,18 +521,7 @@ Deno.serve(async (req) => {
   const phoneDigits = fromPhone.replace(/\D/g, "");
 
   // ===== Customer resolution (Correction 1) ==================================
-  // Find by suffix pre-filter + exact digit match in code — phone formatting
-  // varies in the base (+55..., (55) 9..., etc.).
-  const { data: candidateCustomers } = await admin
-    .from("customers")
-    .select("id, phone")
-    .eq("store_id", accountRow.store_id as string)
-    .like("phone", `%${phoneDigits.slice(-8)}`);
-  const existingCustomer = (candidateCustomers ?? []).find(
-    (c) => String(c.phone).replace(/\D/g, "") === phoneDigits,
-  );
-
-  let customerId = existingCustomer?.id as string | undefined;
+  let customerId = await findCustomerByPhone(phoneDigits);
   if (!customerId) {
     // Seed the display name from the WhatsApp contact (pushname) — best-effort,
     // one extra GET only on the new-customer path. The lid id is the known-good
@@ -437,44 +671,8 @@ Deno.serve(async (req) => {
   }
 
   // ===== Media (separate step, never fails the webhook response) ============
-  if (parsed.mediaId) {
-    try {
-      const apiKey = await getApiKey();
-      if (!apiKey) throw new Error("missing server api key");
-      const media = await downloadWahaMedia(apiKey, globalThis.fetch, parsed.mediaId);
-      const ext = extForMimetype(media.mimeType);
-      const path = `conversations/${conversationId}/${messageId}/media.${ext}`;
-      const { error: uploadError } = await admin.storage
-        .from("whatsapp-media")
-        .upload(path, media.data, { contentType: media.mimeType, upsert: true });
-      if (uploadError) throw new Error(uploadError.message);
-      await admin
-        .from("messages")
-        .update({ media_url: path, media_download_status: "ok" })
-        .eq("id", messageId);
-    } catch (err) {
-      console.warn(
-        JSON.stringify({
-          level: "warn",
-          msg: "waha webhook: media download failed",
-          error: err instanceof Error ? err.message : String(err),
-        }),
-      );
-      await admin
-        .from("messages")
-        .update({ media_url: null, media_download_status: "failed" })
-        .eq("id", messageId);
-    }
-  }
+  if (parsed.mediaId) await attachMedia(parsed.mediaId, conversationId, messageId);
 
-  await admin.from("integration_logs").insert({
-    integration_name: "whatsapp_waha",
-    direction: "inbound",
-    endpoint: "/waha-webhook",
-    http_status: 200,
-    trace_id: null,
-    request_payload: { event: envelope.event, session: envelope.session },
-  });
-
+  await logWebhookSuccess();
   return json({ ok: true }, 200);
 });
