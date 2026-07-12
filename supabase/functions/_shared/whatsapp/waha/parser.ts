@@ -26,7 +26,7 @@ import type { IInboundMessage, InboundContentType, IOutboundEcho } from "../type
 const NON_INDIVIDUAL_JID = /@(g\.us|broadcast|newsletter)$/;
 const LID_JID = /@lid$/;
 
-function jidToE164(jid: string | undefined): string {
+export function jidToE164(jid: string | undefined): string {
   const digits = (jid ?? "").split("@")[0]?.replace(/\D/g, "") ?? "";
   return digits.length > 0 ? `+${digits}` : "";
 }
@@ -55,7 +55,7 @@ function tsToIso(value: number | undefined): string {
     : new Date().toISOString();
 }
 
-function contentTypeFromMimetype(mimetype: string | undefined): InboundContentType {
+export function contentTypeFromMimetype(mimetype: string | undefined): InboundContentType {
   if (!mimetype) return "unknown";
   if (mimetype.startsWith("image/")) return "image";
   if (mimetype.startsWith("audio/")) return "audio";
@@ -63,14 +63,14 @@ function contentTypeFromMimetype(mimetype: string | undefined): InboundContentTy
   return "document";
 }
 
-interface IParsedContent {
+export interface IParsedContent {
   contentType: InboundContentType;
   text?: string;
   mediaId?: string;
   mediaFilename?: string;
 }
 
-function extractContent(payload: IWahaMessagePayload): IParsedContent {
+export function extractContent(payload: IWahaMessagePayload): IParsedContent {
   if (payload.hasMedia && payload.media?.url) {
     return {
       contentType: contentTypeFromMimetype(payload.media.mimetype),
