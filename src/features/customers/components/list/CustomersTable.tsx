@@ -30,6 +30,8 @@ import {
   getCustomerDisplay,
   getCustomerName,
 } from "../../utils/customerDisplay";
+import { resolveAbc, resolveLastPurchaseAt, resolvePurchaseStats } from "../../utils/dintecStats";
+import { DintecSourceBadge } from "../DintecSourceBadge";
 import {
   COLUMN_LABELS,
   MANDATORY_COLUMNS,
@@ -273,7 +275,9 @@ function CustomerRow({
 }: ICustomerRowProps) {
   const display = getCustomerDisplay(customer);
   const name = getCustomerName(customer);
-  const recencyDays = daysSince(customer.lastPurchaseAt);
+  const recency = resolveLastPurchaseAt(customer);
+  const recencyDays = recency ? daysSince(recency.value) : null;
+  const recencyFromDintec = recency?.fromDintec ?? false;
 
   return (
     <TableRow
@@ -295,6 +299,7 @@ function CustomerRow({
             display,
             name,
             recencyDays,
+            recencyFromDintec,
             searchTerm,
             sellersById,
             onOpenDetail,
@@ -311,13 +316,15 @@ interface ICellContext {
   display: ReturnType<typeof getCustomerDisplay>;
   name: string;
   recencyDays: number | null;
+  recencyFromDintec: boolean;
   searchTerm: string;
   sellersById: Map<ID, ISellerLookupEntry>;
   onOpenDetail: (id: ID) => void;
 }
 
 function renderCell(col: ColumnId, ctx: ICellContext) {
-  const { customer, display, name, recencyDays, searchTerm, sellersById, onOpenDetail } = ctx;
+  const { customer, display, name, recencyDays, recencyFromDintec, searchTerm, sellersById, onOpenDetail } =
+    ctx;
   switch (col) {
     case "name":
       return (
@@ -352,13 +359,17 @@ function renderCell(col: ColumnId, ctx: ICellContext) {
         </Badge>
       );
     case "abc": {
-      if (!customer.abcClass) {
+      const abc = resolveAbc(customer);
+      if (!abc) {
         return <span className="text-xs text-muted-foreground">—</span>;
       }
       return (
-        <Badge variant="outline" className={cn("text-xs", ABC_BADGE_CLASSES[customer.abcClass])}>
-          {customer.abcClass}
-        </Badge>
+        <span className="flex items-center gap-1">
+          <Badge variant="outline" className={cn("text-xs", ABC_BADGE_CLASSES[abc.abcClass])}>
+            {abc.abcClass}
+          </Badge>
+          {abc.fromDintec && <DintecSourceBadge />}
+        </span>
       );
     }
     case "status":
@@ -391,17 +402,20 @@ function renderCell(col: ColumnId, ctx: ICellContext) {
         </div>
       );
     }
-    case "ticketMedio":
+    case "ticketMedio": {
+      const stat = resolvePurchaseStats(customer).ticketMedio;
       return (
-        <span className="text-xs tabular-nums">
-          {formatBRLCompact(customer.purchaseStats?.ticketMedio)}
+        <span className="flex items-center gap-1 text-xs tabular-nums">
+          {formatBRLCompact(stat?.value)}
+          {stat?.fromDintec && <DintecSourceBadge />}
         </span>
       );
+    }
     case "recency":
       return (
         <span
           className={cn(
-            "text-xs tabular-nums",
+            "flex items-center gap-1 text-xs tabular-nums",
             recencyDays !== null && recencyDays > 180 && "text-rose-600 dark:text-rose-400",
             recencyDays !== null && recencyDays > 60 && recencyDays <= 180
               ? "text-amber-600 dark:text-amber-400"
@@ -409,14 +423,18 @@ function renderCell(col: ColumnId, ctx: ICellContext) {
           )}
         >
           {recencyDays === null ? "—" : `${recencyDays}d`}
+          {recencyFromDintec && <DintecSourceBadge />}
         </span>
       );
-    case "ltv":
+    case "ltv": {
+      const stat = resolvePurchaseStats(customer).ltv;
       return (
-        <span className="text-xs tabular-nums">
-          {formatBRLCompact(customer.purchaseStats?.ltv)}
+        <span className="flex items-center gap-1 text-xs tabular-nums">
+          {formatBRLCompact(stat?.value)}
+          {stat?.fromDintec && <DintecSourceBadge />}
         </span>
       );
+    }
     case "tags": {
       const shown = customer.tags.slice(0, 3);
       const extra = customer.tags.length - shown.length;
@@ -437,12 +455,15 @@ function renderCell(col: ColumnId, ctx: ICellContext) {
     }
     case "city":
       return <span className="text-xs text-foreground">{customer.address?.city ?? "—"}</span>;
-    case "lastConversation":
+    case "lastConversation": {
+      const last = resolveLastPurchaseAt(customer);
       return (
-        <span className="text-xs tabular-nums text-foreground">
-          {formatDateBR(customer.lastPurchaseAt)}
+        <span className="flex items-center gap-1 text-xs tabular-nums text-foreground">
+          {formatDateBR(last?.value)}
+          {last?.fromDintec && <DintecSourceBadge />}
         </span>
       );
+    }
     case "createdAt":
       return (
         <span className="text-xs tabular-nums text-foreground">
