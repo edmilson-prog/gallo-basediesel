@@ -60,6 +60,9 @@ import {
   type IWhatsAppAccountMetrics,
 } from "@/providers/data";
 import { InstanceAccessSheet } from "./InstanceAccessSheet";
+import { TestMessageDialog } from "./TestMessageDialog";
+import { ImportConversationsDialog } from "./ImportConversationsDialog";
+import { SyncAvatarsDialog } from "./SyncAvatarsDialog";
 import { resolveAccessRecipients } from "../utils/accessRecipients";
 import { INSTANCE_PALETTE } from "@/features/conversations/utils/instanceAccent";
 import { invokeWaha, WahaConnectError } from "../api/wahaConnect";
@@ -389,6 +392,9 @@ export function WahaSection({ storeId }: { storeId: string }) {
   const [accessAccount, setAccessAccount] = useState<IWhatsAppAccount | null>(null);
   const [paramsTarget, setParamsTarget] = useState<IWhatsAppAccount | null>(null);
   const [connectionInfoTarget, setConnectionInfoTarget] = useState<IWhatsAppAccount | null>(null);
+  const [testTarget, setTestTarget] = useState<IWhatsAppAccount | null>(null);
+  const [importTarget, setImportTarget] = useState<IWhatsAppAccount | null>(null);
+  const [syncAvatarsTarget, setSyncAvatarsTarget] = useState<IWhatsAppAccount | null>(null);
   const [linkedBlockedId, setLinkedBlockedId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -934,6 +940,48 @@ export function WahaSection({ storeId }: { storeId: string }) {
                         <Button
                           variant="outline"
                           size="sm"
+                          disabled={row.status !== "connected"}
+                          onClick={() => setTestTarget(row)}
+                          title={
+                            row.status === "connected"
+                              ? "Envia um texto padrão para validar a conexão"
+                              : "Disponível com a sessão conectada"
+                          }
+                        >
+                          <Icon icon="mdi:message-check-outline" size={14} className="mr-1.5" aria-hidden />
+                          Mensagem de teste
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={row.status !== "connected"}
+                          onClick={() => setImportTarget(row)}
+                          title={
+                            row.status === "connected"
+                              ? "Importa o histórico de conversas que a sessão WAHA tem armazenado"
+                              : "Disponível com a sessão conectada"
+                          }
+                        >
+                          <Icon icon="mdi:download-multiple" size={14} className="mr-1.5" aria-hidden />
+                          Importar conversas
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={row.status !== "connected"}
+                          onClick={() => setSyncAvatarsTarget(row)}
+                          title={
+                            row.status === "connected"
+                              ? "Busca no WhatsApp a foto de perfil dos contatos e exibe nas Conversas"
+                              : "Disponível com a sessão conectada"
+                          }
+                        >
+                          <Icon icon="mdi:image-sync-outline" size={14} className="mr-1.5" aria-hidden />
+                          Sincronizar fotos
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           disabled={busy}
                           onClick={() => openConnection(row)}
                         >
@@ -1187,6 +1235,10 @@ export function WahaSection({ storeId }: { storeId: string }) {
           onReconnect={() => void handleRepair(connectionInfoTarget)}
         />
       )}
+
+      <TestMessageDialog account={testTarget} onClose={() => setTestTarget(null)} />
+      <ImportConversationsDialog account={importTarget} onClose={() => setImportTarget(null)} />
+      <SyncAvatarsDialog account={syncAvatarsTarget} onClose={() => setSyncAvatarsTarget(null)} />
     </div>
   );
 }
