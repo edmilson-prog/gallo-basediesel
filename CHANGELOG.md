@@ -4,6 +4,15 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.139.1] — Dial · 2026-07-12
+
+**Conversas WAHA de remetentes com o número oculto no WhatsApp deixaram de virar clientes-fantasma.** Quando o remetente tem a privacidade "número oculto" ativa, o WhatsApp entrega um identificador `@lid` em vez do telefone — a plataforma vinha convertendo os dígitos desse identificador diretamente em "+telefone", criando um cliente novo e sem sentido a cada remetente distinto. Agora a plataforma resolve o `@lid` para o telefone real na hora de receber a mensagem (e semeia o nome de contato do WhatsApp), e uma correção one-off já limpou os clientes-fantasma que tinham sido criados por esse bug antes do fix.
+
+### Fixed
+
+- **Recepção WAHA resolve `@lid` para o telefone real** — remetentes com privacidade ativa não geram mais um cliente com telefone impossível (`+67186324430852`, por exemplo); a plataforma agora consulta a API da WAHA para descobrir o telefone real antes de criar/achar o cliente, e semeia o nome de contato do WhatsApp em qualquer cliente novo (não só os que vinham de `@lid`). Quando a resolução falha, o cliente entra com um rótulo neutro ("Contato do WhatsApp (número oculto)") e uma tag de triagem — nunca mais os dígitos do identificador como se fossem um telefone validado.
+- **Clientes-fantasma existentes corrigidos em produção** — uma correção one-off (Owner-only, executada com revisão prévia de cada caso) resolveu os clientes já criados com telefone-fantasma antes do fix, fundindo-os nos clientes reais correspondentes quando já existiam (conversas e mensagens repontadas) ou corrigindo o telefone no próprio registro quando não.
+
 ## [0.139.0] — Dial · 2026-07-10
 
 **A instância WAHA agora tem um painel de gestão completo e parâmetros de sessão configuráveis.** O card do WhatsApp WAHA (Configurações → WhatsApp → aba WAHA) deixou de ser uma linha simples e passou a espelhar os cards das outras contas: quem tem acesso ao número, cor de identificação, status e saúde da conexão, estatísticas de envio (30 dias) e um aviso destacado para reconectar quando a sessão cai — inclusive o estado "aguardando leitura do QR". Além disso, dá para ajustar como cada sessão se comporta — ignorar grupos, status, canais e transmissões para manter o Atendimento limpo, ligar depuração e configurar proxy — direto na criação (seção "Avançado") ou depois, pelo botão "Parâmetros", com um único "Salvar e reiniciar" que aplica sem precisar ler o QR de novo.
