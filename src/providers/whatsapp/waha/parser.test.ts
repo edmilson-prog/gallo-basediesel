@@ -72,14 +72,17 @@ describe("parseWahaMessageEvent", () => {
     expect(result.mediaFilename).toBe("nota.pdf");
   });
 
-  it("parses fromMe=true as an outbound echo", () => {
+  it("parses fromMe=true as an outbound echo, reading the recipient from `from` (not `to`)", () => {
+    // Real WAHA 2026.6.2 message.any payloads set `to: null` on every
+    // fromMe:true envelope — `from` is the chat/recipient JID instead
+    // (confirmed via a live capture). This fixture mirrors that shape.
     const result = parseWahaMessageEvent(
       {
         id: "id4",
         timestamp: 1720000003,
-        from: "5511999998888@c.us",
+        from: "5511988887777@c.us",
         fromMe: true,
-        to: "5511988887777@c.us",
+        to: undefined,
         body: "Retorno já já",
         hasMedia: false,
       },
@@ -149,9 +152,9 @@ describe("parseWahaMessageEvent", () => {
       {
         id: "id8",
         timestamp: 1720000007,
-        from: "5511999998888@c.us",
+        from: "67186324430852@lid",
         fromMe: true,
-        to: "67186324430852@lid",
+        to: undefined,
         body: "Retorno já já",
         hasMedia: false,
       },
@@ -168,9 +171,9 @@ describe("parseWahaMessageEvent", () => {
       {
         id: "id9",
         timestamp: 1720000008,
-        from: "5511999998888@c.us",
+        from: "5511988887777@c.us",
         fromMe: true,
-        to: "5511988887777@c.us",
+        to: undefined,
         body: "Retorno já já",
         hasMedia: false,
       },
@@ -179,5 +182,27 @@ describe("parseWahaMessageEvent", () => {
     if (result.type !== "outbound-echo") throw new Error("expected outbound-echo");
     expect(result.toPhone).toBe("+5511988887777");
     expect(result.toLid).toBeUndefined();
+  });
+
+  it("matches a real WAHA 2026.6.2 message.any capture (fromMe:true, to:null, @lid chat)", () => {
+    // Verbatim shape from a live webhook capture (n8n debug hook), trimmed to
+    // the fields this parser reads — `to` really is `null`, not omitted.
+    const result = parseWahaMessageEvent(
+      {
+        id: "true_250358089674933@lid_A56A1A16962657FFAE651FAD8278C623",
+        timestamp: 1783870875,
+        from: "250358089674933@lid",
+        fromMe: true,
+        to: null as unknown as undefined,
+        body: "TesteEco",
+        hasMedia: false,
+      },
+      accountId,
+    );
+    expect(result.type).toBe("outbound-echo");
+    if (result.type !== "outbound-echo") throw new Error("expected outbound-echo");
+    expect(result.toPhone).toBe("");
+    expect(result.toLid).toBe("250358089674933@lid");
+    expect(result.text).toBe("TesteEco");
   });
 });
