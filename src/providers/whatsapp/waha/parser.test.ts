@@ -107,4 +107,40 @@ describe("parseWahaMessageEvent", () => {
       ),
     ).toThrow();
   });
+
+  it("marks an @lid sender as fromLid and leaves fromPhone empty", () => {
+    const result = parseWahaMessageEvent(
+      {
+        id: "id6",
+        timestamp: 1720000005,
+        from: "67186324430852@lid",
+        fromMe: false,
+        to: "5511999998888@c.us",
+        body: "oi",
+        hasMedia: false,
+      },
+      accountId,
+    );
+    if (result.type !== "message") throw new Error("expected message");
+    expect(result.fromPhone).toBe("");
+    expect(result.fromLid).toBe("67186324430852@lid");
+  });
+
+  it("does not set fromLid for a regular @c.us sender", () => {
+    const result = parseWahaMessageEvent(
+      {
+        id: "id7",
+        timestamp: 1720000006,
+        from: "5511988887777@c.us",
+        fromMe: false,
+        to: "5511999998888@c.us",
+        body: "oi",
+        hasMedia: false,
+      },
+      accountId,
+    );
+    if (result.type !== "message") throw new Error("expected message");
+    expect(result.fromPhone).toBe("+5511988887777");
+    expect(result.fromLid).toBeUndefined();
+  });
 });
