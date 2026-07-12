@@ -109,7 +109,7 @@ servePost(async (req, ctx) => {
   if (!action || !ACTIONS.includes(action)) {
     throw new HttpError(
       422,
-      "action (create|ping|backfillLids|qr|state|logout|restart|delete|updateConfig) é obrigatório",
+      "action (create|ping|backfillLids|qr|state|logout|restart|test-message|delete|updateConfig) é obrigatório",
     );
   }
 

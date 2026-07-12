@@ -22,7 +22,7 @@ import {
 import { sendWahaTestMessage } from "../api/wahaConnect";
 
 /**
- * Ad-hoc test send for a connected Evolution account (SIGPRO-inspired):
+ * Ad-hoc test send for a connected Evolution or WAHA account (SIGPRO-inspired):
  * validates the pairing end-to-end without touching the Inbox — the edge
  * sends through the real engine but never persists a conversation message.
  */
