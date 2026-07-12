@@ -48,10 +48,18 @@ export function InboxPage() {
   const [newConvOpen, setNewConvOpen] = useState(false);
   useEffect(() => {
     let cancelled = false;
-    void whatsappAccountsProvider
-      .list({ storeId })
-      .then((list) => {
-        if (!cancelled) setAccounts(list);
+    // WAHA sessions are excluded from the generic `list()` (its `neq('provider','waha')`
+    // shields the Contas tab / failover pickers / templates screen, which have
+    // provider-specific logic that breaks on a WAHA row). The Inbox filter and origin
+    // resolution only need label/color, which a WAHA row carries fine — so fold WAHA
+    // instances back in here via the dedicated `listWaha`. Additive and fail-safe: a
+    // WAHA load error never blocks the base account list.
+    void Promise.all([
+      whatsappAccountsProvider.list({ storeId }),
+      whatsappAccountsProvider.listWaha({ storeId }).catch(() => [] as IWhatsAppAccount[]),
+    ])
+      .then(([base, waha]) => {
+        if (!cancelled) setAccounts([...base, ...waha]);
       })
       .catch(() => {
         if (!cancelled) setAccounts([]);
