@@ -131,8 +131,15 @@ export interface ISendResult {
 export interface IInboundMessage {
   type: "message";
   providerMessageId: string;
-  /** Sender phone in E.164. */
+  /** Sender phone in E.164. Empty when the sender arrived as an @lid (see fromLid). */
   fromPhone: string;
+  /**
+   * WhatsApp @lid privacy identifier (`<digits>@lid`) — set (with fromPhone
+   * empty) when the sender hides their phone number. Consumers resolve it to
+   * the real phone via the provider (WAHA `GET /{session}/lids/{lid}`)
+   * BEFORE customer matching.
+   */
+  fromLid?: string;
   /** Receiving account phone in E.164 — used to resolve `accountId`. */
   toAccountPhone: string;
   /** `whatsapp_accounts.id` resolved from `toAccountPhone`. */
