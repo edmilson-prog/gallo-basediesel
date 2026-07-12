@@ -13,6 +13,7 @@
  *   { wahaServerId, action: 'ping' }
  *   { storeId, dryRun?, cursor?, action: 'backfillLids' }
  *   { accountId, action: 'qr'|'state'|'logout'|'restart'|'delete' }
+ *   { accountId, action: 'test-message', to }
  *   { accountId, action: 'updateConfig', sessionConfig }
  *
  * Spec: docs/superpowers/specs/2026-07-10-waha-whatsapp-integration-design.md
@@ -27,6 +28,7 @@ import { createSecretResolver } from "../_shared/secrets.ts";
 import { servePost } from "../_shared/serve.ts";
 import { wahaStateToAccountStatus } from "../_shared/whatsapp/waha/constants.ts";
 import { getWahaContactName, resolveWahaLid } from "../_shared/whatsapp/waha/contacts.ts";
+import { sendWahaText } from "../_shared/whatsapp/waha/send.ts";
 import { generateWahaSessionName } from "../_shared/whatsapp/waha/sessionName.ts";
 import {
   createWahaSession,
@@ -50,6 +52,7 @@ const ACTIONS = [
   "state",
   "logout",
   "restart",
+  "test-message",
   "delete",
   "updateConfig",
 ] as const;
@@ -98,6 +101,7 @@ servePost(async (req, ctx) => {
     sessionConfig?: IWahaSessionSettings;
     dryRun?: boolean;
     cursor?: string;
+    to?: string;
     action?: string;
   };
 
@@ -659,6 +663,34 @@ servePost(async (req, ctx) => {
           });
         }
         return json({ ok: true, traceId: ctx.traceId }, 200);
+      }
+      case "test-message": {
+        const digits = String(body.to ?? "").replace(/\D/g, "");
+        if (digits.length < 12 || digits.length > 13) {
+          return json(
+            {
+              error: "Informe o número com DDI e DDD (ex.: 5554999887766).",
+              code: "VALIDATION_ERROR",
+              traceId: ctx.traceId,
+            },
+            422,
+          );
+        }
+        const result = await sendWahaText(apiKey, fetchFn, target, {
+          toPhone: `+${digits}`,
+          text: "✅ Mensagem de teste — GALLO Base Diesel. A conexão WhatsApp desta conta está funcionando.",
+        });
+        if (actorId) {
+          await bestEffortAudit(admin, {
+            store_id: account.store_id,
+            actor_id: actorId,
+            action: "whatsapp_test_message_sent",
+            resource: "whatsapp_account",
+            resource_id: account.id,
+            after: { toMasked: `***${digits.slice(-4)}`, providerMessageId: result.providerMessageId },
+          });
+        }
+        return json({ ok: true, providerMessageId: result.providerMessageId, traceId: ctx.traceId }, 200);
       }
       case "delete": {
         const { data: deleted, error: rpcError } = await admin.rpc("delete_whatsapp_account", {
