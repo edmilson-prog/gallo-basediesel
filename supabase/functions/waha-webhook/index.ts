@@ -8,15 +8,20 @@
  * self-contained `_shared/whatsapp/waha/*` engine are used. Fail-closed on a
  * bad/missing HMAC signature — no DB write happens before it's verified.
  *
- * Handles two event kinds:
- *   - "message": either an inbound customer message (persisted with
- *     reuse-or-reopen-or-create conversation semantics) or an outbound echo
- *     (`fromMe: true` — someone replied straight from the paired phone,
- *     outside the platform) mirrored with open-only-lookup semantics so it
- *     never reopens a closed conversation. Both paths land in the same
- *     conversations/messages tables the rest of the Inbox reads, with a
- *     separate media download step. Mirrors the real `whatsapp-webhook`
- *     function's tested contract (see _shared/whatsapp/webhook/core.ts).
+ * Handles three event kinds:
+ *   - "message": an inbound customer message (persisted with
+ *     reuse-or-reopen-or-create conversation semantics).
+ *   - "message.any": WAHA's (GOWS engine) only channel for `fromMe: true`
+ *     messages — someone replied straight from the paired phone, outside the
+ *     platform. Plain "message" never carries these. Mirrored with
+ *     open-only-lookup semantics so it never reopens a closed conversation;
+ *     any "message.any" envelope that turns out NOT to be an echo (i.e.
+ *     genuine inbound, already covered by "message") is ignored to avoid
+ *     double-processing.
+ *   Both message paths land in the same conversations/messages tables the
+ *   rest of the Inbox reads, with a separate media download step. Mirrors the
+ *   real `whatsapp-webhook` function's tested contract (see
+ *   _shared/whatsapp/webhook/core.ts).
  *   - "session.status": updates whatsapp_accounts.status.
  * Any other envelope event is acknowledged (200) and ignored.
  *
@@ -265,7 +270,7 @@ Deno.serve(async (req) => {
     return json({ ok: true }, 200);
   }
 
-  if (envelope.event !== "message") {
+  if (envelope.event !== "message" && envelope.event !== "message.any") {
     // No persistent work happens for unknown event types — safe to mark so a
     // WAHA retry of the same envelope doesn't repeat the (harmless) parse.
     await markProcessed();
@@ -285,6 +290,15 @@ Deno.serve(async (req) => {
     );
     await markProcessed();
     return json({ ok: true, ignored: "unparseable" }, 200);
+  }
+
+  // "message.any" is subscribed ONLY to reach fromMe:true echoes — WAHA
+  // (GOWS engine) never fires plain "message" for those. Genuine inbound
+  // already arrives via "message"; skip it here so the same envelope isn't
+  // processed twice if WAHA ever double-delivers.
+  if (envelope.event === "message.any" && parsed.type !== "outbound-echo") {
+    await markProcessed();
+    return json({ ok: true, ignored: "message.any-inbound-dup" }, 200);
   }
 
   if (parsed.type === "outbound-echo") {
