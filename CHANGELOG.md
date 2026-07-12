@@ -12,6 +12,7 @@ versioning follows [SemVer](https://semver.org/).
 
 - **Recepção WAHA resolve `@lid` para o telefone real** — remetentes com privacidade ativa não geram mais um cliente com telefone impossível (`+67186324430852`, por exemplo); a plataforma agora consulta a API da WAHA para descobrir o telefone real antes de criar/achar o cliente, e semeia o nome de contato do WhatsApp em qualquer cliente novo (não só os que vinham de `@lid`). Quando a resolução falha, o cliente entra com um rótulo neutro ("Contato do WhatsApp (número oculto)") e uma tag de triagem — nunca mais os dígitos do identificador como se fossem um telefone validado.
 - **Clientes-fantasma existentes corrigidos em produção** — uma correção one-off (Owner-only, executada com revisão prévia de cada caso) resolveu os clientes já criados com telefone-fantasma antes do fix, fundindo-os nos clientes reais correspondentes quando já existiam (conversas e mensagens repontadas) ou corrigindo o telefone no próprio registro quando não.
+- **Envio de mensagens pela WAHA voltou a funcionar** — toda resposta numa conversa WAHA falhava com "Falha ao enviar a mensagem" (422); a tela de Atendimento estava chamando a rota de envio genérica, que não reconhece contas WAHA por serem propositalmente isoladas das demais. Agora o envio é roteado para a rota própria da WAHA.
 
 ## [0.139.0] — Dial · 2026-07-10
 
