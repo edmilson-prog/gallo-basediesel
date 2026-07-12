@@ -97,8 +97,8 @@ describe("resolveAbc", () => {
     expect(resolveAbc(customer)).toEqual({ abcClass: "A", abcShare: 0.5, fromDintec: false });
   });
 
-  it("falls back to the dintec class/share pair when the platform has neither", () => {
-    const customer = baseCustomer({ dintecAbcClass: "B", dintecPctReceita: 0.2 });
+  it("falls back to the dintec class/share pair when the platform has neither, converting percentage points to a fraction", () => {
+    const customer = baseCustomer({ dintecAbcClass: "B", dintecPctReceita: 20 });
     expect(resolveAbc(customer)).toEqual({ abcClass: "B", abcShare: 0.2, fromDintec: true });
   });
 

@@ -75,7 +75,13 @@ export function resolveAbc(customer: ICustomer): IResolvedAbc | undefined {
     return { abcClass: customer.abcClass, abcShare: customer.abcShare, fromDintec: false };
   }
   if (customer.dintecAbcClass) {
-    return { abcClass: customer.dintecAbcClass, abcShare: customer.dintecPctReceita, fromDintec: true };
+    return {
+      abcClass: customer.dintecAbcClass,
+      // dintecPctReceita is percentage POINTS (0..100) from the ERP export;
+      // abcShare is a 0..1 fraction — convert before it reaches formatPercent.
+      abcShare: customer.dintecPctReceita != null ? customer.dintecPctReceita / 100 : undefined,
+      fromDintec: true,
+    };
   }
   return undefined;
 }

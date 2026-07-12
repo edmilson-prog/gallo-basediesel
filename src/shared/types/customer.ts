@@ -93,6 +93,7 @@ interface ICustomerBase {
   dintecFirstPurchaseAt?: ISO8601;
   dintecLastPurchaseAt?: ISO8601;
   dintecAbcClass?: ABCClass;
+  /** Percentage POINTS (0..100), unlike {@link abcShare} which is a 0..1 fraction — divide by 100 before pairing with `formatPercent`. */
   dintecPctReceita?: number;
   /**
    * Demo-only count of overdue receivable titles (contas a receber vencidas).
