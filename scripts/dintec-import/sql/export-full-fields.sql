@@ -1,0 +1,72 @@
+-- scripts/dintec-import/sql/export-full-fields.sql
+-- Fase 3: full export of every DINTEC client (except CODCLI=1, the anonymous
+-- counter-sale bucket) + every vehicle, in the exact same 25/6-column layout
+-- the pilot scripts parse. Name resolution now includes ORCAMENTO.NOME
+-- (clients that only ever had quotes, never an invoice — see design spec).
+-- Run: isql -user SYSDBA -password *** -ch WIN1252 -i <this file> <FDB path>
+SET HEADING OFF;
+OUTPUT 'scratchpad/dintec_full_clientes_raw.txt';
+WITH v AS (
+  SELECT CODCLI, COUNT(*) AS NOTAS, SUM(TOTALNOTA) AS LTV, AVG(TOTALNOTA) AS TICKET,
+         MIN(DATA) AS PRIMEIRA, MAX(DATA) AS ULTIMA, MIN(NOME) AS NOMENF
+  FROM NOTAFISCAL WHERE ENTSAIDA='SAIDA' AND CODCLI>0 GROUP BY CODCLI
+),
+abc AS (
+  SELECT CODCLI, LTV, SUM(LTV) OVER (ORDER BY LTV DESC) AS ACUM, SUM(LTV) OVER () AS TOT FROM v
+),
+nm AS (
+  SELECT CODCLI, MIN(NOMECLI) AS NOMECLI FROM NFISCAL WHERE CHAR_LENGTH(TRIM(NOMECLI))>0 GROUP BY CODCLI
+),
+onm AS (
+  SELECT CODCLI, MIN(NOME) AS ONOME FROM ORCAMENTO WHERE CHAR_LENGTH(TRIM(COALESCE(NOME,'')))>0 GROUP BY CODCLI
+)
+SELECT CAST(
+  CAST(c.CODCLI AS VARCHAR(10)) || ';' ||
+  '"' || COALESCE(REPLACE(TRIM(COALESCE(v.NOMENF, nm.NOMECLI, onm.ONOME, c.FANTASIA)),';',','),'') || '";' ||
+  '"' || COALESCE(REPLACE(TRIM(c.FANTASIA),';',','),'') || '";' ||
+  (CASE WHEN CHAR_LENGTH(REPLACE(TRIM(COALESCE(c.CPF,'')),'0','')) > 0 THEN TRIM(c.CPF) ELSE '' END) || ';' ||
+  (CASE WHEN CHAR_LENGTH(REPLACE(TRIM(COALESCE(c.CNPJ,'')),'0','')) > 0 THEN TRIM(c.CNPJ) ELSE '' END) || ';' ||
+  '"' || COALESCE(REPLACE(TRIM(c.CONTATO),';',','),'') || '";' ||
+  '"' || COALESCE(REPLACE(TRIM(c.ENDERECO),';',','),'') || '";' ||
+  '"' || COALESCE(REPLACE(TRIM(c.BAIRRO),';',','),'') || '";' ||
+  '"' || COALESCE(REPLACE(TRIM(c.CIDADE),';',','),'') || '";' ||
+  COALESCE(TRIM(c.ESTADO),'') || ';' ||
+  COALESCE(TRIM(c.CEP),'') || ';' ||
+  (CASE WHEN CHAR_LENGTH(REPLACE(TRIM(COALESCE(c.TELEFONE,'')),'0','')) > 0 THEN TRIM(c.TELEFONE) ELSE '' END) || ';' ||
+  (CASE WHEN CHAR_LENGTH(REPLACE(TRIM(COALESCE(c.CELULAR,'')),'0','')) > 0 THEN TRIM(c.CELULAR) ELSE '' END) || ';' ||
+  '"' || COALESCE(REPLACE(TRIM(c.EMAIL),';',','),'') || '";' ||
+  COALESCE(TRIM(c.ATIVO),'') || ';' ||
+  COALESCE(CAST(EXTRACT(YEAR FROM c.DATACADASTRO) AS VARCHAR(4))||'-'||RIGHT('0'||CAST(EXTRACT(MONTH FROM c.DATACADASTRO) AS VARCHAR(2)),2)||'-'||RIGHT('0'||CAST(EXTRACT(DAY FROM c.DATACADASTRO) AS VARCHAR(2)),2),'') || ';' ||
+  COALESCE(CAST(c.CREDITO AS VARCHAR(15)),'') || ';' ||
+  '"' || COALESCE((SELECT TRIM(f.NOME) FROM FUNCIONARIO f WHERE f.CODFUN = c.CODFUN),'') || '";' ||
+  COALESCE(CAST(v.NOTAS AS VARCHAR(10)),'0') || ';' ||
+  COALESCE(CAST(CAST(v.LTV AS NUMERIC(15,2)) AS VARCHAR(20)),'0') || ';' ||
+  COALESCE(CAST(CAST(v.TICKET AS NUMERIC(15,2)) AS VARCHAR(20)),'0') || ';' ||
+  COALESCE(CAST(v.PRIMEIRA AS VARCHAR(10)),'') || ';' ||
+  COALESCE(CAST(v.ULTIMA AS VARCHAR(10)),'') || ';' ||
+  (CASE WHEN a.LTV IS NULL THEN '' WHEN 100.0*a.ACUM/a.TOT<=80 THEN 'A' WHEN 100.0*a.ACUM/a.TOT<=95 THEN 'B' ELSE 'C' END) || ';' ||
+  COALESCE(CAST(CAST(100.0*a.LTV/NULLIF(a.TOT,0) AS NUMERIC(7,4)) AS VARCHAR(10)),'')
+AS VARCHAR(2000)) AS LINHA
+FROM CLIENTE c
+LEFT JOIN v    ON v.CODCLI=c.CODCLI
+LEFT JOIN abc a  ON a.CODCLI=c.CODCLI
+LEFT JOIN nm   ON nm.CODCLI=c.CODCLI
+LEFT JOIN onm  ON onm.CODCLI=c.CODCLI
+WHERE c.CODCLI <> 1
+ORDER BY c.CODCLI;
+OUTPUT;
+
+SET HEADING OFF;
+OUTPUT 'scratchpad/dintec_full_veiculos_raw.txt';
+SELECT CAST(
+  CAST(vp.CODCLI AS VARCHAR(10)) || ';' ||
+  COALESCE(TRIM(vp.PLACA),'') || ';' ||
+  COALESCE(CAST(vp.ANO AS VARCHAR(4)),'') || ';' ||
+  '"' || COALESCE(REPLACE(TRIM(vp.VEICULO),';',','),'') || '";' ||
+  '"' || COALESCE(REPLACE(TRIM(vp.COR),';',','),'') || '";' ||
+  COALESCE(TRIM(vp.MOTOR),'')
+AS VARCHAR(500)) AS LINHA
+FROM VEICULOPROPRIETARIO vp
+WHERE vp.CODCLI <> 1
+ORDER BY vp.CODCLI;
+OUTPUT;
