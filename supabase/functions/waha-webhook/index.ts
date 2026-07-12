@@ -28,6 +28,7 @@ import { downloadWahaMedia } from "../_shared/whatsapp/waha/media.ts";
 import { parseWahaMessageEvent } from "../_shared/whatsapp/waha/parser.ts";
 import { verifyWahaHmac } from "../_shared/whatsapp/waha/hmac.ts";
 import { wahaStateToAccountStatus } from "../_shared/whatsapp/waha/constants.ts";
+import { getWahaContactName, resolveWahaLid } from "../_shared/whatsapp/waha/contacts.ts";
 
 interface IWahaEnvelope {
   id?: string;
@@ -106,6 +107,19 @@ Deno.serve(async (req) => {
       }),
     );
     return json({ error: "server not configured" }, 401);
+  }
+
+  // Server API key, resolved lazily and at most once per invocation — the
+  // hot path (text message from a known customer) never pays the Vault read.
+  // `resolveSecret` returns `string | undefined`; coalesce to null so the
+  // undefined sentinel below means "not fetched yet" and a missing key
+  // latches as null (memoized) instead of re-fetching forever.
+  let apiKeyMemo: string | null | undefined;
+  async function getApiKey(): Promise<string | null> {
+    if (apiKeyMemo === undefined) {
+      apiKeyMemo = (await resolveSecret(String(server.api_key_ref))) ?? null;
+    }
+    return apiKeyMemo;
   }
 
   // ===== HMAC verification (fail-closed, BEFORE any DB write below) =========
@@ -206,7 +220,55 @@ Deno.serve(async (req) => {
     return json({ ok: true, ignored: "outbound-echo" }, 200);
   }
 
-  const fromPhone = parsed.fromPhone;
+  // ===== @lid resolution (privacy id → real phone) ===========================
+  // A sender behind WhatsApp's privacy setting arrives as `<digits>@lid`, not
+  // `<phone>@c.us`. GOWS keeps the lid↔phone map — resolve BEFORE customer
+  // matching so dedup and display use the real number. Fail-safe: a resolution
+  // error degrades to the unresolved fallback below, never dropping the
+  // message. Short timeout (5s): this runs before markProcessed, and a slow
+  // lookup here must not outlast WAHA's own webhook-delivery timeout/retry.
+  const sessionName = String(
+    (accountRow.provider_config as Record<string, unknown> | null)?.sessionName ?? "",
+  );
+  const wahaBaseUrl = String(server.base_url ?? "").replace(/\/+$/, "");
+
+  let fromPhone = parsed.fromPhone;
+  let lidUnresolved = false;
+  if (!fromPhone && parsed.fromLid) {
+    try {
+      const apiKey = await getApiKey();
+      if (!apiKey) throw new Error("missing server api key");
+      const { phone } = await resolveWahaLid(apiKey, globalThis.fetch, {
+        baseUrl: wahaBaseUrl,
+        sessionName,
+        lid: parsed.fromLid,
+        timeoutMs: 5_000,
+      });
+      if (phone) fromPhone = phone;
+    } catch (err) {
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          msg: "waha webhook: lid resolution failed",
+          lid: parsed.fromLid,
+          error: err instanceof Error ? err.message : String(err),
+        }),
+      );
+    }
+    if (!fromPhone) {
+      // Unresolved lid: keep a stable placeholder derived from the lid digits
+      // so the conversation still threads (same digits ⇒ same customer), but
+      // tag the customer for triage — the digits are NEVER a validated phone
+      // and are NEVER shown as the display name (see the insert below).
+      const lidDigits = parsed.fromLid.split("@")[0]?.replace(/\D/g, "") ?? "";
+      if (!lidDigits) {
+        await markProcessed();
+        return json({ ok: true, ignored: "no-phone" }, 200);
+      }
+      fromPhone = `+${lidDigits}`;
+      lidUnresolved = true;
+    }
+  }
   if (!fromPhone) {
     await markProcessed();
     return json({ ok: true, ignored: "no-phone" }, 200);
@@ -227,6 +289,24 @@ Deno.serve(async (req) => {
 
   let customerId = existingCustomer?.id as string | undefined;
   if (!customerId) {
+    // Seed the display name from the WhatsApp contact (pushname) — best-effort,
+    // one extra GET only on the new-customer path. The lid id is the known-good
+    // identity when present (the contacts endpoint accepts @lid directly).
+    let contactName: string | undefined;
+    try {
+      const apiKey = await getApiKey();
+      if (apiKey) {
+        contactName = await getWahaContactName(apiKey, globalThis.fetch, {
+          baseUrl: wahaBaseUrl,
+          sessionName,
+          contactId: parsed.fromLid ?? `${phoneDigits}@c.us`,
+          timeoutMs: 5_000,
+        });
+      }
+    } catch {
+      /* name is decorative — never blocks the insert */
+    }
+
     // NO seller_id (wallet owner) — this anchors a pool conversation only,
     // until a human manually converts it. tags:["pending_review"] is what the
     // Customers list UI filters out by default.
@@ -236,10 +316,13 @@ Deno.serve(async (req) => {
         store_id: accountRow.store_id,
         type: "B2C", // customers_type_check requires UPPERCASE 'B2C'
         phone: fromPhone,
-        full_name: fromPhone, // WAHA v1 has no contact-name field to seed from; phone is the placeholder
-        whatsapp_name: null,
+        // Display label decision (spec §5 risk 3): an unresolved lid must NEVER
+        // surface its digits as a name — fall back to a pt-BR label instead.
+        full_name:
+          contactName ?? (lidUnresolved ? "Contato do WhatsApp (número oculto)" : fromPhone),
+        whatsapp_name: contactName ?? null,
         status: "ativo",
-        tags: ["pending_review"],
+        tags: lidUnresolved ? ["pending_review", "lid_unresolved"] : ["pending_review"],
       })
       .select("id")
       .single();
@@ -356,7 +439,7 @@ Deno.serve(async (req) => {
   // ===== Media (separate step, never fails the webhook response) ============
   if (parsed.mediaId) {
     try {
-      const apiKey = await resolveSecret(String(server.api_key_ref));
+      const apiKey = await getApiKey();
       if (!apiKey) throw new Error("missing server api key");
       const media = await downloadWahaMedia(apiKey, globalThis.fetch, parsed.mediaId);
       const ext = extForMimetype(media.mimeType);

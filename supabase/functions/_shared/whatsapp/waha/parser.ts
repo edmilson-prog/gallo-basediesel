@@ -7,6 +7,10 @@
  *   { id, timestamp, from, fromMe, to, body, hasMedia, media?: {url, mimetype, filename, error}, ack }
  * `from`/`to` are `<digits>@c.us` for 1:1 chats; groups (`@g.us`), broadcasts
  * and newsletters are rejected (no 1:1 customer to attach the message to).
+ * A sender with WhatsApp's privacy setting enabled arrives as `<digits>@lid`
+ * instead of `@c.us` — still 1:1, but the digits are NOT a phone number. Those
+ * are surfaced via `fromLid` (with `fromPhone` empty) for the webhook to
+ * resolve before customer matching.
  * `session.status` events are handled directly by the Edge Function, not by
  * this parser (they update `whatsapp_accounts.status`, not a message row).
  */
@@ -14,6 +18,7 @@
 import type { IInboundMessage, InboundContentType, IOutboundEcho } from "../types.ts";
 
 const NON_INDIVIDUAL_JID = /@(g\.us|broadcast|newsletter)$/;
+const LID_JID = /@lid$/;
 
 function jidToE164(jid: string | undefined): string {
   const digits = (jid ?? "").split("@")[0]?.replace(/\D/g, "") ?? "";
@@ -104,7 +109,11 @@ export function parseWahaMessageEvent(
   return {
     type: "message",
     providerMessageId: payload.id,
-    fromPhone: jidToE164(payload.from),
+    // A sender behind WhatsApp's privacy setting arrives as `<digits>@lid` —
+    // NOT a phone. Blindly converting those digits fabricates an impossible
+    // "+phone", so surface the raw lid instead and let the webhook resolve it.
+    fromPhone: LID_JID.test(payload.from ?? "") ? "" : jidToE164(payload.from),
+    fromLid: LID_JID.test(payload.from ?? "") ? payload.from : undefined,
     // WAHA resolves the account by sessionName (webhook envelope), not by phone.
     toAccountPhone: "",
     accountId,

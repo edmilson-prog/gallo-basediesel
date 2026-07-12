@@ -32,6 +32,8 @@ interface ISendBody {
   mediaUrl?: string;
   mediaType?: "image" | "audio" | "video" | "document";
   filename?: string;
+  /** Client-generated id — lets the optimistic bubble and the persisted row share one id. */
+  messageId?: string;
 }
 
 async function resolveSender(req: Request): Promise<{
@@ -143,7 +145,7 @@ servePost(async (req, ctx) => {
     ?.phone;
   if (!toPhone) throw new HttpError(422, "Cliente sem telefone cadastrado");
 
-  const messageId = crypto.randomUUID();
+  const messageId = body.messageId ?? crypto.randomUUID();
   const { error: insertErr } = await admin.from("messages").insert({
     id: messageId,
     conversation_id: body.conversationId,

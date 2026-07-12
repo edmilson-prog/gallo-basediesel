@@ -4,6 +4,32 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.139.1] — Dial · 2026-07-12
+
+**Conversas WAHA de remetentes com o número oculto no WhatsApp deixaram de virar clientes-fantasma.** Quando o remetente tem a privacidade "número oculto" ativa, o WhatsApp entrega um identificador `@lid` em vez do telefone — a plataforma vinha convertendo os dígitos desse identificador diretamente em "+telefone", criando um cliente novo e sem sentido a cada remetente distinto. Agora a plataforma resolve o `@lid` para o telefone real na hora de receber a mensagem (e semeia o nome de contato do WhatsApp), e uma correção one-off já limpou os clientes-fantasma que tinham sido criados por esse bug antes do fix.
+
+### Fixed
+
+- **Recepção WAHA resolve `@lid` para o telefone real** — remetentes com privacidade ativa não geram mais um cliente com telefone impossível (`+67186324430852`, por exemplo); a plataforma agora consulta a API da WAHA para descobrir o telefone real antes de criar/achar o cliente, e semeia o nome de contato do WhatsApp em qualquer cliente novo (não só os que vinham de `@lid`). Quando a resolução falha, o cliente entra com um rótulo neutro ("Contato do WhatsApp (número oculto)") e uma tag de triagem — nunca mais os dígitos do identificador como se fossem um telefone validado.
+- **Clientes-fantasma existentes corrigidos em produção** — uma correção one-off (Owner-only, executada com revisão prévia de cada caso) resolveu os clientes já criados com telefone-fantasma antes do fix, fundindo-os nos clientes reais correspondentes quando já existiam (conversas e mensagens repontadas) ou corrigindo o telefone no próprio registro quando não.
+- **Envio de mensagens pela WAHA voltou a funcionar** — toda resposta numa conversa WAHA falhava com "Falha ao enviar a mensagem" (422); a tela de Atendimento estava chamando a rota de envio genérica, que não reconhece contas WAHA por serem propositalmente isoladas das demais. Agora o envio é roteado para a rota própria da WAHA.
+
+## [0.139.0] — Dial · 2026-07-10
+
+**A instância WAHA agora tem um painel de gestão completo e parâmetros de sessão configuráveis.** O card do WhatsApp WAHA (Configurações → WhatsApp → aba WAHA) deixou de ser uma linha simples e passou a espelhar os cards das outras contas: quem tem acesso ao número, cor de identificação, status e saúde da conexão, estatísticas de envio (30 dias) e um aviso destacado para reconectar quando a sessão cai — inclusive o estado "aguardando leitura do QR". Além disso, dá para ajustar como cada sessão se comporta — ignorar grupos, status, canais e transmissões para manter o Atendimento limpo, ligar depuração e configurar proxy — direto na criação (seção "Avançado") ou depois, pelo botão "Parâmetros", com um único "Salvar e reiniciar" que aplica sem precisar ler o QR de novo.
+
+### Added
+
+- **Parâmetros de sessão WAHA:** filtros de tipo de conversa (grupos, status, canais, transmissões — por padrão só conversas 1:1), depuração e proxy, configuráveis na criação da sessão (seção "Avançado" do assistente) ou depois pelo botão "Parâmetros" no card; aplicar reinicia a sessão preservando o pareamento (não pede o QR de novo).
+
+### Changed
+
+- **Card de instância WAHA:** de uma linha simples para um painel completo espelhando os cards Meta/Evolution — gestão de acesso (quem vê o número), cor da instância, badges de status e saúde, estatísticas de envio (enviadas, falhas, taxa, último envio) e banner de reconexão em destaque, além das ações "Parear novamente" e "Logout" no menu da instância.
+
+### Fixed
+
+- **Instância WAHA no filtro do Atendimento:** as sessões WAHA passam a aparecer no filtro "Instância" da Inbox e a resolver a cor e o rótulo de origem das conversas — antes ficavam de fora da lista de instâncias (só Meta/Evolution/OpenWA apareciam).
+
 ## [0.138.0] — Sidecar · 2026-07-10
 
 **Novo motor de conexão WhatsApp: OpenWA, para números pareados por QR Code como o Evolution, mas rodando em servidor próprio.** É mais uma opção de conexão, ao lado de Evolution e Evolution Go — pareamento pela tela de Configurações → WhatsApp, mesma experiência de conectar/reconectar já existente. Corrige também um limite herdado do próprio WhatsApp: contatos com identificador de privacidade (que escondem o número de telefone) agora são resolvidos corretamente nas contas OpenWA, chegando ao Atendimento com o nome e telefone certos em vez de serem ignorados.
@@ -481,6 +507,7 @@ versioning follows [SemVer](https://semver.org/).
 ## [0.112.0] — Lexicon · 2026-06-21
 
 ### Added
+
 - Copiloto analítico com NLU por LLM: a pergunta é interpretada pela LLM
   (escolhe métrica + filtros, inclusive várias métricas → vários cards), e o
   número segue determinístico (executeQuery). Edge `analytics-resolve` (13ª),
@@ -606,6 +633,7 @@ versioning follows [SemVer](https://semver.org/).
 ### Notes
 
 - 3 migrations versionadas e **não aplicadas** (rollout gated, espelha o cutover do AI/LLM): `integration_secret_delete`, `add_shipping_quote_snapshot` (coluna jsonb em quotes/orders) e `integration_logs_melhor_envio` (CHECK do audit). Robustez da Edge endurecida (validação da resposta de token, timeout de 15 s, checagem de erro nas RPCs do Vault, jitter de 60 s no refresh). Scopes ampliados e o e2e real (conta + app sandbox do ME) seguem documentados em `docs/dev/melhor-envio-cotacao.md`.
+
 ## [0.105.0] — Insignia · 2026-06-17
 
 **O card de cada provedor de IA agora mostra a marca, uma prévia da chave configurada e os parâmetros de geração.** Antes o card identificava o provedor só pelas iniciais, não dava pista de qual chave estava cadastrada e rodava o Playground com parâmetros fixos. Agora o cabeçalho traz o logotipo da marca (Anthropic, OpenAI, OpenRouter, Google), a chave configurada aparece como prévia dos 4 últimos caracteres (`••••XXXX`, vindos do hint do Vault — a chave em si nunca chega ao frontend) e cada provedor tem um bloco editável de parâmetros padrão de geração (temperatura, máximo de tokens, top P) que o Playground passa a respeitar.
@@ -619,6 +647,7 @@ versioning follows [SemVer](https://semver.org/).
 ### Changed
 
 - **Playground usa os parâmetros do provedor** — `AiPlaygroundTab` passa os `params` do provedor efetivo (com fallback no padrão) em vez dos valores fixos `{ temperature: 0.4, maxTokens: 1024 }`.
+
 ## [0.104.0] — Manifest · 2026-06-17
 
 **A lista de modelos de cada provedor de IA agora é dinâmica.** Em vez de dois modelos fixos, o card do provedor busca os modelos disponíveis ao vivo (Anthropic, OpenAI e OpenRouter) com a chave do Vault, via uma nova ação no Edge `ai-generate`. O preço vem da API (OpenRouter) ou de um mapa no catálogo (OpenAI/Anthropic); modelos sem preço conhecido ficam selecionáveis, marcados "preço a definir".
@@ -660,7 +689,7 @@ versioning follows [SemVer](https://semver.org/).
 
 ### Changed
 
-- **Área de *Inteligência artificial*** — gate demo-only removido; o item aparece para o Owner em produção (`supabase`). Em modo mock, o comportamento permanece idêntico ao v0.100.0.
+- **Área de _Inteligência artificial_** — gate demo-only removido; o item aparece para o Owner em produção (`supabase`). Em modo mock, o comportamento permanece idêntico ao v0.100.0.
 - **Catálogo de modelos e preços** — extraído de `src/providers/data/impl/mock/_aiSeed.ts` para `src/providers/data/engine/aiCatalog.ts` (módulo compartilhado fora de `mock/`); `_aiSeed.ts` passa a re-exportar o catálogo. `buildDefaultAiSettings` diferencia `mock` de `supabase`.
 - **`IAiUsageEvent`** — campo `source: "playground" | "routed"` agora obrigatório; campo `feature` agora opcional (playground não tem funcionalidade associada). `summarizeUsage` filtra eventos sem `feature` no agrupamento por funcionalidade.
 
