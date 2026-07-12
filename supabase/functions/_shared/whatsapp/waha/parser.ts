@@ -2,15 +2,21 @@
 // Source: src/providers/whatsapp/waha/parser.ts (sync: bun run scripts/sync-whatsapp-shared.ts)
 
 /**
- * WAHA webhook `message` event parser. Payload shape (WAHA docs, "Receive
- * messages"/"Events"):
+ * WAHA webhook `message`/`message.any` event parser. Payload shape (WAHA
+ * docs, "Receive messages"/"Events"):
  *   { id, timestamp, from, fromMe, to, body, hasMedia, media?: {url, mimetype, filename, error}, ack }
- * `from`/`to` are `<digits>@c.us` for 1:1 chats; groups (`@g.us`), broadcasts
- * and newsletters are rejected (no 1:1 customer to attach the message to).
- * A sender with WhatsApp's privacy setting enabled arrives as `<digits>@lid`
- * instead of `@c.us` — still 1:1, but the digits are NOT a phone number. Those
- * are surfaced via `fromLid` (with `fromPhone` empty) for the webhook to
- * resolve before customer matching.
+ * `from` is always the CHAT's JID (`<digits>@c.us` for 1:1) regardless of
+ * direction — for a genuine inbound message that's the sender, but for an
+ * outbound echo (`fromMe: true`, delivered only via `message.any` — see
+ * WAHA_DEFAULT_EVENTS) it's the RECIPIENT. `to` is not populated on real
+ * `message.any` payloads (confirmed empirically: WAHA 2026.6.2 sends
+ * `to: null` on every `fromMe:true` envelope) — never read for the
+ * recipient. Groups (`@g.us`), broadcasts and newsletters are rejected (no
+ * 1:1 customer to attach the message to). A chat party with WhatsApp's
+ * privacy setting enabled arrives as `<digits>@lid` instead of `@c.us` —
+ * still 1:1, but the digits are NOT a phone number. Those are surfaced via
+ * `fromLid` / `toLid` (with `fromPhone` / `toPhone` empty) for the webhook
+ * to resolve before customer matching.
  * `session.status` events are handled directly by the Edge Function, not by
  * this parser (they update `whatsapp_accounts.status`, not a message row).
  */
@@ -84,7 +90,9 @@ export function parseWahaMessageEvent(
   if (!payload?.id) {
     throw new Error("WahaProvider: payload de mensagem irreconhecível (sem 'id')");
   }
-  const chat = payload.fromMe ? payload.to : payload.from;
+  // `from` is the chat JID on BOTH directions — see file header. `to` is
+  // never populated on real fromMe:true payloads, so it's never read here.
+  const chat = payload.from;
   if (NON_INDIVIDUAL_JID.test(chat ?? "")) {
     throw new Error("WahaProvider: mensagem de grupo/broadcast/newsletter — ignorar");
   }
@@ -96,7 +104,13 @@ export function parseWahaMessageEvent(
     return {
       type: "outbound-echo",
       providerMessageId: payload.id,
-      toPhone: jidToE164(payload.to),
+      // The recipient is `from` here (see file header — `to` is null on
+      // real fromMe:true payloads). Same @lid caveat as the inbound side,
+      // but on the destination: a recipient behind WhatsApp's privacy
+      // setting arrives as `<digits>@lid` — never fabricate a phone from
+      // those digits.
+      toPhone: LID_JID.test(payload.from ?? "") ? "" : jidToE164(payload.from),
+      toLid: LID_JID.test(payload.from ?? "") ? payload.from : undefined,
       contentType: content.contentType,
       text: content.text,
       mediaId: content.mediaId,
