@@ -137,7 +137,7 @@ Uma sessão pode reportar `status: "ready"` com `lastActive` estagnado e nenhuma
 | `supabase/functions/whatsapp-connect/index.ts` | qr / test / state / logout / restart / delete | ✅ bloco dedicado (`resolveOpenWaServer`) |
 | `supabase/functions/whatsapp-send/index.ts` | Envio outbound | ✅ `resolveOpenWaServerConfigs` |
 | `supabase/functions/whatsapp-webhook/index.ts` | Inbound, ecos, resolução de `@lid` | ✅ bloco dedicado (`openwaGate` + `openwaServers` map) |
-| `supabase/functions/scheduled-send-worker/index.ts` | Envios agendados | ❌ **não coberto** — só tem fast-exit para `evolution-go`; uma conta `openwa` com `scheduledSend` pendente falhará por falta de `baseUrl`/`apiKeySecretName` no `providerConfig`. Pendência conhecida, replicar o padrão de `resolveGoBaseUrls`/`resolveOpenWaServerConfigs` antes de habilitar agendamento para openwa em produção. |
+| `supabase/functions/scheduled-send-worker/index.ts` | Envios agendados | ✅ `resolveOpenWaServerConfigs` (mesmo padrão do `whatsapp-send`) |
 
 Ações do `whatsapp-connect` **deliberadamente não implementadas** para openwa: `test-message` (mensagem de teste ad-hoc) e sincronização de fotos (`whatsapp-avatar-sync` rejeita openwa com 422) — a UI (`WhatsAppAccountsPage`, `ConversationMenu`) esconde esses botões para contas openwa em vez de deixá-los quebrar.
 
@@ -156,4 +156,4 @@ Enquanto o envelope de webhook segue **inferido** (não documentado oficialmente
 3. Cadastrar o servidor real em `Configurações → Integrações → Chaves & API` (grupo servidores OpenWA).
 4. Parear um número pelo wizard (`Adicionar número → OpenWA`).
 5. Smoke: mensagem real inbound → aparece no Inbox com telefone correto; resposta outbound pelo app chega no celular.
-6. **Antes de produção real:** decidir sobre a lacuna do item 6 (scheduled-send-worker) e sobre detecção de stall (item 5.3).
+6. **Antes de produção real:** decidir sobre detecção de stall (item 5.3) — ainda não implementada (o tick de saúde `whatsapp_health_tick` roda via pg_cron sem `pg_net`, não consegue chamar a API do OpenWA direto do banco).
