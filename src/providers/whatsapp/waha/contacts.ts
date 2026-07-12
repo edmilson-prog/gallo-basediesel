@@ -89,3 +89,33 @@ export async function getWahaContactName(
     return undefined;
   }
 }
+
+/**
+ * Contact profile-picture URL via `GET /api/contacts/profile-picture`
+ * (WAHA REST docs, "Profile"). Returns `undefined` on a 404/empty response
+ * (no public photo / private) and NEVER throws for that case — other errors
+ * (auth, network, 5xx) propagate, same contract as {@link resolveWahaLid}.
+ */
+export async function fetchWahaProfilePictureUrl(
+  apiKey: string,
+  fetchFn: typeof fetch,
+  target: { baseUrl: string; sessionName: string; contactId: string; timeoutMs?: number },
+): Promise<string | undefined> {
+  try {
+    const query = `contactId=${encodeURIComponent(target.contactId)}&session=${encodeURIComponent(target.sessionName)}`;
+    const response = await wahaRequest(apiKey, fetchFn, {
+      baseUrl: target.baseUrl,
+      path: `/api/contacts/profile-picture?${query}`,
+      method: "GET",
+      timeoutMs: target.timeoutMs ?? 10_000,
+    });
+    const body = response.body as { profilePictureURL?: string | null } | null;
+    const url = (body?.profilePictureURL ?? "").trim();
+    return url.length > 0 ? url : undefined;
+  } catch (err) {
+    if (err instanceof WhatsAppProviderError && err.code === "NOT_FOUND") {
+      return undefined;
+    }
+    throw err;
+  }
+}

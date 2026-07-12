@@ -19,9 +19,10 @@ import {
   normalizeTestPhoneDigits,
   sendEvolutionTestMessage,
 } from "../api/whatsappConnect";
+import { sendWahaTestMessage } from "../api/wahaConnect";
 
 /**
- * Ad-hoc test send for a connected Evolution account (SIGPRO-inspired):
+ * Ad-hoc test send for a connected Evolution or WAHA account (SIGPRO-inspired):
  * validates the pairing end-to-end without touching the Inbox — the edge
  * sends through the real engine but never persists a conversation message.
  */
@@ -59,11 +60,21 @@ export function TestMessageDialog({
     }
     setSending(true);
     try {
-      await sendEvolutionTestMessage(account.id, digits);
+      if (account.provider === "waha") {
+        await sendWahaTestMessage(account.id, digits);
+      } else {
+        await sendEvolutionTestMessage(account.id, digits);
+      }
       toast.success("Mensagem de teste enviada. Confira o celular de destino.");
       onClose();
     } catch (err) {
-      toast.error(connectErrorMessage(err));
+      toast.error(
+        account.provider === "waha"
+          ? err instanceof Error
+            ? err.message
+            : "Não foi possível enviar a mensagem de teste."
+          : connectErrorMessage(err),
+      );
     } finally {
       setSending(false);
     }

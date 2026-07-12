@@ -60,6 +60,9 @@ import {
   type IWhatsAppAccountMetrics,
 } from "@/providers/data";
 import { InstanceAccessSheet } from "./InstanceAccessSheet";
+import { TestMessageDialog } from "./TestMessageDialog";
+import { ImportConversationsDialog } from "./ImportConversationsDialog";
+import { SyncAvatarsDialog } from "./SyncAvatarsDialog";
 import { resolveAccessRecipients } from "../utils/accessRecipients";
 import { INSTANCE_PALETTE } from "@/features/conversations/utils/instanceAccent";
 import { invokeWaha, WahaConnectError } from "../api/wahaConnect";
@@ -388,6 +391,10 @@ export function WahaSection({ storeId }: { storeId: string }) {
   const [pairingTarget, setPairingTarget] = useState<IWhatsAppAccount | null>(null);
   const [accessAccount, setAccessAccount] = useState<IWhatsAppAccount | null>(null);
   const [paramsTarget, setParamsTarget] = useState<IWhatsAppAccount | null>(null);
+  const [connectionInfoTarget, setConnectionInfoTarget] = useState<IWhatsAppAccount | null>(null);
+  const [testTarget, setTestTarget] = useState<IWhatsAppAccount | null>(null);
+  const [importTarget, setImportTarget] = useState<IWhatsAppAccount | null>(null);
+  const [syncAvatarsTarget, setSyncAvatarsTarget] = useState<IWhatsAppAccount | null>(null);
   const [linkedBlockedId, setLinkedBlockedId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -544,6 +551,34 @@ export function WahaSection({ storeId }: { storeId: string }) {
     }
     setBusyId(null);
     setPairingTarget(row);
+  };
+
+  const handleCheckNow = async (row: IWhatsAppAccount) => {
+    setBusyId(row.id);
+    try {
+      await invokeWaha({ accountId: row.id, action: "state" });
+      toast.success(`Status de "${row.label}" atualizado.`);
+      await refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível verificar o status.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  /**
+   * "Conexão" is the single, always-visible entry point for pairing status.
+   * Disconnected/pending sessions go straight into the repair flow (restart +
+   * QR) — same as the old "Parear novamente" dropdown item. A CONNECTED
+   * session opens a read-only info dialog instead: clicking "Conexão" must
+   * never restart a working session just to look at it.
+   */
+  const openConnection = (row: IWhatsAppAccount) => {
+    if (row.status === "connected") {
+      setConnectionInfoTarget(row);
+    } else {
+      void handleRepair(row);
+    }
   };
 
   const handleDelete = async () => {
@@ -752,12 +787,6 @@ export function WahaSection({ storeId }: { storeId: string }) {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        {row.status !== "connected" && (
-                          <DropdownMenuItem disabled={busy} onSelect={() => void handleRepair(row)}>
-                            <Icon icon="mdi:qrcode" size={15} className="mr-2" aria-hidden />
-                            Parear novamente
-                          </DropdownMenuItem>
-                        )}
                         <DropdownMenuItem
                           disabled={busy}
                           onSelect={() => void handleToggleAlertsMuted(row)}
@@ -898,6 +927,66 @@ export function WahaSection({ storeId }: { storeId: string }) {
                         >
                           <Icon icon="mdi:tune-variant" size={14} className="mr-1.5" aria-hidden />
                           Parâmetros
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={busy}
+                          onClick={() => void handleCheckNow(row)}
+                        >
+                          <Icon icon="mdi:refresh" size={14} className="mr-1.5" aria-hidden />
+                          Verificar agora
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={row.status !== "connected"}
+                          onClick={() => setTestTarget(row)}
+                          title={
+                            row.status === "connected"
+                              ? "Envia um texto padrão para validar a conexão"
+                              : "Disponível com a sessão conectada"
+                          }
+                        >
+                          <Icon icon="mdi:message-check-outline" size={14} className="mr-1.5" aria-hidden />
+                          Mensagem de teste
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={row.status !== "connected"}
+                          onClick={() => setImportTarget(row)}
+                          title={
+                            row.status === "connected"
+                              ? "Importa o histórico de conversas que a sessão WAHA tem armazenado"
+                              : "Disponível com a sessão conectada"
+                          }
+                        >
+                          <Icon icon="mdi:download-multiple" size={14} className="mr-1.5" aria-hidden />
+                          Importar conversas
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={row.status !== "connected"}
+                          onClick={() => setSyncAvatarsTarget(row)}
+                          title={
+                            row.status === "connected"
+                              ? "Busca no WhatsApp a foto de perfil dos contatos e exibe nas Conversas"
+                              : "Disponível com a sessão conectada"
+                          }
+                        >
+                          <Icon icon="mdi:image-sync-outline" size={14} className="mr-1.5" aria-hidden />
+                          Sincronizar fotos
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={busy}
+                          onClick={() => openConnection(row)}
+                        >
+                          <Icon icon="mdi:qrcode-scan" size={14} className="mr-1.5" aria-hidden />
+                          {row.status === "connected" ? "Conexão" : "Conectar"}
                         </Button>
                         <Button variant="outline" size="sm" onClick={() => startEdit(row)}>
                           <Icon
@@ -1136,7 +1225,77 @@ export function WahaSection({ storeId }: { storeId: string }) {
           }}
         />
       )}
+
+      {connectionInfoTarget && (
+        <WahaConnectionInfoDialog
+          account={connectionInfoTarget}
+          serverName={servers.find((s) => s.id === connectionInfoTarget.wahaServerId)?.name ?? "—"}
+          rawState={rawStates[connectionInfoTarget.id]}
+          onClose={() => setConnectionInfoTarget(null)}
+          onReconnect={() => void handleRepair(connectionInfoTarget)}
+        />
+      )}
+
+      <TestMessageDialog account={testTarget} onClose={() => setTestTarget(null)} />
+      <ImportConversationsDialog account={importTarget} onClose={() => setImportTarget(null)} />
+      <SyncAvatarsDialog account={syncAvatarsTarget} onClose={() => setSyncAvatarsTarget(null)} />
     </div>
+  );
+}
+
+/**
+ * Read-only connection details for an already-connected session, plus a
+ * "Reconectar" escape hatch. Opened by the "Conexão" button when
+ * `status === "connected"` — never auto-restarts on open.
+ */
+function WahaConnectionInfoDialog({
+  account,
+  serverName,
+  rawState,
+  onClose,
+  onReconnect,
+}: {
+  account: IWhatsAppAccount;
+  serverName: string;
+  rawState: string | undefined;
+  onClose: () => void;
+  onReconnect: () => void;
+}) {
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Conexão — {account.label}</DialogTitle>
+          <DialogDescription>Detalhes da sessão conectada a este número.</DialogDescription>
+        </DialogHeader>
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+          <dt className="text-muted-foreground">Servidor</dt>
+          <dd className="text-right text-foreground">{serverName}</dd>
+          <dt className="text-muted-foreground">Sessão</dt>
+          <dd className="text-right font-mono text-foreground">
+            {account.providerConfig?.sessionName ?? "—"}
+          </dd>
+          <dt className="text-muted-foreground">Número</dt>
+          <dd className="text-right text-foreground">{account.phoneNumber || "—"}</dd>
+          <dt className="text-muted-foreground">Estado</dt>
+          <dd className="text-right text-foreground">{rawState ?? "—"}</dd>
+        </dl>
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={onClose}>
+            Fechar
+          </Button>
+          <Button
+            onClick={() => {
+              onReconnect();
+              onClose();
+            }}
+          >
+            <Icon icon="mdi:qrcode-scan" size={14} className="mr-1.5" aria-hidden />
+            Reconectar
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

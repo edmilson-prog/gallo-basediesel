@@ -20,7 +20,7 @@ const CLOSED_CONVERSATION_STATUSES = ["resolvida", "arquivada"];
 
 export function makeImportDb(
   admin: SupabaseClient,
-  provider: "evolution" | "evolution-go",
+  provider: "evolution" | "evolution-go" | "waha",
 ): IImportDb {
   return {
     async findCustomerByPhone(storeId, phoneDigits) {

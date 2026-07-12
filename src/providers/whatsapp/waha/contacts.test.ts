@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { getWahaContactName, resolveWahaLid } from "./contacts";
+import { fetchWahaProfilePictureUrl, getWahaContactName, resolveWahaLid } from "./contacts";
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -93,5 +93,42 @@ describe("getWahaContactName", () => {
     const fetchFn = vi.fn().mockResolvedValue(jsonResponse(401, { message: "Unauthorized" }));
     const name = await getWahaContactName("bad", fetchFn, { ...target, contactId: "4@c.us" });
     expect(name).toBeUndefined();
+  });
+});
+
+describe("fetchWahaProfilePictureUrl", () => {
+  it("GETs /api/contacts/profile-picture with contactId + session and returns the URL", async () => {
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValue(
+        jsonResponse(200, { profilePictureURL: "https://waha.example.com/pic.jpg" }),
+      );
+    const url = await fetchWahaProfilePictureUrl("key", fetchFn, {
+      ...target,
+      contactId: "5548999887766@c.us",
+    });
+    expect(fetchFn.mock.calls[0][0]).toBe(
+      "https://waha.example.com/api/contacts/profile-picture?contactId=5548999887766%40c.us&session=loja-abc123",
+    );
+    expect(url).toBe("https://waha.example.com/pic.jpg");
+  });
+
+  it("returns undefined on 404 (no public photo)", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(404, { message: "Not found" }));
+    const url = await fetchWahaProfilePictureUrl("key", fetchFn, { ...target, contactId: "1@c.us" });
+    expect(url).toBeUndefined();
+  });
+
+  it("returns undefined when profilePictureURL is empty", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, { profilePictureURL: "" }));
+    const url = await fetchWahaProfilePictureUrl("key", fetchFn, { ...target, contactId: "2@c.us" });
+    expect(url).toBeUndefined();
+  });
+
+  it("propagates auth errors (401)", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(401, { message: "Unauthorized" }));
+    await expect(
+      fetchWahaProfilePictureUrl("bad", fetchFn, { ...target, contactId: "3@c.us" }),
+    ).rejects.toThrow("Chave da API WAHA inválida ou ausente");
   });
 });

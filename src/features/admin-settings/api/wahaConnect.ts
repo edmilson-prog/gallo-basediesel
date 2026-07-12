@@ -35,3 +35,8 @@ export async function invokeWaha<T>(body: Record<string, unknown>): Promise<T> {
   if (error) throw await toWahaError(error, "Falha ao falar com o servidor WAHA.");
   return data as T;
 }
+
+/** Ad-hoc validation send — never persisted as a conversation message. */
+export async function sendWahaTestMessage(accountId: string, toDigits: string): Promise<void> {
+  await invokeWaha<{ ok: boolean }>({ accountId, action: "test-message", to: toDigits });
+}
