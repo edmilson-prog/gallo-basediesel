@@ -37,7 +37,9 @@ import {
 } from "../_shared/whatsapp/evolution-go/instance.ts";
 import { EVOLUTION_GO_SECRET_SUFFIXES } from "../_shared/whatsapp/evolution-go/constants.ts";
 import type { IEngineDeps, IIntegrationLogEntry } from "../_shared/whatsapp/types.ts";
+import { fetchWahaProfilePictureUrl } from "../_shared/whatsapp/waha/contacts.ts";
 import { resolveGoServer } from "./goServer.ts";
+import { resolveWahaServer } from "./wahaServer.ts";
 
 const DEFAULT_LIMIT = 15;
 const MAX_LIMIT = 50;
@@ -59,7 +61,13 @@ interface IAccountRow {
   provider: string;
   credentials_ref: string;
   go_server_id: string | null;
-  provider_config: { baseUrl?: string; instanceName?: string; instanceId?: string } | null;
+  waha_server_id: string | null;
+  provider_config: {
+    baseUrl?: string;
+    instanceName?: string;
+    instanceId?: string;
+    sessionName?: string;
+  } | null;
 }
 
 interface ICustomerRow {
@@ -126,13 +134,21 @@ servePost(async (req, { log, traceId }) => {
 
   const { data: account } = await admin
     .from("whatsapp_accounts")
-    .select("id, store_id, provider, credentials_ref, go_server_id, provider_config")
+    .select("id, store_id, provider, credentials_ref, go_server_id, waha_server_id, provider_config")
     .eq("id", accountId)
     .eq("store_id", profile.store_id)
     .maybeSingle<IAccountRow>();
   if (!account) return jsonError("conta não encontrada nesta loja", "NOT_FOUND", 404);
-  if (account.provider !== "evolution" && account.provider !== "evolution-go") {
-    return jsonError("sincronização disponível apenas para contas Evolution", "VALIDATION_ERROR", 422);
+  if (
+    account.provider !== "evolution" &&
+    account.provider !== "evolution-go" &&
+    account.provider !== "waha"
+  ) {
+    return jsonError(
+      "sincronização disponível apenas para contas Evolution ou WAHA",
+      "VALIDATION_ERROR",
+      422,
+    );
   }
 
   const deps = makeEngineDeps(admin, traceId);
@@ -145,7 +161,21 @@ servePost(async (req, { log, traceId }) => {
   let apiKey: string;
   let fetchPicUrl: ((wire: string, traceId?: string) => Promise<string | null>) | undefined;
 
-  if (account.provider === "evolution-go") {
+  if (account.provider === "waha") {
+    const sessionName = account.provider_config?.sessionName;
+    if (!sessionName) {
+      return jsonError("sessão WAHA sem sessionName configurado", "CONFIG_MISSING", 422);
+    }
+    const { baseUrl, apiKey: wahaKey } = await resolveWahaServer(admin, deps.resolveSecret, account);
+    apiKey = wahaKey;
+    target = { baseUrl, instanceName: sessionName }; // unused by the WAHA path; fetchPicUrl drives it
+    fetchPicUrl = async (wire) =>
+      (await fetchWahaProfilePictureUrl(wahaKey, fetch, {
+        baseUrl,
+        sessionName,
+        contactId: `${wire}@c.us`,
+      })) ?? null;
+  } else if (account.provider === "evolution-go") {
     const instanceId = account.provider_config?.instanceId ?? "";
     if (!instanceId) {
       return jsonError("conta Evolution Go ainda não pareada", "CONFIG_MISSING", 422);
