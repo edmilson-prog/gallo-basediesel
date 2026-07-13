@@ -11,15 +11,17 @@
  *      (FOR UPDATE SKIP LOCKED — overlapping ticks never double-claim);
  *   3. dispatches each through the SAME `processSendRequest` pipeline as a
  *      manual send (24h window, failover, persist-before-send, status tracking,
- *      audit) using a trusted system sender;
+ *      audit) using a trusted system sender — EXCEPT `waha` accounts, which
+ *      are isolated by design (PRDs 112/113) and dispatch via the shared
+ *      `wahaSendAdapter` instead (mirrors `waha-send`'s manual-send path);
  *   4. flips each scheduled row to 'sent' / 'failed'.
  *
  * At-least-once: a crash AFTER provider dispatch but BEFORE the row is flipped
  * leaves it 'pending'; it is re-claimable only after a 5-min staleness window
  * (see the claim RPC), so an accidental resend is rare and bounded.
  *
- * Only `snippet` (plain text — the only kind the composer schedules) is
- * dispatchable; other payloads fail loudly (NOT_SUPPORTED) — see scheduled/core.
+ * `snippet` (text) and `media` payloads are dispatchable; other payload types
+ * fail loudly (NOT_SUPPORTED) — see scheduled/core.
  */
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.107.0";
@@ -27,14 +29,43 @@ import { requiredEnv } from "../_shared/env.ts";
 import { HttpError, json } from "../_shared/http.ts";
 import { servePost } from "../_shared/serve.ts";
 import { createSecretResolver } from "../_shared/secrets.ts";
+import { dispatchWahaMedia, dispatchWahaText } from "../_shared/wahaSendAdapter.ts";
 import { makeSendDb, makeEngineDeps } from "../_shared/whatsappSendAdapter.ts";
 import { buildWhatsAppEngine } from "../_shared/whatsapp/build.ts";
+import { WhatsAppProviderError } from "../_shared/whatsapp/errors.ts";
 import { processSendRequest } from "../_shared/whatsapp/send/core.ts";
 import {
   buildScheduledSendRequest,
   buildSystemSender,
   type IScheduledPayload,
 } from "../_shared/whatsapp/scheduled/core.ts";
+
+const MEDIA_SIGNED_URL_TTL_SECONDS = 300; // 5min — WAHA fetches the URL immediately
+
+/**
+ * Peeks at a due row's conversation to learn its WhatsApp engine. WAHA
+ * accounts skip `processSendRequest`/`buildWhatsAppEngine` entirely — that
+ * pipeline is isolation-scoped to meta/evolution/evolution-go/openwa by
+ * design (PRDs 112/113) and throws `Engine WhatsApp desconhecido: waha` for
+ * any waha account (the exact bug this branch fixes, found 2026-07-12).
+ */
+async function resolveConversationProvider(
+  admin: SupabaseClient,
+  conversationId: string,
+): Promise<string | null> {
+  const { data: conv } = await admin
+    .from("conversations")
+    .select("whatsapp_account_id")
+    .eq("id", conversationId)
+    .maybeSingle();
+  if (!conv?.whatsapp_account_id) return null;
+  const { data: account } = await admin
+    .from("whatsapp_accounts")
+    .select("provider")
+    .eq("id", conv.whatsapp_account_id as string)
+    .maybeSingle();
+  return (account?.provider as string | undefined) ?? null;
+}
 
 /**
  * Pre-resolves the Evolution Go server `base_url` for accounts involved in
@@ -221,38 +252,75 @@ servePost(async (req, ctx) => {
   for (const row of rows) {
     try {
       const request = buildScheduledSendRequest(row.conversation_id, row.payload);
-      // Pre-resolve Go/OpenWA server config for accounts involved in this send.
-      // Both are registry-based and don't store their base_url (OpenWA: nor the
-      // api key secret name) in provider_config. Fast-exits for other
-      // conversations (no overhead for most rows).
-      const goBaseUrls = await resolveGoBaseUrls(admin, row.conversation_id);
-      const openwaServers = await resolveOpenWaServerConfigs(admin, row.conversation_id);
-      await processSendRequest({
-        input: request,
-        sender: buildSystemSender(row.store_id),
-        db,
-        buildProvider: (account) => {
-          // Inject base_url from the server registry when the account is evolution-go
-          // and providerConfig does not already have it (old accounts may still carry it).
-          let providerConfig = account.providerConfig;
-          if (account.provider === "evolution-go" && !providerConfig?.baseUrl) {
-            const serverBaseUrl = goBaseUrls.get(account.id);
-            if (serverBaseUrl) providerConfig = { ...providerConfig, baseUrl: serverBaseUrl };
-          }
-          if (account.provider === "openwa") {
-            const serverCfg = openwaServers.get(account.id);
-            if (serverCfg) providerConfig = { ...providerConfig, ...serverCfg };
-          }
-          return buildWhatsAppEngine({
-            engine: account.provider,
-            accountId: account.id,
-            providerConfig,
-            credentialsRef: account.credentialsRef,
-            deps,
+      const provider = await resolveConversationProvider(admin, row.conversation_id);
+
+      if (provider === "waha") {
+        // Isolated pipeline (never processSendRequest/buildWhatsAppEngine) —
+        // mirrors waha-send's dispatch via the shared adapter, system sender
+        // (sellerId null, same reasoning as buildSystemSender above).
+        if (request.kind === "text") {
+          await dispatchWahaText(admin, {
+            conversationId: row.conversation_id,
+            storeId: row.store_id,
+            text: request.text ?? "",
+            sellerId: null,
           });
-        },
-        traceId: ctx.traceId,
-      });
+        } else {
+          const mediaPath = request.mediaPath ?? "";
+          const { data: signed, error: signErr } = await admin.storage
+            .from("whatsapp-media")
+            .createSignedUrl(mediaPath, MEDIA_SIGNED_URL_TTL_SECONDS);
+          if (signErr || !signed?.signedUrl) {
+            throw new WhatsAppProviderError(
+              "VALIDATION_ERROR",
+              422,
+              `Mídia não encontrada no Storage: ${mediaPath}`,
+            );
+          }
+          await dispatchWahaMedia(admin, {
+            conversationId: row.conversation_id,
+            storeId: row.store_id,
+            mediaUrl: signed.signedUrl,
+            mediaType: (request.mediaType as "image" | "audio" | "video" | "document") ?? "document",
+            fileName: request.fileName,
+            caption: request.text || undefined,
+            sellerId: null,
+          });
+        }
+      } else {
+        // Pre-resolve Go/OpenWA server config for accounts involved in this send.
+        // Both are registry-based and don't store their base_url (OpenWA: nor the
+        // api key secret name) in provider_config. Fast-exits for other
+        // conversations (no overhead for most rows).
+        const goBaseUrls = await resolveGoBaseUrls(admin, row.conversation_id);
+        const openwaServers = await resolveOpenWaServerConfigs(admin, row.conversation_id);
+        await processSendRequest({
+          input: request,
+          sender: buildSystemSender(row.store_id),
+          db,
+          buildProvider: (account) => {
+            // Inject base_url from the server registry when the account is evolution-go
+            // and providerConfig does not already have it (old accounts may still carry it).
+            let providerConfig = account.providerConfig;
+            if (account.provider === "evolution-go" && !providerConfig?.baseUrl) {
+              const serverBaseUrl = goBaseUrls.get(account.id);
+              if (serverBaseUrl) providerConfig = { ...providerConfig, baseUrl: serverBaseUrl };
+            }
+            if (account.provider === "openwa") {
+              const serverCfg = openwaServers.get(account.id);
+              if (serverCfg) providerConfig = { ...providerConfig, ...serverCfg };
+            }
+            return buildWhatsAppEngine({
+              engine: account.provider,
+              accountId: account.id,
+              providerConfig,
+              credentialsRef: account.credentialsRef,
+              deps,
+            });
+          },
+          traceId: ctx.traceId,
+        });
+      }
       await admin.from("scheduled_sends").update({ status: "sent" }).eq("id", row.id);
       sent++;
     } catch (err) {

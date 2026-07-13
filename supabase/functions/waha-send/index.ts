@@ -17,12 +17,10 @@
  */
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.107.0";
-import { bestEffortAudit } from "../_shared/audit.ts";
 import { requiredEnv } from "../_shared/env.ts";
 import { HttpError, json, parseJsonBody } from "../_shared/http.ts";
-import { createSecretResolver } from "../_shared/secrets.ts";
 import { servePost } from "../_shared/serve.ts";
-import { sendWahaMedia, sendWahaText } from "../_shared/whatsapp/waha/send.ts";
+import { dispatchWahaMedia, dispatchWahaText } from "../_shared/wahaSendAdapter.ts";
 import { WhatsAppProviderError } from "../_shared/whatsapp/errors.ts";
 
 interface ISendBody {
@@ -112,91 +110,30 @@ servePost(async (req, ctx) => {
   const allowed = await callerCanAccessConversation(authHeader, body.conversationId);
   if (!allowed) throw new HttpError(403, "Sem permissão para enviar nesta conversa");
 
-  const { data: account } = await admin
-    .from("whatsapp_accounts")
-    .select("id, provider, provider_config, waha_server_id, credentials_ref")
-    .eq("id", conversation.whatsapp_account_id as string)
-    .maybeSingle();
-  if (!account || account.provider !== "waha") {
-    throw new HttpError(422, "Conta associada não é uma sessão WAHA");
-  }
-  const sessionName = String(
-    (account.provider_config as Record<string, unknown> | null)?.sessionName ?? "",
-  );
-  if (!sessionName) throw new HttpError(422, "Sessão WAHA sem sessionName configurado");
-
-  const { data: server } = await admin
-    .from("waha_servers")
-    .select("base_url, api_key_ref")
-    .eq("id", account.waha_server_id as string)
-    .maybeSingle();
-  if (!server) throw new HttpError(422, "Servidor WAHA não encontrado");
-  const baseUrl = String(server.base_url ?? "").replace(/\/+$/, "");
-  const resolveSecret = createSecretResolver(admin);
-  const apiKey = await resolveSecret(String(server.api_key_ref ?? ""));
-  if (!apiKey) throw new HttpError(422, "Chave da API do servidor WAHA não definida");
-
-  const { data: customer } = await admin
-    .from("conversations")
-    .select("customers(phone)")
-    .eq("id", body.conversationId)
-    .maybeSingle();
-  const toPhone = (customer as unknown as { customers?: { phone?: string } } | null)?.customers
-    ?.phone;
-  if (!toPhone) throw new HttpError(422, "Cliente sem telefone cadastrado");
-
-  const messageId = body.messageId ?? crypto.randomUUID();
-  const { error: insertErr } = await admin.from("messages").insert({
-    id: messageId,
-    conversation_id: body.conversationId,
-    direction: "out",
-    author_type: "seller",
-    author_id: sellerId,
-    provider: "waha",
-    text: body.text ?? "",
-    media_type: body.mediaType ?? null,
-    media_url: body.mediaUrl ?? null,
-    media_filename: body.filename ?? null,
-    status: "queued",
-    sent_at: new Date().toISOString(),
-  });
-  if (insertErr) throw new HttpError(500, `Falha ao registrar a mensagem: ${insertErr.message}`);
-
-  const target = { baseUrl, sessionName };
   try {
     const result =
       body.kind === "text"
-        ? await sendWahaText(apiKey, globalThis.fetch, target, { toPhone, text: body.text ?? "" })
-        : await sendWahaMedia(apiKey, globalThis.fetch, target, {
-            toPhone,
-            mediaType: body.mediaType ?? "document",
+        ? await dispatchWahaText(admin, {
+            conversationId: body.conversationId,
+            storeId,
+            text: body.text ?? "",
+            sellerId,
+            messageId: body.messageId,
+          })
+        : await dispatchWahaMedia(admin, {
+            conversationId: body.conversationId,
+            storeId,
             mediaUrl: body.mediaUrl ?? "",
-            filename: body.filename,
+            mediaType: body.mediaType ?? "document",
+            fileName: body.filename,
             caption: body.text,
+            sellerId,
+            messageId: body.messageId,
           });
 
-    await admin
-      .from("messages")
-      .update({ status: "sent", provider_message_id: result.providerMessageId })
-      .eq("id", messageId);
-    await admin
-      .from("conversations")
-      .update({ last_message_at: new Date().toISOString() })
-      .eq("id", body.conversationId);
-
-    if (sellerId) {
-      await bestEffortAudit(admin, {
-        store_id: storeId,
-        actor_id: sellerId,
-        action: "whatsapp_message_sent",
-        resource: "conversation",
-        resource_id: body.conversationId,
-        after: { provider: "waha", messageId, providerMessageId: result.providerMessageId },
-      });
-    }
     return json(
       {
-        messageId,
+        messageId: result.messageId,
         providerMessageId: result.providerMessageId,
         dispatchStatus: "sent",
         traceId: ctx.traceId,
@@ -204,11 +141,6 @@ servePost(async (req, ctx) => {
       200,
     );
   } catch (err) {
-    const reason = err instanceof Error ? err.message : String(err);
-    await admin
-      .from("messages")
-      .update({ status: "failed", failure_reason: reason })
-      .eq("id", messageId);
     if (err instanceof WhatsAppProviderError) {
       ctx.log.warn("waha-send rejected", { code: err.code, message: err.message });
       return json({ error: err.message, code: err.code, traceId: ctx.traceId }, err.httpStatus);
