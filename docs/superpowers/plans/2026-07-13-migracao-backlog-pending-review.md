@@ -25,7 +25,7 @@
 **Interfaces:**
 - Produces: a contagem total do backlog e a distribuição por dono resolvido, que a Task 2 deve bater ao final.
 
-- [ ] **Passo 1: Checar que não há registro com as duas tags ao mesmo tempo**
+- [x] **Passo 1: Checar que não há registro com as duas tags ao mesmo tempo**
 
 ```sql
 select count(*) as both_tags
@@ -35,7 +35,7 @@ where 'pending_review' = any(tags) and 'reviewed_not_customer' = any(tags);
 
 Esperado: `both_tags = 0`. Se vier diferente de 0, PARE — a suposição de mutuamente exclusivas está errada e o filtro da migração precisa ser revisto antes de continuar.
 
-- [ ] **Passo 2: Contagem agregada por dono resolvido (o dry-run principal)**
+- [x] **Passo 2: Contagem agregada por dono resolvido (o dry-run principal)**
 
 ```sql
 with resolved as (
@@ -66,13 +66,13 @@ order by resolved.via_conversation desc, customer_count desc;
 
 Esperado: uma linha com `via_conversation = false`, `resolved_seller_name = 'Edmilson Souza'` concentrando a maioria (~4.600+), e um punhado de linhas com `via_conversation = true` espalhadas entre outros vendedores (~150-200 no total). Confira que a soma de `customer_count` bate com o total do backlog (Passo 3).
 
-- [ ] **Passo 3: Total do backlog (para bater com a soma do Passo 2 e com o `migrated_count` da Task 2)**
+- [x] **Passo 3: Total do backlog (para bater com a soma do Passo 2 e com o `migrated_count` da Task 2)**
 
 ```sql
 select count(*) as total_pending_review from public.customers where 'pending_review' = any(tags);
 ```
 
-- [ ] **Passo 4: Amostra de 20 registros (spot check manual)**
+- [x] **Passo 4: Amostra de 20 registros (spot check manual)**
 
 ```sql
 select
@@ -105,9 +105,9 @@ Apresente os resultados dos Passos 1-4 ao dono. **Pare aqui e espere a confirma�
 - Consumes: a mesma lógica de resolução de dono da Task 1 (idêntica, recalculada no momento da execução — os números podem ter mudado levemente desde o dry-run porque o webhook continua criando `pending_review` novos em produção).
 - Produces: `migrated_count` (linhas convertidas) e `remaining_pending_review` (deve ser ~0, salvo novos registros criados durante a janela de execução).
 
-- [ ] **Passo 1: Confirmar que o dono deu o OK explícito sobre o dry-run da Task 1 antes de prosseguir.**
+- [x] **Passo 1: Confirmar que o dono deu o OK explícito sobre o dry-run da Task 1 antes de prosseguir.**
 
-- [ ] **Passo 2: Rodar a migração completa, em uma única chamada (transação única)**
+- [x] **Passo 2: Rodar a migração completa, em uma única chamada (transação única)**
 
 ```sql
 begin;
@@ -158,7 +158,7 @@ commit;
 
 Esperado: `migrated_count` próximo do `total_pending_review` do dry-run (Task 1, Passo 3) — pode ser um pouco maior se novos `pending_review` chegaram entre o dry-run e a execução, o que é esperado e inofensivo (a query recalcula tudo na hora). `remaining_pending_review` deve ser 0, ou um número pequeno se mensagens novas chegaram durante a própria transação (também esperado, não é falha).
 
-- [ ] **Passo 3: Spot check pós-execução — conferir 5 registros da amostra da Task 1 (Passo 4) e seus audit_logs**
+- [x] **Passo 3: Spot check pós-execução — conferir 5 registros da amostra da Task 1 (Passo 4) e seus audit_logs**
 
 ```sql
 select id, full_name, type, seller_id, tags from public.customers where id = ANY(ARRAY[/* colar aqui 5 ids da amostra da Task 1 */]::uuid[]);
@@ -182,7 +182,7 @@ Esperado: os 5 `customer` da amostra aparecem com `type = 'B2C'`, `seller_id` pr
 - Consumes: `migrated_count`/`remaining_pending_review` da Task 2.
 - Produces: relatório final para o dono, e o sinal de que a Frente 2 (reestruturação do webhook/Leads) pode começar.
 
-- [ ] **Passo 1: Confirmar distribuição final por vendedor (quantos clientes cada um tem agora, para embasar a redistribuição manual de carteira)**
+- [x] **Passo 1: Confirmar distribuição final por vendedor (quantos clientes cada um tem agora, para embasar a redistribuição manual de carteira)**
 
 ```sql
 select s.full_name, count(*) as customer_count
@@ -192,7 +192,7 @@ group by s.full_name
 order by customer_count desc;
 ```
 
-- [ ] **Passo 2: Confirmar zero pendências residuais antigas**
+- [x] **Passo 2: Confirmar zero pendências residuais antigas**
 
 ```sql
 select count(*) as remaining from public.customers where 'pending_review' = any(tags);
@@ -200,6 +200,6 @@ select count(*) as remaining from public.customers where 'pending_review' = any(
 
 Esperado: 0, ou só registros criados por conversas novas depois da migração (esperado e fora de escopo — seguem entrando pela tela `contact-review`, que continua ativa até a Frente 2).
 
-- [ ] **Passo 3: Reportar ao dono**
+- [x] **Passo 3: Reportar ao dono**
 
 Resumo a entregar: total migrado, distribuição por vendedor (Passo 1), confirmação de zero pendência residual anômala (Passo 2), e lembrete de que a redistribuição fina de carteira para quem caiu no fallback (Edmilson Souza) é uma ação manual futura, fora deste plano. Registrar que a Frente 2 (webhook cria Lead em vez de customer placeholder; aposentar `contact-review`) pode começar agora.
