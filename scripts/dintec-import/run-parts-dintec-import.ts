@@ -221,7 +221,6 @@ async function main() {
     if (origem) fiscal.origin = origem;
 
     createRows.push({
-      id: `part-${crypto.randomUUID()}`,
       sku: row.codpro,
       name: buildName(row),
       oem_codes: [],
