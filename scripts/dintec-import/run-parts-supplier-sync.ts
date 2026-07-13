@@ -19,6 +19,8 @@ import {
   titleCaseName,
   parseAplicacaoText,
   extractCrossReferences,
+  buildCrossReferenceIndex,
+  findBridgeSku,
 } from "../../src/features/dintec-import/engine";
 
 const DRY_RUN = process.env.DINTEC_DRY_RUN === "yes";
@@ -139,13 +141,44 @@ async function main() {
   const ufiBySku = new Map(ufiSim.map((r) => [textOrNull(r[UFI_COL.sku])!, r]));
   const toEnrichUfi = [...ufiBySku.entries()].filter(([sku]) => existing.has(sku));
   const toCreateUfi = [...ufiBySku.entries()].filter(([sku]) => !existing.has(sku));
-  const tfBySku = new Map(
-    tfRows
-      .map((r) => [textOrNull(r[TF_COL.referencia]), r] as const)
-      .filter((pair): pair is [string, string[]] => pair[0] !== null && existing.has(pair[0])),
-  );
+
+  // Turbo Filtros' own "Referência Turbo" is a DIFFERENT numbering scheme
+  // than the platform sku (confirmed empirically against the real files —
+  // e.g. "BW04"/"TAC1005" vs. "19.008.00") and will never match directly.
+  // Bridge it instead: UFI's "Código Comercial" IS the platform sku, and
+  // both sheets share 9 competitor-brand cross-reference columns
+  // (Mann/Donaldson/Fleetguard/Parker/Hengst/Mahle/Tecfil/Fram/Wega) — a
+  // shared code between a TF row and a UFI row means the same physical
+  // part, so TF -> (shared code) -> UFI sku -> existing platform sku.
+  // Index built from the WHOLE UFI sheet (not just Comprou?=SIM — cross-
+  // reference data isn't gated by purchase status), scoped to skus that
+  // already exist on the platform (mirrors the direct-match precedent: TF
+  // never creates a new product, only enriches). A TF row that would
+  // bridge to a UFI sku not yet on the platform (still in `toCreateUfi`) is
+  // NOT enriched in this same pass — this script is idempotent/re-runnable,
+  // so a later sync run picks it up once that UFI row has been created.
+  const ufiBridgeEntries = ufiRows
+    .map((r) => ({ sku: textOrNull(r[UFI_COL.sku]), row: r }))
+    .filter((e): e is { sku: string; row: string[] } => e.sku !== null && existing.has(e.sku))
+    .map((e) => ({
+      sku: e.sku,
+      crossReferences: extractCrossReferences(e.row, UFI_CROSS_REF_BRANDS, UFI_COL.crossRefStart),
+    }));
+  const bridgeIndex = buildCrossReferenceIndex(ufiBridgeEntries);
+
+  const tfBySku = new Map<string, string[]>();
+  let tfRowsBridged = 0;
+  for (const r of tfRows) {
+    const crossRefs = extractCrossReferences(r, TF_CROSS_REF_BRANDS, TF_COL.crossRefStart);
+    const bridgedSku = findBridgeSku(crossRefs, bridgeIndex);
+    if (!bridgedSku) continue;
+    tfRowsBridged++;
+    if (!tfBySku.has(bridgedSku)) tfBySku.set(bridgedSku, r);
+  }
   console.log(
-    `UFI SIM: ${toEnrichUfi.length} para enriquecer, ${toCreateUfi.length} para criar. Turbo Filtros: ${tfBySku.size} matches para enriquecer.`,
+    `UFI SIM: ${toEnrichUfi.length} para enriquecer, ${toCreateUfi.length} para criar. ` +
+      `Turbo Filtros: ${tfRowsBridged} linhas bridge-matched (via código de referência cruzada) ` +
+      `-> ${tfBySku.size} produtos reais distintos a enriquecer.`,
   );
 
   if (DRY_RUN) {
@@ -155,7 +188,8 @@ async function main() {
       `- UFI Comprou=SIM no arquivo: ${ufiSim.length}`,
       `- UFI já existentes (enriquecer): ${toEnrichUfi.length}`,
       `- UFI a criar: ${toCreateUfi.length}`,
-      `- Turbo Filtros matches (enriquecer): ${tfBySku.size}`,
+      `- Turbo Filtros: ${tfRowsBridged} linhas bridge-matched (via código de referência cruzada)`,
+      `- Turbo Filtros matches (enriquecer): ${tfBySku.size} produtos reais distintos`,
     ].join("\n");
     writeFileSync(join(SCRATCHPAD, "parts-supplier-sync-dryrun.md"), summary, "utf8");
     console.log(summary);

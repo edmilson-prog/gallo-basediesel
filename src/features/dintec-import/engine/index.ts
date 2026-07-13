@@ -9,3 +9,9 @@ export { buildDintecPriceTables } from "./dintecPriceTables";
 export { parseAplicacaoText } from "./aplicacaoParser";
 export { titleCaseName } from "./titleCase";
 export { extractCrossReferences } from "./crossReferenceExtractor";
+export {
+  buildCrossReferenceIndex,
+  findBridgeSku,
+  normalizeCrossReferenceCode,
+  type CrossReferenceSource,
+} from "./crossReferenceBridge";
