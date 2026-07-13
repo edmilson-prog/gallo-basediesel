@@ -193,6 +193,10 @@ async function main() {
     patch.dintec_synced_at = syncedAt;
     const { error } = await sb.from("parts").update(patch).eq("id", current.id);
     if (error) throw error;
+    // Reflete o patch na entrada do Map para que qualquer leitura posterior
+    // (inclusive o passo Turbo Filtros) veja o estado pós-enriquecimento UFI,
+    // nunca a linha stale pré-update.
+    Object.assign(current, patch);
     enrichedCount++;
   }
   for (const [sku, row] of tfBySku) {
@@ -253,6 +257,12 @@ async function main() {
       catalog_source: "supplier_ufi",
     };
   });
+  // SKUs dos registros genuinamente criados — a âncora exata do rollback dos
+  // "Criados". NÃO usar catalog_source/dintec_synced_at/dintec_codpro-null: o
+  // enriquecimento acima faz backfill do mesmo catalog_source='supplier_ufi' +
+  // dintec_synced_at em ~25 linhas reais pré-existentes (UFI-track, codpro null
+  // por natureza), então aquele filtro apagaria produtos reais e vivos junto.
+  const createdSkus = createRows.map((r) => r.sku as string);
   let createdDone = 0;
   const chunkSize = 100;
   for (let i = 0; i < createRows.length; i += chunkSize) {
@@ -263,6 +273,11 @@ async function main() {
     console.log(`criados: ${createdDone}/${createRows.length}`);
   }
 
+  const createdSkuList = createdSkus.map((s) => `'${s.replace(/'/g, "''")}'`).join(",");
+  const createdRollback =
+    createdSkus.length > 0
+      ? `delete from parts where sku in (${createdSkuList});`
+      : "(nenhum produto criado neste lote)";
   const summary = [
     "# Sync de planilhas de fornecedor — ESCRITA REAL concluída",
     "",
@@ -271,7 +286,7 @@ async function main() {
     `- Criados (UFI Comprou=SIM ausentes): ${createdDone}`,
     "",
     "Rollback do lote:",
-    `- Criados: delete from parts where catalog_source='supplier_ufi' and dintec_synced_at='${syncedAt}' and dintec_codpro is null;`,
+    `- Criados: ${createdRollback}`,
     "- Enriquecidos: restaurar campo a campo via scratchpad/parts-supplier-sync-backup.json.",
   ].join("\n");
   writeFileSync(join(SCRATCHPAD, "parts-supplier-sync-report.md"), summary, "utf8");

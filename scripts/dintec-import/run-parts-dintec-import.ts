@@ -57,20 +57,47 @@ interface DintecPartRow {
   fornecedorNome: string;
 }
 
+// Quote-aware split: the SQL export (export-parts-full-fields.sql) wraps every
+// text field in "..." and escapes embedded quotes as "" — and the APLICACAO
+// field legitimately contains ';' inside its quoted value. Only ';' OUTSIDE a
+// quoted field is a real column separator. Numeric fields are emitted unquoted.
 function parseCsvLine(line: string): string[] {
   const cells: string[] = [];
+  let field = "";
+  let inQuotes = false;
   let i = 0;
-  while (i <= line.length) {
-    const semi = line.indexOf(";", i);
-    const raw = semi === -1 ? line.slice(i) : line.slice(i, semi);
-    if (raw.startsWith('"') && raw.endsWith('"')) {
-      cells.push(raw.slice(1, -1).replace(/""/g, '"'));
-    } else {
-      cells.push(raw);
+  while (i < line.length) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') {
+          field += '"';
+          i += 2;
+          continue;
+        }
+        inQuotes = false;
+        i += 1;
+        continue;
+      }
+      field += ch;
+      i += 1;
+      continue;
     }
-    if (semi === -1) break;
-    i = semi + 1;
+    if (ch === '"') {
+      inQuotes = true;
+      i += 1;
+      continue;
+    }
+    if (ch === ";") {
+      cells.push(field);
+      field = "";
+      i += 1;
+      continue;
+    }
+    field += ch;
+    i += 1;
   }
+  cells.push(field);
   return cells;
 }
 

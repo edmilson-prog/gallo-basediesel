@@ -36,9 +36,12 @@ const SCRATCHPAD = join(ROOT, "scratchpad");
 async function main() {
   console.log(`Limpeza de parts mock — modo: ${DRY_RUN ? "DRY-RUN (zero escrita)" : "ESCRITA REAL"}`);
 
+  // select("*") de propósito: o backup precisa das colunas NOT NULL
+  // (brand/supplier/unit_cost/…) para o rollback "reinserir parts primeiro" ser
+  // de fato executável a partir do JSON.
   const { data: mockParts, error: partsError } = await sb
     .from("parts")
-    .select("id, sku, name")
+    .select("*")
     .ilike("sku", "GAL-%");
   if (partsError) throw partsError;
   const mockPartIds = (mockParts ?? []).map((p) => p.id);
@@ -53,7 +56,7 @@ async function main() {
 
   const { data: orphanQuotes, error: quotesError } = await sb
     .from("quotes")
-    .select("id, customer_id, status, created_at")
+    .select("*")
     .in("id", orphanQuoteIds.length > 0 ? orphanQuoteIds : ["__none__"]);
   if (quotesError) throw quotesError;
   const nonOrphan = (orphanQuotes ?? []).filter((q) => q.customer_id !== null);
@@ -71,6 +74,32 @@ async function main() {
   if (allItemsError) throw allItemsError;
   console.log(`quote_items removidos junto (inclui itens não-mock desses mesmos orçamentos órfãos): ${allItemsCount}`);
 
+  // Pre-flight das FKs RESTRICT que o script não deletava: order_items.part_id
+  // e model_kit_items.part_id referenciam parts com ON DELETE (NO ACTION /
+  // RESTRICT). Se qualquer part mock estiver referenciado, o `delete from parts`
+  // final falharia DEPOIS de quotes/quote_items já removidos — estado parcial
+  // não-transacional. Checamos em ambos os modos, antes de qualquer delete.
+  const inMockIds = mockPartIds.length > 0 ? mockPartIds : ["__none__"];
+  const { data: orderItemRefs, error: orderItemsError } = await sb
+    .from("order_items")
+    .select("id, part_id")
+    .in("part_id", inMockIds);
+  if (orderItemsError) throw orderItemsError;
+  const { data: kitItemRefs, error: kitItemsError } = await sb
+    .from("model_kit_items")
+    .select("id, part_id")
+    .in("part_id", inMockIds);
+  if (kitItemsError) throw kitItemsError;
+  const orderItemRefCount = (orderItemRefs ?? []).length;
+  const kitItemRefCount = (kitItemRefs ?? []).length;
+  if (orderItemRefCount > 0 || kitItemRefCount > 0) {
+    throw new Error(
+      `SEGURANÇA: parts mock são referenciados por FK RESTRICT — abortando antes de qualquer delete. ` +
+        `order_items: ${orderItemRefCount}, model_kit_items: ${kitItemRefCount}.`,
+    );
+  }
+  console.log(`order_items/model_kit_items referenciando parts mock: ${orderItemRefCount + kitItemRefCount} (esperado 0)`);
+
   if (DRY_RUN) {
     const summary = [
       "# Limpeza de parts mock — DRY-RUN (zero escrita)",
@@ -78,6 +107,7 @@ async function main() {
       `- Parts mock (sku GAL-*): ${mockPartIds.length}`,
       `- Orçamentos órfãos removidos: ${orphanQuoteIds.length}`,
       `- quote_items removidos (total dos orçamentos órfãos, não só os mock): ${allItemsCount}`,
+      `- order_items/model_kit_items referenciando parts mock: ${orderItemRefCount + kitItemRefCount}`,
     ].join("\n");
     writeFileSync(join(SCRATCHPAD, "parts-mock-cleanup-dryrun.md"), summary, "utf8");
     console.log(summary);
@@ -112,6 +142,7 @@ async function main() {
     `- Parts mock removidos: ${mockPartIds.length}`,
     `- Orçamentos órfãos removidos: ${orphanQuoteIds.length}`,
     `- quote_items removidos: ${allItemsCount}`,
+    `- order_items/model_kit_items referenciando parts mock (pré-checado): ${orderItemRefCount + kitItemRefCount}`,
     "",
     "Rollback: restaurar `scratchpad/parts-mock-cleanup-backup.json` — reinserir `parts` primeiro, depois `quotes`, depois `quote_items` (ordem inversa da FK).",
   ].join("\n");
