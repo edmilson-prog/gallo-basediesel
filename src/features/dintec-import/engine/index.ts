@@ -5,3 +5,7 @@ export { normalizeVehicleBrandModel, type VehicleBrandModel } from "./vehicleNor
 export { pickBestCodcliByLtv, type AmbiguousCandidate } from "./ambiguousTiebreak";
 export { readZipEntry, listZipEntries } from "./xlsxZip";
 export { colLettersToIndex, parseSharedStrings, parseSheetRows, loadXlsxSheet } from "./xlsxParser";
+export { buildDintecPriceTables } from "./dintecPriceTables";
+export { parseAplicacaoText } from "./aplicacaoParser";
+export { titleCaseName } from "./titleCase";
+export { extractCrossReferences } from "./crossReferenceExtractor";
