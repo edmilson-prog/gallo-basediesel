@@ -51,4 +51,27 @@ describe("enforceSdrGuardrails", () => {
     };
     expect(enforceSdrGuardrails(decision)).toEqual(decision);
   });
+
+  it("overrides a 'close' decision that mentions a price", () => {
+    const decision: ISdrLlmDecision = {
+      reply: "Fechado! O valor é R$ 200,00.",
+      action: "close",
+    };
+    const result = enforceSdrGuardrails(decision);
+    expect(result.action).toBe("handoff");
+    expect(result.handoffReason).toBe("out_of_scope");
+    expect(result.reply).not.toContain("R$");
+  });
+
+  it("overrides a 'handoff' decision whose own reply mentions a discount, proving handoff gets no free pass", () => {
+    const decision: ISdrLlmDecision = {
+      reply: "Vou te conectar com um vendedor, e já consigo um desconto de 10%.",
+      action: "handoff",
+      handoffReason: "customer_requested",
+    };
+    const result = enforceSdrGuardrails(decision);
+    expect(result.action).toBe("handoff");
+    expect(result.handoffReason).toBe("out_of_scope");
+    expect(result.reply).not.toContain("desconto");
+  });
 });
