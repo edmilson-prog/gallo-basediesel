@@ -780,7 +780,7 @@ Deno.serve(async (req) => {
     },
   ) => {
     res.headers.set("x-trace-id", traceId);
-    void logWebhookDelivery(admin, {
+    runInBackground(logWebhookDelivery(admin, {
       integrationName: `whatsapp_${provider || "unknown"}`,
       accountId: meta?.accountId ?? null,
       eventType: meta?.eventType ?? null,
@@ -791,7 +791,7 @@ Deno.serve(async (req) => {
       latencyMs: Date.now() - startedAt,
       requestPayload: meta?.requestPayload ?? null,
       traceId,
-    });
+    }));
     return res;
   };
 
@@ -845,14 +845,14 @@ Deno.serve(async (req) => {
   // Auth gates (fail closed) — the ONLY paths that answer 4xx on POST.
   if (provider === "meta") {
     const rejection = await metaGate(req, rawBody, log, resolveSecret);
-    if (rejection) return respond(rejection);
+    if (rejection) return respond(rejection, { requestPayload: payload });
   } else if (provider === "evolution-go") {
     // Any-status lookup: the gate is about AUTH (instanceToken), and
     // connection.update events must also reach disconnected accounts.
     const instanceId = (payload as { instanceId?: string } | null)?.instanceId ?? "";
     const account = await db.findEvolutionGoAccountAnyStatus(instanceId);
     const rejection = await evolutionGoGate(rawBody, payload, account, log, resolveSecret);
-    if (rejection) return respond(rejection);
+    if (rejection) return respond(rejection, { requestPayload: payload });
     // Pre-resolve the Go server base_url for this account (needed by buildProvider
     // for inbound media download). The account is known here; doing it before
     // processWebhookEvent keeps buildProvider synchronous.
@@ -875,7 +875,7 @@ Deno.serve(async (req) => {
     }
   } else if (provider === "openwa") {
     const rejection = await openwaGate(req, log, resolveSecret);
-    if (rejection) return respond(rejection);
+    if (rejection) return respond(rejection, { requestPayload: payload });
     // Pre-resolve the OpenWA server's {baseUrl, apiKeySecretName} for this
     // account (needed by buildProvider for both parsing media and any future
     // outbound-echo handling). Doing it here keeps buildProvider synchronous.
@@ -955,7 +955,7 @@ Deno.serve(async (req) => {
     const instance = (payload as { instance?: string } | null)?.instance ?? "";
     const account = await db.findEvolutionAccountAnyStatus(instance);
     const rejection = await evolutionGate(req, rawBody, account, log, resolveSecret);
-    if (rejection) return respond(rejection);
+    if (rejection) return respond(rejection, { requestPayload: payload });
   }
 
   // From here on: always 200 (RF-090) — Meta must never retry-storm us.

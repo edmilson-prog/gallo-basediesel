@@ -38,6 +38,7 @@ import { verifyWahaHmac } from "../_shared/whatsapp/waha/hmac.ts";
 import { wahaStateToAccountStatus } from "../_shared/whatsapp/waha/constants.ts";
 import { getWahaContactName, resolveWahaLid } from "../_shared/whatsapp/waha/contacts.ts";
 import { logWebhookDelivery } from "../_shared/webhookDeliveryLog.ts";
+import { runInBackground } from "../_shared/backgroundTask.ts";
 
 interface IWahaEnvelope {
   id?: string;
@@ -85,7 +86,7 @@ Deno.serve(async (req) => {
       errorMessage?: string | null;
     },
   ) => {
-    void logWebhookDelivery(admin, {
+    runInBackground(logWebhookDelivery(admin, {
       integrationName: "whatsapp_waha",
       accountId: accountIdForLog,
       eventType: meta?.eventType ?? sessionForLog ?? null,
@@ -96,7 +97,7 @@ Deno.serve(async (req) => {
       latencyMs: Date.now() - startedAt,
       requestPayload: meta?.requestPayload ?? null,
       traceId: null,
-    });
+    }));
     return res;
   };
 
