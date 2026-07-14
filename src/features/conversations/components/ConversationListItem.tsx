@@ -9,6 +9,7 @@ import type {
 } from "@/shared/types";
 import { EscalationBadge } from "@/features/sdr-escalation/components/EscalationBadge";
 import { EcommerceBadge } from "@/features/ecommerce-integration/components/EcommerceBadge";
+import { AdSourceBadge } from "./AdSourceBadge";
 import { isQueuedConversation } from "@/features/inbox-alerts";
 import { Icon } from "@/components/Icon";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -339,6 +340,10 @@ function ConversationListItemInner({
           </span>
 
           {conversation.linkedOrderId && <EcommerceBadge compact />}
+
+          {conversation.adReferral && (
+            <AdSourceBadge compact headline={conversation.adReferral.headline} />
+          )}
 
           {conversation.isSdrActive && (
             <Tooltip>
