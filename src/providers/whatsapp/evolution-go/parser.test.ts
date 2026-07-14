@@ -195,7 +195,7 @@ describe("parseEvolutionGoInbound", () => {
   });
 });
 
-describe("parseEvolutionGoInbound — ad referral (externalAdReplyInfo)", () => {
+describe("parseEvolutionGoInbound — ad referral (externalAdReply)", () => {
   it("extracts adReferral from an extendedTextMessage contextInfo", () => {
     const parsed = parseEvolutionGoInbound(
       {
@@ -206,7 +206,7 @@ describe("parseEvolutionGoInbound — ad referral (externalAdReplyInfo)", () => 
             extendedTextMessage: {
               text: "Opa! Vim do anúncio",
               contextInfo: {
-                externalAdReplyInfo: {
+                externalAdReply: {
                   title: "Módulos Volvo — instale em minutos",
                   body: "Fale com a GALLO",
                   sourceID: "120210000000000",
@@ -234,7 +234,7 @@ describe("parseEvolutionGoInbound — ad referral (externalAdReplyInfo)", () => 
     });
   });
 
-  it("leaves adReferral undefined for a plain message (no externalAdReplyInfo)", () => {
+  it("leaves adReferral undefined for a plain message (no externalAdReply)", () => {
     const parsed = parseEvolutionGoInbound(
       {
         event: "Message",

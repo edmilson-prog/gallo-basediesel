@@ -63,7 +63,7 @@ interface IGoExternalAdReplyInfo {
 }
 
 interface IGoContextInfo {
-  externalAdReplyInfo?: IGoExternalAdReplyInfo;
+  externalAdReply?: IGoExternalAdReplyInfo;
 }
 
 export interface IGoMessageBody {
@@ -161,12 +161,12 @@ function normalizeGoAdMediaType(value: string | undefined): "image" | "video" | 
 }
 
 /** whatsmeow shape confirmed via docs/integracoes/evo-go/doc.json. Returns
- *  undefined (never throws) whenever externalAdReplyInfo is absent/malformed. */
+ *  undefined (never throws) whenever externalAdReply is absent/malformed. */
 export function extractGoAdReferral(msg: IGoMessageBody): IAdReferral | undefined {
   const info =
-    msg.extendedTextMessage?.contextInfo?.externalAdReplyInfo ??
-    msg.imageMessage?.contextInfo?.externalAdReplyInfo ??
-    msg.videoMessage?.contextInfo?.externalAdReplyInfo;
+    msg.extendedTextMessage?.contextInfo?.externalAdReply ??
+    msg.imageMessage?.contextInfo?.externalAdReply ??
+    msg.videoMessage?.contextInfo?.externalAdReply;
   if (!info) return undefined;
   return {
     sourceId: info.sourceID,
