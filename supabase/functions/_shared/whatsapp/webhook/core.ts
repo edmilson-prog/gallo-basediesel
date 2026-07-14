@@ -19,7 +19,7 @@ import { parseEvolutionGoInbound } from "../evolution-go/parser.ts";
 import { parseMetaInbound } from "../meta/parser.ts";
 import { parseOpenWaInbound } from "../openwa/parser.ts";
 import type { IWhatsAppProvider } from "../IWhatsAppProvider.ts";
-import type { IInboundMessage, IInboundStatus, IOutboundEcho } from "../types.ts";
+import type { IInboundMessage, IInboundStatus, IOutboundEcho, IAdReferral } from "../types.ts";
 import { MEDIA_DISCRIMINATOR_TYPES } from "../types.ts";
 
 export interface IAccountRecord {
@@ -122,6 +122,10 @@ export interface IWebhookDb {
     sentAt: string;
   }): Promise<{ id: string }>;
   bumpConversation(conversationId: string, lastMessageAt: string): Promise<void>;
+  /** Best-effort attribution write (ad-source detection, PRD n/a) — sets/
+   *  overwrites conversations.ad_referral with the LATEST inbound referral
+   *  seen. Only ever called when parsed.adReferral is present. */
+  setConversationAdReferral(conversationId: string, adReferral: IAdReferral): Promise<void>;
   /**
    * Reopens a closed (resolvida/arquivada) conversation on customer inbound
    * (spec 2026-07-03 §1.5): status→'aguardando', unassigns the owner, bumps
@@ -776,6 +780,13 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
   // folds the last_message_at/unread_count bump in for that event.
   if (!didReopen) {
     await db.bumpConversation(conversation.id, parsed.timestamp);
+  }
+
+  // Ad-source attribution (best-effort): overwrite with the LATEST referral
+  // seen — a customer can return via a different ad months later, and the
+  // conversation should reflect that, not freeze on the first one.
+  if (parsed.adReferral) {
+    await db.setConversationAdReferral(conversation.id, parsed.adReferral);
   }
 
   // Idempotency mark RIGHT AFTER the message lands (RNF-002): a provider
