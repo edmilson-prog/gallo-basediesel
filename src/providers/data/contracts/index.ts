@@ -42,6 +42,7 @@ import type { IScheduledSendProvider } from "./scheduledSend";
 import type { IConversationNotesProvider } from "./conversationNotes";
 import type { IStorefrontProvider } from "./storefront";
 import type { ISystemHealthProvider } from "./systemHealth";
+import type { IWebhookDeliveriesProvider } from "./webhookDeliveries";
 import type { IMessageTemplatesProvider } from "./messageTemplates";
 import type { IRolesProvider } from "./roles";
 import type { IDepartmentsProvider } from "./departments";
@@ -144,6 +145,7 @@ export type { IScheduledSendProvider } from "./scheduledSend";
 export type { IConversationNotesProvider } from "./conversationNotes";
 export type { IStorefrontProvider } from "./storefront";
 export type { ISystemHealthProvider } from "./systemHealth";
+export type { IWebhookDeliveriesProvider } from "./webhookDeliveries";
 export type {
   IMessageTemplatesProvider,
   IListMessageTemplatesParams,
@@ -225,6 +227,7 @@ export interface IDataProviders {
   conversationNotes: IConversationNotesProvider;
   storefront: IStorefrontProvider;
   systemHealth: ISystemHealthProvider;
+  webhookDeliveries: IWebhookDeliveriesProvider;
   messageTemplates: IMessageTemplatesProvider;
   roles: IRolesProvider;
   departments: IDepartmentsProvider;

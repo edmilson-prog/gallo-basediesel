@@ -105,6 +105,7 @@ export type {
   IConversationNotesProvider,
   IStorefrontProvider,
   ISystemHealthProvider,
+  IWebhookDeliveriesProvider,
   IMessageTemplatesProvider,
   IListMessageTemplatesParams,
   ICreateMessageTemplateInput,
@@ -169,6 +170,7 @@ export { useScheduledSendProvider } from "./hooks/useScheduledSendProvider";
 export { useConversationNotesProvider } from "./hooks/useConversationNotesProvider";
 export { useStorefrontProvider } from "./hooks/useStorefrontProvider";
 export { useSystemHealthProvider } from "./hooks/useSystemHealthProvider";
+export { useWebhookDeliveriesProvider } from "./hooks/useWebhookDeliveriesProvider";
 export { useMessageTemplatesProvider } from "./hooks/useMessageTemplatesProvider";
 export { useRolesProvider } from "./hooks/useRolesProvider";
 export { useDepartmentsProvider } from "./hooks/useDepartmentsProvider";

@@ -37,6 +37,7 @@ import { mockScheduledSendProvider } from "./impl/mock/scheduledSend";
 import { mockConversationNotesProvider } from "./impl/mock/conversationNotes";
 import { mockStorefrontProvider } from "./impl/mock/storefront";
 import { mockSystemHealthProvider } from "./impl/mock/systemHealth";
+import { mockWebhookDeliveriesProvider } from "./impl/mock/webhookDeliveries";
 import { mockMessageTemplatesProvider } from "./impl/mock/messageTemplates";
 import { mockRolesProvider } from "./impl/mock/roles";
 import { mockDepartmentsProvider } from "./impl/mock/departments";
@@ -87,6 +88,7 @@ import { supabaseScheduledSendProvider } from "./impl/supabase/scheduledSend";
 import { supabaseConversationNotesProvider } from "./impl/supabase/conversationNotes";
 import { supabaseStorefrontProvider } from "./impl/supabase/storefront";
 import { supabaseSystemHealthProvider } from "./impl/supabase/systemHealth";
+import { supabaseWebhookDeliveriesProvider } from "./impl/supabase/webhookDeliveries";
 import { supabaseMessageTemplatesProvider } from "./impl/supabase/messageTemplates";
 import { supabaseRolesProvider } from "./impl/supabase/roles";
 import { supabaseDepartmentsProvider } from "./impl/supabase/departments";
@@ -170,6 +172,7 @@ const mockProviders: IDataProviders = {
   conversationNotes: mockConversationNotesProvider,
   storefront: mockStorefrontProvider,
   systemHealth: mockSystemHealthProvider,
+  webhookDeliveries: mockWebhookDeliveriesProvider,
   messageTemplates: mockMessageTemplatesProvider,
   roles: mockRolesProvider,
   departments: mockDepartmentsProvider,
@@ -222,6 +225,7 @@ const supabaseProviders: IDataProviders = {
   conversationNotes: supabaseConversationNotesProvider,
   storefront: supabaseStorefrontProvider,
   systemHealth: supabaseSystemHealthProvider,
+  webhookDeliveries: supabaseWebhookDeliveriesProvider,
   messageTemplates: supabaseMessageTemplatesProvider,
   roles: supabaseRolesProvider,
   departments: supabaseDepartmentsProvider,
