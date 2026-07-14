@@ -652,7 +652,40 @@ No `makeFakeDb`, adicionar (mantendo os métodos já existentes intactos):
     },
 ```
 
-Ajustar `createConversation`'s fake para aceitar `leadId` e gravar `leadId` na conversa (some junto de `customerId` no objeto `conversation` empurrado em `state.conversations`), e ajustar `insertInboundMessage`'s fake para receber `authorId` em vez de `customerId` (só o nome do parâmetro no destructuring muda). Também adicionar `leads: []` ao objeto `IFakeState` inicial usado pelos testes existentes (todos os `describe`/`it` que constroem o estado inicial).
+No `IFakeState`, adicionar `leadId?: string` ao tipo do array `conversations` (fica ao lado de `customerId`, que também precisa virar opcional):
+
+```ts
+  conversations: Array<{
+    id: string;
+    customerId?: string;
+    leadId?: string;
+    accountId: string;
+    open: boolean;
+    status?: string;
+  }>;
+```
+
+Ajustar `createConversation` no `makeFakeDb` (substitui a implementação existente citada em `core.test.ts:110-121`):
+
+```ts
+    createConversation: async ({ customerId, leadId, accountId, status, assignedSellerId }) => {
+      const conversation = {
+        id: nextId("conv"),
+        customerId: customerId ?? undefined,
+        leadId: leadId ?? undefined,
+        accountId,
+        open: true,
+        status,
+        assignedSellerId,
+      };
+      state.conversations.push(conversation);
+      return { id: conversation.id };
+    },
+```
+
+`insertInboundMessage`'s fake (`core.test.ts:130-134`) não precisa mudar — já faz `{ id: nextId("msg"), ...input }`, então `authorId` chega automaticamente no lugar de `customerId` sem nenhum destructuring por nome.
+
+Por fim, adicionar `leads: []` ao objeto `IFakeState` inicial usado pelos testes existentes (o helper que monta o estado vazio no início de cada `it`, ao lado dos demais arrays como `customers: []`/`conversations: []`).
 
 - [ ] **Passo 5: Escrever os testes novos**
 
