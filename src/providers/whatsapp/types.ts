@@ -125,6 +125,23 @@ export interface ISendResult {
 
 // ===== Inbound (webhook utilities) =========================================
 
+/**
+ * Normalized WhatsApp ad/post referral (`contextInfo.externalAdReplyInfo` in
+ * the underlying protocol) — present only on the message that carried it.
+ * Each engine's parser has its own `extractAdReferral`, since the raw field
+ * names/casing differ between Baileys (Evolution v2) and whatsmeow
+ * (Evolution-Go/WAHA); this is the ONE shape every engine normalizes into.
+ */
+export interface IAdReferral {
+  sourceId?: string;
+  sourceUrl?: string;
+  sourceType?: string;
+  headline?: string;
+  body?: string;
+  mediaType?: "image" | "video";
+  mediaUrl?: string;
+}
+
 export interface IInboundMessage {
   type: "message";
   providerMessageId: string;
@@ -154,6 +171,8 @@ export interface IInboundMessage {
    * named instead of falling back to the bare phone number.
    */
   senderName?: string;
+  /** Set only on the message that carried a WhatsApp ad/post referral. */
+  adReferral?: IAdReferral;
   timestamp: ISO8601;
   /** Original provider payload, kept verbatim for audit (PRD-110). */
   rawPayload: unknown;
