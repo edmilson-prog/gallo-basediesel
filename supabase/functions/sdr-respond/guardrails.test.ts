@@ -39,4 +39,8 @@ describe("containsCommercialValue", () => {
       containsCommercialValue("atendemos de segunda a sexta, das 8h às 18h"),
     ).toBe(false);
   });
+
+  it("does not flag a plain business-hours mention without a numeric lead time", () => {
+    expect(containsCommercialValue("Atendemos em dias úteis, das 8h às 18h")).toBe(false);
+  });
 });
