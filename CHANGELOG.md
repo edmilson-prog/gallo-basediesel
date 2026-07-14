@@ -4,6 +4,20 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.142.0] — Passage · 2026-07-14
+
+**Migração de contas WhatsApp de Evolution clássico para WAHA, com o pipeline de importação de histórico mais resiliente.** Três contas de produção (`Teste-AILA`, `Vendas`, `GALLO Site`) migraram sem perda de dados. No caminho, o processo de importação de histórico ganhou correções reais: conversas já encerradas voltaram a ser reaproveitadas em vez de duplicadas, falhas transitórias de rede deixaram de derrubar a importação inteira, e mídia deixou de ser baixada desnecessariamente durante a importação — o que causava timeouts em contas grandes.
+
+### Added
+
+- **`migrate_whatsapp_account(old, new, dry_run)`** — função reutilizável e versionada para repontar conversas e regras de acesso entre contas WhatsApp na mesma loja, com modo de simulação (`dry_run`) por padrão.
+
+### Fixed
+
+- **Importação de histórico duplicava conversas já encerradas** — o processo de importação só reaproveitava conversas em aberto; qualquer cliente com conversa já resolvida/arquivada ganhava uma segunda conversa a cada nova importação. Corrigido para reaproveitar a conversa existente independente do status, igual ao comportamento do recebimento ao vivo.
+- **Importação WAHA quebrava por completo numa falha de rede pontual** — uma falha transitória ao listar conversas do servidor derrubava a importação inteira com erro 500 em vez de só pular o trecho afetado; agora há nova tentativa automática com espera progressiva.
+- **Importação WAHA travava e expirava (504) em contas com muito histórico de mídia** — o servidor WAHA baixava e processava a mídia de cada mensagem durante a importação, mesmo sem a plataforma usar esses bytes nessa etapa; a importação passou a pedir só o texto, e cada lote agora respeita um orçamento de tempo para nunca estourar o limite de resposta do servidor.
+
 ## [0.141.0] — Spotlight · 2026-07-14
 
 **Conversas iniciadas por anúncio agora se identificam sozinhas, e vídeo recebido mostra prévia com play.** Até aqui, quando um cliente chegava clicando num anúncio do WhatsApp, não havia como saber disso sem o cliente mencionar — e todo vídeo recebido aparecia como um arquivo genérico "media.bin" para baixar, sem prévia.

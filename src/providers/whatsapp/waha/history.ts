@@ -33,7 +33,16 @@ export async function fetchWahaChatsPage(
     .filter((row) => row.id.length > 0);
 }
 
-/** One page of `GET /api/{session}/chats/{chatId}/messages`. */
+/**
+ * One page of `GET /api/{session}/chats/{chatId}/messages`.
+ *
+ * `downloadMedia=false`: WAHA defaults this to `true`, which makes it fetch
+ * and decrypt every media attachment's bytes server-side before responding —
+ * work the history importer never uses (historical media lands as
+ * `media_download_status: "failed"`, eligible for manual retry). Found
+ * 2026-07-14: media-heavy chats were consistently timing out at 15s (and
+ * loading the WAHA server) purely from this unused work.
+ */
 export async function fetchWahaChatMessagesPage(
   apiKey: string,
   fetchFn: typeof fetch,
@@ -44,7 +53,7 @@ export async function fetchWahaChatMessagesPage(
 ): Promise<IWahaMessagePayload[]> {
   const response = await wahaRequest(apiKey, fetchFn, {
     baseUrl: target.baseUrl,
-    path: `/api/${target.sessionName}/chats/${encodeURIComponent(chatId)}/messages?limit=${limit}&offset=${offset}`,
+    path: `/api/${target.sessionName}/chats/${encodeURIComponent(chatId)}/messages?limit=${limit}&offset=${offset}&downloadMedia=false`,
     method: "GET",
     timeoutMs: 15_000,
   });

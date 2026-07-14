@@ -15,9 +15,6 @@ import type { IImportDb } from "./whatsapp/import/core.ts";
 const FILTER_CHUNK = 200;
 const INSERT_CHUNK = 500;
 
-/** Closed conversations are never reused — keep in sync with whatsapp-webhook. */
-const CLOSED_CONVERSATION_STATUSES = ["resolvida", "arquivada"];
-
 export function makeImportDb(
   admin: SupabaseClient,
   provider: "evolution" | "evolution-go" | "waha",
@@ -54,13 +51,15 @@ export function makeImportDb(
       if (error) throw new Error(`createPendingCustomer: ${error.message}`);
       return { id: data.id as string };
     },
-    async findOpenConversation(customerId, accountId) {
+    async findConversation(customerId, accountId) {
+      // ANY status — history import always belongs to the customer's existing
+      // thread on this account (open or closed); reusing one only appends
+      // messages, it never flips status back to "aguardando".
       const { data } = await admin
         .from("conversations")
         .select("id")
         .eq("customer_id", customerId)
         .eq("whatsapp_account_id", accountId)
-        .not("status", "in", `(${CLOSED_CONVERSATION_STATUSES.join(",")})`)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
