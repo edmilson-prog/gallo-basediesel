@@ -21,6 +21,12 @@ Local: `src/providers/whatsapp/webhook/core.ts`, etapa 5 ("Customer resolution")
 
 Em todos os casos do passo 2/3, a conversa nasce com `leadId = lead.id`, `customerId = null`, e `assignedSellerId` = o mesmo vendedor dono do lead — mantendo consistentes os dois portões de acesso já existentes (Atendimento por instância, Carteira por dono) sem precisar de nenhuma mudança em `can_access_conversation` ou nas RLS de `leads`/`conversations` (já espelham o padrão de `customers` por `seller_id`).
 
+## Segundo caminho: eco de saída
+
+O webhook tem uma segunda rotina de resolução de contato, estruturalmente idêntica: o "eco de saída" (`parsed.type === "outbound-echo"`, `src/providers/whatsapp/webhook/core.ts` por volta da linha 541), disparado quando alguém da equipe manda mensagem **do próprio celular** para um número que ainda não existe no CRM (fora do app). Hoje esse caminho também chama `createPendingCustomer`. A mesma regra de resolução (customer real → lead existente, reabrindo se perdido → lead novo) se aplica aqui — sem deixar um segundo caminho ainda gerando `pending_review`. O dono do lead nesse caso também vem da função de rodízio (o webhook não sabe qual vendedor específico mandou a mensagem do celular compartilhado).
+
+Isso implica extrair a lógica de resolução (passos 1-3 da seção anterior) para uma função compartilhada dentro de `core.ts`, chamada pelos dois pontos (inbound customer-message e outbound-echo) — evita duplicar a mesma lógica duas vezes.
+
 ## Atribuição de dono: rodízio em SQL
 
 A fila de rodízio real (PRD-213) hoje só roda no cliente (`src/features/rotation/engine/`) — inacessível para o webhook, que roda como Edge Function no servidor. Nova função Postgres `SECURITY DEFINER`, ex. `public.assign_next_from_rotation(p_store_id text) returns uuid`, espelhando fielmente `selectNextFromRotation` + `isSellerEligible`:
