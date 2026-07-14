@@ -18,7 +18,7 @@
  * this parser (they update `whatsapp_accounts.status`, not a message row).
  */
 
-import type { IInboundMessage, InboundContentType, IOutboundEcho } from "../types";
+import type { IInboundMessage, InboundContentType, IOutboundEcho, IAdReferral } from "../types";
 
 const NON_INDIVIDUAL_JID = /@(g\.us|broadcast|newsletter)$/;
 const LID_JID = /@lid$/;
@@ -35,6 +35,25 @@ interface IWahaMedia {
   error?: string | null;
 }
 
+/** Mirrors whatsmeow's ContextInfo_ExternalAdReplyInfo casing (same library
+ *  as Evolution-Go — see IGoExternalAdReplyInfo). NOT confirmed against a
+ *  real WAHA payload (see Task 4 in the ad-source-detection plan). */
+interface IWahaExternalAdReplyInfo {
+  title?: string;
+  body?: string;
+  sourceID?: string;
+  sourceType?: string;
+  sourceURL?: string;
+  mediaType?: string;
+  mediaURL?: string;
+  ctwaClid?: string;
+}
+interface IWahaGoMessageBody {
+  extendedTextMessage?: { contextInfo?: { externalAdReply?: IWahaExternalAdReplyInfo } };
+  imageMessage?: { contextInfo?: { externalAdReply?: IWahaExternalAdReplyInfo } };
+  videoMessage?: { contextInfo?: { externalAdReply?: IWahaExternalAdReplyInfo } };
+}
+
 export interface IWahaMessagePayload {
   id?: string;
   timestamp?: number;
@@ -44,6 +63,12 @@ export interface IWahaMessagePayload {
   body?: string;
   hasMedia?: boolean;
   media?: IWahaMedia | null;
+  /** HYPOTHESIZED: WAHA's GOWS engine wraps whatsmeow directly, so the raw
+   *  engine message (when WAHA exposes it) should mirror IGoMessageBody
+   *  nested under `_data.Message`. Unconfirmed — extractWahaAdReferral
+   *  degrades to undefined when this path is absent, so a wrong guess can
+   *  never break message parsing itself. */
+  _data?: { Message?: IWahaGoMessageBody };
 }
 
 function tsToIso(value: number | undefined): string {
@@ -77,6 +102,36 @@ export function extractContent(payload: IWahaMessagePayload): IParsedContent {
     };
   }
   return { contentType: "text", text: payload.body ?? "" };
+}
+
+function normalizeWahaAdMediaType(value: string | undefined): "image" | "video" | undefined {
+  if (!value) return undefined;
+  const v = value.toUpperCase();
+  if (v.includes("IMAGE")) return "image";
+  if (v.includes("VIDEO")) return "video";
+  return undefined;
+}
+
+/** See IWahaMessagePayload._data doc — hypothesized shape, not confirmed.
+ *  Property key is `externalAdReply` (confirmed on whatsmeow's own
+ *  ContextInfo — the `ExternalAdReplyInfo` suffix names only the TYPE, see
+ *  Task 2's extractGoAdReferral). */
+export function extractWahaAdReferral(payload: IWahaMessagePayload): IAdReferral | undefined {
+  const msg = payload._data?.Message;
+  const info =
+    msg?.extendedTextMessage?.contextInfo?.externalAdReply ??
+    msg?.imageMessage?.contextInfo?.externalAdReply ??
+    msg?.videoMessage?.contextInfo?.externalAdReply;
+  if (!info) return undefined;
+  return {
+    sourceId: info.sourceID,
+    sourceUrl: info.sourceURL,
+    sourceType: info.sourceType,
+    headline: info.title,
+    body: info.body,
+    mediaType: normalizeWahaAdMediaType(info.mediaType),
+    mediaUrl: info.mediaURL,
+  };
 }
 
 export function parseWahaMessageEvent(
@@ -132,6 +187,7 @@ export function parseWahaMessageEvent(
     text: content.text,
     mediaId: content.mediaId,
     mediaFilename: content.mediaFilename,
+    adReferral: extractWahaAdReferral(payload),
     timestamp,
     rawPayload,
   };
