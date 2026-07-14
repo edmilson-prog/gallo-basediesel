@@ -8,6 +8,7 @@ const REASON_LABELS: Record<SdrEscalationReason, string> = {
   sdr_failed: "SDR não conseguiu entender a solicitação",
   complexity: "Complexidade alta — atendimento humano",
   out_of_scope: "Fora do escopo do SDR",
+  qualified_handoff: "Triagem concluída — necessidade identificada",
 };
 
 const MODE_LABELS: Record<SdrEscalationMode, string> = {

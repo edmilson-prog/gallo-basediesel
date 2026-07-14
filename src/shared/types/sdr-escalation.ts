@@ -16,7 +16,9 @@ export type SdrEscalationReason =
   | "negotiation_detected"
   | "sdr_failed"
   | "complexity"
-  | "out_of_scope";
+  | "out_of_scope"
+  /** Normal triage handoff (v1 pilot) — qualification complete, real need identified. Not an exception path. */
+  | "qualified_handoff";
 
 export type SdrEscalationMode = "urgent" | "normal" | "standard";
 
