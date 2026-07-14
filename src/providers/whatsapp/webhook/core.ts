@@ -370,6 +370,9 @@ interface IResolvedContact {
   id: string;
   /** Only set for kind==='lead' — the customer path stays unassigned (pool), unchanged. */
   sellerId: string | null;
+  /** True only when this call just created a brand-new lead — NOT when an
+   *  existing lead was found/reopened (that's a reuse, not a creation). */
+  created: boolean;
 }
 
 /**
@@ -387,17 +390,17 @@ async function resolveContact(
   const phoneDigits = digits(phone);
   const customer = await db.findCustomerByPhone(storeId, phoneDigits);
   if (customer) {
-    return { kind: "customer", id: customer.id, sellerId: null };
+    return { kind: "customer", id: customer.id, sellerId: null, created: false };
   }
   const lead = await db.findLeadByPhone(storeId, phoneDigits);
   if (lead) {
     if (lead.lossReason !== null) {
       await db.reopenLostLead(lead.id);
     }
-    return { kind: "lead", id: lead.id, sellerId: lead.sellerId };
+    return { kind: "lead", id: lead.id, sellerId: lead.sellerId, created: false };
   }
   const created = await db.createLead({ storeId, phone, name });
-  return { kind: "lead", id: created.id, sellerId: created.sellerId };
+  return { kind: "lead", id: created.id, sellerId: created.sellerId, created: true };
 }
 
 export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessResult> {
@@ -736,7 +739,6 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
   const fromDigits = digits(parsed.fromPhone);
   const contactName = looksLikeName(parsed.senderName) ? parsed.senderName : undefined;
   const resolved = await resolveContact(db, account.storeId, parsed.fromPhone, contactName);
-  let contactCreated = false;
   if (resolved.kind === "customer") {
     if (contactName) {
       // Existing contact: always refresh whatsapp_name, and heal the display name
@@ -779,7 +781,6 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
     if (resolved.kind === "lead") {
       await db.linkConversationToLead(resolved.id, created.id);
     }
-    contactCreated = resolved.kind === "lead";
   } else if (reopenOnInbound(conversation.status)) {
     await db.reopenConversation(conversation.id, parsed.timestamp);
     didReopen = true;
@@ -844,7 +845,7 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
       hasMedia: Boolean(parsed.mediaId),
       fromPhoneMasked: `***${fromDigits.slice(-4)}`,
       contactKind: resolved.kind,
-      contactCreated,
+      contactCreated: resolved.created,
       traceId,
     },
   });

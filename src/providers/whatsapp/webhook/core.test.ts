@@ -548,6 +548,8 @@ describe("processWebhookEvent — inbound messages (RF-040/050)", () => {
     expect(conversation?.leadId).toBe(state.leads[0]?.id);
     expect(conversation?.customerId).toBeUndefined();
     expect(conversation).toMatchObject({ assignedSellerId: "seller-rotation-1" });
+    // A brand-new lead was actually CREATED — contactCreated must be true.
+    expect(state.audits[0]?.after).toMatchObject({ contactKind: "lead", contactCreated: true });
   });
 
   it("reuses an existing lead for a repeat inbound from the same number", async () => {
@@ -560,11 +562,19 @@ describe("processWebhookEvent — inbound messages (RF-040/050)", () => {
       lossReason: null,
       conversations: [],
     });
-    await run(
+    const result = await run(
       state,
       evolutionTextEvent("Oi de novo", "LEADKEY2", undefined, "555400000000@s.whatsapp.net"),
     );
+    expect(result.outcome).toBe("message-created");
     expect(state.leads).toHaveLength(1); // não criou um segundo lead
+    const conversation = state.conversations[0];
+    expect(conversation?.leadId).toBe("lead-existing");
+    // The conversation is assigned to the EXISTING lead's own seller, not a
+    // freshly rotation-assigned one.
+    expect(conversation).toMatchObject({ assignedSellerId: "seller-existing" });
+    // Reusing an existing lead is NOT a creation — contactCreated must be false.
+    expect(state.audits[0]?.after).toMatchObject({ contactKind: "lead", contactCreated: false });
   });
 
   it("reopens a lost lead on repeat inbound", async () => {
@@ -577,11 +587,16 @@ describe("processWebhookEvent — inbound messages (RF-040/050)", () => {
       lossReason: "sem contato",
       conversations: [],
     });
-    await run(
+    const result = await run(
       state,
       evolutionTextEvent("Oi de volta", "LEADKEY3", undefined, "555400000000@s.whatsapp.net"),
     );
+    expect(result.outcome).toBe("message-created");
     expect(state.leads[0]?.lossReason).toBeNull();
+    // Reopening a lost lead is NOT a creation — contactCreated must be false
+    // (this is exactly the case the contactCreated bug got wrong: a new
+    // conversation is created here too, since the lead had none yet).
+    expect(state.audits[0]?.after).toMatchObject({ contactKind: "lead", contactCreated: false });
   });
 });
 
