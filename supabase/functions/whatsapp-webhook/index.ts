@@ -303,8 +303,9 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
       const { data, error } = await admin
         .from("leads")
         .insert({
-          // leads.id has no DB default (text PK) — the app-level provider
-          // (src/providers/data/impl/supabase/leads.ts) also mints it client-side.
+          // leads.id already has a DB default (uuid, gen_random_uuid()) — minting
+          // it explicitly here is a deliberate style match with the app-level
+          // provider (src/providers/data/impl/supabase/leads.ts), not a workaround.
           id: crypto.randomUUID(),
           store_id: storeId,
           seller_id: sellerId,
