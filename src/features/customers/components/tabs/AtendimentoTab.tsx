@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import type { IConversation, ICustomer, ISeller, IWhatsAppAccount } from "@/shared/types";
-import { PendingContactBanner } from "@/features/contact-review";
 import { AssigneeChip } from "@/features/conversations/components/AssigneeChip";
 import { OriginChip } from "@/features/conversations/components/OriginChip";
 import { StatusControl } from "@/features/conversations/components/status/StatusControl";
@@ -50,31 +49,26 @@ export function AtendimentoTab({
   collaborators = [],
   onConversationChanged,
 }: IAtendimentoTabProps) {
-  const showBanner =
-    customer.tags.includes("pending_review") || customer.tags.includes("reviewed_not_customer");
   const canEditTags = usePermission("conversation", "edit", "own");
   const { tags: catalog } = useConversationTags();
   const conversationTags = conversation ? resolveConversationTags(conversation.tags, catalog) : [];
 
   // Hooks must run unconditionally (Rules of Hooks) — the fallback shape below
   // is never actually rendered against, since every `collab.*`/`viewing.*` use
-  // below lives inside the `{conversation && (...)}` block further down.
+  // below only runs after the `!conversation` early return.
   const collab = useConversationCollaborators(
     conversation ?? { id: "", storeId: "", assignedSellerId: undefined },
     () => onConversationChanged?.(),
   );
   const viewing = useConversationPresence(conversation?.id ?? null);
 
-  if (!showBanner && !conversation) {
+  if (!conversation) {
     return <TabEmptyState icon="mdi:check-circle-outline" message={COPY.empty} />;
   }
 
   return (
     <div className="space-y-3">
-      {showBanner && <PendingContactBanner customer={customer} conversation={conversation} />}
-
-      {conversation && (
-        <section className="divide-y divide-border rounded-lg border border-border bg-background px-3">
+      <section className="divide-y divide-border rounded-lg border border-border bg-background px-3">
           <ContextRow label={COPY.status}>
             <StatusControl
               conversation={conversation}
@@ -147,8 +141,7 @@ export function AtendimentoTab({
               ))}
             </ul>
           </div>
-        </section>
-      )}
+      </section>
     </div>
   );
 }
