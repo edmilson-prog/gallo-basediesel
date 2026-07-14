@@ -288,4 +288,94 @@ describe("processWahaImportBatch", () => {
     expect(result.stats.chatsFailed).toBe(1);
     expect(result.stats.chatsProcessed).toBe(0);
   });
+
+  it("caps the message-fetch retry at 1 (2 attempts) even when failures keep being transient", async () => {
+    // Regression test: found 2026-07-14 on the real Vendas import — a chat
+    // whose message fetch times out on every attempt used to burn 3 retries
+    // (~46s) instead of failing fast, and several such chats in one batch
+    // exceeded the Supabase gateway's response timeout (504).
+    let messagesCalls = 0;
+    const fetchFn = vi.fn(async (url: string) => {
+      if (url.includes("/chats?")) return jsonResponse(200, [{ id: "5548999887766@c.us" }]);
+      if (url.includes("/messages?")) {
+        messagesCalls++;
+        return jsonResponse(500, { message: "persistently slow" });
+      }
+      return jsonResponse(404, {});
+    });
+    const db = makeDb();
+    const result = await processWahaImportBatch({
+      account: { id: "acct-1", storeId: "store-1" },
+      apiKey: "key",
+      fetchFn: fetchFn as unknown as typeof fetch,
+      target,
+      db,
+    });
+    expect(messagesCalls).toBe(2);
+    expect(result.stats.chatsFailed).toBe(1);
+    expect(result.stats.chatsProcessed).toBe(0);
+  });
+
+  it("stops the batch once the time budget is exceeded, reporting the actual cursor reached", async () => {
+    // Regression test: found 2026-07-14 — a batch containing several slow
+    // chats could run past the Supabase gateway's ~150s response window,
+    // returning a 504 to the browser even though the function kept running
+    // server-side to completion. The batch must self-limit and hand back
+    // whatever it actually finished instead of risking a gateway timeout.
+    let currentTime = 0;
+    const now = () => currentTime;
+    const fetchFn = vi.fn(async (url: string) => {
+      if (url.includes("/chats?")) {
+        return jsonResponse(200, [{ id: "1@c.us" }, { id: "2@c.us" }, { id: "3@c.us" }]);
+      }
+      if (url.includes("/messages?")) {
+        currentTime += 60_000; // simulate each chat's fetch taking 60s
+        return jsonResponse(200, []);
+      }
+      return jsonResponse(404, {});
+    });
+    const db = makeDb();
+    const result = await processWahaImportBatch({
+      account: { id: "acct-1", storeId: "store-1" },
+      apiKey: "key",
+      fetchFn: fetchFn as unknown as typeof fetch,
+      target,
+      db,
+      batchSize: 3,
+      now,
+    });
+    // chat 1: elapsed=0 (<100s budget) -> processed, now=60s
+    // chat 2: elapsed=60s (<100s budget) -> processed, now=120s
+    // chat 3: elapsed=120s (>100s budget) -> loop stops before attempting it
+    expect(result.done).toBe(false);
+    expect(result.nextCursor).toBe(2);
+    expect(result.stats.chatsProcessed).toBe(2);
+  });
+
+  it("does not cut the batch short when the clock stays within budget", async () => {
+    let currentTime = 0;
+    const now = () => currentTime;
+    const fetchFn = vi.fn(async (url: string) => {
+      if (url.includes("/chats?")) {
+        return jsonResponse(200, [{ id: "1@c.us" }, { id: "2@c.us" }]);
+      }
+      if (url.includes("/messages?")) {
+        currentTime += 1_000;
+        return jsonResponse(200, []);
+      }
+      return jsonResponse(404, {});
+    });
+    const db = makeDb();
+    const result = await processWahaImportBatch({
+      account: { id: "acct-1", storeId: "store-1" },
+      apiKey: "key",
+      fetchFn: fetchFn as unknown as typeof fetch,
+      target,
+      db,
+      now,
+    });
+    expect(result.done).toBe(true);
+    expect(result.nextCursor).toBe(2);
+    expect(result.stats.chatsProcessed).toBe(2);
+  });
 });

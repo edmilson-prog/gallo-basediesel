@@ -36,8 +36,30 @@ const MAX_CHAT_PAGES = 50; // 50 * 100 = 5 000 chats
 const MAX_MESSAGE_PAGES_PER_CHAT = 50; // 50 * 100 = 5 000 messages/chat
 const BATCH_CHATS_DEFAULT = 10;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-const RETRY_ATTEMPTS = 3;
+/** Chat listing is cheap and infrequent (once per batch) — worth 3 tries. */
+const CHATS_RETRY_ATTEMPTS = 3;
+/**
+ * Per-chat message fetch retry — found 2026-07-14: some chats (heavy in
+ * media, before the downloadMedia=false fix below) time out consistently,
+ * not transiently. 3 attempts × 15s timeout + backoff turned one slow chat
+ * into ~46s of dead time, and a batch of several such chats blew past the
+ * Supabase gateway's 150s response limit (504) even though the function
+ * kept running server-side. Capped at 1 retry — enough for a genuine blip,
+ * cheap enough that a persistently slow chat doesn't stall the batch.
+ */
+const MESSAGES_RETRY_ATTEMPTS = 2;
 const RETRY_DELAY_MS = 300;
+/**
+ * Wall-clock budget for one processWahaImportBatch call, measured from the
+ * moment it starts. Stops picking up new chats once exceeded and returns
+ * whatever cursor was actually reached — the caller's loop makes another
+ * request for the rest. Set comfortably under the Supabase Edge Function
+ * gateway's ~150s response timeout so the batch always returns 200, never
+ * 504 (a 504 still leaves the function running server-side to completion,
+ * it just never reaches the browser — see whatsapp-import-history 2026-07-14
+ * incident where "Tentar de novo" kept re-paying the same slow prefix).
+ */
+const BATCH_TIME_BUDGET_MS = 100_000;
 
 /**
  * Retries a transient WAHA REST read (timeout, 429, unmapped 5xx) with a
@@ -52,9 +74,9 @@ const RETRY_DELAY_MS = 300;
  * crashed the whole request with a 500, forcing a full manual retry instead
  * of the batch simply continuing.
  */
-async function withWahaRetry<T>(fn: () => Promise<T>): Promise<T> {
+async function withWahaRetry<T>(fn: () => Promise<T>, attempts: number): Promise<T> {
   let lastError: unknown;
-  for (let attempt = 1; attempt <= RETRY_ATTEMPTS; attempt++) {
+  for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
       return await fn();
     } catch (error) {
@@ -65,7 +87,7 @@ async function withWahaRetry<T>(fn: () => Promise<T>): Promise<T> {
           : error instanceof WhatsAppProviderError
             ? error.code === "RATE_LIMITED" || error.code === "INTEGRATION_ERROR"
             : false;
-      if (!retryable || attempt === RETRY_ATTEMPTS) throw error;
+      if (!retryable || attempt === attempts) throw error;
       await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS * attempt));
     }
   }
@@ -126,8 +148,9 @@ async function fetchAllWahaChatIds(
   const ids = new Set<string>();
   for (let page = 0; page < MAX_CHAT_PAGES; page++) {
     const offset = page * CHATS_PAGE_SIZE;
-    const rows = await withWahaRetry(() =>
-      fetchWahaChatsPage(apiKey, fetchFn, target, offset, CHATS_PAGE_SIZE),
+    const rows = await withWahaRetry(
+      () => fetchWahaChatsPage(apiKey, fetchFn, target, offset, CHATS_PAGE_SIZE),
+      CHATS_RETRY_ATTEMPTS,
     );
     for (const row of rows) ids.add(row.id);
     if (rows.length < CHATS_PAGE_SIZE) break;
@@ -156,8 +179,9 @@ async function importWahaChat(
 
   for (let page = 0; page < MAX_MESSAGE_PAGES_PER_CHAT; page++) {
     const offset = page * MESSAGES_PAGE_SIZE;
-    const pageRecords = await withWahaRetry(() =>
-      fetchWahaChatMessagesPage(apiKey, fetchFn, target, chatId, offset, MESSAGES_PAGE_SIZE),
+    const pageRecords = await withWahaRetry(
+      () => fetchWahaChatMessagesPage(apiKey, fetchFn, target, chatId, offset, MESSAGES_PAGE_SIZE),
+      MESSAGES_RETRY_ATTEMPTS,
     );
     const thisPageIds = new Set(
       pageRecords.map((r) => r.id).filter((id): id is string => Boolean(id)),
@@ -198,6 +222,8 @@ export interface IWahaImportArgs {
   cursor?: number;
   batchSize?: number;
   warn?: (msg: string, fields?: Record<string, unknown>) => void;
+  /** Injectable clock — real Date.now() in production, deterministic in tests. */
+  now?: () => number;
 }
 
 /**
@@ -209,6 +235,8 @@ export interface IWahaImportArgs {
 export async function processWahaImportBatch(args: IWahaImportArgs): Promise<IImportBatchResult> {
   const { account, apiKey, fetchFn, target, db } = args;
   const warn = args.warn ?? (() => {});
+  const now = args.now ?? (() => Date.now());
+  const startedAt = now();
   const stats = emptyImportStats();
 
   const allChats = (await fetchAllWahaChatIds(apiKey, fetchFn, target, warn)).slice().sort();
@@ -216,7 +244,17 @@ export async function processWahaImportBatch(args: IWahaImportArgs): Promise<IIm
   const batchSize = Math.max(1, Math.floor(args.batchSize ?? BATCH_CHATS_DEFAULT));
   const batch = allChats.slice(cursor, cursor + batchSize);
 
+  let attempted = 0;
   for (const chatId of batch) {
+    if (now() - startedAt > BATCH_TIME_BUDGET_MS) {
+      warn("waha import batch time budget exceeded — stopping early, next call resumes here", {
+        cursor,
+        attempted,
+        remaining: batch.length - attempted,
+      });
+      break;
+    }
+    attempted++;
     const kind = classifyWahaChatId(chatId);
     if (kind === "group") {
       stats.chatsSkippedGroup++;
@@ -273,6 +311,6 @@ export async function processWahaImportBatch(args: IWahaImportArgs): Promise<IIm
     }
   }
 
-  const nextCursor = cursor + batch.length;
+  const nextCursor = cursor + attempted;
   return { done: nextCursor >= allChats.length, nextCursor, stats };
 }
