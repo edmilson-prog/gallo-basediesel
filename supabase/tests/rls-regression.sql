@@ -1271,6 +1271,76 @@ begin
 end $mark$;
 reset role;
 
+-- ============================================================================
+-- webhook_deliveries: owner-only read; writes are service_role only (no
+-- insert policies — Edge Functions bypass RLS).
+-- ============================================================================
+
+insert into public.webhook_deliveries (integration_name, endpoint, http_status, outcome, trace_id)
+values ('whatsapp_waha', '/waha-webhook', 200, 'processed', 'rls-regression');
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"9a418578-2671-4141-a15a-d39b2fd13af7","role":"authenticated","app_metadata":{"role":"owner","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+
+do $$
+begin
+  if (select count(*) from public.webhook_deliveries where trace_id = 'rls-regression') <> 1 then
+    raise exception '#webhook_deliveries: owner should read webhook_deliveries';
+  end if;
+end $$;
+
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+
+do $$
+declare
+  blocked boolean := false;
+begin
+  if (select count(*) from public.webhook_deliveries) <> 0 then
+    raise exception '#webhook_deliveries: non-owner must not read webhook_deliveries';
+  end if;
+  begin
+    insert into public.webhook_deliveries (integration_name, endpoint, http_status, outcome)
+    values ('whatsapp_waha', '/rls-regression/deny', 200, 'processed');
+  exception when insufficient_privilege then
+    blocked := true;
+  end;
+  if not blocked then
+    raise exception '#webhook_deliveries: authenticated must not insert into webhook_deliveries';
+  end if;
+end $$;
+
+reset role;
+
+set local role anon;
+
+do $$
+declare
+  blocked boolean := false;
+begin
+  begin
+    insert into public.webhook_deliveries (integration_name, endpoint, http_status, outcome)
+    values ('whatsapp_waha', '/rls-regression/deny-anon', 200, 'processed');
+  exception when insufficient_privilege then
+    blocked := true;
+  end;
+  if not blocked then
+    raise exception '#webhook_deliveries: anon must not insert into webhook_deliveries';
+  end if;
+end $$;
+
+reset role;
+
 select 'ALL RLS REGRESSION TESTS PASSED' as result;
 
 rollback;
