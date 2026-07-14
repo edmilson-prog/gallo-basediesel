@@ -126,11 +126,12 @@ export interface ISendResult {
 // ===== Inbound (webhook utilities) =========================================
 
 /**
- * Normalized WhatsApp ad/post referral (`contextInfo.externalAdReplyInfo` in
- * the underlying protocol) — present only on the message that carried it.
- * Each engine's parser has its own `extractAdReferral`, since the raw field
- * names/casing differ between Baileys (Evolution v2) and whatsmeow
- * (Evolution-Go/WAHA); this is the ONE shape every engine normalizes into.
+ * Normalized WhatsApp ad/post referral — present only on the message that
+ * carried it. The underlying protocol field is `contextInfo.externalAdReply`
+ * on whatsmeow (Evolution-Go/WAHA, confirmed) and (unconfirmed, best-effort)
+ * `contextInfo.externalAdReplyInfo` on Baileys (Evolution v2) — each engine's
+ * parser has its own `extractAdReferral` since the raw field names/casing
+ * differ; this is the ONE shape every engine normalizes into.
  */
 export interface IAdReferral {
   sourceId?: string;
