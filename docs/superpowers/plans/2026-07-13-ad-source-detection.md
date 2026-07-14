@@ -90,7 +90,7 @@ Schema confirmed against `docs/integracoes/evo-go/doc.json` (`ContextInfo_Extern
 Append to `src/providers/whatsapp/evolution-go/parser.test.ts`:
 
 ```ts
-describe("parseEvolutionGoInbound — ad referral (externalAdReplyInfo)", () => {
+describe("parseEvolutionGoInbound — ad referral (externalAdReply)", () => {
   it("extracts adReferral from an extendedTextMessage contextInfo", () => {
     const parsed = parseEvolutionGoInbound(
       {
@@ -101,7 +101,7 @@ describe("parseEvolutionGoInbound — ad referral (externalAdReplyInfo)", () => 
             extendedTextMessage: {
               text: "Opa! Vim do anúncio",
               contextInfo: {
-                externalAdReplyInfo: {
+                externalAdReply: {
                   title: "Módulos Volvo — instale em minutos",
                   body: "Fale com a GALLO",
                   sourceID: "120210000000000",
@@ -129,7 +129,7 @@ describe("parseEvolutionGoInbound — ad referral (externalAdReplyInfo)", () => 
     });
   });
 
-  it("leaves adReferral undefined for a plain message (no externalAdReplyInfo)", () => {
+  it("leaves adReferral undefined for a plain message (no externalAdReply)", () => {
     const parsed = parseEvolutionGoInbound(
       {
         event: "Message",
@@ -187,7 +187,7 @@ interface IGoExternalAdReplyInfo {
   ctwaClid?: string;
 }
 interface IGoContextInfo {
-  externalAdReplyInfo?: IGoExternalAdReplyInfo;
+  externalAdReply?: IGoExternalAdReplyInfo;
 }
 export interface IGoMessageBody {
   conversation?: string;
@@ -219,13 +219,15 @@ function normalizeGoAdMediaType(value: string | undefined): "image" | "video" | 
   return undefined;
 }
 
-/** whatsmeow shape confirmed via docs/integracoes/evo-go/doc.json. Returns
- *  undefined (never throws) whenever externalAdReplyInfo is absent/malformed. */
+/** whatsmeow shape confirmed via docs/integracoes/evo-go/doc.json — the JSON
+ *  property on ContextInfo is `externalAdReply` (the `ExternalAdReplyInfo`
+ *  suffix names only the TYPE, not the key). Returns undefined (never
+ *  throws) whenever externalAdReply is absent/malformed. */
 export function extractGoAdReferral(msg: IGoMessageBody): IAdReferral | undefined {
   const info =
-    msg.extendedTextMessage?.contextInfo?.externalAdReplyInfo ??
-    msg.imageMessage?.contextInfo?.externalAdReplyInfo ??
-    msg.videoMessage?.contextInfo?.externalAdReplyInfo;
+    msg.extendedTextMessage?.contextInfo?.externalAdReply ??
+    msg.imageMessage?.contextInfo?.externalAdReply ??
+    msg.videoMessage?.contextInfo?.externalAdReply;
   if (!info) return undefined;
   return {
     sourceId: info.sourceID,
@@ -478,7 +480,7 @@ Append to `src/providers/whatsapp/waha/parser.test.ts`:
 
 ```ts
 describe("parseWahaMessageEvent — ad referral (hypothesized _data.Message shape)", () => {
-  it("extracts adReferral when _data.Message carries externalAdReplyInfo", () => {
+  it("extracts adReferral when _data.Message carries externalAdReply", () => {
     const parsed = parseWahaMessageEvent(
       {
         id: "WAHA1",
@@ -491,7 +493,7 @@ describe("parseWahaMessageEvent — ad referral (hypothesized _data.Message shap
           Message: {
             extendedTextMessage: {
               contextInfo: {
-                externalAdReplyInfo: {
+                externalAdReply: {
                   title: "Módulos Volvo — instale em minutos",
                   body: "Fale com a GALLO",
                   sourceID: "120210000000000",
@@ -570,9 +572,9 @@ interface IWahaExternalAdReplyInfo {
   ctwaClid?: string;
 }
 interface IWahaGoMessageBody {
-  extendedTextMessage?: { contextInfo?: { externalAdReplyInfo?: IWahaExternalAdReplyInfo } };
-  imageMessage?: { contextInfo?: { externalAdReplyInfo?: IWahaExternalAdReplyInfo } };
-  videoMessage?: { contextInfo?: { externalAdReplyInfo?: IWahaExternalAdReplyInfo } };
+  extendedTextMessage?: { contextInfo?: { externalAdReply?: IWahaExternalAdReplyInfo } };
+  imageMessage?: { contextInfo?: { externalAdReply?: IWahaExternalAdReplyInfo } };
+  videoMessage?: { contextInfo?: { externalAdReply?: IWahaExternalAdReplyInfo } };
 }
 
 export interface IWahaMessagePayload {
@@ -610,13 +612,16 @@ function normalizeWahaAdMediaType(value: string | undefined): "image" | "video" 
   return undefined;
 }
 
-/** See IWahaMessagePayload._data doc — hypothesized shape, not confirmed. */
+/** See IWahaMessagePayload._data doc — hypothesized shape, not confirmed.
+ *  Property key is `externalAdReply` (confirmed on whatsmeow's own
+ *  ContextInfo — the `ExternalAdReplyInfo` suffix names only the TYPE, see
+ *  Task 2's extractGoAdReferral). */
 export function extractWahaAdReferral(payload: IWahaMessagePayload): IAdReferral | undefined {
   const msg = payload._data?.Message;
   const info =
-    msg?.extendedTextMessage?.contextInfo?.externalAdReplyInfo ??
-    msg?.imageMessage?.contextInfo?.externalAdReplyInfo ??
-    msg?.videoMessage?.contextInfo?.externalAdReplyInfo;
+    msg?.extendedTextMessage?.contextInfo?.externalAdReply ??
+    msg?.imageMessage?.contextInfo?.externalAdReply ??
+    msg?.videoMessage?.contextInfo?.externalAdReply;
   if (!info) return undefined;
   return {
     sourceId: info.sourceID,
