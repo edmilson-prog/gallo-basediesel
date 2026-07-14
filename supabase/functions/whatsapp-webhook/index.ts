@@ -412,6 +412,13 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
         })
         .eq("id", conversationId);
     },
+    async setConversationAdReferral(conversationId, adReferral) {
+      const { error } = await admin
+        .from("conversations")
+        .update({ ad_referral: adReferral })
+        .eq("id", conversationId);
+      if (error) throw new Error(`setConversationAdReferral: ${error.message}`);
+    },
     async reopenConversation(conversationId, lastMessageAt) {
       // Reopen a closed conversation on customer inbound: back to the queue
       // (status='aguardando'), unassigned (previous owner loses the closed

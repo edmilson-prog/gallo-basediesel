@@ -4,6 +4,20 @@ import type { LeadTemperature } from "./lead";
 /** Communication channel of a conversation. */
 export type ConversationChannel = "whatsapp" | "ecommerce" | "phone" | "site";
 
+/** Normalized WhatsApp ad/post referral — present only when the conversation
+ *  began (or most recently resumed) via a Click-to-WhatsApp ad or a post
+ *  with a WhatsApp button. Mirrors (but is deliberately NOT imported from)
+ *  the provider-layer `IAdReferral` in src/providers/whatsapp/types.ts. */
+export interface IAdReferral {
+  sourceId?: string;
+  sourceUrl?: string;
+  sourceType?: string;
+  headline?: string;
+  body?: string;
+  mediaType?: "image" | "video";
+  mediaUrl?: string;
+}
+
 /** Status flow of a conversation in the inbox. */
 export type ConversationStatus =
   | "aguardando"
@@ -52,6 +66,9 @@ export interface IConversation {
    * Drives the Inbox wait-time counter.
    */
   queuedAt?: ISO8601;
+  /** Set by the webhook when this conversation began (or most recently
+   *  resumed) via a WhatsApp ad/post referral. */
+  adReferral?: IAdReferral;
   /**
    * Set only when this conversation came from `IConversationsProvider.searchMessages`
    * (the dedicated "search inside messages" action) — the representative matching

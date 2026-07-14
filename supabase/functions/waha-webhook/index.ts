@@ -611,6 +611,7 @@ Deno.serve(async (req) => {
         status: "aguardando",
         last_message_at: parsed.timestamp,
         unread_count: 0,
+        ad_referral: parsed.adReferral ?? null,
       })
       .select("id")
       .single();
@@ -635,6 +636,7 @@ Deno.serve(async (req) => {
           assigned_seller_id: null,
           last_message_at: parsed.timestamp,
           unread_count: ((existingConversation.unread_count as number | undefined) ?? 0) + 1,
+          ...(parsed.adReferral ? { ad_referral: parsed.adReferral } : {}),
         })
         .eq("id", conversationId);
       didReopen = true;
@@ -680,6 +682,7 @@ Deno.serve(async (req) => {
       .update({
         last_message_at: parsed.timestamp,
         unread_count: ((existingConversation.unread_count as number | undefined) ?? 0) + 1,
+        ...(parsed.adReferral ? { ad_referral: parsed.adReferral } : {}),
       })
       .eq("id", conversationId);
   }

@@ -1,4 +1,5 @@
 import type {
+  IAdReferral,
   ID,
   IConversation,
   IConversationContact,
@@ -76,6 +77,7 @@ interface ConversationRow {
   unread_count: number;
   created_at: string;
   queued_at: string | null;
+  ad_referral: Record<string, unknown> | null;
   /** Only present on rows returned by the `search_conversations` RPC. */
   is_collaborator?: boolean;
 }
@@ -97,7 +99,7 @@ interface ConversationContactRow {
 
 const TABLE = "conversations";
 const COLUMNS =
-  "id, store_id, customer_id, lead_id, assigned_seller_id, channel, whatsapp_account_id, status, is_sdr_active, tags, linked_order_id, last_message_at, unread_count, created_at, queued_at";
+  "id, store_id, customer_id, lead_id, assigned_seller_id, channel, whatsapp_account_id, status, is_sdr_active, tags, linked_order_id, last_message_at, unread_count, created_at, queued_at, ad_referral";
 
 function rowToConversation(row: ConversationRow): IConversation {
   return {
@@ -116,6 +118,7 @@ function rowToConversation(row: ConversationRow): IConversation {
     unreadCount: row.unread_count,
     createdAt: row.created_at,
     queuedAt: row.queued_at ?? undefined,
+    adReferral: (row.ad_referral as IAdReferral | null) ?? undefined,
     isCollaborator: row.is_collaborator ?? undefined,
   };
 }
