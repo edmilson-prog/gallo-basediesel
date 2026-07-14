@@ -86,13 +86,22 @@ begin
   end if;
 end $$;
 
+-- Limpa a fila direct-mode antes dos cenários department-mode: rotation_queues
+-- tem UNIQUE(store_id) (1 fila por loja, de verdade) — inserir uma segunda fila
+-- pra mesma loja sem apagar a primeira violaria essa constraint. Também repõe
+-- todos online, já que D deixou todo mundo offline de propósito.
+delete from public.rotation_participants where queue_id = '11111111-1111-1111-1111-111111111111';
+delete from public.rotation_queues where id = '11111111-1111-1111-1111-111111111111';
+update public.sellers set availability = 'online' where id in (
+  '97834e8d-e1b5-4bb7-9f25-2e58e641fdab', 'd3ec82e5-f0a4-4d33-972f-13709da5447c', 'db41c11b-510a-4fff-9dd8-4c86aab8d114'
+);
+
 -- Cenário E: fila department-mode, 2 departamentos (A: Tiago+Ramon, B: Weligton),
 -- ponteiro no departamento A → deve tentar o departamento B a seguir → seleciona
 -- Weligton (único membro de B).
 insert into public.departments (id, name, store_id) values
   ('dept-test-a', 'Depto A (teste)', '00000000-0000-0000-0000-000000000001'),
   ('dept-test-b', 'Depto B (teste)', '00000000-0000-0000-0000-000000000001');
-update public.sellers set availability = 'online' where id = 'db41c11b-510a-4fff-9dd8-4c86aab8d114'; -- Weligton
 insert into public.rotation_queues (id, store_id, target_mode, last_assigned_ref_id, skip_offline)
 values ('22222222-2222-2222-2222-222222222222', '00000000-0000-0000-0000-000000000001', 'department', 'dept-test-a', true);
 insert into public.rotation_participants (id, queue_id, scope_department_id, ref_type, ref_id, "order", enabled, last_assigned_member_id)
