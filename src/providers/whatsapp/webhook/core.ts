@@ -625,41 +625,33 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
       return { outcome: "account-not-found" };
     }
     const toDigits = digits(parsed.toPhone);
-    let customer = await db.findCustomerByPhone(account.storeId, toDigits);
-    let customerCreated = false;
-    if (!customer) {
-      customer = await db.createPendingCustomer({
-        storeId: account.storeId,
-        phone: parsed.toPhone,
-      });
-      customerCreated = true;
-      // Same background photo fetch when WE start the chat from the phone.
-      args.onCustomerAutoCreated?.({
-        customerId: customer.id,
-        phone: parsed.toPhone,
-        account,
-      });
-    }
+    const resolved = await resolveContact(db, account.storeId, parsed.toPhone, undefined);
     // OPEN-ONLY lookup (includeTerminal omitted): the echo is business-sent,
     // never reopens a closed conversation — spawns a fresh one instead
     // (spec 2026-07-03 §1.5).
-    let conversation: { id: string } | null = await db.findOpenConversation(
-      customer.id,
-      account.id,
-    );
+    let conversation: { id: string } | null =
+      resolved.kind === "customer"
+        ? await db.findOpenConversation(resolved.id, account.id)
+        : await db.findOpenConversationForLead(resolved.id, account.id);
     if (!conversation) {
-      conversation = await db.createConversation({
+      const created = await db.createConversation({
         storeId: account.storeId,
-        customerId: customer.id,
+        customerId: resolved.kind === "customer" ? resolved.id : null,
+        leadId: resolved.kind === "lead" ? resolved.id : null,
         accountId: account.id,
-        // UNASSIGNED (pool): the webhook cannot know which seller sent from the
-        // phone, so it never pins the chat — it lands QUEUED ('aguardando') for
-        // someone to claim in the app (spec 2026-07-02). Visibility comes from
-        // instance access (can_access_conversation).
-        assignedSellerId: null,
+        // Customer path: UNASSIGNED (pool) — the webhook cannot know which
+        // seller sent from the phone, so it never pins the chat; it lands
+        // QUEUED ('aguardando') for someone to claim in the app (spec
+        // 2026-07-02). Lead path: assigns the lead's own seller immediately,
+        // keeping Atendimento and Carteira consistent (same as inbound).
+        assignedSellerId: resolved.kind === "lead" ? resolved.sellerId : null,
         lastMessageAt: parsed.timestamp,
         status: "aguardando",
       });
+      conversation = { id: created.id };
+      if (resolved.kind === "lead") {
+        await db.linkConversationToLead(resolved.id, created.id);
+      }
     }
     const message = await db.insertOutboundEchoMessage({
       conversationId: conversation.id,
@@ -709,7 +701,8 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
         contentType: parsed.contentType,
         hasMedia: Boolean(parsed.mediaId),
         toPhoneMasked: `***${toDigits.slice(-4)}`,
-        customerCreated,
+        contactKind: resolved.kind,
+        contactCreated: resolved.created,
         traceId,
       },
     });

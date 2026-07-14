@@ -888,13 +888,17 @@ describe("processWebhookEvent — evolution connection.update (status sync)", ()
   });
 });
 
-function evolutionEchoEvent(text = "te envio o boleto", keyId = "3EB0ECHO1") {
+function evolutionEchoEvent(
+  text = "te envio o boleto",
+  keyId = "3EB0ECHO1",
+  remoteJid = "5555988887777@s.whatsapp.net",
+) {
   return {
     event: "messages.upsert",
     instance: "gallo-matriz",
     sender: "5555911111111@s.whatsapp.net",
     data: {
-      key: { id: keyId, remoteJid: "5555988887777@s.whatsapp.net", fromMe: true },
+      key: { id: keyId, remoteJid, fromMe: true },
       message: { conversation: text },
       messageTimestamp: 1765400000,
     },
@@ -934,11 +938,15 @@ describe("processWebhookEvent — outbound echoes (real inbox spec)", () => {
     const result = await run(state, evolutionEchoEvent());
 
     expect(result.outcome).toBe("echo-created");
-    expect(state.customers).toHaveLength(1); // pending customer for the new number
-    // Echo conversations also land QUEUED (pool) — the webhook cannot know
-    // which seller sent from the phone, so it never pins the chat; someone
-    // claims it in the app (spec 2026-07-02).
-    expect(state.conversations[0]).toMatchObject({ status: "aguardando", assignedSellerId: null });
+    expect(state.customers).toHaveLength(0);
+    expect(state.leads).toHaveLength(1); // brand-new number becomes a Lead, not a pending customer
+    // Echo conversations land QUEUED but, for a lead, assigned to the lead's
+    // own rotation-resolved seller — mirrors the inbound path (Atendimento
+    // stays consistent with Carteira, spec 2026-07-13 Frente 2).
+    expect(state.conversations[0]).toMatchObject({
+      status: "aguardando",
+      assignedSellerId: "seller-rotation-1",
+    });
     expect(state.messages[0]).toMatchObject({
       provider: "evolution",
       text: "te envio o boleto",
@@ -1040,6 +1048,23 @@ describe("processWebhookEvent — outbound echoes (real inbox spec)", () => {
     expect(state.audits[0]).toMatchObject({
       action: "webhook_received",
       after: expect.objectContaining({ direction: "out", hasMedia: true }),
+    });
+  });
+
+  it("creates a lead (not a pending customer) for a brand-new outbound number", async () => {
+    const state = emptyState();
+    const result = await run(
+      state,
+      evolutionEchoEvent("Oi, aqui é da Gallo", "3EB0ECHOLEAD1", "5554000000000@s.whatsapp.net"),
+    );
+
+    expect(result.outcome).toBe("echo-created");
+    expect(state.customers).toHaveLength(0);
+    expect(state.leads).toHaveLength(1);
+    expect(state.conversations[0]).toMatchObject({
+      leadId: state.leads[0]?.id,
+      status: "aguardando",
+      assignedSellerId: "seller-rotation-1",
     });
   });
 
