@@ -69,78 +69,78 @@ export function AtendimentoTab({
   return (
     <div className="space-y-3">
       <section className="divide-y divide-border rounded-lg border border-border bg-background px-3">
-          <ContextRow label={COPY.status}>
-            <StatusControl
-              conversation={conversation}
-              mode="menu"
-              onChanged={onConversationChanged}
+        <ContextRow label={COPY.status}>
+          <StatusControl
+            conversation={conversation}
+            mode="menu"
+            onChanged={onConversationChanged}
+          />
+        </ContextRow>
+        {assignedSeller && (
+          <ContextRow label={COPY.assignee}>
+            <AssigneeChip
+              seller={assignedSeller}
+              variant="compact"
+              viewing={viewing?.has(assignedSeller.id) ?? false}
             />
           </ContextRow>
-          {assignedSeller && (
-            <ContextRow label={COPY.assignee}>
-              <AssigneeChip
-                seller={assignedSeller}
-                variant="compact"
-                viewing={viewing?.has(assignedSeller.id) ?? false}
+        )}
+        {whatsappAccount && (
+          <ContextRow label={COPY.origin}>
+            <OriginChip account={whatsappAccount} variant="label" />
+          </ContextRow>
+        )}
+        <div className="py-2 text-xs">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-muted-foreground">
+              {COPY.collaborators} ({collaborators.length})
+            </span>
+            {collab?.canManage && (
+              <AddCollaboratorDialog
+                conversation={conversation}
+                existingCollaboratorIds={collaborators.map((c) => c.seller.id)}
+                onAdd={(sellerId) => collab.addCollaborator(sellerId)}
               />
-            </ContextRow>
-          )}
-          {whatsappAccount && (
-            <ContextRow label={COPY.origin}>
-              <OriginChip account={whatsappAccount} variant="label" />
-            </ContextRow>
-          )}
-          <div className="py-2 text-xs">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">
-                {COPY.collaborators} ({collaborators.length})
-              </span>
-              {collab?.canManage && (
-                <AddCollaboratorDialog
-                  conversation={conversation}
-                  existingCollaboratorIds={collaborators.map((c) => c.seller.id)}
-                  onAdd={(sellerId) => collab.addCollaborator(sellerId)}
-                />
-              )}
-            </div>
-            {collaborators.length === 0 ? (
-              <p className="mt-1 text-muted-foreground">{COPY.collaboratorsEmpty}</p>
-            ) : (
-              <div className="mt-1">
-                {collaborators.map(({ seller, source }) => (
-                  <CollaboratorRow
-                    key={seller.id}
-                    seller={seller}
-                    source={source}
-                    viewing={viewing?.has(seller.id) ?? false}
-                    canRemove={collab?.canRemove(seller.id) ?? false}
-                    onRemove={() => void collab?.removeCollaborator(seller.id)}
-                  />
-                ))}
-              </div>
             )}
           </div>
-          <div className="py-2 text-xs">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">{COPY.tags}</span>
-              {canEditTags && (
-                <ConversationTagPicker
-                  conversation={conversation}
-                  onChanged={onConversationChanged}
+          {collaborators.length === 0 ? (
+            <p className="mt-1 text-muted-foreground">{COPY.collaboratorsEmpty}</p>
+          ) : (
+            <div className="mt-1">
+              {collaborators.map(({ seller, source }) => (
+                <CollaboratorRow
+                  key={seller.id}
+                  seller={seller}
+                  source={source}
+                  viewing={viewing?.has(seller.id) ?? false}
+                  canRemove={collab?.canRemove(seller.id) ?? false}
+                  onRemove={() => void collab?.removeCollaborator(seller.id)}
                 />
-              )}
-            </div>
-            <ul className="mt-1.5 flex flex-wrap gap-1.5" aria-label={COPY.tags}>
-              {conversationTags.length === 0 && (
-                <li className="text-muted-foreground">{COPY.tagsEmpty}</li>
-              )}
-              {conversationTags.map((tag) => (
-                <li key={tag.id}>
-                  <ConversationTagChip tag={tag} />
-                </li>
               ))}
-            </ul>
+            </div>
+          )}
+        </div>
+        <div className="py-2 text-xs">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-muted-foreground">{COPY.tags}</span>
+            {canEditTags && (
+              <ConversationTagPicker
+                conversation={conversation}
+                onChanged={onConversationChanged}
+              />
+            )}
           </div>
+          <ul className="mt-1.5 flex flex-wrap gap-1.5" aria-label={COPY.tags}>
+            {conversationTags.length === 0 && (
+              <li className="text-muted-foreground">{COPY.tagsEmpty}</li>
+            )}
+            {conversationTags.map((tag) => (
+              <li key={tag.id}>
+                <ConversationTagChip tag={tag} />
+              </li>
+            ))}
+          </ul>
+        </div>
       </section>
     </div>
   );
