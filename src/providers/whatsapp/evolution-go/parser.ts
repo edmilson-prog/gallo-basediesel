@@ -49,15 +49,17 @@ interface IGoContactNode {
 }
 
 /** whatsmeow `ContextInfo_ExternalAdReplyInfo` (docs/integracoes/evo-go/doc.json) —
- *  `mediaType` casing is NOT confirmed (bare "IMAGE" vs full enum name), so
- *  extraction below normalizes defensively via string matching. */
+ *  `mediaType` is a Swagger INTEGER enum (0=NONE, 1=IMAGE, 2=VIDEO) per the
+ *  confirmed schema, but string variants (bare "IMAGE" or the full enum name)
+ *  are also normalized defensively — extraction below never calls a string
+ *  method on the raw value without a typeof guard. */
 interface IGoExternalAdReplyInfo {
   title?: string;
   body?: string;
   sourceID?: string;
   sourceType?: string;
   sourceURL?: string;
-  mediaType?: string;
+  mediaType?: number | string;
   mediaURL?: string;
   ctwaClid?: string;
 }
@@ -152,11 +154,14 @@ export function extractContent(msg: IGoMessageBody): IGoContent {
   return { contentType: "unknown" };
 }
 
-function normalizeGoAdMediaType(value: string | undefined): "image" | "video" | undefined {
-  if (!value) return undefined;
-  const v = value.toUpperCase();
-  if (v.includes("IMAGE")) return "image";
-  if (v.includes("VIDEO")) return "video";
+function normalizeGoAdMediaType(value: number | string | undefined): "image" | "video" | undefined {
+  if (value === 1 || value === "IMAGE") return "image";
+  if (value === 2 || value === "VIDEO") return "video";
+  if (typeof value === "string") {
+    const v = value.toUpperCase();
+    if (v.includes("IMAGE")) return "image";
+    if (v.includes("VIDEO")) return "video";
+  }
   return undefined;
 }
 

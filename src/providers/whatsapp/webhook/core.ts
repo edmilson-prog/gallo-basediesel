@@ -779,17 +779,26 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
     await db.bumpConversation(conversation.id, parsed.timestamp);
   }
 
-  // Ad-source attribution (best-effort): overwrite with the LATEST referral
-  // seen — a customer can return via a different ad months later, and the
-  // conversation should reflect that, not freeze on the first one.
-  if (parsed.adReferral) {
-    await db.setConversationAdReferral(conversation.id, parsed.adReferral);
-  }
-
   // Idempotency mark RIGHT AFTER the message lands (RNF-002): a provider
-  // retry from here on can never duplicate it. Media/audit below are
-  // best-effort and must not reopen the duplication window.
+  // retry from here on can never duplicate it. Media/audit/ad-referral below
+  // are best-effort and must not reopen the duplication window.
   await db.markProcessed(eventKey, traceId);
+
+  // Ad-source attribution (best-effort, AFTER the idempotency mark so a
+  // transient failure here can never cause the message itself to be
+  // reprocessed): overwrite with the LATEST referral seen — a customer can
+  // return via a different ad months later, and the conversation should
+  // reflect that, not freeze on the first one.
+  if (parsed.adReferral) {
+    try {
+      await db.setConversationAdReferral(conversation.id, parsed.adReferral);
+    } catch (error) {
+      warn("ad-referral attribution failed", {
+        conversationId: conversation.id,
+        detail: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
 
   // 8. Synchronous media download (RF-070, RNF-006): Meta's URL expires in
   //    ~5min, so it is now or marked failed for manual retry.

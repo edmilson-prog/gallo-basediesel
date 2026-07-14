@@ -256,4 +256,26 @@ describe("parseWahaMessageEvent — ad referral (hypothesized _data.Message shap
     ) as { adReferral?: unknown };
     expect(parsed.adReferral).toBeUndefined();
   });
+
+  it("normalizes integer mediaType without throwing", () => {
+    const parsed = parseWahaMessageEvent(
+      {
+        id: "WAHA3",
+        timestamp: 1765400000,
+        from: "5555988887777@c.us",
+        fromMe: false,
+        body: "Opa!",
+        hasMedia: false,
+        _data: {
+          Message: {
+            extendedTextMessage: {
+              contextInfo: { externalAdReply: { title: "Anúncio", mediaType: 2 } },
+            },
+          },
+        },
+      },
+      "acc-1",
+    ) as { adReferral?: { mediaType?: string } };
+    expect(parsed.adReferral?.mediaType).toBe("video");
+  });
 });

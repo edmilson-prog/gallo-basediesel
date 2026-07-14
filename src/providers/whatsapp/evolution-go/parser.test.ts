@@ -247,4 +247,23 @@ describe("parseEvolutionGoInbound — ad referral (externalAdReply)", () => {
     ) as { adReferral?: unknown };
     expect(parsed.adReferral).toBeUndefined();
   });
+
+  it("normalizes integer mediaType (real whatsmeow enum shape) without throwing", () => {
+    const parsed = parseEvolutionGoInbound(
+      {
+        event: "Message",
+        data: {
+          Info: { Chat: "5555988887777@s.whatsapp.net", IsFromMe: false, ID: "GOMSG3", Timestamp: 1765400000 },
+          Message: {
+            extendedTextMessage: {
+              text: "Opa!",
+              contextInfo: { externalAdReply: { title: "Anúncio", mediaType: 1 } },
+            },
+          },
+        },
+      },
+      "acc-1",
+    ) as { adReferral?: { mediaType?: string } };
+    expect(parsed.adReferral?.mediaType).toBe("image");
+  });
 });

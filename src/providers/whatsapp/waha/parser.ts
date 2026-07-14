@@ -37,14 +37,16 @@ interface IWahaMedia {
 
 /** Mirrors whatsmeow's ContextInfo_ExternalAdReplyInfo casing (same library
  *  as Evolution-Go — see IGoExternalAdReplyInfo). NOT confirmed against a
- *  real WAHA payload (see Task 4 in the ad-source-detection plan). */
+ *  real WAHA payload (see Task 4 in the ad-source-detection plan). `mediaType`
+ *  may arrive as the confirmed whatsmeow integer enum (0/1/2) or as a string
+ *  — normalized defensively below. */
 interface IWahaExternalAdReplyInfo {
   title?: string;
   body?: string;
   sourceID?: string;
   sourceType?: string;
   sourceURL?: string;
-  mediaType?: string;
+  mediaType?: number | string;
   mediaURL?: string;
   ctwaClid?: string;
 }
@@ -104,11 +106,14 @@ export function extractContent(payload: IWahaMessagePayload): IParsedContent {
   return { contentType: "text", text: payload.body ?? "" };
 }
 
-function normalizeWahaAdMediaType(value: string | undefined): "image" | "video" | undefined {
-  if (!value) return undefined;
-  const v = value.toUpperCase();
-  if (v.includes("IMAGE")) return "image";
-  if (v.includes("VIDEO")) return "video";
+function normalizeWahaAdMediaType(value: number | string | undefined): "image" | "video" | undefined {
+  if (value === 1 || value === "IMAGE") return "image";
+  if (value === 2 || value === "VIDEO") return "video";
+  if (typeof value === "string") {
+    const v = value.toUpperCase();
+    if (v.includes("IMAGE")) return "image";
+    if (v.includes("VIDEO")) return "video";
+  }
   return undefined;
 }
 
