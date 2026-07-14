@@ -3,8 +3,27 @@
 -- RETURNS TABLE column list that predates conversations.ad_referral
 -- (20260713150000). Without this, the "Origem do anúncio" badge silently
 -- fails to render for any conversation loaded through those two paths.
+--
+-- Postgres refuses CREATE OR REPLACE when the RETURNS TABLE row type
+-- changes (42P13 "cannot change return type of existing function"), so each
+-- function is dropped by its exact prior signature before being recreated.
 
-create or replace function public.list_conversations(
+drop function if exists public.list_conversations(
+  text[], text, uuid, boolean, text[], timestamptz, timestamptz,
+  uuid[], boolean, boolean, text, integer, integer
+);
+
+drop function if exists public.search_conversations(
+  text, uuid, text[], text, uuid, uuid, boolean, boolean, text[],
+  timestamptz, timestamptz, text, integer, integer, uuid[], boolean
+);
+
+drop function if exists public.search_conversation_messages(
+  text, uuid, text[], text, uuid, uuid, boolean, uuid[], boolean, boolean,
+  text[], timestamptz, timestamptz, text, integer, integer
+);
+
+create function public.list_conversations(
   p_status text[] default null,
   p_channel text default null,
   p_whatsapp_account_id uuid default null,
@@ -115,7 +134,7 @@ as $$
   offset greatest(p_offset, 0);
 $$;
 
-create or replace function public.search_conversations(
+create function public.search_conversations(
   p_search text,
   p_store_id uuid default null,
   p_status text[] default null,
@@ -238,7 +257,7 @@ as $$
   offset greatest(p_offset, 0);
 $$;
 
-create or replace function public.search_conversation_messages(
+create function public.search_conversation_messages(
   p_search text,
   p_store_id uuid default null,
   p_status text[] default null,
@@ -401,3 +420,20 @@ as $$
   limit greatest(p_limit, 1)
   offset greatest(p_offset, 0);
 $$;
+
+-- DROP FUNCTION clears prior grants; PostgREST callers rely on execute
+-- rights on the authenticated role (postgres/service_role kept for parity).
+grant execute on function public.list_conversations(
+  text[], text, uuid, boolean, text[], timestamptz, timestamptz,
+  uuid[], boolean, boolean, text, integer, integer
+) to authenticated, postgres, service_role;
+
+grant execute on function public.search_conversations(
+  text, uuid, text[], text, uuid, uuid, boolean, boolean, text[],
+  timestamptz, timestamptz, text, integer, integer, uuid[], boolean
+) to authenticated, postgres, service_role;
+
+grant execute on function public.search_conversation_messages(
+  text, uuid, text[], text, uuid, uuid, boolean, uuid[], boolean, boolean,
+  text[], timestamptz, timestamptz, text, integer, integer
+) to authenticated, postgres, service_role;
