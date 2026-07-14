@@ -25,9 +25,20 @@ interface IFakeState {
   }>;
   /** Records of applyInboundContactName calls (whatsapp_name + heal path). */
   nameFills: Array<{ customerId: string; name: string }>;
+  leads: Array<{
+    id: string;
+    storeId: string;
+    phoneDigits: string;
+    sellerId: string;
+    lossReason: string | null;
+    conversations: string[];
+    /** Not part of ILeadRecord — retained only so tests can assert on it. */
+    name?: string;
+  }>;
   conversations: Array<{
     id: string;
-    customerId: string;
+    customerId?: string;
+    leadId?: string;
     accountId: string;
     open: boolean;
     status?: string;
@@ -84,6 +95,40 @@ function makeFakeDb(state: IFakeState, opts?: { knownOutboundId?: string }): IWe
       state.customers.push(customer);
       return { id: customer.id };
     },
+    findLeadByPhone: async (storeId, digits) => {
+      const found = state.leads.find((l) => l.storeId === storeId && l.phoneDigits === digits);
+      return found ? { id: found.id, sellerId: found.sellerId, lossReason: found.lossReason } : null;
+    },
+    reopenLostLead: async (leadId) => {
+      const lead = state.leads.find((l) => l.id === leadId);
+      if (lead) lead.lossReason = null;
+    },
+    createLead: async ({ storeId, phone, name }) => {
+      const lead = {
+        id: nextId("lead"),
+        storeId,
+        phoneDigits: phone.replace(/\D/g, ""),
+        sellerId: "seller-rotation-1",
+        lossReason: null,
+        conversations: [],
+        name,
+      };
+      state.leads.push(lead);
+      return { id: lead.id, sellerId: lead.sellerId, lossReason: null };
+    },
+    findOpenConversationForLead: async (leadId, accountId, includeTerminal) => {
+      const found = state.conversations.find(
+        (c) =>
+          c.leadId === leadId &&
+          c.accountId === accountId &&
+          (includeTerminal || !["resolvida", "arquivada"].includes(c.status ?? "")),
+      );
+      return found ? { id: found.id, status: found.status ?? "aguardando" } : null;
+    },
+    linkConversationToLead: async (leadId, conversationId) => {
+      const lead = state.leads.find((l) => l.id === leadId);
+      if (lead && !lead.conversations.includes(conversationId)) lead.conversations.push(conversationId);
+    },
     applyInboundContactName: async (customerId, name) => {
       state.nameFills.push({ customerId, name });
       const customer = state.customers.find((c) => c.id === customerId);
@@ -107,10 +152,11 @@ function makeFakeDb(state: IFakeState, opts?: { knownOutboundId?: string }): IWe
       );
       return found ? { id: found.id, status: found.status ?? "aguardando" } : null;
     },
-    createConversation: async ({ customerId, accountId, status, assignedSellerId }) => {
+    createConversation: async ({ customerId, leadId, accountId, status, assignedSellerId }) => {
       const conversation = {
         id: nextId("conv"),
-        customerId,
+        customerId: customerId ?? undefined,
+        leadId: leadId ?? undefined,
         accountId,
         open: true,
         status,
@@ -175,6 +221,7 @@ function emptyState(): IFakeState {
     processed: new Set(),
     customers: [],
     nameFills: [],
+    leads: [],
     conversations: [],
     messages: [],
     statusApplied: [],
@@ -189,13 +236,18 @@ function emptyState(): IFakeState {
   };
 }
 
-function evolutionTextEvent(text = "preciso de um filtro", keyId = "EVOKEY1", pushName?: string) {
+function evolutionTextEvent(
+  text = "preciso de um filtro",
+  keyId = "EVOKEY1",
+  pushName?: string,
+  remoteJid = "5555988887777@s.whatsapp.net",
+) {
   return {
     event: "messages.upsert",
     instance: "gallo-matriz",
     sender: "5555911111111@s.whatsapp.net",
     data: {
-      key: { id: keyId, remoteJid: "5555988887777@s.whatsapp.net", fromMe: false },
+      key: { id: keyId, remoteJid, fromMe: false },
       pushName,
       message: { conversation: text },
       messageTimestamp: 1765400000,
@@ -221,45 +273,51 @@ function run(
 }
 
 describe("processWebhookEvent — inbound messages (RF-040/050)", () => {
-  it("creates customer (pending, no wallet owner), conversation and message for a new contact", async () => {
+  it("creates a lead (not a pending customer), conversation and message for a new contact", async () => {
     const state = emptyState();
     const result = await run(state, evolutionTextEvent());
 
     expect(result.outcome).toBe("message-created");
-    expect(state.customers).toHaveLength(1);
-    // Imported/auto-created anchors carry NO wallet owner (seller_id null) until
-    // manually converted — the webhook never assigns a seller.
-    expect(state.customers[0]?.sellerId).toBeUndefined();
+    // Frente 2 2026-07-13: an unknown number is no longer anchored by a
+    // pending_review customer placeholder — it becomes a Lead.
+    expect(state.customers).toHaveLength(0);
+    expect(state.leads).toHaveLength(1);
     expect(state.conversations).toHaveLength(1);
-    // New inbound conversations land UNASSIGNED (queue), never auto-assigned to
-    // the customer's wallet owner — visibility is by instance access.
-    expect(state.conversations[0]).toMatchObject({ assignedSellerId: null });
+    // The auto-created lead's own rotation-assigned seller lands the
+    // conversation directly (Atendimento/Carteira consistency) — unlike the
+    // old pending-customer pool, this is NOT unassigned.
+    expect(state.conversations[0]).toMatchObject({
+      leadId: state.leads[0]?.id,
+      assignedSellerId: state.leads[0]?.sellerId,
+    });
     expect(state.messages).toHaveLength(1);
     expect(state.messages[0]).toMatchObject({
       provider: "evolution",
       text: "preciso de um filtro",
       providerMessageId: "EVOKEY1",
       mediaFilename: null,
+      authorId: state.leads[0]?.id,
     });
     expect(state.bumps).toEqual([state.conversations[0]?.id]);
     expect(state.processed.has("whatsapp:evolution:gallo-matriz:EVOKEY1")).toBe(true);
     expect(state.audits[0]).toMatchObject({
       action: "webhook_received",
-      after: expect.objectContaining({ fromPhoneMasked: "***7777", customerCreated: true }),
+      after: expect.objectContaining({
+        fromPhoneMasked: "***7777",
+        contactKind: "lead",
+        contactCreated: true,
+      }),
     });
   });
 
-  it("fires onCustomerAutoCreated once for a brand-new contact (background photo)", async () => {
+  it("does NOT fire onCustomerAutoCreated for a brand-new contact anymore (now a Lead — photo-fetch hook wiring deferred)", async () => {
     const state = emptyState();
     const onCustomerAutoCreated = vi.fn();
     await run(state, evolutionTextEvent(), { onCustomerAutoCreated });
 
-    expect(onCustomerAutoCreated).toHaveBeenCalledTimes(1);
-    expect(onCustomerAutoCreated).toHaveBeenCalledWith({
-      customerId: state.customers[0]?.id,
-      phone: "+5555988887777",
-      account: ACCOUNT,
-    });
+    // Frente 2 2026-07-13: the hook was wired to pending-customer auto-creation
+    // only. It is not (yet) wired to lead auto-creation — see task-2 report.
+    expect(onCustomerAutoCreated).not.toHaveBeenCalled();
   });
 
   it("does NOT fire onCustomerAutoCreated when the contact already exists", async () => {
@@ -434,20 +492,20 @@ describe("processWebhookEvent — inbound messages (RF-040/050)", () => {
     expect(state.audits).toHaveLength(0);
   });
 
-  it("names a brand-new contact from the inbound pushName", async () => {
+  it("names a brand-new lead from the inbound pushName", async () => {
     const state = emptyState();
     await run(state, evolutionTextEvent("oi", "EVONAME1", "João da Oficina"));
-    expect(state.customers[0]?.name).toBe("João da Oficina");
+    expect(state.leads[0]?.name).toBe("João da Oficina");
   });
 
-  it("creates without a name (phone fallback) when pushName is absent or phone-like", async () => {
+  it("creates the lead without a name (phone fallback) when pushName is absent or phone-like", async () => {
     const state = emptyState();
     await run(state, evolutionTextEvent("oi", "EVONAME2")); // no pushName
-    expect(state.customers[0]?.name).toBeUndefined();
+    expect(state.leads[0]?.name).toBeUndefined();
 
     const state2 = emptyState();
     await run(state2, evolutionTextEvent("oi", "EVONAME3", "+55 55 98888-7777")); // digits only
-    expect(state2.customers[0]?.name).toBeUndefined();
+    expect(state2.leads[0]?.name).toBeUndefined();
   });
 
   it("heals an existing phone-named contact from the inbound pushName", async () => {
@@ -475,6 +533,55 @@ describe("processWebhookEvent — inbound messages (RF-040/050)", () => {
     const customer = state.customers.find((c) => c.id === "cust-renamed");
     expect(customer?.whatsappName).toBe("José Carlos"); // live name refreshed…
     expect(customer?.name).toBe("Oficina do Zé"); // …display name preserved
+  });
+
+  it("creates a lead (not a pending customer) for a brand-new phone number", async () => {
+    const state = emptyState();
+    const result = await run(
+      state,
+      evolutionTextEvent("Oi", "LEADKEY1", undefined, "555400000000@s.whatsapp.net"),
+    );
+    expect(result.outcome).toBe("message-created");
+    expect(state.customers).toHaveLength(0);
+    expect(state.leads).toHaveLength(1);
+    const conversation = state.conversations[0];
+    expect(conversation?.leadId).toBe(state.leads[0]?.id);
+    expect(conversation?.customerId).toBeUndefined();
+    expect(conversation).toMatchObject({ assignedSellerId: "seller-rotation-1" });
+  });
+
+  it("reuses an existing lead for a repeat inbound from the same number", async () => {
+    const state = emptyState();
+    state.leads.push({
+      id: "lead-existing",
+      storeId: "store-1",
+      phoneDigits: "555400000000",
+      sellerId: "seller-existing",
+      lossReason: null,
+      conversations: [],
+    });
+    await run(
+      state,
+      evolutionTextEvent("Oi de novo", "LEADKEY2", undefined, "555400000000@s.whatsapp.net"),
+    );
+    expect(state.leads).toHaveLength(1); // não criou um segundo lead
+  });
+
+  it("reopens a lost lead on repeat inbound", async () => {
+    const state = emptyState();
+    state.leads.push({
+      id: "lead-lost",
+      storeId: "store-1",
+      phoneDigits: "555400000000",
+      sellerId: "seller-existing",
+      lossReason: "sem contato",
+      conversations: [],
+    });
+    await run(
+      state,
+      evolutionTextEvent("Oi de volta", "LEADKEY3", undefined, "555400000000@s.whatsapp.net"),
+    );
+    expect(state.leads[0]?.lossReason).toBeNull();
   });
 });
 

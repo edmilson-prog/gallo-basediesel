@@ -31,6 +31,13 @@ export interface ICustomerRecord {
   id: string;
 }
 
+export interface ILeadRecord {
+  id: string;
+  sellerId: string;
+  /** `null` when the lead is active/converted; a loss reason when marked lost. */
+  lossReason: string | null;
+}
+
 /** Injected persistence surface — the Edge Function backs it with service_role. */
 export interface IWebhookDb {
   isProcessed(eventKey: string): Promise<boolean>;
@@ -78,6 +85,27 @@ export interface IWebhookDb {
    *     is still the phone-number placeholder (or empty) — a manually-set name is
    *     never overwritten.
    */
+  findLeadByPhone(storeId: string, phoneDigits: string): Promise<ILeadRecord | null>;
+  /**
+   * Clears lossReason/lossNotes and resets the lead to the store's first
+   * pipeline stage (by `order`) — reopens a previously lost lead so a repeat
+   * inbound from the same number doesn't spawn a duplicate.
+   */
+  reopenLostLead(leadId: string): Promise<void>;
+  /**
+   * Creates a lead for a brand-new WhatsApp contact: origin='whatsapp', the
+   * store's first pipeline stage, temperature='morno', seller resolved via
+   * the rotation-assignment SQL function.
+   */
+  createLead(input: { storeId: string; phone: string; name?: string }): Promise<ILeadRecord>;
+  /** Same contract as findOpenConversation but keyed by leadId instead of customerId. */
+  findOpenConversationForLead(
+    leadId: string,
+    accountId: string,
+    includeTerminal?: boolean,
+  ): Promise<{ id: string; status: string } | null>;
+  /** Idempotently appends conversationId to lead.conversations. */
+  linkConversationToLead(leadId: string, conversationId: string): Promise<void>;
   applyInboundContactName(customerId: string, name: string): Promise<void>;
   /**
    * Looks up the latest conversation for this customer+account. By default
@@ -95,7 +123,9 @@ export interface IWebhookDb {
   ): Promise<{ id: string; status: string } | null>;
   createConversation(input: {
     storeId: string;
-    customerId: string;
+    /** Exactly one of customerId/leadId is set — mirrors the app-level invariant. */
+    customerId?: string | null;
+    leadId?: string | null;
     accountId: string;
     assignedSellerId: string | null;
     lastMessageAt: string;
@@ -105,7 +135,8 @@ export interface IWebhookDb {
   }): Promise<{ id: string }>;
   insertInboundMessage(input: {
     conversationId: string;
-    customerId: string;
+    /** Feeds messages.author_id (free text, no FK) — customer OR lead id. */
+    authorId: string;
     provider: "meta" | "evolution" | "evolution-go";
     text: string;
     mediaType: string | null;
@@ -332,6 +363,41 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   } finally {
     clearTimeout(timer);
   }
+}
+
+interface IResolvedContact {
+  kind: "customer" | "lead";
+  id: string;
+  /** Only set for kind==='lead' — the customer path stays unassigned (pool), unchanged. */
+  sellerId: string | null;
+}
+
+/**
+ * Resolves who a phone number is, in this order: a real customer (unchanged
+ * behavior) → an existing lead (reopened if it was marked lost) → a brand-new
+ * lead. Shared by the inbound-customer-message and outbound-echo paths so
+ * neither one still creates a pending_review customer placeholder.
+ */
+async function resolveContact(
+  db: IWebhookDb,
+  storeId: string,
+  phone: string,
+  name: string | undefined,
+): Promise<IResolvedContact> {
+  const phoneDigits = digits(phone);
+  const customer = await db.findCustomerByPhone(storeId, phoneDigits);
+  if (customer) {
+    return { kind: "customer", id: customer.id, sellerId: null };
+  }
+  const lead = await db.findLeadByPhone(storeId, phoneDigits);
+  if (lead) {
+    if (lead.lossReason !== null) {
+      await db.reopenLostLead(lead.id);
+    }
+    return { kind: "lead", id: lead.id, sellerId: lead.sellerId };
+  }
+  const created = await db.createLead({ storeId, phone, name });
+  return { kind: "lead", id: created.id, sellerId: created.sellerId };
 }
 
 export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessResult> {
@@ -663,37 +729,26 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
     return { outcome: "account-not-found" };
   }
 
-  // 5. Customer resolution (RF-040.2) — auto-created customers carry NO wallet
-  //    owner (seller_id null) with a pending_review tag; they only anchor a pool
-  //    conversation in the Inbox until manually converted to a real customer.
+  // 5. Contact resolution (RF-040.2, Frente 2 2026-07-13) — a real customer
+  //    keeps today's behavior (unassigned pool conversation). An unknown
+  //    number becomes a Lead (reused/reopened if one already exists for this
+  //    phone) instead of a pending_review customer placeholder.
   const fromDigits = digits(parsed.fromPhone);
   const contactName = looksLikeName(parsed.senderName) ? parsed.senderName : undefined;
-  let customer = await db.findCustomerByPhone(account.storeId, fromDigits);
-  let customerCreated = false;
-  if (!customer) {
-    customer = await db.createPendingCustomer({
-      storeId: account.storeId,
-      phone: parsed.fromPhone,
-      name: contactName,
-    });
-    customerCreated = true;
-    // Best-effort, fire-and-forget: pull this brand-new contact's WhatsApp
-    // profile photo in the background. Never awaited, never throws here.
-    args.onCustomerAutoCreated?.({
-      customerId: customer.id,
-      phone: parsed.fromPhone,
-      account,
-    });
-  } else if (contactName) {
-    // Existing contact: always refresh whatsapp_name, and heal the display name
-    // if it's still the phone placeholder. Best-effort: must never break the webhook.
-    try {
-      await db.applyInboundContactName(customer.id, contactName);
-    } catch (error) {
-      warn("failed to fill customer name", {
-        customerId: customer.id,
-        detail: error instanceof Error ? error.message : String(error),
-      });
+  const resolved = await resolveContact(db, account.storeId, parsed.fromPhone, contactName);
+  let contactCreated = false;
+  if (resolved.kind === "customer") {
+    if (contactName) {
+      // Existing contact: always refresh whatsapp_name, and heal the display name
+      // if it's still the phone placeholder. Best-effort: must never break the webhook.
+      try {
+        await db.applyInboundContactName(resolved.id, contactName);
+      } catch (error) {
+        warn("failed to fill customer name", {
+          customerId: resolved.id,
+          detail: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
   }
 
@@ -701,27 +756,30 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
   //    latest conversation regardless of status; a closed one (resolvida/
   //    arquivada) is REOPENED on customer inbound instead of spawning a
   //    duplicate (spec 2026-07-03 §1.5).
-  let conversation: { id: string; status: string } | null = await db.findOpenConversation(
-    customer.id,
-    account.id,
-    true,
-  );
+  let conversation: { id: string; status: string } | null =
+    resolved.kind === "customer"
+      ? await db.findOpenConversation(resolved.id, account.id, true)
+      : await db.findOpenConversationForLead(resolved.id, account.id, true);
   let didReopen = false;
   if (!conversation) {
     const created = await db.createConversation({
       storeId: account.storeId,
-      customerId: customer.id,
+      customerId: resolved.kind === "customer" ? resolved.id : null,
+      leadId: resolved.kind === "lead" ? resolved.id : null,
       accountId: account.id,
-      // New inbound conversations land UNASSIGNED (queue), never auto-assigned
-      // to a seller — they drop into the pool for whoever operates the instance
-      // to pick up. Visibility comes from instance access (the unassigned branch
-      // of can_access_conversation); the imported customer carries NO wallet
-      // owner (seller_id null) until manually converted.
-      assignedSellerId: null,
+      // Customer path: unassigned pool, unchanged from today — the auto-
+      // created lead path assigns the lead's own seller immediately, keeping
+      // Atendimento (assigned_seller_id) and Carteira (leads.seller_id)
+      // consistent (docs/dev/conversation-access-model.md).
+      assignedSellerId: resolved.kind === "lead" ? resolved.sellerId : null,
       lastMessageAt: parsed.timestamp,
       status: "aguardando",
     });
     conversation = { id: created.id, status: "aguardando" };
+    if (resolved.kind === "lead") {
+      await db.linkConversationToLead(resolved.id, created.id);
+    }
+    contactCreated = resolved.kind === "lead";
   } else if (reopenOnInbound(conversation.status)) {
     await db.reopenConversation(conversation.id, parsed.timestamp);
     didReopen = true;
@@ -731,7 +789,7 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
   //    but the message record never depends on the download succeeding.
   const message = await db.insertInboundMessage({
     conversationId: conversation.id,
-    customerId: customer.id,
+    authorId: resolved.id,
     provider,
     text: parsed.text ?? parsed.mediaCaption ?? "",
     mediaType: toMediaType(parsed.contentType),
@@ -785,7 +843,8 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
       contentType: parsed.contentType,
       hasMedia: Boolean(parsed.mediaId),
       fromPhoneMasked: `***${fromDigits.slice(-4)}`,
-      customerCreated,
+      contactKind: resolved.kind,
+      contactCreated,
       traceId,
     },
   });
