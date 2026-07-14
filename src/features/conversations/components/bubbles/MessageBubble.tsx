@@ -2,6 +2,7 @@ import type { IMessage } from "@/shared/types";
 import { TextBubble } from "./TextBubble";
 import { ImageBubble } from "./ImageBubble";
 import { AudioBubble } from "./AudioBubble";
+import { VideoBubble } from "./VideoBubble";
 import { DocumentBubble } from "./DocumentBubble";
 import { LocationBubble } from "./LocationBubble";
 import { ContactBubble } from "./ContactBubble";
@@ -22,7 +23,7 @@ const TEMPLATE_PREFIX = "[template]";
 
 /**
  * Discriminates the right bubble component for a message based on
- * `authorType` (system) and `mediaType` (image / audio / document).
+ * `authorType` (system) and `mediaType` (image / audio / video / document).
  * Plain text always falls through to `<TextBubble>` so templates and
  * normal outbound text don't diverge in look-and-feel.
  */
@@ -60,7 +61,10 @@ export function MessageBubble({ message, onRetry }: IMessageBubbleProps) {
   if (message.mediaType === "audio") {
     return <AudioBubble message={message} onRetry={onRetry} />;
   }
-  if (message.mediaType === "document" || message.mediaType === "video") {
+  if (message.mediaType === "video") {
+    return <VideoBubble message={message} onRetry={onRetry} />;
+  }
+  if (message.mediaType === "document") {
     return <DocumentBubble message={message} onRetry={onRetry} />;
   }
   return <TextBubble message={message} onRetry={onRetry} />;
