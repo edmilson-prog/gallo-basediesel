@@ -99,7 +99,7 @@ describe("processWahaImportBatch", () => {
         customers.set(phone.replace(/\D/g, ""), id);
         return { id };
       },
-      async findOpenConversation(customerId) {
+      async findConversation(customerId) {
         const id = conversations.get(customerId);
         return id ? { id } : null;
       },
@@ -211,5 +211,81 @@ describe("processWahaImportBatch", () => {
     });
     expect(result.done).toBe(false);
     expect(result.nextCursor).toBe(2);
+  });
+
+  it("retries a transient failure listing chats instead of crashing the whole batch", async () => {
+    // Regression test: found 2026-07-14 on a real Vendas (1000+ conversation)
+    // import — fetchAllWahaChatIds re-lists the whole chat set on every batch
+    // call, and one dropped page anywhere in that volume threw uncaught,
+    // crashing the request with a 500 instead of the batch just continuing.
+    let chatsCalls = 0;
+    const fetchFn = vi.fn(async (url: string) => {
+      if (url.includes("/chats?")) {
+        chatsCalls++;
+        if (chatsCalls === 1) return jsonResponse(500, { message: "temporary hiccup" });
+        return jsonResponse(200, [{ id: "5548999887766@c.us" }]);
+      }
+      if (url.includes("/messages?")) return jsonResponse(200, []);
+      return jsonResponse(404, {});
+    });
+    const db = makeDb();
+    const result = await processWahaImportBatch({
+      account: { id: "acct-1", storeId: "store-1" },
+      apiKey: "key",
+      fetchFn: fetchFn as unknown as typeof fetch,
+      target,
+      db,
+    });
+    expect(chatsCalls).toBe(2);
+    expect(result.stats.chatsProcessed).toBe(1);
+  });
+
+  it("retries a transient failure fetching a chat's messages", async () => {
+    let messagesCalls = 0;
+    const fetchFn = vi.fn(async (url: string) => {
+      if (url.includes("/chats?")) return jsonResponse(200, [{ id: "5548999887766@c.us" }]);
+      if (url.includes("/messages?")) {
+        messagesCalls++;
+        if (messagesCalls === 1) return jsonResponse(429, { message: "rate limited" });
+        return jsonResponse(200, [
+          { id: "m1", timestamp: 1720000000, from: "5548999887766@c.us", fromMe: false, body: "oi" },
+        ]);
+      }
+      return jsonResponse(404, {});
+    });
+    const db = makeDb();
+    const result = await processWahaImportBatch({
+      account: { id: "acct-1", storeId: "store-1" },
+      apiKey: "key",
+      fetchFn: fetchFn as unknown as typeof fetch,
+      target,
+      db,
+    });
+    expect(messagesCalls).toBe(2);
+    expect(result.stats.chatsProcessed).toBe(1);
+    expect(result.stats.messagesImported).toBe(1);
+  });
+
+  it("does not retry a non-transient error (401) — fails the chat immediately", async () => {
+    let chatsCalls = 0;
+    const fetchFn = vi.fn(async (url: string) => {
+      if (url.includes("/chats?")) {
+        chatsCalls++;
+        return jsonResponse(200, [{ id: "5548999887766@c.us" }]);
+      }
+      if (url.includes("/messages?")) return jsonResponse(401, { message: "invalid key" });
+      return jsonResponse(404, {});
+    });
+    const db = makeDb();
+    const result = await processWahaImportBatch({
+      account: { id: "acct-1", storeId: "store-1" },
+      apiKey: "key",
+      fetchFn: fetchFn as unknown as typeof fetch,
+      target,
+      db,
+    });
+    expect(chatsCalls).toBe(1);
+    expect(result.stats.chatsFailed).toBe(1);
+    expect(result.stats.chatsProcessed).toBe(0);
   });
 });

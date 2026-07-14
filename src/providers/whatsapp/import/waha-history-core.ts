@@ -17,6 +17,7 @@ import { extractContent, jidToE164, type IWahaMessagePayload } from "../waha/par
 import { resolveWahaLid } from "../waha/contacts";
 import { fetchWahaChatMessagesPage, fetchWahaChatsPage } from "../waha/history";
 import type { IWahaSessionTarget } from "../waha/session";
+import { WhatsAppProviderError } from "../errors";
 import { MEDIA_DISCRIMINATOR_TYPES } from "../types";
 import {
   emptyImportStats,
@@ -35,6 +36,41 @@ const MAX_CHAT_PAGES = 50; // 50 * 100 = 5 000 chats
 const MAX_MESSAGE_PAGES_PER_CHAT = 50; // 50 * 100 = 5 000 messages/chat
 const BATCH_CHATS_DEFAULT = 10;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const RETRY_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 300;
+
+/**
+ * Retries a transient WAHA REST read (timeout, 429, unmapped 5xx) with a
+ * short backoff — every caller here is a paginated GET, safe to repeat.
+ * Auth/not-found errors are not transient and propagate on the first try.
+ *
+ * Found 2026-07-14: `fetchAllWahaChatIds` re-lists the WHOLE chat set on
+ * EVERY batch call (the cursor only slices the already-fetched list) — for
+ * a 1 000+ conversation account that's ~12 extra HTTP round-trips per batch,
+ * ~100+ batches per import. One dropped page anywhere in that volume threw
+ * uncaught (outside the per-chat try/catch in processWahaImportBatch) and
+ * crashed the whole request with a 500, forcing a full manual retry instead
+ * of the batch simply continuing.
+ */
+async function withWahaRetry<T>(fn: () => Promise<T>): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= RETRY_ATTEMPTS; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      const retryable =
+        error instanceof DOMException && error.name === "AbortError"
+          ? true
+          : error instanceof WhatsAppProviderError
+            ? error.code === "RATE_LIMITED" || error.code === "INTEGRATION_ERROR"
+            : false;
+      if (!retryable || attempt === RETRY_ATTEMPTS) throw error;
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS * attempt));
+    }
+  }
+  throw lastError;
+}
 
 type ChatKind = "individual" | "lid" | "group" | "broadcast" | "other";
 
@@ -90,7 +126,9 @@ async function fetchAllWahaChatIds(
   const ids = new Set<string>();
   for (let page = 0; page < MAX_CHAT_PAGES; page++) {
     const offset = page * CHATS_PAGE_SIZE;
-    const rows = await fetchWahaChatsPage(apiKey, fetchFn, target, offset, CHATS_PAGE_SIZE);
+    const rows = await withWahaRetry(() =>
+      fetchWahaChatsPage(apiKey, fetchFn, target, offset, CHATS_PAGE_SIZE),
+    );
     for (const row of rows) ids.add(row.id);
     if (rows.length < CHATS_PAGE_SIZE) break;
     if (page === MAX_CHAT_PAGES - 1) {
@@ -118,13 +156,8 @@ async function importWahaChat(
 
   for (let page = 0; page < MAX_MESSAGE_PAGES_PER_CHAT; page++) {
     const offset = page * MESSAGES_PAGE_SIZE;
-    const pageRecords = await fetchWahaChatMessagesPage(
-      apiKey,
-      fetchFn,
-      target,
-      chatId,
-      offset,
-      MESSAGES_PAGE_SIZE,
+    const pageRecords = await withWahaRetry(() =>
+      fetchWahaChatMessagesPage(apiKey, fetchFn, target, chatId, offset, MESSAGES_PAGE_SIZE),
     );
     const thisPageIds = new Set(
       pageRecords.map((r) => r.id).filter((id): id is string => Boolean(id)),
