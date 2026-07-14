@@ -16,7 +16,7 @@ import { parseEvolutionGoInbound } from "../evolution-go/parser";
 import { parseMetaInbound } from "../meta/parser";
 import { parseOpenWaInbound } from "../openwa/parser";
 import type { IWhatsAppProvider } from "../IWhatsAppProvider";
-import type { IInboundMessage, IInboundStatus, IOutboundEcho } from "../types";
+import type { IInboundMessage, IInboundStatus, IOutboundEcho, IAdReferral } from "../types";
 import { MEDIA_DISCRIMINATOR_TYPES } from "../types";
 
 export interface IAccountRecord {
@@ -119,6 +119,10 @@ export interface IWebhookDb {
     sentAt: string;
   }): Promise<{ id: string }>;
   bumpConversation(conversationId: string, lastMessageAt: string): Promise<void>;
+  /** Best-effort attribution write (ad-source detection, PRD n/a) — sets/
+   *  overwrites conversations.ad_referral with the LATEST inbound referral
+   *  seen. Only ever called when parsed.adReferral is present. */
+  setConversationAdReferral(conversationId: string, adReferral: IAdReferral): Promise<void>;
   /**
    * Reopens a closed (resolvida/arquivada) conversation on customer inbound
    * (spec 2026-07-03 §1.5): status→'aguardando', unassigns the owner, bumps
@@ -776,9 +780,25 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
   }
 
   // Idempotency mark RIGHT AFTER the message lands (RNF-002): a provider
-  // retry from here on can never duplicate it. Media/audit below are
-  // best-effort and must not reopen the duplication window.
+  // retry from here on can never duplicate it. Media/audit/ad-referral below
+  // are best-effort and must not reopen the duplication window.
   await db.markProcessed(eventKey, traceId);
+
+  // Ad-source attribution (best-effort, AFTER the idempotency mark so a
+  // transient failure here can never cause the message itself to be
+  // reprocessed): overwrite with the LATEST referral seen — a customer can
+  // return via a different ad months later, and the conversation should
+  // reflect that, not freeze on the first one.
+  if (parsed.adReferral) {
+    try {
+      await db.setConversationAdReferral(conversation.id, parsed.adReferral);
+    } catch (error) {
+      warn("ad-referral attribution failed", {
+        conversationId: conversation.id,
+        detail: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
 
   // 8. Synchronous media download (RF-070, RNF-006): Meta's URL expires in
   //    ~5min, so it is now or marked failed for manual retry.

@@ -60,6 +60,7 @@ export const CUSTOMER_STRINGS = {
     status: "Status da conversa",
     assignee: "Atendente responsável",
     origin: "Respondendo por",
+    adSource: "Origem da conversa",
     empty: "Nenhuma pendência de atendimento no momento.",
     pendingHint: "pendência de revisão",
     tags: "Tags da conversa",

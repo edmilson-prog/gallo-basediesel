@@ -133,6 +133,7 @@ export type {
 
 // Conversation, messaging, WhatsApp
 export type {
+  IAdReferral,
   IConversation,
   IConversationContact,
   IConversationMessageMatch,

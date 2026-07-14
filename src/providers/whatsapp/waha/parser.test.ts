@@ -206,3 +206,76 @@ describe("parseWahaMessageEvent", () => {
     expect(result.text).toBe("TesteEco");
   });
 });
+
+describe("parseWahaMessageEvent — ad referral (hypothesized _data.Message shape)", () => {
+  it("extracts adReferral when _data.Message carries externalAdReply", () => {
+    const parsed = parseWahaMessageEvent(
+      {
+        id: "WAHA1",
+        timestamp: 1765400000,
+        from: "5555988887777@c.us",
+        fromMe: false,
+        body: "Opa! Vim do anúncio",
+        hasMedia: false,
+        _data: {
+          Message: {
+            extendedTextMessage: {
+              contextInfo: {
+                externalAdReply: {
+                  title: "Módulos Volvo — instale em minutos",
+                  body: "Fale com a GALLO",
+                  sourceID: "120210000000000",
+                  sourceType: "ad",
+                  sourceURL: "https://fb.me/xyz",
+                  mediaType: "IMAGE",
+                  mediaURL: "https://scontent.example/ad.jpg",
+                  ctwaClid: "AfE...clid",
+                },
+              },
+            },
+          },
+        },
+      },
+      "acc-1",
+    ) as { adReferral?: unknown };
+    expect(parsed.adReferral).toEqual({
+      sourceId: "120210000000000",
+      sourceUrl: "https://fb.me/xyz",
+      sourceType: "ad",
+      headline: "Módulos Volvo — instale em minutos",
+      body: "Fale com a GALLO",
+      mediaType: "image",
+      mediaUrl: "https://scontent.example/ad.jpg",
+    });
+  });
+
+  it("leaves adReferral undefined when _data is absent (today's real payload shape)", () => {
+    const parsed = parseWahaMessageEvent(
+      { id: "WAHA2", timestamp: 1765400000, from: "5555988887777@c.us", fromMe: false, body: "oi" },
+      "acc-1",
+    ) as { adReferral?: unknown };
+    expect(parsed.adReferral).toBeUndefined();
+  });
+
+  it("normalizes integer mediaType without throwing", () => {
+    const parsed = parseWahaMessageEvent(
+      {
+        id: "WAHA3",
+        timestamp: 1765400000,
+        from: "5555988887777@c.us",
+        fromMe: false,
+        body: "Opa!",
+        hasMedia: false,
+        _data: {
+          Message: {
+            extendedTextMessage: {
+              contextInfo: { externalAdReply: { title: "Anúncio", mediaType: 2 } },
+            },
+          },
+        },
+      },
+      "acc-1",
+    ) as { adReferral?: { mediaType?: string } };
+    expect(parsed.adReferral?.mediaType).toBe("video");
+  });
+});

@@ -349,11 +349,19 @@ export function MessageInput(props: IMessageInputProps) {
     if (openTemplateSignal > 0) setTemplateOpen(true);
   }, [openTemplateSignal]);
 
-  // Auto-resize the textarea to fit content, capped at ~5 lines.
+  // Auto-resize the textarea to fit content, capped at ~5 lines. Resetting to
+  // "0px" before reading scrollHeight forces a synchronous layout (Chrome's
+  // "Forced reflow" violation) — only worth paying when the text may have
+  // shrunk (scrollHeight otherwise still reports the box's current height,
+  // not the smaller content). While the text only grows (the common case,
+  // one violation per keystroke otherwise), scrollHeight already reflects
+  // the larger content without resetting first.
+  const prevValueLengthRef = useRef(0);
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
-    el.style.height = "0px";
+    if (value.length < prevValueLengthRef.current) el.style.height = "0px";
+    prevValueLengthRef.current = value.length;
     const next = Math.min(el.scrollHeight, 5 * 24 + 16);
     el.style.height = `${Math.max(40, next)}px`;
   }, [value]);

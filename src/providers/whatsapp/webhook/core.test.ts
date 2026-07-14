@@ -37,6 +37,7 @@ interface IFakeState {
   uploads: string[];
   audits: Array<Record<string, unknown>>;
   bumps: string[];
+  adReferrals: Array<{ conversationId: string; adReferral: unknown }>;
   reopens: Array<{ conversationId: string; lastMessageAt: string }>;
   touches: Array<{ conversationId: string; lastMessageAt: string }>;
   mediaSet: Array<{ messageId: string; mediaUrl: string | null; status: string }>;
@@ -139,6 +140,9 @@ function makeFakeDb(state: IFakeState, opts?: { knownOutboundId?: string }): IWe
     bumpConversation: async (conversationId) => {
       state.bumps.push(conversationId);
     },
+    setConversationAdReferral: async (conversationId, adReferral) => {
+      state.adReferrals.push({ conversationId, adReferral });
+    },
     reopenConversation: async (conversationId, lastMessageAt) => {
       state.reopens.push({ conversationId, lastMessageAt });
       const conversation = state.conversations.find((c) => c.id === conversationId);
@@ -185,6 +189,7 @@ function emptyState(): IFakeState {
     uploads: [],
     audits: [],
     bumps: [],
+    adReferrals: [],
     reopens: [],
     touches: [],
     mediaSet: [],
@@ -1230,5 +1235,41 @@ describe("processWebhookEvent — openwa", () => {
     );
     expect(result.outcome).toBe("ignored");
     expect(state.customers).toHaveLength(0);
+  });
+});
+
+describe("processWebhookEvent — ad referral attribution", () => {
+  it("sets conversations.ad_referral when the inbound message carries one", async () => {
+    const state = emptyState();
+    const result = await run(state, {
+      event: "messages.upsert",
+      instance: "gallo-matriz",
+      sender: "5555911111111@s.whatsapp.net",
+      data: {
+        key: { id: "ADMSG1", remoteJid: "5555988887777@s.whatsapp.net", fromMe: false },
+        message: {
+          extendedTextMessage: {
+            text: "Opa! Vim do anúncio",
+            contextInfo: {
+              externalAdReplyInfo: { title: "Módulos Volvo", sourceType: "ad" },
+            },
+          },
+        },
+        messageTimestamp: 1765400000,
+      },
+    });
+    expect(result.outcome).toBe("message-created");
+    expect(state.adReferrals).toEqual([
+      {
+        conversationId: result.conversationId,
+        adReferral: { headline: "Módulos Volvo", sourceType: "ad" },
+      },
+    ]);
+  });
+
+  it("does not call setConversationAdReferral for a plain message", async () => {
+    const state = emptyState();
+    await run(state, evolutionTextEvent());
+    expect(state.adReferrals).toEqual([]);
   });
 });
