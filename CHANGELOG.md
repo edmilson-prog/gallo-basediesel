@@ -4,6 +4,19 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.141.0] — Spotlight · 2026-07-14
+
+**Conversas iniciadas por anúncio agora se identificam sozinhas, e vídeo recebido mostra prévia com play.** Até aqui, quando um cliente chegava clicando num anúncio do WhatsApp, não havia como saber disso sem o cliente mencionar — e todo vídeo recebido aparecia como um arquivo genérico "media.bin" para baixar, sem prévia.
+
+### Added
+
+- **Identificação de origem por anúncio (Click-to-WhatsApp Ads)** — conversas iniciadas (ou retomadas) a partir de um anúncio/post do WhatsApp ganham um selo "Anúncio" na lista do Atendimento e na ficha do cliente, lido diretamente do metadado que o WhatsApp anexa à mensagem (não depende do texto digitado pelo cliente). Cobre Evolution v2, Evolution-Go e WAHA.
+- **Prévia de vídeo no Atendimento** — mensagens de vídeo recebidas agora mostram uma miniatura com botão de play (como já acontecia com imagem), em vez de um chip genérico de arquivo para baixar.
+
+### Fixed
+
+- **Composer digitando com engasgos** — o campo de mensagem recalculava a própria altura de um jeito que forçava o navegador a refazer o layout a cada tecla digitada; corrigido para só fazer esse recálculo mais caro quando o texto encolhe (apaga caractere).
+
 ## [0.140.0] — Mirror · 2026-07-12
 
 **Resposta dada direto pelo celular pareado à conta WAHA agora aparece no Atendimento.** Até aqui, se alguém respondesse uma conversa fora da plataforma — direto no aplicativo do WhatsApp, no celular conectado à instância WAHA — essa mensagem ficava invisível no histórico: a plataforma via o evento e descartava. Agora ela é espelhada na conversa certa, sem reabrir atendimentos já encerrados e caindo na fila para alguém assumir quando for uma conversa nova.
