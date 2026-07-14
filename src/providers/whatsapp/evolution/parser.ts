@@ -128,6 +128,11 @@ export function extractEvolutionContent(message: IEvolutionRawMessage): IEvoluti
 function normalizeAdMediaType(value: number | string | undefined): "image" | "video" | undefined {
   if (value === 1 || value === "IMAGE") return "image";
   if (value === 2 || value === "VIDEO") return "video";
+  if (typeof value === "string") {
+    const v = value.toUpperCase();
+    if (v.includes("IMAGE")) return "image";
+    if (v.includes("VIDEO")) return "video";
+  }
   return undefined;
 }
 

@@ -229,6 +229,23 @@ describe("parseEvolutionInbound — ad referral (externalAdReplyInfo)", () => {
     };
     expect(parsed.adReferral).toBeUndefined();
   });
+
+  it("normalizes a whatsmeow-style mediaType enum string without throwing", () => {
+    const parsed = parseEvolutionInbound(
+      upsertEvent({
+        message: {
+          extendedTextMessage: {
+            text: "Opa!",
+            contextInfo: {
+              externalAdReplyInfo: { title: "Anúncio", mediaType: "ContextInfo_ExternalAdReplyInfo_IMAGE" },
+            },
+          },
+        },
+      }),
+      "",
+    ) as { adReferral?: { mediaType?: string } };
+    expect(parsed.adReferral?.mediaType).toBe("image");
+  });
 });
 
 describe("parseEvolutionInbound — regression", () => {
