@@ -18,6 +18,14 @@ describe("containsCommercialValue", () => {
     expect(containsCommercialValue("o frete sai grátis")).toBe(true);
   });
 
+  it("flags a delivery deadline mention (prazo)", () => {
+    expect(containsCommercialValue("o prazo de entrega é rápido")).toBe(true);
+  });
+
+  it("flags a delivery deadline mention (dias úteis)", () => {
+    expect(containsCommercialValue("chega em 5 dias úteis")).toBe(true);
+  });
+
   it("flags a unit-price mention", () => {
     expect(containsCommercialValue("o valor unitário é 30 reais")).toBe(true);
   });

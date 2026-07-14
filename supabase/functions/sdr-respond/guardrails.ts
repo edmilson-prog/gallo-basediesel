@@ -14,6 +14,8 @@ const FORBIDDEN_PATTERNS: RegExp[] = [
   /\bvalor(es)?\s+(unit[aá]rio|total)\b/i,
   /\d+\s*%/,
   /\bpromo[çc][aã]o\b/i,
+  /\bprazo\b/i,
+  /\bdias?\s+(úteis|corridos)\b/i,
 ];
 
 export function containsCommercialValue(text: string): boolean {
