@@ -13,7 +13,7 @@
 import { toE164 } from "../phone";
 import { encodeBaileysContact, encodeBaileysLocation } from "../contentFormat";
 import { encodeGoMediaRef, type GoMediaMessageKey } from "./media";
-import type { IInboundMessage, IInboundStatus, InboundContentType, IOutboundEcho } from "../types";
+import type { IInboundMessage, IInboundStatus, InboundContentType, IOutboundEcho, IAdReferral } from "../types";
 
 interface IGoInfo {
   Chat?: string;
@@ -48,12 +48,30 @@ interface IGoContactNode {
   vcard?: string;
 }
 
+/** whatsmeow `ContextInfo_ExternalAdReplyInfo` (docs/integracoes/evo-go/doc.json) —
+ *  `mediaType` casing is NOT confirmed (bare "IMAGE" vs full enum name), so
+ *  extraction below normalizes defensively via string matching. */
+interface IGoExternalAdReplyInfo {
+  title?: string;
+  body?: string;
+  sourceID?: string;
+  sourceType?: string;
+  sourceURL?: string;
+  mediaType?: string;
+  mediaURL?: string;
+  ctwaClid?: string;
+}
+
+interface IGoContextInfo {
+  externalAdReplyInfo?: IGoExternalAdReplyInfo;
+}
+
 export interface IGoMessageBody {
   conversation?: string;
-  extendedTextMessage?: { text?: string };
-  imageMessage?: IGoMediaNode;
+  extendedTextMessage?: { text?: string; contextInfo?: IGoContextInfo };
+  imageMessage?: IGoMediaNode & { contextInfo?: IGoContextInfo };
   audioMessage?: IGoMediaNode;
-  videoMessage?: IGoMediaNode;
+  videoMessage?: IGoMediaNode & { contextInfo?: IGoContextInfo };
   documentMessage?: IGoMediaNode & { fileName?: string };
   locationMessage?: IGoLocationNode;
   contactMessage?: IGoContactNode;
@@ -132,6 +150,33 @@ export function extractContent(msg: IGoMessageBody): IGoContent {
     return { contentType: "contact", text: encodeBaileysContact(contactNode) };
   }
   return { contentType: "unknown" };
+}
+
+function normalizeGoAdMediaType(value: string | undefined): "image" | "video" | undefined {
+  if (!value) return undefined;
+  const v = value.toUpperCase();
+  if (v.includes("IMAGE")) return "image";
+  if (v.includes("VIDEO")) return "video";
+  return undefined;
+}
+
+/** whatsmeow shape confirmed via docs/integracoes/evo-go/doc.json. Returns
+ *  undefined (never throws) whenever externalAdReplyInfo is absent/malformed. */
+export function extractGoAdReferral(msg: IGoMessageBody): IAdReferral | undefined {
+  const info =
+    msg.extendedTextMessage?.contextInfo?.externalAdReplyInfo ??
+    msg.imageMessage?.contextInfo?.externalAdReplyInfo ??
+    msg.videoMessage?.contextInfo?.externalAdReplyInfo;
+  if (!info) return undefined;
+  return {
+    sourceId: info.sourceID,
+    sourceUrl: info.sourceURL,
+    sourceType: info.sourceType,
+    headline: info.title,
+    body: info.body,
+    mediaType: normalizeGoAdMediaType(info.mediaType),
+    mediaUrl: info.mediaURL,
+  };
 }
 
 const RECEIPT_STATUS_MAP: Record<string, IInboundStatus["status"]> = {
@@ -215,6 +260,7 @@ export function parseEvolutionGoInbound(
     mediaCaption: content.mediaCaption,
     mediaFilename: content.mediaFilename,
     senderName: info.PushName,
+    adReferral: extractGoAdReferral(ev.data?.Message ?? {}),
     timestamp,
     rawPayload,
   };
