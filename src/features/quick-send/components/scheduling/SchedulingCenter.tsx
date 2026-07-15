@@ -64,7 +64,10 @@ export function SchedulingCenter({
   const { items, cancel, update } = useConversationScheduled(conversation.id);
   const { hasRole } = useAuth();
   const canSeeGlobal = hasRole(["Owner", "Gestor"]);
-  const global = useGlobalScheduled(canSeeGlobal && open && tab === "all");
+  // Fetched whenever the center is open (not gated to the "all" tab) so the
+  // "Todos · N" badge always reflects the real store-wide count — same as
+  // "Agendados · N", which reads from data already loaded for this conversation.
+  const global = useGlobalScheduled(canSeeGlobal && open);
 
   const win = useMetaWindow(conversation, whatsappAccount);
   const showWindowWarning = whatsappAccount?.provider === "meta" && !win.canSendFreeText;
