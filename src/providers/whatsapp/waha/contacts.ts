@@ -119,3 +119,35 @@ export async function fetchWahaProfilePictureUrl(
     throw err;
   }
 }
+
+export interface IWahaNumberCheckResult {
+  exists: boolean;
+  e164?: string;
+}
+
+/**
+ * Does `phone` (wire digits, no "+") have a WhatsApp account? `GET
+ * /api/contacts/check-exists?phone={phone}&session={session}` (WAHA docs,
+ * "Contacts") → `{ numberExists, chatId }`. `chatId` is `<digits>@c.us` —
+ * converted to E.164 via {@link pnToE164} when the number exists. Genuine
+ * HTTP errors (auth, network, 5xx) propagate — the caller
+ * (whatsapp-check-number/index.ts) decides whether to fail open, same
+ * contract as the Evolution branch of that function.
+ */
+export async function checkWahaNumberExists(
+  apiKey: string,
+  fetchFn: typeof fetch,
+  target: { baseUrl: string; sessionName: string },
+  phone: string,
+): Promise<IWahaNumberCheckResult> {
+  const query = `phone=${encodeURIComponent(phone)}&session=${encodeURIComponent(target.sessionName)}`;
+  const response = await wahaRequest(apiKey, fetchFn, {
+    baseUrl: target.baseUrl,
+    path: `/api/contacts/check-exists?${query}`,
+    method: "GET",
+    timeoutMs: 15_000,
+  });
+  const body = response.body as { numberExists?: boolean; chatId?: string } | null;
+  const exists = body?.numberExists === true;
+  return { exists, e164: exists ? pnToE164(body?.chatId) : undefined };
+}
