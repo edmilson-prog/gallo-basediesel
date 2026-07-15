@@ -1,7 +1,7 @@
 // AUTO-GENERATED MIRROR — DO NOT EDIT.
 // Source: src/providers/whatsapp/waha/send.ts (sync: bun run scripts/sync-whatsapp-shared.ts)
 
-/** WAHA outbound send — text (`/api/sendText`) and media (`/api/sendImage`/`/api/sendFile`). */
+/** WAHA outbound send — text (`/api/sendText`) and media (`/api/sendImage`/`/api/sendVoice`/`/api/sendFile`). */
 
 import { WhatsAppProviderError } from "../errors.ts";
 import { wahaRequest } from "./client.ts";
@@ -51,21 +51,34 @@ export interface IWahaSendMediaInput {
   filename?: string;
 }
 
+const MEDIA_ENDPOINTS: Record<IWahaSendMediaInput["mediaType"], string> = {
+  image: "/api/sendImage",
+  audio: "/api/sendVoice",
+  video: "/api/sendFile",
+  document: "/api/sendFile",
+};
+
 export async function sendWahaMedia(
   apiKey: string,
   fetchFn: typeof fetch,
   target: IWahaSessionTarget,
   input: IWahaSendMediaInput,
 ): Promise<IWahaSendResult> {
-  const endpoint = input.mediaType === "image" ? "/api/sendImage" : "/api/sendFile";
+  // Audio goes through /api/sendVoice (not /api/sendFile) so WhatsApp renders
+  // a native playable voice-note bubble instead of a downloadable document —
+  // `convert: true` lets WAHA transcode the source (e.g. our recorder's
+  // webm/opus) into the OGG/Opus container WhatsApp requires. WAHA voice
+  // notes carry no caption, so it's never sent on this endpoint.
+  const isVoice = input.mediaType === "audio";
   const response = await wahaRequest(apiKey, fetchFn, {
     baseUrl: target.baseUrl,
-    path: endpoint,
+    path: MEDIA_ENDPOINTS[input.mediaType],
     json: {
       session: target.sessionName,
       chatId: toChatId(input.toPhone),
       file: { mimetype: input.mimetype, url: input.mediaUrl, filename: input.filename },
-      ...(input.caption ? { caption: input.caption } : {}),
+      ...(input.caption && !isVoice ? { caption: input.caption } : {}),
+      ...(isVoice ? { convert: true } : {}),
     },
   });
   return { providerMessageId: extractMessageId(response.body) };
