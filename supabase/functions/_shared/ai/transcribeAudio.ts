@@ -102,7 +102,12 @@ export async function transcribeMessageAudio(
     return markStatus(admin, messageId, "failed");
   }
 
-  const spent = await monthSpendBRL(admin);
+  let spent: number;
+  try {
+    spent = await monthSpendBRL(admin);
+  } catch (_err) {
+    return markStatus(admin, messageId, "failed");
+  }
   if (settings.budget.monthlyCapBRL > 0 && spent >= settings.budget.monthlyCapBRL) {
     return markStatus(admin, messageId, "failed");
   }
