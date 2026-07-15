@@ -4,6 +4,18 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.143.0] — Chirp · 2026-07-15
+
+**Aviso sonoro quando uma nova versão da plataforma fica disponível.**
+
+### Added
+
+- **Som ao avisar sobre atualização disponível** — quando a plataforma sinaliza que uma nova versão está pronta, agora toca também um aviso sonoro curto junto com o card visual, inclusive quando ele reaparece sozinho depois de "Agora não".
+
+### Fixed
+
+- **Detalhe do webhook não rolava com payloads grandes** — na tela de saúde do sistema, o modal que mostra o conteúdo bruto de um webhook recebido podia cortar o conteúdo em vez de permitir rolar, quando o payload era grande. Corrigido para rolar corretamente dentro do modal.
+
 ## [0.142.2] — Passage · 2026-07-15
 
 **Mensagem recebida podia sumir sem aviso em contas conectadas via WAHA.**
