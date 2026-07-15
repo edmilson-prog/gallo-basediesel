@@ -368,4 +368,11 @@ export const supabaseMessagesProvider: IMessagesProvider = {
     if (error) throw new Error(`[supabase] messages.listLastMessages failed: ${error.message}`);
     return (data as unknown as MessageRow[]).map(rowToMessage);
   },
+
+  async retryTranscription(messageId) {
+    const { error } = await getSupabaseClient().functions.invoke("audio-transcribe", {
+      body: { messageId },
+    });
+    if (error) throw new Error(`[supabase] messages.retryTranscription failed: ${error.message}`);
+  },
 };
