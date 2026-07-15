@@ -65,7 +65,7 @@ async function insertUsageEvent(
     storeId: string | null;
   },
 ): Promise<void> {
-  await admin.from("ai_usage_events").insert({
+  const { error } = await admin.from("ai_usage_events").insert({
     source: "routed",
     feature: FEATURE,
     provider_id: input.providerId,
@@ -78,6 +78,9 @@ async function insertUsageEvent(
     caller_id: null, // system-triggered (webhook) or retry — no end-user caller to attribute
     store_id: input.storeId,
   });
+  if (error) {
+    console.error(`insertUsageEvent failed: ${error.message}`);
+  }
 }
 
 export async function transcribeMessageAudio(
@@ -99,16 +102,19 @@ export async function transcribeMessageAudio(
     // Only OpenRouter has a transcription adapter today (mirrors the
     // part_identification precedent: an unsupported provider fails cleanly
     // rather than silently no-op-ing).
+    console.error(`transcribeMessageAudio[${messageId}] unsupported provider: ${route.providerId}`);
     return markStatus(admin, messageId, "failed");
   }
 
   let spent: number;
   try {
     spent = await monthSpendBRL(admin);
-  } catch (_err) {
+  } catch (err) {
+    console.error(`transcribeMessageAudio[${messageId}] monthSpendBRL failed: ${err instanceof Error ? err.message : String(err)}`);
     return markStatus(admin, messageId, "failed");
   }
   if (settings.budget.monthlyCapBRL > 0 && spent >= settings.budget.monthlyCapBRL) {
+    console.error(`transcribeMessageAudio[${messageId}] budget exceeded: spent=${spent} cap=${settings.budget.monthlyCapBRL}`);
     return markStatus(admin, messageId, "failed");
   }
 
@@ -117,7 +123,14 @@ export async function transcribeMessageAudio(
     .select("media_url, conversation_id")
     .eq("id", messageId)
     .maybeSingle<{ media_url: string | null; conversation_id: string }>();
-  if (mErr || !message?.media_url) return markStatus(admin, messageId, "failed");
+  if (mErr || !message?.media_url) {
+    if (mErr) {
+      console.error(`transcribeMessageAudio[${messageId}] message fetch failed: ${mErr.message}`);
+    } else {
+      console.error(`transcribeMessageAudio[${messageId}] message not found or media_url missing`);
+    }
+    return markStatus(admin, messageId, "failed");
+  }
 
   let storeId: string | null = null;
   const { data: conv } = await admin
@@ -133,14 +146,25 @@ export async function transcribeMessageAudio(
     const res = await admin.storage.from(MEDIA_BUCKET).download(message.media_url);
     file = res.data;
     dlErr = res.error;
-  } catch (_err) {
+  } catch (err) {
+    console.error(`transcribeMessageAudio[${messageId}] storage download exception: ${err instanceof Error ? err.message : String(err)}`);
     return markStatus(admin, messageId, "failed");
   }
-  if (dlErr || !file) return markStatus(admin, messageId, "failed");
+  if (dlErr || !file) {
+    if (dlErr) {
+      console.error(`transcribeMessageAudio[${messageId}] storage download error: ${dlErr instanceof Error ? dlErr.message : String(dlErr)}`);
+    } else {
+      console.error(`transcribeMessageAudio[${messageId}] storage download returned null file`);
+    }
+    return markStatus(admin, messageId, "failed");
+  }
 
   const resolveSecret = createSecretResolver(admin);
   const apiKey = await resolveSecret("OPENROUTER_API_KEY");
-  if (!apiKey) return markStatus(admin, messageId, "failed");
+  if (!apiKey) {
+    console.error(`transcribeMessageAudio[${messageId}] OPENROUTER_API_KEY not found in Vault`);
+    return markStatus(admin, messageId, "failed");
+  }
 
   const started = Date.now();
   const controller = AbortSignal.timeout(TRANSCRIBE_TIMEOUT_MS);
@@ -169,10 +193,14 @@ export async function transcribeMessageAudio(
       status: "ok",
       storeId,
     });
-    if (!result.text) return markStatus(admin, messageId, "failed");
+    if (!result.text) {
+      console.error(`transcribeMessageAudio[${messageId}] OpenRouter returned empty transcription text`);
+      return markStatus(admin, messageId, "failed");
+    }
     return markStatus(admin, messageId, "done", result.text);
-  } catch (_err) {
+  } catch (err) {
     const latencyMs = Date.now() - started;
+    console.error(`transcribeMessageAudio[${messageId}] OpenRouter call failed: ${err instanceof Error ? err.message : String(err)}`);
     await insertUsageEvent(admin, {
       providerId: route.providerId,
       model: route.model,
