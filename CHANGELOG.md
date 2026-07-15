@@ -4,6 +4,14 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.142.2] — Passage · 2026-07-15
+
+**Mensagem recebida podia sumir sem aviso em contas conectadas via WAHA.**
+
+### Fixed
+
+- **Mensagem recebida podia sumir sem aviso (conexão WAHA)** — em contas conectadas via WAHA, uma mensagem recebida do cliente podia deixar de aparecer na conversa mesmo chegando normalmente no WhatsApp, sem nenhum erro ou aviso visível. Causa: duas notificações internas geradas quase ao mesmo tempo para a mesma mensagem podiam se atropelar, e uma acabava descartando a outra por engano. Corrigido para que cada notificação seja tratada de forma independente, sem risco de uma apagar a outra.
+
 ## [0.142.1] — Passage · 2026-07-15
 
 **Duas correções pontuais reportadas em uso real: nota de voz chegando como arquivo e contagem zerada no modal de agendamento.**
