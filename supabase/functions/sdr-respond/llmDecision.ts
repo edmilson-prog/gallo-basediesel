@@ -31,7 +31,7 @@ export interface ISdrLlmDecision {
 
 const VALID_ACTIONS = new Set<SdrLlmAction>(["continue", "answer_faq", "handoff", "close"]);
 
-const VALID_HANDOFF_REASONS = new Set<SdrHandoffReason>([
+export const VALID_HANDOFF_REASONS = new Set<SdrHandoffReason>([
   "customer_requested",
   "negotiation_detected",
   "sdr_failed",

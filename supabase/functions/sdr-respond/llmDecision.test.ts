@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { parseSdrLlmDecision } from "./llmDecision";
+import { parseSdrLlmDecision, VALID_HANDOFF_REASONS } from "./llmDecision";
+// Relative import, not the "@/" alias: tsconfig.json's `include` scopes path-alias
+// resolution to src/**, which excludes this directory (see vite-tsconfig-paths'
+// per-importer include/exclude gate). Every other cross-file import in
+// supabase/functions/ is relative for the same reason (Deno has no alias map).
+import { ESCALATION_REASON_LABELS } from "../../../src/features/sdr-escalation/templates/render";
 
 describe("parseSdrLlmDecision", () => {
   it("parses a valid 'continue' decision", () => {
@@ -70,5 +75,11 @@ describe("parseSdrLlmDecision", () => {
         JSON.stringify({ reply: "oi", action: "continue", collectedData: { preferredName: 42 } }),
       ),
     ).toBeNull();
+  });
+
+  it("stays in lockstep with SdrEscalationReason (src/shared/types) — no drift between the two hand-maintained mirrors", () => {
+    const denoSide = Array.from(VALID_HANDOFF_REASONS).sort();
+    const sharedSide = Object.keys(ESCALATION_REASON_LABELS).sort();
+    expect(denoSide).toEqual(sharedSide);
   });
 });
