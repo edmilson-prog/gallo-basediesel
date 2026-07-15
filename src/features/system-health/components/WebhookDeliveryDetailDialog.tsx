@@ -13,8 +13,8 @@ export function WebhookDeliveryDetailDialog({
 }) {
   return (
     <Dialog open={delivery !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[85dvh] max-w-2xl overflow-hidden p-0">
-        <DialogHeader className="flex-row items-center justify-between space-y-0 border-b border-border px-4 py-3">
+      <DialogContent className="flex max-h-[85dvh] max-w-2xl flex-col overflow-hidden p-0">
+        <DialogHeader className="flex shrink-0 flex-row items-center justify-between space-y-0 border-b border-border px-4 py-3">
           <DialogTitle className="text-sm">{S.webhooksDetailTitle}</DialogTitle>
           <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={onClose} aria-label={S.webhooksClose}>
             <Icon icon="mdi:close" size={18} />
