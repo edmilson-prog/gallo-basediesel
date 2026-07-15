@@ -4,7 +4,7 @@
 -- instead of a fixed id=1, since the v1 pilot is explicitly per-store
 -- (docs/superpowers/plans/2026-07-13-sdr-producao-piloto-recepcao-triagem.md).
 create table if not exists public.sdr_settings (
-  store_id                   text primary key references public.stores (id),
+  store_id                   uuid primary key references public.stores (id),
   sdr_enabled                boolean not null default false,
   backstop_timeout_minutes   integer not null default 2,
   system_prompt              text not null default '',
