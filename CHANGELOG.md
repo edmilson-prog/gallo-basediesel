@@ -4,6 +4,15 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.142.1] — Passage · 2026-07-15
+
+**Duas correções pontuais reportadas em uso real: nota de voz chegando como arquivo e contagem zerada no modal de agendamento.**
+
+### Fixed
+
+- **Nota de voz enviada pela plataforma chegava como arquivo, não como áudio** — ao gravar e enviar uma nota de voz pelo Atendimento (contas WAHA), o destinatário recebia um arquivo `.webm` para abrir/baixar, em vez do player de áudio nativo do WhatsApp. Corrigido para que o WhatsApp reconheça a gravação e a toque normalmente, como uma nota de voz de verdade.
+- **Contagem "Todos" ficava zerada no modal de agendamento** — a aba "Todos" (fila de agendamentos de toda a loja, visível para Dono/Gestor) sempre mostrava "Todos · 0" ao abrir o modal, mesmo havendo agendamentos pendentes — a contagem só era carregada depois de clicar na própria aba. Corrigido para carregar junto com o restante do modal.
+
 ## [0.142.0] — Passage · 2026-07-14
 
 **Migração de contas WhatsApp de Evolution clássico para WAHA, com o pipeline de importação de histórico mais resiliente.** Três contas de produção (`Teste-AILA`, `Vendas`, `GALLO Site`) migraram sem perda de dados. No caminho, o processo de importação de histórico ganhou correções reais: conversas já encerradas voltaram a ser reaproveitadas em vez de duplicadas, falhas transitórias de rede deixaram de derrubar a importação inteira, e mídia deixou de ser baixada desnecessariamente durante a importação — o que causava timeouts em contas grandes.
