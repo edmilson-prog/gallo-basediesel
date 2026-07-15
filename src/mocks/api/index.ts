@@ -36,6 +36,7 @@ export { conversationActivityApi } from "./conversationActivity";
 export { managerDashboardApi } from "./managerDashboard";
 export { sdrSessionsApi, type IListSdrSessionsParams } from "./sdrSessions";
 export { sdrEscalationsApi } from "./sdrEscalations";
+export { sdrPilotSettingsApi } from "./sdrPilotSettings";
 export { notificationsApi, type IListNotificationsParams } from "./notifications";
 export { indicatorsApi, type IListIndicatorsParams } from "./indicators";
 export { mediaApi, type IListMediaApiParams } from "./media";
