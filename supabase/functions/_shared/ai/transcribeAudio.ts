@@ -127,9 +127,15 @@ export async function transcribeMessageAudio(
     .maybeSingle<{ store_id: string | null }>();
   storeId = conv?.store_id ?? null;
 
-  const { data: file, error: dlErr } = await admin.storage
-    .from(MEDIA_BUCKET)
-    .download(message.media_url);
+  let file: Blob | null;
+  let dlErr: unknown;
+  try {
+    const res = await admin.storage.from(MEDIA_BUCKET).download(message.media_url);
+    file = res.data;
+    dlErr = res.error;
+  } catch (_err) {
+    return markStatus(admin, messageId, "failed");
+  }
   if (dlErr || !file) return markStatus(admin, messageId, "failed");
 
   const resolveSecret = createSecretResolver(admin);
