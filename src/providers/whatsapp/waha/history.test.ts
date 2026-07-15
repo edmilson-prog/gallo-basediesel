@@ -32,7 +32,7 @@ describe("fetchWahaChatsPage", () => {
 });
 
 describe("fetchWahaChatMessagesPage", () => {
-  it("GETs /api/{session}/chats/{chatId}/messages with limit+offset, encoding the chatId", async () => {
+  it("GETs /api/{session}/chats/{chatId}/messages with limit+offset+downloadMedia=false, encoding the chatId", async () => {
     const fetchFn = vi
       .fn()
       .mockResolvedValue(
@@ -42,7 +42,7 @@ describe("fetchWahaChatMessagesPage", () => {
       );
     const rows = await fetchWahaChatMessagesPage("key", fetchFn, target, "5548999887766@c.us", 0, 100);
     expect(fetchFn.mock.calls[0][0]).toBe(
-      "https://waha.example.com/api/loja-abc123/chats/5548999887766%40c.us/messages?limit=100&offset=0",
+      "https://waha.example.com/api/loja-abc123/chats/5548999887766%40c.us/messages?limit=100&offset=0&downloadMedia=false",
     );
     expect(rows).toHaveLength(1);
     expect(rows[0]?.id).toBe("abc");
