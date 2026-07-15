@@ -37,6 +37,7 @@ import { parseWahaMessageEvent } from "../_shared/whatsapp/waha/parser.ts";
 import { verifyWahaHmac } from "../_shared/whatsapp/waha/hmac.ts";
 import { wahaStateToAccountStatus } from "../_shared/whatsapp/waha/constants.ts";
 import { getWahaContactName, resolveWahaLid } from "../_shared/whatsapp/waha/contacts.ts";
+import { buildWahaEventKey } from "../_shared/whatsapp/waha/eventKey.ts";
 import { logWebhookDelivery } from "../_shared/webhookDeliveryLog.ts";
 import { runInBackground } from "../_shared/backgroundTask.ts";
 
@@ -190,7 +191,13 @@ Deno.serve(async (req) => {
     // ===== Idempotency — CHECK is early (read-only), MARK is deferred =========
     // Scoped by account id, not just provider — the "eco de mídia" lesson: an
     // unscoped key lets two sessions racing on the same envelope id swallow
-    // each other's event.
+    // each other's event. ALSO scoped by event type (2026-07-15 incident): WAHA
+    // assigns the SAME envelope id to the `message` and `message.any`
+    // deliveries reporting one underlying message, and the two arrive as
+    // separate concurrent requests — an unscoped key let whichever won the
+    // race mark the other's key processed too, silently dropping the
+    // `message` delivery (the only one that persists the row). See
+    // buildWahaEventKey.
     //
     // The check (a SELECT) still happens here, before any processing, so a
     // genuine WAHA retry of an event we already fully handled is rejected
@@ -202,7 +209,11 @@ Deno.serve(async (req) => {
     // permanently blocking any WAHA retry of that event from ever being
     // reprocessed. Mirrors the isProcessed()/markProcessed() split in the
     // reference `_shared/whatsapp/webhook/core.ts` (not imported here).
-    const eventKey = `whatsapp:waha:${accountRow.id}:${envelope.id ?? crypto.randomUUID()}`;
+    const eventKey = buildWahaEventKey({
+      accountId: accountRow.id as string,
+      event: envelope.event,
+      envelopeId: envelope.id ?? crypto.randomUUID(),
+    });
     const { data: alreadyProcessed } = await admin
       .from("processed_events")
       .select("event_key")
