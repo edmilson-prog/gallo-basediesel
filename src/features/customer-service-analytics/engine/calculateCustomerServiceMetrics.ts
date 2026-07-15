@@ -39,6 +39,7 @@ const REASON_KEYS: SdrEscalationReason[] = [
   "sdr_failed",
   "complexity",
   "out_of_scope",
+  "qualified_handoff",
 ];
 
 export type ServiceChannelKey = ConversationChannel | "sdr" | "outros";
@@ -322,6 +323,7 @@ export function calculateCustomerServiceMetrics(
     sdr_failed: 0,
     complexity: 0,
     out_of_scope: 0,
+    qualified_handoff: 0,
   };
   const escBySeller = new Map<ID, number>();
   for (const esc of ctx.escalations) {

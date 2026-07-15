@@ -1,3 +1,6 @@
+// AUTO-GENERATED MIRROR — DO NOT EDIT.
+// Source: src/features/sdr-escalation/templates/render.ts (sync: bun run scripts/sync-sdr-shared.ts)
+
 import type { ISdrContextSummary, SdrEscalationMode, SdrEscalationReason } from "@/shared/types";
 
 const SEPARATOR = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
