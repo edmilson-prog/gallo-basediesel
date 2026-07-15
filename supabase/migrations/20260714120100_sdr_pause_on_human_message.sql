@@ -26,4 +26,5 @@ drop trigger if exists trg_sdr_pause_on_human_message on public.messages;
 create trigger trg_sdr_pause_on_human_message
   after insert on public.messages
   for each row
+  when (new.direction = 'out' and new.author_type = 'seller')
   execute function public.sdr_pause_on_human_message();
