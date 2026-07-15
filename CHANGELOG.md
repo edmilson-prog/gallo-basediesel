@@ -4,6 +4,14 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.145.0] — Scribe · 2026-07-15
+
+**Transcrição automática de notas de voz recebidas no Atendimento — desligada por padrão, ativação em produção é um passo separado.**
+
+### Added
+
+- **Transcrição automática de áudio no Atendimento** — toda nota de voz recebida de um cliente passa a ser transcrita automaticamente em segundo plano assim que chega; o texto aparece sozinho na bolha da conversa poucos segundos depois, no lugar do aviso fixo "Transcrição em breve". Se a transcrição falhar, um botão na própria bolha permite tentar de novo. A funcionalidade é controlada pela tela **Configurações → Inteligência artificial → Funcionalidades** (nova linha "Transcrição de áudio", desligada por padrão) e usa o mesmo teto de orçamento mensal de IA já existente.
+
 ## [0.144.0] — Usher · 2026-07-15
 
 **Fundação do agente SDR de produção (recepção e triagem) — código inerte, ainda não ativado em nenhuma conversa real.**
