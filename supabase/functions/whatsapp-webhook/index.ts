@@ -42,6 +42,7 @@ import {
   type IWebhookDb,
 } from "../_shared/whatsapp/webhook/core.ts";
 import type { IEngineDeps, IIntegrationLogEntry } from "../_shared/whatsapp/types.ts";
+import { transcribeMessageAudio } from "../_shared/ai/transcribeAudio.ts";
 
 const CLOSED_CONVERSATION_STATUSES = ["resolvida", "arquivada"];
 
@@ -499,10 +500,16 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
       await admin.from("customers").update({ whatsapp_status: "invalid" }).eq("id", customerId);
     },
     async setMessageMedia(messageId, mediaUrl, downloadStatus) {
-      await admin
+      const { data } = await admin
         .from("messages")
         .update({ media_url: mediaUrl, media_download_status: downloadStatus })
-        .eq("id", messageId);
+        .eq("id", messageId)
+        .select("media_type")
+        .maybeSingle<{ media_type: string | null }>();
+      if (downloadStatus === "ok" && data?.media_type === "audio") {
+        await admin.from("messages").update({ transcription_status: "pending" }).eq("id", messageId);
+        runInBackground(transcribeMessageAudio(admin, messageId));
+      }
     },
     async uploadMedia(path, data, mimeType) {
       const { error } = await admin.storage
