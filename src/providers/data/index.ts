@@ -129,6 +129,7 @@ export type {
   ICreateConversationTagInput,
   IUpdateConversationTagInput,
   IConversationParticipantsProvider,
+  ISdrPilotSettingsProvider,
 } from "./contracts";
 export { computeFailureRate } from "./contracts";
 
@@ -181,6 +182,7 @@ export { useWahaServersProvider } from "./hooks/useWahaServersProvider";
 export { useWhatsAppOpenWaServersProvider } from "./hooks/useWhatsAppOpenWaServersProvider";
 export { useConversationTagsProvider } from "./hooks/useConversationTagsProvider";
 export { useConversationParticipantsProvider } from "./hooks/useConversationParticipantsProvider";
+export { useSdrPilotSettingsProvider } from "./hooks/useSdrPilotSettingsProvider";
 
 export {
   statusOnAssign,
