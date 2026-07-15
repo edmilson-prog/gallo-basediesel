@@ -13,3 +13,9 @@ describe("mockMessagesProvider.resolveMediaUrls", () => {
     expect(map[""]).toBeNull();
   });
 });
+
+describe("mockMessagesProvider.retryTranscription", () => {
+  it("resolves without throwing (mock audio never reaches a failed transcription state)", async () => {
+    await expect(mockMessagesProvider.retryTranscription("m1")).resolves.toBeUndefined();
+  });
+});

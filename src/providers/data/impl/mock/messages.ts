@@ -70,4 +70,9 @@ export const mockMessagesProvider: IMessagesProvider = {
     );
     return resolved.filter((m): m is IMessage => m !== null);
   },
+  retryTranscription: async () => {
+    // No-op: nenhuma mensagem mock chega a transcriptionStatus 'failed', então o
+    // botão de retry nunca aparece em demonstração. Existe só para satisfazer o
+    // contrato IMessagesProvider.
+  },
 };

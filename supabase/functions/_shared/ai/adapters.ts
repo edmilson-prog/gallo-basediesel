@@ -179,3 +179,56 @@ export async function callOpenAI(
     outputTokens: data.usage?.completion_tokens ?? 0,
   };
 }
+
+/**
+ * Extensão de arquivo por mimetype, só para o nome do campo `file` no multipart
+ * (o OpenRouter também recebe o Content-Type real do Blob). Cobre os formatos
+ * de voice note do WhatsApp — espelha (sem importar) o MIME_EXTENSIONS de
+ * _shared/whatsapp/webhook/core.ts para não acoplar o módulo de IA ao de
+ * WhatsApp.
+ */
+const TRANSCRIPTION_EXT_BY_MIME: Record<string, string> = {
+  "audio/ogg": "ogg",
+  "audio/opus": "ogg",
+  "audio/mpeg": "mp3",
+  "audio/mp4": "m4a",
+  "audio/wav": "wav",
+  "audio/webm": "webm",
+};
+
+/**
+ * OpenRouter's dedicated transcription endpoint (multipart upload — avoids the
+ * ~33% base64 overhead of the chat-completions input_audio route). Mirrors the
+ * `usdCostOverride` contract of callOpenRouter: when `usage.cost` comes back,
+ * computeCostBRL() prefers it over token×price (transcription isn't priced per
+ * token anyway).
+ */
+export async function callOpenRouterTranscription(
+  apiKey: string,
+  audioBytes: Uint8Array,
+  mimeType: string,
+  model: string,
+  signal: AbortSignal,
+): Promise<{ text: string; usdCost?: number }> {
+  const ext = TRANSCRIPTION_EXT_BY_MIME[mimeType] ?? "bin";
+  const form = new FormData();
+  form.append("model", model);
+  form.append("file", new Blob([audioBytes], { type: mimeType }), `audio.${ext}`);
+
+  const res = await fetch("https://openrouter.ai/api/v1/audio/transcriptions", {
+    method: "POST",
+    signal,
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "HTTP-Referer": "https://crm.gallobasediesel.com.br",
+      "X-Title": "GALLO BASE DIESEL",
+    },
+    body: form,
+  });
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(`openrouter-transcription ${res.status}: ${detail.slice(0, 300)}`);
+  }
+  const data = (await res.json()) as { text?: string; usage?: { cost?: number } };
+  return { text: data.text ?? "", usdCost: data.usage?.cost };
+}

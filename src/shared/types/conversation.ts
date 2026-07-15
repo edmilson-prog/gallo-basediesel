@@ -241,6 +241,10 @@ export interface IMessage {
   failureReason?: string;
   /** Semantic provider error code of a failed dispatch (e.g. "131026"). */
   failureCode?: string;
+  /** Transcribed text of an inbound audio message (OpenRouter). Undefined until done. */
+  transcription?: string;
+  /** 'pending' while transcribing, 'done' when `transcription` is set, 'failed' on error/budget/disabled. Undefined = not applicable (non-audio, old message, or feature was off on arrival). */
+  transcriptionStatus?: "pending" | "done" | "failed";
 }
 
 /** WhatsApp provider engine. */

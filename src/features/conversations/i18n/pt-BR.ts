@@ -302,7 +302,9 @@ export const CONVERSATION_STRINGS = {
   downloadAudio: "Baixar áudio",
   downloadVideo: "Baixar vídeo",
   downloadDocument: "Baixar documento",
-  audioTranscription: "Transcrição em breve",
+  transcribingAudio: "Transcrevendo…",
+  transcriptionUnavailable: "Transcrição indisponível",
+  retryTranscription: "Tentar transcrever de novo",
   imageCaption: (caption: string) => caption || "Foto",
   location: {
     label: "Localização",

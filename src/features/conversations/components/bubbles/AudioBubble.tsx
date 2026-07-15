@@ -14,6 +14,7 @@ import {
 } from "../../utils/audioPlayback";
 import { CONVERSATION_STRINGS } from "../../i18n/pt-BR";
 import { useResolvedMediaUrl } from "../../hooks/useResolvedMediaUrl";
+import { useRetryTranscription } from "../../hooks/useRetryTranscription";
 import { downloadFileName, triggerMediaDownload } from "../../utils/mediaDownload";
 
 const BAR_COUNT = 32;
@@ -259,10 +260,49 @@ function RealAudioPlayer({
           <Icon icon="mdi:download" size={15} />
         </button>
       </div>
-      <p className="mt-1.5 text-[10px] text-muted-foreground">
-        {CONVERSATION_STRINGS.audioTranscription}
-      </p>
+      <TranscriptionCaption message={message} />
     </BubbleChrome>
+  );
+}
+
+/**
+ * Renders the transcription state below the waveform, or nothing when it
+ * doesn't apply (old message, non-audio, or the feature was off on arrival).
+ * `pending`/`done`/`failed` come from `IMessage.transcriptionStatus`, written
+ * server-side by transcribeMessageAudio (webhook trigger or manual retry) and
+ * delivered here via Realtime — no polling, no local state for the value itself.
+ */
+function TranscriptionCaption({ message }: { message: IMessage }) {
+  const { retry, isPending, pendingMessageId } = useRetryTranscription();
+  const status = message.transcriptionStatus;
+
+  if (!status) return null;
+
+  if (status === "pending") {
+    return (
+      <p className="mt-1.5 flex items-center gap-1 text-[10px] text-muted-foreground">
+        <Icon icon="mdi:loading" size={11} className="animate-spin" />
+        {CONVERSATION_STRINGS.transcribingAudio}
+      </p>
+    );
+  }
+
+  if (status === "done") {
+    return <p className="mt-1.5 text-[10px] text-muted-foreground">{message.transcription}</p>;
+  }
+
+  const retrying = isPending && pendingMessageId === message.id;
+  return (
+    <button
+      type="button"
+      onClick={() => retry(message.id)}
+      disabled={retrying}
+      aria-label={CONVERSATION_STRINGS.retryTranscription}
+      className="mt-1.5 flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground disabled:opacity-60"
+    >
+      <Icon icon={retrying ? "mdi:loading" : "mdi:refresh"} size={11} className={retrying ? "animate-spin" : undefined} />
+      {CONVERSATION_STRINGS.transcriptionUnavailable}
+    </button>
   );
 }
 
@@ -314,9 +354,6 @@ function SimulatedAudioPlayer({ message, onRetry }: { message: IMessage; onRetry
           {formatDuration(playing ? progress : totalSeconds - progress)}
         </span>
       </div>
-      <p className="mt-1.5 text-[10px] text-muted-foreground">
-        {CONVERSATION_STRINGS.audioTranscription}
-      </p>
     </BubbleChrome>
   );
 }
