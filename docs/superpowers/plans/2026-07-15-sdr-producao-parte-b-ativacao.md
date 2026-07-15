@@ -1462,8 +1462,23 @@ servePost(async (req, ctx) => {
     .is("finished_at", null);
 
   // 14. Send the reply (unless the SDR is closing with nothing to say).
+  // Re-check is_sdr_active right before sending — the pause-by-human trigger
+  // (Parte A, applied in prod) may have flipped it false while this handler
+  // was waiting on the LLM call (up to LLM_TIMEOUT_MS). Without this, a human
+  // who took over mid-turn could still get a stale SDR reply sent after
+  // theirs. Closes the race window flagged in Parte A's final review
+  // (docs ledger, Task 3 "Important #1").
   if (decision.reply && decision.reply.trim().length > 0) {
-    await dispatchSdrReply(admin, ctx.traceId, conversationId, storeId, decision.reply);
+    const { data: freshConv } = await admin
+      .from("conversations")
+      .select("is_sdr_active")
+      .eq("id", conversationId)
+      .maybeSingle();
+    if (freshConv?.is_sdr_active) {
+      await dispatchSdrReply(admin, ctx.traceId, conversationId, storeId, decision.reply);
+    } else {
+      ctx.log.warn("sdr-respond skipped stale reply — human took over mid-turn", { conversationId });
+    }
   }
 
   // 15. Handoff → escalate to a human seller.
