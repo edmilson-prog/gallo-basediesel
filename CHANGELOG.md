@@ -4,6 +4,14 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.144.0] — Usher · 2026-07-15
+
+**Fundação do agente SDR de produção (recepção e triagem) — código inerte, ainda não ativado em nenhuma conversa real.**
+
+### Added
+
+- **Base do SDR de produção** — módulos determinísticos de decisão (guardrails de preço/prazo, contrato de decisão do LLM, prompt de sistema com persona "Fernando Gallo") e as duas peças de banco que vão sustentar o piloto: tabela de configuração por loja (`sdr_settings`, liga/desliga + prompt) e uma trigger que desliga o SDR automaticamente no instante em que um vendedor humano responde. Nada disso ainda é chamado em produção — é a fundação para a próxima etapa, que vai de fato ligar o atendimento automático.
+
 ## [0.143.0] — Chirp · 2026-07-15
 
 **Aviso sonoro quando uma nova versão da plataforma fica disponível.**
