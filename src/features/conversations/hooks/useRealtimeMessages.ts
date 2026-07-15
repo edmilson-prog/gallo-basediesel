@@ -24,6 +24,8 @@ interface IMessageRealtimeRow {
   read_at: string | null;
   failure_reason: string | null;
   failure_code: string | null;
+  transcription: string | null;
+  transcription_status: IMessage["transcriptionStatus"] | null;
 }
 
 /** Debounce window collapsing a burst of conversation touches into one sync. */
@@ -67,6 +69,8 @@ function rowToMessage(row: IMessageRealtimeRow): IMessage {
     readAt: row.read_at ?? undefined,
     failureReason: row.failure_reason ?? undefined,
     failureCode: row.failure_code ?? undefined,
+    transcription: row.transcription ?? undefined,
+    transcriptionStatus: row.transcription_status ?? undefined,
   };
 }
 
