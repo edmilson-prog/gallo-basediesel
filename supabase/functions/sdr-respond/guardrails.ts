@@ -15,7 +15,7 @@ const FORBIDDEN_PATTERNS: RegExp[] = [
   /\d+\s*%/,
   /\bpromo[çc][aã]o\b/i,
   /\bprazo\b/i,
-  /\d+\s*dias?\s+(úteis|corridos)\b/i,
+  /\d+\s*dias?\b/i,
 ];
 
 export function containsCommercialValue(text: string): boolean {

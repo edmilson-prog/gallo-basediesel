@@ -26,6 +26,10 @@ describe("containsCommercialValue", () => {
     expect(containsCommercialValue("chega em 5 dias úteis")).toBe(true);
   });
 
+  it("flags a delivery deadline mention without 'úteis'/'corridos' (bare days count)", () => {
+    expect(containsCommercialValue("chega em 5 dias")).toBe(true);
+  });
+
   it("flags a unit-price mention", () => {
     expect(containsCommercialValue("o valor unitário é 30 reais")).toBe(true);
   });
