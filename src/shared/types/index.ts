@@ -58,6 +58,9 @@ export type {
   IWhatsAppFailureBucket,
   IWhatsAppDeliveryHealth,
   IWhatsAppProviderHealthAccount,
+  WebhookDeliveryOutcome,
+  IWebhookDelivery,
+  IWebhookDeliveryFilters,
 } from "./system-health";
 
 // WhatsApp HSM templates (PRD-116)

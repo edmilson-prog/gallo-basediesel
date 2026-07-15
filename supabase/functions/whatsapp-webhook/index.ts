@@ -28,6 +28,7 @@ import { requiredEnv } from "../_shared/env.ts";
 import { json } from "../_shared/http.ts";
 import { createSecretResolver, type VaultSecretResolver } from "../_shared/secrets.ts";
 import { createLogger, type Logger } from "../_shared/logger.ts";
+import { logWebhookDelivery, type WebhookDeliveryOutcome } from "../_shared/webhookDeliveryLog.ts";
 import { captureException } from "../_shared/sentry.ts";
 import { buildWhatsAppEngine } from "../_shared/whatsapp/build.ts";
 import { statusAdvances, type DeliveryStatus } from "../_shared/whatsapp/messageStatus.ts";
@@ -758,14 +759,39 @@ function scheduleAvatarFetch(
 // ===== Server ===============================================================
 
 Deno.serve(async (req) => {
+  const startedAt = Date.now();
   const traceId = req.headers.get("x-trace-id") ?? crypto.randomUUID();
   const log = createLogger(traceId);
   const url = new URL(req.url);
   const segments = url.pathname.split("/").filter(Boolean);
   const provider = segments[segments.indexOf("whatsapp-webhook") + 1] ?? "";
 
-  const respond = (res: Response) => {
+  // Moved above the provider check (was originally created just below it)
+  // so every exit — including "unknown provider" — can log a delivery.
+  const admin = createClient(requiredEnv("SUPABASE_URL"), requiredEnv("SUPABASE_SERVICE_ROLE_KEY"));
+
+  const respond = (
+    res: Response,
+    meta?: {
+      outcome?: WebhookDeliveryOutcome;
+      accountId?: string | null;
+      eventType?: string | null;
+      requestPayload?: unknown;
+    },
+  ) => {
     res.headers.set("x-trace-id", traceId);
+    runInBackground(logWebhookDelivery(admin, {
+      integrationName: `whatsapp_${provider || "unknown"}`,
+      accountId: meta?.accountId ?? null,
+      eventType: meta?.eventType ?? null,
+      endpoint: `/whatsapp-webhook/${provider}`,
+      httpStatus: res.status,
+      outcome: meta?.outcome ?? (res.status >= 400 ? "rejected" : "processed"),
+      errorMessage: meta?.outcome === "error" ? (meta.eventType ?? null) : null,
+      latencyMs: Date.now() - startedAt,
+      requestPayload: meta?.requestPayload ?? null,
+      traceId,
+    }));
     return res;
   };
 
@@ -778,7 +804,6 @@ Deno.serve(async (req) => {
     return respond(json({ error: "unknown provider" }, 400));
   }
 
-  const admin = createClient(requiredEnv("SUPABASE_URL"), requiredEnv("SUPABASE_SERVICE_ROLE_KEY"));
   // Per-request resolver: Vault-first ("Integrações & Chaves"), env fallback.
   const resolveSecret = createSecretResolver(admin);
 
@@ -794,7 +819,7 @@ Deno.serve(async (req) => {
   try {
     payload = JSON.parse(rawBody);
   } catch {
-    return respond(json({ error: "invalid json body" }, 400));
+    return respond(json({ error: "invalid json body" }, 400), { requestPayload: rawBody });
   }
 
   const db = makeDb(admin, traceId);
@@ -820,14 +845,14 @@ Deno.serve(async (req) => {
   // Auth gates (fail closed) — the ONLY paths that answer 4xx on POST.
   if (provider === "meta") {
     const rejection = await metaGate(req, rawBody, log, resolveSecret);
-    if (rejection) return respond(rejection);
+    if (rejection) return respond(rejection, { requestPayload: payload });
   } else if (provider === "evolution-go") {
     // Any-status lookup: the gate is about AUTH (instanceToken), and
     // connection.update events must also reach disconnected accounts.
     const instanceId = (payload as { instanceId?: string } | null)?.instanceId ?? "";
     const account = await db.findEvolutionGoAccountAnyStatus(instanceId);
     const rejection = await evolutionGoGate(rawBody, payload, account, log, resolveSecret);
-    if (rejection) return respond(rejection);
+    if (rejection) return respond(rejection, { requestPayload: payload });
     // Pre-resolve the Go server base_url for this account (needed by buildProvider
     // for inbound media download). The account is known here; doing it before
     // processWebhookEvent keeps buildProvider synchronous.
@@ -850,7 +875,7 @@ Deno.serve(async (req) => {
     }
   } else if (provider === "openwa") {
     const rejection = await openwaGate(req, log, resolveSecret);
-    if (rejection) return respond(rejection);
+    if (rejection) return respond(rejection, { requestPayload: payload });
     // Pre-resolve the OpenWA server's {baseUrl, apiKeySecretName} for this
     // account (needed by buildProvider for both parsing media and any future
     // outbound-echo handling). Doing it here keeps buildProvider synchronous.
@@ -930,7 +955,7 @@ Deno.serve(async (req) => {
     const instance = (payload as { instance?: string } | null)?.instance ?? "";
     const account = await db.findEvolutionAccountAnyStatus(instance);
     const rejection = await evolutionGate(req, rawBody, account, log, resolveSecret);
-    if (rejection) return respond(rejection);
+    if (rejection) return respond(rejection, { requestPayload: payload });
   }
 
   // From here on: always 200 (RF-090) — Meta must never retry-storm us.
@@ -1020,12 +1045,24 @@ Deno.serve(async (req) => {
       }
     }
     log.info("webhook processed", { provider, outcome: result.outcome });
-    return respond(json({ status: "ok", outcome: result.outcome, traceId }, 200));
-  } catch (err) {
-    log.error("webhook processing failed", {
-      error: err instanceof Error ? err.message : String(err),
+    return respond(json({ status: "ok", outcome: result.outcome, traceId }, 200), {
+      outcome:
+        result.outcome === "duplicate"
+          ? "duplicate"
+          : result.outcome === "ignored"
+            ? "ignored"
+            : "processed",
+      eventType: result.outcome,
+      requestPayload: payload,
     });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error("webhook processing failed", { error: message });
     captureException(err, { traceId, functionName: "whatsapp-webhook" });
-    return respond(json({ status: "error-logged", traceId }, 200));
+    return respond(json({ status: "error-logged", traceId }, 200), {
+      outcome: "error",
+      eventType: message,
+      requestPayload: payload,
+    });
   }
 });
