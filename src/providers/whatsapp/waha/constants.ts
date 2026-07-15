@@ -9,13 +9,24 @@
 export const WAHA_INTEGRATION_NAME = "whatsapp_waha" as const;
 
 /**
- * Webhook events subscribed on session create — message.ack deferred to
- * phase 2. WAHA (GOWS engine) emits `fromMe: true` messages (sent straight
- * from the paired phone, outside the platform) ONLY on `message.any` — never
- * on plain `message`, which is inbound-only. Both are needed: `message` for
- * customer messages, `message.any` for outbound-echo mirroring.
+ * Webhook events subscribed on session create. WAHA (GOWS engine) emits
+ * `fromMe: true` messages (sent straight from the paired phone, outside the
+ * platform) ONLY on `message.any` — never on plain `message`, which is
+ * inbound-only. Both are needed: `message` for customer messages,
+ * `message.any` for outbound-echo mirroring. `message.ack` reports
+ * delivery/read transitions for outbound messages (see
+ * src/providers/whatsapp/waha/ack.ts) — added 2026-07-15; previously
+ * deferred to a "2nd phase"
+ * (docs/superpowers/specs/2026-07-10-waha-whatsapp-integration-design.md).
+ * Sessions created BEFORE this change need `waha-connect`'s `updateConfig`
+ * action (or scripts/waha-resubscribe-message-ack.ts) to pick it up.
  */
-export const WAHA_DEFAULT_EVENTS = ["message", "message.any", "session.status"] as const;
+export const WAHA_DEFAULT_EVENTS = [
+  "message",
+  "message.any",
+  "session.status",
+  "message.ack",
+] as const;
 
 export const WAHA_SESSION_STATES = [
   "STOPPED",
