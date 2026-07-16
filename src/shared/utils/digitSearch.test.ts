@@ -21,22 +21,13 @@ describe("buildDigitSearchCandidates", () => {
     ]);
   });
   it("12 digits with DDI and no 9th → adds the variant with the 9", () => {
-    expect(buildDigitSearchCandidates("553388884188")).toEqual([
-      "553388884188",
-      "5533988884188",
-    ]);
+    expect(buildDigitSearchCandidates("553388884188")).toEqual(["553388884188", "5533988884188"]);
   });
   it("11 digits DDD+9+local → adds the variant without the 9", () => {
-    expect(buildDigitSearchCandidates("33 98888-4188")).toEqual([
-      "33988884188",
-      "3388884188",
-    ]);
+    expect(buildDigitSearchCandidates("33 98888-4188")).toEqual(["33988884188", "3388884188"]);
   });
   it("10 digits DDD+local → adds the variant with the 9", () => {
-    expect(buildDigitSearchCandidates("3388884188")).toEqual([
-      "3388884188",
-      "33988884188",
-    ]);
+    expect(buildDigitSearchCandidates("3388884188")).toEqual(["3388884188", "33988884188"]);
   });
   it("9 digits starting with 9 → adds the variant without the leading 9", () => {
     expect(buildDigitSearchCandidates("98888-4188")).toEqual(["988884188", "88884188"]);
