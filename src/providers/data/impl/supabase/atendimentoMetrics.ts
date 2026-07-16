@@ -6,6 +6,9 @@ import type {
   IStatusDistributionResult,
   IAccumulatedChatsResult,
   IHandleTimeStatsResult,
+  IHeadlineKpisResult,
+  ISellerLoadCountsResult,
+  IHeatmapResult,
 } from "@/shared/types";
 import { getSupabaseClient } from "@/shared/lib/supabase";
 
@@ -71,6 +74,42 @@ export const supabaseAtendimentoMetricsProvider: IAtendimentoMetricsProvider = {
       "service_volume_handle_time",
       { p_store_id: storeId ?? null, p_from: from, p_to: to, p_seller_id: sellerId ?? null },
       { averageMs: 0, medianMs: null, cycleCount: 0, deltaPct: null },
+    );
+  },
+
+  async getHeadlineKpis({ storeId, sellerId, from, to, prevFrom, prevTo }) {
+    return callRpc<IHeadlineKpisResult>(
+      "service_volume_headline_kpis",
+      {
+        p_store_id: storeId ?? null,
+        p_from: from,
+        p_to: to,
+        p_prev_from: prevFrom,
+        p_prev_to: prevTo,
+        p_seller_id: sellerId ?? null,
+      },
+      {
+        tmaMinutes: { current: null, previous: null },
+        tmrMinutes: { current: null, previous: null },
+        resolutionRatePct: { current: null, previous: null },
+        backlog: 0,
+      },
+    );
+  },
+
+  async getSellerLoad({ storeId, sellerId }) {
+    return callRpc<ISellerLoadCountsResult>(
+      "service_volume_seller_load",
+      { p_store_id: storeId ?? null, p_seller_id: sellerId ?? null },
+      { rows: [] },
+    );
+  },
+
+  async getVolumeHeatmap({ storeId, sellerId, from, to }) {
+    return callRpc<IHeatmapResult>(
+      "service_volume_heatmap",
+      { p_store_id: storeId ?? null, p_from: from, p_to: to, p_seller_id: sellerId ?? null },
+      { rows: [], totalMessages: 0 },
     );
   },
 };
