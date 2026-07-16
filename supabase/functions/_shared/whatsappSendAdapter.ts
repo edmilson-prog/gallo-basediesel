@@ -122,7 +122,7 @@ export function makeSendDb(admin: SupabaseClient, _traceId: string): ISendDb {
           ...(useId ? { id: useId } : {}),
           conversation_id: input.conversationId,
           direction: "out",
-          author_type: "seller",
+          author_type: input.authorType ?? "seller",
           author_id: input.sellerId,
           provider: input.provider,
           text: input.text,

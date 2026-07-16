@@ -15,8 +15,11 @@ import { type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.107.
 import { createSecretResolver } from "../_shared/secrets.ts";
 import { makeSendDb, makeEngineDeps } from "../_shared/whatsappSendAdapter.ts";
 import { buildWhatsAppEngine } from "../_shared/whatsapp/build.ts";
-import { buildSystemSender } from "../_shared/whatsapp/scheduled/core.ts";
-import { processSendRequest, type ISendRequest } from "../_shared/whatsapp/send/core.ts";
+import {
+  processSendRequest,
+  type ISendRequest,
+  type ISender,
+} from "../_shared/whatsapp/send/core.ts";
 import { sendWahaText } from "../_shared/whatsapp/waha/send.ts";
 import { HttpError } from "../_shared/http.ts";
 
@@ -105,9 +108,19 @@ async function dispatchLegacy(
   const db = makeSendDb(admin, traceId);
   const deps = makeEngineDeps(admin, traceId);
   const request: ISendRequest = { conversationId, kind: "text", text };
+  // role: "owner" — identical to buildSystemSender's shape, so the
+  // permission check's isStaff bypass keeps working exactly as before.
+  // isAutomatedSdr: true is the DEDICATED signal that lets
+  // processSendRequest's insertQueuedMessage persist messages.author_type =
+  // "sdr" instead of "seller", so the SDR's own reply never satisfies the
+  // sdr_pause_on_human_message trigger (author_type = 'seller' only). This is
+  // deliberately NOT derived from role — "sdr" is itself a real
+  // profiles.role value for human SDR staff, so branching on role would
+  // misclassify their genuine sends as bot sends too.
+  const sender: ISender = { sellerId: null, role: "owner", storeId, isAutomatedSdr: true };
   const result = await processSendRequest({
     input: request,
-    sender: buildSystemSender(storeId),
+    sender,
     db,
     buildProvider: (account) =>
       buildWhatsAppEngine({
