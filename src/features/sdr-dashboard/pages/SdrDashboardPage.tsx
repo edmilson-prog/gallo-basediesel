@@ -50,9 +50,15 @@ export function SdrDashboardPage() {
   const [pilotEnabled, setPilotEnabled] = useState(false);
   useEffect(() => {
     let cancelled = false;
-    void pilotProvider.get(storeId).then((s) => {
-      if (!cancelled) setPilotEnabled(s.sdrEnabled);
-    });
+    void pilotProvider
+      .get(storeId)
+      .then((s) => {
+        if (!cancelled) setPilotEnabled(s.sdrEnabled);
+      })
+      .catch(() => {
+        // Header badge stays at its default (false) on failure — the
+        // Configurações tab surfaces the real error to the user via toast.
+      });
     return () => {
       cancelled = true;
     };

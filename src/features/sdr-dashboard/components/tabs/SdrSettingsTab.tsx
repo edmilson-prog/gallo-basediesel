@@ -36,15 +36,23 @@ export function SdrSettingsTab({ canEdit, onJumpToTemplates }: ISdrSettingsTabPr
       pilotProvider.get(currentStoreId),
       accountsProvider.list({ storeId: currentStoreId }),
       accountsProvider.listWaha({ storeId: currentStoreId }),
-    ]).then(([settings, list, waha]) => {
-      if (cancelled) return;
-      const merged = new Map<string, IWhatsAppAccount>();
-      for (const a of [...list, ...waha]) merged.set(a.id, a);
-      setPilot(settings);
-      setTimeoutInput(String(settings.backstopTimeoutMinutes));
-      setAccounts([...merged.values()]);
-      setLoading(false);
-    });
+    ])
+      .then(([settings, list, waha]) => {
+        if (cancelled) return;
+        const merged = new Map<string, IWhatsAppAccount>();
+        for (const a of [...list, ...waha]) merged.set(a.id, a);
+        setPilot(settings);
+        setTimeoutInput(String(settings.backstopTimeoutMinutes));
+        setAccounts([...merged.values()]);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        toast.error("Não foi possível carregar as configurações do SDR.");
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setLoading(false);
+      });
     return () => {
       cancelled = true;
     };
