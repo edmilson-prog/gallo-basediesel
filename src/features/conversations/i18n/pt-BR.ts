@@ -317,6 +317,7 @@ export const CONVERSATION_STRINGS = {
     copyNumber: "Copiar número",
     copied: "Número copiado",
     noPhone: "Sem telefone",
+    openConversation: "Abrir conversa",
   },
   documentMeta: (size: string) => size,
 

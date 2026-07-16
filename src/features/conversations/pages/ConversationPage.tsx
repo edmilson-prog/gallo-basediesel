@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "@tanstack/react-router";
+import { useNavigate, useParams } from "@tanstack/react-router";
 import type { ID, IConversation, IWhatsAppAccount } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,6 +8,7 @@ import { CustomerProfileFiche } from "@/features/customers/components/CustomerPr
 import { useFicheButtonHandler } from "@/features/customers/hooks/useFicheLayout";
 import { useConversationDetail } from "../hooks/useConversationDetail";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
+import { useAuth } from "@/features/auth/useAuth";
 import { mustAssignToReply } from "../engine/assignmentGate";
 import { useConversationEscalation } from "@/features/sdr-escalation/hooks/useConversationEscalation";
 import { ConversationHeader } from "../components/ConversationHeader";
@@ -16,6 +17,8 @@ import { MessageList } from "../components/MessageList";
 import { MessageInput } from "../components/MessageInput";
 import { MetaWindowIndicator } from "../components/MetaWindowIndicator";
 import { ConversationMenu } from "../components/ConversationMenu";
+import { NewConversationDialog } from "../components/NewConversationDialog";
+import { useAccessibleConnectedAccounts } from "../hooks/useAccessibleConnectedAccounts";
 import { useConversationFiche } from "../hooks/useConversationFiche";
 import { useStatusControlMode } from "../hooks/useStatusControlMode";
 import { useMessages } from "../hooks/useMessages";
@@ -111,6 +114,23 @@ export function ConversationPage() {
   });
   const consultor = useConsultorPanel();
   const [historyOpen, setHistoryOpen] = useState(false);
+
+  // "Abrir conversa" shortcut (shared-contact-card bubble): opens the same
+  // "Nova conversa" dialog used by the Inbox, pre-filled with the vCard's
+  // name/phone. Accounts only fetch once the dialog is actually requested —
+  // no cost on every conversation open.
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const sellerId: ID | null = currentUser?.sellerId ?? null;
+  const [contactDialogTarget, setContactDialogTarget] = useState<{
+    name?: string;
+    phone: string;
+  } | null>(null);
+  const dialogStoreId = detail.conversation?.storeId ?? "00000000-0000-0000-0000-000000000001";
+  const { accessibleConnectedAccounts } = useAccessibleConnectedAccounts(
+    dialogStoreId,
+    contactDialogTarget !== null,
+  );
 
   // The right rail is mutually exclusive: opening one panel closes the others.
   const openConsultor = () => {
@@ -213,7 +233,9 @@ export function ConversationPage() {
   return (
     <TooltipProvider delayDuration={200}>
       <QuickSendBusProvider>
-        <ConversationProvider value={{ messages }}>
+        <ConversationProvider
+          value={{ messages, openContactConversation: setContactDialogTarget }}
+        >
           <div className="flex h-full min-h-0 bg-background">
             <div className="flex h-full min-h-0 flex-1 flex-col">
               <ConversationHeader
@@ -340,6 +362,25 @@ export function ConversationPage() {
               whatsappAccount={whatsappAccount}
               onInsertText={(text) => setDraft((prev) => appendToDraft(prev, text))}
             />
+            {contactDialogTarget && sellerId && (
+              <NewConversationDialog
+                storeId={conversation.storeId}
+                sellerId={sellerId}
+                accounts={accessibleConnectedAccounts}
+                initialPhone={contactDialogTarget.phone}
+                initialName={contactDialogTarget.name}
+                initialAccountId={whatsappAccount?.id}
+                onClose={() => setContactDialogTarget(null)}
+                onCreated={(newConversationId) => {
+                  setContactDialogTarget(null);
+                  void navigate({
+                    to: "/app/atendimento/$id",
+                    params: { id: newConversationId },
+                    search: (prev) => prev,
+                  });
+                }}
+              />
+            )}
           </div>
         </ConversationProvider>
       </QuickSendBusProvider>

@@ -3,6 +3,11 @@ import type { IUseMessagesResult } from "./useMessages";
 
 export interface IConversationContextValue {
   messages: IUseMessagesResult;
+  /** Opens the "Nova conversa" dialog pre-filled for this contact (e.g. from a
+   *  shared-contact-card bubble's "Abrir conversa" shortcut). Optional so
+   *  contexts that don't offer the shortcut (tests, future call sites) aren't
+   *  forced to wire it. */
+  openContactConversation?: (contact: { name?: string; phone: string }) => void;
 }
 
 const Ctx = createContext<IConversationContextValue | null>(null);
