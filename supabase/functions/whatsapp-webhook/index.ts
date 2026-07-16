@@ -32,6 +32,7 @@ import { logWebhookDelivery, type WebhookDeliveryOutcome } from "../_shared/webh
 import { captureException } from "../_shared/sentry.ts";
 import { buildWhatsAppEngine } from "../_shared/whatsapp/build.ts";
 import { statusAdvances, type DeliveryStatus } from "../_shared/whatsapp/messageStatus.ts";
+import { phoneDigitsMatchBr } from "../_shared/whatsapp/phoneBr.ts";
 import { hmacSha256Hex, timingSafeEqualStrings } from "../_shared/whatsapp/crypto.ts";
 import { verifyMetaWebhookSignature } from "../_shared/whatsapp/meta/signature.ts";
 import { EvolutionGoProvider } from "../_shared/whatsapp/evolution-go/EvolutionGoProvider.ts";
@@ -255,15 +256,17 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
       return (data?.length ?? 0) > 0;
     },
     async findCustomerByPhone(storeId, phoneDigits) {
-      // Narrow by suffix in SQL, confirm exact digit match in code (phone
-      // formatting in the base varies: +55..., (55) 9..., etc.).
+      // Narrow by suffix in SQL, confirm exact digit match (or the 9th-digit
+      // BR variant) in code (phone formatting in the base varies: +55...,
+      // (55) 9..., etc.; a stored number may also be missing the 9th digit —
+      // see docs/superpowers/specs/2026-07-16-br-phone-nine-digit-reconciliation-design.md).
       const { data } = await admin
         .from("customers")
         .select("id, phone")
         .eq("store_id", storeId)
         .like("phone", `%${phoneDigits.slice(-8)}`);
-      const row = (data ?? []).find(
-        (candidate) => String(candidate.phone).replace(/\D/g, "") === phoneDigits,
+      const row = (data ?? []).find((candidate) =>
+        phoneDigitsMatchBr(String(candidate.phone).replace(/\D/g, ""), phoneDigits),
       );
       return row ? { id: row.id as string } : null;
     },
