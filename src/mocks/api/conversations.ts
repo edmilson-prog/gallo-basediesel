@@ -6,6 +6,7 @@ import type {
   IMessage,
   ID,
 } from "@/shared/types";
+import { buildDigitSearchCandidates, digitsOf } from "@/shared/utils/digitSearch";
 import { selectMessageMatch } from "@/features/conversations/engine/messageSearchMatch";
 import {
   selectAllConversations,
@@ -88,7 +89,8 @@ function matchesSearch(conversation: IConversation, term: string): boolean {
   const { name, phone } = getParticipantNameAndPhone(conversation);
   if (name.toLowerCase().includes(needle)) return true;
   if (phone.toLowerCase().includes(needle)) return true;
-  return false;
+  const phoneDigits = digitsOf(phone);
+  return buildDigitSearchCandidates(term).some((c) => phoneDigits.includes(c));
 }
 
 // Mirrors the supabase provider's `.overlaps("tags", ...)`: conversation tags
