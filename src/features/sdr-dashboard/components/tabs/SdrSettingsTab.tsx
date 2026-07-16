@@ -13,9 +13,14 @@ import type { ISdrPilotSettings, IWhatsAppAccount } from "@/shared/types";
 export interface ISdrSettingsTabProps {
   canEdit: boolean;
   onJumpToTemplates: () => void;
+  onPilotChanged?: (sdrEnabled: boolean) => void;
 }
 
-export function SdrSettingsTab({ canEdit, onJumpToTemplates }: ISdrSettingsTabProps) {
+export function SdrSettingsTab({
+  canEdit,
+  onJumpToTemplates,
+  onPilotChanged,
+}: ISdrSettingsTabProps) {
   const { currentStoreId } = useCurrentStore();
   const pilotProvider = useSdrPilotSettingsProvider();
   const accountsProvider = useWhatsAppAccountsProvider();
@@ -63,6 +68,7 @@ export function SdrSettingsTab({ canEdit, onJumpToTemplates }: ISdrSettingsTabPr
     try {
       const updated = await pilotProvider.update(currentStoreId, p);
       setPilot(updated);
+      onPilotChanged?.(updated.sdrEnabled);
       toast.success("Alterações salvas.");
     } catch {
       toast.error("Não foi possível salvar as alterações.");

@@ -133,7 +133,11 @@ export function SdrDashboardPage() {
           />
         </TabsContent>
         <TabsContent value="settings" className="focus-visible:outline-none">
-          <SdrSettingsTab canEdit={canEdit} onJumpToTemplates={() => setTab("templates")} />
+          <SdrSettingsTab
+            canEdit={canEdit}
+            onJumpToTemplates={() => setTab("templates")}
+            onPilotChanged={setPilotEnabled}
+          />
         </TabsContent>
       </Tabs>
     </DashboardLayout>
