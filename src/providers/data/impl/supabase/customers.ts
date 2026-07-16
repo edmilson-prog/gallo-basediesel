@@ -13,6 +13,7 @@ import type {
 import type { IListCustomersParams, ICustomersProvider, IConvertPendingContactInput } from "../../contracts/customers";
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
+import { buildDigitSearchCandidates } from "@/shared/utils/digitSearch";
 
 /**
  * Supabase implementation of {@link ICustomersProvider} (PRD-110+).
@@ -247,6 +248,11 @@ const SEARCH_COLUMNS = [
   "cpf",
 ] as const;
 
+/** Digit-normalized columns matched when the term contains digits — finds
+ *  phones typed with/without the BR 9th digit and documents typed with any
+ *  mask (columns from migration 20260716210000). */
+const DIGIT_SEARCH_COLUMNS = ["phone_digits", "cnpj_digits", "cpf_digits"] as const;
+
 /**
  * Builds the PostgREST `.or()` expression for a free-text customer search, or
  * `null` when the term is blank. `,` `(` `)` are PostgREST or()-delimiters and
@@ -256,7 +262,13 @@ export function buildCustomerSearchOr(search: string): string | null {
   const term = search.trim();
   if (!term) return null;
   const safe = term.replace(/[,()]/g, " ");
-  return SEARCH_COLUMNS.map((c) => `${c}.ilike.*${safe}*`).join(",");
+  const filters = SEARCH_COLUMNS.map((c) => `${c}.ilike.*${safe}*`);
+  for (const candidate of buildDigitSearchCandidates(term)) {
+    for (const col of DIGIT_SEARCH_COLUMNS) {
+      filters.push(`${col}.ilike.*${candidate}*`);
+    }
+  }
+  return filters.join(",");
 }
 
 export const supabaseCustomersProvider: ICustomersProvider = {
