@@ -67,3 +67,29 @@ export interface IHandleTimeStatsResult {
   cycleCount: number;
   deltaPct: number | null;
 }
+
+export interface IHeadlineKpisParams {
+  storeId?: ID;
+  sellerId?: ID;
+  from: ISO8601;
+  to: ISO8601;
+  prevFrom: ISO8601;
+  prevTo: ISO8601;
+}
+
+export interface IKpiTrendValue {
+  current: number | null;
+  previous: number | null;
+}
+
+/**
+ * The four "Indicadores principais" headline KPIs (PRD-214 follow-up).
+ * `backlog` has no `previous` — it's a current-state snapshot ("aguardando"
+ * right now), not windowed.
+ */
+export interface IHeadlineKpisResult {
+  tmaMinutes: IKpiTrendValue;
+  tmrMinutes: IKpiTrendValue;
+  resolutionRatePct: IKpiTrendValue;
+  backlog: number;
+}

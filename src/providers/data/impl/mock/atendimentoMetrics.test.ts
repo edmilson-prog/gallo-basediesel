@@ -40,4 +40,18 @@ describe("mockAtendimentoMetricsProvider", () => {
     const r = await p.getMessagesByUser({ ...params, audience: "automation" });
     expect(r.rows.every((row) => row.authorType !== "seller")).toBe(true);
   });
+
+  it("getHeadlineKpis: valores plausíveis e determinísticos", async () => {
+    const headlineParams = { ...params, prevFrom: "1900-01-01T00:00:00Z", prevTo: params.from };
+    const a = await p.getHeadlineKpis(headlineParams);
+    const b = await p.getHeadlineKpis(headlineParams);
+    expect(a).toEqual(b);
+    expect(a.backlog).toBeGreaterThanOrEqual(0);
+    if (a.resolutionRatePct.current !== null) {
+      expect(a.resolutionRatePct.current).toBeGreaterThanOrEqual(0);
+      expect(a.resolutionRatePct.current).toBeLessThanOrEqual(100);
+    }
+    if (a.tmaMinutes.current !== null) expect(a.tmaMinutes.current).toBeGreaterThanOrEqual(0);
+    if (a.tmrMinutes.current !== null) expect(a.tmrMinutes.current).toBeGreaterThanOrEqual(0);
+  });
 });

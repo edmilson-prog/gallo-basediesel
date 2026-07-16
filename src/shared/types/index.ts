@@ -519,6 +519,9 @@ export type {
   IStatusDistributionResult,
   IAccumulatedChatsResult,
   IHandleTimeStatsResult,
+  IHeadlineKpisParams,
+  IKpiTrendValue,
+  IHeadlineKpisResult,
 } from "./service-volume";
 
 // AI / LLM settings (Configurações → Inteligência artificial)

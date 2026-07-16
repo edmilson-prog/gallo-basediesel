@@ -56,4 +56,43 @@ describe("supabaseAtendimentoMetricsProvider", () => {
     rpc.mockResolvedValue({ data: null, error: { message: "boom" } });
     await expect(P.getHandleTimeStats(PARAMS)).rejects.toThrow(/service_volume_handle_time: boom/);
   });
+
+  it("getHeadlineKpis calls the RPC with both windows and returns the jsonb shape", async () => {
+    const payload = {
+      tmaMinutes: { current: 90, previous: 101 },
+      tmrMinutes: { current: 38, previous: 30 },
+      resolutionRatePct: { current: 37, previous: 36 },
+      backlog: 2141,
+    };
+    rpc.mockResolvedValue({ data: payload, error: null });
+    const out = await P.getHeadlineKpis({
+      ...PARAMS,
+      prevFrom: "2026-05-25T00:00:00Z",
+      prevTo: "2026-06-01T00:00:00Z",
+    });
+    expect(rpc).toHaveBeenCalledWith("service_volume_headline_kpis", {
+      p_store_id: "store-1",
+      p_from: PARAMS.from,
+      p_to: PARAMS.to,
+      p_prev_from: "2026-05-25T00:00:00Z",
+      p_prev_to: "2026-06-01T00:00:00Z",
+      p_seller_id: null,
+    });
+    expect(out).toEqual(payload);
+  });
+
+  it("getHeadlineKpis returns the empty fallback when data is null", async () => {
+    rpc.mockResolvedValue({ data: null, error: null });
+    const out = await P.getHeadlineKpis({
+      ...PARAMS,
+      prevFrom: "2026-05-25T00:00:00Z",
+      prevTo: "2026-06-01T00:00:00Z",
+    });
+    expect(out).toEqual({
+      tmaMinutes: { current: null, previous: null },
+      tmrMinutes: { current: null, previous: null },
+      resolutionRatePct: { current: null, previous: null },
+      backlog: 0,
+    });
+  });
 });

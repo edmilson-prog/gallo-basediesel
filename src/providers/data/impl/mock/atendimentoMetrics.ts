@@ -1,5 +1,5 @@
 import type { IAtendimentoMetricsProvider } from "../../contracts/atendimentoMetrics";
-import type { ConversationStatus, IMessagesByUserRow } from "@/shared/types";
+import type { ConversationStatus, IMessagesByUserRow, IConversation } from "@/shared/types";
 import { getMockState } from "@/mocks/store/mockStore";
 import {
   bucketize,
@@ -7,6 +7,18 @@ import {
   deltaPct,
   synthesizeNovoAtendimentoTimestamps,
 } from "@/features/service-volume/engine";
+import {
+  calculateTmaMinutes,
+  calculateTmrMinutes,
+  calculateResolutionRate,
+  calculateBacklog,
+} from "@/features/manager-dashboard/utils/kpiMath";
+
+const OPEN_STATUSES = new Set<IConversation["status"]>([
+  "aguardando",
+  "em_andamento",
+  "aguardando_cliente",
+]);
 
 function inRange(iso: string, from: string, to: string): boolean {
   const t = new Date(iso).getTime();
@@ -148,6 +160,34 @@ export const mockAtendimentoMetricsProvider: IAtendimentoMetricsProvider = {
       medianMs: median,
       cycleCount: durations.length,
       deltaPct: null,
+    };
+  },
+
+  async getHeadlineKpis({ storeId, sellerId, from, to, prevFrom, prevTo }) {
+    const convs = scopedConversations(storeId, sellerId);
+    const convIds = new Set(convs.map((c) => c.id));
+    const allMessages = getMockState().messages.filter((m) => convIds.has(m.conversationId));
+
+    const openConversations = convs.filter((c) => OPEN_STATUSES.has(c.status));
+    const conversationsInPeriod = convs.filter((c) => inRange(c.lastMessageAt, from, to));
+    const conversationsInPrev = convs.filter((c) => inRange(c.lastMessageAt, prevFrom, prevTo));
+    const messagesInPeriod = allMessages.filter((m) => inRange(m.sentAt, from, to));
+    const messagesInPrev = allMessages.filter((m) => inRange(m.sentAt, prevFrom, prevTo));
+
+    return {
+      tmaMinutes: {
+        current: calculateTmaMinutes(conversationsInPeriod, messagesInPeriod),
+        previous: calculateTmaMinutes(conversationsInPrev, messagesInPrev),
+      },
+      tmrMinutes: {
+        current: calculateTmrMinutes(messagesInPeriod),
+        previous: calculateTmrMinutes(messagesInPrev),
+      },
+      resolutionRatePct: {
+        current: calculateResolutionRate(conversationsInPeriod),
+        previous: calculateResolutionRate(conversationsInPrev),
+      },
+      backlog: calculateBacklog(openConversations),
     };
   },
 };
