@@ -61,6 +61,10 @@ export const supabaseSdrPilotSettingsProvider: ISdrPilotSettingsProvider = {
 
   async update(storeId, patch) {
     const current = await ensureSettings(storeId);
+    if (patch.sdrEnabled === undefined && patch.backstopTimeoutMinutes === undefined) {
+      // No-op patch — skip the DB write so we don't bump `updated_at` for nothing.
+      return current;
+    }
     const row: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (patch.sdrEnabled !== undefined) row.sdr_enabled = patch.sdrEnabled;
     if (patch.backstopTimeoutMinutes !== undefined) {
