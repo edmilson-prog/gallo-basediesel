@@ -26,7 +26,6 @@ import {
 import { chooseHumanSeller, type IChooseSellerInput } from "../_shared/sdr-escalation/engine/choose-seller.ts";
 import { buildContextSummary } from "../_shared/sdr-escalation/engine/build-summary.ts";
 import { escalateToHuman, type IEscalateToHumanInput } from "../_shared/sdr-escalation/engine/escalate.ts";
-import { containsCommercialValue } from "./guardrails.ts";
 import { parseSdrLlmDecision, type ISdrLlmDecision } from "./llmDecision.ts";
 import { enforceSdrGuardrails } from "./enforceGuardrails.ts";
 import { buildSdrSystemPrompt } from "./systemPrompt.ts";
@@ -250,9 +249,6 @@ servePost(async (req, ctx) => {
     decision = { reply: "Vou te conectar com um vendedor pra te ajudar melhor.", action: "handoff", handoffReason: "sdr_failed" };
   }
   decision = enforceSdrGuardrails(decision);
-  if (containsCommercialValue(decision.reply)) {
-    decision = enforceSdrGuardrails({ ...decision, reply: decision.reply });
-  }
 
   // 11. Log usage regardless of the action taken.
   const providerCfg = aiSettings.providers.find((p) => p.provider === providerId);
@@ -439,14 +435,26 @@ servePost(async (req, ctx) => {
       });
     }
     if (selection.selectedSellerId) {
-      const { error: assignError } = await admin
+      // Guard against a mid-turn human takeover (same race as step 14's
+      // re-check — the LLM call can take up to LLM_TIMEOUT_MS, and the
+      // pause-by-human trigger may have flipped is_sdr_active false while
+      // this handler was waiting). Without `.eq("is_sdr_active", true)`,
+      // this would unconditionally reassign the conversation to whichever
+      // seller the cascade picked, stomping the human's takeover.
+      const { data: assigned, error: assignError } = await admin
         .from("conversations")
         .update({ assigned_seller_id: selection.selectedSellerId, is_sdr_active: false })
-        .eq("id", conversationId);
+        .eq("id", conversationId)
+        .eq("is_sdr_active", true)
+        .select("id");
       if (assignError) {
         ctx.log.error("sdr-respond conversation assignment update failed", {
           conversationId,
           error: assignError.message,
+        });
+      } else if (!assigned || assigned.length === 0) {
+        ctx.log.warn("sdr-respond skipped handoff reassignment — human took over mid-turn", {
+          conversationId,
         });
       }
     }

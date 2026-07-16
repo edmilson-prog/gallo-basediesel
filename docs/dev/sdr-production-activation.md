@@ -135,12 +135,22 @@ autorizar.
      merge da Parte A.)
 2. **Deploy das duas Edge Functions novas:** `sdr-respond` e
    `sdr-backstop-tick`.
-3. **Configurar o roteamento de IA** na aba Funcionalidades (provedor, modelo,
+3. **Redeploy do `whatsapp-webhook`** — esta Parte B modificou essa function
+   (já em produção) pra adicionar o callback `onSdrTurn` (ver seção
+   "Arquitetura — dois workers" acima). **Não é opcional e não é só o
+   primeiro turno**: o backstop tick ativa a conversa e dispara `sdr-respond`
+   uma única vez; toda mensagem seguinte do cliente depende do
+   `whatsapp-webhook` já deployado reconhecer `is_sdr_active=true` e
+   disparar `onSdrTurn` pra continuar o turno. Sem este redeploy, o SDR
+   responde a primeira mensagem da conversa e nunca mais — parece "morto"
+   depois de um turno, mas na verdade é o webhook rodando a versão antiga
+   sem o callback.
+4. **Configurar o roteamento de IA** na aba Funcionalidades (provedor, modelo,
    opcionalmente um prompt suplementar) para `feature='sdr'`, se ainda não
    estiver.
-4. **Escolher a loja piloto** e ligar o toggle "SDR ativo nesta loja" na aba
+5. **Escolher a loja piloto** e ligar o toggle "SDR ativo nesta loja" na aba
    SDR, ajustando `backstop_timeout_minutes` se o padrão (2 min) não servir.
-5. **Smoke manual** com uma conversa real — fora de escopo deste plano,
+6. **Smoke manual** com uma conversa real — fora de escopo deste plano,
    fica a cargo do dono.
 
 Com todas as lojas desligadas, aplicar as migrations e deployar as functions
