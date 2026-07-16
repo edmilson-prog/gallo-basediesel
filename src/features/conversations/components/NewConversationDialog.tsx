@@ -22,7 +22,7 @@ import {
 import type { ICustomer, ID, IWhatsAppAccount } from "@/shared/types";
 import { OriginChip } from "./OriginChip";
 import { instanceAccent } from "../utils/instanceAccent";
-import { checkWhatsAppNumber } from "../api/checkWhatsAppNumber";
+import { resolveNumberCheckWithNineDigitFallback } from "../api/checkWhatsAppNumber";
 import { isEvolutionFamily } from "@/shared/utils/whatsappProvider";
 
 function customerName(c: ICustomer): string {
@@ -149,10 +149,11 @@ export function NewConversationDialog({
     let phoneFinal = norm.digits;
     let markValid = false;
 
-    // Evolution pre-validates; Meta / offline / errors resolve to `skipped`.
+    // Evolution/WAHA pre-validate (retrying the 9th-digit variant when the
+    // first attempt is ambiguous); Meta / offline / errors resolve to `skipped`.
     if (!forced) {
       setCheckState("checking");
-      const check = await checkWhatsAppNumber(origin.id, norm.digits).catch(
+      const check = await resolveNumberCheckWithNineDigitFallback(origin.id, norm.digits).catch(
         () => ({ status: "skipped" as const }),
       );
       setCheckState("idle");
@@ -163,6 +164,9 @@ export function NewConversationDialog({
       if (check.status === "has_whatsapp") {
         phoneFinal = check.canonicalPhone ?? norm.digits; // jid is canonical (D7).
         markValid = true;
+        if (norm.digits.length === 12 && phoneFinal.length === 13) {
+          toast.info("Número ajustado — o WhatsApp confirmou o número com o 9º dígito.");
+        }
       }
     }
 

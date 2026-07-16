@@ -1,6 +1,7 @@
 import { getActiveDataSource } from "@/providers/data";
 import { getSupabaseClient } from "@/shared/lib/supabase";
 import type { ID } from "@/shared/types";
+import { buildNineDigitCandidate } from "../engine/phoneBR";
 
 export type NumberCheckStatus = "has_whatsapp" | "no_whatsapp" | "skipped";
 
@@ -66,4 +67,23 @@ export async function checkWhatsAppNumber(
   } catch {
     return { status: "skipped" };
   }
+}
+
+/**
+ * Retries with the 9th-digit variant when the first check doesn't confirm
+ * WhatsApp on an ambiguous 12-digit number — never inserts the 9 blindly,
+ * only adopts the candidate if the WhatsApp network itself confirms it
+ * (docs/superpowers/specs/2026-07-16-br-phone-nine-digit-reconciliation-design.md).
+ */
+export async function resolveNumberCheckWithNineDigitFallback(
+  accountId: ID,
+  phoneDigits: string,
+  check: (accountId: ID, phoneDigits: string) => Promise<INumberCheckResult> = checkWhatsAppNumber,
+): Promise<INumberCheckResult> {
+  const first = await check(accountId, phoneDigits);
+  if (first.status === "has_whatsapp") return first;
+  const candidate = buildNineDigitCandidate(phoneDigits);
+  if (!candidate) return first;
+  const retry = await check(accountId, candidate);
+  return retry.status === "has_whatsapp" ? retry : first;
 }

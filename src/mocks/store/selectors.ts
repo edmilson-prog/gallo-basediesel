@@ -225,6 +225,10 @@ export function selectSdrEscalationByConversation(conversationId: ID) {
   return [...all].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
 }
 
+export function selectAllSdrPilotSettings() {
+  return getMockState().sdrPilotSettings;
+}
+
 export function selectAllNotifications(): INotification[] {
   return getMockState().notifications;
 }

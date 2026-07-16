@@ -48,6 +48,7 @@ import { wahaStateToAccountStatus } from "../_shared/whatsapp/waha/constants.ts"
 import { getWahaContactName, resolveWahaLid } from "../_shared/whatsapp/waha/contacts.ts";
 import { buildWahaEventKey } from "../_shared/whatsapp/waha/eventKey.ts";
 import { statusAdvances, type DeliveryStatus } from "../_shared/whatsapp/messageStatus.ts";
+import { phoneDigitsMatchBr } from "../_shared/whatsapp/phoneBr.ts";
 import { logWebhookDelivery } from "../_shared/webhookDeliveryLog.ts";
 import { runInBackground } from "../_shared/backgroundTask.ts";
 import { transcribeMessageAudio } from "../_shared/ai/transcribeAudio.ts";
@@ -255,17 +256,19 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Shared phone→customer lookup (suffix pre-filter + exact digit match —
-    // phone formatting varies in the base: +55..., (55) 9..., etc.). Used by
-    // both the inbound-message and outbound-echo paths below.
+    // Shared phone→customer lookup (suffix pre-filter + tolerant match via
+    // phoneDigitsMatchBr — phone formatting varies in the base: +55...,
+    // (55) 9..., etc.; a stored number may also be missing the 9th digit).
+    // Used by both the inbound-message and outbound-echo paths below.
     async function findCustomerByPhone(phoneDigits: string): Promise<string | undefined> {
       const { data: candidates } = await admin
         .from("customers")
         .select("id, phone")
         .eq("store_id", accountRow.store_id as string)
         .like("phone", `%${phoneDigits.slice(-8)}`);
-      return (candidates ?? []).find((c) => String(c.phone).replace(/\D/g, "") === phoneDigits)
-        ?.id as string | undefined;
+      return (candidates ?? []).find((c) =>
+        phoneDigitsMatchBr(String(c.phone).replace(/\D/g, ""), phoneDigits),
+      )?.id as string | undefined;
     }
 
     // Shared media download+upload — best-effort, never fails the caller (only

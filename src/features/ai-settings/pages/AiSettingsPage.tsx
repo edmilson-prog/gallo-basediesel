@@ -8,6 +8,7 @@ import { AiOverviewTab } from "./AiOverviewTab";
 import { AiProvidersTab } from "./AiProvidersTab";
 import { AiFeaturesTab } from "./AiFeaturesTab";
 import { AiPlaygroundTab } from "./AiPlaygroundTab";
+import { AiSdrTab } from "./AiSdrTab";
 import { AI_STRINGS } from "../i18n/pt-BR";
 
 export function AiSettingsPage() {
@@ -39,6 +40,7 @@ export function AiSettingsPage() {
           <TabsTrigger value="provedores">{AI_STRINGS.tabs.providers}</TabsTrigger>
           <TabsTrigger value="funcionalidades">{AI_STRINGS.tabs.features}</TabsTrigger>
           <TabsTrigger value="playground">{AI_STRINGS.tabs.playground}</TabsTrigger>
+          <TabsTrigger value="sdr">{AI_STRINGS.tabs.sdr}</TabsTrigger>
         </TabsList>
         <TabsContent value="visao-geral" className="mt-4">
           <AiOverviewTab />
@@ -51,6 +53,9 @@ export function AiSettingsPage() {
         </TabsContent>
         <TabsContent value="playground" className="mt-4">
           <AiPlaygroundTab />
+        </TabsContent>
+        <TabsContent value="sdr" className="mt-4">
+          <AiSdrTab />
         </TabsContent>
       </Tabs>
     </div>
