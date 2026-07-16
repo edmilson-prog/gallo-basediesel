@@ -94,10 +94,16 @@ export interface IHeadlineKpisResult {
   backlog: number;
 }
 
-/** "Carga por vendedor" — current-state, ignores the time window. */
+/**
+ * "Carga por vendedor" — open conversations per assigned seller. When
+ * `from`/`to` are present, only conversations with activity
+ * (`lastMessageAt`) inside the window count; absent = no cut (legacy).
+ */
 export interface ISellerLoadParams {
   storeId?: ID;
   sellerId?: ID;
+  from?: ISO8601;
+  to?: ISO8601;
 }
 
 export interface ISellerLoadCountRow {

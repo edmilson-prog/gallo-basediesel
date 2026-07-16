@@ -97,10 +97,15 @@ export const supabaseAtendimentoMetricsProvider: IAtendimentoMetricsProvider = {
     );
   },
 
-  async getSellerLoad({ storeId, sellerId }) {
+  async getSellerLoad({ storeId, sellerId, from, to }) {
     return callRpc<ISellerLoadCountsResult>(
       "service_volume_seller_load",
-      { p_store_id: storeId ?? null, p_seller_id: sellerId ?? null },
+      {
+        p_store_id: storeId ?? null,
+        p_seller_id: sellerId ?? null,
+        p_from: from ?? null,
+        p_to: to ?? null,
+      },
       { rows: [] },
     );
   },
