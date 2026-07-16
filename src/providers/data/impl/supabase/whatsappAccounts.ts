@@ -41,14 +41,16 @@ interface WhatsAppAccountRow {
   created_at: string;
   purpose: IWhatsAppAccount["purpose"];
   go_server_id: string | null;
+  openwa_server_id: string | null;
   alerts_muted: boolean;
+  waha_server_id: string | null;
 }
 
 const TABLE = "whatsapp_accounts";
 const COLUMNS =
   "id, store_id, label, phone_number, provider, credentials_ref, status, capabilities, " +
   "provider_config, current_state, state_changed_at, failover_policy, failover_account_id, " +
-  "is_failover_active, created_at, purpose, go_server_id, alerts_muted";
+  "is_failover_active, created_at, purpose, go_server_id, openwa_server_id, alerts_muted, waha_server_id";
 
 function rowToWhatsAppAccount(row: WhatsAppAccountRow): IWhatsAppAccount {
   return {
@@ -69,7 +71,9 @@ function rowToWhatsAppAccount(row: WhatsAppAccountRow): IWhatsAppAccount {
     createdAt: row.created_at,
     purpose: row.purpose ?? "atendimento",
     goServerId: row.go_server_id ?? undefined,
+    openwaServerId: row.openwa_server_id ?? undefined,
     alertsMuted: row.alerts_muted ?? false,
+    wahaServerId: row.waha_server_id ?? undefined,
   };
 }
 
@@ -77,9 +81,26 @@ export const supabaseWhatsAppAccountsProvider: IWhatsAppAccountsProvider = {
   async list(params?: IListWhatsAppAccountsParams): Promise<IWhatsAppAccount[]> {
     let query = getSupabaseClient().from(TABLE).select(COLUMNS);
     if (params?.storeId) query = query.eq("store_id", params.storeId);
+    // WAHA sessions are managed exclusively from the dedicated "WAHA" tab
+    // (`WahaSection`, reading `whatsapp_accounts` directly) — they carry no
+    // `providerConfig.baseUrl`/`instanceName`, so every other consumer of this
+    // generic list (Contas tab, Inbox instance filter, connection status,
+    // failover pickers, templates screen) would break on a "waha" row.
+    query = query.neq("provider", "waha");
 
     const { data, error } = await query.order("created_at", { ascending: true });
     if (error) throw new Error(`[supabase] whatsappAccounts.list failed: ${error.message}`);
+    return (data as unknown as WhatsAppAccountRow[]).map(rowToWhatsAppAccount);
+  },
+
+  async listWaha(params: { storeId: ID }): Promise<IWhatsAppAccount[]> {
+    const { data, error } = await getSupabaseClient()
+      .from(TABLE)
+      .select(COLUMNS)
+      .eq("provider", "waha")
+      .eq("store_id", params.storeId)
+      .order("created_at", { ascending: true });
+    if (error) throw new Error(`[supabase] whatsappAccounts.listWaha failed: ${error.message}`);
     return (data as unknown as WhatsAppAccountRow[]).map(rowToWhatsAppAccount);
   },
 
@@ -134,6 +155,7 @@ export const supabaseWhatsAppAccountsProvider: IWhatsAppAccountsProvider = {
       is_failover_active: input.isFailoverActive,
       purpose: input.purpose,
       go_server_id: input.goServerId ?? null,
+      openwa_server_id: input.openwaServerId ?? null,
       alerts_muted: input.alertsMuted ?? false,
     };
     const { data, error } = await getSupabaseClient()

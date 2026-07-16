@@ -64,6 +64,7 @@ export const CSA_STRINGS = {
   reasonSdrFailed: "SDR falhou",
   reasonComplexity: "Complexidade",
   reasonOutOfScope: "Fora do escopo",
+  reasonQualifiedHandoff: "Triagem concluída",
 
   blockedTitle: "Acesso restrito",
   blockedDescription:

@@ -58,6 +58,9 @@ export type {
   IWhatsAppFailureBucket,
   IWhatsAppDeliveryHealth,
   IWhatsAppProviderHealthAccount,
+  WebhookDeliveryOutcome,
+  IWebhookDelivery,
+  IWebhookDeliveryFilters,
 } from "./system-health";
 
 // WhatsApp HSM templates (PRD-116)
@@ -133,6 +136,7 @@ export type {
 
 // Conversation, messaging, WhatsApp
 export type {
+  IAdReferral,
   IConversation,
   IConversationContact,
   IConversationMessageMatch,
@@ -156,6 +160,9 @@ export type {
   IWhatsAppAccountAccessRule,
   IConversationParticipant,
   IWhatsAppGoServer,
+  IWahaServer,
+  IWahaSessionConfig,
+  IWhatsAppOpenWaServer,
   IConversationActivityEvent,
   AttendanceActivityType,
 } from "./conversation";
@@ -273,6 +280,9 @@ export type {
   SdrEscalationMode,
   SdrEscalationStatus,
 } from "./sdr-escalation";
+
+// SDR production pilot settings (Parte B — 2026-07-15 design)
+export type { ISdrPilotSettings } from "./sdr-pilot";
 
 // Copiloto de Vendas (PRD-025)
 export type {

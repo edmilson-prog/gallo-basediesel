@@ -16,6 +16,7 @@ import type {
 import { useSystemHealth } from "../hooks/useSystemHealth";
 import { SYSTEM_HEALTH_STRINGS as S } from "../i18n/pt-BR";
 import { isEvolutionFamily } from "@/shared/utils/whatsappProvider";
+import { WebhookDeliveriesCard } from "../components/WebhookDeliveriesCard";
 
 const IS_MOCK = getActiveDataSource() === "mock";
 
@@ -478,6 +479,8 @@ export function SystemHealthPage() {
         accounts={whatsappProviders.data}
         isLoading={whatsappProviders.isLoading}
       />
+
+      <WebhookDeliveriesCard />
 
       <WhatsAppDeliveryCard
         h24={whatsapp24h.data}

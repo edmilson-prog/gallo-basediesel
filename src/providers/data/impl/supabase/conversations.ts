@@ -1,4 +1,5 @@
 import type {
+  IAdReferral,
   ID,
   IConversation,
   IConversationContact,
@@ -76,6 +77,7 @@ interface ConversationRow {
   unread_count: number;
   created_at: string;
   queued_at: string | null;
+  ad_referral: Record<string, unknown> | null;
   /** Only present on rows returned by the `search_conversations` RPC. */
   is_collaborator?: boolean;
 }
@@ -97,7 +99,7 @@ interface ConversationContactRow {
 
 const TABLE = "conversations";
 const COLUMNS =
-  "id, store_id, customer_id, lead_id, assigned_seller_id, channel, whatsapp_account_id, status, is_sdr_active, tags, linked_order_id, last_message_at, unread_count, created_at, queued_at";
+  "id, store_id, customer_id, lead_id, assigned_seller_id, channel, whatsapp_account_id, status, is_sdr_active, tags, linked_order_id, last_message_at, unread_count, created_at, queued_at, ad_referral";
 
 function rowToConversation(row: ConversationRow): IConversation {
   return {
@@ -116,6 +118,7 @@ function rowToConversation(row: ConversationRow): IConversation {
     unreadCount: row.unread_count,
     createdAt: row.created_at,
     queuedAt: row.queued_at ?? undefined,
+    adReferral: (row.ad_referral as IAdReferral | null) ?? undefined,
     isCollaborator: row.is_collaborator ?? undefined,
   };
 }
@@ -511,25 +514,35 @@ export const supabaseConversationsProvider: IConversationsProvider = {
     // allows a non-staff seller to create a row in their store assigned to
     // themselves — exactly this outbound case. The first message is sent later
     // from the composer (provider-aware).
-    const { data, error } = await getSupabaseClient()
-      .from(TABLE)
-      .insert({
-        store_id: input.storeId,
-        customer_id: input.customerId,
-        assigned_seller_id: input.assignedSellerId,
-        channel: "whatsapp",
-        whatsapp_account_id: input.whatsappAccountId,
-        status: "em_andamento",
-        is_sdr_active: false,
-        tags: [],
-        last_message_at: now,
-        unread_count: 0,
-      })
-      .select(COLUMNS)
-      .single();
+    //
+    // Insert-only — no `.select()`. `conversations_select`'s `can_access_conversation`
+    // re-queries `conversations` by id; that self-referential scan can't see the row
+    // created by THIS SAME INSERT statement (Postgres RLS same-command visibility
+    // limitation), so `.insert().select()` here always raised 42501 on the RETURNING
+    // recheck — regardless of staff/instance access. We already know every column we
+    // wrote, so build the result locally instead of reading it back.
+    const row: ConversationRow = {
+      id: crypto.randomUUID(),
+      store_id: input.storeId,
+      customer_id: input.customerId,
+      lead_id: null,
+      assigned_seller_id: input.assignedSellerId,
+      channel: "whatsapp",
+      whatsapp_account_id: input.whatsappAccountId,
+      status: "em_andamento",
+      is_sdr_active: false,
+      tags: [],
+      linked_order_id: null,
+      last_message_at: now,
+      unread_count: 0,
+      created_at: now,
+      queued_at: null,
+      ad_referral: null,
+    };
+    const { error } = await getSupabaseClient().from(TABLE).insert(row);
     if (error)
       throw new Error(`[supabase] conversations.createOutbound failed: ${error.message}`);
-    return rowToConversation(data as unknown as ConversationRow);
+    return rowToConversation(row);
   },
 
   async create(input: ICreateConversationInput): Promise<ICreateConversationResult> {
@@ -598,28 +611,32 @@ export const supabaseConversationsProvider: IConversationsProvider = {
     const rotationPointers = override.pointers;
 
     // --- Persist (ordered, best-effort — see file header on atomicity) ---------
-    const { data: convData, error: convError } = await client
-      .from(TABLE)
-      .insert({
-        id: conversationId,
-        store_id: input.storeId,
-        customer_id: input.customerId ?? null,
-        lead_id: input.leadId ?? null,
-        assigned_seller_id: effective.selectedSellerId,
-        channel: input.channel,
-        whatsapp_account_id: input.whatsappAccountId ?? null,
-        status: effective.status,
-        is_sdr_active: effective.isSdrActive,
-        tags: [],
-        linked_order_id: null,
-        last_message_at: occurredAt,
-        unread_count: 1,
-        created_at: occurredAt,
-      })
-      .select(COLUMNS)
-      .single();
+    // Insert-only — no `.select()`. Same same-command RLS visibility limitation as
+    // `createOutbound`: `conversations_select`'s `can_access_conversation` re-queries
+    // this table by id and can't see the row created by THIS SAME INSERT statement,
+    // so `.insert().select()` here always raised 42501 on the RETURNING recheck. Build
+    // the result locally from the known insert values instead.
+    const convRow: ConversationRow = {
+      id: conversationId,
+      store_id: input.storeId,
+      customer_id: input.customerId ?? null,
+      lead_id: input.leadId ?? null,
+      assigned_seller_id: effective.selectedSellerId,
+      channel: input.channel,
+      whatsapp_account_id: input.whatsappAccountId ?? null,
+      status: effective.status,
+      is_sdr_active: effective.isSdrActive,
+      tags: [],
+      linked_order_id: null,
+      last_message_at: occurredAt,
+      unread_count: 1,
+      created_at: occurredAt,
+      queued_at: null,
+      ad_referral: null,
+    };
+    const { error: convError } = await client.from(TABLE).insert(convRow);
     if (convError) throw new Error(`[supabase] conversations.create failed: ${convError.message}`);
-    const conversation = rowToConversation(convData as ConversationRow);
+    const conversation = rowToConversation(convRow);
 
     const provider = input.channel === "whatsapp" ? "meta" : "mock";
     const messages: IMessage[] = [];

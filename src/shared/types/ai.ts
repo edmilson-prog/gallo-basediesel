@@ -7,7 +7,8 @@ export type AiFeatureKey =
   | "analytics_copilot"
   | "sdr"
   | "part_identification"
-  | "insights";
+  | "insights"
+  | "audio_transcription";
 
 export interface IAiModelOption {
   id: string;
@@ -126,6 +127,7 @@ export const AI_FEATURE_LABELS: Record<AiFeatureKey, string> = {
   sdr: "SDR (qualificação automática)",
   part_identification: "Identificação de peça",
   insights: "Insights",
+  audio_transcription: "Transcrição de áudio",
 };
 
 export const AI_PROVIDER_LABELS: Record<AiProviderId, string> = {

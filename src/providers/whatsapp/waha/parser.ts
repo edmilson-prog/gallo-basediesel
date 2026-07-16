@@ -1,0 +1,211 @@
+/**
+ * WAHA webhook `message`/`message.any` event parser. Payload shape (WAHA
+ * docs, "Receive messages"/"Events"):
+ *   { id, timestamp, from, fromMe, to, body, hasMedia, media?: {url, mimetype, filename, error}, vCards?: string[], ack }
+ * `from` is always the CHAT's JID (`<digits>@c.us` for 1:1) regardless of
+ * direction — for a genuine inbound message that's the sender, but for an
+ * outbound echo (`fromMe: true`, delivered only via `message.any` — see
+ * WAHA_DEFAULT_EVENTS) it's the RECIPIENT. `to` is not populated on real
+ * `message.any` payloads (confirmed empirically: WAHA 2026.6.2 sends
+ * `to: null` on every `fromMe:true` envelope) — never read for the
+ * recipient. Groups (`@g.us`), broadcasts and newsletters are rejected (no
+ * 1:1 customer to attach the message to). A chat party with WhatsApp's
+ * privacy setting enabled arrives as `<digits>@lid` instead of `@c.us` —
+ * still 1:1, but the digits are NOT a phone number. Those are surfaced via
+ * `fromLid` / `toLid` (with `fromPhone` / `toPhone` empty) for the webhook
+ * to resolve before customer matching.
+ * `session.status` events are handled directly by the Edge Function, not by
+ * this parser (they update `whatsapp_accounts.status`, not a message row).
+ */
+
+import type { IInboundMessage, InboundContentType, IOutboundEcho, IAdReferral } from "../types";
+import { encodeContact, nameFromVCard, phoneFromVCard } from "../contentFormat";
+
+const NON_INDIVIDUAL_JID = /@(g\.us|broadcast|newsletter)$/;
+const LID_JID = /@lid$/;
+
+export function jidToE164(jid: string | undefined): string {
+  const digits = (jid ?? "").split("@")[0]?.replace(/\D/g, "") ?? "";
+  return digits.length > 0 ? `+${digits}` : "";
+}
+
+interface IWahaMedia {
+  url?: string;
+  mimetype?: string;
+  filename?: string | null;
+  error?: string | null;
+}
+
+/** Mirrors whatsmeow's ContextInfo_ExternalAdReplyInfo casing (same library
+ *  as Evolution-Go — see IGoExternalAdReplyInfo). NOT confirmed against a
+ *  real WAHA payload (see Task 4 in the ad-source-detection plan). `mediaType`
+ *  may arrive as the confirmed whatsmeow integer enum (0/1/2) or as a string
+ *  — normalized defensively below. */
+interface IWahaExternalAdReplyInfo {
+  title?: string;
+  body?: string;
+  sourceID?: string;
+  sourceType?: string;
+  sourceURL?: string;
+  mediaType?: number | string;
+  mediaURL?: string;
+  ctwaClid?: string;
+}
+interface IWahaGoMessageBody {
+  extendedTextMessage?: { contextInfo?: { externalAdReply?: IWahaExternalAdReplyInfo } };
+  imageMessage?: { contextInfo?: { externalAdReply?: IWahaExternalAdReplyInfo } };
+  videoMessage?: { contextInfo?: { externalAdReply?: IWahaExternalAdReplyInfo } };
+}
+
+export interface IWahaMessagePayload {
+  id?: string;
+  timestamp?: number;
+  from?: string;
+  fromMe?: boolean;
+  to?: string;
+  body?: string;
+  hasMedia?: boolean;
+  media?: IWahaMedia | null;
+  /** Present (possibly empty) on every WAHA message payload; non-empty when
+   *  the sender shared one or more contact cards. Only the first is used —
+   *  see extractContent. */
+  vCards?: string[];
+  /** HYPOTHESIZED: WAHA's GOWS engine wraps whatsmeow directly, so the raw
+   *  engine message (when WAHA exposes it) should mirror IGoMessageBody
+   *  nested under `_data.Message`. Unconfirmed — extractWahaAdReferral
+   *  degrades to undefined when this path is absent, so a wrong guess can
+   *  never break message parsing itself. */
+  _data?: { Message?: IWahaGoMessageBody };
+}
+
+function tsToIso(value: number | undefined): string {
+  return typeof value === "number" && value > 0
+    ? new Date(value * 1000).toISOString()
+    : new Date().toISOString();
+}
+
+export function contentTypeFromMimetype(mimetype: string | undefined): InboundContentType {
+  if (!mimetype) return "unknown";
+  if (mimetype.startsWith("image/")) return "image";
+  if (mimetype.startsWith("audio/")) return "audio";
+  if (mimetype.startsWith("video/")) return "video";
+  return "document";
+}
+
+export interface IParsedContent {
+  contentType: InboundContentType;
+  text?: string;
+  mediaId?: string;
+  mediaFilename?: string;
+}
+
+export function extractContent(payload: IWahaMessagePayload): IParsedContent {
+  if (payload.hasMedia && payload.media?.url) {
+    return {
+      contentType: contentTypeFromMimetype(payload.media.mimetype),
+      text: payload.body || undefined,
+      mediaId: payload.media.url,
+      mediaFilename: payload.media.filename ?? undefined,
+    };
+  }
+  if (payload.vCards?.[0]) {
+    const vcard = payload.vCards[0];
+    return {
+      contentType: "contact",
+      text: encodeContact({ name: nameFromVCard(vcard), phone: phoneFromVCard(vcard) }),
+    };
+  }
+  return { contentType: "text", text: payload.body ?? "" };
+}
+
+function normalizeWahaAdMediaType(value: number | string | undefined): "image" | "video" | undefined {
+  if (value === 1 || value === "IMAGE") return "image";
+  if (value === 2 || value === "VIDEO") return "video";
+  if (typeof value === "string") {
+    const v = value.toUpperCase();
+    if (v.includes("IMAGE")) return "image";
+    if (v.includes("VIDEO")) return "video";
+  }
+  return undefined;
+}
+
+/** See IWahaMessagePayload._data doc — hypothesized shape, not confirmed.
+ *  Property key is `externalAdReply` (confirmed on whatsmeow's own
+ *  ContextInfo — the `ExternalAdReplyInfo` suffix names only the TYPE, see
+ *  Task 2's extractGoAdReferral). */
+export function extractWahaAdReferral(payload: IWahaMessagePayload): IAdReferral | undefined {
+  const msg = payload._data?.Message;
+  const info =
+    msg?.extendedTextMessage?.contextInfo?.externalAdReply ??
+    msg?.imageMessage?.contextInfo?.externalAdReply ??
+    msg?.videoMessage?.contextInfo?.externalAdReply;
+  if (!info) return undefined;
+  return {
+    sourceId: info.sourceID,
+    sourceUrl: info.sourceURL,
+    sourceType: info.sourceType,
+    headline: info.title,
+    body: info.body,
+    mediaType: normalizeWahaAdMediaType(info.mediaType),
+    mediaUrl: info.mediaURL,
+  };
+}
+
+export function parseWahaMessageEvent(
+  rawPayload: unknown,
+  accountId: string,
+): IInboundMessage | IOutboundEcho {
+  const payload = rawPayload as IWahaMessagePayload | null;
+  if (!payload?.id) {
+    throw new Error("WahaProvider: payload de mensagem irreconhecível (sem 'id')");
+  }
+  // `from` is the chat JID on BOTH directions — see file header. `to` is
+  // never populated on real fromMe:true payloads, so it's never read here.
+  const chat = payload.from;
+  if (NON_INDIVIDUAL_JID.test(chat ?? "")) {
+    throw new Error("WahaProvider: mensagem de grupo/broadcast/newsletter — ignorar");
+  }
+
+  const content = extractContent(payload);
+  const timestamp = tsToIso(payload.timestamp);
+
+  if (payload.fromMe) {
+    return {
+      type: "outbound-echo",
+      providerMessageId: payload.id,
+      // The recipient is `from` here (see file header — `to` is null on
+      // real fromMe:true payloads). Same @lid caveat as the inbound side,
+      // but on the destination: a recipient behind WhatsApp's privacy
+      // setting arrives as `<digits>@lid` — never fabricate a phone from
+      // those digits.
+      toPhone: LID_JID.test(payload.from ?? "") ? "" : jidToE164(payload.from),
+      toLid: LID_JID.test(payload.from ?? "") ? payload.from : undefined,
+      contentType: content.contentType,
+      text: content.text,
+      mediaId: content.mediaId,
+      mediaFilename: content.mediaFilename,
+      timestamp,
+      rawPayload,
+    };
+  }
+
+  return {
+    type: "message",
+    providerMessageId: payload.id,
+    // A sender behind WhatsApp's privacy setting arrives as `<digits>@lid` —
+    // NOT a phone. Blindly converting those digits fabricates an impossible
+    // "+phone", so surface the raw lid instead and let the webhook resolve it.
+    fromPhone: LID_JID.test(payload.from ?? "") ? "" : jidToE164(payload.from),
+    fromLid: LID_JID.test(payload.from ?? "") ? payload.from : undefined,
+    // WAHA resolves the account by sessionName (webhook envelope), not by phone.
+    toAccountPhone: "",
+    accountId,
+    contentType: content.contentType,
+    text: content.text,
+    mediaId: content.mediaId,
+    mediaFilename: content.mediaFilename,
+    adReferral: extractWahaAdReferral(payload),
+    timestamp,
+    rawPayload,
+  };
+}

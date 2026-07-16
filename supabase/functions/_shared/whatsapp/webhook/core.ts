@@ -17,14 +17,15 @@
 import { parseEvolutionInbound } from "../evolution/parser.ts";
 import { parseEvolutionGoInbound } from "../evolution-go/parser.ts";
 import { parseMetaInbound } from "../meta/parser.ts";
+import { parseOpenWaInbound } from "../openwa/parser.ts";
 import type { IWhatsAppProvider } from "../IWhatsAppProvider.ts";
-import type { IInboundMessage, IInboundStatus, IOutboundEcho } from "../types.ts";
+import type { IInboundMessage, IInboundStatus, IOutboundEcho, IAdReferral } from "../types.ts";
 import { MEDIA_DISCRIMINATOR_TYPES } from "../types.ts";
 
 export interface IAccountRecord {
   id: string;
   storeId: string;
-  provider: "meta" | "evolution" | "evolution-go";
+  provider: "meta" | "evolution" | "evolution-go" | "openwa";
   phoneNumber: string;
   credentialsRef: string;
   providerConfig: Record<string, unknown> | null;
@@ -62,6 +63,8 @@ export interface IWebhookDb {
   findEvolutionGoAccount(instanceId: string): Promise<IAccountRecord | null>;
   /** Like findEvolutionGoAccount but INCLUDING disconnected rows (used by the edge auth gate). */
   findEvolutionGoAccountAnyStatus(instanceId: string): Promise<IAccountRecord | null>;
+  /** openwa: by provider_config.sessionId (webhook envelope carries it as `sessionId`). */
+  findOpenWaAccount(sessionId: string): Promise<IAccountRecord | null>;
   /** Conditional status write; returns true when the row actually changed. */
   setAccountConnectionStatus(
     accountId: string,
@@ -123,7 +126,7 @@ export interface IWebhookDb {
     customerId: string,
     accountId: string,
     includeTerminal?: boolean,
-  ): Promise<{ id: string; status: string } | null>;
+  ): Promise<{ id: string; status: string; isSdrActive: boolean } | null>;
   createConversation(input: {
     storeId: string;
     /** Exactly one of customerId/leadId is set — mirrors the app-level invariant. */
@@ -140,7 +143,7 @@ export interface IWebhookDb {
     conversationId: string;
     /** Feeds messages.author_id (free text, no FK) — customer OR lead id. */
     authorId: string;
-    provider: "meta" | "evolution" | "evolution-go";
+    provider: "meta" | "evolution" | "evolution-go" | "openwa";
     text: string;
     mediaType: string | null;
     /** Original document filename (messages.media_filename). */
@@ -150,6 +153,10 @@ export interface IWebhookDb {
     sentAt: string;
   }): Promise<{ id: string }>;
   bumpConversation(conversationId: string, lastMessageAt: string): Promise<void>;
+  /** Best-effort attribution write (ad-source detection, PRD n/a) — sets/
+   *  overwrites conversations.ad_referral with the LATEST inbound referral
+   *  seen. Only ever called when parsed.adReferral is present. */
+  setConversationAdReferral(conversationId: string, adReferral: IAdReferral): Promise<void>;
   /**
    * Reopens a closed (resolvida/arquivada) conversation on customer inbound
    * (spec 2026-07-03 §1.5): status→'aguardando', unassigns the owner, bumps
@@ -160,7 +167,7 @@ export interface IWebhookDb {
   /** Mirrored phone-sent message (outbound echo) — direction out, status sent. */
   insertOutboundEchoMessage(input: {
     conversationId: string;
-    provider: "meta" | "evolution" | "evolution-go";
+    provider: "meta" | "evolution" | "evolution-go" | "openwa";
     text: string;
     mediaType: string | null;
     mediaFilename?: string | null;
@@ -220,7 +227,7 @@ export interface IProcessResult {
 }
 
 export interface IProcessArgs {
-  provider: "meta" | "evolution" | "evolution-go";
+  provider: "meta" | "evolution" | "evolution-go" | "openwa";
   rawPayload: unknown;
   db: IWebhookDb;
   /** Builds the concrete engine for the resolved account (media download). */
@@ -240,6 +247,14 @@ export interface IProcessArgs {
     phone: string;
     account: IAccountRecord;
   }) => void;
+  /**
+   * Fire-and-forget hook invoked when an inbound message lands on a
+   * conversation the SDR is already driving (`is_sdr_active=true`). The Edge
+   * wiring calls sdr-respond in the background to continue the turn. MUST
+   * NOT block or throw — the webhook stays fail-closed and answers 200 fast
+   * regardless (SDR Parte B, 2026-07-15).
+   */
+  onSdrTurn?: (input: { conversationId: string }) => void;
   /**
    * Optional sink for raw Evolution Go events we don't yet ingest but want to
    * inspect — the HistorySync ingestion spike (Phase 2, Etapa A). Best-effort:
@@ -307,6 +322,24 @@ function extractEvolutionInstance(rawPayload: unknown): string {
 
 function extractEvolutionGoInstance(rawPayload: unknown): string {
   return String((rawPayload as { instanceId?: string } | null)?.instanceId ?? "");
+}
+
+/**
+ * openwa's webhook envelope carries the session id as `sessionId` (confirmed
+ * live 2026-07-07 — matches `provider_config.sessionId`, the id `POST
+ * /api/sessions` returns). Falls back to the nested message record's own
+ * `sessionId` (the record carries it too — confirmed via GET /messages), so
+ * an envelope drift or a bare-record delivery still resolves the account.
+ * No connection-lifecycle handling is implemented for openwa v1 (the
+ * `session.status`/`session.qr` events are dropped by the parser as
+ * unsupported — see ../openwa/parser); only message/ack events resolve an
+ * account, via findOpenWaAccount below.
+ */
+function extractOpenWaInstance(rawPayload: unknown): string {
+  const payload = rawPayload as
+    | { sessionId?: string; data?: { sessionId?: string } | null }
+    | null;
+  return payload?.sessionId ?? payload?.data?.sessionId ?? "";
 }
 
 /**
@@ -522,7 +555,9 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
         ? parseMetaInbound(rawPayload, "")
         : provider === "evolution-go"
           ? parseEvolutionGoInbound(rawPayload, "")
-          : parseEvolutionInbound(rawPayload, "");
+          : provider === "openwa"
+            ? parseOpenWaInbound(rawPayload, "")
+            : parseEvolutionInbound(rawPayload, "");
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     warn("webhook payload ignored", { provider, detail });
@@ -549,7 +584,9 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
       ? extractMetaPhoneNumberId(rawPayload)
       : provider === "evolution-go"
         ? extractEvolutionGoInstance(rawPayload)
-        : extractEvolutionInstance(rawPayload);
+        : provider === "openwa"
+          ? extractOpenWaInstance(rawPayload)
+          : extractEvolutionInstance(rawPayload);
   const eventKey =
     parsed.type === "status"
       ? `whatsapp:${provider}:${instanceScope}:${parsed.providerMessageId}:${parsed.status}`
@@ -622,7 +659,9 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
     const account =
       provider === "evolution-go"
         ? await db.findEvolutionGoAccount(extractEvolutionGoInstance(rawPayload))
-        : await db.findEvolutionAccount(extractEvolutionInstance(rawPayload));
+        : provider === "openwa"
+          ? await db.findOpenWaAccount(extractOpenWaInstance(rawPayload))
+          : await db.findEvolutionAccount(extractEvolutionInstance(rawPayload));
     if (!account) {
       warn("echo for unknown account", { provider });
       return { outcome: "account-not-found" };
@@ -722,7 +761,9 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
         )
       : provider === "evolution-go"
         ? await db.findEvolutionGoAccount(extractEvolutionGoInstance(rawPayload))
-        : await db.findEvolutionAccount(extractEvolutionInstance(rawPayload));
+        : provider === "openwa"
+          ? await db.findOpenWaAccount(extractOpenWaInstance(rawPayload))
+          : await db.findEvolutionAccount(extractEvolutionInstance(rawPayload));
   if (!account) {
     warn("webhook for unknown account", { provider, toAccountPhone: parsed.toAccountPhone });
     return { outcome: "account-not-found" };
@@ -782,6 +823,17 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
     didReopen = true;
   }
 
+  // SDR continuation (Parte B, 2026-07-15): fire-and-forget — never blocks
+  // or affects the fail-closed response — the moment the conversation state
+  // is known but before the current message is persisted (same point where
+  // didReopen above is decided). Lead conversations always carry an assigned
+  // seller (rotation), so sdr-backstop-tick's `assigned_seller_id IS NULL`
+  // filter never activates SDR on them — this check is a no-op for leads by
+  // construction, not a gap (Frente 2 2026-07-13 x SDR Parte B 2026-07-15).
+  if (conversation && !resolved.created && (conversation as { isSdrActive?: boolean }).isSdrActive) {
+    args.onSdrTurn?.({ conversationId: conversation.id });
+  }
+
   // 7. Persist message (RF-050) BEFORE any media work — media now or never,
   //    but the message record never depends on the download succeeding.
   const message = await db.insertInboundMessage({
@@ -802,9 +854,25 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
   }
 
   // Idempotency mark RIGHT AFTER the message lands (RNF-002): a provider
-  // retry from here on can never duplicate it. Media/audit below are
-  // best-effort and must not reopen the duplication window.
+  // retry from here on can never duplicate it. Media/audit/ad-referral below
+  // are best-effort and must not reopen the duplication window.
   await db.markProcessed(eventKey, traceId);
+
+  // Ad-source attribution (best-effort, AFTER the idempotency mark so a
+  // transient failure here can never cause the message itself to be
+  // reprocessed): overwrite with the LATEST referral seen — a customer can
+  // return via a different ad months later, and the conversation should
+  // reflect that, not freeze on the first one.
+  if (parsed.adReferral) {
+    try {
+      await db.setConversationAdReferral(conversation.id, parsed.adReferral);
+    } catch (error) {
+      warn("ad-referral attribution failed", {
+        conversationId: conversation.id,
+        detail: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
 
   // 8. Synchronous media download (RF-070, RNF-006): Meta's URL expires in
   //    ~5min, so it is now or marked failed for manual retry.

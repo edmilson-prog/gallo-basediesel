@@ -17,7 +17,7 @@
 
 import { toE164 } from "../phone.ts";
 import { encodeBaileysContact, encodeBaileysLocation } from "../contentFormat.ts";
-import type { IInboundMessage, IInboundStatus, InboundContentType, IOutboundEcho } from "../types.ts";
+import type { IInboundMessage, IInboundStatus, InboundContentType, IOutboundEcho, IAdReferral } from "../types.ts";
 
 interface IEvolutionEvent {
   event?: string;
@@ -27,13 +27,29 @@ interface IEvolutionEvent {
   data?: IEvolutionMessageData;
 }
 
+/** Baileys `WAProto.IExternalAdReplyInfo` — casing is a best-effort match to
+ *  the public Baileys types, NOT confirmed against a live payload yet. */
+interface IEvolutionExternalAdReplyInfo {
+  title?: string;
+  body?: string;
+  sourceId?: string;
+  sourceUrl?: string;
+  sourceType?: string;
+  mediaType?: number | string;
+  mediaUrl?: string;
+  ctwaClid?: string;
+}
+interface IEvolutionContextInfo {
+  externalAdReplyInfo?: IEvolutionExternalAdReplyInfo;
+}
+
 /** Raw Evolution/Baileys message body — shared with the history import core. */
 export interface IEvolutionRawMessage {
   conversation?: string;
-  extendedTextMessage?: { text?: string };
-  imageMessage?: { caption?: string; mimetype?: string };
+  extendedTextMessage?: { text?: string; contextInfo?: IEvolutionContextInfo };
+  imageMessage?: { caption?: string; mimetype?: string; contextInfo?: IEvolutionContextInfo };
   audioMessage?: { mimetype?: string };
-  videoMessage?: { caption?: string; mimetype?: string };
+  videoMessage?: { caption?: string; mimetype?: string; contextInfo?: IEvolutionContextInfo };
   documentMessage?: { caption?: string; fileName?: string; mimetype?: string };
   locationMessage?: {
     degreesLatitude?: number;
@@ -110,6 +126,36 @@ export function extractEvolutionContent(message: IEvolutionRawMessage): IEvoluti
     return { contentType: "contact", text: encodeBaileysContact(contactNode) };
   }
   return { contentType: "unknown" };
+}
+
+function normalizeAdMediaType(value: number | string | undefined): "image" | "video" | undefined {
+  if (value === 1 || value === "IMAGE") return "image";
+  if (value === 2 || value === "VIDEO") return "video";
+  if (typeof value === "string") {
+    const v = value.toUpperCase();
+    if (v.includes("IMAGE")) return "image";
+    if (v.includes("VIDEO")) return "video";
+  }
+  return undefined;
+}
+
+/** Baileys casing best-effort — see IEvolutionExternalAdReplyInfo. Returns
+ *  undefined (never throws) whenever externalAdReplyInfo is absent/malformed. */
+export function extractEvolutionAdReferral(message: IEvolutionRawMessage): IAdReferral | undefined {
+  const info =
+    message.extendedTextMessage?.contextInfo?.externalAdReplyInfo ??
+    message.imageMessage?.contextInfo?.externalAdReplyInfo ??
+    message.videoMessage?.contextInfo?.externalAdReplyInfo;
+  if (!info) return undefined;
+  return {
+    sourceId: info.sourceId,
+    sourceUrl: info.sourceUrl,
+    sourceType: info.sourceType,
+    headline: info.title,
+    body: info.body,
+    mediaType: normalizeAdMediaType(info.mediaType),
+    mediaUrl: info.mediaUrl,
+  };
 }
 
 /** JIDs that are NOT individual 1:1 chats (groups, broadcast lists, newsletters). */
@@ -200,6 +246,7 @@ export function parseEvolutionInbound(
     mediaFilename: content.mediaFilename,
     // Contact's WhatsApp profile name — used to name auto-created customers.
     senderName: data.pushName,
+    adReferral: extractEvolutionAdReferral(data.message ?? {}),
     timestamp: timestampToIso(data.messageTimestamp),
     rawPayload,
   };

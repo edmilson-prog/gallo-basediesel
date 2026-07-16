@@ -36,7 +36,7 @@ function makeDb(state: IFakeState): IImportDb {
       state.customers.push(customer);
       return { id: customer.id };
     },
-    findOpenConversation: async (customerId) => {
+    findConversation: async (customerId) => {
       const found = state.conversations.find((c) => c.customerId === customerId);
       return found ? { id: found.id as string } : null;
     },
@@ -380,6 +380,34 @@ describe("landNormalizedChat", () => {
     expect(stats.customersCreated).toBe(0);
     expect(stats.conversationsCreated).toBe(0);
     expect(state.messages.map((m) => m.providerMessageId)).toEqual(["Y1"]);
+  });
+
+  it("reuses an existing CLOSED conversation instead of spawning a duplicate", async () => {
+    // Regression test: a migrated account's already-resolved conversations
+    // must absorb re-imported history, not fork into a second conversation
+    // for the same customer (found 2026-07-14 on a real Evolution→WAHA
+    // migration — the import used to filter to open-only, unlike the live
+    // webhook's customer-inbound reopen rule).
+    const state = emptyState();
+    state.customers.push({ id: "cust-existing", phoneDigits: "5555988887777" });
+    state.conversations.push({
+      id: "conv-closed",
+      customerId: "cust-existing",
+      status: "resolvida",
+    });
+    const stats = emptyImportStats();
+    await landNormalizedChat({
+      account: ACCOUNT,
+      db: makeDb(state),
+      phone: "+5555988887777",
+      normalized: [normRec("Z1", "in", 1765400000)],
+      stats,
+    });
+    expect(stats.conversationsCreated).toBe(0);
+    expect(state.conversations).toHaveLength(1);
+    expect(state.conversations[0]).toMatchObject({ id: "conv-closed", status: "resolvida" });
+    const landed = state.messages.find((m) => m.providerMessageId === "Z1");
+    expect(landed?.conversationId).toBe("conv-closed");
   });
 
   it("creates nothing when every record is already known (idempotent re-run)", async () => {

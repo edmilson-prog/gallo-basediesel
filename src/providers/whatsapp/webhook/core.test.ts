@@ -42,12 +42,14 @@ interface IFakeState {
     accountId: string;
     open: boolean;
     status?: string;
+    isSdrActive?: boolean;
   }>;
   messages: Array<Record<string, unknown>>;
   statusApplied: Array<Record<string, unknown>>;
   uploads: string[];
   audits: Array<Record<string, unknown>>;
   bumps: string[];
+  adReferrals: Array<{ conversationId: string; adReferral: unknown }>;
   reopens: Array<{ conversationId: string; lastMessageAt: string }>;
   touches: Array<{ conversationId: string; lastMessageAt: string }>;
   mediaSet: Array<{ messageId: string; mediaUrl: string | null; status: string }>;
@@ -75,6 +77,10 @@ function makeFakeDb(state: IFakeState, opts?: { knownOutboundId?: string }): IWe
         : null,
     findEvolutionGoAccountAnyStatus: async (instanceId) =>
       instanceId === "inst-9" ? { ...ACCOUNT, provider: "evolution-go" as const } : null,
+    findOpenWaAccount: async (instanceName) =>
+      instanceName === "gallo-matriz" && state.accountStatus !== "disconnected"
+        ? { ...ACCOUNT, provider: "openwa" as const }
+        : null,
     setAccountConnectionStatus: async (_accountId, status) => {
       if (state.accountStatus === status) return false;
       state.accountStatus = status;
@@ -150,7 +156,13 @@ function makeFakeDb(state: IFakeState, opts?: { knownOutboundId?: string }): IWe
           c.accountId === accountId &&
           (includeTerminal || !["resolvida", "arquivada"].includes(c.status ?? "")),
       );
-      return found ? { id: found.id, status: found.status ?? "aguardando" } : null;
+      return found
+        ? {
+            id: found.id,
+            status: found.status ?? "aguardando",
+            isSdrActive: found.isSdrActive ?? false,
+          }
+        : null;
     },
     createConversation: async ({ customerId, leadId, accountId, status, assignedSellerId }) => {
       const conversation = {
@@ -180,6 +192,9 @@ function makeFakeDb(state: IFakeState, opts?: { knownOutboundId?: string }): IWe
     },
     bumpConversation: async (conversationId) => {
       state.bumps.push(conversationId);
+    },
+    setConversationAdReferral: async (conversationId, adReferral) => {
+      state.adReferrals.push({ conversationId, adReferral });
     },
     reopenConversation: async (conversationId, lastMessageAt) => {
       state.reopens.push({ conversationId, lastMessageAt });
@@ -228,6 +243,7 @@ function emptyState(): IFakeState {
     uploads: [],
     audits: [],
     bumps: [],
+    adReferrals: [],
     reopens: [],
     touches: [],
     mediaSet: [],
@@ -1314,5 +1330,100 @@ describe("processWebhookEvent — evolution-go", () => {
       "failed to capture raw evolution-go event",
       expect.anything(),
     );
+  });
+});
+
+describe("processWebhookEvent — openwa", () => {
+  const openwaMessage = (overrides?: Record<string, unknown>) => ({
+    event: "message.received",
+    sessionId: "gallo-matriz",
+    data: {
+      sessionId: "gallo-matriz",
+      waMessageId: "false_5555922222222@c.us_OWA1",
+      chatId: "5555922222222@c.us",
+      chatName: "Cliente OpenWA",
+      from: "5555922222222@c.us",
+      to: "5555911111111@c.us",
+      body: "olá pela openwa",
+      type: "text",
+      direction: "incoming",
+      timestamp: 1765400000,
+      metadata: null,
+      status: "sent",
+      ...overrides,
+    },
+  });
+
+  it("creates the message with an eventKey scoped by the SESSION id (not the evolution instance)", async () => {
+    const state = emptyState();
+    const result = await run(state, openwaMessage(), { provider: "openwa" });
+
+    expect(result.outcome).toBe("message-created");
+    expect(state.messages[0]).toMatchObject({
+      provider: "openwa",
+      text: "olá pela openwa",
+      providerMessageId: "false_5555922222222@c.us_OWA1",
+    });
+    // Regression: openwa used to fall into the EVOLUTION instance extractor
+    // (payload.instance = ""), collapsing eventKeys across sessions.
+    expect(
+      state.processed.has("whatsapp:openwa:gallo-matriz:false_5555922222222@c.us_OWA1"),
+    ).toBe(true);
+  });
+
+  it("resolves the account from the nested record sessionId when the envelope top level lacks it", async () => {
+    const state = emptyState();
+    const payload = openwaMessage();
+    delete (payload as { sessionId?: string }).sessionId;
+
+    const result = await run(state, payload, { provider: "openwa" });
+    expect(result.outcome).toBe("message-created");
+  });
+
+  it("still drops @lid senders the edge could not resolve (no junk customers)", async () => {
+    const state = emptyState();
+    const result = await run(
+      state,
+      openwaMessage({ from: "213202294059192@lid", chatId: "213202294059192@lid" }),
+      { provider: "openwa" },
+    );
+    expect(result.outcome).toBe("ignored");
+    expect(state.customers).toHaveLength(0);
+  });
+});
+
+describe("processWebhookEvent — ad referral attribution", () => {
+  it("sets conversations.ad_referral when the inbound message carries one", async () => {
+    const state = emptyState();
+    const result = await run(state, {
+      event: "messages.upsert",
+      instance: "gallo-matriz",
+      sender: "5555911111111@s.whatsapp.net",
+      data: {
+        key: { id: "ADMSG1", remoteJid: "5555988887777@s.whatsapp.net", fromMe: false },
+        message: {
+          extendedTextMessage: {
+            text: "Opa! Vim do anúncio",
+            contextInfo: {
+              externalAdReplyInfo: { title: "Módulos Volvo", sourceType: "ad" },
+            },
+          },
+        },
+        messageTimestamp: 1765400000,
+      },
+    });
+    expect(result.outcome).toBe("message-created");
+    expect(state.adReferrals).toEqual([
+      {
+        conversationId: result.conversationId,
+        adReferral: { headline: "Módulos Volvo", sourceType: "ad" },
+      },
+    ]);
+  });
+
+  it("does not call setConversationAdReferral for a plain message", async () => {
+    const state = emptyState();
+    await run(state, evolutionTextEvent());
+    expect(state.adReferrals).toEqual([]);
   });
 });

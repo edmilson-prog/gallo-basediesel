@@ -188,6 +188,66 @@ describe("parseEvolutionInbound — document filename (mediaFilename)", () => {
   });
 });
 
+describe("parseEvolutionInbound — ad referral (externalAdReplyInfo)", () => {
+  it("extracts adReferral from an extendedTextMessage contextInfo (Baileys casing)", () => {
+    const parsed = parseEvolutionInbound(
+      upsertEvent({
+        message: {
+          extendedTextMessage: {
+            text: "Opa! Vim do anúncio",
+            contextInfo: {
+              externalAdReplyInfo: {
+                title: "Módulos Volvo — instale em minutos",
+                body: "Fale com a GALLO",
+                sourceId: "120210000000000",
+                sourceType: "ad",
+                sourceUrl: "https://fb.me/xyz",
+                mediaType: 1,
+                mediaUrl: "https://scontent.example/ad.jpg",
+                ctwaClid: "AfE...clid",
+              },
+            },
+          },
+        },
+      }),
+      "",
+    ) as { adReferral?: unknown };
+    expect(parsed.adReferral).toEqual({
+      sourceId: "120210000000000",
+      sourceUrl: "https://fb.me/xyz",
+      sourceType: "ad",
+      headline: "Módulos Volvo — instale em minutos",
+      body: "Fale com a GALLO",
+      mediaType: "image",
+      mediaUrl: "https://scontent.example/ad.jpg",
+    });
+  });
+
+  it("leaves adReferral undefined for a plain message", () => {
+    const parsed = parseEvolutionInbound(upsertEvent({ message: { conversation: "oi" } }), "") as {
+      adReferral?: unknown;
+    };
+    expect(parsed.adReferral).toBeUndefined();
+  });
+
+  it("normalizes a whatsmeow-style mediaType enum string without throwing", () => {
+    const parsed = parseEvolutionInbound(
+      upsertEvent({
+        message: {
+          extendedTextMessage: {
+            text: "Opa!",
+            contextInfo: {
+              externalAdReplyInfo: { title: "Anúncio", mediaType: "ContextInfo_ExternalAdReplyInfo_IMAGE" },
+            },
+          },
+        },
+      }),
+      "",
+    ) as { adReferral?: { mediaType?: string } };
+    expect(parsed.adReferral?.mediaType).toBe("image");
+  });
+});
+
 describe("parseEvolutionInbound — regression", () => {
   it("still parses a customer text message as inbound", () => {
     const parsed = parseEvolutionInbound(upsertEvent({}), "");

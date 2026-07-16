@@ -55,7 +55,7 @@ export const INBOX_STRINGS = {
   // Status filter
   statusLabel: "Status",
   statusOptions: {
-    all: "Todas (exceto arquivadas)",
+    all: "Todas (exceto fechadas)",
     aguardando: "Aguardando",
     em_andamento: "Em atendimento",
     aguardando_cliente: "Aguardando cliente",
@@ -302,7 +302,9 @@ export const CONVERSATION_STRINGS = {
   downloadAudio: "Baixar áudio",
   downloadVideo: "Baixar vídeo",
   downloadDocument: "Baixar documento",
-  audioTranscription: "Transcrição em breve",
+  transcribingAudio: "Transcrevendo…",
+  transcriptionUnavailable: "Transcrição indisponível",
+  retryTranscription: "Tentar transcrever de novo",
   imageCaption: (caption: string) => caption || "Foto",
   location: {
     label: "Localização",
@@ -311,6 +313,7 @@ export const CONVERSATION_STRINGS = {
   },
   contact: {
     label: "Contato",
+    sharedLabel: "Contato compartilhado",
     copyNumber: "Copiar número",
     copied: "Número copiado",
     noPhone: "Sem telefone",
@@ -368,6 +371,9 @@ export const CONVERSATION_STRINGS = {
   attachTooLarge: (maxMb: number) => `Arquivo acima de ${maxMb} MB — escolha um arquivo menor.`,
   attachUploadFailed: "Não foi possível enviar o anexo. Tente novamente.",
   attachUploading: "Enviando anexo…",
+  attachDropHint: "Solte o arquivo aqui para anexar",
+  attachUnsupportedType: "Tipo de arquivo não suportado. Envie imagem, áudio ou documento.",
+  attachMultipleIgnored: "Apenas o primeiro arquivo foi anexado — os demais foram ignorados.",
   emoji: "Inserir emoji",
   templatesButton: "Templates",
   templatesUnavailable: "Disponível no provider Meta",

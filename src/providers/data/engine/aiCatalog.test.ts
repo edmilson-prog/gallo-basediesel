@@ -22,6 +22,8 @@ describe("aiCatalog", () => {
   it("preços estão na unidade por-1k (faixa plausível, guarda contra erro de 1000x)", () => {
     for (const list of Object.values(MODELS)) {
       for (const m of list) {
+        // Skip models with undefined pricing (0/0, e.g. whisper-1 where price comes from provider response)
+        if (isModelPriceUndefined(m)) continue;
         expect(m.inputPricePer1kUsd).toBeGreaterThan(0);
         expect(m.inputPricePer1kUsd).toBeLessThan(1); // $/1k tokens; >$1/1k seria erro de unidade
         expect(m.outputPricePer1kUsd).toBeLessThan(1);
@@ -44,6 +46,20 @@ describe("aiCatalog", () => {
     const s = buildDefaultAiSettings("mock");
     expect(s.masterEnabled).toBe(true);
     expect(s.providers.some((p) => p.status === "configured")).toBe(true);
+  });
+
+  it("buildDefaultAiSettings inclui a rota audio_transcription (desligada) nos dois ambientes", () => {
+    for (const env of ["mock", "supabase"] as const) {
+      const s = buildDefaultAiSettings(env);
+      const route = s.routing.find((r) => r.feature === "audio_transcription");
+      expect(route).toBeDefined();
+      expect(route!.enabled).toBe(false);
+      expect(route!.providerId).toBe("openrouter");
+    }
+  });
+
+  it("MODELS.openrouter inclui um modelo de transcrição", () => {
+    expect(modelsFor("openrouter").some((m) => m.id === "openai/whisper-1")).toBe(true);
   });
 });
 

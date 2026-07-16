@@ -88,7 +88,9 @@ export function ImportConversationsDialog({
           <DialogTitle>Importar conversas do WhatsApp</DialogTitle>
           <DialogDescription>
             {account
-              ? `Conta ${account.label} — traz para o Inbox o histórico que o servidor Evolution tem armazenado.`
+              ? `Conta ${account.label} — traz para o Inbox o histórico que o ${
+                  account.provider === "waha" ? "servidor WAHA" : "servidor Evolution"
+                } tem armazenado.`
               : ""}
           </DialogDescription>
         </DialogHeader>

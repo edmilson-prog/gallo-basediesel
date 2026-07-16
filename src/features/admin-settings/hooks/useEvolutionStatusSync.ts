@@ -4,7 +4,8 @@ import { isEvolutionAccountConfigured } from "@/shared/utils/whatsappProvider";
 import { getEvolutionState } from "../api/whatsappConnect";
 
 /**
- * Silent connection-status polling for Evolution-family accounts (v2 + Go) (SIGPRO-style).
+ * Silent connection-status polling for the QR-paired session engines
+ * (Evolution v2, Evolution Go and OpenWA) (SIGPRO-style).
  *
  * Every 30s while the tab is visible — plus on window focus and via the
  * manual `checkNow` trigger — asks the whatsapp-connect edge for the live
@@ -33,9 +34,10 @@ export function useEvolutionStatusSync(
   const checkNow = useCallback(async () => {
     if (!enabled || inFlightRef.current) return;
     if (typeof document !== "undefined" && document.hidden) return;
-    // A classic Evolution account is pollable once it has a baseUrl; a Go account
-    // once it is paired (instanceId) — its baseUrl lives in the server registry,
-    // NOT in providerConfig, so the old `baseUrl` gate silently excluded Go.
+    // A classic Evolution account is pollable once it has a baseUrl; a Go/OpenWA
+    // account once it is paired (instanceId/sessionId) — their baseUrl lives in a
+    // server registry, NOT in providerConfig, so the old `baseUrl` gate silently
+    // excluded them.
     const targets = (accountsRef.current ?? []).filter((account) =>
       isEvolutionAccountConfigured(account),
     );

@@ -32,11 +32,6 @@ public/CHANGELOG.md
 # Superpowers brainstorming companion (visual mockups, transient sessions)
 .superpowers/
 
-# graphify knowledge graph — regenerated locally by the post-commit/post-checkout
-# git hooks (graphify hook install) and by `graphify update .`. graph.json alone
-# is 20MB+ and churns on every commit; keep it out of history, not in it.
-graphify-out/
-
 # Large source assets (kept out of git; use Git LFS if you need to version them)
 docs/images/*.pdf
 docs/images/*.mp4

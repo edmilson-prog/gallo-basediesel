@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import { useDeployWatcher } from "../hooks/useDeployWatcher";
 import { hardReload } from "../lib/hardReload";
+import { playUpdateAvailableSound } from "../lib/notification-sound";
 import { shouldReopenPrompt } from "../engine/deployGate";
 import { VERSION_UPDATE_I18N } from "../i18n/pt-BR";
 
@@ -21,6 +22,7 @@ export function VersionUpdatePrompt() {
   const { updateReady } = useDeployWatcher();
   const [dismissedAt, setDismissedAt] = useState<number | null>(null);
   const i18n = VERSION_UPDATE_I18N.prompt;
+  const isCardVisible = updateReady && dismissedAt === null;
 
   useEffect(() => {
     if (!updateReady || dismissedAt === null) return;
@@ -31,6 +33,10 @@ export function VersionUpdatePrompt() {
     }, REOPEN_TICK_MS);
     return () => clearInterval(id);
   }, [updateReady, dismissedAt]);
+
+  useEffect(() => {
+    if (isCardVisible) playUpdateAvailableSound();
+  }, [isCardVisible]);
 
   if (!updateReady) return null;
 

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { IConversation, ICustomer, ISeller, IWhatsAppAccount } from "@/shared/types";
 import { AssigneeChip } from "@/features/conversations/components/AssigneeChip";
 import { OriginChip } from "@/features/conversations/components/OriginChip";
+import { AdSourceBadge } from "@/features/conversations/components/AdSourceBadge";
 import { StatusControl } from "@/features/conversations/components/status/StatusControl";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { ConversationTagChip } from "@/features/conversations/components/tags/ConversationTagChip";
@@ -88,6 +89,21 @@ export function AtendimentoTab({
         {whatsappAccount && (
           <ContextRow label={COPY.origin}>
             <OriginChip account={whatsappAccount} variant="label" />
+          </ContextRow>
+        )}
+        {conversation.adReferral && (
+          <ContextRow label={COPY.adSource}>
+            <span className="flex items-center gap-1.5">
+              <AdSourceBadge />
+              {conversation.adReferral.headline && (
+                <span
+                  className="max-w-[160px] truncate text-muted-foreground"
+                  title={conversation.adReferral.headline}
+                >
+                  &quot;{conversation.adReferral.headline}&quot;
+                </span>
+              )}
+            </span>
           </ContextRow>
         )}
         <div className="py-2 text-xs">

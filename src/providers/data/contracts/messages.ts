@@ -99,4 +99,13 @@ export interface IMessagesProvider {
    * the caller can't access are simply absent from the result.
    */
   listLastMessages(conversationIds: ID[]): Promise<IMessage[]>;
+  /**
+   * Re-dispara a transcrição de uma mensagem de áudio inbound cuja tentativa
+   * anterior falhou (`transcriptionStatus === 'failed'`). Sob demanda, disparado
+   * pelo botão de retry na bolha — sem retry automático em loop. O mock nunca
+   * marca `transcriptionStatus: 'failed'` em nenhuma mensagem gerada, então este
+   * método é inalcançável pela UI em demonstração; existe só para satisfazer o
+   * contrato.
+   */
+  retryTranscription(messageId: ID): Promise<void>;
 }
