@@ -64,9 +64,20 @@ describe("resolveNumberCheckWithNineDigitFallback", () => {
   });
 
   it("falls back to the original result when the candidate also fails", async () => {
-    const check = async () => ({ status: "no_whatsapp" as const });
+    const calls: string[] = [];
+    const check = async (_accountId: string, phoneDigits: string) => {
+      calls.push(phoneDigits);
+      // Original call returns skipped
+      if (phoneDigits === "555481572275") {
+        return { status: "skipped" as const };
+      }
+      // Candidate call returns no_whatsapp
+      return { status: "no_whatsapp" as const };
+    };
     const result = await resolveNumberCheckWithNineDigitFallback("acc-1", "555481572275", check);
-    expect(result).toEqual({ status: "no_whatsapp" });
+    expect(calls).toEqual(["555481572275", "5554981572275"]);
+    // The result should be the ORIGINAL (first) result, not the retry's
+    expect(result).toEqual({ status: "skipped" });
   });
 
   it("does not retry a 13-digit number (no ambiguous candidate)", async () => {
