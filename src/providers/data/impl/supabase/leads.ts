@@ -2,6 +2,7 @@ import type { ID, ILead, ILeadStage, LeadOrigin, LeadTemperature, Money } from "
 import type { IListLeadsParams, ILeadsProvider } from "../../contracts/leads";
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
+import { buildDigitSearchCandidates } from "@/shared/utils/digitSearch";
 
 /**
  * Supabase implementation of {@link ILeadsProvider} (PRD-115+).
@@ -114,6 +115,22 @@ function createInputToRow(
   };
 }
 
+/**
+ * Builds the PostgREST `.or()` expression for the free-text lead search, or
+ * `null` when the term is blank — same mechanics as buildCustomerSearchOr
+ * (delimiters neutralized, digit candidates tolerate the BR 9th digit).
+ */
+export function buildLeadSearchOr(search: string): string | null {
+  const term = search.trim();
+  if (!term) return null;
+  const safe = term.replace(/[,()]/g, " ");
+  const filters = [`name.ilike.*${safe}*`, `phone.ilike.*${safe}*`, `email.ilike.*${safe}*`];
+  for (const candidate of buildDigitSearchCandidates(term)) {
+    filters.push(`phone_digits.ilike.*${candidate}*`);
+  }
+  return filters.join(",");
+}
+
 export const supabaseLeadsProvider: ILeadsProvider = {
   async list(params: IListLeadsParams = {}): Promise<IPaginatedResult<ILead>> {
     let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
@@ -123,8 +140,8 @@ export const supabaseLeadsProvider: ILeadsProvider = {
     if (params.stageId !== undefined) query = query.eq("stage->>id", params.stageId);
     if (params.temperature !== undefined) query = query.eq("temperature", params.temperature);
     if (params.search) {
-      const term = `%${params.search}%`;
-      query = query.or(`name.ilike.${term},phone.ilike.${term},email.ilike.${term}`);
+      const orExpr = buildLeadSearchOr(params.search);
+      if (orExpr) query = query.or(orExpr);
     }
 
     const page = Math.max(1, Math.floor(params.page ?? 1));
