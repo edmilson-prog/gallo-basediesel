@@ -96,20 +96,30 @@ servePost(async (req, ctx) => {
   // 1. Conversation + customer.
   const { data: conv } = await admin
     .from("conversations")
-    .select("id, store_id, customer_id, is_sdr_active")
+    .select("id, store_id, customer_id, is_sdr_active, whatsapp_account_id")
     .eq("id", conversationId)
     .maybeSingle();
   if (!conv) return json({ skipped: "conversation not found" }, 200);
   if (!conv.is_sdr_active) return json({ skipped: "sdr not active on this conversation" }, 200);
   const storeId = conv.store_id as string;
 
-  // 2. sdr_settings kill-switch.
+  // 2. sdr_settings kill-switch (store-wide).
   const { data: pilot } = await admin
     .from("sdr_settings")
     .select("sdr_enabled")
     .eq("store_id", storeId)
     .maybeSingle();
   if (!pilot?.sdr_enabled) return json({ skipped: "sdr disabled for this store" }, 200);
+
+  // 2.5. Per-instance opt-in (Parte C) — narrower gate on top of the store-wide switch.
+  const whatsappAccountId = conv.whatsapp_account_id as string | null;
+  if (!whatsappAccountId) return json({ skipped: "conversation has no whatsapp account" }, 200);
+  const { data: account } = await admin
+    .from("whatsapp_accounts")
+    .select("sdr_enabled")
+    .eq("id", whatsappAccountId)
+    .maybeSingle();
+  if (!account?.sdr_enabled) return json({ skipped: "sdr disabled for this instance" }, 200);
 
   // 3. ai_settings routing.
   const { data: aiSettings } = await admin
