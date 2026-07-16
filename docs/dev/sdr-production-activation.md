@@ -159,7 +159,7 @@ coisa que liga o comportamento nas conversas reais.
 
 ## Gaps encontrados durante a implementação (não estavam no plano original)
 
-Quatro bugs reais foram achados e corrigidos ao longo da implementação desta
+Cinco bugs reais foram achados e corrigidos ao longo da implementação desta
 Parte B — vale documentá-los para quem for mexer nesse código depois não
 precisar redescobrir na marra.
 
@@ -240,6 +240,30 @@ retornada é não-vazia antes de incrementar `activated` e disparar o fetch —
 um array vazio significa que esta execução perdeu a corrida (uma concorrente
 já flipou a linha), e o loop simplesmente pula pra próxima conversa sem
 disparar nada.
+
+### 5. Reatribuição do handoff sem guarda contra retomada humana no meio do turno
+
+O Step 14 do `sdr-respond` já reconferia `is_sdr_active` direto do banco
+imediatamente antes de enviar a resposta — porque a chamada ao LLM pode levar
+até 60s, tempo em que um humano real pode assumir a conversa. Essa guarda só
+protegia o *envio*: o Step 15 (branch de handoff) continuava reatribuindo a
+conversa (`assigned_seller_id`/`is_sdr_active=false`) incondicionalmente,
+podendo sobrescrever a retomada humana.
+
+**Fix:** acrescentado `.eq("is_sdr_active", true)` na atualização de
+reatribuição (espelhando a guarda de idempotência do `sdr-backstop-tick`) +
+`.select("id")` para distinguir "falhou de verdade" (`ctx.log.error`) de
+"perdeu a corrida pra uma retomada humana" (`ctx.log.warn`, não é erro).
+
+**Resíduo aceito, não corrigido:** no cenário de corrida, o registro em
+`sdr_escalations` ainda é inserido com `status='assigned'` apontando pro
+vendedor que a cascata escolheu, mesmo que a reatribuição da conversa em si
+tenha virado no-op. Verificado que isso é só cosmético — a tabela não tem
+trigger de inserção (ninguém é notificado), e nenhum consumidor usa
+`sdr_escalations.assigned_seller_id` pra guiar a posse real da conversa
+(`conversations.assigned_seller_id`, a fonte da verdade, fica intacta). Vale
+uma limpeza futura (status "superseded" nesse cenário), fora de escopo desta
+entrega.
 
 ## Gaps herdados da Parte A (conhecidos, não endurecidos nesta entrega)
 
