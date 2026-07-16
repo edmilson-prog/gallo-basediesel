@@ -522,6 +522,12 @@ export type {
   IHeadlineKpisParams,
   IKpiTrendValue,
   IHeadlineKpisResult,
+  ISellerLoadParams,
+  ISellerLoadCountRow,
+  ISellerLoadCountsResult,
+  IHeatmapParams,
+  IHeatmapCellRow,
+  IHeatmapResult,
 } from "./service-volume";
 
 // AI / LLM settings (Configurações → Inteligência artificial)

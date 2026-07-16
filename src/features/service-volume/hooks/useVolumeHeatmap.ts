@@ -1,37 +1,45 @@
 import { useMemo } from "react";
-import type { IManagerDashboardSnapshot } from "@/providers/data";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useAtendimentoMetricsProvider } from "@/providers/data";
+import { useRealtimeConversations } from "@/features/conversations/hooks/useRealtimeConversations";
+import { useDebounce } from "@/shared/hooks/useDebounce";
+import { buildHeatmapGrid, type IVolumeHeatmapData } from "../engine/heatmapGrid";
+import type { IServiceVolumeState } from "./useServiceVolumeFilters";
+
+export type { IVolumeHeatmapData };
+
+/** Coalesces bursts of realtime events into a single refetch. */
+const REALTIME_DEBOUNCE_MS = 1500;
 
 /**
- * Aggregated counts per (dayOfWeek, hour) for inbound customer messages.
- * `cells[d][h]` returns the message count where d is 0..6 (Sun..Sat) and h
- * is 0..23.
+ * "Heatmap de volume" — inbound customer messages per (weekday × hour), via
+ * the `service_volume_heatmap` SECURITY DEFINER RPC. Replaces the
+ * managerDashboard.snapshot() client-side drain of every scoped message
+ * (which paid per-row RLS and timed out on wide windows). Buckets come
+ * pre-computed in America/Sao_Paulo — the old client bucketed in the
+ * viewer's browser timezone, identical for this team (Brazil, UTC−3).
  */
-export interface IVolumeHeatmapData {
-  cells: number[][];
-  totalMessages: number;
-  maxCellValue: number;
-}
+export function useVolumeHeatmap(state: IServiceVolumeState) {
+  const provider = useAtendimentoMetricsProvider();
+  const realtime = useRealtimeConversations();
+  const debouncedTick = useDebounce(realtime.tick, REALTIME_DEBOUNCE_MS);
+  const storeId = state.store === "all" ? undefined : state.store;
 
-const EMPTY_GRID = Array.from({ length: 7 }, () => new Array<number>(24).fill(0));
+  const query = useQuery({
+    queryKey: ["sv", "heatmap", storeId ?? "all", state.fromIso, state.toIso, debouncedTick],
+    queryFn: () =>
+      provider.getVolumeHeatmap({ storeId, from: state.fromIso, to: state.toIso }),
+    placeholderData: keepPreviousData,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
 
-export function useVolumeHeatmap(snapshot: IManagerDashboardSnapshot): IVolumeHeatmapData {
-  return useMemo(() => {
-    const cells: number[][] = Array.from({ length: 7 }, () => new Array<number>(24).fill(0));
-    let totalMessages = 0;
-    let maxCellValue = 0;
-    for (const msg of snapshot.messagesInPeriod) {
-      if (msg.direction !== "in" || msg.authorType !== "customer") continue;
-      const date = new Date(msg.sentAt);
-      const d = date.getDay();
-      const h = date.getHours();
-      if (Number.isNaN(d) || Number.isNaN(h)) continue;
-      cells[d][h] += 1;
-      totalMessages += 1;
-      if (cells[d][h] > maxCellValue) maxCellValue = cells[d][h];
-    }
-    if (totalMessages === 0) {
-      return { cells: EMPTY_GRID.map((row) => [...row]), totalMessages: 0, maxCellValue: 0 };
-    }
-    return { cells, totalMessages, maxCellValue };
-  }, [snapshot]);
+  const data = useMemo(() => buildHeatmapGrid(query.data), [query.data]);
+
+  return {
+    data,
+    isLoading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
+  };
 }

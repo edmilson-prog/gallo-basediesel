@@ -190,4 +190,39 @@ export const mockAtendimentoMetricsProvider: IAtendimentoMetricsProvider = {
       backlog: calculateBacklog(openConversations),
     };
   },
+
+  async getSellerLoad({ storeId, sellerId }) {
+    const counts = new Map<string, number>();
+    for (const c of scopedConversations(storeId, sellerId)) {
+      if (!OPEN_STATUSES.has(c.status) || !c.assignedSellerId) continue;
+      counts.set(c.assignedSellerId, (counts.get(c.assignedSellerId) ?? 0) + 1);
+    }
+    const rows = [...counts.entries()]
+      .map(([id, activeCount]) => ({ sellerId: id, activeCount }))
+      .sort((a, b) => b.activeCount - a.activeCount || a.sellerId.localeCompare(b.sellerId));
+    return { rows };
+  },
+
+  async getVolumeHeatmap({ storeId, sellerId, from, to }) {
+    // Buckets use a fixed UTC−3 offset (America/Sao_Paulo, no DST since 2019)
+    // so the mock matches the server RPC's semantics deterministically,
+    // regardless of the machine's local timezone.
+    const SAO_PAULO_OFFSET_MS = 3 * 60 * 60 * 1000;
+    const convIds = new Set(scopedConversations(storeId, sellerId).map((c) => c.id));
+    const counts = new Map<number, number>();
+    let totalMessages = 0;
+    for (const m of getMockState().messages) {
+      if (!convIds.has(m.conversationId)) continue;
+      if (m.direction !== "in" || m.authorType !== "customer") continue;
+      if (!inRange(m.sentAt, from, to)) continue;
+      const shifted = new Date(new Date(m.sentAt).getTime() - SAO_PAULO_OFFSET_MS);
+      const key = shifted.getUTCDay() * 24 + shifted.getUTCHours();
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+      totalMessages += 1;
+    }
+    const rows = [...counts.entries()]
+      .map(([key, count]) => ({ day: Math.floor(key / 24), hour: key % 24, count }))
+      .sort((a, b) => a.day - b.day || a.hour - b.hour);
+    return { rows, totalMessages };
+  },
 };

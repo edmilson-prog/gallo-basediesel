@@ -6,7 +6,6 @@ import { useManagerDashboardSettings } from "@/features/manager-dashboard/hooks/
 import { KpiCard } from "@/features/manager-dashboard/components/KpiCard";
 import { useServiceVolumeFilters } from "../hooks/useServiceVolumeFilters";
 import { useServiceVolumeMetrics } from "../hooks/useServiceVolumeMetrics";
-import { useCargaEVolumeSnapshot } from "../hooks/useCargaEVolumeSnapshot";
 import { useSellerLoad } from "../hooks/useSellerLoad";
 import { useVolumeHeatmap } from "../hooks/useVolumeHeatmap";
 import { useHeadlineKpis } from "../hooks/useHeadlineKpis";
@@ -44,15 +43,13 @@ export function ServiceVolumePage({ gestorLockedStoreId }: IServiceVolumePagePro
   const filters = useServiceVolumeFilters({ gestorLockedStoreId });
   const [audience, setAudience] = useState<MetricAudience>("all");
   const m = useServiceVolumeMetrics(filters.state, audience);
-  const carga = useCargaEVolumeSnapshot(filters.state);
   const settings = useManagerDashboardSettings(currentStore?.id ?? null);
-  const sellerLoad = useSellerLoad(carga.snapshot, {
+  const sellerLoad = useSellerLoad(filters.state, {
     overloadThreshold: settings.settings.sellerOverloadThreshold,
   });
-  const heatmap = useVolumeHeatmap(carga.snapshot);
+  const heatmap = useVolumeHeatmap(filters.state);
   const headline = useHeadlineKpis(filters.state);
   const headlineHasError = Boolean(headline.error) && !headline.isLoading;
-  const cargaHasError = Boolean(carga.error) && !carga.isLoading;
   const goToInbox = (params: Record<string, string>) =>
     void navigate({ to: "/app/atendimento", search: params });
   const isLoading =
@@ -145,9 +142,9 @@ export function ServiceVolumePage({ gestorLockedStoreId }: IServiceVolumePagePro
       <NovosAtendimentosChart data={m.novos.data} />
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2" aria-label="Carga e volume">
         <SellerLoadList
-          entries={sellerLoad}
+          entries={sellerLoad.entries}
           overloadThreshold={settings.settings.sellerOverloadThreshold}
-          isLoading={carga.isLoading}
+          isLoading={sellerLoad.isLoading}
           onSellerClick={(sellerId) =>
             void navigate({
               to: "/app/atendimento",
@@ -156,8 +153,8 @@ export function ServiceVolumePage({ gestorLockedStoreId }: IServiceVolumePagePro
           }
         />
         <VolumeHeatmap
-          data={heatmap}
-          isLoading={carga.isLoading}
+          data={heatmap.data}
+          isLoading={heatmap.isLoading}
           onCellClick={(day, hour) => {
             const now = new Date();
             const offsetToTarget = day - now.getDay();

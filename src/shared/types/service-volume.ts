@@ -93,3 +93,38 @@ export interface IHeadlineKpisResult {
   resolutionRatePct: IKpiTrendValue;
   backlog: number;
 }
+
+/** "Carga por vendedor" — current-state, ignores the time window. */
+export interface ISellerLoadParams {
+  storeId?: ID;
+  sellerId?: ID;
+}
+
+export interface ISellerLoadCountRow {
+  sellerId: ID;
+  activeCount: number;
+}
+
+export interface ISellerLoadCountsResult {
+  rows: ISellerLoadCountRow[];
+}
+
+/** "Heatmap de volume" — inbound customer messages per (weekday × hour). */
+export interface IHeatmapParams {
+  storeId?: ID;
+  sellerId?: ID;
+  from: ISO8601;
+  to: ISO8601;
+}
+
+/** `day` is 0=domingo..6=sábado (same convention as JS `Date#getDay()`). */
+export interface IHeatmapCellRow {
+  day: number;
+  hour: number;
+  count: number;
+}
+
+export interface IHeatmapResult {
+  rows: IHeatmapCellRow[];
+  totalMessages: number;
+}

@@ -7,6 +7,8 @@ import type {
   IAccumulatedChatsResult,
   IHandleTimeStatsResult,
   IHeadlineKpisResult,
+  ISellerLoadCountsResult,
+  IHeatmapResult,
 } from "@/shared/types";
 import { getSupabaseClient } from "@/shared/lib/supabase";
 
@@ -92,6 +94,22 @@ export const supabaseAtendimentoMetricsProvider: IAtendimentoMetricsProvider = {
         resolutionRatePct: { current: null, previous: null },
         backlog: 0,
       },
+    );
+  },
+
+  async getSellerLoad({ storeId, sellerId }) {
+    return callRpc<ISellerLoadCountsResult>(
+      "service_volume_seller_load",
+      { p_store_id: storeId ?? null, p_seller_id: sellerId ?? null },
+      { rows: [] },
+    );
+  },
+
+  async getVolumeHeatmap({ storeId, sellerId, from, to }) {
+    return callRpc<IHeatmapResult>(
+      "service_volume_heatmap",
+      { p_store_id: storeId ?? null, p_from: from, p_to: to, p_seller_id: sellerId ?? null },
+      { rows: [], totalMessages: 0 },
     );
   },
 };
