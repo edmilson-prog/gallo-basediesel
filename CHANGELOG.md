@@ -4,6 +4,21 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.146.0] — Signal · 2026-07-16
+
+**Confirmação de entrega/leitura e checagem de número no WAHA, reconciliação de números BR e cards de contato, e a segunda etapa (ainda desligada) do SDR de produção.**
+
+### Added
+
+- **WAHA: checagem de número + confirmação de entrega/leitura** — iniciar uma conversa nova pra um número sem WhatsApp agora é bloqueado (com opção de seguir mesmo assim), igual já acontecia no Evolution; mensagens enviadas por contas WAHA passam a mostrar o status real de entrega/leitura (check duplo) em vez de ficarem paradas no check único pra sempre.
+- **SDR de produção — segunda etapa (ativação real)** — liga de fato o piloto do atendente automático à Inbox real, mas continua **desligado em todas as lojas** (nada muda em produção até o dono ativar manualmente uma loja piloto e aplicar as migrations pendentes — passo separado, fora deste bump).
+
+### Fixed
+
+- **Transcrição de áudio não cobria o WAHA** — a funcionalidade lançada no release anterior só cobria Meta/Evolution/Evolution Go/OpenWA; como o WAHA é hoje o provedor dominante em produção, a maioria das notas de voz recebidas não estava sendo transcrita. Corrigido, e um áudio enviado pelo próprio celular do atendente (eco) deixou de ser transcrito por engano.
+- **Número de celular sem o 9º dígito confundia clientes** — um número salvo como `5481572275` (faltando o 9) era tratado como pessoa diferente de `54981572275` na deduplicação, podendo criar cliente duplicado ou deixar uma mensagem de teste nunca chegar sem nenhum aviso. O app agora reconhece as duas formas e, quando a checagem inicial de WhatsApp falha num número de 12 dígitos, tenta automaticamente a variante com o 9 — só adota se o próprio WhatsApp confirmar.
+- **Card de contato compartilhado (WAHA) aparecia vazio** — mensagens desse tipo eram gravadas sem nome nem telefone; corrigido, e as mensagens já recebidas nos últimos dias foram corrigidas retroativamente.
+
 ## [0.145.0] — Scribe · 2026-07-15
 
 **Transcrição automática de notas de voz recebidas no Atendimento — desligada por padrão, ativação em produção é um passo separado.**
