@@ -108,7 +108,11 @@ consumi-lo — provider importar de `features/` violaria a fronteira; `phoneBR.t
 
 - `src/mocks/api/customers.ts`: trocar `normalize(phone).includes(digits)` por
   `candidates.some((c) => phoneDigits.includes(c))` (ganha o 9º dígito; CNPJ/CPF idem).
-- Verificar/alinhar na implementação os mocks de conversas e leads para o mesmo comportamento.
+- `src/mocks/api/conversations.ts` — `matchesSearch` (linha ~90): hoje casa
+  `phone.includes(needle)` literal; passa a casar também os candidatos de dígitos contra
+  `digitsOf(phone)`.
+- `src/mocks/api/leads.ts` (linha ~34): idem — o haystack literal ganha o casamento por
+  candidatos de dígitos no phone.
 
 ### 5. Testes e validação
 
