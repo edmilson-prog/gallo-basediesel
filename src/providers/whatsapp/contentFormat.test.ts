@@ -6,6 +6,7 @@ import {
   encodeBaileysLocation,
   encodeContact,
   encodeLocation,
+  nameFromVCard,
   phoneFromVCard,
 } from "./contentFormat";
 
@@ -105,6 +106,35 @@ describe("phoneFromVCard", () => {
     // must stop at the newline, not absorb "0NOTE...".
     const vcard = "BEGIN:VCARD\nTEL:+5554 98888-1111\n0NOTE:algo\nEND:VCARD";
     expect(phoneFromVCard(vcard)).toBe("+5554988881111");
+  });
+});
+
+describe("nameFromVCard", () => {
+  it("extracts the FN line", () => {
+    const vcard = "BEGIN:VCARD\nVERSION:3.0\nN:Silva;João;;;\nFN:João Silva\nEND:VCARD";
+    expect(nameFromVCard(vcard)).toBe("João Silva");
+  });
+
+  it("extracts FN from a real WAHA capture (business account, 2026-07-16)", () => {
+    const vcard =
+      "BEGIN:VCARD\nVERSION:3.0\nN:Pitao;Lurival Spuldaro - Loja do Basculante Binotto Group;Binoto;;\nFN:Lurival Spuldaro - Loja do Basculante Binotto Group Binoto Pitao\nORG:Lurival Spuldaro - Loja do Basculante Binotto Group\nitem1.TEL;waid=555499005499:+55 54 9900-5499\nEND:VCARD";
+    expect(nameFromVCard(vcard)).toBe(
+      "Lurival Spuldaro - Loja do Basculante Binotto Group Binoto Pitao",
+    );
+  });
+
+  it("returns undefined when FN is absent", () => {
+    expect(nameFromVCard("BEGIN:VCARD\nVERSION:3.0\nTEL:+5554999990000\nEND:VCARD")).toBeUndefined();
+  });
+
+  it("returns undefined for empty/undefined input", () => {
+    expect(nameFromVCard(undefined)).toBeUndefined();
+    expect(nameFromVCard("")).toBeUndefined();
+  });
+
+  it("does not bleed into the following line", () => {
+    const vcard = "BEGIN:VCARD\nFN:Maria Souza\nORG:Empresa X\nEND:VCARD";
+    expect(nameFromVCard(vcard)).toBe("Maria Souza");
   });
 });
 
