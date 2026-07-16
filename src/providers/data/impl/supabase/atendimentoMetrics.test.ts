@@ -96,18 +96,26 @@ describe("supabaseAtendimentoMetricsProvider", () => {
     });
   });
 
-  it("getSellerLoad calls the RPC with mapped params and falls back to empty rows", async () => {
+  it("getSellerLoad maps the optional window to p_from/p_to (null when absent)", async () => {
     const payload = { rows: [{ sellerId: "s1", activeCount: 4 }] };
     rpc.mockResolvedValue({ data: payload, error: null });
-    const out = await P.getSellerLoad({ storeId: "store-1" });
+    const out = await P.getSellerLoad({ storeId: "store-1", from: PARAMS.from, to: PARAMS.to });
     expect(rpc).toHaveBeenCalledWith("service_volume_seller_load", {
       p_store_id: "store-1",
       p_seller_id: null,
+      p_from: PARAMS.from,
+      p_to: PARAMS.to,
     });
     expect(out).toEqual(payload);
 
     rpc.mockResolvedValue({ data: null, error: null });
     expect(await P.getSellerLoad({})).toEqual({ rows: [] });
+    expect(rpc).toHaveBeenLastCalledWith("service_volume_seller_load", {
+      p_store_id: null,
+      p_seller_id: null,
+      p_from: null,
+      p_to: null,
+    });
   });
 
   it("getVolumeHeatmap calls the RPC with the window and falls back to the empty shape", async () => {
