@@ -152,6 +152,17 @@ export function phoneFromVCard(vcard: string | undefined | null): string | undef
 }
 
 /**
+ * Best-effort display name from a vCard's FN (Formatted Name) line — the
+ * only place a bare vCard (WAHA) carries a name; Baileys-shaped engines get
+ * it from a separate proto field instead (see encodeBaileysContact).
+ */
+export function nameFromVCard(vcard: string | undefined | null): string | undefined {
+  if (!vcard) return undefined;
+  const fn = vcard.match(/^FN:(.+)$/m);
+  return fn ? oneLine(fn[1]) || undefined : undefined;
+}
+
+/**
  * Baileys-shaped location/contact nodes — the proto fields shared by the
  * Evolution classic and Evolution Go (whatsmeow) parsers. Centralizing the
  * node → canonical-text mapping here keeps the two engines in lockstep.
