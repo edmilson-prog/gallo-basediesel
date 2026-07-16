@@ -16,6 +16,7 @@ import type {
 } from "../../contracts/conversations";
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
+import { buildDigitSearchCandidates } from "@/shared/utils/digitSearch";
 import { distributeConversation, type IDistributionInput } from "@/features/distribution/engine";
 import { applyRotationOverride } from "@/features/rotation/engine/applyRotationOverride";
 import { statusOnUnassign } from "../../engine/assignmentStatusCoupling";
@@ -187,11 +188,14 @@ async function searchConversations(
   params: IListConversationsParams,
 ): Promise<IPaginatedResult<IConversation>> {
   const { page, pageSize } = resolvePagination(params);
+  const digitCandidates = buildDigitSearchCandidates(params.search ?? "");
 
-  const { data, error } = await getSupabaseClient().rpc(
-    "search_conversations",
-    buildSearchRpcParams(params, page, pageSize),
-  );
+  const { data, error } = await getSupabaseClient().rpc("search_conversations", {
+    ...buildSearchRpcParams(params, page, pageSize),
+    // Kept OUT of buildSearchRpcParams on purpose: search_conversation_messages
+    // does not declare this param and PostgREST rejects unknown keys.
+    p_search_digit_variants: digitCandidates.length > 0 ? digitCandidates : null,
+  });
 
   if (error) throw new Error(`[supabase] conversations.search failed: ${error.message}`);
 
