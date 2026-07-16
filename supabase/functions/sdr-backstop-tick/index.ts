@@ -83,15 +83,17 @@ servePost(async (req, ctx) => {
     const elapsedMs = now.getTime() - new Date(row.queued_at).getTime();
     if (elapsedMs < thresholdMinutes * 60_000) continue;
 
-    const { error: updErr } = await admin
+    const { data: updated, error: updErr } = await admin
       .from("conversations")
       .update({ is_sdr_active: true })
       .eq("id", row.id)
-      .eq("is_sdr_active", false); // idempotency guard against concurrent ticks
+      .eq("is_sdr_active", false) // idempotency guard against concurrent ticks
+      .select("id");
     if (updErr) {
       ctx.log.error("sdr-backstop-tick activation failed", { conversationId: row.id, error: updErr.message });
       continue;
     }
+    if (!updated || updated.length === 0) continue; // lost the race to a concurrent tick — don't double-fire
     activated++;
     fetch(sdrRespondUrl, {
       method: "POST",
