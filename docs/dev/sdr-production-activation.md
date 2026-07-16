@@ -65,12 +65,15 @@ Varre `conversations` em fila (`assigned_seller_id is null`,
 `is_sdr_active=false`, `status='aguardando'`) das lojas com
 `sdr_settings.sdr_enabled=true`, usando o índice parcial
 `conversations_sdr_backstop_queue_idx`. Para cada loja calcula o horário
-comercial (`isWithinBusinessHours`, mesmo engine de `src/features/
-distribution/engine/`, espelhado para `_shared/distribution/engine/
-businessHours.ts`) e o threshold: **0 minutos fora do horário** (ativação
-imediata), `sdr_settings.backstop_timeout_minutes` **dentro** do horário.
-Conversas que estouraram o threshold são ativadas (`UPDATE is_sdr_active =
-true`) e disparam `sdr-respond` via `fetch` fire-and-forget.
+comercial (`isWithinBusinessHours`, mesmo engine de
+`src/features/distribution/engine/`, espelhado para
+`_shared/distribution/engine/businessHours.ts`) e o threshold: **0 minutos
+fora do horário** (ativação imediata), `sdr_settings.backstop_timeout_minutes`
+**dentro** do horário.
+
+Conversas que estouraram o threshold são ativadas
+(`UPDATE is_sdr_active = true`) e disparam `sdr-respond` via `fetch`
+fire-and-forget.
 
 O webhook real (`whatsapp-webhook`) ganhou o callback `onSdrTurn` — quando
 uma mensagem inbound cai numa conversa já com `is_sdr_active=true`, dispara
