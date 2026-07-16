@@ -95,7 +95,7 @@ export interface IWebhookDb {
     customerId: string,
     accountId: string,
     includeTerminal?: boolean,
-  ): Promise<{ id: string; status: string } | null>;
+  ): Promise<{ id: string; status: string; isSdrActive: boolean } | null>;
   createConversation(input: {
     storeId: string;
     customerId: string;
@@ -209,6 +209,14 @@ export interface IProcessArgs {
     phone: string;
     account: IAccountRecord;
   }) => void;
+  /**
+   * Fire-and-forget hook invoked when an inbound message lands on a
+   * conversation the SDR is already driving (`is_sdr_active=true`). The Edge
+   * wiring calls sdr-respond in the background to continue the turn. MUST
+   * NOT block or throw — the webhook stays fail-closed and answers 200 fast
+   * regardless (SDR Parte B, 2026-07-15).
+   */
+  onSdrTurn?: (input: { conversationId: string }) => void;
   /**
    * Optional sink for raw Evolution Go events we don't yet ingest but want to
    * inspect — the HistorySync ingestion spike (Phase 2, Etapa A). Best-effort:
@@ -754,6 +762,14 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
   } else if (reopenOnInbound(conversation.status)) {
     await db.reopenConversation(conversation.id, parsed.timestamp);
     didReopen = true;
+  }
+
+  // SDR continuation (Parte B, 2026-07-15): fire-and-forget — never blocks
+  // or affects the fail-closed response — the moment the conversation state
+  // is known but before the current message is persisted (same point where
+  // didReopen above is decided).
+  if (conversation && !customerCreated && (conversation as { isSdrActive?: boolean }).isSdrActive) {
+    args.onSdrTurn?.({ conversationId: conversation.id });
   }
 
   // 7. Persist message (RF-050) BEFORE any media work — media now or never,

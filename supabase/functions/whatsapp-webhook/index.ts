@@ -318,14 +318,16 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
       // via reopenConversation below rather than filtering them out here.
       let query = admin
         .from("conversations")
-        .select("id, status")
+        .select("id, status, is_sdr_active")
         .eq("customer_id", customerId)
         .eq("whatsapp_account_id", accountId);
       if (!includeTerminal) {
         query = query.not("status", "in", `(${CLOSED_CONVERSATION_STATUSES.join(",")})`);
       }
       const { data } = await query.order("created_at", { ascending: false }).limit(1).maybeSingle();
-      return data ? { id: data.id as string, status: data.status as string } : null;
+      return data
+        ? { id: data.id as string, status: data.status as string, isSdrActive: Boolean(data.is_sdr_active) }
+        : null;
     },
     async createConversation(input) {
       const { data, error } = await admin
@@ -748,6 +750,35 @@ function scheduleAvatarFetch(
   );
 }
 
+/**
+ * Fire-and-forget continuation of an SDR-piloted conversation: calls
+ * sdr-respond in the background so the agent replies to the new inbound
+ * message. MUST NOT block or throw — the webhook stays fail-closed and
+ * answers 200 fast regardless of whether this succeeds, fails, or is slow
+ * (SDR Parte B, 2026-07-15). Reuses the same `deps.resolveSecret` already
+ * built for the rest of this Edge Function — no second secret resolver.
+ */
+function scheduleSdrTurn(deps: IEngineDeps, log: Logger, input: { conversationId: string }): void {
+  runInBackground(
+    (async () => {
+      try {
+        const secret = await deps.resolveSecret("SDR_WORKER_SECRET");
+        if (!secret) return;
+        await fetch(`${requiredEnv("SUPABASE_URL")}/functions/v1/sdr-respond`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-worker-secret": secret },
+          body: JSON.stringify({ conversationId: input.conversationId }),
+        });
+      } catch (err) {
+        log.warn("sdr turn dispatch failed", {
+          conversationId: input.conversationId,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    })(),
+  );
+}
+
 // ===== Server ===============================================================
 
 Deno.serve(async (req) => {
@@ -956,6 +987,10 @@ Deno.serve(async (req) => {
       // contact. Never awaited — the webhook still answers 200 immediately.
       onCustomerAutoCreated: (created) =>
         scheduleAvatarFetch(admin, deps, log, traceId, created),
+      // Background, best-effort: continue an SDR-piloted conversation when a
+      // new inbound message lands on it. Never awaited — the webhook still
+      // answers 200 immediately either way.
+      onSdrTurn: (input) => scheduleSdrTurn(deps, log, input),
       // Phase 2 spike (Etapa A): persist raw Evolution Go HistorySync — and any
       // other not-yet-ingested Go event — to integration_logs so the ingestion
       // (Etapa B) can be designed against the real payload shape. The core wraps
