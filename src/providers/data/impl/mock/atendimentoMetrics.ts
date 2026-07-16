@@ -191,10 +191,11 @@ export const mockAtendimentoMetricsProvider: IAtendimentoMetricsProvider = {
     };
   },
 
-  async getSellerLoad({ storeId, sellerId }) {
+  async getSellerLoad({ storeId, sellerId, from, to }) {
     const counts = new Map<string, number>();
     for (const c of scopedConversations(storeId, sellerId)) {
       if (!OPEN_STATUSES.has(c.status) || !c.assignedSellerId) continue;
+      if (from && to && !inRange(c.lastMessageAt, from, to)) continue;
       counts.set(c.assignedSellerId, (counts.get(c.assignedSellerId) ?? 0) + 1);
     }
     const rows = [...counts.entries()]

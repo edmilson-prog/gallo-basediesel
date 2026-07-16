@@ -68,6 +68,17 @@ describe("mockAtendimentoMetricsProvider", () => {
     }
   });
 
+  it("getSellerLoad: janela de atividade filtra por lastMessageAt", async () => {
+    const all = await p.getSellerLoad({});
+    const windowed = await p.getSellerLoad({ from: params.from, to: params.to });
+    expect(windowed).toEqual(all); // janela 2000–2100 cobre tudo
+    const none = await p.getSellerLoad({
+      from: "1900-01-01T00:00:00Z",
+      to: "1900-12-31T00:00:00Z",
+    });
+    expect(none.rows).toEqual([]);
+  });
+
   it("getVolumeHeatmap: total = soma das células, células dentro do range 7x24", async () => {
     const r = await p.getVolumeHeatmap(params);
     const sum = r.rows.reduce((a, row) => a + row.count, 0);
