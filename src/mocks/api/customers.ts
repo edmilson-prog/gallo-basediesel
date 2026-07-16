@@ -1,5 +1,6 @@
 import type { ABCClass, ICustomer, ICustomerNote, ID } from "@/shared/types";
 import type { IConvertPendingContactInput } from "@/providers/data/contracts/customers";
+import { buildDigitSearchCandidates } from "@/shared/utils/digitSearch";
 import {
   selectAllVehicles,
   selectCustomerById,
@@ -196,7 +197,7 @@ function matches(
   if (params.search) {
     const q = params.search.toLowerCase().trim();
     if (q.length > 0) {
-      const digits = q.replace(/\D/g, "");
+      const candidates = buildDigitSearchCandidates(q);
       const haystack = [
         displayName(customer),
         customer.email ?? "",
@@ -207,11 +208,14 @@ function matches(
         .join(" ")
         .toLowerCase();
       const numericMatch =
-        digits.length > 0 &&
-        (normalize(customer.phone).includes(digits) ||
-          (customer.type === "B2B"
-            ? normalize(customer.cnpj).includes(digits)
-            : normalize(customer.cpf).includes(digits)));
+        candidates.length > 0 &&
+        candidates.some(
+          (c) =>
+            normalize(customer.phone).includes(c) ||
+            (customer.type === "B2B"
+              ? normalize(customer.cnpj).includes(c)
+              : normalize(customer.cpf).includes(c)),
+        );
       if (!haystack.includes(q) && !numericMatch) return false;
     }
   }
