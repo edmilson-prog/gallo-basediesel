@@ -256,9 +256,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Shared phone→customer lookup (suffix pre-filter + exact digit match —
-    // phone formatting varies in the base: +55..., (55) 9..., etc.). Used by
-    // both the inbound-message and outbound-echo paths below.
+    // Shared phone→customer lookup (suffix pre-filter + tolerant match via
+    // phoneDigitsMatchBr — phone formatting varies in the base: +55...,
+    // (55) 9..., etc.; a stored number may also be missing the 9th digit).
+    // Used by both the inbound-message and outbound-echo paths below.
     async function findCustomerByPhone(phoneDigits: string): Promise<string | undefined> {
       const { data: candidates } = await admin
         .from("customers")

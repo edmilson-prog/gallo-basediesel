@@ -4,9 +4,11 @@
  * The canonical wire format used across the project (webhook `createPendingCustomer`,
  * Evolution send) is digits-only with the `55` DDI: `55DDDNNNNNNNN` (12 or 13).
  * Storing customers in this shape is what makes the inbound webhook match on the
- * exact digits and the outbound send dial the right country. This module only
- * guarantees the DDI + length; it NEVER inserts/removes the 9th digit — the
- * WhatsApp network (Evolution `jid`) is the source of truth for that.
+ * exact digits and the outbound send dial the right country. This module never
+ * removes a digit; `buildNineDigitCandidate` only ever builds a 9th-digit candidate
+ * for a caller to try — the WhatsApp network is still the source of truth for
+ * whether that candidate is real (see resolveNumberCheckWithNineDigitFallback in
+ * ../api/checkWhatsAppNumber.ts, which only adopts it on confirmation).
  */
 
 const NON_DIGITS = /\D/g;
@@ -39,10 +41,10 @@ export function normalizeBrPhone(input: string): NormalizeResult {
 }
 
 /**
- * Se `digits` é um BR de 12 dígitos (55+DDD+local8, sem o 9 explícito),
- * retorna a variante de 13 dígitos com "9" inserido logo após o DDD.
- * Caso contrário (já 13 dígitos, ou fora do padrão 55+12/13), retorna null.
- * Só insere — nunca remove um dígito.
+ * If `digits` is a 12-digit BR number (55+DDD+local8, no explicit 9th
+ * digit), returns the 13-digit variant with "9" inserted right after the
+ * DDD. Otherwise (already 13 digits, or outside the 55+12 shape), null.
+ * Only insert — never remove a digit.
  */
 export function buildNineDigitCandidate(digits: string): string | null {
   const d = digitsOf(digits);
