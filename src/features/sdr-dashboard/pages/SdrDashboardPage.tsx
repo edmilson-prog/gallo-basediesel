@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/features/auth/useAuth";
 import { useCurrentStore } from "@/features/multistore";
 import { DashboardLayout } from "@/features/shell/layouts";
 import { EmptyState } from "@/features/shell/components/EmptyState";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePlatformSettings } from "@/features/admin-settings/hooks/usePlatformSettings";
+import { useSdrPilotSettingsProvider } from "@/providers/data";
 import { Icon } from "@/components/Icon";
 import { useSdrDashboardFilters } from "../hooks/useSdrDashboardFilters";
 import { useSdrDashboardData } from "../hooks/useSdrDashboardData";
@@ -45,6 +46,17 @@ export function SdrDashboardPage() {
   });
 
   const settingsCtl = usePlatformSettings(storeId);
+  const pilotProvider = useSdrPilotSettingsProvider();
+  const [pilotEnabled, setPilotEnabled] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    void pilotProvider.get(storeId).then((s) => {
+      if (!cancelled) setPilotEnabled(s.sdrEnabled);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [storeId, pilotProvider]);
   const alerts = useSdrAlerts({
     data,
     settings: settingsCtl.settings,
@@ -68,7 +80,7 @@ export function SdrDashboardPage() {
   }
 
   const canEdit = userRole === "Owner";
-  const sdrEnabled = settingsCtl.settings?.sdrEnabled ?? false;
+  const sdrEnabled = pilotEnabled;
 
   return (
     <DashboardLayout>
@@ -115,14 +127,7 @@ export function SdrDashboardPage() {
           />
         </TabsContent>
         <TabsContent value="settings" className="focus-visible:outline-none">
-          <SdrSettingsTab
-            settings={settingsCtl.settings}
-            loading={settingsCtl.loading}
-            saving={settingsCtl.saving}
-            update={settingsCtl.update}
-            canEdit={canEdit}
-            onJumpToTemplates={() => setTab("templates")}
-          />
+          <SdrSettingsTab canEdit={canEdit} onJumpToTemplates={() => setTab("templates")} />
         </TabsContent>
       </Tabs>
     </DashboardLayout>

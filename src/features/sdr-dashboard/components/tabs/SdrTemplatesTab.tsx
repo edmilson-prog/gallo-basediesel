@@ -222,6 +222,14 @@ export function SdrTemplatesTab({
         </div>
       )}
 
+      <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+        <Icon icon="mdi:directions-fork" className="mt-0.5 size-4 shrink-0 text-primary" />
+        <span>
+          Estes textos não alimentam o SDR real hoje — o prompt real é configurado em
+          Configurações → Inteligência artificial → Funcionalidades.
+        </span>
+      </div>
+
       <Accordion type="multiple" defaultValue={["greeting"]} className="space-y-3">
         {SDR_TEMPLATE_GROUPS.map((group) => (
           <AccordionItem key={group.id} value={group.id} className="rounded-md border bg-card">
