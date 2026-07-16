@@ -1,7 +1,7 @@
 /**
  * WAHA webhook `message`/`message.any` event parser. Payload shape (WAHA
  * docs, "Receive messages"/"Events"):
- *   { id, timestamp, from, fromMe, to, body, hasMedia, media?: {url, mimetype, filename, error}, ack }
+ *   { id, timestamp, from, fromMe, to, body, hasMedia, media?: {url, mimetype, filename, error}, vCards?: string[], ack }
  * `from` is always the CHAT's JID (`<digits>@c.us` for 1:1) regardless of
  * direction — for a genuine inbound message that's the sender, but for an
  * outbound echo (`fromMe: true`, delivered only via `message.any` — see
@@ -19,6 +19,7 @@
  */
 
 import type { IInboundMessage, InboundContentType, IOutboundEcho, IAdReferral } from "../types";
+import { encodeContact, nameFromVCard, phoneFromVCard } from "../contentFormat";
 
 const NON_INDIVIDUAL_JID = /@(g\.us|broadcast|newsletter)$/;
 const LID_JID = /@lid$/;
@@ -65,6 +66,10 @@ export interface IWahaMessagePayload {
   body?: string;
   hasMedia?: boolean;
   media?: IWahaMedia | null;
+  /** Present (possibly empty) on every WAHA message payload; non-empty when
+   *  the sender shared one or more contact cards. Only the first is used —
+   *  see extractContent. */
+  vCards?: string[];
   /** HYPOTHESIZED: WAHA's GOWS engine wraps whatsmeow directly, so the raw
    *  engine message (when WAHA exposes it) should mirror IGoMessageBody
    *  nested under `_data.Message`. Unconfirmed — extractWahaAdReferral
@@ -101,6 +106,13 @@ export function extractContent(payload: IWahaMessagePayload): IParsedContent {
       text: payload.body || undefined,
       mediaId: payload.media.url,
       mediaFilename: payload.media.filename ?? undefined,
+    };
+  }
+  if (payload.vCards?.[0]) {
+    const vcard = payload.vCards[0];
+    return {
+      contentType: "contact",
+      text: encodeContact({ name: nameFromVCard(vcard), phone: phoneFromVCard(vcard) }),
     };
   }
   return { contentType: "text", text: payload.body ?? "" };

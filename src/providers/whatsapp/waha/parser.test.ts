@@ -207,6 +207,91 @@ describe("parseWahaMessageEvent", () => {
   });
 });
 
+describe("parseWahaMessageEvent — shared contact card (vCard)", () => {
+  const vcard =
+    "BEGIN:VCARD\nVERSION:3.0\nN:Pitao;Lurival Spuldaro - Loja do Basculante Binotto Group;Binoto;;\nFN:Lurival Spuldaro - Loja do Basculante Binotto Group Binoto Pitao\nitem1.TEL;waid=555499005499:+55 54 9900-5499\nEND:VCARD";
+
+  it("parses an inbound shared-contact-card message (real capture shape, 2026-07-16)", () => {
+    const result = parseWahaMessageEvent(
+      {
+        id: "false_34420606116003@lid_ACA3C349CEB6519AF06CB3EC04948445",
+        timestamp: 1752666641,
+        from: "34420606116003@lid",
+        fromMe: false,
+        body: "",
+        hasMedia: false,
+        vCards: [vcard],
+      },
+      accountId,
+    );
+    if (result.type !== "message") throw new Error("expected message");
+    expect(result.contentType).toBe("contact");
+    expect(result.text).toBe(
+      "Lurival Spuldaro - Loja do Basculante Binotto Group Binoto Pitao\n+555499005499",
+    );
+  });
+
+  it("uses only the first vCard when multiple contacts are shared at once", () => {
+    const secondVcard = "BEGIN:VCARD\nVERSION:3.0\nFN:Segundo Contato\nEND:VCARD";
+    const result = parseWahaMessageEvent(
+      {
+        id: "id-multi",
+        timestamp: 1752666641,
+        from: "5511988887777@c.us",
+        fromMe: false,
+        body: "",
+        hasMedia: false,
+        vCards: [vcard, secondVcard],
+      },
+      accountId,
+    );
+    if (result.type !== "message") throw new Error("expected message");
+    expect(result.contentType).toBe("contact");
+    expect(result.text).toContain("Lurival Spuldaro");
+    expect(result.text).not.toContain("Segundo Contato");
+  });
+
+  it("parses an outbound echo of a shared-contact-card the same way", () => {
+    const result = parseWahaMessageEvent(
+      {
+        id: "id-echo",
+        timestamp: 1752666641,
+        from: "5511988887777@c.us",
+        fromMe: true,
+        to: undefined,
+        body: "",
+        hasMedia: false,
+        vCards: [vcard],
+      },
+      accountId,
+    );
+    expect(result.type).toBe("outbound-echo");
+    if (result.type !== "outbound-echo") throw new Error("expected outbound-echo");
+    expect(result.contentType).toBe("contact");
+    expect(result.text).toBe(
+      "Lurival Spuldaro - Loja do Basculante Binotto Group Binoto Pitao\n+555499005499",
+    );
+  });
+
+  it("falls back to plain text when vCards is an empty array (no card actually shared)", () => {
+    const result = parseWahaMessageEvent(
+      {
+        id: "id-no-card",
+        timestamp: 1752666641,
+        from: "5511988887777@c.us",
+        fromMe: false,
+        body: "Mensagem normal",
+        hasMedia: false,
+        vCards: [],
+      },
+      accountId,
+    );
+    if (result.type !== "message") throw new Error("expected message");
+    expect(result.contentType).toBe("text");
+    expect(result.text).toBe("Mensagem normal");
+  });
+});
+
 describe("parseWahaMessageEvent — ad referral (hypothesized _data.Message shape)", () => {
   it("extracts adReferral when _data.Message carries externalAdReply", () => {
     const parsed = parseWahaMessageEvent(
