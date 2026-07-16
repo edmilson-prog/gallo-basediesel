@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { fetchWahaProfilePictureUrl, getWahaContactName, resolveWahaLid } from "./contacts";
+import {
+  checkWahaNumberExists,
+  fetchWahaProfilePictureUrl,
+  getWahaContactName,
+  resolveWahaLid,
+} from "./contacts";
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -130,5 +135,34 @@ describe("fetchWahaProfilePictureUrl", () => {
     await expect(
       fetchWahaProfilePictureUrl("bad", fetchFn, { ...target, contactId: "3@c.us" }),
     ).rejects.toThrow("Chave da API WAHA inválida ou ausente");
+  });
+});
+
+describe("checkWahaNumberExists", () => {
+  it("GETs /api/contacts/check-exists with phone + session and reports exists:true", async () => {
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(200, { numberExists: true, chatId: "5554981572275@c.us" }));
+    const result = await checkWahaNumberExists("key", fetchFn, target, "5554981572275");
+    expect(fetchFn.mock.calls[0][0]).toBe(
+      "https://waha.example.com/api/contacts/check-exists?phone=5554981572275&session=loja-abc123",
+    );
+    expect(fetchFn.mock.calls[0][1].method).toBe("GET");
+    expect(result).toEqual({ exists: true, e164: "+5554981572275" });
+  });
+
+  it("reports exists:false without an e164 when numberExists is false", async () => {
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(200, { numberExists: false, chatId: null }));
+    const result = await checkWahaNumberExists("key", fetchFn, target, "5511999999999");
+    expect(result).toEqual({ exists: false, e164: undefined });
+  });
+
+  it("propagates auth errors (401)", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(401, { message: "Unauthorized" }));
+    await expect(checkWahaNumberExists("bad", fetchFn, target, "5511999999999")).rejects.toThrow(
+      "Chave da API WAHA inválida ou ausente",
+    );
   });
 });

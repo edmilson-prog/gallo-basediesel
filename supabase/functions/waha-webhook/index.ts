@@ -4,11 +4,12 @@
  * FULLY ISOLATED: does not import `_shared/whatsapp/webhook/core.ts`,
  * `_shared/whatsapp/build.ts` or `_shared/whatsapp/send/core.ts`, nor
  * anything from `whatsapp-webhook/`. Only generic platform primitives
- * (_shared/http.ts, _shared/secrets.ts, _shared/env.ts) and the
+ * (_shared/http.ts, _shared/secrets.ts, _shared/env.ts), the shared
+ * engine-agnostic `_shared/whatsapp/messageStatus.ts` ranking, and the
  * self-contained `_shared/whatsapp/waha/*` engine are used. Fail-closed on a
  * bad/missing HMAC signature — no DB write happens before it's verified.
  *
- * Handles three event kinds:
+ * Handles four event kinds:
  *   - "message": an inbound customer message (persisted with
  *     reuse-or-reopen-or-create conversation semantics).
  *   - "message.any": WAHA's (GOWS engine) only channel for `fromMe: true`
@@ -17,27 +18,36 @@
  *     open-only-lookup semantics so it never reopens a closed conversation;
  *     any "message.any" envelope that turns out NOT to be an echo (i.e.
  *     genuine inbound, already covered by "message") is ignored to avoid
- *     double-processing.
+ *     double-processing. A duplicate echo (app-sent message already
+ *     persisted) still applies any ack level embedded in the payload before
+ *     bailing out — see applyWahaAckToMessage.
  *   Both message paths land in the same conversations/messages tables the
  *   rest of the Inbox reads, with a separate media download step. Mirrors the
  *   real `whatsapp-webhook` function's tested contract (see
  *   _shared/whatsapp/webhook/core.ts).
  *   - "session.status": updates whatsapp_accounts.status.
+ *   - "message.ack": delivery/read status transition for a previously sent
+ *     outbound message — see applyWahaAckToMessage (added 2026-07-15;
+ *     previously deferred — see
+ *     docs/superpowers/specs/2026-07-15-waha-ack-and-number-check-design.md).
  * Any other envelope event is acknowledged (200) and ignored.
  *
  * Spec: docs/superpowers/specs/2026-07-10-waha-whatsapp-integration-design.md
+ *       docs/superpowers/specs/2026-07-15-waha-ack-and-number-check-design.md
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.107.0";
 import { requiredEnv } from "../_shared/env.ts";
 import { json } from "../_shared/http.ts";
 import { createSecretResolver } from "../_shared/secrets.ts";
+import { mapWahaAckToStatus, parseWahaAckPayload } from "../_shared/whatsapp/waha/ack.ts";
 import { downloadWahaMedia } from "../_shared/whatsapp/waha/media.ts";
 import { parseWahaMessageEvent } from "../_shared/whatsapp/waha/parser.ts";
 import { verifyWahaHmac } from "../_shared/whatsapp/waha/hmac.ts";
 import { wahaStateToAccountStatus } from "../_shared/whatsapp/waha/constants.ts";
 import { getWahaContactName, resolveWahaLid } from "../_shared/whatsapp/waha/contacts.ts";
 import { buildWahaEventKey } from "../_shared/whatsapp/waha/eventKey.ts";
+import { statusAdvances, type DeliveryStatus } from "../_shared/whatsapp/messageStatus.ts";
 import { logWebhookDelivery } from "../_shared/webhookDeliveryLog.ts";
 import { runInBackground } from "../_shared/backgroundTask.ts";
 import { transcribeMessageAudio } from "../_shared/ai/transcribeAudio.ts";
@@ -317,6 +327,35 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Delivery/read tracking (message.ack). Mirrors the anti-regression
+    // pattern the reference `whatsapp-webhook` uses (applyStatusToMessage,
+    // not imported here — WAHA stays fully isolated), reusing the same
+    // shared, engine-agnostic `statusAdvances` ranking so a transient
+    // `failed` ack never clobbers an already-delivered/read message.
+    // No-ops when the message isn't found (e.g. an ack for a message this
+    // store never sent).
+    async function applyWahaAckToMessage(
+      providerMessageId: string,
+      status: DeliveryStatus,
+      timestamp: string,
+    ): Promise<void> {
+      const { data } = await admin
+        .from("messages")
+        .select("id, status, webhook_event_ids")
+        .eq("provider_message_id", providerMessageId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!data) return;
+      const current = (data.status as DeliveryStatus | undefined) ?? "queued";
+      if (!statusAdvances(current, status)) return;
+      const eventIds = [...((data.webhook_event_ids as string[] | undefined) ?? []), eventKey];
+      const patch: Record<string, unknown> = { status, webhook_event_ids: eventIds };
+      if (status === "delivered") patch.delivered_at = timestamp;
+      if (status === "read") patch.read_at = timestamp;
+      await admin.from("messages").update(patch).eq("id", data.id as string);
+    }
+
     // Needed by both the inbound @lid resolution below and the outbound-echo
     // toLid resolution — computed once, before either branch.
     const sessionName = String(
@@ -335,6 +374,31 @@ Deno.serve(async (req) => {
       return respond(json({ ok: true }, 200), {
         outcome: "processed",
         eventType: "session.status",
+        requestPayload: envelope,
+      });
+    }
+
+    if (envelope.event === "message.ack") {
+      const parsedAck = parseWahaAckPayload(envelope.payload);
+      if (!parsedAck) {
+        await markProcessed();
+        return respond(json({ ok: true, ignored: "unparseable-ack" }, 200), {
+          outcome: "ignored",
+          eventType: "message.ack",
+          requestPayload: envelope,
+        });
+      }
+      // WAHA's message.ack payload carries no timestamp of its own (unlike
+      // message/message.any) — the server-received time is the best signal.
+      await applyWahaAckToMessage(
+        parsedAck.providerMessageId,
+        parsedAck.status,
+        new Date().toISOString(),
+      );
+      await markProcessed();
+      return respond(json({ ok: true }, 200), {
+        outcome: "processed",
+        eventType: "message.ack",
         requestPayload: envelope,
       });
     }
@@ -391,6 +455,17 @@ Deno.serve(async (req) => {
         .limit(1)
         .maybeSingle();
       if (existingOutbound) {
+        // Free signal: WAHA embeds the CURRENT ack level in every
+        // message.any echo, not just in dedicated message.ack events —
+        // apply it before bailing out on the duplicate.
+        const echoAck = (envelope.payload as { ack?: number } | null)?.ack;
+        if (typeof echoAck === "number") {
+          await applyWahaAckToMessage(
+            parsed.providerMessageId,
+            mapWahaAckToStatus(echoAck),
+            new Date().toISOString(),
+          );
+        }
         await markProcessed();
         return respond(json({ ok: true, duplicate: "app-send echo" }, 200), {
           outcome: "duplicate",
