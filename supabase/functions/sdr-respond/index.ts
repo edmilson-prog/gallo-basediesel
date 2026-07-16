@@ -412,7 +412,13 @@ servePost(async (req, ctx) => {
     // — inserting it as-is would fail with "invalid input syntax for type
     // uuid". Generate a real uuid for the row's primary key instead; nothing
     // else in this handler depends on the engine's own id value.
-    await admin.from("sdr_escalations").insert({
+    // Highest-stakes write in the handler: if this fails, the receiving
+    // seller could still get the conversation reassigned below with no
+    // escalation record, no context bubble, and nothing logged anywhere. The
+    // reply was already sent in step 14, so we don't throw here (the
+    // customer already got their message) — just make the failure visible
+    // in logs instead of invisible.
+    const { error: escalationInsertError } = await admin.from("sdr_escalations").insert({
       id: crypto.randomUUID(),
       session_id: escalation.sessionId,
       conversation_id: conversationId,
@@ -426,14 +432,35 @@ servePost(async (req, ctx) => {
       status: selection.selectedSellerId ? "assigned" : "pending",
       specialty_matched: selection.specialtyMatched,
     });
+    if (escalationInsertError) {
+      ctx.log.error("sdr-respond escalation insert failed", {
+        conversationId,
+        error: escalationInsertError.message,
+      });
+    }
     if (selection.selectedSellerId) {
-      await admin
+      const { error: assignError } = await admin
         .from("conversations")
         .update({ assigned_seller_id: selection.selectedSellerId, is_sdr_active: false })
         .eq("id", conversationId);
+      if (assignError) {
+        ctx.log.error("sdr-respond conversation assignment update failed", {
+          conversationId,
+          error: assignError.message,
+        });
+      }
     }
   } else if (decision.action === "close") {
-    await admin.from("conversations").update({ is_sdr_active: false }).eq("id", conversationId);
+    const { error: closeError } = await admin
+      .from("conversations")
+      .update({ is_sdr_active: false })
+      .eq("id", conversationId);
+    if (closeError) {
+      ctx.log.error("sdr-respond conversation close update failed", {
+        conversationId,
+        error: closeError.message,
+      });
+    }
   }
 
   return json({ action: decision.action, traceId: ctx.traceId }, 200);
