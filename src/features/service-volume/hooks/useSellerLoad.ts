@@ -16,12 +16,13 @@ export type { ISellerLoadEntry, ISellerLoadOptions };
 const REALTIME_DEBOUNCE_MS = 1500;
 
 /**
- * "Carga por vendedor" — current-state open-conversation load per seller,
+ * "Carga por vendedor" — open-conversation load per seller with activity
+ * inside the tab's selected window (spec:
+ * docs/superpowers/specs/2026-07-16-seller-load-active-window-design.md),
  * via the `service_volume_seller_load` SECURITY DEFINER RPC + the store
- * roster from the sellers provider. Replaces the managerDashboard.snapshot()
- * client-side drain (which paid per-row RLS over the whole scoped message set
- * and timed out on wide windows). Refetches on debounced Realtime ticks so
- * the load stays live, same as the old snapshot-based version.
+ * roster from the sellers provider. The window cut keeps stale open
+ * conversations from inflating the load reading. Refetches on debounced
+ * Realtime ticks so the load stays live.
  */
 export function useSellerLoad(state: IServiceVolumeState, options: ISellerLoadOptions) {
   const provider = useAtendimentoMetricsProvider();
@@ -31,8 +32,9 @@ export function useSellerLoad(state: IServiceVolumeState, options: ISellerLoadOp
   const storeId = state.store === "all" ? undefined : state.store;
 
   const loadQuery = useQuery({
-    queryKey: ["sv", "sellerLoad", storeId ?? "all", debouncedTick],
-    queryFn: () => provider.getSellerLoad({ storeId }),
+    queryKey: ["sv", "sellerLoad", storeId ?? "all", state.fromIso, state.toIso, debouncedTick],
+    queryFn: () =>
+      provider.getSellerLoad({ storeId, from: state.fromIso, to: state.toIso }),
     placeholderData: keepPreviousData,
     retry: false,
     refetchOnWindowFocus: false,
