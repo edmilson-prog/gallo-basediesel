@@ -313,6 +313,7 @@ export const CONVERSATION_STRINGS = {
   },
   contact: {
     label: "Contato",
+    sharedLabel: "Contato compartilhado",
     copyNumber: "Copiar número",
     copied: "Número copiado",
     noPhone: "Sem telefone",
