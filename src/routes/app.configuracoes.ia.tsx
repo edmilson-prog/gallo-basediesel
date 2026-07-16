@@ -3,7 +3,7 @@ import { SettingsLayout } from "@/features/shell/layouts";
 import { requireAuth } from "@/features/auth/guards";
 import { AiSettingsPage } from "@/features/ai-settings";
 
-const ABAS = ["visao-geral", "provedores", "funcionalidades", "playground", "sdr"] as const;
+const ABAS = ["visao-geral", "provedores", "funcionalidades", "playground"] as const;
 type Aba = (typeof ABAS)[number];
 
 export interface IAiSearch {

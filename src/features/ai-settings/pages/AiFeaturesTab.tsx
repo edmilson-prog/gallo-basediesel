@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { Icon } from "@/components/Icon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAiSettings } from "../hooks/useAiSettings";
@@ -17,12 +18,18 @@ export function AiFeaturesTab() {
         </span>
       </div>
       {settings.routing.map((r) => (
-        <FeatureRoutingRow
-          key={r.feature}
-          route={r}
-          providers={settings.providers}
-          onChanged={reload}
-        />
+        <div key={r.feature}>
+          <FeatureRoutingRow route={r} providers={settings.providers} onChanged={reload} />
+          {r.feature === "sdr" && (
+            <p className="mt-1 pl-1 text-xs text-muted-foreground">
+              Liga o piloto e escolhe as instâncias em{" "}
+              <Link to="/app/sdr" className="underline underline-offset-2">
+                Configurações → SDR
+              </Link>
+              .
+            </p>
+          )}
+        </div>
       ))}
     </div>
   );
