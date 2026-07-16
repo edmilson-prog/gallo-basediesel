@@ -2,13 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import type { ID, ISeller, IWhatsAppAccount } from "@/shared/types";
 import { useAuth } from "@/features/auth/useAuth";
-import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { useCurrentStore } from "@/features/multistore";
-import {
-  useConversationsProvider,
-  useSellersProvider,
-  useWhatsAppAccountsProvider,
-} from "@/providers/data";
+import { useConversationsProvider, useSellersProvider } from "@/providers/data";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -28,7 +23,7 @@ import { MessageSearchBanner } from "../components/MessageSearchBanner";
 import { QuickActions } from "../components/QuickActions";
 import { SearchInput } from "../components/SearchInput";
 import { NewConversationDialog } from "../components/NewConversationDialog";
-import { selectAccessibleAccounts } from "../utils/selectAccessibleAccounts";
+import { useAccessibleConnectedAccounts } from "../hooks/useAccessibleConnectedAccounts";
 import { INBOX_STRINGS } from "../i18n/pt-BR";
 import { InboxStatusSummaryCard } from "@/features/service-volume";
 
@@ -43,73 +38,18 @@ export function InboxPage() {
   const navigate = useNavigate();
   const { currentStoreId } = useCurrentStore();
   const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
-  const whatsappAccountsProvider = useWhatsAppAccountsProvider();
-  const [accounts, setAccounts] = useState<IWhatsAppAccount[]>([]);
   const [newConvOpen, setNewConvOpen] = useState(false);
-  useEffect(() => {
-    let cancelled = false;
-    // WAHA sessions are excluded from the generic `list()` (its `neq('provider','waha')`
-    // shields the Contas tab / failover pickers / templates screen, which have
-    // provider-specific logic that breaks on a WAHA row). The Inbox filter and origin
-    // resolution only need label/color, which a WAHA row carries fine — so fold WAHA
-    // instances back in here via the dedicated `listWaha`. Additive and fail-safe: a
-    // WAHA load error never blocks the base account list.
-    void Promise.all([
-      whatsappAccountsProvider.list({ storeId }),
-      whatsappAccountsProvider.listWaha({ storeId }).catch(() => [] as IWhatsAppAccount[]),
-    ])
-      .then(([base, waha]) => {
-        if (!cancelled) setAccounts([...base, ...waha]);
-      })
-      .catch(() => {
-        if (!cancelled) setAccounts([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [whatsappAccountsProvider, storeId]);
+  // Staff (Owner/Gestor) see store-wide conversations, hence every instance of the
+  // currently selected store. Non-staff are scoped to the instances they operate
+  // (PRD-011 multi-access) — see useAccessibleConnectedAccounts for the full rule.
+  const { accounts, accessibleIds, accessibleAccounts, accessibleConnectedAccounts, isStaffView } =
+    useAccessibleConnectedAccounts(storeId);
   const accountsById = useMemo(() => {
     const map = new Map<ID, IWhatsAppAccount>();
     for (const a of accounts) map.set(a.id, a);
     return map;
   }, [accounts]);
   const showOrigin = accounts.length > 1;
-  // Staff (Owner/Gestor) see store-wide conversations, hence every instance of the
-  // currently selected store. Non-staff are scoped to the instances they operate.
-  const isStaffView = usePermission("conversation", "view", "store");
-  // Instances the current user may operate (PRD-011 multi-access). The instance
-  // filter and the new-conversation origin picker must show only these — not the
-  // full store-wide account list (`accounts`/`accountsById` keep all instances so
-  // wallet conversations from a non-staffed instance still resolve origin label).
-  // `null` = still loading (no instances shown yet, avoids flashing unauthorized
-  // ones). On error we fail closed (empty set). UX gate only — conversation access
-  // is enforced in the DB (can_access_conversation).
-  const [accessibleIds, setAccessibleIds] = useState<Set<ID> | null>(null);
-  useEffect(() => {
-    // Staff bypass the RPC: it is scoped by the JWT's store and cannot follow a
-    // client-side store switch, so staff just use the (store-scoped) accounts.
-    if (isStaffView) return;
-    let cancelled = false;
-    void whatsappAccountsProvider
-      .listAccessibleAccountIds()
-      .then((ids) => {
-        if (!cancelled) setAccessibleIds(new Set(ids));
-      })
-      .catch(() => {
-        if (!cancelled) setAccessibleIds(new Set());
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [whatsappAccountsProvider, isStaffView]);
-  const accessibleAccounts = useMemo(
-    () => (isStaffView ? accounts : selectAccessibleAccounts(accounts, accessibleIds)),
-    [isStaffView, accounts, accessibleIds],
-  );
-  const accessibleConnectedAccounts = useMemo(
-    () => accessibleAccounts.filter((a) => a.status === "connected"),
-    [accessibleAccounts],
-  );
 
   // Assignee oversight: staff (Owner/Gestor) see store-wide conversations and
   // need to know who is handling each. Load the store's sellers once to resolve

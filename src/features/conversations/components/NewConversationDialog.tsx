@@ -42,6 +42,9 @@ export function NewConversationDialog({
   accounts,
   onClose,
   onCreated,
+  initialPhone,
+  initialName,
+  initialAccountId,
 }: {
   storeId: ID;
   /** Seller atual — vira o responsável (RLS exige assigned = self). */
@@ -49,17 +52,27 @@ export function NewConversationDialog({
   accounts: IWhatsAppAccount[];
   onClose: () => void;
   onCreated: (conversationId: ID) => void;
+  /** Pre-fills the "número novo" step (e.g. from a shared-contact card) so the
+   *  seller only needs to confirm the origin and start. */
+  initialPhone?: string;
+  initialName?: string;
+  /** Origin pre-selected instead of `accounts[0]` — e.g. the instance the
+   *  triggering conversation is already on. Falls back to `accounts[0]` when
+   *  not found (still connected/accessible). */
+  initialAccountId?: ID;
 }) {
   const conversationsProvider = useConversationsProvider();
   const customersProvider = useCustomersProvider();
-  const [origin, setOrigin] = useState<IWhatsAppAccount | null>(accounts[0] ?? null);
+  const [origin, setOrigin] = useState<IWhatsAppAccount | null>(
+    accounts.find((a) => a.id === initialAccountId) ?? accounts[0] ?? null,
+  );
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ICustomer[]>([]);
   const [selected, setSelected] = useState<ICustomer | null>(null);
   const [creating, setCreating] = useState(false);
-  const [newNumberMode, setNewNumberMode] = useState(false);
-  const [newNumberName, setNewNumberName] = useState("");
-  const [newNumberPhone, setNewNumberPhone] = useState("");
+  const [newNumberMode, setNewNumberMode] = useState(!!initialPhone);
+  const [newNumberName, setNewNumberName] = useState(initialName ?? "");
+  const [newNumberPhone, setNewNumberPhone] = useState(initialPhone ?? "");
   const [checkState, setCheckState] = useState<"idle" | "checking" | "no_whatsapp">("idle");
 
   useEffect(() => {
