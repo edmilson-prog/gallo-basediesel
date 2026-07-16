@@ -38,16 +38,37 @@ export function normalizeBrPhone(input: string): NormalizeResult {
   return { ok: false, reason: d.length < 10 ? "too_short" : "too_long" };
 }
 
+/**
+ * Se `digits` é um BR de 12 dígitos (55+DDD+local8, sem o 9 explícito),
+ * retorna a variante de 13 dígitos com "9" inserido logo após o DDD.
+ * Caso contrário (já 13 dígitos, ou fora do padrão 55+12/13), retorna null.
+ * Só insere — nunca remove um dígito.
+ */
+export function buildNineDigitCandidate(digits: string): string | null {
+  const d = digitsOf(digits);
+  if (!d.startsWith("55") || d.length !== 12) return null;
+  const ddi = d.slice(0, 2);
+  const ddd = d.slice(2, 4);
+  const local8 = d.slice(4);
+  return `${ddi}${ddd}9${local8}`;
+}
+
 /** Strips the optional leading 55 DDI to compare DDD+number. */
 function localPart(phone: string): string {
   const d = digitsOf(phone);
   return d.startsWith("55") && d.length >= 12 ? d.slice(2) : d;
 }
 
-/** Two phones are the same when their DDD+number match, DDI optional. */
+/** Two phones are the same when their DDD+number match, DDI optional — and
+ *  also when they differ only by the 9th mobile digit (12 vs 13 digits). */
 export function samePhone(a: string, b: string): boolean {
   const la = localPart(a);
-  return la.length > 0 && la === localPart(b);
+  const lb = localPart(b);
+  if (la.length === 0) return false;
+  if (la === lb) return true;
+  const [shortLocal, longLocal] = la.length < lb.length ? [la, lb] : [lb, la];
+  if (shortLocal.length !== 10 || longLocal.length !== 11) return false;
+  return longLocal[2] === "9" && shortLocal === longLocal.slice(0, 2) + longLocal.slice(3);
 }
 
 /** `55DDDNNNNNNNN` → `(55) DD NNNNN-NNNN` (hyphen before the last 4). */
