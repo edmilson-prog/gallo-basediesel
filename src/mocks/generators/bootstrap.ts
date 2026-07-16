@@ -34,6 +34,7 @@ import type {
   IRotationQueue,
   IScheduledSend,
   ISdrEscalation,
+  ISdrPilotSettings,
   ISdrSession,
   ISeller,
   IStore,
@@ -107,6 +108,7 @@ export interface IBootstrappedDataset {
   sellers: ISeller[];
   rotationQueues: IRotationQueue[];
   rotationParticipants: IRotationParticipant[];
+  sdrPilotSettings: ISdrPilotSettings[];
   audits: IAuditLog[];
   customers: ICustomer[];
   customerNotes: ICustomerNote[];
@@ -592,6 +594,7 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
     sellers,
     rotationQueues,
     rotationParticipants,
+    sdrPilotSettings: [],
     audits,
     customers,
     customerNotes,

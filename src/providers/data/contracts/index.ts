@@ -55,6 +55,7 @@ import type { IWahaServersProvider } from "./wahaServers";
 import type { IWhatsAppOpenWaServersProvider } from "./whatsappOpenWaServers";
 import type { IConversationTagsProvider } from "./conversationTags";
 import type { IConversationParticipantsProvider } from "./conversationParticipants";
+import type { ISdrPilotSettingsProvider } from "./sdrPilotSettings";
 
 export type { IPaginatedResult, IPaginationParams } from "./_shared";
 
@@ -183,6 +184,7 @@ export type {
   ICreateOpenWaServerInput,
   IOpenWaServerPatch,
 } from "./whatsappOpenWaServers";
+export type { ISdrPilotSettingsProvider } from "./sdrPilotSettings";
 
 /**
  * Aggregate of every data provider returned by `getDataProviders()`. The factory
@@ -240,4 +242,5 @@ export interface IDataProviders {
   whatsappOpenWaServers: IWhatsAppOpenWaServersProvider;
   conversationTags: IConversationTagsProvider;
   conversationParticipants: IConversationParticipantsProvider;
+  sdrPilotSettings: ISdrPilotSettingsProvider;
 }

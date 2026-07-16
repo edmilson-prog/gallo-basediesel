@@ -61,6 +61,15 @@ export interface ISender {
   sellerId: string | null;
   role: string;
   storeId: string;
+  /**
+   * True only for the automated SDR bot's synthetic sender — never set from
+   * a real user's profile. Kept separate from `role` on purpose: `"sdr"` is
+   * itself a legitimate `profiles.role` value for real human SDR staff
+   * (see `profiles_role_check`), so deriving the persisted `author_type`
+   * from `role === "sdr"` would misclassify a real human SDR employee's own
+   * sends as bot sends and silently defeat `sdr_pause_on_human_message`.
+   */
+  isAutomatedSdr?: boolean;
 }
 
 export interface ISendConversationContext {
@@ -105,6 +114,12 @@ export interface ISendDb {
     mediaUrl: string | null;
     /** Original filename (documents) persisted as messages.media_filename. */
     fileName?: string | null;
+    /**
+     * `messages.author_type` — derived server-side from `sender.isAutomatedSdr`,
+     * never from client input (no spoofing). Defaults to `"seller"` when
+     * omitted, preserving every existing caller's behavior.
+     */
+    authorType?: "seller" | "sdr";
   }): Promise<{ id: string }>;
   markMessageSent(messageId: string, providerMessageId: string): Promise<void>;
   markMessageFailed(messageId: string, failureReason: string, failureCode?: string): Promise<void>;
@@ -308,6 +323,7 @@ export async function processSendRequest(args: {
     mediaType: input.kind === "media" ? (input.mediaType ?? null) : null,
     mediaUrl: input.kind === "media" ? (input.mediaPath ?? null) : null,
     fileName: input.kind === "media" ? (input.fileName ?? null) : null,
+    authorType: sender.isAutomatedSdr ? "sdr" : "seller",
   });
 
   const engine = args.buildProvider(effectiveAccount);

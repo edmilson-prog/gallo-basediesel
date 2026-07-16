@@ -31,6 +31,7 @@ interface IFakeState {
     accountId: string;
     open: boolean;
     status?: string;
+    isSdrActive?: boolean;
   }>;
   messages: Array<Record<string, unknown>>;
   statusApplied: Array<Record<string, unknown>>;
@@ -110,7 +111,13 @@ function makeFakeDb(state: IFakeState, opts?: { knownOutboundId?: string }): IWe
           c.accountId === accountId &&
           (includeTerminal || !["resolvida", "arquivada"].includes(c.status ?? "")),
       );
-      return found ? { id: found.id, status: found.status ?? "aguardando" } : null;
+      return found
+        ? {
+            id: found.id,
+            status: found.status ?? "aguardando",
+            isSdrActive: found.isSdrActive ?? false,
+          }
+        : null;
     },
     createConversation: async ({ customerId, accountId, status, assignedSellerId }) => {
       const conversation = {

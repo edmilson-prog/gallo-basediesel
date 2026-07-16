@@ -281,6 +281,9 @@ export type {
   SdrEscalationStatus,
 } from "./sdr-escalation";
 
+// SDR production pilot settings (Parte B — 2026-07-15 design)
+export type { ISdrPilotSettings } from "./sdr-pilot";
+
 // Copiloto de Vendas (PRD-025)
 export type {
   ICopilotSuggestion,
