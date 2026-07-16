@@ -44,13 +44,14 @@ interface WhatsAppAccountRow {
   openwa_server_id: string | null;
   alerts_muted: boolean;
   waha_server_id: string | null;
+  sdr_enabled: boolean;
 }
 
 const TABLE = "whatsapp_accounts";
 const COLUMNS =
   "id, store_id, label, phone_number, provider, credentials_ref, status, capabilities, " +
   "provider_config, current_state, state_changed_at, failover_policy, failover_account_id, " +
-  "is_failover_active, created_at, purpose, go_server_id, openwa_server_id, alerts_muted, waha_server_id";
+  "is_failover_active, created_at, purpose, go_server_id, openwa_server_id, alerts_muted, waha_server_id, sdr_enabled";
 
 function rowToWhatsAppAccount(row: WhatsAppAccountRow): IWhatsAppAccount {
   return {
@@ -74,6 +75,7 @@ function rowToWhatsAppAccount(row: WhatsAppAccountRow): IWhatsAppAccount {
     openwaServerId: row.openwa_server_id ?? undefined,
     alertsMuted: row.alerts_muted ?? false,
     wahaServerId: row.waha_server_id ?? undefined,
+    sdrEnabled: row.sdr_enabled ?? false,
   };
 }
 
@@ -157,6 +159,7 @@ export const supabaseWhatsAppAccountsProvider: IWhatsAppAccountsProvider = {
       go_server_id: input.goServerId ?? null,
       openwa_server_id: input.openwaServerId ?? null,
       alerts_muted: input.alertsMuted ?? false,
+      sdr_enabled: input.sdrEnabled ?? false,
     };
     const { data, error } = await getSupabaseClient()
       .from(TABLE)
@@ -223,6 +226,7 @@ export const supabaseWhatsAppAccountsProvider: IWhatsAppAccountsProvider = {
     if (patch.failoverAccountId !== undefined) row.failover_account_id = patch.failoverAccountId;
     if (patch.isFailoverActive !== undefined) row.is_failover_active = patch.isFailoverActive;
     if (patch.alertsMuted !== undefined) row.alerts_muted = patch.alertsMuted;
+    if (patch.sdrEnabled !== undefined) row.sdr_enabled = patch.sdrEnabled;
 
     const { data, error } = await getSupabaseClient()
       .from(TABLE)

@@ -27,6 +27,7 @@ describe("mockWhatsAppAccountsProvider.create", () => {
       isFailoverActive: false,
       purpose: "atendimento",
       alertsMuted: false,
+      sdrEnabled: false,
     });
     expect(created.id).toMatch(/^wa-/);
     expect(created.createdAt).toBeTruthy();
@@ -56,6 +57,7 @@ describe("mockWhatsAppAccountsProvider.create", () => {
       purpose: "atendimento",
       goServerId: "srv-abc123",
       alertsMuted: false,
+      sdrEnabled: false,
     });
     expect(created.goServerId).toBe("srv-abc123");
   });
