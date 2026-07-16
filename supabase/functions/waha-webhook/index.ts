@@ -40,6 +40,7 @@ import { getWahaContactName, resolveWahaLid } from "../_shared/whatsapp/waha/con
 import { buildWahaEventKey } from "../_shared/whatsapp/waha/eventKey.ts";
 import { logWebhookDelivery } from "../_shared/webhookDeliveryLog.ts";
 import { runInBackground } from "../_shared/backgroundTask.ts";
+import { transcribeMessageAudio } from "../_shared/ai/transcribeAudio.ts";
 
 interface IWahaEnvelope {
   id?: string;
@@ -264,6 +265,7 @@ Deno.serve(async (req) => {
       mediaId: string,
       conversationId: string,
       messageId: string,
+      isInboundAudio: boolean,
     ): Promise<void> {
       try {
         const apiKey = await getApiKey();
@@ -279,6 +281,13 @@ Deno.serve(async (req) => {
           .from("messages")
           .update({ media_url: path, media_download_status: "ok" })
           .eq("id", messageId);
+        if (isInboundAudio) {
+          await admin
+            .from("messages")
+            .update({ transcription_status: "pending" })
+            .eq("id", messageId);
+          runInBackground(transcribeMessageAudio(admin, messageId));
+        }
       } catch (err) {
         console.warn(
           JSON.stringify({
@@ -567,7 +576,9 @@ Deno.serve(async (req) => {
         .eq("id", echoConversationId)
         .lt("last_message_at", parsed.timestamp);
 
-      if (parsed.mediaId) await attachMedia(parsed.mediaId, echoConversationId, echoMessageId);
+      if (parsed.mediaId) {
+        await attachMedia(parsed.mediaId, echoConversationId, echoMessageId, false);
+      }
       await logWebhookSuccess();
       return respond(json({ ok: true }, 200), {
         outcome: "processed",
@@ -794,7 +805,9 @@ Deno.serve(async (req) => {
     }
 
     // ===== Media (separate step, never fails the webhook response) ============
-    if (parsed.mediaId) await attachMedia(parsed.mediaId, conversationId, messageId);
+    if (parsed.mediaId) {
+      await attachMedia(parsed.mediaId, conversationId, messageId, parsed.contentType === "audio");
+    }
 
     await logWebhookSuccess();
     return respond(json({ ok: true }, 200), {

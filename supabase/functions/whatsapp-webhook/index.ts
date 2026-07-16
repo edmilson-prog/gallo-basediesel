@@ -504,9 +504,9 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
         .from("messages")
         .update({ media_url: mediaUrl, media_download_status: downloadStatus })
         .eq("id", messageId)
-        .select("media_type")
-        .maybeSingle<{ media_type: string | null }>();
-      if (downloadStatus === "ok" && data?.media_type === "audio") {
+        .select("media_type, direction")
+        .maybeSingle<{ media_type: string | null; direction: string | null }>();
+      if (downloadStatus === "ok" && data?.media_type === "audio" && data?.direction === "in") {
         await admin.from("messages").update({ transcription_status: "pending" }).eq("id", messageId);
         runInBackground(transcribeMessageAudio(admin, messageId));
       }
