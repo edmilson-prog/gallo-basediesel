@@ -49,10 +49,10 @@ Vitest TDD nos engines (`idleBusinessTime`, `idleLevel`, `groupByLevel`, `briefi
 ## Rollout (spec, 5 passos)
 
 1. Migration (coluna + triggers + backfill + índice + funções + regra do reconciler + RPC) — **antes** do deploy do frontend, via MCP com OK explícito do dono, espelhada em `supabase/migrations/`.
-2. Deploy do frontend com `enabled=false` em todas as lojas (sem Edge Functions neste sub-projeto — webhook intocado).
+2. Deploy do frontend com `enabled=false` em todas as lojas.
 3. Avaliar o passivo revelado pelo backfill (consulta assistida); higiene se o dono quiser.
 4. Dono liga `enabled` por loja.
-5. Version bump quando o dono pedir.
+5. Sem deploy de Edge Functions neste sub-projeto (webhook real intocado).
 
 ## Fora de escopo
 
