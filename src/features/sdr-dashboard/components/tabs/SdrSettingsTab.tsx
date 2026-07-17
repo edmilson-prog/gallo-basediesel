@@ -27,6 +27,8 @@ export function SdrSettingsTab({
 
   const [pilot, setPilot] = useState<ISdrPilotSettings | null>(null);
   const [timeoutInput, setTimeoutInput] = useState("2");
+  const [urgentTimeoutInput, setUrgentTimeoutInput] = useState("5");
+  const [normalTimeoutInput, setNormalTimeoutInput] = useState("30");
   const [accounts, setAccounts] = useState<IWhatsAppAccount[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -48,6 +50,8 @@ export function SdrSettingsTab({
         for (const a of [...list, ...waha]) merged.set(a.id, a);
         setPilot(settings);
         setTimeoutInput(String(settings.backstopTimeoutMinutes));
+        setUrgentTimeoutInput(String(settings.escalationTimeoutUrgentMinutes));
+        setNormalTimeoutInput(String(settings.escalationTimeoutNormalMinutes));
         setAccounts([...merged.values()]);
       })
       .catch(() => {
@@ -63,7 +67,12 @@ export function SdrSettingsTab({
     };
   }, [currentStoreId, pilotProvider, accountsProvider]);
 
-  const patchPilot = async (p: { sdrEnabled?: boolean; backstopTimeoutMinutes?: number }) => {
+  const patchPilot = async (p: {
+    sdrEnabled?: boolean;
+    backstopTimeoutMinutes?: number;
+    escalationTimeoutUrgentMinutes?: number;
+    escalationTimeoutNormalMinutes?: number;
+  }) => {
     if (!currentStoreId) return;
     try {
       const updated = await pilotProvider.update(currentStoreId, p);
@@ -210,32 +219,54 @@ export function SdrSettingsTab({
         </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-4 opacity-60">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="flex items-center gap-2 text-sm font-semibold">
-            <Icon icon="mdi:account-arrow-right-outline" size={16} className="text-primary" />
-            Escalonamento
-          </h3>
-          <Badge variant="secondary">Em breve</Badge>
-        </div>
+      <div className="rounded-xl border border-border bg-card p-4">
+        <h3 className="flex items-center gap-2 text-sm font-semibold">
+          <Icon icon="mdi:account-arrow-right-outline" size={16} className="text-primary" />
+          Escalonamento
+        </h3>
         <p className="mt-1 text-xs text-muted-foreground">
-          Timeout de resposta e broadcast urgente chegam numa entrega separada (Parte D).
+          Se ninguém responder a tempo, todo vendedor com acesso a esta instância é avisado e pode
+          assumir a conversa.
         </p>
         <div className="mt-4 space-y-4">
-          <div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-sm font-medium">Timeout fila urgente</span>
-              <span className="text-xs text-muted-foreground tabular-nums">5 min</span>
-            </div>
-            <Slider value={[5]} min={1} max={30} step={1} disabled className="mt-3" />
-          </div>
-          <div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-sm font-medium">Timeout fila normal</span>
-              <span className="text-xs text-muted-foreground tabular-nums">30 min</span>
-            </div>
-            <Slider value={[30]} min={5} max={60} step={5} disabled className="mt-3" />
-          </div>
+          <label className="block text-xs text-muted-foreground">
+            Timeout — modo urgente (minutos)
+            <input
+              type="number"
+              min={1}
+              max={60}
+              value={urgentTimeoutInput}
+              disabled={!canEdit}
+              onChange={(e) => setUrgentTimeoutInput(e.target.value)}
+              onBlur={() => {
+                const parsed = Math.min(60, Math.max(1, Number(urgentTimeoutInput) || 5));
+                setUrgentTimeoutInput(String(parsed));
+                if (pilot && parsed !== pilot.escalationTimeoutUrgentMinutes) {
+                  void patchPilot({ escalationTimeoutUrgentMinutes: parsed });
+                }
+              }}
+              className="mt-1 w-full max-w-40 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+            />
+          </label>
+          <label className="block text-xs text-muted-foreground">
+            Timeout — modo normal (minutos)
+            <input
+              type="number"
+              min={1}
+              max={120}
+              value={normalTimeoutInput}
+              disabled={!canEdit}
+              onChange={(e) => setNormalTimeoutInput(e.target.value)}
+              onBlur={() => {
+                const parsed = Math.min(120, Math.max(1, Number(normalTimeoutInput) || 30));
+                setNormalTimeoutInput(String(parsed));
+                if (pilot && parsed !== pilot.escalationTimeoutNormalMinutes) {
+                  void patchPilot({ escalationTimeoutNormalMinutes: parsed });
+                }
+              }}
+              className="mt-1 w-full max-w-40 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+            />
+          </label>
         </div>
       </div>
 
