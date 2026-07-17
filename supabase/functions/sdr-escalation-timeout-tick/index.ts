@@ -37,6 +37,7 @@ interface IEscalationRow {
 interface IConversationRow {
   id: string;
   whatsapp_account_id: string | null;
+  store_id: string;
 }
 interface IPilotThresholds {
   store_id: string;
@@ -113,14 +114,19 @@ servePost(async (req, ctx) => {
   const toProcess = [...pending, ...overdue];
   if (toProcess.length === 0) return json({ broadcast: 0 }, 200);
 
-  // 3. Resolve every candidate's WhatsApp instance in one query.
+  // 3. Resolve every candidate's WhatsApp instance and store in one query
+  // (store_id feeds the notification rows below, mirroring the sibling
+  // notify_conversation_participant_added trigger's `c.store_id` join).
   const conversationIds = [...new Set(toProcess.map((e) => e.conversation_id))];
   const { data: convRows } = await admin
     .from("conversations")
-    .select("id, whatsapp_account_id")
+    .select("id, whatsapp_account_id, store_id")
     .in("id", conversationIds);
   const accountByConv = new Map(
     ((convRows ?? []) as IConversationRow[]).map((c) => [c.id, c.whatsapp_account_id]),
+  );
+  const storeIdByConv = new Map(
+    ((convRows ?? []) as IConversationRow[]).map((c) => [c.id, c.store_id]),
   );
 
   let broadcastCount = 0;
@@ -201,6 +207,7 @@ servePost(async (req, ctx) => {
           severity: "critical",
           recipient_id: sellerId,
           recipient_type: "seller",
+          store_id: storeIdByConv.get(escalation.conversation_id) ?? null,
           title: "Conversa do SDR aguardando atendimento",
           body: `${customerName} aguarda um vendedor há ${ageMinutes} min — ninguém respondeu ainda.`,
           entity_ref: { type: "conversation", id: escalation.conversation_id },

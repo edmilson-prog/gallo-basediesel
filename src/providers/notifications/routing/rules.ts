@@ -132,7 +132,7 @@ export const ROUTING_RULES: Record<NotificationEventType, IRoutingRule> = {
   },
   "sdr.escalonouSemResposta": {
     category: "operational",
-    severity: "warning",
+    severity: "critical",
     channels: ["inApp", "toast"],
     resolveRecipients: (p, ctx) => uniq([...sellerOf(p), ...managersOf(p, ctx)]),
   },
