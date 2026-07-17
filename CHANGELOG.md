@@ -4,6 +4,15 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.151.0] — Backstop · 2026-07-17
+
+**Rede de segurança automática para o escalonamento do SDR (ainda pendente de ativação em produção) e um novo indicador de áudios transcritos na tela de Inteligência artificial.**
+
+### Added
+
+- **Escalonamento do SDR ganha rede de segurança automática** — quando uma conversa é passada do atendente automático para um vendedor e ninguém responde dentro do prazo configurado, o sistema passa a avisar automaticamente todos os vendedores com acesso àquele número de WhatsApp, para que qualquer um assuma o atendimento; se a conversa tivesse ficado sem ninguém disponível para recebê-la, o app agora corrige sozinho o estado que ficava travado. Os prazos (padrão e urgente) são definidos no bloco "Escalonamento" em Configurações → SDR. **Ativação em produção depende de um passo separado do dono** (aplicar as atualizações de banco pendentes) — nada muda para quem usa a plataforma hoje.
+- **Novo indicador na tela de Inteligência artificial** — a aba Visão geral (Configurações → Inteligência artificial) ganhou um indicador mostrando quantos áudios foram transcritos com sucesso no período selecionado, ao lado dos indicadores já existentes de chamadas, tokens, custo e orçamento.
+
 ## [0.150.0] — Funnel · 2026-07-17
 
 **Números de WhatsApp desconhecidos agora entram automaticamente no funil de Leads, e a tela de revisão de contatos pendentes foi aposentada.**
