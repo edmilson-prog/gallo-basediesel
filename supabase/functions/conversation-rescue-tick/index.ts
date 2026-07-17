@@ -16,7 +16,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.107.0";
 import { requiredEnv } from "../_shared/env.ts";
 import { HttpError, json } from "../_shared/http.ts";
-import { servePost } from "../_shared/serve.ts";
+import { servePost, type RequestContext } from "../_shared/serve.ts";
 import { createSecretResolver } from "../_shared/secrets.ts";
 import { verifyWorkerSecret } from "../_shared/workerAuth.ts";
 import { isWithinWorkSchedule } from "../_shared/access/workSchedule.ts";
@@ -115,7 +115,11 @@ async function resolveEligiblePool(
   return [...eligibleIds];
 }
 
-async function broadcastNewRescues(admin: ReturnType<typeof createClient>, now: Date): Promise<number> {
+async function broadcastNewRescues(
+  admin: ReturnType<typeof createClient>,
+  now: Date,
+  ctx: RequestContext,
+): Promise<number> {
   const { data: stores } = await admin
     .from("stores")
     .select("id, settings")
@@ -209,13 +213,26 @@ async function broadcastNewRescues(admin: ReturnType<typeof createClient>, now: 
         contact_name: contactName,
         last_inbound_preview: (lastInbound as { text: string } | null)?.text ?? null,
       });
-      if (!insertError) created++;
+      if (!insertError) {
+        created++;
+      } else if (insertError.code !== "23505") {
+        // 23505 = unique_violation — another concurrent tick already broadcast
+        // this conversation; expected under overlapping invocations, not an error.
+        ctx.log.error("conversation-rescue-tick broadcast insert failed", {
+          conversationId: conv.id,
+          error: insertError.message,
+        });
+      }
     }
   }
   return created;
 }
 
-async function resolveTimeouts(admin: ReturnType<typeof createClient>, now: Date): Promise<number> {
+async function resolveTimeouts(
+  admin: ReturnType<typeof createClient>,
+  now: Date,
+  ctx: RequestContext,
+): Promise<number> {
   const { data: stores } = await admin
     .from("stores")
     .select("id, settings")
@@ -263,19 +280,34 @@ async function resolveTimeouts(admin: ReturnType<typeof createClient>, now: Date
       const chosen = pickFallbackSeller(pool, seed);
       if (!chosen) continue;
 
-      const { error: updErr } = await admin
+      const { data: updated, error: updErr } = await admin
         .from("conversation_rescues")
         .update({ status: "forced", forced_seller_id: chosen, forced_at: now.toISOString() })
         .eq("id", rescue.id)
-        .eq("status", "broadcasting"); // idempotency guard against a concurrent tick
-      if (updErr) continue;
+        .eq("status", "broadcasting") // idempotency guard against a concurrent tick
+        .select("id");
+      if (updErr) {
+        ctx.log.error("conversation-rescue-tick force-assign update failed", {
+          rescueId: rescue.id,
+          error: updErr.message,
+        });
+        continue;
+      }
+      if (!updated || updated.length === 0) continue; // lost the race to a concurrent tick — don't double-fire
 
-      await admin
+      const { error: convUpdErr } = await admin
         .from("conversations")
         .update({ assigned_seller_id: chosen })
         .eq("id", rescue.conversation_id);
+      if (convUpdErr) {
+        ctx.log.error("conversation-rescue-tick conversation reassignment failed", {
+          rescueId: rescue.id,
+          conversationId: rescue.conversation_id,
+          error: convUpdErr.message,
+        });
+      }
 
-      await admin.from("audit_logs").insert({
+      const { error: auditErr } = await admin.from("audit_logs").insert({
         store_id: rescue.store_id,
         actor_id: chosen,
         action: "conversation_rescue_forced",
@@ -283,6 +315,12 @@ async function resolveTimeouts(admin: ReturnType<typeof createClient>, now: Date
         resource_id: rescue.conversation_id,
         after: { rescueId: rescue.id },
       });
+      if (auditErr) {
+        ctx.log.error("conversation-rescue-tick audit log insert failed", {
+          rescueId: rescue.id,
+          error: auditErr.message,
+        });
+      }
       forced++;
     }
   }
@@ -301,8 +339,8 @@ servePost(async (req, ctx) => {
   if (!verifyWorkerSecret(provided, expected)) throw new HttpError(401, "unauthorized");
 
   const now = new Date();
-  const created = await broadcastNewRescues(admin, now);
-  const forced = await resolveTimeouts(admin, now);
+  const created = await broadcastNewRescues(admin, now, ctx);
+  const forced = await resolveTimeouts(admin, now, ctx);
   ctx.log.info("conversation-rescue-tick done", { created, forced });
   return json({ created, forced }, 200);
 });
