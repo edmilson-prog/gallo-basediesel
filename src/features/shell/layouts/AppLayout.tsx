@@ -18,6 +18,7 @@ import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
 import { useEscalationToasts, UrgentBroadcastClaim } from "@/features/sdr-escalation";
 import { useEscalationQueueTimeoutMonitor } from "@/features/sdr-escalation/hooks/useEscalationQueueTimeoutMonitor";
 import { useUrgentBroadcastTimer } from "@/features/sdr-escalation/hooks/useUrgentBroadcastTimer";
+import { RescueBroadcastClaim } from "@/features/conversation-rescue";
 import { useQuoteExpirationTimer } from "@/features/quotes/hooks/useQuoteExpirationTimer";
 import { useEcommerceSellerNotifier } from "@/features/ecommerce-integration";
 import { usePresenceTracker } from "@/features/shell/hooks/useStorePresence";
@@ -79,6 +80,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
         <SessionTimeoutGuard />
         <InboxActivityGuard />
         <UrgentBroadcastClaim />
+        <RescueBroadcastClaim />
         <WhatsNewModal />
         <VersionUpdatePrompt />
         <CollaboratorAddedPrompt />
