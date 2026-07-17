@@ -65,6 +65,7 @@ export {
   MockValidationError,
   MockNetworkError,
   MockUnauthorizedError,
+  MockConflictError,
   type IPaginatedResult,
   type IPaginationParams,
 } from "./utils";

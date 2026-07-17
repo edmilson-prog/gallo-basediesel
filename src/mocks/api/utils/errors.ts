@@ -39,6 +39,14 @@ export class MockNetworkError extends MockError {
   }
 }
 
+/** Optimistic-concurrency conflict — another actor already claimed/changed this resource. */
+export class MockConflictError extends MockError {
+  readonly code = "MOCK_CONFLICT";
+  constructor(message: string) {
+    super(message);
+  }
+}
+
 /** Operation not authorized under current RBAC. Reserved for PRD-006. */
 export class MockUnauthorizedError extends MockError {
   readonly code = "MOCK_UNAUTHORIZED";
