@@ -34,7 +34,7 @@
 - Create: `src/features/conversation-rescue/index.ts` (barrel, começa só com o que existe até aqui)
 
 **Interfaces:**
-- Produces: `IConversationRescue`, `AbsenceKind`, `ConversationRescueStatus`, `IConversationRescueBroadcastEntry`, `IConversationRescueSettings`, `DEFAULT_CONVERSATION_RESCUE_SETTINGS`.
+- Produces: `IConversationRescue`, `AbsenceKind`, `ConversationRescueStatus`, `IConversationRescueSettings`, `DEFAULT_CONVERSATION_RESCUE_SETTINGS`. (`IConversationRescue` already carries `contactName`/`lastInboundPreview` directly — no separate read-model type; Task 4's migration stores those fields on the row itself, so there is nothing further to join.)
 
 - [ ] **Step 1: Adicionar os tipos de domínio em `conversation.ts`**
 
