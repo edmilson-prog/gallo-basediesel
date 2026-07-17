@@ -107,6 +107,7 @@ export function InboxFilters({
   const canSeeAllAssignments = usePermission("conversation", "view", "store");
   const sellers = useSellersForAssignment(canSeeAllAssignments);
   const { collapsed, setCollapsed } = useInboxFiltersCollapsed();
+  const searchActive = state.search.trim().length > 0;
 
   const statusLabel = INBOX_STRINGS.statusOptions[state.status];
   const channelLabel = INBOX_STRINGS.channelOptions[state.channel];
@@ -169,6 +170,16 @@ export function InboxFilters({
           </Button>
         </CollapsibleTrigger>
 
+        {searchActive && (
+          <span
+            className="inline-flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground"
+            title={INBOX_STRINGS.searchIgnoresFilters}
+          >
+            <Icon icon="mdi:information-outline" size={12} className="shrink-0" />
+            <span className="truncate">{INBOX_STRINGS.searchIgnoresFilters}</span>
+          </span>
+        )}
+
         {activeCount > 0 && (
           <Button type="button" variant="ghost" size="sm" className="h-8 text-xs" onClick={onClear}>
             {INBOX_STRINGS.clearAll}
@@ -177,7 +188,12 @@ export function InboxFilters({
       </div>
 
       <CollapsibleContent className="overflow-hidden data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-top-1 data-[state=closed]:animate-out data-[state=closed]:fade-out-0">
-        <div className="flex flex-wrap items-center gap-1.5 border-b border-border px-3 pb-2 pt-1">
+        <div
+          className={cn(
+            "flex flex-wrap items-center gap-1.5 border-b border-border px-3 pb-2 pt-1",
+            searchActive && "opacity-50",
+          )}
+        >
           {/* Status */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

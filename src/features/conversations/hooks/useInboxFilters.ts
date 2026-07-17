@@ -280,6 +280,15 @@ export function filtersToListParams(
   filters: IInboxFiltersState,
   ctx: { currentSellerId: ID | null },
 ) {
+  // Search is GLOBAL by design (owner decision, 2026-07-16 spec): with a term
+  // active every filter is ignored — including the closed-statuses default —
+  // so a match is never hidden by status/assignment/instance/tags/period.
+  // Access control still applies (RLS two-gate model). Ordering is pinned to
+  // most-recent because the search RPC only orders by last_message_at.
+  if (filters.search.trim().length > 0) {
+    return { search: filters.search.trim(), orderBy: "lastMessageAt", orderDir: "desc" };
+  }
+
   const params: Record<string, unknown> = {};
 
   // Status — defaulting to "all" excludes closed (resolvida + arquivada)
@@ -293,7 +302,6 @@ export function filtersToListParams(
   if (filters.channel !== "all") params.channel = filters.channel;
   if (filters.instance !== "all") params.whatsappAccountId = filters.instance;
   if (filters.tags.length > 0) params.tags = filters.tags;
-  if (filters.search.length > 0) params.search = filters.search;
 
   // Assignment — multi-select OR. Resolve "me" → the current seller id; "queue"
   // is the single pool token (folds the retired "Sem atribuição" option — see

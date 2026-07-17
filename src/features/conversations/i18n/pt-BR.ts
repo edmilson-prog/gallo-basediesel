@@ -51,6 +51,7 @@ export const INBOX_STRINGS = {
   filtersExpandAria: "Mostrar filtros",
   filtersCollapseAria: "Ocultar filtros",
   filtersActiveCountAria: (n: number) => (n === 1 ? "1 filtro ativo" : `${n} filtros ativos`),
+  searchIgnoresFilters: "Filtros ignorados durante a busca",
 
   // Status filter
   statusLabel: "Status",

@@ -51,10 +51,30 @@ export function InboxPage() {
   }, [accounts]);
   const showOrigin = accounts.length > 1;
 
+  const selectedId = (useParams({ strict: false }) as { id?: ID }).id ?? null;
+
+  const {
+    filters,
+    setStatus,
+    setChannel,
+    setAssignment,
+    setInstance,
+    setTags,
+    setPeriod,
+    setSearch,
+    setSort,
+    setEscalated,
+    reset,
+    activeCount,
+  } = useInboxFilters(sellerId);
+
   // Assignee oversight: staff (Owner/Gestor) see store-wide conversations and
-  // need to know who is handling each. Load the store's sellers once to resolve
-  // names per row; skipped entirely for non-staff (the chip never renders).
-  const showAssignee = isStaffView;
+  // need to know who is handling each. During an active search EVERY role sees
+  // the chip (results may surface other sellers' conversations — owner decision,
+  // 2026-07-16 spec); sellers RLS is store-scoped, so non-staff can resolve
+  // names. Outside search, non-staff never load the roster (chip hidden).
+  const searchActive = filters.search.trim().length > 0;
+  const showAssignee = isStaffView || searchActive;
   const sellersProvider = useSellersProvider();
   const [sellersById, setSellersById] = useState<Map<ID, ISeller>>(new Map());
   useEffect(() => {
@@ -78,23 +98,6 @@ export function InboxPage() {
       cancelled = true;
     };
   }, [sellersProvider, storeId, showAssignee]);
-
-  const selectedId = (useParams({ strict: false }) as { id?: ID }).id ?? null;
-
-  const {
-    filters,
-    setStatus,
-    setChannel,
-    setAssignment,
-    setInstance,
-    setTags,
-    setPeriod,
-    setSearch,
-    setSort,
-    setEscalated,
-    reset,
-    activeCount,
-  } = useInboxFilters(sellerId);
 
   // Self-heal a stale instance filter: a non-staff user may carry a persisted
   // `?instance=<id>` (e.g. selected before their access narrowed) pointing at an
@@ -152,9 +155,11 @@ export function InboxPage() {
 
   const escalationsByConversation = useEscalationsByConversation();
   const items = useMemo(() => {
-    if (!filters.escalated) return rawItems;
+    // Escalated is a client-side post-filter; search mode ignores it like every
+    // other filter (global search — see filtersToListParams).
+    if (!filters.escalated || searchActive) return rawItems;
     return rawItems.filter((c) => escalationsByConversation.has(c.id));
-  }, [rawItems, escalationsByConversation, filters.escalated]);
+  }, [rawItems, escalationsByConversation, filters.escalated, searchActive]);
   const related = useRelatedEntities(items, { skipLastMessages: messageSearchActive });
   const { isUnread, markViewed } = useUnreadTracking(userId);
   const { lastId, setLastId } = useLastSelectedConversation();
