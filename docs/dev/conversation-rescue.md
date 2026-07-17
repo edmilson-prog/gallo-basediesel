@@ -316,6 +316,12 @@ Tela: `Configurações → Operação → Resgate de conversas` (Owner-only). **
   que uma escrita **downstream** (a atualização em `conversations` ou o `INSERT` em `audit_logs`)
   falhe depois e seja apenas logada como erro, não propagada. O retorno `{ created, forced }` da
   função é, portanto, um limite superior otimista, não uma confirmação de ponta a ponta.
+- **Sem notificação separada quando ninguém está online no fallback** — se, no momento de forçar
+  a atribuição, nem a lista de reserva nem o pool elegível têm ninguém online, o resgate
+  simplesmente continua `broadcasting` (tenta de novo no próximo tick) e **ninguém é avisado** por
+  este sub-projeto especificamente. O único backstop nesse extremo é o alerta de ociosidade do
+  sub-projeto A, que eventualmente escala em horas — decisão deliberada (spec 2026-07-17, "Fora de
+  escopo"), para não duplicar um segundo canal de notificação por cima do que já existe.
 
 ## Referências
 
