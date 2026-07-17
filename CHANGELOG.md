@@ -4,6 +4,18 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.150.0] — Funnel · 2026-07-17
+
+**Números de WhatsApp desconhecidos agora entram automaticamente no funil de Leads, e a tela de revisão de contatos pendentes foi aposentada.**
+
+### Added
+
+- **Contato novo do WhatsApp vira Lead automaticamente** — quando chega uma mensagem de um número que a Gallo nunca atendeu, o sistema agora cria um Lead (que passa pelo funil de qualificação normal, como qualquer outro) em vez de um cliente provisório pendente de revisão. O dono do lead é escolhido automaticamente pela fila de rodízio de atendimento configurada em Configurações → Rodízio.
+
+### Removed
+
+- **Tela "Contatos pendentes" removida** — como contatos novos não geram mais pendências de revisão, a tela e o aviso associado deixaram de existir.
+
 ## [0.149.0] — Reel · 2026-07-17
 
 **Envio de vídeo como anexo avulso no Atendimento — pelo menu de anexo ou arrastando e soltando — e correção de telefones sem o código do país no WAHA.**
