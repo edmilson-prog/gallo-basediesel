@@ -145,6 +145,12 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         roles: ["Owner"],
       },
       {
+        label: "Resgate de conversas",
+        icon: "mdi:account-switch-outline",
+        to: "/app/configuracoes/atendimento/resgate-conversas",
+        roles: ["Owner"],
+      },
+      {
         label: "Cadastro de veículos",
         icon: "mdi:truck-outline",
         to: "/app/configuracoes/veiculos/cadastro-mode",
