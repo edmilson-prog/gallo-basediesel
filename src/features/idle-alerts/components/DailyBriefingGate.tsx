@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useIdleSummary } from "../hooks/useIdleSummary";
 import { consumeExplicitLogin } from "../hooks/useExplicitLoginFlag";
 import { shouldShowBriefing } from "../engine/briefingGate";
@@ -12,10 +12,15 @@ export function DailyBriefingGate() {
   const { summary, isLoading } = useIdleSummary();
   const [explicit, setExplicit] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const consumedRef = useRef<boolean | null>(null);
 
   useEffect(() => {
-    // Consume the one-shot flag on mount (post-login app boot).
-    setExplicit(consumeExplicitLogin());
+    // StrictMode replays this effect in dev; latch the first (real) consumption
+    // so the one-shot flag isn't read-then-lost on the replay.
+    if (consumedRef.current === null) {
+      consumedRef.current = consumeExplicitLogin();
+    }
+    setExplicit(consumedRef.current);
   }, []);
 
   if (dismissed || isLoading) return null;

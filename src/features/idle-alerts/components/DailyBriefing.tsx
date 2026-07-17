@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import type { IIdleSummary } from "@/shared/types";
 import { formatElapsed } from "../engine/idleLevel";
+import { totalPending } from "../engine/summaryStats";
 import { IdlePendingSheet } from "./IdlePendingSheet";
 import { useTimeTick } from "@/features/conversations/hooks/useTimeTick";
 
@@ -21,7 +22,7 @@ export function DailyBriefing({
   // urgentes" elapsed labels fresh instead of freezing at mount time — this
   // overlay is short-lived, but the sheet it opens into is not.
   const now = useTimeTick(60_000);
-  const total = summary.counts.level1 + summary.counts.level2 + summary.counts.level3;
+  const total = totalPending(summary.counts);
   const top = summary.entries.slice(0, 4);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 p-4 backdrop-blur-sm">
