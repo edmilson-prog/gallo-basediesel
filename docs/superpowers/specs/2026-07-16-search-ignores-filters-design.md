@@ -36,6 +36,11 @@ atual inalterado. Vale automaticamente para os DOIS modos (lista e "Buscar nas m
 ambos consomem o mesmo `listParams`) e para o mock (paridade de graça: os filtros morrem antes
 de chegar ao provider). Testes em `useInboxFilters.test.ts` cobrindo os dois ramos.
 
+> Nota (review final): no MOCK (modo demo), a busca de um usuário não-staff continua limitada
+> às próprias conversas — o `withOwnSellerScope` do mock preenche `assignedSellerId` quando não
+> há filtro de atribuição. A busca global de não-staff é fiel apenas no caminho supabase (RPC
+> gated por `can_access_conversation`). Aceito: o demo é operado como staff.
+
 ### 2. InboxPage — chip para todos durante a busca + escalated
 
 `src/features/conversations/pages/InboxPage.tsx`:

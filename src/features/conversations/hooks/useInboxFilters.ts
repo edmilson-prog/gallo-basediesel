@@ -286,7 +286,7 @@ export function filtersToListParams(
   // Access control still applies (RLS two-gate model). Ordering is pinned to
   // most-recent because the search RPC only orders by last_message_at.
   if (filters.search.trim().length > 0) {
-    return { search: filters.search, orderBy: "lastMessageAt", orderDir: "desc" };
+    return { search: filters.search.trim(), orderBy: "lastMessageAt", orderDir: "desc" };
   }
 
   const params: Record<string, unknown> = {};

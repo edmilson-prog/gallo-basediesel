@@ -142,4 +142,11 @@ describe("filtersToListParams — search mode ignores filters", () => {
     expect(p.search).toBeUndefined();
     expect(p.status).toBe("em_andamento");
   });
+
+  it("trims the term it sends downstream", () => {
+    const p = filtersToListParams(baseState({ search: "  98888-4188  " }), {
+      currentSellerId: SELLER,
+    });
+    expect(p).toEqual({ search: "98888-4188", orderBy: "lastMessageAt", orderDir: "desc" });
+  });
 });
