@@ -141,14 +141,21 @@ begin
   v_last_day := ((p_to at time zone 'utc') - interval '3 hours')::date;
   while v_day <= v_last_day loop
     v_weekday := extract(dow from v_day)::int;
+    -- defensive parsing: mirror of timeToMinutes (invalid window ⇒ skipped, never fatal)
     for v_win in
       select w->>'openAt' open_at, w->>'closeAt' close_at
         from jsonb_array_elements(p_schedule) w
        where coalesce((w->>'enabled')::bool, false)
+         and (w->>'weekday') ~ '^[0-6]$'
          and (w->>'weekday')::int = v_weekday
+         and trim(w->>'openAt')  ~ '^\d{1,2}:\d{2}$'
+         and trim(w->>'closeAt') ~ '^\d{1,2}:\d{2}$'
     loop
-      v_open  := split_part(v_win.open_at,  ':', 1)::int * 60 + split_part(v_win.open_at,  ':', 2)::int;
-      v_close := split_part(v_win.close_at, ':', 1)::int * 60 + split_part(v_win.close_at, ':', 2)::int;
+      v_open  := split_part(trim(v_win.open_at),  ':', 1)::int * 60 + split_part(trim(v_win.open_at),  ':', 2)::int;
+      v_close := split_part(trim(v_win.close_at), ':', 1)::int * 60 + split_part(trim(v_win.close_at), ':', 2)::int;
+      if v_open >= 24*60 or v_close >= 24*60
+         or split_part(trim(v_win.open_at),':',2)::int > 59
+         or split_part(trim(v_win.close_at),':',2)::int > 59 then continue; end if;
       if v_close <= v_open then continue; end if;
       -- Window instants back in UTC (+3h).
       v_start := (v_day::timestamp + make_interval(mins => v_open))  at time zone 'utc' + interval '3 hours';
