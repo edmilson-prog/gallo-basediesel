@@ -136,7 +136,7 @@ interface vazou especificidade da fonte (bug de design).
 
 ## Normalização de telefone em cargas DINTEC (obrigatória)
 
-O import assistido de 2026-07-12 gravou telefones **crus do ERP** (10–11 dígitos, sem o DDI 55) em ~1.411 clientes novos. Consequência: o envio WhatsApp montava o JID do país errado (`49988184540@c.us` = Alemanha) e falhava com HTTP 500 — corrigido por backfill em 2026-07-17 (ver `docs/superpowers/plans/2026-07-17-customers-phone-country-code-fix.md`). Toda carga futura DEVE aplicar a regra do PRD-124 RF-011 antes de gravar `customers.phone`:
+O import assistido de 2026-07-12 gravou telefones **crus do ERP** (10–11 dígitos, sem o DDI 55) em ~1.411 clientes novos. Consequência: o envio WhatsApp montava o JID do país errado (`49988184540@c.us` = Alemanha) e falhava com HTTP 500 — correção via backfill assistido, conduzido conforme `docs/superpowers/plans/2026-07-17-customers-phone-country-code-fix.md`. Toda carga futura DEVE aplicar a regra do PRD-124 RF-011 antes de gravar `customers.phone`:
 
 1. Reduzir a dígitos; se o valor original tem `+` inicial, é E.164 explícito — gravar `'+' + dígitos` sem mais transformação (protege números estrangeiros: Chile/Bolívia também têm 10–11 dígitos).
 2. Sem `+`: se `length ∈ {10, 11}`, sem zero-tronco e com DDD BR válido (Anatel), gravar `'+55' + dígitos`. A decisão é por **comprimento**, nunca por `startsWith('55')` — DDD 55 é a região da loja.
