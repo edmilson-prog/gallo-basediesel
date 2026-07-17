@@ -3,6 +3,36 @@
 > **Status:** aprovado pelo dono em 2026-07-10, pronto para virar plano de execução.
 > **Autor:** Claude Code (assistido), a pedido de Edmilson.
 > **Relacionado:** PRD-121 (`_DONE`, camada de providers agnóstica de fonte), PRDs 122–126 (deferidos por decisão do dono em 2026-06-10 — CSV/upload/engine formal não serão construídos; este documento formaliza a alternativa decidida: **importação assistida pelo agente desenvolvedor, dry-run + revisão**).
+>
+> ## ⚠️ ERRATA (2026-07-17) — este documento está SUPERADO, mantido só como registro histórico
+>
+> Este arquivo é o único conteúdo do **PR #263** (`docs/dintec-import-spec` — esta mesma branch). Ele descreve o **desenho inicial** da importação, aprovado em 2026-07-10 mas nunca colocado em execução a partir desta branch. O trabalho real — implementação, piloto, e as 3 fases de execução — aconteceu inteiramente em **outra branch**, `worktree-dintec-import-pilot` (**PR #266**, `feat: DINTEC customer import — Fase 1 (simulated pilot, zero-write)`), que evoluiu bem além do que este documento previa.
+>
+> ### O que já aconteceu de verdade (fora desta branch, via PR #266)
+>
+> - **Fase 1** (piloto simulado, zero-escrita): rodada contra 100 clientes DINTEC estratificados. Resultado: 52 vinculariam a um customer já existente, 48 criariam customer novo; 257 veículos normalizados (46 caíram em `brand="Outra"` — preservados para revisão, nunca descartados). 2 bugs reais achados e corrigidos durante a revisão por task: `ATRON` estava classificado como Mercedes-Benz (é Volkswagen/ex-MAN — a tabela de normalização abaixo neste próprio documento já reflete a correção) e `phoneFinal` caindo no campo errado quando `celular` era truthy-mas-inválido.
+> - **Achado de dado real durante o piloto:** `CODCLI=1` no DINTEC é `"***VENDA CONSUMIDOR***"` — um bucket de venda anônima de balcão, não um cliente real, carregando 44 veículos de compradores diferentes. Tratado como decisão de dado, não bug de código.
+> - **Fases 2 e 3** (escrita real + rollout completo): **já executadas e validadas em produção em 2026-07-11/12**, com dry-run e revisão adversarial prévios (confirmado por comentário do próprio dono no PR #266). Resultado final: **3.165 clientes** com `dintec_codcli` preenchido (de 7.985 customers totais na plataforma nessa data) — 509 vinculados a customers existentes + 2.557 criados como novos + 99 pulados + 1 excluído. Verificação pós-escrita: 0 inconsistências, 509/509 telefones intactos (nenhum sobrescrito, conforme a regra de "só preenche se vazio" descrita abaixo).
+> - A importação **não causou** o bug de visibilidade da tela de Clientes investigado em paralelo (`docs/dev/customers-list-visibility-bug.md`, issue #270) — confirmado por cético adversarial dedicado: o `UPDATE` dos vinculados não escreve `tags`/`status`/`seller_id`/`store_id`, e `customers` não tem triggers não-internos.
+>
+> ### O conflito comprovado entre este PR (#263) e o #266
+>
+> O PR #266 contém sua **própria versão, mais evoluída, deste mesmíssimo arquivo** (`docs/superpowers/specs/2026-07-10-dintec-customer-import-design.md`) — atualizada com as correções e achados do piloto real. Testado mecanicamente com `git merge-tree` (dry-run, não altera nada) **nas duas ordens possíveis de merge** (#263→#266 e #266→#263): ambas produzem `CONFLICT (add/add)` neste arquivo. Não é uma suposição — é um conflito certo, comprovado, se qualquer um dos dois PRs for mergeado sem resolver isso primeiro.
+>
+> Um scan completo dos PRs abertos na época (2026-07-14) confirmou que este é o **único** arquivo em conflito entre #263 e #266 — nenhum outro overlap escondido.
+>
+> ### Recomendação (ainda não executada — aguardando OK explícito do dono)
+>
+> **Fechar o PR #263 sem mergear.** Ele não agrega nada que o #266 não tenha (a versão do #266 é estritamente superior — mesmo conteúdo + correções do piloto real) e, do jeito que está, é uma bomba-relógio de conflito esperando alguém mergear um dos dois PRs. A branch/PR pode continuar existindo como registro histórico do desenho original (este documento), mas fechada, não mergeada.
+>
+> Pendência secundária, também aberta: a **descrição do PR #266 no GitHub está desatualizada** — ainda diz "Fase 1, zero-escrita, fora de escopo Fase 2/3", mas o branch já tem Fase 2/3 completas e aplicadas em produção. Quem ler só a descrição seria enganado.
+>
+> ### Referências
+>
+> - `docs/checkpoints/2026-07-14-2046-dintec-conflito-prs-263-266.md` — checkpoint completo desta investigação (achado original, re-verificação adversarial por 10 agentes, pendências detalhadas).
+> - PR #263: https://github.com/edmilson-prog/gallo-basediesel/pull/263 (este, aberto, obsoleto)
+> - PR #266: https://github.com/edmilson-prog/gallo-basediesel/pull/266 (aberto, mergeable, importação completa já em produção)
+> - `docs/db/dintec-phone-match-dryrun.csv` — relatório do dry-run de telefone original (2026-07-07/08) referenciado na seção "Contexto" abaixo.
 
 ## Contexto
 
