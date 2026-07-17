@@ -19,9 +19,8 @@ const DOCUMENT_EXTENSIONS = [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".csv", "
 
 /**
  * Infers which attach picker `AttachmentKind` a raw `File` (dropped or pasted)
- * belongs to, without ever chancing on the wrong lane. Video is explicitly
- * rejected rather than falling through to "document" (PRD-119 RF-026 has no
- * video kind). `null` means "don't attach it" — the caller toasts and stops.
+ * belongs to, without ever chancing on the wrong lane. `null` means "don't
+ * attach it" — the caller toasts and stops.
  *
  * Falls back to the file name extension when `type` is empty, which browsers
  * commonly do for clipboard-pasted files.
@@ -29,8 +28,8 @@ const DOCUMENT_EXTENSIONS = [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".csv", "
 export function inferAttachmentKind(file: Pick<File, "type" | "name">): AttachmentKind | null {
   const type = file.type.toLowerCase();
   if (type.startsWith("image/")) return "image";
+  if (type.startsWith("video/")) return "video";
   if (type.startsWith("audio/")) return "audio";
-  if (type.startsWith("video/")) return null;
   if (DOCUMENT_MIME_TYPES.has(type)) return "document";
 
   const name = file.name.toLowerCase();

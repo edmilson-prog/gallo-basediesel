@@ -6,14 +6,15 @@ import type { ISendOptions } from "./useMessageSend";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
 
 /** File kinds offered by the composer attach menu (PRD-119 RF-026). */
-export type AttachmentKind = "image" | "audio" | "document";
+export type AttachmentKind = "image" | "video" | "audio" | "document";
 
 /**
- * Per-kind size caps. Image/audio mirror the Meta Cloud API media limits;
- * document is a conservative cap below the Storage bucket default.
+ * Per-kind size caps. Image/audio/video mirror the Meta Cloud API media
+ * limits; document is a conservative cap below the Storage bucket default.
  */
 const MAX_SIZE_BYTES: Record<AttachmentKind, number> = {
   image: 5 * 1024 * 1024,
+  video: 16 * 1024 * 1024,
   audio: 16 * 1024 * 1024,
   document: 25 * 1024 * 1024,
 };
@@ -21,12 +22,14 @@ const MAX_SIZE_BYTES: Record<AttachmentKind, number> = {
 /** File-picker `accept` per kind. */
 export const ATTACHMENT_ACCEPT: Record<AttachmentKind, string> = {
   image: "image/*",
+  video: "video/*",
   audio: "audio/*",
   document: ".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.xml,.zip",
 };
 
 const FALLBACK_MIME: Record<AttachmentKind, string> = {
   image: "image/jpeg",
+  video: "video/mp4",
   audio: "audio/mpeg",
   document: "application/pdf",
 };
