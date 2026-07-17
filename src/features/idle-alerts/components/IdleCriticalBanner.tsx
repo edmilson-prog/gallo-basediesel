@@ -11,9 +11,13 @@ export function IdleCriticalBanner() {
   if (!summary || critical === 0) return null;
   return (
     <>
-      <div className="sticky top-16 z-20 flex items-center justify-between gap-3 border-b border-severity-critical/40 bg-severity-critical/10 px-4 py-2">
+      {/* z-10 (below WhatsAppDisconnectedBanner's z-20): when both banners stick
+          at top-16, the connectivity alert wins — a WhatsApp outage is the likely
+          CAUSE of a critical idle backlog, and its reconnect link must stay
+          reachable. The chip and notifications keep nagging meanwhile. */}
+      <div className="sticky top-16 z-10 flex items-center justify-between gap-3 border-b border-severity-critical/40 bg-severity-critical/10 px-4 py-2" role="alert">
         <p className="text-xs font-semibold text-severity-critical">
-          <Icon icon="mdi:alert-octagon" size={14} className="mr-1.5 inline-block" />
+          <Icon icon="mdi:alert-octagon" size={14} className="mr-1.5 inline-block" aria-hidden />
           Você tem {critical} conversa{critical === 1 ? "" : "s"} aguardando resposta há vários
           dias
         </p>
