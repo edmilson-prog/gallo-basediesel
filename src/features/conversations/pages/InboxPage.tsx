@@ -379,7 +379,18 @@ export function InboxPage() {
               <ConversationListItem
                 key={conversation.id}
                 conversation={conversation}
-                contact={related.contacts.get(conversation.id) ?? null}
+                contact={
+                  related.contacts.get(conversation.id) ??
+                  (conversation.searchContact
+                    ? {
+                        conversationId: conversation.id,
+                        refId: conversation.customerId ?? conversation.leadId ?? conversation.id,
+                        isLead: !conversation.customerId,
+                        name: conversation.searchContact.name,
+                        phone: conversation.searchContact.phone,
+                      }
+                    : null)
+                }
                 lastMessage={related.lastMessages.get(conversation.id) ?? null}
                 isSelected={conversation.id === selectedId}
                 isUnread={isUnread(conversation)}
@@ -392,7 +403,11 @@ export function InboxPage() {
                     : INBOX_STRINGS.searchLockedFallbackName;
                   toast.info(INBOX_STRINGS.searchLockedWith(name));
                 }}
-                trailing={<QuickActions conversation={conversation} onMutated={refetch} />}
+                trailing={
+                  conversation.isAccessible === false ? undefined : (
+                    <QuickActions conversation={conversation} onMutated={refetch} />
+                  )
+                }
                 escalation={escalationsByConversation.get(conversation.id) ?? null}
                 originAccount={
                   conversation.whatsappAccountId

@@ -20,6 +20,10 @@
    para quem **opera ao menos uma instância** (`current_seller_accessible_account_ids()`
    não-vazio). Financeiro/SDR — que não operam número — continuam sem ver nada. Staff já vê
    tudo (inalterado).
+5. (Pós review final) O card travado MOSTRA nome/telefone do contato — resolvidos pela
+   própria RPC de busca (`contact_name`/`contact_phone`), não por alargamento da
+   `conversation_contacts`. Sem isso o card renderizava "Lead anônimo" (as RPCs de
+   enriquecimento são gated) e pareceria quebrado no uso real.
 
 ## Design
 
@@ -86,8 +90,9 @@ Nova migration em `supabase/migrations/` (drop pela assinatura exata de 17 args 
 - Validação SQL pós-migration (com OK do dono): impersonar o portão via SQL — a conversa
   `e42e95ad` (Lucas) deve retornar na busca com `is_accessible=false` para um seller que não
   é Lucas nem colaborador.
-- Smoke do dono: Tiago busca `11995218891` → resultado aparece com chip "Lucas"; clique →
-  toast "Em atendimento com Lucas Costa"; abrir segue impossível.
+- Smoke do dono: Tiago busca `11995218891` → resultado aparece com nome/telefone do contato
+  e chip "Lucas"; clique → toast "Em atendimento com Lucas Costa"; abrir segue impossível;
+  sem caixa de ações vazia no hover.
 
 ## Rollout
 

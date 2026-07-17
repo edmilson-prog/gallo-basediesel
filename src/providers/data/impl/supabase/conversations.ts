@@ -82,6 +82,8 @@ interface ConversationRow {
   /** Only present on rows returned by the `search_conversations` RPC. */
   is_collaborator?: boolean;
   is_accessible?: boolean;
+  contact_name?: string | null;
+  contact_phone?: string | null;
 }
 
 /** Valid lead temperatures — the RPC returns a raw text column (no DB enum/check),
@@ -123,6 +125,10 @@ function rowToConversation(row: ConversationRow): IConversation {
     adReferral: (row.ad_referral as IAdReferral | null) ?? undefined,
     isCollaborator: row.is_collaborator ?? undefined,
     isAccessible: row.is_accessible ?? undefined,
+    searchContact:
+      row.contact_name || row.contact_phone
+        ? { name: row.contact_name ?? "", phone: row.contact_phone ?? "" }
+        : undefined,
   };
 }
 

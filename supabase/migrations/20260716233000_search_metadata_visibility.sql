@@ -10,6 +10,9 @@
 --  2) is_accessible boolean in the result (can_access_conversation per
 --     RETURNED row — page <= 30 rows, gated-once pattern preserved) so the
 --     frontend blocks opening with a notice instead of navigating.
+--  3) contact_name/contact_phone in the result (same resolution as
+--     conversation_contacts) so the locked card still identifies the contact —
+--     owner decision, post final-review.
 -- Same 17-arg signature ⇒ DROP by exact signature + re-grant (PostgREST
 -- cannot change RETURNS TABLE via CREATE OR REPLACE: 42P13).
 
@@ -53,6 +56,8 @@ returns table (
   ad_referral jsonb,
   is_collaborator boolean,
   is_accessible boolean,
+  contact_name text,
+  contact_phone text,
   total_count bigint
 )
 language sql
@@ -73,6 +78,20 @@ as $$
         and p.seller_id = public.current_seller_id()
     ) as is_collaborator,
     public.can_access_conversation(c.id) as is_accessible,
+    -- Contact identity for the search card (owner decision, post-review): the
+    -- searcher typed the phone — hiding the name only hurts identification.
+    -- Same name resolution as conversation_contacts; exposed HERE (search RPC,
+    -- behind the search-visibility arm) instead of un-gating that RPC, which
+    -- also feeds the openable inbox.
+    coalesce(
+      (select case when cu.type = 'B2B' then cu.nome_fantasia else cu.full_name end
+         from public.customers cu where cu.id = c.customer_id),
+      (select l.name from public.leads l where l.id::text = c.lead_id)
+    ) as contact_name,
+    coalesce(
+      (select cu.phone from public.customers cu where cu.id = c.customer_id),
+      (select l.phone from public.leads l where l.id::text = c.lead_id)
+    ) as contact_phone,
     count(*) over () as total_count
   from public.conversations c, q
   where

@@ -90,6 +90,13 @@ export interface IConversation {
    * Undefined elsewhere; treat undefined as accessible.
    */
   isAccessible?: boolean;
+  /**
+   * Only present on rows returned by the `search_conversations` RPC: contact
+   * identity resolved server-side so a metadata-only (locked) search result
+   * still shows who the conversation is with. Undefined elsewhere — the inbox
+   * resolves contacts via the gated conversation_contacts RPC.
+   */
+  searchContact?: { name: string; phone: string };
 }
 
 /** Kind of attendance-lifecycle event (mirrors the SQL trigger derivation).
