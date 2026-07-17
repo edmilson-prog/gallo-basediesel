@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
+import { toast } from "sonner";
 import type { ID, ISeller, IWhatsAppAccount } from "@/shared/types";
 import { useAuth } from "@/features/auth/useAuth";
 import { useCurrentStore } from "@/features/multistore";
@@ -378,13 +379,35 @@ export function InboxPage() {
               <ConversationListItem
                 key={conversation.id}
                 conversation={conversation}
-                contact={related.contacts.get(conversation.id) ?? null}
+                contact={
+                  related.contacts.get(conversation.id) ??
+                  (conversation.searchContact
+                    ? {
+                        conversationId: conversation.id,
+                        refId: conversation.customerId ?? conversation.leadId ?? conversation.id,
+                        isLead: !conversation.customerId,
+                        name: conversation.searchContact.name,
+                        phone: conversation.searchContact.phone,
+                      }
+                    : null)
+                }
                 lastMessage={related.lastMessages.get(conversation.id) ?? null}
                 isSelected={conversation.id === selectedId}
                 isUnread={isUnread(conversation)}
                 highlightTerm={filters.search}
                 onSelect={() => handleSelect(conversation.id)}
-                trailing={<QuickActions conversation={conversation} onMutated={refetch} />}
+                onLockedSelect={() => {
+                  const name = conversation.assignedSellerId
+                    ? (sellersById.get(conversation.assignedSellerId)?.fullName ??
+                      INBOX_STRINGS.searchLockedFallbackName)
+                    : INBOX_STRINGS.searchLockedFallbackName;
+                  toast.info(INBOX_STRINGS.searchLockedWith(name));
+                }}
+                trailing={
+                  conversation.isAccessible === false ? undefined : (
+                    <QuickActions conversation={conversation} onMutated={refetch} />
+                  )
+                }
                 escalation={escalationsByConversation.get(conversation.id) ?? null}
                 originAccount={
                   conversation.whatsappAccountId

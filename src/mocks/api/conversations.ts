@@ -221,7 +221,11 @@ export const conversationsApi = {
       "list",
       () => {
         let all = applyNonSearchFilters(selectAllConversations(), params);
-        if (params.search) all = all.filter((c) => matchesSearch(c, params.search!));
+        if (params.search) {
+          all = all
+            .filter((c) => matchesSearch(c, params.search!))
+            .map((c) => ({ ...c, isAccessible: true }));
+        }
         const sorted = sortConversations(stampIsCollaborator(all), params);
         return paginate(sorted, params);
       },
