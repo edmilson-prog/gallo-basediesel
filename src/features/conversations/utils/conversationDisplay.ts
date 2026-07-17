@@ -48,7 +48,13 @@ export function getConversationDisplay(
   lead: ILead | null,
 ): IConversationDisplay {
   if (customer) {
-    const name = customer.type === "B2B" ? customer.nomeFantasia : customer.fullName;
+    // A DINTEC-enriched B2B customer can land with an empty nomeFantasia — fall
+    // back to razaoSocial then contactName so the header never shows a blank
+    // name (the RPC path is hardened the same way in conversation_contacts).
+    const name =
+      customer.type === "B2B"
+        ? customer.nomeFantasia || customer.razaoSocial || customer.contactName
+        : customer.fullName;
     return {
       name,
       initials: initialsFrom(name),
