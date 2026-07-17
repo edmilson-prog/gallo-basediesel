@@ -53,6 +53,7 @@ describe("normalizeBrDialDigits", () => {
     expect(normalizeBrDialDigits("+56995070445")).toBe("56995070445");
     expect(normalizeBrDialDigits("+59173626401")).toBe("59173626401");
     expect(normalizeBrDialDigits("+5549988184540")).toBe("5549988184540");
+    expect(normalizeBrDialDigits(" +56995070445")).toBe("56995070445");
   });
 
   it("leaves 10-11 digit values with an invalid BR DDD untouched (fail-open)", () => {

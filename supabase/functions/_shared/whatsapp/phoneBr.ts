@@ -49,7 +49,7 @@ export function phoneDigitsMatchBr(a: string, b: string): boolean {
   return longLocal[2] === "9" && shortLocal === longLocal.slice(0, 2) + longLocal.slice(3);
 }
 
-/** Valid Brazilian area codes (Anatel allocation). Gaps (23, 25-26, 29-30,
+/** Valid Brazilian area codes (Anatel allocation). Gaps (20, 23, 25-26, 29-30,
  *  36, 39-40, 50, 52, 56-60, 70, 72, 76, 78, 80, 90) are unassigned. */
 const VALID_BR_DDD = new Set([
   "11", "12", "13", "14", "15", "16", "17", "18", "19",
