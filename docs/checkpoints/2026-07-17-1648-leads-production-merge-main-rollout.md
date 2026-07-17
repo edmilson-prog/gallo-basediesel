@@ -1,8 +1,8 @@
-# Checkpoint — Webhook cria Lead (Frente 2) — merge com main + gate de rollout — 2026-07-17 16:48 BRT
+# Checkpoint — Webhook cria Lead (Frente 2) — merge com main + rollout de produção — 2026-07-17 16:48 BRT (atualizado 2026-07-17, pós-rollout)
 
-> **Branch:** `feat/leads-production` (worktree `.claude/worktrees/leads-production`) · **Último commit:** `f7354d13` Merge origin/main into feat/leads-production
-> **PR:** [#310 — feat: webhook creates a Lead for new WhatsApp contacts (Frente 2)](https://github.com/edmilson-prog/gallo-basediesel/pull/310)
-> **Sessão anterior:** Claude Sonnet 5 · **Gerado em:** 2026-07-17T19:48Z
+> **Branch:** `feat/leads-production` (worktree `.claude/worktrees/leads-production`) · **Último commit:** `232eb581` docs(checkpoint)
+> **PR:** [#310 — feat: webhook creates a Lead for new WhatsApp contacts (Frente 2)](https://github.com/edmilson-prog/gallo-basediesel/pull/310) — **ainda ABERTO** (rollout de prod já foi feito de forma independente do merge do PR, ver "Progresso" abaixo)
+> **Sessão anterior:** Claude Sonnet 5 · **Gerado em:** 2026-07-17T19:48Z · **Atualizado:** 2026-07-17 (rollout de produção concluído)
 
 ---
 
@@ -11,10 +11,10 @@
 ```
 Leia o arquivo `docs/checkpoints/2026-07-17-1648-leads-production-merge-main-rollout.md`
 na íntegra (na worktree `.claude/worktrees/leads-production`, branch `feat/leads-production`)
-e confirme em uma frase: 1) o que essa frente faz, 2) o estado atual (PR aberto, código pronto,
-CI com 1 falha pré-existente não relacionada), 3) qual é o próximo passo (rollout de produção
-gated na minha confirmação). Não aplique migration nem faça deploy de edge function sem eu
-confirmar explicitamente.
+e confirme em uma frase: 1) o que essa frente faz, 2) o estado atual (rollout de produção
+JÁ CONCLUÍDO — migration aplicada + whatsapp-webhook v49 deployado — PR #310 ainda aberto),
+3) qual é o próximo passo (smoke test do dono + decidir sobre merge do PR). Não aplique
+migration nem faça deploy de edge function de novo sem eu confirmar explicitamente.
 
 PR: https://github.com/edmilson-prog/gallo-basediesel/pull/310
 ```
@@ -52,6 +52,12 @@ A sessão de **hoje** (2026-07-15 a 2026-07-17) não implementou funcionalidade 
 - [x] **Achado lateral:** produção já tem **1 rotation_queue configurada com 4 participantes** (a suposição original do design, "nenhuma fila configurada, sempre cai no fallback Fernando", está desatualizada — leads novos vão de fato rodar round-robin real).
 - [x] Commit do merge (`f7354d13`), push, **PR #310 aberto**.
 - [x] **Investigação da falha de CI** (`rls-regression`, check `FAILURE` no PR): confirmado que é uma falha **sistêmica pré-existente, não causada por esta branch**. Mesma falha (`statement timeout` numa query de "cross-leak" em `supabase/tests/rls-regression.sql`, existente desde 09/06/2026, rodando contra o banco real de produção) ocorreu em PRs completamente não relacionados: `feat/idle-conversation-alerts` (2026-07-17), `feat/webhook-delivery-history` (2x, 2026-07-14/15). Nossa branch não toca `customers`/`conversations`/RLS — só adiciona `assign_next_from_rotation`, isolada. Outros checks do PR (`types-drift`, Vercel) passaram.
+- [x] **Checkpoint criado e referenciado no PR** (`docs/checkpoints/2026-07-17-1648-leads-production-merge-main-rollout.md`, commit `232eb581`) — corpo do PR editado (seção adicionada no topo, original preservado) + comentário no histórico do PR.
+- [x] **ROLLOUT DE PRODUÇÃO CONCLUÍDO (2026-07-17), a pedido explícito do dono** — feito com o PR #310 **ainda aberto** (decisão consciente: neste projeto, `apply_migration`/deploy de edge function são sempre manuais via MCP/CLI, independentes do merge do PR no GitHub — mergear o PR nunca aplicou nada em produção sozinho):
+  1. **Validação pré-apply:** rodei as 4 funções da migration inteiras dentro de `begin;...rollback;` contra dados reais de produção. Descobri que o **Cenário A do teste** ("nenhuma rotation_queue configurada") não valia mais — produção **já tem uma fila real** para a única loja existente (FK `rotation_queues.store_id → stores.id`, só 1 loja em prod). Contornei removendo a fila real **dentro da mesma transação** (o `rollback` a restaura) para reproduzir a premissa original do teste sem violar `UNIQUE(store_id)`. Todos os 6 cenários passaram (direct-mode, department-mode, wrap-around, fallback Fernando); confirmei pós-rollback que a fila real, os 4 `rotation_participants` e `sellers.availability` ficaram intactos.
+  2. **Migration `20260713190000_assign_next_from_rotation.sql` aplicada** via `mcp__supabase__apply_migration`. Confirmado via introspecção (`pg_proc`) que as 4 funções existem em `public`.
+  3. **Edge function `whatsapp-webhook` redeployada** — não usei a tool MCP `deploy_edge_function` (exigiria montar manualmente os 49 arquivos/~308KB da dependência transitiva como JSON inline); usei a CLI (`npx supabase functions deploy whatsapp-webhook --project-ref njizaasajkdqptlxddqn --no-verify-jwt --use-api`), que resolve as dependências locais sozinha. **v45 → v49**, `verify_jwt=false` preservado. Confirmado via `get_edge_function` que o código deployado tem `createLead`/`findLeadByPhone`/`assign_next_from_rotation` — `createPendingCustomer` só sobrevive como método definido e **não chamado** (dead code intencional, igual ao design previa).
+  4. **Não fiz smoke test funcional real** — tentei chamar `assign_next_from_rotation` direto contra a loja real como sanity check e o **classificador de auto mode bloqueou** (corretamente: a função muta o ponteiro da fila como efeito colateral, não é read-only). Respeitei o bloqueio; só confirmei a existência das funções via introspecção, sem executá-las.
 
 ## 🔧 Estado do código
 
@@ -63,10 +69,10 @@ A sessão de **hoje** (2026-07-15 a 2026-07-17) não implementou funcionalidade 
 
 ## ⏳ Pendências (próximos passos, em ordem)
 
-1. **Aprovar/mergear o PR #310** — o código está pronto e validado; a única falha de CI é sistêmica e não-relacionada (documentado no corpo do PR). Critério de "feito": PR mergeado na `main` (via GitHub, respeitando a regra do projeto de nunca mergear sem OK explícito do dono — ver Avisos abaixo).
-2. **Aplicar a migration `supabase/migrations/20260713190000_assign_next_from_rotation.sql` em produção** via `mcp__supabase__apply_migration` — **requer confirmação explícita do dono antes** (regra do projeto). Critério de "feito": migration aparece em `mcp__supabase__list_migrations`.
-3. **Redeployar a edge function `whatsapp-webhook`** — **só depois do passo 2** (o webhook chama a RPC `assign_next_from_rotation`, que precisa existir antes). Comando: `npx supabase functions deploy whatsapp-webhook --project-ref njizaasajkdqptlxddqn`. **Requer confirmação explícita do dono antes.** Critério de "feito": `mcp__supabase__get_edge_function` mostra o código novo (contém `createLead`/`findLeadByPhone`, não mais só `createPendingCustomer`).
-4. **Smoke test do dono pós-deploy:** mandar mensagem de um número de WhatsApp novo (nunca visto) e confirmar que aparece em **Leads** (não em Clientes/`pending_review`, que não existe mais).
+1. ~~Aplicar migration~~ **FEITO (2026-07-17)** — `assign_next_from_rotation` e funções auxiliares em prod.
+2. ~~Redeployar `whatsapp-webhook`~~ **FEITO (2026-07-17)** — v49, `verify_jwt=false` preservado.
+3. **Smoke test real do dono:** mandar mensagem de um número de WhatsApp novo (nunca visto) e confirmar que aparece em **Leads** (não em Clientes/`pending_review`, que não existe mais). Ninguém validou isso com tráfego real ainda — é o único elo não verificado ponta a ponta.
+4. **Aprovar/mergear o PR #310** quando o dono quiser — o código já está rodando em produção independente do merge; mergear é só para manter o histórico do git consistente com o que já está no ar. Critério de "feito": PR mergeado na `main` (respeitando a regra do projeto de nunca mergear sem OK explícito do dono).
 5. *(Opcional, sem gate)* Version bump — este projeto faz bump de versão obrigatório após PRD/feature completa, conforme `CLAUDE.md`. Não fiz ainda; avaliar junto com o dono no momento do merge.
 
 ## ❓ Decisões pendentes
