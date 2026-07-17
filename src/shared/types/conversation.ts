@@ -83,6 +83,13 @@ export interface IConversation {
    * (plain `get`/`list` never compute it). Drives the "Colaborando" tag.
    */
   isCollaborator?: boolean;
+  /**
+   * Only present on rows returned by the `search_conversations` RPC: false when
+   * the current user can FIND this conversation (search metadata) but cannot
+   * OPEN it (assigned to another seller — 2026-07-16 metadata-visibility spec).
+   * Undefined elsewhere; treat undefined as accessible.
+   */
+  isAccessible?: boolean;
 }
 
 /** Kind of attendance-lifecycle event (mirrors the SQL trigger derivation).
