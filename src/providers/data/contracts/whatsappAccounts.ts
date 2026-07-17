@@ -45,6 +45,8 @@ export interface IWhatsAppAccountPatch {
   isFailoverActive?: boolean;
   /** Silence disconnection/health alerts for this account (Owner action). */
   alertsMuted?: boolean;
+  /** SDR pilot opt-in for this specific WhatsApp number (Parte C). */
+  sdrEnabled?: boolean;
 }
 
 /**

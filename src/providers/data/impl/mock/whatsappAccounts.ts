@@ -42,6 +42,7 @@ export const mockWhatsAppAccountsProvider: IWhatsAppAccountsProvider = {
         : {}),
       ...(patch.isFailoverActive !== undefined ? { isFailoverActive: patch.isFailoverActive } : {}),
       ...(patch.alertsMuted !== undefined ? { alertsMuted: patch.alertsMuted } : {}),
+      ...(patch.sdrEnabled !== undefined ? { sdrEnabled: patch.sdrEnabled } : {}),
     }),
   getMetrics: async (id, days = 30) => mockMetrics(String(id), days),
 };

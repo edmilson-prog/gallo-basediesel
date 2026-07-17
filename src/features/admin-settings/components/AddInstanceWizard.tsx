@@ -206,6 +206,7 @@ export function AddInstanceWizard({
           isFailoverActive: false,
           purpose,
           alertsMuted: false,
+          sdrEnabled: false,
         });
         setAccountId(created.id);
         setPhase("qr");
@@ -246,6 +247,7 @@ export function AddInstanceWizard({
           isFailoverActive: false,
           purpose,
           alertsMuted: false,
+          sdrEnabled: false,
         });
         setAccountId(created.id);
         setPhase("qr");
@@ -277,6 +279,7 @@ export function AddInstanceWizard({
         isFailoverActive: false,
         purpose,
         alertsMuted: false,
+        sdrEnabled: false,
       });
       setAccountId(created.id);
       setPhase("qr");

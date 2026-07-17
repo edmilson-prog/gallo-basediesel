@@ -381,6 +381,13 @@ export interface IWhatsAppAccount {
    * offline instance. Default `false`.
    */
   alertsMuted: boolean;
+  /**
+   * SDR pilot opt-in for this specific WhatsApp number (Parte C). The
+   * store-wide `sdr_settings.sdr_enabled` switch must ALSO be on — this is a
+   * second, narrower gate, not a replacement. Default `false`: an instance
+   * never receives the SDR until explicitly opted in.
+   */
+  sdrEnabled: boolean;
 }
 
 /**

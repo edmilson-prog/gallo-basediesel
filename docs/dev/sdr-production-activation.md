@@ -102,19 +102,25 @@ existiam no codebase, sem tocar em nenhum dos dois:
 
 ## Onde fica cada peça de configuração
 
-O hub `/app/configuracoes/ia` (Owner-only) ganhou uma **5ª aba "SDR"**, em
-vez de uma tela dedicada — a configuração fica dividida em dois lugares por
-desenho, não por acidente:
-
 | Aba | O que configura | Escopo |
 | --- | --- | --- |
-| **Funcionalidades** (já existente desde a `Synapse`) | Provedor, modelo, temperatura, **prompt de sistema** do SDR (`ai_settings.routing[feature='sdr']`) | Global (singleton) |
-| **SDR** (nova) | Kill-switch `sdr_enabled` + `backstop_timeout_minutes` (1–60 min) | Por loja (`sdr_settings`, segue a loja selecionada no TopBar) |
+| **Funcionalidades** (hub de IA, `/app/configuracoes/ia`, já existente desde a `Synapse`) | Provedor, modelo, temperatura, **prompt de sistema** do SDR (`ai_settings.routing[feature='sdr']`) | Global (singleton) |
+| **Configurações** (dentro de `/app/sdr` — painel dedicado do SDR) | Kill-switch `sdr_enabled` + `backstop_timeout_minutes` (1–60 min) por loja, e o escopo por instância (`whatsapp_accounts.sdr_enabled`) | Por loja + por instância WhatsApp |
 
-A aba SDR mostra um aviso de contexto linkando para a aba Funcionalidades,
-pra evitar confusão sobre onde mexer no modelo/prompt. A coluna
-`sdr_settings.system_prompt` (nunca escrita) foi **removida** na migration de
-ativação — o prompt do SDR tem uma única fonte configurável.
+A Parte C (2026-07-16) moveu o liga/desliga operacional da 5ª aba "SDR" do
+hub de IA (removida) para dentro do painel `/app/sdr` — que já existia como
+simulação client-side da Fase 1 e ganhou uma aba "Configurações" real. O
+modelo/prompt do SDR **continua** na aba Funcionalidades, sem mudança.
+
+A Parte C também adicionou um **segundo gate obrigatório**: além do
+kill-switch por loja, cada instância WhatsApp precisa ser marcada
+individualmente em `/app/sdr` → Configurações → Instâncias — nenhuma vem
+marcada por padrão, mesmo com a loja inteira ligada. **Atenção:** conversas
+sem `whatsapp_account_id` (fila legada pré-multi-instância, ainda existe em
+produção — ver `20260620120000_access_model_two_gates.sql`) nunca são
+atendidas pelo SDR sob este gate, porque não há instância contra a qual
+validar o opt-in. Confira se a loja piloto tem esse tipo de conversa parada
+na fila antes de assumir cobertura total do backstop.
 
 ## Checklist manual — ativar uma loja piloto
 
@@ -148,8 +154,13 @@ autorizar.
 4. **Configurar o roteamento de IA** na aba Funcionalidades (provedor, modelo,
    opcionalmente um prompt suplementar) para `feature='sdr'`, se ainda não
    estiver.
-5. **Escolher a loja piloto** e ligar o toggle "SDR ativo nesta loja" na aba
-   SDR, ajustando `backstop_timeout_minutes` se o padrão (2 min) não servir.
+5. **Escolher a loja piloto** e ligar o toggle "SDR ativo nesta loja" em
+   `/app/sdr` → aba **Configurações** (não mais na aba SDR do hub de IA,
+   removida na Parte C), ajustando `backstop_timeout_minutes` se o padrão
+   (2 min) não servir. **Em seguida, marcar explicitamente cada instância
+   WhatsApp** que deve receber o SDR, na mesma aba — nenhuma vem marcada por
+   padrão. Conversas sem instância associada (fila legada) não são
+   atendidas por este mecanismo.
 6. **Smoke manual** com uma conversa real — fora de escopo deste plano,
    fica a cargo do dono.
 

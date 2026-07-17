@@ -22,6 +22,7 @@ interface IQueuedConversationRow {
   id: string;
   store_id: string;
   queued_at: string;
+  whatsapp_account_id: string | null;
 }
 interface IPilotStoreRow {
   store_id: string;
@@ -51,13 +52,25 @@ servePost(async (req, ctx) => {
   // 2. Queued conversations for those stores (uses conversations_sdr_backstop_queue_idx).
   const { data: queued } = await admin
     .from("conversations")
-    .select("id, store_id, queued_at")
+    .select("id, store_id, queued_at, whatsapp_account_id")
     .in("store_id", pilotRows.map((r) => r.store_id))
     .is("assigned_seller_id", null)
     .eq("is_sdr_active", false)
     .eq("status", "aguardando")
     .not("queued_at", "is", null);
-  const rows = (queued ?? []) as IQueuedConversationRow[];
+  let rows = (queued ?? []) as IQueuedConversationRow[];
+  if (rows.length === 0) return json({ activated: 0 }, 200);
+
+  // 2.5. Drop conversations whose WhatsApp instance hasn't opted into the SDR
+  // (Parte C — per-instance scoping on top of the store-wide switch).
+  const accountIds = [...new Set(rows.map((r) => r.whatsapp_account_id).filter((id): id is string => id !== null))];
+  const { data: sdrAccounts } = await admin
+    .from("whatsapp_accounts")
+    .select("id")
+    .in("id", accountIds.length > 0 ? accountIds : [""])
+    .eq("sdr_enabled", true);
+  const enabledAccountIds = new Set((sdrAccounts ?? []).map((a) => a.id as string));
+  rows = rows.filter((r) => r.whatsapp_account_id !== null && enabledAccountIds.has(r.whatsapp_account_id));
   if (rows.length === 0) return json({ activated: 0 }, 200);
 
   // 3. Business hours per store (jsonb blob — see stores.settings.distribution.businessHours).
