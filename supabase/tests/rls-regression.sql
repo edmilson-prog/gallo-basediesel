@@ -1341,6 +1341,98 @@ end $$;
 
 reset role;
 
+-- ---------------------------------------------------------------------------
+-- Idle-conversation alerts (spec 2026-07-16): summary RPC + triggers.
+-- Schema per supabase/migrations/20260716190000_idle_conversation_alerts.sql
+-- (verified against supabase/migrations/20260608151417_create_messages_table.sql):
+-- messages.direction is 'in'/'out' (NOT 'inbound'/'outbound'), the text column
+-- is `text` (NOT `content`), there is no `created_at`-as-business-timestamp —
+-- the column that drives awaiting_reply_since is `sent_at`. messages has no
+-- store_id column. NOT NULL columns without a default that the INSERT below
+-- must satisfy: conversation_id, direction, author_type, provider, status,
+-- sent_at (id defaults to gen_random_uuid(), text defaults to '').
+-- ---------------------------------------------------------------------------
+-- Trigger unit-check (as superuser, before impersonation): inbound sets, outbound clears.
+do $$
+declare
+  v_conv uuid;
+  v_since timestamptz;
+begin
+  select id into v_conv from public.conversations
+   where status in ('aguardando','em_andamento','aguardando_cliente') limit 1;
+  if v_conv is null then
+    raise notice 'idle-alerts: no open conversation in fixtures — skipping trigger check';
+    return;
+  end if;
+  update public.conversations set awaiting_reply_since = null where id = v_conv;
+  insert into public.messages (conversation_id, direction, author_type, provider, text, status, sent_at)
+    values (v_conv, 'in', 'customer', 'mock', 'rls-test inbound', 'delivered', now());
+  select awaiting_reply_since into v_since from public.conversations where id = v_conv;
+  if v_since is null then
+    raise exception 'idle-alerts: inbound message should set awaiting_reply_since';
+  end if;
+  insert into public.messages (conversation_id, direction, author_type, provider, text, status, sent_at)
+    values (v_conv, 'out', 'seller', 'mock', 'rls-test outbound', 'sent', now());
+  select awaiting_reply_since into v_since from public.conversations where id = v_conv;
+  if v_since is not null then
+    raise exception 'idle-alerts: outbound message should clear awaiting_reply_since';
+  end if;
+end $$;
+
+-- business-time fn sanity: no schedule ⇒ raw diff.
+do $$
+begin
+  if public.idle_business_seconds(null, now() - interval '2 hours', now()) not between 7100 and 7300 then
+    raise exception 'idle_business_seconds: raw diff expected for null schedule';
+  end if;
+end $$;
+
+-- SQL≡JS parity: SAME fixtures as idleBusinessTime.test.ts (Mon-Fri 08-18 SP).
+-- Monday 07:00→09:00 SP = 3600s; Saturday 10:00 → Monday 09:00 SP = 3600s;
+-- Monday 08:00 → Wednesday 18:00 SP = 108000s (3 × 10h).
+do $$
+declare
+  sched jsonb := '[
+    {"weekday":1,"openAt":"08:00","closeAt":"18:00","enabled":true},
+    {"weekday":2,"openAt":"08:00","closeAt":"18:00","enabled":true},
+    {"weekday":3,"openAt":"08:00","closeAt":"18:00","enabled":true},
+    {"weekday":4,"openAt":"08:00","closeAt":"18:00","enabled":true},
+    {"weekday":5,"openAt":"08:00","closeAt":"18:00","enabled":true}
+  ]'::jsonb;
+begin
+  if public.idle_business_seconds(sched,
+       '2026-07-13T07:00:00-03:00'::timestamptz, '2026-07-13T09:00:00-03:00'::timestamptz) <> 3600 then
+    raise exception 'parity: Monday 07-09 should yield 3600s';
+  end if;
+  if public.idle_business_seconds(sched,
+       '2026-07-11T10:00:00-03:00'::timestamptz, '2026-07-13T09:00:00-03:00'::timestamptz) <> 3600 then
+    raise exception 'parity: weekend skip should yield 3600s';
+  end if;
+  if public.idle_business_seconds(sched,
+       '2026-07-13T08:00:00-03:00'::timestamptz, '2026-07-15T18:00:00-03:00'::timestamptz) <> 108000 then
+    raise exception 'parity: Mon 08 → Wed 18 should yield 108000s';
+  end if;
+end $$;
+
+-- Summary RPC as LUCAS: must never return a conversation assigned to another seller.
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+do $$
+begin
+  if exists (
+    select 1 from public.idle_conversations_summary() s
+    join public.conversations c on c.id = s.conversation_id
+    where c.assigned_seller_id is distinct from '5a6400ed-5aec-4bf1-b641-31635f15c887'::uuid
+  ) then
+    raise exception 'idle summary: leaked another seller''s conversation';
+  end if;
+end $$;
+reset role;
+
 select 'ALL RLS REGRESSION TESTS PASSED' as result;
 
 rollback;
