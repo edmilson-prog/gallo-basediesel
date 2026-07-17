@@ -57,12 +57,31 @@ returns trigger language plpgsql security definer set search_path = public as $$
 begin
   if new.direction = 'in' then
     update public.conversations
-       set awaiting_reply_since = coalesce(awaiting_reply_since, new.sent_at)
-     where id = new.conversation_id;
+       set awaiting_reply_since = new.sent_at
+     where id = new.conversation_id
+       -- Hot-path no-op guard: skip the UPDATE (and its Realtime broadcast)
+       -- when the flag is already set — most inbounds land on a conversation
+       -- that is already awaiting reply.
+       and awaiting_reply_since is null
+       -- Out-of-order import guard: history-sync (WAHA) can insert an old
+       -- inbound after a newer outbound already exists for the conversation —
+       -- don't plant a stale awaiting_reply_since in that case.
+       and not exists (
+         select 1 from public.messages o
+          where o.conversation_id = new.conversation_id
+            and o.direction = 'out'
+            and o.sent_at >= new.sent_at
+       );
   elsif new.direction = 'out' then
     update public.conversations
        set awaiting_reply_since = null
-     where id = new.conversation_id and awaiting_reply_since is not null;
+     where id = new.conversation_id
+       and awaiting_reply_since is not null
+       -- Out-of-order import guard: don't clear the pending flag when the
+       -- newly imported outbound is OLDER than the currently pending inbound
+       -- (history-sync can insert old outbounds after a more recent inbound
+       -- already set the flag).
+       and awaiting_reply_since <= new.sent_at;
   end if;
   return new;
 end $$;
@@ -105,7 +124,12 @@ update public.conversations cv
     from public.conversations c
     where c.status in ('aguardando','em_andamento','aguardando_cliente')
   ) sub
- where cv.id = sub.id and sub.first_unanswered is not null;
+ where cv.id = sub.id
+   and sub.first_unanswered is not null
+   -- Re-run safety guard: if this migration file is ever re-applied after the
+   -- triggers have already populated the column (e.g. staging reset replay),
+   -- don't clobber a value the triggers are already maintaining.
+   and cv.awaiting_reply_since is null;
 
 -- 2. Business-time function (STRICT parity with idleBusinessTime.ts) ---------
 -- Accumulates fractional seconds across windows and floors ONCE at the very

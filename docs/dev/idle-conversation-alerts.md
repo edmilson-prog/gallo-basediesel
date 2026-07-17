@@ -11,6 +11,7 @@ Avisa o atendente, em 3 níveis progressivos, quando uma conversa **atribuída**
 `conversations.awaiting_reply_since timestamptz` mantida por 2 triggers (migration `20260716190000_idle_conversation_alerts.sql`):
 
 - `trg_messages_awaiting_reply` (AFTER INSERT em `messages`, SECURITY DEFINER): inbound (`direction='in'`) seta se ainda NULL; outbound (`direction='out'`) zera. Schema real verificado na migration (não assumido): `direction` é `'in'/'out'` (não `'inbound'/'outbound'`), texto é `text` (não `content`), timestamp canônico é `sent_at` (não `created_at`).
+- Guards no trigger: no-op no hot-path (não regrava se `awaiting_reply_since` já está setado), guarda contra importação fora de ordem (histórico do WAHA pode inserir mensagens antigas) tanto no set (inbound) quanto no clear (outbound), e o backfill só grava se a coluna ainda estiver NULL (idempotência em re-execução).
 - `trg_conversations_awaiting_clear` (BEFORE UPDATE OF status): zera ao fechar (`resolvida`/`arquivada`).
 - Índice parcial `(store_id, assigned_seller_id) WHERE awaiting_reply_since IS NOT NULL AND status IN (...)`. Backfill na própria migration (primeira inbound após a última outbound).
 - `conversations.lead_id` é TEXT × `leads.id` uuid — join com `ld.id::text = b.lead_id` (padrão já usado em `search_conversations`).
@@ -57,3 +58,9 @@ Vitest TDD nos engines (`idleBusinessTime`, `idleLevel`, `groupByLevel`, `briefi
 ## Fora de escopo
 
 Sub-projeto B (resgate de conversa por ausência do atendente, oferta com aceite/recusa em cadeia, atribuição forçada) — requisitos capturados no spec, não implementado.
+
+## Limitações conhecidas
+
+- Toast do N2/N3: o canal `toast` gravado pelas notificações derivadas do servidor não tem caminho de entrega client-side hoje (o router de canais só roda para eventos client-emitted; mesmo padrão pré-existente do `conversa.semResposta`) — o atendente vê sino/badge/chip/banner; toast fica como follow-up.
+- Modo demo (mock): as notificações derivadas N2/N3 não são geradas (o reconciler client-side cobre só os 3 tipos legados); chip/sheet/banner/briefing funcionam.
+- Invalidação imediata pós-envio não implementada (tocaria hooks congelados do Atendimento); o polling de 60s cobre (dentro do ≤1min do RF-02).

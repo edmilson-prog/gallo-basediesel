@@ -33,11 +33,11 @@ Conversas do WhatsApp ficam atribuídas a um atendente e "morrem" sem resposta: 
 - **RF-03** — O tempo conta em **horas úteis** da agenda do atendente responsável (engine PRD-212, offset fixo −03:00); sem agenda ⇒ corrido.
 - **RF-04** — Níveis: 0 (ok) · 1 Atenção (≥ `level1Hours`, default **2**) · 2 Alerta (≥ `level2Hours`, default **8**) · 3 Crítica (≥ `level3Hours`, default **24**). Unidade: **horas úteis**. Os defaults equivalem ao conceito aprovado "2h / 1 dia / 3 dias" num expediente típico de ~8h; para atendente sem agenda (relógio corrido) os mesmos valores são mais apertados — aceito por ser caso de borda (staff).
 - **RF-05** — N1: chip ⏳ no TopBar com contador total (cor pelo pior nível presente: neutro/âmbar/vermelho); clique abre o Sheet "Minhas pendências". Sem notificação.
-- **RF-06** — N2: notificação derivada in-app agregada — "Você tem N conversas aguardando resposta há mais de um dia de trabalho" — com toast na criação. `dedupeKey = conversa.ociosa:{sellerId}:2`.
+- **RF-06** — N2: notificação derivada in-app agregada — "Você tem N conversas aguardando resposta há mais de um dia de trabalho" — com toast na criação. `dedupeKey` (as-built, convenção da plataforma) = `derived:conversa-ociosa-n2-{sellerId}:{recipientId}` (toast: entrega client-side pendente — ver Limitações em `docs/dev/idle-conversation-alerts.md`).
 - **RF-07** — N3: banner fixo no topo do app (padrão `OutsideHoursBanner`, severidade crítica), sem botão fechar, visível enquanto existir crítica; + notificação derivada ao gestor da loja (`stores.manager_id`): "«Vendedor» tem N conversas críticas aguardando resposta" (`dedupeKey` por vendedor). Se o infrator for o próprio gestor, não duplicar. Toggle `notifyManagerOnLevel3`.
 - **RF-08** — Briefing do dia: overlay full-screen após login explícito com pendências — números por nível + lista das mais urgentes (cliente + tempo de espera) + CTAs "Revisar as N conversas" e "Pular". Exibido no máximo 1× por login (flag de sessão consumido).
 - **RF-09** — Sheet "Minhas pendências": resumo por nível no topo (3 cards), cards de conversa com nome do cliente, última fala e tempo de espera, ação "Abrir conversa"; rodapé "Revisar em sequência" (abre a mais crítica primeiro).
-- **RF-10** — Configuração por loja (Owner/Gestor): `enabled` (default **false**), `level1Hours`/`level2Hours`/`level3Hours`, `notifyManagerOnLevel3` — junto aos alertas gerenciais existentes.
+- **RF-10** — Configuração por loja (Owner/Gestor): `enabled` (default **false**), `level1Hours`/`level2Hours`/`level3Hours`, `notifyManagerOnLevel3` — junto aos alertas gerenciais existentes. (as-built: gate Owner-only, espelhando o `AlertSettingsModal` vizinho — validação do dono pendente.)
 - **RF-11** — Com `enabled=false` na loja: nenhum aviso (nem chip, nem notificações, nem briefing).
 
 ## Arquitetura
@@ -68,8 +68,8 @@ Conversas do WhatsApp ficam atribuídas a um atendente e "morrem" sem resposta: 
 
 ### RPC de leitura
 
-- **`idle_conversations_summary()`** — SECURITY DEFINER, gate de acesso **uma vez** (padrão `count_conversations`): retorna, para o seller autenticado, contagens por nível + lista das conversas ociosas (id, nome do cliente, trecho da última fala, `awaiting_reply_since`, nível, segundos úteis), ordenada da mais grave, `LIMIT 100`.
-- Consumo no client: hook `useIdleSummary` (TanStack Query, polling 60s, `staleTime` curto), invalidado quando o próprio usuário envia mensagem. **Não toca** nas query keys/realtime do Atendimento (camada congelada por decisão do dono).
+- **`idle_conversations_summary()`** — SECURITY DEFINER, gate de acesso **uma vez** (padrão `count_conversations`): retorna, para o seller autenticado, contagens por nível + lista das conversas ociosas (id, nome do cliente, trecho da última fala, `awaiting_reply_since`, nível, segundos úteis), ordenada da mais grave, `LIMIT 500`.
+- Consumo no client: hook `useIdleSummary` (TanStack Query, polling 60s, `staleTime` curto), invalidado quando o próprio usuário envia mensagem. **Não toca** nas query keys/realtime do Atendimento (camada congelada por decisão do dono). (as-built: a invalidação imediata pós-envio ficou de fora — tocaria hooks congelados do Atendimento; o polling de 60s cobre, dentro do ≤1min do RF-02.)
 
 ### UI (feature nova `src/features/idle-alerts/`)
 
