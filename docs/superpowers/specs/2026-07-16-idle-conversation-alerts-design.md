@@ -16,7 +16,7 @@ Conversas do WhatsApp ficam atribuídas a um atendente e "morrem" sem resposta: 
 |---|---|
 | Fatiamento | 2 sub-projetos; A primeiro |
 | Gatilho de ociosidade | Última mensagem da conversa é do **cliente** e o atendente não respondeu (não conta "cliente sumiu") |
-| Níveis | **3** — Atenção 2h · Alerta 24h · Crítica 72h (horas **úteis**; defaults configuráveis por loja) |
+| Níveis | **3** — conceito aprovado "2h · 1 dia · 3 dias", traduzido para o relógio de horas úteis: Atenção **2h úteis** · Alerta **8h úteis** (≈1 dia de trabalho) · Crítica **24h úteis** (≈3 dias de trabalho); defaults configuráveis por loja |
 | Forma por nível | Escalada progressiva: N1 passivo (badge+painel) → N2 notificação+toast → N3 banner fixo + escalação ao gestor |
 | Relógio | **Horas úteis do atendente** (agenda PRD-212; sem agenda cadastrada = tempo corrido) |
 | Radar | **Todos** com conversa atribuída, inclusive Owner/Gestor |
@@ -31,9 +31,9 @@ Conversas do WhatsApp ficam atribuídas a um atendente e "morrem" sem resposta: 
 - **RF-01** — Conversa atribuída e não-terminal cuja última mensagem é inbound acumula "tempo de espera do cliente" a partir da **primeira** mensagem inbound sem resposta (inbounds subsequentes não re-setam o relógio).
 - **RF-02** — Responder (outbound) ou encerrar (`resolvida`/`arquivada`) zera a pendência; o desaparecimento dos avisos é automático (≤1 min, ciclo do reconciler).
 - **RF-03** — O tempo conta em **horas úteis** da agenda do atendente responsável (engine PRD-212, offset fixo −03:00); sem agenda ⇒ corrido.
-- **RF-04** — Níveis: 0 (ok) · 1 Atenção (≥ `level1Hours`, default 2h) · 2 Alerta (≥ `level2Hours`, default 24h) · 3 Crítica (≥ `level3Hours`, default 72h).
+- **RF-04** — Níveis: 0 (ok) · 1 Atenção (≥ `level1Hours`, default **2**) · 2 Alerta (≥ `level2Hours`, default **8**) · 3 Crítica (≥ `level3Hours`, default **24**). Unidade: **horas úteis**. Os defaults equivalem ao conceito aprovado "2h / 1 dia / 3 dias" num expediente típico de ~8h; para atendente sem agenda (relógio corrido) os mesmos valores são mais apertados — aceito por ser caso de borda (staff).
 - **RF-05** — N1: chip ⏳ no TopBar com contador total (cor pelo pior nível presente: neutro/âmbar/vermelho); clique abre o Sheet "Minhas pendências". Sem notificação.
-- **RF-06** — N2: notificação derivada in-app agregada — "Você tem N conversas aguardando resposta há mais de 24h" — com toast na criação. `dedupeKey = conversa.ociosa:{sellerId}:2`.
+- **RF-06** — N2: notificação derivada in-app agregada — "Você tem N conversas aguardando resposta há mais de um dia de trabalho" — com toast na criação. `dedupeKey = conversa.ociosa:{sellerId}:2`.
 - **RF-07** — N3: banner fixo no topo do app (padrão `OutsideHoursBanner`, severidade crítica), sem botão fechar, visível enquanto existir crítica; + notificação derivada ao gestor da loja (`stores.manager_id`): "«Vendedor» tem N conversas críticas aguardando resposta" (`dedupeKey` por vendedor). Se o infrator for o próprio gestor, não duplicar. Toggle `notifyManagerOnLevel3`.
 - **RF-08** — Briefing do dia: overlay full-screen após login explícito com pendências — números por nível + lista das mais urgentes (cliente + tempo de espera) + CTAs "Revisar as N conversas" e "Pular". Exibido no máximo 1× por login (flag de sessão consumido).
 - **RF-09** — Sheet "Minhas pendências": resumo por nível no topo (3 cards), cards de conversa com nome do cliente, última fala e tempo de espera, ação "Abrir conversa"; rodapé "Revisar em sequência" (abre a mais crítica primeiro).
@@ -50,7 +50,7 @@ Conversas do WhatsApp ficam atribuídas a um atendente e "morrem" sem resposta: 
   - Idempotente e barato (1 UPDATE condicional por mensagem).
 - **Índice parcial**: `(store_id, assigned_seller_id) WHERE awaiting_reply_since IS NOT NULL AND status IN ('aguardando','em_andamento','aguardando_cliente')` — reconciler e RPC varrem só o subconjunto pendente.
 - **Backfill** na migration: para conversas abertas, `awaiting_reply_since` = primeira inbound posterior à última outbound (NULL se a última mensagem é do atendente).
-- **Settings**: `stores.settings->'idleAlerts'` = `{ enabled: false, level1Hours: 2, level2Hours: 24, level3Hours: 72, notifyManagerOnLevel3: true }` (mesmo padrão jsonb do `managerDashboard`).
+- **Settings**: `stores.settings->'idleAlerts'` = `{ enabled: false, level1Hours: 2, level2Hours: 8, level3Hours: 24, notifyManagerOnLevel3: true }` (mesmo padrão jsonb do `managerDashboard`; unidades em horas úteis).
 
 ### Cálculo de nível (SQL ≡ JS)
 
@@ -85,7 +85,7 @@ src/features/idle-alerts/
 - Banner N3: montado no `AppLayout` junto aos banners existentes.
 - Briefing: mockup "B — Briefing do dia" aprovado; `auth.login.tsx` grava flag em `sessionStorage` após `signIn` OK; `DailyBriefingGate` no `AppLayout` consome o flag e exibe o overlay se o summary tiver pendências.
 - Tela de configuração: seção "Alertas de ociosidade" junto aos alertas gerenciais existentes, gate Owner/Gestor.
-- Provider Pattern: leitura via provider (contrato novo ou extensão do provider de notificações/conversations conforme padrão do barrel `@/providers/data` — decidir no plano; mock determinístico incluído para `VITE_DATA_SOURCE=mock`).
+- Provider Pattern: método novo `getIdleSummary()` no contrato `IConversationsProvider` — impl supabase chama a RPC; impl mock calcula deterministicamente sobre o mockStore (paridade com o engine TS). Acesso pela UI só via barrel `@/providers/data`.
 
 ## Erros e degradação
 
