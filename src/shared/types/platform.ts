@@ -159,6 +159,23 @@ export interface IManagerDashboardSettings {
   alertPollingSeconds: number;
 }
 
+/**
+ * Idle-conversation alert thresholds (spec 2026-07-16). Units are BUSINESS
+ * hours of the assigned seller's work schedule (PRD-212); sellers without a
+ * schedule accrue raw clock time. Stored at `stores.settings->'idleAlerts'`
+ * and read by the server-side reconciler — keep keys in sync with the SQL.
+ */
+export interface IIdleAlertsSettings {
+  enabled: boolean;
+  /** Level 1 "Atenção" — business hours until the passive badge counts it. */
+  level1Hours: number;
+  /** Level 2 "Alerta" — business hours until the aggregated notification. */
+  level2Hours: number;
+  /** Level 3 "Crítica" — business hours until the fixed banner + manager. */
+  level3Hours: number;
+  notifyManagerOnLevel3: boolean;
+}
+
 /** Reference (not the credential itself) to a WhatsApp account. */
 export interface IWhatsAppAccountRef {
   id: ID;
@@ -230,6 +247,8 @@ export interface IPlatformSettings {
   sessionTimeout?: ISessionTimeoutSettings;
   /** Manager-dashboard alert configuration (PRD-014). */
   managerDashboard: IManagerDashboardSettings;
+  /** Idle-conversation alerts (spec 2026-07-16). Undefined → DEFAULT_IDLE_ALERTS_SETTINGS. */
+  idleAlerts?: IIdleAlertsSettings;
   /** Whether the SDR agent is enabled for this store (PRD-020). */
   sdrEnabled: boolean;
   /** Editable SDR message templates with variable substitution (PRD-020). */

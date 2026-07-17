@@ -24,6 +24,7 @@ import { AvailabilityToggle } from "@/features/distribution/components/Availabil
 import { NotificationDropdown } from "@/features/notifications/components/NotificationDropdown";
 import { WhatsAppStatusButton } from "@/features/shell/components/WhatsAppStatusButton";
 import { InboxUnreadBadgeIcon, SoundAlertToggle } from "@/features/inbox-alerts";
+import { IdlePendingChip } from "@/features/idle-alerts";
 import { ScrollProgressBar } from "@/features/shell/components/ScrollProgressBar";
 import { ROUTES } from "@/features/shell/config/routes";
 import { TourHelpButton } from "@/features/tour";
@@ -72,6 +73,8 @@ export function TopBar() {
         <WhatsAppStatusButton />
 
         <InboxUnreadBadgeIcon />
+
+        <IdlePendingChip />
 
         <SoundAlertToggle />
 

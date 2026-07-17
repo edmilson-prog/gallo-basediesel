@@ -10,6 +10,7 @@ import { DEFAULT_SDR_QUOTE_TEMPLATES } from "@/features/sdr-quote/templates/defa
 import { DEFAULT_SHIPPING_CONFIG } from "@/features/shipping/config/defaults";
 import { DEFAULT_BADGE_CATALOG } from "@/features/gamification/catalog/badgeCatalog";
 import { DEFAULT_ECOMMERCE_INTEGRATION_SETTINGS } from "@/features/ecommerce-integration/config/defaults";
+import { DEFAULT_IDLE_ALERTS_SETTINGS } from "@/features/idle-alerts/config/defaults";
 
 /**
  * Builds a clean default {@link IPlatformSettings} for a newly created store
@@ -50,6 +51,7 @@ export function buildDefaultSettings(storeId: ID): IPlatformSettings {
     defaultDivision: "parts",
     distribution: clone(DEFAULT_DISTRIBUTION_SETTINGS),
     managerDashboard: clone(DEFAULT_MANAGER_DASHBOARD_SETTINGS),
+    idleAlerts: clone(DEFAULT_IDLE_ALERTS_SETTINGS),
     sdrEnabled: false,
     sdrTemplates: clone(DEFAULT_SDR_TEMPLATES),
     sdrQuoteValidityDays: 7,

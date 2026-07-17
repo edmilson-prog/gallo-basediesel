@@ -19,6 +19,7 @@ import { DashboardFilters } from "../components/DashboardFilters";
 import { CarteiraHealthDonut } from "../components/CarteiraHealthDonut";
 import { ActiveAlertsList } from "../components/ActiveAlertsList";
 import { AlertSettingsModal } from "../components/AlertSettingsModal";
+import { IdleAlertsSettingsSection } from "@/features/idle-alerts";
 import { GoalsWidget } from "@/features/goals";
 import { PositivationWidget } from "@/features/positivation";
 import { PortfolioHealthWidget } from "@/features/portfolio-analytics";
@@ -159,13 +160,18 @@ export function ManagerDashboardPage() {
           </section>
 
           {canEditSettings && (
-            <AlertSettingsModal
-              open={settingsOpen}
-              onOpenChange={setSettingsOpen}
-              initial={settings.settings}
-              onSave={(next) => settings.update(next)}
-              saving={settings.saving}
-            />
+            <>
+              <section className="mt-6" aria-label="Configurações de alertas de ociosidade">
+                <IdleAlertsSettingsSection storeId={currentStore?.id ?? null} />
+              </section>
+              <AlertSettingsModal
+                open={settingsOpen}
+                onOpenChange={setSettingsOpen}
+                initial={settings.settings}
+                onSave={(next) => settings.update(next)}
+                saving={settings.saving}
+              />
+            </>
           )}
         </TabsContent>
         {canViewVolume && (

@@ -15,6 +15,7 @@ export type NotificationEventType =
   | "conversa.atribuida"
   | "conversa.semResposta"
   | "conversa.colaboradorAdicionado"
+  | "conversa.ociosa"
   | "sdr.escalonou"
   // Carteira (wallet transfers)
   | "carteira.transferenciaRecebida"
@@ -60,6 +61,7 @@ export type NotificationEventType =
  */
 export const DERIVED_EVENTS: readonly NotificationEventType[] = [
   "conversa.semResposta",
+  "conversa.ociosa",
   "lead.esfriando",
   "cliente.dormente",
   "vendedor.sobrecarregado",
