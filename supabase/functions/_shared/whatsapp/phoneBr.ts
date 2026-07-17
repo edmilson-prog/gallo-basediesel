@@ -48,3 +48,40 @@ export function phoneDigitsMatchBr(a: string, b: string): boolean {
   if (shortLocal.length !== 10 || longLocal.length !== 11) return false;
   return longLocal[2] === "9" && shortLocal === longLocal.slice(0, 2) + longLocal.slice(3);
 }
+
+/** Valid Brazilian area codes (Anatel allocation). Gaps (23, 25-26, 29-30,
+ *  36, 39-40, 50, 52, 56-60, 70, 72, 76, 78, 80, 90) are unassigned. */
+const VALID_BR_DDD = new Set([
+  "11", "12", "13", "14", "15", "16", "17", "18", "19",
+  "21", "22", "24", "27", "28",
+  "31", "32", "33", "34", "35", "37", "38",
+  "41", "42", "43", "44", "45", "46", "47", "48", "49",
+  "51", "53", "54", "55",
+  "61", "62", "63", "64", "65", "66", "67", "68", "69",
+  "71", "73", "74", "75", "77", "79",
+  "81", "82", "83", "84", "85", "86", "87", "88", "89",
+  "91", "92", "93", "94", "95", "96", "97", "98", "99",
+]);
+
+/**
+ * Dial digits for outbound sends: prefixes Brazil's DDI (55) on bare local
+ * numbers (10-11 digits, valid DDD, no trunk zero) stored without it — the
+ * 2026-07-12 DINTEC import wrote ERP phones verbatim. An explicit leading
+ * "+" is TRUSTED as E.164 and never prefixed: Chile (+56 9…) and Bolivia
+ * (+591 7…) mobiles are also 10-11 digits and must not be corrupted. The
+ * length rule (not a startsWith("55") check) is deliberate — DDD 55 is the
+ * store's own region. Everything else passes through unchanged (fail-open;
+ * the provider rejects bad numbers loudly).
+ */
+export function normalizeBrDialDigits(rawPhone: string): string {
+  const digits = digitsOf(rawPhone);
+  if (rawPhone.trim().startsWith("+")) return digits;
+  if (
+    (digits.length === 10 || digits.length === 11) &&
+    !digits.startsWith("0") &&
+    VALID_BR_DDD.has(digits.slice(0, 2))
+  ) {
+    return `55${digits}`;
+  }
+  return digits;
+}
