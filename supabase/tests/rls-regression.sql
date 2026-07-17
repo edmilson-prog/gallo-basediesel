@@ -1414,6 +1414,37 @@ begin
   end if;
 end $$;
 
+-- Arrange (superuser, rolled back): force idleAlerts ON for the matriz store and
+-- plant a positive control — an OWNER-assigned conversation with a pending reply —
+-- so the LUCAS leak check below cannot pass vacuously (0-rows-for-everyone).
+do $$
+declare
+  v_owner_conv uuid;
+begin
+  update public.stores
+     set settings = jsonb_set(coalesce(settings,'{}'::jsonb), '{idleAlerts}',
+       '{"enabled":true,"level1Hours":1,"level2Hours":8,"level3Hours":24,"notifyManagerOnLevel3":true}'::jsonb)
+   where id = '00000000-0000-0000-0000-000000000001';
+
+  select id into v_owner_conv from public.conversations
+   where store_id = '00000000-0000-0000-0000-000000000001'
+     and assigned_seller_id = '57706ecc-01b5-4a96-b403-0359a4bb767f'
+     and status in ('aguardando','em_andamento','aguardando_cliente')
+   limit 1;
+  if v_owner_conv is null then
+    raise notice 'idle-alerts leak check: no owner-assigned open conversation in fixtures — positive control skipped';
+    return;
+  end if;
+  -- 30h raw (not the 3h originally proposed): this static file has no DB
+  -- access to confirm whether the owner's sellers.work_schedule is populated
+  -- in the real seed. idle_business_seconds() only ever REDUCES the raw diff
+  -- when a schedule is present (business time <= raw time), so 30h raw clears
+  -- the level1Hours=1 threshold above regardless of schedule; 3h raw would
+  -- not be safe under an unknown/possibly-restrictive schedule.
+  update public.conversations set awaiting_reply_since = now() - interval '30 hours'
+   where id = v_owner_conv;
+end $$;
+
 -- Summary RPC as LUCAS: must never return a conversation assigned to another seller.
 select set_config(
   'request.jwt.claims',
@@ -1429,6 +1460,14 @@ begin
     where c.assigned_seller_id is distinct from '5a6400ed-5aec-4bf1-b641-31635f15c887'::uuid
   ) then
     raise exception 'idle summary: leaked another seller''s conversation';
+  end if;
+
+  if exists (
+    select 1 from public.idle_conversations_summary() s
+    join public.conversations c on c.id = s.conversation_id
+    where c.assigned_seller_id = '57706ecc-01b5-4a96-b403-0359a4bb767f'::uuid
+  ) then
+    raise exception 'idle summary: returned the OWNER''s planted conversation to lucas';
   end if;
 end $$;
 reset role;
