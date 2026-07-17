@@ -1529,8 +1529,7 @@ begin
     perform public.claim_conversation_rescue(v_rescue_id);
     raise exception 'claim_conversation_rescue: lucas should not be able to claim an inaccessible rescue';
   exception
-    when others then
-      null; -- expected: insufficient_privilege
+    when insufficient_privilege then null; -- expected: 42501
   end;
 end $$;
 reset role;
@@ -1563,9 +1562,8 @@ begin
   begin
     perform public.claim_conversation_rescue(v_rescue_id);
     raise exception 'claim_conversation_rescue: claiming an already-claimed rescue should fail';
-  exception
-    when others then
-      null; -- expected: already claimed
+  exception when others then
+    if sqlstate <> 'P0004' then raise; end if; -- expected: P0004
   end;
 end $$;
 reset role;
