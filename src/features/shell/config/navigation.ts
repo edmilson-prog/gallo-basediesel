@@ -88,12 +88,6 @@ export const APP_NAV_GROUPS: INavGroup[] = [
         permission: { resource: "customer" },
       },
       {
-        label: "Contatos pendentes",
-        icon: "mdi:account-clock-outline",
-        to: ROUTES.APP_CONTATOS_PENDENTES,
-        roles: ["Owner", "Gestor"],
-      },
-      {
         label: "Leads",
         icon: "mdi:account-question",
         to: ROUTES.APP_LEADS,

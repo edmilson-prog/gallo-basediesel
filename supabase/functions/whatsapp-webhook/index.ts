@@ -70,6 +70,27 @@ function truncateDeepStrings(value: unknown, max: number): unknown {
 // Columns selected when resolving an account from an inbound event.
 const ACCT_COLS = "id, store_id, provider, phone_number, credentials_ref, provider_config, status";
 
+// Fallback pipeline stage when a store has none configured yet (mirrors the
+// app-level default seen on fresh stores — src/mocks/data/platform.ts).
+const DEFAULT_FIRST_STAGE = { id: "stage-novo", name: "Novo", order: 1, color: "#5b6b7a" };
+
+async function assignNextFromRotation(admin: SupabaseClient, storeId: string): Promise<string> {
+  const { data, error } = await admin.rpc("assign_next_from_rotation", { p_store_id: storeId });
+  if (error) throw new Error(`assign_next_from_rotation: ${error.message}`);
+  return data as string;
+}
+
+async function getFirstPipelineStage(
+  admin: SupabaseClient,
+  storeId: string,
+): Promise<Record<string, unknown>> {
+  const { data } = await admin.from("stores").select("settings").eq("id", storeId).maybeSingle();
+  const stages = (data?.settings as { pipelineStages?: Array<Record<string, unknown>> } | null)
+    ?.pipelineStages;
+  if (!stages || stages.length === 0) return DEFAULT_FIRST_STAGE;
+  return [...stages].sort((a, b) => (a.order as number) - (b.order as number))[0]!;
+}
+
 // ===== Supabase-backed adapter for the shared core ==========================
 
 function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
@@ -293,6 +314,88 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
       if (error) throw new Error(`createPendingCustomer: ${error.message}`);
       return { id: data.id as string };
     },
+    async findLeadByPhone(storeId, phoneDigits) {
+      const { data } = await admin
+        .from("leads")
+        .select("id, seller_id, loss_reason, phone")
+        .eq("store_id", storeId)
+        .like("phone", `%${phoneDigits.slice(-8)}`);
+      const row = (data ?? []).find(
+        (candidate) => String(candidate.phone).replace(/\D/g, "") === phoneDigits,
+      );
+      return row
+        ? {
+            id: row.id as string,
+            sellerId: row.seller_id as string,
+            lossReason: (row.loss_reason as string | null) ?? null,
+          }
+        : null;
+    },
+    async reopenLostLead(leadId) {
+      const { data: lead } = await admin
+        .from("leads")
+        .select("store_id")
+        .eq("id", leadId)
+        .single();
+      const firstStage = lead
+        ? await getFirstPipelineStage(admin, lead.store_id as string)
+        : DEFAULT_FIRST_STAGE;
+      const { error } = await admin
+        .from("leads")
+        .update({ loss_reason: null, loss_notes: null, stage: firstStage })
+        .eq("id", leadId);
+      if (error) throw new Error(`reopenLostLead: ${error.message}`);
+    },
+    async createLead({ storeId, phone, name }) {
+      const sellerId = await assignNextFromRotation(admin, storeId);
+      const firstStage = await getFirstPipelineStage(admin, storeId);
+      const { data, error } = await admin
+        .from("leads")
+        .insert({
+          // leads.id already has a DB default (uuid, gen_random_uuid()) — minting
+          // it explicitly here is a deliberate style match with the app-level
+          // provider (src/providers/data/impl/supabase/leads.ts), not a workaround.
+          id: crypto.randomUUID(),
+          store_id: storeId,
+          seller_id: sellerId,
+          name: name ?? phone,
+          phone,
+          stage: firstStage,
+          temperature: "morno",
+          origin: "whatsapp",
+          conversations: [],
+          tags: [],
+        })
+        .select("id, seller_id")
+        .single();
+      if (error) throw new Error(`createLead: ${error.message}`);
+      return { id: data.id as string, sellerId: data.seller_id as string, lossReason: null };
+    },
+    async findOpenConversationForLead(leadId, accountId, includeTerminal) {
+      let query = admin
+        .from("conversations")
+        .select("id, status")
+        .eq("lead_id", leadId)
+        .eq("whatsapp_account_id", accountId);
+      if (!includeTerminal) {
+        query = query.not("status", "in", `(${CLOSED_CONVERSATION_STATUSES.join(",")})`);
+      }
+      const { data } = await query.order("created_at", { ascending: false }).limit(1).maybeSingle();
+      return data ? { id: data.id as string, status: data.status as string } : null;
+    },
+    async linkConversationToLead(leadId, conversationId) {
+      const { data } = await admin
+        .from("leads")
+        .select("conversations")
+        .eq("id", leadId)
+        .maybeSingle();
+      const current: string[] = (data?.conversations as string[] | null) ?? [];
+      if (current.includes(conversationId)) return;
+      await admin
+        .from("leads")
+        .update({ conversations: [...current, conversationId] })
+        .eq("id", leadId);
+    },
     async applyInboundContactName(customerId, name) {
       // Read first so a manually-entered display name is never overwritten.
       // Best-effort — callers swallow errors.
@@ -339,7 +442,8 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
         .from("conversations")
         .insert({
           store_id: input.storeId,
-          customer_id: input.customerId,
+          customer_id: input.customerId ?? null,
+          lead_id: input.leadId ?? null,
           whatsapp_account_id: input.accountId,
           assigned_seller_id: input.assignedSellerId,
           channel: "whatsapp",
@@ -359,7 +463,7 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
           conversation_id: input.conversationId,
           direction: "in",
           author_type: "customer",
-          author_id: input.customerId,
+          author_id: input.authorId,
           provider: input.provider,
           text: input.text,
           media_type: input.mediaType,
