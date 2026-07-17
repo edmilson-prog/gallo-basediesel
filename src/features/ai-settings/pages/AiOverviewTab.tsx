@@ -50,7 +50,7 @@ export function AiOverviewTab() {
         </select>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         <KpiCard icon="mdi:lightning-bolt" label="Chamadas" value={int.format(summary.calls)} />
         <KpiCard icon="mdi:circle-multiple" label="Tokens" value={int.format(summary.tokens)} />
         <KpiCard icon="mdi:cash" label="Custo est." value={brl.format(summary.costBRL)} />
@@ -59,6 +59,11 @@ export function AiOverviewTab() {
           label="Budget"
           value={`${Math.round(summary.budgetPct)}%`}
           progressPct={summary.budgetPct}
+        />
+        <KpiCard
+          icon="mdi:microphone-message"
+          label="Áudios transcritos"
+          value={int.format(summary.audioTranscriptions)}
         />
       </div>
 

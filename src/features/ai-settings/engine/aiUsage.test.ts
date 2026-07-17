@@ -108,4 +108,31 @@ describe("summarizeUsage", () => {
     expect(s.byFeature).toHaveLength(1); // só o routed/sdr
     expect(s.byFeature[0]?.feature).toBe("sdr");
   });
+
+  it("conta só transcrições de áudio com sucesso (status ok)", () => {
+    const events = [
+      ev({ feature: "audio_transcription", status: "ok" }),
+      ev({ feature: "audio_transcription", status: "error", costBRL: 0 }),
+      ev({ feature: "audio_transcription", status: "ok" }),
+      ev({ feature: "sdr", status: "ok" }),
+    ];
+    const s = summarizeUsage(
+      events,
+      "last_30d",
+      { monthlyCapBRL: 100, alertThresholdPct: 80, usdToBrl: 5 },
+      now,
+    );
+    expect(s.audioTranscriptions).toBe(2);
+  });
+
+  it("audioTranscriptions é 0 quando não há eventos de transcrição no período", () => {
+    const events = [ev({ feature: "sdr", status: "ok" }), ev({ feature: "insights", status: "error" })];
+    const s = summarizeUsage(
+      events,
+      "last_30d",
+      { monthlyCapBRL: 100, alertThresholdPct: 80, usdToBrl: 5 },
+      now,
+    );
+    expect(s.audioTranscriptions).toBe(0);
+  });
 });
