@@ -4,6 +4,15 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.148.0] — Nudge · 2026-07-17
+
+**Alertas de conversas ociosas: o atendente é avisado quando um cliente fica esperando resposta, com escalada em 3 níveis e um resumo do dia ao entrar no sistema.**
+
+### Added
+
+- **Alertas de conversas ociosas (3 níveis)** — quando um cliente aguarda resposta numa conversa atribuída, o atendente passa a ser avisado em 3 níveis progressivos, contados pelas horas úteis da própria agenda: um chip na barra superior mostra quantas conversas estão paradas, um painel lateral "Minhas pendências" lista cada uma com o tempo de espera, e um banner fixo aparece quando alguma passa do nível crítico — nesse caso o gestor também é notificado. Ao entrar no sistema (login explícito), um resumo do dia mostra as pendências antes de começar a trabalhar.
+- **Configuração por loja** — em Configurações → Operação → Alertas de ociosidade (Owner), liga/desliga os alertas e ajusta os 3 limiares de horas úteis. Desligado por padrão em todas as lojas.
+
 ## [0.147.0] — Sonar · 2026-07-17
 
 **Busca do Atendimento reformulada: encontra qualquer telefone (com ou sem o 9º dígito), ignora filtros durante a busca e mostra com quem está cada conversa — mais o painel do SDR consolidado e telas de gestão mais rápidas.**
