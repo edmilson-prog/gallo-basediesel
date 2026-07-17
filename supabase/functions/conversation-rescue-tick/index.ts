@@ -2,13 +2,20 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 /**
  * conversation-rescue-tick — agendada via pg_cron a cada 1 minuto (spec
- * 2026-07-17, mesmo padrão de sdr-backstop-tick). Duas fases por execução:
+ * 2026-07-17, mesmo padrão de sdr-backstop-tick). Três fases por execução,
+ * nesta ordem:
  *
- *  1) broadcastNewRescues — varre conversas com awaiting_reply_since setado
+ *  1) cancelResolvedRescues — varre TODOS os resgates `broadcasting` (mesmo
+ *     de lojas desabilitadas nesse meio-tempo) e cancela qualquer um cuja
+ *     conversa já não qualifica mais (o ausente respondeu, a conversa
+ *     fechou, ou foi reatribuída por outro caminho) — roda antes das outras
+ *     duas fases para que nem broadcastNewRescues nem resolveTimeouts vejam
+ *     uma linha stale no mesmo tick.
+ *  2) broadcastNewRescues — varre conversas com awaiting_reply_since setado
  *     cujo responsável está ausente (fora da agenda, ou dentro da agenda mas
  *     availability≠online há mais de temporaryAbsenceGraceMinutes) e ainda
  *     sem resgate ativo; cria a linha de broadcast.
- *  2) resolveTimeouts — varre resgates `broadcasting` mais velhos que
+ *  3) resolveTimeouts — varre resgates `broadcasting` mais velhos que
  *     forceAssignTimeoutMinutes e força uma atribuição (fallback list online
  *     primeiro, senão qualquer elegível online; se ninguém, mantém
  *     broadcasting — o sub-projeto A cobre esse extremo via idle-alerts).
@@ -113,6 +120,56 @@ async function resolveEligiblePool(
     eligibleIds.add(s.id);
   }
   return [...eligibleIds];
+}
+
+async function cancelResolvedRescues(
+  admin: ReturnType<typeof createClient>,
+  now: Date,
+  ctx: RequestContext,
+): Promise<number> {
+  const { data: broadcasting } = await admin
+    .from("conversation_rescues")
+    .select("id, conversation_id, absent_seller_id")
+    .eq("status", "broadcasting");
+  let cancelled = 0;
+
+  for (const rescue of (broadcasting ?? []) as Array<{
+    id: string;
+    conversation_id: string;
+    absent_seller_id: string;
+  }>) {
+    const { data: conv } = await admin
+      .from("conversations")
+      .select("assigned_seller_id, awaiting_reply_since, status")
+      .eq("id", rescue.conversation_id)
+      .maybeSingle();
+    const c = conv as {
+      assigned_seller_id: string | null;
+      awaiting_reply_since: string | null;
+      status: string;
+    } | null;
+    const stillValid =
+      !!c &&
+      c.assigned_seller_id === rescue.absent_seller_id &&
+      c.awaiting_reply_since !== null &&
+      ["aguardando", "em_andamento", "aguardando_cliente"].includes(c.status);
+    if (stillValid) continue;
+
+    const { error } = await admin
+      .from("conversation_rescues")
+      .update({ status: "cancelled", cancelled_reason: "conversation_no_longer_waiting" })
+      .eq("id", rescue.id)
+      .eq("status", "broadcasting");
+    if (error) {
+      ctx.log.error("conversation-rescue-tick cancel failed", {
+        rescueId: rescue.id,
+        error: error.message,
+      });
+      continue;
+    }
+    cancelled++;
+  }
+  return cancelled;
 }
 
 async function broadcastNewRescues(
@@ -339,8 +396,9 @@ servePost(async (req, ctx) => {
   if (!verifyWorkerSecret(provided, expected)) throw new HttpError(401, "unauthorized");
 
   const now = new Date();
+  const cancelled = await cancelResolvedRescues(admin, now, ctx);
   const created = await broadcastNewRescues(admin, now, ctx);
   const forced = await resolveTimeouts(admin, now, ctx);
-  ctx.log.info("conversation-rescue-tick done", { created, forced });
-  return json({ created, forced }, 200);
+  ctx.log.info("conversation-rescue-tick done", { cancelled, created, forced });
+  return json({ cancelled, created, forced }, 200);
 });

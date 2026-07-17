@@ -29,7 +29,15 @@ cliente manda mensagem → awaiting_reply_since setado (sub-projeto A, trigger j
                               │
               conversation-rescue-tick (pg_cron, 1x/min):
                               │
-     Fase 1 — broadcastNewRescues: responsável ausente?
+     Fase 1 — cancelResolvedRescues: para cada resgate 'broadcasting' (todas as lojas), a
+              conversa ainda qualifica? (mesmo dono, awaiting_reply_since setado, status não
+              terminal)
+                              │
+        NÃO (ausente já respondeu / conversa fechou / reatribuída por outro caminho) ──>
+        status='cancelled', cancelled_reason='conversation_no_longer_waiting', FIM (sem
+        notificação — ver trigger abaixo)
+                              │
+     Fase 2 — broadcastNewRescues: responsável ausente?
                               │
         fora da agenda (isWithinWorkSchedule = false) ──> ausência "schedule", dispara já
                               │
@@ -41,9 +49,10 @@ cliente manda mensagem → awaiting_reply_since setado (sub-projeto A, trigger j
                               │
            painel flutuante (RescueBroadcastClaim) mostra p/ elegíveis online
                               │
-        alguém clica "Atender agora" → RPC claim_conversation_rescue → status='claimed', FIM
+        alguém clica "Atender agora" → RPC claim_conversation_rescue (repete a checagem de
+        liveness da Fase 1 antes do UPDATE — defesa em profundidade) → status='claimed', FIM
                               │
-     Fase 2 — resolveTimeouts: broadcast mais velho que forceAssignTimeoutMinutes e ainda
+     Fase 3 — resolveTimeouts: broadcast mais velho que forceAssignTimeoutMinutes e ainda
               'broadcasting'?
                               │
         sorteia (pickFallbackSeller) entre fallbackSellerIds online; se nenhum, entre todo o
@@ -52,9 +61,12 @@ cliente manda mensagem → awaiting_reply_since setado (sub-projeto A, trigger j
                 status='forced', conversations.assigned_seller_id atualizado
 ```
 
-As duas fases rodam na mesma invocação da Edge Function, uma vez por minuto. Nenhuma delas toca
-o `whatsapp-webhook` real — a atribuição inicial de conversa nova continua como está; este
-sub-projeto só resgata conversas **já atribuídas** que estagnaram.
+As três fases rodam na mesma invocação da Edge Function, uma vez por minuto, nesta ordem — a
+Fase 1 sempre antes das outras duas, para que uma linha stale já saia `cancelled` antes de
+`broadcastNewRescues` decidir se cria uma nova e antes de `resolveTimeouts` decidir se força uma
+atribuição em cima dela. Nenhuma delas toca o `whatsapp-webhook` real — a atribuição inicial de
+conversa nova continua como está; este sub-projeto só resgata conversas **já atribuídas** que
+estagnaram.
 
 ## Modelo de dados
 
@@ -88,7 +100,47 @@ Migration `supabase/migrations/20260717170000_conversation_rescues.sql`.
   `'conv-rescue-' || id`, evento `conversa.resgatada`, canal `inApp`) para `absent_seller_id`:
   "{cliente} — conversa assumida por {novo atendente}." / "Você estava ausente quando o cliente
   entrou em contato." Mesmo padrão direto-via-trigger de `notify_conversation_participant_added`
-  (evento pontual, não passa pelo reconciler periódico do sub-projeto A).
+  (evento pontual, não passa pelo reconciler periódico do sub-projeto A). A função checa
+  `if new.status not in ('claimed', 'forced') then return new`, então uma transição para
+  `'cancelled'` sai **sem** inserir notificação nenhuma — confirmado relendo a função (não é só
+  suposição).
+
+### Cancelamento automático quando a conversa se resolve sozinha
+
+Cobrindo a lacuna identificada na revisão final de branch: o spec original (2026-07-17) previa
+que, se o responsável ausente voltar e **responder o cliente ele mesmo** antes de alguém clicar
+"Atender agora" ou antes do fallback forçado disparar, o resgate deveria se **auto-cancelar** —
+sem isso, o tick reatribuía uma conversa já resolvida e disparava uma notificação enganosa
+("você estava ausente, Fulano assumiu"), e qualquer elegível online podia clicar "Atender agora"
+numa conversa que já não precisava de resgate. Os campos `status='cancelled'`/`cancelled_reason`
+já existiam na tabela e no tipo TS desde a migration original, mas nada os escrevia — os 12 tasks
+do plano implementaram fielmente o que o plano descrevia, e o plano tinha derrubado esse
+comportamento ao quebrar o spec em tasks.
+
+Duas camadas, mesma condição de liveness (`assigned_seller_id` ainda é o ausente **e**
+`awaiting_reply_since` ainda setado **e** `status` da conversa ainda não-terminal):
+
+- **Varredura por tick** (`cancelResolvedRescues` em `conversation-rescue-tick`, Fase 1, antes de
+  `broadcastNewRescues`/`resolveTimeouts`) — a cada execução (1x/min), varre **todo** resgate
+  `status='broadcasting'` de **todas as lojas** (mesmo as com o toggle desligado nesse meio-tempo —
+  um resgate pode ter começado a transmitir antes do dono desligar a feature) e cancela qualquer um
+  cuja conversa não qualifica mais: o próprio ausente respondeu (trigger do sub-projeto A zerou
+  `awaiting_reply_since`), a conversa foi fechada, ou foi reatribuída por outro caminho. Por rodar
+  antes das outras duas fases no mesmo tick, uma linha cancelada aqui já não existe mais como
+  `broadcasting` quando `resolveTimeouts` faz sua própria consulta — nenhuma mudança adicional foi
+  necessária em `resolveTimeouts` nem em `broadcastNewRescues`.
+- **Recheque no momento do claim** (`claim_conversation_rescue`, RPC) — defesa em profundidade
+  contra a janela de poucos segundos entre um tick e outro: mesmo que o cancelamento ainda não
+  tenha rodado, a RPC repete a mesma checagem de liveness logo depois do gate de
+  `can_access_conversation` e antes do `UPDATE` de concorrência otimista. Se a conversa não
+  qualifica mais, a própria RPC marca a linha como `cancelled` (condicionado a
+  `status='broadcasting'`, mesma guarda otimista) e levanta uma exceção (`P0005`, "rescue no
+  longer valid") em vez de deixar o clique prosseguir para um `claim` que não devia existir.
+
+Em ambos os casos a transição é para `'cancelled'` com `cancelled_reason =
+'conversation_no_longer_waiting'`, e por não estar em `('claimed', 'forced')` o trigger
+`conversation_rescues_notify_resolved` não dispara — nenhuma notificação é criada para um
+cancelamento (o ausente já sabe que respondeu; não há "novidade" para avisar).
 
 ## Engines puros (`src/features/conversation-rescue/engine/`)
 
@@ -132,15 +184,22 @@ supabase/functions/_shared/{conversation-rescue,access}/`).
 `supabase/functions/conversation-rescue-tick/index.ts`. Agendada via `pg_cron` a cada 1 minuto
 (mesmo padrão do `sdr-backstop-tick`): worker secret no header `x-worker-secret`, resolvido via
 `createSecretResolver`/Vault e comparado com `verifyWorkerSecret`; cliente admin `service_role`
-(bypassa RLS). Duas fases por execução, cada uma iterando as lojas com
-`settings->conversationRescue->>enabled = 'true'`:
+(bypassa RLS). Três fases por execução, nesta ordem:
 
-1. **`broadcastNewRescues`** — busca conversas com `assigned_seller_id` e `awaiting_reply_since`
+1. **`cancelResolvedRescues`** — **não** filtra por loja habilitada (varre `status='broadcasting'`
+   de qualquer loja, mesmo desligada nesse meio-tempo); ver subseção "Cancelamento automático
+   quando a conversa se resolve sozinha" acima para a condição de liveness e a motivação. Roda
+   antes das outras duas fases — nenhuma delas precisou de ajuste para respeitar o cancelamento,
+   já que ambas só enxergam `status='broadcasting'` e a linha cancelada já saiu dessa lista antes
+   de chegarem nela.
+2. **`broadcastNewRescues`** — itera as lojas com `settings->conversationRescue->>enabled =
+   'true'`; busca conversas com `assigned_seller_id` e `awaiting_reply_since`
    preenchidos, `status` não-terminal, e **sem** resgate já `broadcasting` para aquela conversa.
    Para cada uma: carrega o seller responsável, roda `isWithinWorkSchedule` + `determineAbsence`;
    se ausente, resolve o nome do contato (cliente ou lead) e o texto da última mensagem inbound, e
    insere a linha em `conversation_rescues`.
-2. **`resolveTimeouts`** — busca resgates `status='broadcasting'` com `broadcast_at` mais velho que
+3. **`resolveTimeouts`** — itera as lojas com `settings->conversationRescue->>enabled = 'true'`;
+   busca resgates `status='broadcasting'` com `broadcast_at` mais velho que
    `forceAssignTimeoutMinutes`. Para cada um, calcula o pool elegível
    (`resolveEligiblePool` — sellers ativos da loja com acesso ao `whatsapp_account_id` via
    `whatsapp_account_access_rules`/`resolveAccessRecipients`, com bypass para papéis `owner`/

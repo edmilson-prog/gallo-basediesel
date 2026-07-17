@@ -56,6 +56,7 @@ as $function$
 declare
   v_row public.conversation_rescues;
   v_seller uuid := public.current_seller_id();
+  v_still_valid boolean;
 begin
   if v_seller is null then
     raise exception 'not authenticated' using errcode = '28000';
@@ -68,6 +69,26 @@ begin
 
   if not public.can_access_conversation(v_row.conversation_id) then
     raise exception 'insufficient_privilege' using errcode = '42501';
+  end if;
+
+  -- Liveness re-check (spec 2026-07-17): if the absent seller already
+  -- answered the client themselves (awaiting_reply_since cleared by the
+  -- sub-project-A trigger), or the conversation moved on in some other way,
+  -- this broadcast is stale — cancel it instead of letting anyone claim it.
+  select exists (
+    select 1 from public.conversations c
+    where c.id = v_row.conversation_id
+      and c.assigned_seller_id = v_row.absent_seller_id
+      and c.awaiting_reply_since is not null
+      and c.status in ('aguardando', 'em_andamento', 'aguardando_cliente')
+  ) into v_still_valid;
+
+  if not v_still_valid then
+    update public.conversation_rescues
+       set status = 'cancelled', cancelled_reason = 'conversation_no_longer_waiting'
+     where id = p_rescue_id
+       and status = 'broadcasting';
+    raise exception 'rescue no longer valid' using errcode = 'P0005';
   end if;
 
   update public.conversation_rescues
