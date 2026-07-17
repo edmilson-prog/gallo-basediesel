@@ -4,6 +4,18 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.149.0] — Reel · 2026-07-17
+
+**Envio de vídeo como anexo avulso no Atendimento — pelo menu de anexo ou arrastando e soltando — e correção de telefones sem o código do país no WAHA.**
+
+### Added
+
+- **Vídeo como anexo avulso** — o composer do Atendimento passa a aceitar vídeo como arquivo avulso, do mesmo jeito que já funcionava para imagem, documento e áudio: pelo menu de anexo (novo item "Vídeo") ou arrastando e soltando o arquivo direto na conversa. Limite de 16 MB por vídeo.
+
+### Fixed
+
+- **Telefones sem o código do país (55) quebravam o envio pelo WAHA** — números salvos sem o DDI (por exemplo, vindos da base do DINTEC) podiam ser enviados para o WhatsApp errado. O sistema agora completa o DDI 55 automaticamente antes de enviar pelo WAHA.
+
 ## [0.148.0] — Nudge · 2026-07-17
 
 **Alertas de conversas ociosas: o atendente é avisado quando um cliente fica esperando resposta, com escalada em 3 níveis e um resumo do dia ao entrar no sistema.**
