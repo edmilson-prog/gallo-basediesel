@@ -1,0 +1,329 @@
+# Resgate de Conversa com Responsável Ausente (Sub-projeto B)
+
+Quando uma conversa **atribuída** a um atendente fica com o cliente esperando e o atendente
+está **ausente** (fora da agenda de trabalho, ou temporariamente indisponível dentro dela), o
+sistema transmite a oferta para todo mundo que tem acesso àquele número e está online —
+primeiro a clicar em "Atender agora" assume. Se ninguém aceitar dentro do prazo, força uma
+atribuição automática. Continuação direta do sub-projeto A (`docs/dev/idle-conversation-alerts.md`),
+reaproveitando `conversations.awaiting_reply_since` sem duplicar coluna/trigger.
+
+**Spec:** `docs/superpowers/specs/2026-07-17-conversation-rescue-design.md`
+**Plano:** `docs/superpowers/plans/2026-07-17-conversation-rescue.md`
+**Feature dir:** `src/features/conversation-rescue/`
+
+> ⚠️ **Status: implementado e commitado, NÃO aplicado em produção.** A migration
+> (`supabase/migrations/20260717170000_conversation_rescues.sql`), as duas migrations do Task 7
+> (secret do worker + agendamento `pg_cron`) e os acréscimos ao `supabase/tests/rls-regression.sql`
+> estão escritos e versionados, mas **a tabela `conversation_rescues` não existe no banco de
+> produção, a Edge Function `conversation-rescue-tick` não está deployada, e o job do `pg_cron`
+> não está agendado**. Este é um gate deliberado e ainda aberto, pendente de OK explícito do
+> dono — mesmo padrão do sub-projeto A. Além disso, a feature nasce **desligada por padrão**
+> (`enabled: false`) em `IConversationRescueSettings` para toda loja (via
+> `buildDefaultSettings.ts`): mesmo depois do deploy, nada acontece até o dono ligar por loja em
+> `Configurações → Operação → Resgate de conversas`.
+
+## Fluxo
+
+```
+cliente manda mensagem → awaiting_reply_since setado (sub-projeto A, trigger já existente)
+                              │
+              conversation-rescue-tick (pg_cron, 1x/min):
+                              │
+     Fase 1 — broadcastNewRescues: responsável ausente?
+                              │
+        fora da agenda (isWithinWorkSchedule = false) ──> ausência "schedule", dispara já
+                              │
+        dentro da agenda, availability ≠ "online" ──> ausência "temporary", dispara só se
+                                                        agora - awaiting_reply_since ≥
+                                                        temporaryAbsenceGraceMinutes
+                              │
+                cria conversation_rescues (status='broadcasting')
+                              │
+           painel flutuante (RescueBroadcastClaim) mostra p/ elegíveis online
+                              │
+        alguém clica "Atender agora" → RPC claim_conversation_rescue → status='claimed', FIM
+                              │
+     Fase 2 — resolveTimeouts: broadcast mais velho que forceAssignTimeoutMinutes e ainda
+              'broadcasting'?
+                              │
+        sorteia (pickFallbackSeller) entre fallbackSellerIds online; se nenhum, entre todo o
+        pool elegível online; se ninguém, mantém 'broadcasting' (tenta de novo no próximo tick)
+                              │
+                status='forced', conversations.assigned_seller_id atualizado
+```
+
+As duas fases rodam na mesma invocação da Edge Function, uma vez por minuto. Nenhuma delas toca
+o `whatsapp-webhook` real — a atribuição inicial de conversa nova continua como está; este
+sub-projeto só resgata conversas **já atribuídas** que estagnaram.
+
+## Modelo de dados
+
+Migration `supabase/migrations/20260717170000_conversation_rescues.sql`.
+
+- **Tabela `public.conversation_rescues`** — uma linha por evento de ausência que precisou de
+  cobertura: `conversation_id`, `store_id`, `whatsapp_account_id`, `absent_seller_id`,
+  `absence_kind` (`'schedule' | 'temporary'`), `contact_name`, `last_inbound_preview`, `status`
+  (`'broadcasting' | 'claimed' | 'forced' | 'cancelled'`), `broadcast_at`, `claimed_by_seller_id`
+  / `claimed_at`, `forced_seller_id` / `forced_at`, `cancelled_reason`, `created_at`.
+- **Índice único parcial** `conversation_rescues_active_idx (conversation_id) WHERE status =
+  'broadcasting'` — só 1 resgate ativo por conversa. A Edge Function confia nesse índice para não
+  duplicar broadcasts a cada tick (um `INSERT` concorrente que colidiria vira `unique_violation`
+  `23505`, tratado como esperado, não como erro — ver "Edge Function" abaixo).
+- **RLS**: `enable row level security` + única policy, `conversation_rescues_select`, SELECT para
+  `authenticated` gated por `public.can_access_conversation(conversation_id)` — o mesmo portão de
+  instância usado em toda a Inbox (modelo de 2 portões, `docs/dev/conversation-access-model.md`).
+  **Sem** policy de INSERT/UPDATE/DELETE para `authenticated`: a criação dos broadcasts e o
+  fallback forçado só acontecem via `service_role` (a Edge Function, que bypassa RLS); a única
+  escrita disponível ao cliente é a RPC abaixo.
+- **RPC `public.claim_conversation_rescue(p_rescue_id uuid)`** — `SECURITY DEFINER`,
+  `search_path=''`. Resolve `current_seller_id()` do JWT, confere `can_access_conversation` do
+  chamador (`42501` se não tiver acesso), e faz o `UPDATE` condicionado a
+  `status = 'broadcasting'` (concorrência otimista — primeiro grava, ganha; o `UPDATE ... RETURNING`
+  não encontra linha para o segundo clique e a função levanta `already claimed` com SQLSTATE
+  `P0004`). No mesmo statement, atualiza `conversations.assigned_seller_id` para o novo
+  responsável e grava auditoria (`conversation_rescue_claim`).
+- **Trigger `conversation_rescues_notify_resolved`** (`AFTER UPDATE`, função
+  `notify_conversation_rescue_resolved`, `SECURITY DEFINER`) — dispara quando `status` muda para
+  `'claimed'` ou `'forced'` e insere uma notificação in-app pontual (`dedupe_key`
+  `'conv-rescue-' || id`, evento `conversa.resgatada`, canal `inApp`) para `absent_seller_id`:
+  "{cliente} — conversa assumida por {novo atendente}." / "Você estava ausente quando o cliente
+  entrou em contato." Mesmo padrão direto-via-trigger de `notify_conversation_participant_added`
+  (evento pontual, não passa pelo reconciler periódico do sub-projeto A).
+
+## Engines puros (`src/features/conversation-rescue/engine/`)
+
+- **`determineAbsence(input): AbsenceKind | null`** — recebe `isWithinSchedule` **já calculado**
+  (injeção de dependência: quem chama decide como computar a agenda — o client usaria
+  `isWithinWorkSchedule` de `@/features/access/engine/workSchedule`, a Edge Function usa o mirror
+  Deno). Fora da agenda ⇒ `'schedule'` imediatamente, sem carência. Dentro da agenda e
+  `availability !== 'online'` (`'ausente' | 'ocupado' | 'offline'` tratados igual) ⇒ `'temporary'`
+  só quando `now - awaiting_reply_since >= temporaryAbsenceGraceMinutes` (limite inclusivo — exatos
+  15 min já conta). Testado em `determineAbsence.test.ts` (7 casos).
+- **`pickFallbackSeller(candidateIds, seed): ID | null`** — sorteio **determinístico**: hash
+  FNV-1a do `seed` módulo o tamanho da lista, nunca `Math.random()`. Mesmo `(candidatos, seed)`
+  sempre escolhe o mesmo id — testável, mas com distribuição realista entre seeds diferentes.
+  Testado em `pickFallbackSeller.test.ts` (5 casos).
+
+## Espelhamento server-side (`scripts/sync-conversation-rescue-shared.ts`)
+
+A Edge Function roda em Deno e não pode importar `src/` diretamente, então um script de sync
+copia os arquivos-fonte para `supabase/functions/_shared/`, com banner "AUTO-GENERATED MIRROR —
+DO NOT EDIT" e extensões `.ts` adicionadas aos imports relativos (Deno exige a extensão
+explícita):
+
+| Origem | Destino |
+|---|---|
+| `src/features/conversation-rescue/engine/*.ts` (exceto `*.test.ts`) | `supabase/functions/_shared/conversation-rescue/engine/*.ts` |
+| `src/features/access/engine/workSchedule.ts` | `supabase/functions/_shared/access/workSchedule.ts` |
+| `src/features/admin-settings/utils/accessRecipients.ts` | `supabase/functions/_shared/access/accessRecipients.ts` |
+
+Rodar com `bun run scripts/sync-conversation-rescue-shared.ts` (imprime `synced 4 files →
+supabase/functions/_shared/{conversation-rescue,access}/`).
+
+> ⚠️ **Regra dura:** qualquer mudança em `src/features/conversation-rescue/engine/*`,
+> `src/features/access/engine/workSchedule.ts` ou
+> `src/features/admin-settings/utils/accessRecipients.ts` exige rodar o script de sync de novo **e
+> redeployar** `conversation-rescue-tick` — senão a Edge Function continua rodando a lógica velha
+> em produção enquanto o client já mudou. Mesma disciplina de `scripts/sync-sdr-shared.ts` /
+> `scripts/sync-whatsapp-shared.ts`.
+
+## Edge Function `conversation-rescue-tick`
+
+`supabase/functions/conversation-rescue-tick/index.ts`. Agendada via `pg_cron` a cada 1 minuto
+(mesmo padrão do `sdr-backstop-tick`): worker secret no header `x-worker-secret`, resolvido via
+`createSecretResolver`/Vault e comparado com `verifyWorkerSecret`; cliente admin `service_role`
+(bypassa RLS). Duas fases por execução, cada uma iterando as lojas com
+`settings->conversationRescue->>enabled = 'true'`:
+
+1. **`broadcastNewRescues`** — busca conversas com `assigned_seller_id` e `awaiting_reply_since`
+   preenchidos, `status` não-terminal, e **sem** resgate já `broadcasting` para aquela conversa.
+   Para cada uma: carrega o seller responsável, roda `isWithinWorkSchedule` + `determineAbsence`;
+   se ausente, resolve o nome do contato (cliente ou lead) e o texto da última mensagem inbound, e
+   insere a linha em `conversation_rescues`.
+2. **`resolveTimeouts`** — busca resgates `status='broadcasting'` com `broadcast_at` mais velho que
+   `forceAssignTimeoutMinutes`. Para cada um, calcula o pool elegível
+   (`resolveEligiblePool` — sellers ativos da loja com acesso ao `whatsapp_account_id` via
+   `whatsapp_account_access_rules`/`resolveAccessRecipients`, com bypass para papéis `owner`/
+   `manager`, excluindo o ausente, filtrados por `availability === 'online'` e dentro da própria
+   agenda). Prioriza `fallbackSellerIds` (config da loja) que estejam nesse pool; se nenhum, usa o
+   pool inteiro; se o pool estiver vazio, **não força nada** (a linha continua `broadcasting`,
+   tentada de novo no próximo tick). Sorteia com `pickFallbackSeller(pool, `${rescueId}-${broadcastAt}`)`.
+
+**Correção aplicada na revisão do Task 7** (a versão original tinha uma corrida de
+duplo-assignment no caminho do fallback forçado):
+
+- O `UPDATE` que vira `status='forced'` agora encadeia `.eq("status", "broadcasting").select("id")`
+  e checa `updated.length === 0` antes de prosseguir — se outro tick concorrente já resolveu a
+  mesma linha, este tick simplesmente pula (`continue`) em vez de reatribuir
+  `conversations.assigned_seller_id` e duplicar a auditoria. Mesmo idioma do `sdr-backstop-tick`.
+- **Logging de erro em todos os pontos de falha** (`ctx.log.error`), tanto em
+  `broadcastNewRescues` quanto em `resolveTimeouts`: falha ao inserir o broadcast, falha ao
+  atualizar `conversation_rescues`, falha ao atualizar `conversations.assigned_seller_id`, falha ao
+  gravar `audit_logs`. A única exceção tratada como **esperada** (não logada como erro) é o
+  `unique_violation` do Postgres (`error.code === "23505"`) no `INSERT` de
+  `broadcastNewRescues` — acontece quando dois ticks correm ao mesmo tempo e ambos tentam
+  transmitir a mesma conversa; o índice único (`conversation_rescues_active_idx`) rejeita o
+  segundo, que é o comportamento correto, não uma falha genuína.
+
+## `pg_cron`
+
+Duas migrations além da tabela:
+
+- `supabase/migrations/20260717180000_conversation_rescue_worker_secret.sql` — cria
+  `CONVERSATION_RESCUE_WORKER_SECRET` no Vault (mesmo padrão do `SDR_WORKER_SECRET`), idempotente
+  (`if not exists`).
+- `supabase/migrations/20260717190000_conversation_rescue_cron_trigger.sql` — `cron.schedule`
+  `'conversation-rescue-tick'` com expressão `'* * * * *'` (1x/min), chamando
+  `net.http_post` para `https://<project>.supabase.co/functions/v1/conversation-rescue-tick` com o
+  worker secret resolvido via `public.integration_secret_get(...)` no header `x-worker-secret`,
+  timeout de 25s. **Ordem de aplicação:** depois da função deployada e depois da migration do
+  secret — o comentário no arquivo é explícito sobre isso.
+
+## Provider Pattern
+
+Contrato `IConversationRescuesProvider` (`src/providers/data/contracts/conversationRescues.ts`):
+
+```ts
+interface IConversationRescuesProvider {
+  list(): Promise<IConversationRescue[]>;   // só status='broadcasting'; RLS faz o resto
+  claim(rescueId: ID): Promise<IConversationRescue>;
+}
+```
+
+- **Mock** (`impl/mock/conversationRescues.ts`) — `list()` sempre retorna `[]` (não existe
+  `pg_cron` real no modo Demonstração, então nenhum resgate nasce organicamente); `claim()`
+  lança erro explícito em vez de no-op silencioso (inalcançável pela UI, já que o painel some sem
+  entradas).
+- **Supabase** (`impl/supabase/conversationRescues.ts`) — `list()` faz `select("*").eq("status",
+  "broadcasting").order("broadcast_at")`; `claim()` chama a RPC `claim_conversation_rescue`.
+- Ligado no `factory.ts` (`mockProviders.conversationRescues` /
+  `supabaseProviders.conversationRescues`) e exportado no barrel (`useConversationRescuesProvider`,
+  `IConversationRescuesProvider`) como qualquer outro provider — sem exceção às regras de
+  fronteira do ESLint.
+
+## UI (`src/features/conversation-rescue/`)
+
+- **`RescueBroadcastClaim`** (mirror de `UrgentBroadcastClaim` do SDR urgente) — painel flutuante
+  fixo (`fixed bottom-20 right-4`, monta em `AppLayout` ao lado de `UrgentBroadcastClaim`),
+  mostrando cada resgate em transmissão que o usuário logado pode ver (a RLS já filtra por
+  `can_access_conversation`): nome do contato, trecho da última mensagem, tempo desde o broadcast,
+  botão "Atender agora". Ao clicar: chama `claim()`, navega para
+  `/app/atendimento/$id` em caso de sucesso, toast de erro ("Outro atendente já assumiu esta
+  conversa.") se perdeu a corrida.
+- **`useRescueBroadcastQueue`** (mirror de `useUrgentBroadcastQueue`, mas mais simples) —
+  polling de **15s**, sem Realtime, sem tocar cache/query-keys do Atendimento (camada congelada).
+  Após um `claim()` bem-sucedido, chama `refresh()` imediatamente (sem esperar o próximo tick de
+  15s).
+- **`ConversationRescueSettingsPage`** / **`ConversationRescueSettingsSection`** — tela de
+  configuração por loja, rota `/app/configuracoes/atendimento/resgate-conversas`, grupo
+  **"Operação"** do `SettingsLayout` (ao lado de "Alertas de ociosidade"), gate **Owner-only**
+  (`roles: ["Owner"]` no item do menu + `requireAuth` na rota). Campos: liga/desliga,
+  `temporaryAbsenceGraceMinutes` e `forceAssignTimeoutMinutes` (inputs numéricos, clamp
+  client-side 1–120 min), seletor multi-checkbox de `fallbackSellerIds` sobre os vendedores ativos
+  da loja. Salvamento único via botão "Salvar" (não é form controlado auto-save).
+- **`useConversationRescueSettings`** — hook de leitura/escrita sobre
+  `IPlatformSettings.conversationRescue` via `useSettingsProvider()`, com `auditLog` no `update()`.
+
+## Configuração por loja
+
+`stores.settings->'conversationRescue'` (mesmo padrão jsonb do `idleAlerts`):
+
+```ts
+interface IConversationRescueSettings {
+  enabled: boolean;                        // default false
+  temporaryAbsenceGraceMinutes: number;     // default 15
+  forceAssignTimeoutMinutes: number;        // default 5
+  fallbackSellerIds: ID[];                  // default []
+}
+```
+
+`DEFAULT_CONVERSATION_RESCUE_SETTINGS` vive em
+`src/features/conversation-rescue/config/defaults.ts` e é consumido em dois pontos:
+
+- `src/providers/data/engine/buildDefaultSettings.ts` — toda **loja nova** já nasce com
+  `conversationRescue: clone(DEFAULT_CONVERSATION_RESCUE_SETTINGS)` (ajuste feito durante a
+  revisão do Task 1, espelhando a mesma linha para `idleAlerts` — sem esse fix, lojas criadas
+  depois do deploy ficariam sem o campo e cairiam no fallback do hook/tick, que já assume o
+  default, mas de forma implícita).
+- `useConversationRescueSettings` — fallback em runtime se `platform.conversationRescue` vier
+  `undefined` (lojas existentes antes desta migration, ou settings malformadas).
+
+Tela: `Configurações → Operação → Resgate de conversas` (Owner-only). **Toda loja nasce com
+`enabled: false`** — precisa ser ligada uma a uma pelo dono depois de avaliar o cenário.
+
+## Testes
+
+- **Vitest TDD** nos engines: `determineAbsence.test.ts` (7 casos — online, fora da agenda,
+  dentro da carência, além da carência, `ausente`/`ocupado`/`offline` tratados igual, limite
+  exato), `pickFallbackSeller.test.ts` (5 casos — lista vazia, candidato único, determinismo por
+  seed, distribuição entre seeds diferentes, id sempre pertence à lista).
+- **`supabase/tests/rls-regression.sql`** — bloco "Offline-rescue (spec 2026-07-17)": planta um
+  resgate `broadcasting` numa conversa atribuída ao Owner (inacessível para o seller "lucas"),
+  depois assere: (1) SELECT de `conversation_rescues` nega a linha para quem não acessa a
+  conversa; (2) `claim_conversation_rescue` nega o claim do mesmo jeito (`42501`); (3) depois de
+  simular um claim bem-sucedido, uma segunda chamada de `claim_conversation_rescue` na mesma linha
+  falha com `P0004` ("already claimed").
+  **Correção aplicada na revisão do Task 11:** os dois blocos `exception` originais podiam nunca
+  falhar de verdade — foram estreitados para checar o SQLSTATE exato esperado
+  (`when insufficient_privilege` / `if sqlstate <> 'P0004' then raise`), então um regression real
+  (RPC parar de negar o acesso, ou permitir claim duplo) agora derruba o teste em vez de passar em
+  silêncio.
+- Gate de CI: `bun run build` + `bun run test`.
+
+## Rollout (status atual — nada em produção ainda)
+
+1. ✅ Migration escrita e commitada (`20260717170000_conversation_rescues.sql`) — **não aplicada**
+   via MCP; falta OK explícito do dono.
+2. ✅ Edge Function `conversation-rescue-tick` escrita e commitada — **não deployada**.
+3. ✅ Migrations do worker secret e do `pg_cron` escritas e commitadas — **não aplicadas**; o job
+   não está agendado.
+4. ✅ Frontend (provider, UI, settings page) já commitado, com `enabled=false` em todas as
+   lojas por padrão — pode ir para produção com segurança mesmo antes dos passos 1–3, já que a
+   tabela ainda não existindo faz `list()`/`claim()` falharem graciosamente (nenhuma linha nunca
+   aparece porque não há tick criando-as).
+5. ⏳ Pendente: dono aprova aplicar as 3 migrations via MCP → deploy da Edge Function → confirmar
+   o job no `pg_cron` → ligar `enabled` por loja e configurar `fallbackSellerIds` (ex.: Owner/
+   Gestor como reserva).
+
+## Fora de escopo (nesta entrega)
+
+- **Presença "real"** (heartbeat client-side ativo) — usa só `sellers.availability` (manual +
+  auto-offline por inatividade, PR #140) combinada com a agenda de trabalho (PRD-212). Não há
+  novo mecanismo de presença.
+- **Alterar o `whatsapp-webhook` real** — a atribuição inicial de conversa nova continua como
+  está; este sub-projeto só resgata conversas **já atribuídas** que estagnaram.
+- **Modo Demonstração com tick real** — o mock não simula o cenário via um botão de teste (não
+  havia esse requisito no plano final); simplesmente não há resgates no modo mock.
+
+## Limitações conhecidas
+
+- **Sem presença real** — a detecção de ausência depende inteiramente de
+  `sellers.availability` (campo manual, com auto-offline por inatividade) combinado com a agenda
+  de trabalho. Um atendente que esquece de marcar "ausente" mas está parado sem responder só é
+  pego pelo alerta de ociosidade do sub-projeto A (em horas), não por este sub-projeto (que reage
+  em minutos, mas só se `availability` refletir a realidade).
+- **Falha após a virada de status no fallback forçado** — se o `UPDATE` em
+  `conversations.assigned_seller_id` falhar depois que a linha de `conversation_rescues` já virou
+  `forced` (erro logado via `ctx.log.error`, mas não revertido), essa linha específica nunca mais
+  é revisitada por `resolveTimeouts` (que só olha `status='broadcasting'`) — fica presa em
+  `forced` com uma atribuição que não aconteceu de fato no lado de `conversations`. Como
+  `conversations.assigned_seller_id` não mudou, a mesma conversa ainda cumpre os critérios de
+  `broadcastNewRescues` no próximo tick (nenhum resgate `broadcasting` ativo) e tende a gerar uma
+  **nova** linha de broadcast — a recuperação acontece via um registro novo, não pela correção do
+  antigo.
+- **Contadores `created`/`forced` podem superestimar** o que de fato aconteceu — ambos são
+  incrementados assim que a própria linha de `conversation_rescues` é gravada/atualizada, mesmo
+  que uma escrita **downstream** (a atualização em `conversations` ou o `INSERT` em `audit_logs`)
+  falhe depois e seja apenas logada como erro, não propagada. O retorno `{ created, forced }` da
+  função é, portanto, um limite superior otimista, não uma confirmação de ponta a ponta.
+
+## Referências
+
+- `docs/superpowers/specs/2026-07-16-idle-conversation-alerts-design.md` — sub-projeto A,
+  fundações reaproveitadas (`awaiting_reply_since`, evento `conversa.ociosa`)
+- `docs/dev/idle-conversation-alerts.md` — doc as-built do sub-projeto A
+- `docs/dev/conversation-access-model.md` — modelo de acesso (2 portões), `can_access_conversation`
+- `supabase/functions/sdr-backstop-tick/` — padrão de tick via `pg_cron`
+- `src/features/sdr-escalation/` — padrão de transmissão + claim first-wins
+  (`UrgentBroadcastClaim.tsx`, `useUrgentBroadcastQueue.ts`)
+- `src/features/access/engine/workSchedule.ts` — engine de agenda (PRD-212)
