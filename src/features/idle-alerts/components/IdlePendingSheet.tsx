@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import type { IIdleSummary, IIdleConversationEntry } from "@/shared/types";
 import { groupByLevel } from "../engine/groupByLevel";
 import { formatElapsed } from "../engine/idleLevel";
+import { useTimeTick } from "@/features/conversations/hooks/useTimeTick";
 
 interface IIdlePendingSheetProps {
   open: boolean;
@@ -16,6 +17,7 @@ interface IIdlePendingSheetProps {
 /** Sheet lateral "Minhas pendências" — mockup B aprovado no brainstorm. */
 export function IdlePendingSheet({ open, onOpenChange, summary }: IIdlePendingSheetProps) {
   const navigate = useNavigate();
+  const now = useTimeTick(60_000);
   const groups = groupByLevel(summary.entries);
   const openConversation = (entry: IIdleConversationEntry) => {
     onOpenChange(false);
@@ -50,7 +52,13 @@ export function IdlePendingSheet({ open, onOpenChange, summary }: IIdlePendingSh
             { entries: groups.attention, tone: "muted" as const },
           ].map(({ entries, tone }) =>
             entries.map((entry) => (
-              <EntryCard key={entry.conversationId} entry={entry} tone={tone} onOpen={openConversation} />
+              <EntryCard
+                key={entry.conversationId}
+                entry={entry}
+                tone={tone}
+                onOpen={openConversation}
+                now={now}
+              />
             )),
           )}
           {summary.entries.length === 0 && (
@@ -99,10 +107,12 @@ function EntryCard({
   entry,
   tone,
   onOpen,
+  now,
 }: {
   entry: IIdleConversationEntry;
   tone: "critical" | "warning" | "muted";
   onOpen: (entry: IIdleConversationEntry) => void;
+  now: Date;
 }) {
   return (
     <button
@@ -125,7 +135,7 @@ function EntryCard({
             tone === "muted" && "text-muted-foreground",
           )}
         >
-          espera há {formatElapsed(entry.awaitingReplySince, new Date())}
+          espera há {formatElapsed(entry.awaitingReplySince, now)}
         </span>
       </div>
       {entry.lastInboundPreview && (
