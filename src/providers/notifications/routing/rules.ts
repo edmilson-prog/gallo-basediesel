@@ -124,6 +124,17 @@ export const ROUTING_RULES: Record<NotificationEventType, IRoutingRule> = {
     channels: ["inApp"],
     resolveRecipients: (p, ctx) => uniq([...sellerOf(p), ...managersOf(p, ctx)]),
   },
+  // conversa.ociosa (spec 2026-07-16): the real per-row severity ('warning' at
+  // level 2, 'critical' at level 3) is decided server-side by the reconciler
+  // (reconcile_derived_notifications()). This entry exists only so the
+  // client-side router can type/route the event — 'warning' here is a
+  // placeholder default, never the value actually persisted for this event.
+  "conversa.ociosa": {
+    category: "operational",
+    severity: "warning",
+    channels: ["inApp", "toast"],
+    resolveRecipients: (p) => sellerOf(p),
+  },
   "sdr.escalonou": {
     category: "operational",
     severity: "warning",

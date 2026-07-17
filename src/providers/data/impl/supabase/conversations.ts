@@ -4,6 +4,7 @@ import type {
   IConversation,
   IConversationContact,
   IDistributionTrace,
+  IIdleConversationEntry,
   IIdleSummary,
   IMessage,
   LeadTemperature,
@@ -736,8 +737,35 @@ export const supabaseConversationsProvider: IConversationsProvider = {
     return { conversation, messages, trace };
   },
 
-  // TODO(Task 5): call the SECURITY DEFINER RPC `idle_conversations_summary`.
-  getIdleSummary: async (): Promise<IIdleSummary> => {
-    throw new Error("[supabase] idle summary: pending Task 5");
+  async getIdleSummary(): Promise<IIdleSummary> {
+    // SECURITY DEFINER RPC (gated-once: resolves the signed-in seller from the
+    // JWT server-side) — see idle_conversations_summary() in
+    // 20260716190000_idle_conversation_alerts.sql for the exact column set.
+    const { data, error } = await getSupabaseClient().rpc("idle_conversations_summary");
+    if (error) throw new Error(`[supabase] conversations.getIdleSummary failed: ${error.message}`);
+    const rows = (data ?? []) as unknown as {
+      conversation_id: string;
+      contact_name: string;
+      last_inbound_preview: string | null;
+      awaiting_reply_since: string;
+      business_seconds: number;
+      idle_level: number;
+    }[];
+    const entries: IIdleConversationEntry[] = rows.map((r) => ({
+      conversationId: r.conversation_id,
+      contactName: r.contact_name,
+      lastInboundPreview: r.last_inbound_preview,
+      awaitingReplySince: r.awaiting_reply_since,
+      businessSeconds: Number(r.business_seconds),
+      level: (r.idle_level as 1 | 2 | 3) ?? 1,
+    }));
+    return {
+      counts: {
+        level1: entries.filter((e) => e.level === 1).length,
+        level2: entries.filter((e) => e.level === 2).length,
+        level3: entries.filter((e) => e.level === 3).length,
+      },
+      entries,
+    };
   },
 };
