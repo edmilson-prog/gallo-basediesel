@@ -14,3 +14,4 @@ export { PortalPlaceholderPage } from "./pages/PortalPlaceholderPage";
 export { GamificationPlaceholderPage } from "./pages/GamificationPlaceholderPage";
 export { DivisionsPlaceholderPage } from "./pages/DivisionsPlaceholderPage";
 export { MediaRetentionSettingsPage } from "./pages/MediaRetentionSettingsPage";
+export { IdleAlertsSettingsPage } from "./pages/IdleAlertsSettingsPage";

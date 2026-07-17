@@ -41,7 +41,7 @@ Regra nova `conversa.ociosa` dentro de `reconcile_derived_notifications()` (pg_c
 
 ## Configuração por loja
 
-Seção "Alertas de ociosidade" em `ManagerDashboardPage` (`IdleAlertsSettingsSection`), ao lado do `AlertSettingsModal` gerencial existente. Gate **Owner-only** (`canEditSettings = userRole === "Owner"`) — desvio consciente do texto RF-10 ("Owner/Gestor" no spec), mantendo paridade com o modal vizinho; pendente validação do dono se Gestor também deve editar.
+Página própria `/app/configuracoes/atendimento/alertas-ociosidade` (`IdleAlertsSettingsPage`, grupo "Operação" do `SettingsLayout`), envolvendo o mesmo componente `IdleAlertsSettingsSection` — movida para fora do `ManagerDashboardPage` a pedido do dono (2026-07-17), que preferiu o parâmetro dentro de Configurações da plataforma em vez do painel Início. Gate **Owner-only** (`roles: ["Owner"]` no item do menu + `requireAuth` na rota) — desvio consciente do texto RF-10 ("Owner/Gestor" no spec); pendente validação do dono se Gestor também deve editar.
 
 ## Testes
 
