@@ -946,6 +946,10 @@ export function MessageInput(props: IMessageInputProps) {
                   <Icon icon="mdi:image-outline" size={14} className="mr-2" />
                   {CONVERSATION_STRINGS.attachImage}
                 </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => openAttachPicker("video")}>
+                  <Icon icon="mdi:video-outline" size={14} className="mr-2" />
+                  {CONVERSATION_STRINGS.attachVideo}
+                </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => openAttachPicker("document")}>
                   <Icon icon="mdi:file-document-outline" size={14} className="mr-2" />
                   {CONVERSATION_STRINGS.attachDocument}

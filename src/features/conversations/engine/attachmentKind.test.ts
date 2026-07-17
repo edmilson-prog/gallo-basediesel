@@ -16,9 +16,12 @@ describe("inferAttachmentKind", () => {
     },
   );
 
-  it("rejects video explicitly instead of falling back to document", () => {
-    expect(inferAttachmentKind({ type: "video/mp4", name: "clipe.mp4" })).toBeNull();
-  });
+  it.each(["video/mp4", "video/3gpp", "video/quicktime", "video/webm"])(
+    "infers video for %s",
+    (type) => {
+      expect(inferAttachmentKind({ type, name: "clipe.bin" })).toBe("video");
+    },
+  );
 
   it("infers document for a known document mimetype", () => {
     expect(inferAttachmentKind({ type: "application/pdf", name: "nota.pdf" })).toBe("document");
