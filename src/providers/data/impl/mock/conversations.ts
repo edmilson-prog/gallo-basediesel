@@ -5,10 +5,25 @@ import type {
   ICreateConversationResult,
   ICreateOutboundConversationInput,
 } from "../../contracts/conversations";
-import type { ID, IConversation, IConversationContact } from "@/shared/types";
+import type {
+  ID,
+  IConversation,
+  IConversationContact,
+  IIdleConversationEntry,
+  IIdleSummary,
+} from "@/shared/types";
 import { auditLog } from "@/features/rbac/utils/auditLog";
 import { assertImmutableStoreId, scopedListParams, withOwnSellerScope } from "./_storeScope";
 import { assertInboxCountParams } from "../conversationCountSupport";
+import { businessSecondsBetween } from "@/features/idle-alerts/engine/idleBusinessTime";
+import { computeIdleLevel } from "@/features/idle-alerts/engine/idleLevel";
+import { DEFAULT_IDLE_ALERTS_SETTINGS } from "@/features/idle-alerts/config/defaults";
+import { getCurrentContext } from "@/features/multistore/utils/getCurrentContext";
+
+const EMPTY_IDLE_SUMMARY: IIdleSummary = {
+  counts: { level1: 0, level2: 0, level3: 0 },
+  entries: [],
+};
 
 export const mockConversationsProvider: IConversationsProvider = {
   list: (params) => {
@@ -126,5 +141,32 @@ export const mockConversationsProvider: IConversationsProvider = {
       },
     });
     return conversation;
+  },
+  getIdleSummary: async (): Promise<IIdleSummary> => {
+    const { user } = getCurrentContext();
+    if (!user) return EMPTY_IDLE_SUMMARY;
+    const raw = await conversationsApi.listAwaitingReply(user.id);
+    const settings = raw.settings.idleAlerts ?? DEFAULT_IDLE_ALERTS_SETTINGS;
+    if (!settings.enabled) return EMPTY_IDLE_SUMMARY;
+    const now = new Date();
+    const entries = raw.items
+      .map((item) => {
+        const businessSeconds = businessSecondsBetween(
+          raw.workSchedule,
+          new Date(item.awaitingReplySince),
+          now,
+        );
+        return { ...item, businessSeconds, level: computeIdleLevel(businessSeconds, settings) };
+      })
+      .filter((e): e is IIdleConversationEntry => e.level > 0)
+      .sort((a, b) => b.level - a.level || b.businessSeconds - a.businessSeconds);
+    return {
+      counts: {
+        level1: entries.filter((e) => e.level === 1).length,
+        level2: entries.filter((e) => e.level === 2).length,
+        level3: entries.filter((e) => e.level === 3).length,
+      },
+      entries: entries.slice(0, 500),
+    };
   },
 };

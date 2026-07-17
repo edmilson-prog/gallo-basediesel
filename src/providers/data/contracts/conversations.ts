@@ -2,6 +2,7 @@ import type {
   IConversation,
   IConversationContact,
   IDistributionTrace,
+  IIdleSummary,
   IMessage,
   ID,
   ISO8601,
@@ -165,4 +166,13 @@ export interface IConversationsProvider {
    * that same conversation.
    */
   searchMessages(params: IListConversationsParams): Promise<IPaginatedResult<IConversation>>;
+  /**
+   * Idle-conversation summary for the SIGNED-IN seller (spec 2026-07-16):
+   * conversations assigned to them where the customer awaits a reply, with
+   * level (1-3) computed in business hours of their PRD-212 schedule.
+   * Supabase: SECURITY DEFINER RPC `idle_conversations_summary` (gated-once).
+   * Mock: deterministic computation over the mock store. Store toggle OFF ⇒
+   * empty summary.
+   */
+  getIdleSummary(): Promise<IIdleSummary>;
 }

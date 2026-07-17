@@ -438,3 +438,19 @@ export interface IWhatsAppOpenWaServer {
   createdAt: ISO8601;
   updatedAt?: ISO8601;
 }
+
+/** Idle-conversation summary (spec 2026-07-16) — read model of idle_conversations_summary(). */
+export interface IIdleConversationEntry {
+  conversationId: ID;
+  contactName: string;
+  lastInboundPreview: string | null;
+  awaitingReplySince: ISO8601;
+  businessSeconds: number;
+  level: 1 | 2 | 3;
+}
+export interface IIdleSummary {
+  /** Counts per level, computed over ALL entries (list capped at 500). */
+  counts: { level1: number; level2: number; level3: number };
+  /** Ordered worst-first: level desc, businessSeconds desc. */
+  entries: IIdleConversationEntry[];
+}

@@ -166,6 +166,8 @@ export type {
   IWhatsAppOpenWaServer,
   IConversationActivityEvent,
   AttendanceActivityType,
+  IIdleConversationEntry,
+  IIdleSummary,
 } from "./conversation";
 
 // Conversation notes (internal attendant board)

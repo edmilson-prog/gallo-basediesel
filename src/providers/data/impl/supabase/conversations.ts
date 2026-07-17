@@ -4,6 +4,7 @@ import type {
   IConversation,
   IConversationContact,
   IDistributionTrace,
+  IIdleSummary,
   IMessage,
   LeadTemperature,
 } from "@/shared/types";
@@ -733,5 +734,10 @@ export const supabaseConversationsProvider: IConversationsProvider = {
     }
 
     return { conversation, messages, trace };
+  },
+
+  // TODO(Task 5): call the SECURITY DEFINER RPC `idle_conversations_summary`.
+  getIdleSummary: async (): Promise<IIdleSummary> => {
+    throw new Error("[supabase] idle summary: pending Task 5");
   },
 };
