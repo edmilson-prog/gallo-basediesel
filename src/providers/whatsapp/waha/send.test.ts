@@ -100,3 +100,30 @@ describe("sendWahaMedia", () => {
     expect(body.caption).toBeUndefined();
   });
 });
+
+describe("toChatId country-code normalization", () => {
+  it("prefixes Brazil's DDI on a bare local phone stored without it (DINTEC import shape)", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, { id: "true_1@c.us_X" }));
+    await sendWahaText("key", fetchFn, target, { toPhone: "49988184540", text: "oi" });
+    const body = JSON.parse(fetchFn.mock.calls[0][1].body);
+    expect(body.chatId).toBe("5549988184540@c.us");
+  });
+
+  it("does not prefix an explicit E.164 foreign phone (Chile mobile is also 11 digits)", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, { id: "true_2@c.us_Y" }));
+    await sendWahaText("key", fetchFn, target, { toPhone: "+56995070445", text: "hola" });
+    const body = JSON.parse(fetchFn.mock.calls[0][1].body);
+    expect(body.chatId).toBe("56995070445@c.us");
+  });
+
+  it("normalizes the chatId on media sends too (same toChatId path)", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, { id: "true_3@c.us_Z" }));
+    await sendWahaMedia("key", fetchFn, target, {
+      toPhone: "49988184540",
+      mediaType: "image",
+      mediaUrl: "https://storage.example.com/signed.jpg",
+    });
+    const body = JSON.parse(fetchFn.mock.calls[0][1].body);
+    expect(body.chatId).toBe("5549988184540@c.us");
+  });
+});

@@ -6,13 +6,16 @@
 import { WhatsAppProviderError } from "../errors.ts";
 import { wahaRequest } from "./client.ts";
 import type { IWahaSessionTarget } from "./session.ts";
+import { normalizeBrDialDigits } from "../phoneBr.ts";
 
 export interface IWahaSendResult {
   providerMessageId: string;
 }
 
 function toChatId(phone: string): string {
-  return `${phone.replace(/\D/g, "")}@c.us`;
+  // customers.phone may be a bare BR local number (DINTEC import wrote ERP
+  // values verbatim) — without the DDI the JID resolves to the wrong country.
+  return `${normalizeBrDialDigits(phone)}@c.us`;
 }
 
 function extractMessageId(body: unknown): string {
