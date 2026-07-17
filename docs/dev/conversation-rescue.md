@@ -133,14 +133,24 @@ Duas camadas, mesma condição de liveness (`assigned_seller_id` ainda é o ause
   contra a janela de poucos segundos entre um tick e outro: mesmo que o cancelamento ainda não
   tenha rodado, a RPC repete a mesma checagem de liveness logo depois do gate de
   `can_access_conversation` e antes do `UPDATE` de concorrência otimista. Se a conversa não
-  qualifica mais, a própria RPC marca a linha como `cancelled` (condicionado a
-  `status='broadcasting'`, mesma guarda otimista) e levanta uma exceção (`P0005`, "rescue no
-  longer valid") em vez de deixar o clique prosseguir para um `claim` que não devia existir.
+  qualifica mais, a RPC **rejeita** o claim levantando uma exceção (`P0005`, "rescue no longer
+  valid") em vez de deixar o clique prosseguir para um `claim` que não devia existir — mas ela
+  **não** persiste `status='cancelled'` na linha, e estruturalmente não pode: em PL/pgSQL um
+  `RAISE EXCEPTION` sem `BEGIN...EXCEPTION...END` ao redor desfaz a transação inteira da chamada,
+  incluindo qualquer `UPDATE` que tivesse rodado antes dele na mesma função — por isso a migration
+  nem tenta esse `UPDATE` (seria trabalho morto, sempre desfeito). Quem efetivamente grava
+  `status='cancelled'` na linha é sempre a varredura por tick acima, que roda sem `raise` e comita
+  normalmente. Efeito líquido: um resgate obsoleto é rejeitado na hora se alguém tentar
+  reivindicá-lo, mas a linha em si (e portanto sua visibilidade no painel `RescueBroadcastClaim`
+  para OUTROS vendedores online) só some no ciclo de tick seguinte (≤ 1 min), não
+  instantaneamente.
 
-Em ambos os casos a transição é para `'cancelled'` com `cancelled_reason =
+No caso do tick, a transição é para `'cancelled'` com `cancelled_reason =
 'conversation_no_longer_waiting'`, e por não estar em `('claimed', 'forced')` o trigger
 `conversation_rescues_notify_resolved` não dispara — nenhuma notificação é criada para um
-cancelamento (o ausente já sabe que respondeu; não há "novidade" para avisar).
+cancelamento (o ausente já sabe que respondeu; não há "novidade" para avisar). No caso do recheque
+da RPC não há transição de status alguma para o trigger observar — só a exceção `P0005` devolvida
+a quem tentou o claim.
 
 ## Engines puros (`src/features/conversation-rescue/engine/`)
 

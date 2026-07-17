@@ -84,10 +84,6 @@ begin
   ) into v_still_valid;
 
   if v_row.status = 'broadcasting' and not v_still_valid then
-    update public.conversation_rescues
-       set status = 'cancelled', cancelled_reason = 'conversation_no_longer_waiting'
-     where id = p_rescue_id
-       and status = 'broadcasting';
     raise exception 'rescue no longer valid' using errcode = 'P0005';
   end if;
 
