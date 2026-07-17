@@ -18,7 +18,7 @@ import { assertInboxCountParams } from "../conversationCountSupport";
 import { businessSecondsBetween } from "@/features/idle-alerts/engine/idleBusinessTime";
 import { computeIdleLevel } from "@/features/idle-alerts/engine/idleLevel";
 import { DEFAULT_IDLE_ALERTS_SETTINGS } from "@/features/idle-alerts/config/defaults";
-import { getCurrentContext } from "@/features/multistore/utils/getCurrentContext";
+import { readCurrentUserSync } from "@/features/auth/guards";
 
 const EMPTY_IDLE_SUMMARY: IIdleSummary = {
   counts: { level1: 0, level2: 0, level3: 0 },
@@ -143,9 +143,15 @@ export const mockConversationsProvider: IConversationsProvider = {
     return conversation;
   },
   getIdleSummary: async (): Promise<IIdleSummary> => {
-    const { user } = getCurrentContext();
-    if (!user) return EMPTY_IDLE_SUMMARY;
-    const raw = await conversationsApi.listAwaitingReply(user.id);
+    // `getCurrentContext().user` only guarantees `id`/`role` (the auth/profile
+    // id, e.g. "mock-vendedor-lucas") — NOT the seller id conversations are
+    // assigned to (`assignedSellerId`, e.g. "seller-..."). Read `sellerId`
+    // straight from the session mirror (same source `getCurrentContext`
+    // feeds — mirrors `getCurrentMockSellerId()` in the mocks/api layer,
+    // without reaching into that private module from the provider).
+    const sellerId = readCurrentUserSync()?.sellerId;
+    if (!sellerId) return EMPTY_IDLE_SUMMARY;
+    const raw = await conversationsApi.listAwaitingReply(sellerId);
     const settings = raw.settings.idleAlerts ?? DEFAULT_IDLE_ALERTS_SETTINGS;
     if (!settings.enabled) return EMPTY_IDLE_SUMMARY;
     const now = new Date();
