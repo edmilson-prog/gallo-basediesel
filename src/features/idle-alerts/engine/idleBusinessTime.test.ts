@@ -54,6 +54,16 @@ describe("businessSecondsBetween", () => {
     ).toBe(4 * 3600);
   });
 
+  it("counts raw time when every window is disabled (owner decision 2026-07-16)", () => {
+    const allDisabled: IWorkSchedule = [
+      { weekday: 1, openAt: "08:00", closeAt: "18:00", enabled: false },
+      { weekday: 2, openAt: "08:00", closeAt: "18:00", enabled: false },
+    ];
+    const from = sp("2026-07-13T10:00:00");
+    const to = sp("2026-07-13T12:00:00");
+    expect(businessSecondsBetween(allDisabled, from, to)).toBe(2 * 3600);
+  });
+
   it("returns 0 when to <= from", () => {
     expect(
       businessSecondsBetween(WEEKDAYS, sp("2026-07-13T12:00:00"), sp("2026-07-13T12:00:00")),

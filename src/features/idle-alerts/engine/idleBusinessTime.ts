@@ -9,7 +9,8 @@ import type { IWorkSchedule } from "@/shared/types";
  * (supabase/migrations/20260716190000_idle_conversation_alerts.sql):
  * - absent/empty schedule ⇒ raw elapsed seconds;
  * - only `enabled` windows count; scheduleOverrides are OUT of scope (v1);
- * - the window is clamped to the last 90 days.
+ * - the window is clamped to the last 90 days;
+ * - a NON-empty schedule whose windows are ALL disabled counts RAW time — owner decision 2026-07-16: a seller on leave must never silence alerts.
  */
 const SAO_PAULO_OFFSET_MINUTES = 180;
 const CLAMP_DAYS = 90;
