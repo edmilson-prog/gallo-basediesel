@@ -95,6 +95,7 @@ export interface IAiUsageSummary {
   avgLatencyMs: number;
   errorRate: number;
   fallbackRate: number;
+  audioTranscriptions: number;
   byProvider: Array<{ providerId: AiProviderId; calls: number; tokens: number; costBRL: number }>;
   byFeature: Array<{ feature: AiFeatureKey; calls: number; costBRL: number; growthPct: number }>;
   series: Array<{ date: ISO8601; calls: number; tokens: number; costBRL: number }>;

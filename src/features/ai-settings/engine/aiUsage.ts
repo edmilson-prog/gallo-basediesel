@@ -39,6 +39,9 @@ export function summarizeUsage(
   const errors = inPeriod.filter((e) => e.status === "error").length;
   const fallbacks = inPeriod.filter((e) => e.status === "fallback").length;
   const latencySum = inPeriod.reduce((a, e) => a + e.latencyMs, 0);
+  const audioTranscriptions = inPeriod.filter(
+    (e) => e.feature === "audio_transcription" && e.status === "ok",
+  ).length;
 
   const byProviderMap = new Map<AiProviderId, { calls: number; tokens: number; costBRL: number }>();
   for (const e of inPeriod) {
@@ -89,6 +92,7 @@ export function summarizeUsage(
     avgLatencyMs: calls > 0 ? Math.round(latencySum / calls) : 0,
     errorRate: calls > 0 ? errors / calls : 0,
     fallbackRate: calls > 0 ? fallbacks / calls : 0,
+    audioTranscriptions,
     byProvider: [...byProviderMap.entries()].map(([providerId, v]) => ({ providerId, ...v })),
     byFeature: [...byFeatureMap.entries()].map(([feature, v]) => {
       const prevCost = prevCostByFeature.get(feature) ?? 0;
