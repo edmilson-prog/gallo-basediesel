@@ -52,6 +52,8 @@ export const INBOX_STRINGS = {
   filtersCollapseAria: "Ocultar filtros",
   filtersActiveCountAria: (n: number) => (n === 1 ? "1 filtro ativo" : `${n} filtros ativos`),
   searchIgnoresFilters: "Filtros ignorados durante a busca",
+  searchLockedWith: (name: string) => `Em atendimento com ${name}`,
+  searchLockedFallbackName: "outro atendente",
 
   // Status filter
   statusLabel: "Status",

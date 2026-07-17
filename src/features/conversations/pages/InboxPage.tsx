@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
+import { toast } from "sonner";
 import type { ID, ISeller, IWhatsAppAccount } from "@/shared/types";
 import { useAuth } from "@/features/auth/useAuth";
 import { useCurrentStore } from "@/features/multistore";
@@ -384,6 +385,13 @@ export function InboxPage() {
                 isUnread={isUnread(conversation)}
                 highlightTerm={filters.search}
                 onSelect={() => handleSelect(conversation.id)}
+                onLockedSelect={() => {
+                  const name = conversation.assignedSellerId
+                    ? (sellersById.get(conversation.assignedSellerId)?.fullName ??
+                      INBOX_STRINGS.searchLockedFallbackName)
+                    : INBOX_STRINGS.searchLockedFallbackName;
+                  toast.info(INBOX_STRINGS.searchLockedWith(name));
+                }}
                 trailing={<QuickActions conversation={conversation} onMutated={refetch} />}
                 escalation={escalationsByConversation.get(conversation.id) ?? null}
                 originAccount={
