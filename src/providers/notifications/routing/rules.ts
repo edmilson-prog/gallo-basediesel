@@ -141,6 +141,12 @@ export const ROUTING_RULES: Record<NotificationEventType, IRoutingRule> = {
     channels: ["inApp", "toast"],
     resolveRecipients: (p, ctx) => uniq([...sellerOf(p), ...managersOf(p, ctx)]),
   },
+  "sdr.escalonouSemResposta": {
+    category: "operational",
+    severity: "critical",
+    channels: ["inApp", "toast"],
+    resolveRecipients: (p, ctx) => uniq([...sellerOf(p), ...managersOf(p, ctx)]),
+  },
   // Carteira
   "carteira.transferenciaRecebida": {
     category: "operational",

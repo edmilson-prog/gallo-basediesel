@@ -17,6 +17,7 @@ export type NotificationEventType =
   | "conversa.colaboradorAdicionado"
   | "conversa.ociosa"
   | "sdr.escalonou"
+  | "sdr.escalonouSemResposta"
   // Carteira (wallet transfers)
   | "carteira.transferenciaRecebida"
   | "carteira.autoRevertAgendado"

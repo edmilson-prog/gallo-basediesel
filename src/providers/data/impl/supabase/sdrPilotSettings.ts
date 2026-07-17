@@ -4,26 +4,32 @@ import { getSupabaseClient } from "@/shared/lib/supabase";
 
 /**
  * Supabase implementation of {@link ISdrPilotSettingsProvider}. `ensureSettings`
- * lazily creates the store's row (defaults: disabled, 2min timeout) — mirrors
- * `rotationQueues`'s `ensureQueue` pattern. RLS: Owner-only read/write
- * (sdr_settings_owner_read/write, applied in the Parte A migration).
+ * lazily creates the store's row (defaults: disabled, 2min backstop, 5/30min
+ * escalation timeouts) — mirrors `rotationQueues`'s `ensureQueue` pattern.
+ * RLS: Owner-only read/write (sdr_settings_owner_read/write, Parte A migration).
  */
 
 interface SettingsRow {
   store_id: string;
   sdr_enabled: boolean;
   backstop_timeout_minutes: number;
+  escalation_timeout_urgent_minutes: number;
+  escalation_timeout_normal_minutes: number;
   updated_at: string;
   updated_by: string | null;
 }
 
-const COLUMNS = "store_id, sdr_enabled, backstop_timeout_minutes, updated_at, updated_by";
+const COLUMNS =
+  "store_id, sdr_enabled, backstop_timeout_minutes, escalation_timeout_urgent_minutes, " +
+  "escalation_timeout_normal_minutes, updated_at, updated_by";
 
 function rowToSettings(r: SettingsRow): ISdrPilotSettings {
   return {
     storeId: r.store_id,
     sdrEnabled: r.sdr_enabled,
     backstopTimeoutMinutes: r.backstop_timeout_minutes,
+    escalationTimeoutUrgentMinutes: r.escalation_timeout_urgent_minutes,
+    escalationTimeoutNormalMinutes: r.escalation_timeout_normal_minutes,
     updatedAt: r.updated_at,
     updatedBy: r.updated_by,
   };
@@ -61,7 +67,12 @@ export const supabaseSdrPilotSettingsProvider: ISdrPilotSettingsProvider = {
 
   async update(storeId, patch) {
     const current = await ensureSettings(storeId);
-    if (patch.sdrEnabled === undefined && patch.backstopTimeoutMinutes === undefined) {
+    const noop =
+      patch.sdrEnabled === undefined &&
+      patch.backstopTimeoutMinutes === undefined &&
+      patch.escalationTimeoutUrgentMinutes === undefined &&
+      patch.escalationTimeoutNormalMinutes === undefined;
+    if (noop) {
       // No-op patch — skip the DB write so we don't bump `updated_at` for nothing.
       return current;
     }
@@ -69,6 +80,12 @@ export const supabaseSdrPilotSettingsProvider: ISdrPilotSettingsProvider = {
     if (patch.sdrEnabled !== undefined) row.sdr_enabled = patch.sdrEnabled;
     if (patch.backstopTimeoutMinutes !== undefined) {
       row.backstop_timeout_minutes = patch.backstopTimeoutMinutes;
+    }
+    if (patch.escalationTimeoutUrgentMinutes !== undefined) {
+      row.escalation_timeout_urgent_minutes = patch.escalationTimeoutUrgentMinutes;
+    }
+    if (patch.escalationTimeoutNormalMinutes !== undefined) {
+      row.escalation_timeout_normal_minutes = patch.escalationTimeoutNormalMinutes;
     }
     const { data, error } = await getSupabaseClient()
       .from("sdr_settings")

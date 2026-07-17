@@ -16,6 +16,8 @@ function ensureSettings(storeId: ID): ISdrPilotSettings {
     storeId,
     sdrEnabled: false,
     backstopTimeoutMinutes: 2,
+    escalationTimeoutUrgentMinutes: 5,
+    escalationTimeoutNormalMinutes: 30,
     updatedAt: new Date().toISOString(),
     updatedBy: null,
   };
@@ -30,7 +32,12 @@ export const sdrPilotSettingsApi = {
 
   update(
     storeId: ID,
-    patch: { sdrEnabled?: boolean; backstopTimeoutMinutes?: number },
+    patch: {
+      sdrEnabled?: boolean;
+      backstopTimeoutMinutes?: number;
+      escalationTimeoutUrgentMinutes?: number;
+      escalationTimeoutNormalMinutes?: number;
+    },
   ): Promise<ISdrPilotSettings> {
     return runApi(
       "sdrPilotSettingsApi",
@@ -42,6 +49,12 @@ export const sdrPilotSettingsApi = {
           ...(patch.sdrEnabled !== undefined ? { sdrEnabled: patch.sdrEnabled } : {}),
           ...(patch.backstopTimeoutMinutes !== undefined
             ? { backstopTimeoutMinutes: patch.backstopTimeoutMinutes }
+            : {}),
+          ...(patch.escalationTimeoutUrgentMinutes !== undefined
+            ? { escalationTimeoutUrgentMinutes: patch.escalationTimeoutUrgentMinutes }
+            : {}),
+          ...(patch.escalationTimeoutNormalMinutes !== undefined
+            ? { escalationTimeoutNormalMinutes: patch.escalationTimeoutNormalMinutes }
             : {}),
           updatedAt: new Date().toISOString(),
         };
