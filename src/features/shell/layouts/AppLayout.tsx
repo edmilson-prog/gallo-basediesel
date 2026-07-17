@@ -8,7 +8,7 @@ import { DataSourceBanner } from "@/features/shell/components/DataSourceBanner";
 import { DemoModeBanner } from "@/features/shell/components/DemoModeBanner";
 import { WhatsAppDisconnectedBanner } from "@/features/shell/components/WhatsAppDisconnectedBanner";
 import { OutsideHoursBanner } from "@/features/access";
-import { IdleCriticalBanner } from "@/features/idle-alerts";
+import { IdleCriticalBanner, DailyBriefingGate } from "@/features/idle-alerts";
 import { WhatsNewModal } from "@/features/whats-new";
 import { VersionUpdatePrompt } from "@/features/version-update";
 import { CollaboratorAddedPrompt } from "@/features/conversations/components/CollaboratorAddedPrompt";
@@ -82,6 +82,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
         <WhatsNewModal />
         <VersionUpdatePrompt />
         <CollaboratorAddedPrompt />
+        <DailyBriefingGate />
       </div>
       </TourProvider>
     </TooltipProvider>
