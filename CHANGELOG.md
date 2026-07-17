@@ -4,6 +4,23 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.147.0] — Sonar · 2026-07-17
+
+**Busca do Atendimento reformulada: encontra qualquer telefone (com ou sem o 9º dígito), ignora filtros durante a busca e mostra com quem está cada conversa — mais o painel do SDR consolidado e telas de gestão mais rápidas.**
+
+### Added
+
+- **Busca acha telefone em qualquer formato** — buscar um número com ou sem o 9º dígito, com hífen, espaço ou parênteses agora encontra o contato do mesmo jeito, no Atendimento, em Clientes e em Leads. CNPJ e CPF também passam a ser encontrados com qualquer máscara. Antes, um contato salvo como `+553388884188` não aparecia ao buscar `98888-4188`.
+- **Busca global no Atendimento** — com um termo digitado, a busca passa a ignorar todos os filtros ativos (status — incluindo conversas encerradas —, canal, número, atribuição, tags e período), com o aviso "Filtros ignorados durante a busca" no painel; ao limpar o termo, os filtros voltam a valer. Os resultados mostram a etiqueta de quem está atendendo cada conversa, para qualquer perfil de usuário.
+- **Busca encontra conversas de colegas (sem abrir)** — o atendente que busca um cliente atendido por outro colega agora encontra a conversa, vê o nome/telefone do contato e com quem ela está; ao clicar, recebe o aviso "Em atendimento com {nome}" em vez de abrir — o conteúdo das mensagens continua privado. Perfis sem número de atendimento (ex.: Financeiro) continuam sem ver nada.
+- **Painel do SDR consolidado** — a configuração do atendente automático ganhou aba própria dentro de "SDR" (loja piloto + liga/desliga por número), saindo da área de Inteligência artificial. O piloto continua desligado por padrão.
+- **Carga por vendedor acompanha o período** — no painel de Atendimento, o cartão de carga por vendedor agora respeita o período selecionado na aba, em vez de mostrar sempre o estado atual.
+
+### Fixed
+
+- **Painel de Atendimento travava em períodos amplos** — os indicadores (TMA/TMR, taxa de resolução, backlog, volume e mapa de calor) paravam de carregar ao selecionar períodos como "30 dias" em lojas com muitas conversas. As consultas foram movidas para o servidor e o painel carrega em segundos.
+- **Indicador do SDR no topo** — o selo do SDR na barra superior agora acompanha corretamente o liga/desliga do piloto, e as telas do SDR passaram a exibir aviso amigável quando os dados não carregam.
+
 ## [0.146.0] — Signal · 2026-07-16
 
 **Confirmação de entrega/leitura e checagem de número no WAHA, reconciliação de números BR e cards de contato, e a segunda etapa (ainda desligada) do SDR de produção.**
