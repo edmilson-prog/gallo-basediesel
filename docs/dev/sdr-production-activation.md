@@ -122,6 +122,24 @@ atendidas pelo SDR sob este gate, porque não há instância contra a qual
 validar o opt-in. Confira se a loja piloto tem esse tipo de conversa parada
 na fila antes de assumir cobertura total do backstop.
 
+## Escalonamento (Parte D)
+
+Se um handoff SDR→humano fica sem resposta, ou se `chooseHumanSeller` não encontrou ninguém
+disponível, o tick `sdr-escalation-timeout-tick` (pg_cron, a cada 1 minuto) dispara um broadcast
+in-app para todo vendedor com acesso à instância WhatsApp da conversa. Os limiares (minutos até
+o broadcast, por modo urgente/normal) ficam em `/app/sdr` → Configurações → bloco
+"Escalonamento" — mesma tela e mesma tabela `sdr_settings` do piloto (Parte B/C).
+
+O primeiro vendedor a clicar "Atender agora" no painel flutuante assume a conversa via RPC
+atômica (`claim_sdr_escalation`) — sem essa RPC, dois cliques simultâneos colidiam sem detecção
+(era um `.patch()` direto do navegador).
+
+**Limitação conhecida, aceita por decisão do dono (2026-07-17):** os hooks client-side legados do
+PRD-023 (`useUrgentBroadcastTimer`, `useEscalationQueueTimeoutMonitor`) continuam ativos e
+independentes deste tick — rodam com limiares diferentes (`IPlatformSettings.escalation*`, não
+`sdr_settings`) sempre que um Owner/Gestor tem o app aberto. Não foram desligados nem retirados
+nesta entrega.
+
 ## Checklist manual — ativar uma loja piloto
 
 Nenhum destes passos foi executado por este plano; ficam para quando o dono
