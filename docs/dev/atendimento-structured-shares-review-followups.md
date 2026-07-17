@@ -71,22 +71,38 @@ a correção sugerida.
 >   sempre, sem nunca mais tentar de novo. Corrigido: o `set` no
 >   `lastSeenRecencyRef` só acontece dentro do `.then()` de sucesso, mesmo padrão
 >   já usado por `missingIds`/`contactsRef` para os contatos.
-> - **Item novo (documentado, sem fix): perda do refresh incidental de status.**
+> - **Item novo (5ª rodada) — perda do refresh incidental de status.**
 >   Antes da 4ª rodada, qualquer mudança de recência refazia a página inteira de
 >   `listLastMessages`, pegando de carona atualizações de status (delivered→read)
 >   de OUTRAS conversas que não bumpam `last_message_at`. Com o fetch escopado só
 >   às conversas que mudaram, esse refresh incidental some — o check da Inbox de
 >   uma conversa parada fica congelado até ela mesma receber mensagem nova (ou a
->   página recarregar). **Não corrigido**: a correção real exigiria uma
->   subscription Realtime nova em `useRelatedEntities` para status de mensagem
->   (fora do escopo desta rodada); a severidade é cosmética (ícone de check
->   desatualizado), não perda de dado.
+>   página recarregar). Severidade cosmética (ícone de check desatualizado), não
+>   perda de dado. **✅ RESOLVIDO na 6ª rodada** — ver abaixo.
+
+> **6ª rodada (2026-07-10) — fecha o item novo da 5ª rodada:** nova função pura
+> `applyLastMessageStatusUpdate` em `useRelatedEntities.ts` + um `useEffect`
+> independente do efeito de resolução por recência (não altera `recencyKey`,
+> `changedRecencyIds` nem `lastSeenRecencyRef` — só ADICIONA uma subscription).
+> Reusa o canal `messages` já aberto (ref-counted, `useRealtimeConversations`
+> já assina esse canal — zero socket extra) e reaproveita `rowToMessage`/
+> `IMessageRealtimeRow` de `useRealtimeMessages.ts` (agora exportados) para não
+> triplicar o mapper snake_case→IMessage. Em cada evento: se a linha bate com o
+> `id` da preview atualmente em cache daquela conversa, o status é aplicado com
+> a MESMA guarda anti-regressão de `useMessages`' `applyRealtimeRow`
+> (`statusAdvances` — um ack fora de ordem não pode fazer o ícone andar pra
+> trás); se a conversa ainda não tem preview em cache, ou o evento é de uma
+> mensagem NOVA (id diferente da preview — o caminho normal de recência cuida
+> dela) ou de uma mensagem antiga sem efeito visível na linha, a função retorna
+> `null` e o efeito não faz nada — sem fetch, sem risco de corrida com o efeito
+> de recência (pior caso: um fetch sobrescreve um patch recém-aplicado com dado
+> igualmente fresco). 5 testes novos em `useRelatedEntities.test.ts`.
 
 ---
 
 ## Tradeoffs deliberados (validados pelo dono — não mexer sem motivo)
 
-### A. `recencyKey` re-dispara o `listLastMessages` da página inteira — ✅ RESOLVIDO (4ª/5ª rodadas)
+### A. `recencyKey` re-dispara o `listLastMessages` da página inteira — ✅ RESOLVIDO (4ª/5ª/6ª rodadas)
 - **Onde:** `src/features/conversations/hooks/useRelatedEntities.ts`.
 - **Fix (4ª rodada):** novo helper puro `changedRecencyIds` (mesmo padrão de
   `missingIds`) compara a recência atual de cada conversa contra a última vista
@@ -99,11 +115,10 @@ a correção sugerida.
   sem nunca mais tentar de novo. Agora, falha = fica elegível pro próximo retry
   na próxima mudança de recência de qualquer conversa (mesma garantia de
   retry-safety que `missingIds`/`contactsRef` já tinham para os contatos).
-- **Trade-off aceito e documentado (não corrigido):** o fetch escopado por
-  conversa também perdeu o refresh incidental de STATUS (delivered→read) de
-  outras conversas que a página inteira pegava de carona antes — ver item novo
-  na 5ª rodada acima. Severidade cosmética (ícone de check da Inbox
-  desatualizado até a própria conversa receber mensagem nova).
+- **Fix (6ª rodada):** o refresh incidental de STATUS (delivered→read) que o
+  fetch escopado por conversa tinha perdido (ver item novo na 5ª rodada acima)
+  foi fechado por uma subscription independente (`applyLastMessageStatusUpdate`)
+  em vez de voltar a refazer a página inteira — ver 6ª rodada acima.
 - **Severidade original:** baixa (eficiência; só pesava em páginas grandes com
   alto volume).
 

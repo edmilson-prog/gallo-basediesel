@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ID, IConversationContact, IMessage, IConversation } from "@/shared/types";
-import { useConversationsProvider, useMessagesProvider } from "@/providers/data";
+import { getActiveDataSource, useConversationsProvider, useMessagesProvider } from "@/providers/data";
+import { subscribeToTable } from "@/shared/lib/realtime";
+import { statusAdvances } from "@/providers/whatsapp/messageStatus";
+import { rowToMessage, type IMessageRealtimeRow } from "./useRealtimeMessages";
+
+/** Build-time data source — the status-patch subscription is a no-op on mock. */
+const IS_SUPABASE = getActiveDataSource() === "supabase";
 
 /** Directly-related entities the inbox list rows render, resolved per conversation. */
 export interface IRelatedEntities {
@@ -35,6 +41,32 @@ export function missingIds<T>(ids: ID[], cache: ReadonlyMap<ID, T>): ID[] {
 export function newerMessage(prev: IMessage | undefined, next: IMessage): IMessage {
   if (!prev) return next;
   return new Date(next.sentAt).getTime() >= new Date(prev.sentAt).getTime() ? next : prev;
+}
+
+/**
+ * Patches a conversation's cached preview in place when a `messages` Realtime
+ * event targets the SAME row currently shown (e.g. a delivered→read status
+ * transition on the last message) — closing the "lost incidental status
+ * refresh" gap (review followups doc, 5th round): since `changedRecencyIds`
+ * (gap A fix) only re-fetches the conversation(s) whose `lastMessageAt`
+ * actually moved, a status-only UPDATE — which never bumps `lastMessageAt` —
+ * no longer reaches `listLastMessages`, so the Inbox check-icon froze until
+ * that conversation received real new traffic.
+ *
+ * Returns `null` (no patch) when there is no cached preview yet for that
+ * conversation, when the update targets a different (older) message than the
+ * one currently shown as the preview (a status change deep in history has no
+ * visible effect on the row), or when the update would regress the status —
+ * mirrors `useMessages`' `applyRealtimeRow`/`statusAdvances` so an
+ * out-of-order delivery ack cannot flicker the icon backwards.
+ */
+export function applyLastMessageStatusUpdate(
+  cache: ReadonlyMap<ID, IMessage>,
+  update: IMessage,
+): IMessage | null {
+  const cached = cache.get(update.conversationId);
+  if (!cached || cached.id !== update.id) return null;
+  return statusAdvances(cached.status, update.status) ? update : null;
 }
 
 /**
@@ -139,6 +171,29 @@ export function useRelatedEntities(
   }, []);
 
   const recencyKey = useMemo(() => recencyKeyOf(conversations), [conversations]);
+
+  // Status-only patch subscription (5th-round followup) — fully independent of
+  // the recency-driven effect below: it never fetches, only patches a cached
+  // preview's status field in place from the shared `messages` channel
+  // (already open, ref-counted, via useRealtimeConversations). A patch that
+  // finds no match (new message, or a different message than the cached
+  // preview) is a silent no-op, so this cannot race or conflict with the
+  // recency-driven fetch — worst case a fetch overwrites a just-applied patch
+  // with equally-fresh data.
+  useEffect(() => {
+    if (!IS_SUPABASE) return;
+    return subscribeToTable("messages", (payload) => {
+      const row = payload.new as Partial<IMessageRealtimeRow> | null;
+      if (!row?.id || !row.conversation_id) return;
+      const patched = applyLastMessageStatusUpdate(
+        messagesRef.current,
+        rowToMessage(row as IMessageRealtimeRow),
+      );
+      if (!patched) return;
+      messagesRef.current.set(patched.conversationId, patched);
+      publish();
+    });
+  }, [publish]);
 
   useEffect(() => {
     if (conversations.length === 0) return;
