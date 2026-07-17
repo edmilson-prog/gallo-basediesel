@@ -8,6 +8,7 @@ import { DataSourceBanner } from "@/features/shell/components/DataSourceBanner";
 import { DemoModeBanner } from "@/features/shell/components/DemoModeBanner";
 import { WhatsAppDisconnectedBanner } from "@/features/shell/components/WhatsAppDisconnectedBanner";
 import { OutsideHoursBanner } from "@/features/access";
+import { IdleCriticalBanner } from "@/features/idle-alerts";
 import { WhatsNewModal } from "@/features/whats-new";
 import { VersionUpdatePrompt } from "@/features/version-update";
 import { CollaboratorAddedPrompt } from "@/features/conversations/components/CollaboratorAddedPrompt";
@@ -67,6 +68,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
                 (top-16) so it survives scrolling, unlike the banners above. */}
             <WhatsAppDisconnectedBanner />
             <OutsideHoursBanner />
+            <IdleCriticalBanner />
             {children ?? <Outlet />}
           </main>
           {/* Status bar pinned to the bottom of the content column (desktop). */}
