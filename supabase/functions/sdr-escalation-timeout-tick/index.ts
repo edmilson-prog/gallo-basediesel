@@ -133,7 +133,35 @@ servePost(async (req, ctx) => {
       continue;
     }
 
-    const { data: sellerIds, error: rpcError } = await admin.rpc(
+    // Claim first (same idiom as sdr-backstop-tick's guarded UPDATE +
+    // affected-row check): the cron body fires via a fire-and-forget
+    // net.http_post, so nothing prevents two tick invocations from
+    // overlapping. Only the invocation whose UPDATE actually matches a row
+    // (urgent_broadcast_at still null) proceeds to notify — the other loses
+    // the race and moves on, so overlapping ticks never double-broadcast.
+    const { data: claimed, error: claimError } = await admin
+      .from("sdr_escalations")
+      .update({ urgent_broadcast_at: new Date().toISOString() })
+      .eq("id", escalation.id)
+      .is("urgent_broadcast_at", null)
+      .select("id");
+    if (claimError) {
+      ctx.log.error("sdr-escalation-timeout-tick escalation update failed", {
+        escalationId: escalation.id,
+        error: claimError.message,
+      });
+      continue;
+    }
+    if (!claimed || claimed.length === 0) continue; // lost the race to a concurrent tick
+
+    // From here the escalation is already claimed. A failure below
+    // (eligibility lookup or notification insert) is logged but not
+    // retried — future ticks skip anything with urgent_broadcast_at already
+    // set — so it is treated as best-effort, same fire-and-forget tradeoff
+    // sdr-backstop-tick accepts for its sdr-respond dispatch. Building
+    // compensating rollback logic would be disproportionate for this
+    // pilot-scope tick.
+    const { data: sellerIdRows, error: rpcError } = await admin.rpc(
       "accessible_seller_ids_for_account",
       { p_account_id: accountId },
     );
@@ -142,63 +170,59 @@ servePost(async (req, ctx) => {
         escalationId: escalation.id,
         error: rpcError.message,
       });
-      continue;
-    }
-    const recipients = ((sellerIds ?? []) as string[]).filter(
-      (id) => id !== escalation.assigned_seller_id,
-    );
-
-    if (recipients.length > 0) {
-      const nowIso = new Date().toISOString();
-      const customerName = escalation.context_summary?.customerName ?? "Cliente";
-      const ageMinutes = Math.max(
-        0,
-        Math.floor(
-          (Date.now() - new Date(escalation.assigned_at ?? escalation.created_at).getTime()) /
-            60_000,
-        ),
-      );
-      const rows = recipients.map((sellerId) => ({
-        dedupe_key: `sdr-escalation-broadcast-${escalation.id}-${sellerId}`,
-        lifecycle: "event",
-        type: "sdr.escalonouSemResposta",
-        category: "operational",
-        severity: "critical",
-        recipient_id: sellerId,
-        recipient_type: "seller",
-        title: "Conversa do SDR aguardando atendimento",
-        body: `${customerName} aguarda um vendedor há ${ageMinutes} min — ninguém respondeu ainda.`,
-        entity_ref: { type: "conversation", id: escalation.conversation_id },
-        status: "unread",
-        channels: ["inApp"],
-        source: "rule",
-        created_at: nowIso,
-      }));
-      const { error: notifyError } = await admin.from("notifications").insert(rows);
-      if (notifyError) {
-        ctx.log.error("sdr-escalation-timeout-tick notification insert failed", {
-          escalationId: escalation.id,
-          error: notifyError.message,
-        });
-        continue;
-      }
-    }
-
-    const { error: updateError } = await admin
-      .from("sdr_escalations")
-      .update({ urgent_broadcast_at: new Date().toISOString() })
-      .eq("id", escalation.id)
-      .is("urgent_broadcast_at", null);
-    if (updateError) {
-      ctx.log.error("sdr-escalation-timeout-tick escalation update failed", {
-        escalationId: escalation.id,
-        error: updateError.message,
+    } else {
+      // PostgREST may return a `setof uuid` either as a scalar array
+      // (string[]) or as single-column rows ([{ <col>: string }]) — same
+      // ambiguity handled in listAccessibleAccountIds
+      // (src/providers/data/impl/supabase/whatsappAccounts.ts): tolerate
+      // both without assuming the column name.
+      const sellerIds = ((sellerIdRows ?? []) as unknown[]).flatMap((row) => {
+        if (typeof row === "string") return [row];
+        if (row && typeof row === "object") return [Object.values(row)[0] as string];
+        return [];
       });
-      continue;
+      const recipients = sellerIds.filter((id) => id !== escalation.assigned_seller_id);
+
+      if (recipients.length > 0) {
+        const nowIso = new Date().toISOString();
+        const customerName = escalation.context_summary?.customerName ?? "Cliente";
+        const ageMinutes = Math.max(
+          0,
+          Math.floor(
+            (Date.now() - new Date(escalation.assigned_at ?? escalation.created_at).getTime()) /
+              60_000,
+          ),
+        );
+        const rows = recipients.map((sellerId) => ({
+          dedupe_key: `sdr-escalation-broadcast-${escalation.id}-${sellerId}`,
+          lifecycle: "event",
+          type: "sdr.escalonouSemResposta",
+          category: "operational",
+          severity: "critical",
+          recipient_id: sellerId,
+          recipient_type: "seller",
+          title: "Conversa do SDR aguardando atendimento",
+          body: `${customerName} aguarda um vendedor há ${ageMinutes} min — ninguém respondeu ainda.`,
+          entity_ref: { type: "conversation", id: escalation.conversation_id },
+          status: "unread",
+          channels: ["inApp"],
+          source: "rule",
+          created_at: nowIso,
+        }));
+        const { error: notifyError } = await admin.from("notifications").insert(rows);
+        if (notifyError) {
+          ctx.log.error("sdr-escalation-timeout-tick notification insert failed", {
+            escalationId: escalation.id,
+            error: notifyError.message,
+          });
+        }
+      }
     }
 
     // Gap 2 fix: a 'pending' escalation (no seller was ever assigned) left
     // conversations.is_sdr_active stuck true — nobody is watching it anymore.
+    // Runs regardless of the notify outcome above — the escalation is
+    // already claimed either way.
     if (escalation.assigned_seller_id === null) {
       await admin
         .from("conversations")
