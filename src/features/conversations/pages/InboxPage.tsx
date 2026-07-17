@@ -73,7 +73,7 @@ export function InboxPage() {
   // the chip (results may surface other sellers' conversations — owner decision,
   // 2026-07-16 spec); sellers RLS is store-scoped, so non-staff can resolve
   // names. Outside search, non-staff never load the roster (chip hidden).
-  const searchActive = filters.search.length > 0;
+  const searchActive = filters.search.trim().length > 0;
   const showAssignee = isStaffView || searchActive;
   const sellersProvider = useSellersProvider();
   const [sellersById, setSellersById] = useState<Map<ID, ISeller>>(new Map());

@@ -107,7 +107,7 @@ export function InboxFilters({
   const canSeeAllAssignments = usePermission("conversation", "view", "store");
   const sellers = useSellersForAssignment(canSeeAllAssignments);
   const { collapsed, setCollapsed } = useInboxFiltersCollapsed();
-  const searchActive = state.search.length > 0;
+  const searchActive = state.search.trim().length > 0;
 
   const statusLabel = INBOX_STRINGS.statusOptions[state.status];
   const channelLabel = INBOX_STRINGS.channelOptions[state.channel];

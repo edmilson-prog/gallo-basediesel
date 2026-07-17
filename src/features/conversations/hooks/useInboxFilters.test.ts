@@ -134,4 +134,12 @@ describe("filtersToListParams — search mode ignores filters", () => {
     expect(p.status).toBe("em_andamento");
     expect(p.assignmentAny).toEqual({ sellerIds: [SELLER] });
   });
+
+  it("whitespace-only term is not a search (keeps filters, sends no search key)", () => {
+    const p = filtersToListParams(baseState({ search: "   ", status: "em_andamento" }), {
+      currentSellerId: SELLER,
+    });
+    expect(p.search).toBeUndefined();
+    expect(p.status).toBe("em_andamento");
+  });
 });
