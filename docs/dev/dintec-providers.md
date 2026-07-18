@@ -133,3 +133,15 @@ interface vazou especificidade da fonte (bug de design).
   ordem de processamento, não pelo provider.
 - **Validação estrutural ≠ semântica** — um CSV estruturalmente válido ainda
   pode falhar no processamento (cliente inexistente, preço inválido etc.).
+
+## Normalização de telefone em cargas DINTEC (obrigatória)
+
+O import assistido de 2026-07-12 gravou telefones **crus do ERP** (10–11 dígitos, sem o DDI 55) em ~1.411 clientes novos. Consequência: o envio WhatsApp montava o JID do país errado (`49988184540@c.us` = Alemanha) e falhava com HTTP 500 — correção via backfill assistido, conduzido conforme `docs/superpowers/plans/2026-07-17-customers-phone-country-code-fix.md`. Toda carga futura DEVE aplicar a regra do PRD-124 RF-011 antes de gravar `customers.phone`:
+
+1. Reduzir a dígitos; se o valor original tem `+` inicial, é E.164 explícito — gravar `'+' + dígitos` sem mais transformação (protege números estrangeiros: Chile/Bolívia também têm 10–11 dígitos).
+2. Sem `+`: se `length ∈ {10, 11}`, sem zero-tronco e com DDD BR válido (Anatel), gravar `'+55' + dígitos`. A decisão é por **comprimento**, nunca por `startsWith('55')` — DDD 55 é a região da loja.
+3. **NUNCA inserir o 9º dígito** (lição PR #302 — só o WhatsApp confirma essa variante).
+4. Gravar sempre `'+' + dígitos` **sem pontuação** — o attach do webhook usa `LIKE` textual nos últimos 8 dígitos da coluna crua.
+5. Antes de gravar, checar colisão com cliente existente da mesma loja (`phone_digits` igual ou variante de 9º dígito) e tratar caso a caso, não sobrescrever.
+
+Helper de referência no código: `normalizeBrDialDigits` em `src/providers/whatsapp/phoneBr.ts`.

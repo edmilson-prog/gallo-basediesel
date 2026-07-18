@@ -22,7 +22,7 @@ import {
 import type { ICustomer, ID, IWhatsAppAccount } from "@/shared/types";
 import { OriginChip } from "./OriginChip";
 import { instanceAccent } from "../utils/instanceAccent";
-import { checkWhatsAppNumber } from "../api/checkWhatsAppNumber";
+import { resolveNumberCheckWithNineDigitFallback } from "../api/checkWhatsAppNumber";
 import { isEvolutionFamily } from "@/shared/utils/whatsappProvider";
 
 function customerName(c: ICustomer): string {
@@ -42,6 +42,9 @@ export function NewConversationDialog({
   accounts,
   onClose,
   onCreated,
+  initialPhone,
+  initialName,
+  initialAccountId,
 }: {
   storeId: ID;
   /** Seller atual — vira o responsável (RLS exige assigned = self). */
@@ -49,17 +52,27 @@ export function NewConversationDialog({
   accounts: IWhatsAppAccount[];
   onClose: () => void;
   onCreated: (conversationId: ID) => void;
+  /** Pre-fills the "número novo" step (e.g. from a shared-contact card) so the
+   *  seller only needs to confirm the origin and start. */
+  initialPhone?: string;
+  initialName?: string;
+  /** Origin pre-selected instead of `accounts[0]` — e.g. the instance the
+   *  triggering conversation is already on. Falls back to `accounts[0]` when
+   *  not found (still connected/accessible). */
+  initialAccountId?: ID;
 }) {
   const conversationsProvider = useConversationsProvider();
   const customersProvider = useCustomersProvider();
-  const [origin, setOrigin] = useState<IWhatsAppAccount | null>(accounts[0] ?? null);
+  const [origin, setOrigin] = useState<IWhatsAppAccount | null>(
+    accounts.find((a) => a.id === initialAccountId) ?? accounts[0] ?? null,
+  );
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ICustomer[]>([]);
   const [selected, setSelected] = useState<ICustomer | null>(null);
   const [creating, setCreating] = useState(false);
-  const [newNumberMode, setNewNumberMode] = useState(false);
-  const [newNumberName, setNewNumberName] = useState("");
-  const [newNumberPhone, setNewNumberPhone] = useState("");
+  const [newNumberMode, setNewNumberMode] = useState(!!initialPhone);
+  const [newNumberName, setNewNumberName] = useState(initialName ?? "");
+  const [newNumberPhone, setNewNumberPhone] = useState(initialPhone ?? "");
   const [checkState, setCheckState] = useState<"idle" | "checking" | "no_whatsapp">("idle");
 
   useEffect(() => {
@@ -149,10 +162,11 @@ export function NewConversationDialog({
     let phoneFinal = norm.digits;
     let markValid = false;
 
-    // Evolution pre-validates; Meta / offline / errors resolve to `skipped`.
+    // Evolution/WAHA pre-validate (retrying the 9th-digit variant when the
+    // first attempt is ambiguous); Meta / offline / errors resolve to `skipped`.
     if (!forced) {
       setCheckState("checking");
-      const check = await checkWhatsAppNumber(origin.id, norm.digits).catch(
+      const check = await resolveNumberCheckWithNineDigitFallback(origin.id, norm.digits).catch(
         () => ({ status: "skipped" as const }),
       );
       setCheckState("idle");
@@ -163,6 +177,9 @@ export function NewConversationDialog({
       if (check.status === "has_whatsapp") {
         phoneFinal = check.canonicalPhone ?? norm.digits; // jid is canonical (D7).
         markValid = true;
+        if (norm.digits.length === 12 && phoneFinal.length === 13) {
+          toast.info("Número ajustado — o WhatsApp confirmou o número com o 9º dígito.");
+        }
       }
     }
 

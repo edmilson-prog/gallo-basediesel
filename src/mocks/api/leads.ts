@@ -1,4 +1,5 @@
 import type { ID, ILead } from "@/shared/types";
+import { buildDigitSearchCandidates, digitsOf } from "@/shared/utils/digitSearch";
 import { selectAllLeads, selectLeadById } from "../store/selectors";
 import { patchById, removeById, upsert } from "../store/mutations";
 import {
@@ -30,8 +31,11 @@ export const leadsApi = {
         if (params.temperature) all = all.filter((l) => l.temperature === params.temperature);
         if (params.search) {
           const q = params.search.toLowerCase();
-          all = all.filter((l) =>
-            `${l.name} ${l.phone} ${l.email ?? ""}`.toLowerCase().includes(q),
+          const candidates = buildDigitSearchCandidates(params.search);
+          all = all.filter(
+            (l) =>
+              `${l.name} ${l.phone} ${l.email ?? ""}`.toLowerCase().includes(q) ||
+              candidates.some((c) => digitsOf(l.phone).includes(c)),
           );
         }
         const sorted = [...all].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));

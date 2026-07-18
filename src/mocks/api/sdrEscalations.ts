@@ -5,7 +5,7 @@ import {
   selectSdrEscalationByConversation,
 } from "../store/selectors";
 import { patchById, upsert } from "../store/mutations";
-import { MockNotFoundError, runApi } from "./utils";
+import { MockConflictError, MockNotFoundError, runApi } from "./utils";
 import type { IListSdrEscalationsParams } from "@/providers/data";
 
 export const sdrEscalationsApi = {
@@ -50,6 +50,32 @@ export const sdrEscalationsApi = {
   patch(id: ID, patch: Partial<ISdrEscalation>): Promise<ISdrEscalation> {
     return runApi("sdrEscalationsApi", "patch", () => {
       const updated = patchById("sdrEscalations", id, patch);
+      if (!updated) throw new MockNotFoundError("sdrEscalation", id);
+      return updated;
+    });
+  },
+
+  /** Atomic (single-threaded JS, so trivially so) claim — mirrors the real
+   *  claim_sdr_escalation RPC's guard: already-claimed or wrong status throws. */
+  claim(id: ID, sellerId: ID): Promise<ISdrEscalation> {
+    return runApi("sdrEscalationsApi", "claim", () => {
+      const current = selectSdrEscalationById(id);
+      if (!current) throw new MockNotFoundError("sdrEscalation", id);
+      if (
+        current.urgentBroadcastClaimedBySellerId ||
+        !["pending", "assigned"].includes(current.status)
+      ) {
+        throw new MockConflictError(`sdrEscalation already claimed: ${id}`);
+      }
+      const now = new Date().toISOString();
+      const updated = patchById("sdrEscalations", id, {
+        assignedSellerId: sellerId,
+        assignedAt: now,
+        firstHumanResponseAt: undefined,
+        status: "assigned",
+        urgentBroadcastClaimedBySellerId: sellerId,
+        urgentBroadcastClaimedAt: now,
+      });
       if (!updated) throw new MockNotFoundError("sdrEscalation", id);
       return updated;
     });

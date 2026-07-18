@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import type { IConversation, ICustomer, ISeller, IWhatsAppAccount } from "@/shared/types";
-import { PendingContactBanner } from "@/features/contact-review";
 import { AssigneeChip } from "@/features/conversations/components/AssigneeChip";
 import { OriginChip } from "@/features/conversations/components/OriginChip";
+import { AdSourceBadge } from "@/features/conversations/components/AdSourceBadge";
 import { StatusControl } from "@/features/conversations/components/status/StatusControl";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { ConversationTagChip } from "@/features/conversations/components/tags/ConversationTagChip";
@@ -50,105 +50,114 @@ export function AtendimentoTab({
   collaborators = [],
   onConversationChanged,
 }: IAtendimentoTabProps) {
-  const showBanner =
-    customer.tags.includes("pending_review") || customer.tags.includes("reviewed_not_customer");
   const canEditTags = usePermission("conversation", "edit", "own");
   const { tags: catalog } = useConversationTags();
   const conversationTags = conversation ? resolveConversationTags(conversation.tags, catalog) : [];
 
   // Hooks must run unconditionally (Rules of Hooks) — the fallback shape below
   // is never actually rendered against, since every `collab.*`/`viewing.*` use
-  // below lives inside the `{conversation && (...)}` block further down.
+  // below only runs after the `!conversation` early return.
   const collab = useConversationCollaborators(
     conversation ?? { id: "", storeId: "", assignedSellerId: undefined },
     () => onConversationChanged?.(),
   );
   const viewing = useConversationPresence(conversation?.id ?? null);
 
-  if (!showBanner && !conversation) {
+  if (!conversation) {
     return <TabEmptyState icon="mdi:check-circle-outline" message={COPY.empty} />;
   }
 
   return (
     <div className="space-y-3">
-      {showBanner && <PendingContactBanner customer={customer} conversation={conversation} />}
-
-      {conversation && (
-        <section className="divide-y divide-border rounded-lg border border-border bg-background px-3">
-          <ContextRow label={COPY.status}>
-            <StatusControl
-              conversation={conversation}
-              mode="menu"
-              onChanged={onConversationChanged}
+      <section className="divide-y divide-border rounded-lg border border-border bg-background px-3">
+        <ContextRow label={COPY.status}>
+          <StatusControl
+            conversation={conversation}
+            mode="menu"
+            onChanged={onConversationChanged}
+          />
+        </ContextRow>
+        {assignedSeller && (
+          <ContextRow label={COPY.assignee}>
+            <AssigneeChip
+              seller={assignedSeller}
+              variant="compact"
+              viewing={viewing?.has(assignedSeller.id) ?? false}
             />
           </ContextRow>
-          {assignedSeller && (
-            <ContextRow label={COPY.assignee}>
-              <AssigneeChip
-                seller={assignedSeller}
-                variant="compact"
-                viewing={viewing?.has(assignedSeller.id) ?? false}
-              />
-            </ContextRow>
-          )}
-          {whatsappAccount && (
-            <ContextRow label={COPY.origin}>
-              <OriginChip account={whatsappAccount} variant="label" />
-            </ContextRow>
-          )}
-          <div className="py-2 text-xs">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">
-                {COPY.collaborators} ({collaborators.length})
-              </span>
-              {collab?.canManage && (
-                <AddCollaboratorDialog
-                  conversation={conversation}
-                  existingCollaboratorIds={collaborators.map((c) => c.seller.id)}
-                  onAdd={(sellerId) => collab.addCollaborator(sellerId)}
-                />
+        )}
+        {whatsappAccount && (
+          <ContextRow label={COPY.origin}>
+            <OriginChip account={whatsappAccount} variant="label" />
+          </ContextRow>
+        )}
+        {conversation.adReferral && (
+          <ContextRow label={COPY.adSource}>
+            <span className="flex items-center gap-1.5">
+              <AdSourceBadge />
+              {conversation.adReferral.headline && (
+                <span
+                  className="max-w-[160px] truncate text-muted-foreground"
+                  title={conversation.adReferral.headline}
+                >
+                  &quot;{conversation.adReferral.headline}&quot;
+                </span>
               )}
-            </div>
-            {collaborators.length === 0 ? (
-              <p className="mt-1 text-muted-foreground">{COPY.collaboratorsEmpty}</p>
-            ) : (
-              <div className="mt-1">
-                {collaborators.map(({ seller, source }) => (
-                  <CollaboratorRow
-                    key={seller.id}
-                    seller={seller}
-                    source={source}
-                    viewing={viewing?.has(seller.id) ?? false}
-                    canRemove={collab?.canRemove(seller.id) ?? false}
-                    onRemove={() => void collab?.removeCollaborator(seller.id)}
-                  />
-                ))}
-              </div>
+            </span>
+          </ContextRow>
+        )}
+        <div className="py-2 text-xs">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-muted-foreground">
+              {COPY.collaborators} ({collaborators.length})
+            </span>
+            {collab?.canManage && (
+              <AddCollaboratorDialog
+                conversation={conversation}
+                existingCollaboratorIds={collaborators.map((c) => c.seller.id)}
+                onAdd={(sellerId) => collab.addCollaborator(sellerId)}
+              />
             )}
           </div>
-          <div className="py-2 text-xs">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">{COPY.tags}</span>
-              {canEditTags && (
-                <ConversationTagPicker
-                  conversation={conversation}
-                  onChanged={onConversationChanged}
+          {collaborators.length === 0 ? (
+            <p className="mt-1 text-muted-foreground">{COPY.collaboratorsEmpty}</p>
+          ) : (
+            <div className="mt-1">
+              {collaborators.map(({ seller, source }) => (
+                <CollaboratorRow
+                  key={seller.id}
+                  seller={seller}
+                  source={source}
+                  viewing={viewing?.has(seller.id) ?? false}
+                  canRemove={collab?.canRemove(seller.id) ?? false}
+                  onRemove={() => void collab?.removeCollaborator(seller.id)}
                 />
-              )}
-            </div>
-            <ul className="mt-1.5 flex flex-wrap gap-1.5" aria-label={COPY.tags}>
-              {conversationTags.length === 0 && (
-                <li className="text-muted-foreground">{COPY.tagsEmpty}</li>
-              )}
-              {conversationTags.map((tag) => (
-                <li key={tag.id}>
-                  <ConversationTagChip tag={tag} />
-                </li>
               ))}
-            </ul>
+            </div>
+          )}
+        </div>
+        <div className="py-2 text-xs">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-muted-foreground">{COPY.tags}</span>
+            {canEditTags && (
+              <ConversationTagPicker
+                conversation={conversation}
+                onChanged={onConversationChanged}
+              />
+            )}
           </div>
-        </section>
-      )}
+          <ul className="mt-1.5 flex flex-wrap gap-1.5" aria-label={COPY.tags}>
+            {conversationTags.length === 0 && (
+              <li className="text-muted-foreground">{COPY.tagsEmpty}</li>
+            )}
+            {conversationTags.map((tag) => (
+              <li key={tag.id}>
+                <ConversationTagChip tag={tag} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
     </div>
   );
 }

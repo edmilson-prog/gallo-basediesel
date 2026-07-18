@@ -4,6 +4,20 @@ import type { LeadTemperature } from "./lead";
 /** Communication channel of a conversation. */
 export type ConversationChannel = "whatsapp" | "ecommerce" | "phone" | "site";
 
+/** Normalized WhatsApp ad/post referral — present only when the conversation
+ *  began (or most recently resumed) via a Click-to-WhatsApp ad or a post
+ *  with a WhatsApp button. Mirrors (but is deliberately NOT imported from)
+ *  the provider-layer `IAdReferral` in src/providers/whatsapp/types.ts. */
+export interface IAdReferral {
+  sourceId?: string;
+  sourceUrl?: string;
+  sourceType?: string;
+  headline?: string;
+  body?: string;
+  mediaType?: "image" | "video";
+  mediaUrl?: string;
+}
+
 /** Status flow of a conversation in the inbox. */
 export type ConversationStatus =
   | "aguardando"
@@ -52,6 +66,9 @@ export interface IConversation {
    * Drives the Inbox wait-time counter.
    */
   queuedAt?: ISO8601;
+  /** Set by the webhook when this conversation began (or most recently
+   *  resumed) via a WhatsApp ad/post referral. */
+  adReferral?: IAdReferral;
   /**
    * Set only when this conversation came from `IConversationsProvider.searchMessages`
    * (the dedicated "search inside messages" action) — the representative matching
@@ -66,6 +83,20 @@ export interface IConversation {
    * (plain `get`/`list` never compute it). Drives the "Colaborando" tag.
    */
   isCollaborator?: boolean;
+  /**
+   * Only present on rows returned by the `search_conversations` RPC: false when
+   * the current user can FIND this conversation (search metadata) but cannot
+   * OPEN it (assigned to another seller — 2026-07-16 metadata-visibility spec).
+   * Undefined elsewhere; treat undefined as accessible.
+   */
+  isAccessible?: boolean;
+  /**
+   * Only present on rows returned by the `search_conversations` RPC: contact
+   * identity resolved server-side so a metadata-only (locked) search result
+   * still shows who the conversation is with. Undefined elsewhere — the inbox
+   * resolves contacts via the gated conversation_contacts RPC.
+   */
+  searchContact?: { name: string; phone: string };
 }
 
 /** Kind of attendance-lifecycle event (mirrors the SQL trigger derivation).
@@ -159,7 +190,7 @@ export type MessageDirection = "in" | "out";
 export type MessageAuthorType = "customer" | "seller" | "sdr" | "system";
 
 /** Provider that delivered or originated a message. */
-export type MessageProvider = "meta" | "evolution" | "evolution-go" | "mock";
+export type MessageProvider = "meta" | "evolution" | "evolution-go" | "waha" | "openwa" | "mock";
 
 /**
  * Delivery status reported by the provider.
@@ -224,10 +255,14 @@ export interface IMessage {
   failureReason?: string;
   /** Semantic provider error code of a failed dispatch (e.g. "131026"). */
   failureCode?: string;
+  /** Transcribed text of an inbound audio message (OpenRouter). Undefined until done. */
+  transcription?: string;
+  /** 'pending' while transcribing, 'done' when `transcription` is set, 'failed' on error/budget/disabled. Undefined = not applicable (non-audio, old message, or feature was off on arrival). */
+  transcriptionStatus?: "pending" | "done" | "failed";
 }
 
 /** WhatsApp provider engine. */
-export type WhatsAppProviderName = "meta" | "evolution" | "evolution-go";
+export type WhatsAppProviderName = "meta" | "evolution" | "evolution-go" | "waha" | "openwa";
 
 /** Connection status of a WhatsApp account. */
 export type WhatsAppAccountStatus = "connected" | "disconnected" | "pending";
@@ -277,6 +312,18 @@ export interface IWhatsAppCapabilities {
 }
 
 /**
+ * WAHA per-session settings surfaced in the UI (wizard "Avançado" + params
+ * dialog). `chatFilters` are "process this type" booleans — the engine inverts
+ * them into WAHA's `config.ignore`. `device` is shown read-only (no-op on GOWS).
+ */
+export interface IWahaSessionConfig {
+  chatFilters: { groups: boolean; status: boolean; channels: boolean; broadcast: boolean };
+  debug: boolean;
+  proxy?: { server: string; username?: string; password?: string };
+  device?: { name?: string; browser?: string };
+}
+
+/**
  * Non-secret engine configuration of a WhatsApp account (PRD-111/119).
  * Which fields apply depends on {@link IWhatsAppAccount.provider}: Meta uses
  * `phoneNumberId`/`businessAccountId`; Evolution uses `baseUrl`/`instanceName`.
@@ -294,8 +341,14 @@ export interface IWhatsAppProviderConfig {
   instanceName?: string;
   /** Evolution Go — server-generated instance id. Empty until first pairing. */
   instanceId?: string;
+  /** OpenWA — server-generated session id (`POST /api/sessions`). Empty until first pairing. */
+  sessionId?: string;
   /** Per-instance identity color (hex) for the origin dot/bar — falls back to a hash of the id. */
   accentColor?: string;
+  /** WAHA — the created session name (provider='waha' rows). */
+  sessionName?: string;
+  /** WAHA — per-session settings (chat filters, debug, proxy). */
+  waha?: IWahaSessionConfig;
 }
 
 /**
@@ -330,6 +383,10 @@ export interface IWhatsAppAccount {
   purpose: WhatsAppAccountPurpose;
   /** Evolution Go — server this instance belongs to (registry). Null for v2/Meta. */
   goServerId?: ID;
+  /** WAHA — server this instance belongs to (registry). Null for v2/Meta/Evolution. */
+  wahaServerId?: ID;
+  /** OpenWA — server this instance belongs to (registry). Null for outros providers. */
+  openwaServerId?: ID;
   /**
    * When true, disconnection/health alerts for this account are silenced:
    * the "Conexão perdida" card banner, the global disconnect banner, the
@@ -338,6 +395,13 @@ export interface IWhatsAppAccount {
    * offline instance. Default `false`.
    */
   alertsMuted: boolean;
+  /**
+   * SDR pilot opt-in for this specific WhatsApp number (Parte C). The
+   * store-wide `sdr_settings.sdr_enabled` switch must ALSO be on — this is a
+   * second, narrower gate, not a replacement. Default `false`: an instance
+   * never receives the SDR until explicitly opted in.
+   */
+  sdrEnabled: boolean;
 }
 
 /**
@@ -356,4 +420,58 @@ export interface IWhatsAppGoServer {
   apiKeyRef: string;
   createdAt: ISO8601;
   updatedAt?: ISO8601;
+}
+
+/**
+ * WAHA server. Platform-level infra registered once by the Owner.
+ * Holds the friendly name, endpoint and Vault POINTERs to credentials
+ * (`apiKeyRef` for API authentication, `webhookHmacRef` for webhook signature).
+ * WAHA accounts reference it via `IWhatsAppAccount.wahaServerId`.
+ */
+export interface IWahaServer {
+  id: ID;
+  /** Friendly name (unique). */
+  name: string;
+  /** Endpoint, normalized (no trailing slash). */
+  baseUrl: string;
+  /** Vault secret name holding the API key. Matches `^[A-Z][A-Z0-9_]{2,64}$`. */
+  apiKeyRef: string;
+  /** Vault secret name holding the webhook HMAC key (optional). Matches `^[A-Z][A-Z0-9_]{2,64}$`. */
+  webhookHmacRef?: string;
+  createdAt: ISO8601;
+  updatedAt?: ISO8601;
+}
+
+/**
+ * OpenWA server (self-hosted whatsapp-web.js). Platform-level infra registered
+ * once by the Owner. Holds the friendly name, endpoint and a Vault POINTER to
+ * the global key (`apiKeyRef`) — never the key itself. OpenWA accounts reference
+ * it via `IWhatsAppAccount.openwaServerId`.
+ */
+export interface IWhatsAppOpenWaServer {
+  id: ID;
+  /** Friendly name (unique). */
+  name: string;
+  /** Endpoint, normalized (no trailing slash). */
+  baseUrl: string;
+  /** Vault secret name holding the server-wide global key. Matches `^[A-Z][A-Z0-9_]{2,64}$`. */
+  apiKeyRef: string;
+  createdAt: ISO8601;
+  updatedAt?: ISO8601;
+}
+
+/** Idle-conversation summary (spec 2026-07-16) — read model of idle_conversations_summary(). */
+export interface IIdleConversationEntry {
+  conversationId: ID;
+  contactName: string;
+  lastInboundPreview: string | null;
+  awaitingReplySince: ISO8601;
+  businessSeconds: number;
+  level: 1 | 2 | 3;
+}
+export interface IIdleSummary {
+  /** Counts per level, computed over ALL entries (list capped at 500). */
+  counts: { level1: number; level2: number; level3: number };
+  /** Ordered worst-first: level desc, businessSeconds desc. */
+  entries: IIdleConversationEntry[];
 }

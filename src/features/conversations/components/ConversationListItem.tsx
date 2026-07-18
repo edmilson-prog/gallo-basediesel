@@ -9,6 +9,7 @@ import type {
 } from "@/shared/types";
 import { EscalationBadge } from "@/features/sdr-escalation/components/EscalationBadge";
 import { EcommerceBadge } from "@/features/ecommerce-integration/components/EcommerceBadge";
+import { AdSourceBadge } from "./AdSourceBadge";
 import { isQueuedConversation } from "@/features/inbox-alerts";
 import { Icon } from "@/components/Icon";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -49,6 +50,8 @@ export interface IConversationListItemProps {
   /** SDR escalation record bound to this conversation, when present. */
   escalation?: ISdrEscalation | null;
   onSelect?: () => void;
+  /** Called instead of navigating when the row is search-visible but not openable. */
+  onLockedSelect?: () => void;
   /** Origin instance of the conversation (multi-instância) — drives the color bar. */
   originAccount?: IWhatsAppAccount | null;
   /** Show the origin color bar (only when the store has 2+ instances). */
@@ -115,6 +118,7 @@ function ConversationListItemInner({
   trailing,
   escalation,
   onSelect,
+  onLockedSelect,
   originAccount,
   showOrigin,
   assignedSeller,
@@ -185,7 +189,16 @@ function ConversationListItemInner({
       params={{ id: conversation.id }}
       // Preserve current search so inbox filters survive the navigation.
       search={(prev) => prev}
-      onClick={() => onSelect?.()}
+      onClick={(e) => {
+        // Metadata-only search result: block navigation, let the page explain
+        // who is handling it (2026-07-16 metadata-visibility spec).
+        if (conversation.isAccessible === false) {
+          e.preventDefault();
+          onLockedSelect?.();
+          return;
+        }
+        onSelect?.();
+      }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       onFocus={() => setHover(true)}
@@ -339,6 +352,10 @@ function ConversationListItemInner({
           </span>
 
           {conversation.linkedOrderId && <EcommerceBadge compact />}
+
+          {conversation.adReferral && (
+            <AdSourceBadge compact headline={conversation.adReferral.headline} />
+          )}
 
           {conversation.isSdrActive && (
             <Tooltip>

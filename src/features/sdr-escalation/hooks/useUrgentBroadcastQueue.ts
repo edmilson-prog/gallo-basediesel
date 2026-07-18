@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ID, ISdrEscalation } from "@/shared/types";
-import { recordAuditLogSync, useSdrEscalationsProvider } from "@/providers/data";
+import {
+  getActiveDataSource,
+  recordAuditLogSync,
+  useSdrEscalationsProvider,
+} from "@/providers/data";
+import { subscribeToTable } from "@/shared/lib/realtime";
 
 export const ESCALATION_QUEUE_EVENT = "gallo:escalation-queue";
 
@@ -20,11 +25,23 @@ interface IClaimContext {
   storeId: ID;
 }
 
+const IS_SUPABASE = getActiveDataSource() === "supabase";
+
 /**
- * In-memory broadcast queue. Lives on the window so multiple consumers (toast,
- * inbox badge, painel) see the same events without the cost of round-tripping
- * through the mock provider. The queue itself is read from the provider so the
- * source of truth stays the persisted escalation record.
+ * Broadcast queue for escalations awaiting a human. Reads from the escalation
+ * store itself (the entity of record — `urgentBroadcastAt` set +
+ * `urgentBroadcastClaimedBySellerId` unset), not from `mode` — the real tick
+ * (Parte D, `sdr-escalation-timeout-tick`) broadcasts 'pending'-nobody-assigned
+ * escalations regardless of mode, and 'assigned'-unanswered escalations using
+ * a per-mode threshold — mode only ever picked WHICH threshold applied, never
+ * whether broadcasting happens. Filtering this queue to `mode==='urgent'`
+ * would silently hide every normal/standard broadcast.
+ *
+ * In supabase mode, a Realtime subscription on `notifications` triggers an
+ * immediate `refresh()` on any INSERT — RLS already scopes delivery to rows
+ * the current seller (or an Owner/Gestor) can see, so no extra filtering is
+ * needed here; it's a purely a "wake up and re-fetch" signal, not itself the
+ * data source (the escalation list stays the source of truth).
  */
 export function useUrgentBroadcastQueue() {
   const provider = useSdrEscalationsProvider();
@@ -32,7 +49,7 @@ export function useUrgentBroadcastQueue() {
 
   const refresh = useCallback(async () => {
     try {
-      const list = await provider.list({ mode: "urgent" });
+      const list = await provider.list();
       const now = Date.now();
       const broadcasting = list
         .filter(
@@ -76,16 +93,22 @@ export function useUrgentBroadcastQueue() {
     };
   }, [refresh]);
 
+  // Realtime nudge (supabase mode only — mock has no Supabase client and
+  // subscribeToTable would throw synchronously, same guard every other
+  // subscribeToTable consumer in this codebase uses).
+  useEffect(() => {
+    if (!IS_SUPABASE) return;
+    return subscribeToTable("notifications", (payload) => {
+      if (payload.eventType !== "INSERT") return;
+      const row = payload.new as { type?: string };
+      if (row.type !== "sdr.escalonouSemResposta") return;
+      void refresh();
+    });
+  }, [refresh]);
+
   const claim = useCallback(
     async (escalationId: ID, sellerId: ID, context: IClaimContext) => {
-      const now = new Date().toISOString();
-      const updated = await provider.patch(escalationId, {
-        urgentBroadcastClaimedBySellerId: sellerId,
-        urgentBroadcastClaimedAt: now,
-        assignedSellerId: sellerId,
-        assignedAt: now,
-        status: "assigned",
-      });
+      const updated = await provider.claim(escalationId, sellerId);
       recordAuditLogSync({
         storeId: context.storeId,
         actorId: sellerId,

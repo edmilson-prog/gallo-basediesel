@@ -6,8 +6,12 @@ import { subscribeToTable } from "@/shared/lib/realtime";
 /** Build-time data source — the hook is a no-op on the mock simulator. */
 const IS_SUPABASE = getActiveDataSource() === "supabase";
 
-/** Raw `public.messages` row as delivered by Realtime postgres_changes. */
-interface IMessageRealtimeRow {
+/**
+ * Raw `public.messages` row as delivered by Realtime postgres_changes.
+ * Exported for `useRelatedEntities`, which patches Inbox row previews from the
+ * same shared `messages` channel (status-only updates, see `rowToMessage`).
+ */
+export interface IMessageRealtimeRow {
   id: string;
   conversation_id: string;
   direction: IMessage["direction"];
@@ -24,6 +28,8 @@ interface IMessageRealtimeRow {
   read_at: string | null;
   failure_reason: string | null;
   failure_code: string | null;
+  transcription: string | null;
+  transcription_status: IMessage["transcriptionStatus"] | null;
 }
 
 /** Debounce window collapsing a burst of conversation touches into one sync. */
@@ -49,7 +55,7 @@ export function conversationTouchMatches(row: unknown, conversationId: ID): bool
  * (ESLint boundary) — and this hook receives raw Realtime payloads, which
  * never pass through the provider.
  */
-function rowToMessage(row: IMessageRealtimeRow): IMessage {
+export function rowToMessage(row: IMessageRealtimeRow): IMessage {
   return {
     id: row.id,
     conversationId: row.conversation_id,
@@ -67,6 +73,8 @@ function rowToMessage(row: IMessageRealtimeRow): IMessage {
     readAt: row.read_at ?? undefined,
     failureReason: row.failure_reason ?? undefined,
     failureCode: row.failure_code ?? undefined,
+    transcription: row.transcription ?? undefined,
+    transcriptionStatus: row.transcription_status ?? undefined,
   };
 }
 

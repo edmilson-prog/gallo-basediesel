@@ -7,4 +7,5 @@ export const mockSdrEscalationsProvider: ISdrEscalationsProvider = {
   getByConversation: (conversationId) => sdrEscalationsApi.getByConversation(conversationId),
   create: (escalation) => sdrEscalationsApi.create(escalation),
   patch: (id, patch) => sdrEscalationsApi.patch(id, patch),
+  claim: (id, sellerId) => sdrEscalationsApi.claim(id, sellerId),
 };

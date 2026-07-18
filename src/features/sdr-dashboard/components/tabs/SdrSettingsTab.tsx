@@ -1,154 +1,105 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Slider } from "@/components/ui/slider";
-import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Icon } from "@/components/Icon";
-import type { IPlatformSettings } from "@/shared/types";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { useCurrentStore } from "@/features/multistore";
+import { useSdrPilotSettingsProvider, useWhatsAppAccountsProvider } from "@/providers/data";
+import type { ISdrPilotSettings, IWhatsAppAccount } from "@/shared/types";
 
 export interface ISdrSettingsTabProps {
-  settings: IPlatformSettings | null;
-  loading: boolean;
-  saving: boolean;
-  update: (
-    patch: Partial<IPlatformSettings>,
-    auditAction?: string,
-  ) => Promise<IPlatformSettings | null>;
   canEdit: boolean;
   onJumpToTemplates: () => void;
-}
-
-interface IDraftSettings {
-  sdrEnabled: boolean;
-  sdrQuoteValidityDays: number;
-  sdrAutoDiscountPct: number;
-  escalationQueueTimeoutMinutesUrgent: number;
-  escalationQueueTimeoutMinutesNormal: number;
-  escalationUrgentBroadcastDelaySeconds: number;
-}
-
-function pickDraft(settings: IPlatformSettings): IDraftSettings {
-  return {
-    sdrEnabled: settings.sdrEnabled,
-    sdrQuoteValidityDays: settings.sdrQuoteValidityDays,
-    sdrAutoDiscountPct: Math.round(settings.sdrAutoDiscountPct * 100),
-    escalationQueueTimeoutMinutesUrgent: settings.escalationQueueTimeoutMinutesUrgent,
-    escalationQueueTimeoutMinutesNormal: settings.escalationQueueTimeoutMinutesNormal,
-    escalationUrgentBroadcastDelaySeconds: settings.escalationUrgentBroadcastDelaySeconds,
-  };
-}
-
-function diffSummary(before: IDraftSettings, after: IDraftSettings): string[] {
-  const changes: string[] = [];
-  if (before.sdrEnabled !== after.sdrEnabled) {
-    changes.push(`SDR ${after.sdrEnabled ? "ativado" : "desativado"}`);
-  }
-  if (before.sdrQuoteValidityDays !== after.sdrQuoteValidityDays) {
-    changes.push(
-      `Validade do orçamento: ${before.sdrQuoteValidityDays}d → ${after.sdrQuoteValidityDays}d`,
-    );
-  }
-  if (before.sdrAutoDiscountPct !== after.sdrAutoDiscountPct) {
-    changes.push(
-      `Desconto autorizado: ${before.sdrAutoDiscountPct}% → ${after.sdrAutoDiscountPct}%`,
-    );
-  }
-  if (before.escalationQueueTimeoutMinutesUrgent !== after.escalationQueueTimeoutMinutesUrgent) {
-    changes.push(
-      `Timeout urgent: ${before.escalationQueueTimeoutMinutesUrgent}min → ${after.escalationQueueTimeoutMinutesUrgent}min`,
-    );
-  }
-  if (before.escalationQueueTimeoutMinutesNormal !== after.escalationQueueTimeoutMinutesNormal) {
-    changes.push(
-      `Timeout normal: ${before.escalationQueueTimeoutMinutesNormal}min → ${after.escalationQueueTimeoutMinutesNormal}min`,
-    );
-  }
-  if (
-    before.escalationUrgentBroadcastDelaySeconds !== after.escalationUrgentBroadcastDelaySeconds
-  ) {
-    changes.push(
-      `Broadcast urgent após: ${before.escalationUrgentBroadcastDelaySeconds}s → ${after.escalationUrgentBroadcastDelaySeconds}s`,
-    );
-  }
-  return changes;
+  onPilotChanged?: (sdrEnabled: boolean) => void;
 }
 
 export function SdrSettingsTab({
-  settings,
-  loading,
-  saving,
-  update,
   canEdit,
   onJumpToTemplates,
+  onPilotChanged,
 }: ISdrSettingsTabProps) {
-  const [draft, setDraft] = useState<IDraftSettings | null>(null);
-  const [confirmDisableOpen, setConfirmDisableOpen] = useState(false);
+  const { currentStoreId } = useCurrentStore();
+  const pilotProvider = useSdrPilotSettingsProvider();
+  const accountsProvider = useWhatsAppAccountsProvider();
+
+  const [pilot, setPilot] = useState<ISdrPilotSettings | null>(null);
+  const [timeoutInput, setTimeoutInput] = useState("2");
+  const [urgentTimeoutInput, setUrgentTimeoutInput] = useState("5");
+  const [normalTimeoutInput, setNormalTimeoutInput] = useState("30");
+  const [accounts, setAccounts] = useState<IWhatsAppAccount[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (settings) setDraft(pickDraft(settings));
-  }, [settings]);
-
-  if (loading || !settings || !draft) {
-    return (
-      <div className="space-y-3">
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-40 w-full" />
-        <Skeleton className="h-40 w-full" />
-      </div>
-    );
-  }
-
-  const original = pickDraft(settings);
-  const changes = diffSummary(original, draft);
-  const dirty = changes.length > 0;
-  const turningOff = original.sdrEnabled && !draft.sdrEnabled;
-
-  const handleSave = async () => {
-    if (turningOff) {
-      setConfirmDisableOpen(true);
+    if (!currentStoreId) {
+      setLoading(false);
       return;
     }
-    await persist();
-  };
-
-  const persist = async () => {
-    try {
-      await update(
-        {
-          sdrEnabled: draft.sdrEnabled,
-          sdrQuoteValidityDays: draft.sdrQuoteValidityDays,
-          sdrAutoDiscountPct: draft.sdrAutoDiscountPct / 100,
-          escalationQueueTimeoutMinutesUrgent: draft.escalationQueueTimeoutMinutesUrgent,
-          escalationQueueTimeoutMinutesNormal: draft.escalationQueueTimeoutMinutesNormal,
-          escalationUrgentBroadcastDelaySeconds: draft.escalationUrgentBroadcastDelaySeconds,
-        },
-        "sdr.dashboard.settings.update",
-      );
-      toast.success("Configurações salvas.", {
-        description: changes.join(" · "),
+    let cancelled = false;
+    setLoading(true);
+    void Promise.all([
+      pilotProvider.get(currentStoreId),
+      accountsProvider.list({ storeId: currentStoreId }),
+      accountsProvider.listWaha({ storeId: currentStoreId }),
+    ])
+      .then(([settings, list, waha]) => {
+        if (cancelled) return;
+        const merged = new Map<string, IWhatsAppAccount>();
+        for (const a of [...list, ...waha]) merged.set(a.id, a);
+        setPilot(settings);
+        setTimeoutInput(String(settings.backstopTimeoutMinutes));
+        setUrgentTimeoutInput(String(settings.escalationTimeoutUrgentMinutes));
+        setNormalTimeoutInput(String(settings.escalationTimeoutNormalMinutes));
+        setAccounts([...merged.values()]);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        toast.error("Não foi possível carregar as configurações do SDR.");
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setLoading(false);
       });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentStoreId, pilotProvider, accountsProvider]);
+
+  const patchPilot = async (p: {
+    sdrEnabled?: boolean;
+    backstopTimeoutMinutes?: number;
+    escalationTimeoutUrgentMinutes?: number;
+    escalationTimeoutNormalMinutes?: number;
+  }) => {
+    if (!currentStoreId) return;
+    try {
+      const updated = await pilotProvider.update(currentStoreId, p);
+      setPilot(updated);
+      onPilotChanged?.(updated.sdrEnabled);
+      toast.success("Alterações salvas.");
     } catch {
-      toast.error("Falha ao salvar configurações.");
-    } finally {
-      setConfirmDisableOpen(false);
+      toast.error("Não foi possível salvar as alterações.");
     }
   };
 
-  const set = <K extends keyof IDraftSettings>(key: K, value: IDraftSettings[K]) =>
-    setDraft((prev) => (prev ? { ...prev, [key]: value } : prev));
+  const toggleInstance = async (account: IWhatsAppAccount, next: boolean) => {
+    try {
+      const updated = await accountsProvider.update(account.id, { sdrEnabled: next });
+      setAccounts((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+      toast.success("Alterações salvas.");
+    } catch {
+      toast.error("Não foi possível salvar as alterações.");
+    }
+  };
+
+  if (!currentStoreId) {
+    return (
+      <p className="text-sm text-muted-foreground">Selecione uma loja para configurar o SDR.</p>
+    );
+  }
+  if (loading || !pilot) return <Skeleton className="h-96 w-full" />;
 
   return (
     <div className="space-y-4">
@@ -161,212 +112,184 @@ export function SdrSettingsTab({
         </div>
       )}
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Icon icon="mdi:robot-outline" size={18} className="text-primary" />
-            Geral
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <Label className="text-sm font-medium">Agente SDR ativo</Label>
-              <p className="text-xs text-muted-foreground">
-                Quando desligado, novas conversas são direcionadas direto para vendedores humanos.
-              </p>
-            </div>
-            <Switch
-              checked={draft.sdrEnabled}
-              onCheckedChange={(v) => set("sdrEnabled", v)}
-              disabled={!canEdit || saving}
-              aria-label="Toggle SDR ativo"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Icon icon="mdi:file-document-outline" size={18} className="text-primary" />
-            Orçamento automático (PRD-022)
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <div className="flex items-baseline justify-between">
-              <Label className="text-sm font-medium">Validade padrão</Label>
-              <span className="text-xs text-muted-foreground tabular-nums">
-                {draft.sdrQuoteValidityDays} dias
-              </span>
-            </div>
-            <Slider
-              value={[draft.sdrQuoteValidityDays]}
-              onValueChange={([v]) => set("sdrQuoteValidityDays", v ?? draft.sdrQuoteValidityDays)}
-              min={1}
-              max={30}
-              step={1}
-              disabled={!canEdit || saving}
-              className="mt-3"
-            />
-          </div>
-          <div>
-            <div className="flex items-baseline justify-between">
-              <Label className="text-sm font-medium">Desconto autorizado</Label>
-              <span className="text-xs text-muted-foreground tabular-nums">
-                {draft.sdrAutoDiscountPct}%
-              </span>
-            </div>
-            <Slider
-              value={[draft.sdrAutoDiscountPct]}
-              onValueChange={([v]) => set("sdrAutoDiscountPct", v ?? draft.sdrAutoDiscountPct)}
-              min={0}
-              max={10}
-              step={1}
-              disabled={!canEdit || saving}
-              className="mt-3"
-            />
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              Limite que o SDR pode aplicar automaticamente sem aprovação humana.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Icon icon="mdi:account-arrow-right-outline" size={18} className="text-primary" />
-            Escalonamento (PRD-023)
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <div className="flex items-baseline justify-between">
-              <Label className="text-sm font-medium">Timeout fila urgente</Label>
-              <span className="text-xs text-muted-foreground tabular-nums">
-                {draft.escalationQueueTimeoutMinutesUrgent} min
-              </span>
-            </div>
-            <Slider
-              value={[draft.escalationQueueTimeoutMinutesUrgent]}
-              onValueChange={([v]) =>
-                set(
-                  "escalationQueueTimeoutMinutesUrgent",
-                  v ?? draft.escalationQueueTimeoutMinutesUrgent,
-                )
-              }
-              min={1}
-              max={30}
-              step={1}
-              disabled={!canEdit || saving}
-              className="mt-3"
-            />
-          </div>
-          <div>
-            <div className="flex items-baseline justify-between">
-              <Label className="text-sm font-medium">Timeout fila normal</Label>
-              <span className="text-xs text-muted-foreground tabular-nums">
-                {draft.escalationQueueTimeoutMinutesNormal} min
-              </span>
-            </div>
-            <Slider
-              value={[draft.escalationQueueTimeoutMinutesNormal]}
-              onValueChange={([v]) =>
-                set(
-                  "escalationQueueTimeoutMinutesNormal",
-                  v ?? draft.escalationQueueTimeoutMinutesNormal,
-                )
-              }
-              min={5}
-              max={60}
-              step={5}
-              disabled={!canEdit || saving}
-              className="mt-3"
-            />
-          </div>
-          <div>
-            <div className="flex items-baseline justify-between">
-              <Label className="text-sm font-medium">Tempo antes do broadcast urgente</Label>
-              <span className="text-xs text-muted-foreground tabular-nums">
-                {draft.escalationUrgentBroadcastDelaySeconds}s
-              </span>
-            </div>
-            <Slider
-              value={[draft.escalationUrgentBroadcastDelaySeconds]}
-              onValueChange={([v]) =>
-                set(
-                  "escalationUrgentBroadcastDelaySeconds",
-                  v ?? draft.escalationUrgentBroadcastDelaySeconds,
-                )
-              }
-              min={10}
-              max={120}
-              step={5}
-              disabled={!canEdit || saving}
-              className="mt-3"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Icon icon="mdi:message-text-outline" size={18} className="text-primary" />
-            Templates
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Edite todos os templates (saudação, FAQ, orçamento, escalação) em um lugar.
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onJumpToTemplates}
-            className="mt-3 gap-1"
-          >
-            <Icon icon="mdi:arrow-right" size={14} />
-            Ir para aba Templates
-          </Button>
-        </CardContent>
-      </Card>
-
-      {canEdit && (
-        <div className="sticky bottom-4 z-10 flex justify-end">
-          <Button
-            type="button"
-            size="lg"
-            disabled={!dirty || saving}
-            onClick={() => void handleSave()}
-            className="gap-2 shadow-lg"
-          >
-            <Icon icon="mdi:content-save-outline" size={16} />
-            {dirty
-              ? `Salvar (${changes.length}) alteraç${changes.length === 1 ? "ão" : "ões"}`
-              : "Salvo"}
-          </Button>
+      <div className="rounded-xl border border-border bg-card p-4">
+        <h3 className="flex items-center gap-2 text-sm font-semibold">
+          <Icon icon="mdi:robot-outline" size={16} className="text-primary" />
+          Piloto
+        </h3>
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <span className="text-sm font-medium">SDR ativo nesta loja</span>
+          <Switch
+            checked={pilot.sdrEnabled}
+            onCheckedChange={(v) => void patchPilot({ sdrEnabled: v })}
+            disabled={!canEdit}
+            aria-label="SDR ativo nesta loja"
+          />
         </div>
-      )}
+        <label className="mt-4 block text-xs text-muted-foreground">
+          Tempo de espera até o SDR assumir (minutos)
+          <input
+            type="number"
+            min={1}
+            max={60}
+            value={timeoutInput}
+            disabled={!canEdit}
+            onChange={(e) => setTimeoutInput(e.target.value)}
+            onBlur={() => {
+              const parsed = Math.min(60, Math.max(1, Number(timeoutInput) || 2));
+              setTimeoutInput(String(parsed));
+              if (pilot && parsed !== pilot.backstopTimeoutMinutes) {
+                void patchPilot({ backstopTimeoutMinutes: parsed });
+              }
+            }}
+            className="mt-1 w-full max-w-40 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+          />
+        </label>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Fora do horário comercial, o SDR assume imediatamente.
+        </p>
+        <p className="mt-3 flex items-start gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+          <Icon icon="mdi:directions-fork" className="mt-0.5 size-4 shrink-0 text-primary" />
+          Provedor, modelo e prompt de sistema do SDR são configurados em Configurações →
+          Inteligência artificial → Funcionalidades.
+        </p>
+      </div>
 
-      <AlertDialog open={confirmDisableOpen} onOpenChange={setConfirmDisableOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar desligar o SDR?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Todas as novas conversas passarão direto para vendedores humanos. Conversas em
-              andamento com o SDR não são afetadas. Você pode reativar a qualquer momento.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void persist()}>Desligar SDR</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <div className="rounded-xl border border-border bg-card p-4">
+        <h3 className="flex items-center gap-2 text-sm font-semibold">
+          <Icon icon="mdi:cellphone-message" size={16} className="text-primary" />
+          Instâncias
+        </h3>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Escolha em quais números WhatsApp o SDR atua. Nenhum ativado por padrão.
+        </p>
+        <div className="mt-3 space-y-2">
+          {accounts.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              Nenhuma instância WhatsApp cadastrada nesta loja.
+            </p>
+          )}
+          {accounts.map((account) => (
+            <div
+              key={account.id}
+              className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2"
+            >
+              <div>
+                <p className="text-sm font-medium">{account.label}</p>
+                <p className="text-xs text-muted-foreground">{account.phoneNumber || "—"}</p>
+              </div>
+              <Switch
+                checked={account.sdrEnabled}
+                onCheckedChange={(v) => void toggleInstance(account, v)}
+                disabled={!canEdit}
+                aria-label={`SDR ativo em ${account.label}`}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-4 opacity-60">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="flex items-center gap-2 text-sm font-semibold">
+            <Icon icon="mdi:file-document-outline" size={16} className="text-primary" />
+            Orçamento automático
+          </h3>
+          <Badge variant="secondary">Em breve</Badge>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          O SDR real ainda não gera orçamento nem aplica desconto — segue recepção e triagem, sem
+          mencionar valores.
+        </p>
+        <div className="mt-4 space-y-4">
+          <div>
+            <div className="flex items-baseline justify-between">
+              <span className="text-sm font-medium">Validade padrão</span>
+              <span className="text-xs text-muted-foreground tabular-nums">7 dias</span>
+            </div>
+            <Slider value={[7]} min={1} max={30} step={1} disabled className="mt-3" />
+          </div>
+          <div>
+            <div className="flex items-baseline justify-between">
+              <span className="text-sm font-medium">Desconto autorizado</span>
+              <span className="text-xs text-muted-foreground tabular-nums">0%</span>
+            </div>
+            <Slider value={[0]} min={0} max={10} step={1} disabled className="mt-3" />
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-4">
+        <h3 className="flex items-center gap-2 text-sm font-semibold">
+          <Icon icon="mdi:account-arrow-right-outline" size={16} className="text-primary" />
+          Escalonamento
+        </h3>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Se ninguém responder a tempo, todo vendedor com acesso a esta instância é avisado e pode
+          assumir a conversa.
+        </p>
+        <div className="mt-4 space-y-4">
+          <label className="block text-xs text-muted-foreground">
+            Timeout — modo urgente (minutos)
+            <input
+              type="number"
+              min={1}
+              max={60}
+              value={urgentTimeoutInput}
+              disabled={!canEdit}
+              onChange={(e) => setUrgentTimeoutInput(e.target.value)}
+              onBlur={() => {
+                const parsed = Math.min(60, Math.max(1, Number(urgentTimeoutInput) || 5));
+                setUrgentTimeoutInput(String(parsed));
+                if (pilot && parsed !== pilot.escalationTimeoutUrgentMinutes) {
+                  void patchPilot({ escalationTimeoutUrgentMinutes: parsed });
+                }
+              }}
+              className="mt-1 w-full max-w-40 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+            />
+          </label>
+          <label className="block text-xs text-muted-foreground">
+            Timeout — modo normal (minutos)
+            <input
+              type="number"
+              min={1}
+              max={120}
+              value={normalTimeoutInput}
+              disabled={!canEdit}
+              onChange={(e) => setNormalTimeoutInput(e.target.value)}
+              onBlur={() => {
+                const parsed = Math.min(120, Math.max(1, Number(normalTimeoutInput) || 30));
+                setNormalTimeoutInput(String(parsed));
+                if (pilot && parsed !== pilot.escalationTimeoutNormalMinutes) {
+                  void patchPilot({ escalationTimeoutNormalMinutes: parsed });
+                }
+              }}
+              className="mt-1 w-full max-w-40 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+            />
+          </label>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-4">
+        <h3 className="flex items-center gap-2 text-sm font-semibold">
+          <Icon icon="mdi:message-text-outline" size={16} className="text-primary" />
+          Templates
+        </h3>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Os textos editados aqui não alimentam o SDR real hoje — o prompt real vive em
+          Funcionalidades.
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onJumpToTemplates}
+          className="mt-3 gap-1"
+        >
+          <Icon icon="mdi:arrow-right" size={14} />
+          Ir para aba Templates
+        </Button>
+      </div>
     </div>
   );
 }

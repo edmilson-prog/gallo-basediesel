@@ -42,6 +42,7 @@ import type { IScheduledSendProvider } from "./scheduledSend";
 import type { IConversationNotesProvider } from "./conversationNotes";
 import type { IStorefrontProvider } from "./storefront";
 import type { ISystemHealthProvider } from "./systemHealth";
+import type { IWebhookDeliveriesProvider } from "./webhookDeliveries";
 import type { IMessageTemplatesProvider } from "./messageTemplates";
 import type { IRolesProvider } from "./roles";
 import type { IDepartmentsProvider } from "./departments";
@@ -50,8 +51,11 @@ import type { IRotationParticipantsProvider } from "./rotationParticipants";
 import type { IAiProvider } from "./ai";
 import type { IAtendimentoMetricsProvider } from "./atendimentoMetrics";
 import type { IWhatsAppGoServersProvider } from "./whatsappGoServers";
+import type { IWahaServersProvider } from "./wahaServers";
+import type { IWhatsAppOpenWaServersProvider } from "./whatsappOpenWaServers";
 import type { IConversationTagsProvider } from "./conversationTags";
 import type { IConversationParticipantsProvider } from "./conversationParticipants";
+import type { ISdrPilotSettingsProvider } from "./sdrPilotSettings";
 
 export type { IPaginatedResult, IPaginationParams } from "./_shared";
 
@@ -142,6 +146,7 @@ export type { IScheduledSendProvider } from "./scheduledSend";
 export type { IConversationNotesProvider } from "./conversationNotes";
 export type { IStorefrontProvider } from "./storefront";
 export type { ISystemHealthProvider } from "./systemHealth";
+export type { IWebhookDeliveriesProvider } from "./webhookDeliveries";
 export type {
   IMessageTemplatesProvider,
   IListMessageTemplatesParams,
@@ -169,6 +174,17 @@ export type {
   ICreateGoServerInput,
   IGoServerPatch,
 } from "./whatsappGoServers";
+export type {
+  IWahaServersProvider,
+  ICreateWahaServerInput,
+  IWahaServerPatch,
+} from "./wahaServers";
+export type {
+  IWhatsAppOpenWaServersProvider,
+  ICreateOpenWaServerInput,
+  IOpenWaServerPatch,
+} from "./whatsappOpenWaServers";
+export type { ISdrPilotSettingsProvider } from "./sdrPilotSettings";
 
 /**
  * Aggregate of every data provider returned by `getDataProviders()`. The factory
@@ -213,6 +229,7 @@ export interface IDataProviders {
   conversationNotes: IConversationNotesProvider;
   storefront: IStorefrontProvider;
   systemHealth: ISystemHealthProvider;
+  webhookDeliveries: IWebhookDeliveriesProvider;
   messageTemplates: IMessageTemplatesProvider;
   roles: IRolesProvider;
   departments: IDepartmentsProvider;
@@ -221,6 +238,9 @@ export interface IDataProviders {
   ai: IAiProvider;
   atendimentoMetrics: IAtendimentoMetricsProvider;
   whatsappGoServers: IWhatsAppGoServersProvider;
+  wahaServers: IWahaServersProvider;
+  whatsappOpenWaServers: IWhatsAppOpenWaServersProvider;
   conversationTags: IConversationTagsProvider;
   conversationParticipants: IConversationParticipantsProvider;
+  sdrPilotSettings: ISdrPilotSettingsProvider;
 }

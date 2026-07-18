@@ -105,6 +105,7 @@ export type {
   IConversationNotesProvider,
   IStorefrontProvider,
   ISystemHealthProvider,
+  IWebhookDeliveriesProvider,
   IMessageTemplatesProvider,
   IListMessageTemplatesParams,
   ICreateMessageTemplateInput,
@@ -121,11 +122,15 @@ export type {
   IWhatsAppGoServersProvider,
   ICreateGoServerInput,
   IGoServerPatch,
+  IWhatsAppOpenWaServersProvider,
+  ICreateOpenWaServerInput,
+  IOpenWaServerPatch,
   IConversationTagsProvider,
   IListConversationTagsParams,
   ICreateConversationTagInput,
   IUpdateConversationTagInput,
   IConversationParticipantsProvider,
+  ISdrPilotSettingsProvider,
 } from "./contracts";
 export { computeFailureRate } from "./contracts";
 
@@ -166,6 +171,7 @@ export { useScheduledSendProvider } from "./hooks/useScheduledSendProvider";
 export { useConversationNotesProvider } from "./hooks/useConversationNotesProvider";
 export { useStorefrontProvider } from "./hooks/useStorefrontProvider";
 export { useSystemHealthProvider } from "./hooks/useSystemHealthProvider";
+export { useWebhookDeliveriesProvider } from "./hooks/useWebhookDeliveriesProvider";
 export { useMessageTemplatesProvider } from "./hooks/useMessageTemplatesProvider";
 export { useRolesProvider } from "./hooks/useRolesProvider";
 export { useDepartmentsProvider } from "./hooks/useDepartmentsProvider";
@@ -174,8 +180,11 @@ export { useRotationParticipantsProvider } from "./hooks/useRotationParticipants
 export { useAiProvider } from "./hooks/useAiProvider";
 export { useAtendimentoMetricsProvider } from "./hooks/useAtendimentoMetricsProvider";
 export { useWhatsAppGoServersProvider } from "./hooks/useWhatsAppGoServersProvider";
+export { useWahaServersProvider } from "./hooks/useWahaServersProvider";
+export { useWhatsAppOpenWaServersProvider } from "./hooks/useWhatsAppOpenWaServersProvider";
 export { useConversationTagsProvider } from "./hooks/useConversationTagsProvider";
 export { useConversationParticipantsProvider } from "./hooks/useConversationParticipantsProvider";
+export { useSdrPilotSettingsProvider } from "./hooks/useSdrPilotSettingsProvider";
 
 export {
   statusOnAssign,

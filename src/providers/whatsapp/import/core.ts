@@ -89,7 +89,16 @@ export interface IImportDb {
    * Inbox and become a real, owned customer through a manual conversion.
    */
   createPendingCustomer(input: { storeId: string; phone: string }): Promise<{ id: string }>;
-  findOpenConversation(customerId: string, accountId: string): Promise<{ id: string } | null>;
+  /**
+   * Finds ANY existing conversation for (customer, account) — open OR closed.
+   * Unlike the live webhook's outbound-echo path (which must never reopen a
+   * closed conversation), imported history always belongs to whichever thread
+   * already represents this customer on this account: reusing a closed one
+   * just appends historical messages without changing its status, mirroring
+   * the webhook's customer-inbound `includeTerminal:true` reopen rule (spec
+   * 2026-07-03 §1.5) instead of the narrower open-only echo rule.
+   */
+  findConversation(customerId: string, accountId: string): Promise<{ id: string } | null>;
   createConversation(input: {
     storeId: string;
     customerId: string;
@@ -380,7 +389,7 @@ export async function landNormalizedChat(args: {
   const oldest = timestamps[0] as string;
   const newest = timestamps[timestamps.length - 1] as string;
 
-  let conversation = await db.findOpenConversation(customer.id, account.id);
+  let conversation = await db.findConversation(customer.id, account.id);
   if (!conversation) {
     conversation = await db.createConversation({
       storeId: account.storeId,

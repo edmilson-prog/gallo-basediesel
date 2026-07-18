@@ -4,8 +4,12 @@ import type {
   IDistributionTrace,
   ILead,
   IMessage,
+  IPlatformSettings,
+  IWorkSchedule,
   ID,
+  ISO8601,
 } from "@/shared/types";
+import { buildDigitSearchCandidates, digitsOf } from "@/shared/utils/digitSearch";
 import { selectMessageMatch } from "@/features/conversations/engine/messageSearchMatch";
 import {
   selectAllConversations,
@@ -15,6 +19,8 @@ import {
   selectCustomerById,
   selectLeadById,
   selectMessagesByConversation,
+  selectSellerById,
+  selectStoreById,
 } from "../store/selectors";
 import { getMockState } from "../store/mockStore";
 import { patchById, upsert } from "../store/mutations";
@@ -88,7 +94,8 @@ function matchesSearch(conversation: IConversation, term: string): boolean {
   const { name, phone } = getParticipantNameAndPhone(conversation);
   if (name.toLowerCase().includes(needle)) return true;
   if (phone.toLowerCase().includes(needle)) return true;
-  return false;
+  const phoneDigits = digitsOf(phone);
+  return buildDigitSearchCandidates(term).some((c) => phoneDigits.includes(c));
 }
 
 // Mirrors the supabase provider's `.overlaps("tags", ...)`: conversation tags
@@ -179,6 +186,60 @@ function applyNonSearchFilters(
  *  `clear_conversation_participants_on_close` (migration 20260704120000). */
 const TERMINAL_STATUSES = new Set(["resolvida", "arquivada"]);
 
+/** Statuses still "open" for the idle-conversation summary (spec 2026-07-16). */
+const IDLE_ACTIVE_STATUSES = new Set<IConversation["status"]>([
+  "aguardando",
+  "em_andamento",
+  "aguardando_cliente",
+]);
+
+/**
+ * Raw awaiting-reply rows for the idle summary (spec 2026-07-16). No level
+ * computation here — the mock PROVIDER applies the engine + store settings
+ * (`src/mocks/**` must not import from `src/features/**`).
+ */
+export interface IAwaitingReplyRaw {
+  items: {
+    conversationId: ID;
+    contactName: string;
+    lastInboundPreview: string | null;
+    awaitingReplySince: ISO8601;
+  }[];
+  workSchedule: IWorkSchedule | undefined;
+  settings: IPlatformSettings;
+}
+
+/**
+ * Conversations assigned to `sellerId` where the customer's most recent
+ * inbound message is still unanswered — the seed of the idle-summary raw
+ * rows. `awaitingReplySince` is the FIRST inbound message after the last
+ * outbound one (the moment the reply became due), not the latest inbound.
+ */
+function listAwaitingReplyItems(sellerId: ID): IAwaitingReplyRaw["items"] {
+  const active = selectAllConversations().filter(
+    (c) => c.assignedSellerId === sellerId && IDLE_ACTIVE_STATUSES.has(c.status),
+  );
+  const items: IAwaitingReplyRaw["items"] = [];
+  for (const conv of active) {
+    const msgs = [...selectMessagesByConversation(conv.id)].sort((a, b) =>
+      a.sentAt.localeCompare(b.sentAt),
+    );
+    const lastOutboundAt = [...msgs].reverse().find((m) => m.direction === "out")?.sentAt;
+    const firstUnanswered = msgs.find(
+      (m) => m.direction === "in" && (!lastOutboundAt || m.sentAt > lastOutboundAt),
+    );
+    if (!firstUnanswered) continue;
+    const lastInbound = [...msgs].reverse().find((m) => m.direction === "in");
+    items.push({
+      conversationId: conv.id,
+      contactName: getParticipantNameAndPhone(conv).name || "Contato",
+      lastInboundPreview: lastInbound?.text ?? null,
+      awaitingReplySince: firstUnanswered.sentAt,
+    });
+  }
+  return items;
+}
+
 /**
  * Stamps `isCollaborator` on each conversation for the CURRENT mock seller —
  * mirrors the `is_collaborator` column the supabase RPCs (list_conversations /
@@ -219,7 +280,11 @@ export const conversationsApi = {
       "list",
       () => {
         let all = applyNonSearchFilters(selectAllConversations(), params);
-        if (params.search) all = all.filter((c) => matchesSearch(c, params.search!));
+        if (params.search) {
+          all = all
+            .filter((c) => matchesSearch(c, params.search!))
+            .map((c) => ({ ...c, isAccessible: true }));
+        }
         const sorted = sortConversations(stampIsCollaborator(all), params);
         return paginate(sorted, params);
       },
@@ -257,6 +322,21 @@ export const conversationsApi = {
       const found = selectConversationById(id);
       if (!found) throw new MockNotFoundError("conversation", id);
       return found;
+    });
+  },
+
+  /** Raw rows for `IConversationsProvider.getIdleSummary` — see `listAwaitingReplyItems`. */
+  async listAwaitingReply(sellerId: ID): Promise<IAwaitingReplyRaw> {
+    return runApi("conversationsApi", "listAwaitingReply", () => {
+      const seller = selectSellerById(sellerId);
+      if (!seller) throw new MockNotFoundError("seller", sellerId);
+      const store = selectStoreById(seller.storeId);
+      if (!store) throw new MockNotFoundError("store", seller.storeId);
+      return {
+        items: listAwaitingReplyItems(sellerId),
+        workSchedule: seller.workSchedule,
+        settings: store.settings,
+      };
     });
   },
 

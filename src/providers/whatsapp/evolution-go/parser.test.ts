@@ -194,3 +194,76 @@ describe("parseEvolutionGoInbound", () => {
     expect(() => parseEvolutionGoInbound({ foo: "bar" }, "acc")).toThrow();
   });
 });
+
+describe("parseEvolutionGoInbound — ad referral (externalAdReply)", () => {
+  it("extracts adReferral from an extendedTextMessage contextInfo", () => {
+    const parsed = parseEvolutionGoInbound(
+      {
+        event: "Message",
+        data: {
+          Info: { Chat: "5555988887777@s.whatsapp.net", Sender: "5555988887777@s.whatsapp.net", IsFromMe: false, ID: "GOMSG1", Timestamp: 1765400000 },
+          Message: {
+            extendedTextMessage: {
+              text: "Opa! Vim do anúncio",
+              contextInfo: {
+                externalAdReply: {
+                  title: "Módulos Volvo — instale em minutos",
+                  body: "Fale com a GALLO",
+                  sourceID: "120210000000000",
+                  sourceType: "ad",
+                  sourceURL: "https://fb.me/xyz",
+                  mediaType: "ContextInfo_ExternalAdReplyInfo_IMAGE",
+                  mediaURL: "https://scontent.example/ad.jpg",
+                  ctwaClid: "AfE...clid",
+                },
+              },
+            },
+          },
+        },
+      },
+      "acc-1",
+    ) as { adReferral?: unknown };
+    expect(parsed.adReferral).toEqual({
+      sourceId: "120210000000000",
+      sourceUrl: "https://fb.me/xyz",
+      sourceType: "ad",
+      headline: "Módulos Volvo — instale em minutos",
+      body: "Fale com a GALLO",
+      mediaType: "image",
+      mediaUrl: "https://scontent.example/ad.jpg",
+    });
+  });
+
+  it("leaves adReferral undefined for a plain message (no externalAdReply)", () => {
+    const parsed = parseEvolutionGoInbound(
+      {
+        event: "Message",
+        data: {
+          Info: { Chat: "5555988887777@s.whatsapp.net", IsFromMe: false, ID: "GOMSG2", Timestamp: 1765400000 },
+          Message: { conversation: "quanto custa o filtro?" },
+        },
+      },
+      "acc-1",
+    ) as { adReferral?: unknown };
+    expect(parsed.adReferral).toBeUndefined();
+  });
+
+  it("normalizes integer mediaType (real whatsmeow enum shape) without throwing", () => {
+    const parsed = parseEvolutionGoInbound(
+      {
+        event: "Message",
+        data: {
+          Info: { Chat: "5555988887777@s.whatsapp.net", IsFromMe: false, ID: "GOMSG3", Timestamp: 1765400000 },
+          Message: {
+            extendedTextMessage: {
+              text: "Opa!",
+              contextInfo: { externalAdReply: { title: "Anúncio", mediaType: 1 } },
+            },
+          },
+        },
+      },
+      "acc-1",
+    ) as { adReferral?: { mediaType?: string } };
+    expect(parsed.adReferral?.mediaType).toBe("image");
+  });
+});

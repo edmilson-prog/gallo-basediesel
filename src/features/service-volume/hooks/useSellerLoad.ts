@@ -1,61 +1,65 @@
 import { useMemo } from "react";
-import type { IManagerDashboardSnapshot } from "@/providers/data";
-import type { ID, ISeller, SellerAvailability } from "@/shared/types";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useAtendimentoMetricsProvider, useSellersProvider } from "@/providers/data";
+import { useRealtimeConversations } from "@/features/conversations/hooks/useRealtimeConversations";
+import { useDebounce } from "@/shared/hooks/useDebounce";
+import {
+  buildSellerLoadEntries,
+  type ISellerLoadEntry,
+  type ISellerLoadOptions,
+} from "../engine/sellerLoad";
+import type { IServiceVolumeState } from "./useServiceVolumeFilters";
 
-export interface ISellerLoadEntry {
-  seller: ISeller;
-  activeCount: number;
-  /** Health band derived from overload threshold (normal / warning / critical). */
-  band: "normal" | "warning" | "critical";
-}
+export type { ISellerLoadEntry, ISellerLoadOptions };
 
-export interface ISellerLoadOptions {
-  /** Threshold above which the row is flagged "critical" (red). */
-  overloadThreshold: number;
-  /** Hide inactive / unavailable sellers when true. */
-  hideInactive?: boolean;
-}
-
-const HIDDEN_AVAILABILITY: SellerAvailability[] = ["offline"];
+/** Coalesces bursts of realtime events into a single refetch. */
+const REALTIME_DEBOUNCE_MS = 1500;
 
 /**
- * Aggregate the seller carteira load from `openConversations`. Each entry sums
- * conversations whose `assignedSellerId` matches the seller; orphan (unassigned)
- * conversations are intentionally ignored — the orphan queue lives in the inbox.
- *
- * Ordering: highest load first, ties broken by full name. Sellers with no
- * active conversations are still included so the manager sees the full roster.
+ * "Carga por vendedor" — open-conversation load per seller with activity
+ * inside the tab's selected window (spec:
+ * docs/superpowers/specs/2026-07-16-seller-load-active-window-design.md),
+ * via the `service_volume_seller_load` SECURITY DEFINER RPC + the store
+ * roster from the sellers provider. The window cut keeps stale open
+ * conversations from inflating the load reading. Refetches on debounced
+ * Realtime ticks so the load stays live.
  */
-export function useSellerLoad(
-  snapshot: IManagerDashboardSnapshot,
-  options: ISellerLoadOptions,
-): ISellerLoadEntry[] {
-  return useMemo(() => {
-    const loadBySeller = new Map<ID, number>();
-    for (const conv of snapshot.openConversations) {
-      const sellerId = conv.assignedSellerId;
-      if (!sellerId) continue;
-      loadBySeller.set(sellerId, (loadBySeller.get(sellerId) ?? 0) + 1);
-    }
+export function useSellerLoad(state: IServiceVolumeState, options: ISellerLoadOptions) {
+  const provider = useAtendimentoMetricsProvider();
+  const sellersProvider = useSellersProvider();
+  const realtime = useRealtimeConversations();
+  const debouncedTick = useDebounce(realtime.tick, REALTIME_DEBOUNCE_MS);
+  const storeId = state.store === "all" ? undefined : state.store;
 
-    const warningThreshold = Math.max(1, Math.floor(options.overloadThreshold * 0.67));
-    const overload = options.overloadThreshold;
+  const loadQuery = useQuery({
+    queryKey: ["sv", "sellerLoad", storeId ?? "all", state.fromIso, state.toIso, debouncedTick],
+    queryFn: () =>
+      provider.getSellerLoad({ storeId, from: state.fromIso, to: state.toIso }),
+    placeholderData: keepPreviousData,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
 
-    const entries: ISellerLoadEntry[] = snapshot.sellers
-      .filter((s) => s.active)
-      .filter((s) => !options.hideInactive || !HIDDEN_AVAILABILITY.includes(s.availability))
-      .map((seller) => {
-        const activeCount = loadBySeller.get(seller.id) ?? 0;
-        let band: ISellerLoadEntry["band"] = "normal";
-        if (activeCount > overload) band = "critical";
-        else if (activeCount > warningThreshold) band = "warning";
-        return { seller, activeCount, band };
-      });
+  const rosterQuery = useQuery({
+    queryKey: ["sv", "sellerRoster", storeId ?? "all"],
+    queryFn: () => sellersProvider.list(storeId ? { storeId } : undefined),
+    staleTime: 5 * 60_000,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
 
-    entries.sort((a, b) => {
-      if (a.activeCount !== b.activeCount) return b.activeCount - a.activeCount;
-      return a.seller.fullName.localeCompare(b.seller.fullName);
-    });
-    return entries;
-  }, [snapshot, options.overloadThreshold, options.hideInactive]);
+  const entries = useMemo(
+    () => buildSellerLoadEntries(loadQuery.data?.rows ?? [], rosterQuery.data ?? [], options),
+    [loadQuery.data, rosterQuery.data, options],
+  );
+
+  return {
+    entries,
+    isLoading: loadQuery.isLoading || rosterQuery.isLoading,
+    error: loadQuery.error ?? rosterQuery.error,
+    refetch: () => {
+      void loadQuery.refetch();
+      void rosterQuery.refetch();
+    },
+  };
 }

@@ -107,3 +107,46 @@ describe("filtersToListParams — tags", () => {
     expect(params.tags).toEqual(["ctag-a", "ctag-b"]);
   });
 });
+
+describe("filtersToListParams — search mode ignores filters", () => {
+  it("with a term, returns only search + default ordering (global search)", () => {
+    const p = filtersToListParams(
+      baseState({
+        search: "98888-4188",
+        status: "em_andamento",
+        channel: "whatsapp",
+        instance: "acc-1",
+        tags: ["tag-1"],
+        period: "7d",
+        assignment: ["me", "queue"],
+        sort: "waiting",
+        escalated: true,
+      }),
+      { currentSellerId: SELLER },
+    );
+    expect(p).toEqual({ search: "98888-4188", orderBy: "lastMessageAt", orderDir: "desc" });
+  });
+  it("without a term, keeps the filtered behavior unchanged", () => {
+    const p = filtersToListParams(baseState({ status: "em_andamento" }), {
+      currentSellerId: SELLER,
+    });
+    expect(p.search).toBeUndefined();
+    expect(p.status).toBe("em_andamento");
+    expect(p.assignmentAny).toEqual({ sellerIds: [SELLER] });
+  });
+
+  it("whitespace-only term is not a search (keeps filters, sends no search key)", () => {
+    const p = filtersToListParams(baseState({ search: "   ", status: "em_andamento" }), {
+      currentSellerId: SELLER,
+    });
+    expect(p.search).toBeUndefined();
+    expect(p.status).toBe("em_andamento");
+  });
+
+  it("trims the term it sends downstream", () => {
+    const p = filtersToListParams(baseState({ search: "  98888-4188  " }), {
+      currentSellerId: SELLER,
+    });
+    expect(p).toEqual({ search: "98888-4188", orderBy: "lastMessageAt", orderDir: "desc" });
+  });
+});

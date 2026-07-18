@@ -9,6 +9,7 @@ const base: IAccountDraft = {
   baseUrl: "",
   instanceName: "",
   instanceId: "",
+  sessionId: "",
   failoverPolicy: "disabled",
   failoverAccountId: "",
 };
@@ -43,5 +44,14 @@ describe("configFromDraft", () => {
 
   it("evolution-go: empty baseUrl → not ok", () => {
     expect(configFromDraft("evolution-go", base)).toEqual({ ok: false });
+  });
+
+  it("openwa: always ok, preserving the server-managed sessionId", () => {
+    const r = configFromDraft("openwa", { ...base, sessionId: "sess-1" });
+    expect(r).toEqual({ ok: true, config: { sessionId: "sess-1" } });
+  });
+
+  it("openwa: empty sessionId (not yet paired) still keeps the shape-guard key — never null", () => {
+    expect(configFromDraft("openwa", base)).toEqual({ ok: true, config: { sessionId: "" } });
   });
 });

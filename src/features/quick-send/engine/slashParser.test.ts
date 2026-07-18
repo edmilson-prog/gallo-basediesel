@@ -24,6 +24,12 @@ describe("parseSlash", () => {
     expect(s.command).toBe("tabela");
   });
 
+  it("exposes the token start (index of the '/') so callers can splice it out", () => {
+    expect(parseSlash("/catalogo", 9).tokenStart).toBe(0);
+    const value = "Bom dia! /garantia";
+    expect(parseSlash(value, value.length).tokenStart).toBe(9);
+  });
+
   it("does NOT fire inside a URL (http://)", () => {
     const value = "veja http://site.com";
     expect(parseSlash(value, value.length).active).toBe(false);

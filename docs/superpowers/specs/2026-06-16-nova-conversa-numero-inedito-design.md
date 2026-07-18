@@ -273,7 +273,10 @@ status: 'ativo', tags: []
 - Confirmar o **shape real** da resposta `/chat/whatsappNumbers` no build Evolution em
   produção (parser defensivo já mitiga).
 - **Falso-positivo de 9º dígito** (#2062) e **`@lid` com `exists:false`** — o botão
-  "Iniciar mesmo assim" (D6) é a válvula de escape para esses casos.
+  "Iniciar mesmo assim" (D6) é a válvula de escape para esses casos. Desde
+  2026-07-16, um número de 12 dígitos cuja checagem falhar tenta automaticamente
+  a variante de 13 dígitos antes de bloquear — ver
+  `docs/superpowers/specs/2026-07-16-br-phone-nine-digit-reconciliation-design.md`.
 - Confirmar que `whatsapp-check-number` deve aceitar **vendedores** (não só staff) —
   alinhado ao modo SINGLE do `whatsapp-avatar-sync`.
 - Não persistir resultado além de `whatsapp_status` (sem cache novo) no MVP — checagem é

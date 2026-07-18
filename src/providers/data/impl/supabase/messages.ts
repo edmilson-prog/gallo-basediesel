@@ -51,13 +51,16 @@ interface MessageRow {
   read_at: string | null;
   failure_reason: string | null;
   failure_code: string | null;
+  transcription: string | null;
+  transcription_status: IMessage["transcriptionStatus"] | null;
   created_at: string;
 }
 
 const TABLE = "messages";
 const COLUMNS =
   "id, conversation_id, direction, author_type, author_id, provider, text, media_type, " +
-  "media_url, media_filename, status, sent_at, delivered_at, read_at, failure_reason, failure_code, created_at";
+  "media_url, media_filename, status, sent_at, delivered_at, read_at, failure_reason, failure_code, " +
+  "transcription, transcription_status, created_at";
 /** Cap on ids per `.in("conversation_id", …)` so the request-line length stays
  *  well under the edge's URL limit (~39 chars/id encoded → 120 ids ≈ 4.7 KB). */
 const ANALYTICS_IN_CHUNK_SIZE = 120;
@@ -89,6 +92,8 @@ function rowToMessage(row: MessageRow): IMessage {
     readAt: row.read_at ?? undefined,
     failureReason: row.failure_reason ?? undefined,
     failureCode: row.failure_code ?? undefined,
+    transcription: row.transcription ?? undefined,
+    transcriptionStatus: row.transcription_status ?? undefined,
   };
 }
 
@@ -362,5 +367,12 @@ export const supabaseMessagesProvider: IMessagesProvider = {
     });
     if (error) throw new Error(`[supabase] messages.listLastMessages failed: ${error.message}`);
     return (data as unknown as MessageRow[]).map(rowToMessage);
+  },
+
+  async retryTranscription(messageId) {
+    const { error } = await getSupabaseClient().functions.invoke("audio-transcribe", {
+      body: { messageId },
+    });
+    if (error) throw new Error(`[supabase] messages.retryTranscription failed: ${error.message}`);
   },
 };

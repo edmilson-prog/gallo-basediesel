@@ -101,3 +101,35 @@ export interface IWhatsAppProviderHealthAccount {
   errorCalls24h: number;
   latencyP95Ms: number | null;
 }
+
+/** One row of the raw-payload webhook delivery history (any outcome). */
+export type WebhookDeliveryOutcome = "processed" | "ignored" | "duplicate" | "error" | "rejected";
+
+/** A single inbound webhook call, as received by whatsapp-webhook or waha-webhook. */
+export interface IWebhookDelivery {
+  id: string;
+  /** e.g. 'whatsapp_meta' | 'whatsapp_evolution' | 'whatsapp_evolution_go' | 'whatsapp_openwa' | 'whatsapp_waha'. */
+  integrationName: string;
+  accountId: string | null;
+  /** Raw event name from the payload (e.g. 'messages.upsert', 'Message', 'message.any'). */
+  eventType: string | null;
+  endpoint: string;
+  httpStatus: number;
+  outcome: WebhookDeliveryOutcome;
+  errorMessage: string | null;
+  latencyMs: number | null;
+  /** The raw webhook body, verbatim. */
+  requestPayload: unknown;
+  traceId: string | null;
+  createdAt: ISO8601;
+}
+
+/** Filters for `IWebhookDeliveriesProvider.list`. */
+export interface IWebhookDeliveryFilters {
+  accountId?: string;
+  outcome?: WebhookDeliveryOutcome;
+  fromDate?: ISO8601;
+  toDate?: ISO8601;
+  limit?: number;
+  offset?: number;
+}

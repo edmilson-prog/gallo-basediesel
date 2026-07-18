@@ -67,3 +67,70 @@ export interface IHandleTimeStatsResult {
   cycleCount: number;
   deltaPct: number | null;
 }
+
+export interface IHeadlineKpisParams {
+  storeId?: ID;
+  sellerId?: ID;
+  from: ISO8601;
+  to: ISO8601;
+  prevFrom: ISO8601;
+  prevTo: ISO8601;
+}
+
+export interface IKpiTrendValue {
+  current: number | null;
+  previous: number | null;
+}
+
+/**
+ * The four "Indicadores principais" headline KPIs (PRD-214 follow-up).
+ * `backlog` has no `previous` — it's a current-state snapshot ("aguardando"
+ * right now), not windowed.
+ */
+export interface IHeadlineKpisResult {
+  tmaMinutes: IKpiTrendValue;
+  tmrMinutes: IKpiTrendValue;
+  resolutionRatePct: IKpiTrendValue;
+  backlog: number;
+}
+
+/**
+ * "Carga por vendedor" — open conversations per assigned seller. When
+ * `from`/`to` are present, only conversations with activity
+ * (`lastMessageAt`) inside the window count; absent = no cut (legacy).
+ */
+export interface ISellerLoadParams {
+  storeId?: ID;
+  sellerId?: ID;
+  from?: ISO8601;
+  to?: ISO8601;
+}
+
+export interface ISellerLoadCountRow {
+  sellerId: ID;
+  activeCount: number;
+}
+
+export interface ISellerLoadCountsResult {
+  rows: ISellerLoadCountRow[];
+}
+
+/** "Heatmap de volume" — inbound customer messages per (weekday × hour). */
+export interface IHeatmapParams {
+  storeId?: ID;
+  sellerId?: ID;
+  from: ISO8601;
+  to: ISO8601;
+}
+
+/** `day` is 0=domingo..6=sábado (same convention as JS `Date#getDay()`). */
+export interface IHeatmapCellRow {
+  day: number;
+  hour: number;
+  count: number;
+}
+
+export interface IHeatmapResult {
+  rows: IHeatmapCellRow[];
+  totalMessages: number;
+}

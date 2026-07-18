@@ -139,6 +139,12 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         permission: { resource: "settings", action: "edit" },
       },
       {
+        label: "Alertas de ociosidade",
+        icon: "mdi:timer-alert-outline",
+        to: "/app/configuracoes/atendimento/alertas-ociosidade",
+        roles: ["Owner"],
+      },
+      {
         label: "Cadastro de veículos",
         icon: "mdi:truck-outline",
         to: "/app/configuracoes/veiculos/cadastro-mode",

@@ -13,6 +13,7 @@ const REASON_LABEL: Record<SdrEscalationReason, string> = {
   sdr_failed: S.reasonSdrFailed,
   complexity: S.reasonComplexity,
   out_of_scope: S.reasonOutOfScope,
+  qualified_handoff: S.reasonQualifiedHandoff,
 };
 
 const REASON_COLOR: Record<SdrEscalationReason, string> = {
@@ -21,6 +22,7 @@ const REASON_COLOR: Record<SdrEscalationReason, string> = {
   sdr_failed: "var(--gallo-service-red, #C4151C)",
   complexity: "var(--gallo-info-medium, #3b82f6)",
   out_of_scope: "var(--muted-foreground)",
+  qualified_handoff: "var(--gallo-sev-success, #16a34a)",
 };
 
 export interface IEscalationsTabProps {

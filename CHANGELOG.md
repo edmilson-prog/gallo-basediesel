@@ -4,6 +4,216 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.151.0] — Backstop · 2026-07-17
+
+**Rede de segurança automática para o escalonamento do SDR (ainda pendente de ativação em produção) e um novo indicador de áudios transcritos na tela de Inteligência artificial.**
+
+### Added
+
+- **Escalonamento do SDR ganha rede de segurança automática** — quando uma conversa é passada do atendente automático para um vendedor e ninguém responde dentro do prazo configurado, o sistema passa a avisar automaticamente todos os vendedores com acesso àquele número de WhatsApp, para que qualquer um assuma o atendimento; se a conversa tivesse ficado sem ninguém disponível para recebê-la, o app agora corrige sozinho o estado que ficava travado. Os prazos (padrão e urgente) são definidos no bloco "Escalonamento" em Configurações → SDR. **Ativação em produção depende de um passo separado do dono** (aplicar as atualizações de banco pendentes) — nada muda para quem usa a plataforma hoje.
+- **Novo indicador na tela de Inteligência artificial** — a aba Visão geral (Configurações → Inteligência artificial) ganhou um indicador mostrando quantos áudios foram transcritos com sucesso no período selecionado, ao lado dos indicadores já existentes de chamadas, tokens, custo e orçamento.
+
+## [0.150.0] — Funnel · 2026-07-17
+
+**Números de WhatsApp desconhecidos agora entram automaticamente no funil de Leads, e a tela de revisão de contatos pendentes foi aposentada.**
+
+### Added
+
+- **Contato novo do WhatsApp vira Lead automaticamente** — quando chega uma mensagem de um número que a Gallo nunca atendeu, o sistema agora cria um Lead (que passa pelo funil de qualificação normal, como qualquer outro) em vez de um cliente provisório pendente de revisão. O dono do lead é escolhido automaticamente pela fila de rodízio de atendimento configurada em Configurações → Rodízio.
+
+### Removed
+
+- **Tela "Contatos pendentes" removida** — como contatos novos não geram mais pendências de revisão, a tela e o aviso associado deixaram de existir.
+
+## [0.149.0] — Reel · 2026-07-17
+
+**Envio de vídeo como anexo avulso no Atendimento — pelo menu de anexo ou arrastando e soltando — e correção de telefones sem o código do país no WAHA.**
+
+### Added
+
+- **Vídeo como anexo avulso** — o composer do Atendimento passa a aceitar vídeo como arquivo avulso, do mesmo jeito que já funcionava para imagem, documento e áudio: pelo menu de anexo (novo item "Vídeo") ou arrastando e soltando o arquivo direto na conversa. Limite de 16 MB por vídeo.
+
+### Fixed
+
+- **Telefones sem o código do país (55) quebravam o envio pelo WAHA** — números salvos sem o DDI (por exemplo, vindos da base do DINTEC) podiam ser enviados para o WhatsApp errado. O sistema agora completa o DDI 55 automaticamente antes de enviar pelo WAHA.
+
+## [0.148.0] — Nudge · 2026-07-17
+
+**Alertas de conversas ociosas: o atendente é avisado quando um cliente fica esperando resposta, com escalada em 3 níveis e um resumo do dia ao entrar no sistema.**
+
+### Added
+
+- **Alertas de conversas ociosas (3 níveis)** — quando um cliente aguarda resposta numa conversa atribuída, o atendente passa a ser avisado em 3 níveis progressivos, contados pelas horas úteis da própria agenda: um chip na barra superior mostra quantas conversas estão paradas, um painel lateral "Minhas pendências" lista cada uma com o tempo de espera, e um banner fixo aparece quando alguma passa do nível crítico — nesse caso o gestor também é notificado. Ao entrar no sistema (login explícito), um resumo do dia mostra as pendências antes de começar a trabalhar.
+- **Configuração por loja** — em Configurações → Operação → Alertas de ociosidade (Owner), liga/desliga os alertas e ajusta os 3 limiares de horas úteis. Desligado por padrão em todas as lojas.
+
+## [0.147.0] — Sonar · 2026-07-17
+
+**Busca do Atendimento reformulada: encontra qualquer telefone (com ou sem o 9º dígito), ignora filtros durante a busca e mostra com quem está cada conversa — mais o painel do SDR consolidado e telas de gestão mais rápidas.**
+
+### Added
+
+- **Busca acha telefone em qualquer formato** — buscar um número com ou sem o 9º dígito, com hífen, espaço ou parênteses agora encontra o contato do mesmo jeito, no Atendimento, em Clientes e em Leads. CNPJ e CPF também passam a ser encontrados com qualquer máscara. Antes, um contato salvo como `+553388884188` não aparecia ao buscar `98888-4188`.
+- **Busca global no Atendimento** — com um termo digitado, a busca passa a ignorar todos os filtros ativos (status — incluindo conversas encerradas —, canal, número, atribuição, tags e período), com o aviso "Filtros ignorados durante a busca" no painel; ao limpar o termo, os filtros voltam a valer. Os resultados mostram a etiqueta de quem está atendendo cada conversa, para qualquer perfil de usuário.
+- **Busca encontra conversas de colegas (sem abrir)** — o atendente que busca um cliente atendido por outro colega agora encontra a conversa, vê o nome/telefone do contato e com quem ela está; ao clicar, recebe o aviso "Em atendimento com {nome}" em vez de abrir — o conteúdo das mensagens continua privado. Perfis sem número de atendimento (ex.: Financeiro) continuam sem ver nada.
+- **Painel do SDR consolidado** — a configuração do atendente automático ganhou aba própria dentro de "SDR" (loja piloto + liga/desliga por número), saindo da área de Inteligência artificial. O piloto continua desligado por padrão.
+- **Carga por vendedor acompanha o período** — no painel de Atendimento, o cartão de carga por vendedor agora respeita o período selecionado na aba, em vez de mostrar sempre o estado atual.
+
+### Fixed
+
+- **Painel de Atendimento travava em períodos amplos** — os indicadores (TMA/TMR, taxa de resolução, backlog, volume e mapa de calor) paravam de carregar ao selecionar períodos como "30 dias" em lojas com muitas conversas. As consultas foram movidas para o servidor e o painel carrega em segundos.
+- **Indicador do SDR no topo** — o selo do SDR na barra superior agora acompanha corretamente o liga/desliga do piloto, e as telas do SDR passaram a exibir aviso amigável quando os dados não carregam.
+
+## [0.146.0] — Signal · 2026-07-16
+
+**Confirmação de entrega/leitura e checagem de número no WAHA, reconciliação de números BR e cards de contato, e a segunda etapa (ainda desligada) do SDR de produção.**
+
+### Added
+
+- **WAHA: checagem de número + confirmação de entrega/leitura** — iniciar uma conversa nova pra um número sem WhatsApp agora é bloqueado (com opção de seguir mesmo assim), igual já acontecia no Evolution; mensagens enviadas por contas WAHA passam a mostrar o status real de entrega/leitura (check duplo) em vez de ficarem paradas no check único pra sempre.
+- **SDR de produção — segunda etapa (ativação real)** — liga de fato o piloto do atendente automático à Inbox real, mas continua **desligado em todas as lojas** (nada muda em produção até o dono ativar manualmente uma loja piloto e aplicar as migrations pendentes — passo separado, fora deste bump).
+
+### Fixed
+
+- **Transcrição de áudio não cobria o WAHA** — a funcionalidade lançada no release anterior só cobria Meta/Evolution/Evolution Go/OpenWA; como o WAHA é hoje o provedor dominante em produção, a maioria das notas de voz recebidas não estava sendo transcrita. Corrigido, e um áudio enviado pelo próprio celular do atendente (eco) deixou de ser transcrito por engano.
+- **Número de celular sem o 9º dígito confundia clientes** — um número salvo como `5481572275` (faltando o 9) era tratado como pessoa diferente de `54981572275` na deduplicação, podendo criar cliente duplicado ou deixar uma mensagem de teste nunca chegar sem nenhum aviso. O app agora reconhece as duas formas e, quando a checagem inicial de WhatsApp falha num número de 12 dígitos, tenta automaticamente a variante com o 9 — só adota se o próprio WhatsApp confirmar.
+- **Card de contato compartilhado (WAHA) aparecia vazio** — mensagens desse tipo eram gravadas sem nome nem telefone; corrigido, e as mensagens já recebidas nos últimos dias foram corrigidas retroativamente.
+
+## [0.145.0] — Scribe · 2026-07-15
+
+**Transcrição automática de notas de voz recebidas no Atendimento — desligada por padrão, ativação em produção é um passo separado.**
+
+### Added
+
+- **Transcrição automática de áudio no Atendimento** — toda nota de voz recebida de um cliente passa a ser transcrita automaticamente em segundo plano assim que chega; o texto aparece sozinho na bolha da conversa poucos segundos depois, no lugar do aviso fixo "Transcrição em breve". Se a transcrição falhar, um botão na própria bolha permite tentar de novo. A funcionalidade é controlada pela tela **Configurações → Inteligência artificial → Funcionalidades** (nova linha "Transcrição de áudio", desligada por padrão) e usa o mesmo teto de orçamento mensal de IA já existente.
+
+## [0.144.0] — Usher · 2026-07-15
+
+**Fundação do agente SDR de produção (recepção e triagem) — código inerte, ainda não ativado em nenhuma conversa real.**
+
+### Added
+
+- **Base do SDR de produção** — módulos determinísticos de decisão (guardrails de preço/prazo, contrato de decisão do LLM, prompt de sistema com persona "Fernando Gallo") e as duas peças de banco que vão sustentar o piloto: tabela de configuração por loja (`sdr_settings`, liga/desliga + prompt) e uma trigger que desliga o SDR automaticamente no instante em que um vendedor humano responde. Nada disso ainda é chamado em produção — é a fundação para a próxima etapa, que vai de fato ligar o atendimento automático.
+
+## [0.143.0] — Chirp · 2026-07-15
+
+**Aviso sonoro quando uma nova versão da plataforma fica disponível.**
+
+### Added
+
+- **Som ao avisar sobre atualização disponível** — quando a plataforma sinaliza que uma nova versão está pronta, agora toca também um aviso sonoro curto junto com o card visual, inclusive quando ele reaparece sozinho depois de "Agora não".
+
+### Fixed
+
+- **Detalhe do webhook não rolava com payloads grandes** — na tela de saúde do sistema, o modal que mostra o conteúdo bruto de um webhook recebido podia cortar o conteúdo em vez de permitir rolar, quando o payload era grande. Corrigido para rolar corretamente dentro do modal.
+
+## [0.142.2] — Passage · 2026-07-15
+
+**Mensagem recebida podia sumir sem aviso em contas conectadas via WAHA.**
+
+### Fixed
+
+- **Mensagem recebida podia sumir sem aviso (conexão WAHA)** — em contas conectadas via WAHA, uma mensagem recebida do cliente podia deixar de aparecer na conversa mesmo chegando normalmente no WhatsApp, sem nenhum erro ou aviso visível. Causa: duas notificações internas geradas quase ao mesmo tempo para a mesma mensagem podiam se atropelar, e uma acabava descartando a outra por engano. Corrigido para que cada notificação seja tratada de forma independente, sem risco de uma apagar a outra.
+
+## [0.142.1] — Passage · 2026-07-15
+
+**Duas correções pontuais reportadas em uso real: nota de voz chegando como arquivo e contagem zerada no modal de agendamento.**
+
+### Fixed
+
+- **Nota de voz enviada pela plataforma chegava como arquivo, não como áudio** — ao gravar e enviar uma nota de voz pelo Atendimento (contas WAHA), o destinatário recebia um arquivo `.webm` para abrir/baixar, em vez do player de áudio nativo do WhatsApp. Corrigido para que o WhatsApp reconheça a gravação e a toque normalmente, como uma nota de voz de verdade.
+- **Contagem "Todos" ficava zerada no modal de agendamento** — a aba "Todos" (fila de agendamentos de toda a loja, visível para Dono/Gestor) sempre mostrava "Todos · 0" ao abrir o modal, mesmo havendo agendamentos pendentes — a contagem só era carregada depois de clicar na própria aba. Corrigido para carregar junto com o restante do modal.
+
+## [0.142.0] — Passage · 2026-07-14
+
+**Migração de contas WhatsApp de Evolution clássico para WAHA, com o pipeline de importação de histórico mais resiliente.** Três contas de produção (`Teste-AILA`, `Vendas`, `GALLO Site`) migraram sem perda de dados. No caminho, o processo de importação de histórico ganhou correções reais: conversas já encerradas voltaram a ser reaproveitadas em vez de duplicadas, falhas transitórias de rede deixaram de derrubar a importação inteira, e mídia deixou de ser baixada desnecessariamente durante a importação — o que causava timeouts em contas grandes.
+
+### Added
+
+- **`migrate_whatsapp_account(old, new, dry_run)`** — função reutilizável e versionada para repontar conversas e regras de acesso entre contas WhatsApp na mesma loja, com modo de simulação (`dry_run`) por padrão.
+
+### Fixed
+
+- **Importação de histórico duplicava conversas já encerradas** — o processo de importação só reaproveitava conversas em aberto; qualquer cliente com conversa já resolvida/arquivada ganhava uma segunda conversa a cada nova importação. Corrigido para reaproveitar a conversa existente independente do status, igual ao comportamento do recebimento ao vivo.
+- **Importação WAHA quebrava por completo numa falha de rede pontual** — uma falha transitória ao listar conversas do servidor derrubava a importação inteira com erro 500 em vez de só pular o trecho afetado; agora há nova tentativa automática com espera progressiva.
+- **Importação WAHA travava e expirava (504) em contas com muito histórico de mídia** — o servidor WAHA baixava e processava a mídia de cada mensagem durante a importação, mesmo sem a plataforma usar esses bytes nessa etapa; a importação passou a pedir só o texto, e cada lote agora respeita um orçamento de tempo para nunca estourar o limite de resposta do servidor.
+
+## [0.141.0] — Spotlight · 2026-07-14
+
+**Conversas iniciadas por anúncio agora se identificam sozinhas, e vídeo recebido mostra prévia com play.** Até aqui, quando um cliente chegava clicando num anúncio do WhatsApp, não havia como saber disso sem o cliente mencionar — e todo vídeo recebido aparecia como um arquivo genérico "media.bin" para baixar, sem prévia.
+
+### Added
+
+- **Identificação de origem por anúncio (Click-to-WhatsApp Ads)** — conversas iniciadas (ou retomadas) a partir de um anúncio/post do WhatsApp ganham um selo "Anúncio" na lista do Atendimento e na ficha do cliente, lido diretamente do metadado que o WhatsApp anexa à mensagem (não depende do texto digitado pelo cliente). Cobre Evolution v2, Evolution-Go e WAHA.
+- **Prévia de vídeo no Atendimento** — mensagens de vídeo recebidas agora mostram uma miniatura com botão de play (como já acontecia com imagem), em vez de um chip genérico de arquivo para baixar.
+
+### Fixed
+
+- **Composer digitando com engasgos** — o campo de mensagem recalculava a própria altura de um jeito que forçava o navegador a refazer o layout a cada tecla digitada; corrigido para só fazer esse recálculo mais caro quando o texto encolhe (apaga caractere).
+
+## [0.140.0] — Mirror · 2026-07-12
+
+**Resposta dada direto pelo celular pareado à conta WAHA agora aparece no Atendimento.** Até aqui, se alguém respondesse uma conversa fora da plataforma — direto no aplicativo do WhatsApp, no celular conectado à instância WAHA — essa mensagem ficava invisível no histórico: a plataforma via o evento e descartava. Agora ela é espelhada na conversa certa, sem reabrir atendimentos já encerrados e caindo na fila para alguém assumir quando for uma conversa nova.
+
+### Added
+
+- **Espelhamento de eco de saída (WAHA)** — uma resposta enviada direto do celular pareado passa a aparecer na conversa do Atendimento, com a mesma regra de nunca reabrir uma conversa já resolvida/arquivada (abre uma nova, sem dono, na fila) e sem duplicar mensagens que a própria plataforma já enviou.
+
+### Fixed
+
+- **Eco de saída da WAHA não chegava de jeito nenhum** — a WAHA só entrega mensagens enviadas direto do celular pareado por um evento de webhook (`message.any`) que a plataforma nunca assinava; corrigido para assinar também esse evento (sessões já conectadas antes do fix precisam reiniciar os parâmetros uma vez para passar a recebê-lo).
+- **Mesmo com o evento certo chegando, o destinatário do eco não era reconhecido** — a WAHA identifica o destinatário de uma mensagem autoenviada por um campo diferente do que a plataforma esperava, então a mensagem chegava mas era descartada por "sem telefone"; corrigido para ler o campo certo.
+
+## [0.139.1] — Dial · 2026-07-12
+
+**Conversas WAHA de remetentes com o número oculto no WhatsApp deixaram de virar clientes-fantasma.** Quando o remetente tem a privacidade "número oculto" ativa, o WhatsApp entrega um identificador `@lid` em vez do telefone — a plataforma vinha convertendo os dígitos desse identificador diretamente em "+telefone", criando um cliente novo e sem sentido a cada remetente distinto. Agora a plataforma resolve o `@lid` para o telefone real na hora de receber a mensagem (e semeia o nome de contato do WhatsApp), e uma correção one-off já limpou os clientes-fantasma que tinham sido criados por esse bug antes do fix.
+
+### Fixed
+
+- **Recepção WAHA resolve `@lid` para o telefone real** — remetentes com privacidade ativa não geram mais um cliente com telefone impossível (`+67186324430852`, por exemplo); a plataforma agora consulta a API da WAHA para descobrir o telefone real antes de criar/achar o cliente, e semeia o nome de contato do WhatsApp em qualquer cliente novo (não só os que vinham de `@lid`). Quando a resolução falha, o cliente entra com um rótulo neutro ("Contato do WhatsApp (número oculto)") e uma tag de triagem — nunca mais os dígitos do identificador como se fossem um telefone validado.
+- **Clientes-fantasma existentes corrigidos em produção** — uma correção one-off (Owner-only, executada com revisão prévia de cada caso) resolveu os clientes já criados com telefone-fantasma antes do fix, fundindo-os nos clientes reais correspondentes quando já existiam (conversas e mensagens repontadas) ou corrigindo o telefone no próprio registro quando não.
+- **Envio de mensagens pela WAHA voltou a funcionar** — toda resposta numa conversa WAHA falhava com "Falha ao enviar a mensagem" (422); a tela de Atendimento estava chamando a rota de envio genérica, que não reconhece contas WAHA por serem propositalmente isoladas das demais. Agora o envio é roteado para a rota própria da WAHA.
+
+## [0.139.0] — Dial · 2026-07-10
+
+**A instância WAHA agora tem um painel de gestão completo e parâmetros de sessão configuráveis.** O card do WhatsApp WAHA (Configurações → WhatsApp → aba WAHA) deixou de ser uma linha simples e passou a espelhar os cards das outras contas: quem tem acesso ao número, cor de identificação, status e saúde da conexão, estatísticas de envio (30 dias) e um aviso destacado para reconectar quando a sessão cai — inclusive o estado "aguardando leitura do QR". Além disso, dá para ajustar como cada sessão se comporta — ignorar grupos, status, canais e transmissões para manter o Atendimento limpo, ligar depuração e configurar proxy — direto na criação (seção "Avançado") ou depois, pelo botão "Parâmetros", com um único "Salvar e reiniciar" que aplica sem precisar ler o QR de novo.
+
+### Added
+
+- **Parâmetros de sessão WAHA:** filtros de tipo de conversa (grupos, status, canais, transmissões — por padrão só conversas 1:1), depuração e proxy, configuráveis na criação da sessão (seção "Avançado" do assistente) ou depois pelo botão "Parâmetros" no card; aplicar reinicia a sessão preservando o pareamento (não pede o QR de novo).
+
+### Changed
+
+- **Card de instância WAHA:** de uma linha simples para um painel completo espelhando os cards Meta/Evolution — gestão de acesso (quem vê o número), cor da instância, badges de status e saúde, estatísticas de envio (enviadas, falhas, taxa, último envio) e banner de reconexão em destaque, além das ações "Parear novamente" e "Logout" no menu da instância.
+
+### Fixed
+
+- **Instância WAHA no filtro do Atendimento:** as sessões WAHA passam a aparecer no filtro "Instância" da Inbox e a resolver a cor e o rótulo de origem das conversas — antes ficavam de fora da lista de instâncias (só Meta/Evolution/OpenWA apareciam).
+
+## [0.138.0] — Sidecar · 2026-07-10
+
+**Novo motor de conexão WhatsApp: OpenWA, para números pareados por QR Code como o Evolution, mas rodando em servidor próprio.** É mais uma opção de conexão, ao lado de Evolution e Evolution Go — pareamento pela tela de Configurações → WhatsApp, mesma experiência de conectar/reconectar já existente. Corrige também um limite herdado do próprio WhatsApp: contatos com identificador de privacidade (que escondem o número de telefone) agora são resolvidos corretamente nas contas OpenWA, chegando ao Atendimento com o nome e telefone certos em vez de serem ignorados.
+
+### Added
+
+- **Engine WhatsApp OpenWA:** novo provedor de conexão (ao lado de Evolution e Evolution Go) — pareamento por QR Code, reconexão automática e a mesma tela de gestão de contas já usada pelos demais provedores.
+
+### Fixed
+
+- **Contatos com identificador de privacidade (OpenWA):** mensagens de contatos que escondem o número de telefone (recurso de privacidade do WhatsApp) agora chegam ao Atendimento com o nome e telefone reais, em vez de serem descartadas.
+
+## [0.137.0] — Promote · 2026-07-10
+
+**Agora dá para transformar uma conversa em lead direto do menu de atendimento, e o menu "/" de respostas rápidas no composer ficou mais inteligente.** Uma conversa sem lead vinculado ganha a opção "Qualificar como lead" no menu (⋮); quando já tem lead, o mesmo menu mostra "Ver lead" com atalho direto. Também corrigido: o aviso de sucesso ao vincular deixava de refletir quando a vinculação realmente falhava, e o vendedor responsável já vem pré-selecionado no formulário. No composer do Atendimento, o menu "/" agora filtra corretamente por categoria e por atalho (ex.: `/garantia`, `/catalogo`) em vez de misturar itens soltos, e o nome do cliente é preenchido automaticamente ao inserir uma resposta rápida.
+
+### Added
+
+- **Qualificar conversa como lead:** o menu (⋮) da conversa ganhou a ação "Qualificar como lead" para vincular a conversa a um lead novo ou existente; conversas já vinculadas mostram "Ver lead" com atalho direto para o Kanban de leads.
+
+### Fixed
+
+- **Aviso de sucesso enganoso ao vincular lead:** o formulário de vincular lead não mostra mais um aviso de sucesso quando a vinculação falha, e o vendedor responsável pela conversa já vem pré-selecionado.
+- **Menu "/" do composer de mensagens:** digitar `/catalogo`, `/tabela`, `/garantia` ou `/loja` agora filtra corretamente os materiais daquela categoria (antes mostrava uma lista solta, sem relação com o que foi digitado); respostas rápidas passam a ser encontradas pelo atalho digitado, e o nome do cliente é preenchido automaticamente ao inserir uma resposta rápida (antes ficava sempre marcado para completar manualmente).
+
 ## [0.136.0] — Satchel · 2026-07-08
 
 **Agora dá para arrastar um arquivo do computador ou colar um print direto na barra de mensagem do Atendimento.** Além do menu de anexar já existente, é possível soltar uma imagem, áudio ou documento sobre o campo de mensagem, ou colar (Ctrl+V) uma imagem copiada — do "Copiar imagem" do navegador, de uma ferramenta de print ou do Explorer. Também esclarecido o rótulo do filtro de Status na fila de atendimento, que já ocultava conversas resolvidas por padrão mas não deixava isso claro.
@@ -456,6 +666,7 @@ versioning follows [SemVer](https://semver.org/).
 ## [0.112.0] — Lexicon · 2026-06-21
 
 ### Added
+
 - Copiloto analítico com NLU por LLM: a pergunta é interpretada pela LLM
   (escolhe métrica + filtros, inclusive várias métricas → vários cards), e o
   número segue determinístico (executeQuery). Edge `analytics-resolve` (13ª),
@@ -581,6 +792,7 @@ versioning follows [SemVer](https://semver.org/).
 ### Notes
 
 - 3 migrations versionadas e **não aplicadas** (rollout gated, espelha o cutover do AI/LLM): `integration_secret_delete`, `add_shipping_quote_snapshot` (coluna jsonb em quotes/orders) e `integration_logs_melhor_envio` (CHECK do audit). Robustez da Edge endurecida (validação da resposta de token, timeout de 15 s, checagem de erro nas RPCs do Vault, jitter de 60 s no refresh). Scopes ampliados e o e2e real (conta + app sandbox do ME) seguem documentados em `docs/dev/melhor-envio-cotacao.md`.
+
 ## [0.105.0] — Insignia · 2026-06-17
 
 **O card de cada provedor de IA agora mostra a marca, uma prévia da chave configurada e os parâmetros de geração.** Antes o card identificava o provedor só pelas iniciais, não dava pista de qual chave estava cadastrada e rodava o Playground com parâmetros fixos. Agora o cabeçalho traz o logotipo da marca (Anthropic, OpenAI, OpenRouter, Google), a chave configurada aparece como prévia dos 4 últimos caracteres (`••••XXXX`, vindos do hint do Vault — a chave em si nunca chega ao frontend) e cada provedor tem um bloco editável de parâmetros padrão de geração (temperatura, máximo de tokens, top P) que o Playground passa a respeitar.
@@ -594,6 +806,7 @@ versioning follows [SemVer](https://semver.org/).
 ### Changed
 
 - **Playground usa os parâmetros do provedor** — `AiPlaygroundTab` passa os `params` do provedor efetivo (com fallback no padrão) em vez dos valores fixos `{ temperature: 0.4, maxTokens: 1024 }`.
+
 ## [0.104.0] — Manifest · 2026-06-17
 
 **A lista de modelos de cada provedor de IA agora é dinâmica.** Em vez de dois modelos fixos, o card do provedor busca os modelos disponíveis ao vivo (Anthropic, OpenAI e OpenRouter) com a chave do Vault, via uma nova ação no Edge `ai-generate`. O preço vem da API (OpenRouter) ou de um mapa no catálogo (OpenAI/Anthropic); modelos sem preço conhecido ficam selecionáveis, marcados "preço a definir".
@@ -635,7 +848,7 @@ versioning follows [SemVer](https://semver.org/).
 
 ### Changed
 
-- **Área de *Inteligência artificial*** — gate demo-only removido; o item aparece para o Owner em produção (`supabase`). Em modo mock, o comportamento permanece idêntico ao v0.100.0.
+- **Área de _Inteligência artificial_** — gate demo-only removido; o item aparece para o Owner em produção (`supabase`). Em modo mock, o comportamento permanece idêntico ao v0.100.0.
 - **Catálogo de modelos e preços** — extraído de `src/providers/data/impl/mock/_aiSeed.ts` para `src/providers/data/engine/aiCatalog.ts` (módulo compartilhado fora de `mock/`); `_aiSeed.ts` passa a re-exportar o catálogo. `buildDefaultAiSettings` diferencia `mock` de `supabase`.
 - **`IAiUsageEvent`** — campo `source: "playground" | "routed"` agora obrigatório; campo `feature` agora opcional (playground não tem funcionalidade associada). `summarizeUsage` filtra eventos sem `feature` no agrupamento por funcionalidade.
 

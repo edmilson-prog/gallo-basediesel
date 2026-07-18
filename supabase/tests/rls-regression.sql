@@ -1271,6 +1271,207 @@ begin
 end $mark$;
 reset role;
 
+-- ============================================================================
+-- webhook_deliveries: owner-only read; writes are service_role only (no
+-- insert policies — Edge Functions bypass RLS).
+-- ============================================================================
+
+insert into public.webhook_deliveries (integration_name, endpoint, http_status, outcome, trace_id)
+values ('whatsapp_waha', '/waha-webhook', 200, 'processed', 'rls-regression');
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"9a418578-2671-4141-a15a-d39b2fd13af7","role":"authenticated","app_metadata":{"role":"owner","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+
+do $$
+begin
+  if (select count(*) from public.webhook_deliveries where trace_id = 'rls-regression') <> 1 then
+    raise exception '#webhook_deliveries: owner should read webhook_deliveries';
+  end if;
+end $$;
+
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+
+do $$
+declare
+  blocked boolean := false;
+begin
+  if (select count(*) from public.webhook_deliveries) <> 0 then
+    raise exception '#webhook_deliveries: non-owner must not read webhook_deliveries';
+  end if;
+  begin
+    insert into public.webhook_deliveries (integration_name, endpoint, http_status, outcome)
+    values ('whatsapp_waha', '/rls-regression/deny', 200, 'processed');
+  exception when insufficient_privilege then
+    blocked := true;
+  end;
+  if not blocked then
+    raise exception '#webhook_deliveries: authenticated must not insert into webhook_deliveries';
+  end if;
+end $$;
+
+reset role;
+
+set local role anon;
+
+do $$
+declare
+  blocked boolean := false;
+begin
+  begin
+    insert into public.webhook_deliveries (integration_name, endpoint, http_status, outcome)
+    values ('whatsapp_waha', '/rls-regression/deny-anon', 200, 'processed');
+  exception when insufficient_privilege then
+    blocked := true;
+  end;
+  if not blocked then
+    raise exception '#webhook_deliveries: anon must not insert into webhook_deliveries';
+  end if;
+end $$;
+
+reset role;
+
+-- ---------------------------------------------------------------------------
+-- Idle-conversation alerts (spec 2026-07-16): summary RPC + triggers.
+-- Schema per supabase/migrations/20260716190000_idle_conversation_alerts.sql
+-- (verified against supabase/migrations/20260608151417_create_messages_table.sql):
+-- messages.direction is 'in'/'out' (NOT 'inbound'/'outbound'), the text column
+-- is `text` (NOT `content`), there is no `created_at`-as-business-timestamp —
+-- the column that drives awaiting_reply_since is `sent_at`. messages has no
+-- store_id column. NOT NULL columns without a default that the INSERT below
+-- must satisfy: conversation_id, direction, author_type, provider, status,
+-- sent_at (id defaults to gen_random_uuid(), text defaults to '').
+-- ---------------------------------------------------------------------------
+-- Trigger unit-check (as superuser, before impersonation): inbound sets, outbound clears.
+do $$
+declare
+  v_conv uuid;
+  v_since timestamptz;
+begin
+  select id into v_conv from public.conversations
+   where status in ('aguardando','em_andamento','aguardando_cliente') limit 1;
+  if v_conv is null then
+    raise notice 'idle-alerts: no open conversation in fixtures — skipping trigger check';
+    return;
+  end if;
+  update public.conversations set awaiting_reply_since = null where id = v_conv;
+  insert into public.messages (conversation_id, direction, author_type, provider, text, status, sent_at)
+    values (v_conv, 'in', 'customer', 'mock', 'rls-test inbound', 'delivered', now());
+  select awaiting_reply_since into v_since from public.conversations where id = v_conv;
+  if v_since is null then
+    raise exception 'idle-alerts: inbound message should set awaiting_reply_since';
+  end if;
+  insert into public.messages (conversation_id, direction, author_type, provider, text, status, sent_at)
+    values (v_conv, 'out', 'seller', 'mock', 'rls-test outbound', 'sent', now());
+  select awaiting_reply_since into v_since from public.conversations where id = v_conv;
+  if v_since is not null then
+    raise exception 'idle-alerts: outbound message should clear awaiting_reply_since';
+  end if;
+end $$;
+
+-- business-time fn sanity: no schedule ⇒ raw diff.
+do $$
+begin
+  if public.idle_business_seconds(null, now() - interval '2 hours', now()) not between 7100 and 7300 then
+    raise exception 'idle_business_seconds: raw diff expected for null schedule';
+  end if;
+end $$;
+
+-- SQL≡JS parity: SAME fixtures as idleBusinessTime.test.ts (Mon-Fri 08-18 SP).
+-- Monday 07:00→09:00 SP = 3600s; Saturday 10:00 → Monday 09:00 SP = 3600s;
+-- Monday 08:00 → Wednesday 18:00 SP = 108000s (3 × 10h).
+do $$
+declare
+  sched jsonb := '[
+    {"weekday":1,"openAt":"08:00","closeAt":"18:00","enabled":true},
+    {"weekday":2,"openAt":"08:00","closeAt":"18:00","enabled":true},
+    {"weekday":3,"openAt":"08:00","closeAt":"18:00","enabled":true},
+    {"weekday":4,"openAt":"08:00","closeAt":"18:00","enabled":true},
+    {"weekday":5,"openAt":"08:00","closeAt":"18:00","enabled":true}
+  ]'::jsonb;
+begin
+  if public.idle_business_seconds(sched,
+       '2026-07-13T07:00:00-03:00'::timestamptz, '2026-07-13T09:00:00-03:00'::timestamptz) <> 3600 then
+    raise exception 'parity: Monday 07-09 should yield 3600s';
+  end if;
+  if public.idle_business_seconds(sched,
+       '2026-07-11T10:00:00-03:00'::timestamptz, '2026-07-13T09:00:00-03:00'::timestamptz) <> 3600 then
+    raise exception 'parity: weekend skip should yield 3600s';
+  end if;
+  if public.idle_business_seconds(sched,
+       '2026-07-13T08:00:00-03:00'::timestamptz, '2026-07-15T18:00:00-03:00'::timestamptz) <> 108000 then
+    raise exception 'parity: Mon 08 → Wed 18 should yield 108000s';
+  end if;
+end $$;
+
+-- Arrange (superuser, rolled back): force idleAlerts ON for the matriz store and
+-- plant a positive control — an OWNER-assigned conversation with a pending reply —
+-- so the LUCAS leak check below cannot pass vacuously (0-rows-for-everyone).
+do $$
+declare
+  v_owner_conv uuid;
+begin
+  update public.stores
+     set settings = jsonb_set(coalesce(settings,'{}'::jsonb), '{idleAlerts}',
+       '{"enabled":true,"level1Hours":1,"level2Hours":8,"level3Hours":24,"notifyManagerOnLevel3":true}'::jsonb)
+   where id = '00000000-0000-0000-0000-000000000001';
+
+  select id into v_owner_conv from public.conversations
+   where store_id = '00000000-0000-0000-0000-000000000001'
+     and assigned_seller_id = '57706ecc-01b5-4a96-b403-0359a4bb767f'
+     and status in ('aguardando','em_andamento','aguardando_cliente')
+   limit 1;
+  if v_owner_conv is null then
+    raise notice 'idle-alerts leak check: no owner-assigned open conversation in fixtures — positive control skipped';
+    return;
+  end if;
+  -- 30h raw (not the 3h originally proposed): this static file has no DB
+  -- access to confirm whether the owner's sellers.work_schedule is populated
+  -- in the real seed. idle_business_seconds() only ever REDUCES the raw diff
+  -- when a schedule is present (business time <= raw time), so 30h raw clears
+  -- the level1Hours=1 threshold above regardless of schedule; 3h raw would
+  -- not be safe under an unknown/possibly-restrictive schedule.
+  update public.conversations set awaiting_reply_since = now() - interval '30 hours'
+   where id = v_owner_conv;
+end $$;
+
+-- Summary RPC as LUCAS: must never return a conversation assigned to another seller.
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+do $$
+begin
+  if exists (
+    select 1 from public.idle_conversations_summary() s
+    join public.conversations c on c.id = s.conversation_id
+    where c.assigned_seller_id is distinct from '5a6400ed-5aec-4bf1-b641-31635f15c887'::uuid
+  ) then
+    raise exception 'idle summary: leaked another seller''s conversation';
+  end if;
+
+  if exists (
+    select 1 from public.idle_conversations_summary() s
+    join public.conversations c on c.id = s.conversation_id
+    where c.assigned_seller_id = '57706ecc-01b5-4a96-b403-0359a4bb767f'::uuid
+  ) then
+    raise exception 'idle summary: returned the OWNER''s planted conversation to lucas';
+  end if;
+end $$;
+reset role;
+
 select 'ALL RLS REGRESSION TESTS PASSED' as result;
 
 rollback;

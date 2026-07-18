@@ -14,14 +14,20 @@ import {
   getActiveDataSource,
   useWhatsAppAccountsProvider,
   useWhatsAppGoServersProvider,
+  useWhatsAppOpenWaServersProvider,
 } from "@/providers/data";
 import { useEvolutionPairing } from "../hooks/useEvolutionPairing";
-import type { IWhatsAppAccount, IWhatsAppGoServer, WhatsAppAccountPurpose } from "@/shared/types";
+import type {
+  IWhatsAppAccount,
+  IWhatsAppGoServer,
+  IWhatsAppOpenWaServer,
+  WhatsAppAccountPurpose,
+} from "@/shared/types";
 import { isValidCredentialsRef, INVALID_CREDENTIALS_REF_MESSAGE } from "../api/whatsappConnect";
 import { generateGoCredentialsRef } from "../utils/goCredentials";
 
 type Phase = "form" | "creating" | "qr" | "done";
-type WizardProvider = "evolution-go" | "evolution";
+type WizardProvider = "evolution-go" | "evolution" | "openwa";
 
 const EVOLUTION_FAMILY_CAPS: IWhatsAppAccount["capabilities"] = {
   supportsTemplatesHsm: false,
@@ -37,6 +43,24 @@ const PURPOSE_OPTIONS: Array<{ value: WhatsAppAccountPurpose; label: string }> =
   { value: "campanha", label: "Campanha" },
   { value: "ambos", label: "Ambos" },
 ];
+
+/** Unique row label for openwa accounts — never resolved as a Vault secret. */
+function generateOpenWaCredentialsRef(label: string, existingRefs: string[], suffix: string): string {
+  const slug =
+    label
+      .toUpperCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[^A-Z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 24) || "INSTANCIA";
+  const suf = suffix.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 16) || "X";
+  const base = `WA_OPENWA_${slug}_${suf}`;
+  let candidate = base;
+  let n = 1;
+  while (existingRefs.includes(candidate)) candidate = `${base}_${n++}`;
+  return candidate;
+}
 
 function slugify(label: string): string {
   return label
@@ -89,6 +113,27 @@ export function AddInstanceWizard({
     };
   }, [goServersProvider]);
 
+  const openwaServersProvider = useWhatsAppOpenWaServersProvider();
+  const [openwaServers, setOpenwaServers] = useState<IWhatsAppOpenWaServer[]>([]);
+  const [openwaServerId, setOpenwaServerId] = useState<string>("");
+
+  useEffect(() => {
+    let cancelled = false;
+    openwaServersProvider
+      .list()
+      .then((list) => {
+        if (cancelled) return;
+        setOpenwaServers(list);
+        if (list.length === 1) setOpenwaServerId(list[0]!.id); // auto-select the only one
+      })
+      .catch(() => {
+        if (!cancelled) setOpenwaServers([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [openwaServersProvider]);
+
   const [phase, setPhase] = useState<Phase>("form");
   const [label, setLabel] = useState("");
   const [purpose, setPurpose] = useState<WhatsAppAccountPurpose>("atendimento");
@@ -114,6 +159,14 @@ export function AddInstanceWizard({
   const goCredentialsRef = useMemo(
     () => (label.trim() ? generateGoCredentialsRef(label, existingRefs, goSuffix) : ""),
     [label, existingRefs, goSuffix],
+  );
+  // OpenWA has no per-account secret (the key lives on the server registry —
+  // see whatsapp_openwa_servers) — this ref is only a unique row label, never
+  // resolved as a Vault secret name, so a lightweight inline generator is fine.
+  const [openwaSuffix] = useState(() => Math.random().toString(36).slice(2, 5));
+  const openwaCredentialsRef = useMemo(
+    () => (label.trim() ? generateOpenWaCredentialsRef(label, existingRefs, openwaSuffix) : ""),
+    [label, existingRefs, openwaSuffix],
   );
 
   const pairing = useEvolutionPairing(
@@ -153,11 +206,53 @@ export function AddInstanceWizard({
           isFailoverActive: false,
           purpose,
           alertsMuted: false,
+          sdrEnabled: false,
         });
         setAccountId(created.id);
         setPhase("qr");
       } catch (e) {
         setError(e instanceof Error ? e.message : "Falha ao criar a instância Evolution Go.");
+        setPhase("form");
+      }
+      return;
+    }
+
+    if (wizardProvider === "openwa") {
+      if (!openwaServerId) {
+        setError("Selecione o servidor OpenWA.");
+        return;
+      }
+      if (!isMock && !isValidCredentialsRef(openwaCredentialsRef)) {
+        setError(INVALID_CREDENTIALS_REF_MESSAGE);
+        return;
+      }
+      setPhase("creating");
+      try {
+        const created = await provider.create({
+          storeId,
+          label: label.trim(),
+          phoneNumber: "",
+          provider: "openwa",
+          credentialsRef: openwaCredentialsRef,
+          status: "pending",
+          capabilities: EVOLUTION_FAMILY_CAPS,
+          // sessionId starts empty — whatsapp-connect's "qr" action creates the
+          // real session on the OpenWA server on first pairing and persists it
+          // here (mirrors evolution-go's instanceId flow). Empty string (not
+          // null) so the DB shape check `provider_config ? 'sessionId'` passes.
+          providerConfig: { sessionId: "" },
+          openwaServerId,
+          currentState: "healthy",
+          failoverPolicy: "disabled",
+          isFailoverActive: false,
+          purpose,
+          alertsMuted: false,
+          sdrEnabled: false,
+        });
+        setAccountId(created.id);
+        setPhase("qr");
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Falha ao criar a instância OpenWA.");
         setPhase("form");
       }
       return;
@@ -184,6 +279,7 @@ export function AddInstanceWizard({
         isFailoverActive: false,
         purpose,
         alertsMuted: false,
+        sdrEnabled: false,
       });
       setAccountId(created.id);
       setPhase("qr");
@@ -201,7 +297,9 @@ export function AddInstanceWizard({
           <DialogDescription>
             {wizardProvider === "evolution-go"
               ? "Cria um novo número no servidor Evolution Go e conecta por QR code."
-              : "Cria um novo número no servidor Evolution e conecta por QR code."}
+              : wizardProvider === "openwa"
+                ? "Cria um novo número no servidor OpenWA e conecta por QR code."
+                : "Cria um novo número no servidor Evolution e conecta por QR code."}
           </DialogDescription>
         </DialogHeader>
 
@@ -237,6 +335,17 @@ export function AddInstanceWizard({
                   }`}
                 >
                   Evolution v2 (legado)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWizardProvider("openwa")}
+                  className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                    wizardProvider === "openwa"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  OpenWA
                 </button>
               </div>
             </div>
@@ -297,14 +406,46 @@ export function AddInstanceWizard({
                 )}
               </div>
             )}
+            {wizardProvider === "openwa" && (
+              <div className="space-y-1.5">
+                <Label htmlFor="add-openwa-server">Servidor OpenWA</Label>
+                {openwaServers.length === 0 ? (
+                  <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+                    Nenhum servidor cadastrado. Cadastre um em{" "}
+                    <strong>Configurações → Integrações &amp; Chaves</strong> antes de adicionar um
+                    número.
+                  </div>
+                ) : (
+                  <select
+                    id="add-openwa-server"
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    value={openwaServerId}
+                    onChange={(e) => setOpenwaServerId(e.target.value)}
+                  >
+                    <option value="" disabled>
+                      Selecione o servidor…
+                    </option>
+                    {openwaServers.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
             <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs">
               <span className="text-muted-foreground">
-                {wizardProvider === "evolution-go"
+                {wizardProvider === "evolution-go" || wizardProvider === "openwa"
                   ? "Prefixo de credenciais (gerado): "
                   : "ID técnico (gerado): "}
               </span>
               <span className="font-mono text-foreground">
-                {wizardProvider === "evolution-go" ? goCredentialsRef || "—" : instanceName || "—"}
+                {wizardProvider === "evolution-go"
+                  ? goCredentialsRef || "—"
+                  : wizardProvider === "openwa"
+                    ? openwaCredentialsRef || "—"
+                    : instanceName || "—"}
               </span>
             </div>
             {error && <p className="text-xs text-severity-critical">{error}</p>}
@@ -315,7 +456,8 @@ export function AddInstanceWizard({
               <Button
                 disabled={
                   !label.trim() ||
-                  (wizardProvider === "evolution-go" && (goServers.length === 0 || !goServerId))
+                  (wizardProvider === "evolution-go" && (goServers.length === 0 || !goServerId)) ||
+                  (wizardProvider === "openwa" && (openwaServers.length === 0 || !openwaServerId))
                 }
                 onClick={() => void handleCreate()}
               >
@@ -328,7 +470,9 @@ export function AddInstanceWizard({
             <Icon icon="mdi:loading" className="mr-1.5 inline animate-spin" size={16} />
             {wizardProvider === "evolution-go"
               ? "Criando a instância no servidor Evolution Go…"
-              : "Criando a instância no servidor Evolution…"}
+              : wizardProvider === "openwa"
+                ? "Criando a instância no servidor OpenWA…"
+                : "Criando a instância no servidor Evolution…"}
           </p>
         ) : phase === "qr" ? (
           <div className="space-y-3 py-2 text-center">

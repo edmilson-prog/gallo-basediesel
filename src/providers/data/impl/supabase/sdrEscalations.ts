@@ -198,4 +198,18 @@ export const supabaseSdrEscalationsProvider: ISdrEscalationsProvider = {
     if (error) throw new Error(`[supabase] sdrEscalations.patch(${id}) failed: ${error.message}`);
     return rowToSdrEscalation(data as unknown as SdrEscalationRow);
   },
+
+  async claim(id: ID, sellerId: ID): Promise<ISdrEscalation> {
+    // sellerId is accepted for interface symmetry with the mock provider but
+    // NOT sent to the RPC — claim_sdr_escalation resolves the caller's seller
+    // id server-side from the JWT (current_seller_id()), which is the actual
+    // authorization boundary. A client-supplied seller id here would be
+    // meaningless to trust.
+    void sellerId;
+    const { data, error } = await getSupabaseClient().rpc("claim_sdr_escalation", {
+      p_escalation_id: id,
+    });
+    if (error) throw new Error(`[supabase] sdrEscalations.claim(${id}) failed: ${error.message}`);
+    return rowToSdrEscalation(data as unknown as SdrEscalationRow);
+  },
 };

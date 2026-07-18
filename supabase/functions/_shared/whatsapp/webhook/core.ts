@@ -17,14 +17,15 @@
 import { parseEvolutionInbound } from "../evolution/parser.ts";
 import { parseEvolutionGoInbound } from "../evolution-go/parser.ts";
 import { parseMetaInbound } from "../meta/parser.ts";
+import { parseOpenWaInbound } from "../openwa/parser.ts";
 import type { IWhatsAppProvider } from "../IWhatsAppProvider.ts";
-import type { IInboundMessage, IInboundStatus, IOutboundEcho } from "../types.ts";
+import type { IInboundMessage, IInboundStatus, IOutboundEcho, IAdReferral } from "../types.ts";
 import { MEDIA_DISCRIMINATOR_TYPES } from "../types.ts";
 
 export interface IAccountRecord {
   id: string;
   storeId: string;
-  provider: "meta" | "evolution" | "evolution-go";
+  provider: "meta" | "evolution" | "evolution-go" | "openwa";
   phoneNumber: string;
   credentialsRef: string;
   providerConfig: Record<string, unknown> | null;
@@ -32,6 +33,13 @@ export interface IAccountRecord {
 
 export interface ICustomerRecord {
   id: string;
+}
+
+export interface ILeadRecord {
+  id: string;
+  sellerId: string;
+  /** `null` when the lead is active/converted; a loss reason when marked lost. */
+  lossReason: string | null;
 }
 
 /** Injected persistence surface — the Edge Function backs it with service_role. */
@@ -55,6 +63,8 @@ export interface IWebhookDb {
   findEvolutionGoAccount(instanceId: string): Promise<IAccountRecord | null>;
   /** Like findEvolutionGoAccount but INCLUDING disconnected rows (used by the edge auth gate). */
   findEvolutionGoAccountAnyStatus(instanceId: string): Promise<IAccountRecord | null>;
+  /** openwa: by provider_config.sessionId (webhook envelope carries it as `sessionId`). */
+  findOpenWaAccount(sessionId: string): Promise<IAccountRecord | null>;
   /** Conditional status write; returns true when the row actually changed. */
   setAccountConnectionStatus(
     accountId: string,
@@ -81,6 +91,27 @@ export interface IWebhookDb {
    *     is still the phone-number placeholder (or empty) — a manually-set name is
    *     never overwritten.
    */
+  findLeadByPhone(storeId: string, phoneDigits: string): Promise<ILeadRecord | null>;
+  /**
+   * Clears lossReason/lossNotes and resets the lead to the store's first
+   * pipeline stage (by `order`) — reopens a previously lost lead so a repeat
+   * inbound from the same number doesn't spawn a duplicate.
+   */
+  reopenLostLead(leadId: string): Promise<void>;
+  /**
+   * Creates a lead for a brand-new WhatsApp contact: origin='whatsapp', the
+   * store's first pipeline stage, temperature='morno', seller resolved via
+   * the rotation-assignment SQL function.
+   */
+  createLead(input: { storeId: string; phone: string; name?: string }): Promise<ILeadRecord>;
+  /** Same contract as findOpenConversation but keyed by leadId instead of customerId. */
+  findOpenConversationForLead(
+    leadId: string,
+    accountId: string,
+    includeTerminal?: boolean,
+  ): Promise<{ id: string; status: string } | null>;
+  /** Idempotently appends conversationId to lead.conversations. */
+  linkConversationToLead(leadId: string, conversationId: string): Promise<void>;
   applyInboundContactName(customerId: string, name: string): Promise<void>;
   /**
    * Looks up the latest conversation for this customer+account. By default
@@ -95,10 +126,12 @@ export interface IWebhookDb {
     customerId: string,
     accountId: string,
     includeTerminal?: boolean,
-  ): Promise<{ id: string; status: string } | null>;
+  ): Promise<{ id: string; status: string; isSdrActive: boolean } | null>;
   createConversation(input: {
     storeId: string;
-    customerId: string;
+    /** Exactly one of customerId/leadId is set — mirrors the app-level invariant. */
+    customerId?: string | null;
+    leadId?: string | null;
     accountId: string;
     assignedSellerId: string | null;
     lastMessageAt: string;
@@ -108,8 +141,9 @@ export interface IWebhookDb {
   }): Promise<{ id: string }>;
   insertInboundMessage(input: {
     conversationId: string;
-    customerId: string;
-    provider: "meta" | "evolution" | "evolution-go";
+    /** Feeds messages.author_id (free text, no FK) — customer OR lead id. */
+    authorId: string;
+    provider: "meta" | "evolution" | "evolution-go" | "openwa";
     text: string;
     mediaType: string | null;
     /** Original document filename (messages.media_filename). */
@@ -119,6 +153,10 @@ export interface IWebhookDb {
     sentAt: string;
   }): Promise<{ id: string }>;
   bumpConversation(conversationId: string, lastMessageAt: string): Promise<void>;
+  /** Best-effort attribution write (ad-source detection, PRD n/a) — sets/
+   *  overwrites conversations.ad_referral with the LATEST inbound referral
+   *  seen. Only ever called when parsed.adReferral is present. */
+  setConversationAdReferral(conversationId: string, adReferral: IAdReferral): Promise<void>;
   /**
    * Reopens a closed (resolvida/arquivada) conversation on customer inbound
    * (spec 2026-07-03 §1.5): status→'aguardando', unassigns the owner, bumps
@@ -129,7 +167,7 @@ export interface IWebhookDb {
   /** Mirrored phone-sent message (outbound echo) — direction out, status sent. */
   insertOutboundEchoMessage(input: {
     conversationId: string;
-    provider: "meta" | "evolution" | "evolution-go";
+    provider: "meta" | "evolution" | "evolution-go" | "openwa";
     text: string;
     mediaType: string | null;
     mediaFilename?: string | null;
@@ -189,7 +227,7 @@ export interface IProcessResult {
 }
 
 export interface IProcessArgs {
-  provider: "meta" | "evolution" | "evolution-go";
+  provider: "meta" | "evolution" | "evolution-go" | "openwa";
   rawPayload: unknown;
   db: IWebhookDb;
   /** Builds the concrete engine for the resolved account (media download). */
@@ -209,6 +247,14 @@ export interface IProcessArgs {
     phone: string;
     account: IAccountRecord;
   }) => void;
+  /**
+   * Fire-and-forget hook invoked when an inbound message lands on a
+   * conversation the SDR is already driving (`is_sdr_active=true`). The Edge
+   * wiring calls sdr-respond in the background to continue the turn. MUST
+   * NOT block or throw — the webhook stays fail-closed and answers 200 fast
+   * regardless (SDR Parte B, 2026-07-15).
+   */
+  onSdrTurn?: (input: { conversationId: string }) => void;
   /**
    * Optional sink for raw Evolution Go events we don't yet ingest but want to
    * inspect — the HistorySync ingestion spike (Phase 2, Etapa A). Best-effort:
@@ -279,6 +325,24 @@ function extractEvolutionGoInstance(rawPayload: unknown): string {
 }
 
 /**
+ * openwa's webhook envelope carries the session id as `sessionId` (confirmed
+ * live 2026-07-07 — matches `provider_config.sessionId`, the id `POST
+ * /api/sessions` returns). Falls back to the nested message record's own
+ * `sessionId` (the record carries it too — confirmed via GET /messages), so
+ * an envelope drift or a bare-record delivery still resolves the account.
+ * No connection-lifecycle handling is implemented for openwa v1 (the
+ * `session.status`/`session.qr` events are dropped by the parser as
+ * unsupported — see ../openwa/parser); only message/ack events resolve an
+ * account, via findOpenWaAccount below.
+ */
+function extractOpenWaInstance(rawPayload: unknown): string {
+  const payload = rawPayload as
+    | { sessionId?: string; data?: { sessionId?: string } | null }
+    | null;
+  return payload?.sessionId ?? payload?.data?.sessionId ?? "";
+}
+
+/**
  * Maps an Evolution Go lifecycle event to a connection status, or null when it
  * carries no status signal. whatsmeow emits `LoggedOut` when the device is
  * unlinked (Reason 401) and `Connection` (State open/close) on session changes.
@@ -335,6 +399,44 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   } finally {
     clearTimeout(timer);
   }
+}
+
+interface IResolvedContact {
+  kind: "customer" | "lead";
+  id: string;
+  /** Only set for kind==='lead' — the customer path stays unassigned (pool), unchanged. */
+  sellerId: string | null;
+  /** True only when this call just created a brand-new lead — NOT when an
+   *  existing lead was found/reopened (that's a reuse, not a creation). */
+  created: boolean;
+}
+
+/**
+ * Resolves who a phone number is, in this order: a real customer (unchanged
+ * behavior) → an existing lead (reopened if it was marked lost) → a brand-new
+ * lead. Shared by the inbound-customer-message and outbound-echo paths so
+ * neither one still creates a pending_review customer placeholder.
+ */
+async function resolveContact(
+  db: IWebhookDb,
+  storeId: string,
+  phone: string,
+  name: string | undefined,
+): Promise<IResolvedContact> {
+  const phoneDigits = digits(phone);
+  const customer = await db.findCustomerByPhone(storeId, phoneDigits);
+  if (customer) {
+    return { kind: "customer", id: customer.id, sellerId: null, created: false };
+  }
+  const lead = await db.findLeadByPhone(storeId, phoneDigits);
+  if (lead) {
+    if (lead.lossReason !== null) {
+      await db.reopenLostLead(lead.id);
+    }
+    return { kind: "lead", id: lead.id, sellerId: lead.sellerId, created: false };
+  }
+  const created = await db.createLead({ storeId, phone, name });
+  return { kind: "lead", id: created.id, sellerId: created.sellerId, created: true };
 }
 
 export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessResult> {
@@ -453,7 +555,9 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
         ? parseMetaInbound(rawPayload, "")
         : provider === "evolution-go"
           ? parseEvolutionGoInbound(rawPayload, "")
-          : parseEvolutionInbound(rawPayload, "");
+          : provider === "openwa"
+            ? parseOpenWaInbound(rawPayload, "")
+            : parseEvolutionInbound(rawPayload, "");
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     warn("webhook payload ignored", { provider, detail });
@@ -480,7 +584,9 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
       ? extractMetaPhoneNumberId(rawPayload)
       : provider === "evolution-go"
         ? extractEvolutionGoInstance(rawPayload)
-        : extractEvolutionInstance(rawPayload);
+        : provider === "openwa"
+          ? extractOpenWaInstance(rawPayload)
+          : extractEvolutionInstance(rawPayload);
   const eventKey =
     parsed.type === "status"
       ? `whatsapp:${provider}:${instanceScope}:${parsed.providerMessageId}:${parsed.status}`
@@ -553,47 +659,41 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
     const account =
       provider === "evolution-go"
         ? await db.findEvolutionGoAccount(extractEvolutionGoInstance(rawPayload))
-        : await db.findEvolutionAccount(extractEvolutionInstance(rawPayload));
+        : provider === "openwa"
+          ? await db.findOpenWaAccount(extractOpenWaInstance(rawPayload))
+          : await db.findEvolutionAccount(extractEvolutionInstance(rawPayload));
     if (!account) {
       warn("echo for unknown account", { provider });
       return { outcome: "account-not-found" };
     }
     const toDigits = digits(parsed.toPhone);
-    let customer = await db.findCustomerByPhone(account.storeId, toDigits);
-    let customerCreated = false;
-    if (!customer) {
-      customer = await db.createPendingCustomer({
-        storeId: account.storeId,
-        phone: parsed.toPhone,
-      });
-      customerCreated = true;
-      // Same background photo fetch when WE start the chat from the phone.
-      args.onCustomerAutoCreated?.({
-        customerId: customer.id,
-        phone: parsed.toPhone,
-        account,
-      });
-    }
+    const resolved = await resolveContact(db, account.storeId, parsed.toPhone, undefined);
     // OPEN-ONLY lookup (includeTerminal omitted): the echo is business-sent,
     // never reopens a closed conversation — spawns a fresh one instead
     // (spec 2026-07-03 §1.5).
-    let conversation: { id: string } | null = await db.findOpenConversation(
-      customer.id,
-      account.id,
-    );
+    let conversation: { id: string } | null =
+      resolved.kind === "customer"
+        ? await db.findOpenConversation(resolved.id, account.id)
+        : await db.findOpenConversationForLead(resolved.id, account.id);
     if (!conversation) {
-      conversation = await db.createConversation({
+      const created = await db.createConversation({
         storeId: account.storeId,
-        customerId: customer.id,
+        customerId: resolved.kind === "customer" ? resolved.id : null,
+        leadId: resolved.kind === "lead" ? resolved.id : null,
         accountId: account.id,
-        // UNASSIGNED (pool): the webhook cannot know which seller sent from the
-        // phone, so it never pins the chat — it lands QUEUED ('aguardando') for
-        // someone to claim in the app (spec 2026-07-02). Visibility comes from
-        // instance access (can_access_conversation).
-        assignedSellerId: null,
+        // Customer path: UNASSIGNED (pool) — the webhook cannot know which
+        // seller sent from the phone, so it never pins the chat; it lands
+        // QUEUED ('aguardando') for someone to claim in the app (spec
+        // 2026-07-02). Lead path: assigns the lead's own seller immediately,
+        // keeping Atendimento and Carteira consistent (same as inbound).
+        assignedSellerId: resolved.kind === "lead" ? resolved.sellerId : null,
         lastMessageAt: parsed.timestamp,
         status: "aguardando",
       });
+      conversation = { id: created.id };
+      if (resolved.kind === "lead") {
+        await db.linkConversationToLead(resolved.id, created.id);
+      }
     }
     const message = await db.insertOutboundEchoMessage({
       conversationId: conversation.id,
@@ -643,7 +743,8 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
         contentType: parsed.contentType,
         hasMedia: Boolean(parsed.mediaId),
         toPhoneMasked: `***${toDigits.slice(-4)}`,
-        customerCreated,
+        contactKind: resolved.kind,
+        contactCreated: resolved.created,
         traceId,
       },
     });
@@ -660,43 +761,33 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
         )
       : provider === "evolution-go"
         ? await db.findEvolutionGoAccount(extractEvolutionGoInstance(rawPayload))
-        : await db.findEvolutionAccount(extractEvolutionInstance(rawPayload));
+        : provider === "openwa"
+          ? await db.findOpenWaAccount(extractOpenWaInstance(rawPayload))
+          : await db.findEvolutionAccount(extractEvolutionInstance(rawPayload));
   if (!account) {
     warn("webhook for unknown account", { provider, toAccountPhone: parsed.toAccountPhone });
     return { outcome: "account-not-found" };
   }
 
-  // 5. Customer resolution (RF-040.2) — auto-created customers carry NO wallet
-  //    owner (seller_id null) with a pending_review tag; they only anchor a pool
-  //    conversation in the Inbox until manually converted to a real customer.
+  // 5. Contact resolution (RF-040.2, Frente 2 2026-07-13) — a real customer
+  //    keeps today's behavior (unassigned pool conversation). An unknown
+  //    number becomes a Lead (reused/reopened if one already exists for this
+  //    phone) instead of a pending_review customer placeholder.
   const fromDigits = digits(parsed.fromPhone);
   const contactName = looksLikeName(parsed.senderName) ? parsed.senderName : undefined;
-  let customer = await db.findCustomerByPhone(account.storeId, fromDigits);
-  let customerCreated = false;
-  if (!customer) {
-    customer = await db.createPendingCustomer({
-      storeId: account.storeId,
-      phone: parsed.fromPhone,
-      name: contactName,
-    });
-    customerCreated = true;
-    // Best-effort, fire-and-forget: pull this brand-new contact's WhatsApp
-    // profile photo in the background. Never awaited, never throws here.
-    args.onCustomerAutoCreated?.({
-      customerId: customer.id,
-      phone: parsed.fromPhone,
-      account,
-    });
-  } else if (contactName) {
-    // Existing contact: always refresh whatsapp_name, and heal the display name
-    // if it's still the phone placeholder. Best-effort: must never break the webhook.
-    try {
-      await db.applyInboundContactName(customer.id, contactName);
-    } catch (error) {
-      warn("failed to fill customer name", {
-        customerId: customer.id,
-        detail: error instanceof Error ? error.message : String(error),
-      });
+  const resolved = await resolveContact(db, account.storeId, parsed.fromPhone, contactName);
+  if (resolved.kind === "customer") {
+    if (contactName) {
+      // Existing contact: always refresh whatsapp_name, and heal the display name
+      // if it's still the phone placeholder. Best-effort: must never break the webhook.
+      try {
+        await db.applyInboundContactName(resolved.id, contactName);
+      } catch (error) {
+        warn("failed to fill customer name", {
+          customerId: resolved.id,
+          detail: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
   }
 
@@ -704,37 +795,50 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
   //    latest conversation regardless of status; a closed one (resolvida/
   //    arquivada) is REOPENED on customer inbound instead of spawning a
   //    duplicate (spec 2026-07-03 §1.5).
-  let conversation: { id: string; status: string } | null = await db.findOpenConversation(
-    customer.id,
-    account.id,
-    true,
-  );
+  let conversation: { id: string; status: string } | null =
+    resolved.kind === "customer"
+      ? await db.findOpenConversation(resolved.id, account.id, true)
+      : await db.findOpenConversationForLead(resolved.id, account.id, true);
   let didReopen = false;
   if (!conversation) {
     const created = await db.createConversation({
       storeId: account.storeId,
-      customerId: customer.id,
+      customerId: resolved.kind === "customer" ? resolved.id : null,
+      leadId: resolved.kind === "lead" ? resolved.id : null,
       accountId: account.id,
-      // New inbound conversations land UNASSIGNED (queue), never auto-assigned
-      // to a seller — they drop into the pool for whoever operates the instance
-      // to pick up. Visibility comes from instance access (the unassigned branch
-      // of can_access_conversation); the imported customer carries NO wallet
-      // owner (seller_id null) until manually converted.
-      assignedSellerId: null,
+      // Customer path: unassigned pool, unchanged from today — the auto-
+      // created lead path assigns the lead's own seller immediately, keeping
+      // Atendimento (assigned_seller_id) and Carteira (leads.seller_id)
+      // consistent (docs/dev/conversation-access-model.md).
+      assignedSellerId: resolved.kind === "lead" ? resolved.sellerId : null,
       lastMessageAt: parsed.timestamp,
       status: "aguardando",
     });
     conversation = { id: created.id, status: "aguardando" };
+    if (resolved.kind === "lead") {
+      await db.linkConversationToLead(resolved.id, created.id);
+    }
   } else if (reopenOnInbound(conversation.status)) {
     await db.reopenConversation(conversation.id, parsed.timestamp);
     didReopen = true;
+  }
+
+  // SDR continuation (Parte B, 2026-07-15): fire-and-forget — never blocks
+  // or affects the fail-closed response — the moment the conversation state
+  // is known but before the current message is persisted (same point where
+  // didReopen above is decided). Lead conversations always carry an assigned
+  // seller (rotation), so sdr-backstop-tick's `assigned_seller_id IS NULL`
+  // filter never activates SDR on them — this check is a no-op for leads by
+  // construction, not a gap (Frente 2 2026-07-13 x SDR Parte B 2026-07-15).
+  if (conversation && !resolved.created && (conversation as { isSdrActive?: boolean }).isSdrActive) {
+    args.onSdrTurn?.({ conversationId: conversation.id });
   }
 
   // 7. Persist message (RF-050) BEFORE any media work — media now or never,
   //    but the message record never depends on the download succeeding.
   const message = await db.insertInboundMessage({
     conversationId: conversation.id,
-    customerId: customer.id,
+    authorId: resolved.id,
     provider,
     text: parsed.text ?? parsed.mediaCaption ?? "",
     mediaType: toMediaType(parsed.contentType),
@@ -750,9 +854,25 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
   }
 
   // Idempotency mark RIGHT AFTER the message lands (RNF-002): a provider
-  // retry from here on can never duplicate it. Media/audit below are
-  // best-effort and must not reopen the duplication window.
+  // retry from here on can never duplicate it. Media/audit/ad-referral below
+  // are best-effort and must not reopen the duplication window.
   await db.markProcessed(eventKey, traceId);
+
+  // Ad-source attribution (best-effort, AFTER the idempotency mark so a
+  // transient failure here can never cause the message itself to be
+  // reprocessed): overwrite with the LATEST referral seen — a customer can
+  // return via a different ad months later, and the conversation should
+  // reflect that, not freeze on the first one.
+  if (parsed.adReferral) {
+    try {
+      await db.setConversationAdReferral(conversation.id, parsed.adReferral);
+    } catch (error) {
+      warn("ad-referral attribution failed", {
+        conversationId: conversation.id,
+        detail: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
 
   // 8. Synchronous media download (RF-070, RNF-006): Meta's URL expires in
   //    ~5min, so it is now or marked failed for manual retry.
@@ -788,7 +908,8 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
       contentType: parsed.contentType,
       hasMedia: Boolean(parsed.mediaId),
       fromPhoneMasked: `***${fromDigits.slice(-4)}`,
-      customerCreated,
+      contactKind: resolved.kind,
+      contactCreated: resolved.created,
       traceId,
     },
   });

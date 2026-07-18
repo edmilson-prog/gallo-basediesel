@@ -1,14 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
+import { toast } from "sonner";
 import type { ID, ISeller, IWhatsAppAccount } from "@/shared/types";
 import { useAuth } from "@/features/auth/useAuth";
-import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { useCurrentStore } from "@/features/multistore";
-import {
-  useConversationsProvider,
-  useSellersProvider,
-  useWhatsAppAccountsProvider,
-} from "@/providers/data";
+import { useConversationsProvider, useSellersProvider } from "@/providers/data";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -28,7 +24,7 @@ import { MessageSearchBanner } from "../components/MessageSearchBanner";
 import { QuickActions } from "../components/QuickActions";
 import { SearchInput } from "../components/SearchInput";
 import { NewConversationDialog } from "../components/NewConversationDialog";
-import { selectAccessibleAccounts } from "../utils/selectAccessibleAccounts";
+import { useAccessibleConnectedAccounts } from "../hooks/useAccessibleConnectedAccounts";
 import { INBOX_STRINGS } from "../i18n/pt-BR";
 import { InboxStatusSummaryCard } from "@/features/service-volume";
 
@@ -43,70 +39,43 @@ export function InboxPage() {
   const navigate = useNavigate();
   const { currentStoreId } = useCurrentStore();
   const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
-  const whatsappAccountsProvider = useWhatsAppAccountsProvider();
-  const [accounts, setAccounts] = useState<IWhatsAppAccount[]>([]);
   const [newConvOpen, setNewConvOpen] = useState(false);
-  useEffect(() => {
-    let cancelled = false;
-    void whatsappAccountsProvider
-      .list({ storeId })
-      .then((list) => {
-        if (!cancelled) setAccounts(list);
-      })
-      .catch(() => {
-        if (!cancelled) setAccounts([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [whatsappAccountsProvider, storeId]);
+  // Staff (Owner/Gestor) see store-wide conversations, hence every instance of the
+  // currently selected store. Non-staff are scoped to the instances they operate
+  // (PRD-011 multi-access) — see useAccessibleConnectedAccounts for the full rule.
+  const { accounts, accessibleIds, accessibleAccounts, accessibleConnectedAccounts, isStaffView } =
+    useAccessibleConnectedAccounts(storeId);
   const accountsById = useMemo(() => {
     const map = new Map<ID, IWhatsAppAccount>();
     for (const a of accounts) map.set(a.id, a);
     return map;
   }, [accounts]);
   const showOrigin = accounts.length > 1;
-  // Staff (Owner/Gestor) see store-wide conversations, hence every instance of the
-  // currently selected store. Non-staff are scoped to the instances they operate.
-  const isStaffView = usePermission("conversation", "view", "store");
-  // Instances the current user may operate (PRD-011 multi-access). The instance
-  // filter and the new-conversation origin picker must show only these — not the
-  // full store-wide account list (`accounts`/`accountsById` keep all instances so
-  // wallet conversations from a non-staffed instance still resolve origin label).
-  // `null` = still loading (no instances shown yet, avoids flashing unauthorized
-  // ones). On error we fail closed (empty set). UX gate only — conversation access
-  // is enforced in the DB (can_access_conversation).
-  const [accessibleIds, setAccessibleIds] = useState<Set<ID> | null>(null);
-  useEffect(() => {
-    // Staff bypass the RPC: it is scoped by the JWT's store and cannot follow a
-    // client-side store switch, so staff just use the (store-scoped) accounts.
-    if (isStaffView) return;
-    let cancelled = false;
-    void whatsappAccountsProvider
-      .listAccessibleAccountIds()
-      .then((ids) => {
-        if (!cancelled) setAccessibleIds(new Set(ids));
-      })
-      .catch(() => {
-        if (!cancelled) setAccessibleIds(new Set());
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [whatsappAccountsProvider, isStaffView]);
-  const accessibleAccounts = useMemo(
-    () => (isStaffView ? accounts : selectAccessibleAccounts(accounts, accessibleIds)),
-    [isStaffView, accounts, accessibleIds],
-  );
-  const accessibleConnectedAccounts = useMemo(
-    () => accessibleAccounts.filter((a) => a.status === "connected"),
-    [accessibleAccounts],
-  );
+
+  const selectedId = (useParams({ strict: false }) as { id?: ID }).id ?? null;
+
+  const {
+    filters,
+    setStatus,
+    setChannel,
+    setAssignment,
+    setInstance,
+    setTags,
+    setPeriod,
+    setSearch,
+    setSort,
+    setEscalated,
+    reset,
+    activeCount,
+  } = useInboxFilters(sellerId);
 
   // Assignee oversight: staff (Owner/Gestor) see store-wide conversations and
-  // need to know who is handling each. Load the store's sellers once to resolve
-  // names per row; skipped entirely for non-staff (the chip never renders).
-  const showAssignee = isStaffView;
+  // need to know who is handling each. During an active search EVERY role sees
+  // the chip (results may surface other sellers' conversations — owner decision,
+  // 2026-07-16 spec); sellers RLS is store-scoped, so non-staff can resolve
+  // names. Outside search, non-staff never load the roster (chip hidden).
+  const searchActive = filters.search.trim().length > 0;
+  const showAssignee = isStaffView || searchActive;
   const sellersProvider = useSellersProvider();
   const [sellersById, setSellersById] = useState<Map<ID, ISeller>>(new Map());
   useEffect(() => {
@@ -130,23 +99,6 @@ export function InboxPage() {
       cancelled = true;
     };
   }, [sellersProvider, storeId, showAssignee]);
-
-  const selectedId = (useParams({ strict: false }) as { id?: ID }).id ?? null;
-
-  const {
-    filters,
-    setStatus,
-    setChannel,
-    setAssignment,
-    setInstance,
-    setTags,
-    setPeriod,
-    setSearch,
-    setSort,
-    setEscalated,
-    reset,
-    activeCount,
-  } = useInboxFilters(sellerId);
 
   // Self-heal a stale instance filter: a non-staff user may carry a persisted
   // `?instance=<id>` (e.g. selected before their access narrowed) pointing at an
@@ -204,9 +156,11 @@ export function InboxPage() {
 
   const escalationsByConversation = useEscalationsByConversation();
   const items = useMemo(() => {
-    if (!filters.escalated) return rawItems;
+    // Escalated is a client-side post-filter; search mode ignores it like every
+    // other filter (global search — see filtersToListParams).
+    if (!filters.escalated || searchActive) return rawItems;
     return rawItems.filter((c) => escalationsByConversation.has(c.id));
-  }, [rawItems, escalationsByConversation, filters.escalated]);
+  }, [rawItems, escalationsByConversation, filters.escalated, searchActive]);
   const related = useRelatedEntities(items, { skipLastMessages: messageSearchActive });
   const { isUnread, markViewed } = useUnreadTracking(userId);
   const { lastId, setLastId } = useLastSelectedConversation();
@@ -425,13 +379,35 @@ export function InboxPage() {
               <ConversationListItem
                 key={conversation.id}
                 conversation={conversation}
-                contact={related.contacts.get(conversation.id) ?? null}
+                contact={
+                  related.contacts.get(conversation.id) ??
+                  (conversation.searchContact
+                    ? {
+                        conversationId: conversation.id,
+                        refId: conversation.customerId ?? conversation.leadId ?? conversation.id,
+                        isLead: !conversation.customerId,
+                        name: conversation.searchContact.name,
+                        phone: conversation.searchContact.phone,
+                      }
+                    : null)
+                }
                 lastMessage={related.lastMessages.get(conversation.id) ?? null}
                 isSelected={conversation.id === selectedId}
                 isUnread={isUnread(conversation)}
                 highlightTerm={filters.search}
                 onSelect={() => handleSelect(conversation.id)}
-                trailing={<QuickActions conversation={conversation} onMutated={refetch} />}
+                onLockedSelect={() => {
+                  const name = conversation.assignedSellerId
+                    ? (sellersById.get(conversation.assignedSellerId)?.fullName ??
+                      INBOX_STRINGS.searchLockedFallbackName)
+                    : INBOX_STRINGS.searchLockedFallbackName;
+                  toast.info(INBOX_STRINGS.searchLockedWith(name));
+                }}
+                trailing={
+                  conversation.isAccessible === false ? undefined : (
+                    <QuickActions conversation={conversation} onMutated={refetch} />
+                  )
+                }
                 escalation={escalationsByConversation.get(conversation.id) ?? null}
                 originAccount={
                   conversation.whatsappAccountId

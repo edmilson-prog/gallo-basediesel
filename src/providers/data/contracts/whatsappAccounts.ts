@@ -45,6 +45,8 @@ export interface IWhatsAppAccountPatch {
   isFailoverActive?: boolean;
   /** Silence disconnection/health alerts for this account (Owner action). */
   alertsMuted?: boolean;
+  /** SDR pilot opt-in for this specific WhatsApp number (Parte C). */
+  sdrEnabled?: boolean;
 }
 
 /**
@@ -60,6 +62,11 @@ export interface IWhatsAppAccountPatch {
  */
 export interface IWhatsAppAccountsProvider {
   list(params?: IListWhatsAppAccountsParams): Promise<IWhatsAppAccount[]>;
+  /**
+   * WAHA-scoped list (provider='waha'), fora do `list()` genérico que exclui
+   * WAHA de propósito. Retorna `IWhatsAppAccount[]` para o card rico da aba WAHA.
+   */
+  listWaha(params: { storeId: ID }): Promise<IWhatsAppAccount[]>;
   /**
    * IDs of the WhatsApp accounts the current user may OPERATE (atendimento).
    * - Supabase: resolved from the JWT via the `current_seller_accessible_account_ids`

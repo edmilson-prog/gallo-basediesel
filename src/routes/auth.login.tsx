@@ -18,6 +18,7 @@ import {
 import { BrandPanel, type BrandPanelVariant } from "@/features/auth/BrandPanel";
 import { ProfileCard } from "@/features/auth/ProfileCard";
 import { useAccessGate, AccessBlockedNotice } from "@/features/access";
+import { markExplicitLogin } from "@/features/idle-alerts";
 
 const searchSchema = z.object({
   next: z.string().optional(),
@@ -62,6 +63,7 @@ function LoginPage() {
         return;
       }
       const target = next ?? profile.defaultRedirect;
+      markExplicitLogin();
       void navigate({ to: target });
     });
   };
@@ -91,6 +93,7 @@ function LoginPage() {
           return;
         }
         const target = next ?? result.profile!.defaultRedirect;
+        markExplicitLogin();
         void navigate({ to: target });
       });
     });

@@ -6,10 +6,9 @@ import { useManagerDashboardSettings } from "@/features/manager-dashboard/hooks/
 import { KpiCard } from "@/features/manager-dashboard/components/KpiCard";
 import { useServiceVolumeFilters } from "../hooks/useServiceVolumeFilters";
 import { useServiceVolumeMetrics } from "../hooks/useServiceVolumeMetrics";
-import { useCargaEVolumeSnapshot } from "../hooks/useCargaEVolumeSnapshot";
 import { useSellerLoad } from "../hooks/useSellerLoad";
 import { useVolumeHeatmap } from "../hooks/useVolumeHeatmap";
-import { useKpis } from "../hooks/useKpis";
+import { useHeadlineKpis } from "../hooks/useHeadlineKpis";
 import { ServiceVolumeFilters } from "../components/ServiceVolumeFilters";
 import { ServiceVolumeKpis } from "../components/ServiceVolumeKpis";
 import { NovosAtendimentosChart } from "../components/NovosAtendimentosChart";
@@ -44,14 +43,13 @@ export function ServiceVolumePage({ gestorLockedStoreId }: IServiceVolumePagePro
   const filters = useServiceVolumeFilters({ gestorLockedStoreId });
   const [audience, setAudience] = useState<MetricAudience>("all");
   const m = useServiceVolumeMetrics(filters.state, audience);
-  const carga = useCargaEVolumeSnapshot(filters.state);
   const settings = useManagerDashboardSettings(currentStore?.id ?? null);
-  const sellerLoad = useSellerLoad(carga.snapshot, {
+  const sellerLoad = useSellerLoad(filters.state, {
     overloadThreshold: settings.settings.sellerOverloadThreshold,
   });
-  const heatmap = useVolumeHeatmap(carga.snapshot);
-  const kpis = useKpis(carga.snapshot);
-  const cargaHasError = Boolean(carga.error) && !carga.isLoading;
+  const heatmap = useVolumeHeatmap(filters.state);
+  const headline = useHeadlineKpis(filters.state);
+  const headlineHasError = Boolean(headline.error) && !headline.isLoading;
   const goToInbox = (params: Record<string, string>) =>
     void navigate({ to: "/app/atendimento", search: params });
   const isLoading =
@@ -83,12 +81,12 @@ export function ServiceVolumePage({ gestorLockedStoreId }: IServiceVolumePagePro
           label={SERVICE_VOLUME_STRINGS.kpiTmaLabel}
           shortLabel={SERVICE_VOLUME_STRINGS.kpiTmaShort}
           helpText={SERVICE_VOLUME_STRINGS.kpiTmaHelp}
-          value={kpis.tmaMinutes.current}
+          value={headline.kpis?.tmaMinutes.current ?? null}
           formatValue={formatMinutes}
-          trend={kpis.tmaMinutes.trend}
-          isLoading={carga.isLoading}
-          hasError={cargaHasError}
-          onRetry={() => void carga.refetch()}
+          trend={headline.kpis?.tmaMinutes.trend}
+          isLoading={headline.isLoading}
+          hasError={headlineHasError}
+          onRetry={() => void headline.refetch()}
           onClick={() => goToInbox({ status: "resolvida" })}
         />
         <KpiCard
@@ -96,12 +94,12 @@ export function ServiceVolumePage({ gestorLockedStoreId }: IServiceVolumePagePro
           label={SERVICE_VOLUME_STRINGS.kpiTmrLabel}
           shortLabel={SERVICE_VOLUME_STRINGS.kpiTmrShort}
           helpText={SERVICE_VOLUME_STRINGS.kpiTmrHelp}
-          value={kpis.tmrMinutes.current}
+          value={headline.kpis?.tmrMinutes.current ?? null}
           formatValue={formatMinutes}
-          trend={kpis.tmrMinutes.trend}
-          isLoading={carga.isLoading}
-          hasError={cargaHasError}
-          onRetry={() => void carga.refetch()}
+          trend={headline.kpis?.tmrMinutes.trend}
+          isLoading={headline.isLoading}
+          hasError={headlineHasError}
+          onRetry={() => void headline.refetch()}
           onClick={() => goToInbox({ status: "em_andamento" })}
         />
         <KpiCard
@@ -109,12 +107,12 @@ export function ServiceVolumePage({ gestorLockedStoreId }: IServiceVolumePagePro
           label={SERVICE_VOLUME_STRINGS.kpiResolutionLabel}
           shortLabel={SERVICE_VOLUME_STRINGS.kpiResolutionShort}
           helpText={SERVICE_VOLUME_STRINGS.kpiResolutionHelp}
-          value={kpis.resolutionRatePct.current}
+          value={headline.kpis?.resolutionRatePct.current ?? null}
           formatValue={formatPercent}
-          trend={kpis.resolutionRatePct.trend}
-          isLoading={carga.isLoading}
-          hasError={cargaHasError}
-          onRetry={() => void carga.refetch()}
+          trend={headline.kpis?.resolutionRatePct.trend}
+          isLoading={headline.isLoading}
+          hasError={headlineHasError}
+          onRetry={() => void headline.refetch()}
           onClick={() => goToInbox({ status: "resolvida" })}
         />
         <KpiCard
@@ -122,10 +120,10 @@ export function ServiceVolumePage({ gestorLockedStoreId }: IServiceVolumePagePro
           label={SERVICE_VOLUME_STRINGS.kpiBacklogLabel}
           shortLabel={SERVICE_VOLUME_STRINGS.kpiBacklogShort}
           helpText={SERVICE_VOLUME_STRINGS.kpiBacklogHelp}
-          value={kpis.backlog.current}
-          isLoading={carga.isLoading}
-          hasError={cargaHasError}
-          onRetry={() => void carga.refetch()}
+          value={headline.kpis?.backlog.current ?? null}
+          isLoading={headline.isLoading}
+          hasError={headlineHasError}
+          onRetry={() => void headline.refetch()}
           onClick={() => goToInbox({ status: "aguardando" })}
         />
       </section>
@@ -144,9 +142,9 @@ export function ServiceVolumePage({ gestorLockedStoreId }: IServiceVolumePagePro
       <NovosAtendimentosChart data={m.novos.data} />
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2" aria-label="Carga e volume">
         <SellerLoadList
-          entries={sellerLoad}
+          entries={sellerLoad.entries}
           overloadThreshold={settings.settings.sellerOverloadThreshold}
-          isLoading={carga.isLoading}
+          isLoading={sellerLoad.isLoading}
           onSellerClick={(sellerId) =>
             void navigate({
               to: "/app/atendimento",
@@ -155,8 +153,8 @@ export function ServiceVolumePage({ gestorLockedStoreId }: IServiceVolumePagePro
           }
         />
         <VolumeHeatmap
-          data={heatmap}
-          isLoading={carga.isLoading}
+          data={heatmap.data}
+          isLoading={heatmap.isLoading}
           onCellClick={(day, hour) => {
             const now = new Date();
             const offsetToTarget = day - now.getDay();

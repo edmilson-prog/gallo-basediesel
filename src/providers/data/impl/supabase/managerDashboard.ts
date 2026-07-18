@@ -41,8 +41,20 @@ const OPEN_STATUSES = new Set<IConversation["status"]>([
   "aguardando_cliente",
 ]);
 
-/** Page size used when draining the paginated sibling providers. */
-const DRAIN_PAGE_SIZE = 200;
+/**
+ * Page size used when draining the paginated sibling providers — the max
+ * PostgREST allows (`.list()` clamps `pageSize` to 1000 either way).
+ *
+ * Bigger pages matter here even after the `withTotal: false` fix above:
+ * OFFSET-based `.range()` pagination under a row-level RLS predicate
+ * (`can_access_conversation`) re-filters every row from the start of the
+ * index up to `offset + pageSize` on EACH page — the offset does not skip
+ * the filter, only the output. Cumulative filtered-row-count across a full
+ * drain is `pageSize * (1 + 2 + ... + numPages)`, so fewer/bigger pages cut
+ * total work roughly in proportion (measured ~33s → ~12s for a
+ * ~3k-conversation store going from 200-row to 1000-row pages).
+ */
+const DRAIN_PAGE_SIZE = 1000;
 
 function inWindow(iso: ISO8601, fromIso: ISO8601, toIso: ISO8601): boolean {
   return iso >= fromIso && iso <= toIso;
@@ -51,18 +63,25 @@ function inWindow(iso: ISO8601, fromIso: ISO8601, toIso: ISO8601): boolean {
 /**
  * Drains every page of a paginated sibling-provider read into a flat array.
  * The dashboard is an aggregate that needs the full scoped set, not a page.
+ *
+ * Stops as soon as a page comes back short of `DRAIN_PAGE_SIZE` — deliberately
+ * NOT based on `result.total`. The conversations drain below opts out of the
+ * exact count (`withTotal: false`) because `count: "exact"` re-runs the
+ * per-row `can_access_conversation` RLS check over the WHOLE candidate set on
+ * EVERY page fetch: measured ~4.1s for a single count on a ~3k-conversation
+ * store, so draining 16 pages the old way cost over a minute and left the
+ * "Indicadores principais" row (TMA/TMR/Taxa de Resolução/Backlog) stuck on
+ * its loading skeleton indefinitely in production.
  */
 async function drainPages<T>(
   fetchPage: (page: number, pageSize: number) => Promise<IPaginatedResult<T>>,
 ): Promise<T[]> {
   const all: T[] = [];
   let page = 1;
-  // Hard cap iterations defensively; `total` bounds the loop in practice.
   for (;;) {
     const result = await fetchPage(page, DRAIN_PAGE_SIZE);
     all.push(...result.data);
-    const fetched = page * result.pageSize;
-    if (result.data.length === 0 || fetched >= result.total) break;
+    if (result.data.length < DRAIN_PAGE_SIZE) break;
     page += 1;
   }
   return all;
@@ -95,6 +114,7 @@ export const supabaseManagerDashboardProvider: IManagerDashboardProvider = {
           ...(params.channel ? { channel: params.channel } : {}),
           page,
           pageSize,
+          withTotal: false,
         }),
       );
 

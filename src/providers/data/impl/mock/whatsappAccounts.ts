@@ -22,6 +22,8 @@ function mockMetrics(id: string, days: number): IWhatsAppAccountMetrics {
 
 export const mockWhatsAppAccountsProvider: IWhatsAppAccountsProvider = {
   list: (params = {}) => whatsappAccountsApi.list(params),
+  listWaha: (params) =>
+    whatsappAccountsApi.list(params).then((list) => list.filter((a) => a.provider === "waha")),
   listAccessibleAccountIds: () => whatsappAccountsApi.listAccessibleAccountIds(),
   get: (id) => whatsappAccountsApi.get(id),
   create: (input) => whatsappAccountsApi.create(input),
@@ -40,6 +42,7 @@ export const mockWhatsAppAccountsProvider: IWhatsAppAccountsProvider = {
         : {}),
       ...(patch.isFailoverActive !== undefined ? { isFailoverActive: patch.isFailoverActive } : {}),
       ...(patch.alertsMuted !== undefined ? { alertsMuted: patch.alertsMuted } : {}),
+      ...(patch.sdrEnabled !== undefined ? { sdrEnabled: patch.sdrEnabled } : {}),
     }),
   getMetrics: async (id, days = 30) => mockMetrics(String(id), days),
 };

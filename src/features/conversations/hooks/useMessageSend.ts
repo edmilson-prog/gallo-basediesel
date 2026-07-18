@@ -35,9 +35,12 @@ interface ISendFunctionError {
   code?: string;
 }
 
-/** Invokes the whatsapp-send Edge Function (PRD-115) — supabase source only. */
-async function invokeWhatsAppSend(body: Record<string, unknown>): Promise<{ messageId: string }> {
-  const { data, error } = await getSupabaseClient().functions.invoke("whatsapp-send", { body });
+/** Invokes the whatsapp-send or waha-send Edge Function (supabase source only). */
+async function invokeSendFunction(
+  functionName: "whatsapp-send" | "waha-send",
+  body: Record<string, unknown>,
+): Promise<{ messageId: string }> {
+  const { data, error } = await getSupabaseClient().functions.invoke(functionName, { body });
   if (error) {
     let payload: ISendFunctionError = {};
     try {
@@ -163,32 +166,48 @@ export function useMessageSend(
       // via webhook (PRD-114) + Realtime (refinement tracked by PRD-118).
       if (getActiveDataSource() === "supabase") {
         try {
-          const flags = {
-            messageId,
-            ...(overrideInvalid ? { overrideInvalid: true } : {}),
-            ...(retryOfMessageId ? { retryOfMessageId } : {}),
-          };
-          const result = await invokeWhatsAppSend(
-            templateMeta
-              ? {
-                  conversationId: conversation.id,
-                  kind: "template",
-                  text: optimistic.text,
-                  templateName: templateMeta.templateName,
-                  templateLanguage: templateMeta.languageCode,
-                  templateParameters: templateMeta.variables,
-                  ...flags,
-                }
-              : {
+          // WAHA is fully isolated from the shared pipeline (build.ts has no
+          // "waha" engine branch by design) — it dispatches through its own
+          // waha-send Edge Function instead. v1 simplification: no template/
+          // 24h-window concept (Meta-only rule) or overrideInvalid/retry
+          // tracking there yet — a template send just goes out as plain text.
+          const result =
+            whatsappAccount?.provider === "waha"
+              ? await invokeSendFunction("waha-send", {
                   conversationId: conversation.id,
                   kind: mediaType ? "media" : "text",
                   text: optimistic.text,
+                  messageId,
                   ...(mediaType
-                    ? { mediaPath: mediaUrl, mediaType, ...(fileName ? { fileName } : {}) }
+                    ? { mediaUrl, mediaType, ...(fileName ? { filename: fileName } : {}) }
                     : {}),
-                  ...flags,
-                },
-          );
+                })
+              : await invokeSendFunction(
+                  "whatsapp-send",
+                  templateMeta
+                    ? {
+                        conversationId: conversation.id,
+                        kind: "template",
+                        text: optimistic.text,
+                        templateName: templateMeta.templateName,
+                        templateLanguage: templateMeta.languageCode,
+                        templateParameters: templateMeta.variables,
+                        messageId,
+                        ...(overrideInvalid ? { overrideInvalid: true } : {}),
+                        ...(retryOfMessageId ? { retryOfMessageId } : {}),
+                      }
+                    : {
+                        conversationId: conversation.id,
+                        kind: mediaType ? "media" : "text",
+                        text: optimistic.text,
+                        ...(mediaType
+                          ? { mediaPath: mediaUrl, mediaType, ...(fileName ? { fileName } : {}) }
+                          : {}),
+                        messageId,
+                        ...(overrideInvalid ? { overrideInvalid: true } : {}),
+                        ...(retryOfMessageId ? { retryOfMessageId } : {}),
+                      },
+                );
           handle.commit({ ...optimistic, id: result.messageId, status: "sent" });
         } catch (error) {
           handle.fail();

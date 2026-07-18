@@ -29,4 +29,7 @@ export interface ISdrEscalationsProvider {
   getByConversation(conversationId: ID): Promise<ISdrEscalation | null>;
   create(escalation: ISdrEscalation): Promise<ISdrEscalation>;
   patch(id: ID, patch: Partial<ISdrEscalation>): Promise<ISdrEscalation>;
+  /** Atomically claims a broadcasting escalation for `sellerId`. Throws if
+   *  already claimed or if the escalation isn't in a claimable status. */
+  claim(id: ID, sellerId: ID): Promise<ISdrEscalation>;
 }

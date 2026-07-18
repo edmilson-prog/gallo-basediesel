@@ -20,6 +20,7 @@ export const ESCALATION_REASON_LABEL: Record<SdrEscalationReason, string> = {
   sdr_failed: "SDR falhou",
   complexity: "Complexidade alta",
   out_of_scope: "Fora do escopo",
+  qualified_handoff: "Triagem concluída",
 };
 
 export const ESCALATION_REASON_COLOR: Record<SdrEscalationReason, string> = {
@@ -28,6 +29,7 @@ export const ESCALATION_REASON_COLOR: Record<SdrEscalationReason, string> = {
   sdr_failed: "#ef4444",
   complexity: "#a855f7",
   out_of_scope: "#94a3b8",
+  qualified_handoff: "#16a34a",
 };
 
 export const ESCALATION_MODE_LABEL: Record<SdrEscalationMode, string> = {

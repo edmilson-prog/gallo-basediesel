@@ -11,6 +11,9 @@ describe("isEvolutionFamily", () => {
   it("is true for evolution-go", () => {
     expect(isEvolutionFamily("evolution-go")).toBe(true);
   });
+  it("is true for openwa (QR-paired self-hosted session, same connect edge)", () => {
+    expect(isEvolutionFamily("openwa")).toBe(true);
+  });
   it("is false for meta", () => {
     expect(isEvolutionFamily("meta")).toBe(false);
   });
@@ -50,6 +53,22 @@ describe("isEvolutionAccountConfigured", () => {
       isEvolutionAccountConfigured({
         provider: "evolution-go",
         providerConfig: undefined,
+      } as AccountConfig),
+    ).toBe(false);
+  });
+
+  it("OpenWA: ready with sessionId even though baseUrl lives in the registry (not here)", () => {
+    expect(
+      isEvolutionAccountConfigured({
+        provider: "openwa",
+        providerConfig: { sessionId: "7d8f3f5a-ff52-41cc-9c19-ce6f299abd6d" },
+      } as AccountConfig),
+    ).toBe(true);
+    // Unpaired OpenWA account: empty sessionId (shape-guard placeholder) → not pollable.
+    expect(
+      isEvolutionAccountConfigured({
+        provider: "openwa",
+        providerConfig: { sessionId: "" },
       } as AccountConfig),
     ).toBe(false);
   });
