@@ -291,29 +291,6 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
       );
       return row ? { id: row.id as string } : null;
     },
-    async createPendingCustomer({ storeId, phone, name }) {
-      const { data, error } = await admin
-        .from("customers")
-        .insert({
-          store_id: storeId,
-          // customers_type_check requires uppercase 'B2C' (matches the app/seed).
-          type: "B2C",
-          phone,
-          // Name the contact from its WhatsApp profile when known; the phone is
-          // only a last-resort placeholder.
-          full_name: name ?? phone,
-          // whatsapp_name holds the live profile name only (no phone fallback).
-          whatsapp_name: name ?? null,
-          // No wallet owner: imported anchors carry seller_id null until a manual
-          // conversion assigns a real seller (customers.seller_id is nullable).
-          status: "ativo",
-          tags: ["pending_review"],
-        })
-        .select("id")
-        .single();
-      if (error) throw new Error(`createPendingCustomer: ${error.message}`);
-      return { id: data.id as string };
-    },
     async findLeadByPhone(storeId, phoneDigits) {
       const { data } = await admin
         .from("leads")

@@ -72,18 +72,6 @@ export interface IWebhookDb {
   ): Promise<boolean>;
   findCustomerByPhone(storeId: string, phoneDigits: string): Promise<ICustomerRecord | null>;
   /**
-   * Create the contact anchor for an inbound/echo message. Auto-created customers
-   * carry NO wallet owner (seller_id null) — they only anchor a pool conversation
-   * and become a real, owned customer through a manual conversion.
-   */
-  createPendingCustomer(input: {
-    storeId: string;
-    phone: string;
-    /** Contact's WhatsApp profile name; seeds full_name (falls back to the phone
-     *  when absent) AND whatsapp_name when present. */
-    name?: string;
-  }): Promise<ICustomerRecord>;
-  /**
    * Best-effort, called on every inbound message carrying a pushName:
    *  1. ALWAYS records `name` in whatsapp_name (the live WhatsApp profile name),
    *     even when the display name was renamed by hand.

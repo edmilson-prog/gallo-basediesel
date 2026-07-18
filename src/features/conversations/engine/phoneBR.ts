@@ -1,7 +1,7 @@
 /**
  * Brazilian phone helpers for the "Nova conversa" outbound flow.
  *
- * The canonical wire format used across the project (webhook `createPendingCustomer`,
+ * The canonical wire format used across the project (webhook contact resolution,
  * Evolution send) is digits-only with the `55` DDI: `55DDDNNNNNNNN` (12 or 13).
  * Storing customers in this shape is what makes the inbound webhook match on the
  * exact digits and the outbound send dial the right country. This module never
