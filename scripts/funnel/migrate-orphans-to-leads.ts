@@ -118,17 +118,28 @@ function q(s: string | null | undefined): string {
 }
 
 /**
- * Lead display name per spec: the first NON-phone-like full_name, else the
- * WhatsApp profile name, else null. NOTE: `leads.name` is currently NOT NULL,
- * so a null here would abort the insert at rollout — the dry-run counts how
- * many lead-class orphans land on null so the owner can decide before apply.
+ * Lead name: the first NON-phone-like full_name, else the WhatsApp profile
+ * name, else the phone itself (final fallback — same contract as the v0.150
+ * createLead `name ?? phone`). Never null: `leads.name` is NOT NULL, and a
+ * phone-as-name renders identically to today's inbox (phone + generic icon),
+ * avoiding the "Lead anônimo" fallback. Lead-class orphans with no usable phone
+ * are reclassified to `review` upstream, so the phone fallback is always a
+ * non-empty string here for the rows that actually become leads.
  */
-function resolveLeadName(o: OrphanRow): string | null {
+function resolveLeadName(o: OrphanRow): string {
   const fn = (o.full_name ?? "").trim();
   if (fn && !PHONE_LIKE.test(fn)) return fn;
   const wn = (o.whatsapp_name ?? "").trim();
   if (wn) return wn;
-  return null;
+  return (o.phone ?? "").trim();
+}
+
+/** Which field the lead name resolves from — informational metric only. */
+function nameSource(o: OrphanRow): "full_name" | "whatsapp_name" | "phone" {
+  const fn = (o.full_name ?? "").trim();
+  if (fn && !PHONE_LIKE.test(fn)) return "full_name";
+  if ((o.whatsapp_name ?? "").trim()) return "whatsapp_name";
+  return "phone";
 }
 
 /** Best-effort human label for the report only. */
@@ -203,6 +214,8 @@ interface Classified {
   refs: string[]; // which reference tables carry this orphan (report only)
   hasManualData: boolean;
   hasCommercialRelation: boolean;
+  reviewReason: string; // populated only when klass === "review"
+  reclassifiedNoPhone: boolean; // review override: lead-class without a usable phone
 }
 
 // ===== Main ==================================================================
@@ -259,7 +272,7 @@ async function main() {
       notesSet.has(o.id) ||
       vehiclesSet.has(o.id);
     const hasCommercialRelation = ordersSet.has(o.id) || quotesSet.has(o.id) || convertedSet.has(o.id);
-    const klass = classifyOrphan(
+    let klass = classifyOrphan(
       {
         hasConversation: conv.count > 0,
         lastMessageAt: conv.maxLast,
@@ -268,6 +281,24 @@ async function main() {
       },
       nowIso,
     );
+    // Script-level override: a lead-class orphan with no usable phone (null/empty)
+    // can never match an inbound webhook, so it cannot become a lead — route it
+    // to manual review instead. Mutually exclusive with engine-review (which only
+    // fires on manual-data/commercial, never reaching here).
+    const reclassifiedNoPhone =
+      (klass === "lead_ativo" || klass === "lead_dormente") && !nonEmpty(o.phone);
+    if (reclassifiedNoPhone) klass = "review";
+    let reviewReason = "";
+    if (klass === "review") {
+      if (reclassifiedNoPhone) {
+        reviewReason = "sem telefone utilizável";
+      } else {
+        const parts: string[] = [];
+        if (hasCommercialRelation) parts.push("relação comercial (orders/quotes/ex-lead)");
+        if (hasManualData) parts.push("dado manual (cpf/cnpj/email/nota/veículo)");
+        reviewReason = parts.join(" + ") || "(desconhecido)";
+      }
+    }
     const refs: string[] = [];
     if (ordersSet.has(o.id)) refs.push("orders");
     if (quotesSet.has(o.id)) refs.push("quotes");
@@ -277,7 +308,17 @@ async function main() {
     if (mediaSet.has(o.id)) refs.push("media");
     if (tracesSet.has(o.id)) refs.push("traces");
     if (sdrSet.has(o.id)) refs.push("sdr");
-    return { orphan: o, klass, convCount: conv.count, lastMsg: conv.maxLast, refs, hasManualData, hasCommercialRelation };
+    return {
+      orphan: o,
+      klass,
+      convCount: conv.count,
+      lastMsg: conv.maxLast,
+      refs,
+      hasManualData,
+      hasCommercialRelation,
+      reviewReason,
+      reclassifiedNoPhone,
+    };
   });
 
   const byClass = (k: OrphanClass) => classified.filter((c) => c.klass === k);
@@ -287,9 +328,12 @@ async function main() {
   const reviews = byClass("review");
   const leadClass = [...actives, ...dormants];
 
-  // Apply-blocker probes: leads.name / leads.phone are NOT NULL.
-  const leadNullName = leadClass.filter((c) => resolveLeadName(c.orphan) === null);
-  const leadNullPhone = leadClass.filter((c) => !nonEmpty(c.orphan.phone));
+  // Informational metric (non-blocking): lead-class orphans whose name falls
+  // back to the phone (no non-phone full_name, no whatsapp_name). Renders as the
+  // phone number in the inbox — identical to today. leads.name stays untouched.
+  const nameFromPhone = leadClass.filter((c) => nameSource(c.orphan) === "phone");
+  // Lead-class orphans rerouted to review for lacking a usable phone.
+  const noPhoneReviews = reviews.filter((c) => c.reclassifiedNoPhone);
   // FK-on-delete note: delete/lead-class orphans whose customer row still has a
   // NO-ACTION FK pointing at it (distribution_traces / sdr_escalations) would
   // block the delete. media_assets / conversation_activity are ON DELETE SET NULL.
@@ -342,14 +386,16 @@ async function main() {
     `| review | ${counts.review} |`,
     `| **total** | **${counts.total}** |`,
     "",
-    "## Alertas de rollout (apply)",
+    "## Métricas e alertas",
     "",
-    `- Leads (ativo+dormente) com nome resolvido NULO: **${leadNullName.length}** ` +
-      `— \`leads.name\` é NOT NULL; esses inserts falhariam na escrita real.`,
-    `- Leads (ativo+dormente) com phone vazio/nulo: **${leadNullPhone.length}** ` +
-      `— \`leads.phone\` é NOT NULL; idem.`,
-    `- Órfãos lead/delete com FK NO-ACTION bloqueante (traces/sdr): **${deletionFkRisk.length}** ` +
-      `— o delete do customer falharia (media/activity são SET NULL, seguros).`,
+    `- (informativo) Leads (ativo+dormente) com name = telefone (fallback, mesmo ` +
+      `contrato do createLead): **${nameFromPhone.length}** — não bloqueante, ` +
+      `\`leads.name\` intocado; renderiza como o telefone no inbox (idêntico a hoje).`,
+    `- Lead-class reclassificados para review por falta de telefone utilizável: ` +
+      `**${noPhoneReviews.length}** (incluídos na contagem de review acima).`,
+    `- (alerta) Órfãos lead/delete com FK NO-ACTION bloqueante (traces/sdr): ` +
+      `**${deletionFkRisk.length}** — se >0 no rollout, o delete do customer aborta o ` +
+      `lote com erro claro (media/activity são SET NULL, seguros).`,
     "",
     "## B3 — revisão manual (VERBATIM, zero escrita)",
     "",
@@ -357,20 +403,17 @@ async function main() {
   ];
   for (const c of reviews) {
     const o = c.orphan;
-    const why: string[] = [];
-    if (c.hasCommercialRelation) why.push("relação comercial (orders/quotes/ex-lead)");
-    if (c.hasManualData) why.push("dado manual (cpf/cnpj/email/nota/veículo)");
     md.push(
       `### ${o.id}`,
       `- nome (display): ${displayName(o) || "(vazio)"}`,
-      `- nome resolvido p/ lead: ${resolveLeadName(o) ?? "(null)"}`,
+      `- nome resolvido p/ lead: ${resolveLeadName(o) || "(vazio)"}`,
       `- phone: ${o.phone ?? "(null)"} | phone_digits: ${o.phone_digits ?? "(null)"}`,
       `- full_name: ${o.full_name ?? "(null)"} | nome_fantasia: ${o.nome_fantasia ?? "(null)"} | whatsapp_name: ${o.whatsapp_name ?? "(null)"}`,
       `- cpf: ${o.cpf ?? "(null)"} | cnpj: ${o.cnpj ?? "(null)"} | email: ${o.email ?? "(null)"}`,
       `- type: ${o.type ?? "(null)"} | tags: ${JSON.stringify(o.tags ?? [])}`,
       `- store_id: ${o.store_id} | created_at: ${o.created_at}`,
       `- conversas: ${c.convCount} | last_msg: ${c.lastMsg ?? "(null)"} | refs: ${c.refs.join("|") || "(nenhuma)"}`,
-      `- motivo review: ${why.join(" + ") || "(desconhecido)"}`,
+      `- motivo review: ${c.reviewReason}`,
       "",
     );
   }
