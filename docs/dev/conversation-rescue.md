@@ -179,8 +179,8 @@ explícita):
 | `src/features/access/engine/workSchedule.ts` | `supabase/functions/_shared/access/workSchedule.ts` |
 | `src/features/admin-settings/utils/accessRecipients.ts` | `supabase/functions/_shared/access/accessRecipients.ts` |
 
-Rodar com `bun run scripts/sync-conversation-rescue-shared.ts` (imprime `synced 4 files →
-supabase/functions/_shared/{conversation-rescue,access}/`).
+Rodar com `bun run scripts/sync-conversation-rescue-shared.ts` (imprime `synced 5 files →
+supabase/functions/_shared/{conversation-rescue,access}/` — 3 engines + 2 arquivos avulsos).
 
 > ⚠️ **Regra dura:** qualquer mudança em `src/features/conversation-rescue/engine/*`,
 > `src/features/access/engine/workSchedule.ts` ou
@@ -201,16 +201,28 @@ supabase/functions/_shared/{conversation-rescue,access}/`).
    quando a conversa se resolve sozinha" acima para a condição de liveness e a motivação. Roda
    antes das outras duas fases — nenhuma delas precisou de ajuste para respeitar o cancelamento,
    já que ambas só enxergam `status='broadcasting'` e a linha cancelada já saiu dessa lista antes
-   de chegarem nela.
+   de chegarem nela. **Kill-switch (revisão 2026-07-18):** broadcasts de lojas com o toggle
+   desligado são cancelados com `cancelled_reason='store_disabled'` — sem isso, desligar a
+   feature deixava ofertas válidas visíveis/reclamáveis para sempre (painel e RPC não consultam o
+   toggle) e elas forçariam em massa no primeiro tick após religar.
 2. **`broadcastNewRescues`** — itera as lojas com `settings->conversationRescue->>enabled =
    'true'`; busca conversas com `assigned_seller_id` e `awaiting_reply_since`
    preenchidos, `status` não-terminal, e **sem** resgate já `broadcasting` para aquela conversa.
-   Para cada uma: carrega o seller responsável, roda `isWithinWorkSchedule` + `determineAbsence`;
-   se ausente, resolve o nome do contato (cliente ou lead) e o texto da última mensagem inbound, e
-   insere a linha em `conversation_rescues`.
+   Aplica o **cooldown de re-broadcast** (60 min pós-resolução, por época de espera — ver
+   `rescueCooldown.ts`; o fetch é ancorado em `or(claimed_at, forced_at, created_at ≥ cutoff)`,
+   os MESMOS relógios do helper — ancorar só em `created_at` deixava escapar resgates que ficaram
+   `broadcasting` mais tempo que a janela antes de resolver). Para cada candidata: carrega o
+   seller responsável, roda `isWithinWorkSchedule` + `determineAbsence` (que embute
+   `maxClientWaitHours`); se ausente, resolve o nome do contato (cliente ou lead) e o texto da
+   última mensagem inbound, e insere a linha em `conversation_rescues`.
 3. **`resolveTimeouts`** — itera as lojas com `settings->conversationRescue->>enabled = 'true'`;
    busca resgates `status='broadcasting'` com `broadcast_at` mais velho que
-   `forceAssignTimeoutMinutes`. Para cada um, calcula o pool elegível
+   `forceAssignTimeoutMinutes`. **Re-valida ANTES de forçar (revisão 2026-07-18):** re-roda a
+   condição estrutural + `determineAbsence` no estado atual — se o ausente voltou a ficar online,
+   a espera envelheceu além de `maxClientWaitHours` ou a conversa mudou, cancela com
+   `cancelled_reason='no_longer_qualifies_at_force'` em vez de reatribuir (forçar é o passo
+   irreversível; sem isso, linhas zumbis de um disable forçariam em massa no re-enable, ignorando
+   todas as guardas de criação). Se ainda qualifica, calcula o pool elegível
    (`resolveEligiblePool` — sellers ativos da loja com acesso ao `whatsapp_account_id` via
    `whatsapp_account_access_rules`/`resolveAccessRecipients`, com bypass para papéis `owner`/
    `manager`, excluindo o ausente, filtrados por `availability === 'online'` e dentro da própria
@@ -381,6 +393,27 @@ Correções (todas nesta base de código):
   `20260718210000_conversation_rescue_claim_guards.sql` re-cria `claim_conversation_rescue` com
   rejeição `P0006` quando `claimer = absent_seller_id`, posicionada ANTES do recheque de
   vivacidade (P0005) — self-claim deve vencer staleness, e o teste RLS depende dessa ordem.
+
+Segunda rodada (achados da revisão adversarial multi-lente do próprio fix, 2026-07-18):
+
+- **Kill-switch de verdade** — `cancelResolvedRescues` cancela broadcasts de lojas desligadas
+  (`store_disabled`); antes, desligar o toggle deixava ofertas válidas vivas para sempre.
+- **Re-validação pré-força** — `resolveTimeouts` re-roda `determineAbsence` (com a janela) no
+  estado atual antes de reatribuir; cancela (`no_longer_qualifies_at_force`) se o ausente voltou,
+  a espera envelheceu ou a conversa mudou. Fecha o cenário "linhas zumbis forçam em massa no
+  re-enable" e o "vendedor voltou online no minuto 3 mas perdia a conversa no minuto 5".
+- **Fetch do cooldown re-ancorado** — `or(claimed_at/forced_at/created_at ≥ now−60min)` em vez de
+  `created_at ≥ now−24h`: resgate resolvido tarde (fim de semana com pool vazio) não escapa mais
+  do cooldown quando `maxClientWaitHours > 24`.
+- **Cooldown por época de espera** — `isWithinRescueCooldown` ganhou `awaitingReplySince`:
+  resgate resolvido ANTES da espera atual começar não suprime (mensagem nova do cliente = época
+  nova, resgate imediato); no loop do incidente a espera sempre PREdata o claim, então o loop
+  continua fechado.
+- **Guarda de sequência no poll** — `useRescueBroadcastQueue` descarta respostas de polls antigos
+  (um fetch lento não ressuscita mais o card recém-assumido).
+- **Sonda de schema no teste RLS** — o caso P0006 se auto-pula enquanto a migration
+  `20260718210000` não estiver aplicada no banco-alvo do CI (mesma convenção dos blocos irmãos),
+  senão o PR nasceria com o gate vermelho por definição.
 
 ## Rollout
 
