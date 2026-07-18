@@ -76,6 +76,26 @@ interface ICustomerBase {
   /** Share of total store revenue (0..1) — convenience copy of latest IABCClassification. */
   abcShare?: number;
   /**
+   * DINTEC ERP BI snapshot (assisted import, `docs/dev/dintec-providers.md`).
+   * Display-only fallback for {@link purchaseStats}/{@link abcClass}/{@link
+   * abcShare}/{@link lastPurchaseAt}/{@link firstPurchaseAt} when those are
+   * still empty (the platform has never computed live stats from real
+   * orders for ANY customer as of this writing — see
+   * `docs/superpowers/specs/2026-07-10-dintec-customer-import-design.md`).
+   * A real order in-platform always takes precedence once it exists.
+   * `dintecFrequencia` is an ALL-TIME invoice count from the ERP, not a
+   * 12-month window like {@link ICustomerPurchaseStats.orderCount12m} —
+   * never label it the same way.
+   */
+  dintecTicketMedio?: Money;
+  dintecLtv?: Money;
+  dintecFrequencia?: number;
+  dintecFirstPurchaseAt?: ISO8601;
+  dintecLastPurchaseAt?: ISO8601;
+  dintecAbcClass?: ABCClass;
+  /** Percentage POINTS (0..100), unlike {@link abcShare} which is a 0..1 fraction — divide by 100 before pairing with `formatPercent`. */
+  dintecPctReceita?: number;
+  /**
    * Demo-only count of overdue receivable titles (contas a receber vencidas).
    * No real billing module exists yet (Fase 2 do produto). Absent on most
    * customers; surfaced read-only on the quote editor when present.

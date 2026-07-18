@@ -48,6 +48,13 @@ interface CustomerRow {
   purchase_stats: ICustomerPurchaseStats | null;
   abc_class: ABCClass | null;
   abc_share: number | null;
+  dintec_ticket_medio: number | null;
+  dintec_ltv: number | null;
+  dintec_frequencia: number | null;
+  dintec_primeira_compra: string | null;
+  dintec_ultima_compra: string | null;
+  dintec_abc_class: ABCClass | null;
+  dintec_pct_receita: number | null;
   overdue_titles_count: number | null;
   portal: IPortalSettings | null;
   is_guest_checkout: boolean | null;
@@ -81,7 +88,8 @@ const COLUMNS =
   "last_purchase_at, converted_from_lead_id, converted_from_lead_at, converted_by_seller_id, " +
   "purchase_stats, abc_class, abc_share, overdue_titles_count, portal, is_guest_checkout, " +
   "has_b2b_portal, portal_contract, avatar_url, whatsapp_name, cnpj, razao_social, nome_fantasia, contact_name, cpf, " +
-  "full_name, created_at";
+  "full_name, created_at, dintec_ticket_medio, dintec_ltv, dintec_frequencia, dintec_primeira_compra, " +
+  "dintec_ultima_compra, dintec_abc_class, dintec_pct_receita";
 const NOTE_COLUMNS = "id, customer_id, author_id, content, created_at";
 
 function rowToCustomerNote(row: CustomerNoteRow): ICustomerNote {
@@ -113,6 +121,13 @@ function rowToCustomerBase(row: CustomerRow): Omit<ICustomer, "type" | "id"> {
     purchaseStats: row.purchase_stats ?? undefined,
     abcClass: row.abc_class ?? undefined,
     abcShare: row.abc_share ?? undefined,
+    dintecTicketMedio: row.dintec_ticket_medio ?? undefined,
+    dintecLtv: row.dintec_ltv ?? undefined,
+    dintecFrequencia: row.dintec_frequencia ?? undefined,
+    dintecFirstPurchaseAt: row.dintec_primeira_compra ?? undefined,
+    dintecLastPurchaseAt: row.dintec_ultima_compra ?? undefined,
+    dintecAbcClass: row.dintec_abc_class ?? undefined,
+    dintecPctReceita: row.dintec_pct_receita ?? undefined,
     overdueTitlesCount: row.overdue_titles_count ?? undefined,
     portal: row.portal ?? undefined,
     isGuestCheckout: row.is_guest_checkout ?? undefined,

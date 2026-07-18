@@ -16,6 +16,8 @@ import { hashHue, initialsFrom, avatarColors } from "@/shared/utils/avatar";
 import { formatDateBR } from "@/shared/utils/format";
 import { CUSTOMER_STRINGS } from "../../i18n/pt-BR";
 import { STATUS_BADGE_CLASSES } from "../../utils/customerDisplay";
+import { resolveFirstPurchaseAt, resolveLastPurchaseAt } from "../../utils/dintecStats";
+import { DintecSourceBadge } from "../DintecSourceBadge";
 
 const COPY = CUSTOMER_STRINGS.overview.statusWallet;
 
@@ -56,6 +58,8 @@ export function StatusWalletCard({ customer }: IStatusWalletCardProps) {
 
   const seller = sellerQuery.data;
   const store = storeQuery.data;
+  const firstPurchase = resolveFirstPurchaseAt(customer);
+  const lastPurchase = resolveLastPurchaseAt(customer);
   const sellerHue = hashHue(customer.sellerId ?? "");
   const sellerColors = avatarColors(sellerHue);
 
@@ -131,16 +135,16 @@ export function StatusWalletCard({ customer }: IStatusWalletCardProps) {
           <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
             <div>
               <p className="text-muted-foreground">{COPY.firstPurchase}</p>
-              <p className="font-medium text-foreground">
-                {customer.firstPurchaseAt
-                  ? formatDateBR(customer.firstPurchaseAt)
-                  : COPY.noPurchase}
+              <p className="flex items-center gap-1.5 font-medium text-foreground">
+                {firstPurchase ? formatDateBR(firstPurchase.value) : COPY.noPurchase}
+                {firstPurchase?.fromDintec && <DintecSourceBadge />}
               </p>
             </div>
             <div>
               <p className="text-muted-foreground">{COPY.lastPurchase}</p>
-              <p className="font-medium text-foreground">
-                {customer.lastPurchaseAt ? formatDateBR(customer.lastPurchaseAt) : COPY.noPurchase}
+              <p className="flex items-center gap-1.5 font-medium text-foreground">
+                {lastPurchase ? formatDateBR(lastPurchase.value) : COPY.noPurchase}
+                {lastPurchase?.fromDintec && <DintecSourceBadge />}
               </p>
             </div>
           </div>
