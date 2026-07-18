@@ -4,6 +4,25 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.152.0] — Census · 2026-07-17
+
+**O catálogo real de produtos do ERP DINTEC chega à plataforma (2.778 itens), o import de clientes é concluído com a correlação da Inbox de Atendimento, e conversas com responsável ausente ganham resgate automático (ativação pendente).**
+
+### Added
+
+- **Catálogo de produtos real, importado do DINTEC** — 2.514 produtos do ERP entraram no catálogo com preços por tabela, NCM e texto de aplicação, além de 113 itens da linha UFI já comprados pela loja; outros 117 produtos existentes foram enriquecidos com código de barras, referências cruzadas e aplicações a partir das planilhas dos fornecedores (UFI e Turbo Filtros). Os 200 itens fictícios da fase de demonstração foram removidos — o catálogo agora tem 2.778 produtos, todos reais.
+- **Resgate de conversa com responsável ausente** — quando uma conversa atribuída tem o cliente esperando e o responsável está fora do horário de trabalho ou offline além do prazo configurado, o sistema oferece a conversa a todos com acesso àquele número que estão online ("Atender agora" — o primeiro que clicar assume) e, se ninguém aceitar dentro do prazo, atribui automaticamente a partir da lista de reserva da loja. O resgate se cancela sozinho se o responsável voltar e responder antes. A carteira do cliente nunca muda, só o responsável pela conversa. Nasce desligado por padrão em todas as lojas; **ativação em produção depende de um passo separado do dono**.
+
+### Changed
+
+- **Ficha e lista de clientes mostram os indicadores do ERP** — Ticket Médio, LTV, Recência, Frequência e Curva ABC agora aparecem com o selo "ERP" (retrato importado do DINTEC) enquanto a plataforma ainda não tem histórico próprio de pedidos suficiente.
+- **Correlação entre a Inbox de Atendimento e a base DINTEC concluída** — os contatos do WhatsApp foram cruzados por telefone com a base do ERP: quem é cliente DINTEC ficou vinculado (dados, indicadores e veículos do ERP na ficha, duplicados mesclados num registro só) e os demais seguem como leads e contatos normais.
+
+### Fixed
+
+- **Conversas de clientes B2B apareciam como "Lead anônimo"** — clientes vindos do ERP sem nome fantasia preenchido exibiam "Lead anônimo" na lista e no cabeçalho do Atendimento, mesmo com a ficha correta. O nome agora usa a razão social ou o nome disponível como reserva, e os cadastros afetados foram corrigidos.
+- **Importações futuras do DINTEC não podem mais gravar telefone sem o código do país** — a regra de normalização (+55) virou parte obrigatória do pipeline de importação, com os números inválidos preservados para triagem em vez de corrigidos às cegas.
+
 ## [0.151.0] — Backstop · 2026-07-17
 
 **Rede de segurança automática para o escalonamento do SDR (ainda pendente de ativação em produção) e um novo indicador de áudios transcritos na tela de Inteligência artificial.**
