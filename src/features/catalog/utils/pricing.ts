@@ -61,6 +61,22 @@ export function tableMargin(baseCost: number, price: number): number {
   return round2(price - baseCost);
 }
 
+/** Margin share (0..1) measured on the sale price: (price − cost) / price. */
+export function marginOnPrice(price: number, cost: number): number {
+  if (price <= 0) return 0;
+  return (price - cost) / price;
+}
+
+/** Health rating for a margin share on the sale price. */
+export type MarginHealth = "success" | "warning" | "critical";
+
+/** Thresholds from the product-detail design kit: ≥45% healthy, ≥30% attention. */
+export function marginHealth(share: number): MarginHealth {
+  if (share >= 0.45) return "success";
+  if (share >= 0.3) return "warning";
+  return "critical";
+}
+
 /**
  * Resolve the price tables to display: prefer stored `priceTables`, otherwise
  * derive from cost + margin. Returns [] when there is no cost to price from.

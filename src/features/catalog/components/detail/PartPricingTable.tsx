@@ -3,10 +3,16 @@ import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
 import { formatBRL, formatPercent } from "@/shared/utils/format";
 import { CATALOG_STRINGS } from "../../i18n/pt-BR";
-import { resolvePriceTables, tableMargin } from "../../utils/pricing";
+import { marginHealth, marginOnPrice, resolvePriceTables, tableMargin } from "../../utils/pricing";
 import { PartPriceHistory } from "./PartPriceHistory";
 
 const COPY = CATALOG_STRINGS.detail.pricing;
+
+const HEALTH_TEXT: Record<ReturnType<typeof marginHealth>, string> = {
+  success: "text-severity-success",
+  warning: "text-severity-warning",
+  critical: "text-severity-critical",
+};
 
 export interface IPartPricingTableProps {
   part: IPart;
@@ -57,6 +63,7 @@ export function PartPricingTable({ part }: IPartPricingTableProps) {
             {tables.map((table) => {
               const isPadrao = table.id === "padrao";
               const intensity = maxMarkup > 0 ? table.markupPercent / maxMarkup : 0;
+              const marginShare = marginOnPrice(table.price, baseCost);
               return (
                 <tr
                   key={table.id}
@@ -87,8 +94,18 @@ export function PartPricingTable({ part }: IPartPricingTableProps) {
                   <td className="px-3 py-2 text-right font-semibold tabular-nums text-foreground">
                     {formatBRL(table.price)}
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
-                    {formatBRL(tableMargin(baseCost, table.price))}
+                  <td className="px-3 py-2 text-right">
+                    <span
+                      className={cn(
+                        "block font-semibold tabular-nums",
+                        HEALTH_TEXT[marginHealth(marginShare)],
+                      )}
+                    >
+                      {formatPercent(marginShare)}
+                    </span>
+                    <span className="block text-[11px] tabular-nums text-muted-foreground">
+                      {formatBRL(tableMargin(baseCost, table.price))}
+                    </span>
                   </td>
                 </tr>
               );

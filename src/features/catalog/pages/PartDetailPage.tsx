@@ -20,6 +20,7 @@ import { auditLog } from "@/features/rbac/utils/auditLog";
 import { usePartsProvider } from "@/providers/data/hooks/usePartsProvider";
 import { PartDetailHeader } from "../components/detail/PartDetailHeader";
 import { PartStatStrip } from "../components/detail/PartStatStrip";
+import { PartStockAlert } from "../components/detail/PartStockAlert";
 import { PartLayoutCounter } from "../components/detail/layouts/PartLayoutCounter";
 import { PartLayoutPanel } from "../components/detail/layouts/PartLayoutPanel";
 import { PartLayoutSheet } from "../components/detail/layouts/PartLayoutSheet";
@@ -100,6 +101,7 @@ export function PartDetailPage() {
 
       <div className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 sm:px-6">
         <PartStatStrip part={part} />
+        <PartStockAlert part={part} />
         {layout === "counter" && <PartLayoutCounter part={part} />}
         {layout === "panel" && <PartLayoutPanel part={part} />}
         {layout === "sheet" && <PartLayoutSheet part={part} />}
