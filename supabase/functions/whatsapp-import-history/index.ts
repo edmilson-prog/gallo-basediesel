@@ -126,7 +126,11 @@ servePost(async (req, { log, traceId }) => {
     }
     const target = { baseUrl, instanceName };
     const source: IImportSource = {
-      listChats: async () => (await findChats(apiKey, deps, target, traceId)).map((c) => c.remoteJid),
+      listChats: async () =>
+        (await findChats(apiKey, deps, target, traceId)).map((c) => ({
+          remoteJid: c.remoteJid,
+          name: c.name,
+        })),
       listMessages: (remoteJid, page) => findMessages(apiKey, deps, target, remoteJid, page, traceId),
     };
     result = await processImportBatch({

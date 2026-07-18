@@ -16,6 +16,9 @@ export interface IListLeadsParams extends IPaginationParams {
   stageId?: ID;
   temperature?: ILead["temperature"];
   search?: string;
+  /** When true, excludes leads with a `lossReason` set. Mirrors the
+   *  supabase impl's `.is("loss_reason", null)` filter. */
+  excludeLost?: boolean;
 }
 
 export const leadsApi = {
@@ -29,6 +32,7 @@ export const leadsApi = {
         if (params.sellerId) all = all.filter((l) => l.sellerId === params.sellerId);
         if (params.stageId) all = all.filter((l) => l.stage.id === params.stageId);
         if (params.temperature) all = all.filter((l) => l.temperature === params.temperature);
+        if (params.excludeLost) all = all.filter((l) => l.lossReason === undefined);
         if (params.search) {
           const q = params.search.toLowerCase();
           const candidates = buildDigitSearchCandidates(params.search);

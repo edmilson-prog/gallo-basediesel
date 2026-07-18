@@ -83,7 +83,7 @@ export function KanbanColumn({
             <LeadCard
               key={lead.id}
               lead={lead}
-              seller={sellersById.get(lead.sellerId)}
+              seller={lead.sellerId ? sellersById.get(lead.sellerId) : undefined}
               onDragStart={onCardDragStart}
               onDragEnd={onCardDragEnd}
             />

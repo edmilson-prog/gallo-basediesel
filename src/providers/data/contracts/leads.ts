@@ -7,6 +7,9 @@ export interface IListLeadsParams extends IPaginationParams {
   stageId?: ID;
   temperature?: ILead["temperature"];
   search?: string;
+  /** When true, excludes leads with a `lossReason` set (server-side). Used by
+   *  the kanban/list view to keep lost leads out of the 1000-row window. */
+  excludeLost?: boolean;
 }
 
 /**

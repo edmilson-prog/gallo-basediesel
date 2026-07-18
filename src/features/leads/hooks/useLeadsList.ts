@@ -32,12 +32,21 @@ export function useLeadsList({
 }: IUseLeadsListParams): IUseLeadsListResult {
   const provider = useLeadsProvider();
 
+  const excludeLost = !filters.includeLost;
+
   const query = useQuery({
-    queryKey: ["leads-list", ownerCrossStore ? "all" : storeId] as const,
+    // excludeLost is part of the key (not just the queryFn closure) so
+    // toggling "Mostrar perdidos" triggers a real refetch instead of
+    // reapplying the client-side filter over an already-narrowed cache.
+    queryKey: ["leads-list", ownerCrossStore ? "all" : storeId, excludeLost] as const,
     queryFn: () =>
       provider.list({
         storeId: ownerCrossStore ? undefined : storeId,
         pageSize: 1000,
+        // Mirrors filters.includeLost: default false, so lost leads are
+        // excluded server-side and can't crowd the 1000-row window out of
+        // active leads. When the toggle is on, the exclusion is lifted.
+        excludeLost,
       }),
     staleTime: 30_000,
   });
@@ -53,7 +62,7 @@ export function useLeadsList({
 
     if (sellerScopeIds && sellerScopeIds.length > 0) {
       const set = new Set(sellerScopeIds);
-      result = result.filter((l) => set.has(l.sellerId));
+      result = result.filter((l) => l.sellerId !== null && set.has(l.sellerId));
     }
 
     if (!filters.includeLost) {
@@ -77,7 +86,7 @@ export function useLeadsList({
     }
     if (filters.sellerIds.length > 0) {
       const set = new Set(filters.sellerIds);
-      result = result.filter((l) => set.has(l.sellerId));
+      result = result.filter((l) => l.sellerId !== null && set.has(l.sellerId));
     }
     if (filters.storeIds.length > 0) {
       const set = new Set(filters.storeIds);

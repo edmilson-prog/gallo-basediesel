@@ -31,7 +31,7 @@ export function LeadDetailPage() {
     queryKey: ["seller", lead?.sellerId] as const,
     enabled: Boolean(lead?.sellerId),
     staleTime: 5 * 60_000,
-    queryFn: () => sellersProvider.get(lead!.sellerId).catch(() => null),
+    queryFn: () => sellersProvider.get(lead!.sellerId as ID).catch(() => null),
   });
 
   const convertedCustomerQuery = useQuery({

@@ -71,26 +71,8 @@ export interface IWebhookDb {
     status: "connected" | "disconnected",
   ): Promise<boolean>;
   findCustomerByPhone(storeId: string, phoneDigits: string): Promise<ICustomerRecord | null>;
-  /**
-   * Create the contact anchor for an inbound/echo message. Auto-created customers
-   * carry NO wallet owner (seller_id null) — they only anchor a pool conversation
-   * and become a real, owned customer through a manual conversion.
-   */
-  createPendingCustomer(input: {
-    storeId: string;
-    phone: string;
-    /** Contact's WhatsApp profile name; seeds full_name (falls back to the phone
-     *  when absent) AND whatsapp_name when present. */
-    name?: string;
-  }): Promise<ICustomerRecord>;
-  /**
-   * Best-effort, called on every inbound message carrying a pushName:
-   *  1. ALWAYS records `name` in whatsapp_name (the live WhatsApp profile name),
-   *     even when the display name was renamed by hand.
-   *  2. Heals the display name (full_name / nome_fantasia) to `name` ONLY when it
-   *     is still the phone-number placeholder (or empty) — a manually-set name is
-   *     never overwritten.
-   */
+  /** Looks up an existing lead for this store+phone — open or lost (the caller
+   *  decides whether to reopen it via `reopenLostLead`). */
   findLeadByPhone(storeId: string, phoneDigits: string): Promise<ILeadRecord | null>;
   /**
    * Clears lossReason/lossNotes and resets the lead to the store's first
@@ -112,6 +94,14 @@ export interface IWebhookDb {
   ): Promise<{ id: string; status: string } | null>;
   /** Idempotently appends conversationId to lead.conversations. */
   linkConversationToLead(leadId: string, conversationId: string): Promise<void>;
+  /**
+   * Best-effort, called on every inbound message carrying a pushName:
+   *  1. ALWAYS records `name` in whatsapp_name (the live WhatsApp profile name),
+   *     even when the display name was renamed by hand.
+   *  2. Heals the display name (full_name / nome_fantasia) to `name` ONLY when it
+   *     is still the phone-number placeholder (or empty) — a manually-set name is
+   *     never overwritten.
+   */
   applyInboundContactName(customerId: string, name: string): Promise<void>;
   /**
    * Looks up the latest conversation for this customer+account. By default

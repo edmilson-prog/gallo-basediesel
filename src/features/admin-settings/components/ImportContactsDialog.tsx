@@ -21,8 +21,10 @@ type Phase = "confirm" | "running" | "done" | "error";
 
 /**
  * Owner-only Evolution Go contacts import: confirm → run → summary. Single shot
- * (the list is bounded — no batching). Re-running is safe: existing customers
- * are never duplicated. Imports the CONTACT LIST, not conversations.
+ * (the list is bounded — no batching). Enrich-only (Funnel Frente 3): never
+ * creates a customer or lead — only replaces a placeholder name on an
+ * existing match. Re-running is idempotent: an already-real name is never
+ * overwritten. Imports the CONTACT LIST, not conversations.
  */
 export function ImportContactsDialog({
   account,
@@ -90,15 +92,16 @@ export function ImportContactsDialog({
         {phase === "confirm" && (
           <div className="space-y-2 text-sm text-muted-foreground">
             <p>
-              Cada contato que ainda não é cliente fica como <strong>contato pendente</strong> (tag{" "}
-              <code className="font-mono text-xs">pending_review</code>) e <strong>não aparece na
-              lista de Clientes</strong> até você revisá-lo e convertê-lo manualmente.
+              Esta importação <strong>só enriquece</strong> clientes e leads que já existem na
+              base: se o nome salvo for apenas o telefone, ele é atualizado com o nome da agenda.
+              <strong> Nenhum registro novo é criado</strong> — números desconhecidos são
+              ignorados.
             </p>
             <p>
-              Grupos, listas, canais e contatos com número oculto são ignorados. Isto traz a{" "}
+              Grupos, listas, canais e contatos com número oculto são ignorados. Isto lê a{" "}
               <strong>lista de contatos</strong> — não as conversas.
             </p>
-            <p>Pode rodar mais de uma vez: nada é duplicado.</p>
+            <p>Pode rodar mais de uma vez: nomes já corretos não são sobrescritos.</p>
           </div>
         )}
 
@@ -113,10 +116,14 @@ export function ImportContactsDialog({
             <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
               <dt className="text-muted-foreground">Contatos encontrados</dt>
               <dd className="text-right font-medium text-foreground">{stats.contactsFound}</dd>
-              <dt className="text-muted-foreground">Contatos novos (pendentes)</dt>
-              <dd className="text-right font-medium text-foreground">{stats.customersCreated}</dd>
-              <dt className="text-muted-foreground">Já existiam</dt>
-              <dd className="text-right font-medium text-foreground">{stats.customersExisting}</dd>
+              <dt className="text-muted-foreground">Clientes enriquecidos</dt>
+              <dd className="text-right font-medium text-foreground">{stats.customersEnriched}</dd>
+              <dt className="text-muted-foreground">Leads enriquecidos</dt>
+              <dd className="text-right font-medium text-foreground">{stats.leadsEnriched}</dd>
+              <dt className="text-muted-foreground">Sem alteração (já tinham nome)</dt>
+              <dd className="text-right font-medium text-foreground">{stats.alreadyComplete}</dd>
+              <dt className="text-muted-foreground">Números desconhecidos (ignorados)</dt>
+              <dd className="text-right font-medium text-foreground">{stats.skippedUnknown}</dd>
               {stats.failed > 0 && (
                 <>
                   <dt className="text-severity-warning">Falhas</dt>
@@ -134,9 +141,9 @@ export function ImportContactsDialog({
                   icon={stats.failed > 0 ? "mdi:alert-circle-outline" : "mdi:check-circle-outline"}
                   size={16}
                 />
-                {stats.customersCreated > 0
-                  ? `Importação concluída — ${stats.customersCreated} contato(s) pendente(s) importado(s). Não aparecem em Clientes até a revisão.`
-                  : "Importação concluída — nenhum contato novo (todos já eram clientes)."}
+                {stats.customersEnriched + stats.leadsEnriched > 0
+                  ? `Importação concluída — ${stats.customersEnriched + stats.leadsEnriched} cadastro(s) enriquecido(s) com o nome da agenda.`
+                  : "Importação concluída — nenhum cadastro precisou de nome novo."}
               </p>
             )}
           </div>

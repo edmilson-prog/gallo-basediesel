@@ -790,7 +790,10 @@ function enrichCustomersForProfile(
       } else {
         c.convertedFromLeadAt = c.createdAt;
       }
-      c.convertedBySellerId = lead.sellerId;
+      // Mock leads are always generated with a concrete owner (never ownerless
+      // — that's a real-data-only state from echo/archive/imports), so this
+      // is never actually null; the `?? undefined` just satisfies the type.
+      c.convertedBySellerId = lead.sellerId ?? undefined;
     }
 
     // Portal — ~55% of B2B and ~30% of B2C are provisioned; toggles vary realistically.

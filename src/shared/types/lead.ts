@@ -23,8 +23,12 @@ export interface ILeadStage {
 export interface ILead {
   id: ID;
   storeId: ID;
-  /** Primary seller responsible for working this lead. */
-  sellerId: ID;
+  /**
+   * Primary seller responsible for working this lead, or `null` when
+   * ownerless — an imported/echo-created lead awaiting its first live
+   * inbound message, at which point rotation assigns an owner.
+   */
+  sellerId: ID | null;
   name: string;
   phone: string;
   email?: string;

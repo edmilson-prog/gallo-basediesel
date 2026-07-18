@@ -98,9 +98,10 @@ export function ImportConversationsDialog({
         {phase === "confirm" && (
           <div className="space-y-2 text-sm text-muted-foreground">
             <p>
-              Números que ainda não são clientes entram como <strong>contatos pendentes</strong>{" "}
-              (tag <code className="font-mono text-xs">pending_review</code>) — não aparecem em
-              Clientes até revisão; a conversa vai para o Inbox.
+              Números que já são clientes mantêm a carteira; números novos com conversa viram{" "}
+              <strong>leads</strong> (sem responsável) — a conversa vai para o Inbox. Leads com
+              atividade nos últimos 7 dias entram ativos no funil; os demais ficam dormentes até a
+              pessoa responder.
             </p>
             <p>
               Grupos, listas, canais e contatos com número oculto pelo WhatsApp são ignorados.
@@ -127,8 +128,14 @@ export function ImportConversationsDialog({
               </dd>
               <dt className="text-muted-foreground">Mensagens importadas</dt>
               <dd className="text-right font-medium text-foreground">{stats.messagesImported}</dd>
-              <dt className="text-muted-foreground">Contatos novos (pendentes)</dt>
-              <dd className="text-right font-medium text-foreground">{stats.customersCreated}</dd>
+              <dt className="text-muted-foreground">Leads criados</dt>
+              <dd className="text-right font-medium text-foreground">{stats.leadsCreated}</dd>
+              {stats.leadsReused > 0 && (
+                <>
+                  <dt className="text-muted-foreground">Leads reaproveitados</dt>
+                  <dd className="text-right font-medium text-foreground">{stats.leadsReused}</dd>
+                </>
+              )}
               <dt className="text-muted-foreground">Grupos ignorados</dt>
               <dd className="text-right font-medium text-foreground">{stats.chatsSkippedGroup}</dd>
               {stats.chatsSkippedLid > 0 && (

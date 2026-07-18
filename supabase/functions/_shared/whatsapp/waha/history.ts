@@ -14,6 +14,15 @@ import type { IWahaMessagePayload } from "./parser.ts";
 
 export interface IWahaChatSummary {
   id: string;
+  /**
+   * Chat display name, when the WAHA build's `/chats` response includes one
+   * (some builds send `name`; older ones don't) — captured for free from the
+   * already-fetched listing, no extra request. `getWahaContactName`
+   * (contacts.ts) remains the only reliable per-contact lookup and is NOT
+   * called here: one extra REST round-trip per chat would risk the batch's
+   * time budget (see BATCH_TIME_BUDGET_MS in waha-history-core.ts).
+   */
+  name?: string;
 }
 
 /** One page of `GET /api/{session}/chats`. */
@@ -32,7 +41,12 @@ export async function fetchWahaChatsPage(
   });
   const body = Array.isArray(response.body) ? response.body : [];
   return body
-    .map((row) => ({ id: String((row as { id?: string })?.id ?? "") }))
+    .map((raw) => {
+      const row = raw as { id?: string; name?: string };
+      const id = String(row?.id ?? "");
+      const rawName = typeof row?.name === "string" ? row.name.trim() : "";
+      return { id, name: rawName.length > 0 ? rawName : undefined };
+    })
     .filter((row) => row.id.length > 0);
 }
 
