@@ -345,7 +345,9 @@ Deno.serve(async (req) => {
 
     // Rotation owner for a live inbound lead. The RPC is frozen (never returns
     // null — it falls back to a fixed seller when no queue/eligible member
-    // exists), so the NOT NULL leads.seller_id is always satisfied on inbound.
+    // exists). leads.seller_id is nullable since migration 20260718150000
+    // (ownerless leads on the echo/archive/import paths); a live inbound
+    // always resolves an owner here, so it just never needs the null case.
     async function assignRotationSeller(): Promise<string> {
       const { data, error } = await admin.rpc("assign_next_from_rotation", {
         p_store_id: accountRow.store_id as string,
@@ -404,8 +406,9 @@ Deno.serve(async (req) => {
       const { data, error } = await admin
         .from("leads")
         .insert({
-          // leads.id has a DB default, but minting it explicitly mirrors the
-          // app-level provider (src/providers/data/impl/supabase/leads.ts).
+          // leads.id is `text primary key` with no DB default — the caller
+          // must mint it, mirroring the app-level provider
+          // (src/providers/data/impl/supabase/leads.ts).
           id: crypto.randomUUID(),
           store_id: accountRow.store_id,
           seller_id: input.sellerId,

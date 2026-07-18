@@ -139,6 +139,7 @@ export const supabaseLeadsProvider: ILeadsProvider = {
     if (params.sellerId !== undefined) query = query.eq("seller_id", params.sellerId);
     if (params.stageId !== undefined) query = query.eq("stage->>id", params.stageId);
     if (params.temperature !== undefined) query = query.eq("temperature", params.temperature);
+    if (params.excludeLost) query = query.is("loss_reason", null);
     if (params.search) {
       const orExpr = buildLeadSearchOr(params.search);
       if (orExpr) query = query.or(orExpr);
