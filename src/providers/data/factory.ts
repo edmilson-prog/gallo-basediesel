@@ -51,6 +51,7 @@ import { mockWhatsAppOpenWaServersProvider } from "./impl/mock/whatsappOpenWaSer
 import { mockConversationTagsProvider } from "./impl/mock/conversationTags";
 import { mockConversationParticipantsProvider } from "./impl/mock/conversationParticipants";
 import { mockSdrPilotSettingsProvider } from "./impl/mock/sdrPilotSettings";
+import { mockConversationRescuesProvider } from "./impl/mock/conversationRescues";
 
 import { supabaseCustomersProvider } from "./impl/supabase/customers";
 import { supabaseVehiclesProvider } from "./impl/supabase/vehicles";
@@ -103,6 +104,7 @@ import { supabaseWhatsAppOpenWaServersProvider } from "./impl/supabase/whatsappO
 import { supabaseConversationTagsProvider } from "./impl/supabase/conversationTags";
 import { supabaseConversationParticipantsProvider } from "./impl/supabase/conversationParticipants";
 import { supabaseSdrPilotSettingsProvider } from "./impl/supabase/sdrPilotSettings";
+import { supabaseConversationRescuesProvider } from "./impl/supabase/conversationRescues";
 
 import {
   DATA_SOURCE_OVERRIDE_KEY,
@@ -188,6 +190,7 @@ const mockProviders: IDataProviders = {
   conversationTags: mockConversationTagsProvider,
   conversationParticipants: mockConversationParticipantsProvider,
   sdrPilotSettings: mockSdrPilotSettingsProvider,
+  conversationRescues: mockConversationRescuesProvider,
 };
 
 const supabaseProviders: IDataProviders = {
@@ -242,6 +245,7 @@ const supabaseProviders: IDataProviders = {
   conversationTags: supabaseConversationTagsProvider,
   conversationParticipants: supabaseConversationParticipantsProvider,
   sdrPilotSettings: supabaseSdrPilotSettingsProvider,
+  conversationRescues: supabaseConversationRescuesProvider,
 };
 
 /**

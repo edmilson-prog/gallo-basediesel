@@ -186,6 +186,7 @@ import { Route as AppConfiguracoesSdrSimuladorRouteImport } from './routes/app.c
 import { Route as AppConfiguracoesSdrOrcamentoRouteImport } from './routes/app.configuracoes.sdr.orcamento'
 import { Route as AppConfiguracoesFreteCallbackRouteImport } from './routes/app.configuracoes.frete.callback'
 import { Route as AppConfiguracoesAtendimentoTagsRouteImport } from './routes/app.configuracoes.atendimento.tags'
+import { Route as AppConfiguracoesAtendimentoResgateConversasRouteImport } from './routes/app.configuracoes.atendimento.resgate-conversas'
 import { Route as AppConfiguracoesAtendimentoPipelineRouteImport } from './routes/app.configuracoes.atendimento.pipeline'
 import { Route as AppConfiguracoesAtendimentoMotivosPerdaRouteImport } from './routes/app.configuracoes.atendimento.motivos-perda'
 import { Route as AppConfiguracoesAtendimentoLifecycleRouteImport } from './routes/app.configuracoes.atendimento.lifecycle'
@@ -1124,6 +1125,12 @@ const AppConfiguracoesAtendimentoTagsRoute =
     path: '/configuracoes/atendimento/tags',
     getParentRoute: () => AppRoute,
   } as any)
+const AppConfiguracoesAtendimentoResgateConversasRoute =
+  AppConfiguracoesAtendimentoResgateConversasRouteImport.update({
+    id: '/configuracoes/atendimento/resgate-conversas',
+    path: '/configuracoes/atendimento/resgate-conversas',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppConfiguracoesAtendimentoPipelineRoute =
   AppConfiguracoesAtendimentoPipelineRouteImport.update({
     id: '/configuracoes/atendimento/pipeline',
@@ -1326,6 +1333,7 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/atendimento/lifecycle': typeof AppConfiguracoesAtendimentoLifecycleRoute
   '/app/configuracoes/atendimento/motivos-perda': typeof AppConfiguracoesAtendimentoMotivosPerdaRoute
   '/app/configuracoes/atendimento/pipeline': typeof AppConfiguracoesAtendimentoPipelineRoute
+  '/app/configuracoes/atendimento/resgate-conversas': typeof AppConfiguracoesAtendimentoResgateConversasRoute
   '/app/configuracoes/atendimento/tags': typeof AppConfiguracoesAtendimentoTagsRoute
   '/app/configuracoes/frete/callback': typeof AppConfiguracoesFreteCallbackRoute
   '/app/configuracoes/sdr/orcamento': typeof AppConfiguracoesSdrOrcamentoRoute
@@ -1489,6 +1497,7 @@ export interface FileRoutesByTo {
   '/app/configuracoes/atendimento/lifecycle': typeof AppConfiguracoesAtendimentoLifecycleRoute
   '/app/configuracoes/atendimento/motivos-perda': typeof AppConfiguracoesAtendimentoMotivosPerdaRoute
   '/app/configuracoes/atendimento/pipeline': typeof AppConfiguracoesAtendimentoPipelineRoute
+  '/app/configuracoes/atendimento/resgate-conversas': typeof AppConfiguracoesAtendimentoResgateConversasRoute
   '/app/configuracoes/atendimento/tags': typeof AppConfiguracoesAtendimentoTagsRoute
   '/app/configuracoes/frete/callback': typeof AppConfiguracoesFreteCallbackRoute
   '/app/configuracoes/sdr/orcamento': typeof AppConfiguracoesSdrOrcamentoRoute
@@ -1677,6 +1686,7 @@ export interface FileRoutesById {
   '/app/configuracoes/atendimento/lifecycle': typeof AppConfiguracoesAtendimentoLifecycleRoute
   '/app/configuracoes/atendimento/motivos-perda': typeof AppConfiguracoesAtendimentoMotivosPerdaRoute
   '/app/configuracoes/atendimento/pipeline': typeof AppConfiguracoesAtendimentoPipelineRoute
+  '/app/configuracoes/atendimento/resgate-conversas': typeof AppConfiguracoesAtendimentoResgateConversasRoute
   '/app/configuracoes/atendimento/tags': typeof AppConfiguracoesAtendimentoTagsRoute
   '/app/configuracoes/frete/callback': typeof AppConfiguracoesFreteCallbackRoute
   '/app/configuracoes/sdr/orcamento': typeof AppConfiguracoesSdrOrcamentoRoute
@@ -1866,6 +1876,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/atendimento/lifecycle'
     | '/app/configuracoes/atendimento/motivos-perda'
     | '/app/configuracoes/atendimento/pipeline'
+    | '/app/configuracoes/atendimento/resgate-conversas'
     | '/app/configuracoes/atendimento/tags'
     | '/app/configuracoes/frete/callback'
     | '/app/configuracoes/sdr/orcamento'
@@ -2029,6 +2040,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/atendimento/lifecycle'
     | '/app/configuracoes/atendimento/motivos-perda'
     | '/app/configuracoes/atendimento/pipeline'
+    | '/app/configuracoes/atendimento/resgate-conversas'
     | '/app/configuracoes/atendimento/tags'
     | '/app/configuracoes/frete/callback'
     | '/app/configuracoes/sdr/orcamento'
@@ -2216,6 +2228,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/atendimento/lifecycle'
     | '/app/configuracoes/atendimento/motivos-perda'
     | '/app/configuracoes/atendimento/pipeline'
+    | '/app/configuracoes/atendimento/resgate-conversas'
     | '/app/configuracoes/atendimento/tags'
     | '/app/configuracoes/frete/callback'
     | '/app/configuracoes/sdr/orcamento'
@@ -3502,6 +3515,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesAtendimentoTagsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/configuracoes/atendimento/resgate-conversas': {
+      id: '/app/configuracoes/atendimento/resgate-conversas'
+      path: '/configuracoes/atendimento/resgate-conversas'
+      fullPath: '/app/configuracoes/atendimento/resgate-conversas'
+      preLoaderRoute: typeof AppConfiguracoesAtendimentoResgateConversasRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/configuracoes/atendimento/pipeline': {
       id: '/app/configuracoes/atendimento/pipeline'
       path: '/configuracoes/atendimento/pipeline'
@@ -3910,6 +3930,7 @@ interface AppRouteChildren {
   AppConfiguracoesAtendimentoLifecycleRoute: typeof AppConfiguracoesAtendimentoLifecycleRoute
   AppConfiguracoesAtendimentoMotivosPerdaRoute: typeof AppConfiguracoesAtendimentoMotivosPerdaRoute
   AppConfiguracoesAtendimentoPipelineRoute: typeof AppConfiguracoesAtendimentoPipelineRoute
+  AppConfiguracoesAtendimentoResgateConversasRoute: typeof AppConfiguracoesAtendimentoResgateConversasRoute
   AppConfiguracoesAtendimentoTagsRoute: typeof AppConfiguracoesAtendimentoTagsRoute
   AppConfiguracoesSdrOrcamentoRoute: typeof AppConfiguracoesSdrOrcamentoRoute
   AppConfiguracoesSdrSimuladorRoute: typeof AppConfiguracoesSdrSimuladorRoute
@@ -4002,6 +4023,8 @@ const AppRouteChildren: AppRouteChildren = {
     AppConfiguracoesAtendimentoMotivosPerdaRoute,
   AppConfiguracoesAtendimentoPipelineRoute:
     AppConfiguracoesAtendimentoPipelineRoute,
+  AppConfiguracoesAtendimentoResgateConversasRoute:
+    AppConfiguracoesAtendimentoResgateConversasRoute,
   AppConfiguracoesAtendimentoTagsRoute: AppConfiguracoesAtendimentoTagsRoute,
   AppConfiguracoesSdrOrcamentoRoute: AppConfiguracoesSdrOrcamentoRoute,
   AppConfiguracoesSdrSimuladorRoute: AppConfiguracoesSdrSimuladorRoute,

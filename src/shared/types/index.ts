@@ -37,6 +37,7 @@ export type {
   IWhatsAppAccountRef,
   IManagerDashboardSettings,
   IIdleAlertsSettings,
+  IConversationRescueSettings,
   ICommissionSettings,
   IEcommerceIntegrationSettings,
   IEcommerceNotificationTemplates,
@@ -168,6 +169,9 @@ export type {
   AttendanceActivityType,
   IIdleConversationEntry,
   IIdleSummary,
+  IConversationRescue,
+  AbsenceKind,
+  ConversationRescueStatus,
 } from "./conversation";
 
 // Conversation notes (internal attendant board)

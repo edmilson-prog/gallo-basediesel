@@ -131,6 +131,7 @@ export type {
   IUpdateConversationTagInput,
   IConversationParticipantsProvider,
   ISdrPilotSettingsProvider,
+  IConversationRescuesProvider,
 } from "./contracts";
 export { computeFailureRate } from "./contracts";
 
@@ -185,6 +186,7 @@ export { useWhatsAppOpenWaServersProvider } from "./hooks/useWhatsAppOpenWaServe
 export { useConversationTagsProvider } from "./hooks/useConversationTagsProvider";
 export { useConversationParticipantsProvider } from "./hooks/useConversationParticipantsProvider";
 export { useSdrPilotSettingsProvider } from "./hooks/useSdrPilotSettingsProvider";
+export { useConversationRescuesProvider } from "./hooks/useConversationRescuesProvider";
 
 export {
   statusOnAssign,

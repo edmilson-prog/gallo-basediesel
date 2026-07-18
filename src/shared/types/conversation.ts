@@ -475,3 +475,29 @@ export interface IIdleSummary {
   /** Ordered worst-first: level desc, businessSeconds desc. */
   entries: IIdleConversationEntry[];
 }
+
+/** Absence classification driving the rescue broadcast (spec 2026-07-17). */
+export type AbsenceKind = "schedule" | "temporary";
+
+/** Lifecycle of a rescue broadcast row. */
+export type ConversationRescueStatus = "broadcasting" | "claimed" | "forced" | "cancelled";
+
+/** Rescue-broadcast record — one row per absence event needing coverage. */
+export interface IConversationRescue {
+  id: ID;
+  conversationId: ID;
+  storeId: ID;
+  whatsappAccountId: ID | null;
+  absentSellerId: ID;
+  absenceKind: AbsenceKind;
+  contactName: string;
+  lastInboundPreview: string | null;
+  status: ConversationRescueStatus;
+  broadcastAt: ISO8601;
+  claimedBySellerId?: ID;
+  claimedAt?: ISO8601;
+  forcedSellerId?: ID;
+  forcedAt?: ISO8601;
+  cancelledReason?: string;
+  createdAt: ISO8601;
+}

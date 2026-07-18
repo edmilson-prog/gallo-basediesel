@@ -1472,6 +1472,102 @@ begin
 end $$;
 reset role;
 
+-- ---------------------------------------------------------------------------
+-- Offline-rescue (spec 2026-07-17): RLS de conversation_rescues + claim RPC.
+-- Schema per supabase/migrations/20260717170000_conversation_rescues.sql.
+-- ---------------------------------------------------------------------------
+
+-- Arrange (superuser, rolled back): plant a broadcasting rescue on a
+-- conversation LUCAS cannot access (owner-assigned instance), so the SELECT
+-- leak check below cannot pass vacuously.
+do $$
+declare
+  v_owner_conv uuid;
+  v_account uuid;
+  v_rescue uuid;
+begin
+  select id, whatsapp_account_id into v_owner_conv, v_account from public.conversations
+   where store_id = '00000000-0000-0000-0000-000000000001'
+     and assigned_seller_id = '57706ecc-01b5-4a96-b403-0359a4bb767f'
+     and whatsapp_account_id is not null
+   limit 1;
+  if v_owner_conv is null then
+    raise notice 'conversation-rescue: no owner-assigned conversation with an account in fixtures — skipping';
+    return;
+  end if;
+
+  insert into public.conversation_rescues
+    (conversation_id, store_id, whatsapp_account_id, absent_seller_id, absence_kind, contact_name)
+  values
+    (v_owner_conv, '00000000-0000-0000-0000-000000000001', v_account,
+     '57706ecc-01b5-4a96-b403-0359a4bb767f', 'schedule', 'Cliente RLS-test')
+  returning id into v_rescue;
+
+  perform set_config('rls_regression.rescue_id', v_rescue::text, false);
+end $$;
+
+-- LUCAS must not see a rescue on a conversation he cannot access.
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+do $$
+declare
+  v_rescue_id uuid := nullif(current_setting('rls_regression.rescue_id', true), '')::uuid;
+begin
+  if v_rescue_id is null then
+    return; -- positive control was skipped above (no fixture) — nothing to assert
+  end if;
+  if exists (select 1 from public.conversation_rescues where id = v_rescue_id) then
+    raise exception 'conversation_rescues: lucas should not see a rescue on a conversation he cannot access';
+  end if;
+
+  -- Claiming it must also fail closed (RPC re-checks can_access_conversation).
+  begin
+    perform public.claim_conversation_rescue(v_rescue_id);
+    raise exception 'claim_conversation_rescue: lucas should not be able to claim an inaccessible rescue';
+  exception
+    when insufficient_privilege then null; -- expected: 42501
+  end;
+end $$;
+reset role;
+
+-- Second claim on an already-claimed rescue must fail (concorrência otimista).
+do $$
+declare
+  v_rescue_id uuid := nullif(current_setting('rls_regression.rescue_id', true), '')::uuid;
+begin
+  if v_rescue_id is null then
+    return;
+  end if;
+  update public.conversation_rescues set status = 'claimed', claimed_by_seller_id = '57706ecc-01b5-4a96-b403-0359a4bb767f'
+   where id = v_rescue_id;
+end $$;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"9a418578-2671-4141-a15a-d39b2fd13af7","role":"authenticated","app_metadata":{"role":"owner","seller_id":"57706ecc-01b5-4a96-b403-0359a4bb767f","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+do $$
+declare
+  v_rescue_id uuid := nullif(current_setting('rls_regression.rescue_id', true), '')::uuid;
+begin
+  if v_rescue_id is null then
+    return;
+  end if;
+  begin
+    perform public.claim_conversation_rescue(v_rescue_id);
+    raise exception 'claim_conversation_rescue: claiming an already-claimed rescue should fail';
+  exception when others then
+    if sqlstate <> 'P0004' then raise; end if; -- expected: P0004
+  end;
+end $$;
+reset role;
+
 select 'ALL RLS REGRESSION TESTS PASSED' as result;
 
 rollback;

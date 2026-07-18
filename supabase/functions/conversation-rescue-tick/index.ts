@@ -1,0 +1,404 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+
+/**
+ * conversation-rescue-tick — agendada via pg_cron a cada 1 minuto (spec
+ * 2026-07-17, mesmo padrão de sdr-backstop-tick). Três fases por execução,
+ * nesta ordem:
+ *
+ *  1) cancelResolvedRescues — varre TODOS os resgates `broadcasting` (mesmo
+ *     de lojas desabilitadas nesse meio-tempo) e cancela qualquer um cuja
+ *     conversa já não qualifica mais (o ausente respondeu, a conversa
+ *     fechou, ou foi reatribuída por outro caminho) — roda antes das outras
+ *     duas fases para que nem broadcastNewRescues nem resolveTimeouts vejam
+ *     uma linha stale no mesmo tick.
+ *  2) broadcastNewRescues — varre conversas com awaiting_reply_since setado
+ *     cujo responsável está ausente (fora da agenda, ou dentro da agenda mas
+ *     availability≠online há mais de temporaryAbsenceGraceMinutes) e ainda
+ *     sem resgate ativo; cria a linha de broadcast.
+ *  3) resolveTimeouts — varre resgates `broadcasting` mais velhos que
+ *     forceAssignTimeoutMinutes e força uma atribuição (fallback list online
+ *     primeiro, senão qualquer elegível online; se ninguém, mantém
+ *     broadcasting — o sub-projeto A cobre esse extremo via idle-alerts).
+ */
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.107.0";
+import { requiredEnv } from "../_shared/env.ts";
+import { HttpError, json } from "../_shared/http.ts";
+import { servePost, type RequestContext } from "../_shared/serve.ts";
+import { createSecretResolver } from "../_shared/secrets.ts";
+import { verifyWorkerSecret } from "../_shared/workerAuth.ts";
+import { isWithinWorkSchedule } from "../_shared/access/workSchedule.ts";
+import { resolveAccessRecipients } from "../_shared/access/accessRecipients.ts";
+import { determineAbsence } from "../_shared/conversation-rescue/engine/determineAbsence.ts";
+import { pickFallbackSeller } from "../_shared/conversation-rescue/engine/pickFallbackSeller.ts";
+
+const WORKER_SECRET_NAME = "CONVERSATION_RESCUE_WORKER_SECRET";
+
+interface ISellerRow {
+  id: string;
+  store_id: string;
+  auth_user_id: string | null;
+  availability: "online" | "ausente" | "ocupado" | "offline";
+  active: boolean;
+  work_schedule: unknown;
+  schedule_overrides: unknown;
+}
+
+interface IConversationRow {
+  id: string;
+  store_id: string;
+  whatsapp_account_id: string | null;
+  assigned_seller_id: string;
+  awaiting_reply_since: string;
+  customer_id: string | null;
+  lead_id: string | null;
+}
+
+async function fetchProfileRolesByAuthUserId(
+  admin: ReturnType<typeof createClient>,
+  authUserIds: string[],
+): Promise<Map<string, string>> {
+  if (authUserIds.length === 0) return new Map();
+  const { data } = await admin
+    .from("profiles")
+    .select("auth_user_id, role")
+    .in("auth_user_id", authUserIds);
+  const map = new Map<string, string>();
+  for (const row of (data ?? []) as Array<{ auth_user_id: string; role: string }>) {
+    map.set(row.auth_user_id, row.role);
+  }
+  return map;
+}
+
+/** Sellers eligible to receive the broadcast for `accountId`, excluding `excludeSellerId`. */
+async function resolveEligiblePool(
+  admin: ReturnType<typeof createClient>,
+  storeId: string,
+  accountId: string,
+  excludeSellerId: string,
+  now: Date,
+): Promise<string[]> {
+  const { data: rulesData } = await admin
+    .from("whatsapp_account_access_rules")
+    .select("kind, target_value")
+    .eq("whatsapp_account_id", accountId);
+  // resolveAccessRecipients expects camelCase `targetValue` — the DB row is
+  // snake_case `target_value`; map explicitly, never cast-and-hope.
+  const rules = ((rulesData ?? []) as Array<{ kind: string; target_value: string }>).map((r) => ({
+    kind: r.kind,
+    targetValue: r.target_value,
+  }));
+
+  const { data: sellersData } = await admin
+    .from("sellers")
+    .select("id, store_id, auth_user_id, availability, active, work_schedule, schedule_overrides")
+    .eq("store_id", storeId)
+    .eq("active", true);
+  const sellers = (sellersData ?? []) as ISellerRow[];
+
+  const authUserIds = sellers.map((s) => s.auth_user_id).filter((id): id is string => id !== null);
+  const rolesByAuthUserId = await fetchProfileRolesByAuthUserId(admin, authUserIds);
+
+  const sellersLike = sellers.map((s) => ({
+    id: s.id,
+    role: s.auth_user_id ? (rolesByAuthUserId.get(s.auth_user_id) ?? "") : "",
+    storeId: s.store_id,
+  }));
+  const ruleRecipients = resolveAccessRecipients(rules, sellersLike);
+
+  const eligibleIds = new Set<string>();
+  for (const s of sellers) {
+    if (s.id === excludeSellerId) continue;
+    const role = s.auth_user_id ? rolesByAuthUserId.get(s.auth_user_id) : undefined;
+    const isStaffBypass = role === "owner" || role === "manager";
+    if (!isStaffBypass && !ruleRecipients.has(s.id)) continue;
+    if (s.availability !== "online") continue;
+    const scheduleSource = {
+      workSchedule: (s.work_schedule ?? []) as never,
+      scheduleOverrides: (s.schedule_overrides ?? []) as never,
+    };
+    if (!isWithinWorkSchedule(scheduleSource, now)) continue;
+    eligibleIds.add(s.id);
+  }
+  return [...eligibleIds];
+}
+
+async function cancelResolvedRescues(
+  admin: ReturnType<typeof createClient>,
+  now: Date,
+  ctx: RequestContext,
+): Promise<number> {
+  const { data: broadcasting } = await admin
+    .from("conversation_rescues")
+    .select("id, conversation_id, absent_seller_id")
+    .eq("status", "broadcasting");
+  let cancelled = 0;
+
+  for (const rescue of (broadcasting ?? []) as Array<{
+    id: string;
+    conversation_id: string;
+    absent_seller_id: string;
+  }>) {
+    const { data: conv } = await admin
+      .from("conversations")
+      .select("assigned_seller_id, awaiting_reply_since, status")
+      .eq("id", rescue.conversation_id)
+      .maybeSingle();
+    const c = conv as {
+      assigned_seller_id: string | null;
+      awaiting_reply_since: string | null;
+      status: string;
+    } | null;
+    const stillValid =
+      !!c &&
+      c.assigned_seller_id === rescue.absent_seller_id &&
+      c.awaiting_reply_since !== null &&
+      ["aguardando", "em_andamento", "aguardando_cliente"].includes(c.status);
+    if (stillValid) continue;
+
+    const { error } = await admin
+      .from("conversation_rescues")
+      .update({ status: "cancelled", cancelled_reason: "conversation_no_longer_waiting" })
+      .eq("id", rescue.id)
+      .eq("status", "broadcasting");
+    if (error) {
+      ctx.log.error("conversation-rescue-tick cancel failed", {
+        rescueId: rescue.id,
+        error: error.message,
+      });
+      continue;
+    }
+    cancelled++;
+  }
+  return cancelled;
+}
+
+async function broadcastNewRescues(
+  admin: ReturnType<typeof createClient>,
+  now: Date,
+  ctx: RequestContext,
+): Promise<number> {
+  const { data: stores } = await admin
+    .from("stores")
+    .select("id, settings")
+    .not("settings->conversationRescue->>enabled", "is", null)
+    .eq("settings->conversationRescue->>enabled", "true");
+  let created = 0;
+
+  for (const store of (stores ?? []) as Array<{ id: string; settings: Record<string, unknown> }>) {
+    const cfg = (store.settings.conversationRescue ?? {}) as {
+      temporaryAbsenceGraceMinutes?: number;
+    };
+    const graceMinutes = cfg.temporaryAbsenceGraceMinutes ?? 15;
+
+    const { data: activeRescues } = await admin
+      .from("conversation_rescues")
+      .select("conversation_id")
+      .eq("store_id", store.id)
+      .eq("status", "broadcasting");
+    const alreadyBroadcasting = new Set(
+      ((activeRescues ?? []) as Array<{ conversation_id: string }>).map((r) => r.conversation_id),
+    );
+
+    const { data: convData } = await admin
+      .from("conversations")
+      .select("id, store_id, whatsapp_account_id, assigned_seller_id, awaiting_reply_since, customer_id, lead_id")
+      .eq("store_id", store.id)
+      .not("assigned_seller_id", "is", null)
+      .not("awaiting_reply_since", "is", null)
+      .in("status", ["aguardando", "em_andamento", "aguardando_cliente"]);
+    const conversations = (convData ?? []) as IConversationRow[];
+
+    for (const conv of conversations) {
+      if (alreadyBroadcasting.has(conv.id)) continue;
+      if (!conv.whatsapp_account_id) continue;
+
+      const { data: sellerData } = await admin
+        .from("sellers")
+        .select("id, store_id, auth_user_id, availability, active, work_schedule, schedule_overrides")
+        .eq("id", conv.assigned_seller_id)
+        .maybeSingle();
+      const seller = sellerData as ISellerRow | null;
+      if (!seller) continue;
+
+      const scheduleSource = {
+        workSchedule: (seller.work_schedule ?? []) as never,
+        scheduleOverrides: (seller.schedule_overrides ?? []) as never,
+      };
+      const isWithinSchedule = isWithinWorkSchedule(scheduleSource, now);
+      const absenceKind = determineAbsence({
+        isWithinSchedule,
+        availability: seller.availability,
+        awaitingReplySince: conv.awaiting_reply_since,
+        now,
+        temporaryAbsenceGraceMinutes: graceMinutes,
+      });
+      if (!absenceKind) continue;
+
+      let contactName = "Contato";
+      if (conv.customer_id) {
+        const { data: customer } = await admin
+          .from("customers")
+          .select("nome_fantasia, full_name")
+          .eq("id", conv.customer_id)
+          .maybeSingle();
+        const c = customer as { nome_fantasia: string | null; full_name: string | null } | null;
+        contactName = c?.nome_fantasia || c?.full_name || contactName;
+      } else if (conv.lead_id) {
+        const { data: lead } = await admin
+          .from("leads")
+          .select("name")
+          .eq("id", conv.lead_id)
+          .maybeSingle();
+        contactName = (lead as { name: string } | null)?.name ?? contactName;
+      }
+
+      const { data: lastInbound } = await admin
+        .from("messages")
+        .select("text")
+        .eq("conversation_id", conv.id)
+        .eq("direction", "in")
+        .order("sent_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const { error: insertError } = await admin.from("conversation_rescues").insert({
+        conversation_id: conv.id,
+        store_id: conv.store_id,
+        whatsapp_account_id: conv.whatsapp_account_id,
+        absent_seller_id: conv.assigned_seller_id,
+        absence_kind: absenceKind,
+        contact_name: contactName,
+        last_inbound_preview: (lastInbound as { text: string } | null)?.text ?? null,
+      });
+      if (!insertError) {
+        created++;
+      } else if (insertError.code !== "23505") {
+        // 23505 = unique_violation — another concurrent tick already broadcast
+        // this conversation; expected under overlapping invocations, not an error.
+        ctx.log.error("conversation-rescue-tick broadcast insert failed", {
+          conversationId: conv.id,
+          error: insertError.message,
+        });
+      }
+    }
+  }
+  return created;
+}
+
+async function resolveTimeouts(
+  admin: ReturnType<typeof createClient>,
+  now: Date,
+  ctx: RequestContext,
+): Promise<number> {
+  const { data: stores } = await admin
+    .from("stores")
+    .select("id, settings")
+    .not("settings->conversationRescue->>enabled", "is", null)
+    .eq("settings->conversationRescue->>enabled", "true");
+  let forced = 0;
+
+  for (const store of (stores ?? []) as Array<{ id: string; settings: Record<string, unknown> }>) {
+    const cfg = (store.settings.conversationRescue ?? {}) as {
+      forceAssignTimeoutMinutes?: number;
+      fallbackSellerIds?: string[];
+    };
+    const timeoutMinutes = cfg.forceAssignTimeoutMinutes ?? 5;
+    const fallbackSellerIds = cfg.fallbackSellerIds ?? [];
+    const cutoff = new Date(now.getTime() - timeoutMinutes * 60_000).toISOString();
+
+    const { data: stale } = await admin
+      .from("conversation_rescues")
+      .select("id, conversation_id, store_id, whatsapp_account_id, absent_seller_id, broadcast_at")
+      .eq("store_id", store.id)
+      .eq("status", "broadcasting")
+      .lte("broadcast_at", cutoff);
+
+    for (const rescue of (stale ?? []) as Array<{
+      id: string;
+      conversation_id: string;
+      store_id: string;
+      whatsapp_account_id: string | null;
+      absent_seller_id: string;
+      broadcast_at: string;
+    }>) {
+      if (!rescue.whatsapp_account_id) continue;
+      const eligible = await resolveEligiblePool(
+        admin,
+        rescue.store_id,
+        rescue.whatsapp_account_id,
+        rescue.absent_seller_id,
+        now,
+      );
+      const fallbackOnline = fallbackSellerIds.filter((id) => eligible.includes(id));
+      const pool = fallbackOnline.length > 0 ? fallbackOnline : eligible;
+      if (pool.length === 0) continue; // nobody online anywhere — stays broadcasting
+
+      const seed = `${rescue.id}-${rescue.broadcast_at}`;
+      const chosen = pickFallbackSeller(pool, seed);
+      if (!chosen) continue;
+
+      const { data: updated, error: updErr } = await admin
+        .from("conversation_rescues")
+        .update({ status: "forced", forced_seller_id: chosen, forced_at: now.toISOString() })
+        .eq("id", rescue.id)
+        .eq("status", "broadcasting") // idempotency guard against a concurrent tick
+        .select("id");
+      if (updErr) {
+        ctx.log.error("conversation-rescue-tick force-assign update failed", {
+          rescueId: rescue.id,
+          error: updErr.message,
+        });
+        continue;
+      }
+      if (!updated || updated.length === 0) continue; // lost the race to a concurrent tick — don't double-fire
+
+      const { error: convUpdErr } = await admin
+        .from("conversations")
+        .update({ assigned_seller_id: chosen })
+        .eq("id", rescue.conversation_id);
+      if (convUpdErr) {
+        ctx.log.error("conversation-rescue-tick conversation reassignment failed", {
+          rescueId: rescue.id,
+          conversationId: rescue.conversation_id,
+          error: convUpdErr.message,
+        });
+      }
+
+      const { error: auditErr } = await admin.from("audit_logs").insert({
+        store_id: rescue.store_id,
+        actor_id: chosen,
+        action: "conversation_rescue_forced",
+        resource: "conversation",
+        resource_id: rescue.conversation_id,
+        after: { rescueId: rescue.id },
+      });
+      if (auditErr) {
+        ctx.log.error("conversation-rescue-tick audit log insert failed", {
+          rescueId: rescue.id,
+          error: auditErr.message,
+        });
+      }
+      forced++;
+    }
+  }
+  return forced;
+}
+
+servePost(async (req, ctx) => {
+  const admin = createClient(
+    requiredEnv("SUPABASE_URL"),
+    requiredEnv("SUPABASE_SERVICE_ROLE_KEY"),
+    { auth: { persistSession: false } },
+  );
+
+  const expected = await createSecretResolver(admin)(WORKER_SECRET_NAME);
+  const provided = req.headers.get("x-worker-secret") ?? "";
+  if (!verifyWorkerSecret(provided, expected)) throw new HttpError(401, "unauthorized");
+
+  const now = new Date();
+  const cancelled = await cancelResolvedRescues(admin, now, ctx);
+  const created = await broadcastNewRescues(admin, now, ctx);
+  const forced = await resolveTimeouts(admin, now, ctx);
+  ctx.log.info("conversation-rescue-tick done", { cancelled, created, forced });
+  return json({ cancelled, created, forced }, 200);
+});

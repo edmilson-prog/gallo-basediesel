@@ -15,3 +15,4 @@ export { GamificationPlaceholderPage } from "./pages/GamificationPlaceholderPage
 export { DivisionsPlaceholderPage } from "./pages/DivisionsPlaceholderPage";
 export { MediaRetentionSettingsPage } from "./pages/MediaRetentionSettingsPage";
 export { IdleAlertsSettingsPage } from "./pages/IdleAlertsSettingsPage";
+export { ConversationRescueSettingsPage } from "./pages/ConversationRescueSettingsPage";

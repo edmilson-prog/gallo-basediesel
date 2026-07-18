@@ -118,6 +118,12 @@ export const ROUTING_RULES: Record<NotificationEventType, IRoutingRule> = {
     channels: ["inApp", "toast"],
     resolveRecipients: (p) => sellerOf(p),
   },
+  "conversa.colaboradorAdicionado": {
+    category: "operational",
+    severity: "info",
+    channels: ["inApp"],
+    resolveRecipients: (p) => sellerOf(p),
+  },
   "conversa.semResposta": {
     category: "operational",
     severity: "warning",
@@ -133,6 +139,12 @@ export const ROUTING_RULES: Record<NotificationEventType, IRoutingRule> = {
     category: "operational",
     severity: "warning",
     channels: ["inApp", "toast"],
+    resolveRecipients: (p) => sellerOf(p),
+  },
+  "conversa.resgatada": {
+    category: "operational",
+    severity: "info",
+    channels: ["inApp"],
     resolveRecipients: (p) => sellerOf(p),
   },
   "sdr.escalonou": {

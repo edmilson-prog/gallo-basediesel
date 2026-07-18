@@ -176,6 +176,23 @@ export interface IIdleAlertsSettings {
   notifyManagerOnLevel3: boolean;
 }
 
+/**
+ * Offline-rescue thresholds (spec 2026-07-17). Broadcasts a stalled,
+ * assigned conversation to every eligible online seller when its assignee
+ * is absent; forces a random fallback assignment if nobody claims it in
+ * time. Stored at `stores.settings->'conversationRescue'`.
+ */
+export interface IConversationRescueSettings {
+  enabled: boolean;
+  /** Minutes the client must have waited (past `awaiting_reply_since`) before a
+   * within-schedule-but-away seller counts as "temporarily absent". */
+  temporaryAbsenceGraceMinutes: number;
+  /** Minutes after the broadcast starts before a forced fallback assignment kicks in. */
+  forceAssignTimeoutMinutes: number;
+  /** Reserve sellers considered first for the forced fallback assignment. */
+  fallbackSellerIds: ID[];
+}
+
 /** Reference (not the credential itself) to a WhatsApp account. */
 export interface IWhatsAppAccountRef {
   id: ID;
@@ -249,6 +266,8 @@ export interface IPlatformSettings {
   managerDashboard: IManagerDashboardSettings;
   /** Idle-conversation alerts (spec 2026-07-16). Undefined → DEFAULT_IDLE_ALERTS_SETTINGS. */
   idleAlerts?: IIdleAlertsSettings;
+  /** Offline-rescue broadcast (spec 2026-07-17). Undefined → DEFAULT_CONVERSATION_RESCUE_SETTINGS. */
+  conversationRescue?: IConversationRescueSettings;
   /** Whether the SDR agent is enabled for this store (PRD-020). */
   sdrEnabled: boolean;
   /** Editable SDR message templates with variable substitution (PRD-020). */
