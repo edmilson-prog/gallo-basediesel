@@ -11,10 +11,17 @@ import { useConversationRescueSettings } from "../hooks/useConversationRescueSet
 
 const MINUTES_MIN = 1;
 const MINUTES_MAX = 120;
+const HOURS_MIN = 1;
+const HOURS_MAX = 72;
 
 function clampMinutes(value: number): number {
   if (!Number.isFinite(value)) return MINUTES_MIN;
   return Math.min(MINUTES_MAX, Math.max(MINUTES_MIN, Math.round(value)));
+}
+
+function clampHours(value: number): number {
+  if (!Number.isFinite(value)) return HOURS_MIN;
+  return Math.min(HOURS_MAX, Math.max(HOURS_MIN, Math.round(value)));
 }
 
 export interface IConversationRescueSettingsSectionProps {
@@ -53,6 +60,7 @@ export function ConversationRescueSettingsSection({ storeId }: IConversationResc
         temporaryAbsenceGraceMinutes: clampMinutes(draft.temporaryAbsenceGraceMinutes),
         forceAssignTimeoutMinutes: clampMinutes(draft.forceAssignTimeoutMinutes),
         fallbackSellerIds: draft.fallbackSellerIds,
+        maxClientWaitHours: clampHours(draft.maxClientWaitHours),
       });
       toast.success("Configurações salvas.");
     } catch {
@@ -116,6 +124,28 @@ export function ConversationRescueSettingsSection({ storeId }: IConversationResc
               }))
             }
           />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="rescue-max-wait" className="text-xs">
+            Janela máx. de espera do cliente (h)
+          </Label>
+          <Input
+            id="rescue-max-wait"
+            type="number"
+            min={HOURS_MIN}
+            max={HOURS_MAX}
+            value={draft.maxClientWaitHours}
+            disabled={!draft.enabled}
+            onChange={(e) =>
+              setDraft((d) => ({
+                ...d,
+                maxClientWaitHours: clampHours(Number(e.target.value)),
+              }))
+            }
+          />
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            Esperas mais antigas que isso não geram resgate — ficam com os alertas de ociosidade.
+          </p>
         </div>
       </div>
       <div className="mt-4">
