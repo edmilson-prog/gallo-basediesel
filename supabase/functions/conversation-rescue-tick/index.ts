@@ -30,6 +30,11 @@ import { isWithinWorkSchedule } from "../_shared/access/workSchedule.ts";
 import { resolveAccessRecipients } from "../_shared/access/accessRecipients.ts";
 import { determineAbsence } from "../_shared/conversation-rescue/engine/determineAbsence.ts";
 import { pickFallbackSeller } from "../_shared/conversation-rescue/engine/pickFallbackSeller.ts";
+import {
+  isWithinRescueCooldown,
+  RESCUE_REBROADCAST_COOLDOWN_MINUTES,
+  type IRescueCooldownEntry,
+} from "../_shared/conversation-rescue/engine/rescueCooldown.ts";
 
 const WORKER_SECRET_NAME = "CONVERSATION_RESCUE_WORKER_SECRET";
 
@@ -187,8 +192,10 @@ async function broadcastNewRescues(
   for (const store of (stores ?? []) as Array<{ id: string; settings: Record<string, unknown> }>) {
     const cfg = (store.settings.conversationRescue ?? {}) as {
       temporaryAbsenceGraceMinutes?: number;
+      maxClientWaitHours?: number;
     };
     const graceMinutes = cfg.temporaryAbsenceGraceMinutes ?? 15;
+    const maxClientWaitHours = cfg.maxClientWaitHours ?? 24;
 
     const { data: activeRescues } = await admin
       .from("conversation_rescues")
@@ -198,6 +205,29 @@ async function broadcastNewRescues(
     const alreadyBroadcasting = new Set(
       ((activeRescues ?? []) as Array<{ conversation_id: string }>).map((r) => r.conversation_id),
     );
+
+    // Re-broadcast cooldown (incident 2026-07-18): a conversation whose rescue
+    // resolved recently must not re-qualify on the next tick just because the
+    // claimer hasn't replied yet. Fetch window is generous (24h) — the pure
+    // helper applies the actual cutoff.
+    const cooldownFetchCutoff = new Date(now.getTime() - 24 * 3_600_000).toISOString();
+    const { data: recentResolved } = await admin
+      .from("conversation_rescues")
+      .select("conversation_id, claimed_at, forced_at, created_at")
+      .eq("store_id", store.id)
+      .neq("status", "broadcasting")
+      .gte("created_at", cooldownFetchCutoff);
+    const resolvedByConversation = new Map<string, IRescueCooldownEntry[]>();
+    for (const row of (recentResolved ?? []) as Array<{
+      conversation_id: string;
+      claimed_at: string | null;
+      forced_at: string | null;
+      created_at: string;
+    }>) {
+      const list = resolvedByConversation.get(row.conversation_id) ?? [];
+      list.push({ claimedAt: row.claimed_at, forcedAt: row.forced_at, createdAt: row.created_at });
+      resolvedByConversation.set(row.conversation_id, list);
+    }
 
     const { data: convData } = await admin
       .from("conversations")
@@ -211,6 +241,15 @@ async function broadcastNewRescues(
     for (const conv of conversations) {
       if (alreadyBroadcasting.has(conv.id)) continue;
       if (!conv.whatsapp_account_id) continue;
+      if (
+        isWithinRescueCooldown(
+          resolvedByConversation.get(conv.id) ?? [],
+          now,
+          RESCUE_REBROADCAST_COOLDOWN_MINUTES,
+        )
+      ) {
+        continue;
+      }
 
       const { data: sellerData } = await admin
         .from("sellers")
@@ -231,6 +270,7 @@ async function broadcastNewRescues(
         awaitingReplySince: conv.awaiting_reply_since,
         now,
         temporaryAbsenceGraceMinutes: graceMinutes,
+        maxClientWaitHours,
       });
       if (!absenceKind) continue;
 

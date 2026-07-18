@@ -32,7 +32,9 @@ export function useConversationRescueSettings(storeId: ID | null): IUseConversat
     setError(null);
     try {
       const platform = await provider.get(storeId);
-      setSettings(platform.conversationRescue ?? DEFAULT_CONVERSATION_RESCUE_SETTINGS);
+      // Spread-merge so settings stored before newer fields existed (e.g.
+      // maxClientWaitHours) still pick up their defaults.
+      setSettings({ ...DEFAULT_CONVERSATION_RESCUE_SETTINGS, ...platform.conversationRescue });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao carregar configurações.");
     } finally {

@@ -6,4 +6,5 @@ export const DEFAULT_CONVERSATION_RESCUE_SETTINGS: IConversationRescueSettings =
   temporaryAbsenceGraceMinutes: 15,
   forceAssignTimeoutMinutes: 5,
   fallbackSellerIds: [],
+  maxClientWaitHours: 24,
 };

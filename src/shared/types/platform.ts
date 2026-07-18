@@ -191,6 +191,10 @@ export interface IConversationRescueSettings {
   forceAssignTimeoutMinutes: number;
   /** Reserve sellers considered first for the forced fallback assignment. */
   fallbackSellerIds: ID[];
+  /** Max hours since `awaiting_reply_since` for a conversation to still qualify
+   * for rescue. Older waits are backlog — sub-project A (idle alerts) territory,
+   * never a rescue broadcast (incident 2026-07-18). */
+  maxClientWaitHours: number;
 }
 
 /** Reference (not the credential itself) to a WhatsApp account. */
