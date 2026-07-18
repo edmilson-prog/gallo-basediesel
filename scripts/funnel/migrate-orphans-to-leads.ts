@@ -20,7 +20,7 @@
 // Padrão da casa (scripts/dintec-import/*): trava de segurança por env, fetch
 // paginado com `.range()+.order("id")` (PostgREST teto 1000/página mesmo com
 // service_role), escrita em lotes, relatórios em scratchpad/, audit_logs por fase.
-import { writeFileSync } from "node:fs";
+import { writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import {
@@ -174,6 +174,18 @@ async function fetchFkSet(table: string, col: string): Promise<Set<string>> {
   return set;
 }
 
+/** Complete customer rows (select *) for the given ids — used for the backups
+ *  so a rollback can restore without PITR. */
+async function fetchFullRows(ids: string[]): Promise<Record<string, unknown>[]> {
+  const out: Record<string, unknown>[] = [];
+  for (const part of chunk(ids, 200)) {
+    const { data, error } = await sb.from("customers").select("*").in("id", part);
+    if (error) throw error;
+    out.push(...((data ?? []) as Record<string, unknown>[]));
+  }
+  return out;
+}
+
 const stageCache = new Map<string, unknown>();
 async function getFirstStage(storeId: string): Promise<unknown> {
   if (stageCache.has(storeId)) return stageCache.get(storeId);
@@ -230,17 +242,29 @@ async function main() {
   );
   const conversations = await fetchAll<ConvRow>(() => sb.from("conversations").select(CONV_COLS));
 
-  const [ordersSet, quotesSet, notesSet, vehiclesSet, convertedSet, mediaSet, tracesSet, sdrSet] =
-    await Promise.all([
-      fetchFkSet("orders", "customer_id"),
-      fetchFkSet("quotes", "customer_id"),
-      fetchFkSet("customer_notes", "customer_id"),
-      fetchFkSet("vehicles", "customer_id"),
-      fetchFkSet("leads", "converted_to_customer_id"),
-      fetchFkSet("media_assets", "customer_id"),
-      fetchFkSet("distribution_traces", "customer_id"),
-      fetchFkSet("sdr_escalations", "customer_id"),
-    ]);
+  const [
+    ordersSet,
+    quotesSet,
+    notesSet,
+    vehiclesSet,
+    convertedSet,
+    mediaSet,
+    tracesSet,
+    sdrSet,
+    recosSet,
+  ] = await Promise.all([
+    fetchFkSet("orders", "customer_id"),
+    fetchFkSet("quotes", "customer_id"),
+    fetchFkSet("customer_notes", "customer_id"),
+    fetchFkSet("vehicles", "customer_id"),
+    fetchFkSet("leads", "converted_to_customer_id"),
+    fetchFkSet("media_assets", "customer_id"),
+    fetchFkSet("distribution_traces", "customer_id"),
+    fetchFkSet("sdr_escalations", "customer_id"),
+    // 11th FK onto customers: recommendations.subject_id (NO ACTION) — a delete
+    // would be blocked, so it joins traces/sdr in the risk metric + B2 pre-check.
+    fetchFkSet("recommendations", "subject_id"),
+  ]);
 
   // Conversation aggregation per customer: count + max(valid last_message_at).
   const convByCustomer = new Map<string, { count: number; maxLast: string | null }>();
@@ -259,7 +283,7 @@ async function main() {
     `Base: ${orphans.length} órfãos, ${conversations.length} conversas | refs → ` +
       `orders=${ordersSet.size} quotes=${quotesSet.size} notes=${notesSet.size} ` +
       `vehicles=${vehiclesSet.size} converted=${convertedSet.size} media=${mediaSet.size} ` +
-      `traces=${tracesSet.size} sdr=${sdrSet.size}`,
+      `traces=${tracesSet.size} sdr=${sdrSet.size} recos=${recosSet.size}`,
   );
 
   // 2) Classify.
@@ -308,6 +332,7 @@ async function main() {
     if (mediaSet.has(o.id)) refs.push("media");
     if (tracesSet.has(o.id)) refs.push("traces");
     if (sdrSet.has(o.id)) refs.push("sdr");
+    if (recosSet.has(o.id)) refs.push("recos");
     return {
       orphan: o,
       klass,
@@ -335,10 +360,11 @@ async function main() {
   // Lead-class orphans rerouted to review for lacking a usable phone.
   const noPhoneReviews = reviews.filter((c) => c.reclassifiedNoPhone);
   // FK-on-delete note: delete/lead-class orphans whose customer row still has a
-  // NO-ACTION FK pointing at it (distribution_traces / sdr_escalations) would
-  // block the delete. media_assets / conversation_activity are ON DELETE SET NULL.
+  // NO-ACTION FK pointing at it (distribution_traces / sdr_escalations /
+  // recommendations.subject_id) would block the delete. media_assets /
+  // conversation_activity are ON DELETE SET NULL.
   const deletionFkRisk = [...leadClass, ...deletes].filter(
-    (c) => tracesSet.has(c.orphan.id) || sdrSet.has(c.orphan.id),
+    (c) => tracesSet.has(c.orphan.id) || sdrSet.has(c.orphan.id) || recosSet.has(c.orphan.id),
   );
 
   const counts = {
@@ -354,6 +380,7 @@ async function main() {
   );
 
   // 3) Reports (dry-run truth of the day — written in BOTH modes for the record).
+  mkdirSync(SCRATCHPAD, { recursive: true }); // ensure the output dir exists
   const csvRows: string[] = ["id;nome;phone;classe;last_msg;convs;refs"];
   for (const c of classified) {
     csvRows.push(
@@ -393,7 +420,7 @@ async function main() {
       `\`leads.name\` intocado; renderiza como o telefone no inbox (idêntico a hoje).`,
     `- Lead-class reclassificados para review por falta de telefone utilizável: ` +
       `**${noPhoneReviews.length}** (incluídos na contagem de review acima).`,
-    `- (alerta) Órfãos lead/delete com FK NO-ACTION bloqueante (traces/sdr): ` +
+    `- (alerta) Órfãos lead/delete com FK NO-ACTION bloqueante (traces/sdr/recos): ` +
       `**${deletionFkRisk.length}** — se >0 no rollout, o delete do customer aborta o ` +
       `lote com erro claro (media/activity são SET NULL, seguros).`,
     "",
@@ -430,6 +457,52 @@ async function main() {
   // ===== WRITE MODE (rollout) ================================================
   assertCanWrite("bootstrap");
 
+  // Circuit-breaker: the apply run must declare the class counts it EXPECTS
+  // (FUNNEL_EXPECT="ativo,dormente,delete,review", straight from the reviewed
+  // dry-run). A fresh classification that drifts >10% in any class OR the total
+  // aborts — a large delta means the dataset moved and the dry-run is stale.
+  const expectRaw = process.env.FUNNEL_EXPECT;
+  if (!expectRaw) {
+    throw new Error(
+      'Modo escrita exige FUNNEL_EXPECT="ativo,dormente,delete,review" ' +
+        "(contagens do dry-run revisado). Rode o dry-run e informe as contagens.",
+    );
+  }
+  const expectParts = expectRaw.split(",").map((s) => Number(s.trim()));
+  if (expectParts.length !== 4 || expectParts.some((n) => !Number.isFinite(n))) {
+    throw new Error(`FUNNEL_EXPECT malformado: "${expectRaw}" — esperado 4 inteiros ativo,dormente,delete,review.`);
+  }
+  const [expAtivo, expDormente, expDelete, expReview] = expectParts;
+  const driftGuard = (label: string, actual: number, expected: number) => {
+    const diverges =
+      expected === 0 ? actual !== 0 : Math.abs(actual - expected) / expected > 0.1;
+    if (diverges) {
+      throw new Error(
+        `Circuit-breaker: classe "${label}" divergiu >10% (esperado ${expected}, agora ${actual}). ` +
+          "Re-rode FUNNEL_DRY_RUN=yes, revise as contagens e atualize FUNNEL_EXPECT antes de aplicar.",
+      );
+    }
+  };
+  driftGuard("ativo", counts.lead_ativo, expAtivo);
+  driftGuard("dormente", counts.lead_dormente, expDormente);
+  driftGuard("delete", counts.delete, expDelete);
+  driftGuard("review", counts.review, expReview);
+  driftGuard("total", counts.total, expAtivo + expDormente + expDelete + expReview);
+  console.log(`Circuit-breaker OK (esperado ${expectRaw}).`);
+
+  // Pre-flight: the ownerless-leads + avatar_url migration MUST be applied first
+  // (leads.seller_id NOT NULL drop + leads.avatar_url). Probing avatar_url is a
+  // cheap proxy for the whole migration 20260718150000.
+  {
+    const { error: migErr } = await sb.from("leads").select("avatar_url").limit(1);
+    if (migErr) {
+      throw new Error(
+        "Pré-flight falhou: leads.avatar_url ausente — aplicar a migration " +
+          "20260718150000_funnel_leads_ownerless_avatar.sql antes da escrita real.",
+      );
+    }
+  }
+
   // Pre-run invariant snapshot: orphan conversations (customer_id null AND
   // lead_id null) must not grow as a side effect of this run.
   const orphanConvsBefore = await countWhere(() =>
@@ -440,41 +513,77 @@ async function main() {
       .is("lead_id", null),
   );
 
+  // Symmetric backup: complete rows of every customer B1 is about to convert +
+  // delete, so a rollback can restore them without PITR (B1 deletes by design).
+  const b1BackupRows = await fetchFullRows(leadClass.map((c) => c.orphan.id));
+  const b1BackupPath = join(SCRATCHPAD, "funnel-b1-backup.jsonl");
+  writeFileSync(
+    b1BackupPath,
+    b1BackupRows.map((r) => JSON.stringify(r)).join("\n") + (b1BackupRows.length ? "\n" : ""),
+    "utf8",
+  );
+  console.log(`B1: backup de ${b1BackupRows.length} customers em ${b1BackupPath}`);
+
   // ----- B1: lead_ativo + lead_dormente --------------------------------------
   let createdActive = 0;
   let createdDormant = 0;
+  let reusedLeads = 0;
   let conversationsRepointed = 0;
   let processed = 0;
   for (const batch of chunk(leadClass, 100)) {
     for (const c of batch) {
       assertCanWrite("B1");
       const o = c.orphan;
-      const stage = await getFirstStage(o.store_id);
-      const newId = crypto.randomUUID();
-      const leadRow: Record<string, unknown> = {
-        id: newId,
-        store_id: o.store_id,
-        seller_id: null,
-        name: resolveLeadName(o),
-        phone: o.phone,
-        email: null,
-        stage,
-        temperature: "frio",
-        origin: "import",
-        avatar_url: o.avatar_url ?? null,
-        conversations: [],
-        tags: [],
-      };
-      if (c.klass === "lead_dormente") leadRow.loss_reason = IMPORT_LOSS_REASON;
 
-      const { error: insErr } = await sb.from("leads").insert(leadRow);
-      if (insErr) throw new Error(`B1 insert lead falhou (órfão ${o.id}): ${insErr.message}`);
+      // Idempotency for the insert-OK + repoint-fail window: a prior partial run
+      // may already have created this orphan's import lead but died before
+      // repointing. Reuse an existing origin='import' lead with the exact same
+      // phone_digits in this store instead of minting a duplicate.
+      let leadId: string | null = null;
+      const digits = (o.phone_digits ?? "").trim();
+      if (digits) {
+        const { data: existing, error: lookupErr } = await sb
+          .from("leads")
+          .select("id")
+          .eq("store_id", o.store_id)
+          .eq("origin", "import")
+          .eq("phone_digits", digits)
+          .limit(1);
+        if (lookupErr) throw new Error(`B1 lookup lead falhou (órfão ${o.id}): ${lookupErr.message}`);
+        if (existing && existing.length > 0) leadId = existing[0].id as string;
+      }
 
-      // Repoint conversations to the new lead and detach the customer. The
-      // affected rowcount MUST match the snapshot count, else abort.
+      if (leadId) {
+        reusedLeads++;
+      } else {
+        const stage = await getFirstStage(o.store_id);
+        leadId = crypto.randomUUID();
+        const leadRow: Record<string, unknown> = {
+          id: leadId,
+          store_id: o.store_id,
+          seller_id: null,
+          name: resolveLeadName(o),
+          phone: o.phone,
+          email: null,
+          stage,
+          temperature: "frio",
+          origin: "import",
+          avatar_url: o.avatar_url ?? null,
+          conversations: [],
+          tags: [],
+        };
+        if (c.klass === "lead_dormente") leadRow.loss_reason = IMPORT_LOSS_REASON;
+        const { error: insErr } = await sb.from("leads").insert(leadRow);
+        if (insErr) throw new Error(`B1 insert lead falhou (órfão ${o.id}): ${insErr.message}`);
+        if (c.klass === "lead_ativo") createdActive++;
+        else createdDormant++;
+      }
+
+      // Repoint conversations to the lead and detach the customer. The affected
+      // rowcount MUST match the snapshot count, else abort.
       const { data: repointed, error: upErr } = await sb
         .from("conversations")
-        .update({ lead_id: String(newId), customer_id: null })
+        .update({ lead_id: String(leadId), customer_id: null })
         .eq("customer_id", o.id)
         .select("id");
       if (upErr) throw new Error(`B1 repoint conversas falhou (órfão ${o.id}): ${upErr.message}`);
@@ -489,26 +598,32 @@ async function main() {
       const { error: delErr } = await sb.from("customers").delete().eq("id", o.id);
       if (delErr) throw new Error(`B1 delete customer falhou (órfão ${o.id}): ${delErr.message}`);
 
-      if (c.klass === "lead_ativo") createdActive++;
-      else createdDormant++;
       processed++;
     }
-    console.log(`B1: ${processed}/${leadClass.length} (ativos ${createdActive}, dormentes ${createdDormant})`);
+    console.log(
+      `B1: ${processed}/${leadClass.length} (ativos ${createdActive}, dormentes ${createdDormant}, reusados ${reusedLeads})`,
+    );
   }
 
   // ----- B2: delete (pure phonebook noise) -----------------------------------
   assertCanWrite("B2-backup");
-  const backupLines = deletes.map((c) => JSON.stringify(c.orphan));
+  const b2BackupRows = await fetchFullRows(deletes.map((c) => c.orphan.id));
   const backupPath = join(SCRATCHPAD, "funnel-b2-backup.jsonl");
-  writeFileSync(backupPath, backupLines.join("\n") + (backupLines.length ? "\n" : ""), "utf8");
-  console.log(`B2: backup de ${deletes.length} customers em ${backupPath}`);
+  writeFileSync(
+    backupPath,
+    b2BackupRows.map((r) => JSON.stringify(r)).join("\n") + (b2BackupRows.length ? "\n" : ""),
+    "utf8",
+  );
+  console.log(`B2: backup de ${b2BackupRows.length} customers em ${backupPath}`);
 
   let deleted = 0;
   for (const batch of chunk(deletes, 100)) {
     assertCanWrite("B2");
     // Cheap re-verification from the in-memory Sets (no new queries): a delete
     // candidate must carry zero blocking references — it was classified `delete`
-    // precisely because it has none.
+    // precisely because it has none. Includes the NO-ACTION FKs not covered by
+    // classification (distribution_traces / sdr_escalations / recommendations),
+    // which would otherwise fail the DB delete.
     for (const c of batch) {
       const id = c.orphan.id;
       const blocking =
@@ -516,7 +631,10 @@ async function main() {
         ordersSet.has(id) ||
         quotesSet.has(id) ||
         vehiclesSet.has(id) ||
-        notesSet.has(id);
+        notesSet.has(id) ||
+        tracesSet.has(id) ||
+        sdrSet.has(id) ||
+        recosSet.has(id);
       if (blocking) {
         throw new Error(`B2 abortado: órfão ${id} tem referência bloqueante inesperada.`);
       }
@@ -547,8 +665,9 @@ async function main() {
       after: {
         created_active: createdActive,
         created_dormant: createdDormant,
+        reused_leads: reusedLeads,
         conversations_repointed: conversationsRepointed,
-        customers_deleted: createdActive + createdDormant,
+        customers_deleted: processed,
       },
     },
     {
@@ -607,8 +726,9 @@ async function main() {
     "",
     `- Leads ativos criados: ${createdActive}`,
     `- Leads dormentes criados: ${createdDormant}`,
+    `- Leads reusados (re-run idempotente): ${reusedLeads}`,
     `- Conversas repontadas (customer→lead): ${conversationsRepointed}`,
-    `- Customers apagados (B1 convertidos): ${createdActive + createdDormant}`,
+    `- Customers apagados (B1 convertidos): ${processed}`,
     `- Customers apagados (B2 ruído): ${deleted}`,
     "",
     "## Verificação pós-execução",
@@ -618,8 +738,8 @@ async function main() {
     "",
     "## Rollback",
     `- B1: leads criados são identificáveis por origin='import' + timestamp do audit funnel_orphans_to_leads_b1.`,
-    `  As conversas repontadas voltam com lead_id→null. Os customers B1 NÃO têm backup`,
-    `  (foram convertidos por design) — restauração exige PITR.`,
+    `  As conversas repontadas voltam com lead_id→null e os customers são restauráveis`,
+    `  a partir de scratchpad/funnel-b1-backup.jsonl (sem PITR).`,
     `- B2: customers apagados são restauráveis a partir de scratchpad/funnel-b2-backup.jsonl.`,
   ].join("\n");
   writeFileSync(join(SCRATCHPAD, "funnel-orphans-apply-summary.md"), finalSummary + "\n", "utf8");
