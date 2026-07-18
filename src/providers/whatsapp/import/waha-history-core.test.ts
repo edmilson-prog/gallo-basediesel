@@ -84,7 +84,7 @@ describe("normalizeWahaHistoryRecord", () => {
 });
 
 describe("processWahaImportBatch", () => {
-  function makeDb(): IImportDb {
+  function makeDb(leadNames?: Map<string, string | undefined>): IImportDb {
     const customers = new Map<string, string>(); // phoneDigits -> customerId
     const leads = new Map<string, string>(); // phoneDigits -> leadId
     const conversations = new Map<string, string>(); // anchorId -> conversationId
@@ -99,9 +99,10 @@ describe("processWahaImportBatch", () => {
         const id = leads.get(phoneDigits);
         return id ? { id } : null;
       },
-      async createImportLead({ phone }) {
+      async createImportLead({ phone, name }) {
         const id = `lead-${nextId++}`;
         leads.set(phone.replace(/\D/g, ""), id);
+        leadNames?.set(id, name);
         return { id };
       },
       async findConversation({ customerId, leadId }) {
@@ -144,6 +145,32 @@ describe("processWahaImportBatch", () => {
     expect(result.done).toBe(true);
     expect(result.stats.chatsProcessed).toBe(1);
     expect(result.stats.messagesImported).toBe(1);
+  });
+
+  it("captures the /chats response's name (when present) and threads it into a brand-new lead — no extra REST call", async () => {
+    const fetchFn = vi.fn(async (url: string) => {
+      if (url.includes("/chats?")) {
+        return jsonResponse(200, [{ id: "5548999887766@c.us", name: "  Maria Peças  " }]);
+      }
+      if (url.includes("/messages?")) {
+        return jsonResponse(200, [
+          { id: "m1", timestamp: 1720000000, from: "5548999887766@c.us", fromMe: false, body: "oi" },
+        ]);
+      }
+      return jsonResponse(404, {});
+    });
+    const leadNames = new Map<string, string | undefined>();
+    const db = makeDb(leadNames);
+    await processWahaImportBatch({
+      account: { id: "acct-1", storeId: "store-1" },
+      apiKey: "key",
+      fetchFn: fetchFn as unknown as typeof fetch,
+      target,
+      db,
+    });
+    expect([...leadNames.values()]).toEqual(["Maria Peças"]);
+    // No dedicated /api/contacts lookup — the name comes for free off /chats.
+    expect(fetchFn.mock.calls.some(([url]: [string]) => url.includes("/contacts?"))).toBe(false);
   });
 
   it("skips groups, broadcasts and unresolved @lid chats without fetching their messages", async () => {

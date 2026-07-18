@@ -68,6 +68,20 @@ describe("processContactsImport", () => {
     expect(db.enrichCustomerName).not.toHaveBeenCalled();
   });
 
+  it("never swaps a placeholder for another placeholder — a phone-like candidate name is not usable", async () => {
+    const db = makeDb({
+      findCustomerByPhone: vi.fn(async () => ({ id: "cust-1", name: "+5511888887777" })),
+    });
+    const stats = await processContactsImport({
+      storeId: "store-1",
+      contacts: [{ phone: "+5511888887777", name: "+55 (11) 88888-7777" }], // candidate is phone-like too
+      db,
+    });
+    expect(stats.customersEnriched).toBe(0);
+    expect(stats.alreadyComplete).toBe(1);
+    expect(db.enrichCustomerName).not.toHaveBeenCalled();
+  });
+
   it("counts a failed contact and keeps going (never aborts the run)", async () => {
     const db = makeDb({
       findCustomerByPhone: vi.fn(async (_store: string, digits: string) =>

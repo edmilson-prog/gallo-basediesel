@@ -164,7 +164,7 @@ async function land(
 ): Promise<{ done: boolean; landed: number; remaining: number; stats: IImportStats }> {
   const { data: pending, error } = await admin
     .from("whatsapp_go_history_items")
-    .select("id, phone, messages")
+    .select("id, phone, contact_name, messages")
     .eq("account_id", account.id)
     .eq("landed", false)
     .order("created_at", { ascending: true })
@@ -182,6 +182,7 @@ async function land(
         account,
         db,
         phone: item.phone as string,
+        contactName: item.contact_name as string | null,
         normalized: ((item.messages as INormalizedRecord[] | null) ?? []),
         stats,
       });

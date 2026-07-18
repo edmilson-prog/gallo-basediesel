@@ -86,7 +86,12 @@ export async function processContactsImport(args: {
 
   for (const contact of contacts) {
     const phoneDigits = contact.phone.replace(/\D/g, "");
-    const candidateName = contact.name?.trim() || undefined;
+    const rawCandidate = contact.name?.trim() || undefined;
+    // The phonebook's own name can be just as placeholder-shaped as the
+    // stored one (an unset WhatsApp profile echoes the phone number back) —
+    // a candidate is only usable when it is itself a real name, never a
+    // placeholder swapped for another placeholder.
+    const candidateName = rawCandidate && !isPlaceholderName(rawCandidate) ? rawCandidate : undefined;
     try {
       const customer = await db.findCustomerByPhone(storeId, phoneDigits);
       if (customer) {

@@ -11,7 +11,7 @@ function jsonResponse(status: number, body: unknown): Response {
 const target = { baseUrl: "https://waha.example.com", sessionName: "loja-abc123" };
 
 describe("fetchWahaChatsPage", () => {
-  it("GETs /api/{session}/chats with limit+offset and returns chat ids", async () => {
+  it("GETs /api/{session}/chats with limit+offset and returns chat ids + names, when present", async () => {
     const fetchFn = vi
       .fn()
       .mockResolvedValue(
@@ -21,7 +21,18 @@ describe("fetchWahaChatsPage", () => {
     expect(fetchFn.mock.calls[0][0]).toBe(
       "https://waha.example.com/api/loja-abc123/chats?limit=100&offset=0",
     );
-    expect(rows).toEqual([{ id: "5548999887766@c.us" }, { id: "999@g.us" }]);
+    expect(rows).toEqual([
+      { id: "5548999887766@c.us", name: "Zé" },
+      { id: "999@g.us", name: undefined },
+    ]);
+  });
+
+  it("treats a blank/whitespace-only name as absent (trimmed to undefined)", async () => {
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(200, [{ id: "5548999887766@c.us", name: "   " }]));
+    const rows = await fetchWahaChatsPage("key", fetchFn, target, 0, 100);
+    expect(rows).toEqual([{ id: "5548999887766@c.us", name: undefined }]);
   });
 
   it("drops rows with no id and returns [] on a non-array body", async () => {

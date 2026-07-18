@@ -86,8 +86,12 @@ export interface IImportAccount {
 
 /** Evolution-side reads, wired by the Edge Function with the apikey resolved. */
 export interface IImportSource {
-  /** remoteJids of every chat the instance has stored. */
-  listChats(): Promise<string[]>;
+  /**
+   * Every chat the instance has stored, with its display name (pushName)
+   * when the build sends one — threaded into a brand-new lead's `name` so an
+   * unknown number doesn't land phone-named when a real name is available.
+   */
+  listChats(): Promise<Array<{ remoteJid: string; name?: string }>>;
   listMessages(
     remoteJid: string,
     page: number,
@@ -270,12 +274,15 @@ export async function processImportBatch(args: {
   const stats = emptyImportStats();
 
   // Sort for a stable cursor across calls (Evolution ordering is not guaranteed stable).
-  const allChats = (await source.listChats()).slice().sort();
+  const allChats = (await source.listChats())
+    .slice()
+    .sort((a, b) => a.remoteJid.localeCompare(b.remoteJid));
   const cursor = Number.isFinite(args.cursor) ? Math.max(0, Math.floor(args.cursor as number)) : 0;
   const batchSize = Math.max(1, Math.floor(args.batchSize ?? BATCH_CHATS_DEFAULT));
   const batch = allChats.slice(cursor, cursor + batchSize);
 
-  for (const remoteJid of batch) {
+  for (const chat of batch) {
+    const remoteJid = chat.remoteJid;
     if (!INDIVIDUAL_JID.test(remoteJid)) {
       switch (classifyChatJid(remoteJid)) {
         case "group":
@@ -296,7 +303,7 @@ export async function processImportBatch(args: {
     // A poisoned chat (malformed records, transient REST failure) must never
     // wedge the cursor — count it, warn, and move on; a re-run picks it up.
     try {
-      await importChat(remoteJid, account, source, db, stats, warn);
+      await importChat(remoteJid, chat.name, account, source, db, stats, warn);
       stats.chatsProcessed++;
     } catch (error) {
       stats.chatsFailed++;
@@ -315,6 +322,7 @@ export async function processImportBatch(args: {
 
 async function importChat(
   remoteJid: string,
+  contactName: string | undefined,
   account: IImportAccount,
   source: IImportSource,
   db: IImportDb,
@@ -372,7 +380,14 @@ async function importChat(
   }
   if (normalized.length === 0) return;
 
-  await landNormalizedChat({ account, db, phone: jidToE164(remoteJid), normalized, stats });
+  await landNormalizedChat({
+    account,
+    db,
+    phone: jidToE164(remoteJid),
+    contactName,
+    normalized,
+    stats,
+  });
 }
 
 /**
@@ -386,10 +401,18 @@ export async function landNormalizedChat(args: {
   db: IImportDb;
   /** E.164 phone of the 1:1 contact (already resolved from the chat JID). */
   phone: string;
+  /**
+   * Display name captured from the chat/contact record, when the provider
+   * exposes one (pushName / contact_name). Only used when a BRAND-NEW lead
+   * is created — an existing customer or reused lead is never renamed by an
+   * import. Blank/whitespace-only is treated as absent.
+   */
+  contactName?: string | null;
   normalized: INormalizedRecord[];
   stats: IImportStats;
 }): Promise<void> {
   const { account, db, phone, stats } = args;
+  const contactName = args.contactName?.trim();
 
   // In-memory dedup: overlapping pages / cross-chunk repeats share ids; the DB
   // filter below only sees what already landed, so collapse here first.
@@ -438,6 +461,7 @@ export async function landNormalizedChat(args: {
       const created = await db.createImportLead({
         storeId: account.storeId,
         phone,
+        name: contactName && contactName.length > 0 ? contactName : undefined,
         lastMessageAt: newest,
       });
       anchorLeadId = created.id;

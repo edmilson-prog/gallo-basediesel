@@ -144,15 +144,17 @@ async function fetchAllWahaChatIds(
   fetchFn: typeof fetch,
   target: IWahaSessionTarget,
   warn: (msg: string, fields?: Record<string, unknown>) => void,
-): Promise<string[]> {
-  const ids = new Set<string>();
+): Promise<Map<string, string | undefined>> {
+  const chats = new Map<string, string | undefined>(); // id -> name (first-seen wins)
   for (let page = 0; page < MAX_CHAT_PAGES; page++) {
     const offset = page * CHATS_PAGE_SIZE;
     const rows = await withWahaRetry(
       () => fetchWahaChatsPage(apiKey, fetchFn, target, offset, CHATS_PAGE_SIZE),
       CHATS_RETRY_ATTEMPTS,
     );
-    for (const row of rows) ids.add(row.id);
+    for (const row of rows) {
+      if (!chats.has(row.id)) chats.set(row.id, row.name);
+    }
     if (rows.length < CHATS_PAGE_SIZE) break;
     if (page === MAX_CHAT_PAGES - 1) {
       warn("fetchAllWahaChatIds page cap reached — older chats skipped", {
@@ -160,7 +162,7 @@ async function fetchAllWahaChatIds(
       });
     }
   }
-  return [...ids];
+  return chats;
 }
 
 async function importWahaChat(
@@ -169,6 +171,7 @@ async function importWahaChat(
   target: IWahaSessionTarget,
   chatId: string,
   phone: string,
+  contactName: string | undefined,
   account: IImportAccount,
   db: IImportDb,
   stats: IImportStats,
@@ -209,7 +212,7 @@ async function importWahaChat(
   }
   if (normalized.length === 0) return;
 
-  await landNormalizedChat({ account, db, phone, normalized, stats });
+  await landNormalizedChat({ account, db, phone, contactName, normalized, stats });
 }
 
 export interface IWahaImportArgs {
@@ -239,7 +242,8 @@ export async function processWahaImportBatch(args: IWahaImportArgs): Promise<IIm
   const startedAt = now();
   const stats = emptyImportStats();
 
-  const allChats = (await fetchAllWahaChatIds(apiKey, fetchFn, target, warn)).slice().sort();
+  const chatNames = await fetchAllWahaChatIds(apiKey, fetchFn, target, warn);
+  const allChats = [...chatNames.keys()].sort();
   const cursor = Number.isFinite(args.cursor) ? Math.max(0, Math.floor(args.cursor as number)) : 0;
   const batchSize = Math.max(1, Math.floor(args.batchSize ?? BATCH_CHATS_DEFAULT));
   const batch = allChats.slice(cursor, cursor + batchSize);
@@ -300,7 +304,18 @@ export async function processWahaImportBatch(args: IWahaImportArgs): Promise<IIm
     }
 
     try {
-      await importWahaChat(apiKey, fetchFn, target, chatId, phone, account, db, stats, warn);
+      await importWahaChat(
+        apiKey,
+        fetchFn,
+        target,
+        chatId,
+        phone,
+        chatNames.get(chatId),
+        account,
+        db,
+        stats,
+        warn,
+      );
       stats.chatsProcessed++;
     } catch (error) {
       stats.chatsFailed++;
