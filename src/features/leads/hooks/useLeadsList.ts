@@ -53,7 +53,7 @@ export function useLeadsList({
 
     if (sellerScopeIds && sellerScopeIds.length > 0) {
       const set = new Set(sellerScopeIds);
-      result = result.filter((l) => set.has(l.sellerId));
+      result = result.filter((l) => l.sellerId !== null && set.has(l.sellerId));
     }
 
     if (!filters.includeLost) {
@@ -77,7 +77,7 @@ export function useLeadsList({
     }
     if (filters.sellerIds.length > 0) {
       const set = new Set(filters.sellerIds);
-      result = result.filter((l) => set.has(l.sellerId));
+      result = result.filter((l) => l.sellerId !== null && set.has(l.sellerId));
     }
     if (filters.storeIds.length > 0) {
       const set = new Set(filters.storeIds);

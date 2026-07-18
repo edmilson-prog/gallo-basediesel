@@ -111,7 +111,7 @@ export function LeadsList({ leads, sellersById, isLoading, sort, onSortChange }:
             const tempMeta = TEMPERATURE_META[lead.temperature];
             const originMeta = ORIGIN_META[lead.origin];
             const nextAction = getNextActionInfo(lead.nextActionAt, now);
-            const seller = sellersById.get(lead.sellerId);
+            const seller = lead.sellerId ? sellersById.get(lead.sellerId) : undefined;
             return (
               <TableRow
                 key={lead.id}

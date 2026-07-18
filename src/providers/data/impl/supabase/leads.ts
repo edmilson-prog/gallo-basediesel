@@ -20,7 +20,7 @@ import { buildDigitSearchCandidates } from "@/shared/utils/digitSearch";
 interface LeadRow {
   id: string;
   store_id: string;
-  seller_id: string;
+  seller_id: string | null;
   name: string;
   phone: string;
   email: string | null;
