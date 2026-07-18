@@ -86,7 +86,9 @@ export function PartPricingTable({
           <span className="font-mono font-medium text-foreground">{formatBRL(baseCost)}</span>
         </p>
       )}
-      {errors?.standardPrice && <p className="mb-2 text-xs text-destructive">{errors.standardPrice}</p>}
+      {errors?.standardPrice && (
+        <p className="mb-2 text-xs text-destructive">{errors.standardPrice}</p>
+      )}
 
       <div className="overflow-hidden rounded-md border border-border">
         <table className="w-full text-sm">
@@ -114,7 +116,10 @@ export function PartPricingTable({
               return (
                 <tr
                   key={table.id}
-                  className={cn("border-b border-border last:border-b-0", isPadrao && "bg-primary/5")}
+                  className={cn(
+                    "border-b border-border last:border-b-0",
+                    isPadrao && "bg-primary/5",
+                  )}
                 >
                   <th scope="row" className="px-3 py-2 text-left font-medium text-foreground">
                     <span className="inline-flex items-center gap-1.5">
@@ -131,7 +136,10 @@ export function PartPricingTable({
                         disabled={disabled}
                         value={Math.round(table.markupPercent * 1000) / 10}
                         onChange={(e) =>
-                          updateRow(index, updateTableMarkup(table, Number(e.target.value) / 100 || 0, baseCost))
+                          updateRow(
+                            index,
+                            updateTableMarkup(table, Number(e.target.value) / 100 || 0, baseCost),
+                          )
                         }
                         className="h-8 w-24"
                       />
@@ -157,7 +165,12 @@ export function PartPricingTable({
                         step="0.01"
                         disabled={disabled}
                         value={table.price || ""}
-                        onChange={(e) => updateRow(index, updateTablePrice(table, Number(e.target.value) || 0, baseCost))}
+                        onChange={(e) =>
+                          updateRow(
+                            index,
+                            updateTablePrice(table, Number(e.target.value) || 0, baseCost),
+                          )
+                        }
                         className="h-8 w-28 text-right"
                       />
                     ) : (
@@ -166,7 +179,10 @@ export function PartPricingTable({
                   </td>
                   <td className="px-3 py-2 text-right">
                     <span
-                      className={cn("block font-semibold tabular-nums", HEALTH_TEXT[marginHealth(marginShare)])}
+                      className={cn(
+                        "block font-semibold tabular-nums",
+                        HEALTH_TEXT[marginHealth(marginShare)],
+                      )}
                     >
                       {formatPercent(marginShare)}
                     </span>
