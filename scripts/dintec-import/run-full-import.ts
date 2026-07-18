@@ -23,6 +23,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import {
+  dintecDialPhone,
   normalizePhoneKey,
   resolveCustomerType,
   fillIfEmpty,
@@ -580,11 +581,15 @@ async function main() {
     const nomeFinal = nomeChain ?? `Cliente DINTEC ${codcli}`;
     const tags = nomeChain ? [] : [SEM_NOME_TAG];
     createMeta.set(codcli, { nomeFinal, semNome: !nomeChain });
-    const phoneFinal = normalizePhoneKey(cliente.celular)
-      ? cliente.celular
-      : normalizePhoneKey(cliente.telefone)
-        ? cliente.telefone
-        : "";
+    // Mandatory dial format (docs/dev/dintec-providers.md): '+' + digits with
+    // the BR DDI — the 2026-07-12 run wrote raw ERP values and broke WAHA sends.
+    const phoneFinal = dintecDialPhone(
+      normalizePhoneKey(cliente.celular)
+        ? cliente.celular
+        : normalizePhoneKey(cliente.telefone)
+          ? cliente.telefone
+          : "",
+    );
     const row: Record<string, unknown> = {
       ...snapshot,
       store_id: STORE_ID,

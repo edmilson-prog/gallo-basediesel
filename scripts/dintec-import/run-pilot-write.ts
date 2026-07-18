@@ -8,6 +8,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 import {
+  dintecDialPhone,
   normalizePhoneKey,
   resolveCustomerType,
   fillIfEmpty,
@@ -325,11 +326,14 @@ async function main() {
     } else {
       const type = resolveCustomerType(cliente.cpf || null, cliente.cnpj || null);
       const nomeFinal = cliente.nome || cliente.fantasia || null;
-      const phoneFinal = normalizePhoneKey(cliente.celular)
-        ? cliente.celular
-        : normalizePhoneKey(cliente.telefone)
-          ? cliente.telefone
-          : "";
+      // Mandatory dial format (docs/dev/dintec-providers.md) — see run-full-import.ts.
+      const phoneFinal = dintecDialPhone(
+        normalizePhoneKey(cliente.celular)
+          ? cliente.celular
+          : normalizePhoneKey(cliente.telefone)
+            ? cliente.telefone
+            : "",
+      );
       const row: Record<string, unknown> = {
         ...snapshot,
         store_id: STORE_ID,
