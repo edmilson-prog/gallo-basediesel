@@ -70,7 +70,7 @@ Regras transversais:
 
 Por contato, em transação única com guardas:
 
-1. Criar `leads`: `name` = `full_name` se não for fone-like (senão `whatsapp_name`, senão null), `phone` canônico do customer, `origin='import'`, `temperature='frio'`, **`seller_id = null`** (decisão do dono: "rodízio só com interesse vivo" — dono chega no primeiro inbound, via Frente A), `avatar_url` copiado do customer.
+1. Criar `leads`: `name` = `full_name` se não for fone-like, senão `whatsapp_name`, senão **o telefone** (nunca null — `leads.name` é NOT NULL e um name nulo regrediria a exibição da conversa para "Lead anônimo"; com o fone como name a UI mostra o telefone com ícone genérico, idêntico a hoje — mesmo contrato do `createLead` v0.150), `phone` canônico do customer (**sem telefone utilizável ⇒ o contato vai para revisão B3**, não vira lead), `origin='import'`, `temperature='frio'`, **`seller_id = null`** (decisão do dono: "rodízio só com interesse vivo" — dono chega no primeiro inbound, via Frente A), `avatar_url` copiado do customer.
 2. **Régua de vitalidade (7 dias)**: `max(last_message_at)` das conversas do contato ≥ now−7d → lead **ativo** no estágio inicial (~588 na medição de 2026-07-18); senão → lead criado **já perdido** (`loss_reason = 'Importado sem interação'`, ~1.864) — invisível no kanban ativo, **auto-reaberto pelo webhook** (Frente A) no primeiro sinal de vida.
 3. Repontar `conversations`: `lead_id = lead.id::text`, `customer_id = null`.
 4. Apagar o customer (FKs restantes: `media_assets`/`conversation_activity` são ON DELETE SET NULL — aceitável, a mídia pertence à conversa; `distribution_traces`/`sdr_escalations` verificados no dry-run e repontados/anulados se existirem).
