@@ -2,6 +2,8 @@ import { toast } from "sonner";
 import type { IPart } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { CATALOG_STRINGS } from "../../i18n/pt-BR";
+import { EquivalentsEditor } from "../form/EquivalentsEditor";
+import type { IPartDraft } from "../../utils/draft";
 
 const COPY = CATALOG_STRINGS.detail.counterCards;
 
@@ -9,13 +11,40 @@ export interface IPartEquivalentsCardProps {
   part: IPart;
   /** Jump to the full "Equivalências" tab. */
   onViewAll: () => void;
+  editing?: boolean;
+  draft?: IPartDraft;
+  onDraftChange?: (patch: Partial<IPartDraft>) => void;
 }
 
 /**
  * Compact cross-reference card pinned to the counter layout's left column
  * (design kit `CatEquivalents`) — competitor codes as one-click copy chips.
  */
-export function PartEquivalentsCard({ part, onViewAll }: IPartEquivalentsCardProps) {
+export function PartEquivalentsCard({
+  part,
+  onViewAll,
+  editing = false,
+  draft,
+  onDraftChange,
+}: IPartEquivalentsCardProps) {
+  if (editing && draft && onDraftChange) {
+    return (
+      <div className="rounded-lg border border-border bg-card p-4">
+        <div className="mb-3 flex items-center gap-2">
+          <Icon icon="mdi:swap-horizontal" size={16} className="text-muted-foreground" />
+          <h2 className="text-sm font-semibold tracking-tight text-foreground">
+            {CATALOG_STRINGS.detail.sections.equivalents}
+          </h2>
+        </div>
+        <EquivalentsEditor
+          selectedIds={draft.equivalentPartIds}
+          excludeId={part.id}
+          onChange={(ids) => onDraftChange({ equivalentPartIds: ids })}
+        />
+      </div>
+    );
+  }
+
   const refs = part.crossReferences ?? [];
   const internalCount = part.equivalentPartIds.length;
   if (refs.length === 0 && internalCount === 0) return null;
