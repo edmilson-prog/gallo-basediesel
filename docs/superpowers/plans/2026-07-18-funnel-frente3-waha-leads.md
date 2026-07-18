@@ -76,7 +76,7 @@ Mudanças nos caminhos:
 **Files:**
 - Create: `supabase/migrations/<ts>_leads_avatar_and_rpc_avatar_coalesce.sql`
 
-Conteúdo: `alter table public.leads add column if not exists avatar_url text;` + `CREATE OR REPLACE` de `conversation_contacts` e `search_conversations` **reproduzidas verbatim das definições vivas** (buscar via `pg_get_functiondef` na hora — elas mudaram em 20260717190620), alterando SOMENTE: `cu.avatar_url as avatar_url` → `coalesce(cu.avatar_url, l.avatar_url) as avatar_url` (conversation_contacts; search_conversations não expõe avatar — verificar e, se não expõe, NÃO tocar nela). Verificação por diff de transcrição (mesmo método de 2026-07-17: normalizar whitespace, reverter a expressão, comparar).
+Conteúdo: `alter table public.leads alter column seller_id drop not null;` (**achado da Task 2**: a coluna é NOT NULL em prod e TODO o desenho aprovado — eco sem dono, acervo B1 sem dono, imports sem dono — depende dela nullable; o inbound vivo continua sempre atribuindo via rodízio) + `alter table public.leads add column if not exists avatar_url text;` + `CREATE OR REPLACE` de `conversation_contacts` e `search_conversations` **reproduzidas verbatim das definições vivas** (buscar via `pg_get_functiondef` na hora — elas mudaram em 20260717190620), alterando SOMENTE: `cu.avatar_url as avatar_url` → `coalesce(cu.avatar_url, l.avatar_url) as avatar_url` (conversation_contacts; search_conversations não expõe avatar — verificar e, se não expõe, NÃO tocar nela). Verificação por diff de transcrição (mesmo método de 2026-07-17: normalizar whitespace, reverter a expressão, comparar).
 
 - [ ] Escrever migration + verificador de transcrição no scratchpad; NÃO aplicar (gate do dono no rollout). Commit.
 
@@ -118,7 +118,9 @@ Pipeline do script:
 
 ### Task 7: Verificação de UI para conversa-lead (checklist, correções pontuais)
 
-Sem arquivos novos previstos — verificar (as 23 conversas-lead da v0.150 já exercitam):
+**Mudança obrigatória descoberta na Task 2:** `ILead.sellerId` vira `ID | null` (`src/shared/types/lead.ts:27`) + mapeamento do provider supabase de leads + tolerância nos consumidores (`KanbanColumn.tsx:86` `sellersById.get(...)` já tolera undefined — verificar LeadCard/LeadDetailPage/LeadsList renderizando dono vazio com placeholder "Sem dono"). Leads sem dono passarão a existir em massa (eco/acervo/imports).
+
+Sem outros arquivos novos previstos — verificar (as 23 conversas-lead da v0.150 já exercitam):
 - [ ] Ficha lateral da conversa-lead (painel reduzido de lead), badge de temperatura na lista, `ConvertLeadModal` acessível.
 - [ ] Criar orçamento a partir de conversa-lead exige conversão (fluxo `ConvertLeadModal` → customer).
 - [ ] `NewConversationDialog` outbound: NÃO tocar (divergência registrada na spec §4-bis.4 como decisão futura).
@@ -136,7 +138,7 @@ Sem arquivos novos previstos — verificar (as 23 conversas-lead da v0.150 já e
 ## Rollout (gates do dono, na ordem)
 
 1. Merge do PR.
-2. `apply_migration` (Task 3) em prod.
+2. `apply_migration` (Task 3) em prod — **OBRIGATORIAMENTE antes do deploy do `waha-webhook`** (gate crítico da revisão T2: sem o `drop not null` de `leads.seller_id`, o eco-cria-lead entra em loop de falha).
 3. Deploy: `waha-webhook` (Frente A), `whatsapp-webhook` (Task 6), `whatsapp-import-history`, `whatsapp-import-history-go`, `whatsapp-import-contacts` (Task 5).
 4. **Smoke Frente A**: mensagem de número inédito → lead criado com dono via rodízio (log + linha em `leads`); mensagem de lead dormente de teste → reabertura.
 5. **Frente B**: `FUNNEL_DRY_RUN=yes` → relatório nominal → OK do dono → `FUNNEL_CONFIRM_WRITE=yes` (B1, depois B2) → verificação pós + checkpoint.
