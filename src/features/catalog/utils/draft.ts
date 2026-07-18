@@ -1,5 +1,5 @@
 import type { ID, IPart, IPartCrossReference, PartCategory } from "@/shared/types";
-import { applicationsToDrafts, type IApplicationDraft } from "../components/form/ApplicationsEditor";
+import { applicationsToDrafts, type IApplicationDraft } from "./applicationDrafts";
 import { resolvePriceTables } from "./pricing";
 
 export interface INewSupplierEntryDraft {

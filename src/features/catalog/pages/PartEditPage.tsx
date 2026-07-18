@@ -9,7 +9,7 @@ import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
 import { auditLog } from "@/features/rbac/utils/auditLog";
 import { usePartsProvider } from "@/providers/data/hooks/usePartsProvider";
 import { PartForm, type IPartFormErrors, type IPartFormValues } from "../components/form/PartForm";
-import { draftsToApplications } from "../components/form/ApplicationsEditor";
+import { draftsToApplications } from "../utils/applicationDrafts";
 import { usePart } from "../hooks/useCatalogList";
 import { useEquivalentsBidirectional } from "../hooks/useEquivalentsBidirectional";
 import { CATALOG_STRINGS } from "../i18n/pt-BR";
