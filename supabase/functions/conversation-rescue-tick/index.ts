@@ -134,15 +134,53 @@ async function cancelResolvedRescues(
 ): Promise<number> {
   const { data: broadcasting } = await admin
     .from("conversation_rescues")
-    .select("id, conversation_id, absent_seller_id")
+    .select("id, conversation_id, store_id, absent_seller_id")
     .eq("status", "broadcasting");
   let cancelled = 0;
+  if (!broadcasting || broadcasting.length === 0) return 0;
 
-  for (const rescue of (broadcasting ?? []) as Array<{
+  // Kill-switch (review 2026-07-18): disabling the store toggle must retire
+  // its live broadcasts too — otherwise they stay visible/claimable forever
+  // (the panel and the claim RPC never consult the toggle) and mass-force on
+  // re-enable via resolveTimeouts.
+  const { data: storeRows } = await admin.from("stores").select("id, settings");
+  const enabledStoreIds = new Set(
+    ((storeRows ?? []) as Array<{ id: string; settings: Record<string, unknown> | null }>)
+      .filter((s) => {
+        const cfg = (s.settings?.conversationRescue ?? {}) as { enabled?: unknown };
+        return cfg.enabled === true;
+      })
+      .map((s) => s.id),
+  );
+
+  const cancel = async (rescueId: string, reason: string): Promise<boolean> => {
+    const { error } = await admin
+      .from("conversation_rescues")
+      .update({ status: "cancelled", cancelled_reason: reason })
+      .eq("id", rescueId)
+      .eq("status", "broadcasting");
+    if (error) {
+      ctx.log.error("conversation-rescue-tick cancel failed", {
+        rescueId,
+        reason,
+        error: error.message,
+      });
+      return false;
+    }
+    return true;
+  };
+
+  for (const rescue of broadcasting as Array<{
     id: string;
     conversation_id: string;
+    store_id: string;
     absent_seller_id: string;
   }>) {
+    if (!enabledStoreIds.has(rescue.store_id)) {
+      if (await cancel(rescue.id, "store_disabled")) cancelled++;
+      continue;
+    }
+
     const { data: conv } = await admin
       .from("conversations")
       .select("assigned_seller_id, awaiting_reply_since, status")
@@ -160,19 +198,7 @@ async function cancelResolvedRescues(
       ["aguardando", "em_andamento", "aguardando_cliente"].includes(c.status);
     if (stillValid) continue;
 
-    const { error } = await admin
-      .from("conversation_rescues")
-      .update({ status: "cancelled", cancelled_reason: "conversation_no_longer_waiting" })
-      .eq("id", rescue.id)
-      .eq("status", "broadcasting");
-    if (error) {
-      ctx.log.error("conversation-rescue-tick cancel failed", {
-        rescueId: rescue.id,
-        error: error.message,
-      });
-      continue;
-    }
-    cancelled++;
+    if (await cancel(rescue.id, "conversation_no_longer_waiting")) cancelled++;
   }
   return cancelled;
 }
@@ -208,15 +234,21 @@ async function broadcastNewRescues(
 
     // Re-broadcast cooldown (incident 2026-07-18): a conversation whose rescue
     // resolved recently must not re-qualify on the next tick just because the
-    // claimer hasn't replied yet. Fetch window is generous (24h) — the pure
-    // helper applies the actual cutoff.
-    const cooldownFetchCutoff = new Date(now.getTime() - 24 * 3_600_000).toISOString();
+    // claimer hasn't replied yet. The fetch is anchored on the SAME clocks the
+    // pure helper uses (claimed_at/forced_at/created_at, whichever is newest)
+    // — anchoring on created_at alone dropped rescues that sat broadcasting
+    // longer than the window before resolving (review 2026-07-18).
+    const cooldownFetchCutoff = new Date(
+      now.getTime() - RESCUE_REBROADCAST_COOLDOWN_MINUTES * 60_000,
+    ).toISOString();
     const { data: recentResolved } = await admin
       .from("conversation_rescues")
       .select("conversation_id, claimed_at, forced_at, created_at")
       .eq("store_id", store.id)
       .neq("status", "broadcasting")
-      .gte("created_at", cooldownFetchCutoff);
+      .or(
+        `claimed_at.gte.${cooldownFetchCutoff},forced_at.gte.${cooldownFetchCutoff},created_at.gte.${cooldownFetchCutoff}`,
+      );
     const resolvedByConversation = new Map<string, IRescueCooldownEntry[]>();
     for (const row of (recentResolved ?? []) as Array<{
       conversation_id: string;
@@ -246,6 +278,7 @@ async function broadcastNewRescues(
           resolvedByConversation.get(conv.id) ?? [],
           now,
           RESCUE_REBROADCAST_COOLDOWN_MINUTES,
+          conv.awaiting_reply_since,
         )
       ) {
         continue;
@@ -341,9 +374,13 @@ async function resolveTimeouts(
     const cfg = (store.settings.conversationRescue ?? {}) as {
       forceAssignTimeoutMinutes?: number;
       fallbackSellerIds?: string[];
+      temporaryAbsenceGraceMinutes?: number;
+      maxClientWaitHours?: number;
     };
     const timeoutMinutes = cfg.forceAssignTimeoutMinutes ?? 5;
     const fallbackSellerIds = cfg.fallbackSellerIds ?? [];
+    const graceMinutes = cfg.temporaryAbsenceGraceMinutes ?? 15;
+    const maxClientWaitHours = cfg.maxClientWaitHours ?? 24;
     const cutoff = new Date(now.getTime() - timeoutMinutes * 60_000).toISOString();
 
     const { data: stale } = await admin
@@ -362,6 +399,74 @@ async function resolveTimeouts(
       broadcast_at: string;
     }>) {
       if (!rescue.whatsapp_account_id) continue;
+
+      // Re-validate BEFORE forcing (review 2026-07-18): the row was qualified
+      // at broadcast time, but forcing is the irreversible step — if the
+      // absent seller came back online, the wait aged past the max window, or
+      // the conversation moved on, cancel instead of reassigning. Without
+      // this, stale rows (e.g. left over from a disable) mass-force on the
+      // first tick after re-enable, bypassing every creation-time guard.
+      const { data: convRow } = await admin
+        .from("conversations")
+        .select("assigned_seller_id, awaiting_reply_since, status")
+        .eq("id", rescue.conversation_id)
+        .maybeSingle();
+      const conv = convRow as {
+        assigned_seller_id: string | null;
+        awaiting_reply_since: string | null;
+        status: string;
+      } | null;
+      let stillQualifies =
+        !!conv &&
+        conv.assigned_seller_id === rescue.absent_seller_id &&
+        conv.awaiting_reply_since !== null &&
+        ["aguardando", "em_andamento", "aguardando_cliente"].includes(conv.status);
+      if (stillQualifies && conv) {
+        const { data: sellerRow } = await admin
+          .from("sellers")
+          .select("availability, work_schedule, schedule_overrides")
+          .eq("id", rescue.absent_seller_id)
+          .maybeSingle();
+        const seller = sellerRow as Pick<
+          ISellerRow,
+          "availability" | "work_schedule" | "schedule_overrides"
+        > | null;
+        if (!seller) {
+          stillQualifies = false;
+        } else {
+          const isWithinSchedule = isWithinWorkSchedule(
+            {
+              workSchedule: (seller.work_schedule ?? []) as never,
+              scheduleOverrides: (seller.schedule_overrides ?? []) as never,
+            },
+            now,
+          );
+          const absence = determineAbsence({
+            isWithinSchedule,
+            availability: seller.availability,
+            awaitingReplySince: conv.awaiting_reply_since!,
+            now,
+            temporaryAbsenceGraceMinutes: graceMinutes,
+            maxClientWaitHours,
+          });
+          stillQualifies = absence !== null;
+        }
+      }
+      if (!stillQualifies) {
+        const { error: cancelErr } = await admin
+          .from("conversation_rescues")
+          .update({ status: "cancelled", cancelled_reason: "no_longer_qualifies_at_force" })
+          .eq("id", rescue.id)
+          .eq("status", "broadcasting");
+        if (cancelErr) {
+          ctx.log.error("conversation-rescue-tick pre-force cancel failed", {
+            rescueId: rescue.id,
+            error: cancelErr.message,
+          });
+        }
+        continue;
+      }
+
       const eligible = await resolveEligiblePool(
         admin,
         rescue.store_id,

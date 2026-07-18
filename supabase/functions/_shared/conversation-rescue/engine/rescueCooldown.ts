@@ -7,7 +7,10 @@
  * A trigger), so without a cooldown the same conversation re-qualified on the
  * very next tick whenever the claimer wasn't `online`, looping forever. Any
  * rescue resolved within the cooldown window suppresses a new broadcast for
- * that conversation.
+ * that conversation — UNLESS the current wait started after the rescue
+ * resolved: a brand-new client message is a new epoch and deserves a fresh
+ * rescue immediately (in the incident loop the wait always PREdates the
+ * claim, so the epoch check cannot reopen it).
  */
 
 export const RESCUE_REBROADCAST_COOLDOWN_MINUTES = 60;
@@ -22,19 +25,26 @@ export interface IRescueCooldownEntry {
   createdAt: string;
 }
 
-/** True when any resolved rescue for the conversation is newer than the cooldown. */
+/**
+ * True when a rescue resolved within the cooldown window during the CURRENT
+ * wait epoch (`awaitingReplySince` = `conversations.awaiting_reply_since`).
+ * Entries resolved before the current wait began belong to a previous epoch
+ * and never suppress.
+ */
 export function isWithinRescueCooldown(
   entries: IRescueCooldownEntry[],
   now: Date,
   cooldownMinutes: number,
+  awaitingReplySince: string,
 ): boolean {
   const cutoff = now.getTime() - cooldownMinutes * 60_000;
+  const waitStartedAt = new Date(awaitingReplySince).getTime();
   return entries.some((entry) => {
     const resolvedAt = Math.max(
       entry.claimedAt ? new Date(entry.claimedAt).getTime() : 0,
       entry.forcedAt ? new Date(entry.forcedAt).getTime() : 0,
       new Date(entry.createdAt).getTime(),
     );
-    return resolvedAt > cutoff;
+    return resolvedAt > cutoff && resolvedAt >= waitStartedAt;
   });
 }
