@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ID, IConversationRescue } from "@/shared/types";
 import { useConversationRescuesProvider, useSellersProvider } from "@/providers/data";
 import { useAuth } from "@/features/auth/useAuth";
@@ -25,14 +25,19 @@ export function useRescueBroadcastQueue() {
   const { currentUser } = useAuth();
   const sellerId = currentUser?.sellerId ?? null;
   const [entries, setEntries] = useState<IRescueBroadcastEntry[]>([]);
+  // Monotonic sequence so a slow in-flight poll can never overwrite the
+  // result of a newer refresh (e.g. re-adding a just-claimed rescue).
+  const refreshSeq = useRef(0);
 
   const refresh = useCallback(async () => {
+    const seq = ++refreshSeq.current;
     try {
       if (!sellerId) {
         setEntries([]);
         return;
       }
       const [list, me] = await Promise.all([provider.list(), sellersProvider.get(sellerId)]);
+      if (seq !== refreshSeq.current) return; // a newer refresh already landed
       if (me.availability !== "online") {
         setEntries([]);
         return;
