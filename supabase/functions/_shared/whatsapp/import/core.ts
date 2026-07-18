@@ -5,10 +5,13 @@
  * Evolution history import core (real-inbox spec 2026-06-11).
  *
  * Pure batch processor: pages through the chats an Evolution instance has
- * stored and lands them as customers/conversations/messages. Both the data
- * source ({@link IImportSource}) and the persistence ({@link IImportDb}) are
- * injected, so this module is fully unit-testable; the `whatsapp-import-history`
- * Edge Function wires the Evolution REST helpers + a service_role adapter.
+ * stored and lands them as conversations/messages, anchored to an existing
+ * customer when the phone matches one, or a LEAD otherwise (Funnel Frente 3,
+ * approved rule b+ — imports never create customers or touch the rotation
+ * queue). Both the data source ({@link IImportSource}) and the persistence
+ * ({@link IImportDb}) are injected, so this module is fully unit-testable;
+ * the `whatsapp-import-history` Edge Function wires the Evolution REST
+ * helpers + a service_role adapter.
  *
  * Idempotency: provider_message_id is the dedup key — re-running an import
  * never duplicates and resumes after a mid-batch failure.
@@ -38,7 +41,14 @@ export interface IImportStats {
   chatsSkippedOther: number;
   /** Chats whose import threw — the cursor advances past them (resilience). */
   chatsFailed: number;
-  customersCreated: number;
+  /**
+   * New owner-less LEADS created (Funnel Frente 3, approved rule b+). Imports
+   * never create customers or touch the rotation queue anymore — an unknown
+   * number lands as a lead instead of a `pending_review` customer ghost.
+   */
+  leadsCreated: number;
+  /** Existing leads reused as-is — never reopened, owner never touched. */
+  leadsReused: number;
   conversationsCreated: number;
   messagesImported: number;
   messagesSkipped: number;
@@ -52,7 +62,8 @@ export function emptyImportStats(): IImportStats {
     chatsSkippedLid: 0,
     chatsSkippedOther: 0,
     chatsFailed: 0,
-    customersCreated: 0,
+    leadsCreated: 0,
+    leadsReused: 0,
     conversationsCreated: 0,
     messagesImported: 0,
     messagesSkipped: 0,
@@ -85,26 +96,48 @@ export interface IImportSource {
 
 /** Injected persistence surface — service_role adapter in the Edge Function. */
 export interface IImportDb {
+  /** Tolerant BR phone match (9th-digit variance) — same rule the live webhook uses. */
   findCustomerByPhone(storeId: string, phoneDigits: string): Promise<{ id: string } | null>;
   /**
-   * Create the contact anchor for an imported chat. Imported customers carry NO
-   * wallet owner (seller_id null) — they only anchor a pool conversation in the
-   * Inbox and become a real, owned customer through a manual conversion.
+   * Tolerant BR phone match against `leads.phone_digits`. Checked ONLY when no
+   * customer matches — an existing lead is reused as-is by the caller (never
+   * reopened, owner never touched); imports are not the live channel.
    */
-  createPendingCustomer(input: { storeId: string; phone: string }): Promise<{ id: string }>;
+  findLeadByPhone(storeId: string, phoneDigits: string): Promise<{ id: string } | null>;
   /**
-   * Finds ANY existing conversation for (customer, account) — open OR closed.
-   * Unlike the live webhook's outbound-echo path (which must never reopen a
-   * closed conversation), imported history always belongs to whichever thread
-   * already represents this customer on this account: reusing a closed one
+   * Create the anchor LEAD for a brand-new imported chat (Funnel Frente 3,
+   * approved rule b+). Imports NEVER create customers or assign a rotation
+   * owner — the lead lands owner-less (`seller_id` null), `temperature`
+   * 'frio', `origin` 'import'. `lastMessageAt` decides vitality: within the
+   * 7-day window → active lead (kanban-visible); older, or null/unparseable →
+   * dormant (a loss reason is recorded — invisible in the active kanban, and
+   * auto-reopened by the live webhook the moment the person messages).
+   */
+  createImportLead(input: {
+    storeId: string;
+    phone: string;
+    name?: string;
+    lastMessageAt: string | null;
+  }): Promise<{ id: string }>;
+  /**
+   * Finds ANY existing conversation for the resolved anchor (customer OR
+   * lead — mutually exclusive) on this account — open OR closed. Unlike the
+   * live webhook's outbound-echo path (which must never reopen a closed
+   * conversation), imported history always belongs to whichever thread
+   * already represents this anchor on this account: reusing a closed one
    * just appends historical messages without changing its status, mirroring
    * the webhook's customer-inbound `includeTerminal:true` reopen rule (spec
    * 2026-07-03 §1.5) instead of the narrower open-only echo rule.
    */
-  findConversation(customerId: string, accountId: string): Promise<{ id: string } | null>;
+  findConversation(
+    anchor: { customerId: string | null; leadId: string | null },
+    accountId: string,
+  ): Promise<{ id: string } | null>;
   createConversation(input: {
     storeId: string;
-    customerId: string;
+    /** Mutually exclusive with leadId — exactly one is set. */
+    customerId: string | null;
+    leadId: string | null;
     accountId: string;
     assignedSellerId: string | null;
     status: "aguardando";
@@ -375,34 +408,58 @@ export async function landNormalizedChat(args: {
   const fresh = normalized.filter((r) => !known.has(r.providerMessageId));
   stats.messagesSkipped += normalized.length - fresh.length;
 
-  // Nothing new — never create empty conversations or phantom customers.
+  // Nothing new — never create empty conversations or phantom anchors.
   if (fresh.length === 0) return;
 
-  // Resolve customer (same phone-matching rules as the webhook core).
-  const phoneDigits = phone.replace(/\D/g, "");
-  let customer = await db.findCustomerByPhone(account.storeId, phoneDigits);
-  if (!customer) {
-    customer = await db.createPendingCustomer({ storeId: account.storeId, phone });
-    stats.customersCreated++;
-  }
-
-  // Resolve conversation; created ones span the full imported window.
+  // Resolve conversation window first — created ones span the full imported
+  // window, and a fresh import lead needs `newest` for the vitality rule.
   // ISO 8601 lexicographic sort is correct for UTC timestamps.
   const timestamps = fresh.map((r) => r.sentAt).sort();
   const oldest = timestamps[0] as string;
   const newest = timestamps[timestamps.length - 1] as string;
 
-  let conversation = await db.findConversation(customer.id, account.id);
+  // Resolve the anchor (Funnel Frente 3 dedup order, same phone-matching
+  // rules as the live webhook): an existing customer always wins (unchanged
+  // behavior); failing that, an existing lead is REUSED as-is — imports never
+  // reopen a lost lead nor touch its owner; only when neither exists is a
+  // brand-new, owner-less import lead created.
+  const phoneDigits = phone.replace(/\D/g, "");
+  let anchorCustomerId: string | null = null;
+  let anchorLeadId: string | null = null;
+  const customer = await db.findCustomerByPhone(account.storeId, phoneDigits);
+  if (customer) {
+    anchorCustomerId = customer.id;
+  } else {
+    const lead = await db.findLeadByPhone(account.storeId, phoneDigits);
+    if (lead) {
+      anchorLeadId = lead.id;
+      stats.leadsReused++;
+    } else {
+      const created = await db.createImportLead({
+        storeId: account.storeId,
+        phone,
+        lastMessageAt: newest,
+      });
+      anchorLeadId = created.id;
+      stats.leadsCreated++;
+    }
+  }
+
+  let conversation = await db.findConversation(
+    { customerId: anchorCustomerId, leadId: anchorLeadId },
+    account.id,
+  );
   if (!conversation) {
     conversation = await db.createConversation({
       storeId: account.storeId,
-      customerId: customer.id,
+      customerId: anchorCustomerId,
+      leadId: anchorLeadId,
       accountId: account.id,
       // Imported conversations land UNASSIGNED and QUEUED ('aguardando' — spec
       // 2026-07-02): connecting an instance drops its history into "Em fila"
       // for whoever operates that number to claim — never pinned to anyone.
       // Visibility comes from instance access (can_access_conversation); the
-      // imported customer carries NO wallet owner until manually converted.
+      // anchor carries NO wallet owner until manually converted/claimed.
       assignedSellerId: null,
       status: "aguardando",
       createdAt: oldest,
@@ -415,10 +472,11 @@ export async function landNormalizedChat(args: {
   // Edge Function wall-clock on large histories; the adapter chunks. Media is
   // NOT downloaded during import: only text/caption is stored.
   const conversationId = conversation.id;
+  const authorId = anchorCustomerId ?? anchorLeadId;
   const rows = fresh.map((row) => ({
     conversationId,
     direction: row.direction,
-    authorId: row.direction === "in" ? customer.id : null,
+    authorId: row.direction === "in" ? authorId : null,
     text: row.text,
     mediaType: row.mediaType,
     mediaFilename: row.mediaFilename ?? null,

@@ -34,7 +34,8 @@ const emptyAgg: IGoHistoryAggregateStats = {
   totalMessages: 0,
 };
 const emptyLand: IGoHistoryLandStats = {
-  customersCreated: 0,
+  leadsCreated: 0,
+  leadsReused: 0,
   conversationsCreated: 0,
   messagesImported: 0,
   messagesSkipped: 0,
@@ -108,7 +109,8 @@ export function ImportHistoryDialog({
       const res = await landGoHistory(account.id);
       if (!mountedRef.current) return;
       landedSoFar += res.landed;
-      acc.customersCreated += res.stats.customersCreated;
+      acc.leadsCreated += res.stats.leadsCreated;
+      acc.leadsReused += res.stats.leadsReused;
       acc.conversationsCreated += res.stats.conversationsCreated;
       acc.messagesImported += res.stats.messagesImported;
       acc.messagesSkipped += res.stats.messagesSkipped;
@@ -177,10 +179,11 @@ export function ImportHistoryDialog({
               resgatados quando o WhatsApp fornece o mapeamento; grupos e listas são ignorados.
             </p>
             <p>
-              Só o <strong>texto/legenda</strong> é importado (mídia não é baixada). Cada contato
-              novo entra como contato <code className="font-mono text-xs">pending_review</code> — não
-              aparece em Clientes até revisão; a conversa vai para o Inbox. Pode rodar mais de uma
-              vez: nada é duplicado.
+              Só o <strong>texto/legenda</strong> é importado (mídia não é baixada). Números que já
+              são clientes mantêm a carteira; números novos com conversa viram{" "}
+              <strong>leads</strong> (sem responsável) — a conversa vai para o Inbox. Leads com
+              atividade nos últimos 7 dias entram ativos no funil; os demais ficam dormentes até a
+              pessoa responder. Pode rodar mais de uma vez: nada é duplicado.
             </p>
           </div>
         )}
@@ -192,8 +195,8 @@ export function ImportHistoryDialog({
               para esta conta. Conversas e mensagens que chegaram ao vivo não são tocadas.
             </p>
             <p>
-              Os contatos criados (<code className="font-mono text-xs">pending_review</code>)
-              permanecem como pendentes (fora da lista de Clientes até a revisão).
+              Os leads criados por esta importação permanecem — desfazer remove só as mensagens e
+              conversas, não a ficha do lead.
             </p>
           </div>
         )}
@@ -238,10 +241,16 @@ export function ImportHistoryDialog({
               <dd className="text-right font-medium text-foreground">
                 {landStats.messagesImported}
               </dd>
-              <dt className="text-muted-foreground">Contatos novos (pendentes)</dt>
-              <dd className="text-right font-medium text-foreground">
-                {landStats.customersCreated}
-              </dd>
+              <dt className="text-muted-foreground">Leads criados</dt>
+              <dd className="text-right font-medium text-foreground">{landStats.leadsCreated}</dd>
+              {landStats.leadsReused > 0 && (
+                <>
+                  <dt className="text-muted-foreground">Leads reaproveitados</dt>
+                  <dd className="text-right font-medium text-foreground">
+                    {landStats.leadsReused}
+                  </dd>
+                </>
+              )}
               <dt className="text-muted-foreground">Resgatadas de @lid</dt>
               <dd className="text-right font-medium text-foreground">{agg.lidResolved}</dd>
             </dl>

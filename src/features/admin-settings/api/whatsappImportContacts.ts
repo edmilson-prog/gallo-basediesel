@@ -9,10 +9,14 @@ import { getSupabaseClient } from "@/shared/lib/supabase";
 export interface IContactsImportStats {
   /** Individual contacts the instance returned. */
   contactsFound: number;
-  /** New `pending_review` customers created. */
-  customersCreated: number;
-  /** Contacts that already mapped to a customer (by phone). */
-  customersExisting: number;
+  /** Existing customers whose placeholder name got a better one from the phonebook. */
+  customersEnriched: number;
+  /** Existing leads whose placeholder name got a better one from the phonebook. */
+  leadsEnriched: number;
+  /** Matched a customer or lead, but there was nothing to improve. */
+  alreadyComplete: number;
+  /** No customer or lead in the base for this phone — no record is created. */
+  skippedUnknown: number;
   /** Contacts that failed to land (counted, never aborts the run). */
   failed: number;
 }
@@ -50,7 +54,14 @@ export function contactsImportErrorMessage(error: unknown): string {
 }
 
 export function emptyContactsImportStats(): IContactsImportStats {
-  return { contactsFound: 0, customersCreated: 0, customersExisting: 0, failed: 0 };
+  return {
+    contactsFound: 0,
+    customersEnriched: 0,
+    leadsEnriched: 0,
+    alreadyComplete: 0,
+    skippedUnknown: 0,
+    failed: 0,
+  };
 }
 
 async function toContactsImportError(error: unknown): Promise<WhatsAppContactsImportError> {

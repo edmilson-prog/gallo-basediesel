@@ -86,7 +86,8 @@ describe("normalizeWahaHistoryRecord", () => {
 describe("processWahaImportBatch", () => {
   function makeDb(): IImportDb {
     const customers = new Map<string, string>(); // phoneDigits -> customerId
-    const conversations = new Map<string, string>(); // customerId -> conversationId
+    const leads = new Map<string, string>(); // phoneDigits -> leadId
+    const conversations = new Map<string, string>(); // anchorId -> conversationId
     const known = new Set<string>();
     let nextId = 1;
     return {
@@ -94,18 +95,22 @@ describe("processWahaImportBatch", () => {
         const id = customers.get(phoneDigits);
         return id ? { id } : null;
       },
-      async createPendingCustomer({ phone }) {
-        const id = `cust-${nextId++}`;
-        customers.set(phone.replace(/\D/g, ""), id);
-        return { id };
-      },
-      async findConversation(customerId) {
-        const id = conversations.get(customerId);
+      async findLeadByPhone(_storeId, phoneDigits) {
+        const id = leads.get(phoneDigits);
         return id ? { id } : null;
       },
-      async createConversation({ customerId }) {
+      async createImportLead({ phone }) {
+        const id = `lead-${nextId++}`;
+        leads.set(phone.replace(/\D/g, ""), id);
+        return { id };
+      },
+      async findConversation({ customerId, leadId }) {
+        const id = conversations.get((customerId ?? leadId) as string);
+        return id ? { id } : null;
+      },
+      async createConversation({ customerId, leadId }) {
         const id = `conv-${nextId++}`;
-        conversations.set(customerId, id);
+        conversations.set((customerId ?? leadId) as string, id);
         return { id };
       },
       async filterKnownProviderMessageIds(ids) {

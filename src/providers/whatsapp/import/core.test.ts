@@ -13,6 +13,7 @@ const ACCOUNT = { id: "acc-1", storeId: "store-1" };
 
 interface IFakeState {
   customers: Array<{ id: string; phoneDigits: string }>;
+  leads: Array<{ id: string; phoneDigits: string; lastMessageAt: string | null }>;
   conversations: Array<Record<string, unknown>>;
   messages: Array<Record<string, unknown>>;
   known: Set<string>;
@@ -20,8 +21,18 @@ interface IFakeState {
 }
 
 function emptyState(): IFakeState {
-  return { customers: [], conversations: [], messages: [], known: new Set(), advances: [] };
+  return {
+    customers: [],
+    leads: [],
+    conversations: [],
+    messages: [],
+    known: new Set(),
+    advances: [],
+  };
 }
+
+const VITALITY_WINDOW_DAYS = 7;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 function makeDb(state: IFakeState): IImportDb {
   let seq = 0;
@@ -31,13 +42,23 @@ function makeDb(state: IFakeState): IImportDb {
       const found = state.customers.find((c) => c.phoneDigits === digits);
       return found ? { id: found.id } : null;
     },
-    createPendingCustomer: async ({ phone }) => {
-      const customer = { id: nextId("cust"), phoneDigits: phone.replace(/\D/g, "") };
-      state.customers.push(customer);
-      return { id: customer.id };
+    findLeadByPhone: async (_storeId, digits) => {
+      const found = state.leads.find((l) => l.phoneDigits === digits);
+      return found ? { id: found.id } : null;
     },
-    findConversation: async (customerId) => {
-      const found = state.conversations.find((c) => c.customerId === customerId);
+    createImportLead: async ({ phone, lastMessageAt }) => {
+      const lead = {
+        id: nextId("lead"),
+        phoneDigits: phone.replace(/\D/g, ""),
+        lastMessageAt,
+      };
+      state.leads.push(lead);
+      return { id: lead.id };
+    },
+    findConversation: async ({ customerId, leadId }) => {
+      const found = state.conversations.find((c) =>
+        customerId ? c.customerId === customerId : c.leadId === leadId,
+      );
       return found ? { id: found.id as string } : null;
     },
     createConversation: async (input) => {
@@ -85,7 +106,7 @@ function makeSource(
 }
 
 describe("processImportBatch", () => {
-  it("imports an individual chat end-to-end: pending customer, aguardando conversation, in/out messages", async () => {
+  it("imports an individual chat end-to-end: owner-less lead, aguardando conversation, in/out messages", async () => {
     const state = emptyState();
     const source = makeSource(["5555988887777@s.whatsapp.net"], {
       "5555988887777@s.whatsapp.net": [
@@ -98,7 +119,8 @@ describe("processImportBatch", () => {
     expect(result.done).toBe(true);
     expect(result.stats).toMatchObject({
       chatsProcessed: 1,
-      customersCreated: 1,
+      leadsCreated: 1,
+      leadsReused: 0,
       conversationsCreated: 1,
       messagesImported: 2,
       messagesSkipped: 0,
@@ -106,9 +128,11 @@ describe("processImportBatch", () => {
     expect(state.conversations[0]).toMatchObject({
       status: "aguardando",
       accountId: "acc-1",
+      leadId: state.leads[0]?.id,
+      customerId: null,
       // Imported conversations land in the pool, never auto-assigned to the
-      // customer's wallet owner — connecting an instance drops its history to
-      // whoever operates that number to pick up.
+      // lead's owner — connecting an instance drops its history to whoever
+      // operates that number to pick up.
       assignedSellerId: null,
       createdAt: new Date(1765400000 * 1000).toISOString(),
       lastMessageAt: new Date(1765400100 * 1000).toISOString(),
@@ -117,7 +141,7 @@ describe("processImportBatch", () => {
     expect(directions).toContainEqual(["M1", "in", "delivered"]);
     expect(directions).toContainEqual(["M2", "out", "read"]);
     const inbound = state.messages.find((m) => m.providerMessageId === "M1");
-    expect(inbound?.authorId).toBe(state.customers[0]?.id);
+    expect(inbound?.authorId).toBe(state.leads[0]?.id);
     const outbound = state.messages.find((m) => m.providerMessageId === "M2");
     expect(outbound?.authorId).toBeNull();
     expect(state.advances).toEqual([
@@ -304,7 +328,8 @@ describe("processImportBatch", () => {
       chatsSkippedLid: 0,
       chatsSkippedOther: 0,
       chatsFailed: 0,
-      customersCreated: 0,
+      leadsCreated: 0,
+      leadsReused: 0,
       conversationsCreated: 0,
       messagesImported: 0,
       messagesSkipped: 0,
@@ -328,7 +353,7 @@ const normRec = (
 });
 
 describe("landNormalizedChat", () => {
-  it("creates a pool conversation, dedups by id in-memory, lands in/out rows", async () => {
+  it("creates a pool conversation anchored to a new owner-less lead, dedups by id in-memory, lands in/out rows", async () => {
     const state = emptyState();
     const stats = emptyImportStats();
     await landNormalizedChat({
@@ -344,7 +369,8 @@ describe("landNormalizedChat", () => {
     });
 
     expect(stats).toMatchObject({
-      customersCreated: 1,
+      leadsCreated: 1,
+      leadsReused: 0,
       conversationsCreated: 1,
       messagesImported: 2,
       messagesSkipped: 1, // the duplicate X1
@@ -352,12 +378,14 @@ describe("landNormalizedChat", () => {
     expect(state.conversations[0]).toMatchObject({
       status: "aguardando",
       accountId: "acc-1",
+      leadId: state.leads[0]?.id,
+      customerId: null,
       assignedSellerId: null,
       createdAt: isoOf(1765400000),
       lastMessageAt: isoOf(1765400100),
     });
     const inbound = state.messages.find((m) => m.providerMessageId === "X1");
-    expect(inbound?.authorId).toBe(state.customers[0]?.id);
+    expect(inbound?.authorId).toBe(state.leads[0]?.id);
     const outbound = state.messages.find((m) => m.providerMessageId === "X2");
     expect(outbound?.authorId).toBeNull();
     expect(state.advances).toEqual([
@@ -377,9 +405,30 @@ describe("landNormalizedChat", () => {
       normalized: [normRec("Y1", "in", 1765400000)],
       stats,
     });
-    expect(stats.customersCreated).toBe(0);
+    expect(stats.leadsCreated).toBe(0);
+    expect(stats.leadsReused).toBe(0);
     expect(stats.conversationsCreated).toBe(0);
     expect(state.messages.map((m) => m.providerMessageId)).toEqual(["Y1"]);
+  });
+
+  it("reuses an existing lead as-is when no customer matches (no duplicate creation)", async () => {
+    const state = emptyState();
+    state.leads.push({ id: "lead-existing", phoneDigits: "5555988887777", lastMessageAt: null });
+    state.conversations.push({ id: "conv-existing", leadId: "lead-existing" });
+    const stats = emptyImportStats();
+    await landNormalizedChat({
+      account: ACCOUNT,
+      db: makeDb(state),
+      phone: "+5555988887777",
+      normalized: [normRec("Y2", "in", 1765400000)],
+      stats,
+    });
+    expect(stats.leadsCreated).toBe(0);
+    expect(stats.leadsReused).toBe(1);
+    expect(stats.conversationsCreated).toBe(0);
+    expect(state.leads).toHaveLength(1); // no new lead minted
+    const landed = state.messages.find((m) => m.providerMessageId === "Y2");
+    expect(landed?.authorId).toBe("lead-existing");
   });
 
   it("reuses an existing CLOSED conversation instead of spawning a duplicate", async () => {
