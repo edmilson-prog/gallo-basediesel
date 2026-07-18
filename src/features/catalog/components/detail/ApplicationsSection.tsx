@@ -5,9 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { CATALOG_STRINGS } from "../../i18n/pt-BR";
+import { ApplicationsEditor } from "../form/ApplicationsEditor";
+import type { IPartDraft } from "../../utils/draft";
 
 export interface IApplicationsSectionProps {
   part: IPart;
+  editing?: boolean;
+  draft?: IPartDraft;
+  onDraftChange?: (patch: Partial<IPartDraft>) => void;
 }
 
 function groupByBrand(applications: IApplication[]): Map<string, IApplication[]> {
@@ -32,7 +37,12 @@ function appMatchesCheck(
   return true;
 }
 
-export function ApplicationsSection({ part }: IApplicationsSectionProps) {
+export function ApplicationsSection({
+  part,
+  editing = false,
+  draft,
+  onDraftChange,
+}: IApplicationsSectionProps) {
   const [check, setCheck] = useState<{ brand: string; model: string; year: string }>({
     brand: "",
     model: "",
@@ -48,6 +58,17 @@ export function ApplicationsSection({ part }: IApplicationsSectionProps) {
   const isCheckActive = Boolean(
     matchCheck.brand || matchCheck.model || matchCheck.year !== undefined,
   );
+
+  if (editing && draft && onDraftChange) {
+    return (
+      <Section title={CATALOG_STRINGS.detail.sections.applications} icon="mdi:truck-outline">
+        <ApplicationsEditor
+          applications={draft.applications}
+          onChange={(next) => onDraftChange({ applications: next })}
+        />
+      </Section>
+    );
+  }
 
   if (part.applications.length === 0) {
     return (
