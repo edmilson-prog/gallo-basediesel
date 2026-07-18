@@ -260,15 +260,56 @@ Deno.serve(async (req) => {
     // phoneDigitsMatchBr — phone formatting varies in the base: +55...,
     // (55) 9..., etc.; a stored number may also be missing the 9th digit).
     // Used by both the inbound-message and outbound-echo paths below.
-    async function findCustomerByPhone(phoneDigits: string): Promise<string | undefined> {
+    //
+    // adoptCanonical: when the match was tolerant (stored digits ≠ wire digits)
+    // and the wire number is a REAL pn (never an unresolved-lid placeholder),
+    // the customer adopts the wire number — WhatsApp's own canonical identity
+    // (usync-normalized). This self-heals stored variants (missing DDI 55,
+    // 9th-digit divergence) so future sends dial the canonical JID instead of
+    // failing with an opaque GOWS 500 (2026-07-17 incident: RODAWE + 802
+    // DINTEC customers reconciled by batch; this keeps the base from drifting
+    // again). Best-effort: an adoption failure never blocks the message.
+    async function findCustomerByPhone(
+      phoneDigits: string,
+      opts?: { adoptCanonical?: boolean },
+    ): Promise<string | undefined> {
       const { data: candidates } = await admin
         .from("customers")
         .select("id, phone")
         .eq("store_id", accountRow.store_id as string)
         .like("phone", `%${phoneDigits.slice(-8)}`);
-      return (candidates ?? []).find((c) =>
+      const match = (candidates ?? []).find((c) =>
         phoneDigitsMatchBr(String(c.phone).replace(/\D/g, ""), phoneDigits),
-      )?.id as string | undefined;
+      );
+      if (!match) return undefined;
+      const storedDigits = String(match.phone).replace(/\D/g, "");
+      if (opts?.adoptCanonical && phoneDigits && storedDigits !== phoneDigits) {
+        const { error: adoptError } = await admin
+          .from("customers")
+          .update({ phone: `+${phoneDigits}` })
+          .eq("id", match.id as string);
+        if (adoptError) {
+          console.warn(
+            JSON.stringify({
+              level: "warn",
+              msg: "waha webhook: canonical phone adoption failed",
+              customerId: match.id,
+              error: adoptError.message,
+            }),
+          );
+        } else {
+          console.log(
+            JSON.stringify({
+              level: "info",
+              msg: "waha webhook: customer adopted canonical phone",
+              customerId: match.id,
+              from: String(match.phone),
+              to: `+${phoneDigits}`,
+            }),
+          );
+        }
+      }
+      return match.id as string;
     }
 
     // Shared media download+upload — best-effort, never fails the caller (only
@@ -525,7 +566,9 @@ Deno.serve(async (req) => {
       }
       const echoPhoneDigits = toPhone.replace(/\D/g, "");
 
-      let echoCustomerId = await findCustomerByPhone(echoPhoneDigits);
+      let echoCustomerId = await findCustomerByPhone(echoPhoneDigits, {
+        adoptCanonical: !toLidUnresolved,
+      });
       if (!echoCustomerId) {
         // Same anchor-only contract as the inbound path: no seller_id (wallet
         // owner) and tags:["pending_review"] — a human converts it manually.
@@ -722,7 +765,11 @@ Deno.serve(async (req) => {
     const phoneDigits = fromPhone.replace(/\D/g, "");
 
     // ===== Customer resolution (Correction 1) ==================================
-    let customerId = await findCustomerByPhone(phoneDigits);
+    // Adopt-canonical only when the wire number is a real pn — an unresolved
+    // lid placeholder must never overwrite a stored phone.
+    let customerId = await findCustomerByPhone(phoneDigits, {
+      adoptCanonical: !lidUnresolved,
+    });
     if (!customerId) {
       // Seed the display name from the WhatsApp contact (pushname) — best-effort,
       // one extra GET only on the new-customer path. The lid id is the known-good
