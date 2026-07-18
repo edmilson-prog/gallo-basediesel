@@ -217,12 +217,15 @@ supabase/functions/_shared/{conversation-rescue,access}/` — 3 engines + 2 arqu
    última mensagem inbound, e insere a linha em `conversation_rescues`.
 3. **`resolveTimeouts`** — itera as lojas com `settings->conversationRescue->>enabled = 'true'`;
    busca resgates `status='broadcasting'` com `broadcast_at` mais velho que
-   `forceAssignTimeoutMinutes`. **Re-valida ANTES de forçar (revisão 2026-07-18):** re-roda a
-   condição estrutural + `determineAbsence` no estado atual — se o ausente voltou a ficar online,
-   a espera envelheceu além de `maxClientWaitHours` ou a conversa mudou, cancela com
-   `cancelled_reason='no_longer_qualifies_at_force'` em vez de reatribuir (forçar é o passo
-   irreversível; sem isso, linhas zumbis de um disable forçariam em massa no re-enable, ignorando
-   todas as guardas de criação). Se ainda qualifica, calcula o pool elegível
+   `forceAssignTimeoutMinutes`. **Re-valida ANTES de forçar (revisão 2026-07-18):** re-checa a
+   condição estrutural e se o ausente está genuinamente PRESENTE (online **e** dentro do turno) —
+   nesses casos cancela com `cancelled_reason='no_longer_qualifies_at_force'` em vez de
+   reatribuir (forçar é o passo irreversível). Deliberadamente **não** re-aplica graça nem
+   `maxClientWaitHours` aqui: a linha era fresca quando criada, e um resgate que envelheceu além
+   da janela com o pool vazio (fim de semana) precisa forçar no primeiro tick com gente online —
+   cancelá-lo abandonaria o cliente, já que `broadcastNewRescues` nunca recria uma espera velha
+   demais. Erros transientes de leitura nas re-checagens fazem `continue` (retry no próximo
+   tick), nunca cancelamento. Se ainda qualifica, calcula o pool elegível
    (`resolveEligiblePool` — sellers ativos da loja com acesso ao `whatsapp_account_id` via
    `whatsapp_account_access_rules`/`resolveAccessRecipients`, com bypass para papéis `owner`/
    `manager`, excluindo o ausente, filtrados por `availability === 'online'` e dentro da própria
@@ -398,10 +401,16 @@ Segunda rodada (achados da revisão adversarial multi-lente do próprio fix, 202
 
 - **Kill-switch de verdade** — `cancelResolvedRescues` cancela broadcasts de lojas desligadas
   (`store_disabled`); antes, desligar o toggle deixava ofertas válidas vivas para sempre.
-- **Re-validação pré-força** — `resolveTimeouts` re-roda `determineAbsence` (com a janela) no
-  estado atual antes de reatribuir; cancela (`no_longer_qualifies_at_force`) se o ausente voltou,
-  a espera envelheceu ou a conversa mudou. Fecha o cenário "linhas zumbis forçam em massa no
-  re-enable" e o "vendedor voltou online no minuto 3 mas perdia a conversa no minuto 5".
+- **Re-validação pré-força** — `resolveTimeouts` re-checa o estado atual antes de reatribuir e
+  cancela (`no_longer_qualifies_at_force`) quando a conversa mudou ou o ausente está genuinamente
+  presente (online + dentro do turno). Fecha o "vendedor voltou online no minuto 3 mas perdia a
+  conversa no minuto 5"; combinado com o kill-switch, elimina as linhas zumbis do re-enable.
+  Graça e janela **não** se re-aplicam na força (um resgate de fim de semana deve forçar na
+  segunda, não ser cancelado ao cruzar 24h).
+- **Caminhos de erro fail-safe no tick** — erro transiente no fetch de stores não vira "todas as
+  lojas desligadas" (pularia o kill-switch e cancelaria a plataforma inteira como
+  `store_disabled`); erro nas leituras de liveness/pré-força faz `continue` (retry no próximo
+  tick) em vez de cancelar com razão falsa.
 - **Fetch do cooldown re-ancorado** — `or(claimed_at/forced_at/created_at ≥ now−60min)` em vez de
   `created_at ≥ now−24h`: resgate resolvido tarde (fim de semana com pool vazio) não escapa mais
   do cooldown quando `maxClientWaitHours > 24`.

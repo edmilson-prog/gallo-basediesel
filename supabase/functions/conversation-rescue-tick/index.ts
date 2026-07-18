@@ -143,18 +143,31 @@ async function cancelResolvedRescues(
   // its live broadcasts too — otherwise they stay visible/claimable forever
   // (the panel and the claim RPC never consult the toggle) and mass-force on
   // re-enable via resolveTimeouts.
-  const { data: storeRows } = await admin.from("stores").select("id, settings");
-  const enabledStoreIds = new Set(
-    ((storeRows ?? []) as Array<{ id: string; settings: Record<string, unknown> | null }>)
-      .filter((s) => {
-        const cfg = (s.settings?.conversationRescue ?? {}) as { enabled?: unknown };
-        // Mirror the SQL filter of phases 2/3 (settings->conversationRescue->>enabled
-        // = 'true'), which matches BOTH jsonb true and the string "true" — a
-        // narrower check here would make phase 1 cancel what phase 2 creates.
-        return cfg.enabled === true || cfg.enabled === "true";
-      })
-      .map((s) => s.id),
-  );
+  // Fail SAFE on a fetch error (review round 2): with no store data we cannot
+  // tell enabled from disabled — a null result must NOT read as "every store
+  // is disabled" and mass-cancel the platform; skip the classification and
+  // retry next tick.
+  const { data: storeRows, error: storesError } = await admin
+    .from("stores")
+    .select("id, settings");
+  if (storesError) {
+    ctx.log.error("conversation-rescue-tick stores fetch failed", {
+      error: storesError.message,
+    });
+  }
+  const enabledStoreIds = storesError
+    ? null
+    : new Set(
+        ((storeRows ?? []) as Array<{ id: string; settings: Record<string, unknown> | null }>)
+          .filter((s) => {
+            const cfg = (s.settings?.conversationRescue ?? {}) as { enabled?: unknown };
+            // Mirror the SQL filter of phases 2/3 (settings->conversationRescue->>enabled
+            // = 'true'), which matches BOTH jsonb true and the string "true" — a
+            // narrower check here would make phase 1 cancel what phase 2 creates.
+            return cfg.enabled === true || cfg.enabled === "true";
+          })
+          .map((s) => s.id),
+      );
 
   const cancel = async (rescueId: string, reason: string): Promise<boolean> => {
     const { error } = await admin
@@ -179,16 +192,25 @@ async function cancelResolvedRescues(
     store_id: string;
     absent_seller_id: string;
   }>) {
-    if (!enabledStoreIds.has(rescue.store_id)) {
+    if (enabledStoreIds && !enabledStoreIds.has(rescue.store_id)) {
       if (await cancel(rescue.id, "store_disabled")) cancelled++;
       continue;
     }
 
-    const { data: conv } = await admin
+    const { data: conv, error: convError } = await admin
       .from("conversations")
       .select("assigned_seller_id, awaiting_reply_since, status")
       .eq("id", rescue.conversation_id)
       .maybeSingle();
+    if (convError) {
+      // Transient read failure ≠ "conversation gone" — cancelling here would
+      // be destructive on a blip; retry next tick (review round 2).
+      ctx.log.error("conversation-rescue-tick liveness fetch failed", {
+        rescueId: rescue.id,
+        error: convError.message,
+      });
+      continue;
+    }
     const c = conv as {
       assigned_seller_id: string | null;
       awaiting_reply_since: string | null;
@@ -377,13 +399,9 @@ async function resolveTimeouts(
     const cfg = (store.settings.conversationRescue ?? {}) as {
       forceAssignTimeoutMinutes?: number;
       fallbackSellerIds?: string[];
-      temporaryAbsenceGraceMinutes?: number;
-      maxClientWaitHours?: number;
     };
     const timeoutMinutes = cfg.forceAssignTimeoutMinutes ?? 5;
     const fallbackSellerIds = cfg.fallbackSellerIds ?? [];
-    const graceMinutes = cfg.temporaryAbsenceGraceMinutes ?? 15;
-    const maxClientWaitHours = cfg.maxClientWaitHours ?? 24;
     const cutoff = new Date(now.getTime() - timeoutMinutes * 60_000).toISOString();
 
     const { data: stale } = await admin
@@ -405,15 +423,27 @@ async function resolveTimeouts(
 
       // Re-validate BEFORE forcing (review 2026-07-18): the row was qualified
       // at broadcast time, but forcing is the irreversible step — if the
-      // absent seller came back online, the wait aged past the max window, or
-      // the conversation moved on, cancel instead of reassigning. Without
-      // this, stale rows (e.g. left over from a disable) mass-force on the
-      // first tick after re-enable, bypassing every creation-time guard.
-      const { data: convRow } = await admin
+      // conversation moved on, or the absent seller is genuinely PRESENT
+      // again (online AND within schedule), cancel instead of reassigning.
+      // Deliberately NOT re-running the grace/max-window clauses here: a
+      // broadcasting row was fresh when created, and a rescue that aged past
+      // the window while nobody was online (weekend) must still force on the
+      // first tick with people available — cancelling it would strand the
+      // client, since broadcastNewRescues can never recreate a too-old wait
+      // (review round 2).
+      const { data: convRow, error: convFetchError } = await admin
         .from("conversations")
         .select("assigned_seller_id, awaiting_reply_since, status")
         .eq("id", rescue.conversation_id)
         .maybeSingle();
+      if (convFetchError) {
+        // Transient read failure ≠ "conversation gone" — retry next tick.
+        ctx.log.error("conversation-rescue-tick pre-force conversation fetch failed", {
+          rescueId: rescue.id,
+          error: convFetchError.message,
+        });
+        continue;
+      }
       const conv = convRow as {
         assigned_seller_id: string | null;
         awaiting_reply_since: string | null;
@@ -424,12 +454,19 @@ async function resolveTimeouts(
         conv.assigned_seller_id === rescue.absent_seller_id &&
         conv.awaiting_reply_since !== null &&
         ["aguardando", "em_andamento", "aguardando_cliente"].includes(conv.status);
-      if (stillQualifies && conv) {
-        const { data: sellerRow } = await admin
+      if (stillQualifies) {
+        const { data: sellerRow, error: sellerFetchError } = await admin
           .from("sellers")
           .select("availability, work_schedule, schedule_overrides")
           .eq("id", rescue.absent_seller_id)
           .maybeSingle();
+        if (sellerFetchError) {
+          ctx.log.error("conversation-rescue-tick pre-force seller fetch failed", {
+            rescueId: rescue.id,
+            error: sellerFetchError.message,
+          });
+          continue;
+        }
         const seller = sellerRow as Pick<
           ISellerRow,
           "availability" | "work_schedule" | "schedule_overrides"
@@ -444,15 +481,8 @@ async function resolveTimeouts(
             },
             now,
           );
-          const absence = determineAbsence({
-            isWithinSchedule,
-            availability: seller.availability,
-            awaitingReplySince: conv.awaiting_reply_since!,
-            now,
-            temporaryAbsenceGraceMinutes: graceMinutes,
-            maxClientWaitHours,
-          });
-          stillQualifies = absence !== null;
+          const sellerPresent = isWithinSchedule && seller.availability === "online";
+          stillQualifies = !sellerPresent;
         }
       }
       if (!stillQualifies) {
