@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApplicationsSection } from "../ApplicationsSection";
 import { EquivalentsSection } from "../EquivalentsSection";
+import { PartApplicationsCard } from "../PartApplicationsCard";
 import { PartCrossReferenceSection } from "../PartCrossReferenceSection";
+import { PartEquivalentsCard } from "../PartEquivalentsCard";
 import { PartFiscalCard } from "../PartFiscalCard";
 import { PartIdentityCard } from "../PartIdentityCard";
 import { PartLogisticsCard } from "../PartLogisticsCard";
@@ -13,14 +16,18 @@ import type { IPartLayoutProps } from "./types";
 const TABS = CATALOG_STRINGS.detail.tabs;
 
 export function PartLayoutCounter({ part }: IPartLayoutProps) {
+  const [tab, setTab] = useState("commercial");
+
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-      <aside className="lg:col-span-4 lg:sticky lg:top-6 lg:self-start">
+      <aside className="flex flex-col gap-6 lg:col-span-4 lg:sticky lg:top-6 lg:self-start">
         <PartIdentityCard part={part} />
+        <PartApplicationsCard part={part} onViewAll={() => setTab("applications")} />
+        <PartEquivalentsCard part={part} onViewAll={() => setTab("equivalents")} />
       </aside>
 
       <div className="lg:col-span-8">
-        <Tabs defaultValue="commercial" className="w-full">
+        <Tabs value={tab} onValueChange={setTab} className="w-full">
           <TabsList className="flex flex-wrap">
             <TabsTrigger value="commercial" className="cursor-pointer">
               {TABS.commercial}
