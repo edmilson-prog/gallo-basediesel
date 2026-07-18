@@ -62,6 +62,11 @@ interface IWahaEnvelope {
 
 const CLOSED_CONVERSATION_STATUSES = ["resolvida", "arquivada"];
 
+// Fallback pipeline stage when the store has none configured yet — mirrors the
+// app-level default (src/mocks/data/platform.ts) and the reference
+// whatsapp-webhook's DEFAULT_FIRST_STAGE. Used by the lead helpers below.
+const DEFAULT_FIRST_STAGE = { id: "stage-novo", name: "Novo", order: 1, color: "#5b6b7a" };
+
 function extForMimetype(mimetype: string): string {
   const map: Record<string, string> = {
     "image/jpeg": "jpg",
@@ -310,6 +315,218 @@ Deno.serve(async (req) => {
         }
       }
       return match.id as string;
+    }
+
+    // ===== Lead resolution (Funnel Frente 3) =================================
+    // Mirrored — DELIBERATELY, never imported — from the reference
+    // whatsapp-webhook adapter (`createLead`/`reopenLostLead`/
+    // `findOpenConversationForLead`, index.ts L340-385; helpers `assignNext-
+    // FromRotation`/`getFirstPipelineStage`/`DEFAULT_FIRST_STAGE`, L74-100) and
+    // the shared core's `resolveContact` (webhook/core.ts L420-440 — resolution
+    // ORDER only). WAHA stays fully isolated (see the file header): the shape is
+    // copied here on purpose so a change to the shared pipeline can never
+    // silently alter WAHA's behavior. Why: an unknown number used to spawn a
+    // pending_review customer ghost; now it becomes a real Lead (owned by the
+    // rotation pick on live inbound), which stops the Funnel from manufacturing
+    // fake customers. The @lid-unresolved (forged-phone) branches keep the
+    // minimal customer anchor — those digits are NOT a validated phone and must
+    // never seed a lead.
+    async function getFirstPipelineStage(): Promise<Record<string, unknown>> {
+      const { data } = await admin
+        .from("stores")
+        .select("settings")
+        .eq("id", accountRow.store_id as string)
+        .maybeSingle();
+      const stages = (data?.settings as { pipelineStages?: Array<Record<string, unknown>> } | null)
+        ?.pipelineStages;
+      if (!stages || stages.length === 0) return DEFAULT_FIRST_STAGE;
+      return [...stages].sort((a, b) => (a.order as number) - (b.order as number))[0]!;
+    }
+
+    // Rotation owner for a live inbound lead. The RPC is frozen (never returns
+    // null — it falls back to a fixed seller when no queue/eligible member
+    // exists), so the NOT NULL leads.seller_id is always satisfied on inbound.
+    async function assignRotationSeller(): Promise<string> {
+      const { data, error } = await admin.rpc("assign_next_from_rotation", {
+        p_store_id: accountRow.store_id as string,
+      });
+      if (error) throw new Error(`assign_next_from_rotation: ${error.message}`);
+      return data as string;
+    }
+
+    // Suffix pre-filter on the generated digits column + tolerant BR match —
+    // same shape as findCustomerByPhone above (stored numbers vary: missing DDI
+    // 55, 9th-digit divergence). leads.phone_digits is a generated digits-only
+    // column (migration 20260716210000). Returns the lead's owner + loss state
+    // so the caller can decide reuse / reopen / owner-assignment.
+    async function findLeadByPhone(
+      phoneDigits: string,
+    ): Promise<{ id: string; sellerId: string | null; lossReason: string | null } | undefined> {
+      const { data: candidates } = await admin
+        .from("leads")
+        .select("id, seller_id, loss_reason, phone_digits")
+        .eq("store_id", accountRow.store_id as string)
+        .like("phone_digits", `%${phoneDigits.slice(-8)}`);
+      const match = (candidates ?? []).find((l) =>
+        phoneDigitsMatchBr(String(l.phone_digits ?? "").replace(/\D/g, ""), phoneDigits),
+      );
+      if (!match) return undefined;
+      return {
+        id: match.id as string,
+        sellerId: (match.seller_id as string | null) ?? null,
+        lossReason: (match.loss_reason as string | null) ?? null,
+      };
+    }
+
+    // Reopen a previously-lost lead: clear the loss and restore the first stage
+    // (mirror of reopenLostLead v0.150). Rotation (re)assignment is the caller's
+    // job — it happens only when the PERSON answers (live inbound).
+    async function reopenLead(leadId: string): Promise<void> {
+      const firstStage = await getFirstPipelineStage();
+      const { error } = await admin
+        .from("leads")
+        .update({ loss_reason: null, loss_notes: null, stage: firstStage })
+        .eq("id", leadId);
+      if (error) throw new Error(`reopenLead: ${error.message}`);
+    }
+
+    // Low-level lead insert (mirror of createLead's shape, v0.150). origin is
+    // always 'whatsapp' here — the acervo migration script uses 'import'
+    // instead. sellerId is null on the echo path (owner-less until the person
+    // answers): this REQUIRES leads.seller_id to be nullable — see the report.
+    async function insertLead(input: {
+      phone: string;
+      name: string;
+      sellerId: string | null;
+      temperature: "morno" | "frio";
+    }): Promise<string> {
+      const firstStage = await getFirstPipelineStage();
+      const { data, error } = await admin
+        .from("leads")
+        .insert({
+          // leads.id has a DB default, but minting it explicitly mirrors the
+          // app-level provider (src/providers/data/impl/supabase/leads.ts).
+          id: crypto.randomUUID(),
+          store_id: accountRow.store_id,
+          seller_id: input.sellerId,
+          name: input.name,
+          phone: input.phone,
+          stage: firstStage,
+          temperature: input.temperature,
+          origin: "whatsapp",
+          conversations: [],
+          tags: [],
+        })
+        .select("id")
+        .single();
+      if (error) throw new Error(`insertLead: ${error.message}`);
+      return data.id as string;
+    }
+
+    // LIVE INBOUND resolution: reuse / reopen an existing lead — assigning the
+    // rotation owner the moment the person writes to us — or create a fresh warm
+    // lead. Resolution order mirrors resolveContact: customer (handled by the
+    // caller) → existing lead (reopened if lost) → brand-new lead.
+    async function resolveLeadForInbound(
+      phoneDigits: string,
+      fromPhone: string,
+      contactName: string | undefined,
+    ): Promise<string> {
+      const existing = await findLeadByPhone(phoneDigits);
+      if (existing) {
+        if (existing.lossReason !== null) {
+          // Lost lead came back to life — clear the loss/restore the stage and
+          // (re)assign an owner via rotation now that the person answered.
+          await reopenLead(existing.id);
+          const sellerId = await assignRotationSeller();
+          await admin.from("leads").update({ seller_id: sellerId }).eq("id", existing.id);
+          console.log(
+            JSON.stringify({
+              level: "info",
+              msg: "waha webhook: lead reopened",
+              leadId: existing.id,
+              path: "inbound",
+            }),
+          );
+        } else if (existing.sellerId === null) {
+          // Acervo/import lead with no owner yet — assign one now it's live.
+          const sellerId = await assignRotationSeller();
+          await admin.from("leads").update({ seller_id: sellerId }).eq("id", existing.id);
+          console.log(
+            JSON.stringify({
+              level: "info",
+              msg: "waha webhook: lead matched",
+              leadId: existing.id,
+              path: "inbound",
+            }),
+          );
+        } else {
+          console.log(
+            JSON.stringify({
+              level: "info",
+              msg: "waha webhook: lead matched",
+              leadId: existing.id,
+              path: "inbound",
+            }),
+          );
+        }
+        return existing.id;
+      }
+      const sellerId = await assignRotationSeller();
+      const leadId = await insertLead({
+        phone: fromPhone,
+        name: contactName ?? fromPhone,
+        sellerId,
+        temperature: "morno",
+      });
+      console.log(
+        JSON.stringify({
+          level: "info",
+          msg: "waha webhook: lead created",
+          leadId,
+          path: "inbound",
+        }),
+      );
+      return leadId;
+    }
+
+    // OUTBOUND ECHO resolution (we messaged them from the phone): reuse an
+    // existing lead AS-IS — never reopen a lost one, never assign rotation
+    // (that happens only when the person answers, on the inbound path). If none
+    // exists, create a COLD, OWNER-LESS lead (no rotation): the team reached out
+    // but nobody has claimed the thread yet.
+    async function resolveLeadForEcho(
+      phoneDigits: string,
+      toPhone: string,
+      contactName: string | undefined,
+    ): Promise<string> {
+      const existing = await findLeadByPhone(phoneDigits);
+      if (existing) {
+        console.log(
+          JSON.stringify({
+            level: "info",
+            msg: "waha webhook: lead matched",
+            leadId: existing.id,
+            path: "echo",
+          }),
+        );
+        return existing.id;
+      }
+      const leadId = await insertLead({
+        phone: toPhone,
+        name: contactName ?? toPhone,
+        sellerId: null,
+        temperature: "frio",
+      });
+      console.log(
+        JSON.stringify({
+          level: "info",
+          msg: "waha webhook: lead created",
+          leadId,
+          path: "echo",
+        }),
+      );
+      return leadId;
     }
 
     // Shared media download+upload — best-effort, never fails the caller (only
@@ -566,14 +783,22 @@ Deno.serve(async (req) => {
       }
       const echoPhoneDigits = toPhone.replace(/\D/g, "");
 
-      let echoCustomerId = await findCustomerByPhone(echoPhoneDigits, {
+      // Resolution (Funnel Frente 3): a real customer keeps today's anchor; a
+      // forged @lid keeps the minimal pending_review customer (byte-for-byte,
+      // below); any other unknown number becomes a Lead instead of a customer
+      // ghost — echo variant (no rotation).
+      let echoAnchorKind: "customer" | "lead" = "customer";
+      let echoAnchorId: string;
+      const echoCustomerId = await findCustomerByPhone(echoPhoneDigits, {
         adoptCanonical: !toLidUnresolved,
       });
-      if (!echoCustomerId) {
-        // Same anchor-only contract as the inbound path: no seller_id (wallet
-        // owner) and tags:["pending_review"] — a human converts it manually.
-        // An unresolved lid must NEVER surface its digits as a name (spec §5
-        // risk 3) — same neutral pt-BR label as the inbound fallback.
+      if (echoCustomerId) {
+        echoAnchorId = echoCustomerId;
+      } else if (toLidUnresolved) {
+        // Forged @lid digits never become a lead: keep the minimal customer
+        // anchor. No seller_id (wallet owner), tags:["pending_review"] — a human
+        // converts it manually. An unresolved lid must NEVER surface its digits
+        // as a name (spec §5 risk 3) — same neutral pt-BR label as inbound.
         const { data: createdEchoCustomer, error: echoCustomerErr } = await admin
           .from("customers")
           .insert({
@@ -600,7 +825,27 @@ Deno.serve(async (req) => {
             requestPayload: envelope,
           });
         }
-        echoCustomerId = createdEchoCustomer.id as string;
+        echoAnchorId = createdEchoCustomer.id as string;
+      } else {
+        // Unknown number → Lead (echo variant): reuse an existing lead as-is,
+        // else create a COLD owner-less lead. Seed a display name best-effort
+        // from the WhatsApp contact — one extra GET only on this miss path.
+        let contactName: string | undefined;
+        try {
+          const apiKey = await getApiKey();
+          if (apiKey) {
+            contactName = await getWahaContactName(apiKey, globalThis.fetch, {
+              baseUrl: wahaBaseUrl,
+              sessionName,
+              contactId: parsed.toLid ?? `${echoPhoneDigits}@c.us`,
+              timeoutMs: 5_000,
+            });
+          }
+        } catch {
+          /* name is decorative — never blocks the lead */
+        }
+        echoAnchorId = await resolveLeadForEcho(echoPhoneDigits, toPhone, contactName);
+        echoAnchorKind = "lead";
       }
 
       // OPEN-ONLY lookup (excludes resolvida/arquivada): an echo is
@@ -610,7 +855,10 @@ Deno.serve(async (req) => {
       const { data: openEchoConversation } = await admin
         .from("conversations")
         .select("id")
-        .eq("customer_id", echoCustomerId)
+        .eq(
+          echoAnchorKind === "customer" ? "customer_id" : "lead_id",
+          echoAnchorKind === "lead" ? String(echoAnchorId) : echoAnchorId,
+        )
         .eq("whatsapp_account_id", accountRow.id as string)
         .not("status", "in", `(${CLOSED_CONVERSATION_STATUSES.join(",")})`)
         .order("created_at", { ascending: false })
@@ -623,7 +871,9 @@ Deno.serve(async (req) => {
           .from("conversations")
           .insert({
             store_id: accountRow.store_id,
-            customer_id: echoCustomerId,
+            // Exactly one of customer_id / lead_id is set (app-level invariant).
+            customer_id: echoAnchorKind === "customer" ? echoAnchorId : null,
+            lead_id: echoAnchorKind === "lead" ? String(echoAnchorId) : null,
             whatsapp_account_id: accountRow.id,
             // UNASSIGNED (pool): the webhook cannot know which staff member
             // sent from the phone, so it never pins the chat — it lands
@@ -767,13 +1017,23 @@ Deno.serve(async (req) => {
     // ===== Customer resolution (Correction 1) ==================================
     // Adopt-canonical only when the wire number is a real pn — an unresolved
     // lid placeholder must never overwrite a stored phone.
-    let customerId = await findCustomerByPhone(phoneDigits, {
+    // Resolution (Funnel Frente 3): a real customer keeps today's pool-anchor
+    // behavior; a forged @lid keeps the minimal pending_review customer
+    // (byte-for-byte, below); any other unknown number becomes a Lead owned by
+    // the rotation pick — no more pending_review customer ghosts. Exactly one of
+    // anchorKind/anchorId identifies the contact for the conversation + message.
+    const foundCustomerId = await findCustomerByPhone(phoneDigits, {
       adoptCanonical: !lidUnresolved,
     });
-    if (!customerId) {
+    let anchorKind: "customer" | "lead" = "customer";
+    let anchorId: string;
+    if (foundCustomerId) {
+      anchorId = foundCustomerId;
+    } else {
       // Seed the display name from the WhatsApp contact (pushname) — best-effort,
-      // one extra GET only on the new-customer path. The lid id is the known-good
-      // identity when present (the contacts endpoint accepts @lid directly).
+      // one extra GET only on the miss path. Shared by the @lid customer anchor
+      // and the new-lead path below. The lid id is the known-good identity when
+      // present (the contacts endpoint accepts @lid directly).
       let contactName: string | undefined;
       try {
         const apiKey = await getApiKey();
@@ -789,47 +1049,61 @@ Deno.serve(async (req) => {
         /* name is decorative — never blocks the insert */
       }
 
-      // NO seller_id (wallet owner) — this anchors a pool conversation only,
-      // until a human manually converts it. tags:["pending_review"] is what the
-      // Customers list UI filters out by default.
-      const { data: createdCustomer, error: customerErr } = await admin
-        .from("customers")
-        .insert({
-          store_id: accountRow.store_id,
-          type: "B2C", // customers_type_check requires UPPERCASE 'B2C'
-          phone: fromPhone,
-          // Display label decision (spec §5 risk 3): an unresolved lid must NEVER
-          // surface its digits as a name — fall back to a pt-BR label instead.
-          full_name:
-            contactName ?? (lidUnresolved ? "Contato do WhatsApp (número oculto)" : fromPhone),
-          whatsapp_name: contactName ?? null,
-          status: "ativo",
-          tags: lidUnresolved ? ["pending_review", "lid_unresolved"] : ["pending_review"],
-        })
-        .select("id")
-        .single();
-      if (customerErr) {
-        console.warn(
-          JSON.stringify({
-            level: "warn",
-            msg: "waha webhook: customer insert failed",
-            error: customerErr.message,
-          }),
-        );
-        return respond(json({ ok: true, ignored: "customer-insert-failed" }, 200), {
-          outcome: "ignored",
-          errorMessage: customerErr.message,
-          requestPayload: envelope,
-        });
+      if (lidUnresolved) {
+        // Forged @lid digits never become a lead — keep the minimal customer
+        // anchor. NO seller_id (wallet owner): a pool conversation only, until a
+        // human manually converts it. tags:["pending_review"] is what the
+        // Customers list UI filters out by default.
+        const { data: createdCustomer, error: customerErr } = await admin
+          .from("customers")
+          .insert({
+            store_id: accountRow.store_id,
+            type: "B2C", // customers_type_check requires UPPERCASE 'B2C'
+            phone: fromPhone,
+            // Display label decision (spec §5 risk 3): an unresolved lid must NEVER
+            // surface its digits as a name — fall back to a pt-BR label instead.
+            full_name:
+              contactName ?? (lidUnresolved ? "Contato do WhatsApp (número oculto)" : fromPhone),
+            whatsapp_name: contactName ?? null,
+            status: "ativo",
+            tags: lidUnresolved ? ["pending_review", "lid_unresolved"] : ["pending_review"],
+          })
+          .select("id")
+          .single();
+        if (customerErr) {
+          console.warn(
+            JSON.stringify({
+              level: "warn",
+              msg: "waha webhook: customer insert failed",
+              error: customerErr.message,
+            }),
+          );
+          return respond(json({ ok: true, ignored: "customer-insert-failed" }, 200), {
+            outcome: "ignored",
+            errorMessage: customerErr.message,
+            requestPayload: envelope,
+          });
+        }
+        anchorId = createdCustomer.id as string;
+      } else {
+        // Unknown number → Lead (live inbound): resolve/reopen/create and assign
+        // the rotation owner at this moment (the person just wrote to us).
+        anchorId = await resolveLeadForInbound(phoneDigits, fromPhone, contactName);
+        anchorKind = "lead";
       }
-      customerId = createdCustomer.id as string;
     }
 
     // ===== Conversation resolution: reuse-or-reopen-or-create (Correction 2) ===
+    // Anchored by customer_id OR lead_id (exactly one), mirroring THIS file's
+    // local reuse-or-reopen semantics (not whatsapp-webhook's) so the reopen
+    // behavior below is preserved.
     const { data: existingConversation } = await admin
       .from("conversations")
       .select("id, status, unread_count")
-      .eq("customer_id", customerId)
+      .eq(
+        anchorKind === "customer" ? "customer_id" : "lead_id",
+        anchorKind === "lead" ? String(anchorId) : anchorId,
+      )
       .eq("whatsapp_account_id", accountRow.id as string)
       .order("last_message_at", { ascending: false })
       .limit(1)
@@ -842,7 +1116,9 @@ Deno.serve(async (req) => {
         .from("conversations")
         .insert({
           store_id: accountRow.store_id,
-          customer_id: customerId,
+          // Exactly one of customer_id / lead_id is set (app-level invariant).
+          customer_id: anchorKind === "customer" ? anchorId : null,
+          lead_id: anchorKind === "lead" ? String(anchorId) : null,
           whatsapp_account_id: accountRow.id,
           assigned_seller_id: null, // unassigned — lands in the pool/queue
           channel: "whatsapp",
@@ -892,7 +1168,10 @@ Deno.serve(async (req) => {
       conversation_id: conversationId,
       direction: "in",
       author_type: "customer",
-      author_id: customerId,
+      // author_id is free text (no FK) — the resolved anchor id, customer OR
+      // lead (mirrors whatsapp-webhook's insertInboundMessage, author_type
+      // stays "customer" for both).
+      author_id: anchorId,
       provider: "waha",
       text: parsed.text ?? "",
       media_type: ["text", "unknown"].includes(parsed.contentType) ? null : parsed.contentType,
