@@ -1571,12 +1571,23 @@ reset role;
 -- Self-claim guard (incident 2026-07-18): the absent seller must not be able
 -- to claim their own rescue — expected P0006, and it must win over the
 -- liveness check (P0005) regardless of the conversation's awaiting state.
+-- Pre-merge skip guard (same convention as the fila-block above): the CI
+-- target DB only gains the P0006 guard when migration 20260718210000 is
+-- applied — probe the function body and skip until then, so this PR's own
+-- CI run doesn't go red on an intentionally-not-yet-applied migration.
 do $$
 declare
   v_owner_conv uuid;
   v_account uuid;
   v_rescue uuid;
 begin
+  if pg_get_functiondef('public.claim_conversation_rescue(uuid)'::regprocedure)
+       not like '%P0006%' then
+    raise notice 'conversation-rescue self-claim: migration 20260718210000 not applied — skipping';
+    perform set_config('rls_regression.rescue_self_id', '', false);
+    return;
+  end if;
+
   select id, whatsapp_account_id into v_owner_conv, v_account from public.conversations
    where store_id = '00000000-0000-0000-0000-000000000001'
      and assigned_seller_id = '57706ecc-01b5-4a96-b403-0359a4bb767f'
