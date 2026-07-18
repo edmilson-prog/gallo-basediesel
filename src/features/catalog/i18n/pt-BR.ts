@@ -81,6 +81,9 @@ export const CATALOG_STRINGS = {
       duplicate: "Duplicar",
       deactivate: "Desativar",
       activate: "Ativar",
+      cancel: "Cancelar",
+      save: "Salvar alterações",
+      saving: "Salvando…",
     },
     sections: {
       applications: "Aplicações",
