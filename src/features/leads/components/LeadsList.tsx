@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { formatBRL, formatDateBR, formatPhone } from "@/shared/utils/format";
 import {
-  ORIGIN_META,
+  getOriginMeta,
   TEMPERATURE_META,
   daysInStage,
   getNextActionInfo,
@@ -109,7 +109,7 @@ export function LeadsList({ leads, sellersById, isLoading, sort, onSortChange }:
         <TableBody>
           {leads.map((lead) => {
             const tempMeta = TEMPERATURE_META[lead.temperature];
-            const originMeta = ORIGIN_META[lead.origin];
+            const originMeta = getOriginMeta(lead.origin);
             const nextAction = getNextActionInfo(lead.nextActionAt, now);
             const seller = lead.sellerId ? sellersById.get(lead.sellerId) : undefined;
             return (

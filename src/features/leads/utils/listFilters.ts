@@ -1,7 +1,7 @@
 import type { ID, LeadOrigin, LeadTemperature } from "@/shared/types";
 
 export const LEAD_TEMPERATURES = ["frio", "morno", "quente"] as const;
-export const LEAD_ORIGINS = ["whatsapp", "ecommerce", "indicacao", "google", "outro"] as const;
+export const LEAD_ORIGINS = ["whatsapp", "ecommerce", "indicacao", "google", "outro", "import"] as const;
 export const NEXT_ACTION_FILTERS = ["any", "overdue", "today", "thisWeek", "future"] as const;
 export const PERIOD_FILTERS = ["any", "24h", "7d", "30d"] as const;
 

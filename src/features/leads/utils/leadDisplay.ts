@@ -61,7 +61,25 @@ export const ORIGIN_META: Record<LeadOrigin, IOriginMeta> = {
     icon: "mdi:dots-horizontal",
     tone: "bg-muted text-muted-foreground",
   },
+  // Funnel Frente 3: leads materialized from historical conversations/imports
+  // (origin written by the migration script and the import Edge Functions).
+  import: {
+    label: LEADS_STRINGS.origin.import,
+    icon: "mdi:database-import-outline",
+    tone: "bg-muted text-muted-foreground",
+  },
 };
+
+/**
+ * Null-safe ORIGIN_META lookup. Lead origins are written by server-side code
+ * (webhook, imports, migration scripts) that the frontend type system cannot
+ * see — an unknown value must degrade to the "outro" badge, never crash the
+ * kanban (2026-07-18 incident: origin='import' predated its META entry and
+ * took down /app/leads with `undefined.tone`).
+ */
+export function getOriginMeta(origin: string): IOriginMeta {
+  return ORIGIN_META[origin as LeadOrigin] ?? ORIGIN_META.outro;
+}
 
 export type NextActionUrgency = "overdue" | "today" | "tomorrow" | "future" | "none";
 

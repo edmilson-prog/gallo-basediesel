@@ -4,7 +4,7 @@ import type { ID, ISO8601, Money } from "./common";
 export type LeadTemperature = "frio" | "morno" | "quente";
 
 /** Origin channel of a lead. */
-export type LeadOrigin = "whatsapp" | "ecommerce" | "indicacao" | "google" | "outro";
+export type LeadOrigin = "whatsapp" | "ecommerce" | "indicacao" | "google" | "outro" | "import";
 
 /** Pipeline stage of a lead. Stages are configurable per store (see IPlatformSettings.pipelineStages). */
 export interface ILeadStage {

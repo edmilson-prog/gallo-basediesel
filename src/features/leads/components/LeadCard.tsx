@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { formatBRLCompact, formatPhone } from "@/shared/utils/format";
 import {
-  ORIGIN_META,
+  getOriginMeta,
   TEMPERATURE_META,
   getInitials,
   getNextActionInfo,
@@ -37,7 +37,7 @@ export function LeadCard({
 }: ILeadCardProps) {
   const navigate = useNavigate();
   const temperatureMeta = TEMPERATURE_META[lead.temperature];
-  const originMeta = ORIGIN_META[lead.origin];
+  const originMeta = getOriginMeta(lead.origin);
   const nextAction = getNextActionInfo(lead.nextActionAt);
   const converted = isConverted(lead);
   const lost = isLost(lead);

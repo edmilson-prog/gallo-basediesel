@@ -16,7 +16,7 @@ import {
 import { useLeadsProvider } from "@/providers/data/hooks/useLeadsProvider";
 import { auditLog } from "@/features/rbac/utils/auditLog";
 import { formatBRL, formatDateBR, formatPhone } from "@/shared/utils/format";
-import { ORIGIN_META, TEMPERATURE_META, getNextActionInfo } from "../../utils/leadDisplay";
+import { TEMPERATURE_META, getNextActionInfo, getOriginMeta } from "../../utils/leadDisplay";
 import { LEAD_TEMPERATURES } from "../../utils/listFilters";
 import { LEADS_STRINGS } from "../../i18n/pt-BR";
 
@@ -43,7 +43,7 @@ export function LeadDataCard({ lead, seller, canEdit, editing, onCancelEdit }: I
   const [busy, setBusy] = useState(false);
 
   const tempMeta = TEMPERATURE_META[lead.temperature];
-  const originMeta = ORIGIN_META[lead.origin];
+  const originMeta = getOriginMeta(lead.origin);
   const nextAction = getNextActionInfo(lead.nextActionAt);
 
   const handleSave = async () => {
