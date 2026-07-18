@@ -88,3 +88,14 @@ export function resolvePriceTables(
   if (part.unitCost > 0) return buildPriceTables(part.unitCost, part.marginPercent);
   return [];
 }
+
+/** Recompute a table row's price after the user edits its markup directly. */
+export function updateTableMarkup(table: IPriceTable, markupPercent: number, baseCost: number): IPriceTable {
+  return { ...table, markupPercent, price: computePrice(baseCost, markupPercent) };
+}
+
+/** Recompute a table row's markup after the user edits its price directly. */
+export function updateTablePrice(table: IPriceTable, price: number, baseCost: number): IPriceTable {
+  const markupPercent = baseCost > 0 ? Number(((price - baseCost) / baseCost).toFixed(4)) : 0;
+  return { ...table, price: round2(price), markupPercent };
+}
