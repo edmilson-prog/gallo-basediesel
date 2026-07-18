@@ -113,3 +113,149 @@ describe("toPartDraft", () => {
     expect(draft.newSupplierEntry).toBeNull();
   });
 });
+
+import {
+  buildPartPatch,
+  isSupplierEntryFillable,
+  validatePartDraft,
+} from "./draft";
+
+describe("validatePartDraft", () => {
+  it("requires name, OEM primary, brand and category", () => {
+    const draft = toPartDraft(makePart({ name: "", oemCodes: [], brand: "", category: undefined }));
+    const errors = validatePartDraft(draft);
+    expect(errors.name).toBeDefined();
+    expect(errors.oemPrimary).toBeDefined();
+    expect(errors.brand).toBeDefined();
+    expect(errors.category).toBeDefined();
+  });
+
+  it("requires a positive Padrão price", () => {
+    const draft = toPartDraft(makePart({ unitCost: 0 }));
+    // unitCost=0 makes resolvePriceTables return [] (no cost to price from)
+    const errors = validatePartDraft(draft);
+    expect(errors.standardPrice).toBeDefined();
+  });
+
+  it("passes with a complete, valid draft", () => {
+    const draft = toPartDraft(makePart({ category: "filtro" }));
+    expect(validatePartDraft(draft)).toEqual({});
+  });
+});
+
+describe("isSupplierEntryFillable", () => {
+  it("is false for null or partially filled entries", () => {
+    expect(isSupplierEntryFillable(null)).toBe(false);
+    expect(
+      isSupplierEntryFillable({
+        name: "",
+        supplierCode: "",
+        invoiceNumber: "",
+        invoiceDate: "",
+        cost: 10,
+        quantity: 5,
+      }),
+    ).toBe(false);
+    expect(
+      isSupplierEntryFillable({
+        name: "Scherer",
+        supplierCode: "",
+        invoiceNumber: "",
+        invoiceDate: "",
+        cost: undefined,
+        quantity: 5,
+      }),
+    ).toBe(false);
+  });
+
+  it("is true once name, cost and quantity are present", () => {
+    expect(
+      isSupplierEntryFillable({
+        name: "Scherer",
+        supplierCode: "",
+        invoiceNumber: "",
+        invoiceDate: "",
+        cost: 92.5,
+        quantity: 10,
+      }),
+    ).toBe(true);
+  });
+});
+
+describe("buildPartPatch", () => {
+  it("mirrors the Padrão channel into unitPrice and marginPercent", () => {
+    const part = makePart({ category: "filtro" });
+    const draft = toPartDraft(part);
+    draft.priceTables = draft.priceTables.map((t) =>
+      t.id === "padrao" ? { ...t, price: 200, markupPercent: 1.16 } : t,
+    );
+    const patch = buildPartPatch(part, draft, false);
+    expect(patch.unitPrice).toBe(200);
+    expect(patch.marginPercent).toBeCloseTo(1.16, 4);
+    expect(patch.priceTables).toEqual(draft.priceTables);
+  });
+
+  it("omits price/cost fields entirely when priceLocked", () => {
+    const part = makePart({ category: "filtro" });
+    const draft = toPartDraft(part);
+    const patch = buildPartPatch(part, draft, true);
+    expect(patch.unitCost).toBeUndefined();
+    expect(patch.unitPrice).toBeUndefined();
+    expect(patch.priceTables).toBeUndefined();
+    expect(patch.marginPercent).toBeUndefined();
+  });
+
+  it("parses OEM codes and trims optional text fields to undefined when empty", () => {
+    const part = makePart({ category: "filtro" });
+    const draft = toPartDraft(part);
+    draft.oemAlternatives = " ALT-9 ";
+    draft.description = "   ";
+    draft.gtin = "  7890  ";
+    const patch = buildPartPatch(part, draft, false);
+    expect(patch.oemCodes).toEqual(["VOL-123456", "ALT-9"]);
+    expect(patch.description).toBeUndefined();
+    expect(patch.gtin).toBe("7890");
+  });
+
+  it("appends a new supplier entry only when fillable, keeping past entries untouched", () => {
+    const part = makePart({
+      category: "filtro",
+      suppliers: [{ id: "sup-1", name: "Old Co", cost: 80, quantity: 3 }],
+    });
+    const draft = toPartDraft(part);
+    draft.newSupplierEntry = {
+      name: "New Co",
+      supplierCode: "",
+      invoiceNumber: "NF-1",
+      invoiceDate: "2026-07-18",
+      cost: 95,
+      quantity: 4,
+    };
+    const patch = buildPartPatch(part, draft, false);
+    expect(patch.suppliers).toHaveLength(2);
+    expect(patch.suppliers?.[0]).toEqual(part.suppliers![0]);
+    expect(patch.suppliers?.[1]).toMatchObject({ name: "New Co", cost: 95, quantity: 4 });
+  });
+
+  it("does not append when the new supplier entry is null", () => {
+    const part = makePart({
+      category: "filtro",
+      suppliers: [{ id: "sup-1", name: "Old Co", cost: 80, quantity: 3 }],
+    });
+    const draft = toPartDraft(part);
+    const patch = buildPartPatch(part, draft, false);
+    expect(patch.suppliers).toEqual(part.suppliers);
+  });
+
+  it("drops cross-references with an empty brand or code", () => {
+    const part = makePart({ category: "filtro" });
+    const draft = toPartDraft(part);
+    draft.crossReferences = [
+      { brand: "Mann", code: "C123" },
+      { brand: "", code: "X" },
+      { brand: "Fleetguard", code: "" },
+    ];
+    const patch = buildPartPatch(part, draft, false);
+    expect(patch.crossReferences).toEqual([{ brand: "Mann", code: "C123" }]);
+  });
+});
