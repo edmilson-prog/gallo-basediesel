@@ -65,10 +65,10 @@ export function PartPricingTable({
   return (
     <Card>
       <Header />
-      <div className="mb-3 flex items-center justify-between text-xs text-muted-foreground">
-        <span>
-          {COPY.baseCost}:{" "}
-          {editing ? (
+      {editing ? (
+        <div className="mb-3 flex items-center justify-between text-xs text-muted-foreground">
+          <span>
+            {COPY.baseCost}:{" "}
             <Input
               type="number"
               inputMode="decimal"
@@ -78,11 +78,14 @@ export function PartPricingTable({
               onChange={(e) => onDraftChange?.({ unitCost: Number(e.target.value) || 0 })}
               className="mt-1 h-7 w-28 font-mono"
             />
-          ) : (
-            <span className="font-mono font-medium text-foreground">{formatBRL(baseCost)}</span>
-          )}
-        </span>
-      </div>
+          </span>
+        </div>
+      ) : (
+        <p className="mb-3 text-xs text-muted-foreground">
+          {COPY.baseCost}:{" "}
+          <span className="font-mono font-medium text-foreground">{formatBRL(baseCost)}</span>
+        </p>
+      )}
       {errors?.standardPrice && <p className="mb-2 text-xs text-destructive">{errors.standardPrice}</p>}
 
       <div className="overflow-hidden rounded-md border border-border">
