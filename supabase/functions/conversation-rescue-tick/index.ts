@@ -148,7 +148,10 @@ async function cancelResolvedRescues(
     ((storeRows ?? []) as Array<{ id: string; settings: Record<string, unknown> | null }>)
       .filter((s) => {
         const cfg = (s.settings?.conversationRescue ?? {}) as { enabled?: unknown };
-        return cfg.enabled === true;
+        // Mirror the SQL filter of phases 2/3 (settings->conversationRescue->>enabled
+        // = 'true'), which matches BOTH jsonb true and the string "true" — a
+        // narrower check here would make phase 1 cancel what phase 2 creates.
+        return cfg.enabled === true || cfg.enabled === "true";
       })
       .map((s) => s.id),
   );
