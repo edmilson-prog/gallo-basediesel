@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import type { IConversation, IConversationContact, IMessage } from "@/shared/types";
-import { displayFromContact, getMessagePreview } from "./conversationDisplay";
+import type { IConversation, IConversationContact, ICustomer, IMessage } from "@/shared/types";
+import { displayFromContact, getConversationDisplay, getMessagePreview } from "./conversationDisplay";
 import { INBOX_STRINGS } from "../i18n/pt-BR";
 
 /**
@@ -83,6 +83,43 @@ describe("displayFromContact", () => {
       conversationId: "totally-different-conv",
     });
     expect(d1.hue).toBe(d2.hue);
+  });
+});
+
+describe("getConversationDisplay — B2B name fallback", () => {
+  const b2b = (over: Partial<Extract<ICustomer, { type: "B2B" }>>): ICustomer =>
+    ({
+      id: "cust-b2b",
+      type: "B2B",
+      cnpj: "11.444.777/0001-61",
+      razaoSocial: "",
+      nomeFantasia: "",
+      contactName: "",
+      phone: "5554999990000",
+      ...over,
+    }) as unknown as ICustomer;
+
+  it("uses nomeFantasia when present", () => {
+    const d = getConversationDisplay(conv("c1"), b2b({ nomeFantasia: "Giodiesel" }), null);
+    expect(d.name).toBe("Giodiesel");
+  });
+
+  it("falls back to razaoSocial when nomeFantasia is empty", () => {
+    const d = getConversationDisplay(
+      conv("c2"),
+      b2b({ nomeFantasia: "", razaoSocial: "Giodiesel Comércio LTDA" }),
+      null,
+    );
+    expect(d.name).toBe("Giodiesel Comércio LTDA");
+  });
+
+  it("falls back to contactName when both nomeFantasia and razaoSocial are empty", () => {
+    const d = getConversationDisplay(
+      conv("c3"),
+      b2b({ nomeFantasia: "", razaoSocial: "", contactName: "Katrine" }),
+      null,
+    );
+    expect(d.name).toBe("Katrine");
   });
 });
 

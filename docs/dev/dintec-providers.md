@@ -145,3 +145,12 @@ O import assistido de 2026-07-12 gravou telefones **crus do ERP** (10–11 dígi
 5. Antes de gravar, checar colisão com cliente existente da mesma loja (`phone_digits` igual ou variante de 9º dígito) e tratar caso a caso, não sobrescrever.
 
 Helper de referência no código: `normalizeBrDialDigits` em `src/providers/whatsapp/phoneBr.ts`.
+
+## Nome de exibição em clientes B2B (obrigatória)
+
+O mesmo import de 2026-07-12 gravou 29 clientes como `type='B2B'` com `nome_fantasia` **nulo** (o ERP só preencheu o nome no `full_name`). Consequência na Inbox: o nome é resolvido pela RPC `conversation_contacts`, cujo `case when B2B then nome_fantasia else full_name end` devolvia `null` → a conversa aparecia como **"Lead anônimo"** mesmo com a ficha exibindo o nome corretamente. Corrigido por backfill (`nome_fantasia := full_name`, audit `customers_b2b_nome_fantasia_backfill`) + fallback nas RPCs. Toda carga futura DEVE, antes de gravar um cliente `B2B`:
+
+1. Garantir `nome_fantasia` **não vazio** — se o ERP não fornecer, derivar de `razao_social` ou do nome disponível (`full_name`). Nunca gravar B2B com `nome_fantasia` nulo/`''`.
+2. Lembrar que o modelo de domínio `ICustomerB2B` **não tem** `full_name` — o nome de negócio vive em `nome_fantasia`/`razao_social`; um B2B sem `nome_fantasia` é um registro incompleto.
+
+Blindagem no runtime (defesa em profundidade, não substitui a regra acima): as RPCs `conversation_contacts`/`search_conversations` e o util `getConversationDisplay` resolvem B2B como `coalesce(nullif(nome_fantasia,''), nullif(razao_social,''), full_name/contactName)`.
