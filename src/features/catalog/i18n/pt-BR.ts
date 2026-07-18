@@ -218,6 +218,8 @@ export const CATALOG_STRINGS = {
       qty: "Qtd",
       avgCost: "Custo médio (C.M.)",
       empty: "Nenhum fornecedor registrado.",
+      addTitle: "Adicionar nova entrada",
+      hint: "Preencha fornecedor, custo e quantidade para registrar uma nova compra",
     },
     tabs: {
       commercial: "Comercial",
