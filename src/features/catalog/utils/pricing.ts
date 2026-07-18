@@ -90,7 +90,11 @@ export function resolvePriceTables(
 }
 
 /** Recompute a table row's price after the user edits its markup directly. */
-export function updateTableMarkup(table: IPriceTable, markupPercent: number, baseCost: number): IPriceTable {
+export function updateTableMarkup(
+  table: IPriceTable,
+  markupPercent: number,
+  baseCost: number,
+): IPriceTable {
   return { ...table, markupPercent, price: computePrice(baseCost, markupPercent) };
 }
 

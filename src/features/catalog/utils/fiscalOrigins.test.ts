@@ -4,7 +4,17 @@ import { FISCAL_ORIGINS, getFiscalOriginLabel } from "./fiscalOrigins";
 describe("FISCAL_ORIGINS", () => {
   it("has the 9 NF-e origin codes (0-8)", () => {
     expect(FISCAL_ORIGINS).toHaveLength(9);
-    expect(FISCAL_ORIGINS.map((o) => o.code)).toEqual(["0", "1", "2", "3", "4", "5", "6", "7", "8"]);
+    expect(FISCAL_ORIGINS.map((o) => o.code)).toEqual([
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+    ]);
   });
 });
 

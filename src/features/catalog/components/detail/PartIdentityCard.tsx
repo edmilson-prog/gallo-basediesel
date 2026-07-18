@@ -2,11 +2,21 @@ import type { IPart } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { CATALOG_STRINGS } from "../../i18n/pt-BR";
-import { getCategoryLabel, getSubcategoriesFor, PART_CATEGORY_DESCRIPTORS } from "../../utils/categories";
+import {
+  getCategoryLabel,
+  getSubcategoriesFor,
+  PART_CATEGORY_DESCRIPTORS,
+} from "../../utils/categories";
 import type { IPartDraft, IPartDraftErrors } from "../../utils/draft";
 import { PartImage } from "../PartImage";
 import { PartSefazBadge } from "./PartSefazBadge";
@@ -150,7 +160,13 @@ interface IPartIdentityEditorProps {
   category: IPart["category"];
 }
 
-function PartIdentityEditor({ draft, onChange, errors, sefazStatus, sefazCheckedAt }: IPartIdentityEditorProps) {
+function PartIdentityEditor({
+  draft,
+  onChange,
+  errors,
+  sefazStatus,
+  sefazCheckedAt,
+}: IPartIdentityEditorProps) {
   const subOptions = getSubcategoriesFor(draft.category);
 
   return (
@@ -194,7 +210,9 @@ function PartIdentityEditor({ draft, onChange, errors, sefazStatus, sefazChecked
         <EditField label={FORM_COPY.category} required error={errors?.category}>
           <Select
             value={draft.category ?? ""}
-            onValueChange={(v) => onChange({ category: v === "" ? undefined : (v as IPartDraft["category"]) })}
+            onValueChange={(v) =>
+              onChange({ category: v === "" ? undefined : (v as IPartDraft["category"]) })
+            }
           >
             <SelectTrigger>
               <SelectValue placeholder="Selecione…" />
@@ -234,7 +252,11 @@ function PartIdentityEditor({ draft, onChange, errors, sefazStatus, sefazChecked
           />
         </EditField>
         <EditField label={COPY.reference}>
-          <Input value={draft.reference} onChange={(e) => onChange({ reference: e.target.value })} className="font-mono" />
+          <Input
+            value={draft.reference}
+            onChange={(e) => onChange({ reference: e.target.value })}
+            className="font-mono"
+          />
         </EditField>
         <EditField label={COPY.group}>
           <Input value={draft.group} onChange={(e) => onChange({ group: e.target.value })} />

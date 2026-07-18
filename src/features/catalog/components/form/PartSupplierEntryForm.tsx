@@ -69,7 +69,9 @@ export function PartSupplierEntryForm({ value, onChange }: IPartSupplierEntryFor
             inputMode="decimal"
             step="0.01"
             value={entry.cost ?? ""}
-            onChange={(e) => set("cost", e.target.value === "" ? undefined : Number(e.target.value))}
+            onChange={(e) =>
+              set("cost", e.target.value === "" ? undefined : Number(e.target.value))
+            }
             className="h-8"
           />
         </div>
@@ -79,7 +81,9 @@ export function PartSupplierEntryForm({ value, onChange }: IPartSupplierEntryFor
             type="number"
             inputMode="numeric"
             value={entry.quantity ?? ""}
-            onChange={(e) => set("quantity", e.target.value === "" ? undefined : Number(e.target.value))}
+            onChange={(e) =>
+              set("quantity", e.target.value === "" ? undefined : Number(e.target.value))
+            }
             className="h-8"
           />
         </div>

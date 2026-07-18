@@ -1,5 +1,9 @@
 import type { ID, IPart, IPartCrossReference, IPartSupplier, PartCategory } from "@/shared/types";
-import { applicationsToDrafts, draftsToApplications, type IApplicationDraft } from "./applicationDrafts";
+import {
+  applicationsToDrafts,
+  draftsToApplications,
+  type IApplicationDraft,
+} from "./applicationDrafts";
 import { resolvePriceTables } from "./pricing";
 import { CATALOG_STRINGS } from "../i18n/pt-BR";
 
@@ -126,7 +130,13 @@ export function validatePartDraft(draft: IPartDraft): IPartDraftErrors {
 
 export function isSupplierEntryFillable(entry: INewSupplierEntryDraft | null): boolean {
   if (!entry) return false;
-  return Boolean(entry.name.trim() && entry.cost != null && entry.cost > 0 && entry.quantity != null && entry.quantity > 0);
+  return Boolean(
+    entry.name.trim() &&
+    entry.cost != null &&
+    entry.cost > 0 &&
+    entry.quantity != null &&
+    entry.quantity > 0,
+  );
 }
 
 function nextSupplierId(partId: string): string {
@@ -161,7 +171,11 @@ function appendSupplierEntry(
  * `PartPriceHistory` (reads `before/after.unitPrice`) and other consumers of
  * `marginPercent` (quotes, part-lookup) stay correct without touching their code.
  */
-export function buildPartPatch(part: IPart, draft: IPartDraft, priceLocked: boolean): Partial<IPart> {
+export function buildPartPatch(
+  part: IPart,
+  draft: IPartDraft,
+  priceLocked: boolean,
+): Partial<IPart> {
   const oemCodes = parseOemCodes(draft.oemPrimary, draft.oemAlternatives);
   const padrao = draft.priceTables.find((t) => t.id === "padrao");
 

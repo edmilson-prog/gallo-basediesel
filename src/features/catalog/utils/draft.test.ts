@@ -83,7 +83,9 @@ describe("toPartDraft", () => {
 
   it("maps existing fiscal data as-is", () => {
     const draft = toPartDraft(
-      makePart({ fiscal: { ncm: "8421.23.00", icmsPercent: 17, taxSubstitution: true, origin: "Nacional" } }),
+      makePart({
+        fiscal: { ncm: "8421.23.00", icmsPercent: 17, taxSubstitution: true, origin: "Nacional" },
+      }),
     );
     expect(draft.fiscal).toEqual({
       ncm: "8421.23.00",
@@ -95,7 +97,13 @@ describe("toPartDraft", () => {
 
   it("maps logistics and stock fields", () => {
     const draft = toPartDraft(
-      makePart({ weightKg: 1.2, storageLocation: "A-12", boxQuantity: 10, fractionable: true, unitOfMeasure: "PC" }),
+      makePart({
+        weightKg: 1.2,
+        storageLocation: "A-12",
+        boxQuantity: 10,
+        fractionable: true,
+        unitOfMeasure: "PC",
+      }),
     );
     expect(draft.weightKg).toBe(1.2);
     expect(draft.storageLocation).toBe("A-12");
@@ -114,11 +122,7 @@ describe("toPartDraft", () => {
   });
 });
 
-import {
-  buildPartPatch,
-  isSupplierEntryFillable,
-  validatePartDraft,
-} from "./draft";
+import { buildPartPatch, isSupplierEntryFillable, validatePartDraft } from "./draft";
 
 describe("validatePartDraft", () => {
   it("requires name, OEM primary, brand and category", () => {

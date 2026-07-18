@@ -57,7 +57,11 @@ export function PartCrossReferenceEditor({ value, onChange }: IPartCrossReferenc
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]">
         <div>
           <Label className="text-[10px] uppercase">Marca</Label>
-          <Input value={draftBrand} onChange={(e) => setDraftBrand(e.target.value)} className="h-8" />
+          <Input
+            value={draftBrand}
+            onChange={(e) => setDraftBrand(e.target.value)}
+            className="h-8"
+          />
         </div>
         <div>
           <Label className="text-[10px] uppercase">Código</Label>
