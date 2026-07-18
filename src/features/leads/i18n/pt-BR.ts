@@ -66,6 +66,7 @@ export const LEADS_STRINGS = {
     indicacao: "Indicação",
     google: "Google",
     outro: "Outro",
+    import: "Importado",
   },
   card: {
     estimatedValue: "Valor estimado",

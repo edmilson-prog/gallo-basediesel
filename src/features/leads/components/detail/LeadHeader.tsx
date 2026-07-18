@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { formatPhone } from "@/shared/utils/format";
 import {
-  ORIGIN_META,
+  getOriginMeta,
   TEMPERATURE_META,
   getInitials,
   isConverted,
@@ -39,7 +39,7 @@ export function LeadHeader({
 }: ILeadHeaderProps) {
   const navigate = useNavigate();
   const tempMeta = TEMPERATURE_META[lead.temperature];
-  const originMeta = ORIGIN_META[lead.origin];
+  const originMeta = getOriginMeta(lead.origin);
   const converted = isConverted(lead);
   const lost = isLost(lead);
 
