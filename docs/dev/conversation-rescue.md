@@ -303,6 +303,7 @@ interface IConversationRescueSettings {
   temporaryAbsenceGraceMinutes: number;     // default 15
   forceAssignTimeoutMinutes: number;        // default 5
   fallbackSellerIds: ID[];                  // default []
+  maxClientWaitHours: number;               // default 24 (incidente 2026-07-18)
 }
 ```
 
@@ -322,10 +323,12 @@ Tela: `Configurações → Operação → Resgate de conversas` (Owner-only). **
 
 ## Testes
 
-- **Vitest TDD** nos engines: `determineAbsence.test.ts` (7 casos — online, fora da agenda,
-  dentro da carência, além da carência, `ausente`/`ocupado`/`offline` tratados igual, limite
-  exato), `pickFallbackSeller.test.ts` (5 casos — lista vazia, candidato único, determinismo por
-  seed, distribuição entre seeds diferentes, id sempre pertence à lista).
+- **Vitest TDD** nos engines: `determineAbsence.test.ts` (9 casos — os 6 originais + janela
+  máxima: backlog `temporary`, backlog `schedule`, limite exato de 24h inclusivo),
+  `rescueCooldown.test.ts` (8 casos — vazio, claim recente, cooldown vencido, `forcedAt` vence
+  `createdAt`, piso `createdAt` p/ cancelados, entrada recente entre antigas, limite exato
+  exclusivo, constante = 60), `pickFallbackSeller.test.ts` (5 casos — lista vazia, candidato
+  único, determinismo por seed, distribuição entre seeds diferentes, id sempre pertence à lista).
 - **`supabase/tests/rls-regression.sql`** — bloco "Offline-rescue (spec 2026-07-17)": planta um
   resgate `broadcasting` numa conversa atribuída ao Owner (inacessível para o seller "lucas"),
   depois assere: (1) SELECT de `conversation_rescues` nega a linha para quem não acessa a
@@ -336,23 +339,59 @@ Tela: `Configurações → Operação → Resgate de conversas` (Owner-only). **
   falhar de verdade — foram estreitados para checar o SQLSTATE exato esperado
   (`when insufficient_privilege` / `if sqlstate <> 'P0004' then raise`), então um regression real
   (RPC parar de negar o acesso, ou permitir claim duplo) agora derruba o teste em vez de passar em
-  silêncio.
+  silêncio. **Caso novo (incidente 2026-07-18):** planta um segundo resgate com o Owner como
+  ausente e assere que o próprio ausente não consegue reclamar (`P0006`).
 - Gate de CI: `bun run build` + `bun run test`.
 
-## Rollout (status atual — nada em produção ainda)
+## Incidente 2026-07-18 (1º smoke em produção) e correções
 
-1. ✅ Migration escrita e commitada (`20260717170000_conversation_rescues.sql`) — **não aplicada**
-   via MCP; falta OK explícito do dono.
-2. ✅ Edge Function `conversation-rescue-tick` escrita e commitada — **não deployada**.
-3. ✅ Migrations do worker secret e do `pg_cron` escritas e commitadas — **não aplicadas**; o job
-   não está agendado.
-4. ✅ Frontend (provider, UI, settings page) já commitado, com `enabled=false` em todas as
-   lojas por padrão — pode ir para produção com segurança mesmo antes dos passos 1–3, já que a
-   tabela ainda não existindo faz `list()`/`claim()` falharem graciosamente (nenhuma linha nunca
-   aparece porque não há tick criando-as).
-5. ⏳ Pendente: dono aprova aplicar as 3 migrations via MCP → deploy da Edge Function → confirmar
-   o job no `pg_cron` → ligar `enabled` por loja e configurar `fallbackSellerIds` (ex.: Owner/
-   Gestor como reserva).
+O dono ligou o toggle da Matriz às ~19:51 UTC e em segundos a tela encheu de ofertas; às 20:02 o
+tick forçou 8 atribuições para 4 vendedores online antes do disable ganhar a corrida (revertidas
+com aprovação do dono — audit `conversation_rescue_incident_revert`). Cinco causas combinadas:
+
+1. **Loop de re-broadcast** — o claim não limpa `awaiting_reply_since` (só uma resposta real
+   limpa, trigger do sub-projeto A) e não havia cooldown: se quem assumiu não estava `online`, a
+   MESMA conversa re-qualificava no tick seguinte. A carência de 15 min usa
+   `awaiting_reply_since` como relógio — para esperas antigas ela está permanentemente vencida.
+2. **Painel sem filtro de audiência** — a oferta aparecia para qualquer usuário que a RLS
+   deixasse ver (Owner vê tudo), sem checar se o espectador estava online nem se era o próprio
+   ausente. O dono (offline, ausente) viu e reclamou as próprias conversas.
+3. **RPC aceitava self-claim** — alimentando o loop por API.
+4. **Avalanche de backlog** — ligar o toggle varria o estoque inteiro de esperas antigas
+   (herdadas do backfill do sub-projeto A), não só eventos novos.
+5. **`availability` manual** — o dono navegando na plataforma contava como "ausente temporário"
+   (limitação conhecida, documentada abaixo; presença real segue fora de escopo).
+
+Correções (todas nesta base de código):
+
+- **Cooldown de 60 min pós-resolução** — `engine/rescueCooldown.ts`
+  (`RESCUE_REBROADCAST_COOLDOWN_MINUTES`, `isWithinRescueCooldown`, puro + testado + espelhado);
+  `broadcastNewRescues` pula conversas com resgate resolvido (claimed/forced/cancelled) na
+  janela. Para linhas `cancelled` o piso é `created_at` (não há coluna de timestamp de
+  cancelamento) — aproximação aceitável porque broadcasts vivem minutos.
+- **Janela máxima de espera** — `maxClientWaitHours` (default 24, parametrizável na tela) checado
+  PRIMEIRO em `determineAbsence`, antes inclusive do ramo `schedule`: espera mais velha que a
+  janela nunca gera resgate — é território dos alertas de ociosidade (sub-projeto A). Isso também
+  imuniza o enable contra o backlog.
+- **Filtro de audiência no painel** — `useRescueBroadcastQueue` só popula a fila se o espectador
+  está `online` (via `sellersProvider.get(sellerId)` no mesmo poll de 15 s) e nunca inclui
+  resgates onde ele é o próprio ausente. Painel com teto visual (3 cards + "Mostrar mais N",
+  `max-h-[70vh]` com scroll).
+- **Guarda anti-self-claim na RPC** — migration
+  `20260718210000_conversation_rescue_claim_guards.sql` re-cria `claim_conversation_rescue` com
+  rejeição `P0006` quando `claimer = absent_seller_id`, posicionada ANTES do recheque de
+  vivacidade (P0005) — self-claim deve vencer staleness, e o teste RLS depende dessa ordem.
+
+## Rollout
+
+1. ✅ Migrations aplicadas em prod (2026-07-18, com OK do dono): tabela/RLS/RPC, worker secret e
+   `pg_cron` (job `conversation-rescue-tick`, 1×/min, `active=true`).
+2. ✅ Edge Function `conversation-rescue-tick` deployada (ACTIVE).
+3. ⚠️ **Incidente no 1º smoke** (seção acima) — feature desligada; correções aguardando:
+   aplicar `20260718210000_conversation_rescue_claim_guards.sql` + redeploy do tick (espelhos
+   re-sincronizados) + deploy do frontend, cada gate com OK do dono.
+4. ⏳ Religar `enabled` por loja **depois** das correções em produção, de preferência com
+   `fallbackSellerIds` configurado.
 
 ## Fora de escopo (nesta entrega)
 
